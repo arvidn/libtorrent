@@ -105,7 +105,9 @@ namespace libtorrent
 			, int block_size
 			, storage_constructor_type sc
 			, bool paused
-			, entry const& resume_data);
+			, entry const* resume_data
+			, int seq
+			, bool auto_managed);
 
 		// used with metadata-less torrents
 		// (the metadata is downloaded from the peers)
@@ -120,7 +122,9 @@ namespace libtorrent
 			, int block_size
 			, storage_constructor_type sc
 			, bool paused
-			, entry const& resume_data);
+			, entry const* resume_data
+			, int seq
+			, bool auto_managed);
 
 		~torrent();
 
@@ -146,6 +150,9 @@ namespace libtorrent
 		void on_piece_checked(int ret, disk_io_job const& j);
 		void files_checked();
 		void start_checking();
+
+		float seed_cycles(session_settings const& s) const;
+		int seed_cycles_int(session_settings const& s) const { return int(seed_cycles(s)); }
 
 		storage_mode_t storage_mode() const { return m_storage_mode; }
 		// this will flag the torrent as aborted. The main
@@ -179,6 +186,9 @@ namespace libtorrent
 		void resume();
 		bool is_paused() const { return m_paused; }
 		void save_resume_data();
+
+		bool is_auto_managed() const { return m_auto_managed; }
+		void auto_managed(bool a);
 
 		void delete_files();
 
@@ -562,6 +572,8 @@ namespace libtorrent
 		// a return value of false indicates an error
 		bool set_metadata(entry const& metadata, std::string& error);
 
+		int sequence_number() const { return m_sequence_number; }
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
@@ -592,6 +604,13 @@ namespace libtorrent
 		// this is true from the time when the torrent was
 		// paused to the time should_request() is called
 		bool m_just_paused;
+
+		// if this is true, libtorrent may pause and resume
+		// this torrent depending on queuing rules. Torrents
+		// started with auto_managed flag set may be added in
+		// a paused state in case there are no available
+		// slots.
+		bool m_auto_managed;
 
 		tracker_request::event_t m_event;
 

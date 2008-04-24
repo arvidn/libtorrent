@@ -1,3 +1,6 @@
+	* receive buffer optimizations (memcpy savings and memory savings)
+	* Support for specifying the TOS byte for peer traffic.
+	* Basic support for queueing of torrents.
 	* Better bias to give connections to downloading torrents
 	  with fewer peers.
 	* Optimized resource usage (removed the checking thread)

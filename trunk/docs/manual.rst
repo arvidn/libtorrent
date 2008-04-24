@@ -59,7 +59,6 @@ For documentation on these types, please refer to the `asio documentation`_.
 
 .. _`asio documentation`: http://asio.sourceforge.net/asio-0.3.8/doc/asio/reference.html
 
-
 session
 =======
 
@@ -77,25 +76,7 @@ The ``session`` class has the following synopsis::
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = 0);
 
-		torrent_handle add_torrent(
-			boost::intrusive_ptr<torrent_info> const& ti
-			, boost::filesystem::path const& save_path
-			, entry const& resume_data = entry()
-			, storage_mode_t storage_mode = storage_mode_sparse
-			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor
-			, void* userdata = 0);
-
-		torrent_handle add_torrent(
-			char const* tracker_url
-			, sha1_hash const& info_hash
-			, char const* name
-			, boost::filesystem::path const& save_path
-			, entry const& resume_data = entry()
-			, storage_mode_t storage_mode = storage_mode_sparse
-			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor
-			, void* userdata = 0);
+		torrent_handle add_torrent(add_torrent_params const& params);
 
 		session_proxy abort();
 
@@ -242,34 +223,48 @@ add_torrent()
 			boost::intrusive_ptr<torrent_info const>, fs::path const&
 			, file_pool&);
 
-		torrent_handle add_torrent(
-			boost::intrusive_ptr<torrent_info> const& ti
-			, boost::filesystem::path const& save_path
-			, entry const& resume_data = entry()
-			, storage_mode_t storage_mode = storage_mode_sparse
-			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor
-			, void* userdata = 0);
+		struct add_torrent_params
+		{
+			add_torrent_params(storage_constructor_type s);
 
-		torrent_handle add_torrent(
-			char const* tracker_url
-			, sha1_hash const& info_hash
-			, char const* name
-			, boost::filesystem::path const& save_path
-			, entry const& resume_data = entry()
-			, storage_mode_t storage_mode = storage_mode_sparse
-			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor
-			, void* userdata = 0);
+			boost::intrusive_ptr<torrent_info> ti;
+			char const* tracker_url;
+			sha1_hash info_hash;
+			char const* name;
+			fs::path save_path;
+			entry const* resume_data;
+			storage_mode_t storage_mode;
+			bool paused;
+			bool auto_managed;
+			bool duplicate_is_error;
+			storage_constructor_type storage;
+			void* userdata;
+		};
+
+		torrent_handle add_torrent(add_torrent_params const& params);
 
 You add torrents through the ``add_torrent()`` function where you give an
-object representing the information found in the torrent file and the path where you
-want to save the files. The ``save_path`` will be prepended to the directory
-structure in the torrent-file.
+object with all the parameters.
+
+The only mandatory parameter is ``save_path`` which is the directory where you
+want the files to be saved. You also need to specify either the ``ti`` (the
+torrent file) or ``info_hash`` (the info hash of the torrent). If you specify the
+info-hash, the torrent file will be downloaded from peers, which requires them to
+support the metadata extension. For the metadata extension to work, libtorrent must
+be built with extensions enabled (``TORRENT_DISABLE_EXTENSIONS`` must not be
+defined). It also takes an optional ``name`` argument. This may be 0 in case no
+name should be assigned to the torrent. In case it's not 0, the name is used for
+the torrent as long as it doesn't have metadata. See ``torrent_handle::name``.
+
+If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
+``tracker_url`` can be 0, otherwise you might specify a tracker url that tracks this
+torrent.
 
 If the torrent you are trying to add already exists in the session (is either queued
 for checking, being checked or downloading) ``add_torrent()`` will throw
-duplicate_torrent_ which derives from ``std::exception``.
+duplicate_torrent_ which derives from ``std::exception`` unless ``duplicate_is_error``
+is set to false. In that case, ``add_torrent`` will return the handle to the existing
+torrent.
 
 The optional parameter, ``resume_data`` can be given if up to date fast-resume data
 is available. The fast-resume data can be acquired from a running torrent by calling
@@ -299,28 +294,22 @@ a paused state. I.e. it won't connect to the tracker or any of the peers until i
 resumed. This is typically a good way of avoiding race conditions when setting
 configuration options on torrents before starting them.
 
-``storage_constructor`` can be used to customize how the data is stored. The default
+If ``auto_managed`` is true, this torrent will be queued, started and seeded
+automatically by libtorrent. When this is set, the torrent should also be started
+as paused. The default queue order is the order the torrents were added. They
+are all downloaded in that order. For more details, see queuing_.
+
+``storage`` can be used to customize how the data is stored. The default
 storage will simply write the data to the files it belongs to, but it could be
 overridden to save everything to a single file at a specific location or encrypt the
 content on disk for instance. For more information about the ``storage_interface``
 that needs to be implemented for a custom storage, see `storage_interface`_.
 
-The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
-about the torrent's progress, its peers etc. It is also used to abort a torrent.
-
 The ``userdata`` parameter is optional and will be passed on to the extension
 constructor functions, if any (see `add_extension()`_).
 
-The second overload that takes a tracker url and an info-hash instead of metadata
-(``torrent_info``) can be used with torrents where (at least some) peers support
-the metadata extension. For the overload to be available, libtorrent must be built
-with extensions enabled (``TORRENT_DISABLE_EXTENSIONS`` must not be defined). It also
-takes an optional ``name`` argument. This may be 0 in case no name should be assigned
-to the torrent. In case it's not 0, the name is used for the torrent as long as it doesn't
-have metadata. See ``torrent_handle::name``.
-
-If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
-``tracker_url`` can be 0.
+The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
+about the torrent's progress, its peers etc. It is also used to abort a torrent.
 
 
 remove_torrent()
@@ -1624,13 +1613,9 @@ Its declaration looks like this::
 
 		void prioritize_files(std::vector<int> const& files) const;
 
-		// these functions are deprecated
-		void filter_piece(int index, bool filter) const;
-		void filter_pieces(std::vector<bool> const& bitmask) const;
-		bool is_piece_filtered(int index) const;
-		std::vector<bool> filtered_pieces() const;
-		void filter_files(std::vector<bool> const& files) const;
-      
+		bool is_auto_managed() const;
+		void auto_managed(bool m) const;
+
 		bool has_metadata() const;
 
 		boost::filesystem::path save_path() const;
@@ -1649,8 +1634,8 @@ valid handle. If you try to perform any operation on an uninitialized handle,
 it will throw ``invalid_handle``.
 
 .. warning:: All operations on a ``torrent_handle`` may throw invalid_handle_
-	exception, in case the handle is no longer refering to a torrent. There are
-	two exceptions, ``info_hash()`` and ``is_valid()`` will never throw.
+	exception, in case the handle is no longer refering to a torrent. There is
+	one exception ``is_valid()`` will never throw.
 	Since the torrents are processed by a background thread, there is no
 	guarantee that a handle will remain valid between two calls.
 
@@ -1894,6 +1879,17 @@ is_seed()
 
 Returns true if the torrent is in seed mode (i.e. if it has finished downloading).
 
+is_auto_managed() auto_managed()
+--------------------------------
+
+	::
+
+		bool is_auto_managed() const;
+		void auto_managed(bool m) const;
+
+``is_auto_managed()`` returns true if this torrent is currently *auto managed*.
+``auto_managed()`` changes whether the torrent is auto managed or not. For more info,
+see queuing_.
 
 has_metadata()
 --------------
@@ -2188,8 +2184,6 @@ somehow invalid or if the filenames are not allowed (and hence cannot be opened/
 your filesystem. If such an error occurs, a file_error_alert_ is generated and all handles
 that refers to that torrent will become invalid.
 
-*TODO: document storage*
-
 
 torrent_status
 ==============
@@ -2270,6 +2264,8 @@ It contains the following fields::
 
 		int active_time;
 		int seeding_time;
+
+		float seed_cycles;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -2440,6 +2436,12 @@ number of seconds this torrent has been active (not paused) and the number of
 seconds it has been active while being a seed. ``seeding_time`` should be >=
 ``active_time`` They are saved in and restored from resume data, to keep totals
 across sessions.
+
+``seed_cycles`` is the number of times this torrent has reached the seed limits.
+It will keep being seeded, but it will rotate between torrents that haven't
+completed as many cycles. The fraction part of this number is the progress
+of the current cycle. For more information, see queuing_.
+
 
 peer_info
 =========
@@ -2812,6 +2814,13 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int cache_expiry;
 		std::pair<int, int> outgoing_ports;
 		char peer_tos;
+
+		int active_downloads;
+		int active_seeds;
+		int auto_manage_interval;
+		float share_ratio_limit;
+		float seed_time_ratio_limit;
+		int seed_time_limit;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3013,6 +3022,24 @@ sent to peers (including web seeds). The default value for this is ``0x0``
 the *QBone scavenger service*. For more details, see QBSS_.
 
 .. _`QBSS`: http://qbone.internet2.edu/qbss/
+
+``active_downloads`` and ``active_seeds`` controls how many active seeding and
+downloading torrents the queuing mechanism allows. Seeding torrents are
+counted against the downloads limit but downloading torrenst are not
+counted against the seed limit.
+
+``auto_manage_interval`` is the number of seconds between the torrent queue
+is updated, and rotated.
+
+``share_ratio_limit`` is the upload / download ratio limit for considering a
+seeding torrent have completed one seed cycle. See queuing_.
+
+``seed_time_ratio_limit`` is the seeding time / downloading time ratio limit
+for considering a seeding torrent to have completed one seed cycle. See queuing_.
+
+``seed_time_limit`` is the limit on the time a torrent has been an active seed
+(specified in seconds) before it is considered having completed one seed cycle.
+See queuing_.
 
 
 pe_settings
@@ -4447,6 +4474,53 @@ delete_files()
 		void delete_files() = 0;
 
 This function should delete all files and directories belonging to this storage.
+
+
+queuing
+=======
+
+libtorrent supports *queuing*. Which means it makes sure that a limited number of
+torrents are being downloaded at any given time, and once a torrent is completely
+downloaded, the next in line is started.
+
+Torrents that are *auto managed* are subject to the queuing and the active torrents
+limits. To make a torrent auto managed, set ``auto_managed`` to true when adding the
+torrent (see `add_torrent()`_).
+
+The limits of the number of downloading and seeding torrents are controlled via
+``active_downloads`` and ``active_seeds`` in session_settings_. These limits takes
+non auto managed torrents into account as well. If there are are more non-auto managed
+torrents being downloaded than the ``active_downloads`` setting, any auto managed
+torrents will be queued until torrents are removed so that the number drops below
+the limit.
+
+Seeding torrents counts as downloads, but downloading torrents don't count as
+seeding. So, ``active_downloads`` should typically be greater than ``active_seeds``.
+The default values are 8 active downloads and 5 active seeds.
+
+At a regular interval, torrents are checked if there needs to be any re-ordering of
+which torrents are active and which are queued. This interval can be controlled via
+``auto_manage_interval`` in session_settings_. It defaults to every 30 seconds.
+
+For queuing to work, resume data needs to be saved and restored for all torrents.
+See `save_resume_data()`_.
+
+downloading
+-----------
+
+**TODO: finish**
+
+seeding
+-------
+
+Auto managed seeding torrents are rotated, so that all of them are allocated a fair
+amount of seeding. Torrents with fewer completed *seed cycles* are prioritized for
+seeding. A seed cycle is completed when a torrent meets either the share ratio limit
+(uploaded bytes / downloaded bytes), the share time ratio (time seeding / time
+downloaing) or seed time limit (time seeded).
+
+The relevant settings to control these limits are ``share_ratio_limit``,
+``seed_time_ratio_limit`` and ``seed_time_limit`` in session_settings_.
 
 
 fast resume

@@ -265,6 +265,18 @@ namespace libtorrent
 		TORRENT_FORWARD(resume());
 	}
 
+	bool torrent_handle::is_auto_managed() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD_RETURN(is_auto_managed(), true);
+	}
+
+	void torrent_handle::auto_managed(bool m) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(auto_managed(m));
+	}
+
 	void torrent_handle::set_tracker_login(std::string const& name
 		, std::string const& password) const
 	{

@@ -529,9 +529,16 @@ void add_torrent(libtorrent::session& ses
 	catch (invalid_encoding&) {}
 	catch (boost::filesystem::filesystem_error&) {}
 
-	torrent_handle h = ses.add_torrent(t, save_path, resume_data
-		, compact_mode ? storage_mode_compact : storage_mode_sparse, false
-		); //, mapped_storage_constructor);
+	add_torrent_params p;
+	p.ti = t;
+	p.save_path = save_path;
+	p.resume_data = &resume_data;
+	p.storage_mode = compact_mode ? storage_mode_compact : storage_mode_sparse;
+	p.paused = true;
+	p.duplicate_is_error = false;
+	p.auto_managed = true;
+	torrent_handle h = ses.add_torrent(p);
+
 	handles.insert(std::make_pair(
 		monitored_dir?std::string(torrent):std::string(), h));
 
@@ -948,9 +955,16 @@ int main(int ac, char* av[])
 				{
 					sha1_hash info_hash = boost::lexical_cast<sha1_hash>(what[1]);
 
-					torrent_handle h = ses.add_torrent(std::string(what[2]).c_str()
-						, info_hash, 0, save_path, entry(), compact_allocation_mode ? storage_mode_compact
-						: storage_mode_sparse, false); // , mapped_storage_constructor);
+					add_torrent_params p;
+					p.name = std::string(what[2]).c_str();
+					p.info_hash = info_hash;
+					p.save_path = save_path;
+					p.storage_mode = compact_allocation_mode ? storage_mode_compact : storage_mode_sparse;
+					p.paused = true;
+					p.duplicate_is_error = false;
+					p.auto_managed = true;
+					torrent_handle h = ses.add_torrent(p);
+
 					handles.insert(std::make_pair(std::string(), h));
 
 					h.set_max_connections(50);
@@ -1203,25 +1217,27 @@ int main(int ac, char* av[])
 					++i;
 				}
 
-				out << "- " << esc("37") << std::setw(40)
-					<< std::setiosflags(std::ios::left);
-				if (h.has_metadata())
-				{
-					std::string name = h.get_torrent_info().name();
-					if (name.size() > 40) name.resize(40);
-					out << name;
-				}
-				else
-				{
-					out << "-";
-				}
+				out << "- ";
+				if (h.is_paused()) out << esc("34");
+				else out << esc("37");
+				out << std::setw(40) << std::setiosflags(std::ios::left);
+				  
+				std::string name = h.name();
+				if (name.size() > 40) name.resize(40);
+				out << name;
+
 				out << esc("0") << " ";
+
 				torrent_status s = h.status();
 
-				if (s.state != torrent_status::seeding)
+				bool paused = h.is_paused();
+				bool auto_managed = h.is_auto_managed();
+				if (paused && !auto_managed) out << "paused  ";
+				else if (paused && auto_managed) out << "queued  ";
+				else
 				{
 					static char const* state_str[] =
-						{"queued", "checking", "connecting", "downloading metadata"
+						{"queued for checking", "checking", "connecting", "downloading metadata"
 						, "downloading", "finished", "seeding", "allocating"};
 					out << state_str[s.state] << " ";
 				}
@@ -1270,7 +1286,7 @@ int main(int ac, char* av[])
 					<< "  bw queue: (" << s.up_bandwidth_queue << " | " << s.down_bandwidth_queue << ") "
 					"all-time (" << s.active_time - s.seeding_time << "/" << s.active_time << ")"
 					" (Rx: " << esc("32") << add_suffix(s.all_time_download) << esc("0")
-					<< " Tx: " << esc("31") << add_suffix(s.all_time_upload) << esc("0") << ")\n";
+					<< " Tx: " << esc("31") << add_suffix(s.all_time_upload) << esc("0") << ") " << s.seed_cycles << "\n";
 				if (s.state != torrent_status::seeding)
 				{
 					boost::posix_time::time_duration t = s.next_announce;
@@ -1336,7 +1352,7 @@ int main(int ac, char* av[])
 						}
 						char* piece_state[4] = {"", "slow", "medium", "fast"};
 						out << "] " << piece_state[i->piece_state];
-						if (cp) out << (i->piece_state > 0?" | ":"") << "cache age: " << total_seconds(time_now() - cp->last_use);
+						if (cp) out << (i->piece_state > 0?" | ":"") << "cache age: " << (total_milliseconds(time_now() - cp->last_use) / 1000.f);
 						out << "\n";
 					}
 

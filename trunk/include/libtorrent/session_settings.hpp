@@ -128,6 +128,12 @@ namespace libtorrent
 			, cache_expiry(60)
 			, outgoing_ports(0,0)
 			, peer_tos(0)
+			, active_downloads(8)
+			, active_seeds(5)
+			, auto_manage_interval(30)
+			, share_ratio_limit(2.f)
+			, seed_time_ratio_limit(7.f)
+			, seed_time_limit(24 * 60 * 60) // 24 hours
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -347,8 +353,31 @@ namespace libtorrent
 		// http://qbone.internet2.edu/qbss/
 		// For unmarked packets, set to 0
 		char peer_tos;
-	};
+
+		// for auto managed torrents, these are the limits
+		// they are subject to. If there are too many torrents
+		// some of the auto managed ones will be paused until
+		// some slots free up.
+		int active_downloads;
+		int active_seeds;
+
+		// the number of seconds in between recalculating which
+		// torrents to activate and which ones to queue
+		int auto_manage_interval;
 	
+		// when a seeding torrent reaches eaither the share ratio
+		// (bytes up / bytes down) or the seed time ratio
+		// (seconds as seed / seconds as downloader) or the seed
+		// time limit (seconds as seed) it is considered
+		// done, and it will leave room for other torrents
+		// the default value for share ratio is 2
+		// the default seed time ratio is 7, because that's a common
+		// asymmetry ratio on connections
+		float share_ratio_limit;
+		float seed_time_ratio_limit;
+		int seed_time_limit;
+	};
+
 #ifndef TORRENT_DISABLE_DHT
 	struct dht_settings
 	{
