@@ -613,7 +613,8 @@ namespace libtorrent
 		struct tracker_logger : request_callback
 		{
 			tracker_logger(session_impl& ses): m_ses(ses) {}
-			void tracker_warning(std::string const& str)
+			void tracker_warning(tracker_request const& req
+				, std::string const& str)
 			{
 				debug_log("*** tracker warning: " + str);
 			}
