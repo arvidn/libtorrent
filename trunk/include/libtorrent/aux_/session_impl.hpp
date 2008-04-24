@@ -509,6 +509,10 @@ namespace libtorrent
 			// port we'll bind the next outgoing socket to
 			int m_next_port;
 
+			// the sequence number to assign to the
+			// next torrent that's added
+			int m_torrent_sequence;
+
 #ifndef TORRENT_DISABLE_DHT
 			boost::intrusive_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
@@ -521,10 +525,6 @@ namespace libtorrent
 			// see m_external_listen_port. This is the same
 			// but for the udp port used by the DHT.
 			int m_external_udp_port;
-
-			// the sequence number to assign to the
-			// next torrent that's added
-			int m_torrent_sequence;
 
 			udp_socket m_dht_socket;
 

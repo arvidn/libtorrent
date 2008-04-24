@@ -164,10 +164,10 @@ namespace aux {
 		, m_disconnect_time_scaler(90)
 		, m_incoming_connection(false)
 		, m_last_tick(time_now())
+		, m_torrent_sequence(0)
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
-		, m_torrent_sequence(0)
 		, m_dht_socket(m_io_service, bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, m_half_open)
 #endif
