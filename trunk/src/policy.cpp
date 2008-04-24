@@ -1348,8 +1348,8 @@ namespace libtorrent
 		{
 			std::pair<const int, int>* lhs_as = lhs.inet_as;
 			std::pair<const int, int>* rhs_as = rhs.inet_as;
-			if (lhs_as ? lhs_as->second : 0 > rhs_as ? rhs->second : 0) return true;
-			if (lhs_as ? lhs_as->second : 0 < rhs_as ? rhs->second : 0) return false;
+			if (lhs_as ? lhs_as->second : 0 > rhs_as ? rhs_as->second : 0) return true;
+			if (lhs_as ? lhs_as->second : 0 < rhs_as ? rhs_as->second : 0) return false;
 		}
 #endif
 		int lhs_distance = cidr_distance(external_ip, lhs.ip.address());
