@@ -344,7 +344,8 @@ namespace libtorrent
 	}
 
 	policy::policy(torrent* t)
-		: m_torrent(t)
+		: m_round_robin(m_peers.end())
+		, m_torrent(t)
 		, m_available_free_upload(0)
 		, m_num_connect_candidates(0)
 	{ TORRENT_ASSERT(t); }
@@ -484,8 +485,7 @@ namespace libtorrent
 			external_ip = address_v4(bytes);
 		}
 
-		if (m_round_robin == iterator() || m_round_robin == m_peers.end())
-			m_round_robin = m_peers.begin();
+		if (m_round_robin == m_peers.end()) m_round_robin = m_peers.begin();
 
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
 			iterations > 0; ++m_round_robin, --iterations)

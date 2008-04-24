@@ -267,16 +267,16 @@ namespace libtorrent
 		bool compare_peer(policy::peer const& lhs, policy::peer const& rhs
 			, address const& external_ip) const;
 
-		// since the peer list can grow too large
-		// to scan all of it, start at this iterator
-		iterator m_round_robin;
-
 		iterator find_disconnect_candidate();
 		iterator find_connect_candidate();
 
 		bool is_connect_candidate(peer const& p, bool finished);
 
 		std::multimap<address, peer> m_peers;
+
+		// since the peer list can grow too large
+		// to scan all of it, start at this iterator
+		iterator m_round_robin;
 
 		torrent* m_torrent;
 
