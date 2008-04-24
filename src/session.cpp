@@ -239,6 +239,10 @@ namespace libtorrent
 		return m_impl->find_torrent_handle(info_hash);
 	}
 
+	torrent_handle session::add_torrent(add_torrent_params const& params)
+	{
+		return m_impl->add_torrent(params);
+	}
 
 	// if the torrent already exists, this will throw duplicate_torrent
 	torrent_handle session::add_torrent(
@@ -251,8 +255,13 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(!ti.m_half_metadata);
 		boost::intrusive_ptr<torrent_info> tip(new torrent_info(ti));
-		return m_impl->add_torrent(tip, save_path, resume_data
-			, storage_mode, sc, paused, 0);
+		add_torrent_params p(sc);
+		p.ti = tip;
+		p.save_path = save_path;
+		p.resume_data = &resume_data;
+		p.storage_mode = storage_mode;
+		p.paused = paused;
+		return m_impl->add_torrent(p);
 	}
 
 	torrent_handle session::add_torrent(
@@ -265,8 +274,14 @@ namespace libtorrent
 		, void* userdata)
 	{
 		TORRENT_ASSERT(!ti->m_half_metadata);
-		return m_impl->add_torrent(ti, save_path, resume_data
-			, storage_mode, sc, paused, userdata);
+		add_torrent_params p(sc);
+		p.ti = ti;
+		p.save_path = save_path;
+		p.resume_data = &resume_data;
+		p.storage_mode = storage_mode;
+		p.paused = paused;
+		p.userdata = userdata;
+		return m_impl->add_torrent(p);
 	}
 
 	torrent_handle session::add_torrent(
@@ -280,8 +295,13 @@ namespace libtorrent
 		, storage_constructor_type sc
 		, void* userdata)
 	{
-		return m_impl->add_torrent(tracker_url, info_hash, name, save_path, e
-			, storage_mode, sc, paused, userdata);
+		add_torrent_params p(sc);
+		p.tracker_url = tracker_url;
+		p.info_hash = info_hash;
+		p.save_path = save_path;
+		p.paused = paused;
+		p.userdata = userdata;
+		return m_impl->add_torrent(p);
 	}
 
 	void session::remove_torrent(const torrent_handle& h, int options)

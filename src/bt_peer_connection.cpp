@@ -2449,6 +2449,7 @@ namespace libtorrent
 
 			if (pid == m_ses.get_peer_id())
 			{
+				set_failed();
 				disconnect("closing connection to ourself");
 				return;
 			}
@@ -2465,6 +2466,7 @@ namespace libtorrent
 			// since it most likely is ourself then
 			if (pid == m_ses.get_peer_id())
 			{
+				set_failed();
 				disconnect("closing connection to ourself");
 				return;
 			}

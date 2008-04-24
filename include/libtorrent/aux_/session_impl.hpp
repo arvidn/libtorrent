@@ -198,25 +198,7 @@ namespace libtorrent
 				, const char* net_interface = 0);
 			bool is_listening() const;
 
-			torrent_handle add_torrent(
-				boost::intrusive_ptr<torrent_info> ti
-				, fs::path const& save_path
-				, entry const& resume_data
-				, storage_mode_t storage_mode
-				, storage_constructor_type sc
-				, bool paused
-				, void* userdata);
-
-			torrent_handle add_torrent(
-				char const* tracker_url
-				, sha1_hash const& info_hash
-				, char const* name
-				, fs::path const& save_path
-				, entry const& resume_data
-				, storage_mode_t storage_mode
-				, storage_constructor_type sc
-				, bool paused
-				, void* userdata);
+			torrent_handle add_torrent(add_torrent_params const&);
 
 			void remove_torrent(torrent_handle const& h, int options);
 
@@ -491,6 +473,10 @@ namespace libtorrent
 			// recomputed.
 			int m_unchoke_time_scaler;
 
+			// this is used to decide when to recalculate which
+			// torrents to keep queued and which to activate
+			int m_auto_manage_time_scaler;
+
 			// works like unchoke_time_scaler but it
 			// is only decresed when the unchoke set
 			// is recomputed, and when it reaches zero,
@@ -513,6 +499,10 @@ namespace libtorrent
 			bool m_incoming_connection;
 			
 			void second_tick(asio::error_code const& e);
+			void recalculate_auto_managed_torrents();
+			void recalculate_unchoke_slots(int congested_torrents
+				, int uncongested_torrents);
+
 			ptime m_last_tick;
 
 			// when outgoing_ports is configured, this is the
@@ -531,6 +521,10 @@ namespace libtorrent
 			// see m_external_listen_port. This is the same
 			// but for the udp port used by the DHT.
 			int m_external_udp_port;
+
+			// the sequence number to assign to the
+			// next torrent that's added
+			int m_torrent_sequence;
 
 			udp_socket m_dht_socket;
 

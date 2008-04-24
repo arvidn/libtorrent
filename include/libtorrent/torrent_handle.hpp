@@ -118,6 +118,7 @@ namespace libtorrent
 			, all_time_download(0)
 			, active_time(0)
 			, seeding_time(0)
+			, seed_cycles(0.f)
 		{}
 
 		enum state_t
@@ -255,6 +256,8 @@ namespace libtorrent
 		// from resume data
 		int active_time;
 		int seeding_time;
+
+		float seed_cycles;
 	};
 
 	struct TORRENT_EXPORT block_info
@@ -332,6 +335,9 @@ namespace libtorrent
 		void resume() const;
 		void save_resume_data() const;
 
+		bool is_auto_managed() const;
+		void auto_managed(bool m) const;
+
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
@@ -342,6 +348,7 @@ namespace libtorrent
 
 		// ================ start deprecation ============
 
+		// deprecated in 0.13
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
 		void filter_piece(int index, bool filter) const TORRENT_DEPRECATED;
@@ -370,6 +377,7 @@ namespace libtorrent
 		// to.
 		void use_interface(const char* net_interface) const;
 
+		// deprecated in 0.14
 		// use save_resume_data() instead. It is async. and
 		// will return the resume data in an alert
 		entry write_resume_data() const TORRENT_DEPRECATED;
