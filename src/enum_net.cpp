@@ -31,8 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-	
-#if defined TORRENT_BSD || defined TORRENT_LINUX
+
+#if defined TORRENT_BSD
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -44,6 +44,87 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <windows.h>
 #include <iphlpapi.h>
+#elif defined TORRENT_LINUX
+#include <asm/types.h>
+#include <netinet/ether.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+struct route_info
+{
+	u_int dst_addr;
+	u_int src_addr;
+	u_int gateway;
+	char if_name[IF_NAMESIZE];
+};
+
+int read_nl_sock(int sock, char *buf, int bufsize, int seq, int pid)
+{
+	nlmsghdr* nl_hdr;
+
+	int msg_len = 0;
+
+	do
+	{
+		int read_len = recv(sock, buf, bufsize - msg_len, 0);
+		if (read_len < 0) return -1;
+
+		nl_hdr = (nlmsghdr*)buf;
+
+		if ((NLMSG_OK(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
+			return -1;
+
+		if (nl_hdr->nlmsg_type == NLMSG_DONE) break;
+
+		buf += read_len;
+		msg_len += read_len;
+
+		if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) break;
+
+	} while((nl_hdr->nlmsg_seq != seq) || (nl_hdr->nlmsg_pid != pid));
+	return msg_len;
+}
+
+// For parsing the route info returned
+void parse_route(nlmsghdr *nl_hdr, route_info *rt_info)
+{
+	rtmsg* rt_msg = (rtmsg*)NLMSG_DATA(nl_hdr);
+
+	if((rt_msg->rtm_family != AF_INET) || (rt_msg->rtm_table != RT_TABLE_MAIN))
+		return;
+
+	int rt_len = RTM_PAYLOAD(nl_hdr);
+	for (rtattr* rt_attr = (rtattr*)RTM_RTA(rt_msg);
+		RTA_OK(rt_attr,rt_len); rt_attr = RTA_NEXT(rt_attr,rt_len))
+	{
+		switch(rt_attr->rta_type)
+		{
+		case RTA_OIF:
+			if_indextoname(*(int*)RTA_DATA(rt_attr), rt_info->if_name);
+			break;
+		case RTA_GATEWAY:
+			rt_info->gateway = *(u_int*)RTA_DATA(rt_attr);
+			break;
+		case RTA_PREFSRC:
+			rt_info->src_addr = *(u_int*)RTA_DATA(rt_attr);
+			break;
+		case RTA_DST:
+			rt_info->dst_addr = *(u_int*)RTA_DATA(rt_attr);
+			break;
+		}
+	}
+	return;
+}
 #endif
 
 #include "libtorrent/enum_net.hpp"
@@ -54,22 +135,28 @@ namespace libtorrent
 {
 	namespace
 	{
+		address inaddr_to_address(in_addr const* ina)
+		{
+			typedef asio::ip::address_v4::bytes_type bytes_t;
+			bytes_t b;
+			memcpy(&b[0], ina, b.size());
+			return address_v4(b);
+		}
+
+		address inaddr6_to_address(in6_addr const* ina6)
+		{
+			typedef asio::ip::address_v6::bytes_type bytes_t;
+			bytes_t b;
+			memcpy(&b[0], ina6, b.size());
+			return address_v6(b);
+		}
+
 		address sockaddr_to_address(sockaddr const* sin)
 		{
 			if (sin->sa_family == AF_INET)
-			{
-				typedef asio::ip::address_v4::bytes_type bytes_t;
-				bytes_t b;
-				memcpy(&b[0], &((sockaddr_in const*)sin)->sin_addr, b.size());
-				return address_v4(b);
-			}
+				return inaddr_to_address(&((sockaddr_in const*)sin)->sin_addr);
 			else if (sin->sa_family == AF_INET6)
-			{
-				typedef asio::ip::address_v6::bytes_type bytes_t;
-				bytes_t b;
-				memcpy(&b[0], &((sockaddr_in6 const*)sin)->sin6_addr, b.size());
-				return address_v6(b);
-			}
+				return inaddr6_to_address(&((sockaddr_in6 const*)sin)->sin6_addr);
 			return address();
 		}
 
@@ -394,8 +481,61 @@ namespace libtorrent
 
 		return ret;
 
-//#elif defined TORRENT_LINUX
-// No linux implementation yet
+#elif defined TORRENT_LINUX
+
+		enum { BUFSIZE = 8192 };
+
+		int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
+		if (sock < 0)
+		{
+			ec = asio::error_code(errno, asio::error::system_category);
+			return address_v4::any();
+		}
+
+		int seq = 0;
+
+		char msg[BUFSIZE];
+		memset(msg, 0, BUFSIZE);
+		nlmsghdr* nl_msg = (nlmsghdr*)msg;
+
+		nl_msg->nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
+		nl_msg->nlmsg_type = RTM_GETROUTE;
+		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
+		nl_msg->nlmsg_seq = seq++;
+		nl_msg->nlmsg_pid = getpid();
+
+		if (send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
+		{
+			ec = asio::error_code(errno, asio::error::system_category);
+			close(sock);
+			return address_v4::any();
+		}
+
+		int len = read_nl_sock(sock, msg, BUFSIZE, seq, getpid());
+		if (len < 0)
+		{
+			ec = asio::error_code(errno, asio::error::system_category);
+			close(sock);
+			return address_v4::any();
+		}
+
+		route_info rt_info;
+		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
+		{
+			memset(&rt_info, 0, sizeof(route_info));
+			parse_route(nl_msg, &rt_info);
+
+			if (rt_info.dst_addr == 0)
+			{
+				in_addr addr;
+				addr.s_addr = rt_info.gateway;
+				close(sock);
+				return inaddr_to_address(&addr);
+			}
+		}
+		close(sock);
+		return address_v4::any();
+
 #else
 		if (!interface.is_v4())
 		{
