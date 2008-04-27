@@ -96,9 +96,10 @@ dnl try different ways of resolving gethostbyname
 AC_CHECK_FUNC(gethostbyname, ,
 	AC_CHECK_LIB(resolv, gethostbyname, ,
 	AC_CHECK_LIB(nsl, gethostbyname, ,
-	AC_CHECK_LIB(ws2_32, main, ,
-	AC_CHECK_LIB(wsock32, main, ,
-	AC_MSG_ERROR([gethostbyname not found. Stopped.])))))
+	AC_CHECK_LIB(ws2_32, main, 
+	AC_CHECK_LIB(wsock32, main, [LIBS="$LIBS -lws2_32 -lwsock32";] , 
+	AC_MSG_ERROR([wsock32 not found. Stopped.])) ,
+	AC_MSG_ERROR([gethostbyname not found. Stopped.]))))
 )
 
 dnl find out what kind of logging to use
