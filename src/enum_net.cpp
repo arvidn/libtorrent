@@ -390,7 +390,7 @@ namespace libtorrent
 			ec = asio::error::operation_not_supported;
 			return address_v4::any();
 		}
-		int min_len = sizeof(rt_msghdr) + 2 * sizeof(struct sockaddr_in);
+		int min_len = sizeof(rt_msghdr) + 2 * sizeof(sockaddr_in);
 		if (m.m_rtm.rtm_msglen < min_len)
 		{
 			ec = asio::error::operation_not_supported;
@@ -498,7 +498,7 @@ namespace libtorrent
 		memset(msg, 0, BUFSIZE);
 		nlmsghdr* nl_msg = (nlmsghdr*)msg;
 
-		nl_msg->nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
+		nl_msg->nlmsg_len = NLMSG_LENGTH(sizeof(rtmsg));
 		nl_msg->nlmsg_type = RTM_GETROUTE;
 		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
 		nl_msg->nlmsg_seq = seq++;
