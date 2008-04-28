@@ -14,6 +14,14 @@ int main()
 	address local = guess_local_address(ios);
 	std::cout << "Local address: " << local << std::endl;
 
+	address def_gw = get_default_gateway(ios, ec);
+	if (ec)
+	{
+		std::cerr << ec.message() << std::endl;
+		return 1;
+	}
+	std::cout << "Default gateway: " << def_gw << std::endl;
+
 	std::cout << "=========== Routes ===========\n";
 	std::vector<ip_route> routes = enum_routes(ios, ec);
 	if (ec)
