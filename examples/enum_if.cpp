@@ -2,6 +2,7 @@
 #include <libtorrent/socket.hpp>
 #include <libtorrent/broadcast_socket.hpp>
 #include <vector>
+#include <iomanip>
 
 using namespace libtorrent;
 
@@ -9,24 +10,64 @@ int main()
 {
 	io_service ios;
 	asio::error_code ec;
-	std::vector<ip_interface> const& net = enum_net_interfaces(ios, ec);
 
 	address local = guess_local_address(ios);
 	std::cout << "Local address: " << local << std::endl;
 
-	address gateway = get_default_gateway(ios, local, ec);
-	std::cout << "Default gateway: " << gateway << std::endl;
-	std::cout << "================\n";
+	std::cout << "=========== Routes ===========\n";
+	std::vector<ip_route> routes = enum_routes(ios, ec);
+	if (ec)
+	{
+		std::cerr << ec.message() << std::endl;
+		return 1;
+	}
 
-	std::cout << "interface\tnetmask  \tflags\n";
+	std::cout << std::setiosflags(std::ios::left)
+		<< std::setw(18) << "destination"
+		<< std::setw(18) << "netmask"
+		<< std::setw(35) << "gateway"
+		<< "interface name"
+		<< std::endl;
+
+	for (std::vector<ip_route>::const_iterator i = routes.begin()
+		, end(routes.end()); i != end; ++i)
+	{
+		std::cout << std::setiosflags(std::ios::left)
+			<< std::setw(18) << i->destination
+			<< std::setw(18) << i->netmask
+			<< std::setw(35) << i->gateway
+			<< i->name
+			<< std::endl;
+	}
+
+	std::cout << "========= Interfaces =========\n";
+
+	std::vector<ip_interface> const& net = enum_net_interfaces(ios, ec);
+	if (ec)
+	{
+		std::cerr << ec.message() << std::endl;
+		return 1;
+	}
+
+	std::cout << std::setiosflags(std::ios::left)
+		<< std::setw(35) << "address"
+		<< std::setw(18) << "netmask"
+		<< std::setw(18) << "name"
+		<< "flags"
+		<< std::endl;
+
 	for (std::vector<ip_interface>::const_iterator i = net.begin()
 		, end(net.end()); i != end; ++i)
 	{
-		std::cout << i->interface_address << "\t" << i->netmask << "\t";
-		if (is_multicast(i->interface_address)) std::cout << "multicast ";
-		if (is_local(i->interface_address)) std::cout << "local ";
-		if (is_loopback(i->interface_address)) std::cout << "loopback ";
-		std::cout << std::endl;
+		std::cout << std::setiosflags(std::ios::left)
+			<< std::setw(35) << i->interface_address
+			<< std::setw(18) << i->netmask
+			<< std::setw(18) << i->name
+			<< (is_multicast(i->interface_address)?"multicast ":"")
+			<< (is_local(i->interface_address)?"local ":"")
+			<< (is_loopback(i->interface_address)?"loopback ":"")
+			
+			<< std::endl;
 	}
 
 }
