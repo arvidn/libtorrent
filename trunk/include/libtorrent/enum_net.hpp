@@ -43,12 +43,23 @@ namespace libtorrent
 	{
 		address interface_address;
 		address netmask;
+		char name[32];
+	};
+
+	struct ip_route
+	{
+		address destination;
+		address netmask;
+		address gateway;
+		char name[32];
 	};
 
 	// returns a list of the configured IP interfaces
 	// on the machine
 	TORRENT_EXPORT std::vector<ip_interface> enum_net_interfaces(asio::io_service& ios
 		, asio::error_code& ec);
+
+	TORRENT_EXPORT std::vector<ip_route> enum_routes(asio::io_service& ios, asio::error_code& ec);
 
 	// returns true if the specified address is on the same
 	// local network as the specified interface
