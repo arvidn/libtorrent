@@ -356,7 +356,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	address get_default_gateway(asio::io_service& ios, address const& interface, asio::error_code& ec)
+	address get_default_gateway(asio::io_service& ios, asio::error_code& ec)
 	{
 		std::vector<ip_route> ret = enum_routes(ios, ec);
 		std::vector<ip_route>::iterator i = std::find_if(ret.begin(), ret.end()

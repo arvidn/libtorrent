@@ -70,7 +70,7 @@ namespace libtorrent
 	TORRENT_EXPORT bool in_local_network(asio::io_service& ios, address const& addr
 		, asio::error_code& ec);
 	
-	TORRENT_EXPORT address get_default_gateway(asio::io_service& ios, address const& addr
+	TORRENT_EXPORT address get_default_gateway(asio::io_service& ios
 		, asio::error_code& ec);
 }
 

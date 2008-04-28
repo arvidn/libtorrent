@@ -64,7 +64,7 @@ void natpmp::rebind(address const& listen_interface)
 	mutex_t::scoped_lock l(m_mutex);
 
 	asio::error_code ec;
-	address gateway = get_default_gateway(m_socket.get_io_service(), listen_interface, ec);
+	address gateway = get_default_gateway(m_socket.get_io_service(), ec);
 	if (ec)
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
