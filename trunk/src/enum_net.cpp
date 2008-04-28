@@ -130,12 +130,12 @@ namespace libtorrent { namespace
 		return msg_len;
 	}
 
-	void parse_route(nlmsghdr* nl_hdr, ip_route_info* rt_info)
+	bool parse_route(nlmsghdr* nl_hdr, ip_route* rt_info)
 	{
 		rtmsg* rt_msg = (rtmsg*)NLMSG_DATA(nl_hdr);
 
 		if((rt_msg->rtm_family != AF_INET) || (rt_msg->rtm_table != RT_TABLE_MAIN))
-			return;
+			return false;
 
 		int rt_len = RTM_PAYLOAD(nl_hdr);
 		for (rtattr* rt_attr = (rtattr*)RTM_RTA(rt_msg);
@@ -147,13 +147,14 @@ namespace libtorrent { namespace
 					if_indextoname(*(int*)RTA_DATA(rt_attr), rt_info->name);
 					break;
 				case RTA_GATEWAY:
-					rt_info->gateway = address(*(u_int*)RTA_DATA(rt_attr));
+					rt_info->gateway = address_v4(*(u_int*)RTA_DATA(rt_attr));
 					break;
 				case RTA_DST:
-					rt_info->destination = address(*(u_int*)RTA_DATA(rt_attr));
+					rt_info->destination = address_v4(*(u_int*)RTA_DATA(rt_attr));
 					break;
 			}
 		}
+		return true;
 	}
 #endif
 
@@ -582,7 +583,7 @@ namespace libtorrent
 		if (sock < 0)
 		{
 			ec = asio::error_code(errno, asio::error::system_category);
-			return address_v4::any();
+			return std::vector<ip_route>();
 		}
 
 		int seq = 0;
@@ -601,7 +602,7 @@ namespace libtorrent
 		{
 			ec = asio::error_code(errno, asio::error::system_category);
 			close(sock);
-			return address_v4::any();
+			return std::vector<ip_route>();
 		}
 
 		int len = read_nl_sock(sock, msg, BUFSIZE, seq, getpid());
@@ -609,25 +610,13 @@ namespace libtorrent
 		{
 			ec = asio::error_code(errno, asio::error::system_category);
 			close(sock);
-			return address_v4::any();
+			return std::vector<ip_route>();
 		}
 
-		route_info rt_info;
 		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
 		{
-			memset(&rt_info, 0, sizeof(route_info));
-			parse_route(nl_msg, &rt_info);
-
 			ip_route r;
-			in_addr addr;
-			addr.s_addr = rt_info.dst_addr;
-			r.destination = inaddr_to_address(&addr);
-			addr.s_addr = rt_info.gateway;
-			r.gateway = inaddr_to_address(&addr);
-			addr.s_addr = rt_info.src_addr;
-			r.source = inaddr_to_address(&addr);
-			strcpy(r.name, rt_info.if_name);
-			ret.push_back(r);
+			if (parse_route(nl_msg, &r)) ret.push_back(r);
 		}
 		close(sock);
 
