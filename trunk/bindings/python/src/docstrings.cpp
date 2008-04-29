@@ -342,3 +342,13 @@ char const* scrape_failed_alert_doc =
     "If a scrape request fails, this alert is generated. This might\n"
     "be due to the tracker timing out, refusing connection or returning\n"
     "an http response code indicating an error.";
+
+char const* udp_error_alert_doc =
+    "";
+
+char const* external_ip_alert_doc =
+    "";
+
+char const* save_resume_data_alert_doc =
+    "";
+    
