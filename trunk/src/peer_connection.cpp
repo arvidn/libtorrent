@@ -1415,6 +1415,7 @@ namespace libtorrent
 			return;
 		}		
 		disk_buffer_holder holder(m_ses, buffer);
+		std::memcpy(buffer, data, p.length);
 		incoming_piece(p, holder);
 	}
 
