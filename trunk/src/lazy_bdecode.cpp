@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #include <iostream>
 #include <iomanip>
+#include <cstring>
 
 namespace libtorrent
 {
