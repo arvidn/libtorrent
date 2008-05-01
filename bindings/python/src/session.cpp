@@ -97,13 +97,55 @@ namespace
       allow_threading_guard guard;
       s.add_extension(invoke_extension_factory(e));
   }
-
-  torrent_handle add_torrent(session& s, torrent_info const& ti
-    , boost::filesystem::path const& save, entry const& resume
-    , storage_mode_t storage_mode, bool paused)
+ 
+  torrent_handle add_torrent(session& s, dict params)
   {
-    allow_threading_guard guard;
-    return s.add_torrent(ti, save, resume, storage_mode, paused, default_storage_constructor);
+    add_torrent_params p;
+    
+    if (params.has_key("ti"))
+    {
+      boost::intrusive_ptr<torrent_info> ti = new torrent_info(
+        extract<torrent_info const&>(params["ti"]));
+      p.ti = ti;
+    }
+    if (params.has_key("tracker_url"))
+    {
+      std::string url = extract<std::string>(params["tracker_url"]);
+      p.tracker_url = url.c_str();
+    }
+    if (params.has_key("info_hash"))
+    {
+      sha1_hash info_hash = extract<sha1_hash>(params["info_hash"]);
+      p.info_hash = info_hash;
+    }
+    if (params.has_key("name"))
+    {
+      std::string name = extract<std::string>(params["name"]);
+      p.name = name.c_str();
+    }
+    p.save_path = fs::path(extract<std::string>(params["save_path"]));
+    entry resume = extract<entry>(params["resume_data"]);
+    p.resume_data = &resume;
+    p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
+    p.paused = params["paused"];
+    p.auto_managed = params["auto_managed"];
+    p.duplicate_is_error = params["duplicate_is_error"];
+
+    return s.add_torrent(p);
+  }
+  
+  void start_natpmp(session& s)
+  {
+      allow_threading_guard guard;
+      s.start_natpmp();
+      return;
+  }
+
+  void start_upnp(session& s)
+  {
+      allow_threading_guard guard;
+      s.start_upnp();
+      return;
   }
   
   list get_torrents(session& s)
@@ -117,21 +159,20 @@ namespace
      }
      return ret;
   }
-
+  
 #ifndef TORRENT_DISABLE_GEO_IP
   bool load_asnum_db(session& s, std::string file)
   {
-    allow_threading_guard guard;
-    return s.load_asnum_db(file.c_str());
+      allow_threading_guard guard;
+      return s.load_asnum_db(file.c_str());
   }
 
   bool load_country_db(session& s, std::string file)
   {
-    allow_threading_guard guard;
-    return s.load_country_db(file.c_str());
+      allow_threading_guard guard;
+      return s.load_country_db(file.c_str());
   }
 #endif
-  
 } // namespace unnamed
 
 void bind_session()
@@ -203,7 +244,7 @@ void bind_session()
         .value("none", session::none)
         .value("delete_files", session::delete_files)
     ;
-	 
+
     class_<session, boost::noncopyable>("session", session_doc, no_init)
         .def(
             init<fingerprint>(arg("fingerprint")=fingerprint("LT",0,1,0,0), session_init_doc)
@@ -227,14 +268,7 @@ void bind_session()
         .def("dht_state", allow_threads(&session::dht_state), session_dht_state_doc)
         .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
 #endif
-        .def(
-            "add_torrent", &add_torrent
-          , (
-                arg("resume_data") = entry(), arg("storage_mode") = storage_mode_sparse,
-                arg("paused") = false
-            )
-          , session_add_torrent_doc
-        )
+        .def("add_torrent", &add_torrent, session_add_torrent_doc)
         .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = session::none
 			  , session_remove_torrent_doc)
         .def(
@@ -277,7 +311,7 @@ void bind_session()
         .def("get_pe_settings", allow_threads(&session::get_pe_settings), return_value_policy<copy_const_reference>())
 #endif
 #ifndef TORRENT_DISABLE_GEO_IP
-        .def("load_asnum_db", allow_threads(&session::load_asnum_db))
+        .def("load_asnum_db", &load_asnum_db)
         .def("load_country_db", &load_country_db)
 #endif
         .def("load_state", allow_threads(&session::load_state))
@@ -291,11 +325,11 @@ void bind_session()
         .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))
         .def("set_tracker_proxy", allow_threads(&session::set_tracker_proxy))
         .def("set_web_seed_proxy", allow_threads(&session::set_web_seed_proxy))
-        .def("start_upnp", allow_threads(&session::start_upnp), session_start_upnp_doc)
+        .def("start_upnp", &start_upnp, session_start_upnp_doc)
         .def("stop_upnp", allow_threads(&session::stop_upnp), session_stop_upnp_doc)
         .def("start_lsd", allow_threads(&session::start_lsd), session_start_lsd_doc)
         .def("stop_lsd", allow_threads(&session::stop_lsd), session_stop_lsd_doc)
-        .def("start_natpmp", allow_threads(&session::start_natpmp), session_start_natpmp_doc)
+        .def("start_natpmp", &start_natpmp, session_start_natpmp_doc)
         .def("stop_natpmp", allow_threads(&session::stop_natpmp), session_stop_natpmp_doc)
         .def("set_ip_filter", allow_threads(&session::set_ip_filter), session_set_ip_filter_doc)
         .def("find_torrent", allow_threads(&session::find_torrent))

@@ -4,6 +4,7 @@
 
 #include <boost/python.hpp>
 #include <libtorrent/torrent_info.hpp>
+#include "libtorrent/intrusive_ptr_base.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -69,7 +70,7 @@ void bind_torrent_info()
 {
     return_value_policy<copy_const_reference> copy;
 
-    class_<torrent_info>("torrent_info")
+    class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info")
         .def(init<entry const&>())
         .def(init<sha1_hash const&>())
 
