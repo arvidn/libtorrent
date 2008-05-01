@@ -57,8 +57,8 @@ using boost::iostreams::mapped_file_params;
 
 namespace libtorrent
 {
-	
 	namespace fs = boost::filesystem;
+	using boost::system::error_code;
 
 	struct mapped_file_pool
 	{
@@ -78,7 +78,7 @@ namespace libtorrent
 #ifndef NDEBUG
 				if (file_size > 0)
 				{
-					fs::system_error_type ec;
+					error_code ec;
 					fs::file_status st = fs::status(path, ec);
 					TORRENT_ASSERT(!fs::exists(st));
 				}
@@ -197,7 +197,7 @@ namespace libtorrent
 			size_type start = (offset / view_size) * view_size;
 			TORRENT_ASSERT(start + view_size >= offset + length);
 
-			fs::system_error_type ec;
+			error_code ec;
 			fs::file_status st = fs::status(p, ec);
 			
 			m_files.push_back(file_entry());
