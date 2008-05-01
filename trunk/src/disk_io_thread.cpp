@@ -182,7 +182,6 @@ namespace libtorrent
 		disk_io_thread::cache_t& cache
 		, disk_io_job const& j, mutex_t::scoped_lock& l)
 	{
-		TORRENT_ASSERT(l.locked());
 		for (cache_t::iterator i = cache.begin()
 			, end(cache.end()); i != end; ++i)
 		{
@@ -196,7 +195,6 @@ namespace libtorrent
 	{
 		ptime now = time_now();
 
-		TORRENT_ASSERT(l.locked());
 		INVARIANT_CHECK;
 		for (;;)
 		{
@@ -213,7 +211,6 @@ namespace libtorrent
 
 	void disk_io_thread::free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l)
 	{
-		TORRENT_ASSERT(l.locked());
 		int piece_size = p.storage->info()->piece_size(p.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
@@ -251,7 +248,6 @@ namespace libtorrent
 
 	void disk_io_thread::flush_oldest_piece(mutex_t::scoped_lock& l)
 	{
-		TORRENT_ASSERT(l.locked());
 		INVARIANT_CHECK;
 		// first look if there are any read cache entries that can
 		// be cleared
@@ -275,7 +271,6 @@ namespace libtorrent
 	void disk_io_thread::flush(disk_io_thread::cache_t::iterator e
 		, mutex_t::scoped_lock& l)
 	{
-		TORRENT_ASSERT(l.locked());
 		INVARIANT_CHECK;
 		cached_piece_entry& p = *e;
 		int piece_size = p.storage->info()->piece_size(p.piece);
@@ -340,7 +335,6 @@ namespace libtorrent
 
 	void disk_io_thread::cache_block(disk_io_job& j, mutex_t::scoped_lock& l)
 	{
-		TORRENT_ASSERT(l.locked());
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(find_cached_piece(m_pieces, j, l) == m_pieces.end());
 		cached_piece_entry p;
@@ -365,8 +359,6 @@ namespace libtorrent
 	// read or -1 if there was an error
 	int disk_io_thread::read_into_piece(cached_piece_entry& p, int start_block, mutex_t::scoped_lock& l)
 	{
-		TORRENT_ASSERT(l.locked());
-
 		int piece_size = p.storage->info()->piece_size(p.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
@@ -436,8 +428,6 @@ namespace libtorrent
 		, cache_t::iterator ignore
 		, mutex_t::scoped_lock& l)
 	{
-		TORRENT_ASSERT(l.locked());
-
 		if (m_cache_size - m_cache_stats.cache_size < num_blocks)
 		{
 			// there's not enough room in the cache, clear a piece
@@ -452,8 +442,6 @@ namespace libtorrent
 	// or the number of bytes read
 	int disk_io_thread::cache_read_block(disk_io_job const& j, mutex_t::scoped_lock& l)
 	{
-		TORRENT_ASSERT(l.locked());
-
 		INVARIANT_CHECK;
 
 		int piece_size = j.storage->info()->piece_size(j.piece);
@@ -543,7 +531,6 @@ namespace libtorrent
 
 	int disk_io_thread::try_read_from_cache(disk_io_job const& j, mutex_t::scoped_lock& l)
 	{
-		TORRENT_ASSERT(l.locked());
 		TORRENT_ASSERT(j.buffer);
 
 		if (!m_use_read_cache) return -2;
@@ -707,7 +694,6 @@ namespace libtorrent
 
 	char* disk_io_thread::allocate_buffer(mutex_t::scoped_lock& l)
 	{
-		TORRENT_ASSERT(l.locked());
 #ifdef TORRENT_STATS
 		++m_allocations;
 #endif
@@ -720,7 +706,6 @@ namespace libtorrent
 
 	void disk_io_thread::free_buffer(char* buf, mutex_t::scoped_lock& l)
 	{
-		TORRENT_ASSERT(l.locked());
 #ifdef TORRENT_STATS
 		--m_allocations;
 #endif

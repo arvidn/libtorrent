@@ -154,7 +154,6 @@ struct bandwidth_manager
 
 	bool is_queued(PeerConnection const* peer, boost::mutex::scoped_lock& l) const
 	{
-		TORRENT_ASSERT(l.locked());
 		for (typename queue_t::const_iterator i = m_queue.begin()
 			, end(m_queue.end()); i != end; ++i)
 		{
@@ -171,7 +170,6 @@ struct bandwidth_manager
 
 	bool is_in_history(PeerConnection const* peer, boost::mutex::scoped_lock& l) const
 	{
-		TORRENT_ASSERT(l.locked());
 		for (typename history_t::const_iterator i
 			= m_history.begin(), end(m_history.end()); i != end; ++i)
 		{
@@ -313,7 +311,6 @@ private:
 
 	void hand_out_bandwidth(boost::mutex::scoped_lock& l)
 	{
-		TORRENT_ASSERT(l.locked());
 		// if we're already handing out bandwidth, just return back
 		// to the loop further down on the callstack
 		if (m_in_hand_out_bandwidth) return;
