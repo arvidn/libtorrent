@@ -239,7 +239,7 @@ typedef std::vector<boost::intrusive_ptr<peer_connection> > connections_t;
 
 bool abort_tick = false;
 
-void do_tick(asio::error_code const&e, deadline_timer& tick, connections_t& v)
+void do_tick(error_code const&e, deadline_timer& tick, connections_t& v)
 {
 	if (e || abort_tick)
 	{
@@ -261,7 +261,7 @@ void do_stop(deadline_timer& tick, connections_t& v)
 	std::cerr << " stopping..." << std::endl;
 }
 
-void do_change_rate(asio::error_code const&e, deadline_timer& tick
+void do_change_rate(error_code const&e, deadline_timer& tick
 	, boost::shared_ptr<torrent> t1
 	, boost::shared_ptr<torrent> t2
 	, int limit
@@ -284,7 +284,7 @@ void do_change_rate(asio::error_code const&e, deadline_timer& tick
 	tick.async_wait(boost::bind(&do_change_rate, _1, boost::ref(tick), t1, t2, limit, counter-1));
 }
 
-void do_change_peer_rate(asio::error_code const&e, deadline_timer& tick
+void do_change_peer_rate(error_code const&e, deadline_timer& tick
 	, connections_t& v
 	, int limit
 	, int counter)

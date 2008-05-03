@@ -41,11 +41,11 @@ namespace libtorrent { namespace dht
 
 struct node_entry
 {
-	node_entry(node_id const& id_, asio::ip::udp::endpoint addr_)
+	node_entry(node_id const& id_, udp::endpoint addr_)
 		: id(id_)
 		, addr(addr_)
 		, fail_count(0) {}
-	node_entry(asio::ip::udp::endpoint addr_)
+	node_entry(udp::endpoint addr_)
 		: id(0)
 		, addr(addr_)
 		, fail_count(0) {}

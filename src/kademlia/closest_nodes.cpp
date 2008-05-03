@@ -40,8 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-using asio::ip::udp;
-
 closest_nodes_observer::~closest_nodes_observer()
 {
 	if (m_algorithm) m_algorithm->failed(m_self, true);

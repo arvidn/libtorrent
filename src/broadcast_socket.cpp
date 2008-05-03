@@ -30,8 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <asio/ip/host_name.hpp>
-#include <asio/ip/multicast.hpp>
+#include <boost/asio/ip/host_name.hpp>
+#include <boost/asio/ip/multicast.hpp>
 #include <boost/bind.hpp>
 
 #include "libtorrent/socket.hpp"
@@ -75,10 +75,10 @@ namespace libtorrent
 			return addr.to_v6() == address_v6::any();
 	}
 
-	address guess_local_address(asio::io_service& ios)
+	address guess_local_address(io_service& ios)
 	{
 		// make a best guess of the interface we're using and its IP
-		asio::error_code ec;
+		error_code ec;
 		std::vector<ip_interface> const& interfaces = enum_net_interfaces(ios, ec);
 		address ret = address_v4::any();
 		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
@@ -137,7 +137,7 @@ namespace libtorrent
 			- common_bits(b1.c_array(), b2.c_array(), b1.size());
 	}
 
-	broadcast_socket::broadcast_socket(asio::io_service& ios
+	broadcast_socket::broadcast_socket(io_service& ios
 		, udp::endpoint const& multicast_endpoint
 		, receive_handler_t const& handler
 		, bool loopback)
@@ -148,7 +148,7 @@ namespace libtorrent
 
 		using namespace asio::ip::multicast;
 	
-		asio::error_code ec;
+		error_code ec;
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
 		if (multicast_endpoint.address().is_v4())
@@ -179,7 +179,7 @@ namespace libtorrent
 	{
 		using namespace asio::ip::multicast;
 
-		asio::error_code ec;
+		error_code ec;
 		boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
 		if (addr.is_v4())
 			s->open(udp::v4(), ec);
@@ -205,7 +205,7 @@ namespace libtorrent
 	void broadcast_socket::open_unicast_socket(io_service& ios, address const& addr)
 	{
 		using namespace asio::ip::multicast;
-		asio::error_code ec;
+		error_code ec;
 		boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
 		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
 		if (ec) return;
@@ -220,13 +220,13 @@ namespace libtorrent
 			, se.remote, bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 	}
 
-	void broadcast_socket::send(char const* buffer, int size, asio::error_code& ec)
+	void broadcast_socket::send(char const* buffer, int size, error_code& ec)
 	{
 		for (std::list<socket_entry>::iterator i = m_unicast_sockets.begin()
 			, end(m_unicast_sockets.end()); i != end; ++i)
 		{
 			if (!i->socket) continue;
-			asio::error_code e;
+			error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 #ifndef NDEBUG
 //			std::cerr << " sending on " << i->socket->local_endpoint().address().to_string() << " to: " << m_multicast_endpoint << std::endl;
@@ -239,7 +239,7 @@ namespace libtorrent
 		}
 	}
 
-	void broadcast_socket::on_receive(socket_entry* s, asio::error_code const& ec
+	void broadcast_socket::on_receive(socket_entry* s, error_code const& ec
 		, std::size_t bytes_transferred)
 	{
 		if (ec || bytes_transferred == 0 || !m_on_receive) return;

@@ -66,9 +66,6 @@ enum
 	key_refresh = 5 // generate a new write token key every 5 minutes
 };
 
-using asio::ip::udp;
-typedef asio::ip::address_v4 address;
-
 namespace
 {
 	const int tick_period = 1; // minutes
@@ -228,7 +225,7 @@ namespace libtorrent { namespace dht
 		s.dht_global_nodes = m_dht.num_global_nodes();
 	}
 
-	void dht_tracker::connection_timeout(asio::error_code const& e)
+	void dht_tracker::connection_timeout(error_code const& e)
 		try
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -247,7 +244,7 @@ namespace libtorrent { namespace dht
 #endif
 	};
 
-	void dht_tracker::refresh_timeout(asio::error_code const& e)
+	void dht_tracker::refresh_timeout(error_code const& e)
 		try
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -263,7 +260,7 @@ namespace libtorrent { namespace dht
 		TORRENT_ASSERT(false);
 	};
 
-	void dht_tracker::tick(asio::error_code const& e)
+	void dht_tracker::tick(error_code const& e)
 		try
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -739,7 +736,7 @@ namespace libtorrent { namespace dht
 			bind(&dht_tracker::on_name_lookup, self(), _1, _2));
 	}
 
-	void dht_tracker::on_name_lookup(asio::error_code const& e
+	void dht_tracker::on_name_lookup(error_code const& e
 		, udp::resolver::iterator host) try
 	{
 		if (e || host == udp::resolver::iterator()) return;
@@ -757,7 +754,7 @@ namespace libtorrent { namespace dht
 			bind(&dht_tracker::on_router_name_lookup, self(), _1, _2));
 	}
 
-	void dht_tracker::on_router_name_lookup(asio::error_code const& e
+	void dht_tracker::on_router_name_lookup(error_code const& e
 		, udp::resolver::iterator host) try
 	{
 		if (e || host == udp::resolver::iterator()) return;
@@ -957,7 +954,7 @@ namespace libtorrent { namespace dht
 
 		m_send_buf.clear();
 		bencode(std::back_inserter(m_send_buf), e);
-		asio::error_code ec;
+		error_code ec;
 		m_sock.send(m.addr, &m_send_buf[0], (int)m_send_buf.size(), ec);
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING

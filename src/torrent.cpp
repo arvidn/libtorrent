@@ -307,7 +307,7 @@ namespace libtorrent
 		boost::weak_ptr<torrent> self(shared_from_this());
 		if (m_torrent_file->is_valid()) init();
 		if (m_abort) return;
-		asio::error_code ec;
+		error_code ec;
 		m_announce_timer.expires_from_now(seconds(1), ec);
 		m_announce_timer.async_wait(
 			bind(&torrent::on_announce_disp, self, _1));
@@ -673,7 +673,7 @@ namespace libtorrent
 	}
 
 	void torrent::on_announce_disp(boost::weak_ptr<torrent> p
-		, asio::error_code const& e)
+		, error_code const& e)
 	{
 		if (e) return;
 		boost::shared_ptr<torrent> t = p.lock();
@@ -687,7 +687,7 @@ namespace libtorrent
 
 		boost::weak_ptr<torrent> self(shared_from_this());
 
-		asio::error_code ec;
+		error_code ec;
 		if (!m_torrent_file->priv())
 		{
 			// announce on local network every 5 minutes
@@ -865,7 +865,7 @@ namespace libtorrent
 			if (i->pid == m_ses.get_peer_id())
 				continue;
 
-			asio::error_code ec;
+			error_code ec;
 			tcp::endpoint a(address::from_string(i->ip, ec), i->port);
 
 			if (ec)
@@ -905,7 +905,7 @@ namespace libtorrent
 		m_got_tracker_response = true;
 	}
 
-	void torrent::on_peer_name_lookup(asio::error_code const& e, tcp::resolver::iterator host
+	void torrent::on_peer_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, peer_id pid)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -1369,7 +1369,7 @@ namespace libtorrent
 				bind(&torrent::on_files_released, shared_from_this(), _1, _2));
 			
 		m_owning_storage = 0;
-		asio::error_code ec;
+		error_code ec;
 		m_announce_timer.cancel(ec);
 		m_host_resolver.cancel();
 	}
@@ -1976,7 +1976,7 @@ namespace libtorrent
 
 	}
 
-	void torrent::on_proxy_name_lookup(asio::error_code const& e, tcp::resolver::iterator host
+	void torrent::on_proxy_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, std::string url)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -2028,7 +2028,7 @@ namespace libtorrent
 			bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url, a));
 	}
 
-	void torrent::on_name_lookup(asio::error_code const& e, tcp::resolver::iterator host
+	void torrent::on_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, std::string url, tcp::endpoint proxy)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -2090,7 +2090,7 @@ namespace libtorrent
 		}
 
 		std::pair<int, int> const& out_ports = m_settings.outgoing_ports;
-		asio::error_code ec;
+		error_code ec;
 		if (out_ports.first > 0 && out_ports.second >= out_ports.first)
 			s->bind(tcp::endpoint(address(), m_ses.next_port()), ec);
 		
@@ -2176,7 +2176,7 @@ namespace libtorrent
 		};
 	}
 
-	void torrent::on_country_lookup(asio::error_code const& error, tcp::resolver::iterator i
+	void torrent::on_country_lookup(error_code const& error, tcp::resolver::iterator i
 		, intrusive_ptr<peer_connection> p) const
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -2369,7 +2369,7 @@ namespace libtorrent
 		for (policy::const_iterator i = m_policy.begin_peer()
 			, end(m_policy.end_peer()); i != end; ++i)
 		{
-			asio::error_code ec;
+			error_code ec;
 			if (i->second.banned)
 			{
 				tcp::endpoint ip = i->second.ip;
@@ -2538,7 +2538,7 @@ namespace libtorrent
 		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy(), *s);
 		TORRENT_ASSERT(ret);
 		std::pair<int, int> const& out_ports = m_ses.settings().outgoing_ports;
-		asio::error_code ec;
+		error_code ec;
 		if (out_ports.first > 0 && out_ports.second >= out_ports.first)
 			s->bind(tcp::endpoint(address(), m_ses.next_port()), ec);
 
@@ -2683,7 +2683,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
 		peer_iterator ci = m_connections.insert(p).first;
 #ifndef NDEBUG
-		asio::error_code ec;
+		error_code ec;
 		TORRENT_ASSERT(p->remote() == p->get_socket()->remote_endpoint(ec) || ec);
 #endif
 

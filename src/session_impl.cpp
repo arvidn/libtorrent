@@ -250,7 +250,7 @@ namespace aux {
 			*i = printable[rand() % (sizeof(printable)-1)];
 		}
 
-		asio::error_code ec;
+		error_code ec;
 		m_timer.expires_from_now(seconds(1), ec);
 		m_timer.async_wait(
 			bind(&session_impl::second_tick, this, _1));
@@ -396,7 +396,7 @@ namespace aux {
 		if (m_dht) m_dht->stop();
 		m_dht_socket.close();
 #endif
-		asio::error_code ec;
+		error_code ec;
 		m_timer.cancel(ec);
 
 		// close the listen sockets
@@ -535,7 +535,7 @@ namespace aux {
 	session_impl::listen_socket_t session_impl::setup_listener(tcp::endpoint ep
 		, int retries, bool v6_only)
 	{
-		asio::error_code ec;
+		error_code ec;
 		listen_socket_t s;
 		s.sock.reset(new socket_acceptor(m_io_service));
 		s.sock->open(ep.protocol(), ec);
@@ -544,7 +544,7 @@ namespace aux {
 		s.sock->bind(ep, ec);
 		while (ec && retries > 0)
 		{
-			ec = asio::error_code();
+			ec = error_code();
 			TORRENT_ASSERT(!ec);
 			--retries;
 			ep.port(ep.port() + 1);
@@ -555,7 +555,7 @@ namespace aux {
 			// instead of giving up, try
 			// let the OS pick a port
 			ep.port(0);
-			ec = asio::error_code();
+			ec = error_code();
 			s.sock->bind(ep, ec);
 		}
 		if (ec)
@@ -661,7 +661,7 @@ namespace aux {
 		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
 			, end(m_listen_sockets.end()); i != end; ++i)
 		{
-			asio::error_code ec;
+			error_code ec;
 			tcp::endpoint ep = i->sock->local_endpoint(ec);
 			if (ec || ep.address().is_v4()) continue;
 
@@ -691,7 +691,7 @@ namespace aux {
 
 		if (!m_listen_sockets.empty())
 		{
-			asio::error_code ec;
+			error_code ec;
 			tcp::endpoint local = m_listen_sockets.front().sock->local_endpoint(ec);
 			if (!ec)
 			{
@@ -713,7 +713,7 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_DHT
 
-	void session_impl::on_receive_udp(asio::error_code const& e
+	void session_impl::on_receive_udp(error_code const& e
 		, udp::endpoint const& ep, char const* buf, int len)
 	{
 		if (e)
@@ -746,7 +746,7 @@ namespace aux {
 	}
 
 	void session_impl::on_incoming_connection(shared_ptr<socket_type> const& s
-		, weak_ptr<socket_acceptor> listen_socket, asio::error_code const& e)
+		, weak_ptr<socket_acceptor> listen_socket, error_code const& e)
 	{
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
 		if (!listener) return;
@@ -756,7 +756,7 @@ namespace aux {
 		mutex_t::scoped_lock l(m_mutex);
 		if (m_abort) return;
 
-		asio::error_code ec;
+		error_code ec;
 		if (e)
 		{
 			tcp::endpoint ep = listener->local_endpoint(ec);
@@ -926,7 +926,7 @@ namespace aux {
 		return port;
 	}
 
-	void session_impl::second_tick(asio::error_code const& e)
+	void session_impl::second_tick(error_code const& e)
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 
@@ -947,7 +947,7 @@ namespace aux {
 		float tick_interval = total_microseconds(time_now() - m_last_tick) / 1000000.f;
 		m_last_tick = time_now();
 
-		asio::error_code ec;
+		error_code ec;
 		m_timer.expires_from_now(seconds(1), ec);
 		m_timer.async_wait(
 			bind(&session_impl::second_tick, this, _1));

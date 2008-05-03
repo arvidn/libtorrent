@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/broadcast_socket.hpp"
-#include <asio/ip/host_name.hpp>
+#include <boost/asio/ip/host_name.hpp>
 
 
 #if defined TORRENT_BSD
@@ -225,7 +225,7 @@ namespace libtorrent
 			== (iface.interface_address.to_v4().to_ulong() & iface.netmask.to_v4().to_ulong());
 	}
 
-	bool in_local_network(asio::io_service& ios, address const& addr, asio::error_code& ec)
+	bool in_local_network(io_service& ios, address const& addr, error_code& ec)
 	{
 		std::vector<ip_interface> const& net = enum_net_interfaces(ios, ec);
 		if (ec) return false;
@@ -237,7 +237,7 @@ namespace libtorrent
 		return false;
 	}
 	
-	std::vector<ip_interface> enum_net_interfaces(asio::io_service& ios, asio::error_code& ec)
+	std::vector<ip_interface> enum_net_interfaces(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_interface> ret;
 // covers linux, MacOS X and BSD distributions
@@ -254,7 +254,7 @@ namespace libtorrent
 		ifc.ifc_buf = buf;
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
 		{
-			ec = asio::error_code(errno, asio::error::system_category);
+			ec = error_code(errno, asio::error::system_category);
 			close(s);
 			return ret;
 		}
@@ -283,7 +283,7 @@ namespace libtorrent
 					}
 					else
 					{
-						ec = asio::error_code(errno, asio::error::system_category);
+						ec = error_code(errno, asio::error::system_category);
 						close(s);
 						return ret;
 					}
@@ -310,7 +310,7 @@ namespace libtorrent
 		SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s == SOCKET_ERROR)
 		{
-			ec = asio::error_code(WSAGetLastError(), asio::error::system_category);
+			ec = error_code(WSAGetLastError(), asio::error::system_category);
 			return ret;
 		}
 
@@ -320,7 +320,7 @@ namespace libtorrent
 		if (WSAIoctl(s, SIO_GET_INTERFACE_LIST, 0, 0, buffer,
 			sizeof(buffer), &size, 0, 0) != 0)
 		{
-			ec = asio::error_code(WSAGetLastError(), asio::error::system_category);
+			ec = error_code(WSAGetLastError(), asio::error::system_category);
 			closesocket(s);
 			return ret;
 		}
@@ -356,7 +356,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	address get_default_gateway(asio::io_service& ios, asio::error_code& ec)
+	address get_default_gateway(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret = enum_routes(ios, ec);
 		std::vector<ip_route>::iterator i = std::find_if(ret.begin(), ret.end()
@@ -365,7 +365,7 @@ namespace libtorrent
 		return i->gateway;
 	}
 
-	std::vector<ip_route> enum_routes(asio::io_service& ios, asio::error_code& ec)
+	std::vector<ip_route> enum_routes(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret;
 	
@@ -390,14 +390,14 @@ namespace libtorrent
 		int s = socket(PF_ROUTE, SOCK_RAW, AF_UNSPEC);
 		if (s == -1)
 		{
-			ec = asio::error_code(errno, asio::error::system_category);
+			ec = error_code(errno, asio::error::system_category);
 			return std::vector<ip_route>();
 		}
 
 		int n = write(s, &m, len);
 		if (n == -1)
 		{
-			ec = asio::error_code(errno, asio::error::system_category);
+			ec = error_code(errno, asio::error::system_category);
 			close(s);
 			return std::vector<ip_route>();
 		}
@@ -412,7 +412,7 @@ namespace libtorrent
 		n = read(s, &m, len);
 		if (n == -1)
 		{
-			ec = asio::error_code(errno, asio::error::system_category);
+			ec = error_code(errno, asio::error::system_category);
 			close(s);
 			return std::vector<ip_route>();
 		}
@@ -423,7 +423,7 @@ namespace libtorrent
 			std::cout << " rtm_type: " << ptr->rtm_type << std::endl;
 			if (ptr->rtm_errno)
 			{
-				ec = asio::error_code(ptr->rtm_errno, asio::error::system_category);
+				ec = error_code(ptr->rtm_errno, asio::error::system_category);
 				return std::vector<ip_route>();
 			}
 			if (m.m_rtm.rtm_flags & RTF_UP == 0
@@ -475,7 +475,7 @@ namespace libtorrent
 	size_t needed = 0;
 	if (sysctl(mib, 6, 0, &needed, 0, 0) < 0)
 	{
-		ec = asio::error_code(errno, asio::error::system_category);
+		ec = error_code(errno, asio::error::system_category);
 		return std::vector<ip_route>();
 	}
 
@@ -493,7 +493,7 @@ namespace libtorrent
 
 	if (sysctl(mib, 6, buf.get(), &needed, 0, 0) < 0)
 	{
-		ec = asio::error_code(errno, asio::error::system_category);
+		ec = error_code(errno, asio::error::system_category);
 		return std::vector<ip_route>();
 	}
 
@@ -562,7 +562,7 @@ namespace libtorrent
 
 				if (ec)
 				{
-					ec = asio::error_code();
+					ec = error_code();
 					continue;
 				}
 				ret.push_back(r);
@@ -582,7 +582,7 @@ namespace libtorrent
 		int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
 		if (sock < 0)
 		{
-			ec = asio::error_code(errno, asio::error::system_category);
+			ec = error_code(errno, asio::error::system_category);
 			return std::vector<ip_route>();
 		}
 
@@ -600,7 +600,7 @@ namespace libtorrent
 
 		if (send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
 		{
-			ec = asio::error_code(errno, asio::error::system_category);
+			ec = error_code(errno, asio::error::system_category);
 			close(sock);
 			return std::vector<ip_route>();
 		}
@@ -608,7 +608,7 @@ namespace libtorrent
 		int len = read_nl_sock(sock, msg, BUFSIZE, seq, getpid());
 		if (len < 0)
 		{
-			ec = asio::error_code(errno, asio::error::system_category);
+			ec = error_code(errno, asio::error::system_category);
 			close(sock);
 			return std::vector<ip_route>();
 		}

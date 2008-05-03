@@ -280,7 +280,7 @@ int test_main()
 
 	// test network functions
 
-	asio::error_code ec;
+	error_code ec;
 	TEST_CHECK(is_local(address::from_string("192.168.0.1", ec)));
 	TEST_CHECK(is_local(address::from_string("10.1.1.56", ec)));
 	TEST_CHECK(!is_local(address::from_string("14.14.251.63", ec)));

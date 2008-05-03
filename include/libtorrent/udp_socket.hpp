@@ -46,16 +46,16 @@ namespace libtorrent
 	class udp_socket
 	{
 	public:
-		typedef boost::function<void(asio::error_code const& ec
+		typedef boost::function<void(error_code const& ec
 			, udp::endpoint const&, char const* buf, int size)> callback_t;
 
-		udp_socket(asio::io_service& ios, callback_t const& c, connection_queue& cc);
+		udp_socket(io_service& ios, callback_t const& c, connection_queue& cc);
 
 		bool is_open() const { return m_ipv4_sock.is_open() || m_ipv6_sock.is_open(); }
-		asio::io_service& get_io_service() { return m_ipv4_sock.get_io_service(); }
+		io_service& get_io_service() { return m_ipv4_sock.get_io_service(); }
 
-		void send(udp::endpoint const& ep, char const* p, int len, asio::error_code& ec);
-		void bind(udp::endpoint const& ep, asio::error_code& ec);
+		void send(udp::endpoint const& ep, char const* p, int len, error_code& ec);
+		void bind(udp::endpoint const& ep, error_code& ec);
 		void bind(int port);
 		void close();
 		int local_port() const { return m_bind_port; }
@@ -67,21 +67,21 @@ namespace libtorrent
 
 		callback_t m_callback;
 
-		void on_read(udp::socket* sock, asio::error_code const& e, std::size_t bytes_transferred);
-		void on_name_lookup(asio::error_code const& e, tcp::resolver::iterator i);
+		void on_read(udp::socket* sock, error_code const& e, std::size_t bytes_transferred);
+		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
 		void on_timeout();
 		void on_connect(int ticket);
-		void on_connected(asio::error_code const& ec);
-		void handshake1(asio::error_code const& e);
-		void handshake2(asio::error_code const& e);
-		void handshake3(asio::error_code const& e);
-		void handshake4(asio::error_code const& e);
+		void on_connected(error_code const& ec);
+		void handshake1(error_code const& e);
+		void handshake2(error_code const& e);
+		void handshake3(error_code const& e);
+		void handshake4(error_code const& e);
 		void socks_forward_udp();
-		void connect1(asio::error_code const& e);
-		void connect2(asio::error_code const& e);
+		void connect1(error_code const& e);
+		void connect2(error_code const& e);
 
-		void wrap(udp::endpoint const& ep, char const* p, int len, asio::error_code& ec);
-		void unwrap(asio::error_code const& e, char const* buf, int size);
+		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
+		void unwrap(error_code const& e, char const* buf, int size);
 
 		udp::socket m_ipv4_sock;
 		udp::socket m_ipv6_sock;

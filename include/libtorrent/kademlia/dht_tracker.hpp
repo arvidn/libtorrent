@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/udp_socket.hpp"
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -95,13 +96,13 @@ namespace libtorrent { namespace dht
 		boost::intrusive_ptr<dht_tracker> self()
 		{ return boost::intrusive_ptr<dht_tracker>(this); }
 
-		void on_name_lookup(asio::error_code const& e
+		void on_name_lookup(error_code const& e
 			, udp::resolver::iterator host);
-		void on_router_name_lookup(asio::error_code const& e
+		void on_router_name_lookup(error_code const& e
 			, udp::resolver::iterator host);
-		void connection_timeout(asio::error_code const& e);
-		void refresh_timeout(asio::error_code const& e);
-		void tick(asio::error_code const& e);
+		void connection_timeout(error_code const& e);
+		void refresh_timeout(error_code const& e);
+		void tick(error_code const& e);
 
 		void on_bootstrap();
 		void send_packet(msg const& m);

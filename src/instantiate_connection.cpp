@@ -37,12 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include <boost/shared_ptr.hpp>
 #include <stdexcept>
-#include <asio/io_service.hpp>
 
 namespace libtorrent
 {
 
-	bool instantiate_connection(asio::io_service& ios
+	bool instantiate_connection(io_service& ios
 		, proxy_settings const& ps, socket_type& s)
 	{
 		if (ps.type == proxy_settings::none)

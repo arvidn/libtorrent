@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/io.hpp>
+#include <libtorrent/socket.hpp>
 
 namespace libtorrent { namespace dht
 {
@@ -101,7 +102,7 @@ find_data::find_data(
 	add_requests();
 }
 
-void find_data::invoke(node_id const& id, asio::ip::udp::endpoint addr)
+void find_data::invoke(node_id const& id, udp::endpoint addr)
 {
 	if (m_done)
 	{

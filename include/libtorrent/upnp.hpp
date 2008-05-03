@@ -93,7 +93,7 @@ private:
 
 	enum { default_lease_time = 3600 };
 	
-	void resend_request(asio::error_code const& e);
+	void resend_request(error_code const& e);
 	void on_reply(udp::endpoint const& from, char* buffer
 		, std::size_t bytes_transferred);
 
@@ -102,15 +102,15 @@ private:
 	void update_map(rootdevice& d, int i);
 
 	
-	void on_upnp_xml(asio::error_code const& e
+	void on_upnp_xml(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d);
-	void on_upnp_map_response(asio::error_code const& e
+	void on_upnp_map_response(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
 		, int mapping);
-	void on_upnp_unmap_response(asio::error_code const& e
+	void on_upnp_unmap_response(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
 		, int mapping);
-	void on_expire(asio::error_code const& e);
+	void on_expire(error_code const& e);
 
 	void disable(char const* msg);
 	void return_error(int mapping, int code);
@@ -237,7 +237,7 @@ private:
 	// current retry count
 	int m_retry_count;
 
-	asio::io_service& m_io_service;
+	io_service& m_io_service;
 
 	// the udp socket used to send and receive
 	// multicast messages on the network

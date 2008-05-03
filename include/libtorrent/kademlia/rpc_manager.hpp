@@ -56,7 +56,6 @@ namespace libtorrent { namespace dht
 
 struct observer;
 
-using asio::ip::udp;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DECLARE_LOG(rpc);
 #endif

@@ -65,8 +65,6 @@ namespace
 // TODO: configurable?
 enum { announce_interval = 30 };
 
-using asio::ip::udp;
-
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DEFINE_LOG(node)
 #endif

@@ -194,7 +194,7 @@ namespace libtorrent
 		tracker_connection::close();
 	}
 
-	void http_tracker_connection::on_response(asio::error_code const& ec
+	void http_tracker_connection::on_response(error_code const& ec
 		, http_parser const& parser, char const* data, int size)
 	{
 		// keep this alive

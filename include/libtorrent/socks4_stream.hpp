@@ -41,8 +41,8 @@ class socks4_stream : public proxy_base
 {
 public:
 
-	explicit socks4_stream(asio::io_service& io_service)
-		: proxy_base(io_service)
+	explicit socks4_stream(io_service& io_service_)
+		: proxy_base(io_service_)
 	{}
 
 	void set_username(std::string const& user)
@@ -50,7 +50,7 @@ public:
 		m_user = user;
 	}
 
-	typedef boost::function<void(asio::error_code const&)> handler_type;
+	typedef boost::function<void(error_code const&)> handler_type;
 
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
@@ -74,11 +74,11 @@ public:
 
 private:
 
-	void name_lookup(asio::error_code const& e, tcp::resolver::iterator i
+	void name_lookup(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h);
-	void connected(asio::error_code const& e, boost::shared_ptr<handler_type> h);
-	void handshake1(asio::error_code const& e, boost::shared_ptr<handler_type> h);
-	void handshake2(asio::error_code const& e, boost::shared_ptr<handler_type> h);
+	void connected(error_code const& e, boost::shared_ptr<handler_type> h);
+	void handshake1(error_code const& e, boost::shared_ptr<handler_type> h);
+	void handshake2(error_code const& e, boost::shared_ptr<handler_type> h);
 
 	// send and receive buffer
 	std::vector<char> m_buffer;

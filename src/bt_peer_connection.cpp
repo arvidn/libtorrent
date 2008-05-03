@@ -1707,7 +1707,7 @@ namespace libtorrent
 	// --------------------------
 
 	// throws exception when the client should be disconnected
-	void bt_peer_connection::on_receive(asio::error_code const& error
+	void bt_peer_connection::on_receive(error_code const& error
 		, std::size_t bytes_transferred)
 	{
 		INVARIANT_CHECK;
@@ -2587,7 +2587,7 @@ namespace libtorrent
 	// --------------------------
 
 	// throws exception when the client should be disconnected
-	void bt_peer_connection::on_sent(asio::error_code const& error
+	void bt_peer_connection::on_sent(error_code const& error
 		, std::size_t bytes_transferred)
 	{
 		INVARIANT_CHECK;

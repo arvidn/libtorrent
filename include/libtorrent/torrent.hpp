@@ -461,17 +461,17 @@ namespace libtorrent
 
 		// this is the asio callback that is called when a name
 		// lookup for a PEER is completed.
-		void on_peer_name_lookup(asio::error_code const& e, tcp::resolver::iterator i
+		void on_peer_name_lookup(error_code const& e, tcp::resolver::iterator i
 			, peer_id pid);
 
 		// this is the asio callback that is called when a name
 		// lookup for a WEB SEED is completed.
-		void on_name_lookup(asio::error_code const& e, tcp::resolver::iterator i
+		void on_name_lookup(error_code const& e, tcp::resolver::iterator i
 			, std::string url, tcp::endpoint proxy);
 
 		// this is the asio callback that is called when a name
 		// lookup for a proxy for a web seed is completed.
-		void on_proxy_name_lookup(asio::error_code const& e, tcp::resolver::iterator i
+		void on_proxy_name_lookup(error_code const& e, tcp::resolver::iterator i
 			, std::string url);
 
 		// this is called when the torrent has finished. i.e.
@@ -587,7 +587,7 @@ namespace libtorrent
 	
 		void try_next_tracker();
 		int prioritize_tracker(int tracker_index);
-		void on_country_lookup(asio::error_code const& error, tcp::resolver::iterator i
+		void on_country_lookup(error_code const& error, tcp::resolver::iterator i
 			, boost::intrusive_ptr<peer_connection> p) const;
 		bool request_bandwidth_from_session(int channel) const;
 
@@ -702,7 +702,7 @@ namespace libtorrent
 		deadline_timer m_announce_timer;
 
 		static void on_announce_disp(boost::weak_ptr<torrent> p
-			, asio::error_code const& e);
+			, error_code const& e);
 
 		// this is called once per announce interval
 		void on_announce();

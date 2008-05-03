@@ -44,6 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using libtorrent::buffer;
 using libtorrent::chained_buffer;
 
+namespace asio = boost::asio;
+
 /*
 template<class T>
 T const& min_(T const& x, T const& y)

@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 
 using boost::bind;
-using asio::ip::udp;
 
 namespace libtorrent { namespace dht
 {

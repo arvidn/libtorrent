@@ -86,7 +86,7 @@ namespace libtorrent
 
 #else
 
-#include <asio/time_traits.hpp>
+#include <boost/asio/time_traits.hpp>
 #include <boost/cstdint.hpp>
 #include "libtorrent/assert.hpp"
 
@@ -152,7 +152,7 @@ namespace libtorrent
 }
 
 // asio time_traits
-namespace asio
+namespace boost { namespace asio
 {
 	template<>
 	struct time_traits<libtorrent::ptime>
@@ -171,7 +171,7 @@ namespace asio
 			duration_type d)
 		{ return boost::posix_time::microseconds(libtorrent::total_microseconds(d)); }
 	};
-}
+} }
 
 #if defined(__MACH__)
 

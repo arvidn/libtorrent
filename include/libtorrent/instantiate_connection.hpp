@@ -34,14 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_INSTANTIATE_CONNECTION
 
 #include "libtorrent/socket_type.hpp"
-#include <asio/io_service.hpp>
 #include <boost/shared_ptr.hpp>
 
 namespace libtorrent
 {
 	struct proxy_settings;
 
-	bool instantiate_connection(asio::io_service& ios
+	bool instantiate_connection(io_service& ios
 		, proxy_settings const& ps, socket_type& s);
 }
 

@@ -37,13 +37,13 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	void socks4_stream::name_lookup(asio::error_code const& e, tcp::resolver::iterator i
+	void socks4_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h)
 	{
 		if (e)
 		{
 			(*h)(e);
-			asio::error_code ec;
+			error_code ec;
 			close(ec);
 			return;
 		}
@@ -54,7 +54,7 @@ namespace libtorrent
 
 		if (i == tcp::resolver::iterator())
 		{
-			asio::error_code ec = asio::error::operation_not_supported;
+			error_code ec = asio::error::operation_not_supported;
 			(*h)(ec);
 			close(ec);
 			return;
@@ -64,12 +64,12 @@ namespace libtorrent
 			&socks4_stream::connected, this, _1, h));
 	}
 
-	void socks4_stream::connected(asio::error_code const& e, boost::shared_ptr<handler_type> h)
+	void socks4_stream::connected(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		if (e)
 		{
 			(*h)(e);
-			asio::error_code ec;
+			error_code ec;
 			close(ec);
 			return;
 		}
@@ -86,31 +86,31 @@ namespace libtorrent
 		p += m_user.size();
 		write_uint8(0, p); // NULL terminator
 
-		asio::async_write(m_sock, asio::buffer(m_buffer)
+		async_write(m_sock, asio::buffer(m_buffer)
 			, boost::bind(&socks4_stream::handshake1, this, _1, h));
 	}
 
-	void socks4_stream::handshake1(asio::error_code const& e, boost::shared_ptr<handler_type> h)
+	void socks4_stream::handshake1(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		if (e)
 		{
 			(*h)(e);
-			asio::error_code ec;
+			error_code ec;
 			close(ec);
 			return;
 		}
 
 		m_buffer.resize(8);
-		asio::async_read(m_sock, asio::buffer(m_buffer)
+		async_read(m_sock, asio::buffer(m_buffer)
 			, boost::bind(&socks4_stream::handshake2, this, _1, h));
 	}
 
-	void socks4_stream::handshake2(asio::error_code const& e, boost::shared_ptr<handler_type> h)
+	void socks4_stream::handshake2(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		if (e)
 		{
 			(*h)(e);
-			asio::error_code ec;
+			error_code ec;
 			close(ec);
 			return;
 		}
@@ -123,7 +123,7 @@ namespace libtorrent
 
 		if (reply_version != 0)
 		{
-			asio::error_code ec = asio::error::operation_not_supported;
+			error_code ec = asio::error::operation_not_supported;
 			(*h)(ec);
 			close(ec);
 			return;
@@ -137,7 +137,7 @@ namespace libtorrent
 			return;
 		}
 
-		asio::error_code ec = asio::error::fault;
+		error_code ec = asio::error::fault;
 		switch (status_code)
 		{
 			case 91: ec = asio::error::connection_refused; break;
