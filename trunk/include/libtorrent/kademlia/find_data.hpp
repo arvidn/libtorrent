@@ -48,8 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-using asio::ip::udp;
-
 typedef std::vector<char> packet_t;
 
 class rpc_manager;

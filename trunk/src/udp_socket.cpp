@@ -4,7 +4,7 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/array.hpp>
-#include <asio/read.hpp>
+#include <boost/asio/read.hpp>
 
 using namespace libtorrent;
 
@@ -22,7 +22,7 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 {
 }
 
-void udp_socket::send(udp::endpoint const& ep, char const* p, int len, asio::error_code& ec)
+void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec)
 {
 	if (ec == asio::error::operation_aborted) return;
 
@@ -39,7 +39,7 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len, asio::err
 		m_ipv6_sock.send_to(asio::buffer(p, len), ep, 0, ec);
 }
 
-void udp_socket::on_read(udp::socket* s, asio::error_code const& e, std::size_t bytes_transferred)
+void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_transferred)
 {
 	if (e == asio::error::operation_aborted) return;
 
@@ -113,7 +113,7 @@ void udp_socket::on_read(udp::socket* s, asio::error_code const& e, std::size_t 
 	}
 }
 
-void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, asio::error_code& ec)
+void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec)
 {
 	using namespace libtorrent::detail;
 
@@ -137,7 +137,7 @@ void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, asio::err
 }
 
 // unwrap the UDP packet from the SOCKS5 header
-void udp_socket::unwrap(asio::error_code const& e, char const* buf, int size)
+void udp_socket::unwrap(error_code const& e, char const* buf, int size)
 {
 	using namespace libtorrent::detail;
 
@@ -174,7 +174,7 @@ void udp_socket::unwrap(asio::error_code const& e, char const* buf, int size)
 
 void udp_socket::close()
 {
-	asio::error_code ec;
+	error_code ec;
 	m_ipv4_sock.close(ec);
 	m_ipv6_sock.close(ec);
 	m_socks5_sock.close(ec);
@@ -186,7 +186,7 @@ void udp_socket::close()
 	}
 }
 
-void udp_socket::bind(udp::endpoint const& ep, asio::error_code& ec)
+void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 {
 	if (m_ipv4_sock.is_open()) m_ipv4_sock.close(ec);
 	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
@@ -214,7 +214,7 @@ void udp_socket::bind(udp::endpoint const& ep, asio::error_code& ec)
 
 void udp_socket::bind(int port)
 {
-	asio::error_code ec;
+	error_code ec;
 
 	if (m_ipv4_sock.is_open()) m_ipv4_sock.close(ec);
 	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
@@ -239,7 +239,7 @@ void udp_socket::bind(int port)
 
 void udp_socket::set_proxy_settings(proxy_settings const& ps)
 {
-	asio::error_code ec;
+	error_code ec;
 	m_socks5_sock.close(ec);
 	m_tunnel_packets = false;
 	
@@ -256,7 +256,7 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 	}
 }
 
-void udp_socket::on_name_lookup(asio::error_code const& e, tcp::resolver::iterator i)
+void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 {
 	if (e) return;
 	m_proxy_addr.address(i->endpoint().address());
@@ -267,7 +267,7 @@ void udp_socket::on_name_lookup(asio::error_code const& e, tcp::resolver::iterat
 
 void udp_socket::on_timeout()
 {
-	asio::error_code ec;
+	error_code ec;
 	m_socks5_sock.close(ec);
 	m_connection_ticket = -1;
 }
@@ -275,13 +275,13 @@ void udp_socket::on_timeout()
 void udp_socket::on_connect(int ticket)
 {
 	m_connection_ticket = ticket;
-	asio::error_code ec;
+	error_code ec;
 	m_socks5_sock.open(m_proxy_addr.address().is_v4()?tcp::v4():tcp::v6(), ec);
 	m_socks5_sock.async_connect(tcp::endpoint(m_proxy_addr.address(), m_proxy_addr.port())
 		, boost::bind(&udp_socket::on_connected, this, _1));
 }
 
-void udp_socket::on_connected(asio::error_code const& e)
+void udp_socket::on_connected(error_code const& e)
 {
 	m_cc.done(m_connection_ticket);
 	m_connection_ticket = -1;
@@ -308,7 +308,7 @@ void udp_socket::on_connected(asio::error_code const& e)
 		, boost::bind(&udp_socket::handshake1, this, _1));
 }
 
-void udp_socket::handshake1(asio::error_code const& e)
+void udp_socket::handshake1(error_code const& e)
 {
 	if (e) return;
 
@@ -316,7 +316,7 @@ void udp_socket::handshake1(asio::error_code const& e)
 		, boost::bind(&udp_socket::handshake2, this, _1));
 }
 
-void udp_socket::handshake2(asio::error_code const& e)
+void udp_socket::handshake2(error_code const& e)
 {
 	if (e) return;
 
@@ -336,7 +336,7 @@ void udp_socket::handshake2(asio::error_code const& e)
 	{
 		if (m_proxy_settings.username.empty())
 		{
-			asio::error_code ec;
+			error_code ec;
 			m_socks5_sock.close(ec);
 			return;
 		}
@@ -353,13 +353,13 @@ void udp_socket::handshake2(asio::error_code const& e)
 	}
 	else
 	{
-		asio::error_code ec;
+		error_code ec;
 		m_socks5_sock.close(ec);
 		return;
 	}
 }
 
-void udp_socket::handshake3(asio::error_code const& e)
+void udp_socket::handshake3(error_code const& e)
 {
 	if (e) return;
 
@@ -367,7 +367,7 @@ void udp_socket::handshake3(asio::error_code const& e)
 		, boost::bind(&udp_socket::handshake4, this, _1));
 }
 
-void udp_socket::handshake4(asio::error_code const& e)
+void udp_socket::handshake4(error_code const& e)
 {
 	if (e) return;
 
@@ -400,7 +400,7 @@ void udp_socket::socks_forward_udp()
 		, boost::bind(&udp_socket::connect1, this, _1));
 }
 
-void udp_socket::connect1(asio::error_code const& e)
+void udp_socket::connect1(error_code const& e)
 {
 	if (e) return;
 
@@ -408,7 +408,7 @@ void udp_socket::connect1(asio::error_code const& e)
 		, boost::bind(&udp_socket::connect2, this, _1));
 }
 
-void udp_socket::connect2(asio::error_code const& e)
+void udp_socket::connect2(error_code const& e)
 {
 	if (e) return;
 	

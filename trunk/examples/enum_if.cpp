@@ -9,7 +9,7 @@ using namespace libtorrent;
 int main()
 {
 	io_service ios;
-	asio::error_code ec;
+	error_code ec;
 
 	address local = guess_local_address(ios);
 	std::cout << "Local address: " << local << std::endl;

@@ -89,10 +89,10 @@ namespace libtorrent
 		boost::intrusive_ptr<udp_tracker_connection> self()
 		{ return boost::intrusive_ptr<udp_tracker_connection>(this); }
 
-		void name_lookup(asio::error_code const& error, udp::resolver::iterator i);
-		void timeout(asio::error_code const& error);
+		void name_lookup(error_code const& error, udp::resolver::iterator i);
+		void timeout(error_code const& error);
 
-		void on_receive(asio::error_code const& e, udp::endpoint const& ep
+		void on_receive(error_code const& e, udp::endpoint const& ep
 			, char const* buf, int size);
 		void on_connect_response(char const* buf, int size);
 		void on_announce_response(char const* buf, int size);

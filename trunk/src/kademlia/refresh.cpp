@@ -47,8 +47,6 @@ using boost::bind;
 namespace libtorrent { namespace dht
 {
 
-using asio::ip::udp;
-
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DEFINE_LOG(refresh)
 #endif

@@ -36,14 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <libtorrent/kademlia/node_id.hpp>
 #include "libtorrent/entry.hpp"
-#include <asio/ip/udp.hpp>
+#include <boost/asio/ip/udp.hpp>
 
 namespace libtorrent {
 namespace dht {
 
 typedef std::vector<char> packet_t;
-
-using asio::ip::udp;
 
 namespace messages
 {

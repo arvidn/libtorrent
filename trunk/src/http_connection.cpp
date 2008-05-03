@@ -35,10 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/gzip.hpp"
 #include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/socket.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
-#include <asio/ip/tcp.hpp>
 #include <string>
 
 using boost::bind;
@@ -118,7 +118,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	if (ps) m_proxy = *ps;
 
 	m_timeout = timeout;
-	asio::error_code ec;
+	error_code ec;
 	m_timer.expires_from_now(m_timeout, ec);
 	m_timer.async_wait(bind(&http_connection::on_timeout
 		, boost::weak_ptr<http_connection>(shared_from_this()), _1));
@@ -137,14 +137,14 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	if (m_sock.is_open() && m_hostname == hostname && m_port == port
 		&& m_ssl == ssl && m_bind_addr == bind_addr)
 	{
-		asio::async_write(m_sock, asio::buffer(sendbuffer)
+		async_write(m_sock, asio::buffer(sendbuffer)
 			, bind(&http_connection::on_write, shared_from_this(), _1));
 	}
 	else
 	{
 		m_ssl = ssl;
 		m_bind_addr = bind_addr;
-		asio::error_code ec;
+		error_code ec;
 		m_sock.close(ec);
 
 #ifdef TORRENT_USE_OPENSSL
@@ -168,7 +168,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #endif
 		if (m_bind_addr != address_v4::any())
 		{
-			asio::error_code ec;
+			error_code ec;
 			m_sock.bind(tcp::endpoint(m_bind_addr, 0), ec);
 			if (ec)
 			{
@@ -195,7 +195,7 @@ void http_connection::on_connect_timeout()
 }
 
 void http_connection::on_timeout(boost::weak_ptr<http_connection> p
-	, asio::error_code const& e)
+	, error_code const& e)
 {
 	boost::shared_ptr<http_connection> c = p.lock();
 	if (!c) return;
@@ -212,14 +212,14 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	}
 
 	if (!c->m_sock.is_open()) return;
-	asio::error_code ec;
+	error_code ec;
 	c->m_timer.expires_at(c->m_last_receive + c->m_timeout, ec);
 	c->m_timer.async_wait(bind(&http_connection::on_timeout, p, _1));
 }
 
 void http_connection::close()
 {
-	asio::error_code ec;
+	error_code ec;
 	m_timer.cancel(ec);
 	m_limiter_timer.cancel(ec);
 	m_sock.close(ec);
@@ -232,7 +232,7 @@ void http_connection::close()
 	m_handler.clear();
 }
 
-void http_connection::on_resolve(asio::error_code const& e
+void http_connection::on_resolve(error_code const& e
 	, tcp::resolver::iterator i)
 {
 	if (e)
@@ -269,14 +269,14 @@ void http_connection::connect(int ticket, tcp::endpoint target_address)
 		, shared_from_this(), _1/*, ++i*/));
 }
 
-void http_connection::on_connect(asio::error_code const& e
+void http_connection::on_connect(error_code const& e
 	/*, tcp::resolver::iterator i*/)
 {
 	if (!e)
 	{ 
 		m_last_receive = time_now();
 		if (m_connect_handler) m_connect_handler(*this);
-		asio::async_write(m_sock, asio::buffer(sendbuffer)
+		async_write(m_sock, asio::buffer(sendbuffer)
 			, bind(&http_connection::on_write, shared_from_this(), _1));
 	}
 /*	else if (i != tcp::resolver::iterator())
@@ -294,7 +294,7 @@ void http_connection::on_connect(asio::error_code const& e
 	}
 }
 
-void http_connection::callback(asio::error_code const& e, char const* data, int size)
+void http_connection::callback(error_code const& e, char const* data, int size)
 {
 	if (!m_bottled || !m_called)
 	{
@@ -321,7 +321,7 @@ void http_connection::callback(asio::error_code const& e, char const* data, int 
 	}
 }
 
-void http_connection::on_write(asio::error_code const& e)
+void http_connection::on_write(error_code const& e)
 {
 	if (e)
 	{
@@ -340,7 +340,7 @@ void http_connection::on_write(asio::error_code const& e)
 		if (m_download_quota == 0)
 		{
 			if (!m_limiter_timer_active)
-				on_assign_bandwidth(asio::error_code());
+				on_assign_bandwidth(error_code());
 			return;
 		}
 	}
@@ -350,7 +350,7 @@ void http_connection::on_write(asio::error_code const& e)
 		, shared_from_this(), _1, _2));
 }
 
-void http_connection::on_read(asio::error_code const& e
+void http_connection::on_read(error_code const& e
 	, std::size_t bytes_transferred)
 {
 	if (m_rate_limit)
@@ -394,7 +394,7 @@ void http_connection::on_read(asio::error_code const& e
 		if (error)
 		{
 			// HTTP parse error
-			asio::error_code ec = asio::error::fault;
+			error_code ec = asio::error::fault;
 			callback(ec, 0, 0);
 			return;
 		}
@@ -415,7 +415,7 @@ void http_connection::on_read(asio::error_code const& e
 					return;
 				}
 
-				asio::error_code ec;
+				error_code ec;
 				m_sock.close(ec);
 				get(url, m_timeout, m_priority, &m_proxy, m_redirects - 1);
 				return;
@@ -434,7 +434,7 @@ void http_connection::on_read(asio::error_code const& e
 		}
 		else if (m_bottled && m_parser.finished())
 		{
-			asio::error_code ec;
+			error_code ec;
 			m_timer.cancel(ec);
 			callback(e, m_parser.get_body().begin, m_parser.get_body().left());
 		}
@@ -462,7 +462,7 @@ void http_connection::on_read(asio::error_code const& e
 		if (m_download_quota == 0)
 		{
 			if (!m_limiter_timer_active)
-				on_assign_bandwidth(asio::error_code());
+				on_assign_bandwidth(error_code());
 			return;
 		}
 	}
@@ -472,7 +472,7 @@ void http_connection::on_read(asio::error_code const& e
 		, shared_from_this(), _1, _2));
 }
 
-void http_connection::on_assign_bandwidth(asio::error_code const& e)
+void http_connection::on_assign_bandwidth(error_code const& e)
 {
 	if ((e == asio::error::operation_aborted
 		&& m_limiter_timer_active)
@@ -499,7 +499,7 @@ void http_connection::on_assign_bandwidth(asio::error_code const& e)
 		, bind(&http_connection::on_read
 		, shared_from_this(), _1, _2));
 
-	asio::error_code ec;
+	error_code ec;
 	m_limiter_timer_active = true;
 	m_limiter_timer.expires_from_now(milliseconds(250), ec);
 	m_limiter_timer.async_wait(bind(&http_connection::on_assign_bandwidth
@@ -512,7 +512,7 @@ void http_connection::rate_limit(int limit)
 
 	if (!m_limiter_timer_active)
 	{
-		asio::error_code ec;
+		error_code ec;
 		m_limiter_timer_active = true;
 		m_limiter_timer.expires_from_now(milliseconds(250), ec);
 		m_limiter_timer.async_wait(bind(&http_connection::on_assign_bandwidth

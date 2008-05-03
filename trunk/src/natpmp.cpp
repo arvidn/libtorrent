@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <boost/bind.hpp>
-#include <asio/ip/host_name.hpp>
+#include <boost/asio/ip/host_name.hpp>
 
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/io.hpp"
@@ -63,7 +63,7 @@ void natpmp::rebind(address const& listen_interface)
 {
 	mutex_t::scoped_lock l(m_mutex);
 
-	asio::error_code ec;
+	error_code ec;
 	address gateway = get_default_gateway(m_socket.get_io_service(), ec);
 	if (ec)
 	{
@@ -198,7 +198,7 @@ void natpmp::try_next_mapping(int i)
 	{
 		if (m_abort)
 		{
-			asio::error_code ec;
+			error_code ec;
 			m_send_timer.cancel(ec);
 			m_socket.close(ec);
 		}
@@ -264,7 +264,7 @@ void natpmp::send_map_request(int i)
 		<< " ttl: " << ttl << " ]" << std::endl;
 #endif
 
-	asio::error_code ec;
+	error_code ec;
 	m_socket.send_to(asio::buffer(buf, 12), m_nat_endpoint, 0, ec);
 	// linear back-off instead of exponential
 	++m_retry_count;
@@ -272,7 +272,7 @@ void natpmp::send_map_request(int i)
 	m_send_timer.async_wait(bind(&natpmp::resend_request, self(), i, _1));
 }
 
-void natpmp::resend_request(int i, asio::error_code const& e)
+void natpmp::resend_request(int i, error_code const& e)
 {
 	if (e) return;
 
@@ -290,7 +290,7 @@ void natpmp::resend_request(int i, asio::error_code const& e)
 	send_map_request(i);
 }
 
-void natpmp::on_reply(asio::error_code const& e
+void natpmp::on_reply(error_code const& e
 	, std::size_t bytes_transferred)
 {
 	using namespace libtorrent::detail;
@@ -305,7 +305,7 @@ void natpmp::on_reply(asio::error_code const& e
 
 	mutex_t::scoped_lock l(m_mutex);
 
-	asio::error_code ec;
+	error_code ec;
 	m_send_timer.cancel(ec);
 
 	TORRENT_ASSERT(m_currently_mapping >= 0);
@@ -439,7 +439,7 @@ void natpmp::update_expiration_timer()
 			<< " ttl: " << total_seconds(min_expire - time_now())
 			<< " ]" << std::endl;
 #endif
-		asio::error_code ec;
+		error_code ec;
 		if (m_next_refresh >= 0) m_refresh_timer.cancel(ec);
 		m_refresh_timer.expires_from_now(min_expire - now, ec);
 		m_refresh_timer.async_wait(bind(&natpmp::mapping_expired, self(), _1, min_index));
@@ -447,7 +447,7 @@ void natpmp::update_expiration_timer()
 	}
 }
 
-void natpmp::mapping_expired(asio::error_code const& e, int i)
+void natpmp::mapping_expired(error_code const& e, int i)
 {
 	if (e) return;
 	mutex_t::scoped_lock l(m_mutex);
@@ -463,7 +463,7 @@ void natpmp::close()
 {
 	mutex_t::scoped_lock l(m_mutex);
 	m_abort = true;
-	asio::error_code ec;
+	error_code ec;
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string() << " close" << std::endl;
 #endif

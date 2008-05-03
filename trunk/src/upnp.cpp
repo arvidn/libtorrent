@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
-#include <asio/ip/host_name.hpp>
-#include <asio/ip/multicast.hpp>
+#include <boost/asio/ip/host_name.hpp>
+#include <boost/asio/ip/multicast.hpp>
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
 
@@ -57,7 +57,7 @@ using namespace libtorrent;
 namespace libtorrent
 {
 	bool is_local(address const& a);
-	address guess_local_address(asio::io_service&);
+	address guess_local_address(io_service&);
 }
 
 upnp::upnp(io_service& ios, connection_queue& cc
@@ -103,7 +103,7 @@ void upnp::discover_device_impl()
 		"MX:3\r\n"
 		"\r\n\r\n";
 
-	asio::error_code ec;
+	error_code ec;
 #ifdef TORRENT_DEBUG_UPNP
 	// simulate packet loss
 	if (m_retry_count & 1)
@@ -215,7 +215,7 @@ void upnp::delete_mapping(int mapping)
 	}
 }
 
-void upnp::resend_request(asio::error_code const& e)
+void upnp::resend_request(error_code const& e)
 {
 	if (e) return;
 
@@ -306,7 +306,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	Server:Microsoft-Windows-NT/5.1 UPnP/1.0 UPnP-Device-Host/1.0
 
 */
-	asio::error_code ec;
+	error_code ec;
 	if (m_ignore_outside_network && !in_local_network(m_io_service, from.address(), ec))
 	{
 		// this upnp device is filtered because it's not in the
@@ -453,7 +453,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	// just to make sure we find all devices
 	if (m_retry_count >= 4 && !m_devices.empty())
 	{
-		asio::error_code ec;
+		error_code ec;
 		m_broadcast_timer.cancel(ec);
 
 		for (std::set<rootdevice>::iterator i = m_devices.begin()
@@ -543,7 +543,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 		"<s:Body><u:" << soap_action << " xmlns:u=\"" << d.service_namespace << "\">";
 
-	asio::error_code ec;
+	error_code ec;
 	soap << "<NewRemoteHost></NewRemoteHost>"
 		"<NewExternalPort>" << d.mapping[i].external_port << "</NewExternalPort>"
 		"<NewProtocol>" << (d.mapping[i].protocol == udp ? "UDP" : "TCP") << "</NewProtocol>"
@@ -732,7 +732,7 @@ namespace
 
 }
 
-void upnp::on_upnp_xml(asio::error_code const& e
+void upnp::on_upnp_xml(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d)
 {
 	mutex_t::scoped_lock l(m_mutex);
@@ -833,7 +833,7 @@ void upnp::disable(char const* msg)
 	}
 	
 	m_devices.clear();
-	asio::error_code ec;
+	error_code ec;
 	m_broadcast_timer.cancel(ec);
 	m_refresh_timer.cancel(ec);
 	m_socket.close();
@@ -891,7 +891,7 @@ namespace
 
 }
 
-void upnp::on_upnp_map_response(asio::error_code const& e
+void upnp::on_upnp_map_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
 {
 	mutex_t::scoped_lock l(m_mutex);
@@ -1014,7 +1014,7 @@ void upnp::on_upnp_map_response(asio::error_code const& e
 			if (next_expire < time_now()
 				|| next_expire > m.expires)
 			{
-				asio::error_code ec;
+				error_code ec;
 				m_refresh_timer.expires_at(m.expires, ec);
 				m_refresh_timer.async_wait(bind(&upnp::on_expire, self(), _1));
 			}
@@ -1046,7 +1046,7 @@ void upnp::return_error(int mapping, int code)
 	m_callback(mapping, 0, error_string);
 }
 
-void upnp::on_upnp_unmap_response(asio::error_code const& e
+void upnp::on_upnp_unmap_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
 {
 	mutex_t::scoped_lock l(m_mutex);
@@ -1093,7 +1093,7 @@ void upnp::on_upnp_unmap_response(asio::error_code const& e
 	next(d, mapping);
 }
 
-void upnp::on_expire(asio::error_code const& e)
+void upnp::on_expire(error_code const& e)
 {
 	if (e) return;
 
@@ -1125,7 +1125,7 @@ void upnp::on_expire(asio::error_code const& e)
 	}
 	if (next_expire != max_time())
 	{
-		asio::error_code ec;
+		error_code ec;
 		m_refresh_timer.expires_at(next_expire, ec);
 		m_refresh_timer.async_wait(bind(&upnp::on_expire, self(), _1));
 	}
@@ -1135,7 +1135,7 @@ void upnp::close()
 {
 	mutex_t::scoped_lock l(m_mutex);
 
-	asio::error_code ec;
+	error_code ec;
 	m_refresh_timer.cancel(ec);
 	m_broadcast_timer.cancel(ec);
 	m_closing = true;

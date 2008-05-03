@@ -51,7 +51,7 @@ namespace libtorrent
 	int common_bits(unsigned char const* b1
 		, unsigned char const* b2, int n);
 
-	TORRENT_EXPORT address guess_local_address(asio::io_service&);
+	TORRENT_EXPORT address guess_local_address(io_service&);
 
 	typedef boost::function<void(udp::endpoint const& from
 		, char* buffer, int size)> receive_handler_t;
@@ -59,11 +59,11 @@ namespace libtorrent
 	class TORRENT_EXPORT broadcast_socket
 	{
 	public:
-		broadcast_socket(asio::io_service& ios, udp::endpoint const& multicast_endpoint
+		broadcast_socket(io_service& ios, udp::endpoint const& multicast_endpoint
 			, receive_handler_t const& handler, bool loopback = true);
 		~broadcast_socket() { close(); }
 
-		void send(char const* buffer, int size, asio::error_code& ec);
+		void send(char const* buffer, int size, error_code& ec);
 		void close();
 
 	private:
@@ -77,12 +77,12 @@ namespace libtorrent
 			void close()
 			{
 				if (!socket) return;
-				asio::error_code ec;
+				error_code ec;
 				socket->close(ec);
 			}
 		};
 	
-		void on_receive(socket_entry* s, asio::error_code const& ec
+		void on_receive(socket_entry* s, error_code const& ec
 			, std::size_t bytes_transferred);
 		void open_unicast_socket(io_service& ios, address const& addr);
 		void open_multicast_socket(io_service& ios, address const& addr

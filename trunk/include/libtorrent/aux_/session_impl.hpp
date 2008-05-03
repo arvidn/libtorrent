@@ -151,7 +151,7 @@ namespace libtorrent
 
 			void async_accept(boost::shared_ptr<socket_acceptor> const& listener);
 			void on_incoming_connection(boost::shared_ptr<socket_type> const& s
-				, boost::weak_ptr<socket_acceptor> listener, asio::error_code const& e);
+				, boost::weak_ptr<socket_acceptor> listener, error_code const& e);
 		
 			// must be locked to access the data
 			// in this struct
@@ -498,7 +498,7 @@ namespace libtorrent
 			// NAT or not.
 			bool m_incoming_connection;
 			
-			void second_tick(asio::error_code const& e);
+			void second_tick(error_code const& e);
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots(int congested_torrents
 				, int uncongested_torrents);
@@ -528,7 +528,7 @@ namespace libtorrent
 
 			udp_socket m_dht_socket;
 
-			void on_receive_udp(asio::error_code const& e
+			void on_receive_udp(error_code const& e
 				, udp::endpoint const& ep, char const* buf, int len);
 #endif
 

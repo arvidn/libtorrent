@@ -84,7 +84,7 @@ namespace libtorrent
 
 		int timeout = (std::min)(
 			m_read_timeout, (std::min)(m_completion_timeout, m_read_timeout));
-		asio::error_code ec;
+		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(bind(
 			&timeout_handler::timeout_callback, self(), _1));
@@ -99,11 +99,11 @@ namespace libtorrent
 	{
 		m_abort = true;
 		m_completion_timeout = 0;
-		asio::error_code ec;
+		error_code ec;
 		m_timeout.cancel(ec);
 	}
 
-	void timeout_handler::timeout_callback(asio::error_code const& error)
+	void timeout_handler::timeout_callback(error_code const& error)
 	{
 		if (error) return;
 		if (m_completion_timeout == 0) return;
@@ -125,7 +125,7 @@ namespace libtorrent
 
 		int timeout = (std::min)(
 			m_read_timeout, (std::min)(m_completion_timeout, m_read_timeout));
-		asio::error_code ec;
+		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(
 			bind(&timeout_handler::timeout_callback, self(), _1));

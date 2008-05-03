@@ -68,7 +68,7 @@ public:
 
 private:
 	void done();
-	void invoke(node_id const& id, asio::ip::udp::endpoint addr);
+	void invoke(node_id const& id, udp::endpoint addr);
 	
 	closest_nodes(
 		node_id target

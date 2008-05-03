@@ -160,7 +160,7 @@ namespace libtorrent
 
 	private:
 	
-		void timeout_callback(asio::error_code const&);
+		void timeout_callback(error_code const&);
 
 		boost::intrusive_ptr<timeout_handler> self()
 		{ return boost::intrusive_ptr<timeout_handler>(this); }

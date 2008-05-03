@@ -243,7 +243,7 @@ namespace libtorrent
 #endif
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		asio::error_code ec;
+		error_code ec;
 		TORRENT_ASSERT(m_socket->remote_endpoint() == remote() || ec);
 		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
 			+ boost::lexical_cast<std::string>(remote().port()), m_ses.listen_port());
@@ -291,7 +291,7 @@ namespace libtorrent
 		if (!t)
 		{
 			tcp::socket::non_blocking_io ioc(true);
-			asio::error_code ec;
+			error_code ec;
 			m_socket->io_control(ioc, ec);
 			if (ec)
 			{
@@ -2207,7 +2207,7 @@ namespace libtorrent
 #endif
 
 		m_disconnecting = true;
-		asio::error_code ec;
+		error_code ec;
 		m_socket->close(ec);
 		m_ses.close_connection(this, message);
 	}
@@ -2998,7 +2998,7 @@ namespace libtorrent
 	// --------------------------
 
 	// throws exception when the client should be disconnected
-	void peer_connection::on_receive_data(const asio::error_code& error
+	void peer_connection::on_receive_data(const error_code& error
 		, std::size_t bytes_transferred)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -3063,7 +3063,7 @@ namespace libtorrent
 			if (int(m_recv_buffer.size()) < regular_buffer_size)
 				m_recv_buffer.resize(regular_buffer_size);
 
-			asio::error_code ec;	
+			error_code ec;	
 			if (m_disk_recv_buffer == 0 || regular_buffer_size >= m_recv_pos + max_receive)
 			{
 				// only receive into regular buffer
@@ -3158,7 +3158,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		asio::error_code ec;
+		error_code ec;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " CONNECTING: " << m_remote.address().to_string(ec)
 			<< ":" << m_remote.port() << "\n";
@@ -3209,7 +3209,7 @@ namespace libtorrent
 		}
 	}
 	
-	void peer_connection::on_connection_complete(asio::error_code const& e)
+	void peer_connection::on_connection_complete(error_code const& e)
 	{
 		ptime completed = time_now();
 
@@ -3247,7 +3247,7 @@ namespace libtorrent
 
 		if (m_remote.address().is_v4())
 		{
-			asio::error_code ec;
+			error_code ec;
 			m_socket->set_option(type_of_service(m_ses.settings().peer_tos), ec);
 		}
 
@@ -3261,7 +3261,7 @@ namespace libtorrent
 	// --------------------------
 
 	// throws exception when the client should be disconnected
-	void peer_connection::on_send_data(asio::error_code const& error
+	void peer_connection::on_send_data(error_code const& error
 		, std::size_t bytes_transferred)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);

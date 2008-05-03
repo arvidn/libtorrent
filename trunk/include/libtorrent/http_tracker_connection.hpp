@@ -82,7 +82,7 @@ namespace libtorrent
 		boost::intrusive_ptr<http_tracker_connection> self()
 		{ return boost::intrusive_ptr<http_tracker_connection>(this); }
 
-		void on_response(asio::error_code const& ec, http_parser const& parser
+		void on_response(error_code const& ec, http_parser const& parser
 			, char const* data, int size);
 
 		virtual void on_timeout() {}

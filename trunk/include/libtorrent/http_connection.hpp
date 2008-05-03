@@ -59,7 +59,7 @@ namespace libtorrent
 struct http_connection;
 class connection_queue;
 	
-typedef boost::function<void(asio::error_code const&
+typedef boost::function<void(error_code const&
 	, http_parser const&, char const* data, int size)> http_handler;
 
 typedef boost::function<void(http_connection&)> http_connect_handler;
@@ -70,7 +70,7 @@ typedef boost::function<void(http_connection&)> http_connect_handler;
 // will always be 0
 struct http_connection : boost::enable_shared_from_this<http_connection>, boost::noncopyable
 {
-	http_connection(asio::io_service& ios, connection_queue& cc
+	http_connection(io_service& ios, connection_queue& cc
 		, http_handler const& handler, bool bottled = true
 		, http_connect_handler const& ch = http_connect_handler())
 		: m_sock(ios)
@@ -121,19 +121,19 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 	
 private:
 
-	void on_resolve(asio::error_code const& e
+	void on_resolve(error_code const& e
 		, tcp::resolver::iterator i);
 	void connect(int ticket, tcp::endpoint target_address);
 	void on_connect_timeout();
-	void on_connect(asio::error_code const& e
+	void on_connect(error_code const& e
 /*		, tcp::resolver::iterator i*/);
-	void on_write(asio::error_code const& e);
-	void on_read(asio::error_code const& e, std::size_t bytes_transferred);
+	void on_write(error_code const& e);
+	void on_read(error_code const& e, std::size_t bytes_transferred);
 	static void on_timeout(boost::weak_ptr<http_connection> p
-		, asio::error_code const& e);
-	void on_assign_bandwidth(asio::error_code const& e);
+		, error_code const& e);
+	void on_assign_bandwidth(error_code const& e);
 
-	void callback(asio::error_code const& e, char const* data = 0, int size = 0);
+	void callback(error_code const& e, char const* data = 0, int size = 0);
 
 	std::vector<char> m_recvbuffer;
 #ifdef TORRENT_USE_OPENSSL

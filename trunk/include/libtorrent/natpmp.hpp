@@ -70,12 +70,12 @@ private:
 	
 	void update_mapping(int i);
 	void send_map_request(int i);
-	void resend_request(int i, asio::error_code const& e);
-	void on_reply(asio::error_code const& e
+	void resend_request(int i, error_code const& e);
+	void on_reply(error_code const& e
 		, std::size_t bytes_transferred);
 	void try_next_mapping(int i);
 	void update_expiration_timer();
-	void mapping_expired(asio::error_code const& e, int i);
+	void mapping_expired(error_code const& e, int i);
 
 	void disable(char const* message);
 

@@ -56,8 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-using asio::ip::udp;
-
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DECLARE_LOG(node);
 #endif

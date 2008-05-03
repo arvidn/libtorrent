@@ -50,9 +50,6 @@ using boost::uint8_t;
 namespace libtorrent { namespace dht
 {
 
-using asio::ip::udp;
-typedef asio::ip::address_v4 address;
-
 routing_table::routing_table(node_id const& id, int bucket_size
 	, dht_settings const& settings)
 	: m_bucket_size(bucket_size)

@@ -3,8 +3,6 @@
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io.hpp"
 #include <cstring>
-#include <asio/read.hpp>
-#include <asio/write.hpp>
 #include <boost/bind.hpp>
 
 using namespace libtorrent;
@@ -12,7 +10,7 @@ using namespace libtorrent;
 int read_message(stream_socket& s, char* buffer)
 {
 	using namespace libtorrent::detail;
-	asio::error_code ec;
+	error_code ec;
 	asio::read(s, asio::buffer(buffer, 4), asio::transfer_all(), ec);
 	if (ec)
 	{
@@ -42,7 +40,7 @@ void send_allow_fast(stream_socket& s, int piece)
 	char msg[] = "\0\0\0\x05\x11\0\0\0\0";
 	char* ptr = msg + 5;
 	write_int32(piece, ptr);
-	asio::error_code ec;
+	error_code ec;
 	asio::write(s, asio::buffer(msg, 9), asio::transfer_all(), ec);
 	if (ec)
 	{
@@ -58,7 +56,7 @@ void send_suggest_piece(stream_socket& s, int piece)
 	char msg[] = "\0\0\0\x05\x0d\0\0\0\0";
 	char* ptr = msg + 5;
 	write_int32(piece, ptr);
-	asio::error_code ec;
+	error_code ec;
 	asio::write(s, asio::buffer(msg, 9), asio::transfer_all(), ec);
 	if (ec)
 	{
@@ -71,7 +69,7 @@ void send_unchoke(stream_socket& s)
 {
 	std::cout << "send unchoke" << std::endl;
 	char msg[] = "\0\0\0\x01\x01";
-	asio::error_code ec;
+	error_code ec;
 	asio::write(s, asio::buffer(msg, 5), asio::transfer_all(), ec);
 	if (ec)
 	{
@@ -87,7 +85,7 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 		"aaaaaaaaaaaaaaaaaaaa" // peer-id
 		"\0\0\0\x01\x0e"; // have_all
 	std::cout << "send handshake" << std::endl;
-	asio::error_code ec;
+	error_code ec;
 	std::memcpy(handshake + 28, ih.begin(), 20);
 	asio::write(s, asio::buffer(handshake, sizeof(handshake) - 1), asio::transfer_all(), ec);
 	if (ec)
@@ -173,7 +171,7 @@ void test_reject_fast()
 			allowed_fast.erase(i);
 		// send reject request
 		recv_buffer[0] = 0x10;
-		asio::error_code ec;
+		error_code ec;
 		asio::write(s, asio::buffer("\0\0\0\x0d", 4), asio::transfer_all(), ec);
 		if (ec)
 		{
@@ -241,7 +239,7 @@ void test_respect_suggest()
 			suggested.erase(i);
 		// send reject request
 		recv_buffer[0] = 0x10;
-		asio::error_code ec;
+		error_code ec;
 		asio::write(s, asio::buffer("\0\0\0\x0d", 4), asio::transfer_all(), ec);
 		if (ec)
 		{

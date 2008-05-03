@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
-#include <asio/read.hpp>
-#include <asio/write.hpp>
+#include <boost/asio/read.hpp>
+#include <boost/asio/write.hpp>
 
 
 namespace libtorrent {
@@ -52,7 +52,7 @@ public:
 	typedef stream_socket::endpoint_type endpoint_type;
 	typedef stream_socket::protocol_type protocol_type;
 
-	explicit proxy_base(asio::io_service& io_service)
+	explicit proxy_base(io_service& io_service)
 		: m_sock(io_service)
 		, m_resolver(io_service)
 	{}
@@ -70,7 +70,7 @@ public:
 	}
 
 	template <class Mutable_Buffers>
-	std::size_t read_some(Mutable_Buffers const& buffers, asio::error_code& ec)
+	std::size_t read_some(Mutable_Buffers const& buffers, error_code& ec)
 	{
 		return m_sock.read_some(buffers, ec);
 	}
@@ -90,7 +90,7 @@ public:
 #endif
 
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command& ioc, asio::error_code& ec)
+	void io_control(IO_Control_Command& ioc, error_code& ec)
 	{
 		m_sock.io_control(ioc, ec);
 	}
@@ -110,7 +110,7 @@ public:
 #endif
 
 	template <class SettableSocketOption>
-	asio::error_code set_option(SettableSocketOption const& opt, asio::error_code& ec)
+	error_code set_option(SettableSocketOption const& opt, error_code& ec)
 	{
 		return m_sock.set_option(opt, ec);
 	}
@@ -122,7 +122,7 @@ public:
 	}
 #endif
 
-	void bind(endpoint_type const& endpoint, asio::error_code& ec)
+	void bind(endpoint_type const& endpoint, error_code& ec)
 	{
 		m_sock.bind(endpoint, ec);
 	}
@@ -134,7 +134,7 @@ public:
 	}
 #endif
 
-	void open(protocol_type const& p, asio::error_code& ec)
+	void open(protocol_type const& p, error_code& ec)
 	{
 		m_sock.open(p, ec);
 	}
@@ -148,7 +148,7 @@ public:
 	}
 #endif
 
-	void close(asio::error_code& ec)
+	void close(error_code& ec)
 	{
 		m_sock.close(ec);
 		m_resolver.cancel();
@@ -161,7 +161,7 @@ public:
 	}
 #endif
 
-	endpoint_type remote_endpoint(asio::error_code& ec) const
+	endpoint_type remote_endpoint(error_code& ec) const
 	{
 		return m_remote_endpoint;
 	}
@@ -173,14 +173,14 @@ public:
 	}
 #endif
 
-	endpoint_type local_endpoint(asio::error_code& ec) const
+	endpoint_type local_endpoint(error_code& ec) const
 	{
 		return m_sock.local_endpoint(ec);
 	}
 
-	asio::io_service& io_service()
+	io_service& get_io_service()
 	{
-		return m_sock.io_service();
+		return m_sock.get_io_service();
 	}
 
 	lowest_layer_type& lowest_layer()

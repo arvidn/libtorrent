@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/connection_queue.hpp"
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {
@@ -112,7 +113,7 @@ namespace libtorrent
 
 	void connection_queue::close()
 	{
-		asio::error_code ec;
+		error_code ec;
 		m_timer.cancel(ec);
 	}
 
@@ -153,7 +154,7 @@ namespace libtorrent
 	
 		if (m_queue.empty())
 		{
-			asio::error_code ec;
+			error_code ec;
 			m_timer.cancel(ec);
 			return;
 		}
@@ -166,7 +167,7 @@ namespace libtorrent
 			ptime expire = time_now() + i->timeout;
 			if (m_num_connecting == 0)
 			{
-				asio::error_code ec;
+				error_code ec;
 				m_timer.expires_at(expire, ec);
 				m_timer.async_wait(boost::bind(&connection_queue::on_timeout, this, _1));
 			}
@@ -206,7 +207,7 @@ namespace libtorrent
 	};
 #endif
 	
-	void connection_queue::on_timeout(asio::error_code const& e)
+	void connection_queue::on_timeout(error_code const& e)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
@@ -251,7 +252,7 @@ namespace libtorrent
 		
 		if (next_expire < max_time())
 		{
-			asio::error_code ec;
+			error_code ec;
 			m_timer.expires_at(next_expire, ec);
 			m_timer.async_wait(boost::bind(&connection_queue::on_timeout, this, _1));
 		}

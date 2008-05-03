@@ -149,7 +149,7 @@ namespace libtorrent
 	// of disk io jobs
 	struct disk_io_thread : boost::noncopyable
 	{
-		disk_io_thread(asio::io_service& ios, int block_size = 16 * 1024);
+		disk_io_thread(io_service& ios, int block_size = 16 * 1024);
 		~disk_io_thread();
 
 #ifdef TORRENT_STATS
@@ -292,7 +292,7 @@ namespace libtorrent
 		size_type m_writes;
 		size_type m_blocks_written;
 
-		asio::io_service& m_ios;
+		io_service& m_ios;
 
 		// thread for performing blocking disk io operations
 		boost::thread m_disk_io_thread;

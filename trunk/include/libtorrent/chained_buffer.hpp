@@ -34,12 +34,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 
 #include <boost/function.hpp>
-#include <asio/buffer.hpp>
+#include <boost/asio/buffer.hpp>
 #include <list>
 #include <cstring>
 
 namespace libtorrent
 {
+	namespace asio = boost::asio;
+	
 	struct chained_buffer
 	{
 		chained_buffer(): m_bytes(0), m_capacity(0) {}

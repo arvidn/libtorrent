@@ -45,13 +45,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #define Protocol Protocol_
 #endif
 
-#include <asio/ip/tcp.hpp>
-#include <asio/ip/udp.hpp>
-#include <asio/io_service.hpp>
-#include <asio/deadline_timer.hpp>
-#include <asio/write.hpp>
-#include <asio/time_traits.hpp>
-#include <asio/basic_deadline_timer.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/udp.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/write.hpp>
+#include <boost/asio/read.hpp>
+#include <boost/asio/time_traits.hpp>
+#include <boost/asio/basic_deadline_timer.hpp>
+#include <boost/system/error_code.hpp>
 
 #ifdef __OBJC__ 
 #undef Protocol
@@ -83,23 +85,27 @@ namespace libtorrent
 */
 //	namespace asio = ::asio;
 
-	using asio::ip::tcp;
-	using asio::ip::udp;
-	typedef asio::ip::tcp::socket stream_socket;
-	typedef asio::ip::address address;
-	typedef asio::ip::address_v4 address_v4;
-	typedef asio::ip::address_v6 address_v6;
-	typedef asio::ip::udp::socket datagram_socket;
-	typedef asio::ip::tcp::acceptor socket_acceptor;
-	typedef asio::io_service io_service;
+	using boost::system::error_code;
+	using boost::asio::ip::tcp;
+	using boost::asio::ip::udp;
+	using boost::asio::async_write;
+	using boost::asio::async_read;
 
-	using asio::async_write;
+	typedef boost::asio::ip::tcp::socket stream_socket;
+	typedef boost::asio::ip::address address;
+	typedef boost::asio::ip::address_v4 address_v4;
+	typedef boost::asio::ip::address_v6 address_v6;
+	typedef boost::asio::ip::udp::socket datagram_socket;
+	typedef boost::asio::ip::tcp::acceptor socket_acceptor;
+	typedef boost::asio::io_service io_service;
+
+	namespace asio = boost::asio;
 	
-	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
+	typedef boost::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 	
 	inline std::ostream& print_address(std::ostream& os, address const& addr)
 	{
-		asio::error_code ec;
+		error_code ec;
 		std::string a = addr.to_string(ec);
 		if (ec) return os;
 		os << a;
@@ -109,7 +115,7 @@ namespace libtorrent
 	inline std::ostream& print_endpoint(std::ostream& os, tcp::endpoint const& ep)
 	{
 		address const& addr = ep.address();
-		asio::error_code ec;
+		error_code ec;
 		std::string a = addr.to_string(ec);
 		if (ec) return os;
 
@@ -132,7 +138,7 @@ namespace libtorrent
 			}
 			else if (a.is_v6())
 			{
-				asio::ip::address_v6::bytes_type bytes
+				address_v6::bytes_type bytes
 					= a.to_v6().to_bytes();
 				std::copy(bytes.begin(), bytes.end(), out);
 			}
@@ -142,18 +148,18 @@ namespace libtorrent
 		address read_v4_address(InIt& in)
 		{
 			unsigned long ip = read_uint32(in);
-			return asio::ip::address_v4(ip);
+			return address_v4(ip);
 		}
 
 		template<class InIt>
 		address read_v6_address(InIt& in)
 		{
-			typedef asio::ip::address_v6::bytes_type bytes_t;
+			typedef address_v6::bytes_type bytes_t;
 			bytes_t bytes;
 			for (bytes_t::iterator i = bytes.begin()
 				, end(bytes.end()); i != end; ++i)
 				*i = read_uint8(in);
-			return asio::ip::address_v6(bytes);
+			return address_v6(bytes);
 		}
 
 		template<class Endpoint, class OutIt>

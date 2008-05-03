@@ -225,7 +225,7 @@ namespace libtorrent
 		// blocks be from whole pieces, possibly by returning more blocks
 		// than we requested.
 #ifndef NDEBUG
-		asio::error_code ec;
+		error_code ec;
 		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 #endif
 
@@ -625,7 +625,7 @@ namespace libtorrent
 
 		// TODO: only allow _one_ connection to use this
 		// override at a time
-		asio::error_code ec;
+		error_code ec;
 		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 
 		aux::session_impl& ses = m_torrent->session();
@@ -697,7 +697,7 @@ namespace libtorrent
 		{
 			// we don't have any info about this peer.
 			// add a new entry
-			asio::error_code ec;
+			error_code ec;
 			TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 
 			peer p(c.remote(), peer::not_connectable, 0);
@@ -1156,7 +1156,7 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(c);
-		asio::error_code ec;
+		error_code ec;
 		TORRENT_ASSERT(c->remote() == c->get_socket()->remote_endpoint(ec) || ec);
 
 		return std::find_if(

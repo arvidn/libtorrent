@@ -256,12 +256,12 @@ private:
 
 		if (m_abort) return;
 
-		asio::error_code ec;
+		error_code ec;
 		m_history_timer.expires_at(e.expires_at, ec);
 		m_history_timer.async_wait(bind(&bandwidth_manager::on_history_expire, this, _1));
 	}
 	
-	void on_history_expire(asio::error_code const& e)
+	void on_history_expire(error_code const& e)
 	{
 		if (e) return;
 
@@ -298,7 +298,7 @@ private:
 		// now, wait for the next chunk to expire
 		if (!m_history.empty() && !m_abort)
 		{
-			asio::error_code ec;
+			error_code ec;
 			m_history_timer.expires_at(m_history.back().expires_at, ec);
 			m_history_timer.async_wait(bind(&bandwidth_manager::on_history_expire, this, _1));
 		}
