@@ -43,7 +43,7 @@ namespace libtorrent
 	{
 		address interface_address;
 		address netmask;
-		char name[32];
+		char name[64];
 	};
 
 	struct ip_route
@@ -51,7 +51,7 @@ namespace libtorrent
 		address destination;
 		address netmask;
 		address gateway;
-		char name[32];
+		char name[64];
 	};
 
 	// returns a list of the configured IP interfaces

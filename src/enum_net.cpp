@@ -558,7 +558,7 @@ namespace libtorrent
 				r.source = address::from_string(adapter->IpAddressList.IpAddress.String, ec);
 				r.gateway = address::from_string(adapter->GatewayList.IpAddress.String, ec);
 				r.netmask = address::from_string(adapter->IpAddressList.IpMask.String, ec);
-				strcpy(r.name, adapter->AdapterName);
+				strncpy(r.name, adapter->AdapterName, sizeof(ip_route::name));
 
 				if (ec)
 				{
