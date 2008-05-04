@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <assert.h>
+#include <math.h>
 
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
@@ -44,88 +45,135 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
-	class TORRENT_EXPORT stat
+	class TORRENT_EXPORT stat_channel
 	{
 	friend class invariant_access;
 	public:
 		enum { history = 10 };
 
-		stat()
-			: m_downloaded_payload(0)
-			, m_uploaded_payload(0)
-			, m_downloaded_protocol(0)
-			, m_uploaded_protocol(0)
-			, m_total_download_payload(0)
-			, m_total_upload_payload(0)
-			, m_total_download_protocol(0)
-			, m_total_upload_protocol(0)
-			, m_mean_download_rate(0)
-			, m_mean_upload_rate(0)
-			, m_mean_download_payload_rate(0)
-			, m_mean_upload_payload_rate(0)
+		stat_channel()
+			: m_counter(0)
+			, m_total_counter(0)
+			, m_rate_sum(0)
 		{
-			std::fill(m_download_rate_history, m_download_rate_history+history, 0.f);
-			std::fill(m_upload_rate_history, m_upload_rate_history+history, 0.f);
-			std::fill(m_download_payload_rate_history, m_download_payload_rate_history+history, 0.f);
-			std::fill(m_upload_payload_rate_history, m_upload_payload_rate_history+history, 0.f);
+			std::fill(m_rate_history
+				, m_rate_history + history, 0.f);
 		}
 
-		void operator+=(const stat& s)
+		void operator+=(stat_channel const& s)
 		{
-			INVARIANT_CHECK;
-
-			m_downloaded_payload += s.m_downloaded_payload;
-			m_total_download_payload += s.m_downloaded_payload;
-			m_downloaded_protocol += s.m_downloaded_protocol;
-			m_total_download_protocol += s.m_downloaded_protocol;
-			
-			m_uploaded_payload += s.m_uploaded_payload;
-			m_total_upload_payload += s.m_uploaded_payload;
-			m_uploaded_protocol += s.m_uploaded_protocol;
-			m_total_upload_protocol += s.m_uploaded_protocol;
+			m_counter += s.m_counter;
+			m_total_counter += s.m_counter;
 		}
 
-		void received_bytes(int bytes_payload, int bytes_protocol)
+		void add(int count)
 		{
-			INVARIANT_CHECK;
+			TORRENT_ASSERT(count >= 0);
 
-			TORRENT_ASSERT(bytes_payload >= 0);
-			TORRENT_ASSERT(bytes_protocol >= 0);
-
-			m_downloaded_payload += bytes_payload;
-			m_total_download_payload += bytes_payload;
-			m_downloaded_protocol += bytes_protocol;
-			m_total_download_protocol += bytes_protocol;
-		}
-
-		void sent_bytes(int bytes_payload, int bytes_protocol)
-		{
-			INVARIANT_CHECK;
-
-			TORRENT_ASSERT(bytes_payload >= 0);
-			TORRENT_ASSERT(bytes_protocol >= 0);
-
-			m_uploaded_payload += bytes_payload;
-			m_total_upload_payload += bytes_payload;
-			m_uploaded_protocol += bytes_protocol;
-			m_total_upload_protocol += bytes_protocol;
+			m_counter += count;
+			m_total_counter += count;
 		}
 
 		// should be called once every second
 		void second_tick(float tick_interval);
+		float rate() const { return m_rate_sum / history; }
+		size_type total() const { return m_total_counter; }
 
-		float upload_rate() const { return m_mean_upload_rate; }
-		float download_rate() const { return m_mean_download_rate; }
+		void offset(size_type counter)
+		{
+			TORRENT_ASSERT(counter >= 0);
+			m_total_counter += counter;
+		}
 
-		float upload_payload_rate() const { return m_mean_upload_payload_rate; }
-		float download_payload_rate() const { return m_mean_download_payload_rate; }
+		size_type counter() const { return m_counter; }
 
-		size_type total_payload_upload() const { return m_total_upload_payload; }
-		size_type total_payload_download() const { return m_total_download_payload; }
+	private:
 
-		size_type total_protocol_upload() const { return m_total_upload_protocol; }
-		size_type total_protocol_download() const { return m_total_download_protocol; }
+#ifndef NDEBUG
+		void check_invariant() const
+		{
+			float sum = 0.f;
+			for (int i = 0; i < history; ++i) sum += m_rate_history[i];
+			TORRENT_ASSERT(fabs(m_rate_sum - sum) < 0.1);
+			TORRENT_ASSERT(m_total_counter >= 0);
+		}
+#endif
+
+		// history of rates a few seconds back
+		float m_rate_history[history];
+
+		// the accumulator for this second.
+		int m_counter;
+
+		// total counters
+		size_type m_total_counter;
+
+		// sum of all elements in m_rate_history
+		float m_rate_sum;
+	};
+
+	class TORRENT_EXPORT stat
+	{
+	friend class invariant_access;
+	public:
+		void operator+=(const stat& s)
+		{
+			for (int i = 0; i < num_channels; ++i)
+				m_stat[i] += s.m_stat[i];
+		}
+
+		void received_bytes(int bytes_payload, int bytes_protocol)
+		{
+			TORRENT_ASSERT(bytes_payload >= 0);
+			TORRENT_ASSERT(bytes_protocol >= 0);
+
+			m_stat[download_payload].add(bytes_payload);
+			m_stat[download_protocol].add(bytes_protocol);
+		}
+
+		void sent_bytes(int bytes_payload, int bytes_protocol)
+		{
+			TORRENT_ASSERT(bytes_payload >= 0);
+			TORRENT_ASSERT(bytes_protocol >= 0);
+
+			m_stat[upload_payload].add(bytes_payload);
+			m_stat[upload_protocol].add(bytes_protocol);
+		}
+
+		// should be called once every second
+		void second_tick(float tick_interval)
+		{
+			for (int i = 0; i < num_channels; ++i)
+				m_stat[i].second_tick(tick_interval);
+		}
+
+		float upload_rate() const
+		{
+			return m_stat[upload_payload].rate()
+				+ m_stat[upload_protocol].rate();
+		}
+
+		float download_rate() const
+		{
+			return m_stat[download_payload].rate()
+				+ m_stat[download_protocol].rate();
+		}
+
+		float upload_payload_rate() const
+		{ return m_stat[upload_payload].rate(); }
+
+		float download_payload_rate() const
+		{ return m_stat[download_payload].rate(); }
+
+		size_type total_payload_upload() const
+		{ return m_stat[upload_payload].total(); }
+		size_type total_payload_download() const
+		{ return m_stat[download_payload].total(); }
+
+		size_type total_protocol_upload() const
+		{ return m_stat[upload_protocol].total(); }
+		size_type total_protocol_download() const
+		{ return m_stat[download_protocol].total(); }
 
 		// this is used to offset the statistics when a
 		// peer_connection is opened and have some previous
@@ -134,66 +182,31 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(downloaded >= 0);
 			TORRENT_ASSERT(uploaded >= 0);
-			m_total_download_payload += downloaded;
-			m_total_upload_payload += uploaded;
+			m_stat[download_payload].offset(downloaded);
+			m_stat[upload_payload].offset(uploaded);
 		}
 
-		size_type last_payload_downloaded() const { return m_downloaded_payload; }
-		size_type last_payload_uploaded() const { return m_uploaded_payload; }
+		size_type last_payload_downloaded() const
+		{ return m_stat[download_payload].counter(); }
+		size_type last_payload_uploaded() const
+		{ return m_stat[upload_payload].counter(); }
 
 	private:
 
-#ifndef NDEBUG
-		void check_invariant() const
+		// these are the channels we keep stats for
+		enum
 		{
-			TORRENT_ASSERT(m_mean_upload_rate >= 0);
-			TORRENT_ASSERT(m_mean_download_rate >= 0);
-			TORRENT_ASSERT(m_mean_upload_payload_rate >= 0);
-			TORRENT_ASSERT(m_mean_download_payload_rate >= 0);
-			TORRENT_ASSERT(m_total_upload_payload >= 0);
-			TORRENT_ASSERT(m_total_download_payload >= 0);
-			TORRENT_ASSERT(m_total_upload_protocol >= 0);
-			TORRENT_ASSERT(m_total_download_protocol >= 0);
-		}
-#endif
+			upload_payload,
+			upload_protocol,
+			download_payload,
+			download_protocol,
+			num_channels
+		};
 
-		// history of download/upload speeds a few seconds back
-		float m_download_rate_history[history];
-		float m_upload_rate_history[history];
-
-		float m_download_payload_rate_history[history];
-		float m_upload_payload_rate_history[history];
-
-		// the accumulators we are adding the downloads/uploads
-		// to this second. This only counts the actual payload
-		// and ignores the bytes sent as protocol chatter.
-		int m_downloaded_payload;
-		int m_uploaded_payload;
-
-		// the accumulators we are adding the downloads/uploads
-		// to this second. This only counts the protocol
-		// chatter and ignores the actual payload
-		int m_downloaded_protocol;
-		int m_uploaded_protocol;
-
-		// total download/upload counters
-		// only counting payload data
-		size_type m_total_download_payload;
-		size_type m_total_upload_payload;
-
-		// total download/upload counters
-		// only counting protocol chatter
-		size_type m_total_download_protocol;
-		size_type m_total_upload_protocol;
-
-		// current mean download/upload rates
-		float m_mean_download_rate;
-		float m_mean_upload_rate;
-
-		float m_mean_download_payload_rate;
-		float m_mean_upload_payload_rate;
+		stat_channel m_stat[num_channels];
 	};
 
 }
 
 #endif // TORRENT_STAT_HPP_INCLUDED
+

@@ -47,47 +47,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #define for if (false) {} else for
 #endif
 
-using namespace libtorrent;
+namespace libtorrent
+{
 
-void libtorrent::stat::second_tick(float tick_interval)
+void stat_channel::second_tick(float tick_interval)
 {
 	INVARIANT_CHECK;
 
+	m_rate_sum -= m_rate_history[history-1];
+
 	for (int i = history - 2; i >= 0; --i)
-	{
-		m_download_rate_history[i + 1] = m_download_rate_history[i];
-		m_upload_rate_history[i + 1] = m_upload_rate_history[i];
-		m_download_payload_rate_history[i + 1] = m_download_payload_rate_history[i];
-		m_upload_payload_rate_history[i + 1] = m_upload_payload_rate_history[i];
-	}
+		m_rate_history[i + 1] = m_rate_history[i];
 
-	m_download_rate_history[0] = (m_downloaded_payload + m_downloaded_protocol)
-		/ tick_interval;
-	m_upload_rate_history[0] = (m_uploaded_payload + m_uploaded_protocol)
-		/ tick_interval;
-	m_download_payload_rate_history[0] = m_downloaded_payload / tick_interval;
-	m_upload_payload_rate_history[0] = m_uploaded_payload / tick_interval;
-
-	m_downloaded_payload = 0;
-	m_uploaded_payload = 0;
-	m_downloaded_protocol = 0;
-	m_uploaded_protocol = 0;
-
-	m_mean_download_rate = 0;
-	m_mean_upload_rate = 0;
-	m_mean_download_payload_rate = 0;
-	m_mean_upload_payload_rate = 0;
-
-	for (int i = 0; i < history; ++i)
-	{
-		m_mean_download_rate += m_download_rate_history[i];
-		m_mean_upload_rate += m_upload_rate_history[i];
-		m_mean_download_payload_rate += m_download_payload_rate_history[i];
-		m_mean_upload_payload_rate += m_upload_payload_rate_history[i];
-	}
-
-	m_mean_download_rate /= history;
-	m_mean_upload_rate /= history;
-	m_mean_download_payload_rate /= history;
-	m_mean_upload_payload_rate /= history;
+	m_rate_history[0] = m_counter / tick_interval;
+	m_rate_sum += m_rate_history[0];
+	m_counter = 0;
 }
+
+
+}
+
