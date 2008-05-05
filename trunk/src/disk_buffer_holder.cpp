@@ -49,6 +49,12 @@ namespace libtorrent
 		TORRENT_ASSERT(buf == 0 || m_iothread.is_disk_buffer(buf));
 	}
 
+	void disk_buffer_holder::reset(char* buf)
+	{
+		if (m_buf) m_iothread.free_buffer(m_buf);
+		m_buf = buf;
+	}
+
 	char* disk_buffer_holder::release()
 	{
 		char* ret = m_buf;

@@ -47,7 +47,13 @@ namespace libtorrent
 		disk_buffer_holder(disk_io_thread& iothread, char* buf);
 		~disk_buffer_holder();
 		char* release();
-		char* buffer() const { return m_buf; }
+		char* get() const { return m_buf; }
+		void reset(char* buf = 0);
+
+		typedef char* (disk_buffer_holder::*unspecified_bool_type)();
+		operator unspecified_bool_type() const
+		{ return m_buf == 0? 0: &disk_buffer_holder::release; }
+
 	private:
 		disk_io_thread& m_iothread;
 		char* m_buf;

@@ -81,7 +81,7 @@ namespace libtorrent
 		, m_packet_size(0)
 		, m_recv_pos(0)
 		, m_disk_recv_buffer_size(0)
-		, m_disk_recv_buffer(0)
+		, m_disk_recv_buffer(ses, 0)
 		, m_reading_bytes(0)
 		, m_last_receive(time_now())
 		, m_last_sent(time_now())
@@ -180,7 +180,7 @@ namespace libtorrent
 		, m_packet_size(0)
 		, m_recv_pos(0)
 		, m_disk_recv_buffer_size(0)
-		, m_disk_recv_buffer(0)
+		, m_disk_recv_buffer(ses, 0)
 		, m_reading_bytes(0)
 		, m_last_receive(time_now())
 		, m_last_sent(time_now())
@@ -476,12 +476,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_in_constructor);
 		TORRENT_ASSERT(m_disconnecting);
 
-		if (m_disk_recv_buffer)
-		{
-			m_ses.free_disk_buffer(m_disk_recv_buffer);
-			m_disk_recv_buffer = 0;
-			m_disk_recv_buffer_size = 0;
-		}
+		m_disk_recv_buffer_size = 0;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		if (m_logger)
@@ -1426,7 +1421,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		TORRENT_ASSERT(m_disk_recv_buffer == 0);
+		TORRENT_ASSERT(!m_disk_recv_buffer);
 		TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -2372,7 +2367,7 @@ namespace libtorrent
 		
 		TORRENT_ASSERT(m_packet_size > 0);
 		TORRENT_ASSERT(m_recv_pos <= m_packet_size - disk_buffer_size);
-		TORRENT_ASSERT(m_disk_recv_buffer == 0);
+		TORRENT_ASSERT(!m_disk_recv_buffer);
 		TORRENT_ASSERT(disk_buffer_size <= 16 * 1024);
 
 		if (disk_buffer_size > 16 * 1024)
@@ -2381,8 +2376,8 @@ namespace libtorrent
 			return false;
 		}
 
-		m_disk_recv_buffer = m_ses.allocate_disk_buffer();
-		if (m_disk_recv_buffer == 0)
+		m_disk_recv_buffer.reset(m_ses.allocate_disk_buffer());
+		if (!m_disk_recv_buffer)
 		{
 			disconnect("out of memory");
 			return false;
@@ -2393,10 +2388,8 @@ namespace libtorrent
 
 	char* peer_connection::release_disk_receive_buffer()
 	{
-		char* ret = m_disk_recv_buffer;
-		m_disk_recv_buffer = 0;
 		m_disk_recv_buffer_size = 0;
-		return ret;
+		return m_disk_recv_buffer.release();
 	}
 	
 	void peer_connection::cut_receive_buffer(int size, int packet_size)
@@ -2829,7 +2822,7 @@ namespace libtorrent
 		if (int(m_recv_buffer.size()) < regular_buffer_size)
 			m_recv_buffer.resize(regular_buffer_size);
 
-		if (m_disk_recv_buffer == 0 || regular_buffer_size >= m_recv_pos + max_receive)
+		if (!m_disk_recv_buffer || regular_buffer_size >= m_recv_pos + max_receive)
 		{
 			// only receive into regular buffer
 			TORRENT_ASSERT(m_recv_pos + max_receive <= int(m_recv_buffer.size()));
@@ -2841,7 +2834,7 @@ namespace libtorrent
 			// only receive into disk buffer
 			TORRENT_ASSERT(m_recv_pos - regular_buffer_size >= 0);
 			TORRENT_ASSERT(m_recv_pos - regular_buffer_size + max_receive <= m_disk_recv_buffer_size);
-			m_socket->async_read_some(asio::buffer(m_disk_recv_buffer + m_recv_pos - regular_buffer_size
+			m_socket->async_read_some(asio::buffer(m_disk_recv_buffer.get() + m_recv_pos - regular_buffer_size
 				, max_receive)
 				, bind(&peer_connection::on_receive_data, self(), _1, _2));
 		}
@@ -2856,7 +2849,7 @@ namespace libtorrent
 			boost::array<asio::mutable_buffer, 2> vec;
 			vec[0] = asio::buffer(&m_recv_buffer[m_recv_pos]
 				, regular_buffer_size - m_recv_pos);
-			vec[1] = asio::buffer(m_disk_recv_buffer
+			vec[1] = asio::buffer(m_disk_recv_buffer.get()
 				, max_receive - regular_buffer_size + m_recv_pos);
 			m_socket->async_read_some(vec, bind(&peer_connection::on_receive_data
 				, self(), _1, _2));
@@ -2874,7 +2867,7 @@ namespace libtorrent
 		std::pair<buffer::interval, buffer::interval> vec;
 		int regular_buffer_size = m_packet_size - m_disk_recv_buffer_size;
 		TORRENT_ASSERT(regular_buffer_size >= 0);
-		if (m_disk_recv_buffer == 0 || regular_buffer_size >= m_recv_pos)
+		if (!m_disk_recv_buffer || regular_buffer_size >= m_recv_pos)
 		{
 			vec.first = buffer::interval(&m_recv_buffer[0]
 				+ m_recv_pos - bytes, &m_recv_buffer[0] + m_recv_pos);
@@ -2882,8 +2875,8 @@ namespace libtorrent
 		}
 		else if (m_recv_pos - bytes >= regular_buffer_size)
 		{
-			vec.first = buffer::interval(m_disk_recv_buffer + m_recv_pos
-				- regular_buffer_size - bytes, m_disk_recv_buffer + m_recv_pos
+			vec.first = buffer::interval(m_disk_recv_buffer.get() + m_recv_pos
+				- regular_buffer_size - bytes, m_disk_recv_buffer.get() + m_recv_pos
 				- regular_buffer_size);
 			vec.second = buffer::interval(0,0);
 		}
@@ -2893,8 +2886,8 @@ namespace libtorrent
 			TORRENT_ASSERT(m_recv_pos > regular_buffer_size);
 			vec.first = buffer::interval(&m_recv_buffer[0] + m_recv_pos - bytes
 				, &m_recv_buffer[0] + regular_buffer_size);
-			vec.second = buffer::interval(m_disk_recv_buffer
-				, m_disk_recv_buffer + m_recv_pos - regular_buffer_size);
+			vec.second = buffer::interval(m_disk_recv_buffer.get()
+				, m_disk_recv_buffer.get() + m_recv_pos - regular_buffer_size);
 		}
 		TORRENT_ASSERT(vec.first.left() + vec.second.left() == bytes);
 		return vec;
@@ -3064,7 +3057,7 @@ namespace libtorrent
 				m_recv_buffer.resize(regular_buffer_size);
 
 			error_code ec;	
-			if (m_disk_recv_buffer == 0 || regular_buffer_size >= m_recv_pos + max_receive)
+			if (!m_disk_recv_buffer || regular_buffer_size >= m_recv_pos + max_receive)
 			{
 				// only receive into regular buffer
 				TORRENT_ASSERT(m_recv_pos + max_receive <= int(m_recv_buffer.size()));
@@ -3076,7 +3069,7 @@ namespace libtorrent
 				// only receive into disk buffer
 				TORRENT_ASSERT(m_recv_pos - regular_buffer_size >= 0);
 				TORRENT_ASSERT(m_recv_pos - regular_buffer_size + max_receive <= m_disk_recv_buffer_size);
-				bytes_transferred = m_socket->read_some(asio::buffer(m_disk_recv_buffer
+				bytes_transferred = m_socket->read_some(asio::buffer(m_disk_recv_buffer.get()
 					+ m_recv_pos - regular_buffer_size, (std::min)(m_packet_size
 					- m_recv_pos, max_receive)), ec);
 			}
@@ -3091,7 +3084,7 @@ namespace libtorrent
 				boost::array<asio::mutable_buffer, 2> vec;
 				vec[0] = asio::buffer(&m_recv_buffer[m_recv_pos]
 					, regular_buffer_size - m_recv_pos);
-				vec[1] = asio::buffer(m_disk_recv_buffer
+				vec[1] = asio::buffer(m_disk_recv_buffer.get()
 					, (std::min)(m_disk_recv_buffer_size
 					, max_receive - regular_buffer_size + m_recv_pos));
 				bytes_transferred = m_socket->read_some(vec, ec);
@@ -3306,7 +3299,7 @@ namespace libtorrent
 #ifndef NDEBUG
 	void peer_connection::check_invariant() const
 	{
-		TORRENT_ASSERT((m_disk_recv_buffer != 0) == (m_disk_recv_buffer_size > 0));
+		TORRENT_ASSERT(bool(m_disk_recv_buffer) == (m_disk_recv_buffer_size > 0));
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (m_disconnecting)

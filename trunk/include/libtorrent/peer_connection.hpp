@@ -457,7 +457,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		buffer::interval wr_recv_buffer()
 		{
-			TORRENT_ASSERT(m_disk_recv_buffer == 0);
+			TORRENT_ASSERT(!m_disk_recv_buffer);
 			TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
 			if (m_recv_buffer.empty()) return buffer::interval(0,0);
 			return buffer::interval(&m_recv_buffer[0]
@@ -568,7 +568,7 @@ namespace libtorrent
 		// read into. This eliminates a memcopy from
 		// the receive buffer into the disk buffer
 		int m_disk_recv_buffer_size;
-		char* m_disk_recv_buffer;
+		disk_buffer_holder m_disk_recv_buffer;
 
 		chained_buffer m_send_buffer;
 
