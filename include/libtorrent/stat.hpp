@@ -140,6 +140,24 @@ namespace libtorrent
 			m_stat[upload_protocol].add(bytes_protocol);
 		}
 
+		// calculate ip protocol overhead
+		void calc_ip_overhead()
+		{
+			// traffic balance is the number of bytes we downloaded
+			// more than we uploaded
+			int traffic_balance = m_stat[download_protocol].counter()
+				+ m_stat[download_payload].counter()
+				- m_stat[upload_protocol].counter()
+				- m_stat[upload_payload].counter();
+			if (traffic_balance > 0)
+				m_stat[upload_ip_protocol].add(traffic_balance / 20);
+			else
+				m_stat[download_ip_protocol].add(-traffic_balance / 20);
+		}
+
+		int upload_ip_overhead() const { return m_stat[upload_ip_protocol].counter(); }
+		int download_ip_overhead() const { return m_stat[download_ip_protocol].counter(); }
+
 		// should be called once every second
 		void second_tick(float tick_interval)
 		{
@@ -150,13 +168,15 @@ namespace libtorrent
 		float upload_rate() const
 		{
 			return m_stat[upload_payload].rate()
-				+ m_stat[upload_protocol].rate();
+				+ m_stat[upload_protocol].rate()
+				+ m_stat[upload_ip_protocol].rate();
 		}
 
 		float download_rate() const
 		{
 			return m_stat[download_payload].rate()
-				+ m_stat[download_protocol].rate();
+				+ m_stat[download_protocol].rate()
+				+ m_stat[download_ip_protocol].rate();
 		}
 
 		float upload_payload_rate() const
@@ -198,8 +218,10 @@ namespace libtorrent
 		{
 			upload_payload,
 			upload_protocol,
+			upload_ip_protocol,
 			download_payload,
 			download_protocol,
+			download_ip_protocol,
 			num_channels
 		};
 
