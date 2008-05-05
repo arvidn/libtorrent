@@ -1671,7 +1671,7 @@ namespace libtorrent
 		detail::write_int32(r.start, ptr);
 		send_buffer(msg, sizeof(msg));
 
-		append_send_buffer(buffer.buffer(), r.length
+		append_send_buffer(buffer.get(), r.length
 			, boost::bind(&session_impl::free_disk_buffer
 			, boost::ref(m_ses), _1));
 		buffer.release();

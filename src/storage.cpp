@@ -1230,7 +1230,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		// the buffer needs to be allocated through the io_thread
-		TORRENT_ASSERT(m_io_thread.is_disk_buffer(buffer.buffer()));
+		TORRENT_ASSERT(m_io_thread.is_disk_buffer(buffer.get()));
 
 		disk_io_job j;
 		j.storage = this;
@@ -1238,7 +1238,7 @@ namespace libtorrent
 		j.piece = r.piece;
 		j.offset = r.start;
 		j.buffer_size = r.length;
-		j.buffer = buffer.buffer();
+		j.buffer = buffer.get();
 		m_io_thread.add_job(j, handler);
 		buffer.release();
 	}
