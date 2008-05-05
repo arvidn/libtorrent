@@ -76,6 +76,8 @@ struct history_entry
 	history_entry(intrusive_ptr<PeerConnection> p, weak_ptr<Torrent> t
 		, int a, ptime exp)
 		: expires_at(exp), amount(a), peer(p), tor(t) {}
+	history_entry(int a, ptime exp)
+		: expires_at(exp), amount(a), peer(), tor() {}
 	ptime expires_at;
 	int amount;
 	intrusive_ptr<PeerConnection> peer;
@@ -111,6 +113,7 @@ struct bandwidth_manager
 		: m_ios(ios)
 		, m_history_timer(m_ios)
 		, m_limit(bandwidth_limit::inf)
+		, m_drain_quota(0)
 		, m_current_quota(0)
 		, m_channel(channel)
 		, m_in_hand_out_bandwidth(false)
@@ -121,6 +124,14 @@ struct bandwidth_manager
 			m_log.open("bandwidth_limiter.log", std::ios::trunc);
 		m_start = time_now();
 #endif
+	}
+
+	void drain(int bytes)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(bytes >= 0);
+		m_drain_quota += bytes;
+		if (m_drain_quota > m_limit * 5) m_drain_quota = m_limit * 5;
 	}
 
 	void throttle(int limit)
@@ -288,6 +299,7 @@ private:
 				<< std::endl;
 #endif
 			intrusive_ptr<PeerConnection> c = e.peer;
+			if (!c) continue;
 			shared_ptr<Torrent> t = e.tor.lock();
 			l.unlock();
 			if (!c->is_disconnecting()) c->expire_bandwidth(m_channel, e.amount);
@@ -328,6 +340,15 @@ private:
 		int amount = limit - m_current_quota;
 
 		if (amount <= 0) return;
+
+		if (m_drain_quota > 0)
+		{
+			int drain_amount = (std::min)(m_drain_quota, amount);
+			m_drain_quota -= drain_amount;
+			amount -= drain_amount;
+			add_history_entry(history_entry<PeerConnection, Torrent>(
+				drain_amount, now + bw_window_size));
+		}
 
 		queue_t tmp;
 		while (!m_queue.empty() && amount > 0)
@@ -432,6 +453,10 @@ private:
 
 	// the rate limit (bytes per second)
 	int m_limit;
+
+	// bytes to drain without handing out to a peer
+	// used to deduct the IP overhead
+	int m_drain_quota;
 
 	// the sum of all recently handed out bandwidth blocks
 	int m_current_quota;

@@ -2413,6 +2413,11 @@ namespace libtorrent
 		m_packet_size = packet_size;
 	}
 
+	void peer_connection::calc_ip_overhead()
+	{
+		m_statistics.calc_ip_overhead();
+	}
+
 	void peer_connection::second_tick(float tick_interval)
 	{
 		INVARIANT_CHECK;
