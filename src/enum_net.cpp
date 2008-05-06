@@ -359,8 +359,13 @@ namespace libtorrent
 	address get_default_gateway(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret = enum_routes(ios, ec);
+#ifdef TORRENT_WINDOWS
+		std::vector<ip_route>::iterator i = std::find_if(ret.begin(), ret.end()
+			, boost::bind(&is_loopback, boost::bind(&ip_route::destination, _1)));
+#else
 		std::vector<ip_route>::iterator i = std::find_if(ret.begin(), ret.end()
 			, boost::bind(&ip_route::destination, _1) == address());
+#endif
 		if (i == ret.end()) return address();
 		return i->gateway;
 	}
@@ -547,7 +552,6 @@ namespace libtorrent
 			return std::vector<ip_route>();
 		}
 
-		address ret;
 		if (GetAdaptersInfo(adapter_info, &out_buf_size) == NO_ERROR)
 		{
 			for (PIP_ADAPTER_INFO adapter = adapter_info;
@@ -555,10 +559,10 @@ namespace libtorrent
 			{
 
 				ip_route r;
-				r.source = address::from_string(adapter->IpAddressList.IpAddress.String, ec);
+				r.destination = address::from_string(adapter->IpAddressList.IpAddress.String, ec);
 				r.gateway = address::from_string(adapter->GatewayList.IpAddress.String, ec);
 				r.netmask = address::from_string(adapter->IpAddressList.IpMask.String, ec);
-				strncpy(r.name, adapter->AdapterName, sizeof(ip_route::name));
+				strncpy(r.name, adapter->AdapterName, sizeof(r.name));
 
 				if (ec)
 				{
@@ -572,8 +576,6 @@ namespace libtorrent
 		// Free memory
 		free(adapter_info);
 		FreeLibrary(iphlp);
-
-		return ret;
 
 #elif defined TORRENT_LINUX
 
