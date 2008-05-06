@@ -213,6 +213,7 @@ namespace libtorrent
 		, m_seeding_time(seconds(0))
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
+		, m_started(time_now())
 	{
 		if (resume_data) m_resume_data = *resume_data;
 #ifndef NDEBUG
@@ -286,6 +287,7 @@ namespace libtorrent
 		, m_seeding_time(seconds(0))
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
+		, m_started(time_now())
 	{
 		if (resume_data) m_resume_data = *resume_data;
 #ifndef NDEBUG
@@ -3285,27 +3287,59 @@ namespace libtorrent
 		m_ses.m_auto_manage_time_scaler = 0;
 	}
 
-	float torrent::seed_cycles(session_settings const& s) const
+	// the higher seed rank, the more important to seed
+	int torrent::seed_rank(session_settings const& s) const
 	{
-		if (!is_seed()) return 0.f;
+		enum flags
+		{
+			seed_ratio_not_met = 0x400000,
+			recently_started = 0x200000,
+			no_seeds = 0x100000,
+			prio_mask = 0xfffff
+		};
 
-		int seeding = total_seconds(m_seeding_time);
-		int downloading = total_seconds(m_active_time) - seeding;
+		if (!is_seed()) return 0;
 
-		// if the seed time limit is set to less than 60 minutes
-		// use 60 minutes, to avoid oscillation
-		float ret = seeding / float((std::max)(s.seed_time_limit, 60 * 60));
+		int ret = 0;
 
-		// if it took less than 30 minutes to download, disregard the
-		// seed_time_ratio_limit, since it would make it oscillate too frequent
-		if (downloading > 30 * 60 && s.seed_time_ratio_limit >= 1.f)
-			ret = (std::max)(ret, (seeding / downloading
-				/ s.seed_time_ratio_limit));
+		ptime now(time_now());
 
+		int seed_time = total_seconds(m_seeding_time);
+		int download_time = total_seconds(m_active_time) - seed_time;
+
+		// if we haven't yet met the seed limits, set the seed_ratio_not_met
+		// flag. That will make this seed prioritized
 		size_type downloaded = (std::max)(m_total_downloaded, m_torrent_file->total_size());
-		if (downloaded > 0 && s.share_ratio_limit >= 1.f)
-			ret = (std::max)(ret, float(m_total_uploaded) / downloaded
-				/ s.share_ratio_limit);
+		if (seed_time > s.seed_time_limit
+			|| (seed_time > 1 && download_time / float(seed_time) > s.seed_time_ratio_limit)
+			|| m_total_uploaded / downloaded > s.share_ratio_limit)
+			ret |= seed_ratio_not_met;
+
+		// if this torrent is running, and it was started less
+		// than 30 minutes ago, give it priority, to avoid oscillation
+		if (!is_paused() && now - m_started < minutes(30))
+			ret |= recently_started;
+
+		// if we have any scrape data, use it to calculate
+		// seed rank
+		int seeds = 0;
+		int downloaders = 0;
+
+		if (m_complete >= 0) seeds = m_complete;
+		else seeds = m_policy.num_seeds();
+
+		if (m_incomplete >= 0) downloaders = m_incomplete;
+		else downloaders = m_policy.num_peers() - m_policy.num_seeds();
+
+		if (seeds == 0)
+		{
+			ret |= no_seeds;
+			ret |= downloaders & prio_mask;
+		}
+		else
+		{
+			ret |= (downloaders  * 10 / seeds) & prio_mask;
+		}
 
 		return ret;
 	}
@@ -3402,6 +3436,7 @@ namespace libtorrent
 #endif
 
 		m_paused = false;
+		m_started = time_now();
 
 		// tell the tracker that we're back
 		m_event = tracker_request::started;
@@ -3655,7 +3690,7 @@ namespace libtorrent
 		st.list_peers = m_policy.num_peers();
 		st.list_seeds = m_policy.num_seeds();
 		st.connect_candidates = m_policy.num_connect_candidates();
-		st.seed_cycles = seed_cycles(m_ses.m_settings);
+		st.seed_rank = seed_rank(m_ses.m_settings);
 
 		st.all_time_upload = m_total_uploaded;
 		st.all_time_download = m_total_downloaded;

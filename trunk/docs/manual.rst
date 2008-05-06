@@ -2265,7 +2265,7 @@ It contains the following fields::
 		int active_time;
 		int seeding_time;
 
-		float seed_cycles;
+		int seed_rank;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -2437,10 +2437,9 @@ seconds it has been active while being a seed. ``seeding_time`` should be >=
 ``active_time`` They are saved in and restored from resume data, to keep totals
 across sessions.
 
-``seed_cycles`` is the number of times this torrent has reached the seed limits.
-It will keep being seeded, but it will rotate between torrents that haven't
-completed as many cycles. The fraction part of this number is the progress
-of the current cycle. For more information, see queuing_.
+``seed_rank`` is a rank of how important it is to seed the torrent, it is used
+to determine which torrents to seed and which to queue. It is based on the peer
+to seed ratio from the tracker scrape. For more information, see queuing_.
 
 
 peer_info
@@ -3032,13 +3031,13 @@ counted against the seed limit.
 is updated, and rotated.
 
 ``share_ratio_limit`` is the upload / download ratio limit for considering a
-seeding torrent have completed one seed cycle. See queuing_.
+seeding torrent have met the seed limit criteria. See queuing_.
 
 ``seed_time_ratio_limit`` is the seeding time / downloading time ratio limit
-for considering a seeding torrent to have completed one seed cycle. See queuing_.
+for considering a seeding torrent to have met the seed limit criteria. See queuing_.
 
 ``seed_time_limit`` is the limit on the time a torrent has been an active seed
-(specified in seconds) before it is considered having completed one seed cycle.
+(specified in seconds) before it is considered having met the seed limit criteria.
 See queuing_.
 
 

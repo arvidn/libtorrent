@@ -151,8 +151,7 @@ namespace libtorrent
 		void files_checked();
 		void start_checking();
 
-		float seed_cycles(session_settings const& s) const;
-		int seed_cycles_int(session_settings const& s) const { return int(seed_cycles(s)); }
+		int seed_rank(session_settings const& s) const;
 
 		storage_mode_t storage_mode() const { return m_storage_mode; }
 		// this will flag the torrent as aborted. The main
@@ -876,6 +875,12 @@ namespace libtorrent
 		// stored in resume data
 		size_type m_total_uploaded;
 		size_type m_total_downloaded;
+
+		// if this torrent is running, this was the time
+		// when it was started. This is used to have a
+		// bias towards keeping seeding torrents that
+		// recently was started, to avoid oscillation
+		ptime m_started;
 	};
 
 	inline ptime torrent::next_announce() const
