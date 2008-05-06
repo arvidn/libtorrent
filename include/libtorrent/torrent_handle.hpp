@@ -118,7 +118,7 @@ namespace libtorrent
 			, all_time_download(0)
 			, active_time(0)
 			, seeding_time(0)
-			, seed_cycles(0.f)
+			, seed_rank(0)
 		{}
 
 		enum state_t
@@ -257,7 +257,8 @@ namespace libtorrent
 		int active_time;
 		int seeding_time;
 
-		float seed_cycles;
+		// higher value means more important to seed
+		int seed_rank;
 	};
 
 	struct TORRENT_EXPORT block_info

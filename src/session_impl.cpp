@@ -1280,8 +1280,8 @@ namespace aux {
 				, bind(&torrent::sequence_number, _1) < bind(&torrent::sequence_number, _2));
 
 			std::sort(seeds.begin(), seeds.end()
-				, bind(&torrent::seed_cycles_int, _1, boost::ref(m_settings))
-				< bind(&torrent::seed_cycles_int, _2, boost::ref(m_settings)));
+				, bind(&torrent::seed_rank, _1, boost::ref(m_settings))
+				< bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
 		}
 
 		for (std::vector<torrent*>::iterator i = downloaders.begin()
