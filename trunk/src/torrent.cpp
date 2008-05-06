@@ -877,7 +877,7 @@ namespace libtorrent
 
 				tcp::resolver::query q(i->ip, boost::lexical_cast<std::string>(i->port));
 				m_host_resolver.async_resolve(q,
-						bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid));
+					bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid));
 			}
 			else
 			{
