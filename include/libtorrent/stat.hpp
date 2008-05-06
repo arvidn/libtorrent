@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <assert.h>
-#include <math.h>
 
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
@@ -56,8 +55,7 @@ namespace libtorrent
 			, m_total_counter(0)
 			, m_rate_sum(0)
 		{
-			std::fill(m_rate_history
-				, m_rate_history + history, 0.f);
+			std::memset(m_rate_history, 0, sizeof(m_rate_history));
 		}
 
 		void operator+=(stat_channel const& s)
@@ -76,7 +74,8 @@ namespace libtorrent
 
 		// should be called once every second
 		void second_tick(float tick_interval);
-		float rate() const { return m_rate_sum / history; }
+		float rate() const { return m_rate_sum / float(history); }
+		size_type rate_sum() const { return m_rate_sum; }
 		size_type total() const { return m_total_counter; }
 
 		void offset(size_type counter)
@@ -92,15 +91,15 @@ namespace libtorrent
 #ifndef NDEBUG
 		void check_invariant() const
 		{
-			float sum = 0.f;
+			int sum = 0;
 			for (int i = 0; i < history; ++i) sum += m_rate_history[i];
-			TORRENT_ASSERT(fabs(m_rate_sum - sum) < 0.1);
+			TORRENT_ASSERT(m_rate_sum == sum);
 			TORRENT_ASSERT(m_total_counter >= 0);
 		}
 #endif
 
 		// history of rates a few seconds back
-		float m_rate_history[history];
+		int m_rate_history[history];
 
 		// the accumulator for this second.
 		int m_counter;
@@ -109,7 +108,7 @@ namespace libtorrent
 		size_type m_total_counter;
 
 		// sum of all elements in m_rate_history
-		float m_rate_sum;
+		size_type m_rate_sum;
 	};
 
 	class TORRENT_EXPORT stat
@@ -172,16 +171,18 @@ namespace libtorrent
 
 		float upload_rate() const
 		{
-			return m_stat[upload_payload].rate()
-				+ m_stat[upload_protocol].rate()
-				+ m_stat[upload_ip_protocol].rate();
+			return (m_stat[upload_payload].rate_sum()
+				+ m_stat[upload_protocol].rate_sum()
+				+ m_stat[upload_ip_protocol].rate_sum())
+				/ float(stat_channel::history);
 		}
 
 		float download_rate() const
 		{
-			return m_stat[download_payload].rate()
-				+ m_stat[download_protocol].rate()
-				+ m_stat[download_ip_protocol].rate();
+			return (m_stat[download_payload].rate_sum()
+				+ m_stat[download_protocol].rate_sum()
+				+ m_stat[download_ip_protocol].rate_sum())
+				/ float(stat_channel::history);
 		}
 
 		float upload_payload_rate() const
