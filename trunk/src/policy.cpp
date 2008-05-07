@@ -348,6 +348,7 @@ namespace libtorrent
 		, m_torrent(t)
 		, m_available_free_upload(0)
 		, m_num_connect_candidates(0)
+		, m_num_seeds(0)
 	{ TORRENT_ASSERT(t); }
 
 	// disconnects and removes all peers that are now filtered
