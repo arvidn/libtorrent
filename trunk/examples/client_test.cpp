@@ -1254,7 +1254,7 @@ int main(int ac, char* av[])
 					<< "  bw queue: (" << s.up_bandwidth_queue << " | " << s.down_bandwidth_queue << ") "
 					"all-time (" << s.active_time - s.seeding_time << "/" << s.active_time << ")"
 					" (Rx: " << esc("32") << add_suffix(s.all_time_download) << esc("0")
-					<< " Tx: " << esc("31") << add_suffix(s.all_time_upload) << esc("0") << ") " << s.seed_cycles << "\n";
+					<< " Tx: " << esc("31") << add_suffix(s.all_time_upload) << esc("0") << ") " << s.seed_rank << "\n";
 
 				if (s.state != torrent_status::seeding)
 				{
