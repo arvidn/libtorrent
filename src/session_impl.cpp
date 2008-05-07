@@ -1281,7 +1281,7 @@ namespace aux {
 
 			std::sort(seeds.begin(), seeds.end()
 				, bind(&torrent::seed_rank, _1, boost::ref(m_settings))
-				< bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
+				> bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
 		}
 
 		for (std::vector<torrent*>::iterator i = downloaders.begin()
