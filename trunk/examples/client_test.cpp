@@ -167,6 +167,8 @@ bool print_peer_rate = false;
 bool print_fails = false;
 bool print_send_bufs = true;
 
+int active_torrent = 0;
+
 char const* esc(char const* code)
 {
 #ifdef ANSI_TERMINAL_COLORS
@@ -215,38 +217,6 @@ std::string& to_string(float v, int width, int precision = 3)
 	int size = std::sprintf(&ret[0], "%*.*f", width, precision, v);
 	ret.resize((std::min)(size, width));
 	return ret;
-}
-
-std::string pos_to_string(float v, int width, int precision = 4)
-{
-	std::stringstream s;
-	s.precision(precision);
-	s.flags(std::ios_base::right);
-	s.width(width);
-	s.fill(' ');
-	s << fabs(v);
-	return s.str();
-}
-
-std::string ratio(float a, float b)
-{
-	std::stringstream s;
-	if (a > b)
-	{
-		if (b < 0.001f) s << " inf:1";
-		else s << pos_to_string(a/b, 4) << ":1";
-	}
-	else if (a < b)
-	{
-		if (a < 0.001f) s << " 1:inf";
-		else s << "1:" << pos_to_string(b/a, 4);
-	}
-	else
-	{
-		s << "   1:1";
-	}
-
-	return s.str();
 }
 
 std::string const& add_suffix(float val)
@@ -992,8 +962,36 @@ int main(int ac, char* av[])
 		for (;;)
 		{
 			char c;
-			if (sleep_and_input(&c))
+			while (sleep_and_input(&c))
 			{
+				if (c == 27)
+				{
+					// escape code, read another character
+#ifdef _WIN32
+					c = _getch();
+#else
+					c = getc(stdin);
+#endif
+					if (c != '[') break;
+#ifdef _WIN32
+					c = _getch();
+#else
+					c = getc(stdin);
+#endif
+					if (c == 65)
+					{
+						// arrow up
+						--active_torrent;
+						if (active_torrent < 0) active_torrent = 0;
+					}
+					else if (c == 66)
+					{
+						// arrow down
+						++active_torrent;
+						if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
+					}
+				}
+
 				if (c == 'm')
 				{
 					std::cout << "saving peers for torrents" << std::endl;
@@ -1113,6 +1111,7 @@ int main(int ac, char* av[])
 				if (c == '6') print_fails = !print_fails;
 				if (c == '7') print_send_bufs = !print_send_bufs;
 			}
+			if (c == 'q') break;
 
 			int terminal_width = 80;
 
@@ -1202,9 +1201,11 @@ int main(int ac, char* av[])
 
 			session_status sess_stat = ses.status();
 			
+			int torrent_index = 0;
+			torrent_handle active_handle;
 			std::stringstream out;
 			for (handles_t::iterator i = handles.begin();
-				i != handles.end();)
+				i != handles.end(); ++torrent_index)
 			{
 				torrent_handle& h = i->second;
 				if (!h.is_valid())
@@ -1217,7 +1218,8 @@ int main(int ac, char* av[])
 					++i;
 				}
 
-				out << "- ";
+				if (active_torrent == torrent_index) out << esc("7") << "* ";
+				else out << "- ";
 				if (h.is_paused()) out << esc("34");
 				else out << esc("37");
 				out << std::setw(40) << std::setiosflags(std::ios::left);
@@ -1242,10 +1244,6 @@ int main(int ac, char* av[])
 						, "downloading", "finished", "seeding", "allocating"};
 					out << state_str[s.state];
 				}
-
-				if ((print_downloads && s.state != torrent_status::seeding)
-					|| print_peers)
-					h.get_peer_info(peers);
 
 				int seeds = 0;
 				int downloaders = 0;
@@ -1301,6 +1299,19 @@ int main(int ac, char* av[])
 						<< to_string(t.seconds(), 2) << esc("0") << " ";
 					out << "tracker: " << esc("36") << s.current_tracker << esc("0") << "\n";
 				}
+
+				if (torrent_index != active_torrent) continue;
+				active_handle = h;
+			}
+
+			if (active_handle.is_valid())
+			{
+				torrent_handle h = active_handle;
+				torrent_status s = h.status();
+
+				if ((print_downloads && s.state != torrent_status::seeding)
+					|| print_peers)
+					h.get_peer_info(peers);
 
 				if (print_peers && !peers.empty())
 					print_peer_info(out, peers);
