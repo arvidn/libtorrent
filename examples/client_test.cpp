@@ -1247,14 +1247,23 @@ int main(int ac, char* av[])
 					|| print_peers)
 					h.get_peer_info(peers);
 
+				int seeds = 0;
+				int downloaders = 0;
+
+				if (s.num_complete >= 0) seeds = s.num_complete;
+				else seeds = s.list_seeds;
+
+				if (s.num_incomplete >= 0) downloaders = s.num_incomplete;
+				else downloaders = s.list_peers - s.list_seeds;
+
 				out << "download: " << "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") "
 					"upload: " << esc("31") << (s.upload_rate > 0 ? add_suffix(s.upload_rate) + "/s ": "         ") << esc("0")
 					<< "(" << esc("31") << add_suffix(s.total_upload) << esc("0") << ") "
-					<< "ratio: " << ratio(s.total_payload_download, s.total_payload_upload)
+					<< "swarm: " << downloaders << ":" << seeds
 					<< "  bw queue: (" << s.up_bandwidth_queue << " | " << s.down_bandwidth_queue << ") "
 					"all-time (" << s.active_time - s.seeding_time << "/" << s.active_time << ")"
 					" (Rx: " << esc("32") << add_suffix(s.all_time_download) << esc("0")
-					<< " Tx: " << esc("31") << add_suffix(s.all_time_upload) << esc("0") << ") " << s.seed_rank << "\n";
+					<< " Tx: " << esc("31") << add_suffix(s.all_time_upload) << esc("0") << ") " << std::hex << s.seed_rank << std::dec << "\n";
 
 				if (s.state != torrent_status::seeding)
 				{
