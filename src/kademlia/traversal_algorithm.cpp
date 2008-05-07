@@ -88,7 +88,8 @@ boost::pool<>& traversal_algorithm::allocator() const
 void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(traversal) << "node returned a list which included a node with id 0";
+	if (id.is_all_zeros())
+	TORRENT_LOG(traversal) << time_now_string() << " WARNING: node returned a list which included a node with id 0";
 #endif
 	add_entry(id, addr, 0);
 }
