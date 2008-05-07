@@ -1201,9 +1201,14 @@ int main(int ac, char* av[])
 
 			session_status sess_stat = ses.status();
 			
+			std::stringstream out;
+			out << "[q] quit [i] toggle peers [d] toggle downloading pieces [p] pause all "
+				"[u] unpause all [a] toggle piece bar [s] toggle download sequential [f] toggle files\n"
+				"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
+				"[5] toggle peer rate [6] toggle failures [7] toggle send buffers\n";
+
 			int torrent_index = 0;
 			torrent_handle active_handle;
-			std::stringstream out;
 			for (handles_t::iterator i = handles.begin();
 				i != handles.end(); ++torrent_index)
 			{
@@ -1218,8 +1223,21 @@ int main(int ac, char* av[])
 					++i;
 				}
 
-				if (active_torrent == torrent_index) out << esc("7") << "* ";
-				else out << "- ";
+#ifdef ANSI_TERMINAL_COLORS
+				char const* term = "\x1b[0m";
+#else
+				char const* term = "";
+#endif
+				if (active_torrent == torrent_index)
+				{
+					term = "\x1b[0m\x1b[7m";
+					out << esc("7") << "* ";
+				}
+				else
+				{
+					out << "- ";
+				}
+
 				if (h.is_paused()) out << esc("34");
 				else out << esc("37");
 				out << std::setw(40) << std::setiosflags(std::ios::left);
@@ -1228,7 +1246,7 @@ int main(int ac, char* av[])
 				if (name.size() > 40) name.resize(40);
 				out << name;
 
-				out << esc("0") << " ";
+				out << term << " ";
 
 				torrent_status s = h.status();
 
@@ -1254,14 +1272,14 @@ int main(int ac, char* av[])
 				if (s.num_incomplete >= 0) downloaders = s.num_incomplete;
 				else downloaders = s.list_peers - s.list_seeds;
 
-				out << "download: " << "(" << esc("32") << add_suffix(s.total_download) << esc("0") << ") "
-					"upload: " << esc("31") << (s.upload_rate > 0 ? add_suffix(s.upload_rate) + "/s ": "         ") << esc("0")
-					<< "(" << esc("31") << add_suffix(s.total_upload) << esc("0") << ") "
-					<< "swarm: " << downloaders << ":" << seeds
+				out << "download: " << "(" << esc("32") << add_suffix(s.total_download) << term << ") "
+					"upload: " << esc("31") << (s.upload_rate > 0 ? add_suffix(s.upload_rate) + "/s ": "         ") << term
+					<< "(" << esc("31") << add_suffix(s.total_upload) << term << ") "
+					<< "swarm: " << to_string(downloaders, 4) << ":" << to_string(seeds, 4)
 					<< "  bw queue: (" << s.up_bandwidth_queue << " | " << s.down_bandwidth_queue << ") "
-					"all-time (" << s.active_time - s.seeding_time << "/" << s.active_time << ")"
-					" (Rx: " << esc("32") << add_suffix(s.all_time_download) << esc("0")
-					<< " Tx: " << esc("31") << add_suffix(s.all_time_upload) << esc("0") << ") " << std::hex << s.seed_rank << std::dec << "\n";
+					"all-time (Rx: " << esc("32") << add_suffix(s.all_time_download) << term
+					<< " Tx: " << esc("31") << add_suffix(s.all_time_upload) << term << ") " << std::hex << s.seed_rank << std::dec << "\n"
+					<< esc("0");
 
 				if (s.state != torrent_status::seeding)
 				{
@@ -1304,6 +1322,24 @@ int main(int ac, char* av[])
 				active_handle = h;
 			}
 
+			cache_status cs = ses.get_cache_status();
+			if (cs.blocks_read < 1) cs.blocks_read = 1;
+			if (cs.blocks_written < 1) cs.blocks_written = 1;
+
+			out << "==== conns: " << sess_stat.num_peers
+				<< " down: " << esc("32") << add_suffix(sess_stat.download_rate) << "/s" << esc("0")
+				<< " (" << esc("32") << add_suffix(sess_stat.total_download) << esc("0") << ") "
+				" up: " << esc("31") << add_suffix(sess_stat.upload_rate) << "/s " << esc("0")
+				<< " (" << esc("31") << add_suffix(sess_stat.total_upload) << esc("0") << ")"
+				" unchoked: " << sess_stat.num_unchoked << " / " << sess_stat.allowed_upload_slots
+				<< " bw queues: (" << sess_stat.up_bandwidth_queue
+				<< " | " << sess_stat.down_bandwidth_queue << ") "
+				" write cache hits: " << ((cs.blocks_written - cs.writes) * 100 / cs.blocks_written) << "% "
+				" read cache hits: " << (cs.blocks_read_hit * 100 / cs.blocks_read) << "% "
+				" cache size: " << add_suffix(cs.cache_size * 16 * 1024)
+				<< " (" << add_suffix(cs.read_cache_size * 16 * 1024) << ")"
+				" ====" << std::endl;
+
 			if (active_handle.is_valid())
 			{
 				torrent_handle h = active_handle;
@@ -1312,6 +1348,8 @@ int main(int ac, char* av[])
 				if ((print_downloads && s.state != torrent_status::seeding)
 					|| print_peers)
 					h.get_peer_info(peers);
+
+				out << "====== " << h.name() << " ======" << std::endl;
 
 				if (print_peers && !peers.empty())
 					print_peer_info(out, peers);
@@ -1394,28 +1432,6 @@ int main(int ac, char* av[])
 				}
 
 			}
-
-			cache_status cs = ses.get_cache_status();
-			if (cs.blocks_read < 1) cs.blocks_read = 1;
-			if (cs.blocks_written < 1) cs.blocks_written = 1;
-
-			out << "==== conns: " << sess_stat.num_peers
-				<< " down: " << esc("32") << add_suffix(sess_stat.download_rate) << "/s" << esc("0")
-				<< " (" << esc("32") << add_suffix(sess_stat.total_download) << esc("0") << ") "
-				" up: " << esc("31") << add_suffix(sess_stat.upload_rate) << "/s " << esc("0")
-				<< " (" << esc("31") << add_suffix(sess_stat.total_upload) << esc("0") << ")"
-				" unchoked: " << sess_stat.num_unchoked << " / " << sess_stat.allowed_upload_slots
-				<< " bw queues: (" << sess_stat.up_bandwidth_queue
-				<< " | " << sess_stat.down_bandwidth_queue << ") "
-				" write cache hits: " << ((cs.blocks_written - cs.writes) * 100 / cs.blocks_written) << "% "
-				" read cache hits: " << (cs.blocks_read_hit * 100 / cs.blocks_read) << "% "
-				" cache size: " << add_suffix(cs.cache_size * 16 * 1024)
-				<< " (" << add_suffix(cs.read_cache_size * 16 * 1024) << ")"
-				" ====" << std::endl;
-			out << "[q] quit [i] toggle peers [d] toggle downloading pieces [p] pause all "
-				"[u] unpause all [a] toggle piece bar [s] toggle download sequential [f] toggle files\n"
-				"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
-				"[5] toggle peer rate [6] toggle failures [7] toggle send buffers";
 
 			if (print_log)
 			{
