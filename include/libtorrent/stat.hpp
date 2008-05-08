@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <assert.h>
+#include <cstring>
 
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
