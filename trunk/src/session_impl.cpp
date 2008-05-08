@@ -718,6 +718,11 @@ namespace aux {
 	{
 		if (e)
 		{
+			if (e == asio::error::connection_refused
+				|| e == asio::error::connection_reset
+				|| e == asio::error::connection_aborted)
+				m_dht->on_unreachable(ep);
+
 			if (m_alerts.should_post(alert::info))
 			{
 				std::string msg = "UDP socket error from '"

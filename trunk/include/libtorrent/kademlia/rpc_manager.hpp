@@ -81,6 +81,8 @@ public:
 		, routing_table& table, send_fun const& sf);
 	~rpc_manager();
 
+	void unreachable(udp::endpoint const& ep);
+
 	// returns true if the node needs a refresh
 	bool incoming(msg const&);
 	time_duration tick();

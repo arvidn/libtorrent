@@ -372,6 +372,12 @@ namespace libtorrent { namespace dht
 		m_dht.announce(ih, listen_port, f);
 	}
 
+
+	void dht_tracker::on_unreachable(udp::endpoint const& ep)
+	{
+		m_dht.unreachable(ep);
+	}
+
 	// translate bittorrent kademlia message into the generice kademlia message
 	// used by the library
 	void dht_tracker::on_receive(udp::endpoint const& ep, char const* buf, int bytes_transferred)

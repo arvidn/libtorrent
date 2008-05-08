@@ -243,6 +243,11 @@ void node_impl::refresh_bucket(int bucket) try
 }
 catch (std::exception&) {}
 
+void node_impl::unreachable(udp::endpoint const& ep)
+{
+	m_rpc.unreachable(ep);
+}
+
 void node_impl::incoming(msg const& m)
 {
 	if (m_rpc.incoming(m))
