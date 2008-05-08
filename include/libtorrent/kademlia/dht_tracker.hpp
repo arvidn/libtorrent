@@ -90,6 +90,7 @@ namespace libtorrent { namespace dht
 		// translate bittorrent kademlia message into the generic kademlia message
 		// used by the library
 		void on_receive(udp::endpoint const& ep, char const* pkt, int size);
+		void on_unreachable(udp::endpoint const& ep);
 
 	private:
 	

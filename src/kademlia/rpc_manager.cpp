@@ -159,6 +159,39 @@ void rpc_manager::check_invariant() const
 }
 #endif
 
+void rpc_manager::unreachable(udp::endpoint const& ep)
+{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(rpc) << time_now_string() << " PORT_UNREACHABLE [ ip: " << ep << " ]";
+#endif
+	int num_active = m_oldest_transaction_id < m_next_transaction_id
+		? m_next_transaction_id - m_oldest_transaction_id
+		: max_transactions - m_next_transaction_id + m_oldest_transaction_id;
+	TORRENT_ASSERT((m_oldest_transaction_id + num_active) % max_transactions
+		== m_next_transaction_id);
+	int tid = m_oldest_transaction_id;
+	for (int i = 0; i < num_active; ++i, ++tid)
+	{
+		if (tid >= max_transactions) tid = 0;
+		observer_ptr const& o = m_transactions[tid];
+		if (!o) continue;
+		if (o->target_addr != ep) continue;
+		observer_ptr ptr = m_transactions[tid];
+		m_transactions[tid] = 0;
+		if (tid == m_oldest_transaction_id)
+		{
+			++m_oldest_transaction_id;
+			if (m_oldest_transaction_id >= max_transactions)
+				m_oldest_transaction_id = 0;
+		}
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(rpc) << "  found transaction [ tid: " << tid << " ]";
+#endif
+		ptr->timeout();
+		return;
+	}
+}
+
 bool rpc_manager::incoming(msg const& m)
 {
 	INVARIANT_CHECK;
