@@ -272,6 +272,9 @@ namespace
 		for (std::vector<node_entry>::const_iterator i = v.begin()
 			, end(v.end()); i != end; ++i)
 		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(node) << "  distance: " << distance_exp(ih, i->id);
+#endif
 			observer_ptr o(new (rpc.allocator().malloc()) get_peers_observer(ih, listen_port, rpc, f));
 #ifndef NDEBUG
 			o->m_in_constructor = false;
