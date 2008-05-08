@@ -23,13 +23,14 @@ for k,v in histogram.items():
 out.close()
 
 out = open('dht_announce_distribution.gnuplot', 'w+')
-out.write('''set term png size 1200,700
+out.write('''
+set term png size 1200,700
 set output "dht_announce_distribution.png"
 set title "bucket # announces are made against relative to target node-id"
 set ylabel "# of announces"
-set style fill solid
-set boxwidth 0.8
-plot  "dht_announce_distribution.dat" using 1:2 title "announces" with boxes''')
+set style fill solid border -1 pattern 2
+plot  "dht_announce_distribution.dat" using 1:2 title "announces" with boxes
+''')
 out.close()
 
 os.system('gnuplot dht_announce_distribution.gnuplot');
