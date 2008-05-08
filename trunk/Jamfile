@@ -89,7 +89,8 @@ rule linking ( properties * )
 	if <boost>system in $(properties)
 	{
 		result += <library>boost_filesystem
-			<library>boost_thread <library>boost_iostreams
+			<library>boost_thread
+			<library>boost_iostreams
 		;
 	}
 
@@ -230,8 +231,9 @@ lib gdi32 : : <name>gdi32 ;
 
 local library-search-path = <search>/opt/local/lib <search>/usr/lib <search>/usr/local/lib <search>/sw/lib ;
 
-lib filesystem : : <name>boost_filesystem $(library-search-path) ;
-lib thread : : <name>boost_thread $(library-search-path) ;
+lib boost_filesystem : : <name>boost_filesystem $(library-search-path) ;
+lib boost_thread : : <name>boost_thread $(library-search-path) ;
+lib boost_iostreams : : <name>boost_iostreams $(library-search-path) ;
 
 # openssl on linux/bsd/macos etc.
 lib crypto : : <name>crypto ;
