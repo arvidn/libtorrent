@@ -273,7 +273,7 @@ namespace
 			, end(v.end()); i != end; ++i)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(node) << "  distance: " << distance_exp(ih, i->id);
+			TORRENT_LOG(node) << "  distance: " << (160 - distance_exp(ih, i->id));
 #endif
 			observer_ptr o(new (rpc.allocator().malloc()) get_peers_observer(ih, listen_port, rpc, f));
 #ifndef NDEBUG
