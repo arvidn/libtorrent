@@ -144,8 +144,8 @@ namespace libtorrent { namespace dht
 		char* digits = "0123456789abcdef";
 		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
 		{
-			ret += digits[*i & 0xf];
-			ret += digits[*i >> 4];
+			ret += digits[((unsigned char)*i) >> 4];
+			ret += digits[((unsigned char)*i) & 0xf];
 		}
 		return ret;
 	}
