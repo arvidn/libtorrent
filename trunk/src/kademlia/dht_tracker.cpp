@@ -680,7 +680,6 @@ namespace libtorrent { namespace dht
 				++m_queries_received[m.message_id];
 				m_queries_bytes_received[m.message_id] += int(bytes_transferred);
 			}
-			TORRENT_LOG(dht_tracker) << e;
 #endif
 			TORRENT_ASSERT(m.message_id != messages::error);
 			m_dht.incoming(m);
@@ -846,7 +845,7 @@ namespace libtorrent { namespace dht
 			error_list.list().push_back(entry(m.error_msg));
 			e["e"] = error_list;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(dht_tracker) << time_now_string()
+			TORRENT_LOG(dht_tracker)
 				<< "   outgoing error: " << m.error_code << " " << m.error_msg;
 #endif
 		}
@@ -858,7 +857,7 @@ namespace libtorrent { namespace dht
 			r["id"] = std::string(m.id.begin(), m.id.end());
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(dht_tracker) << time_now_string()
+			TORRENT_LOG(dht_tracker)
 				<< "   reply: " << messages::ids[m.message_id];
 #endif
 
@@ -975,7 +974,6 @@ namespace libtorrent { namespace dht
 		{
 			m_queries_out_bytes += m_send_buf.size();
 		}
-		TORRENT_LOG(dht_tracker) << e;
 #endif
 
 		if (!m.piggy_backed_ping) return;
