@@ -137,6 +137,19 @@ namespace libtorrent { namespace dht
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_DEFINE_LOG(dht_tracker)
+
+	std::string to_hex(std::string const& s)
+	{
+		std::string ret;
+		char* digits = "0123456789abcdef";
+		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
+		{
+			ret += digits[*i & 0xf];
+			ret += digits[*i >> 4];
+		}
+		return ret;
+	}
+
 #endif
 
 	// class that puts the networking and the kademlia node in a single
@@ -503,7 +516,7 @@ namespace libtorrent { namespace dht
 			{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 				TORRENT_LOG(dht_tracker) << "   reply: transaction: "
-					<< m.transaction_id;
+					<< to_hex(m.transaction_id);
 #endif
 
 				m.reply = true;
@@ -832,7 +845,7 @@ namespace libtorrent { namespace dht
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(dht_tracker) << time_now_string()
 			<< " SENDING [" << m.addr << "]:";
-		TORRENT_LOG(dht_tracker) << "   transaction: " << m.transaction_id;
+		TORRENT_LOG(dht_tracker) << "   transaction: " << to_hex(m.transaction_id);
 #endif
 
 		if (m.message_id == messages::error)
