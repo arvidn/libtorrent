@@ -73,7 +73,7 @@ rule linking ( properties * )
 	# clock_gettime on linux requires librt
 	if <need-librt>yes in $(properties)
 	{
-		result += <library>rt ;
+		result += <library>librt ;
 	}
 
 	if <boost>system in $(properties)
