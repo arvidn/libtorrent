@@ -24,12 +24,16 @@ out.close()
 
 out = open('dht_announce_distribution.gnuplot', 'w+')
 out.write('''
-set term png size 1200,700
+set term png size 1200,700 small
 set output "dht_announce_distribution.png"
 set title "bucket # announces are made against relative to target node-id"
 set ylabel "# of announces"
 set style fill solid border -1 pattern 2
 plot  "dht_announce_distribution.dat" using 1:2 title "announces" with boxes
+
+set terminal postscript
+set output "dht_announce_distribution.ps"
+replot
 ''')
 out.close()
 
