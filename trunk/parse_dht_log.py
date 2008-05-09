@@ -7,7 +7,12 @@ histogram = {}
 
 for i in xrange(0, 50): histogram[i] = 0
 
-for line in f.readlines():
+counter = 0;
+
+for line in f:
+	counter += 1
+	if counter % 1000 == 0:
+		print '\r%d' % counter,
 	try:
 		if not 'distance:' in line: continue;
 		l = line.split(' ')
