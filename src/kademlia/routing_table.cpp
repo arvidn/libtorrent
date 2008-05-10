@@ -50,6 +50,10 @@ using boost::uint8_t;
 namespace libtorrent { namespace dht
 {
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+TORRENT_DEFINE_LOG(table)
+#endif
+
 routing_table::routing_table(node_id const& id, int bucket_size
 	, dht_settings const& settings)
 	: m_bucket_size(bucket_size)
@@ -222,6 +226,15 @@ void routing_table::node_failed(node_id const& id)
 	if (rb.empty())
 	{
 		++i->fail_count;
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(table) << " NODE FAILED"
+			" id: " << id <<
+			" ip: " << i->addr <<
+			" fails: " << i->fail_count <<
+			" up-time: " << total_seconds(time_now() - i->first_seen);
+#endif
+
 		if (i->fail_count >= m_settings.max_fail_count)
 		{
 			b.erase(i);

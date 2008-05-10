@@ -44,17 +44,30 @@ struct node_entry
 	node_entry(node_id const& id_, udp::endpoint addr_)
 		: id(id_)
 		, addr(addr_)
-		, fail_count(0) {}
+		, fail_count(0)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		first_seen = time_now();
+#endif
+	}
 	node_entry(udp::endpoint addr_)
 		: id(0)
 		, addr(addr_)
-		, fail_count(0) {}
+		, fail_count(0)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		first_seen = time_now();
+#endif
+	}
 	
 	node_id id;
 	udp::endpoint addr;
 	// the number of times this node has failed to
 	// respond in a row
 	int fail_count;
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	ptime first_seen;
+#endif
 };
 
 } } // namespace libtorrent::dht
