@@ -27,20 +27,16 @@ AC_PROG_LIBTOOL
 
 AC_SYS_LARGEFILE
 
-dnl Make sure that the asio header files are added.
-ASIO_DIR=$srcdir/include/libtorrent/asio
-
-if test "$cross_compiling" == "no"; then
-  AC_CHECK_FILES([$ASIO_DIR/../asio.hpp $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp ],,AC_MSG_ERROR([ ASIO header files not found. Get them from asio.sourceforge.net (use CVS head) and include or symlink them. Example: ln -s ../../../asio/include/asio.hpp include/libtorrent/asio.hpp && ln -s ../../../asio/include/asio include/libtorrent/asio ]) )
-dnl check asio version
-else
-  AC_MSG_NOTICE([Cross compiling, not checking ASIO headers])
-fi
-
 SAVED_LIBS="$LIBS"
 
 dnl Check for pthreads and boost libraries.
 ACX_PTHREAD
+
+AX_BOOST_SYSTEM
+dnl check that Boost.System was found:
+if test -z "$BOOST_SYSTEM_LIB"; then
+   AC_MSG_ERROR([unable to find Boost.System library, currently this is required.])
+fi
 
 AX_BOOST_IOSTREAMS
 dnl check that Boost.IOStreams was found:
@@ -67,6 +63,13 @@ AX_BOOST_THREAD
 dnl check that Boost.Thread was found:
 if test -z "$BOOST_THREAD_LIB"; then
    AC_MSG_ERROR([Unable to find Boost.Thread library, currently this is required.])
+fi
+
+AX_BOOST_ASIO
+
+dnl check that Boost.Asio was found:
+if test -z "$BOOST_ASIO_LIB"; then
+   AC_MSG_ERROR([Unable to find Boost.Asio library, currently this is required.])
 fi
 
 AX_BOOST_REGEX
