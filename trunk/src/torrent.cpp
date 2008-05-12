@@ -2732,6 +2732,71 @@ namespace libtorrent
 		}
 	}
 
+	namespace
+	{
+		// this returns true if lhs is a better disconnect candidate than rhs
+		bool compare_disconnect_peer(peer_connection const* lhs, peer_connection const* rhs)
+		{
+			// prefer to disconnect peers we're not interested in
+			if (lhs->is_interesting() != rhs->is_interesting())
+				return rhs->is_interesting();
+
+			// prefer to disconnect peers that are not seeds
+			if (lhs->is_seed() != rhs->is_seed())
+				return rhs->is_seed();
+
+			// prefer to disconnect peers that are on parole
+			if (lhs->on_parole() != rhs->on_parole())
+				return lhs->on_parole();
+
+			// prefer to disconnect peers that send data at a lower rate
+			size_type lhs_transferred = lhs->statistics().total_payload_download();
+			size_type rhs_transferred = rhs->statistics().total_payload_download();
+
+			if (lhs_transferred != rhs_transferred
+				&& lhs_transferred > 0
+				&& rhs_transferred > 0)
+			{
+				ptime now = time_now();
+				size_type lhs_time_connected = total_seconds(now - lhs->connected_time());
+				size_type rhs_time_connected = total_seconds(now - rhs->connected_time());
+
+				double lhs_rate = double(lhs_transferred) / (lhs_time_connected + 1);
+				double rhs_rate = double(rhs_transferred) / (rhs_time_connected + 1);
+			
+				return lhs_rate < rhs_rate;
+			}
+
+			// prefer to disconnect peers that chokes us
+			if (lhs->is_choked() != rhs->is_choked())
+				return lhs->is_choked();
+
+			return lhs->last_received() < rhs->last_received();
+		}
+	}
+
+	int torrent::disconnect_peers(int num)
+	{
+		int ret = 0;
+		// buils a list of all connected peers and sort it by 'disconnectability'.
+		std::vector<peer_connection*> peers(m_connections.size());
+		std::copy(m_connections.begin(), m_connections.end(), peers.begin());
+		std::sort(peers.begin(), peers.end(), boost::bind(&compare_disconnect_peer, _1, _2));
+
+		// never disconnect peers that connected less than 90 seconds ago
+		ptime cut_off = time_now() - seconds(90);
+
+		for (std::vector<peer_connection*>::iterator i = peers.begin()
+			, end(peers.end()); i != end && ret < num; ++i)
+		{
+			peer_connection* p = *i;
+			if (p->connected_time() > cut_off) continue;
+			++ret;
+			p->disconnect("optimistic disconnect");
+		}
+		return ret;
+	}
+
 	int torrent::bandwidth_throttle(int channel) const
 	{
 		return m_bandwidth_limit[channel].throttle();

@@ -421,49 +421,6 @@ namespace libtorrent
 		return true;
 	}
 
-	policy::iterator policy::find_disconnect_candidate()
-	{
-		INVARIANT_CHECK;
-
-		iterator disconnect_peer = m_peers.end();
-		double slowest_transfer_rate = (std::numeric_limits<double>::max)();
-
-		ptime now = time_now();
-
-		for (iterator i = m_peers.begin();
-			i != m_peers.end(); ++i)
-		{
-			peer_connection* c = i->second.connection;
-			if (c == 0) continue;
-			if (c->is_disconnecting()) continue;
-			
-			// never disconnect an interesting peer if we have a candidate that
-			// isn't interesting
-			if (disconnect_peer != m_peers.end()
-				&& c->is_interesting()
-				&& !disconnect_peer->second.connection->is_interesting())
-				continue;
-
-			double transferred_amount
-				= (double)c->statistics().total_payload_download();
-
-			time_duration connected_time = now - i->second.connected;
-
-			double connected_time_in_seconds = total_seconds(connected_time);
-
-			double transfer_rate
-				= transferred_amount / (connected_time_in_seconds + 1);
-
-			// prefer to disconnect uninteresting peers, and secondly slow peers
-			if (transfer_rate <= slowest_transfer_rate)
-			{
-				slowest_transfer_rate = transfer_rate;
-				disconnect_peer = i;
-			}
-		}
-		return disconnect_peer;
-	}
-
 	policy::iterator policy::find_connect_candidate()
 	{
 // too expensive
@@ -1071,19 +1028,6 @@ namespace libtorrent
 			++p->second.failcount;
 			return false;
 		}
-		return true;
-	}
-
-	bool policy::disconnect_one_peer()
-	{
-		iterator p = find_disconnect_candidate();
-		if (p == m_peers.end())
-			return false;
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*p->second.connection->m_logger) << "*** CLOSING CONNECTION 'too many connections'\n";
-#endif
-
-		p->second.connection->disconnect("too many connections, closing");
 		return true;
 	}
 

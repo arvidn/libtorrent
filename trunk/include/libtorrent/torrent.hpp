@@ -452,6 +452,7 @@ namespace libtorrent
 		void announce_piece(int index);
 
 		void disconnect_all();
+		int disconnect_peers(int num);
 
 		// this is called wheh the torrent has completed
 		// the download. It will post an event, disconnect

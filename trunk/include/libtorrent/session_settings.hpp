@@ -102,11 +102,7 @@ namespace libtorrent
 			, min_reconnect_time(60)
 			, peer_connect_timeout(7)
 			, ignore_limits_on_local_network(true)
-#if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
-			, connection_speed(2)
-#else
 			, connection_speed(20)
-#endif
 			, send_redundant_have(false)
 			, lazy_bitfields(true)
 			, inactivity_timeout(600)
@@ -134,6 +130,9 @@ namespace libtorrent
 			, share_ratio_limit(2.f)
 			, seed_time_ratio_limit(7.f)
 			, seed_time_limit(24 * 60 * 60) // 24 hours
+			, peer_turnover(1 / 50.f)
+			, peer_turnover_cutoff(1.f)
+			, close_redundant_connections(true)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -376,6 +375,23 @@ namespace libtorrent
 		float share_ratio_limit;
 		float seed_time_ratio_limit;
 		int seed_time_limit;
+
+		// the percentage of peers to disconnect every
+		// 90 seconds (if we're at the peer limit)
+		// defaults to 1/50:th
+		float peer_turnover;
+
+		// when we are connected to more than
+		// limit * peer_turnover_enable peers
+		// disconnect peer_turnover fraction
+		// of the peers
+		float peer_turnover_cutoff;
+
+		// if this is true (default) connections where both
+		// ends have no utility in keeping the connection open
+		// are closed. for instance if both ends have completed
+		// their downloads
+		bool close_redundant_connections;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
