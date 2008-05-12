@@ -1089,6 +1089,7 @@ The ``torrent_info`` has the following synopsis::
 		torrent_info();
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(entry const& torrent_file);
+		torrent_info(char const* filename);
 
 		entry create_torrent() const;
 		void set_comment(char const* str);
@@ -1153,6 +1154,7 @@ torrent_info()
 		torrent_info();
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(entry const& torrent_file);
+		torrent_info(char const* filename);
 
 The default constructor of ``torrent_info`` is used when creating torrent files. It will
 initialize the object to an empty torrent, containing no files. The info hash will be set
@@ -1166,10 +1168,15 @@ exception that it will initialize the info-hash to the given value. This is used
 when downloading torrents without the metadata. The metadata will be created by libtorrent
 as soon as it has been downloaded from the swarm.
 
-The last constructor is the one that is used in most cases. It will create a ``torrent_info``
-object from the information found in the given torrent_file. The ``entry`` represents a tree
-node in an bencoded file. To load an ordinary .torrent file into an ``entry``, use bdecode(),
-see `bdecode() bencode()`_.
+The constructor that takes an entry, is the one that is used in most cases. It will create
+a ``torrent_info`` object from the information found in the given torrent_file. The
+``entry`` represents a tree node in an bencoded file. To load an ordinary .torrent file
+into an ``entry``, use bdecode(), see `bdecode() bencode()`_.
+
+The version that takes a filename will simply load the torrent file and decode it inside
+the constructor, for convenience. This might not be the most suitable for applications that
+want to be able to report detailed errors on what might go wrong.
+
 
 set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()
 --------------------------------------------------------------------------------

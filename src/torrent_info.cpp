@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/next_prior.hpp>
 #include <boost/bind.hpp>
 
@@ -284,6 +285,37 @@ namespace libtorrent
 		, m_half_metadata(false)
 #endif
 	{
+	}
+
+	torrent_info::torrent_info(char const* filename)
+		: m_num_pieces(0)
+		, m_creation_date(pt::ptime(pt::not_a_date_time))
+		, m_multifile(false)
+		, m_private(false)
+		, m_extra_info(entry::dictionary_t)
+#ifndef NDEBUG
+		, m_half_metadata(false)
+#endif
+	{
+		size_type s = fs::file_size(fs::path(filename));
+		// don't load torrent files larger than 2 MB
+		if (s > 2000000) return;
+		std::vector<char> buf(s);
+		std::ifstream f(filename);
+		f.read(&buf[0], s);
+		/*
+		lazy_entry e;
+		int ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
+		if (ret != 0) return;
+		*/
+		entry e = bdecode(&buf[0], &buf[0] + buf.size());
+		std::string error;
+#ifndef BOOST_NO_EXCEPTIONS
+		if (!read_torrent_info(e, error))
+			throw invalid_torrent_file();
+#else
+		read_torrent_info(e, error);
+#endif
 	}
 
 	torrent_info::~torrent_info()
