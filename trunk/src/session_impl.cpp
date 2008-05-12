@@ -847,7 +847,13 @@ namespace aux {
 
 		// check if we have any active torrents
 		// if we don't reject the connection
-		if (m_torrents.empty()) return;
+		if (m_torrents.empty())
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_logger) << " There are no torrents, disconnect\n";
+#endif
+		  	return;
+		}
 
 		bool has_active_torrent = false;
 		for (torrent_map::iterator i = m_torrents.begin()
@@ -859,10 +865,16 @@ namespace aux {
 				break;
 			}
 		}
-		if (!has_active_torrent) return;
+		if (!has_active_torrent)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_logger) << " There are no _active_ torrents, disconnect\n";
+#endif
+		  	return;
+		}
 
 		boost::intrusive_ptr<peer_connection> c(
-			new bt_peer_connection(*this, s, 0));
+			new bt_peer_connection(*this, s, endp, 0));
 #ifndef NDEBUG
 		c->m_in_constructor = false;
 #endif
