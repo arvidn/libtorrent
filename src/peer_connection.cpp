@@ -1109,7 +1109,7 @@ namespace libtorrent
 			{
 				TORRENT_ASSERT(m_peer_info);
 				m_peer_info->seed = true;
-				if (t->is_finished())
+				if (t->is_finished() && m_ses.settings().close_redundant_connections)
 				{
 					disconnect("seed to seed connection redundant");
 					return;
@@ -1186,7 +1186,7 @@ namespace libtorrent
 			// if this is a web seed. we don't have a peer_info struct
 			if (m_peer_info) m_peer_info->seed = true;
 			// if we're a seed too, disconnect
-			if (t->is_finished())
+			if (t->is_finished() && m_ses.settings().close_redundant_connections)
 			{
 				disconnect("seed to seed connection redundant, disconnecting");
 				return;
@@ -1751,7 +1751,7 @@ namespace libtorrent
 #endif
 
 		// if we're a seed too, disconnect
-		if (t->is_finished())
+		if (t->is_finished() && m_ses.settings().close_redundant_connections)
 		{
 			disconnect("seed to seed connection redundant, disconnecting");
 			return;
