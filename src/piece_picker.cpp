@@ -133,22 +133,8 @@ namespace libtorrent
 		{
 			int index = static_cast<int>(i - pieces.begin());
 			piece_pos& p = m_piece_map[index];
-			if (*i)
-			{
-				if (m_sequential_download == index) ++m_sequential_download;
-				++m_num_have;
-				p.set_have();
-				if (p.filtered())
-				{
-					++m_num_have_filtered;
-					TORRENT_ASSERT(m_num_filtered > 0);
-					--m_num_filtered;
-				}
-			}
-			else
-			{
-				p.index = 0;
-			}
+			if (*i) we_have(index);
+			else TORRENT_ASSERT(p.index == 0);
 		}
 	}
 

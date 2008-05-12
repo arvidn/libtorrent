@@ -605,6 +605,14 @@ namespace libtorrent
 						}
 					}
 				}
+
+				int index = 0;
+				for (std::vector<bool>::iterator i = m_have_pieces.begin()
+					, end(m_have_pieces.end()); i != end; ++i, ++index)
+				{
+					if (*i) m_picker->we_have(index);
+				}
+				TORRENT_ASSERT(m_picker->num_have_filtered() == m_num_pieces);
 			}
 
 			files_checked();
@@ -656,6 +664,8 @@ namespace libtorrent
 		{
 			m_have_pieces[j.offset] = true;
 			++m_num_pieces;
+			TORRENT_ASSERT(m_picker);
+			m_picker->we_have(j.offset);
 		}
 
 		// we're not done checking yet
@@ -3766,6 +3776,7 @@ namespace libtorrent
 		st.num_incomplete = m_incomplete;
 		st.paused = m_paused;
 		boost::tie(st.total_done, st.total_wanted_done) = bytes_done();
+		TORRENT_ASSERT(st.total_wanted_done >= 0);
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 
 		// payload transfer
@@ -3826,6 +3837,7 @@ namespace libtorrent
 		// fill in status that depends on metadata
 
 		st.total_wanted = m_torrent_file->total_size();
+		TORRENT_ASSERT(st.total_wanted >= 0);
 
 		if (m_picker.get() && (m_picker->num_filtered() > 0
 			|| m_picker->num_have_filtered() > 0))
