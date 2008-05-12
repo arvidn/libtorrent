@@ -612,7 +612,6 @@ namespace libtorrent
 				{
 					if (*i) m_picker->we_have(index);
 				}
-				TORRENT_ASSERT(m_picker->num_have_filtered() == m_num_pieces);
 			}
 
 			files_checked();
