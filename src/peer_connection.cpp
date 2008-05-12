@@ -64,7 +64,7 @@ namespace libtorrent
 		session_impl& ses
 		, boost::weak_ptr<torrent> tor
 		, shared_ptr<socket_type> s
-		, tcp::endpoint const& remote
+		, tcp::endpoint const& endp
 		, policy::peer* peerinfo)
 		:
 #ifndef NDEBUG
@@ -86,7 +86,7 @@ namespace libtorrent
 		, m_last_receive(time_now())
 		, m_last_sent(time_now())
 		, m_socket(s)
-		, m_remote(remote)
+		, m_remote(endp)
 		, m_torrent(tor)
 		, m_active(true)
 		, m_peer_interested(false)
@@ -164,6 +164,7 @@ namespace libtorrent
 	peer_connection::peer_connection(
 		session_impl& ses
 		, boost::shared_ptr<socket_type> s
+		, tcp::endpoint const& endp
 		, policy::peer* peerinfo)
 		:
 #ifndef NDEBUG
@@ -185,6 +186,7 @@ namespace libtorrent
 		, m_last_receive(time_now())
 		, m_last_sent(time_now())
 		, m_socket(s)
+		, m_remote(endp)
 		, m_active(false)
 		, m_peer_interested(false)
 		, m_peer_choked(true)
@@ -244,7 +246,7 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		error_code ec;
-		TORRENT_ASSERT(m_socket->remote_endpoint(ec) == remote() || ec);
+		TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
 		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
 			+ boost::lexical_cast<std::string>(remote().port()), m_ses.listen_port());
 		(*m_logger) << "*** INCOMING CONNECTION\n";

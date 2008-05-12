@@ -125,8 +125,9 @@ namespace libtorrent
 	bt_peer_connection::bt_peer_connection(
 		session_impl& ses
 		, boost::shared_ptr<socket_type> s
+		, tcp::endpoint const& remote
 		, policy::peer* peerinfo)
-		: peer_connection(ses, s, peerinfo)
+		: peer_connection(ses, s, remote, peerinfo)
 		, m_state(read_protocol_identifier)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_supports_extensions(false)
