@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "GeoIP.h"
+#include "libtorrent/GeoIP.h"
 
 #ifndef WIN32
 #include <netdb.h>
