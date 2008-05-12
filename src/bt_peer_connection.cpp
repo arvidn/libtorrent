@@ -807,6 +807,7 @@ namespace libtorrent
 		if (!packet_finished()) return;
 
 		incoming_choke();
+		if (is_disconnecting()) return;
 		if (!m_supports_fast)
 		{
 			boost::shared_ptr<torrent> t = associated_torrent().lock();
@@ -1021,6 +1022,7 @@ namespace libtorrent
 		}
 
 		incoming_piece_fragment();
+		if (is_disconnecting()) return;
 		if (!packet_finished()) return;
 
 		const char* ptr = recv_buffer.begin + 1;
@@ -2329,6 +2331,7 @@ namespace libtorrent
 #endif
 
 #ifndef DISABLE_EXTENSIONS
+			std::memcpy(m_reserved_bits, recv_buffer.begin, 20);
 			if ((recv_buffer[5] & 0x10))
 				m_supports_extensions = true;
 #endif
@@ -2475,7 +2478,7 @@ namespace libtorrent
 			for (extension_list_t::iterator i = m_extensions.begin()
 				, end(m_extensions.end()); i != end;)
 			{
-				if (!(*i)->on_handshake())
+				if (!(*i)->on_handshake(m_reserved_bits))
 				{
 					i = m_extensions.erase(i);
 				}
@@ -2484,6 +2487,7 @@ namespace libtorrent
 					++i;
 				}
 			}
+			if (is_disconnecting()) return;
 
 			if (m_supports_extensions) write_extensions();
 #endif
@@ -2549,6 +2553,7 @@ namespace libtorrent
 			if (packet_size == 0)
 			{
 				incoming_keepalive();
+				if (is_disconnecting()) return;
 				// keepalive message
 				m_state = read_packet_size;
 				cut_receive_buffer(4, 4);
