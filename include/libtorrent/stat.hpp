@@ -150,14 +150,14 @@ namespace libtorrent
 
 			// IP + TCP headers are 40 bytes per MTU (1460)
 			// bytes of payload, but at least 40 bytes
-			m_stat[upload_ip_protocol].add((std::max)(uploaded / 1460, 40));
-			m_stat[download_ip_protocol].add((std::max)(downloaded / 1460, 40));
+			m_stat[upload_ip_protocol].add((std::max)(uploaded / 1460, uploaded>0?40:0));
+			m_stat[download_ip_protocol].add((std::max)(downloaded / 1460, downloaded>0?40:0));
 
 			// also account for ACK traffic. That adds to the transfers
 			// in the opposite direction. Even on connections with symmetric
 			// transfer rates, it seems to add a penalty.
-			m_stat[upload_ip_protocol].add((std::max)(downloaded / 20, 40));
-			m_stat[download_ip_protocol].add((std::max)(uploaded / 20, 40));
+			m_stat[upload_ip_protocol].add((std::max)(downloaded * 40 / 1460, downloaded>0?40:0));
+			m_stat[download_ip_protocol].add((std::max)(uploaded * 40 / 1460, uploaded>0?40:0));
 		}
 
 		int upload_ip_overhead() const { return m_stat[upload_ip_protocol].counter(); }
