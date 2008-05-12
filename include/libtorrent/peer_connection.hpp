@@ -242,6 +242,9 @@ namespace libtorrent
 		std::vector<int> const& allowed_fast();
 		std::vector<int> const& suggested_pieces() const { return m_suggested_pieces; }
 
+		ptime connected_time() const { return m_connect; }
+		ptime last_received() const { return m_last_receive; }
+
 		void timed_out();
 		// this will cause this peer_connection to be disconnected.
 		void disconnect(char const* message);

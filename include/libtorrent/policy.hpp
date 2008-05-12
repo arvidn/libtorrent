@@ -248,7 +248,6 @@ namespace libtorrent
 		const_iterator end_peer() const { return m_peers.end(); }
 
 		bool connect_one_peer();
-		bool disconnect_one_peer();
 
 		bool has_peer(policy::peer const* p) const;
 
@@ -267,7 +266,6 @@ namespace libtorrent
 		bool compare_peer(policy::peer const& lhs, policy::peer const& rhs
 			, address const& external_ip) const;
 
-		iterator find_disconnect_candidate();
 		iterator find_connect_candidate();
 
 		bool is_connect_candidate(peer const& p, bool finished);

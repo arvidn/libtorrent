@@ -1214,17 +1214,37 @@ namespace aux {
 		{
 			m_disconnect_time_scaler = 90;
 
-			// every 90 seconds, disconnect the worst peer
+			// every 90 seconds, disconnect the worst peers
 			// if we have reached the connection limit
-			if (num_connections() >= max_connections() && !m_torrents.empty())
+			if (num_connections() >= max_connections() * m_settings.peer_turnover_cutoff
+				&& !m_torrents.empty())
 			{
 				torrent_map::iterator i = std::max_element(m_torrents.begin(), m_torrents.end()
 					, bind(&torrent::num_peers, bind(&torrent_map::value_type::second, _1))
 					< bind(&torrent::num_peers, bind(&torrent_map::value_type::second, _2)));
 			
 				TORRENT_ASSERT(i != m_torrents.end());
-				// TODO: make the number of peers a percentage of the number of connected peers
-				i->second->get_policy().disconnect_one_peer();
+				int peers_to_disconnect = (std::min)((std::max)(int(i->second->num_peers()
+					* m_settings.peer_turnover), 1)
+					, i->second->get_policy().num_connect_candidates());
+				i->second->disconnect_peers(peers_to_disconnect);
+			}
+			else
+			{
+				// if we haven't reached the global max. see if any torrent
+				// has reached its local limit
+				for (torrent_map::iterator i = m_torrents.begin()
+					, end(m_torrents.end()); i != end; ++i)
+				{
+					boost::shared_ptr<torrent> t = i->second;
+					if (t->num_peers() < t->max_connections() * m_settings.peer_turnover_cutoff)
+						continue;
+
+					int peers_to_disconnect = (std::min)((std::max)(int(i->second->num_peers()
+						* m_settings.peer_turnover), 1)
+						, i->second->get_policy().num_connect_candidates());
+					t->disconnect_peers(peers_to_disconnect);
+				}
 			}
 		}
 	}
