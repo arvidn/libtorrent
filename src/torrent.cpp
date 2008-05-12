@@ -2137,9 +2137,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << e.what() << "\n";
 #endif
-
-			// TODO: post an error alert!
-			c->disconnect(e.what());
+			c->disconnect(e.what(), 1);
 		}
 #endif
 	}
@@ -2920,7 +2918,7 @@ namespace libtorrent
 			}
 		}
 		std::for_each(seeds.begin(), seeds.end()
-			, bind(&peer_connection::disconnect, _1, "torrent finished, disconnecting seed"));
+			, bind(&peer_connection::disconnect, _1, "torrent finished, disconnecting seed", 0));
 
 		TORRENT_ASSERT(m_storage);
 		// we need to keep the object alive during this operation
@@ -3605,8 +3603,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*p->m_logger) << "**ERROR**: " << e.what() << "\n";
 #endif
-				p->set_failed();
-				p->disconnect(e.what());
+				p->disconnect(e.what(), 1);
 			}
 #endif
 		}

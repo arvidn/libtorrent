@@ -349,7 +349,7 @@ namespace libtorrent
 
 				if (error)
 				{
-					disconnect("failed to parse HTTP response");
+					disconnect("failed to parse HTTP response", 2);
 					return;
 				}
 
@@ -380,7 +380,7 @@ namespace libtorrent
 						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
 							, error_msg));
 					}
-					disconnect(error_msg.c_str());
+					disconnect(error_msg.c_str(), 1);
 					return;
 				}
 				if (!m_parser.header_finished()) break;
@@ -406,7 +406,7 @@ namespace libtorrent
 					{
 						// we should not try this server again.
 						t->remove_url_seed(m_url);
-						disconnect("got HTTP redirection status without location header");
+						disconnect("got HTTP redirection status without location header", 2);
 						return;
 					}
 					
@@ -430,7 +430,7 @@ namespace libtorrent
 							std::stringstream msg;
 							msg << "got invalid HTTP redirection location (\"" << location << "\") "
 								"expected it to end with: " << path;
-							disconnect(msg.str().c_str());
+							disconnect(msg.str().c_str(), 2);
 							return;
 						}
 						location.resize(i);
@@ -475,7 +475,7 @@ namespace libtorrent
 					t->remove_url_seed(m_url);
 					std::stringstream msg;
 					msg << "invalid range in HTTP response: " << range_str.str();
-					disconnect(msg.str().c_str());
+					disconnect(msg.str().c_str(), 2);
 					return;
 				}
 				// the http range is inclusive
@@ -489,7 +489,7 @@ namespace libtorrent
 				{
 					// we should not try this server again.
 					t->remove_url_seed(m_url);
-					disconnect("no content-length in HTTP response");
+					disconnect("no content-length in HTTP response", 2);
 					return;
 				}
 			}
@@ -501,7 +501,7 @@ namespace libtorrent
 
 			if (m_requests.empty() || m_file_requests.empty())
 			{
-				disconnect("unexpected HTTP response");
+				disconnect("unexpected HTTP response", 2);
 				return;
 			}
 
@@ -534,7 +534,7 @@ namespace libtorrent
 			{
 				// this means the end of the incoming request ends _before_ the
 				// first expected byte (fs + m_piece.size())
-				disconnect("invalid range in HTTP response");
+				disconnect("invalid range in HTTP response", 2);
 				return;
 			}
 

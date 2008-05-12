@@ -1165,20 +1165,10 @@ namespace aux {
 			peer_connection& c = *j->get();
 			if (c.has_timed_out())
 			{
-				if (m_alerts.should_post(alert::debug))
-				{
-					m_alerts.post_alert(
-						peer_error_alert(
-							c.remote()
-							, c.pid()
-							, "connection timed out"));
-				}
 #if defined(TORRENT_VERBOSE_LOGGING)
 				(*c.m_logger) << "*** CONNECTION TIMED OUT\n";
 #endif
-
-				c.set_failed();
-				c.disconnect("timed out");
+				c.disconnect("timed out: inactive", true);
 				continue;
 			}
 
