@@ -99,7 +99,7 @@ namespace libtorrent
 		// means that the other end doesn't support this extension and will remove
 		// it from the list of plugins.
 		// this is not called for web seeds
-		virtual bool on_handshake() { return true; }
+		virtual bool on_handshake(char const* reserved_bits) { return true; }
 		
 		// called when the extension handshake from the other end is received
 		// if this returns false, it means that this extension isn't

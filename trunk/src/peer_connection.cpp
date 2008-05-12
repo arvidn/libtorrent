@@ -611,6 +611,7 @@ namespace libtorrent
 #endif
 		}
 #endif
+		if (is_disconnecting()) return;
 
 		if (peer_info_struct())
 		{
@@ -780,6 +781,7 @@ namespace libtorrent
 			if ((*i)->on_choke()) return;
 		}
 #endif
+		if (is_disconnecting()) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " <== CHOKE\n";
@@ -832,6 +834,8 @@ namespace libtorrent
 			if ((*i)->on_reject(r)) return;
 		}
 #endif
+
+		if (is_disconnecting()) return;
 
 		std::deque<piece_block>::iterator i = std::find_if(
 			m_download_queue.begin(), m_download_queue.end()
@@ -916,6 +920,7 @@ namespace libtorrent
 		}
 #endif
 
+		if (is_disconnecting()) return;
 		if (t->have_piece(index)) return;
 		
 		if (m_suggested_pieces.size() > 9)
@@ -951,6 +956,8 @@ namespace libtorrent
 		(*m_logger) << time_now_string() << " <== UNCHOKE\n";
 #endif
 		m_peer_choked = false;
+		if (is_disconnecting()) return;
+
 		t->get_policy().unchoked(*this);
 	}
 
@@ -977,6 +984,7 @@ namespace libtorrent
 		(*m_logger) << time_now_string() << " <== INTERESTED\n";
 #endif
 		m_peer_interested = true;
+		if (is_disconnecting()) return;
 		t->get_policy().interested(*this);
 	}
 
@@ -1001,11 +1009,12 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " <== NOT_INTERESTED\n";
 #endif
+		m_peer_interested = false;
+		if (is_disconnecting()) return;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		m_peer_interested = false;
 		t->get_policy().not_interested(*this);
 	}
 
@@ -1027,6 +1036,8 @@ namespace libtorrent
 			if ((*i)->on_have(index)) return;
 		}
 #endif
+
+		if (is_disconnecting()) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string()
@@ -1125,6 +1136,8 @@ namespace libtorrent
 			if ((*i)->on_bitfield(bitfield)) return;
 		}
 #endif
+
+		if (is_disconnecting()) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " <== BITFIELD ";
@@ -1235,6 +1248,7 @@ namespace libtorrent
 			if ((*i)->on_request(r)) return;
 		}
 #endif
+		if (is_disconnecting()) return;
 
 		if (!t->valid_metadata())
 		{
@@ -1431,6 +1445,7 @@ namespace libtorrent
 			if ((*i)->on_piece(p, data)) return;
 		}
 #endif
+		if (is_disconnecting()) return;
 
 #ifndef NDEBUG
 		check_postcondition post_checker_(t);
@@ -1643,6 +1658,7 @@ namespace libtorrent
 			if ((*i)->on_cancel(r)) return;
 		}
 #endif
+		if (is_disconnecting()) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string()
@@ -1712,6 +1728,7 @@ namespace libtorrent
 			if ((*i)->on_have_all()) return;
 		}
 #endif
+		if (is_disconnecting()) return;
 
 		m_have_all = true;
 
@@ -1757,12 +1774,12 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT(t);
-
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " <== HAVE_NONE\n";
 #endif
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1771,8 +1788,9 @@ namespace libtorrent
 			if ((*i)->on_have_none()) return;
 		}
 #endif
-
+		if (is_disconnecting()) return;
 		if (m_peer_info) m_peer_info->seed = false;
+
 		TORRENT_ASSERT(!m_have_piece.empty() || !t->ready_for_connections());
 	}
 
@@ -1798,6 +1816,7 @@ namespace libtorrent
 			if ((*i)->on_allowed_fast(index)) return;
 		}
 #endif
+		if (is_disconnecting()) return;
 
 		if (index < 0 || index >= int(m_have_piece.size()))
 		{
@@ -2104,6 +2123,7 @@ namespace libtorrent
 			{
 				if (handled = (*i)->write_request(r)) break;
 			}
+			if (is_disconnecting()) return;
 			if (!handled)
 			{
 				write_request(r);
@@ -2423,6 +2443,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		ptime now(time_now());
+		boost::intrusive_ptr<peer_connection> me(self());
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || m_disconnecting)
@@ -2464,6 +2485,7 @@ namespace libtorrent
 			}
 #endif
 		}
+		if (is_disconnecting()) return;
 
 		if (!t->valid_metadata()) return;
 

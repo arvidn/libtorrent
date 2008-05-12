@@ -363,6 +363,7 @@ private:
 		// the peer indicated that it supports the
 		// extension protocol
 		bool m_supports_extensions;
+		char m_reserved_bits[20];
 #endif
 		bool m_supports_dht_port;
 		bool m_supports_fast;
