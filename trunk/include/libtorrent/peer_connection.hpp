@@ -247,7 +247,7 @@ namespace libtorrent
 
 		void timed_out();
 		// this will cause this peer_connection to be disconnected.
-		void disconnect(char const* message);
+		void disconnect(char const* message, int error = 0);
 		bool is_disconnecting() const { return m_disconnecting; }
 
 		// this is called when the connection attempt has succeeded
@@ -293,7 +293,6 @@ namespace libtorrent
 		bool ignore_bandwidth_limits() const
 		{ return m_ignore_bandwidth_limits; }
 
-		void set_failed() { m_failed = true; }
 		bool failed() const { return m_failed; }
 
 		int desired_queue_size() const { return m_desired_queue_size; }
