@@ -188,13 +188,28 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_error_alert: alert
 	{
 		peer_error_alert(tcp::endpoint const& pip, peer_id const& pid_, std::string const& msg)
-			: alert(alert::debug, msg)
+			: alert(alert::info, msg)
 			, ip(pip)
 			, pid(pid_)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new peer_error_alert(*this)); }
+
+		tcp::endpoint ip;
+		peer_id pid;
+	};
+
+	struct TORRENT_EXPORT peer_disconnected_alert: alert
+	{
+		peer_disconnected_alert(tcp::endpoint const& pip, peer_id const& pid_, std::string const& msg)
+			: alert(alert::debug, msg)
+			, ip(pip)
+			, pid(pid_)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new peer_disconnected_alert(*this)); }
 
 		tcp::endpoint ip;
 		peer_id pid;
