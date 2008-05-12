@@ -439,7 +439,7 @@ namespace libtorrent
 			// if this is a web seed. we don't have a peer_info struct
 			if (m_peer_info) m_peer_info->seed = true;
 			// if we're a seed too, disconnect
-			if (t->is_finished())
+			if (t->is_finished() && m_ses.settings().close_redundant_connections)
 			{
 				disconnect("seed to seed connection redundant");
 				return;
@@ -697,7 +697,7 @@ namespace libtorrent
 				(*m_logger) << "   " << i->second->torrent_file().info_hash() << "\n";
 			}
 #endif
-			disconnect("got invalid info-hash");
+			disconnect("got invalid info-hash", 2);
 			return;
 		}
 
@@ -1065,7 +1065,7 @@ namespace libtorrent
 		// if we got an invalid message, abort
 		if (index >= int(m_have_piece.size()) || index < 0)
 		{
-			disconnect("got 'have'-message with higher index than the number of pieces");
+			disconnect("got 'have'-message with higher index than the number of pieces", 2);
 			return;
 		}
 
@@ -1159,7 +1159,7 @@ namespace libtorrent
 			msg << "got bitfield with invalid size: " << (bitfield.size() / 8)
 				<< "bytes. expected: " << (m_have_piece.size() / 8)
 				<< " bytes";
-			disconnect(msg.str().c_str());
+			disconnect(msg.str().c_str(), 2);
 			return;
 		}
 
@@ -1471,7 +1471,7 @@ namespace libtorrent
 				"start: " << p.start << " | "
 				"length: " << p.length << " ]\n";
 #endif
-			disconnect("got invalid piece packet");
+			disconnect("got invalid piece packet", 2);
 			return;
 		}
 
@@ -2156,24 +2156,38 @@ namespace libtorrent
 		(*m_ses.m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << m_remote.address().to_string()
 			<< "\n";
 #endif
-		set_failed();
-		disconnect("timed out");
+		disconnect("timed out: connect", 1);
 	}
 
-	void peer_connection::disconnect(char const* message)
+	// the error argument defaults to 0, which means deliberate disconnect
+	// 1 means unexpected disconnect/error
+	// 2 protocol error (client sent something invalid)
+	void peer_connection::disconnect(char const* message, int error)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_logger) << "*** CONNECTION FAILED " << message << "\n";
+		switch (error)
+		{
+		case 0:
+			(*m_logger) << "*** CONNECTION CLOSED " << message << "\n";
+			break;
+		case 1:
+			(*m_logger) << "*** CONNECTION FAILED " << message << "\n";
+			break;
+		case 2:
+			(*m_logger) << "*** PEER ERROR " << message << "\n";
+			break;
+		}
 #endif
 		// we cannot do this in a constructor
 		TORRENT_ASSERT(m_in_constructor == false);
+		if (error > 0) m_failed = true;
+		if (m_disconnecting) return;
 		boost::intrusive_ptr<peer_connection> me(this);
 
 		INVARIANT_CHECK;
 
-		if (m_disconnecting) return;
 		if (m_connecting && m_connection_ticket >= 0)
 		{
 			m_ses.m_half_open.done(m_connection_ticket);
@@ -2182,13 +2196,18 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
-		if (message && m_ses.m_alerts.should_post(alert::debug))
+		if (message)
 		{
-			m_ses.m_alerts.post_alert(
-				peer_error_alert(
-					remote()
-					, pid()
-					, message));
+			if (error > 1 && m_ses.m_alerts.should_post(alert::info))
+			{
+				m_ses.m_alerts.post_alert(
+					peer_error_alert(remote(), pid(), message));
+			}
+			else if (error <= 1 && m_ses.m_alerts.should_post(alert::debug))
+			{
+				m_ses.m_alerts.post_alert(
+					peer_disconnected_alert(remote(), pid(), message));
+			}
 		}
 
 		if (t)
@@ -2392,7 +2411,7 @@ namespace libtorrent
 
 		if (disk_buffer_size > 16 * 1024)
 		{
-			disconnect("invalid piece size");
+			disconnect("invalid piece size", 2);
 			return false;
 		}
 
@@ -3034,7 +3053,6 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " **ERROR**: "
 				<< error.message() << "[in peer_connection::on_receive_data]\n";
 #endif
-			set_failed();
 			on_receive(error, bytes_transferred);
 			disconnect(error.message().c_str());
 			return;
@@ -3127,27 +3145,6 @@ namespace libtorrent
 
 		setup_receive();	
 	}
-	/*
-	catch (file_error& e)
-	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t)
-		{
-			disconnect(e.what());
-			return;
-		}
-		
-		if (t->alerts().should_post(alert::fatal))
-		{
-			t->alerts().post_alert(
-				file_error_alert(t->get_handle()
-				, std::string("torrent paused: ") + e.what()));
-		}
-		t->pause();
-	}
-*/
 
 	bool peer_connection::can_write() const
 	{
@@ -3250,8 +3247,7 @@ namespace libtorrent
 			(*m_ses.m_logger) << time_now_string() << " CONNECTION FAILED: " << m_remote.address().to_string()
 				<< ": " << e.message() << "\n";
 #endif
-			set_failed();
-			disconnect(e.message().c_str());
+			disconnect(e.message().c_str(), 1);
 			return;
 		}
 
@@ -3306,7 +3302,6 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << "**ERROR**: " << error.message() << " [in peer_connection::on_send_data]\n";
 #endif
-			set_failed();
 			disconnect(error.message().c_str());
 			return;
 		}

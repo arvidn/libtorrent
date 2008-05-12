@@ -113,7 +113,7 @@ namespace libtorrent { namespace
 			for (torrent::peer_iterator i = m_torrent.begin()
 				, end(m_torrent.end()); i != end; ++i)
 			{
-					peer_connection* peer = *i;
+				peer_connection* peer = *i;
 				if (!send_peer(*peer)) continue;
 
 				tcp::endpoint const& remote = peer->remote();
