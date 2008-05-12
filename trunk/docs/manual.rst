@@ -2820,6 +2820,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		float share_ratio_limit;
 		float seed_time_ratio_limit;
 		int seed_time_limit;
+		bool close_redundant_connections;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3039,6 +3040,11 @@ for considering a seeding torrent to have met the seed limit criteria. See queui
 ``seed_time_limit`` is the limit on the time a torrent has been an active seed
 (specified in seconds) before it is considered having met the seed limit criteria.
 See queuing_.
+
+``close_redundant_connections`` specifies whether libtorrent should close
+connections where both ends have no utility in keeping the connection open.
+For instance if both ends have completed their downloads, there's no point
+in keeping it open. This defaults to ``true``.
 
 
 pe_settings
