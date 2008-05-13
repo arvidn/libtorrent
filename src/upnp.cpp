@@ -835,7 +835,7 @@ void upnp::on_upnp_xml(error_code const& e
 
 	d.control_url = s.control_url;
 
-	update_map(d, 0);
+	if (num_mappings() > 0) update_map(d, 0);
 }
 
 void upnp::disable(char const* msg)
@@ -1178,7 +1178,7 @@ void upnp::close()
 			j->action = mapping_t::action_delete;
 			m_mappings[j - d.mapping.begin()].protocol = none;
 		}
-		update_map(d, 0);
+		if (num_mappings() > 0) update_map(d, 0);
 	}
 }
 
