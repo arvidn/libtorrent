@@ -28,17 +28,17 @@ namespace
           this->peer_plugin::add_handshake(e);
       }
 
-      bool on_handshake()
+      bool on_handshake(char const* reserved_bits)
       {
           if (override f = this->get_override("on_handshake"))
               return f();
           else
-              return peer_plugin::on_handshake();
+              return peer_plugin::on_handshake(reserved_bits);
       }
 
-      bool default_on_handshake()
+      bool default_on_handshake(char const* reserved_bits)
       {
-          return this->peer_plugin::on_handshake();
+          return this->peer_plugin::on_handshake(reserved_bits);
       }
 
       bool on_extension_handshake(entry const& e)
