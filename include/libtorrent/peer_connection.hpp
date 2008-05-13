@@ -120,6 +120,7 @@ namespace libtorrent
 		peer_connection(
 			aux::session_impl& ses
 			, boost::shared_ptr<socket_type> s
+			, tcp::endpoint const& remote
 			, policy::peer* peerinfo);
 
 		virtual ~peer_connection();
