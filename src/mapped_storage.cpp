@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/system/error_code.hpp>
+#include <boost/version.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
