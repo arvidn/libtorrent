@@ -252,7 +252,7 @@ private:
 	
 	bool m_disabled;
 	bool m_closing;
-	bool m_ignore_outside_network;
+	bool m_ignore_non_routers;
 
 	connection_queue& m_cc;
 
