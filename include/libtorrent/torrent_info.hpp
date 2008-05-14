@@ -45,12 +45,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/shared_array.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
 #include "libtorrent/entry.hpp"
+#include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
@@ -110,19 +112,12 @@ namespace libtorrent
 
 		torrent_info();
 		torrent_info(sha1_hash const& info_hash);
-		torrent_info(entry const& torrent_file);
+		torrent_info(lazy_entry const& torrent_file);
+		torrent_info(char const* buffer, int size);
 		torrent_info(char const* filename);
 		~torrent_info();
 
-		entry create_torrent() const;
-		entry create_info_metadata() const;
-		void set_comment(char const* str);
-		void set_creator(char const* str);
-		void set_piece_size(int size);
-		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
-		void add_file(fs::path file, size_type size);
-		void add_url_seed(std::string const& url);
 
 		bool remap_files(std::vector<file_entry> const& map);
 
@@ -132,10 +127,9 @@ namespace libtorrent
 			, bool storage = false) const;
 		
 		std::vector<std::string> const& url_seeds() const
-		{
-			TORRENT_ASSERT(!m_half_metadata);
-			return m_url_seeds;
-		}
+		{ return m_url_seeds; }
+		void torrent_info::add_url_seed(std::string const& url)
+		{ m_url_seeds.push_back(url); }
 
 		typedef std::vector<file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator reverse_file_iterator;
@@ -177,12 +171,12 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_piece_length > 0);
 			if (!storage || m_remapped_files.empty())
-				return (int)m_files.size();
+				return int(m_files.size());
 			else
-				return (int)m_remapped_files.size();
+				return int(m_remapped_files.size());
 		}
 
-		const file_entry& file_at(int index, bool storage = false) const
+		file_entry const& file_at(int index, bool storage = false) const
 		{
 			if (!storage || m_remapped_files.empty())
 			{
@@ -196,7 +190,7 @@ namespace libtorrent
 			}
 		}
 		
-		const std::vector<announce_entry>& trackers() const { return m_urls; }
+		std::vector<announce_entry> const& trackers() const { return m_urls; }
 
 		size_type total_size() const { TORRENT_ASSERT(m_piece_length > 0); return m_total_size; }
 		int piece_length() const { TORRENT_ASSERT(m_piece_length > 0); return m_piece_length; }
@@ -205,25 +199,30 @@ namespace libtorrent
 		const std::string& name() const { TORRENT_ASSERT(m_piece_length > 0); return m_name; }
 
 // ------- start deprecation -------
-// this functionaily will be removed in a future version
+// these functions will be removed in a future version
+		torrent_info(entry const& torrent_file) TORRENT_DEPRECATED;
 		void print(std::ostream& os) const TORRENT_DEPRECATED;
 // ------- end deprecation -------
 
 		bool is_valid() const { return m_piece_length > 0; }
 
 		bool priv() const { return m_private; }
-		void set_priv(bool v) { m_private = v; }
-
-		void convert_file_names();
 
 		int piece_size(int index) const;
 
-		const sha1_hash& hash_for_piece(int index) const
+		sha1_hash hash_for_piece(int index) const
+		{
+			return sha1_hash(hash_for_piece_ptr(index));
+		}
+
+		char const* hash_for_piece_ptr(int index) const
 		{
 			TORRENT_ASSERT(index >= 0);
-			TORRENT_ASSERT(index < (int)m_piece_hash.size());
-			TORRENT_ASSERT(!m_half_metadata);
-			return m_piece_hash[index];
+			TORRENT_ASSERT(index < m_num_pieces);
+			TORRENT_ASSERT(m_piece_hashes);
+			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
+			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+			return &m_piece_hashes[index*20];
 		}
 
 		boost::optional<pt::ptime> creation_date() const;
@@ -239,26 +238,29 @@ namespace libtorrent
 		
 		nodes_t const& nodes() const
 		{
-			TORRENT_ASSERT(!m_half_metadata);
 			return m_nodes;
 		}
 		
-		void add_node(std::pair<std::string, int> const& node);
+		bool parse_info_section(lazy_entry const& e, std::string& error);
 
-		bool parse_info_section(entry const& e, std::string& error);
-
-		entry const* extra(char const* key) const
-		{ return m_extra_info.find_key(key); }
-
-		// frees parts of the metadata that isn't
-		// used by seeds
-		void seed_free();
+		lazy_entry const* info(char const* key) const
+		{
+			if (m_info_dict.type() == lazy_entry::none_t)
+				lazy_bdecode(m_info_section.get(), m_info_section.get()
+					+ m_info_section_size, m_info_dict);
+			return m_info_dict.dict_find(key);
+		}
 
 		void swap(torrent_info& ti);
 
+		boost::shared_array<char> metadata() const
+		{ return m_info_section; }
+
+		int metadata_size() const { return m_info_section_size; }
+
 	private:
 
-		bool read_torrent_info(const entry& libtorrent, std::string& error);
+		bool parse_torrent_file(lazy_entry const& libtorrent, std::string& error);
 
 		// the urls to the trackers
 		std::vector<announce_entry> m_urls;
@@ -269,9 +271,6 @@ namespace libtorrent
 		// if this is 0, the torrent_info is
 		// in an uninitialized state
 		int m_piece_length;
-
-		// the sha-1 hashes of each piece
-		std::vector<sha1_hash> m_piece_hash;
 
 		// the list of files that this torrent consists of
 		std::vector<file_entry> m_files;
@@ -294,7 +293,7 @@ namespace libtorrent
 		// the hash that identifies this torrent
 		// is mutable because it's calculated
 		// lazily
-		mutable sha1_hash m_info_hash;
+		sha1_hash m_info_hash;
 
 		std::string m_name;
 		
@@ -322,18 +321,19 @@ namespace libtorrent
 		// be announced on the dht
 		bool m_private;
 
-		// contains any non-parsed entries from the info-section
-		// these are kept in order to be able to accurately
-		// reproduce the info-section when sending the metadata
-		// to peers.
-		entry m_extra_info;
+		// this is a copy of the info section from the torrent.
+		// it use maintained in this flat format in order to
+		// make it available through the metadata extension
+		boost::shared_array<char> m_info_section;
+		int m_info_section_size;
 
-#ifndef NDEBUG
-	public:
-		// this is set to true when seed_free() is called
-		bool m_half_metadata;
-	private:
-#endif
+		// this is a pointer into the m_info_section buffer
+		// pointing to the first byte of the first sha-1 hash
+		char const* m_piece_hashes;
+
+		// the info section parsed. points into m_info_section
+		// parsed lazily
+		mutable lazy_entry m_info_dict;
 	};
 
 }

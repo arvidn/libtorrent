@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/extensions/metadata_transfer.hpp"
+#include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/alert_types.hpp"
 #ifdef TORRENT_STATS
 #include "libtorrent/aux_/session_impl.hpp"
@@ -89,39 +89,38 @@ namespace libtorrent { namespace
 		virtual boost::shared_ptr<peer_plugin> new_connection(
 			peer_connection* pc);
 		
-		std::vector<char> const& metadata() const
+		buffer::const_interval metadata() const
 		{
 			TORRENT_ASSERT(m_torrent.valid_metadata());
-
-			if (m_metadata.empty())
+			if (!m_metadata)
 			{
-				bencode(std::back_inserter(m_metadata)
-					, m_torrent.torrent_file().create_info_metadata());
-
-				TORRENT_ASSERT(hasher(&m_metadata[0], m_metadata.size()).final()
+				m_metadata = m_torrent.torrent_file().metadata();
+				m_metadata_size = m_torrent.torrent_file().metadata_size();
+				TORRENT_ASSERT(hasher(m_metadata.get(), m_metadata_size).final()
 					== m_torrent.torrent_file().info_hash());
 			}
-			TORRENT_ASSERT(!m_metadata.empty());
-			return m_metadata;
+			return buffer::const_interval(m_metadata.get(), m_metadata.get()
+				+ m_metadata_size);
 		}
 
 		bool received_metadata(char const* buf, int size, int piece, int total_size)
 		{
 			if (m_torrent.valid_metadata()) return false;
 			
-			if (m_metadata.empty())
+			if (!m_metadata)
 			{
 				// verify the total_size
 				if (total_size <= 0 || total_size > 500 * 1024) return false;
 
-				m_metadata.resize(total_size);
+				m_metadata.reset(new char[total_size]);
 				m_requested_metadata.resize(div_round_up(total_size, 16 * 1024), 0);
+				m_metadata_size = total_size;
 			}
 
 			if (piece < 0 || piece >= int(m_requested_metadata.size()))
 				return false;
 
-			TORRENT_ASSERT(piece * 16 * 1024 + size <= int(m_metadata.size()));
+			TORRENT_ASSERT(piece * 16 * 1024 + size <= m_metadata_size);
 			std::memcpy(&m_metadata[piece * 16 * 1024], buf, size);
 			// mark this piece has 'have'
 			m_requested_metadata[piece] = (std::numeric_limits<int>::max)();
@@ -133,7 +132,7 @@ namespace libtorrent { namespace
 			if (!have_all) return false;
 
 			hasher h;
-			h.update(&m_metadata[0], (int)m_metadata.size());
+			h.update(&m_metadata[0], m_metadata_size);
 			sha1_hash info_hash = h.final();
 
 			if (info_hash != m_torrent.torrent_file().info_hash())
@@ -149,7 +148,8 @@ namespace libtorrent { namespace
 				return false;
 			}
 
-			entry metadata = bdecode(m_metadata.begin(), m_metadata.end());
+			lazy_entry metadata;
+			int ret = lazy_bdecode(m_metadata.get(), m_metadata.get() + m_metadata_size, metadata);
 			std::string error;
 			if (!m_torrent.set_metadata(metadata, error))
 			{
@@ -191,7 +191,7 @@ namespace libtorrent { namespace
 		{
 			if (m_metadata_size > 0 || size <= 0 || size > 500 * 1024) return;
 			m_metadata_size = size;
-			m_metadata.resize(size);
+			m_metadata.reset(new char[size]);
 			m_requested_metadata.resize(div_round_up(size, 16 * 1024), 0);
 		}
 
@@ -202,10 +202,10 @@ namespace libtorrent { namespace
 		// the metadata file while downloading it from
 		// peers, and while sending it.
 		// it is mutable because it's generated lazily
-		mutable std::vector<char> m_metadata;
+		mutable boost::shared_array<char> m_metadata;
 
 		int m_metadata_progress;
-		int m_metadata_size;
+		mutable int m_metadata_size;
 
 		// this vector keeps track of how many times each meatdata
 		// block has been requested
@@ -231,7 +231,7 @@ namespace libtorrent { namespace
 			entry& messages = h["m"];
 			messages["ut_metadata"] = 15;
 			if (m_torrent.valid_metadata())
-				h["metadata_size"] = m_tp.metadata().size();
+				h["metadata_size"] = m_tp.metadata().left();
 		}
 
 		// called when the extension handshake from the other end is received
@@ -273,14 +273,14 @@ namespace libtorrent { namespace
 			if (type == 1)
 			{
 				TORRENT_ASSERT(m_pc.associated_torrent().lock()->valid_metadata());
-				e["total_size"] = m_tp.metadata().size();
+				e["total_size"] = m_tp.metadata().left();
 				int offset = piece * 16 * 1024;
-				metadata = &m_tp.metadata()[0] + offset;
+				metadata = m_tp.metadata().begin + offset;
 				metadata_piece_size = (std::min)(
-					int(m_tp.metadata().size() - offset), 16 * 1024);
+					int(m_tp.metadata().left() - offset), 16 * 1024);
 				TORRENT_ASSERT(metadata_piece_size > 0);
 				TORRENT_ASSERT(offset >= 0);
-				TORRENT_ASSERT(offset + metadata_piece_size <= int(m_tp.metadata().size()));
+				TORRENT_ASSERT(offset + metadata_piece_size <= int(m_tp.metadata().left()));
 			}
 
 			char msg[200];

@@ -3,6 +3,7 @@
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/create_torrent.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -14,10 +15,7 @@
 using namespace boost::filesystem;
 using namespace libtorrent;
 
-void add_files(
-	torrent_info& t
-	, path const& p
-	, path const& l)
+void add_files(libtorrent::create_torrent& t, path const& p, path const& l)
 {
 	if (l.leaf()[0] == '.') return;
 	path f(p / l);
@@ -34,7 +32,7 @@ void add_files(
 }
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
-void test_transfer(torrent_info torrent_file, int proxy)
+void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 {
 	using namespace libtorrent;
 
@@ -59,7 +57,7 @@ void test_transfer(torrent_info torrent_file, int proxy)
 		ses.set_web_seed_proxy(ps);
 	}
 
-	torrent_handle th = ses.add_torrent(torrent_file, "./tmp1");
+	torrent_handle th = ses.add_torrent(*torrent_file, "./tmp1");
 
 	std::vector<announce_entry> empty;
 	th.replace_trackers(empty);
@@ -89,8 +87,8 @@ int test_main()
 	using namespace libtorrent;
 	using namespace boost::filesystem;
 
-	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info);
-	torrent_file->add_url_seed("http://127.0.0.1:8000/");
+	libtorrent::create_torrent t;
+	t.add_url_seed("http://127.0.0.1:8000/");
 
 	create_directory("test_torrent");
 	char random_data[300000];
@@ -104,31 +102,32 @@ int test_main()
 	std::ofstream("./test_torrent/test6").write(random_data, 300000);
 	std::ofstream("./test_torrent/test7").write(random_data, 300000);
 
-	add_files(*torrent_file, complete("."), "test_torrent");
+	add_files(t, complete("."), "test_torrent");
 
 	start_web_server(8000);
 
+	// calculate the hash for all pieces
+	int num = t.num_pieces();
+	std::vector<char> buf(t.piece_length());
+
 	file_pool fp;
+	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(t.generate()));
 	boost::scoped_ptr<storage_interface> s(default_storage_constructor(
 		torrent_file, ".", fp));
-	// calculate the hash for all pieces
-	int num = torrent_file->num_pieces();
-	std::vector<char> buf(torrent_file->piece_length());
+
 	for (int i = 0; i < num; ++i)
 	{
-		s->read(&buf[0], i, 0, torrent_file->piece_size(i));
-		hasher h(&buf[0], torrent_file->piece_size(i));
-		torrent_file->set_hash(i, h.final());
+		s->read(&buf[0], i, 0, t.piece_size(i));
+		hasher h(&buf[0], t.piece_size(i));
+		t.set_hash(i, h.final());
 	}
 	
-	// to calculate the info_hash
-	entry te = torrent_file->create_torrent();
-
+	entry e = t.generate();
+	torrent_file = new torrent_info(e);
+	s.reset(default_storage_constructor(torrent_file, ".", fp));
 
 	for (int i = 0; i < 6; ++i)
-		test_transfer(*torrent_file, i);
-
-
+		test_transfer(torrent_file, i);
 	
 	stop_web_server(8000);
 	remove_all("./test_torrent");

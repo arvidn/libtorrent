@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/buffer.hpp"
 
 namespace libtorrent { namespace
 {
@@ -107,40 +108,37 @@ namespace libtorrent { namespace
 
 		virtual void on_files_checked()
 		{
-			// if the torrent is a seed, copy the metadata from
-			// the torrent before it is deallocated
-			if (m_torrent.is_seed())
-				metadata();
+			// if the torrent is a seed, make a reference to
+			// the metadata from the torrent before it is deallocated
+			if (m_torrent.is_seed()) metadata();
 		}
 
 		virtual boost::shared_ptr<peer_plugin> new_connection(
 			peer_connection* pc);
 		
-		std::vector<char> const& metadata() const
+		buffer::const_interval metadata() const
 		{
-			if (m_metadata.empty())
+			if (!m_metadata)
 			{
-				bencode(std::back_inserter(m_metadata)
-					, m_torrent.torrent_file().create_info_metadata());
-
-				TORRENT_ASSERT(hasher(&m_metadata[0], m_metadata.size()).final()
+				m_metadata = m_torrent.torrent_file().metadata();
+				m_metadata_size = m_torrent.torrent_file().metadata_size();
+				TORRENT_ASSERT(hasher(m_metadata.get(), m_metadata_size).final()
 					== m_torrent.torrent_file().info_hash());
 			}
-			TORRENT_ASSERT(!m_metadata.empty());
-			return m_metadata;
+			return buffer::const_interval(m_metadata.get(), m_metadata.get()
+				+ m_metadata_size);
 		}
 
 		bool received_metadata(char const* buf, int size, int offset, int total_size)
 		{
 			if (m_torrent.valid_metadata()) return false;
 
-			if ((int)m_metadata.size() < total_size)
-				m_metadata.resize(total_size);
-
-			std::copy(
-				buf
-				, buf + size
-				, &m_metadata[offset]);
+			if (!m_metadata || m_metadata_size < total_size)
+			{
+				m_metadata.reset(new char[total_size]);
+				m_metadata_size = total_size;
+			}
+			std::copy(buf, buf + size, &m_metadata[offset]);
 
 			if (m_have_metadata.empty())
 				m_have_metadata.resize(256, false);
@@ -163,7 +161,7 @@ namespace libtorrent { namespace
 			if (!have_all) return false;
 
 			hasher h;
-			h.update(&m_metadata[0], (int)m_metadata.size());
+			h.update(&m_metadata[0], m_metadata_size);
 			sha1_hash info_hash = h.final();
 
 			if (info_hash != m_torrent.torrent_file().info_hash())
@@ -184,9 +182,10 @@ namespace libtorrent { namespace
 				return false;
 			}
 
-			entry metadata = bdecode(m_metadata.begin(), m_metadata.end());
+			lazy_entry e;
+			lazy_bdecode(m_metadata.get(), m_metadata.get() + m_metadata_size, e);
 			std::string error;
-			if (!m_torrent.set_metadata(metadata, error))
+			if (!m_torrent.set_metadata(e, error))
 			{
 				// this means the metadata is correct, since we
 				// verified it against the info-hash, but we
@@ -240,10 +239,10 @@ namespace libtorrent { namespace
 		// the metadata file while downloading it from
 		// peers, and while sending it.
 		// it is mutable because it's generated lazily
-		mutable std::vector<char> m_metadata;
+		mutable boost::shared_array<char> m_metadata;
 
 		int m_metadata_progress;
-		int m_metadata_size;
+		mutable int m_metadata_size;
 
 		// this is a bitfield of size 256, each bit represents
 		// a piece of the metadata. It is set to one if we
@@ -333,7 +332,7 @@ namespace libtorrent { namespace
 			if (m_torrent.valid_metadata() && !m_torrent.torrent_file().priv())
 			{
 				std::pair<int, int> offset
-					= req_to_offset(req, (int)m_tp.metadata().size());
+					= req_to_offset(req, (int)m_tp.metadata().left());
 
 				buffer::interval i = m_pc.allocate_send_buffer(15 + offset.second);
 
@@ -343,11 +342,11 @@ namespace libtorrent { namespace
 				detail::write_uint8(m_message_index, i.begin);
 				// means 'data packet'
 				detail::write_uint8(1, i.begin);
-				detail::write_uint32((int)m_tp.metadata().size(), i.begin);
+				detail::write_uint32((int)m_tp.metadata().left(), i.begin);
 				detail::write_uint32(offset.first, i.begin);
-				std::vector<char> const& metadata = m_tp.metadata();
-				std::copy(metadata.begin() + offset.first
-					, metadata.begin() + offset.first + offset.second, i.begin);
+				char const* metadata = m_tp.metadata().begin;
+				std::copy(metadata + offset.first
+					, metadata + offset.first + offset.second, i.begin);
 				i.begin += offset.second;
 				TORRENT_ASSERT(i.begin == i.end);
 			}

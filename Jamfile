@@ -257,6 +257,7 @@ SOURCES =
 	alert
 	assert
 	connection_queue
+	create_torrent
 	disk_buffer_holder
 	entry
 	lazy_bdecode
