@@ -502,7 +502,7 @@ namespace libtorrent
 			for (int j = 0, end(i->list_size()); j < end; ++j)
 			{
 				lazy_entry const* tier = i->list_at(j);
-				if (tier->type() != lazy_entry::list_t) break;
+				if (tier->type() != lazy_entry::list_t) continue;
 				for (int k = 0, end(tier->list_size()); k < end; ++k)
 				{
 					announce_entry e(tier->list_string_value_at(k));
