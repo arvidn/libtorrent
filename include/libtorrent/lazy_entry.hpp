@@ -186,6 +186,17 @@ namespace libtorrent
 		// this entry has its bencoded data
 		std::pair<char const*, int> data_section() const;
 
+		void swap(lazy_entry& e)
+		{
+			using std::swap;
+			swap(m_type, e.m_type);
+			swap(m_data.start, e.m_data.start);
+			swap(m_size, e.m_size);
+			swap(m_capacity, e.m_capacity);
+			swap(m_begin, e.m_begin);
+			swap(m_end, e.m_end);
+		}
+
 	private:
 
 		entry_type_t m_type;
