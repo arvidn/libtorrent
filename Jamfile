@@ -7,6 +7,8 @@ import errors ;
 import feature : feature ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+CXXFLAGS = [ modules.peek : CXXFLAGS ] ;
+LDFLAGS = [ modules.peek : LDFLAGS ] ;
 
 ECHO "BOOST_ROOT =" $(BOOST_ROOT) ;
 ECHO "OS =" [ os.name ] ;
@@ -301,6 +303,8 @@ local usage-requirements =
 # disable some warnings for gcc
 	<toolset>gcc:<cxxflags>-fno-strict-aliasing
 	<toolset>gcc:<cxxflags>-Wno-missing-braces
+	<boost>system:<cxxflags>$(CXXFLAGS)
+	<boost>system:<linkflags>$(LDFLAGS)
 	;
 
 project torrent ;
@@ -318,6 +322,7 @@ lib torrent
 	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES).cpp
 	<zlib>shipped:<source>zlib/$(ZLIB_SOURCES).c
 	<conditional>@building
+	<boost>system:<cxxflags>$(CXXFLAGS)
 	$(usage-requirements)
 
 	: # default build
