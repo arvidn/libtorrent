@@ -95,6 +95,7 @@ namespace libtorrent
 	typedef asio::io_service io_service;
 
 	using asio::async_write;
+	using asio::error_code;
 	
 	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 	
