@@ -12,6 +12,7 @@
 #include "test.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/create_torrent.hpp"
 
 using boost::filesystem::remove_all;
 using boost::filesystem::create_directory;
@@ -102,7 +103,7 @@ void start_web_server(int port, bool ssl)
 			<< (ssl?"https":"http") << "://127.0.0.1:" << port << "/infinite_redirect\")\n"
 		"$HTTP[\"url\"] == \"/test_file.gz\" {\n"
 		"    setenv.add-response-header = ( \"Content-Encoding\" => \"gzip\" )\n"
-		"    mimetype.assign = ()\n"
+		"#    mimetype.assign = ()\n"
 		"}\n";
 	// this requires lighttpd to be built with ssl support.
 	// The port distribution for mac is not built with ssl
@@ -168,22 +169,21 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file)
 	
 	using namespace boost::filesystem;
 
-	boost::intrusive_ptr<torrent_info> t(new torrent_info);
+	libtorrent::create_torrent t;
 	int total_size = 2 * 1024 * 1024;
-	t->add_file(path("temporary"), total_size);
-	t->set_piece_size(16 * 1024);
-	t->add_tracker(tracker_url);
+	t.add_file(path("temporary"), total_size);
+	t.set_piece_size(16 * 1024);
+	t.add_tracker(tracker_url);
 
 	std::vector<char> piece(16 * 1024);
 	for (int i = 0; i < int(piece.size()); ++i)
 		piece[i] = (i % 26) + 'A';
 	
 	// calculate the hash for all pieces
-	int num = t->num_pieces();
+	int num = t.num_pieces();
 	sha1_hash ph = hasher(&piece[0], piece.size()).final();
 	for (int i = 0; i < num; ++i)
-		t->set_hash(i, ph);
-	t->create_torrent();
+		t.set_hash(i, ph);
 
 	if (file)
 	{
@@ -194,7 +194,10 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file)
 		}
 	}
 	
-	return t;
+	std::vector<char> tmp;
+	std::back_insert_iterator<std::vector<char> > out(tmp);
+	bencode(out, t.generate());
+	return boost::intrusive_ptr<torrent_info>(new torrent_info(&tmp[0], tmp.size()));
 }
 
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
@@ -214,7 +217,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	
 	create_directory("./tmp1" + suffix);
 	std::ofstream file(("./tmp1" + suffix + "/temporary").c_str());
-	boost::intrusive_ptr<torrent_info> t = create_torrent(&file);
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file);
 	file.close();
 	if (clear_files)
 	{

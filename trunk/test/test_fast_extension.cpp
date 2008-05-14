@@ -127,7 +127,7 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 // rejected aren't requested again
 void test_reject_fast()
 {
-	boost::intrusive_ptr<torrent_info> t = create_torrent();
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
 	sha1_hash ih = t->info_hash();
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000));
 	ses1.add_torrent(t, "./tmp1");
@@ -190,7 +190,7 @@ void test_reject_fast()
 
 void test_respect_suggest()
 {
-	boost::intrusive_ptr<torrent_info> t = create_torrent();
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
 	sha1_hash ih = t->info_hash();
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000));
 	ses1.add_torrent(t, "./tmp1");

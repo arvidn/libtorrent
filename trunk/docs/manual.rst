@@ -1091,14 +1091,7 @@ The ``torrent_info`` has the following synopsis::
 		torrent_info(entry const& torrent_file);
 		torrent_info(char const* filename);
 
-		entry create_torrent() const;
-		void set_comment(char const* str);
-		void set_piece_size(int size);
-		void set_creator(char const* str);
-		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
-		void add_file(boost::filesystem::path file, size_type size);
-		void add_url_seed(std::string const& url);
 
 		typedef std::vector<file_entry>::const_iterator file_iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator
@@ -1122,7 +1115,6 @@ The ``torrent_info`` has the following synopsis::
 		std::vector<announce_entry> const& trackers() const;
 
 		bool priv() const;
-		void set_priv(bool v);
 
 		std::vector<std::string> const& url_seeds() const;
 
@@ -1144,6 +1136,10 @@ The ``torrent_info`` has the following synopsis::
 	
 		int piece_size(unsigned int index) const;
 		sha1_hash const& hash_for_piece(unsigned int index) const;
+		char const* hash_for_piece_ptr(unsigned int index) const;
+
+		boost::shared_array<char> metadata() const;
+		int metadata_size() const;
 	};
 
 torrent_info()
@@ -1178,65 +1174,15 @@ the constructor, for convenience. This might not be the most suitable for applic
 want to be able to report detailed errors on what might go wrong.
 
 
-set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()
---------------------------------------------------------------------------------
+add_tracker()
+-------------
 
 	::
 
-		void set_comment(char const* str);
-		void set_piece_size(int size);
-		void set_creator(char const* str);
-		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
-		void add_file(boost::filesystem::path file, size_type size);
-
-These files are used when creating a torrent file. ``set_comment()`` will simply set
-the comment that belongs to this torrent. The comment can be retrieved with the
-``comment()`` member. The string should be UTF-8 encoded.
-
-``set_piece_size()`` will set the size of each piece in this torrent. The piece size must
-be an even multiple of 2. i.e. usually something like 256 kiB, 512 kiB, 1024 kiB etc. The
-size is given in number of bytes.
-
-``set_creator()`` is an optional attribute that can be used to identify your application
-that was used to create the torrent file. The string should be UTF-8 encoded.
-
-``set_hash()`` writes the hash for the piece with the given piece-index. You have to call
-this function for every piece in the torrent. Usually the hasher_ is used to calculate
-the sha1-hash for a piece.
 
 ``add_tracker()`` adds a tracker to the announce-list. The ``tier`` determines the order in
 which the trackers are to be tried. For more information see `trackers()`_.
-
-``add_file()`` adds a file to the torrent. The order in which you add files will determine
-the order in which they are placed in the torrent file. You have to add at least one file
-to the torrent. The ``path`` you give has to be a relative path from the root directory
-of the torrent. The ``size`` is given in bytes.
-
-When you have added all the files and hashes to your torrent, you can generate an ``entry``
-which then can be encoded as a .torrent file. You do this by calling `create_torrent()`_.
-
-For a complete example of how to create a torrent from a file structure, see make_torrent_.
-      
-
-create_torrent()
-----------------
-
-	::
-
-		entry create_torrent();
-
-Returns an ``entry`` representing the bencoded tree of data that makes up a .torrent file.
-You can save this data as a torrent file with bencode() (see `bdecode() bencode()`_), for a
-complete example, see make_torrent_.
-
-.. _make_torrent: examples.html#make_torrent
-
-This function is not const because it will also set the info-hash of the ``torrent_info``
-object.
-
-Note that a torrent file must include at least one file, and it must have at
-least one tracker url or at least one DHT node.
 
 
 remap_files()
@@ -1425,18 +1371,6 @@ remapped, they may differ. For more info, see `remap_files()`_.
 See `HTTP seeding`_ for more information.
 
 
-print()
--------
-
-	::
-
-		void print(std::ostream& os) const;
-
-The ``print()`` function is there for debug purposes only. It will print the info from
-the torrent file to the given outstream. This function has been deprecated and will
-be removed from future releases.
-
-
 trackers()
 ----------
 
@@ -1479,17 +1413,21 @@ be the same as ``piece_length()`` except in the case of the last piece, which ma
 be smaller.
 
 
-hash_for_piece() info_hash()
-----------------------------
+hash_for_piece() hash_for_piece_ptr() info_hash()
+-------------------------------------------------
 
 	::
 	
 		size_type piece_size(unsigned int index) const;
 		sha1_hash const& hash_for_piece(unsigned int index) const;
+		char const* hash_for_piece_ptr(unsigned int index) const;
 
 ``hash_for_piece()`` takes a piece-index and returns the 20-bytes sha1-hash for that
 piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of the
 torrent file. For more information on the ``sha1_hash``, see the big_number_ class.
+``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest for the piece. 
+Note that the string is not null-terminated.
+
 ``info_hash()`` will only return a valid hash if the torrent_info was read from a
 ``.torrent`` file or if an ``entry`` was created from it (through ``create_torrent``).
 
@@ -1518,18 +1456,15 @@ it will return an empty string.
 __ http://www.boost.org/doc/html/date_time/posix_time.html#date_time.posix_time.ptime_class
 
 
-priv() set_priv()
------------------
+priv()
+------
 
 	::
 
 		bool priv() const;
-		void set_priv(bool v);
 
 ``priv()`` returns true if this torrent is private. i.e., it should not be
 distributed on the trackerless network (the kademlia DHT).
-
-``set_priv()`` sets or clears the private flag on this torrent.
 
 
 nodes()
@@ -1543,15 +1478,16 @@ If this torrent contains any DHT nodes, they are put in this vector in their ori
 form (host name and port number).
 
 
-add_node()
-----------
+metadata() metadata_size()
+--------------------------
 
 	::
 
-		void add_node(std::pair<std::string, int> const& node);
+		boost::shared_array<char> metadata() const;
+		int metadata_size() const;
 
-This is used when creating torrent. Use this to add a known DHT node. It may
-be used, by the client, to bootstrap into the DHT network.
+``metadata()`` returns a the raw info section of the torrent file. The size
+of the metadata is returned by ``metadata_size()``.
 
 
 torrent_handle

@@ -1498,9 +1498,8 @@ namespace libtorrent
 #endif
 		if (is_seed())
 		{
+			m_state = torrent_status::seeding;
 			m_picker.reset();
-			if (m_ses.settings().free_torrent_hashes)
-				m_torrent_file->seed_free();
 		}
 	}
 
@@ -2608,7 +2607,7 @@ namespace libtorrent
 		return true;
 	}
 
-	bool torrent::set_metadata(entry const& metadata, std::string& error)
+	bool torrent::set_metadata(lazy_entry const& metadata, std::string& error)
 	{
 		INVARIANT_CHECK;
 
@@ -3042,8 +3041,6 @@ namespace libtorrent
 		{
 			m_state = torrent_status::seeding;
 			m_picker.reset();
-			if (m_ses.settings().free_torrent_hashes)
-				m_torrent_file->seed_free();
 		}
 
 		if (!m_connections_initialized)

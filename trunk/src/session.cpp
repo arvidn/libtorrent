@@ -253,7 +253,6 @@ namespace libtorrent
 		, bool paused
 		, storage_constructor_type sc)
 	{
-		TORRENT_ASSERT(!ti.m_half_metadata);
 		boost::intrusive_ptr<torrent_info> tip(new torrent_info(ti));
 		add_torrent_params p(sc);
 		p.ti = tip;
@@ -273,7 +272,6 @@ namespace libtorrent
 		, storage_constructor_type sc
 		, void* userdata)
 	{
-		TORRENT_ASSERT(!ti->m_half_metadata);
 		add_torrent_params p(sc);
 		p.ti = ti;
 		p.save_path = save_path;
