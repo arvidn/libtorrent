@@ -443,14 +443,17 @@ namespace libtorrent
 	void torrent_info::read_torrent_info(const entry& torrent_file)
 	{
 		// extract the url of the tracker
-		if (entry const* i = torrent_file.find_key("announce-list"))
+		entry const* i = torrent_file.find_key("announce-list");
+		if (i && i->type() == entry::list_t)
 		{
 			const entry::list_type& l = i->list();
 			for (entry::list_type::const_iterator j = l.begin(); j != l.end(); ++j)
 			{
+				if (j->type() != entry::list_t) continue;
 				const entry::list_type& ll = j->list();
 				for (entry::list_type::const_iterator k = ll.begin(); k != ll.end(); ++k)
 				{
+					if (k->type() != entry::string_t) continue;
 					announce_entry e(k->string());
 					e.tier = (int)std::distance(l.begin(), j);
 					m_urls.push_back(e);
