@@ -25,9 +25,9 @@ python-extension libtorrent
     src/torrent.cpp
     src/peer_info.cpp
     src/ip_filter.cpp
-    /torrent//torrent
   : <include>src
     <boost>system:<library>boost_python
     <boost>source:<library>/boost/python//boost_python
+    <library>/torrent//torrent/<link>static
   ;
 
