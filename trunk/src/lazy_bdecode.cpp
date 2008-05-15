@@ -330,6 +330,7 @@ namespace libtorrent
 			case dict_t: delete[] m_data.dict; break;
 			default: break;
 		}
+		m_data.start = 0;
 		m_size = 0;
 		m_capacity = 0;
 		m_type = none_t;
