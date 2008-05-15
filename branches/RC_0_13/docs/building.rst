@@ -311,13 +311,6 @@ specifically `the section on builtin features`__.
 __ http://www.boost.org/tools/build/v2/index.html
 __ http://www.boost.org/doc/html/bbv2/reference.html#bbv2.advanced.builtins.features
 
-To build all possible variants of libtorrent (good for testing when making
-sure all build variants will actually compile), you can invoke this command::
-
-	bjam debug release link=shared link=static logging=verbose logging=default \
-	logging=none dht-support=on dht-support=logging dht-support=off pe-support=on \
-	pe-support=off zlib=shipped zlib=system openssl=on openssl=off \
-	character-set=ansi character-set=unicode
 
 building with autotools
 -----------------------
@@ -459,9 +452,9 @@ filenames, so if your target is Windows 2000 and up, you may want to use
 If you're building in MS Visual Studio, you may have to set the compiler
 options "force conformance in for loop scope", "treat wchar_t as built-in
 type" and "Enable Run-Time Type Info" to Yes. For a detailed description
-on how to build libtorrent with VS 2005, see `this document`_.
+on how to build libtorrent with VS, see `the wiki`_.
 
-.. _`this document`: vs2005_build_notes.html
+.. _`the wiki`: http://code.rasterbar.com/libtorrent/wiki/Building
 
 build configurations
 --------------------

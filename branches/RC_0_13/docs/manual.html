@@ -40,7 +40,7 @@
 <li><a class="reference internal" href="#set-ip-filter" id="id31">set_ip_filter()</a></li>
 <li><a class="reference internal" href="#status" id="id32">status()</a></li>
 <li><a class="reference internal" href="#is-listening-listen-port-listen-on" id="id33">is_listening() listen_port() listen_on()</a></li>
-<li><a class="reference internal" href="#pop-alert-set-severity-level" id="id34">pop_alert() set_severity_level()</a></li>
+<li><a class="reference internal" href="#pop-alert-set-severity-level-wait-for-alert" id="id34">pop_alert() set_severity_level() wait_for_alert()</a></li>
 <li><a class="reference internal" href="#add-extension" id="id35">add_extension()</a></li>
 <li><a class="reference internal" href="#set-settings-set-pe-settings" id="id36">set_settings() set_pe_settings()</a></li>
 <li><a class="reference internal" href="#set-peer-proxy-set-web-seed-proxy-set-tracker-proxy-set-dht-proxy" id="id37">set_peer_proxy() set_web_seed_proxy() set_tracker_proxy() set_dht_proxy()</a></li>
@@ -329,6 +329,7 @@ class session: public boost::noncopyable
                 , char const* interface = 0);
 
         std::auto_ptr&lt;alert&gt; pop_alert();
+        alert const* wait_for_alert(time_duration max_wait);
         void set_severity_level(alert::severity_t s);
 
         void add_extension(boost::function&lt;
@@ -694,17 +695,25 @@ with a DHT ping packet, and connect to those that responds first. On windows one
 can only connect to a few peers at a time because of a built in limitation (in XP
 Service pack 2).</p>
 </div>
-<div class="section" id="pop-alert-set-severity-level">
-<h2>pop_alert() set_severity_level()</h2>
+<div class="section" id="pop-alert-set-severity-level-wait-for-alert">
+<h2>pop_alert() set_severity_level() wait_for_alert()</h2>
 <blockquote>
 <pre class="literal-block">
 std::auto_ptr&lt;alert&gt; pop_alert();
+alert const* wait_for_alert(time_duration max_wait);
 void set_severity_level(alert::severity_t s);
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">pop_alert()</span></tt> is used to ask the session if any errors or events has occurred. With
 <tt class="docutils literal"><span class="pre">set_severity_level()</span></tt> you can filter how serious the event has to be for you to
 receive it through <tt class="docutils literal"><span class="pre">pop_alert()</span></tt>. For information, see <a class="reference internal" href="#alerts">alerts</a>.</p>
+<p><tt class="docutils literal"><span class="pre">wait_for_alert</span></tt> blocks until an alert is available, or for no more than <tt class="docutils literal"><span class="pre">max_wait</span></tt>
+time. If <tt class="docutils literal"><span class="pre">wait_for_alert</span></tt> returns because of the time-out, and no alerts are available,
+it returns 0. If at least one alert was generated, a pointer to that alert is returned.
+The alert is not popped, any subsequent calls to <tt class="docutils literal"><span class="pre">wait_for_alert</span></tt> will return the
+same pointer until the alert is popped by calling <tt class="docutils literal"><span class="pre">pop_alert</span></tt>. This is useful for
+leaving any alert dispatching mechanism independent of this blocking call, the dispatcher
+can be called and it can pop the alert independently.</p>
 </div>
 <div class="section" id="add-extension">
 <h2>add_extension()</h2>
