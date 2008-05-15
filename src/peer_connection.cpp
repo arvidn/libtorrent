@@ -288,6 +288,7 @@ namespace libtorrent
 
 	void peer_connection::start()
 	{
+		TORRENT_ASSERT(m_peer_info == 0 || m_peer_info->connection == this);
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
 		if (!t)

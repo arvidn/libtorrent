@@ -2465,7 +2465,8 @@ namespace libtorrent
 			&& m_free_slots.empty()
 			&& m_state == state_finished)
 		{
-			TORRENT_ASSERT(m_storage_mode != storage_mode_compact);
+			TORRENT_ASSERT(m_storage_mode != storage_mode_compact
+				|| m_info->num_pieces() == 0);
 		}
 		
 		if (m_storage_mode != storage_mode_compact)

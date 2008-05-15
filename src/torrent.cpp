@@ -2579,6 +2579,7 @@ namespace libtorrent
 		// add the newly connected peer to this torrent's peer list
 		m_connections.insert(boost::get_pointer(c));
 		m_ses.m_connections.insert(c);
+		peerinfo->connection = c.get();
 		c->start();
 
 		int timeout = settings().peer_connect_timeout;
@@ -2603,7 +2604,6 @@ namespace libtorrent
 			return false;
 		}
 #endif
-		peerinfo->connection = c.get();
 		return true;
 	}
 
