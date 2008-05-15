@@ -1978,6 +1978,18 @@ namespace libtorrent
 		}
 		else
 		{
+			if (m_ses.m_port_filter.access(port) & port_filter::blocked)
+			{
+				if (m_ses.m_alerts.should_post(alert::warning))
+				{
+					m_ses.m_alerts.post_alert(
+						url_seed_alert(get_handle(), url, "port blocked by port-filter"));
+				}
+				// never try it again
+				remove_url_seed(url);
+				return;
+			}
+
 			tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 			m_host_resolver.async_resolve(q,
 				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url
