@@ -580,7 +580,7 @@ namespace libtorrent
 		if (m_comment.empty()) m_comment = torrent_file.dict_find_string_value("comment");
 	
 		m_created_by = torrent_file.dict_find_string_value("created by.utf-8");
-		if (m_created_by.empty()) m_comment = torrent_file.dict_find_string_value("created by");
+		if (m_created_by.empty()) m_created_by = torrent_file.dict_find_string_value("created by");
 
 		lazy_entry const* info = torrent_file.dict_find_dict("info");
 		if (info == 0)
