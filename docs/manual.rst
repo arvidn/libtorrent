@@ -1487,6 +1487,16 @@ nodes()
 If this torrent contains any DHT nodes, they are put in this vector in their original
 form (host name and port number).
 
+add_node() 
+---------- 
+ 
+    :: 
+ 
+        void add_node(std::pair<std::string, int> const& node); 
+ 
+This is used when creating torrent. Use this to add a known DHT node. It may 
+be used, by the client, to bootstrap into the DHT network.
+
 
 metadata() metadata_size()
 --------------------------

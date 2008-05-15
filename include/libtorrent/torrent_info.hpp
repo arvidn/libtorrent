@@ -237,9 +237,9 @@ namespace libtorrent
 		typedef std::vector<std::pair<std::string, int> > nodes_t;
 		
 		nodes_t const& nodes() const
-		{
-			return m_nodes;
-		}
+		{ return m_nodes; }
+		void add_node(std::pair<std::string, int> const& node)
+		{ m_nodes.push_back(node); }
 		
 		bool parse_info_section(lazy_entry const& e, std::string& error);
 
