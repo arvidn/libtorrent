@@ -85,7 +85,7 @@ void bind_torrent_info()
         .def("num_pieces", &torrent_info::num_pieces)
         .def("info_hash", &torrent_info::info_hash, copy)
 
-        .def("hash_for_piece", &torrent_info::hash_for_piece, copy)
+        .def("hash_for_piece", &torrent_info::hash_for_piece)
         .def("piece_size", &torrent_info::piece_size)
 
         .def("num_files", &torrent_info::num_files, (arg("storage")=false))
