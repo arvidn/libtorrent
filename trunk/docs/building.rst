@@ -188,6 +188,13 @@ the runtime, but on windows you can do both. Example::
   your release executables with the ``debug-symbols=on`` option, and
   later strip your executable with ``strip``.
 
+.. warning::
+
+  Some linux systems requires linking against ``librt`` in order to access
+  the POSIX clock functions. If you get an error complaining about a missing
+  symbol ``clock_gettime``, you have to give ``need-librt=yes`` on the
+  bjam command line. This will make libtorrent link against ``librt``.
+
 The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.
 
