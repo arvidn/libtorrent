@@ -1688,6 +1688,12 @@ namespace libtorrent
 
 		try
 		{
+			if (m_info->num_pieces() == 0)
+			{
+				m_state = state_create_files;
+				return std::make_pair(false, 1.f);
+			}
+
 			// initialization for the full check
 			if (m_hash_to_piece.empty())
 			{
@@ -2182,7 +2188,8 @@ namespace libtorrent
 
 		if (m_unallocated_slots.empty() && m_state == state_finished)
 		{
-			TORRENT_ASSERT(m_storage_mode != storage_mode_compact);
+			TORRENT_ASSERT(m_storage_mode != storage_mode_compact
+				|| m_info->num_pieces() == 0);
 		}
 		
 		if (m_storage_mode != storage_mode_compact)
