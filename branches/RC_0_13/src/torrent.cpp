@@ -1635,8 +1635,22 @@ namespace libtorrent
 		std::string hostname;
 		int port;
 		std::string path;
-		boost::tie(protocol, auth, hostname, port, path)
-			= parse_url_components(url);
+
+		try
+		{
+			boost::tie(protocol, auth, hostname, port, path)
+				= parse_url_components(url);
+		}
+		catch (std::exception& e)
+		{
+			if (m_ses.m_alerts.should_post(alert::warning))
+			{
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(get_handle(), url, "invalid url"));
+			}
+			remove_url_seed(url);
+			return;
+		}
 
 #ifdef TORRENT_USE_OPENSSL
 		if (protocol != "http" && protocol != "https")
