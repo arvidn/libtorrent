@@ -187,6 +187,7 @@ namespace libtorrent
 			std::pair<char const*, lazy_entry>* tmp = new (std::nothrow) std::pair<char const*, lazy_entry>[capacity];
 			if (tmp == 0) return 0;
 			std::memcpy(tmp, m_data.dict, sizeof(std::pair<char const*, lazy_entry>) * m_size);
+			for (int i = 0; i < m_size; ++i) m_data.dict[i].second.release();
 			delete[] m_data.dict;
 			m_data.dict = tmp;
 			m_capacity = capacity;
@@ -299,6 +300,7 @@ namespace libtorrent
 			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity];
 			if (tmp == 0) return 0;
 			std::memcpy(tmp, m_data.list, sizeof(lazy_entry) * m_size);
+			for (int i = 0; i < m_size; ++i) m_data.list[i].release();
 			delete[] m_data.list;
 			m_data.list = tmp;
 			m_capacity = capacity;

@@ -179,6 +179,15 @@ namespace libtorrent
 		
 		void clear();
 
+		// releases ownership of any memory allocated
+		void release()
+		{
+			m_data.start = 0;
+			m_size = 0;
+			m_capacity = 0;
+			m_type = none_t;
+		}
+
 		~lazy_entry()
 		{ clear(); }
 
