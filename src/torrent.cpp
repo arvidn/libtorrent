@@ -3316,7 +3316,7 @@ namespace libtorrent
 			if (r.kind == tracker_request::announce_request)
 			{
 				m_ses.m_alerts.post_alert(tracker_alert(get_handle()
-					, m_failed_trackers + 1, 0, s.str()));
+					, m_failed_trackers + 1, 0, r.url, s.str()));
 			}
 			else if (r.kind == tracker_request::scrape_request)
 			{
@@ -3348,7 +3348,7 @@ namespace libtorrent
 			if (r.kind == tracker_request::announce_request)
 			{
 				m_ses.m_alerts.post_alert(tracker_alert(get_handle()
-					, m_failed_trackers + 1, response_code, s.str()));
+					, m_failed_trackers + 1, response_code, r.url, s.str()));
 			}
 			else if (r.kind == tracker_request::scrape_request)
 			{

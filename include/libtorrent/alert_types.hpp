@@ -58,6 +58,7 @@ namespace libtorrent
 		tracker_alert(torrent_handle const& h
 			, int times
 			, int status
+			, std::string const& url
 			, std::string const& msg)
 			: torrent_alert(h, alert::warning, msg)
 			, times_in_row(times)
@@ -69,6 +70,7 @@ namespace libtorrent
 
 		int times_in_row;
 		int status_code;
+		std::string url;
 	};
 
 	struct TORRENT_EXPORT tracker_warning_alert: torrent_alert
