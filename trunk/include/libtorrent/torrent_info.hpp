@@ -128,7 +128,7 @@ namespace libtorrent
 		
 		std::vector<std::string> const& url_seeds() const
 		{ return m_url_seeds; }
-		void torrent_info::add_url_seed(std::string const& url)
+		void add_url_seed(std::string const& url)
 		{ m_url_seeds.push_back(url); }
 
 		typedef std::vector<file_entry>::const_iterator file_iterator;
