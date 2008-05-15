@@ -499,8 +499,15 @@ namespace libtorrent
 				std::pair<iter_t, bool> ret = directories.insert((m_save_path / bp).string());
 				bp = bp.branch_path();
 			}
+#elif defined(_WIN32) && defined(UNICODE)
+			try
+			{ fs::remove(safe_convert(p)); }
+			catch (std::exception& e)
+			{ error = e.what(); }
+#else
 			if (std::remove(p.c_str()) != 0 && errno != ENOENT)
 				error = std::strerror(errno);
+#endif
 		}
 
 		// remove the directories. Reverse order to delete
@@ -509,8 +516,15 @@ namespace libtorrent
 		for (std::set<std::string>::reverse_iterator i = directories.rbegin()
 			, end(directories.rend()); i != end; ++i)
 		{
+#elif defined(_WIN32) && defined(UNICODE)
+			try
+			{ fs::remove(safe_convert(*i)); }
+			catch (std::exception& e)
+			{ error = e.what(); }
+#else
 			if (std::remove(i->c_str()) != 0 && errno != ENOENT)
 				error = std::strerror(errno);
+#endif
 		}
 
 		if (!error.empty()) throw std::runtime_error(error);
