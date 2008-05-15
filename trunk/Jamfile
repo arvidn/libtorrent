@@ -93,6 +93,7 @@ rule linking ( properties * )
 		result += <library>boost_filesystem
 			<library>boost_thread
 			<library>boost_iostreams
+			<library>boost_system
 		;
 	}
 
@@ -110,6 +111,7 @@ rule linking ( properties * )
 		result += <library>/boost/thread//boost_thread
 			<library>/boost/filesystem//boost_filesystem
 			<library>/boost/iostreams//boost_iostreams
+			<library>/boost/system//boost_system
 			<include>$(BOOST_ROOT)
 			<define>BOOST_ALL_NO_LIB
 			;
