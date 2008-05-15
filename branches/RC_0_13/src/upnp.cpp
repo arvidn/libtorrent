@@ -358,8 +358,20 @@ try
 		std::string protocol;
 		std::string auth;
 		// we don't have this device in our list. Add it
-		boost::tie(protocol, auth, d.hostname, d.port, d.path)
-			= parse_url_components(d.url);
+		try
+		{
+			boost::tie(protocol, auth, d.hostname, d.port, d.path)
+				= parse_url_components(d.url);
+		}
+		catch (std::exception& e)
+		{
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string()
+				<< " <== (" << from << ") invalid url: '" << d.url
+				<< "'. Ignoring device" << std::endl;
+#endif
+			return;
+		}
 
 		// ignore the auth here. It will be re-parsed
 		// by the http connection later
