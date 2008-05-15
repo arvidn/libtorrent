@@ -132,6 +132,7 @@ The ``session`` class has the following synopsis::
 			, char const* interface = 0);
 
 		std::auto_ptr<alert> pop_alert();
+		alert const* wait_for_alert(time_duration max_wait);
 		void set_severity_level(alert::severity_t s);
 
 		void add_extension(boost::function<
@@ -651,17 +652,26 @@ with a DHT ping packet, and connect to those that responds first. On windows one
 can only connect to a few peers at a time because of a built in limitation (in XP
 Service pack 2).
 
-pop_alert() set_severity_level()
---------------------------------
+pop_alert() set_severity_level() wait_for_alert()
+-------------------------------------------------
 
 	::
 
 		std::auto_ptr<alert> pop_alert();
+		alert const* wait_for_alert(time_duration max_wait);
 		void set_severity_level(alert::severity_t s);
 
 ``pop_alert()`` is used to ask the session if any errors or events has occurred. With
 ``set_severity_level()`` you can filter how serious the event has to be for you to
 receive it through ``pop_alert()``. For information, see alerts_.
+
+``wait_for_alert`` blocks until an alert is available, or for no more than ``max_wait``
+time. If ``wait_for_alert`` returns because of the time-out, and no alerts are available,
+it returns 0. If at least one alert was generated, a pointer to that alert is returned.
+The alert is not popped, any subsequent calls to ``wait_for_alert`` will return the
+same pointer until the alert is popped by calling ``pop_alert``. This is useful for
+leaving any alert dispatching mechanism independent of this blocking call, the dispatcher
+can be called and it can pop the alert independently.
 
 
 add_extension()
