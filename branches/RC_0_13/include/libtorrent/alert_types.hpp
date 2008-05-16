@@ -58,11 +58,12 @@ namespace libtorrent
 		tracker_alert(torrent_handle const& h
 			, int times
 			, int status
-			, std::string const& url
+			, std::string const& url_
 			, std::string const& msg)
 			: torrent_alert(h, alert::warning, msg)
 			, times_in_row(times)
 			, status_code(status)
+			, url(url_)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
