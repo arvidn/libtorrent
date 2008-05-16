@@ -38,7 +38,8 @@ void http_connect_handler(http_connection& c)
 	TEST_CHECK(c.socket().remote_endpoint().address() == address::from_string("127.0.0.1"));
 }
 
-void http_handler(asio::error_code const& ec, http_parser const& parser, char const* data, int size)
+void http_handler(asio::error_code const& ec, http_parser const& parser
+	, char const* data, int size, http_connection& c)
 {
 	++handler_called;
 	data_size = size;

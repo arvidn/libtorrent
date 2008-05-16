@@ -190,7 +190,7 @@ void http_connection::callback(asio::error_code const& e, char const* data, int 
 	if (!m_bottled || !m_called)
 	{
 		m_called = true;
-		if (m_handler) m_handler(e, m_parser, data, size);
+		if (m_handler) m_handler(e, m_parser, data, size, *this);
 	}
 }
 
@@ -269,7 +269,7 @@ void http_connection::on_read(asio::error_code const& e
 		catch (std::exception&)
 		{
 			m_timer.cancel();
-			m_handler(asio::error::fault, m_parser, 0, 0);
+			m_handler(asio::error::fault, m_parser, 0, 0, *this);
 			m_handler.clear();
 			return;
 		}

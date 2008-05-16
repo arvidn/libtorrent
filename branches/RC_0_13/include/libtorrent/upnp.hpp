@@ -94,13 +94,14 @@ private:
 	struct rootdevice;
 	
 	void on_upnp_xml(asio::error_code const& e
-		, libtorrent::http_parser const& p, rootdevice& d);
+		, libtorrent::http_parser const& p, rootdevice& d
+		, http_connection& c);
 	void on_upnp_map_response(asio::error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
-		, int mapping);
+		, int mapping, http_connection& c);
 	void on_upnp_unmap_response(asio::error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
-		, int mapping);
+		, int mapping, http_connection& c);
 	void on_expire(asio::error_code const& e);
 
 	void map_port(rootdevice& d, int i);
