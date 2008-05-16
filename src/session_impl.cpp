@@ -76,6 +76,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/config.hpp"
 
+#ifndef TORRENT_WINDOWS
+#include <sys/resource.h>
+#endif
+
 #ifndef TORRENT_DISABLE_ENCRYPTION
 
 #include <openssl/crypto.h>
@@ -2142,7 +2146,19 @@ namespace aux {
 
 		INVARIANT_CHECK;
 
-		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
+		if (limit <= 0)
+		{
+			limit = (std::numeric_limits<int>::max)();
+#ifndef TORRENT_WINDOWS
+			rlimit l;
+			if (getrlimit(RLIMIT_NOFILE, &l) == 0
+				&& l.rlim_cur != RLIM_INFINITY)
+			{
+				limit = l.rlim_cur - m_settings.file_pool_size;
+				if (limit < 5) limit = 5;
+			}
+#endif
+		}
 		m_max_connections = limit;
 	}
 
