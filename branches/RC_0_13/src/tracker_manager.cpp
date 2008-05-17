@@ -424,13 +424,13 @@ namespace libtorrent
 			= std::find(url.begin(), url.end(), ':');
 		protocol.assign(start, end);
 
-		if (end == url.end()) throw std::runtime_error("invalid url");
+		if (end == url.end()) throw std::runtime_error("invalid url '" + url + "'");
 		++end;
-		if (end == url.end()) throw std::runtime_error("invalid url");
-		if (*end != '/') throw std::runtime_error("invalid url");
+		if (end == url.end()) throw std::runtime_error("invalid url '" + url + "'");
+		if (*end != '/') throw std::runtime_error("invalid url '" + url + "'");
 		++end;
-		if (end == url.end()) throw std::runtime_error("invalid url");
-		if (*end != '/') throw std::runtime_error("invalid url");
+		if (end == url.end()) throw std::runtime_error("invalid url '" + url + "'");
+		if (*end != '/') throw std::runtime_error("invalid url '" + url + "'");
 		++end;
 		start = end;
 
@@ -454,7 +454,7 @@ namespace libtorrent
 		if (start != url.end() && *start == '[')
 		{
 			port_pos = std::find(start, url.end(), ']');
-			if (port_pos == url.end()) throw std::runtime_error("invalid hostname syntax");
+			if (port_pos == url.end()) throw std::runtime_error("invalid hostname syntax '" + url + "'");
 			port_pos = std::find(port_pos, url.end(), ':');
 		}
 		else
