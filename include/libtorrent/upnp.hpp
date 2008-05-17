@@ -103,13 +103,14 @@ private:
 
 	
 	void on_upnp_xml(error_code const& e
-		, libtorrent::http_parser const& p, rootdevice& d);
+		, libtorrent::http_parser const& p, rootdevice& d
+		, http_connection& c);
 	void on_upnp_map_response(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
-		, int mapping);
+		, int mapping, http_connection& c);
 	void on_upnp_unmap_response(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
-		, int mapping);
+		, int mapping, http_connection& c);
 	void on_expire(error_code const& e);
 
 	void disable(char const* msg);

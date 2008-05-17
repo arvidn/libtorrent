@@ -248,9 +248,10 @@ void upnp::resend_request(error_code const& e)
 				m_log << time_now_string()
 					<< " ==> connecting to " << d.url << std::endl;
 #endif
+				if (d.upnp_connection) d.upnp_connection->close();
 				d.upnp_connection.reset(new http_connection(m_io_service
 					, m_cc, bind(&upnp::on_upnp_xml, self(), _1, _2
-					, boost::ref(d))));
+					, boost::ref(d), _5)));
 				d.upnp_connection->get(d.url, seconds(30), 1);
 			}
 			catch (std::exception& e)
@@ -492,9 +493,10 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 					m_log << time_now_string()
 						<< " ==> connecting to " << d.url << std::endl;
 #endif
+					if (d.upnp_connection) d.upnp_connection->close();
 					d.upnp_connection.reset(new http_connection(m_io_service
 						, m_cc, bind(&upnp::on_upnp_xml, self(), _1, _2
-						, boost::ref(d))));
+						, boost::ref(d), _5)));
 					d.upnp_connection->get(d.url, seconds(30), 1);
 #ifndef BOOST_NO_EXCEPTIONS
 				}
@@ -631,9 +633,10 @@ void upnp::update_map(rootdevice& d, int i)
 			return;
 		}
 
+		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
 			, m_cc, bind(&upnp::on_upnp_map_response, self(), _1, _2
-			, boost::ref(d), i), true
+			, boost::ref(d), i, _5), true
 			, bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
 
 		d.upnp_connection->start(d.hostname, boost::lexical_cast<std::string>(d.port)
@@ -641,9 +644,10 @@ void upnp::update_map(rootdevice& d, int i)
 	}
 	else if (m.action == mapping_t::action_delete)
 	{
+		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
 			, m_cc, bind(&upnp::on_upnp_unmap_response, self(), _1, _2
-			, boost::ref(d), i), true
+			, boost::ref(d), i, _5), true
 			, bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
 		d.upnp_connection->start(d.hostname, boost::lexical_cast<std::string>(d.port)
 			, seconds(10), 1);
@@ -752,12 +756,13 @@ namespace
 }
 
 void upnp::on_upnp_xml(error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d)
+	, libtorrent::http_parser const& p, rootdevice& d
+	, http_connection& c)
 {
 	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
-	if (d.upnp_connection)
+	if (d.upnp_connection && d.upnp_connection.get() == &c)
 	{
 		d.upnp_connection->close();
 		d.upnp_connection.reset();
@@ -911,12 +916,13 @@ namespace
 }
 
 void upnp::on_upnp_map_response(error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
+	, libtorrent::http_parser const& p, rootdevice& d, int mapping
+	, http_connection& c)
 {
 	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
-	if (d.upnp_connection)
+	if (d.upnp_connection && d.upnp_connection.get() == &c)
 	{
 		d.upnp_connection->close();
 		d.upnp_connection.reset();
@@ -1066,12 +1072,13 @@ void upnp::return_error(int mapping, int code)
 }
 
 void upnp::on_upnp_unmap_response(error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d, int mapping)
+	, libtorrent::http_parser const& p, rootdevice& d, int mapping
+	, http_connection& c)
 {
 	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
-	if (d.upnp_connection)
+	if (d.upnp_connection && d.upnp_connection.get() == &c)
 	{
 		d.upnp_connection->close();
 		d.upnp_connection.reset();

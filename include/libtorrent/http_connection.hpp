@@ -60,7 +60,7 @@ struct http_connection;
 class connection_queue;
 	
 typedef boost::function<void(error_code const&
-	, http_parser const&, char const* data, int size)> http_handler;
+	, http_parser const&, char const* data, int size, http_connection&)> http_handler;
 
 typedef boost::function<void(http_connection&)> http_connect_handler;
 

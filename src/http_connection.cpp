@@ -307,7 +307,7 @@ void http_connection::callback(error_code const& e, char const* data, int size)
 				std::string error;
 				if (inflate_gzip(data, size, buf, max_bottled_buffer, error))
 				{
-					callback(asio::error::fault, data, size);
+					if (m_handler) m_handler(asio::error::fault, m_parser, data, size, *this);
 					close();
 					return;
 				}
@@ -317,7 +317,7 @@ void http_connection::callback(error_code const& e, char const* data, int size)
 		}
 		m_called = true;
 		m_timer.cancel();
-		if (m_handler) m_handler(e, m_parser, data, size);
+		if (m_handler) m_handler(e, m_parser, data, size, *this);
 	}
 }
 
