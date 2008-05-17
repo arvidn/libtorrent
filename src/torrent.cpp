@@ -1646,7 +1646,7 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post(alert::warning))
 			{
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), url, "invalid url"));
+					url_seed_alert(get_handle(), url, e.what()));
 			}
 			remove_url_seed(url);
 			return;
@@ -1759,8 +1759,21 @@ namespace libtorrent
 		using boost::tuples::ignore;
 		std::string hostname;
 		int port;
-		boost::tie(ignore, ignore, hostname, port, ignore)
-			= parse_url_components(url);
+		try
+		{
+			boost::tie(ignore, ignore, hostname, port, ignore)
+				= parse_url_components(url);
+		}
+		catch (std::exception& e)
+		{
+			if (m_ses.m_alerts.should_post(alert::warning))
+			{
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(get_handle(), url, e.what()));
+			}
+			remove_url_seed(url);
+			return;
+		}
 
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
@@ -1769,6 +1782,7 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
 					, "proxy (" + hostname + ") blocked by IP filter"));
 			}
+			remove_url_seed(url);
 			return;
 		}
 
