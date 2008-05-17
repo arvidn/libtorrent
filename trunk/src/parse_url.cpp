@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/parse_url.hpp"
+#include <algorithm>
 
 namespace libtorrent
 {
