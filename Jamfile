@@ -300,6 +300,7 @@ SOURCES =
 	enum_net
 	broadcast_socket
 	magnet_uri
+	parse_url
 
 # -- extensions --
 	metadata_transfer

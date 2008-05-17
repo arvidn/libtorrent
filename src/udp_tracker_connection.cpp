@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/parse_url.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/io.hpp"
 
@@ -95,10 +96,18 @@ namespace libtorrent
 
 		std::string hostname;
 		int port;
+		char const* error;
 
 		using boost::tuples::ignore;
-		boost::tie(ignore, ignore, hostname, port, ignore) = parse_url_components(req.url);
+		boost::tie(ignore, ignore, hostname, port, ignore, error)
+			= parse_url_components(req.url);
 
+		if (error)
+		{
+			fail(-1, error);
+			return;
+		}
+		
 		udp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
 		m_name_lookup.async_resolve(q
 			, boost::bind(

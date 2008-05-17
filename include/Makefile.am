@@ -40,6 +40,7 @@ libtorrent/peer.hpp \
 libtorrent/peer_connection.hpp \
 libtorrent/bt_peer_connection.hpp \
 libtorrent/web_peer_connection.hpp \
+libtorrent/parse_url.hpp \
 libtorrent/pe_crypto.hpp \
 libtorrent/magnet_uri.hpp \
 libtorrent/natpmp.hpp \
