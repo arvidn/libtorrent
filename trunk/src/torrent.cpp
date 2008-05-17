@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/parse_url.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
@@ -1922,9 +1923,20 @@ namespace libtorrent
 		std::string hostname;
 		int port;
 		std::string path;
-		boost::tie(protocol, auth, hostname, port, path)
+		char const* error;
+		boost::tie(protocol, auth, hostname, port, path, error)
 			= parse_url_components(url);
 
+		if (error)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			(*m_ses.m_logger) << time_now_string() << " failed to parse web seed url: " << error << "\n";
+#endif
+			// never try it again
+			remove_url_seed(url);
+			return;
+		}
+		
 #ifdef TORRENT_USE_OPENSSL
 		if (protocol != "http" && protocol != "https")
 #else
@@ -2013,10 +2025,8 @@ namespace libtorrent
 		{
 			if (m_ses.m_alerts.should_post(alert::warning))
 			{
-				std::stringstream msg;
-				msg << "HTTP seed proxy hostname lookup failed: " << e.message();
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), url, msg.str()));
+					url_seed_alert(get_handle(), url, e.message()));
 			}
 
 			// the name lookup failed for the http host. Don't try
@@ -2032,8 +2042,20 @@ namespace libtorrent
 		using boost::tuples::ignore;
 		std::string hostname;
 		int port;
-		boost::tie(ignore, ignore, hostname, port, ignore)
+		char const* error;
+		boost::tie(ignore, ignore, hostname, port, ignore, error)
 			= parse_url_components(url);
+
+		if (error)
+		{
+			if (m_ses.m_alerts.should_post(alert::warning))
+			{
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(get_handle(), url, error));
+			}
+			remove_url_seed(url);
+			return;
+		}
 
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{

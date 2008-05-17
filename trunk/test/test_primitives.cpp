@@ -1,4 +1,4 @@
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/parse_url.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/xml_parse.hpp"
@@ -83,22 +83,22 @@ int test_main()
 	using namespace libtorrent;
 
 	TEST_CHECK(parse_url_components("http://foo:bar@host.com:80/path/to/file")
-		== make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file"));
+		== make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file", (char const*)0));
 
 	TEST_CHECK(parse_url_components("http://host.com/path/to/file")
-		== make_tuple("http", "", "host.com", 80, "/path/to/file"));
+		== make_tuple("http", "", "host.com", 80, "/path/to/file", (char const*)0));
 
 	TEST_CHECK(parse_url_components("ftp://host.com:21/path/to/file")
-		== make_tuple("ftp", "", "host.com", 21, "/path/to/file"));
+		== make_tuple("ftp", "", "host.com", 21, "/path/to/file", (char const*)0));
 
 	TEST_CHECK(parse_url_components("http://host.com/path?foo:bar@foo:")
-		== make_tuple("http", "", "host.com", 80, "/path?foo:bar@foo:"));
+		== make_tuple("http", "", "host.com", 80, "/path?foo:bar@foo:", (char const*)0));
 
 	TEST_CHECK(parse_url_components("http://192.168.0.1/path/to/file")
-		== make_tuple("http", "", "192.168.0.1", 80, "/path/to/file"));
+		== make_tuple("http", "", "192.168.0.1", 80, "/path/to/file", (char const*)0));
 
 	TEST_CHECK(parse_url_components("http://[::1]/path/to/file")
-		== make_tuple("http", "", "[::1]", 80, "/path/to/file"));
+		== make_tuple("http", "", "[::1]", 80, "/path/to/file", (char const*)0));
 
 	// base64 test vectors from http://www.faqs.org/rfcs/rfc4648.html
 

@@ -34,8 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/gzip.hpp"
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/parse_url.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/connection_queue.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -56,8 +57,17 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	std::string auth;
 	std::string hostname;
 	std::string path;
+	char const* error;
 	int port;
-	boost::tie(protocol, auth, hostname, port, path) = parse_url_components(url);
+
+	boost::tie(protocol, auth, hostname, port, path, error)
+		= parse_url_components(url);
+
+	if (error)
+	{
+		callback(asio::error::socket_type_not_supported);
+		return;
+	}
 
 	TORRENT_ASSERT(prio >= 0 && prio < 2);
 

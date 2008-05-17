@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/parse_url.hpp"
 
 using boost::bind;
 using boost::shared_ptr;
@@ -95,8 +96,10 @@ namespace libtorrent
 #endif
 
 		std::string protocol;
-		boost::tie(protocol, m_auth, m_host, m_port, m_path)
+		char const* error;
+		boost::tie(protocol, m_auth, m_host, m_port, m_path, error)
 			= parse_url_components(url);
+		TORRENT_ASSERT(error == 0);
 		
 		if (!m_auth.empty())
 			m_auth = base64encode(m_auth);

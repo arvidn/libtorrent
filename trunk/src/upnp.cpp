@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/io.hpp"
-#include "libtorrent/http_tracker_connection.hpp"
+#include "libtorrent/parse_url.hpp"
 #include "libtorrent/xml_parse.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/enum_net.hpp"
@@ -412,9 +412,20 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 		std::string protocol;
 		std::string auth;
+		char const* error;
 		// we don't have this device in our list. Add it
-		boost::tie(protocol, auth, d.hostname, d.port, d.path)
+		boost::tie(protocol, auth, d.hostname, d.port, d.path, error)
 			= parse_url_components(d.url);
+
+		if (error)
+		{
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string()
+				<< " <== (" << from << ") Rootdevice advertized an invalid url: '" << d.url
+				<< "'. " << error << ". Ignoring device" << std::endl;
+#endif
+			return;
+		}
 
 		// ignore the auth here. It will be re-parsed
 		// by the http connection later
