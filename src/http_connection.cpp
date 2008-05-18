@@ -114,6 +114,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		"\r\n";
 
 	sendbuffer = headers.str();
+	m_url = url;
 	start(hostname, boost::lexical_cast<std::string>(port), timeout, prio
 		, ps, ssl, handle_redirects, bind_addr);
 }
@@ -417,17 +418,44 @@ void http_connection::on_read(error_code const& e
 			if (code >= 300 && code < 400)
 			{
 				// attempt a redirect
-				std::string const& url = m_parser.header("location");
-				if (url.empty())
+				std::string const& location = m_parser.header("location");
+				if (location.empty())
 				{
 					// missing location header
-					callback(e);
+					callback(asio::error::fault);
+					close();
 					return;
 				}
 
 				error_code ec;
 				m_sock.close(ec);
-				get(url, m_timeout, m_priority, &m_proxy, m_redirects - 1);
+				using boost::tuples::ignore;
+				char const* error;
+				boost::tie(ignore, ignore, ignore, ignore, ignore, error)
+					= parse_url_components(location);
+				if (error == 0)
+				{
+					get(location, m_timeout, m_priority, &m_proxy, m_redirects - 1);
+				}
+				else
+				{
+					// some broken web servers send out relative paths
+					// in the location header.
+					std::string url = m_url;
+					// remove the leaf filename
+					std::size_t i = url.find_last_of('/');
+					if (i == std::string::npos)
+					{
+						url += '/';
+					}
+					else
+					{
+						url.resize(i + 1);
+					}
+					url += location;
+
+					get(url, m_timeout, m_priority, &m_proxy, m_redirects - 1);
+				}
 				return;
 			}
 	
