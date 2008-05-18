@@ -1301,6 +1301,12 @@ namespace libtorrent
 				m_max_out_request_queue = 1;
 		}
 
+		if (entry* upload_only = root.find_key("upload_only"))
+		{
+			if (upload_only->type() == entry::int_t && upload_only->integer() != 0)
+				set_upload_only(true);
+		}
+
 		if (entry* myip = root.find_key("yourip"))
 		{
 			// TODO: don't trust this blindly
@@ -1321,6 +1327,11 @@ namespace libtorrent
 				}
 			}
 		}
+
+		// if we're finished and this peer is uploading only
+		// disconnect it
+		if (t->is_finished() && upload_only())
+			disconnect("upload to upload connection, closing");
 	}
 
 	bool bt_peer_connection::dispatch_message(int received)
@@ -1556,6 +1567,9 @@ namespace libtorrent
 		detail::write_address(remote().address(), out);
 		handshake["yourip"] = remote_address;
 		handshake["reqq"] = m_ses.settings().max_allowed_in_request_queue;
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		TORRENT_ASSERT(t);
+		if (t->is_finished()) handshake["upload_only"] = 1;
 
 		tcp::endpoint ep = m_ses.get_ipv6_interface();
 		if (ep != tcp::endpoint())

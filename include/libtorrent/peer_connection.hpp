@@ -198,6 +198,9 @@ namespace libtorrent
 
 		bool is_seed() const;
 
+		void set_upload_only(bool u) { m_upload_only = u; }
+		bool upload_only() const { return m_upload_only; }
+
 		bool has_timed_out() const;
 
 		// will send a keep-alive message to the peer
@@ -637,6 +640,9 @@ namespace libtorrent
 		// message is received. This information
 		// is used to fill the bitmask in init()
 		bool m_have_all;
+
+		// set to true when this peer is only uploading
+		bool m_upload_only;
 
 		// the number of pieces this peer
 		// has. Must be the same as
