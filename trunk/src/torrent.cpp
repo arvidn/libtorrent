@@ -2329,6 +2329,19 @@ namespace libtorrent
 		m_active_time = seconds((e != 0 && e->type() == entry::int_t)?e->integer():0);
 		e = rd.find_key("seeding_time");
 		m_seeding_time = seconds((e != 0 && e->type() == entry::int_t)?e->integer():0);
+
+		e = rd.find_key("num_seeds");
+		m_complete = (e != 0 && e->type() == entry::int_t)?e->integer():-1;
+		e = rd.find_key("num_downloaders");
+		m_incomplete = (e != 0 && e->type() == entry::int_t)?e->integer():-1;
+		/*
+		m_total_uploaded = rd.find_int_value("total_uploaded");
+		m_total_downloaded = rd.find_inte_value("total_downloaded");
+		m_active_time = rd.find_int_value("active_time");
+		m_seeding_time = rd.find_int_value("seeding_time");
+		m_complete = rd.find_int_value("num_seeds", -1);
+		m_incomplete = rd.find_int_value("num_downloaders", -1);
+		*/
 	}
 	
 	void torrent::write_resume_data(entry& ret) const
@@ -2341,6 +2354,16 @@ namespace libtorrent
 
 		ret["active_time"] = total_seconds(m_active_time);
 		ret["seeding_time"] = total_seconds(m_seeding_time);
+
+		int seeds = 0;
+		int downloaders = 0;
+		if (m_complete >= 0) seeds = m_complete;
+		else seeds = m_policy.num_seeds();
+		if (m_incomplete >= 0) downloaders = m_incomplete;
+		else downloaders = m_policy.num_peers() - m_policy.num_seeds();
+
+		ret["num_seeds"] = seeds;
+		ret["num_downloaders"] = downloaders;
 		
 		ret["allocation"] = m_storage_mode == storage_mode_sparse?"sparse"
 			:m_storage_mode == storage_mode_allocate?"full":"compact";
