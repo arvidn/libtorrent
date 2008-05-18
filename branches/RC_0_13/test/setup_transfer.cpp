@@ -76,8 +76,11 @@ void start_web_server(int port)
 		"server.range-requests = \"enable\"\n"
 		"server.port = " << port << "\n"
 		"server.pid-file = \"./lighty" << port << ".pid\"\n"
-		"url.redirect = (\"^/redirect$\" => \"http://127.0.0.1:" << port << "/test_file\", "
-			"\"^/infinite_redirect$\" => \"http://127.0.0.1:" << port << "/infinite_redirect\")";
+		"url.redirect = ("
+			"\"^/redirect$\" => \"http://127.0.0.1:" << port << "/test_file\""
+			", \"^/infinite_redirect$\" => \"http://127.0.0.1:" << port << "/infinite_redirect\""
+			", \"^/relative/redirect$\" => \"../test_file\""
+			")";
 	f.close();
 	
 	system("lighttpd -f lighty_config &");

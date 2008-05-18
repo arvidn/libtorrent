@@ -136,6 +136,7 @@ private:
 	bool m_called;
 	std::string m_hostname;
 	std::string m_port;
+	std::string m_url;
 
 	// the current download limit, in bytes per second
 	// 0 is unlimited.

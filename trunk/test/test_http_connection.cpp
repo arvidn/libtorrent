@@ -104,6 +104,7 @@ void run_suite(std::string const& protocol, proxy_settings const& ps)
 		<< " proxy **********************\n" << std::endl;
 
 	typedef boost::optional<error_code> err;
+	run_test(protocol + "://127.0.0.1:8001/relative/redirect", 3216, 200, 2, error_code(), ps);
 	run_test(protocol + "://127.0.0.1:8001/redirect", 3216, 200, 2, error_code(), ps);
 	run_test(protocol + "://127.0.0.1:8001/infinite_redirect", 0, 301, 6, error_code(), ps);
 	run_test(protocol + "://127.0.0.1:8001/test_file", 3216, 200, 1, error_code(), ps);

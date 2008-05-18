@@ -61,6 +61,7 @@ void http_connection::get(std::string const& url, time_duration timeout
 		headers << "Authorization: Basic " << base64encode(auth) << "\r\n";
 	headers << "\r\n";
 	sendbuffer = headers.str();
+	m_url = url;
  	start(hostname, boost::lexical_cast<std::string>(port), timeout, handle_redirects);
 }
 
@@ -269,8 +270,8 @@ void http_connection::on_read(asio::error_code const& e
 		catch (std::exception&)
 		{
 			m_timer.cancel();
-			m_handler(asio::error::fault, m_parser, 0, 0, *this);
-			m_handler.clear();
+			callback(asio::error::fault, 0, 0);
+			close();
 			return;
 		}
 
@@ -282,17 +283,50 @@ void http_connection::on_read(asio::error_code const& e
 			if (code >= 300 && code < 400)
 			{
 				// attempt a redirect
-				std::string const& url = m_parser.header("location");
-				if (url.empty())
+				std::string const& location = m_parser.header("location");
+				if (location.empty())
 				{
 					// missing location header
-					callback(e);
+					callback(asio::error::fault);
+					close();
 					return;
 				}
 
-				asio::error_code ec;
-				m_sock.close(ec);
-				get(url, m_timeout, m_redirects - 1);
+				try
+				{
+					asio::error_code ec;
+					m_sock.close(ec);
+					get(location, m_timeout, m_redirects - 1);
+					return;
+				}
+				catch (std::exception& e)
+				{
+					// some broken web servers send out relative paths
+					// in the location header.
+					std::string url = m_url;
+					// remove the leaf filename
+					std::size_t i = url.find_last_of('/');
+					if (i == std::string::npos)
+					{
+						url += '/';
+					}
+					else
+					{
+						url.resize(i + 1);
+					}
+					url += location;
+
+					try
+					{
+						get(url, m_timeout, m_redirects - 1);
+					}
+					catch (std::exception& e)
+					{
+						// location header is invalid
+						callback(asio::error::fault);
+						close();
+					}
+				}
 				return;
 			}
 	
