@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/noncopyable.hpp>
 #include <vector>
+#include <list>
 #include <string>
 
 #include "libtorrent/socket.hpp"
@@ -91,6 +92,7 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_cc(cc)
 		, m_ssl(false)
 		, m_priority(0)
+		, m_abort(false)
 	{
 		TORRENT_ASSERT(!m_handler.empty());
 	}
@@ -123,10 +125,10 @@ private:
 
 	void on_resolve(error_code const& e
 		, tcp::resolver::iterator i);
+	void queue_connect();
 	void connect(int ticket, tcp::endpoint target_address);
 	void on_connect_timeout();
-	void on_connect(error_code const& e
-/*		, tcp::resolver::iterator i*/);
+	void on_connect(error_code const& e);
 	void on_write(error_code const& e);
 	void on_read(error_code const& e, std::size_t bytes_transferred);
 	static void on_timeout(boost::weak_ptr<http_connection> p
@@ -159,6 +161,8 @@ private:
 	std::string m_hostname;
 	std::string m_port;
 	std::string m_url;
+
+	std::list<tcp::endpoint> m_endpoints;
 
 	// the current download limit, in bytes per second
 	// 0 is unlimited.
@@ -196,6 +200,8 @@ private:
 	// the priority we have in the connection queue.
 	// 0 is normal, 1 is high
 	int m_priority;
+
+	bool m_abort;
 };
 
 }

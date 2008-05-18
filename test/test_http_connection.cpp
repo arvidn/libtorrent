@@ -76,7 +76,7 @@ void run_test(std::string const& url, int size, int status, int connected
 
 	boost::shared_ptr<http_connection> h(new http_connection(ios, cq
 		, &::http_handler, true, &::http_connect_handler));
-	h->get(url, seconds(30), 0, &ps);
+	h->get(url, seconds(5), 0, &ps);
 	ios.reset();
 	ios.run();
 
@@ -104,6 +104,9 @@ void run_suite(std::string const& protocol, proxy_settings const& ps)
 		<< " proxy **********************\n" << std::endl;
 
 	typedef boost::optional<error_code> err;
+	// this requires the hosts file to be modified
+//	run_test(protocol + "://test.dns.ts:8001/test_file", 3216, 200, 1, error_code(), ps);
+
 	run_test(protocol + "://127.0.0.1:8001/relative/redirect", 3216, 200, 2, error_code(), ps);
 	run_test(protocol + "://127.0.0.1:8001/redirect", 3216, 200, 2, error_code(), ps);
 	run_test(protocol + "://127.0.0.1:8001/infinite_redirect", 0, 301, 6, error_code(), ps);

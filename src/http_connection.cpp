@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <string>
+#include <algorithm>
 
 using boost::bind;
 
@@ -198,11 +199,19 @@ void http_connection::start(std::string const& hostname, std::string const& port
 
 void http_connection::on_connect_timeout()
 {
+	TORRENT_ASSERT(m_connection_ticket >= 0);
 	if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
 	m_connection_ticket = -1;
 
-	callback(asio::error::timed_out);
-	close();
+	if (!m_endpoints.empty())
+	{
+		m_sock.close();
+	} 
+	else
+	{ 
+		callback(asio::error::timed_out);
+		close();
+	}
 }
 
 void http_connection::on_timeout(boost::weak_ptr<http_connection> p
@@ -210,15 +219,23 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 {
 	boost::shared_ptr<http_connection> c = p.lock();
 	if (!c) return;
-	if (c->m_connection_ticket > -1) c->m_cc.done(c->m_connection_ticket);
-	c->m_connection_ticket = -1;
 
 	if (e == asio::error::operation_aborted) return;
 
 	if (c->m_last_receive + c->m_timeout < time_now())
 	{
-		c->callback(asio::error::timed_out);
-		c->close();
+		if (c->m_connection_ticket > -1 && !c->m_endpoints.empty())
+		{
+			c->m_sock.close();
+			error_code ec;
+			c->m_timer.expires_at(c->m_last_receive + c->m_timeout, ec);
+			c->m_timer.async_wait(bind(&http_connection::on_timeout, p, _1));
+		}
+		else
+		{
+			c->callback(asio::error::timed_out);
+			c->close();
+		}
 		return;
 	}
 
@@ -236,11 +253,8 @@ void http_connection::close()
 	m_sock.close(ec);
 	m_hostname.clear();
 	m_port.clear();
-
-	if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
-	m_connection_ticket = -1;
-
 	m_handler.clear();
+	m_abort = true;
 }
 
 void http_connection::on_resolve(error_code const& e
@@ -254,21 +268,26 @@ void http_connection::on_resolve(error_code const& e
 	}
 	TORRENT_ASSERT(i != tcp::resolver::iterator());
 
-	// look for an address that has the same kind as the one
-	// we're binding to. To make sure a tracker get our
-	// correct listening address.
-	tcp::resolver::iterator target = i;
-	tcp::resolver::iterator end;
-	tcp::endpoint target_address = *i;
-	for (; target != end && target->endpoint().address().is_v4()
-		!= m_bind_addr.is_v4(); ++target);
+	std::transform(i, tcp::resolver::iterator(), std::back_inserter(m_endpoints)
+		, boost::bind(&tcp::resolver::iterator::value_type::endpoint, _1));
 
-	if (target != end)
-	{
-		target_address = *target;
-	}
-	
-	m_cc.enqueue(bind(&http_connection::connect, shared_from_this(), _1, target_address)
+	// sort the endpoints so that the ones with the same IP version as our
+	// bound listen socket are first. So that when contacting a tracker,
+	// we'll talk to it from the same IP that we're listening on
+	m_endpoints.sort(
+		(bind(&address::is_v4, bind(&tcp::endpoint::address, _1)) == m_bind_addr.is_v4())
+		> (bind(&address::is_v4, bind(&tcp::endpoint::address, _2)) == m_bind_addr.is_v4()));
+
+	queue_connect();
+}
+
+void http_connection::queue_connect()
+{
+	TORRENT_ASSERT(!m_endpoints.empty());
+	tcp::endpoint target = m_endpoints.front();
+	m_endpoints.pop_front();
+
+	m_cc.enqueue(bind(&http_connection::connect, shared_from_this(), _1, target)
 		, bind(&http_connection::on_connect_timeout, shared_from_this())
 		, m_timeout, m_priority);
 }
@@ -277,28 +296,28 @@ void http_connection::connect(int ticket, tcp::endpoint target_address)
 {
 	m_connection_ticket = ticket;
 	m_sock.async_connect(target_address, boost::bind(&http_connection::on_connect
-		, shared_from_this(), _1/*, ++i*/));
+		, shared_from_this(), _1));
 }
 
-void http_connection::on_connect(error_code const& e
-	/*, tcp::resolver::iterator i*/)
+void http_connection::on_connect(error_code const& e)
 {
+	TORRENT_ASSERT(m_connection_ticket >= 0);
+	m_cc.done(m_connection_ticket);
+
+	m_last_receive = time_now();
 	if (!e)
 	{ 
-		m_last_receive = time_now();
 		if (m_connect_handler) m_connect_handler(*this);
 		async_write(m_sock, asio::buffer(sendbuffer)
 			, bind(&http_connection::on_write, shared_from_this(), _1));
 	}
-/*	else if (i != tcp::resolver::iterator())
+	else if (!m_endpoints.empty() && !m_abort)
 	{
 		// The connection failed. Try the next endpoint in the list.
 		m_sock.close();
-		m_cc.enqueue(bind(&http_connection::connect, shared_from_this(), _1, *i)
-			, bind(&http_connection::on_connect_timeout, shared_from_this())
-			, m_timeout, m_priority);
+		queue_connect();
 	} 
-*/	else
+	else
 	{ 
 		callback(e);
 		close();
