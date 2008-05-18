@@ -2740,7 +2740,8 @@ namespace libtorrent
 		return int(m_connections.size()) < m_max_connections
 			&& !m_paused
 			&& m_state != torrent_status::checking_files
-			&& m_state != torrent_status::queued_for_checking
+			&& (m_state != torrent_status::queued_for_checking
+				|| !valid_metadata())
 			&& m_policy.num_connect_candidates() > 0;
 	}
 
@@ -3852,7 +3853,7 @@ namespace libtorrent
 
 		if (!valid_metadata())
 		{
-			if (m_got_tracker_response == false)
+			if (m_got_tracker_response == false && m_connections.empty())
 				st.state = torrent_status::connecting_to_tracker;
 			else
 				st.state = torrent_status::downloading_metadata;
