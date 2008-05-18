@@ -691,9 +691,9 @@ namespace libtorrent { namespace dht
 				++m_queries_received[m.message_id];
 				m_queries_bytes_received[m.message_id] += int(bytes_transferred);
 			}
+			TORRENT_LOG(dht_tracker) << log_line.str() << " ]";
 #endif
 			TORRENT_ASSERT(m.message_id != messages::error);
-			TORRENT_LOG(dht_tracker) << log_line.str() << " ]";
 			m_dht.incoming(m);
 		}
 		catch (std::exception& e)
