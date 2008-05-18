@@ -73,6 +73,8 @@ namespace libtorrent
 		// we want large blocks as well, so
 		// we can request more bytes at once
 		request_large_blocks(true);
+		set_upload_only(true);
+
 		// we only want left-over bandwidth
 		set_priority(0);
 		shared_ptr<torrent> tor = t.lock();

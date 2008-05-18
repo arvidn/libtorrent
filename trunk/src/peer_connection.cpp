@@ -96,6 +96,7 @@ namespace libtorrent
 		, m_failed(false)
 		, m_ignore_bandwidth_limits(false)
 		, m_have_all(false)
+		, m_upload_only(false)
 		, m_num_pieces(0)
 		, m_desired_queue_size(2)
 		, m_free_upload(0)
@@ -195,6 +196,7 @@ namespace libtorrent
 		, m_failed(false)
 		, m_ignore_bandwidth_limits(false)
 		, m_have_all(false)
+		, m_upload_only(false)
 		, m_num_pieces(0)
 		, m_desired_queue_size(2)
 		, m_free_upload(0)
@@ -1108,10 +1110,10 @@ namespace libtorrent
 				}
 			}
 			
-			if (is_seed())
+			if (upload_only())
 			{
 				TORRENT_ASSERT(m_peer_info);
-				m_peer_info->seed = true;
+				if (is_seed()) m_peer_info->seed = true;
 				if (t->is_finished() && m_ses.settings().close_redundant_connections)
 				{
 					disconnect("seed to seed connection redundant");
@@ -1231,6 +1233,7 @@ namespace libtorrent
 		m_num_pieces = num_pieces;
 
 		if (interesting) t->get_policy().peer_is_interesting(*this);
+		else if (upload_only()) disconnect("upload to upload connections");
 	}
 
 	// -----------------------------
