@@ -119,6 +119,7 @@ namespace libtorrent
 			, active_time(0)
 			, seeding_time(0)
 			, seed_rank(0)
+			, last_scrape(0)
 		{}
 
 		enum state_t
@@ -259,6 +260,10 @@ namespace libtorrent
 
 		// higher value means more important to seed
 		int seed_rank;
+
+		// number of seconds since last scrape, or -1 if
+		// there hasn't been a scrape
+		int last_scrape;
 	};
 
 	struct TORRENT_EXPORT block_info

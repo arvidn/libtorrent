@@ -133,6 +133,8 @@ namespace libtorrent
 			, peer_turnover(1 / 50.f)
 			, peer_turnover_cutoff(1.f)
 			, close_redundant_connections(true)
+			, auto_scrape_interval(1800)
+			, auto_scrape_min_interval(300)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -392,6 +394,14 @@ namespace libtorrent
 		// are closed. for instance if both ends have completed
 		// their downloads
 		bool close_redundant_connections;
+
+		// the number of seconds between scrapes of
+		// queued torrents (auto managed and paused)
+		int auto_scrape_interval;
+
+		// the minimum number of seconds between any
+		// automatic scrape (regardless of torrent)
+		int auto_scrape_min_interval;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

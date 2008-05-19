@@ -153,6 +153,7 @@ namespace libtorrent
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_started(time_now())
+		, m_last_scrape(min_time())
 		, m_torrent_file(tf)
 		, m_event(tracker_request::started)
 		, m_storage(0)
@@ -227,6 +228,7 @@ namespace libtorrent
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_started(time_now())
+		, m_last_scrape(min_time())
 		, m_torrent_file(new torrent_info(info_hash))
 		, m_event(tracker_request::started)
 		, m_storage(0)
@@ -754,6 +756,8 @@ namespace libtorrent
 		req.url = m_trackers[m_currently_trying_tracker].url;
 		m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
 			, tracker_login(), m_ses.m_listen_interface.address(), shared_from_this());
+
+		m_last_scrape = time_now();
 	}
 
 	// returns true if it is time for this torrent to make another
@@ -832,6 +836,8 @@ namespace libtorrent
 
 		if (complete >= 0) m_complete = complete;
 		if (incomplete >= 0) m_incomplete = incomplete;
+		if (complete >= 0 && incomplete >= 0)
+			m_last_scrape = time_now();
 
 		// connect to random peers from the list
 		std::random_shuffle(peer_list.begin(), peer_list.end());
@@ -3788,8 +3794,18 @@ namespace libtorrent
 			, m_have_pieces.end()
 			, 0) == m_num_pieces);
 
+		ptime now = time_now();
+
 		torrent_status st;
 
+		if (m_last_scrape == min_time())
+		{
+			st.last_scrape = -1;
+		}
+		else
+		{
+			st.last_scrape = total_seconds(now - m_last_scrape);
+		}
 		st.up_bandwidth_queue = (int)m_bandwidth_queue[peer_connection::upload_channel].size();
 		st.down_bandwidth_queue = (int)m_bandwidth_queue[peer_connection::download_channel].size();
 
@@ -3837,7 +3853,7 @@ namespace libtorrent
 		st.upload_payload_rate = m_stat.upload_payload_rate();
 
 		st.next_announce = boost::posix_time::seconds(
-			total_seconds(next_announce() - time_now()));
+			total_seconds(next_announce() - now));
 		if (st.next_announce.is_negative())
 			st.next_announce = boost::posix_time::seconds(0);
 

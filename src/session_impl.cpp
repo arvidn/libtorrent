@@ -166,6 +166,7 @@ namespace aux {
 		, m_auto_manage_time_scaler(0)
 		, m_optimistic_unchoke_time_scaler(0)
 		, m_disconnect_time_scaler(90)
+		, m_auto_scrape_time_scaler(180)
 		, m_incoming_connection(false)
 		, m_last_tick(time_now())
 		, m_torrent_sequence(0)
@@ -1012,7 +1013,6 @@ namespace aux {
 			<< m_disk_thread.disk_allocations() << "\t"
 			<< std::endl;
 #endif
-
 		// --------------------------------------------------------------
 		// second_tick every torrent
 		// --------------------------------------------------------------
@@ -1028,6 +1028,9 @@ namespace aux {
 		// count the number of peers of downloading torrents
 		int num_downloads_peers = 0;
 
+		torrent_map::iterator least_recently_scraped = m_torrents.begin();
+		int num_paused_auto_managed = 0;
+
 		// check each torrent for tracker updates
 		// TODO: do this in a timer-event in each torrent instead
 		for (torrent_map::iterator i = m_torrents.begin();
@@ -1039,6 +1042,17 @@ namespace aux {
 				++congested_torrents;
 			else
 				++uncongested_torrents;
+
+			if (t.is_auto_managed() && t.is_paused())
+			{
+				++num_paused_auto_managed;
+				if (!least_recently_scraped->second->is_auto_managed()
+					|| !least_recently_scraped->second->is_paused()
+					|| least_recently_scraped->second->last_scrape() > t.last_scrape())
+				{
+					least_recently_scraped = i;
+				}
+			}
 
 			if (t.is_finished())
 			{
@@ -1078,7 +1092,23 @@ namespace aux {
 
 		m_stat.second_tick(tick_interval);
 
-	
+		// --------------------------------------------------------------
+		// scrape paused torrents that are auto managed
+		// --------------------------------------------------------------
+		--m_auto_scrape_time_scaler;
+		if (m_auto_scrape_time_scaler <= 0)
+		{
+			m_auto_scrape_time_scaler = m_settings.auto_scrape_interval
+				/ (std::max)(1, num_paused_auto_managed);
+			if (m_auto_scrape_time_scaler < m_settings.auto_scrape_min_interval)
+				m_auto_scrape_time_scaler = m_settings.auto_scrape_min_interval;
+
+			if (least_recently_scraped != m_torrents.end())
+			{
+				least_recently_scraped->second->scrape_tracker();
+			}
+		}
+
 		// --------------------------------------------------------------
 		// connect new peers
 		// --------------------------------------------------------------
@@ -1189,7 +1219,7 @@ namespace aux {
 #if defined(TORRENT_VERBOSE_LOGGING)
 				(*c.m_logger) << "*** CONNECTION TIMED OUT\n";
 #endif
-				c.disconnect("timed out: inactive", true);
+				c.disconnect("timed out: inactive", 1);
 				continue;
 			}
 
