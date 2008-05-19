@@ -211,6 +211,11 @@ namespace aux {
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
+
+		(*m_logger) << "sizeof(torrent): " << sizeof(torrent) << "\n";
+		(*m_logger) << "sizeof(peer_connection): " << sizeof(peer_connection) << "\n";
+		(*m_logger) << "sizeof(bt_peer_connection): " << sizeof(bt_peer_connection) << "\n";
+		(*m_logger) << "sizeof(policy::peer): " << sizeof(policy::peer) << "\n";
 #endif
 
 #ifdef TORRENT_STATS

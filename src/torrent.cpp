@@ -96,20 +96,6 @@ namespace
 		, tracker_failed_max = 5
 	};
 
-	int calculate_block_size(const torrent_info& i, int default_block_size)
-	{
-		if (default_block_size < 1024) default_block_size = 1024;
-
-		// if pieces are too small, adjust the block size
-		if (i.piece_length() < default_block_size)
-		{
-			return i.piece_length();
-		}
-
-		// otherwise, go with the default
-		return default_block_size;
-	}
-
 	struct find_peer_by_ip
 	{
 		find_peer_by_ip(tcp::endpoint const& a, const torrent* t)
@@ -161,23 +147,17 @@ namespace libtorrent
 		, entry const* resume_data
 		, int seq
 		, bool auto_managed)
-		: m_torrent_file(tf)
-		, m_abort(false)
-		, m_paused(paused)
-		, m_just_paused(false)
-		, m_auto_managed(auto_managed)
+		: m_policy(this)
+		, m_active_time(seconds(0))
+		, m_seeding_time(seconds(0))
+		, m_total_uploaded(0)
+		, m_total_downloaded(0)
+		, m_started(time_now())
+		, m_torrent_file(tf)
 		, m_event(tracker_request::started)
-		, m_block_size(0)
 		, m_storage(0)
 		, m_next_request(time_now())
-		, m_duration(1800)
-		, m_complete(-1)
-		, m_incomplete(-1)
 		, m_host_resolver(ses.m_io_service)
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		, m_resolving_country(false)
-		, m_resolve_countries(false)
-#endif
 		, m_announce_timer(ses.m_io_service)
 #ifndef TORRENT_DISABLE_DHT
 		, m_last_dht_announce(time_now() - minutes(15))
@@ -185,36 +165,41 @@ namespace libtorrent
 		, m_ses(ses)
 		, m_picker(0)
 		, m_trackers(m_torrent_file->trackers())
-		, m_last_working_tracker(-1)
-		, m_currently_trying_tracker(0)
-		, m_failed_trackers(0)
-		, m_time_scaler(0)
-		, m_num_pieces(0)
-		, m_sequential_download(false)
-		, m_got_tracker_response(false)
-		, m_ratio(0.f)
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 		, m_net_interface(net_interface.address(), 0)
 		, m_save_path(complete(save_path))
 		, m_storage_mode(storage_mode)
 		, m_state(torrent_status::queued_for_checking)
-		, m_progress(0.f)
-		, m_default_block_size(block_size)
-		, m_connections_initialized(true)
 		, m_settings(ses.settings())
 		, m_storage_constructor(sc)
+		, m_progress(0.f)
+		, m_num_pieces(0)
+		, m_ratio(0.f)
 		, m_max_uploads((std::numeric_limits<int>::max)())
 		, m_num_uploads(0)
 		, m_max_connections((std::numeric_limits<int>::max)())
+		, m_block_size(block_size)
+		, m_complete(-1)
+		, m_incomplete(-1)
 		, m_deficit_counter(0)
-		, m_policy(this)
+		, m_duration(1800)
 		, m_sequence_number(seq)
-		, m_active_time(seconds(0))
-		, m_seeding_time(seconds(0))
-		, m_total_uploaded(0)
-		, m_total_downloaded(0)
-		, m_started(time_now())
+		, m_last_working_tracker(-1)
+		, m_currently_trying_tracker(0)
+		, m_failed_trackers(0)
+		, m_time_scaler(0)
+		, m_abort(false)
+		, m_paused(paused)
+		, m_just_paused(false)
+		, m_auto_managed(auto_managed)
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+		, m_resolving_country(false)
+		, m_resolve_countries(false)
+#endif
+		, m_sequential_download(false)
+		, m_got_tracker_response(false)
+		, m_connections_initialized(true)
 	{
 		if (resume_data) m_resume_data = *resume_data;
 #ifndef NDEBUG
@@ -236,59 +221,58 @@ namespace libtorrent
 		, entry const* resume_data
 		, int seq
 		, bool auto_managed)
-		: m_torrent_file(new torrent_info(info_hash))
-		, m_abort(false)
-		, m_paused(paused)
-		, m_just_paused(false)
-		, m_auto_managed(auto_managed)
+		: m_policy(this)
+		, m_active_time(seconds(0))
+		, m_seeding_time(seconds(0))
+		, m_total_uploaded(0)
+		, m_total_downloaded(0)
+		, m_started(time_now())
+		, m_torrent_file(new torrent_info(info_hash))
 		, m_event(tracker_request::started)
-		, m_block_size(0)
 		, m_storage(0)
 		, m_next_request(time_now())
-		, m_duration(1800)
-		, m_complete(-1)
-		, m_incomplete(-1)
 		, m_host_resolver(ses.m_io_service)
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		, m_resolving_country(false)
-		, m_resolve_countries(false)
-#endif
 		, m_announce_timer(ses.m_io_service)
 #ifndef TORRENT_DISABLE_DHT
 		, m_last_dht_announce(time_now() - minutes(15))
 #endif
 		, m_ses(ses)
 		, m_picker(0)
-		, m_last_working_tracker(-1)
-		, m_currently_trying_tracker(0)
-		, m_failed_trackers(0)
-		, m_time_scaler(0)
-		, m_num_pieces(0)
-		, m_sequential_download(false)
-		, m_got_tracker_response(false)
-		, m_ratio(0.f)
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 		, m_net_interface(net_interface.address(), 0)
 		, m_save_path(complete(save_path))
 		, m_storage_mode(storage_mode)
 		, m_state(torrent_status::queued_for_checking)
-		, m_progress(0.f)
-		, m_default_block_size(block_size)
-		, m_connections_initialized(false)
 		, m_settings(ses.settings())
 		, m_storage_constructor(sc)
+		, m_progress(0.f)
+		, m_num_pieces(0)
+		, m_ratio(0.f)
 		, m_max_uploads((std::numeric_limits<int>::max)())
 		, m_num_uploads(0)
 		, m_max_connections((std::numeric_limits<int>::max)())
+		, m_block_size(block_size)
+		, m_complete(-1)
+		, m_incomplete(-1)
 		, m_deficit_counter(0)
-		, m_policy(this)
+		, m_duration(1800)
 		, m_sequence_number(seq)
-		, m_active_time(seconds(0))
-		, m_seeding_time(seconds(0))
-		, m_total_uploaded(0)
-		, m_total_downloaded(0)
-		, m_started(time_now())
+		, m_last_working_tracker(-1)
+		, m_currently_trying_tracker(0)
+		, m_failed_trackers(0)
+		, m_time_scaler(0)
+		, m_abort(false)
+		, m_paused(paused)
+		, m_just_paused(false)
+		, m_auto_managed(auto_managed)
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+		, m_resolving_country(false)
+		, m_resolve_countries(false)
+#endif
+		, m_sequential_download(false)
+		, m_got_tracker_response(false)
+		, m_connections_initialized(false)
 	{
 		if (resume_data) m_resume_data = *resume_data;
 #ifndef NDEBUG
@@ -428,7 +412,6 @@ namespace libtorrent
 			, m_save_path, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor
 			, m_storage_mode);
 		m_storage = m_owning_storage.get();
-		m_block_size = calculate_block_size(*m_torrent_file, m_default_block_size);
 		m_picker.reset(new piece_picker(
 			m_torrent_file->piece_length() / m_block_size
 			, int((m_torrent_file->total_size()+m_block_size-1)/m_block_size)));
@@ -3031,7 +3014,7 @@ namespace libtorrent
 		if ((unsigned)m_currently_trying_tracker >= m_trackers.size())
 		{
 			int delay = tracker_retry_delay_min
-				+ (std::min)(m_failed_trackers, (int)tracker_failed_max)
+				+ (std::min)(int(m_failed_trackers), int(tracker_failed_max))
 				* (tracker_retry_delay_max - tracker_retry_delay_min)
 				/ tracker_failed_max;
 
