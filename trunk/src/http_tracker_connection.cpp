@@ -313,9 +313,7 @@ namespace libtorrent
 
 		if (tracker_req().kind == tracker_request::scrape_request)
 		{
-			std::string ih;
-			std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end()
-				, std::back_inserter(ih));
+			std::string ih = tracker_req().info_hash.to_string();
 
 			entry const* files = e.find_key("files");
 			if (files == 0 || files->type() != entry::dictionary_t)
@@ -324,7 +322,7 @@ namespace libtorrent
 				return;
 			}
 
-			entry const* scrape_data = e.find_key(ih.c_str());
+			entry const* scrape_data = files->find_key(ih);
 			if (scrape_data == 0 || scrape_data->type() != entry::dictionary_t)
 			{
 				fail(-1, "missing or invalid info-hash entry in scrape response");

@@ -904,9 +904,7 @@ namespace libtorrent
 			
 			if (tracker_req().kind == tracker_request::scrape_request)
 			{
-				std::string ih;
-				std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end()
-					, std::back_inserter(ih));
+				std::string ih = tracker_req().info_hash.to_string();
 				entry scrape_data = e["files"][ih];
 
 				int complete = -1;

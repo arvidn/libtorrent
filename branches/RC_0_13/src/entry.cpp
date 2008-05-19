@@ -54,19 +54,6 @@ namespace
 		TORRENT_ASSERT(o);
 		o->~T();
 	}
-
-	struct compare_string
-	{
-		compare_string(char const* s): m_str(s)  {}
-	
-		bool operator()(
-			std::pair<std::string
-			, libtorrent::entry> const& e) const
-		{
-			return m_str && e.first == m_str;
-		}
-		char const* m_str;
-	};
 }
 
 namespace libtorrent
@@ -99,28 +86,42 @@ namespace libtorrent
 		if (i != dict().end()) return i->second;
 		dictionary_type::iterator ret = dict().insert(
 			dict().begin()
+			, std::make_pair(key, entry()));
+		return ret->second;
+	}
+
+	entry& entry::operator[](std::string const& key)
+	{
+		dictionary_type::iterator i = dict().find(key);
+		if (i != dict().end()) return i->second;
+		dictionary_type::iterator ret = dict().insert(
+			dict().begin()
 			, std::make_pair(std::string(key), entry()));
 		return ret->second;
 	}
 
-
-	entry& entry::operator[](std::string const& key)
-	{
-		return (*this)[key.c_str()];
-	}
-
 	entry* entry::find_key(char const* key)
 	{
-		dictionary_type::iterator i = std::find_if(
-			dict().begin()
-			, dict().end()
-			, compare_string(key));
+		dictionary_type::iterator i = dict().find(key);
 		if (i == dict().end()) return 0;
 		return &i->second;
-	
 	}
 
 	entry const* entry::find_key(char const* key) const
+	{
+		dictionary_type::const_iterator i = dict().find(key);
+		if (i == dict().end()) return 0;
+		return &i->second;
+	}
+	
+	entry* entry::find_key(std::string const& key)
+	{
+		dictionary_type::iterator i = dict().find(key);
+		if (i == dict().end()) return 0;
+		return &i->second;
+	}
+
+	entry const* entry::find_key(std::string const& key) const
 	{
 		dictionary_type::const_iterator i = dict().find(key);
 		if (i == dict().end()) return 0;
