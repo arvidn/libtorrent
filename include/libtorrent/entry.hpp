@@ -167,6 +167,8 @@ namespace libtorrent
 #endif
 		entry* find_key(char const* key);
 		entry const* find_key(char const* key) const;
+		entry* find_key(std::string const& key);
+		entry const* find_key(std::string const& key) const;
 		
 		void print(std::ostream& os, int indent = 0) const;
 
