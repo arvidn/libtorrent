@@ -51,6 +51,8 @@ namespace libtorrent
 
 	TORRENT_EXPORT boost::optional<std::string> url_has_argument(
 		std::string const& url, std::string argument);
+
+	TORRENT_EXPORT std::string to_hex(std::string const& s);
 }
 
 #endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED

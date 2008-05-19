@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
+#include "libtorrent/escape_string.hpp"
 
 using boost::ref;
 using boost::lexical_cast;
@@ -137,19 +138,6 @@ namespace libtorrent { namespace dht
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_DEFINE_LOG(dht_tracker)
-
-	std::string to_hex(std::string const& s)
-	{
-		std::string ret;
-		char* digits = "0123456789abcdef";
-		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
-		{
-			ret += digits[((unsigned char)*i) >> 4];
-			ret += digits[((unsigned char)*i) & 0xf];
-		}
-		return ret;
-	}
-
 #endif
 
 	// class that puts the networking and the kademlia node in a single
