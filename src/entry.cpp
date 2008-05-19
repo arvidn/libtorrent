@@ -35,8 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
+#include <boost/bind.hpp>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/escape_string.hpp"
 
 #if defined(_MSC_VER)
 namespace std
@@ -371,21 +373,8 @@ namespace libtorrent
 						break;
 					}
 				}
-				if (binary_string)
-				{
-					os.unsetf(std::ios_base::dec);
-					os.setf(std::ios_base::hex);
-					for (std::string::const_iterator i = string().begin(); i != string().end(); ++i)
-						os << std::setfill('0') << std::setw(2)
-							<< static_cast<unsigned int>((unsigned char)*i);
-					os.unsetf(std::ios_base::hex);
-					os.setf(std::ios_base::dec);
-					os << "\n";
-				}
-				else
-				{
-					os << string() << "\n";
-				}
+				if (binary_string) os << to_hex(string()) << "\n";
+				else os << string() << "\n";
 			} break;
 		case list_t:
 			{
@@ -400,8 +389,21 @@ namespace libtorrent
 				os << "dictionary\n";
 				for (dictionary_type::const_iterator i = dict().begin(); i != dict().end(); ++i)
 				{
+					bool binary_string = false;
+					for (std::string::const_iterator k = i->first.begin(); k != i->first.end(); ++k)
+					{
+						if (!std::isprint(static_cast<unsigned char>(*k)))
+						{
+							binary_string = true;
+							break;
+						}
+					}
 					for (int j = 0; j < indent+1; ++j) os << " ";
-					os << "[" << i->first << "]";
+					os << "[";
+					if (binary_string) os << to_hex(i->first);
+					else os << i->first;
+					os << "]";
+
 					if (i->second.type() != entry::string_t
 						&& i->second.type() != entry::int_t)
 						os << "\n";
