@@ -1148,7 +1148,7 @@ int main(int ac, char* av[])
 				}
 				else if (peer_error_alert* p = dynamic_cast<peer_error_alert*>(a.get()))
 				{
-					event_string << identify_client(p->pid) << ": " << a->msg();
+					event_string << identify_client(p->pid) << ", " << p->ip << ": " << a->msg();
 				}
 				else if (invalid_request_alert* p = dynamic_cast<invalid_request_alert*>(a.get()))
 				{
@@ -1156,11 +1156,11 @@ int main(int ac, char* av[])
 				}
 				else if (tracker_warning_alert* p = dynamic_cast<tracker_warning_alert*>(a.get()))
 				{
-					event_string << "tracker message: " << p->msg();
+					event_string << "tracker message: " << p->msg() << " (" << p->url << ")";
 				}
 				else if (tracker_reply_alert* p = dynamic_cast<tracker_reply_alert*>(a.get()))
 				{
-					event_string << p->msg() << " (" << p->num_peers << ")";
+					event_string << p->msg() << " (" << p->num_peers << ") (" << p->url << ")";
 				}
 				else if (url_seed_alert* p = dynamic_cast<url_seed_alert*>(a.get()))
 				{
