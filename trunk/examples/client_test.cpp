@@ -1278,8 +1278,9 @@ int main(int ac, char* av[])
 					<< "swarm: " << to_string(downloaders, 4) << ":" << to_string(seeds, 4)
 					<< "  bw queue: (" << s.up_bandwidth_queue << " | " << s.down_bandwidth_queue << ") "
 					"all-time (Rx: " << esc("32") << add_suffix(s.all_time_download) << term
-					<< " Tx: " << esc("31") << add_suffix(s.all_time_upload) << term << ") " << std::hex << s.seed_rank << std::dec << "\n"
-					<< esc("0");
+					<< " Tx: " << esc("31") << add_suffix(s.all_time_upload) << term << ") "
+					<< std::hex << s.seed_rank << std::dec << " "
+					<< s.last_scrape << "\n" << esc("0");
 
 				if (s.state != torrent_status::seeding)
 				{

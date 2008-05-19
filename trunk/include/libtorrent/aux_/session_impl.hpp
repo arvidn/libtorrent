@@ -489,6 +489,11 @@ namespace libtorrent
 			// from the torrent with the most peers
 			int m_disconnect_time_scaler;
 
+			// when this scaler reaches zero, it will
+			// scrape one of the auto managed, paused,
+			// torrents.
+			int m_auto_scrape_time_scaler;
+
 			// statistics gathered from all torrents.
 			stat m_stat;
 

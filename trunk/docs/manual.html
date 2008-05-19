@@ -2265,6 +2265,8 @@ struct torrent_status
         int seeding_time;
 
         int seed_rank;
+
+        int last_scrape;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">progress</span></tt> is a value in the range [0, 1], that represents the progress of the
@@ -2421,6 +2423,8 @@ across sessions.</p>
 <p><tt class="docutils literal"><span class="pre">seed_rank</span></tt> is a rank of how important it is to seed the torrent, it is used
 to determine which torrents to seed and which to queue. It is based on the peer
 to seed ratio from the tracker scrape. For more information, see <a class="reference internal" href="#queuing">queuing</a>.</p>
+<p><tt class="docutils literal"><span class="pre">last_scrape</span></tt> is the number of seconds since this torrent acquired scrape data.
+If it has never done that, this value is -1.</p>
 </div>
 <div class="section" id="peer-info">
 <h1>peer_info</h1>
@@ -2801,6 +2805,9 @@ struct session_settings
         float seed_time_ratio_limit;
         int seed_time_limit;
         bool close_redundant_connections;
+
+        int auto_scrape_interval;
+        int auto_scrape_min_interval;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -2978,6 +2985,15 @@ See <a class="reference internal" href="#queuing">queuing</a>.</p>
 connections where both ends have no utility in keeping the connection open.
 For instance if both ends have completed their downloads, there's no point
 in keeping it open. This defaults to <tt class="docutils literal"><span class="pre">true</span></tt>.</p>
+<p><tt class="docutils literal"><span class="pre">auto_scrape_interval</span></tt> is the number of seconds between scrapes of
+queued torrents (auto managed and paused torrents). Auto managed
+torrents that are paused, are scraped regularly in order to keep
+track of their downloader/seed ratio. This ratio is used to determine
+which torrents to seed and which to pause.</p>
+<p><tt class="docutils literal"><span class="pre">auto_scrape_min_interval</span></tt> is the minimum number of seconds between any
+automatic scrape (regardless of torrent). In case there are a large number
+of paused auto managed torrents, this puts a limit on how often a scrape
+request is sent.</p>
 </div>
 <div class="section" id="pe-settings">
 <h1>pe_settings</h1>

@@ -355,6 +355,7 @@ namespace libtorrent
 		void force_tracker_request();
 		void force_tracker_request(ptime);
 		void scrape_tracker();
+		ptime const& last_scrape() const { return m_last_scrape; }
 
 		// sets the username and password that will be sent to
 		// the tracker
@@ -613,6 +614,10 @@ namespace libtorrent
 		// bias towards keeping seeding torrents that
 		// recently was started, to avoid oscillation
 		ptime m_started;
+
+		// the last time we initiated a scrape request to
+		// one of the trackers in this torrent
+		ptime m_last_scrape;
 
 		boost::intrusive_ptr<torrent_info> m_torrent_file;
 

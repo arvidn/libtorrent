@@ -2229,6 +2229,8 @@ It contains the following fields::
 		int seeding_time;
 
 		int seed_rank;
+
+		int last_scrape;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -2403,6 +2405,9 @@ across sessions.
 ``seed_rank`` is a rank of how important it is to seed the torrent, it is used
 to determine which torrents to seed and which to queue. It is based on the peer
 to seed ratio from the tracker scrape. For more information, see queuing_.
+
+``last_scrape`` is the number of seconds since this torrent acquired scrape data.
+If it has never done that, this value is -1.
 
 
 peer_info
@@ -2784,6 +2789,9 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		float seed_time_ratio_limit;
 		int seed_time_limit;
 		bool close_redundant_connections;
+
+		int auto_scrape_interval;
+		int auto_scrape_min_interval;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3008,6 +3016,17 @@ See queuing_.
 connections where both ends have no utility in keeping the connection open.
 For instance if both ends have completed their downloads, there's no point
 in keeping it open. This defaults to ``true``.
+
+``auto_scrape_interval`` is the number of seconds between scrapes of
+queued torrents (auto managed and paused torrents). Auto managed
+torrents that are paused, are scraped regularly in order to keep
+track of their downloader/seed ratio. This ratio is used to determine
+which torrents to seed and which to pause.
+
+``auto_scrape_min_interval`` is the minimum number of seconds between any
+automatic scrape (regardless of torrent). In case there are a large number
+of paused auto managed torrents, this puts a limit on how often a scrape
+request is sent.
 
 
 pe_settings
