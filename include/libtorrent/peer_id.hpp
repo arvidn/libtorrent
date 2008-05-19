@@ -141,6 +141,9 @@ namespace libtorrent
 		iterator begin() { return m_number; }
 		iterator end() { return m_number+number_size; }
 
+		std::string to_string() const
+		{ return std::string((char const*)&m_number[0], number_size); }
+
 	private:
 
 		unsigned char m_number[number_size];
