@@ -593,33 +593,32 @@ namespace libtorrent
 
 		void update_peer_interest(bool was_finished);
 
+		policy m_policy;
+
+		// total time we've been available on this torrent
+		// does not count when the torrent is stopped or paused
+		time_duration m_active_time;
+
+		// total time we've been available as a seed on this torrent
+		// does not count when the torrent is stopped or paused
+		time_duration m_seeding_time;
+
+		// all time totals of uploaded and downloaded payload
+		// stored in resume data
+		size_type m_total_uploaded;
+		size_type m_total_downloaded;
+
+		// if this torrent is running, this was the time
+		// when it was started. This is used to have a
+		// bias towards keeping seeding torrents that
+		// recently was started, to avoid oscillation
+		ptime m_started;
+
 		boost::intrusive_ptr<torrent_info> m_torrent_file;
-
-		// is set to true when the torrent has
-		// been aborted.
-		bool m_abort;
-
-		// is true if this torrent has been paused
-		bool m_paused;
-		// this is true from the time when the torrent was
-		// paused to the time should_request() is called
-		bool m_just_paused;
-
-		// if this is true, libtorrent may pause and resume
-		// this torrent depending on queuing rules. Torrents
-		// started with auto_managed flag set may be added in
-		// a paused state in case there are no available
-		// slots.
-		bool m_auto_managed;
 
 		tracker_request::event_t m_event;
 
 		void parse_response(const entry& e, std::vector<peer_entry>& peer_list);
-
-		// the size of a request block
-		// each piece is divided into these
-		// blocks when requested
-		int m_block_size;
 
 		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been
@@ -649,18 +648,6 @@ namespace libtorrent
 		// the time of next tracker request
 		ptime m_next_request;
 
-		// -----------------------------
-		// DATA FROM TRACKER RESPONSE
-
-		// the number number of seconds between requests
-		// from the tracker
-		int m_duration;
-
-		// the scrape data from the tracker response, this
-		// is optional and may be -1.
-		int m_complete;
-		int m_incomplete;
-
 #ifndef NDEBUG
 	public:
 #endif
@@ -681,21 +668,14 @@ namespace libtorrent
 		// resolving the address for
 		std::set<std::string> m_resolving_web_seeds;
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		typedef std::list<boost::shared_ptr<torrent_plugin> > extension_list_t;
+		extension_list_t m_extensions;
+#endif
+
 		// used to resolve the names of web seeds
 		mutable tcp::resolver m_host_resolver;
 		
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		// this is true while there is a country
-		// resolution in progress. To avoid flodding
-		// the DNS request queue, only one ip is resolved
-		// at a time.
-		mutable bool m_resolving_country;
-		
-		// this is true if the user has enabled
-		// country resolution in this torrent
-		bool m_resolve_countries;
-#endif
-
 		// this announce timer is used both
 		// by Local service discovery and
 		// by the DHT.
@@ -737,40 +717,8 @@ namespace libtorrent
 		std::vector<announce_entry> m_trackers;
 		// this is an index into m_trackers
 
-		int m_last_working_tracker;
-		int m_currently_trying_tracker;
-		// the number of connection attempts that has
-		// failed in a row, this is currently used to
-		// determine the timeout until next try.
-		int m_failed_trackers;
-
-		// this is a counter that is decreased every
-		// second, and when it reaches 0, the policy::pulse()
-		// is called and the time scaler is reset to 10.
-		int m_time_scaler;
-
 		// the bitmask that says which pieces we have
 		std::vector<bool> m_have_pieces;
-
-		// the number of pieces we have. The same as
-		// std::accumulate(m_have_pieces.begin(),
-		// m_have_pieces.end(), 0)
-		int m_num_pieces;
-
-		// in case the piece picker hasn't been constructed
-		// when this settings is set, this variable will keep
-		// its value until the piece picker is created
-		bool m_sequential_download;
-
-		// is false by default and set to
-		// true when the first tracker reponse
-		// is received
-		bool m_got_tracker_response;
-
-		// the upload/download ratio that each peer
-		// tries to maintain.
-		// 0 is infinite
-		float m_ratio;
 
 		// the number of bytes that has been
 		// downloaded that failed the hash-test
@@ -791,24 +739,8 @@ namespace libtorrent
 
 		// the state of this torrent (queued, checking, downloading)
 		torrent_status::state_t m_state;
-		float m_progress;
 
 		entry m_resume_data;
-
-		// defaults to 16 kiB, but can be set by the user
-		// when creating the torrent
-		const int m_default_block_size;
-
-		// this is set to false as long as the connections
-		// of this torrent hasn't been initialized. If we
-		// have metadata from the start, connections are
-		// initialized immediately, if we didn't have metadata,
-		// they are initialized right after files_checked().
-		// valid_resume_data() will return false as long as
-		// the connections aren't initialized, to avoid
-		// them from altering the piece-picker before it
-		// has been initialized with files_checked().
-		bool m_connections_initialized;
 
 		// if the torrent is started without metadata, it may
 		// still be given a name until the metadata is received
@@ -820,6 +752,18 @@ namespace libtorrent
 
 		storage_constructor_type m_storage_constructor;
 
+		float m_progress;
+
+		// the number of pieces we have. The same as
+		// std::accumulate(m_have_pieces.begin(),
+		// m_have_pieces.end(), 0)
+		int m_num_pieces;
+
+		// the upload/download ratio that each peer
+		// tries to maintain.
+		// 0 is infinite
+		float m_ratio;
+
 		// the maximum number of uploads for this torrent
 		int m_max_uploads;
 
@@ -829,14 +773,18 @@ namespace libtorrent
 		// the maximum number of connections for this torrent
 		int m_max_connections;
 
-#ifndef NDEBUG
-		bool m_files_checked;
-#endif
-		
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		typedef std::list<boost::shared_ptr<torrent_plugin> > extension_list_t;
-		extension_list_t m_extensions;
-#endif
+		// the size of a request block
+		// each piece is divided into these
+		// blocks when requested
+		int m_block_size;
+
+		// -----------------------------
+		// DATA FROM TRACKER RESPONSE
+
+		// the scrape data from the tracker response, this
+		// is optional and may be -1.
+		int m_complete;
+		int m_incomplete;
 
 #ifndef NDEBUG
 		// this is the amount downloaded when this torrent
@@ -858,30 +806,84 @@ namespace libtorrent
 		// torrent object, these points are called connect_points.
 		int m_deficit_counter;
 
-		policy m_policy;
+		// the number number of seconds between requests
+		// from the tracker
+		boost::int16_t m_duration;
 
 		// the sequence number for this torrent, this is a
 		// monotonically increasing number for each added torrent
-		int m_sequence_number;
+		boost::int16_t m_sequence_number;
 
-		// total time we've been available on this torrent
-		// does not count when the torrent is stopped or paused
-		time_duration m_active_time;
+		// the index to the last tracker that worked
+		boost::int8_t m_last_working_tracker;
 
-		// total time we've been available as a seed on this torrent
-		// does not count when the torrent is stopped or paused
-		time_duration m_seeding_time;
+		// the tracker that is currently (or was last)
+		// tried
+		boost::int8_t m_currently_trying_tracker;
 
-		// all time totals of uploaded and downloaded payload
-		// stored in resume data
-		size_type m_total_uploaded;
-		size_type m_total_downloaded;
+		// the number of connection attempts that has
+		// failed in a row, this is currently used to
+		// determine the timeout until next try.
+		boost::int8_t m_failed_trackers;
 
-		// if this torrent is running, this was the time
-		// when it was started. This is used to have a
-		// bias towards keeping seeding torrents that
-		// recently was started, to avoid oscillation
-		ptime m_started;
+		// this is a counter that is decreased every
+		// second, and when it reaches 0, the policy::pulse()
+		// is called and the time scaler is reset to 10.
+		boost::int8_t m_time_scaler;
+
+		// is set to true when the torrent has
+		// been aborted.
+		bool m_abort:1;
+
+		// is true if this torrent has been paused
+		bool m_paused:1;
+		// this is true from the time when the torrent was
+		// paused to the time should_request() is called
+		bool m_just_paused:1;
+
+		// if this is true, libtorrent may pause and resume
+		// this torrent depending on queuing rules. Torrents
+		// started with auto_managed flag set may be added in
+		// a paused state in case there are no available
+		// slots.
+		bool m_auto_managed:1;
+
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+		// this is true while there is a country
+		// resolution in progress. To avoid flodding
+		// the DNS request queue, only one ip is resolved
+		// at a time.
+		mutable bool m_resolving_country:1;
+		
+		// this is true if the user has enabled
+		// country resolution in this torrent
+		bool m_resolve_countries:1;
+#endif
+
+		// in case the piece picker hasn't been constructed
+		// when this settings is set, this variable will keep
+		// its value until the piece picker is created
+		bool m_sequential_download:1;
+
+		// is false by default and set to
+		// true when the first tracker reponse
+		// is received
+		bool m_got_tracker_response:1;
+
+		// this is set to false as long as the connections
+		// of this torrent hasn't been initialized. If we
+		// have metadata from the start, connections are
+		// initialized immediately, if we didn't have metadata,
+		// they are initialized right after files_checked().
+		// valid_resume_data() will return false as long as
+		// the connections aren't initialized, to avoid
+		// them from altering the piece-picker before it
+		// has been initialized with files_checked().
+		bool m_connections_initialized:1;
+
+#ifndef NDEBUG
+		bool m_files_checked:1;
+#endif
 	};
 
 	inline ptime torrent::next_announce() const
