@@ -302,20 +302,6 @@ namespace libtorrent
 	{
 	}
 
-	torrent_info::torrent_info()
-		: m_piece_length(0)
-		, m_total_size(0)
-		, m_num_pieces(0)
-		, m_info_hash(0)
-		, m_name()
-		, m_creation_date(pt::second_clock::universal_time())
-		, m_multifile(false)
-		, m_private(false)
-		, m_info_section_size(0)
-		, m_piece_hashes(0)
-	{
-	}
-
 	torrent_info::torrent_info(char const* filename)
 		: m_num_pieces(0)
 		, m_creation_date(pt::ptime(pt::not_a_date_time))

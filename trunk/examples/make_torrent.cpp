@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/file_pool.hpp"
+#include "libtorrent/create_torrent.hpp"
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -50,10 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::filesystem;
 using namespace libtorrent;
 
-void add_files(
-	torrent_info& t
-	, path const& p
-	, path const& l)
+void add_files(create_torrent& t, path const& p, path const& l)
 {
 	if (l.leaf()[0] == '.') return;
 	path f(p / l);
@@ -89,40 +87,44 @@ int main(int argc, char* argv[])
 	try
 	{
 #endif
-		boost::intrusive_ptr<torrent_info> t(new torrent_info);
+		create_torrent t;
 		path full_path = complete(path(argv[3]));
-		ofstream out(complete(path(argv[1])), std::ios_base::binary);
 
 		int piece_size = 256 * 1024;
 		char const* creator_str = "libtorrent";
 
-		add_files(*t, full_path.branch_path(), full_path.leaf());
-		t->set_piece_size(piece_size);
+		add_files(t, full_path.branch_path(), full_path.leaf());
+		t.set_piece_size(piece_size);
+		t.add_tracker(argv[2]);
+
+		std::vector<char> tmp;
+		bencode(std::back_inserter(tmp), t.generate());
+		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size()));
 
 		file_pool fp;
 		boost::scoped_ptr<storage_interface> st(
-			default_storage_constructor(t, full_path.branch_path(), fp));
-		t->add_tracker(argv[2]);
+			default_storage_constructor(info, full_path.branch_path(), fp));
 
 		// calculate the hash for all pieces
-		int num = t->num_pieces();
+		int num = t.num_pieces();
 		std::vector<char> buf(piece_size);
 		for (int i = 0; i < num; ++i)
 		{
-			st->read(&buf[0], i, 0, t->piece_size(i));
-			hasher h(&buf[0], t->piece_size(i));
-			t->set_hash(i, h.final());
-			std::cerr << (i+1) << "/" << num << "\r";
+			st->read(&buf[0], i, 0, t.piece_size(i));
+			hasher h(&buf[0], t.piece_size(i));
+			t.set_hash(i, h.final());
+			std::cerr << "\r" << (i+1) << "/" << num;
 		}
+		std::cerr << std::endl;
 
-		t->set_creator(creator_str);
+		t.set_creator(creator_str);
 
 		if (argc == 5)
-			t->add_url_seed(argv[4]);
+			t.add_url_seed(argv[4]);
 
 		// create the torrent and print it to out
-		entry e = t->create_torrent();
-		libtorrent::bencode(std::ostream_iterator<char>(out), e);
+		ofstream out(complete(path(argv[1])), std::ios_base::binary);
+		bencode(std::ostream_iterator<char>(out), t.generate());
 #ifndef BOOST_NO_EXCEPTIONS
 	}
 	catch (std::exception& e)
