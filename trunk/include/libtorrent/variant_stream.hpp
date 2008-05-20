@@ -21,7 +21,11 @@
 # include <boost/type_traits/add_pointer.hpp>
 # include <boost/noncopyable.hpp>
 
+#if BOOST_VERSION < 103500
+#include <asio/io_service.hpp>
+#else
 #include <boost/asio/io_service.hpp>
+#endif
 
 # define NETWORK_VARIANT_STREAM_LIMIT 5
 

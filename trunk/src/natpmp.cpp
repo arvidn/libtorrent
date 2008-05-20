@@ -33,7 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <boost/bind.hpp>
+#if BOOST_VERSION < 103500
+#include <asio/ip/host_name.hpp>
+#else
 #include <boost/asio/ip/host_name.hpp>
+#endif
 
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/io.hpp"

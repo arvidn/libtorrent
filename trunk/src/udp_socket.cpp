@@ -4,7 +4,11 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/array.hpp>
+#if BOOST_VERSION < 103500
+#include <asio/read.hpp>
+#else
 #include <boost/asio/read.hpp>
+#endif
 
 using namespace libtorrent;
 

@@ -47,7 +47,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/utility.hpp>
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
+#if BOOST_VERSION >= 103500
 #include <boost/system/error_code.hpp>
+#endif
+
 #include <boost/version.hpp>
 
 #ifdef _MSC_VER
@@ -60,7 +63,9 @@ using boost::iostreams::mapped_file_params;
 namespace libtorrent
 {
 	namespace fs = boost::filesystem;
+#if BOOST_VERSION >= 103500
 	using boost::system::error_code;
+#endif
 
 	struct mapped_file_pool
 	{
@@ -199,7 +204,11 @@ namespace libtorrent
 			size_type start = (offset / view_size) * view_size;
 			TORRENT_ASSERT(start + view_size >= offset + length);
 
+#if BOOST_VERSION < 103500
+			fs::system_error_type ec;
+#else
 			error_code ec;
+#endif
 			fs::file_status st = fs::status(p, ec);
 			
 			m_files.push_back(file_entry());

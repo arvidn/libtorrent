@@ -38,9 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
+#if BOOST_VERSION < 103500
+#include <asio/read.hpp>
+#include <asio/write.hpp>
+#else
 #include <boost/asio/read.hpp>
 #include <boost/asio/write.hpp>
-
+#endif
 
 namespace libtorrent {
 
