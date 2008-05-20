@@ -32,7 +32,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#include <boost/version.hpp>
 #include <boost/bind.hpp>
+
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #else
