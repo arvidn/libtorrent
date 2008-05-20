@@ -1253,6 +1253,13 @@ int main(int ac, char* av[])
 				bool paused = h.is_paused();
 				bool auto_managed = h.is_auto_managed();
 				out << std::setw(13) << std::setiosflags(std::ios::left);
+				if (!s.error.empty())
+				{
+					out << esc("31") << "error " << s.error;
+					out << esc("0") << std::endl;
+					continue;
+				}
+
 				if (paused && !auto_managed) out << "paused";
 				else if (paused && auto_managed) out << "queued";
 				else

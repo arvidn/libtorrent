@@ -1043,7 +1043,7 @@ namespace aux {
 			else
 				++uncongested_torrents;
 
-			if (t.is_auto_managed() && t.is_paused())
+			if (t.is_auto_managed() && t.is_paused() && !t.has_error())
 			{
 				++num_paused_auto_managed;
 				if (!least_recently_scraped->second->is_auto_managed()
@@ -1308,7 +1308,7 @@ namespace aux {
 		{
 			torrent* t = i->second.get();
 			TORRENT_ASSERT(t);
-			if (t->is_auto_managed())
+			if (t->is_auto_managed() && !t->has_error())
 			{
 				// this torrent is auto managed, add it to
 				// the list (depending on if it's a seed or not)

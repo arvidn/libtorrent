@@ -181,6 +181,7 @@ namespace libtorrent
 
 		void ip_filter_updated() { m_policy.ip_filter_updated(); }
 
+		bool has_error() const { return !m_error.empty(); }
 		void pause();
 		void resume();
 		bool is_paused() const { return m_paused; }
@@ -749,6 +750,10 @@ namespace libtorrent
 
 		// the state of this torrent (queued, checking, downloading)
 		torrent_status::state_t m_state;
+
+		// if there's an error on this torrent, this is the
+		// error message
+		std::string m_error;
 
 		entry m_resume_data;
 

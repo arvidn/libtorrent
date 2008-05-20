@@ -2206,6 +2206,8 @@ struct torrent_status
         state_t state;
         bool paused;
         float progress;
+        std::string error;
+
         boost::posix_time::time_duration next_announce;
         boost::posix_time::time_duration announce_interval;
 
@@ -2319,6 +2321,9 @@ allocated.</td>
 </table>
 <p>When downloading, the progress is <tt class="docutils literal"><span class="pre">total_wanted_done</span></tt> / <tt class="docutils literal"><span class="pre">total_wanted</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">paused</span></tt> is set to true if the torrent is paused and false otherwise.</p>
+<p><tt class="docutils literal"><span class="pre">error</span></tt> may be set to an error message describing why the torrent was paused, in
+case it was paused by an error. If the torrent is not paused or if it's paused but
+not because of an error, this string is empty.</p>
 <p><tt class="docutils literal"><span class="pre">next_announce</span></tt> is the time until the torrent will announce itself to the tracker. And
 <tt class="docutils literal"><span class="pre">announce_interval</span></tt> is the time the tracker want us to wait until we announce ourself
 again the next time.</p>

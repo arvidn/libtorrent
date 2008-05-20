@@ -449,7 +449,7 @@ namespace libtorrent
 			}
 			std::fill(m_have_pieces.begin(), m_have_pieces.end(), false);
 			m_num_pieces = 0;
-			auto_managed(false);
+			m_error = j.str;
 			pause();
 			return;
 		}
@@ -637,7 +637,7 @@ namespace libtorrent
 			}
 			std::fill(m_have_pieces.begin(), m_have_pieces.end(), false);
 			m_num_pieces = 0;
-			auto_managed(false);
+			m_error = j.str;
 			pause();
 			m_ses.done_checking(shared_from_this());
 			return;
@@ -3564,6 +3564,7 @@ namespace libtorrent
 
 		m_paused = false;
 		m_started = time_now();
+		m_error.clear();
 
 		// tell the tracker that we're back
 		m_event = tracker_request::started;
@@ -3750,6 +3751,7 @@ namespace libtorrent
 			{
 				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
 			}
+			m_error = j.str;
 			pause();
 		}
 		f(ret);
@@ -3808,6 +3810,8 @@ namespace libtorrent
 		ptime now = time_now();
 
 		torrent_status st;
+
+		st.error = m_error;
 
 		if (m_last_scrape == min_time())
 		{
