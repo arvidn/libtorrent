@@ -2170,6 +2170,8 @@ It contains the following fields::
 		state_t state;
 		bool paused;
 		float progress;
+		std::string error;
+
 		boost::posix_time::time_duration next_announce;
 		boost::posix_time::time_duration announce_interval;
 
@@ -2272,6 +2274,10 @@ current task is in the ``state`` member, it will be one of the following:
 When downloading, the progress is ``total_wanted_done`` / ``total_wanted``.
 
 ``paused`` is set to true if the torrent is paused and false otherwise.
+
+``error`` may be set to an error message describing why the torrent was paused, in
+case it was paused by an error. If the torrent is not paused or if it's paused but
+not because of an error, this string is empty.
 
 ``next_announce`` is the time until the torrent will announce itself to the tracker. And
 ``announce_interval`` is the time the tracker want us to wait until we announce ourself

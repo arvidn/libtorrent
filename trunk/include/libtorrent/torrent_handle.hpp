@@ -137,6 +137,8 @@ namespace libtorrent
 		state_t state;
 		bool paused;
 		float progress;
+		std::string error;
+
 		boost::posix_time::time_duration next_announce;
 		boost::posix_time::time_duration announce_interval;
 
