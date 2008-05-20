@@ -45,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define Protocol Protocol_
 #endif
 
+#include <boost/version.hpp>
+
 #if BOOST_VERSION < 103500
 #include <asio/ip/tcp.hpp>
 #include <asio/ip/udp.hpp>
