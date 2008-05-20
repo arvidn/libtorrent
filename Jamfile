@@ -338,6 +338,7 @@ ZLIB_SOURCES =
 
 local usage-requirements = 
 	<include>./include
+	<include>./include/libtorrent
 	<zlib>shipped:<include>./zlib
 	<variant>release:<define>NDEBUG
 	<define>_FILE_OFFSET_BITS=64

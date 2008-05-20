@@ -64,7 +64,9 @@ namespace libtorrent
 {
 	namespace fs = boost::filesystem;
 #if BOOST_VERSION >= 103500
-	using boost::system::error_code;
+	typedef boost::system::error_code ec_t;
+#else
+	typedef error_code ec_t;
 #endif
 
 	struct mapped_file_pool
@@ -85,7 +87,7 @@ namespace libtorrent
 #ifndef NDEBUG
 				if (file_size > 0)
 				{
-					error_code ec;
+					ec_t ec;
 					fs::file_status st = fs::status(path, ec);
 					TORRENT_ASSERT(!fs::exists(st));
 				}
@@ -207,7 +209,7 @@ namespace libtorrent
 #if BOOST_VERSION < 103500
 			fs::system_error_type ec;
 #else
-			error_code ec;
+			ec_t ec;
 #endif
 			fs::file_status st = fs::status(p, ec);
 			
