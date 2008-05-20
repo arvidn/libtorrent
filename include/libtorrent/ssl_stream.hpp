@@ -34,8 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SSL_STREAM_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
+#if BOOST_VERSION < 103500
+#include <asio/ssl.hpp>
+#else
 #include <boost/asio/ssl.hpp>
-
+#endif
 // openssl seems to believe it owns
 // this name in every single scope
 #undef set_key

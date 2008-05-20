@@ -45,6 +45,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define Protocol Protocol_
 #endif
 
+#if BOOST_VERSION < 103500
+#include <asio/ip/tcp.hpp>
+#include <asio/ip/udp.hpp>
+#include <asio/io_service.hpp>
+#include <asio/deadline_timer.hpp>
+#include <asio/write.hpp>
+#include <asio/read.hpp>
+#include <asio/time_traits.hpp>
+#include <asio/basic_deadline_timer.hpp>
+#else
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/io_service.hpp>
@@ -53,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/read.hpp>
 #include <boost/asio/time_traits.hpp>
 #include <boost/asio/basic_deadline_timer.hpp>
-#include <boost/system/error_code.hpp>
+#endif
 
 #ifdef __OBJC__ 
 #undef Protocol
@@ -69,22 +79,24 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-/*
-	namespace asio = boost::asio;
+#if BOOST_VERSION < 103500
+	using asio::ip::tcp;
+	using asio::ip::udp;
+	using asio::async_write;
+	using asio::async_read;
 
-	using boost::asio::ipv4::tcp;
-	using boost::asio::ipv4::address;
-	using boost::asio::stream_socket;
-	using boost::asio::datagram_socket;
-	using boost::asio::socket_acceptor;
-	using boost::asio::io_service;
-	using boost::asio::ipv4::host_resolver;
-	using boost::asio::async_write;
-	using boost::asio::ipv4::host;
-	using boost::asio::deadline_timer;
-*/
-//	namespace asio = ::asio;
+	typedef asio::ip::tcp::socket stream_socket;
+	typedef asio::ip::address address;
+	typedef asio::ip::address_v4 address_v4;
+	typedef asio::ip::address_v6 address_v6;
+	typedef asio::ip::udp::socket datagram_socket;
+	typedef asio::ip::tcp::acceptor socket_acceptor;
+	typedef asio::io_service io_service;
+	typedef asio::error_code error_code;
 
+	namespace asio = ::asio;
+	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
+#else
 	using boost::system::error_code;
 	using boost::asio::ip::tcp;
 	using boost::asio::ip::udp;
@@ -100,8 +112,8 @@ namespace libtorrent
 	typedef boost::asio::io_service io_service;
 
 	namespace asio = boost::asio;
-	
 	typedef boost::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
+#endif
 	
 	inline std::ostream& print_address(std::ostream& os, address const& addr)
 	{

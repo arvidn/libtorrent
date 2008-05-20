@@ -30,8 +30,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#if BOOST_VERSION < 103500
+#include <asio/ip/host_name.hpp>
+#include <asio/ip/multicast.hpp>
+#else
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
+#endif
+
 #include <boost/bind.hpp>
 
 #include "libtorrent/socket.hpp"

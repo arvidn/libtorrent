@@ -35,8 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/broadcast_socket.hpp"
+#if BOOST_VERSION < 103500
+#include <asio/ip/host_name.hpp>
+#else
 #include <boost/asio/ip/host_name.hpp>
-
+#endif
 
 #if defined TORRENT_BSD
 #include <sys/ioctl.h>
