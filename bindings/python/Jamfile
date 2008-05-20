@@ -28,6 +28,6 @@ python-extension libtorrent
   : <include>src
     <boost>system:<library>boost_python
     <boost>source:<library>/boost/python//boost_python
-    <library>/torrent//torrent/<link>static
+    <library>/torrent//torrent
   ;
 
