@@ -1653,6 +1653,8 @@ namespace libtorrent
 		// the torrent just became finished
 		if (is_finished() && !was_finished)
 			finished();
+		else if (!is_finished() && was_finished)
+			resume_download();
 	}
 
 	void torrent::filter_piece(int index, bool filter)
@@ -2964,7 +2966,7 @@ namespace libtorrent
 		{
 			peer_connection* p = *i;
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
-			if (p->is_seed())
+			if (p->upload_only())
 			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*p->m_logger) << "*** SEED, CLOSING CONNECTION\n";
@@ -2980,7 +2982,16 @@ namespace libtorrent
 		m_storage->async_release_files(
 			bind(&torrent::on_files_released, shared_from_this(), _1, _2));
 	}
+
+	// this is called when we were finished, but some files were
+	// marked for downloading, and we are no longer finished	
+	void torrent::resume_download()
+	{
+		INVARIANT_CHECK;
 	
+		m_state = torrent_status::downloading;
+	}
+
 	// called when torrent is complete (all pieces downloaded)
 	void torrent::completed()
 	{

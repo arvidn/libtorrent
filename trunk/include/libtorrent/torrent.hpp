@@ -481,6 +481,11 @@ namespace libtorrent
 		// completed() is called immediately after it.
 		void finished();
 
+		// This is the opposite of finished. It is called if we used
+		// to be finished but enabled some files for download so that
+		// we wasn't finished anymore.
+		void resume_download();
+
 		void async_verify_piece(int piece_index, boost::function<void(int)> const&);
 
 		// this is called from the peer_connection
