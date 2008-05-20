@@ -1156,15 +1156,15 @@ int main(int ac, char* av[])
 				}
 				else if (tracker_warning_alert* p = dynamic_cast<tracker_warning_alert*>(a.get()))
 				{
-					event_string << "tracker message: " << p->msg() << " (" << p->url << ")";
+					event_string << "tracker message: " << p->msg() << " (" << p->url << ") (" << p->handle.name() << ")";
 				}
 				else if (tracker_reply_alert* p = dynamic_cast<tracker_reply_alert*>(a.get()))
 				{
-					event_string << p->msg() << " (" << p->num_peers << ") (" << p->url << ")";
+					event_string << p->msg() << " (" << p->num_peers << ") (" << p->url << ") (" << p->handle.name() << ")";
 				}
 				else if (url_seed_alert* p = dynamic_cast<url_seed_alert*>(a.get()))
 				{
-					event_string << "web seed '" << p->url << "': " << p->msg();
+					event_string << "web seed '" << p->url << "': " << p->msg() << " (" << p->handle.name() << ")";
 				}
 				else if (peer_blocked_alert* p = dynamic_cast<peer_blocked_alert*>(a.get()))
 				{
