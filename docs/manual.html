@@ -1210,9 +1210,9 @@ class torrent_info
 {
 public:
 
-        torrent_info();
         torrent_info(sha1_hash const&amp; info_hash);
-        torrent_info(entry const&amp; torrent_file);
+        torrent_info(lazy_entry const&amp; torrent_file);
+        torrent_info(char const* buffer, int size);
         torrent_info(char const* filename);
 
         void add_tracker(std::string const&amp; url, int tier = 0);
@@ -1256,8 +1256,6 @@ public:
         boost::optional&lt;boost::posix_time::ptime&gt;
         creation_date() const;
 
-        void print(std::ostream&amp; os) const;
-
         int piece_size(unsigned int index) const;
         sha1_hash const&amp; hash_for_piece(unsigned int index) const;
         char const* hash_for_piece_ptr(unsigned int index) const;
@@ -1270,26 +1268,22 @@ public:
 <h2>torrent_info()</h2>
 <blockquote>
 <pre class="literal-block">
-torrent_info();
 torrent_info(sha1_hash const&amp; info_hash);
-torrent_info(entry const&amp; torrent_file);
+torrent_info(lazy_entry const&amp; torrent_file);
+torrent_info(char const* buffer, int size);
 torrent_info(char const* filename);
 </pre>
 </blockquote>
-<p>The default constructor of <tt class="docutils literal"><span class="pre">torrent_info</span></tt> is used when creating torrent files. It will
-initialize the object to an empty torrent, containing no files. The info hash will be set
-to 0 when this constructor is used. To use the empty <tt class="docutils literal"><span class="pre">torrent_info</span></tt> object, add files
-and piece hashes, announce URLs and optionally a creator tag and comment. To do this you
-use the members <tt class="docutils literal"><span class="pre">set_comment()</span></tt>, <tt class="docutils literal"><span class="pre">set_piece_size()</span></tt>, <tt class="docutils literal"><span class="pre">set_creator()</span></tt>, <tt class="docutils literal"><span class="pre">set_hash()</span></tt>
-etc.</p>
-<p>The constructor that takes an info-hash is identical to the default constructor with the
-exception that it will initialize the info-hash to the given value. This is used internally
-when downloading torrents without the metadata. The metadata will be created by libtorrent
-as soon as it has been downloaded from the swarm.</p>
-<p>The constructor that takes an entry, is the one that is used in most cases. It will create
-a <tt class="docutils literal"><span class="pre">torrent_info</span></tt> object from the information found in the given torrent_file. The
-<tt class="docutils literal"><span class="pre">entry</span></tt> represents a tree node in an bencoded file. To load an ordinary .torrent file
-into an <tt class="docutils literal"><span class="pre">entry</span></tt>, use bdecode(), see <a class="reference internal" href="#bdecode-bencode">bdecode() bencode()</a>.</p>
+<p>The constructor that takes an info-hash  will initialize the info-hash to the given value,
+but leave all other fields empty. This is used internally when downloading torrents without
+the metadata. The metadata will be created by libtorrent as soon as it has been downloaded
+from the swarm.</p>
+<p>The constructor that takes a <tt class="docutils literal"><span class="pre">lazy_entry</span></tt> will create a <tt class="docutils literal"><span class="pre">torrent_info</span></tt> object from the
+information found in the given torrent_file. The <tt class="docutils literal"><span class="pre">lazy_entry</span></tt> represents a tree node in
+an bencoded file. To load an ordinary .torrent file
+into a <tt class="docutils literal"><span class="pre">lazy_entry</span></tt>, use lazy_bdecode(), see <a class="reference internal" href="#bdecode-bencode">bdecode() bencode()</a>.</p>
+<p>The version that takes a buffer pointer and a size will decode it as a .torrent file and
+initialize the torrent_info object for you.</p>
 <p>The version that takes a filename will simply load the torrent file and decode it inside
 the constructor, for convenience. This might not be the most suitable for applications that
 want to be able to report detailed errors on what might go wrong.</p>
@@ -1518,8 +1512,6 @@ piece and <tt class="docutils literal"><span class="pre">info_hash()</span></tt>
 torrent file. For more information on the <tt class="docutils literal"><span class="pre">sha1_hash</span></tt>, see the <a class="reference internal" href="#big-number">big_number</a> class.
 <tt class="docutils literal"><span class="pre">hash_for_piece_ptr()</span></tt> returns a pointer to the 20 byte sha1 digest for the piece.
 Note that the string is not null-terminated.</p>
-<p><tt class="docutils literal"><span class="pre">info_hash()</span></tt> will only return a valid hash if the torrent_info was read from a
-<tt class="docutils literal"><span class="pre">.torrent</span></tt> file or if an <tt class="docutils literal"><span class="pre">entry</span></tt> was created from it (through <tt class="docutils literal"><span class="pre">create_torrent</span></tt>).</p>
 </div>
 <div class="section" id="name-comment-creation-date-creator">
 <h2>name() comment() creation_date() creator()</h2>

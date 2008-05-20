@@ -1096,9 +1096,9 @@ The ``torrent_info`` has the following synopsis::
 	{
 	public:
 
-		torrent_info();
 		torrent_info(sha1_hash const& info_hash);
-		torrent_info(entry const& torrent_file);
+		torrent_info(lazy_entry const& torrent_file);
+		torrent_info(char const* buffer, int size);
 		torrent_info(char const* filename);
 
 		void add_tracker(std::string const& url, int tier = 0);
@@ -1142,8 +1142,6 @@ The ``torrent_info`` has the following synopsis::
 		boost::optional<boost::posix_time::ptime>
 		creation_date() const;
 
-		void print(std::ostream& os) const;
-	
 		int piece_size(unsigned int index) const;
 		sha1_hash const& hash_for_piece(unsigned int index) const;
 		char const* hash_for_piece_ptr(unsigned int index) const;
@@ -1157,27 +1155,23 @@ torrent_info()
    
 	::
 
-		torrent_info();
 		torrent_info(sha1_hash const& info_hash);
-		torrent_info(entry const& torrent_file);
+		torrent_info(lazy_entry const& torrent_file);
+		torrent_info(char const* buffer, int size);
 		torrent_info(char const* filename);
 
-The default constructor of ``torrent_info`` is used when creating torrent files. It will
-initialize the object to an empty torrent, containing no files. The info hash will be set
-to 0 when this constructor is used. To use the empty ``torrent_info`` object, add files
-and piece hashes, announce URLs and optionally a creator tag and comment. To do this you
-use the members ``set_comment()``, ``set_piece_size()``, ``set_creator()``, ``set_hash()``
-etc.
+The constructor that takes an info-hash  will initialize the info-hash to the given value,
+but leave all other fields empty. This is used internally when downloading torrents without
+the metadata. The metadata will be created by libtorrent as soon as it has been downloaded
+from the swarm.
 
-The constructor that takes an info-hash is identical to the default constructor with the
-exception that it will initialize the info-hash to the given value. This is used internally
-when downloading torrents without the metadata. The metadata will be created by libtorrent
-as soon as it has been downloaded from the swarm.
+The constructor that takes a ``lazy_entry`` will create a ``torrent_info`` object from the
+information found in the given torrent_file. The ``lazy_entry`` represents a tree node in
+an bencoded file. To load an ordinary .torrent file
+into a ``lazy_entry``, use lazy_bdecode(), see `bdecode() bencode()`_.
 
-The constructor that takes an entry, is the one that is used in most cases. It will create
-a ``torrent_info`` object from the information found in the given torrent_file. The
-``entry`` represents a tree node in an bencoded file. To load an ordinary .torrent file
-into an ``entry``, use bdecode(), see `bdecode() bencode()`_.
+The version that takes a buffer pointer and a size will decode it as a .torrent file and
+initialize the torrent_info object for you.
 
 The version that takes a filename will simply load the torrent file and decode it inside
 the constructor, for convenience. This might not be the most suitable for applications that
@@ -1437,9 +1431,6 @@ piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of
 torrent file. For more information on the ``sha1_hash``, see the big_number_ class.
 ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest for the piece. 
 Note that the string is not null-terminated.
-
-``info_hash()`` will only return a valid hash if the torrent_info was read from a
-``.torrent`` file or if an ``entry`` was created from it (through ``create_torrent``).
 
 
 name() comment() creation_date() creator()
