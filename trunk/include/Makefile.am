@@ -57,6 +57,7 @@ libtorrent/session.hpp \
 libtorrent/session_settings.hpp \
 libtorrent/session_status.hpp \
 libtorrent/size_type.hpp \
+libtorrent/ssl_stream.hpp \
 libtorrent/socket.hpp \
 libtorrent/socket_type.hpp \
 libtorrent/socks4_stream.hpp \
