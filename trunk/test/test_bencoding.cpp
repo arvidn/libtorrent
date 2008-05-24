@@ -120,7 +120,7 @@ int test_main()
 	}
 
 	{
-		char b[] = "d1:ai12453e1:b3:aaa1:c3:bbbe";
+		char b[] = "d1:ai12453e1:b3:aaa1:c3:bbb1:X10:0123456789e";
 		lazy_entry e;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
 		TORRENT_ASSERT(ret == 0);
@@ -129,7 +129,7 @@ int test_main()
 		TORRENT_ASSERT(memcmp(b, section.first, section.second) == 0);
 		TORRENT_ASSERT(section.second == sizeof(b) - 1);
 		TORRENT_ASSERT(e.type() == lazy_entry::dict_t);
-		TORRENT_ASSERT(e.dict_size() == 3);
+		TORRENT_ASSERT(e.dict_size() == 4);
 		TORRENT_ASSERT(e.dict_find("a")->type() == lazy_entry::int_t);
 		TORRENT_ASSERT(e.dict_find("a")->int_value() == 12453);
 		TORRENT_ASSERT(e.dict_find("b")->type() == lazy_entry::string_t);
@@ -138,6 +138,7 @@ int test_main()
 		TORRENT_ASSERT(e.dict_find("c")->type() == lazy_entry::string_t);
 		TORRENT_ASSERT(e.dict_find("c")->string_value() == std::string("bbb"));
 		TORRENT_ASSERT(e.dict_find("c")->string_length() == 3);
+		TORRENT_ASSERT(e.dict_find_string_value("X") == "0123456789");
 	}
 	return 0;
 }
