@@ -206,7 +206,7 @@ namespace libtorrent
 		int num_digits(int val)
 		{
 			int ret = 1;
-			while (val > 10)
+			while (val >= 10)
 			{
 				++ret;
 				val /= 10;
