@@ -457,7 +457,7 @@ void node_impl::on_announce(msg const& m, msg& reply)
 
 	torrent_entry& v = m_map[m.info_hash];
 	peer_entry e;
-	e.addr = tcp::endpoint(m.addr.address(), m.addr.port());
+	e.addr = tcp::endpoint(m.addr.address(), m.port);
 	e.added = second_clock::universal_time();
 	std::set<peer_entry>::iterator i = v.peers.find(e);
 	if (i != v.peers.end()) v.peers.erase(i++);
