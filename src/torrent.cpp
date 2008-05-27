@@ -3266,7 +3266,7 @@ namespace libtorrent
 				--filtered_pieces;
 			}
 			
-			st.total_wanted -= filtered_pieces * m_torrent_file->piece_length();
+			st.total_wanted -= size_type(filtered_pieces) * m_torrent_file->piece_length();
 		}
 
 		TORRENT_ASSERT(st.total_wanted >= st.total_wanted_done);
