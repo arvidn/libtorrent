@@ -531,7 +531,7 @@ namespace libtorrent
 				// parse have bitmask
 				entry const* pieces = m_resume_data.find_key("pieces");
 				if (pieces && pieces->type() == entry::string_t
-					&& pieces->string().length() == m_torrent_file->num_pieces())
+					&& int(pieces->string().length()) == m_torrent_file->num_pieces())
 				{
 					std::string const& pieces_str = pieces->string();
 					for (int i = 0, end(pieces_str.size()); i < end; ++i)
@@ -3906,20 +3906,22 @@ namespace libtorrent
 
 		st.total_wanted = m_torrent_file->total_size();
 		TORRENT_ASSERT(st.total_wanted >= 0);
+		TORRENT_ASSERT(st.total_wanted >= m_torrent_file->piece_length()
+			* (m_torrent_file->num_pieces() - 1));
 
 		if (m_picker.get() && (m_picker->num_filtered() > 0
 			|| m_picker->num_have_filtered() > 0))
 		{
-			int filtered_pieces = m_picker->num_filtered()
+			int num_filtered_pieces = m_picker->num_filtered()
 				+ m_picker->num_have_filtered();
 			int last_piece_index = m_torrent_file->num_pieces() - 1;
 			if (m_picker->piece_priority(last_piece_index) == 0)
 			{
 				st.total_wanted -= m_torrent_file->piece_size(last_piece_index);
-				--filtered_pieces;
+				--num_filtered_pieces;
 			}
 			
-			st.total_wanted -= filtered_pieces * m_torrent_file->piece_length();
+			st.total_wanted -= size_type(num_filtered_pieces) * m_torrent_file->piece_length();
 		}
 
 		TORRENT_ASSERT(st.total_wanted >= st.total_wanted_done);
