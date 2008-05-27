@@ -38,13 +38,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/chained_buffer.hpp"
+#include "libtorrent/socket.hpp"
 
 #include "test.hpp"
 
 using libtorrent::buffer;
 using libtorrent::chained_buffer;
-
-namespace asio = boost::asio;
 
 /*
 template<class T>
