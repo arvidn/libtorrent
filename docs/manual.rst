@@ -2760,6 +2760,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 
 		int auto_scrape_interval;
 		int auto_scrape_min_interval;
+
+		int max_peerlist_size;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -2996,6 +2998,12 @@ automatic scrape (regardless of torrent). In case there are a large number
 of paused auto managed torrents, this puts a limit on how often a scrape
 request is sent.
 
+``max_peerlist_size`` is the maximum number of peers in the list of
+known peers. These peers are not necessarily connected, so this number
+should be much greater than the maximum number of connected peers.
+Peers are evicted from the cache when the list grows passed 90% of
+this limit, and once the size hits the limit, peers are no longer
+added to the list.
 
 pe_settings
 ===========
