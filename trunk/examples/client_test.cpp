@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/magnet_uri.hpp"
+#include "libtorrent/bitfield.hpp"
 
 using boost::bind;
 
@@ -238,7 +239,7 @@ std::string const& add_suffix(float val)
 	return ret;
 }
 
-std::string const& piece_bar(std::vector<bool> const& p, int width)
+std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 {
 #ifdef ANSI_TERMINAL_COLORS
 	static const char* lookup[] =
