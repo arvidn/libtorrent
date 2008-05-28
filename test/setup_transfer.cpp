@@ -170,10 +170,10 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file)
 	
 	using namespace boost::filesystem;
 
-	libtorrent::create_torrent t;
+	file_storage fs;
 	int total_size = 2 * 1024 * 1024;
-	t.add_file(path("temporary"), total_size);
-	t.set_piece_size(16 * 1024);
+	fs.add_file(path("temporary"), total_size);
+	libtorrent::create_torrent t(fs, 16 * 1024);
 	t.add_tracker(tracker_url);
 
 	std::vector<char> piece(16 * 1024);

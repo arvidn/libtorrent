@@ -565,7 +565,13 @@ namespace libtorrent
 		int max_uploads() const { return m_max_uploads; }
 		void set_max_connections(int limit);
 		int max_connections() const { return m_max_connections; }
+
 		void move_storage(fs::path const& save_path);
+
+		// renames the file with the given index to the new name
+		// the name may include a directory path
+		// returns false on failure
+		bool rename_file(int index, std::string const& name);
 
 		// unless this returns true, new connections must wait
 		// with their initialization.
@@ -590,6 +596,7 @@ namespace libtorrent
 		void on_torrent_paused(int ret, disk_io_job const& j);
 		void on_storage_moved(int ret, disk_io_job const& j);
 		void on_save_resume_data(int ret, disk_io_job const& j);
+		void on_file_renamed(int ret, disk_io_job const& j);
 
 		void on_piece_verified(int ret, disk_io_job const& j
 			, boost::function<void(int)> f);

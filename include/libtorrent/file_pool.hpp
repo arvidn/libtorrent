@@ -68,6 +68,7 @@ namespace libtorrent
 		boost::shared_ptr<file> open_file(void* st, fs::path const& p
 			, file::open_mode m, std::string& error);
 		void release(void* st);
+		void release(fs::path const& p);
 		void resize(int size);
 
 	private:

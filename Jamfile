@@ -262,6 +262,7 @@ SOURCES =
 	create_torrent
 	disk_buffer_holder
 	entry
+	file_storage
 	lazy_bdecode
 	escape_string
 	gzip

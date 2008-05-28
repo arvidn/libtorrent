@@ -31,7 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/create_torrent.hpp"
-#include "libtorrent/hasher.hpp"
+#include "libtorrent/file_pool.hpp"
+#include "libtorrent/storage.hpp"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
@@ -41,22 +42,61 @@ namespace gr = boost::gregorian;
 
 namespace libtorrent
 {
-	create_torrent::create_torrent()
-		: m_piece_length(0)
-		, m_total_size(0)
-		, m_num_pieces(0)
-		, m_info_hash()
-		, m_name()
+	create_torrent::create_torrent(file_storage& fs, int size)
+		: m_files(fs)
 		, m_creation_date(pt::second_clock::universal_time())
-		, m_multifile(false)
+		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
-	{}
+	{
+		TORRENT_ASSERT(fs.num_files() > 0);
+		if (!m_multifile && m_files.at(0).path.has_branch_path()) m_multifile = true;
 
+		// make sure the size is an even power of 2
+#ifndef NDEBUG
+		for (int i = 0; i < 32; ++i)
+		{
+			if (size & (1 << i))
+			{
+				TORRENT_ASSERT((size & ~(1 << i)) == 0);
+				break;
+			}
+		}
+#endif
+		m_files.set_piece_length(size);
+		m_files.set_num_pieces(static_cast<int>(
+			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
+		m_piece_hash.resize(m_files.num_pieces());
+	}
+
+	create_torrent::create_torrent(file_storage& fs)
+		: m_files(fs)
+		, m_creation_date(pt::second_clock::universal_time())
+		, m_multifile(fs.num_files() > 1)
+		, m_private(false)
+	{
+		TORRENT_ASSERT(fs.num_files() > 0);
+		if (!m_multifile && m_files.at(0).path.has_branch_path()) m_multifile = true;
+
+		const int target_size = 40 * 1024;
+		int size = fs.total_size() / (target_size / 20);
+	
+		for (int i = 4*1024*1024; i > 16*1024; i /= 2)
+		{
+			if (size < i) continue;
+			size = i;
+			break;
+		}
+
+		m_files.set_piece_length(size);
+		m_files.set_num_pieces(static_cast<int>(
+			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
+		m_piece_hash.resize(m_files.num_pieces());
+	}
 	entry create_torrent::generate() const
 	{
-		TORRENT_ASSERT(m_piece_length > 0);
+		TORRENT_ASSERT(m_files.piece_length() > 0);
 
-		if (m_files.empty())
+		if (m_files.num_files() == 0)
 		{
 			// TODO: throw something here
 			// throw
@@ -128,15 +168,13 @@ namespace libtorrent
 		}
 
 		entry& info = dict["info"];
-
-		info["name"] = m_name;
-
+		info["name"] = m_files.name();
 
 		if (m_private) info["private"] = 1;
 
 		if (!m_multifile)
 		{
-			info["length"] = m_files.front().second;
+			info["length"] = m_files.at(0).size;
 		}
 		else
 		{
@@ -144,19 +182,19 @@ namespace libtorrent
 			{
 				entry& files = info["files"];
 
-				for (std::vector<file_entry>::const_iterator i = m_files.begin();
+				for (file_storage::iterator i = m_files.begin();
 					i != m_files.end(); ++i)
 				{
 					files.list().push_back(entry());
 					entry& file_e = files.list().back();
-					file_e["length"] = i->second;
+					file_e["length"] = i->size;
 					entry& path_e = file_e["path"];
 
-					TORRENT_ASSERT(i->first.has_branch_path());
-					TORRENT_ASSERT(*i->first.begin() == m_name);
+					TORRENT_ASSERT(i->path.has_branch_path());
+					TORRENT_ASSERT(*i->path.begin() == m_files.name());
 
-					for (fs::path::iterator j = boost::next(i->first.begin());
-						j != i->first.end(); ++j)
+					for (fs::path::iterator j = boost::next(i->path.begin());
+						j != i->path.end(); ++j)
 					{
 						path_e.list().push_back(entry(*j));
 					}
@@ -164,7 +202,7 @@ namespace libtorrent
 			}
 		}
 
-		info["piece length"] = m_piece_length;
+		info["piece length"] = m_files.piece_length();
 		entry& pieces = info["pieces"];
 
 		std::string& p = pieces.string();
@@ -183,21 +221,6 @@ namespace libtorrent
 	
 	}
 
-	int create_torrent::piece_size(int index) const
-	{
-		TORRENT_ASSERT(index >= 0 && index < num_pieces());
-		if (index == num_pieces()-1)
-		{
-			int size = int(m_total_size
-				- (num_pieces() - 1) * piece_length());
-			TORRENT_ASSERT(size > 0);
-			TORRENT_ASSERT(size <= piece_length());
-			return int(size);
-		}
-		else
-			return piece_length();
-	}
-
 	void create_torrent::add_tracker(std::string const& url, int tier)
 	{
 		m_urls.push_back(announce_entry(url, tier));
@@ -207,77 +230,11 @@ namespace libtorrent
 			, bind(&announce_entry::second, _1) < bind(&announce_entry::second, _2));
 	}
 
-	void create_torrent::set_piece_size(int size)
-	{
-		// make sure the size is an even power of 2
-#ifndef NDEBUG
-		for (int i = 0; i < 32; ++i)
-		{
-			if (size & (1 << i))
-			{
-				TORRENT_ASSERT((size & ~(1 << i)) == 0);
-				break;
-			}
-		}
-#endif
-		m_piece_length = size;
-
-		m_num_pieces = static_cast<int>(
-			(m_total_size + m_piece_length - 1) / m_piece_length);
-		int old_num_pieces = static_cast<int>(m_piece_hash.size());
-
-		m_piece_hash.resize(m_num_pieces);
-		for (int i = old_num_pieces; i < m_num_pieces; ++i)
-		{
-			m_piece_hash[i].clear();
-		}
-	}
-
 	void create_torrent::set_hash(int index, sha1_hash const& h)
 	{
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < (int)m_piece_hash.size());
 		m_piece_hash[index] = h;
-	}
-
-	void create_torrent::add_file(fs::path file, size_type size)
-	{
-//		TORRENT_ASSERT(file.begin() != file.end());
-
-		if (!file.has_branch_path())
-		{
-			// you have already added at least one file with a
-			// path to the file (branch_path), which means that
-			// all the other files need to be in the same top
-			// directory as the first file.
-			TORRENT_ASSERT(m_files.empty());
-			TORRENT_ASSERT(!m_multifile);
-			m_name = file.string();
-		}
-		else
-		{
-#ifndef NDEBUG
-			if (!m_files.empty())
-				TORRENT_ASSERT(m_name == *file.begin());
-#endif
-			m_multifile = true;
-			m_name = *file.begin();
-		}
-
-		m_files.push_back(file_entry(file, size));
-
-		m_total_size += size;
-		
-		if (m_piece_length == 0)
-			m_piece_length = 256 * 1024;
-
-		m_num_pieces = int((m_total_size + m_piece_length - 1) / m_piece_length);
-		int old_num_pieces = int(m_piece_hash.size());
-
-		m_piece_hash.resize(m_num_pieces);
-		if (m_num_pieces > old_num_pieces)
-			std::for_each(m_piece_hash.begin() + old_num_pieces
-				, m_piece_hash.end(), boost::bind(&sha1_hash::clear, _1));
 	}
 
 	void create_torrent::add_node(std::pair<std::string, int> const& node)
@@ -299,5 +256,6 @@ namespace libtorrent
 	{
 		m_created_by = str;
 	}
+
 }
 

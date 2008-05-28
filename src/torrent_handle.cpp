@@ -215,6 +215,12 @@ namespace libtorrent
 		TORRENT_FORWARD(move_storage(save_path));
 	}
 
+	void torrent_handle::rename_file(int index, fs::path const& new_name) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(rename_file(index, new_name.string()));
+	}
+
 	void torrent_handle::add_extension(
 		boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
 		, void* userdata)

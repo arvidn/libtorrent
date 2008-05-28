@@ -115,6 +115,16 @@ namespace libtorrent
 		return e.file_ptr;
 	}
 
+	void file_pool::release(fs::path const& p)
+	{
+		boost::mutex::scoped_lock l(m_mutex);
+
+		typedef nth_index<file_set, 0>::type path_view;
+		path_view& pt = get<0>(m_files);
+		path_view::iterator i = pt.find(p);
+		if (i != pt.end()) pt.erase(i);
+	}
+
 	void file_pool::release(void* st)
 	{
 		boost::mutex::scoped_lock l(m_mutex);
