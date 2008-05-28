@@ -57,6 +57,7 @@ namespace libtorrent
 	class peer_connection;
 	class entry;
 	struct disk_buffer_holder;
+	struct bitfield;
 
 	struct TORRENT_EXPORT torrent_plugin
 	{
@@ -129,7 +130,7 @@ namespace libtorrent
 		virtual bool on_have(int index)
 		{ return false; }
 
-		virtual bool on_bitfield(std::vector<bool> const& bitfield)
+		virtual bool on_bitfield(bitfield const& bitfield)
 		{ return false; }
 
 		virtual bool on_have_all()

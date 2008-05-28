@@ -156,8 +156,8 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 	
 		// this is always a seed
-		incoming_bitfield(std::vector<bool>(
-			t->torrent_file().num_pieces(), true));
+		incoming_have_all();
+
 		// it is always possible to request pieces
 		incoming_unchoke();
 

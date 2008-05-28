@@ -58,6 +58,7 @@ namespace libtorrent
 
 	class torrent;
 	class peer_connection;
+	class bitfield;
 
 	struct TORRENT_EXPORT piece_block
 	{
@@ -138,7 +139,7 @@ namespace libtorrent
 
 		// the vector tells which pieces we already have
 		// and which we don't have.
-		void init(std::vector<bool> const& pieces);
+		void init(bitfield const& pieces);
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE message is received)
@@ -147,10 +148,10 @@ namespace libtorrent
 
 		// increases the peer count for the given piece
 		// (is used when a BITFIELD message is received)
-		void inc_refcount(std::vector<bool> const& bitmask);
+		void inc_refcount(bitfield const& bitmask);
 		// decreases the peer count for the given piece
 		// (used when a peer disconnects)
-		void dec_refcount(std::vector<bool> const& bitmask);
+		void dec_refcount(bitfield const& bitmask);
 		
 		// these will increase and decrease the peer count
 		// of all pieces. They are used when seeds join
@@ -193,7 +194,7 @@ namespace libtorrent
 		// THIS IS DONE BY THE peer_connection::send_request() MEMBER FUNCTION!
 		// The last argument is the policy::peer pointer for the peer that
 		// we'll download from.
-		void pick_pieces(std::vector<bool> const& pieces
+		void pick_pieces(bitfield const& pieces
 			, std::vector<piece_block>& interesting_blocks
 			, int num_pieces, int prefer_whole_pieces
 			, void* peer, piece_state_t speed
@@ -207,14 +208,14 @@ namespace libtorrent
 		// blocks to be picked. Blocks are not picked from pieces
 		// that are being downloaded
 		int add_blocks(std::vector<int> const& piece_list
-			, const std::vector<bool>& pieces
+			, bitfield const& pieces
 			, std::vector<piece_block>& interesting_blocks
 			, int num_blocks, int prefer_whole_pieces
 			, void* peer, std::vector<int> const& ignore) const;
 
 		// picks blocks only from downloading pieces
 		int add_blocks_downloading(
-			std::vector<bool> const& pieces
+			bitfield const& pieces
 			, std::vector<piece_block>& interesting_blocks
 			, std::vector<piece_block>& backup_blocks
 			, int num_blocks, int prefer_whole_pieces
@@ -280,7 +281,7 @@ namespace libtorrent
 		void verify_priority(int start, int end, int prio) const;
 		void check_invariant(const torrent* t = 0) const;
 		void verify_pick(std::vector<piece_block> const& picked
-			, std::vector<bool> const& bitfield) const;
+			, bitfield const& bits) const;
 		void print_pieces() const;
 #endif
 
@@ -302,9 +303,9 @@ namespace libtorrent
 
 		friend struct piece_pos;
 
-		bool can_pick(int piece, std::vector<bool> const& bitmask) const;
+		bool can_pick(int piece, bitfield const& bitmask) const;
 		std::pair<int, int> expand_piece(int piece, int whole_pieces
-			, std::vector<bool> const& have) const;
+			, bitfield const& have) const;
 
 		struct piece_pos
 		{

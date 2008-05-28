@@ -195,7 +195,7 @@ peer_plugin
 		virtual bool on_interested();
 		virtual bool on_not_interested();
 		virtual bool on_have(int index);
-		virtual bool on_bitfield(std::vector<bool> const& bitfield);
+		virtual bool on_bitfield(bitfield const& bits);
 		virtual bool on_have_all();
 		virtual bool on_have_none();
 		virtual bool on_allowed_fast(int index);
