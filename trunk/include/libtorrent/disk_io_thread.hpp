@@ -82,6 +82,7 @@ namespace libtorrent
 			, check_fastresume
 			, check_files
 			, save_resume_data
+			, rename_file
 		};
 
 		action_t action;
@@ -91,7 +92,7 @@ namespace libtorrent
 		boost::intrusive_ptr<piece_manager> storage;
 		// arguments used for read and write
 		int piece, offset;
-		// used for move_storage. On errors, this is set
+		// used for move_storage and rename_file. On errors, this is set
 		// to the error message
 		std::string str;
 

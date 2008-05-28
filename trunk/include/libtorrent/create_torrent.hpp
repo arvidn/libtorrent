@@ -35,6 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/file_storage.hpp"
+#include "libtorrent/file_pool.hpp"
+#include "libtorrent/config.hpp"
+#include "libtorrent/storage.hpp"
+#include "libtorrent/hasher.hpp"
+
 #include <vector>
 #include <string>
 #include <utility>
@@ -44,8 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/optional.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -56,25 +64,28 @@ namespace libtorrent
 	namespace fs = boost::filesystem;
 	namespace pt = boost::posix_time;
 
-	struct create_torrent
+	struct TORRENT_EXPORT create_torrent
 	{
-		create_torrent();
+		create_torrent(file_storage& fs, int piece_size);
+		create_torrent(file_storage& fs);
 		entry generate() const;
+
+		file_storage const& files() const { return m_files; }
 
 		void set_comment(char const* str);
 		void set_creator(char const* str);
-		void set_piece_size(int size);
 		void set_hash(int index, sha1_hash const& h);
-		void add_file(fs::path file, size_type size);
 		void add_url_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
 
-		int num_pieces() const { return m_num_pieces; }
-		int piece_length() const { return m_piece_length; }
-		int piece_size(int i) const;
+		int num_pieces() const { return m_files.num_pieces(); }
+		int piece_length() const { return m_files.piece_length(); }
+		int piece_size(int i) const { return m_files.piece_size(i); }
 
 	private:
+
+		file_storage& m_files;
 
 		// the urls to the trackers
 		typedef std::pair<std::string, int> announce_entry;
@@ -84,32 +95,15 @@ namespace libtorrent
 
 		std::vector<sha1_hash> m_piece_hash;
 
-		// the length of one piece
-		// if this is 0, the torrent_info is
-		// in an uninitialized state
-		int m_piece_length;
-
-		typedef std::pair<fs::path, size_type> file_entry;
-		// the list of files that this torrent consists of
-		std::vector<file_entry> m_files;
-
 		// dht nodes to add to the routing table/bootstrap from
 		typedef std::vector<std::pair<std::string, int> > nodes_t;
 		nodes_t m_nodes;
-
-		// the sum of all filesizes
-		size_type m_total_size;
-
-		// the number of pieces in the torrent
-		int m_num_pieces;
 
 		// the hash that identifies this torrent
 		// is mutable because it's calculated
 		// lazily
 		mutable sha1_hash m_info_hash;
 
-		std::string m_name;
-		
 		// if a creation date is found in the torrent file
 		// this will be set to that, otherwise it'll be
 		// 1970, Jan 1
@@ -134,6 +128,72 @@ namespace libtorrent
 		// be announced on the dht
 		bool m_private;
 	};
+
+	namespace detail
+	{
+		inline bool default_pred(boost::filesystem::path const&) { return true; }
+
+		inline void nop(int i) {}
+
+		template <class Pred>
+		void add_files_impl(file_storage& fs, boost::filesystem::path const& p
+			, boost::filesystem::path const& l, Pred pred)
+		{
+			using boost::filesystem::path;
+			using boost::filesystem::directory_iterator;
+			std::string const& leaf = l.leaf();
+			if (leaf == ".." || leaf == ".") return;
+			if (!pred(l)) return;
+			path f(p / l);
+			if (is_directory(f))
+			{
+				for (directory_iterator i(f), end; i != end; ++i)
+					add_files_impl(fs, p, l / i->leaf(), pred);
+			}
+			else
+			{
+				fs.add_file(l, file_size(f));
+			}
+		}
+	}
+
+	template <class Pred>
+	void add_files(file_storage& fs, boost::filesystem::path const& file, Pred p)
+	{
+		detail::add_files_impl(fs, complete(file).branch_path(), file.leaf(), p);
+	}
+
+	inline void add_files(file_storage& fs, boost::filesystem::path const& file)
+	{
+		detail::add_files_impl(fs, complete(file).branch_path(), file.leaf(), detail::default_pred);
+	}
+	
+	template <class Fun>
+	void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f)
+	{
+		file_pool fp;
+		boost::scoped_ptr<storage_interface> st(
+			default_storage_constructor(const_cast<file_storage&>(t.files()), p, fp));
+
+		// calculate the hash for all pieces
+		int num = t.num_pieces();
+		std::vector<char> buf(t.piece_length());
+		for (int i = 0; i < num; ++i)
+		{
+			// read hits the disk and will block. Progress should
+			// be updated in between reads
+			st->read(&buf[0], i, 0, t.piece_size(i));
+			hasher h(&buf[0], t.piece_size(i));
+			t.set_hash(i, h.final());
+			f(i);
+		}
+	}
+
+	inline void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p)
+	{
+		set_piece_hashes(t, p, detail::nop);
+	}
+
 }
 
 #endif

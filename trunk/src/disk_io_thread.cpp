@@ -1049,6 +1049,13 @@ namespace libtorrent
 					ret = 0;
 					break;
 				}
+				case disk_io_job::rename_file:
+				{
+#ifdef TORRENT_DISK_STATS
+					m_log << log_time() << " rename file" << std::endl;
+#endif
+					ret = j.storage->rename_file_impl(j.piece, j.str);
+				}
 			}
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (std::exception& e)

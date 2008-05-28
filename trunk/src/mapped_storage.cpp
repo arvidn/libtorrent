@@ -262,8 +262,8 @@ namespace libtorrent
 	
 	struct mapped_storage: storage_interface
 	{
-		mapped_storage(boost::intrusive_ptr<torrent_info const> const& info, fs::path save_path)
-			: m_info(info)
+		mapped_storage(file_storage const& fs, fs::path save_path)
+			: m_files(fs)
 			, m_save_path(save_path)
 		{}
 
@@ -272,9 +272,9 @@ namespace libtorrent
 		int read(char* buf, int slot, int offset, int size)
 		{
 			TORRENT_ASSERT(buf != 0);
-			TORRENT_ASSERT(slot >= 0 && slot < m_info->num_pieces());
+			TORRENT_ASSERT(slot >= 0 && slot < m_files.num_pieces());
 			TORRENT_ASSERT(offset >= 0);
-			TORRENT_ASSERT(offset < m_info->piece_size(slot));
+			TORRENT_ASSERT(offset < m_files.piece_size(slot));
 			TORRENT_ASSERT(size > 0);
 
 			size_type result = -1;
@@ -283,17 +283,17 @@ namespace libtorrent
 
 #ifndef NDEBUG
 			std::vector<file_slice> slices
-				= m_info->map_block(slot, offset, size, true);
+				= files().map_block(slot, offset, size);
 			TORRENT_ASSERT(!slices.empty());
 #endif
-			size_type start = slot * (size_type)m_info->piece_length() + offset;
-			TORRENT_ASSERT(start + size <= m_info->total_size());
+			size_type start = slot * (size_type)m_files.piece_length() + offset;
+			TORRENT_ASSERT(start + size <= m_files.total_size());
 
 			// find the file iterator and file offset
 			size_type file_offset = start;
 			std::vector<file_entry>::const_iterator file_iter;
 
-			for (file_iter = m_info->begin_files(true);;)
+			for (file_iter = files().begin();;)
 			{
 				if (file_offset < file_iter->size)
 					break;
@@ -333,7 +333,7 @@ namespace libtorrent
 					TORRENT_ASSERT(int(slices.size()) > counter);
 					size_type slice_size = slices[counter].size;
 					TORRENT_ASSERT(slice_size == read_bytes);
-					TORRENT_ASSERT(m_info->file_at(slices[counter].file_index, true).path
+					TORRENT_ASSERT(files().at(slices[counter].file_index).path
 						== file_iter->path);
 #endif
 
@@ -353,7 +353,7 @@ namespace libtorrent
 				{
 					++file_iter;
 					// skip empty files
-					while (file_iter != m_info->end_files(true) && file_iter->size == 0)
+					while (file_iter != files().end() && file_iter->size == 0)
 						++file_iter;
 
 #ifndef NDEBUG
@@ -390,24 +390,24 @@ namespace libtorrent
 		int write(const char* buf, int slot, int offset, int size)
 		{
 			TORRENT_ASSERT(buf != 0);
-			TORRENT_ASSERT(slot >= 0 && slot < m_info->num_pieces());
+			TORRENT_ASSERT(slot >= 0 && slot < m_files.num_pieces());
 			TORRENT_ASSERT(offset >= 0);
-			TORRENT_ASSERT(offset < m_info->piece_size(slot));
+			TORRENT_ASSERT(offset < m_files.piece_size(slot));
 			TORRENT_ASSERT(size > 0);
 
 #ifndef NDEBUG
 			std::vector<file_slice> slices
-				= m_info->map_block(slot, offset, size, true);
+				= files().map_block(slot, offset, size);
 			TORRENT_ASSERT(!slices.empty());
 #endif
-			size_type start = slot * (size_type)m_info->piece_length() + offset;
-			TORRENT_ASSERT(start + size <= m_info->total_size());
+			size_type start = slot * (size_type)m_files.piece_length() + offset;
+			TORRENT_ASSERT(start + size <= m_files.total_size());
 
 			// find the file iterator and file offset
 			size_type file_offset = start;
 			std::vector<file_entry>::const_iterator file_iter;
 
-			for (file_iter = m_info->begin_files(true);;)
+			for (file_iter = files().begin();;)
 			{
 				if (file_offset < file_iter->size)
 					break;
@@ -449,7 +449,7 @@ namespace libtorrent
 					TORRENT_ASSERT(int(slices.size()) > counter);
 					size_type slice_size = slices[counter].size;
 					TORRENT_ASSERT(slice_size == write_bytes);
-					TORRENT_ASSERT(m_info->file_at(slices[counter].file_index, true).path
+					TORRENT_ASSERT(files().at(slices[counter].file_index).path
 						== file_iter->path);
 #endif
 
@@ -468,7 +468,7 @@ namespace libtorrent
 				if (left_to_write > 0)
 				{
 					++file_iter;
-					while (file_iter != m_info->end_files(true) && file_iter->size == 0)
+					while (file_iter != files().end() && file_iter->size == 0)
 						++file_iter;
 #ifndef NDEBUG
 					// empty files are not returned by map_block, so if
@@ -533,11 +533,11 @@ namespace libtorrent
 			m_pool.release(this);
 
 #if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION >= 103400
-			old_path = safe_convert((m_save_path / m_info->name()).string());
-			new_path = safe_convert((save_path / m_info->name()).string());
+			old_path = safe_convert((m_save_path / files().name()).string());
+			new_path = safe_convert((save_path / files().name()).string());
 #else
-			old_path = m_save_path / m_info->name();
-			new_path = save_path / m_info->name();
+			old_path = m_save_path / files().name();
+			new_path = save_path / files().name();
 #endif
 
 			try
@@ -604,7 +604,7 @@ namespace libtorrent
 			}
 
 			entry::list_type const& slots = slots_ent->list();
-			bool seed = int(slots.size()) == m_info->num_pieces()
+			bool seed = int(slots.size()) == files().num_pieces()
 				&& std::find_if(slots.begin(), slots.end()
 					, boost::bind<bool>(std::less<int>()
 						, boost::bind((size_type const& (entry::*)() const)
@@ -617,11 +617,11 @@ namespace libtorrent
 
 			if (seed)
 			{
-				if (m_info->num_files(true) != (int)file_sizes.size())
+				if (files().num_files() != (int)file_sizes.size())
 				{
 					error = "the number of files does not match the torrent (num: "
 						+ boost::lexical_cast<std::string>(file_sizes.size()) + " actual: "
-						+ boost::lexical_cast<std::string>(m_info->num_files(true)) + ")";
+						+ boost::lexical_cast<std::string>(files().num_files()) + ")";
 					return false;
 				}
 
@@ -629,8 +629,8 @@ namespace libtorrent
 					fs = file_sizes.begin();
 				// the resume data says we have the entire torrent
 				// make sure the file sizes are the right ones
-				for (torrent_info::file_iterator i = m_info->begin_files(true)
-					, end(m_info->end_files(true)); i != end; ++i, ++fs)
+				for (file_storage::iterator i = files().begin()
+					, end(files().end()); i != end; ++i, ++fs)
 				{
 					if (i->size != fs->first)
 					{
@@ -643,7 +643,7 @@ namespace libtorrent
 				return true;
 			}
 
-			return match_filesizes(*m_info, m_save_path, file_sizes
+			return match_filesizes(files(), m_save_path, file_sizes
 				, !full_allocation_mode, &error);
 		}
 
@@ -655,7 +655,7 @@ namespace libtorrent
 				return true;
 			}
 			std::vector<std::pair<size_type, std::time_t> > file_sizes
-				= get_filesizes(*m_info, m_save_path);
+				= get_filesizes(m_files, m_save_path);
 
 			entry::list_type& fl = rd["file sizes"].list();
 			for (std::vector<std::pair<size_type, std::time_t> >::iterator i
@@ -672,7 +672,7 @@ namespace libtorrent
 		bool move_slot(int src_slot, int dst_slot)
 		{
 			// TODO: this can be optimized by mapping both slots and do a straight memcpy
-			int piece_size = m_info->piece_size(dst_slot);
+			int piece_size = m_files.piece_size(dst_slot);
 			m_scratch_buffer.resize(piece_size);
 			size_type ret1 = read(&m_scratch_buffer[0], src_slot, 0, piece_size);
 			size_type ret2 = write(&m_scratch_buffer[0], dst_slot, 0, piece_size);
@@ -683,9 +683,9 @@ namespace libtorrent
 		{
 			// TODO: this can be optimized by mapping both slots and do a straight memcpy
 			// the size of the target slot is the size of the piece
-			int piece_size = m_info->piece_length();
-			int piece1_size = m_info->piece_size(slot2);
-			int piece2_size = m_info->piece_size(slot1);
+			int piece_size = m_files.piece_length();
+			int piece1_size = m_files.piece_size(slot2);
+			int piece2_size = m_files.piece_size(slot1);
 			m_scratch_buffer.resize(piece_size * 2);
 			size_type ret1 = read(&m_scratch_buffer[0], slot1, 0, piece1_size);
 			size_type ret2 = read(&m_scratch_buffer[piece_size], slot2, 0, piece2_size);
@@ -699,10 +699,10 @@ namespace libtorrent
 		{
 			// TODO: this can be optimized by mapping both slots and do a straight memcpy
 			// the size of the target slot is the size of the piece
-			int piece_size = m_info->piece_length();
-			int piece1_size = m_info->piece_size(slot2);
-			int piece2_size = m_info->piece_size(slot3);
-			int piece3_size = m_info->piece_size(slot1);
+			int piece_size = m_files.piece_length();
+			int piece1_size = m_files.piece_size(slot2);
+			int piece2_size = m_files.piece_size(slot3);
+			int piece3_size = m_files.piece_size(slot1);
 			m_scratch_buffer.resize(piece_size * 2);
 			size_type ret1 = read(&m_scratch_buffer[0], slot1, 0, piece1_size);
 			size_type ret2 = read(&m_scratch_buffer[piece_size], slot2, 0, piece2_size);
@@ -745,6 +745,39 @@ namespace libtorrent
 #endif
 		}
 
+		bool rename_file(int index, std::string const& new_filename)
+		{
+			if (index < 0 || index >= m_files.num_files()) return true;
+			fs::path old_name = m_save_path / files().at(index).path;
+			m_pool.release(this);
+
+#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION >= 103400
+			fs::wpath old_path = safe_convert(old_name);
+			fs::wpath new_path = safe_convert(m_save_path / new_filename);
+#else
+			fs::path const& old_path = old_name;
+			fs::path new_path = m_save_path / new_filename;
+#endif
+
+#ifndef BOOST_NO_EXCEPTIONS
+			try
+			{
+#endif
+				rename(old_path, new_path);
+				if (!m_mapped_files)
+				{ m_mapped_files.reset(new file_storage(m_files)); }
+				m_mapped_files->rename_file(index, new_filename);
+#ifndef BOOST_NO_EXCEPTIONS
+			}
+			catch (std::exception& e)
+			{
+				set_error(old_name.string(), e.what());
+				return true;
+			}
+#endif
+			return false;
+		}
+
 		bool release_files()
 		{
 			m_pool.release(this);
@@ -764,8 +797,8 @@ namespace libtorrent
 			// delete the files from disk
 			std::set<std::string> directories;
 			typedef std::set<std::string>::iterator iter_t;
-			for (torrent_info::file_iterator i = m_info->begin_files(true)
-				, end(m_info->end_files(true)); i != end; ++i)
+			for (file_storage::iterator i = m_files.begin()
+				, end(m_files.end()); i != end; ++i)
 			{
 				std::string p = (m_save_path / i->path).string();
 				fs::path bp = i->path.branch_path();
@@ -804,7 +837,10 @@ namespace libtorrent
 
 	private:
 
-		boost::intrusive_ptr<torrent_info const> m_info;
+		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
+
+		boost::scoped_ptr<file_storage> m_mapped_files;
+		file_storage const& m_files;
 		fs::path m_save_path;
 
 		// temporary storage for moving pieces
@@ -813,10 +849,10 @@ namespace libtorrent
 		static mapped_file_pool m_pool;
 	};
 
-	storage_interface* mapped_storage_constructor(boost::intrusive_ptr<torrent_info const> ti
+	storage_interface* mapped_storage_constructor(file_storage const& fs
 		, fs::path const& path, file_pool& fp)
 	{
-		return new mapped_storage(ti, path);
+		return new mapped_storage(fs, path);
 	}
 
 	mapped_file_pool mapped_storage::m_pool;

@@ -20,6 +20,7 @@ libtorrent/escape_string.hpp \
 libtorrent/extensions.hpp \
 libtorrent/file.hpp \
 libtorrent/file_pool.hpp \
+libtorrent/file_storage.hpp \
 libtorrent/fingerprint.hpp \
 libtorrent/GeoIP.h \
 libtorrent/gzip.hpp \

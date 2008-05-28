@@ -424,8 +424,34 @@ namespace libtorrent
 
 		m_state = torrent_status::queued_for_checking;
 
-		if (m_resume_data.type() == entry::dictionary_t) read_resume_data(m_resume_data);
-		
+		if (m_resume_data.type() == entry::dictionary_t)
+		{
+			char const* error = 0;
+			entry const* file_format = m_resume_data.find_key("file-format");
+			if (file_format->string() != "libtorrent resume file")
+				error = "invalid file format tag";
+	
+			entry const* info_hash = m_resume_data.find_key("info-hash");
+			if (!error && (info_hash == 0 || info_hash->type() != entry::string_t))
+				error = "missing info-hash";
+
+			if (!error && sha1_hash(info_hash->string()) != m_torrent_file->info_hash())
+				error = "mismatching info-hash";
+
+			if (error && m_ses.m_alerts.should_post(alert::warning))
+			{
+				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), error));
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+				(*m_ses.m_logger) << "fastresume data for "
+					<< torrent_file().name() << " rejected: "
+					<< error << "\n";
+#endif
+			}
+
+			if (error) m_resume_data = entry();
+			else read_resume_data(m_resume_data);
+		}
+	
 		m_storage->async_check_fastresume(&m_resume_data
 			, bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1, _2));
@@ -1425,6 +1451,21 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::on_file_renamed(int ret, disk_io_job const& j)
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		
+		if (alerts().should_post(alert::warning))
+		{
+
+			if (ret == 0)
+				alerts().post_alert(file_renamed_alert(get_handle(), j.str
+					, "renamed file: " + j.str));
+			else
+				alerts().post_alert(file_renamed_alert(get_handle(), "", j.str));
+		}
+	}
+
 	void torrent::on_torrent_paused(int ret, disk_io_job const& j)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -1619,7 +1660,7 @@ namespace libtorrent
 		for (int i = 0; i < int(files.size()); ++i)
 		{
 			size_type start = position;
-			size_type size = m_torrent_file->file_at(i).size;
+			size_type size = m_torrent_file->files().at(i).size;
 			if (size == 0) continue;
 			position += size;
 			// mark all pieces of the file with this file's priority
@@ -1750,7 +1791,7 @@ namespace libtorrent
 			for (int i = 0; i < (int)bitmask.size(); ++i)
 			{
 				size_type start = position;
-				position += m_torrent_file->file_at(i).size;
+				position += m_torrent_file->files().at(i).size;
 				// is the file selected for download?
 				if (!bitmask[i])
 				{           
@@ -3148,6 +3189,20 @@ namespace libtorrent
 		return m_save_path;
 	}
 
+	bool torrent::rename_file(int index, std::string const& name)
+	{
+		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(index >= 0);
+		TORRENT_ASSERT(index < m_torrent_file->num_files());
+
+		if (!m_owning_storage.get()) return false;
+
+		m_owning_storage->async_rename_file(index, name
+			, bind(&torrent::on_file_renamed, shared_from_this(), _1, _2));
+		return true;
+	}
+
 	void torrent::move_storage(fs::path const& save_path)
 	{
 		INVARIANT_CHECK;
@@ -3770,8 +3825,8 @@ namespace libtorrent
 		
 		for (int i = 0; i < m_torrent_file->num_files(); ++i)
 		{
-			peer_request ret = m_torrent_file->map_file(i, 0, 0);
-			size_type size = m_torrent_file->file_at(i).size;
+			peer_request ret = m_torrent_file->files().map_file(i, 0, 0);
+			size_type size = m_torrent_file->files().at(i).size;
 
 // zero sized files are considered
 // 100% done all the time
@@ -3793,7 +3848,7 @@ namespace libtorrent
 			}
 			TORRENT_ASSERT(size == 0);
 
-			fp[i] = static_cast<float>(done) / m_torrent_file->file_at(i).size;
+			fp[i] = static_cast<float>(done) / m_torrent_file->files().at(i).size;
 		}
 	}
 	

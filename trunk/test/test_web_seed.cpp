@@ -15,22 +15,6 @@
 using namespace boost::filesystem;
 using namespace libtorrent;
 
-void add_files(libtorrent::create_torrent& t, path const& p, path const& l)
-{
-	if (l.leaf()[0] == '.') return;
-	path f(p / l);
-	if (is_directory(f))
-	{
-		for (directory_iterator i(f), end; i != end; ++i)
-			add_files(t, p, l / i->leaf());
-	}
-	else
-	{
-		std::cerr << "adding \"" << l.string() << "\"\n";
-		t.add_file(l, file_size(f));
-	}
-}
-
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
 void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 {
@@ -87,9 +71,6 @@ int test_main()
 	using namespace libtorrent;
 	using namespace boost::filesystem;
 
-	libtorrent::create_torrent t;
-	t.add_url_seed("http://127.0.0.1:8000/");
-
 	create_directory("test_torrent");
 	char random_data[300000];
 	std::srand(std::time(0));
@@ -102,7 +83,11 @@ int test_main()
 	std::ofstream("./test_torrent/test6").write(random_data, 300000);
 	std::ofstream("./test_torrent/test7").write(random_data, 300000);
 
-	add_files(t, complete("."), "test_torrent");
+	file_storage fs;
+	add_files(fs, path("test_torrent"));
+
+	libtorrent::create_torrent t(fs, 16 * 1024);
+	t.add_url_seed("http://127.0.0.1:8000/");
 
 	start_web_server(8000);
 
@@ -111,20 +96,17 @@ int test_main()
 	std::vector<char> buf(t.piece_length());
 
 	file_pool fp;
-	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(t.generate()));
 	boost::scoped_ptr<storage_interface> s(default_storage_constructor(
-		torrent_file, ".", fp));
+		fs, ".", fp));
 
 	for (int i = 0; i < num; ++i)
 	{
-		s->read(&buf[0], i, 0, t.piece_size(i));
-		hasher h(&buf[0], t.piece_size(i));
+		s->read(&buf[0], i, 0, fs.piece_size(i));
+		hasher h(&buf[0], fs.piece_size(i));
 		t.set_hash(i, h.final());
 	}
 	
-	entry e = t.generate();
-	torrent_file = new torrent_info(e);
-	s.reset(default_storage_constructor(torrent_file, ".", fp));
+	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(t.generate()));
 
 	for (int i = 0; i < 6; ++i)
 		test_transfer(torrent_file, i);

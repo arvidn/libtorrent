@@ -33,6 +33,10 @@ The basic usage is as follows:
 
 Each class and function is described in this manual.
 
+For a description on how to create torrent files, see make_torrent_.
+
+.. _make_torrent: make_torrent.html
+
 network primitives
 ==================
 
@@ -221,8 +225,7 @@ add_torrent()
 	::
 
 		typedef storage_interface* (&storage_constructor_type)(
-			boost::intrusive_ptr<torrent_info const>, fs::path const&
-			, file_pool&);
+			file_storage const&, fs::path const&, file_pool&);
 
 		struct add_torrent_params
 		{
@@ -1090,6 +1093,10 @@ key is found, the return a pointer to it.
 torrent_info
 ============
 
+In previous versions of libtorrent, this class was also used for creating
+torrent files. This functionality has been moved to ``create_torrent``, see
+make_torrent_.
+
 The ``torrent_info`` has the following synopsis::
 
 	class torrent_info
@@ -1102,27 +1109,25 @@ The ``torrent_info`` has the following synopsis::
 		torrent_info(char const* filename);
 
 		void add_tracker(std::string const& url, int tier = 0);
+		std::vector<announce_entry> const& trackers() const;
 
-		typedef std::vector<file_entry>::const_iterator file_iterator;
-		typedef std::vector<file_entry>::const_reverse_iterator
-			reverse_file_iterator;
+		file_storage const& files() const;
 
-		bool remap_files(std::vector<file_entry> const& map);
+		typedef file_storage::iterator file_iterator;
+		typedef file_storage::reverse_iterator reverse_file_iterator;
 
-		file_iterator begin_files(bool storage = false) const;
-		file_iterator end_files(bool storage = false) const;
-		reverse_file_iterator rbegin_files(bool storage = false) const;
-		reverse_file_iterator rend_files(bool storage = false) const;
+		file_iterator begin_files() const;
+		file_iterator end_files() const;
+		reverse_file_iterator rbegin_files() const;
+		reverse_file_iterator rend_files() const;
 
-		int num_files(bool storage = false) const;
-		file_entry const& file_at(int index, bool storage = false) const;
+		int num_files() const;
+		file_entry const& file_at(int index) const;
 
 		std::vector<file_slice> map_block(int piece, size_type offset
-			, int size, bool storage = false) const;
+			, int size) const;
 		peer_request map_file(int file_index, size_type file_offset
-			, int size, bool storage = false) const;
-
-		std::vector<announce_entry> const& trackers() const;
+			, int size) const;
 
 		bool priv() const;
 
@@ -1188,51 +1193,36 @@ add_tracker()
 ``add_tracker()`` adds a tracker to the announce-list. The ``tier`` determines the order in
 which the trackers are to be tried. For more information see `trackers()`_.
 
-
-remap_files()
--------------
+files()
+-------
 
 	::
 
-		bool remap_files(std::vector<file_entry> const& map);
+		file_storage const& file() const;
 
-This call will create a new mapping of the data in this torrent to other files. The
-``torrent_info`` maintains 2 views of the file storage. One that is true to the torrent
-file, and one that represents what is actually saved on disk. This call will change
-what the files on disk are called.
+The ``file_storage`` object contains the information on how to map the pieces to
+files. It is separated from the ``torrent_info`` object because when creating torrents
+a storage object needs to be created without having a torrent file. When renaming files
+in a storage, the storage needs to make its own copy of the ``file_storage`` in order
+to make its mapping differ from the one in the torrent file.
 
-The each entry in the vector ``map`` is a ``file_entry``. The only fields in this struct
-that are used in this case are ``path``, ``size`` and ``file_base``.
-
-The return value indicates if the remap was successful or not. True means success and
-false means failure. The sum of all the files passed in through ``map`` has to be exactly
-the same as the total_size of the torrent. If the number of bytes that are mapped do not
-match, false will be returned (this is the only case this function may fail).
-
-Changing this mapping for an existing torrent will not move or rename files. If some files
-should be renamed, this can be done before the torrent is added.
-
+For more information on the ``file_storage`` object, see the separate document on how
+to create torrents.
 
 begin_files() end_files() rbegin_files() rend_files()
 -----------------------------------------------------
 
 	::
 
-		file_iterator begin_files(bool storage = false) const;
-		file_iterator end_files(bool storage = false) const;
-		reverse_file_iterator rbegin_files(bool storage = false) const;
-		reverse_file_iterator rend_files(bool storage = false) const;
+		file_iterator begin_files() const;
+		file_iterator end_files() const;
+		reverse_file_iterator rbegin_files() const;
+		reverse_file_iterator rend_files() const;
 
 This class will need some explanation. First of all, to get a list of all files
 in the torrent, you can use ``begin_files()``, ``end_files()``,
 ``rbegin_files()`` and ``rend_files()``. These will give you standard vector
 iterators with the type ``file_entry``.
-
-The ``storage`` parameter specifies which view of the files you want. The default
-is false, which means you will see the content of the torrent file. If set to
-true, you will see the file that the storage class uses to save the files to
-disk. Typically these views are the same, but in case the files have been
-remapped, they may differ. For more info, see `remap_files()`_.
 
 ::
 
@@ -1274,18 +1264,11 @@ num_files() file_at()
 
 	::
 	
-		int num_files(bool storage = false) const;
-		file_entry const& file_at(int index, bool storage = false) const;
+		int num_files() const;
+		file_entry const& file_at(int index) const;
 
 If you need index-access to files you can use the ``num_files()`` and ``file_at()``
 to access files using indices.
-
-
-The ``storage`` parameter specifies which view of the files you want. The default
-is false, which means you will see the content of the torrent file. If set to
-true, you will see the file that the storage class uses to save the files to
-disk. Typically these views are the same, but in case the files have been
-remapped, they may differ. For more info, see `remap_files()`_.
 
 
 map_block()
@@ -1294,7 +1277,7 @@ map_block()
 	::
 
 		std::vector<file_slice> map_block(int piece, size_type offset
-			, int size, bool storage = false) const;
+			, int size) const;
 
 This function will map a piece index, a byte offset within that piece and
 a size (in bytes) into the corresponding files with offsets where that data
@@ -1316,12 +1299,6 @@ as argument. The ``offset`` is the byte offset in the file where the range
 starts, and ``size`` is the number of bytes this range is. The size + offset
 will never be greater than the file size.
 
-The ``storage`` parameter specifies which view of the files you want. The default
-is false, which means you will see the content of the torrent file. If set to
-true, you will see the file that the storage class uses to save the files to
-disk. Typically these views are the same, but in case the files have been
-remapped, they may differ. For more info, see `remap_files()`_.
-
 
 map_file()
 ----------
@@ -1329,7 +1306,7 @@ map_file()
 	::
 
 		peer_request map_file(int file_index, size_type file_offset
-			, int size, bool storage = false) const;
+			, int size) const;
 
 This function will map a range in a specific file into a range in the torrent.
 The ``file_offset`` parameter is the offset in the file, given in bytes, where
@@ -1365,12 +1342,6 @@ If there are any url-seeds in this torrent, ``url_seeds()`` will return a
 vector of those urls. If you're creating a torrent file, ``add_url_seed()``
 adds one url to the list of url-seeds. Currently, the only transport protocol
 supported for the url is http.
-
-The ``storage`` parameter specifies which view of the files you want. The default
-is false, which means you will see the content of the torrent file. If set to
-true, you will see the file that the storage class uses to save the files to
-disk. Typically these views are the same, but in case the files have been
-remapped, they may differ. For more info, see `remap_files()`_.
 
 See `HTTP seeding`_ for more information.
 

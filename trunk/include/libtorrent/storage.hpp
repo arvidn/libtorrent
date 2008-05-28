@@ -87,11 +87,11 @@ namespace libtorrent
 #endif
 	
 	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
-		torrent_info const& t
+		file_storage const& t
 		, fs::path p);
 
 	TORRENT_EXPORT bool match_filesizes(
-		torrent_info const& t
+		file_storage const& t
 		, fs::path p
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
 		, bool compact_mode
@@ -157,6 +157,9 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual bool release_files() = 0;
 
+		// this will rename the file specified by index.
+		virtual bool rename_file(int index, std::string const& new_filename) = 0;
+
 		// this will close all open files and delete them
 		// non-zero return value indicates an error
 		virtual bool delete_files() = 0;
@@ -178,16 +181,12 @@ namespace libtorrent
 	};
 
 	typedef storage_interface* (&storage_constructor_type)(
-		boost::intrusive_ptr<torrent_info const>, fs::path const&
-		, file_pool&);
+		file_storage const&, fs::path const&, file_pool&);
 
 	TORRENT_EXPORT storage_interface* default_storage_constructor(
-		boost::intrusive_ptr<torrent_info const> ti
-		, fs::path const& path, file_pool& fp);
-
+		file_storage const&, fs::path const&, file_pool&);
 	TORRENT_EXPORT storage_interface* mapped_storage_constructor(
-		boost::intrusive_ptr<torrent_info const> ti
-		, fs::path const& path, file_pool& fp);
+		file_storage const&, fs::path const&, file_pool&);
 
 	struct disk_io_thread;
 
@@ -201,7 +200,7 @@ namespace libtorrent
 
 		piece_manager(
 			boost::shared_ptr<void> const& torrent
-			, boost::intrusive_ptr<torrent_info const> ti
+			, boost::intrusive_ptr<torrent_info const> info
 			, fs::path const& path
 			, file_pool& fp
 			, disk_io_thread& io
@@ -210,14 +209,16 @@ namespace libtorrent
 
 		~piece_manager();
 
-		torrent_info const* info() const { return m_info.get(); }
-
+		boost::intrusive_ptr<torrent_info const> info() const { return m_info; }
 		void write_resume_data(entry& rd) const;
 
 		void async_check_fastresume(entry const* resume_data
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 		
 		void async_check_files(boost::function<void(int, disk_io_job const&)> const& handler);
+
+		void async_rename_file(int index, std::string const& name
+			, boost::function<void(int, disk_io_job const&)> const& handler);
 
 		void async_read(
 			peer_request const& r
@@ -316,6 +317,8 @@ namespace libtorrent
 
 		int release_files_impl() { return m_storage->release_files(); }
 		int delete_files_impl() { return m_storage->delete_files(); }
+		int rename_file_impl(int index, std::string const& new_filename)
+		{ return m_storage->rename_file(index, new_filename); }
 
 		bool move_storage_impl(fs::path const& save_path);
 
@@ -326,11 +329,12 @@ namespace libtorrent
 		void debug_log() const;
 #endif
 #endif
+		boost::intrusive_ptr<torrent_info const> m_info;
+		file_storage const& m_files;
+
 		boost::scoped_ptr<storage_interface> m_storage;
 
 		storage_mode_t m_storage_mode;
-
-		boost::intrusive_ptr<torrent_info const> m_info;
 
 		// slots that haven't had any file storage allocated
 		std::vector<int> m_unallocated_slots;

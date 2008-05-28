@@ -53,6 +53,21 @@ namespace libtorrent
 		torrent_handle handle;
 	};
 
+	struct TORRENT_EXPORT file_renamed_alert: torrent_alert
+	{
+		file_renamed_alert(torrent_handle const& h
+			, std::string const& name_
+			, std::string const& msg)
+			: torrent_alert(h, alert::warning, msg)
+			, name(name_)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new file_renamed_alert(*this)); }
+
+		std::string name;
+	};
+
 	struct TORRENT_EXPORT tracker_alert: torrent_alert
 	{
 		tracker_alert(torrent_handle const& h

@@ -14,12 +14,12 @@ int test_main()
 
 	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140));
 
-	libtorrent::create_torrent t;
+	file_storage fs;
 	size_type file_size = 1 * 1024 * 1024 * 1024;
-	t.add_file("test_torrent/tmp1", file_size);
-	t.add_file("test_torrent/tmp2", file_size);
-	t.add_file("test_torrent/tmp3", file_size);
-	t.set_piece_size(4 * 1024 * 1024);
+	fs.add_file("test_torrent/tmp1", file_size);
+	fs.add_file("test_torrent/tmp2", file_size);
+	fs.add_file("test_torrent/tmp3", file_size);
+	libtorrent::create_torrent t(fs, 4 * 1024 * 1024);
 	t.add_tracker("http://non-existing.com/announce");
 
 	std::vector<char> piece(4 * 1024 * 1024);

@@ -41,37 +41,37 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/file_pool.hpp"
 #include "libtorrent/create_torrent.hpp"
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/bind.hpp>
 
 using namespace boost::filesystem;
 using namespace libtorrent;
 
-void add_files(create_torrent& t, path const& p, path const& l)
+// do not include files and folders whose
+// name starts with a .
+bool file_filter(boost::filesystem::path const& filename)
 {
-	if (l.leaf()[0] == '.') return;
-	path f(p / l);
-	if (is_directory(f))
-	{
-		for (directory_iterator i(f), end; i != end; ++i)
-			add_files(t, p, l / i->leaf());
-	}
-	else
-	{
-		std::cerr << "adding \"" << l.string() << "\"\n";
-		t.add_file(l, file_size(f));
-	}
+	if (filename.leaf()[0] == '.') return false;
+	std::cerr << filename << std::endl;
+	return true;
 }
 
+void print_progress(int i, int num)
+{
+	std::cerr << "\r" << (i+1) << "/" << num;
+}
 
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
 	using namespace boost::filesystem;
+
+	int piece_size = 256 * 1024;
+	char const* creator_str = "libtorrent";
 
 	path::default_name_check(no_check);
 
@@ -87,40 +87,20 @@ int main(int argc, char* argv[])
 	try
 	{
 #endif
-		create_torrent t;
+		file_storage fs;
+		file_pool fp;
 		path full_path = complete(path(argv[3]));
 
-		int piece_size = 256 * 1024;
-		char const* creator_str = "libtorrent";
+		add_files(fs, full_path, file_filter);
 
-		add_files(t, full_path.branch_path(), full_path.leaf());
-		t.set_piece_size(piece_size);
+		create_torrent t(fs, piece_size);
 		t.add_tracker(argv[2]);
-
-		std::vector<char> tmp;
-		bencode(std::back_inserter(tmp), t.generate());
-		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size()));
-
-		file_pool fp;
-		boost::scoped_ptr<storage_interface> st(
-			default_storage_constructor(info, full_path.branch_path(), fp));
-
-		// calculate the hash for all pieces
-		int num = t.num_pieces();
-		std::vector<char> buf(piece_size);
-		for (int i = 0; i < num; ++i)
-		{
-			st->read(&buf[0], i, 0, t.piece_size(i));
-			hasher h(&buf[0], t.piece_size(i));
-			t.set_hash(i, h.final());
-			std::cerr << "\r" << (i+1) << "/" << num;
-		}
+		set_piece_hashes(t, full_path.branch_path()
+			, boost::bind(&print_progress, _1, t.num_pieces()));
 		std::cerr << std::endl;
-
 		t.set_creator(creator_str);
 
-		if (argc == 5)
-			t.add_url_seed(argv[4]);
+		if (argc == 5) t.add_url_seed(argv[4]);
 
 		// create the torrent and print it to out
 		ofstream out(complete(path(argv[1])), std::ios_base::binary);
