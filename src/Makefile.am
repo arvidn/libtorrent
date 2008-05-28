@@ -35,6 +35,7 @@ $(top_srcdir)/include/libtorrent/bandwidth_manager.hpp \
 $(top_srcdir)/include/libtorrent/bandwidth_limit.hpp \
 $(top_srcdir)/include/libtorrent/bandwidth_queue_entry.hpp \
 $(top_srcdir)/include/libtorrent/bencode.hpp \
+$(top_srcdir)/include/libtorrent/bitfield.hpp \
 $(top_srcdir)/include/libtorrent/broadcast_socket.hpp \
 $(top_srcdir)/include/libtorrent/buffer.hpp \
 $(top_srcdir)/include/libtorrent/connection_queue.hpp \

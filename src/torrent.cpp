@@ -447,7 +447,7 @@ namespace libtorrent
 					" ]\n";
 #endif
 			}
-			std::fill(m_have_pieces.begin(), m_have_pieces.end(), false);
+			m_have_pieces.clear_all();
 			m_num_pieces = 0;
 			m_error = j.str;
 			pause();
@@ -523,7 +523,7 @@ namespace libtorrent
 			// or the resume_data was accepted
 
 			m_num_pieces = 0;
-			std::fill(m_have_pieces.begin(), m_have_pieces.end(), false);
+			m_have_pieces.clear_all();
 			if (!fastresume_rejected)
 			{
 				TORRENT_ASSERT(m_resume_data.type() == entry::dictionary_t);
@@ -536,9 +536,9 @@ namespace libtorrent
 					std::string const& pieces_str = pieces->string();
 					for (int i = 0, end(pieces_str.size()); i < end; ++i)
 					{
-						bool have = pieces_str[i] & 1;
-						m_have_pieces[i] = have;
-						m_num_pieces += have;
+						if ((pieces_str[i] & 1) == 0) continue;
+						m_have_pieces.set_bit(i);
+						++m_num_pieces;
 					}
 				}
 
@@ -563,7 +563,7 @@ namespace libtorrent
 
 						if (m_have_pieces[piece_index])
 						{
-							m_have_pieces[piece_index] = false;
+							m_have_pieces.clear_bit(piece_index);
 							--m_num_pieces;
 						}
 
@@ -593,7 +593,7 @@ namespace libtorrent
 				}
 
 				int index = 0;
-				for (std::vector<bool>::iterator i = m_have_pieces.begin()
+				for (bitfield::const_iterator i = m_have_pieces.begin()
 					, end(m_have_pieces.end()); i != end; ++i, ++index)
 				{
 					if (*i) m_picker->we_have(index);
@@ -635,7 +635,7 @@ namespace libtorrent
 					" ]\n";
 #endif
 			}
-			std::fill(m_have_pieces.begin(), m_have_pieces.end(), false);
+			m_have_pieces.clear_all();
 			m_num_pieces = 0;
 			m_error = j.str;
 			pause();
@@ -647,7 +647,7 @@ namespace libtorrent
 
 		if (j.offset >= 0 && !m_have_pieces[j.offset])
 		{
-			m_have_pieces[j.offset] = true;
+			m_have_pieces.set_bit(j.offset);
 			++m_num_pieces;
 			TORRENT_ASSERT(m_picker);
 			m_picker->we_have(j.offset);
@@ -1452,7 +1452,7 @@ namespace libtorrent
 
 		if (!m_have_pieces[index])
 			m_num_pieces++;
-		m_have_pieces[index] = true;
+		m_have_pieces.set_bit(index);
 
 		TORRENT_ASSERT(std::accumulate(m_have_pieces.begin(), m_have_pieces.end(), 0)
 			== m_num_pieces);
@@ -1872,9 +1872,8 @@ namespace libtorrent
 			{
 				if (m_picker.get())
 				{
-					const std::vector<bool>& pieces = p->get_bitfield();
-					TORRENT_ASSERT(std::count(pieces.begin(), pieces.end(), true)
-						< int(pieces.size()));
+					bitfield const& pieces = p->get_bitfield();
+					TORRENT_ASSERT(pieces.count() < int(pieces.size()));
 					m_picker->dec_refcount(pieces);
 				}
 			}

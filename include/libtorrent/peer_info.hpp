@@ -33,12 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PEER_INFO_HPP_INCLUDED
 #define TORRENT_PEER_INFO_HPP_INCLUDED
 
-#include <vector>
-
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/bitfield.hpp"
 
 namespace libtorrent
 {
@@ -96,7 +95,7 @@ namespace libtorrent
 		size_type total_download;
 		size_type total_upload;
 		peer_id pid;
-		std::vector<bool> pieces;
+		bitfield pieces;
 		int upload_limit;
 		int download_limit;
 

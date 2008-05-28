@@ -1,5 +1,6 @@
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/policy.hpp"
+#include "libtorrent/bitfield.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 #include <algorithm>
@@ -12,12 +13,12 @@ using namespace libtorrent;
 
 const int blocks_per_piece = 4;
 
-std::vector<bool> string2vec(char const* have_str)
+bitfield string2vec(char const* have_str)
 {
 	const int num_pieces = strlen(have_str);
-	std::vector<bool> have(num_pieces, false);
+	bitfield have(num_pieces, false);
 	for (int i = 0; i < num_pieces; ++i)
-		if (have_str[i] != ' ')  have[i] = true;
+		if (have_str[i] != ' ')  have.set_bit(i);
 	return have;
 }
 
@@ -37,7 +38,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 
 	boost::shared_ptr<piece_picker> p(new piece_picker(blocks_per_piece, num_pieces * blocks_per_piece));
 
-	std::vector<bool> have = string2vec(have_str);
+	bitfield have = string2vec(have_str);
 
 	for (int i = 0; i < num_pieces; ++i)
 	{

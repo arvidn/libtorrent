@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/chained_buffer.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/bitfield.hpp"
 
 namespace libtorrent
 {
@@ -242,7 +243,7 @@ namespace libtorrent
 		boost::shared_ptr<socket_type> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const { return m_remote; }
 
-		std::vector<bool> const& get_bitfield() const;
+		bitfield const& get_bitfield() const;
 		std::vector<int> const& allowed_fast();
 		std::vector<int> const& suggested_pieces() const { return m_suggested_pieces; }
 
@@ -328,7 +329,7 @@ namespace libtorrent
 		void incoming_interested();
 		void incoming_not_interested();
 		void incoming_have(int piece_index);
-		void incoming_bitfield(std::vector<bool> const& bitfield);
+		void incoming_bitfield(bitfield const& bits);
 		void incoming_request(peer_request const& r);
 		void incoming_piece(peer_request const& p, disk_buffer_holder& data);
 		void incoming_piece(peer_request const& p, char const* data);
@@ -629,7 +630,7 @@ namespace libtorrent
 		peer_id m_peer_id;
 
 		// the pieces the other end have
-		std::vector<bool> m_have_piece;
+		bitfield m_have_piece;
 
 		// the queue of requests we have got
 		// from this peer

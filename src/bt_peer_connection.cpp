@@ -937,21 +937,11 @@ namespace libtorrent
 
 		buffer::const_interval recv_buffer = receive_buffer();
 
-		std::vector<bool> bitfield;
+		bitfield bits;
+		bits.borrow_bytes((char*)recv_buffer.begin
+			, t->valid_metadata()?get_bitfield().size():(packet_size()-1)*8);
 		
-		if (!t->valid_metadata())
-			bitfield.resize((packet_size() - 1) * 8);
-		else
-			bitfield.resize(get_bitfield().size());
-
-		// if we don't have metadata yet
-		// just remember the bitmask
-		// don't update the piecepicker
-		// (since it doesn't exist yet)
-		for (int i = 0; i < (int)bitfield.size(); ++i)
-			bitfield[i] = (recv_buffer[1 + (i>>3)] & (1 << (7 - (i&7)))) != 0;
-
-		incoming_bitfield(bitfield);
+		incoming_bitfield(bits);
 	}
 
 	// -----------------------------
@@ -1426,7 +1416,7 @@ namespace libtorrent
 		send_buffer(msg, sizeof(msg));
 	}
 
-	void bt_peer_connection::write_bitfield(std::vector<bool> const& bitfield)
+	void bt_peer_connection::write_bitfield(bitfield const& bits)
 	{
 		INVARIANT_CHECK;
 
@@ -1459,12 +1449,14 @@ namespace libtorrent
 			return;
 		}
 	
-		int num_pieces = bitfield.size();
+		int num_pieces = bits.size();
 		int lazy_pieces[50];
 		int num_lazy_pieces = 0;
 		int lazy_piece = 0;
 
-		TORRENT_ASSERT(t->is_seed() == (std::count(bitfield.begin(), bitfield.end(), true) == num_pieces));
+		TORRENT_ASSERT(t->is_seed() == (bits.count()
+			== num_pieces));
+
 		if (t->is_seed() && m_ses.settings().lazy_bitfields)
 		{
 			num_lazy_pieces = (std::min)(50, num_pieces / 10);
@@ -1491,7 +1483,7 @@ namespace libtorrent
 				++lazy_piece;
 				continue;
 			}
-			if (bitfield[i]) bitfield_string << "1";
+			if (bits[i]) bitfield_string << "1";
 			else bitfield_string << "0";
 		}
 		bitfield_string << "\n";
@@ -1506,18 +1498,9 @@ namespace libtorrent
 		detail::write_int32(packet_size - 4, i.begin);
 		detail::write_uint8(msg_bitfield, i.begin);
 
-		std::fill(i.begin, i.end, 0);
-		for (int c = 0; c < num_pieces; ++c)
-		{
-			if (lazy_piece < num_lazy_pieces
-				&& lazy_pieces[lazy_piece] == c)
-			{
-				++lazy_piece;
-				continue;
-			}
-			if (bitfield[c])
-				i.begin[c >> 3] |= 1 << (7 - (c & 7));
-		}
+		memcpy(i.begin, bits.bytes(), packet_size - 5);
+		for (int c = 0; c < num_lazy_pieces; ++c)
+			i.begin[lazy_pieces[c] / 8] &= ~(0x80 >> (lazy_pieces[c] & 7));
 		TORRENT_ASSERT(i.end - i.begin == (num_pieces + 7) / 8);
 
 #ifndef NDEBUG

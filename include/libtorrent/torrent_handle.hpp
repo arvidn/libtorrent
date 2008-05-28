@@ -200,7 +200,7 @@ namespace libtorrent
 		// we potentially could connect to
 		int connect_candidates;
 		
-		const std::vector<bool>* pieces;
+		bitfield const* pieces;
 		
 		// this is the number of pieces the client has
 		// downloaded. it is equal to:

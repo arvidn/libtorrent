@@ -326,7 +326,7 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 		bool interested = false;
-		const std::vector<bool>& we_have = t->pieces();
+		bitfield const& we_have = t->pieces();
 		for (int j = 0; j != (int)we_have.size(); ++j)
 		{
 			if (!we_have[j]
@@ -579,7 +579,7 @@ namespace libtorrent
 		m_statistics.add_stat(downloaded, uploaded);
 	}
 
-	std::vector<bool> const& peer_connection::get_bitfield() const
+	bitfield const& peer_connection::get_bitfield() const
 	{
 		return m_have_piece;
 	}
@@ -749,7 +749,7 @@ namespace libtorrent
 		// if we don't have valid metadata yet,
 		// leave the vector unallocated
 		TORRENT_ASSERT(m_num_pieces == 0);
-		std::fill(m_have_piece.begin(), m_have_piece.end(), false);
+		m_have_piece.clear_all();
 		TORRENT_ASSERT(!m_torrent.expired());
 	}
 
@@ -1082,7 +1082,7 @@ namespace libtorrent
 		}
 		else
 		{
-			m_have_piece[index] = true;
+			m_have_piece.set_bit(index);
 
 			// only update the piece_picker if
 			// we have the metadata and if
@@ -1127,7 +1127,7 @@ namespace libtorrent
 	// --------- BITFIELD ----------
 	// -----------------------------
 
-	void peer_connection::incoming_bitfield(std::vector<bool> const& bitfield)
+	void peer_connection::incoming_bitfield(bitfield const& bits)
 	{
 		INVARIANT_CHECK;
 
@@ -1138,7 +1138,7 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-			if ((*i)->on_bitfield(bitfield)) return;
+			if ((*i)->on_bitfield(bits)) return;
 		}
 #endif
 
@@ -1147,9 +1147,9 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " <== BITFIELD ";
 
-		for (int i = 0; i < int(bitfield.size()); ++i)
+		for (int i = 0; i < int(bits.size()); ++i)
 		{
-			if (bitfield[i]) (*m_logger) << "1";
+			if (bits[i]) (*m_logger) << "1";
 			else (*m_logger) << "0";
 		}
 		(*m_logger) << "\n";
@@ -1158,10 +1158,10 @@ namespace libtorrent
 		// if we don't have the metedata, we cannot
 		// verify the bitfield size
 		if (t->valid_metadata()
-			&& (bitfield.size() / 8) != (m_have_piece.size() / 8))
+			&& (bits.size() / 8) != (m_have_piece.size() / 8))
 		{
 			std::stringstream msg;
-			msg << "got bitfield with invalid size: " << (bitfield.size() / 8)
+			msg << "got bitfield with invalid size: " << (bits.size() / 8)
 				<< "bytes. expected: " << (m_have_piece.size() / 8)
 				<< " bytes";
 			disconnect(msg.str().c_str(), 2);
@@ -1174,15 +1174,15 @@ namespace libtorrent
 		// (since it doesn't exist yet)
 		if (!t->ready_for_connections())
 		{
-			m_have_piece = bitfield;
-			m_num_pieces = std::count(bitfield.begin(), bitfield.end(), true);
-			if (m_peer_info) m_peer_info->seed = (m_num_pieces == int(bitfield.size()));
+			m_have_piece = bits;
+			m_num_pieces = bits.count();
+			if (m_peer_info) m_peer_info->seed = (m_num_pieces == int(bits.size()));
 			return;
 		}
 
 		TORRENT_ASSERT(t->valid_metadata());
 		
-		int num_pieces = std::count(bitfield.begin(), bitfield.end(), true);
+		int num_pieces = bits.count();
 		if (num_pieces == int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -1197,7 +1197,7 @@ namespace libtorrent
 				return;
 			}
 
-			std::fill(m_have_piece.begin(), m_have_piece.end(), true);
+			m_have_piece.set_all();
 			m_num_pieces = num_pieces;
 			t->peer_has_all();
 			if (!t->is_finished())
@@ -1211,11 +1211,11 @@ namespace libtorrent
 		bool interesting = false;
 		if (!t->is_seed())
 		{
-			t->peer_has(bitfield);
+			t->peer_has(bits);
 
 			for (int i = 0; i < (int)m_have_piece.size(); ++i)
 			{
-				bool have = bitfield[i];
+				bool have = bits[i];
 				if (have && !m_have_piece[i])
 				{
 					if (!t->have_piece(i) && t->picker().piece_priority(i) != 0)
@@ -1229,7 +1229,7 @@ namespace libtorrent
 			}
 		}
 
-		m_have_piece = bitfield;
+		m_have_piece = bits;
 		m_num_pieces = num_pieces;
 
 		if (interesting) t->get_policy().peer_is_interesting(*this);
@@ -1764,7 +1764,7 @@ namespace libtorrent
 		}
 
 		TORRENT_ASSERT(!m_have_piece.empty());
-		std::fill(m_have_piece.begin(), m_have_piece.end(), true);
+		m_have_piece.set_all();
 		m_num_pieces = m_have_piece.size();
 		
 		t->peer_has_all();

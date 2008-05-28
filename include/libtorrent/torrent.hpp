@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/bitfield.hpp"
 
 namespace libtorrent
 {
@@ -79,6 +80,7 @@ namespace libtorrent
 
 	class piece_manager;
 	struct torrent_plugin;
+	struct bitfield;
 
 	namespace aux
 	{
@@ -376,7 +378,7 @@ namespace libtorrent
 			return m_have_pieces[index];
 		}
 
-		const std::vector<bool>& pieces() const
+		bitfield const& pieces() const
 		{ return m_have_pieces; }
 
 		int num_pieces() const { return m_num_pieces; }
@@ -399,12 +401,12 @@ namespace libtorrent
 		}
 		
 		// when we get a bitfield message, this is called for that piece
-		void peer_has(std::vector<bool> const& bitfield)
+		void peer_has(bitfield const& bits)
 		{
 			if (m_picker.get())
 			{
 				TORRENT_ASSERT(!is_seed());
-				m_picker->inc_refcount(bitfield);
+				m_picker->inc_refcount(bits);
 			}
 #ifndef NDEBUG
 			else
@@ -729,7 +731,7 @@ namespace libtorrent
 		// this is an index into m_trackers
 
 		// the bitmask that says which pieces we have
-		std::vector<bool> m_have_pieces;
+		bitfield m_have_pieces;
 
 		// the number of bytes that has been
 		// downloaded that failed the hash-test

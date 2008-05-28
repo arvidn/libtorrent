@@ -5,6 +5,7 @@ libtorrent/bandwidth_manager.hpp \
 libtorrent/bandwidth_limit.hpp \
 libtorrent/bandwidth_queue_entry.hpp \
 libtorrent/bencode.hpp \
+libtorrent/bitfield.hpp \
 libtorrent/broadcast_socket.hpp \
 libtorrent/buffer.hpp \
 libtorrent/connection_queue.hpp \

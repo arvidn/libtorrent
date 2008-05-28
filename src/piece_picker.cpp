@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/bitfield.hpp"
 
 #ifndef NDEBUG
 #include "libtorrent/peer_connection.hpp"
@@ -122,16 +123,17 @@ namespace libtorrent
 	}
 
 	// pieces is a bitmask with the pieces we have
-	void piece_picker::init(std::vector<bool> const& pieces)
+	void piece_picker::init(bitfield const& pieces)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #ifndef NDEBUG
 		m_files_checked_called = true;
 #endif
-		for (std::vector<bool>::const_iterator i = pieces.begin();
-			i != pieces.end(); ++i)
+		int index = 0;
+		for (bitfield::const_iterator i = pieces.begin();
+			i != pieces.end(); ++i, ++index)
 		{
-			int index = static_cast<int>(i - pieces.begin());
+			TORRENT_ASSERT(index < pieces.size());
 			piece_pos& p = m_piece_map[index];
 			if (*i) we_have(index);
 			else TORRENT_ASSERT(p.index == 0);
@@ -214,15 +216,15 @@ namespace libtorrent
 #ifndef NDEBUG
 
 	void piece_picker::verify_pick(std::vector<piece_block> const& picked
-		, std::vector<bool> const& bitfield) const
+		, bitfield const& bits) const
 	{
-		TORRENT_ASSERT(bitfield.size() == m_piece_map.size());
+		TORRENT_ASSERT(bits.size() == m_piece_map.size());
 		for (std::vector<piece_block>::const_iterator i = picked.begin()
 			, end(picked.end()); i != end; ++i)
 		{
 			TORRENT_ASSERT(i->piece_index >= 0);
-			TORRENT_ASSERT(i->piece_index < int(bitfield.size()));
-			TORRENT_ASSERT(bitfield[i->piece_index]);
+			TORRENT_ASSERT(i->piece_index < int(bits.size()));
+			TORRENT_ASSERT(bits[i->piece_index]);
 			TORRENT_ASSERT(!m_piece_map[i->piece_index].have());
 		}
 	}
@@ -887,14 +889,14 @@ namespace libtorrent
 		if (prev_priority >= 0) update(prev_priority, p.index);
 	}
 
-	void piece_picker::inc_refcount(std::vector<bool> const& bitmask)
+	void piece_picker::inc_refcount(bitfield const& bitmask)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		TORRENT_ASSERT(bitmask.size() == m_piece_map.size());
 
 		int index = 0;
 		bool updated = false;
-		for (std::vector<bool>::const_iterator i = bitmask.begin()
+		for (bitfield::const_iterator i = bitmask.begin()
 			, end(bitmask.end()); i != end; ++i, ++index)
 		{
 			if (*i)
@@ -907,14 +909,14 @@ namespace libtorrent
 		if (updated && m_sequential_download == -1) m_dirty = true;
 	}
 
-	void piece_picker::dec_refcount(std::vector<bool> const& bitmask)
+	void piece_picker::dec_refcount(bitfield const& bitmask)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		TORRENT_ASSERT(bitmask.size() == m_piece_map.size());
 
 		int index = 0;
 		bool updated = false;
-		for (std::vector<bool>::const_iterator i = bitmask.begin()
+		for (bitfield::const_iterator i = bitmask.begin()
 			, end(bitmask.end()); i != end; ++i, ++index)
 		{
 			if (*i)
@@ -1156,7 +1158,7 @@ namespace libtorrent
 	// to pick blocks from the same pieces as fast peers, and vice
 	// versa. Downloading pieces are marked as being fast, medium
 	// or slow once they're started.
-	void piece_picker::pick_pieces(const std::vector<bool>& pieces
+	void piece_picker::pick_pieces(bitfield const& pieces
 		, std::vector<piece_block>& interesting_blocks
 		, int num_blocks, int prefer_whole_pieces
 		, void* peer, piece_state_t speed, bool rarest_first
@@ -1279,7 +1281,7 @@ namespace libtorrent
 				, backup_blocks.begin(), backup_blocks.end());
 	}
 
-	bool piece_picker::can_pick(int piece, std::vector<bool> const& bitmask) const
+	bool piece_picker::can_pick(int piece, bitfield const& bitmask) const
 	{
 		TORRENT_ASSERT(piece >= 0 && piece < int(m_piece_map.size()));
 		return bitmask[piece]
@@ -1326,7 +1328,7 @@ namespace libtorrent
 	}
 
 	int piece_picker::add_blocks(std::vector<int> const& piece_list
-		, std::vector<bool> const& pieces
+		, bitfield const& pieces
 		, std::vector<piece_block>& interesting_blocks
 		, int num_blocks, int prefer_whole_pieces
 		, void* peer, std::vector<int> const& ignore) const
@@ -1388,7 +1390,7 @@ namespace libtorrent
 		return num_blocks;
 	}
 
-	int piece_picker::add_blocks_downloading(std::vector<bool> const& pieces
+	int piece_picker::add_blocks_downloading(bitfield const& pieces
 		, std::vector<piece_block>& interesting_blocks
 		, std::vector<piece_block>& backup_blocks
 		, int num_blocks, int prefer_whole_pieces
@@ -1580,7 +1582,7 @@ namespace libtorrent
 	}
 	
 	std::pair<int, int> piece_picker::expand_piece(int piece, int whole_pieces
-		, std::vector<bool> const& have) const
+		, bitfield const& have) const
 	{
 		if (whole_pieces == 0) return std::make_pair(piece, piece + 1);
 

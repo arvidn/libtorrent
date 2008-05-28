@@ -4,6 +4,7 @@
 #include "libtorrent/xml_parse.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/entry.hpp"
+#include "libtorrent/bitfield.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/broadcast_socket.hpp"
@@ -473,6 +474,31 @@ int test_main()
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 12);
 	h2 = boost::lexical_cast<sha1_hash>("0123456789abcdef11232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 16 * 4 + 3);
+
+
+	// test bitfield
+	bitfield test1(10, false);
+	TEST_CHECK(test1.count() == 0);
+	test1.set_bit(9);
+	TEST_CHECK(test1.count() == 1);
+	test1.clear_bit(9);
+	TEST_CHECK(test1.count() == 0);
+	test1.set_bit(2);
+	TEST_CHECK(test1.count() == 1);
+	test1.set_bit(1);
+	test1.set_bit(9);
+	TEST_CHECK(test1.count() == 3);
+	test1.clear_bit(2);
+	TEST_CHECK(test1.count() == 2);
+	int distance = std::distance(test1.begin(), test1.end());
+	std::cerr << distance << std::endl;
+	TEST_CHECK(distance == 10);
+
+	test1.set_all();
+	TEST_CHECK(test1.count() == 10);
+
+	test1.clear_all();
+	TEST_CHECK(test1.count() == 0);
 	return 0;
 }
 
