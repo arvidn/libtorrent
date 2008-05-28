@@ -150,18 +150,7 @@ namespace
 		tcp::endpoint const& m_ep;
 	};
 
-	struct match_peer_id
-	{
-		match_peer_id(peer_id const& id_)
-			: m_id(id_)
-		{}
-
-		bool operator()(std::pair<const address, policy::peer> const& p) const
-		{ return p.second.connection && p.second.connection->pid() == m_id; }
-
-		peer_id const& m_id;
-	};
-
+#ifndef NDEBUG
 	struct match_peer_connection
 	{
 		match_peer_connection(peer_connection const& c)
@@ -177,7 +166,7 @@ namespace
 
 		peer_connection const& m_conn;
 	};
-
+#endif
 
 }
 
@@ -445,21 +434,56 @@ namespace libtorrent
 
 		if (m_round_robin == m_peers.end()) m_round_robin = m_peers.begin();
 
+#ifndef TORRENT_DISABLE_DHT
+		bool pinged = false;
+#endif
+
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
-			iterations > 0; ++m_round_robin, --iterations)
+			iterations > 0; --iterations)
 		{
 			if (m_round_robin == m_peers.end()) m_round_robin = m_peers.begin();
 
-			if (!is_connect_candidate(m_round_robin->second, finished)) continue;
+			peer& pe = m_round_robin->second;
+			iterator current = m_round_robin;
+
+#ifndef TORRENT_DISABLE_DHT
+			// try to send a DHT ping to this peer
+			// as well, to figure out if it supports
+			// DHT (uTorrent and BitComet doesn't
+			// advertise support)
+			if (!pinged && !pe.added_to_dht)
+			{
+				udp::endpoint node(pe.ip.address(), pe.ip.port());
+				m_torrent->session().add_dht_node(node);
+				pe.added_to_dht = true;
+				pinged = true;
+			}
+#endif
+			// this timeout has to be customizable!
+			// don't remove banned peers, they should
+			// remain banned
+			if (pe.connection == 0
+				&& pe.connected != min_time()
+				&& !pe.banned
+				&& (now - pe.connected > minutes(120)
+					|| m_peers.size() >= m_torrent->settings().max_peerlist_size) * 0.9)
+			{
+				erase_peer(m_round_robin++);
+				continue;
+			}
+			++m_round_robin;
+
+
+			if (!is_connect_candidate(pe, finished)) continue;
 
 			if (candidate != m_peers.end()
-				&& !compare_peer(candidate->second, m_round_robin->second, external_ip)) continue;
+				&& !compare_peer(candidate->second, pe, external_ip)) continue;
 
-			if (now - m_round_robin->second.connected <
-				seconds(m_round_robin->second.failcount * min_reconnect_time))
+			if (now - pe.connected <
+				seconds(pe.failcount * min_reconnect_time))
 				continue;
 
-			candidate = m_round_robin;
+			candidate = current;
 		}
 		
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
@@ -483,45 +507,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_torrent->is_paused()) return;
-
-#ifndef TORRENT_DISABLE_DHT
-		bool pinged = false;
-#endif
-
-		ptime now = time_now();
-		// remove old disconnected peers from the list
-		for (iterator i = m_peers.begin(); i != m_peers.end();)
-		{
-			peer& pe = i->second;
-
-#ifndef TORRENT_DISABLE_DHT
-			// try to send a DHT ping to this peer
-			// as well, to figure out if it supports
-			// DHT (uTorrent and BitComet doesn't
-			// advertise support)
-			if (!pinged && !pe.added_to_dht)
-			{
-				udp::endpoint node(pe.ip.address(), pe.ip.port());
-				m_torrent->session().add_dht_node(node);
-				pe.added_to_dht = true;
-				pinged = true;
-			}
-#endif
-			// this timeout has to be customizable!
-			// don't remove banned peers, they should
-			// remain banned
-			if (pe.connection == 0
-				&& pe.connected != min_time()
-				&& !pe.banned
-				&& now - pe.connected > minutes(120))
-			{
-				erase_peer(i++);
-			}
-			else
-			{
-				++i;
-			}
-		}
 
 		// ------------------------
 		// upload shift
@@ -658,6 +643,12 @@ namespace libtorrent
 			error_code ec;
 			TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 
+			if (m_peers.size() >= m_torrent->settings().max_peerlist_size)
+			{
+				c.disconnect("peer list size exceeded, refusing incoming connection");
+				return false;
+			}
+
 			peer p(c.remote(), peer::not_connectable, 0);
 			i = m_peers.insert(std::make_pair(c.remote().address(), p));
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -750,7 +741,7 @@ namespace libtorrent
 			if (ses.m_alerts.should_post(alert::info))
 			{
 				ses.m_alerts.post_alert(peer_blocked_alert(remote.address()
-				, "outgoing port blocked, peer not added to peer list"));
+					, "outgoing port blocked, peer not added to peer list"));
 			}
 			return 0;
 		}
@@ -776,10 +767,13 @@ namespace libtorrent
 				if (ses.m_alerts.should_post(alert::info))
 				{
 					ses.m_alerts.post_alert(peer_blocked_alert(remote.address()
-							, "blocked peer not added to peer list"));
+						, "blocked peer not added to peer list"));
 				}
 				return 0;
 			}
+
+			if (m_peers.size() >= m_torrent->settings().max_peerlist_size)
+				return 0;
 
 			// we don't have any info about this peer.
 			// add a new entry

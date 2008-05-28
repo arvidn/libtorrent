@@ -135,6 +135,7 @@ namespace libtorrent
 			, close_redundant_connections(true)
 			, auto_scrape_interval(1800)
 			, auto_scrape_min_interval(300)
+			, max_peerlist_size(8000)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -402,6 +403,11 @@ namespace libtorrent
 		// the minimum number of seconds between any
 		// automatic scrape (regardless of torrent)
 		int auto_scrape_min_interval;
+
+		// the max number of peers in the peer list
+		// per torrent. This is the peers we know
+		// about, not necessarily connected to.
+		int max_peerlist_size;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
