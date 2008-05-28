@@ -42,8 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 
-using libtorrent::buffer;
-using libtorrent::chained_buffer;
+using namespace libtorrent;
 
 /*
 template<class T>
