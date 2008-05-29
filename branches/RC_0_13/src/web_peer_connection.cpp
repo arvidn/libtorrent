@@ -224,7 +224,7 @@ namespace libtorrent
 				request += "\r\nProxy-Connection: keep-alive";
 			}
 			request += "\r\nRange: bytes=";
-			request += boost::lexical_cast<std::string>(r.piece
+			request += boost::lexical_cast<std::string>(size_type(r.piece)
 				* info.piece_length() + r.start);
 			request += "-";
 			request += boost::lexical_cast<std::string>(r.piece

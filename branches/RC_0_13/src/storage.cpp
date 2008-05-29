@@ -1935,7 +1935,7 @@ namespace libtorrent
 		{
 			// find the file that failed, and skip all the blocks in that file
 			size_type file_offset = 0;
-			size_type current_offset = m_current_slot * m_info->piece_length();
+			size_type current_offset = size_type(m_current_slot) * m_info->piece_length();
 			for (torrent_info::file_iterator i = m_info->begin_files(true);
 					i != m_info->end_files(true); ++i)
 			{
