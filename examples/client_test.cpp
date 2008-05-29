@@ -1174,6 +1174,7 @@ int main(int ac, char* av[])
 				else if (save_resume_data_alert* p = dynamic_cast<save_resume_data_alert*>(a.get()))
 				{
 					torrent_handle h = p->handle;
+					event_string << "(" << h.name() << ") " << p->msg();
 					if (p->resume_data)
 					{
 						boost::filesystem::ofstream out(h.save_path() / (h.name() + ".fastresume"), std::ios_base::binary);
@@ -1181,7 +1182,6 @@ int main(int ac, char* av[])
 						bencode(std::ostream_iterator<char>(out), *p->resume_data);
 						if (h.is_paused()) ses.remove_torrent(h);
 					}
-					event_string << "(" << h.name() << ") " << p->msg();
 				}
 				else if (torrent_alert* p = dynamic_cast<torrent_alert*>(a.get()))
 				{
