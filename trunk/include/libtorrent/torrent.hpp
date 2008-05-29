@@ -169,6 +169,9 @@ namespace libtorrent
 		
 		void set_sequential_download(bool sd);
 	
+		void set_queue_position(int p);
+		int queue_position() const { return m_sequence_number; }
+
 		void second_tick(stat& accumulator, float tick_interval);
 
 		// debug purpose only

@@ -1195,7 +1195,6 @@ namespace libtorrent
 				?"disk failed":"failed") << " ]\n";
 #endif
 
-		bool was_seed = is_seed();
 		bool was_finished = m_picker->num_filtered() + num_pieces()
 			== torrent_file().num_pieces();
 
@@ -1212,17 +1211,6 @@ namespace libtorrent
 			TORRENT_ASSERT(valid_metadata());
 			// if we just became a seed, picker is now invalid, since it
 			// is deallocated by the torrent once it starts seeding
-			if (!was_finished
-				&& (is_seed()
-					|| m_picker->num_filtered() + num_pieces()
-					== torrent_file().num_pieces()))
-			{
-				// torrent finished
-				// i.e. all the pieces we're interested in have
-				// been downloaded. Release the files (they will open
-				// in read only mode if needed)
-				finished();
-			}
 		}
 		else if (passed_hash_check == -2)
 		{
@@ -1236,10 +1224,17 @@ namespace libtorrent
 
 		m_policy.piece_finished(index, passed_hash_check == 0);
 
-		if (!was_seed && is_seed())
+		if (!was_finished
+			&& (is_seed()
+				|| m_picker->num_filtered() + num_pieces()
+				== torrent_file().num_pieces()))
 		{
 			TORRENT_ASSERT(passed_hash_check == 0);
-			completed();
+			// torrent finished
+			// i.e. all the pieces we're interested in have
+			// been downloaded. Release the files (they will open
+			// in read only mode if needed)
+			finished();
 		}
 	}
 
@@ -1527,11 +1522,6 @@ namespace libtorrent
 #endif
 		}
 #endif
-		if (is_seed())
-		{
-			m_state = torrent_status::seeding;
-			m_picker.reset();
-		}
 	}
 
 	std::string torrent::tracker_login() const
@@ -2996,6 +2986,12 @@ namespace libtorrent
 		}
 
 		m_state = torrent_status::finished;
+		set_queue_position(-1);
+
+		// we have to call completed() before we start
+		// disconnecting peers, since there's an assert
+		// to make sure we're cleared the piece picker
+		if (is_seed()) completed();
 
 	// disconnect all seeds
 	// TODO: should disconnect all peers that have the pieces we have
@@ -3030,12 +3026,15 @@ namespace libtorrent
 		INVARIANT_CHECK;
 	
 		m_state = torrent_status::downloading;
+		set_queue_position((std::numeric_limits<int>::max)());
 	}
 
 	// called when torrent is complete (all pieces downloaded)
 	void torrent::completed()
 	{
 		INVARIANT_CHECK;
+
+		m_picker.reset();
 
 		// make the next tracker request
 		// be a completed-event
@@ -3135,11 +3134,7 @@ namespace libtorrent
 		}
 #endif
 
-		if (is_seed())
-		{
-			m_state = torrent_status::seeding;
-			m_picker.reset();
-		}
+		if (is_seed()) finished();
 
 		if (!m_connections_initialized)
 		{
@@ -3369,6 +3364,55 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::set_queue_position(int p)
+	{
+		if (p == m_sequence_number) return;
+
+		session_impl::torrent_map& torrents = m_ses.m_torrents;
+		if (p < 0)
+		{
+			for (session_impl::torrent_map::iterator i = torrents.begin()
+				, end(torrents.end()); i != end; ++i)
+			{
+				torrent* t = i->second.get();
+				if (t == this) continue;
+				if (t->m_sequence_number >= m_sequence_number
+					&& t->m_sequence_number != -1)
+					--t->m_sequence_number;
+			}
+			m_sequence_number = p;
+		}
+		else if (p < m_sequence_number)
+		{
+			for (session_impl::torrent_map::iterator i = torrents.begin()
+				, end(torrents.end()); i != end; ++i)
+			{
+				torrent* t = i->second.get();
+				if (t == this) continue;
+				if (t->m_sequence_number >= p
+					&& t->m_sequence_number != -1)
+					++t->m_sequence_number;
+			}
+			m_sequence_number = p;
+		}
+		else if (p > m_sequence_number)
+		{
+			int max_seq = 0;
+			for (session_impl::torrent_map::iterator i = torrents.begin()
+				, end(torrents.end()); i != end; ++i)
+			{
+				torrent* t = i->second.get();
+				if (t == this) continue;
+				int pos = t->m_sequence_number;
+				if (pos <= p
+					&& pos > m_sequence_number
+					&& pos != -1)
+					--t->m_sequence_number;
+				if (pos > max_seq) max_seq = pos;
+			}
+			m_sequence_number = (std::min)(max_seq + 1, p);
+		}
+	}
 
 	void torrent::set_max_uploads(int limit)
 	{

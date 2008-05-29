@@ -283,6 +283,36 @@ namespace libtorrent
 		TORRENT_FORWARD(auto_managed(m));
 	}
 
+	int torrent_handle::queue_position() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD_RETURN(queue_position(), -1);
+	}
+
+	void torrent_handle::queue_position_up() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(set_queue_position(t->queue_position() - 1));
+	}
+
+	void torrent_handle::queue_position_down() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(set_queue_position(t->queue_position() + 1));
+	}
+
+	void torrent_handle::queue_position_top() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(set_queue_position(0));
+	}
+
+	void torrent_handle::queue_position_bottom() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(set_queue_position((std::numeric_limits<int>::max)()));
+	}
+
 	void torrent_handle::set_tracker_login(std::string const& name
 		, std::string const& password) const
 	{

@@ -1520,6 +1520,12 @@ Its declaration looks like this::
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
 
+		int queue_position() const;
+		void queue_position_up() const;
+		void queue_position_down() const;
+		void queue_position_top() const;
+		void queue_position_bottom() const;
+
 		void use_interface(char const* net_interface) const;
 
 		void pause() const;
@@ -1876,6 +1882,33 @@ currently in this torrent. Note that urls that fails may be removed
 automatically from the list.
 
 See `HTTP seeding`_ for more information.
+
+
+queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()
+-------------------------------------------------------------------------------------------------------
+
+	::
+
+		int queue_position() const;
+		void queue_position_up() const;
+		void queue_position_down() const;
+		void queue_position_top() const;
+		void queue_position_bottom() const;
+
+Every torrent that is added is assigned a queue position exactly one greater than
+the greatest queue position of all existing torrents. Torrents that are being
+seeded have -1 as their queue position, since they're no longer in line to be downloaded.
+
+When a torrent is removed or turns into a seed, all torrents with greater queue positions
+have their positions decreased to fill in the space in the sequence.
+
+``queue_position()`` returns the torrent's position in the download queue. The torrents
+with the smallest numbers are the ones that are being downloaded. The smaller number,
+the closer the torrent is to the front of the line to be started.
+
+The ``queue_position_*()`` functions adjust the torrents position in the queue. Up means
+closer to the front and down means closer to the back of the queue. Top and bottom refers
+to the front and the back of the queue respectively.
 
 
 use_interface()
@@ -4471,7 +4504,20 @@ See `save_resume_data()`_.
 downloading
 -----------
 
-**TODO: finish**
+Torrents that are currently being downloaded or incomplete (with bytes still to download)
+are queued. The torrents in the front of the queue are started to be actively downloaded
+and the rest are ordered with regards to their queue position. Any newly added torrent
+is placed at the end of the queue. Once a torrent is removed or turns into a seed, its
+queue position is -1 and all torrents that used to be after it in the queue, decreases their
+position in order to fill the gap.
+
+The queue positions are always in a sequence without any gaps.
+
+Lower queue position means closer to the front of the queue, and will be started sooner than
+torrents with higher queue positions.
+
+To query a torrent for its position in the queue, or change its position, see:
+`queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()`_.
 
 seeding
 -------

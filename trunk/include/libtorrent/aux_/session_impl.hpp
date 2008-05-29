@@ -514,10 +514,6 @@ namespace libtorrent
 			// port we'll bind the next outgoing socket to
 			int m_next_port;
 
-			// the sequence number to assign to the
-			// next torrent that's added
-			int m_torrent_sequence;
-
 #ifndef TORRENT_DISABLE_DHT
 			boost::intrusive_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
