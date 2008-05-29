@@ -346,6 +346,12 @@ namespace libtorrent
 		bool is_auto_managed() const;
 		void auto_managed(bool m) const;
 
+		int queue_position() const;
+		void queue_position_up() const;
+		void queue_position_down() const;
+		void queue_position_top() const;
+		void queue_position_bottom() const;
+
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void resolve_countries(bool r);
 		bool resolve_countries() const;

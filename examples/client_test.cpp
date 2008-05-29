@@ -573,6 +573,7 @@ void scan_dir(path const& dir_path
 			continue;
 		}
 		
+		h.auto_managed(false);
 		h.pause();
 		// the alert handler for save_resume_data_alert
 		// will save it to disk and remove the torrent
@@ -1180,7 +1181,7 @@ int main(int ac, char* av[])
 						boost::filesystem::ofstream out(h.save_path() / (h.name() + ".fastresume"), std::ios_base::binary);
 						out.unsetf(std::ios_base::skipws);
 						bencode(std::ostream_iterator<char>(out), *p->resume_data);
-						if (h.is_paused()) ses.remove_torrent(h);
+						if (h.is_paused() && !h.is_auto_managed()) ses.remove_torrent(h);
 					}
 				}
 				else if (torrent_alert* p = dynamic_cast<torrent_alert*>(a.get()))
@@ -1232,12 +1233,16 @@ int main(int ac, char* av[])
 				if (active_torrent == torrent_index)
 				{
 					term = "\x1b[0m\x1b[7m";
-					out << esc("7") << "* ";
+					out << esc("7") << "*";
 				}
 				else
 				{
-					out << "- ";
+					out << " ";
 				}
+
+				int queue_pos = h.queue_position();
+				if (queue_pos == -1) out << "-  ";
+				else out << std::setw(3) << queue_pos;
 
 				if (h.is_paused()) out << esc("34");
 				else out << esc("37");

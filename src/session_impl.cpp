@@ -169,7 +169,6 @@ namespace aux {
 		, m_auto_scrape_time_scaler(180)
 		, m_incoming_connection(false)
 		, m_last_tick(time_now())
-		, m_torrent_sequence(0)
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
@@ -1703,6 +1702,14 @@ namespace aux {
 #endif
 		}
 
+		int queue_pos = 0;
+		for (torrent_map::const_iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			int pos = i->second->queue_position();
+			if (pos >= queue_pos) queue_pos = pos + 1;
+		}
+
 		// create the torrent and the data associated with
 		// the checker thread and store it before starting
 		// the thread
@@ -1711,17 +1718,16 @@ namespace aux {
 			torrent_ptr.reset(new torrent(*this, params.ti, params.save_path
 				, m_listen_interface, params.storage_mode, 16 * 1024
 				, params.storage, params.paused, params.resume_data
-				, m_torrent_sequence, params.auto_managed));
+				, queue_pos, params.auto_managed));
 		}
 		else
 		{
 			torrent_ptr.reset(new torrent(*this, params.tracker_url, *ih, params.name
 				, params.save_path, m_listen_interface, params.storage_mode, 16 * 1024
 				, params.storage, params.paused, params.resume_data
-				, m_torrent_sequence, params.auto_managed));
+				, queue_pos, params.auto_managed));
 		}
 		torrent_ptr->start();
-		++m_torrent_sequence;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1744,6 +1750,11 @@ namespace aux {
 #endif
 
 		m_torrents.insert(std::make_pair(*ih, torrent_ptr));
+
+		// if this is an auto managed torrent, force a recalculation
+		// of which torrents to have active
+		if (params.auto_managed && m_auto_manage_time_scaler > 2)
+			m_auto_manage_time_scaler = 2;
 
 		return torrent_handle(torrent_ptr);
 	}
@@ -1816,6 +1827,7 @@ namespace aux {
 #ifndef NDEBUG
 			sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
+			i->second->set_queue_position(-1);
 			m_torrents.erase(i);
 			TORRENT_ASSERT(m_torrents.find(i_hash) == m_torrents.end());
 			return;
@@ -2440,6 +2452,22 @@ namespace aux {
 #ifndef NDEBUG
 	void session_impl::check_invariant() const
 	{
+		std::set<int> unique;
+		int total_downloaders = 0;
+		for (torrent_map::const_iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			int pos = i->second->queue_position();
+			if (pos < 0)
+			{
+				TORRENT_ASSERT(pos == -1);
+				continue;
+			}
+			++total_downloaders;
+			unique.insert(i->second->queue_position());
+		}
+		TORRENT_ASSERT(unique.size() == total_downloaders);
+
 		TORRENT_ASSERT(m_max_connections > 0);
 		TORRENT_ASSERT(m_max_uploads > 0);
 		TORRENT_ASSERT(m_allowed_upload_slots >= m_max_uploads);
