@@ -466,11 +466,12 @@ namespace libtorrent
 				&& pe.connected != min_time()
 				&& !pe.banned
 				&& (now - pe.connected > minutes(120)
-					|| m_peers.size() >= m_torrent->settings().max_peerlist_size) * 0.9)
+					|| m_peers.size() >= m_torrent->settings().max_peerlist_size * 0.9))
 			{
 				erase_peer(m_round_robin++);
 				continue;
 			}
+
 			++m_round_robin;
 
 
