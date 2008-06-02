@@ -6,6 +6,7 @@
 #include <libtorrent/entry.hpp>
 #include <libtorrent/peer_request.hpp>
 #include <libtorrent/disk_buffer_holder.hpp>
+#include <libtorrent/bitfield.hpp>
 #include <boost/python.hpp>
 
 using namespace boost::python;
@@ -119,17 +120,26 @@ namespace
           return this->peer_plugin::on_have(index);
       }
 
-      bool on_bitfield(std::vector<bool> const& bitfield)
+      bool on_bitfield(list _bf)
       {
+          //Convert list to a bitfield
+          bitfield bf(len(_bf));
+          for (int i = 0; i < len(_bf); ++i)
+          {
+              if (_bf[i])
+                  bf.set_bit(i);
+              else
+                  bf.clear_bit(i);
+          }   
           if (override f = this->get_override("on_bitfield"))
-              return f(bitfield);
+              return f(bf);
           else
-              return peer_plugin::on_bitfield(bitfield);
+              return peer_plugin::on_bitfield(bf);
       }
 
-      bool default_on_bitfield(std::vector<bool> const& bitfield)
+      bool default_on_bitfield(const bitfield &bf)
       {
-          return this->peer_plugin::on_bitfield(bitfield);
+          return this->peer_plugin::on_bitfield(bf);
       }
 
       bool on_request(peer_request const& req)

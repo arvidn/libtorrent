@@ -3,6 +3,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <libtorrent/peer_info.hpp>
+#include <libtorrent/bitfield.hpp>
 #include <boost/python.hpp>
 #include <boost/python/iterator.hpp>
 
@@ -35,7 +36,7 @@ list get_pieces(peer_info const& pi)
 {
     list ret;
 
-    for (std::vector<bool>::const_iterator i = pi.pieces.begin()
+    for (bitfield::const_iterator i = pi.pieces.begin()
         , end(pi.pieces.end()); i != end; ++i)
     {
         ret.append(*i);

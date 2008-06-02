@@ -4,6 +4,7 @@
 
 #include <libtorrent/torrent_handle.hpp>
 #include <boost/python.hpp>
+#include <libtorrent/bitfield.hpp>
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -12,7 +13,7 @@ object pieces(torrent_status const& s)
 {
     list result;
 
-    for (std::vector<bool>::const_iterator i(s.pieces->begin()), e(s.pieces->end()); i != e; ++i)
+    for (bitfield::const_iterator i(s.pieces->begin()), e(s.pieces->end()); i != e; ++i)
         result.append(*i);
 
     return result;

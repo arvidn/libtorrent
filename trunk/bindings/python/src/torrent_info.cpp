@@ -41,14 +41,14 @@ namespace
       return result;
   }
 
-  std::vector<file_entry>::const_iterator begin_files(torrent_info& i, bool storage)
+  file_storage::iterator begin_files(torrent_info& i)
   {
-      return i.begin_files(storage);
+      return i.begin_files();
   }
 
-  std::vector<file_entry>::const_iterator end_files(torrent_info& i, bool storage)
+  file_storage::iterator end_files(torrent_info& i)
   {
-      return i.end_files(storage);
+      return i.end_files();
   }
 
   //list files(torrent_info const& ti, bool storage) {
@@ -57,7 +57,7 @@ namespace
 
       typedef std::vector<file_entry> list_type;
 
-      for (list_type::const_iterator i = ti.begin_files(storage); i != ti.end_files(storage); ++i)
+      for (list_type::const_iterator i = ti.begin_files(); i != ti.end_files(); ++i)
           result.append(*i);
 
       return result;
@@ -70,10 +70,12 @@ void bind_torrent_info()
 {
     return_value_policy<copy_const_reference> copy;
 
-    class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info")
+    class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info", no_init)
         .def(init<entry const&>())
         .def(init<sha1_hash const&>())
-
+        .def(init<char const*, int>())
+        .def(init<char const*>())
+        
         .def("add_tracker", &torrent_info::add_tracker, (arg("url"), arg("tier")=0))
         .def("add_url_seed", &torrent_info::add_url_seed)
 
