@@ -265,5 +265,10 @@ void bind_alert()
     )
         .def_readonly("resume_data", &save_resume_data_alert::resume_data)
         ;
-            
+
+    class_<file_renamed_alert, bases<torrent_alert>, noncopyable>(
+        "file_renamed_alert", no_init
+    )
+        .def_readonly("name", &file_renamed_alert::name)
+        ;
 }
