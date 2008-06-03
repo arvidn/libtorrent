@@ -2218,6 +2218,10 @@ namespace libtorrent
 
 		if (t)
 		{
+			// make sure we keep all the stats!
+			calc_ip_overhead();
+			t->add_stats(statistics());
+
 			if (t->has_picker())
 			{
 				piece_picker& picker = t->picker();

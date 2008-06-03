@@ -1424,6 +1424,9 @@ namespace libtorrent
 
 		if (t)
 		{
+			// make sure we keep all the stats!
+			t->add_stats(statistics());
+
 			if (t->valid_metadata() && !t->is_seed())
 			{
 				piece_picker& picker = t->picker();
