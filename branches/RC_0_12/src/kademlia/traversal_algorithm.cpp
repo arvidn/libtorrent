@@ -102,7 +102,7 @@ void traversal_algorithm::failed(node_id const& id, bool prevent_request)
 {
 	m_invoke_count--;
 
-	TORRENT_ASSERT(!id.is_all_zeros());
+	assert(!id.is_all_zeros());
 	std::vector<result>::iterator i = std::find_if(
 		m_results.begin()
 		, m_results.end()
