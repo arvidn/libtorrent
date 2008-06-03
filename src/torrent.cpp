@@ -3412,6 +3412,9 @@ namespace libtorrent
 			}
 			m_sequence_number = (std::min)(max_seq + 1, p);
 		}
+
+		if (m_ses.m_auto_manage_time_scaler > 2)
+			m_ses.m_auto_manage_time_scaler = 2;
 	}
 
 	void torrent::set_max_uploads(int limit)
