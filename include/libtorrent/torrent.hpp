@@ -160,6 +160,7 @@ namespace libtorrent
 			unfinished_pieces);
 
 		stat statistics() const { return m_stat; }
+		void add_stats(stat const& s) { m_stat += s; }
 		size_type bytes_left() const;
 		boost::tuples::tuple<size_type, size_type> bytes_done() const;
 		size_type quantized_bytes_done() const;
