@@ -173,6 +173,9 @@ namespace libtorrent
 		// response. used to know where in the buffer the
 		// next response starts
 		int m_received_body;
+
+		// position in the current range response
+		int m_range_pos;
 	};
 }
 

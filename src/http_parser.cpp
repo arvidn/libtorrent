@@ -63,9 +63,10 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(recv_buffer.left() >= m_recv_buffer.left());
 		boost::tuple<int, int> ret(0, 0);
+		int start_pos = m_recv_buffer.left();
 
 		// early exit if there's nothing new in the receive buffer
-		if (recv_buffer.left() == m_recv_buffer.left()) return ret;
+		if (start_pos == recv_buffer.left()) return ret;
 		m_recv_buffer = recv_buffer;
 
 		if (m_state == error_state)
@@ -80,7 +81,11 @@ namespace libtorrent
 			TORRENT_ASSERT(!m_finished);
 			char const* newline = std::find(pos, recv_buffer.end, '\n');
 			// if we don't have a full line yet, wait.
-			if (newline == recv_buffer.end) return ret;
+			if (newline == recv_buffer.end)
+			{
+				boost::get<1>(ret) += m_recv_buffer.left() - start_pos;
+				return ret;
+			}
 
 			if (newline == pos)
 			{
@@ -96,7 +101,7 @@ namespace libtorrent
 			++newline;
 			int incoming = (int)std::distance(pos, newline);
 			m_recv_pos += incoming;
-			boost::get<1>(ret) += incoming;
+			boost::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
 			pos = newline;
 
 			line >> m_protocol;
@@ -114,6 +119,7 @@ namespace libtorrent
 				m_status_code = 0;
 			}
 			m_state = read_header;
+			start_pos = pos - recv_buffer.begin;
 		}
 
 		if (m_state == read_header)
@@ -131,7 +137,6 @@ namespace libtorrent
 				line.assign(pos, line_end);
 				++newline;
 				m_recv_pos += newline - pos;
-				boost::get<1>(ret) += newline - pos;
 				pos = newline;
 
 				std::string::size_type separator = line.find(':');
@@ -187,6 +192,7 @@ namespace libtorrent
 				TORRENT_ASSERT(m_recv_pos <= (int)recv_buffer.left());
 				newline = std::find(pos, recv_buffer.end, '\n');
 			}
+			boost::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
 		}
 
 		if (m_state == read_body)
