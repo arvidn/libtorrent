@@ -1,3 +1,6 @@
+	* Fixed bug where statistics from the last second was lost when
+	  disconnecting a peer.
+
 release 0.12.1
 
 	* Fixed bug in web seed downloader
