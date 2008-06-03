@@ -1,3 +1,7 @@
+	* Fixed bug in statistics from web server peers where it sometimes
+	  could report too many bytes downloaded.
+	* Fixed bug where statistics from the last second was lost when
+	  disconnecting a peer.
 
 release 0.13
 	
