@@ -21,14 +21,26 @@ using boost::bind;
 tuple<int, int> feed_bytes(http_parser& parser, char const* str)
 {
 	tuple<int, int> ret(0, 0);
-	buffer::const_interval recv_buf(str, str + 1);
-	for (; *str; ++str)
+	tuple<int, int> prev(0, 0);
+	for (int chunks = 1; chunks < 70; ++chunks)
 	{
-		recv_buf.end = str + 1;
-		int payload, protocol;
-		tie(payload, protocol) = parser.incoming(recv_buf);
-		ret.get<0>() += payload;
-		ret.get<1>() += protocol;
+		ret = make_tuple(0, 0);
+		parser.reset();
+		buffer::const_interval recv_buf(str, str);
+		for (; *str;)
+		{
+			int chunk_size = (std::min)(chunks, int(strlen(recv_buf.end)));
+			if (chunk_size == 0) break;
+			recv_buf.end += chunk_size;
+			int payload, protocol;
+			tie(payload, protocol) = parser.incoming(recv_buf);
+			ret.get<0>() += payload;
+			ret.get<1>() += protocol;
+			std::cerr << payload << ", " << protocol << ", " << chunk_size << std::endl;
+			TORRENT_ASSERT(payload + protocol == chunk_size);
+		}
+		TEST_CHECK(prev == make_tuple(0, 0) || ret == prev);
+		prev = ret;
 	}
 	return ret;
 }

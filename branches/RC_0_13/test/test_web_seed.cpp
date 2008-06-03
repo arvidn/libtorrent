@@ -39,8 +39,12 @@ void test_transfer(torrent_info torrent_file, int proxy)
 	using namespace libtorrent;
 
 	session ses;
+	session_settings settings;
+	settings.ignore_limits_on_local_network = false;
+	ses.set_settings(settings);
 	ses.set_severity_level(alert::debug);
 	ses.listen_on(std::make_pair(51000, 52000));
+	ses.set_download_rate_limit(torrent_file.total_size() / 10);
 	remove_all("./tmp1");
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
@@ -64,18 +68,43 @@ void test_transfer(torrent_info torrent_file, int proxy)
 	std::vector<announce_entry> empty;
 	th.replace_trackers(empty);
 
+	const size_type total_size = torrent_file.total_size();
+
+	float rate_sum = 0.f;
+	float ses_rate_sum = 0.f;
+
 	for (int i = 0; i < 30; ++i)
 	{
 		torrent_status s = th.status();
-		std::cerr << s.progress << " " << (s.download_rate / 1000.f) << std::endl;
-		std::auto_ptr<alert> a;
-		a = ses.pop_alert();
-		if (a.get())
-			std::cerr << a->msg() << "\n";
+		session_status ss = ses.status();
+		std::cerr << (s.progress * 100.f) << " %"
+			<< " torrent rate: " << (s.download_rate / 1000.f) << " kB/s"
+			<< " session rate: " << (ss.download_rate / 1000.f) << " kB/s"
+			<< " session total: " << ss.total_payload_download
+			<< " torrent total: " << s.total_payload_download
+			<< std::endl;
+		rate_sum += s.download_payload_rate;
+		ses_rate_sum += ss.payload_download_rate;
 
-		if (th.is_seed()) break;
+		print_alerts(ses, "ses");
+
+		if (th.is_seed() && ss.download_rate == 0.f)
+		{
+			TEST_CHECK(ses.status().total_payload_download == total_size);
+			TEST_CHECK(th.status().total_payload_download == total_size);
+			break;
+		}
 		test_sleep(1000);
 	}
+
+	std::cerr << "total_size: " << total_size
+		<< " rate_sum: " << rate_sum
+		<< " session_rate_sum: " << ses_rate_sum
+		<< std::endl;
+
+	// the rates for each second should sum up to the total, with a 10% error margin
+	TEST_CHECK(fabs(rate_sum - total_size) < total_size * .1f);
+	TEST_CHECK(fabs(ses_rate_sum - total_size) < total_size * .1f);
 
 	TEST_CHECK(th.is_seed());
 

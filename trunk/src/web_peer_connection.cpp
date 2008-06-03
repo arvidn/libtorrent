@@ -67,6 +67,7 @@ namespace libtorrent
 		: peer_connection(ses, t, s, remote, peerinfo)
 		, m_url(url)
 		, m_first_request(true)
+		, m_range_pos(0)
 	{
 		INVARIANT_CHECK;
 
@@ -350,7 +351,8 @@ namespace libtorrent
 			{
 				bool error = false;
 				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, error);
-				m_statistics.received_bytes(payload, protocol);
+				m_statistics.received_bytes(0, protocol);
+				bytes_transferred -= protocol;
 
 				if (error)
 				{
@@ -363,7 +365,12 @@ namespace libtorrent
 				TORRENT_ASSERT(recv_buffer.left() <= packet_size());
 				
 				// this means the entire status line hasn't been received yet
-				if (m_parser.status_code() == -1) break;
+				if (m_parser.status_code() == -1)
+				{
+					TORRENT_ASSERT(payload == 0);
+					TORRENT_ASSERT(bytes_transferred == 0);
+					break;
+				}
 
 				// if the status code is not one of the accepted ones, abort
 				if (m_parser.status_code() != 206 // partial content
@@ -388,14 +395,15 @@ namespace libtorrent
 					disconnect(error_msg.c_str(), 1);
 					return;
 				}
-				if (!m_parser.header_finished()) break;
+				if (!m_parser.header_finished())
+				{
+					TORRENT_ASSERT(payload == 0);
+					TORRENT_ASSERT(bytes_transferred == 0);
+					break;
+				}
 
 				m_body_start = m_parser.body_start();
 				m_received_body = 0;
-			}
-			else
-			{
-				m_statistics.received_bytes(bytes_transferred, 0);
 			}
 
 			// we just completed reading the header
@@ -460,9 +468,11 @@ namespace libtorrent
 
 				m_body_start = m_parser.body_start();
 				m_received_body = 0;
+				m_range_pos = 0;
 			}
 
 			recv_buffer.begin += m_body_start;
+
 			// we only received the header, no data
 			if (recv_buffer.left() == 0) break;
 
@@ -498,6 +508,13 @@ namespace libtorrent
 					return;
 				}
 			}
+
+			int left_in_response = range_end - range_start - m_range_pos;
+			int payload_transferred = (std::min)(left_in_response, int(bytes_transferred));
+			m_statistics.received_bytes(payload_transferred, 0);
+			bytes_transferred -= payload_transferred;
+			m_range_pos += payload_transferred;;
+			if (m_range_pos > range_end - range_start) m_range_pos = range_end - range_start;
 
 //			std::cerr << "REQUESTS: m_requests: " << m_requests.size()
 //				<< " file_requests: " << m_file_requests.size() << std::endl;
@@ -641,8 +658,9 @@ namespace libtorrent
 				m_received_body = 0;
 				continue;
 			}
-			break;
+			if (bytes_transferred == 0) break;
 		}
+		TORRENT_ASSERT(bytes_transferred == 0);
 	}
 
 	void web_peer_connection::get_specific_peer_info(peer_info& p) const
