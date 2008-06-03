@@ -225,7 +225,14 @@ namespace libtorrent
 		}
 		
 		// handle tracker response
-		entry e = bdecode(data, data + size);
+		entry e;
+#ifndef BOOST_NO_EXCEPTIONS
+		try {
+#endif
+		e = bdecode(data, data + size);
+#ifndef BOOST_NO_EXCEPTIONS
+		} catch (std::exception&) {}
+#endif
 
 		if (e.type() != entry::undefined_t)
 		{
