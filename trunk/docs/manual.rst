@@ -2228,6 +2228,8 @@ It contains the following fields::
 		int seed_rank;
 
 		int last_scrape;
+
+		bool has_incoming;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -2409,6 +2411,9 @@ to seed ratio from the tracker scrape. For more information, see queuing_.
 
 ``last_scrape`` is the number of seconds since this torrent acquired scrape data.
 If it has never done that, this value is -1.
+
+``has_incoming`` is true if there has ever been an incoming connection attempt
+to this torrent.'
 
 
 peer_info
