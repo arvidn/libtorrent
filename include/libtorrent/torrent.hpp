@@ -909,6 +909,10 @@ namespace libtorrent
 		// has been initialized with files_checked().
 		bool m_connections_initialized:1;
 
+		// is set to true every time there is an incoming
+		// connection to this torrent
+		bool m_has_incoming:1;
+
 #ifndef NDEBUG
 		bool m_files_checked:1;
 #endif

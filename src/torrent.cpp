@@ -201,6 +201,7 @@ namespace libtorrent
 		, m_sequential_download(false)
 		, m_got_tracker_response(false)
 		, m_connections_initialized(true)
+		, m_has_incoming(false)
 	{
 		if (resume_data) m_resume_data = *resume_data;
 #ifndef NDEBUG
@@ -275,6 +276,7 @@ namespace libtorrent
 		, m_sequential_download(false)
 		, m_got_tracker_response(false)
 		, m_connections_initialized(false)
+		, m_has_incoming(false)
 	{
 		if (resume_data) m_resume_data = *resume_data;
 #ifndef NDEBUG
@@ -2714,6 +2716,8 @@ namespace libtorrent
 		TORRENT_ASSERT(p != 0);
 		TORRENT_ASSERT(!p->is_local());
 
+		m_has_incoming = true;
+
 		if ((m_state == torrent_status::queued_for_checking
 			|| m_state == torrent_status::checking_files)
 			&& valid_metadata())
@@ -3912,6 +3916,7 @@ namespace libtorrent
 
 		torrent_status st;
 
+		st.has_incoming = m_has_incoming;
 		st.error = m_error;
 
 		if (m_last_scrape == min_time())

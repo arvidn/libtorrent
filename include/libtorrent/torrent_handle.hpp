@@ -120,6 +120,7 @@ namespace libtorrent
 			, seeding_time(0)
 			, seed_rank(0)
 			, last_scrape(0)
+			, has_incoming(false)
 		{}
 
 		enum state_t
@@ -266,6 +267,10 @@ namespace libtorrent
 		// number of seconds since last scrape, or -1 if
 		// there hasn't been a scrape
 		int last_scrape;
+
+		// true if there are incoming connections to this
+		// torrent
+		bool has_incoming;
 	};
 
 	struct TORRENT_EXPORT block_info
