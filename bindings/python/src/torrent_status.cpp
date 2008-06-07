@@ -13,7 +13,7 @@ object pieces(torrent_status const& s)
 {
     list result;
 
-    for (bitfield::const_iterator i(s.pieces->begin()), e(s.pieces->end()); i != e; ++i)
+    for (bitfield::const_iterator i(s.pieces.begin()), e(s.pieces.end()); i != e; ++i)
         result.append(*i);
 
     return result;
