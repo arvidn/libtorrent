@@ -245,7 +245,7 @@ namespace libtorrent
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		write_bitfield(t->pieces());
+		write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
 		if (m_supports_dht_port && m_ses.m_dht)
 			write_dht_port(m_ses.get_dht_settings().service_port);
@@ -1416,7 +1416,7 @@ namespace libtorrent
 		send_buffer(msg, sizeof(msg));
 	}
 
-	void bt_peer_connection::write_bitfield(bitfield const& bits)
+	void bt_peer_connection::write_bitfield()
 	{
 		INVARIANT_CHECK;
 
@@ -1449,13 +1449,10 @@ namespace libtorrent
 			return;
 		}
 	
-		int num_pieces = bits.size();
+		int num_pieces = t->picker().num_pieces();
 		int lazy_pieces[50];
 		int num_lazy_pieces = 0;
 		int lazy_piece = 0;
-
-		TORRENT_ASSERT(t->is_seed() == (bits.count()
-			== num_pieces));
 
 		if (t->is_seed() && m_ses.settings().lazy_bitfields)
 		{
@@ -1470,26 +1467,6 @@ namespace libtorrent
 			lazy_piece = 0;
 		}
 
-#ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " ==> BITFIELD ";
-
-		std::stringstream bitfield_string;
-		for (int i = 0; i < (int)get_bitfield().size(); ++i)
-		{
-			if (lazy_piece < num_lazy_pieces
-				&& lazy_pieces[lazy_piece] == i)
-			{
-				bitfield_string << "0";
-				++lazy_piece;
-				continue;
-			}
-			if (bits[i]) bitfield_string << "1";
-			else bitfield_string << "0";
-		}
-		bitfield_string << "\n";
-		(*m_logger) << bitfield_string.str();
-		lazy_piece = 0;
-#endif
 		const int packet_size = (num_pieces + 7) / 8 + 5;
 	
 		buffer::interval i = allocate_send_buffer(packet_size);	
@@ -1498,15 +1475,46 @@ namespace libtorrent
 		detail::write_int32(packet_size - 4, i.begin);
 		detail::write_uint8(msg_bitfield, i.begin);
 
-		memcpy(i.begin, bits.bytes(), packet_size - 5);
+		if (t->is_seed())
+		{
+			memset(i.begin, 0xff, packet_size - 5);
+		}
+		else
+		{
+			memset(i.begin, 0, packet_size - 5);
+			piece_picker const& p = t->picker();
+			int mask = 0x80;
+			unsigned char* byte = (unsigned char*)i.begin;
+			for (int i = 0; i < num_pieces; ++i)
+			{
+				if (p.have_piece(i)) *byte |= mask;
+				mask >>= 1;
+				if (mask == 0)
+				{
+					mask = 0x80;
+					++byte;
+				}
+			}
+		}
 		for (int c = 0; c < num_lazy_pieces; ++c)
 			i.begin[lazy_pieces[c] / 8] &= ~(0x80 >> (lazy_pieces[c] & 7));
 		TORRENT_ASSERT(i.end - i.begin == (num_pieces + 7) / 8);
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " ==> BITFIELD ";
+
+		std::stringstream bitfield_string;
+		for (int k = 0; k < num_pieces; ++k)
+		{
+			if (i.begin[k / 8] & (0x80 >> (k % 8))) bitfield_string << "1";
+			else bitfield_string << "0";
+		}
+		bitfield_string << "\n";
+		(*m_logger) << bitfield_string.str();
+#endif
 #ifndef NDEBUG
 		m_sent_bitfield = true;
 #endif
-		setup_send();
 
 		if (num_lazy_pieces > 0)
 		{
@@ -1522,6 +1530,7 @@ namespace libtorrent
 
 		if (m_supports_fast)
 			send_allowed_set();
+		setup_send();
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -2377,7 +2386,7 @@ namespace libtorrent
 			// sent the handshake
 			if (!is_local()) write_handshake();
 //			if (t->valid_metadata())
-//				write_bitfield(t->pieces());
+//				write_bitfield();
 
 			if (is_disconnecting()) return;
 
@@ -2511,7 +2520,7 @@ namespace libtorrent
 			reset_recv_buffer(5);
 			if (t->valid_metadata())
 			{
-				write_bitfield(t->pieces());
+				write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
 				if (m_supports_dht_port && m_ses.m_dht)
 					write_dht_port(m_ses.get_dht_settings().service_port);

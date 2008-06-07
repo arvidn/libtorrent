@@ -1317,8 +1317,8 @@ int main(int ac, char* av[])
 					out.fill(' ');
 					out << (s.progress*100) << "% ";
 					out << progress_bar(s.progress, terminal_width - 37, progress_bar_color) << "\n";
-					if (print_piece_bar && s.progress < 1.f && s.pieces)
-						out << "  " << piece_bar(*s.pieces, terminal_width - 5) << "\n";
+					if (print_piece_bar && s.progress < 1.f)
+						out << "  " << piece_bar(s.pieces, terminal_width - 5) << "\n";
 					out << "  peers: " << esc("37") << s.num_peers << esc("0") << " (" << esc("37") << s.connect_candidates << esc("0") << ") "
 						<< "seeds: " << esc("37") << s.num_seeds << esc("0") << " "
 						<< "distributed copies: " << esc("37") << s.distributed_copies << esc("0")

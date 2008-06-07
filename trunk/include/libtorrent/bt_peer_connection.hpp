@@ -209,7 +209,7 @@ namespace libtorrent
 		void write_not_interested();
 		void write_request(peer_request const& r);
 		void write_cancel(peer_request const& r);
-		void write_bitfield(bitfield const& bits);
+		void write_bitfield();
 		void write_have(int index);
 		void write_piece(peer_request const& r, disk_buffer_holder& buffer);
 		void write_handshake();

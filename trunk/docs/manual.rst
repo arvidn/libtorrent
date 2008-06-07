@@ -2197,7 +2197,7 @@ It contains the following fields::
 
 		int connect_candidates;
 
-		const std::vector<bool>* pieces;
+		bitfield pieces;
 		int num_pieces;
 
 		size_type total_done;
@@ -2466,7 +2466,7 @@ It contains the following fields::
 		size_type total_download;
 		size_type total_upload;
 		peer_id pid;
-		std::vector<bool> pieces;
+		bitfield pieces;
 		int upload_limit;
 		int download_limit;
 
@@ -2642,9 +2642,9 @@ the payload data.
 extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
 is using. See identify_client()_
 
-``pieces`` is a vector of booleans that has as many entries as there are pieces
-in the torrent. Each boolean tells you if the peer has that piece (if it's set to true)
-or if the peer miss that piece (set to false).
+``pieces`` is a bitfield, with one bit per piece in the torrent.
+Each bit tells you if the peer has that piece (if it's set to 1)
+or if the peer miss that piece (set to 0).
 
 ``seed`` is true if this peer is a seed.
 
@@ -3289,6 +3289,53 @@ Both the ``peer_id`` and ``sha1_hash`` types are typedefs of the class
 	};
 
 The iterators gives you access to individual bytes.
+
+
+bitfield
+========
+
+The bitfiled type stores any number of bits as a bitfield in an array.
+
+::
+
+	class bitfield
+	{
+		bitfield();
+		bitfield(int bits);
+		bitfield(int bits, bool val);
+		bitfield(char const* bytes, int bits);
+		bitfield(bitfield const& rhs);
+
+		void borrow_bytes(char* bytes, int bits);
+		~bitfield();
+
+		void assign(char const* bytes, int bits);
+
+		bool operator[](int index) const;
+
+		bool get_bit(int index) const;
+	
+		void clear_bit(int index);
+		void set_bit(int index);
+
+		std::size_t size() const;
+		bool empty() const;
+
+		char const* bytes() const;
+
+		bitfield& operator=(bitfield const& rhs);
+
+		int count() const;
+
+		typedef const_iterator;
+		const_iterator begin() const;
+		const_iterator end() const;
+
+		void resize(int bits, bool val);
+		void set_all();
+		void clear_all();
+		void resize(int bits);
+	};
 
 
 

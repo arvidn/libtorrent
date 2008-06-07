@@ -129,17 +129,12 @@ namespace libtorrent
 			boost::int16_t requested;
 		};
 
-		piece_picker(int blocks_per_piece
-			, int total_num_blocks);
+		piece_picker();
 
 		void get_availability(std::vector<int>& avail) const;
 
 		void sequential_download(bool sd);
 		bool sequential_download() const { return m_sequential_download >= 0; }
-
-		// the vector tells which pieces we already have
-		// and which we don't have.
-		void init(bitfield const& pieces);
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE message is received)
@@ -164,6 +159,17 @@ namespace libtorrent
 		// we are not interested in this piece anymore
 		// (i.e. we don't have to maintain a refcount)
 		void we_have(int index);
+		void we_dont_have(int index);
+
+		void init(int blocks_per_piece, int total_num_blocks);
+		int num_pieces() const { return int(m_piece_map.size()); }
+
+		bool have_piece(int index) const
+		{
+			TORRENT_ASSERT(index >= 0);
+			TORRENT_ASSERT(index < int(m_piece_map.size()));
+			return m_piece_map[index].index == piece_pos::we_have_index;
+		}
 
 		// sets the priority of a piece.
 		// returns true if the priority was changed from 0 to non-0
@@ -276,6 +282,8 @@ namespace libtorrent
 		// the number of filtered pieces we already have
 		int num_have_filtered() const { return m_num_have_filtered; }
 
+		int num_have() const { return m_num_have; }
+
 #ifndef NDEBUG
 		// used in debug mode
 		void verify_priority(int start, int end, int prio) const;
@@ -350,6 +358,7 @@ namespace libtorrent
 			
 			bool have() const { return index == we_have_index; }
 			void set_have() { index = we_have_index; TORRENT_ASSERT(have()); }
+			void set_not_have() { index = 0; TORRENT_ASSERT(!have()); }
 			
 			bool filtered() const { return piece_priority == filter_priority; }
 			void filtered(bool f) { piece_priority = f ? filter_priority : 0; }
@@ -466,10 +475,6 @@ namespace libtorrent
 		// if this is set to true, it means update_pieces()
 		// has to be called before accessing m_pieces.
 		mutable bool m_dirty;
-
-#ifndef NDEBUG
-		bool m_files_checked_called;
-#endif
 	};
 
 	inline int piece_picker::blocks_in_piece(int index) const
