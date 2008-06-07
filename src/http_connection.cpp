@@ -301,8 +301,11 @@ void http_connection::connect(int ticket, tcp::endpoint target_address)
 
 void http_connection::on_connect(error_code const& e)
 {
-	TORRENT_ASSERT(m_connection_ticket >= 0);
-	m_cc.done(m_connection_ticket);
+	if (m_connection_ticket >= 0)
+	{
+		m_cc.done(m_connection_ticket);
+		m_connection_ticket = -1;
+	}
 
 	m_last_receive = time_now();
 	if (!e)
