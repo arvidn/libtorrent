@@ -1018,11 +1018,14 @@ namespace libtorrent
 		TORRENT_ASSERT(!p->second.connection);
 		TORRENT_ASSERT(p->second.type == peer::connectable);
 
+		TORRENT_ASSERT(is_connect_candidate(p->second, m_torrent->is_finished()));
 		if (!m_torrent->connect_to_peer(&p->second))
 		{
 			++p->second.failcount;
 			return false;
 		}
+		TORRENT_ASSERT(!is_connect_candidate(p->second, m_torrent->is_finished()));
+		--m_num_connect_candidates;
 		return true;
 	}
 
