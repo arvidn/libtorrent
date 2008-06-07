@@ -117,6 +117,15 @@ rule linking ( properties * )
 			;
 	}
 
+	if <boost>system in $(properties)
+	{
+		# on mac the boost headers are installed in
+		# a directory that isn't automatically accessable
+		result += <include>/opt/local/include/boost-1_35
+			<include>/opt/local/include/boost
+			;
+	}
+
 	return $(result) ;
 }
 
@@ -238,6 +247,7 @@ local library-search-path = <search>/opt/local/lib <search>/usr/lib <search>/usr
 lib boost_filesystem : : <name>boost_filesystem $(library-search-path) ;
 lib boost_thread : : <name>boost_thread $(library-search-path) ;
 lib boost_iostreams : : <name>boost_iostreams $(library-search-path) ;
+lib boost_system : : <name>boost_system $(library-search-path) ;
 
 # openssl on linux/bsd/macos etc.
 lib crypto : : <name>crypto ;
