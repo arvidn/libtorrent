@@ -959,7 +959,7 @@ namespace libtorrent
 		const int last_piece = m_torrent_file->num_pieces() - 1;
 
 		size_type total_done
-			= size_type(num_pieces()) * m_torrent_file->piece_length();
+			= size_type(num_have()) * m_torrent_file->piece_length();
 
 		// if we have the last piece, we have to correct
 		// the amount we have, since the first calculation
@@ -990,14 +990,14 @@ namespace libtorrent
 			return make_tuple(m_torrent_file->total_size()
 				, m_torrent_file->total_size());
 
-		TORRENT_ASSERT(num_pieces() >= m_picker->num_have_filtered());
-		size_type wanted_done = size_type(num_pieces() - m_picker->num_have_filtered())
+		TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
+		size_type wanted_done = size_type(num_have() - m_picker->num_have_filtered())
 			* piece_size;
 		TORRENT_ASSERT(wanted_done >= 0);
 		
 		size_type total_done
-			= size_type(num_pieces()) * piece_size;
-		TORRENT_ASSERT(num_pieces() < m_torrent_file->num_pieces());
+			= size_type(num_have()) * piece_size;
+		TORRENT_ASSERT(num_have() < m_torrent_file->num_pieces());
 
 		// if we have the last piece, we have to correct
 		// the amount we have, since the first calculation
@@ -1122,7 +1122,7 @@ namespace libtorrent
 		{
 			// Thist happens when a piece has been downloaded completely
 			// but not yet verified against the hash
-			std::cerr << "num_pieces: " << num_pieces() << std::endl;
+			std::cerr << "num_have: " << num_have() << std::endl;
 			
 			std::cerr << "unfinished:" << std::endl;
 			
@@ -1172,7 +1172,7 @@ namespace libtorrent
 				?"disk failed":"failed") << " ]\n";
 #endif
 
-		bool was_finished = m_picker->num_filtered() + num_pieces()
+		bool was_finished = m_picker->num_filtered() + num_have()
 			== torrent_file().num_pieces();
 
 		if (passed_hash_check == 0)
@@ -1203,7 +1203,7 @@ namespace libtorrent
 
 		if (!was_finished
 			&& (is_seed()
-				|| m_picker->num_filtered() + num_pieces()
+				|| m_picker->num_filtered() + num_have()
 				== torrent_file().num_pieces()))
 		{
 			TORRENT_ASSERT(passed_hash_check == 0);
@@ -1528,7 +1528,7 @@ namespace libtorrent
 
 		bool was_finished = is_finished();
 		bool filter_updated = m_picker->set_piece_priority(index, priority);
-		TORRENT_ASSERT(num_pieces() >= m_picker->num_have_filtered());
+		TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 		if (filter_updated) update_peer_interest(was_finished);
 	}
 
@@ -1566,7 +1566,7 @@ namespace libtorrent
 			TORRENT_ASSERT(*i >= 0);
 			TORRENT_ASSERT(*i <= 7);
 			filter_updated |= m_picker->set_piece_priority(index, *i);
-			TORRENT_ASSERT(num_pieces() >= m_picker->num_have_filtered());
+			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 		}
 		if (filter_updated) update_peer_interest(was_finished);
 	}
@@ -3268,7 +3268,7 @@ namespace libtorrent
 				if (!m_picker->is_downloaded(i->first))
 					TORRENT_ASSERT(m_picker->num_peers(i->first) == i->second);
 			}
-			TORRENT_ASSERT(num_pieces() >= m_picker->num_have_filtered());
+			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 		}
 
 		if (valid_metadata())
@@ -4019,7 +4019,7 @@ namespace libtorrent
 			for (int i = 0; i < num_pieces; ++i)
 				if (m_picker->have_piece(i)) st.pieces.set_bit(i);
 		}
-		st.num_pieces = num_pieces();
+		st.num_pieces = num_have();
 		st.num_seeds = num_seeds();
 		if (m_picker.get())
 			st.distributed_copies = m_picker->distributed_copies();

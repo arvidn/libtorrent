@@ -200,7 +200,7 @@ namespace libtorrent
 
 		int prefer_whole_pieces = c.prefer_whole_pieces();
 
-		bool rarest_first = t.num_pieces() >= t.settings().initial_picker_threshold;
+		bool rarest_first = t.num_have() >= t.settings().initial_picker_threshold;
 
 		if (prefer_whole_pieces == 0)
 		{
@@ -644,7 +644,7 @@ namespace libtorrent
 			error_code ec;
 			TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 
-			if (m_peers.size() >= m_torrent->settings().max_peerlist_size)
+			if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
 			{
 				c.disconnect("peer list size exceeded, refusing incoming connection");
 				return false;
@@ -773,7 +773,7 @@ namespace libtorrent
 				return 0;
 			}
 
-			if (m_peers.size() >= m_torrent->settings().max_peerlist_size)
+			if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
 				return 0;
 
 			// we don't have any info about this peer.
