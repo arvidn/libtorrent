@@ -32,6 +32,8 @@ SAVED_LIBS="$LIBS"
 dnl Check for pthreads and boost libraries.
 ACX_PTHREAD
 
+AX_BOOST_BASE([1.34])
+
 AX_BOOST_SYSTEM
 dnl check that Boost.System was found:
 if test -z "$BOOST_SYSTEM_LIB"; then
