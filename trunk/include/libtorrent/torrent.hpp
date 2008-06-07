@@ -381,7 +381,7 @@ namespace libtorrent
 			return has_picker()?m_picker->have_piece(index):true;
 		}
 
-		int num_pieces() const
+		int num_have() const
 		{
 			return has_picker()
 				?m_picker->num_have()

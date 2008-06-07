@@ -1426,7 +1426,7 @@ namespace libtorrent
 		TORRENT_ASSERT(t->valid_metadata());
 
 		// in this case, have_all or have_none should be sent instead
-		TORRENT_ASSERT(!m_supports_fast || !t->is_seed() || t->num_pieces() != 0);
+		TORRENT_ASSERT(!m_supports_fast || !t->is_seed() || t->num_have() != 0);
 
 		if (m_supports_fast && t->is_seed())
 		{
@@ -1434,13 +1434,13 @@ namespace libtorrent
 			send_allowed_set();
 			return;
 		}
-		else if (m_supports_fast && t->num_pieces() == 0)
+		else if (m_supports_fast && t->num_have() == 0)
 		{
 			write_have_none();
 			send_allowed_set();
 			return;
 		}
-		else if (t->num_pieces() == 0)
+		else if (t->num_have() == 0)
 		{
 			// don't send a bitfield if we don't have any pieces
 #ifndef NDEBUG
@@ -1449,7 +1449,7 @@ namespace libtorrent
 			return;
 		}
 	
-		int num_pieces = t->picker().num_pieces();
+		int num_pieces = t->torrent_file().num_pieces();
 		int lazy_pieces[50];
 		int num_lazy_pieces = 0;
 		int lazy_piece = 0;
