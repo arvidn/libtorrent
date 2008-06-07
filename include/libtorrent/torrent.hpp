@@ -378,14 +378,15 @@ namespace libtorrent
 		// returns true if we have downloaded the given piece
 		bool have_piece(int index) const
 		{
-			TORRENT_ASSERT(index >= 0 && index < (signed)m_have_pieces.size());
-			return m_have_pieces[index];
+			return has_picker()?m_picker->have_piece(index):true;
 		}
 
-		bitfield const& pieces() const
-		{ return m_have_pieces; }
-
-		int num_pieces() const { return m_num_pieces; }
+		int num_pieces() const
+		{
+			return has_picker()
+				?m_picker->num_have()
+				:m_torrent_file->num_pieces();
+		}
 
 		// when we get a have message, this is called for that piece
 		void peer_has(int index)
@@ -393,7 +394,6 @@ namespace libtorrent
 			if (m_picker.get())
 			{
 				TORRENT_ASSERT(!is_seed());
-				TORRENT_ASSERT(index >= 0 && index < (signed)m_have_pieces.size());
 				m_picker->inc_refcount(index);
 			}
 #ifndef NDEBUG
@@ -440,7 +440,6 @@ namespace libtorrent
 			if (m_picker.get())
 			{
 				TORRENT_ASSERT(!is_seed());
-				TORRENT_ASSERT(index >= 0 && index < (signed)m_have_pieces.size());
 				m_picker->dec_refcount(index);
 			}
 #ifndef NDEBUG
@@ -507,7 +506,9 @@ namespace libtorrent
 		bool is_seed() const
 		{
 			return valid_metadata()
-				&& m_num_pieces == m_torrent_file->num_pieces();
+				&& (!m_picker
+				|| m_state == torrent_status::seeding
+				|| m_picker->num_have() == m_picker->num_pieces());
 		}
 
 		// this is true if we have all the pieces that we want
@@ -515,7 +516,7 @@ namespace libtorrent
 		{
 			if (is_seed()) return true;
 			return valid_metadata() && m_torrent_file->num_pieces()
-				- m_num_pieces - m_picker->num_filtered() == 0;
+				- m_picker->num_have() - m_picker->num_filtered() == 0;
 		}
 
 		fs::path save_path() const;
@@ -741,9 +742,6 @@ namespace libtorrent
 		std::vector<announce_entry> m_trackers;
 		// this is an index into m_trackers
 
-		// the bitmask that says which pieces we have
-		bitfield m_have_pieces;
-
 		// the number of bytes that has been
 		// downloaded that failed the hash-test
 		size_type m_total_failed_bytes;
@@ -781,11 +779,6 @@ namespace libtorrent
 		storage_constructor_type m_storage_constructor;
 
 		float m_progress;
-
-		// the number of pieces we have. The same as
-		// std::accumulate(m_have_pieces.begin(),
-		// m_have_pieces.end(), 0)
-		int m_num_pieces;
 
 		// the upload/download ratio that each peer
 		// tries to maintain.

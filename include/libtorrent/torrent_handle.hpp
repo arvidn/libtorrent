@@ -100,7 +100,6 @@ namespace libtorrent
 			, num_incomplete(-1)
 			, list_seeds(0)
 			, list_peers(0)
-			, pieces(0)
 			, num_pieces(0)
 			, total_done(0)
 			, total_wanted_done(0)
@@ -201,7 +200,7 @@ namespace libtorrent
 		// we potentially could connect to
 		int connect_candidates;
 		
-		bitfield const* pieces;
+		bitfield pieces;
 		
 		// this is the number of pieces the client has
 		// downloaded. it is equal to:

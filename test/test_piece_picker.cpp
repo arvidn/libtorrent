@@ -36,7 +36,8 @@ boost::shared_ptr<piece_picker> setup_picker(
 	const int num_pieces = strlen(availability);
 	assert(int(strlen(have_str)) == num_pieces);
 
-	boost::shared_ptr<piece_picker> p(new piece_picker(blocks_per_piece, num_pieces * blocks_per_piece));
+	boost::shared_ptr<piece_picker> p(new piece_picker);
+	p->init(blocks_per_piece, num_pieces * blocks_per_piece);
 
 	bitfield have = string2vec(have_str);
 
@@ -93,11 +94,10 @@ boost::shared_ptr<piece_picker> setup_picker(
 		TEST_CHECK(p->piece_priority(i) == prio);
 	}
 
-	p->init(have);
-
 	for (int i = 0; i < num_pieces; ++i)
 	{
 		if (!have[i]) continue;
+		p->we_have(i);
 		for (int j = 0; j < blocks_per_piece; ++j)
 			TEST_CHECK(p->is_finished(piece_block(i, j)));
 	}
@@ -152,6 +152,11 @@ void print_pick(std::vector<piece_block> const& picked)
 	std::cout << std::endl;
 }
 
+void print_title(char const* name)
+{
+	std::cerr << "==== " << name << " ====\n";
+}
+
 int test_pick(boost::shared_ptr<piece_picker> const& p)
 {
 	std::vector<piece_block> picked;
@@ -174,6 +179,7 @@ int test_main()
 
 	// make sure the block that is picked is from piece 1, since it
 	// it is the piece with the lowest availability
+	print_title("test pick lowest availability");
 	p = setup_picker("2223333", "* * *  ", "", "");
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
@@ -185,6 +191,7 @@ int test_main()
 
 	// make sure the block that is picked is from piece 5, since it
 	// has the highest priority among the available pieces
+	print_title("test pick highest priority");
 	p = setup_picker("1111111", "* * *  ", "1111122", "");
 	picked.clear();
 	p->pick_pieces(string2vec("****** "), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
@@ -196,6 +203,7 @@ int test_main()
 
 	// make sure the 4 blocks are picked from the same piece if
 	// whole pieces are preferred. The only whole piece is 1.
+	print_title("test pick whole pieces");
 	p = setup_picker("1111111", "       ", "1111111", "1023460");
 	picked.clear();
 	p->pick_pieces(string2vec("****** "), picked, 1, 1, &peer_struct, piece_picker::fast, true, true, empty_vector);
@@ -209,6 +217,7 @@ int test_main()
 	// test the distributed copies function. It should include ourself
 	// in the availability. i.e. piece 0 has availability 2.
 	// there are 2 pieces with availability 2 and 5 with availability 3
+	print_title("test distributed copies");
 	p = setup_picker("1233333", "*      ", "", "");
 	float dc = p->distributed_copies();
 	TEST_CHECK(fabs(dc - (2.f + 5.f / 7.f)) < 0.01f);
@@ -216,6 +225,7 @@ int test_main()
 // ========================================================
 	
 	// make sure filtered pieces are ignored
+	print_title("test filtered pieces");
 	p = setup_picker("1111111", "       ", "0010000", "");
 	picked.clear();
 	p->pick_pieces(string2vec("*** ** "), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
@@ -225,7 +235,21 @@ int test_main()
 
 // ========================================================
 	
+	// make sure we_dont_have works
+	print_title("test we_dont_have");
+	p = setup_picker("1111111", "*******", "0100000", "");
+	picked.clear();
+	p->we_dont_have(1);
+	p->we_dont_have(2);
+	p->pick_pieces(string2vec("*** ** "), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_CHECK(int(picked.size()) > 0);
+	TEST_CHECK(picked.front().piece_index == 1);
+
+// ========================================================
+	
 	// make sure requested blocks aren't picked
+	print_title("test don't pick requested blocks");
 	p = setup_picker("1234567", "       ", "", "");
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 1, false, 0, piece_picker::fast, true, false, empty_vector);
@@ -294,6 +318,7 @@ int test_main()
 // ========================================================
 
 	// test piece priorities
+	print_title("test piece priorities");
 	p = setup_picker("5555555", "       ", "3214576", "");
 	TEST_CHECK(p->num_filtered() == 0);
 	TEST_CHECK(p->num_have_filtered() == 0);
@@ -327,6 +352,7 @@ int test_main()
 // ========================================================
 
 	// test restore_piece
+	print_title("test restore piece");
 	p = setup_picker("1234567", "       ", "", "");
 	p->mark_as_finished(piece_block(0,0), 0);
 	p->mark_as_finished(piece_block(0,1), 0);
@@ -380,6 +406,7 @@ int test_main()
 // ========================================================
 
 	// test non-rarest-first mode
+	print_title("test not rarest first");
 	p = setup_picker("1234567", "* * *  ", "1111122", "");
 	picked.clear();
 	p->pick_pieces(string2vec("****** "), picked, 5 * blocks_per_piece, false, 0, piece_picker::fast, false, false, empty_vector);
@@ -397,6 +424,7 @@ int test_main()
 // ========================================================
 	
 	// test have_all and have_none
+	print_title("test have_all and have_none");
 	p = setup_picker("0123333", "*      ", "", "");
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc << std::endl;
@@ -413,6 +441,7 @@ int test_main()
 // ========================================================
 
 	// test inc_ref and dec_ref
+	print_title("test inc_ref dec_ref");
 	p = setup_picker("1233333", "     * ", "", "");
 	TEST_CHECK(test_pick(p) == 0);
 
@@ -464,6 +493,7 @@ int test_main()
 // ========================================================
 	
 	// test unverified_blocks, marking blocks and get_downloader
+	print_title("test unverified blocks");
 	p = setup_picker("1111111", "       ", "", "0300700");
 	TEST_CHECK(p->unverified_blocks() == 2 + 3);
 	TEST_CHECK(p->get_downloader(piece_block(4, 0)) == 0);
@@ -503,6 +533,7 @@ int test_main()
 // ========================================================
 	
 	// test prefer_whole_pieces
+	print_title("test prefer whole pieces");
 	p = setup_picker("1111111", "       ", "", "");
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 1, 3, 0, piece_picker::fast, true, false, empty_vector);
@@ -533,6 +564,7 @@ int test_main()
 // ========================================================
 
 	// test parole mode
+	print_title("test parole mode");
 	p = setup_picker("3333133", "       ", "", "");
 	p->mark_as_finished(piece_block(0, 0), 0);
 	picked.clear();
@@ -561,6 +593,7 @@ int test_main()
 // ========================================================
 
 	// test suggested pieces
+	print_title("test suggested pieces");
 	p = setup_picker("1111222233334444", "                ", "", "");
 	int v[] = {1, 5};
 	std::vector<int> suggested_pieces(v, v + 2);
