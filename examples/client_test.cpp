@@ -1065,6 +1065,14 @@ int main(int ac, char* av[])
 					break;
 				}
 
+				if (c == 'j')
+				{
+					// force recheck all torrents
+					std::for_each(handles.begin(), handles.end()
+						, bind(&torrent_handle::force_recheck
+						, bind(&handles_t::value_type::second, _1)));
+				}
+
 				if (c == 'r')
 				{
 					// force reannounce on all torrents
@@ -1205,7 +1213,8 @@ int main(int ac, char* av[])
 			
 			std::stringstream out;
 			out << "[q] quit [i] toggle peers [d] toggle downloading pieces [p] pause all "
-				"[u] unpause all [a] toggle piece bar [s] toggle download sequential [f] toggle files\n"
+				"[u] unpause all [a] toggle piece bar [s] toggle download sequential [f] toggle files "
+				"[j] force recheck\n"
 				"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
 				"[5] toggle peer rate [6] toggle failures [7] toggle send buffers\n";
 

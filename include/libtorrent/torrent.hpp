@@ -149,6 +149,7 @@ namespace libtorrent
 		void init();
 
 		void on_resume_data_checked(int ret, disk_io_job const& j);
+		void on_force_recheck(int ret, disk_io_job const& j);
 		void on_piece_checked(int ret, disk_io_job const& j);
 		void files_checked();
 		void start_checking();
@@ -191,6 +192,7 @@ namespace libtorrent
 		void pause();
 		void resume();
 		bool is_paused() const { return m_paused; }
+		void force_recheck();
 		void save_resume_data();
 
 		bool is_auto_managed() const { return m_auto_managed; }
@@ -906,9 +908,10 @@ namespace libtorrent
 		// connection to this torrent
 		bool m_has_incoming:1;
 
-#ifndef NDEBUG
+		// this is set to true when the files are checked
+		// before the files are checked, we don't try to
+		// connect to peers
 		bool m_files_checked:1;
-#endif
 	};
 
 	inline ptime torrent::next_announce() const
