@@ -201,11 +201,9 @@ namespace libtorrent
 		, m_got_tracker_response(false)
 		, m_connections_initialized(true)
 		, m_has_incoming(false)
+		, m_files_checked(false)
 	{
 		if (resume_data) m_resume_data = *resume_data;
-#ifndef NDEBUG
-		m_files_checked = false;
-#endif
 	}
 
 	torrent::torrent(
@@ -308,10 +306,10 @@ namespace libtorrent
 		if (m_ses.m_listen_sockets.empty()) return false;
 
 		if (!m_ses.m_dht) return false;
+		if (!m_files_checked) return false;
 
 		// don't announce private torrents
 		if (m_torrent_file->is_valid() && m_torrent_file->priv()) return false;
-	
 		if (m_trackers.empty()) return true;
 			
 		return m_failed_trackers > 0 || !m_ses.settings().use_dht_as_fallback;
@@ -619,6 +617,51 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::force_recheck()
+	{
+		disconnect_all();
+
+		m_owning_storage->async_release_files();
+		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
+			, m_save_path, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor
+			, m_storage_mode);
+		m_storage = m_owning_storage.get();
+		m_picker.reset(new piece_picker);
+		m_picker->init(m_torrent_file->piece_length() / m_block_size
+			, int((m_torrent_file->total_size()+m_block_size-1)/m_block_size));
+		// assume that we don't have anything
+		m_files_checked = false;
+		m_state = torrent_status::queued_for_checking;
+
+		m_resume_data = entry();
+		m_storage->async_check_fastresume(&m_resume_data
+			, bind(&torrent::on_force_recheck
+			, shared_from_this(), _1, _2));
+	}
+
+	void torrent::on_force_recheck(int ret, disk_io_job const& j)
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		if (ret == piece_manager::fatal_disk_error)
+		{
+			if (m_ses.m_alerts.should_post(alert::fatal))
+			{
+				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.str));
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+				(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
+					" error: " << j.str <<
+					" torrent: " << torrent_file().name() <<
+					" ]\n";
+#endif
+			}
+			m_error = j.str;
+			pause();
+			return;
+		}
+		m_ses.check_torrent(shared_from_this());
+	}
+
 	void torrent::start_checking()
 	{
 		m_state = torrent_status::checking_files;
@@ -770,6 +813,7 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 		
 		if (m_trackers.empty()) return false;
+		if (!m_files_checked) return false;
 
 		if (m_just_paused)
 		{
@@ -3148,9 +3192,7 @@ namespace libtorrent
 				, "torrent finished checking"));
 		}
 		
-#ifndef NDEBUG
 		m_files_checked = true;
-#endif
 	}
 
 	alert_manager& torrent::alerts() const

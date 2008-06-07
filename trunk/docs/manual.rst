@@ -1532,6 +1532,7 @@ Its declaration looks like this::
 		void resume() const;
 		bool is_paused() const;
 		bool is_seed() const;
+		void force_recheck() const;
 
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
@@ -1787,6 +1788,20 @@ When a torrent is paused, it will however remember all share ratios to all peers
 all potential (not connected) peers. You can use ``is_paused()`` to determine if a torrent
 is currently paused. Torrents may be paused automatically if there is a file error (e.g. disk full)
 or something similar. See file_error_alert_.
+
+force_recheck()
+---------------
+
+	::
+
+		void force_recheck() const;
+
+``force_recheck`` puts the torrent back in a state where it assumes to have no resume data.
+All peers will be disconnected and the torrent will stop announcing to the tracker. The torrent
+will be added to the checking queue, and will be checked (all the files will be read and
+compared to the piece hashes). Once the check is complete, the torrent will start connecting
+to peers again, as normal.
+
 
 resolve_countries()
 -------------------

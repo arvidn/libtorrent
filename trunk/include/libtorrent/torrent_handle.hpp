@@ -345,6 +345,7 @@ namespace libtorrent
 		bool is_paused() const;
 		void pause() const;
 		void resume() const;
+		void force_recheck() const;
 		void save_resume_data() const;
 
 		bool is_auto_managed() const;
