@@ -3049,6 +3049,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 	
+		TORRENT_ASSERT(!is_finished());
 		m_state = torrent_status::downloading;
 		set_queue_position((std::numeric_limits<int>::max)());
 	}
@@ -3385,6 +3386,7 @@ namespace libtorrent
 
 	void torrent::set_queue_position(int p)
 	{
+		if (is_finished() && p != -1) return;
 		if (p == m_sequence_number) return;
 
 		session_impl::torrent_map& torrents = m_ses.m_torrents;
