@@ -5,6 +5,8 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+# $Id$
+
 build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
