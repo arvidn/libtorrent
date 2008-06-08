@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# $id$
+# $Id$
 
 oldrev=$1
 newrev=$2
