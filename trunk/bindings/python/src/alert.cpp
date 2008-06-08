@@ -271,4 +271,8 @@ void bind_alert()
     )
         .def_readonly("name", &file_renamed_alert::name)
         ;
+
+    class_<torrent_resumed_alert, bases<torrent_alert>, noncopyable>( 
+        "torrent_resumed_alert", no_init 
+	); 
 }
