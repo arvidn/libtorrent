@@ -1,0 +1,6 @@
+
+svnlogxml.sh - a wrapper around "svn log --xml"
+svnlogxml2changelog.pl - converts svn log in XML format to debian changelog
+do_changelog.sh - calls all above and complements the changelog file
+
+build.sh - build packages

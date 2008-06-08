@@ -1,64 +1,46 @@
 #!/usr/bin/make -f
-# -*- makefile -*-
 # Sample debian/rules that uses debhelper.
-# This file was originally written by Joey Hess and Craig Small.
-# As a special exception, when this file is copied by dh-make into a
-# dh-make output file, you may use that output file without restriction.
-# This special exception was added by Craig Small in version 0.37 of dh-make.
+# This file is public domain software, originally written by Joey Hess. 
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-
-# These are used for cross-compiling and for saving the configure script
-# from having to guess our platform (since we know it already)
-DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
-DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
-
-
-ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
-	INSTALL_PROGRAM += -s
-endif
-
-config.status: configure
-	dh_testdir
-	touch config.h.in;\
-	find . -type f -name Makefile.am -print |\
-		sed 's/\.am$$/.in/' |\
-		while read f; do touch "$$f"; done;\
-	touch configure;\
-	./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE)\
-		--prefix=/usr --mandir=\$${prefix}/share/man\
-		--infodir=\$${prefix}/share/info
-
-
 build: build-stamp
-build-stamp:  config.status
+build-stamp: configure-stamp
 	dh_testdir
+
+	# Add here commands to compile the package.
 	$(MAKE)
+
 	touch build-stamp
+
+configure-stamp:
+	./configure --prefix=/usr CFLAGS=-O3 CXXFLAGS=-O3 CPPFLAGS=-O3
+	touch configure-stamp
 
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp 
-	-$(MAKE) distclean
-ifneq "$(wildcard /usr/share/misc/config.sub)" ""
-	cp -f /usr/share/misc/config.sub config.sub
-endif
-ifneq "$(wildcard /usr/share/misc/config.guess)" ""
-	cp -f /usr/share/misc/config.guess config.guess
-endif
-	dh_clean 
+	rm -f build-stamp
+	rm -f configure-stamp
 
+	# Add here commands to clean up after the build process.
+	#-$(MAKE) clean
+	[ ! -e Makefile ] || $(MAKE) distclean
+	[ -e configure ] || ./autotool.sh
+	rm -Rf debian/.install
+
+	dh_clean
 
 install: build
 	dh_testdir
 	dh_testroot
-	dh_clean -k 
+	dh_clean -k
 	dh_installdirs
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
 
+	# Add here commands to install the package into debian/<packagename>
+	#$(MAKE) prefix=`pwd`/debian/`dh_listpackages`/usr install
+	$(MAKE) DESTDIR=`pwd`/debian/.install install
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -68,18 +50,36 @@ binary-indep: build install
 binary-arch: build install
 	dh_testdir
 	dh_testroot
-	dh_installchangelogs ChangeLog
-	dh_installdocs
-	dh_install --sourcedir=debian/tmp
+	dh_installchangelogs
+#	dh_installdocs
+#	dh_installexamples
+	dh_install --sourcedir=debian/.install
+#	dh_installmenu
+#	dh_installdebconf	
+#	dh_installlogrotate
+#	dh_installemacsen
+#	dh_installcatalogs
+#	dh_installpam
+#	dh_installmime
+#	dh_installinit
+#	dh_installcron
+#	dh_installinfo
+#	dh_installwm
+#	dh_installudev
+#	dh_undocumented
+#	dh_installman
+#	dh_link
 	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -V
-	dh_shlibdeps
+#	dh_perl
+#	dh_python
+	dh_makeshlibs
 	dh_installdeb
+#	dh_shlibdeps
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
 
 binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install 
+.PHONY: build clean binary-indep binary-arch binary install
