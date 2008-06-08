@@ -3686,6 +3686,11 @@ namespace libtorrent
 		m_started = time_now();
 		m_error.clear();
 
+		if (alerts().should_post(alert::warning))
+		{
+			alerts().post_alert(torrent_resumed_alert(get_handle(), "torrent resumed"));
+		}
+
 		// tell the tracker that we're back
 		m_event = tracker_request::started;
 		force_tracker_request();
