@@ -4223,6 +4223,19 @@ The ``resume_data`` member points to the resume data or is 0 on errors.
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
+torrent_resumed_alert
+--------------------
+
+This alert is generated as a response to a ``torrent_handle::resume`` request. It is
+generated when a torrent goes from a paused state to an active state.
+
+::
+
+	struct torrent_resumed_alert: torrent_alert
+	{
+		torrent_resumed_alert(torrent_handle const& h, std::string const& msg);
+		virtual std::auto_ptr<alert> clone() const;
+	};
 
 dispatcher
 ----------
