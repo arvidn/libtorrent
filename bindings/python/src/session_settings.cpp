@@ -34,6 +34,13 @@ void bind_session_settings()
         .def_readwrite("lazy_bitfields", &session_settings::lazy_bitfields)
         .def_readwrite("inactivity_timeout", &session_settings::inactivity_timeout)
         .def_readwrite("unchoke_interval", &session_settings::unchoke_interval)
+        .def_readwrite("active_downloads", &session_settings::active_downloads)
+        .def_readwrite("active_seeds", &session_settings::active_seeds)
+        .def_readwrite("auto_manage_interval", &session_settings::auto_manage_interval)
+        .def_readwrite("share_ratio_limit", &session_settings::share_ratio_limit)
+        .def_readwrite("seed_time_ratio_limit", &session_settings::seed_time_ratio_limit)
+        .def_readwrite("seed_time_limit", &session_settings::seed_time_limit)
+        .def_readwrite("auto_scraped_interval", &session_settings::auto_scrape_interval)
 #ifndef TORRENT_DISABLE_DHT
         .def_readwrite("use_dht_as_fallback", &session_settings::use_dht_as_fallback)
 #endif
