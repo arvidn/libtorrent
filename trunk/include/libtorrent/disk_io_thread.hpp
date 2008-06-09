@@ -83,6 +83,7 @@ namespace libtorrent
 			, check_files
 			, save_resume_data
 			, rename_file
+			, abort_thread
 		};
 
 		action_t action;
@@ -206,6 +207,12 @@ namespace libtorrent
 			int num_blocks;
 			// the pointers to the block data
 			boost::shared_array<char*> blocks;
+#ifndef NDEBUG
+			~cached_piece_entry()
+			{
+				TORRENT_ASSERT(storage == 0);
+			}
+#endif
 		};
 
 		typedef boost::recursive_mutex mutex_t;

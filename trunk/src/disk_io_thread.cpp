@@ -79,7 +79,9 @@ namespace libtorrent
 	void disk_io_thread::join()
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		m_abort = true;
+		disk_io_job j;
+		j.action = disk_io_job::abort_thread;
+		m_jobs.insert(m_jobs.begin(), j);
 		m_signal.notify_all();
 		l.unlock();
 
@@ -143,6 +145,13 @@ namespace libtorrent
 			if (i->action == disk_io_job::read)
 			{
 				if (i->callback) m_ios.post(bind(i->callback, -1, *i));
+				m_jobs.erase(i++);
+				continue;
+			}
+			if (i->action == disk_io_job::check_files)
+			{
+				if (i->callback) m_ios.post(bind(i->callback
+					, piece_manager::disk_check_aborted, *i));
 				m_jobs.erase(i++);
 				continue;
 			}
@@ -223,6 +232,9 @@ namespace libtorrent
 			--m_cache_stats.cache_size;
 			--m_cache_stats.read_cache_size;
 		}
+		l.unlock();
+		p.storage = 0;
+		l.lock();
 	}
 
 	bool disk_io_thread::clear_oldest_read_piece(
@@ -331,6 +343,9 @@ namespace libtorrent
 		for (int i = 0; i < blocks_in_piece; ++i)
 			TORRENT_ASSERT(p.blocks[i] == 0);
 #endif
+		l.unlock();
+		p.storage = 0;
+		l.lock();
 	}
 
 	void disk_io_thread::cache_block(disk_io_job& j, mutex_t::scoped_lock& l)
@@ -353,6 +368,9 @@ namespace libtorrent
 		p.blocks[block] = j.buffer;
 		++m_cache_stats.cache_size;
 		m_pieces.push_back(p);
+#ifndef NDEBUG
+		p.storage = 0;
+#endif
 	}
 
 	// fills a piece with data from disk, returns the total number of bytes
@@ -466,6 +484,9 @@ namespace libtorrent
 		else
 			m_read_pieces.push_back(p);
 
+#ifndef NDEBUG
+		p.storage = 0;
+#endif
 		return ret;
 	}
 
@@ -479,6 +500,7 @@ namespace libtorrent
 			cached_piece_entry const& p = *i;
 			TORRENT_ASSERT(p.blocks);
 			
+			if (!p.storage) continue;
 			int piece_size = p.storage->info()->piece_size(p.piece);
 			int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 			int blocks = 0;
@@ -727,7 +749,21 @@ namespace libtorrent
 
 			while (m_jobs.empty() && !m_abort)
 				m_signal.wait(l);
-			if (m_abort && m_jobs.empty()) return;
+			if (m_abort && m_jobs.empty())
+			{
+				// flush all disk caches
+				for (cache_t::iterator i = m_pieces.begin()
+					, end(m_pieces.end()); i != end; ++i)
+					flush(i, l);
+				for (cache_t::iterator i = m_read_pieces.begin()
+					, end(m_read_pieces.end()); i != end; ++i)
+					free_piece(*i, l);
+				l.unlock();
+				m_pieces.clear();
+				m_read_pieces.clear();
+				l.lock();
+				return;
+			}
 
 			// if there's a buffer in this job, it will be freed
 			// when this holder is destructed, unless it has been
@@ -741,6 +777,32 @@ namespace libtorrent
 
 			disk_io_job j = m_jobs.front();
 			m_jobs.pop_front();
+
+			if (j.action == disk_io_job::abort_thread)
+			{
+				m_abort = true;
+
+				for (std::list<disk_io_job>::iterator i = m_jobs.begin();
+					i != m_jobs.end();)
+				{
+					if (i->action == disk_io_job::read)
+					{
+						if (i->callback) m_ios.post(bind(i->callback, -1, *i));
+						m_jobs.erase(i++);
+						continue;
+					}
+					if (i->action == disk_io_job::check_files)
+					{
+						if (i->callback) m_ios.post(bind(i->callback
+							, piece_manager::disk_check_aborted, *i));
+						m_jobs.erase(i++);
+						continue;
+					}
+					++i;
+				}
+				continue;
+			}
+
 			m_queue_buffer_size -= j.buffer_size;
 
 			flush_expired_pieces(l);
