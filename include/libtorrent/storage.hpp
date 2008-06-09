@@ -252,6 +252,7 @@ namespace libtorrent
 			no_error = 0,
 			need_full_check = -1,
 			fatal_disk_error = -2,
+			disk_check_aborted = -3
 		};
 
 	private:

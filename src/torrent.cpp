@@ -675,6 +675,12 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
+		if (ret == piece_manager::disk_check_aborted)
+		{
+			m_error = "aborted";
+			m_ses.done_checking(shared_from_this());
+			return;
+		}
 		if (ret == piece_manager::fatal_disk_error)
 		{
 			if (m_ses.m_alerts.should_post(alert::fatal))
