@@ -437,6 +437,37 @@ int test_main()
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc << std::endl;
 	TEST_CHECK(fabs(dc - (1.f + 5.f / 7.f)) < 0.01f);
+	p->inc_refcount(0);
+	p->dec_refcount_all();
+	dc = p->distributed_copies();
+	std::cout << "distributed copies: " << dc << std::endl;
+	TEST_CHECK(fabs(dc - (0.f + 6.f / 7.f)) < 0.01f);
+	TEST_CHECK(test_pick(p) == 2);
+
+// ========================================================
+	
+	// test have_all and have_none with sequential download
+	print_title("test have_all and have_none with sequential download");
+	p = setup_picker("0123333", "*      ", "", "");
+	dc = p->distributed_copies();
+	std::cout << "distributed copies: " << dc << std::endl;
+	TEST_CHECK(fabs(dc - (1.f + 5.f / 7.f)) < 0.01f);
+	p->inc_refcount_all();
+	dc = p->distributed_copies();
+	std::cout << "distributed copies: " << dc << std::endl;
+	TEST_CHECK(fabs(dc - (2.f + 5.f / 7.f)) < 0.01f);
+	p->sequential_download(true);
+	p->dec_refcount_all();
+	dc = p->distributed_copies();
+	std::cout << "distributed copies: " << dc << std::endl;
+	TEST_CHECK(fabs(dc - (1.f + 5.f / 7.f)) < 0.01f);
+	p->inc_refcount(0);
+	p->dec_refcount_all();
+	dc = p->distributed_copies();
+	std::cout << "distributed copies: " << dc << std::endl;
+	TEST_CHECK(fabs(dc - (0.f + 6.f / 7.f)) < 0.01f);
+	p->inc_refcount(1);
+	TEST_CHECK(test_pick(p) == 1);
 
 // ========================================================
 
