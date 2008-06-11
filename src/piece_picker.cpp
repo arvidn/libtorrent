@@ -37,9 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <numeric>
 
-// non-standard header, is_sorted()
-//#include <algo.h>
-
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/bitfield.hpp"
@@ -255,6 +252,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_num_have >= 0);
 		TORRENT_ASSERT(m_num_have_filtered >= 0);
 		TORRENT_ASSERT(m_num_filtered >= 0);
+		TORRENT_ASSERT(m_seeds >= 0);
 
 		if (!m_downloads.empty())
 		{
@@ -446,6 +444,7 @@ namespace libtorrent
 
 	float piece_picker::distributed_copies() const
 	{
+		TORRENT_ASSERT(m_seeds >= 0);
 		const float num_pieces = static_cast<float>(m_piece_map.size());
 
 		int min_availability = piece_pos::max_peer_count;
@@ -768,8 +767,12 @@ namespace libtorrent
 		int new_priority = p.priority(this);
 
 		if (new_priority == prev_priority) return;
-		if (m_sequential_download >= 0) return;
 		if (m_dirty) return;
+		if (m_sequential_download >= 0)
+		{
+			m_dirty = true;
+			return;
+		}
 		if (prev_priority == -1)
 		{
 			add(index);
@@ -784,7 +787,6 @@ namespace libtorrent
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 		++m_seeds;
-		if (m_sequential_download >= 0) return;
 		if (m_seeds == 1)
 		{
 			// when m_seeds is increased from 0 to 1
@@ -798,12 +800,6 @@ namespace libtorrent
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
-		if (m_sequential_download >= 0)
-		{
-			--m_seeds;
-			return;
-		}
-		
 		if (m_seeds > 0)
 		{
 			--m_seeds;
@@ -816,6 +812,7 @@ namespace libtorrent
 			}
 			return;
 		}
+		TORRENT_ASSERT(m_seeds == 0);
 
 		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
 			, end(m_piece_map.end()); i != end; ++i)
@@ -835,6 +832,7 @@ namespace libtorrent
 		if (m_sequential_download >= 0)
 		{
 			++p.peer_count;
+			m_dirty = true;
 			return;
 		}
 	
@@ -856,7 +854,9 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[index];
 		if (m_sequential_download >= 0)
 		{
+			TORRENT_ASSERT(p.peer_count > 0);
 			--p.peer_count;
+			m_dirty = true;
 			return;
 		}
 		int prev_priority = p.priority(this);
@@ -1756,6 +1756,7 @@ namespace libtorrent
 	
 	void piece_picker::get_availability(std::vector<int>& avail) const
 	{
+		TORRENT_ASSERT(m_seeds >= 0);
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 	
 		avail.resize(m_piece_map.size());
