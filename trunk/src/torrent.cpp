@@ -3416,7 +3416,8 @@ namespace libtorrent
 			{
 				torrent* t = i->second.get();
 				if (t == this) continue;
-				if (t->m_sequence_number >= p
+				if (t->m_sequence_number >= p 
+					&& t->m_sequence_number < m_sequence_number
 					&& t->m_sequence_number != -1)
 					++t->m_sequence_number;
 			}
@@ -3429,15 +3430,17 @@ namespace libtorrent
 				, end(torrents.end()); i != end; ++i)
 			{
 				torrent* t = i->second.get();
-				if (t == this) continue;
 				int pos = t->m_sequence_number;
+				if (pos > max_seq) max_seq = pos;
+				if (t == this) continue;
+
 				if (pos <= p
 					&& pos > m_sequence_number
 					&& pos != -1)
 					--t->m_sequence_number;
-				if (pos > max_seq) max_seq = pos;
+
 			}
-			m_sequence_number = (std::min)(max_seq + 1, p);
+			m_sequence_number = (std::min)(max_seq, p);
 		}
 
 		if (m_ses.m_auto_manage_time_scaler > 2)
