@@ -1005,7 +1005,7 @@ namespace libtorrent
 		p.set_not_have();
 
 		if (m_dirty) return;
-		if (!p.filtered()) add(index);
+		if (p.priority(this) >= 0) add(index);
 	}
 
 	// this is used to indicate that we succesfully have
