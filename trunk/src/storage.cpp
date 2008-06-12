@@ -255,7 +255,7 @@ namespace libtorrent
 	template <class Path>
 	void recursive_copy(Path const& old_path, Path const& new_path, std::string& error)
 	{
-		using boost::filesystem::directory_iterator;
+		using boost::filesystem::basic_directory_iterator;
 #ifndef BOOST_NO_EXCEPTIONS
 		try {
 #endif
@@ -263,7 +263,7 @@ namespace libtorrent
 		if (is_directory(old_path))
 		{
 			create_directory(new_path);
-			for (directory_iterator i(old_path), end; i != end; ++i)
+			for (basic_directory_iterator<Path> i(old_path), end; i != end; ++i)
 			{
 				recursive_copy(i->path(), new_path / i->leaf(), error);
 				if (!error.empty()) return;
@@ -281,13 +281,13 @@ namespace libtorrent
 	template <class Path>
 	void recursive_remove(Path const& old_path)
 	{
-		using boost::filesystem::directory_iterator;
+		using boost::filesystem::basic_directory_iterator;
 #ifndef BOOST_NO_EXCEPTIONS
 		try {
 #endif
 		if (is_directory(old_path))
 		{
-			for (directory_iterator i(old_path), end; i != end; ++i)
+			for (basic_directory_iterator<Path> i(old_path), end; i != end; ++i)
 				recursive_remove(i->path());
 			remove(old_path);
 		}
