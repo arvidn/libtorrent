@@ -1773,10 +1773,17 @@ namespace aux {
 
 	void session_impl::done_checking(boost::shared_ptr<torrent> const& t)
 	{
-		TORRENT_ASSERT(m_queued_for_checking.front() == t);
-		m_queued_for_checking.pop_front();
-		if (!m_queued_for_checking.empty())
-			m_queued_for_checking.front()->start_checking();
+		check_queue_t::iterator next_check = m_queued_for_checking.begin();
+		check_queue_t::iterator done = m_queued_for_checking.end();
+		for (check_queue_t::iterator i = m_queued_for_checking.begin()
+			, end(m_queued_for_checking.end()); i != end; ++i)
+		{
+			if (*i == t) done = i;
+			if (next_check == done || (*next_check)->queue_position() > (*i)->queue_position())
+				next_check = i;
+		}
+		if (next_check != done) (*next_check)->start_checking();
+		m_queued_for_checking.erase(done);
 	}
 
 	void session_impl::remove_torrent(const torrent_handle& h, int options)
