@@ -207,19 +207,10 @@ namespace libtorrent
 			int num_blocks;
 			// the pointers to the block data
 			boost::shared_array<char*> blocks;
-#ifndef NDEBUG
-			~cached_piece_entry()
-			{
-				TORRENT_ASSERT(storage == 0);
-			}
-#endif
 		};
 
 		typedef boost::recursive_mutex mutex_t;
 		typedef std::list<cached_piece_entry> cache_t;
-
-		char* allocate_buffer(mutex_t::scoped_lock& l);
-		void free_buffer(char* buf, mutex_t::scoped_lock& l);
 
 		// cache operations
 		cache_t::iterator find_cached_piece(
@@ -228,7 +219,7 @@ namespace libtorrent
 
 		// write cache operations
 		void flush_oldest_piece(mutex_t::scoped_lock& l);
-		void flush_expired_pieces(mutex_t::scoped_lock& l);
+		void flush_expired_pieces();
 		void flush_and_remove(cache_t::iterator i, mutex_t::scoped_lock& l);
 		void flush(cache_t::iterator i, mutex_t::scoped_lock& l);
 		void cache_block(disk_io_job& j, mutex_t::scoped_lock& l);
@@ -242,14 +233,18 @@ namespace libtorrent
 		bool make_room(int num_blocks
 			, cache_t::iterator ignore
 			, mutex_t::scoped_lock& l);
-		int try_read_from_cache(disk_io_job const& j, mutex_t::scoped_lock& l);
+		int try_read_from_cache(disk_io_job const& j);
 
-		mutable mutex_t m_mutex;
+		// this mutex only protects m_jobs, m_queue_buffer_size
+		// and m_abort
+		mutable mutex_t m_queue_mutex;
 		boost::condition m_signal;
 		bool m_abort;
 		std::list<disk_io_job> m_jobs;
 		size_type m_queue_buffer_size;
 
+		// this protects the piece cache and related members
+		mutable mutex_t m_piece_mutex;
 		// write cache
 		cache_t m_pieces;
 		
@@ -280,6 +275,8 @@ namespace libtorrent
 		bool m_coalesce_reads;
 		bool m_use_read_cache;
 
+		// this only protects the pool allocator
+		mutable mutex_t m_pool_mutex;
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		// memory pool for read and write operations
 		// and disk cache
