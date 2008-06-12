@@ -378,7 +378,8 @@ namespace libtorrent
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
-			std::list<boost::shared_ptr<torrent> > m_queued_for_checking;
+			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
+			check_queue_t m_queued_for_checking;
 
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
