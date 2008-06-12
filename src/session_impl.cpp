@@ -524,6 +524,12 @@ namespace aux {
 			m_disk_thread.set_cache_size(s.cache_size);
 		if (m_settings.cache_expiry != s.cache_expiry)
 			m_disk_thread.set_cache_size(s.cache_expiry);
+		// if queuing settings were changed, recalculate
+		// queued torrents sooner
+		if ((m_settings.active_downloads != s.active_downloads
+			|| m_settings.active_seeds != s.active_seeds)
+			&& m_auto_manage_time_scaler > 2)
+			m_auto_manage_time_scaler = 2;
 		m_settings = s;
  		if (m_settings.connection_speed <= 0) m_settings.connection_speed = 200;
  
