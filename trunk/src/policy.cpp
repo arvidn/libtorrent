@@ -459,21 +459,25 @@ namespace libtorrent
 				pinged = true;
 			}
 #endif
-			// this timeout has to be customizable!
-			// don't remove banned peers, they should
-			// remain banned
+			// if the number of peers is growing large
+			// we need to start weeding.
+			// don't remove peers we're connected to
+			// don't remove peers we've never even tried
+			// don't remove banned peers unless they're 2
+			// hours old. They should remain banned for
+			// at least that long
+			// don't remove peers that we still can try again
 			if (pe.connection == 0
 				&& pe.connected != min_time()
-				&& !pe.banned
-				&& (now - pe.connected > minutes(120)
-					|| m_peers.size() >= m_torrent->settings().max_peerlist_size * 0.9))
+				&& (!pe.banned || now - pe.connected > hours(2))
+				&& !is_connect_candidate(pe, finished)
+				&& m_peers.size() >= m_torrent->settings().max_peerlist_size * 0.9)
 			{
 				erase_peer(m_round_robin++);
 				continue;
 			}
 
 			++m_round_robin;
-
 
 			if (!is_connect_candidate(pe, finished)) continue;
 
