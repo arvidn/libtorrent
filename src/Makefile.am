@@ -72,7 +72,7 @@ $(top_srcdir)/include/libtorrent/peer.hpp \
 $(top_srcdir)/include/libtorrent/peer_connection.hpp \
 $(top_srcdir)/include/libtorrent/bt_peer_connection.hpp \
 $(top_srcdir)/include/libtorrent/web_peer_connection.hpp \
-$(top_srcdir)/include/libtorrent/pares_url.hpp \
+$(top_srcdir)/include/libtorrent/parse_url.hpp \
 $(top_srcdir)/include/libtorrent/pe_crypto.hpp \
 $(top_srcdir)/include/libtorrent/natpmp.hpp \
 $(top_srcdir)/include/libtorrent/pch.hpp \

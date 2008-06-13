@@ -192,9 +192,9 @@ int copy_buffers(T const& b, char* target)
 	for (typename T::const_iterator i = b.begin()
 		, end(b.end()); i != end; ++i)
 	{
-		memcpy(target, asio::buffer_cast<char const*>(*i), asio::buffer_size(*i));
-		target += asio::buffer_size(*i);
-		copied += asio::buffer_size(*i);
+		memcpy(target, libtorrent::asio::buffer_cast<char const*>(*i), libtorrent::asio::buffer_size(*i));
+		target += libtorrent::asio::buffer_size(*i);
+		copied += libtorrent::asio::buffer_size(*i);
 	}
 	return copied;
 }
@@ -203,7 +203,7 @@ bool compare_chained_buffer(chained_buffer& b, char const* mem, int size)
 {
 	if (size == 0) return true;
 	std::vector<char> flat(size);
-	std::list<asio::const_buffer> const& iovec2 = b.build_iovec(size);
+	std::list<libtorrent::asio::const_buffer> const& iovec2 = b.build_iovec(size);
 	int copied = copy_buffers(iovec2, &flat[0]);
 	TEST_CHECK(copied == size);
 	return std::memcmp(&flat[0], mem, size) == 0;

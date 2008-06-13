@@ -93,7 +93,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	// make sure the piece_manager can identify the pieces
 	{
 	file_pool fp;
-	asio::io_service ios;
+	libtorrent::asio::io_service ios;
 	disk_io_thread io(ios);
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
