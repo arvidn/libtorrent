@@ -1327,15 +1327,8 @@ namespace aux {
 				// this is not an auto managed torrent,
 				// if it's running, decrease the respective
 				// counters.
-				if (t->is_finished())
-				{
-					--num_seeds;
-					--num_downloaders;
-				}
-				else
-				{
-					--num_downloaders;
-				}
+				--num_downloaders;
+				--num_seeds;
 			}
 		}
 
@@ -1362,6 +1355,7 @@ namespace aux {
 			if (num_downloaders > 0)
 			{
 				--num_downloaders;
+				--num_seeds;
 				if (t->is_paused()) t->resume();
 			}
 			else
@@ -1374,7 +1368,7 @@ namespace aux {
 			, end(seeds.end()); i != end; ++i)
 		{
 			torrent* t = *i;
-			if (num_downloaders > 0 && num_seeds > 0)
+			if (num_seeds > 0)
 			{
 				--num_downloaders;
 				--num_seeds;
