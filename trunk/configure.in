@@ -27,18 +27,32 @@ AC_PROG_LIBTOOL
 
 AC_SYS_LARGEFILE
 
-SAVED_LIBS="$LIBS"
-
-dnl Check for pthreads and boost libraries.
+dnl Check for pthreads.
 ACX_PTHREAD
+dnl Apply pthread config.
+CC=$PTHREAD_CC
+CPPFLAGS="$CPPFLAGS $PTHREAD_CFLAGS"
+LIBS="$LIBS $PTHREAD_LIBS"
 
-AX_BOOST_BASE([1.34])
+dnl Check for boost libraries.
+AX_BOOST_BASE([1.35],[
+   AX_BOOST_SYSTEM
+   dnl check that Boost.System was found:
+   if test -z "$BOOST_SYSTEM_LIB"; then
+      AC_MSG_ERROR([unable to find Boost.System library, currently this is required.])
+   fi
 
-AX_BOOST_SYSTEM
-dnl check that Boost.System was found:
-if test -z "$BOOST_SYSTEM_LIB"; then
-   AC_MSG_ERROR([unable to find Boost.System library, currently this is required.])
-fi
+   AX_BOOST_ASIO
+   dnl check that Boost.Asio was found:
+   if test -z "$BOOST_ASIO_LIB"; then
+      AC_MSG_ERROR([Unable to find Boost.Asio library, currently this is required.])
+   fi
+],[
+   AX_BOOST_BASE([1.34])
+])
+
+AC_MSG_NOTICE([BOOST_CPPFLAGS=$BOOST_CPPFLAGS])
+AC_MSG_NOTICE([BOOST_LDFLAGS=$BOOST_LDFLAGS])
 
 AX_BOOST_IOSTREAMS
 dnl check that Boost.IOStreams was found:
@@ -47,35 +61,24 @@ if test -z "$BOOST_IOSTREAMS_LIB"; then
 fi
 
 AX_BOOST_DATE_TIME
-
 dnl check that Boost.DateTime was found:
 if test -z "$BOOST_DATE_TIME_LIB"; then
    AC_MSG_ERROR([Unable to find Boost.DateTime library, currently this is required.])
 fi
 
 AX_BOOST_FILESYSTEM
-
 dnl check that Boost.Filesystem was found:
 if test -z "$BOOST_FILESYSTEM_LIB"; then
    AC_MSG_ERROR([Unable to find Boost.Filesystem library, currently this is required.])
 fi
 
 AX_BOOST_THREAD
-
 dnl check that Boost.Thread was found:
 if test -z "$BOOST_THREAD_LIB"; then
    AC_MSG_ERROR([Unable to find Boost.Thread library, currently this is required.])
 fi
 
-AX_BOOST_ASIO
-
-dnl check that Boost.Asio was found:
-if test -z "$BOOST_ASIO_LIB"; then
-   AC_MSG_ERROR([Unable to find Boost.Asio library, currently this is required.])
-fi
-
 AX_BOOST_REGEX
-
 dnl check that Boost.Regex was found:
 if test -z "$BOOST_REGEX_LIB"; then
    AC_MSG_RESULT([Unable to find Boost.Regex library, example test_client will not be build.])
@@ -83,14 +86,15 @@ if test -z "$BOOST_REGEX_LIB"; then
 fi
 
 AX_BOOST_PROGRAM_OPTIONS
-
 dnl check that Boost.Program_options was found:
 if test -z "$BOOST_PROGRAM_OPTIONS_LIB"; then
    AC_MSG_RESULT([Unable to find Boost.Program_options library, example test_client will not be build.])
    BUILD_TESTCLIENT=no;
 fi
 
-LIBS="$SAVED_LIBS"
+dnl Apply boost config.
+CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
+LDFLAGS="$LDFLAGS $BOOST_LDFLAGS"
 
 if [[ "x$BUILD_TESTCLIENT" != "xno" ]]; then
 	CLIENT_TEST_BIN=client_test;

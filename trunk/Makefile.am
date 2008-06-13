@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = include @ZLIBDIR@ src @EXAMPLESDIR@ test
-EXTRA_DIST = docs/manual.html docs/manual.rst docs/extension_protocol.rst \
+EXTRA_DIST = autotool.sh docs/manual.html docs/manual.rst docs/extension_protocol.rst \
 docs/extension_protocol.html \
 docs/projects.rst docs/projects.html \
 docs/building.rst docs/building.html \
@@ -32,9 +32,6 @@ docs/moopolice_thumb.gif \
 docs/qbittorrent_thumb.jpg \
 docs/ziptorrent_thumb.gif \
 docs/unicode_support.png docs/client_test.png docs/style.css Jamfile project-root.jam \
-m4/ac_cxx_namespaces.m4 m4/acx_pthread.m4 m4/ax_boost_date_time.m4 \
-m4/ax_boost_filesystem.m4 m4/ax_boost_thread.m4 \
-m4/ax_boost_asio.m4 m4/ax_boost_system.m4 m4/check_ssl.m4 \
 src/file_win.cpp libtorrent.pc \
 bindings/README.txt \
 bindings/python/Jamfile \

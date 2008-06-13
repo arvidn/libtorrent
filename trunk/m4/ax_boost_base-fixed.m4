@@ -4,7 +4,7 @@
 #
 # SYNOPSIS
 #
-#   AX_BOOST_BASE([MINIMUM-VERSION])
+#   AX_BOOST_BASE([MINIMUM-VERSION],[ACTION-IF-FOUND],[ACTION-IF-NOT-FOUND])
 #
 # DESCRIPTION
 #
@@ -25,11 +25,15 @@
 #
 # LAST MODIFICATION
 #
-#   2008-04-12
+#   2008-04-12 - original
+#   2008-06-13 - AIF/AINF parameters
 #
 # COPYLEFT
 #
 #   Copyright (c) 2008 Thomas Porschberg <thomas@randspringer.de>
+#
+#   Copyright (c) 2008 Roman Rybalko <libtorrent@romanr.info> (under RbLibtorrent project)
+#   (ACTION-IF-FOUND/ACTION-IF-NOT-FOUND options, re-enterability fixes)
 #
 #   Copying and distribution of this file, with or without modification, are
 #   permitted in any medium without royalty provided the copyright notice
@@ -203,21 +207,28 @@ if test "x$want_boost" = "xyes"; then
 	       	])
 		AC_LANG_POP([C++])
 	fi
+	
+        CPPFLAGS="$CPPFLAGS_SAVED"
+       	LDFLAGS="$LDFLAGS_SAVED"
+	unset ac_boost_path # re-enterability
 
 	if test "$succeeded" != "yes" ; then
-		if test "$_version" = "0" ; then
-			AC_MSG_ERROR([[We could not detect the boost libraries (version $boost_lib_version_req_shorten or higher). If you have a staged boost library (still not installed) please specify \$BOOST_ROOT in your environment and do not give a PATH to --with-boost option.  If you are sure you have boost installed, then check your version number looking in <boost/version.hpp>. See http://randspringer.de/boost for more documentation.]])
-		else
-			AC_MSG_NOTICE([Your boost libraries seems to old (version $_version).])
-		fi
+		ifelse([$3], ,[
+			if test "$_version" = "0" ; then
+				AC_MSG_ERROR([[We could not detect the boost libraries (version $boost_lib_version_req_shorten or higher). If you have a staged boost library (still not installed) please specify \$BOOST_ROOT in your environment and do not give a PATH to --with-boost option.  If you are sure you have boost installed, then check your version number looking in <boost/version.hpp>. See http://randspringer.de/boost for more documentation.]])
+			else
+				AC_MSG_NOTICE([Your boost libraries seems to old (version $_version).])
+			fi
+		],[
+			AC_MSG_RESULT(no)
+			$3
+		])
 	else
+		$2
 		AC_SUBST(BOOST_CPPFLAGS)
 		AC_SUBST(BOOST_LDFLAGS)
 		AC_DEFINE(HAVE_BOOST,,[define if the Boost library is available])
 	fi
-
-        CPPFLAGS="$CPPFLAGS_SAVED"
-       	LDFLAGS="$LDFLAGS_SAVED"
 fi
 
 ])

@@ -28,6 +28,7 @@
 #
 #   Copyright (c) 2008 Thomas Porschberg <thomas@randspringer.de>
 #   Copyright (c) 2008 Michael Tindal
+#   Copyright (c) 2008 Roman Rybalko <libtorrent@romanr.info> (using BOOST_SYSTEM_LIB)
 #
 #   Copying and distribution of this file, with or without modification, are
 #   permitted in any medium without royalty provided the copyright notice
@@ -62,6 +63,10 @@ AC_DEFUN([AX_BOOST_FILESYSTEM],
 		LDFLAGS_SAVED="$LDFLAGS"
 		LDFLAGS="$LDFLAGS $BOOST_LDFLAGS"
 		export LDFLAGS
+		
+		LIBS_SAVED=$LIBS
+		LIBS="$LIBS $BOOST_SYSTEM_LIB"
+		export LIBS
 
         AC_CACHE_CHECK(whether the Boost::Filesystem library is available,
 					   ax_cv_boost_filesystem,
@@ -105,6 +110,7 @@ AC_DEFUN([AX_BOOST_FILESYSTEM],
 		fi
 
 		CPPFLAGS="$CPPFLAGS_SAVED"
-    	LDFLAGS="$LDFLAGS_SAVED"
+    		LDFLAGS="$LDFLAGS_SAVED"
+		LIBS="$LIBS_SAVED"
 	fi
 ])

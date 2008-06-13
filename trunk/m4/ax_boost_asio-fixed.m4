@@ -28,6 +28,7 @@
 #
 #   Copyright (c) 2008 Thomas Porschberg <thomas@randspringer.de>
 #   Copyright (c) 2008 Pete Greenwell <pete@mu.org>
+#   Copyright (c) 2008 Roman Rybalko <libtorrent@romanr.info> (using BOOST_SYSTEM_LIB)
 #
 #   Copying and distribution of this file, with or without modification, are
 #   permitted in any medium without royalty provided the copyright notice
@@ -83,8 +84,9 @@ AC_DEFUN([AX_BOOST_ASIO],
 		if test "x$ax_cv_boost_asio" = "xyes"; then
 			AC_DEFINE(HAVE_BOOST_ASIO,,[define if the Boost::ASIO library is available])
 			BN=boost_system
+			BN2=`echo $BOOST_SYSTEM_LIB | sed 's/-l//'`
             if test "x$ax_boost_user_asio_lib" = "x"; then
-				for ax_lib in $BN $BN-$CC $BN-$CC-mt $BN-$CC-mt-s $BN-$CC-s \
+				for ax_lib in $BN2 $BN $BN-$CC $BN-$CC-mt $BN-$CC-mt-s $BN-$CC-s \
                               lib$BN lib$BN-$CC lib$BN-$CC-mt lib$BN-$CC-mt-s lib$BN-$CC-s \
                               $BN-mgw $BN-mgw $BN-mgw-mt $BN-mgw-mt-s $BN-mgw-s ; do
 				    AC_CHECK_LIB($ax_lib, main, [BOOST_ASIO_LIB="-l$ax_lib" AC_SUBST(BOOST_ASIO_LIB) link_thread="yes" break],
