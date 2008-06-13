@@ -3018,9 +3018,18 @@ the *QBone scavenger service*. For more details, see QBSS_.
 .. _`QBSS`: http://qbone.internet2.edu/qbss/
 
 ``active_downloads`` and ``active_seeds`` controls how many active seeding and
-downloading torrents the queuing mechanism allows. Seeding torrents are
-counted against the downloads limit but downloading torrenst are not
-counted against the seed limit.
+downloading torrents the queuing mechanism allows. The target number of active
+torrents is ``max(active_downloads, active_seeds)``. ``active_downloads`` and
+``active_seeds`` are upper limits on the number of downloading torrents and
+seeding torrents respectively.
+
+For example if there are 10 seeding torrents and 10 downloading torrents, and
+``active_downloads`` is 4 and ``active_seeds`` is 4, there will be no seed
+active, but 4 downloading torrents. If the settings are ``active_downloads`` = 2
+and ``active_seeds`` = 4, then there will be 2 downloading torrenst and 2 seeding
+torrents active. Torrents that are not auto managed are also counted against these
+limits. If there are non-auto managed torrents that use up all the slots, no
+auto managed torrent will be activated.
 
 ``auto_manage_interval`` is the number of seconds between the torrent queue
 is updated, and rotated.
@@ -4224,7 +4233,7 @@ The ``resume_data`` member points to the resume data or is 0 on errors.
 	};
 
 torrent_resumed_alert
---------------------
+---------------------
 
 This alert is generated as a response to a ``torrent_handle::resume`` request. It is
 generated when a torrent goes from a paused state to an active state.
