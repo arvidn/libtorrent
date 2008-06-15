@@ -3249,6 +3249,7 @@ namespace libtorrent
 		{
 			alerts().post_alert(storage_moved_alert(get_handle(), j.str));
 		}
+		m_save_path = j.str;
 	}
 
 	piece_manager& torrent::filesystem()

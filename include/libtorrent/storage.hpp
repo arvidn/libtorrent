@@ -321,7 +321,7 @@ namespace libtorrent
 		int rename_file_impl(int index, std::string const& new_filename)
 		{ return m_storage->rename_file(index, new_filename); }
 
-		bool move_storage_impl(fs::path const& save_path);
+		int move_storage_impl(fs::path const& save_path);
 
 		int allocate_slot_for_piece(int piece_index);
 #ifndef NDEBUG

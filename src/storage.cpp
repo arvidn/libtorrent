@@ -1409,14 +1409,14 @@ namespace libtorrent
 		return m_storage->hash_for_slot(slot, ph, m_files.piece_size(piece));
 	}
 
-	bool piece_manager::move_storage_impl(fs::path const& save_path)
+	int piece_manager::move_storage_impl(fs::path const& save_path)
 	{
 		if (m_storage->move_storage(save_path))
 		{
 			m_save_path = fs::complete(save_path);
-			return true;
+			return 0;
 		}
-		return false;
+		return -1;
 	}
 
 	void piece_manager::write_resume_data(entry& rd) const
