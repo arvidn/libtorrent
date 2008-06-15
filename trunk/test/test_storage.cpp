@@ -50,6 +50,13 @@ void on_check_files(int ret, disk_io_job const& j)
 	std::cerr << "on_check_files ret: " << ret << " " << j.piece << std::endl;
 }
 
+void on_move_storage(int ret, disk_io_job const& j, std::string path)
+{
+	std::cerr << "on_move_storage ret: " << ret << " path:" << j.str << std::endl;
+	TEST_CHECK(ret == 0);
+	TEST_CHECK(j.str == path);
+}
+
 void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	, file_storage& fs
 	, path const& test_path
@@ -111,16 +118,26 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 		ios.reset();
 		ios.run_one();
 	}
+	ios.reset();
+	ios.poll();
 
 	// test move_storage
 	boost::function<void(int, disk_io_job const&)> none;
 	TEST_CHECK(exists(test_path / "temp_storage"));
-	pm->async_move_storage(test_path / "temp_storage2", none);
+	pm->async_move_storage(test_path / "temp_storage2", bind(on_move_storage, _1, _2, (test_path / "temp_storage2").string()));
+
 	test_sleep(2000);
+	ios.reset();
+	ios.poll();
+
 	TEST_CHECK(!exists(test_path / "temp_storage"));
 	TEST_CHECK(exists(test_path / "temp_storage2/temp_storage"));
-	pm->async_move_storage(test_path, none);
+	pm->async_move_storage(test_path, bind(on_move_storage, _1, _2, test_path.string()));
+
 	test_sleep(2000);
+	ios.reset();
+	ios.poll();
+
 	TEST_CHECK(!exists(test_path / "temp_storage2/temp_storage"));	
 	remove_all(test_path / "temp_storage2");
 
@@ -129,7 +146,11 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	TEST_CHECK(exists(test_path / "temp_storage/test1.tmp"));
 	TEST_CHECK(!exists(test_path / "part0"));	
 	pm->async_rename_file(0, "part0", none);
+
 	test_sleep(2000);
+	ios.reset();
+	ios.poll();
+
 	TEST_CHECK(!exists(test_path / "temp_storage/test1.tmp"));
 	TEST_CHECK(exists(test_path / "part0"));
 
