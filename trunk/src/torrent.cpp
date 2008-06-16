@@ -632,6 +632,7 @@ namespace libtorrent
 		// assume that we don't have anything
 		m_files_checked = false;
 		m_state = torrent_status::queued_for_checking;
+		set_queue_position((std::numeric_limits<int>::max)());
 
 		m_resume_data = entry();
 		m_storage->async_check_fastresume(&m_resume_data
@@ -3393,11 +3394,23 @@ namespace libtorrent
 
 	void torrent::set_queue_position(int p)
 	{
+		TORRENT_ASSERT((p == -1) == is_finished());
 		if (is_finished() && p != -1) return;
 		if (p == m_sequence_number) return;
 
 		session_impl::torrent_map& torrents = m_ses.m_torrents;
-		if (p < 0)
+		if (p >= 0 && m_sequence_number == -1)
+		{
+			int max_seq = 0;
+			for (session_impl::torrent_map::iterator i = torrents.begin()
+				, end(torrents.end()); i != end; ++i)
+			{
+				torrent* t = i->second.get();
+				if (t->m_sequence_number > max_seq) max_seq = t->m_sequence_number;
+			}
+			m_sequence_number = (std::min)(max_seq + 1, p);
+		}
+		else if (p < 0)
 		{
 			for (session_impl::torrent_map::iterator i = torrents.begin()
 				, end(torrents.end()); i != end; ++i)
@@ -3436,8 +3449,8 @@ namespace libtorrent
 				if (t == this) continue;
 
 				if (pos <= p
-					&& pos > m_sequence_number
-					&& pos != -1)
+						&& pos > m_sequence_number
+						&& pos != -1)
 					--t->m_sequence_number;
 
 			}
