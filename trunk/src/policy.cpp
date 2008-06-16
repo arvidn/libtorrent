@@ -485,7 +485,7 @@ namespace libtorrent
 				&& !compare_peer(candidate->second, pe, external_ip)) continue;
 
 			if (now - pe.connected <
-				seconds(pe.failcount * min_reconnect_time))
+				seconds((pe.failcount + 1) * min_reconnect_time))
 				continue;
 
 			candidate = current;
