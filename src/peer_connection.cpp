@@ -3270,10 +3270,20 @@ namespace libtorrent
 
 		// this means the connection just succeeded
 
+		TORRENT_ASSERT(m_socket);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " COMPLETED: " << m_remote.address().to_string()
 			<< " rtt = " << m_rtt << "\n";
 #endif
+
+		error_code ec;
+		if (m_remote == m_socket->local_endpoint(ec))
+		{
+			// if the remote endpoint is the same as the local endpoint, we're connected
+			// to ourselves
+			disconnect("connected to ourselves", 1);
+			return;
+		}
 
 		if (m_remote.address().is_v4())
 		{
