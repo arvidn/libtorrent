@@ -618,6 +618,35 @@ namespace libtorrent
 
 			if (i->second.connection != 0)
 			{
+				boost::shared_ptr<socket_type> other_socket
+					= i->second.connection->get_socket();
+				boost::shared_ptr<socket_type> this_socket
+					= c.get_socket();
+
+				error_code ec1;
+				error_code ec2;
+				bool self_connection =
+					other_socket->remote_endpoint(ec2) == this_socket->local_endpoint(ec1)
+					|| other_socket->local_endpoint(ec2) == this_socket->remote_endpoint(ec1);
+
+				if (ec1)
+				{
+					c.disconnect(ec1.message().c_str());
+					return false;
+				}
+
+				if (ec2)
+				{
+					i->second.connection->disconnect(ec2.message().c_str());
+				}
+
+				if (self_connection)
+				{
+					c.disconnect("connected to ourselves", 1);
+					i->second.connection->disconnect("connected to ourselves", 1);
+					return false;
+				}
+
 				TORRENT_ASSERT(i->second.connection != &c);
 				// the new connection is a local (outgoing) connection
 				// or the current one is already connected
