@@ -164,6 +164,8 @@ namespace libtorrent
 		void abort();
 		bool is_aborted() const { return m_abort; }
 
+		torrent_status::state_t state() const { return m_state; }
+
 		session_settings const& settings() const;
 		
 		aux::session_impl& session() { return m_ses; }
