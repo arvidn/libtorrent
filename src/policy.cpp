@@ -550,7 +550,7 @@ namespace libtorrent
 				&& candidate->second.failcount < i->second.failcount)
 				continue;
 
-			if (now - i->second.connected < seconds(i->second.failcount * min_reconnect_time))
+			if (now - i->second.connected < seconds((i->second.failcount + 1) * min_reconnect_time))
 				continue;
 			if (ses.m_port_filter.access(i->second.ip.port()) & port_filter::blocked)
 				continue;
