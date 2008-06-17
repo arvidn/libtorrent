@@ -171,6 +171,8 @@ namespace libtorrent
 		aux::session_impl& session() { return m_ses; }
 		
 		void set_sequential_download(bool sd);
+		bool is_sequential_download() const
+		{ return m_sequential_download; }
 	
 		void set_queue_position(int p);
 		int queue_position() const { return m_sequence_number; }

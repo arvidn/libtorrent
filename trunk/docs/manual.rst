@@ -1516,6 +1516,7 @@ Its declaration looks like this::
 		void set_download_limit(int limit) const;
 		int download_limit() const;
 		void set_sequential_download(bool sd) const;
+		bool is_sequential_download() const;
 
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
@@ -1749,18 +1750,22 @@ limit.
 download, respectively.
 
 
-set_sequential_download()
--------------------------
+set_sequential_download() is_sequential_download()
+--------------------------------------------------
 
 	::
 
 		void set_sequential_download(bool sd);
+		bool is_sequential_download() const;
 
-Enables or disables *sequential download*. When enabled, the piece picker will pick pieces in sequence
-instead of rarest first.
+``set_sequential_download()`` enables or disables *sequential download*. When enabled, the piece
+picker will pick pieces in sequence instead of rarest first.
 
 Enabling sequential download will affect the piece distribution negatively in the swarm. It should be
 used sparingly.
+
+``is_sequential_download()`` returns true if this torrent is downloading in sequence, and false
+otherwise.
 
 
 set_peer_upload_limit() set_peer_download_limit()

@@ -92,7 +92,7 @@
 <li><a class="reference" href="#name" id="id76" name="id76">name()</a></li>
 <li><a class="reference" href="#set-ratio" id="id77" name="id77">set_ratio()</a></li>
 <li><a class="reference" href="#set-upload-limit-set-download-limit-upload-limit-download-limit" id="id78" name="id78">set_upload_limit() set_download_limit() upload_limit() download_limit()</a></li>
-<li><a class="reference" href="#set-sequential-download" id="id79" name="id79">set_sequential_download()</a></li>
+<li><a class="reference" href="#set-sequential-download-is-sequential-download" id="id79" name="id79">set_sequential_download() is_sequential_download()</a></li>
 <li><a class="reference" href="#set-peer-upload-limit-set-peer-download-limit" id="id80" name="id80">set_peer_upload_limit() set_peer_download_limit()</a></li>
 <li><a class="reference" href="#pause-resume-is-paused" id="id81" name="id81">pause() resume() is_paused()</a></li>
 <li><a class="reference" href="#force-recheck" id="id82" name="id82">force_recheck()</a></li>
@@ -1596,6 +1596,7 @@ struct torrent_handle
         void set_download_limit(int limit) const;
         int download_limit() const;
         void set_sequential_download(bool sd) const;
+        bool is_sequential_download() const;
 
         void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
         void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
@@ -1819,16 +1820,19 @@ limit.</p>
 download, respectively.</p>
 </div>
 <div class="section">
-<h2><a id="set-sequential-download" name="set-sequential-download">set_sequential_download()</a></h2>
+<h2><a id="set-sequential-download-is-sequential-download" name="set-sequential-download-is-sequential-download">set_sequential_download() is_sequential_download()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void set_sequential_download(bool sd);
+bool is_sequential_download() const;
 </pre>
 </blockquote>
-<p>Enables or disables <em>sequential download</em>. When enabled, the piece picker will pick pieces in sequence
-instead of rarest first.</p>
+<p><tt class="docutils literal"><span class="pre">set_sequential_download()</span></tt> enables or disables <em>sequential download</em>. When enabled, the piece
+picker will pick pieces in sequence instead of rarest first.</p>
 <p>Enabling sequential download will affect the piece distribution negatively in the swarm. It should be
 used sparingly.</p>
+<p><tt class="docutils literal"><span class="pre">is_sequential_download()</span></tt> returns true if this torrent is downloading in sequence, and false
+otherwise.</p>
 </div>
 <div class="section">
 <h2><a id="set-peer-upload-limit-set-peer-download-limit" name="set-peer-upload-limit-set-peer-download-limit">set_peer_upload_limit() set_peer_download_limit()</a></h2>
