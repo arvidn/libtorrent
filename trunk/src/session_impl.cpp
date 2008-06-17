@@ -1308,6 +1308,11 @@ namespace aux {
 		int num_downloaders = settings().active_downloads;
 		int num_seeds = settings().active_seeds;
 
+        if (num_downloaders == -1)
+            num_downloaders = (std::numeric_limits<int>::max)();
+        if (num_seeds == -1)
+            num_seeds = (std::numeric_limits<int>::max)();
+            
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{

@@ -3026,7 +3026,7 @@ the *QBone scavenger service*. For more details, see QBSS_.
 downloading torrents the queuing mechanism allows. The target number of active
 torrents is ``max(active_downloads, active_seeds)``. ``active_downloads`` and
 ``active_seeds`` are upper limits on the number of downloading torrents and
-seeding torrents respectively.
+seeding torrents respectively. Setting the value to -1 will mean unlimited.
 
 For example if there are 10 seeding torrents and 10 downloading torrents, and
 ``active_downloads`` is 4 and ``active_seeds`` is 4, there will be no seed
