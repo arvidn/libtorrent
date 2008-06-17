@@ -3400,7 +3400,9 @@ namespace libtorrent
 
 	void torrent::set_queue_position(int p)
 	{
-		TORRENT_ASSERT((p == -1) == is_finished() || (!m_auto_managed && p == -1));
+		TORRENT_ASSERT((p == -1) == is_finished()
+			|| (!m_auto_managed && p == -1)
+			|| (m_abort && p == -1));
 		if (is_finished() && p != -1) return;
 		if (p == m_sequence_number) return;
 
