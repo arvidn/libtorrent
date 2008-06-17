@@ -344,6 +344,12 @@ namespace libtorrent
 		TORRENT_FORWARD(set_sequential_download(sd));
 	}
 
+	bool torrent_handle::is_sequential_download() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD_RETURN(is_sequential_download(), false);
+	}
+
 	std::string torrent_handle::name() const
 	{
 		INVARIANT_CHECK;
