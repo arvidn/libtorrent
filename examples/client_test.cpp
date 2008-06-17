@@ -583,6 +583,15 @@ void scan_dir(path const& dir_path
 	}
 }
 
+libtorrent::torrent_handle get_active_torrent(handles_t const& handles)
+{
+	if (active_torrent >= handles.size()
+		|| active_torrent < 0) return libtorrent::torrent_handle();
+	handles_t::const_iterator i = handles.begin();
+	std::advance(i, active_torrent);
+	return i->second;
+}
+
 int main(int ac, char* av[])
 {
 #if BOOST_VERSION < 103400
@@ -1067,43 +1076,37 @@ int main(int ac, char* av[])
 
 				if (c == 'j')
 				{
-					// force recheck all torrents
-					std::for_each(handles.begin(), handles.end()
-						, bind(&torrent_handle::force_recheck
-						, bind(&handles_t::value_type::second, _1)));
+					torrent_handle h = get_active_torrent(handles);
+					if (h.is_valid()) h.force_recheck();
 				}
 
 				if (c == 'r')
 				{
-					// force reannounce on all torrents
-					std::for_each(handles.begin(), handles.end()
-						, bind(&torrent_handle::force_reannounce
-						, bind(&handles_t::value_type::second, _1)));
+					torrent_handle h = get_active_torrent(handles);
+					if (h.is_valid()) h.force_reannounce();
 				}
 
 				if (c == 's')
 				{
-					// toggle torrents between sequential and rarest first mode
-					sequential_download = !sequential_download;
-					std::for_each(handles.begin(), handles.end()
-						, bind(&torrent_handle::set_sequential_download
-						, bind(&handles_t::value_type::second, _1), sequential_download));
+					torrent_handle h = get_active_torrent(handles);
+					if (h.is_valid()) h.set_sequential_download(!h.is_sequential_download());
 				}
 
 				if (c == 'p')
 				{
-					// pause all torrents
-					std::for_each(handles.begin(), handles.end()
-						, bind(&torrent_handle::pause
-						, bind(&handles_t::value_type::second, _1)));
-				}
-
-				if (c == 'u')
-				{
-					// unpause all torrents
-					std::for_each(handles.begin(), handles.end()
-						, bind(&torrent_handle::resume
-						, bind(&handles_t::value_type::second, _1)));
+					torrent_handle h = get_active_torrent(handles);
+					if (h.is_valid())
+					{
+						if (!h.is_auto_managed() && h.is_paused())
+						{
+							h.auto_managed(true);
+						}
+						else
+						{
+							h.auto_managed(false);
+							h.pause();
+						}
+					}
 				}
 
 				// toggle displays
@@ -1212,8 +1215,8 @@ int main(int ac, char* av[])
 			session_status sess_stat = ses.status();
 			
 			std::stringstream out;
-			out << "[q] quit [i] toggle peers [d] toggle downloading pieces [p] pause all "
-				"[u] unpause all [a] toggle piece bar [s] toggle download sequential [f] toggle files "
+			out << "[q] quit [i] toggle peers [d] toggle downloading pieces [p] toggle paused "
+				"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
 				"[j] force recheck\n"
 				"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
 				"[5] toggle peer rate [6] toggle failures [7] toggle send buffers\n";
