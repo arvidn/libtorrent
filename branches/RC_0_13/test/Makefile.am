@@ -1,7 +1,9 @@
-noinst_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker \
+check_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker \
 test_storage test_metadata_extension test_buffer test_swarm test_pe_crypto test_primitives \
 test_bandwidth_limiter test_upnp test_fast_extension test_pex test_web_seed \
 test_http_connection test_lsd
+
+TESTS = $(check_PROGRAMS)
 
 EXTRA_DIST = Jamfile
 
@@ -58,6 +60,6 @@ test_bandwidth_limiter_LDADD = $(top_builddir)/src/libtorrent.la
 
 noinst_HEADERS = test.hpp setup_transfer.hpp
 
-AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@ -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION
-AM_LDFLAGS= -l@BOOST_DATE_TIME_LIB@ -l@BOOST_FILESYSTEM_LIB@ -l@BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LDFLAGS@ @SSL_LIBS@
-
+AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION
+LDADD = @BOOST_DATE_TIME_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @SSL_LIBS@
+AM_LDFLAGS = @SSL_LDFLAGS@
