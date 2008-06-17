@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = include @ZLIBDIR@ src @EXAMPLESDIR@ test
-EXTRA_DIST = docs/manual.html docs/manual.rst docs/extension_protocol.rst \
+EXTRA_DIST = autotool.sh docs/manual.html docs/manual.rst docs/extension_protocol.rst \
 docs/extension_protocol.html \
 docs/projects.rst docs/projects.html \
 docs/building.rst docs/building.html \
@@ -32,8 +32,7 @@ docs/moopolice_thumb.gif \
 docs/qbittorrent_thumb.jpg \
 docs/ziptorrent_thumb.gif \
 docs/unicode_support.png docs/client_test.png docs/style.css Jamfile project-root.jam \
-m4/ac_cxx_namespaces.m4 m4/acx_pthread.m4 m4/ax_boost_date-time.m4 \
-m4/ax_boost_filesystem.m4 m4/ax_boost_thread.m4 src/file_win.cpp libtorrent.pc \
+src/file_win.cpp libtorrent.pc \
 bindings/README.txt \
 bindings/python/Jamfile \
 bindings/python/client.py \
@@ -78,20 +77,5 @@ debian/libtorrent0.docs \
 debian/libtorrent0.install \
 debian/rules
 
-
 pkgconfigdir   = $(libdir)/pkgconfig
 pkgconfig_DATA = libtorrent.pc
-
-check: test
-	test/test_hasher \
-	&& test/test_bencoding \
-	&& test/test_ip_filter \
-	&& test/test_piece_picker \
-	&& test/test_storage \
-	&& test/test_buffer \
-	&& test/test_swarm \
-	&& test/test_primitives \
-	&& echo && echo && echo "  **** all tests passed ****" && echo && echo
-
-deb:
-	dpkg-buildpackage -rfakeroot -us -uc

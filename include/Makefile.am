@@ -1,5 +1,3 @@
-noinst_SCRIPTS = get_asio.sh
-
 nobase_include_HEADERS = \
 libtorrent/alert.hpp \
 libtorrent/alert_types.hpp \
