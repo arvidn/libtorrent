@@ -619,6 +619,10 @@ namespace libtorrent
 
 	void torrent::force_recheck()
 	{
+		if (m_state == torrent_status::checking_files
+			|| m_state == torrent_status::queued_for_checking)
+			return;
+
 		disconnect_all();
 
 		m_owning_storage->async_release_files();
@@ -632,7 +636,9 @@ namespace libtorrent
 		// assume that we don't have anything
 		m_files_checked = false;
 		m_state = torrent_status::queued_for_checking;
-		set_queue_position((std::numeric_limits<int>::max)());
+
+		if (m_auto_managed)
+			set_queue_position((std::numeric_limits<int>::max)());
 
 		m_resume_data = entry();
 		m_storage->async_check_fastresume(&m_resume_data
@@ -3394,7 +3400,7 @@ namespace libtorrent
 
 	void torrent::set_queue_position(int p)
 	{
-		TORRENT_ASSERT((p == -1) == is_finished());
+		TORRENT_ASSERT((p == -1) == is_finished() || (!m_auto_managed && p == -1));
 		if (is_finished() && p != -1) return;
 		if (p == m_sequence_number) return;
 
