@@ -179,7 +179,7 @@ namespace libtorrent
 		, m_max_uploads((std::numeric_limits<int>::max)())
 		, m_num_uploads(0)
 		, m_max_connections((std::numeric_limits<int>::max)())
-		, m_block_size(block_size)
+		, m_block_size((std::min)(block_size, tf->piece_length()))
 		, m_complete(-1)
 		, m_incomplete(-1)
 		, m_deficit_counter(0)
@@ -405,13 +405,15 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent_file->num_files() > 0);
 		TORRENT_ASSERT(m_torrent_file->total_size() >= 0);
 
+		m_block_size = (std::min)(m_block_size, m_torrent_file->piece_length());
+
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
 		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
 			, m_save_path, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor
 			, m_storage_mode);
 		m_storage = m_owning_storage.get();
-		m_picker->init(m_torrent_file->piece_length() / m_block_size
+		m_picker->init((std::max)(m_torrent_file->piece_length() / m_block_size, 1)
 			, int((m_torrent_file->total_size()+m_block_size-1)/m_block_size));
 
 		std::vector<std::string> const& url_seeds = m_torrent_file->url_seeds();
@@ -3350,6 +3352,8 @@ namespace libtorrent
 				TORRENT_ASSERT(total_done == m_torrent_file->total_size());
 			else
 				TORRENT_ASSERT(total_done != m_torrent_file->total_size() || !m_files_checked);
+
+			TORRENT_ASSERT(m_block_size <= m_torrent_file->piece_length());
 		}
 		else
 		{

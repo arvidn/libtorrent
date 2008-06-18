@@ -164,7 +164,7 @@ boost::intrusive_ptr<T> clone_ptr(boost::intrusive_ptr<T> const& ptr)
 	return boost::intrusive_ptr<T>(new T(*ptr));
 }
 
-boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file)
+boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_size)
 {
 	char const* tracker_url = "http://non-existent-name.com/announce";
 	
@@ -173,10 +173,10 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file)
 	file_storage fs;
 	int total_size = 2 * 1024 * 1024;
 	fs.add_file(path("temporary"), total_size);
-	libtorrent::create_torrent t(fs, 16 * 1024);
+	libtorrent::create_torrent t(fs, piece_size);
 	t.add_tracker(tracker_url);
 
-	std::vector<char> piece(16 * 1024);
+	std::vector<char> piece(piece_size);
 	for (int i = 0; i < int(piece.size()); ++i)
 		piece[i] = (i % 26) + 'A';
 	
@@ -204,7 +204,7 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file)
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
-	, std::string suffix)
+	, std::string suffix, int piece_size)
 {
 	using namespace boost::filesystem;
 
@@ -218,7 +218,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	
 	create_directory("./tmp1" + suffix);
 	std::ofstream file(("./tmp1" + suffix + "/temporary").c_str());
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file);
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, piece_size);
 	file.close();
 	if (clear_files)
 	{
