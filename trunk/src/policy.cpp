@@ -635,11 +635,6 @@ namespace libtorrent
 					return false;
 				}
 
-				if (ec2)
-				{
-					i->second.connection->disconnect(ec2.message().c_str());
-				}
-
 				if (self_connection)
 				{
 					c.disconnect("connected to ourselves", 1);
@@ -650,7 +645,11 @@ namespace libtorrent
 				TORRENT_ASSERT(i->second.connection != &c);
 				// the new connection is a local (outgoing) connection
 				// or the current one is already connected
-				if (!i->second.connection->is_connecting() || c.is_local())
+				if (ec2)
+				{
+					i->second.connection->disconnect(ec2.message().c_str());
+				}
+				else if (!i->second.connection->is_connecting() || c.is_local())
 				{
 					c.disconnect("duplicate connection, closing");
 					return false;
