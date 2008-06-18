@@ -54,7 +54,8 @@ void test_swarm()
 	torrent_handle tor2;
 	torrent_handle tor3;
 
-	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_swarm");	
+	// test using piece sizes smaller than 16kB
+	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_swarm", 8 * 1024);	
 
 	float sum_dl_rate2 = 0.f;
 	float sum_dl_rate3 = 0.f;
