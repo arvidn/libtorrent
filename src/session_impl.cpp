@@ -1357,13 +1357,15 @@ namespace aux {
 			, end(downloaders.end()); i != end; ++i)
 		{
 			torrent* t = *i;
-			if (num_downloaders > 0
-				&& t->state() != torrent_status::queued_for_checking
-				&& t->state() != torrent_status::checking_files)
+			if (num_downloaders > 0)
 			{
-				--num_downloaders;
-				--num_seeds;
-				if (t->is_paused()) t->resume();
+				if (t->state() != torrent_status::queued_for_checking
+						&& t->state() != torrent_status::checking_files)
+				{
+					--num_downloaders;
+					--num_seeds;
+					if (t->is_paused()) t->resume();
+				}
 			}
 			else
 			{
