@@ -475,6 +475,10 @@ namespace libtorrent
 		// if this is set to true, it means update_pieces()
 		// has to be called before accessing m_pieces.
 		mutable bool m_dirty;
+	public:
+
+		enum { max_pieces = piece_pos::we_have_index - 1 };
+
 	};
 
 	inline int piece_picker::blocks_in_piece(int index) const
