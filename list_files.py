@@ -6,8 +6,9 @@ import sys
 def list_directory(path):
 	tree = os.walk(path)
 	for i in tree:
-		if os.path.split(i[0])[1] == 'CVS': continue
-		if os.path.split(i[0])[1] == '.svn': continue
+		dirs = i[0].split('/')
+		if 'CVS' in dirs: continue
+		if '.svn' in dirs: continue
 
 		for file in i[2]:
 			if file.startswith('.#'): continue
