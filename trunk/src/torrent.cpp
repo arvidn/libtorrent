@@ -407,6 +407,13 @@ namespace libtorrent
 
 		m_block_size = (std::min)(m_block_size, m_torrent_file->piece_length());
 
+		if (m_torrent_file->num_pieces()
+			> piece_picker::max_pieces)
+		{
+			m_error = "too many pieces in torrent";
+			pause();
+		}
+
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
 		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
