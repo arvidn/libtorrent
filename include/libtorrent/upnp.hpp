@@ -69,8 +69,10 @@ class upnp : public intrusive_ptr_base<upnp>
 public:
 	upnp(io_service& ios, connection_queue& cc
 		, address const& listen_interface, std::string const& user_agent
-		, portmap_callback_t const& cb, bool ignore_nonrouters);
+		, portmap_callback_t const& cb, bool ignore_nonrouters, void* state = 0);
 	~upnp();
+
+	void* drain_state();
 
 	enum protocol_type { none = 0, udp = 1, tcp = 2 };
 	int add_mapping(protocol_type p, int external_port, int local_port);
@@ -226,6 +228,12 @@ private:
 		{ return url < rhs.url; }
 	};
 	
+	struct upnp_state_t
+	{
+		std::vector<global_mapping_t> mappings;
+		std::set<rootdevice> devices;
+	};
+
 	std::vector<global_mapping_t> m_mappings;
 
 	std::string const& m_user_agent;

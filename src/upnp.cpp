@@ -61,7 +61,7 @@ using namespace libtorrent;
 
 upnp::upnp(io_service& ios, connection_queue& cc
 	, address const& listen_interface, std::string const& user_agent
-	, portmap_callback_t const& cb, bool ignore_nonrouters)
+	, portmap_callback_t const& cb, bool ignore_nonrouters, void* state)
 	:  m_user_agent(user_agent)
 	, m_callback(cb)
 	, m_retry_count(0)
@@ -79,6 +79,26 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	m_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
 	m_retry_count = 0;
+
+	if (state)
+	{
+		upnp_state_t* s = (upnp_state_t*)s;
+		m_devices.swap(s->devices);
+		m_mappings.swap(s->mappings);
+		delete s;
+	}
+}
+
+void* upnp::drain_state()
+{
+	upnp_state_t* s = new upnp_state_t;
+	s->mappings.swap(m_mappings);
+
+	for (std::set<rootdevice>::iterator i = m_devices.begin()
+		, end(m_devices.end()); i != end; ++i)
+		i->upnp_connection.reset();
+	s->devices.swap(m_devices);
+	return s;
 }
 
 upnp::~upnp()
