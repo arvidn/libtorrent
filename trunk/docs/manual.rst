@@ -3004,7 +3004,7 @@ less than what has been set by ``session::set_max_uploads()``. To query the
 current number of upload slots, see ``session_status::allowed_upload_slots``.
 
 ``cache_size`` is the disk write cache. It is specified in units of 16 KiB blocks.
-It defaults to 128 (= 2 MB).
+It defaults to 512 (= 8 MB).
 
 ``cache_expiry`` is the number of seconds from the last cached write to a piece
 in the write cache, to when it's forcefully flushed to disk. Default is 60 second.
