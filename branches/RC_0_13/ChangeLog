@@ -1,3 +1,17 @@
+release 0.13.1
+
+	* Minimum peer reconnect time fix. Peers with no failures would
+	  reconnect immediately.
+	* Improved web seed error handling
+	* DHT announce fixes and off-by-one loop fix
+	* UPnP fixes
+	* Fixed bug in torrent writer where the private flag was added
+	  outside of the info dictionary
+	* Made the torrent file parser less strict of what goes in the
+	  announce-list entry
+	* Fixed type overflow bug where some statistics was incorrectly
+	  reported for file larger than 2 GB
+	* boost-1.35 support
 	* Fixed bug in statistics from web server peers where it sometimes
 	  could report too many bytes downloaded.
 	* Fixed bug where statistics from the last second was lost when
