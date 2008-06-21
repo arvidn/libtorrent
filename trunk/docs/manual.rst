@@ -2810,6 +2810,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 
 		int active_downloads;
 		int active_seeds;
+		int active_limit;
+		bool dont_count_slow_torrents;
 		int auto_manage_interval;
 		float share_ratio_limit;
 		float seed_time_ratio_limit;
@@ -3035,6 +3037,14 @@ and ``active_seeds`` = 4, then there will be 2 downloading torrenst and 2 seedin
 torrents active. Torrents that are not auto managed are also counted against these
 limits. If there are non-auto managed torrents that use up all the slots, no
 auto managed torrent will be activated.
+
+if ``dont_count_slow_torrents`` is true, torrents without any payload transfers are
+not subject to the ``active_seeds`` and ``active_downloads`` limits. This is intended
+to make it more likely to utilize all available bandwidth, and avoid having torrents
+that don't transfer anything block the active slots.
+
+``active_limit`` is a hard limit on the number of active seeds. This applies even to
+slow torrents.
 
 ``auto_manage_interval`` is the number of seconds between the torrent queue
 is updated, and rotated.
