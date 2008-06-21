@@ -3420,7 +3420,7 @@ namespace libtorrent
 		session_impl::torrent_map& torrents = m_ses.m_torrents;
 		if (p >= 0 && m_sequence_number == -1)
 		{
-			int max_seq = 0;
+			int max_seq = -1;
 			for (session_impl::torrent_map::iterator i = torrents.begin()
 				, end(torrents.end()); i != end; ++i)
 			{
