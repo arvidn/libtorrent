@@ -126,7 +126,8 @@ namespace libtorrent
 			, peer_tos(0)
 			, active_downloads(8)
 			, active_seeds(5)
-			, dont_count_inactive_torrents(true)
+			, active_limit(15)
+			, dont_count_slow_torrents(true)
 			, auto_manage_interval(30)
 			, share_ratio_limit(2.f)
 			, seed_time_ratio_limit(7.f)
@@ -363,11 +364,12 @@ namespace libtorrent
 		// some slots free up.
 		int active_downloads;
 		int active_seeds;
+		int active_limit;
 
 		// if this is true, torrents that don't have any significant
 		// transfers are not counted as active when determining which
 		// auto managed torrents to pause and resume
-		bool dont_count_inactive_torrents;
+		bool dont_count_slow_torrents;
 
 		// the number of seconds in between recalculating which
 		// torrents to activate and which ones to queue

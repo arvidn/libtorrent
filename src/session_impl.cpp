@@ -1295,6 +1295,16 @@ namespace aux {
 		}
 	}
 
+	namespace
+	{
+		bool is_active(torrent* t, session_settings const& s)
+		{
+			return !(s.dont_count_slow_torrents
+				&& t->statistics().upload_payload_rate() == 0.f
+				&& t->statistics().download_payload_rate() == 0.f);
+		}
+	}
+
 	void session_impl::recalculate_auto_managed_torrents()
 	{
 		// these vectors are filled with auto managed torrents
@@ -1307,6 +1317,7 @@ namespace aux {
 		// of each kind we're allowed to have active
 		int num_downloaders = settings().active_downloads;
 		int num_seeds = settings().active_seeds;
+		int hard_limit = settings().active_limit;
 
         if (num_downloaders == -1)
             num_downloaders = (std::numeric_limits<int>::max)();
@@ -1329,11 +1340,15 @@ namespace aux {
 			}
 			else if (!t->is_paused())
 			{
-				// this is not an auto managed torrent,
-				// if it's running, decrease the respective
-				// counters.
-				--num_downloaders;
-				--num_seeds;
+				--hard_limit;
+			  	if (is_active(t, settings()))
+				{
+					// this is not an auto managed torrent,
+					// if it's running and active, decrease the
+					// counters.
+					--num_downloaders;
+					--num_seeds;
+				}
 			}
 		}
 
@@ -1357,14 +1372,15 @@ namespace aux {
 			, end(downloaders.end()); i != end; ++i)
 		{
 			torrent* t = *i;
-			if (!t->is_paused()
-				&& settings().dont_count_inactive_torrents
-				&& t->statistics().upload_payload_rate() == 0.f
-				&& t->statistics().download_payload_rate() == 0.f)
-				continue;
-
-			if (num_downloaders > 0)
+			if (!t->is_paused() && !is_active(t, settings()) && hard_limit > 0)
 			{
+				--hard_limit;
+				continue;
+			}
+
+			if (num_downloaders > 0 && hard_limit > 0)
+			{
+				--hard_limit;
 				if (t->state() != torrent_status::queued_for_checking
 					&& t->state() != torrent_status::checking_files)
 				{
@@ -1383,14 +1399,15 @@ namespace aux {
 			, end(seeds.end()); i != end; ++i)
 		{
 			torrent* t = *i;
-			if (!t->is_paused()
-				&& settings().dont_count_inactive_torrents
-				&& t->statistics().upload_payload_rate() == 0.f
-				&& t->statistics().download_payload_rate() == 0.f)
-				continue;
-
-			if (num_seeds > 0)
+			if (!t->is_paused() && !is_active(t, settings()) && hard_limit > 0)
 			{
+				--hard_limit;
+				continue;
+			}
+
+			if (num_seeds > 0 && hard_limit > 0)
+			{
+				--hard_limit;
 				--num_downloaders;
 				--num_seeds;
 				if (t->is_paused()) t->resume();
