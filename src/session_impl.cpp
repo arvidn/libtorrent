@@ -1357,10 +1357,16 @@ namespace aux {
 			, end(downloaders.end()); i != end; ++i)
 		{
 			torrent* t = *i;
+			if (!t->is_paused()
+				&& settings().dont_count_inactive_torrents
+				&& t->statistics().upload_payload_rate() == 0.f
+				&& t->statistics().download_payload_rate() == 0.f)
+				continue;
+
 			if (num_downloaders > 0)
 			{
 				if (t->state() != torrent_status::queued_for_checking
-						&& t->state() != torrent_status::checking_files)
+					&& t->state() != torrent_status::checking_files)
 				{
 					--num_downloaders;
 					--num_seeds;
@@ -1377,6 +1383,12 @@ namespace aux {
 			, end(seeds.end()); i != end; ++i)
 		{
 			torrent* t = *i;
+			if (!t->is_paused()
+				&& settings().dont_count_inactive_torrents
+				&& t->statistics().upload_payload_rate() == 0.f
+				&& t->statistics().download_payload_rate() == 0.f)
+				continue;
+
 			if (num_seeds > 0)
 			{
 				--num_downloaders;
