@@ -957,8 +957,8 @@ int main(int ac, char* av[])
 				}
 				// if it's a torrent file, open it as usual
 				add_torrent(ses, handles, i->c_str(), preferred_ratio
-					, compact_allocation_mode ? storage_mode_compact : storage_mode_sparse
-					, save_path, false, torrent_upload_limit, torrent_download_limit);
+					, compact_allocation_mode, save_path, false
+					, torrent_upload_limit, torrent_download_limit);
 			}
 			catch (std::exception& e)
 			{
