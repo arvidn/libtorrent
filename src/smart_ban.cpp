@@ -127,6 +127,10 @@ namespace libtorrent { namespace
 			// The piece failed the hash check. Record
 			// the CRC and origin peer of every block
 
+			// if the torrent is aborted, no point in starting
+			// a bunch of read operations on it
+			if (m_torrent.is_aborted()) return;
+
 			std::vector<void*> downloaders;
 			m_torrent.picker().get_downloaders(downloaders, p);
 
