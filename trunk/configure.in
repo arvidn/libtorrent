@@ -48,7 +48,49 @@ AX_BOOST_BASE([1.35],[
       AC_MSG_ERROR([Unable to find Boost.Asio library, currently this is required.])
    fi
 ],[
-   AX_BOOST_BASE([1.34])
+   AX_BOOST_BASE([1.34],[
+
+   dnl the user can choose which Asio library to use
+   AC_ARG_WITH([asio],
+	AS_HELP_STRING([--with-asio=shipped|system],
+	[Specify the Asio library to use, shipped or system. Default is to autodetect system and fallback to shipped.]),
+	[[asio=$withval]],
+	[[asio=shipped]]
+   )
+
+   dnl Check the value for the --with-asio switch
+   AC_MSG_CHECKING([which Asio implementation to use])
+   case "$asio" in
+	"shipped")
+		AC_MSG_RESULT(shipped)
+		ASIO_HPP=include/libtorrent/asio.hpp
+		ASIO_DIR=include/libtorrent/asio
+		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,,
+			AC_MSG_ERROR([libtorrent depends on Asio library but it was not found.])
+		)
+		;;
+	"system")
+		AC_MSG_RESULT(system)
+		ASIO_HPP=/usr/include/asio.hpp
+		ASIO_DIR=/usr/include/asio
+		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,,
+			AC_MSG_ERROR([libtorrent depends on Asio library but it was not found on your system.])
+		)
+		ln -sf $ASIO_HPP include/libtorrent
+		ln -sf $ASIO_DIR include/libtorrent
+		;;
+	*)
+		AC_MSG_RESULT(detect)
+		ASIO_HPP=$asio/../asio.hpp
+		ASIO_DIR=$asio
+		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,,
+			AC_MSG_ERROR([libtorrent depends on Asio library but it was not found in the path you specified.])
+		)
+		ln -sf $ASIO_HPP include/libtorrent
+		ln -sf $ASIO_DIR include/libtorrent
+		;;
+    esac
+])
 ])
 
 AC_MSG_NOTICE([BOOST_CPPFLAGS=$BOOST_CPPFLAGS])
