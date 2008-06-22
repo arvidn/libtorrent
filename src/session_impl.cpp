@@ -527,7 +527,8 @@ namespace aux {
 		// if queuing settings were changed, recalculate
 		// queued torrents sooner
 		if ((m_settings.active_downloads != s.active_downloads
-			|| m_settings.active_seeds != s.active_seeds)
+			|| m_settings.active_seeds != s.active_seeds
+			|| m_settings.active_limit != s.active_limit)
 			&& m_auto_manage_time_scaler > 2)
 			m_auto_manage_time_scaler = 2;
 		m_settings = s;
@@ -1323,6 +1324,8 @@ namespace aux {
             num_downloaders = (std::numeric_limits<int>::max)();
         if (num_seeds == -1)
             num_seeds = (std::numeric_limits<int>::max)();
+        if (hard_limit == -1)
+            hard_limit = (std::numeric_limits<int>::max)();
             
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
