@@ -796,7 +796,6 @@ namespace libtorrent
 		(*m_logger) << time_now_string() << " <== CHOKE\n";
 #endif
 		m_peer_choked = true;
-		t->get_policy().choked(*this);
 		
 		if (peer_info_struct() == 0 || !peer_info_struct()->on_parole)
 		{
