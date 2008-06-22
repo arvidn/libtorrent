@@ -1737,7 +1737,7 @@ namespace libtorrent
 		if (m_piece_map[block.piece_index].downloading == 0)
 			mark_as_downloading(block, peer, piece_picker::none);
 
-		TORRENT_ASSERT(m_piece_map[block.piece_index].downloaing);
+		TORRENT_ASSERT(m_piece_map[block.piece_index].downloading);
 
 		std::vector<downloading_piece>::iterator i
 			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
