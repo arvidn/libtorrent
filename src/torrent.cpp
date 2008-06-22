@@ -1254,30 +1254,41 @@ namespace libtorrent
 			TORRENT_ASSERT(valid_metadata());
 			// if we just became a seed, picker is now invalid, since it
 			// is deallocated by the torrent once it starts seeding
+
+			// since this piece just passed, we might have
+			// become uninterested in some peers where this
+			// was the last piece we were interested in
+			for (peer_iterator i = m_connections.begin()
+				, end(m_connections.end()); i != end; ++i)
+			{
+				peer_connection* p = *i;
+				// if we're not interested already, no need to check
+				if (!p->is_interesting()) continue;
+				// if the peer doesn't have the piece we just got, it
+				// wouldn't affect our interest
+				if (!p->has_piece(index)) continue;
+				p->update_interest();
+			}
+
+			if (!was_finished&& is_finished())
+			{
+				TORRENT_ASSERT(passed_hash_check == 0);
+				// torrent finished
+				// i.e. all the pieces we're interested in have
+				// been downloaded. Release the files (they will open
+				// in read only mode if needed)
+				finished();
+			}
 		}
 		else if (passed_hash_check == -2)
 		{
+			// piece_failed() will restore the piece
 			piece_failed(index);
 		}
 		else
 		{
 			TORRENT_ASSERT(passed_hash_check == -1);
 			m_picker->restore_piece(index);
-		}
-
-		m_policy.piece_finished(index, passed_hash_check == 0);
-
-		if (!was_finished
-			&& (is_seed()
-				|| m_picker->num_filtered() + num_have()
-				== torrent_file().num_pieces()))
-		{
-			TORRENT_ASSERT(passed_hash_check == 0);
-			// torrent finished
-			// i.e. all the pieces we're interested in have
-			// been downloaded. Release the files (they will open
-			// in read only mode if needed)
-			finished();
 		}
 	}
 
@@ -3271,7 +3282,8 @@ namespace libtorrent
 	piece_manager& torrent::filesystem()
 	{
 		TORRENT_ASSERT(m_owning_storage.get());
-		return *m_owning_storage;
+		TORRENT_ASSERT(m_storage);
+		return *m_storage;
 	}
 
 

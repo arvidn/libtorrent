@@ -881,35 +881,6 @@ namespace libtorrent
 		return &i->second;
 	}
 
-	// this is called when we are choked by a peer
-	// i.e. a peer lets us know that we will not receive
-	// anything for a while
-	void policy::choked(peer_connection&)
-	{
-	}
-
-	void policy::piece_finished(int index, bool successfully_verified)
-	{
-		INVARIANT_CHECK;
-
-		TORRENT_ASSERT(index >= 0 && index < m_torrent->torrent_file().num_pieces());
-
-		if (successfully_verified)
-		{
-			// have all peers update their interested-flag
-			for (iterator i = m_peers.begin();
-				i != m_peers.end(); ++i)
-			{
-				if (i->second.connection == 0) continue;
-				// if we're not interested, we will not become interested
-				if (!i->second.connection->is_interesting()) continue;
-				if (!i->second.connection->has_piece(index)) continue;
-
-				i->second.connection->update_interest();
-			}
-		}
-	}
-
 	// this is called when we are unchoked by a peer
 	// i.e. a peer lets us know that we will receive
 	// data from now on
