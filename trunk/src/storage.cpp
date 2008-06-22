@@ -1838,7 +1838,7 @@ namespace libtorrent
 				return check_no_fastresume(error);
 			}
 
-			if (storage_mode == storage_mode_compact)
+			if (m_storage_mode == storage_mode_compact)
 			{
 				int num_pieces = int(m_files.num_pieces());
 				m_slot_to_piece.resize(num_pieces, unallocated);
@@ -1930,6 +1930,42 @@ namespace libtorrent
 				}
 			}
 
+		}
+		else if (m_storage_mode == storage_mode_compact)
+		{
+			// read piece map
+			entry const* pieces = rd.find_key("pieces");
+			if (pieces == 0 || pieces->type() != entry::string_t)
+			{
+				error = "missing pieces entry";
+				return check_no_fastresume(error);
+			}
+
+			if ((int)pieces->string().size() != m_files.num_pieces())
+			{
+				error = "file has more slots than torrent (slots: "
+					+ boost::lexical_cast<std::string>(pieces->string().size()) + " size: "
+					+ boost::lexical_cast<std::string>(m_files.num_pieces()) + " )";
+				return check_no_fastresume(error);
+			}
+
+			int num_pieces = int(m_files.num_pieces());
+			m_slot_to_piece.resize(num_pieces, unallocated);
+			m_piece_to_slot.resize(num_pieces, has_no_slot);
+			std::string const& have_pieces  = pieces->string();
+			for (int i = 0; i < num_pieces; ++i)
+			{
+				if (have_pieces[i] & 1)
+				{
+					m_slot_to_piece[i] = i;
+					m_piece_to_slot[i] = i;
+				}
+				else
+				{
+					m_free_slots.push_back(i);
+				}
+			}
+			if (m_unallocated_slots.empty()) switch_to_full_mode();
 		}
 
 		return check_init_storage(error);
