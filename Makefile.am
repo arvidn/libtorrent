@@ -32,7 +32,7 @@ docs/moopolice_thumb.gif \
 docs/qbittorrent_thumb.jpg \
 docs/ziptorrent_thumb.gif \
 docs/unicode_support.png docs/client_test.png docs/style.css Jamfile project-root.jam \
-src/file_win.cpp libtorrent.pc \
+src/file_win.cpp libtorrent-rasterbar.pc \
 bindings/README.txt \
 bindings/python/Jamfile \
 bindings/python/client.py \
@@ -61,21 +61,5 @@ bindings/python/src/torrent_status.cpp \
 bindings/python/src/utility.cpp \
 bindings/python/src/version.cpp
 
-
-
-pkginclude_HEADER = \
-debian/changelog \
-debian/compat \
-debian/control \
-debian/copyright \
-debian/files \
-debian/libtorrent0-dev.dirs \
-debian/libtorrent0-dev.docs \
-debian/libtorrent0-dev.install \
-debian/libtorrent0.dirs \
-debian/libtorrent0.docs \
-debian/libtorrent0.install \
-debian/rules
-
 pkgconfigdir   = $(libdir)/pkgconfig
-pkgconfig_DATA = libtorrent.pc
+pkgconfig_DATA = libtorrent-rasterbar.pc

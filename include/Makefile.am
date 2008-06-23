@@ -86,8 +86,10 @@ libtorrent/kademlia/packet_iterator.hpp \
 libtorrent/kademlia/refresh.hpp \
 libtorrent/kademlia/routing_table.hpp \
 libtorrent/kademlia/rpc_manager.hpp \
-libtorrent/kademlia/traversal_algorithm.hpp \
-\
+libtorrent/kademlia/traversal_algorithm.hpp
+
+if ENABLE_SHIPPED_ASIO
+nobase_include_HEADERS += \
 libtorrent/asio.hpp \
 libtorrent/asio/basic_datagram_socket.hpp \
 libtorrent/asio/basic_deadline_timer.hpp \
@@ -240,3 +242,4 @@ libtorrent/asio/ssl/detail/openssl_init.hpp \
 libtorrent/asio/ssl/detail/openssl_operation.hpp \
 libtorrent/asio/ssl/detail/openssl_stream_service.hpp \
 libtorrent/asio/ssl/detail/openssl_types.hpp
+endif
