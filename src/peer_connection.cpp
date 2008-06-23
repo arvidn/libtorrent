@@ -53,6 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/assert.hpp"
 
+//#define TORRENT_CORRUPT_DATA
+
 using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
@@ -1446,6 +1448,15 @@ namespace libtorrent
 
 		TORRENT_ASSERT(!m_disk_recv_buffer);
 		TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
+
+#ifdef TORRENT_CORRUPT_DATA
+		// corrupt all pieces from certain peers
+		if (m_remote.address().is_v4()
+			&& (m_remote.address().to_v4().to_ulong() & 0xf) == 0)
+		{
+			data.get()[0] = ~data.get()[0];
+		}
+#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
