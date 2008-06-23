@@ -87,6 +87,8 @@ AX_BOOST_BASE([1.35],[
 			enable_shipped_asio=no,
 			AC_MSG_ERROR([libtorrent-rasterbar depends on Asio library but it was not found on your system.])
 		)
+		ln -sf $ASIO_HPP include/libtorrent
+		ln -sf $ASIO_DIR include/libtorrent
 		;;
 	*)
 		AC_MSG_RESULT(detect)
@@ -96,6 +98,8 @@ AX_BOOST_BASE([1.35],[
 			enable_shipped_asio=no,
 			AC_MSG_ERROR([libtorrent-rasterbar depends on Asio library but it was not found in the path you specified.])
 		)
+		ln -sf $ASIO_HPP include/libtorrent
+		ln -sf $ASIO_DIR include/libtorrent
 		;;
     esac
     AM_CONDITIONAL([ENABLE_SHIPPED_ASIO], [test x$enable_shipped_asio = "xyes"])
