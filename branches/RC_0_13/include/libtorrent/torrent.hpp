@@ -458,6 +458,13 @@ namespace libtorrent
 		// test
 		void piece_finished(int index, bool passed_hash_check);
 		void piece_failed(int index);
+
+		// this will restore the piece picker state for a piece
+		// by re marking all the requests to blocks in this piece
+		// that are still outstanding in peers' download queues.
+		// this is done when a piece fails
+		void restore_piece_state(int index);
+
 		void received_redundant_data(int num_bytes)
 		{ TORRENT_ASSERT(num_bytes > 0); m_total_redundant_bytes += num_bytes; }
 

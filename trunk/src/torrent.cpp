@@ -1289,6 +1289,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(passed_hash_check == -1);
 			m_picker->restore_piece(index);
+			restore_piece_state(index);
 		}
 	}
 
@@ -1402,6 +1403,7 @@ namespace libtorrent
 		// start with redownloading the pieces that the client
 		// that has sent the least number of pieces
 		m_picker->restore_piece(index);
+		restore_piece_state(index);
 		TORRENT_ASSERT(m_storage);
 
 		TORRENT_ASSERT(m_picker->have_piece(index) == false);
@@ -1417,6 +1419,32 @@ namespace libtorrent
 			}
 		}
 #endif
+	}
+
+	void torrent::restore_piece_state(int index)
+	{
+		TORRENT_ASSERT(has_picker());
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			peer_connection* p = *i;
+			std::deque<piece_block> const& dq = p->download_queue();
+			std::deque<piece_block> const& rq = p->request_queue();
+			for (std::deque<piece_block>::const_iterator k = dq.begin()
+				, end(dq.end()); k != end; ++k)
+			{
+				if (k->piece_index != index) continue;
+				m_picker->mark_as_downloading(*k, p->peer_info_struct()
+					, (piece_picker::piece_state_t)p->peer_speed());
+			}
+			for (std::deque<piece_block>::const_iterator k = rq.begin()
+				, end(rq.end()); k != end; ++k)
+			{
+				if (k->piece_index != index) continue;
+				m_picker->mark_as_downloading(*k, p->peer_info_struct()
+					, (piece_picker::piece_state_t)p->peer_speed());
+			}
+		}
 	}
 
 	void torrent::abort()
