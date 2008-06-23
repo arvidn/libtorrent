@@ -1778,8 +1778,6 @@ namespace libtorrent
 		// this might be the case if a piece fails, is restored, and then
 		// completed from a different peer (from which the piece was requested
 		// before it failed the hash check)
-		if (m_piece_map[block.piece_index].downloading == 0)
-			mark_as_downloading(block, peer, piece_picker::none);
 
 		TORRENT_ASSERT(m_piece_map[block.piece_index].downloading);
 
@@ -1787,8 +1785,6 @@ namespace libtorrent
 			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 		TORRENT_ASSERT(i != m_downloads.end());
 		block_info& info = i->info[block.block_index];
-		if (info.state == block_info::state_none)
-			mark_as_downloading(block, peer, piece_picker::none);
 
 		info.peer = peer;
 		TORRENT_ASSERT(info.state == block_info::state_requested);
