@@ -216,13 +216,18 @@ namespace libtorrent { namespace
 
 			if (length > 500 * 1024)
 			{
-				m_pc.disconnect("peer exchange message larger than 500 kB");
+				m_pc.disconnect("peer exchange message larger than 500 kB", 2);
 				return true;
 			}
 
 			if (body.left() < length) return true;
 
 			entry pex_msg = bdecode(body.begin, body.end);
+			if (pex_msg.type() == entry::undefined_t)
+			{
+				m_pc.disconnect("invalid bencoding in ut_metadata message", 2);
+				return true;
+			}
 
 			entry const* p = pex_msg.find_key("added");
 			entry const* pf = pex_msg.find_key("added.f");
