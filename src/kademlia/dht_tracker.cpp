@@ -444,6 +444,15 @@ namespace libtorrent { namespace dht
 			TORRENT_ASSERT(bytes_transferred > 0);
 
 			entry e = bdecode(buf, buf + bytes_transferred);
+			if (e.type() == entry::undefined_t)
+			{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+				std::string msg(buf, buf + bytes_transferred);
+				TORRENT_LOG(dht_tracker) << "invalid incoming packet: "
+					<< e.what() << "\n" << msg << "\n";
+#endif
+				return;
+			}
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			std::stringstream log_line;

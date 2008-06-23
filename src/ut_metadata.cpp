@@ -306,7 +306,7 @@ namespace libtorrent { namespace
 
 			if (length > 17 * 1024)
 			{
-				m_pc.disconnect("ut_metadata message larger than 17 kB");
+				m_pc.disconnect("ut_metadata message larger than 17 kB", 2);
 				return true;
 			}
 
@@ -314,6 +314,11 @@ namespace libtorrent { namespace
 
 			int len;
 			entry msg = bdecode(body.begin, body.end, len);
+			if (msg.type() == entry::undefined_t)
+			{
+				m_pc.disconnect("invalid bencoding in ut_metadata message", 2);
+				return true;
+			}
 
 			int type = msg["msg_type"].integer();
 			int piece = msg["piece"].integer();
@@ -364,7 +369,7 @@ namespace libtorrent { namespace
 				{
 					std::stringstream msg;
 					msg << "unknown ut_metadata extension message: " << type;
-					m_pc.disconnect(msg.str().c_str());
+					m_pc.disconnect(msg.str().c_str(), 2);
 				}
 			}
 			return true;

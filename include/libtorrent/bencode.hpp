@@ -394,14 +394,7 @@ namespace libtorrent
 		bool err = false;
 		detail::bdecode_recursive(start, end, e, err, 0);
 		TORRENT_ASSERT(e.m_type_queried == false);
-		if (err)
-		{
-#ifdef BOOST_NO_EXCEPTIONS
-			return entry();
-#else
-			throw invalid_encoding();
-#endif
-		}
+		if (err) return entry();
 		return e;
 	}
 
@@ -414,14 +407,7 @@ namespace libtorrent
 		detail::bdecode_recursive(start, end, e, err, 0);
 		len = std::distance(s, start);
 		TORRENT_ASSERT(len >= 0);
-		if (err)
-		{
-#ifdef BOOST_NO_EXCEPTIONS
-			return entry();
-#else
-			throw invalid_encoding();
-#endif
-		}
+		if (err) return entry();
 		return e;
 	}
 }
