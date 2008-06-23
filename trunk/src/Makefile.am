@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libtorrent.la
+lib_LTLIBRARIES = libtorrent-rasterbar.la
 
 if USE_DHT
 kademlia_sources = kademlia/closest_nodes.cpp \
@@ -12,7 +12,7 @@ kademlia/rpc_manager.cpp \
 kademlia/traversal_algorithm.cpp
 endif
 
-libtorrent_la_SOURCES = entry.cpp escape_string.cpp \
+libtorrent_rasterbar_la_SOURCES = entry.cpp escape_string.cpp \
 lazy_bdecode.cpp assert.cpp enum_net.cpp broadcast_socket.cpp \
 peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
 natpmp.cpp piece_picker.cpp policy.cpp session.cpp session_impl.cpp sha1.cpp \
@@ -102,8 +102,8 @@ $(top_srcdir)/include/libtorrent/variant_stream.hpp \
 $(top_srcdir)/include/libtorrent/version.hpp
 
 
-libtorrent_la_LDFLAGS = $(LDFLAGS) -release @VERSION@
-libtorrent_la_LIBADD = @ZLIB@ @BOOST_SYSTEM_LIB@ @BOOST_IOSTREAMS_LIB@ @BOOST_DATE_TIME_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LIBS@
+libtorrent_rasterbar_la_LDFLAGS = $(LDFLAGS) -version-info $(INTERFACE_VERSION_INFO)
+libtorrent_rasterbar_la_LIBADD = @ZLIB@ @BOOST_SYSTEM_LIB@ @BOOST_IOSTREAMS_LIB@ @BOOST_DATE_TIME_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LIBS@
 
 AM_CXXFLAGS= -ftemplate-depth-100 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @ZLIBINCL@ @DEBUGFLAGS@ @PTHREAD_CFLAGS@ -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION @SSL_CXXFLAGS@
 AM_CFLAGS= -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @ZLIBINCL@ @DEBUGFLAGS@ @PTHREAD_CFLAGS@

@@ -1,7 +1,16 @@
 AC_PREREQ(2.59)
 
 AC_INIT(src/torrent.cpp)
-AM_INIT_AUTOMAKE(libtorrent, 0.13.1)
+AM_INIT_AUTOMAKE(libtorrent-rasterbar, 0.13.1)
+
+dnl interface version info
+VERSION_INFO_CURRENT=0
+VERSION_INFO_REVISION=0
+VERSION_INFO_AGE=0
+
+INTERFACE_VERSION_INFO=$VERSION_INFO_CURRENT:$VERSION_INFO_REVISION:$VERSION_INFO_AGE
+
+AC_SUBST(INTERFACE_VERSION_INFO)
 
 # Nowhere in the source is config.h included, so make defines command line arguments
 # AM_CONFIG_HEADER(config.h)
@@ -52,8 +61,8 @@ AX_BOOST_BASE([1.35],[
 
    dnl the user can choose which Asio library to use
    AC_ARG_WITH([asio],
-	AS_HELP_STRING([--with-asio=shipped|system],
-	[Specify the Asio library to use, shipped or system. Default is to autodetect system and fallback to shipped.]),
+	AS_HELP_STRING([--with-asio=shipped|system|your_path],
+	[Specify the Asio library to use, shipped or system. Default is to use shipped library. You can also specify a path for your system.]),
 	[[asio=$withval]],
 	[[asio=shipped]]
    )
@@ -65,31 +74,35 @@ AX_BOOST_BASE([1.35],[
 		AC_MSG_RESULT(shipped)
 		ASIO_HPP=include/libtorrent/asio.hpp
 		ASIO_DIR=include/libtorrent/asio
-		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,,
-			AC_MSG_ERROR([libtorrent depends on Asio library but it was not found.])
+		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,
+			enable_shipped_asio=yes,
+			AC_MSG_ERROR([libtorrent-rasterbar depends on Asio library but it was not found.])
 		)
 		;;
 	"system")
 		AC_MSG_RESULT(system)
 		ASIO_HPP=/usr/include/asio.hpp
 		ASIO_DIR=/usr/include/asio
-		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,,
-			AC_MSG_ERROR([libtorrent depends on Asio library but it was not found on your system.])
+		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,
+			enable_shipped_asio=no,
+			AC_MSG_ERROR([libtorrent-rasterbar depends on Asio library but it was not found on your system.])
 		)
-		ln -sf $ASIO_HPP include/libtorrent
-		ln -sf $ASIO_DIR include/libtorrent
+		ln -sf ASIO_HPP include/libtorrent
+		ln -sf ASIO_DIR include/libtorrent
 		;;
 	*)
 		AC_MSG_RESULT(detect)
 		ASIO_HPP=$asio/../asio.hpp
 		ASIO_DIR=$asio
-		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,,
-			AC_MSG_ERROR([libtorrent depends on Asio library but it was not found in the path you specified.])
+		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,
+			enable_shipped_asio=no,
+			AC_MSG_ERROR([libtorrent-rasterbar depends on Asio library but it was not found in the path you specified.])
 		)
-		ln -sf $ASIO_HPP include/libtorrent
-		ln -sf $ASIO_DIR include/libtorrent
+		ln -sf ASIO_HPP include/libtorrent
+		ln -sf ASIO_DIR include/libtorrent
 		;;
     esac
+    AM_CONDITIONAL([ENABLE_SHIPPED_ASIO], [test x$enable_shipped_asio = "xyes"])
 ])
 ])
 
@@ -228,7 +241,7 @@ case "$encryption" in
        "on")
                AC_MSG_RESULT(on)
                CHECK_SSL()
-               AC_DEFINE(TORRENT_USE_OPENSSL,,[define to use openssl with libtorrent])
+               AC_DEFINE(TORRENT_USE_OPENSSL,,[define to use openssl with libtorrent-rasterbar])
 	       COMPILETIME_OPTIONS+="-DTORRENT_USE_OPENSSL "
 
                ;;
@@ -267,12 +280,12 @@ case "$zlib" in
 	"system")
 		AC_MSG_RESULT(system)
 		AC_CHECK_LIB(z, main, ,
-			AC_MSG_ERROR([libtorrent depends on zlib but zlib was not found on your system.])
+			AC_MSG_ERROR([libtorrent-rasterbar depends on zlib but zlib was not found on your system.])
 		)
 		;;
 	"no")
 		AC_MSG_RESULT()
-		AC_MSG_ERROR([libtorrent depends on zlib, you must specify either "system" or "shipped".])
+		AC_MSG_ERROR([libtorrent-rasterbar depends on zlib, you must specify either "system" or "shipped".])
 		;;
 	*)
 		AC_MSG_RESULT()
@@ -357,7 +370,7 @@ AC_SUBST(DEBUGFLAGS)
 dnl Compile time options.
 AC_SUBST(COMPILETIME_OPTIONS)
 
-AC_CONFIG_FILES(Makefile src/Makefile include/Makefile test/Makefile libtorrent.pc)
+AC_CONFIG_FILES(Makefile src/Makefile include/Makefile test/Makefile libtorrent-rasterbar.pc)
 if [[ "x$examples" == "xyes" ]]; then
 	AC_CONFIG_FILES(examples/Makefile)
 fi
