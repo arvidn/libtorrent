@@ -459,11 +459,6 @@ namespace libtorrent
 		int block_size() const { TORRENT_ASSERT(m_block_size > 0); return m_block_size; }
 		peer_request to_req(piece_block const& p);
 
-		// this will tell all peers that we just got his piece
-		// and also let the piece picker know that we have this piece
-		// so it wont pick it for download
-		void announce_piece(int index);
-
 		void disconnect_all();
 		int disconnect_peers(int num);
 
@@ -504,6 +499,14 @@ namespace libtorrent
 		// each time a piece has failed the hash
 		// test
 		void piece_finished(int index, int passed_hash_check);
+
+		// piece_passed is called when a piece passes the hash check
+		// this will tell all peers that we just got his piece
+		// and also let the piece picker know that we have this piece
+		// so it wont pick it for download
+		void piece_passed(int index);
+
+		// piece_failed is called when a piece fails the hash check
 		void piece_failed(int index);
 
 		// this will restore the piece picker state for a piece

@@ -1238,47 +1238,13 @@ namespace libtorrent
 				?"disk failed":"failed") << " ]\n";
 #endif
 
-		bool was_finished = m_picker->num_filtered() + num_have()
-			== torrent_file().num_pieces();
+		TORRENT_ASSERT(valid_metadata());
 
 		if (passed_hash_check == 0)
 		{
-			if (m_ses.m_alerts.should_post(alert::debug))
-			{
-				m_ses.m_alerts.post_alert(piece_finished_alert(get_handle()
-					, index, "piece finished"));
-			}
 			// the following call may cause picker to become invalid
 			// in case we just became a seed
-			announce_piece(index);
-			TORRENT_ASSERT(valid_metadata());
-			// if we just became a seed, picker is now invalid, since it
-			// is deallocated by the torrent once it starts seeding
-
-			// since this piece just passed, we might have
-			// become uninterested in some peers where this
-			// was the last piece we were interested in
-			for (peer_iterator i = m_connections.begin()
-				, end(m_connections.end()); i != end; ++i)
-			{
-				peer_connection* p = *i;
-				// if we're not interested already, no need to check
-				if (!p->is_interesting()) continue;
-				// if the peer doesn't have the piece we just got, it
-				// wouldn't affect our interest
-				if (!p->has_piece(index)) continue;
-				p->update_interest();
-			}
-
-			if (!was_finished&& is_finished())
-			{
-				TORRENT_ASSERT(passed_hash_check == 0);
-				// torrent finished
-				// i.e. all the pieces we're interested in have
-				// been downloaded. Release the files (they will open
-				// in read only mode if needed)
-				finished();
-			}
+			piece_passed(index);
 		}
 		else if (passed_hash_check == -2)
 		{
@@ -1290,6 +1256,87 @@ namespace libtorrent
 			TORRENT_ASSERT(passed_hash_check == -1);
 			m_picker->restore_piece(index);
 			restore_piece_state(index);
+		}
+	}
+
+	void torrent::piece_passed(int index)
+	{
+//		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(index >= 0);
+		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
+
+		if (m_ses.m_alerts.should_post(alert::debug))
+		{
+			m_ses.m_alerts.post_alert(piece_finished_alert(get_handle()
+				, index, "piece finished"));
+		}
+
+		bool was_finished = m_picker->num_filtered() + num_have()
+			== torrent_file().num_pieces();
+
+		std::vector<void*> downloaders;
+		m_picker->get_downloaders(downloaders, index);
+
+		// increase the trust point of all peers that sent
+		// parts of this piece.
+		std::set<void*> peers;
+		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
+
+		m_picker->we_have(index);
+		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
+			(*i)->announce_piece(index);
+
+		for (std::set<void*>::iterator i = peers.begin()
+			, end(peers.end()); i != end; ++i)
+		{
+			policy::peer* p = static_cast<policy::peer*>(*i);
+			if (p == 0) continue;
+			p->on_parole = false;
+			++p->trust_points;
+			// TODO: make this limit user settable
+			if (p->trust_points > 20) p->trust_points = 20;
+			if (p->connection) p->connection->received_valid_data(index);
+		}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				(*i)->on_piece_pass(index);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
+		}
+#endif
+
+		// since this piece just passed, we might have
+		// become uninterested in some peers where this
+		// was the last piece we were interested in
+		for (peer_iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			peer_connection* p = *i;
+			// if we're not interested already, no need to check
+			if (!p->is_interesting()) continue;
+			// if the peer doesn't have the piece we just got, it
+			// wouldn't affect our interest
+			if (!p->has_piece(index)) continue;
+			p->update_interest();
+		}
+
+		if (!was_finished && is_finished())
+		{
+			// torrent finished
+			// i.e. all the pieces we're interested in have
+			// been downloaded. Release the files (they will open
+			// in read only mode if needed)
+			finished();
+			// if we just became a seed, picker is now invalid, since it
+			// is deallocated by the torrent once it starts seeding
 		}
 	}
 
@@ -1551,52 +1598,6 @@ namespace libtorrent
 		{
 			alerts().post_alert(torrent_paused_alert(get_handle(), "torrent paused"));
 		}
-	}
-
-	void torrent::announce_piece(int index)
-	{
-//		INVARIANT_CHECK;
-
-		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
-
-		std::vector<void*> downloaders;
-		m_picker->get_downloaders(downloaders, index);
-
-		// increase the trust point of all peers that sent
-		// parts of this piece.
-		std::set<void*> peers;
-		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
-
-		m_picker->we_have(index);
-		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
-			(*i)->announce_piece(index);
-
-		for (std::set<void*>::iterator i = peers.begin()
-			, end(peers.end()); i != end; ++i)
-		{
-			policy::peer* p = static_cast<policy::peer*>(*i);
-			if (p == 0) continue;
-			p->on_parole = false;
-			++p->trust_points;
-			// TODO: make this limit user settable
-			if (p->trust_points > 20) p->trust_points = 20;
-			if (p->connection) p->connection->received_valid_data(index);
-		}
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
-				(*i)->on_piece_pass(index);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
-		}
-#endif
 	}
 
 	std::string torrent::tracker_login() const
