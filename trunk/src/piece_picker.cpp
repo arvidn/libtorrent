@@ -1775,10 +1775,6 @@ namespace libtorrent
 		TORRENT_ASSERT(block.piece_index < (int)m_piece_map.size());
 		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
 
-		// this might be the case if a piece fails, is restored, and then
-		// completed from a different peer (from which the piece was requested
-		// before it failed the hash check)
-
 		TORRENT_ASSERT(m_piece_map[block.piece_index].downloading);
 
 		std::vector<downloading_piece>::iterator i
