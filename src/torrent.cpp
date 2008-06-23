@@ -3201,6 +3201,11 @@ namespace libtorrent
 		{
 			if (m_sequential_download)
 				picker().sequential_download(m_sequential_download);
+
+			// if we just finished checking and we're not a seed, we are
+			// likely to be unpaused
+			if (m_ses.m_auto_manage_time_scaler > 1)
+				m_ses.m_auto_manage_time_scaler = 1;
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
