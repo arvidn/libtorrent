@@ -2461,9 +2461,6 @@ namespace libtorrent
 		ret["num_seeds"] = seeds;
 		ret["num_downloaders"] = downloaders;
 		
-		ret["allocation"] = m_storage_mode == storage_mode_sparse?"sparse"
-			:m_storage_mode == storage_mode_allocate?"full":"compact";
-
 		const sha1_hash& info_hash = torrent_file().info_hash();
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
 

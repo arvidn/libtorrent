@@ -1445,6 +1445,9 @@ namespace libtorrent
 				slots.push_back((*i >= 0) ? *i : unassigned);
 			}
 		}
+
+		rd["allocation"] = m_storage_mode == storage_mode_sparse?"sparse"
+			:m_storage_mode == storage_mode_allocate?"full":"compact";
 	}
 
 	void piece_manager::mark_failed(int piece_index)
