@@ -1787,6 +1787,9 @@ namespace libtorrent
 			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 		TORRENT_ASSERT(i != m_downloads.end());
 		block_info& info = i->info[block.block_index];
+		if (info.state == block_info::state_none)
+			mark_as_downloading(block, peer, piece_picker::none);
+
 		info.peer = peer;
 		TORRENT_ASSERT(info.state == block_info::state_requested);
 		if (info.state == block_info::state_requested) --i->requested;
