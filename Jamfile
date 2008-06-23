@@ -307,9 +307,9 @@ local usage-requirements =
 	<boost>system:<linkflags>$(LDFLAGS)
 	;
 
-project torrent-rasterbar ;
+project torrent ;
 
-lib torrent-rasterbar
+lib torrent
 
 	: # sources
 	src/$(SOURCES).cpp
