@@ -281,6 +281,7 @@ void natpmp::send_map_request(int i)
 void natpmp::resend_request(int i, error_code const& e)
 {
 	if (e) return;
+	if (m_abort) return;
 
 	mutex_t::scoped_lock l(m_mutex);
 	if (m_currently_mapping != i) return;
