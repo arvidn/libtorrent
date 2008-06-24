@@ -398,6 +398,7 @@ namespace aux {
 #endif
 		// abort the main thread
 		m_abort = true;
+		m_queued_for_checking.clear();
 		if (m_lsd) m_lsd->close();
 		if (m_upnp) m_upnp->close();
 		if (m_natpmp) m_natpmp->close();
@@ -1802,12 +1803,14 @@ namespace aux {
 
 	void session_impl::check_torrent(boost::shared_ptr<torrent> const& t)
 	{
+		if (m_abort) return;
 		if (m_queued_for_checking.empty()) t->start_checking();
 		m_queued_for_checking.push_back(t);
 	}
 
 	void session_impl::done_checking(boost::shared_ptr<torrent> const& t)
 	{
+		if (m_queued_for_checking.empty()) return;
 		check_queue_t::iterator next_check = m_queued_for_checking.begin();
 		check_queue_t::iterator done = m_queued_for_checking.end();
 		for (check_queue_t::iterator i = m_queued_for_checking.begin()
