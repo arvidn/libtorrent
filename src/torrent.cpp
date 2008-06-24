@@ -3686,8 +3686,20 @@ namespace libtorrent
 		if (m_owning_storage.get())
 		{
 			TORRENT_ASSERT(m_storage);
-			m_storage->async_save_resume_data(
-				bind(&torrent::on_save_resume_data, shared_from_this(), _1, _2));
+			if (m_state == torrent_status::queued_for_checking
+				|| m_state == torrent_status::checking_files)
+			{
+				if (alerts().should_post(alert::warning))
+				{
+					alerts().post_alert(save_resume_data_alert(boost::shared_ptr<entry>()
+						, get_handle(), "won't save resume data, torrent does not have a complete resume state yet"));
+				}
+			}
+			else
+			{
+				m_storage->async_save_resume_data(
+					bind(&torrent::on_save_resume_data, shared_from_this(), _1, _2));
+			}
 		}
 		else
 		{

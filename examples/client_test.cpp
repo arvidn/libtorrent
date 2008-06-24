@@ -1054,11 +1054,14 @@ int main(int ac, char* av[])
 						
 						std::auto_ptr<alert> holder = ses.pop_alert();
 						save_resume_data_alert const* rd = dynamic_cast<save_resume_data_alert const*>(a);
-						if (rd == 0)
+						if (!rd)
 						{
 							std::cout << a->msg() << std::endl;
 							continue;
 						}
+						--num_resume_data;
+
+						if (!rd->resume_data) continue;
 						
 						torrent_handle h = rd->handle;
 						boost::filesystem::ofstream out(h.save_path()
@@ -1066,7 +1069,6 @@ int main(int ac, char* av[])
 						out.unsetf(std::ios_base::skipws);
 						bencode(std::ostream_iterator<char>(out), *rd->resume_data);
 						std::cout << "fast resume data saved for " << h.name() << std::endl;
-						--num_resume_data;
 					}
 					break;
 				}
