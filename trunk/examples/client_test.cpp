@@ -479,10 +479,7 @@ void add_torrent(libtorrent::session& ses
 {
 	using namespace libtorrent;
 
-	std::ifstream in(torrent.c_str(), std::ios_base::binary);
-	in.unsetf(std::ios_base::skipws);
-	entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
-	boost::intrusive_ptr<torrent_info> t(new torrent_info(e));
+	boost::intrusive_ptr<torrent_info> t(new torrent_info(torrent.c_str()));
 
 	std::cout << t->name() << "\n";
 
