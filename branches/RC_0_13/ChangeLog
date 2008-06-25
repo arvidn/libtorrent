@@ -1,5 +1,6 @@
 release 0.13.1
 
+	* Fixed problems with restoring piece states when hash failed.
 	* Minimum peer reconnect time fix. Peers with no failures would
 	  reconnect immediately.
 	* Improved web seed error handling
