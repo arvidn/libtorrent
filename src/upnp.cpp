@@ -82,7 +82,7 @@ upnp::upnp(io_service& ios, connection_queue& cc
 
 	if (state)
 	{
-		upnp_state_t* s = (upnp_state_t*)s;
+		upnp_state_t* s = (upnp_state_t*)state;
 		m_devices.swap(s->devices);
 		m_mappings.swap(s->mappings);
 		delete s;
