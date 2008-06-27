@@ -286,7 +286,7 @@ namespace libtorrent
 		// don't load torrent files larger than 2 MB
 		if (s > 2000000) return;
 		std::vector<char> buf(s);
-		std::ifstream f(filename);
+		std::ifstream f(filename, std::ios_base::binary);
 		f.read(&buf[0], s);
 
 		std::string error;
