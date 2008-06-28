@@ -389,7 +389,7 @@ private:
 		// initialized during write_pe1_2_dhkey, and destroyed on
 		// creation of m_RC4_handler. Cannot reinitialize once
 		// initialized.
-		boost::scoped_ptr<DH_key_exchange> m_dh_key_exchange;
+		boost::scoped_ptr<dh_key_exchange> m_dh_key_exchange;
 		
 		// if RC4 is negotiated, this is used for
 		// encryption/decryption during the entire session. Destroyed
