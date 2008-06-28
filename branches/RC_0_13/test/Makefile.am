@@ -49,8 +49,8 @@ test_metadata_extension_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 test_swarm_SOURCES = main.cpp setup_transfer.cpp test_swarm.cpp
 test_swarm_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
-test_pe_crypto_SOURCES = main.cpp test_pe_crypto.cpp
-test_pe_crypto_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la $(top_builddir)/test/setup_transfer.o
+test_pe_crypto_SOURCES = main.cpp setup_transfer.cpp test_pe_crypto.cpp
+test_pe_crypto_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 test_primitives_SOURCES = main.cpp test_primitives.cpp
 test_primitives_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
