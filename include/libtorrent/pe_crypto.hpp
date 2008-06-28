@@ -44,31 +44,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	class DH_key_exchange
+	class dh_key_exchange
 	{
 	public:
-		DH_key_exchange ();
-		~DH_key_exchange ();
+		dh_key_exchange();
+		~dh_key_exchange();
+		bool good() const { return m_dh; }
 
 		// Get local public key, always 96 bytes
-		char const* get_local_key (void) const;
+		char const* get_local_key() const;
 
 		// read remote_pubkey, generate and store shared secret in
-		// m_dh_secret
-		void compute_secret (const char* remote_pubkey);
+		// m_dh_secret.
+		int compute_secret(const char* remote_pubkey);
 
-		const char* get_secret (void) const;
+		const char* get_secret() const;
 		
 	private:
-		int get_local_key_size () const
+		int get_local_key_size() const
 		{
-			TORRENT_ASSERT(m_DH);
-			return BN_num_bytes (m_DH->pub_key);
+			TORRENT_ASSERT(m_dh);
+			return BN_num_bytes(m_dh->pub_key);
 		}
 
-		DH* m_DH;
-		static const unsigned char m_dh_prime[96];
-		static const unsigned char m_dh_generator[1];
+		DH* m_dh;
 
 		char m_dh_local_key[96];
 		char m_dh_secret[96];
@@ -78,24 +77,24 @@ namespace libtorrent
 	{
 	public:
 		// Input longkeys must be 20 bytes
-		RC4_handler (const sha1_hash& rc4_local_longkey,
+		RC4_handler(const sha1_hash& rc4_local_longkey,
 					 const sha1_hash& rc4_remote_longkey)
 			
 		{
-			RC4_set_key (&m_local_key, 20,
+			RC4_set_key(&m_local_key, 20,
 						 reinterpret_cast<unsigned char const*>(rc4_local_longkey.begin()));
-			RC4_set_key (&m_remote_key, 20,
+			RC4_set_key(&m_remote_key, 20,
 						 reinterpret_cast<unsigned char const*>(rc4_remote_longkey.begin()));
 
 			// Discard first 1024 bytes
 			char buf[1024];
-			encrypt (buf, 1024);
-			decrypt (buf, 1024);
+			encrypt(buf, 1024);
+			decrypt(buf, 1024);
 		};
 		
-		~RC4_handler () {};
+		~RC4_handler() {};
 
-		void encrypt (char* pos, int len)
+		void encrypt(char* pos, int len)
 		{
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
@@ -104,7 +103,7 @@ namespace libtorrent
 				 reinterpret_cast<unsigned char*>(pos));
 		}
 
-		void decrypt (char* pos, int len)
+		void decrypt(char* pos, int len)
 		{
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
@@ -122,3 +121,4 @@ namespace libtorrent
 
 #endif // TORRENT_PE_CRYPTO_HPP_INCLUDED
 #endif // TORRENT_DISABLE_ENCRYPTION
+
