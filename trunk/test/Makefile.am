@@ -1,7 +1,9 @@
-noinst_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker \
+check_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker \
 test_storage test_metadata_extension test_buffer test_swarm test_pe_crypto test_primitives \
 test_bandwidth_limiter test_upnp test_fast_extension test_pex test_web_seed \
 test_http_connection test_lsd
+
+TESTS = $(check_PROGRAMS)
 
 EXTRA_DIST = Jamfile
 

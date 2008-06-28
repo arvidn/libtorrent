@@ -63,14 +63,3 @@ bindings/python/src/version.cpp
 
 pkgconfigdir   = $(libdir)/pkgconfig
 pkgconfig_DATA = libtorrent-rasterbar.pc
-
-check: test
-	test/test_hasher \
-	&& test/test_bencoding \
-	&& test/test_ip_filter \
-	&& test/test_piece_picker \
-	&& test/test_storage \
-	&& test/test_buffer \
-	&& test/test_swarm \
-	&& test/test_primitives \
-	&& echo && echo && echo "  **** all tests passed ****" && echo && echo
