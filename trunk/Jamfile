@@ -108,13 +108,26 @@ rule linking ( properties * )
 
 	if <boost>source in $(properties)
 	{
-		result += <library>/boost/thread//boost_thread
-			<library>/boost/filesystem//boost_filesystem
-			<library>/boost/iostreams//boost_iostreams
-			<library>/boost/system//boost_system
-			<include>$(BOOST_ROOT)
-			<define>BOOST_ALL_NO_LIB
-			;
+		if <boost-link>static in $(properties)
+		{
+			result += <library>/boost/thread//boost_thread/<link>static
+				<library>/boost/filesystem//boost_filesystem/<link>static
+				<library>/boost/iostreams//boost_iostreams/<link>static
+				<library>/boost/system//boost_system/<link>static
+				<include>$(BOOST_ROOT)
+				<define>BOOST_ALL_NO_LIB
+				;
+		}
+		else
+		{
+			result += <library>/boost/thread//boost_thread/<link>shared
+				<library>/boost/filesystem//boost_filesystem/<link>shared
+				<library>/boost/iostreams//boost_iostreams/<link>shared
+				<library>/boost/system//boost_system/<link>shared
+				<include>$(BOOST_ROOT)
+				<define>BOOST_ALL_NO_LIB
+				;
+		}
 	}
 
 	if <boost>system in $(properties)
@@ -228,6 +241,7 @@ feature upnp-logging : off on : composite propagated link-incompatible ;
 feature.compose <upnp-logging>on : <define>TORRENT_UPNP_LOGGING ;
 
 feature boost : system source : link-incompatible propagated ;
+feature boost-link : static shared : composite ;
 
 feature debug-iterators : off on : composite propagated link-incompatible ;
 feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;

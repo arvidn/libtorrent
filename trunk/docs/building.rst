@@ -226,6 +226,11 @@ Build features:
 |                        |   ``BOOST_ROOT`` must be defined to point to the   |
 |                        |   boost directory.                                 |
 +------------------------+----------------------------------------------------+
+| ``boost-link``         | * ``static`` - links statically against the boost  |
+|                        |   libraries.                                       |
+|                        | * ``shared`` - links dynamically against the boost |
+|                        |   libraries.                                       |
++------------------------+----------------------------------------------------+
 | ``logging``            | * ``none`` - no logging.                           |
 |                        | * ``default`` - basic session logging.             |
 |                        | * ``verbose`` - verbose peer wire logging.         |
