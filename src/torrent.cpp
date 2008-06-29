@@ -761,8 +761,7 @@ namespace libtorrent
 				bind(&torrent::on_announce_disp, self, _1));
 
 			// announce with the local discovery service
-			if (!m_paused)
-				m_ses.announce_lsd(m_torrent_file->info_hash());
+			if (!is_paused()) m_ses.announce_lsd(m_torrent_file->info_hash());
 		}
 		else
 		{
@@ -772,7 +771,7 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_DHT
-		if (m_paused) return;
+		if (is_paused()) return;
 		if (!m_ses.m_dht) return;
 		ptime now = time_now();
 		if (should_announce_dht() && now - m_last_dht_announce > minutes(14))
@@ -842,7 +841,7 @@ namespace libtorrent
 			m_just_paused = false;
 			return true;
 		}
-		return !m_paused && m_next_request < time_now();
+		return !is_paused() && m_next_request < time_now();
 	}
 
 	void torrent::tracker_warning(tracker_request const& req, std::string const& msg)
@@ -1501,7 +1500,7 @@ namespace libtorrent
 		m_abort = true;
 		// if the torrent is paused, it doesn't need
 		// to announce with even=stopped again.
-		if (!m_paused)
+		if (!is_paused())
 			m_event = tracker_request::stopped;
 		// disconnect all peers and close all
 		// files belonging to the torrents
@@ -2865,7 +2864,7 @@ namespace libtorrent
 	bool torrent::want_more_peers() const
 	{
 		return int(m_connections.size()) < m_max_connections
-			&& !m_paused
+			&& !is_paused()
 			&& m_state != torrent_status::checking_files
 			&& (m_state != torrent_status::queued_for_checking
 				|| !valid_metadata())
@@ -3596,7 +3595,7 @@ namespace libtorrent
 #endif
 
 		disconnect_all();
-		if (!m_paused)
+		if (!is_paused())
 			m_just_paused = true;
 		m_paused = true;
 		// tell the tracker that we stopped
@@ -3711,11 +3710,24 @@ namespace libtorrent
 		}
 	}
 	
+	bool torrent::is_paused() const
+	{
+		return m_paused || m_ses.is_paused();
+	}
+
 	void torrent::pause()
 	{
 		INVARIANT_CHECK;
 
 		if (m_paused) return;
+		m_paused = true;
+		if (m_ses.is_paused()) return;
+		do_pause();
+	}
+
+	void torrent::do_pause()
+	{
+		if (!is_paused()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -3740,7 +3752,6 @@ namespace libtorrent
 #endif
 
 		disconnect_all();
-		m_paused = true;
 		// tell the tracker that we stopped
 		m_event = tracker_request::stopped;
 		m_just_paused = true;
@@ -3766,6 +3777,13 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (!m_paused) return;
+		m_paused = false;
+		do_resume();
+	}
+
+	void torrent::do_resume()
+	{
+		if (is_paused()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -3781,7 +3799,6 @@ namespace libtorrent
 		}
 #endif
 
-		m_paused = false;
 		m_started = time_now();
 		m_error.clear();
 

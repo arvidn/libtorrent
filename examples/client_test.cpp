@@ -982,6 +982,12 @@ int main(int ac, char* av[])
 					}
 				}
 
+				if (c == ' ')
+				{
+					if (ses.is_paused()) ses.resume();
+					else ses.pause();
+				}
+
 				if (c == 'm')
 				{
 					std::cout << "saving peers for torrents" << std::endl;
@@ -1198,7 +1204,7 @@ int main(int ac, char* av[])
 			std::stringstream out;
 			out << "[q] quit [i] toggle peers [d] toggle downloading pieces [p] toggle paused "
 				"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
-				"[j] force recheck\n"
+				"[j] force recheck [space] toggle session pause\n"
 				"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
 				"[5] toggle peer rate [6] toggle failures [7] toggle send buffers\n";
 

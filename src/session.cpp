@@ -324,6 +324,10 @@ namespace libtorrent
 		return m_impl->status();
 	}
 
+	void session::pause() { m_impl->pause(); }
+	void session::resume() { m_impl->resume(); }
+	bool session::is_paused() const { return m_impl->is_paused(); }
+
 	void session::get_cache_info(sha1_hash const& ih
 		, std::vector<cached_piece_info>& ret) const
 	{
