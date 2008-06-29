@@ -88,6 +88,7 @@ namespace libtorrent
 			, stop_tracker_timeout(5)
 			, tracker_maximum_response_length(1024*1024)
 			, piece_timeout(10)
+			, request_timeout(40)
 			, request_queue_time(3.f)
 			, max_allowed_in_request_queue(250)
 			, max_out_request_queue(200)
@@ -167,6 +168,11 @@ namespace libtorrent
 		// the number of seconds from a request is sent until
 		// it times out if no piece response is returned.
 		int piece_timeout;
+
+		// the number of seconds one block (16kB) is expected
+		// to be received within. If it's not, the block is
+		// requested from a different peer
+		int request_timeout;
 
 		// the length of the request queue given in the number
 		// of seconds it should take for the other end to send

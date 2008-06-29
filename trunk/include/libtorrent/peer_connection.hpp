@@ -567,6 +567,12 @@ namespace libtorrent
 		ptime m_last_receive;
 		ptime m_last_sent;
 
+		// the time when the first entry in the
+		// request queue was requested, increased
+		// for each entry that is popped from the
+		// download queue. Used for request timeout
+		ptime m_requested;
+
 		// a timestamp when the remote download rate
 		// was last updated
 		ptime m_remote_dl_update;
@@ -822,6 +828,11 @@ namespace libtorrent
 		
 		// set to true when this peer is only uploading
 		bool m_upload_only:1;
+
+		// set to true when a piece request times out. The
+		// result is that the desired pending queue size
+		// is set to 1
+		bool m_snubbed:1;
 
 #ifndef NDEBUG
 	public:

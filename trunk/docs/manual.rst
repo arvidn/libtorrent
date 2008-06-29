@@ -2457,6 +2457,7 @@ It contains the following fields::
 			on_parole = 0x200,
 			seed = 0x400,
 			optimistic_unchoke = 0x800,
+			snubbed = 0x1000,
 			rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
 		};
@@ -2492,6 +2493,7 @@ It contains the following fields::
 
 		time_duration last_request;
 		time_duration last_active;
+		int request_timeout;
 
 		int send_buffer_size;
 		int used_send_buffer;
@@ -2587,17 +2589,10 @@ any combination of the enums above. The following table describes each flag:
 |                         | doesn't within some period of time, it will be choked |
 |                         | and another peer will be optimistically unchoked.     |
 +-------------------------+-------------------------------------------------------+
-| ``writing``             | The peer is currently waiting for a write operation   |
-|                         | on the socket to complete.                            |
-+-------------------------+-------------------------------------------------------+
-| ``reading``             | The peer is currently waiting for a read operation    |
-|                         | on the socket to complete.                            |
-+-------------------------+-------------------------------------------------------+
-| ``waiting_write_quota`` | The peer is currently waiting for the bandwidth-      |
-|                         | manager to hand out more write quota to this peer.    |
-+-------------------------+-------------------------------------------------------+
-| ``waiting_read_quota``  | The peer is currently waiting for the bandwidth-      |
-|                         | manager to hand out more read quota to this peer.     |
+| ``snubbed``             | This peer has recently failed to send a block within  |
+|                         | the request timeout from when the request was sent.   |
+|                         | We're currently picking one block at a time from this |
+|                         | peer.                                                 |
 +-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html
@@ -2677,6 +2672,10 @@ receive. -1 means it's unlimited.
 
 ``last_request`` and ``last_active`` is the time since we last sent a request
 to this peer and since any transfer occurred with this peer, respectively.
+
+``request_timeout`` is the number of seconds until the current front piece request
+will time out. This timeout can be adjusted through ``session_settings::request_timeout``.
+-1 means that there is not outstanding request.
 
 ``send_buffer_size`` and ``used_send_buffer`` is the number of bytes allocated
 and used for the peer's send buffer, respectively.
