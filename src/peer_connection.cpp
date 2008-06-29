@@ -2531,7 +2531,7 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " *** NO HANDSHAKE [ waited "
 				<< total_seconds(d) << " seconds ] ***\n";
 #endif
-			disconnect("timed out: no hand shake");
+			disconnect("timed out: no handshake");
 			return;
 		}
 
