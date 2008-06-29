@@ -195,7 +195,12 @@ namespace libtorrent
 		bool has_error() const { return !m_error.empty(); }
 		void pause();
 		void resume();
-		bool is_paused() const { return m_paused; }
+
+		void do_pause();
+		void do_resume();
+
+		bool is_paused() const;
+		bool is_torrent_paused() const { return m_paused; }
 		void force_recheck();
 		void save_resume_data();
 

@@ -212,6 +212,10 @@ namespace libtorrent
 
 		session_proxy abort() { return session_proxy(m_impl); }
 
+		void pause();
+		void resume();
+		bool is_paused() const;
+
 		session_status status() const;
 		cache_status get_cache_status() const;
 

@@ -189,6 +189,10 @@ namespace libtorrent
 				, int nat_transport);
 
 			bool is_aborted() const { return m_abort; }
+			bool is_paused() const { return m_paused; }
+
+			void pause();
+			void resume();
 
 			void set_ip_filter(ip_filter const& f);
 			void set_port_filter(port_filter const& f);
@@ -453,6 +457,9 @@ namespace libtorrent
 			// is being destructed and the thread
 			// should exit
 			volatile bool m_abort;
+
+			// is true if the session is paused
+			bool m_paused;
 
 			// the max number of unchoked peers as set by the user
 			int m_max_uploads;

@@ -158,6 +158,7 @@ namespace aux {
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
 		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
 		, m_abort(false)
+		, m_paused(false)
 		, m_max_uploads(8)
 		, m_allowed_upload_slots(8)
 		, m_max_connections(200)
@@ -389,6 +390,32 @@ namespace aux {
 	}
 #endif
 
+	void session_impl::pause()
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		if (m_paused) return;
+		m_paused = true;
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			torrent& t = *i->second;
+			if (!t.is_torrent_paused()) t.do_pause();
+		}
+	}
+
+	void session_impl::resume()
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		if (!m_paused) return;
+		m_paused = false;
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			torrent& t = *i->second;
+			t.do_resume();
+		}
+	}
+	
 	void session_impl::abort()
 	{
 		mutex_t::scoped_lock l(m_mutex);

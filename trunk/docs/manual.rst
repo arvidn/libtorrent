@@ -82,6 +82,10 @@ The ``session`` class has the following synopsis::
 
 		torrent_handle add_torrent(add_torrent_params const& params);
 
+		void pause();
+		void resume();
+		bool is_paused() const;
+
 		session_proxy abort();
 
 		enum options_t
@@ -194,10 +198,23 @@ returns. So, it's advised that any kind of interface (such as windows) are close
 destructing the session object. Because it can take a few second for it to finish. The
 timeout can be set with ``set_settings()``.
 
+pause() resume() is_paused()
+----------------------------
+
+	::
+		void pause();
+		void resume();
+		bool is_paused() const;
+
+Pausing the session has the same effect as pausing every torrent in it. Resuming
+will restore the torrents to their previous paused state. i.e. the session pause
+state is separate from the torrent pause state. A torrent is inactive if it is
+paused or if the session is paused.
+
 abort()
 -------
 
-::
+	::
 
 		session_proxy abort();
 
