@@ -1207,32 +1207,6 @@ namespace aux {
 			}
 		}
 
-		// do the second_tick() on each connection
-		// this will update their statistics (download and upload speeds)
-		// also purge sockets that have timed out
-		// and keep sockets open by keeping them alive.
-		for (connection_map::iterator i = m_connections.begin();
-			i != m_connections.end();)
-		{
-			// we need to do like this because j->second->disconnect() will
-			// erase the connection from the map we're iterating
-			connection_map::iterator j = i;
-			++i;
-			// if this socket has timed out
-			// close it.
-			peer_connection& c = *j->get();
-			if (c.has_timed_out())
-			{
-#if defined(TORRENT_VERBOSE_LOGGING)
-				(*c.m_logger) << "*** CONNECTION TIMED OUT\n";
-#endif
-				c.disconnect("timed out: inactive", 1);
-				continue;
-			}
-
-			c.keep_alive();
-		}
-
 		// --------------------------------------------------------------
 		// auto managed torrent
 		// --------------------------------------------------------------

@@ -2505,7 +2505,86 @@ namespace libtorrent
 		{
 			(*i)->tick();
 		}
+		if (is_disconnecting()) return;
 #endif
+
+		// if the peer hasn't said a thing for a certain
+		// time, it is considered to have timed out
+		time_duration d;
+		d = now - m_last_receive;
+		if (d > seconds(m_timeout) && !m_connecting)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_logger) << time_now_string() << " *** LAST ACTIVITY [ "
+				<< total_seconds(d) << " seconds ago ] ***\n";
+#endif
+			disconnect("timed out: inactivity");
+			return;
+		}
+
+		// do not stall waiting for a handshake
+		if (!m_connecting
+			&& in_handshake()
+			&& d > seconds(m_ses.settings().handshake_timeout))
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_logger) << time_now_string() << " *** NO HANDSHAKE [ waited "
+				<< total_seconds(d) << " seconds ] ***\n";
+#endif
+			disconnect("timed out: no hand shake");
+			return;
+		}
+
+		// disconnect peers that we unchoked, but
+		// they didn't send a request within 20 seconds.
+		// but only if we're a seed
+		d = now - (std::max)(m_last_unchoke, m_last_incoming_request);
+		if (!m_connecting
+			&& m_requests.empty()
+			&& !m_choked
+			&& m_peer_interested
+			&& t && t->is_finished()
+			&& d > seconds(20))
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_logger) << time_now_string() << " *** NO REQUEST [ t: "
+				<< total_seconds(d) << " ] ***\n";
+#endif
+			disconnect("timed out: no request when unchoked");
+			return;
+		}
+
+		// if the peer hasn't become interested and we haven't
+		// become interested in the peer for 10 minutes, it
+		// has also timed out.
+		time_duration d1;
+		time_duration d2;
+		d1 = now - m_became_uninterested;
+		d2 = now - m_became_uninteresting;
+		time_duration time_limit = seconds(
+			m_ses.settings().inactivity_timeout);
+
+		// don't bother disconnect peers we haven't been interested
+		// in (and that hasn't been interested in us) for a while
+		// unless we have used up all our connection slots
+		if (!m_interesting
+			&& !m_peer_interested
+			&& d1 > time_limit
+			&& d2 > time_limit
+			&& (m_ses.num_connections() >= m_ses.max_connections()
+			|| (t && t->num_peers() >= t->max_connections())))
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_logger) << time_now_string() << " *** MUTUAL NO INTEREST [ "
+				"t1: " << total_seconds(d1) << " | "
+				"t2: " << total_seconds(d2) << " ] ***\n";
+#endif
+			disconnect("timed out: no interest");
+			return;
+		}
+
+		// if we haven't sent something in too long, send a keep-alive
+		keep_alive();
 
 		m_ignore_bandwidth_limits = m_ses.settings().ignore_limits_on_local_network
 			&& on_local_network();
@@ -3520,94 +3599,6 @@ namespace libtorrent
 */
 	}
 #endif
-
-	bool peer_connection::has_timed_out() const
-	{
-		// TODO: the timeout should be called by an event
-		INVARIANT_CHECK;
-
-		ptime now(time_now());
-		
-		// if the socket is still connecting, don't
-		// consider it timed out. Because Windows XP SP2
-		// may delay connection attempts.
-		if (m_connecting) return false;
-		
-		// if the peer hasn't said a thing for a certain
-		// time, it is considered to have timed out
-		time_duration d;
-		d = now - m_last_receive;
-		if (d > seconds(m_timeout))
-		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string() << " *** LAST ACTIVITY [ "
-				<< total_seconds(d) << " seconds ago ] ***\n";
-#endif
-			return true;
-		}
-
-		// do not stall waiting for a handshake
-		if (in_handshake() && d > seconds(m_ses.settings().handshake_timeout))
-		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string() << " *** NO HANDSHAKE [ waited "
-				<< total_seconds(d) << " seconds ] ***\n";
-#endif
-			return true;
-		}
-
-		// disconnect peers that we unchoked, but
-		// they didn't send a request within 20 seconds.
-		// but only if we're a seed
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		d = now - (std::max)(m_last_unchoke, m_last_incoming_request);
-		if (m_requests.empty()
-			&& !m_choked
-			&& m_peer_interested
-			&& t && t->is_finished()
-			&& d > seconds(20))
-		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string() << " *** NO REQUEST [ t: "
-				<< total_seconds(d) << " ] ***\n";
-#endif
-			return true;
-		}
-
-		// TODO: as long as we have less than 95% of the
-		// global (or local) connection limit, connections should
-		// never time out for another reason
-
-		// if the peer hasn't become interested and we haven't
-		// become interested in the peer for 10 minutes, it
-		// has also timed out.
-		time_duration d1;
-		time_duration d2;
-		d1 = now - m_became_uninterested;
-		d2 = now - m_became_uninteresting;
-		time_duration time_limit = seconds(
-			m_ses.settings().inactivity_timeout);
-
-		// don't bother disconnect peers we haven't been interested
-		// in (and that hasn't been interested in us) for a while
-		// unless we have used up all our connection slots
-		if (!m_interesting
-			&& !m_peer_interested
-			&& d1 > time_limit
-			&& d2 > time_limit
-			&& (m_ses.num_connections() >= m_ses.max_connections()
-			|| (t && t->num_peers() >= t->max_connections())))
-		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string() << " *** MUTUAL NO INTEREST [ "
-				"t1: " << total_seconds(d1) << " | "
-				"t2: " << total_seconds(d2) << " ] ***\n";
-#endif
-			return true;
-		}
-
-		return false;
-	}
 
 	peer_connection::peer_speed_t peer_connection::peer_speed()
 	{

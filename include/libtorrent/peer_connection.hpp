@@ -202,8 +202,6 @@ namespace libtorrent
 		void set_upload_only(bool u) { m_upload_only = u; }
 		bool upload_only() const { return m_upload_only; }
 
-		bool has_timed_out() const;
-
 		// will send a keep-alive message to the peer
 		void keep_alive();
 
