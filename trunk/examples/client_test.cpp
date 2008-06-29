@@ -475,7 +475,7 @@ void add_torrent(libtorrent::session& ses
 	, path const& save_path
 	, bool monitored_dir
 	, int torrent_upload_limit
-	, int torrent_download_limit) try
+	, int torrent_download_limit)
 {
 	using namespace libtorrent;
 
@@ -484,18 +484,13 @@ void add_torrent(libtorrent::session& ses
 	std::cout << t->name() << "\n";
 
 	entry resume_data;
-	try
-	{
-		std::stringstream s;
-		s << t->name() << ".fastresume";
-		boost::filesystem::ifstream resume_file(save_path / s.str(), std::ios_base::binary);
-		resume_file.unsetf(std::ios_base::skipws);
-		resume_data = bdecode(
-			std::istream_iterator<char>(resume_file)
-			, std::istream_iterator<char>());
-	}
-	catch (invalid_encoding&) {}
-	catch (boost::filesystem::filesystem_error&) {}
+	std::stringstream s;
+	s << t->name() << ".fastresume";
+	boost::filesystem::ifstream resume_file(save_path / s.str(), std::ios_base::binary);
+	resume_file.unsetf(std::ios_base::skipws);
+	resume_data = bdecode(
+		std::istream_iterator<char>(resume_file)
+		, std::istream_iterator<char>());
 
 	add_torrent_params p;
 	p.ti = t;
@@ -519,7 +514,6 @@ void add_torrent(libtorrent::session& ses
 	h.resolve_countries(true);
 #endif
 }
-catch (std::exception&) {};
 
 void scan_dir(path const& dir_path
 	, libtorrent::session& ses
@@ -734,24 +728,14 @@ int main(int ac, char* av[])
 
 		if (!proxy.empty())
 		{
-			try
-			{
-				std::size_t i = proxy.find(':');
-				ps.hostname = proxy.substr(0, i);
-				if (i == std::string::npos) ps.port = 8080;
-				else ps.port = boost::lexical_cast<int>(
-					proxy.substr(i + 1));
-				if (proxy_type == "socks5")
-					ps.type = proxy_settings::socks5;
-				else
-					ps.type = proxy_settings::http;
-			}
-			catch (std::exception&)
-			{
-				std::cerr << "Proxy hostname did not match the required format: "
-					<< proxy << std::endl;
-				return 1;
-			}
+			std::size_t i = proxy.find(':');
+			ps.hostname = proxy.substr(0, i);
+			if (i == std::string::npos) ps.port = 8080;
+			else ps.port = atoi(proxy.substr(i + 1).c_str());
+			if (proxy_type == "socks5")
+				ps.type = proxy_settings::socks5;
+			else
+				ps.type = proxy_settings::http;
 
 			if (!proxy_login.empty())
 			{
@@ -822,16 +806,12 @@ int main(int ac, char* av[])
 		else
 			ses.set_severity_level(alert::info);
 
-		try
-		{
-			boost::filesystem::ifstream ses_state_file(".ses_state"
-				, std::ios_base::binary);
-			ses_state_file.unsetf(std::ios_base::skipws);
-			ses.load_state(bdecode(
-				std::istream_iterator<char>(ses_state_file)
-				, std::istream_iterator<char>()));
-		}
-		catch (std::exception&) {}
+		boost::filesystem::ifstream ses_state_file(".ses_state"
+			, std::ios_base::binary);
+		ses_state_file.unsetf(std::ios_base::skipws);
+		ses.load_state(bdecode(
+			std::istream_iterator<char>(ses_state_file)
+			, std::istream_iterator<char>()));
 
 #ifndef TORRENT_DISABLE_DHT
 		settings.use_dht_as_fallback = false;
@@ -840,13 +820,9 @@ int main(int ac, char* av[])
 			, std::ios_base::binary);
 		dht_state_file.unsetf(std::ios_base::skipws);
 		entry dht_state;
-		try
-		{
-			dht_state = bdecode(
-				std::istream_iterator<char>(dht_state_file)
-				, std::istream_iterator<char>());
-		}
-		catch (std::exception&) {}
+		dht_state = bdecode(
+			std::istream_iterator<char>(dht_state_file)
+			, std::istream_iterator<char>());
 		ses.start_dht(dht_state);
 		ses.add_dht_router(std::make_pair(std::string("router.bittorrent.com")
 			, 6881));
@@ -909,8 +885,10 @@ int main(int ac, char* av[])
 		for (std::vector<std::string>::const_iterator i = input.begin();
 			i != input.end(); ++i)
 		{
+#ifndef BOOST_NO_EXCEPTIONS
 			try
 			{
+#endif
 				// first see if this is a torrentless download
 				if (i->substr(0, 7) == "magnet:")
 				{
@@ -956,11 +934,13 @@ int main(int ac, char* av[])
 				add_torrent(ses, handles, i->c_str(), preferred_ratio
 					, compact_allocation_mode, save_path, false
 					, torrent_upload_limit, torrent_download_limit);
+#ifndef BOOST_NO_EXCEPTIONS
 			}
 			catch (std::exception& e)
 			{
 				std::cout << e.what() << "\n";
 			}
+#endif
 		}
 
 		// main loop
@@ -1197,7 +1177,7 @@ int main(int ac, char* av[])
 				else if (torrent_alert* p = dynamic_cast<torrent_alert*>(a.get()))
 				{
 					std::string name;
-					try { name = p->handle.name(); } catch (std::exception&) {}
+					if (p->handle.is_valid()) name = p->handle.name();
 					event_string << "(" << name << ") " << p->msg();
 				}
 				else
@@ -1499,10 +1479,12 @@ int main(int ac, char* av[])
 #endif
 		std::cout << "closing session" << std::endl;
 	}
+#ifndef BOOST_NO_EXCEPTIONS
 	catch (std::exception& e)
 	{
   		std::cout << e.what() << "\n";
 	}
+#endif
 
 	return 0;
 }
