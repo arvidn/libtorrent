@@ -2611,7 +2611,8 @@ namespace libtorrent
 		}
 
 		if (!m_download_queue.empty()
-			&& now > m_requested + seconds(m_ses.settings().request_timeout))
+			&& now > m_requested + seconds(m_ses.settings().request_timeout)
+			&& t->has_picker())
 		{
 			m_snubbed = true;
 			m_desired_queue_size = 1;
