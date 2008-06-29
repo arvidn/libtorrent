@@ -138,7 +138,7 @@ int test_main()
 
 	for (int rep = 0; rep < repcount; ++rep)
 	{
-		DH_key_exchange DH1, DH2;
+		dh_key_exchange DH1, DH2;
 		
 		DH1.compute_secret(DH2.get_local_key());
 		DH2.compute_secret(DH1.get_local_key());
@@ -146,7 +146,7 @@ int test_main()
 		TEST_CHECK(std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()));
 	}
 
-	DH_key_exchange DH1, DH2;
+	dh_key_exchange DH1, DH2;
 	DH1.compute_secret(DH2.get_local_key());
 	DH2.compute_secret(DH1.get_local_key());
 
@@ -155,8 +155,8 @@ int test_main()
 	sha1_hash test1_key = hasher("test1_key",8).final();
 	sha1_hash test2_key = hasher("test2_key",8).final();
 
-	RC4_handler RC41 (test2_key, test1_key);
-	RC4_handler RC42 (test1_key, test2_key);
+	RC4_handler RC41(test2_key, test1_key);
+	RC4_handler RC42(test1_key, test2_key);
 
 	for (int rep = 0; rep < repcount; ++rep)
 	{
