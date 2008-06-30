@@ -2510,10 +2510,12 @@ namespace libtorrent
 
 	void peer_connection::second_tick(float tick_interval)
 	{
-		INVARIANT_CHECK;
-
 		ptime now(time_now());
 		boost::intrusive_ptr<peer_connection> me(self());
+
+		// the invariant check must be run before me is destructed
+		// in case the peer got disconnected
+		INVARIANT_CHECK;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || m_disconnecting)
