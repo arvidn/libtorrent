@@ -1415,7 +1415,7 @@ int main(int ac, char* av[])
 							else out << " ";
 #endif
 						}
-						char* piece_state[4] = {"", "slow", "medium", "fast"};
+						char const* piece_state[4] = {"", "slow", "medium", "fast"};
 						out << "] " << piece_state[i->piece_state];
 						if (cp) out << (i->piece_state > 0?" | ":"") << "cache age: " << (total_milliseconds(time_now() - cp->last_use) / 1000.f);
 						out << "\n";
