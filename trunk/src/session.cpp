@@ -257,7 +257,12 @@ namespace libtorrent
 		add_torrent_params p(sc);
 		p.ti = tip;
 		p.save_path = save_path;
-		p.resume_data = &resume_data;
+		std::vector<char> buf;
+		if (resume_data.type() != entry::undefined_t)
+		{
+			bencode(std::back_inserter(buf), resume_data);
+			p.resume_data = &buf;
+		}
 		p.storage_mode = storage_mode;
 		p.paused = paused;
 		return m_impl->add_torrent(p);
@@ -275,7 +280,12 @@ namespace libtorrent
 		add_torrent_params p(sc);
 		p.ti = ti;
 		p.save_path = save_path;
-		p.resume_data = &resume_data;
+		std::vector<char> buf;
+		if (resume_data.type() != entry::undefined_t)
+		{
+			bencode(std::back_inserter(buf), resume_data);
+			p.resume_data = &buf;
+		}
 		p.storage_mode = storage_mode;
 		p.paused = paused;
 		p.userdata = userdata;

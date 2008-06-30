@@ -66,6 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/file.hpp"
 
 using boost::bind;
 
@@ -485,19 +486,17 @@ void add_torrent(libtorrent::session& ses
 
 	std::cout << t->name() << "\n";
 
-	entry resume_data;
-	std::stringstream s;
-	s << t->name() << ".fastresume";
-	boost::filesystem::ifstream resume_file(save_path / s.str(), std::ios_base::binary);
-	resume_file.unsetf(std::ios_base::skipws);
-	resume_data = bdecode(
-		std::istream_iterator<char>(resume_file)
-		, std::istream_iterator<char>());
-
 	add_torrent_params p;
+	lazy_entry resume_data;
+
+	std::string filename = (save_path / (t->name() + ".fastresume")).string();
+
+	std::vector<char> buf;
+	if (load_file(filename.c_str(), buf) == 0)
+		p.resume_data = &buf;
+
 	p.ti = t;
 	p.save_path = save_path;
-	p.resume_data = &resume_data;
 	p.storage_mode = compact_mode ? storage_mode_compact : storage_mode_sparse;
 	p.paused = true;
 	p.duplicate_is_error = false;

@@ -253,7 +253,7 @@ add_torrent()
 			sha1_hash info_hash;
 			char const* name;
 			fs::path save_path;
-			entry const* resume_data;
+			std::vector<char>* resume_data;
 			storage_mode_t storage_mode;
 			bool paused;
 			bool auto_managed;
@@ -289,7 +289,8 @@ torrent.
 
 The optional parameter, ``resume_data`` can be given if up to date fast-resume data
 is available. The fast-resume data can be acquired from a running torrent by calling
-`save_resume_data()`_ on `torrent_handle`_. See `fast resume`_.
+`save_resume_data()`_ on `torrent_handle`_. See `fast resume`_. The ``vector`` that is
+passed in will be swapped into the running torrent instance with ``std::vector::swap()``.
 
 The ``storage_mode`` parameter refers to the layout of the storage for this torrent.
 There are 3 different modes:
@@ -4416,7 +4417,7 @@ this::
 		virtual size_type read(char* buf, int slot, int offset, int size) = 0;
 		virtual void write(const char* buf, int slot, int offset, int size) = 0;
 		virtual bool move_storage(fs::path save_path) = 0;
-		virtual bool verify_resume_data(entry& rd, std::string& error) = 0;
+		virtual bool verify_resume_data(lazy_entry& rd, std::string& error) = 0;
 		virtual void write_resume_data(entry& rd) const = 0;
 		virtual void move_slot(int src_slot, int dst_slot) = 0;
 		virtual void swap_slots(int slot1, int slot2) = 0;

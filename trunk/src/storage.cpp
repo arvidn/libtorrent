@@ -422,7 +422,7 @@ namespace libtorrent
 		bool move_slot(int src_slot, int dst_slot);
 		bool swap_slots(int slot1, int slot2);
 		bool swap_slots3(int slot1, int slot2, int slot3);
-		bool verify_resume_data(entry const& rd, std::string& error);
+		bool verify_resume_data(lazy_entry const& rd, std::string& error);
 		bool write_resume_data(entry& rd) const;
 		sha1_hash hash_for_slot(int slot, partial_hash& ph, int piece_size);
 
@@ -685,34 +685,32 @@ namespace libtorrent
 		return false;
 	}
 
-	bool storage::verify_resume_data(entry const& rd, std::string& error)
+	bool storage::verify_resume_data(lazy_entry const& rd, std::string& error)
 	{
-		if (rd.type() != entry::dictionary_t)
+		if (rd.type() != lazy_entry::dict_t)
 		{
 			error = "invalid fastresume file (not a dictionary)";
 			return true;
 		}
 
 		std::vector<std::pair<size_type, std::time_t> > file_sizes;
-		entry const* file_sizes_ent = rd.find_key("file sizes");
-		if (file_sizes_ent == 0 || file_sizes_ent->type() != entry::list_t)
+		lazy_entry const* file_sizes_ent = rd.dict_find_list("file sizes");
+		if (file_sizes_ent == 0)
 		{
 			error = "missing or invalid 'file sizes' entry in resume data";
 			return false;
 		}
 		
-		entry::list_type const& l = file_sizes_ent->list();
-
-		for (entry::list_type::const_iterator i = l.begin();
-			i != l.end(); ++i)
+		for (int i = 0; i < file_sizes_ent->list_size(); ++i)
 		{
-			if (i->type() != entry::list_t) break;
-			entry::list_type const& pair = i->list();
-			if (pair.size() != 2 || pair.front().type() != entry::int_t
-				|| pair.back().type() != entry::int_t)
-				break;
+			lazy_entry const* e = file_sizes_ent->list_at(i);
+			if (e->type() != lazy_entry::list_t
+				|| e->list_size() != 2
+				|| e->list_at(0)->type() != lazy_entry::int_t
+				|| e->list_at(1)->type() != lazy_entry::int_t)
+				continue;
 			file_sizes.push_back(std::pair<size_type, std::time_t>(
-				pair.front().integer(), std::time_t(pair.back().integer())));
+				e->list_int_value_at(0), std::time_t(e->list_int_value_at(1))));
 		}
 
 		if (file_sizes.empty())
@@ -721,32 +719,38 @@ namespace libtorrent
 			return false;
 		}
 
-		entry const* slots_ent = rd.find_key("slots");
-		if (slots_ent == 0 || slots_ent->type() != entry::list_t)
+		lazy_entry const* slots = rd.dict_find_list("slots");
+		if (slots == 0)
 		{
 			error = "missing or invalid 'slots' entry in resume data";
 			return false;
 		}
 		
-		entry::list_type const& slots = slots_ent->list();
-		bool seed = int(slots.size()) == m_files.num_pieces()
-			&& std::find_if(slots.begin(), slots.end()
-				, boost::bind<bool>(std::less<int>()
-				, boost::bind((size_type const& (entry::*)() const)
-					&entry::integer, _1), 0)) == slots.end();
+		bool seed = false;
+		
+		if (int(slots->list_size()) == m_files.num_pieces())
+		{
+			bool seed = true;
+			for (int i = 0; i < slots->list_size(); ++i)
+			{
+				lazy_entry const* e = slots->list_at(i);
+				if (e->list_int_value_at(i, -1) >= 0) continue;
+				seed = false;
+				break;
+			}
+		}
 
 		bool full_allocation_mode = false;
-		entry const* allocation_mode = rd.find_key("allocation");
-		if (allocation_mode && allocation_mode->type() == entry::string_t)
-			full_allocation_mode = allocation_mode->string() == "full";
+		if (rd.dict_find_string_value("allocation") == "full")
+			full_allocation_mode = true;
 
 		if (seed)
 		{
-			if (m_files.num_files() != (int)file_sizes.size())
+			if (files().num_files() != (int)file_sizes.size())
 			{
 				error = "the number of files does not match the torrent (num: "
 					+ boost::lexical_cast<std::string>(file_sizes.size()) + " actual: "
-					+ boost::lexical_cast<std::string>(m_files.num_files()) + ")";
+					+ boost::lexical_cast<std::string>(files().num_files()) + ")";
 				return false;
 			}
 
@@ -1300,7 +1304,7 @@ namespace libtorrent
 		m_io_thread.add_job(j, handler);
 	}
 
-	void piece_manager::async_check_fastresume(entry const* resume_data
+	void piece_manager::async_check_fastresume(lazy_entry const* resume_data
 		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
 		TORRENT_ASSERT(resume_data != 0);
@@ -1783,7 +1787,7 @@ namespace libtorrent
 	// isn't return false and the full check
 	// will be run
 	int piece_manager::check_fastresume(
-		entry const& rd, std::string& error)
+		lazy_entry const& rd, std::string& error)
 	{
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 
@@ -1792,29 +1796,25 @@ namespace libtorrent
 		TORRENT_ASSERT(m_files.piece_length() > 0);
 
 		// if we don't have any resume data, return
-		if (rd.type() == entry::undefined_t) return check_no_fastresume(error);
+		if (rd.type() == lazy_entry::none_t) return check_no_fastresume(error);
 
-		if (rd.type() != entry::dictionary_t)
+		if (rd.type() != lazy_entry::dict_t)
 		{
-			error = "invalid fastresume data (not a bencoded dictionary)";
+			error = "invalid fastresume data (not a dictionary)";
 			return check_no_fastresume(error);
 		}
 
 		int block_size = (std::min)(16 * 1024, m_files.piece_length());
-		entry const* blocks_per_piece_ent = rd.find_key("blocks per piece");
-		if (blocks_per_piece_ent != 0
-			&& blocks_per_piece_ent->type() == entry::int_t
-			&& blocks_per_piece_ent->integer() != m_files.piece_length() / block_size)
+		int blocks_per_piece = rd.dict_find_int_value("blocks per piece", -1);
+		if (blocks_per_piece != -1
+			&& blocks_per_piece != m_files.piece_length() / block_size)
 		{
 			error = "invalid 'blocks per piece' entry";
 			return check_no_fastresume(error);
 		}
 
 		storage_mode_t storage_mode = storage_mode_compact;
-		entry const* allocation = rd.find_key("allocation");
-		if (allocation != 0
-			&& allocation->type() == entry::string_t
-			&& allocation->string() != "compact")
+		if (rd.dict_find_string_value("allocation") != "compact")
 			storage_mode = storage_mode_sparse;
 
 		// assume no piece is out of place (i.e. in a slot
@@ -1823,20 +1823,20 @@ namespace libtorrent
 
 		// if we don't have a piece map, we need the slots
 		// if we're in compact mode, we also need the slots map
-		if (storage_mode == storage_mode_compact || rd.find_key("pieces") == 0)
+		if (storage_mode == storage_mode_compact || rd.dict_find("pieces") == 0)
 		{
 			// read slots map
-			entry const* slots = rd.find_key("slots");
-			if (slots == 0 || slots->type() != entry::list_t)
+			lazy_entry const* slots = rd.dict_find_list("slots");
+			if (slots == 0)
 			{
 				error = "missing slot list";
 				return check_no_fastresume(error);
 			}
 
-			if ((int)slots->list().size() > m_files.num_pieces())
+			if ((int)slots->list_size() > m_files.num_pieces())
 			{
 				error = "file has more slots than torrent (slots: "
-					+ boost::lexical_cast<std::string>(slots->list().size()) + " size: "
+					+ boost::lexical_cast<std::string>(slots->list_size()) + " size: "
 					+ boost::lexical_cast<std::string>(m_files.num_pieces()) + " )";
 				return check_no_fastresume(error);
 			}
@@ -1846,17 +1846,16 @@ namespace libtorrent
 				int num_pieces = int(m_files.num_pieces());
 				m_slot_to_piece.resize(num_pieces, unallocated);
 				m_piece_to_slot.resize(num_pieces, has_no_slot);
-				int slot = 0;
-				for (entry::list_type::const_iterator i = slots->list().begin();
-					i != slots->list().end(); ++i, ++slot)
+				for (int i = 0; i < slots->list_size(); ++i)
 				{
-					if (i->type() != entry::int_t)
+					lazy_entry const* e = slots->list_at(i);
+					if (e->type() != lazy_entry::int_t)
 					{
 						error = "invalid entry type in slot list";
 						return check_no_fastresume(error);
 					}
 
-					int index = int(i->integer());
+					int index = int(e->int_value());
 					if (index >= num_pieces || index < -2)
 					{
 						error = "too high index number in slot map (index: "
@@ -1866,37 +1865,36 @@ namespace libtorrent
 					}
 					if (index >= 0)
 					{
-						m_slot_to_piece[slot] = index;
-						m_piece_to_slot[index] = slot;
-						if (slot != index) out_of_place = true;
+						m_slot_to_piece[i] = index;
+						m_piece_to_slot[index] = i;
+						if (i != index) out_of_place = true;
 					}
 					else if (index == unassigned)
 					{
 						if (m_storage_mode == storage_mode_compact)
-							m_free_slots.push_back(slot);
+							m_free_slots.push_back(i);
 					}
 					else
 					{
 						TORRENT_ASSERT(index == unallocated);
 						if (m_storage_mode == storage_mode_compact)
-							m_unallocated_slots.push_back(slot);
+							m_unallocated_slots.push_back(i);
 					}
 				}
 			}
 			else
 			{
-				int slot = 0;
-				for (entry::list_type::const_iterator i = slots->list().begin();
-					i != slots->list().end(); ++i, ++slot)
+				for (int i = 0; i < slots->list_size(); ++i)
 				{
-					if (i->type() != entry::int_t)
+					lazy_entry const* e = slots->list_at(i);
+					if (e->type() != lazy_entry::int_t)
 					{
 						error = "invalid entry type in slot list";
 						return check_no_fastresume(error);
 					}
 
-					int index = int(i->integer());
-					if (index != slot && index >= 0)
+					int index = int(e->int_value());
+					if (index != i && index >= 0)
 					{
 						error = "invalid slot index";
 						return check_no_fastresume(error);
@@ -1937,17 +1935,17 @@ namespace libtorrent
 		else if (m_storage_mode == storage_mode_compact)
 		{
 			// read piece map
-			entry const* pieces = rd.find_key("pieces");
-			if (pieces == 0 || pieces->type() != entry::string_t)
+			lazy_entry const* pieces = rd.dict_find("pieces");
+			if (pieces == 0 || pieces->type() != lazy_entry::string_t)
 			{
 				error = "missing pieces entry";
 				return check_no_fastresume(error);
 			}
 
-			if ((int)pieces->string().size() != m_files.num_pieces())
+			if ((int)pieces->string_length() != m_files.num_pieces())
 			{
 				error = "file has more slots than torrent (slots: "
-					+ boost::lexical_cast<std::string>(pieces->string().size()) + " size: "
+					+ boost::lexical_cast<std::string>(pieces->string_length()) + " size: "
 					+ boost::lexical_cast<std::string>(m_files.num_pieces()) + " )";
 				return check_no_fastresume(error);
 			}
@@ -1955,7 +1953,7 @@ namespace libtorrent
 			int num_pieces = int(m_files.num_pieces());
 			m_slot_to_piece.resize(num_pieces, unallocated);
 			m_piece_to_slot.resize(num_pieces, has_no_slot);
-			std::string const& have_pieces  = pieces->string();
+			char const* have_pieces = pieces->string_ptr();
 			for (int i = 0; i < num_pieces; ++i)
 			{
 				if (have_pieces[i] & 1)

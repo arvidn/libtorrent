@@ -144,7 +144,7 @@ namespace libtorrent
 		, int block_size
 		, storage_constructor_type sc
 		, bool paused
-		, entry const* resume_data
+		, std::vector<char>* resume_data
 		, int seq
 		, bool auto_managed)
 		: m_policy(this)
@@ -203,7 +203,7 @@ namespace libtorrent
 		, m_has_incoming(false)
 		, m_files_checked(false)
 	{
-		if (resume_data) m_resume_data = *resume_data;
+		parse_resume_data(resume_data);
 	}
 
 	torrent::torrent(
@@ -217,7 +217,7 @@ namespace libtorrent
 		, int block_size
 		, storage_constructor_type sc
 		, bool paused
-		, entry const* resume_data
+		, std::vector<char>* resume_data
 		, int seq
 		, bool auto_managed)
 		: m_policy(this)
@@ -274,7 +274,7 @@ namespace libtorrent
 		, m_connections_initialized(false)
 		, m_has_incoming(false)
 	{
-		if (resume_data) m_resume_data = *resume_data;
+		parse_resume_data(resume_data);
 #ifndef NDEBUG
 		m_files_checked = false;
 #endif
@@ -286,6 +286,25 @@ namespace libtorrent
 		{
 			m_trackers.push_back(announce_entry(tracker_url));
 			m_torrent_file->add_tracker(tracker_url);
+		}
+	}
+
+	void torrent::parse_resume_data(std::vector<char>* resume_data)
+	{
+		if (!resume_data) return;
+		m_resume_data.swap(*resume_data);
+		if (lazy_bdecode(&m_resume_data[0], &m_resume_data[0]
+			+ m_resume_data.size(), m_resume_entry) != 0)
+		{
+			std::vector<char>().swap(m_resume_data);
+			if (m_ses.m_alerts.should_post(alert::warning))
+			{
+				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), "parse failed"));
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+				(*m_ses.m_logger) << "fastresume data for "
+					<< torrent_file().name() << " rejected: parse failed\n";
+#endif
+			}
 		}
 	}
 
@@ -429,18 +448,17 @@ namespace libtorrent
 
 		m_state = torrent_status::queued_for_checking;
 
-		if (m_resume_data.type() == entry::dictionary_t)
+		if (m_resume_entry.type() == lazy_entry::dict_t)
 		{
 			char const* error = 0;
-			entry const* file_format = m_resume_data.find_key("file-format");
-			if (file_format->string() != "libtorrent resume file")
+			if (m_resume_entry.dict_find_string_value("file-format") != "libtorrent resume file")
 				error = "invalid file format tag";
 	
-			entry const* info_hash = m_resume_data.find_key("info-hash");
-			if (!error && (info_hash == 0 || info_hash->type() != entry::string_t))
+			std::string info_hash = m_resume_entry.dict_find_string_value("info-hash");
+			if (!error && info_hash.empty())
 				error = "missing info-hash";
 
-			if (!error && sha1_hash(info_hash->string()) != m_torrent_file->info_hash())
+			if (!error && sha1_hash(info_hash) != m_torrent_file->info_hash())
 				error = "mismatching info-hash";
 
 			if (error && m_ses.m_alerts.should_post(alert::warning))
@@ -453,11 +471,18 @@ namespace libtorrent
 #endif
 			}
 
-			if (error) m_resume_data = entry();
-			else read_resume_data(m_resume_data);
+			if (error)
+			{
+				std::vector<char>().swap(m_resume_data);
+				m_resume_entry = lazy_entry();
+			}
+			else
+			{
+				read_resume_data(m_resume_entry);
+			}
 		}
 	
-		m_storage->async_check_fastresume(&m_resume_data
+		m_storage->async_check_fastresume(&m_resume_entry
 			, bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1, _2));
 	}
@@ -483,54 +508,41 @@ namespace libtorrent
 			return;
 		}
 
-		// parse out "peers" from the resume data and add them to the peer list
-		entry const* peers_entry = m_resume_data.find_key("peers");
-		if (peers_entry && peers_entry->type() == entry::list_t)
+		if (m_resume_entry.type() == lazy_entry::dict_t)
 		{
-			peer_id id;
-			std::fill(id.begin(), id.end(), 0);
-			entry::list_type const& peer_list = peers_entry->list();
-
-			for (entry::list_type::const_iterator i = peer_list.begin();
-				i != peer_list.end(); ++i)
+			// parse out "peers" from the resume data and add them to the peer list
+			if (lazy_entry const* peers_entry = m_resume_entry.dict_find_list("peers"))
 			{
-				if (i->type() != entry::dictionary_t) continue;
-				entry const* ip = i->find_key("ip");
-				entry const* port = i->find_key("port");
-				if (ip == 0 || port == 0
-					|| ip->type() != entry::string_t
-					|| port->type() != entry::int_t)
-					continue;
-				tcp::endpoint a(
-					address::from_string(ip->string())
-					, (unsigned short)port->integer());
-				m_policy.peer_from_tracker(a, id, peer_info::resume_data, 0);
+				peer_id id(0);
+
+				for (int i = 0; i < peers_entry->list_size(); ++i)
+				{
+					lazy_entry const* e = peers_entry->list_at(i);
+					if (e->type() != lazy_entry::dict_t) continue;
+					std::string ip = e->dict_find_string_value("ip");
+					int port = e->dict_find_int_value("port");
+					if (ip.empty() || port == 0) continue;
+					tcp::endpoint a(address::from_string(ip), (unsigned short)port);
+					m_policy.peer_from_tracker(a, id, peer_info::resume_data, 0);
+				}
 			}
-		}
 
-		// parse out "banned_peers" and add them as banned
-		entry const* banned_peers_entry = m_resume_data.find_key("banned_peers");
-		if (banned_peers_entry != 0 && banned_peers_entry->type() == entry::list_t)
-		{
-			peer_id id;
-			std::fill(id.begin(), id.end(), 0);
-			entry::list_type const& peer_list = banned_peers_entry->list();
-
-			for (entry::list_type::const_iterator i = peer_list.begin();
-				i != peer_list.end(); ++i)
+			// parse out "banned_peers" and add them as banned
+			if (lazy_entry const* banned_peers_entry = m_resume_entry.dict_find_list("banned_peers"))
 			{
-				if (i->type() != entry::dictionary_t) continue;
-				entry const* ip = i->find_key("ip");
-				entry const* port = i->find_key("port");
-				if (ip == 0 || port == 0
-					|| ip->type() != entry::string_t
-					|| port->type() != entry::int_t)
-					continue;
-				tcp::endpoint a(
-					address::from_string(ip->string())
-					, (unsigned short)port->integer());
-				policy::peer* p = m_policy.peer_from_tracker(a, id, peer_info::resume_data, 0);
-				if (p) p->banned = true;
+				peer_id id(0);
+	
+				for (int i = 0; i < banned_peers_entry->list_size(); ++i)
+				{
+					lazy_entry const* e = banned_peers_entry->list_at(i);
+					if (e->type() != lazy_entry::dict_t) continue;
+					std::string ip = e->dict_find_string_value("ip");
+					int port = e->dict_find_int_value("port");
+					if (ip.empty() || port == 0) continue;
+					tcp::endpoint a(address::from_string(ip), (unsigned short)port);
+					policy::peer* p = m_policy.peer_from_tracker(a, id, peer_info::resume_data, 0);
+					if (p) p->banned = true;
+				}
 			}
 		}
 
@@ -551,17 +563,15 @@ namespace libtorrent
 			// there are either no files for this torrent
 			// or the resume_data was accepted
 
-			if (!fastresume_rejected)
+			if (!fastresume_rejected && m_resume_entry.type() == lazy_entry::dict_t)
 			{
-				TORRENT_ASSERT(m_resume_data.type() == entry::dictionary_t);
-
 				// parse have bitmask
-				entry const* pieces = m_resume_data.find_key("pieces");
-				if (pieces && pieces->type() == entry::string_t
-					&& int(pieces->string().length()) == m_torrent_file->num_pieces())
+				lazy_entry const* pieces = m_resume_entry.dict_find("pieces");
+				if (pieces && pieces->type() == lazy_entry::string_t
+					&& int(pieces->string_length()) == m_torrent_file->num_pieces())
 				{
-					std::string const& pieces_str = pieces->string();
-					for (int i = 0, end(pieces_str.size()); i < end; ++i)
+					char const* pieces_str = pieces->string_ptr();
+					for (int i = 0, end(pieces->string_length()); i < end; ++i)
 					{
 						if ((pieces_str[i] & 1) == 0) continue;
 						m_picker->we_have(i);
@@ -572,27 +582,20 @@ namespace libtorrent
 				int num_blocks_per_piece =
 					static_cast<int>(torrent_file().piece_length()) / block_size();
 
-				entry const* unfinished_ent = m_resume_data.find_key("unfinished");
-				if (unfinished_ent != 0 && unfinished_ent->type() == entry::list_t)
+				if (lazy_entry const* unfinished_ent = m_resume_entry.dict_find_list("unfinished"))
 				{
-					entry::list_type const& unfinished = unfinished_ent->list();
-					int index = 0;
-					for (entry::list_type::const_iterator i = unfinished.begin();
-						i != unfinished.end(); ++i, ++index)
+					for (int i = 0; i < unfinished_ent->list_size(); ++i)
 					{
-						if (i->type() != entry::dictionary_t) continue;
-						entry const* piece = i->find_key("piece");
-						if (piece == 0 || piece->type() != entry::int_t) continue;
-						int piece_index = int(piece->integer());
-						if (piece_index < 0 || piece_index >= torrent_file().num_pieces())
-							continue;
+						lazy_entry const* e = unfinished_ent->list_at(i);
+						if (e->type() != lazy_entry::dict_t) continue;
+						int piece = e->dict_find_int_value("piece", -1);
+						if (piece < 0 || piece > torrent_file().num_pieces()) continue;
 
-						if (m_picker->have_piece(piece_index))
-							m_picker->we_dont_have(piece_index);
+						if (m_picker->have_piece(piece))
+							m_picker->we_dont_have(piece);
 
-						entry const* bitmask_ent = i->find_key("bitmask");
-						if (bitmask_ent == 0 || bitmask_ent->type() != entry::string_t) break;
-						std::string const& bitmask = bitmask_ent->string();
+						std::string bitmask = e->dict_find_string_value("bitmask");
+						if (bitmask.empty()) continue;
 
 						const int num_bitmask_bytes = (std::max)(num_blocks_per_piece / 8, 1);
 						if ((int)bitmask.size() != num_bitmask_bytes) continue;
@@ -605,10 +608,10 @@ namespace libtorrent
 								const int bit = j * 8 + k;
 								if (bits & (1 << k))
 								{
-									m_picker->mark_as_finished(piece_block(piece_index, bit), 0);
-									if (m_picker->is_piece_finished(piece_index))
-										async_verify_piece(piece_index, bind(&torrent::piece_finished
-											, shared_from_this(), piece_index, _1));
+									m_picker->mark_as_finished(piece_block(piece, bit), 0);
+									if (m_picker->is_piece_finished(piece))
+										async_verify_piece(piece, bind(&torrent::piece_finished
+											, shared_from_this(), piece, _1));
 								}
 							}
 						}
@@ -649,8 +652,9 @@ namespace libtorrent
 		if (m_auto_managed)
 			set_queue_position((std::numeric_limits<int>::max)());
 
-		m_resume_data = entry();
-		m_storage->async_check_fastresume(&m_resume_data
+		std::vector<char>().swap(m_resume_data);
+		m_resume_entry = lazy_entry();
+		m_storage->async_check_fastresume(&m_resume_entry
 			, bind(&torrent::on_force_recheck
 			, shared_from_this(), _1, _2));
 	}
@@ -2413,31 +2417,14 @@ namespace libtorrent
 	}
 #endif
 
-	void torrent::read_resume_data(entry const& rd)
+	void torrent::read_resume_data(lazy_entry const& rd)
 	{
-		entry const* e = 0;
-		e = rd.find_key("total_uploaded");
-		m_total_uploaded = (e != 0 && e->type() == entry::int_t)?e->integer():0;
-		e = rd.find_key("total_downloaded");
-		m_total_downloaded = (e != 0 && e->type() == entry::int_t)?e->integer():0;
-
-		e = rd.find_key("active_time");
-		m_active_time = seconds((e != 0 && e->type() == entry::int_t)?e->integer():0);
-		e = rd.find_key("seeding_time");
-		m_seeding_time = seconds((e != 0 && e->type() == entry::int_t)?e->integer():0);
-
-		e = rd.find_key("num_seeds");
-		m_complete = (e != 0 && e->type() == entry::int_t)?e->integer():-1;
-		e = rd.find_key("num_downloaders");
-		m_incomplete = (e != 0 && e->type() == entry::int_t)?e->integer():-1;
-		/*
-		m_total_uploaded = rd.find_int_value("total_uploaded");
-		m_total_downloaded = rd.find_inte_value("total_downloaded");
-		m_active_time = rd.find_int_value("active_time");
-		m_seeding_time = rd.find_int_value("seeding_time");
-		m_complete = rd.find_int_value("num_seeds", -1);
-		m_incomplete = rd.find_int_value("num_downloaders", -1);
-		*/
+		m_total_uploaded = rd.dict_find_int_value("total_uploaded");
+		m_total_downloaded = rd.dict_find_int_value("total_downloaded");
+		m_active_time = seconds(rd.dict_find_int_value("active_time"));
+		m_seeding_time = seconds(rd.dict_find_int_value("seeding_time"));
+		m_complete = rd.dict_find_int_value("num_seeds", -1);
+		m_incomplete = rd.dict_find_int_value("num_downloaders", -1);
 	}
 	
 	void torrent::write_resume_data(entry& ret) const
@@ -3332,8 +3319,8 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		TORRENT_ASSERT(m_resume_data.type() == entry::dictionary_t
-			|| m_resume_data.type() == entry::undefined_t);
+		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t
+			|| m_resume_entry.type() == lazy_entry::none_t);
 
 		TORRENT_ASSERT(m_bandwidth_queue[0].size() <= m_connections.size());
 		TORRENT_ASSERT(m_bandwidth_queue[1].size() <= m_connections.size());
