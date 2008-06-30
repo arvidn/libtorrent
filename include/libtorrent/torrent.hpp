@@ -107,7 +107,7 @@ namespace libtorrent
 			, int block_size
 			, storage_constructor_type sc
 			, bool paused
-			, entry const* resume_data
+			, std::vector<char>* resume_data
 			, int seq
 			, bool auto_managed);
 
@@ -124,11 +124,13 @@ namespace libtorrent
 			, int block_size
 			, storage_constructor_type sc
 			, bool paused
-			, entry const* resume_data
+			, std::vector<char>* resume_data
 			, int seq
 			, bool auto_managed);
 
 		~torrent();
+
+		void parse_resume_data(std::vector<char>* resume_data);
 
 		// starts the announce timer
 		void start();
@@ -564,7 +566,7 @@ namespace libtorrent
 		torrent_handle get_handle();
 
 		void write_resume_data(entry& rd) const;
-		void read_resume_data(entry const& rd);
+		void read_resume_data(lazy_entry const& rd);
 
 		// LOGGING
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -787,7 +789,9 @@ namespace libtorrent
 		// error message
 		std::string m_error;
 
-		entry m_resume_data;
+		// used if there is any resume data
+		std::vector<char> m_resume_data;
+		lazy_entry m_resume_entry;
 
 		// if the torrent is started without metadata, it may
 		// still be given a name until the metadata is received

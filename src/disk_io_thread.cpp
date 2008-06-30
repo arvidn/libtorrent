@@ -1048,7 +1048,7 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 					m_log << log_time() << " check fastresume" << std::endl;
 #endif
-					entry const* rd = (entry const*)j.buffer;
+					lazy_entry const* rd = (lazy_entry const*)j.buffer;
 					TORRENT_ASSERT(rd != 0);
 					ret = j.storage->check_fastresume(*rd, j.str);
 					break;

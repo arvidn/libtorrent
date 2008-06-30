@@ -133,7 +133,7 @@ namespace libtorrent
 		virtual bool move_storage(fs::path save_path) = 0;
 
 		// verify storage dependent fast resume entries
-		virtual bool verify_resume_data(entry const& rd, std::string& error) = 0;
+		virtual bool verify_resume_data(lazy_entry const& rd, std::string& error) = 0;
 
 		// write storage dependent fast resume entries
 		virtual bool write_resume_data(entry& rd) const = 0;
@@ -212,7 +212,7 @@ namespace libtorrent
 		boost::intrusive_ptr<torrent_info const> info() const { return m_info; }
 		void write_resume_data(entry& rd) const;
 
-		void async_check_fastresume(entry const* resume_data
+		void async_check_fastresume(lazy_entry const* resume_data
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 		
 		void async_check_files(boost::function<void(int, disk_io_job const&)> const& handler);
@@ -259,7 +259,7 @@ namespace libtorrent
 
 		fs::path save_path() const;
 
-		bool verify_resume_data(entry const& rd, std::string& error)
+		bool verify_resume_data(lazy_entry const& rd, std::string& error)
 		{ return m_storage->verify_resume_data(rd, error); }
 
 		bool is_allocating() const
@@ -282,7 +282,7 @@ namespace libtorrent
 		// the error message indicates that the fast resume data was rejected
 		// if 'fatal_disk_error' is returned, the error message indicates what
 		// when wrong in the disk access
-		int check_fastresume(entry const& rd, std::string& error);
+		int check_fastresume(lazy_entry const& rd, std::string& error);
 
 		// this function returns true if the checking is complete
 		int check_files(int& current_slot, int& have_piece, std::string& error);

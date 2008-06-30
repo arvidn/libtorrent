@@ -107,7 +107,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 		, test_path, fp, io, default_storage_constructor, storage_mode);
 	boost::mutex lock;
 
-	entry frd;
+	lazy_entry frd;
 	pm->async_check_fastresume(&frd, &on_check_resume_data);
 	ios.reset();
 	ios.run();

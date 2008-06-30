@@ -70,6 +70,7 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 #include "libtorrent/file.hpp"
 #include <sstream>
 #include <cstring>
+#include <vector>
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -130,8 +131,21 @@ namespace
 
 namespace libtorrent
 {
-
 	namespace fs = boost::filesystem;
+
+	int load_file(fs::path const& filename, std::vector<char>& v)
+	{
+		file f;
+		if (!f.open(filename, file::in)) return -1;
+		f.seek(0, file::end);
+		size_type s = f.tell();
+		if (s > 5000000) return -2;
+		v.resize(s);
+		f.seek(0);
+		size_type read = f.read(&v[0], s);
+		if (read != s) return -3;
+		return 0;
+	}
 
 	const file::open_mode file::in(mode_in);
 	const file::open_mode file::out(mode_out);
@@ -160,7 +174,6 @@ namespace libtorrent
 
 		bool open(fs::path const& path, int mode)
 		{
-			TORRENT_ASSERT(path.is_complete());
 			close();
 #if defined(_WIN32) && defined(UNICODE)
 			std::wstring wpath(safe_convert(path.native_file_string()));

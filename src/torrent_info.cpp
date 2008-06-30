@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
+#include "libtorrent/file.hpp"
 
 namespace gr = boost::gregorian;
 
@@ -282,16 +283,13 @@ namespace libtorrent
 		, m_multifile(false)
 		, m_private(false)
 	{
-		size_type s = fs::file_size(fs::path(filename));
-		// don't load torrent files larger than 2 MB
-		if (s > 2000000) return;
-		std::vector<char> buf(s);
-		std::ifstream f(filename, std::ios_base::binary);
-		f.read(&buf[0], s);
+		std::vector<char> buf;
+		int ret = load_file(filename, buf);
+		if (ret < 0) return;
 
-		std::string error;
 		lazy_entry e;
 		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
+		std::string error;
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(e, error))
 			throw invalid_torrent_file();

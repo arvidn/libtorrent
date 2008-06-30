@@ -170,7 +170,7 @@ namespace libtorrent
 			return m_size;
 		}
 
-		// end points one byte passed end
+		// end points one byte passed last byte
 		void set_end(char const* end)
 		{
 			TORRENT_ASSERT(end > m_begin);
