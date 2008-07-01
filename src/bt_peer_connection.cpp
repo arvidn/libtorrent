@@ -1192,8 +1192,8 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end;)
+		for (extension_list_t::iterator i = m_extensions.begin();
+			!m_extensions.empty() && i != m_extensions.end();)
 		{
 			// a false return value means that the extension
 			// isn't supported by the other end. So, it is removed.
