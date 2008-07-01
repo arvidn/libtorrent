@@ -188,7 +188,7 @@ peer_plugin
 
 		virtual void add_handshake(entry&);
 		virtual bool on_handshake(char const* reserved_bits);
-		virtual bool on_extension_handshake(entry const& h);
+		virtual bool on_extension_handshake(lazy_entry const& h);
 
 		virtual bool on_choke();
 		virtual bool on_unchoke();

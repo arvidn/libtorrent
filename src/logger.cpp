@@ -81,11 +81,10 @@ namespace
 		virtual void add_handshake(entry&) {}
 		
 		// called when the extension handshake from the other end is received
-		virtual bool on_extension_handshake(entry const& h)
+		virtual bool on_extension_handshake(lazy_entry const& h)
 		{
 			log_timestamp();
-			m_file << "<== EXTENSION_HANDSHAKE\n";
-			h.print(m_file);
+			m_file << "<== EXTENSION_HANDSHAKE\n" << h;
 			return true;
 		}
 

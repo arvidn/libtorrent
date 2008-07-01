@@ -235,18 +235,20 @@ namespace libtorrent { namespace
 		}
 
 		// called when the extension handshake from the other end is received
-		virtual bool on_extension_handshake(entry const& h)
+		virtual bool on_extension_handshake(lazy_entry const& h)
 		{
-			entry const* metadata_size = h.find_key("metadata_size");
-			if (metadata_size && metadata_size->type() == entry::int_t)
-				m_tp.metadata_size(metadata_size->integer());
+			m_message_index = 0;
+			if (h.type() != lazy_entry::dict_t) return false;
+			lazy_entry const* messages = h.dict_find("m");
+			if (!messages || messages->type() != lazy_entry::dict_t) return false;
 
-			entry const* messages = h.find_key("m");
-			if (!messages || messages->type() != entry::dictionary_t) return false;
+			int index = messages->dict_find_int_value("ut_metadata", -1);
+			if (index == -1) return false;
+			m_message_index = index;
 
-			entry const* index = messages->find_key("ut_metadata");
-			if (!index || index->type() != entry::int_t) return false;
-			m_message_index = int(index->integer());
+			int metadata_size = h.dict_find_int_value("metadata_size");
+			if (metadata_size > 0)
+				m_tp.metadata_size(metadata_size);
 			return true;
 		}
 
