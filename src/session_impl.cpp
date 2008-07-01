@@ -1390,7 +1390,6 @@ namespace aux {
 					&& t->state() != torrent_status::checking_files)
 				{
 					--num_downloaders;
-					--num_seeds;
 					if (t->is_paused()) t->resume();
 				}
 			}
@@ -1413,7 +1412,6 @@ namespace aux {
 			if (num_seeds > 0 && hard_limit > 0)
 			{
 				--hard_limit;
-				--num_downloaders;
 				--num_seeds;
 				if (t->is_paused()) t->resume();
 			}

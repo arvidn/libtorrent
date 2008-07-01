@@ -4605,14 +4605,12 @@ limits. To make a torrent auto managed, set ``auto_managed`` to true when adding
 torrent (see `add_torrent()`_).
 
 The limits of the number of downloading and seeding torrents are controlled via
-``active_downloads`` and ``active_seeds`` in session_settings_. These limits takes
-non auto managed torrents into account as well. If there are are more non-auto managed
-torrents being downloaded than the ``active_downloads`` setting, any auto managed
-torrents will be queued until torrents are removed so that the number drops below
-the limit.
+``active_downloads``, ``active_seeds`` and ``active_limit`` in session_settings_. 
+These limits takes non auto managed torrents into account as well. If there are 
+more non-auto managed torrents being downloaded than the ``active_downloads`` 
+setting, any auto managed torrents will be queued until torrents are removed so 
+that the number drops below the limit.
 
-Seeding torrents counts as downloads, but downloading torrents don't count as
-seeding. So, ``active_downloads`` should typically be greater than ``active_seeds``.
 The default values are 8 active downloads and 5 active seeds.
 
 At a regular interval, torrents are checked if there needs to be any re-ordering of
