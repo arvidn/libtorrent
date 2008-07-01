@@ -56,6 +56,7 @@ namespace libtorrent
 	struct peer_request;
 	class peer_connection;
 	class entry;
+	struct lazy_entry;
 	struct disk_buffer_holder;
 	struct bitfield;
 
@@ -107,7 +108,7 @@ namespace libtorrent
 		// supported by this peer. It will result in this peer_plugin
 		// being removed from the peer_connection and destructed. 
 		// this is not called for web seeds
-		virtual bool on_extension_handshake(entry const& h) { return true; }
+		virtual bool on_extension_handshake(lazy_entry const& h) { return true; }
 
 		// returning true from any of the message handlers
 		// indicates that the plugin has handeled the message.

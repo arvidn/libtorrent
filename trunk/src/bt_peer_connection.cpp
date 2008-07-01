@@ -1246,9 +1246,9 @@ namespace libtorrent
 
 		buffer::const_interval recv_buffer = receive_buffer();
 
-		entry root;
-		root = bdecode(recv_buffer.begin + 2, recv_buffer.end);
-		if (root.type() == entry::undefined_t)
+		lazy_entry root;
+		lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root);
+		if (root.type() != lazy_entry::dict_t)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << "invalid extended handshake\n";
@@ -1257,9 +1257,7 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		std::stringstream ext;
-		root.print(ext);
-		(*m_logger) << "<== EXTENDED HANDSHAKE: \n" << ext.str();
+		(*m_logger) << "<== EXTENDED HANDSHAKE: \n" << root;
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1276,56 +1274,39 @@ namespace libtorrent
 #endif
 
 		// there is supposed to be a remote listen port
-		if (entry* listen_port = root.find_key("p"))
+		int listen_port = root.dict_find_int_value("p");
+		if (listen_port > 0 && peer_info_struct() != 0)
 		{
-			if (listen_port->type() == entry::int_t
-				&& peer_info_struct() != 0)
-			{
-				t->get_policy().update_peer_port(int(listen_port->integer())
-					, peer_info_struct(), peer_info::incoming);
-			}
+			t->get_policy().update_peer_port(listen_port
+				, peer_info_struct(), peer_info::incoming);
 		}
 		// there should be a version too
 		// but where do we put that info?
 		
-		if (entry* client_info = root.find_key("v"))
-		{
-			if (client_info->type() == entry::string_t)
-				m_client_version = client_info->string();
-		}
+		std::string client_info = root.dict_find_string_value("v");
+		if (!client_info.empty()) m_client_version = client_info;
 
-		if (entry* reqq = root.find_key("reqq"))
-		{
-			if (reqq->type() == entry::int_t)
-				m_max_out_request_queue = int(reqq->integer());
-			if (m_max_out_request_queue < 1)
-				m_max_out_request_queue = 1;
-		}
+		int reqq = root.dict_find_int_value("reqq");
+		if (reqq > 0) m_max_out_request_queue = reqq;
 
-		if (entry* upload_only = root.find_key("upload_only"))
-		{
-			if (upload_only->type() == entry::int_t && upload_only->integer() != 0)
-				set_upload_only(true);
-		}
+		if (root.dict_find_int_value("upload_only"))
+			set_upload_only(true);
 
-		if (entry* myip = root.find_key("yourip"))
+		std::string myip = root.dict_find_string_value("yourip");
+		if (!myip.empty())
 		{
 			// TODO: don't trust this blindly
-			if (myip->type() == entry::string_t)
+			if (myip.size() == address_v4::bytes_type::static_size)
 			{
-				std::string const& my_ip = myip->string().c_str();
-				if (my_ip.size() == address_v4::bytes_type::static_size)
-				{
-					address_v4::bytes_type bytes;
-					std::copy(my_ip.begin(), my_ip.end(), bytes.begin());
-					m_ses.set_external_address(address_v4(bytes));
-				}
-				else if (my_ip.size() == address_v6::bytes_type::static_size)
-				{
-					address_v6::bytes_type bytes;
-					std::copy(my_ip.begin(), my_ip.end(), bytes.begin());
-					m_ses.set_external_address(address_v6(bytes));
-				}
+				address_v4::bytes_type bytes;
+				std::copy(myip.begin(), myip.end(), bytes.begin());
+				m_ses.set_external_address(address_v4(bytes));
+			}
+			else if (myip.size() == address_v6::bytes_type::static_size)
+			{
+				address_v6::bytes_type bytes;
+				std::copy(myip.begin(), myip.end(), bytes.begin());
+				m_ses.set_external_address(address_v6(bytes));
 			}
 		}
 
