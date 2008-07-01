@@ -4,6 +4,7 @@
 
 #include <libtorrent/extensions.hpp>
 #include <libtorrent/entry.hpp>
+#include <libtorrent/lazy_entry.hpp>
 #include <libtorrent/peer_request.hpp>
 #include <libtorrent/disk_buffer_holder.hpp>
 #include <libtorrent/bitfield.hpp>
@@ -42,7 +43,7 @@ namespace
           return this->peer_plugin::on_handshake(reserved_bits);
       }
 
-      bool on_extension_handshake(entry const& e)
+      bool on_extension_handshake(lazy_entry const& e)
       {
           if (override f = this->get_override("on_extension_handshake"))
               return f(e);
@@ -50,7 +51,7 @@ namespace
               return peer_plugin::on_extension_handshake(e);
       }
 
-      bool default_on_extension_handshake(entry const& e)
+      bool default_on_extension_handshake(lazy_entry const& e)
       {
           return this->peer_plugin::on_extension_handshake(e);
       }
