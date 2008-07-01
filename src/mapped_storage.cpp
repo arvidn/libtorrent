@@ -755,8 +755,8 @@ namespace libtorrent
 			m_pool.release(this);
 
 #if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION >= 103400
-			fs::wpath old_path = safe_convert(old_name);
-			fs::wpath new_path = safe_convert(m_save_path / new_filename);
+			fs::wpath old_path = safe_convert(old_name.string());
+			fs::wpath new_path = safe_convert((m_save_path / new_filename).string());
 #else
 			fs::path const& old_path = old_name;
 			fs::path new_path = m_save_path / new_filename;
