@@ -97,35 +97,38 @@ namespace
       allow_threading_guard guard;
       s.add_extension(invoke_extension_factory(e));
   }
- 
+
   torrent_handle add_torrent(session& s, dict params)
   {
     add_torrent_params p;
-    
+
     if (params.has_key("ti"))
-    {
-      boost::intrusive_ptr<torrent_info> ti = new torrent_info(
-        extract<torrent_info const&>(params["ti"]));
-      p.ti = ti;
-    }
+      p.ti = new torrent_info(extract<torrent_info const&>(params["ti"]));
+
+    std::string url;
     if (params.has_key("tracker_url"))
     {
-      std::string url = extract<std::string>(params["tracker_url"]);
+      url = extract<std::string>(params["tracker_url"]);
       p.tracker_url = url.c_str();
     }
     if (params.has_key("info_hash"))
-    {
-      sha1_hash info_hash = extract<sha1_hash>(params["info_hash"]);
-      p.info_hash = info_hash;
-    }
+      p.info_hash = extract<sha1_hash>(params["info_hash"]);
+    std::string name;
     if (params.has_key("name"))
     {
-      std::string name = extract<std::string>(params["name"]);
+      name = extract<std::string>(params["name"]);
       p.name = name.c_str();
     }
     p.save_path = fs::path(extract<std::string>(params["save_path"]));
-    entry resume = extract<entry>(params["resume_data"]);
-    p.resume_data = &resume;
+
+    std::vector<char> resume_buf;
+    if (params.has_key("resume_data"))
+    {
+      std::string resume = extract<std::string>(params["resume_data"]);
+      resume_buf.resize(resume.size());
+      std::memcpy(&resume_buf[0], &resume[0], resume.size());
+      p.resume_data = &resume_buf;
+    }
     p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
     p.paused = params["paused"];
     p.auto_managed = params["auto_managed"];
@@ -133,7 +136,7 @@ namespace
 
     return s.add_torrent(p);
   }
-  
+
   void start_natpmp(session& s)
   {
       allow_threading_guard guard;
@@ -147,7 +150,7 @@ namespace
       s.start_upnp();
       return;
   }
-  
+
   list get_torrents(session& s)
   {
      list ret;
