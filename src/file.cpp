@@ -133,20 +133,6 @@ namespace libtorrent
 {
 	namespace fs = boost::filesystem;
 
-	int load_file(fs::path const& filename, std::vector<char>& v)
-	{
-		file f;
-		if (!f.open(filename, file::in)) return -1;
-		f.seek(0, file::end);
-		size_type s = f.tell();
-		if (s > 5000000) return -2;
-		v.resize(s);
-		f.seek(0);
-		size_type read = f.read(&v[0], s);
-		if (read != s) return -3;
-		return 0;
-	}
-
 	const file::open_mode file::in(mode_in);
 	const file::open_mode file::out(mode_out);
 

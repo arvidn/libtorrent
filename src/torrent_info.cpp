@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/next_prior.hpp>
 #include <boost/bind.hpp>
 
 #ifdef _MSC_VER
@@ -208,6 +207,21 @@ namespace
 
 namespace libtorrent
 {
+
+	int load_file(fs::path const& filename, std::vector<char>& v)
+	{
+		file f;
+		if (!f.open(filename, file::in)) return -1;
+		f.seek(0, file::end);
+		size_type s = f.tell();
+		if (s > 5000000) return -2;
+		v.resize(s);
+		f.seek(0);
+		size_type read = f.read(&v[0], s);
+		if (read != s) return -3;
+		return 0;
+	}
+
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(entry const& torrent_file)
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
@@ -227,7 +241,7 @@ namespace libtorrent
 		if (!parse_torrent_file(e, error))
 			throw invalid_torrent_file();
 #else
-		read_torrent_info(e, error);
+		parse_torrent_file(e, error);
 #endif
 	}
 
@@ -243,7 +257,7 @@ namespace libtorrent
 		if (!parse_torrent_file(torrent_file, error))
 			throw invalid_torrent_file();
 #else
-		read_torrent_info(torrent_file, error);
+		parse_torrent_file(torrent_file, error);
 #endif
 	}
 
@@ -261,7 +275,7 @@ namespace libtorrent
 		if (!parse_torrent_file(e, error))
 			throw invalid_torrent_file();
 #else
-		read_torrent_info(e, error);
+		parse_torrent_file(e, error);
 #endif
 	}
 
@@ -278,7 +292,7 @@ namespace libtorrent
 		, m_piece_hashes(0)
 	{}
 
-	torrent_info::torrent_info(char const* filename)
+	torrent_info::torrent_info(fs::path const& filename)
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
@@ -294,7 +308,7 @@ namespace libtorrent
 		if (!parse_torrent_file(e, error))
 			throw invalid_torrent_file();
 #else
-		read_torrent_info(e, error);
+		parse_torrent_file(e, error);
 #endif
 	}
 
