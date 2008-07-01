@@ -222,58 +222,55 @@ namespace libtorrent { namespace
 
 			if (body.left() < length) return true;
 
-			entry pex_msg = bdecode(body.begin, body.end);
-			if (pex_msg.type() == entry::undefined_t)
+			lazy_entry pex_msg;
+			int ret = lazy_bdecode(body.begin, body.end, pex_msg);
+			if (pex_msg.type() != lazy_entry::dict_t)
 			{
 				m_pc.disconnect("invalid bencoding in ut_metadata message", 2);
 				return true;
 			}
 
-			entry const* p = pex_msg.find_key("added");
-			entry const* pf = pex_msg.find_key("added.f");
+			lazy_entry const* p = pex_msg.dict_find("added");
+			lazy_entry const* pf = pex_msg.dict_find("added.f");
 
-			if (p != 0 && pf != 0 && p->type() == entry::string_t && pf->type() == entry::string_t)
+			if (p != 0
+				&& pf != 0
+				&& p->type() == lazy_entry::string_t
+				&& pf->type() == lazy_entry::string_t
+				&& pf->string_length() == p->string_length() / 6)
 			{
-				std::string const& peers = p->string();
-				std::string const& peer_flags = pf->string();
-
-				int num_peers = peers.length() / 6;
-				char const* in = peers.c_str();
-				char const* fin = peer_flags.c_str();
-
-				if (int(peer_flags.size()) != num_peers)
-					return true;
+				int num_peers = pf->string_length();
+				char const* in = p->string_ptr();
+				char const* fin = pf->string_ptr();
 
 				peer_id pid(0);
 				policy& p = m_torrent.get_policy();
 				for (int i = 0; i < num_peers; ++i)
 				{
 					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
-					char flags = detail::read_uint8(fin);
+					char flags = *fin++;
 					p.peer_from_tracker(adr, pid, peer_info::pex, flags);
 				} 
 			}
 
-			entry const* p6 = pex_msg.find_key("added6");
-			entry const* p6f = pex_msg.find_key("added6.f");
-			if (p6 && p6f && p6->type() == entry::string_t && p6f->type() == entry::string_t)
+			lazy_entry const* p6 = pex_msg.dict_find("added6");
+			lazy_entry const* p6f = pex_msg.dict_find("added6.f");
+			if (p6 != 0
+				&& p6f != 0
+				&& p6->type() == lazy_entry::string_t
+				&& p6f->type() == lazy_entry::string_t
+				&& p6f->string_length() == p6->string_length() / 18)
 			{
-				std::string const& peers6 = p6->string();
-				std::string const& peer6_flags = p6f->string();
-
-				int num_peers = peers6.length() / 18;
-				char const* in = peers6.c_str();
-				char const* fin = peer6_flags.c_str();
-
-				if (int(peer6_flags.size()) != num_peers)
-					return true;
+				int num_peers = p6f->string_length();
+				char const* in = p6->string_ptr();
+				char const* fin = p6f->string_ptr();
 
 				peer_id pid(0);
 				policy& p = m_torrent.get_policy();
 				for (int i = 0; i < num_peers; ++i)
 				{
 					tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
-					char flags = detail::read_uint8(fin);
+					char flags = *fin++;
 					p.peer_from_tracker(adr, pid, peer_info::pex, flags);
 				} 
 			}
