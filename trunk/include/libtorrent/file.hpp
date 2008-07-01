@@ -55,8 +55,6 @@ namespace libtorrent
 {
 	namespace fs = boost::filesystem;
 
-	int load_file(fs::path const& filename, std::vector<char>& v);
-
 	class TORRENT_EXPORT file: public boost::noncopyable
 	{
 	public:

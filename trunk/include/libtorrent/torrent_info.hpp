@@ -64,6 +64,7 @@ namespace libtorrent
 {
 	namespace pt = boost::posix_time;
 	namespace gr = boost::gregorian;
+	namespace fs = boost::filesystem;
 
 	struct TORRENT_EXPORT announce_entry
 	{
@@ -79,6 +80,8 @@ namespace libtorrent
 	};
 #endif
 
+	int TORRENT_EXPORT load_file(fs::path const& filename, std::vector<char>& v);
+
 	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{
 	public:
@@ -86,7 +89,7 @@ namespace libtorrent
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
-		torrent_info(char const* filename);
+		torrent_info(fs::path const& filename);
 		~torrent_info();
 
 		file_storage const& files() const { return m_files; }

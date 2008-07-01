@@ -1124,7 +1124,7 @@ The ``torrent_info`` has the following synopsis::
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
-		torrent_info(char const* filename);
+		torrent_info(boost::filesystem::path const& filename);
 
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const;
@@ -1181,7 +1181,7 @@ torrent_info()
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
-		torrent_info(char const* filename);
+		torrent_info(boost::filesystem::path const& filename);
 
 The constructor that takes an info-hash  will initialize the info-hash to the given value,
 but leave all other fields empty. This is used internally when downloading torrents without
