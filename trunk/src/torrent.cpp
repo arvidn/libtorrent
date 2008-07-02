@@ -474,7 +474,7 @@ namespace libtorrent
 			if (error)
 			{
 				std::vector<char>().swap(m_resume_data);
-				m_resume_entry = lazy_entry();
+				lazy_entry().swap(m_resume_entry);
 			}
 			else
 			{
@@ -505,6 +505,10 @@ namespace libtorrent
 			}
 			m_error = j.str;
 			pause();
+
+			std::vector<char>().swap(m_resume_data);
+			lazy_entry().swap(m_resume_entry);
+
 			return;
 		}
 
@@ -627,6 +631,9 @@ namespace libtorrent
 			// some files
 			m_ses.check_torrent(shared_from_this());
 		}
+
+		std::vector<char>().swap(m_resume_data);
+		lazy_entry().swap(m_resume_entry);
 	}
 
 	void torrent::force_recheck()
@@ -653,7 +660,7 @@ namespace libtorrent
 			set_queue_position((std::numeric_limits<int>::max)());
 
 		std::vector<char>().swap(m_resume_data);
-		m_resume_entry = lazy_entry();
+		lazy_entry().swap(m_resume_entry);
 		m_storage->async_check_fastresume(&m_resume_entry
 			, bind(&torrent::on_force_recheck
 			, shared_from_this(), _1, _2));
