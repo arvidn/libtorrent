@@ -35,6 +35,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <cstring>
 
+namespace
+{
+	enum
+	{
+		lazy_entry_grow_factor = 3,
+		lazy_entry_dict_init = 30,
+		lazy_entry_list_init = 50
+	};
+}
+
 namespace libtorrent
 {
 	int fail_bdecode() { return -1; }
@@ -176,14 +186,14 @@ namespace libtorrent
 		TORRENT_ASSERT(m_size <= m_capacity);
 		if (m_capacity == 0)
 		{
-			int capacity = 10;
+			int capacity = lazy_entry_dict_init;
 			m_data.dict = new (std::nothrow) std::pair<char const*, lazy_entry>[capacity];
 			if (m_data.dict == 0) return 0;
 			m_capacity = capacity;
 		}
 		else if (m_size == m_capacity)
 		{
-			int capacity = m_capacity * 2;
+			int capacity = m_capacity * lazy_entry_grow_factor;
 			std::pair<char const*, lazy_entry>* tmp = new (std::nothrow) std::pair<char const*, lazy_entry>[capacity];
 			if (tmp == 0) return 0;
 			std::memcpy(tmp, m_data.dict, sizeof(std::pair<char const*, lazy_entry>) * m_size);
@@ -289,14 +299,14 @@ namespace libtorrent
 		TORRENT_ASSERT(m_size <= m_capacity);
 		if (m_capacity == 0)
 		{
-			int capacity = 10;
+			int capacity = lazy_entry_list_init;
 			m_data.list = new (std::nothrow) lazy_entry[capacity];
 			if (m_data.list == 0) return 0;
 			m_capacity = capacity;
 		}
 		else if (m_size == m_capacity)
 		{
-			int capacity = m_capacity * 2;
+			int capacity = m_capacity * lazy_entry_grow_factor;
 			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity];
 			if (tmp == 0) return 0;
 			std::memcpy(tmp, m_data.list, sizeof(lazy_entry) * m_size);
