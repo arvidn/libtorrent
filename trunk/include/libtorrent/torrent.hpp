@@ -194,6 +194,7 @@ namespace libtorrent
 
 		void ip_filter_updated() { m_policy.ip_filter_updated(); }
 
+		void set_error(std::string const& msg) { m_error = msg; }
 		bool has_error() const { return !m_error.empty(); }
 		void pause();
 		void resume();
