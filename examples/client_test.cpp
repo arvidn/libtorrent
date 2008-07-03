@@ -584,6 +584,10 @@ libtorrent::torrent_handle get_active_torrent(handles_t const& handles)
 	return i->second;
 }
 
+static char const* state_str[] =
+	{"checking (q)", "checking", "connecting", "dl metadata"
+	, "downloading", "finished", "seeding", "allocating"};
+
 int main(int ac, char* av[])
 {
 #if BOOST_VERSION < 103400
@@ -1181,6 +1185,12 @@ int main(int ac, char* av[])
 						if (h.is_paused() && !h.is_auto_managed()) ses.remove_torrent(h);
 					}
 				}
+				else if (state_changed_alert* p = dynamic_cast<state_changed_alert*>(a.get()))
+				{
+					std::string name;
+					if (p->handle.is_valid()) name = p->handle.name();
+					event_string << "(" << name << ") " << p->msg() << " " << state_str[p->state];
+				}
 				else if (torrent_alert* p = dynamic_cast<torrent_alert*>(a.get()))
 				{
 					std::string name;
@@ -1266,13 +1276,7 @@ int main(int ac, char* av[])
 
 				if (paused && !auto_managed) out << "paused";
 				else if (paused && auto_managed) out << "queued";
-				else
-				{
-					static char const* state_str[] =
-						{"checking (q)", "checking", "connecting", "dl metadata"
-						, "downloading", "finished", "seeding", "allocating"};
-					out << state_str[s.state];
-				}
+				else out << state_str[s.state];
 
 				int seeds = 0;
 				int downloaders = 0;
