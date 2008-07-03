@@ -274,5 +274,11 @@ void bind_alert()
 
     class_<torrent_resumed_alert, bases<torrent_alert>, noncopyable>( 
         "torrent_resumed_alert", no_init 
-	); 
+	);
+	
+	class_<state_changed_alert, bases<torrent_alert>, noncopyable>(
+	    "state_changed_alert", no_init
+	)
+	    .def_readonly("state", &state_changed_alert::state)
+	    ;
 }
