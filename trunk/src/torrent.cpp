@@ -446,7 +446,7 @@ namespace libtorrent
 		std::copy(url_seeds.begin(), url_seeds.end(), std::inserter(m_web_seeds
 			, m_web_seeds.begin()));
 
-		m_state = torrent_status::queued_for_checking;
+		set_state(torrent_status::queued_for_checking);
 
 		if (m_resume_entry.type() == lazy_entry::dict_t)
 		{
@@ -654,7 +654,7 @@ namespace libtorrent
 			, int((m_torrent_file->total_size()+m_block_size-1)/m_block_size));
 		// assume that we don't have anything
 		m_files_checked = false;
-		m_state = torrent_status::queued_for_checking;
+		set_state(torrent_status::queued_for_checking);
 
 		if (m_auto_managed)
 			set_queue_position((std::numeric_limits<int>::max)());
@@ -691,7 +691,7 @@ namespace libtorrent
 
 	void torrent::start_checking()
 	{
-		m_state = torrent_status::checking_files;
+		set_state(torrent_status::checking_files);
 
 		m_storage->async_check_files(bind(
 			&torrent::on_piece_checked
@@ -3061,7 +3061,7 @@ namespace libtorrent
 				, "torrent has finished downloading"));
 		}
 
-		m_state = torrent_status::finished;
+		set_state(torrent_status::finished);
 		set_queue_position(-1);
 
 		// we have to call completed() before we start
@@ -3102,7 +3102,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 	
 		TORRENT_ASSERT(!is_finished());
-		m_state = torrent_status::downloading;
+		set_state(torrent_status::downloading);
 		set_queue_position((std::numeric_limits<int>::max)());
 	}
 
@@ -3116,7 +3116,7 @@ namespace libtorrent
 		// make the next tracker request
 		// be a completed-event
 		m_event = tracker_request::completed;
-		m_state = torrent_status::seeding;
+		set_state(torrent_status::seeding);
 		force_tracker_request();
 	}
 
@@ -3188,7 +3188,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 		INVARIANT_CHECK;
 
-		m_state = torrent_status::connecting_to_tracker;
+		set_state(torrent_status::connecting_to_tracker);
 
 		if (!is_seed())
 		{
@@ -4039,6 +4039,17 @@ namespace libtorrent
 		}
 	}
 	
+	void torrent::set_state(torrent_status::state_t s)
+	{
+		if (m_state == s) return;
+		m_state = s;
+		if (m_ses.m_alerts.should_post(alert::info))
+		{
+			m_ses.m_alerts.post_alert(state_changed_alert(get_handle()
+				, s, "torrent status changed"));
+		}
+	}
+
 	torrent_status torrent::status() const
 	{
 		INVARIANT_CHECK;

@@ -68,6 +68,21 @@ namespace libtorrent
 		std::string name;
 	};
 
+	struct TORRENT_EXPORT state_changed_alert: torrent_alert
+	{
+		state_changed_alert(torrent_handle const& h
+			, torrent_status::state_t const& state_
+			, std::string const& msg)
+			: torrent_alert(h, alert::info, msg)
+			, state(state_)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new state_changed_alert(*this)); }
+
+		torrent_status::state_t state;
+	};
+
 	struct TORRENT_EXPORT tracker_alert: torrent_alert
 	{
 		tracker_alert(torrent_handle const& h
