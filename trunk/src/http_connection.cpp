@@ -271,12 +271,16 @@ void http_connection::on_resolve(error_code const& e
 	std::transform(i, tcp::resolver::iterator(), std::back_inserter(m_endpoints)
 		, boost::bind(&tcp::resolver::iterator::value_type::endpoint, _1));
 
+	// The following statement causes msvc to crash (ICE). Since it's not
+	// necessary in the vast majority of cases, just ignore the endpoint
+	// order for windows
+#if !defined _MSC_VER || _MSC_VER > 1310
 	// sort the endpoints so that the ones with the same IP version as our
 	// bound listen socket are first. So that when contacting a tracker,
 	// we'll talk to it from the same IP that we're listening on
-	m_endpoints.sort(
-		(bind(&address::is_v4, bind(&tcp::endpoint::address, _1)) == m_bind_addr.is_v4())
-		> (bind(&address::is_v4, bind(&tcp::endpoint::address, _2)) == m_bind_addr.is_v4()));
+	std::partition(m_endpoints.begin(), m_endpoints.end()
+		, boost::bind(&address::is_v4, boost::bind(&tcp::endpoint::address, _1)) == m_bind_addr.is_v4());
+#endif
 
 	queue_connect();
 }
