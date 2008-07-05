@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
+using asio::ip::udp;
+
 closest_nodes_observer::~closest_nodes_observer()
 {
 	if (m_algorithm) m_algorithm->failed(m_self, true);
@@ -98,7 +100,6 @@ closest_nodes::closest_nodes(
 
 void closest_nodes::invoke(node_id const& id, udp::endpoint addr)
 {
-	TORRENT_ASSERT(m_rpc.allocation_size() >= sizeof(closest_nodes_observer));
 	observer_ptr o(new (m_rpc.allocator().malloc()) closest_nodes_observer(this, id, m_target));
 #ifndef NDEBUG
 	o->m_in_constructor = false;

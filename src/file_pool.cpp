@@ -41,8 +41,7 @@ namespace libtorrent
 	using boost::multi_index::nth_index;
 	using boost::multi_index::get;
 
-	boost::shared_ptr<file> file_pool::open_file(void* st, fs::path const& p
-		, file::open_mode m, std::string& error)
+	boost::shared_ptr<file> file_pool::open_file(void* st, fs::path const& p, file::open_mode m)
 	{
 		TORRENT_ASSERT(st != 0);
 		TORRENT_ASSERT(p.is_complete());
@@ -60,9 +59,8 @@ namespace libtorrent
 			{
 				// this means that another instance of the storage
 				// is using the exact same file.
-				error = "torrent uses the same file as another torrent "
-					"(" + p.string() + ")";
-				return boost::shared_ptr<file>();
+				throw file_error("torrent uses the same file as another torrent "
+					"(" + p.string() + ")");
 			}
 
 			e.key = st;
@@ -72,13 +70,8 @@ namespace libtorrent
 				// the new read/write privilages
 				i->file_ptr.reset();
 				TORRENT_ASSERT(e.file_ptr.unique());
-				e.file_ptr->close();
-				if (!e.file_ptr->open(p, m))
-				{
-					error = e.file_ptr->error();
-					m_files.erase(i);
-					return boost::shared_ptr<file>();
-				}
+				e.file_ptr.reset();
+				e.file_ptr.reset(new file(p, m));
 				e.mode = m;
 			}
 			pt.replace(i, e);
@@ -96,33 +89,12 @@ namespace libtorrent
 			TORRENT_ASSERT(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
 			lt.erase(i);
 		}
-		lru_file_entry e;
-		e.file_ptr.reset(new file);
-		if (!e.file_ptr)
-		{
-			error = "no memory";
-			return e.file_ptr;
-		}
-		if (!e.file_ptr->open(p, m))
-		{
-			error = e.file_ptr->error();
-			return boost::shared_ptr<file>();
-		}
+		lru_file_entry e(boost::shared_ptr<file>(new file(p, m)));
 		e.mode = m;
 		e.key = st;
 		e.file_path = p;
 		pt.insert(e);
 		return e.file_ptr;
-	}
-
-	void file_pool::release(fs::path const& p)
-	{
-		boost::mutex::scoped_lock l(m_mutex);
-
-		typedef nth_index<file_set, 0>::type path_view;
-		path_view& pt = get<0>(m_files);
-		path_view::iterator i = pt.find(p);
-		if (i != pt.end()) pt.erase(i);
 	}
 
 	void file_pool::release(void* st)

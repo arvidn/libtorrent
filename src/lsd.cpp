@@ -35,18 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
-#include "libtorrent/buffer.hpp"
-#include "libtorrent/http_parser.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
-#if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #include <asio/ip/multicast.hpp>
-#else
-#include <boost/asio/ip/host_name.hpp>
-#include <boost/asio/ip/multicast.hpp>
-#endif
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
 #include <boost/config.hpp>
@@ -57,7 +50,7 @@ using namespace libtorrent;
 namespace libtorrent
 {
 	// defined in broadcast_socket.cpp
-	address guess_local_address(io_service&);
+	address guess_local_address(asio::io_service&);
 }
 
 lsd::lsd(io_service& ios, address const& listen_interface
@@ -89,7 +82,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	std::string const& msg = btsearch.str();
 
 	m_retry_count = 1;
-	error_code ec;
+	asio::error_code ec;
 	m_socket.send(msg.c_str(), int(msg.size()), ec);
 	if (ec)
 	{
@@ -102,24 +95,26 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 		<< " ==> announce: ih: " << ih << " port: " << listen_port << std::endl;
 #endif
 
-	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
+	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
 	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, self(), _1, msg));
 }
 
-void lsd::resend_announce(error_code const& e, std::string msg)
+void lsd::resend_announce(asio::error_code const& e, std::string msg) try
 {
 	if (e) return;
 
-	error_code ec;
+	asio::error_code ec;
 	m_socket.send(msg.c_str(), int(msg.size()), ec);
 
 	++m_retry_count;
 	if (m_retry_count >= 5)
 		return;
 
-	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
+	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
 	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, self(), _1, msg));
 }
+catch (std::exception&)
+{}
 
 void lsd::on_announce(udp::endpoint const& from, char* buffer
 	, std::size_t bytes_transferred)
@@ -128,11 +123,9 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 
 	http_parser p;
 
-	bool error = false;
-	p.incoming(buffer::const_interval(buffer, buffer + bytes_transferred)
-		, error);
+	p.incoming(buffer::const_interval(buffer, buffer + bytes_transferred));
 
-	if (!p.header_finished() || error)
+	if (!p.header_finished())
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string()
@@ -183,22 +176,15 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 			<< ":" << port << " ih: " << ih << std::endl;
 #endif
 		// we got an announce, pass it on through the callback
-#ifndef BOOST_NO_EXCEPTIONS
-		try {
-#endif
-			m_callback(tcp::endpoint(from.address(), port), ih);
-#ifndef BOOST_NO_EXCEPTIONS
-		}
+		try { m_callback(tcp::endpoint(from.address(), port), ih); }
 		catch (std::exception&) {}
-#endif
 	}
 }
 
 void lsd::close()
 {
 	m_socket.close();
-	error_code ec;
-	m_broadcast_timer.cancel(ec);
+	m_broadcast_timer.cancel();
 	m_disabled = true;
 	m_callback.clear();
 }

@@ -56,6 +56,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
+using asio::ip::udp;
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DECLARE_LOG(node);
 #endif
@@ -172,7 +174,6 @@ public:
 	void(std::vector<node_entry> const&)> f);
 	void add_router_node(udp::endpoint router);
 		
-	void unreachable(udp::endpoint const& ep);
 	void incoming(msg const& m);
 
 	void refresh();

@@ -70,7 +70,7 @@ void http_connect_handler(http_connection& c)
 	TEST_CHECK(c.socket().remote_endpoint().address() == address::from_string("127.0.0.1"));
 }
 
-void http_handler(error_code const& ec, http_parser const& parser
+void http_handler(asio::error_code const& ec, http_parser const& parser
 	, char const* data, int size, http_connection& c)
 {
 	++handler_called;
@@ -96,11 +96,10 @@ void reset_globals()
 	handler_called = 0;
 	data_size = 0;
 	http_status = 0;
-	g_error_code = error_code();
+	g_error_code = asio::error_code();
 }
 
-void run_test(std::string const& url, int size, int status, int connected
-	, boost::optional<error_code> ec, proxy_settings const& ps)
+void run_test(char const* url, int size, int status, int connected, boost::optional<asio::error_code> ec)
 {
 	reset_globals();
 
@@ -108,7 +107,7 @@ void run_test(std::string const& url, int size, int status, int connected
 
 	boost::shared_ptr<http_connection> h(new http_connection(ios, cq
 		, &::http_handler, true, &::http_connect_handler));
-	h->get(url, seconds(5), 0, &ps);
+	h->get(url);
 	ios.reset();
 	ios.run();
 
@@ -124,69 +123,20 @@ void run_test(std::string const& url, int size, int status, int connected
 	TEST_CHECK(http_status == status || status == -1);
 }
 
-void run_suite(std::string const& protocol, proxy_settings const& ps)
-{
-	if (ps.type != proxy_settings::none)
-	{
-		start_proxy(ps.port, ps.type);
-	}
-	char const* test_name[] = {"no", "SOCKS4", "SOCKS5"
-		, "SOCKS5 password protected", "HTTP", "HTTP password protected"};
-	std::cout << "\n\n********************** using " << test_name[ps.type]
-		<< " proxy **********************\n" << std::endl;
-
-	typedef boost::optional<error_code> err;
-	// this requires the hosts file to be modified
-//	run_test(protocol + "://test.dns.ts:8001/test_file", 3216, 200, 1, error_code(), ps);
-
-	run_test(protocol + "://127.0.0.1:8001/relative/redirect", 3216, 200, 2, error_code(), ps);
-	run_test(protocol + "://127.0.0.1:8001/redirect", 3216, 200, 2, error_code(), ps);
-	run_test(protocol + "://127.0.0.1:8001/infinite_redirect", 0, 301, 6, error_code(), ps);
-	run_test(protocol + "://127.0.0.1:8001/test_file", 3216, 200, 1, error_code(), ps);
-	run_test(protocol + "://127.0.0.1:8001/test_file.gz", 3216, 200, 1, error_code(), ps);
-	run_test(protocol + "://127.0.0.1:8001/non-existing-file", -1, 404, 1, err(), ps);
-	// if we're going through an http proxy, we won't get the same error as if the hostname
-	// resolution failed
-	if ((ps.type == proxy_settings::http || ps.type == proxy_settings::http_pw) && protocol != "https")
-		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, 502, 1, err(), ps);
-	else
-		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(libtorrent::asio::error::host_not_found), ps);
-
-	if (ps.type != proxy_settings::none)
-		stop_proxy(ps.port);
-}
-
 int test_main()
 {
+	typedef boost::optional<asio::error_code> err;
+	start_web_server(8001);
 	std::srand(std::time(0));
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
 	std::ofstream("test_file").write(data_buffer, 3216);
-	std::system("gzip -9 -c test_file > test_file.gz");
-	
-	proxy_settings ps;
-	ps.hostname = "127.0.0.1";
-	ps.port = 8034;
-	ps.username = "testuser";
-	ps.password = "testpass";
-	
-	start_web_server(8001);
-	for (int i = 0; i < 5; ++i)
-	{
-		ps.type = (proxy_settings::proxy_type)i;
-		run_suite("http", ps);
-	}
+	run_test("http://127.0.0.1:8001/relative/redirect", 3216, 200, 2, asio::error_code());
+	run_test("http://127.0.0.1:8001/redirect", 3216, 200, 2, asio::error_code());
+	run_test("http://127.0.0.1:8001/infinite_redirect", 0, 301, 6, asio::error_code());
+	run_test("http://127.0.0.1:8001/test_file", 3216, 200, 1, asio::error_code());
+	run_test("http://127.0.0.1:8001/non-existing-file", -1, 404, 1, err());
+	run_test("http://non-existent-domain.se/non-existing-file", -1, -1, 0, err(asio::error::host_not_found));
 	stop_web_server(8001);
-
-#ifdef TORRENT_USE_OPENSSL
-	start_web_server(8001, true);
-	for (int i = 0; i < 5; ++i)
-	{
-		ps.type = (proxy_settings::proxy_type)i;
-		run_suite("https", ps);
-	}
-	stop_web_server(8001);
-#endif
-
 	std::remove("test_file");
 	return 0;
 }

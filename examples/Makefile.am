@@ -17,6 +17,6 @@ simple_client_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 enum_if_SOURCES = enum_if.cpp
 enum_if_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
-AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@ -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION
-
-AM_LDFLAGS= ${LDLAGS} -L./ @BOOST_SYSTEM_LIB@ @BOOST_IOSTREAMS_LIB@ @BOOST_DATE_TIME_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION @SSL_LDFLAGS@ @SSL_LIBS@
+AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION
+LDADD = @BOOST_DATE_TIME_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @SSL_LIBS@
+AM_LDFLAGS= -L./ @SSL_LDFLAGS@

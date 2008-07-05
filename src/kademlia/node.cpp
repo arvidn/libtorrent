@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random_sample.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/rpc_manager.hpp"
+#include "libtorrent/kademlia/packet_iterator.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/node.hpp"
 
@@ -64,6 +65,8 @@ namespace
 
 // TODO: configurable?
 enum { announce_interval = 30 };
+
+using asio::ip::udp;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DEFINE_LOG(node)
@@ -243,11 +246,6 @@ void node_impl::refresh_bucket(int bucket) try
 }
 catch (std::exception&) {}
 
-void node_impl::unreachable(udp::endpoint const& ep)
-{
-	m_rpc.unreachable(ep);
-}
-
 void node_impl::incoming(msg const& m)
 {
 	if (m_rpc.incoming(m))
@@ -272,9 +270,6 @@ namespace
 		for (std::vector<node_entry>::const_iterator i = v.begin()
 			, end(v.end()); i != end; ++i)
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(node) << "  distance: " << (160 - distance_exp(ih, i->id));
-#endif
 			observer_ptr o(new (rpc.allocator().malloc()) get_peers_observer(ih, listen_port, rpc, f));
 #ifndef NDEBUG
 			o->m_in_constructor = false;

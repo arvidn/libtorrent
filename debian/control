@@ -1,29 +1,26 @@
-Source: libtorrent
-Priority: optional
+Source: libtorrent-rasterbar-0.13
 Section: libs
-Maintainer: Michael Wojciechowski <wojci@wojci.dk>
-Build-Depends: debhelper (>= 4.0.0), autotools-dev (>= 20050422.1), 
-               libboost-thread1.32.0 (>= 1.32.0), libboost-thread-dev (>=1.32.0),
-               libboost-date-time1.32.0 (>= 1.32.0), libboost-date-time-dev (>= 1.32.0),
-               libboost-filesystem1.32.0 (>= 1.32.0), libboost-filesystem-dev (>= 1.32.0)
-Standards-Version: 3.6.2
+Priority: extra
+Maintainer: Roman Rybalko <libtorrent@romanr.info>
+Build-Depends: debhelper (>= 5), automake, libboost-thread-dev, libboost-date-time-dev,
+ libboost-filesystem-dev, libboost-regex-dev, libboost-program-options-dev
+Standards-Version: 3.7.3
 
-Package: libtorrent0-dev
+Package: libtorrent-rasterbar-0.13-dev
 Section: libdevel
-Architecture: any
-Depends: libtorrent0 (= ${Source-Version})
-Provides: libtorrent-dev
-Conflicts: libtorrent-dev
-Description: Torrent library, headers.
+Architecture: i386 i586 i686 amd64
+Depends: libtorrent-rasterbar-0.13 (= ${Source-Version})
+Description: Rasterbar Torrent library, headers.
  libtorrent is a C++ library that aims to be a good alternative to all
  the other bittorrent implementations around. It is a library and not a
  full featured client, although it comes with a working example client.
 
-Package: libtorrent0
+Package: libtorrent-rasterbar-0.13
 Section: libs
-Architecture: any
-Depends: ${shlibs:Depends} libboost-thread1.32.0 (>= 1.32.0), libboost-date-time1.32.0 (>= 1.32.0), libboost-filesystem1.32.0 (>= 1.32.0)
-Description: Torrent library, libs.
+Architecture: i386 i586 i686 amd64
+Depends: libboost-thread1.34.1, libboost-date-time1.34.1, libboost-filesystem1.34.1
+Conflicts: libtorrent, libtorrent12, libtorrent-0.12, libtorrent13, libtorrent-0.13, libtorrent-rasterbar
+Description: Rasterbar Torrent library, libs.
  libtorrent is a C++ library that aims to be a good alternative to all
  the other bittorrent implementations around. It is a library and not a
  full featured client, although it comes with a working example client.

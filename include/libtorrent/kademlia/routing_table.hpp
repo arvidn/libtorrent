@@ -55,10 +55,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-TORRENT_DECLARE_LOG(table);
-#endif
+using asio::ip::udp;
 
+//TORRENT_DECLARE_LOG(table);
 	
 typedef std::vector<node_entry> bucket_t;
 

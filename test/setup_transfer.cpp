@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/create_torrent.hpp"
 
 using boost::filesystem::remove_all;
 using boost::filesystem::create_directory;
@@ -60,16 +59,10 @@ void print_alerts(libtorrent::session& ses, char const* name, bool allow_disconn
 	a = ses.pop_alert();
 	while (a.get())
 	{
-		if (peer_disconnected_alert* p = dynamic_cast<peer_disconnected_alert*>(a.get()))
-		{
-			std::cerr << name << "(" << p->ip << "): " << p->msg() << "\n";
-		}
-		else if (a->msg() != "block downloading"
+		if (a->msg() != "block downloading"
 			&& a->msg() != "block finished"
 			&& a->msg() != "piece finished")
-		{
 			std::cerr << name << ": " << a->msg() << "\n";
-		}
 		TEST_CHECK(dynamic_cast<peer_error_alert*>(a.get()) == 0
 			|| (!handles.empty() && h.is_seed())
 			|| a->msg() == "connecting to peer"
@@ -106,44 +99,20 @@ void stop_web_server(int port)
 	system(cmd.str().c_str());
 }
 
-void start_web_server(int port, bool ssl)
+void start_web_server(int port)
 {
 	stop_web_server(port);
-
-	if (ssl)
-	{
-		system("echo . > tmp");
-		system("echo test province >>tmp");
-		system("echo test city >> tmp");
-		system("echo test company >> tmp");
-		system("echo test department >> tmp");
-		system("echo tester >> tmp");
-		system("echo test@test.com >> tmp");	
-		system("openssl req -new -x509 -keyout server.pem -out server.pem "
-			"-days 365 -nodes <tmp");
-	}
-	
-	std::ofstream f("lighty_config");
-	f << "server.modules = (\"mod_access\", \"mod_redirect\", \"mod_setenv\")\n"
+	std::ofstream f("./lighty_config");
+	f << "server.modules = (\"mod_access\", \"mod_redirect\")\n"
 		"server.document-root = \"" << boost::filesystem::initial_path().string() << "\"\n"
 		"server.range-requests = \"enable\"\n"
 		"server.port = " << port << "\n"
 		"server.pid-file = \"./lighty" << port << ".pid\"\n"
 		"url.redirect = ("
-			"\"^/redirect$\" => \"" << (ssl?"https":"http") << "://127.0.0.1:" << port << "/test_file\""
-			", \"^/infinite_redirect$\" => \"" << (ssl?"https":"http") << "://127.0.0.1:" << port << "/infinite_redirect\""
+			"\"^/redirect$\" => \"http://127.0.0.1:" << port << "/test_file\""
+			", \"^/infinite_redirect$\" => \"http://127.0.0.1:" << port << "/infinite_redirect\""
 			", \"^/relative/redirect$\" => \"../test_file\""
-			")\n"
-		"$HTTP[\"url\"] == \"/test_file.gz\" {\n"
-		"    setenv.add-response-header = ( \"Content-Encoding\" => \"gzip\" )\n"
-		"#    mimetype.assign = ()\n"
-		"}\n";
-	// this requires lighttpd to be built with ssl support.
-	// The port distribution for mac is not built with ssl
-	// support by default.
-	if (ssl)
-		f << "ssl.engine = \"enable\"\n"
-			"ssl.pemfile = \"server.pem\"\n";
+			")";
 	f.close();
 	
 	system("lighttpd -f lighty_config &");
@@ -164,8 +133,7 @@ void start_proxy(int port, int proxy_type)
 	stop_proxy(port);
 	std::stringstream cmd;
 	// we need to echo n since dg will ask us to configure it
-	cmd << "echo n | delegated -P" << port << " ADMIN=test@test.com "
-		"PERMIT=\"*:*:localhost\" REMITTABLE=+,https RELAY=proxy,delegate";
+	cmd << "echo n | delegated -P" << port << " ADMIN=test@test.com";
 	switch (proxy_type)
 	{
 		case proxy_settings::socks4:
@@ -185,7 +153,6 @@ void start_proxy(int port, int proxy_type)
 			break;
 	}
 	system(cmd.str().c_str());
-	test_sleep(1000);
 }
 
 using namespace libtorrent;
@@ -196,27 +163,28 @@ boost::intrusive_ptr<T> clone_ptr(boost::intrusive_ptr<T> const& ptr)
 	return boost::intrusive_ptr<T>(new T(*ptr));
 }
 
-boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_size)
+boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file)
 {
 	char const* tracker_url = "http://non-existent-name.com/announce";
 	
 	using namespace boost::filesystem;
 
-	file_storage fs;
+	boost::intrusive_ptr<torrent_info> t(new torrent_info);
 	int total_size = 2 * 1024 * 1024;
-	fs.add_file(path("temporary"), total_size);
-	libtorrent::create_torrent t(fs, piece_size);
-	t.add_tracker(tracker_url);
+	t->add_file(path("temporary"), total_size);
+	t->set_piece_size(16 * 1024);
+	t->add_tracker(tracker_url);
 
-	std::vector<char> piece(piece_size);
+	std::vector<char> piece(16 * 1024);
 	for (int i = 0; i < int(piece.size()); ++i)
 		piece[i] = (i % 26) + 'A';
 	
 	// calculate the hash for all pieces
-	int num = t.num_pieces();
+	int num = t->num_pieces();
 	sha1_hash ph = hasher(&piece[0], piece.size()).final();
 	for (int i = 0; i < num; ++i)
-		t.set_hash(i, ph);
+		t->set_hash(i, ph);
+	t->create_torrent();
 
 	if (file)
 	{
@@ -227,16 +195,13 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_
 		}
 	}
 	
-	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char> > out(tmp);
-	bencode(out, t.generate());
-	return boost::intrusive_ptr<torrent_info>(new torrent_info(&tmp[0], tmp.size()));
+	return t;
 }
 
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
-	, std::string suffix, int piece_size)
+	, std::string suffix)
 {
 	using namespace boost::filesystem;
 
@@ -250,7 +215,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	
 	create_directory("./tmp1" + suffix);
 	std::ofstream file(("./tmp1" + suffix + "/temporary").c_str());
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, piece_size);
+	boost::intrusive_ptr<torrent_info> t = create_torrent(&file);
 	file.close();
 	if (clear_files)
 	{

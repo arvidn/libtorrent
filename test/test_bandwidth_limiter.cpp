@@ -114,13 +114,10 @@ struct torrent
 
 	void request_bandwidth(int channel
 		, boost::intrusive_ptr<peer_connection> const& p
-		, int max_block_size
 		, int priority)
 	{
-		TORRENT_ASSERT(max_block_size > 0);
 		TORRENT_ASSERT(m_bandwidth_limit[channel].throttle() > 0);
-		int block_size = (std::min)(m_bandwidth_limit[channel].throttle() / 10
-			, max_block_size);
+		int block_size = m_bandwidth_limit[channel].throttle() / 10;
 		if (block_size <= 0) block_size = 1;
 
 		if (m_bandwidth_limit[channel].max_assignable() > 0)
@@ -201,7 +198,7 @@ void peer_connection::on_transfer(int channel, int amount)
 	if (m_bandwidth_limit[channel].max_assignable() > 0)
 	{
 		m_writing = true;
-		t->request_bandwidth(0, this, 32 * 1024, m_priority);
+		t->request_bandwidth(0, this, m_priority);
 	}
 }
 
@@ -210,7 +207,7 @@ void peer_connection::start()
 	boost::shared_ptr<torrent> t = m_torrent.lock();
 	if (!t) return;
 	m_writing = true;
-	t->request_bandwidth(0, this, 32 * 1024, m_priority);
+	t->request_bandwidth(0, this, m_priority);
 }
 
 void peer_connection::expire_bandwidth(int channel, int amount)
@@ -227,7 +224,7 @@ void peer_connection::expire_bandwidth(int channel, int amount)
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
 		m_writing = true;
-		t->request_bandwidth(0, this, 32 * 1024, m_priority);
+		t->request_bandwidth(0, this, m_priority);
 	}
 }
 
@@ -271,7 +268,7 @@ typedef std::vector<boost::intrusive_ptr<peer_connection> > connections_t;
 
 bool abort_tick = false;
 
-void do_tick(error_code const&e, deadline_timer& tick, connections_t& v)
+void do_tick(asio::error_code const&e, deadline_timer& tick, connections_t& v)
 {
 	if (e || abort_tick)
 	{
@@ -293,7 +290,7 @@ void do_stop(deadline_timer& tick, connections_t& v)
 	std::cerr << " stopping..." << std::endl;
 }
 
-void do_change_rate(error_code const&e, deadline_timer& tick
+void do_change_rate(asio::error_code const&e, deadline_timer& tick
 	, boost::shared_ptr<torrent> t1
 	, boost::shared_ptr<torrent> t2
 	, int limit
@@ -316,7 +313,7 @@ void do_change_rate(error_code const&e, deadline_timer& tick
 	tick.async_wait(boost::bind(&do_change_rate, _1, boost::ref(tick), t1, t2, limit, counter-1));
 }
 
-void do_change_peer_rate(error_code const&e, deadline_timer& tick
+void do_change_peer_rate(asio::error_code const&e, deadline_timer& tick
 	, connections_t& v
 	, int limit
 	, int counter)

@@ -14,7 +14,6 @@ extern char const* alert_msg_doc;
 extern char const* alert_severity_doc;
 extern char const* torrent_alert_doc;
 extern char const* tracker_alert_doc;
-extern char const* tracker_error_alert_doc;
 extern char const* tracker_warning_alert_doc;
 extern char const* tracker_reply_alert_doc;
 extern char const* tracker_announce_alert_doc;
@@ -43,9 +42,6 @@ extern char const* fastresume_rejected_alert_doc;
 extern char const* peer_blocked_alert_doc;
 extern char const* scrape_reply_alert_doc;
 extern char const* scrape_failed_alert_doc;
-extern char const* udp_error_alert_doc;
-extern char const* external_ip_alert_doc;
-extern char const* save_resume_data_alert_doc;
 
 void bind_alert()
 {
@@ -83,27 +79,21 @@ void bind_alert()
     class_<tracker_alert, bases<torrent_alert>, noncopyable>(
         "tracker_alert", tracker_alert_doc, no_init
     )
-        .def_readonly("url", &tracker_alert::url)
+        .def_readonly("times_in_row", &tracker_alert::times_in_row)
+        .def_readonly("status_code", &tracker_alert::status_code)
         ;
 
-    class_<tracker_error_alert, bases<tracker_alert>, noncopyable>(
-        "tracker_error_alert", tracker_error_alert_doc, no_init
-    )
-        .def_readonly("times_in_row", &tracker_error_alert::times_in_row)
-        .def_readonly("status_code", &tracker_error_alert::status_code)
-        ;
-
-    class_<tracker_warning_alert, bases<tracker_alert>, noncopyable>(
+    class_<tracker_warning_alert, bases<torrent_alert>, noncopyable>(
         "tracker_warning_alert", tracker_warning_alert_doc, no_init
     );
 
-    class_<tracker_reply_alert, bases<tracker_alert>, noncopyable>(
+    class_<tracker_reply_alert, bases<torrent_alert>, noncopyable>(
         "tracker_reply_alert", tracker_reply_alert_doc, no_init
     )
         .def_readonly("num_peers", &tracker_reply_alert::num_peers)
         ;
 
-    class_<tracker_announce_alert, bases<tracker_alert>, noncopyable>(
+    class_<tracker_announce_alert, bases<torrent_alert>, noncopyable>(
         "tracker_announce_alert", tracker_announce_alert_doc, no_init
     );
 
@@ -190,9 +180,7 @@ void bind_alert()
         
     class_<file_error_alert, bases<torrent_alert>, noncopyable>(
         "file_error_alert", file_error_alert_doc, no_init
-    )
-        .def_readonly("file", &file_error_alert::file)
-        ;
+    );
     
     class_<metadata_failed_alert, bases<torrent_alert>, noncopyable>(
         "metadata_failed_alert", metadata_failed_alert_doc, no_init
@@ -214,18 +202,11 @@ void bind_alert()
     
     class_<portmap_error_alert, bases<alert>, noncopyable>(
         "portmap_error_alert", portmap_error_alert_doc, no_init
-    )
-        .def_readonly("mapping", &portmap_error_alert::mapping)
-        .def_readonly("type", &portmap_error_alert::type)
-        ;
-        
+    );
+
     class_<portmap_alert, bases<alert>, noncopyable>(
         "portmap_alert", portmap_alert_doc, no_init
-    )
-        .def_readonly("mapping", &portmap_alert::mapping)
-        .def_readonly("external_port", &portmap_alert::external_port)
-        .def_readonly("type", &portmap_alert::type)
-        ;
+    );
             
     class_<fastresume_rejected_alert, bases<torrent_alert>, noncopyable>(
         "fastresume_rejected_alert", fastresume_rejected_alert_doc, no_init
@@ -237,48 +218,14 @@ void bind_alert()
         .def_readonly("ip", &peer_blocked_alert::ip)
         ;
         
-    class_<scrape_reply_alert, bases<tracker_alert>, noncopyable>(
+    class_<scrape_reply_alert, bases<torrent_alert>, noncopyable>(
         "scrape_reply_alert", scrape_reply_alert_doc, no_init
     )
         .def_readonly("incomplete", &scrape_reply_alert::incomplete)
         .def_readonly("complete", &scrape_reply_alert::complete)
         ;
     
-    class_<scrape_failed_alert, bases<tracker_alert>, noncopyable>(
+    class_<scrape_failed_alert, bases<torrent_alert>, noncopyable>(
         "scrape_failed_alert", scrape_failed_alert_doc, no_init
     );
-    
-    class_<udp_error_alert, bases<alert>, noncopyable>(
-        "udp_error_alert", udp_error_alert_doc, no_init
-    )
-        .def_readonly("endpoint", &udp_error_alert::endpoint)
-        ;
-    
-    class_<external_ip_alert, bases<alert>, noncopyable>(
-        "external_ip_alert", external_ip_alert_doc, no_init
-    )
-        .def_readonly("external_address", &external_ip_alert::external_address)
-        ;
-
-    class_<save_resume_data_alert, bases<torrent_alert>, noncopyable>(
-        "save_resume_data_alert", save_resume_data_alert_doc, no_init
-    )
-        .def_readonly("resume_data", &save_resume_data_alert::resume_data)
-        ;
-
-    class_<file_renamed_alert, bases<torrent_alert>, noncopyable>(
-        "file_renamed_alert", no_init
-    )
-        .def_readonly("name", &file_renamed_alert::name)
-        ;
-
-    class_<torrent_resumed_alert, bases<torrent_alert>, noncopyable>( 
-        "torrent_resumed_alert", no_init 
-	);
-	
-	class_<state_changed_alert, bases<torrent_alert>, noncopyable>(
-	    "state_changed_alert", no_init
-	)
-	    .def_readonly("state", &state_changed_alert::state)
-	    ;
 }

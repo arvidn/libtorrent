@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/socket.hpp>
 #include <libtorrent/entry.hpp>
+#include <libtorrent/kademlia/packet_iterator.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/node_entry.hpp>
@@ -56,6 +57,7 @@ namespace libtorrent { namespace dht
 
 struct observer;
 
+using asio::ip::udp;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DECLARE_LOG(rpc);
 #endif
@@ -81,8 +83,6 @@ public:
 		, routing_table& table, send_fun const& sf);
 	~rpc_manager();
 
-	void unreachable(udp::endpoint const& ep);
-
 	// returns true if the node needs a refresh
 	bool incoming(msg const&);
 	time_duration tick();
@@ -94,7 +94,6 @@ public:
 	void reply_with_ping(msg& m);
 
 #ifndef NDEBUG
-	size_t allocation_size() const;
 	void check_invariant() const;
 #endif
 
@@ -115,7 +114,7 @@ private:
 	typedef boost::array<observer_ptr, max_transactions>
 		transactions_t;
 	transactions_t m_transactions;
-	std::vector<observer_ptr> m_aborted_transactions;
+	std::vector<observer_ptr > m_aborted_transactions;
 	
 	// this is the next transaction id to be used
 	int m_next_transaction_id;

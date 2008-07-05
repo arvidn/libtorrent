@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <assert.h>
-#include <cstring>
 
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
@@ -45,162 +44,88 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	class TORRENT_EXPORT stat_channel
-	{
-	friend class invariant_access;
-	public:
-		enum { history = 10 };
-
-		stat_channel()
-			: m_counter(0)
-			, m_total_counter(0)
-			, m_rate_sum(0)
-		{
-			std::memset(m_rate_history, 0, sizeof(m_rate_history));
-		}
-
-		void operator+=(stat_channel const& s)
-		{
-			m_counter += s.m_counter;
-			m_total_counter += s.m_counter;
-		}
-
-		void add(int count)
-		{
-			TORRENT_ASSERT(count >= 0);
-
-			m_counter += count;
-			m_total_counter += count;
-		}
-
-		// should be called once every second
-		void second_tick(float tick_interval);
-		float rate() const { return m_rate_sum / float(history); }
-		size_type rate_sum() const { return m_rate_sum; }
-		size_type total() const { return m_total_counter; }
-
-		void offset(size_type counter)
-		{
-			TORRENT_ASSERT(counter >= 0);
-			m_total_counter += counter;
-		}
-
-		size_type counter() const { return m_counter; }
-
-	private:
-
-#ifndef NDEBUG
-		void check_invariant() const
-		{
-			int sum = 0;
-			for (int i = 0; i < history; ++i) sum += m_rate_history[i];
-			TORRENT_ASSERT(m_rate_sum == sum);
-			TORRENT_ASSERT(m_total_counter >= 0);
-		}
-#endif
-
-		// history of rates a few seconds back
-		int m_rate_history[history];
-
-		// the accumulator for this second.
-		int m_counter;
-
-		// total counters
-		size_type m_total_counter;
-
-		// sum of all elements in m_rate_history
-		size_type m_rate_sum;
-	};
 
 	class TORRENT_EXPORT stat
 	{
 	friend class invariant_access;
 	public:
+		enum { history = 10 };
+
+		stat()
+			: m_downloaded_payload(0)
+			, m_uploaded_payload(0)
+			, m_downloaded_protocol(0)
+			, m_uploaded_protocol(0)
+			, m_total_download_payload(0)
+			, m_total_upload_payload(0)
+			, m_total_download_protocol(0)
+			, m_total_upload_protocol(0)
+			, m_mean_download_rate(0)
+			, m_mean_upload_rate(0)
+			, m_mean_download_payload_rate(0)
+			, m_mean_upload_payload_rate(0)
+		{
+			std::fill(m_download_rate_history, m_download_rate_history+history, 0.f);
+			std::fill(m_upload_rate_history, m_upload_rate_history+history, 0.f);
+			std::fill(m_download_payload_rate_history, m_download_payload_rate_history+history, 0.f);
+			std::fill(m_upload_payload_rate_history, m_upload_payload_rate_history+history, 0.f);
+		}
+
 		void operator+=(const stat& s)
 		{
-			for (int i = 0; i < num_channels; ++i)
-				m_stat[i] += s.m_stat[i];
+			INVARIANT_CHECK;
+
+			m_downloaded_payload += s.m_downloaded_payload;
+			m_total_download_payload += s.m_downloaded_payload;
+			m_downloaded_protocol += s.m_downloaded_protocol;
+			m_total_download_protocol += s.m_downloaded_protocol;
+			
+			m_uploaded_payload += s.m_uploaded_payload;
+			m_total_upload_payload += s.m_uploaded_payload;
+			m_uploaded_protocol += s.m_uploaded_protocol;
+			m_total_upload_protocol += s.m_uploaded_protocol;
 		}
 
 		void received_bytes(int bytes_payload, int bytes_protocol)
 		{
+			INVARIANT_CHECK;
+
 			TORRENT_ASSERT(bytes_payload >= 0);
 			TORRENT_ASSERT(bytes_protocol >= 0);
 
-			m_stat[download_payload].add(bytes_payload);
-			m_stat[download_protocol].add(bytes_protocol);
+			m_downloaded_payload += bytes_payload;
+			m_total_download_payload += bytes_payload;
+			m_downloaded_protocol += bytes_protocol;
+			m_total_download_protocol += bytes_protocol;
 		}
 
 		void sent_bytes(int bytes_payload, int bytes_protocol)
 		{
+			INVARIANT_CHECK;
+
 			TORRENT_ASSERT(bytes_payload >= 0);
 			TORRENT_ASSERT(bytes_protocol >= 0);
 
-			m_stat[upload_payload].add(bytes_payload);
-			m_stat[upload_protocol].add(bytes_protocol);
+			m_uploaded_payload += bytes_payload;
+			m_total_upload_payload += bytes_payload;
+			m_uploaded_protocol += bytes_protocol;
+			m_total_upload_protocol += bytes_protocol;
 		}
-
-		// calculate ip protocol overhead
-		void calc_ip_overhead()
-		{
-			int uploaded = m_stat[upload_protocol].counter()
-				+ m_stat[upload_payload].counter();
-			int downloaded = m_stat[download_protocol].counter()
-				+ m_stat[download_payload].counter();
-
-			// IP + TCP headers are 40 bytes per MTU (1460)
-			// bytes of payload, but at least 40 bytes
-			m_stat[upload_ip_protocol].add((std::max)(uploaded / 1460, uploaded>0?40:0));
-			m_stat[download_ip_protocol].add((std::max)(downloaded / 1460, downloaded>0?40:0));
-
-			// also account for ACK traffic. That adds to the transfers
-			// in the opposite direction. Even on connections with symmetric
-			// transfer rates, it seems to add a penalty.
-			m_stat[upload_ip_protocol].add((std::max)(downloaded * 40 / 1460, downloaded>0?40:0));
-			m_stat[download_ip_protocol].add((std::max)(uploaded * 40 / 1460, uploaded>0?40:0));
-		}
-
-		int upload_ip_overhead() const { return m_stat[upload_ip_protocol].counter(); }
-		int download_ip_overhead() const { return m_stat[download_ip_protocol].counter(); }
 
 		// should be called once every second
-		void second_tick(float tick_interval)
-		{
-			for (int i = 0; i < num_channels; ++i)
-				m_stat[i].second_tick(tick_interval);
-		}
+		void second_tick(float tick_interval);
 
-		float upload_rate() const
-		{
-			return (m_stat[upload_payload].rate_sum()
-				+ m_stat[upload_protocol].rate_sum()
-				+ m_stat[upload_ip_protocol].rate_sum())
-				/ float(stat_channel::history);
-		}
+		float upload_rate() const { return m_mean_upload_rate; }
+		float download_rate() const { return m_mean_download_rate; }
 
-		float download_rate() const
-		{
-			return (m_stat[download_payload].rate_sum()
-				+ m_stat[download_protocol].rate_sum()
-				+ m_stat[download_ip_protocol].rate_sum())
-				/ float(stat_channel::history);
-		}
+		float upload_payload_rate() const { return m_mean_upload_payload_rate; }
+		float download_payload_rate() const { return m_mean_download_payload_rate; }
 
-		float upload_payload_rate() const
-		{ return m_stat[upload_payload].rate(); }
+		size_type total_payload_upload() const { return m_total_upload_payload; }
+		size_type total_payload_download() const { return m_total_download_payload; }
 
-		float download_payload_rate() const
-		{ return m_stat[download_payload].rate(); }
-
-		size_type total_payload_upload() const
-		{ return m_stat[upload_payload].total(); }
-		size_type total_payload_download() const
-		{ return m_stat[download_payload].total(); }
-
-		size_type total_protocol_upload() const
-		{ return m_stat[upload_protocol].total(); }
-		size_type total_protocol_download() const
-		{ return m_stat[download_protocol].total(); }
+		size_type total_protocol_upload() const { return m_total_upload_protocol; }
+		size_type total_protocol_download() const { return m_total_download_protocol; }
 
 		// this is used to offset the statistics when a
 		// peer_connection is opened and have some previous
@@ -209,33 +134,63 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(downloaded >= 0);
 			TORRENT_ASSERT(uploaded >= 0);
-			m_stat[download_payload].offset(downloaded);
-			m_stat[upload_payload].offset(uploaded);
+			m_total_download_payload += downloaded;
+			m_total_upload_payload += uploaded;
 		}
-
-		size_type last_payload_downloaded() const
-		{ return m_stat[download_payload].counter(); }
-		size_type last_payload_uploaded() const
-		{ return m_stat[upload_payload].counter(); }
 
 	private:
 
-		// these are the channels we keep stats for
-		enum
+#ifndef NDEBUG
+		void check_invariant() const
 		{
-			upload_payload,
-			upload_protocol,
-			upload_ip_protocol,
-			download_payload,
-			download_protocol,
-			download_ip_protocol,
-			num_channels
-		};
+			TORRENT_ASSERT(m_mean_upload_rate >= 0);
+			TORRENT_ASSERT(m_mean_download_rate >= 0);
+			TORRENT_ASSERT(m_mean_upload_payload_rate >= 0);
+			TORRENT_ASSERT(m_mean_download_payload_rate >= 0);
+			TORRENT_ASSERT(m_total_upload_payload >= 0);
+			TORRENT_ASSERT(m_total_download_payload >= 0);
+			TORRENT_ASSERT(m_total_upload_protocol >= 0);
+			TORRENT_ASSERT(m_total_download_protocol >= 0);
+		}
+#endif
 
-		stat_channel m_stat[num_channels];
+		// history of download/upload speeds a few seconds back
+		float m_download_rate_history[history];
+		float m_upload_rate_history[history];
+
+		float m_download_payload_rate_history[history];
+		float m_upload_payload_rate_history[history];
+
+		// the accumulators we are adding the downloads/uploads
+		// to this second. This only counts the actual payload
+		// and ignores the bytes sent as protocol chatter.
+		int m_downloaded_payload;
+		int m_uploaded_payload;
+
+		// the accumulators we are adding the downloads/uploads
+		// to this second. This only counts the protocol
+		// chatter and ignores the actual payload
+		int m_downloaded_protocol;
+		int m_uploaded_protocol;
+
+		// total download/upload counters
+		// only counting payload data
+		size_type m_total_download_payload;
+		size_type m_total_upload_payload;
+
+		// total download/upload counters
+		// only counting protocol chatter
+		size_type m_total_download_protocol;
+		size_type m_total_upload_protocol;
+
+		// current mean download/upload rates
+		float m_mean_download_rate;
+		float m_mean_upload_rate;
+
+		float m_mean_download_payload_rate;
+		float m_mean_upload_payload_rate;
 	};
 
 }
 
 #endif // TORRENT_STAT_HPP_INCLUDED
-

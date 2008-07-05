@@ -30,20 +30,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/parse_url.hpp"
+#include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/xml_parse.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/bitfield.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/escape_string.hpp"
-#include "libtorrent/broadcast_socket.hpp"
-#ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
-#include "libtorrent/kademlia/routing_table.hpp"
-#endif
+#include "libtorrent/broadcast_socket.hpp"
+
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/bind.hpp>
@@ -54,13 +50,13 @@ using namespace libtorrent;
 using namespace boost::tuples;
 using boost::bind;
 
-tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
+tuple<int, int> feed_bytes(http_parser& parser, char const* str)
 {
-	tuple<int, int, bool> ret(0, 0, false);
-	tuple<int, int, bool> prev(0, 0, false);
+	tuple<int, int> ret(0, 0);
+	tuple<int, int> prev(0, 0);
 	for (int chunks = 1; chunks < 70; ++chunks)
 	{
-		ret = make_tuple(0, 0, false);
+		ret = make_tuple(0, 0);
 		parser.reset();
 		buffer::const_interval recv_buf(str, str);
 		for (; *str;)
@@ -69,15 +65,13 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 			if (chunk_size == 0) break;
 			recv_buf.end += chunk_size;
 			int payload, protocol;
-			bool error = false;
-			tie(payload, protocol) = parser.incoming(recv_buf, error);
+			tie(payload, protocol) = parser.incoming(recv_buf);
 			ret.get<0>() += payload;
 			ret.get<1>() += protocol;
-			ret.get<2>() += error;
 			std::cerr << payload << ", " << protocol << ", " << chunk_size << std::endl;
 			TORRENT_ASSERT(payload + protocol == chunk_size);
 		}
-		TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev);
+		TEST_CHECK(prev == make_tuple(0, 0) || ret == prev);
 		prev = ret;
 	}
 	return ret;
@@ -110,40 +104,27 @@ void parser_callback(std::string& out, int token, char const* s, char const* val
 	}
 }
 
-#ifndef TORRENT_DISABLE_DHT	
-void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id const& add)
-{
-	bool carry = false;
-	for (int k = 19; k >= 0; --k)
-	{
-		int sum = dst[k] + add[k] + (carry?1:0);
-		dst[k] = sum & 255;
-		carry = sum > 255;
-	}
-}
-#endif
-
 int test_main()
 {
 	using namespace libtorrent;
 
 	TEST_CHECK(parse_url_components("http://foo:bar@host.com:80/path/to/file")
-		== make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file", (char const*)0));
+		== make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("http://host.com/path/to/file")
-		== make_tuple("http", "", "host.com", 80, "/path/to/file", (char const*)0));
+		== make_tuple("http", "", "host.com", 80, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("ftp://host.com:21/path/to/file")
-		== make_tuple("ftp", "", "host.com", 21, "/path/to/file", (char const*)0));
+		== make_tuple("ftp", "", "host.com", 21, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("http://host.com/path?foo:bar@foo:")
-		== make_tuple("http", "", "host.com", 80, "/path?foo:bar@foo:", (char const*)0));
+		== make_tuple("http", "", "host.com", 80, "/path?foo:bar@foo:"));
 
 	TEST_CHECK(parse_url_components("http://192.168.0.1/path/to/file")
-		== make_tuple("http", "", "192.168.0.1", 80, "/path/to/file", (char const*)0));
+		== make_tuple("http", "", "192.168.0.1", 80, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("http://[::1]/path/to/file")
-		== make_tuple("http", "", "[::1]", 80, "/path/to/file", (char const*)0));
+		== make_tuple("http", "", "[::1]", 80, "/path/to/file"));
 
 	// base64 test vectors from http://www.faqs.org/rfcs/rfc4648.html
 
@@ -155,57 +136,17 @@ int test_main()
 	TEST_CHECK(base64encode("fooba") == "Zm9vYmE=");
 	TEST_CHECK(base64encode("foobar") == "Zm9vYmFy");
 
-	// base32 test vectors from http://www.faqs.org/rfcs/rfc4648.html
-
-   TEST_CHECK(base32encode("") == "");
-   TEST_CHECK(base32encode("f") == "MY======");
-   TEST_CHECK(base32encode("fo") == "MZXQ====");
-   TEST_CHECK(base32encode("foo") == "MZXW6===");
-   TEST_CHECK(base32encode("foob") == "MZXW6YQ=");
-   TEST_CHECK(base32encode("fooba") == "MZXW6YTB");
-   TEST_CHECK(base32encode("foobar") == "MZXW6YTBOI======");
-
-   TEST_CHECK(base32decode("") == "");
-   TEST_CHECK(base32decode("MY======") == "f");
-   TEST_CHECK(base32decode("MZXQ====") == "fo");
-   TEST_CHECK(base32decode("MZXW6===") == "foo");
-   TEST_CHECK(base32decode("MZXW6YQ=") == "foob");
-   TEST_CHECK(base32decode("MZXW6YTB") == "fooba");
-   TEST_CHECK(base32decode("MZXW6YTBOI======") == "foobar");
-
-   TEST_CHECK(base32decode("MY") == "f");
-   TEST_CHECK(base32decode("MZXW6YQ") == "foob");
-   TEST_CHECK(base32decode("MZXW6YTBOI") == "foobar");
-   TEST_CHECK(base32decode("mZXw6yTBO1======") == "foobar");
-
-	std::string test;
-	for (int i = 0; i < 255; ++i)
-		test += char(i);
-
-	TEST_CHECK(base32decode(base32encode(test)) == test);
-
-	// url_has_argument
-
-	TEST_CHECK(!url_has_argument("http://127.0.0.1/test", "test"));
-	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24", "bar"));
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24", "foo") == "24");
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "foo") == "24");
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "bar") == "23");
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "bar") == "23");
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "a") == "e");
-	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "b"));
-
 	// HTTP request parser
 
 	http_parser parser;
-	boost::tuple<int, int, bool> received = feed_bytes(parser
+	boost::tuple<int, int> received = feed_bytes(parser
 		, "HTTP/1.1 200 OK\r\n"
 		"Content-Length: 4\r\n"
 		"Content-Type: text/plain\r\n"
 		"\r\n"
 		"test");
 
-	TEST_CHECK(received == make_tuple(4, 64, false));
+	TEST_CHECK(received == make_tuple(4, 64));
 	TEST_CHECK(parser.finished());
 	TEST_CHECK(std::equal(parser.get_body().begin, parser.get_body().end, "test"));
 	TEST_CHECK(parser.header("content-type") == "text/plain");
@@ -227,7 +168,7 @@ int test_main()
 
 	received = feed_bytes(parser, upnp_response);
 
-	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_response)), false));
+	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_response))));
 	TEST_CHECK(parser.get_body().left() == 0);
 	TEST_CHECK(parser.header("st") == "upnp:rootdevice");
 	TEST_CHECK(parser.header("location")
@@ -250,7 +191,7 @@ int test_main()
 
 	received = feed_bytes(parser, upnp_notify);
 
-	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_notify)), false));
+	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_notify))));
 	TEST_CHECK(parser.method() == "notify");
 	TEST_CHECK(parser.path() == "*");
 
@@ -265,7 +206,7 @@ int test_main()
 
 	received = feed_bytes(parser, bt_lsd);
 
-	TEST_CHECK(received == make_tuple(2, int(strlen(bt_lsd) - 2), false));
+	TEST_CHECK(received == make_tuple(2, int(strlen(bt_lsd) - 2)));
 	TEST_CHECK(parser.method() == "bt-search");
 	TEST_CHECK(parser.path() == "*");
 	TEST_CHECK(atoi(parser.header("port").c_str()) == 6881);
@@ -286,7 +227,7 @@ int test_main()
 
 	received = feed_bytes(parser, tracker_response);
 
-	TEST_CHECK(received == make_tuple(5, int(strlen(tracker_response) - 5), false));
+	TEST_CHECK(received == make_tuple(5, int(strlen(tracker_response) - 5)));
 	TEST_CHECK(parser.get_body().left() == 5);
 
 	// test xml parser
@@ -325,7 +266,7 @@ int test_main()
 
 	// test network functions
 
-	error_code ec;
+	asio::error_code ec;
 	TEST_CHECK(is_local(address::from_string("192.168.0.1", ec)));
 	TEST_CHECK(is_local(address::from_string("10.1.1.56", ec)));
 	TEST_CHECK(!is_local(address::from_string("14.14.251.63", ec)));
@@ -347,7 +288,7 @@ int test_main()
 	torrent["info"] = info;
 
 	torrent_info ti(torrent);
-	std::cerr << ti.name() << std::endl;
+ 	std::cerr << ti.name() << std::endl;
 	TEST_CHECK(ti.name() == "test1");
 
 #ifdef TORRENT_WINDOWS
@@ -355,16 +296,16 @@ int test_main()
 #else
 	info["name.utf-8"] = "/test1/test2/test3";
 #endif
-	torrent["info"] = info;
-	torrent_info ti2(torrent);
-	std::cerr << ti2.name() << std::endl;
-	TEST_CHECK(ti2.name() == "test3");
-
-	info["name.utf-8"] = "test2/../test3/.././../../test4";
-	torrent["info"] = info;
-	torrent_info ti3(torrent);
-	std::cerr << ti3.name() << std::endl;
-	TEST_CHECK(ti3.name() == "test2/test3/test4");
+ 	torrent["info"] = info;
+ 	torrent_info ti2(torrent);
+ 	std::cerr << ti2.name() << std::endl;
+ 	TEST_CHECK(ti2.name() == "test3");
+ 
+ 	info["name.utf-8"] = "test2/../test3/.././../../test4";
+ 	torrent["info"] = info;
+ 	torrent_info ti3(torrent);
+ 	std::cerr << ti3.name() << std::endl;
+ 	TEST_CHECK(ti3.name() == "test2/test3/test4");
 
 #ifndef TORRENT_DISABLE_DHT	
 	// test kademlia functions
@@ -394,123 +335,11 @@ int test_main()
 			}
 		}
 	}
-
-	// test kademlia routing table
-	dht_settings s;
-	node_id id = boost::lexical_cast<sha1_hash>("6123456789abcdef01232456789abcdef0123456");
-	dht::routing_table table(id, 10, s);
-	table.node_seen(id, udp::endpoint(address_v4::any(), rand()));
-
-	node_id tmp;
-	node_id diff = boost::lexical_cast<sha1_hash>("00000f7459456a9453f8719b09547c11d5f34064");
-	std::vector<node_entry> nodes;
-	for (int i = 0; i < 1000000; ++i)
-	{
-		table.node_seen(tmp, udp::endpoint(address_v4::any(), rand()));
-		add_and_replace(tmp, diff);
-	}
-
-	std::copy(table.begin(), table.end(), std::back_inserter(nodes));
-
-	std::cout << "nodes: " << nodes.size() << std::endl;
-
-	std::vector<node_entry> temp;
-
-	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, false, nodes.size() + 1);
-	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == nodes.size());
-
-	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, true, nodes.size() + 1);
-	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == nodes.size() + 1);
-
-	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, false, 7);
-	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == 7);
-
-	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
-		, bind(&node_entry::id, _1)
-		, bind(&node_entry::id, _2), tmp));
-
-	int hits = 0;
-	for (std::vector<node_entry>::iterator i = temp.begin()
-		, end(temp.end()); i != end; ++i)
-	{
-		int hit = std::find_if(nodes.begin(), nodes.end()
-			, bind(&node_entry::id, _1) == i->id) - nodes.begin();
-		std::cerr << hit << std::endl;
-		if (hit < int(temp.size())) ++hits;
-	}
-	TEST_CHECK(hits > int(temp.size()) / 2);
-
-	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, false, 15);
-	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == 15);
-
-	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
-		, bind(&node_entry::id, _1)
-		, bind(&node_entry::id, _2), tmp));
-
-	hits = 0;
-	for (std::vector<node_entry>::iterator i = temp.begin()
-		, end(temp.end()); i != end; ++i)
-	{
-		int hit = std::find_if(nodes.begin(), nodes.end()
-			, bind(&node_entry::id, _1) == i->id) - nodes.begin();
-		std::cerr << hit << std::endl;
-		if (hit < int(temp.size())) ++hits;
-	}
-	TEST_CHECK(hits > int(temp.size()) / 2);
-
 #endif
 
-
-
-	// test peer_id/sha1_hash type
-
-	sha1_hash h1(0);
-	sha1_hash h2(0);
-	TEST_CHECK(h1 == h2);
-	TEST_CHECK(!(h1 != h2));
-	TEST_CHECK(!(h1 < h2));
-	TEST_CHECK(!(h1 < h2));
-	TEST_CHECK(h1.is_all_zeros());
-
-	h1 = boost::lexical_cast<sha1_hash>("0123456789012345678901234567890123456789");
-	h2 = boost::lexical_cast<sha1_hash>("0113456789012345678901234567890123456789");
-
-	TEST_CHECK(h2 < h1);
-	TEST_CHECK(h2 == h2);
-	TEST_CHECK(h1 == h1);
-	h2.clear();
-	TEST_CHECK(h2.is_all_zeros());
-	
-	h2 = boost::lexical_cast<sha1_hash>("ffffffffff0000000000ffffffffff0000000000");
-	h1 = boost::lexical_cast<sha1_hash>("fffff00000fffff00000fffff00000fffff00000");
-	h1 &= h2;
-	TEST_CHECK(h1 == boost::lexical_cast<sha1_hash>("fffff000000000000000fffff000000000000000"));
-
-	h2 = boost::lexical_cast<sha1_hash>("ffffffffff0000000000ffffffffff0000000000");
-	h1 = boost::lexical_cast<sha1_hash>("fffff00000fffff00000fffff00000fffff00000");
-	h1 |= h2;
-	TEST_CHECK(h1 == boost::lexical_cast<sha1_hash>("fffffffffffffff00000fffffffffffffff00000"));
-	
-	h2 = boost::lexical_cast<sha1_hash>("0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f");
-	h1 ^= h2;
-	std::cerr << h1 << std::endl;
-	TEST_CHECK(h1 == boost::lexical_cast<sha1_hash>("f0f0f0f0f0f0f0ff0f0ff0f0f0f0f0f0f0ff0f0f"));
-	TEST_CHECK(h1 != h2);
-
-	h2 = sha1_hash("                    ");
-	TEST_CHECK(h2 == boost::lexical_cast<sha1_hash>("2020202020202020202020202020202020202020"));
-	
 	// CIDR distance test
-	h1 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
-	h2 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
+	sha1_hash h1 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
+	sha1_hash h2 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 160);
 	h2 = boost::lexical_cast<sha1_hash>("0120456789abcdef01232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 14);
@@ -518,31 +347,6 @@ int test_main()
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 12);
 	h2 = boost::lexical_cast<sha1_hash>("0123456789abcdef11232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 16 * 4 + 3);
-
-
-	// test bitfield
-	bitfield test1(10, false);
-	TEST_CHECK(test1.count() == 0);
-	test1.set_bit(9);
-	TEST_CHECK(test1.count() == 1);
-	test1.clear_bit(9);
-	TEST_CHECK(test1.count() == 0);
-	test1.set_bit(2);
-	TEST_CHECK(test1.count() == 1);
-	test1.set_bit(1);
-	test1.set_bit(9);
-	TEST_CHECK(test1.count() == 3);
-	test1.clear_bit(2);
-	TEST_CHECK(test1.count() == 2);
-	int distance = std::distance(test1.begin(), test1.end());
-	std::cerr << distance << std::endl;
-	TEST_CHECK(distance == 10);
-
-	test1.set_all();
-	TEST_CHECK(test1.count() == 10);
-
-	test1.clear_all();
-	TEST_CHECK(test1.count() == 0);
 	return 0;
 }
 

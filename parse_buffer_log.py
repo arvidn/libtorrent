@@ -65,8 +65,6 @@ for k in keys:
       except:
          print l
 
-   out.close()
-   peak_out.close()
 
 out = open('send_buffer.gnuplot', 'wb')
 print >>out, "set term png size 1200,700"
@@ -86,5 +84,5 @@ for k in keys:
 print >>out, 'x=0'
 out.close()
 
-os.system('gnuplot send_buffer.gnuplot')
+os.system('gnuplot send_buffer.gnuplot');
 

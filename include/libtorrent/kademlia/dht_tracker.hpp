@@ -50,10 +50,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/traversal_algorithm.hpp"
+#include "libtorrent/kademlia/packet_iterator.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session_status.hpp"
-#include "libtorrent/udp_socket.hpp"
-#include "libtorrent/socket.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -71,13 +70,15 @@ namespace libtorrent { namespace dht
 	{
 		friend void intrusive_ptr_add_ref(dht_tracker const*);
 		friend void intrusive_ptr_release(dht_tracker const*);
-		dht_tracker(udp_socket& sock, dht_settings const& settings
-			, entry const& bootstrap);
+		dht_tracker(asio::io_service& ios, dht_settings const& settings
+			, asio::ip::address listen_interface, entry const& bootstrap);
 		void stop();
 
 		void add_node(udp::endpoint node);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_router_node(std::pair<std::string, int> const& node);
+
+		void rebind(asio::ip::address listen_interface, int listen_port);
 
 		entry state() const;
 
@@ -87,30 +88,35 @@ namespace libtorrent { namespace dht
 
 		void dht_status(session_status& s);
 
-		// translate bittorrent kademlia message into the generic kademlia message
-		// used by the library
-		void on_receive(udp::endpoint const& ep, char const* pkt, int size);
-		void on_unreachable(udp::endpoint const& ep);
-
 	private:
 	
 		boost::intrusive_ptr<dht_tracker> self()
 		{ return boost::intrusive_ptr<dht_tracker>(this); }
 
-		void on_name_lookup(error_code const& e
+		void on_name_lookup(asio::error_code const& e
 			, udp::resolver::iterator host);
-		void on_router_name_lookup(error_code const& e
+		void on_router_name_lookup(asio::error_code const& e
 			, udp::resolver::iterator host);
-		void connection_timeout(error_code const& e);
-		void refresh_timeout(error_code const& e);
-		void tick(error_code const& e);
+		void connection_timeout(asio::error_code const& e);
+		void refresh_timeout(asio::error_code const& e);
+		void tick(asio::error_code const& e);
 
+		// translate bittorrent kademlia message into the generic kademlia message
+		// used by the library
+		void on_receive(asio::error_code const& error, size_t bytes_transferred);
 		void on_bootstrap();
 		void send_packet(msg const& m);
 
-		node_impl m_dht;
-		udp_socket& m_sock;
+		asio::strand m_strand;
+		asio::ip::udp::socket m_socket;
 
+		node_impl m_dht;
+
+		// this is the index of the receive buffer we are currently receiving to
+		// the other buffer is the one containing the last message
+		int m_buffer;
+		std::vector<char> m_in_buf[2];
+		udp::endpoint m_remote_endpoint[2];
 		std::vector<char> m_send_buf;
 
 		ptime m_last_new_key;

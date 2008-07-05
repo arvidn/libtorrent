@@ -38,14 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/lazy_entry.hpp"
-#include <boost/filesystem/operations.hpp>
 
 
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
-	using namespace boost::filesystem;
 
 	if (argc != 2)
 	{
@@ -56,33 +53,17 @@ int main(int argc, char* argv[])
 	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
 #endif
 
-#ifndef BOOST_NO_EXCEPTIONS
 	try
 	{
-#endif
-
-		int size = file_size(argv[1]);
-		if (size > 10 * 1000000)
-		{
-			std::cerr << "file too big (" << size << "), aborting\n";
-			return 1;
-		}
-		std::vector<char> buf(size);
-		std::ifstream(argv[1], std::ios_base::binary).read(&buf[0], size);
-		lazy_entry e;
-		int ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
-
-		if (ret != 0)
-		{
-			std::cerr << "invalid bencoding: " << ret << std::endl;
-			return 1;
-		}
+		std::ifstream in(argv[1], std::ios_base::binary);
+		in.unsetf(std::ios_base::skipws);
+		entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
 
 		std::cout << "\n\n----- raw info -----\n\n";
-		std::cout << e << std::endl;
-	
-		torrent_info t(e);
+		e.print(std::cout);
 
+		torrent_info t(e);
+	
 		// print info about torrent
 		std::cout << "\n\n----- torrent file info -----\n\n";
 		std::cout << "nodes:\n";
@@ -116,14 +97,12 @@ int main(int argc, char* argv[])
 				<< " " << i->path.string() << "[ " << first << ", "
 				<< last << " ]\n";
 		}
-
-#ifndef BOOST_NO_EXCEPTIONS
+		
 	}
 	catch (std::exception& e)
 	{
   		std::cout << e.what() << "\n";
 	}
-#endif
 
 	return 0;
 }

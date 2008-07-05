@@ -202,9 +202,6 @@ char const* tracker_alert_doc =
     "\"200 OK\". From the alert you can get the handle to the torrent\n"
     "the tracker belongs to. This alert is generated as severity level\n"
     "`alert.severity_levels.warning`.";
-
-char const* tracker_error_alert_doc =
-    "";
     
 char const* tracker_warning_alert_doc =
     "This alert is triggered if the tracker reply contains a warning\n"
@@ -275,7 +272,7 @@ char const* storage_moved_alert_doc =
 
 char const* torrent_deleted_alert_doc =
     "";
-
+    
 char const* torrent_paused_alert_doc =
     "This alert is generated when a torrent switches from being a\n"
     "active to paused.\n"
@@ -342,13 +339,3 @@ char const* scrape_failed_alert_doc =
     "If a scrape request fails, this alert is generated. This might\n"
     "be due to the tracker timing out, refusing connection or returning\n"
     "an http response code indicating an error.";
-
-char const* udp_error_alert_doc =
-    "";
-
-char const* external_ip_alert_doc =
-    "";
-
-char const* save_resume_data_alert_doc =
-    "";
-    

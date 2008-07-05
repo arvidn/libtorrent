@@ -1,7 +1,7 @@
 AC_PREREQ(2.59)
 
 AC_INIT(src/torrent.cpp)
-AM_INIT_AUTOMAKE(libtorrent-rasterbar, 0.14)
+AM_INIT_AUTOMAKE(libtorrent-rasterbar, 0.13.1)
 
 dnl interface version info
 VERSION_INFO_CURRENT=0
@@ -106,12 +106,6 @@ AX_BOOST_BASE([1.35],[
 
 AC_MSG_NOTICE([BOOST_CPPFLAGS=$BOOST_CPPFLAGS])
 AC_MSG_NOTICE([BOOST_LDFLAGS=$BOOST_LDFLAGS])
-
-AX_BOOST_IOSTREAMS
-dnl check that Boost.IOStreams was found:
-if test -z "$BOOST_IOSTREAMS_LIB"; then
-   AC_MSG_ERROR([unable to find Boost.IOStreams library, currently this is required.])
-fi
 
 AX_BOOST_DATE_TIME
 dnl check that Boost.DateTime was found:

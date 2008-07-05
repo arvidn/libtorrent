@@ -1,2 +1,3 @@
 usr/include
+usr/lib/*a
 usr/lib/pkgconfig

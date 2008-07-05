@@ -18,8 +18,6 @@ the ``session``, it contains the main loop that serves all torrents.
 The basic usage is as follows:
 
 * construct a session
-* start DHT, LSD, UPnP, NAT-PMP etc (see `start_dht() stop_dht() set_dht_settings() dht_state()`_
-  `start_lsd() stop_lsd()`_, `start_upnp() stop_upnp()`_ and `start_natpmp() stop_natpmp()`_)
 * parse .torrent-files and add them to the session (see `bdecode() bencode()`_ and `add_torrent()`_)
 * main loop (see session_)
 
@@ -28,14 +26,10 @@ The basic usage is as follows:
 	* add and remove torrents from the session at run-time
 
 * save resume data for all torrent_handles (optional, see
-  `save_resume_data()`_)
+  `write_resume_data()`_)
 * destruct session object
 
 Each class and function is described in this manual.
-
-For a description on how to create torrent files, see make_torrent_.
-
-.. _make_torrent: make_torrent.html
 
 network primitives
 ==================
@@ -63,6 +57,7 @@ For documentation on these types, please refer to the `asio documentation`_.
 
 .. _`asio documentation`: http://asio.sourceforge.net/asio-0.3.8/doc/asio/reference.html
 
+
 session
 =======
 
@@ -80,11 +75,25 @@ The ``session`` class has the following synopsis::
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = 0);
 
-		torrent_handle add_torrent(add_torrent_params const& params);
+		torrent_handle add_torrent(
+			boost::intrusive_ptr<torrent_info> const& ti
+			, boost::filesystem::path const& save_path
+			, entry const& resume_data = entry()
+			, storage_mode_t storage_mode = storage_mode_sparse
+			, bool paused = false
+			, storage_constructor_type sc = default_storage_constructor
+			, void* userdata = 0);
 
-		void pause();
-		void resume();
-		bool is_paused() const;
+		torrent_handle add_torrent(
+			char const* tracker_url
+			, sha1_hash const& info_hash
+			, char const* name
+			, boost::filesystem::path const& save_path
+			, entry const& resume_data = entry()
+			, storage_mode_t storage_mode = storage_mode_sparse
+			, bool paused = false
+			, storage_constructor_type sc = default_storage_constructor
+			, void* userdata = 0);
 
 		session_proxy abort();
 
@@ -121,17 +130,9 @@ The ``session`` class has the following synopsis::
 		int num_uploads() const;
 		int num_connections() const;
 
-		bool load_asnum_db(char const* file);
-		bool load_country_db(char const* file);
-		int as_for_ip(address const& adr);
-
-		void load_state(entry const& ses_state);
-		entry state() const;
-
 		void set_ip_filter(ip_filter const& f);
       
 		session_status status() const;
-		cache_status get_cache_status() const;
 
 		bool is_listening() const;
 		unsigned short listen_port() const;
@@ -159,10 +160,10 @@ The ``session`` class has the following synopsis::
 		void start_lsd();
 		void stop_lsd();
 
-		upnp* start_upnp();
+		void start_upnp();
 		void stop_upnp();
 
-		natpmp* start_natpmp();
+		void start_natpmp();
 		void stop_natpmp();
 	};
 
@@ -198,23 +199,10 @@ returns. So, it's advised that any kind of interface (such as windows) are close
 destructing the session object. Because it can take a few second for it to finish. The
 timeout can be set with ``set_settings()``.
 
-pause() resume() is_paused()
-----------------------------
-
-	::
-		void pause();
-		void resume();
-		bool is_paused() const;
-
-Pausing the session has the same effect as pausing every torrent in it. Resuming
-will restore the torrents to their previous paused state. i.e. the session pause
-state is separate from the torrent pause state. A torrent is inactive if it is
-paused or if the session is paused.
-
 abort()
 -------
 
-	::
+::
 
 		session_proxy abort();
 
@@ -242,55 +230,41 @@ add_torrent()
 	::
 
 		typedef storage_interface* (&storage_constructor_type)(
-			file_storage const&, fs::path const&, file_pool&);
+			boost::intrusive_ptr<torrent_info const>, fs::path const&
+			, file_pool&);
 
-		struct add_torrent_params
-		{
-			add_torrent_params(storage_constructor_type s);
+		torrent_handle add_torrent(
+			boost::intrusive_ptr<torrent_info> const& ti
+			, boost::filesystem::path const& save_path
+			, entry const& resume_data = entry()
+			, storage_mode_t storage_mode = storage_mode_sparse
+			, bool paused = false
+			, storage_constructor_type sc = default_storage_constructor
+			, void* userdata = 0);
 
-			boost::intrusive_ptr<torrent_info> ti;
-			char const* tracker_url;
-			sha1_hash info_hash;
-			char const* name;
-			fs::path save_path;
-			std::vector<char>* resume_data;
-			storage_mode_t storage_mode;
-			bool paused;
-			bool auto_managed;
-			bool duplicate_is_error;
-			storage_constructor_type storage;
-			void* userdata;
-		};
-
-		torrent_handle add_torrent(add_torrent_params const& params);
+		torrent_handle add_torrent(
+			char const* tracker_url
+			, sha1_hash const& info_hash
+			, char const* name
+			, boost::filesystem::path const& save_path
+			, entry const& resume_data = entry()
+			, storage_mode_t storage_mode = storage_mode_sparse
+			, bool paused = false
+			, storage_constructor_type sc = default_storage_constructor
+			, void* userdata = 0);
 
 You add torrents through the ``add_torrent()`` function where you give an
-object with all the parameters.
-
-The only mandatory parameter is ``save_path`` which is the directory where you
-want the files to be saved. You also need to specify either the ``ti`` (the
-torrent file) or ``info_hash`` (the info hash of the torrent). If you specify the
-info-hash, the torrent file will be downloaded from peers, which requires them to
-support the metadata extension. For the metadata extension to work, libtorrent must
-be built with extensions enabled (``TORRENT_DISABLE_EXTENSIONS`` must not be
-defined). It also takes an optional ``name`` argument. This may be 0 in case no
-name should be assigned to the torrent. In case it's not 0, the name is used for
-the torrent as long as it doesn't have metadata. See ``torrent_handle::name``.
-
-If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
-``tracker_url`` can be 0, otherwise you might specify a tracker url that tracks this
-torrent.
+object representing the information found in the torrent file and the path where you
+want to save the files. The ``save_path`` will be prepended to the directory
+structure in the torrent-file.
 
 If the torrent you are trying to add already exists in the session (is either queued
 for checking, being checked or downloading) ``add_torrent()`` will throw
-duplicate_torrent_ which derives from ``std::exception`` unless ``duplicate_is_error``
-is set to false. In that case, ``add_torrent`` will return the handle to the existing
-torrent.
+duplicate_torrent_ which derives from ``std::exception``.
 
 The optional parameter, ``resume_data`` can be given if up to date fast-resume data
 is available. The fast-resume data can be acquired from a running torrent by calling
-`save_resume_data()`_ on `torrent_handle`_. See `fast resume`_. The ``vector`` that is
-passed in will be swapped into the running torrent instance with ``std::vector::swap()``.
+``torrent_handle::write_resume_data()``. See `fast resume`_.
 
 The ``storage_mode`` parameter refers to the layout of the storage for this torrent.
 There are 3 different modes:
@@ -316,22 +290,28 @@ a paused state. I.e. it won't connect to the tracker or any of the peers until i
 resumed. This is typically a good way of avoiding race conditions when setting
 configuration options on torrents before starting them.
 
-If ``auto_managed`` is true, this torrent will be queued, started and seeded
-automatically by libtorrent. When this is set, the torrent should also be started
-as paused. The default queue order is the order the torrents were added. They
-are all downloaded in that order. For more details, see queuing_.
-
-``storage`` can be used to customize how the data is stored. The default
+``storage_constructor`` can be used to customize how the data is stored. The default
 storage will simply write the data to the files it belongs to, but it could be
 overridden to save everything to a single file at a specific location or encrypt the
 content on disk for instance. For more information about the ``storage_interface``
 that needs to be implemented for a custom storage, see `storage_interface`_.
 
+The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
+about the torrent's progress, its peers etc. It is also used to abort a torrent.
+
 The ``userdata`` parameter is optional and will be passed on to the extension
 constructor functions, if any (see `add_extension()`_).
 
-The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
-about the torrent's progress, its peers etc. It is also used to abort a torrent.
+The second overload that takes a tracker url and an info-hash instead of metadata
+(``torrent_info``) can be used with torrents where (at least some) peers support
+the metadata extension. For the overload to be available, libtorrent must be built
+with extensions enabled (``TORRENT_DISABLE_EXTENSIONS`` must not be defined). It also
+takes an optional ``name`` argument. This may be 0 in case no name should be assigned
+to the torrent. In case it's not 0, the name is used for the torrent as long as it doesn't
+have metadata. See ``torrent_handle::name``.
+
+If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
+``tracker_url`` can be 0.
 
 
 remove_torrent()
@@ -433,37 +413,7 @@ their turn to get connected.
 ``max_half_open_connections()`` returns the set limit. This limit defaults
 to 8 on windows.
 
-load_asnum_db() load_country_db() int as_for_ip()
--------------------------------------------------
 
-	::
-
-		bool load_asnum_db(char const* file);
-		bool load_country_db(char const* file);
-		int as_for_ip(address const& adr);
-
-These functions are not available if ``TORRENT_DISABLE_GEO_IP`` is defined. They
-expects a path to the `MaxMind ASN database`_ and `MaxMind GeoIP database`_
-respectively. This will be used to look up which AS and country peers belong to.
-
-``as_for_ip`` returns the AS number for the IP address specified. If the IP is not
-in the database or the ASN database is not loaded, 0 is returned.
-
-.. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
-.. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
-		
-load_state() state()
---------------------
-
-	::
-	
-		void load_state(entry const& ses_state);
-		entry state() const;
-
-These functions loads and save session state. Currently, the only state
-that's stored is peak download rates for ASes. This map is used to
-determine which order to connect to peers.
-		
 set_ip_filter()
 ---------------
 
@@ -507,8 +457,6 @@ struct has the following members::
 		size_type total_payload_upload;
 
 		int num_peers;
-		int num_unchoked;
-		int allowed_upload_slots;
 
 		int dht_nodes;
 		int dht_cache_nodes;
@@ -534,9 +482,6 @@ that still hasn't completed the TCP connection. This number may be slightly high
 than the sum of all peers of all torrents because the incoming connections may not
 be assigned a torrent yet.
 
-``num_unchoked`` is the current number of unchoked peers.
-``allowed_upload_slots`` is the current allowed number of unchoked peers.
-
 ``dht_nodes``, ``dht_cache_nodes`` and ``dht_torrents`` are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
 the DHT is running, ``dht_nodes`` is set to the number of nodes in the routing
@@ -550,80 +495,6 @@ becomes unresponsive.
 ``dht_global_nodes`` is an estimation of the total number of nodes in the DHT
 network.
 
-get_cache_status()
-------------------
-
-	::
-
-		cache_status get_cache_status() const;
-
-Returns status of the disk cache for this session.
-
-	::
-
-		struct cache_status
-		{
-			size_type blocks_written;
-			size_type writes;
-			size_type blocks_read;
-			size_type blocks_read_hit;
-			size_type reads;
-			int cache_size;
-			int read_cache_size;
-		};
-
-``blocks_written`` is the total number of 16 KiB blocks written to disk
-since this session was started.
-
-``writes`` is the total number of write operations performed since this
-session was started.
-
-The ratio (``blocks_written`` - ``writes``) / ``blocks_written`` represents
-the number of saved write operations per total write operations. i.e. a kind
-of cache hit ratio for the write cahe.
-
-``blocks_read`` is the number of blocks that were requested from the
-bittorrent engine (from peers), that were served from disk or cache.
-
-``blocks_read_hit`` is the number of blocks that were served from cache.
-
-The ratio ``blocks_read_hit`` / ``blocks_read`` is the cache hit ratio
-for the read cache.
-
-``cache_size`` is the number of 16 KiB blocks currently in the disk cache.
-This includes both read and write cache.
-
-``read_cache_size`` is the number of 16KiB blocks in the read cache.
-
-get_cache_info()
-----------------
-
-	::
-
-		void get_cache_info(sha1_hash const& ih
-			, std::vector<cached_piece_info>& ret) const;
-
-``get_cache_info()`` fills out the supplied vector with information for
-each piece that is currently in the disk cache for the torrent with the
-specified info-hash (``ih``).
-
-	::
-
-		struct cached_piece_info
-		{
-			int piece;
-			std::vector<bool> blocks;
-			ptime last_use;
-		};
-
-``piece`` is the piece index for this cache entry.
-
-``blocks`` has one entry for each block in this piece. ``true`` represents
-the data for that block being in the disk cache and ``false`` means it's not.
-
-``last_use`` is the time when a block was last written to this piece. The older
-a piece is, the more likely it is to be flushed to disk.
-		
 is_listening() listen_port() listen_on()
 ----------------------------------------
 
@@ -713,37 +584,20 @@ metadata extension
 	directly. Makes it possible to join a swarm with just a tracker and
 	info-hash.
 
-::
-
-	#include <libtorrent/extensions/metadata_transfer.hpp>
-	ses.add_extension(&libtorrent::create_metadata_plugin);
-
-uTorrent metadata
-	Same as ``metadata extension`` but compatible with uTorrent.
-
-::
-
-	#include <libtorrent/extensions/ut_metadata.hpp>
-	ses.add_extension(&libtorrent::create_ut_metadata_plugin);
-
 uTorrent peer exchange
 	Exchanges peers between clients.
 
+To use these, imclude ``<libtorrent/extensions/metadata_transfer.hpp>``
+or ``<libtorrent/extensions/ut_pex.hpp>``. The functions to pass in to
+``add_extension()`` are ``libtorrent::create_metadata_plugin`` and
+``libtorrent::create_ut_pex_plugin`` respectively.
+
+e.g.
+
 ::
 
-	#include <libtorrent/extensions/ut_pex.hpp>
+	ses.add_extension(&libtorrent::create_metadata_plugin);
 	ses.add_extension(&libtorrent::create_ut_pex_plugin);
-
-smart ban plugin
-	A plugin that, with a small overhead, can ban peers
-	that sends bad data with very high accuracy. Should
-	eliminate most problems on poisoned torrents.
-
-::
-
-	#include <libtorrent/extensions/smart_ban.hpp>
-	ses.add_extension(&libtorrent::create_smart_ban_plugin);
-
 
 .. _`libtorrent plugins`: libtorrent_plugins.html
 
@@ -913,16 +767,11 @@ start_upnp() stop_upnp()
 
 	::
 	
-		upnp* start_upnp();
+		void start_upnp();
 		void stop_upnp();
 
 Starts and stops the UPnP service. When started, the listen port and the DHT
 port are attempted to be forwarded on local UPnP router devices.
-
-The upnp object returned by ``start_upnp()`` can be used to add and remove
-arbitrary port mappings. Mapping status is returned through the
-portmap_alert_ and the portmap_error_alert_. The object will be valid until
-``stop_upnp()`` is called. See `UPnP and NAT-PMP`_.
 
 It is off by default.
 
@@ -931,16 +780,11 @@ start_natpmp() stop_natpmp()
 
 	::
 		
-		natpmp* start_natpmp();
+		void start_natpmp();
 		void stop_natpmp();
 
 Starts and stops the NAT-PMP service. When started, the listen port and the DHT
 port are attempted to be forwarded on the router through NAT-PMP.
-
-The natpmp object returned by ``start_natpmp()`` can be used to add and remove
-arbitrary port mappings. Mapping status is returned through the
-portmap_alert_ and the portmap_error_alert_. The object will be valid until
-``stop_natpmp()`` is called. See `UPnP and NAT-PMP`_.
 
 It is off by default.
 
@@ -1111,48 +955,53 @@ key is found, the return a pointer to it.
 torrent_info
 ============
 
-In previous versions of libtorrent, this class was also used for creating
-torrent files. This functionality has been moved to ``create_torrent``, see
-make_torrent_.
-
 The ``torrent_info`` has the following synopsis::
 
 	class torrent_info
 	{
 	public:
 
+		torrent_info();
 		torrent_info(sha1_hash const& info_hash);
-		torrent_info(lazy_entry const& torrent_file);
-		torrent_info(char const* buffer, int size);
-		torrent_info(boost::filesystem::path const& filename);
+		torrent_info(entry const& torrent_file);
 
+		entry create_torrent() const;
+		void set_comment(char const* str);
+		void set_piece_size(int size);
+		void set_creator(char const* str);
+		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
-		std::vector<announce_entry> const& trackers() const;
+		void add_file(boost::filesystem::path file, size_type size);
+		void add_url_seed(std::string const& url);
 
-		file_storage const& files() const;
+		typedef std::vector<file_entry>::const_iterator file_iterator;
+		typedef std::vector<file_entry>::const_reverse_iterator
+			reverse_file_iterator;
 
-		typedef file_storage::iterator file_iterator;
-		typedef file_storage::reverse_iterator reverse_file_iterator;
+		bool remap_files(std::vector<file_entry> const& map);
 
-		file_iterator begin_files() const;
-		file_iterator end_files() const;
-		reverse_file_iterator rbegin_files() const;
-		reverse_file_iterator rend_files() const;
+		file_iterator begin_files(bool storage = false) const;
+		file_iterator end_files(bool storage = false) const;
+		reverse_file_iterator rbegin_files(bool storage = false) const;
+		reverse_file_iterator rend_files(bool storage = false) const;
 
-		int num_files() const;
-		file_entry const& file_at(int index) const;
+		int num_files(bool storage = false) const;
+		file_entry const& file_at(int index, bool storage = false) const;
 
 		std::vector<file_slice> map_block(int piece, size_type offset
-			, int size) const;
+			, int size, bool storage = false) const;
 		peer_request map_file(int file_index, size_type file_offset
-			, int size) const;
+			, int size, bool storage = false) const;
+
+		std::vector<announce_entry> const& trackers() const;
 
 		bool priv() const;
+		void set_priv(bool v);
 
 		std::vector<std::string> const& url_seeds() const;
 
 		size_type total_size() const;
-		int piece_length() const;
+		size_type piece_length() const;
 		int num_pieces() const;
 		sha1_hash const& info_hash() const;
 		std::string const& name() const;
@@ -1165,12 +1014,10 @@ The ``torrent_info`` has the following synopsis::
 		boost::optional<boost::posix_time::ptime>
 		creation_date() const;
 
-		int piece_size(unsigned int index) const;
+		void print(std::ostream& os) const;
+	
+		size_type piece_size(unsigned int index) const;
 		sha1_hash const& hash_for_piece(unsigned int index) const;
-		char const* hash_for_piece_ptr(unsigned int index) const;
-
-		boost::shared_array<char> metadata() const;
-		int metadata_size() const;
 	};
 
 torrent_info()
@@ -1178,69 +1025,132 @@ torrent_info()
    
 	::
 
+		torrent_info();
 		torrent_info(sha1_hash const& info_hash);
-		torrent_info(lazy_entry const& torrent_file);
-		torrent_info(char const* buffer, int size);
-		torrent_info(boost::filesystem::path const& filename);
+		torrent_info(entry const& torrent_file);
 
-The constructor that takes an info-hash  will initialize the info-hash to the given value,
-but leave all other fields empty. This is used internally when downloading torrents without
-the metadata. The metadata will be created by libtorrent as soon as it has been downloaded
-from the swarm.
+The default constructor of ``torrent_info`` is used when creating torrent files. It will
+initialize the object to an empty torrent, containing no files. The info hash will be set
+to 0 when this constructor is used. To use the empty ``torrent_info`` object, add files
+and piece hashes, announce URLs and optionally a creator tag and comment. To do this you
+use the members ``set_comment()``, ``set_piece_size()``, ``set_creator()``, ``set_hash()``
+etc.
 
-The constructor that takes a ``lazy_entry`` will create a ``torrent_info`` object from the
-information found in the given torrent_file. The ``lazy_entry`` represents a tree node in
-an bencoded file. To load an ordinary .torrent file
-into a ``lazy_entry``, use lazy_bdecode(), see `bdecode() bencode()`_.
+The constructor that takes an info-hash is identical to the default constructor with the
+exception that it will initialize the info-hash to the given value. This is used internally
+when downloading torrents without the metadata. The metadata will be created by libtorrent
+as soon as it has been downloaded from the swarm.
 
-The version that takes a buffer pointer and a size will decode it as a .torrent file and
-initialize the torrent_info object for you.
+The last constructor is the one that is used in most cases. It will create a ``torrent_info``
+object from the information found in the given torrent_file. The ``entry`` represents a tree
+node in an bencoded file. To load an ordinary .torrent file into an ``entry``, use bdecode(),
+see `bdecode() bencode()`_.
 
-The version that takes a filename will simply load the torrent file and decode it inside
-the constructor, for convenience. This might not be the most suitable for applications that
-want to be able to report detailed errors on what might go wrong.
-
-
-add_tracker()
--------------
+set_comment() set_piece_size() set_creator() set_hash() add_tracker() add_file()
+--------------------------------------------------------------------------------
 
 	::
 
+		void set_comment(char const* str);
+		void set_piece_size(int size);
+		void set_creator(char const* str);
+		void set_hash(int index, sha1_hash const& h);
 		void add_tracker(std::string const& url, int tier = 0);
+		void add_file(boost::filesystem::path file, size_type size);
+
+These files are used when creating a torrent file. ``set_comment()`` will simply set
+the comment that belongs to this torrent. The comment can be retrieved with the
+``comment()`` member. The string should be UTF-8 encoded.
+
+``set_piece_size()`` will set the size of each piece in this torrent. The piece size must
+be an even multiple of 2. i.e. usually something like 256 kiB, 512 kiB, 1024 kiB etc. The
+size is given in number of bytes.
+
+``set_creator()`` is an optional attribute that can be used to identify your application
+that was used to create the torrent file. The string should be UTF-8 encoded.
+
+``set_hash()`` writes the hash for the piece with the given piece-index. You have to call
+this function for every piece in the torrent. Usually the hasher_ is used to calculate
+the sha1-hash for a piece.
 
 ``add_tracker()`` adds a tracker to the announce-list. The ``tier`` determines the order in
 which the trackers are to be tried. For more information see `trackers()`_.
 
-files()
--------
+``add_file()`` adds a file to the torrent. The order in which you add files will determine
+the order in which they are placed in the torrent file. You have to add at least one file
+to the torrent. The ``path`` you give has to be a relative path from the root directory
+of the torrent. The ``size`` is given in bytes.
+
+When you have added all the files and hashes to your torrent, you can generate an ``entry``
+which then can be encoded as a .torrent file. You do this by calling `create_torrent()`_.
+
+For a complete example of how to create a torrent from a file structure, see make_torrent_.
+      
+
+create_torrent()
+----------------
 
 	::
 
-		file_storage const& file() const;
+		entry create_torrent();
 
-The ``file_storage`` object contains the information on how to map the pieces to
-files. It is separated from the ``torrent_info`` object because when creating torrents
-a storage object needs to be created without having a torrent file. When renaming files
-in a storage, the storage needs to make its own copy of the ``file_storage`` in order
-to make its mapping differ from the one in the torrent file.
+Returns an ``entry`` representing the bencoded tree of data that makes up a .torrent file.
+You can save this data as a torrent file with bencode() (see `bdecode() bencode()`_), for a
+complete example, see make_torrent_.
 
-For more information on the ``file_storage`` object, see the separate document on how
-to create torrents.
+.. _make_torrent: examples.html#make_torrent
+
+This function is not const because it will also set the info-hash of the ``torrent_info``
+object.
+
+Note that a torrent file must include at least one file, and it must have at
+least one tracker url or at least one DHT node.
+
+
+remap_files()
+-------------
+
+	::
+
+		bool remap_files(std::vector<file_entry> const& map);
+
+This call will create a new mapping of the data in this torrent to other files. The
+``torrent_info`` maintains 2 views of the file storage. One that is true to the torrent
+file, and one that represents what is actually saved on disk. This call will change
+what the files on disk are called.
+
+The each entry in the vector ``map`` is a ``file_entry``. The only fields in this struct
+that are used in this case are ``path``, ``size`` and ``file_base``.
+
+The return value indicates if the remap was successful or not. True means success and
+false means failure. The sum of all the files passed in through ``map`` has to be exactly
+the same as the total_size of the torrent. If the number of bytes that are mapped do not
+match, false will be returned (this is the only case this function may fail).
+
+Changing this mapping for an existing torrent will not move or rename files. If some files
+should be renamed, this can be done before the torrent is added.
+
 
 begin_files() end_files() rbegin_files() rend_files()
 -----------------------------------------------------
 
 	::
 
-		file_iterator begin_files() const;
-		file_iterator end_files() const;
-		reverse_file_iterator rbegin_files() const;
-		reverse_file_iterator rend_files() const;
+		file_iterator begin_files(bool storage = false) const;
+		file_iterator end_files(bool storage = false) const;
+		reverse_file_iterator rbegin_files(bool storage = false) const;
+		reverse_file_iterator rend_files(bool storage = false) const;
 
 This class will need some explanation. First of all, to get a list of all files
 in the torrent, you can use ``begin_files()``, ``end_files()``,
 ``rbegin_files()`` and ``rend_files()``. These will give you standard vector
 iterators with the type ``file_entry``.
+
+The ``storage`` parameter specifies which view of the files you want. The default
+is false, which means you will see the content of the torrent file. If set to
+true, you will see the file that the storage class uses to save the files to
+disk. Typically these views are the same, but in case the files have been
+remapped, they may differ. For more info, see `remap_files()`_.
 
 ::
 
@@ -1282,11 +1192,18 @@ num_files() file_at()
 
 	::
 	
-		int num_files() const;
-		file_entry const& file_at(int index) const;
+		int num_files(bool storage = false) const;
+		file_entry const& file_at(int index, bool storage = false) const;
 
 If you need index-access to files you can use the ``num_files()`` and ``file_at()``
 to access files using indices.
+
+
+The ``storage`` parameter specifies which view of the files you want. The default
+is false, which means you will see the content of the torrent file. If set to
+true, you will see the file that the storage class uses to save the files to
+disk. Typically these views are the same, but in case the files have been
+remapped, they may differ. For more info, see `remap_files()`_.
 
 
 map_block()
@@ -1295,7 +1212,7 @@ map_block()
 	::
 
 		std::vector<file_slice> map_block(int piece, size_type offset
-			, int size) const;
+			, int size, bool storage = false) const;
 
 This function will map a piece index, a byte offset within that piece and
 a size (in bytes) into the corresponding files with offsets where that data
@@ -1317,6 +1234,12 @@ as argument. The ``offset`` is the byte offset in the file where the range
 starts, and ``size`` is the number of bytes this range is. The size + offset
 will never be greater than the file size.
 
+The ``storage`` parameter specifies which view of the files you want. The default
+is false, which means you will see the content of the torrent file. If set to
+true, you will see the file that the storage class uses to save the files to
+disk. Typically these views are the same, but in case the files have been
+remapped, they may differ. For more info, see `remap_files()`_.
+
 
 map_file()
 ----------
@@ -1324,7 +1247,7 @@ map_file()
 	::
 
 		peer_request map_file(int file_index, size_type file_offset
-			, int size) const;
+			, int size, bool storage = false) const;
 
 This function will map a range in a specific file into a range in the torrent.
 The ``file_offset`` parameter is the offset in the file, given in bytes, where
@@ -1361,7 +1284,25 @@ vector of those urls. If you're creating a torrent file, ``add_url_seed()``
 adds one url to the list of url-seeds. Currently, the only transport protocol
 supported for the url is http.
 
+The ``storage`` parameter specifies which view of the files you want. The default
+is false, which means you will see the content of the torrent file. If set to
+true, you will see the file that the storage class uses to save the files to
+disk. Typically these views are the same, but in case the files have been
+remapped, they may differ. For more info, see `remap_files()`_.
+
 See `HTTP seeding`_ for more information.
+
+
+print()
+-------
+
+	::
+
+		void print(std::ostream& os) const;
+
+The ``print()`` function is there for debug purposes only. It will print the info from
+the torrent file to the given outstream. This function has been deprecated and will
+be removed from future releases.
 
 
 trackers()
@@ -1392,8 +1333,8 @@ total_size() piece_length() piece_size() num_pieces()
 	::
 
 		size_type total_size() const;
-		int piece_length() const;
-		int piece_size(unsigned int index) const;
+		size_type piece_length() const;
+		size_type piece_size(unsigned int index) const;
 		int num_pieces() const;
 
 
@@ -1406,20 +1347,19 @@ be the same as ``piece_length()`` except in the case of the last piece, which ma
 be smaller.
 
 
-hash_for_piece() hash_for_piece_ptr() info_hash()
--------------------------------------------------
+hash_for_piece() info_hash()
+----------------------------
 
 	::
 	
 		size_type piece_size(unsigned int index) const;
 		sha1_hash const& hash_for_piece(unsigned int index) const;
-		char const* hash_for_piece_ptr(unsigned int index) const;
 
 ``hash_for_piece()`` takes a piece-index and returns the 20-bytes sha1-hash for that
 piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of the
 torrent file. For more information on the ``sha1_hash``, see the big_number_ class.
-``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest for the piece. 
-Note that the string is not null-terminated.
+``info_hash()`` will only return a valid hash if the torrent_info was read from a
+``.torrent`` file or if an ``entry`` was created from it (through ``create_torrent``).
 
 
 name() comment() creation_date() creator()
@@ -1446,15 +1386,18 @@ it will return an empty string.
 __ http://www.boost.org/doc/html/date_time/posix_time.html#date_time.posix_time.ptime_class
 
 
-priv()
-------
+priv() set_priv()
+-----------------
 
 	::
 
 		bool priv() const;
+		void set_priv(bool v);
 
 ``priv()`` returns true if this torrent is private. i.e., it should not be
 distributed on the trackerless network (the kademlia DHT).
+
+``set_priv()`` sets or clears the private flag on this torrent.
 
 
 nodes()
@@ -1467,27 +1410,16 @@ nodes()
 If this torrent contains any DHT nodes, they are put in this vector in their original
 form (host name and port number).
 
-add_node() 
----------- 
- 
-    :: 
- 
-        void add_node(std::pair<std::string, int> const& node); 
- 
-This is used when creating torrent. Use this to add a known DHT node. It may 
-be used, by the client, to bootstrap into the DHT network.
 
-
-metadata() metadata_size()
---------------------------
+add_node()
+----------
 
 	::
 
-		boost::shared_array<char> metadata() const;
-		int metadata_size() const;
+		void add_node(std::pair<std::string, int> const& node);
 
-``metadata()`` returns a the raw info section of the torrent file. The size
-of the metadata is returned by ``metadata_size()``.
+This is used when creating torrent. Use this to add a known DHT node. It may
+be used, by the client, to bootstrap into the DHT network.
 
 
 torrent_handle
@@ -1510,7 +1442,7 @@ Its declaration looks like this::
 
 		std::string name() const;
 
-		void save_resume_data() const;
+		entry write_resume_data() const;
 		void force_reannounce() const;
 		void force_reannounce(boost::posix_time::time_duration) const;
 		void scrape_tracker() const;
@@ -1533,17 +1465,10 @@ Its declaration looks like this::
 		int upload_limit() const;
 		void set_download_limit(int limit) const;
 		int download_limit() const;
-		void set_sequential_download(bool sd) const;
-		bool is_sequential_download() const;
+		void set_sequenced_download_threshold(int threshold) const;
 
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
-
-		int queue_position() const;
-		void queue_position_up() const;
-		void queue_position_down() const;
-		void queue_position_top() const;
-		void queue_position_bottom() const;
 
 		void use_interface(char const* net_interface) const;
 
@@ -1551,7 +1476,6 @@ Its declaration looks like this::
 		void resume() const;
 		bool is_paused() const;
 		bool is_seed() const;
-		void force_recheck() const;
 
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
@@ -1564,9 +1488,13 @@ Its declaration looks like this::
 
 		void prioritize_files(std::vector<int> const& files) const;
 
-		bool is_auto_managed() const;
-		void auto_managed(bool m) const;
-
+		// these functions are deprecated
+		void filter_piece(int index, bool filter) const;
+		void filter_pieces(std::vector<bool> const& bitmask) const;
+		bool is_piece_filtered(int index) const;
+		std::vector<bool> filtered_pieces() const;
+		void filter_files(std::vector<bool> const& files) const;
+      
 		bool has_metadata() const;
 
 		boost::filesystem::path save_path() const;
@@ -1585,8 +1513,8 @@ valid handle. If you try to perform any operation on an uninitialized handle,
 it will throw ``invalid_handle``.
 
 .. warning:: All operations on a ``torrent_handle`` may throw invalid_handle_
-	exception, in case the handle is no longer refering to a torrent. There is
-	one exception ``is_valid()`` will never throw.
+	exception, in case the handle is no longer refering to a torrent. There are
+	two exceptions, ``info_hash()`` and ``is_valid()`` will never throw.
 	Since the torrents are processed by a background thread, there is no
 	guarantee that a handle will remain valid between two calls.
 
@@ -1768,22 +1696,24 @@ limit.
 download, respectively.
 
 
-set_sequential_download() is_sequential_download()
---------------------------------------------------
+set_sequenced_download_threshold()
+----------------------------------
 
 	::
 
-		void set_sequential_download(bool sd);
-		bool is_sequential_download() const;
+		void set_sequenced_download_threshold(int threshold);
 
-``set_sequential_download()`` enables or disables *sequential download*. When enabled, the piece
-picker will pick pieces in sequence instead of rarest first.
+sequenced-download threshold is the limit on how popular a piece has to be
+(popular == inverse of rarity) to be downloaded in sequence instead of in
+random (rarest first) order. It can be used to tweak disk performance in
+settings where the random download property is less necessary. For example, if
+the threshold is 10, all pieces which 10 or more peers have, will be downloaded
+in index order. This setting defaults to 100, which means that it is disabled
+in practice.
 
-Enabling sequential download will affect the piece distribution negatively in the swarm. It should be
-used sparingly.
-
-``is_sequential_download()`` returns true if this torrent is downloading in sequence, and false
-otherwise.
+Setting this threshold to a very small value will affect the piece distribution
+negatively in the swarm. It should basically only be used in situations where
+the random seeks on the disk is the download bottleneck.
 
 
 set_peer_upload_limit() set_peer_download_limit()
@@ -1812,20 +1742,6 @@ all potential (not connected) peers. You can use ``is_paused()`` to determine if
 is currently paused. Torrents may be paused automatically if there is a file error (e.g. disk full)
 or something similar. See file_error_alert_.
 
-force_recheck()
----------------
-
-	::
-
-		void force_recheck() const;
-
-``force_recheck`` puts the torrent back in a state where it assumes to have no resume data.
-All peers will be disconnected and the torrent will stop announcing to the tracker. The torrent
-will be added to the checking queue, and will be checked (all the files will be read and
-compared to the piece hashes). Once the check is complete, the torrent will start connecting
-to peers again, as normal.
-
-
 resolve_countries()
 -------------------
 
@@ -1848,17 +1764,6 @@ is_seed()
 
 Returns true if the torrent is in seed mode (i.e. if it has finished downloading).
 
-is_auto_managed() auto_managed()
---------------------------------
-
-	::
-
-		bool is_auto_managed() const;
-		void auto_managed(bool m) const;
-
-``is_auto_managed()`` returns true if this torrent is currently *auto managed*.
-``auto_managed()`` changes whether the torrent is auto managed or not. For more info,
-see queuing_.
 
 has_metadata()
 --------------
@@ -1922,33 +1827,6 @@ automatically from the list.
 See `HTTP seeding`_ for more information.
 
 
-queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()
--------------------------------------------------------------------------------------------------------
-
-	::
-
-		int queue_position() const;
-		void queue_position_up() const;
-		void queue_position_down() const;
-		void queue_position_top() const;
-		void queue_position_bottom() const;
-
-Every torrent that is added is assigned a queue position exactly one greater than
-the greatest queue position of all existing torrents. Torrents that are being
-seeded have -1 as their queue position, since they're no longer in line to be downloaded.
-
-When a torrent is removed or turns into a seed, all torrents with greater queue positions
-have their positions decreased to fill in the space in the sequence.
-
-``queue_position()`` returns the torrent's position in the download queue. The torrents
-with the smallest numbers are the ones that are being downloaded. The smaller number,
-the closer the torrent is to the front of the line to be started.
-
-The ``queue_position_*()`` functions adjust the torrents position in the queue. Up means
-closer to the front and down means closer to the back of the queue. Top and bottom refers
-to the front and the back of the queue respectively.
-
-
 use_interface()
 ---------------
 
@@ -1989,20 +1867,17 @@ This must be at least 2. The default is unlimited number of connections. If -1 i
 function, it means unlimited.
 
 
-save_resume_data()
-------------------
+write_resume_data()
+-------------------
 
 	::
 
-		void save_resume_data() const;
+		entry write_resume_data() const;
 
-``save_resume_data()`` generates fast-resume data and returns it as an entry_. This entry_
+``write_resume_data()`` generates fast-resume data and returns it as an entry_. This entry_
 is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
 
-This operation is asynchronous, ``save_resume_data`` will return immediately. The resume data
-is delivered when it's done through an `save_resume_data_alert`_.
-
-The fast resume data will be empty in the following cases:
+There are three cases where this function will just return an empty ``entry``:
 
 	1. The torrent handle is invalid.
 	2. The torrent is checking (or is queued for checking) its storage, it will obviously
@@ -2010,17 +1885,16 @@ The fast resume data will be empty in the following cases:
 	3. The torrent hasn't received valid metadata and was started without metadata
 	   (see libtorrent's `metadata from peers`_ extension)
 
-Note that by the time you receive the fast resume data, it may already be invalid if the torrent
+Note that by the time this function returns, the resume data may already be invalid if the torrent
 is still downloading! The recommended practice is to first pause the torrent, then generate the
-fast resume data, and then close it down. Make sure to not `remove_torrent()`_ before you receive
-the `save_resume_data_alert`_ though. Only pause the torrent before you save the resume data
-if you will remove the torrent afterwards. There's no need to pause when saving intermittent
-resume data.
+fast resume data, and then close it down. Since the disk IO is done in a separate thread, in order
+to synchronize, you shoule to wait for the ``torrent_paused_alert`` before you write the resume
+data.
 
 In full allocation mode the reume data is never invalidated by subsequent
 writes to the files, since pieces won't move around. This means that you don't need to
 pause before writing resume data in full or sparse mode. If you don't, however, any data written to
-disk after you saved resume data and before the session_ closed is lost.
+disk after you saved resume data and before the session closed is lost.
 
 It also means that if the resume data is out dated, libtorrent will not re-check the files, but assume
 that it is fairly recent. The assumption is that it's better to loose a little bit than to re-check
@@ -2028,45 +1902,6 @@ the entire file.
 
 It is still a good idea to save resume data periodically during download as well as when
 closing down.
-
-Example code to pause and save resume data for all torrents and wait for the alerts::
-
-	int num_resume_data = 0;
-	std::vector<torrent_handle> handles = ses.get_torrents();
-	for (std::vector<torrent_handle>::iterator i = handles.begin();
-		i != handles.end(); ++i)
-	{
-		torrent_handle& h = *i;
-		if (!h.has_metadata()) continue;
-
-		h.pause();
-		h.save_resume_data();
-		++num_resume_data;
-	}
-
-	while (num_resume_data > 0)
-	{
-		alert const* a = ses.wait_for_alert(seconds(10));
-
-		// if we don't get an alert within 10 seconds, abort
-		if (a == 0) break;
-		
-		std::auto_ptr<alert> holder = ses.pop_alert();
-		save_resume_data_alert const* rd = dynamic_cast<save_resume_data_alert const*>(a);
-		if (rd == 0)
-		{
-			process_alert(a);
-			continue;
-		}
-		
-		torrent_handle h = rd->handle;
-		boost::filesystem::ofstream out(h.save_path()
-			/ (h.get_torrent_info().name() + ".fastresume"), std::ios_base::binary);
-		out.unsetf(std::ios_base::skipws);
-		bencode(std::ostream_iterator<char>(out), *rd->resume_data);
-		--num_resume_data;
-	}
-	
 
 
 status()
@@ -2180,6 +2015,8 @@ somehow invalid or if the filenames are not allowed (and hence cannot be opened/
 your filesystem. If such an error occurs, a file_error_alert_ is generated and all handles
 that refers to that torrent will become invalid.
 
+*TODO: document storage*
+
 
 torrent_status
 ==============
@@ -2203,8 +2040,6 @@ It contains the following fields::
 		state_t state;
 		bool paused;
 		float progress;
-		std::string error;
-
 		boost::posix_time::time_duration next_announce;
 		boost::posix_time::time_duration announce_interval;
 
@@ -2233,9 +2068,7 @@ It contains the following fields::
 		int list_seeds;
 		int list_peers;
 
-		int connect_candidates;
-
-		bitfield pieces;
+		const std::vector<bool>* pieces;
 		int num_pieces;
 
 		size_type total_done;
@@ -2256,18 +2089,6 @@ It contains the following fields::
 
 		int up_bandwidth_queue;
 		int down_bandwidth_queue;
-
-		size_type all_time_upload;
-		size_type all_time_download;
-
-		int active_time;
-		int seeding_time;
-
-		int seed_rank;
-
-		int last_scrape;
-
-		bool has_incoming;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -2309,10 +2130,6 @@ current task is in the ``state`` member, it will be one of the following:
 When downloading, the progress is ``total_wanted_done`` / ``total_wanted``.
 
 ``paused`` is set to true if the torrent is paused and false otherwise.
-
-``error`` may be set to an error message describing why the torrent was paused, in
-case it was paused by an error. If the torrent is not paused or if it's paused but
-not because of an error, this string is empty.
 
 ``next_announce`` is the time until the torrent will announce itself to the tracker. And
 ``announce_interval`` is the time the tracker want us to wait until we announce ourself
@@ -2375,11 +2192,6 @@ necessarily connected to all the peers in our peer list. This is the number
 of peers we know of in total, including banned peers and peers that we have
 failed to connect to.
 
-``connect_candidates`` is the number of peers in this torrent's peer list
-that is a candidate to be connected to. i.e. It has fewer connect attempts
-than the max fail count, it is not a seed if we are a seed, it is not banned
-etc. If this is 0, it means we don't know of any more peers that we can try.
-
 ``total_done`` is the total number of bytes of the file(s) that we have. All
 this does not necessarily has to be downloaded during this session (that's
 ``total_payload_download``).
@@ -2433,26 +2245,6 @@ limit or not. If there is no limit set on this torrent, the peers might still be
 waiting for bandwidth quota from the global limiter, but then they are counted in
 the ``session_status`` object.
 
-``all_time_upload`` and ``all_time_download`` are accumulated upload and download
-byte counters. They are saved in and restored from resume data to keep totals
-across sessions.
-
-``active_time`` and ``seeding_time`` are second counters. They keep track of the
-number of seconds this torrent has been active (not paused) and the number of
-seconds it has been active while being a seed. ``seeding_time`` should be >=
-``active_time`` They are saved in and restored from resume data, to keep totals
-across sessions.
-
-``seed_rank`` is a rank of how important it is to seed the torrent, it is used
-to determine which torrents to seed and which to queue. It is based on the peer
-to seed ratio from the tracker scrape. For more information, see queuing_.
-
-``last_scrape`` is the number of seconds since this torrent acquired scrape data.
-If it has never done that, this value is -1.
-
-``has_incoming`` is true if there has ever been an incoming connection attempt
-to this torrent.'
-
 
 peer_info
 =========
@@ -2475,7 +2267,6 @@ It contains the following fields::
 			on_parole = 0x200,
 			seed = 0x400,
 			optimistic_unchoke = 0x800,
-			snubbed = 0x1000,
 			rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
 		};
@@ -2492,11 +2283,6 @@ It contains the following fields::
 
 		int source;
 
-		enum bw_state { bw_idle, bw_torrent, bw_global, bw_network };
-
-		char read_state;
-		char write_state;
-
 		asio::ip::tcp::endpoint ip;
 		float up_speed;
 		float down_speed;
@@ -2505,26 +2291,19 @@ It contains the following fields::
 		size_type total_download;
 		size_type total_upload;
 		peer_id pid;
-		bitfield pieces;
+		std::vector<bool> pieces;
 		int upload_limit;
 		int download_limit;
 
 		time_duration last_request;
 		time_duration last_active;
-		int request_timeout;
 
 		int send_buffer_size;
 		int used_send_buffer;
 
-		int receive_buffer_size;
-		int used_receive_buffer;
-
 		int num_hashfails;
 
 		char country[2];
-
-		std::string inet_as_name;
-		int inet_as;
 
 		size_type load_balancing;
 
@@ -2546,19 +2325,6 @@ It contains the following fields::
 			web_seed = 1
 		};
 		int connection_type;
-
-		int remote_dl_rate;
-
-		int pending_disk_bytes;
-
-		int send_quota;
-		int receive_quota;
-
-		int rtt;
-
-		int download_rate_peak;
-		int upload_rate_peak;
-
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -2607,11 +2373,6 @@ any combination of the enums above. The following table describes each flag:
 |                         | doesn't within some period of time, it will be choked |
 |                         | and another peer will be optimistically unchoked.     |
 +-------------------------+-------------------------------------------------------+
-| ``snubbed``             | This peer has recently failed to send a block within  |
-|                         | the request timeout from when the request was sent.   |
-|                         | We're currently picking one block at a time from this |
-|                         | peer.                                                 |
-+-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html
 
@@ -2632,31 +2393,6 @@ was received. The flags are:
 | ``resume_data``        | The peer was added from the fast resume data.          |
 +------------------------+--------------------------------------------------------+
 
-``read_state`` and ``write_state`` indicates what state this peer is in with regards
-to sending and receiving data. The states are declared in the ``bw_state`` enum and
-defines as follows:
-
-+------------------------+--------------------------------------------------------+
-| ``bw_idle``            | The peer is not waiting for any external events to     |
-|                        | send or receive data.                                  |
-|                        |                                                        |
-+------------------------+--------------------------------------------------------+
-| ``bw_torrent``         | The peer is waiting for the torrent to receive         |
-|                        | bandwidth quota in order to forward the bandwidth      |
-|                        | request to the global manager.                         |
-|                        |                                                        |
-+------------------------+--------------------------------------------------------+
-| ``bw_global``          | The peer is waiting for the global bandwidth manager   |
-|                        | to receive more quota in order to handle the request.  |
-|                        |                                                        |
-+------------------------+--------------------------------------------------------+
-| ``bw_network``         | The peer has quota and is currently waiting for a      |
-|                        | network read or write operation to complete. This is   |
-|                        | the state all peers are in if there are no bandwidth   |
-|                        | limits.                                                |
-|                        |                                                        |
-+------------------------+--------------------------------------------------------+
-
 The ``ip`` field is the IP-address to this peer. The type is an asio endpoint. For
 more info, see the asio_ documentation.
 
@@ -2675,9 +2411,9 @@ the payload data.
 extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
 is using. See identify_client()_
 
-``pieces`` is a bitfield, with one bit per piece in the torrent.
-Each bit tells you if the peer has that piece (if it's set to 1)
-or if the peer miss that piece (set to 0).
+``pieces`` is a vector of booleans that has as many entries as there are pieces
+in the torrent. Each boolean tells you if the peer has that piece (if it's set to true)
+or if the peer miss that piece (set to false).
 
 ``seed`` is true if this peer is a seed.
 
@@ -2691,15 +2427,8 @@ receive. -1 means it's unlimited.
 ``last_request`` and ``last_active`` is the time since we last sent a request
 to this peer and since any transfer occurred with this peer, respectively.
 
-``request_timeout`` is the number of seconds until the current front piece request
-will time out. This timeout can be adjusted through ``session_settings::request_timeout``.
--1 means that there is not outstanding request.
-
 ``send_buffer_size`` and ``used_send_buffer`` is the number of bytes allocated
 and used for the peer's send buffer, respectively.
-
-``receive_buffer_size`` and ``used_receive_buffer`` are the number of bytes
-allocated and used as receive buffer, respectively.
 
 ``num_hashfails`` is the number of pieces this peer has participated in
 sending us that turned out to fail the hash check.
@@ -2712,11 +2441,6 @@ The ``countries.nerd.dk`` service is used to look up countries. This field will
 remain set to 0 unless the torrent is set to resolve countries, see `resolve_countries()`_.
 
 __ http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list-en1.html
-
-``inet_as_name`` is the name of the AS this peer is located in. This might be
-an empty string if there is no name in the geo ip database.
-
-``inet_as`` is the AS number the peer is located in.
 
 ``load_balancing`` is a measurement of the balancing of free download (that we get)
 and free upload that we give. Every peer gets a certain amount of free upload, but
@@ -2751,24 +2475,6 @@ string.
 
 ``connection_type`` can currently be one of ``standard_bittorrent`` or
 ``web_seed``. These are currently the only implemented protocols.
-
-``remote_dl_rate`` is an estimate of the rate this peer is downloading at, in
-bytes per second.
-
-``pending_disk_bytes`` is the number of bytes this peer has pending in the
-disk-io thread. Downloaded and waiting to be written to disk. This is what
-is capped by ``session_settings::max_outstanding_disk_bytes_per_connection``.
-
-``send_quota`` and ``receive_quota`` are the number of bytes this peer has been
-assigned to be allowed to send and receive until it has to request more quota
-from the bandwidth manager.
-
-``rtt`` is an estimated round trip time to this peer, in milliseconds. It is
-estimated by timing the the tcp ``connect()``. It may be 0 for incoming connections.
-
-``download_rate_peak`` and ``upload_rate_peak`` are the highest download and upload
-rates seen on this connection. They are given in bytes per second. This number is
-reset to 0 on reconnect.
 
 session_settings
 ================
@@ -2818,27 +2524,6 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool use_dht_as_fallback;
 		bool free_torrent_hashes;
 		bool upnp_ignore_nonrouters;
-		int send_buffer_watermark;
-		bool auto_upload_slots;
-		int cache_size;
-		int cache_expiry;
-		std::pair<int, int> outgoing_ports;
-		char peer_tos;
-
-		int active_downloads;
-		int active_seeds;
-		int active_limit;
-		bool dont_count_slow_torrents;
-		int auto_manage_interval;
-		float share_ratio_limit;
-		float seed_time_ratio_limit;
-		int seed_time_limit;
-		bool close_redundant_connections;
-
-		int auto_scrape_interval;
-		int auto_scrape_min_interval;
-
-		int max_peerlist_size;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3008,96 +2693,6 @@ cannot be passed back to `add_torrent()`_ for instance.
 should ignore any broadcast response from a device whose address is not the
 configured router for this machine. i.e. it's a way to not talk to other
 people's routers by mistake.
-
-``send_buffer_waterbark`` is the upper limit of the send buffer low-watermark.
-if the send buffer has fewer bytes than this, we'll read another 16kB block
-onto it. If set too small, upload rate capacity will suffer. If set too high,
-memory will be wasted. The actual watermark may be lower than this in case
-the upload rate is low, this is the upper limit.
-
-``auto_upload_slots`` defaults to true. When true, if there is a global upload
-limit set and the current upload rate is less than 90% of that, another upload
-slot is opened. If the upload rate has been saturated for an extended period
-of time, on upload slot is closed. The number of upload slots will never be
-less than what has been set by ``session::set_max_uploads()``. To query the
-current number of upload slots, see ``session_status::allowed_upload_slots``.
-
-``cache_size`` is the disk write cache. It is specified in units of 16 KiB blocks.
-It defaults to 512 (= 8 MB).
-
-``cache_expiry`` is the number of seconds from the last cached write to a piece
-in the write cache, to when it's forcefully flushed to disk. Default is 60 second.
-
-``outgoing_ports``, if set to something other than (0, 0) is a range of ports
-used to bind outgoing sockets to. This may be useful for users whose router
-allows them to assign QoS classes to traffic based on its local port. It is
-a range instead of a single port because of the problems with failing to reconnect
-to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
-
-``peer_tos`` determines the TOS byte set in the IP header of every packet
-sent to peers (including web seeds). The default value for this is ``0x0``
-(no marking). One potentially useful TOS mark is ``0x20``, this represents
-the *QBone scavenger service*. For more details, see QBSS_.
-
-.. _`QBSS`: http://qbone.internet2.edu/qbss/
-
-``active_downloads`` and ``active_seeds`` controls how many active seeding and
-downloading torrents the queuing mechanism allows. The target number of active
-torrents is ``max(active_downloads, active_seeds)``. ``active_downloads`` and
-``active_seeds`` are upper limits on the number of downloading torrents and
-seeding torrents respectively. Setting the value to -1 will mean unlimited.
-
-For example if there are 10 seeding torrents and 10 downloading torrents, and
-``active_downloads`` is 4 and ``active_seeds`` is 4, there will be no seed
-active, but 4 downloading torrents. If the settings are ``active_downloads`` = 2
-and ``active_seeds`` = 4, then there will be 2 downloading torrenst and 2 seeding
-torrents active. Torrents that are not auto managed are also counted against these
-limits. If there are non-auto managed torrents that use up all the slots, no
-auto managed torrent will be activated.
-
-if ``dont_count_slow_torrents`` is true, torrents without any payload transfers are
-not subject to the ``active_seeds`` and ``active_downloads`` limits. This is intended
-to make it more likely to utilize all available bandwidth, and avoid having torrents
-that don't transfer anything block the active slots.
-
-``active_limit`` is a hard limit on the number of active seeds. This applies even to
-slow torrents.
-
-``auto_manage_interval`` is the number of seconds between the torrent queue
-is updated, and rotated.
-
-``share_ratio_limit`` is the upload / download ratio limit for considering a
-seeding torrent have met the seed limit criteria. See queuing_.
-
-``seed_time_ratio_limit`` is the seeding time / downloading time ratio limit
-for considering a seeding torrent to have met the seed limit criteria. See queuing_.
-
-``seed_time_limit`` is the limit on the time a torrent has been an active seed
-(specified in seconds) before it is considered having met the seed limit criteria.
-See queuing_.
-
-``close_redundant_connections`` specifies whether libtorrent should close
-connections where both ends have no utility in keeping the connection open.
-For instance if both ends have completed their downloads, there's no point
-in keeping it open. This defaults to ``true``.
-
-``auto_scrape_interval`` is the number of seconds between scrapes of
-queued torrents (auto managed and paused torrents). Auto managed
-torrents that are paused, are scraped regularly in order to keep
-track of their downloader/seed ratio. This ratio is used to determine
-which torrents to seed and which to pause.
-
-``auto_scrape_min_interval`` is the minimum number of seconds between any
-automatic scrape (regardless of torrent). In case there are a large number
-of paused auto managed torrents, this puts a limit on how often a scrape
-request is sent.
-
-``max_peerlist_size`` is the maximum number of peers in the list of
-known peers. These peers are not necessarily connected, so this number
-should be much greater than the maximum number of connected peers.
-Peers are evicted from the cache when the list grows passed 90% of
-this limit, and once the size hits the limit, peers are no longer
-added to the list.
 
 pe_settings
 ===========
@@ -3347,53 +2942,6 @@ Both the ``peer_id`` and ``sha1_hash`` types are typedefs of the class
 The iterators gives you access to individual bytes.
 
 
-bitfield
-========
-
-The bitfiled type stores any number of bits as a bitfield in an array.
-
-::
-
-	class bitfield
-	{
-		bitfield();
-		bitfield(int bits);
-		bitfield(int bits, bool val);
-		bitfield(char const* bytes, int bits);
-		bitfield(bitfield const& rhs);
-
-		void borrow_bytes(char* bytes, int bits);
-		~bitfield();
-
-		void assign(char const* bytes, int bits);
-
-		bool operator[](int index) const;
-
-		bool get_bit(int index) const;
-	
-		void clear_bit(int index);
-		void set_bit(int index);
-
-		std::size_t size() const;
-		bool empty() const;
-
-		char const* bytes() const;
-
-		bitfield& operator=(bitfield const& rhs);
-
-		int count() const;
-
-		typedef const_iterator;
-		const_iterator begin() const;
-		const_iterator end() const;
-
-		void resize(int bits, bool val);
-		void set_all();
-		void clear_all();
-		void resize(int bits);
-	};
-
-
 
 hasher
 ======
@@ -3482,90 +3030,6 @@ The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to identi
 version of your client. All these numbers must be within the range [0, 9].
 
 ``to_string()`` will generate the actual string put in the peer-id, and return it.
-
-
-UPnP and NAT-PMP
-================
-
-The ``upnp`` and ``natpmp`` classes contains the state for all UPnP and NAT-PMP mappings,
-by default 1 or two mappings are made by libtorrent, one for the listen port and one
-for the DHT port (UDP).
-
-::
-
-	class upnp
-	{
-	public:
-
-		enum protocol_type { none = 0, udp = 1, tcp = 2 };
-		int add_mapping(protocol_type p, int external_port, int local_port);
-		void delete_mapping(int mapping_index);
-	
-		void discover_device();
-		void close();
-	
-		std::string router_model();
-	};
-
-	class natpmp
-	{
-	public:
-	
-		enum protocol_type { none = 0, udp = 1, tcp = 2 };
-		int add_mapping(protocol_type p, int external_port, int local_port);
-		void delete_mapping(int mapping_index);
-	
-		void close();
-		void rebind(address const& listen_interface);
-	};
-
-``discover_device()``, ``close()`` and ``rebind()`` are for internal uses and should
-not be called directly by clients.
-
-add_mapping
------------
-
-	::
-
-		int add_mapping(protocol_type p, int external_port, int local_port);
-
-Attempts to add a port mapping for the specified protocol. Valid protocols are
-``upnp::tcp`` and ``upnp::udp`` for the UPnP class and ``natpmp::tcp`` and
-``natpmp::udp`` for the NAT-PMP class.
-
-``external_port`` is the port on the external address that will be mapped. This
-is a hint, you are not guaranteed that this port will be available, and it may
-end up being something else. In the portmap_alert_ notification, the actual
-external port is reported.
-
-``local_port`` is the port in the local machine that the mapping should forward
-to.
-
-The return value is an index that identifies this port mapping. This is used
-to refer to mappings that fails or succeeds in the portmap_error_alert_ and
-portmap_alert_ respectively. If The mapping fails immediately, the return value
-is -1, which means failure. There will not be any error alert notification for
-mappings that fail with a -1 return value.
-
-delete_mapping
---------------
-
-	::
-
-		void delete_mapping(int mapping_index);
-
-This function removes a port mapping. ``mapping_index`` is the index that refers
-to the mapping you want to remove, which was returned from add_mapping_.
-
-router_model()
---------------
-
-	::
-
-		std::string router_model();
-
-This is only available for UPnP routers. If the model is advertized by
-the router, it can be queried through this function.
 
 
 free functions
@@ -3743,24 +3207,6 @@ alerts that are generated for a specific torrent are derived from::
 
 The specific alerts, that all derives from ``alert``, are:
 
-external_ip_alert
------------------
-
-Whenever libtorrent learns about the machines external IP, this alert is
-generated. The external IP address can be acquired from the tracker (if it
-supports that) or from peers that supports the extension protocol.
-The address can be accessed through the ``external_address`` member.
-This alert is generated as severity level ``info``.
-
-::
-
-	struct external_ip_alert: alert
-	{
-		external_ip_alert(address const& ip, const std::string& msg);
-		address external_address;
-		virtual std::auto_ptr<alert> clone() const;
-	};
-
 
 listen_failed_alert
 -------------------
@@ -3790,18 +3236,11 @@ mappings.
 The alert is generated as severity ``warning``, since it should be displayed
 to the user somehow, and could mean reduced preformance.
 
-``mapping`` refers to the mapping index of the port map that failed, i.e.
-the index returned from add_mapping_.
-
-``type`` is 0 for NAT-PMP and 1 for UPnP.
-
 ::
 
 	struct portmap_error_alert: alert
 	{
-		portmap_error_alert(int mapping, int type, const std::string& msg);
-		int mapping;
-		int type;
+		portmap_error_alert(const std::string& msg);
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
@@ -3814,21 +3253,11 @@ capable router, this is typically generated once when mapping the TCP
 port and, if DHT is enabled, when the UDP port is mapped. This is merely
 an informational alert, and is generated at severity level ``info``.
 
-``mapping`` refers to the mapping index of the port map that failed, i.e.
-the index returned from add_mapping_.
-
-``external_port`` is the external port allocated for the mapping.
-
-``type`` is 0 for NAT-PMP and 1 for UPnP.
-
 ::
 
 	struct portmap_alert: alert
 	{
-		portmap_alert(int mapping, int port, int type, const std::string& msg);
-		int mapping;
-		int external_port;
-		int type;
+		portmap_alert(const std::string& msg);
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
@@ -3871,23 +3300,6 @@ It is generated at severity level ``info``.
 tracker_alert
 -------------
 
-This is a base class for all alerts related to trackers.
-
-::
-
-	struct tracker_alert: torrent_alert
-	{
-		tracker_alert(torrent_handle const& h
-			, std::string const& url
-			, alert::severity_t s
-			, std::string const& msg);
-
-		std::string url;
-	};
-
-tracker_error_alert
--------------------
-
 This alert is generated on tracker time outs, premature disconnects, invalid response or
 a HTTP response other than "200 OK". From the alert you can get the handle to the torrent
 the tracker belongs to. This alert is generated as severity level ``warning``.
@@ -3899,10 +3311,10 @@ to 0.
 
 ::
 
-	struct tracker_error_alert: tracker_alert
+	struct tracker_alert: torrent_alert
 	{
-		tracker_error_alert(torrent_handle const& h, int times, int status
-			, std::string const& url, std::string const& msg);
+		tracker_alert(torrent_handle const& h, int times, int status
+			, const std::string& msg);
 		virtual std::auto_ptr<alert> clone() const;
 
 		int times_in_row;
@@ -3919,12 +3331,11 @@ the DHT. It is generated with severity level ``info``.
 
 ::
 
-	struct tracker_reply_alert: tracker_alert
+	struct tracker_reply_alert: torrent_alert
 	{
 		tracker_reply_alert(const torrent_handle& h
 			, int num_peers
-			. std::string const& url
-			, std::string const& msg);
+			, const std::string& msg);
 
 		int num_peers;
 
@@ -3944,10 +3355,9 @@ the tracker. It is generated with severity level ``warning``.
 
 ::
 
-	struct tracker_warning_alert: tracker_alert
+	struct tracker_warning_alert: torrent_alert
 	{
 		tracker_warning_alert(torrent_handle const& h
-			, std::string const& url
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
@@ -3958,12 +3368,11 @@ scrape_reply_alert
 
 ::
 
-	struct scrape_reply_alert: tracker_alert
+	struct scrape_reply_alert: torrent_alert
 	{
 		scrape_reply_alert(torrent_handle const& h
 			, int incomplete_
 			, int complete_
-			, std::string const& url
 			, std::string const& msg);
 
 		int incomplete;
@@ -3981,10 +3390,9 @@ scrape_failed_alert
 
 ::
 
-	struct scrape_failed_alert: tracker_alert
+	struct scrape_failed_alert: torrent_alert
 	{
 		scrape_failed_alert(torrent_handle const& h
-			, std::string const& url
 			, std::string const& msg);
 
 		virtual std::auto_ptr<alert> clone() const;
@@ -4246,37 +3654,6 @@ This is useful for synchronizing with the disk.
 		virtual std::auto_ptr<alert> clone() const;
 	};
 
-save_resume_data_alert
-----------------------
-
-This alert is generated as a response to a ``torrent_handle::save_resume_data`` request.
-It is generated once the disk IO thread is done writing the state for this torrent.
-The ``resume_data`` member points to the resume data or is 0 on errors.
-
-::
-
-	struct save_resume_data_alert: torrent_alert
-	{
-		save_resume_alert(torrent_handle const& h, std::string const& msg);
-
-		boost::shared_ptr<entry> resume_data;
-
-		virtual std::auto_ptr<alert> clone() const;
-	};
-
-torrent_resumed_alert
----------------------
-
-This alert is generated as a response to a ``torrent_handle::resume`` request. It is
-generated when a torrent goes from a paused state to an active state.
-
-::
-
-	struct torrent_resumed_alert: torrent_alert
-	{
-		torrent_resumed_alert(torrent_handle const& h, std::string const& msg);
-		virtual std::auto_ptr<alert> clone() const;
-	};
 
 dispatcher
 ----------
@@ -4417,7 +3794,7 @@ this::
 		virtual size_type read(char* buf, int slot, int offset, int size) = 0;
 		virtual void write(const char* buf, int slot, int offset, int size) = 0;
 		virtual bool move_storage(fs::path save_path) = 0;
-		virtual bool verify_resume_data(lazy_entry& rd, std::string& error) = 0;
+		virtual bool verify_resume_data(entry& rd, std::string& error) = 0;
 		virtual void write_resume_data(entry& rd) const = 0;
 		virtual void move_slot(int src_slot, int dst_slot) = 0;
 		virtual void swap_slots(int slot1, int slot2) = 0;
@@ -4493,8 +3870,8 @@ not, set ``error`` to a description of what mismatched and return false.
 The default storage may compare file sizes and time stamps of the files.
 
 
-write_resume_data()
--------------------
+write_resume_data( )
+--------------------
 
 	::
 
@@ -4593,70 +3970,12 @@ delete_files()
 This function should delete all files and directories belonging to this storage.
 
 
-queuing
-=======
-
-libtorrent supports *queuing*. Which means it makes sure that a limited number of
-torrents are being downloaded at any given time, and once a torrent is completely
-downloaded, the next in line is started.
-
-Torrents that are *auto managed* are subject to the queuing and the active torrents
-limits. To make a torrent auto managed, set ``auto_managed`` to true when adding the
-torrent (see `add_torrent()`_).
-
-The limits of the number of downloading and seeding torrents are controlled via
-``active_downloads``, ``active_seeds`` and ``active_limit`` in session_settings_. 
-These limits takes non auto managed torrents into account as well. If there are 
-more non-auto managed torrents being downloaded than the ``active_downloads`` 
-setting, any auto managed torrents will be queued until torrents are removed so 
-that the number drops below the limit.
-
-The default values are 8 active downloads and 5 active seeds.
-
-At a regular interval, torrents are checked if there needs to be any re-ordering of
-which torrents are active and which are queued. This interval can be controlled via
-``auto_manage_interval`` in session_settings_. It defaults to every 30 seconds.
-
-For queuing to work, resume data needs to be saved and restored for all torrents.
-See `save_resume_data()`_.
-
-downloading
------------
-
-Torrents that are currently being downloaded or incomplete (with bytes still to download)
-are queued. The torrents in the front of the queue are started to be actively downloaded
-and the rest are ordered with regards to their queue position. Any newly added torrent
-is placed at the end of the queue. Once a torrent is removed or turns into a seed, its
-queue position is -1 and all torrents that used to be after it in the queue, decreases their
-position in order to fill the gap.
-
-The queue positions are always in a sequence without any gaps.
-
-Lower queue position means closer to the front of the queue, and will be started sooner than
-torrents with higher queue positions.
-
-To query a torrent for its position in the queue, or change its position, see:
-`queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()`_.
-
-seeding
--------
-
-Auto managed seeding torrents are rotated, so that all of them are allocated a fair
-amount of seeding. Torrents with fewer completed *seed cycles* are prioritized for
-seeding. A seed cycle is completed when a torrent meets either the share ratio limit
-(uploaded bytes / downloaded bytes), the share time ratio (time seeding / time
-downloaing) or seed time limit (time seeded).
-
-The relevant settings to control these limits are ``share_ratio_limit``,
-``seed_time_ratio_limit`` and ``seed_time_limit`` in session_settings_.
-
-
 fast resume
 ===========
 
 The fast resume mechanism is a way to remember which pieces are downloaded
 and where they are put between sessions. You can generate fast resume data by
-calling `save_resume_data()`_ on torrent_handle_. You can
+calling ``torrent_handle::write_resume_data()`` on torrent_handle_. You can
 then save this data to disk and use it when resuming the torrent. libtorrent
 will not check the piece hashes then, and rely on the information given in the
 fast-resume data. The fast-resume data also contains information about which
@@ -4689,9 +4008,6 @@ The file format is a bencoded dictionary containing the following fields:
 |                      | each block is 16 * 1024 bytes in size. But if piece size is  |
 |                      | greater than 4 megabytes, the block size will increase.      |
 |                      |                                                              |
-+----------------------+--------------------------------------------------------------+
-| ``pieces``           | A string with piece flags, one character per piece.          |
-|                      | Bit 1 means we have that piece.                              |
 +----------------------+--------------------------------------------------------------+
 | ``slots``            | list of integers. The list maps slots to piece indices. It   |
 |                      | tells which piece is on which slot. If piece index is -2 it  |

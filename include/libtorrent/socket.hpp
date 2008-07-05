@@ -45,27 +45,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #define Protocol Protocol_
 #endif
 
-#include <boost/version.hpp>
-
-#if BOOST_VERSION < 103500
 #include <asio/ip/tcp.hpp>
 #include <asio/ip/udp.hpp>
 #include <asio/io_service.hpp>
 #include <asio/deadline_timer.hpp>
 #include <asio/write.hpp>
-#include <asio/read.hpp>
+#include <asio/strand.hpp>
 #include <asio/time_traits.hpp>
 #include <asio/basic_deadline_timer.hpp>
-#else
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/ip/udp.hpp>
-#include <boost/asio/io_service.hpp>
-#include <boost/asio/deadline_timer.hpp>
-#include <boost/asio/write.hpp>
-#include <boost/asio/read.hpp>
-#include <boost/asio/time_traits.hpp>
-#include <boost/asio/basic_deadline_timer.hpp>
-#endif
 
 #ifdef __OBJC__ 
 #undef Protocol
@@ -81,12 +68,24 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-#if BOOST_VERSION < 103500
+/*
+	namespace asio = boost::asio;
+
+	using boost::asio::ipv4::tcp;
+	using boost::asio::ipv4::address;
+	using boost::asio::stream_socket;
+	using boost::asio::datagram_socket;
+	using boost::asio::socket_acceptor;
+	using boost::asio::io_service;
+	using boost::asio::ipv4::host_resolver;
+	using boost::asio::async_write;
+	using boost::asio::ipv4::host;
+	using boost::asio::deadline_timer;
+*/
+//	namespace asio = ::asio;
+
 	using asio::ip::tcp;
 	using asio::ip::udp;
-	using asio::async_write;
-	using asio::async_read;
-
 	typedef asio::ip::tcp::socket stream_socket;
 	typedef asio::ip::address address;
 	typedef asio::ip::address_v4 address_v4;
@@ -94,42 +93,16 @@ namespace libtorrent
 	typedef asio::ip::udp::socket datagram_socket;
 	typedef asio::ip::tcp::acceptor socket_acceptor;
 	typedef asio::io_service io_service;
-	typedef asio::error_code error_code;
 
-	namespace asio = ::asio;
-	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
-#else
-	using boost::system::error_code;
-	using boost::asio::ip::tcp;
-	using boost::asio::ip::udp;
-	using boost::asio::async_write;
-	using boost::asio::async_read;
-
-	typedef boost::asio::ip::tcp::socket stream_socket;
-	typedef boost::asio::ip::address address;
-	typedef boost::asio::ip::address_v4 address_v4;
-	typedef boost::asio::ip::address_v6 address_v6;
-	typedef boost::asio::ip::udp::socket datagram_socket;
-	typedef boost::asio::ip::tcp::acceptor socket_acceptor;
-	typedef boost::asio::io_service io_service;
-
-	namespace asio = boost::asio;
-	typedef boost::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
-#endif
+	using asio::async_write;
+	using asio::error_code;
 	
-	inline std::ostream& print_address(std::ostream& os, address const& addr)
-	{
-		error_code ec;
-		std::string a = addr.to_string(ec);
-		if (ec) return os;
-		os << a;
-		return os;
-	}
-
+	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
+	
 	inline std::ostream& print_endpoint(std::ostream& os, tcp::endpoint const& ep)
 	{
 		address const& addr = ep.address();
-		error_code ec;
+		asio::error_code ec;
 		std::string a = addr.to_string(ec);
 		if (ec) return os;
 
@@ -152,7 +125,7 @@ namespace libtorrent
 			}
 			else if (a.is_v6())
 			{
-				address_v6::bytes_type bytes
+				asio::ip::address_v6::bytes_type bytes
 					= a.to_v6().to_bytes();
 				std::copy(bytes.begin(), bytes.end(), out);
 			}
@@ -162,18 +135,18 @@ namespace libtorrent
 		address read_v4_address(InIt& in)
 		{
 			unsigned long ip = read_uint32(in);
-			return address_v4(ip);
+			return asio::ip::address_v4(ip);
 		}
 
 		template<class InIt>
 		address read_v6_address(InIt& in)
 		{
-			typedef address_v6::bytes_type bytes_t;
+			typedef asio::ip::address_v6::bytes_type bytes_t;
 			bytes_t bytes;
 			for (bytes_t::iterator i = bytes.begin()
 				, end(bytes.end()); i != end; ++i)
 				*i = read_uint8(in);
-			return address_v6(bytes);
+			return asio::ip::address_v6(bytes);
 		}
 
 		template<class Endpoint, class OutIt>
@@ -214,19 +187,6 @@ namespace libtorrent
 		int m_value;
 	};
 	
-	struct type_of_service
-	{
-		type_of_service(char val): m_value(val) {}
-		template<class Protocol>
-		int level(Protocol const&) const { return IPPROTO_IP; }
-		template<class Protocol>
-		int name(Protocol const&) const { return IP_TOS; }
-		template<class Protocol>
-		char const* data(Protocol const&) const { return &m_value; }
-		template<class Protocol>
-		size_t size(Protocol const&) const { return sizeof(m_value); }
-		char m_value;
-	};
 }
 
 #endif // TORRENT_SOCKET_HPP_INCLUDED

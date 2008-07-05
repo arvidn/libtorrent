@@ -21,11 +21,7 @@
 # include <boost/type_traits/add_pointer.hpp>
 # include <boost/noncopyable.hpp>
 
-#if BOOST_VERSION < 103500
 #include <asio/io_service.hpp>
-#else
-#include <boost/asio/io_service.hpp>
-#endif
 
 # define NETWORK_VARIANT_STREAM_LIMIT 5
 
@@ -52,7 +48,7 @@ namespace aux
   template<class IO_Control_Command>
   struct io_control_visitor_ec: boost::static_visitor<>
   {
-      io_control_visitor_ec(IO_Control_Command& ioc, error_code& ec_)
+      io_control_visitor_ec(IO_Control_Command& ioc, asio::error_code& ec_)
           : ioc(ioc), ec(ec_) {}
 
       template <class T>
@@ -65,7 +61,7 @@ namespace aux
       {}
 
       IO_Control_Command& ioc;
-      error_code& ec;
+		asio::error_code& ec;
   };
 
   template<class IO_Control_Command>
@@ -116,7 +112,7 @@ namespace aux
   struct bind_visitor_ec
     : boost::static_visitor<>
   {
-      bind_visitor_ec(EndpointType const& ep, error_code& ec_)
+      bind_visitor_ec(EndpointType const& ep, asio::error_code& ec_)
         : endpoint(ep)
         , ec(ec_)
       {}
@@ -128,7 +124,7 @@ namespace aux
       void operator()(boost::blank) const {}
 
       EndpointType const& endpoint;
-      error_code& ec;
+		asio::error_code& ec;
   };
 
   template <class EndpointType>
@@ -154,7 +150,7 @@ namespace aux
   struct open_visitor_ec
     : boost::static_visitor<>
   {
-      open_visitor_ec(Protocol const& p, error_code& ec_)
+      open_visitor_ec(Protocol const& p, asio::error_code& ec_)
         : proto(p)
         , ec(ec_)
       {}
@@ -166,7 +162,7 @@ namespace aux
       void operator()(boost::blank) const {}
 
       Protocol const& proto;
-      error_code& ec;
+		asio::error_code& ec;
   };
 
   template <class Protocol>
@@ -186,26 +182,12 @@ namespace aux
       Protocol const& proto;
   };
 
-// -------------- is_open -----------
-
-  struct is_open_visitor
-    : boost::static_visitor<bool>
-  {
-      is_open_visitor() {}
-
-      template <class T>
-      bool operator()(T const* p) const
-      { return p->is_open(); }
-
-      bool operator()(boost::blank) const { return false; }
-  };
-
 // -------------- close -----------
 
   struct close_visitor_ec
     : boost::static_visitor<>
   {
-      close_visitor_ec(error_code& ec_)
+      close_visitor_ec(asio::error_code& ec_)
         : ec(ec_)
       {}
 
@@ -215,7 +197,7 @@ namespace aux
 
       void operator()(boost::blank) const {}
 
-      error_code& ec;
+		asio::error_code& ec;
   };
 
   struct close_visitor
@@ -234,18 +216,18 @@ namespace aux
   struct remote_endpoint_visitor_ec
     : boost::static_visitor<EndpointType>
   {
-      remote_endpoint_visitor_ec(error_code& ec_)
-        : ec(ec_)
+      remote_endpoint_visitor_ec(asio::error_code& ec)
+        : error_code(ec)
       {}
 
       template <class T>
-      EndpointType operator()(T const* p) const
-      { return p->remote_endpoint(ec); }
+      EndpointType operator()(T* p) const
+      { return p->remote_endpoint(error_code); }
 
       EndpointType operator()(boost::blank) const
       { return EndpointType(); }
 
-      error_code& ec;
+		asio::error_code& error_code;
   };
 
   template <class EndpointType>
@@ -253,50 +235,11 @@ namespace aux
     : boost::static_visitor<EndpointType>
   {
       template <class T>
-      EndpointType operator()(T const* p) const
+      EndpointType operator()(T* p) const
       { return p->remote_endpoint(); }
 
       EndpointType operator()(boost::blank) const
       { return EndpointType(); }
-  };
-
-// -------------- set_option -----------
-
-  template <class SettableSocketOption>
-  struct set_option_visitor
-    : boost::static_visitor<>
-  {
-      set_option_visitor(SettableSocketOption const& opt)
-        : opt_(opt)
-      {}
-
-      template <class T>
-      void operator()(T* p) const
-      { p->set_option(opt_); }
-
-      void operator()(boost::blank) const {}
-
-      SettableSocketOption const& opt_;
-  };
-
-  template <class SettableSocketOption>
-  struct set_option_visitor_ec
-    : boost::static_visitor<error_code>
-  {
-      set_option_visitor_ec(SettableSocketOption const& opt, error_code& ec)
-        : opt_(opt)
-        , ec_(ec)
-      {}
-
-      template <class T>
-      error_code operator()(T* p) const
-      { return p->set_option(opt_, ec_); }
-
-      error_code operator()(boost::blank) const
-      { return ec_; }
-
-      SettableSocketOption const& opt_;
-      error_code& ec_;
   };
 
 // -------------- local_endpoint -----------
@@ -305,14 +248,14 @@ namespace aux
   struct local_endpoint_visitor_ec
     : boost::static_visitor<EndpointType>
   {
-      local_endpoint_visitor_ec(error_code& ec_)
-        : ec(ec_)
+      local_endpoint_visitor_ec(asio::error_code& ec)
+        : error_code(ec)
       {}
 
       template <class T>
-      EndpointType operator()(T const* p) const
+      EndpointType operator()(T* p) const
       {
-          return p->local_endpoint(ec);
+          return p->local_endpoint(error_code);
       }
 
       EndpointType operator()(boost::blank) const
@@ -320,7 +263,7 @@ namespace aux
           return EndpointType();
       }
 
-      error_code& ec;
+		asio::error_code& error_code;
   };
 
   template <class EndpointType>
@@ -328,7 +271,7 @@ namespace aux
     : boost::static_visitor<EndpointType>
   {
       template <class T>
-      EndpointType operator()(T const* p) const
+      EndpointType operator()(T* p) const
       {
           return p->local_endpoint();
       }
@@ -376,7 +319,7 @@ namespace aux
       std::size_t operator()(T* p) const
       { return p->read_some(buffers); }
 
-      std::size_t operator()(boost::blank) const
+		std::size_t operator()(boost::blank) const
       { return 0; }
 
       Mutable_Buffers const& buffers;
@@ -386,7 +329,7 @@ namespace aux
   struct read_some_visitor_ec
     : boost::static_visitor<std::size_t>
   {
-      read_some_visitor_ec(Mutable_Buffers const& buffers, error_code& ec_)
+      read_some_visitor_ec(Mutable_Buffers const& buffers, asio::error_code& ec_)
         : buffers(buffers)
         , ec(ec_)
       {}
@@ -395,11 +338,11 @@ namespace aux
       std::size_t operator()(T* p) const
       { return p->read_some(buffers, ec); }
 
-      std::size_t operator()(boost::blank) const
+		std::size_t operator()(boost::blank) const
       { return 0; }
 
       Mutable_Buffers const& buffers;
-      error_code& ec;
+      asio::error_code& ec;
   };
 
 // -------------- async_write_some -----------
@@ -431,12 +374,12 @@ namespace aux
   struct in_avail_visitor_ec
     : boost::static_visitor<std::size_t>
   {
-      in_avail_visitor_ec(error_code& ec_)
+      in_avail_visitor_ec(asio::error_code& ec_)
         : ec(ec_)
       {}
 
       template <class T>
-      std::size_t operator()(T const* p) const
+      std::size_t operator()(T* p) const
       {
           return p->in_avail(ec);
       }
@@ -446,14 +389,14 @@ namespace aux
           return 0;
       }
 
-      error_code& ec;
+		asio::error_code& ec;
   };
 
   struct in_avail_visitor
     : boost::static_visitor<std::size_t>
   {
       template <class T>
-      std::size_t operator()(T const* p) const
+      std::size_t operator()(T* p) const
       {
           return p->in_avail();
       }
@@ -471,7 +414,7 @@ namespace aux
       template <class T>
       IOService& operator()(T* p) const
       {
-          return p->get_io_service();
+          return p->io_service();
       }
 
       IOService& operator()(boost::blank) const
@@ -528,13 +471,11 @@ public:
     typedef typename S0::endpoint_type endpoint_type;
     typedef typename S0::protocol_type protocol_type;
 
-    explicit variant_stream(io_service& ios)
-        : m_io_service(ios), m_variant(boost::blank()) {}
+    explicit variant_stream() : m_variant(boost::blank()) {}
 
     template <class S>
-    void instantiate(io_service& ios)
+    void instantiate(asio::io_service& ios)
     {
-        TORRENT_ASSERT(&ios == &m_io_service);
         std::auto_ptr<S> owned(new S(ios));
         boost::apply_visitor(aux::delete_visitor(), m_variant);
         m_variant = owned.get();
@@ -544,7 +485,7 @@ public:
     template <class S>
     S& get()
     {
-        return *boost::get<S*>(m_variant);
+	     return *boost::get<S*>(m_variant);
     }
 
     bool instantiated() const
@@ -558,7 +499,7 @@ public:
     }
 
     template <class Mutable_Buffers>
-    std::size_t read_some(Mutable_Buffers const& buffers, error_code& ec)
+    std::size_t read_some(Mutable_Buffers const& buffers, asio::error_code& ec)
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
@@ -616,7 +557,7 @@ public:
     }
 
     template <class IO_Control_Command>
-    void io_control(IO_Control_Command& ioc, error_code& ec)
+    void io_control(IO_Control_Command& ioc, asio::error_code& ec)
     {
         TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
@@ -631,7 +572,7 @@ public:
         boost::apply_visitor(aux::bind_visitor<endpoint_type>(endpoint), m_variant);
     }
 
-    void bind(endpoint_type const& endpoint, error_code& ec)
+    void bind(endpoint_type const& endpoint, asio::error_code& ec)
     {
         TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
@@ -645,17 +586,12 @@ public:
         boost::apply_visitor(aux::open_visitor<protocol_type>(p), m_variant);
     }
 
-    void open(protocol_type const& p, error_code& ec)
+    void open(protocol_type const& p, asio::error_code& ec)
     {
         TORRENT_ASSERT(instantiated());
         boost::apply_visitor(
             aux::open_visitor_ec<protocol_type>(p, ec), m_variant
         );
-    }
-
-    bool is_open() const
-    {
-        return boost::apply_visitor(aux::is_open_visitor(), m_variant);
     }
 
     void close()
@@ -664,7 +600,7 @@ public:
         boost::apply_visitor(aux::close_visitor(), m_variant);
     }
 
-    void close(error_code& ec)
+    void close(asio::error_code& ec)
     {
         if (!instantiated()) return;
         boost::apply_visitor(
@@ -672,13 +608,13 @@ public:
         );
     }
 
-    std::size_t in_avail() const
+    std::size_t in_avail()
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(aux::in_avail_visitor(), m_variant);
     }
 
-    std::size_t in_avail(error_code& ec) const
+    std::size_t in_avail(asio::error_code& ec)
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
@@ -686,13 +622,13 @@ public:
         );
     }
 
-    endpoint_type remote_endpoint() const
+    endpoint_type remote_endpoint()
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(aux::remote_endpoint_visitor<endpoint_type>(), m_variant);
     }
 
-    endpoint_type remote_endpoint(error_code& ec) const
+    endpoint_type remote_endpoint(asio::error_code& ec)
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
@@ -700,29 +636,13 @@ public:
         );
     }
 
-    template <class SettableSocketOption>
-    void set_option(SettableSocketOption const& opt)
-    {
-        TORRENT_ASSERT(instantiated());
-        boost::apply_visitor(aux::set_option_visitor<SettableSocketOption>(opt)
-            , m_variant);
-    }
-
-    template <class SettableSocketOption>
-    error_code set_option(SettableSocketOption const& opt, error_code& ec)
-    {
-        TORRENT_ASSERT(instantiated());
-        return boost::apply_visitor(aux::set_option_visitor_ec<SettableSocketOption>(opt, ec)
-            , m_variant);
-    }
-
-    endpoint_type local_endpoint() const
+    endpoint_type local_endpoint()
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(aux::local_endpoint_visitor<endpoint_type>(), m_variant);
     }
 
-    endpoint_type local_endpoint(error_code& ec) const
+    endpoint_type local_endpoint(asio::error_code& ec)
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
@@ -730,9 +650,12 @@ public:
         );
     }
 
-    io_service& get_io_service()
+	 asio::io_service& io_service()
     {
-        return m_io_service;
+        TORRENT_ASSERT(instantiated());
+        return boost::apply_visitor(
+            aux::io_service_visitor<asio::io_service>(), m_variant
+        );
     }
 
     lowest_layer_type& lowest_layer()
@@ -744,7 +667,6 @@ public:
     }
 
 private:
-    io_service& m_io_service;
     variant_type m_variant;
 };
 
