@@ -317,7 +317,8 @@ namespace libtorrent
 		void set_max_half_open_connections(int limit);
 
 		std::auto_ptr<alert> pop_alert();
-		void set_severity_level(alert::severity_t s);
+		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;
+		void set_alert_mask(int m);
 
 		alert const* wait_for_alert(time_duration max_wait);
 

@@ -211,7 +211,7 @@ namespace libtorrent
 			void check_torrent(boost::shared_ptr<torrent> const& t);
 			void done_checking(boost::shared_ptr<torrent> const& t);
 
-			void set_severity_level(alert::severity_t s);
+			void set_alert_mask(int m);
 			std::auto_ptr<alert> pop_alert();
 
 			alert const* wait_for_alert(time_duration max_wait);

@@ -513,9 +513,27 @@ namespace libtorrent
 		return m_impl->wait_for_alert(max_wait);
 	}
 
+	void session::set_alert_mask(int m)
+	{
+		m_impl->set_alert_mask(m);
+	}
+
 	void session::set_severity_level(alert::severity_t s)
 	{
-		m_impl->set_severity_level(s);
+		int m = 0;
+		switch (s)
+		{
+			case alert::debug: m = alert::all_categories; break;
+			case alert::info: m = alert::all_categories & ~(alert::debug_notification
+				| alert::progress_notification); break;
+			case alert::warning: m = alert::all_categories & ~(alert::debug_notification
+				| alert::status_notification | alert::progress_notification); break;
+			case alert::critical: m = alert::error_notification | alert::storage_notification; break;
+			case alert::fatal: m = alert::error_notification; break;
+			default: break;
+		}
+
+		m_impl->set_alert_mask(m);
 	}
 
 	void session::start_lsd()

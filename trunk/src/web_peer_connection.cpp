@@ -386,7 +386,7 @@ namespace libtorrent
 					t->remove_url_seed(m_url);
 					std::string error_msg = boost::lexical_cast<std::string>(m_parser.status_code())
 						+ " " + m_parser.message();
-					if (m_ses.m_alerts.should_post(alert::warning))
+					if (m_ses.m_alerts.should_post<url_seed_alert>())
 					{
 						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()

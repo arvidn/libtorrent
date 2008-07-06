@@ -1378,14 +1378,10 @@ namespace libtorrent
 			write_reject_request(r);
 			++m_num_invalid_requests;
 
-			if (t->alerts().should_post(alert::debug))
+			if (t->alerts().should_post<invalid_request_alert>())
 			{
-				t->alerts().post_alert(invalid_request_alert(
-					r
-					, t->get_handle()
-					, m_remote
-					, m_peer_id
-					, "peer sent an illegal piece request"));
+				t->alerts().post_alert(invalid_request_alert(r
+					, t->get_handle(), m_remote, m_peer_id));
 			}
 		}
 	}
@@ -1524,13 +1520,10 @@ namespace libtorrent
 
 		if (b == m_download_queue.end())
 		{
-			if (t->alerts().should_post(alert::debug))
+			if (t->alerts().should_post<peer_error_alert>())
 			{
-				t->alerts().post_alert(
-					peer_error_alert(
-						m_remote
-						, m_peer_id
-						, "got a block that was not in the request queue"));
+				t->alerts().post_alert(peer_error_alert(t->get_handle(), m_remote
+						, m_peer_id, "got a block that was not in the request queue"));
 			}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << " *** The block we just got was not in the "
@@ -1637,7 +1630,7 @@ namespace libtorrent
 				return;
 			}
 		
-			if (t->alerts().should_post(alert::fatal))
+			if (t->alerts().should_post<file_error_alert>())
 			{
 				t->alerts().post_alert(file_error_alert(j.error_file, t->get_handle(), j.str));
 			}
@@ -1652,10 +1645,10 @@ namespace libtorrent
 		TORRENT_ASSERT(p.piece == j.piece);
 		TORRENT_ASSERT(p.start == j.offset);
 		picker.mark_as_finished(block_finished, peer_info_struct());
-		if (t->alerts().should_post(alert::debug))
+		if (t->alerts().should_post<block_finished_alert>())
 		{
 			t->alerts().post_alert(block_finished_alert(t->get_handle(), 
-				block_finished.block_index, block_finished.piece_index, "block finished"));
+				block_finished.block_index, block_finished.piece_index));
 		}
 
 		// did we just finish the piece?
@@ -1934,10 +1927,10 @@ namespace libtorrent
 		if (!t->picker().mark_as_downloading(block, peer_info_struct(), state))
 			return;
 
-		if (t->alerts().should_post(alert::debug))
+		if (t->alerts().should_post<block_downloading_alert>())
 		{
 			t->alerts().post_alert(block_downloading_alert(t->get_handle(), 
-				speedmsg, block.block_index, block.piece_index, "block downloading"));
+				speedmsg, block.block_index, block.piece_index));
 		}
 
 		m_request_queue.push_back(block);
@@ -2238,18 +2231,20 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
+		torrent_handle handle;
+		if (t) handle = t->get_handle();
 
 		if (message)
 		{
-			if (error > 1 && m_ses.m_alerts.should_post(alert::info))
+			if (error > 1 && m_ses.m_alerts.should_post<peer_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(
-					peer_error_alert(remote(), pid(), message));
+					peer_error_alert(handle, remote(), pid(), message));
 			}
-			else if (error <= 1 && m_ses.m_alerts.should_post(alert::debug))
+			else if (error <= 1 && m_ses.m_alerts.should_post<peer_disconnected_alert>())
 			{
 				m_ses.m_alerts.post_alert(
-					peer_disconnected_alert(remote(), pid(), message));
+					peer_disconnected_alert(handle, remote(), pid(), message));
 			}
 		}
 
@@ -2616,7 +2611,15 @@ namespace libtorrent
 			&& now > m_requested + seconds(m_ses.settings().request_timeout)
 			&& t->has_picker())
 		{
-			m_snubbed = true;
+			if (!m_snubbed)
+			{
+				m_snubbed = true;
+				if (m_ses.m_alerts.should_post<peer_snubbed_alert>())
+				{
+					m_ses.m_alerts.post_alert(peer_snubbed_alert(t->get_handle()
+						, m_remote, m_peer_id));
+				}
+			}
 			m_desired_queue_size = 1;
 			piece_picker& picker = t->picker();
 			// the front request timed out!
@@ -2695,7 +2698,15 @@ namespace libtorrent
 				<< " " << total_seconds(now - m_last_piece) << "] ***\n";
 #endif
 
-			m_snubbed = true;
+			if (!m_snubbed)
+			{
+				m_snubbed = true;
+				if (m_ses.m_alerts.should_post<peer_snubbed_alert>())
+				{
+					m_ses.m_alerts.post_alert(peer_snubbed_alert(t->get_handle()
+						, m_remote, m_peer_id));
+				}
+			}
 			m_desired_queue_size = 1;
 
 			if (t->is_seed())
@@ -2843,10 +2854,8 @@ namespace libtorrent
 				return;
 			}
 		
-			if (t->alerts().should_post(alert::fatal))
-			{
+			if (t->alerts().should_post<file_error_alert>())
 				t->alerts().post_alert(file_error_alert(j.error_file, t->get_handle(), j.str));
-			}
 			t->set_error(j.str);
 			t->pause();
 			return;
@@ -3378,10 +3387,10 @@ namespace libtorrent
 			, bind(&peer_connection::on_connection_complete, self(), _1));
 		m_connect = time_now();
 
-		if (t->alerts().should_post(alert::debug))
+		if (t->alerts().should_post<peer_connect_alert>())
 		{
-			t->alerts().post_alert(peer_error_alert(
-				m_remote, m_peer_id, "connecting to peer"));
+			t->alerts().post_alert(peer_connect_alert(
+				t->get_handle(), m_remote));
 		}
 	}
 	

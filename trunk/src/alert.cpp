@@ -35,38 +35,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include <boost/thread/xtime.hpp>
 
+enum { queue_size_limit = 1000 };
+
 namespace libtorrent {
 
-	alert::alert(severity_t severity, const std::string& msg)
-		: m_msg(msg)
-		, m_severity(severity)
-		, m_timestamp(time_now())
-	{
-	}
-
-	alert::~alert()
-	{
-	}
-
-	ptime alert::timestamp() const
-	{
-		return m_timestamp;
-	}
-
-	const std::string& alert::msg() const
-	{
-		return m_msg;
-	}
-
-	alert::severity_t alert::severity() const
-	{
-		return m_severity;
-	}
-
-
+	alert::alert() : m_timestamp(time_now()) {}
+	alert::~alert() {}
+	ptime alert::timestamp() const { return m_timestamp; }
 
 	alert_manager::alert_manager()
-		: m_severity(alert::fatal)
+		: m_alert_mask(alert::error_notification)
 	{}
 
 	alert_manager::~alert_manager()
@@ -105,15 +83,8 @@ namespace libtorrent {
 	void alert_manager::post_alert(const alert& alert_)
 	{
 		boost::mutex::scoped_lock lock(m_mutex);
-		if (m_severity > alert_.severity()) return;
 
-		// the internal limit is 100 alerts
-		if (m_alerts.size() == 100)
-		{
-			alert* result = m_alerts.front();
-			m_alerts.pop();
-			delete result;
-		}
+		if (m_alerts.size() >= queue_size_limit) return;
 		m_alerts.push(alert_.clone().release());
 		m_condition.notify_all();
 	}
@@ -134,18 +105,6 @@ namespace libtorrent {
 		boost::mutex::scoped_lock lock(m_mutex);
 		
 		return !m_alerts.empty();
-	}
-
-	void alert_manager::set_severity(alert::severity_t severity)
-	{
-		boost::mutex::scoped_lock lock(m_mutex);
-		
-		m_severity = severity;
-	}
-	
-	bool alert_manager::should_post(alert::severity_t severity) const
-	{
-		return severity >= m_severity;
 	}
 
 } // namespace libtorrent
