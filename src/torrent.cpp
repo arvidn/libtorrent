@@ -297,7 +297,7 @@ namespace libtorrent
 			+ m_resume_data.size(), m_resume_entry) != 0)
 		{
 			std::vector<char>().swap(m_resume_data);
-			if (m_ses.m_alerts.should_post(alert::warning))
+			if (m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 			{
 				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), "parse failed"));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -461,7 +461,7 @@ namespace libtorrent
 			if (!error && sha1_hash(info_hash) != m_torrent_file->info_hash())
 				error = "mismatching info-hash";
 
-			if (error && m_ses.m_alerts.should_post(alert::warning))
+			if (error && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 			{
 				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), error));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -493,7 +493,7 @@ namespace libtorrent
 
 		if (ret == piece_manager::fatal_disk_error)
 		{
-			if (m_ses.m_alerts.should_post(alert::fatal))
+			if (m_ses.m_alerts.should_post<file_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.str));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -552,7 +552,7 @@ namespace libtorrent
 
 		bool fastresume_rejected = !j.str.empty();
 		
-		if (fastresume_rejected && m_ses.m_alerts.should_post(alert::warning))
+		if (fastresume_rejected && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 		{
 			m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), j.str));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -672,7 +672,7 @@ namespace libtorrent
 
 		if (ret == piece_manager::fatal_disk_error)
 		{
-			if (m_ses.m_alerts.should_post(alert::fatal))
+			if (m_ses.m_alerts.should_post<file_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.str));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -710,7 +710,7 @@ namespace libtorrent
 		}
 		if (ret == piece_manager::fatal_disk_error)
 		{
-			if (m_ses.m_alerts.should_post(alert::fatal))
+			if (m_ses.m_alerts.should_post<file_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.str));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -809,10 +809,10 @@ namespace libtorrent
 	{
 		if (peers.empty()) return;
 
-		if (m_ses.m_alerts.should_post(alert::info))
+		if (m_ses.m_alerts.should_post<dht_reply_alert>())
 		{
-			m_ses.m_alerts.post_alert(tracker_reply_alert(
-				get_handle(), peers.size(), "DHT", "Got peers from DHT"));
+			m_ses.m_alerts.post_alert(dht_reply_alert(
+				get_handle(), peers.size()));
 		}
 		std::for_each(peers.begin(), peers.end(), bind(
 			&policy::peer_from_tracker, boost::ref(m_policy), _1, peer_id(0)
@@ -861,10 +861,8 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		if (m_ses.m_alerts.should_post(alert::warning))
-		{
+		if (m_ses.m_alerts.should_post<tracker_warning_alert>())
 			m_ses.m_alerts.post_alert(tracker_warning_alert(get_handle(), req.url, msg));
-		}
 	}
 	
  	void torrent::tracker_scrape_response(tracker_request const& req
@@ -878,10 +876,10 @@ namespace libtorrent
  		if (complete >= 0) m_complete = complete;
  		if (incomplete >= 0) m_incomplete = incomplete;
  
- 		if (m_ses.m_alerts.should_post(alert::info))
+ 		if (m_ses.m_alerts.should_post<scrape_reply_alert>())
  		{
  			m_ses.m_alerts.post_alert(scrape_reply_alert(
- 				get_handle(), m_incomplete, m_complete, req.url, "got scrape response from tracker"));
+ 				get_handle(), m_incomplete, m_complete, req.url));
  		}
  	}
  
@@ -964,11 +962,8 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 					debug_log("blocked ip from tracker: " + i->ip);
 #endif
-					if (m_ses.m_alerts.should_post(alert::info))
-					{	
-						m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
-							, "peer from tracker blocked by IP filter"));
-					}
+					if (m_ses.m_alerts.should_post<peer_blocked_alert>())
+						m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()));
 
 					continue;
 				}
@@ -977,10 +972,10 @@ namespace libtorrent
 			}
 		}
 
-		if (m_ses.m_alerts.should_post(alert::info))
+		if (m_ses.m_alerts.should_post<tracker_reply_alert>())
 		{
 			m_ses.m_alerts.post_alert(tracker_reply_alert(
-				get_handle(), peer_list.size(), r.url, "got response from tracker"));
+				get_handle(), peer_list.size(), r.url));
 		}
 		m_got_tracker_response = true;
 	}
@@ -1000,10 +995,9 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			debug_log("blocked ip from tracker: " + host->endpoint().address().to_string());
 #endif
-			if (m_ses.m_alerts.should_post(alert::info))
+			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
 			{
-				m_ses.m_alerts.post_alert(peer_blocked_alert(host->endpoint().address()
-					, "peer from tracker blocked by IP filter"));
+				m_ses.m_alerts.post_alert(peer_blocked_alert(host->endpoint().address()));
 			}
 
 			return;
@@ -1276,10 +1270,10 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
-		if (m_ses.m_alerts.should_post(alert::debug))
+		if (m_ses.m_alerts.should_post<piece_finished_alert>())
 		{
 			m_ses.m_alerts.post_alert(piece_finished_alert(get_handle()
-				, index, "piece finished"));
+				, index));
 		}
 
 		bool was_finished = m_picker->num_filtered() + num_have()
@@ -1365,12 +1359,9 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 	  	TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
-		if (m_ses.m_alerts.should_post(alert::info))
-		{
-			std::stringstream s;
-			s << "hash for piece " << index << " failed";
-			m_ses.m_alerts.post_alert(hash_failed_alert(get_handle(), index, s.str()));
-		}
+		if (m_ses.m_alerts.should_post<hash_failed_alert>())
+			m_ses.m_alerts.post_alert(hash_failed_alert(get_handle(), index));
+
 		// increase the total amount of failed bytes
 		m_total_failed_bytes += m_torrent_file->piece_size(index);
 
@@ -1424,12 +1415,10 @@ namespace libtorrent
 			{
 				// we don't trust this peer anymore
 				// ban it.
-				if (m_ses.m_alerts.should_post(alert::info))
+				if (m_ses.m_alerts.should_post<peer_ban_alert>())
 				{
 					m_ses.m_alerts.post_alert(peer_ban_alert(
-						p->ip
-						, get_handle()
-						, "banning peer because of too many corrupt pieces"));
+						p->ip, get_handle()));
 				}
 
 				// mark the peer as banned
@@ -1539,16 +1528,15 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		if (alerts().should_post(alert::warning))
+		if (ret != 0)
 		{
-			if (ret != 0)
-			{
-				alerts().post_alert(torrent_deleted_alert(get_handle(), "delete files failed: " + j.str));
-			}
-			else
-			{
-				alerts().post_alert(torrent_deleted_alert(get_handle(), "files deleted"));
-			}
+			if (alerts().should_post<torrent_delete_failed_alert>())
+				alerts().post_alert(torrent_delete_failed_alert(get_handle(), j.str));
+		}
+		else
+		{
+			if (alerts().should_post<torrent_deleted_alert>())
+				alerts().post_alert(torrent_deleted_alert(get_handle()));
 		}
 	}
 
@@ -1557,9 +1545,9 @@ namespace libtorrent
 /*
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		if (alerts().should_post(alert::warning))
+		if (alerts().should_post<torrent_paused_alert>())
 		{
-			alerts().post_alert(torrent_paused_alert(get_handle(), "torrent paused"));
+			alerts().post_alert(torrent_paused_alert(get_handle()));
 		}
 */
 	}
@@ -1568,20 +1556,17 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		if (alerts().should_post(alert::warning))
+		if (!j.resume_data && alerts().should_post<save_resume_data_failed_alert>())
 		{
-			char const* msg;
-			if (j.resume_data)
-			{
-				write_resume_data(*j.resume_data);
-				msg = "resume data generated";
-			}
-			else
-			{
-				msg = j.str.c_str();
-			}
+			alerts().post_alert(save_resume_data_failed_alert(get_handle(), j.str));
+			return;
+		}
+
+		if (j.resume_data && alerts().should_post<save_resume_data_alert>())
+		{
+			write_resume_data(*j.resume_data);
 			alerts().post_alert(save_resume_data_alert(j.resume_data
-				, get_handle(), msg));
+				, get_handle()));
 		}
 	}
 
@@ -1589,14 +1574,17 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		
-		if (alerts().should_post(alert::warning))
 		{
-
 			if (ret == 0)
-				alerts().post_alert(file_renamed_alert(get_handle(), j.str
-					, "renamed file: " + j.str));
+			{
+				if (alerts().should_post<file_renamed_alert>())
+					alerts().post_alert(file_renamed_alert(get_handle(), j.str, j.piece));
+			}
 			else
-				alerts().post_alert(file_renamed_alert(get_handle(), "", j.str));
+			{
+				if (alerts().should_post<file_rename_failed_alert>())
+					alerts().post_alert(file_rename_failed_alert(get_handle(), j.str, j.piece));
+			}
 		}
 	}
 
@@ -1604,10 +1592,8 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		if (alerts().should_post(alert::warning))
-		{
-			alerts().post_alert(torrent_paused_alert(get_handle(), "torrent paused"));
-		}
+		if (alerts().should_post<torrent_paused_alert>())
+			alerts().post_alert(torrent_paused_alert(get_handle()));
 	}
 
 	std::string torrent::tracker_login() const
@@ -2050,7 +2036,7 @@ namespace libtorrent
 		if (protocol != "http")
 #endif
 		{
-			if (m_ses.m_alerts.should_post(alert::warning))
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
 					url_seed_alert(get_handle(), url, "unknown protocol"));
@@ -2062,7 +2048,7 @@ namespace libtorrent
 
 		if (hostname.empty())
 		{
-			if (m_ses.m_alerts.should_post(alert::warning))
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
 					url_seed_alert(get_handle(), url, "invalid hostname"));
@@ -2074,7 +2060,7 @@ namespace libtorrent
 
 		if (port == 0)
 		{
-			if (m_ses.m_alerts.should_post(alert::warning))
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
 					url_seed_alert(get_handle(), url, "invalid port"));
@@ -2099,7 +2085,7 @@ namespace libtorrent
 		{
 			if (m_ses.m_port_filter.access(port) & port_filter::blocked)
 			{
-				if (m_ses.m_alerts.should_post(alert::warning))
+				if (m_ses.m_alerts.should_post<url_seed_alert>())
 				{
 					m_ses.m_alerts.post_alert(
 						url_seed_alert(get_handle(), url, "port blocked by port-filter"));
@@ -2130,7 +2116,7 @@ namespace libtorrent
 
 		if (e || host == tcp::resolver::iterator())
 		{
-			if (m_ses.m_alerts.should_post(alert::warning))
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
 					url_seed_alert(get_handle(), url, e.message()));
@@ -2155,7 +2141,7 @@ namespace libtorrent
 
 		if (error)
 		{
-			if (m_ses.m_alerts.should_post(alert::warning))
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
 					url_seed_alert(get_handle(), url, error));
@@ -2166,11 +2152,8 @@ namespace libtorrent
 
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
-			if (m_ses.m_alerts.should_post(alert::info))
-			{
-				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
-					, "proxy (" + hostname + ") blocked by IP filter"));
-			}
+			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
+				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()));
 			return;
 		}
 
@@ -2195,7 +2178,7 @@ namespace libtorrent
 
 		if (e || host == tcp::resolver::iterator())
 		{
-			if (m_ses.m_alerts.should_post(alert::warning))
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				std::stringstream msg;
 				msg << "HTTP seed hostname lookup failed: " << e.message();
@@ -2218,11 +2201,8 @@ namespace libtorrent
 
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
-			if (m_ses.m_alerts.should_post(alert::info))
-			{
-				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()
-					, "web seed (" + url + ") blocked by IP filter"));
-			}
+			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
+				m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()));
 			return;
 		}
 		
@@ -2770,10 +2750,10 @@ namespace libtorrent
 			return false;
 		}
 
-		if (m_ses.m_alerts.should_post(alert::info))
+		if (m_ses.m_alerts.should_post<metadata_received_alert>())
 		{
 			m_ses.m_alerts.post_alert(metadata_received_alert(
-				get_handle(), "metadata successfully received from swarm"));
+				get_handle()));
 		}
 
 		init();
@@ -3054,11 +3034,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (alerts().should_post(alert::info))
+		if (alerts().should_post<torrent_finished_alert>())
 		{
 			alerts().post_alert(torrent_finished_alert(
-				get_handle()
-				, "torrent has finished downloading"));
+				get_handle()));
 		}
 
 		set_state(torrent_status::finished);
@@ -3243,11 +3222,10 @@ namespace libtorrent
 			}
 		}
 
-		if (m_ses.m_alerts.should_post(alert::info))
+		if (m_ses.m_alerts.should_post<torrent_checked_alert>())
 		{
 			m_ses.m_alerts.post_alert(torrent_checked_alert(
-				get_handle()
-				, "torrent finished checking"));
+				get_handle()));
 		}
 		
 		m_files_checked = true;
@@ -3296,7 +3274,7 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		if (alerts().should_post(alert::warning))
+		if (alerts().should_post<storage_moved_alert>())
 		{
 			alerts().post_alert(storage_moved_alert(get_handle(), j.str));
 		}
@@ -3682,10 +3660,10 @@ namespace libtorrent
 			if (m_state == torrent_status::queued_for_checking
 				|| m_state == torrent_status::checking_files)
 			{
-				if (alerts().should_post(alert::warning))
+				if (alerts().should_post<save_resume_data_failed_alert>())
 				{
-					alerts().post_alert(save_resume_data_alert(boost::shared_ptr<entry>()
-						, get_handle(), "won't save resume data, torrent does not have a complete resume state yet"));
+					alerts().post_alert(save_resume_data_failed_alert(get_handle()
+						, "won't save resume data, torrent does not have a complete resume state yet"));
 				}
 			}
 			else
@@ -3696,10 +3674,10 @@ namespace libtorrent
 		}
 		else
 		{
-			if (alerts().should_post(alert::warning))
+			if (alerts().should_post<save_resume_data_failed_alert>())
 			{
-				alerts().post_alert(save_resume_data_alert(boost::shared_ptr<entry>()
-					, get_handle(), "save resume data failed, torrent is being destructed"));
+				alerts().post_alert(save_resume_data_failed_alert(get_handle()
+					, "save resume data failed, torrent is being destructed"));
 			}
 		}
 	}
@@ -3759,10 +3737,8 @@ namespace libtorrent
 		}
 		else
 		{
-			if (alerts().should_post(alert::warning))
-			{
-				alerts().post_alert(torrent_paused_alert(get_handle(), "torrent paused"));
-			}
+			if (alerts().should_post<torrent_paused_alert>())
+				alerts().post_alert(torrent_paused_alert(get_handle()));
 		}
 	}
 
@@ -3796,10 +3772,8 @@ namespace libtorrent
 		m_started = time_now();
 		m_error.clear();
 
-		if (alerts().should_post(alert::warning))
-		{
-			alerts().post_alert(torrent_resumed_alert(get_handle(), "torrent resumed"));
-		}
+		if (alerts().should_post<torrent_resumed_alert>())
+			alerts().post_alert(torrent_resumed_alert(get_handle()));
 
 		// tell the tracker that we're back
 		m_event = tracker_request::started;
@@ -3982,10 +3956,8 @@ namespace libtorrent
 
 		if (ret == -1)
 		{
-			if (alerts().should_post(alert::fatal))
-			{
+			if (alerts().should_post<file_error_alert>())
 				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
-			}
 			m_error = j.str;
 			pause();
 		}
@@ -4043,11 +4015,8 @@ namespace libtorrent
 	{
 		if (m_state == s) return;
 		m_state = s;
-		if (m_ses.m_alerts.should_post(alert::info))
-		{
-			m_ses.m_alerts.post_alert(state_changed_alert(get_handle()
-				, s, "torrent status changed"));
-		}
+		if (m_ses.m_alerts.should_post<state_changed_alert>())
+			m_ses.m_alerts.post_alert(state_changed_alert(get_handle(), s));
 	}
 
 	torrent_status torrent::status() const
@@ -4215,16 +4184,20 @@ namespace libtorrent
 		debug_log("*** tracker timed out");
 #endif
 
-		if (m_ses.m_alerts.should_post(alert::warning))
+		if (r.kind == tracker_request::announce_request)
 		{
-			if (r.kind == tracker_request::announce_request)
+			if (m_ses.m_alerts.should_post<tracker_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(tracker_error_alert(get_handle()
 					, m_failed_trackers + 1, 0, r.url, "tracker timed out"));
 			}
-			else if (r.kind == tracker_request::scrape_request)
+		}
+		else if (r.kind == tracker_request::scrape_request)
+		{
+			if (m_ses.m_alerts.should_post<scrape_failed_alert>())
 			{
-				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), r.url, "tracker timed out"));
+				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle()
+					, r.url, "tracker timed out"));
 			}
 		}
 
@@ -4245,14 +4218,17 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		debug_log(std::string("*** tracker error: ") + str);
 #endif
-		if (m_ses.m_alerts.should_post(alert::warning))
+		if (r.kind == tracker_request::announce_request)
 		{
-			if (r.kind == tracker_request::announce_request)
+			if (m_ses.m_alerts.should_post<tracker_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(tracker_error_alert(get_handle()
 					, m_failed_trackers + 1, response_code, r.url, str));
 			}
-			else if (r.kind == tracker_request::scrape_request)
+		}
+		else if (r.kind == tracker_request::scrape_request)
+		{
+			if (m_ses.m_alerts.should_post<scrape_failed_alert>())
 			{
 				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), r.url, str));
 			}

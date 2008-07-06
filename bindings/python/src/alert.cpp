@@ -53,15 +53,11 @@ void bind_alert()
 
     {
         scope alert_scope = class_<alert, noncopyable>("alert", alert_doc, no_init)
-            .def(
-                "msg", &alert::msg, return_value_policy<copy_const_reference>()
-              , alert_msg_doc
-            )
+            .def("message", &alert::message, alert_msg_doc)
+            .def("what", &alert::what)
+            .def("category", &alert::category)
             .def("severity", &alert::severity, alert_severity_doc)
-            .def(
-                "__str__", &alert::msg, return_value_policy<copy_const_reference>()
-              , alert_msg_doc
-            )
+            .def("__str__", &alert::message, alert_msg_doc)
             ;
 
         enum_<alert::severity_t>("severity_levels")
@@ -71,6 +67,19 @@ void bind_alert()
             .value("critical", alert::critical)
             .value("fatal", alert::fatal)
             .value("none", alert::none)
+            ; 
+
+        enum_<alert::category_t>("category_t")
+            .value("error_notification", alert::error_notification)
+            .value("peer_notification", alert::peer_notification)
+            .value("port_mapping_notification", alert::port_mapping_notification)
+            .value("storage_notification", alert::storage_notification)
+            .value("tracker_notification", alert::tracker_notification)
+            .value("debug_notification", alert::debug_notification)
+            .value("status_notification", alert::status_notification)
+            .value("progress_notification", alert::progress_notification)
+            .value("ip_block_notification", alert::ip_block_notification)
+            .value("all_categories", alert::all_categories)
             ; 
     }
 

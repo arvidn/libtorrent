@@ -141,7 +141,7 @@ The ``session`` class has the following synopsis::
 
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
-		void set_severity_level(alert::severity_t s);
+		void set_alert_mask(int m);
 
 		void add_extension(boost::function<
 			boost::shared_ptr<torrent_plugin>(torrent*)> ext);
@@ -673,18 +673,18 @@ with a DHT ping packet, and connect to those that responds first. On windows one
 can only connect to a few peers at a time because of a built in limitation (in XP
 Service pack 2).
 
-pop_alert() set_severity_level() wait_for_alert()
--------------------------------------------------
+pop_alert() set_alert_mask() wait_for_alert()
+---------------------------------------------
 
 	::
 
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
-		void set_severity_level(alert::severity_t s);
+		void set_alert_mask(int m);
 
 ``pop_alert()`` is used to ask the session if any errors or events has occurred. With
-``set_severity_level()`` you can filter how serious the event has to be for you to
-receive it through ``pop_alert()``. For information, see alerts_.
+``set_alert_mask()`` you can filter which alerts to receive through ``pop_alert()``.
+For information about the alert categories, see alerts_.
 
 ``wait_for_alert`` blocks until an alert is available, or for no more than ``max_wait``
 time. If ``wait_for_alert`` returns because of the time-out, and no alerts are available,
@@ -3653,55 +3653,54 @@ alerts
 ======
 
 The ``pop_alert()`` function on session is the interface for retrieving
-alerts, warnings, messages and errors from libtorrent. If there hasn't
-occurred any errors (matching your severity level) ``pop_alert()`` will
-return a zero pointer. If there has been some error, it will return a pointer
-to an alert object describing it. You can then use the alert object and query
-it for information about the error or message. To retrieve any alerts, you have
-to select a severity level using ``session::set_severity_level()``. It defaults to
-``alert::none``, which means that you don't get any messages at all, ever.
-You have the following levels to select among:
+alerts, warnings, messages and errors from libtorrent. If no alerts have
+been posted by libtorrent ``pop_alert()`` will return a default initialized
+``auto_ptr`` object. If there is an alert in libtorrent's queue, the alert
+from the front of the queue is popped and returned.
+You can then use the alert object and query
 
-+--------------+----------------------------------------------------------+
-| ``none``     | No alert will ever have this severity level, which       |
-|              | effectively filters all messages.                        |
-|              |                                                          |
-+--------------+----------------------------------------------------------+
-| ``fatal``    | Fatal errors will have this severity level. Examples can |
-|              | be disk full or something else that will make it         |
-|              | impossible to continue normal execution.                 |
-|              |                                                          |
-+--------------+----------------------------------------------------------+
-| ``critical`` | Signals errors that requires user interaction or         |
-|              | messages that almost never should be ignored. For        |
-|              | example, a chat message received from another peer is    |
-|              | announced as severity ``critical``.                      |
-|              |                                                          |
-+--------------+----------------------------------------------------------+
-| ``warning``  | Messages with the warning severity can be a tracker that |
-|              | times out or responds with invalid data. It will be      |
-|              | retried automatically, and the possible next tracker in  |
-|              | a multitracker sequence will be tried. It does not       |
-|              | require any user interaction.                            |
-|              |                                                          |
-+--------------+----------------------------------------------------------+
-| ``info``     | Events that can be considered normal, but still deserves |
-|              | an event. This could be a piece hash that fails.         |
-|              |                                                          |
-+--------------+----------------------------------------------------------+
-| ``debug``    | This will include a lot of debug events that can be used |
-|              | both for debugging libtorrent but also when debugging    |
-|              | other clients that are connected to libtorrent. It will  |
-|              | report strange behaviors among the connected peers.      |
-|              |                                                          |
-+--------------+----------------------------------------------------------+
+By default, only errors are reported. ``session::set_alert_mask()`` can be
+used to specify which kinds of events should be reported. The alert mask
+is a bitmask with the following bits:
 
-When setting a severity level, you will receive messages of that severity and all
-messages that are more sever. If you set ``alert::none`` (the default) you will not receive
-any events at all.
++--------------------------------+---------------------------------------------------------------------+
+| ``error_notification``         | Enables alerts that report an error. This includes:                 |
+|                                |                                                                     |
+|                                | * tracker errors                                                    |
+|                                | * tracker warnings                                                  |
+|                                | * file errors                                                       |
+|                                | * resume data failures                                              |
+|                                | * web seed errors                                                   |
+|                                | * .torrent files errors                                             |
+|                                | * listen socket errors                                              |
+|                                | * port mapping errors                                               |
++--------------------------------+---------------------------------------------------------------------+
+| ``peer_notification``          | Enables alerts when peers send invalid requests, get banned or      |
+|                                | snubbed.                                                            |
++--------------------------------+---------------------------------------------------------------------+
+| ``port_mapping_notification``  | Enables alerts for port mapping events. For NAT-PMP and UPnP.       |
++--------------------------------+---------------------------------------------------------------------+
+| ``storage_notification``       | Enables alerts for events related to the storage. File errors and   |
+|                                | synchronization events for moving the storage, renaming files etc.  |
++--------------------------------+---------------------------------------------------------------------+
+| ``tracker_notification``       | Enables all tracker events. Includes announcing to trackers,        |
+|                                | receiving responses, warnings and errors.                           |
++--------------------------------+---------------------------------------------------------------------+
+| ``debug_notification``         | Low level alerts for when peers are connected and disconnected.     |
++--------------------------------+---------------------------------------------------------------------+
+| ``status_notification``        | Enables alerts for when a torrent or the session changes state.     |
++--------------------------------+---------------------------------------------------------------------+
+| ``progress_notification``      | Alerts for when blocks are requested and completed. Also when       |
+|                                | pieces are completed.                                               |
++--------------------------------+---------------------------------------------------------------------+
+| ``ip_block_notification``      | Alerts when a peer is blocked by the ip blocker or port blocker.    |
++--------------------------------+---------------------------------------------------------------------+
+| ``all_categories``             | The full bitmask, representing all available categories.            |
++--------------------------------+---------------------------------------------------------------------+
 
-When you set a severity level other than ``none``, you have the responsibility to call
-``pop_alert()`` from time to time. If you don't do that, the alert queue will just grow.
+Every alert belongs to one or more category. There is a small cost involved in posting alerts. Only
+alerts that belong to an enabled category are posted. Setting the alert bitmask to 0 will disable
+all alerts
 
 When you get an alert, you can use ``typeid()`` or ``dynamic_cast<>`` to get more detailed
 information on exactly which type it is. i.e. what kind of error it is. You can also use a
@@ -3710,38 +3709,70 @@ dispatcher_ mechanism that's available in libtorrent.
 All alert types are defined in the ``<libtorrent/alert_types.hpp>`` header file.
 
 The ``alert`` class is the base class that specific messages are derived from. This
-is its synopsis::
+is its synopsis:
+
+.. parsed-literal::
 
 	class alert
 	{
 	public:
 
-		enum severity_t { debug, info, warning, critical, fatal, none };
+		enum category_t
+		{
+			error_notification = *implementation defined*,
+			peer_notification = *implementation defined*,
+			port_mapping_notification = *implementation defined*,
+			storage_notification = *implementation defined*,
+			tracker_notification = *implementation defined*,
+			debug_notification = *implementation defined*,
+			status_notification = *implementation defined*,
+			progress_notification = *implementation defined*,
+			ip_block_notification = *implementation defined*,
 
-		alert(severity_t severity, std::string const& msg);
+			all_categories = *implementation defined*
+		};
+
+		ptime timestamp() const;
+
 		virtual ~alert();
 
-		std::string const& msg() const;
-		severity_t severity() const;
-
+		virtual std::string message() const = 0;
+		virtual char const* what() const = 0;
+		virtual int category() const = 0;
 		virtual std::auto_ptr<alert> clone() const = 0;
 	};
 
-This means that all alerts have at least a string describing it. They also
-have a severity level that can be used to sort them or present them to the
-user in different ways.
+``what()`` returns a string literal describing the type of the alert. It does
+not include any information that might be bundled with the alert.
 
-There's another alert base class that all most alerts derives from, all the
+``category()`` returns a bitmask specifying which categories this alert belong to.
+
+``clone()`` returns a pointer to a copy of the alert.
+
+``message()`` generate a string describing the alert and the information bundled
+with it. This is mainly intended for debug and development use. It is not suitable
+to use this for applications that may be localized. Instead, handle each alert
+type individually and extract and render the information from the alert depending
+on the locale.
+
+There's another alert base class that most alerts derives from, all the
 alerts that are generated for a specific torrent are derived from::
 
 	struct torrent_alert: alert
 	{
-		torrent_alert(torrent_handle const& h, severity_t s, std::string const& msg);
-
+		// ...
 		torrent_handle handle;
 	};
 
-The specific alerts, that all derives from ``alert``, are:
+There's also a base class for all alerts referring to tracker events::
+
+	struct tracker_alert: torrent_alert
+	{
+		// ...
+		std::string url;
+	};
+
+The specific alerts are:
 
 external_ip_alert
 -----------------
@@ -3750,15 +3781,13 @@ Whenever libtorrent learns about the machines external IP, this alert is
 generated. The external IP address can be acquired from the tracker (if it
 supports that) or from peers that supports the extension protocol.
 The address can be accessed through the ``external_address`` member.
-This alert is generated as severity level ``info``.
 
 ::
 
 	struct external_ip_alert: alert
 	{
-		external_ip_alert(address const& ip, const std::string& msg);
+		// ...
 		address external_address;
-		virtual std::auto_ptr<alert> clone() const;
 	};
 
 
@@ -3766,16 +3795,9 @@ listen_failed_alert
 -------------------
 
 This alert is generated when none of the ports, given in the port range, to
-session_ can be opened for listening. This alert is generated as severity
-level ``fatal``.
+session_ can be opened for listening. This alert doesn't have any extra
+data members.
 
-::
-
-	struct listen_failed_alert: alert
-	{
-		listen_failed_alert(const std::string& msg);
-		virtual std::auto_ptr<alert> clone() const;
-	};
 
 portmap_error_alert
 -------------------
@@ -3787,9 +3809,6 @@ case it appears the client is not running on a NAT:ed network or if it
 appears there is no NAT router that can be remote controlled to add port
 mappings.
 
-The alert is generated as severity ``warning``, since it should be displayed
-to the user somehow, and could mean reduced preformance.
-
 ``mapping`` refers to the mapping index of the port map that failed, i.e.
 the index returned from add_mapping_.
 
@@ -3799,10 +3818,9 @@ the index returned from add_mapping_.
 
 	struct portmap_error_alert: alert
 	{
-		portmap_error_alert(int mapping, int type, const std::string& msg);
+		// ...
 		int mapping;
 		int type;
-		virtual std::auto_ptr<alert> clone() const;
 	};
 
 portmap_alert
@@ -3811,8 +3829,7 @@ portmap_alert
 This alert is generated when a NAT router was successfully found and
 a port was successfully mapped on it. On a NAT:ed network with a NAT-PMP
 capable router, this is typically generated once when mapping the TCP
-port and, if DHT is enabled, when the UDP port is mapped. This is merely
-an informational alert, and is generated at severity level ``info``.
+port and, if DHT is enabled, when the UDP port is mapped.
 
 ``mapping`` refers to the mapping index of the port map that failed, i.e.
 the index returned from add_mapping_.
@@ -3825,28 +3842,29 @@ the index returned from add_mapping_.
 
 	struct portmap_alert: alert
 	{
-		portmap_alert(int mapping, int port, int type, const std::string& msg);
+		// ...
 		int mapping;
 		int external_port;
 		int type;
-		virtual std::auto_ptr<alert> clone() const;
 	};
 
 file_error_alert
 ----------------
 
 If the storage fails to read or write files that it needs access to, this alert is
-generated and the torrent is paused. It is generated as severity level ``fatal``.
+generated and the torrent is paused.
+
+``file`` is the path to the file that was accessed when the error occurred.
+
+``msg`` is the error message received from the OS.
 
 ::
 
 	struct file_error_alert: torrent_alert
 	{
-		file_error_alert(
-			const torrent_handle& h
-			, const std::string& msg);
-			
-		virtual std::auto_ptr<alert> clone() const;
+		// ...
+		std::string file;
+		std::string msg;
 	};
 
 
@@ -3854,43 +3872,16 @@ tracker_announce_alert
 ----------------------
 
 This alert is generated each time a tracker announce is sent (or attempted to be sent).
-It is generated at severity level ``info``.
+There are no extra data members in this alert. The url can be found in the base class
+however.
 
-::
-
-	struct tracker_announce_alert: torrent_alert
-	{
-		tracker_announce_alert(
-			const torrent_handle& h
-			, const std::string& msg);
-			
-		virtual std::auto_ptr<alert> clone() const;
-	};
-
-
-tracker_alert
--------------
-
-This is a base class for all alerts related to trackers.
-
-::
-
-	struct tracker_alert: torrent_alert
-	{
-		tracker_alert(torrent_handle const& h
-			, std::string const& url
-			, alert::severity_t s
-			, std::string const& msg);
-
-		std::string url;
-	};
 
 tracker_error_alert
 -------------------
 
 This alert is generated on tracker time outs, premature disconnects, invalid response or
 a HTTP response other than "200 OK". From the alert you can get the handle to the torrent
-the tracker belongs to. This alert is generated as severity level ``warning``.
+the tracker belongs to.
 
 The ``times_in_row`` member says how many times in a row this tracker has failed.
 ``status_code`` is the code returned from the HTTP server. 401 means the tracker needs
@@ -3901,10 +3892,7 @@ to 0.
 
 	struct tracker_error_alert: tracker_alert
 	{
-		tracker_error_alert(torrent_handle const& h, int times, int status
-			, std::string const& url, std::string const& msg);
-		virtual std::auto_ptr<alert> clone() const;
-
+		// ...
 		int times_in_row;
 		int status_code;
 	};
@@ -3915,90 +3903,88 @@ tracker_reply_alert
 
 This alert is only for informational purpose. It is generated when a tracker announce
 succeeds. It is generated regardless what kind of tracker was used, be it UDP, HTTP or
-the DHT. It is generated with severity level ``info``.
+the DHT.
 
 ::
 
 	struct tracker_reply_alert: tracker_alert
 	{
-		tracker_reply_alert(const torrent_handle& h
-			, int num_peers
-			. std::string const& url
-			, std::string const& msg);
-
+		// ...
 		int num_peers;
-
-		virtual std::auto_ptr<alert> clone() const;
 	};
 
 The ``num_peers`` tells how many peers were returned from the tracker. This is
 not necessarily all new peers, some of them may already be connected.
-	
+
+dht_reply_alert
+-------------------
+
+This alert is generated each time the DHT receives peers from a node. ``num_peers``
+is the number of peers we received in this packet. Typically these packets are
+received from multiple DHT nodes, and so the alerts are typically generated
+a few at a time.
+
+::
+
+	struct dht_reply_alert: tracker_alert
+	{
+		// ...
+		int num_peers;
+	};
+
+
 tracker_warning_alert
 ---------------------
 
 This alert is triggered if the tracker reply contains a warning field. Usually this
 means that the tracker announce was successful, but the tracker has a message to
-the client. The message string in the alert will contain the warning message from
-the tracker. It is generated with severity level ``warning``.
+the client. The ``msg`` string in the alert contains the warning message from
+the tracker.
 
 ::
 
 	struct tracker_warning_alert: tracker_alert
 	{
-		tracker_warning_alert(torrent_handle const& h
-			, std::string const& url
-			, std::string const& msg);
-
-		virtual std::auto_ptr<alert> clone() const;
+		// ...
+		std::string msg;
 	};
 
 scrape_reply_alert
 ------------------
 
-::
-
-	struct scrape_reply_alert: tracker_alert
-	{
-		scrape_reply_alert(torrent_handle const& h
-			, int incomplete_
-			, int complete_
-			, std::string const& url
-			, std::string const& msg);
-
-		int incomplete;
-		int complete;
-
-		virtual std::auto_ptr<alert> clone() const;
-	};
-
 This alert is generated when a scrape request succeeds. ``incomplete``
 and ``complete`` is the data returned in the scrape response. These numbers
 may be -1 if the reponse was malformed.
 
+::
+
+	struct scrape_reply_alert: tracker_alert
+	{
+		// ...
+		int incomplete;
+		int complete;
+	};
+
+
 scrape_failed_alert
 -------------------
+
+If a scrape request fails, this alert is generated. This might be due
+to the tracker timing out, refusing connection or returning an http response
+code indicating an error. ``msg`` contains a message describing the error.
 
 ::
 
 	struct scrape_failed_alert: tracker_alert
 	{
-		scrape_failed_alert(torrent_handle const& h
-			, std::string const& url
-			, std::string const& msg);
-
-		virtual std::auto_ptr<alert> clone() const;
+		// ...
+		std::string msg;
 	};
-
-If a scrape request fails, this alert is generated. This might be due
-to the tracker timing out, refusing connection or returning an http response
-code indicating an error.
 
 url_seed_alert
 --------------
 
-This alert is generated when a HTTP seed name lookup fails. This alert is
-generated as severity level ``warning``.
+This alert is generated when a HTTP seed name lookup fails.
 
 It contains ``url`` to the HTTP seed that failed along with an error message.
 
@@ -4006,10 +3992,7 @@ It contains ``url`` to the HTTP seed that failed along with an error message.
 
 	struct url_seed_alert: torrent_alert
 	{
-		url_seed_alert(torrent_handle const& h, std::string const& url
-			, const std::string& msg);
-		virtual std::auto_ptr<alert> clone() const;
-
+		// ...
 		std::string url;
 	};
 
@@ -4019,19 +4002,12 @@ hash_failed_alert
 
 This alert is generated when a finished piece fails its hash check. You can get the handle
 to the torrent which got the failed piece and the index of the piece itself from the alert.
-This alert is generated as severity level ``info``.
 
 ::
 
 	struct hash_failed_alert: torrent_alert
 	{
-		hash_failed_alert(
-			torrent_handle const& h
-			, int index
-			, const std::string& msg);
-
-		virtual std::auto_ptr<alert> clone() const;
-
+		// ...
 		int piece_index;
 	};
 
@@ -4040,20 +4016,13 @@ peer_ban_alert
 --------------
 
 This alert is generated when a peer is banned because it has sent too many corrupt pieces
-to us. It is generated at severity level ``info``. The ``handle`` member is a torrent_handle_
-to the torrent that this peer was a member of.
+to us. ``ip`` is the endpoint to the peer that was banned.
 
 ::
 
 	struct peer_ban_alert: torrent_alert
 	{
-		peer_ban_alert(
-			asio::ip::tcp::endpoint const& pip
-			, torrent_handle h
-			, const std::string& msg);
-
-		virtual std::auto_ptr<alert> clone() const;
-
+		// ...
 		asio::ip::tcp::endpoint ip;
 	};
 
@@ -4062,19 +4031,13 @@ peer_error_alert
 ----------------
 
 This alert is generated when a peer sends invalid data over the peer-peer protocol. The peer
-will be disconnected, but you get its ip address from the alert, to identify it. This alert
-is generated as severity level ``debug``.
+will be disconnected, but you get its ip address from the alert, to identify it.
 
 ::
 
-	struct peer_error_alert: alert
+	struct peer_error_alert: torrent_alert
 	{
-		peer_error_alert(
-			asio::ip::tcp::endpoint const& pip
-			, peer_id const& pid
-			, const std::string& msg);
-
-		virtual std::auto_ptr<alert> clone() const;
+		// ...
 		asio::ip::tcp::endpoint ip;
 		peer_id id;
 	};
@@ -4083,10 +4046,9 @@ is generated as severity level ``debug``.
 invalid_request_alert
 ---------------------
 
-This is a debug alert that is generated by an incoming invalid piece request. The ``handle``
-is a handle to the torrent the peer is a member of. ``ìp`` is the address of the peer and the
-``request`` is the actual incoming request from the peer. The alert is generated as severity level
-``debug``.
+This is a debug alert that is generated by an incoming invalid piece request.
+``ìp`` is the address of the peer and the ``request`` is the actual incoming
+request from the peer.
 
 ::
 
@@ -4125,18 +4087,9 @@ torrent_finished_alert
 
 This alert is generated when a torrent switches from being a downloader to a seed.
 It will only be generated once per torrent. It contains a torrent_handle to the
-torrent in question. This alert is generated as severity level ``info``.
+torrent in question.
 
-::
-
-	struct torrent_finished_alert: torrent_alert
-	{
-		torrent_finished_alert(
-			const torrent_handle& h
-			, const std::string& msg);
-
-		virtual std::auto_ptr<alert> clone() const;
-	};
+There are no additional data members in this alert.
 
 
 metadata_failed_alert
@@ -4146,18 +4099,8 @@ This alert is generated when the metadata has been completely received and the i
 failed to match it. i.e. the metadata that was received was corrupt. libtorrent will
 automatically retry to fetch it in this case. This is only relevant when running a
 torrent-less download, with the metadata extension provided by libtorrent.
-It is generated at severity level ``info``.
 
-::
-
-	struct metadata_failed_alert: torrent_alert
-	{
-		metadata_failed_alert(
-			torrent_handle const& h
-			, std::string const& msg);
-			
-		virtual std::auto_ptr<alert> clone() const;
-	};
+There are no additional data members in this alert.
 
 
 metadata_received_alert
@@ -4166,18 +4109,8 @@ metadata_received_alert
 This alert is generated when the metadata has been completely received and the torrent
 can start downloading. It is not generated on torrents that are started with metadata, but
 only those that needs to download it from peers (when utilizing the libtorrent extension).
-It is generated at severity level ``info``.
 
-::
-
-	struct metadata_received_alert: torrent_alert
-	{
-		metadata_received_alert(
-			torrent_handle const_& h
-			, std::string const& msg);
-			
-		virtual std::auto_ptr<alert> clone() const;
-	};
+There are no additional data members in this alert.
 
 
 fastresume_rejected_alert
@@ -4185,51 +4118,48 @@ fastresume_rejected_alert
 
 This alert is generated when a fastresume file has been passed to ``add_torrent`` but the
 files on disk did not match the fastresume file. The string explains the reason why the
-resume file was rejected. It is generated at severity level ``warning``.
+resume file was rejected.
 
 ::
 
 	struct fastresume_rejected_alert: torrent_alert
 	{
-		fastresume_rejected_alert(torrent_handle const& h
-			, std::string const& msg);
-
-		virtual std::auto_ptr<alert> clone() const;
+		// ...
+		std::string msg;
 	};
 
 
 peer_blocked_alert
 ------------------
 
-This alert is generated when a peer is blocked by the IP filter. It has the severity leve
-``info``. The ``ip`` member is the address that was blocked.
+This alert is generated when a peer is blocked by the IP filter. The ``ip`` member is the
+address that was blocked.
 
 ::
 
 	struct peer_blocked_alert: alert
 	{
-		peer_blocked_alert(address const& ip_
-			, std::string const& msg);
-		
+		// ...
 		address ip;
-
-		virtual std::auto_ptr<alert> clone() const;
 	};
+
 
 storage_moved_alert
 -------------------
 
 The ``storage_moved_alert`` is generated when all the disk IO has completed and the
 files have been moved, as an effect of a call to ``torrent_handle::move_storage``. This
-is useful to synchronize with the actual disk.
+is useful to synchronize with the actual disk. The ``path`` member is the new path of
+the storage.
 
 ::
 
 	struct storage_moved_alert: torrent_alert
 	{
-		storage_moved_alert(torrent_handle const& h, std::string const& path);
-		virtual std::auto_ptr<alert> clone() const;
+		// ...
+		std::string path;
 	};
+
 
 torrent_paused_alert
 --------------------
@@ -4238,31 +4168,7 @@ This alert is generated as a response to a ``torrent_handle::pause`` request. It
 generated once all disk IO is complete and the files in the torrent have been closed.
 This is useful for synchronizing with the disk.
 
-::
-
-	struct torrent_paused_alert: torrent_alert
-	{
-		torrent_paused_alert(torrent_handle const& h, std::string const& msg);
-		virtual std::auto_ptr<alert> clone() const;
-	};
-
-save_resume_data_alert
-----------------------
-
-This alert is generated as a response to a ``torrent_handle::save_resume_data`` request.
-It is generated once the disk IO thread is done writing the state for this torrent.
-The ``resume_data`` member points to the resume data or is 0 on errors.
-
-::
-
-	struct save_resume_data_alert: torrent_alert
-	{
-		save_resume_alert(torrent_handle const& h, std::string const& msg);
-
-		boost::shared_ptr<entry> resume_data;
-
-		virtual std::auto_ptr<alert> clone() const;
-	};
+There are no additional data members in this alert.
 
 torrent_resumed_alert
 ---------------------
@@ -4270,12 +4176,35 @@ torrent_resumed_alert
 This alert is generated as a response to a ``torrent_handle::resume`` request. It is
 generated when a torrent goes from a paused state to an active state.
 
+There are no additional data members in this alert.
+
+save_resume_data_alert
+----------------------
+
+This alert is generated as a response to a ``torrent_handle::save_resume_data`` request.
+It is generated once the disk IO thread is done writing the state for this torrent.
+The ``resume_data`` member points to the resume data.
+
 ::
 
-	struct torrent_resumed_alert: torrent_alert
+	struct save_resume_data_alert: torrent_alert
 	{
-		torrent_resumed_alert(torrent_handle const& h, std::string const& msg);
-		virtual std::auto_ptr<alert> clone() const;
+		// ...
+		boost::shared_ptr<entry> resume_data;
+	};
+
+save_resume_data_failed_alert
+-----------------------------
+
+This alert is generated instead of ``save_resume_data_alert`` if there was an error
+generating the resume data. ``msg`` describes what went wrong.
+
+::
+
+	struct save_resume_data_failed_alert: torrent_alert
+	{
+		// ...
+		std::string msg;
 	};
 
 dispatcher

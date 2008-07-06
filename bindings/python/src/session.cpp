@@ -323,6 +323,7 @@ void bind_session()
             "set_severity_level", allow_threads(&session::set_severity_level)
           , session_set_severity_level_doc
         )
+        .def("set_alert_mask", allow_threads(&session::set_alert_mask))
         .def("pop_alert", allow_threads(&session::pop_alert), session_pop_alert_doc)
         .def("add_extension", &add_extension)
         .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))

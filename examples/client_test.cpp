@@ -584,6 +584,33 @@ libtorrent::torrent_handle get_active_torrent(handles_t const& handles)
 	return i->second;
 }
 
+void handle_alert(libtorrent::session& ses, libtorrent::alert* a)
+{
+	using namespace libtorrent;
+
+	if (torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a))
+	{
+		p->handle.set_max_connections(30);
+
+		// write resume data for the finished torrent
+		torrent_handle h = p->handle;
+		h.save_resume_data();
+	}
+	else if (save_resume_data_alert* p = dynamic_cast<save_resume_data_alert*>(a))
+	{
+		torrent_handle h = p->handle;
+		TORRENT_ASSERT(p->resume_data);
+		if (p->resume_data)
+		{
+			boost::filesystem::ofstream out(h.save_path() / (h.name() + ".fastresume")
+				, std::ios_base::binary);
+			out.unsetf(std::ios_base::skipws);
+			bencode(std::ostream_iterator<char>(out), *p->resume_data);
+			if (h.is_paused() && !h.is_auto_managed()) ses.remove_torrent(h);
+		}
+	}
+}
+
 static char const* state_str[] =
 	{"checking (q)", "checking", "connecting", "dl metadata"
 	, "downloading", "finished", "seeding", "allocating"};
@@ -1047,7 +1074,7 @@ int main(int ac, char* av[])
 						save_resume_data_alert const* rd = dynamic_cast<save_resume_data_alert const*>(a);
 						if (!rd)
 						{
-							std::cout << a->msg() << std::endl;
+							std::cout << a->message() << std::endl;
 							continue;
 						}
 						--num_resume_data;
@@ -1133,78 +1160,22 @@ int main(int ac, char* av[])
 			while (a.get())
 			{
 				std::stringstream event_string;
-				if (a->severity() == alert::fatal)
-					event_string << esc("31"); // red
-				else if (a->severity() == alert::warning)
-					event_string << esc("33"); // yellow
 
-				event_string << now << ": ";
-				if (torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a.get()))
+				if (a->category() & alert::error_notification)
 				{
-					p->handle.set_max_connections(30);
-
-					// write resume data for the finished torrent
-					torrent_handle h = p->handle;
-					h.save_resume_data();
-
-					event_string << h.name() << ": " << a->msg();
+					event_string << esc("31");
 				}
-				else if (peer_error_alert* p = dynamic_cast<peer_error_alert*>(a.get()))
+				else if (a->category() & (alert::peer_notification | alert::storage_notification))
 				{
-					event_string << identify_client(p->pid) << ", " << p->ip << ": " << a->msg();
+					event_string << esc("33");
 				}
-				else if (invalid_request_alert* p = dynamic_cast<invalid_request_alert*>(a.get()))
-				{
-					event_string << identify_client(p->pid) << ": " << a->msg();
-				}
-				else if (tracker_warning_alert* p = dynamic_cast<tracker_warning_alert*>(a.get()))
-				{
-					event_string << "tracker message: " << p->msg() << " (" << p->url << ") (" << p->handle.name() << ")";
-				}
-				else if (tracker_reply_alert* p = dynamic_cast<tracker_reply_alert*>(a.get()))
-				{
-					event_string << p->msg() << " (" << p->num_peers << ") (" << p->url << ") (" << p->handle.name() << ")";
-				}
-				else if (url_seed_alert* p = dynamic_cast<url_seed_alert*>(a.get()))
-				{
-					event_string << "web seed '" << p->url << "': " << p->msg() << " (" << p->handle.name() << ")";
-				}
-				else if (peer_blocked_alert* p = dynamic_cast<peer_blocked_alert*>(a.get()))
-				{
-					event_string << "(" << p->ip << ") " << p->msg();
-				}
-				else if (save_resume_data_alert* p = dynamic_cast<save_resume_data_alert*>(a.get()))
-				{
-					torrent_handle h = p->handle;
-					event_string << "(" << h.name() << ") " << p->msg();
-					if (p->resume_data)
-					{
-						boost::filesystem::ofstream out(h.save_path() / (h.name() + ".fastresume"), std::ios_base::binary);
-						out.unsetf(std::ios_base::skipws);
-						bencode(std::ostream_iterator<char>(out), *p->resume_data);
-						if (h.is_paused() && !h.is_auto_managed()) ses.remove_torrent(h);
-					}
-				}
-				else if (state_changed_alert* p = dynamic_cast<state_changed_alert*>(a.get()))
-				{
-					std::string name;
-					if (p->handle.is_valid()) name = p->handle.name();
-					event_string << "(" << name << ") " << p->msg() << " " << state_str[p->state];
-				}
-				else if (torrent_alert* p = dynamic_cast<torrent_alert*>(a.get()))
-				{
-					std::string name;
-					if (p->handle.is_valid()) name = p->handle.name();
-					event_string << "(" << name << ") " << p->msg();
-				}
-				else
-				{
-					event_string << a->msg();
-				}
+				event_string << a->message();
 				event_string << esc("0");
 				events.push_back(event_string.str());
-
 				if (events.size() >= 20) events.pop_front();
+
+				::handle_alert(ses, a.get());
+
 				a = ses.pop_alert();
 			}
 

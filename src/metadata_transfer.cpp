@@ -173,10 +173,10 @@ namespace libtorrent { namespace
 				m_metadata_progress = 0;
 				m_metadata_size = 0;
 
-				if (m_torrent.alerts().should_post(alert::info))
+				if (m_torrent.alerts().should_post<metadata_failed_alert>())
 				{
 					m_torrent.alerts().post_alert(metadata_failed_alert(
-						m_torrent.get_handle(), "invalid metadata received from swarm"));
+						m_torrent.get_handle()));
 				}
 
 				return false;

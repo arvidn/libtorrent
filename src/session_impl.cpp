@@ -605,13 +605,8 @@ namespace aux {
 		if (ec)
 		{
 			// not even that worked, give up
-			if (m_alerts.should_post(alert::fatal))
-			{
-				std::stringstream msg;
-				msg << "cannot bind to interface '";
-				print_endpoint(msg, ep) << "' " << ec.message();
-				m_alerts.post_alert(listen_failed_alert(ep, msg.str()));
-			}
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(ep, ec));
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			std::stringstream msg;
 			msg << "cannot bind to interface '";
@@ -624,13 +619,8 @@ namespace aux {
 		s.sock->listen(0, ec);
 		if (ec)
 		{
-			if (m_alerts.should_post(alert::fatal))
-			{
-				std::stringstream msg;
-				msg << "cannot listen on interface '";
-				print_endpoint(msg, ep) << "' " << ec.message();
-				m_alerts.post_alert(listen_failed_alert(ep, msg.str()));
-			}
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(ep, ec));
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			std::stringstream msg;
 			msg << "cannot listen on interface '";
@@ -640,12 +630,8 @@ namespace aux {
 			return listen_socket_t();
 		}
 
-		if (m_alerts.should_post(alert::fatal))
-		{
-			std::string msg = "listening on interface "
-				+ boost::lexical_cast<std::string>(ep);
-			m_alerts.post_alert(listen_succeeded_alert(ep, msg));
-		}
+		if (m_alerts.should_post<listen_succeeded_alert>())
+			m_alerts.post_alert(listen_succeeded_alert(ep));
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << "listening on: " << ep
@@ -767,12 +753,8 @@ namespace aux {
 				|| e == asio::error::connection_aborted)
 				m_dht->on_unreachable(ep);
 
-			if (m_alerts.should_post(alert::info))
-			{
-				std::string msg = "UDP socket error from '"
-					+ boost::lexical_cast<std::string>(ep) + "' " + e.message();
-				m_alerts.post_alert(udp_error_alert(ep, msg));
-			}
+			if (m_alerts.should_post<udp_error_alert>())
+				m_alerts.post_alert(udp_error_alert(ep, e));
 			return;
 		}
 
@@ -832,12 +814,8 @@ namespace aux {
 				return;
 			}
 #endif
-			if (m_alerts.should_post(alert::fatal))
-			{
-				std::string msg = "error accepting connection on '"
-					+ boost::lexical_cast<std::string>(ep) + "' " + e.message();
-				m_alerts.post_alert(listen_failed_alert(ep, msg));
-			}
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(ep, e));
 			return;
 		}
 		async_accept(listener);
@@ -870,11 +848,8 @@ namespace aux {
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "filtered blocked ip\n";
 #endif
-			if (m_alerts.should_post(alert::info))
-			{
-				m_alerts.post_alert(peer_blocked_alert(endp.address()
-					, "incoming connection blocked by IP filter"));
-			}
+			if (m_alerts.should_post<peer_blocked_alert>())
+				m_alerts.post_alert(peer_blocked_alert(endp.address()));
 			return;
 		}
 
@@ -1108,11 +1083,10 @@ namespace aux {
 				m_tracker_manager.queue_request(m_io_service, m_half_open, req
 					, t.tracker_login(), m_listen_interface.address(), i->second);
 
-				if (m_alerts.should_post(alert::info))
+				if (m_alerts.should_post<tracker_announce_alert>())
 				{
 					m_alerts.post_alert(
-						tracker_announce_alert(
-							t.get_handle(), req.url, "tracker announce"));
+						tracker_announce_alert(t.get_handle(), req.url));
 				}
 			}
 
@@ -1867,11 +1841,10 @@ namespace aux {
 					, t.tracker_login(), m_listen_interface.address());
 #endif
 
-				if (m_alerts.should_post(alert::info))
+				if (m_alerts.should_post<tracker_announce_alert>())
 				{
 					m_alerts.post_alert(
-						tracker_announce_alert(
-							t.get_handle(), req.url, "tracker announce, event=stopped"));
+						tracker_announce_alert(t.get_handle(), req.url));
 				}
 			}
 #ifndef NDEBUG
@@ -1984,9 +1957,9 @@ namespace aux {
 		{
 			m_external_udp_port = port;
 			m_dht_settings.service_port = port;
-			if (m_alerts.should_post(alert::info))
+			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.post_alert(portmap_alert(mapping, port
-					, map_transport, "successfully mapped UDP port"));
+					, map_transport));
 			return;
 		}
 #endif
@@ -1995,23 +1968,23 @@ namespace aux {
 		{
 			if (!m_listen_sockets.empty())
 				m_listen_sockets.front().external_port = port;
-			if (m_alerts.should_post(alert::info))
+			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.post_alert(portmap_alert(mapping, port
-					, map_transport, "successfully mapped TCP port"));
+					, map_transport));
 			return;
 		}
 
 		if (!errmsg.empty())
 		{
-			if (m_alerts.should_post(alert::warning))
+			if (m_alerts.should_post<portmap_error_alert>())
 				m_alerts.post_alert(portmap_error_alert(mapping
 					, map_transport, errmsg));
 		}
 		else
 		{
-			if (m_alerts.should_post(alert::warning))
+			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.post_alert(portmap_alert(mapping, port
-					, map_transport, "successfully mapped port"));
+					, map_transport));
 		}
 	}
 
@@ -2309,10 +2282,10 @@ namespace aux {
 		return m_alerts.wait_for_alert(max_wait);
 	}
 
-	void session_impl::set_severity_level(alert::severity_t s)
+	void session_impl::set_alert_mask(int m)
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		m_alerts.set_severity(s);
+		m_alerts.set_alert_mask(m);
 	}
 
 	int session_impl::upload_rate_limit() const
@@ -2437,13 +2410,8 @@ namespace aux {
 		if (m_external_address == ip) return;
 
 		m_external_address = ip;
-		if (m_alerts.should_post(alert::info))
-		{
-			std::stringstream msg;
-			msg << "external address is '";
-			print_address(msg, ip) << "'";
-			m_alerts.post_alert(external_ip_alert(ip, msg.str()));
-		}
+		if (m_alerts.should_post<external_ip_alert>())
+			m_alerts.post_alert(external_ip_alert(ip));
 	}
 
 	void session_impl::free_disk_buffer(char* buf)

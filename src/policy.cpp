@@ -359,21 +359,15 @@ namespace libtorrent
 			if (i->second.connection)
 			{
 				i->second.connection->disconnect("peer banned by IP filter");
-				if (ses.m_alerts.should_post(alert::info))
-				{
-					ses.m_alerts.post_alert(peer_blocked_alert(i->second.ip.address()
-					, "disconnected blocked peer"));
-				}
+				if (ses.m_alerts.should_post<peer_blocked_alert>())
+					ses.m_alerts.post_alert(peer_blocked_alert(i->second.ip.address()));
 				TORRENT_ASSERT(i->second.connection == 0
 					|| i->second.connection->peer_info_struct() == 0);
 			}
 			else
 			{
-				if (ses.m_alerts.should_post(alert::info))
-				{
-					ses.m_alerts.post_alert(peer_blocked_alert(i->second.ip.address()
-					, "blocked peer removed from peer list"));
-				}
+				if (ses.m_alerts.should_post<peer_blocked_alert>())
+					ses.m_alerts.post_alert(peer_blocked_alert(i->second.ip.address()));
 			}
 			erase_peer(i++);
 		}
@@ -771,11 +765,8 @@ namespace libtorrent
 		port_filter const& pf = ses.m_port_filter;
 		if (pf.access(remote.port()) & port_filter::blocked)
 		{
-			if (ses.m_alerts.should_post(alert::info))
-			{
-				ses.m_alerts.post_alert(peer_blocked_alert(remote.address()
-					, "outgoing port blocked, peer not added to peer list"));
-			}
+			if (ses.m_alerts.should_post<peer_blocked_alert>())
+				ses.m_alerts.post_alert(peer_blocked_alert(remote.address()));
 			return 0;
 		}
 
@@ -797,10 +788,9 @@ namespace libtorrent
 			// if the IP is blocked, don't add it
 			if (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked)
 			{
-				if (ses.m_alerts.should_post(alert::info))
+				if (ses.m_alerts.should_post<peer_blocked_alert>())
 				{
-					ses.m_alerts.post_alert(peer_blocked_alert(remote.address()
-						, "blocked peer not added to peer list"));
+					ses.m_alerts.post_alert(peer_blocked_alert(remote.address()));
 				}
 				return 0;
 			}
