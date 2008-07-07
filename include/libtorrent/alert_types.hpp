@@ -360,6 +360,31 @@ namespace libtorrent
 		tcp::endpoint ip;
 	};
 
+	struct TORRENT_EXPORT peer_unsnubbed_alert: torrent_alert
+	{
+		peer_unsnubbed_alert(torrent_handle const& h, tcp::endpoint const& ip_
+			, peer_id const& pid_)
+			: torrent_alert(h)
+			, ip(ip_)
+			, pid(pid_)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new peer_unsnubbed_alert(*this)); }
+		virtual char const* what() const { return "peer unsnubbed"; }
+		const static int static_category = alert::peer_notification;
+		virtual int category() const { return static_category; }
+		virtual std::string message() const
+		{
+			error_code ec;
+			return torrent_alert::message() + " peer unsnubbed: (" + ip.address().to_string(ec)
+				+ ")";
+		}
+
+		tcp::endpoint ip;
+		peer_id pid;
+	};
+
 	struct TORRENT_EXPORT peer_snubbed_alert: torrent_alert
 	{
 		peer_snubbed_alert(torrent_handle const& h, tcp::endpoint const& ip_
@@ -528,6 +553,62 @@ namespace libtorrent
 		{
 			return torrent_alert::message() + " piece "
 				+ boost::lexical_cast<std::string>(piece_index) + " finished downloading";
+		}
+	};
+
+	struct TORRENT_EXPORT request_dropped_alert: torrent_alert
+	{
+		request_dropped_alert(
+			const torrent_handle& h
+			, int block_num
+			, int piece_num)
+			: torrent_alert(h)
+			, block_index(block_num)
+			, piece_index(piece_num)
+		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
+
+		int block_index;
+		int piece_index;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new request_dropped_alert(*this)); }
+		virtual char const* what() const { return "block request dropped"; }
+		const static int static_category = alert::progress_notification
+			| alert::peer_notification;
+		virtual int category() const { return static_category; }
+		virtual std::string message() const
+		{
+			return torrent_alert::message() + " block "
+				+ boost::lexical_cast<std::string>(block_index) + " in piece "
+				+ boost::lexical_cast<std::string>(piece_index) + " was dropped by remote peer";
+		}
+	};
+
+	struct TORRENT_EXPORT block_timeout_alert: torrent_alert
+	{
+		block_timeout_alert(
+			const torrent_handle& h
+			, int block_num
+			, int piece_num)
+			: torrent_alert(h)
+			, block_index(block_num)
+			, piece_index(piece_num)
+		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
+
+		int block_index;
+		int piece_index;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new block_timeout_alert(*this)); }
+		virtual char const* what() const { return "block timed out"; }
+		const static int static_category = alert::progress_notification
+			| alert::peer_notification;
+		virtual int category() const { return static_category; }
+		virtual std::string message() const
+		{
+			return torrent_alert::message() + " timed out block "
+				+ boost::lexical_cast<std::string>(block_index) + " in piece "
+				+ boost::lexical_cast<std::string>(piece_index);
 		}
 	};
 

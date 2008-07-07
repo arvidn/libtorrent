@@ -99,8 +99,6 @@ namespace libtorrent
 		// the peer has got at least one interesting piece
 		void peer_is_interesting(peer_connection& c);
 
-		int count_choked() const;
-
 		// the peer unchoked us
 		void unchoked(peer_connection& c);
 
