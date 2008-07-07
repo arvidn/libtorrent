@@ -1169,7 +1169,7 @@ int main(int ac, char* av[])
 				{
 					event_string << esc("33");
 				}
-				event_string << a->message();
+				event_string << "[" << time_now_string() << "] " << a->message();
 				event_string << esc("0");
 				events.push_back(event_string.str());
 				if (events.size() >= 20) events.pop_front();
