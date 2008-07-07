@@ -1474,13 +1474,13 @@ namespace libtorrent
 			i != m_connections.end(); ++i)
 		{
 			peer_connection* p = *i;
-			std::deque<piece_block> const& dq = p->download_queue();
+			std::deque<pending_block> const& dq = p->download_queue();
 			std::deque<piece_block> const& rq = p->request_queue();
-			for (std::deque<piece_block>::const_iterator k = dq.begin()
+			for (std::deque<pending_block>::const_iterator k = dq.begin()
 				, end(dq.end()); k != end; ++k)
 			{
-				if (k->piece_index != index) continue;
-				m_picker->mark_as_downloading(*k, p->peer_info_struct()
+				if (k->block.piece_index != index) continue;
+				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
 					, (piece_picker::piece_state_t)p->peer_speed());
 			}
 			for (std::deque<piece_block>::const_iterator k = rq.begin()
@@ -3330,9 +3330,9 @@ namespace libtorrent
 			for (std::deque<piece_block>::const_iterator i = p.request_queue().begin()
 				, end(p.request_queue().end()); i != end; ++i)
 				++num_requests[*i];
-			for (std::deque<piece_block>::const_iterator i = p.download_queue().begin()
+			for (std::deque<pending_block>::const_iterator i = p.download_queue().begin()
 				, end(p.download_queue().end()); i != end; ++i)
-				++num_requests[*i];
+				++num_requests[i->block];
 			if (!p.is_choked()) ++num_uploads;
 			torrent* associated_torrent = p.associated_torrent().lock().get();
 			if (associated_torrent != this)

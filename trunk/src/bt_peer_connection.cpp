@@ -826,7 +826,7 @@ namespace libtorrent
 			TORRENT_ASSERT(t);
 			while (!download_queue().empty())
 			{
-				piece_block const& b = download_queue().front();
+				piece_block const& b = download_queue().front().block;
 				peer_request r;
 				r.piece = b.piece_index;
 				r.start = b.block_index * t->block_size();

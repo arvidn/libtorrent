@@ -88,9 +88,21 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	struct TORRENT_EXPORT protocol_error: std::runtime_error
+	struct pending_block
 	{
-		protocol_error(const std::string& msg): std::runtime_error(msg) {};
+		pending_block(piece_block const& b): skipped(0), block(b) {}
+		int skipped;
+		// the number of times the request
+		// has been skipped by out of order blocks
+		piece_block block;
+	};
+
+	struct has_block
+	{
+		has_block(piece_block const& b): block(b) {}
+		piece_block const& block;
+		bool operator()(pending_block const& pb) const
+		{ return pb.block == block; }
 	};
 
 	class TORRENT_EXPORT peer_connection
@@ -209,7 +221,7 @@ namespace libtorrent
 		void set_pid(const peer_id& pid) { m_peer_id = pid; }
 		bool has_piece(int i) const;
 
-		std::deque<piece_block> const& download_queue() const;
+		std::deque<pending_block> const& download_queue() const;
 		std::deque<piece_block> const& request_queue() const;
 		std::deque<peer_request> const& upload_queue() const;
 
@@ -237,6 +249,8 @@ namespace libtorrent
 
 		// is called once every second by the main loop
 		void second_tick(float tick_interval);
+
+		void timeout_requests();
 
 		boost::shared_ptr<socket_type> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const { return m_remote; }
@@ -348,6 +362,8 @@ namespace libtorrent
 		void send_unchoke();
 		void send_interested();
 		void send_not_interested();
+
+		void snub_peer();
 
 		// adds a block to the request queue
 		void add_request(piece_block const& b);
@@ -573,6 +589,11 @@ namespace libtorrent
 		// download queue. Used for request timeout
 		ptime m_requested;
 
+		// if the timeout is extended for the outstanding
+		// requests, this is the number of seconds it was
+		// extended.
+		int m_timeout_extend;
+
 		// a timestamp when the remote download rate
 		// was last updated
 		ptime m_remote_dl_update;
@@ -646,7 +667,7 @@ namespace libtorrent
 		
 		// the queue of blocks we have requested
 		// from this peer
-		std::deque<piece_block> m_download_queue;
+		std::deque<pending_block> m_download_queue;
 		
 		// the pieces we will send to the peer
 		// if requested (regardless of choke state)
@@ -791,13 +812,6 @@ namespace libtorrent
 		// message is received. This information
 		// is used to fill the bitmask in init()
 		bool m_have_all:1;
-
-		// if this is true, this peer is assumed to handle all piece
-		// requests in fifo order. All skipped blocks are re-requested
-		// immediately instead of having a looser requirement
-		// where blocks can be sent out of order. The default is to
-		// allow non-fifo order.
-		bool m_assume_fifo:1;
 
 		// this is true if this connection has been added
 		// to the list of connections that will be closed.

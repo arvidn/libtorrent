@@ -271,7 +271,7 @@ namespace libtorrent
 		(*c.m_logger) << time_now_string() << " PIECE_PICKER [ php: " << prefer_whole_pieces
 			<< " picked: " << interesting_pieces.size() << " ]\n";
 #endif
-		std::deque<piece_block> const& dq = c.download_queue();
+		std::deque<pending_block> const& dq = c.download_queue();
 		std::deque<piece_block> const& rq = c.request_queue();
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
@@ -282,7 +282,7 @@ namespace libtorrent
 			{
 				if (num_requests <= 0) break;
 				// don't request pieces we already have in our request queue
-				if (std::find(dq.begin(), dq.end(), *i) != dq.end()
+				if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
 					|| std::find(rq.begin(), rq.end(), *i) != rq.end())
 					continue;
 	
@@ -537,22 +537,6 @@ namespace libtorrent
 				, m_torrent->end()
 				, m_available_free_upload);
 		}
-	}
-
-	int policy::count_choked() const
-	{
-		int ret = 0;
-		for (const_iterator i = m_peers.begin();
-			i != m_peers.end(); ++i)
-		{
-			if (!i->second.connection
-				|| i->second.connection->is_connecting()
-				|| i->second.connection->is_disconnecting()
-				|| !i->second.connection->is_peer_interested())
-				continue;
-			if (i->second.connection->is_choked()) ++ret;
-		}
-		return ret;
 	}
 
 	bool policy::new_connection(peer_connection& c)
