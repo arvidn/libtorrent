@@ -638,6 +638,29 @@ namespace libtorrent
 		}
 	};
 
+	struct TORRENT_EXPORT unwanted_block_alert: peer_alert
+	{
+		unwanted_block_alert(const torrent_handle& h, tcp::endpoint const& ip
+			, peer_id const& pid, int block_num, int piece_num)
+			: peer_alert(h, ip, pid)
+			, block_index(block_num)
+			, piece_index(piece_num)
+		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
+
+		int block_index;
+		int piece_index;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new unwanted_block_alert(*this)); }
+		virtual char const* what() const { return "unwanted block received"; }
+		virtual std::string message() const
+		{
+			return peer_alert::message() + " received block not in download queue ( piece: "
+				+ boost::lexical_cast<std::string>(piece_index) + " block: "
+				+ boost::lexical_cast<std::string>(block_index) + ")";
+		}
+	};
+
 	struct TORRENT_EXPORT storage_moved_alert: torrent_alert
 	{
 		storage_moved_alert(torrent_handle const& h, std::string const& path_)

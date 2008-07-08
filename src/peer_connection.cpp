@@ -1523,8 +1523,8 @@ namespace libtorrent
 		{
 			if (t->alerts().should_post<peer_error_alert>())
 			{
-				t->alerts().post_alert(peer_error_alert(t->get_handle(), m_remote
-						, m_peer_id, "got a block that was not in the request queue"));
+				t->alerts().post_alert(unwanted_block_alert(t->get_handle(), m_remote
+						, m_peer_id, block_finished.block_index, block_finished.piece_index));
 			}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << " *** The block we just got was not in the "
