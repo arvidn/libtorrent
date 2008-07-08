@@ -62,23 +62,23 @@ void print_alerts(libtorrent::session& ses, char const* name, bool allow_disconn
 	{
 		if (peer_disconnected_alert* p = dynamic_cast<peer_disconnected_alert*>(a.get()))
 		{
-			std::cerr << name << "(" << p->ip << "): " << p->msg() << "\n";
+			std::cerr << name << "(" << p->ip << "): " << p->message() << "\n";
 		}
-		else if (a->msg() != "block downloading"
-			&& a->msg() != "block finished"
-			&& a->msg() != "piece finished")
+		else if (a->message() != "block downloading"
+			&& a->message() != "block finished"
+			&& a->message() != "piece finished")
 		{
-			std::cerr << name << ": " << a->msg() << "\n";
+			std::cerr << name << ": " << a->message() << "\n";
 		}
 		TEST_CHECK(dynamic_cast<peer_error_alert*>(a.get()) == 0
 			|| (!handles.empty() && h.is_seed())
-			|| a->msg() == "connecting to peer"
-			|| a->msg() == "closing connection to ourself"
-			|| a->msg() == "duplicate connection"
-			|| a->msg() == "duplicate peer-id, connection closed"
-			|| (allow_disconnects && a->msg() == "Broken pipe")
-			|| (allow_disconnects && a->msg() == "Connection reset by peer")
-			|| (allow_disconnects && a->msg() == "End of file."));
+			|| a->message() == "connecting to peer"
+			|| a->message() == "closing connection to ourself"
+			|| a->message() == "duplicate connection"
+			|| a->message() == "duplicate peer-id, connection closed"
+			|| (allow_disconnects && a->message() == "Broken pipe")
+			|| (allow_disconnects && a->message() == "Connection reset by peer")
+			|| (allow_disconnects && a->message() == "End of file."));
 		a = ses.pop_alert();
 	}
 }

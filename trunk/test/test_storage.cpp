@@ -350,7 +350,7 @@ void test_fastresume()
 
 	{
 		session ses;
-		ses.set_severity_level(alert::debug);
+		ses.set_alert_mask(alert::all_categories);
 		torrent_handle h = ses.add_torrent(t, "tmp1", resume
 			, storage_mode_compact);
 	
@@ -366,7 +366,7 @@ void test_fastresume()
 			}
 			a = ses.pop_alert();
 			assert(a.get());
-			std::cerr << a->msg() << std::endl;
+			std::cerr << a->message() << std::endl;
 		}
 		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) != 0);
 	}
