@@ -1381,8 +1381,8 @@ namespace libtorrent
 
 			if (t->alerts().should_post<invalid_request_alert>())
 			{
-				t->alerts().post_alert(invalid_request_alert(r
-					, t->get_handle(), m_remote, m_peer_id));
+				t->alerts().post_alert(invalid_request_alert(
+					t->get_handle(), m_remote, m_peer_id, r));
 			}
 		}
 	}
@@ -1554,7 +1554,7 @@ namespace libtorrent
 			{
 				if (m_ses.m_alerts.should_post<request_dropped_alert>())
 					m_ses.m_alerts.post_alert(request_dropped_alert(t->get_handle()
-						, i->block.block_index, i->block.piece_index));
+						, remote(), pid(), i->block.block_index, i->block.piece_index));
 				picker.abort_download(i->block);
 				i = m_download_queue.erase(i);
 			}
@@ -1664,7 +1664,7 @@ namespace libtorrent
 		if (t->alerts().should_post<block_finished_alert>())
 		{
 			t->alerts().post_alert(block_finished_alert(t->get_handle(), 
-				block_finished.block_index, block_finished.piece_index));
+				remote(), pid(), block_finished.block_index, block_finished.piece_index));
 		}
 
 		// did we just finish the piece?
@@ -1948,7 +1948,7 @@ namespace libtorrent
 		if (t->alerts().should_post<block_downloading_alert>())
 		{
 			t->alerts().post_alert(block_downloading_alert(t->get_handle(), 
-				speedmsg, block.block_index, block.piece_index));
+				remote(), pid(), speedmsg, block.block_index, block.piece_index));
 		}
 
 		m_request_queue.push_back(block);
@@ -2813,7 +2813,7 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<block_timeout_alert>())
 			{
 				m_ses.m_alerts.post_alert(block_timeout_alert(t->get_handle()
-					, r.block_index, r.piece_index));
+					, remote(), pid(), r.block_index, r.piece_index));
 			}
 			m_download_queue.pop_back();
 		}
@@ -3424,7 +3424,7 @@ namespace libtorrent
 		if (t->alerts().should_post<peer_connect_alert>())
 		{
 			t->alerts().post_alert(peer_connect_alert(
-				t->get_handle(), m_remote));
+				t->get_handle(), remote(), pid()));
 		}
 	}
 	

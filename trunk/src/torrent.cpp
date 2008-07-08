@@ -1417,8 +1417,10 @@ namespace libtorrent
 				// ban it.
 				if (m_ses.m_alerts.should_post<peer_ban_alert>())
 				{
+					peer_id pid;
+					if (p->connection) pid = p->connection->pid();
 					m_ses.m_alerts.post_alert(peer_ban_alert(
-						p->ip, get_handle()));
+						get_handle(), p->ip, pid));
 				}
 
 				// mark the peer as banned
