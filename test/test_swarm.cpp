@@ -52,9 +52,9 @@ void test_swarm()
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
 	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000));
 
-	ses1.set_severity_level(alert::debug);
-	ses2.set_severity_level(alert::debug);
-	ses3.set_severity_level(alert::debug);
+	ses1.set_alert_mask(alert::all_categories);
+	ses2.set_alert_mask(alert::all_categories);
+	ses3.set_alert_mask(alert::all_categories);
 	
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
@@ -162,7 +162,7 @@ void test_swarm()
 		}
 		a = ses1.pop_alert();
 		assert(a.get());
-		std::cerr << a->msg() << std::endl;
+		std::cerr << a->message() << std::endl;
 	}
 
 	TEST_CHECK(dynamic_cast<torrent_deleted_alert*>(a.get()) != 0);
@@ -174,7 +174,7 @@ void test_swarm()
 	ptime start = time_now();
 	alert const* ret = ses1.wait_for_alert(seconds(2));
 	TEST_CHECK(ret == 0);
-	if (ret != 0) std::cerr << ret->msg() << std::endl;
+	if (ret != 0) std::cerr << ret->message() << std::endl;
 	TEST_CHECK(time_now() - start < seconds(3));
 	TEST_CHECK(time_now() - start > seconds(2));
 }
