@@ -2551,6 +2551,7 @@ struct peer_info
 
         size_type load_balancing;
 
+        int requests_in_buffer;
         int download_queue_length;
         int upload_queue_length;
 
@@ -2757,6 +2758,8 @@ and free upload that we give. Every peer gets a certain amount of free upload, b
 this member says how much <em>extra</em> free upload this peer has got. If it is a negative
 number it means that this was a peer from which we have got this amount of free
 download.</p>
+<p><tt class="docutils literal"><span class="pre">requests_in_buffer</span></tt> is the number of requests messages that are currently in the
+send buffer waiting to be sent.</p>
 <p><tt class="docutils literal"><span class="pre">download_queue_length</span></tt> is the number of piece-requests we have sent to this peer
 that hasn't been answered with a piece yet.</p>
 <p><tt class="docutils literal"><span class="pre">upload_queue_length</span></tt> is the number of piece-requests we have received from this peer

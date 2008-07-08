@@ -143,6 +143,10 @@ namespace libtorrent
 		// for yet
 		int download_queue_length;
 
+		// the number of request messages
+		// waiting to be sent inside the send buffer
+		int requests_in_buffer;
+
 		// the number of requests that is
 		// tried to be maintained (this is
 		// typically a function of download speed)

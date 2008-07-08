@@ -1542,8 +1542,8 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << time_now_string()
-				<< " *** SKIPPED_PIECE [ piece: " << i->piece_index << " | "
-				"b: " << i->block_index << " ] ***\n";
+				<< " *** SKIPPED_PIECE [ piece: " << i->block.piece_index << " | "
+				"b: " << i->block.block_index << " ] ***\n";
 #endif
 
 			++i->skipped;
@@ -2401,6 +2401,7 @@ namespace libtorrent
 		p.load_balancing = total_free_upload();
 
 		p.download_queue_length = int(download_queue().size() + m_request_queue.size());
+		p.requests_in_buffer = int(m_requests_in_buffer.size());
 		p.target_dl_queue_length = int(desired_queue_size());
 		p.upload_queue_length = int(upload_queue().size());
 
@@ -2955,15 +2956,16 @@ namespace libtorrent
 			TORRENT_ASSERT(t);
 			if (m_bandwidth_limit[upload_channel].max_assignable() > 0)
 			{
-#ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ upload ]\n";
-#endif
-
+				int priority = is_interesting() * 2 + m_requests_in_buffer.size();
 				// peers that we are not interested in are non-prioritized
 				m_channel_state[upload_channel] = peer_info::bw_torrent;
 				t->request_bandwidth(upload_channel, self()
-					, m_send_buffer.size()
-					, is_interesting() * 2);
+					, m_send_buffer.size(), priority);
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ upload prio: "
+					<< priority << "]\n";
+#endif
+
 			}
 			return;
 		}
@@ -3146,8 +3148,11 @@ namespace libtorrent
 		m_packet_size = packet_size;
 	}
 
-	void peer_connection::send_buffer(char const* buf, int size)
+	void peer_connection::send_buffer(char const* buf, int size, int flags)
 	{
+		if (flags == message_type_request)
+			m_requests_in_buffer.push_back(m_send_buffer.size() + size);
+
 		int free_space = m_send_buffer.space_in_last_buffer();
 		if (free_space > size) free_space = size;
 		if (free_space > 0)
@@ -3491,6 +3496,14 @@ namespace libtorrent
 		TORRENT_ASSERT(m_channel_state[upload_channel] == peer_info::bw_network);
 
 		m_send_buffer.pop_front(bytes_transferred);
+
+		for (std::vector<int>::iterator i = m_requests_in_buffer.begin()
+			, end(m_requests_in_buffer.end()); i != end; ++i)
+			*i -= bytes_transferred;
+
+		while (!m_requests_in_buffer.empty()
+			&& m_requests_in_buffer.front() <= 0)
+			m_requests_in_buffer.erase(m_requests_in_buffer.begin());
 		
 		m_channel_state[upload_channel] = peer_info::bw_idle;
 
