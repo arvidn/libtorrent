@@ -1906,7 +1906,7 @@ namespace libtorrent
 
 	void peer_connection::add_request(piece_block const& block)
 	{
-		INVARIANT_CHECK;
+//		INVARIANT_CHECK;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
@@ -2766,6 +2766,8 @@ namespace libtorrent
 
 	void peer_connection::snub_peer()
 	{
+		INVARIANT_CHECK;
+
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
@@ -2819,7 +2821,6 @@ namespace libtorrent
 			m_timeout_extend += m_ses.settings().request_timeout;
 
 		request_a_block(*t, *this);
-		send_block_requests();
 
 		// abort the block after the new one has
 		// been requested in order to prevent it from
@@ -2827,6 +2828,8 @@ namespace libtorrent
 		// same piece indefinitely.
 		if (r != piece_block(-1, -1))
 			picker.abort_download(r);
+
+		send_block_requests();
 	}
 
 	void peer_connection::fill_send_buffer()
