@@ -409,7 +409,8 @@ namespace libtorrent
 
 		// these functions are virtual to let bt_peer_connection hook into them
 		// and encrypt the content
-		virtual void send_buffer(char const* begin, int size);
+		enum message_type_flags { message_type_request = 1 };
+		virtual void send_buffer(char const* begin, int size, int flags = 0);
 		virtual buffer::interval allocate_send_buffer(int size);
 		virtual void setup_send();
 
@@ -680,6 +681,10 @@ namespace libtorrent
 		// pieces that has been suggested to be
 		// downloaded from this peer
 		std::vector<int> m_suggested_pieces;
+
+		// a list of byte offsets inside the send buffer
+		// the piece requests
+		std::vector<int> m_requests_in_buffer;
 
 		// the number of pieces this peer
 		// has. Must be the same as

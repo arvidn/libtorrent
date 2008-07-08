@@ -2528,6 +2528,7 @@ It contains the following fields::
 
 		size_type load_balancing;
 
+		int requests_in_buffer;
 		int download_queue_length;
 		int upload_queue_length;
 
@@ -2723,6 +2724,9 @@ and free upload that we give. Every peer gets a certain amount of free upload, b
 this member says how much *extra* free upload this peer has got. If it is a negative
 number it means that this was a peer from which we have got this amount of free
 download.
+
+``requests_in_buffer`` is the number of requests messages that are currently in the
+send buffer waiting to be sent.
 
 ``download_queue_length`` is the number of piece-requests we have sent to this peer
 that hasn't been answered with a piece yet.

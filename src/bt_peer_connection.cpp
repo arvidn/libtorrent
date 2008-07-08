@@ -601,7 +601,7 @@ namespace libtorrent
 #endif
 	}
 
-	void bt_peer_connection::send_buffer(char* buf, int size)
+	void bt_peer_connection::send_buffer(char* buf, int size, int flags)
 	{
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(size > 0);
@@ -609,7 +609,7 @@ namespace libtorrent
 		if (m_encrypted && m_rc4_encrypted)
 			m_RC4_handler->encrypt(buf, size);
 		
-		peer_connection::send_buffer(buf, size);
+		peer_connection::send_buffer(buf, size, flags);
 	}
 
 	buffer::interval bt_peer_connection::allocate_send_buffer(int size)
@@ -1405,7 +1405,7 @@ namespace libtorrent
 		detail::write_int32(r.piece, ptr); // index
 		detail::write_int32(r.start, ptr); // begin
 		detail::write_int32(r.length, ptr); // length
-		send_buffer(msg, sizeof(msg));
+		send_buffer(msg, sizeof(msg), message_type_request);
 	}
 
 	void bt_peer_connection::write_bitfield()
