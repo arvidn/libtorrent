@@ -902,12 +902,9 @@ namespace libtorrent
 				m_suggested_pieces.erase(i);
 		}
 
-		if (m_request_queue.empty())
+		if (m_request_queue.empty() && m_download_queue.size() < 2)
 		{
-			if (m_download_queue.size() < 2)
-			{
-				request_a_block(*t, *this);
-			}
+			request_a_block(*t, *this);
 			send_block_requests();
 		}
 	}

@@ -307,8 +307,6 @@ namespace libtorrent
 			// that was free. If we couldn't find any busy
 			// blocks as well, we cannot download anything
 			// more from this peer.
-
-			c.send_block_requests();
 			return;
 		}
 
@@ -329,7 +327,6 @@ namespace libtorrent
 		TORRENT_ASSERT(p.is_requested(*i));
 		TORRENT_ASSERT(p.num_peers(*i) > 0);
 		c.add_request(*i);
-		c.send_block_requests();
 	}
 
 	policy::policy(torrent* t)
@@ -864,6 +861,7 @@ namespace libtorrent
 		if (c.is_interesting())
 		{
 			request_a_block(*m_torrent, c);
+			c.send_block_requests();
 		}
 	}
 
@@ -1067,6 +1065,7 @@ namespace libtorrent
 			&& c.allowed_fast().empty())
 			return;
 		request_a_block(*m_torrent, c);
+		c.send_block_requests();
 	}
 
 #ifndef NDEBUG
