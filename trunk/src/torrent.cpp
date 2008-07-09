@@ -4035,7 +4035,7 @@ namespace libtorrent
 					size_type block_size = m_block_size;
 					while (offset + block_size > file->offset + file->size)
 					{
-						TORRENT_ASSERT(offset < file->offset + file->size);
+						TORRENT_ASSERT(offset <= file->offset + file->size);
 						size_type slice = file->offset + file->size - offset;
 						fp[file_index] += float(slice) / file->size;
 						offset += slice;
