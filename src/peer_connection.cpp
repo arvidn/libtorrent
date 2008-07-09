@@ -1481,6 +1481,16 @@ namespace libtorrent
 			"qs: " << m_desired_queue_size << " ]\n";
 #endif
 
+		if (p.length == 0)
+		{
+			if (t->alerts().should_post<peer_error_alert>())
+			{
+				t->alerts().post_alert(peer_error_alert(t->get_handle(), m_remote
+						, m_peer_id, "peer sent 0 length piece"));
+			}
+			return;
+		}
+
 		if (!verify_piece(p))
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
