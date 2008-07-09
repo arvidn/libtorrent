@@ -1409,11 +1409,11 @@ int main(int ac, char* av[])
 					for (int i = 0; i < info.num_files(); ++i)
 					{
 						if (file_progress[i] == 1.f)
-							out << progress_bar(file_progress[i], 40, "32") << " "
-								<< info.file_at(i).path.leaf() << "\n";
+							out << progress_bar(file_progress[i], 60, "32");
 						else
-							out << progress_bar(file_progress[i], 40, "33") << " "
-								<< info.file_at(i).path.leaf() << "\n";
+							out << progress_bar(file_progress[i], 60, "33");
+						out << " " << to_string(file_progress[i] * 100.f, 3) << "% "
+							<< info.file_at(i).path.leaf() << "\n";
 					}
 
 					out << "___________________________________\n";
