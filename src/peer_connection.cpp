@@ -2038,22 +2038,28 @@ namespace libtorrent
 		m_num_invalid_requests = 0;
 
 		// reject the requests we have in the queue
-		std::for_each(m_requests.begin(), m_requests.end()
-			, bind(&peer_connection::write_reject_request, this, _1));
+		// except the allowed fast pieces
+		for (std::deque<peer_request>::iterator i = m_requests.begin();
+			i != m_requests.end();)
+		{
+			if (m_accept_fast.count(i->piece))
+			{
+				++i;
+				continue;
+			}
+
+			peer_request const& r = *i;
+			write_reject_request(r);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		for (std::deque<peer_request>::iterator i = m_requests.begin()
-			, end(m_requests.end()); i != end; ++i)
-		{
-			peer_request const& r = *i;
 			(*m_logger) << time_now_string()
 				<< " ==> REJECT_PIECE [ "
 				"piece: " << r.piece << " | "
 				"s: " << r.start << " | "
 				"l: " << r.length << " ]\n";
-		}
 #endif
-		m_requests.clear();
+			i = m_requests.erase(i);
+		}
 	}
 
 	void peer_connection::send_unchoke()
