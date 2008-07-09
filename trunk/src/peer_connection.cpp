@@ -1528,7 +1528,7 @@ namespace libtorrent
 
 		if (b == m_download_queue.end())
 		{
-			if (t->alerts().should_post<peer_error_alert>())
+			if (t->alerts().should_post<unwanted_block_alert>())
 			{
 				t->alerts().post_alert(unwanted_block_alert(t->get_handle(), m_remote
 						, m_peer_id, block_finished.block_index, block_finished.piece_index));
