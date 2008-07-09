@@ -2817,7 +2817,9 @@ namespace libtorrent
 		if (!m_download_queue.empty() || !m_request_queue.empty())
 			m_timeout_extend += m_ses.settings().request_timeout;
 
+		m_desired_queue_size = 2;
 		request_a_block(*t, *this);
+		m_desired_queue_size = 1;
 
 		// abort the block after the new one has
 		// been requested in order to prevent it from
