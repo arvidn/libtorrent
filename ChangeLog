@@ -1,3 +1,5 @@
+	* Fix bug where FAST pieces were cancelled on choke
+
 release 0.13.1
 
 	* Fixed problems with restoring piece states when hash failed.
