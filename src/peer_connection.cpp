@@ -1928,6 +1928,12 @@ namespace libtorrent
 			r.length = block_size;
 
 			m_request_queue.pop_front();
+			if (t->is_seed()) continue;
+			// this can happen if a block times out, is re-requested and
+			// then arrives "unexpectedly"
+			if (t->picker().is_finished(block) || t->picker().is_downloaded(block))
+				continue;
+
 			m_download_queue.push_back(block);
 /*
 #ifdef TORRENT_VERBOSE_LOGGING
