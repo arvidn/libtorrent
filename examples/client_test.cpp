@@ -1412,7 +1412,7 @@ int main(int ac, char* av[])
 							out << progress_bar(file_progress[i], 60, "32");
 						else
 							out << progress_bar(file_progress[i], 60, "33");
-						out << " " << to_string(file_progress[i] * 100.f, 3) << "% "
+						out << " " << to_string(file_progress[i] * 100.f, 5) << "% "
 							<< info.file_at(i).path.leaf() << "\n";
 					}
 

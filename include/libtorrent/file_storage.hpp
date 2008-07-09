@@ -94,6 +94,7 @@ namespace libtorrent
 		typedef std::vector<file_entry>::const_iterator iterator;
 		typedef std::vector<file_entry>::const_reverse_iterator reverse_iterator;
 
+		iterator file_at_offset(size_type offset) const;
 		iterator begin() const { return m_files.begin(); }
 		iterator end() const { return m_files.end(); }
 		reverse_iterator rbegin() const { return m_files.rbegin(); }
