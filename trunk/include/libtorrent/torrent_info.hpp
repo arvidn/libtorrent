@@ -118,6 +118,8 @@ namespace libtorrent
 		int num_files() const { return m_files.num_files(); }
 		file_entry const& file_at(int index) const { return m_files.at(index); }
 
+		file_iterator file_at_offset(size_type offset) const
+		{ return m_files.file_at_offset(offset); }
 		std::vector<file_slice> map_block(int piece, size_type offset, int size) const
 		{ return m_files.map_block(piece, offset, size); }
 		peer_request map_file(int file, size_type offset, int size) const

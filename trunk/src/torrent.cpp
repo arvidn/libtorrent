@@ -3982,6 +3982,7 @@ namespace libtorrent
 			return;
 		}
 
+		TORRENT_ASSERT(has_picker());
 		fp.resize(m_torrent_file->num_files(), 0.f);
 		
 		for (int i = 0; i < m_torrent_file->num_files(); ++i)
@@ -4010,6 +4011,46 @@ namespace libtorrent
 			TORRENT_ASSERT(size == 0);
 
 			fp[i] = static_cast<float>(done) / m_torrent_file->files().at(i).size;
+		}
+
+		const std::vector<piece_picker::downloading_piece>& q
+			= m_picker->get_download_queue();
+
+		for (std::vector<piece_picker::downloading_piece>::const_iterator
+			i = q.begin(), end(q.end()); i != end; ++i)
+		{
+			size_type offset = size_type(i->index) * m_torrent_file->piece_length();
+			torrent_info::file_iterator file = m_torrent_file->file_at_offset(offset);
+			int file_index = file - m_torrent_file->begin_files();
+			int num_blocks = m_picker->blocks_in_piece(i->index);
+			piece_picker::block_info const* info = i->info;
+			for (int k = 0; k < num_blocks; ++k)
+			{
+				if (info[k].state != piece_picker::block_info::state_writing
+					&& info[k].state != piece_picker::block_info::state_finished)
+					continue;
+				if (offset + m_block_size > file->offset + file->size)
+				{
+					// split the block on multiple files
+					size_type block_size = m_block_size;
+					while (offset + block_size > file->offset + file->size)
+					{
+						TORRENT_ASSERT(offset < file->offset + file->size);
+						size_type slice = file->offset + file->size - offset;
+						fp[file_index] += float(slice) / file->size;
+						offset += slice;
+						block_size -= slice;
+						++file;
+						++file_index;
+						if (file == m_torrent_file->end_files()) break;
+					}
+				}
+				else
+				{
+					fp[file_index] += float(m_block_size) / file->size;
+					offset += m_block_size;
+				}
+			}
 		}
 	}
 	
