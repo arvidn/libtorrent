@@ -70,7 +70,7 @@ namespace libtorrent
 		std::vector<file_entry>::const_iterator i;
 		for (i = begin(); i != end(); ++i)
 		{
-			if (i->offset < offset && i->offset + i->size > offset)
+			if (i->offset <= offset && i->offset + i->size > offset)
 				return i;
 		}
 		return i;
