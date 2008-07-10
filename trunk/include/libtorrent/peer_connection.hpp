@@ -600,6 +600,7 @@ namespace libtorrent
 		ptime m_remote_dl_update;
 
 		// the time when async_connect was called
+		// or when the incoming connection was established
 		ptime m_connect;
 
 		// the time when this peer sent us a not_interested message
