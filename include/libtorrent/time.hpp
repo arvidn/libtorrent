@@ -124,6 +124,8 @@ namespace libtorrent
 	{
 		ptime() {}
 		explicit ptime(boost::int64_t t): time(t) {}
+		ptime& operator+=(time_duration rhs) { time += rhs.diff; return *this; }
+		ptime& operator-=(time_duration rhs) { time -= rhs.diff; return *this; }
 		boost::int64_t time;
 	};
 
