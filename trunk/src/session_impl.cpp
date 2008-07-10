@@ -1022,6 +1022,23 @@ namespace aux {
 			<< m_disk_thread.disk_allocations() << "\t"
 			<< std::endl;
 #endif
+
+		// --------------------------------------------------------------
+		// check for incoming connections that might have timed out
+		// --------------------------------------------------------------
+
+		for (connection_map::iterator i = m_connections.begin();
+			i != m_connections.end();)
+		{
+			peer_connection* p = (*i).get();
+			++i;
+			// ignore connections that already have a torrent, since they
+			// are ticket through the torrents' second_ticket
+			if (!p->associated_torrent().expired()) continue;
+			if (m_last_tick - p->connected_time() > seconds(m_settings.peer_connect_timeout))
+				p->disconnect("timeout: incoming connection");
+		}
+
 		// --------------------------------------------------------------
 		// second_tick every torrent
 		// --------------------------------------------------------------
