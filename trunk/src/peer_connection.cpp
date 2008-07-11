@@ -2815,7 +2815,11 @@ namespace libtorrent
 		}
 		m_desired_queue_size = 1;
 
-		if (on_parole()) return;
+		if (on_parole())
+		{
+			m_timeout_extend += m_ses.settings().request_timeout;
+			return;
+		}
 		if (!t->has_picker()) return;
 		piece_picker& picker = t->picker();
 
