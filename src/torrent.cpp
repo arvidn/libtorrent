@@ -4026,13 +4026,40 @@ namespace libtorrent
 			piece_picker::block_info const* info = i->info;
 			for (int k = 0; k < num_blocks; ++k)
 			{
-				if (info[k].state != piece_picker::block_info::state_writing
-					&& info[k].state != piece_picker::block_info::state_finished)
+				TORRENT_ASSERT(offset == size_type(i->index) * m_torrent_file->piece_length()
+					+ k * m_block_size);
+
+				size_type block_size = m_block_size;
+
+				if (info[k].state == piece_picker::block_info::state_none)
+				{
+					offset += m_block_size;
 					continue;
+				}
+
+				if (info[k].state == piece_picker::block_info::state_requested)
+				{
+					block_size = 0;
+					policy::peer* p = static_cast<policy::peer*>(info[k].peer);
+					if (p && p->connection)
+					{
+						boost::optional<piece_block_progress> pbp
+							= p->connection->downloading_piece_progress();
+						if (pbp && pbp->piece_index == i->index && pbp->block_index == k)
+							block_size = pbp->bytes_downloaded;
+					}
+
+					if (block_size == 0)
+					{
+						offset += m_block_size;
+						continue;
+					}
+				}
+
 				if (offset + m_block_size > file->offset + file->size)
 				{
+					int left_over = m_block_size - block_size;
 					// split the block on multiple files
-					size_type block_size = m_block_size;
 					while (offset + block_size > file->offset + file->size)
 					{
 						TORRENT_ASSERT(offset <= file->offset + file->size);
@@ -4044,10 +4071,11 @@ namespace libtorrent
 						++file_index;
 						if (file == m_torrent_file->end_files()) break;
 					}
+					offset += left_over;
 				}
 				else
 				{
-					fp[file_index] += float(m_block_size) / file->size;
+					fp[file_index] += float(block_size) / file->size;
 					offset += m_block_size;
 				}
 			}
