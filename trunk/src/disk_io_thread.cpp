@@ -101,6 +101,22 @@ namespace libtorrent
 			cached_piece_info info;
 			info.piece = i->piece;
 			info.last_use = i->last_use;
+			info.kind = cached_piece_info::write_cache;
+			int blocks_in_piece = (ti.piece_size(i->piece) + (m_block_size) - 1) / m_block_size;
+			info.blocks.resize(blocks_in_piece);
+			for (int b = 0; b < blocks_in_piece; ++b)
+				if (i->blocks[b]) info.blocks[b] = true;
+			ret.push_back(info);
+		}
+		for (cache_t::const_iterator i = m_read_pieces.begin()
+			, end(m_read_pieces.end()); i != end; ++i)
+		{
+			torrent_info const& ti = *i->storage->info();
+			if (ti.info_hash() != ih) continue;
+			cached_piece_info info;
+			info.piece = i->piece;
+			info.last_use = i->last_use;
+			info.kind = cached_piece_info::read_cache;
 			int blocks_in_piece = (ti.piece_size(i->piece) + (m_block_size) - 1) / m_block_size;
 			info.blocks.resize(blocks_in_piece);
 			for (int b = 0; b < blocks_in_piece; ++b)

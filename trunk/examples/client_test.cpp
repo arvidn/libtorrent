@@ -1344,7 +1344,7 @@ int main(int ac, char* av[])
 				if (print_peers && !peers.empty())
 					print_peer_info(out, peers);
 
-				if (print_downloads && s.state != torrent_status::seeding)
+				if (print_downloads)
 				{
 					h.get_download_queue(queue);
 					std::sort(queue.begin(), queue.end(), bind(&partial_piece_info::piece_index, _1)
@@ -1398,6 +1398,24 @@ int main(int ac, char* av[])
 						out << "\n";
 					}
 
+					for (std::vector<cached_piece_info>::iterator i = pieces.begin()
+						, end(pieces.end()); i != end; ++i)
+					{
+						if (i->kind != cached_piece_info::read_cache) continue;
+						out << to_string(i->piece, 4) << ": [";
+						for (std::vector<bool>::iterator k = i->blocks.begin()
+							, end(i->blocks.end()); k != end; ++k)
+						{
+#ifdef ANSI_TERMINAL_COLORS
+							if (*k) out << esc("33;7") << " " << esc("0");
+							else out << " ";
+#else
+							if (*k) out << "#";
+							else out << " ";
+#endif
+						}
+						out << "]\n";
+					}
 					out << "___________________________________\n";
 				}
 

@@ -793,6 +793,8 @@ struct cached_piece_info
         int piece;
         std::vector&lt;bool&gt; blocks;
         ptime last_use;
+        enum kind_t { read_cache = 0, write_cache = 1 };
+        kind_t kind;
 };
 </pre>
 </blockquote>
@@ -801,6 +803,7 @@ struct cached_piece_info
 the data for that block being in the disk cache and <tt class="docutils literal"><span class="pre">false</span></tt> means it's not.</p>
 <p><tt class="docutils literal"><span class="pre">last_use</span></tt> is the time when a block was last written to this piece. The older
 a piece is, the more likely it is to be flushed to disk.</p>
+<p><tt class="docutils literal"><span class="pre">kind</span></tt> specifies if this piece is part of the read cache or the write cache.</p>
 </div>
 <div class="section">
 <h2><a id="is-listening-listen-port-listen-on" name="is-listening-listen-port-listen-on">is_listening() listen_port() listen_on()</a></h2>
@@ -2852,6 +2855,7 @@ struct session_settings
         bool upnp_ignore_nonrouters;
         int send_buffer_watermark;
         bool auto_upload_slots;
+        bool use_parole_mode;
         int cache_size;
         int cache_expiry;
         std::pair&lt;int, int&gt; outgoing_ports;
@@ -3018,6 +3022,11 @@ slot is opened. If the upload rate has been saturated for an extended period
 of time, on upload slot is closed. The number of upload slots will never be
 less than what has been set by <tt class="docutils literal"><span class="pre">session::set_max_uploads()</span></tt>. To query the
 current number of upload slots, see <tt class="docutils literal"><span class="pre">session_status::allowed_upload_slots</span></tt>.</p>
+<p><tt class="docutils literal"><span class="pre">use_parole_mode</span></tt> specifies if parole mode should be used. Parole mode means
+that peers that participate in pieces that fail the hash check are put in a mode
+where they are only allowed to download whole pieces. If the whole piece a peer
+in parole mode fails the hash check, it is banned. If a peer participates in a
+piece that passes the hash check, it is taken out of parole mode.</p>
 <p><tt class="docutils literal"><span class="pre">cache_size</span></tt> is the disk write cache. It is specified in units of 16 KiB blocks.
 It defaults to 512 (= 8 MB).</p>
 <p><tt class="docutils literal"><span class="pre">cache_expiry</span></tt> is the number of seconds from the last cached write to a piece

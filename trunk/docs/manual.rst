@@ -625,6 +625,8 @@ specified info-hash (``ih``).
 			int piece;
 			std::vector<bool> blocks;
 			ptime last_use;
+			enum kind_t { read_cache = 0, write_cache = 1 };
+			kind_t kind;
 		};
 
 ``piece`` is the piece index for this cache entry.
@@ -635,6 +637,8 @@ the data for that block being in the disk cache and ``false`` means it's not.
 ``last_use`` is the time when a block was last written to this piece. The older
 a piece is, the more likely it is to be flushed to disk.
 		
+``kind`` specifies if this piece is part of the read cache or the write cache.
+
 is_listening() listen_port() listen_on()
 ----------------------------------------
 
