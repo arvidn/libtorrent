@@ -632,7 +632,9 @@ namespace libtorrent
 
 		if (peer_info_struct())
 		{
-			peer_info_struct()->on_parole = true;
+			if (m_ses.settings().use_parole_mode)
+				peer_info_struct()->on_parole = true;
+
 			++peer_info_struct()->hashfails;
 			boost::int8_t& trust_points = peer_info_struct()->trust_points;
 
@@ -2813,6 +2815,7 @@ namespace libtorrent
 		}
 		m_desired_queue_size = 1;
 
+		if (on_parole()) return;
 		if (!t->has_picker()) return;
 		piece_picker& picker = t->picker();
 
