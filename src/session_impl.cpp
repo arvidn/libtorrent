@@ -185,6 +185,8 @@ namespace aux {
 		, m_asnum_db(0)
 		, m_country_db(0)
 #endif
+		, m_total_failed_bytes(0)
+		, m_total_redundant_bytes(0)
 	{
 		m_tcp_mapping[0] = -1;
 		m_tcp_mapping[1] = -1;
@@ -2016,6 +2018,9 @@ namespace aux {
 		s.num_peers = (int)m_connections.size();
 		s.num_unchoked = m_num_unchoked;
 		s.allowed_upload_slots = m_allowed_upload_slots;
+
+		s.total_redundant_bytes = m_total_redundant_bytes;
+		s.total_failed_bytes = m_total_failed_bytes;
 
 		s.up_bandwidth_queue = m_upload_channel.queue_size();
 		s.down_bandwidth_queue = m_download_channel.queue_size();

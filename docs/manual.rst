@@ -503,6 +503,9 @@ struct has the following members::
 		size_type total_download;
 		size_type total_upload;
 
+		size_type total_redundant_bytes;
+		size_type total_failed_bytes;
+
 		size_type total_payload_download;
 		size_type total_payload_upload;
 
@@ -527,6 +530,14 @@ versions is the payload download only.
 ``total_download`` and ``total_upload`` are the total number of bytes downloaded and
 uploaded to and from all torrents. ``total_payload_download`` and ``total_payload_upload``
 are the same thing but where only the payload is considered.
+
+``total_redundant_bytes`` is the number of bytes that has been received more than once.
+This can happen if a request from a peer times out and is requested from a different
+peer, and then received again from the first one. To make this lower, increase the
+``request_timeout`` and the ``piece_timeout`` in the session settings.
+
+``total_failed_bytes`` is the number of bytes that was downloaded which later failed
+the hash-check.
 
 ``num_peers`` is the total number of peer connections this session has. This includes
 incoming connections that still hasn't sent their handshake or outgoing connections

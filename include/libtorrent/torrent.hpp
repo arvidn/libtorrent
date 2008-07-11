@@ -524,8 +524,8 @@ namespace libtorrent
 		// this is done when a piece fails
 		void restore_piece_state(int index);
 
-		void received_redundant_data(int num_bytes)
-		{ TORRENT_ASSERT(num_bytes > 0); m_total_redundant_bytes += num_bytes; }
+		void add_redundant_bytes(int b);
+		void add_failed_bytes(int b);
 
 		// this is true if we have all the pieces
 		bool is_seed() const

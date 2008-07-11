@@ -1319,7 +1319,9 @@ int main(int ac, char* av[])
 				<< " (" << esc("32") << add_suffix(sess_stat.total_download) << esc("0") << ") "
 				" up: " << esc("31") << add_suffix(sess_stat.upload_rate) << "/s " << esc("0")
 				<< " (" << esc("31") << add_suffix(sess_stat.total_upload) << esc("0") << ")"
-				" unchoked: " << sess_stat.num_unchoked << " / " << sess_stat.allowed_upload_slots
+				" waste: " << add_suffix(sess_stat.total_redundant_bytes)
+				<< " fail: " << add_suffix(sess_stat.total_failed_bytes)
+				<< " unchoked: " << sess_stat.num_unchoked << " / " << sess_stat.allowed_upload_slots
 				<< " bw queues: (" << sess_stat.up_bandwidth_queue
 				<< " | " << sess_stat.down_bandwidth_queue << ") "
 				" write cache hits: " << ((cs.blocks_written - cs.writes) * 100 / cs.blocks_written) << "% "

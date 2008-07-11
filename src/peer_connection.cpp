@@ -1509,7 +1509,7 @@ namespace libtorrent
 		// just ignore it
 		if (t->is_seed())
 		{
-			t->received_redundant_data(p.length);
+			t->add_redundant_bytes(p.length);
 			return;
 		}
 
@@ -1541,7 +1541,7 @@ namespace libtorrent
 			(*m_logger) << " *** The block we just got was not in the "
 				"request queue ***\n";
 #endif
-			t->received_redundant_data(p.length);
+			t->add_redundant_bytes(p.length);
 			request_a_block(*t, *this);
 			send_block_requests();
 			return;
@@ -1578,7 +1578,7 @@ namespace libtorrent
 		// if the block we got is already finished, then ignore it
 		if (picker.is_downloaded(block_finished))
 		{
-			t->received_redundant_data(p.length);
+			t->add_redundant_bytes(p.length);
 
 			m_download_queue.erase(b);
 			m_timeout_extend = 0;

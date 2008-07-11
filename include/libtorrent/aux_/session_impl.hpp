@@ -319,6 +319,18 @@ namespace libtorrent
 
 			int next_port();
 
+			void add_redundant_bytes(size_type b)
+			{
+				TORRENT_ASSERT(b > 0);
+				m_total_redundant_bytes += b;
+			}
+
+			void add_failed_bytes(size_type b)
+			{
+				TORRENT_ASSERT(b > 0);
+				m_total_failed_bytes += b;
+			}
+
 			// handles delayed alerts
 			alert_manager m_alerts;
 
@@ -607,6 +619,10 @@ namespace libtorrent
 			// are kept in the policy::peer structures.
 			std::map<int, int> m_as_peak;
 #endif
+
+			// total redundant and failed bytes
+			size_type m_total_failed_bytes;
+			size_type m_total_redundant_bytes;
 
 			// the main working thread
 			boost::scoped_ptr<boost::thread> m_thread;
