@@ -53,6 +53,9 @@ namespace libtorrent
 		size_type total_payload_download;
 		size_type total_payload_upload;
 
+		size_type total_redundant_bytes;
+		size_type total_failed_bytes;
+
 		int num_peers;
 		int num_unchoked;
 		int allowed_upload_slots;

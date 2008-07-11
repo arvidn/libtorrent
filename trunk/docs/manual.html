@@ -688,6 +688,9 @@ struct session_status
         size_type total_download;
         size_type total_upload;
 
+        size_type total_redundant_bytes;
+        size_type total_failed_bytes;
+
         size_type total_payload_download;
         size_type total_payload_upload;
 
@@ -710,6 +713,12 @@ versions is the payload download only.</p>
 <p><tt class="docutils literal"><span class="pre">total_download</span></tt> and <tt class="docutils literal"><span class="pre">total_upload</span></tt> are the total number of bytes downloaded and
 uploaded to and from all torrents. <tt class="docutils literal"><span class="pre">total_payload_download</span></tt> and <tt class="docutils literal"><span class="pre">total_payload_upload</span></tt>
 are the same thing but where only the payload is considered.</p>
+<p><tt class="docutils literal"><span class="pre">total_redundant_bytes</span></tt> is the number of bytes that has been received more than once.
+This can happen if a request from a peer times out and is requested from a different
+peer, and then received again from the first one. To make this lower, increase the
+<tt class="docutils literal"><span class="pre">request_timeout</span></tt> and the <tt class="docutils literal"><span class="pre">piece_timeout</span></tt> in the session settings.</p>
+<p><tt class="docutils literal"><span class="pre">total_failed_bytes</span></tt> is the number of bytes that was downloaded which later failed
+the hash-check.</p>
 <p><tt class="docutils literal"><span class="pre">num_peers</span></tt> is the total number of peer connections this session has. This includes
 incoming connections that still hasn't sent their handshake or outgoing connections
 that still hasn't completed the TCP connection. This number may be slightly higher

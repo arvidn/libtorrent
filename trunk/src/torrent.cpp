@@ -1363,7 +1363,7 @@ namespace libtorrent
 			m_ses.m_alerts.post_alert(hash_failed_alert(get_handle(), index));
 
 		// increase the total amount of failed bytes
-		m_total_failed_bytes += m_torrent_file->piece_size(index);
+		add_failed_bytes(m_torrent_file->piece_size(index));
 
 		std::vector<void*> downloaders;
 		m_picker->get_downloaders(downloaders, index);
@@ -4206,6 +4206,20 @@ namespace libtorrent
 		else
 			st.distributed_copies = -1;
 		return st;
+	}
+
+	void torrent::add_redundant_bytes(int b)
+	{
+		TORRENT_ASSERT(b > 0);
+		m_total_redundant_bytes += b;
+		m_ses.add_redundant_bytes(b);
+	}
+
+	void torrent::add_failed_bytes(int b)
+	{
+		TORRENT_ASSERT(b > 0);
+		m_total_failed_bytes += b;
+		m_ses.add_failed_bytes(b);
 	}
 
 	int torrent::num_seeds() const
