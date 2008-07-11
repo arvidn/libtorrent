@@ -1063,7 +1063,7 @@ int main(int ac, char* av[])
 
 					while (num_resume_data > 0)
 					{
-						alert const* a = ses.wait_for_alert(seconds(10));
+						alert const* a = ses.wait_for_alert(seconds(30));
 						if (a == 0)
 						{
 							std::cout << " aborting with " << num_resume_data << " outstanding "
