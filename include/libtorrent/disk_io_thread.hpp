@@ -58,6 +58,8 @@ namespace libtorrent
 		int piece;
 		std::vector<bool> blocks;
 		ptime last_use;
+		enum kind_t { read_cache = 0, write_cache = 1 };
+		kind_t kind;
 	};
 	
 	struct disk_io_job
