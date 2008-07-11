@@ -1105,7 +1105,7 @@ namespace aux {
 				if (m_alerts.should_post<tracker_announce_alert>())
 				{
 					m_alerts.post_alert(
-						tracker_announce_alert(t.get_handle(), req.url));
+						tracker_announce_alert(t.get_handle(), req.url, req.event));
 				}
 			}
 
@@ -1863,7 +1863,7 @@ namespace aux {
 				if (m_alerts.should_post<tracker_announce_alert>())
 				{
 					m_alerts.post_alert(
-						tracker_announce_alert(t.get_handle(), req.url));
+						tracker_announce_alert(t.get_handle(), req.url, req.event));
 				}
 			}
 #ifndef NDEBUG

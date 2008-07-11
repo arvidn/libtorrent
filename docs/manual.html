@@ -3798,6 +3798,20 @@ struct file_error_alert: torrent_alert
 <p>This alert is generated each time a tracker announce is sent (or attempted to be sent).
 There are no extra data members in this alert. The url can be found in the base class
 however.</p>
+<pre class="literal-block">
+struct tracker_announce_alert: tracker_alert
+{
+        // ...
+        int event;
+};
+</pre>
+<p>Event specifies what event was sent to the tracker. It is defined as:</p>
+<ol class="arabic simple" start="0">
+<li>None</li>
+<li>Completed</li>
+<li>Started</li>
+<li>Stopped</li>
+</ol>
 </div>
 <div class="section">
 <h2><a id="tracker-error-alert" name="tracker-error-alert">tracker_error_alert</a></h2>
