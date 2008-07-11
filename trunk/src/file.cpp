@@ -161,25 +161,19 @@ namespace libtorrent
 		bool open(fs::path const& path, int mode)
 		{
 			close();
-#if defined(_WIN32) && defined(UNICODE)
+#if defined _WIN32 && defined UNICODE
 			std::wstring wpath(safe_convert(path.native_file_string()));
 			m_fd = ::_wopen(
 				wpath.c_str()
-				, map_open_mode(mode)
-				, S_IREAD | S_IWRITE);
-#else
-#ifdef _WIN32
+				, map_open_mode(mode));
+#elif defined _WIN32
 			m_fd = ::_open(
+				utf8_native(path.native_file_string()).c_str()
+				, map_open_mode(mode));
 #else
 			m_fd = ::open(
-#endif
 				utf8_native(path.native_file_string()).c_str()
-				, map_open_mode(mode)
-#ifdef _WIN32
-				, S_IREAD | S_IWRITE);
-#else
-				, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-#endif
+				, map_open_mode(mode));
 #endif
 			if (m_fd == -1)
 			{
