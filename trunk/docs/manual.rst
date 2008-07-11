@@ -3901,6 +3901,21 @@ This alert is generated each time a tracker announce is sent (or attempted to be
 There are no extra data members in this alert. The url can be found in the base class
 however.
 
+::
+
+	struct tracker_announce_alert: tracker_alert
+	{
+		// ...
+		int event;
+	};
+
+Event specifies what event was sent to the tracker. It is defined as:
+
+0. None
+1. Completed
+2. Started
+3. Stopped
+
 
 tracker_error_alert
 -------------------
