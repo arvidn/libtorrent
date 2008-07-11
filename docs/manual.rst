@@ -2835,6 +2835,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool upnp_ignore_nonrouters;
 		int send_buffer_watermark;
 		bool auto_upload_slots;
+		bool use_parole_mode;
 		int cache_size;
 		int cache_expiry;
 		std::pair<int, int> outgoing_ports;
@@ -3036,6 +3037,12 @@ slot is opened. If the upload rate has been saturated for an extended period
 of time, on upload slot is closed. The number of upload slots will never be
 less than what has been set by ``session::set_max_uploads()``. To query the
 current number of upload slots, see ``session_status::allowed_upload_slots``.
+
+``use_parole_mode`` specifies if parole mode should be used. Parole mode means
+that peers that participate in pieces that fail the hash check are put in a mode
+where they are only allowed to download whole pieces. If the whole piece a peer
+in parole mode fails the hash check, it is banned. If a peer participates in a
+piece that passes the hash check, it is taken out of parole mode.
 
 ``cache_size`` is the disk write cache. It is specified in units of 16 KiB blocks.
 It defaults to 512 (= 8 MB).
