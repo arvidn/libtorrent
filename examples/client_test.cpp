@@ -1414,7 +1414,9 @@ int main(int ac, char* av[])
 							else out << " ";
 #endif
 						}
-						out << "]\n";
+						out << "] " << "cache age: "
+							<< (total_milliseconds(time_now() - i->last_use) / 1000.f)
+							<< "\n";
 					}
 					out << "___________________________________\n";
 				}
