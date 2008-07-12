@@ -155,11 +155,11 @@ namespace libtorrent
 		, m_started(time_now())
 		, m_last_scrape(min_time())
 		, m_torrent_file(tf)
-		, m_event(tracker_request::started)
 		, m_storage(0)
-		, m_next_request(time_now())
+		, m_next_tracker_announce(time_now())
 		, m_host_resolver(ses.m_io_service)
-		, m_announce_timer(ses.m_io_service)
+		, m_lsd_announce_timer(ses.m_io_service)
+		, m_tracker_timer(ses.m_io_service)
 #ifndef TORRENT_DISABLE_DHT
 		, m_last_dht_announce(time_now() - minutes(15))
 #endif
@@ -191,7 +191,6 @@ namespace libtorrent
 		, m_time_scaler(0)
 		, m_abort(false)
 		, m_paused(paused)
-		, m_just_paused(false)
 		, m_auto_managed(auto_managed)
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		, m_resolving_country(false)
@@ -202,6 +201,9 @@ namespace libtorrent
 		, m_connections_initialized(true)
 		, m_has_incoming(false)
 		, m_files_checked(false)
+		, m_announcing(false)
+		, m_start_sent(false)
+		, m_complete_sent(false)
 	{
 		parse_resume_data(resume_data);
 	}
@@ -228,11 +230,11 @@ namespace libtorrent
 		, m_started(time_now())
 		, m_last_scrape(min_time())
 		, m_torrent_file(new torrent_info(info_hash))
-		, m_event(tracker_request::started)
 		, m_storage(0)
-		, m_next_request(time_now())
+		, m_next_tracker_announce(time_now())
 		, m_host_resolver(ses.m_io_service)
-		, m_announce_timer(ses.m_io_service)
+		, m_lsd_announce_timer(ses.m_io_service)
+		, m_tracker_timer(ses.m_io_service)
 #ifndef TORRENT_DISABLE_DHT
 		, m_last_dht_announce(time_now() - minutes(15))
 #endif
@@ -263,7 +265,6 @@ namespace libtorrent
 		, m_time_scaler(0)
 		, m_abort(false)
 		, m_paused(paused)
-		, m_just_paused(false)
 		, m_auto_managed(auto_managed)
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		, m_resolving_country(false)
@@ -273,6 +274,10 @@ namespace libtorrent
 		, m_got_tracker_response(false)
 		, m_connections_initialized(false)
 		, m_has_incoming(false)
+		, m_files_checked(false)
+		, m_announcing(false)
+		, m_start_sent(false)
+		, m_complete_sent(false)
 	{
 		parse_resume_data(resume_data);
 #ifndef NDEBUG
@@ -310,13 +315,8 @@ namespace libtorrent
 
 	void torrent::start()
 	{
-		boost::weak_ptr<torrent> self(shared_from_this());
 		if (m_torrent_file->is_valid()) init();
 		if (m_abort) return;
-		error_code ec;
-		m_announce_timer.expires_from_now(seconds(1), ec);
-		m_announce_timer.async_wait(
-			bind(&torrent::on_announce_disp, self, _1));
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -748,41 +748,57 @@ namespace libtorrent
 		m_net_interface = tcp::endpoint(address::from_string(net_interface), 0);
 	}
 
-	void torrent::on_announce_disp(boost::weak_ptr<torrent> p
+	void torrent::on_tracker_announce_disp(boost::weak_ptr<torrent> p
 		, error_code const& e)
 	{
 		if (e) return;
 		boost::shared_ptr<torrent> t = p.lock();
 		if (!t) return;
-		t->on_announce();
+		t->on_tracker_announce();
 	}
 
-	void torrent::on_announce()
+	void torrent::on_tracker_announce()
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+	
 		if (m_abort) return;
+		announce_with_tracker();
+	}
+
+	void torrent::on_lsd_announce_disp(boost::weak_ptr<torrent> p
+		, error_code const& e)
+	{
+		if (e) return;
+		boost::shared_ptr<torrent> t = p.lock();
+		if (!t) return;
+		t->on_lsd_announce();
+	}
+
+	void torrent::on_lsd_announce()
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		if (m_abort) return;
+
+		TORRENT_ASSERT(!m_torrent_file->priv());
+		if (m_torrent_file->is_valid() && m_torrent_file->priv())
+			return;
+
+		if (is_paused()) return;
 
 		boost::weak_ptr<torrent> self(shared_from_this());
 
 		error_code ec;
-		if (!m_torrent_file->priv())
-		{
-			// announce on local network every 5 minutes
-			m_announce_timer.expires_from_now(minutes(5), ec);
-			m_announce_timer.async_wait(
-				bind(&torrent::on_announce_disp, self, _1));
 
-			// announce with the local discovery service
-			if (!is_paused()) m_ses.announce_lsd(m_torrent_file->info_hash());
-		}
-		else
-		{
-			m_announce_timer.expires_from_now(minutes(15), ec);
-			m_announce_timer.async_wait(
-				bind(&torrent::on_announce_disp, self, _1));
-		}
+		// announce on local network every 5 minutes
+		m_lsd_announce_timer.expires_from_now(minutes(5), ec);
+		m_lsd_announce_timer.async_wait(
+			bind(&torrent::on_lsd_announce_disp, self, _1));
+
+		// announce with the local discovery service
+		m_ses.announce_lsd(m_torrent_file->info_hash());
 
 #ifndef TORRENT_DISABLE_DHT
-		if (is_paused()) return;
 		if (!m_ses.m_dht) return;
 		ptime now = time_now();
 		if (should_announce_dht() && now - m_last_dht_announce > minutes(14))
@@ -821,6 +837,61 @@ namespace libtorrent
 
 #endif
 
+	void torrent::announce_with_tracker(tracker_request::event_t e)
+	{
+		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(!m_trackers.empty());
+
+		restart_tracker_timer(time_now() + seconds(tracker_retry_delay_max));
+
+		if (e == tracker_request::none)
+		{
+			if (!m_start_sent) e = tracker_request::started;
+			if (!m_complete_sent && is_seed()) e = tracker_request::completed;
+		}
+
+		tracker_request req;
+		req.info_hash = m_torrent_file->info_hash();
+		req.pid = m_ses.get_peer_id();
+		req.downloaded = m_stat.total_payload_download();
+		req.uploaded = m_stat.total_payload_upload();
+		req.left = bytes_left();
+		if (req.left == -1) req.left = 16*1024;
+		req.event = e;
+		tcp::endpoint ep = m_ses.get_ipv6_interface();
+		if (ep != tcp::endpoint())
+			req.ipv6 = ep.address().to_string();
+
+		req.url = m_trackers[m_currently_trying_tracker].url;
+		// if we are aborting. we don't want any new peers
+		req.num_want = (req.event == tracker_request::stopped)
+			?0:m_settings.num_want;
+
+		req.listen_port = m_ses.m_listen_sockets.empty()
+			?0:m_ses.m_listen_sockets.front().external_port;
+		req.key = m_ses.m_key;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		if (m_abort)
+		{
+			boost::shared_ptr<tracker_logger> tl(new tracker_logger(m_ses));
+			m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
+				, tracker_login(), m_ses.m_listen_interface.address(), tl);
+		}
+		else
+#endif
+		m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
+			, tracker_login(), m_ses.m_listen_interface.address()
+			, m_abort?boost::shared_ptr<torrent>():shared_from_this());
+
+		if (m_ses.m_alerts.should_post<tracker_announce_alert>())
+		{
+			m_ses.m_alerts.post_alert(
+				tracker_announce_alert(get_handle(), req.url, req.event));
+		}
+	}
+
 	void torrent::scrape_tracker()
 	{
 		if (m_trackers.empty()) return;
@@ -836,23 +907,6 @@ namespace libtorrent
 			, tracker_login(), m_ses.m_listen_interface.address(), shared_from_this());
 
 		m_last_scrape = time_now();
-	}
-
-	// returns true if it is time for this torrent to make another
-	// tracker request
-	bool torrent::should_request()
-	{
-//		INVARIANT_CHECK;
-		
-		if (m_trackers.empty()) return false;
-		if (!m_files_checked) return false;
-
-		if (m_just_paused)
-		{
-			m_just_paused = false;
-			return true;
-		}
-		return !is_paused() && m_next_request < time_now();
 	}
 
 	void torrent::tracker_warning(tracker_request const& req, std::string const& msg)
@@ -899,6 +953,11 @@ namespace libtorrent
 		if (external_ip != address())
 			m_ses.set_external_address(external_ip);
 
+		if (!m_start_sent && r.event == tracker_request::started)
+			m_start_sent = true;
+		if (!m_complete_sent && r.event == tracker_request::completed)
+			m_complete_sent = true;
+
 		m_failed_trackers = 0;
 		// announce intervals less than 5 minutes
 		// are insane.
@@ -909,15 +968,12 @@ namespace libtorrent
 		m_currently_trying_tracker = 0;
 
 		m_duration = interval;
-		m_next_request = time_now() + seconds(m_duration);
+		restart_tracker_timer(time_now() + seconds(m_duration));
 
 		if (complete >= 0) m_complete = complete;
 		if (incomplete >= 0) m_incomplete = incomplete;
 		if (complete >= 0 && incomplete >= 0)
 			m_last_scrape = time_now();
-
-		// connect to random peers from the list
-		std::random_shuffle(peer_list.begin(), peer_list.end());
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		std::stringstream s;
@@ -1503,9 +1559,9 @@ namespace libtorrent
 		// if the torrent is paused, it doesn't need
 		// to announce with even=stopped again.
 		if (!is_paused())
-			m_event = tracker_request::stopped;
-		// disconnect all peers and close all
-		// files belonging to the torrents
+		{
+			stop_announcing();
+		}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		for (peer_iterator i = m_connections.begin();
@@ -1515,14 +1571,14 @@ namespace libtorrent
 		}
 #endif
 
+		// disconnect all peers and close all
+		// files belonging to the torrents
 		disconnect_all();
 		if (m_owning_storage.get())
 			m_storage->async_release_files(
 				bind(&torrent::on_files_released, shared_from_this(), _1, _2));
 			
 		m_owning_storage = 0;
-		error_code ec;
-		m_announce_timer.cancel(ec);
 		m_host_resolver.cancel();
 	}
 
@@ -1878,42 +1934,6 @@ namespace libtorrent
 		if (m_currently_trying_tracker >= (int)m_trackers.size())
 			m_currently_trying_tracker = (int)m_trackers.size()-1;
 		m_last_working_tracker = -1;
-	}
-
-	tracker_request torrent::generate_tracker_request()
-	{
-		INVARIANT_CHECK;
-
-		TORRENT_ASSERT(!m_trackers.empty());
-
-		m_next_request = time_now() + seconds(tracker_retry_delay_max);
-
-		tracker_request req;
-		req.info_hash = m_torrent_file->info_hash();
-		req.pid = m_ses.get_peer_id();
-		req.downloaded = m_stat.total_payload_download();
-		req.uploaded = m_stat.total_payload_upload();
-		req.left = bytes_left();
-		if (req.left == -1) req.left = 16*1024;
-		req.event = m_event;
-		tcp::endpoint ep = m_ses.get_ipv6_interface();
-		if (ep != tcp::endpoint())
-			req.ipv6 = ep.address().to_string();
-
-		if (m_event != tracker_request::stopped)
-			m_event = tracker_request::none;
-		req.url = m_trackers[m_currently_trying_tracker].url;
-		req.num_want = m_settings.num_want;
-		// if we are aborting. we don't want any new peers
-		if (req.event == tracker_request::stopped)
-			req.num_want = 0;
-
-		// default initialize, these should be set by caller
-		// before passing the request to the tracker_manager
-		req.listen_port = 0;
-		req.key = 0;
-
-		return req;
 	}
 
 	void torrent::choke_peer(peer_connection& c)
@@ -3094,11 +3114,8 @@ namespace libtorrent
 
 		m_picker.reset();
 
-		// make the next tracker request
-		// be a completed-event
-		m_event = tracker_request::completed;
 		set_state(torrent_status::seeding);
-		force_tracker_request();
+		if (!m_complete_sent && m_announcing) announce_with_tracker();
 	}
 
 	// this will move the tracker with the given index
@@ -3119,46 +3136,48 @@ namespace libtorrent
 		return index;
 	}
 
-	void torrent::try_next_tracker()
+	void torrent::try_next_tracker(tracker_request const& req)
 	{
 		INVARIANT_CHECK;
 
 		++m_currently_trying_tracker;
 
-		if ((unsigned)m_currently_trying_tracker >= m_trackers.size())
+		if ((unsigned)m_currently_trying_tracker < m_trackers.size())
 		{
-			int delay = tracker_retry_delay_min
-				+ (std::min)(int(m_failed_trackers), int(tracker_failed_max))
-				* (tracker_retry_delay_max - tracker_retry_delay_min)
-				/ tracker_failed_max;
+			announce_with_tracker(req.event);
+			return;
+		}
 
-			++m_failed_trackers;
-			// if we've looped the tracker list, wait a bit before retrying
-			m_currently_trying_tracker = 0;
-			m_next_request = time_now() + seconds(delay);
+		int delay = tracker_retry_delay_min
+			+ (std::min)(int(m_failed_trackers), int(tracker_failed_max))
+			* (tracker_retry_delay_max - tracker_retry_delay_min)
+			/ tracker_failed_max;
+
+		++m_failed_trackers;
+		// if we've looped the tracker list, wait a bit before retrying
+		m_currently_trying_tracker = 0;
+
+		// if we're stopping, just give up. Don't bother retrying
+		if (req.event == tracker_request::stopped)
+			return;
+
+		restart_tracker_timer(time_now() + seconds(delay));
 
 #ifndef TORRENT_DISABLE_DHT
-			if (m_abort) return;
+		if (m_abort) return;
 
-			// only start the announce if we want to announce with the dht
-			ptime now = time_now();
-			if (should_announce_dht() && now - m_last_dht_announce > minutes(14))
-			{
-				// force the DHT to reannounce
-				m_last_dht_announce = now;
-				boost::weak_ptr<torrent> self(shared_from_this());
-				m_ses.m_dht->announce(m_torrent_file->info_hash()
-					, m_ses.m_listen_sockets.front().external_port
-					, bind(&torrent::on_dht_announce_response_disp, self, _1));
-			}
-#endif
-
-		}
-		else
+		// only start the announce if we want to announce with the dht
+		ptime now = time_now();
+		if (should_announce_dht() && now - m_last_dht_announce > minutes(14))
 		{
-			// don't delay before trying the next tracker
-			m_next_request = time_now();
+			// force the DHT to reannounce
+			m_last_dht_announce = now;
+			boost::weak_ptr<torrent> self(shared_from_this());
+			m_ses.m_dht->announce(m_torrent_file->info_hash()
+				, m_ses.m_listen_sockets.front().external_port
+				, bind(&torrent::on_dht_announce_response_disp, self, _1));
 		}
+#endif
 
 	}
 
@@ -3196,7 +3215,11 @@ namespace libtorrent
 		}
 #endif
 
-		if (is_seed()) finished();
+		if (is_seed())
+		{
+			m_complete_sent = true;
+			finished();
+		}
 
 		if (!m_connections_initialized)
 		{
@@ -3231,6 +3254,8 @@ namespace libtorrent
 		}
 		
 		m_files_checked = true;
+
+		start_announcing();
 	}
 
 	alert_manager& torrent::alerts() const
@@ -3569,11 +3594,7 @@ namespace libtorrent
 #endif
 
 		disconnect_all();
-		if (!is_paused())
-			m_just_paused = true;
-		m_paused = true;
-		// tell the tracker that we stopped
-		m_event = tracker_request::stopped;
+		stop_announcing();
 
 		if (m_owning_storage.get())
 		{
@@ -3725,10 +3746,6 @@ namespace libtorrent
 		}
 #endif
 
-		disconnect_all();
-		// tell the tracker that we stopped
-		m_event = tracker_request::stopped;
-		m_just_paused = true;
 		// this will make the storage close all
 		// files and flush all cached data
 		if (m_owning_storage.get())
@@ -3742,6 +3759,9 @@ namespace libtorrent
 			if (alerts().should_post<torrent_paused_alert>())
 				alerts().post_alert(torrent_paused_alert(get_handle()));
 		}
+
+		disconnect_all();
+		stop_announcing();
 	}
 
 	void torrent::resume()
@@ -3771,18 +3791,64 @@ namespace libtorrent
 		}
 #endif
 
-		m_started = time_now();
-		m_error.clear();
-
 		if (alerts().should_post<torrent_resumed_alert>())
 			alerts().post_alert(torrent_resumed_alert(get_handle()));
 
-		// tell the tracker that we're back
-		m_event = tracker_request::started;
-		force_tracker_request();
+		m_started = time_now();
+		m_error.clear();
+		start_announcing();
+	}
 
-		// make pulse be called as soon as possible
-		m_time_scaler = 0;
+	void torrent::restart_tracker_timer(ptime announce_at)
+	{
+		if (!m_announcing) return;
+
+		m_next_tracker_announce = announce_at;
+		error_code ec;
+		boost::weak_ptr<torrent> self(shared_from_this());
+		m_tracker_timer.expires_at(m_next_tracker_announce, ec);
+		m_tracker_timer.async_wait(bind(&torrent::on_tracker_announce_disp, self, _1));
+	}
+
+	void torrent::start_announcing()
+	{
+		if (is_paused()) return;
+		if (!m_files_checked) return;
+		if (m_announcing) return;
+
+		m_announcing = true;
+
+		if (!m_trackers.empty())
+		{
+			// tell the tracker that we're back
+			m_start_sent = false;
+			announce_with_tracker();
+		}
+
+		// private torrents are never announced on LSD
+		// or on DHT, we don't need this timer.
+		if (!m_torrent_file->is_valid() || !m_torrent_file->priv())
+		{
+			error_code ec;
+			boost::weak_ptr<torrent> self(shared_from_this());
+			m_lsd_announce_timer.expires_from_now(seconds(1), ec);
+			m_lsd_announce_timer.async_wait(
+				bind(&torrent::on_lsd_announce_disp, self, _1));
+		}
+	}
+
+	void torrent::stop_announcing()
+	{
+		if (!m_announcing) return;
+
+		error_code ec;
+		m_lsd_announce_timer.cancel(ec);
+		m_tracker_timer.cancel(ec);
+
+		m_announcing = false;
+
+		if (!m_trackers.empty())
+			announce_with_tracker(tracker_request::stopped);
 	}
 
 	void torrent::second_tick(stat& accumulator, float tick_interval)
@@ -3803,7 +3869,7 @@ namespace libtorrent
 		}
 #endif
 
-		if (m_paused)
+		if (is_paused())
 		{
 			// let the stats fade out to 0
  			m_stat.second_tick(tick_interval);
@@ -3816,7 +3882,7 @@ namespace libtorrent
 
 		// ---- WEB SEEDS ----
 
-		// re-insert urls that are to be retries into the m_web_seeds
+		// re-insert urls that are to be retrieds into the m_web_seeds
 		typedef std::map<std::string, ptime>::iterator iter_t;
 		for (iter_t i = m_web_seeds_next_retry.begin(); i != m_web_seeds_next_retry.end();)
 		{
@@ -4287,7 +4353,7 @@ namespace libtorrent
 		}
 
 		if (r.kind == tracker_request::announce_request)
-			try_next_tracker();
+			try_next_tracker(r);
 	}
 
 	// TODO: with some response codes, we should just consider
@@ -4320,7 +4386,7 @@ namespace libtorrent
 		}
 
 		if (r.kind == tracker_request::announce_request)
-			try_next_tracker();
+			try_next_tracker(r);
 	}
 
 

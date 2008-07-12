@@ -156,6 +156,9 @@ namespace libtorrent
 		void files_checked();
 		void start_checking();
 
+		void start_announcing();
+		void stop_announcing();
+
 		int seed_rank(session_settings const& s) const;
 
 		storage_mode_t storage_mode() const { return m_storage_mode; }
@@ -354,10 +357,6 @@ namespace libtorrent
 		virtual void tracker_scrape_response(tracker_request const& req
 			, int complete, int incomplete, int downloaded);
 
-		// generates a request string for sending
-		// to the tracker
-		tracker_request generate_tracker_request();
-
 		// if no password and username is set
 		// this will return an empty string, otherwise
 		// it will concatenate the login and password
@@ -369,14 +368,12 @@ namespace libtorrent
 		// announce will take place.
 		ptime next_announce() const;
 
-		// returns true if it is time for this torrent to make another
-		// tracker request
-		bool should_request();
-
 		// forcefully sets next_announce to the current time
 		void force_tracker_request();
 		void force_tracker_request(ptime);
 		void scrape_tracker();
+		void announce_with_tracker(tracker_request::event_t e
+			= tracker_request::none);
 		ptime const& last_scrape() const { return m_last_scrape; }
 
 		// sets the username and password that will be sent to
@@ -631,7 +628,7 @@ namespace libtorrent
 		void on_piece_verified(int ret, disk_io_job const& j
 			, boost::function<void(int)> f);
 	
-		void try_next_tracker();
+		void try_next_tracker(tracker_request const& req);
 		int prioritize_tracker(int tracker_index);
 		void on_country_lookup(error_code const& error, tcp::resolver::iterator i
 			, boost::intrusive_ptr<peer_connection> p) const;
@@ -666,8 +663,6 @@ namespace libtorrent
 
 		boost::intrusive_ptr<torrent_info> m_torrent_file;
 
-		tracker_request::event_t m_event;
-
 		void parse_response(const entry& e, std::vector<peer_entry>& peer_list);
 
 		// if this pointer is 0, the torrent is in
@@ -695,8 +690,8 @@ namespace libtorrent
 		// the object.
 		piece_manager* m_storage;
 
-		// the time of next tracker request
-		ptime m_next_request;
+		// the time of next tracker announce
+		ptime m_next_tracker_announce;
 
 #ifndef NDEBUG
 	public:
@@ -729,13 +724,24 @@ namespace libtorrent
 		// this announce timer is used both
 		// by Local service discovery and
 		// by the DHT.
-		deadline_timer m_announce_timer;
+		deadline_timer m_lsd_announce_timer;
 
-		static void on_announce_disp(boost::weak_ptr<torrent> p
+		// used for tracker announces
+		deadline_timer m_tracker_timer;
+
+		void restart_tracker_timer(ptime announce_at);
+
+		static void on_tracker_announce_disp(boost::weak_ptr<torrent> p
 			, error_code const& e);
 
-		// this is called once per announce interval
-		void on_announce();
+		void on_tracker_announce();
+
+		static void on_lsd_announce_disp(boost::weak_ptr<torrent> p
+			, error_code const& e);
+
+		// this is called once every 5 minutes for torrents
+		// that are not private
+		void on_lsd_announce();
 
 #ifndef TORRENT_DISABLE_DHT
 		static void on_dht_announce_response_disp(boost::weak_ptr<torrent> t
@@ -885,9 +891,6 @@ namespace libtorrent
 
 		// is true if this torrent has been paused
 		bool m_paused:1;
-		// this is true from the time when the torrent was
-		// paused to the time should_request() is called
-		bool m_just_paused:1;
 
 		// if this is true, libtorrent may pause and resume
 		// this torrent depending on queuing rules. Torrents
@@ -937,21 +940,31 @@ namespace libtorrent
 		// before the files are checked, we don't try to
 		// connect to peers
 		bool m_files_checked:1;
+
+		// this is true while tracker announcing is enabled
+		// is is disabled while paused and checking files
+		bool m_announcing:1;
+
+		// this is true if event start has been sent to the tracker
+		bool m_start_sent:1;
+
+		// this is true if event completed has been sent to the tracker
+		bool m_complete_sent:1;
 	};
 
 	inline ptime torrent::next_announce() const
 	{
-		return m_next_request;
+		return m_next_tracker_announce;
 	}
 
 	inline void torrent::force_tracker_request()
 	{
-		m_next_request = time_now();
+		announce_with_tracker();
 	}
 
 	inline void torrent::force_tracker_request(ptime t)
 	{
-		m_next_request = t;
+		restart_tracker_timer(t);
 	}
 
 	inline void torrent::set_tracker_login(
