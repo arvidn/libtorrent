@@ -322,7 +322,8 @@ namespace libtorrent
 		// fills the specified vector with the download progress [0, 1]
 		// of each file in the torrent. The files are ordered as in
 		// the torrent_info.
-		void file_progress(std::vector<float>& progress);
+		void file_progress(std::vector<float>& progress) const TORRENT_DEPRECATED;
+		void file_progress(std::vector<size_type>& progress) const;
 
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;

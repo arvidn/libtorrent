@@ -4039,17 +4039,33 @@ namespace libtorrent
 
 	void torrent::file_progress(std::vector<float>& fp) const
 	{
+		fp.clear();
+		fp.resize(m_torrent_file->num_files(), 1.f);
+		if (is_seed()) return;
+
+		std::vector<size_type> progress;
+		file_progress(progress);
+		for (int i = 0; i < m_torrent_file->num_files(); ++i)
+		{
+			file_entry const& f = m_torrent_file->file_at(i);
+			if (f.size == 0) fp[i] = 1.f;
+			else fp[i] = float(progress[i]) / f.size;
+		}
+	}
+
+	void torrent::file_progress(std::vector<size_type>& fp) const
+	{
 		TORRENT_ASSERT(valid_metadata());
 	
-		fp.clear();
+		fp.resize(m_torrent_file->num_files(), 0);
+		TORRENT_ASSERT(has_picker());
+
 		if (is_seed())
 		{
-			fp.resize(m_torrent_file->num_files(), 1.f);
+			for (int i = 0; i < m_torrent_file->num_files(); ++i)
+				fp[i] = m_torrent_file->files().at(i).size;
 			return;
 		}
-
-		TORRENT_ASSERT(has_picker());
-		fp.resize(m_torrent_file->num_files(), 0.f);
 		
 		for (int i = 0; i < m_torrent_file->num_files(); ++i)
 		{
@@ -4060,7 +4076,7 @@ namespace libtorrent
 // 100% done all the time
 			if (size == 0)
 			{
-				fp[i] = 1.f;
+				fp[i] = 0;
 				continue;
 			}
 
@@ -4076,7 +4092,7 @@ namespace libtorrent
 			}
 			TORRENT_ASSERT(size == 0);
 
-			fp[i] = static_cast<float>(done) / m_torrent_file->files().at(i).size;
+			fp[i] = done;
 		}
 
 		const std::vector<piece_picker::downloading_piece>& q
@@ -4130,7 +4146,7 @@ namespace libtorrent
 					{
 						TORRENT_ASSERT(offset <= file->offset + file->size);
 						size_type slice = file->offset + file->size - offset;
-						fp[file_index] += float(slice) / file->size;
+						fp[file_index] += slice;
 						offset += slice;
 						block_size -= slice;
 						++file;
@@ -4141,7 +4157,7 @@ namespace libtorrent
 				}
 				else
 				{
-					fp[file_index] += float(block_size) / file->size;
+					fp[file_index] += block_size;
 					offset += m_block_size;
 				}
 			}

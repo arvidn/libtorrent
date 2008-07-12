@@ -222,6 +222,7 @@ namespace libtorrent
 		bool is_piece_filtered(int index) const;
 		void filtered_pieces(std::vector<bool>& bitmask) const;
 		void filter_files(std::vector<bool> const& files);
+		void file_progress(std::vector<float>& fp) const;
 		// ============ end deprecation =============
 
 		void piece_availability(std::vector<int>& avail) const;
@@ -235,7 +236,8 @@ namespace libtorrent
 		void prioritize_files(std::vector<int> const& files);
 
 		torrent_status status() const;
-		void file_progress(std::vector<float>& fp) const;
+
+		void file_progress(std::vector<size_type>& fp) const;
 
 		void use_interface(const char* net_interface);
 		tcp::endpoint const& get_interface() const { return m_net_interface; }

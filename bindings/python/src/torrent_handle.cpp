@@ -74,7 +74,7 @@ namespace
 
 list file_progress(torrent_handle& handle)
 {
-    std::vector<float> p;
+    std::vector<size_type> p;
 
     {
         allow_threading_guard guard;
@@ -84,7 +84,7 @@ list file_progress(torrent_handle& handle)
 
     list result;
 
-    for (std::vector<float>::iterator i(p.begin()), e(p.end()); i != e; ++i)
+    for (std::vector<size_type>::iterator i(p.begin()), e(p.end()); i != e; ++i)
         result.append(*i);
 
     return result;
