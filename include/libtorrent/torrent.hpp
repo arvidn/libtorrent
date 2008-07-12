@@ -963,12 +963,12 @@ namespace libtorrent
 
 	inline void torrent::force_tracker_request()
 	{
-		announce_with_tracker();
+		if (!is_paused()) announce_with_tracker();
 	}
 
 	inline void torrent::force_tracker_request(ptime t)
 	{
-		restart_tracker_timer(t);
+		if (!is_paused()) restart_tracker_timer(t);
 	}
 
 	inline void torrent::set_tracker_login(
