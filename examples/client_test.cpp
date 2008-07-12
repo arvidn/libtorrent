@@ -168,6 +168,7 @@ bool print_block = false;
 bool print_peer_rate = false;
 bool print_fails = false;
 bool print_send_bufs = true;
+std::ofstream g_log_file;
 
 int active_torrent = 0;
 
@@ -585,6 +586,29 @@ libtorrent::torrent_handle get_active_torrent(handles_t const& handles)
 	return i->second;
 }
 
+void print_alert(libtorrent::alert const* a, std::ostream& os)
+{
+	using namespace libtorrent;
+
+#ifdef ANSI_TERMINAL_COLORS
+	if (a->category() & alert::error_notification)
+	{
+		os << esc("31");
+	}
+	else if (a->category() & (alert::peer_notification | alert::storage_notification))
+	{
+		os << esc("33");
+	}
+#endif
+	os << "[" << time_now_string() << "] " << a->message();
+#ifdef ANSI_TERMINAL_COLORS
+	os << esc("0");
+#endif
+
+	if (g_log_file.good())
+		g_log_file << "[" << time_now_string() << "] " << a->message() << std::endl;
+}
+
 void handle_alert(libtorrent::session& ses, libtorrent::alert* a)
 {
 	using namespace libtorrent;
@@ -633,6 +657,7 @@ int main(int ac, char* av[])
 	int half_open_limit;
 	std::string save_path_str;
 	std::string log_level;
+	std::string log_file_name;
 	std::string ip_filter_file;
 	std::string allocation_mode;
 	std::string in_monitor_dir;
@@ -671,6 +696,8 @@ int main(int ac, char* av[])
 			, "the path where the downloaded file/folder should be placed.")
 		("log-level,l", po::value<std::string>(&log_level)->default_value("info")
 			, "sets the level at which events are logged [debug | info | warning | fatal].")
+		("log-file,f", po::value<std::string>(&log_file_name)->default_value("")
+			, "sets a file to log all events to")
 		("ip-filter,f", po::value<std::string>(&ip_filter_file)->default_value("")
 			, "sets the path to the ip-filter file used to block access from certain "
 			"ips. ")
@@ -747,6 +774,9 @@ int main(int ac, char* av[])
 			std::cout << desc << "\n";
 			return 1;
 		}
+
+		if (!log_file_name.empty())
+			g_log_file.open(log_file_name.c_str());
 
 		bool compact_allocation_mode = (allocation_mode == "compact");
 
@@ -1072,12 +1102,12 @@ int main(int ac, char* av[])
 						}
 						
 						std::auto_ptr<alert> holder = ses.pop_alert();
+
+						::print_alert(holder.get(), std::cout);
+						std::cout << std::endl;
+
 						save_resume_data_alert const* rd = dynamic_cast<save_resume_data_alert const*>(a);
-						if (!rd)
-						{
-							std::cout << a->message() << std::endl;
-							continue;
-						}
+						if (!rd) continue;
 						--num_resume_data;
 
 						if (!rd->resume_data) continue;
@@ -1087,7 +1117,6 @@ int main(int ac, char* av[])
 							/ (h.get_torrent_info().name() + ".fastresume"), std::ios_base::binary);
 						out.unsetf(std::ios_base::skipws);
 						bencode(std::ostream_iterator<char>(out), *rd->resume_data);
-						std::cout << "fast resume data saved for " << h.name() << std::endl;
 					}
 					break;
 				}
@@ -1162,20 +1191,11 @@ int main(int ac, char* av[])
 			{
 				std::stringstream event_string;
 
-				if (a->category() & alert::error_notification)
-				{
-					event_string << esc("31");
-				}
-				else if (a->category() & (alert::peer_notification | alert::storage_notification))
-				{
-					event_string << esc("33");
-				}
-				event_string << "[" << time_now_string() << "] " << a->message();
-				event_string << esc("0");
+				::print_alert(a.get(), event_string);
+				::handle_alert(ses, a.get());
+
 				events.push_back(event_string.str());
 				if (events.size() >= 20) events.pop_front();
-
-				::handle_alert(ses, a.get());
 
 				a = ses.pop_alert();
 			}
