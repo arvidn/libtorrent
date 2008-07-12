@@ -502,8 +502,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (m_torrent->is_paused()) return;
-
 		// ------------------------
 		// upload shift
 		// ------------------------
