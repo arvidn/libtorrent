@@ -1567,6 +1567,7 @@ Its declaration looks like this::
 		bool is_paused() const;
 		bool is_seed() const;
 		void force_recheck() const;
+		void clear_error() const;
 
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
@@ -1841,6 +1842,15 @@ will be added to the checking queue, and will be checked (all the files will be 
 compared to the piece hashes). Once the check is complete, the torrent will start connecting
 to peers again, as normal.
 
+clear_error()
+-------------
+
+	::
+
+		void clear_error() const;
+
+If the torrent is in an error state (i.e. ``torrent_status::error`` is non-empty), this
+will clear the error and start the torrent again.
 
 resolve_countries()
 -------------------

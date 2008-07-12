@@ -319,6 +319,12 @@ namespace libtorrent
 		TORRENT_FORWARD(set_queue_position((std::numeric_limits<int>::max)()));
 	}
 
+	void torrent_handle::clear_error() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(clear_error());
+	}
+
 	void torrent_handle::set_tracker_login(std::string const& name
 		, std::string const& password) const
 	{

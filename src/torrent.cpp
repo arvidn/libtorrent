@@ -3604,6 +3604,14 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::clear_error()
+	{
+		if (m_error.empty()) return;
+		if (m_ses.m_auto_manage_time_scaler > 2)
+			m_ses.m_auto_manage_time_scaler = 2;
+		m_error.clear();
+	}
+
 	void torrent::auto_managed(bool a)
 	{
 		INVARIANT_CHECK;

@@ -172,6 +172,8 @@ namespace libtorrent
 		torrent_status::state_t state() const { return m_state; }
 		void set_state(torrent_status::state_t s);
 
+		void clear_error();
+
 		session_settings const& settings() const;
 		
 		aux::session_impl& session() { return m_ses; }
