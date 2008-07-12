@@ -1451,16 +1451,18 @@ int main(int ac, char* av[])
 					&& s.state != torrent_status::seeding
 					&& h.has_metadata())
 				{
-					std::vector<float> file_progress;
+					std::vector<size_type> file_progress;
 					h.file_progress(file_progress);
 					torrent_info const& info = h.get_torrent_info();
 					for (int i = 0; i < info.num_files(); ++i)
 					{
-						if (file_progress[i] == 1.f)
-							out << progress_bar(file_progress[i], 60, "32");
+						float progress = info.file_at(i).size > 0
+							?float(file_progress[i]) / info.file_at(i).size:1;
+						if (file_progress[i] == info.file_at(i).size)
+							out << progress_bar(1.f, 100, "32");
 						else
-							out << progress_bar(file_progress[i], 60, "33");
-						out << " " << to_string(file_progress[i] * 100.f, 5) << "% "
+							out << progress_bar(progress, 100, "33");
+						out << " " << to_string(progress * 100.f, 5) << "% "
 							<< info.file_at(i).path.leaf() << "\n";
 					}
 
