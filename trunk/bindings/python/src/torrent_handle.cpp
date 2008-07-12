@@ -267,6 +267,7 @@ void bind_torrent_handle()
         .def("is_paused", _(&torrent_handle::is_paused))
         .def("pause", _(&torrent_handle::pause))
         .def("resume", _(&torrent_handle::resume))
+        .def("clear_error", _(&torrent_handle::clear_error))
         
         .def("is_auto_managed", _(&torrent_handle::is_auto_managed))
         .def("auto_managed", _(&torrent_handle::auto_managed))

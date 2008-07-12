@@ -1156,6 +1156,12 @@ int main(int ac, char* av[])
 					}
 				}
 
+				if (c == 'c')
+				{
+					torrent_handle h = get_active_torrent(handles);
+					if (h.is_valid()) h.clear_error();
+				}
+
 				// toggle displays
 				if (c == 'i') print_peers = !print_peers;
 				if (c == 'l') print_log = !print_log;
@@ -1205,7 +1211,7 @@ int main(int ac, char* av[])
 			std::stringstream out;
 			out << "[q] quit [i] toggle peers [d] toggle downloading pieces [p] toggle paused "
 				"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
-				"[j] force recheck [space] toggle session pause\n"
+				"[j] force recheck [space] toggle session pause [c] clear error\n"
 				"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
 				"[5] toggle peer rate [6] toggle failures [7] toggle send buffers\n";
 

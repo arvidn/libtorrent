@@ -325,6 +325,8 @@ namespace libtorrent
 		void file_progress(std::vector<float>& progress) const TORRENT_DEPRECATED;
 		void file_progress(std::vector<size_type>& progress) const;
 
+		void clear_error() const;
+
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
 
