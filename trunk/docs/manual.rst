@@ -1663,8 +1663,8 @@ file_progress()
 
 This function fills in the supplied vector with the the number of bytes downloaded
 of each file in this torrent. The progress values are ordered the same as the files
-in the `torrent_info`_. This operation is not very cheap. Its complexity is *O(n + m*j)*.
-Where *n * is the number of files, *m * is the number of downloading pieces and *j *
+in the `torrent_info`_. This operation is not very cheap. Its complexity is *O(n + mj)*.
+Where *n* is the number of files, *m* is the number of downloading pieces and *j*
 is the number of blocks in a piece.
 
 

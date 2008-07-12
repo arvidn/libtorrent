@@ -1600,7 +1600,7 @@ struct torrent_handle
         torrent_handle();
 
         torrent_status status();
-        void file_progress(std::vector&lt;float&gt;&amp; fp);
+        void file_progress(std::vector&lt;size_type&gt;&amp; fp);
         void get_download_queue(std::vector&lt;partial_piece_info&gt;&amp; queue) const;
         void get_peer_info(std::vector&lt;peer_info&gt;&amp; v) const;
         torrent_info const&amp; get_torrent_info() const;
@@ -1738,13 +1738,14 @@ sets the priorities of all the pieces in the torrent based on the vector.</p>
 <h2><a id="file-progress" name="file-progress">file_progress()</a></h2>
 <blockquote>
 <pre class="literal-block">
-void file_progress(std::vector&lt;float&gt;&amp; fp);
+void file_progress(std::vector&lt;size_type&gt;&amp; fp);
 </pre>
 </blockquote>
-<p>This function fills in the supplied vector with the progress (a value in the
-range [0, 1]) describing the download progress of each file in this torrent.
-The progress values are ordered the same as the files in the <a class="reference" href="#torrent-info">torrent_info</a>.
-This operation is not very cheap.</p>
+<p>This function fills in the supplied vector with the the number of bytes downloaded
+of each file in this torrent. The progress values are ordered the same as the files
+in the <a class="reference" href="#torrent-info">torrent_info</a>. This operation is not very cheap. Its complexity is <em>O(n + mj)</em>.
+Where <em>n</em> is the number of files, <em>m</em> is the number of downloading pieces and <em>j</em>
+is the number of blocks in a piece.</p>
 </div>
 <div class="section">
 <h2><a id="save-path" name="save-path">save_path()</a></h2>
