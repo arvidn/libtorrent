@@ -1517,7 +1517,7 @@ Its declaration looks like this::
 		torrent_handle();
 
 		torrent_status status();
-		void file_progress(std::vector<float>& fp);
+		void file_progress(std::vector<size_type>& fp);
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
 		torrent_info const& get_torrent_info() const;
@@ -1659,12 +1659,13 @@ file_progress()
 
 	::
 
-		void file_progress(std::vector<float>& fp);
+		void file_progress(std::vector<size_type>& fp);
 
-This function fills in the supplied vector with the progress (a value in the
-range [0, 1]) describing the download progress of each file in this torrent.
-The progress values are ordered the same as the files in the `torrent_info`_.
-This operation is not very cheap.
+This function fills in the supplied vector with the the number of bytes downloaded
+of each file in this torrent. The progress values are ordered the same as the files
+in the `torrent_info`_. This operation is not very cheap. Its complexity is *O(n + m*j)*.
+Where *n * is the number of files, *m * is the number of downloading pieces and *j *
+is the number of blocks in a piece.
 
 
 save_path()
