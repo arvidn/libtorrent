@@ -3351,8 +3351,10 @@ namespace libtorrent
 		std::map<piece_block, int> num_requests;
 		for (const_peer_iterator i = begin(); i != end(); ++i)
 		{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 			// make sure this peer is not a dangling pointer
 			TORRENT_ASSERT(m_ses.has_peer(*i));
+#endif
 			peer_connection const& p = *(*i);
 			for (std::deque<piece_block>::const_iterator i = p.request_queue().begin()
 				, end(p.request_queue().end()); i != end; ++i)
@@ -3387,11 +3389,13 @@ namespace libtorrent
 			TORRENT_ASSERT(m_abort || m_picker->num_pieces() == 0);
 		}
 
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		for (policy::const_iterator i = m_policy.begin_peer()
 			, end(m_policy.end_peer()); i != end; ++i)
 		{
 			TORRENT_ASSERT(i->second.ip.address() == i->first);
 		}
+#endif
 
 		size_type total_done = quantized_bytes_done();
 		if (m_torrent_file->is_valid())
