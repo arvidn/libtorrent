@@ -1912,8 +1912,6 @@ namespace libtorrent
 
 	std::vector<int> const& peer_connection::allowed_fast()
 	{
-		INVARIANT_CHECK;
-	
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
