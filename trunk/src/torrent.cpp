@@ -4120,8 +4120,16 @@ namespace libtorrent
 			piece_picker::block_info const* info = i->info;
 			for (int k = 0; k < num_blocks; ++k)
 			{
+				TORRENT_ASSERT(file != m_torrent_file->end_files());
 				TORRENT_ASSERT(offset == size_type(i->index) * m_torrent_file->piece_length()
 					+ k * m_block_size);
+				TORRENT_ASSERT(offset < m_torrent_file->total_size());
+				while (offset >= file->offset + file->size)
+				{
+					++file;
+					++file_index;
+				}
+				TORRENT_ASSERT(file != m_torrent_file->end_files());
 
 				size_type block_size = m_block_size;
 
@@ -4141,6 +4149,7 @@ namespace libtorrent
 							= p->connection->downloading_piece_progress();
 						if (pbp && pbp->piece_index == i->index && pbp->block_index == k)
 							block_size = pbp->bytes_downloaded;
+						TORRENT_ASSERT(block_size <= m_block_size);
 					}
 
 					if (block_size == 0)
@@ -4150,11 +4159,11 @@ namespace libtorrent
 					}
 				}
 
-				if (offset + m_block_size > file->offset + file->size)
+				if (offset + block_size > file->offset + file->size)
 				{
 					int left_over = m_block_size - block_size;
 					// split the block on multiple files
-					while (offset + block_size >= file->offset + file->size)
+					while (block_size > 0)
 					{
 						TORRENT_ASSERT(offset <= file->offset + file->size);
 						size_type slice = (std::min)(file->offset + file->size - offset
@@ -4162,17 +4171,28 @@ namespace libtorrent
 						fp[file_index] += slice;
 						offset += slice;
 						block_size -= slice;
-						++file;
-						++file_index;
-						if (file == m_torrent_file->end_files()) break;
+						TORRENT_ASSERT(offset <= file->offset + file->size);
+						if (offset == file->offset + file->size)
+						{
+							++file;
+							++file_index;
+							if (file == m_torrent_file->end_files())
+							{
+								offset += block_size;
+								break;
+							}
+						}
 					}
 					offset += left_over;
+					TORRENT_ASSERT(offset == size_type(i->index) * m_torrent_file->piece_length()
+						+ (k+1) * m_block_size);
 				}
 				else
 				{
 					fp[file_index] += block_size;
 					offset += m_block_size;
 				}
+				TORRENT_ASSERT(file_index <= m_torrent_file->num_files());
 			}
 		}
 	}
