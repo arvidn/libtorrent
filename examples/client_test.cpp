@@ -1463,6 +1463,7 @@ int main(int ac, char* av[])
 						else
 							out << progress_bar(progress, 100, "33");
 						out << " " << to_string(progress * 100.f, 5) << "% "
+							<< add_suffix(file_progress[i]) << " "
 							<< info.file_at(i).path.leaf() << "\n";
 					}
 
