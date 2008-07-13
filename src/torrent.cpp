@@ -875,7 +875,7 @@ namespace libtorrent
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		if (m_abort)
 		{
-			boost::shared_ptr<tracker_logger> tl(new tracker_logger(m_ses));
+			boost::shared_ptr<aux::tracker_logger> tl(new aux::tracker_logger(m_ses));
 			m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
 				, tracker_login(), m_ses.m_listen_interface.address(), tl);
 		}
