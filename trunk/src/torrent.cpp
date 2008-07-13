@@ -4154,10 +4154,11 @@ namespace libtorrent
 				{
 					int left_over = m_block_size - block_size;
 					// split the block on multiple files
-					while (offset + block_size > file->offset + file->size)
+					while (offset + block_size >= file->offset + file->size)
 					{
 						TORRENT_ASSERT(offset <= file->offset + file->size);
-						size_type slice = file->offset + file->size - offset;
+						size_type slice = (std::min)(file->offset + file->size - offset
+							, block_size);
 						fp[file_index] += slice;
 						offset += slice;
 						block_size -= slice;
