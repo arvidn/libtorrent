@@ -1476,7 +1476,7 @@ namespace libtorrent
 					peer_id pid;
 					if (p->connection) pid = p->connection->pid();
 					m_ses.m_alerts.post_alert(peer_ban_alert(
-						get_handle(), p->ip, pid));
+						get_handle(), p->ip(), pid));
 				}
 
 				// mark the peer as banned
@@ -1485,11 +1485,11 @@ namespace libtorrent
 				if (p->connection)
 				{
 #ifdef TORRENT_LOGGING
-					(*m_ses.m_logger) << time_now_string() << " *** BANNING PEER [ " << p->ip
+					(*m_ses.m_logger) << time_now_string() << " *** BANNING PEER [ " << p->ip()
 						<< " ] 'too many corrupt pieces'\n";
 #endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-					(*p->connection->m_logger) << "*** BANNING PEER [ " << p->ip
+					(*p->connection->m_logger) << "*** BANNING PEER [ " << p->ip()
 						<< " ] 'too many corrupt pieces'\n";
 #endif
 					p->connection->disconnect("too many corrupt pieces, banning peer");
@@ -2534,11 +2534,10 @@ namespace libtorrent
 			error_code ec;
 			if (i->second.banned)
 			{
-				tcp::endpoint ip = i->second.ip;
 				entry peer(entry::dictionary_t);
-				peer["ip"] = ip.address().to_string(ec);
+				peer["ip"] = i->second.addr.to_string(ec);
 				if (ec) continue;
-				peer["port"] = ip.port();
+				peer["port"] = i->second.port;
 				banned_peer_list.push_back(peer);
 				continue;
 			}
@@ -2554,11 +2553,10 @@ namespace libtorrent
 			// don't save peers that doesn't work
 			if (i->second.failcount >= max_failcount) continue;
 
-			tcp::endpoint ip = i->second.ip;
 			entry peer(entry::dictionary_t);
-			peer["ip"] = ip.address().to_string(ec);
+			peer["ip"] = i->second.addr.to_string(ec);
 			if (ec) continue;
-			peer["port"] = ip.port();
+			peer["port"] = i->second.port;
 			peer_list.push_back(peer);
 		}
 	}
@@ -2571,7 +2569,7 @@ namespace libtorrent
 			i != m_policy.end_peer(); ++i)
 		{
 			peer_list_entry e;
-			e.ip = i->second.ip;
+			e.ip = i->second.ip();
 			e.flags = i->second.banned ? peer_list_entry::banned : 0;
 			e.failcount = i->second.failcount;
 			e.source = i->second.source;
@@ -2660,7 +2658,7 @@ namespace libtorrent
 					}
 					else
 					{
-						bi.peer = p->ip;
+						bi.peer = p->ip();
 						bi.bytes_progress = complete ? bi.block_size : 0;
 					}
 				}
@@ -2684,7 +2682,7 @@ namespace libtorrent
 #ifndef NDEBUG
 		// this asserts that we don't have duplicates in the policy's peer list
 		peer_iterator i_ = std::find_if(m_connections.begin(), m_connections.end()
-			, bind(&peer_connection::remote, _1) == peerinfo->ip);
+			, bind(&peer_connection::remote, _1) == peerinfo->ip());
 		TORRENT_ASSERT(i_ == m_connections.end()
 			|| dynamic_cast<bt_peer_connection*>(*i_) == 0);
 #endif
@@ -2692,8 +2690,8 @@ namespace libtorrent
 		TORRENT_ASSERT(want_more_peers());
 		TORRENT_ASSERT(m_ses.num_connections() < m_ses.max_connections());
 
-		tcp::endpoint const& a(peerinfo->ip);
-		TORRENT_ASSERT((m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked) == 0);
+		tcp::endpoint a(peerinfo->ip());
+		TORRENT_ASSERT((m_ses.m_ip_filter.access(peerinfo->addr) & ip_filter::blocked) == 0);
 
 		boost::shared_ptr<socket_type> s(new socket_type(m_ses.m_io_service));
 

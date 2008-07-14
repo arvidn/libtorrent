@@ -124,8 +124,36 @@ namespace libtorrent
 			size_type total_download() const;
 			size_type total_upload() const;
 
-			// the ip/port pair this peer is or was connected on
-			tcp::endpoint ip;
+			tcp::endpoint ip() const { return tcp::endpoint(addr, port); }
+			void set_ip(tcp::endpoint const& endp)
+			{ addr = endp.address(); port = endp.port(); }
+
+			// this is the accumulated amount of
+			// uploaded and downloaded data to this
+			// peer. It only accounts for what was
+			// shared during the last connection to
+			// this peer. i.e. These are only updated
+			// when the connection is closed. For the
+			// total amount of upload and download
+			// we'll have to add thes figures with the
+			// statistics from the peer_connection.
+			size_type prev_amount_upload;
+			size_type prev_amount_download;
+
+			// the ip address this peer is or was connected on
+			address addr;
+
+			// the time when this peer was optimistically unchoked
+			// the last time.
+			libtorrent::ptime last_optimistically_unchoked;
+
+			// the time when the peer connected to us
+			// or disconnected if it isn't connected right now
+			libtorrent::ptime connected;
+
+			// if the peer is connected now, this
+			// will refer to a valid peer_connection
+			peer_connection* connection;
 
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifndef NDEBUG
@@ -136,6 +164,9 @@ namespace libtorrent
 			// The AS this peer belongs to
 			std::pair<const int, int>* inet_as;
 #endif
+
+			// the port this peer is or was connected on
+			uint16_t port;
 
 			// the number of failed connection attempts
 			// this peer has
@@ -205,30 +236,6 @@ namespace libtorrent
 			// pinged by the DHT
 			bool added_to_dht:1;
 #endif
-
-			// if the peer is connected now, this
-			// will refer to a valid peer_connection
-			peer_connection* connection;
-
-			// this is the accumulated amount of
-			// uploaded and downloaded data to this
-			// peer. It only accounts for what was
-			// shared during the last connection to
-			// this peer. i.e. These are only updated
-			// when the connection is closed. For the
-			// total amount of upload and download
-			// we'll have to add thes figures with the
-			// statistics from the peer_connection.
-			size_type prev_amount_upload;
-			size_type prev_amount_download;
-
-			// the time when this peer was optimistically unchoked
-			// the last time.
-			libtorrent::ptime last_optimistically_unchoked;
-
-			// the time when the peer connected to us
-			// or disconnected if it isn't connected right now
-			libtorrent::ptime connected;
 		};
 
 		int num_peers() const { return m_peers.size(); }
