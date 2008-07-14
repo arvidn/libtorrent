@@ -841,7 +841,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(!m_trackers.empty());
+		if (m_trackers.empty()) return;
 
 		restart_tracker_timer(time_now() + seconds(tracker_retry_delay_max));
 
