@@ -219,6 +219,11 @@ namespace aux {
 		(*m_logger) << "sizeof(peer_connection): " << sizeof(peer_connection) << "\n";
 		(*m_logger) << "sizeof(bt_peer_connection): " << sizeof(bt_peer_connection) << "\n";
 		(*m_logger) << "sizeof(policy::peer): " << sizeof(policy::peer) << "\n";
+		(*m_logger) << "sizeof(tcp::endpoint): " << sizeof(tcp::endpoint) << "\n";
+		(*m_logger) << "sizeof(address): " << sizeof(address) << "\n";
+		(*m_logger) << "sizeof(address_v4): " << sizeof(address_v4) << "\n";
+		(*m_logger) << "sizeof(address_v6): " << sizeof(address_v6) << "\n";
+		(*m_logger) << "sizeof(void*): " << sizeof(void*) << "\n";
 #endif
 
 #ifdef TORRENT_STATS

@@ -206,7 +206,7 @@ namespace libtorrent { namespace
 						<< " | c: " << client
 						<< " | crc1: " << i->second.crc
 						<< " | crc2: " << e.crc
-						<< " | ip: " << p->ip << " ]\n";
+						<< " | ip: " << p->ip() << " ]\n";
 #endif
 					p->banned = true;
 					if (p->connection) p->connection->disconnect("banning peer for sending bad data");
@@ -230,7 +230,7 @@ namespace libtorrent { namespace
 				<< " | b: " << b.block_index
 				<< " | c: " << client
 				<< " | crc: " << e.crc
-				<< " | ip: " << p->ip << " ]\n";
+				<< " | ip: " << p->ip() << " ]\n";
 #endif
 		}
 		
@@ -268,7 +268,7 @@ namespace libtorrent { namespace
 				<< " | c: " << client
 				<< " | ok_crc: " << ok_crc
 				<< " | bad_crc: " << b.second.crc
-				<< " | ip: " << p->ip << " ]\n";
+				<< " | ip: " << p->ip() << " ]\n";
 #endif
 			p->banned = true;
 			if (p->connection) p->connection->disconnect("banning peer for sending bad data");

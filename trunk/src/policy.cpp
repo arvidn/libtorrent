@@ -145,7 +145,7 @@ namespace
 		{}
 
 		bool operator()(std::pair<const address, policy::peer> const& p) const
-		{ return p.second.ip == m_ep; }
+		{ return p.second.addr == m_ep.address() && p.second.port == m_ep.port(); }
 
 		tcp::endpoint const& m_ep;
 	};
@@ -160,7 +160,7 @@ namespace
 		bool operator()(std::pair<const address, policy::peer> const& p) const
 		{
 			return p.second.connection == &m_conn
-				|| (p.second.ip == m_conn.remote()
+				|| (p.second.ip() == m_conn.remote()
 					&& p.second.type == policy::peer::connectable);
 		}
 
@@ -347,7 +347,7 @@ namespace libtorrent
 		for (iterator i = m_peers.begin()
 			, end(m_peers.end()); i != end;)
 		{
-			if ((ses.m_ip_filter.access(i->second.ip.address()) & ip_filter::blocked) == 0)
+			if ((ses.m_ip_filter.access(i->second.addr) & ip_filter::blocked) == 0)
 			{
 				++i;
 				continue;
@@ -357,14 +357,14 @@ namespace libtorrent
 			{
 				i->second.connection->disconnect("peer banned by IP filter");
 				if (ses.m_alerts.should_post<peer_blocked_alert>())
-					ses.m_alerts.post_alert(peer_blocked_alert(i->second.ip.address()));
+					ses.m_alerts.post_alert(peer_blocked_alert(i->second.addr));
 				TORRENT_ASSERT(i->second.connection == 0
 					|| i->second.connection->peer_info_struct() == 0);
 			}
 			else
 			{
 				if (ses.m_alerts.should_post<peer_blocked_alert>())
-					ses.m_alerts.post_alert(peer_blocked_alert(i->second.ip.address()));
+					ses.m_alerts.post_alert(peer_blocked_alert(i->second.addr));
 			}
 			erase_peer(i++);
 		}
@@ -396,7 +396,7 @@ namespace libtorrent
 			return false;
 		
 		aux::session_impl& ses = m_torrent->session();
-		if (ses.m_port_filter.access(p.ip.port()) & port_filter::blocked)
+		if (ses.m_port_filter.access(p.port) & port_filter::blocked)
 			return false;
 		return true;
 	}
@@ -444,7 +444,7 @@ namespace libtorrent
 			// advertise support)
 			if (!pinged && !pe.added_to_dht)
 			{
-				udp::endpoint node(pe.ip.address(), pe.ip.port());
+				udp::endpoint node(pe.addr, pe.port);
 				m_torrent->session().add_dht_node(node);
 				pe.added_to_dht = true;
 				pinged = true;
@@ -487,8 +487,8 @@ namespace libtorrent
 		{
 			(*m_torrent->session().m_logger) << time_now_string()
 				<< " *** FOUND CONNECTION CANDIDATE ["
-				" ip: " << candidate->second.ip <<
-				" d: " << cidr_distance(external_ip, candidate->second.ip.address()) <<
+				" ip: " << candidate->second.ip() <<
+				" d: " << cidr_distance(external_ip, candidate->second.addr) <<
 				" external: " << external_ip <<
 				" t: " << total_seconds(time_now() - candidate->second.connected) <<
 				" ]\n";
@@ -683,11 +683,11 @@ namespace libtorrent
 		TORRENT_ASSERT(p != 0);
 		TORRENT_ASSERT(p->connection);
 
-		if (p->ip.port() == port) return true;
+		if (p->port == port) return true;
 
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
 		{
-			tcp::endpoint remote(p->ip.address(), port);
+			tcp::endpoint remote(p->addr, port);
 			std::pair<iterator, iterator> range = m_peers.equal_range(remote.address());
 			iterator i = std::find_if(range.first, range.second
 				, match_peer_endpoint(remote));
@@ -704,10 +704,10 @@ namespace libtorrent
 		}
 		else
 		{
-			TORRENT_ASSERT(m_peers.count(p->ip.address()) == 1);
+			TORRENT_ASSERT(m_peers.count(p->addr) == 1);
 		}
 		bool was_conn_cand = is_connect_candidate(*p, m_torrent->is_finished());
-		p->ip.port(port);
+		p->port = port;
 		p->source |= src;
 
 		if (was_conn_cand != is_connect_candidate(*p, m_torrent->is_finished()))
@@ -806,7 +806,7 @@ namespace libtorrent
 
 			i->second.type = peer::connectable;
 
-			i->second.ip = remote;
+			i->second.set_ip(remote);
 			i->second.source |= src;
 				
 			// if this peer has failed before, decrease the
@@ -1102,14 +1102,14 @@ namespace libtorrent
 #endif
 			if (!m_torrent->settings().allow_multiple_connections_per_ip)
 			{
-				TORRENT_ASSERT(m_peers.count(p.ip.address()) == 1);
+				TORRENT_ASSERT(m_peers.count(p.addr) == 1);
 			}
 			else
 			{
-				TORRENT_ASSERT(unique_test.count(p.ip) == 0);
-				unique_test.insert(p.ip);
-				TORRENT_ASSERT(i->first == p.ip.address());
-//				TORRENT_ASSERT(p.connection == 0 || p.ip == p.connection->remote());
+				TORRENT_ASSERT(unique_test.count(p.ip()) == 0);
+				unique_test.insert(p.ip());
+				TORRENT_ASSERT(i->first == p.addr);
+//				TORRENT_ASSERT(p.connection == 0 || p.ip() == p.connection->remote());
 			}
 			++total_connections;
 			if (!p.connection)
@@ -1186,10 +1186,16 @@ namespace libtorrent
 #endif
 
 	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t, int src)
-		: ip(ip_)
+		: prev_amount_upload(0)
+		, prev_amount_download(0)
+		, addr(ip_.address())
+		, last_optimistically_unchoked(min_time())
+		, connected(min_time())
+		, connection(0)
 #ifndef TORRENT_DISABLE_GEO_IP
 		, inet_as(0)
 #endif
+		, port(ip_.port())
 		, failcount(0)
 		, trust_points(0)
 		, source(src)
@@ -1206,11 +1212,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 		, added_to_dht(false)
 #endif
-		, connection(0)
-		, prev_amount_upload(0)
-		, prev_amount_download(0)
-		, last_optimistically_unchoked(min_time())
-		, connected(min_time())
 	{
 		TORRENT_ASSERT((src & 0xff) == src);
 		TORRENT_ASSERT(connected < time_now());
@@ -1251,8 +1252,8 @@ namespace libtorrent
 			return lhs.failcount < rhs.failcount;
 
 		// Local peers should always be tried first
-		bool lhs_local = is_local(lhs.ip.address());
-		bool rhs_local = is_local(rhs.ip.address());
+		bool lhs_local = is_local(lhs.addr);
+		bool rhs_local = is_local(rhs.addr);
 		if (lhs_local != rhs_local) return lhs_local > rhs_local;
 
 		if (lhs.connected != rhs.connected)
@@ -1267,8 +1268,8 @@ namespace libtorrent
 			if (lhs_as != rhs_as) return lhs_as > rhs_as;
 		}
 #endif
-		int lhs_distance = cidr_distance(external_ip, lhs.ip.address());
-		int rhs_distance = cidr_distance(external_ip, rhs.ip.address());
+		int lhs_distance = cidr_distance(external_ip, lhs.addr);
+		int rhs_distance = cidr_distance(external_ip, rhs.addr);
 		if (lhs_distance < rhs_distance) return true;
 		return false;
 	}

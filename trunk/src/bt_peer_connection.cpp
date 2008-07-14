@@ -1695,7 +1695,7 @@ namespace libtorrent
 					&& p.second.connection
 					&& p.second.connection->pid() == m_id
 					&& !p.second.connection->pid().is_all_zeros()
-					&& p.second.ip.address() == m_pc->remote().address();
+					&& p.second.addr == m_pc->remote().address();
 			}
 
 			peer_id const& m_id;
