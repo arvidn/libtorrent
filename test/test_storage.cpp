@@ -74,17 +74,34 @@ void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 
 void on_check_resume_data(int ret, disk_io_job const& j)
 {
-	std::cerr << "on_check_resume_data ret: " << ret << " " << j.piece << std::endl;
+	std::cerr << "on_check_resume_data ret: " << ret;
+	switch (ret)
+	{
+		case 0: std::cerr << " success" << std::endl; break;
+		case -1: std::cerr << " need full check" << std::endl; break;
+		case -2: std::cerr << " disk error: " << j.str
+			<< " file: " << j.error_file << std::endl; break;
+		case -3: std::cerr << " aborted" << std::endl; break;
+	}
 }
 
 void on_check_files(int ret, disk_io_job const& j)
 {
-	std::cerr << "on_check_files ret: " << ret << " " << j.piece << std::endl;
+	std::cerr << "on_check_files ret: " << ret;
+
+	switch (ret)
+	{
+		case 0: std::cerr << " done" << std::endl; break;
+		case -1: std::cerr << " current slot: " << j.piece << std::endl; break;
+		case -2: std::cerr << " disk error: " << j.str
+			<< " file: " << j.error_file << std::endl; break;
+		case -3: std::cerr << " aborted" << std::endl; break;
+	}
 }
 
 void on_move_storage(int ret, disk_io_job const& j, std::string path)
 {
-	std::cerr << "on_move_storage ret: " << ret << " path:" << j.str << std::endl;
+	std::cerr << "on_move_storage ret: " << ret << " path: " << j.str << std::endl;
 	TEST_CHECK(ret == 0);
 	TEST_CHECK(j.str == path);
 }
