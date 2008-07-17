@@ -166,7 +166,7 @@ namespace libtorrent
 #endif
 
 			// the port this peer is or was connected on
-			uint16_t port;
+			boost::uint16_t port;
 
 			// the number of failed connection attempts
 			// this peer has
