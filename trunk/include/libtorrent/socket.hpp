@@ -73,6 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/io.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/error_code.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -94,12 +95,10 @@ namespace libtorrent
 	typedef asio::ip::udp::socket datagram_socket;
 	typedef asio::ip::tcp::acceptor socket_acceptor;
 	typedef asio::io_service io_service;
-	typedef asio::error_code error_code;
 
 	namespace asio = ::asio;
 	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 #else
-	using boost::system::error_code;
 	using boost::asio::ip::tcp;
 	using boost::asio::ip::udp;
 	using boost::asio::async_write;
