@@ -111,6 +111,9 @@ namespace libtorrent
 
 		boost::shared_ptr<entry> resume_data;
 
+		// the error code from the file operation
+		error_code error;
+
 		// this is called when operation completes
 		boost::function<void(int, disk_io_job const&)> callback;
 	};
@@ -213,6 +216,8 @@ namespace libtorrent
 
 		typedef boost::recursive_mutex mutex_t;
 		typedef std::list<cached_piece_entry> cache_t;
+
+		bool test_error(disk_io_job& j);
 
 		// cache operations
 		cache_t::iterator find_cached_piece(

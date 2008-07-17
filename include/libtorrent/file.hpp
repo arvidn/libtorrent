@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/error_code.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
 
@@ -102,20 +103,18 @@ namespace libtorrent
 		static const open_mode out;
 
 		file();
-		file(fs::path const& p, open_mode m);
+		file(fs::path const& p, open_mode m, error_code& ec);
 		~file();
 
-		bool open(fs::path const& p, open_mode m);
+		bool open(fs::path const& p, open_mode m, error_code& ec);
 		void close();
-		bool set_size(size_type size);
+		bool set_size(size_type size, error_code& ec);
 
-		size_type write(const char*, size_type num_bytes);
-		size_type read(char*, size_type num_bytes);
+		size_type write(const char*, size_type num_bytes, error_code& ec);
+		size_type read(char*, size_type num_bytes, error_code& ec);
 
-		size_type seek(size_type pos, seek_mode m = begin);
-		size_type tell();
-
-		std::string const& error() const;
+		size_type seek(size_type pos, seek_mode m, error_code& ec);
+		size_type tell(error_code& ec);
 
 	private:
 

@@ -30,9 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <boost/version.hpp>
 #include "libtorrent/pch.hpp"
-
 #include "libtorrent/file_pool.hpp"
+#include "libtorrent/error_code.hpp"
 
 #include <iostream>
 
@@ -41,8 +42,38 @@ namespace libtorrent
 	using boost::multi_index::nth_index;
 	using boost::multi_index::get;
 
+#if BOOST_VERSION >= 103500
+	struct file_pool_error_category : boost::system::error_category
+	{
+		virtual const char* name() const { return "file pool error"; }
+		virtual std::string message(int ev) const
+		{
+			static char const* msgs[] =
+			{ "no error", "torrent file collides with file from another torrent" };
+			if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
+				return "Unknown error";
+			return msgs[ev];
+		}
+		virtual boost::system::error_condition default_error_condition(int ev) const
+		{
+			return boost::system::error_condition(ev, *this);
+		}
+		virtual bool equivalent(int code, boost::system::error_condition const& condition) const
+		{
+			return default_error_condition(code) == condition;
+		}
+		virtual bool equivalent(boost::system::error_code const& code, int condition ) const
+		{
+			return *this == code.category() && code.value() == condition;
+		}
+	};
+
+	file_pool_error_category file_pool_category;
+
+#endif
+
 	boost::shared_ptr<file> file_pool::open_file(void* st, fs::path const& p
-		, file::open_mode m, std::string& error)
+		, file::open_mode m, error_code& ec)
 	{
 		TORRENT_ASSERT(st != 0);
 		TORRENT_ASSERT(p.is_complete());
@@ -60,8 +91,9 @@ namespace libtorrent
 			{
 				// this means that another instance of the storage
 				// is using the exact same file.
-				error = "torrent uses the same file as another torrent "
-					"(" + p.string() + ")";
+#if BOOST_VERSION >= 103500
+				ec = error_code(1, file_pool_category);
+#endif
 				return boost::shared_ptr<file>();
 			}
 
@@ -73,9 +105,8 @@ namespace libtorrent
 				i->file_ptr.reset();
 				TORRENT_ASSERT(e.file_ptr.unique());
 				e.file_ptr->close();
-				if (!e.file_ptr->open(p, m))
+				if (!e.file_ptr->open(p, m, ec))
 				{
-					error = e.file_ptr->error();
 					m_files.erase(i);
 					return boost::shared_ptr<file>();
 				}
@@ -97,17 +128,14 @@ namespace libtorrent
 			lt.erase(i);
 		}
 		lru_file_entry e;
-		e.file_ptr.reset(new file);
+		e.file_ptr.reset(new (std::nothrow)file);
 		if (!e.file_ptr)
 		{
-			error = "no memory";
+			ec = error_code(ENOMEM, get_posix_category());
 			return e.file_ptr;
 		}
-		if (!e.file_ptr->open(p, m))
-		{
-			error = e.file_ptr->error();
+		if (!e.file_ptr->open(p, m, ec))
 			return boost::shared_ptr<file>();
-		}
 		e.mode = m;
 		e.key = st;
 		e.file_path = p;

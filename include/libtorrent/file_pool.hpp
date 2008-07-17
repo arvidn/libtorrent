@@ -66,7 +66,7 @@ namespace libtorrent
 		file_pool(int size = 40): m_size(size) {}
 
 		boost::shared_ptr<file> open_file(void* st, fs::path const& p
-			, file::open_mode m, std::string& error);
+			, file::open_mode m, error_code& ec);
 		void release(void* st);
 		void release(fs::path const& p);
 		void resize(int size);

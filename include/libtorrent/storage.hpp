@@ -164,17 +164,17 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual bool delete_files() = 0;
 
-		void set_error(std::string const& file, std::string const& msg) const
+		void set_error(boost::filesystem::path const& file, error_code const& ec) const
 		{
-			m_error_file = file;
-			m_error = msg;
+			m_error_file = file.string();
+			m_error = ec;
 		}
 
-		std::string const& error() const { return m_error; }
+		error_code const& error() const { return m_error; }
 		std::string const& error_file() const { return m_error_file; }
-		void clear_error() { m_error.clear(); m_error_file.clear(); }
+		void clear_error() { m_error = error_code(); m_error_file.clear(); }
 
-		mutable std::string m_error;
+		mutable error_code m_error;
 		mutable std::string m_error_file;
 
 		virtual ~storage_interface() {}
@@ -267,7 +267,7 @@ namespace libtorrent
 
 		void mark_failed(int index);
 
-		std::string const& error() const { return m_storage->error(); }
+		error_code const& error() const { return m_storage->error(); }
 		std::string const& error_file() const { return m_storage->error_file(); }
 		void clear_error() { m_storage->clear_error(); }
 
@@ -308,7 +308,8 @@ namespace libtorrent
 			, int offset
 			, int size);
 
-		bool check_one_piece(int& have_piece);
+		// -1=error 0=ok 1=skip
+		int check_one_piece(int& have_piece);
 		int identify_data(
 			const std::vector<char>& piece_data
 			, int current_slot);

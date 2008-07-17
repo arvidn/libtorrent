@@ -211,14 +211,19 @@ namespace libtorrent
 	int load_file(fs::path const& filename, std::vector<char>& v)
 	{
 		file f;
-		if (!f.open(filename, file::in)) return -1;
-		f.seek(0, file::end);
-		size_type s = f.tell();
+		error_code ec;
+		if (!f.open(filename, file::in, ec)) return -1;
+		f.seek(0, file::end, ec);
+		if (ec) return -1;
+		size_type s = f.tell(ec);
+		if (ec) return -1;
 		if (s > 5000000) return -2;
 		v.resize(s);
-		f.seek(0);
-		size_type read = f.read(&v[0], s);
+		f.seek(0, file::begin, ec);
+		if (ec) return -1;
+		size_type read = f.read(&v[0], s, ec);
 		if (read != s) return -3;
+		if (ec) return -3;
 		return 0;
 	}
 

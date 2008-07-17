@@ -121,7 +121,7 @@ namespace
 		}
 	}
 #else
-	std::string utf8_native(std::string const& s)
+	std::string const& utf8_native(std::string const& s)
 	{
 		return s;
 	}
@@ -146,11 +146,11 @@ namespace libtorrent
 			, m_open_mode(0)
 		{}
 
-		impl(fs::path const& path, int mode)
+		impl(fs::path const& path, int mode, error_code& ec)
 			: m_fd(-1)
 			, m_open_mode(0)
 		{
-			open(path, mode);
+			open(path, mode, ec);
 		}
 
 		~impl()
@@ -158,30 +158,33 @@ namespace libtorrent
 			close();
 		}
 
-		bool open(fs::path const& path, int mode)
+		bool open(fs::path const& path, int mode, error_code& ec)
 		{
 			close();
-#if defined _WIN32 && defined UNICODE
-			std::wstring wpath(safe_convert(path.native_file_string()));
-			m_fd = ::_wopen(
-				wpath.c_str()
-				, map_open_mode(mode));
-#elif defined _WIN32
-			m_fd = ::_open(
-				utf8_native(path.native_file_string()).c_str()
-				, map_open_mode(mode));
+#ifdef TORRENT_WINDOWS
+
+			const int permissions = _S_IREAD | _S_IWRITE;
+
+#ifdef defined UNICODE
+#define open _wopen
+			std::wstring file_path(safe_convert(path.native_file_string()));
 #else
-			m_fd = ::open(
-				utf8_native(path.native_file_string()).c_str()
-				, map_open_mode(mode));
+#define open _open
+			std::string const& file_path = path.native_file_string();
 #endif
+#else // if not windows
+			const mode_t permissions = S_IRWXU | S_IRGRP | S_IROTH;
+			std::string const& file_path = path.native_file_string();
+#endif
+			m_fd = ::open(file_path.c_str(), map_open_mode(mode), permissions);
+
+#ifdef TORRENT_WINDOWS
+#undef open
+#endif
+
 			if (m_fd == -1)
 			{
-				std::stringstream msg;
-				msg << "open failed: '" << path.native_file_string() << "'. "
-					<< std::strerror(errno);
-				if (!m_error) m_error.reset(new std::string);
-				*m_error = msg.str();
+				ec = error_code(errno, get_posix_category());
 				return false;
 			}
 			m_open_mode = mode;
@@ -201,7 +204,7 @@ namespace libtorrent
 			m_open_mode = 0;
 		}
 
-		size_type read(char* buf, size_type num_bytes)
+		size_type read(char* buf, size_type num_bytes, error_code& ec)
 		{
 			TORRENT_ASSERT(m_open_mode & mode_in);
 			TORRENT_ASSERT(m_fd != -1);
@@ -211,17 +214,11 @@ namespace libtorrent
 #else
 			size_type ret = ::read(m_fd, buf, num_bytes);
 #endif
-			if (ret == -1)
-			{
-				std::stringstream msg;
-				msg << "read failed: " << std::strerror(errno);
-				if (!m_error) m_error.reset(new std::string);
-				*m_error = msg.str();
-			}
+			if (ret == -1) ec = error_code(errno, get_posix_category());
 			return ret;
 		}
 
-		size_type write(const char* buf, size_type num_bytes)
+		size_type write(const char* buf, size_type num_bytes, error_code& ec)
 		{
 			TORRENT_ASSERT(m_open_mode & mode_out);
 			TORRENT_ASSERT(m_fd != -1);
@@ -236,34 +233,25 @@ namespace libtorrent
 #else
 			size_type ret = ::write(m_fd, buf, num_bytes);
 #endif
-			if (ret == -1)
-			{
-				std::stringstream msg;
-				msg << "write failed: " << std::strerror(errno);
-				if (!m_error) m_error.reset(new std::string);
-				*m_error = msg.str();
-			}
+			if (ret == -1) ec = error_code(errno, get_posix_category());
 			return ret;
 		}
 
-		bool set_size(size_type s)
+		bool set_size(size_type s, error_code& ec)
 		{
 #ifdef _WIN32
 #error file.cpp is for posix systems only. use file_win.cpp on windows
 #else
 			if (ftruncate(m_fd, s) < 0)
 			{
-				std::stringstream msg;
-				msg << "ftruncate failed: '" << std::strerror(errno);
-				if (!m_error) m_error.reset(new std::string);
-				*m_error = msg.str();
+				ec = error_code(errno, get_posix_category());
 				return false;
 			}
 			return true;
 #endif
 		}
 
-		size_type seek(size_type offset, int m = 1)
+		size_type seek(size_type offset, int m, error_code& ec)
 		{
 			TORRENT_ASSERT(m_open_mode);
 			TORRENT_ASSERT(m_fd != -1);
@@ -278,56 +266,42 @@ namespace libtorrent
 			// For some strange reason this fails
 			// on win32. Use windows specific file
 			// wrapper instead.
-			if (ret == -1)
-			{
-				std::stringstream msg;
-				msg << "seek failed: '" << std::strerror(errno)
-					<< "' fd: " << m_fd
-					<< " offset: " << offset
-					<< " seekdir: " << seekdir;
-				if (!m_error) m_error.reset(new std::string);
-				*m_error = msg.str();
-				return -1;
-			}
+			if (ret < 0) ec = error_code(errno, get_posix_category());
 			return ret;
 		}
 
-		size_type tell()
+		size_type tell(error_code& ec)
 		{
 			TORRENT_ASSERT(m_open_mode);
 			TORRENT_ASSERT(m_fd != -1);
 
+			size_type ret;
 #ifdef _WIN32
-			return _telli64(m_fd);
+			ret = _telli64(m_fd);
 #else
-			return lseek(m_fd, 0, SEEK_CUR);
+			ret = lseek(m_fd, 0, SEEK_CUR);
 #endif
-		}
-
-		std::string const& error() const
-		{
-			if (!m_error) m_error.reset(new std::string);
-			return *m_error;
+			if (ret < 0) ec = error_code(errno, get_posix_category());
+			return ret;
 		}
 
 		int m_fd;
 		int m_open_mode;
-		mutable boost::scoped_ptr<std::string> m_error;
 	};
 
 	// pimpl forwardings
 
 	file::file() : m_impl(new impl()) {}
 
-	file::file(fs::path const& p, file::open_mode m)
-		: m_impl(new impl(p, m.m_mask))
+	file::file(fs::path const& p, file::open_mode m, error_code& ec)
+		: m_impl(new impl(p, m.m_mask, ec))
 	{}
 
 	file::~file() {}
 
-	bool file::open(fs::path const& p, file::open_mode m)
+	bool file::open(fs::path const& p, file::open_mode m, error_code& ec)
 	{
-		return m_impl->open(p, m.m_mask);
+		return m_impl->open(p, m.m_mask, ec);
 	}
 
 	void file::close()
@@ -335,34 +309,28 @@ namespace libtorrent
 		m_impl->close();
 	}
 
-	size_type file::write(const char* buf, size_type num_bytes)
+	size_type file::write(const char* buf, size_type num_bytes, error_code& ec)
 	{
-		return m_impl->write(buf, num_bytes);
+		return m_impl->write(buf, num_bytes, ec);
 	}
 
-	size_type file::read(char* buf, size_type num_bytes)
+	size_type file::read(char* buf, size_type num_bytes, error_code& ec)
 	{
-		return m_impl->read(buf, num_bytes);
+		return m_impl->read(buf, num_bytes, ec);
 	}
 
-	bool file::set_size(size_type s)
+	bool file::set_size(size_type s, error_code& ec)
 	{
-		return m_impl->set_size(s);
+		return m_impl->set_size(s, ec);
 	}
 
-	size_type file::seek(size_type pos, file::seek_mode m)
+	size_type file::seek(size_type pos, file::seek_mode m, error_code& ec)
 	{
-		return m_impl->seek(pos, m.m_val);
+		return m_impl->seek(pos, m.m_val, ec);
 	}
 
-	size_type file::tell()
+	size_type file::tell(error_code& ec)
 	{
-		return m_impl->tell();
+		return m_impl->tell(ec);
 	}
-
-	std::string const& file::error() const
-	{
-		return m_impl->error();
-	}
-
 }

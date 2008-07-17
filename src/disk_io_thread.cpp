@@ -420,7 +420,7 @@ namespace libtorrent
 			l.unlock();
 			ret += p.storage->read_impl(buf.get(), p.piece, start_block * m_block_size, buffer_size);
 			l.lock();
-			if (!p.storage->error().empty()) { return -1; }
+			if (p.storage->error()) { return -1; }
 			++m_cache_stats.reads;
 		}
 		
@@ -440,7 +440,7 @@ namespace libtorrent
 			{
 				l.unlock();
 				ret += p.storage->read_impl(p.blocks[i], p.piece, piece_offset, block_size);
-				if (!p.storage->error().empty()) { return -1; }
+				if (!p.storage->error()) { return -1; }
 				l.lock();
 				++m_cache_stats.reads;
 			}
@@ -735,6 +735,23 @@ namespace libtorrent
 #endif
 	}
 
+	bool disk_io_thread::test_error(disk_io_job& j)
+	{
+		error_code const& ec = j.storage->error();
+		if (ec)
+		{
+			j.str = ec.message();
+			j.error = ec;
+			j.error_file = j.storage->error_file();
+			j.storage->clear_error();
+#ifndef NDEBUG
+			std::cout << "ERROR: '" << j.str << "' " << j.error_file << std::endl;
+#endif
+			return true;
+		}
+		return false;
+	}
+
 	void disk_io_thread::operator()()
 	{
 		for (;;)
@@ -819,17 +836,10 @@ namespace libtorrent
 				}
 				case disk_io_job::read:
 				{
-					std::string const& error_string = j.storage->error();
-					if (!error_string.empty())
+					if (test_error(j))
 					{
-#ifndef NDEBUG
-						std::cout << "ERROR: '" << error_string << "' " << j.error_file << std::endl;
-#endif
-						j.str = error_string;
-						j.error_file = j.storage->error_file();
-						j.storage->clear_error();
 						ret = -1;
-						break;
+						return;
 					}
 #ifdef TORRENT_DISK_STATS
 					m_log << log_time() << " read " << j.buffer_size << std::endl;
@@ -841,7 +851,8 @@ namespace libtorrent
 					if (j.buffer == 0)
 					{
 						ret = -1;
-						j.str = "out of memory";
+						j.error = error_code(ENOMEM, get_posix_category());
+						j.str = j.error.message();
 						break;
 					}
 
@@ -853,9 +864,7 @@ namespace libtorrent
 					if (ret == -1)
 					{
 						j.buffer = 0;
-						j.str = j.storage->error();
-						j.error_file = j.storage->error_file();
-						j.storage->clear_error();
+						test_error(j);
 						break;
 					}
 					else if (ret == -2)
@@ -864,9 +873,7 @@ namespace libtorrent
 							, j.buffer_size);
 						if (ret < 0)
 						{
-							j.str = j.storage->error();
-							j.error_file = j.storage->error_file();
-							j.storage->clear_error();
+							test_error(j);
 							break;
 						}
 						++m_cache_stats.blocks_read;
@@ -876,15 +883,8 @@ namespace libtorrent
 				}
 				case disk_io_job::write:
 				{
-					std::string const& error_string = j.storage->error();
-					if (!error_string.empty())
+					if (test_error(j))
 					{
-#ifndef NDEBUG
-						std::cout << "ERROR: '" << error_string << "' " << j.error_file << std::endl;
-#endif
-						j.str = error_string;
-						j.error_file = j.storage->error_file();
-						j.storage->clear_error();
 						ret = -1;
 						break;
 					}
@@ -936,26 +936,18 @@ namespace libtorrent
 					if (i != m_pieces.end())
 					{
 						flush_and_remove(i, l);
-						std::string const& e = j.storage->error();
-						if (!e.empty())
+						if (test_error(j))
 						{
-							j.str = e;
-							j.error_file = j.storage->error_file();
 							ret = -1;
-							j.storage->clear_error();
 							j.storage->mark_failed(j.piece);
 							break;
 						}
 					}
 					l.unlock();
 					sha1_hash h = j.storage->hash_for_piece_impl(j.piece);
-					std::string const& e = j.storage->error();
-					if (!e.empty())
+					if (test_error(j))
 					{
-						j.str = e;
-						j.error_file = j.storage->error_file();
 						ret = -1;
-						j.storage->clear_error();
 						j.storage->mark_failed(j.piece);
 						break;
 					}
@@ -972,9 +964,7 @@ namespace libtorrent
 					ret = j.storage->move_storage_impl(j.str) ? 1 : 0;
 					if (ret != 0)
 					{
-						j.str = j.storage->error();
-						j.error_file = j.storage->error_file();
-						j.storage->clear_error();
+						test_error(j);
 						break;
 					}
 					j.str = j.storage->save_path().string();
@@ -1010,12 +1000,7 @@ namespace libtorrent
 					}
 #endif
 					ret = j.storage->release_files_impl();
-					if (ret != 0)
-					{
-						j.str = j.storage->error();
-						j.error_file = j.storage->error_file();
-						j.storage->clear_error();
-					}
+					if (ret != 0) test_error(j);
 					break;
 				}
 				case disk_io_job::delete_files:
@@ -1051,12 +1036,7 @@ namespace libtorrent
 					}
 #endif
 					ret = j.storage->delete_files_impl();
-					if (ret != 0)
-					{
-						j.str = j.storage->error();
-						j.error_file = j.storage->error_file();
-						j.storage->clear_error();
-					}
+					if (ret != 0) test_error(j);
 					break;
 				}
 				case disk_io_job::check_fastresume:
@@ -1090,6 +1070,13 @@ namespace libtorrent
 #endif
 						if (ret != piece_manager::need_full_check) break;
 					}
+					if (test_error(j))
+					{
+						ret = piece_manager::fatal_disk_error;
+						break;
+					}
+					TORRENT_ASSERT(ret != -2 || !j.str.empty());
+					
 					// if the check is not done, add it at the end of the job queue
 					if (ret == piece_manager::need_full_check)
 					{
@@ -1133,6 +1120,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
+				TORRENT_ASSERT(ret != -2 || !j.str.empty());
 				if (handler) m_ios.post(bind(handler, ret, j));
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (std::exception&)
