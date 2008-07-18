@@ -1003,6 +1003,39 @@ namespace libtorrent
 					if (ret != 0) test_error(j);
 					break;
 				}
+				case disk_io_job::clear_read_cache:
+				{
+#ifdef TORRENT_DISK_STATS
+					m_log << log_time() << " clear-cache" << std::endl;
+#endif
+					TORRENT_ASSERT(j.buffer == 0);
+
+					mutex_t::scoped_lock l(m_piece_mutex);
+					INVARIANT_CHECK;
+
+					for (cache_t::iterator i = m_read_pieces.begin();
+						i != m_read_pieces.end();)
+					{
+						if (i->storage == j.storage)
+						{
+							free_piece(*i, l);
+							i = m_read_pieces.erase(i);
+						}
+						else
+						{
+							++i;
+						}
+					}
+					l.unlock();
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+					{
+						mutex_t::scoped_lock l(m_pool_mutex);
+						m_pool.release_memory();
+					}
+#endif
+					ret = 0;
+					break;
+				}
 				case disk_io_job::delete_files:
 				{
 #ifdef TORRENT_DISK_STATS

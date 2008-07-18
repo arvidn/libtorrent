@@ -1275,6 +1275,15 @@ namespace libtorrent
 		m_io_thread.add_job(j, handler);
 	}
 
+	void piece_manager::async_clear_read_cache(
+		boost::function<void(int, disk_io_job const&)> const& handler)
+	{
+		disk_io_job j;
+		j.storage = this;
+		j.action = disk_io_job::clear_read_cache;
+		m_io_thread.add_job(j, handler);
+	}
+
 	void piece_manager::async_release_files(
 		boost::function<void(int, disk_io_job const&)> const& handler)
 	{

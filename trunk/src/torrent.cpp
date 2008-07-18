@@ -3753,6 +3753,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_storage);
 			m_storage->async_release_files(
 				bind(&torrent::on_torrent_paused, shared_from_this(), _1, _2));
+			m_storage->async_clear_read_cache();
 		}
 		else
 		{
