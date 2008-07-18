@@ -4261,7 +4261,7 @@ namespace libtorrent
 
 		st.next_announce = boost::posix_time::seconds(
 			total_seconds(next_announce() - now));
-		if (st.next_announce.is_negative())
+		if (st.next_announce.is_negative() || is_paused())
 			st.next_announce = boost::posix_time::seconds(0);
 
 		st.announce_interval = boost::posix_time::seconds(m_duration);
