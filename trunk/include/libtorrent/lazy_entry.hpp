@@ -124,6 +124,7 @@ namespace libtorrent
 		size_type dict_find_int_value(char const* name, size_type default_val = 0) const;
 		lazy_entry const* dict_find_dict(char const* name) const;
 		lazy_entry const* dict_find_list(char const* name) const;
+		lazy_entry const* dict_find_string(char const* name) const;
 
 		std::pair<std::string, lazy_entry const*> dict_at(int i) const
 		{
