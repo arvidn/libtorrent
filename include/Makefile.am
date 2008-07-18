@@ -17,6 +17,7 @@ libtorrent/disk_io_thread.hpp \
 libtorrent/entry.hpp \
 libtorrent/enum_net.hpp \
 libtorrent/escape_string.hpp \
+libtorrent/error_code.hpp \
 libtorrent/extensions.hpp \
 libtorrent/file.hpp \
 libtorrent/file_pool.hpp \

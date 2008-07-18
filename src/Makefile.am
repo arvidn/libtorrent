@@ -24,7 +24,7 @@ logger.cpp file_pool.cpp ut_pex.cpp lsd.cpp upnp.cpp instantiate_connection.cpp 
 socks5_stream.cpp socks4_stream.cpp http_stream.cpp connection_queue.cpp \
 disk_io_thread.cpp ut_metadata.cpp magnet_uri.cpp udp_socket.cpp smart_ban.cpp \
 http_parser.cpp gzip.cpp disk_buffer_holder.cpp create_torrent.cpp GeoIP.c \
-parse_url.cpp file_storage.cpp $(kademlia_sources)
+parse_url.cpp file_storage.cpp error_code.cpp $(kademlia_sources)
 # mapped_storage.cpp 
 
 noinst_HEADERS = \
@@ -46,6 +46,7 @@ $(top_srcdir)/include/libtorrent/disk_io_thread.hpp \
 $(top_srcdir)/include/libtorrent/entry.hpp \
 $(top_srcdir)/include/libtorrent/enum_net.hpp \
 $(top_srcdir)/include/libtorrent/escape_string.hpp \
+$(top_srcdir)/include/libtorrent/error_code.hpp \
 $(top_srcdir)/include/libtorrent/extensions.hpp \
 $(top_srcdir)/include/libtorrent/extensions/metadata_transfer.hpp \
 $(top_srcdir)/include/libtorrent/extensions/logger.hpp \
