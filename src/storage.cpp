@@ -722,30 +722,46 @@ namespace libtorrent
 			error = "the number of files in resume data is 0";
 			return false;
 		}
-
-		lazy_entry const* slots = rd.dict_find_list("slots");
-		if (slots == 0)
-		{
-			error = "missing or invalid 'slots' entry in resume data";
-			return false;
-		}
 		
 		bool seed = false;
 		
-		if (int(slots->list_size()) == m_files.num_pieces())
+		lazy_entry const* slots = rd.dict_find_list("slots");
+		if (slots)
 		{
-			bool seed = true;
-			for (int i = 0; i < slots->list_size(); ++i)
+			if (int(slots->list_size()) == m_files.num_pieces())
 			{
-				lazy_entry const* e = slots->list_at(i);
-				if (e->list_int_value_at(i, -1) >= 0) continue;
-				seed = false;
-				break;
+				seed = true;
+				for (int i = 0; i < slots->list_size(); ++i)
+				{
+					lazy_entry const* e = slots->list_at(i);
+					if (e->list_int_value_at(i, -1) >= 0) continue;
+					seed = false;
+					break;
+				}
 			}
+		}
+		else if (lazy_entry const* pieces = rd.dict_find_string("pieces"))
+		{
+			if (int(pieces->string_length()) == m_files.num_pieces())
+			{
+				seed = true;
+				char const* p = pieces->string_ptr();
+				for (int i = 0; i < pieces->string_length(); ++i)
+				{
+					if ((p[i] & 1) == 1) continue;
+					seed = false;
+					break;
+				}
+			}
+		}
+		else
+		{
+			error = "missing 'slots' and 'pieces' entry in resume data";
+			return false;
 		}
 
 		bool full_allocation_mode = false;
-		if (rd.dict_find_string_value("allocation") == "full")
+		if (rd.dict_find_string_value("allocation") != "compact")
 			full_allocation_mode = true;
 
 		if (seed)
@@ -1722,6 +1738,7 @@ namespace libtorrent
 					m_unallocated_slots.clear();
 					m_free_slots.clear();
 				}
+				TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
 				return need_full_check;
 			}
 		}
@@ -1800,6 +1817,9 @@ namespace libtorrent
 		storage_mode_t storage_mode = storage_mode_compact;
 		if (rd.dict_find_string_value("allocation") != "compact")
 			storage_mode = storage_mode_sparse;
+
+		if (!m_storage->verify_resume_data(rd, error))
+			return check_no_fastresume(error);
 
 		// assume no piece is out of place (i.e. in a slot
 		// other than the one it should be in)
@@ -1886,9 +1906,6 @@ namespace libtorrent
 				}
 			}
 
-			if (!m_storage->verify_resume_data(rd, error))
-				return check_no_fastresume(error);
-
 			// This will corrupt the storage
 			// use while debugging to find
 			// states that cannot be scanned
@@ -1911,6 +1928,7 @@ namespace libtorrent
 					m_state = state_expand_pieces;
 					m_current_slot = 0;
 					error = "pieces needs to be reordered";
+					TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
 					return need_full_check;
 				}
 			}
@@ -2028,6 +2046,7 @@ namespace libtorrent
 				if (other_piece >= 0)
 					m_scratch_buffer.swap(m_scratch_buffer2);
 		
+				TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
 				return need_full_check;
 			}
 
@@ -2074,6 +2093,7 @@ namespace libtorrent
 			m_slot_to_piece[m_current_slot] = unassigned;
 			m_slot_to_piece[piece] = piece;
 		
+			TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
 			return need_full_check;
 		}
 
@@ -2153,6 +2173,7 @@ namespace libtorrent
 					m_state = state_expand_pieces;
 					m_current_slot = 0;
 					current_slot = m_current_slot;
+					TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
 					return need_full_check;
 				}
 			}
@@ -2162,6 +2183,8 @@ namespace libtorrent
 			}
 			return check_init_storage(error);
 		}
+
+		TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
 		return need_full_check;
 	}
 
