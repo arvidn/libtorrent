@@ -236,6 +236,10 @@ namespace libtorrent
 			boost::function<void(int, disk_io_job const&)> const& handler
 			= boost::function<void(int, disk_io_job const&)>());
 
+		void async_clear_read_cache(
+			boost::function<void(int, disk_io_job const&)> const& handler
+			= boost::function<void(int, disk_io_job const&)>());
+
 		void async_delete_files(
 			boost::function<void(int, disk_io_job const&)> const& handler
 			= boost::function<void(int, disk_io_job const&)>());
