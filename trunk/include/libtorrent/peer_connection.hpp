@@ -323,6 +323,10 @@ namespace libtorrent
 		// the number of bytes transferred within unchoke cycles
 		void reset_choke_counters();
 
+		// if this peer connection is useless (neither party is
+		// interested in the other), disconnect it
+		void disconnect_if_redundant();
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<logger> m_logger;
 #endif
@@ -854,9 +858,13 @@ namespace libtorrent
 		// is set to 1
 		bool m_snubbed:1;
 
+		// this is set to true once the bitfield is received
+		bool m_bitfield_received:1;
+
 #ifndef NDEBUG
 	public:
 		bool m_in_constructor:1;
+		bool m_disconnect_started:1;
 #endif
 	};
 }

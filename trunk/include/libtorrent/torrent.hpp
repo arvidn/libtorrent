@@ -610,6 +610,8 @@ namespace libtorrent
 		{ return m_connections_initialized; }
 		bool valid_metadata() const
 		{ return m_torrent_file->is_valid(); }
+		bool are_files_checked() const
+		{ return m_files_checked; }
 
 		// parses the info section from the given
 		// bencoded tree and moves the torrent
