@@ -173,7 +173,9 @@ namespace libtorrent
 			std::string const& file_path = path.native_file_string();
 #endif
 #else // if not windows
-			const mode_t permissions = S_IRWXU | S_IRGRP | S_IROTH;
+			// rely on default umask to filter x and w permissions
+			// for group and others
+			const mode_t permissions = S_IRWXU | S_IRWXG | S_IRWXO;
 			std::string const& file_path = path.native_file_string();
 #endif
 			m_fd = ::open(file_path.c_str(), map_open_mode(mode), permissions);
