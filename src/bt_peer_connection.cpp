@@ -2647,9 +2647,6 @@ namespace libtorrent
 			TORRENT_ASSERT(m_sent_handshake);
 		}
 
-		if (!m_in_constructor)
-			peer_connection::check_invariant();
-
 		if (!m_payloads.empty())
 		{
 			for (std::deque<range>::const_iterator i = m_payloads.begin();

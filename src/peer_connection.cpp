@@ -129,8 +129,10 @@ namespace libtorrent
 		, m_request_large_blocks(false)
 		, m_upload_only(false)
 		, m_snubbed(false)
+		, m_bitfield_received(false)
 #ifndef NDEBUG
 		, m_in_constructor(true)
+		, m_disconnect_started(false)
 #endif
 	{
 		m_channel_state[upload_channel] = peer_info::bw_idle;
@@ -232,8 +234,10 @@ namespace libtorrent
 		, m_request_large_blocks(false)
 		, m_upload_only(false)
 		, m_snubbed(false)
+		, m_bitfield_received(false)
 #ifndef NDEBUG
 		, m_in_constructor(true)
+		, m_disconnect_started(false)
 #endif
 	{
 		m_channel_state[upload_channel] = peer_info::bw_idle;
@@ -328,8 +332,6 @@ namespace libtorrent
 
 	void peer_connection::update_interest()
 	{
-		INVARIANT_CHECK;
-
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
@@ -351,10 +353,8 @@ namespace libtorrent
 		}
 		try
 		{
-			if (!interested)
-				send_not_interested();
-			else
-				t->get_policy().peer_is_interesting(*this);
+			if (!interested) send_not_interested();
+			else t->get_policy().peer_is_interesting(*this);
 		}
 		// may throw an asio error if socket has disconnected
 		catch (std::exception&) {}
@@ -455,15 +455,10 @@ namespace libtorrent
 #endif
 			// if this is a web seed. we don't have a peer_info struct
 			if (m_peer_info) m_peer_info->seed = true;
-			// if we're a seed too, disconnect
-			if (t->is_finished() && m_ses.settings().close_redundant_connections)
-			{
-				disconnect("seed to seed connection redundant");
-				return;
-			}
+
 			t->peer_has_all();
-			if (!t->is_finished())
-				t->get_policy().peer_is_interesting(*this);
+			if (t->is_finished()) send_not_interested();
+			else t->get_policy().peer_is_interesting(*this);
 			return;
 		}
 
@@ -482,8 +477,12 @@ namespace libtorrent
 						interesting = true;
 				}
 			}
-			if (interesting)
-				t->get_policy().peer_is_interesting(*this);
+			if (interesting) t->get_policy().peer_is_interesting(*this);
+			else send_not_interested();
+		}
+		else
+		{
+			update_interest();
 		}
 	}
 
@@ -492,6 +491,7 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 		TORRENT_ASSERT(!m_in_constructor);
 		TORRENT_ASSERT(m_disconnecting);
+		TORRENT_ASSERT(m_disconnect_started);
 
 		m_disk_recv_buffer_size = 0;
 
@@ -535,16 +535,25 @@ namespace libtorrent
 			m_suggested_pieces.begin(), m_suggested_pieces.end(), index);
 		if (i != m_suggested_pieces.end()) m_suggested_pieces.erase(i);
 
-		// optimization, don't send have messages
-		// to peers that already have the piece
-		if (!m_ses.settings().send_redundant_have
-			&& has_piece(index))
+		if (has_piece(index))
 		{
+			// if we got a piece that this peer has
+			// it might have been the last interesting
+			// piece this peer had. We might not be
+			// interested anymore
+			update_interest();
+			if (is_disconnecting()) return;
+
+			// optimization, don't send have messages
+			// to peers that already have the piece
+			if (!m_ses.settings().send_redundant_have)
+			{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string()
-				<< " ==> HAVE    [ piece: " << index << " ] SUPRESSED\n";
+				(*m_logger) << time_now_string()
+					<< " ==> HAVE    [ piece: " << index << " ] SUPRESSED\n";
 #endif
-			return;
+				return;
+			}
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -561,8 +570,6 @@ namespace libtorrent
 
 	bool peer_connection::has_piece(int i) const
 	{
-		INVARIANT_CHECK;
-
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 		TORRENT_ASSERT(t->valid_metadata());
@@ -1055,6 +1062,10 @@ namespace libtorrent
 
 		if (is_disconnecting()) return;
 
+		// if we haven't received a bitfield, it was
+		// probably omitted, which is the same as 'have_none'
+		if (!m_bitfield_received) incoming_have_none();
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string()
 			<< " <== HAVE    [ piece: " << index << "]\n";
@@ -1121,15 +1132,12 @@ namespace libtorrent
 				}
 			}
 			
-			if (upload_only())
+			if (is_seed())
 			{
-				TORRENT_ASSERT(m_peer_info);
-				if (is_seed()) m_peer_info->seed = true;
-				if (t->is_finished() && m_ses.settings().close_redundant_connections)
-				{
-					disconnect("seed to seed connection redundant");
-					return;
-				}
+				m_peer_info->seed = true;
+				m_upload_only = true;
+				disconnect_if_redundant();
+				if (is_disconnecting()) return;
 			}
 		}
 	}
@@ -1179,6 +1187,8 @@ namespace libtorrent
 			return;
 		}
 
+		m_bitfield_received = true;
+
 		// if we don't have metadata yet
 		// just remember the bitmask
 		// don't update the piecepicker
@@ -1201,12 +1211,9 @@ namespace libtorrent
 #endif
 			// if this is a web seed. we don't have a peer_info struct
 			if (m_peer_info) m_peer_info->seed = true;
-			// if we're a seed too, disconnect
-			if (t->is_finished() && m_ses.settings().close_redundant_connections)
-			{
-				disconnect("seed to seed connection redundant, disconnecting");
-				return;
-			}
+			m_upload_only = true;
+			disconnect_if_redundant();
+			if (is_disconnecting()) return;
 
 			m_have_piece.set_all();
 			m_num_pieces = num_pieces;
@@ -1247,6 +1254,22 @@ namespace libtorrent
 		else if (upload_only()) disconnect("upload to upload connections");
 	}
 
+	void peer_connection::disconnect_if_redundant()
+	{
+		if (!m_ses.settings().close_redundant_connections) return;
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
+		if (m_upload_only && t->is_finished())
+			disconnect("seed to seed");
+
+		if (m_upload_only
+			&& !m_interesting
+			&& m_bitfield_received
+			&& t->are_files_checked())
+			disconnect("uninteresting upload-only peer");
+	}
+
 	// -----------------------------
 	// ---------- REQUEST ----------
 	// -----------------------------
@@ -1257,6 +1280,10 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
+
+		// if we haven't received a bitfield, it was
+		// probably omitted, which is the same as 'have_none'
+		if (!m_bitfield_received) incoming_have_none();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1459,6 +1486,10 @@ namespace libtorrent
 			data.get()[0] = ~data.get()[0];
 		}
 #endif
+
+		// if we haven't received a bitfield, it was
+		// probably omitted, which is the same as 'have_none'
+		if (!m_bitfield_received) incoming_have_none();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1797,6 +1828,12 @@ namespace libtorrent
 		m_have_all = true;
 
 		if (m_peer_info) m_peer_info->seed = true;
+		m_upload_only = true;
+		m_bitfield_received = true;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << " *** THIS IS A SEED ***\n";
+#endif
 
 		// if we don't have metadata yet
 		// just remember the bitmask
@@ -1804,20 +1841,10 @@ namespace libtorrent
 		// (since it doesn't exist yet)
 		if (!t->ready_for_connections())
 		{
+			disconnect_if_redundant();
 			// TODO: this might need something more
 			// so that once we have the metadata
 			// we can construct a full bitfield
-			return;
-		}
-
-#ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << " *** THIS IS A SEED ***\n";
-#endif
-
-		// if we're a seed too, disconnect
-		if (t->is_finished() && m_ses.settings().close_redundant_connections)
-		{
-			disconnect("seed to seed connection redundant, disconnecting");
 			return;
 		}
 
@@ -1826,8 +1853,12 @@ namespace libtorrent
 		m_num_pieces = m_have_piece.size();
 		
 		t->peer_has_all();
-		if (!t->is_finished())
-			t->get_policy().peer_is_interesting(*this);
+
+		// if we're finished, we're not interested
+		if (t->is_finished()) send_not_interested();
+		else t->get_policy().peer_is_interesting(*this);
+
+		disconnect_if_redundant();
 	}
 	
 	// -----------------------------
@@ -1854,8 +1885,13 @@ namespace libtorrent
 #endif
 		if (is_disconnecting()) return;
 		if (m_peer_info) m_peer_info->seed = false;
+		m_bitfield_received = true;
+
+		// we're never interested in a peer that doesn't have anything
+		send_not_interested();
 
 		TORRENT_ASSERT(!m_have_piece.empty() || !t->ready_for_connections());
+		disconnect_if_redundant();
 	}
 
 	// -----------------------------
@@ -2090,11 +2126,9 @@ namespace libtorrent
 
 	void peer_connection::send_interested()
 	{
-		INVARIANT_CHECK;
-
 		if (m_interesting) return;
-		write_interested();
 		m_interesting = true;
+		write_interested();
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " ==> INTERESTED\n";
@@ -2103,17 +2137,16 @@ namespace libtorrent
 
 	void peer_connection::send_not_interested()
 	{
-		INVARIANT_CHECK;
-
 		if (!m_interesting) return;
-		write_not_interested();
 		m_interesting = false;
+		write_not_interested();
 
 		m_became_uninteresting = time_now();
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " ==> NOT_INTERESTED\n";
 #endif
+		disconnect_if_redundant();
 	}
 
 	void peer_connection::send_block_requests()
@@ -2252,6 +2285,10 @@ namespace libtorrent
 	void peer_connection::disconnect(char const* message, int error)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+#ifndef NDEBUG
+		m_disconnect_started = true;
+#endif
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		switch (error)
@@ -2979,8 +3016,6 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		INVARIANT_CHECK;
-
 		if (m_channel_state[upload_channel] != peer_info::bw_idle) return;
 		
 		shared_ptr<torrent> t = m_torrent.lock();
@@ -3388,8 +3423,6 @@ namespace libtorrent
 
 	bool peer_connection::can_write() const
 	{
-		INVARIANT_CHECK;
-
 		// if we have requests or pending data to be sent or announcements to be made
 		// we want to send data
 		return !m_send_buffer.empty()
@@ -3400,8 +3433,6 @@ namespace libtorrent
 
 	bool peer_connection::can_read() const
 	{
-		INVARIANT_CHECK;
-
 		bool ret = (m_bandwidth_limit[download_channel].quota_left() > 0
 				|| m_ignore_bandwidth_limits)
 			&& !m_connecting
@@ -3585,6 +3616,7 @@ namespace libtorrent
 		if (m_disconnecting)
 		{
 			TORRENT_ASSERT(!t);
+			TORRENT_ASSERT(m_disconnect_started);
 		}
 		else if (!m_in_constructor)
 		{
@@ -3633,6 +3665,23 @@ namespace libtorrent
 #endif
 			return;
 		}
+
+		if (m_ses.settings().close_redundant_connections)
+		{
+			// make sure upload only peers are disconnected
+			if (t->is_finished() && m_upload_only)
+				TORRENT_ASSERT(m_disconnect_started);
+			if (m_upload_only
+				&& !m_interesting
+				&& m_bitfield_received
+				&& t->are_files_checked())
+				TORRENT_ASSERT(m_disconnect_started);
+		}
+
+		if (t->is_finished())
+			TORRENT_ASSERT(!m_interesting);
+		if (is_seed())
+			TORRENT_ASSERT(m_upload_only);
 
 		if (t->has_picker())
 		{

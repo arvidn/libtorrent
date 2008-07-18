@@ -1344,8 +1344,12 @@ namespace libtorrent
 		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
 
 		m_picker->we_have(index);
-		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
-			(*i)->announce_piece(index);
+		for (peer_iterator i = m_connections.begin(); i != m_connections.end();)
+		{
+			peer_connection* p = *i;
+			++i;
+			p->announce_piece(index);
+		}
 
 		for (std::set<void*>::iterator i = peers.begin()
 			, end(peers.end()); i != end; ++i)
@@ -1989,7 +1993,6 @@ namespace libtorrent
 			{
 				if (m_picker.get())
 				{
-					TORRENT_ASSERT(!is_seed());
 					m_picker->dec_refcount_all();
 				}
 			}
@@ -3108,8 +3111,6 @@ namespace libtorrent
 	// called when torrent is complete (all pieces downloaded)
 	void torrent::completed()
 	{
-		INVARIANT_CHECK;
-
 		m_picker.reset();
 
 		set_state(torrent_status::seeding);
@@ -3224,24 +3225,13 @@ namespace libtorrent
 			m_connections_initialized = true;
 			// all peer connections have to initialize themselves now that the metadata
 			// is available
-			for (torrent::peer_iterator i = m_connections.begin()
-				, end(m_connections.end()); i != end;)
+			for (torrent::peer_iterator i = m_connections.begin();
+				i != m_connections.end();)
 			{
-				boost::intrusive_ptr<peer_connection> pc = *i;
+				peer_connection* pc = *i;
 				++i;
-#ifndef BOOST_NO_EXCEPTIONS
-				try
-				{
-#endif
-					pc->on_metadata();
-					pc->init();
-#ifndef BOOST_NO_EXCEPTIONS
-				}
-				catch (std::exception& e)
-				{
-					pc->disconnect(e.what());
-				}
-#endif
+				pc->on_metadata();
+				pc->init();
 			}
 		}
 
