@@ -16,7 +16,7 @@ libtorrent_rasterbar_la_SOURCES = entry.cpp escape_string.cpp \
 lazy_bdecode.cpp assert.cpp enum_net.cpp broadcast_socket.cpp \
 peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
 natpmp.cpp piece_picker.cpp policy.cpp session.cpp session_impl.cpp sha1.cpp \
-stat.cpp storage.cpp mapped_storage.cpp torrent.cpp torrent_handle.cpp pe_crypto.cpp \
+stat.cpp storage.cpp torrent.cpp torrent_handle.cpp pe_crypto.cpp \
 torrent_info.cpp tracker_manager.cpp http_connection.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
@@ -25,6 +25,7 @@ socks5_stream.cpp socks4_stream.cpp http_stream.cpp connection_queue.cpp \
 disk_io_thread.cpp ut_metadata.cpp magnet_uri.cpp udp_socket.cpp smart_ban.cpp \
 http_parser.cpp gzip.cpp disk_buffer_holder.cpp create_torrent.cpp GeoIP.c \
 parse_url.cpp file_storage.cpp $(kademlia_sources)
+# mapped_storage.cpp 
 
 noinst_HEADERS = \
 $(top_srcdir)/include/libtorrent/alert.hpp \
