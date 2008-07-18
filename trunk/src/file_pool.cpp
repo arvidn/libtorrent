@@ -42,36 +42,6 @@ namespace libtorrent
 	using boost::multi_index::nth_index;
 	using boost::multi_index::get;
 
-#if BOOST_VERSION >= 103500
-	struct file_pool_error_category : boost::system::error_category
-	{
-		virtual const char* name() const { return "file pool error"; }
-		virtual std::string message(int ev) const
-		{
-			static char const* msgs[] =
-			{ "no error", "torrent file collides with file from another torrent" };
-			if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
-				return "Unknown error";
-			return msgs[ev];
-		}
-		virtual boost::system::error_condition default_error_condition(int ev) const
-		{
-			return boost::system::error_condition(ev, *this);
-		}
-		virtual bool equivalent(int code, boost::system::error_condition const& condition) const
-		{
-			return default_error_condition(code) == condition;
-		}
-		virtual bool equivalent(boost::system::error_code const& code, int condition ) const
-		{
-			return *this == code.category() && code.value() == condition;
-		}
-	};
-
-	file_pool_error_category file_pool_category;
-
-#endif
-
 	boost::shared_ptr<file> file_pool::open_file(void* st, fs::path const& p
 		, file::open_mode m, error_code& ec)
 	{
@@ -92,7 +62,7 @@ namespace libtorrent
 				// this means that another instance of the storage
 				// is using the exact same file.
 #if BOOST_VERSION >= 103500
-				ec = error_code(1, file_pool_category);
+				ec = error_code(errors::file_collision, libtorrent_category);
 #endif
 				return boost::shared_ptr<file>();
 			}

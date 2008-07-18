@@ -43,10 +43,31 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
+	namespace errors
+	{
+		enum error_code_enum
+		{
+			no_error = 0,
+			file_collision
+		};
+	}
+
 #if BOOST_VERSION < 103500
 	typedef asio::error_code error_code;
 	inline asio::error::error_category get_posix_category() { return asio::error::system_category; }
 #else
+
+	struct libtorrent_error_category : boost::system::error_category
+	{
+		virtual const char* name() const;
+		virtual std::string message(int ev) const;
+		virtual boost::system::error_condition default_error_condition(int ev) const
+		{ return boost::system::error_condition(ev, *this); }
+	};
+
+	extern libtorrent_error_category libtorrent_category;
+
 	using boost::system::error_code;
 	inline boost::system::error_category const& get_posix_category()
 	{ return boost::system::get_posix_category(); }
