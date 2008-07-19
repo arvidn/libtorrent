@@ -2497,6 +2497,7 @@ namespace libtorrent
 
 		p.flags |= is_seed() ? peer_info::seed : 0;
 		p.flags |= m_snubbed ? peer_info::snubbed : 0;
+		p.flags |= m_upload_only ? peer_info::upload_only : 0;
 		if (peer_info_struct())
 		{
 			policy::peer* pi = peer_info_struct();

@@ -2502,6 +2502,7 @@ It contains the following fields::
 			seed = 0x400,
 			optimistic_unchoke = 0x800,
 			snubbed = 0x1000,
+			upload_only = 0x2000,
 			rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
 		};
@@ -2638,6 +2639,11 @@ any combination of the enums above. The following table describes each flag:
 |                         | the request timeout from when the request was sent.   |
 |                         | We're currently picking one block at a time from this |
 |                         | peer.                                                 |
++-------------------------+-------------------------------------------------------+
+| ``upload_only``         | This peer has either explicitly (with an extension)   |
+|                         | or implicitly (by becoming a seed) told us that it    |
+|                         | will not downloading anything more, regardless of     |
+|                         | which pieces we have.                                 |
 +-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html
