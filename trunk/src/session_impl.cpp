@@ -1088,17 +1088,20 @@ namespace aux {
 		// --------------------------------------------------------------
 		// scrape paused torrents that are auto managed
 		// --------------------------------------------------------------
-		--m_auto_scrape_time_scaler;
-		if (m_auto_scrape_time_scaler <= 0)
+		if (!is_paused())
 		{
-			m_auto_scrape_time_scaler = m_settings.auto_scrape_interval
-				/ (std::max)(1, num_paused_auto_managed);
-			if (m_auto_scrape_time_scaler < m_settings.auto_scrape_min_interval)
-				m_auto_scrape_time_scaler = m_settings.auto_scrape_min_interval;
-
-			if (least_recently_scraped != m_torrents.end())
+			--m_auto_scrape_time_scaler;
+			if (m_auto_scrape_time_scaler <= 0)
 			{
-				least_recently_scraped->second->scrape_tracker();
+				m_auto_scrape_time_scaler = m_settings.auto_scrape_interval
+					/ (std::max)(1, num_paused_auto_managed);
+				if (m_auto_scrape_time_scaler < m_settings.auto_scrape_min_interval)
+					m_auto_scrape_time_scaler = m_settings.auto_scrape_min_interval;
+
+				if (least_recently_scraped != m_torrents.end())
+				{
+					least_recently_scraped->second->scrape_tracker();
+				}
 			}
 		}
 
