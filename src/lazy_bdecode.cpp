@@ -366,7 +366,7 @@ namespace libtorrent
 		switch (e.type())
 		{
 			case lazy_entry::none_t: return os << "none";
-			case lazy_entry::int_t: return os << e.int_value();
+			case lazy_entry::int_t: return os << std::dec << std::setw(0) << e.int_value();
 			case lazy_entry::string_t:
 			{
 				bool printable = true;
@@ -381,7 +381,8 @@ namespace libtorrent
 				os << "'";
 				if (printable) return os << e.string_value() << "'";
 				for (int i = 0; i < e.string_length(); ++i)
-					os << std::hex << int((unsigned char)(str[i]));
+					os << std::hex << std::setfill('0') << std::setw(2)
+					<< int((unsigned char)(str[i]));
 				return os << "'";
 			}
 			case lazy_entry::list_t:
