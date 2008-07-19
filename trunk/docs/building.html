@@ -360,6 +360,8 @@ API is used.</li>
 <li><tt class="docutils literal"><span class="pre">off</span></tt> - internal invariant checks are
 disabled. The resulting executable will run
 faster than a regular debug build.</li>
+<li><tt class="docutils literal"><span class="pre">full</span></tt> - turns on extra expensive invariant
+checks.</li>
 </ul>
 </td>
 </tr>
@@ -520,8 +522,8 @@ invariant checks and asserts built into it. If you want to disable such checks
 defines you can use to control the build.</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="44%" />
-<col width="56%" />
+<col width="45%" />
+<col width="55%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">macro</th>
@@ -647,6 +649,11 @@ be quite expensive, they typically don't scale
 very well. This option can be used to still
 build in debug mode, with asserts enabled, but
 make the resulting executable faster.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_EXPENSIVE_INVARIANT_CHECKS</span></tt></td>
+<td>This will enable extra expensive invariant
+checks. Useful for finding particular bugs
+or for running before releases.</td>
 </tr>
 </tbody>
 </table>

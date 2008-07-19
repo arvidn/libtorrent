@@ -57,7 +57,8 @@ namespace libtorrent
 			on_parole = 0x200,
 			seed = 0x400,
 			optimistic_unchoke = 0x800,
-			snubbed = 0x1000
+			snubbed = 0x1000,
+			upload_only = 0x2000
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			, rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000

@@ -381,6 +381,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 				(i->write_state == peer_info::bw_global)?'w':
 				(i->write_state == peer_info::bw_network)?'W':'.')
 			<< ((i->flags & peer_info::snubbed)?'S':'.')
+			<< ((i->flags & peer_info::upload_only)?'U':'D')
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			<< ((i->flags & peer_info::rc4_encrypted)?'E':
 				(i->flags & peer_info::plaintext_encrypted)?'e':'.')
