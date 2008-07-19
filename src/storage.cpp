@@ -686,15 +686,29 @@ namespace libtorrent
 			p.push_back(entry(i->second));
 			fl.push_back(entry(p));
 		}
+		
+		if (m_mapped_files)
+		{
+			entry::list_type& fl = rd["mapped_files"].list();
+			for (file_storage::iterator i = m_mapped_files->begin()
+				, end(m_mapped_files->end()); i != end; ++i)
+			{
+				fl.push_back(i->path.string());
+			}
+		}
+
 		return false;
 	}
 
 	bool storage::verify_resume_data(lazy_entry const& rd, std::string& error)
 	{
-		if (rd.type() != lazy_entry::dict_t)
+		lazy_entry const* mapped_files = rd.dict_find_list("mapped_files");
+		if (mapped_files && mapped_files->list_size() == m_files.num_files())
 		{
-			error = "invalid fastresume file (not a dictionary)";
-			return true;
+			if (!m_mapped_files)
+			{ m_mapped_files.reset(new file_storage(m_files)); }
+			for (int i = 0; i < m_files.num_files(); ++i)
+				m_mapped_files->rename_file(i, mapped_files->list_string_value_at(i));
 		}
 
 		std::vector<std::pair<size_type, std::time_t> > file_sizes;
