@@ -2437,6 +2437,22 @@ namespace libtorrent
 		m_seeding_time = seconds(rd.dict_find_int_value("seeding_time"));
 		m_complete = rd.dict_find_int_value("num_seeds", -1);
 		m_incomplete = rd.dict_find_int_value("num_downloaders", -1);
+		set_upload_limit(rd.dict_find_int_value("upload_rate_limit", -1));
+		set_download_limit(rd.dict_find_int_value("download_rate_limit", -1));
+		set_max_connections(rd.dict_find_int_value("max_connections", -1));
+		set_max_uploads(rd.dict_find_int_value("max_uploads", -1));
+
+		lazy_entry const* piece_priority = rd.dict_find_string("piece_priority");
+		if (piece_priority && piece_priority->string_length()
+			== m_torrent_file->num_pieces())
+		{
+			char const* p = piece_priority->string_ptr();
+			for (int i = 0; i < piece_priority->string_length(); ++i)
+				m_picker->set_piece_priority(i, p[i]);
+		}
+
+		if (rd.dict_find_int_value("auto_managed")) auto_managed(true);
+		if (rd.dict_find_int_value("paused")) pause();
 	}
 	
 	void torrent::write_resume_data(entry& ret) const
@@ -2515,8 +2531,7 @@ namespace libtorrent
 		pieces.resize(m_torrent_file->num_pieces());
 		if (is_seed())
 		{
-			for (int i = 0, end(pieces.size()); i < end; ++i)
-				pieces[i] = 1;
+			std::memset(&pieces[0], 1, pieces.size());
 		}
 		else
 		{
@@ -2561,6 +2576,26 @@ namespace libtorrent
 			if (ec) continue;
 			peer["port"] = i->second.port;
 			peer_list.push_back(peer);
+		}
+
+		ret["upload_rate_limit"] = upload_limit();
+		ret["download_rate_limit"] = download_limit();
+		ret["max_connections"] = max_connections();
+		ret["max_uploads"] = max_uploads();
+		ret["paused"] = m_paused;
+		ret["auto_managed"] = m_auto_managed;
+
+		// write piece priorities
+		entry::string_type& piece_priority = ret["piece_priority"].string();
+		piece_priority.resize(m_torrent_file->num_pieces());
+		if (is_seed())
+		{
+			std::memset(&piece_priority[0], 1, pieces.size());
+		}
+		else
+		{
+			for (int i = 0, end(piece_priority.size()); i < end; ++i)
+				piece_priority[i] = m_picker->piece_priority(i);
 		}
 	}
 
