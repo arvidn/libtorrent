@@ -2271,7 +2271,6 @@ namespace libtorrent
 	void peer_connection::timed_out()
 	{
 		TORRENT_ASSERT(m_connecting);
-		TORRENT_ASSERT(m_connection_ticket >= 0);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << m_remote.address().to_string()
 			<< "\n";
