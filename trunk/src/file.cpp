@@ -176,7 +176,7 @@ namespace libtorrent
 		std::string file_path = utf8_native(path.native_file_string());
 #endif
 
-		HANDLE m_file_handle = CreateFile(
+		m_file_handle = CreateFile(
 			file_path.c_str()
 			, mode.m_mask
 			, FILE_SHARE_READ
@@ -213,6 +213,7 @@ namespace libtorrent
 #ifndef NDEBUG
 		m_open_mode = mode;
 #endif
+		TORRENT_ASSERT(is_open());
 		return true;
 	}
 

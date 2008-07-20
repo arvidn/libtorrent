@@ -80,6 +80,7 @@ namespace libtorrent
 					m_files.erase(i);
 					return boost::shared_ptr<file>();
 				}
+				TORRENT_ASSERT(e.file_ptr->is_open());
 				e.mode = m;
 			}
 			pt.replace(i, e);
@@ -110,6 +111,7 @@ namespace libtorrent
 		e.key = st;
 		e.file_path = p;
 		pt.insert(e);
+		TORRENT_ASSERT(e.file_ptr->is_open());
 		return e.file_ptr;
 	}
 
