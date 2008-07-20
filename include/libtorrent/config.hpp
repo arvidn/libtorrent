@@ -83,7 +83,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // should wpath or path be used?
-#if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY && BOOST_VERSION >= 103400
+#if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \
+	&& BOOST_VERSION >= 103400 && defined WIN32
 #define TORRENT_USE_WPATH 1
 #else
 #define TORRENT_USE_WPATH 0
