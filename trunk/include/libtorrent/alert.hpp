@@ -115,7 +115,7 @@ namespace libtorrent {
 		std::auto_ptr<alert> get();
 
 		template <class T>
-		bool should_post() const { return m_alert_mask & T::static_category; }
+		bool should_post() const { return (m_alert_mask & T::static_category) != 0; }
 
 		alert const* wait_for_alert(time_duration max_wait);
 
