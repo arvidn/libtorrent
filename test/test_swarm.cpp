@@ -172,11 +172,15 @@ void test_swarm()
 	// this should time out (ret == 0) and it should take
 	// about 2 seconds
 	ptime start = time_now();
-	alert const* ret = ses1.wait_for_alert(seconds(2));
-	TEST_CHECK(ret == 0);
-	if (ret != 0) std::cerr << ret->message() << std::endl;
+	alert const* ret;
+	while (ret = ses1.wait_for_alert(seconds(2)))
+	{
+		a = ses1.pop_alert();
+		std::cerr << ret->message() << std::endl;
+		start = time_now();
+	}
 	TEST_CHECK(time_now() - start < seconds(3));
-	TEST_CHECK(time_now() - start > seconds(2));
+	TEST_CHECK(time_now() - start >= seconds(2));
 }
 
 int test_main()
