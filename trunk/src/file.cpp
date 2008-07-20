@@ -31,27 +31,22 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/pch.hpp"
+#include "libtorrent/config.hpp"
 
 #include <boost/scoped_ptr.hpp>
-#ifdef _WIN32
+#ifdef TORRENT_WINDOWS
 // windows part
 #include "libtorrent/utf8.hpp"
 
-#include <io.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#ifndef _MODE_T_
-typedef int mode_t;
-#endif
+#include <windows.h>
+#include <winioctl.h>
 
 #ifdef UNICODE
 #include "libtorrent/storage.hpp"
 #endif
 
 #else
-// unix part
+// posix part
 #define _FILE_OFFSET_BITS 64
 #include <unistd.h>
 #include <fcntl.h>
@@ -88,18 +83,7 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 
 namespace
 {
-	enum { mode_in = 1, mode_out = 2 };
-
-	mode_t map_open_mode(int m)
-	{
-		if (m == (mode_in | mode_out)) return O_RDWR | O_CREAT | O_BINARY | O_RANDOM;
-		if (m == mode_out) return O_WRONLY | O_CREAT | O_BINARY | O_RANDOM;
-		if (m == mode_in) return O_RDONLY | O_BINARY | O_RANDOM;
-		TORRENT_ASSERT(false);
-		return 0;
-	}
-
-#ifdef WIN32
+#ifdef TORRENT_WINDOWS
 	std::string utf8_native(std::string const& s)
 	{
 		try
@@ -121,9 +105,16 @@ namespace
 		}
 	}
 #else
-	std::string const& utf8_native(std::string const& s)
+
+	enum { mode_in = 1, mode_out = 2 };
+
+	mode_t map_open_mode(int m)
 	{
-		return s;
+		if (m == (mode_in | mode_out)) return O_RDWR | O_CREAT | O_BINARY | O_RANDOM;
+		if (m == mode_out) return O_WRONLY | O_CREAT | O_BINARY | O_RANDOM;
+		if (m == mode_in) return O_RDONLY | O_BINARY | O_RANDOM;
+		TORRENT_ASSERT(false);
+		return 0;
 	}
 #endif
 
@@ -133,206 +124,242 @@ namespace libtorrent
 {
 	namespace fs = boost::filesystem;
 
+#ifdef TORRENT_WINDOWS
+	const file::open_mode file::in(GENERIC_READ);
+	const file::open_mode file::out(GENERIC_WRITE);
+	const file::seek_mode file::begin(FILE_BEGIN);
+	const file::seek_mode file::end(FILE_END);
+#else
 	const file::open_mode file::in(mode_in);
 	const file::open_mode file::out(mode_out);
+	const file::seek_mode file::begin(SEEK_SET);
+	const file::seek_mode file::end(SEEK_END);
+#endif
 
-	const file::seek_mode file::begin(1);
-	const file::seek_mode file::end(2);
-
-	struct file::impl
-	{
-		impl()
-			: m_fd(-1)
-			, m_open_mode(0)
-		{}
-
-		impl(fs::path const& path, int mode, error_code& ec)
-			: m_fd(-1)
-			, m_open_mode(0)
-		{
-			open(path, mode, ec);
-		}
-
-		~impl()
-		{
-			close();
-		}
-
-		bool open(fs::path const& path, int mode, error_code& ec)
-		{
-			close();
+	file::file()
 #ifdef TORRENT_WINDOWS
-
-			const int permissions = _S_IREAD | _S_IWRITE;
-
-#ifdef defined UNICODE
-#define open _wopen
-			std::wstring file_path(safe_convert(path.native_file_string()));
+		: m_file_handle(INVALID_HANDLE_VALUE)
 #else
-#define open _open
-			std::string const& file_path = path.native_file_string();
+		: m_fd(-1)
 #endif
-#else // if not windows
-			// rely on default umask to filter x and w permissions
-			// for group and others
-			const mode_t permissions = S_IRWXU | S_IRWXG | S_IRWXO;
-			std::string const& file_path = path.native_file_string();
+#ifndef NDEBUG
+		, m_open_mode(0)
 #endif
-			m_fd = ::open(file_path.c_str(), map_open_mode(mode), permissions);
-
-#ifdef TORRENT_WINDOWS
-#undef open
-#endif
-
-			if (m_fd == -1)
-			{
-				ec = error_code(errno, get_posix_category());
-				return false;
-			}
-			m_open_mode = mode;
-			return true;
-		}
-
-		void close()
-		{
-			if (m_fd == -1) return;
-
-#ifdef _WIN32
-			::_close(m_fd);
-#else
-			::close(m_fd);
-#endif
-			m_fd = -1;
-			m_open_mode = 0;
-		}
-
-		size_type read(char* buf, size_type num_bytes, error_code& ec)
-		{
-			TORRENT_ASSERT(m_open_mode & mode_in);
-			TORRENT_ASSERT(m_fd != -1);
-
-#ifdef _WIN32
-			size_type ret = ::_read(m_fd, buf, num_bytes);
-#else
-			size_type ret = ::read(m_fd, buf, num_bytes);
-#endif
-			if (ret == -1) ec = error_code(errno, get_posix_category());
-			return ret;
-		}
-
-		size_type write(const char* buf, size_type num_bytes, error_code& ec)
-		{
-			TORRENT_ASSERT(m_open_mode & mode_out);
-			TORRENT_ASSERT(m_fd != -1);
-
-			// TODO: Test this a bit more, what happens with random failures in
-			// the files?
-//			if ((rand() % 100) > 80)
-//				throw file_error("debug");
-
-#ifdef _WIN32
-			size_type ret = ::_write(m_fd, buf, num_bytes);
-#else
-			size_type ret = ::write(m_fd, buf, num_bytes);
-#endif
-			if (ret == -1) ec = error_code(errno, get_posix_category());
-			return ret;
-		}
-
-		bool set_size(size_type s, error_code& ec)
-		{
-#ifdef _WIN32
-#error file.cpp is for posix systems only. use file_win.cpp on windows
-#else
-			if (ftruncate(m_fd, s) < 0)
-			{
-				ec = error_code(errno, get_posix_category());
-				return false;
-			}
-			return true;
-#endif
-		}
-
-		size_type seek(size_type offset, int m, error_code& ec)
-		{
-			TORRENT_ASSERT(m_open_mode);
-			TORRENT_ASSERT(m_fd != -1);
-
-			int seekdir = (m == 1)?SEEK_SET:SEEK_END;
-#ifdef _WIN32
-			size_type ret = _lseeki64(m_fd, offset, seekdir);
-#else
-			size_type ret = lseek(m_fd, offset, seekdir);
-#endif
-
-			// For some strange reason this fails
-			// on win32. Use windows specific file
-			// wrapper instead.
-			if (ret < 0) ec = error_code(errno, get_posix_category());
-			return ret;
-		}
-
-		size_type tell(error_code& ec)
-		{
-			TORRENT_ASSERT(m_open_mode);
-			TORRENT_ASSERT(m_fd != -1);
-
-			size_type ret;
-#ifdef _WIN32
-			ret = _telli64(m_fd);
-#else
-			ret = lseek(m_fd, 0, SEEK_CUR);
-#endif
-			if (ret < 0) ec = error_code(errno, get_posix_category());
-			return ret;
-		}
-
-		int m_fd;
-		int m_open_mode;
-	};
-
-	// pimpl forwardings
-
-	file::file() : m_impl(new impl()) {}
-
-	file::file(fs::path const& p, file::open_mode m, error_code& ec)
-		: m_impl(new impl(p, m.m_mask, ec))
 	{}
 
-	file::~file() {}
-
-	bool file::open(fs::path const& p, file::open_mode m, error_code& ec)
+	file::file(fs::path const& path, open_mode mode, error_code& ec)
+#ifdef TORRENT_WINDOWS
+		: m_file_handle(INVALID_HANDLE_VALUE)
+#else
+		: m_fd(-1)
+#endif
+#ifndef NDEBUG
+		, m_open_mode(0)
+#endif
 	{
-		return m_impl->open(p, m.m_mask, ec);
+		open(path, mode, ec);
+	}
+
+	file::~file()
+	{
+		close();
+	}
+
+	bool file::open(fs::path const& path, open_mode mode, error_code& ec)
+	{
+		close();
+#ifdef TORRENT_WINDOWS
+
+#ifdef UNICODE
+		std::wstring file_path(safe_convert(path.native_file_string()));
+#else
+		std::string file_path = utf8_native(path.native_file_string());
+#endif
+
+		HANDLE m_file_handle = CreateFile(
+			file_path.c_str()
+			, mode.m_mask
+			, FILE_SHARE_READ
+			, 0
+			, (mode & out)?OPEN_ALWAYS:OPEN_EXISTING
+			, FILE_ATTRIBUTE_NORMAL
+			, 0);
+
+		if (m_file_handle == INVALID_HANDLE_VALUE)
+		{
+			ec = error_code(GetLastError(), get_system_category());
+			return false;
+		}
+
+		// try to make the file sparse if supported
+		if (mode & out)
+		{
+			DWORD temp;
+			::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, 0, 0
+				, 0, 0, &temp, 0);
+		}
+#else
+		// rely on default umask to filter x and w permissions
+		// for group and others
+		m_fd = ::open(path.native_file_string().c_str()
+			, map_open_mode(mode.m_mask), S_IRWXU | S_IRWXG | S_IRWXO);
+
+		if (m_fd == -1)
+		{
+			ec = error_code(errno, get_posix_category());
+			return false;
+		}
+#endif
+#ifndef NDEBUG
+		m_open_mode = mode;
+#endif
+		return true;
+	}
+
+	bool file::is_open() const
+	{
+#ifdef TORRENT_WINDOWS
+		return m_file_handle != INVALID_HANDLE_VALUE;
+#else
+		return m_fd != -1;
+#endif
 	}
 
 	void file::close()
 	{
-		m_impl->close();
-	}
-
-	size_type file::write(const char* buf, size_type num_bytes, error_code& ec)
-	{
-		return m_impl->write(buf, num_bytes, ec);
+#ifdef TORRENT_WINDOWS
+		if (m_file_handle == INVALID_HANDLE_VALUE) return;
+		CloseHandle(m_file_handle);
+		m_file_handle = INVALID_HANDLE_VALUE;
+#else
+		if (m_fd == -1) return;
+		::close(m_fd);
+		m_fd = -1;
+#endif
+#ifndef NDEBUG
+		m_open_mode = 0;
+#endif
 	}
 
 	size_type file::read(char* buf, size_type num_bytes, error_code& ec)
 	{
-		return m_impl->read(buf, num_bytes, ec);
+		TORRENT_ASSERT((m_open_mode & in) == in);
+		TORRENT_ASSERT(buf);
+		TORRENT_ASSERT(num_bytes >= 0);
+		TORRENT_ASSERT(is_open());
+
+#ifdef TORRENT_WINDOWS
+
+		TORRENT_ASSERT(DWORD(num_bytes) == num_bytes);
+		DWORD ret = 0;
+		if (num_bytes != 0)
+		{
+			if (ReadFile(m_file_handle, buf, (DWORD)num_bytes, &ret, 0) == FALSE)
+			{
+				ec = error_code(GetLastError(), get_system_category());
+				return -1;
+			}
+		}
+#else
+		size_type ret = ::read(m_fd, buf, num_bytes);
+		if (ret == -1) ec = error_code(errno, get_posix_category());
+#endif
+		return ret;
 	}
 
-	bool file::set_size(size_type s, error_code& ec)
+	size_type file::write(const char* buf, size_type num_bytes, error_code& ec)
 	{
-		return m_impl->set_size(s, ec);
+		TORRENT_ASSERT((m_open_mode & out) == out);
+		TORRENT_ASSERT(buf);
+		TORRENT_ASSERT(num_bytes >= 0);
+		TORRENT_ASSERT(is_open());
+
+#ifdef TORRENT_WINDOWS
+
+		DWORD ret = 0;
+		if (num_bytes != 0)
+		{
+			if (WriteFile(m_file_handle, buf, (DWORD)num_bytes, &ret, 0) == FALSE)
+			{
+				ec = error_code(GetLastError(), get_system_category());
+				return -1;
+			}
+		}
+#else
+		size_type ret = ::write(m_fd, buf, num_bytes);
+		if (ret == -1) ec = error_code(errno, get_posix_category());
+#endif
+		return ret;
 	}
 
-	size_type file::seek(size_type pos, file::seek_mode m, error_code& ec)
+  	bool file::set_size(size_type s, error_code& ec)
+  	{
+  		TORRENT_ASSERT(is_open());
+  		TORRENT_ASSERT(s >= 0);
+
+#ifdef TORRENT_WINDOWS
+		size_type pos = tell(ec);
+		if (ec) return false;
+		seek(s, begin, ec);
+		if (ec) return false;
+		if (::SetEndOfFile(m_file_handle) == FALSE)
+		{
+			ec = error_code(GetLastError(), get_system_category());
+			return false;
+		}
+#else
+		if (ftruncate(m_fd, s) < 0)
+		{
+			ec = error_code(errno, get_posix_category());
+			return false;
+		}
+#endif
+		return true;
+	}
+
+	size_type file::seek(size_type offset, seek_mode m, error_code& ec)
 	{
-		return m_impl->seek(pos, m.m_val, ec);
+		TORRENT_ASSERT(is_open());
+
+#ifdef TORRENT_WINDOWS
+		LARGE_INTEGER offs;
+		offs.QuadPart = offset;
+		if (SetFilePointerEx(m_file_handle, offs, &offs, m.m_val) == FALSE)
+		{
+			ec = error_code(GetLastError(), get_system_category());
+			return -1;
+		}
+		return offs.QuadPart;
+#else
+		size_type ret = lseek(m_fd, offset, m.m_val);
+		if (ret < 0) ec = error_code(errno, get_posix_category());
+		return ret;
+#endif
 	}
 
 	size_type file::tell(error_code& ec)
 	{
-		return m_impl->tell(ec);
+		TORRENT_ASSERT(is_open());
+
+#ifdef TORRENT_WINDOWS
+		LARGE_INTEGER offs;
+		offs.QuadPart = 0;
+
+		// is there any other way to get offset?
+		if (SetFilePointerEx(m_file_handle, offs, &offs
+			, FILE_CURRENT) == FALSE)
+		{
+			ec = error_code(GetLastError(), get_system_category());
+			return -1;
+		}
+
+		return offs.QuadPart;
+#else
+		size_type ret;
+		ret = lseek(m_fd, 0, SEEK_CUR);
+		if (ret < 0) ec = error_code(errno, get_posix_category());
+		return ret;
+#endif
 	}
 }
+
