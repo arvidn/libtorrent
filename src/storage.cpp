@@ -608,7 +608,7 @@ namespace libtorrent
 		m_pool.release(this);
 		buffer().swap(m_scratch_buffer);
 
-		int error;
+		int error = 0;
 		std::string error_file;
 
 		// delete the files from disk
