@@ -52,10 +52,6 @@ void test_swarm()
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
 	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000));
 
-	ses1.set_alert_mask(alert::all_categories);
-	ses2.set_alert_mask(alert::all_categories);
-	ses3.set_alert_mask(alert::all_categories);
-	
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
@@ -88,6 +84,10 @@ void test_swarm()
 
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_swarm", 8 * 1024);	
+
+	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
+	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
+	ses3.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 
 	float sum_dl_rate2 = 0.f;
 	float sum_dl_rate3 = 0.f;
