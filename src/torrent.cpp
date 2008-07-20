@@ -424,6 +424,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent_file->num_files() > 0);
 		TORRENT_ASSERT(m_torrent_file->total_size() >= 0);
 
+		m_file_priority.clear();
+		m_file_priority.resize(m_torrent_file->num_files(), 1);
+
 		m_block_size = (std::min)(m_block_size, m_torrent_file->piece_length());
 
 		if (m_torrent_file->num_pieces()
@@ -1771,17 +1774,49 @@ namespace libtorrent
 		// in the torrent
 		TORRENT_ASSERT(int(files.size()) == m_torrent_file->num_files());
 		
-		size_type position = 0;
-
 		if (m_torrent_file->num_pieces() == 0) return;
 
+		std::copy(files.begin(), files.end(), m_file_priority.begin());
+		update_piece_priorities();
+	}
+
+	void torrent::set_file_priority(int index, int prio)
+	{
+		INVARIANT_CHECK;
+		TORRENT_ASSERT(index < m_torrent_file->num_files());
+		TORRENT_ASSERT(index >= 0);
+		if (m_file_priority[index] == prio) return;
+		m_file_priority[index] = prio;
+		update_piece_priorities();
+	}
+	
+	int torrent::file_priority(int index) const
+	{
+		TORRENT_ASSERT(index < m_torrent_file->num_files());
+		TORRENT_ASSERT(index >= 0);
+		return m_file_priority[index];
+	}
+
+	void torrent::file_priorities(std::vector<int>& files) const
+	{
+		INVARIANT_CHECK;
+		files.resize(m_file_priority.size());
+		std::copy(m_file_priority.begin(), m_file_priority.end(), files.begin());
+	}
+
+	void torrent::update_piece_priorities()
+	{
+		INVARIANT_CHECK;
+
+		if (m_torrent_file->num_pieces() == 0) return;
 		bool was_finished = is_finished();
 
+		size_type position = 0;
 		int piece_length = m_torrent_file->piece_length();
 		// initialize the piece priorities to 0, then only allow
 		// setting higher priorities
 		std::vector<int> pieces(m_torrent_file->num_pieces(), 0);
-		for (int i = 0; i < int(files.size()); ++i)
+		for (int i = 0; i < int(m_file_priority.size()); ++i)
 		{
 			size_type start = position;
 			size_type size = m_torrent_file->files().at(i).size;
@@ -1792,12 +1827,12 @@ namespace libtorrent
 			// already set (to avoid problems with overlapping pieces)
 			int start_piece = int(start / piece_length);
 			int last_piece = int((position - 1) / piece_length);
-			TORRENT_ASSERT(last_piece <= int(pieces.size()));
+			TORRENT_ASSERT(last_piece < int(pieces.size()));
 			// if one piece spans several files, we might
 			// come here several times with the same start_piece, end_piece
 			std::for_each(pieces.begin() + start_piece
 				, pieces.begin() + last_piece + 1
-				, bind(&set_if_greater, _1, files[i]));
+				, bind(&set_if_greater, _1, m_file_priority[i]));
 		}
 		prioritize_pieces(pieces);
 		update_peer_interest(was_finished);
@@ -2442,6 +2477,14 @@ namespace libtorrent
 		set_max_connections(rd.dict_find_int_value("max_connections", -1));
 		set_max_uploads(rd.dict_find_int_value("max_uploads", -1));
 
+		lazy_entry const* file_priority = rd.dict_find_list("file_priority");
+		if (file_priority && file_priority->list_size()
+			== m_torrent_file->num_files())
+		{
+			for (int i = 0; i < file_priority->list_size(); ++i)
+				m_file_priority[i] = file_priority->list_int_value_at(i, 1);
+			update_piece_priorities();
+		}
 		lazy_entry const* piece_priority = rd.dict_find_string("piece_priority");
 		if (piece_priority && piece_priority->string_length()
 			== m_torrent_file->num_pieces())
@@ -2597,6 +2640,13 @@ namespace libtorrent
 			for (int i = 0, end(piece_priority.size()); i < end; ++i)
 				piece_priority[i] = m_picker->piece_priority(i);
 		}
+
+		// write file priorities
+		entry::list_type& file_priority = ret["file_priority"].list();
+		file_priority.clear();
+		for (int i = 0, end(m_file_priority.size()); i < end; ++i)
+			file_priority.push_back(m_file_priority[i]);
+
 	}
 
 	void torrent::get_full_peer_list(std::vector<peer_list_entry>& v) const

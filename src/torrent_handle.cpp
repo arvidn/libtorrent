@@ -400,10 +400,30 @@ namespace libtorrent
 		return ret;
 	}
 
+	void torrent_handle::file_priority(int index, int priority) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(set_file_priority(index, priority));
+	}
+
+	int torrent_handle::file_priority(int index) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD_RETURN(file_priority(index), 0);
+	}
+
 	void torrent_handle::prioritize_files(std::vector<int> const& files) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD(prioritize_files(files));
+	}
+
+	std::vector<int> torrent_handle::file_priorities() const
+	{
+		INVARIANT_CHECK;
+		std::vector<int> ret;
+		TORRENT_FORWARD_RETURN2(file_priorities(ret), ret);
+		return ret;
 	}
 
 // ============ start deprecation ===============

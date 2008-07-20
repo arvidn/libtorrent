@@ -83,145 +83,146 @@
 </ul>
 </li>
 <li><a class="reference" href="#torrent-handle" id="id70" name="id70">torrent_handle</a><ul>
-<li><a class="reference" href="#piece-priority-prioritize-pieces-piece-priorities-prioritize-files" id="id71" name="id71">piece_priority() prioritize_pieces() piece_priorities() prioritize_files()</a></li>
-<li><a class="reference" href="#file-progress" id="id72" name="id72">file_progress()</a></li>
-<li><a class="reference" href="#save-path" id="id73" name="id73">save_path()</a></li>
-<li><a class="reference" href="#move-storage" id="id74" name="id74">move_storage()</a></li>
-<li><a class="reference" href="#force-reannounce" id="id75" name="id75">force_reannounce()</a></li>
-<li><a class="reference" href="#scrape-tracker" id="id76" name="id76">scrape_tracker()</a></li>
-<li><a class="reference" href="#connect-peer" id="id77" name="id77">connect_peer()</a></li>
-<li><a class="reference" href="#name" id="id78" name="id78">name()</a></li>
-<li><a class="reference" href="#set-ratio" id="id79" name="id79">set_ratio()</a></li>
-<li><a class="reference" href="#set-upload-limit-set-download-limit-upload-limit-download-limit" id="id80" name="id80">set_upload_limit() set_download_limit() upload_limit() download_limit()</a></li>
-<li><a class="reference" href="#set-sequential-download-is-sequential-download" id="id81" name="id81">set_sequential_download() is_sequential_download()</a></li>
-<li><a class="reference" href="#set-peer-upload-limit-set-peer-download-limit" id="id82" name="id82">set_peer_upload_limit() set_peer_download_limit()</a></li>
-<li><a class="reference" href="#id5" id="id83" name="id83">pause() resume() is_paused()</a></li>
-<li><a class="reference" href="#force-recheck" id="id84" name="id84">force_recheck()</a></li>
-<li><a class="reference" href="#clear-error" id="id85" name="id85">clear_error()</a></li>
-<li><a class="reference" href="#resolve-countries" id="id86" name="id86">resolve_countries()</a></li>
-<li><a class="reference" href="#is-seed" id="id87" name="id87">is_seed()</a></li>
-<li><a class="reference" href="#is-auto-managed-auto-managed" id="id88" name="id88">is_auto_managed() auto_managed()</a></li>
-<li><a class="reference" href="#has-metadata" id="id89" name="id89">has_metadata()</a></li>
-<li><a class="reference" href="#set-tracker-login" id="id90" name="id90">set_tracker_login()</a></li>
-<li><a class="reference" href="#trackers-replace-trackers" id="id91" name="id91">trackers() replace_trackers()</a></li>
-<li><a class="reference" href="#add-url-seed-remove-url-seed-url-seeds" id="id92" name="id92">add_url_seed() remove_url_seed() url_seeds()</a></li>
-<li><a class="reference" href="#queue-position-queue-position-up-queue-position-down-queue-position-top-queue-position-bottom" id="id93" name="id93">queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()</a></li>
-<li><a class="reference" href="#use-interface" id="id94" name="id94">use_interface()</a></li>
-<li><a class="reference" href="#info-hash" id="id95" name="id95">info_hash()</a></li>
-<li><a class="reference" href="#id6" id="id96" name="id96">set_max_uploads() set_max_connections()</a></li>
-<li><a class="reference" href="#save-resume-data" id="id97" name="id97">save_resume_data()</a></li>
-<li><a class="reference" href="#id7" id="id98" name="id98">status()</a></li>
-<li><a class="reference" href="#get-download-queue" id="id99" name="id99">get_download_queue()</a></li>
-<li><a class="reference" href="#get-peer-info" id="id100" name="id100">get_peer_info()</a></li>
-<li><a class="reference" href="#get-torrent-info" id="id101" name="id101">get_torrent_info()</a></li>
-<li><a class="reference" href="#is-valid" id="id102" name="id102">is_valid()</a></li>
+<li><a class="reference" href="#piece-priority-prioritize-pieces-piece-priorities" id="id71" name="id71">piece_priority() prioritize_pieces() piece_priorities()</a></li>
+<li><a class="reference" href="#file-priority-prioritize-files-file-priorities" id="id72" name="id72">file_priority() prioritize_files() file_priorities()</a></li>
+<li><a class="reference" href="#file-progress" id="id73" name="id73">file_progress()</a></li>
+<li><a class="reference" href="#save-path" id="id74" name="id74">save_path()</a></li>
+<li><a class="reference" href="#move-storage" id="id75" name="id75">move_storage()</a></li>
+<li><a class="reference" href="#force-reannounce" id="id76" name="id76">force_reannounce()</a></li>
+<li><a class="reference" href="#scrape-tracker" id="id77" name="id77">scrape_tracker()</a></li>
+<li><a class="reference" href="#connect-peer" id="id78" name="id78">connect_peer()</a></li>
+<li><a class="reference" href="#name" id="id79" name="id79">name()</a></li>
+<li><a class="reference" href="#set-ratio" id="id80" name="id80">set_ratio()</a></li>
+<li><a class="reference" href="#set-upload-limit-set-download-limit-upload-limit-download-limit" id="id81" name="id81">set_upload_limit() set_download_limit() upload_limit() download_limit()</a></li>
+<li><a class="reference" href="#set-sequential-download-is-sequential-download" id="id82" name="id82">set_sequential_download() is_sequential_download()</a></li>
+<li><a class="reference" href="#set-peer-upload-limit-set-peer-download-limit" id="id83" name="id83">set_peer_upload_limit() set_peer_download_limit()</a></li>
+<li><a class="reference" href="#id5" id="id84" name="id84">pause() resume() is_paused()</a></li>
+<li><a class="reference" href="#force-recheck" id="id85" name="id85">force_recheck()</a></li>
+<li><a class="reference" href="#clear-error" id="id86" name="id86">clear_error()</a></li>
+<li><a class="reference" href="#resolve-countries" id="id87" name="id87">resolve_countries()</a></li>
+<li><a class="reference" href="#is-seed" id="id88" name="id88">is_seed()</a></li>
+<li><a class="reference" href="#is-auto-managed-auto-managed" id="id89" name="id89">is_auto_managed() auto_managed()</a></li>
+<li><a class="reference" href="#has-metadata" id="id90" name="id90">has_metadata()</a></li>
+<li><a class="reference" href="#set-tracker-login" id="id91" name="id91">set_tracker_login()</a></li>
+<li><a class="reference" href="#trackers-replace-trackers" id="id92" name="id92">trackers() replace_trackers()</a></li>
+<li><a class="reference" href="#add-url-seed-remove-url-seed-url-seeds" id="id93" name="id93">add_url_seed() remove_url_seed() url_seeds()</a></li>
+<li><a class="reference" href="#queue-position-queue-position-up-queue-position-down-queue-position-top-queue-position-bottom" id="id94" name="id94">queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()</a></li>
+<li><a class="reference" href="#use-interface" id="id95" name="id95">use_interface()</a></li>
+<li><a class="reference" href="#info-hash" id="id96" name="id96">info_hash()</a></li>
+<li><a class="reference" href="#id6" id="id97" name="id97">set_max_uploads() set_max_connections()</a></li>
+<li><a class="reference" href="#save-resume-data" id="id98" name="id98">save_resume_data()</a></li>
+<li><a class="reference" href="#id7" id="id99" name="id99">status()</a></li>
+<li><a class="reference" href="#get-download-queue" id="id100" name="id100">get_download_queue()</a></li>
+<li><a class="reference" href="#get-peer-info" id="id101" name="id101">get_peer_info()</a></li>
+<li><a class="reference" href="#get-torrent-info" id="id102" name="id102">get_torrent_info()</a></li>
+<li><a class="reference" href="#is-valid" id="id103" name="id103">is_valid()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#torrent-status" id="id103" name="id103">torrent_status</a></li>
-<li><a class="reference" href="#peer-info" id="id104" name="id104">peer_info</a></li>
-<li><a class="reference" href="#session-settings" id="id105" name="id105">session_settings</a></li>
-<li><a class="reference" href="#pe-settings" id="id106" name="id106">pe_settings</a></li>
-<li><a class="reference" href="#proxy-settings" id="id107" name="id107">proxy_settings</a></li>
-<li><a class="reference" href="#ip-filter" id="id108" name="id108">ip_filter</a><ul>
-<li><a class="reference" href="#id10" id="id109" name="id109">ip_filter()</a></li>
-<li><a class="reference" href="#add-rule" id="id110" name="id110">add_rule()</a></li>
-<li><a class="reference" href="#access" id="id111" name="id111">access()</a></li>
-<li><a class="reference" href="#export-filter" id="id112" name="id112">export_filter()</a></li>
+<li><a class="reference" href="#torrent-status" id="id104" name="id104">torrent_status</a></li>
+<li><a class="reference" href="#peer-info" id="id105" name="id105">peer_info</a></li>
+<li><a class="reference" href="#session-settings" id="id106" name="id106">session_settings</a></li>
+<li><a class="reference" href="#pe-settings" id="id107" name="id107">pe_settings</a></li>
+<li><a class="reference" href="#proxy-settings" id="id108" name="id108">proxy_settings</a></li>
+<li><a class="reference" href="#ip-filter" id="id109" name="id109">ip_filter</a><ul>
+<li><a class="reference" href="#id10" id="id110" name="id110">ip_filter()</a></li>
+<li><a class="reference" href="#add-rule" id="id111" name="id111">add_rule()</a></li>
+<li><a class="reference" href="#access" id="id112" name="id112">access()</a></li>
+<li><a class="reference" href="#export-filter" id="id113" name="id113">export_filter()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#big-number" id="id113" name="id113">big_number</a></li>
-<li><a class="reference" href="#bitfield" id="id114" name="id114">bitfield</a></li>
-<li><a class="reference" href="#hasher" id="id115" name="id115">hasher</a></li>
-<li><a class="reference" href="#fingerprint" id="id116" name="id116">fingerprint</a></li>
-<li><a class="reference" href="#upnp-and-nat-pmp" id="id117" name="id117">UPnP and NAT-PMP</a><ul>
-<li><a class="reference" href="#add-mapping" id="id118" name="id118">add_mapping</a></li>
-<li><a class="reference" href="#delete-mapping" id="id119" name="id119">delete_mapping</a></li>
-<li><a class="reference" href="#router-model" id="id120" name="id120">router_model()</a></li>
+<li><a class="reference" href="#big-number" id="id114" name="id114">big_number</a></li>
+<li><a class="reference" href="#bitfield" id="id115" name="id115">bitfield</a></li>
+<li><a class="reference" href="#hasher" id="id116" name="id116">hasher</a></li>
+<li><a class="reference" href="#fingerprint" id="id117" name="id117">fingerprint</a></li>
+<li><a class="reference" href="#upnp-and-nat-pmp" id="id118" name="id118">UPnP and NAT-PMP</a><ul>
+<li><a class="reference" href="#add-mapping" id="id119" name="id119">add_mapping</a></li>
+<li><a class="reference" href="#delete-mapping" id="id120" name="id120">delete_mapping</a></li>
+<li><a class="reference" href="#router-model" id="id121" name="id121">router_model()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#free-functions" id="id121" name="id121">free functions</a><ul>
-<li><a class="reference" href="#identify-client" id="id122" name="id122">identify_client()</a></li>
-<li><a class="reference" href="#client-fingerprint" id="id123" name="id123">client_fingerprint()</a></li>
-<li><a class="reference" href="#bdecode-bencode" id="id124" name="id124">bdecode() bencode()</a></li>
+<li><a class="reference" href="#free-functions" id="id122" name="id122">free functions</a><ul>
+<li><a class="reference" href="#identify-client" id="id123" name="id123">identify_client()</a></li>
+<li><a class="reference" href="#client-fingerprint" id="id124" name="id124">client_fingerprint()</a></li>
+<li><a class="reference" href="#bdecode-bencode" id="id125" name="id125">bdecode() bencode()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#alerts" id="id125" name="id125">alerts</a><ul>
-<li><a class="reference" href="#external-ip-alert" id="id126" name="id126">external_ip_alert</a></li>
-<li><a class="reference" href="#listen-failed-alert" id="id127" name="id127">listen_failed_alert</a></li>
-<li><a class="reference" href="#portmap-error-alert" id="id128" name="id128">portmap_error_alert</a></li>
-<li><a class="reference" href="#portmap-alert" id="id129" name="id129">portmap_alert</a></li>
-<li><a class="reference" href="#file-error-alert" id="id130" name="id130">file_error_alert</a></li>
-<li><a class="reference" href="#tracker-announce-alert" id="id131" name="id131">tracker_announce_alert</a></li>
-<li><a class="reference" href="#tracker-error-alert" id="id132" name="id132">tracker_error_alert</a></li>
-<li><a class="reference" href="#tracker-reply-alert" id="id133" name="id133">tracker_reply_alert</a></li>
-<li><a class="reference" href="#dht-reply-alert" id="id134" name="id134">dht_reply_alert</a></li>
-<li><a class="reference" href="#tracker-warning-alert" id="id135" name="id135">tracker_warning_alert</a></li>
-<li><a class="reference" href="#scrape-reply-alert" id="id136" name="id136">scrape_reply_alert</a></li>
-<li><a class="reference" href="#scrape-failed-alert" id="id137" name="id137">scrape_failed_alert</a></li>
-<li><a class="reference" href="#url-seed-alert" id="id138" name="id138">url_seed_alert</a></li>
-<li><a class="reference" href="#hash-failed-alert" id="id139" name="id139">hash_failed_alert</a></li>
-<li><a class="reference" href="#peer-ban-alert" id="id140" name="id140">peer_ban_alert</a></li>
-<li><a class="reference" href="#peer-error-alert" id="id141" name="id141">peer_error_alert</a></li>
-<li><a class="reference" href="#invalid-request-alert" id="id142" name="id142">invalid_request_alert</a></li>
-<li><a class="reference" href="#torrent-finished-alert" id="id143" name="id143">torrent_finished_alert</a></li>
-<li><a class="reference" href="#metadata-failed-alert" id="id144" name="id144">metadata_failed_alert</a></li>
-<li><a class="reference" href="#metadata-received-alert" id="id145" name="id145">metadata_received_alert</a></li>
-<li><a class="reference" href="#fastresume-rejected-alert" id="id146" name="id146">fastresume_rejected_alert</a></li>
-<li><a class="reference" href="#peer-blocked-alert" id="id147" name="id147">peer_blocked_alert</a></li>
-<li><a class="reference" href="#storage-moved-alert" id="id148" name="id148">storage_moved_alert</a></li>
-<li><a class="reference" href="#torrent-paused-alert" id="id149" name="id149">torrent_paused_alert</a></li>
-<li><a class="reference" href="#torrent-resumed-alert" id="id150" name="id150">torrent_resumed_alert</a></li>
-<li><a class="reference" href="#save-resume-data-alert" id="id151" name="id151">save_resume_data_alert</a></li>
-<li><a class="reference" href="#save-resume-data-failed-alert" id="id152" name="id152">save_resume_data_failed_alert</a></li>
-<li><a class="reference" href="#dispatcher" id="id153" name="id153">dispatcher</a></li>
+<li><a class="reference" href="#alerts" id="id126" name="id126">alerts</a><ul>
+<li><a class="reference" href="#external-ip-alert" id="id127" name="id127">external_ip_alert</a></li>
+<li><a class="reference" href="#listen-failed-alert" id="id128" name="id128">listen_failed_alert</a></li>
+<li><a class="reference" href="#portmap-error-alert" id="id129" name="id129">portmap_error_alert</a></li>
+<li><a class="reference" href="#portmap-alert" id="id130" name="id130">portmap_alert</a></li>
+<li><a class="reference" href="#file-error-alert" id="id131" name="id131">file_error_alert</a></li>
+<li><a class="reference" href="#tracker-announce-alert" id="id132" name="id132">tracker_announce_alert</a></li>
+<li><a class="reference" href="#tracker-error-alert" id="id133" name="id133">tracker_error_alert</a></li>
+<li><a class="reference" href="#tracker-reply-alert" id="id134" name="id134">tracker_reply_alert</a></li>
+<li><a class="reference" href="#dht-reply-alert" id="id135" name="id135">dht_reply_alert</a></li>
+<li><a class="reference" href="#tracker-warning-alert" id="id136" name="id136">tracker_warning_alert</a></li>
+<li><a class="reference" href="#scrape-reply-alert" id="id137" name="id137">scrape_reply_alert</a></li>
+<li><a class="reference" href="#scrape-failed-alert" id="id138" name="id138">scrape_failed_alert</a></li>
+<li><a class="reference" href="#url-seed-alert" id="id139" name="id139">url_seed_alert</a></li>
+<li><a class="reference" href="#hash-failed-alert" id="id140" name="id140">hash_failed_alert</a></li>
+<li><a class="reference" href="#peer-ban-alert" id="id141" name="id141">peer_ban_alert</a></li>
+<li><a class="reference" href="#peer-error-alert" id="id142" name="id142">peer_error_alert</a></li>
+<li><a class="reference" href="#invalid-request-alert" id="id143" name="id143">invalid_request_alert</a></li>
+<li><a class="reference" href="#torrent-finished-alert" id="id144" name="id144">torrent_finished_alert</a></li>
+<li><a class="reference" href="#metadata-failed-alert" id="id145" name="id145">metadata_failed_alert</a></li>
+<li><a class="reference" href="#metadata-received-alert" id="id146" name="id146">metadata_received_alert</a></li>
+<li><a class="reference" href="#fastresume-rejected-alert" id="id147" name="id147">fastresume_rejected_alert</a></li>
+<li><a class="reference" href="#peer-blocked-alert" id="id148" name="id148">peer_blocked_alert</a></li>
+<li><a class="reference" href="#storage-moved-alert" id="id149" name="id149">storage_moved_alert</a></li>
+<li><a class="reference" href="#torrent-paused-alert" id="id150" name="id150">torrent_paused_alert</a></li>
+<li><a class="reference" href="#torrent-resumed-alert" id="id151" name="id151">torrent_resumed_alert</a></li>
+<li><a class="reference" href="#save-resume-data-alert" id="id152" name="id152">save_resume_data_alert</a></li>
+<li><a class="reference" href="#save-resume-data-failed-alert" id="id153" name="id153">save_resume_data_failed_alert</a></li>
+<li><a class="reference" href="#dispatcher" id="id154" name="id154">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#exceptions" id="id154" name="id154">exceptions</a><ul>
-<li><a class="reference" href="#invalid-handle" id="id155" name="id155">invalid_handle</a></li>
-<li><a class="reference" href="#duplicate-torrent" id="id156" name="id156">duplicate_torrent</a></li>
-<li><a class="reference" href="#invalid-encoding" id="id157" name="id157">invalid_encoding</a></li>
-<li><a class="reference" href="#type-error" id="id158" name="id158">type_error</a></li>
-<li><a class="reference" href="#invalid-torrent-file" id="id159" name="id159">invalid_torrent_file</a></li>
+<li><a class="reference" href="#exceptions" id="id155" name="id155">exceptions</a><ul>
+<li><a class="reference" href="#invalid-handle" id="id156" name="id156">invalid_handle</a></li>
+<li><a class="reference" href="#duplicate-torrent" id="id157" name="id157">duplicate_torrent</a></li>
+<li><a class="reference" href="#invalid-encoding" id="id158" name="id158">invalid_encoding</a></li>
+<li><a class="reference" href="#type-error" id="id159" name="id159">type_error</a></li>
+<li><a class="reference" href="#invalid-torrent-file" id="id160" name="id160">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#storage-interface" id="id160" name="id160">storage_interface</a><ul>
-<li><a class="reference" href="#initialize" id="id161" name="id161">initialize()</a></li>
-<li><a class="reference" href="#read" id="id162" name="id162">read()</a></li>
-<li><a class="reference" href="#write" id="id163" name="id163">write()</a></li>
-<li><a class="reference" href="#id12" id="id164" name="id164">move_storage()</a></li>
-<li><a class="reference" href="#verify-resume-data" id="id165" name="id165">verify_resume_data()</a></li>
-<li><a class="reference" href="#write-resume-data" id="id166" name="id166">write_resume_data()</a></li>
-<li><a class="reference" href="#move-slot" id="id167" name="id167">move_slot()</a></li>
-<li><a class="reference" href="#swap-slots" id="id168" name="id168">swap_slots()</a></li>
-<li><a class="reference" href="#swap-slots3" id="id169" name="id169">swap_slots3()</a></li>
-<li><a class="reference" href="#hash-for-slot" id="id170" name="id170">hash_for_slot()</a></li>
-<li><a class="reference" href="#release-files" id="id171" name="id171">release_files()</a></li>
-<li><a class="reference" href="#delete-files" id="id172" name="id172">delete_files()</a></li>
+<li><a class="reference" href="#storage-interface" id="id161" name="id161">storage_interface</a><ul>
+<li><a class="reference" href="#initialize" id="id162" name="id162">initialize()</a></li>
+<li><a class="reference" href="#read" id="id163" name="id163">read()</a></li>
+<li><a class="reference" href="#write" id="id164" name="id164">write()</a></li>
+<li><a class="reference" href="#id12" id="id165" name="id165">move_storage()</a></li>
+<li><a class="reference" href="#verify-resume-data" id="id166" name="id166">verify_resume_data()</a></li>
+<li><a class="reference" href="#write-resume-data" id="id167" name="id167">write_resume_data()</a></li>
+<li><a class="reference" href="#move-slot" id="id168" name="id168">move_slot()</a></li>
+<li><a class="reference" href="#swap-slots" id="id169" name="id169">swap_slots()</a></li>
+<li><a class="reference" href="#swap-slots3" id="id170" name="id170">swap_slots3()</a></li>
+<li><a class="reference" href="#hash-for-slot" id="id171" name="id171">hash_for_slot()</a></li>
+<li><a class="reference" href="#release-files" id="id172" name="id172">release_files()</a></li>
+<li><a class="reference" href="#delete-files" id="id173" name="id173">delete_files()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#queuing" id="id173" name="id173">queuing</a><ul>
-<li><a class="reference" href="#downloading" id="id174" name="id174">downloading</a></li>
-<li><a class="reference" href="#seeding" id="id175" name="id175">seeding</a></li>
+<li><a class="reference" href="#queuing" id="id174" name="id174">queuing</a><ul>
+<li><a class="reference" href="#downloading" id="id175" name="id175">downloading</a></li>
+<li><a class="reference" href="#seeding" id="id176" name="id176">seeding</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#fast-resume" id="id176" name="id176">fast resume</a><ul>
-<li><a class="reference" href="#file-format" id="id177" name="id177">file format</a></li>
+<li><a class="reference" href="#fast-resume" id="id177" name="id177">fast resume</a><ul>
+<li><a class="reference" href="#file-format" id="id178" name="id178">file format</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#threads" id="id178" name="id178">threads</a></li>
-<li><a class="reference" href="#storage-allocation" id="id179" name="id179">storage allocation</a><ul>
-<li><a class="reference" href="#sparse-allocation" id="id180" name="id180">sparse allocation</a></li>
-<li><a class="reference" href="#full-allocation" id="id181" name="id181">full allocation</a></li>
-<li><a class="reference" href="#compact-allocation" id="id182" name="id182">compact allocation</a></li>
+<li><a class="reference" href="#threads" id="id179" name="id179">threads</a></li>
+<li><a class="reference" href="#storage-allocation" id="id180" name="id180">storage allocation</a><ul>
+<li><a class="reference" href="#sparse-allocation" id="id181" name="id181">sparse allocation</a></li>
+<li><a class="reference" href="#full-allocation" id="id182" name="id182">full allocation</a></li>
+<li><a class="reference" href="#compact-allocation" id="id183" name="id183">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#extensions" id="id183" name="id183">extensions</a><ul>
-<li><a class="reference" href="#metadata-from-peers" id="id184" name="id184">metadata from peers</a></li>
-<li><a class="reference" href="#http-seeding" id="id185" name="id185">HTTP seeding</a></li>
+<li><a class="reference" href="#extensions" id="id184" name="id184">extensions</a><ul>
+<li><a class="reference" href="#metadata-from-peers" id="id185" name="id185">metadata from peers</a></li>
+<li><a class="reference" href="#http-seeding" id="id186" name="id186">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#filename-checks" id="id186" name="id186">filename checks</a></li>
-<li><a class="reference" href="#acknowledgments" id="id187" name="id187">acknowledgments</a></li>
+<li><a class="reference" href="#filename-checks" id="id187" name="id187">filename checks</a></li>
+<li><a class="reference" href="#acknowledgments" id="id188" name="id188">acknowledgments</a></li>
 </ul>
 </div>
 <div class="section">
@@ -1658,11 +1659,13 @@ struct torrent_handle
 
         void piece_priority(int index, int priority) const;
         int piece_priority(int index) const;
-
         void prioritize_pieces(std::vector&lt;int&gt; const&amp; pieces) const;
         std::vector&lt;int&gt; piece_priorities() const;
 
+        void file_priority(int index, int priority) const;
+        int file_priority(int index) const;
         void prioritize_files(std::vector&lt;int&gt; const&amp; files) const;
+        std::vector&lt;int&gt; file_priorities() const;
 
         bool is_auto_managed() const;
         void auto_managed(bool m) const;
@@ -1692,14 +1695,13 @@ Since the torrents are processed by a background thread, there is no
 guarantee that a handle will remain valid between two calls.</p>
 </div>
 <div class="section">
-<h2><a id="piece-priority-prioritize-pieces-piece-priorities-prioritize-files" name="piece-priority-prioritize-pieces-piece-priorities-prioritize-files">piece_priority() prioritize_pieces() piece_priorities() prioritize_files()</a></h2>
+<h2><a id="piece-priority-prioritize-pieces-piece-priorities" name="piece-priority-prioritize-pieces-piece-priorities">piece_priority() prioritize_pieces() piece_priorities()</a></h2>
 <blockquote>
 <pre class="literal-block">
 void piece_priority(int index, int priority) const;
 int piece_priority(int index) const;
 void prioritize_pieces(std::vector&lt;int&gt; const&amp; pieces) const;
 std::vector&lt;int&gt; piece_priorities() const;
-void prioritize_files(std::vector&lt;int&gt; const&amp; files) const;
 </pre>
 </blockquote>
 <p>These functions are used to set and get the prioritiy of individual pieces.
@@ -1732,9 +1734,27 @@ the torrent. All the piece priorities will be updated with the priorities
 in the vector.</p>
 <p><tt class="docutils literal"><span class="pre">piece_priorities</span></tt> returns a vector with one element for each piece in the
 torrent. Each element is the current priority of that piece.</p>
+</div>
+<div class="section">
+<h2><a id="file-priority-prioritize-files-file-priorities" name="file-priority-prioritize-files-file-priorities">file_priority() prioritize_files() file_priorities()</a></h2>
+<blockquote>
+<pre class="literal-block">
+void file_priority(int index, int priority) const;
+int file_priority(int index) const;
+void prioritize_files(std::vector&lt;int&gt; const&amp; files) const;
+std::vector&lt;int&gt; file_priorities() const;
+</pre>
+</blockquote>
+<p><tt class="docutils literal"><span class="pre">index</span></tt> must be in the range [0, number_of_files).</p>
+<p><tt class="docutils literal"><span class="pre">file_priority</span></tt> queries or sets the priority of file <tt class="docutils literal"><span class="pre">index</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">prioritize_files</span></tt> takes a vector that has at as many elements as there are
 files in the torrent. Each entry is the priority of that file. The function
 sets the priorities of all the pieces in the torrent based on the vector.</p>
+<p><tt class="docutils literal"><span class="pre">file_priorities</span></tt> returns a vector with the priorities of all files.</p>
+<p>The priority values are the same as for <tt class="docutils literal"><span class="pre">piece_priority</span></tt>.</p>
+<p>Whenever a file priority is changed, all other piece priorities are reset
+to match the file priorities. In order to maintain sepcial priorities for
+particular pieces, <tt class="docutils literal"><span class="pre">piece_priority</span></tt> has to be called again for those pieces.</p>
 </div>
 <div class="section">
 <h2><a id="file-progress" name="file-progress">file_progress()</a></h2>

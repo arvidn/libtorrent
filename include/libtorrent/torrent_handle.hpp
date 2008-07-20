@@ -392,8 +392,12 @@ namespace libtorrent
 		void prioritize_pieces(std::vector<int> const& pieces) const;
 		std::vector<int> piece_priorities() const;
 
-		void prioritize_files(std::vector<int> const& files) const;
+		// priority must be within the range [0, 7]
+		void file_priority(int index, int priority) const;
+		int file_priority(int index) const;
 
+		void prioritize_files(std::vector<int> const& files) const;
+		std::vector<int> file_priorities() const;
 
 		// set the interface to bind outgoing connections
 		// to.
