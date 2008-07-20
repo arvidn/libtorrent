@@ -436,6 +436,7 @@ namespace libtorrent
 		boost::scoped_ptr<file_storage> m_mapped_files;
 		file_storage const& m_files;
 
+		std::vector<boost::uint8_t> m_file_priority;
 		fs::path m_save_path;
 		// the file pool is typically stored in
 		// the session, to make all storage
@@ -521,7 +522,10 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-			if (allocate_files)
+			// don't allocate files with priority 0
+			int file_index = file_iter - files().begin();
+			if (allocate_files && (m_file_priority.size() <= file_index
+				|| m_file_priority[file_index] > 0))
 			{
 				error_code ec;
 				boost::shared_ptr<file> f = m_pool.open_file(this
@@ -543,6 +547,7 @@ namespace libtorrent
 			}
 #endif
 		}
+		std::vector<boost::uint8_t>().swap(m_file_priority);
 		// close files that were opened in write mode
 		m_pool.release(this);
 		return false;
@@ -702,6 +707,15 @@ namespace libtorrent
 
 	bool storage::verify_resume_data(lazy_entry const& rd, std::string& error)
 	{
+		lazy_entry const* file_priority = rd.dict_find_list("file_priority");
+		if (file_priority && file_priority->list_size()
+			== files().num_files())
+		{
+			m_file_priority.resize(file_priority->list_size());
+			for (int i = 0; i < file_priority->list_size(); ++i)
+				m_file_priority[i] = file_priority->list_int_value_at(i, 1);
+		}
+
 		lazy_entry const* mapped_files = rd.dict_find_list("mapped_files");
 		if (mapped_files && mapped_files->list_size() == m_files.num_files())
 		{

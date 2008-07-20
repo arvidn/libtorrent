@@ -235,7 +235,13 @@ namespace libtorrent
 		void prioritize_pieces(std::vector<int> const& pieces);
 		void piece_priorities(std::vector<int>&) const;
 
+		void set_file_priority(int index, int priority);
+		int file_priority(int index) const;
+
 		void prioritize_files(std::vector<int> const& files);
+		void file_priorities(std::vector<int>&) const;
+
+		void update_piece_priorities();
 
 		torrent_status status() const;
 
@@ -769,6 +775,8 @@ namespace libtorrent
 		// a back reference to the session
 		// this torrent belongs to.
 		aux::session_impl& m_ses;
+
+		std::vector<boost::uint8_t> m_file_priority;
 
 		boost::scoped_ptr<piece_picker> m_picker;
 

@@ -1574,11 +1574,13 @@ Its declaration looks like this::
 
 		void piece_priority(int index, int priority) const;
 		int piece_priority(int index) const;
-
 		void prioritize_pieces(std::vector<int> const& pieces) const;
 		std::vector<int> piece_priorities() const;
 
+		void file_priority(int index, int priority) const;
+		int file_priority(int index) const;
 		void prioritize_files(std::vector<int> const& files) const;
+		std::vector<int> file_priorities() const;
 
 		bool is_auto_managed() const;
 		void auto_managed(bool m) const;
@@ -1607,8 +1609,8 @@ it will throw ``invalid_handle``.
 	guarantee that a handle will remain valid between two calls.
 
 
-piece_priority() prioritize_pieces() piece_priorities() prioritize_files()
---------------------------------------------------------------------------
+piece_priority() prioritize_pieces() piece_priorities()
+-------------------------------------------------------
 
 	::
 
@@ -1616,7 +1618,6 @@ piece_priority() prioritize_pieces() piece_priorities() prioritize_files()
 		int piece_priority(int index) const;
 		void prioritize_pieces(std::vector<int> const& pieces) const;
 		std::vector<int> piece_priorities() const;
-		void prioritize_files(std::vector<int> const& files) const;
 
 These functions are used to set and get the prioritiy of individual pieces.
 By default all pieces have priority 1. That means that the random rarest
@@ -1650,10 +1651,32 @@ in the vector.
 ``piece_priorities`` returns a vector with one element for each piece in the
 torrent. Each element is the current priority of that piece.
 
+
+file_priority() prioritize_files() file_priorities()
+----------------------------------------------------
+
+	::
+
+		void file_priority(int index, int priority) const;
+		int file_priority(int index) const;
+		void prioritize_files(std::vector<int> const& files) const;
+		std::vector<int> file_priorities() const;
+
+``index`` must be in the range [0, number_of_files).
+
+``file_priority`` queries or sets the priority of file ``index``.
+
 ``prioritize_files`` takes a vector that has at as many elements as there are
 files in the torrent. Each entry is the priority of that file. The function
 sets the priorities of all the pieces in the torrent based on the vector.
 
+``file_priorities`` returns a vector with the priorities of all files.
+
+The priority values are the same as for ``piece_priority``.
+
+Whenever a file priority is changed, all other piece priorities are reset
+to match the file priorities. In order to maintain sepcial priorities for
+particular pieces, ``piece_priority`` has to be called again for those pieces.
 
 file_progress()
 ---------------
