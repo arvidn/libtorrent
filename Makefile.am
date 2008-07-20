@@ -32,7 +32,7 @@ docs/moopolice_thumb.gif \
 docs/qbittorrent_thumb.jpg \
 docs/ziptorrent_thumb.gif \
 docs/unicode_support.png docs/client_test.png docs/style.css Jamfile project-root.jam \
-src/file_win.cpp libtorrent-rasterbar.pc \
+libtorrent-rasterbar.pc \
 bindings/README.txt \
 bindings/python/Jamfile \
 bindings/python/client.py \

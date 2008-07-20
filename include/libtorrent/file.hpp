@@ -77,7 +77,6 @@ namespace libtorrent
 		public:
 
 			open_mode(): m_mask(0) {}
-
 			open_mode operator|(open_mode m) const
 			{ return open_mode(m.m_mask | m_mask); }
 
@@ -92,6 +91,7 @@ namespace libtorrent
 
 			bool operator==(open_mode m) const { return m_mask == m.m_mask; }
 			bool operator!=(open_mode m) const { return m_mask != m.m_mask; }
+			operator bool() const { return m_mask != 0; }
 
 		private:
 
@@ -107,6 +107,7 @@ namespace libtorrent
 		~file();
 
 		bool open(fs::path const& p, open_mode m, error_code& ec);
+		bool is_open() const;
 		void close();
 		bool set_size(size_type size, error_code& ec);
 
@@ -118,8 +119,14 @@ namespace libtorrent
 
 	private:
 
-		struct impl;
-		const std::auto_ptr<impl> m_impl;
+#ifdef TORRENT_WINDOWS
+		HANDLE m_file_handle;
+#else
+		int m_fd;
+#endif
+#ifndef NDEBUG
+		open_mode m_open_mode;
+#endif
 
 	};
 

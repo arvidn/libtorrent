@@ -173,15 +173,6 @@ rule building ( properties * )
 		}
 	}
 
-	if <target-os>windows in $(properties)
-	{
-		result += <source>src/file_win.cpp ;
-	}
-	else
-	{
-		result += <source>src/file.cpp ;
-	}
-
 	if <memdebug>on in $(properties)
 	{
 		result += <source>src/memdebug.cpp ;
@@ -291,6 +282,7 @@ SOURCES =
 	file_storage
 	lazy_bdecode
 	escape_string
+	file
 	gzip
 	http_connection
 	http_stream
