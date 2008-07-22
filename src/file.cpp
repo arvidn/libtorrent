@@ -201,8 +201,12 @@ namespace libtorrent
 #else
 		// rely on default umask to filter x and w permissions
 		// for group and others
+		int permissions = S_IRUSR | S_IWUSR
+			| S_IRGRP | S_IWGRP
+			| S_IROTH | S_IWOTH;
+
 		m_fd = ::open(path.native_file_string().c_str()
-			, map_open_mode(mode.m_mask), S_IRWXU | S_IRWXG | S_IRWXO);
+			, map_open_mode(mode.m_mask), permissions);
 
 		if (m_fd == -1)
 		{
