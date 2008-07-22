@@ -78,7 +78,7 @@ namespace libtorrent
 		void add_url_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
-		void set_priv(bool p) const { return m_private = p; }
+		void set_priv(bool p) { m_private = p; }
 
 		int num_pieces() const { return m_files.num_pieces(); }
 		int piece_length() const { return m_files.piece_length(); }
