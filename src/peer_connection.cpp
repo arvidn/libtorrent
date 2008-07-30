@@ -3710,13 +3710,13 @@ namespace libtorrent
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		if (m_peer_info)
 		{
-			policy::const_iterator i;
-			for (i = t->get_policy().begin_peer()
-				, end(t->get_policy().end_peer()); i != end; ++i)
+			policy::const_iterator i = t->get_policy().begin_peer();
+			policy::const_iterator end = t->get_policy().end_peer();
+			for (; i != end; ++i)
 			{
 				if (&i->second == m_peer_info) break;
 			}
-			TORRENT_ASSERT(i != t->get_policy().end_peer());
+			TORRENT_ASSERT(i != end);
 		}
 #endif
 		if (t->has_picker() && !t->is_aborted())
