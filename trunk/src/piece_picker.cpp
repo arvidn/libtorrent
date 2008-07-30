@@ -222,6 +222,7 @@ namespace libtorrent
 		}
 	}
 
+#ifdef TORRENT_PICKER_LOG
 	void piece_picker::print_pieces() const
 	{
 		for (std::vector<int>::const_iterator i = m_priority_boundries.begin()
@@ -245,6 +246,7 @@ namespace libtorrent
 		}
 		std::cerr << std::endl;
 	}
+#endif
 
 	void piece_picker::check_invariant(const torrent* t) const
 	{
