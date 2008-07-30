@@ -43,6 +43,7 @@ void bind_session_settings()
         .def_readwrite("seed_time_ratio_limit", &session_settings::seed_time_ratio_limit)
         .def_readwrite("seed_time_limit", &session_settings::seed_time_limit)
         .def_readwrite("auto_scraped_interval", &session_settings::auto_scrape_interval)
+        .def_readwrite("peer_tos", &session_settings::peer_tos)
 #ifndef TORRENT_DISABLE_DHT
         .def_readwrite("use_dht_as_fallback", &session_settings::use_dht_as_fallback)
 #endif
