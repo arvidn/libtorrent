@@ -285,11 +285,11 @@ void _setup_segments(GeoIP * gi) {
 
 			if (gi->databaseType == GEOIP_REGION_EDITION_REV0) {
 				/* Region Edition, pre June 2003 */
-				gi->databaseSegments = malloc(sizeof(int));
+				gi->databaseSegments = (unsigned int*)malloc(sizeof(int));
 				gi->databaseSegments[0] = STATE_BEGIN_REV0;
 			} else if (gi->databaseType == GEOIP_REGION_EDITION_REV1) {
 				/* Region Edition, post June 2003 */
-				gi->databaseSegments = malloc(sizeof(int));
+				gi->databaseSegments = (unsigned int*)malloc(sizeof(int));
 				gi->databaseSegments[0] = STATE_BEGIN_REV1;
 			} else if (gi->databaseType == GEOIP_CITY_EDITION_REV0 ||
 								 gi->databaseType == GEOIP_CITY_EDITION_REV1 ||
@@ -297,7 +297,7 @@ void _setup_segments(GeoIP * gi) {
 								 gi->databaseType == GEOIP_ISP_EDITION ||
 								 gi->databaseType == GEOIP_ASNUM_EDITION) {
 				/* City/Org Editions have two segments, read offset of second segment */
-				gi->databaseSegments = malloc(sizeof(int));
+				gi->databaseSegments = (unsigned int*)malloc(sizeof(int));
 				gi->databaseSegments[0] = 0;
 				fread(buf, SEGMENT_RECORD_LENGTH, 1, gi->GeoIPDatabase);
 				for (j = 0; j < SEGMENT_RECORD_LENGTH; j++) {
@@ -315,7 +315,7 @@ void _setup_segments(GeoIP * gi) {
 	if (gi->databaseType == GEOIP_COUNTRY_EDITION ||
 			gi->databaseType == GEOIP_PROXY_EDITION ||
 			gi->databaseType == GEOIP_NETSPEED_EDITION) {
-		gi->databaseSegments = malloc(sizeof(int));
+		gi->databaseSegments = (unsigned int*)malloc(sizeof(int));
 		gi->databaseSegments[0] = COUNTRY_BEGIN;
 	}
 }
@@ -354,7 +354,7 @@ int _check_mtime(GeoIP *gi) {
 
 #ifndef WIN32
 				if ( gi->flags & GEOIP_MMAP_CACHE) {
-				    gi->cache = mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fileno(gi->GeoIPDatabase), 0);
+				    gi->cache = (unsigned char*)mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fileno(gi->GeoIPDatabase), 0);
 				    if ( gi->cache == MAP_FAILED ) {
 
 					    fprintf(stderr,"Error remapping file %s when reloading\n",gi->file_path);
@@ -533,7 +533,7 @@ GeoIP* GeoIP_open (const char * filename, int flags) {
 	if (gi == NULL)
 		return NULL;
 	len = sizeof(char) * (strlen(filename)+1);
-	gi->file_path = malloc(len);
+	gi->file_path = (char*)malloc(len);
 	if (gi->file_path == NULL) {
 		free(gi);
 		return NULL;
@@ -558,7 +558,7 @@ GeoIP* GeoIP_open (const char * filename, int flags) {
 #ifndef WIN32
 			/* MMAP added my Peter Shipley */
 			if ( flags & GEOIP_MMAP_CACHE) {
-			    gi->cache = mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fileno(gi->GeoIPDatabase), 0);
+			    gi->cache = (unsigned char*)mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fileno(gi->GeoIPDatabase), 0);
 			    if ( gi->cache == MAP_FAILED ) {
 				fprintf(stderr,"Error mmaping file %s\n",filename);
 				free(gi->file_path);
@@ -833,7 +833,7 @@ char *GeoIP_database_info (GeoIP* gi) {
 	for (i = 0; i < DATABASE_INFO_MAX_SIZE; i++) {
 		fread(buf, 1, 3, gi->GeoIPDatabase);
 		if (buf[0] == 0 && buf[1] == 0 && buf[2] == 0) {
-			retval = malloc(sizeof(char) * (i+1));
+			retval = (char*)malloc(sizeof(char) * (i+1));
 			if (retval == NULL) {
 				return NULL;
 			}
@@ -897,7 +897,7 @@ static
 GeoIPRegion * _get_region(GeoIP* gi, unsigned long ipnum) {
 	GeoIPRegion * region;
  
-	region = malloc(sizeof(GeoIPRegion));
+	region = (GeoIPRegion*)malloc(sizeof(GeoIPRegion));
 	if (region) {
 		GeoIP_assign_region_by_inetaddr(gi, htonl(ipnum), region);
 	}
@@ -972,12 +972,12 @@ char *_get_name (GeoIP* gi, unsigned long ipnum) {
 		fseek(gi->GeoIPDatabase, record_pointer, SEEK_SET);
 		fread(buf, sizeof(char), MAX_ORG_RECORD_LENGTH, gi->GeoIPDatabase);
 		len = sizeof(char) * (strlen(buf)+1);
-		org_buf = malloc(len);
+		org_buf = (char*)malloc(len);
 		strncpy(org_buf, buf, len);
 	} else {
-		buf_pointer = gi->cache + (long)record_pointer;
+		buf_pointer = (char*)(gi->cache + (long)record_pointer);
 		len = sizeof(char) * (strlen(buf_pointer)+1);
-		org_buf = malloc(len);
+		org_buf = (char*)malloc(len);
 		strncpy(org_buf, buf_pointer, len);
 	}
 	return org_buf;
