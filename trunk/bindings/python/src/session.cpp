@@ -68,7 +68,14 @@ namespace
       allow_threading_guard guard;
       return s.listen_on(std::make_pair(min_, max_), interface);
   }
-
+  void outgoing_ports(session& s, int _min, int _max)
+  {
+      allow_threading_guard guard;
+      session_settings settings = s.settings();
+      settings.outgoing_ports = std::make_pair(_min, _max);
+      s.set_settings(settings);
+      return;
+  }
 #ifndef TORRENT_DISABLE_DHT
   void add_dht_router(session& s, std::string router_, int port_)
   {
@@ -257,6 +264,7 @@ void bind_session()
           , (arg("min"), "max", arg("interface") = (char const*)0)
           , session_listen_on_doc
         )
+        .def("outgoing_ports", &outgoing_ports)
         .def("is_listening", allow_threads(&session::is_listening), session_is_listening_doc)
         .def("listen_port", allow_threads(&session::listen_port), session_listen_port_doc)
         .def("status", allow_threads(&session::status), session_status_m_doc)
@@ -309,6 +317,7 @@ void bind_session()
           , session_num_connections_doc
         )
         .def("set_settings", allow_threads(&session::set_settings), session_set_settings_doc)
+        .def("settings", allow_threads(&session::settings), return_value_policy<copy_const_reference>())
 #ifndef TORRENT_DISABLE_ENCRYPTION
         .def("set_pe_settings", allow_threads(&session::set_pe_settings), session_set_pe_settings_doc)
         .def("get_pe_settings", allow_threads(&session::get_pe_settings), return_value_policy<copy_const_reference>())
