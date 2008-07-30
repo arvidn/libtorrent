@@ -42,7 +42,7 @@ std::string demangle(char const* name);
 #if (defined __linux__ || defined __MACH__) && defined __GNUC__ && !defined(NDEBUG)
 
 TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file, char const* function);
-#define TORRENT_ASSERT(x) if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__)
+#define TORRENT_ASSERT(x) do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__); } while (false)
 
 #else
 #include <cassert>
