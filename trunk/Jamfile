@@ -74,7 +74,8 @@ rule linking ( properties * )
 		&& ( <toolset>gcc in $(properties)
 		|| <toolset>darwin in $(properties) )
 	{
-		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage ;
+		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage
+			<linkflags>-lgcov <define>NDEBUG ;
 	}
 
 	# clock_gettime on linux requires librt
