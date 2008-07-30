@@ -1153,7 +1153,8 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				TORRENT_ASSERT(ret != -2 || !j.str.empty());
+				TORRENT_ASSERT(ret != -2 || !j.str.empty()
+					|| j.action == disk_io_job::hash);
 				if (handler) m_ios.post(bind(handler, ret, j));
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (std::exception&)
