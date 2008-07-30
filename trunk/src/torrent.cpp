@@ -3466,7 +3466,7 @@ namespace libtorrent
 		for (policy::const_iterator i = m_policy.begin_peer()
 			, end(m_policy.end_peer()); i != end; ++i)
 		{
-			TORRENT_ASSERT(i->second.ip.address() == i->first);
+			TORRENT_ASSERT(i->second.addr == i->first);
 		}
 #endif
 
@@ -4144,7 +4144,6 @@ namespace libtorrent
 		TORRENT_ASSERT(valid_metadata());
 	
 		fp.resize(m_torrent_file->num_files(), 0);
-		TORRENT_ASSERT(has_picker());
 
 		if (is_seed())
 		{
@@ -4153,6 +4152,8 @@ namespace libtorrent
 			return;
 		}
 		
+		TORRENT_ASSERT(has_picker());
+
 		for (int i = 0; i < m_torrent_file->num_files(); ++i)
 		{
 			peer_request ret = m_torrent_file->files().map_file(i, 0, 0);
