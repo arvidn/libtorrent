@@ -513,7 +513,7 @@ namespace libtorrent
 		priority_range(priority, &range_start, &range_end);
 		int new_index;
 		if (range_end == range_start) new_index = range_start;
-		else new_index = rand() % (range_end - range_start) + range_start;
+		else new_index = rand() % (range_end - range_start + 1) + range_start;
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "add " << index << " (" << priority << ")" << std::endl;
