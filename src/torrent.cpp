@@ -962,9 +962,9 @@ namespace libtorrent
 			m_complete_sent = true;
 
 		m_failed_trackers = 0;
-		// announce intervals less than 5 minutes
-		// are insane.
-		if (interval < 60 * 5) interval = 60 * 5;
+
+		if (interval < m_ses.settings().min_announce_interval)
+			interval = m_ses.settings().min_announce_interval;
 
 		m_last_working_tracker
 			= prioritize_tracker(m_currently_trying_tracker);

@@ -2899,6 +2899,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int auto_scrape_min_interval;
 
 		int max_peerlist_size;
+
+		int min_announce_interval;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3164,6 +3166,12 @@ should be much greater than the maximum number of connected peers.
 Peers are evicted from the cache when the list grows passed 90% of
 this limit, and once the size hits the limit, peers are no longer
 added to the list.
+
+``min_announce_interval`` is the minimum allowed announce interval
+for a tracker. This is specified in seconds, defaults to 5 minutes and
+is used as a sanity check on what is returned from a tracker. It
+mitigates hammering misconfigured trackers.
+
 
 pe_settings
 ===========
