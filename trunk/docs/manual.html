@@ -2915,6 +2915,8 @@ struct session_settings
         int auto_scrape_min_interval;
 
         int max_peerlist_size;
+
+        int min_announce_interval;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -3126,6 +3128,10 @@ should be much greater than the maximum number of connected peers.
 Peers are evicted from the cache when the list grows passed 90% of
 this limit, and once the size hits the limit, peers are no longer
 added to the list.</p>
+<p><tt class="docutils literal"><span class="pre">min_announce_interval</span></tt> is the minimum allowed announce interval
+for a tracker. This is specified in seconds, defaults to 5 minutes and
+is used as a sanity check on what is returned from a tracker. It
+mitigates hammering misconfigured trackers.</p>
 </div>
 <div class="section">
 <h1><a id="pe-settings" name="pe-settings">pe_settings</a></h1>

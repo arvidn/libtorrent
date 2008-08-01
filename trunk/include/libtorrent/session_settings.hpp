@@ -140,6 +140,7 @@ namespace libtorrent
 			, auto_scrape_interval(1800)
 			, auto_scrape_min_interval(300)
 			, max_peerlist_size(8000)
+			, min_announce_interval(5 * 60)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -430,6 +431,11 @@ namespace libtorrent
 		// per torrent. This is the peers we know
 		// about, not necessarily connected to.
 		int max_peerlist_size;
+
+		// any announce intervals reported from a tracker
+		// that is lower than this, will be clamped to this
+		// value. It's specified in seconds
+		int min_announce_interval;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
