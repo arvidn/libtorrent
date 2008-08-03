@@ -3272,7 +3272,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 		INVARIANT_CHECK;
 
-		set_state(torrent_status::connecting_to_tracker);
+		set_state(torrent_status::downloading);
 
 		if (!is_seed())
 		{
@@ -4368,11 +4368,7 @@ namespace libtorrent
 
 		if (!valid_metadata())
 		{
-			if (m_got_tracker_response == false && m_connections.empty())
-				st.state = torrent_status::connecting_to_tracker;
-			else
-				st.state = torrent_status::downloading_metadata;
-
+			st.state = torrent_status::downloading_metadata;
 			st.progress = m_progress;
 			st.block_size = 0;
 			return st;
