@@ -1016,17 +1016,6 @@ namespace libtorrent
 			}
 			else
 			{
-				if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
-				{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-					debug_log("blocked ip from tracker: " + i->ip);
-#endif
-					if (m_ses.m_alerts.should_post<peer_blocked_alert>())
-						m_ses.m_alerts.post_alert(peer_blocked_alert(a.address()));
-
-					continue;
-				}
-
 				m_policy.peer_from_tracker(a, i->pid, peer_info::tracker, 0);
 			}
 		}
