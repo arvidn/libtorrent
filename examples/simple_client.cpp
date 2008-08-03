@@ -60,7 +60,10 @@ int main(int argc, char* argv[])
 	{
 		session s;
 		s.listen_on(std::make_pair(6881, 6889));
-		s.add_torrent(torrent_info(argv[1]), "./");
+		add_torrent_params p;
+		p.save_path = "./";
+		p.ti = new torrent_info(argv[1]);
+		s.add_torrent(p);
 
 		// wait for the user to end
 		char a;

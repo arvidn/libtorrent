@@ -227,6 +227,9 @@ feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 
 feature zlib : shipped system : composite propagated link-incompatible ;
 
+feature deprecated-functions : on off : composite propagated link-incompatible ;
+feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
+
 feature statistics : off on : composite propagated link-incompatible ;
 feature.compose <statistics>on : <define>TORRENT_STATS ;
 

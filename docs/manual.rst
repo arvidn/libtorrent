@@ -3722,6 +3722,34 @@ Now we just need to know how to retrieve information from the entry_.
 If ``bdecode()`` encounters invalid encoded data in the range given to it
 it will throw invalid_encoding_.
 
+add_magnet_uri()
+----------------
+
+	::
+
+		torrent_handle add_magnet_uri(session& ses, std::string const& uri
+			add_torrent_params p);
+
+This function parses the magnet URI (``uri``) as a bittorrent magnet link,
+and adds the torrent to the specified session (``ses``). It returns the
+handle to the newly added torrent, or an invalid handle in case parsing
+failed. To control some initial settings of the torrent, sepcify those in
+the ``add_torrent_params``, ``p``. See `add_torrent()`_.
+
+For more information about magnet links, see `magnet links`_.
+
+make_magnet_uri()
+-----------------
+
+	::
+
+		std::string make_magnet_uri(torrent_handle const& handle);
+
+Generates a magnet URI from the specified torrent. If the torrent
+handle is invalid, an empty string is returned.
+
+For more information about magnet links, see `magnet links`_.
+
 
 alerts
 ======
@@ -4610,6 +4638,18 @@ delete_files()
 
 This function should delete all files and directories belonging to this storage.
 
+
+magnet links
+============
+
+Magnet links are URIs that includes an info-hash, a display name and optionally
+a tracker url. The idea behind magnet links is that an end user can click on a
+link in a browser and have it handled by a bittorrent application, to start a
+download, without any .torrent file.
+
+The format of the magnet URI is:
+
+**magnet:?xt=urn:btih:** *Base32 encoded info-hash* [ **&dn=** *name of download* ] [ **&tr=** *tracker URL* ]*
 
 queuing
 =======

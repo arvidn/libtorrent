@@ -227,6 +227,7 @@ namespace libtorrent
 		return 0;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(entry const& torrent_file)
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
@@ -249,6 +250,7 @@ namespace libtorrent
 		parse_torrent_file(e, error);
 #endif
 	}
+#endif
 
 	torrent_info::torrent_info(lazy_entry const& torrent_file)
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
@@ -583,6 +585,7 @@ namespace libtorrent
 			, bind(&announce_entry::tier, _1), bind(&announce_entry::tier, _2)));
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 // ------- start deprecation -------
 
 	void torrent_info::print(std::ostream& os) const
@@ -606,6 +609,7 @@ namespace libtorrent
 	}
 
 // ------- end deprecation -------
+#endif
 
 }
 

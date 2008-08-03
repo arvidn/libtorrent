@@ -198,8 +198,8 @@ For more build configuration flags see <a class="reference" href="#build-configu
 <p>Build features:</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="32%" />
-<col width="68%" />
+<col width="33%" />
+<col width="67%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">boost build feature</th>
@@ -371,6 +371,17 @@ checks.</li>
 is useful for building release builds with
 symbols.</li>
 <li><tt class="docutils literal"><span class="pre">off</span></tt> - default for release builds.</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">deprecated-functions</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - default. Includes deprecated functions
+of the API (might produce warnings during build
+when deprecated functions are used).</li>
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - excludes deprecated functions from the
+API. Generates build errors when deprecated
+functions are used.</li>
 </ul>
 </td>
 </tr>
@@ -654,6 +665,10 @@ make the resulting executable faster.</td>
 <td>This will enable extra expensive invariant
 checks. Useful for finding particular bugs
 or for running before releases.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_NO_DEPRECATE</span></tt></td>
+<td>This will exclude all deprecated functions from
+the header files and cpp files.</td>
 </tr>
 </tbody>
 </table>

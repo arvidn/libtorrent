@@ -179,6 +179,7 @@ namespace libtorrent
 		// all torrent_handles must be destructed before the session is destructed!
 		torrent_handle add_torrent(add_torrent_params const& params);
 		
+#ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.14
 		torrent_handle add_torrent(
 			torrent_info const& ti
@@ -209,6 +210,7 @@ namespace libtorrent
 			, bool paused = false
 			, storage_constructor_type sc = default_storage_constructor
 			, void* userdata = 0) TORRENT_DEPRECATED;
+#endif
 
 		session_proxy abort() { return session_proxy(m_impl); }
 
@@ -317,7 +319,9 @@ namespace libtorrent
 		void set_max_half_open_connections(int limit);
 
 		std::auto_ptr<alert> pop_alert();
+#ifndef TORRENT_NO_DEPRECATE
 		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;
+#endif
 		void set_alert_mask(int m);
 
 		alert const* wait_for_alert(time_duration max_wait);

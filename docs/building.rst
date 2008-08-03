@@ -215,114 +215,121 @@ For more build configuration flags see `Build configurations`_.
 
 Build features:
 
-+------------------------+----------------------------------------------------+
-| boost build feature    | values                                             |
-+========================+====================================================+
-| ``boost``              | * ``system`` - default. Tells the Jamfile that     |
-|                        |   boost is installed and should be linked against  |
-|                        |   the system libraries.                            |
-|                        | * ``source`` - Specifies that boost is to be built |
-|                        |   from source. The environment variable            |
-|                        |   ``BOOST_ROOT`` must be defined to point to the   |
-|                        |   boost directory.                                 |
-+------------------------+----------------------------------------------------+
-| ``boost-link``         | * ``static`` - links statically against the boost  |
-|                        |   libraries.                                       |
-|                        | * ``shared`` - links dynamically against the boost |
-|                        |   libraries.                                       |
-+------------------------+----------------------------------------------------+
-| ``logging``            | * ``none`` - no logging.                           |
-|                        | * ``default`` - basic session logging.             |
-|                        | * ``verbose`` - verbose peer wire logging.         |
-|                        | * ``errors`` - like verbose, but limited to errors.|
-+------------------------+----------------------------------------------------+
-| ``dht-support``        | * ``on`` - build with support for tracker less     |
-|                        |   torrents and DHT support.                        |
-|                        | * ``logging`` - build with DHT support and verbose |
-|                        |   logging of the DHT protocol traffic.             |
-|                        | * ``off`` - build without DHT support.             |
-+------------------------+----------------------------------------------------+
-| ``need-librt``         | * ``no`` - this platform does not need to link     |
-|                        |   against librt to have POSIX time functions.      |
-|                        | * ``yes`` - specify this if your linux system      |
-|                        |   requires you to link against librt.a. This is    |
-|                        |   typically the case on x86 64 bit systems.        |
-+------------------------+----------------------------------------------------+
-| ``zlib``               | * ``system`` - links against the zlib supplied     |
-|                        |   with your operating system.                      |
-|                        | * ``shipped`` - links against the zlib bundled     |
-|                        |   with the libtorrent package.                     |
-+------------------------+----------------------------------------------------+
-| ``geoip``              | * ``off`` - geo ip lookups disabled                |
-|                        | * ``static`` - MaxMind_ geo ip lookup code linked  |
-|                        |   in statically. Note that this code is under      |
-|                        |   LGPL license.                                    |
-|                        | * ``shared`` - The MaxMind_ geo ip lookup library  |
-|                        |   is expected to be installed on the system and    |
-|                        |   it will be used.                                 |
-+------------------------+----------------------------------------------------+
-| ``upnp-logging``       | * ``off`` - default. Does not log UPnP traffic.    |
-|                        | * ``on`` - creates "upnp.log" with the messages    |
-|                        |   sent to and received from UPnP devices.          |
-+------------------------+----------------------------------------------------+
-| ``openssl``            | * ``pe`` - turns on support for encrypted          |
-|                        |   connections. requires openssl (libcrypto)        |
-|                        | * ``sha-1`` - openssl will be used instead of the  |
-|                        |   public domain SHA-1 implementation shipped with  |
-|                        |   libtorrent. ``libcrypto.a`` will be required for |
-|                        |   linking. Encryption support is still turned off. |
-|                        | * ``off`` - turns off support for encrypted        |
-|                        |   connections. openssl is not linked in. The       |
-|                        |   shipped public domain SHA-1 implementation is    |
-|                        |   used.                                            |
-+------------------------+----------------------------------------------------+
-| ``pool-allocators``    | * ``on`` - default, uses pool allocators for send  |
-|                        |   buffers.                                         |
-|                        | * ``off`` - uses ``malloc()`` and ``free()``       |
-|                        |   instead. Might be useful to debug buffer issues  |
-|                        |   with tools like electric fence or libgmalloc.    |
-+------------------------+----------------------------------------------------+
-| ``link``               | * ``static`` - builds libtorrent as a static       |
-|                        |   library (.a / .lib)                              |
-|                        | * ``shared`` - builds libtorrent as a shared       |
-|                        |   library (.so / .dll).                            |
-+------------------------+----------------------------------------------------+
-| ``runtime-link``       | * ``static`` - links statically against the        |
-|                        |   run-time library (if available on your           |
-|                        |   platform).                                       |
-|                        | * ``shared`` - link dynamically against the        |
-|                        |   run-time library (default).                      |
-+------------------------+----------------------------------------------------+
-| ``variant``            | * ``debug`` - builds libtorrent with debug         |
-|                        |   information and invariant checks.                |
-|                        | * ``release`` - builds libtorrent in release mode  |
-|                        |   without invariant checks and with optimization.  |
-|                        | * ``profile`` - builds libtorrent with profile     |
-|                        |   information.                                     |
-+------------------------+----------------------------------------------------+
-| ``character-set``      | This setting will only have an affect on windows.  |
-|                        | Other platforms are expected to support UTF-8.     |
-|                        |                                                    |
-|                        | * ``unicode`` - The unicode version of the win32   |
-|                        |   API is used. This is default.                    |
-|                        | * ``ansi`` - The ansi version of the win32 API is  |
-|                        |   used.                                            |
-+------------------------+----------------------------------------------------+
-| ``invariant-checks``   | This setting only affects debug builds (where      |
-|                        | ``NDEBUG`` is not defined). It defaults to ``on``. |
-|                        |                                                    |
-|                        | * ``on`` - internal invariant checks are enabled.  |
-|                        | * ``off`` - internal invariant checks are          |
-|                        |   disabled. The resulting executable will run      |
-|                        |   faster than a regular debug build.               |
-|                        | * ``full`` - turns on extra expensive invariant    |
-|                        |   checks.                                          |
-+------------------------+----------------------------------------------------+
-| ``debug-symbols``      | * ``on`` - default for debug builds. This setting  |
-|                        |   is useful for building release builds with       |
-|                        |   symbols.                                         |
-|                        | * ``off`` - default for release builds.            |
-+------------------------+----------------------------------------------------+
++--------------------------+----------------------------------------------------+
+| boost build feature      | values                                             |
++==========================+====================================================+
+| ``boost``                | * ``system`` - default. Tells the Jamfile that     |
+|                          |   boost is installed and should be linked against  |
+|                          |   the system libraries.                            |
+|                          | * ``source`` - Specifies that boost is to be built |
+|                          |   from source. The environment variable            |
+|                          |   ``BOOST_ROOT`` must be defined to point to the   |
+|                          |   boost directory.                                 |
++--------------------------+----------------------------------------------------+
+| ``boost-link``           | * ``static`` - links statically against the boost  |
+|                          |   libraries.                                       |
+|                          | * ``shared`` - links dynamically against the boost |
+|                          |   libraries.                                       |
++--------------------------+----------------------------------------------------+
+| ``logging``              | * ``none`` - no logging.                           |
+|                          | * ``default`` - basic session logging.             |
+|                          | * ``verbose`` - verbose peer wire logging.         |
+|                          | * ``errors`` - like verbose, but limited to errors.|
++--------------------------+----------------------------------------------------+
+| ``dht-support``          | * ``on`` - build with support for tracker less     |
+|                          |   torrents and DHT support.                        |
+|                          | * ``logging`` - build with DHT support and verbose |
+|                          |   logging of the DHT protocol traffic.             |
+|                          | * ``off`` - build without DHT support.             |
++--------------------------+----------------------------------------------------+
+| ``need-librt``           | * ``no`` - this platform does not need to link     |
+|                          |   against librt to have POSIX time functions.      |
+|                          | * ``yes`` - specify this if your linux system      |
+|                          |   requires you to link against librt.a. This is    |
+|                          |   typically the case on x86 64 bit systems.        |
++--------------------------+----------------------------------------------------+
+| ``zlib``                 | * ``system`` - links against the zlib supplied     |
+|                          |   with your operating system.                      |
+|                          | * ``shipped`` - links against the zlib bundled     |
+|                          |   with the libtorrent package.                     |
++--------------------------+----------------------------------------------------+
+| ``geoip``                | * ``off`` - geo ip lookups disabled                |
+|                          | * ``static`` - MaxMind_ geo ip lookup code linked  |
+|                          |   in statically. Note that this code is under      |
+|                          |   LGPL license.                                    |
+|                          | * ``shared`` - The MaxMind_ geo ip lookup library  |
+|                          |   is expected to be installed on the system and    |
+|                          |   it will be used.                                 |
++--------------------------+----------------------------------------------------+
+| ``upnp-logging``         | * ``off`` - default. Does not log UPnP traffic.    |
+|                          | * ``on`` - creates "upnp.log" with the messages    |
+|                          |   sent to and received from UPnP devices.          |
++--------------------------+----------------------------------------------------+
+| ``openssl``              | * ``pe`` - turns on support for encrypted          |
+|                          |   connections. requires openssl (libcrypto)        |
+|                          | * ``sha-1`` - openssl will be used instead of the  |
+|                          |   public domain SHA-1 implementation shipped with  |
+|                          |   libtorrent. ``libcrypto.a`` will be required for |
+|                          |   linking. Encryption support is still turned off. |
+|                          | * ``off`` - turns off support for encrypted        |
+|                          |   connections. openssl is not linked in. The       |
+|                          |   shipped public domain SHA-1 implementation is    |
+|                          |   used.                                            |
++--------------------------+----------------------------------------------------+
+| ``pool-allocators``      | * ``on`` - default, uses pool allocators for send  |
+|                          |   buffers.                                         |
+|                          | * ``off`` - uses ``malloc()`` and ``free()``       |
+|                          |   instead. Might be useful to debug buffer issues  |
+|                          |   with tools like electric fence or libgmalloc.    |
++--------------------------+----------------------------------------------------+
+| ``link``                 | * ``static`` - builds libtorrent as a static       |
+|                          |   library (.a / .lib)                              |
+|                          | * ``shared`` - builds libtorrent as a shared       |
+|                          |   library (.so / .dll).                            |
++--------------------------+----------------------------------------------------+
+| ``runtime-link``         | * ``static`` - links statically against the        |
+|                          |   run-time library (if available on your           |
+|                          |   platform).                                       |
+|                          | * ``shared`` - link dynamically against the        |
+|                          |   run-time library (default).                      |
++--------------------------+----------------------------------------------------+
+| ``variant``              | * ``debug`` - builds libtorrent with debug         |
+|                          |   information and invariant checks.                |
+|                          | * ``release`` - builds libtorrent in release mode  |
+|                          |   without invariant checks and with optimization.  |
+|                          | * ``profile`` - builds libtorrent with profile     |
+|                          |   information.                                     |
++--------------------------+----------------------------------------------------+
+| ``character-set``        | This setting will only have an affect on windows.  |
+|                          | Other platforms are expected to support UTF-8.     |
+|                          |                                                    |
+|                          | * ``unicode`` - The unicode version of the win32   |
+|                          |   API is used. This is default.                    |
+|                          | * ``ansi`` - The ansi version of the win32 API is  |
+|                          |   used.                                            |
++--------------------------+----------------------------------------------------+
+| ``invariant-checks``     | This setting only affects debug builds (where      |
+|                          | ``NDEBUG`` is not defined). It defaults to ``on``. |
+|                          |                                                    |
+|                          | * ``on`` - internal invariant checks are enabled.  |
+|                          | * ``off`` - internal invariant checks are          |
+|                          |   disabled. The resulting executable will run      |
+|                          |   faster than a regular debug build.               |
+|                          | * ``full`` - turns on extra expensive invariant    |
+|                          |   checks.                                          |
++--------------------------+----------------------------------------------------+
+| ``debug-symbols``        | * ``on`` - default for debug builds. This setting  |
+|                          |   is useful for building release builds with       |
+|                          |   symbols.                                         |
+|                          | * ``off`` - default for release builds.            |
++--------------------------+----------------------------------------------------+
+| ``deprecated-functions`` | * ``on`` - default. Includes deprecated functions  |
+|                          |   of the API (might produce warnings during build  |
+|                          |   when deprecated functions are used).             |
+|                          | * ``off`` - excludes deprecated functions from the |
+|                          |   API. Generates build errors when deprecated      |
+|                          |   functions are used.                              |
++--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api
 
@@ -601,6 +608,9 @@ defines you can use to control the build.
 | ``TORRENT_EXPENSIVE_INVARIANT_CHECKS`` | This will enable extra expensive invariant      |
 |                                        | checks. Useful for finding particular bugs      |
 |                                        | or for running before releases.                 |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_NO_DEPRECATE``               | This will exclude all deprecated functions from |
+|                                        | the header files and cpp files.                 |
 +----------------------------------------+-------------------------------------------------+
 
 
