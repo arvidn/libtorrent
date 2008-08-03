@@ -332,11 +332,13 @@ namespace libtorrent
 		TORRENT_FORWARD(set_tracker_login(name, password));
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void torrent_handle::file_progress(std::vector<float>& progress) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD(file_progress(progress));
 	}
+#endif
 
 	void torrent_handle::file_progress(std::vector<size_type>& progress) const
 	{
@@ -426,6 +428,7 @@ namespace libtorrent
 		return ret;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 // ============ start deprecation ===============
 
 	void torrent_handle::filter_piece(int index, bool filter) const
@@ -461,7 +464,7 @@ namespace libtorrent
 	}
 
 // ============ end deprecation ===============
-
+#endif
 
 	std::vector<announce_entry> const& torrent_handle::trackers() const
 	{
@@ -525,6 +528,7 @@ namespace libtorrent
 		return !m_torrent.expired();
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	entry torrent_handle::write_resume_data() const
 	{
 		INVARIANT_CHECK;
@@ -535,7 +539,7 @@ namespace libtorrent
 
 		return ret;
 	}
-
+#endif
 
 	fs::path torrent_handle::save_path() const
 	{

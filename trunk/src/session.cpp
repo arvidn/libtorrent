@@ -244,6 +244,7 @@ namespace libtorrent
 		return m_impl->add_torrent(params);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	// if the torrent already exists, this will throw duplicate_torrent
 	torrent_handle session::add_torrent(
 		torrent_info const& ti
@@ -311,6 +312,7 @@ namespace libtorrent
 		p.userdata = userdata;
 		return m_impl->add_torrent(p);
 	}
+#endif
 
 	void session::remove_torrent(const torrent_handle& h, int options)
 	{
@@ -518,6 +520,7 @@ namespace libtorrent
 		m_impl->set_alert_mask(m);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::set_severity_level(alert::severity_t s)
 	{
 		int m = 0;
@@ -535,6 +538,7 @@ namespace libtorrent
 
 		m_impl->set_alert_mask(m);
 	}
+#endif
 
 	void session::start_lsd()
 	{

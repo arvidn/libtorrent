@@ -319,10 +319,12 @@ namespace libtorrent
 		torrent_status status() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 		
+#ifndef TORRENT_NO_DEPRECATE
 		// fills the specified vector with the download progress [0, 1]
 		// of each file in the torrent. The files are ordered as in
 		// the torrent_info.
 		void file_progress(std::vector<float>& progress) const TORRENT_DEPRECATED;
+#endif
 		void file_progress(std::vector<size_type>& progress) const;
 
 		void clear_error() const;
@@ -370,6 +372,7 @@ namespace libtorrent
 
 		// ================ start deprecation ============
 
+#ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.13
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
@@ -382,6 +385,7 @@ namespace libtorrent
 		void filter_files(std::vector<bool> const& files) const TORRENT_DEPRECATED;
 
 		// ================ end deprecation ============
+#endif
 
 		void piece_availability(std::vector<int>& avail) const;
 		
@@ -403,10 +407,12 @@ namespace libtorrent
 		// to.
 		void use_interface(const char* net_interface) const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.14
 		// use save_resume_data() instead. It is async. and
 		// will return the resume data in an alert
 		entry write_resume_data() const TORRENT_DEPRECATED;
+#endif
 
 		// forces this torrent to reannounce
 		// (make a rerequest from the tracker)

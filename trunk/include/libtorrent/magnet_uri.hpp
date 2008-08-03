@@ -47,12 +47,18 @@ namespace libtorrent
 
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
 
+#ifndef TORRENT_NO_DEPRECATE
+	// deprecated in 0.14
 	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
 		, fs::path const& save_path
 		, storage_mode_t storage_mode = storage_mode_sparse
 		, bool paused = false
 		, storage_constructor_type sc = default_storage_constructor
-		, void* userdata = 0);
+		, void* userdata = 0) TORRENT_DEPRECATED;
+#endif
+
+	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
+		, add_torrent_params p);
 }
 
 #endif

@@ -96,7 +96,9 @@ namespace libtorrent {
 		virtual std::string message() const = 0;
 		virtual int category() const = 0;
 
+#ifndef TORRENT_NO_DEPRECATE
 		severity_t severity() const TORRENT_DEPRECATED { return warning; }
+#endif
 
 		virtual std::auto_ptr<alert> clone() const = 0;
 

@@ -69,6 +69,7 @@ namespace libtorrent
 		return ret.str();
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, fs::path const& save_path
 		, storage_mode_t storage_mode
@@ -94,6 +95,31 @@ namespace libtorrent
 		return ses.add_torrent(tracker.empty() ? 0 : tracker.c_str(), info_hash
 			, name.empty() ? 0 : name.c_str(), save_path, entry()
 			, storage_mode, paused, sc, userdata);
+	}
+#endif
+
+	torrent_handle add_magnet_uri(session& ses, std::string const& uri
+		, add_torrent_params p)
+	{
+		std::string name;
+		std::string tracker;
+
+		boost::optional<std::string> display_name = url_has_argument(uri, "dn");
+		if (display_name) name = unescape_string(display_name->c_str());
+		boost::optional<std::string> tracker_string = url_has_argument(uri, "tr");
+		if (tracker_string) tracker = unescape_string(tracker_string->c_str());
+	
+		boost::optional<std::string> btih = url_has_argument(uri, "xt");
+		if (!btih) return torrent_handle();
+
+		if (btih->compare(0, 9, "urn:btih:") != 0) return torrent_handle();
+
+		sha1_hash info_hash(base32decode(btih->substr(9)));
+
+		if (!tracker.empty()) p.tracker_url = tracker.c_str();
+		p.info_hash = info_hash;
+		if (!name.empty()) p.name = name.c_str();
+		return ses.add_torrent(p);
 	}
 }
 

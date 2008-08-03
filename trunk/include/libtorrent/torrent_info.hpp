@@ -125,11 +125,13 @@ namespace libtorrent
 		peer_request map_file(int file, size_type offset, int size) const
 		{ return m_files.map_file(file, offset, size); }
 		
+#ifndef TORRENT_NO_DEPRECATE
 // ------- start deprecation -------
 // these functions will be removed in a future version
 		torrent_info(entry const& torrent_file) TORRENT_DEPRECATED;
 		void print(std::ostream& os) const TORRENT_DEPRECATED;
 // ------- end deprecation -------
+#endif
 
 		bool is_valid() const { return m_files.is_valid(); }
 

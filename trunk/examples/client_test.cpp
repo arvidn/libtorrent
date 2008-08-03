@@ -861,6 +861,7 @@ int main(int ac, char* av[])
 		ses.set_peer_proxy(ps);
 		ses.set_web_seed_proxy(ps);
 
+#ifndef TORRENT_NO_DEPRECATE
 		if (log_level == "debug")
 			ses.set_severity_level(alert::debug);
 		else if (log_level == "warning")
@@ -869,6 +870,7 @@ int main(int ac, char* av[])
 			ses.set_severity_level(alert::fatal);
 		else
 			ses.set_severity_level(alert::info);
+#endif
 
 		boost::filesystem::ifstream ses_state_file(".ses_state"
 			, std::ios_base::binary);
@@ -956,10 +958,12 @@ int main(int ac, char* av[])
 				// first see if this is a torrentless download
 				if (i->substr(0, 7) == "magnet:")
 				{
+					add_torrent_params p;
+					p.save_path = save_path;
+					p.storage_mode = compact_allocation_mode ? storage_mode_compact
+						: storage_mode_sparse;
 					std::cout << "adding MANGET link: " << *i << std::endl;
-					torrent_handle h = add_magnet_uri(ses, *i, save_path
-						, compact_allocation_mode ? storage_mode_compact
-						: storage_mode_sparse);
+					torrent_handle h = add_magnet_uri(ses, *i, p);
 
 					handles.insert(std::make_pair(std::string(), h));
 
