@@ -617,6 +617,7 @@ namespace libtorrent
 				size -= to_copy;
 				block_offset = 0;
 				buffer_offset += to_copy;
+				++block;
 			}
 			ret = j.buffer_size;
 			++m_cache_stats.blocks_read;
