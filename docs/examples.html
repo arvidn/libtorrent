@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.4: http://docutils.sourceforge.net/" />
 <title>libtorrent Examples</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" href="style.css" type="text/css" />
@@ -50,7 +50,6 @@ print information about it to std out:</p>
 #include &quot;libtorrent/bencode.hpp&quot;
 #include &quot;libtorrent/torrent_info.hpp&quot;
 
-
 int main(int argc, char* argv[])
 {
         using namespace libtorrent;
@@ -60,13 +59,15 @@ int main(int argc, char* argv[])
                 std::cerr &lt;&lt; &quot;usage: dump_torrent torrent-file\n&quot;;
                 return 1;
         }
+#if BOOST_VERSION &lt; 103400
+        boost::filesystem::path::default_name_check(boost::filesystem::no_check);
+#endif
 
         try
         {
                 std::ifstream in(argv[1], std::ios_base::binary);
                 in.unsetf(std::ios_base::skipws);
-                entry e = bdecode(std::istream_iterator&lt;char&gt;(in)
-                        , std::istream_iterator&lt;char&gt;());
+                entry e = bdecode(std::istream_iterator&lt;char&gt;(in), std::istream_iterator&lt;char&gt;());
 
                 std::cout &lt;&lt; &quot;\n\n----- raw info -----\n\n&quot;;
                 e.print(std::cout);
@@ -79,14 +80,13 @@ int main(int argc, char* argv[])
                 typedef std::vector&lt;std::pair&lt;std::string, int&gt; &gt; node_vec;
                 node_vec const&amp; nodes = t.nodes();
                 for (node_vec::const_iterator i = nodes.begin(), end(nodes.end());
-                        i != end; ++i)
+                                i != end; ++i)
                 {
                         std::cout &lt;&lt; i-&gt;first &lt;&lt; &quot;:&quot; &lt;&lt; i-&gt;second &lt;&lt; &quot;\n&quot;;
                 }
-
                 std::cout &lt;&lt; &quot;trackers:\n&quot;;
-                for (std::vector&lt;announce_entry&gt;::const_iterator i
-                        = t.trackers().begin(); i != t.trackers().end(); ++i)
+                for (std::vector&lt;announce_entry&gt;::const_iterator i = t.trackers().begin();
+                                i != t.trackers().end(); ++i)
                 {
                         std::cout &lt;&lt; i-&gt;tier &lt;&lt; &quot;: &quot; &lt;&lt; i-&gt;url &lt;&lt; &quot;\n&quot;;
                 }
@@ -97,13 +97,16 @@ int main(int argc, char* argv[])
                 std::cout &lt;&lt; &quot;comment: &quot; &lt;&lt; t.comment() &lt;&lt; &quot;\n&quot;;
                 std::cout &lt;&lt; &quot;created by: &quot; &lt;&lt; t.creator() &lt;&lt; &quot;\n&quot;;
                 std::cout &lt;&lt; &quot;files:\n&quot;;
+                int index = 0;
                 for (torrent_info::file_iterator i = t.begin_files();
-                        i != t.end_files(); ++i)
+                        i != t.end_files(); ++i, ++index)
                 {
+                        int first = t.map_file(index, 0, 1).piece;
+                        int last = t.map_file(index, i-&gt;size - 1, 1).piece;
                         std::cout &lt;&lt; &quot;  &quot; &lt;&lt; std::setw(11) &lt;&lt; i-&gt;size
-                                &lt;&lt; &quot; &quot; &lt;&lt; i-&gt;path.string() &lt;&lt; &quot;\n&quot;;
+                                &lt;&lt; &quot; &quot; &lt;&lt; i-&gt;path.string() &lt;&lt; &quot;[ &quot; &lt;&lt; first &lt;&lt; &quot;, &quot;
+                                &lt;&lt; last &lt;&lt; &quot; ]\n&quot;;
                 }
-
         }
         catch (std::exception&amp; e)
         {
@@ -133,10 +136,14 @@ int main(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
         using namespace libtorrent;
+#if BOOST_VERSION &lt; 103400
+        namespace fs = boost::filesystem;
+        fs::path::default_name_check(fs::no_check);
+#endif
 
         if (argc != 2)
         {
-                std::cerr &lt;&lt; &quot;usage: ./simple_cient torrent-file\n&quot;
+                std::cerr &lt;&lt; &quot;usage: ./simple_client torrent-file\n&quot;
                         &quot;to stop the client, press return.\n&quot;;
                 return 1;
         }
@@ -148,9 +155,8 @@ int main(int argc, char* argv[])
 
                 std::ifstream in(argv[1], std::ios_base::binary);
                 in.unsetf(std::ios_base::skipws);
-                entry e = bdecode(std::istream_iterator&lt;char&gt;(in)
-                        , std::istream_iterator&lt;char&gt;());
-                s.add_torrent(torrent_info(e), &quot;&quot;);
+                entry e = bdecode(std::istream_iterator&lt;char&gt;(in), std::istream_iterator&lt;char&gt;());
+                s.add_torrent(torrent_info(e), &quot;./&quot;);
 
                 // wait for the user to end
                 char a;
@@ -194,6 +200,7 @@ void add_files(
         , path const&amp; p
         , path const&amp; l)
 {
+        if (l.leaf()[0] == '.') return;
         path f(p / l);
         if (is_directory(f))
         {
@@ -214,47 +221,52 @@ int main(int argc, char* argv[])
 
         path::default_name_check(no_check);
 
-        if (argc != 4)
+        if (argc != 4 &amp;&amp; argc != 5)
         {
                 std::cerr &lt;&lt; &quot;usage: make_torrent &lt;output torrent-file&gt; &quot;
-                        &quot;&lt;announce url&gt; &lt;file or directory to create torrent from&gt;\n&quot;;
+                        &quot;&lt;announce url&gt; &lt;file or directory to create torrent from&gt; &quot;
+                        &quot;[url-seed]\n&quot;;
                 return 1;
         }
 
         try
         {
-                torrent_info t;
+                boost::intrusive_ptr&lt;torrent_info&gt; t(new torrent_info);
                 path full_path = complete(path(argv[3]));
                 ofstream out(complete(path(argv[1])), std::ios_base::binary);
 
                 int piece_size = 256 * 1024;
                 char const* creator_str = &quot;libtorrent&quot;;
 
-                add_files(t, full_path.branch_path(), full_path.leaf());
-                t.set_piece_size(piece_size);
+                add_files(*t, full_path.branch_path(), full_path.leaf());
+                t-&gt;set_piece_size(piece_size);
 
                 file_pool fp;
-                storage st(t, full_path.branch_path(), fp);
-                t.add_tracker(argv[2]);
+                boost::scoped_ptr&lt;storage_interface&gt; st(
+                        default_storage_constructor(t, full_path.branch_path(), fp));
+                t-&gt;add_tracker(argv[2]);
 
                 // calculate the hash for all pieces
-                int num = t.num_pieces();
+                int num = t-&gt;num_pieces();
                 std::vector&lt;char&gt; buf(piece_size);
                 for (int i = 0; i &lt; num; ++i)
                 {
-                        st.read(&amp;buf[0], i, 0, t.piece_size(i));
-                        hasher h(&amp;buf[0], t.piece_size(i));
-                        t.set_hash(i, h.final());
+                        st-&gt;read(&amp;buf[0], i, 0, t-&gt;piece_size(i));
+                        hasher h(&amp;buf[0], t-&gt;piece_size(i));
+                        t-&gt;set_hash(i, h.final());
                         std::cerr &lt;&lt; (i+1) &lt;&lt; &quot;/&quot; &lt;&lt; num &lt;&lt; &quot;\r&quot;;
                 }
 
-                t.set_creator(creator_str);
+                t-&gt;set_creator(creator_str);
+
+                if (argc == 5)
+                        t-&gt;add_url_seed(argv[4]);
 
                 // create the torrent and print it to out
-                entry e = t.create_torrent();
+                entry e = t-&gt;create_torrent();
                 libtorrent::bencode(std::ostream_iterator&lt;char&gt;(out), e);
-                }
-                catch (std::exception&amp; e)
+        }
+        catch (std::exception&amp; e)
         {
                 std::cerr &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;
         }
