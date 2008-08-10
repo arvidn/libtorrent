@@ -167,6 +167,7 @@ namespace
 		, {"HL", "Halite"}
 		, {"HN", "Hydranode"}
 		, {"KT", "KTorrent"}
+		, {"LC", "LeechCraft"}
 		, {"LK", "Linkage"}
 		, {"LP", "lphant"}
 		, {"LT", "libtorrent"}
