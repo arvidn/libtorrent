@@ -3393,6 +3393,18 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
+		if (!m_ses.m_queued_for_checking.empty())
+		{
+			// if there are torrents waiting to be checked
+			// assert that there's a torrent that is being
+			// processed right now
+			bool found = false;
+			for (aux::session_impl::torrent_map::iterator i = m_ses.m_torrents.begin()
+				, end(m_ses.m_torrents.end()); i != end; ++i)
+				if (i->second->m_state == torrent_status::checking_files) found = true;
+			TORRENT_ASSERT(found);
+		}
+
 		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t
 			|| m_resume_entry.type() == lazy_entry::none_t);
 
