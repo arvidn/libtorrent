@@ -3402,7 +3402,9 @@ namespace libtorrent
 			for (aux::session_impl::torrent_map::iterator i = m_ses.m_torrents.begin()
 				, end(m_ses.m_torrents.end()); i != end; ++i)
 				if (i->second->m_state == torrent_status::checking_files) ++found;
-			TORRENT_ASSERT(found == 1);
+			// the case of 2 is in the special case where one switches over from
+			// checking to complete
+			TORRENT_ASSERT(found == 1 || found == 2);
 		}
 
 		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t
