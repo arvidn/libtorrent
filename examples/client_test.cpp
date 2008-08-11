@@ -638,7 +638,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a)
 }
 
 static char const* state_str[] =
-	{"checking (q)", "checking", "connecting", "dl metadata"
+	{"checking (q)", "checking", "dl metadata"
 	, "downloading", "finished", "seeding", "allocating"};
 
 int main(int ac, char* av[])
