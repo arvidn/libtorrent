@@ -177,15 +177,15 @@ void natpmp::try_next_mapping(int i)
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	ptime now = time_now();
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
+	for (std::vector<mapping_t>::iterator m = m_mappings.begin()
+		, end(m_mappings.end()); m != end; ++m)
 	{
-		m_log << "     " << (i - m_mappings.begin()) << " [ "
-			"proto: " << (i->protocol == none ? "none" : i->protocol == tcp ? "tcp" : "udp")
-			<< " port: " << i->external_port
-			<< " local-port: " << i->local_port
-			<< " action: " << (i->action == mapping_t::action_none ? "none" : i->action == mapping_t::action_add ? "add" : "delete")
-			<< " ttl: " << total_seconds(i->expires - now)
+		m_log << "     " << (m - m_mappings.begin()) << " [ "
+			"proto: " << (m->protocol == none ? "none" : m->protocol == tcp ? "tcp" : "udp")
+			<< " port: " << m->external_port
+			<< " local-port: " << m->local_port
+			<< " action: " << (m->action == mapping_t::action_none ? "none" : m->action == mapping_t::action_add ? "add" : "delete")
+			<< " ttl: " << total_seconds(m->expires - now)
 			<< " ]" << std::endl;
 	}
 #endif
