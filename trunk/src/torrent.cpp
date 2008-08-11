@@ -848,6 +848,8 @@ namespace libtorrent
 
 		restart_tracker_timer(time_now() + seconds(tracker_retry_delay_max));
 
+		if (m_abort) e = tracker_request::stopped;
+
 		if (e == tracker_request::none)
 		{
 			if (!m_start_sent) e = tracker_request::started;
