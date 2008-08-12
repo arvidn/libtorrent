@@ -1220,7 +1220,6 @@ namespace libtorrent
 				t->get_policy().peer_is_interesting(*this);
 
 			disconnect_if_redundant();
-			if (is_disconnecting()) return;
 
 			return;
 		}
