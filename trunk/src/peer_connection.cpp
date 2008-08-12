@@ -1212,14 +1212,16 @@ namespace libtorrent
 			// if this is a web seed. we don't have a peer_info struct
 			if (m_peer_info) m_peer_info->seed = true;
 			m_upload_only = true;
-			disconnect_if_redundant();
-			if (is_disconnecting()) return;
 
 			m_have_piece.set_all();
 			m_num_pieces = num_pieces;
 			t->peer_has_all();
 			if (!t->is_finished())
 				t->get_policy().peer_is_interesting(*this);
+
+			disconnect_if_redundant();
+			if (is_disconnecting()) return;
+
 			return;
 		}
 
@@ -1841,6 +1843,10 @@ namespace libtorrent
 		// (since it doesn't exist yet)
 		if (!t->ready_for_connections())
 		{
+			// assume seeds are interesting when we
+			// don't even have the metadata
+			t->get_policy().peer_is_interesting(*this);
+
 			disconnect_if_redundant();
 			// TODO: this might need something more
 			// so that once we have the metadata
