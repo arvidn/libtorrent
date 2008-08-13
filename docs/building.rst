@@ -70,7 +70,7 @@ Step 1: Download boost
 
 You'll find boost here__.
 
-__ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=376197
+__ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=619445
 
 Extract the archive to some directory where you want it. For the sake of this
 guide, let's assume you extract the package to ``c:\boost_1_34_0`` (I'm using
