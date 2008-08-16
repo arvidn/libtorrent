@@ -2133,6 +2133,8 @@ namespace libtorrent
 	{
 		if (m_interesting) return;
 		m_interesting = true;
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t->valid_metadata()) return;
 		write_interested();
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -2144,6 +2146,8 @@ namespace libtorrent
 	{
 		if (!m_interesting) return;
 		m_interesting = false;
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t->valid_metadata()) return;
 		write_not_interested();
 
 		m_became_uninteresting = time_now();
