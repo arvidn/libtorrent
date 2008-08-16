@@ -131,7 +131,11 @@ namespace libtorrent
 	void file_storage::add_file(fs::path const& file, size_type size)
 	{
 		TORRENT_ASSERT(size >= 0);
+#if BOOST_VERSION < 103600
 		if (!file.has_branch_path())
+#else
+		if (!file.has_parent_path())
+#endif
 		{
 			// you have already added at least one file with a
 			// path to the file (branch_path), which means that

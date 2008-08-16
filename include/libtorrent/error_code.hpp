@@ -73,7 +73,11 @@ namespace libtorrent
 	inline boost::system::error_category const& get_system_category()
 	{ return boost::system::get_system_category(); }
 	inline boost::system::error_category const& get_posix_category()
+#if BOOST_VERSION < 103600
 	{ return boost::system::get_posix_category(); }
+#else
+	{ return boost::system::get_generic_category(); }
+#endif
 #endif
 }
 

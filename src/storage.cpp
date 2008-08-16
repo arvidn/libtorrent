@@ -265,7 +265,11 @@ namespace libtorrent
 			create_directory(new_path);
 			for (basic_directory_iterator<Path> i(old_path), end; i != end; ++i)
 			{
+#if BOOST_VERSION < 103600
 				recursive_copy(i->path(), new_path / i->leaf(), ec);
+#else
+				recursive_copy(i->path(), new_path / i->filename(), ec);
+#endif
 				if (ec) return;
 			}
 		}
