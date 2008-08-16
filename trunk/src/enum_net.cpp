@@ -150,10 +150,10 @@ namespace libtorrent { namespace
 					if_indextoname(*(int*)RTA_DATA(rt_attr), rt_info->name);
 					break;
 				case RTA_GATEWAY:
-					rt_info->gateway = address_v4(ntoh(*(u_int*)RTA_DATA(rt_attr)));
+					rt_info->gateway = address_v4(ntohl(*(u_int*)RTA_DATA(rt_attr)));
 					break;
 				case RTA_DST:
-					rt_info->destination = address_v4(ntoh(*(u_int*)RTA_DATA(rt_attr)));
+					rt_info->destination = address_v4(ntohl(*(u_int*)RTA_DATA(rt_attr)));
 					break;
 			}
 		}
