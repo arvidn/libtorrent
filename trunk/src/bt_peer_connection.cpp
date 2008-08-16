@@ -252,6 +252,7 @@ namespace libtorrent
 		if (m_supports_dht_port && m_ses.m_dht)
 			write_dht_port(m_ses.get_dht_settings().service_port);
 #endif
+		if (is_interesting()) write_interested();
 	}
 
 	void bt_peer_connection::write_dht_port(int listen_port)
@@ -1435,6 +1436,9 @@ namespace libtorrent
 		else if (t->num_have() == 0)
 		{
 			// don't send a bitfield if we don't have any pieces
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " *** NOT SENDING BITFIELD";
+#endif
 #ifndef NDEBUG
 			m_sent_bitfield = true;
 #endif
