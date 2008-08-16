@@ -88,10 +88,10 @@ namespace libtorrent
 			lazy_entry* top = stack.back();
 
 			if (int(stack.size()) > depth_limit) return fail_bdecode();
-			if (start == end) return fail_bdecode();
+			if (start >= end) return fail_bdecode();
 			char t = *start;
 			++start;
-			if (start == end && t != 'e') return fail_bdecode();
+			if (start >= end && t != 'e') return fail_bdecode();
 
 			switch (top->type())
 			{
@@ -107,8 +107,10 @@ namespace libtorrent
 					start = parse_int(start, end, ':', len);
 					if (start == 0 || start + len + 3 > end || *start != ':') return fail_bdecode();
 					++start;
+					if (start == end) fail_bdecode();
 					lazy_entry* ent = top->dict_append(start);
 					start += len;
+					if (start >= end) fail_bdecode();
 					stack.push_back(ent);
 					t = *start;
 					++start;
