@@ -230,9 +230,9 @@ namespace libtorrent
 
 	bool in_local_network(io_service& ios, address const& addr, error_code& ec)
 	{
-		std::vector<ip_interface> const& net = enum_net_interfaces(ios, ec);
+		std::vector<ip_interface> net = enum_net_interfaces(ios, ec);
 		if (ec) return false;
-		for (std::vector<ip_interface>::const_iterator i = net.begin()
+		for (std::vector<ip_interface>::iterator i = net.begin()
 			, end(net.end()); i != end; ++i)
 		{
 			if (in_subnet(addr, *i)) return true;

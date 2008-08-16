@@ -339,7 +339,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		{
 			m_log << time_now_string() << " <== (" << from << ") UPnP device "
 				"ignored because it's not on our local network ";
-			std::vector<ip_interface> const& net = enum_net_interfaces(m_io_service, ec);
+			std::vector<ip_interface> net = enum_net_interfaces(m_io_service, ec);
 			for (std::vector<ip_interface>::const_iterator i = net.begin()
 				, end(net.end()); i != end; ++i)
 			{
