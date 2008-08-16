@@ -49,7 +49,11 @@ namespace libtorrent
 		, m_private(false)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
+#if BOOST_VERSION < 103600
 		if (!m_multifile && m_files.at(0).path.has_branch_path()) m_multifile = true;
+#else
+		if (!m_multifile && m_files.at(0).path.has_parent_path()) m_multifile = true;
+#endif
 
 		// make sure the size is an even power of 2
 #ifndef NDEBUG
@@ -75,7 +79,11 @@ namespace libtorrent
 		, m_private(false)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
+#if BOOST_VERSION < 103600
 		if (!m_multifile && m_files.at(0).path.has_branch_path()) m_multifile = true;
+#else
+		if (!m_multifile && m_files.at(0).path.has_parent_path()) m_multifile = true;
+#endif
 
 		const int target_size = 40 * 1024;
 		int size = fs.total_size() / (target_size / 20);
@@ -190,7 +198,11 @@ namespace libtorrent
 					file_e["length"] = i->size;
 					entry& path_e = file_e["path"];
 
+#if BOOST_VERSION < 103600
 					TORRENT_ASSERT(i->path.has_branch_path());
+#else
+					TORRENT_ASSERT(i->path.has_parent_path());
+#endif
 					TORRENT_ASSERT(*i->path.begin() == m_files.name());
 
 					for (fs::path::iterator j = boost::next(i->path.begin());

@@ -385,7 +385,11 @@ namespace libtorrent
 		{
 			name = tmp.leaf();
 		}
+#if BOOST_VERSION < 103600
 		else if (tmp.has_branch_path())
+#else
+		else if (tmp.has_parent_path())
+#endif
 		{
 			fs::path p;
 			for (fs::path::iterator i = tmp.begin()
