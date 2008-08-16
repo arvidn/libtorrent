@@ -268,6 +268,7 @@ private:
 		if (m_abort) return;
 
 		error_code ec;
+		TORRENT_ASSERT(e.expires_at > time_now());
 		m_history_timer.expires_at(e.expires_at, ec);
 		m_history_timer.async_wait(bind(&bandwidth_manager::on_history_expire, this, _1));
 	}
@@ -311,6 +312,7 @@ private:
 		if (!m_history.empty() && !m_abort)
 		{
 			error_code ec;
+			TORRENT_ASSERT(m_history.back().expires_at > now);
 			m_history_timer.expires_at(m_history.back().expires_at, ec);
 			m_history_timer.async_wait(bind(&bandwidth_manager::on_history_expire, this, _1));
 		}
