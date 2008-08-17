@@ -28,6 +28,7 @@
 <li><a class="reference" href="#building-with-autotools" id="id12" name="id12">building with autotools</a></li>
 <li><a class="reference" href="#building-with-other-build-systems" id="id13" name="id13">building with other build systems</a></li>
 <li><a class="reference" href="#build-configurations" id="id14" name="id14">build configurations</a></li>
+<li><a class="reference" href="#building-openssl-for-windows" id="id15" name="id15">building openssl for windows</a></li>
 </ul>
 </li>
 </ul>
@@ -675,6 +676,22 @@ the header files and cpp files.</td>
 <p>If you experience that libtorrent uses unreasonable amounts of cpu, it will
 definitely help to define <tt class="docutils literal"><span class="pre">NDEBUG</span></tt>, since it will remove the invariant checks
 within the library.</p>
+</div>
+<div class="section">
+<h2><a id="building-openssl-for-windows" name="building-openssl-for-windows">building openssl for windows</a></h2>
+<p>To build openssl for windows with Visual Studio 7.1 (2003) execute the following commands
+in a command shell:</p>
+<pre class="literal-block">
+perl Configure VC-WIN32 --prefix=&quot;c:/openssl
+call ms\do_nasm
+call &quot;C:\Program Files\Microsoft Visual Studio .NET 2003\vc7\bin\vcvars32.bat&quot;
+nmake -f ms\nt.mak
+copy inc32\openssl &quot;C:\Program Files\Microsoft Visual Studio .NET 2003\vc7\include\&quot;
+copy out32\libeay32.lib &quot;C:\Program Files\Microsoft Visual Studio .NET 2003\vc7\lib&quot;
+copy out32\ssleay32.lib &quot;C:\Program Files\Microsoft Visual Studio .NET 2003\vc7\lib&quot;
+</pre>
+<p>This will also install the headers and library files in the visual studio directories to
+be picked up by libtorrent.</p>
 </div>
 </div>
 </div>
