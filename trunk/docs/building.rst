@@ -618,4 +618,20 @@ If you experience that libtorrent uses unreasonable amounts of cpu, it will
 definitely help to define ``NDEBUG``, since it will remove the invariant checks
 within the library.
 
+building openssl for windows
+----------------------------
+
+To build openssl for windows with Visual Studio 7.1 (2003) execute the following commands
+in a command shell::
+
+	perl Configure VC-WIN32 --prefix="c:/openssl
+	call ms\do_nasm
+	call "C:\Program Files\Microsoft Visual Studio .NET 2003\vc7\bin\vcvars32.bat"
+	nmake -f ms\nt.mak
+	copy inc32\openssl "C:\Program Files\Microsoft Visual Studio .NET 2003\vc7\include\"
+	copy out32\libeay32.lib "C:\Program Files\Microsoft Visual Studio .NET 2003\vc7\lib"
+	copy out32\ssleay32.lib "C:\Program Files\Microsoft Visual Studio .NET 2003\vc7\lib"
+
+This will also install the headers and library files in the visual studio directories to
+be picked up by libtorrent.
 
