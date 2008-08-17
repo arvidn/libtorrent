@@ -58,6 +58,9 @@ test_primitives_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 test_bandwidth_limiter_SOURCES = main.cpp test_bandwidth_limiter.cpp
 test_bandwidth_limiter_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
+test_torrent_SOURCES = main.cpp test_torrent.cpp
+test_torrent_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
+
 noinst_HEADERS = test.hpp setup_transfer.hpp
 
 AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@ -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION
