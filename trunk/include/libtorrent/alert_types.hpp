@@ -166,7 +166,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			static char const* state_str[] =
-				{"checking (q)", "checking", "connecting", "dl metadata"
+				{"checking (q)", "checking", "dl metadata"
 				, "downloading", "finished", "seeding", "allocating"};
 
 			return torrent_alert::message() + ": state changed to: "
