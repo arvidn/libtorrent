@@ -236,7 +236,8 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
-	, std::string suffix, int piece_size)
+	, std::string suffix, int piece_size
+	, boost::intrusive_ptr<torrent_info>* torrent)
 {
 	using namespace boost::filesystem;
 
@@ -247,18 +248,24 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (ses3)
 		assert(ses3->id() != ses2->id());
 
-	
-	create_directory("./tmp1" + suffix);
-	std::ofstream file(("./tmp1" + suffix + "/temporary").c_str());
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, piece_size);
-	file.close();
-	if (clear_files)
+	boost::intrusive_ptr<torrent_info> t;
+	if (torrent == 0)
 	{
-		remove_all("./tmp2" + suffix + "/temporary");
-		remove_all("./tmp3" + suffix + "/temporary");
+		create_directory("./tmp1" + suffix);
+		std::ofstream file(("./tmp1" + suffix + "/temporary").c_str());
+		t = ::create_torrent(&file, piece_size);
+		file.close();
+		if (clear_files)
+		{
+			remove_all("./tmp2" + suffix + "/temporary");
+			remove_all("./tmp3" + suffix + "/temporary");
+		}
+		std::cerr << "generated torrent: " << t->info_hash() << std::endl;
 	}
-	
-	std::cerr << "generated torrent: " << t->info_hash() << std::endl;
+	else
+	{
+		t = *torrent;
+	}
 
 	ses1->set_severity_level(alert::debug);
 	ses2->set_severity_level(alert::debug);
