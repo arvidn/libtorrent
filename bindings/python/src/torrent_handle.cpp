@@ -4,6 +4,7 @@
 
 #include <libtorrent/torrent_handle.hpp>
 #include <boost/python.hpp>
+#include <boost/python/tuple.hpp>
 #include <boost/lexical_cast.hpp>
 #include "gil.hpp"
 
@@ -170,6 +171,8 @@ void replace_trackers(torrent_handle& info, object trackers)
 
 list get_download_queue(torrent_handle& handle)
 {
+    using boost::python::make_tuple;
+
     list ret;
 
     std::vector<partial_piece_info> downloading;
@@ -193,7 +196,7 @@ list get_download_queue(torrent_handle& handle)
             block_info["num_peers"] = i->blocks[k].num_peers;
             block_info["bytes_progress"] = i->blocks[k].bytes_progress;
             block_info["block_size"] = i->blocks[k].block_size;
-            block_info["peer"] = std::make_pair(
+            block_info["peer"] = make_tuple(
                 boost::lexical_cast<std::string>(i->blocks[k].peer.address()), i->blocks[k].peer.port());
             block_list.append(block_info);
         }
