@@ -1,7 +1,7 @@
 check_PROGRAMS = test_hasher test_bencoding test_ip_filter test_piece_picker \
 test_storage test_metadata_extension test_buffer test_swarm test_pe_crypto test_primitives \
 test_bandwidth_limiter test_upnp test_fast_extension test_pex test_web_seed \
-test_http_connection test_lsd
+test_http_connection test_torrent test_transfer test_lsd
 
 TESTS = $(check_PROGRAMS)
 
@@ -60,6 +60,9 @@ test_bandwidth_limiter_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 test_torrent_SOURCES = main.cpp test_torrent.cpp
 test_torrent_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
+
+test_transfer_SOURCES = main.cpp test_transfer.cpp
+test_transfer_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 noinst_HEADERS = test.hpp setup_transfer.hpp
 

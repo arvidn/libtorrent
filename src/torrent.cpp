@@ -1800,7 +1800,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_torrent_file->num_pieces() == 0) return;
-		bool was_finished = is_finished();
 
 		size_type position = 0;
 		int piece_length = m_torrent_file->piece_length();
@@ -1826,7 +1825,6 @@ namespace libtorrent
 				, bind(&set_if_greater, _1, m_file_priority[i]));
 		}
 		prioritize_pieces(pieces);
-		update_peer_interest(was_finished);
 	}
 
 	// this is called when piece priorities have been updated
@@ -1836,16 +1834,18 @@ namespace libtorrent
 		for (peer_iterator i = begin(); i != end(); ++i)
 			(*i)->update_interest();
 
-		// if we used to be finished, but we aren't anymore
-		// we may need to connect to peers again
-		if (!is_finished() && was_finished)
-			m_policy.recalculate_connect_candidates();
-	
 		// the torrent just became finished
 		if (is_finished() && !was_finished)
+		{
 			finished();
+		}
 		else if (!is_finished() && was_finished)
+		{
+			// if we used to be finished, but we aren't anymore
+			// we may need to connect to peers again
 			resume_download();
+			m_policy.recalculate_connect_candidates();
+		}
 	}
 
 	void torrent::filter_piece(int index, bool filter)
@@ -3147,9 +3147,9 @@ namespace libtorrent
 		// to make sure we're cleared the piece picker
 		if (is_seed()) completed();
 
-	// disconnect all seeds
-	// TODO: should disconnect all peers that have the pieces we have
-	// not just seeds
+		// disconnect all seeds
+		// TODO: should disconnect all peers that have the pieces we have
+		// not just seeds
 		std::vector<peer_connection*> seeds;
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
@@ -3265,6 +3265,12 @@ namespace libtorrent
 
 		set_state(torrent_status::downloading);
 
+		if (m_ses.m_alerts.should_post<torrent_checked_alert>())
+		{
+			m_ses.m_alerts.post_alert(torrent_checked_alert(
+				get_handle()));
+		}
+		
 		if (!is_seed())
 		{
 			if (m_sequential_download)
@@ -3274,6 +3280,13 @@ namespace libtorrent
 			// likely to be unpaused
 			if (m_ses.m_auto_manage_time_scaler > 1)
 				m_ses.m_auto_manage_time_scaler = 1;
+
+			if (is_finished()) finished();
+		}
+		else
+		{
+			m_complete_sent = true;
+			finished();
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -3290,12 +3303,6 @@ namespace libtorrent
 		}
 #endif
 
-		if (is_seed())
-		{
-			m_complete_sent = true;
-			finished();
-		}
-
 		if (!m_connections_initialized)
 		{
 			m_connections_initialized = true;
@@ -3311,12 +3318,6 @@ namespace libtorrent
 			}
 		}
 
-		if (m_ses.m_alerts.should_post<torrent_checked_alert>())
-		{
-			m_ses.m_alerts.post_alert(torrent_checked_alert(
-				get_handle()));
-		}
-		
 		m_files_checked = true;
 
 		start_announcing();
