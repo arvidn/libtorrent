@@ -244,7 +244,7 @@ def main():
             resume_data = None
 
         h = ses.add_torrent(info, options.save_path, 
-                resume_data=resume_data, compact_mode=compact_allocation)
+                resume_data, lt.storage_mode_t.storage_mode_sparse)
 
         handles.append(h)
 
@@ -266,7 +266,7 @@ def main():
 
         for h in handles:
             if h.has_metadata():
-                name = h.torrent_info().name()[:40]
+                name = h.get_torrent_info().name()[:40]
             else:
                 name = '-'
             out += 'name: %-40s\n' % name
@@ -306,7 +306,7 @@ def main():
             if True and s.state != lt.torrent_status.seeding:
                 out = '\n'
                 fp = h.file_progress()
-                ti = h.torrent_info()
+                ti = h.get_torrent_info()
                 for f,p in zip(ti.files(), fp):
                     out += progress_bar(p, 20)
                     out += ' ' + f.path + '\n'
@@ -349,7 +349,7 @@ def main():
             continue
         h.pause()
         data = lt.bencode(h.write_resume_data())
-        open(os.path.join(options.save_path, h.torrent_info().name() + '.fastresume'), 'wb').write(data)
+        open(os.path.join(options.save_path, h.get_torrent_info().name() + '.fastresume'), 'wb').write(data)
 
 main()
 
