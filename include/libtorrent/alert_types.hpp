@@ -151,6 +151,42 @@ namespace libtorrent
 		int index;
 	};
 
+	struct TORRENT_EXPORT performance_alert: torrent_alert
+	{
+		enum performance_warning_t
+		{
+			outstanding_disk_buffer_limit_reached,
+			outstanding_request_limit_reached,
+		};
+
+		performance_alert(torrent_handle const& h
+			, performance_warning_t w)
+			: torrent_alert(h)
+			, warning_code(w)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new performance_alert(*this)); }
+
+		virtual char const* what() const { return "performance warning"; }
+		virtual std::string message() const
+		{
+			static char const* warning_str[] =
+			{
+				"max outstanding disk writes reached",
+				"max outstanding piece requests reached",
+			};
+
+			return torrent_alert::message() + ": performance warning: "
+				+ warning_str[warning_code];
+		}
+
+		const static int static_category = alert::performance_warning;
+		virtual int category() const { return static_category; }
+
+		performance_warning_t warning_code;
+	};
+
 	struct TORRENT_EXPORT state_changed_alert: torrent_alert
 	{
 		state_changed_alert(torrent_handle const& h
