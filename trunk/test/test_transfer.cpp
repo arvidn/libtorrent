@@ -180,6 +180,39 @@ void test_transfer()
 
 	TEST_CHECK(!tor2.is_seed());
 
+	std::fill(priorities.begin(), priorities.end(), 1);
+	tor2.prioritize_pieces(priorities);
+	std::cout << "setting priorities to 1" << std::endl;
+
+	for (int i = 0; i < 130; ++i)
+	{
+		print_alerts(ses1, "ses1");
+		print_alerts(ses2, "ses2");
+
+		torrent_status st1 = tor1.status();
+		torrent_status st2 = tor2.status();
+
+		std::cerr
+			<< "\033[32m" << int(st1.download_payload_rate / 1000.f) << "kB/s "
+			<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
+			<< "\033[0m" << int(st1.progress * 100) << "% "
+			<< st1.num_peers
+			<< ": "
+			<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
+			<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
+			<< "\033[0m" << int(st2.progress * 100) << "% "
+			<< st2.num_peers
+			<< std::endl;
+
+		if (tor2.is_finished()) break;
+
+		TEST_CHECK(st1.state == torrent_status::seeding);
+		TEST_CHECK(st2.state == torrent_status::downloading);
+
+		test_sleep(1000);
+	}
+
+	TEST_CHECK(tor2.is_seed());
 }
 
 int test_main()

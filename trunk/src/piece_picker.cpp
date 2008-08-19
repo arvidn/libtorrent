@@ -1099,7 +1099,7 @@ namespace libtorrent
 		p.piece_priority = new_piece_priority;
 		int new_priority = p.priority(this);
 
-		if (prev_priority == new_priority) return false;
+		if (prev_priority == new_priority) return ret;
 
 		TORRENT_ASSERT(prev_priority < int(m_priority_boundries.size()));
 
