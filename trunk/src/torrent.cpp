@@ -3525,13 +3525,10 @@ namespace libtorrent
 
 	void torrent::set_sequential_download(bool sd)
 	{
+		m_sequential_download = sd;
 		if (has_picker())
 		{
 			picker().sequential_download(sd);
-		}
-		else
-		{
-			m_sequential_download = sd;
 		}
 	}
 
