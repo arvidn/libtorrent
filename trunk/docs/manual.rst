@@ -3793,6 +3793,9 @@ is a bitmask with the following bits:
 +--------------------------------+---------------------------------------------------------------------+
 | ``ip_block_notification``      | Alerts when a peer is blocked by the ip blocker or port blocker.    |
 +--------------------------------+---------------------------------------------------------------------+
+| ``performance_warning``        | Alerts when some limit is reached that might limit the download     |
+|                                | or upload rate.                                                     |
++--------------------------------+---------------------------------------------------------------------+
 | ``all_categories``             | The full bitmask, representing all available categories.            |
 +--------------------------------+---------------------------------------------------------------------+
 
@@ -3826,6 +3829,7 @@ is its synopsis:
 			status_notification = *implementation defined*,
 			progress_notification = *implementation defined*,
 			ip_block_notification = *implementation defined*,
+			performance_warning = *implementation defined*,
 
 			all_categories = *implementation defined*
 		};
@@ -4203,6 +4207,28 @@ It will only be generated once per torrent. It contains a torrent_handle to the
 torrent in question.
 
 There are no additional data members in this alert.
+
+
+performance_alert
+-----------------
+
+This alert is generated when a limit is reached that might have a negative impact on
+upload or download rate performance.
+
+::
+
+	struct performance_alert: torrent_alert
+	{
+		// ...
+
+		enum performance_warning_t
+		{
+			outstanding_disk_buffer_limit_reached,
+			outstanding_request_limit_reached,
+		};
+
+		performance_warning_t warning_code;
+	};
 
 
 metadata_failed_alert

@@ -1643,6 +1643,13 @@ namespace libtorrent
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		m_download_queue.erase(b);
 
+		if (m_outstanding_writing_bytes >= m_ses.settings().max_outstanding_disk_bytes_per_connection
+			&& t->alerts().should_post<performance_alert>())
+		{
+			t->alerts().post_alert(performance_alert(t->get_handle()
+				, performance_alert::outstanding_disk_buffer_limit_reached));
+		}
+
 		if (!m_download_queue.empty())
 		{
 			m_timeout_extend = (std::max)(m_timeout_extend
@@ -2765,6 +2772,13 @@ namespace libtorrent
 				m_desired_queue_size = m_max_out_request_queue;
 			if (m_desired_queue_size < min_request_queue)
 				m_desired_queue_size = min_request_queue;
+
+			if (m_desired_queue_size == m_max_out_request_queue 
+				&& t->alerts().should_post<performance_alert>())
+			{
+				t->alerts().post_alert(performance_alert(t->get_handle()
+					, performance_alert::outstanding_request_limit_reached));
+			}
 		}
 
 		if (!m_download_queue.empty()

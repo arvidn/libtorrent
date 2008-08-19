@@ -45,12 +45,64 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::filesystem::remove_all;
 using boost::filesystem::exists;
 using boost::filesystem::create_directory;
+using namespace libtorrent;
+using boost::tuples::ignore;
+
+// test the maximum transfer rate
+void test_rate()
+{
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000));
+
+	torrent_handle tor1;
+	torrent_handle tor2;
+
+	create_directory("./tmp1_transfer");
+	std::ofstream file("./tmp1_transfer/temporary");
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 50);
+	file.close();
+
+	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+		, true, false, true, "_transfer", 0, &t);
+
+	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
+	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
+
+	ptime start = time_now();
+
+	for (int i = 0; i < 40; ++i)
+	{
+		print_alerts(ses1, "ses1");
+		print_alerts(ses2, "ses2");
+
+		torrent_status st1 = tor1.status();
+		torrent_status st2 = tor2.status();
+
+		std::cerr
+			<< "up: \033[33m" << st1.upload_payload_rate / 1000000.f << "MB/s "
+			<< " down: \033[32m" << st2.download_payload_rate / 1000000.f << "MB/s "
+			<< "\033[0m" << int(st2.progress * 100) << "% "
+			<< std::endl;
+
+		if (st1.paused) break;
+		if (tor2.is_seed()) break;
+		test_sleep(1000);
+	}
+
+	TEST_CHECK(tor2.is_seed());
+
+	time_duration dt = time_now() - start;
+
+	std::cerr << "downloaded " << t->total_size() << " bytes "
+		"in " << (total_milliseconds(dt) / 1000.f) << " seconds" << std::endl;
+	
+	std::cerr << "average download rate: " << (t->total_size() / total_milliseconds(dt))
+		<< " kB/s" << std::endl;
+
+}
 
 void test_transfer()
 {
-	using namespace libtorrent;
-	using boost::tuples::ignore;
-
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000));
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000));
 
@@ -72,7 +124,7 @@ void test_transfer()
 
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_transfer", 8 * 1024, &t);	
+		, true, false, true, "_transfer", 8 * 1024, &t);
 
 	// set half of the pieces to priority 0
 	int num_pieces = tor2.get_torrent_info().num_pieces();
@@ -82,9 +134,6 @@ void test_transfer()
 
 	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
-
-	tor1.resume();
-	tor2.resume();
 
 	for (int i = 0; i < 30; ++i)
 	{
@@ -158,6 +207,7 @@ void test_transfer()
 	p.save_path = "./tmp2_transfer";
 	p.resume_data = &resume_data;
 	tor2 = ses2.add_torrent(p);
+	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	tor2.prioritize_pieces(priorities);
 	std::cout << "resetting priorities" << std::endl;
 	tor2.resume();
@@ -224,8 +274,19 @@ int test_main()
 	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
 	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
 
+#ifdef NDEBUG
+	// test rate only makes sense in release mode
+	test_rate();
+
+	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+#endif
+
 	test_transfer();
 	
+	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+
 	return 0;
 }
 
