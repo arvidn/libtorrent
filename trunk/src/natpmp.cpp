@@ -105,6 +105,9 @@ void natpmp::rebind(address const& listen_interface)
 		return;
 	}
 
+	m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
+		, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
+
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
 	{
@@ -237,8 +240,6 @@ void natpmp::update_mapping(int i)
 		// send out a mapping request
 		m_retry_count = 0;
 		send_map_request(i);
-		m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
-			, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
 	}
 }
 
@@ -281,11 +282,12 @@ void natpmp::send_map_request(int i)
 void natpmp::resend_request(int i, error_code const& e)
 {
 	if (e) return;
-	if (m_abort) return;
-
 	mutex_t::scoped_lock l(m_mutex);
 	if (m_currently_mapping != i) return;
-	if (m_retry_count >= 9)
+
+	// if we're shutting down, don't retry, just move on
+	// to the next mapping
+	if (m_retry_count >= 9 || m_abort)
 	{
 		m_currently_mapping = -1;
 		m_mappings[i].action = mapping_t::action_none;
@@ -301,12 +303,26 @@ void natpmp::on_reply(error_code const& e
 	, std::size_t bytes_transferred)
 {
 	using namespace libtorrent::detail;
-	if (e) return;
+	if (e)
+	{
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		m_log << time_now_string()
+			<< " <== on_receive ["
+			" error: " << e.message() << " ]" << std::endl;
+#endif
+		return;
+	}
+
+	m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
+		, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
 
 	if (m_remote != m_nat_endpoint)
 	{
-		m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
-			, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		m_log << time_now_string()
+			<< " <== received packet from the wrong IP ["
+			" ip: " << m_remote << " ]" << std::endl;
+#endif
 		return;
 	}
 
