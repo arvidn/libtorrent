@@ -132,6 +132,14 @@ namespace libtorrent
 
 		void parse_resume_data(std::vector<char>* resume_data);
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		sha1_hash const& obfuscated_hash() const
+		{ return m_obfuscated_hash; }
+#endif
+
+		sha1_hash const& info_hash() const
+		{ return m_torrent_file->info_hash(); }
+
 		// starts the announce timer
 		void start();
 
@@ -821,6 +829,11 @@ namespace libtorrent
 		// longer be used and will be reset
 		boost::scoped_ptr<std::string> m_name;
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		// this is SHA1("req2" + info-hash), used for
+		// encrypted hand shakes
+		sha1_hash m_obfuscated_hash;
+#endif
 		session_settings const& m_settings;
 
 		storage_constructor_type m_storage_constructor;
