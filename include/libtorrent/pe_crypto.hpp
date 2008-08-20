@@ -58,7 +58,9 @@ namespace libtorrent
 		// m_dh_secret.
 		int compute_secret(const char* remote_pubkey);
 
-		const char* get_secret() const;
+		char const* get_secret() const { return m_dh_secret; }
+
+		sha1_hash const& get_hash_xor_mask() const { return m_xor_mask; }
 		
 	private:
 		int get_local_key_size() const
@@ -71,6 +73,7 @@ namespace libtorrent
 
 		char m_dh_local_key[96];
 		char m_dh_secret[96];
+		sha1_hash m_xor_mask;
 	};
 	
 	class RC4_handler // Non copyable

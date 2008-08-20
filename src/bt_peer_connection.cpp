@@ -1841,7 +1841,8 @@ namespace libtorrent
 					return;
 				}
 
-				cut_receive_buffer(bytes_processed, (std::min)(packet_size(), (512+20) - m_sync_bytes_read));
+				cut_receive_buffer(bytes_processed, (std::min)(packet_size()
+					, (512+20) - m_sync_bytes_read));
 
 				TORRENT_ASSERT(!packet_finished());
 				return;
@@ -1872,51 +1873,32 @@ namespace libtorrent
 
 			recv_buffer = receive_buffer();
 
-			// only calls info_hash() on the torrent_handle's, which
-			// never throws.
-			session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-			
-			std::vector<torrent_handle> active_torrents = m_ses.get_torrents();
-			std::vector<torrent_handle>::const_iterator i;
-			hasher h;
-			sha1_hash skey_hash, obfs_hash;
+			aux::session_impl::torrent_map::const_iterator i;
 
-			for (i = active_torrents.begin(); i != active_torrents.end(); ++i)
+			for (i = m_ses.m_torrents.begin(); i != m_ses.m_torrents.end(); ++i)
 			{
-				torrent_handle const& t_h = *i; // TODO possible errors
-				sha1_hash const& info_hash = t_h.info_hash();
-				// TODO Does info_hash need to be checked for validity?
-				
-				h.reset();
-				h.update("req2", 4);
-				h.update((char*)info_hash.begin(), 20);
-
-			    skey_hash = h.final();
-				
-				h.reset();
-				h.update("req3", 4);
-				h.update(m_dh_key_exchange->get_secret(), dh_key_len);
-
-				obfs_hash = h.final();
+				torrent const& ti = *i->second;
+				sha1_hash const& skey_hash = ti.obfuscated_hash();
+				sha1_hash obfs_hash = m_dh_key_exchange->get_hash_xor_mask();
 				obfs_hash ^= skey_hash;
 
-				if (std::equal (recv_buffer.begin, recv_buffer.begin + 20,
-					(char*)obfs_hash.begin()))
+				if (std::equal(recv_buffer.begin, recv_buffer.begin + 20,
+					(char*)&obfs_hash[0]))
 				{
 					if (!t)
 					{
-						attach_to_torrent(info_hash);
+						attach_to_torrent(ti.info_hash());
 						if (is_disconnecting()) return;
 
 						t = associated_torrent().lock();
 						TORRENT_ASSERT(t);
 					}
 
-					init_pe_RC4_handler(m_dh_key_exchange->get_secret(), info_hash);
+					init_pe_RC4_handler(m_dh_key_exchange->get_secret(), ti.info_hash());
 #ifdef TORRENT_VERBOSE_LOGGING
 					(*m_logger) << " stream key found, torrent located.\n";
 #endif
-					continue; // TODO Check flow control with multiple torrents
+					break;
 				}
 			}
 

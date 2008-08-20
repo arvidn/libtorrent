@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <openssl/engine.h>
 
 #include "libtorrent/pe_crypto.hpp"
+#include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent
@@ -144,12 +145,14 @@ namespace libtorrent
 		}
 		std::copy(dh_secret, dh_secret + secret_size, m_dh_secret + 96 - secret_size);
 		BN_free(bn_remote_pubkey);
-		return 0;
-	}
 
-	char const* dh_key_exchange::get_secret() const
-	{
-		return m_dh_secret;
+		// calculate the xor mask for the obfuscated hash
+		hasher h;
+		h.update("req3", 4);
+		h.update(m_dh_secret, 96);
+		m_xor_mask = h.final();
+
+		return 0;
 	}
 
 } // namespace libtorrent

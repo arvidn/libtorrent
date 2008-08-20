@@ -206,6 +206,13 @@ namespace libtorrent
 		, m_complete_sent(false)
 	{
 		parse_resume_data(resume_data);
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		hasher h;
+		h.update("req2", 4);
+		h.update((char*)&tf->info_hash()[0], 20);
+		m_obfuscated_hash = h.final();
+#endif
 	}
 
 	torrent::torrent(
@@ -280,6 +287,14 @@ namespace libtorrent
 		, m_complete_sent(false)
 	{
 		parse_resume_data(resume_data);
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		hasher h;
+		h.update("req2", 4);
+		h.update((char*)&info_hash[0], 20);
+		m_obfuscated_hash = h.final();
+#endif
+
 #ifndef NDEBUG
 		m_files_checked = false;
 #endif
