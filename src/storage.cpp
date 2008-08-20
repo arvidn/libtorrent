@@ -528,7 +528,7 @@ namespace libtorrent
 #endif
 			// don't allocate files with priority 0
 			int file_index = file_iter - files().begin();
-			if (allocate_files && (m_file_priority.size() <= file_index
+			if (allocate_files && (int(m_file_priority.size()) <= file_index
 				|| m_file_priority[file_index] > 0))
 			{
 				error_code ec;
@@ -2169,6 +2169,7 @@ namespace libtorrent
 			int skip_blocks = static_cast<int>(
 				(file_offset - current_offset + m_files.piece_length() - 1)
 				/ m_files.piece_length());
+			TORRENT_ASSERT(skip_blocks >= 1);
 
 			if (m_storage_mode == storage_mode_compact)
 			{

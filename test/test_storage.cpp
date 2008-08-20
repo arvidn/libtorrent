@@ -92,7 +92,7 @@ void on_check_files(int ret, disk_io_job const& j)
 	switch (ret)
 	{
 		case 0: std::cerr << " done" << std::endl; break;
-		case -1: std::cerr << " current slot: " << j.piece << std::endl; break;
+		case -1: std::cerr << " current slot: " << j.piece << " have: " << j.offset << std::endl; break;
 		case -2: std::cerr << " disk error: " << j.str
 			<< " file: " << j.error_file << std::endl; break;
 		case -3: std::cerr << " aborted" << std::endl; break;
@@ -255,6 +255,84 @@ void test_remove(path const& test_path)
 	TEST_CHECK(!exists(test_path / "temp_storage"));	
 }
 
+namespace
+{
+	void check_files_fill_array(int ret, disk_io_job const& j, bool* array, bool* done)
+	{
+		if (j.offset >= 0) array[j.offset] = true;
+		if (ret != -1)
+		{
+			*done = true;
+			return;
+		}
+	}
+}
+
+void test_check_files(path const& test_path
+	, libtorrent::storage_mode_t storage_mode)
+{
+	boost::intrusive_ptr<torrent_info> info;
+
+	const int piece_size = 16 * 1024;
+	remove_all(test_path / "temp_storage");
+	file_storage fs;
+	fs.add_file("temp_storage/test1.tmp", piece_size);
+	fs.add_file("temp_storage/test2.tmp", piece_size * 2);
+	fs.add_file("temp_storage/test3.tmp", piece_size);
+
+	char piece0[piece_size];
+	char piece2[piece_size];
+
+	std::generate(piece0, piece0 + piece_size, std::rand);
+	std::generate(piece2, piece2 + piece_size, std::rand);
+
+	libtorrent::create_torrent t(fs, piece_size);
+	t.set_hash(0, hasher(piece0, piece_size).final());
+	t.set_hash(1, sha1_hash(0));
+	t.set_hash(2, sha1_hash(0));
+	t.set_hash(3, hasher(piece2, piece_size).final());
+
+	create_directory(test_path / "temp_storage");
+
+	std::ofstream f;
+	f.open((test_path / "temp_storage/test1.tmp").string().c_str());
+	f.write(piece0, sizeof(piece0));
+	f.close();
+	f.open((test_path / "temp_storage/test3.tmp").string().c_str());
+	f.write(piece2, sizeof(piece2));
+	f.close();
+
+	info = new torrent_info(t.generate());
+
+	file_pool fp;
+	libtorrent::asio::io_service ios;
+	disk_io_thread io(ios);
+	boost::shared_ptr<int> dummy(new int);
+	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
+		, test_path, fp, io, default_storage_constructor, storage_mode);
+	boost::mutex lock;
+
+	lazy_entry frd;
+	pm->async_check_fastresume(&frd, &on_check_resume_data);
+	ios.reset();
+	ios.run();
+
+	bool pieces[4] = {false, false, false, false};
+	bool done = false;
+
+	pm->async_check_files(bind(&check_files_fill_array, _1, _2, pieces, &done));
+	while (!done)
+	{
+		ios.reset();
+		ios.run_one();
+	}
+	TEST_CHECK(pieces[0] == true);
+	TEST_CHECK(pieces[1] == false);
+	TEST_CHECK(pieces[2] == false);
+	TEST_CHECK(pieces[3] == true);
+	io.join();
+}
+
 void run_test(path const& test_path)
 {
 	std::cerr << "\n=== " << test_path.string() << " ===\n" << std::endl;
@@ -330,6 +408,11 @@ void run_test(path const& test_path)
 	std::cerr << "=== test 5 ===" << std::endl;
 	test_remove(test_path);
 
+// ==============================================
+
+	std::cerr << "=== test 6 ===" << std::endl;
+	test_check_files(test_path, storage_mode_sparse);
+	test_check_files(test_path, storage_mode_compact);
 }
 
 void test_fastresume()
