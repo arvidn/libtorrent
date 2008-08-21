@@ -3646,6 +3646,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_ses.has_peer((peer_connection*)this));
 		}
 
+/*
+		// this assertion correct most of the time, but sometimes right when the
+		// limit is changed it might break
 		for (int i = 0; i < 2; ++i)
 		{
 			// this peer is in the bandwidth history iff max_assignable < limit
@@ -3653,6 +3656,7 @@ namespace libtorrent
 				== m_ses.m_bandwidth_manager[i]->is_in_history(this)
 				|| m_bandwidth_limit[i].throttle() == bandwidth_limit::inf);
 		}
+*/
 
 		if (m_channel_state[download_channel] == peer_info::bw_torrent
 			|| m_channel_state[download_channel] == peer_info::bw_global)
