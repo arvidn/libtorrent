@@ -59,6 +59,11 @@ namespace
 		return unsigned(c) - 'A' + 10;
 	}
 
+	bool isprint(char c)
+	{
+		return c >= 32 && c < 127;
+	}
+
 	// takes a peer id and returns a valid boost::optional
 	// object if the peer id matched the azureus style encoding
 	// the returned fingerprint contains information about the
@@ -67,7 +72,7 @@ namespace
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
-		if (id[0] != '-' || !std::isprint(id[1]) || (id[2] < '0')
+		if (id[0] != '-' || !isprint(id[1]) || (id[2] < '0')
 			|| (id[3] < '0') || (id[4] < '0')
 			|| (id[5] < '0') || (id[6] < '0')
 			|| id[7] != '-')
@@ -129,7 +134,7 @@ namespace
 		ret.tag_version = 0;
 		if (sscanf(ids, "%c%d-%d-%d--", &ret.name[0], &ret.major_version, &ret.minor_version
 			, &ret.revision_version) != 4
-			|| !std::isprint(ret.name[0]))
+			|| !isprint(ret.name[0]))
 			return boost::optional<fingerprint>();
 
 		return boost::optional<fingerprint>(ret);
@@ -373,7 +378,7 @@ namespace libtorrent
 		std::string unknown("Unknown [");
 		for (peer_id::const_iterator i = p.begin(); i != p.end(); ++i)
 		{
-			unknown += std::isprint(*i)?*i:'.';
+			unknown += isprint(*i)?*i:'.';
 		}
 		unknown += "]";
 		return unknown;
