@@ -105,12 +105,10 @@ namespace libtorrent
 		template <class OutIt>
 		int write_string(OutIt& out, const std::string& val)
 		{
-			int ret = val.length();
-			std::string::const_iterator end = val.begin() + ret;
 			for (std::string::const_iterator i = val.begin()
-				, end(val.begin() + ret); i != end; ++i)
+				, end(val.end()); i != end; ++i)
 				*out++ = *i;
-			return ret;
+			return val.length();
 		}
 
 		TORRENT_EXPORT char const* integer_to_str(char* buf, int size, entry::integer_type val);
