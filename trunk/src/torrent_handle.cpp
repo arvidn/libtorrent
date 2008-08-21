@@ -250,7 +250,7 @@ namespace libtorrent
 	bool torrent_handle::is_paused() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(is_paused(), false);
+		TORRENT_FORWARD_RETURN(is_torrent_paused(), false);
 	}
 
 	void torrent_handle::pause() const

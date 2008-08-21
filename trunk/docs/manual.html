@@ -1922,6 +1922,10 @@ When a torrent is paused, it will however remember all share ratios to all peers
 all potential (not connected) peers. You can use <tt class="docutils literal"><span class="pre">is_paused()</span></tt> to determine if a torrent
 is currently paused. Torrents may be paused automatically if there is a file error (e.g. disk full)
 or something similar. See <a class="reference" href="#file-error-alert">file_error_alert</a>.</p>
+<p><tt class="docutils literal"><span class="pre">is_paused()</span></tt> only returns true if the torrent itself is paused. If the torrent
+is not running because the session is paused, this still returns true. To know if a
+torrent is active or not, you need to inspect both <tt class="docutils literal"><span class="pre">torrent_handle::is_paused()</span></tt>
+and <tt class="docutils literal"><span class="pre">session::is_paused()</span></tt>.</p>
 </div>
 <div class="section">
 <h2><a id="force-recheck" name="force-recheck">force_recheck()</a></h2>
