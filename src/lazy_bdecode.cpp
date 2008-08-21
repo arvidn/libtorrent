@@ -376,7 +376,7 @@ namespace libtorrent
 				for (int i = 0; i < e.string_length(); ++i)
 				{
 					using namespace std;
-					if (isprint(str[i])) continue;
+					if (isprint((unsigned char)str[i])) continue;
 					printable = false;
 					break;
 				}
