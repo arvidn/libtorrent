@@ -1853,7 +1853,7 @@ is currently paused. Torrents may be paused automatically if there is a file err
 or something similar. See file_error_alert_.
 
 ``is_paused()`` only returns true if the torrent itself is paused. If the torrent
-is not running because the session is paused, this still returns true. To know if a
+is not running because the session is paused, this still returns false. To know if a
 torrent is active or not, you need to inspect both ``torrent_handle::is_paused()``
 and ``session::is_paused()``.
 
