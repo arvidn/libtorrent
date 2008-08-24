@@ -378,7 +378,7 @@ namespace libtorrent
 		std::string unknown("Unknown [");
 		for (peer_id::const_iterator i = p.begin(); i != p.end(); ++i)
 		{
-			unknown += isprint(*i)?*i:'.';
+			unknown += isprint(char(*i))?*i:'.';
 		}
 		unknown += "]";
 		return unknown;
