@@ -166,6 +166,29 @@ void test_transfer()
 	TEST_CHECK(!tor2.is_seed());
 	std::cerr << "torrent is finished (50% complete)" << std::endl;
 
+	tor2.force_recheck();
+	
+	for (int i = 0; i < 10; ++i)
+	{
+		test_sleep(1000);
+		print_alerts(ses2, "ses2");
+		torrent_status st2 = tor2.status();
+		std::cerr << "\033[0m" << int(st2.progress * 100) << "% " << std::endl;
+		if (st2.state != torrent_status::checking_files) break;
+	}
+
+	std::vector<int> priorities2 = tor2.piece_priorities();
+	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
+
+	for (int i = 0; i < 5; ++i)
+	{
+		print_alerts(ses2, "ses2");
+		torrent_status st2 = tor2.status();
+		std::cerr << "\033[0m" << int(st2.progress * 100) << "% " << std::endl;
+		TEST_CHECK(st2.state == torrent_status::finished);
+		test_sleep(1000);
+	}
+
 	tor2.pause();
 	alert const* a = ses2.wait_for_alert(seconds(10));
 	while (a)
