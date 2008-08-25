@@ -1009,9 +1009,8 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			error_code ec;
-			return "listening on " + endpoint.address().to_string(ec) + ":"
-				+ boost::lexical_cast<std::string>(endpoint.port()) + " failed: "
-				+ error.message();
+			return "listening on " + boost::lexical_cast<std::string>(endpoint)
+				+ " failed: " + error.message();
 		}
 	};
 
@@ -1031,8 +1030,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			error_code ec;
-			return "successfully listening on " + endpoint.address().to_string(ec)
-				+ ":" + boost::lexical_cast<std::string>(endpoint.port());
+			return "successfully listening on " + boost::lexical_cast<std::string>(endpoint);
 		}
 	};
 
