@@ -82,6 +82,18 @@ namespace libtorrent
 		m_piece_map.resize((total_num_blocks + blocks_per_piece-1) / blocks_per_piece
 			, piece_pos(0, 0));
 
+		m_num_filtered += m_num_have_filtered;
+		m_num_have_filtered = 0;
+		m_num_have = 0;
+		m_dirty = true;
+		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
+			, end(m_piece_map.end()); i != end; ++i)
+		{
+			i->peer_count = 0;
+			i->downloading = 0;
+			i->index = 0;
+		}
+
 		// the piece index is stored in 20 bits, which limits the allowed
 		// number of pieces somewhat
 		if (m_piece_map.size() >= piece_pos::we_have_index)
@@ -1074,7 +1086,7 @@ namespace libtorrent
 		if (new_piece_priority == int(p.piece_priority)) return false;
 		
 		int prev_priority = p.priority(this);
-		TORRENT_ASSERT(prev_priority < int(m_priority_boundries.size()));
+		TORRENT_ASSERT(m_dirty | prev_priority < int(m_priority_boundries.size()));
 
 		bool ret = false;
 		if (new_piece_priority == piece_pos::filter_priority
@@ -1100,8 +1112,6 @@ namespace libtorrent
 		int new_priority = p.priority(this);
 
 		if (prev_priority == new_priority) return ret;
-
-		TORRENT_ASSERT(prev_priority < int(m_priority_boundries.size()));
 
 		if (m_dirty) return ret;
 		if (prev_priority == -1)

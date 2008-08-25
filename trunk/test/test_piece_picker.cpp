@@ -280,6 +280,33 @@ int test_main()
 
 // ========================================================
 	
+	// make sure init preserves priorities
+	print_title("test init");
+	p = setup_picker("1111111", "       ", "1111111", "");
+
+	TEST_CHECK(p->num_filtered() == 0);
+	TEST_CHECK(p->num_have_filtered() == 0);
+	TEST_CHECK(p->num_have() == 0);
+
+	p->set_piece_priority(0, 0);
+	TEST_CHECK(p->num_filtered() == 1);
+	TEST_CHECK(p->num_have_filtered() == 0);
+	TEST_CHECK(p->num_have() == 0);
+	
+	p->we_have(0);
+
+	TEST_CHECK(p->num_filtered() == 0);
+	TEST_CHECK(p->num_have_filtered() == 1);
+	TEST_CHECK(p->num_have() == 1);
+
+	p->init(blocks_per_piece, blocks_per_piece * 7);
+	TEST_CHECK(p->piece_priority(0) == 0);
+	TEST_CHECK(p->num_filtered() == 1);
+	TEST_CHECK(p->num_have_filtered() == 0);
+	TEST_CHECK(p->num_have() == 0);
+
+// ========================================================
+	
 	// make sure requested blocks aren't picked
 	print_title("test don't pick requested blocks");
 	p = setup_picker("1234567", "       ", "", "");
