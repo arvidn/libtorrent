@@ -1588,8 +1588,8 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << time_now_string()
-				<< " *** SKIPPED_PIECE [ piece: " << eq.block.piece_index << " | "
-				"b: " << eq.block.block_index << " ] ***\n";
+				<< " *** SKIPPED_PIECE [ piece: " << qe.block.piece_index << " | "
+				"b: " << qe.block.block_index << " ] ***\n";
 #endif
 
 			++qe.skipped;
