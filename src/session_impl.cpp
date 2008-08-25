@@ -601,7 +601,7 @@ namespace aux {
 			return listen_socket_t();
 		}
 		s.external_port = s.sock->local_endpoint(ec).port();
-		s.sock->listen(0, ec);
+		s.sock->listen(5, ec);
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
@@ -724,6 +724,10 @@ namespace aux {
 				}
 			}
 		}
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		m_logger = create_log("main_session", listen_port(), false);
+#endif
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -2372,6 +2376,8 @@ namespace aux {
 	{
 		TORRENT_ASSERT(ip != address());
 
+		if (is_local(ip)) return;
+		if (is_loopback(ip)) return;
 		if (m_external_address == ip) return;
 
 		m_external_address = ip;
