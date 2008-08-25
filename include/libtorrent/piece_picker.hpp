@@ -161,6 +161,7 @@ namespace libtorrent
 		void we_have(int index);
 		void we_dont_have(int index);
 
+		// sets all pieces to dont-have
 		void init(int blocks_per_piece, int total_num_blocks);
 		int num_pieces() const { return int(m_piece_map.size()); }
 

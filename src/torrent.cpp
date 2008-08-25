@@ -667,7 +667,6 @@ namespace libtorrent
 			, m_save_path, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor
 			, m_storage_mode);
 		m_storage = m_owning_storage.get();
-		m_picker.reset(new piece_picker);
 		m_picker->init(m_torrent_file->piece_length() / m_block_size
 			, int((m_torrent_file->total_size()+m_block_size-1)/m_block_size));
 		// assume that we don't have anything
