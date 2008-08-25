@@ -150,7 +150,7 @@ void run_suite(std::string const& protocol, proxy_settings const& ps)
 	if ((ps.type == proxy_settings::http || ps.type == proxy_settings::http_pw) && protocol != "https")
 		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, 502, 1, err(), ps);
 	else
-		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(libtorrent::asio::error::host_not_found), ps);
+		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);
 
 	if (ps.type != proxy_settings::none)
 		stop_proxy(ps.port);
