@@ -1581,31 +1581,30 @@ namespace libtorrent
 			return;
 		}
 
-		for (std::deque<pending_block>::iterator i = m_download_queue.begin();
-			i != b;)
+		int block_index = b - m_download_queue.begin();
+		for (int i = 0; i < block_index; ++i)
 		{
+			pending_block& qe = m_download_queue[i];
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << time_now_string()
-				<< " *** SKIPPED_PIECE [ piece: " << i->block.piece_index << " | "
-				"b: " << i->block.block_index << " ] ***\n";
+				<< " *** SKIPPED_PIECE [ piece: " << eq.block.piece_index << " | "
+				"b: " << eq.block.block_index << " ] ***\n";
 #endif
 
-			++i->skipped;
+			++qe.skipped;
 			// if the number of times a block is skipped by out of order
 			// blocks exceeds the size of the outstanding queue, assume that
 			// the other end dropped the request.
-			if (i->skipped > m_desired_queue_size)
+			if (qe.skipped > m_desired_queue_size)
 			{
 				if (m_ses.m_alerts.should_post<request_dropped_alert>())
 					m_ses.m_alerts.post_alert(request_dropped_alert(t->get_handle()
-						, remote(), pid(), i->block.block_index, i->block.piece_index));
-				picker.abort_download(i->block);
-				i = m_download_queue.erase(i);
-			}
-			else
-			{
-				++i;
+						, remote(), pid(), qe.block.block_index, qe.block.piece_index));
+				picker.abort_download(qe.block);
+				m_download_queue.erase(m_download_queue.begin() + i);
+				--i;
+				--block_index;
 			}
 		}
 		
