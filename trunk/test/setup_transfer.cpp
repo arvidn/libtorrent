@@ -267,9 +267,6 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 		t = *torrent;
 	}
 
-	ses1->set_severity_level(alert::debug);
-	ses2->set_severity_level(alert::debug);
-	
 	// they should not use the same save dir, because the
 	// file pool will complain if two torrents are trying to
 	// use the same files
