@@ -863,7 +863,7 @@ namespace detail
 			return listen_socket_t();
 		}
 		s.external_port = s.sock->local_endpoint(ec).port();
-		s.sock->listen(0, ec);
+		s.sock->listen(5, ec);
 		if (ec)
 		{
 			if (m_alerts.should_post(alert::fatal))
