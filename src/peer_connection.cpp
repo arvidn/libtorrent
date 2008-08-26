@@ -1706,9 +1706,8 @@ namespace libtorrent
 			}
 		
 			if (t->alerts().should_post<file_error_alert>())
-			{
 				t->alerts().post_alert(file_error_alert(j.error_file, t->get_handle(), j.str));
-			}
+			t->set_error(j.str);
 			t->pause();
 			return;
 		}
