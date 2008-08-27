@@ -306,6 +306,10 @@ namespace libtorrent
 		{
 			m_trackers.push_back(announce_entry(tracker_url));
 			m_torrent_file->add_tracker(tracker_url);
+
+			// we need to start announcing since we don't have any
+			// metadata. To receive peers to ask for it.
+			start_announcing();
 		}
 	}
 
@@ -3919,7 +3923,10 @@ namespace libtorrent
 	void torrent::start_announcing()
 	{
 		if (is_paused()) return;
-		if (!m_files_checked) return;
+		// if we don't have metadata, we need to announce
+		// before checking files, to get peers to
+		// request the metadata from
+		if (!m_files_checked && valid_metadata()) return;
 		if (m_announcing) return;
 
 		m_announcing = true;
