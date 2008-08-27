@@ -46,6 +46,7 @@ namespace libtorrent
 	struct torrent_handle;
 
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
+	std::string TORRENT_EXPORT make_magnet_uri(torrent_info const& info);
 
 #ifndef TORRENT_NO_DEPRECATE
 	// deprecated in 0.14

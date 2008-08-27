@@ -69,6 +69,26 @@ namespace libtorrent
 		return ret.str();
 	}
 
+	std::string make_magnet_uri(torrent_info const& info)
+	{
+		std::stringstream ret;
+		if (!info.is_valid()) return ret.str();
+
+		std::string name = info.name();
+
+		ret << "magnet:?xt=urn:btih:" << base32encode(
+			std::string((char*)info.info_hash().begin(), 20));
+		if (!name.empty())
+			ret << "&dn=" << escape_string(name.c_str(), name.length());
+		std::vector<announce_entry> const& tr = info.trackers();
+		if (!tr.empty())
+		{
+			ret << "&tr=" << escape_string(tr[0].url.c_str()
+				, tr[0].url.length());
+		}
+		return ret.str();
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, fs::path const& save_path
