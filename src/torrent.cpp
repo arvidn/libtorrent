@@ -333,7 +333,11 @@ namespace libtorrent
 		// we need to start announcing since we don't have any
 		// metadata. To receive peers to ask for it.
 		if (m_torrent_file->is_valid()) init();
-		else if (!m_trackers.empty()) start_announcing();
+		else
+		{
+			set_state(torrent_status::downloading_metadata);
+			if (!m_trackers.empty()) start_announcing();
+		}
 
 		if (m_abort) return;
 	}
@@ -2001,7 +2005,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(c.is_choked());
 		if (m_num_uploads >= m_max_uploads) return false;
-		c.send_unchoke();
+		if (!c.send_unchoke()) return false;
 		++m_num_uploads;
 		return true;
 	}
@@ -3334,7 +3338,9 @@ namespace libtorrent
 			{
 				peer_connection* pc = *i;
 				++i;
-				pc->on_metadata();
+				if (pc->is_disconnecting()) continue;
+				pc->on_metadata_impl();
+				if (pc->is_disconnecting()) continue;
 				pc->init();
 			}
 		}

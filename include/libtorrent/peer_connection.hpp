@@ -168,7 +168,9 @@ namespace libtorrent
 
 		// this is called when the metadata is retrieved
 		// and the files has been checked
-		virtual void on_metadata() {}
+		virtual void on_metadata() {};
+
+		void on_metadata_impl();
 
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
@@ -363,7 +365,7 @@ namespace libtorrent
 		// the following functions appends messages
 		// to the send buffer
 		void send_choke();
-		void send_unchoke();
+		bool send_unchoke();
 		void send_interested();
 		void send_not_interested();
 
@@ -865,6 +867,7 @@ namespace libtorrent
 	public:
 		bool m_in_constructor:1;
 		bool m_disconnect_started:1;
+		bool m_initialized:1;
 #endif
 	};
 }

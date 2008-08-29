@@ -245,6 +245,10 @@ namespace libtorrent
 	
 	void bt_peer_connection::on_metadata()
 	{
+		// connections that are still in the handshake
+		// will send their bitfield when the handshake
+		// is done
+		if (m_state < read_packet_size) return;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 		write_bitfield();
@@ -252,7 +256,6 @@ namespace libtorrent
 		if (m_supports_dht_port && m_ses.m_dht)
 			write_dht_port(m_ses.get_dht_settings().service_port);
 #endif
-		if (is_interesting()) write_interested();
 	}
 
 	void bt_peer_connection::write_dht_port(int listen_port)
@@ -938,9 +941,13 @@ namespace libtorrent
 		// if we don't have the metedata, we cannot
 		// verify the bitfield size
 		if (t->valid_metadata()
-			&& packet_size() - 1 != ((int)get_bitfield().size() + 7) / 8)
+			&& packet_size() - 1 != (t->torrent_file().num_pieces() + 7) / 8)
 		{
-			disconnect("bitfield with invalid size", 2);
+			std::stringstream msg;
+			msg << "got bitfield with invalid size: " << (packet_size() - 1)
+				<< "bytes. expected: " << ((t->torrent_file().num_pieces() + 7) / 8)
+				<< " bytes";
+			disconnect(msg.str().c_str(), 2);
 			return;
 		}
 
@@ -2500,7 +2507,7 @@ namespace libtorrent
 
 			m_state = read_packet_size;
 			reset_recv_buffer(5);
-			if (t->valid_metadata())
+			if (t->ready_for_connections())
 			{
 				write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
