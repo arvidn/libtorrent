@@ -166,7 +166,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 #endif
 	int num_active = m_oldest_transaction_id < m_next_transaction_id
 		? m_next_transaction_id - m_oldest_transaction_id
-		: max_transactions - m_next_transaction_id + m_oldest_transaction_id;
+		: max_transactions - m_oldest_transaction_id + m_next_transaction_id;
 	TORRENT_ASSERT((m_oldest_transaction_id + num_active) % max_transactions
 		== m_next_transaction_id);
 	int tid = m_oldest_transaction_id;
