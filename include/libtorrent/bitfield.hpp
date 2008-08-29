@@ -187,8 +187,23 @@ namespace libtorrent
 
 		void resize(int bits, bool val)
 		{
+			int s = m_size;
+			int b = m_size & 7;
 			resize(bits);
-			if (val) set_all(); else clear_all();
+			if (s >= m_size) return;
+			int old_size_bytes = (s + 7) / 8;
+			int new_size_bytes = (m_size + 7) / 8;
+			if (val)
+			{
+				if (old_size_bytes && b) m_bytes[old_size_bytes - 1] |= (0xff >> b);
+				if (old_size_bytes < new_size_bytes)
+					memset(m_bytes + old_size_bytes, 0xff, new_size_bytes - old_size_bytes);
+			}
+			else
+			{
+				if (old_size_bytes < new_size_bytes)
+					memset(m_bytes + old_size_bytes, 0x00, new_size_bytes - old_size_bytes);
+			}
 		}
 
 		void set_all()
@@ -225,6 +240,8 @@ namespace libtorrent
 				m_own = true;
 			}
 			m_size = bits;
+			// clear the tail bits in the last byte
+			if (m_size && (bits & 7)) m_bytes[(m_size + 7) / 8 - 1] &= 0xff << (7 - (bits & 7));
 		}
 
 	private:
