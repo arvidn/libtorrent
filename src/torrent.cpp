@@ -348,7 +348,7 @@ namespace libtorrent
 		if (m_ses.m_listen_sockets.empty()) return false;
 
 		if (!m_ses.m_dht) return false;
-		if (!m_files_checked) return false;
+		if (m_torrent_file->is_valid() && !m_files_checked) return false;
 
 		// don't announce private torrents
 		if (m_torrent_file->is_valid() && m_torrent_file->priv()) return false;
