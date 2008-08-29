@@ -1288,12 +1288,12 @@ namespace aux {
 		int num_seeds = settings().active_seeds;
 		int hard_limit = settings().active_limit;
 
-        if (num_downloaders == -1)
-            num_downloaders = (std::numeric_limits<int>::max)();
-        if (num_seeds == -1)
-            num_seeds = (std::numeric_limits<int>::max)();
-        if (hard_limit == -1)
-            hard_limit = (std::numeric_limits<int>::max)();
+		if (num_downloaders == -1)
+			num_downloaders = (std::numeric_limits<int>::max)();
+		if (num_seeds == -1)
+			num_seeds = (std::numeric_limits<int>::max)();
+		if (hard_limit == -1)
+			hard_limit = (std::numeric_limits<int>::max)();
             
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
