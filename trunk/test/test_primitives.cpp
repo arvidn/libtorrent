@@ -74,7 +74,7 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 			ret.get<0>() += payload;
 			ret.get<1>() += protocol;
 			ret.get<2>() += error;
-			std::cerr << payload << ", " << protocol << ", " << chunk_size << std::endl;
+//			std::cerr << payload << ", " << protocol << ", " << chunk_size << std::endl;
 			TORRENT_ASSERT(payload + protocol == chunk_size);
 		}
 		TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev);
@@ -441,7 +441,7 @@ int test_main()
 	{
 		int hit = std::find_if(nodes.begin(), nodes.end()
 			, bind(&node_entry::id, _1) == i->id) - nodes.begin();
-		std::cerr << hit << std::endl;
+//		std::cerr << hit << std::endl;
 		if (hit < int(temp.size())) ++hits;
 	}
 	TEST_CHECK(hits > int(temp.size()) / 2);
@@ -461,7 +461,7 @@ int test_main()
 	{
 		int hit = std::find_if(nodes.begin(), nodes.end()
 			, bind(&node_entry::id, _1) == i->id) - nodes.begin();
-		std::cerr << hit << std::endl;
+//		std::cerr << hit << std::endl;
 		if (hit < int(temp.size())) ++hits;
 	}
 	TEST_CHECK(hits > int(temp.size()) / 2);
@@ -543,6 +543,16 @@ int test_main()
 
 	test1.clear_all();
 	TEST_CHECK(test1.count() == 0);
+
+	test1.resize(2);
+	test1.set_bit(0);
+	test1.resize(16, true);
+	TEST_CHECK(test1.count() == 15);
+	test1.resize(20, true);
+	TEST_CHECK(test1.count() == 19);
+	test1.set_bit(1);
+	test1.resize(1);
+	TEST_CHECK(test1.count() == 1);
 	return 0;
 }
 
