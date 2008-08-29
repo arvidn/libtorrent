@@ -1058,6 +1058,7 @@ namespace libtorrent
 	{
 //		INVARIANT_CHECK;
 
+		if (c.in_handshake()) return;
 		c.send_interested();
 		if (c.has_peer_choked()
 			&& c.allowed_fast().empty())

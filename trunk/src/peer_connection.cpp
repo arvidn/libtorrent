@@ -133,6 +133,7 @@ namespace libtorrent
 #ifndef NDEBUG
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
+		, m_initialized(false)
 #endif
 	{
 		m_channel_state[upload_channel] = peer_info::bw_idle;
@@ -238,6 +239,7 @@ namespace libtorrent
 #ifndef NDEBUG
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
+		, m_initialized(false)
 #endif
 	{
 		m_channel_state[upload_channel] = peer_info::bw_idle;
@@ -430,6 +432,60 @@ namespace libtorrent
 		}
 	}
 
+	void peer_connection::on_metadata_impl()
+	{
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
+		m_num_pieces = m_have_piece.count();
+		if (m_num_pieces == int(m_have_piece.size()))
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string()
+				<< " *** on_metadata(): THIS IS A SEED ***\n";
+#endif
+			// if this is a web seed. we don't have a peer_info struct
+			if (m_peer_info) m_peer_info->seed = true;
+			m_upload_only = true;
+
+			t->peer_has_all();
+			disconnect_if_redundant();
+			if (m_disconnecting) return;
+
+			on_metadata();
+			if (m_disconnecting) return;
+
+			if (!t->is_finished())
+				t->get_policy().peer_is_interesting(*this);
+
+			return;
+		}
+		TORRENT_ASSERT(!m_have_all);
+
+		on_metadata();
+		if (m_disconnecting) return;
+
+		// let the torrent know which pieces the
+		// peer has
+		// if we're a seed, we don't keep track of piece availability
+		bool interesting = false;
+		if (!t->is_seed())
+		{
+			t->peer_has(m_have_piece);
+
+			for (int i = 0; i < (int)m_have_piece.size(); ++i)
+			{
+				if (m_have_piece[i])
+				{
+					if (!t->have_piece(i) && t->picker().piece_priority(i) != 0)
+						interesting = true;
+				}
+			}
+		}
+
+		if (interesting) t->get_policy().peer_is_interesting(*this);
+		else if (upload_only()) disconnect("upload to upload connections");
+	}
+
 	void peer_connection::init()
 	{
 		INVARIANT_CHECK;
@@ -440,13 +496,15 @@ namespace libtorrent
 		TORRENT_ASSERT(t->ready_for_connections());
 
 		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
-		if (m_have_all) m_num_pieces = t->torrent_file().num_pieces();
 
+		if (m_have_all) m_num_pieces = t->torrent_file().num_pieces();
+#ifndef NDEBUG
+		m_initialized = true;
+#endif
 		// now that we have a piece_picker,
 		// update it with this peer's pieces
 
-		TORRENT_ASSERT(m_num_pieces == std::count(m_have_piece.begin()
-			, m_have_piece.end(), true));
+		TORRENT_ASSERT(m_num_pieces == m_have_piece.count());
 
 		if (m_num_pieces == int(m_have_piece.size()))
 		{
@@ -1105,6 +1163,7 @@ namespace libtorrent
 		else
 		{
 			m_have_piece.set_bit(index);
+			++m_num_pieces;
 
 			// only update the piece_picker if
 			// we have the metadata and if
@@ -1112,7 +1171,6 @@ namespace libtorrent
 			// we won't have a piece picker)
 			if (t->valid_metadata())
 			{
-				++m_num_pieces;
 				t->peer_has(index);
 
 				if (!t->have_piece(index)
@@ -1177,11 +1235,11 @@ namespace libtorrent
 		// if we don't have the metedata, we cannot
 		// verify the bitfield size
 		if (t->valid_metadata()
-			&& (bits.size() / 8) != (m_have_piece.size() / 8))
+			&& (bits.size() + 7) / 8 != (m_have_piece.size() + 7) / 8)
 		{
 			std::stringstream msg;
-			msg << "got bitfield with invalid size: " << (bits.size() / 8)
-				<< "bytes. expected: " << (m_have_piece.size() / 8)
+			msg << "got bitfield with invalid size: " << ((bits.size() + 7) / 8)
+				<< "bytes. expected: " << ((m_have_piece.size() + 7) / 8)
 				<< " bytes";
 			disconnect(msg.str().c_str(), 2);
 			return;
@@ -1928,20 +1986,22 @@ namespace libtorrent
 #endif
 		if (is_disconnecting()) return;
 
-		if (index < 0 || index >= int(m_have_piece.size()))
+		if (t->valid_metadata())
 		{
+			if (index < 0 || index >= int(m_have_piece.size()))
+			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string() << " <== INVALID_ALLOWED_FAST [ " << index << " | s: "
-				<< int(m_have_piece.size()) << " ]\n";
+				(*m_logger) << time_now_string() << " <== INVALID_ALLOWED_FAST [ " << index << " | s: "
+					<< int(m_have_piece.size()) << " ]\n";
 #endif
-			return;
-		}
+				return;
+			}
 
-		// if we already have the piece, we can
-		// ignore this message
-		if (t->valid_metadata()
-			&& t->have_piece(index))
-			return;
+			// if we already have the piece, we can
+			// ignore this message
+			if (t->have_piece(index))
+				return;
+		}
 
 		m_allowed_fast.push_back(index);
 
@@ -1949,6 +2009,7 @@ namespace libtorrent
 		// to download it, request it
 		if (int(m_have_piece.size()) > index
 			&& m_have_piece[index]
+			&& t->valid_metadata()
 			&& t->has_picker()
 			&& t->picker().piece_priority(index) > 0)
 		{
@@ -2120,11 +2181,13 @@ namespace libtorrent
 		}
 	}
 
-	void peer_connection::send_unchoke()
+	bool peer_connection::send_unchoke()
 	{
 		INVARIANT_CHECK;
 
-		if (!m_choked) return;
+		if (!m_choked) return false;
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t->ready_for_connections()) return false;
 		m_last_unchoke = time_now();
 		write_unchoke();
 		m_choked = false;
@@ -2132,14 +2195,15 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " ==> UNCHOKE\n";
 #endif
+		return true;
 	}
 
 	void peer_connection::send_interested()
 	{
 		if (m_interesting) return;
-		m_interesting = true;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t->valid_metadata()) return;
+		if (!t->ready_for_connections()) return;
+		m_interesting = true;
 		write_interested();
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -2150,9 +2214,9 @@ namespace libtorrent
 	void peer_connection::send_not_interested()
 	{
 		if (!m_interesting) return;
-		m_interesting = false;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t->valid_metadata()) return;
+		if (!t->ready_for_connections()) return;
+		m_interesting = false;
 		write_not_interested();
 
 		m_became_uninteresting = time_now();
@@ -2744,7 +2808,7 @@ namespace libtorrent
 		}
 		if (is_disconnecting()) return;
 
-		if (!t->valid_metadata()) return;
+		if (!t->ready_for_connections()) return;
 
 		// calculate the desired download queue size
 		const float queue_time = m_ses.settings().request_queue_time;
@@ -2946,7 +3010,7 @@ namespace libtorrent
 		while (!m_requests.empty()
 			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark))
 		{
-			TORRENT_ASSERT(t->valid_metadata());
+			TORRENT_ASSERT(t->ready_for_connections());
 			peer_request& r = m_requests.front();
 			
 			TORRENT_ASSERT(r.piece >= 0);
@@ -3679,6 +3743,8 @@ namespace libtorrent
 				TORRENT_ASSERT(!is_choked());
 		}
 
+		TORRENT_ASSERT(m_have_piece.count() == m_num_pieces);
+
 		if (!t)
 		{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -3690,6 +3756,9 @@ namespace libtorrent
 #endif
 			return;
 		}
+
+		if (t->ready_for_connections() && m_initialized)
+			TORRENT_ASSERT(t->torrent_file().num_pieces() == m_have_piece.size());
 
 		if (m_ses.settings().close_redundant_connections)
 		{
@@ -3703,10 +3772,14 @@ namespace libtorrent
 				TORRENT_ASSERT(m_disconnect_started);
 		}
 
-		if (t->is_finished())
-			TORRENT_ASSERT(!m_interesting);
-		if (is_seed())
-			TORRENT_ASSERT(m_upload_only);
+		if (!m_disconnect_started)
+		{
+			// none of this matters if we're disconnecting anyway
+			if (t->is_finished())
+				TORRENT_ASSERT(!m_interesting);
+			if (is_seed())
+				TORRENT_ASSERT(m_upload_only);
+		}
 
 		if (t->has_picker())
 		{
@@ -3777,18 +3850,6 @@ namespace libtorrent
 */
 			}
 		}
-// expensive when using checked iterators
-/*
-		if (t->valid_metadata())
-		{
-			int piece_count = std::count(m_have_piece.begin()
-				, m_have_piece.end(), true);
-			if (m_num_pieces != piece_count)
-			{
-				TORRENT_ASSERT(false);
-			}
-		}
-*/
 
 // extremely expensive invariant check
 /*
@@ -3870,7 +3931,8 @@ namespace libtorrent
 	{
 		// if m_num_pieces == 0, we probably don't have the
 		// metadata yet.
-		return m_num_pieces == (int)m_have_piece.size() && m_num_pieces > 0;
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		return m_num_pieces == (int)m_have_piece.size() && m_num_pieces > 0 && t && t->valid_metadata();
 	}
 }
 
