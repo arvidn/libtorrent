@@ -305,6 +305,11 @@ namespace libtorrent { namespace
 			// abort if the peer doesn't support the metadata extension
 			if (m_message_index == 0) return;
 
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_pc.m_logger) << time_now_string()
+				<< " ==> METADATA_REQUEST  [ start: " << start << " | size: " << size << " ]\n";
+#endif
+
 			buffer::interval i = m_pc.allocate_send_buffer(9);
 
 			detail::write_uint32(1 + 1 + 3, i.begin);
@@ -335,8 +340,18 @@ namespace libtorrent { namespace
 				std::pair<int, int> offset
 					= req_to_offset(req, (int)m_tp.metadata().left());
 
+				// TODO: don't allocate send buffer for the metadata part
+				// just tag it on as a separate buffer like ut_metadata
 				buffer::interval i = m_pc.allocate_send_buffer(15 + offset.second);
 
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_pc.m_logger) << time_now_string()
+					<< " ==> METADATA [ start: " << req.first
+					<< " | size: " << req.second
+					<< " | offset: " << offset.first
+					<< " | byte_size: " << offset.second
+					<< " ]\n";
+#endif
 				// yes, we have metadata, send it
 				detail::write_uint32(11 + offset.second, i.begin);
 				detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
@@ -353,6 +368,10 @@ namespace libtorrent { namespace
 			}
 			else
 			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_pc.m_logger) << time_now_string()
+					<< " ==> DONT HAVE METADATA\n";
+#endif
 				buffer::interval i = m_pc.allocate_send_buffer(4 + 3);
 				// we don't have the metadata, reply with
 				// don't have-message
@@ -389,6 +408,13 @@ namespace libtorrent { namespace
 					int start = detail::read_uint8(body.begin);
 					int size = detail::read_uint8(body.begin) + 1;
 
+#ifdef TORRENT_VERBOSE_LOGGING
+					(*m_pc.m_logger) << time_now_string()
+						<< " <== METADATA_REQUEST [ start: " << start
+						<< " | size: " << size
+						<< " ]\n";
+#endif
+
 					if (length != 3)
 					{
 						// invalid metadata request
@@ -406,6 +432,14 @@ namespace libtorrent { namespace
 					int total_size = detail::read_int32(body.begin);
 					int offset = detail::read_int32(body.begin);
 					int data_size = length - 9;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+					(*m_pc.m_logger) << time_now_string()
+						<< " <== METADATA [ total_size: " << total_size
+						<< " | offset: " << offset
+						<< " | data_size: " << data_size
+						<< " ]\n";
+#endif
 
 					if (total_size > 500 * 1024)
 					{
@@ -445,6 +479,10 @@ namespace libtorrent { namespace
 				if (m_waiting_metadata_request)
 					m_tp.cancel_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = false;
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_pc.m_logger) << time_now_string()
+					<< " <== DONT HAVE METADATA\n";
+#endif
 				break;
 			default:
 				{
