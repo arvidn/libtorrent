@@ -263,6 +263,12 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 	bar.clear();
 	bar.reserve(width * 6);
 	bar += "[";
+	if (p.size() == 0)
+	{
+		for (int i = 0; i < width; ++i) bar += ' ';
+		bar += "]";
+		return bar;
+	}
 
 	// the [piece, piece + pieces_per_char) range is the pieces that are represented by each character
 	double piece = 0;
