@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/path.hpp>
 #include <boost/next_prior.hpp>
 #include <boost/bind.hpp>
+#include <boost/version.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -354,7 +355,11 @@ namespace libtorrent
   		{
  			m_name = tmp.leaf();
   		}
- 		else if (tmp.has_branch_path())
+#if BOOST_VERSION < 103600
+		else if (tmp.has_branch_path())
+#else
+		else if (tmp.has_parent_path())
+#endif
   		{
  			fs::path p;
  			for (fs::path::iterator i = tmp.begin()
@@ -572,7 +577,11 @@ namespace libtorrent
 	{
 //		TORRENT_ASSERT(file.begin() != file.end());
 
+#if BOOST_VERSION < 103600
 		if (!file.has_branch_path())
+#else
+		if (!file.has_parent_path())
+#endif
 		{
 			// you have already added at least one file with a
 			// path to the file (branch_path), which means that
@@ -662,7 +671,12 @@ namespace libtorrent
 					fs::path const* file_path;
 					if (i->orig_path) file_path = &(*i->orig_path);
 					else file_path = &i->path;
+
+#if BOOST_VERSION < 103600
 					TORRENT_ASSERT(file_path->has_branch_path());
+#else
+					TORRENT_ASSERT(file_path->has_parent_path());
+#endif
 					TORRENT_ASSERT(*file_path->begin() == m_name);
 
 					for (fs::path::iterator j = boost::next(file_path->begin());
