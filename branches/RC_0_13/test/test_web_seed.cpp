@@ -51,12 +51,21 @@ void add_files(
 	, path const& p
 	, path const& l)
 {
-	if (l.leaf()[0] == '.') return;
+#if BOOST_VERSION < 103600
+	std::string const& leaf = l.leaf();
+#else
+	std::string const& leaf = l.filename();
+#endif
+	if (leaf[0] == '.') return;
 	path f(p / l);
 	if (is_directory(f))
 	{
 		for (directory_iterator i(f), end; i != end; ++i)
+#if BOOST_VERSION < 103600
 			add_files(t, p, l / i->leaf());
+#else
+			add_files(t, p, l / i->filename());
+#endif
 	}
 	else
 	{

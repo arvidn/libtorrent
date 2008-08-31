@@ -39,8 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/storage.hpp"
 #include <boost/thread/thread.hpp>
-#include <boost/function.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
+#include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <boost/pool/pool.hpp>
 #include <boost/noncopyable.hpp>
