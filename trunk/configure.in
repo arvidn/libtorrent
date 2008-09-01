@@ -74,8 +74,8 @@ AX_BOOST_BASE([1.35],[
    case "$asio" in
 	"shipped")
 		AC_MSG_RESULT(shipped)
-		ASIO_HPP=include/libtorrent/asio.hpp
-		ASIO_DIR=include/libtorrent/asio
+		ASIO_HPP=`dirname $0`/include/libtorrent/asio.hpp
+		ASIO_DIR=`dirname $0`/include/libtorrent/asio
 		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,
 			enable_shipped_asio=yes,
 			AC_MSG_ERROR([libtorrent-rasterbar depends on Asio library but it was not found.])
