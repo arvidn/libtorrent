@@ -1639,7 +1639,7 @@ namespace libtorrent
 			return;
 		}
 
-		int block_index = b - m_download_queue.begin();
+		int block_index = b - m_download_queue.begin() - 1;
 		for (int i = 0; i < block_index; ++i)
 		{
 			pending_block& qe = m_download_queue[i];
@@ -1660,6 +1660,7 @@ namespace libtorrent
 					m_ses.m_alerts.post_alert(request_dropped_alert(t->get_handle()
 						, remote(), pid(), qe.block.block_index, qe.block.piece_index));
 				picker.abort_download(qe.block);
+				TORRENT_ASSERT(m_download_queue.begin() + i != b);
 				m_download_queue.erase(m_download_queue.begin() + i);
 				--i;
 				--block_index;
