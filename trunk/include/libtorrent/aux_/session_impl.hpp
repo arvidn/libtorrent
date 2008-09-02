@@ -549,6 +549,10 @@ namespace libtorrent
 
 			udp_socket m_dht_socket;
 
+			// these are used when starting the DHT
+			// (and bootstrapping it), and then erased
+			std::list<std::pair<std::string, int> > m_dht_router_nodes;
+
 			void on_receive_udp(error_code const& e
 				, udp::endpoint const& ep, char const* buf, int len);
 #endif

@@ -83,21 +83,6 @@ namespace
 		}
 	};
 	
-	boost::optional<node_id> read_id(libtorrent::entry const& d)
-	{
-		using namespace libtorrent;
-		using libtorrent::dht::node_id;
-
-		if (d.type() != entry::dictionary_t) return boost::optional<node_id>();
-		entry const* nid = d.find_key("node-id");
-		if (!nid
-			|| nid->type() != entry::string_t
-			|| nid->string().length() != 40)
-			return boost::optional<node_id>();
-		return boost::optional<node_id>(
-			boost::lexical_cast<node_id>(nid->string()));
-	}
-
 	template <class EndpointType>
 	void read_endpoint_list(libtorrent::entry const* n, std::vector<EndpointType>& epl)				
 	{
@@ -142,10 +127,8 @@ namespace libtorrent { namespace dht
 
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
-	dht_tracker::dht_tracker(udp_socket& sock, dht_settings const& settings
-		, entry const& bootstrap)
-		: m_dht(bind(&dht_tracker::send_packet, this, _1), settings
-			, read_id(bootstrap))
+	dht_tracker::dht_tracker(udp_socket& sock, dht_settings const& settings)
+		: m_dht(bind(&dht_tracker::send_packet, this, _1), settings)
 		, m_sock(sock)
 		, m_last_new_key(time_now() - minutes(key_refresh))
 		, m_timer(sock.get_io_service())
@@ -185,6 +168,10 @@ namespace libtorrent { namespace dht
 //		dht_tracker_log.enable(false);
 
 #endif
+	}
+
+	void dht_tracker::start(entry const& bootstrap)
+	{
 		std::vector<udp::endpoint> initial_nodes;
 
 		if (bootstrap.type() == entry::dictionary_t)
@@ -194,6 +181,12 @@ namespace libtorrent { namespace dht
 			if (entry const* nodes = bootstrap.find_key("nodes"))
 				read_endpoint_list<udp::endpoint>(nodes, initial_nodes);
 			} catch (std::exception&) {}
+			
+			entry const* nid = bootstrap.find_key("node-id");
+			if (nid
+				&& nid->type() == entry::string_t
+				&& nid->string().length() == 40)
+				m_dht.set_node_id(boost::lexical_cast<node_id>(nid->string()));
 		}
 
 		m_timer.expires_from_now(seconds(1));
@@ -465,6 +458,8 @@ namespace libtorrent { namespace dht
 			m.transaction_id = e["t"].string();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
+			log_line << " t: " << to_hex(m.transaction_id);
+
 			try
 			{
 				entry const* ver = e.find_key("v");
@@ -512,8 +507,7 @@ namespace libtorrent { namespace dht
 			if (msg_type == "r")
 			{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-				log_line << " r: " << messages::ids[m.message_id]
-					<< " t: " << to_hex(m.transaction_id);
+				log_line << " r: " << messages::ids[m.message_id];
 #endif
 
 				m.reply = true;
@@ -616,7 +610,7 @@ namespace libtorrent { namespace dht
 					if (target.size() != 20) throw std::runtime_error("invalid size of target id");
 					std::copy(target.begin(), target.end(), m.info_hash.begin());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-					log_line << " t: " << boost::lexical_cast<std::string>(m.info_hash);
+					log_line << " target: " << boost::lexical_cast<std::string>(m.info_hash);
 #endif
 
 					m.message_id = libtorrent::dht::messages::find_node;

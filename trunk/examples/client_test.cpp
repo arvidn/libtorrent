@@ -888,6 +888,13 @@ int main(int ac, char* av[])
 #ifndef TORRENT_DISABLE_DHT
 		settings.use_dht_as_fallback = false;
 
+		ses.add_dht_router(std::make_pair(
+			std::string("router.bittorrent.com"), 6881));
+		ses.add_dht_router(std::make_pair(
+			std::string("router.utorrent.com"), 6881));
+		ses.add_dht_router(std::make_pair(
+			std::string("router.bitcomet.com"), 6881));
+
 		boost::filesystem::ifstream dht_state_file(".dht_state"
 			, std::ios_base::binary);
 		dht_state_file.unsetf(std::ios_base::skipws);
@@ -896,12 +903,6 @@ int main(int ac, char* av[])
 			std::istream_iterator<char>(dht_state_file)
 			, std::istream_iterator<char>());
 		ses.start_dht(dht_state);
-		ses.add_dht_router(std::make_pair(std::string("router.bittorrent.com")
-			, 6881));
-		ses.add_dht_router(std::make_pair(std::string("router.utorrent.com")
-			, 6881));
-		ses.add_dht_router(std::make_pair(std::string("router.bitcomet.com")
-			, 6881));
 #endif
 
 		// look for ipfilter.dat
