@@ -292,18 +292,16 @@ case "$zlib" in
 esac
 if [[ "$zlib" = "shipped" ]]; then
 	ZLIB="\$(top_builddir)/zlib/libzlib.la"
-	ZLIBDIR="zlib"
+	AM_CONDITIONAL([ENABLE_SHIPPED_ZLIB], true)
 	ZLIBINCL="-I\$(top_srcdir)/zlib"
-	AC_CONFIG_FILES(zlib/Makefile)
 elif [[ "$zlib" = "system" ]]; then
 	ZLIB="-lz"
-	ZLIBDIR=""
+	AM_CONDITIONAL([ENABLE_SHIPPED_ZLIB], false)
 	ZLIBINCL=""
 fi
 
 dnl make ZLIB and ZLIBDIR visible to Makefiles
 AC_SUBST([ZLIB])
-AC_SUBST([ZLIBDIR])
 AC_SUBST([ZLIBINCL])
 
 dnl Check whether the examples should be build
@@ -318,23 +316,21 @@ AC_MSG_CHECKING([if the examples should be build])
 case "$examples" in
 	"yes")
 		AC_MSG_RESULT(yes)
-		EXAMPLESDIR="examples"
+		AM_CONDITIONAL([ENABLE_EXAMPLES], true)
 		;;
 	"no")
 		AC_MSG_RESULT(no)
-		EXAMPLESDIR=""
+		AM_CONDITIONAL([ENABLE_EXAMPLES], false)
 		;;
 	"")
 		AC_MSG_RESULT(yes (default))
-		EXAMPLESDIR="examples"
+		AM_CONDITIONAL([ENABLE_EXAMPLES], true)
 		;;
 	*)
 		AC_MSG_RESULT()
 		AC_MSG_ERROR([Unknown --enable-examples option "$examples". Use either "yes" or "no".])
 		;;
 esac
-dnl make $examples visible to Makefiles
-AC_SUBST([EXAMPLESDIR])
 
 dnl Check whether the tests should be build
 AC_ARG_ENABLE(
@@ -348,23 +344,21 @@ AC_MSG_CHECKING([if test files should be build])
 case "$tests" in
 	"yes")
 		AC_MSG_RESULT(yes)
-		TESTSDIR="test"
+		AM_CONDITIONAL([ENABLE_TESTS], true)
 		;;
 	"no")
 		AC_MSG_RESULT(no)
-		TESTSDIR=""
+		AM_CONDITIONAL([ENABLE_TESTS], false)
 		;;
 	"")
 		AC_MSG_RESULT(yes (default))
-		TESTSDIR="test"
+		AM_CONDITIONAL([ENABLE_TESTS], true)
 		;;
 	*)
 		AC_MSG_RESULT()
 		AC_MSG_ERROR([Unknown --enable-tests option "$examples". Use either "yes" or "no".])
 		;;
 esac
-dnl make $examples visible to Makefiles
-AC_SUBST([TESTSDIR])
 
 dnl Set some defines if we are building a shared library
 if [[ "x$enable_shared" == "xyes" ]]; then
@@ -398,11 +392,4 @@ AC_SUBST(DEBUGFLAGS)
 dnl Compile time options.
 AC_SUBST(COMPILETIME_OPTIONS)
 
-AC_CONFIG_FILES(Makefile src/Makefile include/Makefile libtorrent-rasterbar.pc)
-if [[ "x$examples" == "xyes" ]]; then
-	AC_CONFIG_FILES(examples/Makefile)
-fi
-if [[ "x$tests" == "xyes"  ]]; then
-	AC_CONFIG_FILES(test/Makefile)
-fi
-AC_OUTPUT
+AC_OUTPUT([Makefile src/Makefile include/Makefile zlib/Makefile examples/Makefile test/Makefile libtorrent-rasterbar.pc])

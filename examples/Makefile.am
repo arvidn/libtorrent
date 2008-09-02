@@ -1,5 +1,8 @@
+if ENABLE_EXAMPLES
+# no indent here! - BSD make issue
 bin_PROGRAMS = @CLIENT_TEST_BIN@ dump_torrent make_torrent simple_client enum_if
-EXTRA_PROGRAMS = client_test
+endif
+EXTRA_PROGRAMS = client_test dump_torrent make_torrent simple_client enum_if
 EXTRA_DIST = Jamfile
 
 client_test_SOURCES = client_test.cpp

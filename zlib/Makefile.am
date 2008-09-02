@@ -1,4 +1,7 @@
+if ENABLE_SHIPPED_ZLIB
+# no indent here! - BSD make issue
 noinst_LTLIBRARIES = libzlib.la
+endif
 
 libzlib_la_SOURCES = adler32.c compress.c crc32.c deflate.c \
 gzio.c infback.c inffast.c inflate.c \
