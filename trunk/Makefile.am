@@ -1,5 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = include @ZLIBDIR@ src @EXAMPLESDIR@ @TESTSDIR@
+#DISTCHECK_CONFIGURE_FLAGS = --enable-tests
+SUBDIRS = include zlib src examples test
 EXTRA_DIST = autotool.sh docs/manual.html docs/manual.rst docs/extension_protocol.rst \
 docs/extension_protocol.html \
 docs/projects.rst docs/projects.html \
