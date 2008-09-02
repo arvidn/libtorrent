@@ -71,8 +71,9 @@ namespace libtorrent { namespace dht
 	{
 		friend void intrusive_ptr_add_ref(dht_tracker const*);
 		friend void intrusive_ptr_release(dht_tracker const*);
-		dht_tracker(udp_socket& sock, dht_settings const& settings
-			, entry const& bootstrap);
+		dht_tracker(udp_socket& sock, dht_settings const& settings);
+
+		void start(entry const& bootstrap);
 		void stop();
 
 		void add_node(udp::endpoint node);

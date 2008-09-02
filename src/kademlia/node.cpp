@@ -91,9 +91,9 @@ void purge_peers(std::set<peer_entry>& peers)
 void nop() {}
 
 node_impl::node_impl(boost::function<void(msg const&)> const& f
-	, dht_settings const& settings, boost::optional<node_id> node_id)
+	, dht_settings const& settings)
 	: m_settings(settings)
-	, m_id(node_id ? *node_id : generate_id())
+	, m_id(generate_id())
 	, m_table(m_id, 8, settings)
 	, m_rpc(bind(&node_impl::incoming_request, this, _1)
 		, m_id, m_table, f)

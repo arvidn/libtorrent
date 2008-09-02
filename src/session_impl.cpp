@@ -2047,11 +2047,20 @@ namespace aux {
 				, m_dht_settings.service_port
 				, m_dht_settings.service_port);
 		}
-		m_dht = new dht::dht_tracker(m_dht_socket, m_dht_settings, startup_state);
+		m_dht = new dht::dht_tracker(m_dht_socket, m_dht_settings);
 		if (!m_dht_socket.is_open() || m_dht_socket.local_port() != m_dht_settings.service_port)
 		{
 			m_dht_socket.bind(m_dht_settings.service_port);
 		}
+
+		for (std::list<std::pair<std::string, int> >::iterator i = m_dht_router_nodes.begin()
+			, end(m_dht_router_nodes.end()); i != end; ++i)
+		{
+			m_dht->add_router_node(*i);
+		}
+		std::list<std::pair<std::string, int> >().swap(m_dht_router_nodes);
+
+		m_dht->start(startup_state);
 	}
 
 	void session_impl::stop_dht()
@@ -2115,9 +2124,10 @@ namespace aux {
 
 	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
 	{
-		TORRENT_ASSERT(m_dht);
+		// router nodes should be added before the DHT is started (and bootstrapped)
 		mutex_t::scoped_lock l(m_mutex);
-		m_dht->add_router_node(node);
+		if (m_dht) m_dht->add_router_node(node);
+		else m_dht_router_nodes.push_back(node);
 	}
 
 #endif
