@@ -1528,7 +1528,8 @@ namespace aux {
 					&& !p->is_disconnecting()
 					&& p->is_peer_interested()
 					&& t->free_upload_slots()
-					&& p->is_choked())
+					&& p->is_choked()
+					&& t->valid_metadata())
 				{
 					last_unchoke = pi->last_optimistically_unchoked;
 					optimistic_unchoke_candidate = i;
