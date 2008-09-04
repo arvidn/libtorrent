@@ -259,6 +259,8 @@ namespace libtorrent
 			disk_check_aborted = -3
 		};
 
+		storage_interface* get_storage_impl() { return m_storage.get(); }
+
 	private:
 
 		fs::path save_path() const;

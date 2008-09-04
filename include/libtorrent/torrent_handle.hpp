@@ -366,6 +366,8 @@ namespace libtorrent
 		bool resolve_countries() const;
 #endif
 
+		storage_interface* get_storage_impl() const;
+
 		// all these are deprecated, use piece
 		// priority functions instead
 
