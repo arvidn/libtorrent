@@ -945,7 +945,7 @@ namespace libtorrent
 		{
 			std::stringstream msg;
 			msg << "got bitfield with invalid size: " << (packet_size() - 1)
-				<< "bytes. expected: " << ((t->torrent_file().num_pieces() + 7) / 8)
+				<< " bytes. expected: " << ((t->torrent_file().num_pieces() + 7) / 8)
 				<< " bytes";
 			disconnect(msg.str().c_str(), 2);
 			return;
@@ -1444,7 +1444,7 @@ namespace libtorrent
 		{
 			// don't send a bitfield if we don't have any pieces
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** NOT SENDING BITFIELD";
+			(*m_logger) << time_now_string() << " *** NOT SENDING BITFIELD\n";
 #endif
 #ifndef NDEBUG
 			m_sent_bitfield = true;
