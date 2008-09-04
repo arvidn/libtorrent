@@ -4490,7 +4490,7 @@ this::
 		virtual int read(char* buf, int slot, int offset, int size) = 0;
 		virtual int write(const char* buf, int slot, int offset, int size) = 0;
 		virtual bool move_storage(fs::path save_path) = 0;
-		virtual bool verify_resume_data(lazy_entry& rd, std::string& error) = 0;
+		virtual bool verify_resume_data(lazy_entry const& rd, std::string& error) = 0;
 		virtual bool write_resume_data(entry& rd) const = 0;
 		virtual bool move_slot(int src_slot, int dst_slot) = 0;
 		virtual bool swap_slots(int slot1, int slot2) = 0;
@@ -4563,7 +4563,7 @@ verify_resume_data()
 
 	::
 
-		bool verify_resume_data(lazy_entry& rd, std::string& error) = 0;
+		bool verify_resume_data(lazy_entry const& rd, std::string& error) = 0;
 
 This function should verify the resume data ``rd`` with the files
 on disk. If the resume data seems to be up-to-date, return true. If
