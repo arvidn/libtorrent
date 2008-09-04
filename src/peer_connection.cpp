@@ -1572,7 +1572,7 @@ namespace libtorrent
 			"s: " << p.start << " | "
 			"l: " << p.length << " | "
 			"ds: " << statistics().download_rate() << " | "
-			"qs: " << m_desired_queue_size << " ]\n";
+			"qs: " << int(m_desired_queue_size) << " ]\n";
 #endif
 
 		if (p.length == 0)
@@ -2333,7 +2333,7 @@ namespace libtorrent
 				"s: " << r.start << " | "
 				"l: " << r.length << " | "
 				"ds: " << statistics().download_rate() << " B/s | "
-				"qs: " << m_desired_queue_size << " "
+				"qs: " << int(m_desired_queue_size) << " "
 				"blk: " << (m_request_large_blocks?"large":"single") << " ]\n";
 #endif
 		}
