@@ -1589,6 +1589,7 @@ Its declaration looks like this::
 
 		boost::filesystem::path save_path() const;
 		void move_storage(boost::filesystem::path const& save_path) const;
+		storage_interface* get_storage_impl() const;
 
 		sha1_hash info_hash() const;
 
@@ -1714,6 +1715,16 @@ operation will only have the desired effect if the given ``save_path`` is locate
 the same drive as the original save path. Since disk IO is performed in a separate
 thread, this operation is also asynchronous. Once the operation completes, the
 ``storage_moved_alert`` is generated, with the new path as the message.
+
+get_storage_impl()
+------------------
+
+	::
+
+		storage_interface* get_storage_impl() const;
+
+Returns the storage implementation for this torrent. This depends on the
+storage contructor function that was passed to ``session::add_torrent``.
 
 force_reannounce()
 ------------------

@@ -499,6 +499,12 @@ namespace libtorrent
 		TORRENT_FORWARD(replace_trackers(urls));
 	}
 
+	storage_interface* torrent_handle::get_storage_impl() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD_RETURN(get_storage(), 0);
+	}
+
 	torrent_info const& torrent_handle::get_torrent_info() const
 	{
 		INVARIANT_CHECK;

@@ -170,6 +170,12 @@ namespace libtorrent
 		int seed_rank(session_settings const& s) const;
 
 		storage_mode_t storage_mode() const { return m_storage_mode; }
+		storage_interface* get_storage()
+		{
+			if (!m_owning_storage) return 0;
+			return m_owning_storage->get_storage_impl();
+		}
+
 		// this will flag the torrent as aborted. The main
 		// loop in session_impl will check for this state
 		// on all torrents once every second, and take
