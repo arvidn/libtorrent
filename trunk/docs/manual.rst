@@ -4486,18 +4486,19 @@ this::
 
 	struct storage_interface
 	{
-		virtual void initialize(bool allocate_files) = 0;
-		virtual size_type read(char* buf, int slot, int offset, int size) = 0;
-		virtual void write(const char* buf, int slot, int offset, int size) = 0;
+		virtual bool initialize(bool allocate_files) = 0;
+		virtual int read(char* buf, int slot, int offset, int size) = 0;
+		virtual int write(const char* buf, int slot, int offset, int size) = 0;
 		virtual bool move_storage(fs::path save_path) = 0;
 		virtual bool verify_resume_data(lazy_entry& rd, std::string& error) = 0;
-		virtual void write_resume_data(entry& rd) const = 0;
-		virtual void move_slot(int src_slot, int dst_slot) = 0;
-		virtual void swap_slots(int slot1, int slot2) = 0;
-		virtual void swap_slots3(int slot1, int slot2, int slot3) = 0;
+		virtual bool write_resume_data(entry& rd) const = 0;
+		virtual bool move_slot(int src_slot, int dst_slot) = 0;
+		virtual bool swap_slots(int slot1, int slot2) = 0;
+		virtual bool swap_slots3(int slot1, int slot2, int slot3) = 0;
 		virtual sha1_hash hash_for_slot(int slot, partial_hash& h, int piece_size) = 0;
-		virtual void release_files() = 0;
-		virtual void delete_files() = 0;
+		virtual bool rename_file(int file, std::string const& new_name) = 0;
+		virtual bool release_files() = 0;
+		virtual bool delete_files() = 0;
 		virtual ~storage_interface() {}
 	};
 
@@ -4507,19 +4508,20 @@ initialize()
 
 	::
 
-		void initialize(bool allocate_files) = 0;
+		bool initialize(bool allocate_files) = 0;
 
 This function is called when the storage is to be initialized. The default storage
 will create directories and empty files at this point. If ``allocate_files`` is true,
 it will also ``ftruncate`` all files to their target size.
 
+Returning ``true`` indicates an error occurred.
 
 read()
 ------
 
 	::
 
-		size_type read(char* buf, int slot, int offset, int size) = 0;
+		int read(char* buf, int slot, int offset, int size) = 0;
 
 This function should read the data in the given slot and at the given offset
 and ``size`` number of bytes. The data is to be copied to ``buf``.
@@ -4532,10 +4534,12 @@ write()
 
 	::
 
-		void write(const char* buf, int slot, int offset, int size) = 0;
+		int write(const char* buf, int slot, int offset, int size) = 0;
 
 This function should write the data in ``buf`` to the given slot (``slot``) at offset
 ``offset`` in that slot. The buffer size is ``size``.
+
+The return value is the number of bytes actually written.
 
 
 move_storage()
@@ -4551,13 +4555,15 @@ The default storage moves the single file or the directory of the torrent.
 Before moving the files, any open file handles may have to be closed, like
 ``release_files()``.
 
+Returning ``true`` indicates an error occurred.
+
 
 verify_resume_data()
 --------------------
 
 	::
 
-		bool verify_resume_data(entry& rd, std::string& error) = 0;
+		bool verify_resume_data(lazy_entry& rd, std::string& error) = 0;
 
 This function should verify the resume data ``rd`` with the files
 on disk. If the resume data seems to be up-to-date, return true. If
@@ -4565,17 +4571,21 @@ not, set ``error`` to a description of what mismatched and return false.
 
 The default storage may compare file sizes and time stamps of the files.
 
+Returning ``true`` indicates an error occurred.
+
 
 write_resume_data()
 -------------------
 
 	::
 
-		void write_resume_data(entry& rd) const = 0;
+		bool write_resume_data(entry& rd) const = 0;
 
 This function should fill in resume data, the current state of the
 storage, in ``rd``. The default storage adds file timestamps and
 sizes.
+
+Returning ``true`` indicates an error occurred.
 
 
 move_slot()
@@ -4583,7 +4593,7 @@ move_slot()
 
 	::
 
-		void move_slot(int src_slot, int dst_slot) = 0;
+		bool move_slot(int src_slot, int dst_slot) = 0;
 
 This function should copy or move the data in slot ``src_slot`` to
 the slot ``dst_slot``. This is only used in compact mode.
@@ -4591,13 +4601,15 @@ the slot ``dst_slot``. This is only used in compact mode.
 If the storage caches slots, this could be implemented more
 efficient than reading and writing the data.
 
+Returning ``true`` indicates an error occurred.
+
 
 swap_slots()
 ------------
 
 	::
 
-		void swap_slots(int slot1, int slot2) = 0;
+		bool swap_slots(int slot1, int slot2) = 0;
 
 This function should swap the data in ``slot1`` and ``slot2``. The default
 storage uses a scratch buffer to read the data into, then moving the other
@@ -4605,19 +4617,23 @@ slot and finally writing back the temporary slot's data
 
 This is only used in compact mode.
 
+Returning ``true`` indicates an error occurred.
+
 
 swap_slots3()
 -------------
 
 	::
 
-		void swap_slots3(int slot1, int slot2, int slot3) = 0;
+		bool swap_slots3(int slot1, int slot2, int slot3) = 0;
 
 This function should do a 3-way swap, or shift of the slots. ``slot1``
 should move to ``slot2``, which should be moved to ``slot3`` which in turn
 should be moved to ``slot1``.
 
 This is only used in compact mode.
+
+Returning ``true`` indicates an error occurred.
 
 
 hash_for_slot()
@@ -4643,17 +4659,29 @@ that is stored in the given slot.
 
 The function should return the hash of the piece stored in the slot.
 
+rename_file()
+-------------
+
+	::
+
+		bool rename_file(int file, std::string const& new_name) = 0;
+
+Rename file with index ``file`` to the thame ``new_name``. If there is an error,
+``true`` should be returned.
+
 
 release_files()
 ---------------
 
 	::
 
-		void release_files() = 0;
+		bool release_files() = 0;
 
 This function should release all the file handles that it keeps open to files
 belonging to this storage. The default implementation just calls
 ``file_pool::release_files(this)``.
+
+Returning ``true`` indicates an error occurred.
 
 
 delete_files()
@@ -4661,9 +4689,11 @@ delete_files()
 
 	::
 
-		void delete_files() = 0;
+		bool delete_files() = 0;
 
 This function should delete all files and directories belonging to this storage.
+
+Returning ``true`` indicates an error occurred.
 
 
 magnet links
