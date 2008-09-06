@@ -1494,68 +1494,71 @@ namespace aux {
 			}
 		}
 
-		m_optimistic_unchoke_time_scaler--;
-		if (m_optimistic_unchoke_time_scaler <= 0)
+		if (m_allowed_upload_slots > 0)
 		{
-			m_optimistic_unchoke_time_scaler
-				= settings().optimistic_unchoke_multiplier;
-
-			// find the peer that has been waiting the longest to be optimistically
-			// unchoked
-			connection_map::iterator current_optimistic_unchoke = m_connections.end();
-			connection_map::iterator optimistic_unchoke_candidate = m_connections.end();
-			ptime last_unchoke = max_time();
-
-			for (connection_map::iterator i = m_connections.begin()
-				, end(m_connections.end()); i != end; ++i)
+			m_optimistic_unchoke_time_scaler--;
+			if (m_optimistic_unchoke_time_scaler <= 0)
 			{
-				peer_connection* p = i->get();
-				TORRENT_ASSERT(p);
-				policy::peer* pi = p->peer_info_struct();
-				if (!pi) continue;
-				torrent* t = p->associated_torrent().lock().get();
-				if (!t) continue;
+				m_optimistic_unchoke_time_scaler
+					= settings().optimistic_unchoke_multiplier;
 
-				if (pi->optimistically_unchoked)
+				// find the peer that has been waiting the longest to be optimistically
+				// unchoked
+				connection_map::iterator current_optimistic_unchoke = m_connections.end();
+				connection_map::iterator optimistic_unchoke_candidate = m_connections.end();
+				ptime last_unchoke = max_time();
+
+				for (connection_map::iterator i = m_connections.begin()
+					, end(m_connections.end()); i != end; ++i)
 				{
-					TORRENT_ASSERT(!p->is_choked());
-					TORRENT_ASSERT(current_optimistic_unchoke == m_connections.end());
-					current_optimistic_unchoke = i;
+					peer_connection* p = i->get();
+					TORRENT_ASSERT(p);
+					policy::peer* pi = p->peer_info_struct();
+					if (!pi) continue;
+					torrent* t = p->associated_torrent().lock().get();
+					if (!t) continue;
+
+					if (pi->optimistically_unchoked)
+					{
+						TORRENT_ASSERT(!p->is_choked());
+						TORRENT_ASSERT(current_optimistic_unchoke == m_connections.end());
+						current_optimistic_unchoke = i;
+					}
+
+					if (pi->last_optimistically_unchoked < last_unchoke
+						&& !p->is_connecting()
+						&& !p->is_disconnecting()
+						&& p->is_peer_interested()
+						&& t->free_upload_slots()
+						&& p->is_choked()
+						&& t->valid_metadata())
+					{
+						last_unchoke = pi->last_optimistically_unchoked;
+						optimistic_unchoke_candidate = i;
+					}
 				}
 
-				if (pi->last_optimistically_unchoked < last_unchoke
-					&& !p->is_connecting()
-					&& !p->is_disconnecting()
-					&& p->is_peer_interested()
-					&& t->free_upload_slots()
-					&& p->is_choked()
-					&& t->valid_metadata())
+				if (optimistic_unchoke_candidate != m_connections.end()
+					&& optimistic_unchoke_candidate != current_optimistic_unchoke)
 				{
-					last_unchoke = pi->last_optimistically_unchoked;
-					optimistic_unchoke_candidate = i;
-				}
-			}
+					if (current_optimistic_unchoke != m_connections.end())
+					{
+						torrent* t = (*current_optimistic_unchoke)->associated_torrent().lock().get();
+						TORRENT_ASSERT(t);
+						(*current_optimistic_unchoke)->peer_info_struct()->optimistically_unchoked = false;
+						t->choke_peer(*current_optimistic_unchoke->get());
+					}
+					else
+					{
+						++m_num_unchoked;
+					}
 
-			if (optimistic_unchoke_candidate != m_connections.end()
-				&& optimistic_unchoke_candidate != current_optimistic_unchoke)
-			{
-				if (current_optimistic_unchoke != m_connections.end())
-				{
-					torrent* t = (*current_optimistic_unchoke)->associated_torrent().lock().get();
+					torrent* t = (*optimistic_unchoke_candidate)->associated_torrent().lock().get();
 					TORRENT_ASSERT(t);
-					(*current_optimistic_unchoke)->peer_info_struct()->optimistically_unchoked = false;
-					t->choke_peer(*current_optimistic_unchoke->get());
+					bool ret = t->unchoke_peer(*optimistic_unchoke_candidate->get());
+					TORRENT_ASSERT(ret);
+					(*optimistic_unchoke_candidate)->peer_info_struct()->optimistically_unchoked = true;
 				}
-				else
-				{
-					++m_num_unchoked;
-				}
-
-				torrent* t = (*optimistic_unchoke_candidate)->associated_torrent().lock().get();
-				TORRENT_ASSERT(t);
-				bool ret = t->unchoke_peer(*optimistic_unchoke_candidate->get());
-				TORRENT_ASSERT(ret);
-				(*optimistic_unchoke_candidate)->peer_info_struct()->optimistically_unchoked = true;
 			}
 		}
 	}
@@ -2178,7 +2181,7 @@ namespace aux {
 
 	void session_impl::set_max_uploads(int limit)
 	{
-		TORRENT_ASSERT(limit > 0 || limit == -1);
+		TORRENT_ASSERT(limit >= 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
