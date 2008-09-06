@@ -754,9 +754,13 @@ namespace libtorrent
 
 		m_progress = j.piece / float(torrent_file().num_pieces());
 
+		m_picker->check_invariant();
+
 		TORRENT_ASSERT(m_picker);
 		if (j.offset >= 0 && !m_picker->have_piece(j.offset))
 			m_picker->we_have(j.offset);
+
+		m_picker->check_invariant();
 
 		// we're not done checking yet
 		// this handler will be called repeatedly until
@@ -3298,9 +3302,6 @@ namespace libtorrent
 		
 		if (!is_seed())
 		{
-			if (m_sequential_download)
-				picker().sequential_download(m_sequential_download);
-
 			// if we just finished checking and we're not a seed, we are
 			// likely to be unpaused
 			if (m_ses.m_auto_manage_time_scaler > 1)
@@ -3549,13 +3550,7 @@ namespace libtorrent
 #endif
 
 	void torrent::set_sequential_download(bool sd)
-	{
-		m_sequential_download = sd;
-		if (has_picker())
-		{
-			picker().sequential_download(sd);
-		}
-	}
+	{ m_sequential_download = sd; }
 
 	void torrent::set_queue_position(int p)
 	{

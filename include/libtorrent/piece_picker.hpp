@@ -88,6 +88,14 @@ namespace libtorrent
 	{
 	public:
 
+		enum
+		{
+			// the number of priority levels
+			priority_levels = 8,
+			// priority factor
+			prio_factor = priority_levels - 4
+		};
+
 		struct block_info
 		{
 			block_info(): peer(0), num_peers(0), state(state_none) {}
@@ -109,6 +117,20 @@ namespace libtorrent
 		// in a previous session
 		enum piece_state_t
 		{ none, slow, medium, fast };
+
+		enum options_t
+		{
+			// pick rarest first 
+			rarest_first = 1,
+			// pick the most common first, or the last pieces if sequential
+			reverse = 2,
+			// only pick pieces exclusively requested from this peer
+			on_parole = 4,
+			// always pick partial pieces before any other piece
+			prioritize_partials = 8,
+			// pick pieces in sequential order
+			sequential = 16
+		};
 
 		struct downloading_piece
 		{
@@ -132,9 +154,6 @@ namespace libtorrent
 		piece_picker();
 
 		void get_availability(std::vector<int>& avail) const;
-
-		void sequential_download(bool sd);
-		bool sequential_download() const { return m_sequential_download >= 0; }
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE message is received)
@@ -160,6 +179,9 @@ namespace libtorrent
 		// (i.e. we don't have to maintain a refcount)
 		void we_have(int index);
 		void we_dont_have(int index);
+
+		int cursor() const { return m_cursor; }
+		int reverse_cursor() const { return m_reverse_cursor; }
 
 		// sets all pieces to dont-have
 		void init(int blocks_per_piece, int total_num_blocks);
@@ -202,11 +224,9 @@ namespace libtorrent
 		// The last argument is the policy::peer pointer for the peer that
 		// we'll download from.
 		void pick_pieces(bitfield const& pieces
-			, std::vector<piece_block>& interesting_blocks
-			, int num_pieces, int prefer_whole_pieces
-			, void* peer, piece_state_t speed
-			, bool rarest_first, bool on_parole
-			, std::vector<int> const& suggested_pieces) const;
+			, std::vector<piece_block>& interesting_blocks, int num_blocks
+			, int prefer_whole_pieces, void* peer, piece_state_t speed
+			, int options, std::vector<int> const& suggested_pieces) const;
 
 		// picks blocks from each of the pieces in the piece_list
 		// vector that is also in the piece bitmask. The blocks
@@ -214,20 +234,23 @@ namespace libtorrent
 		// added to backup_blocks. num blocks is the number of
 		// blocks to be picked. Blocks are not picked from pieces
 		// that are being downloaded
-		int add_blocks(std::vector<int> const& piece_list
-			, bitfield const& pieces
-			, std::vector<piece_block>& interesting_blocks
-			, int num_blocks, int prefer_whole_pieces
-			, void* peer, std::vector<int> const& ignore) const;
-
-		// picks blocks only from downloading pieces
-		int add_blocks_downloading(
-			bitfield const& pieces
+		int add_blocks(int piece, bitfield const& pieces
 			, std::vector<piece_block>& interesting_blocks
 			, std::vector<piece_block>& backup_blocks
+			, std::vector<piece_block>& backup_blocks2
+			, int num_blocks, int prefer_whole_pieces
+			, void* peer, std::vector<int> const& ignore
+			, piece_state_t speed, int options) const;
+
+		// picks blocks only from downloading pieces
+		int add_blocks_downloading(downloading_piece const& dp
+			, bitfield const& pieces
+			, std::vector<piece_block>& interesting_blocks
+			, std::vector<piece_block>& backup_blocks
+			, std::vector<piece_block>& backup_blocks2
 			, int num_blocks, int prefer_whole_pieces
 			, void* peer, piece_state_t speed
-			, bool on_parole) const;
+			, int options) const;
 
 		// clears the peer pointer in all downloading pieces with this
 		// peer pointer
@@ -291,6 +314,8 @@ namespace libtorrent
 		void check_invariant(const torrent* t = 0) const;
 		void verify_pick(std::vector<piece_block> const& picked
 			, bitfield const& bits) const;
+#endif
+#if defined TORRENT_PICKER_LOG || !defined NDEBUG
 		void print_pieces() const;
 #endif
 
@@ -313,6 +338,7 @@ namespace libtorrent
 		friend struct piece_pos;
 
 		bool can_pick(int piece, bitfield const& bitmask) const;
+		bool is_piece_free(int piece, bitfield const& bitmask) const;
 		std::pair<int, int> expand_piece(int piece, int whole_pieces
 			, bitfield const& have) const;
 
@@ -354,7 +380,7 @@ namespace libtorrent
 				// the priority value that means the piece is filtered
 				filter_priority = 0,
 				// the max number the peer count can hold
-				max_peer_count = 0x3ff
+				max_peer_count = 0x3ff,
 			};
 			
 			bool have() const { return index == we_have_index; }
@@ -364,20 +390,41 @@ namespace libtorrent
 			bool filtered() const { return piece_priority == filter_priority; }
 			void filtered(bool f) { piece_priority = f ? filter_priority : 0; }
 			
+			//  prio 7 is always top priority
+			//  prio 0 is always -1 (don't pick)
+			//  downloading pieces are always on an even prio_factor priority
+			//
+			//  availability x, downloading
+			//   |   availability x, prio 3; availability 2x, prio 6
+			//   |   |   availability x, prio 2; availability 2x, prio 5
+			//   |   |   |   availability x, prio 1; availability 2x, prio 4
+			//   |   |   |   |
+			// +---+---+---+---+
+			// | 0 | 1 | 2 | 3 |
+			// +---+---+---+---+
+
 			int priority(piece_picker const* picker) const
 			{
-				if (downloading || filtered()
-					|| have() || peer_count + picker->m_seeds == 0)
+				// filtered pieces (prio = 0), pieces we have or pieces with
+				// availability = 0 should not be present in the piece list
+				// returning -1 indicates that they shouldn't.
+				if (filtered() || have() || peer_count + picker->m_seeds == 0)
 					return -1;
 
-				// priority 5, 6 and 7 disregards availability of the piece
-				if (piece_priority > 4) return 7 - piece_priority;
+				// prio 7 disregards availability
+				if (piece_priority == priority_levels - 1) return 1 - downloading;
 
-				// pieces we are currently downloading have high priority
-				int prio = peer_count * 4;
-//				if (prio >= picker->m_prio_limit * 6) prio = picker->m_prio_limit * 6;
+				// prio 4,5,6 halves the availability of a piece
+				int availability = peer_count;
+				int priority = piece_priority;
+				if (piece_priority >= priority_levels / 2)
+				{
+					availability /= 2;
+					priority -= (priority_levels - 2) / 2;
+				}
 
-				return prio + (4 - piece_priority);
+				if (downloading) return availability * prio_factor;
+				return availability * prio_factor + (priority_levels / 2) - priority;
 			}
 
 			bool operator!=(piece_pos p) const
@@ -467,11 +514,14 @@ namespace libtorrent
 		// the number of pieces we have
 		int m_num_have;
 
-		// -1 means sequential download is not active.
-		// >= 0 means that pieces are requested in sequential order
-		// and this variable is the next piece to request.
-		// in that case m_pieces is cleared and not used.
-		int m_sequential_download;
+		// we have all pieces in the range [0, m_cursor)
+		// m_cursor is the first piece we don't have
+		int m_cursor;
+
+		// we have all pieces in the range [m_reverse_cursor, end)
+		// m_reverse_cursor is the first piece where we also have
+		// all the subsequent pieces
+		int m_reverse_cursor;
 
 		// if this is set to true, it means update_pieces()
 		// has to be called before accessing m_pieces.

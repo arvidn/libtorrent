@@ -200,8 +200,6 @@ namespace libtorrent
 
 		int prefer_whole_pieces = c.prefer_whole_pieces();
 
-		bool rarest_first = t.num_have() >= t.settings().initial_picker_threshold;
-
 		if (prefer_whole_pieces == 0)
 		{
 			prefer_whole_pieces = c.statistics().download_payload_rate()
@@ -250,7 +248,7 @@ namespace libtorrent
 
 			p.pick_pieces(mask, interesting_pieces
 				, num_requests, prefer_whole_pieces, c.peer_info_struct()
-				, state, rarest_first, c.on_parole(), suggested);
+				, state, c.picker_options(), suggested);
 		}
 		else
 		{
@@ -264,7 +262,7 @@ namespace libtorrent
 			// then use this mode.
 			p.pick_pieces(bits, interesting_pieces
 				, num_requests, prefer_whole_pieces, c.peer_info_struct()
-				, state, rarest_first, c.on_parole(), suggested);
+				, state, c.picker_options(), suggested);
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -303,10 +301,6 @@ namespace libtorrent
 
 		if (busy_pieces.empty() || num_requests <= 0)
 		{
-			// in this case, we could not find any blocks
-			// that was free. If we couldn't find any busy
-			// blocks as well, we cannot download anything
-			// more from this peer.
 			return;
 		}
 

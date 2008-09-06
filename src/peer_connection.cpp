@@ -572,6 +572,50 @@ namespace libtorrent
 #endif
 	}
 
+	int peer_connection::picker_options() const
+	{
+		int ret = 0; 
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
+		if (!t) return 0;
+
+		if (t->is_sequential_download())
+		{
+			ret |= piece_picker::sequential;
+		}
+		else if (t->num_have() < t->settings().initial_picker_threshold)
+		{
+			// if we have fewer pieces than a certain threshols
+			// don't pick rare pieces, just pick random ones,
+			// and prioritize finishing them
+			ret |= piece_picker::prioritize_partials;
+		}
+		else
+		{
+			ret |= piece_picker::rarest_first;
+		}
+
+		if (m_snubbed)
+		{
+			// snubbed peers should request
+			// the common pieces first, just to make
+			// it more likely for all snubbed peers to
+			// request blocks from the same piece
+			ret |= piece_picker::reverse;
+		}
+
+		if (t->settings().prioritize_partial_pieces)
+			ret |= piece_picker::prioritize_partials;
+
+		if (on_parole()) ret |= piece_picker::on_parole
+			| piece_picker::prioritize_partials;
+
+		// only one of rarest_first, common_first and sequential can be set.
+		TORRENT_ASSERT(bool(ret & piece_picker::rarest_first)
+			+ bool(ret & piece_picker::sequential) <= 1);
+		return ret;
+	}
+
 	void peer_connection::fast_reconnect(bool r)
 	{
 		if (!peer_info_struct() || peer_info_struct()->fast_reconnects > 1)
@@ -1724,8 +1768,11 @@ namespace libtorrent
 		bool multi = picker.num_peers(block_finished) > 1;
 		picker.mark_as_writing(block_finished, peer_info_struct());
 
+		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 		// if we requested this block from other peers, cancel it now
 		if (multi) t->cancel_block(block_finished);
+
+		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 
 #if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		t->check_invariant();
@@ -1777,6 +1824,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(p.piece == j.piece);
 		TORRENT_ASSERT(p.start == j.offset);
+		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 		picker.mark_as_finished(block_finished, peer_info_struct());
 		if (t->alerts().should_post<block_finished_alert>())
 		{
@@ -3899,7 +3947,7 @@ namespace libtorrent
 			m_speed = medium;
 		else if (download_rate < torrent_download_rate / 15 && m_speed == fast)
 			m_speed = medium;
-		else if (download_rate < torrent_download_rate / 63 && m_speed == medium)
+		else
 			m_speed = slow;
 
 		return m_speed;
