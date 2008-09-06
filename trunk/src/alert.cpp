@@ -74,8 +74,9 @@ namespace libtorrent {
 			xt.sec += 1;
 		}
 		xt.nsec = boost::xtime::xtime_nsec_t(nsec);
+		// apparently this call can be interrupted
+		// prematurely if there are other signals
 		if (!m_condition.timed_wait(lock, xt)) return 0;
-		TORRENT_ASSERT(!m_alerts.empty());
 		if (m_alerts.empty()) return 0;
 		return m_alerts.front();
 	}
