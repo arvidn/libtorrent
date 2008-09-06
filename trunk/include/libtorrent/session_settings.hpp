@@ -141,6 +141,7 @@ namespace libtorrent
 			, auto_scrape_min_interval(300)
 			, max_peerlist_size(8000)
 			, min_announce_interval(5 * 60)
+			, prioritize_partial_pieces(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -436,6 +437,10 @@ namespace libtorrent
 		// that is lower than this, will be clamped to this
 		// value. It's specified in seconds
 		int min_announce_interval;
+
+		// if true, partial pieces are picked before pieces
+		// that are more rare
+		bool prioritize_partial_pieces;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
