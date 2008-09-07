@@ -229,6 +229,7 @@ namespace libtorrent
 
 		boost::shared_ptr<request_callback> cb = con->requester();
 		if (cb) cb->m_manager = this;
+		con->start();
 	}
 
 	void tracker_manager::abort_all_requests()

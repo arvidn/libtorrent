@@ -74,6 +74,7 @@ namespace libtorrent
 			, session_settings const& stn
 			, proxy_settings const& ps);
 
+		void start();
 		void close();
 
 	private:
