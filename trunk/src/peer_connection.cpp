@@ -1173,6 +1173,8 @@ namespace libtorrent
 			<< " <== HAVE    [ piece: " << index << "]\n";
 #endif
 
+		if (is_disconnecting()) return;
+
 		if (!t->valid_metadata() && index > int(m_have_piece.size()))
 		{
 			if (index < 65536)
@@ -1387,6 +1389,7 @@ namespace libtorrent
 		// if we haven't received a bitfield, it was
 		// probably omitted, which is the same as 'have_none'
 		if (!m_bitfield_received) incoming_have_none();
+		if (is_disconnecting()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1593,6 +1596,7 @@ namespace libtorrent
 		// if we haven't received a bitfield, it was
 		// probably omitted, which is the same as 'have_none'
 		if (!m_bitfield_received) incoming_have_none();
+		if (is_disconnecting()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
