@@ -75,6 +75,7 @@ namespace libtorrent
 			, proxy_settings const& ps
 			, std::string const& password = "");
 
+		void start();
 		void close();
 
 	private:
@@ -92,6 +93,11 @@ namespace libtorrent
 
 		tracker_manager& m_man;
 		boost::shared_ptr<http_connection> m_tracker_connection;
+		session_settings const& m_settings;
+		address m_bind_iface;
+		proxy_settings const& m_ps;
+		connection_queue& m_cc;
+		io_service& m_ios;
 	};
 
 }

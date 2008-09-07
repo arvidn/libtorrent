@@ -93,14 +93,17 @@ namespace libtorrent
 		, m_state(action_error)
 	{
 		m_socket.set_proxy_settings(proxy);
+	}
 
+	void udp_tracker_connection::start()
+	{
 		std::string hostname;
 		int port;
 		char const* error;
 
 		using boost::tuples::ignore;
 		boost::tie(ignore, ignore, hostname, port, ignore, error)
-			= parse_url_components(req.url);
+			= parse_url_components(tracker_req().url);
 
 		if (error)
 		{
@@ -112,7 +115,7 @@ namespace libtorrent
 		m_name_lookup.async_resolve(q
 			, boost::bind(
 			&udp_tracker_connection::name_lookup, self(), _1, _2));
-		set_timeout(req.event == tracker_request::stopped
+		set_timeout(tracker_req().event == tracker_request::stopped
 			? m_settings.stop_tracker_timeout
 			: m_settings.tracker_completion_timeout
 			, m_settings.tracker_receive_timeout);

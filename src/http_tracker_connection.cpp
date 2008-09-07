@@ -79,11 +79,19 @@ namespace libtorrent
 		, std::string const& auth)
 		: tracker_connection(man, req, ios, bind_infc, c)
 		, m_man(man)
+		, m_settings(stn)
+		, m_bind_iface(bind_infc)
+		, m_ps(ps)
+		, m_cc(cc)
+		, m_ios(ios)
+	{}
+
+	void http_tracker_connection::start()
 	{
 		// TODO: authentication
-		std::string url = req.url;
+		std::string url = tracker_req().url;
 
-		if (req.kind == tracker_request::scrape_request)
+		if (tracker_req().kind == tracker_request::scrape_request)
 		{
 			// find and replace "announce" with "scrape"
 			// in request
@@ -92,7 +100,7 @@ namespace libtorrent
 			if (pos == std::string::npos)
 			{
 				fail(-1, ("scrape is not available on url: '"
-					+ req.url +"'").c_str());
+					+ tracker_req().url +"'").c_str());
 				return;
 			}
 			url.replace(pos, 8, "scrape");
@@ -109,70 +117,70 @@ namespace libtorrent
 
 		url += "info_hash=";
 		url += escape_string(
-			reinterpret_cast<const char*>(req.info_hash.begin()), 20);
+			reinterpret_cast<const char*>(tracker_req().info_hash.begin()), 20);
 		
-		if (req.kind == tracker_request::announce_request)
+		if (tracker_req().kind == tracker_request::announce_request)
 		{
 			url += "&peer_id=";
 			url += escape_string(
-				reinterpret_cast<const char*>(req.pid.begin()), 20);
+				reinterpret_cast<const char*>(tracker_req().pid.begin()), 20);
 
 			url += "&port=";
-			url += boost::lexical_cast<std::string>(req.listen_port);
+			url += boost::lexical_cast<std::string>(tracker_req().listen_port);
 
 			url += "&uploaded=";
-			url += boost::lexical_cast<std::string>(req.uploaded);
+			url += boost::lexical_cast<std::string>(tracker_req().uploaded);
 
 			url += "&downloaded=";
-			url += boost::lexical_cast<std::string>(req.downloaded);
+			url += boost::lexical_cast<std::string>(tracker_req().downloaded);
 
 			url += "&left=";
-			url += boost::lexical_cast<std::string>(req.left);
+			url += boost::lexical_cast<std::string>(tracker_req().left);
 
-			if (req.event != tracker_request::none)
+			if (tracker_req().event != tracker_request::none)
 			{
 				const char* event_string[] = {"completed", "started", "stopped"};
 				url += "&event=";
-				url += event_string[req.event - 1];
+				url += event_string[tracker_req().event - 1];
 			}
 
 			url += "&key=";
 			std::stringstream key_string;
-			key_string << std::hex << req.key;
+			key_string << std::hex << tracker_req().key;
 			url += key_string.str();
 
 			url += "&compact=1";
 
 			url += "&numwant=";
 			url += boost::lexical_cast<std::string>(
-				(std::min)(req.num_want, 999));
+				(std::min)(tracker_req().num_want, 999));
 
-			if (stn.announce_ip != address())
+			if (m_settings.announce_ip != address())
 			{
 				url += "&ip=";
-				url += stn.announce_ip.to_string();
+				url += m_settings.announce_ip.to_string();
 			}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			url += "&supportcrypto=1";
 #endif
 			url += "&ipv6=";
-			url += req.ipv6;
+			url += tracker_req().ipv6;
 
 			// extension that tells the tracker that
 			// we don't need any peer_id's in the response
 			url += "&no_peer_id=1";
 		}
 
-		m_tracker_connection.reset(new http_connection(ios, cc
+		m_tracker_connection.reset(new http_connection(m_ios, m_cc
 			, boost::bind(&http_tracker_connection::on_response, self(), _1, _2, _3, _4)));
 
-		int timeout = req.event==tracker_request::stopped
-			?stn.stop_tracker_timeout
-			:stn.tracker_completion_timeout;
+		int timeout = tracker_req().event==tracker_request::stopped
+			?m_settings.stop_tracker_timeout
+			:m_settings.tracker_completion_timeout;
 
 		m_tracker_connection->get(url, seconds(timeout)
-			, 1, &ps, 5, stn.user_agent, bind_infc);
+			, 1, &m_ps, 5, m_settings.user_agent, m_bind_iface);
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 
