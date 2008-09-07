@@ -1151,6 +1151,12 @@ int main(int ac, char* av[])
 					if (h.is_valid()) h.set_sequential_download(!h.is_sequential_download());
 				}
 
+				if (c == 'v')
+				{
+					torrent_handle h = get_active_torrent(handles);
+					if (h.is_valid()) h.scrape_tracker();
+				}
+
 				if (c == 'p')
 				{
 					torrent_handle h = get_active_torrent(handles);
@@ -1223,7 +1229,7 @@ int main(int ac, char* av[])
 			std::stringstream out;
 			out << "[q] quit [i] toggle peers [d] toggle downloading pieces [p] toggle paused "
 				"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
-				"[j] force recheck [space] toggle session pause [c] clear error\n"
+				"[j] force recheck [space] toggle session pause [c] clear error [v] scrape\n"
 				"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
 				"[5] toggle peer rate [6] toggle failures [7] toggle send buffers\n";
 
