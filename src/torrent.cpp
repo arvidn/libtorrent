@@ -754,13 +754,9 @@ namespace libtorrent
 
 		m_progress = j.piece / float(torrent_file().num_pieces());
 
-		m_picker->check_invariant();
-
 		TORRENT_ASSERT(m_picker);
 		if (j.offset >= 0 && !m_picker->have_piece(j.offset))
 			m_picker->we_have(j.offset);
-
-		m_picker->check_invariant();
 
 		// we're not done checking yet
 		// this handler will be called repeatedly until
