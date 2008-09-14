@@ -49,6 +49,13 @@ struct entry_to_python
         }
     }
 
+    static PyObject* convert(boost::shared_ptr<entry> const& e)
+    {
+        if (!e)
+            return incref(Py_None);
+        return convert(*e);
+    }
+
     static PyObject* convert(entry const& e)
     {
         return incref(convert0(e).ptr());
@@ -126,6 +133,7 @@ struct entry_from_python
 
 void bind_entry()
 {
+    to_python_converter<boost::shared_ptr<libtorrent::entry>, entry_to_python>();
     to_python_converter<entry, entry_to_python>();
     entry_from_python();
 }
