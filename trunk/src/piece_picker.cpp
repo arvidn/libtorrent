@@ -339,7 +339,7 @@ namespace libtorrent
 		if (num_pieces > 0)
 		{
 			for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin()
-				+ (index - 1); index > 0 && (i->have() || i->filtered()); --i, --index);
+				+ (index - 1); index > 0 && (i->have() || i->filtered()); i != m_piece_map.begin() ? --i : i, --index);
 			TORRENT_ASSERT(index == num_pieces
 				|| m_piece_map[index].have()
 				|| m_piece_map[index].filtered());
