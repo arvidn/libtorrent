@@ -115,7 +115,7 @@ namespace libtorrent
 			, max_outstanding_disk_bytes_per_connection(64 * 1024)
 			, handshake_timeout(10)
 #ifndef TORRENT_DISABLE_DHT
-			, use_dht_as_fallback(true)
+			, use_dht_as_fallback(false)
 #endif
 			, free_torrent_hashes(true)
 			, upnp_ignore_nonrouters(true)
