@@ -307,7 +307,9 @@ time_duration rpc_manager::tick()
 
 	if (m_next_transaction_id == m_oldest_transaction_id) return milliseconds(timeout_ms);
 
-	std::vector<observer_ptr > timeouts;
+	std::vector<observer_ptr> timeouts;
+
+	time_duration ret = milliseconds(timeout_ms);
 
 	for (;m_next_transaction_id != m_oldest_transaction_id;
 		m_oldest_transaction_id = (m_oldest_transaction_id + 1) % max_transactions)
@@ -321,8 +323,16 @@ time_duration rpc_manager::tick()
 		time_duration diff = o->sent + milliseconds(timeout_ms) - time_now();
 		if (diff > seconds(0))
 		{
-			if (diff < seconds(1)) return seconds(1);
-			return diff;
+			if (diff < seconds(1))
+			{
+				ret = seconds(1);
+				break;
+			}
+			else
+			{
+				ret = diff;
+				break;	
+			}
 		}
 		
 		try
@@ -343,7 +353,7 @@ time_duration rpc_manager::tick()
 	// generate new requests. We need to swap, since the
 	// destrutors may add more observers to the m_aborted_transactions
 	std::vector<observer_ptr>().swap(m_aborted_transactions);
-	return milliseconds(timeout_ms);
+	return ret;
 }
 
 unsigned int rpc_manager::new_transaction_id(observer_ptr o)
