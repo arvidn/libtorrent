@@ -105,9 +105,9 @@ namespace libtorrent
 		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin() + m_cursor
 			, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
 			++i, ++m_cursor);
-		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin()
-			+ m_reverse_cursor - 1; m_reverse_cursor > 0 && (i->have() || i->filtered());
-			--i, --m_reverse_cursor);
+		for (std::vector<piece_pos>::const_reverse_iterator i = m_piece_map.rend()
+			- m_reverse_cursor; m_reverse_cursor > 0 && (i->have() || i->filtered());
+			++i, --m_reverse_cursor);
 
 		// the piece index is stored in 20 bits, which limits the allowed
 		// number of pieces somewhat
@@ -338,8 +338,8 @@ namespace libtorrent
 		index = num_pieces;
 		if (num_pieces > 0)
 		{
-			for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin()
-				+ (index - 1); index > 0 && (i->have() || i->filtered()); i != m_piece_map.begin() ? --i : i, --index);
+			for (std::vector<piece_pos>::const_reverse_iterator i = m_piece_map.rend()
+				- index; index > 0 && (i->have() || i->filtered()); ++i, --index);
 			TORRENT_ASSERT(index == num_pieces
 				|| m_piece_map[index].have()
 				|| m_piece_map[index].filtered());
