@@ -38,7 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef _WIN32
 #include <malloc.h>
+#ifndef alloca
 #define alloca(s) _alloca(s)
+#endif
 #endif
 
 #ifdef TORRENT_DISK_STATS
