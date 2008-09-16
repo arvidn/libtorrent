@@ -69,6 +69,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 
+//#define TORRENT_PARTIAL_HASH_LOG
+
 #ifndef NDEBUG
 #include <ios>
 #include <iostream>
@@ -453,12 +455,14 @@ namespace libtorrent
 
 	sha1_hash storage::hash_for_slot(int slot, partial_hash& ph, int piece_size)
 	{
+		TORRENT_ASSERT(!error());
 #ifndef NDEBUG
 		hasher partial;
 		hasher whole;
 		int slot_size1 = piece_size;
 		m_scratch_buffer.resize(slot_size1);
-		read_impl(&m_scratch_buffer[0], slot, 0, slot_size1, true);
+		read_impl(&m_scratch_buffer[0], slot, 0, slot_size1, false);
+		if (error()) return sha1_hash(0);
 		if (ph.offset > 0)
 			partial.update(&m_scratch_buffer[0], ph.offset);
 		whole.update(&m_scratch_buffer[0], slot_size1);
@@ -469,7 +473,8 @@ namespace libtorrent
 		if (slot_size > 0)
 		{
 			m_scratch_buffer.resize(slot_size);
-			read_impl(&m_scratch_buffer[0], slot, ph.offset, slot_size, true);
+			read_impl(&m_scratch_buffer[0], slot, ph.offset, slot_size, false);
+			if (error()) return sha1_hash(0);
 			ph.h.update(&m_scratch_buffer[0], slot_size);
 		}
 #ifndef NDEBUG
@@ -1538,7 +1543,9 @@ namespace libtorrent
 		// only save the partial hash if the write succeeds
 		if (ret != size) return ret;
 
-//		std::ofstream out("partial_hash.log", std::ios::app);
+#ifdef TORRENT_PARTIAL_HASH_LOG
+		std::ofstream out("partial_hash.log", std::ios::app);
+#endif
 
 		if (offset == 0)
 		{
@@ -1546,7 +1553,7 @@ namespace libtorrent
 			TORRENT_ASSERT(ph.offset == 0);
 			ph.offset = size;
 			ph.h.update(buf, size);
-/*
+#ifdef TORRENT_PARTIAL_HASH_LOG
 			out << time_now_string() << " NEW ["
 				" s: " << this
 				<< " p: " << piece_index
@@ -1554,7 +1561,7 @@ namespace libtorrent
 				<< " size: " << size
 				<< " entries: " << m_piece_hasher.size()
 				<< " ]" << std::endl;
-*/
+#endif
 		}
 		else
 		{
@@ -1568,7 +1575,7 @@ namespace libtorrent
 #endif
 				if (offset == i->second.offset)
 				{
-/*
+#ifdef TORRENT_PARTIAL_HASH_LOG
 					out << time_now_string() << " UPDATING ["
 						" s: " << this
 						<< " p: " << piece_index
@@ -1576,11 +1583,12 @@ namespace libtorrent
 						<< " size: " << size
 						<< " entries: " << m_piece_hasher.size()
 						<< " ]" << std::endl;
-*/
+#endif
 					i->second.offset += size;
 					i->second.h.update(buf, size);
 				}
-/*				else
+#ifdef TORRENT_PARTIAL_HASH_LOG
+				else
 				{
 					out << time_now_string() << " SKIPPING (out of order) ["
 						" s: " << this
@@ -1590,8 +1598,10 @@ namespace libtorrent
 						<< " entries: " << m_piece_hasher.size()
 						<< " ]" << std::endl;
 				}
-*/			}
-/*			else
+#endif
+			}
+#ifdef TORRENT_PARTIAL_HASH_LOG
+			else
 			{
 				out << time_now_string() << " SKIPPING (no entry) ["
 					" s: " << this
@@ -1601,7 +1611,7 @@ namespace libtorrent
 					<< " entries: " << m_piece_hasher.size()
 					<< " ]" << std::endl;
 			}
-*/
+#endif
 		}
 		
 		return ret;
