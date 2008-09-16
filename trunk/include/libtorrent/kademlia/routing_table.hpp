@@ -104,9 +104,9 @@ namespace aux
 			, bucket_iterator_t end)
 			: m_bucket_iterator(begin)
 			, m_bucket_end(end)
-			, m_iterator(begin != end ? begin->first.begin() : bucket_t::const_iterator())
 		{
 			if (m_bucket_iterator == m_bucket_end) return;
+			m_iterator = begin->first.begin();
 			while (m_iterator == m_bucket_iterator->first.end())
 			{
 				if (++m_bucket_iterator == m_bucket_end)
@@ -119,14 +119,14 @@ namespace aux
 		{
 			return m_bucket_iterator == other.m_bucket_iterator
 				&& (m_bucket_iterator == m_bucket_end
-					|| m_iterator == other.m_iterator);
+					|| *m_iterator == other.m_iterator);
 		}
 
 		void increment()
 		{
 			TORRENT_ASSERT(m_bucket_iterator != m_bucket_end);
-			++m_iterator;
-			while (m_iterator == m_bucket_iterator->first.end())
+			++*m_iterator;
+			while (*m_iterator == m_bucket_iterator->first.end())
 			{
 				if (++m_bucket_iterator == m_bucket_end)
 					break;
@@ -137,12 +137,16 @@ namespace aux
 		node_entry const& dereference() const
 		{
 			TORRENT_ASSERT(m_bucket_iterator != m_bucket_end);
-			return *m_iterator;
+			return **m_iterator;
 		}
 
 		bucket_iterator_t m_bucket_iterator;
 		bucket_iterator_t m_bucket_end;
-		bucket_t::const_iterator m_iterator;
+		// when debug iterators are enabled, default constructed
+		// iterators are not allowed to be copied. In the case
+		// where the routing table is empty, m_iterator would be
+		// default constructed and not copyable.
+		boost::optional<bucket_t::const_iterator> m_iterator;
 	};
 
 } // namespace aux
