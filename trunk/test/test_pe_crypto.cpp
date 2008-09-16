@@ -118,11 +118,13 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 		print_alerts(ses2, "ses2");
 
 		if (tor2.is_seed()) break;
-		test_sleep(100);
+		test_sleep(1000);
 	}
 
 	TEST_CHECK(tor2.is_seed());
  	if (tor2.is_seed()) std::cerr << "done\n";
+	ses1.remove_torrent(tor1);
+	ses2.remove_torrent(tor2);
 
 	using boost::filesystem::remove_all;
 	remove_all("./tmp1_pe");
