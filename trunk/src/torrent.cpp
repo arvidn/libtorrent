@@ -1397,10 +1397,13 @@ namespace libtorrent
 		// since this piece just passed, we might have
 		// become uninterested in some peers where this
 		// was the last piece we were interested in
-		for (peer_iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end();)
 		{
 			peer_connection* p = *i;
+			// update_interest may disconnect the peer and
+			// invalidate the iterator
+			++i;
 			// if we're not interested already, no need to check
 			if (!p->is_interesting()) continue;
 			// if the peer doesn't have the piece we just got, it
@@ -1854,8 +1857,14 @@ namespace libtorrent
 	// updates the interested flag in peers
 	void torrent::update_peer_interest(bool was_finished)
 	{
-		for (peer_iterator i = begin(); i != end(); ++i)
+		for (peer_iterator i = begin(); i != end();)
+		{
+			peer_connection* p = *i;
+			// update_interest may disconnect the peer and
+			// invalidate the iterator
+			++i;
 			(*i)->update_interest();
+		}
 
 		// the torrent just became finished
 		if (is_finished() && !was_finished)
