@@ -1061,6 +1061,7 @@ namespace libtorrent
 							if (k->blocks[j] == 0) continue;
 							free_buffer(k->blocks[j]);
 							k->blocks[j] = 0;
+							--m_cache_stats.cache_size;
 						}
 					}
 					m_pieces.erase(i, m_pieces.end());
