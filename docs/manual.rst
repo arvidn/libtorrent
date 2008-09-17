@@ -18,6 +18,7 @@ the ``session``, it contains the main loop that serves all torrents.
 The basic usage is as follows:
 
 * construct a session
+* start extensions (see `add_extension()`_).
 * start DHT, LSD, UPnP, NAT-PMP etc (see `start_dht() stop_dht() set_dht_settings() dht_state()`_
   `start_lsd() stop_lsd()`_, `start_upnp() stop_upnp()`_ and `start_natpmp() stop_natpmp()`_)
 * parse .torrent-files and add them to the session (see `bdecode() bencode()`_ and `add_torrent()`_)
@@ -721,7 +722,8 @@ add_extension()
 This function adds an extension to this session. The argument is a function
 object that is called with a ``torrent*`` and which should return a
 ``boost::shared_ptr<torrent_plugin>``. To write custom plugins, see
-`libtorrent plugins`_. The main plugins implemented in libtorrent are:
+`libtorrent plugins`_. For the typical bittorrent client all of these
+extensions should be added. The main plugins implemented in libtorrent are:
 
 metadata extension
 	Allows peers to download the metadata (.torren files) from the swarm
@@ -4910,9 +4912,9 @@ There are three modes in which storage (files on disk) are allocated in libtorre
    only allocate storage for the downloaded pieces.
 
 2. The *compact allocation* mode, where only files are allocated for actual
-   pieces that have been downloaded. This is the default allocation mode in libtorrent.
+   pieces that have been downloaded.
 
-3. The *sparce allocation*, sparse files are used, and pieces are downloaded directly
+3. The *sparse allocation*, sparse files are used, and pieces are downloaded directly
    to where they belong. This is the recommended (and default) mode.
 
 The allocation mode is selected when a torrent is started. It is passed as an
@@ -4937,7 +4939,7 @@ as much space as has been downloaded.
 full allocation
 ---------------
 
-When a torrent is started in full allocation mode, the checker thread (see threads_)
+When a torrent is started in full allocation mode, the disk-io thread (see threads_)
 will make sure that the entire storage is allocated, and fill any gaps with zeros.
 This will be skipped if the filesystem supports sparse files or automatic zero filling.
 It will of course still check for existing pieces and fast resume data. The main
