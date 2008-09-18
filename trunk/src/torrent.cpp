@@ -1863,7 +1863,7 @@ namespace libtorrent
 			// update_interest may disconnect the peer and
 			// invalidate the iterator
 			++i;
-			(*i)->update_interest();
+			p->update_interest();
 		}
 
 		// the torrent just became finished
