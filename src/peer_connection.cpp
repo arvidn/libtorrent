@@ -337,6 +337,11 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
+		// if m_have_piece is 0, it means the connections
+		// have not been initialized yet. The interested
+		// flag will be updated once they are.
+		if (m_have_piece.size() == 0) return;
+
 		bool interested = false;
 		if (!t->is_finished())
 		{
