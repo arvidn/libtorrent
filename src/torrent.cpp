@@ -1838,6 +1838,8 @@ namespace libtorrent
 			size_type size = m_torrent_file->files().at(i).size;
 			if (size == 0) continue;
 			position += size;
+			if (m_file_priority[i] == 0) continue;
+
 			// mark all pieces of the file with this file's priority
 			// but only if the priority is higher than the pieces
 			// already set (to avoid problems with overlapping pieces)
