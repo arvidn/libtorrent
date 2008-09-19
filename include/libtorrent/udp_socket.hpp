@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <boost/function.hpp>
+#include <boost/thread/mutex.hpp>
 
 namespace libtorrent
 {
@@ -82,6 +83,9 @@ namespace libtorrent
 
 		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
+
+		typedef boost::mutex mutex_t;
+		mutable mutex_t m_mutex;
 
 		udp::socket m_ipv4_sock;
 		udp::socket m_ipv6_sock;
