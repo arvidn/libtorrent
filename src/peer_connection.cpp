@@ -341,6 +341,7 @@ namespace libtorrent
 		// have not been initialized yet. The interested
 		// flag will be updated once they are.
 		if (m_have_piece.size() == 0) return;
+		if (!t->ready_for_connections()) return;
 
 		bool interested = false;
 		if (!t->is_finished())
