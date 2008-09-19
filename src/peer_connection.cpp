@@ -519,6 +519,7 @@ namespace libtorrent
 #endif
 			// if this is a web seed. we don't have a peer_info struct
 			if (m_peer_info) m_peer_info->seed = true;
+			m_upload_only = true;
 
 			t->peer_has_all();
 			if (t->is_finished()) send_not_interested();

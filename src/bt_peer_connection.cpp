@@ -2635,6 +2635,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(!m_rc4_encrypted || m_RC4_handler.get());
 #endif
+		if (is_seed()) TORRENT_ASSERT(upload_only());
+
 		if (!in_handshake())
 		{
 			TORRENT_ASSERT(m_sent_handshake);
