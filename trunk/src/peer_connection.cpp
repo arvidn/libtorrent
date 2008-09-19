@@ -366,7 +366,7 @@ namespace libtorrent
 		// may throw an asio error if socket has disconnected
 		catch (std::exception&) {}
 
-		TORRENT_ASSERT(is_interesting() == interested);
+		TORRENT_ASSERT(in_handshake() || is_interesting() == interested);
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
