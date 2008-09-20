@@ -1314,7 +1314,11 @@ namespace libtorrent
 			{
 				address_v6::bytes_type bytes;
 				std::copy(myip.begin(), myip.end(), bytes.begin());
-				m_ses.set_external_address(address_v6(bytes));
+				address_v6 ipv6_address(bytes);
+				if (ipv6_address.is_v4_mapped())
+					m_ses.set_external_address(ipv6_address.to_v4());
+				else
+					m_ses.set_external_address(ipv6_address);
 			}
 		}
 
@@ -1567,7 +1571,7 @@ namespace libtorrent
 		if (t->is_finished()) handshake["upload_only"] = 1;
 
 		tcp::endpoint ep = m_ses.get_ipv6_interface();
-		if (ep != tcp::endpoint())
+		if (!is_any(ep.address()))
 		{
 			std::string ipv6_address;
 			std::back_insert_iterator<std::string> out(ipv6_address);
