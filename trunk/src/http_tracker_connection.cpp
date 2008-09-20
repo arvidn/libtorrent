@@ -236,7 +236,7 @@ namespace libtorrent
 		entry e;
 		e = bdecode(data, data + size);
 
-		if (e.type() != entry::undefined_t)
+		if (e.type() == entry::dictionary_t)
 		{
 			parse(parser.status_code(), e);
 		}
