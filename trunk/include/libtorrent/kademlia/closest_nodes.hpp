@@ -57,28 +57,18 @@ public:
 		void(std::vector<node_entry> const&)
 	> done_callback;
 
-	static void initiate(
-		node_id target
-		, int branch_factor
-		, int max_results
-		, routing_table& table
-		, rpc_manager& rpc
+	closest_nodes(
+		node_impl& node
+		, node_id target
 		, done_callback const& callback
 	);
+
+	virtual char const* name() const { return "closest nodes"; }
 
 private:
 	void done();
 	void invoke(node_id const& id, udp::endpoint addr);
 	
-	closest_nodes(
-		node_id target
-		, int branch_factor
-		, int max_results
-		, routing_table& table
-		, rpc_manager& rpc
-		, done_callback const& callback
-	);
-
 	done_callback m_done_callback;
 };
 

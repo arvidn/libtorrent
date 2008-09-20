@@ -37,21 +37,42 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+#ifndef TORRENT_DISABLE_DHT
+
+	struct dht_lookup
+	{
+		char const* type;
+		int outstanding_requests;
+		int timeouts;
+		int responses;
+		int branch_factor;
+	};
+
+#endif
+
 	struct TORRENT_EXPORT session_status
 	{
 		bool has_incoming_connections;
 
 		float upload_rate;
 		float download_rate;
-
-		float payload_upload_rate;
-		float payload_download_rate;
-
 		size_type total_download;
 		size_type total_upload;
 
+		float payload_upload_rate;
+		float payload_download_rate;
 		size_type total_payload_download;
 		size_type total_payload_upload;
+
+		float ip_overhead_upload_rate;
+		float ip_overhead_download_rate;
+		size_type total_ip_overhead_download;
+		size_type total_ip_overhead_upload;
+
+		float dht_upload_rate;
+		float dht_download_rate;
+		size_type total_dht_download;
+		size_type total_dht_upload;
 
 		size_type total_redundant_bytes;
 		size_type total_failed_bytes;
@@ -68,6 +89,7 @@ namespace libtorrent
 		int dht_node_cache;
 		int dht_torrents;
 		size_type dht_global_nodes;
+		std::vector<dht_lookup> active_requests;
 #endif
 	};
 

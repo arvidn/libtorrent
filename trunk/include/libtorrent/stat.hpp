@@ -122,6 +122,18 @@ namespace libtorrent
 				m_stat[i] += s.m_stat[i];
 		}
 
+		void received_dht_bytes(int bytes)
+		{
+			TORRENT_ASSERT(bytes >= 0);
+			m_stat[download_dht_protocol].add(bytes);
+		}
+
+		void sent_dht_bytes(int bytes)
+		{
+			TORRENT_ASSERT(bytes >= 0);
+			m_stat[upload_dht_protocol].add(bytes);
+		}
+
 		void received_bytes(int bytes_payload, int bytes_protocol)
 		{
 			TORRENT_ASSERT(bytes_payload >= 0);
@@ -162,6 +174,8 @@ namespace libtorrent
 
 		int upload_ip_overhead() const { return m_stat[upload_ip_protocol].counter(); }
 		int download_ip_overhead() const { return m_stat[download_ip_protocol].counter(); }
+		int upload_dht() const { return m_stat[upload_dht_protocol].counter(); }
+		int download_dht() const { return m_stat[download_dht_protocol].counter(); }
 
 		// should be called once every second
 		void second_tick(float tick_interval)
@@ -174,7 +188,8 @@ namespace libtorrent
 		{
 			return (m_stat[upload_payload].rate_sum()
 				+ m_stat[upload_protocol].rate_sum()
-				+ m_stat[upload_ip_protocol].rate_sum())
+				+ m_stat[upload_ip_protocol].rate_sum()
+				+ m_stat[upload_dht_protocol].rate_sum())
 				/ float(stat_channel::history);
 		}
 
@@ -182,13 +197,29 @@ namespace libtorrent
 		{
 			return (m_stat[download_payload].rate_sum()
 				+ m_stat[download_protocol].rate_sum()
-				+ m_stat[download_ip_protocol].rate_sum())
+				+ m_stat[download_ip_protocol].rate_sum()
+				+ m_stat[download_dht_protocol].rate_sum())
 				/ float(stat_channel::history);
+		}
+
+		size_type total_upload() const
+		{
+			return m_stat[upload_payload].total()
+				+ m_stat[upload_protocol].total()
+				+ m_stat[upload_ip_protocol].total()
+				+ m_stat[upload_dht_protocol].total();
+		}
+
+		size_type total_download() const
+		{
+			return m_stat[download_payload].total()
+				+ m_stat[download_protocol].total()
+				+ m_stat[download_ip_protocol].total()
+				+ m_stat[download_dht_protocol].total();
 		}
 
 		float upload_payload_rate() const
 		{ return m_stat[upload_payload].rate(); }
-
 		float download_payload_rate() const
 		{ return m_stat[download_payload].rate(); }
 
@@ -201,6 +232,11 @@ namespace libtorrent
 		{ return m_stat[upload_protocol].total(); }
 		size_type total_protocol_download() const
 		{ return m_stat[download_protocol].total(); }
+
+		size_type total_transfer(int channel) const
+		{ return m_stat[channel].total(); }
+		float transfer_rate(int channel) const
+		{ return m_stat[channel].rate(); }
 
 		// this is used to offset the statistics when a
 		// peer_connection is opened and have some previous
@@ -218,19 +254,21 @@ namespace libtorrent
 		size_type last_payload_uploaded() const
 		{ return m_stat[upload_payload].counter(); }
 
-	private:
-
 		// these are the channels we keep stats for
 		enum
 		{
 			upload_payload,
 			upload_protocol,
 			upload_ip_protocol,
+			upload_dht_protocol,
 			download_payload,
 			download_protocol,
 			download_ip_protocol,
+			download_dht_protocol,
 			num_channels
 		};
+
+	private:
 
 		stat_channel m_stat[num_channels];
 	};

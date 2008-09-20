@@ -55,6 +55,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/socket.hpp"
 
+namespace libtorrent { namespace aux { struct session_impl; } }
+
 namespace libtorrent { namespace dht
 {
 
@@ -71,7 +73,8 @@ namespace libtorrent { namespace dht
 	{
 		friend void intrusive_ptr_add_ref(dht_tracker const*);
 		friend void intrusive_ptr_release(dht_tracker const*);
-		dht_tracker(udp_socket& sock, dht_settings const& settings);
+		dht_tracker(libtorrent::aux::session_impl& ses, udp_socket& sock
+			, dht_settings const& settings);
 
 		void start(entry const& bootstrap);
 		void stop();
@@ -110,6 +113,7 @@ namespace libtorrent { namespace dht
 		void send_packet(msg const& m);
 
 		node_impl m_dht;
+		libtorrent::aux::session_impl& m_ses;
 		udp_socket& m_sock;
 
 		std::vector<char> m_send_buf;

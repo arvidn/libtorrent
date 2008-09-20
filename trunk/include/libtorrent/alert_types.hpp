@@ -1122,6 +1122,54 @@ namespace libtorrent
 			return "blocked peer: " + ip.to_string(ec);
 		}
 	};
+
+	struct TORRENT_EXPORT dht_announce_alert: alert
+	{
+		dht_announce_alert(address const& ip_, int port_
+			, sha1_hash const& info_hash_)
+			: ip(ip_)
+			, port(port_)
+			, info_hash(info_hash_)
+		{}
+		
+		address ip;
+		int port;
+		sha1_hash info_hash;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new dht_announce_alert(*this)); }
+		virtual char const* what() const { return "incoming dht announce"; }
+		const static int static_category = alert::dht_notification;
+		virtual int category() const { return static_category; }
+		virtual std::string message() const
+		{
+			error_code ec;
+			return "incoming dht annonce: " + ip.to_string(ec) + ":"
+				+ boost::lexical_cast<std::string>(port) + " ("
+				+ boost::lexical_cast<std::string>(info_hash) + ")";
+		}
+	};
+
+	struct TORRENT_EXPORT dht_get_peers_alert: alert
+	{
+		dht_get_peers_alert(sha1_hash const& info_hash_)
+			: info_hash(info_hash_)
+		{}
+		
+		sha1_hash info_hash;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new dht_get_peers_alert(*this)); }
+		virtual char const* what() const { return "incoming dht get_peers request"; }
+		const static int static_category = alert::dht_notification;
+		virtual int category() const { return static_category; }
+		virtual std::string message() const
+		{
+			error_code ec;
+			return "incoming dht get_peers: "
+				+ boost::lexical_cast<std::string>(info_hash);
+		}
+	};
 }
 
 

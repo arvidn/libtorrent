@@ -57,35 +57,16 @@ class refresh : public traversal_algorithm
 public:
 	typedef boost::function<void()> done_callback;
 
-	template<class InIt>
-	static void initiate(
-		node_id target
-		,	int branch_factor
-		, int max_active_pings
-		, int max_results
-		, routing_table& table
-		, InIt first
-		, InIt last
-		, rpc_manager& rpc
-		, done_callback const& callback
-	);
-
 	void ping_reply(node_id id);
 	void ping_timeout(node_id id, bool prevent_request = false);
 
-private:
 	template<class InIt>
-	refresh(
-		node_id target
-		,	int branch_factor
-		, int max_active_pings
-		, int max_results
-		, routing_table& table
-		, InIt first
-		, InIt last
-		, rpc_manager& rpc
-		, done_callback const& callback
-	);
+	refresh(node_impl& node, node_id target, InIt first, InIt last
+		, done_callback const& callback);
+
+	virtual char const* name() const { return "refresh"; }
+
+private:
 
 	void done();
 	void invoke(node_id const& id, udp::endpoint addr);
@@ -155,57 +136,18 @@ private:
 
 template<class InIt>
 inline refresh::refresh(
-	node_id target
-	, int branch_factor
-	, int max_active_pings
-	, int max_results
-	, routing_table& table
+	node_impl& node
+	, node_id target
 	, InIt first
 	, InIt last
-	, rpc_manager& rpc
-	, done_callback const& callback
-)
-	: traversal_algorithm(
-		target
-		, branch_factor
-		, max_results
-		, table
-		, rpc
-		, first
-		, last
-	)
-	, m_max_active_pings(max_active_pings)
+	, done_callback const& callback)
+	: traversal_algorithm(node, target, first, last)
+	, m_max_active_pings(10)
 	, m_active_pings(0)
 	, m_done_callback(callback)
 {
 	boost::intrusive_ptr<refresh> self(this);
 	add_requests();
-}
-
-template<class InIt>
-inline void refresh::initiate(
-	node_id target
-	, int branch_factor
-	, int max_active_pings
-	, int max_results
-	, routing_table& table
-	, InIt first
-	, InIt last
-	, rpc_manager& rpc
-	, done_callback const& callback
-)
-{
-	new refresh(
-		target
-		, branch_factor
-		, max_active_pings
-		, max_results
-		, table
-		, first
-		, last
-		, rpc
-		, callback
-	);
 }
 
 } } // namespace libtorrent::dht

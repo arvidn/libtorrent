@@ -655,7 +655,8 @@ namespace libtorrent
 		{
 			// either the fastresume data was rejected or there are
 			// some files
-			m_ses.check_torrent(shared_from_this());
+			if (!is_torrent_paused() || is_auto_managed())
+				m_ses.check_torrent(shared_from_this());
 		}
 
 		std::vector<char>().swap(m_resume_data);
@@ -712,7 +713,8 @@ namespace libtorrent
 			pause();
 			return;
 		}
-		m_ses.check_torrent(shared_from_this());
+		if (!is_torrent_paused() || is_auto_managed())
+			m_ses.check_torrent(shared_from_this());
 	}
 
 	void torrent::start_checking()
@@ -3726,10 +3728,18 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_auto_managed == a) return;
+		bool checking_files = should_check_files();
 		m_auto_managed = a;
 		// recalculate which torrents should be
 		// paused
 		m_ses.m_auto_manage_time_scaler = 0;
+
+		if (!checking_files && should_check_files())
+			m_ses.check_torrent(shared_from_this());
+		else if (checking_files && !should_check_files())
+		{
+			// TODO: pause checking
+		}
 	}
 
 	// the higher seed rank, the more important to seed
@@ -3822,6 +3832,12 @@ namespace libtorrent
 		}
 	}
 	
+	bool torrent::should_check_files() const
+	{
+		return m_state == torrent_status::checking_files
+			&& (!is_paused() || m_auto_managed);
+	}
+
 	bool torrent::is_paused() const
 	{
 		return m_paused || m_ses.is_paused();
@@ -3832,9 +3848,14 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_paused) return;
+		bool checking_files = should_check_files();
 		m_paused = true;
 		if (m_ses.is_paused()) return;
 		do_pause();
+		if (checking_files && !should_check_files())
+		{
+			// TODO: pause checking
+		}
 	}
 
 	void torrent::do_pause()
@@ -3887,8 +3908,11 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (!m_paused) return;
+		bool checking_files = should_check_files();
 		m_paused = false;
 		do_resume();
+		if (!checking_files && should_check_files())
+			m_ses.check_torrent(shared_from_this());
 	}
 
 	void torrent::do_resume()

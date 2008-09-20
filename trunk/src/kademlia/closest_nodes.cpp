@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/closest_nodes.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
+#include <libtorrent/kademlia/node.hpp>
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent { namespace dht
@@ -72,24 +73,11 @@ void closest_nodes_observer::timeout()
 	m_algorithm = 0;
 }
 
-
 closest_nodes::closest_nodes(
-	node_id target
-	, int branch_factor
-	, int max_results
-	, routing_table& table
-	, rpc_manager& rpc
-	, done_callback const& callback
-)
-	: traversal_algorithm(
-		target
-		, branch_factor
-		, max_results
-		, table
-		, rpc
-		, table.begin()
-		, table.end()
-	)
+	node_impl& node
+	, node_id target
+	, done_callback const& callback)
+	: traversal_algorithm(node, target, node.m_table.begin(), node.m_table.end())
 	, m_done_callback(callback)
 {
 	boost::intrusive_ptr<closest_nodes> self(this);
@@ -98,18 +86,18 @@ closest_nodes::closest_nodes(
 
 void closest_nodes::invoke(node_id const& id, udp::endpoint addr)
 {
-	TORRENT_ASSERT(m_rpc.allocation_size() >= sizeof(closest_nodes_observer));
-	observer_ptr o(new (m_rpc.allocator().malloc()) closest_nodes_observer(this, id, m_target));
+	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(closest_nodes_observer));
+	observer_ptr o(new (m_node.m_rpc.allocator().malloc()) closest_nodes_observer(this, id, m_target));
 #ifndef NDEBUG
 	o->m_in_constructor = false;
 #endif
-	m_rpc.invoke(messages::find_node, addr, o);
+	m_node.m_rpc.invoke(messages::find_node, addr, o);
 }
 
 void closest_nodes::done()
 {
 	std::vector<node_entry> results;
-	int num_results = m_max_results;
+	int num_results = m_node.m_table.bucket_size();
 	for (std::vector<result>::iterator i = m_results.begin()
 		, end(m_results.end()); i != end && num_results > 0; ++i)
 	{
@@ -119,18 +107,6 @@ void closest_nodes::done()
 		--num_results;
 	}
 	m_done_callback(results);
-}
-
-void closest_nodes::initiate(
-	node_id target
-	, int branch_factor
-	, int max_results
-	, routing_table& table
-	, rpc_manager& rpc
-	, done_callback const& callback
-)
-{
-	new closest_nodes(target, branch_factor, max_results, table, rpc, callback);
 }
 
 } } // namespace libtorrent::dht

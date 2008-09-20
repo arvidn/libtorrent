@@ -230,6 +230,8 @@ namespace libtorrent
 		bool is_auto_managed() const { return m_auto_managed; }
 		void auto_managed(bool a);
 
+		bool should_check_files() const;
+
 		void delete_files();
 
 		// ============ start deprecation =============

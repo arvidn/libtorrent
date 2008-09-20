@@ -1,3 +1,8 @@
+	* added monitoring of the DHT lookups
+	* added bandwidth reports for estimated TCP/IP overhead and DHT
+	* includes DHT traffic in the rate limiter
+
+release 0.14
 
 	* Removed 'connecting_to_tracker' torrent state
 	* Fix bug where FAST pieces were cancelled on choke

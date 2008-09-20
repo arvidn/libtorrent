@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/logging.hpp>
+#include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/msg.hpp>
 
 #include <libtorrent/io.hpp>
@@ -101,20 +102,21 @@ void ping_observer::timeout()
 
 void refresh::invoke(node_id const& nid, udp::endpoint addr)
 {
-	TORRENT_ASSERT(m_rpc.allocation_size() >= sizeof(refresh_observer));
-	observer_ptr o(new (m_rpc.allocator().malloc()) refresh_observer(
+	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(refresh_observer));
+	observer_ptr o(new (m_node.m_rpc.allocator().malloc()) refresh_observer(
 		this, nid, m_target));
 #ifndef NDEBUG
 	o->m_in_constructor = false;
 #endif
 
-	m_rpc.invoke(messages::find_node, addr, o);
+	m_node.m_rpc.invoke(messages::find_node, addr, o);
 }
 
 void refresh::done()
 {
-	m_leftover_nodes_iterator = (int)m_results.size() > m_max_results ?
-		m_results.begin() + m_max_results : m_results.end();
+	int max_results = m_node.m_table.bucket_size();
+	m_leftover_nodes_iterator = (int)m_results.size() > max_results ?
+		m_results.begin() + max_results : m_results.end();
 
 	invoke_pings_or_finish();
 }
@@ -156,13 +158,13 @@ void refresh::invoke_pings_or_finish(bool prevent_request)
 
 			try
 			{
-				TORRENT_ASSERT(m_rpc.allocation_size() >= sizeof(ping_observer));
-				observer_ptr o(new (m_rpc.allocator().malloc()) ping_observer(
+				TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(ping_observer));
+				observer_ptr o(new (m_node.m_rpc.allocator().malloc()) ping_observer(
 					this, node.id));
 #ifndef NDEBUG
 				o->m_in_constructor = false;
 #endif
-				m_rpc.invoke(messages::ping, node.addr, o);
+				m_node.m_rpc.invoke(messages::ping, node.addr, o);
 				++m_active_pings;
 				++m_leftover_nodes_iterator;
 			}
