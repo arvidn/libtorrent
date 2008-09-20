@@ -770,8 +770,7 @@ namespace libtorrent
 				seed = true;
 				for (int i = 0; i < slots->list_size(); ++i)
 				{
-					lazy_entry const* e = slots->list_at(i);
-					if (e->list_int_value_at(i, -1) >= 0) continue;
+					if (slots->list_int_value_at(i, -1) >= 0) continue;
 					seed = false;
 					break;
 				}
