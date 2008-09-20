@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/traversal_algorithm.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 
+#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/io.hpp"
@@ -127,8 +128,10 @@ namespace libtorrent { namespace dht
 
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
-	dht_tracker::dht_tracker(udp_socket& sock, dht_settings const& settings)
-		: m_dht(bind(&dht_tracker::send_packet, this, _1), settings)
+	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses, udp_socket& sock
+		, dht_settings const& settings)
+		: m_dht(ses, bind(&dht_tracker::send_packet, this, _1), settings)
+		, m_ses(ses)
 		, m_sock(sock)
 		, m_last_new_key(time_now() - minutes(key_refresh))
 		, m_timer(sock.get_io_service())
@@ -217,6 +220,7 @@ namespace libtorrent { namespace dht
 		boost::tie(s.dht_nodes, s.dht_node_cache) = m_dht.size();
 		s.dht_torrents = m_dht.data_size();
 		s.dht_global_nodes = m_dht.num_global_nodes();
+		m_dht.status(s);
 	}
 
 	void dht_tracker::connection_timeout(error_code const& e)
@@ -377,6 +381,11 @@ namespace libtorrent { namespace dht
 	void dht_tracker::on_receive(udp::endpoint const& ep, char const* buf, int bytes_transferred)
 		try
 	{
+		{
+			libtorrent::aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+			m_ses.m_stat.received_dht_bytes(bytes_transferred);
+		}
+
 		node_ban_entry* match = 0;
 		node_ban_entry* min = m_ban_nodes;
 		ptime now = time_now();
@@ -956,6 +965,11 @@ namespace libtorrent { namespace dht
 		bencode(std::back_inserter(m_send_buf), e);
 		error_code ec;
 		m_sock.send(m.addr, &m_send_buf[0], (int)m_send_buf.size(), ec);
+
+		{
+			libtorrent::aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+			m_ses.m_stat.sent_dht_bytes(m_send_buf.size());
+		}
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		m_total_out_bytes += m_send_buf.size();

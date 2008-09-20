@@ -53,12 +53,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 
+namespace libtorrent {
+	
+	namespace aux { struct session_impl; }
+	struct session_status;
+
+}
+
 namespace libtorrent { namespace dht
 {
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DECLARE_LOG(node);
 #endif
+
+struct traversal_algorithm;
 
 // this is the entry for every peer
 // the timestamp is there to make it possible
@@ -154,13 +163,11 @@ private:
 	boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> m_fun;
 };
 
-
-
 class node_impl : boost::noncopyable
 {
 typedef std::map<node_id, torrent_entry> table_t;
 public:
-	node_impl(boost::function<void(msg const&)> const& f
+	node_impl(libtorrent::aux::session_impl& ses, boost::function<void(msg const&)> const& f
 		, dht_settings const& settings);
 
 	virtual ~node_impl() {}
@@ -225,6 +232,16 @@ public:
 	void replacement_cache(bucket_t& nodes) const
 	{ m_table.replacement_cache(nodes); }
 
+	int branch_factor() const { return m_settings.search_branching; }
+
+	void add_traversal_algorithm(traversal_algorithm* a)
+	{ m_running_requests.insert(a); }
+
+	void remove_traversal_algorithm(traversal_algorithm* a)
+	{ m_running_requests.erase(a); }
+
+	void status(libtorrent::session_status& s);
+
 protected:
 	// is called when a find data request is received. Should
 	// return false if the data is not stored on this node. If
@@ -243,17 +260,27 @@ protected:
 	int m_max_peers_reply;
 
 private:
+	// this list must be destructed after the rpc manager
+	// since it might have references to it
+	std::set<traversal_algorithm*> m_running_requests;
+
 	void incoming_request(msg const& h);
 
 	node_id m_id;
+
+public:
 	routing_table m_table;
 	rpc_manager m_rpc;
+
+private:
 	table_t m_map;
 	
 	ptime m_last_tracker_tick;
 
 	// secret random numbers used to create write tokens
 	int m_secret[2];
+
+	libtorrent::aux::session_impl& m_ses;
 };
 
 

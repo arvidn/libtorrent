@@ -51,6 +51,7 @@ namespace libtorrent { namespace dht
 typedef std::vector<char> packet_t;
 
 class rpc_manager;
+class node_impl;
 
 // -------- find data -----------
 
@@ -59,29 +60,17 @@ class find_data : public traversal_algorithm
 public:
 	typedef boost::function<void(msg const*)> done_callback;
 
-	static void initiate(
-		node_id target
-		, int branch_factor
-		, int max_results
-		, routing_table& table
-		, rpc_manager& rpc
-		, done_callback const& callback
-	);
-
 	void got_data(msg const* m);
 
+	find_data(node_impl& node, node_id target
+		, done_callback const& callback);
+
+	virtual char const* name() const { return "get_peers"; }
+
 private:
+
 	void done();
 	void invoke(node_id const& id, udp::endpoint addr);
-
-	find_data(
-		node_id target
-		, int branch_factor
-		, int max_results
-		, routing_table& table
-		, rpc_manager& rpc
-		, done_callback const& callback
-	);
 
 	done_callback m_done_callback;
 	boost::shared_ptr<packet_t> m_packet;

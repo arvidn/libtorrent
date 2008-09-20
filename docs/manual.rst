@@ -491,24 +491,41 @@ status()
 ``status()`` returns session wide-statistics and status. The ``session_status``
 struct has the following members::
 
+	struct dht_lookup
+	{
+		char const* type;
+		int outstanding_requests;
+		int timeouts;
+		int responses;
+		int branch_factor;
+	};
+
 	struct session_status
 	{
 		bool has_incoming_connections;
 
 		float upload_rate;
 		float download_rate;
-
-		float payload_upload_rate;
-		float payload_download_rate;
-
 		size_type total_download;
 		size_type total_upload;
 
-		size_type total_redundant_bytes;
-		size_type total_failed_bytes;
-
+		float payload_upload_rate;
+		float payload_download_rate;
 		size_type total_payload_download;
 		size_type total_payload_upload;
+
+		float ip_overhead_upload_rate;
+		float ip_overhead_download_rate;
+		size_type total_ip_overhead_download;
+		size_type total_ip_overhead_upload;
+
+		float dht_upload_rate;
+		float dht_download_rate;
+		size_type total_dht_download;
+		size_type total_dht_upload;
+
+		size_type total_redundant_bytes;
+		size_type total_failed_bytes;
 
 		int num_peers;
 		int num_unchoked;
@@ -518,19 +535,32 @@ struct has the following members::
 		int dht_cache_nodes;
 		int dht_torrents;
 		int dht_global_nodes;
+		std::vector<dht_lookup> active_requests;
 	};
 
 ``has_incoming_connections`` is false as long as no incoming connections have been
 established on the listening socket. Every time you change the listen port, this will
 be reset to false.
 
-``upload_rate``, ``download_rate``, ``payload_download_rate`` and ``payload_upload_rate``
-are the total download and upload rates accumulated from all torrents. The payload
-versions is the payload download only.
+``upload_rate``, ``download_rate`` are the total download and upload rates accumulated
+from all torrents. This includes bittorrent protocol, DHT and an estimated TCP/IP
+protocol overhead.
 
 ``total_download`` and ``total_upload`` are the total number of bytes downloaded and
-uploaded to and from all torrents. ``total_payload_download`` and ``total_payload_upload``
-are the same thing but where only the payload is considered.
+uploaded to and from all torrents. This also includes all the protocol overhead.
+
+``payload_download_rate`` and ``payload_upload_rate`` is the rate of the payload
+down- and upload only.
+
+``total_payload_download`` and ``total_payload_upload`` is the total transfers of payload
+only. The payload does not include the bittorrent protocol overhead, but only parts of the
+actual files to be downloaded.
+
+``ip_overhead_upload_rate``, ``ip_overhead_download_rate``, ``total_ip_overhead_download``
+and ``total_ip_overhead_upload`` is the estimated TCP/IP overhead in each direction.
+
+``dht_upload_rate``, ``dht_download_rate``, ``total_dht_download`` and ``total_dht_upload``
+is the DHT bandwidth usage.
 
 ``total_redundant_bytes`` is the number of bytes that has been received more than once.
 This can happen if a request from a peer times out and is requested from a different
@@ -561,6 +591,9 @@ becomes unresponsive.
 
 ``dht_global_nodes`` is an estimation of the total number of nodes in the DHT
 network.
+
+``active_requests`` is a vector of the currently running DHT lookups.
+
 
 get_cache_status()
 ------------------
@@ -3848,6 +3881,7 @@ is its synopsis:
 			progress_notification = *implementation defined*,
 			ip_block_notification = *implementation defined*,
 			performance_warning = *implementation defined*,
+			dht_notification = *implementation defined*,
 
 			all_categories = *implementation defined*
 		};
@@ -4362,6 +4396,36 @@ generating the resume data. ``msg`` describes what went wrong.
 	{
 		// ...
 		std::string msg;
+	};
+
+dht_announce_alert
+------------------
+
+This alert is generated when a DHT node announces to an info-hash on our DHT node. It belongs
+to the ``dht_notification`` category.
+
+::
+
+	struct dht_announce_alert: alert
+	{
+		// ...
+		address ip;
+		int port;
+		sha1_hash info_hash;
+	};
+
+dht_get_peers_alert
+-------------------
+
+This alert is generated when a DHT node sends a ``get_peers`` message to our DHT node.
+It belongs to the ``dht_notification`` category.
+
+::
+
+	struct dht_get_peers_alert: alert
+	{
+		// ...
+		sha1_hash info_hash;
 	};
 
 dispatcher

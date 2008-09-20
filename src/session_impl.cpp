@@ -1084,8 +1084,8 @@ namespace aux {
 		}
 
 		// drain the IP overhead from the bandwidth limiters
-		m_download_channel.drain(m_stat.download_ip_overhead());
-		m_upload_channel.drain(m_stat.upload_ip_overhead());
+		m_download_channel.drain(m_stat.download_ip_overhead() + m_stat.download_dht());
+		m_upload_channel.drain(m_stat.upload_ip_overhead() + m_stat.upload_dht());
 
 		m_stat.second_tick(tick_interval);
 
@@ -1773,7 +1773,11 @@ namespace aux {
 	void session_impl::check_torrent(boost::shared_ptr<torrent> const& t)
 	{
 		if (m_abort) return;
+		TORRENT_ASSERT(!t->is_paused() || t->is_auto_managed());
+		TORRENT_ASSERT(t->state() == torrent_status::checking_files);
 		if (m_queued_for_checking.empty()) t->start_checking();
+		TORRENT_ASSERT(std::find(m_queued_for_checking.begin()
+			, m_queued_for_checking.end(), t) == m_queued_for_checking.end());
 		m_queued_for_checking.push_back(t);
 	}
 
@@ -1978,20 +1982,29 @@ namespace aux {
 
 		s.has_incoming_connections = m_incoming_connection;
 
+		// total
 		s.download_rate = m_stat.download_rate();
+		s.total_upload = m_stat.total_upload();
 		s.upload_rate = m_stat.upload_rate();
+		s.total_download = m_stat.total_download();
 
-		s.payload_download_rate = m_stat.download_payload_rate();
-		s.payload_upload_rate = m_stat.upload_payload_rate();
+		// payload
+		s.payload_download_rate = m_stat.transfer_rate(stat::download_payload);
+		s.total_payload_download = m_stat.total_transfer(stat::download_payload);
+		s.payload_upload_rate = m_stat.transfer_rate(stat::upload_payload);
+		s.total_payload_upload = m_stat.total_transfer(stat::upload_payload);
 
-		s.total_download = m_stat.total_protocol_download()
-			+ m_stat.total_payload_download();
+		// IP-overhead
+		s.ip_overhead_download_rate = m_stat.transfer_rate(stat::download_ip_protocol);
+		s.total_ip_overhead_download = m_stat.total_transfer(stat::download_ip_protocol);
+		s.ip_overhead_upload_rate = m_stat.transfer_rate(stat::upload_ip_protocol);
+		s.total_ip_overhead_upload = m_stat.total_transfer(stat::upload_ip_protocol);
 
-		s.total_upload = m_stat.total_protocol_upload()
-			+ m_stat.total_payload_upload();
-
-		s.total_payload_download = m_stat.total_payload_download();
-		s.total_payload_upload = m_stat.total_payload_upload();
+		// DHT protocol
+		s.dht_download_rate = m_stat.transfer_rate(stat::download_dht_protocol);
+		s.total_dht_download = m_stat.total_transfer(stat::download_dht_protocol);
+		s.dht_upload_rate = m_stat.transfer_rate(stat::upload_dht_protocol);
+		s.total_dht_upload = m_stat.total_transfer(stat::upload_dht_protocol);
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
@@ -2050,7 +2063,7 @@ namespace aux {
 				, m_dht_settings.service_port
 				, m_dht_settings.service_port);
 		}
-		m_dht = new dht::dht_tracker(m_dht_socket, m_dht_settings);
+		m_dht = new dht::dht_tracker(*this, m_dht_socket, m_dht_settings);
 		if (!m_dht_socket.is_open() || m_dht_socket.local_port() != m_dht_settings.service_port)
 		{
 			m_dht_socket.bind(m_dht_settings.service_port);
