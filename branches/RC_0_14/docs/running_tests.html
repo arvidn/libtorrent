@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>libtorrent manual</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="libtorrent-manual">
+<h1 class="title">libtorrent manual</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#running-and-building-tests" id="id3">running and building tests</a></li>
+<li><a class="reference internal" href="#id1" id="id4">lighty</a></li>
+<li><a class="reference internal" href="#delegate" id="id5">delegate</a></li>
+<li><a class="reference internal" href="#openssl" id="id6">OpenSSL</a></li>
+</ul>
+</div>
+<div class="section" id="running-and-building-tests">
+<h1>running and building tests</h1>
+<p>Some of the tests of libtorrent are not self contained. For instance, in
+order to test the <tt class="docutils literal"><span class="pre">http_connection</span></tt> class in libtorrent, the test requires
+<a class="reference external" href="http://www.lighttpd.net">lighty</a>. This document outlines the requirements of the tests as well as
+describes how to set up your environment to be able to run them.</p>
+</div>
+<div class="section" id="id1">
+<h1>lighty</h1>
+<p>Download <a class="reference external" href="http://www.lighttpd.net">lighty</a>. I've tested with <tt class="docutils literal"><span class="pre">lighttpd-1.4.19</span></tt>. If libtorrent is built
+with SSL support (which it is by default), lighty needs SSL support as well.</p>
+<p>To build lighty with SSL support do:</p>
+<pre class="literal-block">
+./configure --with-openssl
+</pre>
+<p>Followed by:</p>
+<pre class="literal-block">
+sudo make install
+</pre>
+<p>Make sure you have SSL support in lighty by running:</p>
+<pre class="literal-block">
+lighttpd -V
+</pre>
+<p>Which gives you a list of all enabled features.</p>
+</div>
+<div class="section" id="delegate">
+<h1>delegate</h1>
+<p><a class="reference external" href="http://www.delegate.org">Delegate</a> can act as many different proxies, which makes it a convenient
+tool to use to test libtorrent's support for SOCKS4, SOCKS5, HTTPS and
+HTTP proxies.</p>
+<p>You can download prebuilt binaries for the most common platforms on
+<a class="reference external" href="http://www.delegate.org/delegate/download/">deletate's download page</a>. Make sure to name the executable <tt class="docutils literal"><span class="pre">delegated</span></tt>
+and put it in a place where a shell can pick it up, in its <tt class="docutils literal"><span class="pre">PATH</span></tt>. For
+instance <tt class="docutils literal"><span class="pre">/bin</span></tt>.</p>
+</div>
+<div class="section" id="openssl">
+<h1>OpenSSL</h1>
+<p>In order to create an SSL certificate for <a class="reference external" href="http://www.lighttpd.net">lighty</a>, openssl is used. More
+specifically, the following command is issued by the test to create the
+certificate file:</p>
+<pre class="literal-block">
+echo -e &quot;AU\ntest province\ntest city\ntest company\ntest department\n\
+        tester\ntest&#64;test.com&quot; | openssl req -new -x509 -keyout server.pem \
+        -out server.pem -days 365 -nodes
+</pre>
+<p>This will write <tt class="docutils literal"><span class="pre">server.pem</span></tt> which is referenced in the lighty
+confiuration file.</p>
+<p>OpenSSL comes installed with most Linux and BSD distros, including Mac OS X.
+You can download it from <a class="reference external" href="http://www.openssl.org/">the openssl homepage</a>.</p>
+</div>
+</div>
+</body>
+</html>
