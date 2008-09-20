@@ -79,6 +79,8 @@ namespace libtorrent
 	{
 		if (addr.is_v4())
 			return addr.to_v4() == address_v4::any();
+		else if (addr.to_v6().is_v4_mapped())
+			return (addr.to_v6().to_v4() == address_v4::any());
 		else
 			return addr.to_v6() == address_v6::any();
 	}
