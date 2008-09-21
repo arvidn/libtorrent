@@ -213,7 +213,7 @@ namespace libtorrent
 		tracker_manager(session_settings const& s, proxy_settings const& ps)
 			: m_settings(s)
 			, m_proxy(ps)
-	  		, m_abort(false) {}
+			, m_abort(false) {}
 
 		void queue_request(
 			io_service& ios
