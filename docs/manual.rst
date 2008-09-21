@@ -74,12 +74,14 @@ The ``session`` class has the following synopsis::
 
 		session(fingerprint const& print
 			= libtorrent::fingerprint(
-			"LT", 0, 1, 0, 0));
+			"LT", 0, 1, 0, 0)
+			, int flags = start_default_features | add_default_plugins);
 
 		session(
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range
-			, char const* listen_interface = 0);
+			, char const* listen_interface = 0
+			, int flags = start_default_features | add_default_plugins);
 
 		torrent_handle add_torrent(add_torrent_params const& params);
 
@@ -93,6 +95,12 @@ The ``session`` class has the following synopsis::
 		{
 			none = 0,
 			delete_files = 1
+		};
+
+		enum session_flags_t
+		{
+			add_default_plugins = 1,
+			start_default_features = 2
 		};
 
 		void remove_torrent(torrent_handle const& h, int options = none);
@@ -176,10 +184,13 @@ session()
 	::
 
 		session(fingerprint const& print
-			= libtorrent::fingerprint("LT", 0, 1, 0, 0));
+			= libtorrent::fingerprint("LT", 0, 1, 0, 0)
+			, int flags = start_default_features | add_default_plugins);
+
 		session(fingerprint const& print
 			, std::pair<int, int> listen_port_range
-			, char const* listen_interface = 0);
+			, char const* listen_interface = 0
+			, int flags = start_default_features | add_default_plugins);
 
 If the fingerprint in the first overload is omited, the client will get a default
 fingerprint stating the version of libtorrent. The fingerprint is a short string that will be
@@ -189,6 +200,10 @@ listen port for the session, to get it running you'll have to call ``session::li
 The other constructor, that takes a port range and an interface as well as the fingerprint
 will automatically try to listen on a port on the given interface. For more information about
 the parameters, see ``listen_on()`` function.
+
+The flags paramater can be used to start default features (upnp & nat-pmp) and default plugins
+(ut_metadata, ut_pex and smart_ban). The default is to start those things. If you do not want
+them to start, pass 0 as the flags parameter.
 
 ~session()
 ----------
