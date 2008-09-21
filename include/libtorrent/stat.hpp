@@ -253,6 +253,10 @@ namespace libtorrent
 		{ return m_stat[download_payload].counter(); }
 		size_type last_payload_uploaded() const
 		{ return m_stat[upload_payload].counter(); }
+		size_type last_protocol_downloaded() const
+		{ return m_stat[download_protocol].counter(); }
+		size_type last_protocol_uploaded() const
+		{ return m_stat[upload_protocol].counter(); }
 
 		// these are the channels we keep stats for
 		enum

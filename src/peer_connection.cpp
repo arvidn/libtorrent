@@ -3498,7 +3498,18 @@ namespace libtorrent
 			TORRENT_ASSERT(m_recv_pos <= int(m_recv_buffer.size()
 				+ m_disk_recv_buffer_size));
 
+#ifndef NDEBUG
+			size_type cur_payload_dl = m_statistics.last_payload_downloaded();
+			size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
+#endif
 			on_receive(error, bytes_transferred);
+#ifndef NDEBUG
+			TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
+			TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
+			size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
+				m_statistics.last_protocol_downloaded() - cur_protocol_dl;
+			TORRENT_ASSERT(stats_diff == bytes_transferred);
+#endif
 
 			TORRENT_ASSERT(m_packet_size > 0);
 
@@ -3746,7 +3757,19 @@ namespace libtorrent
 
 		m_last_sent = time_now();
 
+#ifndef NDEBUG
+		size_type cur_payload_ul = m_statistics.last_payload_uploaded();
+		size_type cur_protocol_ul = m_statistics.last_protocol_uploaded();
+#endif
 		on_sent(error, bytes_transferred);
+#ifndef NDEBUG
+		TORRENT_ASSERT(m_statistics.last_payload_uploaded() - cur_payload_ul >= 0);
+		TORRENT_ASSERT(m_statistics.last_protocol_uploaded() - cur_protocol_ul >= 0);
+		size_type stats_diff = m_statistics.last_payload_uploaded() - cur_payload_ul
+			+ m_statistics.last_protocol_uploaded() - cur_protocol_ul;
+		TORRENT_ASSERT(stats_diff == bytes_transferred);
+#endif
+
 		fill_send_buffer();
 
 		setup_send();
