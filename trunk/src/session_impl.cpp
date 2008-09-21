@@ -1786,7 +1786,8 @@ namespace aux {
 	{
 		if (m_abort) return;
 		TORRENT_ASSERT(!t->is_paused() || t->is_auto_managed());
-		TORRENT_ASSERT(t->state() == torrent_status::checking_files);
+		TORRENT_ASSERT(t->state() == torrent_status::checking_files
+			|| t->state() == torrent_status::queued_for_checking);
 		if (m_queued_for_checking.empty()) t->start_checking();
 		TORRENT_ASSERT(std::find(m_queued_for_checking.begin()
 			, m_queued_for_checking.end(), t) == m_queued_for_checking.end());
