@@ -294,12 +294,14 @@ class session: public boost::noncopyable
 
         session(fingerprint const&amp; print
                 = libtorrent::fingerprint(
-                &quot;LT&quot;, 0, 1, 0, 0));
+                &quot;LT&quot;, 0, 1, 0, 0)
+                , int flags = start_default_features | add_default_plugins);
 
         session(
                 fingerprint const&amp; print
                 , std::pair&lt;int, int&gt; listen_port_range
-                , char const* listen_interface = 0);
+                , char const* listen_interface = 0
+                , int flags = start_default_features | add_default_plugins);
 
         torrent_handle add_torrent(add_torrent_params const&amp; params);
 
@@ -313,6 +315,12 @@ class session: public boost::noncopyable
         {
                 none = 0,
                 delete_files = 1
+        };
+
+        enum session_flags_t
+        {
+                add_default_plugins = 1,
+                start_default_features = 2
         };
 
         void remove_torrent(torrent_handle const&amp; h, int options = none);
@@ -394,10 +402,13 @@ The main thread will be idle as long it doesn't have any torrents to participate
 <blockquote>
 <pre class="literal-block">
 session(fingerprint const&amp; print
-        = libtorrent::fingerprint(&quot;LT&quot;, 0, 1, 0, 0));
+        = libtorrent::fingerprint(&quot;LT&quot;, 0, 1, 0, 0)
+        , int flags = start_default_features | add_default_plugins);
+
 session(fingerprint const&amp; print
         , std::pair&lt;int, int&gt; listen_port_range
-        , char const* listen_interface = 0);
+        , char const* listen_interface = 0
+        , int flags = start_default_features | add_default_plugins);
 </pre>
 </blockquote>
 <p>If the fingerprint in the first overload is omited, the client will get a default
@@ -408,6 +419,9 @@ listen port for the session, to get it running you'll have to call <tt class="do
 The other constructor, that takes a port range and an interface as well as the fingerprint
 will automatically try to listen on a port on the given interface. For more information about
 the parameters, see <tt class="docutils literal"><span class="pre">listen_on()</span></tt> function.</p>
+<p>The flags paramater can be used to start default features (upnp &amp; nat-pmp) and default plugins
+(ut_metadata, ut_pex and smart_ban). The default is to start those things. If you do not want
+them to start, pass 0 as the flags parameter.</p>
 </div>
 <div class="section">
 <h2><a id="id2" name="id2">~session()</a></h2>

@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/exception.hpp>
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
+#include <boost/function_equal.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -386,6 +387,17 @@ namespace aux {
 	void session_impl::add_extension(
 		boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{
+		TORRENT_ASSERT(ext);
+
+		typedef boost::shared_ptr<torrent_plugin>(*function_t)(torrent*, void*);
+		function_t const* f = ext.target<function_t>();
+
+		if (f)
+		{
+			for (extension_list_t::iterator i = m_extensions.begin(); i != m_extensions.end(); ++i)
+				if (function_equal(*i, *f)) return;
+		}
+
 		m_extensions.push_back(ext);
 	}
 #endif
@@ -2482,7 +2494,7 @@ namespace aux {
 			++total_downloaders;
 			unique.insert(i->second->queue_position());
 		}
-		TORRENT_ASSERT(unique.size() == total_downloaders);
+		TORRENT_ASSERT(unique.size() == int(total_downloaders));
 
 		TORRENT_ASSERT(m_max_connections > 0);
 		TORRENT_ASSERT(m_max_uploads > 0);
