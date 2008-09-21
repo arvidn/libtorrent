@@ -130,8 +130,6 @@ namespace libtorrent
 
 		~torrent();
 
-		void parse_resume_data(std::vector<char>* resume_data);
-
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		sha1_hash const& obfuscated_hash() const
 		{ return m_obfuscated_hash; }

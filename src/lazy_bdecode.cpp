@@ -47,7 +47,11 @@ namespace
 
 namespace libtorrent
 {
-	int fail_bdecode() { return -1; }
+	int fail_bdecode(lazy_entry& ret)
+	{
+		ret = lazy_entry();
+		return -1;
+	}
 
 	// fills in 'val' with what the string between start and the
 	// first occurance of the delimiter is interpreted as an int.
@@ -58,7 +62,7 @@ namespace libtorrent
 		while (start < end && *start != delimiter)
 		{
 			using namespace std;
-			if (!isdigit(*start)) { fail_bdecode(); return 0; }
+			if (!isdigit(*start)) { return 0; }
 			val *= 10;
 			val += *start - '0';
 			++start;
@@ -87,11 +91,11 @@ namespace libtorrent
 
 			lazy_entry* top = stack.back();
 
-			if (int(stack.size()) > depth_limit) return fail_bdecode();
-			if (start >= end) return fail_bdecode();
+			if (int(stack.size()) > depth_limit) return fail_bdecode(ret);
+			if (start >= end) return fail_bdecode(ret);
 			char t = *start;
 			++start;
-			if (start >= end && t != 'e') return fail_bdecode();
+			if (start >= end && t != 'e') return fail_bdecode(ret);
 
 			switch (top->type())
 			{
@@ -105,12 +109,12 @@ namespace libtorrent
 					}
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);
-					if (start == 0 || start + len + 3 > end || *start != ':') return fail_bdecode();
+					if (start == 0 || start + len + 3 > end || *start != ':') return fail_bdecode(ret);
 					++start;
-					if (start == end) fail_bdecode();
+					if (start == end) fail_bdecode(ret);
 					lazy_entry* ent = top->dict_append(start);
 					start += len;
-					if (start >= end) fail_bdecode();
+					if (start >= end) fail_bdecode(ret);
 					stack.push_back(ent);
 					t = *start;
 					++start;
@@ -145,7 +149,7 @@ namespace libtorrent
 					char const* int_start = start;
 					start = find_char(start, end, 'e');
 					top->construct_int(int_start, start - int_start);
-					if (start == end) return fail_bdecode();
+					if (start == end) return fail_bdecode(ret);
 					TORRENT_ASSERT(*start == 'e');
 					++start;
 					stack.pop_back();
@@ -154,11 +158,11 @@ namespace libtorrent
 				default:
 				{
 					using namespace std;
-					if (!isdigit(t)) return fail_bdecode();
+					if (!isdigit(t)) return fail_bdecode(ret);
 
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);
-					if (start == 0 || start + len + 1 > end || *start != ':') return fail_bdecode();
+					if (start == 0 || start + len + 1 > end || *start != ':') return fail_bdecode(ret);
 					++start;
 					top->construct_string(start, int(len));
 					stack.pop_back();
