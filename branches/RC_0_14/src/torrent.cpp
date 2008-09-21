@@ -205,7 +205,7 @@ namespace libtorrent
 		, m_start_sent(false)
 		, m_complete_sent(false)
 	{
-		parse_resume_data(resume_data);
+		if (resume_data) m_resume_data.swap(*resume_data);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		hasher h;
@@ -286,7 +286,7 @@ namespace libtorrent
 		, m_start_sent(false)
 		, m_complete_sent(false)
 	{
-		parse_resume_data(resume_data);
+		if (resume_data) m_resume_data.swap(*resume_data);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		hasher h;
@@ -309,27 +309,25 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::parse_resume_data(std::vector<char>* resume_data)
-	{
-		if (!resume_data) return;
-		m_resume_data.swap(*resume_data);
-		if (lazy_bdecode(&m_resume_data[0], &m_resume_data[0]
-			+ m_resume_data.size(), m_resume_entry) != 0)
-		{
-			std::vector<char>().swap(m_resume_data);
-			if (m_ses.m_alerts.should_post<fastresume_rejected_alert>())
-			{
-				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), "parse failed"));
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				(*m_ses.m_logger) << "fastresume data for "
-					<< torrent_file().name() << " rejected: parse failed\n";
-#endif
-			}
-		}
-	}
-
 	void torrent::start()
 	{
+		if (!m_resume_data.empty())
+		{
+			if (lazy_bdecode(&m_resume_data[0], &m_resume_data[0]
+				+ m_resume_data.size(), m_resume_entry) != 0)
+			{
+				std::vector<char>().swap(m_resume_data);
+				if (m_ses.m_alerts.should_post<fastresume_rejected_alert>())
+				{
+					m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), "parse failed"));
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+					(*m_ses.m_logger) << "fastresume data for "
+						<< torrent_file().name() << " rejected: parse failed\n";
+#endif
+				}
+			}
+		}
+
 		// we need to start announcing since we don't have any
 		// metadata. To receive peers to ask for it.
 		if (m_torrent_file->is_valid()) init();
