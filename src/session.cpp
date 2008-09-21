@@ -56,6 +56,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/extensions/ut_pex.hpp"
+#include "libtorrent/extensions/ut_metadata.hpp"
+#include "libtorrent/extensions/smart_ban.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/tracker_manager.hpp"
@@ -112,6 +115,7 @@ namespace libtorrent
 		fingerprint const& id
 		, std::pair<int, int> listen_port_range
 		, char const* listen_interface
+		, int flags
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, fs::path logpath
 #endif
@@ -120,7 +124,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 					, logpath
 #endif
-					))
+		))
 	{
 #ifdef TORRENT_MEMDEBUG
 		start_malloc_debug();
@@ -135,9 +139,23 @@ namespace libtorrent
 		boost::function0<void> test = boost::ref(*m_impl);
 		TORRENT_ASSERT(!test.empty());
 #endif
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		if (flags & add_default_plugins)
+		{
+			add_extension(create_ut_pex_plugin);
+			add_extension(create_ut_metadata_plugin);
+			add_extension(create_smart_ban_plugin);
+		}
+#endif
+		if (flags & start_default_features)
+		{
+			start_upnp();
+			start_upnp();
+		}
 	}
 
 	session::session(fingerprint const& id
+		, int flags
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, fs::path logpath
 #endif
@@ -155,6 +173,19 @@ namespace libtorrent
 		boost::function0<void> test = boost::ref(*m_impl);
 		TORRENT_ASSERT(!test.empty());
 #endif
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		if (flags & add_default_plugins)
+		{
+			add_extension(create_ut_pex_plugin);
+			add_extension(create_ut_metadata_plugin);
+			add_extension(create_smart_ban_plugin);
+		}
+#endif
+		if (flags & start_default_features)
+		{
+			start_upnp();
+			start_natpmp();
+		}
 	}
 
 	session::~session()
@@ -170,10 +201,12 @@ namespace libtorrent
 			m_impl->abort();
 	}
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{
 		m_impl->add_extension(ext);
 	}
+#endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
 	bool session::load_asnum_db(char const* file)
