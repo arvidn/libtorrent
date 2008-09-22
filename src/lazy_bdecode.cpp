@@ -395,11 +395,12 @@ namespace libtorrent
 			{
 				os << "[";
 				bool one_liner = (e.list_size() == 0
-					|| e.list_at(0)->type() == lazy_entry::int_t
+					|| (e.list_at(0)->type() == lazy_entry::int_t
+						&& e.list_size() < 20)
 					|| (e.list_at(0)->type() == lazy_entry::string_t
 						&& (e.list_at(0)->string_length() < 10
-							|| e.list_size() < 2)))
-					&& e.list_size() < 5;
+							|| e.list_size() < 2))
+						&& e.list_size() < 5);
 				if (!one_liner) os << "\n";
 				for (int i = 0; i < e.list_size(); ++i)
 				{
