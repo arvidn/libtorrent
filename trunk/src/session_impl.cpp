@@ -155,7 +155,7 @@ namespace aux {
 #else
 		, m_upload_channel(m_io_service, peer_connection::upload_channel)
 #endif
-		, m_tracker_manager(m_settings, m_tracker_proxy)
+		, m_tracker_manager(*this, m_tracker_proxy)
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
 		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
 		, m_abort(false)
@@ -1096,8 +1096,15 @@ namespace aux {
 		}
 
 		// drain the IP overhead from the bandwidth limiters
-		m_download_channel.drain(m_stat.download_ip_overhead() + m_stat.download_dht());
-		m_upload_channel.drain(m_stat.upload_ip_overhead() + m_stat.upload_dht());
+		m_download_channel.drain(
+			m_stat.download_ip_overhead()
+			+ m_stat.download_dht()
+			+ m_stat.download_tracker());
+
+		m_upload_channel.drain(
+			m_stat.upload_ip_overhead()
+			+ m_stat.upload_dht()
+			+ m_stat.upload_tracker());
 
 		m_stat.second_tick(tick_interval);
 
@@ -2018,6 +2025,12 @@ namespace aux {
 		s.total_dht_download = m_stat.total_transfer(stat::download_dht_protocol);
 		s.dht_upload_rate = m_stat.transfer_rate(stat::upload_dht_protocol);
 		s.total_dht_upload = m_stat.total_transfer(stat::upload_dht_protocol);
+
+		// tracker
+		s.tracker_download_rate = m_stat.transfer_rate(stat::download_tracker_protocol);
+		s.total_tracker_download = m_stat.total_transfer(stat::download_tracker_protocol);
+		s.tracker_upload_rate = m_stat.transfer_rate(stat::upload_tracker_protocol);
+		s.total_tracker_upload = m_stat.total_transfer(stat::upload_tracker_protocol);
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)

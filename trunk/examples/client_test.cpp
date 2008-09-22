@@ -1370,7 +1370,10 @@ int main(int ac, char* av[])
 				<< esc("31") << add_suffix(sess_stat.ip_overhead_upload_rate) << "/s" << esc("0")
 				<< " DHT: "
 				<< esc("32") << add_suffix(sess_stat.dht_download_rate) << "/s" << esc("0") << " "
-				<< esc("31") << add_suffix(sess_stat.dht_upload_rate) << "/s" << esc("0") << " ====\n"
+				<< esc("31") << add_suffix(sess_stat.dht_upload_rate) << "/s" << esc("0")
+				<< " tracker: "
+				<< esc("32") << add_suffix(sess_stat.tracker_download_rate) << "/s" << esc("0") << " "
+				<< esc("31") << add_suffix(sess_stat.tracker_upload_rate) << "/s" << esc("0") << " ====\n"
 				"==== waste: " << add_suffix(sess_stat.total_redundant_bytes)
 				<< " fail: " << add_suffix(sess_stat.total_failed_bytes)
 				<< " unchoked: " << sess_stat.num_unchoked << " / " << sess_stat.allowed_upload_slots

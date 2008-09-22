@@ -182,6 +182,9 @@ namespace libtorrent
 		m_tracker_connection->get(url, seconds(timeout)
 			, 1, &m_ps, 5, m_settings.user_agent, m_bind_iface);
 
+		// the url + 100 estimated header size
+		sent_bytes(url.size() + 100);
+
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 
 		boost::shared_ptr<request_callback> cb = requester();
@@ -232,6 +235,8 @@ namespace libtorrent
 			return;
 		}
 		
+		received_bytes(size + parser.body_start());
+
 		// handle tracker response
 		entry e;
 		e = bdecode(data, data + size);
