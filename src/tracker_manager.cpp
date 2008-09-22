@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_connection.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 using namespace libtorrent;
 using boost::tuples::make_tuple;
@@ -156,6 +157,16 @@ namespace libtorrent
 		close();
 	}
 
+	void tracker_connection::sent_bytes(int bytes)
+	{
+		m_man.sent_bytes(bytes);
+	}
+
+	void tracker_connection::received_bytes(int bytes)
+	{
+		m_man.received_bytes(bytes);
+	}
+
 	void tracker_connection::fail_timeout()
 	{
 		boost::shared_ptr<request_callback> cb = requester();
@@ -167,6 +178,18 @@ namespace libtorrent
 	{
 		cancel();
 		m_man.remove_request(this);
+	}
+
+	void tracker_manager::sent_bytes(int bytes)
+	{
+		aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		m_ses.m_stat.sent_tracker_bytes(bytes);
+	}
+
+	void tracker_manager::received_bytes(int bytes)
+	{
+		aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		m_ses.m_stat.received_tracker_bytes(bytes);
 	}
 
 	void tracker_manager::remove_request(tracker_connection const* c)
@@ -209,13 +232,13 @@ namespace libtorrent
 		{
 			con = new http_tracker_connection(
 				ios, cc, *this, req, bind_infc, c
-				, m_settings, m_proxy, auth);
+				, m_ses.settings(), m_proxy, auth);
 		}
 		else if (protocol == "udp")
 		{
 			con = new udp_tracker_connection(
 				ios, cc, *this, req, bind_infc
-				, c, m_settings, m_proxy);
+				, c, m_ses.settings(), m_proxy);
 		}
 		else
 		{

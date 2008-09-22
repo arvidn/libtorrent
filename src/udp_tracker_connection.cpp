@@ -208,6 +208,7 @@ namespace libtorrent
 		// ignore packet not sent from the tracker
 		if (m_target != ep) return;
 		
+		received_bytes(size + 28); // assuming UDP/IP header
 		if (e) fail(-1, e.message().c_str());
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
@@ -320,6 +321,7 @@ namespace libtorrent
 		error_code ec;
 		m_socket.send(m_target, buf, 16, ec);
 		m_state = action_connect;
+		sent_bytes(16 + 28); // assuming UDP/IP header
 		++m_attempts;
 		if (ec)
 		{
@@ -349,6 +351,7 @@ namespace libtorrent
 		error_code ec;
 		m_socket.send(m_target, buf, sizeof(buf), ec);
 		m_state = action_scrape;
+		sent_bytes(sizeof(buf) + 28); // assuming UDP/IP header
 		++m_attempts;
 		if (ec)
 		{
@@ -509,6 +512,7 @@ namespace libtorrent
 		error_code ec;
 		m_socket.send(m_target, buf, sizeof(buf), ec);
 		m_state = action_announce;
+		sent_bytes(sizeof(buf) + 28); // assuming UDP/IP header
 		++m_attempts;
 		if (ec)
 		{

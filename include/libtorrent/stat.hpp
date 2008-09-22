@@ -126,12 +126,28 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(bytes >= 0);
 			m_stat[download_dht_protocol].add(bytes);
+			// assuming IPv4 and UDP headers
+			m_stat[download_ip_protocol].add(28);
 		}
 
 		void sent_dht_bytes(int bytes)
 		{
 			TORRENT_ASSERT(bytes >= 0);
 			m_stat[upload_dht_protocol].add(bytes);
+			// assuming IPv4 and UDP headers
+			m_stat[upload_ip_protocol].add(28);
+		}
+
+		void received_tracker_bytes(int bytes)
+		{
+			TORRENT_ASSERT(bytes >= 0);
+			m_stat[download_tracker_protocol].add(bytes);
+		}
+
+		void sent_tracker_bytes(int bytes)
+		{
+			TORRENT_ASSERT(bytes >= 0);
+			m_stat[upload_tracker_protocol].add(bytes);
 		}
 
 		void received_bytes(int bytes_payload, int bytes_protocol)
@@ -176,6 +192,8 @@ namespace libtorrent
 		int download_ip_overhead() const { return m_stat[download_ip_protocol].counter(); }
 		int upload_dht() const { return m_stat[upload_dht_protocol].counter(); }
 		int download_dht() const { return m_stat[download_dht_protocol].counter(); }
+		int download_tracker() const { return m_stat[download_tracker_protocol].counter(); }
+		int upload_tracker() const { return m_stat[upload_tracker_protocol].counter(); }
 
 		// should be called once every second
 		void second_tick(float tick_interval)
@@ -207,7 +225,8 @@ namespace libtorrent
 			return m_stat[upload_payload].total()
 				+ m_stat[upload_protocol].total()
 				+ m_stat[upload_ip_protocol].total()
-				+ m_stat[upload_dht_protocol].total();
+				+ m_stat[upload_dht_protocol].total()
+				+ m_stat[upload_tracker_protocol].total();
 		}
 
 		size_type total_download() const
@@ -215,7 +234,8 @@ namespace libtorrent
 			return m_stat[download_payload].total()
 				+ m_stat[download_protocol].total()
 				+ m_stat[download_ip_protocol].total()
-				+ m_stat[download_dht_protocol].total();
+				+ m_stat[download_dht_protocol].total()
+				+ m_stat[download_tracker_protocol].total();
 		}
 
 		float upload_payload_rate() const
@@ -265,10 +285,12 @@ namespace libtorrent
 			upload_protocol,
 			upload_ip_protocol,
 			upload_dht_protocol,
+			upload_tracker_protocol,
 			download_payload,
 			download_protocol,
 			download_ip_protocol,
 			download_dht_protocol,
+			download_tracker_protocol,
 			num_channels
 		};
 

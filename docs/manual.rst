@@ -539,6 +539,11 @@ struct has the following members::
 		size_type total_dht_download;
 		size_type total_dht_upload;
 
+		float tracker_upload_rate;
+		float tracker_download_rate;
+		size_type total_tracker_download;
+		size_type total_tracker_upload;
+
 		size_type total_redundant_bytes;
 		size_type total_failed_bytes;
 
