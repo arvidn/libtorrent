@@ -170,7 +170,7 @@ namespace libtorrent
 			, end(interfaces.end()); i != end; ++i)
 		{
 			// only broadcast to IPv4 addresses that are not local
-			if (!is_local(i->interface_address)) continue;
+			if (is_local(i->interface_address)) continue;
 			// only multicast on compatible networks
 			if (i->interface_address.is_v4() != multicast_endpoint.address().is_v4()) continue;
 			// ignore any loopback interface
