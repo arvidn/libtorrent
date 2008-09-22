@@ -64,6 +64,10 @@ namespace libtorrent
 		void set_proxy_settings(proxy_settings const& ps);
 		proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
 
+#ifndef NDEBUG
+		~udp_socket() { m_magic = 0; }
+#endif
+
 	private:
 
 		callback_t m_callback;
@@ -94,6 +98,7 @@ namespace libtorrent
 		char m_v4_buf[1600];
 		char m_v6_buf[1600];
 		int m_bind_port;
+		uint8_t m_outstanding;
 
 		tcp::socket m_socks5_sock;
 		int m_connection_ticket;
@@ -103,6 +108,9 @@ namespace libtorrent
 		char m_tmp_buf[100];
 		bool m_tunnel_packets;
 		udp::endpoint m_proxy_addr;
+#ifndef NDEBUG
+		int m_magic;
+#endif
 	};
 }
 
