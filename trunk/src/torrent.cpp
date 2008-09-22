@@ -2522,6 +2522,41 @@ namespace libtorrent
 
 		if (rd.dict_find_int_value("auto_managed")) auto_managed(true);
 		if (rd.dict_find_int_value("paused")) pause();
+
+		lazy_entry const* trackers = rd.dict_find_list("trackers");
+		if (trackers)
+		{
+			int tier = 0;
+			for (int i = 0; i < trackers->list_size(); ++i)
+			{
+				lazy_entry const* tier_list = trackers->list_at(i);
+				if (tier_list == 0 || tier_list->type() != lazy_entry::list_t)
+					continue;
+				for (int j = 0; j < tier_list->list_size(); ++j)
+				{
+					announce_entry e(tier_list->list_string_value_at(j));
+					if (std::find_if(m_trackers.begin(), m_trackers.end()
+						, boost::bind(&announce_entry::url, _1) == e.url) != m_trackers.end())
+						continue;
+					e.tier = tier;
+					m_trackers.push_back(e);
+				}
+				++tier;
+			}
+			std::sort(m_trackers.begin(), m_trackers.end(), boost::bind(&announce_entry::tier, _1)
+				< boost::bind(&announce_entry::tier, _2));
+		}
+
+		lazy_entry const* url_list = rd.dict_find_list("url-list");
+		if (url_list)
+		{
+			for (int i = 0; i < url_list->list_size(); ++i)
+			{
+				std::string url = url_list->list_string_value_at(i);
+				if (url.empty()) continue;
+				m_web_seeds.insert(url);
+			}
+		}
 	}
 	
 	void torrent::write_resume_data(entry& ret) const
@@ -2592,6 +2627,39 @@ namespace libtorrent
 				piece_struct["bitmask"] = bitmask;
 				// push the struct onto the unfinished-piece list
 				up.push_back(piece_struct);
+			}
+		}
+
+		// save trackers
+		if (!m_trackers.empty())
+		{
+			entry::list_type& tr_list = ret["trackers"].list();
+			tr_list.push_back(entry::list_type());
+			int tier = 0;
+			for (std::vector<announce_entry>::const_iterator i = m_trackers.begin()
+				, end(m_trackers.end()); i != end; ++i)
+			{
+				if (i->tier == tier)
+				{
+					tr_list.back().list().push_back(i->url);
+				}
+				else
+				{
+					tr_list.push_back(entry::list_t);
+					tr_list.back().list().push_back(i->url);
+					tier = i->tier;
+				}
+			}
+		}
+
+		// save web seeds
+		if (!m_web_seeds.empty())
+		{
+			entry::list_type& url_list = ret["url-list"].list();
+			for (std::set<std::string>::const_iterator i = m_web_seeds.begin()
+				, end(m_web_seeds.end()); i != end; ++i)
+			{
+				url_list.push_back(*i);
 			}
 		}
 
