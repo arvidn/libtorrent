@@ -1304,6 +1304,9 @@ namespace libtorrent
 		, int prefer_whole_pieces, void* peer, piece_state_t speed
 		, int options, std::vector<int> const& suggested_pieces) const
 	{
+		// prevent the number of partial pieces to grow indefinitely
+		if (m_downloads.size() > 20) options |= prioritize_partials;
+
 		// only one of rarest_first and sequential can be set.
 		TORRENT_ASSERT(bool(options & rarest_first)
 			+ bool(options & sequential) <= 1);
