@@ -229,8 +229,6 @@ void udp_socket::close()
 	if (m_outstanding == 0)
 	{
 		// "this" may be destructed in the callback
-		// that's why we need to unlock
-		l.unlock();
 		callback_t tmp = m_callback;
 		m_callback.clear();
 	}
