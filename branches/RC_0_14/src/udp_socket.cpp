@@ -215,7 +215,6 @@ void udp_socket::unwrap(error_code const& e, char const* buf, int size)
 void udp_socket::close()
 {
 	TORRENT_ASSERT(m_magic == 0x1337);
-	mutex_t::scoped_lock l(m_mutex);	
 
 	error_code ec;
 	m_ipv4_sock.close(ec);
