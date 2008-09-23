@@ -2522,6 +2522,10 @@ namespace libtorrent
 
 		int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
 		if (auto_managed_ != -1) auto_managed(auto_managed_);
+
+		int sequential_ = rd.dict_find_int_value("sequential_download", -1);
+		if (sequential_ != -1) set_sequential_download(sequential_);
+
 		if (rd.dict_find_int_value("paused")) pause();
 
 		lazy_entry const* trackers = rd.dict_find_list("trackers");
@@ -2580,6 +2584,8 @@ namespace libtorrent
 
 		ret["num_seeds"] = seeds;
 		ret["num_downloaders"] = downloaders;
+
+		ret["sequential_download"] = m_sequential_download;
 		
 		const sha1_hash& info_hash = torrent_file().info_hash();
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());

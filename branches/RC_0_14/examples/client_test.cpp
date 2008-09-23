@@ -1282,6 +1282,7 @@ int main(int ac, char* av[])
 
 				bool paused = h.is_paused();
 				bool auto_managed = h.is_auto_managed();
+				bool sequential_download = h.is_sequential_download();
 				out << std::setw(13) << std::setiosflags(std::ios::left);
 				if (!s.error.empty())
 				{
@@ -1329,7 +1330,12 @@ int main(int ac, char* av[])
 					{
 						progress_bar_color = "32"; // green
 					}
-					out << "  progress: " << esc("32") << s.total_done << esc("0") << " Bytes ";
+					if (sequential_download)
+						out << "sequential: ";
+					else
+						out << "  progress: ";
+
+					out << esc("32") << s.total_done << esc("0") << " Bytes ";
 					out.precision(4);
 					out.width(5);
 					out.fill(' ');
