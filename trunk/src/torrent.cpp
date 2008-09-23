@@ -2520,7 +2520,8 @@ namespace libtorrent
 				m_picker->set_piece_priority(i, p[i]);
 		}
 
-		if (rd.dict_find_int_value("auto_managed")) auto_managed(true);
+		int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
+		if (auto_managed_ != -1) auto_managed(auto_managed_);
 		if (rd.dict_find_int_value("paused")) pause();
 
 		lazy_entry const* trackers = rd.dict_find_list("trackers");
