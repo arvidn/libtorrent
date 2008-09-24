@@ -2953,14 +2953,39 @@ namespace libtorrent
 		return true;
 	}
 
-	bool torrent::set_metadata(lazy_entry const& metadata, std::string& error)
+	bool torrent::set_metadata(char const* metadata_buf, int metadata_size)
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(!m_torrent_file->is_valid());
-		if (!m_torrent_file->parse_info_section(metadata, error))
+		if (m_torrent_file->is_valid()) return false;
+
+		hasher h;
+		h.update(metadata_buf, metadata_size);
+		sha1_hash info_hash = h.final();
+
+		if (info_hash != m_torrent_file->info_hash())
 		{
-			// parse failed
+			if (alerts().should_post<metadata_failed_alert>())
+			{
+				alerts().post_alert(metadata_failed_alert(get_handle()));
+			}
+			return false;
+		}
+
+		lazy_entry metadata;
+		std::string error = "parser error";
+		int ret = lazy_bdecode(metadata_buf, metadata_buf + metadata_size, metadata);
+		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, error))
+		{
+			// this means the metadata is correct, since we
+			// verified it against the info-hash, but we
+			// failed to parse it. Pause the torrent
+			if (alerts().should_post<metadata_failed_alert>())
+			{
+				alerts().post_alert(metadata_failed_alert(get_handle()));
+			}
+			set_error("invalid metadata: " + error);
+			pause();
 			return false;
 		}
 

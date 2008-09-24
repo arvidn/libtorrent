@@ -235,6 +235,12 @@ namespace libtorrent
 		TORRENT_FORWARD_RETURN(valid_metadata(), false);
 	}
 
+	bool torrent_handle::set_metadata(char const* metadata, int size) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD_RETURN(set_metadata(metadata, size), false);
+	}
+
 	bool torrent_handle::is_seed() const
 	{
 		INVARIANT_CHECK;
