@@ -150,6 +150,7 @@ The ``create_torrent`` class has the following synopsis::
 	{
 		create_torrent(file_storage& fs, int piece_size);
 		create_torrent(file_storage& fs);
+		create_torrent(torrent_info const& ti);
 
 		entry generate() const;
 
@@ -174,9 +175,17 @@ create_torrent()
 
 		create_torrent(file_storage& fs, int piece_size);
 		create_torrent(file_storage& fs);
+		create_torrent(torrent_info const& ti);
 
 The contrstructor that does not take a piece_size will calculate
 a piece size such that the torrent file is roughly 40 kB.
+
+The overlad that takes a ``torrent_info`` object will make a verbatim
+copy of its info dictionary (to preserve the info-hash). The copy of
+the info dictionary will be used by ``generate()``. This means
+that none of the member functions of create_torrent that affects
+the content of the info dictionary (such as ``set_hash()``), will not
+have any affect.
 
 generate()
 ----------
