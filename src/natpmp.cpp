@@ -226,6 +226,20 @@ void natpmp::try_next_mapping(int i)
 
 void natpmp::update_mapping(int i)
 {
+	if (i == m_mappings.size())
+	{
+		if (m_abort)
+		{
+			error_code ec;
+			m_send_timer.cancel(ec);
+			m_socket.close(ec);
+		}
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		m_log << "     done" << (m_abort?" shutting down":"") << std::endl;
+#endif
+		return;
+	}
+
 	natpmp::mapping_t& m = m_mappings[i];
 	if (m.action == mapping_t::action_none
 		|| m.protocol == none)
