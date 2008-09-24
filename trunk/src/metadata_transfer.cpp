@@ -160,11 +160,7 @@ namespace libtorrent { namespace
 
 			if (!have_all) return false;
 
-			hasher h;
-			h.update(&m_metadata[0], m_metadata_size);
-			sha1_hash info_hash = h.final();
-
-			if (info_hash != m_torrent.torrent_file().info_hash())
+			if (!m_torrent.set_metadata(&m_metadata[0], m_metadata_size))
 			{
 				std::fill(
 					m_have_metadata.begin()
@@ -172,26 +168,6 @@ namespace libtorrent { namespace
 					, false);
 				m_metadata_progress = 0;
 				m_metadata_size = 0;
-
-				if (m_torrent.alerts().should_post<metadata_failed_alert>())
-				{
-					m_torrent.alerts().post_alert(metadata_failed_alert(
-						m_torrent.get_handle()));
-				}
-
-				return false;
-			}
-
-			lazy_entry e;
-			lazy_bdecode(m_metadata.get(), m_metadata.get() + m_metadata_size, e);
-			std::string error;
-			if (!m_torrent.set_metadata(e, error))
-			{
-				// this means the metadata is correct, since we
-				// verified it against the info-hash, but we
-				// failed to parse it. Pause the torrent
-				// TODO: Post an alert!
-				m_torrent.pause();
 				return false;
 			}
 

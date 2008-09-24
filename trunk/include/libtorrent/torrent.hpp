@@ -638,7 +638,7 @@ namespace libtorrent
 		// to the checker thread for initial checking
 		// of the storage.
 		// a return value of false indicates an error
-		bool set_metadata(lazy_entry const& metadata, std::string& error);
+		bool set_metadata(char const* metadata_buf, int metadata_size);
 
 		int sequence_number() const { return m_sequence_number; }
 

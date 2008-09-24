@@ -1641,6 +1641,7 @@ Its declaration looks like this::
 		void auto_managed(bool m) const;
 
 		bool has_metadata() const;
+		bool set_metadata(char const* buf, int size) const;
 
 		boost::filesystem::path save_path() const;
 		void move_storage(boost::filesystem::path const& save_path) const;
@@ -1980,17 +1981,26 @@ is_auto_managed() auto_managed()
 ``auto_managed()`` changes whether the torrent is auto managed or not. For more info,
 see queuing_.
 
-has_metadata()
---------------
+has_metadata() set_metadata()
+-----------------------------
 
 	::
 
 		bool has_metadata() const;
+		bool set_metadata(char const* buf, int size) const;
 
-Returns true if this torrent has metadata (either it was started from a .torrent file or the
-metadata has been downloaded). The only scenario where this can return false is when the torrent
-was started torrent-less (i.e. with just an info-hash and tracker ip). Note that if the torrent
-doesn't have metadata, the member `get_torrent_info()`_ will throw.
+``has_metadata`` returns true if this torrent has metadata (either it was started from a
+.torrent file or the metadata has been downloaded). The only scenario where this can return
+false is when the torrent was started torrent-less (i.e. with just an info-hash and tracker
+ip). Note that if the torrent doesn't have metadata, the member `get_torrent_info()`_ will
+throw.
+
+``set_metadata`` expects the *info* section of metadata. i.e. The buffer passed in will be
+hashed and verified against the info-hash. If it fails, a ``metadata_failed_alert`` will be
+generated. If it passes, a ``metadata_received_alert`` is generated. The function returns
+true if the metadata is successfully set on the torrent, and false otherwise. If the torrent
+already has metadata, this function will not affect the torrent, and false will be returned.
+
 
 set_tracker_login()
 -------------------
