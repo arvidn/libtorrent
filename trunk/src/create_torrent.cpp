@@ -100,6 +100,41 @@ namespace libtorrent
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
 		m_piece_hash.resize(m_files.num_pieces());
 	}
+
+	create_torrent::create_torrent(torrent_info const& ti)
+		: m_files(const_cast<file_storage&>(ti.files()))
+		, m_creation_date(pt::second_clock::universal_time())
+		, m_multifile(ti.num_files() > 1)
+		, m_private(ti.priv())
+	{
+		TORRENT_ASSERT(ti.is_valid());
+		if (ti.creation_date()) m_creation_date = *ti.creation_date();
+
+		if (!ti.creator().empty()) set_creator(ti.creator().c_str());
+		if (!ti.comment().empty()) set_comment(ti.comment().c_str());
+
+		torrent_info::nodes_t const& nodes = ti.nodes();
+		for (torrent_info::nodes_t::const_iterator i = nodes.begin()
+			, end(nodes.end()); i != end; ++i)
+			add_node(*i);
+
+		std::vector<libtorrent::announce_entry> const& trackers = ti.trackers();
+		for (std::vector<libtorrent::announce_entry>::const_iterator i = trackers.begin()
+			, end(trackers.end()); i != end; ++i)
+			add_tracker(i->url, i->tier);
+
+		std::vector<std::string> const& web_seeds = ti.url_seeds();
+		for (std::vector<std::string>::const_iterator i = web_seeds.begin()
+			, end(web_seeds.end()); i != end; ++i)
+			add_url_seed(*i);
+
+		m_piece_hash.resize(m_files.num_pieces());
+		for (int i = 0; i < num_pieces(); ++i) set_hash(i, ti.hash_for_piece(i));
+
+		m_info_dict = bdecode(&ti.metadata()[0], &ti.metadata()[0] + ti.metadata_size());
+		m_info_hash = ti.info_hash();
+	}
+
 	entry create_torrent::generate() const
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
@@ -176,6 +211,12 @@ namespace libtorrent
 		}
 
 		entry& info = dict["info"];
+		if (m_info_dict.type() == entry::dictionary_t)
+		{
+			info = m_info_dict;
+			return dict;
+		}
+
 		info["name"] = m_files.name();
 
 		if (m_private) info["private"] = 1;
