@@ -197,8 +197,6 @@ namespace libtorrent
 		nodes_t m_nodes;
 
 		// the hash that identifies this torrent
-		// is mutable because it's calculated
-		// lazily
 		sha1_hash m_info_hash;
 
 		// if a creation date is found in the torrent file
