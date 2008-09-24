@@ -39,7 +39,7 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 		int& m;
 	};
 #else
-	#define CHECK_MAGIC (void)
+	#define CHECK_MAGIC do {} while (false)
 #endif
 
 void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec)
