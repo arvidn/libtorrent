@@ -1998,6 +1998,8 @@ namespace libtorrent
 		if (m_currently_trying_tracker >= (int)m_trackers.size())
 			m_currently_trying_tracker = (int)m_trackers.size()-1;
 		m_last_working_tracker = -1;
+		if (!m_trackers.empty()) start_announcing();
+		else stop_announcing();
 	}
 
 	void torrent::choke_peer(peer_connection& c)
