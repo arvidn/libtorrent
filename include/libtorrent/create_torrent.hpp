@@ -63,11 +63,13 @@ namespace libtorrent
 {
 	namespace fs = boost::filesystem;
 	namespace pt = boost::posix_time;
+	class torrent_info;
 
 	struct TORRENT_EXPORT create_torrent
 	{
 		create_torrent(file_storage& fs, int piece_size);
 		create_torrent(file_storage& fs);
+		create_torrent(torrent_info const& ti);
 		entry generate() const;
 
 		file_storage const& files() const { return m_files; }
@@ -88,6 +90,10 @@ namespace libtorrent
 	private:
 
 		file_storage& m_files;
+		// if m_info_dict is initialized, it is 
+		// used instead of m_files to generate
+		// the info dictionary
+		entry m_info_dict;
 
 		// the urls to the trackers
 		typedef std::pair<std::string, int> announce_entry;
