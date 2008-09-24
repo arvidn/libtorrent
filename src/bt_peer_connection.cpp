@@ -1899,6 +1899,7 @@ namespace libtorrent
 		if (m_state == read_pe_skey_vc)
 		{
 			m_statistics.received_bytes(0, bytes_transferred);
+			bytes_transferred = 0;
 
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
@@ -2010,7 +2011,6 @@ namespace libtorrent
 					, (512+8) - m_sync_bytes_read));
 
 				TORRENT_ASSERT(!packet_finished());
-				return;
 			}
 			// found complete sync
 			else
@@ -2215,6 +2215,7 @@ namespace libtorrent
 		if (m_state == read_pe_ia)
 		{
 			m_statistics.received_bytes(0, bytes_transferred);
+			bytes_transferred = 0;
 			TORRENT_ASSERT(!is_local());
 			TORRENT_ASSERT(!m_encrypted);
 
