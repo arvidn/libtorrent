@@ -98,7 +98,7 @@ namespace libtorrent
 		char m_v4_buf[1600];
 		char m_v6_buf[1600];
 		int m_bind_port;
-		uint8_t m_outstanding;
+		char m_outstanding;
 
 		tcp::socket m_socks5_sock;
 		int m_connection_ticket;
