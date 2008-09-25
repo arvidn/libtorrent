@@ -3636,7 +3636,22 @@ namespace libtorrent
 			disconnect(ec.message().c_str());
 			return;
 		}
-		m_socket->bind(t->get_interface(), ec);
+
+		tcp::endpoint bind_interface = t->get_interface();
+	
+		std::pair<int, int> const& out_ports = m_ses.settings().outgoing_ports;
+		if (out_ports.first > 0 && out_ports.second >= out_ports.first)
+		{
+			m_socket->set_option(socket_acceptor::reuse_address(true), ec);
+			if (ec)
+			{
+				disconnect(ec.message().c_str());
+				return;
+			}
+			bind_interface.port(m_ses.next_port());
+		}
+
+		m_socket->bind(bind_interface, ec);
 		if (ec)
 		{
 			disconnect(ec.message().c_str());

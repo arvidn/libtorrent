@@ -2308,11 +2308,6 @@ namespace libtorrent
 			s->get<http_stream>().set_no_connect(true);
 		}
 
-		std::pair<int, int> const& out_ports = m_settings.outgoing_ports;
-		error_code ec;
-		if (out_ports.first > 0 && out_ports.second >= out_ports.first)
-			s->bind(tcp::endpoint(address(), m_ses.next_port()), ec);
-		
 		boost::intrusive_ptr<peer_connection> c(new (std::nothrow) web_peer_connection(
 			m_ses, shared_from_this(), s, a, url, 0));
 		if (!c) return;
@@ -2891,10 +2886,6 @@ namespace libtorrent
 		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy(), *s);
 		(void)ret;
 		TORRENT_ASSERT(ret);
-		std::pair<int, int> const& out_ports = m_ses.settings().outgoing_ports;
-		error_code ec;
-		if (out_ports.first > 0 && out_ports.second >= out_ports.first)
-			s->bind(tcp::endpoint(address(), m_ses.next_port()), ec);
 
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a, peerinfo));
@@ -2950,7 +2941,8 @@ namespace libtorrent
 			return false;
 		}
 #endif
-		return true;
+
+		return peerinfo->connection;
 	}
 
 	bool torrent::set_metadata(char const* metadata_buf, int metadata_size)
