@@ -95,7 +95,7 @@ namespace
 			std::string ret;
 			ret.resize(size);
 			size = wcstombs(&ret[0], ws.c_str(), size + 1);
-			if (size == wchar_t(-1)) return s;
+			if (size == std::size_t(-1)) return s;
 			ret.resize(size);
 			return ret;
 		}
