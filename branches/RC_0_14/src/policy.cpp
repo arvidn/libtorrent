@@ -991,6 +991,7 @@ namespace libtorrent
 			++p->second.failcount;
 			return false;
 		}
+		TORRENT_ASSERT(p->second.connection);
 		TORRENT_ASSERT(!is_connect_candidate(p->second, m_torrent->is_finished()));
 		--m_num_connect_candidates;
 		return true;
