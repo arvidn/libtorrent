@@ -1693,6 +1693,9 @@ namespace libtorrent
 			send_block_requests();
 			return;
 		}
+#ifndef NDEBUG
+		pending_block pending_b = *b;
+#endif
 
 		int block_index = b - m_download_queue.begin() - 1;
 		for (int i = 0; i < block_index; ++i)
@@ -1721,6 +1724,9 @@ namespace libtorrent
 				--block_index;
 			}
 		}
+		TORRENT_ASSERT(int(m_download_queue.size()) > block_index + 1);
+		b = m_download_queue.begin() + (block_index + 1);
+		TORRENT_ASSERT(b->block == pending_b.block);
 		
 		// if the block we got is already finished, then ignore it
 		if (picker.is_downloaded(block_finished))
@@ -3856,7 +3862,7 @@ namespace libtorrent
 		}
 
 		if (t->ready_for_connections() && m_initialized)
-			TORRENT_ASSERT(t->torrent_file().num_pieces() == m_have_piece.size());
+			TORRENT_ASSERT(t->torrent_file().num_pieces() == int(m_have_piece.size()));
 
 		if (m_ses.settings().close_redundant_connections)
 		{

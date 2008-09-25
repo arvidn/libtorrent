@@ -2508,7 +2508,7 @@ namespace aux {
 			++total_downloaders;
 			unique.insert(i->second->queue_position());
 		}
-		TORRENT_ASSERT(unique.size() == int(total_downloaders));
+		TORRENT_ASSERT(int(unique.size()) == total_downloaders);
 
 		TORRENT_ASSERT(m_max_connections > 0);
 		TORRENT_ASSERT(m_max_uploads > 0);
