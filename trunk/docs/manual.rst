@@ -2687,6 +2687,7 @@ It contains the following fields::
 		int download_rate_peak;
 		int upload_rate_peak;
 
+		float progress;
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -2905,6 +2906,8 @@ estimated by timing the the tcp ``connect()``. It may be 0 for incoming connecti
 ``download_rate_peak`` and ``upload_rate_peak`` are the highest download and upload
 rates seen on this connection. They are given in bytes per second. This number is
 reset to 0 on reconnect.
+
+``progress`` is the progress of the peer.
 
 session_settings
 ================

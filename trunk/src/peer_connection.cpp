@@ -2672,6 +2672,8 @@ namespace libtorrent
 		p.used_receive_buffer = m_recv_pos;
 		p.write_state = m_channel_state[upload_channel];
 		p.read_state = m_channel_state[download_channel];
+		
+		p.progress = (float)p.pieces.count() / (float)p.pieces.size();
 	}
 
 	// allocates a disk buffer of size 'disk_buffer_size' and replaces the

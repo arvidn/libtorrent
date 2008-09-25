@@ -196,6 +196,9 @@ namespace libtorrent
 		// the highest transfer rates seen for this peer
 		int download_rate_peak;
 		int upload_rate_peak;
+		
+		// the peers progress
+		float progress;
 	};
 
 	struct TORRENT_EXPORT peer_list_entry
