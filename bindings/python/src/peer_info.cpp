@@ -89,6 +89,7 @@ void bind_peer_info()
         .def_readonly("send_quota", &peer_info::send_quota)
         .def_readonly("receive_quota", &peer_info::receive_quota)
         .def_readonly("rtt", &peer_info::rtt)
+        .def_readonly("progress", &peer_info::progress)
         ;
 
     // flags
