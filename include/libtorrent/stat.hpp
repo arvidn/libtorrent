@@ -122,6 +122,18 @@ namespace libtorrent
 				m_stat[i] += s.m_stat[i];
 		}
 
+		void sent_syn()
+		{
+			m_stat[upload_ip_protocol].add(40);
+		}
+
+		void received_synack()
+		{
+			// we received SYN-ACK and also sent ACK back
+			m_stat[download_ip_protocol].add(40);
+			m_stat[upload_ip_protocol].add(40);
+		}
+
 		void received_dht_bytes(int bytes)
 		{
 			TORRENT_ASSERT(bytes >= 0);
