@@ -617,7 +617,8 @@ void print_alert(libtorrent::alert const* a, std::ostream& os)
 		g_log_file << "[" << time_now_string() << "] " << a->message() << std::endl;
 }
 
-void handle_alert(libtorrent::session& ses, libtorrent::alert* a)
+void handle_alert(libtorrent::session& ses, libtorrent::alert* a
+	, handles_t const& handles)
 {
 	using namespace libtorrent;
 
@@ -639,7 +640,9 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a)
 				, std::ios_base::binary);
 			out.unsetf(std::ios_base::skipws);
 			bencode(std::ostream_iterator<char>(out), *p->resume_data);
-			if (h.is_paused() && !h.is_auto_managed()) ses.remove_torrent(h);
+			if (std::find_if(handles.begin(), handles.end()
+				, bind(&handles_t::value_type::second, _1) == h) == handles.end())
+				ses.remove_torrent(h);
 		}
 	}
 }
@@ -1218,7 +1221,7 @@ int main(int ac, char* av[])
 				std::stringstream event_string;
 
 				::print_alert(a.get(), event_string);
-				::handle_alert(ses, a.get());
+				::handle_alert(ses, a.get(), handles);
 
 				events.push_back(event_string.str());
 				if (events.size() >= 20) events.pop_front();
