@@ -3668,6 +3668,7 @@ namespace libtorrent
 		m_socket->async_connect(m_remote
 			, bind(&peer_connection::on_connection_complete, self(), _1));
 		m_connect = time_now();
+		m_statistics.sent_syn();
 
 		if (t->alerts().should_post<peer_connect_alert>())
 		{
@@ -3705,6 +3706,8 @@ namespace libtorrent
 		m_last_receive = time_now();
 
 		// this means the connection just succeeded
+
+		m_statistics.received_synack();
 
 		TORRENT_ASSERT(m_socket);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
