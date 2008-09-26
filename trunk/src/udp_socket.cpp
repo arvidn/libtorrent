@@ -111,6 +111,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 			s->async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
 				, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
 
+		++m_outstanding;
 		return;
 	}
 
