@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/hasher.hpp"
