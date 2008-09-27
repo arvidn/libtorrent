@@ -3080,7 +3080,8 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		INVARIANT_CHECK;
+// doesn't work with the m_paused -> m_num_peers == 0 condition
+//		INVARIANT_CHECK;
 
 		while (!m_connections.empty())
 		{
