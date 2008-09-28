@@ -250,7 +250,7 @@ namespace libtorrent
 			std::string error_str("invalid bencoding of tracker response: \"");
 			for (char const* i = data, *end(data + size); i != end; ++i)
 			{
-				if (std::isprint(*i)) error_str += *i;
+				if (*i >= ' ' && *i <= '~') error_str += *i;
 				else error_str += "0x" + boost::lexical_cast<std::string>((unsigned int)*i) + " ";
 			}
 			error_str += "\"";
