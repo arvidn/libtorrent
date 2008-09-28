@@ -179,7 +179,18 @@ if (WITH_TCMALLOC)
 	target_link_libraries(torrent tcmalloc)
 endif (WITH_TCMALLOC)
 
-target_link_libraries(torrent ${libraries} z)
+target_link_libraries(torrent z)
 include_directories(${includes})
 
+set(examples client_test dump_torrent simple_client enum_if make_torrent)
+
+foreach(s ${examples})
+	add_executable(${s} examples/${s}.cpp)
+	target_link_libraries(${s} torrent)
+endforeach(s)
+
+find_library(bpo boost_program_options-mt-1_35 ${library_search_paths})
+target_link_libraries(client_test ${bpo})
+find_library(regex boost_regex-mt-1_35 ${library_search_paths})
+target_link_libraries(client_test ${regex})
 
