@@ -58,6 +58,7 @@ set(sources
 	smart_ban
 )
 
+# -- kademlia --
 set(kademlia_sources
 	closest_nodes
 	dht_tracker
@@ -87,18 +88,19 @@ set(zlib_sources
 
 set(includes include zlib)
 
-option(WITH_TCMALLOC "link against google performance tools tcmalloc" OFF)
-option(USE_POOL_ALLOCATORS "Uses a pool allocator for disk and piece buffers" ON)
-option(ENABLE_ENCRYPTION "link against openssl and enable encryption" ON)
-option(ENABLE_GEOIP "link against LGPL GeoIP code from Maxmind, to enable geoip database support" OFF)
-option(ENABLE_DHT "enable support for Mainline DHT" ON)
-option(ENABLE_RESOLVE_COUNTRIES "enable support for resolving countries from peer IPs" ON)
-option(ENABLE_UNICODE "enable unicode support" ON)
-option(WITH_DEPRECATED_FUNCTIONS "enable deprecated functions for backwards compatibility" ON)
+option(shared "build libtorrent as a shared library" ON)
+option(tcmalloc "link against google performance tools tcmalloc" OFF)
+option(pool-allocators "Uses a pool allocator for disk and piece buffers" ON)
+option(encryption "link against openssl and enable encryption" ON)
+option(geoip "link against LGPL GeoIP code from Maxmind, to enable geoip database support" OFF)
+option(dht "enable support for Mainline DHT" ON)
+option(resolve-countries "enable support for resolving countries from peer IPs" ON)
+option(unicode "enable unicode support" ON)
+option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
 
-if (ENABLE_ENCRYPTION)
+if (encryption)
 	list(APPEND sources pe_crypto)
-endif (ENABLE_ENCRYPTION)
+endif (encryption)
 
 foreach(s ${sources})
 	list(APPEND sources2 src/${s})
@@ -107,16 +109,19 @@ foreach(s ${zlib_sources})
 	list(APPEND zlib_sources2 zlib/${s})
 endforeach(s)
 
-if (ENABLE_DHT)
+if (dht)
 	foreach(s ${kademlia_sources})
 		list(APPEND sources2 src/kademlia/${s})
 	endforeach(s)
-else (ENABLE_DHT)
+else (dht)
 	add_definitions(-DTORRENT_DISABLE_DHT)
-endif (ENABLE_DHT)
+endif (dht)
 
-add_library(z ${zlib_sources2})
-add_library(torrent SHARED ${sources2} ${kademlia_sources2} ${zlib_sources2})
+if (shared)
+	add_library(torrent SHARED ${sources2} ${zlib_sources2})
+else (shared)
+	add_library(torrent STATIC ${sources2} ${zlib_sources2})
+endif (shared)
 
 set(library_search_paths /usr/local/lib /usr/lib /opt/local/lib)
 find_library(fs boost_filesystem-mt-1_35 ${library_search_paths})
@@ -130,36 +135,36 @@ if (WIN32)
 	target_link_libraries(torrent wsock32 ws2_32)
 endif (WIN32)
 
-if (ENABLE_ENCRYPTION)
+if (encryption)
 	add_definitions(-DTORRENT_USE_OPENSSL)
 	if (WIN32)
 		target_link_libraries(torrent ssleay32 libeay32 advapi32 user32 shell32 gdi32)
 	else (WIN32)
 		target_link_libraries(torrent crypto ssl)
 	endif (WIN32)
-else (ENABLE_ENCRYPTION)
+else (encryption)
 	add_definitions(-DTORRENT_DISABLE_ENCRYPTION)
-endif (ENABLE_ENCRYPTION)
+endif (encryption)
 
-if (NOT USE_POOL_ALLOCATORS)
+if (NOT pool-allocators)
 	add_definitions(-DTORRENT_DISABLE_POOL_ALLOCATOR)
-endif (NOT USE_POOL_ALLOCATORS)
+endif (NOT pool-allocators)
 
-if (NOT ENABLE_GEOIP)
+if (NOT geoip)
 	add_definitions(-DTORRENT_DISABLE_GEO_IP)
-endif (NOT ENABLE_GEOIP)
+endif (NOT geoip)
 
-if (NOT ENABLE_RESOLVE_COUNTRIES)
+if (NOT resolve-countries)
 	add_definitions(-DTORRENT_DISABLE_RESOLVE_COUNTRIES)
-endif (NOT ENABLE_RESOLVE_COUNTRIES)
+endif (NOT resolve-countries)
 
-if (ENABLE_UNICODE)
+if (unicode)
 	add_definitions(-DUNICODE -D_UNICODE)
-endif (ENABLE_UNICODE)
+endif (unicode)
 
-if (NOT WITH_DEPRECATED_FUNCTIONS)
+if (NOT deprecated-functions)
 	add_definitions(-DTORRENT_NO_DEPRECATE)
-endif (NOT WITH_DEPRECATED_FUNCTIONS)
+endif (NOT deprecated-functions)
 
 if (MSVC)
 # disable bogus deprecation warnings on msvc8
@@ -175,12 +180,14 @@ message(${CMAKE_CONFIGURATION_TYPES})
 
 add_definitions(-D_FILE_OFFSET_BITS=64)
 
-if (WITH_TCMALLOC)
+if (tcmalloc)
 	target_link_libraries(torrent tcmalloc)
-endif (WITH_TCMALLOC)
+endif (tcmalloc)
 
 target_link_libraries(torrent z)
 include_directories(${includes})
+
+# === build examples ===
 
 set(examples client_test dump_torrent simple_client enum_if make_torrent)
 
@@ -193,4 +200,5 @@ find_library(bpo boost_program_options-mt-1_35 ${library_search_paths})
 target_link_libraries(client_test ${bpo})
 find_library(regex boost_regex-mt-1_35 ${library_search_paths})
 target_link_libraries(client_test ${regex})
+
 
