@@ -104,6 +104,7 @@ void bind_alert()
     class_<tracker_error_alert, bases<tracker_alert>, noncopyable>(
         "tracker_error_alert", tracker_error_alert_doc, no_init
     )
+        .def_readonly("msg", &tracker_error_alert::msg)
         .def_readonly("times_in_row", &tracker_error_alert::times_in_row)
         .def_readonly("status_code", &tracker_error_alert::status_code)
         ;
