@@ -317,6 +317,7 @@ void bind_torrent_handle()
         .def("move_storage", _(&torrent_handle::move_storage))
         .def("info_hash", _(&torrent_handle::info_hash))
         .def("force_recheck", _(&torrent_handle::force_recheck))
+        .def("rename_file", _(&torrent_handle::rename_file))
         ;
 }
 

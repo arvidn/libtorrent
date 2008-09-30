@@ -278,6 +278,7 @@ void bind_alert()
     class_<file_renamed_alert, bases<torrent_alert>, noncopyable>(
         "file_renamed_alert", no_init
     )
+        .def_readonly("index", &file_renamed_alert::index)
         .def_readonly("name", &file_renamed_alert::name)
         ;
 
@@ -285,6 +286,7 @@ void bind_alert()
         "file_rename_failed_alert", no_init
     )
         .def_readonly("index", &file_rename_failed_alert::index)
+        .def_readonly("msg", &file_rename_failed_alert::msg)
         ;
         
     class_<torrent_resumed_alert, bases<torrent_alert>, noncopyable>( 
