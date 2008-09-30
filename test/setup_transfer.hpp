@@ -39,7 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 void print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects = false
-	, bool allow_no_torrents = false);
+	, bool allow_no_torrents = false
+	, bool allow_failed_fastresume = false);
 void test_sleep(int millisec);
 
 boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0, int piece_size = 16 * 1024, int num_pieces = 1024 / 8);

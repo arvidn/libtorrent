@@ -417,7 +417,8 @@ void run_test(path const& test_path)
 
 void test_fastresume()
 {
-	std::cout << "=== test fastresume ===" << std::endl;
+	std::cout << "\n\n=== test fastresume ===" << std::endl;
+	remove_all("tmp1");
 	create_directory("tmp1");
 	std::ofstream file("tmp1/temporary");
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file);
@@ -427,15 +428,15 @@ void test_fastresume()
 	entry resume;
 	{
 		session ses;
+		ses.set_alert_mask(alert::all_categories);
 
 		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
 			, "tmp1", entry()
 			, storage_mode_compact);
 
-		h.rename_file(0, "testing_renamed_files");
-
 		for (int i = 0; i < 10; ++i)
 		{
+			print_alerts(ses, "ses");
 			test_sleep(1000);
 			torrent_status s = h.status();
 			if (s.progress == 1.0f) 
@@ -448,16 +449,15 @@ void test_fastresume()
 		ses.remove_torrent(h, session::delete_files);
 	}
 	TEST_CHECK(!exists("tmp1/temporary"));
-	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
 	resume.print(std::cout);
 
+	// make sure the fast resume check fails! since we removed the file
 	{
 		session ses;
 		ses.set_alert_mask(alert::all_categories);
 		torrent_handle h = ses.add_torrent(t, "tmp1", resume
 			, storage_mode_compact);
 	
-
 		std::auto_ptr<alert> a = ses.pop_alert();
 		ptime end = time_now() + seconds(20);
 		while (a.get() == 0 || dynamic_cast<fastresume_rejected_alert*>(a.get()) == 0)
@@ -473,10 +473,71 @@ void test_fastresume()
 		}
 		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) != 0);
 	}
+	remove_all("tmp1");
+}
+
+void test_rename_file_in_fastresume()
+{
+	std::cout << "\n\n=== test rename file in fastresume ===" << std::endl;
+	remove_all("tmp2");
+	create_directory("tmp2");
+	std::ofstream file("tmp2/temporary");
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file);
+	file.close();
+	TEST_CHECK(exists("tmp2/temporary"));
+
+	entry resume;
+	{
+		session ses;
+		ses.set_alert_mask(alert::all_categories);
+
+		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
+			, "tmp2", entry()
+			, storage_mode_compact);
+
+		h.rename_file(0, "testing_renamed_files");
+		for (int i = 0; i < 10; ++i)
+		{
+			print_alerts(ses, "ses");
+			test_sleep(1000);
+			torrent_status s = h.status();
+			if (s.progress == 1.0f) 
+			{
+				std::cout << "progress: 1.0f" << std::endl;
+				break;
+			}
+		}
+		resume = h.write_resume_data();
+		ses.remove_torrent(h);
+	}
+	TEST_CHECK(!exists("tmp2/temporary"));
+	TEST_CHECK(exists("tmp2/testing_renamed_files"));
+	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
+	resume.print(std::cout);
+
+	// make sure the fast resume check succeeds, even though we renamed the file
+	{
+		session ses;
+		ses.set_alert_mask(alert::all_categories);
+		torrent_handle h = ses.add_torrent(t, "tmp2", resume
+			, storage_mode_compact);
+	
+		for (int i = 0; i < 5; ++i)
+		{
+			print_alerts(ses, "ses");
+			test_sleep(1000);
+		}
+		torrent_status stat = h.status();
+		TEST_CHECK(stat.state == torrent_status::seeding);
+	}
+	remove_all("tmp2");
 }
 
 int test_main()
 {
+	test_fastresume();
+	test_rename_file_in_fastresume();
+
 	std::vector<path> test_paths;
 	char* env = std::getenv("TORRENT_TEST_PATHS");
 	if (env == 0)
@@ -494,8 +555,6 @@ int test_main()
 	}
 
 	std::for_each(test_paths.begin(), test_paths.end(), bind(&run_test, _1));
-
-	test_fastresume();
 
 	return 0;
 }
