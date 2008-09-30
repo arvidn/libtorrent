@@ -1143,7 +1143,8 @@ namespace aux {
 		int free_slots = m_half_open.free_slots();
 		if (!m_torrents.empty()
 			&& free_slots > -m_half_open.limit()
-			&& num_connections() < m_max_connections)
+			&& num_connections() < m_max_connections
+			&& !m_abort)
 		{
 			// this is the maximum number of connections we will
 			// attempt this tick
