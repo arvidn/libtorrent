@@ -93,7 +93,6 @@ rule linking ( properties * )
 	{
 		result += <library>boost_filesystem
 			<library>boost_thread
-			<library>boost_iostreams
 			<library>boost_system
 		;
 	}
@@ -113,7 +112,6 @@ rule linking ( properties * )
 		{
 			result += <library>/boost/thread//boost_thread/<link>static
 				<library>/boost/filesystem//boost_filesystem/<link>static
-				<library>/boost/iostreams//boost_iostreams/<link>static
 				<library>/boost/system//boost_system/<link>static
 				<include>$(BOOST_ROOT)
 				<define>BOOST_ALL_NO_LIB
@@ -123,7 +121,6 @@ rule linking ( properties * )
 		{
 			result += <library>/boost/thread//boost_thread/<link>shared
 				<library>/boost/filesystem//boost_filesystem/<link>shared
-				<library>/boost/iostreams//boost_iostreams/<link>shared
 				<library>/boost/system//boost_system/<link>shared
 				<include>$(BOOST_ROOT)
 				<define>BOOST_ALL_NO_LIB
@@ -263,7 +260,6 @@ local library-search-path = <search>/opt/local/lib <search>/usr/lib <search>/usr
 
 lib boost_filesystem : : <name>boost_filesystem $(library-search-path) ;
 lib boost_thread : : <name>boost_thread $(library-search-path) ;
-lib boost_iostreams : : <name>boost_iostreams $(library-search-path) ;
 lib boost_system : : <name>boost_system $(library-search-path) ;
 
 # openssl on linux/bsd/macos etc.
