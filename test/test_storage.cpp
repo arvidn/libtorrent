@@ -432,6 +432,8 @@ void test_fastresume()
 			, "tmp1", entry()
 			, storage_mode_compact);
 
+		h.rename_file(0, "testing_renamed_files");
+
 		for (int i = 0; i < 10; ++i)
 		{
 			test_sleep(1000);
@@ -446,6 +448,7 @@ void test_fastresume()
 		ses.remove_torrent(h, session::delete_files);
 	}
 	TEST_CHECK(!exists("tmp1/temporary"));
+	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
 	resume.print(std::cout);
 
 	{
