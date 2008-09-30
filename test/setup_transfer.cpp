@@ -50,7 +50,8 @@ using boost::filesystem::remove_all;
 using boost::filesystem::create_directory;
 using namespace libtorrent;
 
-void print_alerts(libtorrent::session& ses, char const* name, bool allow_disconnects, bool allow_no_torrents)
+void print_alerts(libtorrent::session& ses, char const* name
+	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume)
 {
 	std::vector<torrent_handle> handles = ses.get_torrents();
 	TEST_CHECK(!handles.empty() || allow_no_torrents);
@@ -70,6 +71,8 @@ void print_alerts(libtorrent::session& ses, char const* name, bool allow_disconn
 		{
 			std::cerr << name << ": " << a->message() << "\n";
 		}
+		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) == 0 || allow_failed_fastresume);
+
 		TEST_CHECK(dynamic_cast<peer_error_alert*>(a.get()) == 0
 			|| (!handles.empty() && h.is_seed())
 			|| a->message() == "connecting to peer"
