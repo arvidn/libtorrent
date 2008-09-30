@@ -587,6 +587,7 @@ namespace libtorrent
 			// if old path doesn't exist, just rename the file
 			// in our file_storage, so that when it is created
 			// it will get the new name
+			create_directories(new_path.branch_path());
 			if (exists(old_path)) rename(old_path, new_path);
 /*
 			error_code ec;
