@@ -93,6 +93,7 @@ namespace libtorrent
 		~torrent_info();
 
 		file_storage const& files() const { return m_files; }
+		file_storage& files() { return m_files; }
 
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }

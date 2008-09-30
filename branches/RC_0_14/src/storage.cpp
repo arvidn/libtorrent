@@ -53,6 +53,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
+#if BOOST_VERSION >= 103500
+#include <boost/system/system_error.hpp>
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -581,7 +584,10 @@ namespace libtorrent
 		try
 		{
 #endif
-			rename(old_path, new_path);
+			// if old path doesn't exist, just rename the file
+			// in our file_storage, so that when it is created
+			// it will get the new name
+			if (exists(old_path)) rename(old_path, new_path);
 /*
 			error_code ec;
 			rename(old_path, new_path, ec);
@@ -596,6 +602,13 @@ namespace libtorrent
 			m_mapped_files->rename_file(index, new_filename);
 #ifndef BOOST_NO_EXCEPTIONS
 		}
+#if BOOST_VERSION >= 103500
+		catch (boost::system::system_error& e)
+		{
+			set_error(old_name, e.code());
+			return true;
+		}
+#endif
 		catch (std::exception& e)
 		{
 			set_error(old_name, error_code(errno, get_posix_category()));
@@ -724,15 +737,6 @@ namespace libtorrent
 			m_file_priority.resize(file_priority->list_size());
 			for (int i = 0; i < file_priority->list_size(); ++i)
 				m_file_priority[i] = file_priority->list_int_value_at(i, 1);
-		}
-
-		lazy_entry const* mapped_files = rd.dict_find_list("mapped_files");
-		if (mapped_files && mapped_files->list_size() == m_files.num_files())
-		{
-			if (!m_mapped_files)
-			{ m_mapped_files.reset(new file_storage(m_files)); }
-			for (int i = 0; i < m_files.num_files(); ++i)
-				m_mapped_files->rename_file(i, mapped_files->list_string_value_at(i));
 		}
 
 		std::vector<std::pair<size_type, std::time_t> > file_sizes;
