@@ -12,58 +12,61 @@ using namespace libtorrent;
 namespace
 {
 
-  std::vector<announce_entry>::const_iterator begin_trackers(torrent_info& i)
-  {
-      return i.trackers().begin();
-  }
+    std::vector<announce_entry>::const_iterator begin_trackers(torrent_info& i)
+    {
+        return i.trackers().begin();
+    }
 
-  std::vector<announce_entry>::const_iterator end_trackers(torrent_info& i)
-  {
-      return i.trackers().end();
-  }
+    std::vector<announce_entry>::const_iterator end_trackers(torrent_info& i)
+    {
+        return i.trackers().end();
+    }
 
-  void add_node(torrent_info& ti, char const* hostname, int port)
-  {
-      ti.add_node(std::make_pair(hostname, port));
-  }
+    void add_node(torrent_info& ti, char const* hostname, int port)
+    {
+        ti.add_node(std::make_pair(hostname, port));
+    }
 
-  list nodes(torrent_info const& ti)
-  {
-      list result;
+    list nodes(torrent_info const& ti)
+    {
+        list result;
 
-      typedef std::vector<std::pair<std::string, int> > list_type;
+        typedef std::vector<std::pair<std::string, int> > list_type;
 
-      for (list_type::const_iterator i = ti.nodes().begin(); i != ti.nodes().end(); ++i)
-      {
-          result.append(make_tuple(i->first, i->second));
-      }
+        for (list_type::const_iterator i = ti.nodes().begin(); i != ti.nodes().end(); ++i)
+        {
+            result.append(make_tuple(i->first, i->second));
+        }
 
-      return result;
-  }
+        return result;
+    }
 
-  file_storage::iterator begin_files(torrent_info& i)
-  {
-      return i.begin_files();
-  }
+    file_storage::iterator begin_files(torrent_info& i)
+    {
+        return i.begin_files();
+    }
 
-  file_storage::iterator end_files(torrent_info& i)
-  {
-      return i.end_files();
-  }
+    file_storage::iterator end_files(torrent_info& i)
+    {
+        return i.end_files();
+    }
 
-  //list files(torrent_info const& ti, bool storage) {
-  list files(torrent_info const& ti, bool storage) {
-      list result;
+    //list files(torrent_info const& ti, bool storage) {
+    list files(torrent_info const& ti, bool storage) {
+        list result;
 
-      typedef std::vector<file_entry> list_type;
+        typedef std::vector<file_entry> list_type;
 
-      for (list_type::const_iterator i = ti.begin_files(); i != ti.end_files(); ++i)
-          result.append(*i);
+        for (list_type::const_iterator i = ti.begin_files(); i != ti.end_files(); ++i)
+            result.append(*i);
 
-      return result;
-  }
+        return result;
+    }
 
-
+    std::string metadata(torrent_info const& ti) {
+        std::string result(ti.metadata().get(), ti.metadata_size());
+        return result;
+    }
 } // namespace unnamed
 
 void bind_torrent_info()
@@ -101,6 +104,8 @@ void bind_torrent_info()
 
         .def("add_node", &add_node)
         .def("nodes", &nodes)
+        .def("metadata", &metadata)
+        .def("metadata_size", &torrent_info::metadata_size)
         ;
 
     class_<file_entry>("file_entry")
