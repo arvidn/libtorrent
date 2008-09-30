@@ -1081,19 +1081,18 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
 		if (!m_supports_dht_port)
 		{
 			disconnect("got 'dht_port' message from peer that doesn't support it", 2);
 			return;
 		}
-
-		TORRENT_ASSERT(received > 0);
 		if (packet_size() != 3)
 		{
 			disconnect("'dht_port' message size != 3", 2);
 			return;
 		}
-		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -1108,13 +1107,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
 			disconnect("got 'suggest_piece' without FAST excension support", 2);
 			return;
 		}
 
-		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -1128,12 +1127,12 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
 			disconnect("got 'have_all' without FAST extension support", 2);
 			return;
 		}
-		m_statistics.received_bytes(0, received);
 		incoming_have_all();
 	}
 
@@ -1141,12 +1140,12 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
 			disconnect("got 'have_none' without FAST extension support", 2);
 			return;
 		}
-		m_statistics.received_bytes(0, received);
 		incoming_have_none();
 	}
 
@@ -1154,13 +1153,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
 			disconnect("got 'reject_request' without FAST extension support", 2);
 			return;
 		}
 
-		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -1178,13 +1177,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
 			disconnect("got 'allowed_fast' without FAST extension support", 2);
 			return;
 		}
 
-		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 		buffer::const_interval recv_buffer = receive_buffer();
 		const char* ptr = recv_buffer.begin + 1;
