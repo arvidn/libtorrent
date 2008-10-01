@@ -142,6 +142,7 @@ namespace libtorrent
 			, max_peerlist_size(8000)
 			, min_announce_interval(5 * 60)
 			, prioritize_partial_pieces(false)
+			, auto_manage_startup(120)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -441,6 +442,14 @@ namespace libtorrent
 		// if true, partial pieces are picked before pieces
 		// that are more rare
 		bool prioritize_partial_pieces;
+
+		// the number of seconds a torrent is considered
+		// active after it was started, regardless of
+		// upload and download speed. This is so that
+		// newly started torrents are not considered
+		// inactive until they have a fair chance to
+		// start downloading.
+		int auto_manage_startup;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
