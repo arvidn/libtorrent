@@ -255,9 +255,17 @@ void bind_session()
         .value("delete_files", session::delete_files)
     ;
 
+    enum_<session::session_flags_t>("session_flags_t")
+        .value("add_default_plugins", session::add_default_plugins)
+        .value("start_default_features", session::start_default_features)
+    ;
+    
     class_<session, boost::noncopyable>("session", session_doc, no_init)
         .def(
-            init<fingerprint>(arg("fingerprint")=fingerprint("LT",0,1,0,0), session_init_doc)
+            init<fingerprint, int>((
+                arg("fingerprint")=fingerprint("LT",0,1,0,0)
+                , arg("flags")=session::start_default_features | session::add_default_plugins)
+                , session_init_doc)
         )
         .def(
             "listen_on", &listen_on
