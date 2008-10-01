@@ -814,12 +814,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
 		if (packet_size() != 1)
 		{
 			disconnect("'choke' message size != 1", 2);
 			return;
 		}
-		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		incoming_choke();
@@ -849,12 +849,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
 		if (packet_size() != 1)
 		{
 			disconnect("'unchoke' message size != 1", 2);
 			return;
 		}
-		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		incoming_unchoke();
@@ -869,12 +869,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
 		if (packet_size() != 1)
 		{
 			disconnect("'interested' message size != 1", 2);
 			return;
 		}
-		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		incoming_interested();
@@ -889,12 +889,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
 		if (packet_size() != 1)
 		{
 			disconnect("'not interested' message size != 1", 2);
 			return;
 		}
-		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		incoming_not_interested();
@@ -909,12 +909,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
 		if (packet_size() != 5)
 		{
 			disconnect("'have' message size != 5", 2);
 			return;
 		}
-		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -938,6 +938,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
+		m_statistics.received_bytes(0, received);
 		// if we don't have the metedata, we cannot
 		// verify the bitfield size
 		if (t->valid_metadata()
@@ -951,7 +952,6 @@ namespace libtorrent
 			return;
 		}
 
-		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -972,12 +972,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
 		if (packet_size() != 13)
 		{
 			disconnect("'request' message size != 13", 2);
 			return;
 		}
-		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -1008,7 +1008,10 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(!has_disk_receive_buffer());
 			if (!allocate_disk_receive_buffer(packet_size() - 9))
+			{
+				m_statistics.received_bytes(0, received);
 				return;
+			}
 		}
 		TORRENT_ASSERT(has_disk_receive_buffer());
 
@@ -1054,12 +1057,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
 		if (packet_size() != 13)
 		{
 			disconnect("'cancel' message size != 13", 2);
 			return;
 		}
-		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
