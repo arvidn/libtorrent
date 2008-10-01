@@ -217,6 +217,7 @@ namespace libtorrent
 		void pause();
 		void resume();
 
+		ptime started() const { return m_started; }
 		void do_pause();
 		void do_resume();
 

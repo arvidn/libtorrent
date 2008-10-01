@@ -1290,7 +1290,8 @@ namespace aux {
 		{
 			return !(s.dont_count_slow_torrents
 				&& t->statistics().upload_payload_rate() == 0.f
-				&& t->statistics().download_payload_rate() == 0.f);
+				&& t->statistics().download_payload_rate() == 0.f
+				&& time_now() - t->started() > seconds(s.auto_manage_startup));
 		}
 	}
 

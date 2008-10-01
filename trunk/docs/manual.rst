@@ -2981,6 +2981,9 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int max_peerlist_size;
 
 		int min_announce_interval;
+
+		bool prioritize_partial_pieces;
+		int auto_manage_startup;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3251,6 +3254,16 @@ added to the list.
 for a tracker. This is specified in seconds, defaults to 5 minutes and
 is used as a sanity check on what is returned from a tracker. It
 mitigates hammering misconfigured trackers.
+
+If ``prioritize_partial_pieces`` is true, partial pieces are picked
+before pieces that are more rare. If false, rare pieces are always
+prioritized, unless the number of partial pieces is growing out of
+proportion.
+
+``auto_manage_startup`` is the number of seconds a torrent is considered
+active after it was started, regardless of upload and download speed. This
+is so that newly started torrents are not considered inactive until they
+have a fair chance to start downloading.
 
 
 pe_settings
