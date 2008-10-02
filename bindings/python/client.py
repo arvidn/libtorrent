@@ -223,8 +223,9 @@ def main():
     ses.listen_on(options.port, options.port + 10)
     ses.set_settings(settings)
     ses.set_severity_level(lt.alert.severity_levels.info)
-#    ses.add_extension(lt.create_ut_pex_plugin);
-#    ses.add_extension(lt.create_metadata_plugin);
+    ses.add_extension(lt.create_ut_pex_plugin)
+    ses.add_extension(lt.create_ut_metadata_plugin)
+    ses.add_extension(lt.create_metadata_plugin)
 
     handles = []
     alerts = []
@@ -241,17 +242,24 @@ def main():
             resume_data = lt.bdecode(open(
                 os.path.join(options.save_path, info.name() + '.fastresume'), 'rb').read())
         except:
-            resume_data = None
+            resume_data = ""
 
-        h = ses.add_torrent(info, options.save_path, 
-                resume_data, lt.storage_mode_t.storage_mode_sparse)
+        atp = {}
+        atp["ti"] = info
+        atp["save_path"] = options.save_path
+        atp["resume_data"] = resume_data
+        atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
+        atp["paused"] = False
+        atp["auto_managed"] = True
+        atp["duplicate_is_error"] = True
+        
+        h = ses.add_torrent(atp)
 
         handles.append(h)
 
         h.set_max_connections(60)
         h.set_max_uploads(-1)
         h.set_ratio(options.ratio)
-        h.set_sequenced_download_threshold(15)
 
     if os.name == 'nt':
         console = WindowsConsole()
@@ -274,7 +282,7 @@ def main():
             s = h.status()
 
             if s.state != lt.torrent_status.seeding:
-                state_str = ['queued', 'checking', 'connecting', 'downloading metadata', \
+                state_str = ['queued', 'checking', 'downloading metadata', \
                              'downloading', 'finished', 'seeding', 'allocating']
                 out += state_str[s.state] + ' '
 
@@ -328,7 +336,7 @@ def main():
             if type(a) == str:
                 write_line(console, a + '\n')
             else:
-                write_line(console, a.msg() + '\n')
+                write_line(console, a.message() + '\n')
 
         c = console.sleep_and_input(0.5)
 
