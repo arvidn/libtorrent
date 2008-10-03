@@ -128,7 +128,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	void file_storage::add_file(fs::path const& file, size_type size)
+	void file_storage::add_file(fs::path const& file, size_type size, bool pad_file)
 	{
 		TORRENT_ASSERT(size >= 0);
 #if BOOST_VERSION < 103600
@@ -151,6 +151,7 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(m_name == *file.begin());
 		file_entry e;
+		e.pad_file = pad_file;
 		m_files.push_back(e);
 		m_files.back().size = size;
 		m_files.back().path = file;
@@ -160,7 +161,7 @@ namespace libtorrent
 
 	void file_storage::add_file(file_entry const& e)
 	{
-		add_file(e.path, e.size);
+		add_file(e.path, e.size, e.pad_file);
 	}
 }
 

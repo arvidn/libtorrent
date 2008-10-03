@@ -506,6 +506,27 @@ namespace libtorrent
 			}
 		}
 	
+		TORRENT_ASSERT(m_block_size > 0);
+		int file = 0;
+		for (file_storage::iterator i = m_torrent_file->files().begin()
+			, end(m_torrent_file->files().end()); i != end; ++i, ++file)
+		{
+			if (!i->pad_file) continue;
+			
+			peer_request pr = m_torrent_file->map_file(file, 0, m_torrent_file->file_at(file).size);
+			int off = pr.start % m_block_size;
+			if (off != 0) { pr.length -= m_block_size - off; pr.start += m_block_size - off; }
+			TORRENT_ASSERT((pr.start % m_block_size) == 0);
+
+			int blocks_per_piece = m_torrent_file->piece_length() / m_block_size;
+			piece_block pb(pr.piece, pr.start / m_block_size);
+			for (; pr.length >= m_block_size; pr.length -= m_block_size, ++pb.block_index)
+			{
+				if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
+				m_picker->mark_as_finished(pb, 0);
+			}
+		}
+
 		m_storage->async_check_fastresume(&m_resume_entry
 			, bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1, _2));

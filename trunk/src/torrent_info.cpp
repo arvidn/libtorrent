@@ -187,6 +187,11 @@ namespace
 		verify_encoding(target);
 		if (target.path.is_complete())
 			return false;
+
+		// bitcomet pad file
+		if (target.path.filename().substr(0, 18) == "_____padding_file_")
+			target.pad_file = true;
+
 		return true;
 	}
 
@@ -416,6 +421,9 @@ namespace libtorrent
 			e.path = name;
 			e.offset = 0;
 			e.size = info.dict_find_int_value("length", -1);
+			// bitcomet pad file
+			if (e.path.filename().substr(0, 18) == "_____padding_file_")
+				e.pad_file = true;
 			if (e.size < 0)
 			{
 				error = "invalid length of torrent";
