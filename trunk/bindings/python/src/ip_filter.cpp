@@ -13,16 +13,21 @@ namespace
 {
     void add_rule(ip_filter& filter, std::string start, std::string end, int flags)
     {
-        return filter.add_rule(address_v4::from_string(start), address_v4::from_string(end), flags);
+        return filter.add_rule(address::from_string(start), address::from_string(end), flags);
+    }
+    
+    int _access(ip_filter& filter, std::string addr)
+    {
+        return filter.access(address::from_string(addr));
     }
 }
 
 void bind_ip_filter()
 {
     class_<ip_filter>("ip_filter")
-        .def("add_rule", &add_rule)
-        .def("access", allow_threads(&ip_filter::access))
-        .def_readonly("export_filter", allow_threads(&ip_filter::export_filter))
+        .def("add_rule", add_rule)
+        .def("access", _access)
+        .def("export_filter", allow_threads(&ip_filter::export_filter))
     ;
 }
 
