@@ -189,7 +189,12 @@ namespace
 			return false;
 
 		// bitcomet pad file
+
+#if BOOST_VERSION < 103600
+		if (target.path.leaf().substr(0, 18) == "_____padding_file_")
+#else
 		if (target.path.filename().substr(0, 18) == "_____padding_file_")
+#endif
 			target.pad_file = true;
 
 		return true;
@@ -422,7 +427,11 @@ namespace libtorrent
 			e.offset = 0;
 			e.size = info.dict_find_int_value("length", -1);
 			// bitcomet pad file
+#if BOOST_VERSION < 103600
+			if (e.path.leaf().substr(0, 18) == "_____padding_file_")
+#else
 			if (e.path.filename().substr(0, 18) == "_____padding_file_")
+#endif
 				e.pad_file = true;
 			if (e.size < 0)
 			{
