@@ -107,18 +107,6 @@ AX_BOOST_BASE([1.35],[
 AC_MSG_NOTICE([BOOST_CPPFLAGS=$BOOST_CPPFLAGS])
 AC_MSG_NOTICE([BOOST_LDFLAGS=$BOOST_LDFLAGS])
 
-AX_BOOST_IOSTREAMS
-dnl check that Boost.IOStreams was found:
-if test -z "$BOOST_IOSTREAMS_LIB"; then
-   AC_MSG_ERROR([unable to find Boost.IOStreams library, currently this is required.])
-fi
-
-AX_BOOST_DATE_TIME
-dnl check that Boost.DateTime was found:
-if test -z "$BOOST_DATE_TIME_LIB"; then
-   AC_MSG_ERROR([Unable to find Boost.DateTime library, currently this is required.])
-fi
-
 AX_BOOST_FILESYSTEM
 dnl check that Boost.Filesystem was found:
 if test -z "$BOOST_FILESYSTEM_LIB"; then
