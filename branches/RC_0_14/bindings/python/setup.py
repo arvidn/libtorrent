@@ -39,12 +39,8 @@ ltmod = Extension(
                         'src/torrent_status.cpp',
                         'src/utility.cpp',      
                         'src/version.cpp' ],    
-            **pkgconfig('libtorrent',
-                libraries = [ 'boost_python', 
-                              'boost_date_time',          
-                              'boost_filesystem',         
-                              'boost_system',          
-                            ],                          
+            **pkgconfig('libtorrent-rasterbar',
+                libraries = [ 'boost_python-mt-1_35' ], 
             )           
         );      
 
