@@ -4132,7 +4132,7 @@ The ``num_peers`` tells how many peers were returned from the tracker. This is
 not necessarily all new peers, some of them may already be connected.
 
 dht_reply_alert
--------------------
+---------------
 
 This alert is generated each time the DHT receives peers from a node. ``num_peers``
 is the number of peers we received in this packet. Typically these packets are
