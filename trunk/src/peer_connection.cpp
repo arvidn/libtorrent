@@ -3608,6 +3608,12 @@ namespace libtorrent
 
 	void peer_connection::connect(int ticket)
 	{
+#ifndef NDEBUG
+		// in case we disconnect here, we need to
+		// keep the connection alive until the
+		// exit invariant check is run
+		boost::intrusive_ptr<peer_connection> me(self());
+#endif
 		INVARIANT_CHECK;
 
 		error_code ec;
