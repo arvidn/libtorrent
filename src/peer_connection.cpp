@@ -3881,7 +3881,7 @@ namespace libtorrent
 				TORRENT_ASSERT(m_disconnect_started);
 		}
 
-		if (!m_disconnect_started)
+		if (!m_disconnect_started && m_initialized)
 		{
 			// none of this matters if we're disconnecting anyway
 			if (t->is_finished())
