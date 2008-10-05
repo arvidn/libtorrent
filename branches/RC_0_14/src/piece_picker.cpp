@@ -1046,7 +1046,9 @@ namespace libtorrent
 	// be removed from the available piece list.
 	void piece_picker::we_have(int index)
 	{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+#endif
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < (int)m_piece_map.size());
 
