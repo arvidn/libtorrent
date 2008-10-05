@@ -229,6 +229,7 @@ namespace libtorrent
 		if (ec) return -1;
 		if (s > 5000000) return -2;
 		v.resize(s);
+		if (s == 0) return 0;
 		f.seek(0, file::begin, ec);
 		if (ec) return -1;
 		size_type read = f.read(&v[0], s, ec);
