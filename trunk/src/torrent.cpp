@@ -3299,6 +3299,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(is_finished());
+		TORRENT_ASSERT(m_state != torrent_status::finished && m_state != torrent_status::seeding);
+
 		if (alerts().should_post<torrent_finished_alert>())
 		{
 			alerts().post_alert(torrent_finished_alert(
@@ -3429,7 +3432,10 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 		INVARIANT_CHECK;
 
-		set_state(torrent_status::downloading);
+		// we might be finished already, in which case we should
+		// not switch to downloading mode.
+		if (m_state != torrent_status::finished)
+			set_state(torrent_status::downloading);
 
 		if (m_ses.m_alerts.should_post<torrent_checked_alert>())
 		{
@@ -4463,6 +4469,15 @@ namespace libtorrent
 	
 	void torrent::set_state(torrent_status::state_t s)
 	{
+#ifndef NDEBUG
+		if (s == torrent_status::seeding)
+			TORRENT_ASSERT(is_seed());
+		if (s == torrent_status::finished)
+			TORRENT_ASSERT(is_finished());
+		if (s == torrent_status::downloading && m_state == torrent_status::finished)
+			TORRENT_ASSERT(!is_finished());
+#endif
+
 		if (m_state == s) return;
 		m_state = s;
 		if (m_ses.m_alerts.should_post<state_changed_alert>())
