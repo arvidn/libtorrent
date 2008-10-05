@@ -635,20 +635,6 @@ namespace libtorrent
 		TORRENT_ASSERT(j.storage);
 		TORRENT_ASSERT(j.buffer_size <= m_block_size);
 		mutex_t::scoped_lock l(m_queue_mutex);
-#ifndef NDEBUG
-		mutex_t::scoped_lock l2(m_piece_mutex);
-		if (j.action == disk_io_job::write)
-		{
-			cache_t::iterator p
-				= find_cached_piece(m_pieces, j, l2);
-			if (p != m_pieces.end())
-			{
-				int block = j.offset / m_block_size;
-				char const* buffer = p->blocks[block];
-				TORRENT_ASSERT(buffer == 0);
-			}
-		}
-#endif
 
 		std::list<disk_io_job>::reverse_iterator i = m_jobs.rbegin();
 		if (j.action == disk_io_job::read)
