@@ -2839,7 +2839,8 @@ namespace libtorrent
 			pi.writing = (int)i->writing;
 			pi.requested = (int)i->requested;
 			int piece_size = int(torrent_file().piece_size(i->index));
-			for (int j = 0; j < pi.blocks_in_piece; ++j)
+			int num_blocks = (std::min)(pi.blocks_in_piece, int(partial_piece_info::max_blocks_per_piece));
+			for (int j = 0; j < num_blocks; ++j)
 			{
 				block_info& bi = pi.blocks[j];
 				bi.state = i->info[j].state;
