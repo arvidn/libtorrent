@@ -3450,12 +3450,12 @@ namespace libtorrent
 			if (m_ses.m_auto_manage_time_scaler > 1)
 				m_ses.m_auto_manage_time_scaler = 1;
 
-			if (is_finished()) finished();
+			if (is_finished() && m_state != torrent_status::finished) finished();
 		}
 		else
 		{
 			m_complete_sent = true;
-			finished();
+			if (m_state != torrent_status::finished) finished();
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
