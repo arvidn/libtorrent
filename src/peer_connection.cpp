@@ -2691,6 +2691,8 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_disk_recv_buffer);
 		TORRENT_ASSERT(disk_buffer_size <= 16 * 1024);
 
+		if (disk_buffer_size == 0) return true;
+
 		if (disk_buffer_size > 16 * 1024)
 		{
 			disconnect("invalid piece size", 2);
