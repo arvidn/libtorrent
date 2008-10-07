@@ -35,8 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include <boost/thread/xtime.hpp>
 
-enum { queue_size_limit = 1000 };
-
 namespace libtorrent {
 
 	alert::alert() : m_timestamp(time_now()) {}
@@ -45,6 +43,7 @@ namespace libtorrent {
 
 	alert_manager::alert_manager()
 		: m_alert_mask(alert::error_notification)
+		, m_queue_size_limit(queue_size_limit_default)
 	{}
 
 	alert_manager::~alert_manager()
@@ -85,7 +84,7 @@ namespace libtorrent {
 	{
 		boost::mutex::scoped_lock lock(m_mutex);
 
-		if (m_alerts.size() >= queue_size_limit) return;
+		if (m_alerts.size() >= m_queue_size_limit) return;
 		m_alerts.push(alert_.clone().release());
 		m_condition.notify_all();
 	}
@@ -106,6 +105,14 @@ namespace libtorrent {
 		boost::mutex::scoped_lock lock(m_mutex);
 		
 		return !m_alerts.empty();
+	}
+
+	size_t alert_manager::set_alert_queue_size_limit(size_t queue_size_limit_)
+	{
+		boost::mutex::scoped_lock lock(m_mutex);
+
+		std::swap(m_queue_size_limit, queue_size_limit_);
+		return queue_size_limit_;
 	}
 
 } // namespace libtorrent

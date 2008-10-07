@@ -553,6 +553,11 @@ namespace libtorrent
 		m_impl->set_alert_mask(m);
 	}
 
+	size_t set_alert_queue_size_limit(size_t queue_size_limit_);
+	{
+		return m_impl->set_alert_queue_size_limit(queue_size_limit_);
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
 	void session::set_severity_level(alert::severity_t s)
 	{

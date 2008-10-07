@@ -331,6 +331,7 @@ namespace libtorrent
 		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;
 #endif
 		void set_alert_mask(int m);
+		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 		alert const* wait_for_alert(time_duration max_wait);
 
