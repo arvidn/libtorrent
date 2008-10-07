@@ -111,6 +111,8 @@ namespace libtorrent {
 	class TORRENT_EXPORT alert_manager
 	{
 	public:
+		enum { queue_size_limit_default = 1000 };
+
 		alert_manager();
 		~alert_manager();
 
@@ -125,11 +127,15 @@ namespace libtorrent {
 
 		void set_alert_mask(int m) { m_alert_mask = m; }
 
+		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
+		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
+
 	private:
 		std::queue<alert*> m_alerts;
 		mutable boost::mutex m_mutex;
 		boost::condition m_condition;
 		int m_alert_mask;
+		size_t m_queue_size_limit;
 	};
 
 	struct TORRENT_EXPORT unhandled_alert : std::exception

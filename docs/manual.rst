@@ -151,6 +151,7 @@ The ``session`` class has the following synopsis::
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
 		void set_alert_mask(int m);
+		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 		void add_extension(boost::function<
 			boost::shared_ptr<torrent_plugin>(torrent*)> ext);
@@ -742,14 +743,15 @@ with a DHT ping packet, and connect to those that responds first. On windows one
 can only connect to a few peers at a time because of a built in limitation (in XP
 Service pack 2).
 
-pop_alert() set_alert_mask() wait_for_alert()
----------------------------------------------
+pop_alert() set_alert_mask() wait_for_alert() set_alert_queue_size_limit()
+--------------------------------------------------------------------------
 
 	::
 
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
 		void set_alert_mask(int m);
+		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 ``pop_alert()`` is used to ask the session if any errors or events has occurred. With
 ``set_alert_mask()`` you can filter which alerts to receive through ``pop_alert()``.
@@ -763,6 +765,9 @@ same pointer until the alert is popped by calling ``pop_alert``. This is useful 
 leaving any alert dispatching mechanism independent of this blocking call, the dispatcher
 can be called and it can pop the alert independently.
 
+``set_alert_queue_size_limit()`` you can specify how many alerts can be awaiting for dispatching.
+If this limit is reached, new incoming alerts can not be received until alerts are popped
+by calling ``pop_alert``. Default value is 1000.
 
 add_extension()
 ---------------

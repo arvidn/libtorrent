@@ -2312,6 +2312,12 @@ namespace aux {
 		m_alerts.set_alert_mask(m);
 	}
 
+	size_t session_impl::set_alert_queue_size_limit(size_t queue_size_limit_)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		return m_alerts.set_alert_queue_size_limit(queue_size_limit_);
+	}
+
 	int session_impl::upload_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
