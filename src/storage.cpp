@@ -2222,7 +2222,11 @@ namespace libtorrent
 		if (num_read < 0)
 		{
 			if (m_storage->error()
+#ifdef TORRENT_WINDOWS
+				&& m_storage->error() != error_code(ERROR_FILE_NOT_FOUND, get_system_category()))
+#else
 				&& m_storage->error() != error_code(ENOENT, get_posix_category()))
+#endif
 			{
 				std::cerr << m_storage->error().message() << std::endl;
 				return -1;
