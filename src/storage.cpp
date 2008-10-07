@@ -1057,7 +1057,7 @@ namespace libtorrent
 
 			read_bytes = left_to_read;
 			if (file_offset + read_bytes > file_iter->size)
-				read_bytes = std::max(static_cast<int>(file_iter->size - file_offset), 0);
+				read_bytes = (std::max)(static_cast<int>(file_iter->size - file_offset), 0);
 
 			if (read_bytes == 0) continue;
 
@@ -1177,7 +1177,7 @@ namespace libtorrent
 
 			write_bytes = left_to_write;
 			if (file_offset + write_bytes > file_iter->size)
-				write_bytes = std::max(static_cast<int>(file_iter->size - file_offset), 0);
+				write_bytes = (std::max)(static_cast<int>(file_iter->size - file_offset), 0);
 
 			if (write_bytes == 0) continue;
 
