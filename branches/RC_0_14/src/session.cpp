@@ -553,7 +553,7 @@ namespace libtorrent
 		m_impl->set_alert_mask(m);
 	}
 
-	size_t set_alert_queue_size_limit(size_t queue_size_limit_)
+	size_t session::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
 		return m_impl->set_alert_queue_size_limit(queue_size_limit_);
 	}
