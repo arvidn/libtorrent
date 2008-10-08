@@ -148,6 +148,16 @@ void prioritize_files(torrent_handle& info, object o)
    }
 }
 
+list file_priorities(torrent_handle& handle)
+{
+    list ret;
+    std::vector<int> priorities = handle.file_priorities();
+    
+    for (std::vector<int>::iterator i = priorities.begin(); i != priorities.end(); ++i)
+        ret.append(*i);
+        
+    return ret;
+}
 
 void replace_trackers(torrent_handle& info, object trackers)
 {
@@ -294,6 +304,7 @@ void bind_torrent_handle()
         .def("prioritize_pieces", prioritize_pieces)
         .def("piece_prioritize", piece_priorities)
         .def("prioritize_files", prioritize_files)
+        .def("file_priorities", file_priorities)
         .def("use_interface", &torrent_handle::use_interface)
         .def("write_resume_data", _(&torrent_handle::write_resume_data))
         .def("save_resume_data", _(&torrent_handle::save_resume_data))
