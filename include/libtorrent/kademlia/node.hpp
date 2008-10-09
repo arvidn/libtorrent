@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/optional.hpp>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/ref.hpp>
+#include <boost/thread/mutex.hpp>
 
 #include "libtorrent/socket.hpp"
 
@@ -235,10 +236,16 @@ public:
 	int branch_factor() const { return m_settings.search_branching; }
 
 	void add_traversal_algorithm(traversal_algorithm* a)
-	{ m_running_requests.insert(a); }
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		m_running_requests.insert(a);
+	}
 
 	void remove_traversal_algorithm(traversal_algorithm* a)
-	{ m_running_requests.erase(a); }
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		m_running_requests.erase(a);
+	}
 
 	void status(libtorrent::session_status& s);
 
@@ -260,6 +267,9 @@ protected:
 	int m_max_peers_reply;
 
 private:
+	typedef boost::mutex mutex_t;
+	mutex_t m_mutex;
+
 	// this list must be destructed after the rpc manager
 	// since it might have references to it
 	std::set<traversal_algorithm*> m_running_requests;
