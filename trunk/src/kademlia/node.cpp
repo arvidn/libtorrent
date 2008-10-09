@@ -427,6 +427,7 @@ namespace
 
 void node_impl::status(session_status& s)
 {
+	mutex_t::scoped_lock l(m_mutex);
 	s.active_requests.clear();
 	for (std::set<traversal_algorithm*>::iterator i = m_running_requests.begin()
 		, end(m_running_requests.end()); i != end; ++i)
