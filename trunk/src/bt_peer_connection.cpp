@@ -2632,12 +2632,28 @@ namespace libtorrent
 		if (m_state == read_packet)
 		{
 			TORRENT_ASSERT(recv_buffer == receive_buffer());
-			if (!t) return;
+			if (!t)
+			{
+				m_statistics.received_bytes(0, bytes_transferred);
+				disconnect("torrent removed", 1);
+				return;
+			}
+#ifndef NDEBUG
+			size_type cur_payload_dl = m_statistics.last_payload_downloaded();
+			size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
+#endif
 			if (dispatch_message(bytes_transferred))
 			{
 				m_state = read_packet_size;
 				reset_recv_buffer(5);
 			}
+#ifndef NDEBUG
+			TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
+			TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
+			size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
+				m_statistics.last_protocol_downloaded() - cur_protocol_dl;
+			TORRENT_ASSERT(stats_diff == bytes_transferred);
+#endif
 			TORRENT_ASSERT(!packet_finished());
 			return;
 		}
