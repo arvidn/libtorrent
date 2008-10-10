@@ -3063,7 +3063,9 @@ namespace libtorrent
 
 	void peer_connection::fill_send_buffer()
 	{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
+#endif
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
@@ -4022,7 +4024,9 @@ namespace libtorrent
 
 	void peer_connection::keep_alive()
 	{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
+#endif
 
 		time_duration d;
 		d = time_now() - m_last_sent;
