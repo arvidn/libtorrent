@@ -1616,7 +1616,7 @@ namespace libtorrent
 
 #ifndef NDEBUG
 		check_postcondition post_checker_(t);
-#if !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		t->check_invariant();
 #endif
 #endif
@@ -1791,7 +1791,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 
-#if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if !defined NDEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS \
+	&& defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		t->check_invariant();
 #endif
 		request_a_block(*t, *this);
