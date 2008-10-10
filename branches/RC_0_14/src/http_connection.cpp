@@ -336,7 +336,7 @@ void http_connection::callback(error_code const& e, char const* data, int size)
 	if (!m_bottled || !m_called)
 	{
 		std::vector<char> buf;
-		if (m_bottled && m_parser.finished())
+		if (m_bottled && m_parser.header_finished())
 		{
 			std::string const& encoding = m_parser.header("content-encoding");
 			if (encoding == "gzip" || encoding == "x-gzip")
