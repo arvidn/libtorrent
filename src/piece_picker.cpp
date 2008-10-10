@@ -2177,7 +2177,9 @@ namespace libtorrent
 	// a peer disconnects. The piece might be in any state
 	void piece_picker::abort_download(piece_block block)
 	{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+#endif
 
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
