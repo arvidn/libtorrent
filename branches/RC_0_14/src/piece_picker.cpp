@@ -122,7 +122,9 @@ namespace libtorrent
 
 	void piece_picker::piece_info(int index, piece_picker::downloading_piece& st) const
 	{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+#endif
 		
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < int(m_piece_map.size()));
@@ -1312,7 +1314,9 @@ namespace libtorrent
 		// only one of rarest_first and sequential can be set.
 		TORRENT_ASSERT(bool(options & rarest_first)
 			+ bool(options & sequential) <= 1);
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+#endif
 		TORRENT_ASSERT(num_blocks > 0);
 		TORRENT_ASSERT(pieces.size() == m_piece_map.size());
 
