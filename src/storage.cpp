@@ -523,7 +523,8 @@ namespace libtorrent
 			// the directory exists.
 			if (file_iter->size == 0)
 			{
-				file(m_save_path / file_iter->path, file::out, ec);
+				boost::shared_ptr<file> f = m_pool.open_file(this
+					, m_save_path / file_iter->path, file::in | file::out, ec);
 				if (ec)
 				{
 					set_error(m_save_path / file_iter->path, ec);
