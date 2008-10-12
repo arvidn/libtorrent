@@ -39,7 +39,6 @@ set(sources
 	tracker_manager
 	http_tracker_connection
 	udp_tracker_connection
-	sha1
 	udp_socket
 	upnp
 	logger
@@ -123,13 +122,12 @@ else (shared)
 	add_library(torrent STATIC ${sources2} ${zlib_sources2})
 endif (shared)
 
-set(library_search_paths /usr/local/lib /usr/lib /opt/local/lib)
-find_library(fs boost_filesystem-mt-1_35 ${library_search_paths})
-target_link_libraries(torrent ${fs})
-find_library(th boost_thread-mt-1_35 ${library_search_paths})
-target_link_libraries(torrent ${th})
-find_library(sys boost_system-mt-1_35 ${library_search_paths})
-target_link_libraries(torrent ${sys})
+FIND_PACKAGE( Boost 1.34 COMPONENTS filesystem thread)
+if (NOT Boost_VERSION LESS 103500)
+	FIND_PACKAGE( Boost 1.35 COMPONENTS filesystem thread system)
+endif (NOT Boost_VERSION LESS 103500)
+include_directories(${Boost_INCLUDE_DIR})
+target_link_libraries(torrent ${Boost_LIBRARIES})
 
 if (WIN32)
 	target_link_libraries(torrent wsock32 ws2_32)
@@ -144,6 +142,7 @@ if (encryption)
 	endif (WIN32)
 else (encryption)
 	add_definitions(-DTORRENT_DISABLE_ENCRYPTION)
+	list(APPEND sources sha1)
 endif (encryption)
 
 if (NOT pool-allocators)
@@ -176,8 +175,6 @@ if (MSVC)
 #	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
 endif(MSVC)
 
-message(${CMAKE_CONFIGURATION_TYPES})
-
 add_definitions(-D_FILE_OFFSET_BITS=64)
 
 if (tcmalloc)
@@ -196,9 +193,41 @@ foreach(s ${examples})
 	target_link_libraries(${s} torrent)
 endforeach(s)
 
-find_library(bpo boost_program_options-mt-1_35 ${library_search_paths})
-target_link_libraries(client_test ${bpo})
-find_library(regex boost_regex-mt-1_35 ${library_search_paths})
-target_link_libraries(client_test ${regex})
+FIND_PACKAGE( Boost 1.34 COMPONENTS program_options regex)
+target_link_libraries(client_test ${Boost_LIBRARIES})
+include_directories(${Boost_INCLUDE_DIR})
 
+# === build tests ===
+
+set(tests
+	test_auto_unchoke
+	test_http_connection
+	test_buffer
+	test_storage
+	test_torrent
+	test_transfer
+	test_piece_picker
+	test_fast_extension
+	test_pe_crypto
+	test_bencoding
+	test_bdecode_performance
+	test_primitives
+	test_ip_filter
+	test_hasher
+	test_metadata_extension
+	test_swarm
+	test_lsd
+	test_pex
+	test_web_seed
+	test_bandwidth_limiter
+	)
+
+add_library(test_common STATIC test/main.cpp test/setup_transfer.cpp)
+enable_testing()
+
+foreach(s ${tests})
+	add_executable(${s} test/${s}.cpp)
+	target_link_libraries(${s} torrent test_common)
+	add_test(${s} ${s})
+endforeach(s)
 
