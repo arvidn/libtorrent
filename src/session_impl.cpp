@@ -1417,6 +1417,7 @@ namespace aux {
 			, end(m_connections.end()); i != end; ++i)
 		{
 			peer_connection* p = i->get();
+			TORRENT_ASSERT(p);
 			torrent* t = p->associated_torrent().lock().get();
 			if (!p->peer_info_struct()
 				|| t == 0
