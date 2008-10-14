@@ -141,7 +141,7 @@ void upnp::discover_device_impl()
 	}
 
 	++m_retry_count;
-	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
+	m_broadcast_timer.expires_from_now(seconds(2 * m_retry_count), ec);
 	m_broadcast_timer.async_wait(bind(&upnp::resend_request
 		, self(), _1));
 
@@ -240,7 +240,7 @@ void upnp::resend_request(error_code const& e)
 
 	mutex_t::scoped_lock l(m_mutex);
 
-	if (m_retry_count < 9
+	if (m_retry_count < 12
 		&& (m_devices.empty() || m_retry_count < 4))
 	{
 		discover_device_impl();
@@ -251,7 +251,7 @@ void upnp::resend_request(error_code const& e)
 	{
 #ifdef TORRENT_UPNP_LOGGING
 		m_log << time_now_string()
-			<< " *** Got no response in 9 retries. Giving up, "
+			<< " *** Got no response in 12 retries. Giving up, "
 			"disabling UPnP." << std::endl;
 #endif
 		disable("no UPnP router found");
