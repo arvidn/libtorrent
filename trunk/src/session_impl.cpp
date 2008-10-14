@@ -1462,7 +1462,8 @@ namespace aux {
 			// limit
 			if (m_stat.upload_rate() < upload_limit * 0.9f
 				&& m_allowed_upload_slots <= m_num_unchoked + 1
-				&& congested_torrents < uncongested_torrents)
+				&& congested_torrents < uncongested_torrents
+				&& m_upload_channel.queue_size() < 2)
 			{
 				++m_allowed_upload_slots;
 			}
@@ -1501,6 +1502,8 @@ namespace aux {
 				if (p->peer_info_struct()->optimistically_unchoked)
 				{
 					// force a new optimistic unchoke
+					// since this one just got promoted into the
+					// proper unchoke set
 					m_optimistic_unchoke_time_scaler = 0;
 					p->peer_info_struct()->optimistically_unchoked = false;
 				}
