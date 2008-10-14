@@ -280,7 +280,6 @@ namespace libtorrent
 	bool peer_connection::unchoke_compare(boost::intrusive_ptr<peer_connection const> const& p) const
 	{
 		TORRENT_ASSERT(p);
-		TORRENT_ASSERT(this != p);
 		peer_connection const& rhs = *p;
 
 		// first compare how many bytes they've sent us
