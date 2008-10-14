@@ -560,7 +560,7 @@ void upnp::post(upnp::rootdevice const& d, std::string const& soap
 
 	std::stringstream header;
 	
-	header << "POST " << d.path << " HTTP/1.1\r\n"
+	header << "POST " << d.path << " HTTP/1.0\r\n"
 		"Host: " << d.hostname << ":" << d.port << "\r\n"
 		"Content-Type: text/xml; charset=\"utf-8\"\r\n"
 		"Content-Length: " << soap.size() << "\r\n"
