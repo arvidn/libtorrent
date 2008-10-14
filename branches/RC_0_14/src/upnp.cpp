@@ -560,7 +560,7 @@ void upnp::post(upnp::rootdevice const& d, std::string const& soap
 
 	std::stringstream header;
 	
-	header << "POST " << d.control_url << " HTTP/1.1\r\n"
+	header << "POST " << d.path << " HTTP/1.1\r\n"
 		"Host: " << d.hostname << ":" << d.port << "\r\n"
 		"Content-Type: text/xml; charset=\"utf-8\"\r\n"
 		"Content-Length: " << soap.size() << "\r\n"
@@ -875,6 +875,22 @@ void upnp::on_upnp_xml(error_code const& e
 #endif
 
 	d.control_url = s.control_url;
+
+	std::string protocol;
+	std::string auth;
+	char const* error;
+	boost::tie(protocol, auth, d.hostname, d.port, d.path, error)
+		= parse_url_components(d.control_url);
+
+	if (error)
+	{
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " *** Failed to parse URL '" << d.control_url << "': " << error << std::endl;
+#endif
+		d.disabled = true;
+		return;
+	}
 
 	if (num_mappings() > 0) update_map(d, 0);
 }

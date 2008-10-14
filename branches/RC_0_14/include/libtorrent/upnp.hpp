@@ -200,6 +200,9 @@ private:
 
 		std::vector<mapping_t> mapping;
 		
+		// this is the hostname, port and path
+		// component of the url or the control_url
+		// if it has been found
 		std::string hostname;
 		int port;
 		std::string path;
