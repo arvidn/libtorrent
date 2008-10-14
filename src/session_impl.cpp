@@ -1353,19 +1353,23 @@ namespace aux {
 				> bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
 		}
 
+		int total_running = 0;
 		for (std::vector<torrent*>::iterator i = downloaders.begin()
 			, end(downloaders.end()); i != end; ++i)
 		{
 			torrent* t = *i;
-			if (!t->is_paused() && !is_active(t, settings()) && hard_limit > 0)
+			if (!t->is_paused() && !is_active(t, settings())
+				&& hard_limit > 0 && total_running < m_max_uploads)
 			{
 				--hard_limit;
+				++total_running;
 				continue;
 			}
 
 			if (num_downloaders > 0 && hard_limit > 0)
 			{
 				--hard_limit;
+				++total_running;
 				if (t->state() != torrent_status::queued_for_checking
 					&& t->state() != torrent_status::checking_files)
 				{
@@ -1383,9 +1387,11 @@ namespace aux {
 			, end(seeds.end()); i != end; ++i)
 		{
 			torrent* t = *i;
-			if (!t->is_paused() && !is_active(t, settings()) && hard_limit > 0)
+			if (!t->is_paused() && !is_active(t, settings())
+				&& hard_limit > 0 && total_running < m_max_uploads)
 			{
 				--hard_limit;
+				++total_running;
 				continue;
 			}
 
@@ -1393,6 +1399,7 @@ namespace aux {
 			{
 				--hard_limit;
 				--num_seeds;
+				++total_running;
 				if (t->is_paused()) t->resume();
 			}
 			else
