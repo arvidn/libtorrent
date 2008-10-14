@@ -294,6 +294,14 @@ namespace libtorrent
 		if (rhs.m_peer_info) c2 = rhs.m_peer_info->total_upload();
 		else c2 = rhs.m_statistics.total_payload_upload();
 
+		// in order to not switch back and forth too often,
+		// unchoked peers must be at least one piece ahead
+		// of a choked peer to be sorted at a lower unchoke-priority
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
+		if (!is_choked()) c1 -= t->torrent_file().piece_length();
+		if (!rhs.is_choked()) c2 -= t->torrent_file().piece_length();
+		
 		return c1 < c2;
 	}
 
