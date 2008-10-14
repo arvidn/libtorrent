@@ -2092,7 +2092,15 @@ namespace libtorrent
 		}
 
 		if (!p->is_choked())
+		{
 			--m_num_uploads;
+			m_ses.m_unchoke_time_scaler = 0;
+		}
+
+		if (p->peer_info_struct() && p->peer_info_struct()->optimistically_unchoked)
+		{
+			m_ses.m_optimistic_unchoke_time_scaler = 0;
+		}
 
 		m_policy.connection_closed(*p);
 		p->set_peer_info(0);
