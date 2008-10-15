@@ -87,6 +87,14 @@ namespace libtorrent
 
 		size_type counter() const { return m_counter; }
 
+		void clear()
+		{
+			std::memset(m_rate_history, 0, sizeof(m_rate_history));
+			m_counter = 0;
+			m_total_counter = 0;
+			m_rate_sum = 0;
+		}
+
 	private:
 
 #ifndef NDEBUG
@@ -305,6 +313,12 @@ namespace libtorrent
 			download_tracker_protocol,
 			num_channels
 		};
+
+		void clear()
+		{
+			for (int i = 0; i < num_channels; ++i)
+				m_stat[i].clear();
+		}
 
 	private:
 

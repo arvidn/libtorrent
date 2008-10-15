@@ -4112,6 +4112,7 @@ namespace libtorrent
 		{
 			// tell the tracker that we're back
 			m_start_sent = false;
+			m_stat.clear();
 			announce_with_tracker();
 		}
 
