@@ -944,7 +944,7 @@ int main(int ac, char* av[])
 				std::stringstream ln(line);
 				ln >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
 				address_v4 start((a << 24) + (b << 16) + (c << 8) + d);
-				ln >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
+				ln >> a >> dummy >> b >> dummy >> c >> dummy >> d;
 				address_v4 last((a << 24) + (b << 16) + (c << 8) + d);
 				int flags;
 				ln >> flags;
