@@ -2565,7 +2565,7 @@ waiting for bandwidth quota from the global limiter, but then they are counted i
 the ``session_status`` object.
 
 ``all_time_upload`` and ``all_time_download`` are accumulated upload and download
-byte counters. They are saved in and restored from resume data to keep totals
+payload byte counters. They are saved in and restored from resume data to keep totals
 across sessions.
 
 ``active_time`` and ``seeding_time`` are second counters. They keep track of the
