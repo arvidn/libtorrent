@@ -231,3 +231,9 @@ foreach(s ${tests})
 	add_test(${s} ${s})
 endforeach(s)
 
+add_executable(test_upnp test/test_upnp.cpp)
+target_link_libraries(test_upnp torrent)
+
+add_executable(test_natpmp test/test_natpmp.cpp)
+target_link_libraries(test_natpmp torrent)
+
