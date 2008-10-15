@@ -282,19 +282,14 @@ namespace libtorrent
 		TORRENT_ASSERT(p);
 		peer_connection const& rhs = *p;
 
-		boost::shared_ptr<torrent> t1 = m_torrent.lock();
-		TORRENT_ASSERT(t1);
 		size_type c1;
 		size_type c2;
 
-		if (!t1->is_seed())
-		{
-			// first compare how many bytes they've sent us
-			c1 = m_statistics.total_payload_download() - m_downloaded_at_last_unchoke;
-			c2 = rhs.m_statistics.total_payload_download() - rhs.m_downloaded_at_last_unchoke;
-			if (c1 > c2) return true;
-			if (c1 < c2) return false;
-		}
+		// first compare how many bytes they've sent us
+		c1 = m_statistics.total_payload_download() - m_downloaded_at_last_unchoke;
+		c2 = rhs.m_statistics.total_payload_download() - rhs.m_downloaded_at_last_unchoke;
+		if (c1 > c2) return true;
+		if (c1 < c2) return false;
 
 		// if they are equal, compare how much we have uploaded
 		if (m_peer_info) c1 = m_peer_info->total_upload();
@@ -305,6 +300,8 @@ namespace libtorrent
 		// in order to not switch back and forth too often,
 		// unchoked peers must be at least one piece ahead
 		// of a choked peer to be sorted at a lower unchoke-priority
+		boost::shared_ptr<torrent> t1 = m_torrent.lock();
+		TORRENT_ASSERT(t1);
 		boost::shared_ptr<torrent> t2 = rhs.associated_torrent().lock();
 		TORRENT_ASSERT(t2);
 		if (!is_choked()) c1 -= t1->torrent_file().piece_length();
