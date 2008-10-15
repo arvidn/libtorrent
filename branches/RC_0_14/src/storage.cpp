@@ -396,8 +396,11 @@ namespace libtorrent
 					+ " bytes";
 				return false;
 			}
-			if ((compact_mode && time != s->second)
-				|| (!compact_mode && time < s->second))
+			// allow one second 'slack', because of FAT volumes
+			// in sparse mode, allow the files to be more recent
+			// than the resume data, but only by 5 minutes
+			if ((compact_mode && (time > s->second + 1 || time < s->second - 1)) ||
+				(!compact_mode && (time > s->second + 5 * 60) || time < s->second - 1))
 			{
 				if (error) *error = "timestamp mismatch for file '"
 					+ i->path.native_file_string()
