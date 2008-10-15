@@ -931,16 +931,6 @@ namespace libtorrent
 				c.add_free_upload(-diff);
 			}
 		}
-/*
-		if (!c.is_choked())
-		{
-			c.send_choke();
-			--m_num_unchoked;
-
-			if (m_torrent->is_seed()) seed_unchoke_one_peer();
-			else unchoke_one_peer();
-		}
-*/
 	}
 /*
 	bool policy::unchoke_one_peer()
