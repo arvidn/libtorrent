@@ -996,10 +996,6 @@ namespace libtorrent
 #ifdef TORRENT_PICKER_LOG
 		print_pieces();
 #endif
-
-#ifndef NDEBUG
-		check_invariant();
-#endif
 	}
 
 	void piece_picker::we_dont_have(int index)
