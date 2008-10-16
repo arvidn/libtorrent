@@ -4,7 +4,7 @@ AC_INIT(src/torrent.cpp)
 AM_INIT_AUTOMAKE(libtorrent-rasterbar, 0.14)
 
 dnl interface version info
-VERSION_INFO_CURRENT=0
+VERSION_INFO_CURRENT=1
 VERSION_INFO_REVISION=0
 VERSION_INFO_AGE=0
 
