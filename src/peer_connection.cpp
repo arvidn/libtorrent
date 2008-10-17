@@ -304,8 +304,8 @@ namespace libtorrent
 		TORRENT_ASSERT(t1);
 		boost::shared_ptr<torrent> t2 = rhs.associated_torrent().lock();
 		TORRENT_ASSERT(t2);
-		if (!is_choked()) c1 -= t1->torrent_file().piece_length();
-		if (!rhs.is_choked()) c2 -= t2->torrent_file().piece_length();
+		if (!is_choked()) c1 -= (std::max)(t1->torrent_file().piece_length(), 256 * 1024);
+		if (!rhs.is_choked()) c2 -= (std::max)(t2->torrent_file().piece_length(), 256 * 1024);
 		
 		return c1 < c2;
 	}
