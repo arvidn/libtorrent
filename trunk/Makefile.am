@@ -36,6 +36,7 @@ docs/unicode_support.png docs/client_test.png docs/style.css Jamfile project-roo
 libtorrent-rasterbar.pc \
 bindings/README.txt \
 bindings/python/Jamfile \
+bindings/python/setup.py \
 bindings/python/client.py \
 bindings/python/simple_client.py \
 bindings/python/src/alert.cpp \
@@ -49,6 +50,7 @@ bindings/python/src/filesystem.cpp \
 bindings/python/src/fingerprint.cpp \
 bindings/python/src/gil.hpp \
 bindings/python/src/ip_filter.cpp \
+bindings/python/src/magnet_uri.cpp \
 bindings/python/src/module.cpp \
 bindings/python/src/optional.hpp \
 bindings/python/src/peer_info.cpp \
