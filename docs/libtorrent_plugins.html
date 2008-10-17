@@ -3,41 +3,64 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.4: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title></title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
 <link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
 </head>
 <body>
 <div class="document">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
+    <span>
+    </span>
+    </div>
+    <div id="main">
+
 <table class="docinfo" frame="void" rules="none">
 <col class="docinfo-name" />
 <col class="docinfo-content" />
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
-<td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
-<div class="section">
-<h1><a id="libtorrent-plugins" name="libtorrent-plugins">libtorrent plugins</a></h1>
-<div class="contents topic" id="table-of-contents">
-<p class="topic-title first"><a id="contents" name="contents">Contents</a></p>
+<div class="section" id="libtorrent-plugins">
+<h1>libtorrent plugins</h1>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
 <ul class="simple">
-<li><a class="reference" href="#libtorrent-plugins" id="id1" name="id1">libtorrent plugins</a><ul>
-<li><a class="reference" href="#a-word-of-caution" id="id2" name="id2">a word of caution</a></li>
+<li><a class="reference internal" href="#libtorrent-plugins" id="id1">libtorrent plugins</a><ul>
+<li><a class="reference internal" href="#a-word-of-caution" id="id2">a word of caution</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#plugin-interface" id="id3" name="id3">plugin interface</a></li>
-<li><a class="reference" href="#torrent-plugin" id="id4" name="id4">torrent_plugin</a><ul>
-<li><a class="reference" href="#new-connection" id="id5" name="id5">new_connection()</a></li>
-<li><a class="reference" href="#on-piece-pass-on-piece-fail" id="id6" name="id6">on_piece_pass() on_piece_fail()</a></li>
-<li><a class="reference" href="#tick" id="id7" name="id7">tick()</a></li>
-<li><a class="reference" href="#on-pause-on-resume" id="id8" name="id8">on_pause() on_resume()</a></li>
-<li><a class="reference" href="#on-files-checked" id="id9" name="id9">on_files_checked()</a></li>
+<li><a class="reference internal" href="#plugin-interface" id="id3">plugin interface</a></li>
+<li><a class="reference internal" href="#torrent-plugin" id="id4">torrent_plugin</a><ul>
+<li><a class="reference internal" href="#new-connection" id="id5">new_connection()</a></li>
+<li><a class="reference internal" href="#on-piece-pass-on-piece-fail" id="id6">on_piece_pass() on_piece_fail()</a></li>
+<li><a class="reference internal" href="#tick" id="id7">tick()</a></li>
+<li><a class="reference internal" href="#on-pause-on-resume" id="id8">on_pause() on_resume()</a></li>
+<li><a class="reference internal" href="#on-files-checked" id="id9">on_files_checked()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#peer-plugin" id="id10" name="id10">peer_plugin</a></li>
-<li><a class="reference" href="#disk-buffer-holder" id="id11" name="id11">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#peer-plugin" id="id10">peer_plugin</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id11">disk_buffer_holder</a></li>
 </ul>
 </div>
 <p>libtorrent has a plugin interface for implementing extensions to the protocol.
@@ -47,13 +70,13 @@ to fit a particular (closed) network.</p>
 <p>In short, the plugin interface makes it possible to:</p>
 <ul class="simple">
 <li>register extension messages (sent in the extension handshake), see
-<a class="reference" href="extension_protocol.html">extensions</a>.</li>
+<a class="reference external" href="extension_protocol.html">extensions</a>.</li>
 <li>add data and parse data from the extension handshake.</li>
 <li>send extension messages and standard bittorrent messages.</li>
 <li>override or block the handling of standard bittorrent messages.</li>
 </ul>
-<div class="section">
-<h2><a id="a-word-of-caution" name="a-word-of-caution">a word of caution</a></h2>
+<div class="section" id="a-word-of-caution">
+<h2>a word of caution</h2>
 <p>Writing your own plugin is a very easy way to introduce serious bugs such as
 dead locks and race conditions. Since a plugin has access to internal
 structures it is also quite easy to sabotage libtorrent's operation.</p>
@@ -64,12 +87,12 @@ thread, you cannot use any of the member functions on the internal structures
 in libtorrent, since those require the mutex to be locked. Futhermore, you would
 also need to have a mutex on your own shared data within the plugin, to make
 sure it is not accessed at the same time from the libtorrent thread (through a
-callback). See <a class="reference" href="http://www.boost.org/doc/html/mutex.html">boost thread's mutex</a>. If you need to send out a message from
+callback). See <a class="reference external" href="http://www.boost.org/doc/html/mutex.html">boost thread's mutex</a>. If you need to send out a message from
 another thread, use an internal queue, and do the actual sending in <tt class="docutils literal"><span class="pre">tick()</span></tt>.</p>
 </div>
 </div>
-<div class="section">
-<h1><a id="plugin-interface" name="plugin-interface">plugin interface</a></h1>
+<div class="section" id="plugin-interface">
+<h1>plugin interface</h1>
 <p>The plugin interface consists of two base classes that the plugin may
 implement. These are called <tt class="docutils literal"><span class="pre">torrent_plugin</span></tt> and <tt class="docutils literal"><span class="pre">peer_plugin</span></tt>. They are
 both found in the <tt class="docutils literal"><span class="pre">&lt;libtorrent/extensions.hpp&gt;</span></tt> header.</p>
@@ -92,8 +115,8 @@ for this torrent. If it is a valid pointer (to a class inheriting
 <tt class="docutils literal"><span class="pre">torrent_plugin</span></tt>), it will be associated with this torrent and callbacks
 will be made on torrent events.</p>
 </div>
-<div class="section">
-<h1><a id="torrent-plugin" name="torrent-plugin">torrent_plugin</a></h1>
+<div class="section" id="torrent-plugin">
+<h1>torrent_plugin</h1>
 <p>The synopsis for <tt class="docutils literal"><span class="pre">torrent_plugin</span></tt> follows:</p>
 <pre class="literal-block">
 struct torrent_plugin
@@ -115,8 +138,8 @@ struct torrent_plugin
 <p>This is the base class for a torrent_plugin. Your derived class is (if added
 as an extension) instantiated for each torrent in the session. The callback
 hook functions are defined as follows.</p>
-<div class="section">
-<h2><a id="new-connection" name="new-connection">new_connection()</a></h2>
+<div class="section" id="new-connection">
+<h2>new_connection()</h2>
 <pre class="literal-block">
 boost::shared_ptr&lt;peer_plugin&gt; new_connection(peer_connection*);
 </pre>
@@ -133,8 +156,8 @@ held by the torrent object. So, it is generally a good idea to not keep a
 use <tt class="docutils literal"><span class="pre">weak_ptr</span></tt>.</p>
 <p>If this function throws an exception, the connection will be closed.</p>
 </div>
-<div class="section">
-<h2><a id="on-piece-pass-on-piece-fail" name="on-piece-pass-on-piece-fail">on_piece_pass() on_piece_fail()</a></h2>
+<div class="section" id="on-piece-pass-on-piece-fail">
+<h2>on_piece_pass() on_piece_fail()</h2>
 <pre class="literal-block">
 void on_piece_pass(int index);
 void on_piece_failed(int index);
@@ -144,16 +167,16 @@ check, respectively. The <tt class="docutils literal"><span class="pre">index</s
 It is possible to access the list of peers that participated in sending the
 piece through the <tt class="docutils literal"><span class="pre">torrent</span></tt> and the <tt class="docutils literal"><span class="pre">piece_picker</span></tt>.</p>
 </div>
-<div class="section">
-<h2><a id="tick" name="tick">tick()</a></h2>
+<div class="section" id="tick">
+<h2>tick()</h2>
 <pre class="literal-block">
 void tick();
 </pre>
 <p>This hook is called approximately once per second. It is a way of making it
 easy for plugins to do timed events, for sending messages or whatever.</p>
 </div>
-<div class="section">
-<h2><a id="on-pause-on-resume" name="on-pause-on-resume">on_pause() on_resume()</a></h2>
+<div class="section" id="on-pause-on-resume">
+<h2>on_pause() on_resume()</h2>
 <pre class="literal-block">
 bool on_pause();
 bool on_resume();
@@ -169,8 +192,8 @@ handler it will recurse back into your handler, so in order to invoke the
 standard handler, you have to keep your own state on whether you want standard
 behavior or overridden behavior.</p>
 </div>
-<div class="section">
-<h2><a id="on-files-checked" name="on-files-checked">on_files_checked()</a></h2>
+<div class="section" id="on-files-checked">
+<h2>on_files_checked()</h2>
 <pre class="literal-block">
 void on_files_checked();
 </pre>
@@ -180,8 +203,8 @@ checked. If there are no files to check, this function is called immediately.</p
 can start downloading.</p>
 </div>
 </div>
-<div class="section">
-<h1><a id="peer-plugin" name="peer-plugin">peer_plugin</a></h1>
+<div class="section" id="peer-plugin">
+<h1>peer_plugin</h1>
 <pre class="literal-block">
 struct peer_plugin
 {
@@ -218,8 +241,8 @@ struct peer_plugin
 };
 </pre>
 </div>
-<div class="section">
-<h1><a id="disk-buffer-holder" name="disk-buffer-holder">disk_buffer_holder</a></h1>
+<div class="section" id="disk-buffer-holder">
+<h1>disk_buffer_holder</h1>
 <pre class="literal-block">
 struct disk_buffer_holder
 {
@@ -236,6 +259,17 @@ buffer and transferres ownership and responsibility to free it to the caller.</p
 <p><tt class="docutils literal"><span class="pre">buffer()</span></tt> returns the pointer without transferring responsibility. If
 this buffer has been released, <tt class="docutils literal"><span class="pre">buffer()</span></tt> will return 0.</p>
 </div>
+    </div>
+    <div id="footer">
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
 </div>
 </body>
 </html>

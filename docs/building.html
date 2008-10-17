@@ -3,54 +3,76 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.4: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
 <link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
 </head>
 <body>
 <div class="document" id="libtorrent-manual">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
+    <span>
+    </span>
+    </div>
+    <div id="main">
 <h1 class="title">libtorrent manual</h1>
 <table class="docinfo" frame="void" rules="none">
 <col class="docinfo-name" />
 <col class="docinfo-content" />
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
-<td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
-<p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
+<p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference" href="#downloading-and-building" id="id9" name="id9">downloading and building</a><ul>
-<li><a class="reference" href="#building-from-svn" id="id10" name="id10">building from svn</a></li>
-<li><a class="reference" href="#building-with-bbv2" id="id11" name="id11">building with BBv2</a></li>
-<li><a class="reference" href="#building-with-autotools" id="id12" name="id12">building with autotools</a></li>
-<li><a class="reference" href="#building-with-other-build-systems" id="id13" name="id13">building with other build systems</a></li>
-<li><a class="reference" href="#build-configurations" id="id14" name="id14">build configurations</a></li>
-<li><a class="reference" href="#building-openssl-for-windows" id="id15" name="id15">building openssl for windows</a></li>
+<li><a class="reference internal" href="#downloading-and-building" id="id9">downloading and building</a><ul>
+<li><a class="reference internal" href="#building-from-svn" id="id10">building from svn</a></li>
+<li><a class="reference internal" href="#building-with-bbv2" id="id11">building with BBv2</a></li>
+<li><a class="reference internal" href="#building-with-autotools" id="id12">building with autotools</a></li>
+<li><a class="reference internal" href="#building-with-other-build-systems" id="id13">building with other build systems</a></li>
+<li><a class="reference internal" href="#build-configurations" id="id14">build configurations</a></li>
+<li><a class="reference internal" href="#building-openssl-for-windows" id="id15">building openssl for windows</a></li>
 </ul>
 </li>
 </ul>
 </div>
-<div class="section">
-<h1><a id="downloading-and-building" name="downloading-and-building">downloading and building</a></h1>
+<div class="section" id="downloading-and-building">
+<h1>downloading and building</h1>
 <p>To acquire the latest version of libtorrent, you'll have to grab it from SVN.
-You'll find instructions on how to do this <a class="reference" href="http://sourceforge.net/svn/?group_id=79942">here</a> (see subversion access).</p>
+You'll find instructions on how to do this <a class="reference external" href="http://sourceforge.net/svn/?group_id=79942">here</a> (see subversion access).</p>
 <p>The build systems supported &quot;out of the box&quot; in libtorrent are boost-build v2
 (BBv2) and autotools (for unix-like systems). If you still can't build after
 following these instructions, you can usually get help in the <tt class="docutils literal"><span class="pre">#libtorrent</span></tt>
 IRC channel on <tt class="docutils literal"><span class="pre">irc.freenode.net</span></tt>.</p>
-<p>Community contributed build tutorials can be found on the <a class="reference" href="http://code.rasterbar.com/libtorrent/wiki/Building">wiki</a>.</p>
-<div class="section">
-<h2><a id="building-from-svn" name="building-from-svn">building from svn</a></h2>
+<p>Community contributed build tutorials can be found on the <a class="reference external" href="http://code.rasterbar.com/libtorrent/wiki/Building">wiki</a>.</p>
+<div class="section" id="building-from-svn">
+<h2>building from svn</h2>
 <p>To build libtorrent from svn you need to check out the libtorrent sources from
 sourceforge and also check out the asio sources from its sourceforge cvs.
 If you downloaded a release tarball, you can skip this section.</p>
 <p>To prepare the directory structure for building, follow these steps:</p>
 <ul class="simple">
-<li>Check out libtorrent (<a class="reference" href="http://sourceforge.net/svn/?group_id=79942">instructions</a>).</li>
-<li>Check out asio (<a class="reference" href="http://sourceforge.net/cvs/?group_id=122478">instructions</a>).</li>
+<li>Check out libtorrent (<a class="reference external" href="http://sourceforge.net/svn/?group_id=79942">instructions</a>).</li>
+<li>Check out asio (<a class="reference external" href="http://sourceforge.net/cvs/?group_id=122478">instructions</a>).</li>
 <li>Copy the <tt class="docutils literal"><span class="pre">asio/include/asio/</span></tt> directory into the <tt class="docutils literal"><span class="pre">libtorrent/include/libtorrent/</span></tt>
 directory. Alternatively you can make a symbolic link.</li>
 <li>Copy <tt class="docutils literal"><span class="pre">asio/include/asio.hpp</span></tt> into <tt class="docutils literal"><span class="pre">libtorrent/include/libtorrent</span></tt>.</li>
@@ -58,11 +80,11 @@ directory. Alternatively you can make a symbolic link.</li>
 <p>Now the libtorrent directory is ready for building. Follow the steps in one
 of the following sections depending on which build system you prefer to use.</p>
 </div>
-<div class="section">
-<h2><a id="building-with-bbv2" name="building-with-bbv2">building with BBv2</a></h2>
+<div class="section" id="building-with-bbv2">
+<h2>building with BBv2</h2>
 <p>The primary reason to use boost-build is that it will automatically build the
 dependent boost libraries with the correct compiler settings, in order to
-ensure that the build targets are link compatible (see <a class="reference" href="http://boost.org/more/separate_compilation.html">boost guidelines</a>
+ensure that the build targets are link compatible (see <a class="reference external" href="http://boost.org/more/separate_compilation.html">boost guidelines</a>
 for some details on this issue).</p>
 <p>Since BBv2 will build the boost libraries for you, you need the full boost
 source package. Having boost installed via some package system is usually not
@@ -70,17 +92,17 @@ enough (and even if it is enough, the necessary environment variables are
 usually not set by the package installer).</p>
 <p>If you want to build against an installed copy of boost, you can skip directly
 to step 3 (assuming you also have boost build installed).</p>
-<div class="section">
-<h3><a id="step-1-download-boost" name="step-1-download-boost">Step 1: Download boost</a></h3>
-<p>You'll find boost <a class="reference" href="http://sourceforge.net/project/showfiles.php?group_id=7586&amp;package_id=8041&amp;release_id=619445">here</a>.</p>
+<div class="section" id="step-1-download-boost">
+<h3>Step 1: Download boost</h3>
+<p>You'll find boost <a class="reference external" href="http://sourceforge.net/project/showfiles.php?group_id=7586&amp;package_id=8041&amp;release_id=619445">here</a>.</p>
 <p>Extract the archive to some directory where you want it. For the sake of this
 guide, let's assume you extract the package to <tt class="docutils literal"><span class="pre">c:\boost_1_34_0</span></tt> (I'm using
 a windows path in this example since if you're on linux/unix you're more likely
 to use the autotools). You'll need at least version 1.34 of the boost library
 in order to build libtorrent.</p>
 </div>
-<div class="section">
-<h3><a id="step-2-setup-bbv2" name="step-2-setup-bbv2">Step 2: Setup BBv2</a></h3>
+<div class="section" id="step-2-setup-bbv2">
+<h3>Step 2: Setup BBv2</h3>
 <p>First you need to build <tt class="docutils literal"><span class="pre">bjam</span></tt>. You do this by opening a terminal (In
 windows, run <tt class="docutils literal"><span class="pre">cmd</span></tt>). Change directory to
 <tt class="docutils literal"><span class="pre">c:\boost_1_34_0\tools\jam\src</span></tt>. Then run the script called
@@ -130,10 +152,10 @@ using darwin : 3.3 : g++-3.3 ;
 using darwin : 4.0 : g++-4.0 ;
 </pre>
 <p>Note that the spaces around the semi-colons and colons are important!</p>
-<p>Also see the <a class="reference" href="http://www.boost.org/doc/html/bbv2/installation.html">official installation instructions</a>.</p>
+<p>Also see the <a class="reference external" href="http://www.boost.org/doc/html/bbv2/installation.html">official installation instructions</a>.</p>
 </div>
-<div class="section">
-<h3><a id="step-3-building-libtorrent" name="step-3-building-libtorrent">Step 3: Building libtorrent</a></h3>
+<div class="section" id="step-3-building-libtorrent">
+<h3>Step 3: Building libtorrent</h3>
 <p>When building libtorrent, the <tt class="docutils literal"><span class="pre">Jamfile</span></tt> expects the environment variable
 <tt class="docutils literal"><span class="pre">BOOST_ROOT</span></tt> to be set to the boost installation directory. It uses this to
 find the boost libraries it depends on, so they can be built and their headers
@@ -195,7 +217,7 @@ Also, make sure the paths are correct in the different environments. In cygwin, 
 <tt class="docutils literal"><span class="pre">/cygdrive/c/boost_1_34_0</span></tt>). In the windows environment, they should have the typical
 windows format (<tt class="docutils literal"><span class="pre">c:/boost_1_34_0</span></tt>).</p>
 <p>The <tt class="docutils literal"><span class="pre">Jamfile</span></tt> will define <tt class="docutils literal"><span class="pre">NDEBUG</span></tt> when it's building a release build.
-For more build configuration flags see <a class="reference" href="#build-configurations">Build configurations</a>.</p>
+For more build configuration flags see <a class="reference internal" href="#build-configurations">Build configurations</a>.</p>
 <p>Build features:</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -270,10 +292,10 @@ with the libtorrent package.</li>
 <tr><td><tt class="docutils literal"><span class="pre">geoip</span></tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal"><span class="pre">off</span></tt> - geo ip lookups disabled</li>
-<li><tt class="docutils literal"><span class="pre">static</span></tt> - <a class="reference" href="http://www.maxmind.com/app/api">MaxMind</a> geo ip lookup code linked
+<li><tt class="docutils literal"><span class="pre">static</span></tt> - <a class="reference external" href="http://www.maxmind.com/app/api">MaxMind</a> geo ip lookup code linked
 in statically. Note that this code is under
 LGPL license.</li>
-<li><tt class="docutils literal"><span class="pre">shared</span></tt> - The <a class="reference" href="http://www.maxmind.com/app/api">MaxMind</a> geo ip lookup library
+<li><tt class="docutils literal"><span class="pre">shared</span></tt> - The <a class="reference external" href="http://www.maxmind.com/app/api">MaxMind</a> geo ip lookup library
 is expected to be installed on the system and
 it will be used.</li>
 </ul>
@@ -395,12 +417,12 @@ the name of the feature, just the value.</p>
 <p>When building the example client on windows, you need to build with
 <tt class="docutils literal"><span class="pre">link=static</span></tt> otherwise you may get unresolved external symbols for some
 boost.program-options symbols.</p>
-<p>For more information, see the <a class="reference" href="http://www.boost.org/tools/build/v2/index.html">Boost build v2 documentation</a>, or more
-specifically <a class="reference" href="http://www.boost.org/doc/html/bbv2/reference.html#bbv2.advanced.builtins.features">the section on builtin features</a>.</p>
+<p>For more information, see the <a class="reference external" href="http://www.boost.org/tools/build/v2/index.html">Boost build v2 documentation</a>, or more
+specifically <a class="reference external" href="http://www.boost.org/doc/html/bbv2/reference.html#bbv2.advanced.builtins.features">the section on builtin features</a>.</p>
 </div>
 </div>
-<div class="section">
-<h2><a id="building-with-autotools" name="building-with-autotools">building with autotools</a></h2>
+<div class="section" id="building-with-autotools">
+<h2>building with autotools</h2>
 <p>First of all, you need to install <tt class="docutils literal"><span class="pre">automake</span></tt> and <tt class="docutils literal"><span class="pre">autoconf</span></tt>. Many
 unix/linux systems comes with these preinstalled.</p>
 <p>The prerequisites for building libtorrent are boost.thread, boost.date_time
@@ -411,11 +433,11 @@ boost.integer, boost.iterator, boost.tuple, boost.array, boost.function,
 boost.smart_ptr, boost.preprocessor, boost.static_assert.</p>
 <p>If you want to build the <tt class="docutils literal"><span class="pre">client_test</span></tt> example, you'll also need boost.regex
 and boost.program_options.</p>
-<div class="section">
-<h3><a id="step-1-generating-the-build-system" name="step-1-generating-the-build-system">Step 1: Generating the build system</a></h3>
+<div class="section" id="step-1-generating-the-build-system">
+<h3>Step 1: Generating the build system</h3>
 <p>No build system is present if libtorrent is checked out from CVS - it
 needs to be generated first. If you're building from a released tarball,
-you may skip directly to <a class="reference" href="#step-2-running-configure">Step 2: Running configure</a>.</p>
+you may skip directly to <a class="reference internal" href="#step-2-running-configure">Step 2: Running configure</a>.</p>
 <p>Execute the following commands, in the given order, to generate
 the build system:</p>
 <pre class="literal-block">
@@ -427,8 +449,8 @@ autoconf
 </pre>
 <p>On darwin/OSX you have to run <tt class="docutils literal"><span class="pre">glibtoolize</span></tt> instead of <tt class="docutils literal"><span class="pre">libtoolize</span></tt>.</p>
 </div>
-<div class="section">
-<h3><a id="step-2-running-configure" name="step-2-running-configure">Step 2: Running configure</a></h3>
+<div class="section" id="step-2-running-configure">
+<h3>Step 2: Running configure</h3>
 <p>In your shell, change directory to the libtorrent directory and run
 <tt class="docutils literal"><span class="pre">./configure</span></tt>. This will look for libraries and C++ features that libtorrent
 is dependent on. If something is missing or can't be found it will print an
@@ -476,8 +498,8 @@ checking for main in -lboost_thread... yes
 directory contains spaces. Make sure you either rename the directories with
 spaces in their names to remove the spaces or move the libtorrent directory.</p>
 </div>
-<div class="section">
-<h3><a id="creating-a-debug-build" name="creating-a-debug-build">Creating a debug build</a></h3>
+<div class="section" id="creating-a-debug-build">
+<h3>Creating a debug build</h3>
 <p>To tell configure to build a debug version (with debug info, asserts
 and invariant checks enabled), you have to run the configure script
 with the following option:</p>
@@ -485,8 +507,8 @@ with the following option:</p>
 ./configure --enable-debug=yes
 </pre>
 </div>
-<div class="section">
-<h3><a id="creating-a-release-build" name="creating-a-release-build">Creating a release build</a></h3>
+<div class="section" id="creating-a-release-build">
+<h3>Creating a release build</h3>
 <p>To tell the configure to build a release version (without debug info,
 asserts and invariant checks), you have to run the configure script
 with the following option:</p>
@@ -495,8 +517,8 @@ with the following option:</p>
 </pre>
 <p>The above option make use of -DNDEBUG, which is used throughout libtorrent.</p>
 </div>
-<div class="section">
-<h3><a id="id8" name="id8">Step 3: Building libtorrent</a></h3>
+<div class="section" id="id8">
+<h3>Step 3: Building libtorrent</h3>
 <p>Once the configure script is run successfully, you just type <tt class="docutils literal"><span class="pre">make</span></tt> and
 libtorrent, the examples and the tests will be built.</p>
 <p>When libtorrent is built it may be a good idea to run the tests, you do this
@@ -510,8 +532,8 @@ make
 </pre>
 </div>
 </div>
-<div class="section">
-<h2><a id="building-with-other-build-systems" name="building-with-other-build-systems">building with other build systems</a></h2>
+<div class="section" id="building-with-other-build-systems">
+<h2>building with other build systems</h2>
 <p>If you're making your own project file, note that there are two versions of
 the file abstraction. There's one <tt class="docutils literal"><span class="pre">file_win.cpp</span></tt> which relies on windows
 file API that supports files larger than 2 Gigabytes. This does not work in
@@ -524,10 +546,10 @@ filenames, so if your target is Windows 2000 and up, you may want to use
 <p>If you're building in MS Visual Studio, you may have to set the compiler
 options &quot;force conformance in for loop scope&quot;, &quot;treat wchar_t as built-in
 type&quot; and &quot;Enable Run-Time Type Info&quot; to Yes. For a detailed description
-on how to build libtorrent with VS, see <a class="reference" href="http://code.rasterbar.com/libtorrent/wiki/Building">the wiki</a>.</p>
+on how to build libtorrent with VS, see <a class="reference external" href="http://code.rasterbar.com/libtorrent/wiki/Building">the wiki</a>.</p>
 </div>
-<div class="section">
-<h2><a id="build-configurations" name="build-configurations">build configurations</a></h2>
+<div class="section" id="build-configurations">
+<h2>build configurations</h2>
 <p>By default libtorrent is built In debug mode, and will have pretty expensive
 invariant checks and asserts built into it. If you want to disable such checks
 (you want to do that in a release build) you can see the table below for which
@@ -677,8 +699,8 @@ the header files and cpp files.</td>
 definitely help to define <tt class="docutils literal"><span class="pre">NDEBUG</span></tt>, since it will remove the invariant checks
 within the library.</p>
 </div>
-<div class="section">
-<h2><a id="building-openssl-for-windows" name="building-openssl-for-windows">building openssl for windows</a></h2>
+<div class="section" id="building-openssl-for-windows">
+<h2>building openssl for windows</h2>
 <p>To build openssl for windows with Visual Studio 7.1 (2003) execute the following commands
 in a command shell:</p>
 <pre class="literal-block">
@@ -694,6 +716,17 @@ copy out32\ssleay32.lib &quot;C:\Program Files\Microsoft Visual Studio .NET 2003
 be picked up by libtorrent.</p>
 </div>
 </div>
+    </div>
+    <div id="footer">
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
 </div>
 </body>
 </html>
