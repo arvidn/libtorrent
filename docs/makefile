@@ -16,10 +16,10 @@ TARGETS = index.html \
 all: $(TARGETS)
 
 %.pdf:%.tex
-	texexec --pdf $?
+	pdflatex $?
 
 %.tex:%.rst
-	$(DOCUTILS)/tools/rst2context.py $? $@
+	python $(DOCUTILS)/tools/rst2latex.py $? $@
 
 %.html:%.rst
 	python $(DOCUTILS)/tools/rst2html.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
