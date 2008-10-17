@@ -3,41 +3,63 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.4: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent Examples</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
 <link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
 </head>
 <body>
 <div class="document" id="libtorrent-examples">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
+    <span>
+    </span>
+    </div>
+    <div id="main">
 <h1 class="title">libtorrent Examples</h1>
 <table class="docinfo" frame="void" rules="none">
 <col class="docinfo-name" />
 <col class="docinfo-content" />
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
-<td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
-<p class="topic-title first"><a name="table-of-contents">Table of contents</a></p>
+<p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference" href="#examples" id="id2" name="id2">examples</a><ul>
-<li><a class="reference" href="#dump-torrent" id="id3" name="id3">dump_torrent</a></li>
-<li><a class="reference" href="#simple-client" id="id4" name="id4">simple client</a></li>
-<li><a class="reference" href="#make-torrent" id="id5" name="id5">make_torrent</a></li>
+<li><a class="reference internal" href="#examples" id="id2">examples</a><ul>
+<li><a class="reference internal" href="#dump-torrent" id="id3">dump_torrent</a></li>
+<li><a class="reference internal" href="#simple-client" id="id4">simple client</a></li>
+<li><a class="reference internal" href="#make-torrent" id="id5">make_torrent</a></li>
 </ul>
 </li>
 </ul>
 </div>
-<div class="section">
-<h1><a id="examples" name="examples">examples</a></h1>
+<div class="section" id="examples">
+<h1>examples</h1>
 <p>Except for the example programs in this manual, there's also a bigger example
 of a (little bit) more complete client, <tt class="docutils literal"><span class="pre">client_test</span></tt>. There are separate
-instructions for how to use it <a class="reference" href="client_test.html">here</a> if you'd like to try it. Note that building
+instructions for how to use it <a class="reference external" href="client_test.html">here</a> if you'd like to try it. Note that building
 <tt class="docutils literal"><span class="pre">client_test</span></tt> also requires boost.regex and boost.program_options library.</p>
-<div class="section">
-<h2><a id="dump-torrent" name="dump-torrent">dump_torrent</a></h2>
+<div class="section" id="dump-torrent">
+<h2>dump_torrent</h2>
 <p>This is an example of a program that will take a torrent-file as a parameter and
 print information about it to std out:</p>
 <pre class="literal-block">
@@ -140,8 +162,8 @@ int main(int argc, char* argv[])
 }
 </pre>
 </div>
-<div class="section">
-<h2><a id="simple-client" name="simple-client">simple client</a></h2>
+<div class="section" id="simple-client">
+<h2>simple client</h2>
 <p>This is a simple client. It doesn't have much output to keep it simple:</p>
 <pre class="literal-block">
 int main(int argc, char* argv[])
@@ -185,8 +207,8 @@ if (argc != 2)
 }
 </pre>
 </div>
-<div class="section">
-<h2><a id="make-torrent" name="make-torrent">make_torrent</a></h2>
+<div class="section" id="make-torrent">
+<h2>make_torrent</h2>
 <p>Shows how to create a torrent from a directory tree:</p>
 <pre class="literal-block">
 #include &lt;iostream&gt;
@@ -277,6 +299,17 @@ int main(int argc, char* argv[])
 </pre>
 </div>
 </div>
+    </div>
+    <div id="footer">
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
 </div>
 </body>
 </html>
