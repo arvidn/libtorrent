@@ -319,6 +319,13 @@ namespace libtorrent
 		int ret = load_file(filename, buf);
 		if (ret < 0) return;
 
+		if (buf.empty())
+#ifndef BOOST_NO_EXCEPTIONS
+			throw invalid_torrent_file();
+#else
+			return;
+#endif
+
 		lazy_entry e;
 		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
 		std::string error;
