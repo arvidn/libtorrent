@@ -14,8 +14,29 @@ building
 Building the libtorrent python bindings will produce a shared library (DLL)
 which is a python module that can be imported in a python program.
 
-The only supported build system for the bindings are currently boost build. To
-set up your build environment, you need to add some settings to your
+building using setup.py
+-----------------------
+
+To set up the Python bindings for libtorrent, you must first have libtorrent
+built and installed on the system.  See 'building libtorrent'_.
+
+.. _`building libtorrent`: building.html
+
+To build the Python bindings do:
+
+1. Run::
+
+	python setup.py build
+
+2. As root, run::
+
+	python setup.py install
+
+
+building using boost build
+--------------------------
+
+To set up your build environment, you need to add some settings to your
 ``$BOOST_BUILD_PATH/user-config.jam``.
 
 Make sure your user config contains the following line::

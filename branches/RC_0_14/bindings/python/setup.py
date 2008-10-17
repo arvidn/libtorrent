@@ -2,6 +2,7 @@
 
 from distutils.core import setup, Extension
 import commands
+import os
 
 def pkgconfig(*packages, **kw):
     flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries' }
@@ -14,40 +15,25 @@ def pkgconfig(*packages, **kw):
         kw[k] = list(set(v))
     return kw
 
+def build_extension():
+    this_dir = os.path.dirname(__file__)
+    source_list = os.listdir(os.path.join(this_dir, "src"))
+    source_list = [os.path.join("src", s) for s in source_list if s.endswith(".cpp")]
 
-ltmod = Extension(
-            'libtorrent',
-            sources = [ 'src/alert.cpp',
-                        'src/big_number.cpp',   
-                        'src/converters.cpp',   
-                        'src/datetime.cpp',     
-                        'src/docstrings.cpp',   
-                        'src/entry.cpp',        
-                        'src/extensions.cpp',   
-                        'src/filesystem.cpp',   
-                        'src/fingerprint.cpp',  
-                        'src/ip_filter.cpp',       
-                        'src/magnet_uri.cpp',       
-                        'src/module.cpp',       
-                        'src/peer_info.cpp',    
-                        'src/peer_plugin.cpp',  
-                        'src/session.cpp',      
-                        'src/session_settings.cpp',
-                        'src/torrent.cpp',      
-                        'src/torrent_handle.cpp',
-                        'src/torrent_info.cpp', 
-                        'src/torrent_status.cpp',
-                        'src/utility.cpp',      
-                        'src/version.cpp' ],    
-            **pkgconfig('libtorrent-rasterbar',
-                libraries = [ 'boost_python-mt-1_35' ], 
-            )           
-        );      
+    libtorrent_pkg_config = pkgconfig('libtorrent-rasterbar', libraries=['boost_python-mt'])
 
-setup(  name = 'py-libtorrent',
-        version = '0.14',        
-        description = 'Python bindings for libtorrent (rasterbar)',
-        author = 'Arvid Norberg',
-        ext_modules = [ltmod],
-        include_dirs = ['/opt/local/include/boost-1_35'])
+    return Extension(
+                'libtorrent',
+                sources = source_list,
+                **libtorrent_pkg_config
+            )
 
+libtorrent_extension = build_extension()
+
+setup( name = 'py-libtorrent',
+       version = '0.14',        
+       description = 'Python bindings for libtorrent (rasterbar)',
+       author = 'Arvid Norberg',
+       url = 'http://www.rasterbar.com/products/libtorrent/index.html',
+       ext_modules = [libtorrent_extension]
+)
