@@ -2146,16 +2146,22 @@ The fast resume data will be empty in the following cases:
 	   (see libtorrent's `metadata from peers`_ extension)
 
 Note that by the time you receive the fast resume data, it may already be invalid if the torrent
-is still downloading! The recommended practice is to first pause the torrent, then generate the
+is still downloading! The recommended practice is to first pause the session, then generate the
 fast resume data, and then close it down. Make sure to not `remove_torrent()`_ before you receive
-the `save_resume_data_alert`_ though. Only pause the torrent before you save the resume data
-if you will remove the torrent afterwards. There's no need to pause when saving intermittent
-resume data.
+the `save_resume_data_alert`_ though. There's no need to pause when saving intermittent resume data.
 
-In full allocation mode the reume data is never invalidated by subsequent
-writes to the files, since pieces won't move around. This means that you don't need to
-pause before writing resume data in full or sparse mode. If you don't, however, any data written to
-disk after you saved resume data and before the session_ closed is lost.
+.. warning:: If you pause every torrent individually instead of pausing the session, every torrent
+	will have its paused state saved in the resume data!
+
+.. note:: It is typically a good idea to save resume data whenever a torrent is completed or paused. In those
+	cases you don't need to pause the torrent or the session, since the torrent will do no more writing
+	to its files. If you save resume data for torrents when they are paused, you can accelerate the
+	shutdown process by not saving resume data again for paused torrents.
+
+	In full allocation mode the reume data is never invalidated by subsequent
+	writes to the files, since pieces won't move around. This means that you don't need to
+	pause before writing resume data in full or sparse mode. If you don't, however, any data written to
+	disk after you saved resume data and before the session_ closed is lost.
 
 It also means that if the resume data is out dated, libtorrent will not re-check the files, but assume
 that it is fairly recent. The assumption is that it's better to loose a little bit than to re-check
@@ -2168,13 +2174,14 @@ Example code to pause and save resume data for all torrents and wait for the ale
 
 	int num_resume_data = 0;
 	std::vector<torrent_handle> handles = ses.get_torrents();
+	ses.pause();
 	for (std::vector<torrent_handle>::iterator i = handles.begin();
 		i != handles.end(); ++i)
 	{
 		torrent_handle& h = *i;
 		if (!h.has_metadata()) continue;
+		if (!h.is_valid()) continue;
 
-		h.pause();
 		h.save_resume_data();
 		++num_resume_data;
 	}
