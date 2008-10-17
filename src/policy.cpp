@@ -338,8 +338,7 @@ namespace libtorrent
 		piece_picker* p = 0;
 		if (m_torrent->has_picker())
 			p = &m_torrent->picker();
-		for (iterator i = m_peers.begin()
-			, end(m_peers.end()); i != end;)
+		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{
 			if ((ses.m_ip_filter.access(i->second.addr) & ip_filter::blocked) == 0)
 			{
