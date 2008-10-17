@@ -492,7 +492,15 @@ void add_torrent(libtorrent::session& ses
 {
 	using namespace libtorrent;
 
-	boost::intrusive_ptr<torrent_info> t(new torrent_info(torrent.c_str()));
+	boost::intrusive_ptr<torrent_info> t;
+	try
+	{
+		t = new torrent_info(torrent.c_str());
+	}
+	catch (std::exception&)
+	{
+		return;
+	}
 
 	std::cout << t->name() << "\n";
 
@@ -1096,11 +1104,14 @@ int main(int ac, char* av[])
 						i != handles.end(); ++i)
 					{
 						torrent_handle& h = i->second;
-						if (!h.is_valid() || !h.has_metadata()) continue;
+						if (!h.is_valid()) continue;
+						h.auto_managed(false);
+						if (h.is_paused()) continue;
+						h.pause();
+						if (!h.has_metadata()) continue;
 
 						// pause
 						std::cout << "pausing " << h.name() << std::endl;
-						h.pause();
 						// save_resume_data will generate an alert when it's done
 						h.save_resume_data();
 						++num_resume_data;
