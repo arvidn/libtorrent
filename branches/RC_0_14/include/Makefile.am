@@ -107,6 +107,8 @@ libtorrent/asio.hpp \
 libtorrent/asio/basic_datagram_socket.hpp \
 libtorrent/asio/basic_deadline_timer.hpp \
 libtorrent/asio/basic_io_object.hpp \
+libtorrent/asio/basic_raw_socket.hpp \
+libtorrent/asio/basic_serial_port.hpp \
 libtorrent/asio/basic_socket.hpp \
 libtorrent/asio/basic_socket_acceptor.hpp \
 libtorrent/asio/basic_socket_iostream.hpp \
@@ -120,6 +122,7 @@ libtorrent/asio/buffered_stream.hpp \
 libtorrent/asio/buffered_stream_fwd.hpp \
 libtorrent/asio/buffered_write_stream.hpp \
 libtorrent/asio/buffered_write_stream_fwd.hpp \
+libtorrent/asio/buffers_iterator.hpp \
 libtorrent/asio/completion_condition.hpp \
 libtorrent/asio/datagram_socket_service.hpp \
 libtorrent/asio/deadline_timer.hpp \
@@ -132,8 +135,13 @@ libtorrent/asio/io_service.hpp \
 libtorrent/asio/is_read_buffered.hpp \
 libtorrent/asio/is_write_buffered.hpp \
 libtorrent/asio/placeholders.hpp \
+libtorrent/asio/raw_socket_service.hpp \
 libtorrent/asio/read.hpp \
+libtorrent/asio/read_at.hpp \
 libtorrent/asio/read_until.hpp \
+libtorrent/asio/serial_port.hpp \
+libtorrent/asio/serial_port_base.hpp \
+libtorrent/asio/serial_port_service.hpp \
 libtorrent/asio/socket_acceptor_service.hpp \
 libtorrent/asio/socket_base.hpp \
 libtorrent/asio/ssl.hpp \
@@ -145,6 +153,7 @@ libtorrent/asio/thread.hpp \
 libtorrent/asio/time_traits.hpp \
 libtorrent/asio/version.hpp \
 libtorrent/asio/write.hpp \
+libtorrent/asio/write_at.hpp \
 libtorrent/asio/detail/bind_handler.hpp \
 libtorrent/asio/detail/buffer_resize_guard.hpp \
 libtorrent/asio/detail/buffered_stream_storage.hpp \
@@ -152,6 +161,7 @@ libtorrent/asio/detail/call_stack.hpp \
 libtorrent/asio/detail/const_buffers_iterator.hpp \
 libtorrent/asio/detail/consuming_buffers.hpp \
 libtorrent/asio/detail/deadline_timer_service.hpp \
+libtorrent/asio/detail/descriptor_ops.hpp \
 libtorrent/asio/detail/dev_poll_reactor.hpp \
 libtorrent/asio/detail/dev_poll_reactor_fwd.hpp \
 libtorrent/asio/detail/epoll_reactor.hpp \
@@ -159,9 +169,11 @@ libtorrent/asio/detail/epoll_reactor_fwd.hpp \
 libtorrent/asio/detail/event.hpp \
 libtorrent/asio/detail/fd_set_adapter.hpp \
 libtorrent/asio/detail/handler_alloc_helpers.hpp \
+libtorrent/asio/detail/handler_base_from_member.hpp \
 libtorrent/asio/detail/handler_invoke_helpers.hpp \
 libtorrent/asio/detail/handler_queue.hpp \
 libtorrent/asio/detail/hash_map.hpp \
+libtorrent/asio/detail/indirect_handler_queue.hpp \
 libtorrent/asio/detail/io_control.hpp \
 libtorrent/asio/detail/kqueue_reactor.hpp \
 libtorrent/asio/detail/kqueue_reactor_fwd.hpp \
@@ -183,6 +195,8 @@ libtorrent/asio/detail/posix_signal_blocker.hpp \
 libtorrent/asio/detail/posix_thread.hpp \
 libtorrent/asio/detail/posix_tss_ptr.hpp \
 libtorrent/asio/detail/push_options.hpp \
+libtorrent/asio/detail/reactive_descriptor_service.hpp \
+libtorrent/asio/detail/reactive_serial_port_service.hpp \
 libtorrent/asio/detail/reactive_socket_service.hpp \
 libtorrent/asio/detail/reactor_op_queue.hpp \
 libtorrent/asio/detail/resolver_service.hpp \
@@ -203,6 +217,7 @@ libtorrent/asio/detail/socket_select_interrupter.hpp \
 libtorrent/asio/detail/socket_types.hpp \
 libtorrent/asio/detail/strand_service.hpp \
 libtorrent/asio/detail/task_io_service.hpp \
+libtorrent/asio/detail/task_io_service_2lock.hpp \
 libtorrent/asio/detail/task_io_service_fwd.hpp \
 libtorrent/asio/detail/thread.hpp \
 libtorrent/asio/detail/throw_error.hpp \
@@ -211,8 +226,10 @@ libtorrent/asio/detail/timer_queue_base.hpp \
 libtorrent/asio/detail/tss_ptr.hpp \
 libtorrent/asio/detail/win_event.hpp \
 libtorrent/asio/detail/win_fd_set_adapter.hpp \
+libtorrent/asio/detail/win_iocp_handle_service.hpp \
 libtorrent/asio/detail/win_iocp_io_service.hpp \
 libtorrent/asio/detail/win_iocp_io_service_fwd.hpp \
+libtorrent/asio/detail/win_iocp_serial_port_service.hpp \
 libtorrent/asio/detail/win_iocp_socket_service.hpp \
 libtorrent/asio/detail/win_mutex.hpp \
 libtorrent/asio/detail/win_signal_blocker.hpp \
@@ -224,8 +241,11 @@ libtorrent/asio/detail/wrapped_handler.hpp \
 libtorrent/asio/impl/error_code.ipp \
 libtorrent/asio/impl/io_service.ipp \
 libtorrent/asio/impl/read.ipp \
+libtorrent/asio/impl/read_at.ipp \
 libtorrent/asio/impl/read_until.ipp \
+libtorrent/asio/impl/serial_port_base.ipp \
 libtorrent/asio/impl/write.ipp \
+libtorrent/asio/impl/write_at.ipp \
 libtorrent/asio/ip/address.hpp \
 libtorrent/asio/ip/address_v4.hpp \
 libtorrent/asio/ip/address_v6.hpp \
@@ -235,6 +255,7 @@ libtorrent/asio/ip/basic_resolver_entry.hpp \
 libtorrent/asio/ip/basic_resolver_iterator.hpp \
 libtorrent/asio/ip/basic_resolver_query.hpp \
 libtorrent/asio/ip/host_name.hpp \
+libtorrent/asio/ip/icmp.hpp \
 libtorrent/asio/ip/multicast.hpp \
 libtorrent/asio/ip/resolver_query_base.hpp \
 libtorrent/asio/ip/resolver_service.hpp \
@@ -243,6 +264,15 @@ libtorrent/asio/ip/udp.hpp \
 libtorrent/asio/ip/unicast.hpp \
 libtorrent/asio/ip/v6_only.hpp \
 libtorrent/asio/ip/detail/socket_option.hpp \
+libtorrent/asio/local/basic_endpoint.hpp \
+libtorrent/asio/local/connect_pair.hpp \
+libtorrent/asio/local/datagram_protocol.hpp \
+libtorrent/asio/local/stream_protocol.hpp \
+libtorrent/asio/posix/basic_descriptor.hpp \
+libtorrent/asio/posix/basic_stream_descriptor.hpp \
+libtorrent/asio/posix/descriptor_base.hpp \
+libtorrent/asio/posix/stream_descriptor.hpp \
+libtorrent/asio/posix/stream_descriptor_service.hpp \
 libtorrent/asio/ssl/basic_context.hpp \
 libtorrent/asio/ssl/context.hpp \
 libtorrent/asio/ssl/context_base.hpp \
@@ -254,5 +284,12 @@ libtorrent/asio/ssl/detail/openssl_context_service.hpp \
 libtorrent/asio/ssl/detail/openssl_init.hpp \
 libtorrent/asio/ssl/detail/openssl_operation.hpp \
 libtorrent/asio/ssl/detail/openssl_stream_service.hpp \
-libtorrent/asio/ssl/detail/openssl_types.hpp
+libtorrent/asio/ssl/detail/openssl_types.hpp \
+libtorrent/asio/windows/basic_handle.hpp \
+libtorrent/asio/windows/basic_random_access_handle.hpp \
+libtorrent/asio/windows/basic_stream_handle.hpp \
+libtorrent/asio/windows/random_access_handle.hpp \
+libtorrent/asio/windows/random_access_handle_service.hpp \
+libtorrent/asio/windows/stream_handle.hpp \
+libtorrent/asio/windows/stream_handle_service.hpp \
 endif
