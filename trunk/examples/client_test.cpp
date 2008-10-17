@@ -1100,18 +1100,16 @@ int main(int ac, char* av[])
 					// keep track of the number of resume data
 					// alerts to wait for
 					int num_resume_data = 0;
+					ses.pause();
 					for (handles_t::iterator i = handles.begin();
 						i != handles.end(); ++i)
 					{
 						torrent_handle& h = i->second;
 						if (!h.is_valid()) continue;
-						h.auto_managed(false);
 						if (h.is_paused()) continue;
-						h.pause();
 						if (!h.has_metadata()) continue;
 
-						// pause
-						std::cout << "pausing " << h.name() << std::endl;
+						std::cout << "saving resume data for " << h.name() << std::endl;
 						// save_resume_data will generate an alert when it's done
 						h.save_resume_data();
 						++num_resume_data;
