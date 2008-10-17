@@ -219,6 +219,7 @@ pause() resume() is_paused()
 ----------------------------
 
 	::
+
 		void pause();
 		void resume();
 		bool is_paused() const;
