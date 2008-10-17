@@ -5280,11 +5280,10 @@ Thanks to `University of Umeå`__ for providing development and test hardware.
 
 Project is hosted by sourceforge.
 
-|sf_logo|__
+.. raw: html
+	
+	<a href="http://sourceforge.net"><img src="http://sourceforge.net/sflogo.php?group_id=7994"/></a>
 
 .. |copy| unicode:: 0xA9 .. copyright sign
 __ http://www.cs.umu.se
-.. |sf_logo| image:: http://sourceforge.net/sflogo.php?group_id=7994
-__ http://sourceforge.net
-
 
