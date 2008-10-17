@@ -77,7 +77,6 @@ void bind_torrent_info()
         .def(init<entry const&>())
         .def(init<sha1_hash const&>())
         .def(init<char const*, int>())
-        .def(init<char const*>())
         
         .def("add_tracker", &torrent_info::add_tracker, (arg("url"), arg("tier")=0))
         .def("add_url_seed", &torrent_info::add_url_seed)
