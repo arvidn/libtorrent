@@ -291,5 +291,5 @@ libtorrent/asio/windows/basic_stream_handle.hpp \
 libtorrent/asio/windows/random_access_handle.hpp \
 libtorrent/asio/windows/random_access_handle_service.hpp \
 libtorrent/asio/windows/stream_handle.hpp \
-libtorrent/asio/windows/stream_handle_service.hpp \
+libtorrent/asio/windows/stream_handle_service.hpp
 endif
