@@ -52,9 +52,9 @@ path used when you installed python as a second option. Like this::
 The bindings require *at least* python version 2.2.
 
 For more information on how to install and set up boost-build, see the
-`building libtorrent`_ section.
+`building libtorrent`__ section.
 
-.. _`building libtorrent`: building.html#step-2-setup-bbv2
+.. __: building.html#step-2-setup-bbv2
 
 Once you have boost-build set up, you cd to the ``bindings/python``
 directory and invoke ``bjam`` with the apropriate settings. For the available
