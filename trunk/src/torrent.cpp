@@ -3949,32 +3949,29 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 	
-		if (m_owning_storage.get())
-		{
-			TORRENT_ASSERT(m_storage);
-			if (m_state == torrent_status::queued_for_checking
-				|| m_state == torrent_status::checking_files)
-			{
-				if (alerts().should_post<save_resume_data_failed_alert>())
-				{
-					alerts().post_alert(save_resume_data_failed_alert(get_handle()
-						, "won't save resume data, torrent does not have a complete resume state yet"));
-				}
-			}
-			else
-			{
-				m_storage->async_save_resume_data(
-					bind(&torrent::on_save_resume_data, shared_from_this(), _1, _2));
-			}
-		}
-		else
+		if (!m_owning_storage.get())
 		{
 			if (alerts().should_post<save_resume_data_failed_alert>())
 			{
 				alerts().post_alert(save_resume_data_failed_alert(get_handle()
 					, "save resume data failed, torrent is being destructed"));
 			}
+			return;
 		}
+
+		TORRENT_ASSERT(m_storage);
+		if (m_state == torrent_status::queued_for_checking
+			|| m_state == torrent_status::checking_files)
+		{
+			if (alerts().should_post<save_resume_data_failed_alert>())
+			{
+				alerts().post_alert(save_resume_data_failed_alert(get_handle()
+					, "won't save resume data, torrent does not have a complete resume state yet"));
+			}
+			return;
+		}
+		m_storage->async_save_resume_data(
+			bind(&torrent::on_save_resume_data, shared_from_this(), _1, _2));
 	}
 	
 	bool torrent::should_check_files() const
