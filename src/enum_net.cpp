@@ -86,7 +86,7 @@ namespace libtorrent
 			== (iface.interface_address.to_v4().to_ulong() & iface.netmask.to_v4().to_ulong());
 	}
 
-	bool in_local_network(asio::io_service& ios, address const& addr, asio::error_code& ec)
+	bool in_local_network(asio::io_service& ios, address const& addr, error_code& ec)
 	{
 		std::vector<ip_interface> const& net = enum_net_interfaces(ios, ec);
 		if (ec) return false;
@@ -98,7 +98,7 @@ namespace libtorrent
 		return false;
 	}
 	
-	std::vector<ip_interface> enum_net_interfaces(asio::io_service& ios, asio::error_code& ec)
+	std::vector<ip_interface> enum_net_interfaces(asio::io_service& ios, error_code& ec)
 	{
 		std::vector<ip_interface> ret;
 
@@ -115,7 +115,7 @@ namespace libtorrent
 		ifc.ifc_buf = buf;
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
 		{
-			ec = asio::error_code(errno, asio::error::system_category);
+			ec = error_code(errno, asio::error::system_category);
 			close(s);
 			return ret;
 		}
@@ -143,7 +143,7 @@ namespace libtorrent
 					}
 					else
 					{
-						ec = asio::error_code(errno, asio::error::system_category);
+						ec = error_code(errno, asio::error::system_category);
 						close(s);
 						return ret;
 					}
@@ -170,7 +170,7 @@ namespace libtorrent
 		SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s == SOCKET_ERROR)
 		{
-			ec = asio::error_code(WSAGetLastError(), asio::error::system_category);
+			ec = error_code(WSAGetLastError(), asio::error::system_category);
 			return ret;
 		}
 
@@ -180,7 +180,7 @@ namespace libtorrent
 		if (WSAIoctl(s, SIO_GET_INTERFACE_LIST, 0, 0, buffer,
 			sizeof(buffer), &size, 0, 0) != 0)
 		{
-			ec = asio::error_code(WSAGetLastError(), asio::error::system_category);
+			ec = error_code(WSAGetLastError(), asio::error::system_category);
 			closesocket(s);
 			return ret;
 		}
@@ -215,7 +215,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	address router_for_interface(address const interface, asio::error_code& ec)
+	address router_for_interface(address const interface, error_code& ec)
 	{
 #ifdef TORRENT_WINDOWS
 
@@ -264,7 +264,7 @@ namespace libtorrent
 				address iface = address::from_string(adapter->IpAddressList.IpAddress.String, ec);
 				if (ec)
 				{
-					ec = asio::error_code();
+					ec = error_code();
 					continue;
 				}
 				if (is_loopback(iface) || is_any(iface)) continue;

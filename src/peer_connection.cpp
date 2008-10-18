@@ -2720,7 +2720,7 @@ namespace libtorrent
 	// --------------------------
 
 	// throws exception when the client should be disconnected
-	void peer_connection::on_receive_data(const asio::error_code& error
+	void peer_connection::on_receive_data(const error_code& error
 		, std::size_t bytes_transferred) try
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -2776,11 +2776,15 @@ namespace libtorrent
 
 			if (max_receive == 0) break;
 
-			asio::error_code ec;	
+			error_code ec;	
 			bytes_transferred = m_socket->read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
 				, max_receive), ec);
 			if (ec && ec != asio::error::would_block)
+#if BOOST_VERSION < 103500
 				throw asio::system_error(ec);
+#else
+				throw boost::system::system_error(ec);
+#endif
 		}
 		while (bytes_transferred > 0);
 
@@ -2885,7 +2889,7 @@ namespace libtorrent
 		}
 	}
 	
-	void peer_connection::on_connection_complete(asio::error_code const& e) try
+	void peer_connection::on_connection_complete(error_code const& e) try
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
@@ -2938,7 +2942,7 @@ namespace libtorrent
 	// --------------------------
 
 	// throws exception when the client should be disconnected
-	void peer_connection::on_send_data(asio::error_code const& error
+	void peer_connection::on_send_data(error_code const& error
 		, std::size_t bytes_transferred) try
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);

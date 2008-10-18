@@ -242,7 +242,7 @@ namespace libtorrent
 		// this is called when the connection attempt has succeeded
 		// and the peer_connection is supposed to set m_connecting
 		// to false, and stop monitor writability
-		void on_connection_complete(asio::error_code const& e);
+		void on_connection_complete(error_code const& e);
 
 		// returns true if this connection is still waiting to
 		// finish the connection attempt
@@ -420,9 +420,9 @@ namespace libtorrent
 		virtual void on_connected() = 0;
 		virtual void on_tick() {}
 	
-		virtual void on_receive(asio::error_code const& error
+		virtual void on_receive(error_code const& error
 			, std::size_t bytes_transferred) = 0;
-		virtual void on_sent(asio::error_code const& error
+		virtual void on_sent(error_code const& error
 			, std::size_t bytes_transferred) = 0;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -472,9 +472,9 @@ namespace libtorrent
 
 		// called from the main loop when this connection has any
 		// work to do.
-		void on_send_data(asio::error_code const& error
+		void on_send_data(error_code const& error
 			, std::size_t bytes_transferred);
-		void on_receive_data(asio::error_code const& error
+		void on_receive_data(error_code const& error
 			, std::size_t bytes_transferred);
 
 		// this is the limit on the number of outstanding requests

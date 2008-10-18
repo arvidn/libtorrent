@@ -102,7 +102,7 @@ namespace libtorrent
 			, m_settings.tracker_receive_timeout);
 	}
 
-	void udp_tracker_connection::name_lookup(asio::error_code const& error
+	void udp_tracker_connection::name_lookup(error_code const& error
 		, udp::resolver::iterator i) try
 	{
 		if (error == asio::error::operation_aborted) return;
@@ -157,7 +157,7 @@ namespace libtorrent
 
 	void udp_tracker_connection::on_timeout()
 	{
-		asio::error_code ec;
+		error_code ec;
 		m_socket.close(ec);
 		m_name_lookup.cancel();
 		fail_timeout();
@@ -165,7 +165,7 @@ namespace libtorrent
 
 	void udp_tracker_connection::close()
 	{
-		asio::error_code ec;
+		error_code ec;
 		m_socket.close(ec);
 		m_name_lookup.cancel();
 		tracker_connection::close();
@@ -204,7 +204,7 @@ namespace libtorrent
 			, boost::bind(&udp_tracker_connection::connect_response, self(), _1, _2));
 	}
 
-	void udp_tracker_connection::connect_response(asio::error_code const& error
+	void udp_tracker_connection::connect_response(error_code const& error
 		, std::size_t bytes_transferred) try
 	{
 		if (error == asio::error::operation_aborted) return;
@@ -375,7 +375,7 @@ namespace libtorrent
 			, bind(&udp_tracker_connection::scrape_response, self(), _1, _2));
 	}
 
-	void udp_tracker_connection::announce_response(asio::error_code const& error
+	void udp_tracker_connection::announce_response(error_code const& error
 		, std::size_t bytes_transferred) try
 	{
 		if (error == asio::error::operation_aborted) return;
@@ -486,7 +486,7 @@ namespace libtorrent
 		fail(-1, e.what());
 	}; // msvc 7.1 seems to require this
 
-	void udp_tracker_connection::scrape_response(asio::error_code const& error
+	void udp_tracker_connection::scrape_response(error_code const& error
 		, std::size_t bytes_transferred) try
 	{
 		if (error == asio::error::operation_aborted) return;

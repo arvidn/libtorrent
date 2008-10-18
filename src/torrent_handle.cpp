@@ -607,7 +607,7 @@ namespace libtorrent
 		for (policy::iterator i = pol.begin_peer()
 			, end(pol.end_peer()); i != end; ++i)
 		{
-			asio::error_code ec;
+			error_code ec;
 			if (i->second.banned)
 			{
 				tcp::endpoint ip = i->second.ip;

@@ -30,8 +30,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <boost/version.hpp>
+
+#if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #include <asio/ip/multicast.hpp>
+#else
+#include <boost/asio/ip/host_name.hpp>
+#include <boost/asio/ip/multicast.hpp>
+#endif
+
 #include <boost/bind.hpp>
 
 #include "libtorrent/socket.hpp"
@@ -78,7 +86,7 @@ namespace libtorrent
 	address guess_local_address(asio::io_service& ios)
 	{
 		// make a best guess of the interface we're using and its IP
-		asio::error_code ec;
+		error_code ec;
 		std::vector<ip_interface> const& interfaces = enum_net_interfaces(ios, ec);
 		address ret = address_v4::any();
 		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
@@ -148,7 +156,7 @@ namespace libtorrent
 
 		using namespace asio::ip::multicast;
 	
-		asio::error_code ec;
+		error_code ec;
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
 		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
@@ -203,13 +211,13 @@ namespace libtorrent
 		}
 	}
 
-	void broadcast_socket::send(char const* buffer, int size, asio::error_code& ec)
+	void broadcast_socket::send(char const* buffer, int size, error_code& ec)
 	{
 		for (std::list<socket_entry>::iterator i = m_sockets.begin()
 			, end(m_sockets.end()); i != end; ++i)
 		{
 			if (!i->socket) continue;
-			asio::error_code e;
+			error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 #ifndef NDEBUG
 //			std::cerr << " sending on " << i->socket->local_endpoint().address().to_string() << std::endl;
@@ -222,7 +230,7 @@ namespace libtorrent
 		}
 	}
 
-	void broadcast_socket::on_receive(socket_entry* s, asio::error_code const& ec
+	void broadcast_socket::on_receive(socket_entry* s, error_code const& ec
 		, std::size_t bytes_transferred)
 	{
 		if (ec || bytes_transferred == 0 || !m_on_receive) return;

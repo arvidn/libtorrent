@@ -103,9 +103,9 @@ namespace libtorrent
 
 		// called from the main loop when this connection has any
 		// work to do.
-		void on_sent(asio::error_code const& error
+		void on_sent(error_code const& error
 			, std::size_t bytes_transferred);
-		void on_receive(asio::error_code const& error
+		void on_receive(error_code const& error
 			, std::size_t bytes_transferred);
 			
 		std::string const& url() const { return m_url; }

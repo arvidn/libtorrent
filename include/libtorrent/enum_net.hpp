@@ -48,7 +48,7 @@ namespace libtorrent
 	// returns a list of the configured IP interfaces
 	// on the machine
 	TORRENT_EXPORT std::vector<ip_interface> enum_net_interfaces(asio::io_service& ios
-		, asio::error_code& ec);
+		, error_code& ec);
 
 	// returns true if the specified address is on the same
 	// local network as the specified interface
@@ -56,9 +56,9 @@ namespace libtorrent
 
 	// returns true if the specified address is on the same
 	// local network as us
-	TORRENT_EXPORT bool in_local_network(asio::io_service& ios, address const& addr, asio::error_code& ec);
+	TORRENT_EXPORT bool in_local_network(asio::io_service& ios, address const& addr, error_code& ec);
 	
-	TORRENT_EXPORT address router_for_interface(address const interface, asio::error_code& ec);
+	TORRENT_EXPORT address router_for_interface(address const interface, error_code& ec);
 }
 
 #endif

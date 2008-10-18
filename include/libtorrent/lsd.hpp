@@ -67,7 +67,7 @@ public:
 
 private:
 
-	void resend_announce(asio::error_code const& e, std::string msg);
+	void resend_announce(error_code const& e, std::string msg);
 	void on_announce(udp::endpoint const& from, char* buffer
 		, std::size_t bytes_transferred);
 //	void setup_receive();

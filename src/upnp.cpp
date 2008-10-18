@@ -42,8 +42,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
+#if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #include <asio/ip/multicast.hpp>
+#else
+#include <boost/asio/ip/host_name.hpp>
+#include <boost/asio/ip/multicast.hpp>
+#endif
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
 
@@ -99,7 +104,7 @@ void upnp::discover_device() try
 		"MX:3\r\n"
 		"\r\n\r\n";
 
-	asio::error_code ec;
+	error_code ec;
 #ifdef TORRENT_DEBUG_UPNP
 	// simulate packet loss
 	if (m_retry_count & 1)
@@ -170,7 +175,7 @@ void upnp::set_mappings(int tcp, int udp)
 	}
 }
 
-void upnp::resend_request(asio::error_code const& e)
+void upnp::resend_request(error_code const& e)
 #ifndef NDEBUG
 try
 #endif
@@ -269,7 +274,7 @@ try
 	Server:Microsoft-Windows-NT/5.1 UPnP/1.0 UPnP-Device-Host/1.0
 
 */
-	asio::error_code ec;
+	error_code ec;
 	if (m_ignore_outside_network && !in_local_network(m_io_service, from.address(), ec))
 	{
 		// this upnp device is filtered because it's not in the
@@ -691,7 +696,7 @@ namespace
 
 }
 
-void upnp::on_upnp_xml(asio::error_code const& e
+void upnp::on_upnp_xml(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d
 	, http_connection& c) try
 {
@@ -840,7 +845,7 @@ namespace
 
 }
 
-void upnp::on_upnp_map_response(asio::error_code const& e
+void upnp::on_upnp_map_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping
 	, http_connection& c) try
 {
@@ -987,7 +992,7 @@ catch (std::exception&)
 	disable();
 };
 
-void upnp::on_upnp_unmap_response(asio::error_code const& e
+void upnp::on_upnp_unmap_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping
 	, http_connection& c) try
 {
@@ -1043,7 +1048,7 @@ catch (std::exception&)
 	disable();
 };
 
-void upnp::on_expire(asio::error_code const& e) try
+void upnp::on_expire(error_code const& e) try
 {
 	if (e) return;
 

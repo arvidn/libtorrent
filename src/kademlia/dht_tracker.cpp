@@ -67,8 +67,10 @@ enum
 	key_refresh = 5 // generate a new write token key every 5 minutes
 };
 
+#if BOOST_VERSION < 103500
 using asio::ip::udp;
 typedef asio::ip::address_v4 address;
+#endif
 
 namespace
 {
@@ -237,7 +239,7 @@ namespace libtorrent { namespace dht
 		s.dht_global_nodes = m_dht.num_global_nodes();
 	}
 
-	void dht_tracker::connection_timeout(asio::error_code const& e)
+	void dht_tracker::connection_timeout(error_code const& e)
 		try
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -257,7 +259,7 @@ namespace libtorrent { namespace dht
 #endif
 	};
 
-	void dht_tracker::refresh_timeout(asio::error_code const& e)
+	void dht_tracker::refresh_timeout(error_code const& e)
 		try
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -285,7 +287,7 @@ namespace libtorrent { namespace dht
 			, m_strand.wrap(bind(&dht_tracker::on_receive, self(), _1, _2)));
 	}
 
-	void dht_tracker::tick(asio::error_code const& e)
+	void dht_tracker::tick(error_code const& e)
 		try
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -400,7 +402,7 @@ namespace libtorrent { namespace dht
 
 	// translate bittorrent kademlia message into the generice kademlia message
 	// used by the library
-	void dht_tracker::on_receive(asio::error_code const& error, size_t bytes_transferred)
+	void dht_tracker::on_receive(error_code const& error, size_t bytes_transferred)
 		try
 	{
 		if (error == asio::error::operation_aborted) return;
@@ -777,7 +779,7 @@ namespace libtorrent { namespace dht
 			bind(&dht_tracker::on_name_lookup, self(), _1, _2)));
 	}
 
-	void dht_tracker::on_name_lookup(asio::error_code const& e
+	void dht_tracker::on_name_lookup(error_code const& e
 		, udp::resolver::iterator host) try
 	{
 		if (e || host == udp::resolver::iterator()) return;
@@ -796,7 +798,7 @@ namespace libtorrent { namespace dht
 			bind(&dht_tracker::on_router_name_lookup, self(), _1, _2)));
 	}
 
-	void dht_tracker::on_router_name_lookup(asio::error_code const& e
+	void dht_tracker::on_router_name_lookup(error_code const& e
 		, udp::resolver::iterator host) try
 	{
 		if (e || host == udp::resolver::iterator()) return;
@@ -997,7 +999,7 @@ namespace libtorrent { namespace dht
 
 		m_send_buf.clear();
 		bencode(std::back_inserter(m_send_buf), e);
-		asio::error_code ec;
+		error_code ec;
 		m_socket.send_to(asio::buffer(&m_send_buf[0]
 			, (int)m_send_buf.size()), m.addr, 0, ec);
 		if (ec) return;

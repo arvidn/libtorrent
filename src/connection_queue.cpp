@@ -161,7 +161,7 @@ namespace libtorrent
 	};
 #endif
 	
-	void connection_queue::on_timeout(asio::error_code const& e)
+	void connection_queue::on_timeout(error_code const& e)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
