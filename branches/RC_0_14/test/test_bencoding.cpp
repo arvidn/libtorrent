@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #include <boost/lexical_cast.hpp>
 #include <iostream>
+#include <cstring>
 
 #include "test.hpp"
 
@@ -110,7 +111,7 @@ int test_main()
 		TORRENT_ASSERT(ret == 0);
 		std::cout << e << std::endl;
 		std::pair<const char*, int> section = e.data_section();
-		TORRENT_ASSERT(memcmp(b, section.first, section.second) == 0);
+		TORRENT_ASSERT(std::memcmp(b, section.first, section.second) == 0);
 		TORRENT_ASSERT(section.second == sizeof(b) - 1);
 		TORRENT_ASSERT(e.type() == lazy_entry::int_t);
 		TORRENT_ASSERT(e.int_value() == 12453);
@@ -123,7 +124,7 @@ int test_main()
 		TORRENT_ASSERT(ret == 0);
 		std::cout << e << std::endl;
 		std::pair<const char*, int> section = e.data_section();
-		TORRENT_ASSERT(memcmp(b, section.first, section.second) == 0);
+		TORRENT_ASSERT(std::memcmp(b, section.first, section.second) == 0);
 		TORRENT_ASSERT(section.second == sizeof(b) - 1);
 		TORRENT_ASSERT(e.type() == lazy_entry::string_t);
 		TORRENT_ASSERT(e.string_value() == std::string("abcdefghijklmnopqrstuvwxyz"));
@@ -137,7 +138,7 @@ int test_main()
 		TORRENT_ASSERT(ret == 0);
 		std::cout << e << std::endl;
 		std::pair<const char*, int> section = e.data_section();
-		TORRENT_ASSERT(memcmp(b, section.first, section.second) == 0);
+		TORRENT_ASSERT(std::memcmp(b, section.first, section.second) == 0);
 		TORRENT_ASSERT(section.second == sizeof(b) - 1);
 		TORRENT_ASSERT(e.type() == lazy_entry::list_t);
 		TORRENT_ASSERT(e.list_size() == 2);
@@ -147,7 +148,7 @@ int test_main()
 		TORRENT_ASSERT(e.list_at(1)->string_value() == std::string("aaa"));
 		TORRENT_ASSERT(e.list_at(1)->string_length() == 3);
 		section = e.list_at(1)->data_section();
-		TORRENT_ASSERT(memcmp("3:aaa", section.first, section.second) == 0);
+		TORRENT_ASSERT(std::memcmp("3:aaa", section.first, section.second) == 0);
 		TORRENT_ASSERT(section.second == 5);
 	}
 
@@ -158,7 +159,7 @@ int test_main()
 		TORRENT_ASSERT(ret == 0);
 		std::cout << e << std::endl;
 		std::pair<const char*, int> section = e.data_section();
-		TORRENT_ASSERT(memcmp(b, section.first, section.second) == 0);
+		TORRENT_ASSERT(std::memcmp(b, section.first, section.second) == 0);
 		TORRENT_ASSERT(section.second == sizeof(b) - 1);
 		TORRENT_ASSERT(e.type() == lazy_entry::dict_t);
 		TORRENT_ASSERT(e.dict_size() == 4);
