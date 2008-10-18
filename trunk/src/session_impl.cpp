@@ -772,7 +772,7 @@ namespace aux {
 	{
 		shared_ptr<socket_type> c(new socket_type(m_io_service));
 		c->instantiate<stream_socket>(m_io_service);
-		listener->async_accept(c->get<stream_socket>()
+		listener->async_accept(*c->get<stream_socket>()
 			, bind(&session_impl::on_incoming_connection, this, c
 			, boost::weak_ptr<socket_acceptor>(listener), _1));
 	}
