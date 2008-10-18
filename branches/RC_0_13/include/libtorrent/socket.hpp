@@ -81,24 +81,12 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-/*
-	namespace asio = boost::asio;
-
-	using boost::asio::ipv4::tcp;
-	using boost::asio::ipv4::address;
-	using boost::asio::stream_socket;
-	using boost::asio::datagram_socket;
-	using boost::asio::socket_acceptor;
-	using boost::asio::io_service;
-	using boost::asio::ipv4::host_resolver;
-	using boost::asio::async_write;
-	using boost::asio::ipv4::host;
-	using boost::asio::deadline_timer;
-*/
-//	namespace asio = ::asio;
-
+#if BOOST_VERSION < 103500
 	using asio::ip::tcp;
 	using asio::ip::udp;
+	using asio::async_write;
+	using asio::async_read;
+
 	typedef asio::ip::tcp::socket stream_socket;
 	typedef asio::ip::address address;
 	typedef asio::ip::address_v4 address_v4;
@@ -107,10 +95,25 @@ namespace libtorrent
 	typedef asio::ip::tcp::acceptor socket_acceptor;
 	typedef asio::io_service io_service;
 
-	using asio::async_write;
-	using asio::error_code;
-	
+	namespace asio = ::asio;
 	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
+#else
+	using boost::asio::ip::tcp;
+	using boost::asio::ip::udp;
+	using boost::asio::async_write;
+	using boost::asio::async_read;
+
+	typedef boost::asio::ip::tcp::socket stream_socket;
+	typedef boost::asio::ip::address address;
+	typedef boost::asio::ip::address_v4 address_v4;
+	typedef boost::asio::ip::address_v6 address_v6;
+	typedef boost::asio::ip::udp::socket datagram_socket;
+	typedef boost::asio::ip::tcp::acceptor socket_acceptor;
+	typedef boost::asio::io_service io_service;
+
+	namespace asio = boost::asio;
+	typedef boost::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
+#endif
 	
 	inline std::ostream& print_endpoint(std::ostream& os, tcp::endpoint const& ep)
 	{
