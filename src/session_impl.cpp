@@ -1231,7 +1231,7 @@ namespace aux {
 		}
 
 		// --------------------------------------------------------------
-		// unchoke set and optimistic unchoke calculations
+		// unchoke set calculations
 		// --------------------------------------------------------------
 		m_unchoke_time_scaler--;
 		if (m_unchoke_time_scaler <= 0 && !m_connections.empty())
@@ -1239,6 +1239,17 @@ namespace aux {
 			m_unchoke_time_scaler = settings().unchoke_interval;
 			recalculate_unchoke_slots(congested_torrents
 				, uncongested_torrents);
+		}
+
+		// --------------------------------------------------------------
+		// optimistic unchoke calculation
+		// --------------------------------------------------------------
+		m_optimistic_unchoke_time_scaler--;
+		if (m_optimistic_unchoke_time_scaler <= 0)
+		{
+			m_optimistic_unchoke_time_scaler
+				= settings().optimistic_unchoke_interval;
+			recalculate_optimistic_unchoke_slot();
 		}
 
 		// --------------------------------------------------------------
@@ -1416,15 +1427,96 @@ namespace aux {
 		}
 	}
 
-	void session_impl::recalculate_unchoke_slots(int congested_torrents
-		, int uncongested_torrents)
+	void session_impl::recalculate_optimistic_unchoke_slot()
 	{
-		std::vector<peer_connection*> peers;
+		if (m_allowed_upload_slots == 0) return;
+	
+		// find the peer that has been waiting the longest to be optimistically
+		// unchoked
+		connection_map::iterator current_optimistic_unchoke = m_connections.end();
+		connection_map::iterator optimistic_unchoke_candidate = m_connections.end();
+		ptime last_unchoke = max_time();
+
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
 			peer_connection* p = i->get();
 			TORRENT_ASSERT(p);
+			policy::peer* pi = p->peer_info_struct();
+			if (!pi) continue;
+			torrent* t = p->associated_torrent().lock().get();
+			if (!t) continue;
+
+			if (pi->optimistically_unchoked)
+			{
+				TORRENT_ASSERT(!p->is_choked());
+				TORRENT_ASSERT(current_optimistic_unchoke == m_connections.end());
+				current_optimistic_unchoke = i;
+			}
+
+			if (pi->last_optimistically_unchoked < last_unchoke
+				&& !p->is_connecting()
+				&& !p->is_disconnecting()
+				&& p->is_peer_interested()
+				&& t->free_upload_slots()
+				&& p->is_choked()
+				&& t->valid_metadata())
+			{
+				last_unchoke = pi->last_optimistically_unchoked;
+				optimistic_unchoke_candidate = i;
+			}
+		}
+
+		if (optimistic_unchoke_candidate != m_connections.end()
+			&& optimistic_unchoke_candidate != current_optimistic_unchoke)
+		{
+			if (current_optimistic_unchoke != m_connections.end())
+			{
+				torrent* t = (*current_optimistic_unchoke)->associated_torrent().lock().get();
+				TORRENT_ASSERT(t);
+				(*current_optimistic_unchoke)->peer_info_struct()->optimistically_unchoked = false;
+				t->choke_peer(*current_optimistic_unchoke->get());
+			}
+			else
+			{
+				++m_num_unchoked;
+			}
+
+			torrent* t = (*optimistic_unchoke_candidate)->associated_torrent().lock().get();
+			TORRENT_ASSERT(t);
+			bool ret = t->unchoke_peer(*optimistic_unchoke_candidate->get());
+			TORRENT_ASSERT(ret);
+			(*optimistic_unchoke_candidate)->peer_info_struct()->optimistically_unchoked = true;
+
+			// adjust the optimistic unchoke interval depending on the piece-size
+			// the peer should be able to download one whole piece within the optimistic
+			// unchoke interval, at a reasonable rate
+			int piece_size = t->torrent_file().piece_length();
+			int rate = 3000;
+			// assume a reasonable rate is 3 kB/s, unless there's an upload limit and
+			// a max number of slots, in which case we assume each upload slot gets
+			// roughly the same amount of bandwidth
+			if (m_upload_channel.throttle() != bandwidth_limit::inf && m_max_uploads > 0)
+				rate = (std::max)(m_upload_channel.throttle() / m_max_uploads, 1);
+
+			// the time it takes to download one piece at this rate (in seconds)
+			int piece_dl_time = piece_size / rate;
+			m_optimistic_unchoke_time_scaler = piece_dl_time;
+		}
+	}
+
+	void session_impl::recalculate_unchoke_slots(int congested_torrents
+		, int uncongested_torrents)
+	{
+		INVARIANT_CHECK;
+
+		std::vector<peer_connection*> peers;
+		for (connection_map::iterator i = m_connections.begin();
+			i != m_connections.end();)
+		{
+			boost::intrusive_ptr<peer_connection> p = *i;
+			TORRENT_ASSERT(p);
+			++i;
 			torrent* t = p->associated_torrent().lock().get();
 			if (!p->peer_info_struct()
 				|| t == 0
@@ -1434,7 +1526,7 @@ namespace aux {
 				|| (p->share_diff() < -free_upload_amount
 					&& !t->is_seed()))
 			{
-				if (!(*i)->is_choked() && t)
+				if (!p->is_choked() && t)
 				{
 					policy::peer* pi = p->peer_info_struct();
 					if (pi && pi->optimistically_unchoked)
@@ -1443,11 +1535,11 @@ namespace aux {
 						// force a new optimistic unchoke
 						m_optimistic_unchoke_time_scaler = 0;
 					}
-					t->choke_peer(*(*i));
+					t->choke_peer(*p);
 				}
 				continue;
 			}
-			peers.push_back(i->get());
+			peers.push_back(p.get());
 		}
 
 		// sorts the peers that are eligible for unchoke by download rate and secondary
@@ -1523,74 +1615,6 @@ namespace aux {
 					t->choke_peer(*p);
 				if (!p->is_choked())
 					++m_num_unchoked;
-			}
-		}
-
-		if (m_allowed_upload_slots > 0)
-		{
-			m_optimistic_unchoke_time_scaler--;
-			if (m_optimistic_unchoke_time_scaler <= 0)
-			{
-				m_optimistic_unchoke_time_scaler
-					= settings().optimistic_unchoke_multiplier;
-
-				// find the peer that has been waiting the longest to be optimistically
-				// unchoked
-				connection_map::iterator current_optimistic_unchoke = m_connections.end();
-				connection_map::iterator optimistic_unchoke_candidate = m_connections.end();
-				ptime last_unchoke = max_time();
-
-				for (connection_map::iterator i = m_connections.begin()
-					, end(m_connections.end()); i != end; ++i)
-				{
-					peer_connection* p = i->get();
-					TORRENT_ASSERT(p);
-					policy::peer* pi = p->peer_info_struct();
-					if (!pi) continue;
-					torrent* t = p->associated_torrent().lock().get();
-					if (!t) continue;
-
-					if (pi->optimistically_unchoked)
-					{
-						TORRENT_ASSERT(!p->is_choked());
-						TORRENT_ASSERT(current_optimistic_unchoke == m_connections.end());
-						current_optimistic_unchoke = i;
-					}
-
-					if (pi->last_optimistically_unchoked < last_unchoke
-						&& !p->is_connecting()
-						&& !p->is_disconnecting()
-						&& p->is_peer_interested()
-						&& t->free_upload_slots()
-						&& p->is_choked()
-						&& t->valid_metadata())
-					{
-						last_unchoke = pi->last_optimistically_unchoked;
-						optimistic_unchoke_candidate = i;
-					}
-				}
-
-				if (optimistic_unchoke_candidate != m_connections.end()
-					&& optimistic_unchoke_candidate != current_optimistic_unchoke)
-				{
-					if (current_optimistic_unchoke != m_connections.end())
-					{
-						torrent* t = (*current_optimistic_unchoke)->associated_torrent().lock().get();
-						TORRENT_ASSERT(t);
-						(*current_optimistic_unchoke)->peer_info_struct()->optimistically_unchoked = false;
-						t->choke_peer(*current_optimistic_unchoke->get());
-					}
-					else
-					{
-						++m_num_unchoked;
-					}
-
-					torrent* t = (*optimistic_unchoke_candidate)->associated_torrent().lock().get();
-					TORRENT_ASSERT(t);
-					bool ret = t->unchoke_peer(*optimistic_unchoke_candidate->get());
-					TORRENT_ASSERT(ret);
-					(*optimistic_unchoke_candidate)->peer_info_struct()->optimistically_unchoked = true;
-				}
 			}
 		}
 	}
@@ -2002,6 +2026,9 @@ namespace aux {
 //		INVARIANT_CHECK;
 
 		session_status s;
+
+		s.optimistic_unchoke_counter = m_optimistic_unchoke_time_scaler;
+		s.unchoke_counter = m_unchoke_time_scaler;
 
 		s.num_peers = (int)m_connections.size();
 		s.num_unchoked = m_num_unchoked;
@@ -2529,6 +2556,7 @@ namespace aux {
 		}
 		TORRENT_ASSERT(int(unique.size()) == total_downloaders);
 
+		std::set<peer_connection*> unique_peers;
 		TORRENT_ASSERT(m_max_connections > 0);
 		TORRENT_ASSERT(m_max_uploads > 0);
 		TORRENT_ASSERT(m_allowed_upload_slots >= m_max_uploads);
@@ -2539,6 +2567,8 @@ namespace aux {
 		{
 			TORRENT_ASSERT(*i);
 			boost::shared_ptr<torrent> t = (*i)->associated_torrent().lock();
+			TORRENT_ASSERT(unique_peers.find(i->get()) == unique_peers.end());
+			unique_peers.insert(i->get());
 
 			peer_connection* p = i->get();
 			TORRENT_ASSERT(!p->is_disconnecting());
