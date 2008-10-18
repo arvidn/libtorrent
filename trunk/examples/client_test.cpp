@@ -1401,7 +1401,10 @@ int main(int ac, char* av[])
 				" read cache hits: " << (cs.blocks_read_hit * 100 / cs.blocks_read) << "% "
 				" cache size: " << add_suffix(cs.cache_size * 16 * 1024)
 				<< " (" << add_suffix(cs.read_cache_size * 16 * 1024) << ")"
-				" ====" << std::endl;
+				" ====\n"
+				"==== optimistic unchoke: " << sess_stat.optimistic_unchoke_counter
+				<< " unchoke counter: " << sess_stat.unchoke_counter
+				<< " ====" << std::endl;
 
 			if (show_dht_status)
 			{

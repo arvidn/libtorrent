@@ -556,6 +556,9 @@ struct has the following members::
 		int num_unchoked;
 		int allowed_upload_slots;
 
+		int optimistic_unchoke_counter;
+		int unchoke_counter;
+
 		int dht_nodes;
 		int dht_cache_nodes;
 		int dht_torrents;
@@ -603,6 +606,11 @@ be assigned a torrent yet.
 
 ``num_unchoked`` is the current number of unchoked peers.
 ``allowed_upload_slots`` is the current allowed number of unchoked peers.
+
+``optimistic_unchoke_counter`` and ``unchoke_counter`` tells the number of
+seconds until the next optimistic unchoke change and the start of the next
+unchoke interval. These numbers may be reset prematurely if a peer that is
+unchoked disconnects or becomes notinterested.
 
 ``dht_nodes``, ``dht_cache_nodes`` and ``dht_torrents`` are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
@@ -2963,7 +2971,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool lazy_bitfields;
 		int inactivity_timeout;
 		int unchoke_interval;
-		int optimistic_unchoke_multiplier;
+		int optimistic_unchoke_interval;
 		address announce_ip;
 		int num_want;
 		int initial_picker_threshold;
@@ -3125,8 +3133,8 @@ On this interval, peers are re-evaluated for being choked/unchoked. This
 is defined as 30 seconds in the protocol, and it should be significantly
 longer than what it takes for TCP to ramp up to it's max rate.
 
-``optimistic_unchoke_multiplier`` is the number of unchoke intervals between
-each *optimistic* unchoke interval. On this timer, the currently optimistically
+``optimistic_unchoke_interval`` is the number of seconds between
+each *optimistic* unchoke. On this timer, the currently optimistically
 unchoked peer will change.
 
 ``announce_ip`` is the ip address passed along to trackers as the ``&ip=`` parameter.

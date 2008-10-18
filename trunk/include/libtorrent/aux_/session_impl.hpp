@@ -528,6 +528,7 @@ namespace libtorrent
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots(int congested_torrents
 				, int uncongested_torrents);
+			void recalculate_optimistic_unchoke_slot();
 
 			ptime m_last_tick;
 
