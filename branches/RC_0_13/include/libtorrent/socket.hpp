@@ -67,15 +67,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/basic_deadline_timer.hpp>
 #endif
 
-#include <asio/ip/tcp.hpp>
-#include <asio/ip/udp.hpp>
-#include <asio/io_service.hpp>
-#include <asio/deadline_timer.hpp>
-#include <asio/write.hpp>
-#include <asio/strand.hpp>
-#include <asio/time_traits.hpp>
-#include <asio/basic_deadline_timer.hpp>
-
 #ifdef __OBJC__ 
 #undef Protocol
 #endif
