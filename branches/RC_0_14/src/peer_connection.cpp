@@ -1158,6 +1158,18 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
+		if (!is_choked())
+		{
+			if (m_peer_info && m_peer_info->optimistically_unchoked)
+			{
+				m_peer_info->optimistically_unchoked = false;
+				m_ses.m_optimistic_unchoke_time_scaler = 0;
+			}
+			t->choke_peer(*this);
+			--m_ses.m_num_unchoked;
+			m_ses.m_unchoke_time_scaler = 0;
+		}
+
 		t->get_policy().not_interested(*this);
 	}
 
