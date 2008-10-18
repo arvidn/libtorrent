@@ -2335,7 +2335,7 @@ namespace libtorrent
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
-			s->get<http_stream>().set_no_connect(true);
+			s->get<http_stream>()->set_no_connect(true);
 		}
 
 		boost::intrusive_ptr<peer_connection> c(new (std::nothrow) web_peer_connection(
