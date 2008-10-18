@@ -114,9 +114,10 @@ namespace libtorrent
 		virtual char const* what() const { return "file renamed"; }
 		virtual std::string message() const
 		{
-			return torrent_alert::message() + ": file "
-				+ boost::lexical_cast<std::string>(index) + " renamed to "
-				+ name;
+			std::stringstream ret;
+			ret << torrent_alert::message() << ": file "
+				<< index << " renamed to " << name;
+			return ret.str();
 		}
 
 		std::string name;
@@ -139,9 +140,10 @@ namespace libtorrent
 		virtual char const* what() const { return "file rename failed"; }
 		virtual std::string message() const
 		{
-			return torrent_alert::message() + ": failed to rename file "
-				+ boost::lexical_cast<std::string>(index) + ": "
-				+ msg;
+			std::stringstream ret;
+			ret << torrent_alert::message() << ": failed to rename file "
+				<< index << ": " << msg;
+			return ret.str();
 		}
 
 		const static int static_category = alert::storage_notification;
@@ -236,10 +238,10 @@ namespace libtorrent
 		virtual char const* what() const { return "tracker error"; }
 		virtual std::string message() const
 		{
-			return tracker_alert::message() + " ("
-				+ boost::lexical_cast<std::string>(status_code)
-				+ ") " + msg + " (" + boost::lexical_cast<std::string>(times_in_row)
-				+ ")";
+			std::stringstream ret;
+			ret << tracker_alert::message() << " (" << status_code << ") "
+				<< msg << " (" << times_in_row << ")";
+			return ret.str();
 		}
 
 		int times_in_row;
@@ -288,9 +290,10 @@ namespace libtorrent
 		virtual char const* what() const { return "tracker scrape reply"; }
 		virtual std::string message() const
 		{
-			return tracker_alert::message() + " scrape reply: "
-				+ boost::lexical_cast<std::string>(incomplete) + " "
-				+ boost::lexical_cast<std::string>(complete);
+			std::stringstream ret;
+			ret << tracker_alert::message() << " scrape reply: " << incomplete
+				<< " " << complete;
+			return ret.str();
 		}
 	};
 
@@ -332,8 +335,10 @@ namespace libtorrent
 		virtual char const* what() const { return "tracker reply"; }
 		virtual std::string message() const
 		{
-			return tracker_alert::message() + " received peers: "
-				+ boost::lexical_cast<std::string>(num_peers);
+			std::stringstream ret;
+			ret << tracker_alert::message() << " received peers: "
+				<< num_peers;
+			return ret.str();
 		}
 	};
 
@@ -352,8 +357,10 @@ namespace libtorrent
 		virtual char const* what() const { return "DHT reply"; }
 		virtual std::string message() const
 		{
-			return torrent_alert::message() + " received DHT peers: "
-				+ boost::lexical_cast<std::string>(num_peers);
+			std::stringstream ret;
+			ret << torrent_alert::message() << " received DHT peers: "
+				<< num_peers;
+			return ret.str();
 		}
 	};
 
@@ -393,8 +400,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			return torrent_alert::message() + " hash for piece "
-				+ boost::lexical_cast<std::string>(piece_index) + " failed";
+			std::stringstream ret;
+			ret << torrent_alert::message() << " hash for piece "
+				<< piece_index << " failed";
+			return ret.str();
 		}
 
 		int piece_index;
@@ -523,10 +532,11 @@ namespace libtorrent
 		virtual char const* what() const { return "invalid piece request"; }
 		virtual std::string message() const
 		{
-			return peer_alert::message() + " peer sent an invalid piece request "
-				"( piece: " + boost::lexical_cast<std::string>(request.piece)
-				+ " start: " + boost::lexical_cast<std::string>(request.start)
-				+ " len: " + boost::lexical_cast<std::string>(request.length) + ")";
+			std::stringstream ret;
+			ret << peer_alert::message() << " peer sent an invalid piece request "
+				"( piece: " << request.piece << " start: " << request.start
+				<< " len: " << request.length << ")";
+			return ret.str();
 		}
 
 		peer_request request;
@@ -568,8 +578,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			return torrent_alert::message() + " piece "
-				+ boost::lexical_cast<std::string>(piece_index) + " finished downloading";
+			std::stringstream ret;
+			ret << torrent_alert::message() << " piece " << piece_index
+				<< " finished downloading";
+			return ret.str();
 		}
 	};
 
@@ -593,9 +605,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			return peer_alert::message() + " peer dropped block ( piece: "
-				+ boost::lexical_cast<std::string>(piece_index) + " block: "
-				+ boost::lexical_cast<std::string>(block_index) + ")";
+			std::stringstream ret;
+			ret << peer_alert::message() << " peer dropped block ( piece: "
+				<< piece_index << " block: " << block_index << ")";
+			return ret.str();
 		}
 	};
 
@@ -619,9 +632,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			return peer_alert::message() + " peer timed out request ( piece: "
-				+ boost::lexical_cast<std::string>(piece_index) + " block: "
-				+ boost::lexical_cast<std::string>(block_index) + ")";
+			std::stringstream ret;
+			ret << peer_alert::message() << " peer timed out request ( piece: "
+				<< piece_index << " block: " << block_index << ")";
+			return ret.str();
 		}
 	};
 
@@ -644,9 +658,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			return peer_alert::message() + " block finished downloading ( piece: "
-				+ boost::lexical_cast<std::string>(piece_index) + " block: "
-				+ boost::lexical_cast<std::string>(block_index) + ")";
+			std::stringstream ret;
+			ret << peer_alert::message() << " block finished downloading ( piece: "
+				<< piece_index << " block: " << block_index << ")";
+			return ret.str();
 		}
 	};
 
@@ -671,10 +686,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			return peer_alert::message() + " requested block ( piece: "
-				+ boost::lexical_cast<std::string>(piece_index) + " block: "
-				+ boost::lexical_cast<std::string>(block_index) + ") "
-				+ peer_speedmsg;
+			std::stringstream ret;
+			ret << peer_alert::message() << " requested block ( piece: "
+				<< piece_index << " block: " << block_index << ") " << peer_speedmsg;
+			return ret.str();
 		}
 	};
 
@@ -695,9 +710,10 @@ namespace libtorrent
 		virtual char const* what() const { return "unwanted block received"; }
 		virtual std::string message() const
 		{
-			return peer_alert::message() + " received block not in download queue ( piece: "
-				+ boost::lexical_cast<std::string>(piece_index) + " block: "
-				+ boost::lexical_cast<std::string>(block_index) + ")";
+			std::stringstream ret;
+			ret << peer_alert::message() << " received block not in download queue ( piece: "
+				<< piece_index << " block: " << block_index << ")";
+			return ret.str();
 		}
 	};
 
@@ -1009,8 +1025,10 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			error_code ec;
-			return "listening on " + boost::lexical_cast<std::string>(endpoint)
-				+ " failed: " + error.message();
+			std::stringstream ret;
+			ret << "listening on " << endpoint
+				<< " failed: " << error.message();
+			return ret.str();
 		}
 	};
 
@@ -1030,7 +1048,9 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			error_code ec;
-			return "successfully listening on " + boost::lexical_cast<std::string>(endpoint);
+			std::stringstream ret;
+			ret << "successfully listening on " << endpoint;
+			return ret.str();
 		}
 	};
 
@@ -1076,8 +1096,10 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			static char const* type_str[] = {"NAT-PMP", "UPnP"};
-			return std::string("successfully mapped port using ") + type_str[type]
-				+ ". external port: " + boost::lexical_cast<std::string>(external_port);
+			std::stringstream ret;
+			ret << "successfully mapped port using " << type_str[type]
+				<< ". external port: " << external_port;
+			return ret.str();
 		}
 	};
 
@@ -1144,9 +1166,10 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			error_code ec;
-			return "incoming dht annonce: " + ip.to_string(ec) + ":"
-				+ boost::lexical_cast<std::string>(port) + " ("
-				+ boost::lexical_cast<std::string>(info_hash) + ")";
+			std::stringstream ret;
+			ret << "incoming dht annonce: " << ip.to_string(ec) << ":"
+				<< port << " (" << info_hash << ")";
+			return ret.str();
 		}
 	};
 
@@ -1166,8 +1189,9 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			error_code ec;
-			return "incoming dht get_peers: "
-				+ boost::lexical_cast<std::string>(info_hash);
+			std::stringstream ret;
+			ret << "incoming dht get_peers: " << info_hash;
+			return ret.str();
 		}
 	};
 }
