@@ -318,9 +318,12 @@ storage_mode_sparse
 	will be used. This is the recommended, and default mode.
 
 storage_mode_allocate
-	All pieces will be allocated, zeroes will be written to the files, before
-	the data is downloaded and written to the file. This might be useful for
-	filesystems that don't support sparse files.
+	Same as ``storage_mode_sparse`` except that files will be ftruncated on
+	startup (SetEndOfFile() on windows). For filesystem that supports sparse
+	files, this is in all practical aspects identical to sparse mode. For
+	filesystems that don't, it will allocate the data for the files. The mac
+	filesystem HFS+ doesn't support sparse files, it will allocate the files
+	with zeroes.
 
 storage_mode_compact
 	The storage will grow as more pieces are downloaded, and pieces
