@@ -45,6 +45,28 @@ POSSIBILITY OF SUCH DAMAGE.
 #define Protocol Protocol_
 #endif
 
+#include <boost/version.hpp>
+
+#if BOOST_VERSION < 103500
+#include <asio/ip/tcp.hpp>
+#include <asio/ip/udp.hpp>
+#include <asio/io_service.hpp>
+#include <asio/deadline_timer.hpp>
+#include <asio/write.hpp>
+#include <asio/strand.hpp>
+#include <asio/time_traits.hpp>
+#include <asio/basic_deadline_timer.hpp>
+#else
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/udp.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/write.hpp>
+#include <boost/asio/strand.hpp>
+#include <boost/asio/time_traits.hpp>
+#include <boost/asio/basic_deadline_timer.hpp>
+#endif
+
 #include <asio/ip/tcp.hpp>
 #include <asio/ip/udp.hpp>
 #include <asio/io_service.hpp>
