@@ -206,7 +206,7 @@ namespace libtorrent
 
 			void async_accept(boost::shared_ptr<socket_acceptor> const& listener);
 			void on_incoming_connection(boost::shared_ptr<socket_type> const& s
-				, boost::weak_ptr<socket_acceptor> listener, asio::error_code const& e);
+				, boost::weak_ptr<socket_acceptor> listener, error_code const& e);
 		
 			// must be locked to access the data
 			// in this struct
@@ -530,7 +530,7 @@ namespace libtorrent
 			// NAT or not.
 			bool m_incoming_connection;
 			
-			void second_tick(asio::error_code const& e);
+			void second_tick(error_code const& e);
 			ptime m_last_tick;
 
 #ifndef TORRENT_DISABLE_DHT

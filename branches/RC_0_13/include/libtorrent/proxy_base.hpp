@@ -38,9 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
+#if BOOST_VERSION < 103500
 #include <asio/read.hpp>
 #include <asio/write.hpp>
-
+#else
+#include <boost/asio/read.hpp>
+#include <boost/asio/write.hpp>
+#endif
 
 namespace libtorrent {
 
@@ -70,7 +74,7 @@ public:
 	}
 
 	template <class Mutable_Buffers>
-	std::size_t read_some(Mutable_Buffers const& buffers, asio::error_code& ec)
+	std::size_t read_some(Mutable_Buffers const& buffers, error_code& ec)
 	{
 		return m_sock.read_some(buffers, ec);
 	}
@@ -88,7 +92,7 @@ public:
 	}
 
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command& ioc, asio::error_code& ec)
+	void io_control(IO_Control_Command& ioc, error_code& ec)
 	{
 		m_sock.io_control(ioc, ec);
 	}
@@ -104,7 +108,7 @@ public:
 		m_sock.bind(endpoint);
 	}
 
-	void bind(endpoint_type const& endpoint, asio::error_code& ec)
+	void bind(endpoint_type const& endpoint, error_code& ec)
 	{
 		m_sock.bind(endpoint, ec);
 	}
@@ -114,7 +118,7 @@ public:
 		m_sock.open(p);
 	}
 
-	void open(protocol_type const& p, asio::error_code& ec)
+	void open(protocol_type const& p, error_code& ec)
 	{
 		m_sock.open(p, ec);
 	}
@@ -126,7 +130,7 @@ public:
 		m_resolver.cancel();
 	}
 
-	void close(asio::error_code& ec)
+	void close(error_code& ec)
 	{
 		m_sock.close(ec);
 		m_resolver.cancel();
@@ -137,7 +141,7 @@ public:
 		return m_remote_endpoint;
 	}
 
-	endpoint_type remote_endpoint(asio::error_code& ec)
+	endpoint_type remote_endpoint(error_code& ec)
 	{
 		return m_remote_endpoint;
 	}
@@ -147,7 +151,7 @@ public:
 		return m_sock.local_endpoint();
 	}
 
-	endpoint_type local_endpoint(asio::error_code& ec)
+	endpoint_type local_endpoint(error_code& ec)
 	{
 		return m_sock.local_endpoint(ec);
 	}

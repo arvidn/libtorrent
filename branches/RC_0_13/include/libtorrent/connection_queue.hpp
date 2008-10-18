@@ -67,7 +67,7 @@ public:
 private:
 
 	void try_connect();
-	void on_timeout(asio::error_code const& e);
+	void on_timeout(error_code const& e);
 
 	struct entry
 	{

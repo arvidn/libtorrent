@@ -63,7 +63,7 @@ namespace libtorrent
 			, receive_handler_t const& handler, bool loopback = true);
 		~broadcast_socket() { close(); }
 
-		void send(char const* buffer, int size, asio::error_code& ec);
+		void send(char const* buffer, int size, error_code& ec);
 		void close();
 
 	private:
@@ -76,7 +76,7 @@ namespace libtorrent
 			udp::endpoint remote;
 		};
 	
-		void on_receive(socket_entry* s, asio::error_code const& ec
+		void on_receive(socket_entry* s, error_code const& ec
 			, std::size_t bytes_transferred);
 
 		std::list<socket_entry> m_sockets;

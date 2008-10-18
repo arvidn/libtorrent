@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <asio/deadline_timer.hpp>
 #include <asio/write.hpp>
 #include <asio/strand.hpp>
+#include <asio/read.hpp>
 #include <asio/time_traits.hpp>
 #include <asio/basic_deadline_timer.hpp>
 #else
@@ -62,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/write.hpp>
+#include <boost/asio/read.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/asio/time_traits.hpp>
 #include <boost/asio/basic_deadline_timer.hpp>
@@ -94,7 +96,8 @@ namespace libtorrent
 	typedef asio::ip::udp::socket datagram_socket;
 	typedef asio::ip::tcp::acceptor socket_acceptor;
 	typedef asio::io_service io_service;
-
+    typedef asio::error_code error_code;
+    
 	namespace asio = ::asio;
 	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 #else
@@ -102,6 +105,7 @@ namespace libtorrent
 	using boost::asio::ip::udp;
 	using boost::asio::async_write;
 	using boost::asio::async_read;
+	using boost::system::error_code;
 
 	typedef boost::asio::ip::tcp::socket stream_socket;
 	typedef boost::asio::ip::address address;
@@ -110,7 +114,7 @@ namespace libtorrent
 	typedef boost::asio::ip::udp::socket datagram_socket;
 	typedef boost::asio::ip::tcp::acceptor socket_acceptor;
 	typedef boost::asio::io_service io_service;
-
+    
 	namespace asio = boost::asio;
 	typedef boost::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 #endif
@@ -118,7 +122,7 @@ namespace libtorrent
 	inline std::ostream& print_endpoint(std::ostream& os, tcp::endpoint const& ep)
 	{
 		address const& addr = ep.address();
-		asio::error_code ec;
+		error_code ec;
 		std::string a = addr.to_string(ec);
 		if (ec) return os;
 

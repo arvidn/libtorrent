@@ -38,8 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
+#if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #include <asio/ip/multicast.hpp>
+#else
+#include <boost/asio/ip/host_name.hpp>
+#include <boost/asio/ip/multicast.hpp>
+#endif
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
 #include <boost/config.hpp>
@@ -82,7 +87,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	std::string const& msg = btsearch.str();
 
 	m_retry_count = 1;
-	asio::error_code ec;
+	error_code ec;
 	m_socket.send(msg.c_str(), int(msg.size()), ec);
 	if (ec)
 	{
@@ -99,11 +104,11 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, self(), _1, msg));
 }
 
-void lsd::resend_announce(asio::error_code const& e, std::string msg) try
+void lsd::resend_announce(error_code const& e, std::string msg) try
 {
 	if (e) return;
 
-	asio::error_code ec;
+	error_code ec;
 	m_socket.send(msg.c_str(), int(msg.size()), ec);
 
 	++m_retry_count;

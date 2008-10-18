@@ -326,7 +326,7 @@ namespace libtorrent
 		m_timeout.cancel();
 	}
 
-	void timeout_handler::timeout_callback(asio::error_code const& error) try
+	void timeout_handler::timeout_callback(error_code const& error) try
 	{
 		if (error) return;
 		if (m_completion_timeout == 0) return;

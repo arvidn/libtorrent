@@ -821,7 +821,7 @@ namespace detail
 	session_impl::listen_socket_t session_impl::setup_listener(tcp::endpoint ep
 		, int retries, bool v6_only)
 	{
-		asio::error_code ec;
+		error_code ec;
 		listen_socket_t s;
 		s.sock.reset(new socket_acceptor(m_io_service));
 		s.sock->open(ep.protocol(), ec);
@@ -830,7 +830,7 @@ namespace detail
 		s.sock->bind(ep, ec);
 		while (ec && retries > 0)
 		{
-			ec = asio::error_code();
+			ec = error_code();
 			TORRENT_ASSERT(!ec);
 			--retries;
 			ep.port(ep.port() + 1);
@@ -841,7 +841,7 @@ namespace detail
 			// instead of giving up, try
 			// let the OS pick a port
 			ep.port(0);
-			ec = asio::error_code();
+			ec = error_code();
 			s.sock->bind(ep, ec);
 		}
 		if (ec)
@@ -947,7 +947,7 @@ namespace detail
 		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
 			, end(m_listen_sockets.end()); i != end; ++i)
 		{
-			asio::error_code ec;
+			error_code ec;
 			tcp::endpoint ep = i->sock->local_endpoint(ec);
 			if (ec || ep.address().is_v4()) continue;
 
@@ -977,7 +977,7 @@ namespace detail
 
 		if (!m_listen_sockets.empty())
 		{
-			asio::error_code ec;
+			error_code ec;
 			tcp::endpoint local = m_listen_sockets.front().sock->local_endpoint(ec);
 			if (!ec)
 			{
@@ -997,7 +997,7 @@ namespace detail
 	}
 
 	void session_impl::on_incoming_connection(shared_ptr<socket_type> const& s
-		, weak_ptr<socket_acceptor> listen_socket, asio::error_code const& e) try
+		, weak_ptr<socket_acceptor> listen_socket, error_code const& e) try
 	{
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
 		if (!listener) return;
@@ -1007,7 +1007,7 @@ namespace detail
 		mutex_t::scoped_lock l(m_mutex);
 		if (m_abort) return;
 
-		asio::error_code ec;
+		error_code ec;
 		if (e)
 		{
 			tcp::endpoint ep = listener->local_endpoint(ec);
@@ -1199,7 +1199,7 @@ namespace detail
 		m_key = key;
 	}
 
-	void session_impl::second_tick(asio::error_code const& e) try
+	void session_impl::second_tick(error_code const& e) try
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 

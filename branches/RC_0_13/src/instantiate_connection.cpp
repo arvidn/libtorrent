@@ -37,7 +37,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include <boost/shared_ptr.hpp>
 #include <stdexcept>
+#if BOOST_VERSION < 103500
 #include <asio/io_service.hpp>
+#else
+#include <boost/asio/io_service.hpp>
+#endif
+
 
 namespace libtorrent
 {

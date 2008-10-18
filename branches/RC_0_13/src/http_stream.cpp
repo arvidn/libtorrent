@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	void http_stream::name_lookup(asio::error_code const& e, tcp::resolver::iterator i
+	void http_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h)
 	{
 		if (e || i == tcp::resolver::iterator())
@@ -52,7 +52,7 @@ namespace libtorrent
 			&http_stream::connected, this, _1, h));
 	}
 
-	void http_stream::connected(asio::error_code const& e, boost::shared_ptr<handler_type> h)
+	void http_stream::connected(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		if (e)
 		{
@@ -84,7 +84,7 @@ namespace libtorrent
 			, boost::bind(&http_stream::handshake1, this, _1, h));
 	}
 
-	void http_stream::handshake1(asio::error_code const& e, boost::shared_ptr<handler_type> h)
+	void http_stream::handshake1(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		if (e)
 		{
@@ -99,7 +99,7 @@ namespace libtorrent
 			, boost::bind(&http_stream::handshake2, this, _1, h));
 	}
 
-	void http_stream::handshake2(asio::error_code const& e, boost::shared_ptr<handler_type> h)
+	void http_stream::handshake2(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		if (e)
 		{

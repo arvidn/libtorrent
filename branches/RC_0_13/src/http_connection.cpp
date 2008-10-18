@@ -34,7 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
+#if BOOST_VERSION < 103500
 #include <asio/ip/tcp.hpp>
+#else
+#include <boost/asio/ip/tcp.hpp>
+#endif
 #include <string>
 
 using boost::bind;
@@ -103,7 +107,7 @@ void http_connection::on_connect_timeout()
 }
 
 void http_connection::on_timeout(boost::weak_ptr<http_connection> p
-	, asio::error_code const& e)
+	, error_code const& e)
 {
 	boost::shared_ptr<http_connection> c = p.lock();
 	if (!c) return;
@@ -139,7 +143,7 @@ void http_connection::close()
 	m_handler.clear();
 }
 
-void http_connection::on_resolve(asio::error_code const& e
+void http_connection::on_resolve(error_code const& e
 		, tcp::resolver::iterator i)
 {
 	if (e)
@@ -161,7 +165,7 @@ void http_connection::connect(int ticket, tcp::endpoint target_address)
 		, shared_from_this(), _1/*, ++i*/));
 }
 
-void http_connection::on_connect(asio::error_code const& e
+void http_connection::on_connect(error_code const& e
 	/*, tcp::resolver::iterator i*/)
 {
 	if (!e)
@@ -186,7 +190,7 @@ void http_connection::on_connect(asio::error_code const& e
 	}
 }
 
-void http_connection::callback(asio::error_code const& e, char const* data, int size)
+void http_connection::callback(error_code const& e, char const* data, int size)
 {
 	if (!m_bottled || !m_called)
 	{
@@ -195,7 +199,7 @@ void http_connection::callback(asio::error_code const& e, char const* data, int 
 	}
 }
 
-void http_connection::on_write(asio::error_code const& e)
+void http_connection::on_write(error_code const& e)
 {
 	if (e)
 	{
@@ -214,7 +218,7 @@ void http_connection::on_write(asio::error_code const& e)
 		if (m_download_quota == 0)
 		{
 			if (!m_limiter_timer_active)
-				on_assign_bandwidth(asio::error_code());
+				on_assign_bandwidth(error_code());
 			return;
 		}
 	}
@@ -224,7 +228,7 @@ void http_connection::on_write(asio::error_code const& e)
 		, shared_from_this(), _1, _2));
 }
 
-void http_connection::on_read(asio::error_code const& e
+void http_connection::on_read(error_code const& e
 	, std::size_t bytes_transferred)
 {
 	if (m_rate_limit)
@@ -294,7 +298,7 @@ void http_connection::on_read(asio::error_code const& e
 
 				try
 				{
-					asio::error_code ec;
+					error_code ec;
 					m_sock.close(ec);
 					get(location, m_timeout, m_redirects - 1);
 					return;
@@ -370,7 +374,7 @@ void http_connection::on_read(asio::error_code const& e
 		if (m_download_quota == 0)
 		{
 			if (!m_limiter_timer_active)
-				on_assign_bandwidth(asio::error_code());
+				on_assign_bandwidth(error_code());
 			return;
 		}
 	}
@@ -380,7 +384,7 @@ void http_connection::on_read(asio::error_code const& e
 		, shared_from_this(), _1, _2));
 }
 
-void http_connection::on_assign_bandwidth(asio::error_code const& e)
+void http_connection::on_assign_bandwidth(error_code const& e)
 {
 	if ((e == asio::error::operation_aborted
 		&& m_limiter_timer_active)

@@ -93,17 +93,17 @@ namespace libtorrent { namespace dht
 		boost::intrusive_ptr<dht_tracker> self()
 		{ return boost::intrusive_ptr<dht_tracker>(this); }
 
-		void on_name_lookup(asio::error_code const& e
+		void on_name_lookup(error_code const& e
 			, udp::resolver::iterator host);
-		void on_router_name_lookup(asio::error_code const& e
+		void on_router_name_lookup(error_code const& e
 			, udp::resolver::iterator host);
-		void connection_timeout(asio::error_code const& e);
-		void refresh_timeout(asio::error_code const& e);
-		void tick(asio::error_code const& e);
+		void connection_timeout(error_code const& e);
+		void refresh_timeout(error_code const& e);
+		void tick(error_code const& e);
 
 		// translate bittorrent kademlia message into the generic kademlia message
 		// used by the library
-		void on_receive(asio::error_code const& error, size_t bytes_transferred);
+		void on_receive(error_code const& error, size_t bytes_transferred);
 		void on_bootstrap();
 		void send_packet(msg const& m);
 

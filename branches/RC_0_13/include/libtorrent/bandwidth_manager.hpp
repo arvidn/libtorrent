@@ -221,7 +221,7 @@ private:
 		catch (std::exception&) {}
 	}
 	
-	void on_history_expire(asio::error_code const& e)
+	void on_history_expire(error_code const& e)
 	{
 		try {
 		if (e) return;

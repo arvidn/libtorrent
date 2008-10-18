@@ -33,7 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <boost/bind.hpp>
+#include <boost/version.hpp>
+
+#if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
+#else
+#include <boost/asio/ip/host_name.hpp>
+#endif
+
 
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/io.hpp"
@@ -102,7 +109,7 @@ void natpmp::rebind(address const& listen_interface) try
 
 	m_disabled = false;
 
-	asio::error_code ec;
+	error_code ec;
 	udp::endpoint nat_endpoint(router_for_interface(local, ec), 5351);
 	if (ec)
 		throw std::runtime_error("cannot retrieve router address");
@@ -200,7 +207,7 @@ catch (std::exception& e)
 	std::string err = e.what();
 };
 
-void natpmp::resend_request(int i, asio::error_code const& e)
+void natpmp::resend_request(int i, error_code const& e)
 {
 	if (e) return;
 	if (m_currently_mapping != i) return;
@@ -214,7 +221,7 @@ void natpmp::resend_request(int i, asio::error_code const& e)
 	send_map_request(i);
 }
 
-void natpmp::on_reply(asio::error_code const& e
+void natpmp::on_reply(error_code const& e
 	, std::size_t bytes_transferred)
 {
 	using namespace libtorrent::detail;
@@ -349,7 +356,7 @@ void natpmp::update_expiration_timer()
 	}
 }
 
-void natpmp::mapping_expired(asio::error_code const& e, int i)
+void natpmp::mapping_expired(error_code const& e, int i)
 {
 	if (e) return;
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
@@ -382,7 +389,7 @@ void natpmp::try_next_mapping(int i)
 
 void natpmp::close()
 {
-	asio::error_code ec;
+	error_code ec;
 	m_socket.close(ec);
 	if (m_disabled) return;
 	for (int i = 0; i < num_mappings; ++i)

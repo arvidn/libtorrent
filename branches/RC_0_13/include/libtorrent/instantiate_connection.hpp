@@ -34,7 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_INSTANTIATE_CONNECTION
 
 #include "libtorrent/socket_type.hpp"
+
+#if BOOST_VERSION < 103500
 #include <asio/io_service.hpp>
+#else
+#include <boost/asio/io_service.hpp>
+#endif
 #include <boost/shared_ptr.hpp>
 
 namespace libtorrent

@@ -419,7 +419,7 @@ namespace libtorrent
 	}
 
 	void torrent::on_announce_disp(boost::weak_ptr<torrent> p
-		, asio::error_code const& e)
+		, error_code const& e)
 	{
 		if (e) return;
 		boost::shared_ptr<torrent> t = p.lock();
@@ -658,7 +658,7 @@ namespace libtorrent
 		m_got_tracker_response = true;
 	}
 
-	void torrent::on_peer_name_lookup(asio::error_code const& e, tcp::resolver::iterator host
+	void torrent::on_peer_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, peer_id pid) try
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -1752,7 +1752,7 @@ namespace libtorrent
 
 	}
 
-	void torrent::on_proxy_name_lookup(asio::error_code const& e, tcp::resolver::iterator host
+	void torrent::on_proxy_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, std::string url) try
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -1822,7 +1822,7 @@ namespace libtorrent
 		TORRENT_ASSERT(false);
 	};
 
-	void torrent::on_name_lookup(asio::error_code const& e, tcp::resolver::iterator host
+	void torrent::on_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, std::string url, tcp::endpoint proxy) try
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -1963,7 +1963,7 @@ namespace libtorrent
 		};
 	}
 
-	void torrent::on_country_lookup(asio::error_code const& error, tcp::resolver::iterator i
+	void torrent::on_country_lookup(error_code const& error, tcp::resolver::iterator i
 		, intrusive_ptr<peer_connection> p) const
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
