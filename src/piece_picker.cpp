@@ -1129,7 +1129,7 @@ namespace libtorrent
 		if (new_piece_priority == int(p.piece_priority)) return false;
 		
 		int prev_priority = p.priority(this);
-		TORRENT_ASSERT(m_dirty | prev_priority < int(m_priority_boundries.size()));
+		TORRENT_ASSERT(m_dirty || prev_priority < int(m_priority_boundries.size()));
 
 		bool ret = false;
 		if (new_piece_priority == piece_pos::filter_priority
