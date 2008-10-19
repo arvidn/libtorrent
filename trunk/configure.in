@@ -228,13 +228,13 @@ case "$encryption" in
                AC_MSG_RESULT(on)
                CHECK_SSL()
                AC_DEFINE(TORRENT_USE_OPENSSL,,[define to use openssl with libtorrent-rasterbar])
-	       COMPILETIME_OPTIONS+="-DTORRENT_USE_OPENSSL "
+               COMPILETIME_OPTIONS+="-DTORRENT_USE_OPENSSL "
 
                ;;
        "off")
                AC_MSG_RESULT(off)
                AC_DEFINE(TORRENT_DISABLE_ENCRYPTION,,[define not to use encryption support])
-	       COMPILETIME_OPTIONS+="-DTORRENT_DISABLE_ENCRYPTION "
+               COMPILETIME_OPTIONS+="-DTORRENT_DISABLE_ENCRYPTION "
                ;;
        *)
                AC_MSG_RESULT()
