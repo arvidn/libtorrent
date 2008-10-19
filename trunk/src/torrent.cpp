@@ -3898,7 +3898,10 @@ namespace libtorrent
 			prio_mask = 0xfffff
 		};
 
-		if (!is_seed()) return 0;
+		if (!is_finished()) return 0;
+
+		int scale = 100;
+		if (!is_seed()) scale = 50;
 
 		int ret = 0;
 
@@ -3938,7 +3941,7 @@ namespace libtorrent
 		}
 		else
 		{
-			ret |= (downloaders  * 100 / seeds) & prio_mask;
+			ret |= (downloaders * scale / seeds) & prio_mask;
 		}
 
 		return ret;
