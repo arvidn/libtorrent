@@ -1,9 +1,26 @@
+
+	* improved optimistic unchoke logic
 	* added monitoring of the DHT lookups
 	* added bandwidth reports for estimated TCP/IP overhead and DHT
 	* includes DHT traffic in the rate limiter
 
 release 0.14
 
+	* Improved seeding and choking behavior.
+	* Fixed rare buffer overrun bug when calling get_download_queue
+	* Fixed rare bug where torrent could be put back into downloading
+	  state even though it was finished, after checking files.
+	* Fixed rename_file to work before the file on disk has been
+	  created.
+	* Fixed bug in tracker connections in case of errors caused
+	  in the connection constructor.
+	* Updated alert system to be filtered by category instead of
+	  severity level. Alerts can generate a message through
+	  alert::message().
+	* Session constructor will now start dht, upnp, natpmp, lsd by
+	  default. Flags can be passed in to the constructor to not
+	  do this, if these features are to be enabled and disabled
+	  at a later point.
 	* Removed 'connecting_to_tracker' torrent state
 	* Fix bug where FAST pieces were cancelled on choke
 	* Fixed problems with restoring piece states when hash failed.
@@ -11,7 +28,8 @@ release 0.14
 	  reconnect immediately.
 	* Improved web seed error handling
 	* DHT announce fixes and off-by-one loop fix
-	* UPnP fixes
+	* Fixed UPnP xml parse bug where it would ignore the port number
+	  for the control url.
 	* Fixed bug in torrent writer where the private flag was added
 	  outside of the info dictionary
 	* Made the torrent file parser less strict of what goes in the
@@ -35,8 +53,7 @@ release 0.14
 	  support (instead of the more complicated sequential download threshold).
 	* Auto Upload slots. Automtically opens up more slots if
 	  upload limit is not met.
-	* Improved NAT-PMP support by querying the default gateway (no
-	  linux support yet)
+	* Improved NAT-PMP support by querying the default gateway
 	* Improved UPnP support by ignoring routers not on the clients subnet.
 
 release 0.13
