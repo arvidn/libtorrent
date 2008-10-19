@@ -1299,10 +1299,17 @@ namespace aux {
 	{
 		bool is_active(torrent* t, session_settings const& s)
 		{
-			return !(s.dont_count_slow_torrents
-				&& t->statistics().upload_payload_rate() == 0.f
-				&& t->statistics().download_payload_rate() == 0.f
-				&& time_now() - t->started() > seconds(s.auto_manage_startup));
+			// if we count slow torrents, every torrent
+			// is considered active
+			if (!s.dont_count_slow_torrents) return true;
+			
+			// if the torrent started less than 2 minutes
+			// ago (default), let it count as active since
+			// the rates are probably not accurate yet
+			if (time_now() - t->started() < seconds(s.auto_manage_startup)) return true;
+
+			return t->statistics().upload_payload_rate() != 0.f
+				|| t->statistics().download_payload_rate() != 0.f;
 		}
 	}
 
