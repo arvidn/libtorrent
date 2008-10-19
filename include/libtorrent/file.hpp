@@ -52,6 +52,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
 
+#ifdef TORRENT_WINDOWS
+// windows part
+#include <windows.h>
+#include <winioctl.h>
+#else
+// posix part
+#define _FILE_OFFSET_BITS 64
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#endif
 namespace libtorrent
 {
 	namespace fs = boost::filesystem;
@@ -60,53 +72,28 @@ namespace libtorrent
 	{
 	public:
 
-		class seek_mode
+		enum
 		{
-		friend class file;
-		private:
-			seek_mode(int v): m_val(v) {}
-			int m_val;
+#ifdef TORRENT_WINDOWS
+			read_only = GENERIC_READ,
+			write_only = GENERIC_WRITE,
+			read_write = GENERIC_READ | GENERIC_WRITE,
+			begin = FILE_BEGIN,
+			end = FILE_END,
+#else
+			begin = SEEK_SET,
+			end = SEEK_END,
+			read_only = O_RDONLY,
+			write_only = O_WRONLY | O_CREAT,
+			read_write = O_RDWR | O_CREAT,
+#endif
 		};
-
-		static const seek_mode begin;
-		static const seek_mode end;
-
-		class open_mode
-		{
-		friend class file;
-		public:
-
-			open_mode(): m_mask(0) {}
-			open_mode operator|(open_mode m) const
-			{ return open_mode(m.m_mask | m_mask); }
-
-			open_mode operator&(open_mode m) const
-			{ return open_mode(m.m_mask & m_mask); }
-
-			open_mode operator|=(open_mode m)
-			{
-				m_mask |= m.m_mask;
-				return *this;
-			}
-
-			bool operator==(open_mode m) const { return m_mask == m.m_mask; }
-			bool operator!=(open_mode m) const { return m_mask != m.m_mask; }
-			operator bool() const { return m_mask != 0; }
-
-		private:
-
-			open_mode(int val): m_mask(val) {}
-			int m_mask;
-		};
-
-		static const open_mode in;
-		static const open_mode out;
 
 		file();
-		file(fs::path const& p, open_mode m, error_code& ec);
+		file(fs::path const& p, int m, error_code& ec);
 		~file();
 
-		bool open(fs::path const& p, open_mode m, error_code& ec);
+		bool open(fs::path const& p, int m, error_code& ec);
 		bool is_open() const;
 		void close();
 		bool set_size(size_type size, error_code& ec);
@@ -114,7 +101,7 @@ namespace libtorrent
 		size_type write(const char*, size_type num_bytes, error_code& ec);
 		size_type read(char*, size_type num_bytes, error_code& ec);
 
-		size_type seek(size_type pos, seek_mode m, error_code& ec);
+		size_type seek(size_type pos, int m, error_code& ec);
 		size_type tell(error_code& ec);
 
 	private:
@@ -125,7 +112,7 @@ namespace libtorrent
 		int m_fd;
 #endif
 #ifndef NDEBUG
-		open_mode m_open_mode;
+		int m_open_mode;
 #endif
 
 	};

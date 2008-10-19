@@ -222,7 +222,7 @@ namespace libtorrent
 	{
 		file f;
 		error_code ec;
-		if (!f.open(filename, file::in, ec)) return -1;
+		if (!f.open(filename, file::read_only, ec)) return -1;
 		f.seek(0, file::end, ec);
 		if (ec) return -1;
 		size_type s = f.tell(ec);
