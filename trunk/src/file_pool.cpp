@@ -43,11 +43,11 @@ namespace libtorrent
 	using boost::multi_index::get;
 
 	boost::shared_ptr<file> file_pool::open_file(void* st, fs::path const& p
-		, file::open_mode m, error_code& ec)
+		, int m, error_code& ec)
 	{
 		TORRENT_ASSERT(st != 0);
 		TORRENT_ASSERT(p.is_complete());
-		TORRENT_ASSERT(m == file::in || m == (file::in | file::out));
+		TORRENT_ASSERT(m == file::read_only || m == file::read_write);
 		boost::mutex::scoped_lock l(m_mutex);
 		typedef nth_index<file_set, 0>::type path_view;
 		path_view& pt = get<0>(m_files);
@@ -68,7 +68,11 @@ namespace libtorrent
 			}
 
 			e.key = st;
-			if ((e.mode & m) != m)
+			// if we asked for a file in write mode,
+			// and the cached file is is not opened in
+			// write mode, re-open it
+			if ((e.mode != file::read_write)
+				&& (m == file::read_write))
 			{
 				// close the file before we open it with
 				// the new read/write privilages

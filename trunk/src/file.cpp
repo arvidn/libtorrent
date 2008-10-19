@@ -67,14 +67,6 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 #include <cstring>
 #include <vector>
 
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
-
-#ifndef O_RANDOM
-#define O_RANDOM 0
-#endif
-
 #ifdef UNICODE
 #include "libtorrent/storage.hpp"
 #endif
@@ -104,18 +96,6 @@ namespace
 			return s;
 		}
 	}
-#else
-
-	enum { mode_in = 1, mode_out = 2 };
-
-	mode_t map_open_mode(int m)
-	{
-		if (m == (mode_in | mode_out)) return O_RDWR | O_CREAT | O_BINARY | O_RANDOM;
-		if (m == mode_out) return O_WRONLY | O_CREAT | O_BINARY | O_RANDOM;
-		if (m == mode_in) return O_RDONLY | O_BINARY | O_RANDOM;
-		TORRENT_ASSERT(false);
-		return 0;
-	}
 #endif
 
 }
@@ -123,18 +103,6 @@ namespace
 namespace libtorrent
 {
 	namespace fs = boost::filesystem;
-
-#ifdef TORRENT_WINDOWS
-	const file::open_mode file::in(GENERIC_READ);
-	const file::open_mode file::out(GENERIC_WRITE);
-	const file::seek_mode file::begin(FILE_BEGIN);
-	const file::seek_mode file::end(FILE_END);
-#else
-	const file::open_mode file::in(mode_in);
-	const file::open_mode file::out(mode_out);
-	const file::seek_mode file::begin(SEEK_SET);
-	const file::seek_mode file::end(SEEK_END);
-#endif
 
 	file::file()
 #ifdef TORRENT_WINDOWS
@@ -147,7 +115,7 @@ namespace libtorrent
 #endif
 	{}
 
-	file::file(fs::path const& path, open_mode mode, error_code& ec)
+	file::file(fs::path const& path, int mode, error_code& ec)
 #ifdef TORRENT_WINDOWS
 		: m_file_handle(INVALID_HANDLE_VALUE)
 #else
@@ -165,7 +133,7 @@ namespace libtorrent
 		close();
 	}
 
-	bool file::open(fs::path const& path, open_mode mode, error_code& ec)
+	bool file::open(fs::path const& path, int mode, error_code& ec)
 	{
 		close();
 #ifdef TORRENT_WINDOWS
@@ -178,10 +146,10 @@ namespace libtorrent
 
 		m_file_handle = CreateFile(
 			file_path.c_str()
-			, mode.m_mask
+			, mode
 			, FILE_SHARE_READ
 			, 0
-			, (mode & out)?OPEN_ALWAYS:OPEN_EXISTING
+			, (mode == read_write || mode == write_only)?OPEN_ALWAYS:OPEN_EXISTING
 			, FILE_ATTRIBUTE_NORMAL
 			, 0);
 
@@ -192,7 +160,7 @@ namespace libtorrent
 		}
 
 		// try to make the file sparse if supported
-		if (mode & out)
+		if (mode == write_only || mode == read_write)
 		{
 			DWORD temp;
 			::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, 0, 0
@@ -205,8 +173,8 @@ namespace libtorrent
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
 
-		m_fd = ::open(path.native_file_string().c_str()
-			, map_open_mode(mode.m_mask), permissions);
+ 		m_fd = ::open(path.native_file_string().c_str()
+ 			, mode, permissions);
 
 		if (m_fd == -1)
 		{
@@ -248,7 +216,7 @@ namespace libtorrent
 
 	size_type file::read(char* buf, size_type num_bytes, error_code& ec)
 	{
-		TORRENT_ASSERT((m_open_mode & in) == in);
+		TORRENT_ASSERT(m_open_mode == read_only || m_open_mode == read_write);
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(num_bytes >= 0);
 		TORRENT_ASSERT(is_open());
@@ -274,7 +242,7 @@ namespace libtorrent
 
 	size_type file::write(const char* buf, size_type num_bytes, error_code& ec)
 	{
-		TORRENT_ASSERT((m_open_mode & out) == out);
+		TORRENT_ASSERT(m_open_mode == write_only || m_open_mode == read_write);
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(num_bytes >= 0);
 		TORRENT_ASSERT(is_open());
@@ -322,21 +290,21 @@ namespace libtorrent
 		return true;
 	}
 
-	size_type file::seek(size_type offset, seek_mode m, error_code& ec)
+	size_type file::seek(size_type offset, int m, error_code& ec)
 	{
 		TORRENT_ASSERT(is_open());
 
 #ifdef TORRENT_WINDOWS
 		LARGE_INTEGER offs;
 		offs.QuadPart = offset;
-		if (SetFilePointerEx(m_file_handle, offs, &offs, m.m_val) == FALSE)
+		if (SetFilePointerEx(m_file_handle, offs, &offs, m) == FALSE)
 		{
 			ec = error_code(GetLastError(), get_system_category());
 			return -1;
 		}
 		return offs.QuadPart;
 #else
-		size_type ret = lseek(m_fd, offset, m.m_val);
+		size_type ret = lseek(m_fd, offset, m);
 		if (ret < 0) ec = error_code(errno, get_posix_category());
 		return ret;
 #endif

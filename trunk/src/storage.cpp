@@ -530,7 +530,7 @@ namespace libtorrent
 				|| m_file_priority[file_index] > 0))
 			{
 				boost::shared_ptr<file> f = m_pool.open_file(this
-					, m_save_path / file_iter->path, file::in | file::out, ec);
+					, m_save_path / file_iter->path, file::read_write, ec);
 				if (ec)
 				{
 					set_error(m_save_path / file_iter->path, ec);
@@ -550,7 +550,7 @@ namespace libtorrent
 			{
 				error_code ec;
 				boost::shared_ptr<file> f = m_pool.open_file(this
-					, m_save_path / file_iter->path, file::in | file::out, ec);
+					, m_save_path / file_iter->path, file::read_write, ec);
 				if (ec) set_error(m_save_path / file_iter->path, ec);
 				else if (f)
 				{
@@ -1083,7 +1083,7 @@ namespace libtorrent
 			fs::path path = m_save_path / file_iter->path;
 
 			error_code ec;
-			in = m_pool.open_file(this, path, file::in, ec);
+			in = m_pool.open_file(this, path, file::read_only, ec);
 			if (!in || ec)
 			{
 				set_error(path, ec);
@@ -1200,7 +1200,7 @@ namespace libtorrent
 			fs::path path = m_save_path / file_iter->path;
 
 			error_code ec;
-			out = m_pool.open_file(this, path, file::in | file::out, ec);
+			out = m_pool.open_file(this, path, file::read_write, ec);
 			if (!out || ec)
 			{
 				set_error(path, ec);
