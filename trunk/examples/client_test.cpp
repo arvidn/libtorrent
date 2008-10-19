@@ -586,7 +586,7 @@ void scan_dir(path const& dir_path
 		h.auto_managed(false);
 		h.pause();
 		// the alert handler for save_resume_data_alert
-		// will save it to disk and remove the torrent
+		// will save it to disk
 		h.save_resume_data();
 
 		handles.erase(i++);
@@ -635,6 +635,8 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		p->handle.set_max_connections(30);
 
 		// write resume data for the finished torrent
+		// the alert handler for save_resume_data_alert
+		// will save it to disk
 		torrent_handle h = p->handle;
 		h.save_resume_data();
 	}
@@ -1184,6 +1186,9 @@ int main(int ac, char* av[])
 							h.auto_managed(false);
 							h.pause();
 						}
+						// the alert handler for save_resume_data_alert
+						// will save it to disk
+						h.save_resume_data();
 					}
 				}
 
