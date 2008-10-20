@@ -122,12 +122,6 @@ project listed here, let me_ know.
 | bittorrent client with                                                        |                                     |
 | decentralized search facility.                                                |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
-| **Jamplayer**                                                                 |                                     |
-|                                                                               |                                     |
-| Jamplayer_ is a remote controlled                                             |                                     |
-| music player and downloader using                                             |                                     |
-| the jamendo music network.                                                    |                                     |
-+-------------------------------------------------------------------------------+-------------------------------------+
 | **FireANT**                                                                   |                                     |
 |                                                                               |                                     |
 | FireANT_ is a video blog available                                            |                                     |
@@ -157,7 +151,6 @@ project listed here, let me_ know.
 .. _MooPolice: http://www.moopolice.de
 .. _Linkage: http://code.google.com/p/linkage/
 .. _BitsCast: http://www.bitscast.com/software/
-.. _Jamplayer: http://www.jamendo.com/en/static/jamendotools_jamplayer/
 .. _BitSlug: http://bitslug.sourceforge.net/
 .. _BitBuddy: http://www.btvampire.com
 .. _`Arctic Torrent`: http://www.int64.org/arctic.html
