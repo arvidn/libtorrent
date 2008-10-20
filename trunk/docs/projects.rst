@@ -33,6 +33,23 @@ project listed here, let me_ know.
 | Written by Michael Wojciechowski                                              |                                     |
 | and Johan Ström.                                                              |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
+| **deluge torrent**                                                            | .. image:: deluge.png               |
+|                                                                               |                                     |
+| `deluge Torrent`_ is a more full-featured yet still lightweight bittorrent    |                                     |
+| client. It has the ability to automatically resume partial downloads and      |                                     |
+| background to the system tray.                                                |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **halite BitTorrent**                                                         | .. image:: halite_thumb.png         |
+|                                                                               |                                     |
+| Halite_ is a windows bittorrent client controllabel via an xml-rpc            |                                     |
+| interface.                                                                    |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **Free download manager**                                                     | .. image:: fdm.png                  |
+|                                                                               |                                     |
+| FDM_ is a powerful, easy-to-use and absolutely free download accelerator and  |                                     |
+| manager. Moreover, FDM is 100% safe, open-source software distributed under   |                                     |
+| GPL License.                                                                  |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **Lince**                                                                     | .. image:: lince.jpg                |
 |                                                                               |                                     |
 | Lince_ is a bittorrent client using libtorrent to handle bittorrent protocol  |                                     |
@@ -51,23 +68,15 @@ project listed here, let me_ know.
 | C++ with the help of the Trolltech Qt 4 library. It's simple to use and       |                                     |
 | install.                                                                      |                                     | 
 +-------------------------------------------------------------------------------+-------------------------------------+
+| **LeechCraft**                                                                | .. image:: leechcraft.png           |
+|                                                                               |                                     |
+| LeechCraft_ LeechCraft is a free open source cross-platform extensible        |                                     |
+| software, which primary goal is support of file sharing networks and          |                                     |
+| protocols like HTTP and FTP                                                   |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **BitRocket**                                                                 | .. image:: bitrocket_thumb.png      |
 |                                                                               |                                     |
 | BitRocket_ is a MacOS X bittorrent client.                                    |                                     |
-+-------------------------------------------------------------------------------+-------------------------------------+
-| **Bitfox**                                                                    | .. image:: bitfox.png               |
-|                                                                               |                                     |
-| A firefox plugin integrating bittorrent downloads in firefox.                 |                                     |
-+-------------------------------------------------------------------------------+-------------------------------------+
-| **Acquasition**                                                               | .. image:: acquasition.jpg          |
-|                                                                               |                                     |
-| Acquasition_ is a multi-network peer-to-peer                                  |                                     |
-| client for Mac.                                                               |                                     |
-|                                                                               |                                     |
-+-------------------------------------------------------------------------------+-------------------------------------+
-| **Instant Media**                                                             | .. image:: im_thumb.jpg             |
-|                                                                               |                                     |
-| IM_ is a client for downloading Internet TV.                                  |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
 | **MooPolice**                                                                 | .. image:: moopolice_thumb.gif      |
 |                                                                               |                                     |
@@ -85,6 +94,10 @@ project listed here, let me_ know.
 | feed downloader. See BitsCast_                                                |                                     |
 | homepage for more info.                                                       |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
+| **Bitfox**                                                                    | .. image:: bitfox.png               |
+|                                                                               |                                     |
+| A firefox plugin integrating bittorrent downloads in firefox.                 |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **BitSlug**                                                                   | .. image:: bitslug_thumb.png        |
 |                                                                               |                                     |
 | BitSlug_ is a MacOSX cocoa client.                                            |                                     |
@@ -101,17 +114,6 @@ project listed here, let me_ know.
 | bittorrent client for windows.                                                |                                     |
 | Written by Cory Nelson.                                                       |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
-| **deluge torrent**                                                            | .. image:: deluge.png               |
-|                                                                               |                                     |
-| `deluge Torrent`_ is a more full-featured yet still lightweight bittorrent    |                                     |
-| client. It has the ability to automatically resume partial downloads and      |                                     |
-| background to the system tray.                                                |                                     |
-+-------------------------------------------------------------------------------+-------------------------------------+
-| **halite BitTorrent**                                                         | .. image:: halite_thumb.png         |
-|                                                                               |                                     |
-| Halite_ is a windows bittorrent client controllabel via an xml-rpc            |                                     |
-| interface.                                                                    |                                     |
-+-------------------------------------------------------------------------------+-------------------------------------+
 | **DelCo**                                                                     |                                     |
 |                                                                               |                                     |
 | DelCo_ is a research project at tempere university of technology, finland.    |                                     |
@@ -121,6 +123,11 @@ project listed here, let me_ know.
 | ZipTorrent_ is another windows                                                |                                     |
 | bittorrent client with                                                        |                                     |
 | decentralized search facility.                                                |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **Acquasition**                                                               | .. image:: acquasition.jpg          |
+|                                                                               |                                     |
+| Acquasition_ is a multi-network peer-to-peer                                  |                                     |
+| client for Mac.                                                               |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
 | **FireANT**                                                                   |                                     |
 |                                                                               |                                     |
@@ -143,11 +150,12 @@ project listed here, let me_ know.
 .. _btg: http://developer.berlios.de/projects/btg/
 .. _Lince: http://lincetorrent.sourceforge.net/
 .. _Miro: http://getmiro.com
+.. _FDM: http://www.freedownloadmanager.org/
+.. _LeechCraft: http://deviant-soft.ws/tiki-index.php?page=LeechCraft
 .. _FatRat: http://fatrat.dolezel.info
 .. _BitRocket: http://www.bitrocket.org/
 .. _Bitfox: http://code.google.com/p/bitfox/
 .. _Acquasition: http://www.acquisitionx.com
-.. _IM: http://www.im.com/
 .. _MooPolice: http://www.moopolice.de
 .. _Linkage: http://code.google.com/p/linkage/
 .. _BitsCast: http://www.bitscast.com/software/
