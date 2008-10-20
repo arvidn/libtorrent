@@ -94,6 +94,10 @@ project listed here, let me_ know.
 | feed downloader. See BitsCast_                                                |                                     |
 | homepage for more info.                                                       |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
+| **hrktorrent**                                                                |                                     |
+|                                                                               |                                     |
+| hrktorrent_ hrktorrent is a light console torrent client written in C++.      |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **Bitfox**                                                                    | .. image:: bitfox.png               |
 |                                                                               |                                     |
 | A firefox plugin integrating bittorrent downloads in firefox.                 |                                     |
@@ -154,6 +158,7 @@ project listed here, let me_ know.
 .. _LeechCraft: http://deviant-soft.ws/tiki-index.php?page=LeechCraft
 .. _FatRat: http://fatrat.dolezel.info
 .. _BitRocket: http://www.bitrocket.org/
+.. _hrktorrent: http://50hz.ws/hrktorrent/
 .. _Bitfox: http://code.google.com/p/bitfox/
 .. _Acquasition: http://www.acquisitionx.com
 .. _MooPolice: http://www.moopolice.de
