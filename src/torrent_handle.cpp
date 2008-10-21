@@ -515,7 +515,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 #ifdef BOOST_NO_EXCEPTIONS
-		const static torrent_info empty;
+		const static torrent_info empty(sha1_hash(0));
 #endif
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t)
@@ -546,7 +546,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		entry ret(entry::dictionary_t);
-		TORRENT_FORWARD(write_resume_data(ret));
+		TORRENT_FORWARD_RETURN2(write_resume_data(ret), ret);
 		t->filesystem().write_resume_data(ret);
 
 		return ret;

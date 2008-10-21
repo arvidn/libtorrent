@@ -88,10 +88,12 @@ namespace
 	void read_endpoint_list(libtorrent::entry const* n, std::vector<EndpointType>& epl)				
 	{
 		using namespace libtorrent;
+		if (n->type() != entry::list_t) return;
 		entry::list_type const& contacts = n->list();
 		for (entry::list_type::const_iterator i = contacts.begin()
 			, end(contacts.end()); i != end; ++i)
 		{
+			if (i->type() != entry::string_t) return;
 			std::string const& p = i->string();
 			if (p.size() < 6) continue;
 			std::string::const_iterator in = p.begin();
@@ -192,14 +194,15 @@ namespace libtorrent { namespace dht
 				m_dht.set_node_id(boost::lexical_cast<node_id>(nid->string()));
 		}
 
-		m_timer.expires_from_now(seconds(1));
+		error_code ec;
+		m_timer.expires_from_now(seconds(1), ec);
 		m_timer.async_wait(bind(&dht_tracker::tick, self(), _1));
 
-		m_connection_timer.expires_from_now(seconds(10));
+		m_connection_timer.expires_from_now(seconds(10), ec);
 		m_connection_timer.async_wait(
 			bind(&dht_tracker::connection_timeout, self(), _1));
 
-		m_refresh_timer.expires_from_now(seconds(5));
+		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(bind(&dht_tracker::refresh_timeout, self(), _1));
 
 		m_dht.bootstrap(initial_nodes, bind(&dht_tracker::on_bootstrap, self()));
@@ -209,9 +212,10 @@ namespace libtorrent { namespace dht
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		m_abort = true;
-		m_timer.cancel();
-		m_connection_timer.cancel();
-		m_refresh_timer.cancel();
+		error_code ec;
+		m_timer.cancel(ec);
+		m_connection_timer.cancel(ec);
+		m_refresh_timer.cancel(ec);
 		m_host_resolver.cancel();
 	}
 
@@ -789,7 +793,6 @@ namespace libtorrent { namespace dht
 		void write_nodes_entry(entry& r, libtorrent::dht::msg const& m)
 		{
 			bool ipv6_nodes = false;
-			r["nodes"] = entry(entry::string_t);
 			entry& n = r["nodes"];
 			std::back_insert_iterator<std::string> out(n.string());
 			for (msg::nodes_t::const_iterator i = m.nodes.begin()
@@ -806,7 +809,6 @@ namespace libtorrent { namespace dht
 
 			if (ipv6_nodes)
 			{
-				r["nodes2"] = entry(entry::list_t);
 				entry& p = r["nodes2"];
 				std::string endpoint;
 				for (msg::nodes_t::const_iterator i = m.nodes.begin()

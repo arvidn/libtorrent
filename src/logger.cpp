@@ -211,8 +211,9 @@ namespace
 		virtual boost::shared_ptr<peer_plugin> new_connection(
 			peer_connection* pc)
 		{
+			error_code ec;
 			return boost::shared_ptr<peer_plugin>(new logger_peer_plugin(
-				pc->remote().address().to_string() + "_"
+				pc->remote().address().to_string(ec) + "_"
 				+ boost::lexical_cast<std::string>(pc->remote().port()) + ".log"));
 		}
 	};
