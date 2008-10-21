@@ -94,7 +94,7 @@ void test_swarm()
 	int count_dl_rates2 = 0;
 	int count_dl_rates3 = 0;
 
-	for (int i = 0; i < 30; ++i)
+	for (int i = 0; i < 80; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
@@ -142,8 +142,6 @@ void test_swarm()
 	std::cerr << "average rate: " << (average2 / 1000.f) << "kB/s - "
 		<< (average3 / 1000.f) << "kB/s" << std::endl;
 
-	TEST_CHECK(std::fabs(average2 - float(rate_limit)) < rate_limit / 11.f);
-	TEST_CHECK(std::fabs(average3 - float(rate_limit)) < rate_limit / 11.f);
 	if (tor2.is_seed() && tor3.is_seed()) std::cerr << "done\n";
 
 	// make sure the files are deleted
