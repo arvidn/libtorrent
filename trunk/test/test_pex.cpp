@@ -93,7 +93,7 @@ void test_pex()
 	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1"), ses1.listen_port()));
 	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1"), ses3.listen_port()));
 
-	for (int i = 0; i < 40; ++i)
+	for (int i = 0; i < 90; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
