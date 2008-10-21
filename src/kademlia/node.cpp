@@ -210,7 +210,7 @@ void node_impl::new_write_key()
 	m_secret[0] = std::rand();
 }
 
-void node_impl::refresh_bucket(int bucket) try
+void node_impl::refresh_bucket(int bucket)
 {
 	TORRENT_ASSERT(bucket >= 0 && bucket < 160);
 	
@@ -245,7 +245,6 @@ void node_impl::refresh_bucket(int bucket) try
 	new dht::refresh(*this, target, start.begin(), start.end(), bind(&nop));
 	m_table.touch_bucket(bucket);
 }
-catch (std::exception&) {}
 
 void node_impl::unreachable(udp::endpoint const& ep)
 {
@@ -325,27 +324,23 @@ time_duration node_impl::refresh_timeout()
 	int refresh = -1;
 	ptime now = time_now();
 	ptime next = now + minutes(15);
-	try
+	for (int i = 0; i < 160; ++i)
 	{
-		for (int i = 0; i < 160; ++i)
+		ptime r = m_table.next_refresh(i);
+		if (r <= next)
 		{
-			ptime r = m_table.next_refresh(i);
-			if (r <= next)
-			{
-				refresh = i;
-				next = r;
-			}
-		}
-		if (next < now)
-		{
-			TORRENT_ASSERT(refresh > -1);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(node) << "refreshing bucket: " << refresh;
-#endif
-			refresh_bucket(refresh);
+			refresh = i;
+			next = r;
 		}
 	}
-	catch (std::exception&) {}
+	if (next < now)
+	{
+		TORRENT_ASSERT(refresh > -1);
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(node) << "refreshing bucket: " << refresh;
+#endif
+		refresh_bucket(refresh);
+	}
 
 	time_duration next_refresh = next - now;
 	time_duration min_next_refresh
@@ -366,29 +361,25 @@ time_duration node_impl::refresh_timeout()
 time_duration node_impl::connection_timeout()
 {
 	time_duration d = m_rpc.tick();
-	try
-	{
-		ptime now(time_now());
-		if (now - m_last_tracker_tick < minutes(10)) return d;
-		m_last_tracker_tick = now;
-		
-		// look through all peers and see if any have timed out
-		for (data_iterator i = begin_data(), end(end_data()); i != end;)
-		{
-			torrent_entry& t = i->second;
-			node_id const& key = i->first;
-			++i;
-			purge_peers(t.peers);
+	ptime now(time_now());
+	if (now - m_last_tracker_tick < minutes(10)) return d;
+	m_last_tracker_tick = now;
 
-			// if there are no more peers, remove the entry altogether
-			if (t.peers.empty())
-			{
-				table_t::iterator i = m_map.find(key);
-				if (i != m_map.end()) m_map.erase(i);
-			}
+	// look through all peers and see if any have timed out
+	for (data_iterator i = begin_data(), end(end_data()); i != end;)
+	{
+		torrent_entry& t = i->second;
+		node_id const& key = i->first;
+		++i;
+		purge_peers(t.peers);
+
+		// if there are no more peers, remove the entry altogether
+		if (t.peers.empty())
+		{
+			table_t::iterator i = m_map.find(key);
+			if (i != m_map.end()) m_map.erase(i);
 		}
 	}
-	catch (std::exception&) {}
 
 	return d;
 }
