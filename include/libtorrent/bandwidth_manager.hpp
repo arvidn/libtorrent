@@ -153,7 +153,8 @@ struct bandwidth_manager
 		m_queue.clear();
 		m_history.clear();
 		m_current_quota = 0;
-		m_history_timer.cancel();
+		error_code ec;
+		m_history_timer.cancel(ec);
 	}
 
 #ifndef NDEBUG
