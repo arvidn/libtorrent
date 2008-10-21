@@ -372,13 +372,8 @@ namespace libtorrent
 				}
 			}
 		}
-		try
-		{
-			if (!interested) send_not_interested();
-			else t->get_policy().peer_is_interesting(*this);
-		}
-		// may throw an asio error if socket has disconnected
-		catch (std::exception&) {}
+		if (!interested) send_not_interested();
+		else t->get_policy().peer_is_interesting(*this);
 
 		TORRENT_ASSERT(in_handshake() || is_interesting() == interested);
 	}
@@ -861,19 +856,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent.expired());
 		// check to make sure we don't have another connection with the same
 		// info_hash and peer_id. If we do. close this connection.
-#ifndef NDEBUG
-		try
-		{
-#endif
 		t->attach_peer(this);
-#ifndef NDEBUG
-		}
-		catch (std::exception& e)
-		{
-			std::cout << e.what() << std::endl;
-			TORRENT_ASSERT(false);
-		}
-#endif
 		if (m_disconnecting) return;
 		m_torrent = wpt;
 

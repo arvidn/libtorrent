@@ -228,47 +228,35 @@ namespace libtorrent { namespace dht
 	}
 
 	void dht_tracker::connection_timeout(error_code const& e)
-		try
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		if (e || m_abort) return;
 
 		time_duration d = m_dht.connection_timeout();
-		m_connection_timer.expires_from_now(d);
+		error_code ec;
+		m_connection_timer.expires_from_now(d, ec);
 		m_connection_timer.async_wait(bind(&dht_tracker::connection_timeout, self(), _1));
 	}
-	catch (std::exception& exc)
-	{
-#ifndef NDEBUG
-		std::cerr << "exception-type: " << typeid(exc).name() << std::endl;
-		std::cerr << "what: " << exc.what() << std::endl;
-		TORRENT_ASSERT(false);
-#endif
-	};
 
 	void dht_tracker::refresh_timeout(error_code const& e)
-		try
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		if (e || m_abort) return;
 
 		time_duration d = m_dht.refresh_timeout();
-		m_refresh_timer.expires_from_now(d);
+		error_code ec;
+		m_refresh_timer.expires_from_now(d, ec);
 		m_refresh_timer.async_wait(
 			bind(&dht_tracker::refresh_timeout, self(), _1));
 	}
-	catch (std::exception&)
-	{
-		TORRENT_ASSERT(false);
-	};
 
 	void dht_tracker::tick(error_code const& e)
-		try
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		if (e || m_abort) return;
 
-		m_timer.expires_from_now(minutes(tick_period));
+		error_code ec;
+		m_timer.expires_from_now(minutes(tick_period), ec);
 		m_timer.async_wait(bind(&dht_tracker::tick, self(), _1));
 
 		ptime now = time_now();
@@ -362,10 +350,6 @@ namespace libtorrent { namespace dht
 		m_queries_out_bytes = 0;
 #endif
 	}
-	catch (std::exception&)
-	{
-		TORRENT_ASSERT(false);
-	};
 
 	void dht_tracker::announce(sha1_hash const& ih, int listen_port
 		, boost::function<void(std::vector<tcp::endpoint> const&
@@ -383,7 +367,6 @@ namespace libtorrent { namespace dht
 	// translate bittorrent kademlia message into the generice kademlia message
 	// used by the library
 	void dht_tracker::on_receive(udp::endpoint const& ep, char const* buf, int bytes_transferred)
-		try
 	{
 		{
 			libtorrent::aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -442,42 +425,56 @@ namespace libtorrent { namespace dht
 		m_total_in_bytes += bytes_transferred;
 #endif
 
-		try
-		{
-			using libtorrent::entry;
-			using libtorrent::bdecode;
+		using libtorrent::entry;
+		using libtorrent::bdecode;
 			
-			TORRENT_ASSERT(bytes_transferred > 0);
+		TORRENT_ASSERT(bytes_transferred > 0);
 
-			entry e = bdecode(buf, buf + bytes_transferred);
-			if (e.type() == entry::undefined_t)
-			{
+		entry e = bdecode(buf, buf + bytes_transferred);
+		if (e.type() == entry::undefined_t)
+		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-				std::string msg(buf, buf + bytes_transferred);
-				TORRENT_LOG(dht_tracker) << "invalid incoming packet\n";
+			std::string msg(buf, buf + bytes_transferred);
+			TORRENT_LOG(dht_tracker) << "invalid incoming packet\n";
 #endif
-				return;
-			}
+			return;
+		}
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			std::stringstream log_line;
-			log_line << time_now_string() << " RECEIVED ["
-				" ip: " << ep;
+		std::stringstream log_line;
+		log_line << time_now_string() << " RECEIVED ["
+			" ip: " << ep;
 #endif
 
-			libtorrent::dht::msg m;
-			m.message_id = 0;
-			m.addr = ep;
-			m.transaction_id = e["t"].string();
+		if (e.type() != entry::dictionary_t)
+		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(dht_tracker) << " RECEIVED invalid dht packet";
+#endif
+			return;
+		}
+
+		libtorrent::dht::msg m;
+		m.message_id = 0;
+		m.addr = ep;
+
+		entry const* transaction = e.find_key("t");
+		if (!transaction || transaction->type() != entry::string_t)
+			return;
+
+		m.transaction_id = transaction->string();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			log_line << " t: " << to_hex(m.transaction_id);
-
-			try
+		entry const* ver = e.find_key("v");
+		if (!ver || ver->type() != entry::string_t)
+		{
+			log_line << " c: generic";
+		}
+		else
+		{
+			std::string const& client = ver->string();
+			if (client.size() > 1 && std::equal(client.begin(), client.begin() + 2, "UT"))
 			{
-				entry const* ver = e.find_key("v");
-				if (!ver) throw std::exception();
-
 				std::string const& client = ver->string();
 				if (client.size() > 1 && std::equal(client.begin(), client.begin() + 2, "UT"))
 				{
@@ -509,163 +506,189 @@ namespace libtorrent { namespace dht
 					log_line << " c: " << client;
 				}
 			}
-			catch (std::exception&)
+		}
+#endif
+
+		entry const* y = e.find_key("y");
+		if (!y || y->type() != entry::string_t)
+			return;
+
+		std::string const& msg_type = y->string();
+
+		if (msg_type == "r")
+		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			log_line << " r: " << messages::ids[m.message_id]
+				<< " t: " << to_hex(m.transaction_id);
+#endif
+
+			m.reply = true;
+			entry const* r = e.find_key("r");
+			if (!r || r->type() != entry::dictionary_t)
+				return;
+
+			entry const* id_ent = r->find_key("id");
+			if (!id_ent || id_ent->type() != entry::string_t)
+				return;
+			std::string const& id = id_ent->string();
+			if (id.size() != 20) return;
+			std::copy(id.begin(), id.end(), m.id.begin());
+
+			entry const* n = 0;
+			if ((n = r->find_key("values")) && n->type() == entry::list_t)
 			{
-				log_line << " c: generic";
-			};
-#endif
-
-			std::string const& msg_type = e["y"].string();
-
-			if (msg_type == "r")
-			{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-				log_line << " r: " << messages::ids[m.message_id];
-#endif
-
-				m.reply = true;
-				entry const& r = e["r"];
-				std::string const& id = r["id"].string();
-				if (id.size() != 20) throw std::runtime_error("invalid size of id");
-				std::copy(id.begin(), id.end(), m.id.begin());
-
-				if (entry const* n = r.find_key("values"))
+				m.peers.clear();
+				if (n->list().size() == 1)
 				{
-					m.peers.clear();
-					if (n->list().size() == 1)
-					{
-						// assume it's mainline format
-						std::string const& peers = n->list().front().string();
-						std::string::const_iterator i = peers.begin();
-						std::string::const_iterator end = peers.end();
+					// assume it's mainline format
+					std::string const& peers = n->list().front().string();
+					std::string::const_iterator i = peers.begin();
+					std::string::const_iterator end = peers.end();
 
-						while (std::distance(i, end) >= 6)
-							m.peers.push_back(read_v4_endpoint<tcp::endpoint>(i));
-					}
-					else
-					{
-						// assume it's uTorrent/libtorrent format
-						read_endpoint_list<tcp::endpoint>(n, m.peers);
-					}
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					log_line << " p: " << m.peers.size();
-#endif
-				}
-
-				m.nodes.clear();
-				if (entry const* n = r.find_key("nodes"))				
-				{
-					std::string const& nodes = n->string();
-					std::string::const_iterator i = nodes.begin();
-					std::string::const_iterator end = nodes.end();
-
-					while (std::distance(i, end) >= 26)
-					{
-						node_id id;
-						std::copy(i, i + 20, id.begin());
-						i += 20;
-						m.nodes.push_back(libtorrent::dht::node_entry(
-							id, read_v4_endpoint<udp::endpoint>(i)));
-					}
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					log_line << " n: " << m.nodes.size();
-#endif
-				}
-
-				if (entry const* n = r.find_key("nodes2"))				
-				{
-					entry::list_type const& contacts = n->list();
-					for (entry::list_type::const_iterator i = contacts.begin()
-						, end(contacts.end()); i != end; ++i)
-					{
-						std::string const& p = i->string();
-						if (p.size() < 6 + 20) continue;
-						std::string::const_iterator in = p.begin();
-
-						node_id id;
-						std::copy(in, in + 20, id.begin());
-						in += 20;
-						if (p.size() == 6 + 20)
-							m.nodes.push_back(libtorrent::dht::node_entry(
-								id, read_v4_endpoint<udp::endpoint>(in)));
-						else if (p.size() == 18 + 20)
-							m.nodes.push_back(libtorrent::dht::node_entry(
-								id, read_v6_endpoint<udp::endpoint>(in)));
-					}
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					log_line << " n2: " << m.nodes.size();
-#endif
-				}
-
-				entry const* token = r.find_key("token");
-				if (token) m.write_token = *token;
-			}
-			else if (msg_type == "q")
-			{
-				m.reply = false;
-				entry const& a = e["a"];
-				std::string const& id = a["id"].string();
-				if (id.size() != 20) throw std::runtime_error("invalid size of id");
-				std::copy(id.begin(), id.end(), m.id.begin());
-
-				std::string request_kind(e["q"].string());
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-				log_line << " q: " << request_kind;
-#endif
-
-				if (request_kind == "ping")
-				{
-					m.message_id = libtorrent::dht::messages::ping;
-				}
-				else if (request_kind == "find_node")
-				{
-					std::string const& target = a["target"].string();
-					if (target.size() != 20) throw std::runtime_error("invalid size of target id");
-					std::copy(target.begin(), target.end(), m.info_hash.begin());
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					log_line << " target: " << boost::lexical_cast<std::string>(m.info_hash);
-#endif
-
-					m.message_id = libtorrent::dht::messages::find_node;
-				}
-				else if (request_kind == "get_peers")
-				{
-					std::string const& info_hash = a["info_hash"].string();
-					if (info_hash.size() != 20) throw std::runtime_error("invalid size of info-hash");
-					std::copy(info_hash.begin(), info_hash.end(), m.info_hash.begin());
-					m.message_id = libtorrent::dht::messages::get_peers;
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					log_line << " ih: " << boost::lexical_cast<std::string>(m.info_hash);
-#endif
-				}
-				else if (request_kind == "announce_peer")
-				{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					++m_announces;
-#endif
-					std::string const& info_hash = a["info_hash"].string();
-					if (info_hash.size() != 20)
-						throw std::runtime_error("invalid size of info-hash");
-					std::copy(info_hash.begin(), info_hash.end(), m.info_hash.begin());
-					m.port = a["port"].integer();
-					m.write_token = a["token"];
-					m.message_id = libtorrent::dht::messages::announce_peer;
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					log_line << " ih: " << boost::lexical_cast<std::string>(m.info_hash);
-					log_line << " p: " << m.port;
-
-					if (!m_dht.verify_token(m))
-						++m_failed_announces;
-#endif
+					while (std::distance(i, end) >= 6)
+						m.peers.push_back(read_v4_endpoint<tcp::endpoint>(i));
 				}
 				else
 				{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					TORRENT_LOG(dht_tracker) << "  *** UNSUPPORTED REQUEST *** : "
-						<< request_kind;
-#endif
-					throw std::runtime_error("unsupported request: " + request_kind);
+					// assume it's uTorrent/libtorrent format
+					read_endpoint_list<tcp::endpoint>(n, m.peers);
 				}
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+				log_line << " p: " << m.peers.size();
+#endif
+			}
+
+			m.nodes.clear();
+			if ((n = r->find_key("nodes")) && n->type() == entry::string_t)
+			{
+				std::string const& nodes = n->string();
+				std::string::const_iterator i = nodes.begin();
+				std::string::const_iterator end = nodes.end();
+
+				while (std::distance(i, end) >= 26)
+				{
+					node_id id;
+					std::copy(i, i + 20, id.begin());
+					i += 20;
+					m.nodes.push_back(libtorrent::dht::node_entry(
+							id, read_v4_endpoint<udp::endpoint>(i)));
+				}
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+				log_line << " n: " << m.nodes.size();
+#endif
+			}
+
+			if ((n = r->find_key("nodes2")) && n->type() == entry::list_t)
+			{
+				entry::list_type const& contacts = n->list();
+				for (entry::list_type::const_iterator i = contacts.begin()
+					, end(contacts.end()); i != end; ++i)
+				{
+					std::string const& p = i->string();
+					if (p.size() < 6 + 20) continue;
+					std::string::const_iterator in = p.begin();
+
+					node_id id;
+					std::copy(in, in + 20, id.begin());
+					in += 20;
+					if (p.size() == 6 + 20)
+						m.nodes.push_back(libtorrent::dht::node_entry(
+								id, read_v4_endpoint<udp::endpoint>(in)));
+					else if (p.size() == 18 + 20)
+						m.nodes.push_back(libtorrent::dht::node_entry(
+								id, read_v6_endpoint<udp::endpoint>(in)));
+				}
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+				log_line << " n2: " << m.nodes.size();
+#endif
+			}
+
+			entry const* token = r->find_key("token");
+			if (token) m.write_token = *token;
+		}
+		else if (msg_type == "q")
+		{
+			m.reply = false;
+			entry const* a = e.find_key("a");
+			if (!a || a->type() != entry::dictionary_t)
+				return;
+
+			entry const* id_ent = a->find_key("id");
+			if (!id_ent || id_ent->type() != entry::string_t) return;
+
+			std::string const& id = id_ent->string();
+			if (id.size() != 20) return;
+			std::copy(id.begin(), id.end(), m.id.begin());
+
+			std::string request_kind(e["q"].string());
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			log_line << " q: " << request_kind;
+#endif
+
+			if (request_kind == "ping")
+			{
+				m.message_id = libtorrent::dht::messages::ping;
+			}
+			else if (request_kind == "find_node")
+			{
+				entry const* target_ent = a->find_key("target");
+				if (!target_ent || target_ent->type() != entry::string_t)
+					return;
+
+				std::string const& target = target_ent->string();
+				if (target.size() != 20)
+					return;
+				std::copy(target.begin(), target.end(), m.info_hash.begin());
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+				log_line << " t: " << boost::lexical_cast<std::string>(m.info_hash);
+#endif
+
+				m.message_id = libtorrent::dht::messages::find_node;
+			}
+			else if (request_kind == "get_peers")
+			{
+				entry const* ih_ent = a->find_key("info_hash");
+				if (!ih_ent || ih_ent->type() != entry::string_t)
+					return;
+
+				std::string const& info_hash = ih_ent->string();
+				if (info_hash.size() != 20)
+					return;
+				std::copy(info_hash.begin(), info_hash.end(), m.info_hash.begin());
+				m.message_id = libtorrent::dht::messages::get_peers;
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+				log_line << " ih: " << boost::lexical_cast<std::string>(m.info_hash);
+#endif
+			}
+			else if (request_kind == "announce_peer")
+			{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+				++m_announces;
+#endif
+				entry const* ih_ent = a->find_key("info_hash");
+				if (!ih_ent || ih_ent->type() != entry::string_t)
+					return;
+
+				std::string const& info_hash = ih_ent->string();
+				if (info_hash.size() != 20)
+					return;
+				std::copy(info_hash.begin(), info_hash.end(), m.info_hash.begin());
+				entry const* port_ent = a->find_key("port");
+				if (!port_ent || port_ent->type() != entry::int_t)
+					return;
+				m.port = port_ent->integer();
+				entry const* token_ent = a->find_key("token");
+				if (!port_ent)
+					return;
+				m.write_token = *token_ent;
+				m.message_id = libtorrent::dht::messages::announce_peer;
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+				log_line << " ih: " << boost::lexical_cast<std::string>(m.info_hash);
+				log_line << " p: " << m.port;
+
+				if (!m_dht.verify_token(m))
+					++m_failed_announces;
+#endif
 			}
 			else if (msg_type == "e")
 			{
@@ -677,17 +700,31 @@ namespace libtorrent { namespace dht
 				log_line << " incoming error: " << m.error_code
 					<< " " << m.error_msg;
 #endif
-				throw std::runtime_error("DHT error message");
 			}
 			else
 			{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-				TORRENT_LOG(dht_tracker) << "  *** UNSUPPORTED MESSAGE TYPE *** : "
-					<< msg_type;
+				TORRENT_LOG(dht_tracker) << "  *** UNSUPPORTED REQUEST *** : "
+					<< request_kind;
 #endif
-				throw std::runtime_error("unsupported message type: " + msg_type);
+				return;
 			}
+		}
+		else if (msg_type == "e")
+		{
+			entry const* err_ent = e.find_key("e");
+			if (!err_ent || err_ent->type() != entry::list_t)
+				return;
 
+			entry::list_type const& list = err_ent->list();
+			if (list.size() != 2
+				|| list.front().type() != entry::int_t
+				|| list.back().type() != entry::string_t)
+				return;
+
+			m.message_id = messages::error;
+			m.error_msg = list.back().string();
+			m.error_code = list.front().integer();
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			if (!m.reply)
 			{
@@ -696,22 +733,29 @@ namespace libtorrent { namespace dht
 			}
 			TORRENT_LOG(dht_tracker) << log_line.str() << " ]";
 #endif
-			TORRENT_ASSERT(m.message_id != messages::error);
-			m_dht.incoming(m);
+			return;
 		}
-		catch (std::exception& e)
+		else
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			std::string msg(buf, buf + bytes_transferred);
 			TORRENT_LOG(dht_tracker) << "invalid incoming packet: "
 				<< e.what() << "\n" << msg << "\n";
 #endif
+			return;
 		}
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		if (!m.reply)
+		{
+			++m_queries_received[m.message_id];
+			m_queries_bytes_received[m.message_id] += int(bytes_transferred);
+		}
+		TORRENT_LOG(dht_tracker) << e;
+#endif
+		TORRENT_ASSERT(m.message_id != messages::error);
+		m_dht.incoming(m);
 	}
-	catch (std::exception& e)
-	{
-		TORRENT_ASSERT(false);
-	};
 
 	entry dht_tracker::state() const
 	{
@@ -739,7 +783,7 @@ namespace libtorrent { namespace dht
 			if (!nodes.list().empty())
 				ret["nodes"] = nodes;
 		}
-		
+
 		ret["node-id"] = boost::lexical_cast<std::string>(m_dht.nid());
 		return ret;
 	}
@@ -757,15 +801,11 @@ namespace libtorrent { namespace dht
 	}
 
 	void dht_tracker::on_name_lookup(error_code const& e
-		, udp::resolver::iterator host) try
+		, udp::resolver::iterator host)
 	{
 		if (e || host == udp::resolver::iterator()) return;
 		add_node(host->endpoint());
 	}
-	catch (std::exception&)
-	{
-		TORRENT_ASSERT(false);
-	};
 
 	void dht_tracker::add_router_node(std::pair<std::string, int> const& node)
 	{
@@ -775,15 +815,11 @@ namespace libtorrent { namespace dht
 	}
 
 	void dht_tracker::on_router_name_lookup(error_code const& e
-		, udp::resolver::iterator host) try
+		, udp::resolver::iterator host)
 	{
 		if (e || host == udp::resolver::iterator()) return;
 		m_dht.add_router_node(host->endpoint());
 	}
-	catch (std::exception&)
-	{
-		TORRENT_ASSERT(false);
-	};
 
 	void dht_tracker::on_bootstrap()
 	{}
@@ -828,7 +864,6 @@ namespace libtorrent { namespace dht
 	}
 
 	void dht_tracker::send_packet(msg const& m)
-		try
 	{
 		using libtorrent::bencode;
 		using libtorrent::entry;
@@ -999,13 +1034,6 @@ namespace libtorrent { namespace dht
 		pm.addr = m.addr;
 	
 		send_packet(pm);	
-	}
-	catch (std::exception&)
-	{
-		// m_send may fail with "no route to host"
-		// but it shouldn't throw since an error code
-		// is passed in instead
-		TORRENT_ASSERT(false);
 	}
 
 }}
