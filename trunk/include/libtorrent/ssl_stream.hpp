@@ -54,7 +54,8 @@ public:
 		: m_context(io_service, asio::ssl::context::sslv23_client)
 		, m_sock(io_service, m_context)
 	{
-		m_context.set_verify_mode(asio::ssl::context::verify_none);
+		error_code ec;
+		m_context.set_verify_mode(asio::ssl::context::verify_none, ec);
 	}
 
 	typedef Stream next_layer_type;

@@ -126,7 +126,9 @@ bool node_impl::verify_token(msg const& m)
 	}
 
 	hasher h1;
-	std::string address = m.addr.address().to_string();
+	error_code ec;
+	std::string address = m.addr.address().to_string(ec);
+	if (ec) return false;
 	h1.update(&address[0], address.length());
 	h1.update((char*)&m_secret[0], sizeof(m_secret[0]));
 	h1.update((char*)&m.info_hash[0], sha1_hash::size);
@@ -150,7 +152,9 @@ entry node_impl::generate_token(msg const& m)
 	std::string token;
 	token.resize(4);
 	hasher h;
-	std::string address = m.addr.address().to_string();
+	error_code ec;
+	std::string address = m.addr.address().to_string(ec);
+	TORRENT_ASSERT(!ec);
 	h.update(&address[0], address.length());
 	h.update((char*)&m_secret[0], sizeof(m_secret[0]));
 	h.update((char*)&m.info_hash[0], sha1_hash::size);

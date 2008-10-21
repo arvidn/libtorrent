@@ -206,7 +206,8 @@ void http_connection::on_connect_timeout()
 
 	if (!m_endpoints.empty())
 	{
-		m_sock.close();
+		error_code ec;
+		m_sock.close(ec);
 	} 
 	else
 	{ 
@@ -227,8 +228,8 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	{
 		if (c->m_connection_ticket > -1 && !c->m_endpoints.empty())
 		{
-			c->m_sock.close();
 			error_code ec;
+			c->m_sock.close(ec);
 			c->m_timer.expires_at(c->m_last_receive + c->m_timeout, ec);
 			c->m_timer.async_wait(bind(&http_connection::on_timeout, p, _1));
 		}
@@ -322,7 +323,8 @@ void http_connection::on_connect(error_code const& e)
 	else if (!m_endpoints.empty() && !m_abort)
 	{
 		// The connection failed. Try the next endpoint in the list.
-		m_sock.close();
+		error_code ec;
+		m_sock.close(ec);
 		queue_connect();
 	} 
 	else
@@ -354,7 +356,8 @@ void http_connection::callback(error_code const& e, char const* data, int size)
 			}
 		}
 		m_called = true;
-		m_timer.cancel();
+		error_code ec;
+		m_timer.cancel(ec);
 		if (m_handler) m_handler(e, m_parser, data, size, *this);
 	}
 }

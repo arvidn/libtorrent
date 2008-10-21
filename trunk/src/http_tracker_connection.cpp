@@ -157,8 +157,9 @@ namespace libtorrent
 
 			if (m_settings.announce_ip != address())
 			{
-				url += "&ip=";
-				url += m_settings.announce_ip.to_string();
+				error_code ec;
+				std::string ip = m_settings.announce_ip.to_string(ec);
+				if (!ec) url += "&ip=" + ip;
 			}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -382,7 +383,9 @@ namespace libtorrent
 
 				peer_entry p;
 				p.pid.clear();
-				p.ip = detail::read_v4_address(i).to_string();
+				error_code ec;
+				p.ip = detail::read_v4_address(i).to_string(ec);
+				if (ec) continue;
 				p.port = detail::read_uint16(i);
 				peer_list.push_back(p);
 			}
@@ -414,7 +417,9 @@ namespace libtorrent
 
 				peer_entry p;
 				p.pid.clear();
-				p.ip = detail::read_v6_address(i).to_string();
+				error_code ec;
+				p.ip = detail::read_v6_address(i).to_string(ec);
+				if (ec) continue;
 				p.port = detail::read_uint16(i);
 				peer_list.push_back(p);
 			}
