@@ -114,7 +114,7 @@ A very simple example usage of the module would be something like this::
 	while (not h.is_seed()):
 		s = h.status()
 
-		state_str = ['queued', 'checking', 'connecting', 'downloading metadata', \
+		state_str = ['queued', 'checking', 'downloading metadata', \
 			'downloading', 'finished', 'seeding', 'allocating']
 		print '%.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s' % \
 			(s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, \
