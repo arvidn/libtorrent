@@ -77,6 +77,7 @@ private:
 	void update_expiration_timer();
 	void mapping_expired(error_code const& e, int i);
 
+	void log(std::string const& msg);
 	void disable(char const* message);
 
 	struct mapping_t
@@ -149,10 +150,6 @@ private:
 
 	typedef boost::mutex mutex_t;
 	mutex_t m_mutex;
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	std::ofstream m_log;
-#endif
 };
 
 }
