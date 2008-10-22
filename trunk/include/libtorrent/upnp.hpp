@@ -62,6 +62,8 @@ namespace libtorrent
 // int: external port
 // std::string: error message
 // an empty string as error means success
+// a port-mapping index of -1 means it's
+// an informational log message
 typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
 
 class upnp : public intrusive_ptr_base<upnp>
@@ -117,6 +119,7 @@ private:
 
 	void disable(char const* msg);
 	void return_error(int mapping, int code);
+	void log(std::string const&);
 
 	void delete_port_mapping(rootdevice& d, int i);
 	void create_port_mapping(http_connection& c, rootdevice& d, int i);
@@ -272,10 +275,6 @@ private:
 	mutex_t m_mutex;
 
 	std::string m_model;
-
-#ifdef TORRENT_UPNP_LOGGING
-	std::ofstream m_log;
-#endif
 };
 
 }

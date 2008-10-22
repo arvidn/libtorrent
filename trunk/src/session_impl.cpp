@@ -212,6 +212,9 @@ namespace aux {
 		m_bandwidth_manager[peer_connection::download_channel] = &m_download_channel;
 		m_bandwidth_manager[peer_connection::upload_channel] = &m_upload_channel;
 
+#ifdef TORRENT_UPNP_LOGGING
+		m_upnp_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
+#endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
@@ -1990,6 +1993,20 @@ namespace aux {
 	void session_impl::on_port_mapping(int mapping, int port
 		, std::string const& errmsg, int map_transport)
 	{
+		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
+		// log message
+		if (mapping == -1)
+		{
+#ifdef TORRENT_UPNP_LOGGING
+			char const* transport_names[] = {"NAT-PMP", "UPnP"};
+			m_upnp_log << time_now_string() << " "
+				<< transport_names[map_transport] << ": " << errmsg;
+#endif
+			if (m_alerts.should_post<portmap_log_alert>())
+				m_alerts.post_alert(portmap_log_alert(map_transport, errmsg));
+			return;
+		}
+
 #ifndef TORRENT_DISABLE_DHT
 		if (mapping == m_udp_mapping[map_transport] && port != 0)
 		{

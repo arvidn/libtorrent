@@ -4072,6 +4072,23 @@ the index returned from add_mapping_.
 		int type;
 	};
 
+portmap_log_alert
+-----------------
+
+This alert is generated to log informational events related to either
+UPnP or NAT-PMP. They contain a log line and the type (0 = NAT-PMP
+and 1 = UPnP). Displaying these messages to an end user is only useful
+for debugging the UPnP or NAT-PMP implementation.
+
+::
+
+	struct portmap_log_alert: alert
+	{
+		//...
+		int type;
+		std::string msg;
+	};
+
 file_error_alert
 ----------------
 
