@@ -23,7 +23,7 @@ pdf: $(TARGETS:=.pdf)
 all: html
 
 %.pdf:%.rst
-	rst2pdf $? -o $@
+	rst2pdf $? -o $@ --stylesheets stylesheet
 
 %.html:%.rst
 	python $(DOCUTILS)/tools/rst2html.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
