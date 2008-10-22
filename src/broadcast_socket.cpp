@@ -219,9 +219,6 @@ namespace libtorrent
 		if (ec) return;
 		s->bind(udp::endpoint(addr, 0), ec);
 		if (ec) return;
-		if (addr.is_v4())
-			s->set_option(outbound_interface(addr.to_v4()), ec);
-		if (ec) return;
 		m_unicast_sockets.push_back(socket_entry(s));
 		socket_entry& se = m_unicast_sockets.back();
 		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
