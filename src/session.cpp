@@ -566,9 +566,10 @@ namespace libtorrent
 		{
 			case alert::debug: m = alert::all_categories; break;
 			case alert::info: m = alert::all_categories & ~(alert::debug_notification
-				| alert::progress_notification); break;
+				| alert::progress_notification | alert::dht_notification); break;
 			case alert::warning: m = alert::all_categories & ~(alert::debug_notification
-				| alert::status_notification | alert::progress_notification); break;
+				| alert::status_notification | alert::progress_notification
+				| alert::dht_notification); break;
 			case alert::critical: m = alert::error_notification | alert::storage_notification; break;
 			case alert::fatal: m = alert::error_notification; break;
 			default: break;

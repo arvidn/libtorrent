@@ -1103,6 +1103,29 @@ namespace libtorrent
 		}
 	};
 
+	struct TORRENT_EXPORT portmap_log_alert: alert
+	{
+		portmap_log_alert(int t, std::string const& m)
+			: type(t), msg(m)
+		{}
+
+		int type;
+		std::string msg;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new portmap_log_alert(*this)); }
+		virtual char const* what() const { return "port map log"; }
+		const static int static_category = alert::port_mapping_notification;
+		virtual int category() const { return static_category; }
+		virtual std::string message() const
+		{
+			static char const* type_str[] = {"NAT-PMP", "UPnP"};
+			std::stringstream ret;
+			ret << type_str[type] << ": " << msg;
+			return ret.str();
+		}
+	};
+
 	struct TORRENT_EXPORT fastresume_rejected_alert: torrent_alert
 	{
 		fastresume_rejected_alert(torrent_handle const& h

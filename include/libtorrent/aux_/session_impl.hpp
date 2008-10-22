@@ -606,6 +606,9 @@ namespace libtorrent
 		private:
 
 #endif
+#ifdef TORRENT_UPNP_LOGGING
+			std::ofstream m_upnp_log;
+#endif
 			address m_external_address;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

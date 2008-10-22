@@ -65,6 +65,7 @@ namespace libtorrent
 
 		void send(char const* buffer, int size, error_code& ec);
 		void close();
+		int num_send_sockets() const { return m_unicast_sockets.size(); }
 
 	private:
 
