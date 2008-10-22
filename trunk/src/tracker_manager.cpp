@@ -232,13 +232,13 @@ namespace libtorrent
 		{
 			con = new http_tracker_connection(
 				ios, cc, *this, req, bind_infc, c
-				, m_ses.settings(), m_proxy, auth);
+				, m_ses, m_proxy, auth);
 		}
 		else if (protocol == "udp")
 		{
 			con = new udp_tracker_connection(
 				ios, cc, *this, req, bind_infc
-				, c, m_ses.settings(), m_proxy);
+				, c, m_ses, m_proxy);
 		}
 		else
 		{

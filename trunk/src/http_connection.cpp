@@ -273,6 +273,13 @@ void http_connection::on_resolve(error_code const& e
 	std::transform(i, tcp::resolver::iterator(), std::back_inserter(m_endpoints)
 		, boost::bind(&tcp::resolver::iterator::value_type::endpoint, _1));
 
+	if (m_filter_handler) m_filter_handler(*this, m_endpoints);
+	if (m_endpoints.empty())
+	{
+		close();
+		return;
+	}
+
 	// The following statement causes msvc to crash (ICE). Since it's not
 	// necessary in the vast majority of cases, just ignore the endpoint
 	// order for windows
