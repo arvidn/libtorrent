@@ -825,7 +825,8 @@ namespace libtorrent
 				// to this peer. don't connect to
 				// it again.
 
-				m_torrent->debug_log("already connected to peer: " + remote.address().to_string() + ":"
+				error_code ec;
+				m_torrent->debug_log("already connected to peer: " + remote.address().to_string(ec) + ":"
 					+ boost::lexical_cast<std::string>(remote.port()) + " "
 					+ boost::lexical_cast<std::string>(i->second.connection->pid()));
 
