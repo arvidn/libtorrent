@@ -155,7 +155,8 @@ namespace libtorrent
 #endif
 #endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		m_logger = m_ses.create_log(m_remote.address().to_string() + "_"
+		error_code ec;
+		m_logger = m_ses.create_log(m_remote.address().to_string(ec) + "_"
 			+ boost::lexical_cast<std::string>(m_remote.port()), m_ses.listen_port());
 		(*m_logger) << "*** OUTGOING CONNECTION\n";
 #endif
@@ -2423,7 +2424,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_connecting);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_ses.m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << m_remote.address().to_string()
+		error_code ec;
+		(*m_ses.m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << m_remote.address().to_string(ec)
 			<< "\n";
 #endif
 		disconnect("timed out: connect", 1);
@@ -3709,10 +3711,11 @@ namespace libtorrent
 		m_connecting = false;
 		m_ses.m_half_open.done(m_connection_ticket);
 
+		error_code ec;
 		if (e)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_ses.m_logger) << time_now_string() << " CONNECTION FAILED: " << m_remote.address().to_string()
+			(*m_ses.m_logger) << time_now_string() << " CONNECTION FAILED: " << m_remote.address().to_string(ec)
 				<< ": " << e.message() << "\n";
 #endif
 			disconnect(e.message().c_str(), 1);
@@ -3728,11 +3731,10 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_socket);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		(*m_ses.m_logger) << time_now_string() << " COMPLETED: " << m_remote.address().to_string()
+		(*m_ses.m_logger) << time_now_string() << " COMPLETED: " << m_remote.address().to_string(ec)
 			<< " rtt = " << m_rtt << "\n";
 #endif
 
-		error_code ec;
 		if (m_remote == m_socket->local_endpoint(ec))
 		{
 			// if the remote endpoint is the same as the local endpoint, we're connected
