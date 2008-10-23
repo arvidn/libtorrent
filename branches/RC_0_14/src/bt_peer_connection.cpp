@@ -1279,6 +1279,7 @@ namespace libtorrent
 			else
 				++i;
 		}
+		if (is_disconnecting()) return;
 #endif
 
 		// there is supposed to be a remote listen port
