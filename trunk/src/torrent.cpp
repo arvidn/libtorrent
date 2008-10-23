@@ -1088,7 +1088,8 @@ namespace libtorrent
 		if (m_ses.m_ip_filter.access(host->endpoint().address()) & ip_filter::blocked)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			debug_log("blocked ip from tracker: " + host->endpoint().address().to_string());
+			error_code ec;
+			debug_log("blocked ip from tracker: " + host->endpoint().address().to_string(ec));
 #endif
 			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
 			{
