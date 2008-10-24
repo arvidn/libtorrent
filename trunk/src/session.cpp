@@ -150,7 +150,11 @@ namespace libtorrent
 		if (flags & start_default_features)
 		{
 			start_upnp();
-			start_upnp();
+			start_natpmp();
+#ifndef TORRENT_DISABLE_DHT
+			start_dht();
+#endif
+			start_lsd();
 		}
 	}
 
@@ -185,6 +189,10 @@ namespace libtorrent
 		{
 			start_upnp();
 			start_natpmp();
+#ifndef TORRENT_DISABLE_DHT
+			start_dht();
+#endif
+			start_lsd();
 		}
 	}
 
