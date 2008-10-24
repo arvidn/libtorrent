@@ -2593,6 +2593,7 @@ namespace libtorrent
 		p.pending_disk_bytes = m_outstanding_writing_bytes;
 		p.send_quota = m_bandwidth_limit[upload_channel].quota_left();
 		p.receive_quota = m_bandwidth_limit[download_channel].quota_left();
+		p.num_pieces = m_num_pieces;
 		if (m_download_queue.empty()) p.request_timeout = -1;
 		else p.request_timeout = total_seconds(m_requested - now) + m_ses.settings().request_timeout
 			+ m_timeout_extend;

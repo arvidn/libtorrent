@@ -2708,6 +2708,8 @@ It contains the following fields::
 
 		int rtt;
 
+		int num_pieces;
+
 		int download_rate_peak;
 		int upload_rate_peak;
 
@@ -2926,6 +2928,8 @@ from the bandwidth manager.
 
 ``rtt`` is an estimated round trip time to this peer, in milliseconds. It is
 estimated by timing the the tcp ``connect()``. It may be 0 for incoming connections.
+
+``num_pieces`` is the number of pieces this peer has.
 
 ``download_rate_peak`` and ``upload_rate_peak`` are the highest download and upload
 rates seen on this connection. They are given in bytes per second. This number is
