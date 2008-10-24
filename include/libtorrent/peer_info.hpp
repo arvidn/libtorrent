@@ -193,6 +193,9 @@ namespace libtorrent
 		// estimated rtt to peer, in milliseconds
 		int rtt;
 
+		// the number of pieces this peer has
+		int num_pieces;
+
 		// the highest transfer rates seen for this peer
 		int download_rate_peak;
 		int upload_rate_peak;

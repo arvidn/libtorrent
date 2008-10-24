@@ -2749,6 +2749,8 @@ struct peer_info
 
         int rtt;
 
+        int num_pieces;
+
         int download_rate_peak;
         int upload_rate_peak;
 
@@ -2968,6 +2970,7 @@ assigned to be allowed to send and receive until it has to request more quota
 from the bandwidth manager.</p>
 <p><tt class="docutils literal"><span class="pre">rtt</span></tt> is an estimated round trip time to this peer, in milliseconds. It is
 estimated by timing the the tcp <tt class="docutils literal"><span class="pre">connect()</span></tt>. It may be 0 for incoming connections.</p>
+<p><tt class="docutils literal"><span class="pre">num_pieces</span></tt> is the number of pieces this peer has.</p>
 <p><tt class="docutils literal"><span class="pre">download_rate_peak</span></tt> and <tt class="docutils literal"><span class="pre">upload_rate_peak</span></tt> are the highest download and upload
 rates seen on this connection. They are given in bytes per second. This number is
 reset to 0 on reconnect.</p>
