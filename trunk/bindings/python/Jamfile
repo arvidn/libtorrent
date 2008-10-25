@@ -30,6 +30,7 @@ python-extension libtorrent
     <boost>system:<library>boost_python
     <boost>source,<boost-link>static:<library>/boost/python//boost_python/<link>static
     <boost>source,<boost-link>shared:<library>/boost/python//boost_python/<link>shared
-    <library>/torrent//torrent/<link>static
+    <toolset>gcc:<library>/torrent//torrent/<link>static/<cxxflags>-fPIC/<cflags>-fPIC
+    <toolset>!gcc:<library>/torrent//torrent/<link>static/<cxxflags>-fPIC/<cflags>-fPIC
   ;
 
