@@ -380,7 +380,7 @@ namespace libtorrent
 				// the priority value that means the piece is filtered
 				filter_priority = 0,
 				// the max number the peer count can hold
-				max_peer_count = 0x3ff,
+				max_peer_count = 0x3ff
 			};
 			
 			bool have() const { return index == we_have_index; }

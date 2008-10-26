@@ -158,7 +158,7 @@ namespace libtorrent
 		enum performance_warning_t
 		{
 			outstanding_disk_buffer_limit_reached,
-			outstanding_request_limit_reached,
+			outstanding_request_limit_reached
 		};
 
 		performance_alert(torrent_handle const& h
