@@ -1893,6 +1893,9 @@ namespace aux {
 #endif
 			i->second->set_queue_position(-1);
 			m_torrents.erase(i);
+			std::list<boost::shared_ptr<torrent> >::iterator k
+				= std::find(m_queued_for_checking.begin(), m_queued_for_checking.end(), tptr);
+			if (k != m_queued_for_checking.end()) m_queued_for_checking.erase(k);
 			TORRENT_ASSERT(m_torrents.find(i_hash) == m_torrents.end());
 			return;
 		}
