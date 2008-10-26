@@ -208,7 +208,7 @@ namespace libtorrent
 	{
 		enum flags_t
 		{
-			banned = 1,
+			banned = 1
 		};
 		
 		tcp::endpoint ip;
