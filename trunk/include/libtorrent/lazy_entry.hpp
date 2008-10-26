@@ -226,7 +226,7 @@ namespace libtorrent
 
 	std::ostream& operator<<(std::ostream& os, lazy_entry const& e);
 
-};
+}
 
 
 #endif
