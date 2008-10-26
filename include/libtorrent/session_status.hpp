@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_STATUS_HPP_INCLUDED
 #define TORRENT_SESSION_STATUS_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
+#include "libtorrent/size_type.hpp"
 
 namespace libtorrent
 {
