@@ -784,7 +784,7 @@ namespace libtorrent
 		// we're done, or encounter a failure
 		if (ret == piece_manager::need_full_check) return;
 
-		m_ses.done_checking(shared_from_this());
+		if (!m_abort) m_ses.done_checking(shared_from_this());
 		files_checked();
 	}
 
@@ -1624,7 +1624,10 @@ namespace libtorrent
 		if (m_owning_storage.get())
 			m_storage->async_release_files(
 				bind(&torrent::on_files_released, shared_from_this(), _1, _2));
-			
+		
+		if (m_state == torrent_status::checking_files)
+			m_ses.done_checking(shared_from_this());
+		
 		m_owning_storage = 0;
 		m_host_resolver.cancel();
 	}

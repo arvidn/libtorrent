@@ -1891,7 +1891,7 @@ namespace aux {
 #ifndef NDEBUG
 			sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
-			i->second->set_queue_position(-1);
+			t.set_queue_position(-1);
 			m_torrents.erase(i);
 			std::list<boost::shared_ptr<torrent> >::iterator k
 				= std::find(m_queued_for_checking.begin(), m_queued_for_checking.end(), tptr);
