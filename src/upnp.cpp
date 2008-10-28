@@ -155,7 +155,7 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 	std::stringstream msg;
 	msg << "adding port map: [ protocol: " << (p == tcp?"tcp":"udp")
 		<< " ext_port: " << external_port
-		<< " local_port :" << local_port << " ]";
+		<< " local_port: " << local_port << " ]";
 	if (m_disabled) msg << " DISABLED";
 	log(msg.str());
 	if (m_disabled) return -1;
