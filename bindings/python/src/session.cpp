@@ -105,6 +105,16 @@ namespace
       s.add_extension(invoke_extension_factory(e));
   }
 
+#ifndef TORRENT_NO_DEPRECATE
+  torrent_handle add_torrent_depr(session& s, torrent_info const& ti 
+    , boost::filesystem::path const& save, entry const& resume 
+    , storage_mode_t storage_mode, bool paused) 
+  {
+      allow_threading_guard guard; 
+      return s.add_torrent(ti, save, resume, storage_mode, paused, default_storage_constructor);
+  }
+#endif
+
   torrent_handle add_torrent(session& s, dict params)
   {
     add_torrent_params p;
@@ -136,10 +146,14 @@ namespace
       std::memcpy(&resume_buf[0], &resume[0], resume.size());
       p.resume_data = &resume_buf;
     }
-    p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
-    p.paused = params["paused"];
-    p.auto_managed = params["auto_managed"];
-    p.duplicate_is_error = params["duplicate_is_error"];
+    if (params.has_key("storage_mode"))
+        p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
+    if (params.has_key("paused"))
+       p.paused = params["paused"];
+    if (params.has_key("auto_managed"))
+       p.auto_managed = params["auto_managed"];
+    if (params.has_key("duplicate_is_error"))
+       p.duplicate_is_error = params["duplicate_is_error"];
 
     return s.add_torrent(p);
   }
@@ -288,7 +302,18 @@ void bind_session()
         .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
 #endif
         .def("add_torrent", &add_torrent, session_add_torrent_doc)
+#ifndef TORRENT_NO_DEPRECATE
+        .def(
+            "add_torrent", &add_torrent_depr
+          , ( 
+                arg("resume_data") = entry(), arg("storage_mode") = storage_mode_sparse, 
+                arg("paused") = false 
+            ) 
+          , session_add_torrent_doc 
+        )
+#endif
         .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = session::none
+
 			  , session_remove_torrent_doc)
         .def(
             "set_download_rate_limit", allow_threads(&session::set_download_rate_limit)
