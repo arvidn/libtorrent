@@ -1104,10 +1104,24 @@ namespace aux {
 			+ m_stat.download_dht()
 			+ m_stat.download_tracker());
 
+		if (m_stat.download_ip_overhead() >= m_download_channel.throttle()
+			&& m_alerts.should_post<performance_alert>())
+		{
+			m_alerts.post_alert(performance_alert(torrent_handle()
+				, performance_alert::download_limit_too_low));
+		}
+
 		m_upload_channel.drain(
 			m_stat.upload_ip_overhead()
 			+ m_stat.upload_dht()
 			+ m_stat.upload_tracker());
+
+		if (m_stat.upload_ip_overhead() >= m_upload_channel.throttle()
+			&& m_alerts.should_post<performance_alert>())
+		{
+			m_alerts.post_alert(performance_alert(torrent_handle()
+				, performance_alert::upload_limit_too_low));
+		}
 
 		m_stat.second_tick(tick_interval);
 
