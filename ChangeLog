@@ -7,6 +7,11 @@
 
 release 0.14
 
+	* deprecated add_torrent() in favor of a new add_torrent()
+	  that takes a struct with parameters instead. Torrents
+	  are paused and auto managed by default.
+	* removed 'connecting_to_tracker' torrent state. This changes
+	  the enum values for the other states.
 	* Improved seeding and choking behavior.
 	* Fixed rare buffer overrun bug when calling get_download_queue
 	* Fixed rare bug where torrent could be put back into downloading
