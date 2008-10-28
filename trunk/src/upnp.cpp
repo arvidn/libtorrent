@@ -689,68 +689,94 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 
 namespace
 {
-	struct parse_state
+	char tolower(char c)
 	{
-		parse_state(): found_service(false), exit(false) {}
-		void reset(char const* st)
-		{
-			found_service = false;
-			exit = false;
-			service_type = st;
-		}
-		bool found_service;
-		bool exit;
-		std::string top_tag;
-		std::string control_url;
-		char const* service_type;
-		std::string model;
-	};
-	
-	void find_control_url(int type, char const* string, parse_state& state)
-	{
-		if (state.exit) return;
-
-		if (type == xml_start_tag)
-		{
-			if ((!state.top_tag.empty() && state.top_tag == "service")
-				|| !strcmp(string, "service"))
-			{
-				state.top_tag = string;
-			}
-			else if (!strcmp(string, "modelName"))
-			{
-				state.top_tag = string;
-			}
-		}
-		else if (type == xml_end_tag)
-		{
-			if (!strcmp(string, "service"))
-			{
-				state.top_tag.clear();
-				if (state.found_service) state.exit = true;
-			}
-			else if (!state.top_tag.empty() && state.top_tag != "service")
-				state.top_tag = "service";
-		}
-		else if (type == xml_string)
-		{
-			if (state.top_tag == "serviceType")
-			{
-				if (!strcmp(string, state.service_type))
-					state.found_service = true;
-			}
-			else if (state.top_tag == "controlURL")
-			{
-				state.control_url = string;
-				if (state.found_service) state.exit = true;
-			}
-			else if (state.top_tag == "modelName")
-			{
-				state.model = string;
-			}
-		}
+		if (c >= 'A' && c <= 'Z') return c + ('a' - 'A');
+		return c;
 	}
 
+	void copy_tolower(std::string& dst, char const* src)
+	{
+		dst.clear();
+		while (*src) dst.push_back(tolower(*src++));
+	}
+	
+	bool string_equal_nocase(char const* lhs, char const* rhs)
+	{
+		while (tolower(*lhs) == tolower(*rhs))
+		{
+			if (*lhs == 0) return true;
+			++lhs;
+			++rhs;
+		}
+		return false;
+	}
+}
+
+struct parse_state
+{
+	parse_state(): found_service(false) {}
+	void reset(char const* st)
+	{
+		found_service = false;
+		service_type = st;
+		tag_stack.clear();
+	}
+	bool found_service;
+	std::list<std::string> tag_stack;
+	std::string control_url;
+	char const* service_type;
+	std::string model;
+	std::string url_base;
+	bool top_tags(const char* str1, const char* str2)
+	{
+		std::list<std::string>::reverse_iterator i = tag_stack.rbegin();
+		if (i == tag_stack.rend()) return false;
+		if (!string_equal_nocase(i->c_str(), str2)) return false;
+		++i;
+		if (i == tag_stack.rend()) return false;
+		if (!string_equal_nocase(i->c_str(), str1)) return false;
+		return true;
+	}
+};
+
+void find_control_url(int type, char const* string, parse_state& state)
+{
+	if (type == xml_start_tag)
+	{
+		std::string tag;
+		copy_tolower(tag, string);
+		state.tag_stack.push_back(tag);
+//		std::copy(state.tag_stack.begin(), state.tag_stack.end(), std::ostream_iterator<std::string>(std::cout, " "));
+//		std::cout << std::endl;
+	}
+	else if (type == xml_end_tag)
+	{
+		if (!state.tag_stack.empty())
+			state.tag_stack.pop_back();
+	}
+	else if (type == xml_string)
+	{
+		if (state.tag_stack.empty()) return;
+//		std::cout << " " << string << std::endl;
+		if (!state.found_service && state.top_tags("service", "servicetype"))
+		{
+			if (string_equal_nocase(string, state.service_type))
+				state.found_service = true;
+		}
+		else if (state.found_service && state.top_tags("service", "controlurl"))
+		{
+			state.control_url = string;
+		}
+		else if (state.tag_stack.back() == "modelname")
+		{
+			state.model = string;
+		}
+		else if (state.tag_stack.back() == "urlbase")
+		{
+			state.url_base = string;
+		}
+	}
 }
 
 void upnp::on_upnp_xml(error_code const& e
@@ -824,12 +850,13 @@ void upnp::on_upnp_xml(error_code const& e
 		}
 	}
 	
+	if (s.url_base.empty()) d.control_url = s.control_url;
+	else d.control_url = s.url_base + s.control_url;
+
 	std::stringstream msg;
 	msg << "found control URL: " << s.control_url << " namespace: "
 		<< d.service_namespace << " in response from " << d.url;
 	log(msg.str());
-
-	d.control_url = s.control_url;
 
 	std::string protocol;
 	std::string auth;

@@ -123,6 +123,106 @@ void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id con
 }
 #endif
 
+char upnp_xml[] = 
+"<root>"
+"<specVersion>"
+"<major>1</major>"
+"<minor>0</minor>"
+"</specVersion>"
+"<URLBase>http://192.168.0.1:5678</URLBase>"
+"<device>"
+"<deviceType>"
+"urn:schemas-upnp-org:device:InternetGatewayDevice:1"
+"</deviceType>"
+"<presentationURL>http://192.168.0.1:80</presentationURL>"
+"<friendlyName>D-Link Router</friendlyName>"
+"<manufacturer>D-Link</manufacturer>"
+"<manufacturerURL>http://www.dlink.com</manufacturerURL>"
+"<modelDescription>Internet Access Router</modelDescription>"
+"<modelName>D-Link Router</modelName>"
+"<UDN>uuid:upnp-InternetGatewayDevice-1_0-12345678900001</UDN>"
+"<UPC>123456789001</UPC>"
+"<serviceList>"
+"<service>"
+"<serviceType>urn:schemas-upnp-org:service:Layer3Forwarding:1</serviceType>"
+"<serviceId>urn:upnp-org:serviceId:L3Forwarding1</serviceId>"
+"<controlURL>/Layer3Forwarding</controlURL>"
+"<eventSubURL>/Layer3Forwarding</eventSubURL>"
+"<SCPDURL>/Layer3Forwarding.xml</SCPDURL>"
+"</service>"
+"</serviceList>"
+"<deviceList>"
+"<device>"
+"<deviceType>urn:schemas-upnp-org:device:WANDevice:1</deviceType>"
+"<friendlyName>WANDevice</friendlyName>"
+"<manufacturer>D-Link</manufacturer>"
+"<manufacturerURL>http://www.dlink.com</manufacturerURL>"
+"<modelDescription>Internet Access Router</modelDescription>"
+"<modelName>D-Link Router</modelName>"
+"<modelNumber>1</modelNumber>"
+"<modelURL>http://support.dlink.com</modelURL>"
+"<serialNumber>12345678900001</serialNumber>"
+"<UDN>uuid:upnp-WANDevice-1_0-12345678900001</UDN>"
+"<UPC>123456789001</UPC>"
+"<serviceList>"
+"<service>"
+"<serviceType>"
+"urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1"
+"</serviceType>"
+"<serviceId>urn:upnp-org:serviceId:WANCommonInterfaceConfig</serviceId>"
+"<controlURL>/WANCommonInterfaceConfig</controlURL>"
+"<eventSubURL>/WANCommonInterfaceConfig</eventSubURL>"
+"<SCPDURL>/WANCommonInterfaceConfig.xml</SCPDURL>"
+"</service>"
+"</serviceList>"
+"<deviceList>"
+"<device>"
+"<deviceType>urn:schemas-upnp-org:device:WANConnectionDevice:1</deviceType>"
+"<friendlyName>WAN Connection Device</friendlyName>"
+"<manufacturer>D-Link</manufacturer>"
+"<manufacturerURL>http://www.dlink.com</manufacturerURL>"
+"<modelDescription>Internet Access Router</modelDescription>"
+"<modelName>D-Link Router</modelName>"
+"<modelNumber>1</modelNumber>"
+"<modelURL>http://support.dlink.com</modelURL>"
+"<serialNumber>12345678900001</serialNumber>"
+"<UDN>uuid:upnp-WANConnectionDevice-1_0-12345678900001</UDN>"
+"<UPC>123456789001</UPC>"
+"<serviceList>"
+"<service>"
+"<serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>"
+"<serviceId>urn:upnp-org:serviceId:WANIPConnection</serviceId>"
+"<controlURL>/WANIPConnection</controlURL>"
+"<eventSubURL>/WANIPConnection</eventSubURL>"
+"<SCPDURL>/WANIPConnection.xml</SCPDURL>"
+"</service>"
+"</serviceList>"
+"</device>"
+"</deviceList>"
+"</device>"
+"</deviceList>"
+"</device>"
+"</root>";
+
+struct parse_state
+{
+	parse_state(): found_service(false) {}
+	void reset(char const* st)
+	{
+		found_service = false;
+		service_type = st;
+		tag_stack.clear();
+	}
+	bool found_service;
+	std::list<std::string> tag_stack;
+	std::string control_url;
+	char const* service_type;
+	std::string model;
+	std::string url_base;
+};
+
+void find_control_url(int type, char const* string, parse_state& state);
+
 int test_main()
 {
 	using namespace libtorrent;
@@ -322,6 +422,20 @@ int test_main()
 		, boost::ref(out4), _1, _2, _3));
 	std::cerr << out4 << std::endl;
 	TEST_CHECK(out4 == "BaPgarbage inside element bracketsSfooFaPgarbage inside element brackets");
+
+	// test upnp xml parser
+
+	parse_state xml_s;
+	xml_s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
+	xml_parse((char*)upnp_xml, (char*)upnp_xml + sizeof(upnp_xml)
+		, bind(&find_control_url, _1, _2, boost::ref(xml_s)));
+
+	std::cerr << xml_s.url_base << std::endl;
+	std::cerr << xml_s.control_url << std::endl;
+	std::cerr << xml_s.model << std::endl;
+	TEST_CHECK(xml_s.url_base == "http://192.168.0.1:5678");
+	TEST_CHECK(xml_s.control_url == "/WANIPConnection");
+	TEST_CHECK(xml_s.model == "D-Link Router");
 
 	// test network functions
 
