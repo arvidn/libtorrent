@@ -56,7 +56,9 @@ void bind_alert()
             .def("message", &alert::message, alert_msg_doc)
             .def("what", &alert::what)
             .def("category", &alert::category)
+#ifndef TORRENT_NO_DEPRECATE
             .def("severity", &alert::severity, alert_severity_doc)
+#endif
             .def("__str__", &alert::message, alert_msg_doc)
             ;
 
@@ -67,7 +69,7 @@ void bind_alert()
             .value("critical", alert::critical)
             .value("fatal", alert::fatal)
             .value("none", alert::none)
-            ; 
+            ;
 
         enum_<alert::category_t>("category_t")
             .value("error_notification", alert::error_notification)
@@ -79,8 +81,10 @@ void bind_alert()
             .value("status_notification", alert::status_notification)
             .value("progress_notification", alert::progress_notification)
             .value("ip_block_notification", alert::ip_block_notification)
+            .value("performance_warning", alert::performance_warning)
             .value("all_categories", alert::all_categories)
-            ; 
+            ;
+
     }
 
     class_<torrent_alert, bases<alert>, noncopyable>(
@@ -153,20 +157,20 @@ void bind_alert()
     class_<torrent_finished_alert, bases<torrent_alert>, noncopyable>(
         "torrent_finished_alert", torrent_finished_alert_doc, no_init
     );
-    
+
     class_<piece_finished_alert, bases<torrent_alert>, noncopyable>(
         "piece_finished_alert", piece_finished_alert_doc, no_init
     )
         .def_readonly("piece_index", &piece_finished_alert::piece_index)
         ;
-    
+
     class_<block_finished_alert, bases<peer_alert>, noncopyable>(
         "block_finished_alert", block_finished_alert_doc, no_init
     )
         .def_readonly("block_index", &block_finished_alert::block_index)
         .def_readonly("piece_index", &block_finished_alert::piece_index)
         ;
-    
+
     class_<block_downloading_alert, bases<peer_alert>, noncopyable>(
         "block_downloading_alert", block_downloading_alert_doc, no_init
     )
@@ -174,7 +178,7 @@ void bind_alert()
         .def_readonly("block_index", &block_downloading_alert::block_index)
         .def_readonly("piece_index", &block_downloading_alert::piece_index)
         ;
-        
+
     class_<storage_moved_alert, bases<torrent_alert>, noncopyable>(
         "storage_moved_alert", storage_moved_alert_doc, no_init
     );
@@ -182,7 +186,7 @@ void bind_alert()
     class_<torrent_deleted_alert, bases<torrent_alert>, noncopyable>(
         "torrent_deleted_alert", torrent_deleted_alert_doc, no_init
     );
-    
+
     class_<torrent_paused_alert, bases<torrent_alert>, noncopyable>(
         "torrent_paused_alert", torrent_paused_alert_doc, no_init
     );
@@ -190,19 +194,19 @@ void bind_alert()
     class_<torrent_checked_alert, bases<torrent_alert>, noncopyable>(
         "torrent_checked_alert", torrent_checked_alert_doc, no_init
     );
-    
+
     class_<url_seed_alert, bases<torrent_alert>, noncopyable>(
         "url_seed_alert", url_seed_alert_doc, no_init
     )
         .def_readonly("url", &url_seed_alert::url)
         ;
-        
+
     class_<file_error_alert, bases<torrent_alert>, noncopyable>(
         "file_error_alert", file_error_alert_doc, no_init
     )
         .def_readonly("file", &file_error_alert::file)
         ;
-    
+
     class_<metadata_failed_alert, bases<torrent_alert>, noncopyable>(
         "metadata_failed_alert", metadata_failed_alert_doc, no_init
     );
@@ -214,20 +218,20 @@ void bind_alert()
     class_<listen_failed_alert, bases<alert>, noncopyable>(
         "listen_failed_alert", listen_failed_alert_doc, no_init
     );
-    
+
     class_<listen_succeeded_alert, bases<alert>, noncopyable>(
         "listen_succeeded_alert", listen_succeeded_alert_doc, no_init
     )
         .def_readonly("endpoint", &listen_succeeded_alert::endpoint)
         ;
-    
+
     class_<portmap_error_alert, bases<alert>, noncopyable>(
         "portmap_error_alert", portmap_error_alert_doc, no_init
     )
         .def_readonly("mapping", &portmap_error_alert::mapping)
         .def_readonly("type", &portmap_error_alert::type)
         ;
-        
+
     class_<portmap_alert, bases<alert>, noncopyable>(
         "portmap_alert", portmap_alert_doc, no_init
     )
@@ -235,34 +239,34 @@ void bind_alert()
         .def_readonly("external_port", &portmap_alert::external_port)
         .def_readonly("type", &portmap_alert::type)
         ;
-            
+
     class_<fastresume_rejected_alert, bases<torrent_alert>, noncopyable>(
         "fastresume_rejected_alert", fastresume_rejected_alert_doc, no_init
     );
-    
+
     class_<peer_blocked_alert, bases<alert>, noncopyable>(
         "peer_blocked_alert", peer_blocked_alert_doc, no_init
     )
         .def_readonly("ip", &peer_blocked_alert::ip)
         ;
-        
+
     class_<scrape_reply_alert, bases<tracker_alert>, noncopyable>(
         "scrape_reply_alert", scrape_reply_alert_doc, no_init
     )
         .def_readonly("incomplete", &scrape_reply_alert::incomplete)
         .def_readonly("complete", &scrape_reply_alert::complete)
         ;
-    
+
     class_<scrape_failed_alert, bases<tracker_alert>, noncopyable>(
         "scrape_failed_alert", scrape_failed_alert_doc, no_init
     );
-    
+
     class_<udp_error_alert, bases<alert>, noncopyable>(
         "udp_error_alert", udp_error_alert_doc, no_init
     )
         .def_readonly("endpoint", &udp_error_alert::endpoint)
         ;
-    
+
     class_<external_ip_alert, bases<alert>, noncopyable>(
         "external_ip_alert", external_ip_alert_doc, no_init
     )
@@ -288,11 +292,11 @@ void bind_alert()
         .def_readonly("index", &file_rename_failed_alert::index)
         .def_readonly("msg", &file_rename_failed_alert::msg)
         ;
-        
-    class_<torrent_resumed_alert, bases<torrent_alert>, noncopyable>( 
-        "torrent_resumed_alert", no_init 
+
+    class_<torrent_resumed_alert, bases<torrent_alert>, noncopyable>(
+        "torrent_resumed_alert", no_init
 	);
-	
+
 	class_<state_changed_alert, bases<torrent_alert>, noncopyable>(
 	    "state_changed_alert", no_init
 	)
@@ -304,50 +308,62 @@ void bind_alert()
 	)
 	    .def_readonly("num_peers", &dht_reply_alert::num_peers)
 	    ;
-	
+
 	class_<peer_unsnubbed_alert, bases<peer_alert>, noncopyable>(
 	    "peer_unsnubbed_alert", no_init
 	);
-	
+
 	class_<peer_snubbed_alert, bases<peer_alert>, noncopyable>(
 	    "peer_snubbed_alert", no_init
 	);
-	
+
     class_<peer_connect_alert, bases<peer_alert>, noncopyable>(
         "peer_connect_alert", no_init
     );
-    
+
     class_<peer_disconnected_alert, bases<peer_alert>, noncopyable>(
         "peer_disconnected_alert", no_init
     );
-    
+
     class_<request_dropped_alert, bases<peer_alert>, noncopyable>(
         "request_dropped_alert", no_init
     )
         .def_readonly("block_index", &request_dropped_alert::block_index)
         .def_readonly("piece_index", &request_dropped_alert::piece_index)
     ;
-    
+
     class_<block_timeout_alert, bases<peer_alert>, noncopyable>(
         "block_timeout_alert", no_init
     )
         .def_readonly("block_index", &block_timeout_alert::block_index)
         .def_readonly("piece_index", &block_timeout_alert::piece_index)
     ;
-    
+
     class_<unwanted_block_alert, bases<peer_alert>, noncopyable>(
         "unwanted_block_alert", no_init
     )
         .def_readonly("block_index", &unwanted_block_alert::block_index)
         .def_readonly("piece_index", &unwanted_block_alert::piece_index)
     ;
-    
+
     class_<torrent_delete_failed_alert, bases<torrent_alert>, noncopyable>(
         "torrent_delete_failed_alert", no_init
     );
-    
+
     class_<save_resume_data_failed_alert, bases<torrent_alert>, noncopyable>(
         "save_resume_data_failed_alert", no_init
     );
-    
+
+    class_<performance_alert, bases<torrent_alert>, noncopyable>(
+        "performance_alert", no_init
+    )
+        .def_readonly("warning_code", &performance_alert::warning_code)
+    ;
+    enum_<performance_alert::performance_warning_t>("performance_warning_t")
+        .value("outstanding_disk_buffer_limit_reached", performance_alert::outstanding_disk_buffer_limit_reached)
+        .value("outstanding_request_limit_reached", performance_alert::outstanding_request_limit_reached)
+    ;
+
+
+
 }

@@ -152,10 +152,10 @@ list file_priorities(torrent_handle& handle)
 {
     list ret;
     std::vector<int> priorities = handle.file_priorities();
-    
+
     for (std::vector<int>::iterator i = priorities.begin(); i != priorities.end(); ++i)
         ret.append(*i);
-        
+
     return ret;
 }
 
@@ -253,7 +253,7 @@ void bind_torrent_handle()
     int (torrent_handle::*piece_priority0)(int) const = &torrent_handle::piece_priority;
     void (torrent_handle::*piece_priority1)(int, int) const = &torrent_handle::piece_priority;
 
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
     bool (torrent_handle::*resolve_countries0)() const = &torrent_handle::resolve_countries;
     void (torrent_handle::*resolve_countries1)(bool) = &torrent_handle::resolve_countries;
 #endif
@@ -281,7 +281,7 @@ void bind_torrent_handle()
         .def("pause", _(&torrent_handle::pause))
         .def("resume", _(&torrent_handle::resume))
         .def("clear_error", _(&torrent_handle::clear_error))
-        
+
         .def("is_auto_managed", _(&torrent_handle::is_auto_managed))
         .def("auto_managed", _(&torrent_handle::auto_managed))
         .def("queue_position", _(&torrent_handle::queue_position))
@@ -289,15 +289,17 @@ void bind_torrent_handle()
         .def("queue_position_down", _(&torrent_handle::queue_position_down))
         .def("queue_position_top", _(&torrent_handle::queue_position_top))
         .def("queue_position_bottom", _(&torrent_handle::queue_position_bottom))
-        
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
+
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
         .def("resolve_countries", _(resolve_countries0))
         .def("resolve_countries", _(resolve_countries1))
 #endif
         // deprecated
+#ifndef TORRENT_NO_DEPRECATE
         .def("filter_piece", _(&torrent_handle::filter_piece))
         .def("is_piece_filtered", _(&torrent_handle::is_piece_filtered))
-
+        .def("write_resume_data", _(&torrent_handle::write_resume_data))
+#endif
         .def("piece_availability", piece_availability)
         .def("piece_priority", _(piece_priority0))
         .def("piece_priority", _(piece_priority1))
@@ -306,7 +308,6 @@ void bind_torrent_handle()
         .def("prioritize_files", prioritize_files)
         .def("file_priorities", file_priorities)
         .def("use_interface", &torrent_handle::use_interface)
-        .def("write_resume_data", _(&torrent_handle::write_resume_data))
         .def("save_resume_data", _(&torrent_handle::save_resume_data))
         .def("force_reannounce", _(force_reannounce0))
         .def("force_reannounce", force_reannounce)
@@ -331,4 +332,3 @@ void bind_torrent_handle()
         .def("rename_file", _(&torrent_handle::rename_file))
         ;
 }
-
