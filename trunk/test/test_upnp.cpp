@@ -41,6 +41,11 @@ using namespace libtorrent;
 
 void callback(int mapping, int port, std::string const& err)
 {
+	if (mapping == -1)
+	{
+		std::cerr << "UPnP: " << err << std::endl;
+		return;
+	}
 	std::cerr << "mapping: " << mapping << ", port: " << port << ", error: \"" << err << "\"\n";
 }
 
@@ -56,7 +61,7 @@ int main(int argc, char* argv[])
 	}
 
 	connection_queue cc(ios);
-	boost::intrusive_ptr<upnp> upnp_handler = new upnp(ios, cc, address_v4(), user_agent, &callback, true);
+	boost::intrusive_ptr<upnp> upnp_handler = new upnp(ios, cc, address_v4(), user_agent, &callback, false);
 	upnp_handler->discover_device();
 
 	libtorrent::deadline_timer timer(ios);
