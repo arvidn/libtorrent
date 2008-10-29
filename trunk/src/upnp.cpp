@@ -853,14 +853,22 @@ void upnp::on_upnp_xml(error_code const& e
 	if (s.url_base.empty()) d.control_url = s.control_url;
 	else d.control_url = s.url_base + s.control_url;
 
-	std::stringstream msg;
-	msg << "found control URL: " << s.control_url << " namespace: "
-		<< d.service_namespace << " in response from " << d.url;
-	log(msg.str());
-
 	std::string protocol;
 	std::string auth;
 	char const* error;
+	if (!d.control_url.empty() && d.control_url[0] == '/')
+	{
+		boost::tie(protocol, auth, d.hostname, d.port, d.path, error)
+			= parse_url_components(d.url);
+		d.control_url = protocol + "://" + d.hostname + ":"
+			+ boost::lexical_cast<std::string>(d.port) + s.control_url;
+	}
+
+	std::stringstream msg;
+	msg << "found control URL: " << d.control_url << " namespace: "
+		<< d.service_namespace << " urlbase: " << s.url_base << " in response from " << d.url;
+	log(msg.str());
+
 	boost::tie(protocol, auth, d.hostname, d.port, d.path, error)
 		= parse_url_components(d.control_url);
 
