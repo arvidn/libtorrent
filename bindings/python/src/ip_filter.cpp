@@ -15,8 +15,8 @@ namespace
     {
         return filter.add_rule(address::from_string(start), address::from_string(end), flags);
     }
-    
-    int _access(ip_filter& filter, std::string addr)
+
+    int access0(ip_filter& filter, std::string addr)
     {
         return filter.access(address::from_string(addr));
     }
@@ -26,8 +26,7 @@ void bind_ip_filter()
 {
     class_<ip_filter>("ip_filter")
         .def("add_rule", add_rule)
-        .def("access", _access)
+        .def("access", access0)
         .def("export_filter", allow_threads(&ip_filter::export_filter))
     ;
 }
-
