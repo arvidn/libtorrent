@@ -2231,10 +2231,7 @@ namespace libtorrent
 #else
 				&& m_storage->error() != error_code(ENOENT, get_posix_category()))
 #endif
-			{
-				std::cerr << m_storage->error().message() << std::endl;
 				return -1;
-			}
 			return 1;
 		}
 
