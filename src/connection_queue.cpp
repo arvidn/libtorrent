@@ -42,6 +42,7 @@ namespace libtorrent
 	connection_queue::connection_queue(io_service& ios): m_next_ticket(0)
 		, m_num_connecting(0)
 		, m_half_open_limit(0)
+		, m_abort(false)
 		, m_timer(ios)
 #ifndef NDEBUG
 		, m_in_timeout_function(false)
@@ -114,7 +115,24 @@ namespace libtorrent
 	void connection_queue::close()
 	{
 		error_code ec;
+		mutex_t::scoped_lock l(m_mutex);
 		m_timer.cancel(ec);
+		m_abort = true;
+
+		// make a copy of the list to go through, so
+		// that connections removing themseleves won't
+		// interfere with the iteration
+		std::list<entry> closing_entries = m_queue;
+
+		// we don't want to call the timeout callback while we're locked
+		// since that is a recepie for dead-locks
+		l.unlock();
+
+		for (std::list<entry>::iterator i = closing_entries.begin()
+			, end(closing_entries.end()); i != end; ++i)
+		{
+			try { i->on_timeout(); } catch (std::exception&) {}
+		}
 	}
 
 	void connection_queue::limit(int limit)
@@ -148,6 +166,7 @@ namespace libtorrent
 #ifdef TORRENT_CONNECTION_LOGGING
 		m_log << log_time() << " " << free_slots() << std::endl;
 #endif
+		if (m_abort) return;
 
 		if (m_num_connecting >= m_half_open_limit
 			&& m_half_open_limit > 0) return;

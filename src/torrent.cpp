@@ -3126,7 +3126,8 @@ namespace libtorrent
 			&& m_state != torrent_status::checking_files
 			&& (m_state != torrent_status::queued_for_checking
 				|| !valid_metadata())
-			&& m_policy.num_connect_candidates() > 0;
+			&& m_policy.num_connect_candidates() > 0
+			&& !m_abort;
 	}
 
 	void torrent::disconnect_all()
