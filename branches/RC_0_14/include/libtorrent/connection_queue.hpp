@@ -63,6 +63,7 @@ public:
 	void limit(int limit);
 	int limit() const;
 	void close();
+	int size() const { return m_queue.size(); }
 
 #ifndef NDEBUG
 	void check_invariant() const;
@@ -93,6 +94,7 @@ private:
 	int m_next_ticket;
 	int m_num_connecting;
 	int m_half_open_limit;
+	bool m_abort;
 
 	deadline_timer m_timer;
 

@@ -495,6 +495,12 @@ namespace aux {
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " aborting all connections (" << m_connections.size() << ")\n";
 #endif
+		m_half_open.close();
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " connection queue: " << m_half_open.size() << std::endl;
+#endif
+
 		// abort all connections
 		while (!m_connections.empty())
 		{
@@ -506,9 +512,13 @@ namespace aux {
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " connection queue: " << m_half_open.size() << std::endl;
+#endif
+		TORRENT_ASSERT(m_half_open.size() == 0);
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " shutting down connection queue\n";
 #endif
-		m_half_open.close();
 
 		m_download_channel.close();
 		m_upload_channel.close();
@@ -2178,6 +2188,7 @@ namespace aux {
 		(*m_logger) << time_now_string() << "\n\n *** shutting down session *** \n\n";
 #endif
 		abort();
+		TORRENT_ASSERT(m_connections.empty());
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		if (m_asnum_db) GeoIP_delete(m_asnum_db);
@@ -2200,6 +2211,7 @@ namespace aux {
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " shutdown complete!\n";
 #endif
+		TORRENT_ASSERT(m_connections.empty());
 	}
 
 	void session_impl::set_max_uploads(int limit)
