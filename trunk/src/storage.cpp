@@ -534,7 +534,7 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_WPATH
-			fs::wpath file_path = safe_convert(m_save_path / file_iter->path);
+			fs::wpath file_path = safe_convert((m_save_path / file_iter->path).string());
 #else
 			fs::path file_path = m_save_path / file_iter->path;
 #endif
