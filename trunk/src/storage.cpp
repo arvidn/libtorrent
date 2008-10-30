@@ -505,18 +505,16 @@ namespace libtorrent
 
 			if (dir != last_path)
 			{
+				last_path = dir;
 
 #if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
-				last_path = dir;
 				if (!exists_win(last_path))
 					create_directories_win(last_path);
 #elif TORRENT_USE_WPATH
-				last_path = dir;
 				fs::wpath wp = safe_convert(last_path.string());
 				if (!exists(wp))
 					create_directories(wp);
 #else
-				last_path = dir;
 				if (!exists(last_path))
 					create_directories(last_path);
 #endif
@@ -524,29 +522,28 @@ namespace libtorrent
 
 			int file_index = file_iter - files().begin();
 
-			// if the file is empty, just create it. But also make sure
-			// the directory exists.
-			if (file_iter->size == 0 && (int(m_file_priority.size()) <= file_index
-				|| m_file_priority[file_index] > 0))
-			{
-				boost::shared_ptr<file> f = m_pool.open_file(this
-					, m_save_path / file_iter->path, file::read_write, ec);
-				if (ec)
-				{
-					set_error(m_save_path / file_iter->path, ec);
-					return true;
-				}
-				continue;
-			}
+			// ignore files that have priority 0
+			if (int(m_file_priority.size()) > file_index
+				&& m_file_priority[file_index] == 0) continue;
+
+			// ignore pad files
+			if (file_iter->pad_file) continue;
 
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-			// don't allocate files with priority 0 or files
-			// that are pad files
-			if (allocate_files && !file_iter->pad_file
-				&& (int(m_file_priority.size()) <= file_index
-				|| m_file_priority[file_index] > 0))
+
+#if TORRENT_USE_WPATH
+			fs::wpath file_path = safe_convert(m_save_path / file_iter->path);
+#else
+			fs::path file_path = m_save_path / file_iter->path;
+#endif
+			// if the file is empty, just create it either way.
+			// if the file already exists, but is larger than what
+			// it's supposed to be, also truncate it
+			if (allocate_files
+				|| file_iter->size == 0
+				|| (exists(file_path) && file_size(file_path) > file_iter->size))
 			{
 				error_code ec;
 				boost::shared_ptr<file> f = m_pool.open_file(this
