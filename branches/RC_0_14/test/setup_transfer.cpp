@@ -247,9 +247,19 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	assert(ses1);
 	assert(ses2);
 
+	std::srand(time(0));
+	peer_id pid;
+	std::generate(&pid[0], &pid[0] + 20, std::rand);
+	ses1->set_peer_id(pid);
+	std::generate(&pid[0], &pid[0] + 20, std::rand);
+	ses2->set_peer_id(pid);
 	assert(ses1->id() != ses2->id());
 	if (ses3)
+	{
+		std::generate(&pid[0], &pid[0] + 20, std::rand);
+		ses3->set_peer_id(pid);
 		assert(ses3->id() != ses2->id());
+	}
 
 	boost::intrusive_ptr<torrent_info> t;
 	if (torrent == 0)
