@@ -200,7 +200,6 @@ void http_connection::start(std::string const& hostname, std::string const& port
 
 void http_connection::on_connect_timeout()
 {
-	TORRENT_ASSERT(m_connection_ticket >= 0);
 	if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
 	m_connection_ticket = -1;
 
