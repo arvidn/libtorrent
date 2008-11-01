@@ -1290,6 +1290,7 @@ namespace libtorrent
 		{
 			t->get_policy().update_peer_port(listen_port
 				, peer_info_struct(), peer_info::incoming);
+			if (is_disconnecting()) return;
 		}
 		// there should be a version too
 		// but where do we put that info?
