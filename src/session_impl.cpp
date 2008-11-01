@@ -501,7 +501,7 @@ namespace aux {
 		m_half_open.close();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " connection queue: " << m_half_open.size() << std::endl;
+		(*m_logger) << time_now_string() << " connection queue: " << m_half_open.size() << "\n";
 #endif
 
 		// abort all connections
@@ -515,7 +515,7 @@ namespace aux {
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " connection queue: " << m_half_open.size() << std::endl;
+		(*m_logger) << time_now_string() << " connection queue: " << m_half_open.size() << "\n";
 #endif
 		TORRENT_ASSERT(m_half_open.size() == 0);
 
