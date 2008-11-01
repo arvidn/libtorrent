@@ -119,19 +119,14 @@ namespace libtorrent
 		m_timer.cancel(ec);
 		m_abort = true;
 
-		// make a copy of the list to go through, so
-		// that connections removing themseleves won't
-		// interfere with the iteration
-		std::list<entry> closing_entries = m_queue;
-
-		// we don't want to call the timeout callback while we're locked
-		// since that is a recepie for dead-locks
-		l.unlock();
-
-		for (std::list<entry>::iterator i = closing_entries.begin()
-			, end(closing_entries.end()); i != end; ++i)
+		while (!m_queue.empty())
 		{
-			try { i->on_timeout(); } catch (std::exception&) {}
+			// we don't want to call the timeout callback while we're locked
+			// since that is a recepie for dead-locks
+			l.unlock();
+			try { m_queue.front().on_timeout(); } catch (std::exception&) {}
+			l.lock();
+			m_queue.pop_front();
 		}
 	}
 
