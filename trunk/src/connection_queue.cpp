@@ -123,10 +123,11 @@ namespace libtorrent
 		{
 			// we don't want to call the timeout callback while we're locked
 			// since that is a recepie for dead-locks
-			l.unlock();
-			try { m_queue.front().on_timeout(); } catch (std::exception&) {}
-			l.lock();
+			entry e = m_queue.front();
 			m_queue.pop_front();
+			l.unlock();
+			try { e.on_timeout(); } catch (std::exception&) {}
+			l.lock();
 		}
 	}
 
