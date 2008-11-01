@@ -2520,7 +2520,7 @@ namespace libtorrent
 			m_torrent.reset();
 		}
 
-#ifndef NDEBUG
+#if !defined NDEBUG && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		// since this connection doesn't have a torrent reference
 		// no torrent should have a reference to this connection either
 		for (aux::session_impl::torrent_map::const_iterator i = m_ses.m_torrents.begin()
