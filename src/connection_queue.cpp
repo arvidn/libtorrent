@@ -125,6 +125,7 @@ namespace libtorrent
 			// since that is a recepie for dead-locks
 			entry e = m_queue.front();
 			m_queue.pop_front();
+			if (e.connecting) --m_num_connecting;
 			l.unlock();
 			try { e.on_timeout(); } catch (std::exception&) {}
 			l.lock();
