@@ -1380,13 +1380,19 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 		if (m_upload_only && t->is_finished())
+		{
 			disconnect("seed to seed");
+			return;
+		}
 
 		if (m_upload_only
 			&& !m_interesting
 			&& m_bitfield_received
 			&& t->are_files_checked())
+		{
 			disconnect("uninteresting upload-only peer");
+			return;
+		}
 	}
 
 	// -----------------------------
