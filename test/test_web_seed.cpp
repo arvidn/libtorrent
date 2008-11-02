@@ -132,7 +132,10 @@ int test_main()
 	using namespace libtorrent;
 	using namespace boost::filesystem;
 
-	create_directory("test_torrent");
+	try {
+		create_directory("test_torrent");
+	} catch (std::exception&) {}
+
 	char random_data[300000];
 	std::srand(std::time(0));
 	std::generate(random_data, random_data + sizeof(random_data), &std::rand);
