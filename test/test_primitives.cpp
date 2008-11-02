@@ -204,16 +204,136 @@ char upnp_xml[] =
 "</device>"
 "</root>";
 
+char upnp_xml2[] =
+"<root>"
+"<specVersion>"
+"<major>1</major>"
+"<minor>0</minor>"
+"</specVersion>"
+"<URLBase>http://192.168.1.1:49152</URLBase>"
+"<device>"
+"<deviceType>"
+"urn:schemas-upnp-org:device:InternetGatewayDevice:1"
+"</deviceType>"
+"<friendlyName>LINKSYS WAG200G Gateway</friendlyName>"
+"<manufacturer>LINKSYS</manufacturer>"
+"<manufacturerURL>http://www.linksys.com</manufacturerURL>"
+"<modelDescription>LINKSYS WAG200G Gateway</modelDescription>"
+"<modelName>Wireless-G ADSL Home Gateway</modelName>"
+"<modelNumber>WAG200G</modelNumber>"
+"<modelURL>http://www.linksys.com</modelURL>"
+"<serialNumber>123456789</serialNumber>"
+"<UDN>uuid:8d401597-1dd2-11b2-a7d4-001ee5947cac</UDN>"
+"<UPC>WAG200G</UPC>"
+"<serviceList>"
+"<service>"
+"<serviceType>urn:schemas-upnp-org:service:Layer3Forwarding:1</serviceType>"
+"<serviceId>urn:upnp-org:serviceId:L3Forwarding1</serviceId>"
+"<controlURL>/upnp/control/L3Forwarding1</controlURL>"
+"<eventSubURL>/upnp/event/L3Forwarding1</eventSubURL>"
+"<SCPDURL>/l3frwd.xml</SCPDURL>"
+"</service>"
+"</serviceList>"
+"<deviceList>"
+"<device>"
+"<deviceType>urn:schemas-upnp-org:device:WANDevice:1</deviceType>"
+"<friendlyName>WANDevice</friendlyName>"
+"<manufacturer>LINKSYS</manufacturer>"
+"<manufacturerURL>http://www.linksys.com/</manufacturerURL>"
+"<modelDescription>Residential Gateway</modelDescription>"
+"<modelName>Internet Connection Sharing</modelName>"
+"<modelNumber>1</modelNumber>"
+"<modelURL>http://www.linksys.com/</modelURL>"
+"<serialNumber>0000001</serialNumber>"
+"<UDN>uuid:8d401596-1dd2-11b2-a7d4-001ee5947cac</UDN>"
+"<UPC>WAG200G</UPC>"
+"<serviceList>"
+"<service>"
+"<serviceType>"
+"urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1"
+"</serviceType>"
+"<serviceId>urn:upnp-org:serviceId:WANCommonIFC1</serviceId>"
+"<controlURL>/upnp/control/WANCommonIFC1</controlURL>"
+"<eventSubURL>/upnp/event/WANCommonIFC1</eventSubURL>"
+"<SCPDURL>/cmnicfg.xml</SCPDURL>"
+"</service>"
+"</serviceList>"
+"<deviceList>"
+"<device>"
+"<deviceType>urn:schemas-upnp-org:device:WANConnectionDevice:1</deviceType>"
+"<friendlyName>WANConnectionDevice</friendlyName>"
+"<manufacturer>LINKSYS</manufacturer>"
+"<manufacturerURL>http://www.linksys.com/</manufacturerURL>"
+"<modelDescription>Residential Gateway</modelDescription>"
+"<modelName>Internet Connection Sharing</modelName>"
+"<modelNumber>1</modelNumber>"
+"<modelURL>http://www.linksys.com/</modelURL>"
+"<serialNumber>0000001</serialNumber>"
+"<UDN>uuid:8d401597-1dd2-11b2-a7d3-001ee5947cac</UDN>"
+"<UPC>WAG200G</UPC>"
+"<serviceList>"
+"<service>"
+"<serviceType>"
+"urn:schemas-upnp-org:service:WANEthernetLinkConfig:1"
+"</serviceType>"
+"<serviceId>urn:upnp-org:serviceId:WANEthLinkC1</serviceId>"
+"<controlURL>/upnp/control/WANEthLinkC1</controlURL>"
+"<eventSubURL>/upnp/event/WANEthLinkC1</eventSubURL>"
+"<SCPDURL>/wanelcfg.xml</SCPDURL>"
+"</service>"
+"<service>"
+"<serviceType>urn:schemas-upnp-org:service:WANPPPConnection:1</serviceType>"
+"<serviceId>urn:upnp-org:serviceId:WANPPPConn1</serviceId>"
+"<controlURL>/upnp/control/WANPPPConn1</controlURL>"
+"<eventSubURL>/upnp/event/WANPPPConn1</eventSubURL>"
+"<SCPDURL>/pppcfg.xml</SCPDURL>"
+"</service>"
+"</serviceList>"
+"</device>"
+"</deviceList>"
+"</device>"
+"<device>"
+"<deviceType>urn:schemas-upnp-org:device:LANDevice:1</deviceType>"
+"<friendlyName>LANDevice</friendlyName>"
+"<manufacturer>LINKSYS</manufacturer>"
+"<manufacturerURL>http://www.linksys.com/</manufacturerURL>"
+"<modelDescription>Residential Gateway</modelDescription>"
+"<modelName>Residential Gateway</modelName>"
+"<modelNumber>1</modelNumber>"
+"<modelURL>http://www.linksys.com/</modelURL>"
+"<serialNumber>0000001</serialNumber>"
+"<UDN>uuid:8d401596-1dd2-11b2-a7d3-001ee5947cac</UDN>"
+"<UPC>WAG200G</UPC>"
+"<serviceList>"
+"<service>"
+"<serviceType>"
+"urn:schemas-upnp-org:service:LANHostConfigManagement:1"
+"</serviceType>"
+"<serviceId>urn:upnp-org:serviceId:LANHostCfg1</serviceId>"
+"<controlURL>/upnp/control/LANHostCfg1</controlURL>"
+"<eventSubURL>/upnp/event/LANHostCfg1</eventSubURL>"
+"<SCPDURL>/lanhostc.xml</SCPDURL>"
+"</service>"
+"</serviceList>"
+"</device>"
+"</deviceList>"
+"<presentationURL>http://192.168.1.1/index.htm</presentationURL>"
+"</device>"
+"</root>";
+
 struct parse_state
 {
-	parse_state(): found_service(false) {}
+	parse_state(): in_service(false) {}
 	void reset(char const* st)
 	{
-		found_service = false;
+		in_service = false;
 		service_type = st;
 		tag_stack.clear();
+		control_url.clear();
+		model.clear();
+		url_base.clear();
 	}
-	bool found_service;
+	bool in_service;
 	std::list<std::string> tag_stack;
 	std::string control_url;
 	char const* service_type;
@@ -430,12 +550,25 @@ int test_main()
 	xml_parse((char*)upnp_xml, (char*)upnp_xml + sizeof(upnp_xml)
 		, bind(&find_control_url, _1, _2, boost::ref(xml_s)));
 
-	std::cerr << xml_s.url_base << std::endl;
-	std::cerr << xml_s.control_url << std::endl;
-	std::cerr << xml_s.model << std::endl;
+	std::cerr << "namespace " << xml_s.service_type << std::endl;
+	std::cerr << "url_base: " << xml_s.url_base << std::endl;
+	std::cerr << "control_url: " << xml_s.control_url << std::endl;
+	std::cerr << "model: " << xml_s.model << std::endl;
 	TEST_CHECK(xml_s.url_base == "http://192.168.0.1:5678");
 	TEST_CHECK(xml_s.control_url == "/WANIPConnection");
 	TEST_CHECK(xml_s.model == "D-Link Router");
+
+	xml_s.reset("urn:schemas-upnp-org:service:WANPPPConnection:1");
+	xml_parse((char*)upnp_xml2, (char*)upnp_xml2 + sizeof(upnp_xml2)
+		, bind(&find_control_url, _1, _2, boost::ref(xml_s)));
+
+	std::cerr << "namespace " << xml_s.service_type << std::endl;
+	std::cerr << "url_base: " << xml_s.url_base << std::endl;
+	std::cerr << "control_url: " << xml_s.control_url << std::endl;
+	std::cerr << "model: " << xml_s.model << std::endl;
+	TEST_CHECK(xml_s.url_base == "http://192.168.1.1:49152");
+	TEST_CHECK(xml_s.control_url == "/upnp/control/WANPPPConn1");
+	TEST_CHECK(xml_s.model == "Wireless-G ADSL Home Gateway");
 
 	// test network functions
 
