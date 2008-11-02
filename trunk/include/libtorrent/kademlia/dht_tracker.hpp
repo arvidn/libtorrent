@@ -90,6 +90,7 @@ namespace libtorrent { namespace dht
 			, sha1_hash const&)> f);
 
 		void dht_status(session_status& s);
+		void network_stats(int& sent, int& received);
 
 		// translate bittorrent kademlia message into the generic kademlia message
 		// used by the library
@@ -133,6 +134,10 @@ namespace libtorrent { namespace dht
 
 		// used to resolve hostnames for nodes
 		udp::resolver m_host_resolver;
+
+		// sent and received bytes since queried last time
+		int m_sent_bytes;
+		int m_received_bytes;
 
 		// used to ignore abusive dht nodes
 		struct node_ban_entry

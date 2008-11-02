@@ -1108,6 +1108,15 @@ namespace aux {
 			++i;
 		}
 
+		if (m_dht)
+		{
+			int dht_down;
+			int dht_up;
+			m_dht->network_stats(dht_up, dht_down);
+			m_stat.sent_dht_bytes(dht_up);
+			m_stat.received_dht_bytes(dht_down);
+		}
+
 		// drain the IP overhead from the bandwidth limiters
 		m_download_channel.drain(
 			m_stat.download_ip_overhead()

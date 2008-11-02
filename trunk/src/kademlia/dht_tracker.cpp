@@ -179,6 +179,7 @@ namespace libtorrent { namespace dht
 	{
 		std::vector<udp::endpoint> initial_nodes;
 
+		mutex_t::scoped_lock l(m_mutex);
 		if (bootstrap.type() == entry::dictionary_t)
 		{
 			try
@@ -221,10 +222,20 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::dht_status(session_status& s)
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		boost::tie(s.dht_nodes, s.dht_node_cache) = m_dht.size();
 		s.dht_torrents = m_dht.data_size();
 		s.dht_global_nodes = m_dht.num_global_nodes();
 		m_dht.status(s);
+	}
+
+	void dht_tracker::network_stats(int& sent, int& received)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		sent = m_sent_bytes;
+		received = m_received_bytes;
+		m_sent_bytes = 0;
+		m_received_bytes = 0;
 	}
 
 	void dht_tracker::connection_timeout(error_code const& e)
@@ -355,12 +366,14 @@ namespace libtorrent { namespace dht
 		, boost::function<void(std::vector<tcp::endpoint> const&
 		, sha1_hash const&)> f)
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		m_dht.announce(ih, listen_port, f);
 	}
 
 
 	void dht_tracker::on_unreachable(udp::endpoint const& ep)
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		m_dht.unreachable(ep);
 	}
 
@@ -368,10 +381,9 @@ namespace libtorrent { namespace dht
 	// used by the library
 	void dht_tracker::on_receive(udp::endpoint const& ep, char const* buf, int bytes_transferred)
 	{
-		{
-			libtorrent::aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-			m_ses.m_stat.received_dht_bytes(bytes_transferred);
-		}
+		mutex_t::scoped_lock l(m_mutex);
+		// account for IP and UDP overhead
+		m_received_bytes += bytes_transferred + 28;
 
 		node_ban_entry* match = 0;
 		node_ban_entry* min = m_ban_nodes;
@@ -759,6 +771,7 @@ namespace libtorrent { namespace dht
 
 	entry dht_tracker::state() const
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		entry ret(entry::dictionary_t);
 		{
 			entry nodes(entry::list_t);
@@ -790,11 +803,13 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::add_node(udp::endpoint node)
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		m_dht.add_node(node);
 	}
 
 	void dht_tracker::add_node(std::pair<std::string, int> const& node)
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		udp::resolver::query q(node.first, lexical_cast<std::string>(node.second));
 		m_host_resolver.async_resolve(q,
 			bind(&dht_tracker::on_name_lookup, self(), _1, _2));
@@ -809,6 +824,7 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::add_router_node(std::pair<std::string, int> const& node)
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		udp::resolver::query q(node.first, lexical_cast<std::string>(node.second));
 		m_host_resolver.async_resolve(q,
 			bind(&dht_tracker::on_router_name_lookup, self(), _1, _2));
@@ -1003,10 +1019,8 @@ namespace libtorrent { namespace dht
 		error_code ec;
 		m_sock.send(m.addr, &m_send_buf[0], (int)m_send_buf.size(), ec);
 
-		{
-			libtorrent::aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-			m_ses.m_stat.sent_dht_bytes(m_send_buf.size());
-		}
+		// account for IP and UDP overhead
+		m_sent_bytes += m_send_buf.size() + 28;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		m_total_out_bytes += m_send_buf.size();

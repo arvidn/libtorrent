@@ -146,16 +146,12 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(bytes >= 0);
 			m_stat[download_dht_protocol].add(bytes);
-			// assuming IPv4 and UDP headers
-			m_stat[download_ip_protocol].add(28);
 		}
 
 		void sent_dht_bytes(int bytes)
 		{
 			TORRENT_ASSERT(bytes >= 0);
 			m_stat[upload_dht_protocol].add(bytes);
-			// assuming IPv4 and UDP headers
-			m_stat[upload_ip_protocol].add(28);
 		}
 
 		void received_tracker_bytes(int bytes)
