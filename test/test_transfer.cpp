@@ -65,12 +65,12 @@ void test_rate()
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 0, &t);
 
-	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
-	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
+	ses1.set_alert_mask(alert::all_categories & ~(alert::progress_notification | alert::performance_warning));
+	ses2.set_alert_mask(alert::all_categories & ~(alert::progress_notification | alert::performance_warning));
 
 	ptime start = time_now();
 
-	for (int i = 0; i < 40; ++i)
+	for (int i = 0; i < 70; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
@@ -157,7 +157,8 @@ void test_transfer()
 
 		if (tor2.is_finished()) break;
 
-		TEST_CHECK(st1.state == torrent_status::seeding);
+		TEST_CHECK(st1.state == torrent_status::seeding
+			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading);
 
 		test_sleep(1000);
