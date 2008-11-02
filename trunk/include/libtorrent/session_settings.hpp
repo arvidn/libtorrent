@@ -118,7 +118,7 @@ namespace libtorrent
 			, use_dht_as_fallback(false)
 #endif
 			, free_torrent_hashes(true)
-			, upnp_ignore_nonrouters(true)
+			, upnp_ignore_nonrouters(false)
  			, send_buffer_watermark(80 * 1024)
 			, auto_upload_slots(true)
 			, use_parole_mode(true)
