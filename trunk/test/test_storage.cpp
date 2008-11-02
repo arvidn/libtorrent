@@ -295,10 +295,10 @@ void test_check_files(path const& test_path
 	create_directory(test_path / "temp_storage");
 
 	std::ofstream f;
-	f.open((test_path / "temp_storage/test1.tmp").string().c_str());
+	f.open((test_path / "temp_storage/test1.tmp").string().c_str(), std::ios::trunc | std::ios::binary);
 	f.write(piece0, sizeof(piece0));
 	f.close();
-	f.open((test_path / "temp_storage/test3.tmp").string().c_str());
+	f.open((test_path / "temp_storage/test3.tmp").string().c_str(), std::ios::trunc | std::ios::binary);
 	f.write(piece2, sizeof(piece2));
 	f.close();
 
