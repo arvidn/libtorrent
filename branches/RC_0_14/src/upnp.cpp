@@ -901,6 +901,9 @@ void upnp::on_upnp_xml(error_code const& e
 		}
 	}
 	
+	if (s.url_base.empty()) d.control_url = s.control_url;
+	else d.control_url = s.url_base + s.control_url;
+
 	std::string protocol;
 	std::string auth;
 	char const* error;
@@ -917,9 +920,6 @@ void upnp::on_upnp_xml(error_code const& e
 		<< " <== (" << d.url << ") Rootdevice response, found control URL: " << d.control_url
 		<< " urlbase: " << s.url_base << " namespace: " << d.service_namespace << std::endl;
 #endif
-
-	if (s.url_base.empty()) d.control_url = s.control_url;
-	else d.control_url = s.url_base + s.control_url;
 
 	boost::tie(protocol, auth, d.hostname, d.port, d.path, error)
 		= parse_url_components(d.control_url);
