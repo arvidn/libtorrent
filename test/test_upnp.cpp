@@ -65,7 +65,8 @@ int main(int argc, char* argv[])
 	upnp_handler->discover_device();
 
 	libtorrent::deadline_timer timer(ios);
-	timer.expires_from_now(seconds(2));
+	error_code ec;
+	timer.expires_from_now(seconds(2), ec);
 	timer.async_wait(boost::bind(&libtorrent::io_service::stop, boost::ref(ios)));
 
 	std::cerr << "broadcasting for UPnP device" << std::endl;
@@ -75,7 +76,7 @@ int main(int argc, char* argv[])
 
 	upnp_handler->add_mapping(upnp::tcp, atoi(argv[1]), atoi(argv[1]));
 	upnp_handler->add_mapping(upnp::udp, atoi(argv[2]), atoi(argv[2]));
-	timer.expires_from_now(seconds(10));
+	timer.expires_from_now(seconds(10), ec);
 	timer.async_wait(boost::bind(&libtorrent::io_service::stop, boost::ref(ios)));
 	std::cerr << "mapping ports TCP: " << argv[1]
 		<< " UDP: " << argv[2] << std::endl;
