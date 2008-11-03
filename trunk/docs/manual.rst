@@ -1783,11 +1783,15 @@ move_storage()
 
 		void move_storage(boost::filesystem::path const& save_path) const;
 
-Moves the file(s) that this torrent are currently seeding from or downloading to. This
-operation will only have the desired effect if the given ``save_path`` is located on
-the same drive as the original save path. Since disk IO is performed in a separate
-thread, this operation is also asynchronous. Once the operation completes, the
-``storage_moved_alert`` is generated, with the new path as the message.
+Moves the file(s) that this torrent are currently seeding from or downloading to. If
+the given ``save_path`` is not located on the same drive as the original save path,
+The files will be copied to the new drive and removed from their original location.
+This will block all other disk IO, and other torrents download and upload rates may
+drop while copying the file.
+
+Since disk IO is performed in a separate thread, this operation is also asynchronous.
+Once the operation completes, the ``storage_moved_alert`` is generated, with the new
+path as the message.
 
 get_storage_impl()
 ------------------

@@ -1882,11 +1882,14 @@ was started.</p>
 void move_storage(boost::filesystem::path const&amp; save_path) const;
 </pre>
 </blockquote>
-<p>Moves the file(s) that this torrent are currently seeding from or downloading to. This
-operation will only have the desired effect if the given <tt class="docutils literal"><span class="pre">save_path</span></tt> is located on
-the same drive as the original save path. Since disk IO is performed in a separate
-thread, this operation is also asynchronous. Once the operation completes, the
-<tt class="docutils literal"><span class="pre">storage_moved_alert</span></tt> is generated, with the new path as the message.</p>
+<p>Moves the file(s) that this torrent are currently seeding from or downloading to. If
+the given <tt class="docutils literal"><span class="pre">save_path</span></tt> is not located on the same drive as the original save path,
+The files will be copied to the new drive and removed from their original location.
+This will block all other disk IO, and other torrents download and upload rates may
+drop while copying the file.</p>
+<p>Since disk IO is performed in a separate thread, this operation is also asynchronous.
+Once the operation completes, the <tt class="docutils literal"><span class="pre">storage_moved_alert</span></tt> is generated, with the new
+path as the message.</p>
 </div>
 <div class="section" id="get-storage-impl">
 <h2>get_storage_impl()</h2>
@@ -4237,6 +4240,8 @@ struct performance_alert: torrent_alert
         {
                 outstanding_disk_buffer_limit_reached,
                 outstanding_request_limit_reached,
+                upload_limit_too_low,
+                download_limit_too_low
         };
 
         performance_warning_t warning_code;
