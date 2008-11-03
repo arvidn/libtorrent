@@ -254,8 +254,10 @@ void upnp::resend_request(error_code const& e)
 			// ask for it
 			rootdevice& d = const_cast<rootdevice&>(*i);
 			TORRENT_ASSERT(d.magic == 1337);
+#ifndef BOOST_NO_EXCEPTIONS
 			try
 			{
+#endif
 				std::stringstream msg;
 				msg << "connecting to: " << d.url;
 				log(msg.str());
@@ -264,6 +266,7 @@ void upnp::resend_request(error_code const& e)
 					, m_cc, bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d), _5)));
 				d.upnp_connection->get(d.url, seconds(30), 1);
+#ifndef BOOST_NO_EXCEPTIONS
 			}
 			catch (std::exception& e)
 			{
@@ -273,6 +276,7 @@ void upnp::resend_request(error_code const& e)
 				log(msg.str());
 				d.disabled = true;
 			}
+#endif
 		}
 	}
 }
