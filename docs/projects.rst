@@ -62,6 +62,11 @@ project listed here, let me_ know.
 | video podcasts and video rss). Miro is designed to be easy to use and to give |                                     |
 | you an elegant fullscreen viewing experience.                                 |                                     |
 +-------------------------------------------------------------------------------+-------------------------------------+
+| **Tvitty**                                                                    | .. image:: tvitty.jpg               |
+|                                                                               |                                     |
+| tvitty_ is a bittorrent client for Vista Media Center, which allows           |                                     |
+| searching and downloading of torrents directly on your TV.                    |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
 | **FatRat**                                                                    | .. image:: fatrat.jpg               |
 |                                                                               |                                     |
 | FatRat_ is an open source download manager for Linux/Unix systems written in  |                                     |
@@ -157,6 +162,7 @@ project listed here, let me_ know.
 .. _FDM: http://www.freedownloadmanager.org/
 .. _LeechCraft: http://deviant-soft.ws/tiki-index.php?page=LeechCraft
 .. _FatRat: http://fatrat.dolezel.info
+.. _tvitty: http://tvitty.com
 .. _BitRocket: http://www.bitrocket.org/
 .. _hrktorrent: http://50hz.ws/hrktorrent/
 .. _Bitfox: http://code.google.com/p/bitfox/
