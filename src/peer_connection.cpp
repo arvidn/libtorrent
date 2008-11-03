@@ -373,8 +373,13 @@ namespace libtorrent
 				}
 			}
 		}
-		if (!interested) send_not_interested();
-		else t->get_policy().peer_is_interesting(*this);
+		try
+		{
+			if (!interested) send_not_interested();
+			else t->get_policy().peer_is_interesting(*this);
+		}
+		// may throw an asio error if socket has disconnected
+		catch (std::exception&) {}
 
 		TORRENT_ASSERT(in_handshake() || is_interesting() == interested);
 	}
@@ -857,7 +862,19 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent.expired());
 		// check to make sure we don't have another connection with the same
 		// info_hash and peer_id. If we do. close this connection.
+#ifndef NDEBUG
+		try
+		{
+#endif
 		t->attach_peer(this);
+#ifndef NDEBUG
+		}
+		catch (std::exception& e)
+		{
+			std::cout << e.what() << std::endl;
+			TORRENT_ASSERT(false);
+		}
+#endif
 		if (m_disconnecting) return;
 		m_torrent = wpt;
 
@@ -2599,7 +2616,6 @@ namespace libtorrent
 		p.pending_disk_bytes = m_outstanding_writing_bytes;
 		p.send_quota = m_bandwidth_limit[upload_channel].quota_left();
 		p.receive_quota = m_bandwidth_limit[download_channel].quota_left();
-		p.num_pieces = m_num_pieces;
 		if (m_download_queue.empty()) p.request_timeout = -1;
 		else p.request_timeout = total_seconds(m_requested - now) + m_ses.settings().request_timeout
 			+ m_timeout_extend;
@@ -3526,18 +3542,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_recv_pos <= int(m_recv_buffer.size()
 				+ m_disk_recv_buffer_size));
 
-#ifndef NDEBUG
-			size_type cur_payload_dl = m_statistics.last_payload_downloaded();
-			size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
-#endif
 			on_receive(error, bytes_transferred);
-#ifndef NDEBUG
-			TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
-			TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
-			size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
-				m_statistics.last_protocol_downloaded() - cur_protocol_dl;
-			TORRENT_ASSERT(stats_diff == bytes_transferred);
-#endif
 
 			TORRENT_ASSERT(m_packet_size > 0);
 
@@ -3694,7 +3699,6 @@ namespace libtorrent
 		m_socket->async_connect(m_remote
 			, bind(&peer_connection::on_connection_complete, self(), _1));
 		m_connect = time_now();
-		m_statistics.sent_syn();
 
 		if (t->alerts().should_post<peer_connect_alert>())
 		{
@@ -3733,8 +3737,6 @@ namespace libtorrent
 		m_last_receive = time_now();
 
 		// this means the connection just succeeded
-
-		m_statistics.received_synack();
 
 		TORRENT_ASSERT(m_socket);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
@@ -3809,19 +3811,7 @@ namespace libtorrent
 
 		m_last_sent = time_now();
 
-#ifndef NDEBUG
-		size_type cur_payload_ul = m_statistics.last_payload_uploaded();
-		size_type cur_protocol_ul = m_statistics.last_protocol_uploaded();
-#endif
 		on_sent(error, bytes_transferred);
-#ifndef NDEBUG
-		TORRENT_ASSERT(m_statistics.last_payload_uploaded() - cur_payload_ul >= 0);
-		TORRENT_ASSERT(m_statistics.last_protocol_uploaded() - cur_protocol_ul >= 0);
-		size_type stats_diff = m_statistics.last_payload_uploaded() - cur_payload_ul
-			+ m_statistics.last_protocol_uploaded() - cur_protocol_ul;
-		TORRENT_ASSERT(stats_diff == bytes_transferred);
-#endif
-
 		fill_send_buffer();
 
 		setup_send();

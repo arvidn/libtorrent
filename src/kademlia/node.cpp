@@ -41,8 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/random_sample.hpp"
-#include "libtorrent/alert_types.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/rpc_manager.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -92,8 +90,7 @@ void purge_peers(std::set<peer_entry>& peers)
 
 void nop() {}
 
-node_impl::node_impl(libtorrent::aux::session_impl& ses
-	, boost::function<void(msg const&)> const& f
+node_impl::node_impl(boost::function<void(msg const&)> const& f
 	, dht_settings const& settings)
 	: m_settings(settings)
 	, m_id(generate_id())
@@ -101,7 +98,6 @@ node_impl::node_impl(libtorrent::aux::session_impl& ses
 	, m_rpc(bind(&node_impl::incoming_request, this, _1)
 		, m_id, m_table, f)
 	, m_last_tracker_tick(time_now())
-	, m_ses(ses)
 {
 	m_secret[0] = std::rand();
 	m_secret[1] = std::rand();
@@ -172,7 +168,8 @@ void node_impl::refresh(node_id const& id
 	std::vector<node_entry> start;
 	start.reserve(m_table.bucket_size());
 	m_table.find_node(id, start, false);
-	new dht::refresh(*this, id, start.begin(), start.end(), f);
+	refresh::initiate(id, m_settings.search_branching, 10, m_table.bucket_size()
+		, m_table, start.begin(), start.end(), m_rpc, f);
 }
 
 void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
@@ -187,7 +184,8 @@ void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 	std::vector<node_entry> start;
 	start.reserve(nodes.size());
 	std::copy(nodes.begin(), nodes.end(), std::back_inserter(start));
-	new dht::refresh(*this, m_id, start.begin(), start.end(), f);
+	refresh::initiate(m_id, m_settings.search_branching, 10, m_table.bucket_size()
+		, m_table, start.begin(), start.end(), m_rpc, f);
 }
 
 void node_impl::refresh()
@@ -196,7 +194,8 @@ void node_impl::refresh()
 	start.reserve(m_table.size().get<0>());
 	std::copy(m_table.begin(), m_table.end(), std::back_inserter(start));
 
-	new dht::refresh(*this, m_id, start.begin(), start.end(), bind(&nop));
+	refresh::initiate(m_id, m_settings.search_branching, 10, m_table.bucket_size()
+		, m_table, start.begin(), start.end(), m_rpc, bind(&nop));
 }
 
 int node_impl::bucket_size(int bucket)
@@ -210,7 +209,7 @@ void node_impl::new_write_key()
 	m_secret[0] = std::rand();
 }
 
-void node_impl::refresh_bucket(int bucket)
+void node_impl::refresh_bucket(int bucket) try
 {
 	TORRENT_ASSERT(bucket >= 0 && bucket < 160);
 	
@@ -242,9 +241,11 @@ void node_impl::refresh_bucket(int bucket)
 	start.reserve(m_table.bucket_size());
 	m_table.find_node(target, start, false, m_table.bucket_size());
 
-	new dht::refresh(*this, target, start.begin(), start.end(), bind(&nop));
+	refresh::initiate(target, m_settings.search_branching, 10, m_table.bucket_size()
+		, m_table, start.begin(), start.end(), m_rpc, bind(&nop));
 	m_table.touch_bucket(bucket);
 }
+catch (std::exception&) {}
 
 void node_impl::unreachable(udp::endpoint const& ep)
 {
@@ -315,8 +316,10 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port
 #endif
 	// search for nodes with ids close to id, and then invoke the
 	// get_peers and then announce_peer rpc on them.
-	new closest_nodes(*this, info_hash, boost::bind(&announce_fun, _1, boost::ref(m_rpc)
-		, listen_port, info_hash, f));
+	closest_nodes::initiate(info_hash, m_settings.search_branching
+		, m_table.bucket_size(), m_table, m_rpc
+		, boost::bind(&announce_fun, _1, boost::ref(m_rpc), listen_port
+		, info_hash, f));
 }
 
 time_duration node_impl::refresh_timeout()
@@ -324,23 +327,27 @@ time_duration node_impl::refresh_timeout()
 	int refresh = -1;
 	ptime now = time_now();
 	ptime next = now + minutes(15);
-	for (int i = 0; i < 160; ++i)
+	try
 	{
-		ptime r = m_table.next_refresh(i);
-		if (r <= next)
+		for (int i = 0; i < 160; ++i)
 		{
-			refresh = i;
-			next = r;
+			ptime r = m_table.next_refresh(i);
+			if (r <= next)
+			{
+				refresh = i;
+				next = r;
+			}
+		}
+		if (next < now)
+		{
+			TORRENT_ASSERT(refresh > -1);
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(node) << "refreshing bucket: " << refresh;
+#endif
+			refresh_bucket(refresh);
 		}
 	}
-	if (next < now)
-	{
-		TORRENT_ASSERT(refresh > -1);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "refreshing bucket: " << refresh;
-#endif
-		refresh_bucket(refresh);
-	}
+	catch (std::exception&) {}
 
 	time_duration next_refresh = next - now;
 	time_duration min_next_refresh
@@ -361,35 +368,35 @@ time_duration node_impl::refresh_timeout()
 time_duration node_impl::connection_timeout()
 {
 	time_duration d = m_rpc.tick();
-	ptime now(time_now());
-	if (now - m_last_tracker_tick < minutes(10)) return d;
-	m_last_tracker_tick = now;
-
-	// look through all peers and see if any have timed out
-	for (data_iterator i = begin_data(), end(end_data()); i != end;)
+	try
 	{
-		torrent_entry& t = i->second;
-		node_id const& key = i->first;
-		++i;
-		purge_peers(t.peers);
-
-		// if there are no more peers, remove the entry altogether
-		if (t.peers.empty())
+		ptime now(time_now());
+		if (now - m_last_tracker_tick < minutes(10)) return d;
+		m_last_tracker_tick = now;
+		
+		// look through all peers and see if any have timed out
+		for (data_iterator i = begin_data(), end(end_data()); i != end;)
 		{
-			table_t::iterator i = m_map.find(key);
-			if (i != m_map.end()) m_map.erase(i);
+			torrent_entry& t = i->second;
+			node_id const& key = i->first;
+			++i;
+			purge_peers(t.peers);
+
+			// if there are no more peers, remove the entry altogether
+			if (t.peers.empty())
+			{
+				table_t::iterator i = m_map.find(key);
+				if (i != m_map.end()) m_map.erase(i);
+			}
 		}
 	}
+	catch (std::exception&) {}
 
 	return d;
 }
 
 void node_impl::on_announce(msg const& m, msg& reply)
 {
-	if (m_ses.m_alerts.should_post<dht_announce_alert>())
-		m_ses.m_alerts.post_alert(dht_announce_alert(
-			m.addr.address(), m.port, m.info_hash));
-
 	if (!verify_token(m))
 	{
 		reply.message_id = messages::error;
@@ -420,24 +427,8 @@ namespace
 	}
 }
 
-void node_impl::status(session_status& s)
-{
-	mutex_t::scoped_lock l(m_mutex);
-	s.active_requests.clear();
-	for (std::set<traversal_algorithm*>::iterator i = m_running_requests.begin()
-		, end(m_running_requests.end()); i != end; ++i)
-	{
-		s.active_requests.push_back(dht_lookup());
-		dht_lookup& l = s.active_requests.back();
-		(*i)->status(l);
-	}
-}
-
 bool node_impl::on_find(msg const& m, std::vector<tcp::endpoint>& peers) const
 {
-	if (m_ses.m_alerts.should_post<dht_get_peers_alert>())
-		m_ses.m_alerts.post_alert(dht_get_peers_alert(m.info_hash));
-
 	table_t::const_iterator i = m_map.find(m.info_hash);
 	if (i == m_map.end()) return false;
 

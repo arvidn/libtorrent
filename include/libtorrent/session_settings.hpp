@@ -108,7 +108,7 @@ namespace libtorrent
 			, lazy_bitfields(true)
 			, inactivity_timeout(600)
 			, unchoke_interval(15)
-			, optimistic_unchoke_interval(30)
+			, optimistic_unchoke_multiplier(4)
 			, num_want(200)
 			, initial_picker_threshold(4)
 			, allowed_fast_set_size(10)
@@ -280,9 +280,9 @@ namespace libtorrent
 		// the number of seconds between chokes/unchokes
 		int unchoke_interval;
 
-		// the number of seconds between
+		// the number of unchoke intervals between
 		// optimistic unchokes
-		int optimistic_unchoke_interval;
+		int optimistic_unchoke_multiplier;
 
 		// if this is set, this IP will be reported do the
 		// tracker in the ip= parameter.

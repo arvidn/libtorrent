@@ -59,8 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace aux { struct session_impl; }
-
 	class TORRENT_EXPORT udp_tracker_connection: public tracker_connection
 	{
 	friend class tracker_manager;
@@ -73,7 +71,7 @@ namespace libtorrent
 			, tracker_request const& req
 			, address bind_infc
 			, boost::weak_ptr<request_callback> c
-			, aux::session_impl const& ses
+			, session_settings const& stn
 			, proxy_settings const& ps);
 
 		void start();
@@ -115,7 +113,7 @@ namespace libtorrent
 
 		int m_transaction_id;
 		boost::int64_t m_connection_id;
-		aux::session_impl const& m_ses;
+		session_settings const& m_settings;
 		int m_attempts;
 
 		action_t m_state;

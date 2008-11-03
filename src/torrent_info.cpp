@@ -187,16 +187,6 @@ namespace
 		verify_encoding(target);
 		if (target.path.is_complete())
 			return false;
-
-		// bitcomet pad file
-
-#if BOOST_VERSION < 103600
-		if (target.path.leaf().substr(0, 18) == "_____padding_file_")
-#else
-		if (target.path.filename().substr(0, 18) == "_____padding_file_")
-#endif
-			target.pad_file = true;
-
 		return true;
 	}
 
@@ -222,7 +212,7 @@ namespace libtorrent
 	{
 		file f;
 		error_code ec;
-		if (!f.open(filename, file::read_only, ec)) return -1;
+		if (!f.open(filename, file::in, ec)) return -1;
 		f.seek(0, file::end, ec);
 		if (ec) return -1;
 		size_type s = f.tell(ec);
@@ -434,13 +424,6 @@ namespace libtorrent
 			e.path = name;
 			e.offset = 0;
 			e.size = info.dict_find_int_value("length", -1);
-			// bitcomet pad file
-#if BOOST_VERSION < 103600
-			if (e.path.leaf().substr(0, 18) == "_____padding_file_")
-#else
-			if (e.path.filename().substr(0, 18) == "_____padding_file_")
-#endif
-				e.pad_file = true;
 			if (e.size < 0)
 			{
 				error = "invalid length of torrent";

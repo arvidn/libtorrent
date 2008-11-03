@@ -506,27 +506,6 @@ namespace libtorrent
 			}
 		}
 	
-		TORRENT_ASSERT(m_block_size > 0);
-		int file = 0;
-		for (file_storage::iterator i = m_torrent_file->files().begin()
-			, end(m_torrent_file->files().end()); i != end; ++i, ++file)
-		{
-			if (!i->pad_file) continue;
-			
-			peer_request pr = m_torrent_file->map_file(file, 0, m_torrent_file->file_at(file).size);
-			int off = pr.start % m_block_size;
-			if (off != 0) { pr.length -= m_block_size - off; pr.start += m_block_size - off; }
-			TORRENT_ASSERT((pr.start % m_block_size) == 0);
-
-			int blocks_per_piece = m_torrent_file->piece_length() / m_block_size;
-			piece_block pb(pr.piece, pr.start / m_block_size);
-			for (; pr.length >= m_block_size; pr.length -= m_block_size, ++pb.block_index)
-			{
-				if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
-				m_picker->mark_as_finished(pb, 0);
-			}
-		}
-
 		m_storage->async_check_fastresume(&m_resume_entry
 			, bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1, _2));
@@ -674,8 +653,7 @@ namespace libtorrent
 		{
 			// either the fastresume data was rejected or there are
 			// some files
-			if (!is_torrent_paused() || is_auto_managed())
-				m_ses.check_torrent(shared_from_this());
+			m_ses.check_torrent(shared_from_this());
 		}
 
 		std::vector<char>().swap(m_resume_data);
@@ -732,8 +710,7 @@ namespace libtorrent
 			pause();
 			return;
 		}
-		if (!is_torrent_paused() || is_auto_managed())
-			m_ses.check_torrent(shared_from_this());
+		m_ses.check_torrent(shared_from_this());
 	}
 
 	void torrent::start_checking()
@@ -2340,7 +2317,7 @@ namespace libtorrent
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
-			s->get<http_stream>()->set_no_connect(true);
+			s->get<http_stream>().set_no_connect(true);
 		}
 
 		boost::intrusive_ptr<peer_connection> c(new (std::nothrow) web_peer_connection(
@@ -2998,39 +2975,14 @@ namespace libtorrent
 		return peerinfo->connection;
 	}
 
-	bool torrent::set_metadata(char const* metadata_buf, int metadata_size)
+	bool torrent::set_metadata(lazy_entry const& metadata, std::string& error)
 	{
 		INVARIANT_CHECK;
 
-		if (m_torrent_file->is_valid()) return false;
-
-		hasher h;
-		h.update(metadata_buf, metadata_size);
-		sha1_hash info_hash = h.final();
-
-		if (info_hash != m_torrent_file->info_hash())
+		TORRENT_ASSERT(!m_torrent_file->is_valid());
+		if (!m_torrent_file->parse_info_section(metadata, error))
 		{
-			if (alerts().should_post<metadata_failed_alert>())
-			{
-				alerts().post_alert(metadata_failed_alert(get_handle()));
-			}
-			return false;
-		}
-
-		lazy_entry metadata;
-		std::string error = "parser error";
-		int ret = lazy_bdecode(metadata_buf, metadata_buf + metadata_size, metadata);
-		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, error))
-		{
-			// this means the metadata is correct, since we
-			// verified it against the info-hash, but we
-			// failed to parse it. Pause the torrent
-			if (alerts().should_post<metadata_failed_alert>())
-			{
-				alerts().post_alert(metadata_failed_alert(get_handle()));
-			}
-			set_error("invalid metadata: " + error);
-			pause();
+			// parse failed
 			return false;
 		}
 
@@ -3885,18 +3837,10 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_auto_managed == a) return;
-		bool checking_files = should_check_files();
 		m_auto_managed = a;
 		// recalculate which torrents should be
 		// paused
 		m_ses.m_auto_manage_time_scaler = 0;
-
-		if (!checking_files && should_check_files())
-			m_ses.check_torrent(shared_from_this());
-		else if (checking_files && !should_check_files())
-		{
-			// TODO: pause checking
-		}
 	}
 
 	// the higher seed rank, the more important to seed
@@ -3910,10 +3854,7 @@ namespace libtorrent
 			prio_mask = 0xfffff
 		};
 
-		if (!is_finished()) return 0;
-
-		int scale = 100;
-		if (!is_seed()) scale = 50;
+		if (!is_seed()) return 0;
 
 		int ret = 0;
 
@@ -3953,7 +3894,7 @@ namespace libtorrent
 		}
 		else
 		{
-			ret |= (downloaders * scale / seeds) & prio_mask;
+			ret |= (downloaders  * 100 / seeds) & prio_mask;
 		}
 
 		return ret;
@@ -3964,37 +3905,34 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 	
-		if (!m_owning_storage.get())
+		if (m_owning_storage.get())
+		{
+			TORRENT_ASSERT(m_storage);
+			if (m_state == torrent_status::queued_for_checking
+				|| m_state == torrent_status::checking_files)
+			{
+				if (alerts().should_post<save_resume_data_failed_alert>())
+				{
+					alerts().post_alert(save_resume_data_failed_alert(get_handle()
+						, "won't save resume data, torrent does not have a complete resume state yet"));
+				}
+			}
+			else
+			{
+				m_storage->async_save_resume_data(
+					bind(&torrent::on_save_resume_data, shared_from_this(), _1, _2));
+			}
+		}
+		else
 		{
 			if (alerts().should_post<save_resume_data_failed_alert>())
 			{
 				alerts().post_alert(save_resume_data_failed_alert(get_handle()
 					, "save resume data failed, torrent is being destructed"));
 			}
-			return;
 		}
-
-		TORRENT_ASSERT(m_storage);
-		if (m_state == torrent_status::queued_for_checking
-			|| m_state == torrent_status::checking_files)
-		{
-			if (alerts().should_post<save_resume_data_failed_alert>())
-			{
-				alerts().post_alert(save_resume_data_failed_alert(get_handle()
-					, "won't save resume data, torrent does not have a complete resume state yet"));
-			}
-			return;
-		}
-		m_storage->async_save_resume_data(
-			bind(&torrent::on_save_resume_data, shared_from_this(), _1, _2));
 	}
 	
-	bool torrent::should_check_files() const
-	{
-		return m_state == torrent_status::checking_files
-			&& (!is_paused() || m_auto_managed);
-	}
-
 	bool torrent::is_paused() const
 	{
 		return m_paused || m_ses.is_paused();
@@ -4005,14 +3943,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_paused) return;
-		bool checking_files = should_check_files();
 		m_paused = true;
 		if (m_ses.is_paused()) return;
 		do_pause();
-		if (checking_files && !should_check_files())
-		{
-			// TODO: pause checking
-		}
 	}
 
 	void torrent::do_pause()
@@ -4065,11 +3998,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (!m_paused) return;
-		bool checking_files = should_check_files();
 		m_paused = false;
 		do_resume();
-		if (!checking_files && should_check_files())
-			m_ses.check_torrent(shared_from_this());
 	}
 
 	void torrent::do_resume()

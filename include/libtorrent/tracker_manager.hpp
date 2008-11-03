@@ -70,7 +70,6 @@ namespace libtorrent
 	class tracker_manager;
 	struct timeout_handler;
 	struct tracker_connection;
-	namespace aux { struct session_impl; }
 
 	// returns -1 if gzip header is invalid or the header size in bytes
 	TORRENT_EXPORT int gzip_header(const char* buf, int size);
@@ -198,8 +197,6 @@ namespace libtorrent
 		virtual void start() = 0;
 		virtual void close();
 		address const& bind_interface() const { return m_bind_interface; }
-		void sent_bytes(int bytes);
-		void received_bytes(int bytes);
 
 	protected:
 		boost::weak_ptr<request_callback> m_requester;
@@ -213,10 +210,10 @@ namespace libtorrent
 	{
 	public:
 
-		tracker_manager(aux::session_impl& ses, proxy_settings const& ps)
-			: m_ses(ses)
+		tracker_manager(session_settings const& s, proxy_settings const& ps)
+			: m_settings(s)
 			, m_proxy(ps)
-			, m_abort(false) {}
+	  		, m_abort(false) {}
 
 		void queue_request(
 			io_service& ios
@@ -231,9 +228,6 @@ namespace libtorrent
 		void remove_request(tracker_connection const*);
 		bool empty() const;
 		int num_requests() const;
-
-		void sent_bytes(int bytes);
-		void received_bytes(int bytes);
 		
 	private:
 
@@ -243,7 +237,7 @@ namespace libtorrent
 		typedef std::list<boost::intrusive_ptr<tracker_connection> >
 			tracker_connections_t;
 		tracker_connections_t m_connections;
-		aux::session_impl& m_ses;
+		session_settings const& m_settings;
 		proxy_settings const& m_proxy;
 		bool m_abort;
 	};

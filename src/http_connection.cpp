@@ -163,16 +163,15 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		if (m_ssl)
 		{
 			m_sock.instantiate<ssl_stream<socket_type> >(m_resolver.get_io_service());
-			ssl_stream<socket_type>* s = m_sock.get<ssl_stream<socket_type> >();
-			TORRENT_ASSERT(s);
-			bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, s->next_layer());
+			ssl_stream<socket_type>& s = m_sock.get<ssl_stream<socket_type> >();
+			bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, s.next_layer());
 			TORRENT_ASSERT(ret);
 		}
 		else
 		{
 			m_sock.instantiate<socket_type>(m_resolver.get_io_service());
 			bool ret = instantiate_connection(m_resolver.get_io_service()
-				, m_proxy, *m_sock.get<socket_type>());
+				, m_proxy, m_sock.get<socket_type>());
 			TORRENT_ASSERT(ret);
 		}
 #else
@@ -271,13 +270,6 @@ void http_connection::on_resolve(error_code const& e
 
 	std::transform(i, tcp::resolver::iterator(), std::back_inserter(m_endpoints)
 		, boost::bind(&tcp::resolver::iterator::value_type::endpoint, _1));
-
-	if (m_filter_handler) m_filter_handler(*this, m_endpoints);
-	if (m_endpoints.empty())
-	{
-		close();
-		return;
-	}
 
 	// The following statement causes msvc to crash (ICE). Since it's not
 	// necessary in the vast majority of cases, just ignore the endpoint

@@ -341,7 +341,6 @@ namespace libtorrent
 #endif
 
 		bool has_metadata() const;
-		bool set_metadata(char const* metadata, int size) const;
 		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;
 

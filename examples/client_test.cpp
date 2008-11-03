@@ -159,7 +159,6 @@ bool print_log = false;
 bool print_downloads = false;
 bool print_piece_bar = false;
 bool print_file_progress = false;
-bool show_dht_status = false;
 bool sequential_download = false;
 
 bool print_ip = true;
@@ -1204,7 +1203,6 @@ int main(int ac, char* av[])
 				if (c == 'd') print_downloads = !print_downloads;
 				if (c == 'f') print_file_progress = !print_file_progress;
 				if (c == 'a') print_piece_bar = !print_piece_bar;
-				if (c == 'g') show_dht_status = !show_dht_status;
 				// toggle columns
 				if (c == '1') print_ip = !print_ip;
 				if (c == '2') print_as = !print_as;
@@ -1248,7 +1246,7 @@ int main(int ac, char* av[])
 			std::stringstream out;
 			out << "[q] quit [i] toggle peers [d] toggle downloading pieces [p] toggle paused "
 				"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
-				"[j] force recheck [space] toggle session pause [c] clear error [v] scrape [g] show DHT\n"
+				"[j] force recheck [space] toggle session pause [c] clear error [v] scrape\n"
 				"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
 				"[5] toggle peer rate [6] toggle failures [7] toggle send buffers\n";
 
@@ -1385,19 +1383,10 @@ int main(int ac, char* av[])
 
 			out << "==== conns: " << sess_stat.num_peers
 				<< " down: " << esc("32") << add_suffix(sess_stat.download_rate) << "/s" << esc("0")
-				<< " (" << esc("32") << add_suffix(sess_stat.total_download) << esc("0") << ")"
-				" up: " << esc("31") << add_suffix(sess_stat.upload_rate) << "/s" << esc("0")
+				<< " (" << esc("32") << add_suffix(sess_stat.total_download) << esc("0") << ") "
+				" up: " << esc("31") << add_suffix(sess_stat.upload_rate) << "/s " << esc("0")
 				<< " (" << esc("31") << add_suffix(sess_stat.total_upload) << esc("0") << ")"
-				" tcp/ip: "
-				<< esc("32") << add_suffix(sess_stat.ip_overhead_download_rate) << "/s" << esc("0") << " "
-				<< esc("31") << add_suffix(sess_stat.ip_overhead_upload_rate) << "/s" << esc("0")
-				<< " DHT: "
-				<< esc("32") << add_suffix(sess_stat.dht_download_rate) << "/s" << esc("0") << " "
-				<< esc("31") << add_suffix(sess_stat.dht_upload_rate) << "/s" << esc("0")
-				<< " tracker: "
-				<< esc("32") << add_suffix(sess_stat.tracker_download_rate) << "/s" << esc("0") << " "
-				<< esc("31") << add_suffix(sess_stat.tracker_upload_rate) << "/s" << esc("0") << " ====\n"
-				"==== waste: " << add_suffix(sess_stat.total_redundant_bytes)
+				" waste: " << add_suffix(sess_stat.total_redundant_bytes)
 				<< " fail: " << add_suffix(sess_stat.total_failed_bytes)
 				<< " unchoked: " << sess_stat.num_unchoked << " / " << sess_stat.allowed_upload_slots
 				<< " bw queues: (" << sess_stat.up_bandwidth_queue
@@ -1406,24 +1395,7 @@ int main(int ac, char* av[])
 				" read cache hits: " << (cs.blocks_read_hit * 100 / cs.blocks_read) << "% "
 				" cache size: " << add_suffix(cs.cache_size * 16 * 1024)
 				<< " (" << add_suffix(cs.read_cache_size * 16 * 1024) << ")"
-				" ====\n"
-				"==== optimistic unchoke: " << sess_stat.optimistic_unchoke_counter
-				<< " unchoke counter: " << sess_stat.unchoke_counter
-				<< " ====" << std::endl;
-
-			if (show_dht_status)
-			{
-				out << "DHT nodes: " << sess_stat.dht_nodes
-					<< " DHT cached nodes: " << sess_stat.dht_node_cache
-					<< " total DHT size: " << sess_stat.dht_global_nodes << std::endl;
-				for (std::vector<dht_lookup>::iterator i = sess_stat.active_requests.begin()
-					, end(sess_stat.active_requests.end()); i != end; ++i)
-				{
-					out << "  " << i->type << " " << i->outstanding_requests << " ("
-						<< i->branch_factor << ") ( timeouts "
-						<< i->timeouts << " responses " << i->responses << ")\n";
-				}
-			}
+				" ====" << std::endl;
 
 			if (active_handle.is_valid())
 			{

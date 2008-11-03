@@ -158,9 +158,7 @@ namespace libtorrent
 		enum performance_warning_t
 		{
 			outstanding_disk_buffer_limit_reached,
-			outstanding_request_limit_reached,
-			upload_limit_too_low,
-			download_limit_too_low
+			outstanding_request_limit_reached
 		};
 
 		performance_alert(torrent_handle const& h
@@ -179,8 +177,6 @@ namespace libtorrent
 			{
 				"max outstanding disk writes reached",
 				"max outstanding piece requests reached",
-				"upload limit too low (download rate will suffer)",
-				"download limit too low (upload rate will suffer)"
 			};
 
 			return torrent_alert::message() + ": performance warning: "
@@ -1107,29 +1103,6 @@ namespace libtorrent
 		}
 	};
 
-	struct TORRENT_EXPORT portmap_log_alert: alert
-	{
-		portmap_log_alert(int t, std::string const& m)
-			: type(t), msg(m)
-		{}
-
-		int type;
-		std::string msg;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new portmap_log_alert(*this)); }
-		virtual char const* what() const { return "port map log"; }
-		const static int static_category = alert::port_mapping_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			static char const* type_str[] = {"NAT-PMP", "UPnP"};
-			std::stringstream ret;
-			ret << type_str[type] << ": " << msg;
-			return ret.str();
-		}
-	};
-
 	struct TORRENT_EXPORT fastresume_rejected_alert: torrent_alert
 	{
 		fastresume_rejected_alert(torrent_handle const& h
@@ -1169,56 +1142,6 @@ namespace libtorrent
 		{
 			error_code ec;
 			return "blocked peer: " + ip.to_string(ec);
-		}
-	};
-
-	struct TORRENT_EXPORT dht_announce_alert: alert
-	{
-		dht_announce_alert(address const& ip_, int port_
-			, sha1_hash const& info_hash_)
-			: ip(ip_)
-			, port(port_)
-			, info_hash(info_hash_)
-		{}
-		
-		address ip;
-		int port;
-		sha1_hash info_hash;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new dht_announce_alert(*this)); }
-		virtual char const* what() const { return "incoming dht announce"; }
-		const static int static_category = alert::dht_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			error_code ec;
-			std::stringstream ret;
-			ret << "incoming dht annonce: " << ip.to_string(ec) << ":"
-				<< port << " (" << info_hash << ")";
-			return ret.str();
-		}
-	};
-
-	struct TORRENT_EXPORT dht_get_peers_alert: alert
-	{
-		dht_get_peers_alert(sha1_hash const& info_hash_)
-			: info_hash(info_hash_)
-		{}
-		
-		sha1_hash info_hash;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new dht_get_peers_alert(*this)); }
-		virtual char const* what() const { return "incoming dht get_peers request"; }
-		const static int static_category = alert::dht_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			error_code ec;
-			std::stringstream ret;
-			ret << "incoming dht get_peers: " << info_hash;
-			return ret.str();
 		}
 	};
 }

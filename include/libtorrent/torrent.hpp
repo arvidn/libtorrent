@@ -229,8 +229,6 @@ namespace libtorrent
 		bool is_auto_managed() const { return m_auto_managed; }
 		void auto_managed(bool a);
 
-		bool should_check_files() const;
-
 		void delete_files();
 
 		// ============ start deprecation =============
@@ -639,7 +637,7 @@ namespace libtorrent
 		// to the checker thread for initial checking
 		// of the storage.
 		// a return value of false indicates an error
-		bool set_metadata(char const* metadata_buf, int metadata_size);
+		bool set_metadata(lazy_entry const& metadata, std::string& error);
 
 		int sequence_number() const { return m_sequence_number; }
 

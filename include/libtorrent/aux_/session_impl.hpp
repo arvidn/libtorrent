@@ -528,7 +528,6 @@ namespace libtorrent
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots(int congested_torrents
 				, int uncongested_torrents);
-			void recalculate_optimistic_unchoke_slot();
 
 			ptime m_last_tick;
 
@@ -605,9 +604,6 @@ namespace libtorrent
 			boost::shared_ptr<logger> m_logger;
 		private:
 
-#endif
-#ifdef TORRENT_UPNP_LOGGING
-			std::ofstream m_upnp_log;
 #endif
 			address m_external_address;
 

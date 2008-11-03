@@ -3,7 +3,7 @@ libtorrent API Documentation
 ============================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.15
+:Version: 0.14
 
 .. contents:: Table of contents
   :depth: 2
@@ -511,84 +511,46 @@ status()
 ``status()`` returns session wide-statistics and status. The ``session_status``
 struct has the following members::
 
-	struct dht_lookup
-	{
-		char const* type;
-		int outstanding_requests;
-		int timeouts;
-		int responses;
-		int branch_factor;
-	};
-
 	struct session_status
 	{
 		bool has_incoming_connections;
 
 		float upload_rate;
 		float download_rate;
-		size_type total_download;
-		size_type total_upload;
 
 		float payload_upload_rate;
 		float payload_download_rate;
-		size_type total_payload_download;
-		size_type total_payload_upload;
 
-		float ip_overhead_upload_rate;
-		float ip_overhead_download_rate;
-		size_type total_ip_overhead_download;
-		size_type total_ip_overhead_upload;
-
-		float dht_upload_rate;
-		float dht_download_rate;
-		size_type total_dht_download;
-		size_type total_dht_upload;
-
-		float tracker_upload_rate;
-		float tracker_download_rate;
-		size_type total_tracker_download;
-		size_type total_tracker_upload;
+		size_type total_download;
+		size_type total_upload;
 
 		size_type total_redundant_bytes;
 		size_type total_failed_bytes;
+
+		size_type total_payload_download;
+		size_type total_payload_upload;
 
 		int num_peers;
 		int num_unchoked;
 		int allowed_upload_slots;
 
-		int optimistic_unchoke_counter;
-		int unchoke_counter;
-
 		int dht_nodes;
 		int dht_cache_nodes;
 		int dht_torrents;
 		int dht_global_nodes;
-		std::vector<dht_lookup> active_requests;
 	};
 
 ``has_incoming_connections`` is false as long as no incoming connections have been
 established on the listening socket. Every time you change the listen port, this will
 be reset to false.
 
-``upload_rate``, ``download_rate`` are the total download and upload rates accumulated
-from all torrents. This includes bittorrent protocol, DHT and an estimated TCP/IP
-protocol overhead.
+``upload_rate``, ``download_rate``, ``payload_download_rate`` and ``payload_upload_rate``
+are the total download and upload rates accumulated from all torrents. The payload
+versions is the payload download only.
 
 ``total_download`` and ``total_upload`` are the total number of bytes downloaded and
-uploaded to and from all torrents. This also includes all the protocol overhead.
-
-``payload_download_rate`` and ``payload_upload_rate`` is the rate of the payload
-down- and upload only.
-
-``total_payload_download`` and ``total_payload_upload`` is the total transfers of payload
-only. The payload does not include the bittorrent protocol overhead, but only parts of the
-actual files to be downloaded.
-
-``ip_overhead_upload_rate``, ``ip_overhead_download_rate``, ``total_ip_overhead_download``
-and ``total_ip_overhead_upload`` is the estimated TCP/IP overhead in each direction.
-
-``dht_upload_rate``, ``dht_download_rate``, ``total_dht_download`` and ``total_dht_upload``
-is the DHT bandwidth usage.
+uploaded to and from all torrents. ``total_payload_download`` and ``total_payload_upload``
+are the same thing but where only the payload is considered.
 
 ``total_redundant_bytes`` is the number of bytes that has been received more than once.
 This can happen if a request from a peer times out and is requested from a different
@@ -607,11 +569,6 @@ be assigned a torrent yet.
 ``num_unchoked`` is the current number of unchoked peers.
 ``allowed_upload_slots`` is the current allowed number of unchoked peers.
 
-``optimistic_unchoke_counter`` and ``unchoke_counter`` tells the number of
-seconds until the next optimistic unchoke change and the start of the next
-unchoke interval. These numbers may be reset prematurely if a peer that is
-unchoked disconnects or becomes notinterested.
-
 ``dht_nodes``, ``dht_cache_nodes`` and ``dht_torrents`` are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
 the DHT is running, ``dht_nodes`` is set to the number of nodes in the routing
@@ -624,9 +581,6 @@ becomes unresponsive.
 
 ``dht_global_nodes`` is an estimation of the total number of nodes in the DHT
 network.
-
-``active_requests`` is a vector of the currently running DHT lookups.
-
 
 get_cache_status()
 ------------------
@@ -1658,7 +1612,6 @@ Its declaration looks like this::
 		void auto_managed(bool m) const;
 
 		bool has_metadata() const;
-		bool set_metadata(char const* buf, int size) const;
 
 		boost::filesystem::path save_path() const;
 		void move_storage(boost::filesystem::path const& save_path) const;
@@ -2002,26 +1955,17 @@ is_auto_managed() auto_managed()
 ``auto_managed()`` changes whether the torrent is auto managed or not. For more info,
 see queuing_.
 
-has_metadata() set_metadata()
------------------------------
+has_metadata()
+--------------
 
 	::
 
 		bool has_metadata() const;
-		bool set_metadata(char const* buf, int size) const;
 
-``has_metadata`` returns true if this torrent has metadata (either it was started from a
-.torrent file or the metadata has been downloaded). The only scenario where this can return
-false is when the torrent was started torrent-less (i.e. with just an info-hash and tracker
-ip). Note that if the torrent doesn't have metadata, the member `get_torrent_info()`_ will
-throw.
-
-``set_metadata`` expects the *info* section of metadata. i.e. The buffer passed in will be
-hashed and verified against the info-hash. If it fails, a ``metadata_failed_alert`` will be
-generated. If it passes, a ``metadata_received_alert`` is generated. The function returns
-true if the metadata is successfully set on the torrent, and false otherwise. If the torrent
-already has metadata, this function will not affect the torrent, and false will be returned.
-
+Returns true if this torrent has metadata (either it was started from a .torrent file or the
+metadata has been downloaded). The only scenario where this can return false is when the torrent
+was started torrent-less (i.e. with just an info-hash and tracker ip). Note that if the torrent
+doesn't have metadata, the member `get_torrent_info()`_ will throw.
 
 set_tracker_login()
 -------------------
@@ -2712,8 +2656,6 @@ It contains the following fields::
 
 		int rtt;
 
-		int num_pieces;
-
 		int download_rate_peak;
 		int upload_rate_peak;
 
@@ -2933,8 +2875,6 @@ from the bandwidth manager.
 ``rtt`` is an estimated round trip time to this peer, in milliseconds. It is
 estimated by timing the the tcp ``connect()``. It may be 0 for incoming connections.
 
-``num_pieces`` is the number of pieces this peer has.
-
 ``download_rate_peak`` and ``upload_rate_peak`` are the highest download and upload
 rates seen on this connection. They are given in bytes per second. This number is
 reset to 0 on reconnect.
@@ -2979,7 +2919,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool lazy_bitfields;
 		int inactivity_timeout;
 		int unchoke_interval;
-		int optimistic_unchoke_interval;
+		int optimistic_unchoke_multiplier;
 		address announce_ip;
 		int num_want;
 		int initial_picker_threshold;
@@ -3141,8 +3081,8 @@ On this interval, peers are re-evaluated for being choked/unchoked. This
 is defined as 30 seconds in the protocol, and it should be significantly
 longer than what it takes for TCP to ramp up to it's max rate.
 
-``optimistic_unchoke_interval`` is the number of seconds between
-each *optimistic* unchoke. On this timer, the currently optimistically
+``optimistic_unchoke_multiplier`` is the number of unchoke intervals between
+each *optimistic* unchoke interval. On this timer, the currently optimistically
 unchoked peer will change.
 
 ``announce_ip`` is the ip address passed along to trackers as the ``&ip=`` parameter.
@@ -3959,7 +3899,6 @@ is its synopsis:
 			progress_notification = *implementation defined*,
 			ip_block_notification = *implementation defined*,
 			performance_warning = *implementation defined*,
-			dht_notification = *implementation defined*,
 
 			all_categories = *implementation defined*
 		};
@@ -4078,23 +4017,6 @@ the index returned from add_mapping_.
 		int mapping;
 		int external_port;
 		int type;
-	};
-
-portmap_log_alert
------------------
-
-This alert is generated to log informational events related to either
-UPnP or NAT-PMP. They contain a log line and the type (0 = NAT-PMP
-and 1 = UPnP). Displaying these messages to an end user is only useful
-for debugging the UPnP or NAT-PMP implementation.
-
-::
-
-	struct portmap_log_alert: alert
-	{
-		//...
-		int type;
-		std::string msg;
 	};
 
 file_error_alert
@@ -4372,8 +4294,6 @@ upload or download rate performance.
 		{
 			outstanding_disk_buffer_limit_reached,
 			outstanding_request_limit_reached,
-			upload_limit_too_low,
-			download_limit_too_low
 		};
 
 		performance_warning_t warning_code;
@@ -4493,36 +4413,6 @@ generating the resume data. ``msg`` describes what went wrong.
 	{
 		// ...
 		std::string msg;
-	};
-
-dht_announce_alert
-------------------
-
-This alert is generated when a DHT node announces to an info-hash on our DHT node. It belongs
-to the ``dht_notification`` category.
-
-::
-
-	struct dht_announce_alert: alert
-	{
-		// ...
-		address ip;
-		int port;
-		sha1_hash info_hash;
-	};
-
-dht_get_peers_alert
--------------------
-
-This alert is generated when a DHT node sends a ``get_peers`` message to our DHT node.
-It belongs to the ``dht_notification`` category.
-
-::
-
-	struct dht_get_peers_alert: alert
-	{
-		// ...
-		sha1_hash info_hash;
 	};
 
 dispatcher
