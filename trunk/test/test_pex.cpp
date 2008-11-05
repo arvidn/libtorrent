@@ -90,8 +90,9 @@ void test_pex()
 
 	test_sleep(1000);
 
-	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1"), ses1.listen_port()));
-	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1"), ses3.listen_port()));
+	error_code ec;
+	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()));
+	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec), ses3.listen_port()));
 
 	for (int i = 0; i < 90; ++i)
 	{

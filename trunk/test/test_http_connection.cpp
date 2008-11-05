@@ -66,8 +66,9 @@ void http_connect_handler(http_connection& c)
 {
 	++connect_handler_called;
 	TEST_CHECK(c.socket().is_open());
-	std::cerr << "connected to: " << c.socket().remote_endpoint() << std::endl;
-	TEST_CHECK(c.socket().remote_endpoint().address() == address::from_string("127.0.0.1"));
+	error_code ec;
+	std::cerr << "connected to: " << c.socket().remote_endpoint(ec) << std::endl;
+	TEST_CHECK(c.socket().remote_endpoint(ec).address() == address::from_string("127.0.0.1", ec));
 }
 
 void http_handler(error_code const& ec, http_parser const& parser
@@ -110,7 +111,8 @@ void run_test(std::string const& url, int size, int status, int connected
 		, &::http_handler, true, &::http_connect_handler));
 	h->get(url, seconds(5), 0, &ps);
 	ios.reset();
-	ios.run();
+	error_code e;
+	ios.run(e);
 
 	std::cerr << "connect_handler_called: " << connect_handler_called << std::endl;
 	std::cerr << "handler_called: " << handler_called << std::endl;

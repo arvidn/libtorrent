@@ -309,7 +309,8 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (connect_peers)
 	{
 		std::cerr << "connecting peer\n";
-		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1")
+		error_code ec;
+		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 			, ses2->listen_port()));
 
 		if (ses3)
@@ -317,10 +318,10 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 			// give the other peers some time to get an initial
 			// set of pieces before they start sharing with each-other
 			tor3.connect_peer(tcp::endpoint(
-				address::from_string("127.0.0.1")
+				address::from_string("127.0.0.1", ec)
 				, ses2->listen_port()));
 			tor3.connect_peer(tcp::endpoint(
-				address::from_string("127.0.0.1")
+				address::from_string("127.0.0.1", ec)
 				, ses1->listen_port()));
 		}
 	}
