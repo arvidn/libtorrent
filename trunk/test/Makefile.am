@@ -1,6 +1,6 @@
 test_programs = test_hasher test_bencoding test_ip_filter test_piece_picker \
 test_storage test_metadata_extension test_buffer test_swarm test_pe_crypto test_primitives \
-test_bandwidth_limiter test_upnp test_fast_extension test_pex test_web_seed \
+test_bandwidth_limiter test_fast_extension test_pex test_web_seed \
 test_http_connection test_torrent test_transfer test_lsd
 
 if ENABLE_TESTS
@@ -22,7 +22,6 @@ test_http_connection_SOURCES = test_http_connection.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
 test_pex_SOURCES = test_pex.cpp
 test_fast_extension_SOURCES = test_fast_extension.cpp
-test_upnp_SOURCES = test_upnp.cpp
 test_hasher_SOURCES = test_hasher.cpp
 test_bencoding_SOURCES = test_bencoding.cpp
 test_ip_filter_SOURCES = test_ip_filter.cpp
