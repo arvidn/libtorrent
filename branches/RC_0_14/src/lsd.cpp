@@ -60,11 +60,13 @@ namespace libtorrent
 	address guess_local_address(io_service&);
 }
 
+static error_code ec;
+
 lsd::lsd(io_service& ios, address const& listen_interface
 	, peer_callback_t const& cb)
 	: m_callback(cb)
 	, m_retry_count(1)
-	, m_socket(ios, udp::endpoint(address_v4::from_string("239.192.152.143"), 6771)
+	, m_socket(ios, udp::endpoint(address_v4::from_string("239.192.152.143", ec), 6771)
 		, bind(&lsd::on_announce, self(), _1, _2, _3))
 	, m_broadcast_timer(ios)
 	, m_disabled(false)

@@ -55,6 +55,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::bind;
 using namespace libtorrent;
 
+static error_code ec;
+
 upnp::upnp(io_service& ios, connection_queue& cc
 	, address const& listen_interface, std::string const& user_agent
 	, portmap_callback_t const& cb, bool ignore_nonrouters, void* state)
@@ -62,7 +64,7 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_callback(cb)
 	, m_retry_count(0)
 	, m_io_service(ios)
-	, m_socket(ios, udp::endpoint(address_v4::from_string("239.255.255.250"), 1900)
+	, m_socket(ios, udp::endpoint(address_v4::from_string("239.255.255.250", ec), 1900)
 		, bind(&upnp::on_reply, self(), _1, _2, _3), false)
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
