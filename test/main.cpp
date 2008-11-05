@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <iostream>
+#include <boost/config.hpp>
 
 int test_main();
 

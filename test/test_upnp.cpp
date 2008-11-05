@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
 	std::cerr << "broadcasting for UPnP device" << std::endl;
 
 	ios.reset();
-	ios.run();
+	ios.run(ec);
 
 	upnp_handler->add_mapping(upnp::tcp, atoi(argv[1]), atoi(argv[1]));
 	upnp_handler->add_mapping(upnp::udp, atoi(argv[2]), atoi(argv[2]));
@@ -82,13 +82,13 @@ int main(int argc, char* argv[])
 		<< " UDP: " << argv[2] << std::endl;
 
 	ios.reset();
-	ios.run();
+	ios.run(ec);
 	std::cerr << "router: " << upnp_handler->router_model() << std::endl;
 	std::cerr << "removing mappings" << std::endl;
 	upnp_handler->close();
 
 	ios.reset();
-	ios.run();
+	ios.run(ec);
 	std::cerr << "closing" << std::endl;
 }
 
