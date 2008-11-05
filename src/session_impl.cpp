@@ -157,7 +157,6 @@ namespace aux {
 #endif
 		, m_tracker_manager(*this, m_tracker_proxy)
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
-		, m_listen_interface(address::from_string(listen_interface), listen_port_range.first)
 		, m_abort(false)
 		, m_paused(false)
 		, m_max_uploads(8)
@@ -189,6 +188,10 @@ namespace aux {
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 	{
+		error_code ec;
+		m_listen_interface = tcp::endpoint(address::from_string(listen_interface, ec), listen_port_range.first);
+		TORRENT_ASSERT(!ec);
+
 		m_tcp_mapping[0] = -1;
 		m_tcp_mapping[1] = -1;
 		m_udp_mapping[0] = -1;
@@ -271,7 +274,6 @@ namespace aux {
 			*i = printable[rand() % (sizeof(printable)-1)];
 		}
 
-		error_code ec;
 		m_timer.expires_from_now(seconds(1), ec);
 		m_timer.async_wait(
 			bind(&session_impl::second_tick, this, _1));
@@ -1675,23 +1677,17 @@ namespace aux {
 
 		do
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try
-			{
-#endif
-				m_io_service.run();
-				TORRENT_ASSERT(m_abort == true);
-#ifndef BOOST_NO_EXCEPTIONS
-			}
-			catch (std::exception& e)
+			error_code ec;
+			m_io_service.run(ec);
+			TORRENT_ASSERT(m_abort == true);
+			if (ec)
 			{
 #ifndef NDEBUG
-				std::cerr << e.what() << "\n";
-				std::string err = e.what();
+				std::cerr << ec.message() << "\n";
+				std::string err = ec.message();
 #endif
 				TORRENT_ASSERT(false);
 			}
-#endif
 		}
 		while (!m_abort);
 
@@ -1944,7 +1940,18 @@ namespace aux {
 
 		tcp::endpoint new_interface;
 		if (net_interface && std::strlen(net_interface) > 0)
-			new_interface = tcp::endpoint(address::from_string(net_interface), port_range.first);
+		{
+			error_code ec;
+			new_interface = tcp::endpoint(address::from_string(net_interface, ec), port_range.first);
+			if (ec)
+			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+				(*m_logger) << time_now_string() << "listen_on: " << net_interface
+					<< " failed: " << ec.message() << "\n";
+#endif
+				return false;
+			}
+		}
 		else
 			new_interface = tcp::endpoint(address_v4::any(), port_range.first);
 

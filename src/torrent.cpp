@@ -571,7 +571,9 @@ namespace libtorrent
 					std::string ip = e->dict_find_string_value("ip");
 					int port = e->dict_find_int_value("port");
 					if (ip.empty() || port == 0) continue;
-					tcp::endpoint a(address::from_string(ip), (unsigned short)port);
+					error_code ec;
+					tcp::endpoint a(address::from_string(ip, ec), (unsigned short)port);
+					if (ec) continue;
 					m_policy.peer_from_tracker(a, id, peer_info::resume_data, 0);
 				}
 			}
@@ -588,7 +590,9 @@ namespace libtorrent
 					std::string ip = e->dict_find_string_value("ip");
 					int port = e->dict_find_int_value("port");
 					if (ip.empty() || port == 0) continue;
-					tcp::endpoint a(address::from_string(ip), (unsigned short)port);
+					error_code ec;
+					tcp::endpoint a(address::from_string(ip, ec), (unsigned short)port);
+					if (ec) continue;
 					policy::peer* p = m_policy.peer_from_tracker(a, id, peer_info::resume_data, 0);
 					if (p) p->banned = true;
 				}
@@ -792,7 +796,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		m_net_interface = tcp::endpoint(address::from_string(net_interface), 0);
+		error_code ec;
+		address a(address::from_string(net_interface, ec));
+		if (ec) return;
+		m_net_interface = tcp::endpoint(a, 0);
 	}
 
 	void torrent::on_tracker_announce_disp(boost::weak_ptr<torrent> p
