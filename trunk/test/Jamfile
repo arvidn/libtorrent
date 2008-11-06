@@ -23,10 +23,10 @@ project
    ;
 
 exe test_upnp : test_upnp.cpp /torrent//torrent
-	: <link>static <threading>multi <debug-iterators>on <invariant-checks>full <logging>verbose ;
+	: <link>static <threading>multi <debug-iterators>on <invariant-checks>full ;
 
 exe test_natpmp : test_natpmp.cpp /torrent//torrent
-	: <link>static <threading>multi <debug-iterators>on <invariant-checks>full <logging>verbose ;
+	: <link>static <threading>multi <debug-iterators>on <invariant-checks>full ;
 
 test-suite libtorrent : 
 	[ run test_auto_unchoke.cpp ]
