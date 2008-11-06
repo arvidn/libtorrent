@@ -1,11 +1,5 @@
 use-project /torrent : .. ;
 
-exe test_upnp : test_upnp.cpp /torrent//torrent
-	: <link>static <threading>multi <debug-iterators>on <logging>verbose <upnp-logging>on ;
-
-exe test_natpmp : test_natpmp.cpp /torrent//torrent
-	: <link>static <threading>multi <debug-iterators>on <logging>verbose <upnp-logging>on ;
-
 lib test_common
 	:
 	main.cpp
@@ -28,6 +22,11 @@ project
 	<debug-iterators>on
    ;
 
+exe test_upnp : test_upnp.cpp /torrent//torrent
+	: <link>static <threading>multi <debug-iterators>on <invariant-checks>full <logging>verbose ;
+
+exe test_natpmp : test_natpmp.cpp /torrent//torrent
+	: <link>static <threading>multi <debug-iterators>on <invariant-checks>full <logging>verbose ;
 
 test-suite libtorrent : 
 	[ run test_auto_unchoke.cpp ]
