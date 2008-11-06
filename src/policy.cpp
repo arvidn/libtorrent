@@ -179,6 +179,7 @@ namespace libtorrent
 	void request_a_block(torrent& t, peer_connection& c)
 	{
 		if (t.is_seed()) return;
+		if (c.no_download()) return;
 
 		TORRENT_ASSERT(t.valid_metadata());
 		TORRENT_ASSERT(c.peer_info_struct() != 0 || !dynamic_cast<bt_peer_connection*>(&c));
