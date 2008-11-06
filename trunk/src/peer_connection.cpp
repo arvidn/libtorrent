@@ -130,6 +130,7 @@ namespace libtorrent
 		, m_upload_only(false)
 		, m_snubbed(false)
 		, m_bitfield_received(false)
+		, m_no_download(false)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -237,6 +238,7 @@ namespace libtorrent
 		, m_upload_only(false)
 		, m_snubbed(false)
 		, m_bitfield_received(false)
+		, m_no_download(false)
 #ifndef NDEBUG
 		, m_in_constructor(true)
 		, m_disconnect_started(false)

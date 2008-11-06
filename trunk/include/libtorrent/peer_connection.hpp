@@ -198,6 +198,9 @@ namespace libtorrent
 		void request_large_blocks(bool b)
 		{ m_request_large_blocks = b; }
 
+		bool no_download() const { return m_no_download; }
+		void no_download(bool b) { m_no_download = b; }
+
 		void set_priority(int p)
 		{ m_priority = p; }
 
@@ -318,6 +321,8 @@ namespace libtorrent
 		bool on_local_network() const;
 		bool ignore_bandwidth_limits() const
 		{ return m_ignore_bandwidth_limits; }
+		void ignore_bandwidth_limits(bool i)
+		{ m_ignore_bandwidth_limits = i; }
 
 		bool failed() const { return m_failed; }
 
@@ -661,7 +666,7 @@ namespace libtorrent
 		
 		// this is the torrent this connection is
 		// associated with. If the connection is an
-		// incoming conncetion, this is set to zero
+		// incoming connection, this is set to zero
 		// until the info_hash is received. Then it's
 		// set to the torrent it belongs to.
 		boost::weak_ptr<torrent> m_torrent;
@@ -870,6 +875,10 @@ namespace libtorrent
 		// this is set to true once the bitfield is received
 		bool m_bitfield_received:1;
 
+		// if this is set to true, the client will not
+		// pick any pieces from this peer
+		bool m_no_download:1;
+		
 #ifndef NDEBUG
 	public:
 		bool m_in_constructor:1;
