@@ -1339,7 +1339,11 @@ namespace libtorrent
 		TORRENT_ASSERT(received > 0);
 
 		// this means the connection has been closed already
-		if (associated_torrent().expired()) return false;
+		if (associated_torrent().expired())
+		{
+			m_statistics.received_bytes(0, received);
+			return false;
+		}
 
 		buffer::const_interval recv_buffer = receive_buffer();
 
@@ -1360,6 +1364,7 @@ namespace libtorrent
 			}
 #endif
 
+			m_statistics.received_bytes(0, received);
 			std::stringstream msg;
 			msg << "unkown message id: " << packet_type << " size: " << packet_size();
 			disconnect(msg.str().c_str(), 2);
