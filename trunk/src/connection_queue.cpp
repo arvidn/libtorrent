@@ -122,7 +122,7 @@ namespace libtorrent
 		while (!m_queue.empty())
 		{
 			// we don't want to call the timeout callback while we're locked
-			// since that is a recepie for dead-locks
+			// since that is a recipie for dead-locks
 			entry e = m_queue.front();
 			m_queue.pop_front();
 			if (e.connecting) --m_num_connecting;

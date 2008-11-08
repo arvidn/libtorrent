@@ -161,6 +161,12 @@ namespace libtorrent
 		TORRENT_FORWARD(use_interface(net_interface));
 	}
 
+	int torrent_handle::max_connections() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD_RETURN(max_connections(), 0);
+	}
+
 	void torrent_handle::set_max_connections(int max_connections) const
 	{
 		INVARIANT_CHECK;
