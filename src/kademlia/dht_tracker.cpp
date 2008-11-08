@@ -130,7 +130,7 @@ namespace libtorrent { namespace dht
 
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
-	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses, udp_socket& sock
+	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
 		, dht_settings const& settings)
 		: m_dht(ses, bind(&dht_tracker::send_packet, this, _1), settings)
 		, m_ses(ses)
