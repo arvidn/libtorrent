@@ -326,6 +326,8 @@ namespace libtorrent
 		void set_max_connections(int limit);
 		void set_max_half_open_connections(int limit);
 
+		int max_connections() const;
+
 		std::auto_ptr<alert> pop_alert();
 #ifndef TORRENT_NO_DEPRECATE
 		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;

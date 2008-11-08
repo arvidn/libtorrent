@@ -714,6 +714,7 @@ namespace libtorrent
 
 	void disk_io_thread::free_buffer(char* buf)
 	{
+		TORRENT_ASSERT(buf);
 		mutex_t::scoped_lock l(m_pool_mutex);
 #ifdef TORRENT_STATS
 		--m_allocations;

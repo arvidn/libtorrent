@@ -116,6 +116,7 @@ The ``session`` class has the following synopsis::
 		int download_rate_limit() const;
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
+		int max_connections() const;
 		void set_max_half_open_connections(int limit);
 		int max_half_open_connections() const;
 
@@ -406,19 +407,22 @@ of upload rate.
 set limits.
 
 
-set_max_uploads() set_max_connections()
----------------------------------------
+set_max_uploads() set_max_connections() max_connections()
+---------------------------------------------------------
 
 	::
 
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
+		int max_connections() const;
 
 These functions will set a global limit on the number of unchoked peers (uploads)
 and the number of connections opened. The number of connections is set to a hard
 minimum of at least two connections per torrent, so if you set a too low
 connections limit, and open too many torrents, the limit will not be met. The
 number of uploads is at least one per torrent.
+
+``max_connections()`` returns the current setting.
 
 
 num_uploads() num_connections()
@@ -1616,6 +1620,7 @@ Its declaration looks like this::
 		void set_ratio(float ratio) const;
 		void set_max_uploads(int max_uploads) const;
 		void set_max_connections(int max_connections) const;
+		int max_connections() const;
 		void set_upload_limit(int limit) const;
 		int upload_limit() const;
 		void set_download_limit(int limit) const;
@@ -2123,13 +2128,14 @@ info_hash()
 ``info_hash()`` returns the info-hash for the torrent.
 
 
-set_max_uploads() set_max_connections()
----------------------------------------
+set_max_uploads() set_max_connections() max_connections()
+---------------------------------------------------------
 
 	::
 
 		void set_max_uploads(int max_uploads) const;
 		void set_max_connections(int max_connections) const;
+		int max_connections() const;
 
 ``set_max_uploads()`` sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.
@@ -2138,6 +2144,8 @@ torrent. If you set this to -1, there will be no limit.
 connections are used up, incoming connections may be refused or poor connections may be closed.
 This must be at least 2. The default is unlimited number of connections. If -1 is given to the
 function, it means unlimited.
+
+``max_connections()`` returns the current setting.
 
 
 save_resume_data()

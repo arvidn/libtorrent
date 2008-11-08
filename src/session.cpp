@@ -501,6 +501,11 @@ namespace libtorrent
 		m_impl->set_max_uploads(limit);
 	}
 
+	int session::max_connections() const
+	{
+		return m_impl->max_connections();
+	}
+
 	void session::set_max_connections(int limit)
 	{
 		m_impl->set_max_connections(limit);
