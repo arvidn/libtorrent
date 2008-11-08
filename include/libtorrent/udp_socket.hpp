@@ -120,6 +120,7 @@ namespace libtorrent
 		void set_rate_limit(int limit) { m_rate_limit = limit; }
 		bool can_send() const { return int(m_queue.size()) >= m_queue_size_limit; }
 		bool send(udp::endpoint const& ep, char const* p, int len, error_code& ec);
+		void close();
 
 	private:
 		struct queued_packet
