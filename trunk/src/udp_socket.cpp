@@ -532,3 +532,59 @@ void udp_socket::connect2(error_code const& e)
 	m_tunnel_packets = true;
 }
 
+rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
+	, callback_t const& c, connection_queue& cc)
+	: udp_socket(ios, c, cc)
+	, m_timer(ios)
+	, m_queue_size_limit(20)
+	, m_rate_limit(2000)
+	, m_quota(2000)
+	, m_last_tick(time_now())
+{
+	error_code ec;
+	m_timer.expires_from_now(seconds(1), ec);
+	m_timer.async_wait(boost::bind(&rate_limited_udp_socket::on_tick, this, _1));
+	TORRENT_ASSERT(!ec);
+}
+
+bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec)
+{
+	if (m_quota < len)
+	{
+		if (int(m_queue.size()) >= m_queue_size_limit) return false;
+		m_queue.push_back(queued_packet());
+		queued_packet& qp = m_queue.back();
+		qp.ep = ep;
+		qp.buf.insert(qp.buf.begin(), p, p + len);
+		return true;
+	}
+
+	m_quota -= len;
+	send(ep, p, len, ec);
+	return true;
+}
+
+void rate_limited_udp_socket::on_tick(error_code const& e)
+{
+	if (e) return;
+	error_code ec;
+	ptime now = time_now();
+	m_timer.expires_at(now + seconds(1), ec);
+	m_timer.async_wait(boost::bind(&rate_limited_udp_socket::on_tick, this, _1));
+
+	time_duration delta = now - m_last_tick;
+	m_last_tick = now;
+	if (m_quota < m_rate_limit) m_quota += m_rate_limit * total_milliseconds(delta) / 1000.f;
+
+	if (m_queue.empty()) return;
+
+	while (!m_queue.empty() && int(m_queue.front().buf.size()) >= m_quota)
+	{
+		queued_packet const& p = m_queue.front();
+		m_quota -= p.buf.size();
+		error_code ec;
+		send(p.ep, &p.buf[0], p.buf.size(), ec);
+		m_queue.pop_front();
+	}
+}
+
