@@ -536,9 +536,9 @@ rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
 	, callback_t const& c, connection_queue& cc)
 	: udp_socket(ios, c, cc)
 	, m_timer(ios)
-	, m_queue_size_limit(20)
-	, m_rate_limit(2000)
-	, m_quota(2000)
+	, m_queue_size_limit(200)
+	, m_rate_limit(4000)
+	, m_quota(4000)
 	, m_last_tick(time_now())
 {
 	error_code ec;
@@ -547,11 +547,13 @@ rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
 	TORRENT_ASSERT(!ec);
 }
 
-bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec)
+bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags)
 {
 	if (m_quota < len)
 	{
-		if (int(m_queue.size()) >= m_queue_size_limit) return false;
+		// bit 1 of flags means "don't drop"
+		if (int(m_queue.size()) >= m_queue_size_limit && (flags & 1) == 0)
+			return false;
 		m_queue.push_back(queued_packet());
 		queued_packet& qp = m_queue.back();
 		qp.ep = ep;
@@ -560,7 +562,7 @@ bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p, int l
 	}
 
 	m_quota -= len;
-	send(ep, p, len, ec);
+	udp_socket::send(ep, p, len, ec);
 	return true;
 }
 
@@ -583,7 +585,7 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 		queued_packet const& p = m_queue.front();
 		m_quota -= p.buf.size();
 		error_code ec;
-		send(p.ep, &p.buf[0], p.buf.size(), ec);
+		udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec);
 		m_queue.pop_front();
 	}
 }
