@@ -1077,9 +1077,9 @@ namespace libtorrent { namespace dht
 			{
 				m_queries_out_bytes += m_send_buf.size();
 			}
+#endif
 		}
 		TORRENT_LOG(dht_tracker) << log_line.str() << " ]";
-#endif
 
 		if (!m.piggy_backed_ping) return;
 		
