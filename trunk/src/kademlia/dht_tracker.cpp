@@ -447,7 +447,7 @@ namespace libtorrent { namespace dht
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			std::string msg(buf, buf + bytes_transferred);
-			TORRENT_LOG(dht_tracker) << "invalid incoming packet\n";
+			TORRENT_LOG(dht_tracker) << "invalid incoming packet\n" << msg << "\n";
 #endif
 			return;
 		}
@@ -461,7 +461,8 @@ namespace libtorrent { namespace dht
 		if (e.type() != entry::dictionary_t)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(dht_tracker) << " RECEIVED invalid dht packet";
+			std::string msg(buf, buf + bytes_transferred);
+			TORRENT_LOG(dht_tracker) << " RECEIVED invalid dht packet (not a dictionary)\n" << msg << "\n";
 #endif
 			return;
 		}
@@ -472,7 +473,13 @@ namespace libtorrent { namespace dht
 
 		entry const* transaction = e.find_key("t");
 		if (!transaction || transaction->type() != entry::string_t)
+		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			std::string msg(buf, buf + bytes_transferred);
+			TORRENT_LOG(dht_tracker) << " RECEIVED invalid dht packet (missing or invalid transaction id)";
+#endif
 			return;
+		}
 
 		m.transaction_id = transaction->string();
 
@@ -523,7 +530,12 @@ namespace libtorrent { namespace dht
 
 		entry const* y = e.find_key("y");
 		if (!y || y->type() != entry::string_t)
+		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(dht_tracker) << " RECEIVED invalid dht packet (missing or invalid type)";
+#endif
 			return;
+		}
 
 		std::string const& msg_type = y->string();
 
@@ -649,7 +661,12 @@ namespace libtorrent { namespace dht
 
 				std::string const& target = target_ent->string();
 				if (target.size() != 20)
+				{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+					TORRENT_LOG(dht_tracker) << "size of 'target' is not 20 bytes: " << target.size();
+#endif
 					return;
+				}
 				std::copy(target.begin(), target.end(), m.info_hash.begin());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 				log_line << " t: " << boost::lexical_cast<std::string>(m.info_hash);
@@ -661,11 +678,21 @@ namespace libtorrent { namespace dht
 			{
 				entry const* ih_ent = a->find_key("info_hash");
 				if (!ih_ent || ih_ent->type() != entry::string_t)
+				{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+					TORRENT_LOG(dht_tracker) << "missing 'info_hash' in get_peers query";
+#endif
 					return;
+				}
 
 				std::string const& info_hash = ih_ent->string();
 				if (info_hash.size() != 20)
+				{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+					TORRENT_LOG(dht_tracker) << "size of 'info_hash' is not 20 bytes: " << info_hash.size();
+#endif
 					return;
+				}
 				std::copy(info_hash.begin(), info_hash.end(), m.info_hash.begin());
 				m.message_id = libtorrent::dht::messages::get_peers;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -679,11 +706,21 @@ namespace libtorrent { namespace dht
 #endif
 				entry const* ih_ent = a->find_key("info_hash");
 				if (!ih_ent || ih_ent->type() != entry::string_t)
+				{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+					TORRENT_LOG(dht_tracker) << "missing 'info_hash' in announce_peer query";
+#endif
 					return;
+				}
 
 				std::string const& info_hash = ih_ent->string();
 				if (info_hash.size() != 20)
+				{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+					TORRENT_LOG(dht_tracker) << "size of 'info_hash' is not 20 bytes: " << info_hash.size();
+#endif
 					return;
+				}
 				std::copy(info_hash.begin(), info_hash.end(), m.info_hash.begin());
 				entry const* port_ent = a->find_key("port");
 				if (!port_ent || port_ent->type() != entry::int_t)
@@ -750,9 +787,8 @@ namespace libtorrent { namespace dht
 		else
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			std::string msg(buf, buf + bytes_transferred);
-			TORRENT_LOG(dht_tracker) << "invalid incoming packet: "
-				<< e.what() << "\n" << msg << "\n";
+			TORRENT_LOG(dht_tracker) << "  *** UNSUPPORTED REQUEST *** : "
+				<< msg_type;
 #endif
 			return;
 		}
@@ -883,6 +919,7 @@ namespace libtorrent { namespace dht
 	{
 		using libtorrent::bencode;
 		using libtorrent::entry;
+		int send_flags = 0;
 		entry e(entry::dictionary_t);
 		TORRENT_ASSERT(!m.transaction_id.empty() || m.message_id == messages::error);
 		e["t"] = m.transaction_id;
@@ -968,6 +1005,9 @@ namespace libtorrent { namespace dht
 		}
 		else
 		{
+			// set bit 1 of send_flags to indicate that
+			// this packet should not be dropped by the
+			// rate limiter.
 			e["y"] = "q";
 			e["a"] = entry(entry::dictionary_t);
 			entry& a = e["a"];
@@ -986,6 +1026,7 @@ namespace libtorrent { namespace dht
 			{
 				case messages::find_node:
 				{
+					send_flags = 1;
 					a["target"] = std::string(m.info_hash.begin(), m.info_hash.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 					log_line << " target: " << boost::lexical_cast<std::string>(m.info_hash);
@@ -994,6 +1035,7 @@ namespace libtorrent { namespace dht
 				}
 				case messages::get_peers:
 				{
+					send_flags = 1;
 					a["info_hash"] = std::string(m.info_hash.begin(), m.info_hash.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 					log_line << " ih: " << boost::lexical_cast<std::string>(m.info_hash);
@@ -1001,6 +1043,7 @@ namespace libtorrent { namespace dht
 					break;	
 				}
 				case messages::announce_peer:
+					send_flags = 1;
 					a["port"] = m.port;
 					a["info_hash"] = std::string(m.info_hash.begin(), m.info_hash.end());
 					a["token"] = m.write_token;
@@ -1017,22 +1060,23 @@ namespace libtorrent { namespace dht
 		m_send_buf.clear();
 		bencode(std::back_inserter(m_send_buf), e);
 		error_code ec;
-		m_sock.send(m.addr, &m_send_buf[0], (int)m_send_buf.size(), ec);
-
-		// account for IP and UDP overhead
-		m_sent_bytes += m_send_buf.size() + 28;
+		if (m_sock.send(m.addr, &m_send_buf[0], (int)m_send_buf.size(), ec, send_flags))
+		{
+			// account for IP and UDP overhead
+			m_sent_bytes += m_send_buf.size() + 28;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		m_total_out_bytes += m_send_buf.size();
+			m_total_out_bytes += m_send_buf.size();
 		
-		if (m.reply)
-		{
-			++m_replies_sent[m.message_id];
-			m_replies_bytes_sent[m.message_id] += int(m_send_buf.size());
-		}
-		else
-		{
-			m_queries_out_bytes += m_send_buf.size();
+			if (m.reply)
+			{
+				++m_replies_sent[m.message_id];
+				m_replies_bytes_sent[m.message_id] += int(m_send_buf.size());
+			}
+			else
+			{
+				m_queries_out_bytes += m_send_buf.size();
+			}
 		}
 		TORRENT_LOG(dht_tracker) << log_line.str() << " ]";
 #endif

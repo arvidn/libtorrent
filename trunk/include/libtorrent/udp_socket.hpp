@@ -119,7 +119,7 @@ namespace libtorrent
 		rate_limited_udp_socket(io_service& ios, callback_t const& c, connection_queue& cc);
 		void set_rate_limit(int limit) { m_rate_limit = limit; }
 		bool can_send() const { return int(m_queue.size()) >= m_queue_size_limit; }
-		bool send(udp::endpoint const& ep, char const* p, int len, error_code& ec);
+		bool send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags = 0);
 		void close();
 
 	private:
