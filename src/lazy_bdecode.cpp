@@ -37,12 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace
 {
-	enum
-	{
-		lazy_entry_grow_factor = 3,
-		lazy_entry_dict_init = 30,
-		lazy_entry_list_init = 50
-	};
+	const float lazy_entry_grow_factor = 1.5f;
+	const int lazy_entry_dict_init = 5;
+	const int lazy_entry_list_init = 5;
 }
 
 namespace libtorrent
