@@ -208,6 +208,7 @@ namespace libtorrent
 
 			std::vector<torrent_handle> get_torrents();
 			
+			void start_torrent(boost::weak_ptr<torrent> wt);
 			void check_torrent(boost::shared_ptr<torrent> const& t);
 			void done_checking(boost::shared_ptr<torrent> const& t);
 

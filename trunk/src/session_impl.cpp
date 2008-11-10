@@ -1834,7 +1834,7 @@ namespace aux {
 				, params.storage, params.paused, params.resume_data
 				, queue_pos, params.auto_managed));
 		}
-		torrent_ptr->start();
+		m_io_service.post(bind(&session_impl::start_torrent, this, boost::weak_ptr<torrent>(torrent_ptr)));
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1876,6 +1876,20 @@ namespace aux {
 		TORRENT_ASSERT(std::find(m_queued_for_checking.begin()
 			, m_queued_for_checking.end(), t) == m_queued_for_checking.end());
 		m_queued_for_checking.push_back(t);
+	}
+
+	void session_impl::start_torrent(boost::weak_ptr<torrent> wt)
+	{
+		boost::shared_ptr<torrent> t = wt.lock();
+		if (!t) return;
+
+		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
+		if (t->is_aborted()) return;
+
+		t->start();
 	}
 
 	void session_impl::done_checking(boost::shared_ptr<torrent> const& t)
