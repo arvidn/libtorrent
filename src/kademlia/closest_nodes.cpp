@@ -59,7 +59,7 @@ void closest_nodes_observer::reply(msg const& in)
 		for (msg::nodes_t::const_iterator i = in.nodes.begin()
 			, end(in.nodes.end()); i != end; ++i)
 		{
-			m_algorithm->traverse(i->id, i->addr);
+			m_algorithm->traverse(i->id, udp::endpoint(i->addr, i->port));
 		}
 	}
 	m_algorithm->finished(m_self);

@@ -1,4 +1,5 @@
 
+	* DHT bandwidth usage optimizations
 	* rate limited DHT send socket
 	* tracker connections are now also subject to IP filtering
 	* improved optimistic unchoke logic

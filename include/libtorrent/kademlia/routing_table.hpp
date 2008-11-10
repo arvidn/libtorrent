@@ -183,15 +183,20 @@ public:
 	// the time from the last activity is more than 15 minutes
 	ptime next_refresh(int bucket);
 
+	enum
+	{
+		include_self = 1,
+		include_failed = 2
+	};
 	// fills the vector with the count nodes from our buckets that
 	// are nearest to the given id.
 	void find_node(node_id const& id, std::vector<node_entry>& l
-		, bool include_self, int count = 0);
+		, int options, int count = 0);
 	
-	// returns true if the given node would be placed in a bucket
-	// that is not full. If the node already exists in the table
-	// this function returns false
-	bool need_node(node_id const& id);
+	// this may add a node to the routing table and mark it as
+	// not pinged. If the bucket the node falls into is full,
+	// the node will be ignored.
+	void heard_about(node_id const& id, udp::endpoint const& ep);
 	
 	// this will set the given bucket's latest activity
 	// to the current time

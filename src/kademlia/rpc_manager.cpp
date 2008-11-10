@@ -273,19 +273,6 @@ bool rpc_manager::incoming(msg const& m)
 #endif
 		o->reply(m);
 		m_transactions[tid] = 0;
-		
-		if (m.piggy_backed_ping)
-		{
-			// there is a ping request piggy
-			// backed in this reply
-			msg ph;
-			ph.message_id = messages::ping;
-			ph.transaction_id = m.ping_transaction_id;
-			ph.addr = m.addr;
-			ph.reply = true;
-			
-			reply(ph);
-		}
 		return m_table.node_seen(m.id, m.addr);
 	}
 	else
@@ -459,40 +446,10 @@ void rpc_manager::reply(msg& m)
 	if (m_destructing) return;
 
 	TORRENT_ASSERT(m.reply);
-	m.piggy_backed_ping = false;
 	m.id = m_our_id;
 	
 	m_send(m);
 }
-
-void rpc_manager::reply_with_ping(msg& m)
-{
-	INVARIANT_CHECK;
-
-	if (m_destructing) return;
-	TORRENT_ASSERT(m.reply);
-
-	m.piggy_backed_ping = true;
-	m.id = m_our_id;
-
-	m.ping_transaction_id.clear();
-	std::back_insert_iterator<std::string> out(m.ping_transaction_id);
-	io::write_uint16(m_next_transaction_id, out);
-
-	TORRENT_ASSERT(allocation_size() >= sizeof(null_observer));
-	observer_ptr o(new (allocator().malloc()) null_observer(allocator()));
-#ifndef NDEBUG
-	o->m_in_constructor = false;
-#endif
-	TORRENT_ASSERT(!m_transactions[m_next_transaction_id]);
-	o->sent = time_now();
-	o->target_addr = m.addr;
-		
-	m_send(m);
-	new_transaction_id(o);
-}
-
-
 
 } } // namespace libtorrent::dht
 

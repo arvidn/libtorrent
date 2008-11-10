@@ -91,7 +91,6 @@ public:
 		, observer_ptr o);
 
 	void reply(msg& m);
-	void reply_with_ping(msg& m);
 
 #ifndef NDEBUG
 	size_t allocation_size() const;

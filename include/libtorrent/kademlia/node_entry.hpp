@@ -41,30 +41,41 @@ namespace libtorrent { namespace dht
 
 struct node_entry
 {
-	node_entry(node_id const& id_, udp::endpoint addr_)
-		: id(id_)
-		, addr(addr_)
-		, fail_count(0)
+	node_entry(node_id const& id_, udp::endpoint ep, bool pinged = false)
+		: addr(ep.address())
+		, port(ep.port())
+		, timeout_count(pinged ? 0 : 0xffff)
+		, id(id_)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		first_seen = time_now();
 #endif
 	}
-	node_entry(udp::endpoint addr_)
-		: id(0)
-		, addr(addr_)
-		, fail_count(0)
+	node_entry(udp::endpoint ep)
+		: addr(ep.address())
+		, port(ep.port())
+		, timeout_count(0xffff)
+		, id(0)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		first_seen = time_now();
 #endif
 	}
 	
-	node_id id;
-	udp::endpoint addr;
+	bool pinged() const { return timeout_count != 0xffff; }
+	void set_pinged() { if (timeout_count == 0xffff) timeout_count = 0; }
+	void timed_out() { if (pinged()) ++timeout_count; }
+	int fail_count() const { return pinged() ? timeout_count : 0; }
+	void reset_fail_count() { if (pinged()) timeout_count = 0; }
+	udp::endpoint ep() const { return udp::endpoint(addr, port); }
+	bool confirmed() const { return timeout_count == 0; }
+
+	address addr;
+	boost::uint16_t port;
 	// the number of times this node has failed to
 	// respond in a row
-	int fail_count;
+	boost::uint16_t timeout_count;
+	node_id id;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	ptime first_seen;
 #endif

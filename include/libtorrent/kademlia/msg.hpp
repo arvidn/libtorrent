@@ -55,22 +55,20 @@ namespace messages
 
 struct msg
 {
-	msg() : reply(false), piggy_backed_ping(false)
-		, message_id(-1), port(0) {}
+	msg()
+		: reply(false)
+		, message_id(-1)
+		, port(0)
+	{}
 
 	// true if this message is a reply
 	bool reply;
-	// true if this is a reply with a piggy backed ping
-	bool piggy_backed_ping;
 	// the kind if message
 	int message_id;
 	// if this is a reply, a copy of the transaction id
 	// from the request. If it's a request, a transaction
 	// id that should be sent back in the reply
 	std::string transaction_id;
-	// if this packet has a piggy backed ping, this
-	// is the transaction id of that ping
-	std::string ping_transaction_id;
 	// the node id of the process sending the message
 	node_id id;
 	// the address of the process sending or receiving
