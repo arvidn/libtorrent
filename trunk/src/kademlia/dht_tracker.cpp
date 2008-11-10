@@ -143,6 +143,8 @@ namespace libtorrent { namespace dht
 		, m_refresh_bucket(160)
 		, m_abort(false)
 		, m_host_resolver(sock.get_io_service())
+		, m_sent_bytes(0)
+		, m_received_bytes(0)
 		, m_refs(0)
 	{
 		using boost::bind;
