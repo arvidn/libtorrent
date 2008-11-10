@@ -135,7 +135,7 @@ traversal_algorithm::traversal_algorithm(
 
 	for (InIt i = start; i != end; ++i)
 	{
-		add_entry(i->id, i->addr, result::initial);
+		add_entry(i->id, udp::endpoint(i->addr, i->port), result::initial);
 	}
 	
 	// in case the routing table is empty, use the

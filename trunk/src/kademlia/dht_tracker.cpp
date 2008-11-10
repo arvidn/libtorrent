@@ -816,7 +816,7 @@ namespace libtorrent { namespace dht
 			{
 				std::string node;
 				std::back_insert_iterator<std::string> out(node);
-				write_endpoint(i->addr, out);
+				write_endpoint(udp::endpoint(i->addr, i->port), out);
 				nodes.list().push_back(entry(node));
 			}
 			bucket_t cache;
@@ -826,7 +826,7 @@ namespace libtorrent { namespace dht
 			{
 				std::string node;
 				std::back_insert_iterator<std::string> out(node);
-				write_endpoint(i->addr, out);
+				write_endpoint(udp::endpoint(i->addr, i->port), out);
 				nodes.list().push_back(entry(node));
 			}
 			if (!nodes.list().empty())
@@ -886,13 +886,13 @@ namespace libtorrent { namespace dht
 			for (msg::nodes_t::const_iterator i = m.nodes.begin()
 				, end(m.nodes.end()); i != end; ++i)
 			{
-				if (!i->addr.address().is_v4())
+				if (!i->addr.is_v4())
 				{
 					ipv6_nodes = true;
 					continue;
 				}
 				std::copy(i->id.begin(), i->id.end(), out);
-				write_endpoint(i->addr, out);
+				write_endpoint(udp::endpoint(i->addr, i->port), out);
 			}
 
 			if (ipv6_nodes)
@@ -902,12 +902,12 @@ namespace libtorrent { namespace dht
 				for (msg::nodes_t::const_iterator i = m.nodes.begin()
 					, end(m.nodes.end()); i != end; ++i)
 				{
-					if (!i->addr.address().is_v6()) continue;
+					if (!i->addr.is_v6()) continue;
 					endpoint.resize(18 + 20);
 					std::string::iterator out = endpoint.begin();
 					std::copy(i->id.begin(), i->id.end(), out);
 					out += 20;
-					write_endpoint(i->addr, out);
+					write_endpoint(udp::endpoint(i->addr, i->port), out);
 					endpoint.resize(out - endpoint.begin());
 					p.list().push_back(entry(endpoint));
 				}
@@ -1080,18 +1080,6 @@ namespace libtorrent { namespace dht
 #endif
 		}
 		TORRENT_LOG(dht_tracker) << log_line.str() << " ]";
-
-		if (!m.piggy_backed_ping) return;
-		
-		msg pm;
-		pm.reply = false;
-		pm.piggy_backed_ping = false;
-		pm.message_id = messages::ping;
-		pm.transaction_id = m.ping_transaction_id;
-		pm.id = m.id;
-		pm.addr = m.addr;
-	
-		send_packet(pm);	
 	}
 
 }}

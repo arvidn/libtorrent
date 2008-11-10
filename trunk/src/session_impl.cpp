@@ -231,6 +231,7 @@ namespace aux {
 		(*m_logger) << "sizeof(address_v4): " << sizeof(address_v4) << "\n";
 		(*m_logger) << "sizeof(address_v6): " << sizeof(address_v6) << "\n";
 		(*m_logger) << "sizeof(void*): " << sizeof(void*) << "\n";
+		(*m_logger) << "sizeof(node_entry): " << sizeof(dht::node_entry) << "\n";
 #endif
 
 #ifdef TORRENT_STATS

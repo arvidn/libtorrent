@@ -64,7 +64,7 @@ void find_data_observer::reply(msg const& m)
 		for (msg::nodes_t::const_iterator i = m.nodes.begin()
 			, end(m.nodes.end()); i != end; ++i)
 		{
-			m_algorithm->traverse(i->id, i->addr);	
+			m_algorithm->traverse(i->id, udp::endpoint(i->addr, i->port));
 		}
 	}
 	m_algorithm->finished(m_self);
