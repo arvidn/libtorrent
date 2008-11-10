@@ -1079,7 +1079,9 @@ namespace libtorrent { namespace dht
 			}
 #endif
 		}
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(dht_tracker) << log_line.str() << " ]";
+#endif
 	}
 
 }}
