@@ -330,7 +330,10 @@ namespace libtorrent
 
 		// we need to start announcing since we don't have any
 		// metadata. To receive peers to ask for it.
-		if (m_torrent_file->is_valid()) init();
+		if (m_torrent_file->is_valid())
+		{
+			init();
+		}
 		else
 		{
 			set_state(torrent_status::downloading_metadata);
