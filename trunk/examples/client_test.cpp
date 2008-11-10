@@ -497,12 +497,13 @@ void add_torrent(libtorrent::session& ses
 	{
 		t = new torrent_info(torrent.c_str());
 	}
-	catch (std::exception&)
+	catch (std::exception& e)
 	{
+		std::cout << torrent << ": " << e.what() << std::endl;
 		return;
 	}
 
-	std::cout << t->name() << "\n";
+	std::cout << t->name() << std::endl;
 
 	add_torrent_params p;
 	lazy_entry resume_data;
