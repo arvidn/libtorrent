@@ -7,6 +7,11 @@
 	* added bandwidth reports for estimated TCP/IP overhead and DHT
 	* includes DHT traffic in the rate limiter
 
+release 0.14.1
+
+	* fixed DHT bug
+	* fixed potential shutdown crash in disk_io_thread
+
 release 0.14
 
 	* deprecated add_torrent() in favor of a new add_torrent()
