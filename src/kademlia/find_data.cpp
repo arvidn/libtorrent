@@ -139,7 +139,6 @@ void find_data::initiate(
 	, done_callback const& callback
 )
 {
-	std::cerr << "find_data::initiate, key: " << target << "\n";
 	new find_data(target, branch_factor, max_results, table, rpc, callback);
 }
 
