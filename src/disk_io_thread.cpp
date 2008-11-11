@@ -88,6 +88,9 @@ namespace libtorrent
 		l.unlock();
 
 		m_disk_io_thread.join();
+		l.lock();
+		TORRENT_ASSERT(m_abort == true);
+		m_jobs.clear();
 	}
 
 	void disk_io_thread::get_cache_info(sha1_hash const& ih, std::vector<cached_piece_info>& ret) const
