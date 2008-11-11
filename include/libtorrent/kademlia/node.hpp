@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/ref.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/optional.hpp>
 
 #include "libtorrent/socket.hpp"
 
@@ -169,7 +170,7 @@ class node_impl : boost::noncopyable
 typedef std::map<node_id, torrent_entry> table_t;
 public:
 	node_impl(libtorrent::aux::session_impl& ses, boost::function<void(msg const&)> const& f
-		, dht_settings const& settings);
+		, dht_settings const& settings, boost::optional<node_id> nid);
 
 	virtual ~node_impl() {}
 
@@ -194,7 +195,6 @@ public:
 
 	typedef table_t::iterator data_iterator;
 
-	void set_node_id(node_id const& nid) { m_id = nid; }
 	node_id const& nid() const { return m_id; }
 
 	boost::tuple<int, int> size() const{ return m_table.size(); }

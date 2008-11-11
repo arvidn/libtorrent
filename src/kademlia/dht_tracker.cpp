@@ -128,11 +128,20 @@ namespace libtorrent { namespace dht
 	TORRENT_DEFINE_LOG(dht_tracker)
 #endif
 
+	boost::optional<node_id> extract_node_id(entry const* e)
+	{
+		if (e == 0 || e->type() != entry::dictionary_t) return boost::optional<node_id>();
+		entry const* nid = e->find_key("node-id");
+		if (nid == 0 || nid->type() != entry::string_t || nid->string().length() != 20)
+			return boost::optional<node_id>();
+		return boost::optional<node_id>(node_id(nid->string().c_str()));
+	}
+
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
 	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
-		, dht_settings const& settings)
-		: m_dht(ses, bind(&dht_tracker::send_packet, this, _1), settings)
+		, dht_settings const& settings, entry const* state)
+		: m_dht(ses, bind(&dht_tracker::send_packet, this, _1), settings, extract_node_id(state))
 		, m_ses(ses)
 		, m_sock(sock)
 		, m_last_new_key(time_now() - minutes(key_refresh))
@@ -189,12 +198,6 @@ namespace libtorrent { namespace dht
 			if (entry const* nodes = bootstrap.find_key("nodes"))
 				read_endpoint_list<udp::endpoint>(nodes, initial_nodes);
 			} catch (std::exception&) {}
-			
-			entry const* nid = bootstrap.find_key("node-id");
-			if (nid
-				&& nid->type() == entry::string_t
-				&& nid->string().length() == 40)
-				m_dht.set_node_id(boost::lexical_cast<node_id>(nid->string()));
 		}
 
 		error_code ec;
