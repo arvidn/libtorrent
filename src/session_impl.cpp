@@ -2090,7 +2090,7 @@ namespace aux {
 				, m_dht_settings.service_port
 				, m_dht_settings.service_port);
 		}
-		m_dht = new dht::dht_tracker(m_dht_socket, m_dht_settings);
+		m_dht = new dht::dht_tracker(m_dht_socket, m_dht_settings, &startup_state);
 		if (!m_dht_socket.is_open() || m_dht_socket.local_port() != m_dht_settings.service_port)
 		{
 			m_dht_socket.bind(m_dht_settings.service_port);
