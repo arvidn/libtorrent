@@ -3224,12 +3224,24 @@ namespace libtorrent
 		if (!can_write())
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** CANNOT WRITE ["
-				" quota: " << m_bandwidth_limit[download_channel].quota_left() <<
-				" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
-				" buf: " << m_send_buffer.size() <<
-				" connecting: " << (m_connecting?"yes":"no") <<
-				" ]\n";
+			if (m_send_buffer.empty())
+			{
+				(*m_logger) << time_now_string() << " *** SEND BUFFER DEPLETED ["
+					" quota: " << m_bandwidth_limit[download_channel].quota_left() <<
+					" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
+					" buf: " << m_send_buffer.size() <<
+					" connecting: " << (m_connecting?"yes":"no") <<
+					" ]\n";
+			}
+			else
+			{
+				(*m_logger) << time_now_string() << " *** CANNOT WRITE ["
+					" quota: " << m_bandwidth_limit[download_channel].quota_left() <<
+					" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
+					" buf: " << m_send_buffer.size() <<
+					" connecting: " << (m_connecting?"yes":"no") <<
+					" ]\n";
+			}
 #endif
 			return;
 		}
