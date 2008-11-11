@@ -142,11 +142,12 @@ void routing_table::print_state(std::ostream& os) const
 	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 		i != end; ++i)
 	{
+		if (i->first.empty()) continue;
 		int bucket_index = int(i - m_buckets.begin());
 		os << "=== BUCKET = " << bucket_index
 			<< " = " << (bucket_index >= m_lowest_active_bucket?"active":"inactive")
 			<< " = " << total_seconds(time_now() - m_bucket_activity[bucket_index])
-			<< " s ago ===== \n";
+			<< " seconds ago ===== \n";
 		for (bucket_t::const_iterator j = i->first.begin()
 			, end(i->first.end()); j != end; ++j)
 		{
@@ -464,7 +465,7 @@ void routing_table::find_node(node_id const& target
 	}
 	TORRENT_ASSERT((int)l.size() <= count);
 
-	if ((int)l.size() == count)
+	if (int(l.size()) == count)
 	{
 		TORRENT_ASSERT((options & include_failed)
 			|| std::count_if(l.begin(), l.end()
@@ -508,7 +509,7 @@ void routing_table::find_node(node_id const& target
 	// return if we have enough nodes or if the bucket index
 	// is the biggest index available (there are no more buckets)
 	// to look in.
-	if ((int)l.size() == count)
+	if (int(l.size()) == count)
 	{
 		TORRENT_ASSERT((options & include_failed)
 			|| std::count_if(l.begin(), l.end()
@@ -531,7 +532,7 @@ void routing_table::find_node(node_id const& target
 				, to_copy, bind(&node_entry::confirmed, _1));
 		}
 		TORRENT_ASSERT((int)l.size() <= count);
-		if ((int)l.size() == count)
+		if (int(l.size()) == count)
 		{
 			TORRENT_ASSERT((options & include_failed)
 				|| std::count_if(l.begin(), l.end()
