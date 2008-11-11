@@ -110,14 +110,7 @@ node_impl::node_impl(libtorrent::aux::session_impl& ses
 
 bool node_impl::verify_token(msg const& m)
 {
-	if (m.write_token.type() != entry::string_t)
-	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(node) << "token of incorrect type " << m.write_token.type();
-#endif
-		return false;
-	}
-	std::string const& token = m.write_token.string();
+	std::string const& token = m.write_token;
 	if (token.length() != 4)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -148,7 +141,7 @@ bool node_impl::verify_token(msg const& m)
 	return false;
 }
 
-entry node_impl::generate_token(msg const& m)
+std::string node_impl::generate_token(msg const& m)
 {
 	std::string token;
 	token.resize(4);
@@ -162,7 +155,7 @@ entry node_impl::generate_token(msg const& m)
 
 	sha1_hash hash = h.final();
 	std::copy(hash.begin(), hash.begin() + 4, (signed char*)&token[0]);
-	return entry(token);
+	return token;
 }
 
 void node_impl::refresh(node_id const& id
@@ -487,7 +480,7 @@ void node_impl::incoming_request(msg const& m)
 				for (std::vector<node_entry>::iterator i = reply.nodes.begin()
 					, end(reply.nodes.end()); i != end; ++i)
 				{
-					TORRENT_LOG(node) << "	" << i->id << " " << i->addr << ":" << i->port;
+					TORRENT_LOG(node) << "	" << i->id << " " << i->ep();
 				}
 #endif
 			}
@@ -502,7 +495,7 @@ void node_impl::incoming_request(msg const& m)
 			for (std::vector<node_entry>::iterator i = reply.nodes.begin()
 				, end(reply.nodes.end()); i != end; ++i)
 			{
-				TORRENT_LOG(node) << "	" << i->id << " " << i->addr << ":" << i->port;
+				TORRENT_LOG(node) << "	" << i->id << " " << i->ep();
 			}
 #endif
 		}

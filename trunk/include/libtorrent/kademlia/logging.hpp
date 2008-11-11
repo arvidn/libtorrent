@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <fstream>
+#include "libtorrent/time.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -86,7 +87,7 @@ public:
 		: log_(log) 
 	{
 		if (log_.enabled())
-			log_ << '[' << log.id() << "] ";
+			log_ << time_now_string() << " [" << log.id() << "] ";
 	}
 
 	~log_event()

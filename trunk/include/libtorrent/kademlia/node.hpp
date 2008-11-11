@@ -101,7 +101,7 @@ public:
 	announce_observer(boost::pool<>& allocator
 		, sha1_hash const& info_hash
 		, int listen_port
-		, entry const& write_token)
+		, std::string const& write_token)
 		: observer(allocator)
 		, m_info_hash(info_hash)
 		, m_listen_port(listen_port)
@@ -122,7 +122,7 @@ public:
 private:
 	sha1_hash m_info_hash;
 	int m_listen_port;
-	entry m_token;
+	std::string m_token;
 };
 
 class get_peers_observer : public observer
@@ -215,7 +215,7 @@ public:
 			, sha1_hash const&)> f);
 
 	bool verify_token(msg const& m);
-	entry generate_token(msg const& m);
+	std::string generate_token(msg const& m);
 	
 	// the returned time is the delay until connection_timeout()
 	// should be called again the next time

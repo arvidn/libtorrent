@@ -55,7 +55,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/socket.hpp"
 
-namespace libtorrent { namespace aux { struct session_impl; } }
+namespace libtorrent
+{
+	namespace aux { struct session_impl; }
+	struct lazy_entry;
+}
 
 namespace libtorrent { namespace dht
 {
@@ -112,6 +116,8 @@ namespace libtorrent { namespace dht
 
 		void on_bootstrap();
 		void send_packet(msg const& m);
+
+		void incoming_error(char const* msg, lazy_entry const& e, udp::endpoint const& ep);
 
 		node_impl m_dht;
 		libtorrent::aux::session_impl& m_ses;

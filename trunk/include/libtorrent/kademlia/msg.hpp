@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <libtorrent/kademlia/node_id.hpp>
-#include "libtorrent/entry.hpp"
 #if BOOST_VERSION < 103500
 #include <asio/ip/udp.hpp>
 #else
@@ -82,7 +81,7 @@ struct msg
 	peers_t peers;
 	
 	// similar to transaction_id but for write operations.
-	entry write_token;
+	std::string write_token;
 
 	// the info has for peer_requests, announce_peer
 	// and responses
