@@ -94,9 +94,10 @@ void nop() {}
 
 node_impl::node_impl(libtorrent::aux::session_impl& ses
 	, boost::function<void(msg const&)> const& f
-	, dht_settings const& settings)
+	, dht_settings const& settings
+	, boost::optional<node_id> nid)
 	: m_settings(settings)
-	, m_id(generate_id())
+	, m_id(nid ? *nid : generate_id())
 	, m_table(m_id, 8, settings)
 	, m_rpc(bind(&node_impl::incoming_request, this, _1)
 		, m_id, m_table, f)
