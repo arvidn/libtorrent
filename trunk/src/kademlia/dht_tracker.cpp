@@ -194,6 +194,7 @@ namespace libtorrent { namespace dht
 		m_announces = 0;
 		m_failed_announces = 0;
 		m_total_message_input = 0;
+		m_az_message_input = 0;
 		m_ut_message_input = 0;
 		m_lt_message_input = 0;
 		m_mp_message_input = 0;
@@ -330,12 +331,8 @@ namespace libtorrent { namespace dht
 		
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		static bool first = true;
-		if (first)
-		{
-			boost::filesystem::create_directory("libtorrent_logs");
-		}
 
-		std::ofstream st("libtorrent_logs/routing_table_state.txt", std::ios_base::trunc);
+		std::ofstream st("dht_routing_table_state.txt", std::ios_base::trunc);
 		m_dht.print_state(st);
 		
 		// count torrents
@@ -345,7 +342,7 @@ namespace libtorrent { namespace dht
 		int peers = 0;
 		std::for_each(m_dht.begin_data(), m_dht.end_data(), count_peers(peers));
 
-		std::ofstream pc("libtorrent_logs/dht_stats.log", std::ios_base::app);
+		std::ofstream pc("dht_stats.log", std::ios_base::app);
 		if (first)
 		{
 			first = false;
@@ -385,6 +382,7 @@ namespace libtorrent { namespace dht
 			<< "\t" << m_announces / float(tick_period)
 			<< "\t" << m_failed_announces / float(tick_period)
 			<< "\t" << (m_total_message_input / float(tick_period))
+			<< "\t" << (m_az_message_input / float(tick_period))
 			<< "\t" << (m_ut_message_input / float(tick_period))
 			<< "\t" << (m_lt_message_input / float(tick_period))
 			<< "\t" << (m_mp_message_input / float(tick_period))
@@ -402,6 +400,7 @@ namespace libtorrent { namespace dht
 		m_announces = 0;
 		m_failed_announces = 0;
 		m_total_message_input = 0;
+		m_az_message_input = 0;
 		m_ut_message_input = 0;
 		m_lt_message_input = 0;
 		m_total_in_bytes = 0;
@@ -535,6 +534,11 @@ namespace libtorrent { namespace dht
 			if (client.size() < 2)
 			{
 				log_line << " c: " << client;
+			}
+			else if (std::equal(client.begin(), client.begin() + 2, "Az"))
+			{
+				++m_az_message_input;
+				log_line << " c: Azureus";
 			}
 			else if (std::equal(client.begin(), client.begin() + 2, "UT"))
 			{

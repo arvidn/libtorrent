@@ -171,6 +171,7 @@ namespace libtorrent { namespace dht
 		int m_failed_announces;
 
 		int m_total_message_input;
+		int m_az_message_input;
 		int m_ut_message_input;
 		int m_lt_message_input;
 		int m_mp_message_input;
