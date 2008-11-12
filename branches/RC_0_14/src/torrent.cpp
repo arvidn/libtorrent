@@ -3618,7 +3618,7 @@ namespace libtorrent
 		}
 		else
 		{
-			TORRENT_ASSERT(m_abort || m_picker->num_pieces() == 0);
+			TORRENT_ASSERT(m_abort || !m_picker || m_picker->num_pieces() == 0);
 		}
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
