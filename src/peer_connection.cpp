@@ -2906,8 +2906,7 @@ namespace libtorrent
 		// the minimum number of requests is 2 and the maximum is 48
 		// the block size doesn't have to be 16. So we first query the
 		// torrent for it
-		const int block_size = m_request_large_blocks
-			? t->torrent_file().piece_length() : t->block_size();
+		const int block_size = t->block_size();
 		TORRENT_ASSERT(block_size > 0);
 		
 		if (m_snubbed)
