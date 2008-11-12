@@ -164,7 +164,6 @@ namespace libtorrent
 		, m_last_dht_announce(time_now() - minutes(15))
 #endif
 		, m_ses(ses)
-		, m_picker(new piece_picker())
 		, m_trackers(m_torrent_file->trackers())
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
@@ -246,7 +245,6 @@ namespace libtorrent
 		, m_last_dht_announce(time_now() - minutes(15))
 #endif
 		, m_ses(ses)
-		, m_picker(new piece_picker())
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 		, m_net_interface(net_interface.address(), 0)
@@ -311,6 +309,9 @@ namespace libtorrent
 
 	void torrent::start()
 	{
+		TORRENT_ASSERT(!m_picker);
+		m_picker.reset(new piece_picker());
+
 		if (!m_resume_data.empty())
 		{
 			if (lazy_bdecode(&m_resume_data[0], &m_resume_data[0]
@@ -339,8 +340,6 @@ namespace libtorrent
 			set_state(torrent_status::downloading_metadata);
 			if (!m_trackers.empty()) start_announcing();
 		}
-
-		if (m_abort) return;
 	}
 
 #ifndef TORRENT_DISABLE_DHT
