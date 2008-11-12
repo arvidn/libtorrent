@@ -28,11 +28,23 @@
     <div id="header">
     <h1><span>Rasterbar Software</span></h1>
     <h2><span>Software developement and consulting</span></h2>
-    <span>
-    </span>
     </div>
     <div id="main">
 <h1 class="title">libtorrent API Documentation</h1>
+
+    <div style="margin-bottom: 1em;">
+    <script type="text/javascript"><!--
+    google_ad_client = "pub-6034671648887442";
+    google_ad_slot = "7139164174";
+    google_ad_width = 728;
+    google_ad_height = 90;
+    //-->
+    </script>
+    <script type="text/javascript"
+    src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+    </script>
+    </div>
+
 <table class="docinfo" frame="void" rules="none">
 <col class="docinfo-name" />
 <col class="docinfo-content" />
@@ -57,7 +69,7 @@
 <li><a class="reference internal" href="#remove-torrent" id="id25">remove_torrent()</a></li>
 <li><a class="reference internal" href="#find-torrent-get-torrents" id="id26">find_torrent() get_torrents()</a></li>
 <li><a class="reference internal" href="#set-upload-rate-limit-set-download-rate-limit-upload-rate-limit-download-rate-limit" id="id27">set_upload_rate_limit() set_download_rate_limit() upload_rate_limit() download_rate_limit()</a></li>
-<li><a class="reference internal" href="#set-max-uploads-set-max-connections" id="id28">set_max_uploads() set_max_connections()</a></li>
+<li><a class="reference internal" href="#set-max-uploads-set-max-connections-max-connections" id="id28">set_max_uploads() set_max_connections() max_connections()</a></li>
 <li><a class="reference internal" href="#num-uploads-num-connections" id="id29">num_uploads() num_connections()</a></li>
 <li><a class="reference internal" href="#set-max-half-open-connections-max-half-open-connections" id="id30">set_max_half_open_connections() max_half_open_connections()</a></li>
 <li><a class="reference internal" href="#load-asnum-db-load-country-db-int-as-for-ip" id="id31">load_asnum_db() load_country_db() int as_for_ip()</a></li>
@@ -132,7 +144,7 @@
 <li><a class="reference internal" href="#queue-position-queue-position-up-queue-position-down-queue-position-top-queue-position-bottom" id="id94">queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()</a></li>
 <li><a class="reference internal" href="#use-interface" id="id95">use_interface()</a></li>
 <li><a class="reference internal" href="#info-hash" id="id96">info_hash()</a></li>
-<li><a class="reference internal" href="#id6" id="id97">set_max_uploads() set_max_connections()</a></li>
+<li><a class="reference internal" href="#id6" id="id97">set_max_uploads() set_max_connections() max_connections()</a></li>
 <li><a class="reference internal" href="#save-resume-data" id="id98">save_resume_data()</a></li>
 <li><a class="reference internal" href="#id7" id="id99">status()</a></li>
 <li><a class="reference internal" href="#get-download-queue" id="id100">get_download_queue()</a></li>
@@ -361,6 +373,7 @@ class session: public boost::noncopyable
         int download_rate_limit() const;
         void set_max_uploads(int limit);
         void set_max_connections(int limit);
+        int max_connections() const;
         void set_max_half_open_connections(int limit);
         int max_half_open_connections() const;
 
@@ -631,12 +644,13 @@ of upload rate.
 <tt class="docutils literal"><span class="pre">download_rate_limit()</span></tt> and <tt class="docutils literal"><span class="pre">upload_rate_limit()</span></tt> returns the previously
 set limits.</p>
 </div>
-<div class="section" id="set-max-uploads-set-max-connections">
-<h2>set_max_uploads() set_max_connections()</h2>
+<div class="section" id="set-max-uploads-set-max-connections-max-connections">
+<h2>set_max_uploads() set_max_connections() max_connections()</h2>
 <blockquote>
 <pre class="literal-block">
 void set_max_uploads(int limit);
 void set_max_connections(int limit);
+int max_connections() const;
 </pre>
 </blockquote>
 <p>These functions will set a global limit on the number of unchoked peers (uploads)
@@ -644,6 +658,7 @@ and the number of connections opened. The number of connections is set to a hard
 minimum of at least two connections per torrent, so if you set a too low
 connections limit, and open too many torrents, the limit will not be met. The
 number of uploads is at least one per torrent.</p>
+<p><tt class="docutils literal"><span class="pre">max_connections()</span></tt> returns the current setting.</p>
 </div>
 <div class="section" id="num-uploads-num-connections">
 <h2>num_uploads() num_connections()</h2>
@@ -1723,6 +1738,7 @@ struct torrent_handle
         void set_ratio(float ratio) const;
         void set_max_uploads(int max_uploads) const;
         void set_max_connections(int max_connections) const;
+        int max_connections() const;
         void set_upload_limit(int limit) const;
         int upload_limit() const;
         void set_download_limit(int limit) const;
@@ -2199,11 +2215,12 @@ sha1_hash info_hash() const;
 <p><tt class="docutils literal"><span class="pre">info_hash()</span></tt> returns the info-hash for the torrent.</p>
 </div>
 <div class="section" id="id6">
-<h2>set_max_uploads() set_max_connections()</h2>
+<h2>set_max_uploads() set_max_connections() max_connections()</h2>
 <blockquote>
 <pre class="literal-block">
 void set_max_uploads(int max_uploads) const;
 void set_max_connections(int max_connections) const;
+int max_connections() const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">set_max_uploads()</span></tt> sets the maximum number of peers that's unchoked at the same time on this
@@ -2212,6 +2229,7 @@ torrent. If you set this to -1, there will be no limit.</p>
 connections are used up, incoming connections may be refused or poor connections may be closed.
 This must be at least 2. The default is unlimited number of connections. If -1 is given to the
 function, it means unlimited.</p>
+<p><tt class="docutils literal"><span class="pre">max_connections()</span></tt> returns the current setting.</p>
 </div>
 <div class="section" id="save-resume-data">
 <h2>save_resume_data()</h2>
