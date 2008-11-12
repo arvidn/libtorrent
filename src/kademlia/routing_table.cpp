@@ -307,6 +307,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 		// the last node we had any contact with
 		// in this bucket
 		i->set_pinged();
+		i->reset_fail_count();
 		i->addr = addr.address();
 		i->port = addr.port();
 //		TORRENT_LOG(table) << "updating node: " << id << " " << addr;
@@ -385,6 +386,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 		// and if its address has changed, update
 		// that as well
 		i->set_pinged();
+		i->reset_fail_count();
 		i->addr = addr.address();
 		i->port = addr.port();
 		return ret;
