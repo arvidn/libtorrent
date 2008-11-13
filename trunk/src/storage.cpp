@@ -115,24 +115,25 @@ namespace libtorrent
 {
 	std::wstring safe_convert(std::string const& s)
 	{
-		try
+		std::wstring ret;
+		int result = libtorrent::utf8_wchar(s, ret);
+#ifndef BOOST_WINDOWS
+		return ret;
+#else
+		if (result == 0) return ret;
+
+		ret.clear();
+		const char* end = &s[0] + s.size();
+		for (const char* i = &s[0]; i < end;)
 		{
-			return libtorrent::utf8_wchar(s);
+			wchar_t c = '.';
+			int result = std::mbtowc(&c, i, end - i);
+			if (result > 0) i += result;
+			else ++i;
+			ret += c;
 		}
-		catch (std::exception)
-		{
-			std::wstring ret;
-			const char* end = &s[0] + s.size();
-			for (const char* i = &s[0]; i < end;)
-			{
-				wchar_t c = '.';
-				int result = std::mbtowc(&c, i, end - i);
-				if (result > 0) i += result;
-				else ++i;
-				ret += c;
-			}
-			return ret;
-		}
+		return ret;
+#endif
 	}
 }
 #endif
