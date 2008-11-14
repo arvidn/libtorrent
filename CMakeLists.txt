@@ -49,6 +49,7 @@ set(sources
 	broadcast_socket
 	magnet_uri
 	parse_url
+	ConvertUTF
 
 # -- extensions --
 	metadata_transfer
