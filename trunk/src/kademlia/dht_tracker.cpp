@@ -430,7 +430,7 @@ namespace libtorrent { namespace dht
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		// account for IP and UDP overhead
-		m_received_bytes += bytes_transferred + 28;
+		m_received_bytes += bytes_transferred + (ep.address().is_v6() ? 48 : 28);
 
 		node_ban_entry* match = 0;
 		node_ban_entry* min = m_ban_nodes;
@@ -1127,7 +1127,7 @@ namespace libtorrent { namespace dht
 		if (m_sock.send(m.addr, &m_send_buf[0], (int)m_send_buf.size(), ec, send_flags))
 		{
 			// account for IP and UDP overhead
-			m_sent_bytes += m_send_buf.size() + 28;
+			m_sent_bytes += m_send_buf.size() + (m.addr.address().is_v6() ? 48 : 28);
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			m_total_out_bytes += m_send_buf.size();

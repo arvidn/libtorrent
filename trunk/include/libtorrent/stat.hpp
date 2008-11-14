@@ -130,16 +130,16 @@ namespace libtorrent
 				m_stat[i] += s.m_stat[i];
 		}
 
-		void sent_syn()
+		void sent_syn(bool ipv6)
 		{
-			m_stat[upload_ip_protocol].add(40);
+			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
 		}
 
-		void received_synack()
+		void received_synack(bool ipv6)
 		{
 			// we received SYN-ACK and also sent ACK back
-			m_stat[download_ip_protocol].add(40);
-			m_stat[upload_ip_protocol].add(40);
+			m_stat[download_ip_protocol].add(ipv6 ? 60 : 40);
+			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
 		}
 
 		void received_dht_bytes(int bytes)
@@ -184,24 +184,19 @@ namespace libtorrent
 			m_stat[upload_protocol].add(bytes_protocol);
 		}
 
-		// calculate ip protocol overhead
-		void calc_ip_overhead()
+		// and IP packet was received or sent
+		// account for the overhead caused by it
+		void trancieve_ip_packet(int bytes_transferred, bool ipv6)
 		{
-			int uploaded = m_stat[upload_protocol].counter()
-				+ m_stat[upload_payload].counter();
-			int downloaded = m_stat[download_protocol].counter()
-				+ m_stat[download_payload].counter();
-
-			// IP + TCP headers are 40 bytes per MTU (1460)
-			// bytes of payload, but at least 40 bytes
-			m_stat[upload_ip_protocol].add((std::max)(uploaded / 1460, uploaded>0?40:0));
-			m_stat[download_ip_protocol].add((std::max)(downloaded / 1460, downloaded>0?40:0));
-
-			// also account for ACK traffic. That adds to the transfers
-			// in the opposite direction. Even on connections with symmetric
-			// transfer rates, it seems to add a penalty.
-			m_stat[upload_ip_protocol].add((std::max)(downloaded * 40 / 1460, downloaded>0?40:0));
-			m_stat[download_ip_protocol].add((std::max)(uploaded * 40 / 1460, uploaded>0?40:0));
+			// one TCP/IP packet header for the packet
+			// sent or received, and one for the ACK
+			// The IPv4 header is 20 bytes
+			// and IPv6 header is 40 bytes
+			const int header = (ipv6 ? 40 : 20) + 20;
+			const int mtu = 1500;
+			const int overhead = (std::max)(1, bytes_transferred / (mtu - header)) * header;
+			m_stat[download_ip_protocol].add(overhead);
+			m_stat[upload_ip_protocol].add(overhead);
 		}
 
 		int upload_ip_overhead() const { return m_stat[upload_ip_protocol].counter(); }

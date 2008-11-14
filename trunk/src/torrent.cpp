@@ -4241,7 +4241,6 @@ namespace libtorrent
 		{
 			peer_connection* p = *i;
 			++i;
-			p->calc_ip_overhead();
 			m_stat += p->statistics();
 			// updates the peer connection's ul/dl bandwidth
 			// resource requests
