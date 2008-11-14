@@ -2499,7 +2499,6 @@ namespace libtorrent
 		if (t)
 		{
 			// make sure we keep all the stats!
-			calc_ip_overhead();
 			t->add_stats(statistics());
 
 			if (t->has_picker())
@@ -2752,11 +2751,6 @@ namespace libtorrent
 #endif
 
 		m_packet_size = packet_size;
-	}
-
-	void peer_connection::calc_ip_overhead()
-	{
-		m_statistics.calc_ip_overhead();
 	}
 
 	void peer_connection::second_tick(float tick_interval)
@@ -3508,6 +3502,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_network);
 		m_channel_state[download_channel] = peer_info::bw_idle;
 
+		m_statistics.trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
+
 		if (error)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -3707,7 +3703,7 @@ namespace libtorrent
 		m_socket->async_connect(m_remote
 			, bind(&peer_connection::on_connection_complete, self(), _1));
 		m_connect = time_now();
-		m_statistics.sent_syn();
+		m_statistics.sent_syn(m_remote.address().is_v6());
 
 		if (t->alerts().should_post<peer_connect_alert>())
 		{
@@ -3747,7 +3743,7 @@ namespace libtorrent
 
 		// this means the connection just succeeded
 
-		m_statistics.received_synack();
+		m_statistics.received_synack(m_remote.address().is_v6());
 
 		TORRENT_ASSERT(m_socket);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
@@ -3802,6 +3798,8 @@ namespace libtorrent
 
 		if (!m_ignore_bandwidth_limits)
 			m_bandwidth_limit[upload_channel].use_quota(bytes_transferred);
+
+		m_statistics.trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << "wrote " << bytes_transferred << " bytes\n";

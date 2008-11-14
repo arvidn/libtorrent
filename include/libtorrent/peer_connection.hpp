@@ -257,8 +257,6 @@ namespace libtorrent
 		const stat& statistics() const { return m_statistics; }
 		void add_stat(size_type downloaded, size_type uploaded);
 
-		void calc_ip_overhead();
-
 		// is called once every second by the main loop
 		void second_tick(float tick_interval);
 
