@@ -149,7 +149,7 @@ void start_web_server(int port, bool ssl)
 			"ssl.pemfile = \"server.pem\"\n";
 	f.close();
 	
-	system("lighttpd -f lighty_config &");
+	system("lighttpd -f lighty_config 2> lighty.err >lighty.log &");
 	test_sleep(1000);
 }
 
