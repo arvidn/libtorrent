@@ -86,8 +86,6 @@ void http_handler(error_code const& ec, http_parser const& parser
 		}
 	}
 	print_http_header(parser);
-
-	cq.close();
 }
 
 void reset_globals()
@@ -108,7 +106,7 @@ void run_test(std::string const& url, int size, int status, int connected
 
 	boost::shared_ptr<http_connection> h(new http_connection(ios, cq
 		, &::http_handler, true, &::http_connect_handler));
-	h->get(url, seconds(5), 0, &ps);
+	h->get(url, seconds(1), 0, &ps);
 	ios.reset();
 	ios.run();
 
@@ -160,7 +158,10 @@ int test_main()
 {
 	std::srand(std::time(0));
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
-	std::ofstream("test_file").write(data_buffer, 3216);
+	std::ofstream test_file("test_file", std::ios::trunc);
+	test_file.write(data_buffer, 3216);
+	TEST_CHECK(test_file.good());
+	test_file.close();
 	std::system("gzip -9 -c test_file > test_file.gz");
 	
 	proxy_settings ps;
