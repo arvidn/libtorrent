@@ -325,10 +325,10 @@ namespace libtorrent
 #else
 			fs::path f = p / i->path;
 #endif
+			// TODO: optimize
+			if (exists(f))
 #ifndef BOOST_NO_EXCEPTIONS
 			try
-#else
-			if (exists(f))
 #endif
 			{
 				size = file_size(f);
