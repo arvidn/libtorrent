@@ -1990,20 +1990,9 @@ namespace aux {
 				m_dht_settings.service_port = new_interface.port();
 			// the listen interface changed, rebind the dht listen socket as well
 			m_dht_socket.bind(m_dht_settings.service_port);
-			if (m_natpmp.get())
-			{
-				if (m_udp_mapping[0] != -1) m_natpmp->delete_mapping(m_udp_mapping[0]);
-				m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
-					, m_dht_settings.service_port
-					, m_dht_settings.service_port);
-			}
-			if (m_upnp.get())
-			{
-				if (m_udp_mapping[1] != -1) m_upnp->delete_mapping(m_udp_mapping[1]);
-				m_udp_mapping[1] = m_upnp->add_mapping(upnp::tcp
-					, m_dht_settings.service_port
-					, m_dht_settings.service_port);
-			}
+
+			maybe_update_udp_mapping(0, m_dht_settings.service_port, m_dht_settings.service_port);
+			maybe_update_udp_mapping(1, m_dht_settings.service_port, m_dht_settings.service_port);
 		}
 #endif
 
@@ -2194,18 +2183,8 @@ namespace aux {
 				m_dht_settings.service_port = 45000 + (rand() % 10000);
 		}
 		m_external_udp_port = m_dht_settings.service_port;
-		if (m_natpmp.get() && m_udp_mapping[0] == -1)
-		{
-			m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::udp
-				, m_dht_settings.service_port
-				, m_dht_settings.service_port);
-		}
-		if (m_upnp.get() && m_udp_mapping[1] == -1)
-		{
-			m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
-				, m_dht_settings.service_port
-				, m_dht_settings.service_port);
-		}
+		maybe_update_udp_mapping(0, m_dht_settings.service_port, m_dht_settings.service_port);
+		maybe_update_udp_mapping(1, m_dht_settings.service_port, m_dht_settings.service_port);
 		m_dht = new dht::dht_tracker(*this, m_dht_socket, m_dht_settings, &startup_state);
 		if (!m_dht_socket.is_open() || m_dht_socket.local_port() != m_dht_settings.service_port)
 		{
@@ -2221,6 +2200,45 @@ namespace aux {
 
 		m_dht->start(startup_state);
 	}
+
+#ifndef TORRENT_DISABLE_DHT	
+	void session_impl::maybe_update_udp_mapping(int nat, int local_port, int external_port)
+	{
+		int local, external, protocol;
+		if (nat == 0 && m_natpmp.get())
+		{
+			if (m_udp_mapping[nat] != -1)
+			{
+				if (m_natpmp->get_mapping(m_udp_mapping[nat], local, external, protocol))
+				{
+					// we already have a mapping. If it's the same, don't do anything
+					if (local == local_port && external == external_port && protocol == natpmp::udp)
+						return;
+				}
+				m_natpmp->delete_mapping(m_udp_mapping[nat]);
+			}
+			m_udp_mapping[nat] = m_natpmp->add_mapping(natpmp::udp
+				, local_port, external_port);
+			return;
+		}
+		else if (nat == 1 && m_upnp.get())
+		{
+			if (m_udp_mapping[nat] != -1)
+			{
+				if (m_upnp->get_mapping(m_udp_mapping[nat], local, external, protocol))
+				{
+					// we already have a mapping. If it's the same, don't do anything
+					if (local == local_port && external == external_port && protocol == natpmp::udp)
+						return;
+				}
+				m_upnp->delete_mapping(m_udp_mapping[nat]);
+			}
+			m_udp_mapping[nat] = m_upnp->add_mapping(upnp::udp
+				, local_port, external_port);
+			return;
+		}
+	}
+#endif
 
 	void session_impl::stop_dht()
 	{
@@ -2246,20 +2264,8 @@ namespace aux {
 		{
 			m_dht_socket.bind(settings.service_port);
 
-			if (m_natpmp.get())
-			{
-				if (m_udp_mapping[0] != -1) m_upnp->delete_mapping(m_udp_mapping[0]);
-				m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::udp
-					, m_dht_settings.service_port
-					, m_dht_settings.service_port);
-			}
-			if (m_upnp.get())
-			{
-				if (m_udp_mapping[1] != -1) m_upnp->delete_mapping(m_udp_mapping[1]);
-				m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
-					, m_dht_settings.service_port
-					, m_dht_settings.service_port);
-			}
+			maybe_update_udp_mapping(0, settings.service_port, settings.service_port);
+			maybe_update_udp_mapping(1, settings.service_port, settings.service_port);
 			m_external_udp_port = settings.service_port;
 		}
 		m_dht_settings = settings;

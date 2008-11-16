@@ -63,6 +63,7 @@ public:
 	enum protocol_type { none = 0, udp = 1, tcp = 2 };
 	int add_mapping(protocol_type p, int external_port, int local_port);
 	void delete_mapping(int mapping_index);
+	bool get_mapping(int mapping_index, int& local_port, int& external_port, int& protocol) const;
 
 	void close();
 
@@ -88,6 +89,7 @@ private:
 			, local_port(0)
 			, external_port(0)
 			, protocol(none)
+			, map_sent(false)
 		{}
 
 		// indicates that the mapping has changed
@@ -107,6 +109,9 @@ private:
 		int external_port;
 
 		int protocol;
+
+		// set to true when the first map request is sent
+		bool map_sent;
 	};
 
 	portmap_callback_t m_callback;

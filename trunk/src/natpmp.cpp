@@ -114,6 +114,18 @@ void natpmp::rebind(address const& listen_interface)
 	}
 }
 
+bool natpmp::get_mapping(int index, int& local_port, int& external_port, int& protocol) const
+{
+	TORRENT_ASSERT(index < int(m_mappings.size()) && index >= 0);
+	if (index >= int(m_mappings.size()) || index < 0) return false;
+	mapping_t const& m = m_mappings[index];
+	if (m.protocol == none) return false;
+	local_port = m.local_port;
+	external_port = m.external_port;
+	protocol = m.protocol;
+	return true;
+}
+
 void natpmp::log(std::string const& msg)
 {
 	m_callback(-1, 0, msg);
@@ -132,6 +144,7 @@ void natpmp::disable(char const* message)
 	}
 	close();
 }
+
 void natpmp::delete_mapping(int index)
 {
 	TORRENT_ASSERT(index < int(m_mappings.size()) && index >= 0);
@@ -139,6 +152,12 @@ void natpmp::delete_mapping(int index)
 	mapping_t& m = m_mappings[index];
 
 	if (m.protocol == none) return;
+	if (!m.map_sent)
+	{
+		m.action = mapping_t::action_none;
+		m.protocol = none;
+		return;
+	}
 
 	m.action = mapping_t::action_delete;
 	update_mapping(index);
@@ -270,7 +289,7 @@ void natpmp::send_map_request(int i)
 	write_uint32(ttl, out); // port mapping lifetime
 
 	std::stringstream msg;
-	msg << "port map [ action: " << (m.action == mapping_t::action_add ? "add" : "delete")
+	msg << "==> port map [ action: " << (m.action == mapping_t::action_add ? "add" : "delete")
 		<< " proto: " << (m.protocol == udp ? "udp" : "tcp")
 		<< " local: " << m.local_port << " external: " << m.external_port
 		<< " ttl: " << ttl << " ]";
@@ -278,6 +297,7 @@ void natpmp::send_map_request(int i)
 
 	error_code ec;
 	m_socket.send_to(asio::buffer(buf, 12), m_nat_endpoint, 0, ec);
+	m.map_sent = true;
 	// linear back-off instead of exponential
 	++m_retry_count;
 	m_send_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
@@ -348,7 +368,7 @@ void natpmp::on_reply(error_code const& e
 	(void)time; // to remove warning
 
 	std::stringstream msg;
-	msg << "port map ["
+	msg << "<== port map ["
 		<< " protocol: " << (cmd - 128 == 1 ? "udp" : "tcp")
 		<< " local: " << private_port << " external: " << public_port
 		<< " ttl: " << lifetime << " ]";
@@ -486,7 +506,7 @@ void natpmp::close()
 {
 	mutex_t::scoped_lock l(m_mutex);
 	m_abort = true;
-	error_code ec;
+	log("closing");
 /*
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string() << " close" << std::endl;
@@ -511,6 +531,7 @@ void natpmp::close()
 		if (i->protocol == none) continue;
 		i->action = mapping_t::action_delete;
 	}
+	error_code ec;
 	m_refresh_timer.cancel(ec);
 	update_mapping(0);
 }
