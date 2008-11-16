@@ -369,6 +369,7 @@ namespace libtorrent
 		{
 			size_type size = 0;
 			std::time_t time = 0;
+			if (i->pad_file) continue;
 
 #if TORRENT_USE_WPATH
 			fs::wpath f = safe_convert((p / i->path).string());
