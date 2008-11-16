@@ -79,6 +79,7 @@ public:
 	enum protocol_type { none = 0, udp = 1, tcp = 2 };
 	int add_mapping(protocol_type p, int external_port, int local_port);
 	void delete_mapping(int mapping_index);
+	bool get_mapping(int mapping_index, int& local_port, int& external_port, int& protocol) const;
 
 	void discover_device();
 	void close();

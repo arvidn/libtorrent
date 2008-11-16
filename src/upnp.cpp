@@ -228,6 +228,18 @@ void upnp::delete_mapping(int mapping)
 	}
 }
 
+bool upnp::get_mapping(int index, int& local_port, int& external_port, int& protocol) const
+{
+	TORRENT_ASSERT(index < int(m_mappings.size()) && index >= 0);
+	if (index >= int(m_mappings.size()) || index < 0) return false;
+	global_mapping_t const& m = m_mappings[index];
+	if (m.protocol == none) return false;
+	local_port = m.local_port;
+	external_port = m.external_port;
+	protocol = m.protocol;
+	return true;
+}
+
 void upnp::resend_request(error_code const& e)
 {
 	if (e) return;

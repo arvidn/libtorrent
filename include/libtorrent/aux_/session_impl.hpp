@@ -176,6 +176,7 @@ namespace libtorrent
 			void start_dht(entry const& startup_state);
 			void stop_dht();
 			entry dht_state() const;
+			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
