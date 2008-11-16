@@ -75,13 +75,15 @@ The ``session`` class has the following synopsis::
 		session(fingerprint const& print
 			= libtorrent::fingerprint(
 			"LT", 0, 1, 0, 0)
-			, int flags = start_default_features | add_default_plugins);
+			, int flags = start_default_features | add_default_plugins
+			, int alert_mask = alert::error_notification);
 
 		session(
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = 0
-			, int flags = start_default_features | add_default_plugins);
+			, int flags = start_default_features | add_default_plugins
+			, int alert_mask = alert::error_notification);
 
 		torrent_handle add_torrent(add_torrent_params const& params);
 
@@ -187,12 +189,14 @@ session()
 
 		session(fingerprint const& print
 			= libtorrent::fingerprint("LT", 0, 1, 0, 0)
-			, int flags = start_default_features | add_default_plugins);
+			, int flags = start_default_features | add_default_plugins
+			, int alert_mask = alert::error_notification);
 
 		session(fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = 0
-			, int flags = start_default_features | add_default_plugins);
+			, int flags = start_default_features | add_default_plugins
+			, int alert_mask = alert::error_notification);
 
 If the fingerprint in the first overload is omited, the client will get a default
 fingerprint stating the version of libtorrent. The fingerprint is a short string that will be
@@ -206,6 +210,8 @@ the parameters, see ``listen_on()`` function.
 The flags paramater can be used to start default features (upnp & nat-pmp) and default plugins
 (ut_metadata, ut_pex and smart_ban). The default is to start those things. If you do not want
 them to start, pass 0 as the flags parameter.
+
+The ``alert_mask`` is the same mask that you would send to ``set_alert_mask``.
 
 ~session()
 ----------
