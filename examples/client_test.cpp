@@ -855,7 +855,8 @@ int main(int ac, char* av[])
 		// be able to remove torrents that were added via the directory
 		// monitor when they're not in the directory anymore.
 		handles_t handles;
-		session ses;
+		session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
+			, session::start_default_features | session::add_default_plugins, alert::all_categories);
 #ifndef TORRENT_DISABLE_GEO_IP
 		ses.load_asnum_db("GeoIPASNum.dat");
 		ses.load_country_db("GeoIP.dat");

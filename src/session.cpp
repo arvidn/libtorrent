@@ -116,6 +116,7 @@ namespace libtorrent
 		, std::pair<int, int> listen_port_range
 		, char const* listen_interface
 		, int flags
+		, int alert_mask
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, fs::path logpath
 #endif
@@ -139,6 +140,7 @@ namespace libtorrent
 		boost::function0<void> test = boost::ref(*m_impl);
 		TORRENT_ASSERT(!test.empty());
 #endif
+		set_alert_mask(alert_mask);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
 		{
@@ -160,6 +162,7 @@ namespace libtorrent
 
 	session::session(fingerprint const& id
 		, int flags
+		, int alert_mask
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, fs::path logpath
 #endif
@@ -177,6 +180,7 @@ namespace libtorrent
 		boost::function0<void> test = boost::ref(*m_impl);
 		TORRENT_ASSERT(!test.empty());
 #endif
+		set_alert_mask(alert_mask);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
 		{
