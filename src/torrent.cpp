@@ -1631,8 +1631,11 @@ namespace libtorrent
 		// files belonging to the torrents
 		disconnect_all();
 		if (m_owning_storage.get())
+		{
 			m_storage->async_release_files(
 				bind(&torrent::on_files_released, shared_from_this(), _1, _2));
+			m_storage->abort_disk_io();
+		}
 		
 		if (m_state == torrent_status::checking_files)
 			m_ses.done_checking(shared_from_this());
