@@ -158,6 +158,9 @@ namespace
 
 	void trim_path_element(std::string& path_element)
 	{
+		// on windows, NAME_MAX refers to Unicode characters
+		// on linux it refers to bytes (utf-8 encoded)
+		// TODO: Make this count Unicode characters instead of bytes on windows
 		if (path_element.size() > NAME_MAX)
 		{
 			// truncate filenames that are too long. But keep extensions!
