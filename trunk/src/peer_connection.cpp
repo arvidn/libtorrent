@@ -1652,6 +1652,8 @@ namespace libtorrent
 				t->alerts().post_alert(peer_error_alert(t->get_handle(), m_remote
 					, m_peer_id, "peer sent 0 length piece"));
 			}
+			// This is used as a reject-request by bitcomet
+			incoming_reject_request(p);
 			return;
 		}
 
