@@ -649,9 +649,9 @@ int test_main()
 	table.node_seen(id, udp::endpoint(address_v4::any(), rand()));
 
 	node_id tmp;
-	node_id diff = boost::lexical_cast<sha1_hash>("00000f7459456a9453f8719b09547c11d5f34064");
+	node_id diff = boost::lexical_cast<sha1_hash>("00001f7459456a9453f8719b09547c11d5f34064");
 	std::vector<node_entry> nodes;
-	for (int i = 0; i < 1000000; ++i)
+	for (int i = 0; i < 10000; ++i)
 	{
 		table.node_seen(tmp, udp::endpoint(address_v4::any(), rand()));
 		add_and_replace(tmp, diff);
@@ -664,17 +664,17 @@ int test_main()
 	std::vector<node_entry> temp;
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, false, nodes.size() + 1);
+	table.find_node(tmp, temp, 0, nodes.size() + 1);
 	std::cout << "returned: " << temp.size() << std::endl;
 	TEST_CHECK(temp.size() == nodes.size());
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, true, nodes.size() + 1);
+	table.find_node(tmp, temp, routing_table::include_self, nodes.size() + 1);
 	std::cout << "returned: " << temp.size() << std::endl;
 	TEST_CHECK(temp.size() == nodes.size() + 1);
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, false, 7);
+	table.find_node(tmp, temp, 0, 7);
 	std::cout << "returned: " << temp.size() << std::endl;
 	TEST_CHECK(temp.size() == 7);
 
@@ -694,9 +694,9 @@ int test_main()
 	TEST_CHECK(hits > int(temp.size()) / 2);
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, false, 15);
+	table.find_node(tmp, temp, 0, 15);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == 15);
+	TEST_CHECK(temp.size() == (std::min)(15, int(nodes.size())));
 
 	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
 		, bind(&node_entry::id, _1)
