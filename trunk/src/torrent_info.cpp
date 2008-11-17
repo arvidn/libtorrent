@@ -156,6 +156,24 @@ namespace
 		if (!valid_encoding) target.path = tmp_path;
 	}
 
+	void trim_path_element(std::string& path_element)
+	{
+		if (path_element.size() > NAME_MAX)
+		{
+			// truncate filenames that are too long. But keep extensions!
+			std::string ext = fs::extension(path_element);
+			if (ext.size() > 15)
+			{
+				path_element.resize(NAME_MAX);
+			}
+			else
+			{
+				path_element.resize(NAME_MAX - ext.size());
+				path_element += ext;
+			}
+		}
+	}
+
 	bool extract_single_file(lazy_entry const& dict, file_entry& target
 		, std::string const& root_dir)
 	{
@@ -181,6 +199,7 @@ namespace
 			if (p->list_at(i)->type() != lazy_entry::string_t)
 				return false;
 			std::string path_element = p->list_at(i)->string_value();
+			trim_path_element(path_element);
 			if (path_element != "..")
 				target.path /= path_element;
 		}
@@ -402,6 +421,7 @@ namespace libtorrent
 		if (tmp.is_complete())
 		{
 			name = tmp.leaf();
+			trim_path_element(name);
 		}
 #if BOOST_VERSION < 103600
 		else if (tmp.has_branch_path())
@@ -414,9 +434,15 @@ namespace libtorrent
 				, end(tmp.end()); i != end; ++i)
 			{
 				if (*i == "." || *i == "..") continue;
-				p /= *i;
+				std::string path_element = *i;
+				trim_path_element(path_element);
+				p /= path_element;
 			}
 			name = p.string();
+		}
+		else
+		{
+			trim_path_element(name);
 		}
 		if (name == ".." || name == ".")
 		{
