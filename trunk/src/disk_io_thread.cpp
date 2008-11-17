@@ -178,7 +178,10 @@ namespace libtorrent
 			}
 			++i;
 		}
-		m_signal.notify_all();
+		disk_io_job j;
+		j.action = disk_io_job::abort_torrent;
+		j.storage = s;
+		add_job(j);
 	}
 
 	bool range_overlap(int start1, int length1, int start2, int length2)
@@ -803,6 +806,28 @@ namespace libtorrent
 
 			switch (j.action)
 			{
+				case disk_io_job::abort_torrent:
+				{
+					mutex_t::scoped_lock jl(m_queue_mutex);
+					for (std::list<disk_io_job>::iterator i = m_jobs.begin();
+						i != m_jobs.end();)
+					{
+						if (i->storage != j.storage)
+						{
+							++i;
+							continue;
+						}
+						if (i->action == disk_io_job::check_files)
+						{
+							if (i->callback) m_ios.post(bind(i->callback
+									, piece_manager::disk_check_aborted, *i));
+							m_jobs.erase(i++);
+							continue;
+						}
+						++i;
+					}
+					break;
+				}
 				case disk_io_job::abort_thread:
 				{
 					mutex_t::scoped_lock jl(m_queue_mutex);

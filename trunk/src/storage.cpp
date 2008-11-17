@@ -1289,6 +1289,11 @@ namespace libtorrent
 		m_io_thread.add_job(j, handler);
 	}
 
+	void piece_manager::abort_disk_io()
+	{
+		m_io_thread.stop(this);
+	}
+
 	void piece_manager::async_delete_files(
 		boost::function<void(int, disk_io_job const&)> const& handler)
 	{

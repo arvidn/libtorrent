@@ -656,6 +656,13 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 				ses.remove_torrent(h);
 		}
 	}
+	else if (save_resume_data_failed_alert* p = dynamic_cast<save_resume_data_failed_alert*>(a))
+	{
+		torrent_handle h = p->handle;
+		if (std::find_if(handles.begin(), handles.end()
+			, bind(&handles_t::value_type::second, _1) == h) == handles.end())
+			ses.remove_torrent(h);
+	}
 }
 
 static char const* state_str[] =
