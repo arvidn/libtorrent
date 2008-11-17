@@ -1,19 +1,40 @@
-AC_PREREQ(2.59)
+AC_PREREQ(2.60)
 
-AC_INIT(src/torrent.cpp)
-AM_INIT_AUTOMAKE(libtorrent-rasterbar, 0.14)
+AC_INIT([libtorrent-rasterbar], [0.14], [arvid@rasterbar.com])
+AM_INIT_AUTOMAKE(foreign 1.10)
+AC_CONFIG_SRCDIR([src/torrent.cpp])
 
+
+dnl ---------------------------------------------------------------------------
 dnl interface version info
+dnl ---------------------------------------------------------------------------
+dnl Advanced information about versioning:
+dnl   * "Writing shared libraries" by Mike Hearn
+dnl         http://navi.cx/~mike/writing-shared-libraries.html
+dnl   * libtool.info chapter "Versioning"
+dnl   * libtool.info chapter "Updating library version information"
+dnl ---------------------------------------------------------------------------
+dnl Versioning:
+dnl  - CURRENT (Major):  Increment if the interface has changes. AGE is always
+dnl                      *changed* at the same time.
+dnl  - AGE (Micro):      Increment if any interfaces have been added; set to 0
+dnl                      if any interfaces have been removed. Removal has
+dnl                      precedence over adding, so set to 0 if both happened.
+dnl                      It denotes upward compatibility.
+dnl  - REVISION (Minor): Increment any time the source changes; set to
+dnl                      0 if you incremented CURRENT.
+dnl
+dnl  To summarize. Any interface *change* increment CURRENT. If that interface
+dnl  change does not break upward compatibility (ie it is an addition),
+dnl  increment AGE, Otherwise AGE is reset to 0. If CURRENT has changed,
+dnl  REVISION is set to 0, otherwise REVISION is incremented.
+dnl ---------------------------------------------------------------------------
 VERSION_INFO_CURRENT=1
 VERSION_INFO_REVISION=0
 VERSION_INFO_AGE=0
-
 INTERFACE_VERSION_INFO=$VERSION_INFO_CURRENT:$VERSION_INFO_REVISION:$VERSION_INFO_AGE
-
 AC_SUBST(INTERFACE_VERSION_INFO)
-
-# Nowhere in the source is config.h included, so make defines command line arguments
-# AM_CONFIG_HEADER(config.h)
+dnl ---------------------------------------------------------------------------
 
 AC_PROG_CC
 
@@ -344,7 +365,7 @@ case "$tests" in
 		;;
 	*)
 		AC_MSG_RESULT()
-		AC_MSG_ERROR([Unknown --enable-tests option "$examples". Use either "yes" or "no".])
+		AC_MSG_ERROR([Unknown --enable-tests option "$tests". Use either "yes" or "no".])
 		;;
 esac
 
