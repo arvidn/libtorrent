@@ -88,6 +88,7 @@ namespace libtorrent
 			, rename_file
 			, abort_thread
 			, clear_read_cache
+			, abort_torrent
 		};
 
 		action_t action;
