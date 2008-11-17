@@ -1010,7 +1010,7 @@ namespace libtorrent
 			if (!allocate_disk_receive_buffer(packet_size() - 9))
 				return;
 		}
-		TORRENT_ASSERT(has_disk_receive_buffer());
+		TORRENT_ASSERT(has_disk_receive_buffer()) || packet_size() == 9;
 
 		// classify the received data as protocol chatter
 		// or data payload for the statistics

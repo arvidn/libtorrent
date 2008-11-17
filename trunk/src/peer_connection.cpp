@@ -1650,7 +1650,7 @@ namespace libtorrent
 			if (t->alerts().should_post<peer_error_alert>())
 			{
 				t->alerts().post_alert(peer_error_alert(t->get_handle(), m_remote
-						, m_peer_id, "peer sent 0 length piece"));
+					, m_peer_id, "peer sent 0 length piece"));
 			}
 			return;
 		}
