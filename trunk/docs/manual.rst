@@ -2224,6 +2224,14 @@ Example code to pause and save resume data for all torrents and wait for the ale
 		if (a == 0) break;
 		
 		std::auto_ptr<alert> holder = ses.pop_alert();
+
+		if (dynamic_cast<save_resume_data_failed_alert const*>(a))
+		{
+			process_alert(a);
+			--num_resume_data;
+			continue;
+		}
+
 		save_resume_data_alert const* rd = dynamic_cast<save_resume_data_alert const*>(a);
 		if (rd == 0)
 		{

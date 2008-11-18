@@ -1142,6 +1142,12 @@ int main(int ac, char* av[])
 						::print_alert(holder.get(), std::cout);
 						std::cout << std::endl;
 
+						if (dynamic_cast<save_resume_data_failed_alert const*>(a))
+						{
+							--num_resume_data;
+							continue;
+						}
+
 						save_resume_data_alert const* rd = dynamic_cast<save_resume_data_alert const*>(a);
 						if (!rd) continue;
 						--num_resume_data;
