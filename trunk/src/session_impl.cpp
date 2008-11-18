@@ -1121,10 +1121,13 @@ namespace aux {
 		}
 
 		// drain the IP overhead from the bandwidth limiters
-		m_download_channel.drain(
-			m_stat.download_ip_overhead()
-			+ m_stat.download_dht()
-			+ m_stat.download_tracker());
+		if (m_settings.rate_limit_ip_overhead)
+		{
+			m_download_channel.drain(
+				m_stat.download_ip_overhead()
+				+ m_stat.download_dht()
+				+ m_stat.download_tracker());
+		}
 
 		if (m_stat.download_ip_overhead() >= m_download_channel.throttle()
 			&& m_alerts.should_post<performance_alert>())
@@ -1133,10 +1136,13 @@ namespace aux {
 				, performance_alert::download_limit_too_low));
 		}
 
-		m_upload_channel.drain(
-			m_stat.upload_ip_overhead()
-			+ m_stat.upload_dht()
-			+ m_stat.upload_tracker());
+		if (m_settings.rate_limit_ip_overhead)
+		{
+			m_upload_channel.drain(
+				m_stat.upload_ip_overhead()
+				+ m_stat.upload_dht()
+				+ m_stat.upload_tracker());
+		}
 
 		if (m_stat.upload_ip_overhead() >= m_upload_channel.throttle()
 			&& m_alerts.should_post<performance_alert>())

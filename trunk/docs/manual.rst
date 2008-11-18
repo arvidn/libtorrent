@@ -3038,6 +3038,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 
 		bool prioritize_partial_pieces;
 		int auto_manage_startup;
+
+		bool rate_limit_ip_overhead;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3318,6 +3320,9 @@ proportion.
 active after it was started, regardless of upload and download speed. This
 is so that newly started torrents are not considered inactive until they
 have a fair chance to start downloading.
+
+If ``rate_limit_ip_overhead`` is set to true, the estimated TCP/IP overhead is
+drained from the rate limiters, to avoid exceeding the limits with the total traffic
 
 
 pe_settings
