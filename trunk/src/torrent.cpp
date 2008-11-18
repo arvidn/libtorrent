@@ -773,7 +773,7 @@ namespace libtorrent
 			}
 			m_error = j.str;
 			pause();
-			m_ses.done_checking(shared_from_this());
+			if (!m_abort) m_ses.done_checking(shared_from_this());
 			return;
 		}
 
