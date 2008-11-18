@@ -1107,9 +1107,12 @@ namespace aux {
 			++i;
 		}
 
-		// drain the IP overhead from the bandwidth limiters
-		m_download_channel.drain(m_stat.download_ip_overhead());
-		m_upload_channel.drain(m_stat.upload_ip_overhead());
+		if (m_settings.rate_limit_ip_overhead)
+		{
+			// drain the IP overhead from the bandwidth limiters
+			m_download_channel.drain(m_stat.download_ip_overhead());
+			m_upload_channel.drain(m_stat.upload_ip_overhead());
+		}
 
 		m_stat.second_tick(tick_interval);
 
