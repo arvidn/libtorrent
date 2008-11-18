@@ -757,8 +757,6 @@ namespace libtorrent
 
 		if (ret == piece_manager::disk_check_aborted)
 		{
-			m_error = "aborted";
-			m_ses.done_checking(shared_from_this());
 			return;
 		}
 		if (ret == piece_manager::fatal_disk_error)
@@ -3608,12 +3606,18 @@ namespace libtorrent
 			// assert that there's a torrent that is being
 			// processed right now
 			int found = 0;
+			int found_active = 0;
 			for (aux::session_impl::torrent_map::iterator i = m_ses.m_torrents.begin()
 				, end(m_ses.m_torrents.end()); i != end; ++i)
-				if (i->second->m_state == torrent_status::checking_files) ++found;
+				if (i->second->m_state == torrent_status::checking_files)
+				{
+					++found;
+					if (i->second->should_check_files()) ++found_active;
+				}
 			// the case of 2 is in the special case where one switches over from
-			// checking to complete
-			TORRENT_ASSERT(found == 1 || found == 2);
+			// checking to complete.
+			TORRENT_ASSERT(found_active == 1 || found_active == 2);
+			TORRENT_ASSERT(found >= 1);
 		}
 
 		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t
@@ -3907,7 +3911,9 @@ namespace libtorrent
 			m_ses.check_torrent(shared_from_this());
 		else if (checking_files && !should_check_files())
 		{
-			// TODO: pause checking
+			// stop checking
+			m_storage->abort_disk_io();
+			m_ses.done_checking(shared_from_this());
 		}
 	}
 
@@ -4003,7 +4009,8 @@ namespace libtorrent
 	
 	bool torrent::should_check_files() const
 	{
-		return m_state == torrent_status::checking_files
+		return (m_state == torrent_status::checking_files
+			|| m_state == torrent_status::queued_for_checking)
 			&& (!is_paused() || m_auto_managed);
 	}
 
@@ -4023,7 +4030,9 @@ namespace libtorrent
 		do_pause();
 		if (checking_files && !should_check_files())
 		{
-			// TODO: pause checking
+			// stop checking
+			m_storage->abort_disk_io();
+			m_ses.done_checking(shared_from_this());
 		}
 	}
 
