@@ -1,4 +1,9 @@
 
+	* torrents that are checking can now be paused, which will
+	  pause the checking
+	* introduced another torrent state, checking_resume_data, which
+	  the torrent is in when it's first added, and is comparing
+	  the files on disk with the resume data
 	* DHT bandwidth usage optimizations
 	* rate limited DHT send socket
 	* tracker connections are now also subject to IP filtering

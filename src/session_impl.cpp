@@ -1875,10 +1875,10 @@ namespace aux {
 	void session_impl::check_torrent(boost::shared_ptr<torrent> const& t)
 	{
 		if (m_abort) return;
-		TORRENT_ASSERT(!t->is_paused() || t->is_auto_managed());
-		TORRENT_ASSERT(t->state() == torrent_status::checking_files
-			|| t->state() == torrent_status::queued_for_checking);
+		TORRENT_ASSERT(t->should_check_files());
+		TORRENT_ASSERT(t->state() != torrent_status::checking_files);
 		if (m_queued_for_checking.empty()) t->start_checking();
+		else t->set_state(torrent_status::queued_for_checking);
 		TORRENT_ASSERT(std::find(m_queued_for_checking.begin()
 			, m_queued_for_checking.end(), t) == m_queued_for_checking.end());
 		m_queued_for_checking.push_back(t);
@@ -1900,17 +1900,21 @@ namespace aux {
 
 	void session_impl::done_checking(boost::shared_ptr<torrent> const& t)
 	{
+		INVARIANT_CHECK;
+
 		if (m_queued_for_checking.empty()) return;
 		check_queue_t::iterator next_check = m_queued_for_checking.begin();
 		check_queue_t::iterator done = m_queued_for_checking.end();
 		for (check_queue_t::iterator i = m_queued_for_checking.begin()
 			, end(m_queued_for_checking.end()); i != end; ++i)
 		{
+			TORRENT_ASSERT(*i == t || (*i)->should_check_files());
 			if (*i == t) done = i;
 			if (next_check == done || (*next_check)->queue_position() > (*i)->queue_position())
 				next_check = i;
 		}
-		if (next_check != done) (*next_check)->start_checking();
+		// only start a new one if we removed the one that is checking
+		if (next_check != done && t->state() == torrent_status::checking_files) (*next_check)->start_checking();
 		m_queued_for_checking.erase(done);
 	}
 
@@ -2631,6 +2635,13 @@ namespace aux {
 #ifndef NDEBUG
 	void session_impl::check_invariant() const
 	{
+		int num_checking =  std::count_if(m_queued_for_checking.begin()
+			, m_queued_for_checking.end(), boost::bind(&torrent::state, _1)
+			== torrent_status::checking_files);
+
+		// the queue is either empty, or it has exactly one checking torrent in it
+		TORRENT_ASSERT(m_queued_for_checking.empty() || num_checking == 1);
+
 		std::set<int> unique;
 		int total_downloaders = 0;
 		for (torrent_map::const_iterator i = m_torrents.begin()
