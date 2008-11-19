@@ -11,6 +11,7 @@ docs/python_binding.rst docs/python_binding.html \
 docs/udp_tracker_protocol.rst docs/udp_tracker_protocol.html \
 docs/client_test.rst docs/client_test.html \
 docs/dht_extensions.html docs/dht_extensions.rst \
+docs/make_torrent.html docs/make_torrent.rst \
 docs/examples.html docs/examples.rst \
 docs/features.html docs/features.rst \
 docs/arctic_thumb.png \
