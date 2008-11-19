@@ -2376,7 +2376,8 @@ It contains the following fields::
 			downloading,
 			finished,
 			seeding,
-			allocating
+			allocating,
+			checking_resume_data
 		};
 	
 		state_t state;
@@ -2453,6 +2454,11 @@ It contains the following fields::
 torrent's current task. It may be checking files or downloading. The torrent's
 current task is in the ``state`` member, it will be one of the following:
 
++--------------------------+----------------------------------------------------------+
+|``checking_resume_data``  |The torrent is currently checking the fastresume data and |
+|                          |comparing it to the files on disk. This is typically      |
+|                          |completed in a fraction of a second, but if you add a     |
+|                          |large number of torrents at once, they will queue up.     |
 +--------------------------+----------------------------------------------------------+
 |``queued_for_checking``   |The torrent is in the queue for being checked. But there  |
 |                          |currently is another torrent that are being checked.      |
