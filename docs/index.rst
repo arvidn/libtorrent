@@ -7,6 +7,7 @@
 * `building libtorrent`_
 * examples_
 * `api documentation`_
+* `create torrents`_
 * `running tests`_
 * screenshot_
 * `mailing list`_ (archive_)
@@ -51,6 +52,7 @@ libtorrent
 .. _`building libtorrent`: building.html
 .. _examples: examples.html
 .. _`api documentation`: manual.html
+.. _`create torrents`: make_torrent.html
 .. _`running tests`: running_tests.html
 .. _screenshot: client_test.png
 .. _`extensions protocol`: extension_protocol.html
