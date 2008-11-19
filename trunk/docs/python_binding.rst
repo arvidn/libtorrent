@@ -32,6 +32,10 @@ To build the Python bindings do:
 
 	python setup.py install
 
+This requires that you have built and install libtorrent first. The setup.py relies
+on pkg-config to be installed as well. It invokes pkg-config in order to link
+against libtorrent.
+
 
 building using boost build
 --------------------------
