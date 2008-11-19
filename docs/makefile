@@ -11,6 +11,7 @@ TARGETS = index \
 	features \
 	examples \
 	extension_protocol \
+	make_torrent \
 	dht_extensions \
 	libtorrent_plugins \
 	python_binding \
