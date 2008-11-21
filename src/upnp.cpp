@@ -875,8 +875,16 @@ void upnp::on_upnp_xml(error_code const& e
 		}
 	}
 	
-	if (s.url_base.empty()) d.control_url = s.control_url;
-	else d.control_url = s.url_base + s.control_url;
+	if (!s.url_base.empty())
+	{
+		// avoid double slashes in path
+		if (s.url_base[s.url_base.size()-1] == '/'
+			&& !s.control_url.empty()
+			&& s.control_url[0] == '/')
+			s.url_base.erase(s.url_base.end()-1);
+		d.control_url = s.url_base + s.control_url;
+	}
+	else d.control_url = s.control_url;
 
 	std::string protocol;
 	std::string auth;
