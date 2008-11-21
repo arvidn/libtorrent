@@ -97,6 +97,7 @@ def add_suffix(val):
     return '%6.3gPB' % val
 
 def progress_bar(progress, width):
+    assert(progress <= 1)
     progress_chars = int(progress * width + 0.5)
     return progress_chars * '#' + (width - progress_chars) * '-'
 
@@ -128,6 +129,7 @@ def print_peer_info(console, peers):
         out += ' '
 
         if p.downloading_piece_index >= 0:
+            assert(p.downloading_progress <= p.downloading_total)
             out += progress_bar(float(p.downloading_progress) / p.downloading_total, 15)
         else:
             out += progress_bar(0, 15)
@@ -238,21 +240,19 @@ def main():
         info = lt.torrent_info(e)
         print 'Adding \'%s\'...' % info.name()
 
-        try:
-            resume_data = lt.bdecode(open(
-                os.path.join(options.save_path, info.name() + '.fastresume'), 'rb').read())
-        except:
-            resume_data = ""
-
         atp = {}
+        try:
+            atp["resume_data"] = open(os.path.join(options.save_path, info.name() + '.fastresume'), 'rb').read()
+        except:
+            pass
+
         atp["ti"] = info
         atp["save_path"] = options.save_path
-        atp["resume_data"] = resume_data
         atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
         atp["paused"] = False
         atp["auto_managed"] = True
         atp["duplicate_is_error"] = True
-        
+
         h = ses.add_torrent(atp)
 
         handles.append(h)
@@ -317,7 +317,7 @@ def main():
                 fp = h.file_progress()
                 ti = h.get_torrent_info()
                 for f,p in zip(ti.files(), fp):
-                    out += progress_bar(p, 20)
+                    out += progress_bar(p / f.size, 20)
                     out += ' ' + f.path + '\n'
                 write_line(console, out)
 
@@ -353,10 +353,10 @@ def main():
         elif c == 'u':
             for h in handles: h.resume()
 
+    ses.pause()
     for h in handles:
         if not h.is_valid() or not h.has_metadata():
             continue
-        h.pause()
         data = lt.bencode(h.write_resume_data())
         open(os.path.join(options.save_path, h.get_torrent_info().name() + '.fastresume'), 'wb').write(data)
 
