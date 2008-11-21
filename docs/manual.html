@@ -31,20 +31,6 @@
     </div>
     <div id="main">
 <h1 class="title">libtorrent API Documentation</h1>
-
-    <div style="margin-bottom: 1em;">
-    <script type="text/javascript"><!--
-    google_ad_client = "pub-6034671648887442";
-    google_ad_slot = "7139164174";
-    google_ad_width = 728;
-    google_ad_height = 90;
-    //-->
-    </script>
-    <script type="text/javascript"
-    src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
-    </script>
-    </div>
-
 <table class="docinfo" frame="void" rules="none">
 <col class="docinfo-name" />
 <col class="docinfo-content" />
@@ -332,13 +318,15 @@ class session: public boost::noncopyable
         session(fingerprint const&amp; print
                 = libtorrent::fingerprint(
                 &quot;LT&quot;, 0, 1, 0, 0)
-                , int flags = start_default_features | add_default_plugins);
+                , int flags = start_default_features | add_default_plugins
+                , int alert_mask = alert::error_notification);
 
         session(
                 fingerprint const&amp; print
                 , std::pair&lt;int, int&gt; listen_port_range
                 , char const* listen_interface = 0
-                , int flags = start_default_features | add_default_plugins);
+                , int flags = start_default_features | add_default_plugins
+                , int alert_mask = alert::error_notification);
 
         torrent_handle add_torrent(add_torrent_params const&amp; params);
 
@@ -442,12 +430,14 @@ The main thread will be idle as long it doesn't have any torrents to participate
 <pre class="literal-block">
 session(fingerprint const&amp; print
         = libtorrent::fingerprint(&quot;LT&quot;, 0, 1, 0, 0)
-        , int flags = start_default_features | add_default_plugins);
+        , int flags = start_default_features | add_default_plugins
+        , int alert_mask = alert::error_notification);
 
 session(fingerprint const&amp; print
         , std::pair&lt;int, int&gt; listen_port_range
         , char const* listen_interface = 0
-        , int flags = start_default_features | add_default_plugins);
+        , int flags = start_default_features | add_default_plugins
+        , int alert_mask = alert::error_notification);
 </pre>
 </blockquote>
 <p>If the fingerprint in the first overload is omited, the client will get a default
@@ -461,6 +451,7 @@ the parameters, see <tt class="docutils literal"><span class="pre">listen_on()</
 <p>The flags paramater can be used to start default features (upnp &amp; nat-pmp) and default plugins
 (ut_metadata, ut_pex and smart_ban). The default is to start those things. If you do not want
 them to start, pass 0 as the flags parameter.</p>
+<p>The <tt class="docutils literal"><span class="pre">alert_mask</span></tt> is the same mask that you would send to <tt class="docutils literal"><span class="pre">set_alert_mask</span></tt>.</p>
 </div>
 <div class="section" id="id2">
 <h2>~session()</h2>
@@ -2301,6 +2292,14 @@ while (num_resume_data &gt; 0)
         if (a == 0) break;
 
         std::auto_ptr&lt;alert&gt; holder = ses.pop_alert();
+
+        if (dynamic_cast&lt;save_resume_data_failed_alert const*&gt;(a))
+        {
+                process_alert(a);
+                --num_resume_data;
+                continue;
+        }
+
         save_resume_data_alert const* rd = dynamic_cast&lt;save_resume_data_alert const*&gt;(a);
         if (rd == 0)
         {
@@ -2436,7 +2435,8 @@ struct torrent_status
                 downloading,
                 finished,
                 seeding,
-                allocating
+                allocating,
+                checking_resume_data
         };
 
         state_t state;
@@ -2518,6 +2518,12 @@ current task is in the <tt class="docutils literal"><span class="pre">state</spa
 <col width="69%" />
 </colgroup>
 <tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">checking_resume_data</span></tt></td>
+<td>The torrent is currently checking the fastresume data and
+comparing it to the files on disk. This is typically
+completed in a fraction of a second, but if you add a
+large number of torrents at once, they will queue up.</td>
+</tr>
 <tr><td><tt class="docutils literal"><span class="pre">queued_for_checking</span></tt></td>
 <td>The torrent is in the queue for being checked. But there
 currently is another torrent that are being checked.
@@ -3069,6 +3075,8 @@ struct session_settings
 
         bool prioritize_partial_pieces;
         int auto_manage_startup;
+
+        bool rate_limit_ip_overhead;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -3292,6 +3300,8 @@ proportion.</p>
 active after it was started, regardless of upload and download speed. This
 is so that newly started torrents are not considered inactive until they
 have a fair chance to start downloading.</p>
+<p>If <tt class="docutils literal"><span class="pre">rate_limit_ip_overhead</span></tt> is set to true, the estimated TCP/IP overhead is
+drained from the rate limiters, to avoid exceeding the limits with the total traffic</p>
 </div>
 <div class="section" id="pe-settings">
 <h1>pe_settings</h1>
