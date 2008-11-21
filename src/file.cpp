@@ -171,9 +171,9 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 
 #ifdef UNICODE
-		std::wstring file_path(safe_convert(path.native_file_string()));
+		std::wstring file_path(safe_convert(path.external_file_string()));
 #else
-		std::string file_path = utf8_native(path.native_file_string());
+		std::string file_path = utf8_native(path.external_file_string());
 #endif
 
 		m_file_handle = CreateFile(
@@ -205,7 +205,7 @@ namespace libtorrent
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
 
-		m_fd = ::open(path.native_file_string().c_str()
+		m_fd = ::open(path.external_file_string().c_str()
 			, map_open_mode(mode.m_mask), permissions);
 
 		if (m_fd == -1)
