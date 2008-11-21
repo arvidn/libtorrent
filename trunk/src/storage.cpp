@@ -160,7 +160,7 @@ namespace
 		// First create branch, by calling ourself recursively
 		create_directories_win(ph.branch_path());
 		// Now that parent's path exists, create the directory
-		std::wstring wph(safe_convert(ph.native_directory_string()));
+		std::wstring wph(safe_convert(ph.external_directory_string()));
 		CreateDirectory(wph.c_str(), 0);
 		return true;
 	}
@@ -208,7 +208,7 @@ namespace
 	std::time_t last_write_time_win( const fs::path & ph )
 	{
 		struct _stat path_stat;
-		std::wstring wph(safe_convert(ph.native_file_string()));
+		std::wstring wph(safe_convert(ph.external_file_string()));
 		if ( ::_wstat( wph.c_str(), &path_stat ) != 0 )
 			boost::throw_exception( filesystem_error(
 			"boost::filesystem::last_write_time",
@@ -273,9 +273,9 @@ namespace libtorrent
 			for (basic_directory_iterator<Path> i(old_path), end; i != end; ++i)
 			{
 #if BOOST_VERSION < 103600
-				recursive_copy(i->path(), new_path / i->leaf(), ec);
+				recursive_copy(i->path(), new_path / i->path().leaf(), ec);
 #else
-				recursive_copy(i->path(), new_path / i->filename(), ec);
+				recursive_copy(i->path(), new_path / i->path().filename(), ec);
 #endif
 				if (ec) return;
 			}
@@ -392,7 +392,7 @@ namespace libtorrent
 				|| (!compact_mode && size < s->first))
 			{
 				if (error) *error = "filesize mismatch for file '"
-					+ i->path.native_file_string()
+					+ i->path.external_file_string()
 					+ "', size: " + boost::lexical_cast<std::string>(size)
 					+ ", expected to be " + boost::lexical_cast<std::string>(s->first)
 					+ " bytes";
@@ -405,7 +405,7 @@ namespace libtorrent
 				(!compact_mode && (time > s->second + 5 * 60) || time < s->second - 1))
 			{
 				if (error) *error = "timestamp mismatch for file '"
-					+ i->path.native_file_string()
+					+ i->path.external_file_string()
 					+ "', modification date: " + boost::lexical_cast<std::string>(time)
 					+ ", expected to have modification date "
 					+ boost::lexical_cast<std::string>(s->second);
@@ -832,7 +832,7 @@ namespace libtorrent
 			{
 				if (i->size != fs->first)
 				{
-					error = "file size for '" + i->path.native_file_string()
+					error = "file size for '" + i->path.external_file_string()
 						+ "' was expected to be "
 						+ boost::lexical_cast<std::string>(i->size) + " bytes";
 					return false;
@@ -858,7 +858,7 @@ namespace libtorrent
 		save_path = complete(save_path);
 
 #if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
-		std::wstring wsave_path(safe_convert(save_path.native_file_string()));
+		std::wstring wsave_path(safe_convert(save_path.external_file_string()));
 		if (!exists_win(save_path))
 			CreateDirectory(wsave_path.c_str(), 0);
 		else if ((GetFileAttributes(wsave_path.c_str()) & FILE_ATTRIBUTE_DIRECTORY) == 0)

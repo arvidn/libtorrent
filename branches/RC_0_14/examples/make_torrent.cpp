@@ -73,8 +73,6 @@ int main(int argc, char* argv[])
 	int piece_size = 256 * 1024;
 	char const* creator_str = "libtorrent";
 
-	path::default_name_check(no_check);
-
 	if (argc != 4 && argc != 5)
 	{
 		std::cerr << "usage: make_torrent <output torrent-file> "

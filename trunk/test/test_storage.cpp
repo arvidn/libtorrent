@@ -544,7 +544,7 @@ int test_main()
 	char* env = std::getenv("TORRENT_TEST_PATHS");
 	if (env == 0)
 	{
-		test_paths.push_back(initial_path());
+		test_paths.push_back(initial_path<path>());
 	}
 	else
 	{

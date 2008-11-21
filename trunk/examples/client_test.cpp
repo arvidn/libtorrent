@@ -551,7 +551,7 @@ void scan_dir(path const& dir_path
 	for (directory_iterator i(dir_path), end; i != end; ++i)
 	{
 		if (extension(*i) != ".torrent") continue;
-		std::string file = i->string();
+		std::string file = i->path().string();
 
 		handles_t::iterator k = handles.find(file);
 		if (k != handles.end())

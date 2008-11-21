@@ -161,9 +161,9 @@ namespace libtorrent
 			{
 				for (directory_iterator i(f), end; i != end; ++i)
 #if BOOST_VERSION < 103600
-					add_files_impl(fs, p, l / i->leaf(), pred);
+					add_files_impl(fs, p, l / i->path().leaf(), pred);
 #else
-					add_files_impl(fs, p, l / i->filename(), pred);
+					add_files_impl(fs, p, l / i->path().filename(), pred);
 #endif
 			}
 			else
@@ -185,7 +185,11 @@ namespace libtorrent
 
 	inline void add_files(file_storage& fs, boost::filesystem::path const& file)
 	{
+#if BOOST_VERSION < 103600
 		detail::add_files_impl(fs, complete(file).branch_path(), file.leaf(), detail::default_pred);
+#else
+		detail::add_files_impl(fs, complete(file).parent_path(), file.filename(), detail::default_pred);
+#endif
 	}
 	
 	template <class Fun>
