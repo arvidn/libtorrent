@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::filesystem::remove_all;
 using boost::filesystem::create_directory;
 using namespace libtorrent;
+namespace sf = boost::filesystem;
 
 void print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume)
@@ -128,7 +129,7 @@ void start_web_server(int port, bool ssl)
 	
 	std::ofstream f("lighty_config");
 	f << "server.modules = (\"mod_access\", \"mod_redirect\", \"mod_setenv\")\n"
-		"server.document-root = \"" << boost::filesystem::initial_path().string() << "\"\n"
+		"server.document-root = \"" << fs::initial_path<fs::path>().string() << "\"\n"
 		"server.range-requests = \"enable\"\n"
 		"server.port = " << port << "\n"
 		"server.pid-file = \"./lighty" << port << ".pid\"\n"
