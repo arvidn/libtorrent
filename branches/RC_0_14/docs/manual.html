@@ -28,8 +28,6 @@
     <div id="header">
     <h1><span>Rasterbar Software</span></h1>
     <h2><span>Software developement and consulting</span></h2>
-    <span>
-    </span>
     </div>
     <div id="main">
 <h1 class="title">libtorrent API Documentation</h1>
@@ -40,7 +38,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.14</td></tr>
+<td>0.14.1</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -2233,6 +2231,14 @@ while (num_resume_data &gt; 0)
         if (a == 0) break;
 
         std::auto_ptr&lt;alert&gt; holder = ses.pop_alert();
+
+        if (dynamic_cast&lt;save_resume_data_failed_alert const*&gt;(a))
+        {
+                process_alert(a);
+                --num_resume_data;
+                continue;
+        }
+
         save_resume_data_alert const* rd = dynamic_cast&lt;save_resume_data_alert const*&gt;(a);
         if (rd == 0)
         {
@@ -2998,6 +3004,8 @@ struct session_settings
 
         bool prioritize_partial_pieces;
         int auto_manage_startup;
+
+        bool rate_limit_ip_overhead;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -3221,6 +3229,8 @@ proportion.</p>
 active after it was started, regardless of upload and download speed. This
 is so that newly started torrents are not considered inactive until they
 have a fair chance to start downloading.</p>
+<p>If <tt class="docutils literal"><span class="pre">rate_limit_ip_overhead</span></tt> is set to true, the estimated TCP/IP overhead is
+drained from the rate limiters, to avoid exceeding the limits with the total traffic</p>
 </div>
 <div class="section" id="pe-settings">
 <h1>pe_settings</h1>
