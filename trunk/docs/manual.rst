@@ -1227,6 +1227,7 @@ The ``torrent_info`` has the following synopsis::
 		std::vector<announce_entry> const& trackers() const;
 
 		file_storage const& files() const;
+		file_storage& files();
 
 		typedef file_storage::iterator file_iterator;
 		typedef file_storage::reverse_iterator reverse_file_iterator;
