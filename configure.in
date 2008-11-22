@@ -328,17 +328,6 @@ case "$ac_python_binding" in
 
 		AM_PATH_PYTHON([2.5],,AC_MSG_ERROR([Python not found. Python is required to build python binding.]))
 
-		PYTHON_CONFIG=`type -p python$PYTHON_VERSION-config`
-		if test "$PYTHON_CONFIG" != ""; then
-			PYTHON_CFLAGS=`$PYTHON_CONFIG --cflags` dnl --includes
-			PYTHON_LIBS=`$PYTHON_CONFIG --libs`
-		else
-			PYTHON_CFLAGS=``
-			PYTHON_LIBS=``
-		fi
-		AC_SUBST(PYTHON_CFLAGS)
-		AC_SUBST(PYTHON_LIBS)
-
 		AX_BOOST_PYTHON
 		dnl check that Boost.Python was found:
 		if test -z "$BOOST_PYTHON_LIB"; then
