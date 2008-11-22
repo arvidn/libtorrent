@@ -44,11 +44,12 @@ void bind_session_settings()
         .def_readwrite("seed_time_limit", &session_settings::seed_time_limit)
         .def_readwrite("auto_scraped_interval", &session_settings::auto_scrape_interval)
         .def_readwrite("peer_tos", &session_settings::peer_tos)
+        .def_readwrite("rate_limit_ip_overhead", &session_settings::rate_limit_ip_overhead)
 #ifndef TORRENT_DISABLE_DHT
         .def_readwrite("use_dht_as_fallback", &session_settings::use_dht_as_fallback)
 #endif
     ;
-    
+
     enum_<proxy_settings::proxy_type>("proxy_type")
         .value("none", proxy_settings::none)
         .value("socks4", proxy_settings::socks4)
@@ -57,7 +58,7 @@ void bind_session_settings()
         .value("http", proxy_settings::http)
         .value("http_pw", proxy_settings::http_pw)
     ;
-    class_<proxy_settings>("proxy_settings") 
+    class_<proxy_settings>("proxy_settings")
         .def_readwrite("hostname", &proxy_settings::hostname)
         .def_readwrite("port", &proxy_settings::port)
         .def_readwrite("password", &proxy_settings::password)
@@ -71,11 +72,11 @@ void bind_session_settings()
         .value("enabled", pe_settings::enabled)
         .value("disabled", pe_settings::disabled)
     ;
-	 
+
     enum_<pe_settings::enc_level>("enc_level")
         .value("rc4", pe_settings::rc4)
         .value("plaintext", pe_settings::plaintext)
-        .value("both", pe_settings::both) 
+        .value("both", pe_settings::both)
     ;
 
     class_<pe_settings>("pe_settings")
@@ -87,5 +88,3 @@ void bind_session_settings()
 #endif
 
 }
-
-
