@@ -7,7 +7,7 @@ install-exec-local:
 	$(PYTHON) setup.py install --prefix=$(DESTDIR)$(prefix)
 
 uninstall-local:
-	rm -rf $(DESTDIR)$(libdir)/python*/site-packages/*libtorrentrb*
+	rm -rf $(DESTDIR)$(libdir)/python*/site-packages/*libtorrent*
 
 clean-local:
 	$(PYTHON) setup.py clean --all
