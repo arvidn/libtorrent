@@ -16,6 +16,20 @@ release 0.14.1
 
 	* fixed DHT bug
 	* fixed potential shutdown crash in disk_io_thread
+	* fixed usage of deprecated boost.filsystem functions
+	* fixed http_connection unit test
+	* fixed bug in DHT when a DHT state was loaded
+	* made rate limiter change in 0.14 optional (to take estimated
+	  TCP/IP overhead into account)
+	* made the python plugin buildable through the makefile
+	* fixed UPnP bug when url base ended with a slash and
+	  path started with a slash
+	* fixed various potentially leaking exceptions
+	* fixed problem with removing torrents that are checking
+	* fixed documentation bug regarding save_resume_data()
+	* added missing documentation on torrent creation
+	* fixed bugs in python client examples
+	* fixed missing dependency in package-config file
 
 release 0.14
 
