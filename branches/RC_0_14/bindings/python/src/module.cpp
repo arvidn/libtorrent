@@ -43,7 +43,9 @@ BOOST_PYTHON_MODULE(libtorrent)
     bind_alert();
     bind_datetime();
     bind_extensions();
+#ifndef TORRENT_NO_PYTHON_PLUGINS
     bind_peer_plugin();
+#endif
     bind_torrent();
     bind_peer_info();
     bind_ip_filter();

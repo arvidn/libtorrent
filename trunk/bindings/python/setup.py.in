@@ -19,14 +19,37 @@ def arch():
 	a = os.uname()[4]
 	if a == 'Power Macintosh': a = 'ppc'
 	return ['-arch', a]
-	
+
+if platform.system() == 'Windows':
+# on windows, build using bjam and build an installer
+	import shutil
+	os.system('bjam boost=source link=static boost-link=static release msvc-7.1')
+	try:
+		os.mkdir(r'libtorrent')
+	except:
+		pass
+	shutil.copyfile(r'bin\msvc-7.1\release\boost-source\link-static\threading-multi\libtorrent.pyd', r'.\libtorrent\libtorrent.pyd')
+	setup( name='python-libtorrent',
+		version='@PACKAGE_VERSION@',
+		author = 'Arvid Norberg',
+		author_email='@PACKAGE_BUGREPORT@',
+		description = 'Python bindings for libtorrent-rasterbar',
+		long_description = 'Python bindings for libtorrent-rasterbar',
+		url = 'http://www.rasterbar.com/products/libtorrent/index.html',
+		platforms = 'Windows',
+		license = 'Boost Software License - Version 1.0 - August 17th, 2003',
+		packages = ['libtorrent'],
+		package_data = {'.': [r'libtorrent.pyd']},
+		package_dir={'.': 'libtorrent'}
+	)
+	sys.exit(0)
 
 source_list = os.listdir(os.path.join(os.path.dirname(__file__), "src"))
 source_list = [os.path.join("src", s) for s in source_list if s.endswith(".cpp")]
 
 extra_cmd = '@COMPILETIME_OPTIONS@ @CPPFLAGS@'
 
-setup( name='python-@PACKAGE_NAME@',
+setup( name='python-libtorrent',
 	version='@PACKAGE_VERSION@',
 	author = 'Arvid Norberg',
 	author_email='@PACKAGE_BUGREPORT@',
