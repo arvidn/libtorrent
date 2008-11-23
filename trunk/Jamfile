@@ -274,6 +274,9 @@ lib tcmalloc : : <name>tcmalloc $(library-search-path) ;
 # libz
 lib zlib-target : : <name>z ;
 
+# GeoIP shared library
+lib GeoIP : : <name>GeoIP ;
+
 # socket libraries on windows
 lib wsock32 : : <name>wsock32 ;
 lib ws2_32 : : <name>ws2_32 ;
