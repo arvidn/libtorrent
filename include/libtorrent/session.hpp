@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 
 #include "libtorrent/storage.hpp"
+#include <boost/preprocessor/cat.hpp>
 
 #ifdef _MSC_VER
 #	include <eh.h>
@@ -79,6 +80,45 @@ namespace libtorrent
 	class connection_queue;
 	class natpmp;
 	class upnp;
+
+	// this is used to create linker errors when trying to link to
+	// a library with a conflicting build configuration than the application
+#ifdef NDEBUG
+#define G _release
+#else
+#define G _debug
+#endif
+
+#ifdef TORRENT_USE_OPENSSL
+#define S _ssl
+#else
+#define S _nossl
+#endif
+
+#ifdef TORRENT_DISABLE_DHT
+#define D _nodht
+#else
+#define D _dht
+#endif
+
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+#define P _nopoolalloc
+#else
+#define P _poolalloc
+#endif
+
+#define TORRENT_LINK_TEST_PREFIX libtorrent_build_config
+#define TORRENT_LINK_TEST_NAME BOOST_PP_CAT(TORRENT_LINK_TEST_PREFIX, BOOST_PP_CAT(P, BOOST_PP_CAT(D, BOOST_PP_CAT(S, G))))
+#undef P
+#undef D
+#undef S
+#undef G
+
+	inline void test_link()
+	{
+		extern void TORRENT_LINK_TEST_NAME();
+		TORRENT_LINK_TEST_NAME();
+	}
 
 	namespace fs = boost::filesystem;
 

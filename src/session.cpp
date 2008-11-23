@@ -91,6 +91,8 @@ void stop_malloc_debug();
 namespace libtorrent
 {
 
+	TORRENT_EXPORT void TORRENT_LINK_TEST_NAME() {}
+
 	std::string log_time()
 	{
 		static const ptime start = time_now();
@@ -123,7 +125,7 @@ namespace libtorrent
 		)
 		: m_impl(new session_impl(listen_port_range, id, listen_interface
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-					, logpath
+		, logpath
 #endif
 		))
 	{
