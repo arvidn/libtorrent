@@ -752,7 +752,10 @@ namespace libtorrent
 			return;
 		}
 		if (!is_torrent_paused() || is_auto_managed())
+		{
+			set_state(torrent_status::queued_for_checking);
 			m_ses.check_torrent(shared_from_this());
+		}
 	}
 
 	void torrent::start_checking()
