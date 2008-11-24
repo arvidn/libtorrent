@@ -592,7 +592,8 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 
 void rate_limited_udp_socket::close()
 {
-	m_timer.cancel();
+	error_code ec;
+	m_timer.cancel(ec);
 	udp_socket::close();
 }
 
