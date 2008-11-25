@@ -326,7 +326,7 @@ case "$ac_python_binding" in
 	"yes")
 		AC_MSG_RESULT(yes)
 
-		AM_PATH_PYTHON([2.5],,AC_MSG_ERROR([Python not found. Python is required to build python binding.]))
+		AM_PATH_PYTHON([2.4],,AC_MSG_ERROR([Python not found. Python is required to build python binding.]))
 
 		AX_BOOST_PYTHON
 		dnl check that Boost.Python was found:
