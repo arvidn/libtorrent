@@ -1,4 +1,6 @@
 
+	* if there is no working tracker, current_tracker is the
+	  tracker that is currently being tried
 	* torrents that are checking can now be paused, which will
 	  pause the checking
 	* introduced another torrent state, checking_resume_data, which
