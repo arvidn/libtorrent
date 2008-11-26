@@ -4636,8 +4636,15 @@ namespace libtorrent
 
 		if (m_last_working_tracker >= 0)
 		{
+			TORRENT_ASSERT(m_last_working_tracker < m_trackers.size());
 			st.current_tracker
 				= m_trackers[m_last_working_tracker].url;
+		}
+		else if (m_currently_trying_tracker >= 0)
+		{
+			TORRENT_ASSERT(m_currently_trying_tracker < m_trackers.size());
+			st.current_tracker
+				= m_trackers[m_currently_trying_tracker].url;
 		}
 
 		st.num_uploads = m_num_uploads;
