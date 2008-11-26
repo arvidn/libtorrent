@@ -511,6 +511,12 @@ namespace libtorrent
 		TORRENT_FORWARD(replace_trackers(urls));
 	}
 
+	void torrent_handle::add_tracker(announce_entry const& url) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(add_tracker(url));
+	}
+
 	storage_interface* torrent_handle::get_storage_impl() const
 	{
 		INVARIANT_CHECK;
