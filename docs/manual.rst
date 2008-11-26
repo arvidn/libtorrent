@@ -1619,6 +1619,7 @@ Its declaration looks like this::
 
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&);
+		void add_tracker(announc_entry const& url);
 
 		void add_url_seed(std::string const& url);
 		void remove_url_seed(std::string const& url);
@@ -2047,13 +2048,14 @@ set_tracker_login()
 of the tracker announce. Set this if the tracker requires authorization.
 
 
-trackers() replace_trackers()
------------------------------
+trackers() replace_trackers() add_tracker()
+-------------------------------------------
 
   ::
 
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
+		void add_tracker(announc_entry const& url);
 
 ``trackers()`` will return the list of trackers for this torrent. The
 announce entry contains both a string ``url`` which specify the announce url
@@ -2063,6 +2065,10 @@ trackers for this torrent, you can use ``replace_trackers()`` which takes
 a list of the same form as the one returned from ``trackers()`` and will
 replace it. If you want an immediate effect, you have to call
 `force_reannounce()`_.
+
+``add_tracker()`` will look if the specified tracker is already in the set.
+If it is, it doesn't do anything. If it's not in the current set of trackers,
+it will insert it in the tier specified in the announce_entry.
 
 
 add_url_seed() remove_url_seed() url_seeds()

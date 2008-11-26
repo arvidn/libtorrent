@@ -586,6 +586,7 @@ namespace libtorrent
 		{ return m_trackers; }
 
 		void replace_trackers(std::vector<announce_entry> const& urls);
+		void add_tracker(announce_entry const& urls);
 
 		torrent_handle get_handle();
 

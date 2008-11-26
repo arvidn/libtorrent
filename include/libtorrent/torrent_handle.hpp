@@ -331,6 +331,7 @@ namespace libtorrent
 
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
+		void add_tracker(announce_entry const&) const;
 
 		void add_url_seed(std::string const& url) const;
 		void remove_url_seed(std::string const& url) const;

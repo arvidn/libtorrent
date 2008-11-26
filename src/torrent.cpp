@@ -2063,6 +2063,19 @@ namespace libtorrent
 		else stop_announcing();
 	}
 
+	void torrent::add_tracker(announce_entry const& url)
+	{
+		std::vector<announce_entry>::iterator k = std::find_if(m_trackers.begin()
+			, m_trackers.end(), boost::bind(&announce_entry::url, _1) == url.url);
+		if (k != m_trackers.end()) return;
+		k = std::upper_bound(m_trackers.begin(), m_trackers.end(), url
+			, boost::bind(&announce_entry::tier, _1) < boost::bind(&announce_entry::tier, _2));
+		if (k - m_trackers.begin() < m_currently_trying_tracker) ++m_currently_trying_tracker;
+		if (k - m_trackers.begin() < m_last_working_tracker) ++m_last_working_tracker;
+		m_trackers.insert(k, url);
+		if (!m_trackers.empty()) start_announcing();
+	}
+
 	void torrent::choke_peer(peer_connection& c)
 	{
 		INVARIANT_CHECK;
