@@ -185,7 +185,7 @@ namespace libtorrent
 		, m_duration(1800)
 		, m_sequence_number(seq)
 		, m_last_working_tracker(-1)
-		, m_currently_trying_tracker(0)
+		, m_currently_trying_tracker(-1)
 		, m_failed_trackers(0)
 		, m_time_scaler(0)
 		, m_abort(false)
@@ -265,7 +265,7 @@ namespace libtorrent
 		, m_duration(1800)
 		, m_sequence_number(seq)
 		, m_last_working_tracker(-1)
-		, m_currently_trying_tracker(0)
+		, m_currently_trying_tracker(-1)
 		, m_failed_trackers(0)
 		, m_time_scaler(0)
 		, m_abort(false)
@@ -941,6 +941,9 @@ namespace libtorrent
 		if (ep != tcp::endpoint())
 			req.ipv6 = ep.address().to_string(ec);
 
+		if (m_currently_trying_tracker == -1) m_currently_trying_tracker = 0;
+		TORRENT_ASSERT(m_currently_trying_tracker >= 0);
+		TORRENT_ASSERT(m_currently_trying_tracker < int(m_trackers.size()));
 		req.url = m_trackers[m_currently_trying_tracker].url;
 		// if we are aborting. we don't want any new peers
 		req.num_want = (req.event == tracker_request::stopped)
@@ -974,13 +977,14 @@ namespace libtorrent
 	{
 		if (m_trackers.empty()) return;
 
-		TORRENT_ASSERT(m_currently_trying_tracker >= 0);
-		TORRENT_ASSERT(m_currently_trying_tracker < int(m_trackers.size()));
+		int i = m_last_working_tracker;
+		if (i == -1) i = m_currently_trying_tracker;
+		if (i == -1) i = 0;
 		
 		tracker_request req;
 		req.info_hash = m_torrent_file->info_hash();
 		req.kind = tracker_request::scrape_request;
-		req.url = m_trackers[m_currently_trying_tracker].url;
+		req.url = m_trackers[i].url;
 		m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
 			, tracker_login(), m_ses.m_listen_interface.address(), shared_from_this());
 
@@ -1041,9 +1045,17 @@ namespace libtorrent
 		if (interval < m_ses.settings().min_announce_interval)
 			interval = m_ses.settings().min_announce_interval;
 
-		m_last_working_tracker
-			= prioritize_tracker(m_currently_trying_tracker);
-		m_currently_trying_tracker = 0;
+		if (m_currently_trying_tracker != -1)
+		{
+			TORRENT_ASSERT(m_currently_trying_tracker >= 0);
+			TORRENT_ASSERT(m_currently_trying_tracker < int(m_trackers.size()));
+			TORRENT_ASSERT(m_trackers[m_currently_trying_tracker].url == r.url);
+
+			m_last_working_tracker
+				= prioritize_tracker(m_currently_trying_tracker);
+			m_currently_trying_tracker = 0;
+			TORRENT_ASSERT(m_trackers[m_currently_trying_tracker].url == r.url);
+		}
 
 		m_duration = interval;
 		restart_tracker_timer(time_now() + seconds(m_duration));
@@ -2056,9 +2068,8 @@ namespace libtorrent
 	void torrent::replace_trackers(std::vector<announce_entry> const& urls)
 	{
 		m_trackers = urls;
-		if (m_currently_trying_tracker >= (int)m_trackers.size())
-			m_currently_trying_tracker = (int)m_trackers.size()-1;
 		m_last_working_tracker = -1;
+		m_currently_trying_tracker = -1;
 		if (!m_trackers.empty()) start_announcing();
 		else stop_announcing();
 	}
@@ -3440,7 +3451,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(index >= 0);
-		if (index >= (int)m_trackers.size()) return (int)m_trackers.size()-1;
+		TORRENT_ASSERT(index < m_trackers.size());
+		if (index >= (int)m_trackers.size()) return -1;
 
 		while (index > 0 && m_trackers[index].tier == m_trackers[index-1].tier)
 		{
@@ -3454,9 +3466,20 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		++m_currently_trying_tracker;
+		if (m_trackers.empty())
+		{
+			m_currently_trying_tracker = -1;
+			return;
+		}
 
-		if ((unsigned)m_currently_trying_tracker < m_trackers.size())
+		// increase tracker index until we find a tracker we can use
+		// or until we reach the end of the tracker list
+		do
+		{
+			++m_currently_trying_tracker;
+		} while (m_currently_trying_tracker < m_trackers.size());
+
+		if (m_currently_trying_tracker < int(m_trackers.size()))
 		{
 			announce_with_tracker(req.event);
 			return;
@@ -3469,7 +3492,7 @@ namespace libtorrent
 
 		++m_failed_trackers;
 		// if we've looped the tracker list, wait a bit before retrying
-		m_currently_trying_tracker = 0;
+		m_currently_trying_tracker = -1;
 
 		// if we're stopping, just give up. Don't bother retrying
 		if (req.event == tracker_request::stopped)
