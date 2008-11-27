@@ -310,8 +310,7 @@ namespace libtorrent { namespace
 			// abort if the peer doesn't support the metadata extension
 			if (m_message_index == 0) return;
 
-			// only send metadata if the torrent is non-private
-			if (m_torrent.valid_metadata() && !m_torrent.torrent_file().priv())
+			if (m_torrent.valid_metadata())
 			{
 				std::pair<int, int> offset
 					= req_to_offset(req, (int)m_tp.metadata().left());
@@ -595,6 +594,8 @@ namespace libtorrent
 
 	boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent* t, void*)
 	{
+		// don't add this extension if the torrent is private
+		if (t->valid_metadata() && t->torrent_file().priv()) return boost::shared_ptr<torrent_plugin>();
 		return boost::shared_ptr<torrent_plugin>(new metadata_plugin(*t));
 	}
 

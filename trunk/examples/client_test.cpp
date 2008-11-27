@@ -1348,7 +1348,7 @@ int main(int ac, char* av[])
 					<< std::hex << s.seed_rank << std::dec << " "
 					<< s.last_scrape << "\n" << esc("0");
 
-				if (torrent_index != active_torrent) continue;
+				if (torrent_index != active_torrent && s.state != torrent_status::seeding) continue;
 				char const* progress_bar_color = "33"; // yellow
 				if (s.state == torrent_status::checking_files
 					|| s.state == torrent_status::downloading_metadata)

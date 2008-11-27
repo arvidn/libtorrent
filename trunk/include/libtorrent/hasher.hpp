@@ -95,6 +95,7 @@ namespace libtorrent
 			TORRENT_ASSERT(len > 0);
 			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 		}
+		void update(std::string const& data) { update(&data[0], data.size()); }
 		void update(const char* data, int len)
 		{
 			TORRENT_ASSERT(data != 0);

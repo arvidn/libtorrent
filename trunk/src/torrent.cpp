@@ -303,6 +303,7 @@ namespace libtorrent
 		if (tracker_url)
 		{
 			m_trackers.push_back(announce_entry(tracker_url));
+			m_trackers.back().fail_limit = 0;
 			m_torrent_file->add_tracker(tracker_url);
 		}
 	}
@@ -945,6 +946,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_currently_trying_tracker >= 0);
 		TORRENT_ASSERT(m_currently_trying_tracker < int(m_trackers.size()));
 		req.url = m_trackers[m_currently_trying_tracker].url;
+		TORRENT_ASSERT(m_trackers[m_currently_trying_tracker].can_announce());
 		// if we are aborting. we don't want any new peers
 		req.num_want = (req.event == tracker_request::stopped)
 			?0:m_settings.num_want;
@@ -1051,6 +1053,8 @@ namespace libtorrent
 			TORRENT_ASSERT(m_currently_trying_tracker < int(m_trackers.size()));
 			TORRENT_ASSERT(m_trackers[m_currently_trying_tracker].url == r.url);
 
+			m_trackers[m_currently_trying_tracker].verified = true;
+		
 			m_last_working_tracker
 				= prioritize_tracker(m_currently_trying_tracker);
 			m_currently_trying_tracker = 0;
@@ -1113,6 +1117,16 @@ namespace libtorrent
 				get_handle(), peer_list.size(), r.url));
 		}
 		m_got_tracker_response = true;
+
+		// when the tracker succeeds, reset the fails-in-a-row counter
+		if (m_currently_trying_tracker != -1)
+		{
+			TORRENT_ASSERT(m_currently_trying_tracker >= 0);
+			TORRENT_ASSERT(m_currently_trying_tracker < int(m_trackers.size()));
+			TORRENT_ASSERT(m_trackers[m_currently_trying_tracker].url == r.url);
+		
+			m_trackers[m_currently_trying_tracker].fails = 0;
+		}
 	}
 
 	void torrent::on_peer_name_lookup(error_code const& e, tcp::resolver::iterator host
@@ -3477,7 +3491,8 @@ namespace libtorrent
 		do
 		{
 			++m_currently_trying_tracker;
-		} while (m_currently_trying_tracker < m_trackers.size());
+		} while (m_currently_trying_tracker < m_trackers.size()
+			&& !m_trackers[m_currently_trying_tracker].can_announce());
 
 		if (m_currently_trying_tracker < int(m_trackers.size()))
 		{
@@ -4787,6 +4802,14 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(tracker_error_alert(get_handle()
 					, m_failed_trackers + 1, 0, r.url, "tracker timed out"));
 			}
+			if (m_currently_trying_tracker != -1)
+			{
+				TORRENT_ASSERT(m_currently_trying_tracker >= 0);
+				TORRENT_ASSERT(m_currently_trying_tracker < int(m_trackers.size()));
+				TORRENT_ASSERT(m_trackers[m_currently_trying_tracker].url == r.url);
+
+				++m_trackers[m_currently_trying_tracker].fails;
+			}
 		}
 		else if (r.kind == tracker_request::scrape_request)
 		{
@@ -4820,6 +4843,14 @@ namespace libtorrent
 			{
 				m_ses.m_alerts.post_alert(tracker_error_alert(get_handle()
 					, m_failed_trackers + 1, response_code, r.url, str));
+			}
+			if (m_currently_trying_tracker != -1)
+			{
+				TORRENT_ASSERT(m_currently_trying_tracker >= 0);
+				TORRENT_ASSERT(m_currently_trying_tracker < int(m_trackers.size()));
+				TORRENT_ASSERT(m_trackers[m_currently_trying_tracker].url == r.url);
+
+				++m_trackers[m_currently_trying_tracker].fails;
 			}
 		}
 		else if (r.kind == tracker_request::scrape_request)

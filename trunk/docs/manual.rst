@@ -1480,8 +1480,12 @@ ones with lower tier will always be tried before the one with higher tier number
 	{
 		announce_entry(std::string const& url);
 		std::string url;
-		int tier;
+		boost::uint8_t tier;
+		boost::uint8_t fail_limit;
 	};
+
+``fail_limit`` is the max number of failures to announce to this tracker in
+a row, before this tracker is not used anymore.
 
 
 total_size() piece_length() piece_size() num_pieces()
