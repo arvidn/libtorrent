@@ -1348,49 +1348,46 @@ int main(int ac, char* av[])
 					<< std::hex << s.seed_rank << std::dec << " "
 					<< s.last_scrape << "\n" << esc("0");
 
-				if (s.state != torrent_status::seeding)
-				{
-					char const* progress_bar_color = "33"; // yellow
-					if (s.state == torrent_status::checking_files
-						|| s.state == torrent_status::downloading_metadata)
-					{
-						progress_bar_color = "35"; // magenta
-					}
-					else if (s.current_tracker.empty())
-					{
-						progress_bar_color = "31"; // red
-					}
-					else if (sess_stat.has_incoming_connections)
-					{
-						progress_bar_color = "32"; // green
-					}
-					if (sequential_download)
-						out << "sequential: ";
-					else
-						out << "  progress: ";
-
-					out << esc("32") << s.total_done << esc("0") << " Bytes ";
-					out.precision(4);
-					out.width(5);
-					out.fill(' ');
-					out << (s.progress*100) << "% ";
-					out << progress_bar(s.progress, terminal_width - 37, progress_bar_color) << "\n";
-					if (print_piece_bar && s.progress < 1.f)
-						out << "  " << piece_bar(s.pieces, terminal_width - 5) << "\n";
-					out << "  peers: " << esc("37") << s.num_peers << esc("0") << " (" << esc("37") << s.connect_candidates << esc("0") << ") "
-						<< "seeds: " << esc("37") << s.num_seeds << esc("0") << " "
-						<< "distributed copies: " << esc("37") << s.distributed_copies << esc("0")
-//						<< "  magnet-link: " << make_magnet_uri(h) << "\n"
-						<< " download: " << esc("32") << (s.download_rate > 0 ? add_suffix(s.download_rate) + "/s ": "         ") << esc("0");
-					boost::posix_time::time_duration t = s.next_announce;
-					out << " next announce: " << esc("37")
-						<< to_string(t.hours(), 2) << ":"
-						<< to_string(t.minutes(), 2) << ":"
-						<< to_string(t.seconds(), 2) << esc("0") << " ";
-					out << "tracker: " << esc("36") << s.current_tracker << esc("0") << "\n";
-				}
-
 				if (torrent_index != active_torrent) continue;
+				char const* progress_bar_color = "33"; // yellow
+				if (s.state == torrent_status::checking_files
+					|| s.state == torrent_status::downloading_metadata)
+				{
+					progress_bar_color = "35"; // magenta
+				}
+				else if (s.current_tracker.empty())
+				{
+					progress_bar_color = "31"; // red
+				}
+				else if (sess_stat.has_incoming_connections)
+				{
+					progress_bar_color = "32"; // green
+				}
+				if (sequential_download)
+					out << "sequential: ";
+				else
+					out << "  progress: ";
+
+				out << esc("32") << s.total_done << esc("0") << " Bytes ";
+				out.precision(4);
+				out.width(5);
+				out.fill(' ');
+				out << (s.progress*100) << "% ";
+				out << progress_bar(s.progress, terminal_width - 37, progress_bar_color) << "\n";
+				if (print_piece_bar && s.progress < 1.f)
+					out << "  " << piece_bar(s.pieces, terminal_width - 5) << "\n";
+				out << "  peers: " << esc("37") << s.num_peers << esc("0") << " (" << esc("37") << s.connect_candidates << esc("0") << ") "
+					<< "seeds: " << esc("37") << s.num_seeds << esc("0") << " "
+					<< "distributed copies: " << esc("37") << s.distributed_copies << esc("0")
+//					<< "  magnet-link: " << make_magnet_uri(h) << "\n"
+					<< " download: " << esc("32") << (s.download_rate > 0 ? add_suffix(s.download_rate) + "/s ": "         ") << esc("0");
+				boost::posix_time::time_duration t = s.next_announce;
+				out << " next announce: " << esc("37")
+					<< to_string(t.hours(), 2) << ":"
+					<< to_string(t.minutes(), 2) << ":"
+					<< to_string(t.seconds(), 2) << esc("0") << " ";
+				out << "tracker: " << esc("36") << s.current_tracker << esc("0") << "\n";
+
 				active_handle = h;
 			}
 
