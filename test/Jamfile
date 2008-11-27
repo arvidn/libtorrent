@@ -45,6 +45,7 @@ test-suite libtorrent :
 	[ run test_ip_filter.cpp ]
 	[ run test_hasher.cpp ]
 	[ run test_metadata_extension.cpp ]
+	[ run test_trackers_extension.cpp ]
 	[ run test_swarm.cpp ]
 	[ run test_lsd.cpp ]
 	[ run test_pex.cpp ]

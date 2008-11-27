@@ -68,9 +68,27 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT announce_entry
 	{
-		announce_entry(std::string const& u): url(u), tier(0) {}
+		announce_entry(std::string const& u)
+			: url(u), tier(0)
+			, fail_limit(3), fails(0)
+			, verified(false)
+		{}
+
 		std::string url;
-		int tier;
+		boost::uint8_t tier;
+		// the number of times this tracker can fail
+		// in a row before it's removed. 0 means unlimited
+		boost::uint8_t fail_limit;
+
+		// the number of times in a row this tracker has failed
+		boost::uint8_t fails;
+
+		// is set to true if we have ever received a response from
+		// this tracker
+		bool verified:1;
+
+		bool can_announce() const
+		{ return fails < fail_limit || fail_limit == 0; }
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS

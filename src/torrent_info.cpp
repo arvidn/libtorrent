@@ -539,6 +539,7 @@ namespace libtorrent
 					announce_entry e(tier->list_string_value_at(k));
 					if (e.url.empty()) continue;
 					e.tier = j;
+					e.fail_limit = 0;
 					m_urls.push_back(e);
 				}
 			}
@@ -563,6 +564,7 @@ namespace libtorrent
 		if (m_urls.empty())
 		{
 			announce_entry e(torrent_file.dict_find_string_value("announce"));
+			e.fail_limit = 0;
 			if (!e.url.empty()) m_urls.push_back(e);
 		}
 
