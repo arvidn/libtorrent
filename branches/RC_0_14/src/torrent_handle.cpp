@@ -134,7 +134,7 @@ namespace libtorrent
 #endif
 	}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 
 	void torrent_handle::check_invariant() const
 	{}

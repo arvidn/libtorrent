@@ -65,7 +65,7 @@ public:
 	void close();
 	int size() const { return m_queue.size(); }
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	void check_invariant() const;
 #endif
 
@@ -101,7 +101,7 @@ private:
 	typedef boost::recursive_mutex mutex_t;
 	mutable mutex_t m_mutex;
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	bool m_in_timeout_function;
 #endif
 #ifdef TORRENT_CONNECTION_LOGGING

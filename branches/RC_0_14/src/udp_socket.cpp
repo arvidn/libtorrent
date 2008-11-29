@@ -25,12 +25,12 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 	, m_resolver(ios)
 	, m_tunnel_packets(false)
 {
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	m_magic = 0x1337;
 #endif
 }
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	#define CHECK_MAGIC check_magic_ cm_(m_magic)
 	struct check_magic_
 	{

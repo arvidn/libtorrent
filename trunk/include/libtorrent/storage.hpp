@@ -298,7 +298,7 @@ namespace libtorrent
 		bool compact_allocation() const
 		{ return m_storage_mode == storage_mode_compact; }
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		std::string name() const { return m_info->name(); }
 #endif
 
@@ -333,7 +333,7 @@ namespace libtorrent
 		int move_storage_impl(fs::path const& save_path);
 
 		int allocate_slot_for_piece(int piece_index);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #ifdef TORRENT_STORAGE_DEBUG
 		void debug_log() const;

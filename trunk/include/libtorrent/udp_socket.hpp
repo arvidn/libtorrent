@@ -65,7 +65,7 @@ namespace libtorrent
 		void set_proxy_settings(proxy_settings const& ps);
 		proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		~udp_socket() { m_magic = 0; }
 #endif
 
@@ -109,7 +109,7 @@ namespace libtorrent
 		char m_tmp_buf[100];
 		bool m_tunnel_packets;
 		udp::endpoint m_proxy_addr;
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		int m_magic;
 #endif
 	};

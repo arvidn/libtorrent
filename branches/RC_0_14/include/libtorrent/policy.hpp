@@ -110,7 +110,7 @@ namespace libtorrent
 
 		void ip_filter_updated();
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		bool has_connection(const peer_connection* p);
 
 		void check_invariant() const;
@@ -156,7 +156,7 @@ namespace libtorrent
 			peer_connection* connection;
 
 #ifndef TORRENT_DISABLE_GEO_IP
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			// only used in debug mode to assert that
 			// the first entry in the AS pair keeps the same
 			boost::uint16_t inet_as_num;

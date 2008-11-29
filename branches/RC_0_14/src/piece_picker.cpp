@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/bitfield.hpp"
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/torrent.hpp"
 #endif
@@ -70,7 +70,7 @@ namespace libtorrent
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "new piece_picker" << std::endl;
 #endif
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		check_invariant();
 #endif
 	}
@@ -195,7 +195,7 @@ namespace libtorrent
 		m_downloads.erase(i);
 	}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 
 	void piece_picker::verify_pick(std::vector<piece_block> const& picked
 		, bitfield const& bits) const
@@ -226,7 +226,7 @@ namespace libtorrent
 		}
 	}
 
-#if defined TORRENT_PICKER_LOG || !defined NDEBUG
+#if defined TORRENT_PICKER_LOG || defined TORRENT_DEBUG
 	void piece_picker::print_pieces() const
 	{
 		for (std::vector<int>::const_iterator i = m_priority_boundries.begin()
@@ -787,7 +787,7 @@ namespace libtorrent
 			, has_index(index));
 
 		TORRENT_ASSERT(i != m_downloads.end());
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			int num_blocks = blocks_in_piece(i->index);
 			for (int k = 0; k < num_blocks; ++k)
 			{
@@ -1501,7 +1501,7 @@ namespace libtorrent
 
 		if (num_blocks <= 0) return;
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		verify_pick(interesting_blocks, pieces);
 		verify_pick(backup_blocks, pieces);
 		verify_pick(backup_blocks2, pieces);
@@ -1538,7 +1538,7 @@ namespace libtorrent
 			}
 		}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 //		make sure that we at this point have added requests to all unrequested blocks
 //		in all downloading pieces
 
@@ -1726,7 +1726,7 @@ namespace libtorrent
 				}
 			}
 		}
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		verify_pick(interesting_blocks, pieces);
 #endif
 		if (num_blocks <= 0) return 0;
@@ -1825,7 +1825,7 @@ namespace libtorrent
 
 		if (int(backup_blocks.size()) >= num_blocks) return num_blocks;
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		verify_pick(backup_blocks, pieces);
 #endif
 		return num_blocks;
@@ -1871,7 +1871,7 @@ namespace libtorrent
 		int max_blocks = blocks_in_piece(index);
 		if ((int)i->finished < max_blocks) return false;
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		for (int k = 0; k < max_blocks; ++k)
 		{
 			TORRENT_ASSERT(i->info[k].state == block_info::state_finished);

@@ -136,7 +136,7 @@ namespace libtorrent
 		// turn off the filename checking in boost.filesystem
 		TORRENT_ASSERT(listen_port_range.first > 0);
 		TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		// this test was added after it came to my attention
 		// that devstudios managed c++ failed to generate
 		// correct code for boost.function
@@ -180,7 +180,7 @@ namespace libtorrent
 #ifdef TORRENT_MEMDEBUG
 		start_malloc_debug();
 #endif
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		boost::function0<void> test = boost::ref(*m_impl);
 		TORRENT_ASSERT(!test.empty());
 #endif

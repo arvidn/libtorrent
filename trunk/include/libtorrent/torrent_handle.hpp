@@ -491,7 +491,7 @@ namespace libtorrent
 			: m_torrent(t)
 		{}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 

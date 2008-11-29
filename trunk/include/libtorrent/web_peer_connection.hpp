@@ -128,7 +128,7 @@ namespace libtorrent
 		void write_reject_request(peer_request const&) {}
 		void write_allow_fast(int) {}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 

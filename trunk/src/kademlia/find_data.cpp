@@ -101,7 +101,7 @@ void find_data::invoke(node_id const& id, udp::endpoint addr)
 
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
 	observer_ptr o(new (m_node.m_rpc.allocator().malloc()) find_data_observer(this, id, m_target));
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
 	m_node.m_rpc.invoke(messages::get_peers, addr, o);

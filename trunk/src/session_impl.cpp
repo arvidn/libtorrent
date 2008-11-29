@@ -510,7 +510,7 @@ namespace aux {
 		// abort all connections
 		while (!m_connections.empty())
 		{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			int conn = m_connections.size();
 #endif
 			(*m_connections.begin())->disconnect("stopping torrent");
@@ -911,7 +911,7 @@ namespace aux {
 
 		boost::intrusive_ptr<peer_connection> c(
 			new bt_peer_connection(*this, s, endp, 0));
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		c->m_in_constructor = false;
 #endif
 
@@ -929,7 +929,7 @@ namespace aux {
 // too expensive
 //		INVARIANT_CHECK;
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 //		for (aux::session_impl::torrent_map::const_iterator i = m_torrents.begin()
 //			, end(m_torrents.end()); i != end; ++i)
 //			TORRENT_ASSERT(!i->second->has_peer((peer_connection*)p));
@@ -1689,7 +1689,7 @@ namespace aux {
 			TORRENT_ASSERT(m_abort == true);
 			if (ec)
 			{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 				std::cerr << ec.message() << "\n";
 				std::string err = ec.message();
 #endif
@@ -1704,7 +1704,7 @@ namespace aux {
 
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 /*
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		for (torrent_map::iterator i = m_torrents.begin();
 			i != m_torrents.end(); ++i)
 		{
@@ -1728,7 +1728,7 @@ namespace aux {
 	{
 		std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 			= m_torrents.find(info_hash);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator j
 			= m_torrents.begin(); j != m_torrents.end(); ++j)
 		{
@@ -1942,7 +1942,7 @@ namespace aux {
 				t.delete_files();
 			t.abort();
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
 			t.set_queue_position(-1);
@@ -2632,7 +2632,7 @@ namespace aux {
 #endif
 	}	
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	void session_impl::check_invariant() const
 	{
 		int num_checking =  std::count_if(m_queued_for_checking.begin()

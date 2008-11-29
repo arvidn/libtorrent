@@ -239,7 +239,7 @@ namespace libtorrent { namespace dht
 	}
 	catch (std::exception& exc)
 	{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		std::cerr << "exception-type: " << typeid(exc).name() << std::endl;
 		std::cerr << "what: " << exc.what() << std::endl;
 		TORRENT_ASSERT(false);

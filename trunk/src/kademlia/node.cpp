@@ -273,7 +273,7 @@ namespace
 			TORRENT_LOG(node) << "  distance: " << (160 - distance_exp(ih, i->id));
 #endif
 			observer_ptr o(new (rpc.allocator().malloc()) get_peers_observer(ih, listen_port, rpc, f));
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			o->m_in_constructor = false;
 #endif
 			rpc.invoke(messages::get_peers, udp::endpoint(i->addr, i->port), o);
@@ -295,7 +295,7 @@ void node_impl::add_node(udp::endpoint node)
 	// ping the node, and if we get a reply, it
 	// will be added to the routing table
 	observer_ptr o(new (m_rpc.allocator().malloc()) null_observer(m_rpc.allocator()));
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
 	m_rpc.invoke(messages::ping, node, o);

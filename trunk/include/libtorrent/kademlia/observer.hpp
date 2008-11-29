@@ -57,7 +57,7 @@ struct observer : boost::noncopyable
 		, pool_allocator(p)
 		, m_refs(0)
 	{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_in_constructor = true;
 #endif
 	}
@@ -86,7 +86,7 @@ struct observer : boost::noncopyable
 
 	udp::endpoint target_addr;
 	ptime sent;
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	bool m_in_constructor;
 #endif
 private:

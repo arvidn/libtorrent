@@ -107,7 +107,7 @@ namespace libtorrent
 		, m_sync_bytes_read(0)
 		, m_enc_send_buffer(0, 0)
 #endif
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		, m_sent_bitfield(false)
 		, m_in_constructor(true)
 		, m_sent_handshake(false)
@@ -117,7 +117,7 @@ namespace libtorrent
 		(*m_logger) << "*** bt_peer_connection\n";
 #endif
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_in_constructor = false;
 #endif
 	}
@@ -140,7 +140,7 @@ namespace libtorrent
 		, m_sync_bytes_read(0)
 		, m_enc_send_buffer(0, 0)
 #endif		
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		, m_sent_bitfield(false)
 		, m_in_constructor(true)
 		, m_sent_handshake(false)
@@ -164,7 +164,7 @@ namespace libtorrent
 		m_bandwidth_limit[upload_channel].assign(80);
 #endif
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_in_constructor = false;
 #endif
 	}
@@ -278,7 +278,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_sent_bitfield = true;
 #endif
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -293,7 +293,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_sent_bitfield = true;
 #endif
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -695,7 +695,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(!m_sent_handshake);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_sent_handshake = true;
 #endif
 
@@ -1452,7 +1452,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << time_now_string() << " *** NOT SENDING BITFIELD\n";
 #endif
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			m_sent_bitfield = true;
 #endif
 			return;
@@ -1521,7 +1521,7 @@ namespace libtorrent
 		bitfield_string << "\n";
 		(*m_logger) << bitfield_string.str();
 #endif
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_sent_bitfield = true;
 #endif
 
@@ -2632,7 +2632,7 @@ namespace libtorrent
 		m_statistics.sent_bytes(amount_payload, bytes_transferred - amount_payload);
 	}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	void bt_peer_connection::check_invariant() const
 	{
 #ifndef TORRENT_DISABLE_ENCRYPTION

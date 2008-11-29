@@ -110,7 +110,7 @@ namespace libtorrent
 			// the size of each allocation that is chained in the send buffer
 			enum { send_buffer_size = 200 };
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			friend class ::libtorrent::peer_connection;
 #endif
 			friend struct checker_impl;
@@ -132,7 +132,7 @@ namespace libtorrent
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
 				torrent*, void*)> ext);
 #endif
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			bool has_peer(peer_connection const* p) const
 			{
 				return std::find_if(m_connections.begin(), m_connections.end()
@@ -580,7 +580,7 @@ namespace libtorrent
 			// connect to a peer next time second_tick is called.
 			// This implements a round robin.
 			int m_next_connect_torrent;
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			void check_invariant() const;
 #endif
 

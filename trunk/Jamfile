@@ -372,6 +372,7 @@ local usage-requirements =
 	<include>./include/libtorrent
 	<zlib>shipped:<include>./zlib
 	<variant>release:<define>NDEBUG
+	<variant>debug:<define>TORRENT_DEBUG
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
 	<conditional>@linking

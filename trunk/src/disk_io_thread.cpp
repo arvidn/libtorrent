@@ -362,7 +362,7 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(buffer_size == 0);
 //		std::cerr << " flushing p: " << p.piece << " cached_blocks: " << m_cache_stats.cache_size << std::endl;
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		for (int i = 0; i < blocks_in_piece; ++i)
 			TORRENT_ASSERT(p.blocks[i] == 0);
 #endif
@@ -504,7 +504,7 @@ namespace libtorrent
 		return ret;
 	}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	void disk_io_thread::check_invariant() const
 	{
 		int cached_write_blocks = 0;
@@ -693,7 +693,7 @@ namespace libtorrent
 		m_signal.notify_all();
 	}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	bool disk_io_thread::is_disk_buffer(char* buffer) const
 	{
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
@@ -741,7 +741,7 @@ namespace libtorrent
 			j.error = ec;
 			j.error_file = j.storage->error_file();
 			j.storage->clear_error();
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			std::cout << "ERROR: '" << j.str << "' " << j.error_file << std::endl;
 #endif
 			return true;

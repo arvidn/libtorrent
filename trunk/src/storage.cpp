@@ -75,7 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 //#define TORRENT_PARTIAL_HASH_LOG
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 #include <ios>
 #include <iostream>
 #include <iomanip>
@@ -243,7 +243,7 @@ using boost::bind;
 using namespace ::boost::multi_index;
 using boost::multi_index::multi_index_container;
 
-#if !defined(NDEBUG) && defined(TORRENT_STORAGE_DEBUG)
+#if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG
 namespace
 {
 	using namespace libtorrent;
@@ -465,7 +465,7 @@ namespace libtorrent
 	sha1_hash storage::hash_for_slot(int slot, partial_hash& ph, int piece_size)
 	{
 		TORRENT_ASSERT(!error());
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		hasher partial;
 		hasher whole;
 		int slot_size1 = piece_size;
@@ -486,7 +486,7 @@ namespace libtorrent
 			if (error()) return sha1_hash(0);
 			ph.h.update(&m_scratch_buffer[0], slot_size);
 		}
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		sha1_hash ret = ph.h.final();
 		TORRENT_ASSERT(ret == whole.final());
 		return ret;
@@ -915,7 +915,7 @@ namespace libtorrent
 		return false;
 	}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 /*
 	void storage::shuffle()
 	{
@@ -1010,7 +1010,7 @@ namespace libtorrent
 		TORRENT_ASSERT(offset < m_files.piece_size(slot));
 		TORRENT_ASSERT(size > 0);
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		std::vector<file_slice> slices
 			= files().map_block(slot, offset, size);
 		TORRENT_ASSERT(!slices.empty());
@@ -1047,7 +1047,7 @@ namespace libtorrent
 
 		size_type result = left_to_read;
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		int counter = 0;
 #endif
 
@@ -1064,7 +1064,7 @@ namespace libtorrent
 
 			if (read_bytes == 0) continue;
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			TORRENT_ASSERT(int(slices.size()) > counter);
 			size_type slice_size = slices[counter].size;
 			TORRENT_ASSERT(slice_size == read_bytes);
@@ -1132,7 +1132,7 @@ namespace libtorrent
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(size > 0);
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		std::vector<file_slice> slices
 			= files().map_block(slot, offset, size);
 		TORRENT_ASSERT(!slices.empty());
@@ -1167,7 +1167,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(left_to_write >= 0);
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		int counter = 0;
 #endif
 
@@ -1184,7 +1184,7 @@ namespace libtorrent
 
 			if (write_bytes == 0) continue;
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			TORRENT_ASSERT(int(slices.size()) > counter);
 			size_type slice_size = slices[counter].size;
 			TORRENT_ASSERT(slice_size == write_bytes);
@@ -1361,7 +1361,7 @@ namespace libtorrent
 		// since that is the size of the pool allocator's buffers
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		m_io_thread.add_job(j, handler);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		boost::recursive_mutex::scoped_lock l(m_mutex);
 		// if this assert is hit, it suggests
 		// that check_files was not successful
@@ -1532,7 +1532,7 @@ namespace libtorrent
 			std::map<int, partial_hash>::iterator i = m_piece_hasher.find(piece_index);
 			if (i != m_piece_hasher.end())
 			{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 				TORRENT_ASSERT(i->second.offset > 0);
 				int hash_offset = i->second.offset;
 				TORRENT_ASSERT(offset >= hash_offset);
@@ -2537,7 +2537,7 @@ namespace libtorrent
 			&& m_slot_to_piece[piece_index] >= 0)
 		{
 
-#if !defined(NDEBUG) && defined(TORRENT_STORAGE_DEBUG)
+#if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG
 			std::stringstream s;
 
 			s << "there is another piece at our slot, swapping..";
@@ -2572,7 +2572,7 @@ namespace libtorrent
 
 			slot_index = piece_index;
 
-#if !defined(NDEBUG) && defined(TORRENT_STORAGE_DEBUG)
+#if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG
 			debug_log();
 #endif
 		}
@@ -2640,7 +2640,7 @@ namespace libtorrent
 		return m_slot_to_piece[slot];
 	}
 		
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	void piece_manager::check_invariant() const
 	{
 		boost::recursive_mutex::scoped_lock lock(m_mutex);

@@ -92,7 +92,7 @@ public:
 
 	void reply(msg& m);
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	size_t allocation_size() const;
 	void check_invariant() const;
 #endif

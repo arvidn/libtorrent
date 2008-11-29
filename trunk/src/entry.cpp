@@ -148,7 +148,7 @@ namespace libtorrent
 	entry::entry()
 		: m_type(undefined_t)
 	{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
 	}
@@ -157,7 +157,7 @@ namespace libtorrent
 		: m_type(undefined_t)
 	{
 		construct(t);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
 	}
@@ -166,7 +166,7 @@ namespace libtorrent
 		: m_type(undefined_t)
 	{
 		copy(e);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = e.m_type_queried;
 #endif
 	}
@@ -174,7 +174,7 @@ namespace libtorrent
 	entry::entry(dictionary_type const& v)
 		: m_type(undefined_t)
 	{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
 		new(data) dictionary_type(v);
@@ -184,7 +184,7 @@ namespace libtorrent
 	entry::entry(string_type const& v)
 		: m_type(undefined_t)
 	{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
 		new(data) string_type(v);
@@ -194,7 +194,7 @@ namespace libtorrent
 	entry::entry(list_type const& v)
 		: m_type(undefined_t)
 	{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
 		new(data) list_type(v);
@@ -204,7 +204,7 @@ namespace libtorrent
 	entry::entry(integer_type const& v)
 		: m_type(undefined_t)
 	{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
 		new(data) integer_type(v);
@@ -216,7 +216,7 @@ namespace libtorrent
 		destruct();
 		new(data) dictionary_type(v);
 		m_type = dictionary_t;
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
 	}
@@ -226,7 +226,7 @@ namespace libtorrent
 		destruct();
 		new(data) string_type(v);
 		m_type = string_t;
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
 	}
@@ -236,7 +236,7 @@ namespace libtorrent
 		destruct();
 		new(data) list_type(v);
 		m_type = list_t;
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
 	}
@@ -246,7 +246,7 @@ namespace libtorrent
 		destruct();
 		new(data) integer_type(v);
 		m_type = int_t;
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
 	}
@@ -291,7 +291,7 @@ namespace libtorrent
 			TORRENT_ASSERT(t == undefined_t);
 		}
 		m_type = t;
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
 	}
@@ -316,7 +316,7 @@ namespace libtorrent
 			TORRENT_ASSERT(e.type() == undefined_t);
 		}
 		m_type = e.type();
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
 	}
@@ -342,7 +342,7 @@ namespace libtorrent
 			break;
 		}
 		m_type = undefined_t;
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_type_queried = false;
 #endif
 	}
