@@ -81,6 +81,8 @@ namespace libtorrent
 	class piece_manager;
 	struct torrent_plugin;
 	struct bitfield;
+	struct announce_entry;
+	struct tracker_request;
 
 	namespace aux
 	{
@@ -409,6 +411,8 @@ namespace libtorrent
 		// announce ourself at the last time we tried to announce
 		const tcp::endpoint& current_tracker() const;
 
+		announce_entry* find_tracker(tracker_request const& r);
+
 // --------------------------------------------
 		// PIECE MANAGEMENT
 
@@ -586,7 +590,7 @@ namespace libtorrent
 		{ return m_trackers; }
 
 		void replace_trackers(std::vector<announce_entry> const& urls);
-		void add_tracker(announce_entry const& urls);
+		void add_tracker(announce_entry const& url);
 
 		torrent_handle get_handle();
 
@@ -656,8 +660,9 @@ namespace libtorrent
 		void on_piece_verified(int ret, disk_io_job const& j
 			, boost::function<void(int)> f);
 	
-		void try_next_tracker(tracker_request const& req);
 		int prioritize_tracker(int tracker_index);
+		int deprioritize_tracker(int tracker_index);
+
 		void on_country_lookup(error_code const& error, tcp::resolver::iterator i
 			, boost::intrusive_ptr<peer_connection> p) const;
 		bool request_bandwidth_from_session(int channel) const;
@@ -718,9 +723,6 @@ namespace libtorrent
 		// the object.
 		piece_manager* m_storage;
 
-		// the time of next tracker announce
-		ptime m_next_tracker_announce;
-
 #ifndef NDEBUG
 	public:
 #endif
@@ -757,7 +759,7 @@ namespace libtorrent
 		// used for tracker announces
 		deadline_timer m_tracker_timer;
 
-		void restart_tracker_timer(ptime announce_at);
+		void update_tracker_timer();
 
 		static void on_tracker_announce_disp(boost::weak_ptr<torrent> p
 			, error_code const& e);
@@ -895,20 +897,12 @@ namespace libtorrent
 		// torrent object, these points are called connect_points.
 		int m_deficit_counter;
 
-		// the number number of seconds between requests
-		// from the tracker
-		boost::int16_t m_duration;
-
 		// the sequence number for this torrent, this is a
 		// monotonically increasing number for each added torrent
 		boost::int16_t m_sequence_number;
 
 		// the index to the last tracker that worked
 		boost::int8_t m_last_working_tracker;
-
-		// the tracker that is currently (or was last)
-		// tried
-		boost::int8_t m_currently_trying_tracker;
 
 		// the number of connection attempts that has
 		// failed in a row, this is currently used to
@@ -979,27 +973,30 @@ namespace libtorrent
 		// this is true while tracker announcing is enabled
 		// is is disabled while paused and checking files
 		bool m_announcing:1;
-
-		// this is true if event start has been sent to the tracker
-		bool m_start_sent:1;
-
-		// this is true if event completed has been sent to the tracker
-		bool m_complete_sent:1;
 	};
 
 	inline ptime torrent::next_announce() const
 	{
-		return m_next_tracker_announce;
+		return m_tracker_timer.expires_at();
 	}
 
 	inline void torrent::force_tracker_request()
 	{
-		if (!is_paused()) announce_with_tracker();
+		if (is_paused()) return;
+		ptime now = time_now();
+		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
+			, end(m_trackers.end()); i != end; ++i)
+			i->next_announce = now;
+		update_tracker_timer();
 	}
 
 	inline void torrent::force_tracker_request(ptime t)
 	{
-		if (!is_paused()) restart_tracker_timer(t);
+		if (is_paused()) return;
+		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
+			, end(m_trackers.end()); i != end; ++i)
+			i->next_announce = t;
+		update_tracker_timer();
 	}
 
 	inline void torrent::set_tracker_login(

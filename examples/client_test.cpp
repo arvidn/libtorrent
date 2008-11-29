@@ -154,6 +154,7 @@ void clear_home()
 
 #endif
 
+bool print_trackers = false;
 bool print_peers = false;
 bool print_log = false;
 bool print_downloads = false;
@@ -849,6 +850,7 @@ int main(int ac, char* av[])
 
 		settings.user_agent = "client_test/" LIBTORRENT_VERSION;
 		settings.urlseed_wait_retry = wait_retry;
+		settings.announce_to_all_trackers = true;
 
 		settings.outgoing_ports.first = bind_port_start;
 		settings.outgoing_ports.second = bind_port_end;
@@ -1214,6 +1216,7 @@ int main(int ac, char* av[])
 				}
 
 				// toggle displays
+				if (c == 't') print_trackers = !print_trackers;
 				if (c == 'i') print_peers = !print_peers;
 				if (c == 'l') print_log = !print_log;
 				if (c == 'd') print_downloads = !print_downloads;
@@ -1348,7 +1351,7 @@ int main(int ac, char* av[])
 					<< std::hex << s.seed_rank << std::dec << " "
 					<< s.last_scrape << "\n" << esc("0");
 
-				if (torrent_index != active_torrent && s.state != torrent_status::seeding) continue;
+				if (torrent_index != active_torrent && s.state == torrent_status::seeding) continue;
 				char const* progress_bar_color = "33"; // yellow
 				if (s.state == torrent_status::checking_files
 					|| s.state == torrent_status::downloading_metadata)
@@ -1388,6 +1391,7 @@ int main(int ac, char* av[])
 					<< to_string(t.seconds(), 2) << esc("0") << " ";
 				out << "tracker: " << esc("36") << s.current_tracker << esc("0") << "\n";
 
+				if (torrent_index != active_torrent) continue;
 				active_handle = h;
 			}
 
@@ -1450,6 +1454,23 @@ int main(int ac, char* av[])
 
 				if (print_peers && !peers.empty())
 					print_peer_info(out, peers);
+
+				if (print_trackers)
+				{
+					std::vector<announce_entry> tr = h.trackers();
+					ptime now = time_now();
+					for (std::vector<announce_entry>::iterator i = tr.begin()
+						, end(tr.end()); i != end; ++i)
+					{
+						std::string url = i->url;
+						url.resize(55, ' ');
+						out << to_string(i->tier, 2) << " " << url << " "
+							<< to_string(i->fails, 3) << " " << (i->verified?"OK ":"-  ");
+						if (i->updating) out << "updating";
+						else out << to_string(total_seconds(i->next_announce - now), 8);
+						out << "\n";
+					}
+				}
 
 				if (print_downloads)
 				{

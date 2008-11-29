@@ -329,7 +329,7 @@ namespace libtorrent
 
 		void clear_error() const;
 
-		std::vector<announce_entry> const& trackers() const;
+		std::vector<announce_entry> trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
 		void add_tracker(announce_entry const&) const;
 

@@ -221,6 +221,7 @@ namespace libtorrent { namespace
 				announce_entry e(added->list_string_value_at(i));
 				if (e.url.empty()) continue;
 				e.fail_limit = 3;
+				e.source = announce_entry::source_tex;
 				m_torrent.add_tracker(e);
 #ifdef TORRENT_VERBOSE_LOGGING
 				log_line << e.url << " ";

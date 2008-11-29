@@ -478,7 +478,7 @@ namespace libtorrent
 // ============ end deprecation ===============
 #endif
 
-	std::vector<announce_entry> const& torrent_handle::trackers() const
+	std::vector<announce_entry> torrent_handle::trackers() const
 	{
 		INVARIANT_CHECK;
 		const static std::vector<announce_entry> empty;

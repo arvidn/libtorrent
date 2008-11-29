@@ -66,15 +66,34 @@ namespace libtorrent
 	namespace gr = boost::gregorian;
 	namespace fs = boost::filesystem;
 
+	enum
+	{
+		// wait 60 seconds before retrying a failed tracker
+		tracker_retry_delay_min = 10
+		// when tracker_failed_max trackers
+		// has failed, wait 60 minutes instead
+		, tracker_retry_delay_max = 60 * 60
+	};
+
 	struct TORRENT_EXPORT announce_entry
 	{
 		announce_entry(std::string const& u)
-			: url(u), tier(0)
-			, fail_limit(3), fails(0)
+			: url(u)
+			, tier(0)
+			, fail_limit(3)
+			, fails(0)
+			, source(0)
 			, verified(false)
+			, updating(false)
+			, start_sent(false)
+			, complete_sent(false)
 		{}
 
 		std::string url;
+
+		// the time of next tracker announce
+		ptime next_announce;
+
 		boost::uint8_t tier;
 		// the number of times this tracker can fail
 		// in a row before it's removed. 0 means unlimited
@@ -83,12 +102,56 @@ namespace libtorrent
 		// the number of times in a row this tracker has failed
 		boost::uint8_t fails;
 
+		enum tracker_source
+		{
+			source_torrent = 1,
+			source_client = 2,
+			source_magnet_link = 4,
+			source_tex = 8
+		};
+		// where did we get this tracker from
+		boost::uint8_t source;
+
 		// is set to true if we have ever received a response from
 		// this tracker
 		bool verified:1;
 
-		bool can_announce() const
-		{ return fails < fail_limit || fail_limit == 0; }
+		// true if we're currently trying to announce with 
+		// this tracker
+		bool updating:1;
+
+		// this is true if event start has been sent to the tracker
+		bool start_sent:1;
+
+		// this is true if event completed has been sent to the tracker
+		bool complete_sent:1;
+
+		void reset()
+		{
+			start_sent = false;
+			next_announce = min_time();
+		}
+
+		void failed()
+		{
+			++fails;
+			int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails) * tracker_retry_delay_min
+				, int(tracker_retry_delay_max));
+			next_announce = time_now() + seconds(delay);
+			updating = false;
+		}
+
+		bool can_announce(ptime now) const
+		{
+			return now >= next_announce
+				&& (fails < fail_limit || fail_limit == 0)
+				&& !updating;
+		}
+
+		bool is_working() const
+		{
+			return fails == 0;
+		}
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
