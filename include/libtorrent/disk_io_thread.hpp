@@ -191,14 +191,14 @@ namespace libtorrent
 
 		void operator()();
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		bool is_disk_buffer(char* buffer) const;
 #endif
 
 		char* allocate_buffer();
 		void free_buffer(char* buf);
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 		

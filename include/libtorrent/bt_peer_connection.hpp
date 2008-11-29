@@ -233,7 +233,7 @@ namespace libtorrent
 		void on_connected();
 		void on_metadata();
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 		ptime m_last_choke;
 #endif
@@ -407,7 +407,7 @@ private:
 		boost::scoped_ptr<sha1_hash> m_sync_hash;
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		// this is set to true when the client's
 		// bitfield is sent to this peer
 		bool m_sent_bitfield;

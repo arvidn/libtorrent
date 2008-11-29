@@ -282,7 +282,7 @@ namespace libtorrent
 			if (performace_counter_frequency.QuadPart == 0)
 				QueryPerformanceFrequency(&performace_counter_frequency);
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			// make sure we don't overflow
 			boost::int64_t ret = (pc * 1000 / performace_counter_frequency.QuadPart) * 1000;
 			TORRENT_ASSERT((pc >= 0 && pc >= ret) || (pc < 0 && pc < ret));
@@ -295,7 +295,7 @@ namespace libtorrent
 			static LARGE_INTEGER performace_counter_frequency = {0,0};
 			if (performace_counter_frequency.QuadPart == 0)
 				QueryPerformanceFrequency(&performace_counter_frequency);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			// make sure we don't overflow
 			boost::int64_t ret = (ms / 1000) * performace_counter_frequency.QuadPart / 1000;
 			TORRENT_ASSERT((ms >= 0 && ms <= ret)

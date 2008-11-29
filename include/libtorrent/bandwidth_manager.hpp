@@ -157,7 +157,7 @@ struct bandwidth_manager
 		m_history_timer.cancel(ec);
 	}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	bool is_queued(PeerConnection const* peer) const
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -223,7 +223,7 @@ struct bandwidth_manager
 		if (!m_queue.empty()) hand_out_bandwidth(l);
 	}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	void check_invariant() const
 	{
 		int current_quota = 0;

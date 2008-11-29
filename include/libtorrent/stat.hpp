@@ -97,7 +97,7 @@ namespace libtorrent
 
 	private:
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		void check_invariant() const
 		{
 			int sum = 0;

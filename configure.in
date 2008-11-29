@@ -410,7 +410,7 @@ esac
 dnl Set some defines if we are building a shared library
 if [[ "x$enable_shared" == "xyes" ]]; then
 	AC_DEFINE(TORRENT_BUILDING_SHARED,,[Make sure the functions and classes are exported.])
-	AC_DEFINE(TORRENT_LINKING_SHARED,,[Make sure the functions and classes are exported.])
+	COMPILETIME_OPTIONS+="-DTORRENT_LINKING_SHARED "
 fi
 
 dnl want some debugging symbols with that?
@@ -420,19 +420,23 @@ AC_ARG_ENABLE(
 	[case "$enableval" in
 		no)
 			AC_DEFINE(NDEBUG,,[Define to disable debugging])
-			DEBUGFLAGS=""
-			COMPILETIME_OPTIONS+="-DNDEBUG "
+			DEBUGFLAGS="-Os"
+#			COMPILETIME_OPTIONS+="-DNDEBUG "
 			;;
 		yes)
 			DEBUGFLAGS="-g"
-			COMPILETIME_OPTIONS+="-DLT_DEBUG "
+			COMPILETIME_OPTIONS+="-DTORRENT_DEBUG "
+			AC_DEFINE(TORRENT_DEBUG,,[Define to enable libtorrent debug build])
 			;;
 		*)
-			DEBUGFLAGS="$enableval"
+			AC_MSG_RESULT()
+			AC_MSG_ERROR([Unknown --enable-debug option "$enableval". Use either "yes" or "no".])
 			;;
 	esac],
-	[DEBUGFLAGS=""
-	AC_DEFINE(NDEBUG,,[Define to disable debugging])]
+	[DEBUGFLAGS="-Os"
+	AC_DEFINE(NDEBUG,,[Define to disable debugging])
+#	COMPILETIME_OPTIONS+="-DNDEBUG "
+	]
 )
 AC_SUBST(DEBUGFLAGS)
 

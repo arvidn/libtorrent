@@ -695,7 +695,7 @@ namespace libtorrent
 	}
 
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	void web_peer_connection::check_invariant() const
 	{
 /*

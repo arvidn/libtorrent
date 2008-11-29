@@ -142,7 +142,7 @@ namespace libtorrent
 #else
 		: m_fd(-1)
 #endif
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		, m_open_mode(0)
 #endif
 	{}
@@ -153,7 +153,7 @@ namespace libtorrent
 #else
 		: m_fd(-1)
 #endif
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		, m_open_mode(0)
 #endif
 	{
@@ -214,7 +214,7 @@ namespace libtorrent
 			return false;
 		}
 #endif
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_open_mode = mode;
 #endif
 		TORRENT_ASSERT(is_open());
@@ -241,7 +241,7 @@ namespace libtorrent
 		::close(m_fd);
 		m_fd = -1;
 #endif
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		m_open_mode = 0;
 #endif
 	}

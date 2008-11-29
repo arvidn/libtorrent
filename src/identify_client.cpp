@@ -271,7 +271,7 @@ namespace
 			std::lower_bound(name_map, name_map + size
 				, tmp, &compare_id);
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		for (int i = 1; i < size; ++i)
 		{
 			TORRENT_ASSERT(compare_id(name_map[i-1]
