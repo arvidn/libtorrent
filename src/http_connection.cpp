@@ -100,7 +100,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	else
 	{
 		headers << "GET " << path << " HTTP/1.0\r\n"
-			"Host:" << hostname << "\r\n";
+			"Host:" << hostname << ":" << port << "\r\n";
 	}
 
 	if (!auth.empty())
