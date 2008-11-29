@@ -17,6 +17,10 @@
 
 release 0.14.1
 
+	* fixed headers to not depend on NDEBUG, which would prohibit
+	  linking a release build of libtorrent against a debug application
+	* fixed bug in disk I/O thread that would make the thread
+	  sometimes quit when an error occurred
 	* fixed DHT bug
 	* fixed potential shutdown crash in disk_io_thread
 	* fixed usage of deprecated boost.filsystem functions
