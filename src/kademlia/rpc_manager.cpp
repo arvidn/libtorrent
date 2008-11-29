@@ -136,7 +136,7 @@ rpc_manager::~rpc_manager()
 	}
 }
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 size_t rpc_manager::allocation_size() const
 {
 	size_t s = sizeof(mpl::deref<max_observer_type_iter::base>::type);
@@ -410,7 +410,7 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 	m.id = m_our_id;
 	m.addr = target_addr;
 	TORRENT_ASSERT(!m_transactions[m_next_transaction_id]);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	int potential_new_id = m_next_transaction_id;
 #endif
 	try

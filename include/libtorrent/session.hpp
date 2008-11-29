@@ -83,7 +83,7 @@ namespace libtorrent
 
 	// this is used to create linker errors when trying to link to
 	// a library with a conflicting build configuration than the application
-#ifdef NDEBUG
+#ifdef TORRENT_DEBUG
 #define G _release
 #else
 #define G _debug

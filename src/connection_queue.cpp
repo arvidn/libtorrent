@@ -44,7 +44,7 @@ namespace libtorrent
 		, m_half_open_limit(0)
 		, m_abort(false)
 		, m_timer(ios)
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		, m_in_timeout_function(false)
 #endif
 	{
@@ -141,7 +141,7 @@ namespace libtorrent
 	int connection_queue::limit() const
 	{ return m_half_open_limit; }
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 
 	void connection_queue::check_invariant() const
 	{
@@ -213,7 +213,7 @@ namespace libtorrent
 		}
 	}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	struct function_guard
 	{
 		function_guard(bool& v): val(v) { TORRENT_ASSERT(!val); val = true; }
@@ -228,7 +228,7 @@ namespace libtorrent
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		function_guard guard_(m_in_timeout_function);
 #endif
 

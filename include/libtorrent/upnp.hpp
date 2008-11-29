@@ -180,12 +180,12 @@ private:
 			, supports_specific_external(true)
 			, disabled(false)
 		{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			magic = 1337;
 #endif
 		}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		~rootdevice()
 		{
 			TORRENT_ASSERT(magic == 1337);
@@ -220,7 +220,7 @@ private:
 
 		mutable boost::shared_ptr<http_connection> upnp_connection;
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		int magic;
 #endif
 		void close() const

@@ -88,7 +88,7 @@ void closest_nodes::invoke(node_id const& id, udp::endpoint addr)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(closest_nodes_observer));
 	observer_ptr o(new (m_node.m_rpc.allocator().malloc()) closest_nodes_observer(this, id, m_target));
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
 	m_node.m_rpc.invoke(messages::find_node, addr, o);

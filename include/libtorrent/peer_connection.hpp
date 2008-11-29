@@ -399,7 +399,7 @@ namespace libtorrent
 		void assign_bandwidth(int channel, int amount);
 		void expire_bandwidth(int channel, int amount);
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 		ptime m_last_choke;
 #endif
@@ -461,7 +461,7 @@ namespace libtorrent
 		bool packet_finished() const
 		{ return m_packet_size <= m_recv_pos; }
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		bool piece_failed;
 #endif
 
@@ -569,7 +569,7 @@ namespace libtorrent
 		char m_country[2];
 #endif
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		boost::intrusive_ptr<peer_connection> self()
 		{
 			TORRENT_ASSERT(!m_in_constructor);
@@ -877,7 +877,7 @@ namespace libtorrent
 		// pick any pieces from this peer
 		bool m_no_download:1;
 		
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	public:
 		bool m_in_constructor:1;
 		bool m_disconnect_started:1;

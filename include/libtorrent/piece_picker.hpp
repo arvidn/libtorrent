@@ -308,14 +308,14 @@ namespace libtorrent
 
 		int num_have() const { return m_num_have; }
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		// used in debug mode
 		void verify_priority(int start, int end, int prio) const;
 		void check_invariant(const torrent* t = 0) const;
 		void verify_pick(std::vector<piece_block> const& picked
 			, bitfield const& bits) const;
 #endif
-#if defined TORRENT_PICKER_LOG || !defined NDEBUG
+#if defined TORRENT_PICKER_LOG || defined TORRENT_DEBUG
 		void print_pieces() const;
 #endif
 

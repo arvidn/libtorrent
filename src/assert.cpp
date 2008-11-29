@@ -60,7 +60,7 @@ std::string demangle(char const* name)
 
 #endif
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 
 #include <stdlib.h>
 #include <stdio.h>

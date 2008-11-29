@@ -149,7 +149,7 @@ namespace libtorrent
 			, void* userdata);
 #endif
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		bool has_peer(peer_connection* p) const
 		{ return m_connections.find(p) != m_connections.end(); }
 #endif
@@ -437,7 +437,7 @@ namespace libtorrent
 				TORRENT_ASSERT(!is_seed());
 				m_picker->inc_refcount(index);
 			}
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			else
 			{
 				TORRENT_ASSERT(is_seed());
@@ -453,7 +453,7 @@ namespace libtorrent
 				TORRENT_ASSERT(!is_seed());
 				m_picker->inc_refcount(bits);
 			}
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			else
 			{
 				TORRENT_ASSERT(is_seed());
@@ -468,7 +468,7 @@ namespace libtorrent
 				TORRENT_ASSERT(!is_seed());
 				m_picker->inc_refcount_all();
 			}
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			else
 			{
 				TORRENT_ASSERT(is_seed());
@@ -483,7 +483,7 @@ namespace libtorrent
 				TORRENT_ASSERT(!is_seed());
 				m_picker->dec_refcount(index);
 			}
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			else
 			{
 				TORRENT_ASSERT(is_seed());
@@ -603,7 +603,7 @@ namespace libtorrent
 #endif
 
 		// DEBUG
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 
@@ -723,11 +723,11 @@ namespace libtorrent
 		// the object.
 		piece_manager* m_storage;
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	public:
 #endif
 		std::set<peer_connection*> m_connections;
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	private:
 #endif
 
@@ -877,7 +877,7 @@ namespace libtorrent
 		int m_complete;
 		int m_incomplete;
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		// this is the amount downloaded when this torrent
 		// is started. i.e.
 		// total_done - m_initial_done <= total_payload_download

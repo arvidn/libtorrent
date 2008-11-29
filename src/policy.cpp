@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/piece_picker.hpp"
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 #include "libtorrent/bt_peer_connection.hpp"
 #endif
 
@@ -150,7 +150,7 @@ namespace
 		tcp::endpoint const& m_ep;
 	};
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	struct match_peer_connection
 	{
 		match_peer_connection(peer_connection const& c)
@@ -212,7 +212,7 @@ namespace libtorrent
 		// the number of blocks we want, but it will try to make the picked
 		// blocks be from whole pieces, possibly by returning more blocks
 		// than we requested.
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		error_code ec;
 		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 #endif
@@ -314,7 +314,7 @@ namespace libtorrent
 			busy_pieces.begin(), busy_pieces.end()
 			, bind(&piece_picker::num_peers, boost::cref(p), _1) <
 			bind(&piece_picker::num_peers, boost::cref(p), _2));
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		piece_picker::downloading_piece st;
 		p.piece_info(i->piece_index, st);
 		TORRENT_ASSERT(st.requested + st.finished + st.writing == p.blocks_in_piece(i->piece_index));
@@ -653,7 +653,7 @@ namespace libtorrent
 			i = m_peers.insert(std::make_pair(c.remote().address(), p));
 #ifndef TORRENT_DISABLE_GEO_IP
 			int as = ses.as_for_ip(c.remote().address());
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			i->second.inet_as_num = as;
 #endif
 			i->second.inet_as = ses.lookup_as(as);
@@ -786,7 +786,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_GEO_IP
 			int as = ses.as_for_ip(remote.address());
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			i->second.inet_as_num = as;
 #endif
 			i->second.inet_as = ses.lookup_as(as);
@@ -1053,7 +1053,7 @@ namespace libtorrent
 		c.send_block_requests();
 	}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	bool policy::has_connection(const peer_connection* c)
 	{
 // too expensive

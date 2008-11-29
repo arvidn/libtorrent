@@ -111,7 +111,7 @@ namespace libtorrent
 #else
 		int m_fd;
 #endif
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		int m_open_mode;
 #endif
 
