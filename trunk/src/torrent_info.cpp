@@ -540,6 +540,7 @@ namespace libtorrent
 					if (e.url.empty()) continue;
 					e.tier = j;
 					e.fail_limit = 0;
+					e.source = announce_entry::source_torrent;
 					m_urls.push_back(e);
 				}
 			}
@@ -565,6 +566,7 @@ namespace libtorrent
 		{
 			announce_entry e(torrent_file.dict_find_string_value("announce"));
 			e.fail_limit = 0;
+			e.source = announce_entry::source_torrent;
 			if (!e.url.empty()) m_urls.push_back(e);
 		}
 
@@ -638,11 +640,12 @@ namespace libtorrent
 	{
 		announce_entry e(url);
 		e.tier = tier;
+		e.source = announce_entry::source_client;
 		m_urls.push_back(e);
 
 		using boost::bind;
-		std::sort(m_urls.begin(), m_urls.end(), boost::bind<bool>(std::less<int>()
-			, bind(&announce_entry::tier, _1), bind(&announce_entry::tier, _2)));
+		std::sort(m_urls.begin(), m_urls.end(), bind(&announce_entry::tier, _1)
+			< bind(&announce_entry::tier, _2));
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

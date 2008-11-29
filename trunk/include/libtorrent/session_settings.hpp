@@ -144,6 +144,7 @@ namespace libtorrent
 			, prioritize_partial_pieces(false)
 			, auto_manage_startup(120)
 			, rate_limit_ip_overhead(true)
+			, announce_to_all_trackers(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -456,6 +457,11 @@ namespace libtorrent
 		// drained from the rate limiters, to avoid exceeding
 		// the limits with the total traffic
 		bool rate_limit_ip_overhead;
+
+		// if set to true, multi tracker torrents are treated
+		// the same way uTorrent treats them. It defaults to
+		// false in order to comply with the extension definition.
+		bool announce_to_all_trackers;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

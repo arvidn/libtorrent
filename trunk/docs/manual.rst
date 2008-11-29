@@ -1482,10 +1482,41 @@ ones with lower tier will always be tried before the one with higher tier number
 		std::string url;
 		boost::uint8_t tier;
 		boost::uint8_t fail_limit;
+		boost::uint8_t fails;
+
+		enum tracker_source
+		{
+			source_torrent = 1,
+			source_client = 2,
+			source_magnet_link = 4,
+			source_tex = 8
+		};
+		boost::uint8_t source;
+
+		bool verified:1;
+		bool updating:1;
+		bool start_sent:1;
+		bool complete_sent:1;
 	};
 
 ``fail_limit`` is the max number of failures to announce to this tracker in
 a row, before this tracker is not used anymore.
+
+``fails`` is the number of times in a row we have failed to announce to this
+tracker.
+
+``source`` is a bitmask specifying which sources we got this tracker from.
+
+``verified`` is set to true the first time we receive a valid response
+from this tracker.
+
+``updating`` is true while we're waiting for a response from the tracker.
+
+``start_sent`` is set to true when we get a valid response from an announce
+with event=started. If it is set, we won't send start in the subsequent
+announces.
+
+``complete_sent`` is set to true when we send a event=completed.
 
 
 total_size() piece_length() piece_size() num_pieces()
@@ -3057,6 +3088,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int auto_manage_startup;
 
 		bool rate_limit_ip_overhead;
+
+		bool announce_to_all_trackers;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3340,6 +3373,14 @@ have a fair chance to start downloading.
 
 If ``rate_limit_ip_overhead`` is set to true, the estimated TCP/IP overhead is
 drained from the rate limiters, to avoid exceeding the limits with the total traffic
+
+``announce_to_all_trackers`` controls how multi tracker torrents are
+treated. If this is set to true, all trackers in the same tier are
+announced to in parallel. If all trackers in tier 0 fails, all trackers
+in tier 1 are announced as well. This is the uTorrent behavior. If it's
+set to false, the behavior is as defined by the multi tracker
+specification. It defaults to false, which is the same behavior previous
+versions of libtorrent has had as well.
 
 
 pe_settings
