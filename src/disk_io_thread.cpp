@@ -858,7 +858,7 @@ namespace libtorrent
 					if (test_error(j))
 					{
 						ret = -1;
-						return;
+						break;
 					}
 #ifdef TORRENT_DISK_STATS
 					m_log << log_time() << " read " << j.buffer_size << std::endl;
