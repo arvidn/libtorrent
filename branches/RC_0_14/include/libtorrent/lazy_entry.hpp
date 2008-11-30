@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/size_type.hpp"
 #include <iosfwd>
+#include <string>
 
 namespace libtorrent
 {

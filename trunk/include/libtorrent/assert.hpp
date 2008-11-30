@@ -33,6 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ASSERT
 
 #include "libtorrent/config.hpp"
+
+#if !defined TORRENT_DEBUG
+#define TORRENT_ASSERT(a) do {} while(false)
+#else
+
 #include <string>
 
 #ifdef __GNUC__
@@ -47,6 +52,8 @@ TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file, ch
 #else
 #include <cassert>
 #define TORRENT_ASSERT(x) assert(x)
+#endif
+
 #endif
 
 #endif
