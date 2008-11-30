@@ -1710,6 +1710,7 @@ Its declaration looks like this::
 
 		boost::filesystem::path save_path() const;
 		void move_storage(boost::filesystem::path const& save_path) const;
+		void rename_file(int index, boost::filesystem::path) const;
 		storage_interface* get_storage_impl() const;
 
 		sha1_hash info_hash() const;
@@ -1840,6 +1841,16 @@ drop while copying the file.
 Since disk IO is performed in a separate thread, this operation is also asynchronous.
 Once the operation completes, the ``storage_moved_alert`` is generated, with the new
 path as the message.
+
+rename_file()
+-------------
+
+	::
+
+		void rename_file(int index, boost::filesystem::path) const;
+
+Renames the file with the given index asynchronously. The rename operation is complete
+when either a ``file_renamed_alert`` or ``file_rename_failed_alert`` is posted.
 
 get_storage_impl()
 ------------------
