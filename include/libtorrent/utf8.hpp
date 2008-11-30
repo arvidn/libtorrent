@@ -68,7 +68,7 @@ namespace libtorrent
 			return sourceIllegal;
 		}
 	}
-/*
+
 	inline int wchar_utf8(const std::wstring &wide, std::string &utf8)
 	{
 		// allocate space for worst-case
@@ -97,7 +97,7 @@ namespace libtorrent
 			return sourceIllegal;
 		}
 	}
-*/
+
 }
 
 #endif
