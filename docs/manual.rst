@@ -1710,7 +1710,9 @@ Its declaration looks like this::
 
 		boost::filesystem::path save_path() const;
 		void move_storage(boost::filesystem::path const& save_path) const;
+		void move_storage(boost::filesystem::wpath const& save_path) const;
 		void rename_file(int index, boost::filesystem::path) const;
+		void rename_file(int index, boost::filesystem::wpath) const;
 		storage_interface* get_storage_impl() const;
 
 		sha1_hash info_hash() const;
@@ -1831,6 +1833,7 @@ move_storage()
 	::
 
 		void move_storage(boost::filesystem::path const& save_path) const;
+		void move_storage(boost::filesystem::wpath const& save_path) const;
 
 Moves the file(s) that this torrent are currently seeding from or downloading to. If
 the given ``save_path`` is not located on the same drive as the original save path,
@@ -1848,6 +1851,7 @@ rename_file()
 	::
 
 		void rename_file(int index, boost::filesystem::path) const;
+		void rename_file(int index, boost::filesystem::wpath) const;
 
 Renames the file with the given index asynchronously. The rename operation is complete
 when either a ``file_renamed_alert`` or ``file_rename_failed_alert`` is posted.

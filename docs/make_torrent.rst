@@ -59,8 +59,11 @@ add_files
 	
 		template <class Pred>
 		void add_files(file_storage& fs, boost::filesystem::path const& path, Pred p);
+		template <class Pred>
+		void add_files(file_storage& fs, boost::filesystem::wpath const& path, Pred p);
 
 		void add_files(file_storage& fs, boost::filesystem::path const& path);
+		void add_files(file_storage& fs, boost::filesystem::wpath const& path);
 
 Adds the file specified by ``path`` to the ``file_storage`` object. In case ``path``
 refers to a diretory, files will be added recursively from the directory.
@@ -70,6 +73,10 @@ is encountered. files for which ``p`` returns true are added, and directories fo
 which ``p`` returns true are traversed. ``p`` must have the following signature::
 
 	bool Pred(boost::filesystem::path const& p);
+
+and for the wpath version::
+
+	bool Pred(boost::filesystem::wpath const& p);
 
 The path that is passed in to the predicate is the full path of the file or
 directory. If no predicate is specified, all files are added, and all directories
@@ -84,8 +91,11 @@ set_piece_hashes()
 
 		template <class Fun>
 		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f);
+		template <class Fun>
+		void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, Fun f);
 
 		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p);
+		void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p);
 
 This function will assume that the files added to the torrent file exists at path
 ``p``, read those files and hash the content and set the hashes in the ``create_torrent``
@@ -109,7 +119,9 @@ file structure. Its synopsis::
 
 		void add_file(file_entry const& e);
 		void add_file(fs::path const& p, size_type size);
+		void add_file(fs::wpath const& p, size_type size);
 		void rename_file(int index, std::string const& new_filename);
+		void rename_file(int index, std::wstring const& new_filename);
 
 		std::vector<file_slice> map_block(int piece, size_type offset
 			, int size) const;
@@ -134,6 +146,7 @@ file structure. Its synopsis::
 		int piece_size(int index) const;
 
 		void set_name(std::string const& n);
+		void set_name(std::wstring const& n);
 		const std::string& name() const;
 
 		void swap(file_storage& ti);
