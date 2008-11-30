@@ -56,9 +56,9 @@ int test_main()
 	{
 		file_storage fs;
 		size_type file_size = 1 * 1024 * 1024 * 1024;
-		fs.add_file("test_torrent/tmp1", file_size);
-		fs.add_file("test_torrent/tmp2", file_size);
-		fs.add_file("test_torrent/tmp3", file_size);
+		fs.add_file("test_torrent_dir2/tmp1", file_size);
+		fs.add_file("test_torrent_dir2/tmp2", file_size);
+		fs.add_file("test_torrent_dir2/tmp3", file_size);
 		libtorrent::create_torrent t(fs, 4 * 1024 * 1024);
 		t.add_tracker("http://non-existing.com/announce");
 
@@ -83,7 +83,7 @@ int test_main()
 	{
 		file_storage fs;
 
-		fs.add_file("test_torrent/tmp1", 0);
+		fs.add_file("test_torrent_dir2/tmp1", 0);
 		libtorrent::create_torrent t(fs, 4 * 1024 * 1024);
 		t.add_tracker("http://non-existing.com/announce");
 
