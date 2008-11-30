@@ -15,6 +15,9 @@ docs/make_torrent.html docs/make_torrent.rst \
 docs/examples.html docs/examples.rst \
 docs/features.html docs/features.rst \
 docs/arctic_thumb.png \
+docs/fdm.png \
+docs/tvitty.jpg \
+docs/leechcraft.png \
 docs/lince.jpg \
 docs/fatrat.jpg \
 docs/miro.jpg \
