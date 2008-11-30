@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "zlib.h"
 
 #include <vector>
+#include <string>
 
 namespace
 {
