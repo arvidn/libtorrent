@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/utf8.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -221,10 +222,27 @@ namespace libtorrent
 		TORRENT_FORWARD(move_storage(save_path));
 	}
 
+	void torrent_handle::move_storage(
+		fs::wpath const& save_path) const
+	{
+		INVARIANT_CHECK;
+		std::string utf8;
+		wchar_utf8(save_path.string(), utf8);
+		TORRENT_FORWARD(move_storage(utf8));
+	}
+
 	void torrent_handle::rename_file(int index, fs::path const& new_name) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD(rename_file(index, new_name.string()));
+	}
+
+	void torrent_handle::rename_file(int index, fs::wpath const& new_name) const
+	{
+		INVARIANT_CHECK;
+		std::string utf8;
+		wchar_utf8(new_name.string(), utf8);
+		TORRENT_FORWARD(rename_file(index, utf8));
 	}
 
 	void torrent_handle::add_extension(
