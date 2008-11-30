@@ -133,22 +133,22 @@ int test_main()
 	using namespace boost::filesystem;
 
 	try {
-		create_directory("test_torrent");
+		create_directory("test_torrent_dir");
 	} catch (std::exception&) {}
 
 	char random_data[300000];
 	std::srand(std::time(0));
 	std::generate(random_data, random_data + sizeof(random_data), &std::rand);
-	std::ofstream("./test_torrent/test1").write(random_data, 35);
-	std::ofstream("./test_torrent/test2").write(random_data, 16536 - 35);
-	std::ofstream("./test_torrent/test3").write(random_data, 16536);
-	std::ofstream("./test_torrent/test4").write(random_data, 17);
-	std::ofstream("./test_torrent/test5").write(random_data, 16536);
-	std::ofstream("./test_torrent/test6").write(random_data, 300000);
-	std::ofstream("./test_torrent/test7").write(random_data, 300000);
+	std::ofstream("./test_torrent_dir/test1").write(random_data, 35);
+	std::ofstream("./test_torrent_dir/test2").write(random_data, 16536 - 35);
+	std::ofstream("./test_torrent_dir/test3").write(random_data, 16536);
+	std::ofstream("./test_torrent_dir/test4").write(random_data, 17);
+	std::ofstream("./test_torrent_dir/test5").write(random_data, 16536);
+	std::ofstream("./test_torrent_dir/test6").write(random_data, 300000);
+	std::ofstream("./test_torrent_dir/test7").write(random_data, 300000);
 
 	file_storage fs;
-	add_files(fs, path("test_torrent"));
+	add_files(fs, path("test_torrent_dir"));
 
 	libtorrent::create_torrent t(fs, 16 * 1024);
 	t.add_url_seed("http://127.0.0.1:8000/");
@@ -176,7 +176,7 @@ int test_main()
 		test_transfer(torrent_file, i);
 	
 	stop_web_server(8000);
-	remove_all("./test_torrent");
+	remove_all("./test_torrent_dir");
 	return 0;
 }
 
