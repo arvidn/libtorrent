@@ -17,6 +17,9 @@
 
 release 0.14.1
 
+	* added converter for python unicode strings to utf-8 paths
+	* fixed bug in http downloader where the host field did not
+	  include the port number
 	* fixed headers to not depend on NDEBUG, which would prohibit
 	  linking a release build of libtorrent against a debug application
 	* fixed bug in disk I/O thread that would make the thread
