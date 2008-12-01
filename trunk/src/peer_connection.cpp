@@ -3610,6 +3610,7 @@ namespace libtorrent
 				return;
 			}
 			if (ec == asio::error::would_block) break;
+			m_statistics.trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
 		}
 		while (bytes_transferred > 0);
 
