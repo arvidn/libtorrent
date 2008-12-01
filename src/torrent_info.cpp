@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/utf8.hpp"
 
 namespace gr = boost::gregorian;
 
@@ -339,6 +340,35 @@ namespace libtorrent
 	{
 		std::vector<char> buf;
 		int ret = load_file(filename, buf);
+		if (ret < 0) return;
+
+		if (buf.empty())
+#ifndef BOOST_NO_EXCEPTIONS
+			throw invalid_torrent_file();
+#else
+			return;
+#endif
+
+		lazy_entry e;
+		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
+		std::string error;
+#ifndef BOOST_NO_EXCEPTIONS
+		if (!parse_torrent_file(e, error))
+			throw invalid_torrent_file();
+#else
+		parse_torrent_file(e, error);
+#endif
+	}
+
+	torrent_info::torrent_info(fs::wpath const& filename)
+		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		, m_multifile(false)
+		, m_private(false)
+	{
+		std::vector<char> buf;
+		std::string utf8;
+		wchar_utf8(filename.string(), utf8);
+		int ret = load_file(utf8, buf);
 		if (ret < 0) return;
 
 		if (buf.empty())

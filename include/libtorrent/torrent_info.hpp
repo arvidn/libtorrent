@@ -171,6 +171,7 @@ namespace libtorrent
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
 		torrent_info(fs::path const& filename);
+		torrent_info(fs::wpath const& filename);
 		~torrent_info();
 
 		file_storage const& files() const { return m_files; }
