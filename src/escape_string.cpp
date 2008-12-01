@@ -355,7 +355,7 @@ namespace libtorrent
 	TORRENT_EXPORT std::string to_hex(std::string const& s)
 	{
 		std::string ret;
-		char* digits = "0123456789abcdef";
+		char const* digits = "0123456789abcdef";
 		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
 		{
 			ret += digits[((unsigned char)*i) >> 4];
