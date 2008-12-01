@@ -4600,9 +4600,9 @@ namespace libtorrent
 #endif
 
 		if (m_state == s) return;
-		m_state = s;
 		if (m_ses.m_alerts.should_post<state_changed_alert>())
-			m_ses.m_alerts.post_alert(state_changed_alert(get_handle(), s));
+			m_ses.m_alerts.post_alert(state_changed_alert(get_handle(), s, m_state));
+		m_state = s;
 	}
 
 	torrent_status torrent::status() const
