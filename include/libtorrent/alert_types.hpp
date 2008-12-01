@@ -211,7 +211,8 @@ namespace libtorrent
 		{
 			static char const* state_str[] =
 				{"checking (q)", "checking", "dl metadata"
-				, "downloading", "finished", "seeding", "allocating"};
+				, "downloading", "finished", "seeding", "allocating"
+				, "checking (r)"};
 
 			return torrent_alert::message() + ": state changed to: "
 				+ state_str[state];
