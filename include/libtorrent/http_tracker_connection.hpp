@@ -85,7 +85,7 @@ namespace libtorrent
 		{ return boost::intrusive_ptr<http_tracker_connection>(this); }
 
 		void on_filter(http_connection& c, std::list<tcp::endpoint>& endpoints);
-
+		void on_connect(http_connection& c);
 		void on_response(error_code const& ec, http_parser const& parser
 			, char const* data, int size);
 
@@ -98,6 +98,7 @@ namespace libtorrent
 		boost::shared_ptr<http_connection> m_tracker_connection;
 		aux::session_impl const& m_ses;
 		address m_bind_iface;
+		address m_tracker_ip;
 		proxy_settings const& m_ps;
 		connection_queue& m_cc;
 		io_service& m_ios;

@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
+#include "libtorrent/broadcast_socket.hpp"
 
 #include "libtorrent/extensions/ut_pex.hpp"
 
@@ -258,6 +259,8 @@ namespace libtorrent { namespace
 				{
 					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
 					char flags = *fin++;
+					// ignore local addresses unless the peer is local to us
+					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
 					p.peer_from_tracker(adr, pid, peer_info::pex, flags);
 				} 
 			}
@@ -280,6 +283,8 @@ namespace libtorrent { namespace
 				{
 					tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
 					char flags = *fin++;
+					// ignore local addresses unless the peer is local to us
+					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
 					p.peer_from_tracker(adr, pid, peer_info::pex, flags);
 				} 
 			}

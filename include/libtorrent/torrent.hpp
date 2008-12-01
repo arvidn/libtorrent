@@ -373,6 +373,7 @@ namespace libtorrent
 		// or when a failure occured
 		virtual void tracker_response(
 			tracker_request const& r
+			, address const& tracker_ip
 			, std::vector<peer_entry>& e, int interval
 			, int complete, int incomplete, address const& external_ip);
 		virtual void tracker_request_timed_out(
