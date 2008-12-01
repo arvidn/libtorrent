@@ -1020,6 +1020,7 @@ namespace libtorrent
  
 	void torrent::tracker_response(
 		tracker_request const& r
+		, address const& tracker_ip
 		, std::vector<peer_entry>& peer_list
 		, int interval
 		, int complete
@@ -1098,6 +1099,8 @@ namespace libtorrent
 			}
 			else
 			{
+				// ignore local addresses from the tracker (unless the tracker is local too)
+				if (is_local(a.address()) && !is_local(tracker_ip)) continue;
 				m_policy.peer_from_tracker(a, i->pid, peer_info::tracker, 0);
 			}
 		}

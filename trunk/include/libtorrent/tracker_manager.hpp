@@ -122,6 +122,7 @@ namespace libtorrent
 			, int complete, int incomplete, int downloads) {}
 		virtual void tracker_response(
 			tracker_request const& req
+			, address const& tracker_ip
 			, std::vector<peer_entry>& peers
 			, int interval
 			, int complete

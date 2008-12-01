@@ -178,7 +178,8 @@ namespace libtorrent
 
 		m_tracker_connection.reset(new http_connection(m_ios, m_cc
 			, boost::bind(&http_tracker_connection::on_response, self(), _1, _2, _3, _4)
-			, true, http_connect_handler()
+			, true
+			, boost::bind(&http_tracker_connection::on_connect, self(), _1)
 			, boost::bind(&http_tracker_connection::on_filter, self(), _1, _2)));
 
 		int timeout = tracker_req().event==tracker_request::stopped
@@ -221,6 +222,15 @@ namespace libtorrent
 
 		if (endpoints.empty())
 			fail(-1, "blocked by IP filter");
+	}
+
+	void http_tracker_connection::on_connect(http_connection& c)
+	{
+    	error_code ec;
+		tcp::endpoint ep = c.socket().remote_endpoint(ec);
+		m_tracker_ip = ep.address();
+		boost::shared_ptr<request_callback> cb = requester();
+		if (cb) cb->m_tracker_address = ep;
 	}
 
 	void http_tracker_connection::on_response(error_code const& ec
@@ -466,7 +476,7 @@ namespace libtorrent
 		if (incomplete_ent && incomplete_ent->type() == entry::int_t)
 			incomplete = int(incomplete_ent->integer());
 
-		cb->tracker_response(tracker_req(), peer_list, interval->integer(), complete
+		cb->tracker_response(tracker_req(), m_tracker_ip, peer_list, interval->integer(), complete
 			, incomplete, external_ip);
 	}
 

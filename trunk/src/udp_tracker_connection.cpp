@@ -417,7 +417,7 @@ namespace libtorrent
 			peer_list.push_back(e);
 		}
 
-		cb->tracker_response(tracker_req(), peer_list, interval
+		cb->tracker_response(tracker_req(), m_target.address(), peer_list, interval
 			, complete, incomplete, address());
 
 		m_man.remove_request(this);
