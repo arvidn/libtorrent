@@ -4480,6 +4480,24 @@ upload or download rate performance.
 	};
 
 
+state_changed_alert
+-------------------
+
+Generated whenever a torrent changes its state.
+
+::	
+
+	struct state_changed_alert: torrent_alert
+	{
+		// ...
+
+		torrent_status::state_t state;
+		torrent_status::state_t prev_state;
+	};
+
+``state`` is the new state of the torrent. ``prev_state`` is the previous state.
+
+
 metadata_failed_alert
 ---------------------
 

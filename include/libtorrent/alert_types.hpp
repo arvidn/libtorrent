@@ -196,9 +196,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT state_changed_alert: torrent_alert
 	{
 		state_changed_alert(torrent_handle const& h
-			, torrent_status::state_t const& state_)
+			, torrent_status::state_t state_
+			, torrent_status::state_t prev_state_)
 			: torrent_alert(h)
 			, state(state_)
+			, prev_state(prev_state_)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
@@ -220,6 +222,7 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 
 		torrent_status::state_t state;
+		torrent_status::state_t prev_state;
 	};
 
 	struct TORRENT_EXPORT tracker_error_alert: tracker_alert
