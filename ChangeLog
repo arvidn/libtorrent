@@ -43,6 +43,7 @@ release 0.14.1
 	* fixed shared geoip linking in Jamfile
 	* fixed python bindings build on windows and made it possible
 	  to generate a windows installer
+	* fixed bug in NAT-PMP implementation
 
 release 0.14
 
