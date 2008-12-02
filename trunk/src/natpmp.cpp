@@ -339,6 +339,14 @@ void natpmp::on_reply(error_code const& e
 	m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
 		, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
 
+	// simulate packet loss
+/*
+	if ((rand() % 2) == 0)
+	{
+		log(" simulating drop");
+		return;
+	}
+*/
 	if (m_remote != m_nat_endpoint)
 	{
 		std::stringstream msg;
@@ -352,10 +360,6 @@ void natpmp::on_reply(error_code const& e
 	error_code ec;
 	m_send_timer.cancel(ec);
 
-	TORRENT_ASSERT(m_currently_mapping >= 0);
-	int i = m_currently_mapping;
-	mapping_t& m = m_mappings[i];
-
 	char* in = m_response_buffer;
 	int version = read_uint8(in);
 	int cmd = read_uint8(in);
@@ -367,12 +371,13 @@ void natpmp::on_reply(error_code const& e
 
 	(void)time; // to remove warning
 
+	int protocol = (cmd - 128 == 1)?udp:tcp;
+
 	std::stringstream msg;
 	msg << "<== port map ["
 		<< " protocol: " << (cmd - 128 == 1 ? "udp" : "tcp")
 		<< " local: " << private_port << " external: " << public_port
 		<< " ttl: " << lifetime << " ]";
-	log(msg.str());
 
 	if (version != 0)
 	{
@@ -381,30 +386,37 @@ void natpmp::on_reply(error_code const& e
 		log(msg.str());
 	}
 
-	if (private_port != m.local_port)
+	mapping_t* m = 0;
+	int index = -1;
+	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
+		, end(m_mappings.end()); i != end; ++i)
 	{
-		std::stringstream msg;
-		msg << "unexpected local port: " << private_port;
-		log(msg.str());
+		if (private_port != i->local_port) continue;
+		if (protocol != i->protocol) continue;
+		if (!i->map_sent) continue;
+		m = &*i;
+		index = i - m_mappings.begin();
+		break;
 	}
 
-	if (cmd != 128 + m.protocol)
+	if (m == 0)
 	{
-		std::stringstream msg;
-		msg << "unexpected protocol: " << (cmd - 128);
+		msg << " not found in map table";
 		log(msg.str());
+		return;
 	}
+	log(msg.str());
 
 	if (public_port == 0 || lifetime == 0)
 	{
 		// this means the mapping was
 		// successfully closed
-		m.protocol = none;
+		m->protocol = none;
 	}
 	else
 	{
-		m.expires = time_now() + seconds(int(lifetime * 0.7f));
-		m.external_port = public_port;
+		m->expires = time_now() + seconds(int(lifetime * 0.7f));
+		m->external_port = public_port;
 	}
 
 	if (result != 0)
@@ -419,19 +431,19 @@ void natpmp::on_reply(error_code const& e
 			case 4: errmsg << "Out of resources"; break;
 			case 5: errmsg << "Unsupported opcode"; break;
 		}
-		m.expires = time_now() + hours(2);
-		m_callback(i, 0, errmsg.str());
+		m->expires = time_now() + hours(2);
+		m_callback(index, 0, errmsg.str());
 	}
-	else if (m.action == mapping_t::action_add)
+	else if (m->action == mapping_t::action_add)
 	{
-		m_callback(i, m.external_port, "");
+		m_callback(index, m->external_port, "");
 	}
 
 	m_currently_mapping = -1;
-	m.action = mapping_t::action_none;
+	m->action = mapping_t::action_none;
 	m_send_timer.cancel(ec);
 	update_expiration_timer();
-	try_next_mapping(i);
+	try_next_mapping(index);
 }
 
 void natpmp::update_expiration_timer()
