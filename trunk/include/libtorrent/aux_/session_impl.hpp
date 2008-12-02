@@ -650,6 +650,7 @@ namespace libtorrent
 			}
 
 			void tracker_response(tracker_request const&
+				, libtorrent::address const& tracker_ip
 				, std::vector<peer_entry>& peers
 				, int interval
 				, int complete
