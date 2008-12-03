@@ -417,7 +417,10 @@ namespace libtorrent
 
 		if (end_block == start_block) return -2;
 
-		int buffer_size = piece_size - (end_block - 1) * m_block_size + (end_block - start_block - 1) * m_block_size;
+		// the buffer_size is the size of the buffer we need to read
+		// all these blocks.
+		const int buffer_size = (std::min)((end_block - start_block) * m_block_size
+			, piece_size - start_block * m_block_size);
 		TORRENT_ASSERT(buffer_size <= piece_size);
 		TORRENT_ASSERT(buffer_size + start_block * m_block_size <= piece_size);
 		boost::scoped_array<char> buf;
@@ -440,6 +443,7 @@ namespace libtorrent
 			if (p.blocks[i] == 0) break;
 			TORRENT_ASSERT(offset <= buffer_size);
 			TORRENT_ASSERT(piece_offset <= piece_size);
+			TORRENT_ASSERT(offset + block_size <= buffer_size);
 			if (buf)
 			{
 				std::memcpy(p.blocks[i], buf.get() + offset, block_size);
