@@ -154,13 +154,11 @@ void clear_home()
 
 #endif
 
-bool print_trackers = false;
 bool print_peers = false;
 bool print_log = false;
 bool print_downloads = false;
 bool print_piece_bar = false;
 bool print_file_progress = false;
-bool show_dht_status = false;
 bool sequential_download = false;
 
 bool print_ip = true;
@@ -498,13 +496,12 @@ void add_torrent(libtorrent::session& ses
 	{
 		t = new torrent_info(torrent.c_str());
 	}
-	catch (std::exception& e)
+	catch (std::exception&)
 	{
-		std::cout << torrent << ": " << e.what() << std::endl;
 		return;
 	}
 
-	std::cout << t->name() << std::endl;
+	std::cout << t->name() << "\n";
 
 	add_torrent_params p;
 	lazy_entry resume_data;
@@ -668,7 +665,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 
 static char const* state_str[] =
 	{"checking (q)", "checking", "dl metadata"
-	, "downloading", "finished", "seeding", "allocating", "checking (r)"};
+	, "downloading", "finished", "seeding", "allocating"};
 
 int main(int ac, char* av[])
 {
@@ -850,7 +847,6 @@ int main(int ac, char* av[])
 
 		settings.user_agent = "client_test/" LIBTORRENT_VERSION;
 		settings.urlseed_wait_retry = wait_retry;
-		settings.announce_to_all_trackers = true;
 
 		settings.outgoing_ports.first = bind_port_start;
 		settings.outgoing_ports.second = bind_port_end;
@@ -864,8 +860,7 @@ int main(int ac, char* av[])
 		// be able to remove torrents that were added via the directory
 		// monitor when they're not in the directory anymore.
 		handles_t handles;
-		session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-			, session::start_default_features | session::add_default_plugins, alert::all_categories);
+		session ses;
 #ifndef TORRENT_DISABLE_GEO_IP
 		ses.load_asnum_db("GeoIPASNum.dat");
 		ses.load_country_db("GeoIP.dat");
@@ -1216,13 +1211,11 @@ int main(int ac, char* av[])
 				}
 
 				// toggle displays
-				if (c == 't') print_trackers = !print_trackers;
 				if (c == 'i') print_peers = !print_peers;
 				if (c == 'l') print_log = !print_log;
 				if (c == 'd') print_downloads = !print_downloads;
 				if (c == 'f') print_file_progress = !print_file_progress;
 				if (c == 'a') print_piece_bar = !print_piece_bar;
-				if (c == 'g') show_dht_status = !show_dht_status;
 				// toggle columns
 				if (c == '1') print_ip = !print_ip;
 				if (c == '2') print_as = !print_as;
@@ -1266,7 +1259,7 @@ int main(int ac, char* av[])
 			std::stringstream out;
 			out << "[q] quit [i] toggle peers [d] toggle downloading pieces [p] toggle paused "
 				"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
-				"[j] force recheck [space] toggle session pause [c] clear error [v] scrape [g] show DHT\n"
+				"[j] force recheck [space] toggle session pause [c] clear error [v] scrape\n"
 				"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
 				"[5] toggle peer rate [6] toggle failures [7] toggle send buffers\n";
 
@@ -1351,45 +1344,47 @@ int main(int ac, char* av[])
 					<< std::hex << s.seed_rank << std::dec << " "
 					<< s.last_scrape << "\n" << esc("0");
 
-				if (torrent_index != active_torrent && s.state == torrent_status::seeding) continue;
-				char const* progress_bar_color = "33"; // yellow
-				if (s.state == torrent_status::checking_files
-					|| s.state == torrent_status::downloading_metadata)
+				if (s.state != torrent_status::seeding)
 				{
-					progress_bar_color = "35"; // magenta
-				}
-				else if (s.current_tracker.empty())
-				{
-					progress_bar_color = "31"; // red
-				}
-				else if (sess_stat.has_incoming_connections)
-				{
-					progress_bar_color = "32"; // green
-				}
-				if (sequential_download)
-					out << "sequential: ";
-				else
-					out << "  progress: ";
+					char const* progress_bar_color = "33"; // yellow
+					if (s.state == torrent_status::checking_files
+						|| s.state == torrent_status::downloading_metadata)
+					{
+						progress_bar_color = "35"; // magenta
+					}
+					else if (s.current_tracker.empty())
+					{
+						progress_bar_color = "31"; // red
+					}
+					else if (sess_stat.has_incoming_connections)
+					{
+						progress_bar_color = "32"; // green
+					}
+					if (sequential_download)
+						out << "sequential: ";
+					else
+						out << "  progress: ";
 
-				out << esc("32") << s.total_done << esc("0") << " Bytes ";
-				out.precision(4);
-				out.width(5);
-				out.fill(' ');
-				out << (s.progress*100) << "% ";
-				out << progress_bar(s.progress, terminal_width - 37, progress_bar_color) << "\n";
-				if (print_piece_bar && s.progress < 1.f)
-					out << "  " << piece_bar(s.pieces, terminal_width - 5) << "\n";
-				out << "  peers: " << esc("37") << s.num_peers << esc("0") << " (" << esc("37") << s.connect_candidates << esc("0") << ") "
-					<< "seeds: " << esc("37") << s.num_seeds << esc("0") << " "
-					<< "distributed copies: " << esc("37") << s.distributed_copies << esc("0")
-//					<< "  magnet-link: " << make_magnet_uri(h) << "\n"
-					<< " download: " << esc("32") << (s.download_rate > 0 ? add_suffix(s.download_rate) + "/s ": "         ") << esc("0");
-				boost::posix_time::time_duration t = s.next_announce;
-				out << " next announce: " << esc("37")
-					<< to_string(t.hours(), 2) << ":"
-					<< to_string(t.minutes(), 2) << ":"
-					<< to_string(t.seconds(), 2) << esc("0") << " ";
-				out << "tracker: " << esc("36") << s.current_tracker << esc("0") << "\n";
+					out << esc("32") << s.total_done << esc("0") << " Bytes ";
+					out.precision(4);
+					out.width(5);
+					out.fill(' ');
+					out << (s.progress*100) << "% ";
+					out << progress_bar(s.progress, terminal_width - 37, progress_bar_color) << "\n";
+					if (print_piece_bar && s.progress < 1.f)
+						out << "  " << piece_bar(s.pieces, terminal_width - 5) << "\n";
+					out << "  peers: " << esc("37") << s.num_peers << esc("0") << " (" << esc("37") << s.connect_candidates << esc("0") << ") "
+						<< "seeds: " << esc("37") << s.num_seeds << esc("0") << " "
+						<< "distributed copies: " << esc("37") << s.distributed_copies << esc("0")
+//						<< "  magnet-link: " << make_magnet_uri(h) << "\n"
+						<< " download: " << esc("32") << (s.download_rate > 0 ? add_suffix(s.download_rate) + "/s ": "         ") << esc("0");
+					boost::posix_time::time_duration t = s.next_announce;
+					out << " next announce: " << esc("37")
+						<< to_string(t.hours(), 2) << ":"
+						<< to_string(t.minutes(), 2) << ":"
+						<< to_string(t.seconds(), 2) << esc("0") << " ";
+					out << "tracker: " << esc("36") << s.current_tracker << esc("0") << "\n";
+				}
 
 				if (torrent_index != active_torrent) continue;
 				active_handle = h;
@@ -1401,19 +1396,10 @@ int main(int ac, char* av[])
 
 			out << "==== conns: " << sess_stat.num_peers
 				<< " down: " << esc("32") << add_suffix(sess_stat.download_rate) << "/s" << esc("0")
-				<< " (" << esc("32") << add_suffix(sess_stat.total_download) << esc("0") << ")"
-				" up: " << esc("31") << add_suffix(sess_stat.upload_rate) << "/s" << esc("0")
+				<< " (" << esc("32") << add_suffix(sess_stat.total_download) << esc("0") << ") "
+				" up: " << esc("31") << add_suffix(sess_stat.upload_rate) << "/s " << esc("0")
 				<< " (" << esc("31") << add_suffix(sess_stat.total_upload) << esc("0") << ")"
-				" tcp/ip: "
-				<< esc("32") << add_suffix(sess_stat.ip_overhead_download_rate) << "/s" << esc("0") << " "
-				<< esc("31") << add_suffix(sess_stat.ip_overhead_upload_rate) << "/s" << esc("0")
-				<< " DHT: "
-				<< esc("32") << add_suffix(sess_stat.dht_download_rate) << "/s" << esc("0") << " "
-				<< esc("31") << add_suffix(sess_stat.dht_upload_rate) << "/s" << esc("0")
-				<< " tracker: "
-				<< esc("32") << add_suffix(sess_stat.tracker_download_rate) << "/s" << esc("0") << " "
-				<< esc("31") << add_suffix(sess_stat.tracker_upload_rate) << "/s" << esc("0") << " ====\n"
-				"==== waste: " << add_suffix(sess_stat.total_redundant_bytes)
+				" waste: " << add_suffix(sess_stat.total_redundant_bytes)
 				<< " fail: " << add_suffix(sess_stat.total_failed_bytes)
 				<< " unchoked: " << sess_stat.num_unchoked << " / " << sess_stat.allowed_upload_slots
 				<< " bw queues: (" << sess_stat.up_bandwidth_queue
@@ -1422,24 +1408,7 @@ int main(int ac, char* av[])
 				" read cache hits: " << (cs.blocks_read_hit * 100 / cs.blocks_read) << "% "
 				" cache size: " << add_suffix(cs.cache_size * 16 * 1024)
 				<< " (" << add_suffix(cs.read_cache_size * 16 * 1024) << ")"
-				" ====\n"
-				"==== optimistic unchoke: " << sess_stat.optimistic_unchoke_counter
-				<< " unchoke counter: " << sess_stat.unchoke_counter
-				<< " ====" << std::endl;
-
-			if (show_dht_status)
-			{
-				out << "DHT nodes: " << sess_stat.dht_nodes
-					<< " DHT cached nodes: " << sess_stat.dht_node_cache
-					<< " total DHT size: " << sess_stat.dht_global_nodes << std::endl;
-				for (std::vector<dht_lookup>::iterator i = sess_stat.active_requests.begin()
-					, end(sess_stat.active_requests.end()); i != end; ++i)
-				{
-					out << "  " << i->type << " " << i->outstanding_requests << " ("
-						<< i->branch_factor << ") ( timeouts "
-						<< i->timeouts << " responses " << i->responses << ")\n";
-				}
-			}
+				" ====" << std::endl;
 
 			if (active_handle.is_valid())
 			{
@@ -1454,23 +1423,6 @@ int main(int ac, char* av[])
 
 				if (print_peers && !peers.empty())
 					print_peer_info(out, peers);
-
-				if (print_trackers)
-				{
-					std::vector<announce_entry> tr = h.trackers();
-					ptime now = time_now();
-					for (std::vector<announce_entry>::iterator i = tr.begin()
-						, end(tr.end()); i != end; ++i)
-					{
-						std::string url = i->url;
-						url.resize(55, ' ');
-						out << to_string(i->tier, 2) << " " << url << " "
-							<< to_string(i->fails, 3) << " " << (i->verified?"OK ":"-  ");
-						if (i->updating) out << "updating";
-						else out << to_string(total_seconds(i->next_announce - now), 8);
-						out << "\n";
-					}
-				}
 
 				if (print_downloads)
 				{

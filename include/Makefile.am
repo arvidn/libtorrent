@@ -84,7 +84,6 @@ libtorrent/aux_/session_impl.hpp \
 libtorrent/extensions/metadata_transfer.hpp \
 libtorrent/extensions/ut_pex.hpp \
 libtorrent/extensions/ut_metadata.hpp \
-libtorrent/extensions/lt_trackers.hpp \
 libtorrent/extensions/logger.hpp \
 libtorrent/extensions/smart_ban.hpp \
 \

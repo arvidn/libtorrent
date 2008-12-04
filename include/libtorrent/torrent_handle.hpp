@@ -81,7 +81,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_status
 	{
 		torrent_status()
-			: state(checking_resume_data)
+			: state(queued_for_checking)
 			, paused(false)
 			, progress(0.f)
 			, total_download(0)
@@ -130,8 +130,7 @@ namespace libtorrent
 			downloading,
 			finished,
 			seeding,
-			allocating,
-			checking_resume_data
+			allocating
 		};
 		
 		state_t state;
@@ -329,9 +328,8 @@ namespace libtorrent
 
 		void clear_error() const;
 
-		std::vector<announce_entry> trackers() const;
+		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
-		void add_tracker(announce_entry const&) const;
 
 		void add_url_seed(std::string const& url) const;
 		void remove_url_seed(std::string const& url) const;
@@ -343,7 +341,6 @@ namespace libtorrent
 #endif
 
 		bool has_metadata() const;
-		bool set_metadata(char const* metadata, int size) const;
 		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;
 
@@ -465,16 +462,13 @@ namespace libtorrent
 
 		// -1 means unlimited connections
 		void set_max_connections(int max_connections) const;
-		int max_connections() const;
 
 		void set_tracker_login(std::string const& name
 			, std::string const& password) const;
 
 		// post condition: save_path() == save_path if true is returned
 		void move_storage(fs::path const& save_path) const;
-		void move_storage(fs::wpath const& save_path) const;
 		void rename_file(int index, fs::path const& new_name) const;
-		void rename_file(int index, fs::wpath const& new_name) const;
 
 		sha1_hash info_hash() const;
 

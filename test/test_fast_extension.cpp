@@ -168,8 +168,7 @@ void test_reject_fast()
 
 	io_service ios;
 	stream_socket s(ios);
-	error_code ec;
-	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()), ec);
+	s.connect(tcp::endpoint(address::from_string("127.0.0.1"), ses1.listen_port()));
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -231,9 +230,8 @@ void test_respect_suggest()
 	test_sleep(2000);
 
 	io_service ios;
-	error_code ec;
 	stream_socket s(ios);
-	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()), ec);
+	s.connect(tcp::endpoint(address::from_string("127.0.0.1"), ses1.listen_port()));
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);

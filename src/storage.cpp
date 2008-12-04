@@ -115,25 +115,24 @@ namespace libtorrent
 {
 	std::wstring safe_convert(std::string const& s)
 	{
-		std::wstring ret;
-		int result = libtorrent::utf8_wchar(s, ret);
-#ifndef BOOST_WINDOWS
-		return ret;
-#else
-		if (result == 0) return ret;
-
-		ret.clear();
-		const char* end = &s[0] + s.size();
-		for (const char* i = &s[0]; i < end;)
+		try
 		{
-			wchar_t c = '.';
-			int result = std::mbtowc(&c, i, end - i);
-			if (result > 0) i += result;
-			else ++i;
-			ret += c;
+			return libtorrent::utf8_wchar(s);
 		}
-		return ret;
-#endif
+		catch (std::exception)
+		{
+			std::wstring ret;
+			const char* end = &s[0] + s.size();
+			for (const char* i = &s[0]; i < end;)
+			{
+				wchar_t c = '.';
+				int result = std::mbtowc(&c, i, end - i);
+				if (result > 0) i += result;
+				else ++i;
+				ret += c;
+			}
+			return ret;
+		}
 	}
 }
 #endif
@@ -325,10 +324,10 @@ namespace libtorrent
 #else
 			fs::path f = p / i->path;
 #endif
-			// TODO: optimize
-			if (exists(f))
 #ifndef BOOST_NO_EXCEPTIONS
 			try
+#else
+			if (exists(f))
 #endif
 			{
 				size = file_size(f);
@@ -369,17 +368,16 @@ namespace libtorrent
 		{
 			size_type size = 0;
 			std::time_t time = 0;
-			if (i->pad_file) continue;
 
 #if TORRENT_USE_WPATH
 			fs::wpath f = safe_convert((p / i->path).string());
 #else
 			fs::path f = p / i->path;
 #endif
-			// TODO: Optimize this! This will result in 3 stat calls per file!
-			if (exists(f))
 #ifndef BOOST_NO_EXCEPTIONS
 			try
+#else
+			if (exists(f))
 #endif
 			{
 				size = file_size(f);
@@ -522,15 +520,6 @@ namespace libtorrent
 #endif
 			}
 
-			int file_index = file_iter - files().begin();
-
-			// ignore files that have priority 0
-			if (int(m_file_priority.size()) > file_index
-				&& m_file_priority[file_index] == 0) continue;
-
-			// ignore pad files
-			if (file_iter->pad_file) continue;
-
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
@@ -549,7 +538,7 @@ namespace libtorrent
 			{
 				error_code ec;
 				boost::shared_ptr<file> f = m_pool.open_file(this
-					, m_save_path / file_iter->path, file::read_write, ec);
+					, m_save_path / file_iter->path, file::in | file::out, ec);
 				if (ec) set_error(m_save_path / file_iter->path, ec);
 				else if (f)
 				{
@@ -1030,13 +1019,38 @@ namespace libtorrent
 
 			file_offset -= file_iter->size;
 			++file_iter;
-			TORRENT_ASSERT(file_iter != files().end());
 		}
- 
+
 		int buf_pos = 0;
 		error_code ec;
+		boost::shared_ptr<file> in(m_pool.open_file(
+			this, m_save_path / file_iter->path, file::in, ec));
+		if (!in || ec)
+		{
+			set_error(m_save_path / file_iter->path, ec);
+			return -1;
+		}
+		TORRENT_ASSERT(file_offset < file_iter->size);
+		TORRENT_ASSERT(slices[0].offset == file_offset + file_iter->file_base);
 
-		boost::shared_ptr<file> in;
+		size_type new_pos = in->seek(file_offset + file_iter->file_base, file::begin, ec);
+		if (new_pos != file_offset + file_iter->file_base || ec)
+		{
+			// the file was not big enough
+			if (!fill_zero)
+			{
+				set_error(m_save_path / file_iter->path, ec);
+				return -1;
+			}
+			std::memset(buf + buf_pos, 0, size - buf_pos);
+			return size;
+		}
+
+#ifdef TORRENT_DEBUG
+		size_type in_tell = in->tell(ec);
+		TORRENT_ASSERT(in_tell == file_offset + file_iter->file_base && !ec);
+#endif
+
 		int left_to_read = size;
 		int slot_size = static_cast<int>(m_files.piece_size(slot));
 
@@ -1051,71 +1065,73 @@ namespace libtorrent
 		int counter = 0;
 #endif
 
-		int read_bytes;
-		for (;left_to_read > 0; ++file_iter, left_to_read -= read_bytes
-			, buf_pos += read_bytes)
+		while (left_to_read > 0)
 		{
-			TORRENT_ASSERT(file_iter != files().end());
-			TORRENT_ASSERT(buf_pos >= 0);
-
-			read_bytes = left_to_read;
+			int read_bytes = left_to_read;
 			if (file_offset + read_bytes > file_iter->size)
-				read_bytes = (std::max)(static_cast<int>(file_iter->size - file_offset), 0);
+				read_bytes = static_cast<int>(file_iter->size - file_offset);
 
-			if (read_bytes == 0) continue;
-
+			if (read_bytes > 0)
+			{
 #ifdef TORRENT_DEBUG
-			TORRENT_ASSERT(int(slices.size()) > counter);
-			size_type slice_size = slices[counter].size;
-			TORRENT_ASSERT(slice_size == read_bytes);
-			TORRENT_ASSERT(files().at(slices[counter].file_index).path
-				== file_iter->path);
-			++counter;
+				TORRENT_ASSERT(int(slices.size()) > counter);
+				size_type slice_size = slices[counter].size;
+				TORRENT_ASSERT(slice_size == read_bytes);
+				TORRENT_ASSERT(files().at(slices[counter].file_index).path
+					== file_iter->path);
 #endif
 
-			if (file_iter->pad_file)
-			{
-				std::memset(buf + buf_pos, 0, read_bytes);
-				continue;
-			}
+				int actual_read = int(in->read(buf + buf_pos, read_bytes, ec));
 
-			fs::path path = m_save_path / file_iter->path;
-
-			error_code ec;
-			in = m_pool.open_file(this, path, file::read_only, ec);
-			if (!in || ec)
-			{
-				set_error(path, ec);
-				return -1;
-			}
-			size_type pos = in->seek(file_iter->file_base + file_offset, file::begin, ec);
-			if (pos != file_iter->file_base + file_offset || ec)
-			{
-				if (!fill_zero)
+				if (read_bytes != actual_read || ec)
 				{
-					set_error(m_save_path / file_iter->path, ec);
+					// the file was not big enough
+					if (actual_read > 0) buf_pos += actual_read;
+					if (!fill_zero)
+					{
+						set_error(m_save_path / file_iter->path, ec);
+						return -1;
+					}
+					std::memset(buf + buf_pos, 0, size - buf_pos);
+					return size;
+				}
+
+				left_to_read -= read_bytes;
+				buf_pos += read_bytes;
+				TORRENT_ASSERT(buf_pos >= 0);
+				file_offset += read_bytes;
+			}
+
+			if (left_to_read > 0)
+			{
+				++file_iter;
+#ifdef TORRENT_DEBUG
+				// empty files are not returned by map_block, so if
+				// this file was empty, don't increment the slice counter
+				if (read_bytes > 0) ++counter;
+#endif
+				fs::path path = m_save_path / file_iter->path;
+
+				file_offset = 0;
+				error_code ec;
+				in = m_pool.open_file( this, path, file::in, ec);
+				if (!in || ec)
+				{
+					set_error(path, ec);
 					return -1;
 				}
-				std::memset(buf + buf_pos, 0, size - buf_pos);
-				return size;
-			}
-			file_offset = 0;
-
-			int actual_read = int(in->read(buf + buf_pos, read_bytes, ec));
-
-			if (read_bytes != actual_read || ec)
-			{
-				// the file was not big enough
-				if (actual_read > 0) buf_pos += actual_read;
-				if (!fill_zero)
+				size_type pos = in->seek(file_iter->file_base, file::begin, ec);
+				if (pos != file_iter->file_base || ec)
 				{
-					set_error(m_save_path / file_iter->path, ec);
-					return -1;
+					if (!fill_zero)
+					{
+						set_error(m_save_path / file_iter->path, ec);
+						return -1;
+					}
+					std::memset(buf + buf_pos, 0, size - buf_pos);
+					return size;
 				}
-				std::memset(buf + buf_pos, 0, size - buf_pos);
-				return size;
 			}
-
 		}
 		return result;
 	}
@@ -1139,7 +1155,6 @@ namespace libtorrent
 #endif
 
 		size_type start = slot * (size_type)m_files.piece_length() + offset;
-		TORRENT_ASSERT(start + size <= m_files.total_size());
 
 		// find the file iterator and file offset
 		size_type file_offset = start;
@@ -1155,10 +1170,27 @@ namespace libtorrent
 			TORRENT_ASSERT(file_iter != files().end());
 		}
 
-		int buf_pos = 0;
+		fs::path p(m_save_path / file_iter->path);
 		error_code ec;
+		boost::shared_ptr<file> out = m_pool.open_file(
+			this, p, file::out | file::in, ec);
 
-		boost::shared_ptr<file> out;
+		if (!out || ec)
+		{
+			set_error(p, ec);
+			return -1;
+		}
+		TORRENT_ASSERT(file_offset < file_iter->size);
+		TORRENT_ASSERT(slices[0].offset == file_offset + file_iter->file_base);
+
+		size_type pos = out->seek(file_offset + file_iter->file_base, file::begin, ec);
+
+		if (pos != file_offset + file_iter->file_base || ec)
+		{
+			set_error(p, ec);
+			return -1;
+		}
+
 		int left_to_write = size;
 		int slot_size = static_cast<int>(m_files.piece_size(slot));
 
@@ -1167,62 +1199,72 @@ namespace libtorrent
 
 		TORRENT_ASSERT(left_to_write >= 0);
 
+		int buf_pos = 0;
 #ifdef TORRENT_DEBUG
 		int counter = 0;
 #endif
-
-		int write_bytes;
-		for (;left_to_write > 0; ++file_iter, left_to_write -= write_bytes
-			, buf_pos += write_bytes)
+		while (left_to_write > 0)
 		{
-			TORRENT_ASSERT(file_iter != files().end());
-			TORRENT_ASSERT(buf_pos >= 0);
-
-			write_bytes = left_to_write;
+			int write_bytes = left_to_write;
 			if (file_offset + write_bytes > file_iter->size)
-				write_bytes = (std::max)(static_cast<int>(file_iter->size - file_offset), 0);
+			{
+				TORRENT_ASSERT(file_iter->size >= file_offset);
+				write_bytes = static_cast<int>(file_iter->size - file_offset);
+			}
 
-			if (write_bytes == 0) continue;
+			if (write_bytes > 0)
+			{
+				TORRENT_ASSERT(int(slices.size()) > counter);
+				TORRENT_ASSERT(slices[counter].size == write_bytes);
+				TORRENT_ASSERT(files().at(slices[counter].file_index).path
+					== file_iter->path);
 
+				TORRENT_ASSERT(buf_pos >= 0);
+				TORRENT_ASSERT(write_bytes >= 0);
+				error_code ec;
+				size_type written = out->write(buf + buf_pos, write_bytes, ec);
+
+				if (written != write_bytes || ec)
+				{
+					set_error(m_save_path / file_iter->path, ec);
+					return -1;
+				}
+
+				left_to_write -= write_bytes;
+				buf_pos += write_bytes;
+				TORRENT_ASSERT(buf_pos >= 0);
+				file_offset += write_bytes;
+				TORRENT_ASSERT(file_offset <= file_iter->size);
+			}
+
+			if (left_to_write > 0)
+			{
 #ifdef TORRENT_DEBUG
-			TORRENT_ASSERT(int(slices.size()) > counter);
-			size_type slice_size = slices[counter].size;
-			TORRENT_ASSERT(slice_size == write_bytes);
-			TORRENT_ASSERT(files().at(slices[counter].file_index).path
-				== file_iter->path);
-			++counter;
+				if (write_bytes > 0) ++counter;
 #endif
+				++file_iter;
 
-			if (file_iter->pad_file)
-				continue;
+				TORRENT_ASSERT(file_iter != files().end());
+				fs::path p = m_save_path / file_iter->path;
+				file_offset = 0;
+				error_code ec;
+				out = m_pool.open_file(
+					this, p, file::out | file::in, ec);
 
-			fs::path path = m_save_path / file_iter->path;
+				if (!out || ec)
+				{
+					set_error(p, ec);
+					return -1;
+				}
 
-			error_code ec;
-			out = m_pool.open_file(this, path, file::read_write, ec);
-			if (!out || ec)
-			{
-				set_error(path, ec);
-				return -1;
+				size_type pos = out->seek(file_iter->file_base, file::begin, ec);
+
+				if (pos != file_iter->file_base || ec)
+				{
+					set_error(p, ec);
+					return -1;
+				}
 			}
-			size_type pos = out->seek(file_iter->file_base + file_offset, file::begin, ec);
-			if (pos != file_iter->file_base + file_offset || ec)
-			{
-				set_error(m_save_path / file_iter->path, ec);
-				return -1;
-			}
-			file_offset = 0;
-
-			int actual_written = int(out->write(buf + buf_pos, write_bytes, ec));
-
-			if (write_bytes != actual_written || ec)
-			{
-				// the file was not big enough
-				if (actual_written > 0) buf_pos += actual_written;
-				set_error(m_save_path / file_iter->path, ec);
-				return -1;
-			}
-
 		}
 		return size;
 	}

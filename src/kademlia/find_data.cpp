@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/find_data.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
-#include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/io.hpp>
 #include <libtorrent/socket.hpp>
 
@@ -64,7 +63,7 @@ void find_data_observer::reply(msg const& m)
 		for (msg::nodes_t::const_iterator i = m.nodes.begin()
 			, end(m.nodes.end()); i != end; ++i)
 		{
-			m_algorithm->traverse(i->id, udp::endpoint(i->addr, i->port));
+			m_algorithm->traverse(i->id, i->addr);	
 		}
 	}
 	m_algorithm->finished(m_self);
@@ -80,10 +79,22 @@ void find_data_observer::timeout()
 
 
 find_data::find_data(
-	node_impl& node
-	, node_id target
-	, done_callback const& callback)
-	: traversal_algorithm(node, target, node.m_table.begin(), node.m_table.end())
+	node_id target
+	, int branch_factor
+	, int max_results
+	, routing_table& table
+	, rpc_manager& rpc
+	, done_callback const& callback
+)
+	: traversal_algorithm(
+		target
+		, branch_factor
+		, max_results
+		, table
+		, rpc
+		, table.begin()
+		, table.end()
+	)
 	, m_done_callback(callback)
 	, m_done(false)
 {
@@ -99,12 +110,12 @@ void find_data::invoke(node_id const& id, udp::endpoint addr)
 		return;
 	}
 
-	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
-	observer_ptr o(new (m_node.m_rpc.allocator().malloc()) find_data_observer(this, id, m_target));
+	TORRENT_ASSERT(m_rpc.allocation_size() >= sizeof(find_data_observer));
+	observer_ptr o(new (m_rpc.allocator().malloc()) find_data_observer(this, id, m_target));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
-	m_node.m_rpc.invoke(messages::get_peers, addr, o);
+	m_rpc.invoke(messages::get_peers, addr, o);
 }
 
 void find_data::got_data(msg const* m)
@@ -117,6 +128,18 @@ void find_data::done()
 {
 	if (m_invoke_count != 0) return;
 	if (!m_done) m_done_callback(0);
+}
+
+void find_data::initiate(
+	node_id target
+	, int branch_factor
+	, int max_results
+	, routing_table& table
+	, rpc_manager& rpc
+	, done_callback const& callback
+)
+{
+	new find_data(target, branch_factor, max_results, table, rpc, callback);
 }
 
 } } // namespace libtorrent::dht

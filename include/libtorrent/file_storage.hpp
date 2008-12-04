@@ -56,7 +56,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT file_entry
 	{
-		file_entry(): offset(0), size(0), file_base(0), pad_file(false) {}
+		file_entry(): offset(0), size(0), file_base(0) {}
 
 		fs::path path;
 		size_type offset; // the offset of this file inside the torrent
@@ -65,7 +65,6 @@ namespace libtorrent
 		// This is always 0 unless parts of the torrent is
 		// compressed into a single file, such as a so-called part file.
 		size_type file_base;
-		bool pad_file:1;
 	};
 
 	struct TORRENT_EXPORT file_slice
@@ -85,10 +84,8 @@ namespace libtorrent
 		bool is_valid() const { return m_piece_length > 0; }
 
 		void add_file(file_entry const& e);
-		void add_file(fs::path const& p, size_type size, bool pad_file = false);
-		void add_file(fs::wpath const& p, size_type size, bool pad_file = false);
+		void add_file(fs::path const& p, size_type size);
 		void rename_file(int index, std::string const& new_filename);
-		void rename_file(int index, std::wstring const& new_filename);
 
 		std::vector<file_slice> map_block(int piece, size_type offset
 			, int size) const;
@@ -119,7 +116,6 @@ namespace libtorrent
 		int piece_size(int index) const;
 
 		void set_name(std::string const& n) { m_name = n; }
-		void set_name(std::wstring const& n);
 		const std::string& name() const { TORRENT_ASSERT(m_piece_length > 0); return m_name; }
 
 		void swap(file_storage& ti)

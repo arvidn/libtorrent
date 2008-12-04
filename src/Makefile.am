@@ -22,9 +22,9 @@ http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
 logger.cpp file_pool.cpp ut_pex.cpp lsd.cpp upnp.cpp instantiate_connection.cpp \
 socks5_stream.cpp socks4_stream.cpp http_stream.cpp connection_queue.cpp \
-disk_io_thread.cpp ut_metadata.cpp lt_trackers.cpp magnet_uri.cpp udp_socket.cpp smart_ban.cpp \
+disk_io_thread.cpp ut_metadata.cpp magnet_uri.cpp udp_socket.cpp smart_ban.cpp \
 http_parser.cpp gzip.cpp disk_buffer_holder.cpp create_torrent.cpp GeoIP.c \
-parse_url.cpp file_storage.cpp error_code.cpp ConvertUTF.cpp $(kademlia_sources)
+parse_url.cpp file_storage.cpp error_code.cpp $(kademlia_sources)
 # mapped_storage.cpp 
 
 noinst_HEADERS = \
@@ -101,8 +101,7 @@ $(top_srcdir)/include/libtorrent/udp_tracker_connection.hpp \
 $(top_srcdir)/include/libtorrent/utf8.hpp \
 $(top_srcdir)/include/libtorrent/xml_parse.hpp \
 $(top_srcdir)/include/libtorrent/variant_stream.hpp \
-$(top_srcdir)/include/libtorrent/version.hpp \
-$(top_srcdir)/include/libtorrent/ConvertUTF.h
+$(top_srcdir)/include/libtorrent/version.hpp
 
 
 libtorrent_rasterbar_la_LDFLAGS = $(LDFLAGS) -version-info $(INTERFACE_VERSION_INFO)

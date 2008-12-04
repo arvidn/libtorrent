@@ -108,7 +108,7 @@ namespace libtorrent
 			, lazy_bitfields(true)
 			, inactivity_timeout(600)
 			, unchoke_interval(15)
-			, optimistic_unchoke_interval(30)
+			, optimistic_unchoke_multiplier(4)
 			, num_want(200)
 			, initial_picker_threshold(4)
 			, allowed_fast_set_size(10)
@@ -144,7 +144,6 @@ namespace libtorrent
 			, prioritize_partial_pieces(false)
 			, auto_manage_startup(120)
 			, rate_limit_ip_overhead(true)
-			, announce_to_all_trackers(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -282,9 +281,9 @@ namespace libtorrent
 		// the number of seconds between chokes/unchokes
 		int unchoke_interval;
 
-		// the number of seconds between
+		// the number of unchoke intervals between
 		// optimistic unchokes
-		int optimistic_unchoke_interval;
+		int optimistic_unchoke_multiplier;
 
 		// if this is set, this IP will be reported do the
 		// tracker in the ip= parameter.
@@ -457,11 +456,6 @@ namespace libtorrent
 		// drained from the rate limiters, to avoid exceeding
 		// the limits with the total traffic
 		bool rate_limit_ip_overhead;
-
-		// if set to true, multi tracker torrents are treated
-		// the same way uTorrent treats them. It defaults to
-		// false in order to comply with the extension definition.
-		bool announce_to_all_trackers;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

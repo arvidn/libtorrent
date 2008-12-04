@@ -100,11 +100,8 @@ bencode(std::ostream_iterator&lt;char&gt;(out), t.generate());
 <pre class="literal-block">
 template &lt;class Pred&gt;
 void add_files(file_storage&amp; fs, boost::filesystem::path const&amp; path, Pred p);
-template &lt;class Pred&gt;
-void add_files(file_storage&amp; fs, boost::filesystem::wpath const&amp; path, Pred p);
 
 void add_files(file_storage&amp; fs, boost::filesystem::path const&amp; path);
-void add_files(file_storage&amp; fs, boost::filesystem::wpath const&amp; path);
 </pre>
 </blockquote>
 <p>Adds the file specified by <tt class="docutils literal"><span class="pre">path</span></tt> to the <tt class="docutils literal"><span class="pre">file_storage</span></tt> object. In case <tt class="docutils literal"><span class="pre">path</span></tt>
@@ -114,10 +111,6 @@ is encountered. files for which <tt class="docutils literal"><span class="pre">p
 which <tt class="docutils literal"><span class="pre">p</span></tt> returns true are traversed. <tt class="docutils literal"><span class="pre">p</span></tt> must have the following signature:</p>
 <pre class="literal-block">
 bool Pred(boost::filesystem::path const&amp; p);
-</pre>
-<p>and for the wpath version:</p>
-<pre class="literal-block">
-bool Pred(boost::filesystem::wpath const&amp; p);
 </pre>
 <p>The path that is passed in to the predicate is the full path of the file or
 directory. If no predicate is specified, all files are added, and all directories
@@ -130,11 +123,8 @@ are traveresed.</p>
 <pre class="literal-block">
 template &lt;class Fun&gt;
 void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p, Fun f);
-template &lt;class Fun&gt;
-void set_piece_hashes(create_torrent&amp; t, boost::filesystem::wpath const&amp; p, Fun f);
 
 void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p);
-void set_piece_hashes(create_torrent&amp; t, boost::filesystem::wpath const&amp; p);
 </pre>
 </blockquote>
 <p>This function will assume that the files added to the torrent file exists at path
@@ -159,9 +149,7 @@ public:
 
         void add_file(file_entry const&amp; e);
         void add_file(fs::path const&amp; p, size_type size);
-        void add_file(fs::wpath const&amp; p, size_type size);
         void rename_file(int index, std::string const&amp; new_filename);
-        void rename_file(int index, std::wstring const&amp; new_filename);
 
         std::vector&lt;file_slice&gt; map_block(int piece, size_type offset
                 , int size) const;
@@ -186,7 +174,6 @@ public:
         int piece_size(int index) const;
 
         void set_name(std::string const&amp; n);
-        void set_name(std::wstring const&amp; n);
         const std::string&amp; name() const;
 
         void swap(file_storage&amp; ti);
@@ -201,7 +188,6 @@ struct create_torrent
 {
         create_torrent(file_storage&amp; fs, int piece_size);
         create_torrent(file_storage&amp; fs);
-        create_torrent(torrent_info const&amp; ti);
 
         entry generate() const;
 
@@ -225,17 +211,10 @@ struct create_torrent
 <pre class="literal-block">
 create_torrent(file_storage&amp; fs, int piece_size);
 create_torrent(file_storage&amp; fs);
-create_torrent(torrent_info const&amp; ti);
 </pre>
 </blockquote>
 <p>The contrstructor that does not take a piece_size will calculate
 a piece size such that the torrent file is roughly 40 kB.</p>
-<p>The overlad that takes a <tt class="docutils literal"><span class="pre">torrent_info</span></tt> object will make a verbatim
-copy of its info dictionary (to preserve the info-hash). The copy of
-the info dictionary will be used by <tt class="docutils literal"><span class="pre">generate()</span></tt>. This means
-that none of the member functions of create_torrent that affects
-the content of the info dictionary (such as <tt class="docutils literal"><span class="pre">set_hash()</span></tt>), will not
-have any affect.</p>
 </div>
 <div class="section" id="generate">
 <h2>generate()</h2>

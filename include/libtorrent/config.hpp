@@ -84,16 +84,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // should wpath or path be used?
 #if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \
-	&& BOOST_VERSION >= 103400
+	&& BOOST_VERSION >= 103400 && defined WIN32
 #define TORRENT_USE_WPATH 1
 #else
 #define TORRENT_USE_WPATH 0
-#endif
-
-#ifdef TORRENT_WINDOWS
-// this is the maximum number of characters in a
-// path element / filename on windows
-#define NAME_MAX 255
 #endif
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED

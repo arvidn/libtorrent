@@ -1,20 +1,3 @@
-
-	* add_tracker() function added to torrent_handle
-	* if there is no working tracker, current_tracker is the
-	  tracker that is currently being tried
-	* torrents that are checking can now be paused, which will
-	  pause the checking
-	* introduced another torrent state, checking_resume_data, which
-	  the torrent is in when it's first added, and is comparing
-	  the files on disk with the resume data
-	* DHT bandwidth usage optimizations
-	* rate limited DHT send socket
-	* tracker connections are now also subject to IP filtering
-	* improved optimistic unchoke logic
-	* added monitoring of the DHT lookups
-	* added bandwidth reports for estimated TCP/IP overhead and DHT
-	* includes DHT traffic in the rate limiter
-
 release 0.14.1
 
 	* added converter for python unicode strings to utf-8 paths

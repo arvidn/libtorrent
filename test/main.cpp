@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <iostream>
-#include <boost/config.hpp>
 
 int test_main();
 
@@ -45,13 +44,10 @@ void report_failure(char const* err, char const* file, int line)
 
 int main()
 {
-#ifndef BOOST_NO_EXCEPTIONS
 	try
 	{
-#endif
 		test_main();
 		return tests_failure ? 1 : 0;
-#ifndef BOOST_NO_EXCEPTIONS
 	}
 	catch (std::exception const& e)
 	{
@@ -63,6 +59,5 @@ int main()
 		std::cerr << "Terminated with unknown exception\n";
 		return 1;
 	}
-#endif
 }
 

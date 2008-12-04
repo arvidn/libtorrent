@@ -330,13 +330,11 @@ SOURCES =
 	broadcast_socket
 	magnet_uri
 	parse_url
-	ConvertUTF
 
 # -- extensions --
 	metadata_transfer
 	ut_pex
 	ut_metadata
-	lt_trackers
 	smart_ban
 	;
 

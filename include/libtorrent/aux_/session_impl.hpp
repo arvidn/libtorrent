@@ -176,7 +176,6 @@ namespace libtorrent
 			void start_dht(entry const& startup_state);
 			void stop_dht();
 			entry dht_state() const;
-			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -209,7 +208,6 @@ namespace libtorrent
 
 			std::vector<torrent_handle> get_torrents();
 			
-			void start_torrent(boost::weak_ptr<torrent> wt);
 			void check_torrent(boost::shared_ptr<torrent> const& t);
 			void done_checking(boost::shared_ptr<torrent> const& t);
 
@@ -530,7 +528,6 @@ namespace libtorrent
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots(int congested_torrents
 				, int uncongested_torrents);
-			void recalculate_optimistic_unchoke_slot();
 
 			ptime m_last_tick;
 
@@ -551,7 +548,7 @@ namespace libtorrent
 			// but for the udp port used by the DHT.
 			int m_external_udp_port;
 
-			rate_limited_udp_socket m_dht_socket;
+			udp_socket m_dht_socket;
 
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased
@@ -608,9 +605,6 @@ namespace libtorrent
 		private:
 
 #endif
-#ifdef TORRENT_UPNP_LOGGING
-			std::ofstream m_upnp_log;
-#endif
 			address m_external_address;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -650,7 +644,6 @@ namespace libtorrent
 			}
 
 			void tracker_response(tracker_request const&
-				, libtorrent::address const& tracker_ip
 				, std::vector<peer_entry>& peers
 				, int interval
 				, int complete

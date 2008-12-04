@@ -3,7 +3,7 @@ libtorrent API Documentation
 ============================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.15
+:Version: 0.14.1
 
 .. contents:: Table of contents
   :depth: 2
@@ -75,15 +75,13 @@ The ``session`` class has the following synopsis::
 		session(fingerprint const& print
 			= libtorrent::fingerprint(
 			"LT", 0, 1, 0, 0)
-			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification);
+			, int flags = start_default_features | add_default_plugins);
 
 		session(
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = 0
-			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification);
+			, int flags = start_default_features | add_default_plugins);
 
 		torrent_handle add_torrent(add_torrent_params const& params);
 
@@ -118,7 +116,6 @@ The ``session`` class has the following synopsis::
 		int download_rate_limit() const;
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
-		int max_connections() const;
 		void set_max_half_open_connections(int limit);
 		int max_half_open_connections() const;
 
@@ -189,14 +186,12 @@ session()
 
 		session(fingerprint const& print
 			= libtorrent::fingerprint("LT", 0, 1, 0, 0)
-			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification);
+			, int flags = start_default_features | add_default_plugins);
 
 		session(fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = 0
-			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification);
+			, int flags = start_default_features | add_default_plugins);
 
 If the fingerprint in the first overload is omited, the client will get a default
 fingerprint stating the version of libtorrent. The fingerprint is a short string that will be
@@ -210,8 +205,6 @@ the parameters, see ``listen_on()`` function.
 The flags paramater can be used to start default features (upnp & nat-pmp) and default plugins
 (ut_metadata, ut_pex and smart_ban). The default is to start those things. If you do not want
 them to start, pass 0 as the flags parameter.
-
-The ``alert_mask`` is the same mask that you would send to ``set_alert_mask``.
 
 ~session()
 ----------
@@ -413,22 +406,19 @@ of upload rate.
 set limits.
 
 
-set_max_uploads() set_max_connections() max_connections()
----------------------------------------------------------
+set_max_uploads() set_max_connections()
+---------------------------------------
 
 	::
 
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
-		int max_connections() const;
 
 These functions will set a global limit on the number of unchoked peers (uploads)
 and the number of connections opened. The number of connections is set to a hard
 minimum of at least two connections per torrent, so if you set a too low
 connections limit, and open too many torrents, the limit will not be met. The
 number of uploads is at least one per torrent.
-
-``max_connections()`` returns the current setting.
 
 
 num_uploads() num_connections()
@@ -521,84 +511,46 @@ status()
 ``status()`` returns session wide-statistics and status. The ``session_status``
 struct has the following members::
 
-	struct dht_lookup
-	{
-		char const* type;
-		int outstanding_requests;
-		int timeouts;
-		int responses;
-		int branch_factor;
-	};
-
 	struct session_status
 	{
 		bool has_incoming_connections;
 
 		float upload_rate;
 		float download_rate;
-		size_type total_download;
-		size_type total_upload;
 
 		float payload_upload_rate;
 		float payload_download_rate;
-		size_type total_payload_download;
-		size_type total_payload_upload;
 
-		float ip_overhead_upload_rate;
-		float ip_overhead_download_rate;
-		size_type total_ip_overhead_download;
-		size_type total_ip_overhead_upload;
-
-		float dht_upload_rate;
-		float dht_download_rate;
-		size_type total_dht_download;
-		size_type total_dht_upload;
-
-		float tracker_upload_rate;
-		float tracker_download_rate;
-		size_type total_tracker_download;
-		size_type total_tracker_upload;
+		size_type total_download;
+		size_type total_upload;
 
 		size_type total_redundant_bytes;
 		size_type total_failed_bytes;
+
+		size_type total_payload_download;
+		size_type total_payload_upload;
 
 		int num_peers;
 		int num_unchoked;
 		int allowed_upload_slots;
 
-		int optimistic_unchoke_counter;
-		int unchoke_counter;
-
 		int dht_nodes;
 		int dht_cache_nodes;
 		int dht_torrents;
 		int dht_global_nodes;
-		std::vector<dht_lookup> active_requests;
 	};
 
 ``has_incoming_connections`` is false as long as no incoming connections have been
 established on the listening socket. Every time you change the listen port, this will
 be reset to false.
 
-``upload_rate``, ``download_rate`` are the total download and upload rates accumulated
-from all torrents. This includes bittorrent protocol, DHT and an estimated TCP/IP
-protocol overhead.
+``upload_rate``, ``download_rate``, ``payload_download_rate`` and ``payload_upload_rate``
+are the total download and upload rates accumulated from all torrents. The payload
+versions is the payload download only.
 
 ``total_download`` and ``total_upload`` are the total number of bytes downloaded and
-uploaded to and from all torrents. This also includes all the protocol overhead.
-
-``payload_download_rate`` and ``payload_upload_rate`` is the rate of the payload
-down- and upload only.
-
-``total_payload_download`` and ``total_payload_upload`` is the total transfers of payload
-only. The payload does not include the bittorrent protocol overhead, but only parts of the
-actual files to be downloaded.
-
-``ip_overhead_upload_rate``, ``ip_overhead_download_rate``, ``total_ip_overhead_download``
-and ``total_ip_overhead_upload`` is the estimated TCP/IP overhead in each direction.
-
-``dht_upload_rate``, ``dht_download_rate``, ``total_dht_download`` and ``total_dht_upload``
-is the DHT bandwidth usage.
+uploaded to and from all torrents. ``total_payload_download`` and ``total_payload_upload``
+are the same thing but where only the payload is considered.
 
 ``total_redundant_bytes`` is the number of bytes that has been received more than once.
 This can happen if a request from a peer times out and is requested from a different
@@ -617,11 +569,6 @@ be assigned a torrent yet.
 ``num_unchoked`` is the current number of unchoked peers.
 ``allowed_upload_slots`` is the current allowed number of unchoked peers.
 
-``optimistic_unchoke_counter`` and ``unchoke_counter`` tells the number of
-seconds until the next optimistic unchoke change and the start of the next
-unchoke interval. These numbers may be reset prematurely if a peer that is
-unchoked disconnects or becomes notinterested.
-
 ``dht_nodes``, ``dht_cache_nodes`` and ``dht_torrents`` are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
 the DHT is running, ``dht_nodes`` is set to the number of nodes in the routing
@@ -634,9 +581,6 @@ becomes unresponsive.
 
 ``dht_global_nodes`` is an estimation of the total number of nodes in the DHT
 network.
-
-``active_requests`` is a vector of the currently running DHT lookups.
-
 
 get_cache_status()
 ------------------
@@ -1222,7 +1166,6 @@ The ``torrent_info`` has the following synopsis::
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
 		torrent_info(boost::filesystem::path const& filename);
-		torrent_info(boost::filesystem::wpath const& filename);
 
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const;
@@ -1281,7 +1224,6 @@ torrent_info()
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
 		torrent_info(boost::filesystem::path const& filename);
-		torrent_info(boost::filesystem::wpath const& filename);
 
 The constructor that takes an info-hash  will initialize the info-hash to the given value,
 but leave all other fields empty. This is used internally when downloading torrents without
@@ -1482,43 +1424,8 @@ ones with lower tier will always be tried before the one with higher tier number
 	{
 		announce_entry(std::string const& url);
 		std::string url;
-		boost::uint8_t tier;
-		boost::uint8_t fail_limit;
-		boost::uint8_t fails;
-
-		enum tracker_source
-		{
-			source_torrent = 1,
-			source_client = 2,
-			source_magnet_link = 4,
-			source_tex = 8
-		};
-		boost::uint8_t source;
-
-		bool verified:1;
-		bool updating:1;
-		bool start_sent:1;
-		bool complete_sent:1;
+		int tier;
 	};
-
-``fail_limit`` is the max number of failures to announce to this tracker in
-a row, before this tracker is not used anymore.
-
-``fails`` is the number of times in a row we have failed to announce to this
-tracker.
-
-``source`` is a bitmask specifying which sources we got this tracker from.
-
-``verified`` is set to true the first time we receive a valid response
-from this tracker.
-
-``updating`` is true while we're waiting for a response from the tracker.
-
-``start_sent`` is set to true when we get a valid response from an announce
-with event=started. If it is set, we won't send start in the subsequent
-announces.
-
-``complete_sent`` is set to true when we send a event=completed.
 
 
 total_size() piece_length() piece_size() num_pieces()
@@ -1656,7 +1563,6 @@ Its declaration looks like this::
 
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&);
-		void add_tracker(announc_entry const& url);
 
 		void add_url_seed(std::string const& url);
 		void remove_url_seed(std::string const& url);
@@ -1665,7 +1571,6 @@ Its declaration looks like this::
 		void set_ratio(float ratio) const;
 		void set_max_uploads(int max_uploads) const;
 		void set_max_connections(int max_connections) const;
-		int max_connections() const;
 		void set_upload_limit(int limit) const;
 		int upload_limit() const;
 		void set_download_limit(int limit) const;
@@ -1708,13 +1613,10 @@ Its declaration looks like this::
 		void auto_managed(bool m) const;
 
 		bool has_metadata() const;
-		bool set_metadata(char const* buf, int size) const;
 
 		boost::filesystem::path save_path() const;
 		void move_storage(boost::filesystem::path const& save_path) const;
-		void move_storage(boost::filesystem::wpath const& save_path) const;
 		void rename_file(int index, boost::filesystem::path) const;
-		void rename_file(int index, boost::filesystem::wpath) const;
 		storage_interface* get_storage_impl() const;
 
 		sha1_hash info_hash() const;
@@ -1835,7 +1737,6 @@ move_storage()
 	::
 
 		void move_storage(boost::filesystem::path const& save_path) const;
-		void move_storage(boost::filesystem::wpath const& save_path) const;
 
 Moves the file(s) that this torrent are currently seeding from or downloading to. If
 the given ``save_path`` is not located on the same drive as the original save path,
@@ -1853,7 +1754,6 @@ rename_file()
 	::
 
 		void rename_file(int index, boost::filesystem::path) const;
-		void rename_file(int index, boost::filesystem::wpath) const;
 
 Renames the file with the given index asynchronously. The rename operation is complete
 when either a ``file_renamed_alert`` or ``file_rename_failed_alert`` is posted.
@@ -2067,26 +1967,17 @@ is_auto_managed() auto_managed()
 ``auto_managed()`` changes whether the torrent is auto managed or not. For more info,
 see queuing_.
 
-has_metadata() set_metadata()
------------------------------
+has_metadata()
+--------------
 
 	::
 
 		bool has_metadata() const;
-		bool set_metadata(char const* buf, int size) const;
 
-``has_metadata`` returns true if this torrent has metadata (either it was started from a
-.torrent file or the metadata has been downloaded). The only scenario where this can return
-false is when the torrent was started torrent-less (i.e. with just an info-hash and tracker
-ip). Note that if the torrent doesn't have metadata, the member `get_torrent_info()`_ will
-throw.
-
-``set_metadata`` expects the *info* section of metadata. i.e. The buffer passed in will be
-hashed and verified against the info-hash. If it fails, a ``metadata_failed_alert`` will be
-generated. If it passes, a ``metadata_received_alert`` is generated. The function returns
-true if the metadata is successfully set on the torrent, and false otherwise. If the torrent
-already has metadata, this function will not affect the torrent, and false will be returned.
-
+Returns true if this torrent has metadata (either it was started from a .torrent file or the
+metadata has been downloaded). The only scenario where this can return false is when the torrent
+was started torrent-less (i.e. with just an info-hash and tracker ip). Note that if the torrent
+doesn't have metadata, the member `get_torrent_info()`_ will throw.
 
 set_tracker_login()
 -------------------
@@ -2100,14 +1991,13 @@ set_tracker_login()
 of the tracker announce. Set this if the tracker requires authorization.
 
 
-trackers() replace_trackers() add_tracker()
--------------------------------------------
+trackers() replace_trackers()
+-----------------------------
 
   ::
 
 		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
-		void add_tracker(announc_entry const& url);
 
 ``trackers()`` will return the list of trackers for this torrent. The
 announce entry contains both a string ``url`` which specify the announce url
@@ -2117,10 +2007,6 @@ trackers for this torrent, you can use ``replace_trackers()`` which takes
 a list of the same form as the one returned from ``trackers()`` and will
 replace it. If you want an immediate effect, you have to call
 `force_reannounce()`_.
-
-``add_tracker()`` will look if the specified tracker is already in the set.
-If it is, it doesn't do anything. If it's not in the current set of trackers,
-it will insert it in the tier specified in the announce_entry.
 
 
 add_url_seed() remove_url_seed() url_seeds()
@@ -2193,14 +2079,13 @@ info_hash()
 ``info_hash()`` returns the info-hash for the torrent.
 
 
-set_max_uploads() set_max_connections() max_connections()
----------------------------------------------------------
+set_max_uploads() set_max_connections()
+---------------------------------------
 
 	::
 
 		void set_max_uploads(int max_uploads) const;
 		void set_max_connections(int max_connections) const;
-		int max_connections() const;
 
 ``set_max_uploads()`` sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.
@@ -2209,8 +2094,6 @@ torrent. If you set this to -1, there will be no limit.
 connections are used up, incoming connections may be refused or poor connections may be closed.
 This must be at least 2. The default is unlimited number of connections. If -1 is given to the
 function, it means unlimited.
-
-``max_connections()`` returns the current setting.
 
 
 save_resume_data()
@@ -2435,8 +2318,7 @@ It contains the following fields::
 			downloading,
 			finished,
 			seeding,
-			allocating,
-			checking_resume_data
+			allocating
 		};
 	
 		state_t state;
@@ -2513,11 +2395,6 @@ It contains the following fields::
 torrent's current task. It may be checking files or downloading. The torrent's
 current task is in the ``state`` member, it will be one of the following:
 
-+--------------------------+----------------------------------------------------------+
-|``checking_resume_data``  |The torrent is currently checking the fastresume data and |
-|                          |comparing it to the files on disk. This is typically      |
-|                          |completed in a fraction of a second, but if you add a     |
-|                          |large number of torrents at once, they will queue up.     |
 +--------------------------+----------------------------------------------------------+
 |``queued_for_checking``   |The torrent is in the queue for being checked. But there  |
 |                          |currently is another torrent that are being checked.      |
@@ -2799,8 +2676,6 @@ It contains the following fields::
 
 		int rtt;
 
-		int num_pieces;
-
 		int download_rate_peak;
 		int upload_rate_peak;
 
@@ -3020,8 +2895,6 @@ from the bandwidth manager.
 ``rtt`` is an estimated round trip time to this peer, in milliseconds. It is
 estimated by timing the the tcp ``connect()``. It may be 0 for incoming connections.
 
-``num_pieces`` is the number of pieces this peer has.
-
 ``download_rate_peak`` and ``upload_rate_peak`` are the highest download and upload
 rates seen on this connection. They are given in bytes per second. This number is
 reset to 0 on reconnect.
@@ -3066,7 +2939,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool lazy_bitfields;
 		int inactivity_timeout;
 		int unchoke_interval;
-		int optimistic_unchoke_interval;
+		int optimistic_unchoke_multiplier;
 		address announce_ip;
 		int num_want;
 		int initial_picker_threshold;
@@ -3105,8 +2978,6 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int auto_manage_startup;
 
 		bool rate_limit_ip_overhead;
-
-		bool announce_to_all_trackers;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3232,8 +3103,8 @@ On this interval, peers are re-evaluated for being choked/unchoked. This
 is defined as 30 seconds in the protocol, and it should be significantly
 longer than what it takes for TCP to ramp up to it's max rate.
 
-``optimistic_unchoke_interval`` is the number of seconds between
-each *optimistic* unchoke. On this timer, the currently optimistically
+``optimistic_unchoke_multiplier`` is the number of unchoke intervals between
+each *optimistic* unchoke interval. On this timer, the currently optimistically
 unchoked peer will change.
 
 ``announce_ip`` is the ip address passed along to trackers as the ``&ip=`` parameter.
@@ -3390,14 +3261,6 @@ have a fair chance to start downloading.
 
 If ``rate_limit_ip_overhead`` is set to true, the estimated TCP/IP overhead is
 drained from the rate limiters, to avoid exceeding the limits with the total traffic
-
-``announce_to_all_trackers`` controls how multi tracker torrents are
-treated. If this is set to true, all trackers in the same tier are
-announced to in parallel. If all trackers in tier 0 fails, all trackers
-in tier 1 are announced as well. This is the uTorrent behavior. If it's
-set to false, the behavior is as defined by the multi tracker
-specification. It defaults to false, which is the same behavior previous
-versions of libtorrent has had as well.
 
 
 pe_settings
@@ -4061,7 +3924,6 @@ is its synopsis:
 			progress_notification = *implementation defined*,
 			ip_block_notification = *implementation defined*,
 			performance_warning = *implementation defined*,
-			dht_notification = *implementation defined*,
 
 			all_categories = *implementation defined*
 		};
@@ -4180,23 +4042,6 @@ the index returned from add_mapping_.
 		int mapping;
 		int external_port;
 		int type;
-	};
-
-portmap_log_alert
------------------
-
-This alert is generated to log informational events related to either
-UPnP or NAT-PMP. They contain a log line and the type (0 = NAT-PMP
-and 1 = UPnP). Displaying these messages to an end user is only useful
-for debugging the UPnP or NAT-PMP implementation.
-
-::
-
-	struct portmap_log_alert: alert
-	{
-		//...
-		int type;
-		std::string msg;
 	};
 
 file_error_alert
@@ -4474,30 +4319,10 @@ upload or download rate performance.
 		{
 			outstanding_disk_buffer_limit_reached,
 			outstanding_request_limit_reached,
-			upload_limit_too_low,
-			download_limit_too_low
 		};
 
 		performance_warning_t warning_code;
 	};
-
-
-state_changed_alert
--------------------
-
-Generated whenever a torrent changes its state.
-
-::	
-
-	struct state_changed_alert: torrent_alert
-	{
-		// ...
-
-		torrent_status::state_t state;
-		torrent_status::state_t prev_state;
-	};
-
-``state`` is the new state of the torrent. ``prev_state`` is the previous state.
 
 
 metadata_failed_alert
@@ -4613,36 +4438,6 @@ generating the resume data. ``msg`` describes what went wrong.
 	{
 		// ...
 		std::string msg;
-	};
-
-dht_announce_alert
-------------------
-
-This alert is generated when a DHT node announces to an info-hash on our DHT node. It belongs
-to the ``dht_notification`` category.
-
-::
-
-	struct dht_announce_alert: alert
-	{
-		// ...
-		address ip;
-		int port;
-		sha1_hash info_hash;
-	};
-
-dht_get_peers_alert
--------------------
-
-This alert is generated when a DHT node sends a ``get_peers`` message to our DHT node.
-It belongs to the ``dht_notification`` category.
-
-::
-
-	struct dht_get_peers_alert: alert
-	{
-		// ...
-		sha1_hash info_hash;
 	};
 
 dispatcher

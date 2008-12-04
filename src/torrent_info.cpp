@@ -58,7 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/file.hpp"
-#include "libtorrent/utf8.hpp"
 
 namespace gr = boost::gregorian;
 
@@ -157,27 +156,6 @@ namespace
 		if (!valid_encoding) target.path = tmp_path;
 	}
 
-	void trim_path_element(std::string& path_element)
-	{
-		// on windows, NAME_MAX refers to Unicode characters
-		// on linux it refers to bytes (utf-8 encoded)
-		// TODO: Make this count Unicode characters instead of bytes on windows
-		if (path_element.size() > NAME_MAX)
-		{
-			// truncate filenames that are too long. But keep extensions!
-			std::string ext = fs::extension(path_element);
-			if (ext.size() > 15)
-			{
-				path_element.resize(NAME_MAX);
-			}
-			else
-			{
-				path_element.resize(NAME_MAX - ext.size());
-				path_element += ext;
-			}
-		}
-	}
-
 	bool extract_single_file(lazy_entry const& dict, file_entry& target
 		, std::string const& root_dir)
 	{
@@ -203,23 +181,12 @@ namespace
 			if (p->list_at(i)->type() != lazy_entry::string_t)
 				return false;
 			std::string path_element = p->list_at(i)->string_value();
-			trim_path_element(path_element);
 			if (path_element != "..")
 				target.path /= path_element;
 		}
 		verify_encoding(target);
 		if (target.path.is_complete())
 			return false;
-
-		// bitcomet pad file
-
-#if BOOST_VERSION < 103600
-		if (target.path.leaf().substr(0, 18) == "_____padding_file_")
-#else
-		if (target.path.filename().substr(0, 18) == "_____padding_file_")
-#endif
-			target.pad_file = true;
-
 		return true;
 	}
 
@@ -245,7 +212,7 @@ namespace libtorrent
 	{
 		file f;
 		error_code ec;
-		if (!f.open(filename, file::read_only, ec)) return -1;
+		if (!f.open(filename, file::in, ec)) return -1;
 		f.seek(0, file::end, ec);
 		if (ec) return -1;
 		size_type s = f.tell(ec);
@@ -360,35 +327,6 @@ namespace libtorrent
 #endif
 	}
 
-	torrent_info::torrent_info(fs::wpath const& filename)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
-		, m_multifile(false)
-		, m_private(false)
-	{
-		std::vector<char> buf;
-		std::string utf8;
-		wchar_utf8(filename.string(), utf8);
-		int ret = load_file(utf8, buf);
-		if (ret < 0) return;
-
-		if (buf.empty())
-#ifndef BOOST_NO_EXCEPTIONS
-			throw invalid_torrent_file();
-#else
-			return;
-#endif
-
-		lazy_entry e;
-		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
-		std::string error;
-#ifndef BOOST_NO_EXCEPTIONS
-		if (!parse_torrent_file(e, error))
-			throw invalid_torrent_file();
-#else
-		parse_torrent_file(e, error);
-#endif
-	}
-
 	torrent_info::~torrent_info()
 	{}
 
@@ -454,7 +392,6 @@ namespace libtorrent
 		if (tmp.is_complete())
 		{
 			name = tmp.leaf();
-			trim_path_element(name);
 		}
 #if BOOST_VERSION < 103600
 		else if (tmp.has_branch_path())
@@ -467,15 +404,9 @@ namespace libtorrent
 				, end(tmp.end()); i != end; ++i)
 			{
 				if (*i == "." || *i == "..") continue;
-				std::string path_element = *i;
-				trim_path_element(path_element);
-				p /= path_element;
+				p /= *i;
 			}
 			name = p.string();
-		}
-		else
-		{
-			trim_path_element(name);
 		}
 		if (name == ".." || name == ".")
 		{
@@ -493,13 +424,6 @@ namespace libtorrent
 			e.path = name;
 			e.offset = 0;
 			e.size = info.dict_find_int_value("length", -1);
-			// bitcomet pad file
-#if BOOST_VERSION < 103600
-			if (e.path.leaf().substr(0, 18) == "_____padding_file_")
-#else
-			if (e.path.filename().substr(0, 18) == "_____padding_file_")
-#endif
-				e.pad_file = true;
 			if (e.size < 0)
 			{
 				error = "invalid length of torrent";
@@ -569,8 +493,6 @@ namespace libtorrent
 					announce_entry e(tier->list_string_value_at(k));
 					if (e.url.empty()) continue;
 					e.tier = j;
-					e.fail_limit = 0;
-					e.source = announce_entry::source_torrent;
 					m_urls.push_back(e);
 				}
 			}
@@ -595,8 +517,6 @@ namespace libtorrent
 		if (m_urls.empty())
 		{
 			announce_entry e(torrent_file.dict_find_string_value("announce"));
-			e.fail_limit = 0;
-			e.source = announce_entry::source_torrent;
 			if (!e.url.empty()) m_urls.push_back(e);
 		}
 
@@ -670,12 +590,11 @@ namespace libtorrent
 	{
 		announce_entry e(url);
 		e.tier = tier;
-		e.source = announce_entry::source_client;
 		m_urls.push_back(e);
 
 		using boost::bind;
-		std::sort(m_urls.begin(), m_urls.end(), bind(&announce_entry::tier, _1)
-			< bind(&announce_entry::tier, _2));
+		std::sort(m_urls.begin(), m_urls.end(), boost::bind<bool>(std::less<int>()
+			, bind(&announce_entry::tier, _1), bind(&announce_entry::tier, _2)));
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

@@ -156,20 +156,19 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 		, test_path, fp, io, default_storage_constructor, storage_mode);
 	boost::mutex lock;
 
-	error_code ec;
 	lazy_entry frd;
 	pm->async_check_fastresume(&frd, &on_check_resume_data);
 	ios.reset();
-	ios.run(ec);
+	ios.run();
 
 	pm->async_check_files(&on_check_files);
 	for (int i = 0; i < 4; ++i)
 	{
 		ios.reset();
-		ios.run_one(ec);
+		ios.run_one();
 	}
 	ios.reset();
-	ios.poll(ec);
+	ios.poll();
 
 	// test move_storage
 	boost::function<void(int, disk_io_job const&)> none;
@@ -178,7 +177,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 
 	test_sleep(2000);
 	ios.reset();
-	ios.poll(ec);
+	ios.poll();
 
 	TEST_CHECK(!exists(test_path / "temp_storage"));
 	TEST_CHECK(exists(test_path / "temp_storage2/temp_storage"));
@@ -186,7 +185,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 
 	test_sleep(2000);
 	ios.reset();
-	ios.poll(ec);
+	ios.poll();
 
 	TEST_CHECK(!exists(test_path / "temp_storage2/temp_storage"));	
 	remove_all(test_path / "temp_storage2");
@@ -199,7 +198,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 
 	test_sleep(2000);
 	ios.reset();
-	ios.poll(ec);
+	ios.poll();
 
 	TEST_CHECK(!exists(test_path / "temp_storage/test1.tmp"));
 	TEST_CHECK(exists(test_path / "part0"));
@@ -219,7 +218,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	test_sleep(1000);
 	TEST_CHECK(!exists(test_path / "part0"));	
 
-	ios.run(ec);
+	ios.run();
 
 	io.join();
 	}
@@ -313,11 +312,10 @@ void test_check_files(path const& test_path
 		, test_path, fp, io, default_storage_constructor, storage_mode);
 	boost::mutex lock;
 
-	error_code ec;
 	lazy_entry frd;
 	pm->async_check_fastresume(&frd, &on_check_resume_data);
 	ios.reset();
-	ios.run(ec);
+	ios.run();
 
 	bool pieces[4] = {false, false, false, false};
 	bool done = false;
@@ -326,7 +324,7 @@ void test_check_files(path const& test_path
 	while (!done)
 	{
 		ios.reset();
-		ios.run_one(ec);
+		ios.run_one();
 	}
 	TEST_CHECK(pieces[0] == true);
 	TEST_CHECK(pieces[1] == false);
