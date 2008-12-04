@@ -353,30 +353,33 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		return;
 	} 
 
-	std::vector<ip_route> routes = enum_routes(m_io_service, ec);
-	if (m_ignore_non_routers && std::find_if(routes.begin(), routes.end()
-		, bind(&ip_route::gateway, _1) == from.address()) == routes.end())
+	if (m_ignore_non_routers)
 	{
-		// this upnp device is filtered because it's not in the
-		// list of configured routers
-		if (ec)
+		std::vector<ip_route> routes = enum_routes(m_io_service, ec);
+		if (std::find_if(routes.begin(), routes.end()
+			, bind(&ip_route::gateway, _1) == from.address()) == routes.end())
 		{
-			std::stringstream msg;
-			msg << "when receiving response from: " << from << ": " << ec.message();
-			log(msg.str());
-		}
-		else
-		{
-			std::stringstream msg;
-			msg << "ignoring response from: " << from << ". IP is not a router. ";
-			for (std::vector<ip_route>::const_iterator i = routes.begin()
-				, end(routes.end()); i != end; ++i)
+			// this upnp device is filtered because it's not in the
+			// list of configured routers
+			if (ec)
 			{
-				msg << "(" << i->gateway << ", " << i->netmask << ") ";
+				std::stringstream msg;
+				msg << "when receiving response from: " << from << ": " << ec.message();
+				log(msg.str());
 			}
-			log(msg.str());
+			else
+			{
+				std::stringstream msg;
+				msg << "ignoring response from: " << from << ". IP is not a router. ";
+				for (std::vector<ip_route>::const_iterator i = routes.begin()
+					, end(routes.end()); i != end; ++i)
+				{
+					msg << "(" << i->gateway << ", " << i->netmask << ") ";
+				}
+				log(msg.str());
+			}
+			return;
 		}
-		return;
 	}
 
 	http_parser p;
