@@ -3,6 +3,7 @@
 from distutils.core import setup, Extension
 import os
 import platform
+import sys
 
 if '@BOOST_PYTHON_LIB@' == '':
 	print 'You need to pass --enable-python-binding to configure in order ',
@@ -28,7 +29,6 @@ def arch():
 if platform.system() == 'Windows':
 # on windows, build using bjam and build an installer
 	import shutil
-	import sys
 	if os.system('bjam boost=source link=static boost-link=static release msvc-7.1 optimization=space') != 0:
 		print 'build failed'
 		sys.exit(1)
