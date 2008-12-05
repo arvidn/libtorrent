@@ -4,6 +4,11 @@ from distutils.core import setup, Extension
 import os
 import platform
 
+if '@BOOST_PYTHON_LIB@' == '':
+	print 'You need to pass --enable-python-binding to configure in order ',
+	print 'to properly use this setup. There is no boost.python library configured now'
+	sys.exit(1)
+
 def parse_cmd(cmdline, prefix, keep_prefix = False):
 	ret = []
 	for token in cmdline.split():
