@@ -1717,6 +1717,9 @@ Its declaration looks like this::
 		void rename_file(int index, boost::filesystem::wpath) const;
 		storage_interface* get_storage_impl() const;
 
+		enum flags_t { overwrite_existing = 1 };
+		void add_piece(int piece, char const* data, int flags = 0) const;
+
 		sha1_hash info_hash() const;
 
 		bool operator==(torrent_handle const&) const;
@@ -1867,6 +1870,27 @@ get_storage_impl()
 
 Returns the storage implementation for this torrent. This depends on the
 storage contructor function that was passed to ``session::add_torrent``.
+
+add_piece()
+-----------
+
+	::
+
+		enum flags_t { overwrite_existing = 1 };
+		void add_piece(int piece, char const* data, int flags = 0) const;
+
+This function will write ``data`` to the storage as piece ``piece``, as if it had
+been downloaded from a peer. ``data`` is expected to point to a buffer of as many
+bytes as the size of the specified piece. The data in the buffer is copied and
+passed on to the disk IO thread to be written at a later point.
+
+By default, data that's already been downloaded is not overwritten by this buffer. If
+you trust this data to be correct (and pass the piece hash check) you may pass the
+``overwrite_existing`` flag. This will instruct libtorrent to overwrite any data that
+may already have been downloaded with this data.
+
+Since the data is written asynchronously, you may know that is passed or failed the
+hash check by waiting for ``piece_finished_alert`` or ``has_failed_alert``.
 
 force_reannounce()
 ------------------
