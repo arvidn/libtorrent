@@ -134,6 +134,7 @@ namespace libtorrent
 		int m_queue_size_limit;
 		int m_rate_limit;
 		int m_quota;
+		bool m_abort;
 		ptime m_last_tick;
 		std::list<queued_packet> m_queue;
 	};

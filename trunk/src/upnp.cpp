@@ -246,6 +246,8 @@ void upnp::resend_request(error_code const& e)
 
 	mutex_t::scoped_lock l(m_mutex);
 
+	if (m_closing) return;
+
 	if (m_retry_count < 12
 		&& (m_devices.empty() || m_retry_count < 4))
 	{

@@ -539,6 +539,7 @@ rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
 	, m_queue_size_limit(200)
 	, m_rate_limit(4000)
 	, m_quota(4000)
+	, m_abort(false)
 	, m_last_tick(time_now())
 {
 	error_code ec;
@@ -569,6 +570,7 @@ bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p, int l
 void rate_limited_udp_socket::on_tick(error_code const& e)
 {
 	if (e) return;
+	if (m_abort) return;
 	error_code ec;
 	ptime now = time_now();
 	m_timer.expires_at(now + seconds(1), ec);
@@ -593,6 +595,7 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 void rate_limited_udp_socket::close()
 {
 	error_code ec;
+	m_abort = true;
 	m_timer.cancel(ec);
 	udp_socket::close();
 }
