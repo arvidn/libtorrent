@@ -1,4 +1,5 @@
 
+	* added add_piece() function to inject data from external sources
 	* add_tracker() function added to torrent_handle
 	* if there is no working tracker, current_tracker is the
 	  tracker that is currently being tried

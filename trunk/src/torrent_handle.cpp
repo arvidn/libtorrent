@@ -535,6 +535,12 @@ namespace libtorrent
 		TORRENT_FORWARD(add_tracker(url));
 	}
 
+	void torrent_handle::add_piece(int piece, char const* data, int flags) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(add_piece(piece, data, flags));
+	}
+
 	storage_interface* torrent_handle::get_storage_impl() const
 	{
 		INVARIANT_CHECK;

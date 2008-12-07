@@ -370,6 +370,71 @@ namespace libtorrent
 		if (!m_connections.empty())
 			disconnect_all();
 	}
+	
+	void torrent::add_piece(int piece, char const* data, int flags)
+	{
+		TORRENT_ASSERT(piece >= 0 && piece < m_torrent_file->num_pieces());
+		int piece_size = m_torrent_file->piece_size(piece);
+		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+
+		peer_request p;
+		p.piece = piece;
+		p.start = 0;
+		picker().inc_refcount(piece);
+		for (int i = 0; i < blocks_in_piece; ++i, p.start += m_block_size)
+		{
+			if (picker().is_finished(piece_block(piece, i))
+				&& (flags & torrent::overwrite_existing) == 0)
+				continue;
+
+			p.length = (std::min)(piece_size - p.start, m_block_size);
+			char* buffer = m_ses.allocate_disk_buffer();
+			// out of memory
+			if (buffer == 0) return;
+			disk_buffer_holder holder(m_ses, buffer);
+			std::memcpy(buffer, data + p.start, p.length);
+			filesystem().async_write(p, holder, bind(&torrent::on_disk_write_complete
+				, shared_from_this(), _1, _2, p));
+			piece_block block(piece, i);
+			picker().mark_as_downloading(block, 0, piece_picker::fast);
+			picker().mark_as_writing(block, 0);
+		}
+		picker().dec_refcount(piece);
+	}
+
+	void torrent::on_disk_write_complete(int ret, disk_io_job const& j
+		, peer_request p)
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		INVARIANT_CHECK;
+	
+		if (m_abort)
+		{
+			piece_block block_finished(p.piece, p.start / m_block_size);
+			return;
+		}
+
+		piece_block block_finished(p.piece, p.start / m_block_size);
+
+		if (ret == -1)
+		{
+			if (has_picker()) picker().write_failed(block_finished);
+			if (alerts().should_post<file_error_alert>())
+				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
+			set_error(j.str);
+			pause();
+			return;
+		}
+		picker().mark_as_finished(block_finished, 0);
+
+		// did we just finish the piece?
+		if (picker().is_piece_finished(p.piece))
+		{
+			async_verify_piece(p.piece, bind(&torrent::piece_finished, shared_from_this()
+				, p.piece, _1));
+		}
+	}
 
 	peer_request torrent::to_req(piece_block const& p)
 	{

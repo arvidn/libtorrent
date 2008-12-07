@@ -49,11 +49,28 @@ void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type fil
 	TEST_CHECK(st.total_wanted == file_size);
 	std::cout << "total_wanted_done: " << st.total_wanted_done << " : 0" << std::endl;
 	TEST_CHECK(st.total_wanted_done == 0);
+
+	if (info->num_pieces() > 0)
+	{
+		h.piece_priority(0, 1);
+		st = h.status();
+		TEST_CHECK(st.pieces[0] == false);
+		std::vector<char> piece(info->piece_length());
+		for (int i = 0; i < int(piece.size()); ++i)
+			piece[i] = (i % 26) + 'A';
+		h.add_piece(0, &piece[0]);
+		test_sleep(10000);
+		st = h.status();
+		TEST_CHECK(st.pieces[0] == true);
+	}
 }
 
 int test_main()
 {
 	{
+		remove("test_torrent_dir2/tmp1");
+		remove("test_torrent_dir2/tmp2");
+		remove("test_torrent_dir2/tmp3");
 		file_storage fs;
 		size_type file_size = 1 * 1024 * 1024 * 1024;
 		fs.add_file("test_torrent_dir2/tmp1", file_size);
@@ -69,6 +86,7 @@ int test_main()
 		// calculate the hash for all pieces
 		sha1_hash ph = hasher(&piece[0], piece.size()).final();
 		int num = t.num_pieces();
+		TEST_CHECK(t.num_pieces() > 0);
 		for (int i = 0; i < num; ++i)
 			t.set_hash(i, ph);
 
@@ -76,6 +94,7 @@ int test_main()
 		std::back_insert_iterator<std::vector<char> > out(tmp);
 		bencode(out, t.generate());
 		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size()));
+		TEST_CHECK(info->num_pieces() > 0);
 
 		test_running_torrent(info, file_size);
 	}
