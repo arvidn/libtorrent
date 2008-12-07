@@ -299,9 +299,16 @@ void natpmp::send_map_request(int i)
 	m_socket.send_to(asio::buffer(buf, 12), m_nat_endpoint, 0, ec);
 	m.map_sent = true;
 	// linear back-off instead of exponential
-	++m_retry_count;
-	m_send_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
-	m_send_timer.async_wait(bind(&natpmp::resend_request, self(), i, _1));
+	if (m_abort)
+	{
+		try_next_mapping(i);
+	}
+	else
+	{
+		++m_retry_count;
+		m_send_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
+		m_send_timer.async_wait(bind(&natpmp::resend_request, self(), i, _1));
+	}
 }
 
 void natpmp::resend_request(int i, error_code const& e)
