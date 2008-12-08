@@ -191,6 +191,9 @@ namespace libtorrent
 	{
 		if (resume_data) m_resume_data.swap(*resume_data);
 
+		if (m_settings.prefer_udp_trackers)
+			prioritize_udp_trackers();
+
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		hasher h;
 		h.update("req2", 4);
@@ -2206,8 +2209,43 @@ namespace libtorrent
 			, end(m_trackers.end()); i != end; ++i)
 			if (i->source == 0) i->source = announce_entry::source_client;
 
+		if (m_settings.prefer_udp_trackers)
+			prioritize_udp_trackers();
+
 		if (!m_trackers.empty()) start_announcing();
 		else stop_announcing();
+	}
+
+	void torrent::prioritize_udp_trackers()
+	{
+		// look for udp-trackers
+		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
+			, end(m_trackers.end()); i != end; ++i)
+		{
+			if (i->url.substr(0, 6) != "udp://") continue;
+			// now, look for trackers with the same hostname
+			// that is has higher priority than this one
+			// if we find one, swap with the udp-tracker
+			std::string udp_hostname;
+			using boost::tuples::ignore;
+			boost::tie(ignore, ignore, udp_hostname, ignore, ignore, ignore)
+				= parse_url_components(i->url);
+			for (std::vector<announce_entry>::iterator j = m_trackers.begin();
+				j != i; ++j)
+			{
+				std::string hostname;
+				boost::tie(ignore, ignore, hostname, ignore, ignore, ignore)
+					= parse_url_components(j->url);
+				if (hostname != udp_hostname) continue;
+				if (j->url.substr(0, 6) == "udp://") continue;
+				using std::swap;
+				using std::iter_swap;
+				swap(i->tier, j->tier);
+				iter_swap(i, j);
+				break;
+			}
+		}
+	
 	}
 
 	void torrent::add_tracker(announce_entry const& url)
@@ -2788,6 +2826,9 @@ namespace libtorrent
 			}
 			std::sort(m_trackers.begin(), m_trackers.end(), boost::bind(&announce_entry::tier, _1)
 				< boost::bind(&announce_entry::tier, _2));
+
+			if (m_settings.prefer_udp_trackers)
+				prioritize_udp_trackers();
 		}
 
 		lazy_entry const* mapped_files = rd.dict_find_list("mapped_files");

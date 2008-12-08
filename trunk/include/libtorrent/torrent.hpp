@@ -680,6 +680,7 @@ namespace libtorrent
 		bool request_bandwidth_from_session(int channel) const;
 
 		void update_peer_interest(bool was_finished);
+		void prioritize_udp_trackers();
 
 		policy m_policy;
 

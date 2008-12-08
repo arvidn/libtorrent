@@ -3146,6 +3146,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool rate_limit_ip_overhead;
 
 		bool announce_to_all_trackers;
+		bool prefer_udp_trackers;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3438,6 +3439,11 @@ set to false, the behavior is as defined by the multi tracker
 specification. It defaults to false, which is the same behavior previous
 versions of libtorrent has had as well.
 
+``prefer_udp_trackers`` is true by default. It means that trackers may
+be rearranged in a way that udp trackers are always tried before http
+trackers for the same hostname. Setting this to fails means that the
+trackers' tier is respected and there's no preference of one protocol
+over another.
 
 pe_settings
 ===========
