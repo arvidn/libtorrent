@@ -44,9 +44,14 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::filesystem::remove_all;
 using boost::filesystem::exists;
 
-void test_swarm()
+void test_swarm(bool super_seeding = false)
 {
 	using namespace libtorrent;
+
+	// in case the previous run was terminated
+	try { remove_all("./tmp1_swarm"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_swarm"); } catch (std::exception&) {}
+	try { remove_all("./tmp3_swarm"); } catch (std::exception&) {}
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000));
 	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
@@ -87,7 +92,8 @@ void test_swarm()
 	torrent_handle tor3;
 
 	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_swarm", 8 * 1024);	
+	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
+		, false, true, "_swarm", 8 * 1024, 0, super_seeding);	
 
 	float sum_dl_rate2 = 0.f;
 	float sum_dl_rate3 = 0.f;
@@ -171,7 +177,7 @@ void test_swarm()
 	// about 2 seconds
 	ptime start = time_now();
 	alert const* ret;
-	while (ret = ses1.wait_for_alert(seconds(2)))
+	while ((ret = ses1.wait_for_alert(seconds(2))))
 	{
 		a = ses1.pop_alert();
 		std::cerr << ret->message() << std::endl;
@@ -179,21 +185,7 @@ void test_swarm()
 	}
 	TEST_CHECK(time_now() - start < seconds(3));
 	TEST_CHECK(time_now() - start >= seconds(2));
-}
 
-int test_main()
-{
-	using namespace libtorrent;
-	using namespace boost::filesystem;
-
-	// in case the previous run was terminated
-	try { remove_all("./tmp1_swarm"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_swarm"); } catch (std::exception&) {}
-	try { remove_all("./tmp3_swarm"); } catch (std::exception&) {}
-
-	test_swarm();
-	
-	test_sleep(2000);
 	TEST_CHECK(!exists("./tmp1_swarm/temporary"));
 	TEST_CHECK(!exists("./tmp2_swarm/temporary"));
 	TEST_CHECK(!exists("./tmp3_swarm/temporary"));
@@ -201,7 +193,18 @@ int test_main()
 	remove_all("./tmp1_swarm");
 	remove_all("./tmp2_swarm");
 	remove_all("./tmp3_swarm");
+}
 
+int test_main()
+{
+	using namespace libtorrent;
+	using namespace boost::filesystem;
+
+	test_swarm();
+
+	// with super seeding
+	test_swarm(true);
+	
 	return 0;
 }
 

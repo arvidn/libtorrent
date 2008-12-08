@@ -479,6 +479,9 @@ namespace libtorrent
 		void rename_file(int index, fs::path const& new_name) const;
 		void rename_file(int index, fs::wpath const& new_name) const;
 
+		bool super_seeding() const;
+		void super_seeding(bool on) const;
+
 		sha1_hash info_hash() const;
 
 		bool operator==(const torrent_handle& h) const

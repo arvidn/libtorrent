@@ -632,6 +632,18 @@ namespace libtorrent
 		TORRENT_FORWARD(scrape_tracker());
 	}
 
+	bool torrent_handle::super_seeding() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD_RETURN(super_seeding(), false);
+	}
+
+	void torrent_handle::super_seeding(bool on) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(super_seeding(on));
+	}
+
 	void torrent_handle::set_ratio(float ratio) const
 	{
 		INVARIANT_CHECK;

@@ -422,6 +422,12 @@ namespace libtorrent
 // --------------------------------------------
 		// PIECE MANAGEMENT
 
+		bool super_seeding() const
+		{ return m_super_seeding; }
+		
+		void super_seeding(bool on);
+		int get_piece_to_super_seed(bitfield const&);
+
 		// returns true if we have downloaded the given piece
 		bool have_piece(int index) const
 		{
@@ -966,6 +972,10 @@ namespace libtorrent
 		// them from altering the piece-picker before it
 		// has been initialized with files_checked().
 		bool m_connections_initialized:1;
+
+		// if this is true, we're currently super seeding this
+		// torrent.
+		bool m_super_seeding:1;
 
 		// is set to true every time there is an incoming
 		// connection to this torrent
