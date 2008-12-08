@@ -50,7 +50,7 @@ boost::tuple<libtorrent::torrent_handle, libtorrent::torrent_handle
 setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 	, libtorrent::session* ses3, bool clear_files, bool use_metadata_transfer = true
 	, bool connect = true, std::string suffix = "", int piece_size = 16 * 1024
-	, boost::intrusive_ptr<libtorrent::torrent_info>* torrent = 0);
+	, boost::intrusive_ptr<libtorrent::torrent_info>* torrent = 0, bool super_seeding = false);
 
 void start_web_server(int port, bool ssl = false);
 void stop_web_server(int port);

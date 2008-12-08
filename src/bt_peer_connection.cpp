@@ -987,7 +987,7 @@ namespace libtorrent
 		r.piece = detail::read_int32(ptr);
 		r.start = detail::read_int32(ptr);
 		r.length = detail::read_int32(ptr);
-		
+
 		incoming_request(r);
 	}
 
@@ -1452,7 +1452,22 @@ namespace libtorrent
 		// in this case, have_all or have_none should be sent instead
 		TORRENT_ASSERT(!m_supports_fast || !t->is_seed() || t->num_have() != 0);
 
-		if (m_supports_fast && t->is_seed())
+		if (t->super_seeding())
+		{
+			if (m_supports_fast) write_have_none();
+
+			// if we are super seeding, pretend to not have any piece
+			// and don't send a bitfield
+#ifdef TORRENT_DEBUG
+			m_sent_bitfield = true;
+#endif
+
+			// bootstrap superseeding by sending one have message
+			superseed_piece(t->get_piece_to_super_seed(
+				get_bitfield()));
+			return;
+		}
+		else if (m_supports_fast && t->is_seed())
 		{
 			write_have_all();
 			send_allowed_set();
@@ -1477,6 +1492,7 @@ namespace libtorrent
 		}
 	
 		int num_pieces = t->torrent_file().num_pieces();
+
 		int lazy_pieces[50];
 		int num_lazy_pieces = 0;
 		int lazy_piece = 0;
@@ -1553,6 +1569,7 @@ namespace libtorrent
 					<< " ==> HAVE    [ piece: " << lazy_pieces[i] << "]\n";
 #endif
 			}
+			// TODO: if we're finished, send upload_only message
 		}
 
 		if (m_supports_fast)
@@ -1588,7 +1605,11 @@ namespace libtorrent
 		handshake["reqq"] = m_ses.settings().max_allowed_in_request_queue;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		if (t->is_finished()) handshake["upload_only"] = 1;
+
+		// if we're using lazy bitfields or if we're super seeding, don't say
+		// we're upload only, since it might make peers disconnect
+		if (t->is_finished() && !t->super_seeding() && !m_ses.settings().lazy_bitfields)
+			handshake["upload_only"] = 1;
 
 		tcp::endpoint ep = m_ses.get_ipv6_interface();
 		if (!is_any(ep.address()))

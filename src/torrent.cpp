@@ -184,6 +184,7 @@ namespace libtorrent
 		, m_sequential_download(false)
 		, m_got_tracker_response(false)
 		, m_connections_initialized(true)
+		, m_super_seeding(false)
 		, m_has_incoming(false)
 		, m_files_checked(false)
 		, m_announcing(false)
@@ -258,6 +259,7 @@ namespace libtorrent
 		, m_sequential_download(false)
 		, m_got_tracker_response(false)
 		, m_connections_initialized(false)
+		, m_super_seeding(false)
 		, m_has_incoming(false)
 		, m_files_checked(false)
 		, m_announcing(false)
@@ -1739,6 +1741,74 @@ namespace libtorrent
 		
 		m_owning_storage = 0;
 		m_host_resolver.cancel();
+	}
+
+	void torrent::super_seeding(bool on)
+	{
+		if (on == m_super_seeding) return;
+
+		// don't turn on super seeding if we're not a seed
+		TORRENT_ASSERT(!on || is_seed() || !m_files_checked);
+		if (on && !is_seed() && m_files_checked) return;
+		m_super_seeding = on;
+
+		if (m_super_seeding) return;
+
+		// disable super seeding for all peers
+		for (peer_iterator i = begin(); i != end(); ++i)
+		{
+			(*i)->superseed_piece(-1);
+		}
+	}
+
+	int torrent::get_piece_to_super_seed(bitfield const& bits)
+	{
+		// return a piece with low availability that is not in
+		// the bitfield and that is not currently being super
+		// seeded by any peer
+		TORRENT_ASSERT(m_super_seeding);
+		
+		// do a linear search from the first piece
+		int min_availability = 9999;
+		std::vector<int> avail_vec;
+		for (int i = 0; i < m_torrent_file->num_pieces(); ++i)
+		{
+			if (bits[i]) continue;
+
+			int availability = 0;
+			for (const_peer_iterator j = begin(); j != end(); ++j)
+			{
+				if ((*j)->superseed_piece() == i)
+				{
+					// avoid superseeding the same piece to more than one
+					// peer if we can avoid it. Do this by artificially
+					// increase the availability
+					availability = 999;
+					break;
+				}
+				if ((*j)->has_piece(i)) ++availability;
+			}
+			if (availability > min_availability) continue;
+			if (availability == min_availability)
+			{
+				avail_vec.push_back(i);
+				continue;
+			}
+			TORRENT_ASSERT(availability < min_availability);
+			min_availability = availability;
+			avail_vec.clear();
+			avail_vec.push_back(i);
+		}
+
+		if (min_availability > 1)
+		{
+			// if the minimum availability is 2 or more,
+			// we shouldn't be super seeding any more
+			super_seeding(false);
+			return -1;
+		}
+
+		return avail_vec[rand() % avail_vec.size()];
 	}
 
 	void torrent::on_files_deleted(int ret, disk_io_job const& j)
@@ -3581,6 +3651,9 @@ namespace libtorrent
 		
 		if (!is_seed())
 		{
+			// turn off super seeding if we're not a seed
+			if (m_super_seeding) m_super_seeding = false;
+
 			// if we just finished checking and we're not a seed, we are
 			// likely to be unpaused
 			if (m_ses.m_auto_manage_time_scaler > 1)

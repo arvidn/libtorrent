@@ -241,7 +241,7 @@ boost::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
-	, boost::intrusive_ptr<torrent_info>* torrent)
+	, boost::intrusive_ptr<torrent_info>* torrent, bool super_seeding)
 {
 	using namespace boost::filesystem;
 
@@ -286,6 +286,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// use the same files
 	sha1_hash info_hash = t->info_hash();
 	torrent_handle tor1 = ses1->add_torrent(clone_ptr(t), "./tmp1" + suffix);
+	tor1.super_seeding(super_seeding);
 	TEST_CHECK(!ses1->get_torrents().empty());
 	torrent_handle tor2;
 	torrent_handle tor3;

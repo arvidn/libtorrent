@@ -1717,6 +1717,9 @@ Its declaration looks like this::
 		void rename_file(int index, boost::filesystem::wpath) const;
 		storage_interface* get_storage_impl() const;
 
+		bool super_seeding() const;
+		void super_seeding(bool on) const;
+
 		enum flags_t { overwrite_existing = 1 };
 		void add_piece(int piece, char const* data, int flags = 0) const;
 
@@ -1870,6 +1873,18 @@ get_storage_impl()
 
 Returns the storage implementation for this torrent. This depends on the
 storage contructor function that was passed to ``session::add_torrent``.
+
+super_seeding()
+---------------
+
+	::
+
+		bool super_seeding() const;
+		void super_seeding(bool on) const;
+
+Enables or disabled super seeding/initial seeding for this torrent. The torrent
+needs to be a seed for this to take effect. The overload that returns a bool
+tells you of super seeding is enabled or not.
 
 add_piece()
 -----------
