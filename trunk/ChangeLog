@@ -1,3 +1,4 @@
+	* added option for udp tracker preference
 	* added super seeding
 	* added add_piece() function to inject data from external sources
 	* add_tracker() function added to torrent_handle
