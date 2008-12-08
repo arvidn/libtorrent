@@ -145,6 +145,7 @@ namespace libtorrent
 			, auto_manage_startup(120)
 			, rate_limit_ip_overhead(true)
 			, announce_to_all_trackers(false)
+			, prefer_udp_trackers(true)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -462,6 +463,11 @@ namespace libtorrent
 		// the same way uTorrent treats them. It defaults to
 		// false in order to comply with the extension definition.
 		bool announce_to_all_trackers;
+
+		// when this is set to true, if there is a tracker entry
+		// with udp:// protocol, it is preferred over the same
+		// tracker over http://.
+		bool prefer_udp_trackers;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
