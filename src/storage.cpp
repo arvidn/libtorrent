@@ -138,106 +138,6 @@ namespace libtorrent
 }
 #endif
 
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
-namespace
-{
-	using libtorrent::safe_convert;
-	using namespace boost::filesystem;
-	
-	// based on code from Boost.Fileystem
-	bool create_directories_win(const fs::path& ph)
-	{
-		if (ph.empty() || exists(ph))
-		{
-			if ( !ph.empty() && !is_directory(ph) )
-				boost::throw_exception( filesystem_error(
-					"boost::filesystem::create_directories",
-					ph, "path exists and is not a directory",
-					not_directory_error ) );
-			return false;
-		}
-
-		// First create branch, by calling ourself recursively
-		create_directories_win(ph.branch_path());
-		// Now that parent's path exists, create the directory
-		std::wstring wph(safe_convert(ph.external_directory_string()));
-		CreateDirectory(wph.c_str(), 0);
-		return true;
-	}
-
-	bool exists_win( const fs::path & ph )
-	{
-		std::wstring wpath(safe_convert(ph.string()));
-		if(::GetFileAttributes( wpath.c_str() ) == 0xFFFFFFFF)
-		{
-			UINT err = ::GetLastError();
-			if((err == ERROR_FILE_NOT_FOUND)
-				|| (err == ERROR_INVALID_PARAMETER)
-				|| (err == ERROR_NOT_READY)
-				|| (err == ERROR_PATH_NOT_FOUND)
-				|| (err == ERROR_INVALID_NAME)
-				|| (err == ERROR_BAD_NETPATH ))
-			return false; // GetFileAttributes failed because the path does not exist
-			// for any other error we assume the file does exist and fall through,
-			// this may not be the best policy though...  (JM 20040330)
-			return true;
-		}
-		return true;
-	}
-
-	boost::intmax_t file_size_win( const fs::path & ph )
-	{
-		std::wstring wpath(safe_convert(ph.string()));
-		// by now, intmax_t is 64-bits on all Windows compilers
-		WIN32_FILE_ATTRIBUTE_DATA fad;
-		if ( !::GetFileAttributesExW( wpath.c_str(),
-					::GetFileExInfoStandard, &fad ) )
-			boost::throw_exception( filesystem_error(
-				"boost::filesystem::file_size",
-				ph, detail::system_error_code() ) );
-		if ( (fad.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) !=0 )
-			boost::throw_exception( filesystem_error(
-				"boost::filesystem::file_size",
-				ph, "invalid: is a directory",
-				is_directory_error ) ); 
-		return (static_cast<boost::intmax_t>(fad.nFileSizeHigh)
-			<< (sizeof(fad.nFileSizeLow)*8))
-			+ fad.nFileSizeLow;
-	}
-	
-	std::time_t last_write_time_win( const fs::path & ph )
-	{
-		struct _stat path_stat;
-		std::wstring wph(safe_convert(ph.external_file_string()));
-		if ( ::_wstat( wph.c_str(), &path_stat ) != 0 )
-			boost::throw_exception( filesystem_error(
-			"boost::filesystem::last_write_time",
-			ph, detail::system_error_code() ) );
-		return path_stat.st_mtime;
-	}
-
-	void rename_win( const fs::path & old_path,
-		const fs::path & new_path )
-	{
-		std::wstring wold_path(safe_convert(old_path.string()));
-		std::wstring wnew_path(safe_convert(new_path.string()));
-		if ( !::MoveFile( wold_path.c_str(), wnew_path.c_str() ) )
-		boost::throw_exception( filesystem_error(
-			"boost::filesystem::rename",
-			old_path, new_path, detail::system_error_code() ) );
-	}
-
-} // anonymous namespace
-
-#endif
-
-#if BOOST_VERSION < 103200
-bool operator<(fs::path const& lhs, fs::path const& rhs)
-{
-	return lhs.string() < rhs.string();
-}
-#endif
-
 namespace fs = boost::filesystem;
 using boost::bind;
 using namespace ::boost::multi_index;
@@ -509,10 +409,7 @@ namespace libtorrent
 			{
 				last_path = dir;
 
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
-				if (!exists_win(last_path))
-					create_directories_win(last_path);
-#elif TORRENT_USE_WPATH
+#if TORRENT_USE_WPATH
 				fs::wpath wp = safe_convert(last_path.string());
 				if (!exists(wp))
 					create_directories(wp);
@@ -857,13 +754,7 @@ namespace libtorrent
 
 		save_path = complete(save_path);
 
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
-		std::wstring wsave_path(safe_convert(save_path.external_file_string()));
-		if (!exists_win(save_path))
-			CreateDirectory(wsave_path.c_str(), 0);
-		else if ((GetFileAttributes(wsave_path.c_str()) & FILE_ATTRIBUTE_DIRECTORY) == 0)
-			return false;
-#elif TORRENT_USE_WPATH
+#if TORRENT_USE_WPATH
 		fs::wpath wp = safe_convert(save_path.string());
 		if (!exists(wp))
 			create_directory(wp);
@@ -890,11 +781,7 @@ namespace libtorrent
 		try
 		{
 #endif
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
-			rename_win(old_path, new_path);
-#else
 			rename(old_path, new_path);
-#endif
 			m_save_path = save_path;
 			return true;
 #ifndef BOOST_NO_EXCEPTIONS
@@ -1722,9 +1609,7 @@ namespace libtorrent
 			try
 			{
 #endif
-#if defined(_WIN32) && defined(UNICODE) && BOOST_VERSION < 103400
-				file_exists = exists_win(f);
-#elif TORRENT_USE_WPATH
+#if TORRENT_USE_WPATH
 				fs::wpath wf = safe_convert(f.string());
 				file_exists = exists(wf);
 #else
