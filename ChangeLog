@@ -17,6 +17,12 @@
 	* added bandwidth reports for estimated TCP/IP overhead and DHT
 	* includes DHT traffic in the rate limiter
 
+release 0.14.2
+
+	* removed support for boost-1.33 and earlier (probably didn't work)
+	* fixed potential freezes issues at shutdown
+	* improved error message for python setup script
+
 release 0.14.1
 
 	* added converter for python unicode strings to utf-8 paths
