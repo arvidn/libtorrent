@@ -41,10 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <windows.h>
 #include <winioctl.h>
 
-#ifdef UNICODE
-#include "libtorrent/storage.hpp"
-#endif
-
 #else
 // posix part
 #define _FILE_OFFSET_BITS 64
@@ -67,7 +63,8 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 #include <cstring>
 #include <vector>
 
-#ifdef UNICODE
+#ifdef TORRENT_USE_WPATH
+// for safe_convert
 #include "libtorrent/storage.hpp"
 #endif
 
@@ -138,7 +135,7 @@ namespace libtorrent
 		close();
 #ifdef TORRENT_WINDOWS
 
-#ifdef UNICODE
+#ifdef TORRENT_USE_WPATH
 		std::wstring file_path(safe_convert(path.external_file_string()));
 #else
 		std::string file_path = utf8_native(path.external_file_string());
