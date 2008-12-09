@@ -333,9 +333,6 @@ private:
 		// state of on_receive
 		state m_state;
 
-		// the timeout in seconds
-		int m_timeout;
-
 		static const message_handler m_message_handler[num_supported_messages];
 
 		// this is a queue of ranges that describes
