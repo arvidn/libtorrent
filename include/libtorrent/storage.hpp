@@ -80,7 +80,7 @@ namespace libtorrent
 		storage_mode_compact
 	};
 	
-#if defined(_WIN32) && defined(UNICODE)
+#if TORRENT_USE_WPATH
 
 	TORRENT_EXPORT std::wstring safe_convert(std::string const& s);
 
