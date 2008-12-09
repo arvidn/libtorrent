@@ -146,6 +146,7 @@ namespace libtorrent
 			, rate_limit_ip_overhead(true)
 			, announce_to_all_trackers(false)
 			, prefer_udp_trackers(true)
+			, strict_super_seeding(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -468,6 +469,10 @@ namespace libtorrent
 		// with udp:// protocol, it is preferred over the same
 		// tracker over http://.
 		bool prefer_udp_trackers;
+
+		// when set to true, a piece has to have been forwarded
+		// to a third peer before another one is handed out
+		bool strict_super_seeding;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

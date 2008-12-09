@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::filesystem::remove_all;
 using boost::filesystem::exists;
 
-void test_swarm(bool super_seeding = false)
+void test_swarm(bool super_seeding = false, bool strict = false)
 {
 	using namespace libtorrent;
 
@@ -74,6 +74,7 @@ void test_swarm(bool super_seeding = false)
 	session_settings settings;
 	settings.allow_multiple_connections_per_ip = true;
 	settings.ignore_limits_on_local_network = false;
+	settings.strict_super_seeding = strict;
 	ses1.set_settings(settings);
 	ses2.set_settings(settings);
 	ses3.set_settings(settings);
@@ -205,6 +206,9 @@ int test_main()
 	// with super seeding
 	test_swarm(true);
 	
+	// with strict super seeding
+	test_swarm(true, true);
+
 	return 0;
 }
 

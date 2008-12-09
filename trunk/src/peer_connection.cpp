@@ -1234,7 +1234,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (t->super_seeding())
+		if (t->super_seeding() && !m_ses.settings().strict_super_seeding)
 		{
 			// if we're superseeding and the peer just told
 			// us that it completed the piece we're superseeding
@@ -1284,6 +1284,23 @@ namespace libtorrent
 				}
 			}
 			
+			// if we're super seeding, this might mean that somebody
+			// forwarded this piece. In which case we need to give
+			// a new piece to that peer
+			if (t->super_seeding()
+				&& m_ses.settings().strict_super_seeding
+				&& (index != m_superseed_piece || t->num_peers() == 1))
+			{
+				for (torrent::peer_iterator i = t->begin()
+					, end(t->end()); i != end; ++i)
+				{
+					peer_connection* p = *i;
+					if (p->superseed_piece() != index) continue;
+					if (!p->has_piece(index)) continue;
+					p->superseed_piece(t->get_piece_to_super_seed(p->get_bitfield()));
+				}
+			}
+
 			if (is_seed())
 			{
 				m_peer_info->seed = true;

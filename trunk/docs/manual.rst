@@ -3147,6 +3147,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 
 		bool announce_to_all_trackers;
 		bool prefer_udp_trackers;
+		bool strict_super_seeding;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3444,6 +3445,10 @@ be rearranged in a way that udp trackers are always tried before http
 trackers for the same hostname. Setting this to fails means that the
 trackers' tier is respected and there's no preference of one protocol
 over another.
+
+``strict_super_seeding`` when this is set to true, a piece has to
+have been forwarded to a third peer before another one is handed out.
+This is the traditional definition of super seeding.
 
 pe_settings
 ===========
