@@ -646,6 +646,7 @@ namespace libtorrent
 		// an unchoke cycle, to unchoke peers the more bytes
 		// they sent us
 		size_type m_downloaded_at_last_unchoke;
+		size_type m_uploaded_at_last_unchoke;
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		std::string m_inet_as_name;

@@ -103,7 +103,7 @@ namespace libtorrent
 			, min_reconnect_time(60)
 			, peer_connect_timeout(7)
 			, ignore_limits_on_local_network(true)
-			, connection_speed(20)
+			, connection_speed(10)
 			, send_redundant_have(false)
 			, lazy_bitfields(true)
 			, inactivity_timeout(600)
@@ -147,6 +147,7 @@ namespace libtorrent
 			, announce_to_all_trackers(false)
 			, prefer_udp_trackers(true)
 			, strict_super_seeding(false)
+			, seeding_piece_quota(3)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -473,6 +474,10 @@ namespace libtorrent
 		// when set to true, a piece has to have been forwarded
 		// to a third peer before another one is handed out
 		bool strict_super_seeding;
+
+		// the number of pieces to send to each peer when seeding
+		// before rotating to a new peer
+		int seeding_piece_quota;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
