@@ -194,7 +194,8 @@ namespace libtorrent
 			// and IPv6 header is 40 bytes
 			const int header = (ipv6 ? 40 : 20) + 20;
 			const int mtu = 1500;
-			const int overhead = (std::max)(1, bytes_transferred / (mtu - header)) * header;
+			const int packet_size = mtu - header;
+			const int overhead = (std::max)(1, (bytes_transferred + packet_size - 1) / packet_size) * header;
 			m_stat[download_ip_protocol].add(overhead);
 			m_stat[upload_ip_protocol].add(overhead);
 		}
