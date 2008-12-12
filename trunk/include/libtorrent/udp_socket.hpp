@@ -66,7 +66,13 @@ namespace libtorrent
 		proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
 
 #ifdef TORRENT_DEBUG
-		~udp_socket() { m_magic = 0; }
+		~udp_socket()
+		{
+			TORRENT_ASSERT(m_magic == 0x1337);
+			TORRENT_ASSERT(m_outstanding == 0);
+			TORRENT_ASSERT(!m_callback);
+			m_magic = 0;
+		}
 #endif
 
 	private:

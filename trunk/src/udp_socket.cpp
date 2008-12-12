@@ -45,6 +45,7 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec)
 {
 	CHECK_MAGIC;
+	TORRENT_ASSERT(m_ipv4_sock.is_open());
 	if (m_tunnel_packets)
 	{
 		// send udp packets through SOCKS5 server
@@ -72,8 +73,8 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		{
 			// "this" may be destructed in the callback
 			// that's why we need to unlock
-			l.unlock();
 			callback_t tmp = m_callback;
+			l.unlock();
 			m_callback.clear();
 		}
 		return;
@@ -84,6 +85,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 	if (e)
 	{
+		l.unlock();
 #ifndef BOOST_NO_EXCEPTIONS
 		try {
 #endif
@@ -94,6 +96,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 #ifndef BOOST_NO_EXCEPTIONS
 		} catch(std::exception&) {}
 #endif
+		l.lock();
 
 		// don't stop listening on recoverable errors
 		if (e != asio::error::host_unreachable
@@ -122,9 +125,16 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 #endif
 
 		if (m_tunnel_packets && m_v4_ep == m_proxy_addr)
+		{
+			l.unlock();
 			unwrap(e, m_v4_buf, bytes_transferred);
+		}
 		else
+		{
+			l.unlock();
 			m_callback(e, m_v4_ep, m_v4_buf, bytes_transferred);
+		}
+		l.lock();
 
 #ifndef BOOST_NO_EXCEPTIONS
 		} catch(std::exception&) {}
@@ -139,13 +149,20 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 #endif
 
 		if (m_tunnel_packets && m_v6_ep == m_proxy_addr)
+		{
+			l.unlock();
 			unwrap(e, m_v6_buf, bytes_transferred);
+		}
 		else
+		{
+			l.unlock();
 			m_callback(e, m_v6_ep, m_v6_buf, bytes_transferred);
+		}
 
 #ifndef BOOST_NO_EXCEPTIONS
 		} catch(std::exception&) {}
 #endif
+		l.lock();
 		s->async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
 			, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
 	}
@@ -215,6 +232,7 @@ void udp_socket::unwrap(error_code const& e, char const* buf, int size)
 
 void udp_socket::close()
 {
+	mutex_t::scoped_lock l(m_mutex);	
 	TORRENT_ASSERT(m_magic == 0x1337);
 
 	error_code ec;
@@ -232,6 +250,7 @@ void udp_socket::close()
 		// "this" may be destructed in the callback
 		callback_t tmp = m_callback;
 		m_callback.clear();
+		l.unlock();
 	}
 }
 
