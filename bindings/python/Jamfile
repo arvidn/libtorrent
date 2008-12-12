@@ -10,7 +10,7 @@ rule libtorrent_linking ( properties * )
 
     if <toolset>gcc in $(properties)
     {
-        result += <library>/torrent//torrent/<link>static/<cxxflags>-fPIC/<cflags>-fPIC ;
+        result += <library>/torrent//torrent/<link>static/<cxxflags>-fPIC/<cflags>-fPIC <cxxflags>-fPIC ;
     }
     else
     {
