@@ -3648,7 +3648,8 @@ namespace libtorrent
 		{
 			using std::swap;
 			swap(m_trackers[index], m_trackers[index-1]);
-			if (m_last_working_tracker == index) ++m_last_working_tracker;
+			if (m_last_working_tracker == index) --m_last_working_tracker;
+			else if (m_last_working_tracker == index - 1) ++m_last_working_tracker;
 			--index;
 		}
 		return index;
@@ -3666,7 +3667,8 @@ namespace libtorrent
 		{
 			using std::swap;
 			swap(m_trackers[index], m_trackers[index + 1]);
-			if (m_last_working_tracker == index) --m_last_working_tracker;
+			if (m_last_working_tracker == index) ++m_last_working_tracker;
+			else if (m_last_working_tracker == index + 1) --m_last_working_tracker;
 			++index;
 		}
 		return index;
