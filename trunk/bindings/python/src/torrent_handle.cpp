@@ -246,6 +246,11 @@ void set_peer_download_limit(torrent_handle& th, tuple const& ip, int limit)
     th.set_peer_download_limit(tuple_to_endpoint(ip), limit);
 }
 
+void add_piece(torrent_handle& th, int piece, char const *data, int flags)
+{
+   th.add_piece(piece, data, flags);
+}
+
 void bind_torrent_handle()
 {
     void (torrent_handle::*force_reannounce0)() const = &torrent_handle::force_reannounce;
@@ -306,6 +311,7 @@ void bind_torrent_handle()
         .def("is_piece_filtered", _(&torrent_handle::is_piece_filtered))
         .def("write_resume_data", _(&torrent_handle::write_resume_data))
 #endif
+        .def("add_piece", add_piece)
         .def("piece_availability", piece_availability)
         .def("piece_priority", _(piece_priority0))
         .def("piece_priority", _(piece_priority1))
