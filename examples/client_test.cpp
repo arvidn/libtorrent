@@ -342,7 +342,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
 	{
-		if (i->flags & (peer_info::handshake))
+		if (i->flags & (peer_info::handshake | peer_info::connecting | peer_info::queued))
 			continue;
 
 		out.fill(' ');
