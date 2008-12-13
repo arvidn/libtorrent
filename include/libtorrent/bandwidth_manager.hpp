@@ -115,6 +115,7 @@ struct bandwidth_manager
 		, m_limit(bandwidth_limit::inf)
 		, m_drain_quota(0)
 		, m_current_quota(0)
+		, m_queued_bytes(0)
 		, m_channel(channel)
 		, m_in_hand_out_bandwidth(false)
 		, m_abort(false)
@@ -151,6 +152,7 @@ struct bandwidth_manager
 	{
 		m_abort = true;
 		m_queue.clear();
+		m_queued_bytes = 0;
 		m_history.clear();
 		m_current_quota = 0;
 		error_code ec;
@@ -196,6 +198,12 @@ struct bandwidth_manager
 		mutex_t::scoped_lock l(m_mutex);
 		return m_queue.size();
 	}
+
+	int queued_bytes() const
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		return m_queued_bytes;
+	}
 	
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
@@ -220,6 +228,7 @@ struct bandwidth_manager
 			++i;
 		}
 		m_queue.insert(i.base(), bw_queue_entry<PeerConnection, Torrent>(peer, blk, priority));
+		m_queued_bytes += blk;
 		if (!m_queue.empty()) hand_out_bandwidth(l);
 	}
 
@@ -234,14 +243,19 @@ struct bandwidth_manager
 		}
 		TORRENT_ASSERT(current_quota == m_current_quota);
 
+		int bytes = 0;
 		typename queue_t::const_iterator j = m_queue.begin();
 		if (j != m_queue.end())
 		{
 			++j;
 			for (typename queue_t::const_iterator i = m_queue.begin()
 				, end(m_queue.end()); i != end && j != end; ++i, ++j)
+			{
 				TORRENT_ASSERT(i->priority >= j->priority);
+				bytes += i->max_block_size;
+			}
 		}
+		TORRENT_ASSERT(bytes == m_queued_bytes);
 	}
 #endif
 
@@ -358,6 +372,7 @@ private:
 		{
 			bw_queue_entry<PeerConnection, Torrent> qe = m_queue.front();
 			TORRENT_ASSERT(qe.max_block_size > 0);
+			m_queued_bytes -= qe.max_block_size;
 			m_queue.pop_front();
 
 			shared_ptr<Torrent> t = qe.torrent.lock();
@@ -377,6 +392,7 @@ private:
 			if (max_assignable == 0)
 			{
 				TORRENT_ASSERT(is_in_history(qe.peer.get(), l));
+				m_queued_bytes += qe.max_block_size;
 				tmp.push_back(qe);
 				continue;
 			}
@@ -419,6 +435,7 @@ private:
 
 			if (amount < block_size / 4)
 			{
+				m_queued_bytes += qe.max_block_size;
 				tmp.push_back(qe);
 //				m_queue.push_front(qe);
 				break;
@@ -467,6 +484,7 @@ private:
 	// these are the consumers that want bandwidth
 	typedef std::deque<bw_queue_entry<PeerConnection, Torrent> > queue_t;
 	queue_t m_queue;
+	int m_queued_bytes;
 
 	// these are the consumers that have received bandwidth
 	// that will expire

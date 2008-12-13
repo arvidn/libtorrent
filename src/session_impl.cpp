@@ -2121,6 +2121,9 @@ namespace aux {
 		s.up_bandwidth_queue = m_upload_channel.queue_size();
 		s.down_bandwidth_queue = m_download_channel.queue_size();
 
+		s.up_bandwidth_bytes_queue = m_upload_channel.queued_bytes();
+		s.down_bandwidth_bytes_queue = m_download_channel.queued_bytes();
+
 		s.has_incoming_connections = m_incoming_connection;
 
 		// total

@@ -1416,8 +1416,10 @@ int main(int ac, char* av[])
 				"==== waste: " << add_suffix(sess_stat.total_redundant_bytes)
 				<< " fail: " << add_suffix(sess_stat.total_failed_bytes)
 				<< " unchoked: " << sess_stat.num_unchoked << " / " << sess_stat.allowed_upload_slots
-				<< " bw queues: (" << sess_stat.up_bandwidth_queue
-				<< " | " << sess_stat.down_bandwidth_queue << ") "
+				<< " bw queues: " << sess_stat.up_bandwidth_bytes_queue
+				<< " (" << sess_stat.up_bandwidth_queue<< ")"
+				<< " | " << sess_stat.down_bandwidth_bytes_queue
+				<< " (" << sess_stat.down_bandwidth_queue<< ") "
 				" write cache hits: " << ((cs.blocks_written - cs.writes) * 100 / cs.blocks_written) << "% "
 				" read cache hits: " << (cs.blocks_read_hit * 100 / cs.blocks_read) << "% "
 				" cache size: " << add_suffix(cs.cache_size * 16 * 1024)
