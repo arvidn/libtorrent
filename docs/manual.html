@@ -3173,6 +3173,8 @@ struct session_settings
         bool announce_to_all_trackers;
         bool prefer_udp_trackers;
         bool strict_super_seeding;
+
+        int seeding_piece_quota;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -3413,6 +3415,11 @@ over another.</p>
 <p><tt class="docutils literal"><span class="pre">strict_super_seeding</span></tt> when this is set to true, a piece has to
 have been forwarded to a third peer before another one is handed out.
 This is the traditional definition of super seeding.</p>
+<p><tt class="docutils literal"><span class="pre">seeding_piece_quota</span></tt> is the number of pieces to send to a peer,
+when seeding, before rotating in another peer to the unchoke set.
+It defaults to 3 pieces, which means that when seeding, any peer we've
+sent more than this number of pieces to will be unchoked in favour of
+a choked peer.</p>
 </div>
 <div class="section" id="pe-settings">
 <h1>pe_settings</h1>
