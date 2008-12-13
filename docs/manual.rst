@@ -3148,6 +3148,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool announce_to_all_trackers;
 		bool prefer_udp_trackers;
 		bool strict_super_seeding;
+
+		int seeding_piece_quota;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3449,6 +3451,12 @@ over another.
 ``strict_super_seeding`` when this is set to true, a piece has to
 have been forwarded to a third peer before another one is handed out.
 This is the traditional definition of super seeding.
+
+``seeding_piece_quota`` is the number of pieces to send to a peer,
+when seeding, before rotating in another peer to the unchoke set.
+It defaults to 3 pieces, which means that when seeding, any peer we've
+sent more than this number of pieces to will be unchoked in favour of
+a choked peer.
 
 pe_settings
 ===========
