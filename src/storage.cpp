@@ -1900,6 +1900,8 @@ namespace libtorrent
 	// is finished
 	int piece_manager::check_files(int& current_slot, int& have_piece, std::string& error)
 	{
+		if (m_state == state_none) return check_no_fastresume(error);
+
 		TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
 
 		current_slot = m_current_slot;
