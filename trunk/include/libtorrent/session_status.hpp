@@ -91,6 +91,9 @@ namespace libtorrent
 		int up_bandwidth_queue;
 		int down_bandwidth_queue;
 
+		int up_bandwidth_bytes_queue;
+		int down_bandwidth_bytes_queue;
+
 		int optimistic_unchoke_counter;
 		int unchoke_counter;
 
