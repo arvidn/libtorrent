@@ -1,5 +1,7 @@
 html>body { font-size: 13px; }
 
+.entry { min-height: 125px; }
+
 #main {
     font-family: Verdana;
     text-align: left;
