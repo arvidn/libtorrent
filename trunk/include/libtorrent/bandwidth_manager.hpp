@@ -247,6 +247,7 @@ struct bandwidth_manager
 		typename queue_t::const_iterator j = m_queue.begin();
 		if (j != m_queue.end())
 		{
+			bytes += j->max_block_size;
 			++j;
 			for (typename queue_t::const_iterator i = m_queue.begin()
 				, end(m_queue.end()); i != end && j != end; ++i, ++j)
