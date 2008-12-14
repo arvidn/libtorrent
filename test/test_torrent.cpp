@@ -2,6 +2,7 @@
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/alert_types.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
 
@@ -13,6 +14,7 @@ using namespace libtorrent;
 void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type file_size)
 {
 	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140));
+	ses.set_alert_mask(alert::storage_notification);
 
 	add_torrent_params p;
 	p.ti = info;
@@ -62,6 +64,29 @@ void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type fil
 		test_sleep(10000);
 		st = h.status();
 		TEST_CHECK(st.pieces[0] == true);
+
+		std::cout << "reading piece 0" << std::endl;
+		h.read_piece(0);
+		alert const* a = ses.wait_for_alert(seconds(10));
+		bool passed = false;
+		while (a)
+		{
+			std::auto_ptr<alert> al = ses.pop_alert();
+			assert(al.get());
+			std::cout << "  " << al->message() << std::endl;
+			if (read_piece_alert* rpa = dynamic_cast<read_piece_alert*>(al.get()))
+			{
+				std::cout << "SUCCEEDED!" << std::endl;
+				passed = true;
+				TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), piece.size()) == 0);
+				TEST_CHECK(rpa->size == info->piece_size(0));
+				TEST_CHECK(rpa->piece == 0);
+				break;
+			}
+			a = ses.wait_for_alert(seconds(10));
+			TEST_CHECK(a);
+		}
+		TEST_CHECK(passed);
 	}
 }
 

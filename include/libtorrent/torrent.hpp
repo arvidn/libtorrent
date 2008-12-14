@@ -174,6 +174,15 @@ namespace libtorrent
 		void on_disk_write_complete(int ret, disk_io_job const& j
 			, peer_request p);
 
+		struct read_piece_struct
+		{
+			boost::shared_array<char> piece_data;
+			int blocks_left;
+			bool fail;
+		};
+		void read_piece(int piece);
+		void on_disk_read_complete(int ret, disk_io_job const& j, peer_request r, read_piece_struct* rp);
+
 		storage_mode_t storage_mode() const { return m_storage_mode; }
 		storage_interface* get_storage()
 		{

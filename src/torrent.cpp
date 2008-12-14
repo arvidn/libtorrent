@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <ctime>
-#include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <iterator>
@@ -41,6 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <cctype>
 #include <numeric>
+
+#ifdef TORRENT_DEBUG
+#include <iostream>
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -375,7 +378,66 @@ namespace libtorrent
 		if (!m_connections.empty())
 			disconnect_all();
 	}
-	
+
+	void torrent::read_piece(int piece)
+	{
+		TORRENT_ASSERT(piece >= 0 && piece < m_torrent_file->num_pieces());
+		int piece_size = m_torrent_file->piece_size(piece);
+		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+
+		read_piece_struct* rp = new read_piece_struct;
+		rp->piece_data.reset(new (std::nothrow) char[piece_size]);
+		rp->blocks_left = 0;
+		rp->fail = false;
+
+		peer_request r;
+		r.piece = piece;
+		r.start = 0;
+		for (int i = 0; i < blocks_in_piece; ++i, r.start += m_block_size)
+		{
+			r.length = (std::min)(piece_size - r.start, m_block_size);
+			filesystem().async_read(r, bind(&torrent::on_disk_read_complete
+				, shared_from_this(), _1, _2, r, rp));
+			++rp->blocks_left;
+		}
+	}
+
+	void torrent::on_disk_read_complete(int ret, disk_io_job const& j, peer_request r, read_piece_struct* rp)
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		disk_buffer_holder buffer(m_ses, j.buffer);
+
+		--rp->blocks_left;
+		if (ret != r.length)
+		{
+			rp->fail = true;
+			set_error(j.str);
+			pause();
+		}
+		else
+		{
+			std::memcpy(rp->piece_data.get() + r.start, j.buffer, r.length);
+		}
+
+		if (rp->blocks_left == 0)
+		{
+			int size = m_torrent_file->piece_size(r.piece);
+			if (rp->fail)
+			{
+				rp->piece_data.reset();
+				size = 0;
+			}
+
+			if (m_ses.m_alerts.should_post<read_piece_alert>())
+			{
+				m_ses.m_alerts.post_alert(read_piece_alert(
+					get_handle(), r.piece, rp->piece_data, size));
+			}
+			delete rp;
+		}
+	}
+
 	void torrent::add_piece(int piece, char const* data, int flags)
 	{
 		TORRENT_ASSERT(piece >= 0 && piece < m_torrent_file->num_pieces());
@@ -395,7 +457,11 @@ namespace libtorrent
 			p.length = (std::min)(piece_size - p.start, m_block_size);
 			char* buffer = m_ses.allocate_disk_buffer();
 			// out of memory
-			if (buffer == 0) return;
+			if (buffer == 0)
+			{
+				picker().dec_refcount(piece);
+				return;
+			}
 			disk_buffer_holder holder(m_ses, buffer);
 			std::memcpy(buffer, data + p.start, p.length);
 			filesystem().async_write(p, holder, bind(&torrent::on_disk_write_complete
