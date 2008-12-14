@@ -47,6 +47,12 @@ extern char const* udp_error_alert_doc;
 extern char const* external_ip_alert_doc;
 extern char const* save_resume_data_alert_doc;
 
+std::string get_buffer(read_piece_alert const& rpa)
+{
+    return rpa.buffer ? std::string(rpa.buffer.get(), rpa.size)
+       : std::string();
+}
+
 void bind_alert()
 {
     using boost::noncopyable;
@@ -62,6 +68,7 @@ void bind_alert()
             .def("__str__", &alert::message, alert_msg_doc)
             ;
 
+#ifndef TORRENT_NO_DEPRECATE
         enum_<alert::severity_t>("severity_levels")
             .value("debug", alert::debug)
             .value("info", alert::info)
@@ -70,6 +77,7 @@ void bind_alert()
             .value("fatal", alert::fatal)
             .value("none", alert::none)
             ;
+#endif
 
         enum_<alert::category_t>("category_t")
             .value("error_notification", alert::error_notification)
@@ -97,6 +105,14 @@ void bind_alert()
         "tracker_alert", tracker_alert_doc, no_init
     )
         .def_readonly("url", &tracker_alert::url)
+        ;
+
+    class_<read_piece_alert, bases<torrent_alert>, noncopyable>(
+        "read_piece_alert", 0, no_init
+    )
+        .add_property("buffer", get_buffer)
+        .def_readonly("piece", &read_piece_alert::piece)
+        .def_readonly("size", &read_piece_alert::size)
         ;
 
     class_<peer_alert, bases<torrent_alert>, noncopyable>(

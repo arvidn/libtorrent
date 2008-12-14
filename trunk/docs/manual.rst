@@ -211,7 +211,7 @@ The flags paramater can be used to start default features (upnp & nat-pmp) and d
 (ut_metadata, ut_pex and smart_ban). The default is to start those things. If you do not want
 them to start, pass 0 as the flags parameter.
 
-The ``alert_mask`` is the same mask that you would send to ``set_alert_mask``.
+The ``alert_mask`` is the same mask that you would send to `set_alert_mask()`_.
 
 ~session()
 ----------
@@ -765,18 +765,29 @@ with a DHT ping packet, and connect to those that responds first. On windows one
 can only connect to a few peers at a time because of a built in limitation (in XP
 Service pack 2).
 
-pop_alert() set_alert_mask() wait_for_alert() set_alert_queue_size_limit()
---------------------------------------------------------------------------
+set_alert_mask()
+----------------
+
+	::
+
+		void set_alert_mask(int m);
+
+Changes the mask of which alerts to receive. By default only errors are reported.
+``m`` is a bitmask where each bit represents a category of alerts.
+
+See alerts_ for mor information on the alert categories.
+
+pop_alert() wait_for_alert() set_alert_queue_size_limit()
+---------------------------------------------------------
 
 	::
 
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
-		void set_alert_mask(int m);
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 ``pop_alert()`` is used to ask the session if any errors or events has occurred. With
-``set_alert_mask()`` you can filter which alerts to receive through ``pop_alert()``.
+`set_alert_mask()`_ you can filter which alerts to receive through ``pop_alert()``.
 For information about the alert categories, see alerts_.
 
 ``wait_for_alert`` blocks until an alert is available, or for no more than ``max_wait``
@@ -1722,6 +1733,7 @@ Its declaration looks like this::
 
 		enum flags_t { overwrite_existing = 1 };
 		void add_piece(int piece, char const* data, int flags = 0) const;
+		void read_piece(int piece) const;
 
 		sha1_hash info_hash() const;
 
@@ -1906,6 +1918,24 @@ may already have been downloaded with this data.
 
 Since the data is written asynchronously, you may know that is passed or failed the
 hash check by waiting for ``piece_finished_alert`` or ``has_failed_alert``.
+
+read_piece()
+------------
+
+	::
+
+		void read_piece(int piece) const;
+
+This function starts an asynchronous read operation of the specified piece from
+this torrent. You must have completed the download of the specified piece before
+calling this function.
+
+When the read operation is completed, it is passed back through an alert,
+read_piece_alert_. In order to receive this alert, you must enable
+``alert::storage_notification`` in your alert mask (see `set_alert_mask()`_).
+
+Note that if you read multiple pieces, the read operations are not guaranteed to
+finish in the same order as you initiated them.
 
 force_reannounce()
 ------------------
@@ -4046,7 +4076,7 @@ been posted by libtorrent ``pop_alert()`` will return a default initialized
 from the front of the queue is popped and returned.
 You can then use the alert object and query
 
-By default, only errors are reported. ``session::set_alert_mask()`` can be
+By default, only errors are reported. `set_alert_mask()`_ can be
 used to specify which kinds of events should be reported. The alert mask
 is a bitmask with the following bits:
 
@@ -4165,6 +4195,26 @@ There's also a base class for all alerts referring to tracker events::
 	};
 
 The specific alerts are:
+
+read_piece_alert
+----------------
+
+This alert is posted when the asynchronous read operation initiated by
+a call to `read_piece()`_ is completed. If the read failed, the torrent
+is paused and an error state is set and the buffer member of the alert
+is 0. If successful, ``buffer`` points to a buffer containing all the data
+of the piece. ``piece`` is the piece index that was read. ``size`` is the
+number of bytes that was read.
+
+::
+
+	struct read_piece_alert: torrent_alert
+	{
+		// ...
+		boost::shared_ptr<char> buffer;
+		int piece;
+		int size;
+	};
 
 external_ip_alert
 -----------------

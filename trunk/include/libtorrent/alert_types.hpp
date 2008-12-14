@@ -97,6 +97,33 @@ namespace libtorrent
 		std::string url;
 	};
 
+	struct TORRENT_EXPORT read_piece_alert: torrent_alert
+	{
+		read_piece_alert(torrent_handle const& h
+			, int p, boost::shared_array<char> d, int s)
+			: torrent_alert(h)
+			, buffer(d)
+			, piece(p)
+            , size(s)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new read_piece_alert(*this)); }
+		const static int static_category = alert::storage_notification;
+		virtual int category() const { return static_category; }
+		virtual char const* what() const { return "read piece"; }
+		virtual std::string message() const
+		{
+			std::stringstream ret;
+			ret << torrent_alert::message() << ": piece " << (buffer ? "successful " : "failed ") << piece;
+			return ret.str();
+		}
+
+		boost::shared_array<char> buffer;
+		int piece;
+        int size;
+	};
+
 	struct TORRENT_EXPORT file_renamed_alert: torrent_alert
 	{
 		file_renamed_alert(torrent_handle const& h
