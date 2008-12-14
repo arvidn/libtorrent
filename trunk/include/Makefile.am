@@ -11,6 +11,7 @@ libtorrent/buffer.hpp \
 libtorrent/connection_queue.hpp \
 libtorrent/create_torrent.hpp \
 libtorrent/config.hpp \
+libtorrent/ConvertUTF.h \
 libtorrent/debug.hpp \
 libtorrent/disk_buffer_holder.hpp \
 libtorrent/disk_io_thread.hpp \
