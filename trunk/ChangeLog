@@ -19,6 +19,8 @@
 
 release 0.14.2
 
+	* added missign functions to the python bindings torrent_info::map_file,
+	  torrent_info::map_block and torrent_info::file_at_offset.
 	* removed support for boost-1.33 and earlier (probably didn't work)
 	* fixed potential freezes issues at shutdown
 	* improved error message for python setup script

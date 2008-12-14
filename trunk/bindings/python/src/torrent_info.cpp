@@ -71,11 +71,29 @@ namespace
     torrent_info construct0(std::string path) {
         return torrent_info(fs::path(path));
     }
+
+    list map_block(torrent_info& ti, int piece, size_type offset, int size)
+    {
+       std::vector<file_slice> p = ti.map_block(piece, offset, size);
+       list result;
+
+       for (std::vector<file_slice>::iterator i(p.begin()), e(p.end()); i != e; ++i)
+          result.append(*i);
+
+       return result;
+    }
+
 } // namespace unnamed
 
 void bind_torrent_info()
 {
     return_value_policy<copy_const_reference> copy;
+
+    class_<file_slice>("file_slice")
+        .def_readwrite("file_index", &file_slice::file_index)
+        .def_readwrite("offset", &file_slice::offset)
+        .def_readwrite("size", &file_slice::size)
+        ;
 
     class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info", no_init)
 #ifndef TORRENT_NO_DEPRECATE
@@ -84,6 +102,7 @@ void bind_torrent_info()
         .def(init<sha1_hash const&>())
         .def(init<char const*, int>())
         .def(init<boost::filesystem::path>())
+        .def(init<boost::filesystem::wpath>())
 
         .def("add_tracker", &torrent_info::add_tracker, (arg("url"), arg("tier")=0))
         .def("add_url_seed", &torrent_info::add_url_seed)
@@ -102,6 +121,7 @@ void bind_torrent_info()
 
         .def("num_files", &torrent_info::num_files, (arg("storage")=false))
         .def("file_at", &torrent_info::file_at, return_internal_reference<>())
+        .def("file_at_offset", &torrent_info::file_at_offset)
         .def("files", &files, (arg("storage")=false))
 
         .def("priv", &torrent_info::priv)
@@ -113,6 +133,8 @@ void bind_torrent_info()
         .def("nodes", &nodes)
         .def("metadata", &metadata)
         .def("metadata_size", &torrent_info::metadata_size)
+        .def("map_block", map_block)
+        .def("map_file", &torrent_info::map_file)
         ;
 
     class_<file_entry>("file_entry")
