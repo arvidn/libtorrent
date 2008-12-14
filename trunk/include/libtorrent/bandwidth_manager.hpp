@@ -253,7 +253,7 @@ struct bandwidth_manager
 				, end(m_queue.end()); i != end && j != end; ++i, ++j)
 			{
 				TORRENT_ASSERT(i->priority >= j->priority);
-				bytes += i->max_block_size;
+				bytes += j->max_block_size;
 			}
 		}
 		TORRENT_ASSERT(bytes == m_queued_bytes);
