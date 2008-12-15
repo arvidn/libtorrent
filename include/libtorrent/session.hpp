@@ -378,6 +378,7 @@ namespace libtorrent
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 		alert const* wait_for_alert(time_duration max_wait);
+		void set_alert_dispatch(boost::function<void(alert const&)> const& fun);
 
 		connection_queue& get_connection_queue();
 

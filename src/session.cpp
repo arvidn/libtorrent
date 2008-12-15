@@ -565,6 +565,11 @@ namespace libtorrent
 		return m_impl->pop_alert();
 	}
 
+	void session::set_alert_dispatch(boost::function<void(alert const&)> const& fun)
+	{
+		return m_impl->set_alert_dispatch(fun);
+	}
+
 	alert const* session::wait_for_alert(time_duration max_wait)
 	{
 		return m_impl->wait_for_alert(max_wait);

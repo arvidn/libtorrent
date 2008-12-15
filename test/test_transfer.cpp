@@ -101,6 +101,11 @@ void test_rate()
 
 }
 
+void print_alert(alert const& a)
+{
+	std::cout << "ses1 (alert dispatch function): " << a.message() << std::endl;
+}
+
 void test_transfer()
 {
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000));
@@ -134,6 +139,7 @@ void test_transfer()
 
 	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
+	ses1.set_alert_dispatch(&print_alert);
 
 	for (int i = 0; i < 30; ++i)
 	{

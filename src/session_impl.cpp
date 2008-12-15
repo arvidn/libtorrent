@@ -2425,6 +2425,12 @@ namespace aux {
 		m_bandwidth_manager[peer_connection::upload_channel]->throttle(bytes_per_second);
 	}
 
+	void session_impl::set_alert_dispatch(boost::function<void(alert const&)> const& fun)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		m_alerts.set_dispatch_function(fun);
+	}
+
 	std::auto_ptr<alert> session_impl::pop_alert()
 	{
 		mutex_t::scoped_lock l(m_mutex);
