@@ -385,6 +385,7 @@ void bind_session()
         .def("pause", allow_threads(&session::pause))
         .def("resume", allow_threads(&session::resume))
         .def("is_paused", allow_threads(&session::is_paused))
+        .def("id", allow_threads(&session::id))
         ;
 
     register_ptr_to_python<std::auto_ptr<alert> >();
