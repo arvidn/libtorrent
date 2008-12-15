@@ -80,9 +80,30 @@ namespace libtorrent {
 		return m_alerts.front();
 	}
 
+	void alert_manager::set_dispatch_function(boost::function<void(alert const&)> const& fun)
+	{
+		boost::mutex::scoped_lock lock(m_mutex);
+
+		m_dispatch = fun;
+
+		while (!m_alerts.empty())
+		{
+			m_dispatch(*m_alerts.front());
+			delete m_alerts.front();
+			m_alerts.pop();
+		}
+	}
+
 	void alert_manager::post_alert(const alert& alert_)
 	{
 		boost::mutex::scoped_lock lock(m_mutex);
+
+		if (m_dispatch)
+		{
+			TORRENT_ASSERT(m_alerts.empty());
+			m_dispatch(alert_);
+			return;
+		}
 
 		if (m_alerts.size() >= m_queue_size_limit) return;
 		m_alerts.push(alert_.clone().release());
