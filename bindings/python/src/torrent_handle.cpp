@@ -312,6 +312,7 @@ void bind_torrent_handle()
         .def("write_resume_data", _(&torrent_handle::write_resume_data))
 #endif
         .def("add_piece", add_piece)
+        .def("read_piece", _(&torrent_handle::read_piece))
         .def("piece_availability", piece_availability)
         .def("piece_priority", _(piece_priority0))
         .def("piece_priority", _(piece_priority1))
