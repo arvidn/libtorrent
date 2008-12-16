@@ -575,20 +575,23 @@ namespace libtorrent
 				}
 			}
 
-			// shuffle each tier
-			std::vector<announce_entry>::iterator start = m_urls.begin();
-			std::vector<announce_entry>::iterator stop;
-			int current_tier = m_urls.front().tier;
-			for (stop = m_urls.begin(); stop != m_urls.end(); ++stop)
+			if (!m_urls.empty())
 			{
-				if (stop->tier != current_tier)
+				// shuffle each tier
+				std::vector<announce_entry>::iterator start = m_urls.begin();
+				std::vector<announce_entry>::iterator stop;
+				int current_tier = m_urls.front().tier;
+				for (stop = m_urls.begin(); stop != m_urls.end(); ++stop)
 				{
-					std::random_shuffle(start, stop);
-					start = stop;
-					current_tier = stop->tier;
+					if (stop->tier != current_tier)
+					{
+						std::random_shuffle(start, stop);
+						start = stop;
+						current_tier = stop->tier;
+					}
 				}
+				std::random_shuffle(start, stop);
 			}
-			std::random_shuffle(start, stop);
 		}
 		
 
