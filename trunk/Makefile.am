@@ -18,8 +18,8 @@ docs/arctic_thumb.png \
 docs/fdm.png \
 docs/tvitty.jpg \
 docs/leechcraft.png \
-docs/lince.jpg \
-docs/fatrat.jpg \
+docs/lince.png \
+docs/fatrat.png \
 docs/miro.jpg \
 docs/bitbuddy_thumb.jpg \
 docs/bitscast_thumb.png \
@@ -29,7 +29,7 @@ docs/btg_thumb.jpg \
 docs/bitfox.png \
 docs/acquasition.jpg \
 docs/im_thumb.jpg \
-docs/Linkage.jpg \
+docs/Linkage.png \
 docs/deluge.png \
 docs/halite_thumb.png \
 docs/electric_sheep_thumb.jpg \
