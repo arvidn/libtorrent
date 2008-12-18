@@ -3,7 +3,7 @@ rm -f config.cache
 rm -fr autom4te.cache
 chmod a-x docs/*.rst docs/*.htm*
 
-/opt/local/bin/autoheader
+/opt/local/bin/autoheader-1.7
 /opt/local/bin/aclocal -I m4
 /sw/bin/libtoolize -f
 /opt/local/bin/automake -ac
