@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifdef TORRENT_DEBUG
+
 #ifdef __GNUC__
 
 #include <cxxabi.h>
@@ -40,10 +42,27 @@ POSSIBILITY OF SUCH DAMAGE.
 std::string demangle(char const* name)
 {
 // in case this string comes
+	// this is needed on linux
 	char const* start = strchr(name, '(');
-	if (start != 0) ++start;
-	else start = name;
+	if (start != 0)
+	{
+		++start;
+	}
+	else
+	{
+		// this is needed on macos x
+		start = strstr(name, "0x");
+		if (start != 0)
+		{
+			start = strchr(start, ' ');
+			if (start != 0) ++start;
+			else start = name;
+		}
+		else start = name;
+	}
+
 	char const* end = strchr(start, '+');
+	if (end) while (*(end-1) == ' ') --end;
 
 	std::string in;
 	if (end == 0) in.assign(start);
@@ -60,13 +79,36 @@ std::string demangle(char const* name)
 
 #endif
 
-#ifdef TORRENT_DEBUG
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
-#if defined __linux__ && defined __GNUC__
+
+// execinfo.h is available in the MacOS X 10.5 SDK. I
+// don't know of a define to distiguish between SDKs, so
+// for now, all Mac builds are assumed to be using 10.5
+// for debug builds. If this fails for you, just remove
+// the __APPLE__ check
+#if (defined __linux__ || defined __APPLE__)
 #include <execinfo.h>
+
+void print_backtrace(char const* label)
+{
+	void* stack[50];
+	int size = backtrace(stack, 50);
+	char** symbols = backtrace_symbols(stack, size);
+
+	fprintf(stderr, "%s\n", label);
+	for (int i = 1; i < size; ++i)
+	{
+		fprintf(stderr, "%d: %s\n", i, demangle(symbols[i]).c_str());
+	}
+
+	free(symbols);
+}
+#else
+
+void print_backtrace(char const* label) {}
+
 #endif
 
 void assert_fail(char const* expr, int line, char const* file, char const* function)
@@ -78,21 +120,10 @@ void assert_fail(char const* expr, int line, char const* file, char const* funct
 		"file: '%s'\n"
 		"line: %d\n"
 		"function: %s\n"
-		"expression: %s\n"
-		"stack:\n", file, line, function, expr);
+		"expression: %s\n", file, line, function, expr);
 
-#if defined __linux__ && defined __GNUC__
-	void* stack[50];
-	int size = backtrace(stack, 50);
-	char** symbols = backtrace_symbols(stack, size);
+	print_backtrace("stack:");
 
-	for (int i = 0; i < size; ++i)
-	{
-		fprintf(stderr, "%d: %s\n", i, demangle(symbols[i]).c_str());
-	}
-
-	free(symbols);
-#endif
  	// send SIGINT to the current process
  	// to break into the debugger
  	raise(SIGINT);
