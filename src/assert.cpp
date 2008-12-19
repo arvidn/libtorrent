@@ -32,6 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_DEBUG
 
+#ifdef __APPLE__
+#include <AvailabilityMacros.h>
+#endif
+
 #ifdef __GNUC__
 
 #include <cxxabi.h>
@@ -83,12 +87,8 @@ std::string demangle(char const* name)
 #include <stdio.h>
 #include <signal.h>
 
-// execinfo.h is available in the MacOS X 10.5 SDK. I
-// don't know of a define to distiguish between SDKs, so
-// for now, all Mac builds are assumed to be using 10.5
-// for debug builds. If this fails for you, just remove
-// the __APPLE__ check
-#if (defined __linux__ || defined __APPLE__)
+// execinfo.h is available in the MacOS X 10.5 SDK.
+#if (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
 #include <execinfo.h>
 
 void print_backtrace(char const* label)
