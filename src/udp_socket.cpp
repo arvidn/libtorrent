@@ -45,7 +45,9 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec)
 {
 	CHECK_MAGIC;
-	TORRENT_ASSERT(m_ipv4_sock.is_open());
+	// if the sockets are closed, the udp_socket is closing too
+	if (!m_ipv4_sock.is_open() && !m_ipv6_sock.is_open()) return;
+
 	if (m_tunnel_packets)
 	{
 		// send udp packets through SOCKS5 server
@@ -74,8 +76,8 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 			// "this" may be destructed in the callback
 			// that's why we need to unlock
 			callback_t tmp = m_callback;
-			l.unlock();
 			m_callback.clear();
+			l.unlock();
 		}
 		return;
 	}
@@ -105,7 +107,17 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 			&& e != asio::error::connection_refused
 			&& e != asio::error::connection_aborted
 			&& e != asio::error::message_size)
+		{
+			if (m_outstanding == 0)
+			{
+				// "this" may be destructed in the callback
+				// that's why we need to unlock
+				callback_t tmp = m_callback;
+				m_callback.clear();
+				l.unlock();
+			}
 			return;
+		}
 
 		if (s == &m_ipv4_sock)
 			s->async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
