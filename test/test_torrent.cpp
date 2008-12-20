@@ -13,7 +13,7 @@ using namespace libtorrent;
 
 void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type file_size)
 {
-	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140));
+	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140), "0.0.0.0", 0);
 	ses.set_alert_mask(alert::storage_notification);
 
 	add_torrent_params p;

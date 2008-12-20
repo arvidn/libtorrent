@@ -53,11 +53,11 @@ void test_swarm(bool super_seeding = false, bool strict = false)
 	try { remove_all("./tmp2_swarm"); } catch (std::exception&) {}
 	try { remove_all("./tmp3_swarm"); } catch (std::exception&) {}
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000));
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
 	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000), "0.0.0.0", 0);
 	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000));
+	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000), "0.0.0.0", 0);
 	ses3.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 
 

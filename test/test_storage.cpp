@@ -429,7 +429,7 @@ void test_fastresume()
 
 	entry resume;
 	{
-		session ses;
+		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
 
 		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
@@ -455,7 +455,7 @@ void test_fastresume()
 
 	// make sure the fast resume check fails! since we removed the file
 	{
-		session ses;
+		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
 		torrent_handle h = ses.add_torrent(t, "tmp1", resume
 			, storage_mode_compact);
@@ -490,7 +490,7 @@ void test_rename_file_in_fastresume()
 
 	entry resume;
 	{
-		session ses;
+		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
 
 		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
@@ -519,7 +519,7 @@ void test_rename_file_in_fastresume()
 
 	// make sure the fast resume check succeeds, even though we renamed the file
 	{
-		session ses;
+		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
 		torrent_handle h = ses.add_torrent(t, "tmp2", resume
 			, storage_mode_compact);
