@@ -2,7 +2,7 @@ import python ;
 
 use-project /torrent : ../.. ;
 
-lib boost_python : : <name>boost_python $(library-search-path) ;
+lib boost_python : : <name>boost_python-mt $(library-search-path) ;
 
 rule libtorrent_linking ( properties * )
 {
@@ -10,11 +10,26 @@ rule libtorrent_linking ( properties * )
 
     if <toolset>gcc in $(properties)
     {
-        result += <library>/torrent//torrent/<link>static/<cxxflags>-fPIC/<cflags>-fPIC <cxxflags>-fPIC ;
+        result += <library>/torrent//torrent/<link>static/<cflags>-fPIC
+            <cflags>-fPIC ;
     }
     else
     {
         result += <library>/torrent//torrent/<link>static ;
+    }
+
+    if <toolset>gcc in $(properties) || <toolset>darwin in $(properties)
+    {
+        result += <cflags>-fvisibility=hidden ;
+
+        if <boost>source in $(properties) && <boost-link>static in $(properties)
+        {
+            result += <library>/boost/python//boost_python/<link>static/<cflags>-fvisibility=hidden ;
+        }
+    }
+    else if <boost>source in $(properties) && <boost-link>static in $(properties)
+    {
+        result += <library>/boost/python//boost_python/<link>static ;
     }
 
     # when building peer_plugin.cpp on msvc-7.1 it fails
@@ -54,7 +69,6 @@ python-extension libtorrent
     src/magnet_uri.cpp
   : <include>src
     <boost>system:<library>boost_python
-    <boost>source,<boost-link>static:<library>/boost/python//boost_python/<link>static
     <boost>source,<boost-link>shared:<library>/boost/python//boost_python/<link>shared
     <conditional>@libtorrent_linking
   ;
