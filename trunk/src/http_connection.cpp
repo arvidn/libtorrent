@@ -250,6 +250,7 @@ void http_connection::close()
 {
 	error_code ec;
 	m_timer.cancel(ec);
+	m_resolver.cancel();
 	m_limiter_timer.cancel(ec);
 	m_sock.close(ec);
 	m_hostname.clear();

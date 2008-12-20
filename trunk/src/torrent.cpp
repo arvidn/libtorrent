@@ -2538,6 +2538,8 @@ namespace libtorrent
 		(*m_ses.m_logger) << time_now_string() << " completed resolve proxy hostname for: " << url << "\n";
 #endif
 
+		if (m_abort) return;
+
 		if (e || host == tcp::resolver::iterator())
 		{
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
@@ -2596,6 +2598,8 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " completed resolve: " << url << "\n";
 #endif
+
+		if (m_abort) return;
 
 		std::set<std::string>::iterator i = m_resolving_web_seeds.find(url);
 		if (i != m_resolving_web_seeds.end()) m_resolving_web_seeds.erase(i);
@@ -2739,6 +2743,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		
 		m_resolving_country = false;
+
+		if (m_abort) return;
 
 		// must be ordered in increasing order
 		static const country_entry country_map[] =

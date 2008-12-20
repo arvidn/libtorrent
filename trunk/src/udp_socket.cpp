@@ -251,6 +251,7 @@ void udp_socket::close()
 	m_ipv4_sock.close(ec);
 	m_ipv6_sock.close(ec);
 	m_socks5_sock.close(ec);
+	m_resolver.cancel();
 	if (m_connection_ticket >= 0)
 	{
 		m_cc.done(m_connection_ticket);
