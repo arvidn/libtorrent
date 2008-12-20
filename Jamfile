@@ -110,21 +110,10 @@ rule linking ( properties * )
 	{
 		if <boost-link>static in $(properties)
 		{
-			if <toolset>darwin in $(properties) || <toolset>gcc in $(properties)
-			{
-				result += <library>/boost/thread//boost_thread/<link>static/<cflags>-fvisibility=hidden
-					<library>/boost/filesystem//boost_filesystem/<link>static/<cflags>-fvisibility=hidden
-					<library>/boost/system//boost_system/<link>static
-#/<cflags>-fvisibility=hidden
-					;
-			}
-			else
-			{
-				result += <library>/boost/thread//boost_thread/<link>static
-					<library>/boost/filesystem//boost_filesystem/<link>static
-					<library>/boost/system//boost_system/<link>static
-					;
-			}
+			result += <library>/boost/thread//boost_thread/<link>static
+				<library>/boost/filesystem//boost_filesystem/<link>static
+				<library>/boost/system//boost_system/<link>static
+				;
 		}
 		else
 		{
@@ -155,7 +144,7 @@ rule building ( properties * )
 
 	if <toolset>gcc in $(properties) || <toolset>darwin in $(properties)
 	{
-		result += <cflags>-fvisibility=hidden ;
+		result += <visibility>hidden ;
 	}
 
 	if ( <target-os>linux in $(properties)
@@ -259,6 +248,12 @@ feature debug-iterators : off on : composite propagated link-incompatible ;
 feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;
 
 feature test-coverage : off on : composite propagated ;
+
+feature fpic : off on : composite propagated link-incompatible ;
+feature.compose <fpic>on : <cflags>-fPIC ;
+
+feature visibility : defeault hidden : composite propagated link-incompatible ;
+feature.compose <visibility>hidden : <cflags>-fvisibility=hidden ;
 
 # required for openssl on windows
 lib ssleay32 : : <name>ssleay32 ;
