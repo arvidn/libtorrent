@@ -16,9 +16,9 @@ void test_swarm()
 {
 	using namespace libtorrent;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48010, 49000));
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49010, 50000));
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50010, 51000));
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48010, 49000), "0.0.0.0", 0);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49010, 50000), "0.0.0.0", 0);
+	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50010, 51000), "0.0.0.0", 0);
 
 	ses1.set_severity_level(alert::debug);
 	ses2.set_severity_level(alert::debug);

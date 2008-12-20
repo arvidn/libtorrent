@@ -80,8 +80,8 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	using namespace libtorrent;
 	using std::cerr;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000));
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000));
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000), "0.0.0.0", 0);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000), "0.0.0.0", 0);
 	pe_settings s;
 	
 	s.out_enc_policy = libtorrent::pe_settings::enabled;

@@ -46,9 +46,9 @@ void test_lsd()
 {
 	using namespace libtorrent;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000));
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000));
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50100, 51000));
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
+	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50100, 51000), "0.0.0.0", 0);
 
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all

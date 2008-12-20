@@ -161,7 +161,7 @@ void test_reject_fast()
 {
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
 	sha1_hash ih = t->info_hash();
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000));
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
 	ses1.add_torrent(t, "./tmp1");
 
 	test_sleep(2000);
@@ -225,7 +225,7 @@ void test_respect_suggest()
 {
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
 	sha1_hash ih = t->info_hash();
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000));
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
 	ses1.add_torrent(t, "./tmp1");
 
 	test_sleep(2000);

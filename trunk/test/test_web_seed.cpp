@@ -52,7 +52,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 {
 	using namespace libtorrent;
 
-	session ses;
+	session ses(fingerprint("  ", 0,0,0,0), 0);
 	session_settings settings;
 	settings.ignore_limits_on_local_network = false;
 	ses.set_settings(settings);
