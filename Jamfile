@@ -110,22 +110,29 @@ rule linking ( properties * )
 	{
 		if <boost-link>static in $(properties)
 		{
-			result += <library>/boost/thread//boost_thread/<link>static
-				<library>/boost/filesystem//boost_filesystem/<link>static
-				<library>/boost/system//boost_system/<link>static
-				<include>$(BOOST_ROOT)
-				<define>BOOST_ALL_NO_LIB
-				;
+			if <toolset>darwin in $(properties) || <toolset>gcc in $(properties)
+			{
+				result += <library>/boost/thread//boost_thread/<link>static/<cflags>-fvisibility=hidden
+					<library>/boost/filesystem//boost_filesystem/<link>static/<cflags>-fvisibility=hidden
+					<library>/boost/system//boost_system/<link>static
+#/<cflags>-fvisibility=hidden
+					;
+			}
+			else
+			{
+				result += <library>/boost/thread//boost_thread/<link>static
+					<library>/boost/filesystem//boost_filesystem/<link>static
+					<library>/boost/system//boost_system/<link>static
+					;
+			}
 		}
 		else
 		{
 			result += <library>/boost/thread//boost_thread/<link>shared
 				<library>/boost/filesystem//boost_filesystem/<link>shared
-				<library>/boost/system//boost_system/<link>shared
-				<include>$(BOOST_ROOT)
-				<define>BOOST_ALL_NO_LIB
-				;
+				<library>/boost/system//boost_system/<link>shared ;
 		}
+		result += <include>$(BOOST_ROOT) <define>BOOST_ALL_NO_LIB ;
 	}
 
 	if <boost>system in $(properties)
@@ -145,6 +152,11 @@ rule linking ( properties * )
 rule building ( properties * )
 {
 	local result ;
+
+	if <toolset>gcc in $(properties) || <toolset>darwin in $(properties)
+	{
+		result += <cflags>-fvisibility=hidden ;
+	}
 
 	if ( <target-os>linux in $(properties)
 		|| <target-os>darwin in $(properties) )
