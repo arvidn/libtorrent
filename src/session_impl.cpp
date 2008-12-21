@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/utf8.hpp"
 
 #ifndef TORRENT_WINDOWS
 #include <sys/resource.h>
@@ -347,7 +348,7 @@ namespace aux {
 		if (m_asnum_db) GeoIP_delete(m_asnum_db);
 		std::string utf8;
 		wchar_utf8(file, utf8);
-		m_asnum_db = GeoIP_open(utf8, GEOIP_STANDARD);
+		m_asnum_db = GeoIP_open(utf8.c_str(), GEOIP_STANDARD);
 		return m_asnum_db;
 	}
 
@@ -365,7 +366,7 @@ namespace aux {
 		if (m_country_db) GeoIP_delete(m_country_db);
 		std::string utf8;
 		wchar_utf8(file, utf8);
-		m_country_db = GeoIP_open(utf8, GEOIP_STANDARD);
+		m_country_db = GeoIP_open(utf8.c_str(), GEOIP_STANDARD);
 		return m_country_db;
 	}
 

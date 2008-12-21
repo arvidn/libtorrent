@@ -87,12 +87,21 @@
     bit mask & shift operations.
 ------------------------------------------------------------------------ */
 
-#include <boost/cstdint.hpp>
+#ifdef __cplusplus
 #include "libtorrent/config.hpp"
+// these are standard C types, but they might
+// not be available in c++
+#include <boost/cstdint.hpp>
+typedef boost::uint32_t uint32_t;
+typedef boost::uint16_t uint16_t;
+typedef boost::uint8_t	uint8_t;
+#else
+#define TORRENT_EXPORT
+#endif
 
-typedef boost::uint32_t UTF32;	/* at least 32 bits */
-typedef boost::uint16_t UTF16;	/* at least 16 bits */
-typedef boost::uint8_t	UTF8;	/* typically 8 bits */
+typedef uint32_t UTF32;	/* at least 32 bits */
+typedef uint16_t UTF16;	/* at least 16 bits */
+typedef uint8_t	UTF8;	/* typically 8 bits */
 typedef unsigned char	Boolean; /* 0 or 1 */
 
 /* Some fundamental constants */

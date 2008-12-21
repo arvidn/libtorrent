@@ -20,6 +20,8 @@
 
 #include "libtorrent/GeoIP.h"
 
+#include "libtorrent/ConvertUTF.h"
+
 #ifndef WIN32
 #include <netdb.h>
 #include <sys/socket.h>
@@ -345,7 +347,16 @@ int _check_mtime(GeoIP *gi) {
 				/* refresh filehandle */
 				fclose(gi->GeoIPDatabase);
 #ifdef WIN32
-				gi->GeoIPDatabase = _wfopen(libtorrent::safe_convert(gi->file_path).c_str(),L"rb");
+				assert(sizeof(wchar_t) == 2);
+				int name_len = strlen(gi->file_path);
+				wchar_t* wfilename = malloc((name_len + 1) * sizeof(wchar_t));
+				wchar_t const* dst_start = wfilename;
+				char const* src_start = gi->file_path;
+				ret = ConvertUTF8toUTF16((const UTF8**)&src_start, (const UTF8*)src_start
+						+ name_len, (UTF16**)&dst_start, (UTF16*)dst_start + name_len + 1
+						, lenientConversion);
+				gi->GeoIPDatabase = _wfopen(wfilename,L"rb");
+				free(wfilename);
 #else
 				gi->GeoIPDatabase = fopen(gi->file_path,"rb");
 #endif
@@ -529,11 +540,6 @@ GeoIP* GeoIP_new (int flags) {
 }
 */
 
-namespace libtorrent
-{
-	std::wstring safe_convert(std::string const& s);
-}
-
 GeoIP* GeoIP_open (const char * filename, int flags) {
 	struct stat buf;
 	GeoIP * gi;
@@ -550,7 +556,16 @@ GeoIP* GeoIP_open (const char * filename, int flags) {
 	}
 	strncpy(gi->file_path, filename, len);
 #ifdef WIN32
-	gi->GeoIPDatabase = _wfopen(libtorrent::safe_convert(filename).c_str(),L"rb");
+	assert(sizeof(wchar_t) == 2);
+	int name_len = strlen(filename);
+	wchar_t* wfilename = malloc((name_len + 1) * sizeof(wchar_t));
+	wchar_t const* dst_start = wfilename;
+	char const* src_start = filename;
+	ret = ConvertUTF8toUTF16((const UTF8**)&src_start, (const UTF8*)src_start
+		+ name_len, (UTF16**)&dst_start, (UTF16*)dst_start + name_len + 1
+		, lenientConversion);
+	gi->GeoIPDatabase = _wfopen(wfilename,L"rb");
+	free(wfilename);
 #else
 	gi->GeoIPDatabase = fopen(filename,"rb");
 #endif
