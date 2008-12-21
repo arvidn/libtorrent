@@ -110,10 +110,26 @@ rule linking ( properties * )
 	{
 		if <boost-link>static in $(properties)
 		{
-			result += <library>/boost/thread//boost_thread/<link>static
-				<library>/boost/filesystem//boost_filesystem/<link>static
+			if <toolset>gcc in $(properties) && <link>shared in $(properties)
+			{
+				result += <fpic>on ;
+			}
+
+			result += <library>/boost/filesystem//boost_filesystem/<link>static
 				<library>/boost/system//boost_system/<link>static
 				;
+
+			# if we're building a shared library
+			# we need to link dynamically against the
+			# pthread library
+			if <fpic>on in $(properties) && <target-os>linux in $(properties)
+			{
+				result += <library>/boost/thread//boost_thread/<link>shared ;
+			}
+			else
+			{
+				result += <library>/boost/thread//boost_thread/<link>static ;
+			}
 		}
 		else
 		{
@@ -251,6 +267,7 @@ feature test-coverage : off on : composite propagated ;
 
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
+feature.compose <fpic>off : <toolset>darwin:<cflags>-mdynamic-no-pic ;
 
 feature visibility : defeault hidden : composite propagated link-incompatible ;
 feature.compose <visibility>hidden : <cflags>-fvisibility=hidden ;
