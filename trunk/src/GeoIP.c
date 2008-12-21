@@ -344,7 +344,11 @@ int _check_mtime(GeoIP *gi) {
 				}
 				/* refresh filehandle */
 				fclose(gi->GeoIPDatabase);
+#ifdef WIN32
+				gi->GeoIPDatabase = _wfopen(libtorrent::safe_convert(gi->file_path).c_str(),L"rb");
+#else
 				gi->GeoIPDatabase = fopen(gi->file_path,"rb");
+#endif
 				if (gi->GeoIPDatabase == NULL) {
 					fprintf(stderr,"Error Opening file %s when reloading\n",gi->file_path);
 					return -1;
@@ -524,6 +528,12 @@ GeoIP* GeoIP_new (int flags) {
 	return gi;
 }
 */
+
+namespace libtorrent
+{
+	std::wstring safe_convert(std::string const& s);
+}
+
 GeoIP* GeoIP_open (const char * filename, int flags) {
 	struct stat buf;
 	GeoIP * gi;
@@ -539,7 +549,11 @@ GeoIP* GeoIP_open (const char * filename, int flags) {
 		return NULL;
 	}
 	strncpy(gi->file_path, filename, len);
+#ifdef WIN32
+	gi->GeoIPDatabase = _wfopen(libtorrent::safe_convert(filename).c_str(),L"rb");
+#else
 	gi->GeoIPDatabase = fopen(filename,"rb");
+#endif
 	if (gi->GeoIPDatabase == NULL) {
 		fprintf(stderr,"Error Opening file %s\n",filename);
 		free(gi->file_path);

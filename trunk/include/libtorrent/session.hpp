@@ -289,7 +289,9 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_GEO_IP
 		int as_for_ip(address const& addr);
 		bool load_asnum_db(char const* file);
+		bool load_asnum_db(wchar_t const* file);
 		bool load_country_db(char const* file);
+		bool load_country_db(wchar_t const* file);
 #endif
 
 		void load_state(entry const& ses_state);
