@@ -269,7 +269,7 @@ feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
 feature.compose <fpic>off : <toolset>darwin:<cflags>-mdynamic-no-pic ;
 
-feature visibility : defeault hidden : composite propagated link-incompatible ;
+feature visibility : default hidden : composite propagated link-incompatible ;
 feature.compose <visibility>hidden : <cflags>-fvisibility=hidden ;
 
 # required for openssl on windows
