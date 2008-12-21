@@ -341,11 +341,31 @@ namespace aux {
 		return m_asnum_db;
 	}
 
+	bool session_impl::load_asnum_db(wchar_t const* file)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		if (m_asnum_db) GeoIP_delete(m_asnum_db);
+		std::string utf8;
+		wchar_utf8(file, utf8);
+		m_asnum_db = GeoIP_open(utf8, GEOIP_STANDARD);
+		return m_asnum_db;
+	}
+
 	bool session_impl::load_country_db(char const* file)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		if (m_country_db) GeoIP_delete(m_country_db);
 		m_country_db = GeoIP_open(file, GEOIP_STANDARD);
+		return m_country_db;
+	}
+
+	bool session_impl::load_country_db(wchar_t const* file)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		if (m_country_db) GeoIP_delete(m_country_db);
+		std::string utf8;
+		wchar_utf8(file, utf8);
+		m_country_db = GeoIP_open(utf8, GEOIP_STANDARD);
 		return m_country_db;
 	}
 

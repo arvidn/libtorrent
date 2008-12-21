@@ -231,7 +231,17 @@ namespace libtorrent
 		return m_impl->load_asnum_db(file);
 	}
 
+	bool session::load_asnum_db(wchar_t const* file)
+	{
+		return m_impl->load_asnum_db(file);
+	}
+
 	bool session::load_country_db(char const* file)
+	{
+		return m_impl->load_country_db(file);
+	}
+
+	bool session::load_country_db(wchar_t const* file)
 	{
 		return m_impl->load_country_db(file);
 	}

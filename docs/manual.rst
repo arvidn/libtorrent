@@ -134,7 +134,9 @@ The ``session`` class has the following synopsis::
 		int num_connections() const;
 
 		bool load_asnum_db(char const* file);
+		bool load_asnum_db(wchar_t const* file);
 		bool load_country_db(char const* file);
+		bool load_country_db(wchar_t const* file);
 		int as_for_ip(address const& adr);
 
 		void load_state(entry const& ses_state);
@@ -470,7 +472,9 @@ load_asnum_db() load_country_db() int as_for_ip()
 	::
 
 		bool load_asnum_db(char const* file);
+		bool load_asnum_db(wchar_t const* file);
 		bool load_country_db(char const* file);
+		bool load_country_db(wchar_t const* file);
 		int as_for_ip(address const& adr);
 
 These functions are not available if ``TORRENT_DISABLE_GEO_IP`` is defined. They
@@ -479,6 +483,8 @@ respectively. This will be used to look up which AS and country peers belong to.
 
 ``as_for_ip`` returns the AS number for the IP address specified. If the IP is not
 in the database or the ASN database is not loaded, 0 is returned.
+
+The ``wchar_t`` overloads are for wide character paths.
 
 .. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
 .. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
