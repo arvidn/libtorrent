@@ -33,12 +33,19 @@ following features:
   some `DHT extensions`_.
 * support for IPv6
 * NAT-PMP and UPnP support (automatic port mapping on routers that supports it)
-* piece-wise, unordered, incremental file allocation
-* uses separate threads for checking files and for main downloader, with a
-  fool-proof thread-safe library interface. (i.e. There's no way for the
-  user to cause a deadlock). (see threads_)
+* uses a separate disk I/O thread to not have the disk ever block on network or
+  client interaction. (see threads_).
+* supports the bittorrent `extension protocol`_. See extensions_.
+* supports the uTorrent metadata transfer protocol (i.e. magnet links).
+* supports the uTorrent peer exchange protocol (PEX).
+* supports local peer discovery (multicasts for peers on the same local network)
 * adjusts the length of the request queue depending on download rate.
-* multitracker extension support (as `specified by John Hoffman`__)
+* has an adjustable read and write disk cache for improved disk throughput.
+* multitracker extension support (supports both the `specification by John Hoffman`__
+  and the uTorrent interpretation).
+* tracker scrapes
+* supports both sparse files and compact file allocation (where pieces
+  are kept consolidated on disk)
 * supports files > 2 gigabytes.
 * serves multiple torrents on a single port and in a single thread
 * fast resume support, a way to get rid of the costly piece check at the
@@ -58,7 +65,6 @@ following features:
 * implements fair trade. User settable trade-ratio, must at least be 1:1,
   but one can choose to trade 1 for 2 or any other ratio that isn't unfair
   to the other party.
-* supports an `extension protocol`_. See extensions_.
 * supports the ``no_peer_id=1`` extension that will ease the load off trackers.
 * possibility to limit the number of connections.
 * delays have messages if there's no other outgoing traffic to the peer, and

@@ -5278,15 +5278,12 @@ libtorrent starts 2 or 3 threads.
    idle in a ``select()`` call most of the time. This thread runs the main loop
    that will send and receive data on all connections.
    
- * The second thread is a hash-check thread. Whenever a torrent is added it will
-   first be passed to this thread for checking the files that may already have been
-   downloaded. If there is any resume data this thread will make sure it is valid
-   and matches the files. Once the torrent has been checked, it is passed on to the
-   main thread that will start it. The hash-check thread has a queue of torrents,
-   it will only check one torrent at a time.
+ * The second thread is the disk I/O thread. All disk read and write operations
+	are passed to this thread and messages are passed back to the main thread when
+	the operation compeltes. The disk thread also verifies the piece hashes.
 
- * The third thread is spawned by asio on systems that don't support
-   non-blocking host name resolution to simulate non-blocking behavior.
+ * The third and forth threads are spawned by asio on systems that don't support
+   non-blocking host name resolution to simulate non-blocking getaddrinfo().
 
 
 storage allocation
