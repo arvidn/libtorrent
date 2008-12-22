@@ -357,7 +357,7 @@ int _check_mtime(GeoIP *gi) {
 				dst_start = wfilename;
 				src_start = gi->file_path;
 				ConvertUTF8toUTF16((const UTF8**)&src_start, (const UTF8*)src_start
-					+ name_len, (UTF16**)&dst_start, (UTF16*)dst_start + name_len + 1
+					+ name_len+1, (UTF16**)&dst_start, (UTF16*)dst_start + name_len + 1
 					, lenientConversion);
 				gi->GeoIPDatabase = _wfopen(wfilename,L"rb");
 				free(wfilename);
@@ -572,7 +572,7 @@ GeoIP* GeoIP_open (const char * filename, int flags) {
 	dst_start = wfilename;
 	src_start = filename;
 	ConvertUTF8toUTF16((const UTF8**)&src_start, (const UTF8*)src_start
-		+ name_len, (UTF16**)&dst_start, (UTF16*)dst_start + name_len + 1
+		+ name_len+1, (UTF16**)&dst_start, (UTF16*)dst_start + name_len + 1
 		, lenientConversion);
 	gi->GeoIPDatabase = _wfopen(wfilename,L"rb");
 	free(wfilename);
