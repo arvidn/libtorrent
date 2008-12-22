@@ -95,6 +95,7 @@
 typedef boost::uint32_t uint32_t;
 typedef boost::uint16_t uint16_t;
 typedef boost::uint8_t	uint8_t;
+extern "C" {
 #else
 #define TORRENT_EXPORT
 #endif
@@ -149,4 +150,7 @@ ConversionResult ConvertUTF32toUTF16 (
 
 Boolean isLegalUTF8Sequence(const UTF8 *source, const UTF8 *sourceEnd);
 
+#ifdef __cplusplus
+}
+#endif
 /* --------------------------------------------------------------------- */
