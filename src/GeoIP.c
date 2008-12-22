@@ -328,6 +328,10 @@ int _check_mtime(GeoIP *gi) {
 	if (gi->flags & GEOIP_CHECK_CACHE) {
 		if (stat(gi->file_path, &buf) != -1) {
 			if (buf.st_mtime != gi->mtime) {
+				int name_len;
+				wchar_t* wfilename;
+				wchar_t const* dst_start;
+				char const* src_start;
 				/* GeoIP Database file updated */
 				if (gi->flags & (GEOIP_MEMORY_CACHE | GEOIP_MMAP_CACHE)) {
 #ifndef WIN32
@@ -348,13 +352,13 @@ int _check_mtime(GeoIP *gi) {
 				fclose(gi->GeoIPDatabase);
 #ifdef WIN32
 				assert(sizeof(wchar_t) == 2);
-				int name_len = strlen(gi->file_path);
-				wchar_t* wfilename = malloc((name_len + 1) * sizeof(wchar_t));
-				wchar_t const* dst_start = wfilename;
-				char const* src_start = gi->file_path;
-				ret = ConvertUTF8toUTF16((const UTF8**)&src_start, (const UTF8*)src_start
-						+ name_len, (UTF16**)&dst_start, (UTF16*)dst_start + name_len + 1
-						, lenientConversion);
+				name_len = strlen(gi->file_path);
+				wfilename = malloc((name_len + 1) * sizeof(wchar_t));
+				dst_start = wfilename;
+				src_start = gi->file_path;
+				ConvertUTF8toUTF16((const UTF8**)&src_start, (const UTF8*)src_start
+					+ name_len, (UTF16**)&dst_start, (UTF16*)dst_start + name_len + 1
+					, lenientConversion);
 				gi->GeoIPDatabase = _wfopen(wfilename,L"rb");
 				free(wfilename);
 #else
@@ -544,6 +548,12 @@ GeoIP* GeoIP_open (const char * filename, int flags) {
 	struct stat buf;
 	GeoIP * gi;
 	size_t len;
+#ifdef WIN32
+	int name_len;
+	wchar_t* wfilename;
+	wchar_t const* dst_start;
+	char const* src_start;
+#endif
 
 	gi = (GeoIP *)malloc(sizeof(GeoIP));
 	if (gi == NULL)
@@ -557,11 +567,11 @@ GeoIP* GeoIP_open (const char * filename, int flags) {
 	strncpy(gi->file_path, filename, len);
 #ifdef WIN32
 	assert(sizeof(wchar_t) == 2);
-	int name_len = strlen(filename);
-	wchar_t* wfilename = malloc((name_len + 1) * sizeof(wchar_t));
-	wchar_t const* dst_start = wfilename;
-	char const* src_start = filename;
-	ret = ConvertUTF8toUTF16((const UTF8**)&src_start, (const UTF8*)src_start
+	name_len = strlen(filename);
+	wfilename = malloc((name_len + 1) * sizeof(wchar_t));
+	dst_start = wfilename;
+	src_start = filename;
+	ConvertUTF8toUTF16((const UTF8**)&src_start, (const UTF8*)src_start
 		+ name_len, (UTF16**)&dst_start, (UTF16*)dst_start + name_len + 1
 		, lenientConversion);
 	gi->GeoIPDatabase = _wfopen(wfilename,L"rb");
