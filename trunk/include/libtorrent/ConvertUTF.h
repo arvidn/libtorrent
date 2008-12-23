@@ -92,17 +92,25 @@
 // these are standard C types, but they might
 // not be available in c++
 #include <boost/cstdint.hpp>
-typedef boost::uint32_t uint32_t;
-typedef boost::uint16_t uint16_t;
-typedef boost::uint8_t	uint8_t;
+typedef boost::uint32_t UTF32;
+typedef boost::uint16_t UTF16;
+typedef boost::uint8_t  UTF8;
 extern "C" {
 #else
 #define TORRENT_EXPORT
+#ifdef _MSC_VER
+// msvc doesn't seem to have stdint.h
+typedef unsigned __int32 UTF32;
+typedef unsigned __int16 UTF16;
+typedef unsigned __int8  UTF8;
+#else
+#include <stdint.h>
+typedef uint32_t UTF32;
+typedef uint16_t UTF16;
+typedef uint8_t  UTF8;
+#endif
 #endif
 
-typedef uint32_t UTF32;	/* at least 32 bits */
-typedef uint16_t UTF16;	/* at least 16 bits */
-typedef uint8_t	UTF8;	/* typically 8 bits */
 typedef unsigned char	Boolean; /* 0 or 1 */
 
 /* Some fundamental constants */
