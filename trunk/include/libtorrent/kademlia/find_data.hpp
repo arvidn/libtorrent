@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define FIND_DATA_050323_HPP
 
 #include <vector>
+#include <map>
 
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
@@ -58,22 +59,29 @@ class node_impl;
 class find_data : public traversal_algorithm
 {
 public:
-	typedef boost::function<void(msg const*)> done_callback;
+	typedef boost::function<void(std::vector<tcp::endpoint> const&)> data_callback;
+	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
 
 	void got_data(msg const* m);
+	void got_write_token(node_id const& n, std::string const& write_token)
+	{ m_write_tokens[n] = write_token; }
 
 	find_data(node_impl& node, node_id target
-		, done_callback const& callback);
+		, data_callback const& dcallback
+		, nodes_callback const& ncallback);
 
 	virtual char const* name() const { return "get_peers"; }
+	node_id const target() const { return m_target; }
 
 private:
 
 	void done();
 	void invoke(node_id const& id, udp::endpoint addr);
 
-	done_callback m_done_callback;
-	boost::shared_ptr<packet_t> m_packet;
+	data_callback m_data_callback;
+	nodes_callback m_nodes_callback;
+	std::map<node_id, std::string> m_write_tokens;
+	node_id const m_target;
 	bool m_done;
 };
 
@@ -82,11 +90,9 @@ class find_data_observer : public observer
 public:
 	find_data_observer(
 		boost::intrusive_ptr<find_data> const& algorithm
-		, node_id self
-		, node_id target)
+		, node_id self)
 		: observer(algorithm->allocator())
 		, m_algorithm(algorithm)
-		, m_target(target) 
 		, m_self(self)
 	{}
 	~find_data_observer();
@@ -95,7 +101,7 @@ public:
 	{
 		m.reply = false;
 		m.message_id = messages::get_peers;
-		m.info_hash = m_target;
+		m.info_hash = m_algorithm->target();
 	}
 
 	void timeout();
@@ -104,7 +110,6 @@ public:
 
 private:
 	boost::intrusive_ptr<find_data> m_algorithm;
-	node_id const m_target;
 	node_id const m_self;
 };
 

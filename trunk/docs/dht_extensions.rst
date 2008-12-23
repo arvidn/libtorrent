@@ -5,6 +5,16 @@ Mainline DHT extensions
 
 libtorrent implements a few extensions to the Mainline DHT protocol.
 
+get_peers response
+------------------
+
+libtorrent always responds with ``nodes`` to a get_peers request. If it has
+peers for the specified info-hash, it will return ``values`` as well. This is
+because just because some peer announced to us, doesn't mean that we are
+among the 8 closest nodes of the info hash. libtorrent also keeps traversing
+nodes using get_peers until it has found the 8 closest ones, and then announces
+to those nodes.
+
 client identification
 ---------------------
 
