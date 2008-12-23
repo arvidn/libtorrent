@@ -207,7 +207,7 @@ namespace libtorrent { namespace dht
 		// turns on and off individual components' logging
 
 		rpc_log().enable(false);
-		node_log().enable(false);
+//		node_log().enable(false);
 		traversal_log().enable(false);
 //		dht_tracker_log.enable(false);
 
@@ -325,7 +325,7 @@ namespace libtorrent { namespace dht
 			m_last_new_key = now;
 			m_dht.new_write_key();
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(dht_tracker) << time_now_string() << " new write key";
+			TORRENT_LOG(dht_tracker) << " *** new write key";
 #endif
 		}
 		
@@ -410,8 +410,7 @@ namespace libtorrent { namespace dht
 	}
 
 	void dht_tracker::announce(sha1_hash const& ih, int listen_port
-		, boost::function<void(std::vector<tcp::endpoint> const&
-		, sha1_hash const&)> f)
+		, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		m_dht.announce(ih, listen_port, f);
@@ -609,6 +608,9 @@ namespace libtorrent { namespace dht
 			std::copy(id->string_ptr(), id->string_ptr()
 				+ id->string_length(), m.id.begin());
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			log_line << " id: " << m.id;
+#endif
 			lazy_entry const* n = r->dict_find_list("values");
 			if (n)
 			{
@@ -804,6 +806,7 @@ namespace libtorrent { namespace dht
 				m.write_token = token->string_value();
 				m.message_id = libtorrent::dht::messages::announce_peer;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
+				log_line << " token: " << to_hex(m.write_token);
 				log_line << " ih: " << boost::lexical_cast<std::string>(m.info_hash);
 				log_line << " p: " << m.port;
 
@@ -1037,11 +1040,9 @@ namespace libtorrent { namespace dht
 				}
 				case messages::get_peers:
 				{
-					if (m.peers.empty())
-					{
-						write_nodes_entry(r, m);
-					}
-					else
+					write_nodes_entry(r, m);
+
+					if (!m.peers.empty())
 					{
 						r["values"] = entry(entry::list_t);
 						entry& p = r["values"];

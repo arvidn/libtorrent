@@ -172,12 +172,14 @@ void node_impl::refresh(node_id const& id
 void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 	, boost::function0<void> f)
 {
+/*
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(node) << "bootrapping: " << nodes.size();
 	for (std::vector<udp::endpoint>::const_iterator i = nodes.begin()
 		, end(nodes.end()); i != end; ++i)
 		TORRENT_LOG(node) << "  " << *i;
 #endif
+*/
 	std::vector<node_entry> start;
 	start.reserve(nodes.size());
 	std::copy(nodes.begin(), nodes.end(), std::back_inserter(start));
@@ -255,29 +257,29 @@ void node_impl::incoming(msg const& m)
 
 namespace
 {
-	void announce_fun(std::vector<node_entry> const& v, rpc_manager& rpc
-		, int listen_port, sha1_hash const& ih
-		, boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> f)
+	void announce_fun(std::vector<std::pair<node_entry, std::string> > const& v
+		, rpc_manager& rpc, int listen_port, sha1_hash const& ih)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(node) << "announce response [ ih: " << ih
+		TORRENT_LOG(node) << "sending announce_peer [ ih: " << ih
 			<< " p: " << listen_port
 			<< " nodes: " << v.size() << " ]" ;
 #endif
-		bool nodes = false;
-		// only store on the first k nodes
-		for (std::vector<node_entry>::const_iterator i = v.begin()
+		
+		// store on the first k nodes
+		for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = v.begin()
 			, end(v.end()); i != end; ++i)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(node) << "  distance: " << (160 - distance_exp(ih, i->id));
+			TORRENT_LOG(node) << "  distance: " << (160 - distance_exp(ih, i->first.id));
 #endif
-			observer_ptr o(new (rpc.allocator().malloc()) get_peers_observer(ih, listen_port, rpc, f));
+
+			observer_ptr o(new (rpc.allocator().malloc()) announce_observer(
+				rpc.allocator(), ih, listen_port, i->second));
 #ifdef TORRENT_DEBUG
 			o->m_in_constructor = false;
 #endif
-			rpc.invoke(messages::get_peers, udp::endpoint(i->addr, i->port), o);
-			nodes = true;
+			rpc.invoke(messages::announce_peer, i->first.ep(), o);
 		}
 	}
 }
@@ -302,15 +304,15 @@ void node_impl::add_node(udp::endpoint node)
 }
 
 void node_impl::announce(sha1_hash const& info_hash, int listen_port
-	, boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> f)
+	, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(node) << "announcing [ ih: " << info_hash << " p: " << listen_port << " ]" ;
 #endif
-	// search for nodes with ids close to id, and then invoke the
-	// get_peers and then announce_peer rpc on them.
-	new closest_nodes(*this, info_hash, boost::bind(&announce_fun, _1, boost::ref(m_rpc)
-		, listen_port, info_hash, f));
+	// search for nodes with ids close to id or with peers
+	// for info-hash id. then send announce_peer to them.
+	new find_data(*this, info_hash, f, boost::bind(&announce_fun, _1, boost::ref(m_rpc)
+		, listen_port, info_hash));
 }
 
 time_duration node_impl::refresh_timeout()
@@ -443,7 +445,7 @@ bool node_impl::on_find(msg const& m, std::vector<tcp::endpoint>& peers) const
 	random_sample_n(boost::make_transform_iterator(v.peers.begin(), &get_endpoint)
 		, boost::make_transform_iterator(v.peers.end(), &get_endpoint)
 		, std::back_inserter(peers), num);
-
+/*
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	for (std::vector<tcp::endpoint>::iterator i = peers.begin()
 		, end(peers.end()); i != end; ++i)
@@ -451,6 +453,7 @@ bool node_impl::on_find(msg const& m, std::vector<tcp::endpoint>& peers) const
 		TORRENT_LOG(node) << "   " << *i;
 	}
 #endif
+*/
 	return true;
 }
 
@@ -471,26 +474,10 @@ void node_impl::incoming_request(msg const& m)
 			reply.info_hash = m.info_hash;
 			reply.write_token = generate_token(m);
 			
-			if (!on_find(m, reply.peers))
-			{
-				// we don't have any peers for this info_hash,
-				// return nodes instead
-				m_table.find_node(m.info_hash, reply.nodes, 0);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-				for (std::vector<node_entry>::iterator i = reply.nodes.begin()
-					, end(reply.nodes.end()); i != end; ++i)
-				{
-					TORRENT_LOG(node) << "	" << i->id << " " << i->ep();
-				}
-#endif
-			}
-		}
-		break;
-	case messages::find_node:
-		{
-			reply.info_hash = m.info_hash;
-
+			on_find(m, reply.peers);
+			// always return nodes as well as peers
 			m_table.find_node(m.info_hash, reply.nodes, 0);
+/*
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			for (std::vector<node_entry>::iterator i = reply.nodes.begin()
 				, end(reply.nodes.end()); i != end; ++i)
@@ -498,6 +485,23 @@ void node_impl::incoming_request(msg const& m)
 				TORRENT_LOG(node) << "	" << i->id << " " << i->ep();
 			}
 #endif
+*/
+		}
+		break;
+	case messages::find_node:
+		{
+			reply.info_hash = m.info_hash;
+
+			m_table.find_node(m.info_hash, reply.nodes, 0);
+/*
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			for (std::vector<node_entry>::iterator i = reply.nodes.begin()
+				, end(reply.nodes.end()); i != end; ++i)
+			{
+				TORRENT_LOG(node) << "	" << i->id << " " << i->ep();
+			}
+#endif
+*/
 		}
 		break;
 	case messages::announce_peer:

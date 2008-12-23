@@ -93,7 +93,6 @@ typedef mpl::vector<
 	closest_nodes_observer
 	, find_data_observer
 	, announce_observer
-	, get_peers_observer
 	, refresh_observer
 	, ping_observer
 	, null_observer
@@ -117,6 +116,16 @@ rpc_manager::rpc_manager(fun const& f, node_id const& our_id
 	, m_destructing(false)
 {
 	std::srand(time(0));
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(rpc) << "Constructing";
+	TORRENT_LOG(rpc) << " closest_nodes_observer: " << sizeof(closest_nodes_observer);
+	TORRENT_LOG(rpc) << " find_data_observer: " << sizeof(find_data_observer);
+	TORRENT_LOG(rpc) << " announce_observer: " << sizeof(announce_observer);
+	TORRENT_LOG(rpc) << " refresh_observer: " << sizeof(refresh_observer);
+	TORRENT_LOG(rpc) << " ping_observer: " << sizeof(ping_observer);
+	TORRENT_LOG(rpc) << " null_observer: " << sizeof(null_observer);
+#endif
 }
 
 rpc_manager::~rpc_manager()

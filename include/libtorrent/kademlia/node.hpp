@@ -125,46 +125,6 @@ private:
 	std::string m_token;
 };
 
-class get_peers_observer : public observer
-{
-public:
-	get_peers_observer(sha1_hash const& info_hash
-		, int listen_port
-		, rpc_manager& rpc
-		, boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> f)
-		: observer(rpc.allocator())
-		, m_info_hash(info_hash)
-		, m_listen_port(listen_port)
-		, m_rpc(rpc)
-		, m_fun(f)
-	{}
-
-	void send(msg& m)
-	{
-		m.port = m_listen_port;
-		m.info_hash = m_info_hash;
-	}
-
-	void timeout() {}
-	void reply(msg const& r)
-	{
-		observer_ptr o(new (m_rpc.allocator().malloc()) announce_observer(
-			m_rpc.allocator(), m_info_hash, m_listen_port, r.write_token));
-#ifdef TORRENT_DEBUG
-		o->m_in_constructor = false;
-#endif
-		m_rpc.invoke(messages::announce_peer, r.addr, o);
-		m_fun(r.peers, m_info_hash);
-	}
-	void abort() {}
-
-private:
-	sha1_hash m_info_hash;
-	int m_listen_port;
-	rpc_manager& m_rpc;
-	boost::function<void(std::vector<tcp::endpoint> const&, sha1_hash const&)> m_fun;
-};
-
 class node_impl : boost::noncopyable
 {
 typedef std::map<node_id, torrent_entry> table_t;
@@ -211,8 +171,7 @@ public:
 #endif
 
 	void announce(sha1_hash const& info_hash, int listen_port
-		, boost::function<void(std::vector<tcp::endpoint> const&
-			, sha1_hash const&)> f);
+		, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 
 	bool verify_token(msg const& m);
 	std::string generate_token(msg const& m);
