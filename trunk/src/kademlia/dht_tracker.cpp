@@ -348,20 +348,20 @@ namespace libtorrent { namespace dht
 			first = false;
 			pc << "\n\n *****   starting log at " << time_now_string() << "   *****\n\n"
 				<< "minute:active nodes:passive nodes"
-				":ping replies sent:ping queries recvd:ping"
-				":ping replies sent:ping queries recvd:ping"
+				":ping replies sent:ping queries recvd"
+				":ping replies bytes sent:ping queries bytes recvd"
+				":find_node replies sent:find_node queries recv"
 				":find_node replies bytes sent:find_node queries bytes recv"
-				":find_node replies bytes sent:find_node queries bytes recv"
-				":get_peers replies sent:get_peers queries recvd:get_peers"
+				":get_peers replies sent:get_peers queries recvd"
 				":get_peers replies bytes sent:get_peers queries bytes recv"
-				":announce_peer replies sent:announce_peer queries recvd:announce_peer"
+				":announce_peer replies sent:announce_peer queries recvd"
 				":announce_peer replies bytes sent:announce_peer queries bytes recv"
-				":error replies sent:error queries recvd:error"
+				":error replies sent:error queries recvd"
 				":error replies bytes sent:error queries bytes recv"
 				":num torrents:num peers:announces per min"
 				":failed announces per min:total msgs per min"
-				":ut msgs per min:lt msgs per min:mp msgs per min"
-				":gr msgs per min:bytes in per sec:bytes out per sec"
+				":az msgs per min:ut msgs per min:lt msgs per min:mp msgs per min"
+				":gr msgs per min:mo msgs per min:bytes in per sec:bytes out per sec"
 				":queries out bytes per sec\n\n";
 		}
 

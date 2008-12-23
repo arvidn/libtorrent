@@ -1,34 +1,38 @@
 import sys
 import os
 
-up_time_quanta = 60
+up_time_quanta = 2000
 
 f = open(sys.argv[1])
 
 announce_histogram = {}
 node_uptime_histogram = {}
 
-for i in xrange(0, 50): announce_histogram[i] = 0
-for i in xrange(0, 5000, up_time_quanta): node_uptime_histogram[i] = 0
-
 counter = 0;
 
 for line in f:
 	counter += 1
-	if counter % 1000 == 0:
-		print '\r%d' % counter,
+#	if counter % 1000 == 0:
+#		print '\r%d' % counter,
 	try:
 		if 'distance:' in line:
 			l = line.split(' ')
+			idx = l.index('distance:')
 
-			d = int(l[4])
+			d = int(l[idx+1].strip())
+			if not d in announce_histogram: announce_histogram[d] = 0
 			announce_histogram[d] += 1
 		if 'NODE FAILED' in line:
 			l = line.split(' ')
-			if int(l[9]) != 1: continue;
-			d = int(l[11])
-			node_uptime_histogram[d - (d % up_time_quanta)] += 1
-	except:
+			idx = l.index('fails:')
+			if int(l[idx+1].strip()) != 1: continue;
+			idx = l.index('up-time:')
+			d = int(l[idx+1].strip())
+			# quantize
+			d = d - (d % up_time_quanta)
+			if not d in node_uptime_histogram: node_uptime_histogram[d] = 0
+			node_uptime_histogram[d] += 1
+	except Exception, e:
 		print line.split(' ')
 
 out = open('dht_announce_distribution.dat', 'w+')
@@ -66,4 +70,5 @@ plot  "dht_node_uptime_distribution.dat" using 1:2 title "nodes" with boxes
 out.close()
 
 os.system('gnuplot dht.gnuplot');
+
 
