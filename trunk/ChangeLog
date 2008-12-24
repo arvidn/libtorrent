@@ -27,6 +27,8 @@ release 0.14.2
 	* improved error message for python setup script
 	* fixed bug when torrent file included announce-list, but no valid
 	  tracker urls
+	* fixed bug where the files requested from web seeds would be the
+	  renamed file names instead of the original file names in the torrent.
 
 release 0.14.1
 

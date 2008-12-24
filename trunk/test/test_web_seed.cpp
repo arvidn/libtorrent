@@ -56,7 +56,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 	session_settings settings;
 	settings.ignore_limits_on_local_network = false;
 	ses.set_settings(settings);
-	ses.set_severity_level(alert::debug);
+	ses.set_alert_mask(~alert::progress_notification);
 	ses.listen_on(std::make_pair(51000, 52000));
 	ses.set_download_rate_limit(torrent_file->total_size() / 10);
 	remove_all("./tmp1");
@@ -124,6 +124,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 
 	if (proxy) stop_proxy(8002);
 
+	TEST_CHECK(exists("./tmp1" / torrent_file->file_at(0).path));
 	remove_all("./tmp1");
 }
 
@@ -175,6 +176,9 @@ int test_main()
 	for (int i = 0; i < 6; ++i)
 		test_transfer(torrent_file, i);
 	
+	torrent_file->rename_file(0, "./test_torrent_dir/renamed_test1");
+	test_transfer(torrent_file, 0);
+
 	stop_web_server(8000);
 	remove_all("./test_torrent_dir");
 	return 0;

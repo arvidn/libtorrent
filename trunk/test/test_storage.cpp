@@ -503,11 +503,6 @@ void test_rename_file_in_fastresume()
 			print_alerts(ses, "ses");
 			test_sleep(1000);
 			torrent_status s = h.status();
-			if (s.progress == 1.0f) 
-			{
-				std::cout << "progress: 1.0f" << std::endl;
-				break;
-			}
 		}
 		resume = h.write_resume_data();
 		ses.remove_torrent(h);

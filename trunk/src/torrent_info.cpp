@@ -392,12 +392,19 @@ namespace libtorrent
 	torrent_info::~torrent_info()
 	{}
 
+	void torrent_info::copy_on_write()
+	{
+		if (m_orig_files) return;
+		m_orig_files.reset(new file_storage(m_files));
+	}
+
 	void torrent_info::swap(torrent_info& ti)
 	{
 		using std::swap;
 		m_urls.swap(ti.m_urls);
 		m_url_seeds.swap(ti.m_url_seeds);
 		m_files.swap(ti.m_files);
+		m_orig_files.swap(ti.m_orig_files);
 		m_nodes.swap(ti.m_nodes);
 		swap(m_info_hash, ti.m_info_hash);
 		swap(m_creation_date, ti.m_creation_date);
