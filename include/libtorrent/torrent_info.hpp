@@ -175,7 +175,19 @@ namespace libtorrent
 		~torrent_info();
 
 		file_storage const& files() const { return m_files; }
-		file_storage& files() { return m_files; }
+		file_storage const& orig_files() const { return m_orig_files ? *m_orig_files : m_files; }
+
+		void rename_file(int index, std::string const& new_filename)
+		{
+			copy_on_write();
+			m_files.rename_file(index, new_filename);
+		}
+
+		void rename_file(int index, std::wstring const& new_filename)
+		{
+			copy_on_write();
+			m_files.rename_file(index, new_filename);
+		}
 
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
@@ -213,6 +225,7 @@ namespace libtorrent
 // these functions will be removed in a future version
 		torrent_info(entry const& torrent_file) TORRENT_DEPRECATED;
 		void print(std::ostream& os) const TORRENT_DEPRECATED;
+		file_storage& files() TORRENT_DEPRECATED { return m_files; }
 // ------- end deprecation -------
 #endif
 
@@ -270,9 +283,15 @@ namespace libtorrent
 
 	private:
 
+		void copy_on_write();
 		bool parse_torrent_file(lazy_entry const& libtorrent, std::string& error);
 
 		file_storage m_files;
+
+		// if m_files is modified, it is first copied into
+		// m_orig_files so that the original name and
+		// filenames are preserved.
+		boost::shared_ptr<const file_storage> m_orig_files;
 
 		// the urls to the trackers
 		std::vector<announce_entry> m_urls;

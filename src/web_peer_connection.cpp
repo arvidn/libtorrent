@@ -243,7 +243,7 @@ namespace libtorrent
 		}
 		else
 		{
-			std::vector<file_slice> files = info.files().map_block(r.piece, r.start
+			std::vector<file_slice> files = info.orig_files().map_block(r.piece, r.start
 				, r.length);
 
 			for (std::vector<file_slice>::iterator i = files.begin();
@@ -255,13 +255,13 @@ namespace libtorrent
 				if (using_proxy)
 				{
 					request += m_url;
-					std::string path = info.files().at(f.file_index).path.string();
+					std::string path = info.orig_files().at(f.file_index).path.string();
 					request += escape_path(path.c_str(), path.length());
 				}
 				else
 				{
 					std::string path = m_path;
-					path += info.files().at(f.file_index).path.string();
+					path += info.orig_files().at(f.file_index).path.string();
 					request += escape_path(path.c_str(), path.length());
 				}
 				request += " HTTP/1.1\r\n";
@@ -434,7 +434,7 @@ namespace libtorrent
 						int file_index = m_file_requests.front();
 
 						torrent_info const& info = t->torrent_file();
-						std::string path = info.files().at(file_index).path.string();
+						std::string path = info.orig_files().at(file_index).path.string();
 						path = escape_path(path.c_str(), path.length());
 						size_t i = location.rfind(path);
 						if (i == std::string::npos)
@@ -528,7 +528,7 @@ namespace libtorrent
 			}
 
 			int file_index = m_file_requests.front();
-			peer_request in_range = info.files().map_file(file_index, range_start
+			peer_request in_range = info.orig_files().map_file(file_index, range_start
 				, int(range_end - range_start));
 
 			peer_request front_request = m_requests.front();

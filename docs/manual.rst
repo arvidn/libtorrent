@@ -1245,7 +1245,10 @@ The ``torrent_info`` has the following synopsis::
 		std::vector<announce_entry> const& trackers() const;
 
 		file_storage const& files() const;
-		file_storage& files();
+		file_storage const& orig_files() const;
+
+		void rename_file(int index, std::string const& new_filename);
+		void rename_file(int index, std::wstring const& new_filename);
 
 		typedef file_storage::iterator file_iterator;
 		typedef file_storage::reverse_iterator reverse_file_iterator;
@@ -1328,18 +1331,23 @@ add_tracker()
 ``add_tracker()`` adds a tracker to the announce-list. The ``tier`` determines the order in
 which the trackers are to be tried. For more information see `trackers()`_.
 
-files()
--------
+files() orig_files()
+--------------------
 
 	::
 
 		file_storage const& file() const;
+		file_storage const& orig_files() const;
 
 The ``file_storage`` object contains the information on how to map the pieces to
 files. It is separated from the ``torrent_info`` object because when creating torrents
 a storage object needs to be created without having a torrent file. When renaming files
 in a storage, the storage needs to make its own copy of the ``file_storage`` in order
 to make its mapping differ from the one in the torrent file.
+
+``orig_files()`` returns the original (unmodified) file storage for this torrent. This
+is used by the web server connection, which needs to request files with the original
+names.
 
 For more information on the ``file_storage`` object, see the separate document on how
 to create torrents.
