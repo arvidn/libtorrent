@@ -61,6 +61,15 @@ struct node_entry
 		first_seen = time_now();
 #endif
 	}
+
+	node_entry()
+		: timeout_count(0xffff)
+		, id(0)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		first_seen = time_now();
+#endif
+	}
 	
 	bool pinged() const { return timeout_count != 0xffff; }
 	void set_pinged() { if (timeout_count == 0xffff) timeout_count = 0; }
