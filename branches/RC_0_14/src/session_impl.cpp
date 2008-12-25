@@ -1046,7 +1046,7 @@ namespace aux {
 			peer_connection* p = (*i).get();
 			++i;
 			// ignore connections that already have a torrent, since they
-			// are ticket through the torrents' second_ticket
+			// are ticked through the torrents' second_tick
 			if (!p->associated_torrent().expired()) continue;
 			if (m_last_tick - p->connected_time() > seconds(m_settings.handshake_timeout))
 				p->disconnect("timeout: incoming connection");
@@ -1070,8 +1070,6 @@ namespace aux {
 		torrent_map::iterator least_recently_scraped = m_torrents.begin();
 		int num_paused_auto_managed = 0;
 
-		// check each torrent for tracker updates
-		// TODO: do this in a timer-event in each torrent instead
 		for (torrent_map::iterator i = m_torrents.begin();
 			i != m_torrents.end();)
 		{
@@ -1374,7 +1372,7 @@ namespace aux {
 		{
 			torrent* t = *i;
 			if (!t->is_paused() && !is_active(t, settings())
-				&& hard_limit > 0 && total_running < m_max_uploads)
+				&& hard_limit > 0)
 			{
 				--hard_limit;
 				++total_running;
@@ -1403,7 +1401,7 @@ namespace aux {
 		{
 			torrent* t = *i;
 			if (!t->is_paused() && !is_active(t, settings())
-				&& hard_limit > 0 && total_running < m_max_uploads)
+				&& hard_limit > 0)
 			{
 				--hard_limit;
 				++total_running;
@@ -1611,8 +1609,6 @@ namespace aux {
 			session_impl::mutex_t::scoped_lock l(m_mutex);
 			if (m_listen_interface.port() != 0) open_listen_port();
 		}
-
-		ptime timer = time_now();
 
 		do
 		{
