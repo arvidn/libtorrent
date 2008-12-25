@@ -239,15 +239,8 @@ namespace aux {
 #ifdef TORRENT_STATS
 		m_stats_logger.open("session_stats.log", std::ios::trunc);
 		m_stats_logger <<
-			"1. second\n"
-			"2. upload rate\n"
-			"3. download rate\n"
-			"4. downloading torrents\n"
-			"5. seeding torrents\n"
-			"6. peers\n"
-			"7. connecting peers\n"
-			"8. disk block buffers\n"
-			"\n";
+			"second:upload rate:download rate:downloading torrents:seeding torrents"
+			":peers:connecting peers:disk block buffers\n\n";
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
 		m_second_counter = 0;
 		m_buffer_allocations = 0;
@@ -1019,11 +1012,12 @@ namespace aux {
 			return;
 		}
 
-		float tick_interval = total_microseconds(time_now() - m_last_tick) / 1000000.f;
-		m_last_tick = time_now();
+		ptimr now = time_now();
+		float tick_interval = total_microseconds(now - m_last_tick) / 1000000.f;
+		m_last_tick = now;
 
 		error_code ec;
-		m_timer.expires_from_now(seconds(1), ec);
+		m_timer.expires_at(now + seconds(1), ec);
 		m_timer.async_wait(
 			bind(&session_impl::second_tick, this, _1));
 
@@ -1147,28 +1141,25 @@ namespace aux {
 				m_stat.download_ip_overhead()
 				+ m_stat.download_dht()
 				+ m_stat.download_tracker());
-		}
 
-		if (m_stat.download_ip_overhead() >= m_download_channel.throttle()
-			&& m_alerts.should_post<performance_alert>())
-		{
-			m_alerts.post_alert(performance_alert(torrent_handle()
-				, performance_alert::download_limit_too_low));
-		}
+			if (m_stat.download_ip_overhead() >= m_download_channel.throttle()
+					&& m_alerts.should_post<performance_alert>())
+			{
+				m_alerts.post_alert(performance_alert(torrent_handle()
+							, performance_alert::download_limit_too_low));
+			}
 
-		if (m_settings.rate_limit_ip_overhead)
-		{
 			m_upload_channel.drain(
-				m_stat.upload_ip_overhead()
-				+ m_stat.upload_dht()
-				+ m_stat.upload_tracker());
-		}
+					m_stat.upload_ip_overhead()
+					+ m_stat.upload_dht()
+					+ m_stat.upload_tracker());
 
-		if (m_stat.upload_ip_overhead() >= m_upload_channel.throttle()
-			&& m_alerts.should_post<performance_alert>())
-		{
-			m_alerts.post_alert(performance_alert(torrent_handle()
-				, performance_alert::upload_limit_too_low));
+			if (m_stat.upload_ip_overhead() >= m_upload_channel.throttle()
+					&& m_alerts.should_post<performance_alert>())
+			{
+				m_alerts.post_alert(performance_alert(torrent_handle()
+							, performance_alert::upload_limit_too_low));
+			}
 		}
 
 		m_stat.second_tick(tick_interval);
