@@ -180,6 +180,12 @@ namespace libtorrent
 		m_man.remove_request(this);
 	}
 
+	tracker_manager::~tracker_manager()
+	{
+		TORRENT_ASSERT(m_abort);
+		abort_all_requests(true);
+	}
+
 	void tracker_manager::sent_bytes(int bytes)
 	{
 		aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -213,6 +219,8 @@ namespace libtorrent
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(req.num_want >= 0);
+		TORRENT_ASSERT(!m_abort);
+		if (m_abort) return;
 		if (req.event == tracker_request::stopped)
 			req.num_want = 0;
 
@@ -255,11 +263,10 @@ namespace libtorrent
 		con->start();
 	}
 
-	void tracker_manager::abort_all_requests()
+	void tracker_manager::abort_all_requests(bool all)
 	{
 		// removes all connections from m_connections
-		// except those with a requester == 0 (since those are
-		// 'event=stopped'-requests)
+		// except 'event=stopped'-requests
 		mutex_t::scoped_lock l(m_mutex);
 
 		m_abort = true;
@@ -274,7 +281,7 @@ namespace libtorrent
 				continue;
 			}
 			tracker_request const& req = c->tracker_req();
-			if (req.event == tracker_request::stopped)
+			if (req.event == tracker_request::stopped && !all)
 			{
 				keep_connections.push_back(c);
 				m_connections.pop_back();

@@ -218,6 +218,7 @@ namespace libtorrent
 			: m_ses(ses)
 			, m_proxy(ps)
 			, m_abort(false) {}
+		~tracker_manager();
 
 		void queue_request(
 			io_service& ios
@@ -227,7 +228,7 @@ namespace libtorrent
 			, address bind_infc
 			, boost::weak_ptr<request_callback> c
 				= boost::weak_ptr<request_callback>());
-		void abort_all_requests();
+		void abort_all_requests(bool all = false);
 
 		void remove_request(tracker_connection const*);
 		bool empty() const;
