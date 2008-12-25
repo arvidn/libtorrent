@@ -1012,7 +1012,7 @@ namespace aux {
 			return;
 		}
 
-		ptimr now = time_now();
+		ptime now = time_now();
 		float tick_interval = total_microseconds(now - m_last_tick) / 1000000.f;
 		m_last_tick = now;
 
@@ -1236,14 +1236,17 @@ namespace aux {
 						connect_points /= num_seeds + 1;
 					if (connect_points <= 0) connect_points = 1;
 					t.give_connect_points(connect_points);
+#ifndef BOOST_NO_EXCEPTIONS
 					try
 					{
+#endif
 						if (t.try_connect_peer())
 						{
 							--max_connections;
 							--free_slots;
 							steps_since_last_connect = 0;
 						}
+#ifndef BOOST_NO_EXCEPTIONS
 					}
 					catch (std::bad_alloc&)
 					{
@@ -1253,6 +1256,7 @@ namespace aux {
 						m_max_connections = num_connections();
 						if (m_max_connections < 2) m_max_connections = 2;
 					}
+#endif
 				}
 				++m_next_connect_torrent;
 				++steps_since_last_connect;
