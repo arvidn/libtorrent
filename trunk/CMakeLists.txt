@@ -203,7 +203,7 @@ if(build_examples)
 
 	foreach(s ${examples})
 		add_executable(${s} examples/${s}.cpp)
-		target_link_libraries(${s} torrent)
+		target_link_libraries(${s} torrent-rasterbar)
 	endforeach(s)
 
 	FIND_PACKAGE( Boost 1.34 COMPONENTS program_options regex)
@@ -240,14 +240,13 @@ if(build_tests)
 
 	foreach(s ${tests})
 		add_executable(${s} test/${s}.cpp)
-		target_link_libraries(${-rasterbars} torrent-rasterbar test_common)
+		target_link_libraries(${s} torrent-rasterbar test_common)
 		add_test(${s} ${s})
 	endforeach(s)
 
 	add_executable(test_upnp test/test_upnp.cpp)
-	target_link_libraries(test_upnp torrent)
+	target_link_libraries(test_upnp torrent-rasterbar)
 
 	add_executable(test_natpmp test/test_natpmp.cpp)
-	target_link_libraries(test_natpmp torrent)
+	target_link_libraries(test_natpmp torrent-rasterbar)
 endif(build_tests)
-
