@@ -56,6 +56,7 @@ set(sources
 	ut_pex
 	ut_metadata
 	smart_ban
+	lt_trackers
 )
 
 # -- kademlia --
@@ -97,6 +98,8 @@ option(dht "enable support for Mainline DHT" ON)
 option(resolve-countries "enable support for resolving countries from peer IPs" ON)
 option(unicode "enable unicode support" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
+option(build_tests "build tests" ON)
+option(build_examples "build examples" ON)
 
 if (encryption)
 	list(APPEND sources pe_crypto)
@@ -118,9 +121,9 @@ else (dht)
 endif (dht)
 
 if (shared)
-	add_library(torrent SHARED ${sources2} ${zlib_sources2})
+	add_library(torrent-rasterbar SHARED ${sources2} ${zlib_sources2})
 else (shared)
-	add_library(torrent STATIC ${sources2} ${zlib_sources2})
+	add_library(torrent-rasterbar STATIC ${sources2} ${zlib_sources2})
 endif (shared)
 
 FIND_PACKAGE( Boost 1.34 COMPONENTS filesystem thread)
@@ -128,18 +131,18 @@ if (NOT Boost_VERSION LESS 103500)
 	FIND_PACKAGE( Boost 1.35 COMPONENTS filesystem thread system)
 endif (NOT Boost_VERSION LESS 103500)
 include_directories(${Boost_INCLUDE_DIR})
-target_link_libraries(torrent ${Boost_LIBRARIES})
+target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
 
 if (WIN32)
-	target_link_libraries(torrent wsock32 ws2_32)
+	target_link_libraries(torrent-rasterbar wsock32 ws2_32)
 endif (WIN32)
 
 if (encryption)
 	add_definitions(-DTORRENT_USE_OPENSSL)
 	if (WIN32)
-		target_link_libraries(torrent ssleay32 libeay32 advapi32 user32 shell32 gdi32)
+		target_link_libraries(torrent-rasterbar ssleay32 libeay32 advapi32 user32 shell32 gdi32)
 	else (WIN32)
-		target_link_libraries(torrent crypto ssl)
+		target_link_libraries(torrent-rasterbar crypto ssl)
 	endif (WIN32)
 else (encryption)
 	add_definitions(-DTORRENT_DISABLE_ENCRYPTION)
@@ -179,62 +182,72 @@ endif(MSVC)
 add_definitions(-D_FILE_OFFSET_BITS=64)
 
 if (tcmalloc)
-	target_link_libraries(torrent tcmalloc)
+	target_link_libraries(torrent-rasterbar tcmalloc)
 endif (tcmalloc)
 
-target_link_libraries(torrent z)
+target_link_libraries(torrent-rasterbar z)
 include_directories(${includes})
 
+set_target_properties(torrent-rasterbar PROPERTIES
+	SOVERSION 1
+	VERSION 1)
+
+install(TARGETS torrent-rasterbar DESTINATION lib)
+install(DIRECTORY include/libtorrent
+	DESTINATION include
+	PATTERN ".svn" EXCLUDE)
+
 # === build examples ===
+if(build_examples)
+	set(examples client_test dump_torrent simple_client enum_if make_torrent)
 
-set(examples client_test dump_torrent simple_client enum_if make_torrent)
+	foreach(s ${examples})
+		add_executable(${s} examples/${s}.cpp)
+		target_link_libraries(${s} torrent)
+	endforeach(s)
 
-foreach(s ${examples})
-	add_executable(${s} examples/${s}.cpp)
-	target_link_libraries(${s} torrent)
-endforeach(s)
-
-FIND_PACKAGE( Boost 1.34 COMPONENTS program_options regex)
-target_link_libraries(client_test ${Boost_LIBRARIES})
-include_directories(${Boost_INCLUDE_DIR})
-
+	FIND_PACKAGE( Boost 1.34 COMPONENTS program_options regex)
+	target_link_libraries(client_test ${Boost_LIBRARIES})
+	include_directories(${Boost_INCLUDE_DIR})
+endif(build_examples)
 # === build tests ===
+if(build_tests)
+	set(tests
+		test_auto_unchoke
+		test_http_connection
+		test_buffer
+		test_storage
+		test_torrent
+		test_transfer
+		test_piece_picker
+		test_fast_extension
+		test_pe_crypto
+		test_bencoding
+		test_bdecode_performance
+		test_primitives
+		test_ip_filter
+		test_hasher
+		test_metadata_extension
+		test_swarm
+		test_lsd
+		test_pex
+		test_web_seed
+		test_bandwidth_limiter
+		)
 
-set(tests
-	test_auto_unchoke
-	test_http_connection
-	test_buffer
-	test_storage
-	test_torrent
-	test_transfer
-	test_piece_picker
-	test_fast_extension
-	test_pe_crypto
-	test_bencoding
-	test_bdecode_performance
-	test_primitives
-	test_ip_filter
-	test_hasher
-	test_metadata_extension
-	test_swarm
-	test_lsd
-	test_pex
-	test_web_seed
-	test_bandwidth_limiter
-	)
+	add_library(test_common STATIC test/main.cpp test/setup_transfer.cpp)
+	enable_testing()
 
-add_library(test_common STATIC test/main.cpp test/setup_transfer.cpp)
-enable_testing()
+	foreach(s ${tests})
+		add_executable(${s} test/${s}.cpp)
+		target_link_libraries(${-rasterbars} torrent-rasterbar test_common)
+		add_test(${s} ${s})
+	endforeach(s)
 
-foreach(s ${tests})
-	add_executable(${s} test/${s}.cpp)
-	target_link_libraries(${s} torrent test_common)
-	add_test(${s} ${s})
-endforeach(s)
+	add_executable(test_upnp test/test_upnp.cpp)
+	target_link_libraries(test_upnp torrent)
 
-add_executable(test_upnp test/test_upnp.cpp)
-target_link_libraries(test_upnp torrent)
-
-add_executable(test_natpmp test/test_natpmp.cpp)
-target_link_libraries(test_natpmp torrent)
+	add_executable(test_natpmp test/test_natpmp.cpp)
+	target_link_libraries(test_natpmp torrent)
+endif(build_tests)
 
