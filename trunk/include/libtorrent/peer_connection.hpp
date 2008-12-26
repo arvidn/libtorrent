@@ -78,6 +78,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/bitfield.hpp"
 
+#ifdef TORRENT_STATS
+#include "libtorrent/aux_/session_impl.hpp"
+#endif
+
 namespace libtorrent
 {
 	class torrent;
