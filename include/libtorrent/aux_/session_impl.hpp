@@ -60,17 +60,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/policy.hpp"
 #include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/peer_info.hpp"
 #include "libtorrent/alert.hpp"
-#include "libtorrent/fingerprint.hpp"
 #include "libtorrent/debug.hpp"
-#include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/config.hpp"
@@ -81,9 +75,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
-#include "libtorrent/natpmp.hpp"
-#include "libtorrent/upnp.hpp"
-#include "libtorrent/lsd.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/disk_io_thread.hpp"
@@ -93,6 +84,16 @@ namespace libtorrent
 {
 
 	namespace fs = boost::filesystem;
+	class peer_connection;
+	class upnp;
+	class natpmp;
+	class lsd;
+	class fingerprint;
+
+	namespace dht
+	{
+		class dht_tracker;
+	};
 
 	namespace aux
 	{
@@ -237,13 +238,7 @@ namespace libtorrent
 			int num_connections() const
 			{ return m_connections.size(); }
 
-			void unchoke_peer(peer_connection& c)
-			{
-				torrent* t = c.associated_torrent().lock().get();
-				TORRENT_ASSERT(t);
-				if (t->unchoke_peer(c))
-					++m_num_unchoked;
-			}
+			void unchoke_peer(peer_connection& c);
 
 			session_status status() const;
 			void set_peer_id(peer_id const& id);
@@ -297,24 +292,6 @@ namespace libtorrent
 			void load_state(entry const& ses_state);
 			entry state() const;
 
-#ifdef TORRENT_STATS
-			void log_buffer_usage()
-			{
-				int send_buffer_capacity = 0;
-				int used_send_buffer = 0;
-				for (connection_map::const_iterator i = m_connections.begin()
-					, end(m_connections.end()); i != end; ++i)
-				{
-					send_buffer_capacity += (*i)->send_buffer_capacity();
-					used_send_buffer += (*i)->send_buffer_size();
-				}
-				TORRENT_ASSERT(send_buffer_capacity >= used_send_buffer);
-				m_buffer_usage_logger << log_time() << " send_buffer_size: " << send_buffer_capacity << std::endl;
-				m_buffer_usage_logger << log_time() << " used_send_buffer: " << used_send_buffer << std::endl;
-				m_buffer_usage_logger << log_time() << " send_buffer_utilization: "
-					<< (used_send_buffer * 100.f / send_buffer_capacity) << std::endl;
-			}
-#endif
 			void start_lsd();
 			natpmp* start_natpmp();
 			upnp* start_upnp();
@@ -588,6 +565,8 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_STATS
+			void log_buffer_usage();
+
 			// logger used to write bandwidth usage statistics
 			std::ofstream m_stats_logger;
 			int m_second_counter;

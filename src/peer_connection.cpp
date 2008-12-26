@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/policy.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/broadcast_socket.hpp"
 
 //#define TORRENT_CORRUPT_DATA
 

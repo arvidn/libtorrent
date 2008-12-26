@@ -77,6 +77,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/broadcast_socket.hpp"
 
 using namespace libtorrent;
 using boost::tuples::tuple;
