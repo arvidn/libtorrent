@@ -342,7 +342,7 @@ namespace libtorrent { namespace dht
 		int peers = 0;
 		std::for_each(m_dht.begin_data(), m_dht.end_data(), count_peers(peers));
 
-		std::ofstream pc("dht_stats.log", std::ios_base::app);
+		std::ofstream pc("dht_stats.log", std::ios_base::app | std::ios_base::trunc);
 		if (first)
 		{
 			first = false;
