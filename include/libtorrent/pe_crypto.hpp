@@ -81,13 +81,12 @@ namespace libtorrent
 	public:
 		// Input longkeys must be 20 bytes
 		RC4_handler(const sha1_hash& rc4_local_longkey,
-					 const sha1_hash& rc4_remote_longkey)
-			
+			const sha1_hash& rc4_remote_longkey)
 		{
 			RC4_set_key(&m_local_key, 20,
-						 reinterpret_cast<unsigned char const*>(rc4_local_longkey.begin()));
+				reinterpret_cast<unsigned char const*>(rc4_local_longkey.begin()));
 			RC4_set_key(&m_remote_key, 20,
-						 reinterpret_cast<unsigned char const*>(rc4_remote_longkey.begin()));
+				reinterpret_cast<unsigned char const*>(rc4_remote_longkey.begin()));
 
 			// Discard first 1024 bytes
 			char buf[1024];
@@ -102,8 +101,8 @@ namespace libtorrent
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
 
-			RC4 (&m_local_key, len, reinterpret_cast<unsigned char const*>(pos),
-				 reinterpret_cast<unsigned char*>(pos));
+			RC4(&m_local_key, len, reinterpret_cast<unsigned char const*>(pos),
+				reinterpret_cast<unsigned char*>(pos));
 		}
 
 		void decrypt(char* pos, int len)
@@ -111,15 +110,15 @@ namespace libtorrent
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
 
-			RC4 (&m_remote_key, len, reinterpret_cast<unsigned char const*>(pos),
-				 reinterpret_cast<unsigned char*>(pos));
+			RC4(&m_remote_key, len, reinterpret_cast<unsigned char const*>(pos),
+				reinterpret_cast<unsigned char*>(pos));
 		}
 
 	private:
 		RC4_KEY m_local_key; // Key to encrypt outgoing data
 		RC4_KEY m_remote_key; // Key to decrypt incoming data
 	};
-	
+
 } // namespace libtorrent
 
 #endif // TORRENT_PE_CRYPTO_HPP_INCLUDED
