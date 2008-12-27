@@ -243,7 +243,7 @@ namespace aux {
 		m_stats_logger.open("session_stats.log", std::ios::trunc);
 		m_stats_logger <<
 			"second:upload rate:download rate:downloading torrents:seeding torrents"
-			":peers:connecting peers:disk block buffers\n\n";
+			":peers:connecting peers:disk block buffers:unchoked peers\n\n";
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
 		m_second_counter = 0;
 		m_buffer_allocations = 0;
@@ -1036,6 +1036,12 @@ namespace aux {
 		++m_second_counter;
 		int downloading_torrents = 0;
 		int seeding_torrents = 0;
+		static size_type downloaded = 0;
+		static size_type uploaded = 0;
+		size_type download_rate = (m_stat.total_download() - downloaded) / tick_interval;
+		size_type upload_rate = (m_stat.total_upload() - uploaded) / tick_interval;
+		downloaded = m_stat.total_download();
+		uploaded = m_stat.total_upload();
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
@@ -1046,24 +1052,29 @@ namespace aux {
 		}
 		int num_complete_connections = 0;
 		int num_half_open = 0;
+		int unchoked_peers = 0;
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
 			if ((*i)->is_connecting())
 				++num_half_open;
 			else
+			{
 				++num_complete_connections;
+				if (!(*i)->is_choked()) ++unchoked_peers;
+			}
 		}
 		
 		m_stats_logger
 			<< m_second_counter << "\t"
-			<< m_stat.upload_rate() << "\t"
-			<< m_stat.download_rate() << "\t"
+			<< upload_rate << "\t"
+			<< download_rate << "\t"
 			<< downloading_torrents << "\t"
 			<< seeding_torrents << "\t"
 			<< num_complete_connections << "\t"
 			<< num_half_open << "\t"
 			<< m_disk_thread.disk_allocations() << "\t"
+			<< unchoked_peers << "\t"
 			<< std::endl;
 #endif
 
