@@ -192,6 +192,7 @@ namespace libtorrent
 		, m_has_incoming(false)
 		, m_files_checked(false)
 		, m_announcing(false)
+		, m_waiting_tracker(false)
 	{
 		if (resume_data) m_resume_data.swap(*resume_data);
 
@@ -270,6 +271,7 @@ namespace libtorrent
 		, m_has_incoming(false)
 		, m_files_checked(false)
 		, m_announcing(false)
+		, m_waiting_tracker(false)
 	{
 		if (resume_data) m_resume_data.swap(*resume_data);
 
@@ -957,7 +959,7 @@ namespace libtorrent
 	void torrent::on_tracker_announce()
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-	
+		m_waiting_tracker = false;	
 		if (m_abort) return;
 		announce_with_tracker();
 	}
@@ -4451,6 +4453,7 @@ namespace libtorrent
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_tracker_timer.expires_at(next_announce, ec);
 		m_tracker_timer.async_wait(bind(&torrent::on_tracker_announce_disp, self, _1));
+		m_waiting_tracker = true;
 	}
 
 	void torrent::start_announcing()
@@ -4927,9 +4930,13 @@ namespace libtorrent
 		st.download_payload_rate = m_stat.download_payload_rate();
 		st.upload_payload_rate = m_stat.upload_payload_rate();
 
-		st.next_announce = boost::posix_time::seconds(
-			total_seconds(next_announce() - now));
-		if (st.next_announce.is_negative() || is_paused())
+		if (m_waiting_tracker && !is_paused())
+			st.next_announce = boost::posix_time::seconds(
+				total_seconds(next_announce() - now));
+		else
+			st.next_announce = boost::posix_time::seconds(0);
+
+		if (st.next_announce.is_negative())
 			st.next_announce = boost::posix_time::seconds(0);
 
 		st.announce_interval = boost::posix_time::seconds(0);

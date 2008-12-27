@@ -999,11 +999,16 @@ namespace libtorrent
 		// this is true while tracker announcing is enabled
 		// is is disabled while paused and checking files
 		bool m_announcing:1;
+
+		// this is true while the tracker deadline timer
+		// is in use. i.e. one or more trackers are waiting
+		// for a reannounce
+		bool m_waiting_tracker:1;
 	};
 
 	inline ptime torrent::next_announce() const
 	{
-		return m_tracker_timer.expires_at();
+		return m_waiting_tracker?m_tracker_timer.expires_at():min_time();
 	}
 
 	inline void torrent::force_tracker_request()
