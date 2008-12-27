@@ -3404,14 +3404,15 @@ the *QBone scavenger service*. For more details, see QBSS_.
 
 ``active_downloads`` and ``active_seeds`` controls how many active seeding and
 downloading torrents the queuing mechanism allows. The target number of active
-torrents is ``max(active_downloads, active_seeds)``. ``active_downloads`` and
-``active_seeds`` are upper limits on the number of downloading torrents and
-seeding torrents respectively. Setting the value to -1 will mean unlimited.
+torrents is ``min(active_downloads + active_seeds, active_limit)``.
+``active_downloads`` and ``active_seeds`` are upper limits on the number of
+downloading torrents and seeding torrents respectively. Setting the value to
+-1 means unlimited.
 
 For example if there are 10 seeding torrents and 10 downloading torrents, and
-``active_downloads`` is 4 and ``active_seeds`` is 4, there will be no seed
-active, but 4 downloading torrents. If the settings are ``active_downloads`` = 2
-and ``active_seeds`` = 4, then there will be 2 downloading torrenst and 2 seeding
+``active_downloads`` is 4 and ``active_seeds`` is 4, there will be 4 seeds
+active and 4 downloading torrents. If the settings are ``active_downloads`` = 2
+and ``active_seeds`` = 4, then there will be 2 downloading torrenst and 4 seeding
 torrents active. Torrents that are not auto managed are also counted against these
 limits. If there are non-auto managed torrents that use up all the slots, no
 auto managed torrent will be activated.
@@ -3421,7 +3422,7 @@ not subject to the ``active_seeds`` and ``active_downloads`` limits. This is int
 to make it more likely to utilize all available bandwidth, and avoid having torrents
 that don't transfer anything block the active slots.
 
-``active_limit`` is a hard limit on the number of active seeds. This applies even to
+``active_limit`` is a hard limit on the number of active torrents. This applies even to
 slow torrents.
 
 ``auto_manage_interval`` is the number of seconds between the torrent queue

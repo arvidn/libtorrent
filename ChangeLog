@@ -29,6 +29,7 @@ release 0.14.2
 	  tracker urls
 	* fixed bug where the files requested from web seeds would be the
 	  renamed file names instead of the original file names in the torrent.
+	* documentation fix of queing section
 
 release 0.14.1
 
