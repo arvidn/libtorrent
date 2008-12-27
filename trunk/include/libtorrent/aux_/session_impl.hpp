@@ -109,7 +109,7 @@ namespace libtorrent
 		{
 
 			// the size of each allocation that is chained in the send buffer
-			enum { send_buffer_size = 200 };
+			enum { send_buffer_size = 128 };
 
 #ifdef TORRENT_DEBUG
 			friend class ::libtorrent::peer_connection;
