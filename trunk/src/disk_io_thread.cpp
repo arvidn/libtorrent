@@ -231,16 +231,31 @@ namespace libtorrent
 		mutex_t::scoped_lock l(m_piece_mutex);
 
 		INVARIANT_CHECK;
+		// flush write cache
 		for (;;)
 		{
 			cache_t::iterator i = std::min_element(
 				m_pieces.begin(), m_pieces.end()
 				, bind(&cached_piece_entry::last_use, _1)
 				< bind(&cached_piece_entry::last_use, _2));
-			if (i == m_pieces.end()) return;
+			if (i == m_pieces.end()) break;
 			int age = total_seconds(now - i->last_use);
-			if (age < m_cache_expiry) return;
+			if (age < m_cache_expiry) break;
 			flush_and_remove(i, l);
+		}
+
+		// flush read cache
+		for (;;)
+		{
+			cache_t::iterator i = std::min_element(
+				m_read_pieces.begin(), m_read_pieces.end()
+				, bind(&cached_piece_entry::last_use, _1)
+				< bind(&cached_piece_entry::last_use, _2));
+			if (i == m_read_pieces.end()) break;
+			int age = total_seconds(now - i->last_use);
+			if (age < m_cache_expiry) break;
+			free_piece(*i, l);
+			m_read_pieces.erase(i);
 		}
 	}
 
