@@ -30,6 +30,7 @@ release 0.14.2
 	* fixed bug where the files requested from web seeds would be the
 	  renamed file names instead of the original file names in the torrent.
 	* documentation fix of queing section
+	* fixed potential issue in udp_socket (affected udp tracker support)
 
 release 0.14.1
 
