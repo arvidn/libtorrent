@@ -52,6 +52,7 @@ namespace libtorrent
 			, udp::endpoint const&, char const* buf, int size)> callback_t;
 
 		udp_socket(io_service& ios, callback_t const& c, connection_queue& cc);
+		~udp_socket();
 
 		bool is_open() const { return m_ipv4_sock.is_open() || m_ipv6_sock.is_open(); }
 		io_service& get_io_service() { return m_ipv4_sock.get_io_service(); }
@@ -65,15 +66,7 @@ namespace libtorrent
 		void set_proxy_settings(proxy_settings const& ps);
 		proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
 
-#ifdef TORRENT_DEBUG
-		~udp_socket()
-		{
-			TORRENT_ASSERT(m_magic == 0x1337);
-			TORRENT_ASSERT(m_outstanding == 0);
-			TORRENT_ASSERT(!m_callback);
-			m_magic = 0;
-		}
-#endif
+		bool is_closed() const { return m_abort; }
 
 	private:
 
@@ -114,6 +107,7 @@ namespace libtorrent
 		tcp::resolver m_resolver;
 		char m_tmp_buf[100];
 		bool m_tunnel_packets;
+		bool m_abort;
 		udp::endpoint m_proxy_addr;
 #ifdef TORRENT_DEBUG
 		int m_magic;
@@ -140,7 +134,6 @@ namespace libtorrent
 		int m_queue_size_limit;
 		int m_rate_limit;
 		int m_quota;
-		bool m_abort;
 		ptime m_last_tick;
 		std::list<queued_packet> m_queue;
 	};

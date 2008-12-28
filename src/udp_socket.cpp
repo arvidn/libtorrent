@@ -24,9 +24,20 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 	, m_cc(cc)
 	, m_resolver(ios)
 	, m_tunnel_packets(false)
+	, m_abort(false)
 {
 #ifdef TORRENT_DEBUG
 	m_magic = 0x1337;
+#endif
+}
+
+udp_socket::~udp_socket()
+{
+#ifdef TORRENT_DEBUG
+	TORRENT_ASSERT(m_magic == 0x1337);
+	TORRENT_ASSERT(!m_callback);
+	TORRENT_ASSERT(m_outstanding == 0);
+	m_magic = 0;
 #endif
 }
 
@@ -119,6 +130,8 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 			return;
 		}
 
+		if (m_abort) return;
+
 		if (s == &m_ipv4_sock)
 			s->async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
 				, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
@@ -151,6 +164,9 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 #ifndef BOOST_NO_EXCEPTIONS
 		} catch(std::exception&) {}
 #endif
+
+		if (m_abort) return;
+
 		s->async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
 			, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
 	}
@@ -175,6 +191,9 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		} catch(std::exception&) {}
 #endif
 		l.lock();
+
+		if (m_abort) return;
+
 		s->async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
 			, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
 	}
@@ -252,6 +271,7 @@ void udp_socket::close()
 	m_ipv6_sock.close(ec);
 	m_socks5_sock.close(ec);
 	m_resolver.cancel();
+	m_abort = true;
 	if (m_connection_ticket >= 0)
 	{
 		m_cc.done(m_connection_ticket);
@@ -571,7 +591,6 @@ rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
 	, m_queue_size_limit(200)
 	, m_rate_limit(4000)
 	, m_quota(4000)
-	, m_abort(false)
 	, m_last_tick(time_now())
 {
 	error_code ec;
@@ -602,7 +621,7 @@ bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p, int l
 void rate_limited_udp_socket::on_tick(error_code const& e)
 {
 	if (e) return;
-	if (m_abort) return;
+	if (is_closed()) return;
 	error_code ec;
 	ptime now = time_now();
 	m_timer.expires_at(now + seconds(1), ec);
@@ -627,7 +646,6 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 void rate_limited_udp_socket::close()
 {
 	error_code ec;
-	m_abort = true;
 	m_timer.cancel(ec);
 	udp_socket::close();
 }
