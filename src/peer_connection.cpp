@@ -3623,7 +3623,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_network);
 		m_channel_state[download_channel] = peer_info::bw_idle;
 
-		m_statistics.trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
+		int bytes_in_loop = bytes_transferred;
 
 		if (error)
 		{
@@ -3631,6 +3631,7 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " **ERROR**: "
 				<< error.message() << "[in peer_connection::on_receive_data]\n";
 #endif
+			m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 			on_receive(error, bytes_transferred);
 			disconnect(error.message().c_str());
 			return;
@@ -3646,7 +3647,11 @@ namespace libtorrent
 			if (!m_ignore_bandwidth_limits)
 				m_bandwidth_limit[download_channel].use_quota(bytes_transferred);
 
-			if (m_disconnecting) return;
+			if (m_disconnecting)
+			{
+				m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
+				return;
+			}
 	
 			TORRENT_ASSERT(m_packet_size > 0);
 			TORRENT_ASSERT(bytes_transferred > 0);
@@ -3725,14 +3730,16 @@ namespace libtorrent
 			}
 			if (ec && ec != asio::error::would_block)
 			{
+				m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 				disconnect(ec.message().c_str());
 				return;
 			}
 			if (ec == asio::error::would_block) break;
-			m_statistics.trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
+			bytes_in_loop += bytes_transferred;
 		}
 		while (bytes_transferred > 0);
 
+		m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 		setup_receive();	
 	}
 
