@@ -153,7 +153,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 		TEST_CHECK(avail == availability_vec[i]);
 	}
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	p->check_invariant();
 #endif
 	return p;
@@ -162,7 +162,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 bool verify_pick(boost::shared_ptr<piece_picker> p
 	, std::vector<piece_block> const& picked, bool allow_multi_blocks = false)
 {
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	p->check_invariant();
 #endif
 	if (!allow_multi_blocks)
