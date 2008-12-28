@@ -39,10 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/thread/mutex.hpp>
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-#include <fstream>
-#endif
-
 namespace libtorrent
 {
 
