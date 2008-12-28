@@ -158,11 +158,6 @@ rule building ( properties * )
 {
 	local result ;
 
-	if <toolset>gcc in $(properties) || <toolset>darwin in $(properties)
-	{
-		result += <visibility>hidden ;
-	}
-
 	if ( <target-os>linux in $(properties)
 		|| <target-os>darwin in $(properties) )
 		&& ( <toolset>gcc in $(properties)
@@ -402,8 +397,8 @@ local usage-requirements =
 	<conditional>@linking
 	<zlib>system:<library>zlib-target
 # these compiler settings just makes the compiler standard conforming
-	<toolset>msvc:<cxxflags>/Zc:wchar_t
-	<toolset>msvc:<cxxflags>/Zc:forScope
+	<toolset>msvc:<cflags>/Zc:wchar_t
+	<toolset>msvc:<cflags>/Zc:forScope
 # disable bogus deprecation warnings on msvc8
 	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
 	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
@@ -413,8 +408,8 @@ local usage-requirements =
 # disable warning C4503: decorated name length exceeded, name was truncated
 	<toolset>msvc:<cxxflags>/wd4503
 # disable some warnings for gcc
-	<toolset>gcc:<cxxflags>-fno-strict-aliasing
-	<toolset>gcc:<cxxflags>-Wno-missing-braces
+	<toolset>gcc:<cflags>-fno-strict-aliasing
+	<toolset>gcc:<cflags>-Wno-missing-braces
 	<boost>system:<cxxflags>$(CXXFLAGS)
 	<boost>system:<linkflags>$(LDFLAGS)
 	;
@@ -439,6 +434,7 @@ lib torrent
 
 	: # default build
 	<link>static
+	<threading>multi
 
 	: # usage requirements
 	$(usage-requirements)
