@@ -1,0 +1,6 @@
+Name: libtorrent-rasterbar
+Description: Bittorrent library.
+Version: @VERSION@
+Libs: -L${CMAKE_INSTALL_PREFIX}/lib -ltorrent-rasterbar
+Cflags: -I${CMAKE_INSTALL_PREFIX} -I${CMAKE_INSTALL_PREFIX}/libtorrent @COMPILETIME_OPTIONS@ @CPPFLAGS@ @CXX_DEFINES@
+

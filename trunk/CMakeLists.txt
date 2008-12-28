@@ -192,10 +192,23 @@ set_target_properties(torrent-rasterbar PROPERTIES
 	SOVERSION 1
 	VERSION 1)
 
+set (VERSION "0.15-svn")
+
+get_property (COMPILETIME_OPTIONS_LIST
+	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIRECTORY}
+	PROPERTY COMPILE_DEFINITIONS
+	)
+foreach (s ${COMPILETIME_OPTIONS_LIST})
+	set (COMPILETIME_OPTIONS "${COMPILETIME_OPTIONS} -D${s}")
+endforeach (s)
+
+configure_file(libtorrent-rasterbar-cmake.pc.in libtorrent-rasterbar.pc)
+
 install(TARGETS torrent-rasterbar DESTINATION lib)
 install(DIRECTORY include/libtorrent
 	DESTINATION include
 	PATTERN ".svn" EXCLUDE)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar.pc DESTINATION lib/pkgconfig)
 
 # === build examples ===
 if(build_examples)
