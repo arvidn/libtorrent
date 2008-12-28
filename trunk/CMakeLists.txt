@@ -101,6 +101,15 @@ option(deprecated-functions "enable deprecated functions for backwards compatibi
 option(build_tests "build tests" ON)
 option(build_examples "build examples" ON)
 
+set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
+
+if (NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE Release FORCE)
+endif (NOT CMAKE_BUILD_TYPE)
+
+# add_definitions() doesn't seem to let you say wich build type to apply it to
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DTORRENT_DEBUG")
+
 if (encryption)
 	list(APPEND sources pe_crypto)
 endif (encryption)
@@ -121,6 +130,7 @@ else (dht)
 endif (dht)
 
 if (shared)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
 	add_library(torrent-rasterbar SHARED ${sources2} ${zlib_sources2})
 else (shared)
 	add_library(torrent-rasterbar STATIC ${sources2} ${zlib_sources2})
