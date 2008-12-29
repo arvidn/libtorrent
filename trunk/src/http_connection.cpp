@@ -109,9 +109,11 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	if (!user_agent.empty())
 		headers << "User-Agent: " << user_agent << "\r\n";
 	
+	if (m_bottled)
+		headers << "Accept-Encoding: gzip\r\n";
+
 	headers <<
 		"Connection: close\r\n"
-		"Accept-Encoding: gzip\r\n"
 		"\r\n";
 
 	sendbuffer = headers.str();
