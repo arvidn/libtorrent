@@ -3435,7 +3435,7 @@ downloading torrents and seeding torrents respectively. Setting the value to
 For example if there are 10 seeding torrents and 10 downloading torrents, and
 ``active_downloads`` is 4 and ``active_seeds`` is 4, there will be 4 seeds
 active and 4 downloading torrents. If the settings are ``active_downloads`` = 2
-and ``active_seeds`` = 4, then there will be 2 downloading torrenst and 4 seeding
+and ``active_seeds`` = 4, then there will be 2 downloading torrents and 4 seeding
 torrents active. Torrents that are not auto managed are also counted against these
 limits. If there are non-auto managed torrents that use up all the slots, no
 auto managed torrent will be activated.
