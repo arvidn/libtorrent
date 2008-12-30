@@ -191,7 +191,8 @@ namespace libtorrent
 	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->debug_log("*** UDP_TRACKER [ timed out ]");
+		std::stringstream msg << "*** UDP_TRACKER [ timed out url: " << tracker_req().url << " ]";
+		if (cb) cb->debug_log(msg.str().c_str());
 #endif
 		m_socket.close();
 		m_name_lookup.cancel();
@@ -391,7 +392,9 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb)
 		{
-			cb->debug_log("<== UDP_TRACKER_ANNOUNCE_RESPONSE");
+			boost::shared_ptr<request_callback> cb = requester();
+			std::stringstream msg << "<== UDP_ANNOUNCE_RESPONSE [ url: " << tracker_req().url << " ]";
+			cb->debug_log(msg.str().c_str());
 		}
 #endif
 
