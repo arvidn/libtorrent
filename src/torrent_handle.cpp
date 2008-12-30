@@ -506,20 +506,39 @@ namespace libtorrent
 	void torrent_handle::add_url_seed(std::string const& url) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(add_url_seed(url));
+		TORRENT_FORWARD(add_web_seed(url, web_seed_entry::url_seed));
 	}
 
 	void torrent_handle::remove_url_seed(std::string const& url) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(remove_url_seed(url));
+		TORRENT_FORWARD(remove_web_seed(url, web_seed_entry::url_seed));
 	}
 
 	std::set<std::string> torrent_handle::url_seeds() const
 	{
 		INVARIANT_CHECK;
 		const static std::set<std::string> empty;
-		TORRENT_FORWARD_RETURN(url_seeds(), empty);
+		TORRENT_FORWARD_RETURN(web_seeds(web_seed_entry::url_seed), empty);
+	}
+
+	void torrent_handle::add_http_seed(std::string const& url) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(add_web_seed(url, web_seed_entry::http_seed));
+	}
+
+	void torrent_handle::remove_http_seed(std::string const& url) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(remove_web_seed(url, web_seed_entry::http_seed));
+	}
+
+	std::set<std::string> torrent_handle::http_seeds() const
+	{
+		INVARIANT_CHECK;
+		const static std::set<std::string> empty;
+		TORRENT_FORWARD_RETURN(web_seeds(web_seed_entry::http_seed), empty);
 	}
 
 	void torrent_handle::replace_trackers(

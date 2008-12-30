@@ -41,8 +41,8 @@ following features:
 * supports local peer discovery (multicasts for peers on the same local network)
 * adjusts the length of the request queue depending on download rate.
 * has an adjustable read and write disk cache for improved disk throughput.
-* multitracker extension support (supports both the `specification by John Hoffman`__
-  and the uTorrent interpretation).
+* multitracker extension support (supports both strict `BEP  12`_ and the
+  uTorrent interpretation).
 * tracker scrapes
 * supports both sparse files and compact file allocation (where pieces
   are kept consolidated on disk)
@@ -51,12 +51,12 @@ following features:
 * fast resume support, a way to get rid of the costly piece check at the
   start of a resumed torrent. Saves the storage state, piece_picker state
   as well as all local peers in a separate fast-resume file.
-* `HTTP seeding`_, as `specified by Michael Burford of GetRight`__.
+* `HTTP seeding`_, as specified in `BEP 17`_ and `BEP 19`_.
 * piece picking on block-level (as opposed to piece-level).
   This means it can download parts of the same piece from different peers.
   It will also prefer to download whole pieces from single peers if the
   download speed is high enough from that particular peer.
-* supports the `udp-tracker protocol`_ by Olaf van der Spek.
+* supports `BEP 15`_ the udp-tracker protocol.
 * queues torrents for file check, instead of checking all of them in parallel.
 * supports http proxies and basic proxy authentication
 * gzipped tracker-responses
@@ -80,7 +80,10 @@ following features:
 
 .. _`DHT extensions`: dht_extensions.html
 __ http://home.elp.rr.com/tur/multitracker-spec.txt
-__ http://www.getright.com/seedtorrent.html
+.. _`BEP 12`: http://bittorrent.org/beps/bep_0012.html
+.. _`BEP 15`: http://bittorrent.org/beps/bep_0015.html
+.. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
+.. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
 .. _`extension protocol`: extension_protocol.html
 .. _`udp-tracker protocol`: udp_tracker_protocol.html
 

@@ -1,3 +1,4 @@
+	* added support for BEP 17 http seeds
 	* added read_piece() to read pieces from torrent storage
 	* added option for udp tracker preference
 	* added super seeding
