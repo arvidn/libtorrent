@@ -5315,10 +5315,10 @@ libtorrent starts 2 or 3 threads.
  * The first thread is the main thread that will sit
    idle in a ``select()`` call most of the time. This thread runs the main loop
    that will send and receive data on all connections.
-   
+
  * The second thread is the disk I/O thread. All disk read and write operations
-	are passed to this thread and messages are passed back to the main thread when
-	the operation compeltes. The disk thread also verifies the piece hashes.
+   are passed to this thread and messages are passed back to the main thread when
+   the operation compeltes. The disk thread also verifies the piece hashes.
 
  * The third and forth threads are spawned by asio on systems that don't support
    non-blocking host name resolution to simulate non-blocking getaddrinfo().
