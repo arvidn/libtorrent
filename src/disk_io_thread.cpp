@@ -827,6 +827,9 @@ namespace libtorrent
 			{
 				case disk_io_job::abort_torrent:
 				{
+#ifdef TORRENT_DISK_STATS
+					m_log << log_time() << " abort_torrent " << std::endl;
+#endif
 					mutex_t::scoped_lock jl(m_queue_mutex);
 					for (std::list<disk_io_job>::iterator i = m_jobs.begin();
 						i != m_jobs.end();)
@@ -849,6 +852,9 @@ namespace libtorrent
 				}
 				case disk_io_job::abort_thread:
 				{
+#ifdef TORRENT_DISK_STATS
+					m_log << log_time() << " abort_thread " << std::endl;
+#endif
 					mutex_t::scoped_lock jl(m_queue_mutex);
 					m_abort = true;
 
@@ -1114,7 +1120,7 @@ namespace libtorrent
 				case disk_io_job::check_fastresume:
 				{
 #ifdef TORRENT_DISK_STATS
-					m_log << log_time() << " check fastresume" << std::endl;
+					m_log << log_time() << " check_fastresume" << std::endl;
 #endif
 					lazy_entry const* rd = (lazy_entry const*)j.buffer;
 					TORRENT_ASSERT(rd != 0);
@@ -1124,7 +1130,7 @@ namespace libtorrent
 				case disk_io_job::check_files:
 				{
 #ifdef TORRENT_DISK_STATS
-					m_log << log_time() << " check files" << std::endl;
+					m_log << log_time() << " check_files" << std::endl;
 #endif
 					int piece_size = j.storage->info()->piece_length();
 					for (int processed = 0; processed < 4 * 1024 * 1024; processed += piece_size)
@@ -1160,7 +1166,7 @@ namespace libtorrent
 				case disk_io_job::save_resume_data:
 				{
 #ifdef TORRENT_DISK_STATS
-					m_log << log_time() << " save resume data" << std::endl;
+					m_log << log_time() << " save_resume_data" << std::endl;
 #endif
 					j.resume_data.reset(new entry(entry::dictionary_t));
 					j.storage->write_resume_data(*j.resume_data);
@@ -1170,7 +1176,7 @@ namespace libtorrent
 				case disk_io_job::rename_file:
 				{
 #ifdef TORRENT_DISK_STATS
-					m_log << log_time() << " rename file" << std::endl;
+					m_log << log_time() << " rename_file" << std::endl;
 #endif
 					ret = j.storage->rename_file_impl(j.piece, j.str);
 				}

@@ -1094,7 +1094,11 @@ namespace libtorrent
 				if (!ae.complete_sent && is_seed()) req.event = tracker_request::completed;
 			}
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			(*m_ses.m_logger) << time_now_string() << " ==> TACKER REQUEST " << req.url
+				<< " event=" << (req.event==tracker_request::stopped?"stopped"
+					:req.event==tracker_request::started?"started":"")
+				<< " abort=" << m_abort << "\n";
 			if (m_abort)
 			{
 				boost::shared_ptr<aux::tracker_logger> tl(new aux::tracker_logger(m_ses));
@@ -1515,7 +1519,7 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " *** PIECE_FINISHED [ p: "
 			<< index << " chk: " << ((passed_hash_check == 0)
 				?"passed":passed_hash_check == -1

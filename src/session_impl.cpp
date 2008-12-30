@@ -437,6 +437,9 @@ namespace aux {
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		if (m_paused) return;
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		(*m_logger) << time_now_string() << " *** session paused ***\n";
+#endif
 		m_paused = true;
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
@@ -463,7 +466,7 @@ namespace aux {
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		if (m_abort) return;
-#if defined(TORRENT_LOGGING)
+#if defined TORRENT_LOGGING
 		(*m_logger) << time_now_string() << " *** ABORT CALLED ***\n";
 #endif
 		// abort the main thread
