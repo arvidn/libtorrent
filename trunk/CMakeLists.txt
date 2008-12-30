@@ -22,6 +22,7 @@ set(sources
 	peer_connection
 	bt_peer_connection
 	web_peer_connection
+	http_seed_connection
 	instantiate_connection
 	natpmp
 	piece_picker

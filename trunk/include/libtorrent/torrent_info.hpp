@@ -197,6 +197,11 @@ namespace libtorrent
 		void add_url_seed(std::string const& url)
 		{ m_url_seeds.push_back(url); }
 
+		std::vector<std::string> const& http_seeds() const
+		{ return m_http_seeds; }
+		void add_http_seed(std::string const& url)
+		{ m_http_seeds.push_back(url); }
+
 		size_type total_size() const { return m_files.total_size(); }
 		int piece_length() const { return m_files.piece_length(); }
 		int num_pieces() const { return m_files.num_pieces(); }
@@ -296,6 +301,7 @@ namespace libtorrent
 		// the urls to the trackers
 		std::vector<announce_entry> m_urls;
 		std::vector<std::string> m_url_seeds;
+		std::vector<std::string> m_http_seeds;
 		nodes_t m_nodes;
 
 		// the hash that identifies this torrent

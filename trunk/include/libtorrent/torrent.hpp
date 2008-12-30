@@ -90,6 +90,24 @@ namespace libtorrent
 		struct piece_checker_data;
 	}
 
+	struct web_seed_entry
+	{
+		std::string url;
+		// http seeds are different from url seeds in the
+		// protocol they use. http seeds follows the original
+		// http seed spec. by John Hoffman
+		enum type_t { url_seed, http_seed} type;
+
+		web_seed_entry(std::string const& url_, type_t type_)
+			: url(url_), type(type_) {}
+
+		bool operator==(web_seed_entry const& e) const
+		{ return url == e.url && type == e.type; }
+
+		bool operator<(web_seed_entry const& e) const
+		{ return url < e.url && type < e.type; }
+	};
+
 	namespace fs = boost::filesystem;
 
 	// a torrent is a class that holds information
@@ -281,7 +299,7 @@ namespace libtorrent
 		void use_interface(const char* net_interface);
 		tcp::endpoint const& get_interface() const { return m_net_interface; }
 		
-		void connect_to_url_seed(std::string const& url);
+		void connect_to_url_seed(web_seed_entry const& url);
 		bool connect_to_peer(policy::peer* peerinfo);
 
 		void set_ratio(float ratio)
@@ -325,16 +343,18 @@ namespace libtorrent
 		
 		// add or remove a url that will be attempted for
 		// finding the file(s) in this torrent.
-		void add_url_seed(std::string const& url)
-		{ m_web_seeds.insert(url); }
+		void add_web_seed(std::string const& url, web_seed_entry::type_t type)
+		{ m_web_seeds.insert(web_seed_entry(url, type)); }
 	
-		void remove_url_seed(std::string const& url)
-		{ m_web_seeds.erase(url); }
+		void remove_web_seed(std::string const& url, web_seed_entry::type_t type)
+		{ m_web_seeds.erase(web_seed_entry(url, type)); }
 
-		void retry_url_seed(std::string const& url);
+		void retry_web_seed(std::string const& url, web_seed_entry::type_t type, int retry = 0);
 
-		std::set<std::string> url_seeds() const
+		std::set<web_seed_entry> web_seeds() const
 		{ return m_web_seeds; }
+
+		std::set<std::string> web_seeds(web_seed_entry::type_t type) const;
 
 		bool free_upload_slots() const
 		{ return m_num_uploads < m_max_uploads; }
@@ -531,12 +551,12 @@ namespace libtorrent
 		// this is the asio callback that is called when a name
 		// lookup for a WEB SEED is completed.
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i
-			, std::string url, tcp::endpoint proxy);
+			, web_seed_entry url, tcp::endpoint proxy);
 
 		// this is the asio callback that is called when a name
 		// lookup for a proxy for a web seed is completed.
 		void on_proxy_name_lookup(error_code const& e, tcp::resolver::iterator i
-			, std::string url);
+			, web_seed_entry url);
 
 		// this is called when the torrent has finished. i.e.
 		// all the pieces we have not filtered have been downloaded.
@@ -755,15 +775,15 @@ namespace libtorrent
 
 		// The list of web seeds in this torrent. Seeds
 		// with fatal errors are removed from the set
-		std::set<std::string> m_web_seeds;
+		std::set<web_seed_entry> m_web_seeds;
 
 		// a list of web seeds that have failed and are
 		// waiting to be retried
-		std::map<std::string, ptime> m_web_seeds_next_retry;
+		std::map<web_seed_entry, ptime> m_web_seeds_next_retry;
 		
 		// urls of the web seeds that we are currently
 		// resolving the address for
-		std::set<std::string> m_resolving_web_seeds;
+		std::set<web_seed_entry> m_resolving_web_seeds;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<torrent_plugin> > extension_list_t;

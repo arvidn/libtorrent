@@ -1269,6 +1269,9 @@ The ``torrent_info`` has the following synopsis::
 		bool priv() const;
 
 		std::vector<std::string> const& url_seeds() const;
+		void add_url_seed(std::string const& url);
+		std::vector<std::string> const& http_seeds() const;
+		void add_http_seed(std::string const& url);
 
 		size_type total_size() const;
 		int piece_length() const;
@@ -1473,17 +1476,20 @@ The input range is assumed to be valid within the torrent. ``file_offset``
 must refer to a valid file, i.e. it cannot be >= ``num_files()``.
 
 
-url_seeds() add_url_seed()
---------------------------
+url_seeds() add_url_seed() http_seeds() add_http_seed()
+-------------------------------------------------------
 
 	::
 
 		std::vector<std::string> const& url_seeds() const;
 		void add_url_seed(std::string const& url);
+		std::vector<std::string> const& http_seeds() const;
+		void add_http_seed(std::string const& url);
 
-If there are any url-seeds in this torrent, ``url_seeds()`` will return a
-vector of those urls. If you're creating a torrent file, ``add_url_seed()``
-adds one url to the list of url-seeds. Currently, the only transport protocol
+If there are any url-seeds or http seeds in this torrent, ``url_seeds()``
+and ``http_seeds()`` will return a vector of those urls.
+``add_url_seed()`` and ``add_http_seed()`` adds one url to the list of
+url/http seeds. Currently, the only transport protocol
 supported for the url is http.
 
 See `HTTP seeding`_ for more information.
@@ -1686,6 +1692,10 @@ Its declaration looks like this::
 		void add_url_seed(std::string const& url);
 		void remove_url_seed(std::string const& url);
 		std::set<std::string> url_seeds() const;
+
+		void add_http_seed(std::string const& url);
+		void remove_http_seed(std::string const& url);
+		std::set<std::string> http_seeds() const;
 
 		void set_ratio(float ratio) const;
 		void set_max_uploads(int max_uploads) const;
@@ -2225,6 +2235,19 @@ automatically from the list.
 
 See `HTTP seeding`_ for more information.
 
+add_http_seed() remove_http_seed() http_seeds()
+-----------------------------------------------
+
+	::
+
+		void add_http_seed(std::string const& url);
+		void remove_http_seed(std::string const& url);
+		std::set<std::string> http_seeds() const;
+
+These functions are identical as the ``*_url_seed()`` variants, but they
+operate on BEP 17 web seeds instead of BEP 19.
+
+See `HTTP seeding`_ for more information.
 
 queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()
 -------------------------------------------------------------------------------------------------------
@@ -5514,17 +5537,23 @@ Don't have metadata:
 HTTP seeding
 ------------
 
-The HTTP seed extension implements `this specification`__.
+There are two kinds of HTTP seeding. One with that assumes a smart
+(and polite) client and one that assumes a smart server. These
+are specified in `BEP 19`_ and `BEP 17`_ respectively.
 
-The libtorrent implementation assumes that, if the URL ends with a slash
+libtorrent supports both. In the libtorrent source code and API,
+BEP 19 urls are typically referred to as *url seeds* and BEP 17
+urls are typically referred to as *HTTP seeds*.
+
+The libtorrent implementation of `BEP 19`_ assumes that, if the URL ends with a slash
 ('/'), the filename should be appended to it in order to request pieces from
 that file. The way this works is that if the torrent is a single-file torrent,
 only that filename is appended. If the torrent is a multi-file torrent, the
 torrent's name '/' the file name is appended. This is the same directory
 structure that libtorrent will download torrents into.
 
-__ http://www.getright.com/seedtorrent.html
-
+.. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
+.. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
 
 filename checks
 ===============
@@ -5544,7 +5573,7 @@ __ http://www.boost.org/libs/filesystem/doc/index.htm
 acknowledgments
 ===============
 
-Written by Arvid Norberg. Copyright |copy| 2003-2006
+Written by Arvid Norberg. Copyright |copy| 2003-2008
 
 Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
 

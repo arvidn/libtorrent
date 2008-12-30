@@ -1,7 +1,7 @@
 # this makefile assumes that you have docutils and rst2pdf installed
 
 WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
-DOCUTILS = ~/docutils
+DOCUTILS = ~/docutils-0.5
 
 TARGETS = index \
 	udp_tracker_protocol \

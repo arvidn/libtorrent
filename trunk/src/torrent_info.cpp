@@ -651,6 +651,22 @@ namespace libtorrent
 			}
 		}
 
+		// if there are any http-seeds, extract them
+		lazy_entry const* http_seeds = torrent_file.dict_find("httpseeds");
+		if (http_seeds && http_seeds->type() == lazy_entry::string_t)
+		{
+			m_http_seeds.push_back(http_seeds->string_value());
+		}
+		else if (http_seeds && http_seeds->type() == lazy_entry::list_t)
+		{
+			for (int i = 0, end(http_seeds->list_size()); i < end; ++i)
+			{
+				lazy_entry const* url = http_seeds->list_at(i);
+				if (url->type() != lazy_entry::string_t) continue;
+				m_http_seeds.push_back(url->string_value());
+			}
+		}
+
 		m_comment = torrent_file.dict_find_string_value("comment.utf-8");
 		if (m_comment.empty()) m_comment = torrent_file.dict_find_string_value("comment");
 	

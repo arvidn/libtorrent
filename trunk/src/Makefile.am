@@ -15,8 +15,9 @@ endif
 libtorrent_rasterbar_la_SOURCES = entry.cpp escape_string.cpp \
 lazy_bdecode.cpp assert.cpp enum_net.cpp broadcast_socket.cpp \
 peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
-natpmp.cpp piece_picker.cpp policy.cpp session.cpp session_impl.cpp sha1.cpp \
-stat.cpp storage.cpp torrent.cpp torrent_handle.cpp pe_crypto.cpp \
+http_seed_connection.cpp natpmp.cpp piece_picker.cpp policy.cpp \
+session.cpp session_impl.cpp sha1.cpp stat.cpp storage.cpp torrent.cpp \
+torrent_handle.cpp pe_crypto.cpp \
 torrent_info.cpp tracker_manager.cpp http_connection.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
@@ -58,6 +59,7 @@ $(top_srcdir)/include/libtorrent/fingerprint.hpp \
 $(top_srcdir)/include/libtorrent/gzip.hpp \
 $(top_srcdir)/include/libtorrent/hasher.hpp \
 $(top_srcdir)/include/libtorrent/http_connection.hpp \
+$(top_srcdir)/include/libtorrent/http_seed_connection.hpp \
 $(top_srcdir)/include/libtorrent/http_stream.hpp \
 $(top_srcdir)/include/libtorrent/http_parser.hpp \
 $(top_srcdir)/include/libtorrent/session_settings.hpp \

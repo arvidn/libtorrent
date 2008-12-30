@@ -175,7 +175,8 @@ namespace libtorrent
 		enum
 		{
 			standard_bittorrent = 0,
-			web_seed = 1
+			web_seed = 1,
+			http_seed = 2
 		};
 		int connection_type;
 		
