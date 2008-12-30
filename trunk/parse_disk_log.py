@@ -45,7 +45,7 @@ for l in lines:
 		i += quantization
 		state_timer[state] += i - time
 		time = i
-		for k in keys: print >>out, state_timer[k],
+		for k in keys: print >>out, (state_timer[k] / float(quantization) * 100.),
 		print >>out
 		for k in throughput_keys: print >>out2, throughput[k] / 1000.,
 		print >>out2
@@ -75,7 +75,7 @@ for k in throughput_keys:
 print >>out, 'x=0'
 
 print >>out, 'set output "disk_io.png"'
-print >>out, 'set ylabel "time (ms)"'
+print >>out, 'set ylabel "utilization (%)"'
 print >>out, 'set xrange [0:*]'
 print >>out, 'set title "disk io utilization per %s second(s)"' % (quantization / 1000)
 print >>out, "set key box"
