@@ -272,7 +272,7 @@ bool rpc_manager::incoming(msg const& m)
 		}
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		std::ofstream reply_stats("libtorrent_logs/round_trip_ms.log", std::ios::app);
+		std::ofstream reply_stats("round_trip_ms.log", std::ios::app);
 		reply_stats << m.addr << "\t" << total_milliseconds(time_now() - o->sent)
 			<< std::endl;
 #endif
