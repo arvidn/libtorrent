@@ -107,6 +107,7 @@ int main(int argc, char* argv[])
 		std::cout << "comment: " << t.comment() << "\n";
 		std::cout << "created by: " << t.creator() << "\n";
 		std::cout << "magnet link: " << make_magnet_uri(t) << "\n";
+		std::cout << "name: " << t.name() << "\n";
 		std::cout << "files:\n";
 		int index = 0;
 		for (torrent_info::file_iterator i = t.begin_files();

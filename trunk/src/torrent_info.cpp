@@ -75,13 +75,12 @@ namespace
 		str += 0x80 | (chr & 0x3f);
 	}
 
-	void verify_encoding(file_entry& target)
+	bool verify_encoding(std::string& target)
 	{
 		std::string tmp_path;
-		std::string file_path = target.path.string();
 		bool valid_encoding = true;
-		for (std::string::iterator i = file_path.begin()
-			, end(file_path.end()); i != end; ++i)
+		for (std::string::iterator i = target.begin()
+			, end(target.end()); i != end; ++i)
 		{
 			// valid ascii-character
 			if ((*i & 0x80) == 0)
@@ -154,7 +153,14 @@ namespace
 		// save the original encoding and replace the
 		// commonly used path with the correctly
 		// encoded string
-		if (!valid_encoding) target.path = tmp_path;
+		if (!valid_encoding) target = tmp_path;
+		return valid_encoding;
+	}
+
+	void verify_encoding(file_entry& target)
+	{
+		std::string p = target.path.string();
+		if (!verify_encoding(p)) target.path = p;
 	}
 
 	void trim_path_element(std::string& path_element)
@@ -489,6 +495,9 @@ namespace libtorrent
 			error = "invalid 'name' of torrent (possible exploit attempt)";
 			return false;
 		}
+
+		// correct utf-8 encoding errors
+		verify_encoding(name);
 	
 		// extract file list
 		lazy_entry const* i = info.dict_find_list("files");
@@ -669,9 +678,11 @@ namespace libtorrent
 
 		m_comment = torrent_file.dict_find_string_value("comment.utf-8");
 		if (m_comment.empty()) m_comment = torrent_file.dict_find_string_value("comment");
+		verify_encoding(m_comment);
 	
 		m_created_by = torrent_file.dict_find_string_value("created by.utf-8");
 		if (m_created_by.empty()) m_created_by = torrent_file.dict_find_string_value("created by");
+		verify_encoding(m_created_by);
 
 		lazy_entry const* info = torrent_file.dict_find_dict("info");
 		if (info == 0)
