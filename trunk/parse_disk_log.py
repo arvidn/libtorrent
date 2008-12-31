@@ -47,7 +47,7 @@ for l in lines:
 		time = i
 		for k in keys: print >>out, (state_timer[k] / float(quantization) * 100.),
 		print >>out
-		for k in throughput_keys: print >>out2, throughput[k] / 1000.,
+		for k in throughput_keys: print >>out2, throughput[k] / float(quantization),
 		print >>out2
 		for k in keys: state_timer[k] = 0
 		for k in throughput_keys: throughput[k] = 0
@@ -66,7 +66,7 @@ print >>out, "set term png size 1200,700"
 
 print >>out, 'set output "disk_throughput.png"'
 print >>out, 'set title "disk throughput per %s second(s)"' % (quantization / 1000)
-print >>out, 'set ylabel "throughput (kB)"'
+print >>out, 'set ylabel "throughput (kB/s)"'
 print >>out, 'plot',
 i = 0
 for k in throughput_keys:
