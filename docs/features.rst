@@ -44,6 +44,7 @@ following features:
 * multitracker extension support (supports both strict `BEP  12`_ and the
   uTorrent interpretation).
 * tracker scrapes
+* supports lt_trackers extension, to exchange trackers between peers
 * supports both sparse files and compact file allocation (where pieces
   are kept consolidated on disk)
 * supports files > 2 gigabytes.
