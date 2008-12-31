@@ -175,10 +175,12 @@ The ``create_torrent`` class has the following synopsis::
 		void add_url_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
+		void set_priv(bool p);
 
 		int num_pieces() const;
 		int piece_length() const;
 		int piece_size(int i) const;
+		bool priv() const;
 	};
 
 create_torrent()
@@ -190,14 +192,17 @@ create_torrent()
 		create_torrent(file_storage& fs);
 		create_torrent(torrent_info const& ti);
 
-The contrstructor that does not take a piece_size will calculate
+The ``piece_size`` is the size of each piece in bytes. It must
+be a multiple of 16 kiB.
+
+The constructor that does not take a piece_size will calculate
 a piece size such that the torrent file is roughly 40 kB.
 
 The overlad that takes a ``torrent_info`` object will make a verbatim
 copy of its info dictionary (to preserve the info-hash). The copy of
 the info dictionary will be used by ``generate()``. This means
 that none of the member functions of create_torrent that affects
-the content of the info dictionary (such as ``set_hash()``), will not
+the content of the info dictionary (such as ``set_hash()``), will
 have any affect.
 
 generate()
@@ -213,4 +218,84 @@ generate the flat file, use the bencode() function.
 It may be useful to add custom entries to the torrent file before bencoding it
 and saving it to disk.
 
+set_comment()
+-------------
+
+	::
+
+		void set_comment(char const* str);
+
+Sets the comment for the torrent. The string ``str`` should be utf-8 encoded.
+The comment in a torrent file is optional.
+
+set_creator()
+-------------
+
+	::
+
+		void set_creator(char const* str);
+
+Sets the creator of the torrent. The string ``str`` should be utf-8 encoded.
+This is optional.
+
+set_hash()
+----------
+
+	::
+
+		void set_hash(int index, sha1_hash const& h);
+
+This sets the SHA-1 hash for the specified piece (``index``). You are required
+to set the hash for every piece in the torrent before generating it. If you have
+the files on disk, you can use the high level convenience function to do this.
+See `set_piece_hashes()`_.
+
+add_url_seed()
+--------------
+
+	::
+
+		void add_url_seed(std::string const& url);
+
+This adds a url seed to the torrent. You can have any number of url seeds. For a
+single file torrent, this should be an HTTP url, pointing to a file with identical
+content as the file of the torrent. For a multi-file torrent, it should point to
+a directory containing a directory with the same name as this torrent, and all the
+files of the torrent in it.
+
+add_node()
+----------
+
+	::
+
+		void add_node(std::pair<std::string, int> const& node);
+
+This adds a DHT node to the torrent. This especially useful if you're creating a
+tracker less torrent. It can be used by clients to bootstrap their DHT node from.
+The node is a hostname and a port number where there is a DHT node running.
+You can have any number of DHT nodes in a torrent.
+
+add_tracker()
+-------------
+
+	::
+
+		void add_tracker(std::string const& url, int tier = 0);
+
+Adds a tracker to the torrent. This is not strictly required, but most torrents
+use a tracker as their main source of peers. The url should be an http:// or udp://
+url to a machine running a bittorrent tracker that accepts announces for this torrent's
+info-hash. The tier is the fallback priority of the tracker. All trackers with tier 0 are
+tried first (in any order). If all fail, trackers with tier 1 are tried. If all of those
+fail, trackers with tier 2 are tried, and so on.
+
+set_priv() priv()
+-----------------
+
+	::
+
+		void set_priv(bool p);
+		bool priv() const;
+
+Sets and queries the private flag of the torrent.
 
