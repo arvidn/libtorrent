@@ -30,12 +30,12 @@ project (including this documentation). The current state includes the
 following features:
 
 * trackerless torrents (using the Mainline kademlia DHT protocol) with
-  some `DHT extensions`_.
-* support for IPv6
+  some `DHT extensions`_. `BEP 5`_.
+* support for IPv6, including `BEP 7`_ and `BEP 24`_.
 * NAT-PMP and UPnP support (automatic port mapping on routers that supports it)
 * uses a separate disk I/O thread to not have the disk ever block on network or
   client interaction. (see threads_).
-* supports the bittorrent `extension protocol`_. See extensions_.
+* supports the bittorrent `extension protocol`_. See extensions_. `BEP 10`_.
 * supports the uTorrent metadata transfer protocol (i.e. magnet links).
 * supports the uTorrent peer exchange protocol (PEX).
 * supports local peer discovery (multicasts for peers on the same local network)
@@ -47,6 +47,7 @@ following features:
 * supports lt_trackers extension, to exchange trackers between peers
 * supports both sparse files and compact file allocation (where pieces
   are kept consolidated on disk)
+* super seeding/initial seeding (`BEP 16`_).
 * supports files > 2 gigabytes.
 * serves multiple torrents on a single port and in a single thread
 * fast resume support, a way to get rid of the costly piece check at the
@@ -57,7 +58,7 @@ following features:
   This means it can download parts of the same piece from different peers.
   It will also prefer to download whole pieces from single peers if the
   download speed is high enough from that particular peer.
-* supports `BEP 15`_ the udp-tracker protocol.
+* supports the udp-tracker protocol. (`BEP 15`_).
 * queues torrents for file check, instead of checking all of them in parallel.
 * supports http proxies and basic proxy authentication
 * gzipped tracker-responses
@@ -78,15 +79,20 @@ following features:
   want to download.
 * ip filter to disallow ip addresses and ip ranges from connecting and
   being connected
+* private torrents (`BEP 27`_).
 
 .. _`DHT extensions`: dht_extensions.html
-__ http://home.elp.rr.com/tur/multitracker-spec.txt
+.. _`BEP 5`: http://bittorrent.org/beps/bep_0005.html
+.. _`BEP 7`: http://bittorrent.org/beps/bep_0007.html
+.. _`BEP 10`: http://bittorrent.org/beps/bep_0010.html
 .. _`BEP 12`: http://bittorrent.org/beps/bep_0012.html
 .. _`BEP 15`: http://bittorrent.org/beps/bep_0015.html
+.. _`BEP 16`: http://bittorrent.org/beps/bep_0016.html
 .. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
 .. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
+.. _`BEP 24`: http://bittorrent.org/beps/bep_0024.html
+.. _`BEP 27`: http://bittorrent.org/beps/bep_0027.html
 .. _`extension protocol`: extension_protocol.html
-.. _`udp-tracker protocol`: udp_tracker_protocol.html
 
 portability
 ===========
@@ -94,7 +100,7 @@ portability
 libtorrent is portable at least among Windows, MacOS X and other UNIX-systems.
 It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
 boost libraries as well as zlib_ (shipped) and asio_ (shipped). At least version
-1.33.1 of boost is required.
+1.34.1 of boost is required.
 
 .. _zlib: http://www.zlib.org
 .. _asio: http://asio.sf.net
