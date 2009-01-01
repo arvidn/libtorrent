@@ -219,7 +219,6 @@ namespace libtorrent
 		TORRENT_ASSERT(is_open());
 
 #ifdef TORRENT_WINDOWS
-
 		TORRENT_ASSERT(DWORD(num_bytes) == num_bytes);
 		DWORD ret = 0;
 		if (num_bytes != 0)
@@ -237,6 +236,60 @@ namespace libtorrent
 		return ret;
 	}
 
+	size_type file::readv(iovec_t const* bufs, int num_bufs, error_code& ec)
+	{
+		TORRENT_ASSERT(m_open_mode == read_only || m_open_mode == read_write);
+		TORRENT_ASSERT(bufs);
+		TORRENT_ASSERT(num_bufs >= 0);
+		TORRENT_ASSERT(is_open());
+
+#ifdef TORRENT_WINDOWS
+		size_type ret = 0;
+		for (iovec_t* i = bufs, end(bufs + num_bufs); i < end; ++i)
+		{
+			if (i->iov_len <= 0) continue;
+			DWORD intermediate = 0;
+			if (ReadFile(m_file_handle, i->iov_base, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
+			{
+				ec = error_code(GetLastError(), get_system_category());
+				return -1;
+			}
+			ret += intermediate;
+		}
+#else
+		size_type ret = ::readv(m_fd, bufs, num_bufs);
+		if (ret == -1) ec = error_code(errno, get_posix_category());
+#endif
+		return ret;
+	}
+
+	size_type file::writev(iovec_t const* bufs, int num_bufs, error_code& ec)
+	{
+		TORRENT_ASSERT(m_open_mode == write_only || m_open_mode == read_write);
+		TORRENT_ASSERT(bufs);
+		TORRENT_ASSERT(num_bufs >= 0);
+		TORRENT_ASSERT(is_open());
+
+#ifdef TORRENT_WINDOWS
+		size_type ret = 0;
+		for (iovec_* i = bufs, end(bufs + num_bufs); i < end; ++i)
+		{
+			if (i->iov_len <= 0) continue;
+			DWORD intermediate = 0;
+			if (WriteFile(m_file_handle, i->iov_base, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
+			{
+				ec = error_code(GetLastError(), get_system_category());
+				return -1;
+			}
+			ret += intermediate;
+		}
+#else
+		size_type ret = ::writev(m_fd, bufs, num_bufs);
+		if (ret == -1) ec = error_code(errno, get_posix_category());
+#endif
+		return ret;
+	}
+
 	size_type file::write(const char* buf, size_type num_bytes, error_code& ec)
 	{
 		TORRENT_ASSERT(m_open_mode == write_only || m_open_mode == read_write);
@@ -245,7 +298,6 @@ namespace libtorrent
 		TORRENT_ASSERT(is_open());
 
 #ifdef TORRENT_WINDOWS
-
 		DWORD ret = 0;
 		if (num_bytes != 0)
 		{
