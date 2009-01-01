@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // posix part
 #define _FILE_OFFSET_BITS 64
 #include <unistd.h>
+#include <sys/uio.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -89,6 +90,16 @@ namespace libtorrent
 #endif
 		};
 
+#ifdef TORRENT_WINDOWS
+		struct iovec_t
+		{
+			void* iov_base;
+			size_t iov_len;
+		};
+#else
+		typedef iovec iovec_t;
+#endif
+
 		file();
 		file(fs::path const& p, int m, error_code& ec);
 		~file();
@@ -98,7 +109,10 @@ namespace libtorrent
 		void close();
 		bool set_size(size_type size, error_code& ec);
 
-		size_type write(const char*, size_type num_bytes, error_code& ec);
+		size_type writev(iovec_t const* bufs, int num_bufs, error_code& ec);
+		size_type readv(iovec_t const* bufs, int num_bufs, error_code& ec);
+
+		size_type write(char const*, size_type num_bytes, error_code& ec);
 		size_type read(char*, size_type num_bytes, error_code& ec);
 
 		size_type seek(size_type pos, int m, error_code& ec);
