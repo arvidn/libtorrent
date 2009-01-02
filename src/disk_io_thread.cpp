@@ -467,7 +467,7 @@ namespace libtorrent
 			{
 				l.unlock();
 				ret += p.storage->read_impl(p.blocks[i], p.piece, piece_offset, block_size);
-				if (!p.storage->error()) { return -1; }
+				if (p.storage->error()) { return -1; }
 				l.lock();
 				++m_cache_stats.reads;
 			}
