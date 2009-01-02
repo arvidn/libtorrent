@@ -36,11 +36,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include <boost/tuple/tuple.hpp>
 
+namespace libtorrent
+{
+	class alert;
+}
 
-void print_alerts(libtorrent::session& ses, char const* name
+bool print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects = false
 	, bool allow_no_torrents = false
-	, bool allow_failed_fastresume = false);
+	, bool allow_failed_fastresume = false
+	, bool (*)(libtorrent::alert*) = 0);
+
 void test_sleep(int millisec);
 
 boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0, int piece_size = 16 * 1024, int num_pieces = 1024 / 8);
