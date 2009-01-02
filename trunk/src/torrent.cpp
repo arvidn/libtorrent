@@ -3796,6 +3796,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 		INVARIANT_CHECK;
 
+		if (m_abort) return;
+
 		// we might be finished already, in which case we should
 		// not switch to downloading mode.
 		if (m_state != torrent_status::finished)
