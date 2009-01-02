@@ -51,9 +51,11 @@ using boost::filesystem::create_directory;
 using namespace libtorrent;
 namespace sf = boost::filesystem;
 
-void print_alerts(libtorrent::session& ses, char const* name
-	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume)
+bool print_alerts(libtorrent::session& ses, char const* name
+	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
+	, bool (*predicate)(libtorrent::alert*))
 {
+	bool ret = false;
 	std::vector<torrent_handle> handles = ses.get_torrents();
 	TEST_CHECK(!handles.empty() || allow_no_torrents);
 	torrent_handle h;
@@ -62,6 +64,7 @@ void print_alerts(libtorrent::session& ses, char const* name
 	a = ses.pop_alert();
 	while (a.get())
 	{
+		if (predicate && predicate(a.get())) ret = true;
 		if (peer_disconnected_alert* p = dynamic_cast<peer_disconnected_alert*>(a.get()))
 		{
 			std::cerr << name << "(" << p->ip << "): " << p->message() << "\n";
@@ -85,6 +88,7 @@ void print_alerts(libtorrent::session& ses, char const* name
 			|| (allow_disconnects && a->message() == "End of file."));
 		a = ses.pop_alert();
 	}
+	return ret;
 }
 
 void test_sleep(int millisec)

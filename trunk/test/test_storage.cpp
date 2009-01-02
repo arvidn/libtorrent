@@ -478,6 +478,12 @@ void test_fastresume()
 	remove_all("tmp1");
 }
 
+bool got_file_rename_alert(alert* a)
+{
+	return dynamic_cast<libtorrent::file_renamed_alert*>(a)
+		|| dynamic_cast<libtorrent::file_rename_failed_alert*>(a);
+}
+
 void test_rename_file_in_fastresume()
 {
 	std::cout << "\n\n=== test rename file in fastresume ===" << std::endl;
@@ -498,12 +504,14 @@ void test_rename_file_in_fastresume()
 			, storage_mode_compact);
 
 		h.rename_file(0, "testing_renamed_files");
-		for (int i = 0; i < 10; ++i)
+		std::cout << "renaming file" << std::endl;
+		for (int i = 0; i < 100; ++i)
 		{
-			print_alerts(ses, "ses");
+			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) break;
 			test_sleep(1000);
 			torrent_status s = h.status();
 		}
+		std::cout << "stop loop" << std::endl;
 		resume = h.write_resume_data();
 		ses.remove_torrent(h);
 	}
