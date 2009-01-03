@@ -244,8 +244,9 @@ namespace libtorrent
 		TORRENT_ASSERT(is_open());
 
 #ifdef TORRENT_WINDOWS
+		// TODO: Replace with ReadFileScatter if possible
 		size_type ret = 0;
-		for (iovec_t* i = bufs, end(bufs + num_bufs); i < end; ++i)
+		for (iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
 			if (i->iov_len <= 0) continue;
 			DWORD intermediate = 0;
@@ -271,8 +272,9 @@ namespace libtorrent
 		TORRENT_ASSERT(is_open());
 
 #ifdef TORRENT_WINDOWS
+		// Replace by WriteFileGather if possible
 		size_type ret = 0;
-		for (iovec_* i = bufs, end(bufs + num_bufs); i < end; ++i)
+		for (iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
 			if (i->iov_len <= 0) continue;
 			DWORD intermediate = 0;

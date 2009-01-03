@@ -32,6 +32,7 @@ noinst_HEADERS = \
 $(top_srcdir)/include/libtorrent/alert.hpp \
 $(top_srcdir)/include/libtorrent/alert_types.hpp \
 $(top_srcdir)/include/libtorrent/assert.hpp \
+$(top_srcdir)/include/libtorrent/alloca.hpp \
 $(top_srcdir)/include/libtorrent/aux_/session_impl.hpp \
 $(top_srcdir)/include/libtorrent/bandwidth_manager.hpp \
 $(top_srcdir)/include/libtorrent/bandwidth_limit.hpp \

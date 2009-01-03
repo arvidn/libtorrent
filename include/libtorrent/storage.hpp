@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/file.hpp"
 
 namespace libtorrent
 {
@@ -122,6 +123,9 @@ namespace libtorrent
 		// is set to full and sparse files are supported
 		// false return value indicates an error
 		virtual bool initialize(bool allocate_files) = 0;
+
+		virtual int readv(file::iovec_t* bufs, int slot, int offset, int num_bufs);
+		virtual int writev(file::iovec_t* buf, int slot, int offset, int num_bufs);
 
 		// negative return value indicates an error
 		virtual int read(char* buf, int slot, int offset, int size) = 0;
@@ -305,16 +309,16 @@ namespace libtorrent
 		bool allocate_slots(int num_slots, bool abort_on_disk = false);
 
 		int read_impl(
-			char* buf
+			file::iovec_t* bufs
 			, int piece_index
 			, int offset
-			, int size);
+			, int num_bufs);
 
 		int write_impl(
-			const char* buf
+			file::iovec_t* bufs
 			, int piece_index
 			, int offset
-			, int size);
+			, int num_bufs);
 
 		// -1=error 0=ok 1=skip
 		int check_one_piece(int& have_piece);
