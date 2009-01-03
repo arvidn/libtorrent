@@ -55,8 +55,17 @@ namespace libtorrent
 		, m_queue_buffer_size(0)
 		, m_cache_size(512) // 512 * 16kB = 8MB
 		, m_cache_expiry(60) // 1 minute
+// the file class doesn't support proper writev
+// and readv on windows, so it's more efficient
+// to coalesce reads and writes into a bigger
+// buffer first
+#ifdef TORRENT_WINDOWS
 		, m_coalesce_writes(true)
 		, m_coalesce_reads(true)
+#else
+		, m_coalesce_writes(false)
+		, m_coalesce_reads(false)
+#endif
 		, m_use_read_cache(true)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_pool(block_size)
@@ -322,29 +331,47 @@ namespace libtorrent
 		, mutex_t::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
+		// TODO: copy *e and unlink it before unlocking
 		cached_piece_entry& p = *e;
 		int piece_size = p.storage->info()->piece_size(p.piece);
 #ifdef TORRENT_DISK_STATS
 		m_log << log_time() << " flushing " << piece_size << std::endl;
 #endif
 		TORRENT_ASSERT(piece_size > 0);
-		boost::scoped_array<char> buf;
-		if (m_coalesce_writes) buf.reset(new (std::nothrow) char[piece_size]);
 		
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 		int buffer_size = 0;
 		int offset = 0;
+
+		boost::scoped_array<char> buf;
+		boost::scoped_array<file::iovec_t> iov;
+		int iov_counter = 0;
+		if (m_coalesce_writes) buf.reset(new (std::nothrow) char[piece_size]);
+		// TOOD: replace with alloca
+		else iov.reset(new file::iovec_t[blocks_in_piece]);
+
 		for (int i = 0; i <= blocks_in_piece; ++i)
 		{
 			if (i == blocks_in_piece || p.blocks[i] == 0)
 			{
 				if (buffer_size == 0) continue;
-				TORRENT_ASSERT(buf);
 			
 				TORRENT_ASSERT(buffer_size <= i * m_block_size);
 				l.unlock();
-				p.storage->write_impl(buf.get(), p.piece, (std::min)(
-					i * m_block_size, piece_size) - buffer_size, buffer_size);
+				if (iov)
+				{
+					TORRENT_ASSERT(iov);
+					p.storage->write_impl(iov.get(), p.piece, (std::min)(
+						i * m_block_size, piece_size) - buffer_size, iov_counter);
+					iov_counter = 0;
+				}
+				else
+				{
+					TORRENT_ASSERT(buf);
+					file::iovec_t b = { buf.get(), buffer_size };
+					p.storage->write_impl(&b, p.piece, (std::min)(
+						i * m_block_size, piece_size) - buffer_size, 1);
+				}
 				l.lock();
 				++m_cache_stats.writes;
 //				std::cerr << " flushing p: " << p.piece << " bytes: " << buffer_size << std::endl;
@@ -357,24 +384,29 @@ namespace libtorrent
 			TORRENT_ASSERT(offset + block_size > 0);
 			if (!buf)
 			{
-				l.unlock();
-				p.storage->write_impl(p.blocks[i], p.piece, i * m_block_size, block_size);
-				l.lock();
-				++m_cache_stats.writes;
+				iov[iov_counter].iov_base = p.blocks[i];
+				iov[iov_counter].iov_len = block_size;
+				++iov_counter;
 			}
 			else
 			{
 				std::memcpy(buf.get() + offset, p.blocks[i], block_size);
 				offset += m_block_size;
-				buffer_size += block_size;
 			}
-			free_buffer(p.blocks[i]);
-			p.blocks[i] = 0;
+			buffer_size += block_size;
 			TORRENT_ASSERT(p.num_blocks > 0);
 			--p.num_blocks;
 			++m_cache_stats.blocks_written;
 			--m_cache_stats.cache_size;
 		}
+
+		for (int i = 0; i < blocks_in_piece; ++i)
+		{
+			if (p.blocks[i] == 0) continue;
+			free_buffer(p.blocks[i]);
+			p.blocks[i] = 0;
+		}
+
 		TORRENT_ASSERT(buffer_size == 0);
 //		std::cerr << " flushing p: " << p.piece << " cached_blocks: " << m_cache_stats.cache_size << std::endl;
 #ifdef TORRENT_DEBUG
@@ -439,12 +471,17 @@ namespace libtorrent
 		TORRENT_ASSERT(buffer_size <= piece_size);
 		TORRENT_ASSERT(buffer_size + start_block * m_block_size <= piece_size);
 		boost::scoped_array<char> buf;
+		boost::scoped_array<file::iovec_t> iov;
+		int iov_counter = 0;
 		if (m_coalesce_reads) buf.reset(new (std::nothrow) char[buffer_size]);
+		else iov.reset(new file::iovec_t[end_block - start_block]);
+
 		int ret = 0;
 		if (buf)
 		{
 			l.unlock();
-			ret += p.storage->read_impl(buf.get(), p.piece, start_block * m_block_size, buffer_size);
+			file::iovec_t b = { buf.get(), buffer_size };
+			ret += p.storage->read_impl(&b, p.piece, start_block * m_block_size, 1);
 			l.lock();
 			if (p.storage->error()) { return -1; }
 			++m_cache_stats.reads;
@@ -465,15 +502,23 @@ namespace libtorrent
 			}
 			else
 			{
-				l.unlock();
-				ret += p.storage->read_impl(p.blocks[i], p.piece, piece_offset, block_size);
-				if (p.storage->error()) { return -1; }
-				l.lock();
-				++m_cache_stats.reads;
+				iov[iov_counter].iov_base = p.blocks[i];
+				iov[iov_counter].iov_len = block_size;
+				++iov_counter;
 			}
 			offset += m_block_size;
 			piece_offset += m_block_size;
 		}
+
+		if (iov)
+		{
+			l.unlock();
+			ret += p.storage->read_impl(iov.get(), p.piece, start_block * m_block_size, iov_counter);
+			l.lock();
+			if (p.storage->error()) { return -1; }
+			++m_cache_stats.reads;
+		}
+
 		TORRENT_ASSERT(ret <= buffer_size);
 		return (ret != buffer_size) ? -1 : ret;
 	}
@@ -913,8 +958,8 @@ namespace libtorrent
 					}
 					else if (ret == -2)
 					{
-						ret = j.storage->read_impl(j.buffer, j.piece, j.offset
-							, j.buffer_size);
+						file::iovec_t b = { j.buffer, j.buffer_size };
+						ret = j.storage->read_impl(&b, j.piece, j.offset, 1);
 						if (ret < 0)
 						{
 							test_error(j);
@@ -1182,7 +1227,8 @@ namespace libtorrent
 				}
 			}
 #ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception& e)
+			}
+			catch (std::exception& e)
 			{
 				ret = -1;
 				try
