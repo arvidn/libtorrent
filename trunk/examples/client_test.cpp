@@ -1382,7 +1382,8 @@ int main(int ac, char* av[])
 				out << "  peers: " << esc("37") << s.num_peers << esc("0") << " (" << esc("37") << s.connect_candidates << esc("0") << ") "
 					<< "seeds: " << esc("37") << s.num_seeds << esc("0") << " "
 					<< "distributed copies: " << esc("37") << s.distributed_copies << esc("0")
-//					<< "  magnet-link: " << make_magnet_uri(h) << "\n"
+					<< " sparse regions: " << s.sparse_regions
+//					<< " magnet-link: " << make_magnet_uri(h) << "\n"
 					<< " download: " << esc("32") << (s.download_rate > 0 ? add_suffix(s.download_rate) + "/s ": "         ") << esc("0");
 				boost::posix_time::time_duration t = s.next_announce;
 				out << " next announce: " << esc("37")

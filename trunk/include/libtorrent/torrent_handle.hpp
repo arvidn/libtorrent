@@ -120,6 +120,7 @@ namespace libtorrent
 			, seed_rank(0)
 			, last_scrape(0)
 			, has_incoming(false)
+			, sparse_regions(0)
 		{}
 
 		enum state_t
@@ -270,6 +271,9 @@ namespace libtorrent
 		// true if there are incoming connections to this
 		// torrent
 		bool has_incoming;
+
+		// the number of "holes" in the torrent
+		int sparse_regions;
 	};
 
 	struct TORRENT_EXPORT block_info

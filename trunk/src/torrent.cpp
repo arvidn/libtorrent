@@ -1547,6 +1547,19 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::update_sparse_piece_prio(int i, int start, int end)
+	{
+		TORRENT_ASSERT(m_picker);
+		if (m_picker->have_piece(i) || m_picker->piece_priority(i) == 0)
+			return;
+		bool have_before = i == 0 || m_picker->have_piece(i - 1);
+		bool have_after = i == end - 1 || m_picker->have_piece(i + 1);
+		if (have_after && have_before)
+			m_picker->set_piece_priority(i, 7);
+		else if (have_after || have_before)
+			m_picker->set_piece_priority(i, 6);
+	}
+
 	void torrent::piece_passed(int index)
 	{
 //		INVARIANT_CHECK;
@@ -1589,6 +1602,19 @@ namespace libtorrent
 			// TODO: make this limit user settable
 			if (p->trust_points > 20) p->trust_points = 20;
 			if (p->connection) p->connection->received_valid_data(index);
+		}
+
+		if (settings().max_sparse_regions > 0
+			&& m_picker->sparse_regions() > settings().max_sparse_regions)
+		{
+			// we have too many sparse regions. Prioritize pieces
+			// that won't introduce new sparse regions
+			// prioritize pieces that will reduce the number of sparse
+			// regions even higher
+			int start = m_picker->cursor();
+			int end = m_picker->reverse_cursor();
+			if (index > start) update_sparse_piece_prio(index - 1, start, end);
+			if (index < end - 1) update_sparse_piece_prio(index + 1, start, end);
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -4654,6 +4680,20 @@ namespace libtorrent
 		if (m_time_scaler <= 0)
 		{
 			m_time_scaler = 10;
+
+			if (settings().max_sparse_regions > 0
+				&& m_picker
+				&& m_picker->sparse_regions() > settings().max_sparse_regions)
+			{
+				// we have too many sparse regions. Prioritize pieces
+				// that won't introduce new sparse regions
+				// prioritize pieces that will reduce the number of sparse
+				// regions even higher
+				int start = m_picker->cursor();
+				int end = m_picker->reverse_cursor();
+				for (int i = start; i < end; ++i)
+					update_sparse_piece_prio(i, start, end);
+			}
 			m_policy.pulse();
 		}
 	}
@@ -5059,6 +5099,7 @@ namespace libtorrent
 
 		if (has_picker())
 		{
+			st.sparse_regions = m_picker->sparse_regions();
 			int num_pieces = m_picker->num_pieces();
 			st.pieces.resize(num_pieces, false);
 			for (int i = 0; i < num_pieces; ++i)

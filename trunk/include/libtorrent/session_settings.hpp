@@ -148,6 +148,11 @@ namespace libtorrent
 			, prefer_udp_trackers(true)
 			, strict_super_seeding(false)
 			, seeding_piece_quota(3)
+#ifdef TORRENT_WINDOWS
+			, max_sparse_regions(30000)
+#else
+			, max_sparse_regions(0)
+#endif
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -478,6 +483,17 @@ namespace libtorrent
 		// the number of pieces to send to each peer when seeding
 		// before rotating to a new peer
 		int seeding_piece_quota;
+
+		// the maximum number of sparse regions before starting
+		// to prioritize pieces close to other pieces (to maintain
+		// the number of sparse regions). This is set to 30000 on
+		// windows because windows vista has a new limit on the
+		// numbers of sparse regions one file may have
+		// if it is set to 0 this behavior is disabled
+		// this is a hack to avoid a terrible bug on windows
+		// don't use unless you have to, it screws with rarest-first
+		// piece selection, and reduces swarm performance
+		int max_sparse_regions;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

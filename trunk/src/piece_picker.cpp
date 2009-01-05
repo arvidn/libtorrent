@@ -65,6 +65,7 @@ namespace libtorrent
 		, m_num_have(0)
 		, m_cursor(0)
 		, m_reverse_cursor(0)
+		, m_sparse_regions(1)
 		, m_dirty(false)
 	{
 #ifdef TORRENT_PICKER_LOG
@@ -1073,6 +1074,28 @@ namespace libtorrent
 			, has_index(index)) == m_downloads.end());
 
 		if (p.have()) return;
+
+// maintain sparse_regions
+		if (index == 0)
+		{
+			if (index == m_piece_map.size() - 1
+				|| m_piece_map[index + 1].have())
+				--m_sparse_regions;
+		}
+		else if (index == int(m_piece_map.size() - 1))
+		{
+			if (index == 0
+				|| m_piece_map[index - 1].have())
+				--m_sparse_regions;
+		}
+		else
+		{
+			bool have_before = m_piece_map[index-1].have();
+			bool have_after = m_piece_map[index+1].have();
+			if (have_after && have_before) --m_sparse_regions;
+			else if (!have_after && !have_before) ++m_sparse_regions;
+		}
+
 		if (p.filtered())
 		{
 			--m_num_filtered;
