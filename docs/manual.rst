@@ -2613,6 +2613,8 @@ It contains the following fields::
 		int last_scrape;
 
 		bool has_incoming;
+
+		int sparse_regions;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -2800,6 +2802,9 @@ If it has never done that, this value is -1.
 ``has_incoming`` is true if there has ever been an incoming connection attempt
 to this torrent.'
 
+``sparse_regions`` the number of regions of non-downloaded pieces in the
+torrent. This is an interesting metric on windows vista, since there is
+a limit on the number of sparse regions in a single file there.
 
 peer_info
 =========
@@ -3217,6 +3222,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool strict_super_seeding;
 
 		int seeding_piece_quota;
+
+		int max_sparse_regions;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3525,6 +3532,16 @@ when seeding, before rotating in another peer to the unchoke set.
 It defaults to 3 pieces, which means that when seeding, any peer we've
 sent more than this number of pieces to will be unchoked in favour of
 a choked peer.
+
+``max_sparse_regions`` is a limit of the number of *sparse regions* in
+a torrent. A sparse region is defined as a hole of pieces we have not
+yet downloaded, in between pieces that have been downloaded. This is
+used as a hack for windows vista which has a bug where you cannot
+write files with more than a certain number of sparse regions. This
+limit is not hard, it will be exceeded. Once it's exceeded, pieces
+that will maintain or decrease the number of sparse regions are
+prioritized. To disable this functionality, set this to 0. It defaults
+to 0 on all platforms except windows.
 
 pe_settings
 ===========

@@ -451,6 +451,8 @@ namespace libtorrent
 // --------------------------------------------
 		// PIECE MANAGEMENT
 
+		void update_sparse_piece_prio(int piece, int cursor, int reverse_cursor);
+
 		bool super_seeding() const
 		{ return m_super_seeding; }
 		
