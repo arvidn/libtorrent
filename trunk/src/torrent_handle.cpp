@@ -328,7 +328,8 @@ namespace libtorrent
 	void torrent_handle::queue_position_up() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_queue_position(t->queue_position() - 1));
+		TORRENT_FORWARD(set_queue_position(t->queue_position() == 0
+			? t->queue_position() : t->queue_position() - 1));
 	}
 
 	void torrent_handle::queue_position_down() const
