@@ -378,6 +378,7 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 
 	m_proxy_addr.address(i->endpoint().address());
 	m_proxy_addr.port(i->endpoint().port());
+	l.unlock(); // on_connect may be called from within this thread
 	m_cc.enqueue(boost::bind(&udp_socket::on_connect, this, _1)
 		, boost::bind(&udp_socket::on_timeout, this), seconds(10));
 }
