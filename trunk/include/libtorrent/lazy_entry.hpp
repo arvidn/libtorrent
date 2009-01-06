@@ -35,20 +35,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <utility>
 #include <vector>
-#include "libtorrent/assert.hpp"
-#include "libtorrent/size_type.hpp"
 #include <iosfwd>
 #include <string>
+#include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
+#include "libtorrent/size_type.hpp"
 
 namespace libtorrent
 {
 	struct lazy_entry;
 
-	char const* parse_int(char const* start, char const* end, char delimiter, boost::int64_t& val);
+	TORRENT_EXPORT char const* parse_int(char const* start, char const* end
+		, char delimiter, boost::int64_t& val);
 	// return 0 = success
-	int lazy_bdecode(char const* start, char const* end, lazy_entry& ret, int depth_limit = 1000);
+	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end, lazy_entry& ret, int depth_limit = 1000);
 
-	struct lazy_entry
+	struct TORRENT_EXPORT lazy_entry
 	{
 		enum entry_type_t
 		{
@@ -225,7 +227,7 @@ namespace libtorrent
 		char const* m_end;
 	};
 
-	std::ostream& operator<<(std::ostream& os, lazy_entry const& e);
+	TORRENT_EXPORT std::ostream& operator<<(std::ostream& os, lazy_entry const& e);
 
 }
 
