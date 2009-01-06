@@ -37,6 +37,7 @@ release 0.14.2
 	* fixed potential issue in udp_socket (affected udp tracker support)
 	* made name, comment and created by also be subject to utf-8 error
 	  correction (filenames already were)
+	* fixed dead-lock when settings DHT proxy
 
 release 0.14.1
 
