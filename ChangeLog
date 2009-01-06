@@ -38,6 +38,7 @@ release 0.14.2
 	* made name, comment and created by also be subject to utf-8 error
 	  correction (filenames already were)
 	* fixed dead-lock when settings DHT proxy
+	* added missing export directives to lazy_entry
 
 release 0.14.1
 
