@@ -191,6 +191,8 @@ if (MSVC)
 endif(MSVC)
 
 add_definitions(-D_FILE_OFFSET_BITS=64)
+add_definitions(-DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
+add_definitions(-DBOOST_DISABLE_EXCEPTION)
 
 if (tcmalloc)
 	target_link_libraries(torrent-rasterbar tcmalloc)
