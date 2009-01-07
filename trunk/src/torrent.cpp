@@ -919,13 +919,10 @@ namespace libtorrent
 					" ]\n";
 #endif
 			}
-			m_error = j.str;
 			pause();
-			if (!m_abort)
-			{
-				m_ses.done_checking(shared_from_this());
-				set_state(torrent_status::queued_for_checking);
-			}
+			m_error = j.str;
+			if (!m_abort) m_ses.done_checking(shared_from_this());
+			set_state(torrent_status::queued_for_checking);
 			return;
 		}
 
