@@ -2351,7 +2351,8 @@ the `save_resume_data_alert`_ though. There's no need to pause when saving inter
 .. note:: It is typically a good idea to save resume data whenever a torrent is completed or paused. In those
 	cases you don't need to pause the torrent or the session, since the torrent will do no more writing
 	to its files. If you save resume data for torrents when they are paused, you can accelerate the
-	shutdown process by not saving resume data again for paused torrents.
+	shutdown process by not saving resume data again for paused torrents. Completed torrents should
+	have their resume data saved when they complete and on exit, since their statistics might be updated.
 
 	In full allocation mode the reume data is never invalidated by subsequent
 	writes to the files, since pieces won't move around. This means that you don't need to
