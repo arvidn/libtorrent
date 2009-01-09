@@ -39,6 +39,8 @@ release 0.14.2
 	  correction (filenames already were)
 	* fixed dead-lock when settings DHT proxy
 	* added missing export directives to lazy_entry
+	* fixed disk cache expiry settings bug (if changed, it would be set
+	  to the cache size)
 
 release 0.14.1
 
