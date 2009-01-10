@@ -124,6 +124,7 @@ namespace libtorrent
 			, use_parole_mode(true)
 			, cache_size(512)
 			, cache_expiry(60)
+			, use_read_cache(true)
 			, outgoing_ports(0,0)
 			, peer_tos(0)
 			, active_downloads(8)
@@ -371,6 +372,10 @@ namespace libtorrent
 		// idle in the cache before it's forcefully flushed
 		// to disk. Default is 60 seconds.
 		int cache_expiry;
+
+		// when true, the disk I/O thread uses the disk
+		// cache for caching blocks read from disk too
+		bool use_read_cache;
 
 		// if != (0, 0), this is the range of ports that
 		// outgoing connections will be bound to. This

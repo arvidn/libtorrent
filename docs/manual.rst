@@ -3193,6 +3193,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool use_parole_mode;
 		int cache_size;
 		int cache_expiry;
+		bool use_read_cache;
 		std::pair<int, int> outgoing_ports;
 		char peer_tos;
 
@@ -3419,6 +3420,9 @@ It defaults to 512 (= 8 MB).
 
 ``cache_expiry`` is the number of seconds from the last cached write to a piece
 in the write cache, to when it's forcefully flushed to disk. Default is 60 second.
+
+``use_read_cache``, is set to true (default), the disk cache is also used to
+cache pieces read from disk. Blocks for writing pieces takes presedence.
 
 ``outgoing_ports``, if set to something other than (0, 0) is a range of ports
 used to bind outgoing sockets to. This may be useful for users whose router

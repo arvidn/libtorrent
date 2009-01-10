@@ -89,6 +89,7 @@ namespace libtorrent
 			, abort_thread
 			, clear_read_cache
 			, abort_torrent
+			, update_settings
 		};
 
 		action_t action;
@@ -186,8 +187,6 @@ namespace libtorrent
 			, std::vector<cached_piece_info>& ret) const;
 
 		cache_status status() const;
-		void set_cache_size(int s);
-		void set_cache_expiry(int ex);
 
 		void operator()();
 
