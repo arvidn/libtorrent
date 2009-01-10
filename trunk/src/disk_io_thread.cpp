@@ -145,20 +145,6 @@ namespace libtorrent
 		return m_cache_stats;
 	}
 
-	void disk_io_thread::set_cache_size(int s)
-	{
-		mutex_t::scoped_lock l(m_piece_mutex);
-		TORRENT_ASSERT(s >= 0);
-		m_cache_size = s;
-	}
-
-	void disk_io_thread::set_cache_expiry(int ex)
-	{
-		mutex_t::scoped_lock l(m_piece_mutex);
-		TORRENT_ASSERT(ex > 0);
-		m_cache_expiry = ex;
-	}
-
 	// aborts read operations
 	void disk_io_thread::stop(boost::intrusive_ptr<piece_manager> s)
 	{
@@ -870,6 +856,21 @@ namespace libtorrent
 
 			switch (j.action)
 			{
+				case disk_io_job::update_settings:
+				{
+#ifdef TORRENT_DISK_STATS
+					m_log << log_time() << " update_settings " << std::endl;
+#endif
+					TORRENT_ASSERT(j.buffer);
+					session_settings const& s = *((session_settings*)j.buffer);
+					TORRENT_ASSERT(s.cache_size >= 0);
+					TORRENT_ASSERT(s.cache_expiry > 0);
+
+					mutex_t::scoped_lock l(m_piece_mutex);
+					m_cache_size = s.cache_size;
+					m_cache_expiry = s.cache_expiry;
+					m_use_read_cache = s.use_read_cache;
+				}
 				case disk_io_job::abort_torrent:
 				{
 #ifdef TORRENT_DISK_STATS

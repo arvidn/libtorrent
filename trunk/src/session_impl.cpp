@@ -582,10 +582,16 @@ namespace aux {
 
 		// less than 5 seconds unchoke interval is insane
 		TORRENT_ASSERT(s.unchoke_interval >= 5);
-		if (m_settings.cache_size != s.cache_size)
-			m_disk_thread.set_cache_size(s.cache_size);
-		if (m_settings.cache_expiry != s.cache_expiry)
-			m_disk_thread.set_cache_expiry(s.cache_expiry);
+
+
+		// if disk io thread settings were changed
+		// post a notification to that thread
+		bool update_disk_io_thread = false;
+		if (m_settings.cache_size != s.cache_size
+			|| m_settings.cache_expiry != s.cache_expiry
+			|| m_settings.use_read_cache != s.use_read_cache)
+			update_disk_io_thread = true;
+
 		// if queuing settings were changed, recalculate
 		// queued torrents sooner
 		if ((m_settings.active_downloads != s.active_downloads
@@ -596,6 +602,14 @@ namespace aux {
 		m_settings = s;
  		if (m_settings.connection_speed <= 0) m_settings.connection_speed = 200;
  
+		if (update_disk_io_thread)
+		{
+			disk_io_job j;
+			j.buffer = (char*)&m_settings;
+			j.action = disk_io_job::update_settings;
+			m_disk_thread.add_job(j);
+		}
+
 		m_files.resize(m_settings.file_pool_size);
 		if (!s.auto_upload_slots) m_allowed_upload_slots = m_max_uploads;
 		// replace all occurances of '\n' with ' '.
