@@ -33,7 +33,6 @@ set(sources
 	socks5_stream
 	stat
 	storage
-#	mapped_storage
 	torrent
 	torrent_handle
 	torrent_info
