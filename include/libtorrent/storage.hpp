@@ -189,8 +189,6 @@ namespace libtorrent
 
 	TORRENT_EXPORT storage_interface* default_storage_constructor(
 		file_storage const&, fs::path const&, file_pool&);
-	TORRENT_EXPORT storage_interface* mapped_storage_constructor(
-		file_storage const&, fs::path const&, file_pool&);
 
 	struct disk_io_thread;
 

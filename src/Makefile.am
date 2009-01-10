@@ -26,7 +26,6 @@ socks5_stream.cpp socks4_stream.cpp http_stream.cpp connection_queue.cpp \
 disk_io_thread.cpp ut_metadata.cpp lt_trackers.cpp magnet_uri.cpp udp_socket.cpp smart_ban.cpp \
 http_parser.cpp gzip.cpp disk_buffer_holder.cpp create_torrent.cpp GeoIP.c \
 parse_url.cpp file_storage.cpp error_code.cpp ConvertUTF.cpp $(kademlia_sources)
-# mapped_storage.cpp 
 
 noinst_HEADERS = \
 $(top_srcdir)/include/libtorrent/alert.hpp \
