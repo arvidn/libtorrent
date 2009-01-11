@@ -541,7 +541,7 @@ namespace libtorrent
 			if (f == INVALID_HANDLE_VALUE)
 			{
 				ec = error_code(GetLastError(), get_system_category());
-				return false;
+				return -1;
 			}
 
 			LARGE_INTEGER offs;
@@ -556,7 +556,7 @@ namespace libtorrent
 			{
 				ec = error_code(GetLastError(), get_system_category());
 				CloseHandle(f);
-				return false;
+				return -1;
 			}
 			CloseHandle(f);
 		}
@@ -604,7 +604,7 @@ namespace libtorrent
 		if (ftruncate(m_fd, file_offset + size) < 0)
 		{
 			ec = error_code(errno, get_posix_category());
-			return false;
+			return -1;
 		}
 		return (std::min)(ret, size_type(size));
 #endif
