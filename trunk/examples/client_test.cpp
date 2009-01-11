@@ -1561,6 +1561,7 @@ int main(int ac, char* av[])
 					torrent_info const& info = h.get_torrent_info();
 					for (int i = 0; i < info.num_files(); ++i)
 					{
+						if (info.file_at(i).pad_file) continue;
 						float progress = info.file_at(i).size > 0
 							?float(file_progress[i]) / info.file_at(i).size:1;
 						if (file_progress[i] == info.file_at(i).size)
