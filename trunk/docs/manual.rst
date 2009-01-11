@@ -2672,7 +2672,10 @@ again the next time.
 been successful yet, it's set to an empty string.
 
 ``total_download`` and ``total_upload`` is the number of bytes downloaded and
-uploaded to all peers, accumulated, *this session* only.
+uploaded to all peers, accumulated, *this session* only. The session is considered
+to restart when a torrent is paused and restarted again. When a torrent is paused,
+these counters are reset to 0. If you want complete, persistent, stats, see
+``all_time_upload`` and ``all_time_download``.
 
 ``total_payload_download`` and ``total_payload_upload`` counts the amount of bytes
 send and received this session, but only the actual payload data (i.e the interesting
