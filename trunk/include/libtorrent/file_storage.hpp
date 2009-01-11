@@ -111,7 +111,7 @@ namespace libtorrent
 			return m_files[index];
 		}
 		
-		size_type total_size() const { TORRENT_ASSERT(m_piece_length > 0); return m_total_size; }
+		size_type total_size() const { return m_total_size; }
 		void set_num_pieces(int n) { m_num_pieces = n; }
 		int num_pieces() const { TORRENT_ASSERT(m_piece_length > 0); return m_num_pieces; }
 		void set_piece_length(int l)  { m_piece_length = l; }
@@ -131,6 +131,11 @@ namespace libtorrent
 			swap(ti.m_num_pieces, m_num_pieces);
 			swap(ti.m_name, m_name);
 		}
+
+		// if pad_file_limit >= 0, files larger than
+		// that limit will be padded, default is to
+		// not add any padding
+		void optimize(int pad_file_limit = -1);
 
 	private:
 		int m_piece_length;

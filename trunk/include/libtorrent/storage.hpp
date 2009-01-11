@@ -116,6 +116,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT storage_interface
 	{
+		storage_interface(): m_io_thread(0) {}
 		// create directories and set file sizes
 		// if allocate_files is true. 
 		// allocate_files is true if allocation mode
@@ -167,7 +168,7 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual bool delete_files() = 0;
 
-		disk_io_thread& io_thread() { return *m_io_thread; }
+		disk_io_thread* io_thread() { return m_io_thread; }
 
 		void set_error(boost::filesystem::path const& file, error_code const& ec) const
 		{

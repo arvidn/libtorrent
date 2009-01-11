@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/utf8.hpp"
+#include <boost/bind.hpp>
 
 
 namespace libtorrent
@@ -185,6 +186,82 @@ namespace libtorrent
 	void file_storage::add_file(file_entry const& e)
 	{
 		add_file(e.path, e.size, e.pad_file);
+	}
+
+	void file_storage::optimize(int pad_file_limit)
+	{
+		// the main purpuse of padding is to optimize disk
+		// I/O. This is a conservative memory page size assumption
+		int alignment = 8*1024;
+
+		// it doesn't make any sense to pad files that
+		// are smaller than one piece
+		if (pad_file_limit >= 0 && pad_file_limit < alignment)
+			pad_file_limit = alignment;
+
+		// put the largest file at the front, to make sure
+		// it's aligned
+		std::vector<file_entry>::iterator i = std::max_element(m_files.begin(), m_files.end()
+			, boost::bind(&file_entry::size, _1) < boost::bind(&file_entry::size, _2));
+
+		using std::iter_swap;
+		iter_swap(i, m_files.begin());
+
+		size_type off = 0;
+		int padding_file = 0;
+		for (std::vector<file_entry>::iterator i = m_files.begin();
+			i != m_files.end(); ++i)
+		{
+			if (pad_file_limit >= 0
+				&& (off & (alignment-1)) != 0
+				&& i->size > pad_file_limit)
+			{
+				// if we have pad files enabled, and this file is
+				// not piece-aligned and the file size exceeds the
+				// limit, so add a padding file in front of it
+				int pad_size = alignment - (off & (alignment-1));
+				
+				// find the largest file that fits in pad_size
+				std::vector<file_entry>::iterator best_match = m_files.end();
+				for (std::vector<file_entry>::iterator j = i+1; j < m_files.end(); ++j)
+				{
+					if (j->size > pad_size) continue;
+					if (best_match == m_files.end() || j->size > best_match->size)
+						best_match = j;
+				}
+
+				if (best_match != m_files.end())
+				{
+					// we found one
+					file_entry e = *best_match;
+					m_files.erase(best_match);
+					i = m_files.insert(i, e);
+					i->offset = off;
+					off += i->size;
+					continue;
+				}
+
+				// we could not find a file that fits in pad_size
+				// add a padding file
+
+				file_entry e;
+				i = m_files.insert(i, e);
+				i->size = pad_size;
+				i->offset = off;
+				i->file_base = 0;
+				char name[10];
+				sprintf(name, "%d", padding_file);
+				i->path = *(i+1)->path.begin();
+				i->path /= "_____padding_file_";
+				i->path /= name;
+				off += pad_size;
+				++padding_file;
+				++i;
+			}
+			i->offset = off;
+			off += i->size;
+		}
+		m_total_size = off;
 	}
 }
 

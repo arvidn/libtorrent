@@ -454,13 +454,15 @@ namespace libtorrent
 		int slot_size = piece_size - ph.offset;
 		if (slot_size > 0)
 		{
+			int block_size = 16 * 1024;
+			if (io_thread()) block_size = io_thread()->block_size();
 			int size = slot_size;
-			int num_blocks = (size + io_thread().block_size() - 1) / io_thread().block_size();
+			int num_blocks = (size + block_size - 1) / block_size;
 			file::iovec_t* bufs = TORRENT_ALLOCA(file::iovec_t, num_blocks);
 			for (int i = 0; i < num_blocks; ++i)
 			{
-				bufs[i].iov_base = io_thread().allocate_buffer();
-				bufs[i].iov_len = (std::min)(io_thread().block_size(), size);
+				bufs[i].iov_base = io_thread()->allocate_buffer();
+				bufs[i].iov_len = (std::min)(block_size, size);
 				size -= bufs[i].iov_len;
 			}
 			readv(bufs, slot, ph.offset, num_blocks);
@@ -468,7 +470,7 @@ namespace libtorrent
 			for (int i = 0; i < num_blocks; ++i)
 			{
 				ph.h.update((char const*)bufs[i].iov_base, bufs[i].iov_len);
-				io_thread().free_buffer((char*)bufs[i].iov_base);
+				io_thread()->free_buffer((char*)bufs[i].iov_base);
 			}
 			if (error()) return sha1_hash(0);
 		}
@@ -526,7 +528,8 @@ namespace libtorrent
 			{
 				error_code ec;
 				int mode = file::read_write;
-				if (io_thread().no_buffer()
+				if (io_thread()
+					&& io_thread()->no_buffer()
 					&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)
 					mode |= file::no_buffer;
 				boost::shared_ptr<file> f = m_pool.open_file(this
@@ -915,22 +918,22 @@ namespace libtorrent
 #endif
 
 #define TORRENT_ALLOCATE_BLOCKS(bufs, num_blocks, piece_size) \
-	int num_blocks = (piece_size + io_thread().block_size() - 1) / io_thread().block_size(); \
+	int num_blocks = (piece_size + io_thread()->block_size() - 1) / io_thread()->block_size(); \
 	file::iovec_t* bufs = TORRENT_ALLOCA(file::iovec_t, num_blocks); \
 	for (int i = 0, size = piece_size; i < num_blocks; ++i) \
 	{ \
-		bufs[i].iov_base = io_thread().allocate_buffer(); \
-		bufs[i].iov_len = (std::min)(io_thread().block_size(), size); \
+		bufs[i].iov_base = io_thread()->allocate_buffer(); \
+		bufs[i].iov_len = (std::min)(io_thread()->block_size(), size); \
 		size -= bufs[i].iov_len; \
 	}
 
 #define TORRENT_FREE_BLOCKS(bufs, num_blocks) \
 	for (int i = 0; i < num_blocks; ++i) \
-		io_thread().free_buffer((char*)bufs[i].iov_base);
+		io_thread()->free_buffer((char*)bufs[i].iov_base);
 
 #define TORRENT_SET_SIZE(bufs, size, num_bufs) \
-	for (num_bufs = 0; size > 0; size -= io_thread().block_size(), ++num_bufs) \
-		bufs[num_bufs].iov_len = (std::min)(io_thread().block_size(), size)
+	for (num_bufs = 0; size > 0; size -= io_thread()->block_size(), ++num_bufs) \
+		bufs[num_bufs].iov_len = (std::min)(io_thread()->block_size(), size)
 	
 
 	bool storage::move_slot(int src_slot, int dst_slot)
@@ -954,7 +957,6 @@ ret:
 		bool r = true;
 
 		// the size of the target slot is the size of the piece
-		int piece_size = m_files.piece_length();
 		int piece1_size = m_files.piece_size(slot2);
 		int piece2_size = m_files.piece_size(slot1);
 
@@ -1098,7 +1100,8 @@ ret:
 
 			error_code ec;
 			int mode = file::read_only;
-			if (io_thread().no_buffer()
+			if (io_thread()
+				&& io_thread()->no_buffer()
 				&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)
 				mode |= file::no_buffer;
 			in = m_pool.open_file(this, path, mode, ec);
@@ -1241,7 +1244,8 @@ ret:
 
 			error_code ec;
 			int mode = file::read_write;
-			if (io_thread().no_buffer()
+			if (io_thread()
+				&& io_thread()->no_buffer()
 				&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)
 				mode |= file::no_buffer;
 			out = m_pool.open_file(this, path, mode, ec);

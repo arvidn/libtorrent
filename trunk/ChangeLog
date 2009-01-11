@@ -22,6 +22,7 @@
 	* added monitoring of the DHT lookups
 	* added bandwidth reports for estimated TCP/IP overhead and DHT
 	* includes DHT traffic in the rate limiter
+	* added support for bitcomet padding files
 
 release 0.14.2
 

@@ -118,8 +118,8 @@ file structure. Its synopsis::
 		bool is_valid() const;
 
 		void add_file(file_entry const& e);
-		void add_file(fs::path const& p, size_type size);
-		void add_file(fs::wpath const& p, size_type size);
+		void add_file(fs::path const& p, size_type size, bool pad_file = false);
+		void add_file(fs::wpath const& p, size_type size, bool pad_file = false);
 		void rename_file(int index, std::string const& new_filename);
 		void rename_file(int index, std::wstring const& new_filename);
 
@@ -161,8 +161,7 @@ The ``create_torrent`` class has the following synopsis::
 
 	struct create_torrent
 	{
-		create_torrent(file_storage& fs, int piece_size);
-		create_torrent(file_storage& fs);
+		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1);
 		create_torrent(torrent_info const& ti);
 
 		entry generate() const;
@@ -188,15 +187,16 @@ create_torrent()
 
 	::
 
-		create_torrent(file_storage& fs, int piece_size);
-		create_torrent(file_storage& fs);
+		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1);
 		create_torrent(torrent_info const& ti);
 
 The ``piece_size`` is the size of each piece in bytes. It must
-be a multiple of 16 kiB.
+be a multiple of 16 kiB. If a piece size of 0 is specified, a
+piece_size will becalculated such that the torrent file is roughly 40 kB.
 
-The constructor that does not take a piece_size will calculate
-a piece size such that the torrent file is roughly 40 kB.
+If a ``pad_size_limit`` is specified (other than -1), any file larger than
+the specified number of bytes will be preceeded by a pad file to align it
+with the start od a piece.
 
 The overlad that takes a ``torrent_info`` object will make a verbatim
 copy of its info dictionary (to preserve the info-hash). The copy of

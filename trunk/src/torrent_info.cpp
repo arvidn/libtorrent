@@ -219,11 +219,7 @@ namespace
 
 		// bitcomet pad file
 
-#if BOOST_VERSION < 103600
-		if (target.path.leaf().substr(0, 18) == "_____padding_file_")
-#else
-		if (target.path.filename().substr(0, 18) == "_____padding_file_")
-#endif
+		if (target.path.string().find("_____padding_file_") != std::string::npos)
 			target.pad_file = true;
 
 		return true;
