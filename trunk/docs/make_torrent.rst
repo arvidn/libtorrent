@@ -117,9 +117,16 @@ file structure. Its synopsis::
 
 		bool is_valid() const;
 
+		enum flags_t
+		{
+			pad_file = 1,
+			attribute_hidden = 2,
+			attribute_executable = 4
+		};
+
 		void add_file(file_entry const& e);
-		void add_file(fs::path const& p, size_type size, bool pad_file = false);
-		void add_file(fs::wpath const& p, size_type size, bool pad_file = false);
+		void add_file(fs::path const& p, size_type size, int flags = 0);
+		void add_file(fs::wpath const& p, size_type size, int flags = 0);
 		void rename_file(int index, std::string const& new_filename);
 		void rename_file(int index, std::wstring const& new_filename);
 
@@ -151,6 +158,23 @@ file structure. Its synopsis::
 
 		void swap(file_storage& ti);
 	}
+
+add_file()
+----------
+
+	::
+
+		void add_file(file_entry const& e);
+		void add_file(fs::path const& p, size_type size, int flags = 0);
+		void add_file(fs::wpath const& p, size_type size, int flags = 0);
+
+Adds a file to the file storage. The ``flags`` argument sets attributes on the file.
+The file attributes is an extension and may not work in all bittorrent clients.
+The possible arreibutes are::
+
+	pad_file
+	attribute_hidden
+	attribute_executable
 
 
 create_torrent

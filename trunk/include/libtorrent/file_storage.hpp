@@ -56,7 +56,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT file_entry
 	{
-		file_entry(): offset(0), size(0), file_base(0), pad_file(false) {}
+		file_entry(): offset(0), size(0), file_base(0)
+			, pad_file(false), hidden_attribute(false)
+			, executable_attribute(false) {}
 
 		fs::path path;
 		size_type offset; // the offset of this file inside the torrent
@@ -66,6 +68,8 @@ namespace libtorrent
 		// compressed into a single file, such as a so-called part file.
 		size_type file_base;
 		bool pad_file:1;
+		bool hidden_attribute:1;
+		bool executable_attribute:1;
 	};
 
 	struct TORRENT_EXPORT file_slice
@@ -84,9 +88,16 @@ namespace libtorrent
 
 		bool is_valid() const { return m_piece_length > 0; }
 
+		enum flags_t
+		{
+			pad_file = 1,
+			attribute_hidden = 2,
+			attribute_executable = 4
+		};
+
 		void add_file(file_entry const& e);
-		void add_file(fs::path const& p, size_type size, bool pad_file = false);
-		void add_file(fs::wpath const& p, size_type size, bool pad_file = false);
+		void add_file(fs::path const& p, size_type size, int flags = 0);
+		void add_file(fs::wpath const& p, size_type size, int flags = 0);
 		void rename_file(int index, std::string const& new_filename);
 		void rename_file(int index, std::wstring const& new_filename);
 

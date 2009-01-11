@@ -92,19 +92,23 @@ namespace libtorrent
 			read_only = GENERIC_READ,
 			write_only = GENERIC_WRITE,
 			read_write = GENERIC_READ | GENERIC_WRITE,
-			rw_mask = GENERIC_READ | GENERIC_WRITE,
-			no_buffer = 1
+			no_buffer = 1,
+			attribute_hidden = FILE_ATTRIBUTE_HIDDEN,
+			attribute_executable = 0,
 #else
 			read_only = O_RDONLY,
 			write_only = O_WRONLY | O_CREAT,
 			read_write = O_RDWR | O_CREAT,
-			rw_mask = O_RDONLY | O_WRONLY | O_RDWR | O_CREAT,
 #if defined O_DIRECT
-			no_buffer = O_DIRECT
+			no_buffer = O_DIRECT,
 #else
-			no_buffer = O_SYNC
+			no_buffer = O_SYNC,
 #endif
+			attribute_hidden = 0,
+			attribute_executable = 0x100000,
 #endif
+			rw_mask = read_only | write_only | read_write,
+			attribute_mask = attribute_hidden | attribute_executable
 		};
 
 #ifdef TORRENT_WINDOWS

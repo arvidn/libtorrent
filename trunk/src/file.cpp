@@ -71,7 +71,11 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 
 #include "libtorrent/assert.hpp"
 
+#ifdef TORRENT_DEBUG
 BOOST_STATIC_ASSERT((libtorrent::file::rw_mask & libtorrent::file::no_buffer) == 0);
+BOOST_STATIC_ASSERT((libtorrent::file::rw_mask & libtorrent::file::attribute_mask) == 0);
+BOOST_STATIC_ASSERT((libtorrent::file::no_buffer & libtorrent::file::attribute_mask) == 0);
+#endif
 
 namespace
 {
@@ -146,8 +150,9 @@ namespace libtorrent
 			, FILE_SHARE_READ | ((mode & no_buffer) ? FILE_SHARE_WRITE : 0)
 			, 0
 			, ((mode & rw_mask) == read_write || (mode & rw_mask) == write_only)?OPEN_ALWAYS:OPEN_EXISTING
-			, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS
+			, FILE_FLAG_RANDOM_ACCESS
 				| ((mode & no_buffer)?FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING:0)
+				| ((mode & attribute_mask)?(mode & attribute_mask):FILE_ATTRIBUTE_NORMAL)
 			, 0);
 
 		if (m_file_handle == INVALID_HANDLE_VALUE)
@@ -170,8 +175,11 @@ namespace libtorrent
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
 
+		if (mode & attribute_executable)
+			permissions |= S_IXGRP | S_IXOTH | S_IXUSR;
+
  		m_fd = ::open(path.external_file_string().c_str()
- 			, mode, permissions);
+ 			, mode & (rw_mask | no_buffer), permissions);
 
 		if (m_fd == -1)
 		{

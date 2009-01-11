@@ -150,6 +150,9 @@ namespace libtorrent
 
 		inline void nop(int i) {}
 
+		int get_file_attributes(boost::filesystem::path const& p);
+		int get_file_attributes(boost::filesystem::wpath const& p);
+
 		template <class Pred, class Str, class PathTraits>
 		void add_files_impl(file_storage& fs, boost::filesystem::basic_path<Str, PathTraits> const& p
 			, boost::filesystem::basic_path<Str, PathTraits> const& l, Pred pred)
@@ -175,7 +178,8 @@ namespace libtorrent
 			}
 			else
 			{
-				fs.add_file(l, file_size(f));
+				int file_flags = get_file_attributes(f);
+				fs.add_file(l, file_size(f), file_flags);
 			}
 		}
 	}
