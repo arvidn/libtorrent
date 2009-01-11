@@ -544,7 +544,7 @@ namespace libtorrent
 
 			LARGE_INTEGER offs;
 			offs.QuadPart = file_size;
-			if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+			if (SetFilePointerEx(f, offs, &offs, FILE_BEGIN) == FALSE)
 			{
 				CloseHandle(f);
 				ec = error_code(GetLastError(), get_system_category());
