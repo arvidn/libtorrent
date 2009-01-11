@@ -125,6 +125,7 @@ namespace libtorrent
 			, cache_size(512)
 			, cache_expiry(60)
 			, use_read_cache(true)
+			, disk_io_no_buffer(true)
 			, outgoing_ports(0,0)
 			, peer_tos(0)
 			, active_downloads(8)
@@ -376,6 +377,10 @@ namespace libtorrent
 		// when true, the disk I/O thread uses the disk
 		// cache for caching blocks read from disk too
 		bool use_read_cache;
+
+		// when set to true, files that can be opened with
+		// no OS buffering will be opened that way
+		bool disk_io_no_buffer;
 
 		// if != (0, 0), this is the range of ports that
 		// outgoing connections will be bound to. This

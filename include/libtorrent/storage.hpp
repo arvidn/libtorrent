@@ -57,8 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/buffer.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
 
 namespace libtorrent
 {
@@ -72,7 +72,6 @@ namespace libtorrent
 	class session;
 	struct file_pool;
 	struct disk_io_job;
-	struct disk_buffer_holder;
 
 	enum storage_mode_t
 	{
@@ -124,8 +123,8 @@ namespace libtorrent
 		// false return value indicates an error
 		virtual bool initialize(bool allocate_files) = 0;
 
-		virtual int readv(file::iovec_t* bufs, int slot, int offset, int num_bufs);
-		virtual int writev(file::iovec_t* buf, int slot, int offset, int num_bufs);
+		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
+		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
 
 		// negative return value indicates an error
 		virtual int read(char* buf, int slot, int offset, int size) = 0;
@@ -168,6 +167,8 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual bool delete_files() = 0;
 
+		disk_io_thread& io_thread() { return *m_io_thread; }
+
 		void set_error(boost::filesystem::path const& file, error_code const& ec) const
 		{
 			m_error_file = file.string();
@@ -182,6 +183,8 @@ namespace libtorrent
 		mutable std::string m_error_file;
 
 		virtual ~storage_interface() {}
+
+		disk_io_thread* m_io_thread;
 	};
 
 	typedef storage_interface* (&storage_constructor_type)(
@@ -321,7 +324,7 @@ namespace libtorrent
 		// -1=error 0=ok 1=skip
 		int check_one_piece(int& have_piece);
 		int identify_data(
-			const std::vector<char>& piece_data
+			char const* piece_data
 			, int current_slot);
 
 		void switch_to_full_mode();
@@ -394,8 +397,8 @@ namespace libtorrent
 		// used to move pieces while expanding
 		// the storage from compact allocation
 		// to full allocation
-		buffer m_scratch_buffer;
-		buffer m_scratch_buffer2;
+		disk_buffer_holder m_scratch_buffer;
+		disk_buffer_holder m_scratch_buffer2;
 		// the piece that is in the scratch buffer
 		int m_scratch_piece;
 		
@@ -404,7 +407,7 @@ namespace libtorrent
 		storage_constructor_type m_storage_constructor;
 
 		// temporary buffer used while checking
-		std::vector<char> m_piece_data;
+		disk_buffer_holder m_piece_data;
 		
 		// this maps a piece hash to piece index. It will be
 		// build the first time it is used (to save time if it

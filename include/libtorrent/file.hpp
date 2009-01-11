@@ -59,6 +59,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 // posix part
 #define _FILE_OFFSET_BITS 64
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 600
+#endif
+
 #include <unistd.h>
 #include <sys/uio.h>
 #include <fcntl.h>
@@ -75,18 +84,26 @@ namespace libtorrent
 
 		enum
 		{
+			// when a file is opened with no_buffer
+			// file offsets have to be aligned to
+			// pages and buffer addresses and sizes
+			// have to be page aligned too
 #ifdef TORRENT_WINDOWS
 			read_only = GENERIC_READ,
 			write_only = GENERIC_WRITE,
 			read_write = GENERIC_READ | GENERIC_WRITE,
-			begin = FILE_BEGIN,
-			end = FILE_END,
+			rw_mask = GENERIC_READ | GENERIC_WRITE,
+			no_buffer = 1
 #else
-			begin = SEEK_SET,
-			end = SEEK_END,
 			read_only = O_RDONLY,
 			write_only = O_WRONLY | O_CREAT,
 			read_write = O_RDWR | O_CREAT,
+			rw_mask = O_RDONLY | O_WRONLY | O_RDWR | O_CREAT,
+#if defined O_DIRECT
+			no_buffer = O_DIRECT
+#else
+			no_buffer = O_SYNC
+#endif
 #endif
 		};
 
@@ -109,26 +126,28 @@ namespace libtorrent
 		void close();
 		bool set_size(size_type size, error_code& ec);
 
-		size_type writev(iovec_t const* bufs, int num_bufs, error_code& ec);
-		size_type readv(iovec_t const* bufs, int num_bufs, error_code& ec);
+		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
+		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 
-		size_type write(char const*, size_type num_bytes, error_code& ec);
-		size_type read(char*, size_type num_bytes, error_code& ec);
-
-		size_type seek(size_type pos, int m, error_code& ec);
-		size_type tell(error_code& ec);
+		size_type get_size(error_code& ec);
 
 	private:
 
 #ifdef TORRENT_WINDOWS
 		HANDLE m_file_handle;
+#ifdef TORRENT_USE_WPATH
+		std::wstring m_path;
+#else
+		std::string m_path;
+#endif
 #else
 		int m_fd;
 #endif
-#ifdef TORRENT_DEBUG
-		int m_open_mode;
+#if defined TORRENT_WINDOWS || defined TORRENT_DEBUG
+		void init_file();
+		static int m_page_size;
 #endif
-
+		int m_open_mode;
 	};
 
 }

@@ -844,7 +844,7 @@ namespace libtorrent { namespace dht
 			}
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(dht_tracker) << log_line.str() << " ]";
-			TORRENT_LOG(dht_tracker) << "ERROR: incoming error: " << std::dec << m.error_code
+			TORRENT_LOG(dht_tracker) << "ERROR: incoming error: " << m.error_code
 				<< " " << m.error_msg;
 #endif
 			return;

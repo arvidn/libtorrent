@@ -3194,6 +3194,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int cache_size;
 		int cache_expiry;
 		bool use_read_cache;
+		bool disk_io_no_buffer;
 		std::pair<int, int> outgoing_ports;
 		char peer_tos;
 
@@ -3423,6 +3424,15 @@ in the write cache, to when it's forcefully flushed to disk. Default is 60 secon
 
 ``use_read_cache``, is set to true (default), the disk cache is also used to
 cache pieces read from disk. Blocks for writing pieces takes presedence.
+
+``disk_io_no_buffer`` defaults to true. When set to true, files are preferred
+to be opened in unbuffered mode. This helps the operating system from growing
+its file cache indefinitely. Currently only files whose offset in the torrent
+is page aligned are opened in unbuffered mode. A page is typically 4096 bytes
+and since blocks in bittorrent are 16kB, any file that is aligned to a block
+or piece will get the benefit of be opened in unbuffered mode. It is therefore
+recommended to make the largest file in a torrent the first file (with offset 0)
+or use pad files to align all files to piece boundries.
 
 ``outgoing_ports``, if set to something other than (0, 0) is a range of ports
 used to bind outgoing sockets to. This may be useful for users whose router
@@ -4949,8 +4959,8 @@ this::
 	struct storage_interface
 	{
 		virtual bool initialize(bool allocate_files) = 0;
-		virtual int read(char* buf, int slot, int offset, int size) = 0;
-		virtual int write(const char* buf, int slot, int offset, int size) = 0;
+		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
+		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
 		virtual bool move_storage(fs::path save_path) = 0;
 		virtual bool verify_resume_data(lazy_entry const& rd, std::string& error) = 0;
 		virtual bool write_resume_data(entry& rd) const = 0;
@@ -4978,30 +4988,55 @@ it will also ``ftruncate`` all files to their target size.
 
 Returning ``true`` indicates an error occurred.
 
-read()
+
+readv()
 ------
 
 	::
 
-		int read(char* buf, int slot, int offset, int size) = 0;
+		int readv(file::iovec_t const* buf, int slot, int offset, int num_bufs) = 0;
 
-This function should read the data in the given slot and at the given offset
-and ``size`` number of bytes. The data is to be copied to ``buf``.
+This function should read the data in the given ``slot`` and at the given ``offset``.
+It should read ``num_bufs`` buffers, where the size of each buffer is specified in the
+buffer array ``bufs``. The file::iovec_t type has the following members::
+
+	struct iovec_t
+	{
+		void* iov_base;
+		size_t iov_len;
+	};
 
 The return value is the number of bytes actually read.
 
+Every buffer in ``bufs`` can be assumed to be page aligned and be of a page aligned size,
+except for the last buffer of the torrent. The buffer can be assumed to fit a fully page
+aligned number of bytes though.
 
-write()
+
+writev()
 -------
 
 	::
 
 		int write(const char* buf, int slot, int offset, int size) = 0;
 
-This function should write the data in ``buf`` to the given slot (``slot``) at offset
-``offset`` in that slot. The buffer size is ``size``.
+This function should write the data to the given ``slot`` and at the given ``offset``.
+It should write ``num_bufs`` buffers, where the size of each buffer is specified in the
+buffer array ``bufs``. The file::iovec_t type has the following members::
+
+	struct iovec_t
+	{
+		void* iov_base;
+		size_t iov_len;
+	};
 
 The return value is the number of bytes actually written.
+
+Every buffer in ``bufs`` can be assumed to be page aligned and be of a page aligned size,
+except for the last buffer of the torrent. The buffer can be assumed to fit a fully page
+aligned number of bytes though.
+This function should write the data in ``buf`` to the given slot (``slot``) at offset
+``offset`` in that slot. The buffer size is ``size``.
 
 
 move_storage()

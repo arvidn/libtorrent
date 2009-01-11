@@ -47,7 +47,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(st != 0);
 		TORRENT_ASSERT(p.is_complete());
-		TORRENT_ASSERT(m == file::read_only || m == file::read_write);
+		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
+			|| (m & file::rw_mask) == file::read_write);
 		boost::mutex::scoped_lock l(m_mutex);
 		typedef nth_index<file_set, 0>::type path_view;
 		path_view& pt = get<0>(m_files);
@@ -71,8 +72,8 @@ namespace libtorrent
 			// if we asked for a file in write mode,
 			// and the cached file is is not opened in
 			// write mode, re-open it
-			if ((e.mode != file::read_write)
-				&& (m == file::read_write))
+			if (((e.mode & file::rw_mask) != file::read_write)
+				&& ((m & file::rw_mask) == file::read_write))
 			{
 				// close the file before we open it with
 				// the new read/write privilages
@@ -88,6 +89,7 @@ namespace libtorrent
 				e.mode = m;
 			}
 			pt.replace(i, e);
+			TORRENT_ASSERT((e.mode & ~file::rw_mask) == (m & ~file::rw_mask));
 			return e.file_ptr;
 		}
 		// the file is not in our cache
