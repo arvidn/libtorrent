@@ -1,3 +1,4 @@
+	* added support for unbuffered I/O for aligned files
 	* added workaround for sparse file issue on Windows Vista
 	* added new lt_trackers extension to exchange trackers between
 	  peers

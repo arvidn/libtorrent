@@ -317,7 +317,7 @@ namespace libtorrent
 	// for backwards compatibility, let the default readv and
 	// writev implementations be implemented in terms of the
 	// old read and write
-	int storage_interface::readv(file::iovec_t* bufs
+	int storage_interface::readv(file::iovec_t const* bufs
 		, int slot, int offset, int num_bufs)
 	{
 		int ret = 0;
@@ -331,7 +331,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	int storage_interface::writev(file::iovec_t* bufs, int slot
+	int storage_interface::writev(file::iovec_t const* bufs, int slot
 		, int offset, int num_bufs)
 	{
 		int ret = 0;
@@ -380,17 +380,17 @@ namespace libtorrent
 		}
 	}
 
-	int bufs_size(file::iovec_t *bufs, int num_bufs)
+	int bufs_size(file::iovec_t const* bufs, int num_bufs)
 	{
 		int size = 0;
-		for (file::iovec_t* i = bufs, *end(bufs + num_bufs); i < end; ++i)
+		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			size += i->iov_len;
 		return size;
 	}
 	
-	void clear_bufs(file::iovec_t *bufs, int num_bufs)
+	void clear_bufs(file::iovec_t const* bufs, int num_bufs)
 	{
-		for (file::iovec_t* i = bufs, *end(bufs + num_bufs); i < end; ++i)
+		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			std::memset(i->iov_base, 0, i->iov_len);
 	}
 
@@ -400,10 +400,18 @@ namespace libtorrent
 		storage(file_storage const& fs, fs::path const& path, file_pool& fp)
 			: m_files(fs)
 			, m_pool(fp)
+			, m_page_size(4096)
 		{
 			TORRENT_ASSERT(m_files.begin() != m_files.end());
 			m_save_path = fs::complete(path);
 			TORRENT_ASSERT(m_save_path.is_complete());
+#ifdef TORRENT_WINDOWS
+			SYSTEM_INFO si;
+			GetSystemInfo(&si);
+			m_page_size = si.dwPageSize;
+#else
+			m_page_size = sysconf(_SC_PAGESIZE);
+#endif
 		}
 
 		bool rename_file(int index, std::string const& new_filename);
@@ -413,8 +421,8 @@ namespace libtorrent
 		bool move_storage(fs::path save_path);
 		int read(char* buf, int slot, int offset, int size);
 		int write(char const* buf, int slot, int offset, int size);
-		int readv(file::iovec_t* bufs, int slot, int offset, int num_bufs);
-		int writev(file::iovec_t* buf, int slot, int offset, int num_bufs);
+		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
+		int writev(file::iovec_t const* buf, int slot, int offset, int num_bufs);
 		bool move_slot(int src_slot, int dst_slot);
 		bool swap_slots(int slot1, int slot2);
 		bool swap_slots3(int slot1, int slot2, int slot3);
@@ -436,42 +444,35 @@ namespace libtorrent
 		// the session, to make all storage
 		// instances use the same pool
 		file_pool& m_pool;
-		
-		// temporary storage for moving pieces
-		buffer m_scratch_buffer;
+
+		int m_page_size;
 	};
 
 	sha1_hash storage::hash_for_slot(int slot, partial_hash& ph, int piece_size)
 	{
 		TORRENT_ASSERT(!error());
-#ifdef TORRENT_DEBUG
-		hasher partial;
-		hasher whole;
-		int slot_size1 = piece_size;
-		m_scratch_buffer.resize(slot_size1);
-		read(&m_scratch_buffer[0], slot, 0, slot_size1);
-		if (error()) return sha1_hash(0);
-		if (ph.offset > 0)
-			partial.update(&m_scratch_buffer[0], ph.offset);
-		whole.update(&m_scratch_buffer[0], slot_size1);
-		hasher partial_copy = ph.h;
-		TORRENT_ASSERT(ph.offset == 0 || partial_copy.final() == partial.final());
-#endif
 		int slot_size = piece_size - ph.offset;
 		if (slot_size > 0)
 		{
-			m_scratch_buffer.resize(slot_size);
-			read(&m_scratch_buffer[0], slot, ph.offset, slot_size);
+			int size = slot_size;
+			int num_blocks = (size + io_thread().block_size() - 1) / io_thread().block_size();
+			file::iovec_t* bufs = TORRENT_ALLOCA(file::iovec_t, num_blocks);
+			for (int i = 0; i < num_blocks; ++i)
+			{
+				bufs[i].iov_base = io_thread().allocate_buffer();
+				bufs[i].iov_len = (std::min)(io_thread().block_size(), size);
+				size -= bufs[i].iov_len;
+			}
+			readv(bufs, slot, ph.offset, num_blocks);
+
+			for (int i = 0; i < num_blocks; ++i)
+			{
+				ph.h.update((char const*)bufs[i].iov_base, bufs[i].iov_len);
+				io_thread().free_buffer((char*)bufs[i].iov_base);
+			}
 			if (error()) return sha1_hash(0);
-			ph.h.update(&m_scratch_buffer[0], slot_size);
 		}
-#ifdef TORRENT_DEBUG
-		sha1_hash ret = ph.h.final();
-		TORRENT_ASSERT(ret == whole.final());
-		return ret;
-#else
 		return ph.h.final();
-#endif
 	}
 
 	bool storage::initialize(bool allocate_files)
@@ -524,8 +525,12 @@ namespace libtorrent
 				|| (exists(file_path) && file_size(file_path) > file_iter->size))
 			{
 				error_code ec;
+				int mode = file::read_write;
+				if (io_thread().no_buffer()
+					&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)
+					mode |= file::no_buffer;
 				boost::shared_ptr<file> f = m_pool.open_file(this
-					, m_save_path / file_iter->path, file::read_write, ec);
+					, m_save_path / file_iter->path, mode, ec);
 				if (ec) set_error(m_save_path / file_iter->path, ec);
 				else if (f)
 				{
@@ -605,7 +610,6 @@ namespace libtorrent
 	bool storage::release_files()
 	{
 		m_pool.release(this);
-		buffer().swap(m_scratch_buffer);
 		return false;
 	}
 
@@ -613,7 +617,6 @@ namespace libtorrent
 	{
 		// make sure we don't have the files open
 		m_pool.release(this);
-		buffer().swap(m_scratch_buffer);
 
 		int error = 0;
 		std::string error_file;
@@ -911,61 +914,97 @@ namespace libtorrent
 */
 #endif
 
+#define TORRENT_ALLOCATE_BLOCKS(bufs, num_blocks, piece_size) \
+	int num_blocks = (piece_size + io_thread().block_size() - 1) / io_thread().block_size(); \
+	file::iovec_t* bufs = TORRENT_ALLOCA(file::iovec_t, num_blocks); \
+	for (int i = 0, size = piece_size; i < num_blocks; ++i) \
+	{ \
+		bufs[i].iov_base = io_thread().allocate_buffer(); \
+		bufs[i].iov_len = (std::min)(io_thread().block_size(), size); \
+		size -= bufs[i].iov_len; \
+	}
+
+#define TORRENT_FREE_BLOCKS(bufs, num_blocks) \
+	for (int i = 0; i < num_blocks; ++i) \
+		io_thread().free_buffer((char*)bufs[i].iov_base);
+
+#define TORRENT_SET_SIZE(bufs, size, num_bufs) \
+	for (num_bufs = 0; size > 0; size -= io_thread().block_size(), ++num_bufs) \
+		bufs[num_bufs].iov_len = (std::min)(io_thread().block_size(), size)
+	
+
 	bool storage::move_slot(int src_slot, int dst_slot)
 	{
+		bool r = true;
 		int piece_size = m_files.piece_size(dst_slot);
-		m_scratch_buffer.resize(piece_size);
-		int ret = read(&m_scratch_buffer[0], src_slot, 0, piece_size);
-		if (ret != piece_size) return true;
-		ret = write(&m_scratch_buffer[0], dst_slot, 0, piece_size);
-		if (ret != piece_size) return true;
-		return false;
+
+		TORRENT_ALLOCATE_BLOCKS(bufs, num_blocks, piece_size);
+
+		readv(bufs, src_slot, 0, num_blocks); if (error()) goto ret;
+		writev(bufs, dst_slot, 0, num_blocks); if (error()) goto ret;
+
+		r = false;
+ret:
+		TORRENT_FREE_BLOCKS(bufs, num_blocks)
+		return r;
 	}
 
 	bool storage::swap_slots(int slot1, int slot2)
 	{
+		bool r = true;
+
 		// the size of the target slot is the size of the piece
 		int piece_size = m_files.piece_length();
 		int piece1_size = m_files.piece_size(slot2);
 		int piece2_size = m_files.piece_size(slot1);
-		m_scratch_buffer.resize(piece_size * 2);
-		int ret = read(&m_scratch_buffer[0], slot1, 0, piece1_size);
-		if (ret != piece1_size) return true;
-		ret = read(&m_scratch_buffer[piece_size], slot2, 0, piece2_size);
-		if (ret != piece2_size) return true;
-		ret = write(&m_scratch_buffer[0], slot2, 0, piece1_size);
-		if (ret != piece1_size) return true;
-		ret = write(&m_scratch_buffer[piece_size], slot1, 0, piece2_size);
-		if (ret != piece2_size) return true;
-		return false;
+
+		TORRENT_ALLOCATE_BLOCKS(bufs1, num_blocks1, piece1_size);
+		TORRENT_ALLOCATE_BLOCKS(bufs2, num_blocks2, piece2_size);
+
+		readv(bufs1, slot1, 0, num_blocks1); if (error()) goto ret;
+		readv(bufs2, slot2, 0, num_blocks2); if (error()) goto ret;
+		writev(bufs1, slot2, 0, num_blocks1); if (error()) goto ret;
+		writev(bufs2, slot1, 0, num_blocks2); if (error()) goto ret;
+
+		r = false;
+ret:
+		TORRENT_FREE_BLOCKS(bufs1, num_blocks1)
+		TORRENT_FREE_BLOCKS(bufs2, num_blocks2)
+		return r;
 	}
 
 	bool storage::swap_slots3(int slot1, int slot2, int slot3)
 	{
+		bool r = true;
+
 		// the size of the target slot is the size of the piece
 		int piece_size = m_files.piece_length();
 		int piece1_size = m_files.piece_size(slot2);
 		int piece2_size = m_files.piece_size(slot3);
 		int piece3_size = m_files.piece_size(slot1);
-		m_scratch_buffer.resize(piece_size * 2);
-		int ret = 0;
-		ret = read(&m_scratch_buffer[0], slot1, 0, piece1_size);
-		if (ret != piece1_size) return true;
-		ret = read(&m_scratch_buffer[piece_size], slot2, 0, piece2_size);
-		if (ret != piece2_size) return true;
-		ret = write(&m_scratch_buffer[0], slot2, 0, piece1_size);
-		if (ret != piece1_size) return true;
-		ret = read(&m_scratch_buffer[0], slot3, 0, piece3_size);
-		if (ret != piece3_size) return true;
-		ret = write(&m_scratch_buffer[piece_size], slot3, 0, piece2_size);
-		if (ret != piece2_size) return true;
-		ret = write(&m_scratch_buffer[0], slot1, 0, piece3_size);
-		if (ret != piece3_size) return true;
-		return false;
+
+		TORRENT_ALLOCATE_BLOCKS(bufs1, num_blocks1, piece_size);
+		TORRENT_ALLOCATE_BLOCKS(bufs2, num_blocks2, piece_size);
+
+		int tmp1 = 0;
+		int tmp2 = 0;
+		TORRENT_SET_SIZE(bufs1, piece1_size, tmp1);
+		readv(bufs1, slot1, 0, tmp1); if (error()) goto ret;
+		TORRENT_SET_SIZE(bufs2, piece2_size, tmp2);
+		readv(bufs2, slot2, 0, tmp2); if (error()) goto ret;
+		writev(bufs1, slot2, 0, tmp1); if (error()) goto ret;
+		TORRENT_SET_SIZE(bufs1, piece3_size, tmp1);
+		readv(bufs1, slot3, 0, tmp1); if (error()) goto ret;
+		writev(bufs2, slot3, 0, tmp2); if (error()) goto ret;
+		writev(bufs1, slot1, 0, tmp1); if (error()) goto ret;
+ret:
+		TORRENT_FREE_BLOCKS(bufs1, num_blocks1)
+		TORRENT_FREE_BLOCKS(bufs2, num_blocks2)
+		return r;
 	}
 
 	int storage::readv(
-		file::iovec_t* bufs
+		file::iovec_t const* bufs
 		, int slot
 		, int offset
 		, int num_bufs)
@@ -1022,7 +1061,9 @@ namespace libtorrent
 		int counter = 0;
 #endif
 
-		file::iovec_t* current_buf = bufs;
+		file::iovec_t* tmp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
+		file::iovec_t* current_buf = TORRENT_ALLOCA(file::iovec_t, num_bufs);
+		copy_bufs(bufs, size, current_buf);
 		int read_bytes;
 		for (;left_to_read > 0; ++file_iter, left_to_read -= read_bytes
 			, buf_pos += read_bytes)
@@ -1047,7 +1088,6 @@ namespace libtorrent
 
 			if (file_iter->pad_file)
 			{
-				file::iovec_t* tmp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 				int num_tmp_bufs = copy_bufs(current_buf, file_iter->size, tmp_bufs);
 				clear_bufs(tmp_bufs, num_tmp_bufs);
 				advance_bufs(current_buf, file_iter->size);
@@ -1057,23 +1097,21 @@ namespace libtorrent
 			fs::path path = m_save_path / file_iter->path;
 
 			error_code ec;
-			in = m_pool.open_file(this, path, file::read_only, ec);
+			int mode = file::read_only;
+			if (io_thread().no_buffer()
+				&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)
+				mode |= file::no_buffer;
+			in = m_pool.open_file(this, path, mode, ec);
 			if (!in || ec)
 			{
 				set_error(path, ec);
 				return -1;
 			}
-			size_type pos = in->seek(file_iter->file_base + file_offset, file::begin, ec);
-			if (pos != file_iter->file_base + file_offset || ec)
-			{
-				set_error(m_save_path / file_iter->path, ec);
-				return -1;
-			}
-			file_offset = 0;
 
-			file::iovec_t* tmp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 			int num_tmp_bufs = copy_bufs(current_buf, read_bytes, tmp_bufs);
-			int actual_read = int(in->readv(tmp_bufs, num_tmp_bufs, ec));
+			int actual_read = int(in->readv(file_iter->file_base
+				+ file_offset, tmp_bufs, num_tmp_bufs, ec));
+			file_offset = 0;
 
 			if (read_bytes != actual_read || ec)
 			{
@@ -1094,6 +1132,8 @@ namespace libtorrent
 		, int offset
 		, int size)
 	{
+		// buffers must be page aligned
+		TORRENT_ASSERT((int(buf) % 4096) == 0);
 		file::iovec_t b = { (void*)buf, size };
 		return writev(&b, slot, offset, 1);
 	}
@@ -1104,12 +1144,14 @@ namespace libtorrent
 		, int offset
 		, int size)
 	{
+		// buffers must be page aligned
+		TORRENT_ASSERT((int(buf) % 4096) == 0);
 		file::iovec_t b = { (void*)buf, size };
 		return readv(&b, slot, offset, 1);
 	}
 
 	int storage::writev(
-		file::iovec_t* bufs
+		file::iovec_t const* bufs
 		, int slot
 		, int offset
 		, int num_bufs)
@@ -1162,7 +1204,9 @@ namespace libtorrent
 		int counter = 0;
 #endif
 
-		file::iovec_t* current_buf = bufs;
+		file::iovec_t* tmp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
+		file::iovec_t* current_buf = TORRENT_ALLOCA(file::iovec_t, num_bufs);
+		copy_bufs(bufs, size, current_buf);
 		int write_bytes;
 		for (;left_to_write > 0; ++file_iter, left_to_write -= write_bytes
 			, buf_pos += write_bytes)
@@ -1186,28 +1230,32 @@ namespace libtorrent
 #endif
 
 			if (file_iter->pad_file)
+			{
+				int actual_written = (std::min)(int(file_iter->size), left_to_write);
+				advance_bufs(current_buf, actual_written);
+				left_to_write -= actual_written;
 				continue;
+			}
 
 			fs::path path = m_save_path / file_iter->path;
 
 			error_code ec;
-			out = m_pool.open_file(this, path, file::read_write, ec);
+			int mode = file::read_write;
+			if (io_thread().no_buffer()
+				&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)
+				mode |= file::no_buffer;
+			out = m_pool.open_file(this, path, mode, ec);
 			if (!out || ec)
 			{
 				set_error(path, ec);
 				return -1;
 			}
-			size_type pos = out->seek(file_iter->file_base + file_offset, file::begin, ec);
-			if (pos != file_iter->file_base + file_offset || ec)
-			{
-				set_error(m_save_path / file_iter->path, ec);
-				return -1;
-			}
-			file_offset = 0;
 
-			file::iovec_t* tmp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 			int num_tmp_bufs = copy_bufs(current_buf, write_bytes, tmp_bufs);
-			int actual_written = int(out->writev(tmp_bufs, num_tmp_bufs, ec));
+			int actual_written = int(out->writev(file_iter->file_base
+				+ file_offset, tmp_bufs, num_tmp_bufs, ec));
+
+			file_offset = 0;
 			
 			if (write_bytes != actual_written || ec)
 			{
@@ -1245,11 +1293,15 @@ namespace libtorrent
 		, m_state(state_none)
 		, m_current_slot(0)
 		, m_out_of_place(false)
+		, m_scratch_buffer(io, 0)
+		, m_scratch_buffer2(io, 0)
 		, m_scratch_piece(-1)
 		, m_storage_constructor(sc)
+		, m_piece_data(io, 0)
 		, m_io_thread(io)
 		, m_torrent(torrent)
 	{
+		m_storage->m_io_thread = &m_io_thread;
 	}
 
 	piece_manager::~piece_manager()
@@ -1586,7 +1638,7 @@ namespace libtorrent
 	}
 
 	int piece_manager::identify_data(
-		const std::vector<char>& piece_data
+		char const* piece_data
 		, int current_slot)
 	{
 //		INVARIANT_CHECK;
@@ -1595,19 +1647,17 @@ namespace libtorrent
 		const int last_piece_size = static_cast<int>(m_files.piece_size(
 			m_files.num_pieces() - 1));
 
-		TORRENT_ASSERT((int)piece_data.size() >= last_piece_size);
-
 		// calculate a small digest, with the same
 		// size as the last piece. And a large digest
 		// which has the same size as a normal piece
 		hasher small_digest;
-		small_digest.update(&piece_data[0], last_piece_size);
+		small_digest.update(piece_data, last_piece_size);
 		hasher large_digest(small_digest);
 		TORRENT_ASSERT(piece_size - last_piece_size >= 0);
 		if (piece_size - last_piece_size > 0)
 		{
 			large_digest.update(
-				&piece_data[last_piece_size]
+				piece_data + last_piece_size
 				, piece_size - last_piece_size);
 		}
 		sha1_hash large_hash = large_digest.final();
@@ -1785,8 +1835,8 @@ namespace libtorrent
 			return fatal_disk_error;
 		}
 		m_state = state_finished;
-		buffer().swap(m_scratch_buffer);
-		buffer().swap(m_scratch_buffer2);
+		m_scratch_buffer.reset();
+		m_scratch_buffer2.reset();
 		if (m_storage_mode != storage_mode_compact)
 		{
 			// if no piece is out of place
@@ -2035,11 +2085,16 @@ namespace libtorrent
 
 				if (other_piece >= 0)
 				{
-					if (m_scratch_buffer2.empty())
-						m_scratch_buffer2.resize(m_files.piece_length());
+					if (!m_scratch_buffer2)
+					{
+						int blocks_per_piece = (std::max)(m_files.piece_length()
+							/ m_io_thread.block_size(), 1);
+						m_scratch_buffer2.reset(m_io_thread.allocate_buffers(
+							blocks_per_piece), blocks_per_piece);
+					}
 
 					int piece_size = m_files.piece_size(other_piece);
-					if (m_storage->read(&m_scratch_buffer2[0], piece, 0, piece_size)
+					if (m_storage->read(m_scratch_buffer2.get(), piece, 0, piece_size)
 						!= piece_size)
 					{
 						error = m_storage->error().message();
@@ -2053,7 +2108,7 @@ namespace libtorrent
 				// the slot where this piece belongs is
 				// free. Just move the piece there.
 				int piece_size = m_files.piece_size(piece);
-				if (m_storage->write(&m_scratch_buffer[0], piece, 0, piece_size) != piece_size)
+				if (m_storage->write(m_scratch_buffer.get(), piece, 0, piece_size) != piece_size)
 				{
 					error = m_storage->error().message();
 					TORRENT_ASSERT(!error.empty());
@@ -2091,11 +2146,15 @@ namespace libtorrent
 				// there is another piece in the slot
 				// where this one goes. Store it in the scratch
 				// buffer until next iteration.
-				if (m_scratch_buffer.empty())
-					m_scratch_buffer.resize(m_files.piece_length());
+				if (!m_scratch_buffer)
+				{
+					int blocks_per_piece = (std::max)(m_files.piece_length() / m_io_thread.block_size(), 1);
+					m_scratch_buffer.reset(m_io_thread.allocate_buffers(
+						blocks_per_piece), blocks_per_piece);
+				}
 			
 				int piece_size = m_files.piece_size(other_piece);
-				if (m_storage->read(&m_scratch_buffer[0], piece, 0, piece_size) != piece_size)
+				if (m_storage->read(m_scratch_buffer.get(), piece, 0, piece_size) != piece_size)
 				{
 					error = m_storage->error().message();
 					TORRENT_ASSERT(!error.empty());
@@ -2171,7 +2230,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_current_slot == m_files.num_pieces());
 
 			// clear the memory we've been using
-			std::vector<char>().swap(m_piece_data);
+			m_piece_data.reset();
 			std::multimap<sha1_hash, int>().swap(m_hash_to_piece);
 
 			if (m_storage_mode != storage_mode_compact)
@@ -2226,16 +2285,22 @@ namespace libtorrent
 				m_hash_to_piece.insert(std::make_pair(m_info->hash_for_piece(i), i));
 		}
 
-		m_piece_data.resize(int(m_files.piece_length()));
+		if (!m_piece_data)
+		{
+			int blocks_per_piece = (std::max)(m_files.piece_length() / m_io_thread.block_size(), 1);
+			m_piece_data.reset(m_io_thread.allocate_buffers(blocks_per_piece), blocks_per_piece);
+		}
+
 		int piece_size = m_files.piece_size(m_current_slot);
-		int num_read = m_storage->read(&m_piece_data[0]
+		int num_read = m_storage->read(m_piece_data.get()
 			, m_current_slot, 0, piece_size);
 
 		if (num_read < 0)
 		{
 			if (m_storage->error()
 #ifdef TORRENT_WINDOWS
-				&& m_storage->error() != error_code(ERROR_FILE_NOT_FOUND, get_system_category()))
+				&& m_storage->error() != error_code(ERROR_FILE_NOT_FOUND, get_system_category())
+				&& m_storage->error() != error_code(ERROR_HANDLE_EOF, get_system_category()))
 #else
 				&& m_storage->error() != error_code(ENOENT, get_posix_category()))
 #endif
@@ -2247,7 +2312,7 @@ namespace libtorrent
 		if (num_read != piece_size)
 			return 1;
 
-		int piece_index = identify_data(m_piece_data, m_current_slot);
+		int piece_index = identify_data(m_piece_data.get(), m_current_slot);
 
 		if (piece_index >= 0) have_piece = piece_index;
 

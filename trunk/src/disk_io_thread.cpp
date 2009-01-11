@@ -34,13 +34,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/alloca.hpp"
+#include "libtorrent/invariant_check.hpp"
 #include <boost/scoped_array.hpp>
 
-#ifdef _WIN32
-#include <malloc.h>
-#ifndef alloca
-#define alloca(s) _alloca(s)
-#endif
+#ifdef TORRENT_WINDOWS
+#include <Windows.h>
+#else
+#include <stdlib.h>
 #endif
 
 #ifdef TORRENT_DISK_STATS
@@ -50,23 +51,33 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	char* page_aligned_allocator::malloc(const size_type bytes)
+	{
+#ifdef TORRENT_WINDOWS
+		return reinterpret_cast<char*>(VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
+#else
+		return reinterpret_cast<char*>(valloc(bytes));
+#endif
+	}
+
+	void page_aligned_allocator::free(char* const block)
+	{
+#ifdef TORRENT_WINDOWS
+		VirtualFree(block, 0, MEM_RELEASE);
+#else
+		std::free(block);
+#endif
+	}
+
 	disk_io_thread::disk_io_thread(asio::io_service& ios, int block_size)
 		: m_abort(false)
 		, m_queue_buffer_size(0)
 		, m_cache_size(512) // 512 * 16kB = 8MB
 		, m_cache_expiry(60) // 1 minute
-// the file class doesn't support proper writev
-// and readv on windows, so it's more efficient
-// to coalesce reads and writes into a bigger
-// buffer first
-#ifdef TORRENT_WINDOWS
-		, m_coalesce_writes(true)
-		, m_coalesce_reads(true)
-#else
 		, m_coalesce_writes(false)
 		, m_coalesce_reads(false)
-#endif
 		, m_use_read_cache(true)
+		, m_disk_io_no_buffer(true)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_pool(block_size)
 #endif
@@ -330,11 +341,10 @@ namespace libtorrent
 		int offset = 0;
 
 		boost::scoped_array<char> buf;
-		boost::scoped_array<file::iovec_t> iov;
+		file::iovec_t* iov = 0;
 		int iov_counter = 0;
 		if (m_coalesce_writes) buf.reset(new (std::nothrow) char[piece_size]);
-		// TOOD: replace with alloca
-		else iov.reset(new file::iovec_t[blocks_in_piece]);
+		else iov = TORRENT_ALLOCA(file::iovec_t, blocks_in_piece);
 
 		for (int i = 0; i <= blocks_in_piece; ++i)
 		{
@@ -346,8 +356,7 @@ namespace libtorrent
 				l.unlock();
 				if (iov)
 				{
-					TORRENT_ASSERT(iov);
-					p.storage->write_impl(iov.get(), p.piece, (std::min)(
+					p.storage->write_impl(iov, p.piece, (std::min)(
 						i * m_block_size, piece_size) - buffer_size, iov_counter);
 					iov_counter = 0;
 				}
@@ -762,7 +771,7 @@ namespace libtorrent
 		++m_allocations;
 #endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		return (char*)malloc(m_block_size);
+		return page_aligned_allocator::malloc(m_block_sizes);
 #else
 		return (char*)m_pool.ordered_malloc();
 #endif
@@ -776,9 +785,37 @@ namespace libtorrent
 		--m_allocations;
 #endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		free(buf);
+		page_aligned_allocator::free(buf);
 #else
 		m_pool.ordered_free(buf);
+#endif
+	}
+
+	char* disk_io_thread::allocate_buffers(int num_blocks)
+	{
+		mutex_t::scoped_lock l(m_pool_mutex);
+#ifdef TORRENT_STATS
+		m_allocations += num_blocks;
+#endif
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+		return page_aligned_allocator::malloc(m_block_size * num_blocks);
+#else
+		return (char*)m_pool.ordered_malloc(num_blocks);
+#endif
+	}
+
+	void disk_io_thread::free_buffers(char* buf, int num_blocks)
+	{
+		TORRENT_ASSERT(buf);
+		TORRENT_ASSERT(num_blocks >= 1);
+		mutex_t::scoped_lock l(m_pool_mutex);
+#ifdef TORRENT_STATS
+		m_allocations -= num_blocks;
+#endif
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+		page_aligned_allocator::free(buf);
+#else
+		m_pool.ordered_free(buf, num_blocks);
 #endif
 	}
 
@@ -870,6 +907,7 @@ namespace libtorrent
 					m_cache_size = s.cache_size;
 					m_cache_expiry = s.cache_expiry;
 					m_use_read_cache = s.use_read_cache;
+					m_disk_io_no_buffer = s.disk_io_no_buffer;
 				}
 				case disk_io_job::abort_torrent:
 				{

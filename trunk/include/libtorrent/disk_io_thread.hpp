@@ -53,6 +53,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct page_aligned_allocator
+	{
+		typedef std::size_t size_type;
+		typedef std::ptrdiff_t difference_type;
+
+		static char* malloc(const size_type bytes);
+		static void free(char* const block);
+	};
 
 	struct cached_piece_info
 	{
@@ -197,10 +205,16 @@ namespace libtorrent
 		char* allocate_buffer();
 		void free_buffer(char* buf);
 
+		char* allocate_buffers(int blocks);
+		void free_buffers(char* buf, int blocks);
+
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 		
+		int block_size() const { return m_block_size; }
+		bool no_buffer() const { return m_disk_io_no_buffer; }
+
 	private:
 
 		struct cached_piece_entry
@@ -282,14 +296,16 @@ namespace libtorrent
 		// falls back to writing each block separately.
 		bool m_coalesce_writes;
 		bool m_coalesce_reads;
+
 		bool m_use_read_cache;
+		bool m_disk_io_no_buffer;
 
 		// this only protects the pool allocator
 		mutable mutex_t m_pool_mutex;
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		// memory pool for read and write operations
 		// and disk cache
-		boost::pool<> m_pool;
+		boost::pool<page_aligned_allocator> m_pool;
 #endif
 
 		// number of bytes per block. The BitTorrent
