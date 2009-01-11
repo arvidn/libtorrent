@@ -53,9 +53,14 @@ namespace
 
 	using namespace libtorrent;
 
+	bool is_digit(char c)
+	{
+		return c >= '0' && c <= '9';
+	}
+
 	int decode_digit(char c)
 	{
-		if (std::isdigit(c)) return c - '0';
+		if (is_digit(c)) return c - '0';
 		return unsigned(c) - 'A' + 10;
 	}
 
