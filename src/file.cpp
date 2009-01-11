@@ -504,7 +504,7 @@ namespace libtorrent
 		// file_size.
 		size_type file_size = 0;
 	
-		if (size & (m_page_size-1) != 0)
+		if ((size & (m_page_size-1)) != 0)
 		{
 			// if size is not an even multiple, this must be the tail
 			// of the file. Write the whole page and then open a new
