@@ -65,19 +65,33 @@ void print_progress(int i, int num)
 	std::cerr << "\r" << (i+1) << "/" << num;
 }
 
+void print_usage()
+{
+	std::cerr << "usage: make_torrent FILE [OPTIONS]\n"
+		"\n"
+		"Generates a torrent file from the specified file\n"
+		"or directory and writes it to standard out\n\n"
+		"OPTIONS:\n"
+		"-w url      adds a web seed to the torrent with\n"
+		"            the specified url\n"
+		"-t url      adds the specified tracker to the\n"
+		"            torrent\n"
+		"-p bytes    enables padding files. Files larger\n"
+		"            than bytes will be piece-aligned\n"
+		"-s bytes    specifies a piece size for the torrent\n"
+		"            This has to be a multiple of 16 kiB\n";
+}
+
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
 	using namespace boost::filesystem;
 
-	int piece_size = 256 * 1024;
 	char const* creator_str = "libtorrent";
 
-	if (argc != 4 && argc != 5)
+	if (argc < 2)
 	{
-		std::cerr << "usage: make_torrent <output torrent-file> "
-			"<announce url> <file or directory to create torrent from> "
-			"[url-seed]\n";
+		print_usage();
 		return 1;
 	}
 
@@ -85,24 +99,65 @@ int main(int argc, char* argv[])
 	try
 	{
 #endif
+		std::vector<std::string> web_seeds;
+		std::vector<std::string> trackers;
+		int pad_file_limit = -1;
+		int piece_size = 0;
+
+		for (int i = 2; i < argc; ++i)
+		{
+			if (argv[i][0] != '-')
+			{
+				print_usage();
+				return 1;
+			}
+
+			switch (argv[i][1])
+			{
+				case 'w':
+					++i;
+					web_seeds.push_back(argv[i]);
+					break;
+				case 't':
+					++i;
+					trackers.push_back(argv[i]);
+					break;
+				case 'p':
+					++i;
+					pad_file_limit = atoi(argv[i]);
+					break;
+				case 's':
+					++i;
+					piece_size = atoi(argv[i]);
+					break;
+				default:
+					print_usage();
+					return 1;
+			}
+		}
+
 		file_storage fs;
 		file_pool fp;
-		path full_path = complete(path(argv[3]));
+		path full_path = complete(path(argv[1]));
 
 		add_files(fs, full_path, file_filter);
 
-		create_torrent t(fs, piece_size);
-		t.add_tracker(argv[2]);
+		create_torrent t(fs, piece_size, pad_file_limit);
+		for (std::vector<std::string>::iterator i = trackers.begin()
+			, end(trackers.end()); i != end; ++i)
+			t.add_tracker(*i);
+
+		for (std::vector<std::string>::iterator i = web_seeds.begin()
+			, end(web_seeds.end()); i != end; ++i)
+			t.add_url_seed(*i);
+
 		set_piece_hashes(t, full_path.branch_path()
 			, boost::bind(&print_progress, _1, t.num_pieces()));
 		std::cerr << std::endl;
 		t.set_creator(creator_str);
 
-		if (argc == 5) t.add_url_seed(argv[4]);
-
-		// create the torrent and print it to out
-		ofstream out(complete(path(argv[1])), std::ios_base::binary);
-		bencode(std::ostream_iterator<char>(out), t.generate());
+		// create the torrent and print it to stdout
+		bencode(std::ostream_iterator<char>(std::cout), t.generate());
 #ifndef BOOST_NO_EXCEPTIONS
 	}
 	catch (std::exception& e)

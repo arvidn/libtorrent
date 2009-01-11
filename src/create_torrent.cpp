@@ -42,7 +42,7 @@ namespace gr = boost::gregorian;
 
 namespace libtorrent
 {
-	create_torrent::create_torrent(file_storage& fs, int size)
+	create_torrent::create_torrent(file_storage& fs, int piece_size, int pad_file_limit)
 		: m_files(fs)
 		, m_creation_date(pt::second_clock::universal_time())
 		, m_multifile(fs.num_files() > 1)
@@ -54,48 +54,34 @@ namespace libtorrent
 #else
 		if (!m_multifile && m_files.at(0).path.has_parent_path()) m_multifile = true;
 #endif
+
+		// a piece_size of 0 means automatic
+		if (piece_size == 0)
+		{
+			const int target_size = 40 * 1024;
+			piece_size = fs.total_size() / (target_size / 20);
+	
+			for (int i = 2*1024*1024; i >= 16*1024; i /= 2)
+			{
+				if (piece_size < i) continue;
+				piece_size = i;
+				break;
+			}
+		}
 
 		// make sure the size is an even power of 2
 #ifndef NDEBUG
 		for (int i = 0; i < 32; ++i)
 		{
-			if (size & (1 << i))
+			if (piece_size & (1 << i))
 			{
-				TORRENT_ASSERT((size & ~(1 << i)) == 0);
+				TORRENT_ASSERT((piece_size & ~(1 << i)) == 0);
 				break;
 			}
 		}
 #endif
-		m_files.set_piece_length(size);
-		m_files.set_num_pieces(static_cast<int>(
-			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
-		m_piece_hash.resize(m_files.num_pieces());
-	}
-
-	create_torrent::create_torrent(file_storage& fs)
-		: m_files(fs)
-		, m_creation_date(pt::second_clock::universal_time())
-		, m_multifile(fs.num_files() > 1)
-		, m_private(false)
-	{
-		TORRENT_ASSERT(fs.num_files() > 0);
-#if BOOST_VERSION < 103600
-		if (!m_multifile && m_files.at(0).path.has_branch_path()) m_multifile = true;
-#else
-		if (!m_multifile && m_files.at(0).path.has_parent_path()) m_multifile = true;
-#endif
-
-		const int target_size = 40 * 1024;
-		int size = fs.total_size() / (target_size / 20);
-	
-		for (int i = 4*1024*1024; i > 16*1024; i /= 2)
-		{
-			if (size < i) continue;
-			size = i;
-			break;
-		}
-
-		m_files.set_piece_length(size);
+		m_files.set_piece_length(piece_size);
+		m_files.optimize(pad_file_limit);
 		m_files.set_num_pieces(static_cast<int>(
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
 		m_piece_hash.resize(m_files.num_pieces());
