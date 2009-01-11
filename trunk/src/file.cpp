@@ -533,7 +533,7 @@ namespace libtorrent
 		if (file_size > 0)
 		{
 			HANDLE f = CreateFile(m_path.c_str(), GENERIC_WRITE
-			, FILE_SHARE_WRITE, 0, OPEN_EXISTING
+			, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING
 			, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, 0);
 
 			if (f == INVALID_HANDLE_VALUE)
