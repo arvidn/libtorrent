@@ -1378,7 +1378,9 @@ iterators with the type ``file_entry``.
 		size_type offset;
 		size_type size;
 		size_type file_base;
-		boost::shared_ptr<const boost::filesystem::path> orig_path;
+		bool pad_file:1;
+		bool hidden_attribute:1;
+		bool executable_attribute:1;
 	};
 
 The ``path`` is the full (relative) path of each file. i.e. if it is a multi-file
@@ -1396,13 +1398,10 @@ the ``file_base`` should be set to an offset so that the different regions do
 not overlap. This is used when mapping "unselected" files into a so-called part
 file.
 
-``orig_path`` is set to 0 in case the path element is an exact copy of that
-found in the metadata. In case the path in the original metadata was
-incorrectly encoded, and had to be fixed in order to be acceptable utf-8,
-the original string is preserved in ``orig_path``. The reason to keep it
-is to be able to reproduce the info-section exactly, with the correct
-info-hash.
-
+``pad_file`` is set to true for files that are not part of the data of the torrent.
+They are just there to make sure the next file is aligned to a particular byte offset
+or piece boundry. These files should typically be hidden from an end user. They are
+not written to disk.
 
 
 num_files() file_at()

@@ -145,14 +145,14 @@ namespace libtorrent
 		return ret;
 	}
 
-	void file_storage::add_file(fs::wpath const& file, size_type size, bool pad_file)
+	void file_storage::add_file(fs::wpath const& file, size_type size, int flags)
 	{
 		std::string utf8;
 		wchar_utf8(file.string(), utf8);
-		add_file(utf8, size, pad_file);
+		add_file(utf8, size, flags);
 	}
 
-	void file_storage::add_file(fs::path const& file, size_type size, bool pad_file)
+	void file_storage::add_file(fs::path const& file, size_type size, int flags)
 	{
 		TORRENT_ASSERT(size >= 0);
 #if BOOST_VERSION < 103600
@@ -174,18 +174,41 @@ namespace libtorrent
 				m_name = *file.begin();
 		}
 		TORRENT_ASSERT(m_name == *file.begin());
-		file_entry e;
-		e.pad_file = pad_file;
-		m_files.push_back(e);
-		m_files.back().size = size;
-		m_files.back().path = file;
-		m_files.back().offset = m_total_size;
+		m_files.push_back(file_entry());
+		file_entry& e = m_files.back();
+		e.size = size;
+		e.path = file;
+		e.offset = m_total_size;
+		e.pad_file = bool(flags & pad_file);
+		e.hidden_attribute = bool(flags & attribute_hidden);
+		e.executable_attribute = bool(flags & attribute_executable);
 		m_total_size += size;
 	}
 
-	void file_storage::add_file(file_entry const& e)
+	void file_storage::add_file(file_entry const& ent)
 	{
-		add_file(e.path, e.size, e.pad_file);
+#if BOOST_VERSION < 103600
+		if (!ent.path.has_branch_path())
+#else
+		if (!ent.path.has_parent_path())
+#endif
+		{
+			// you have already added at least one file with a
+			// path to the file (branch_path), which means that
+			// all the other files need to be in the same top
+			// directory as the first file.
+			TORRENT_ASSERT(m_files.empty());
+			m_name = ent.path.string();
+		}
+		else
+		{
+			if (m_files.empty())
+				m_name = *ent.path.begin();
+		}
+		m_files.push_back(ent);
+		file_entry& e = m_files.back();
+		e.offset = m_total_size;
+		m_total_size += ent.size;
 	}
 
 	void file_storage::optimize(int pad_file_limit)
@@ -214,11 +237,13 @@ namespace libtorrent
 		{
 			if (pad_file_limit >= 0
 				&& (off & (alignment-1)) != 0
-				&& i->size > pad_file_limit)
+				&& i->size > pad_file_limit
+				&& i->pad_file == false)
 			{
 				// if we have pad files enabled, and this file is
 				// not piece-aligned and the file size exceeds the
-				// limit, so add a padding file in front of it
+				// limit, and it's not a padding file itself.
+				// so add a padding file in front of it
 				int pad_size = alignment - (off & (alignment-1));
 				
 				// find the largest file that fits in pad_size
@@ -254,6 +279,7 @@ namespace libtorrent
 				i->path = *(i+1)->path.begin();
 				i->path /= "_____padding_file_";
 				i->path /= name;
+				i->pad_file = true;
 				off += pad_size;
 				++padding_file;
 				++i;

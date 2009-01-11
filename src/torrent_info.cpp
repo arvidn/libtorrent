@@ -218,9 +218,22 @@ namespace
 			return false;
 
 		// bitcomet pad file
-
 		if (target.path.string().find("_____padding_file_") != std::string::npos)
 			target.pad_file = true;
+
+		lazy_entry const* attr = dict.dict_find_string("attr");
+		if (attr)
+		{
+			for (int i = 0; i < attr->string_length(); ++i)	
+			{
+				switch (attr->string_ptr()[i])
+				{
+					case 'x': target.executable_attribute = true; break;
+					case 'h': target.hidden_attribute = true; break;
+					case 'p': target.pad_file = true; break;
+				}
+			}
+		}	
 
 		return true;
 	}
@@ -503,11 +516,7 @@ namespace libtorrent
 			e.offset = 0;
 			e.size = info.dict_find_int_value("length", -1);
 			// bitcomet pad file
-#if BOOST_VERSION < 103600
-			if (e.path.leaf().substr(0, 18) == "_____padding_file_")
-#else
-			if (e.path.filename().substr(0, 18) == "_____padding_file_")
-#endif
+			if (e.path.string().find("_____padding_file_") != std::string::npos)
 				e.pad_file = true;
 			if (e.size < 0)
 			{

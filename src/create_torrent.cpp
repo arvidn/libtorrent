@@ -38,10 +38,53 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/bind.hpp>
 
+#ifndef TORRENT_WINDOWS
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif
+
 namespace gr = boost::gregorian;
 
 namespace libtorrent
 {
+	namespace detail
+	{
+		int TORRENT_EXPORT get_file_attributes(boost::filesystem::path const& p)
+		{
+#ifdef TORRENT_WINDOWS
+
+#ifdef TORRENT_USE_WPATH
+			std::wstring path = safe_convert(p.external_file_string());
+#else
+			std::string path = utf8_native(p.external_file_string());
+#endif
+			DWORD attr = GetFileAttributes(path.c_str());
+			if (attr & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
+			return 0;
+#else
+			struct stat s;
+			if (stat(p.external_file_string().c_str(), &s) < 0) return 0;
+			return (s.st_mode & S_IXUSR) ? file_storage::attribute_executable : 0;
+#endif
+		}
+	
+		int TORRENT_EXPORT get_file_attributes(boost::filesystem::wpath const& p)
+		{
+#ifdef TORRENT_WINDOWS
+			std::wstring const& path = p.external_file_string();
+			DWORD attr = GetFileAttributes(path.c_str());
+			if (attr & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
+			return 0;
+#else
+			std::string utf8;
+			wchar_utf8(p.string(), utf8);
+			struct stat s;
+			if (stat(utf8.c_str(), &s) < 0) return 0;
+			return (s.st_mode & S_IXUSR) ? file_storage::attribute_executable : 0;
+#endif
+		}
+	}
+
 	create_torrent::create_torrent(file_storage& fs, int piece_size, int pad_file_limit)
 		: m_files(fs)
 		, m_creation_date(pt::second_clock::universal_time())
@@ -61,12 +104,13 @@ namespace libtorrent
 			const int target_size = 40 * 1024;
 			piece_size = fs.total_size() / (target_size / 20);
 	
-			for (int i = 2*1024*1024; i >= 16*1024; i /= 2)
+			int i = 16*1024;
+			for (; i < 2*1024*1024; i *= 2)
 			{
-				if (piece_size < i) continue;
-				piece_size = i;
+				if (piece_size > i) continue;
 				break;
 			}
+			piece_size = i;
 		}
 
 		// make sure the size is an even power of 2
@@ -236,6 +280,13 @@ namespace libtorrent
 						j != i->path.end(); ++j)
 					{
 						path_e.list().push_back(entry(*j));
+					}
+					if (i->pad_file || i->hidden_attribute || i->executable_attribute)
+					{
+						std::string& attr = file_e["attr"].string();
+						if (i->pad_file) attr += 'p';
+						if (i->hidden_attribute) attr += 'h';
+						if (i->executable_attribute) attr += 'x';
 					}
 				}
 			}
