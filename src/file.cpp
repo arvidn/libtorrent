@@ -143,11 +143,11 @@ namespace libtorrent
 		m_file_handle = CreateFile(
 			m_path.c_str()
 			, mode & rw_mask
-			, FILE_SHARE_READ
+			, FILE_SHARE_READ | ((mode & no_buffer) ? FILE_SHARE_WRITE : 0)
 			, 0
 			, ((mode & rw_mask) == read_write || (mode & rw_mask) == write_only)?OPEN_ALWAYS:OPEN_EXISTING
 			, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS
-				| (mode & no_buffer?FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING:0)
+				| ((mode & no_buffer)?FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING:0)
 			, 0);
 
 		if (m_file_handle == INVALID_HANDLE_VALUE)
@@ -337,7 +337,6 @@ namespace libtorrent
 		ol.InternalHigh = 0;
 		ol.OffsetHigh = file_offset >> 32;
 		ol.Offset = file_offset & 0xffffffff;
-		ol.Pointer = 0;
 		ol.hEvent = CreateEvent(0, true, false, 0);
 
 		ret += size;
@@ -495,7 +494,6 @@ namespace libtorrent
 		ol.InternalHigh = 0;
 		ol.OffsetHigh = file_offset >> 32;
 		ol.Offset = file_offset & 0xffffffff;
-		ol.Pointer = 0;
 		ol.hEvent = CreateEvent(0, true, false, 0);
 
 		ret += size;
