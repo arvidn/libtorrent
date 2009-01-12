@@ -370,7 +370,7 @@ namespace libtorrent
 		for (;;)
 		{
 			size += bufs->iov_len;
-			if (size >= bytes)
+			if (size > bytes)
 			{
 				((char*&)bufs->iov_base) += bufs->iov_len - (size - bytes);
 				bufs->iov_len = size - bytes;
@@ -393,6 +393,21 @@ namespace libtorrent
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			std::memset(i->iov_base, 0, i->iov_len);
 	}
+
+#ifdef TORRENT_DEBUG
+	int count_bufs(file::iovec_t const* bufs, int bytes)
+	{
+		int size = 0;
+		int count = 1;
+		if (bytes == 0) return 0;
+		for (file::iovec_t const* i = bufs;; ++i, ++count)
+		{
+			size += i->iov_len;
+			TORRENT_ASSERT(size <= bytes);
+			if (size >= bytes) return count;
+		}
+	}
+#endif
 
 	class storage : public storage_interface, boost::noncopyable
 	{
@@ -1066,6 +1081,7 @@ ret:
 		file::iovec_t* tmp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		file::iovec_t* current_buf = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		copy_bufs(bufs, size, current_buf);
+		TORRENT_ASSERT(count_bufs(current_buf, size) == num_bufs);
 		int read_bytes;
 		for (;left_to_read > 0; ++file_iter, left_to_read -= read_bytes
 			, buf_pos += read_bytes)
@@ -1090,9 +1106,12 @@ ret:
 
 			if (file_iter->pad_file)
 			{
-				int num_tmp_bufs = copy_bufs(current_buf, file_iter->size, tmp_bufs);
+				int num_tmp_bufs = copy_bufs(current_buf, read_bytes, tmp_bufs);
+				TORRENT_ASSERT(count_bufs(tmp_bufs, read_bytes) == num_tmp_bufs);
+				TORRENT_ASSERT(num_tmp_bufs <= num_bufs);
 				clear_bufs(tmp_bufs, num_tmp_bufs);
-				advance_bufs(current_buf, file_iter->size);
+				advance_bufs(current_buf, read_bytes);
+				TORRENT_ASSERT(count_bufs(current_buf, left_to_read - read_bytes) <= num_bufs);
 				continue;
 			}
 
@@ -1112,6 +1131,8 @@ ret:
 			}
 
 			int num_tmp_bufs = copy_bufs(current_buf, read_bytes, tmp_bufs);
+			TORRENT_ASSERT(count_bufs(tmp_bufs, read_bytes) == num_tmp_bufs);
+			TORRENT_ASSERT(num_tmp_bufs <= num_bufs);
 			int actual_read = int(in->readv(file_iter->file_base
 				+ file_offset, tmp_bufs, num_tmp_bufs, ec));
 			file_offset = 0;
@@ -1124,7 +1145,7 @@ ret:
 				return -1;
 			}
 			advance_bufs(current_buf, actual_read);
-
+			TORRENT_ASSERT(count_bufs(current_buf, left_to_read - read_bytes) <= num_bufs);
 		}
 		return result;
 	}
