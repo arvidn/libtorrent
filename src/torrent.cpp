@@ -1375,7 +1375,7 @@ namespace libtorrent
 		const std::vector<piece_picker::downloading_piece>& dl_queue
 			= m_picker->get_download_queue();
 
-		const int blocks_per_piece = piece_size / m_block_size;
+		const int blocks_per_piece = (piece_size + m_block_size - 1) / m_block_size;
 
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i =
 			dl_queue.begin(); i != dl_queue.end(); ++i)
