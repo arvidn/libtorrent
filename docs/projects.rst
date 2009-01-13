@@ -39,6 +39,37 @@ project listed here, let me_ know.
 
 .. container:: entry
 
+	.. image:: deluge.png
+		:align: right
+		:target: `deluge Torrent`_
+
+	**deluge torrent**
+
+	`deluge Torrent`_ is a more full-featured yet still lightweight bittorrent
+	client. It has the ability to automatically resume partial downloads and
+	background to the system tray.
+
+
+
+.. container:: entry
+
+	.. image:: bubba.png
+		:align: right
+		:target: bubba2_
+
+	**bubba**
+
+	Bubba_ is a mini-sized server, designed to fit your home better than
+	an always running PC. Boasting Torrent downloader, DAAP streaming,
+	Web, E-mail, printer and FTP server etc.
+
+	.. _bubba2: http://excito.com/bubba/about-bubba.html
+	.. _Bubba: http://excito.com/bubba/about-bubba.html
+
+
+
+.. container:: entry
+
 	.. image:: btg_thumb.jpg
 		:align: right
 		:target: btg_
@@ -56,20 +87,6 @@ project listed here, let me_ know.
 	and Johan Ström.
 
 	.. _btg: http://btg.berlios.de//
-
-
-
-.. container:: entry
-
-	.. image:: deluge.png
-		:align: right
-		:target: `deluge Torrent`_
-
-	**deluge torrent**
-
-	`deluge Torrent`_ is a more full-featured yet still lightweight bittorrent
-	client. It has the ability to automatically resume partial downloads and
-	background to the system tray.
 
 
 
