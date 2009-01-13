@@ -36,23 +36,23 @@
 <col class="docinfo-content" />
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
-<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#introduction" id="id2">introduction</a></li>
-<li><a class="reference internal" href="#connecting" id="id3">connecting</a></li>
-<li><a class="reference internal" href="#announcing" id="id4">announcing</a></li>
-<li><a class="reference internal" href="#scraping" id="id5">scraping</a></li>
-<li><a class="reference internal" href="#errors" id="id6">errors</a></li>
-<li><a class="reference internal" href="#actions" id="id7">actions</a></li>
-<li><a class="reference internal" href="#extensions" id="id8">extensions</a><ul>
-<li><a class="reference internal" href="#authentication" id="id9">authentication</a></li>
+<li><a class="reference" href="#introduction" id="id2">introduction</a></li>
+<li><a class="reference" href="#connecting" id="id3">connecting</a></li>
+<li><a class="reference" href="#announcing" id="id4">announcing</a></li>
+<li><a class="reference" href="#scraping" id="id5">scraping</a></li>
+<li><a class="reference" href="#errors" id="id6">errors</a></li>
+<li><a class="reference" href="#actions" id="id7">actions</a></li>
+<li><a class="reference" href="#extensions" id="id8">extensions</a><ul>
+<li><a class="reference" href="#authentication" id="id9">authentication</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#credits" id="id10">credits</a></li>
+<li><a class="reference" href="#credits" id="id10">credits</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -60,10 +60,10 @@
 <p>A tracker with the protocol &quot;udp://&quot; in its URI
 is supposed to be contacted using this protocol.</p>
 <p>This protocol is supported by
-<a class="reference external" href="http://xbtt.sourceforge.net">xbt-tracker</a>.</p>
+<a class="reference" href="http://xbtt.sourceforge.net">xbt-tracker</a>.</p>
 <p>For additional information and descritptions of
 the terminology used in this document, see
-the <a class="reference external" href="http://wiki.theory.org/index.php/BitTorrentSpecification">protocol specification</a></p>
+the <a class="reference" href="http://wiki.theory.org/index.php/BitTorrentSpecification">protocol specification</a></p>
 <p>All values are sent in network byte order (big endian). The sizes
 are specified with ANSI-C standard types.</p>
 <p>If no response to a request is received within 15 seconds, resend
@@ -120,7 +120,7 @@ identify the protocol.</td>
 <td>action</td>
 <td>Describes the type of packet, in this
 case it should be 0, for connect.
-If 3 (for error) see <a class="reference internal" href="#errors">errors</a>.</td>
+If 3 (for error) see <a class="reference" href="#errors">errors</a>.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>transaction_id</td>
@@ -164,7 +164,7 @@ establishing the connection.</td>
 <tr><td>int32_t</td>
 <td>action</td>
 <td>Action. in this case, 1 for announce.
-See <a class="reference internal" href="#actions">actions</a>.</td>
+See <a class="reference" href="#actions">actions</a>.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>transaction_id</td>
@@ -229,7 +229,7 @@ in the reply. Use -1 for default.</td>
 </tr>
 <tr><td>uint16_t</td>
 <td>extensions</td>
-<td>See <a class="reference internal" href="#extensions">extensions</a></td>
+<td>See <a class="reference" href="#extensions">extensions</a></td>
 </tr>
 </tbody>
 </table>
@@ -251,8 +251,8 @@ in the reply. Use -1 for default.</td>
 <td>action</td>
 <td>The action this is a reply to. Should
 in this case be 1 for announce.
-If 3 (for error) see <a class="reference internal" href="#errors">errors</a>.
-See <a class="reference internal" href="#actions">actions</a>.</td>
+If 3 (for error) see <a class="reference" href="#errors">errors</a>.
+See <a class="reference" href="#actions">actions</a>.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>transaction_id</td>
@@ -326,7 +326,7 @@ establishing of the connection.</td>
 <tr><td>int32_t</td>
 <td>action</td>
 <td>The action, in this case, 2 for
-scrape. See <a class="reference internal" href="#actions">actions</a>.</td>
+scrape. See <a class="reference" href="#actions">actions</a>.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>transaction_id</td>
@@ -373,7 +373,7 @@ the MTU.</p>
 <td>action</td>
 <td>The action, should in this case be
 2 for scrape.
-If 3 (for error) see <a class="reference internal" href="#errors">errors</a>.</td>
+If 3 (for error) see <a class="reference" href="#errors">errors</a>.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>transaction_id</td>
@@ -433,7 +433,7 @@ leechers.</td>
 <tr><td>int32_t</td>
 <td>action</td>
 <td>The action, in this case 3, for error.
-See <a class="reference internal" href="#actions">actions</a>.</td>
+See <a class="reference" href="#actions">actions</a>.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>transaction_id</td>
@@ -466,7 +466,7 @@ describing the error.</td>
 bits are assigned:</p>
 <blockquote>
 <ul class="simple">
-<li>1 = <a class="reference internal" href="#authentication">authentication</a>.</li>
+<li>1 = <a class="reference" href="#authentication">authentication</a>.</li>
 </ul>
 </blockquote>
 <div class="section" id="authentication">
