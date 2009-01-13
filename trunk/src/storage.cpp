@@ -370,7 +370,7 @@ namespace libtorrent
 		for (;;)
 		{
 			size += bufs->iov_len;
-			if (size > bytes)
+			if (size >= bytes)
 			{
 				((char*&)bufs->iov_base) += bufs->iov_len - (size - bytes);
 				bufs->iov_len = size - bytes;
@@ -1231,6 +1231,7 @@ ret:
 		file::iovec_t* tmp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		file::iovec_t* current_buf = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		copy_bufs(bufs, size, current_buf);
+		TORRENT_ASSERT(count_bufs(current_buf, size) == num_bufs);
 		int write_bytes;
 		for (;left_to_write > 0; ++file_iter, left_to_write -= write_bytes
 			, buf_pos += write_bytes)
@@ -1255,9 +1256,8 @@ ret:
 
 			if (file_iter->pad_file)
 			{
-				int actual_written = (std::min)(int(file_iter->size), left_to_write);
-				advance_bufs(current_buf, actual_written);
-				left_to_write -= actual_written;
+				advance_bufs(current_buf, write_bytes);
+				TORRENT_ASSERT(count_bufs(current_buf, left_to_write - write_bytes) <= num_bufs);
 				continue;
 			}
 
@@ -1277,6 +1277,7 @@ ret:
 			}
 
 			int num_tmp_bufs = copy_bufs(current_buf, write_bytes, tmp_bufs);
+			TORRENT_ASSERT(count_bufs(tmp_bufs, write_bytes) == num_tmp_bufs);
 			int actual_written = int(out->writev(file_iter->file_base
 				+ file_offset, tmp_bufs, num_tmp_bufs, ec));
 
