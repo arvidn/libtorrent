@@ -771,7 +771,7 @@ namespace libtorrent
 		++m_allocations;
 #endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		return page_aligned_allocator::malloc(m_block_sizes);
+		return page_aligned_allocator::malloc(m_block_size);
 #else
 		return (char*)m_pool.ordered_malloc();
 #endif
