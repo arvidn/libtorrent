@@ -36,16 +36,16 @@
 <col class="docinfo-content" />
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
-<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#introduction" id="id4">introduction</a></li>
-<li><a class="reference internal" href="#features" id="id5">features</a></li>
-<li><a class="reference internal" href="#portability" id="id6">portability</a></li>
-<li><a class="reference internal" href="#license" id="id7">license</a></li>
+<li><a class="reference" href="#introduction" id="id2">introduction</a></li>
+<li><a class="reference" href="#features" id="id3">features</a></li>
+<li><a class="reference" href="#portability" id="id4">portability</a></li>
+<li><a class="reference" href="#license" id="id5">license</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -68,26 +68,35 @@ project (including this documentation). The current state includes the
 following features:</p>
 <ul class="simple">
 <li>trackerless torrents (using the Mainline kademlia DHT protocol) with
-some <a class="reference external" href="dht_extensions.html">DHT extensions</a>.</li>
-<li>support for IPv6</li>
+some <a class="reference" href="dht_extensions.html">DHT extensions</a>. <a class="reference" href="http://bittorrent.org/beps/bep_0005.html">BEP 5</a>.</li>
+<li>support for IPv6, including <a class="reference" href="http://bittorrent.org/beps/bep_0007.html">BEP 7</a> and <a class="reference" href="http://bittorrent.org/beps/bep_0024.html">BEP 24</a>.</li>
 <li>NAT-PMP and UPnP support (automatic port mapping on routers that supports it)</li>
-<li>piece-wise, unordered, incremental file allocation</li>
-<li>uses separate threads for checking files and for main downloader, with a
-fool-proof thread-safe library interface. (i.e. There's no way for the
-user to cause a deadlock). (see <a class="reference external" href="manual.html#threads">threads</a>)</li>
+<li>uses a separate disk I/O thread to not have the disk ever block on network or
+client interaction. (see <a class="reference" href="manual.html#threads">threads</a>).</li>
+<li>supports the bittorrent <a class="reference" href="extension_protocol.html">extension protocol</a>. See <a class="reference" href="manual.html#extensions">extensions</a>. <a class="reference" href="http://bittorrent.org/beps/bep_0010.html">BEP 10</a>.</li>
+<li>supports the uTorrent metadata transfer protocol (i.e. magnet links).</li>
+<li>supports the uTorrent peer exchange protocol (PEX).</li>
+<li>supports local peer discovery (multicasts for peers on the same local network)</li>
 <li>adjusts the length of the request queue depending on download rate.</li>
-<li>multitracker extension support (as <a class="reference external" href="http://home.elp.rr.com/tur/multitracker-spec.txt">specified by John Hoffman</a>)</li>
+<li>has an adjustable read and write disk cache for improved disk throughput.</li>
+<li>multitracker extension support (supports both strict <a class="reference" href="http://bittorrent.org/beps/bep_0012.html">BEP  12</a> and the
+uTorrent interpretation).</li>
+<li>tracker scrapes</li>
+<li>supports lt_trackers extension, to exchange trackers between peers</li>
+<li>supports both sparse files and compact file allocation (where pieces
+are kept consolidated on disk)</li>
+<li>super seeding/initial seeding (<a class="reference" href="http://bittorrent.org/beps/bep_0016.html">BEP 16</a>).</li>
 <li>supports files &gt; 2 gigabytes.</li>
 <li>serves multiple torrents on a single port and in a single thread</li>
 <li>fast resume support, a way to get rid of the costly piece check at the
 start of a resumed torrent. Saves the storage state, piece_picker state
 as well as all local peers in a separate fast-resume file.</li>
-<li><a class="reference external" href="manual.html#http-seeding">HTTP seeding</a>, as <a class="reference external" href="http://www.getright.com/seedtorrent.html">specified by Michael Burford of GetRight</a>.</li>
+<li><a class="reference" href="manual.html#http-seeding">HTTP seeding</a>, as specified in <a class="reference" href="http://bittorrent.org/beps/bep_0017.html">BEP 17</a> and <a class="reference" href="http://bittorrent.org/beps/bep_0019.html">BEP 19</a>.</li>
 <li>piece picking on block-level (as opposed to piece-level).
 This means it can download parts of the same piece from different peers.
 It will also prefer to download whole pieces from single peers if the
 download speed is high enough from that particular peer.</li>
-<li>supports the <a class="reference external" href="udp_tracker_protocol.html">udp-tracker protocol</a> by Olaf van der Spek.</li>
+<li>supports the udp-tracker protocol. (<a class="reference" href="http://bittorrent.org/beps/bep_0015.html">BEP 15</a>).</li>
 <li>queues torrents for file check, instead of checking all of them in parallel.</li>
 <li>supports http proxies and basic proxy authentication</li>
 <li>gzipped tracker-responses</li>
@@ -96,7 +105,6 @@ unchoked peers</li>
 <li>implements fair trade. User settable trade-ratio, must at least be 1:1,
 but one can choose to trade 1 for 2 or any other ratio that isn't unfair
 to the other party.</li>
-<li>supports an <a class="reference external" href="extension_protocol.html">extension protocol</a>. See <a class="reference external" href="manual.html#extensions">extensions</a>.</li>
 <li>supports the <tt class="docutils literal"><span class="pre">no_peer_id=1</span></tt> extension that will ease the load off trackers.</li>
 <li>possibility to limit the number of connections.</li>
 <li>delays have messages if there's no other outgoing traffic to the peer, and
@@ -109,14 +117,15 @@ resumes. This means it can resume a torrent downloaded by any client.</li>
 want to download.</li>
 <li>ip filter to disallow ip addresses and ip ranges from connecting and
 being connected</li>
+<li>private torrents (<a class="reference" href="http://bittorrent.org/beps/bep_0027.html">BEP 27</a>).</li>
 </ul>
 </div>
 <div class="section" id="portability">
 <h1>portability</h1>
 <p>libtorrent is portable at least among Windows, MacOS X and other UNIX-systems.
 It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
-boost libraries as well as <a class="reference external" href="http://www.zlib.org">zlib</a> (shipped) and <a class="reference external" href="http://asio.sf.net">asio</a> (shipped). At least version
-1.33.1 of boost is required.</p>
+boost libraries as well as <a class="reference" href="http://www.zlib.org">zlib</a> (shipped) and <a class="reference" href="http://asio.sf.net">asio</a> (shipped). At least version
+1.34.1 of boost is required.</p>
 <p>Since libtorrent uses asio, it will take full advantage of high performance
 network APIs on the most popular platforms. I/O completion ports on windows,
 epoll on linux and kqueue on MacOS X and BSD.</p>
@@ -136,12 +145,12 @@ epoll on linux and kqueue on MacOS X and BSD.</p>
 </div>
 <div class="section" id="license">
 <h1>license</h1>
-<p>libtorrent is released under the <a class="reference external" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
+<p>libtorrent is released under the <a class="reference" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
 <p>This means that you can use the library in your project without having to
 release its source code. The only requirement is that you give credit
 to the author of the library by including the libtorrent license in your
 software or documentation.</p>
-<p><a class="reference external" href="projects.html">Here's</a> a list of some projects that uses libtorrent.</p>
+<p><a class="reference" href="projects.html">Here's</a> a list of some projects that uses libtorrent.</p>
 </div>
     </div>
     <div id="footer">
