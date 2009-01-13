@@ -160,6 +160,7 @@ bool print_log = false;
 bool print_downloads = false;
 bool print_piece_bar = false;
 bool print_file_progress = false;
+bool show_pad_files = false;
 bool show_dht_status = false;
 bool sequential_download = false;
 
@@ -1221,6 +1222,7 @@ int main(int ac, char* av[])
 				if (c == 'l') print_log = !print_log;
 				if (c == 'd') print_downloads = !print_downloads;
 				if (c == 'f') print_file_progress = !print_file_progress;
+				if (c == 'h') show_pad_files = !show_pad_files;
 				if (c == 'a') print_piece_bar = !print_piece_bar;
 				if (c == 'g') show_dht_status = !show_dht_status;
 				// toggle columns
@@ -1561,16 +1563,19 @@ int main(int ac, char* av[])
 					torrent_info const& info = h.get_torrent_info();
 					for (int i = 0; i < info.num_files(); ++i)
 					{
-						if (info.file_at(i).pad_file) continue;
+						bool pad_file = info.file_at(i).pad_file;
+						if (!show_pad_files && pad_file) continue;
 						float progress = info.file_at(i).size > 0
 							?float(file_progress[i]) / info.file_at(i).size:1;
 						if (file_progress[i] == info.file_at(i).size)
 							out << progress_bar(1.f, 100, "32");
 						else
 							out << progress_bar(progress, 100, "33");
+						if (pad_file) out << esc("34");
 						out << " " << to_string(progress * 100.f, 5) << "% "
 							<< add_suffix(file_progress[i]) << " "
 							<< info.file_at(i).path.leaf() << "\n";
+						if (pad_file) out << esc("0");
 					}
 
 					out << "___________________________________\n";
