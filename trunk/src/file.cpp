@@ -311,8 +311,8 @@ namespace libtorrent
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
 				DWORD intermediate = 0;
-				if (ReadFile(m_file_handle, (char*)bufs->iov_base
-					, (DWORD)bufs->iov_len, &intermediate, 0) == FALSE)
+				if (ReadFile(m_file_handle, (char*)i->iov_base
+					, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 				{
 					ec = error_code(GetLastError(), get_system_category());
 					return -1;
@@ -468,8 +468,8 @@ namespace libtorrent
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
 				DWORD intermediate = 0;
-				if (WriteFile(m_file_handle, (char const*)bufs->iov_base
-					, (DWORD)bufs->iov_len, &intermediate, 0) == FALSE)
+				if (WriteFile(m_file_handle, (char const*)i->iov_base
+					, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 				{
 					ec = error_code(GetLastError(), get_system_category());
 					return -1;
