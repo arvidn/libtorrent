@@ -4992,7 +4992,7 @@ Returning ``true`` indicates an error occurred.
 
 
 readv()
-------
+-------
 
 	::
 
@@ -5016,7 +5016,7 @@ aligned number of bytes though.
 
 
 writev()
--------
+--------
 
 	::
 
