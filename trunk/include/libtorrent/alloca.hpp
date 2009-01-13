@@ -37,12 +37,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_WINDOWS
 
 #include <malloc.h>
-#define TORRENT_ALLOCA(t, n) static_cast<t*>(_alloca(sizeof(t) * (n)));
+#define TORRENT_ALLOCA(t, n) static_cast<t*>(_alloca(sizeof(t) * (n)))
 
 #else
 
 #include <alloca.h>
-#define TORRENT_ALLOCA(t, n) static_cast<t*>(alloca(sizeof(t) * (n)));
+#define TORRENT_ALLOCA(t, n) static_cast<t*>(alloca(sizeof(t) * (n)))
 
 #endif
 
