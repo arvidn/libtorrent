@@ -93,29 +93,39 @@ namespace libtorrent
 		return i;
 	}
 
+	namespace
+	{
+		bool compare_file_offset(file_entry const& lhs, file_entry const& rhs)
+		{
+			return lhs.offset + lhs.size < rhs.offset + rhs.size;
+		}
+	}
+
 	std::vector<file_slice> file_storage::map_block(int piece, size_type offset
-		, int size_) const
+		, int size) const
 	{
 		TORRENT_ASSERT(num_files() > 0);
 		std::vector<file_slice> ret;
 
-		size_type start = piece * (size_type)m_piece_length + offset;
-		size_type size = size_;
-		TORRENT_ASSERT(start + size <= m_total_size);
-
 		// find the file iterator and file offset
-		// TODO: do a binary search on the file offsets
-		size_type file_offset = start;
-		std::vector<file_entry>::const_iterator file_iter;
+		file_entry target;
+		target.offset = piece * (size_type)m_piece_length + offset;
+		target.size = 0;
+		TORRENT_ASSERT(target.offset + size <= m_total_size);
 
-		int counter = 0;
-		for (file_iter = begin();; ++counter, ++file_iter)
+		std::vector<file_entry>::const_iterator file_iter = std::upper_bound(
+			begin(), end(), target, compare_file_offset);
+
+		if (file_iter == end()) return ret;
+
+		size_type file_offset = file_iter->offset;
+		for (; size > 0; file_offset -= file_iter->size, ++file_iter)
 		{
 			TORRENT_ASSERT(file_iter != end());
 			if (file_offset < file_iter->size)
 			{
 				file_slice f;
-				f.file_index = counter;
+				f.file_index = file_iter - begin();
 				f.offset = file_offset + file_iter->file_base;
 				f.size = (std::min)(file_iter->size - file_offset, (size_type)size);
 				size -= f.size;
@@ -124,9 +134,6 @@ namespace libtorrent
 			}
 			
 			TORRENT_ASSERT(size >= 0);
-			if (size <= 0) break;
-
-			file_offset -= file_iter->size;
 		}
 		return ret;
 	}
