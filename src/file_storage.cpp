@@ -97,7 +97,7 @@ namespace libtorrent
 	{
 		bool compare_file_offset(file_entry const& lhs, file_entry const& rhs)
 		{
-			return lhs.offset + lhs.size < rhs.offset + rhs.size;
+			return lhs.offset < rhs.offset;
 		}
 	}
 
@@ -107,18 +107,21 @@ namespace libtorrent
 		TORRENT_ASSERT(num_files() > 0);
 		std::vector<file_slice> ret;
 
+		if (m_files.empty()) return ret;
+
 		// find the file iterator and file offset
 		file_entry target;
 		target.offset = piece * (size_type)m_piece_length + offset;
-		target.size = 0;
 		TORRENT_ASSERT(target.offset + size <= m_total_size);
+		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		std::vector<file_entry>::const_iterator file_iter = std::upper_bound(
 			begin(), end(), target, compare_file_offset);
 
-		if (file_iter == end()) return ret;
+		TORRENT_ASSERT(file_iter != begin());
+		--file_iter;
 
-		size_type file_offset = file_iter->offset;
+		size_type file_offset = offset - file_iter->offset;
 		for (; size > 0; file_offset -= file_iter->size, ++file_iter)
 		{
 			TORRENT_ASSERT(file_iter != end());
