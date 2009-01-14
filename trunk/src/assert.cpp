@@ -86,6 +86,7 @@ std::string demangle(char const* name)
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
+#include "libtorrent/version.hpp"
 
 // execinfo.h is available in the MacOS X 10.5 SDK.
 #if (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
@@ -117,10 +118,12 @@ void assert_fail(char const* expr, int line, char const* file, char const* funct
 	fprintf(stderr, "assertion failed. Please file a bugreport at "
 		"http://code.rasterbar.com/libtorrent/newticket\n"
 		"Please include the following information:\n\n"
+		"version: " LIBTORRENT_VERSION "\n"
+		"%s"
 		"file: '%s'\n"
 		"line: %d\n"
 		"function: %s\n"
-		"expression: %s\n", file, line, function, expr);
+		"expression: %s\n", LIBTORRENT_REVISION, file, line, function, expr);
 
 	print_backtrace("stack:");
 
