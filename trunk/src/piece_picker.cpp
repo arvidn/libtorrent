@@ -1319,6 +1319,12 @@ namespace libtorrent
 	//     peer
 	// * prioritize_partials
 	//     pick blocks from downloading pieces first
+	// * speed_affinity
+	//     have an affinity to pick pieces in the same speed
+	//     category.
+	// * ignore_whole_pieces
+	//     ignores the prefer_whole_pieces parameter (as if
+	//     it was 0)
 
 	// only one of rarest_first, sequential can be set
 
@@ -1329,6 +1335,8 @@ namespace libtorrent
 	{
 		// prevent the number of partial pieces to grow indefinitely
 		if (m_downloads.size() > 20) options |= prioritize_partials;
+
+		if (options & ignore_whole_pieces) prefer_whole_pieces = 0;
 
 		// only one of rarest_first and sequential can be set.
 		TORRENT_ASSERT(bool(options & rarest_first)
@@ -1812,7 +1820,7 @@ namespace libtorrent
 			// if the state of the piece is none (the
 			// piece will in that case change state).
 			if (dp.state != none && dp.state != speed
-				&& !exclusive_active)
+				&& !exclusive_active && (options & speed_affinity))
 			{
 				if (abs(dp.state - speed) == 1)
 				{

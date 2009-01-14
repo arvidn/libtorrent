@@ -617,7 +617,7 @@ namespace libtorrent
 
 		if (t->is_sequential_download())
 		{
-			ret |= piece_picker::sequential;
+			ret |= piece_picker::sequential | piece_picker::ignore_whole_pieces;
 		}
 		else if (t->num_have() < t->settings().initial_picker_threshold)
 		{
@@ -628,7 +628,7 @@ namespace libtorrent
 		}
 		else
 		{
-			ret |= piece_picker::rarest_first;
+			ret |= piece_picker::rarest_first | piece_picker::speed_affinity;
 		}
 
 		if (m_snubbed)

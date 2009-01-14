@@ -129,7 +129,11 @@ namespace libtorrent
 			// always pick partial pieces before any other piece
 			prioritize_partials = 8,
 			// pick pieces in sequential order
-			sequential = 16
+			sequential = 16,
+			// have affinity to pieces with the same speed category
+			speed_affinity = 32,
+			// ignore the prefer_whole_pieces parameter
+			ignore_whole_pieces = 64
 		};
 
 		struct downloading_piece
