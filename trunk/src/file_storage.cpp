@@ -121,7 +121,7 @@ namespace libtorrent
 		TORRENT_ASSERT(file_iter != begin());
 		--file_iter;
 
-		size_type file_offset = offset - file_iter->offset;
+		size_type file_offset = target.offset - file_iter->offset;
 		for (; size > 0; file_offset -= file_iter->size, ++file_iter)
 		{
 			TORRENT_ASSERT(file_iter != end());
