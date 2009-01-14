@@ -2141,6 +2141,9 @@ namespace libtorrent
 				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 			TORRENT_ASSERT(i != m_downloads.end());
 			block_info& info = i->info[block.block_index];
+
+			if (info.state == block_info::state_finished) return;
+
 			TORRENT_ASSERT(info.num_peers == 0);
 			info.peer = peer;
 			TORRENT_ASSERT(info.state == block_info::state_writing

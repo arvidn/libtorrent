@@ -241,7 +241,8 @@ namespace libtorrent
 		stat statistics() const { return m_stat; }
 		void add_stats(stat const& s) { m_stat += s; }
 		size_type bytes_left() const;
-		boost::tuples::tuple<size_type, size_type> bytes_done() const;
+		int block_bytes_wanted(piece_block const& p) const;
+		void bytes_done(torrent_status& st) const;
 		size_type quantized_bytes_done() const;
 
 		void ip_filter_updated() { m_policy.ip_filter_updated(); }
@@ -853,6 +854,9 @@ namespace libtorrent
 		// downloaded that failed the hash-test
 		size_type m_total_failed_bytes;
 		size_type m_total_redundant_bytes;
+
+		// the number of bytes of padding files
+		int m_padding;
 
 		std::string m_username;
 		std::string m_password;
