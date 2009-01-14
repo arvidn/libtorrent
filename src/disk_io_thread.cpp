@@ -476,7 +476,7 @@ namespace libtorrent
 		{
 			l.unlock();
 			file::iovec_t b = { buf.get(), buffer_size };
-			ret += p.storage->read_impl(&b, p.piece, start_block * m_block_size, 1);
+			ret = p.storage->read_impl(&b, p.piece, start_block * m_block_size, 1);
 			l.lock();
 			if (p.storage->error()) { return -1; }
 			++m_cache_stats.reads;
@@ -508,13 +508,14 @@ namespace libtorrent
 		if (iov)
 		{
 			l.unlock();
-			ret += p.storage->read_impl(iov.get(), p.piece, start_block * m_block_size, iov_counter);
+			ret = p.storage->read_impl(iov.get(), p.piece, start_block * m_block_size, iov_counter);
 			l.lock();
 			if (p.storage->error()) { return -1; }
 			++m_cache_stats.reads;
 		}
 
 		TORRENT_ASSERT(ret <= buffer_size);
+		TORRENT_ASSERT(ret == buffer_size || p.storage->error());
 		return (ret != buffer_size) ? -1 : ret;
 	}
 	
