@@ -1137,10 +1137,20 @@ ret:
 				+ file_offset, tmp_bufs, num_tmp_bufs, ec));
 			file_offset = 0;
 
-			if (read_bytes != actual_read || ec)
+			if (ec)
+			{
+				set_error(m_save_path / file_iter->path, ec);
+				return -1;
+			}
+
+			if (read_bytes != actual_read)
 			{
 				// the file was not big enough
-				if (actual_read > 0) buf_pos += actual_read;
+#ifdef TORRENT_WINDOWS
+				ec = error_code(ERROR_READ_FAULT, get_system_category());
+#else
+				ec = error_code(EIO, get_posix_category());
+#endif
 				set_error(m_save_path / file_iter->path, ec);
 				return -1;
 			}
@@ -1283,10 +1293,20 @@ ret:
 
 			file_offset = 0;
 			
-			if (write_bytes != actual_written || ec)
+			if (ec)
+			{
+				set_error(m_save_path / file_iter->path, ec);
+				return -1;
+			}
+
+			if (write_bytes != actual_written)
 			{
 				// the file was not big enough
-				if (actual_written > 0) buf_pos += actual_written;
+#ifdef TORRENT_WINDOWS
+				ec = error_code(ERROR_READ_FAULT, get_system_category());
+#else
+				ec = error_code(EIO, get_posix_category());
+#endif
 				set_error(m_save_path / file_iter->path, ec);
 				return -1;
 			}
