@@ -970,15 +970,26 @@ namespace libtorrent
 
 				int actual_read = int(in->read(buf + buf_pos, read_bytes, ec));
 
-				if (read_bytes != actual_read || ec)
+				if (ec)
+				{
+					set_error(m_save_path / file_iter->path, ec);
+					return -1;
+				}
+
+				if (read_bytes != actual_read)
 				{
 					// the file was not big enough
-					if (actual_read > 0) buf_pos += actual_read;
 					if (!fill_zero)
 					{
+#ifdef TORRENT_WINDOWS
+						ec = error_code(ERROR_READ_FAULT, get_system_category());
+#else
+						ec = error_code(EIO, get_posix_category());
+#endif
 						set_error(m_save_path / file_iter->path, ec);
 						return -1;
 					}
+					if (actual_read > 0) buf_pos += actual_read;
 					std::memset(buf + buf_pos, 0, size - buf_pos);
 					return size;
 				}
@@ -1111,8 +1122,20 @@ namespace libtorrent
 				error_code ec;
 				size_type written = out->write(buf + buf_pos, write_bytes, ec);
 
-				if (written != write_bytes || ec)
+				if (ec)
 				{
+					set_error(m_save_path / file_iter->path, ec);
+					return -1;
+				}
+
+				if (write_bytes != written)
+				{
+					// the file was not big enough
+#ifdef TORRENT_WINDOWS
+					ec = error_code(ERROR_READ_FAULT, get_system_category());
+#else
+					ec = error_code(EIO, get_posix_category());
+#endif
 					set_error(m_save_path / file_iter->path, ec);
 					return -1;
 				}
