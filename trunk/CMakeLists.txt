@@ -3,6 +3,7 @@ project(libtorrent)
 
 set(sources
 	alert
+	allocator
 	assert
 	connection_queue
 	create_torrent

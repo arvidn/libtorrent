@@ -302,6 +302,7 @@ lib ws2_32 : : <name>ws2_32 ;
 
 SOURCES =
 	alert
+	allocator
 	assert
 	connection_queue
 	create_torrent

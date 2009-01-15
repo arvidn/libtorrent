@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/utf8.hpp"
+#include "libtorrent/allocator.hpp"
 
 #include <vector>
 #include <string>
@@ -207,6 +208,15 @@ namespace libtorrent
 #endif
 	}
 	
+	struct piece_holder
+	{
+		piece_holder(int bytes): m_piece(page_aligned_allocator::malloc(bytes)) {}
+		~piece_holder() { page_aligned_allocator::free(m_piece); }
+		char* bytes() { return m_piece; }
+	private:
+		char* m_piece;
+	};
+
 	template <class Fun>
 	void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f)
 	{
@@ -216,13 +226,13 @@ namespace libtorrent
 
 		// calculate the hash for all pieces
 		int num = t.num_pieces();
-		std::vector<char> buf(t.piece_length());
+		piece_holder buf(t.piece_length());
 		for (int i = 0; i < num; ++i)
 		{
 			// read hits the disk and will block. Progress should
 			// be updated in between reads
-			st->read(&buf[0], i, 0, t.piece_size(i));
-			hasher h(&buf[0], t.piece_size(i));
+			st->read(buf.bytes(), i, 0, t.piece_size(i));
+			hasher h(buf.bytes(), t.piece_size(i));
 			t.set_hash(i, h.final());
 			f(i);
 		}
