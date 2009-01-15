@@ -1,4 +1,5 @@
 nobase_include_HEADERS = libtorrent/alert.hpp \
+libtorrent/allocator.hpp \
 libtorrent/alert_types.hpp \
 libtorrent/assert.hpp \
 libtorrent/alloca.hpp \

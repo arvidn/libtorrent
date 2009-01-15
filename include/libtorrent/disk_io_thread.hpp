@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/storage.hpp"
+#include "libtorrent/allocator.hpp"
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
@@ -53,15 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct page_aligned_allocator
-	{
-		typedef std::size_t size_type;
-		typedef std::ptrdiff_t difference_type;
-
-		static char* malloc(const size_type bytes);
-		static void free(char* const block);
-	};
-
 	struct cached_piece_info
 	{
 		int piece;

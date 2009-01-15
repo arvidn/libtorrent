@@ -38,36 +38,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include <boost/scoped_array.hpp>
 
-#ifdef TORRENT_WINDOWS
-#include <Windows.h>
-#else
-#include <stdlib.h>
-#endif
-
 #ifdef TORRENT_DISK_STATS
 #include "libtorrent/time.hpp"
 #endif
 
 namespace libtorrent
 {
-
-	char* page_aligned_allocator::malloc(const size_type bytes)
-	{
-#ifdef TORRENT_WINDOWS
-		return reinterpret_cast<char*>(VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
-#else
-		return reinterpret_cast<char*>(valloc(bytes));
-#endif
-	}
-
-	void page_aligned_allocator::free(char* const block)
-	{
-#ifdef TORRENT_WINDOWS
-		VirtualFree(block, 0, MEM_RELEASE);
-#else
-		std::free(block);
-#endif
-	}
 
 	disk_io_thread::disk_io_thread(asio::io_service& ios, int block_size)
 		: m_abort(false)
