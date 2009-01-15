@@ -657,7 +657,7 @@ namespace libtorrent
 		{
 			// copy from the cache and update the last use timestamp
 			int block = j.offset / m_block_size;
-			int block_offset = j.offset % m_block_size;
+			int block_offset = j.offset & (m_block_size-1);
 			int buffer_offset = 0;
 			int size = j.buffer_size;
 			if (p->blocks[block] == 0)
