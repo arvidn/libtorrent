@@ -1362,6 +1362,7 @@ namespace libtorrent
 		st.total_wanted_done = 0;
 		st.total_wanted = m_torrent_file->total_size();
 
+		TORRENT_ASSERT(st.total_wanted > m_padding);
 		TORRENT_ASSERT(st.total_wanted >= 0);
 		TORRENT_ASSERT(st.total_wanted >= m_torrent_file->piece_length()
 			* (m_torrent_file->num_pieces() - 1));
@@ -1430,22 +1431,18 @@ namespace libtorrent
 				for (int j = p.piece; p.length > 0; ++j, p.length -= piece_size)
 				{
 					int deduction = (std::min)(p.length, piece_size);
-					if (m_picker->have_piece(j))
-					{
-						st.total_wanted_done -= deduction;
-						st.total_done -= deduction;
-					}
-
-					if (m_picker->piece_priority(j) > 0)
-					{
-						st.total_wanted -= deduction;
-					}
+					bool done = m_picker->have_piece(j);
+					bool wanted = m_picker->piece_priority(j) > 0;
+					if (done) st.total_done -= deduction;
+					if (wanted) st.total_wanted -= deduction;
+					if (wanted && done) st.total_wanted_done -= deduction;
 				}
 			}
 		}
 
 		TORRENT_ASSERT(st.total_done <= m_torrent_file->total_size() - m_padding);
 		TORRENT_ASSERT(st.total_wanted_done <= m_torrent_file->total_size() - m_padding);
+		TORRENT_ASSERT(st.total_wanted_done >= 0);
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 
 		const std::vector<piece_picker::downloading_piece>& dl_queue
@@ -1493,6 +1490,8 @@ namespace libtorrent
 		TORRENT_ASSERT(st.total_wanted <= m_torrent_file->total_size() - m_padding);
 		TORRENT_ASSERT(st.total_done <= m_torrent_file->total_size() - m_padding);
 		TORRENT_ASSERT(st.total_wanted_done <= m_torrent_file->total_size() - m_padding);
+		TORRENT_ASSERT(st.total_wanted_done >= 0);
+		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 
 		std::map<piece_block, int> downloading_piece;
 		for (const_peer_iterator i = begin(); i != end(); ++i)
