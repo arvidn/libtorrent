@@ -119,7 +119,7 @@ void assert_fail(char const* expr, int line, char const* file, char const* funct
 		"http://code.rasterbar.com/libtorrent/newticket\n"
 		"Please include the following information:\n\n"
 		"version: " LIBTORRENT_VERSION "\n"
-		"%s"
+		"%s\n"
 		"file: '%s'\n"
 		"line: %d\n"
 		"function: %s\n"
