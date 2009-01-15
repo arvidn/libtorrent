@@ -56,7 +56,7 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 		VirtualFree(block, 0, MEM_RELEASE);
 #else
-		free(block);
+		::free(block);
 #endif
 	}
 
