@@ -352,16 +352,6 @@ namespace libtorrent
 		if (ReadFileScatter(m_file_handle, segment_array, size, 0, &ol) == 0)
 		{
 			DWORD last_error = GetLastError();
-			if (last_error == ERROR_HANDLE_EOF)
-			{
-				LARGE_INTEGER file_size;
-				if (!GetFileSizeEx(m_file_handle, &file_size))
-				{
-					ec = error_code(GetLastError(), get_system_category());
-					return -1;
-				}
-				return file_size.QuadPart - file_offset;
-			}
 			if (last_error != ERROR_IO_PENDING)
 			{
 				ec = error_code(GetLastError(), get_system_category());
