@@ -1203,7 +1203,7 @@ ret:
 				ec = error_code(EIO, get_posix_category());
 #endif
 				set_error(m_save_path / file_iter->path, ec);
-				return -1;
+				return bytes_transferred;
 			}
 			advance_bufs(current_buf, bytes_transferred);
 			TORRENT_ASSERT(count_bufs(current_buf, bytes_left - file_bytes_left) <= num_bufs);
