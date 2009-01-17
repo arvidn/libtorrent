@@ -32,6 +32,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstddef>
 
+#ifndef TORRENT_ALLOCATOR_HPP_INCLUDED
+#define TORRENT_ALLOCATOR_HPP_INCLUDED
+
 namespace libtorrent
 {
 
@@ -45,4 +48,6 @@ namespace libtorrent
 	};
 
 }
+
+#endif
 
