@@ -2761,13 +2761,13 @@ namespace libtorrent
 		boost::intrusive_ptr<peer_connection> c;
 		if (web.type == web_seed_entry::url_seed)
 		{
-			c.reset(new (std::nothrow) web_peer_connection(
-				m_ses, shared_from_this(), s, a, web.url, 0));
+			c = new (std::nothrow) web_peer_connection(
+				m_ses, shared_from_this(), s, a, web.url, 0);
 		}
 		else if (web.type == web_seed_entry::http_seed)
 		{
-			c.reset(new (std::nothrow) http_seed_connection(
-				m_ses, shared_from_this(), s, a, web.url, 0));
+			c = new (std::nothrow) http_seed_connection(
+				m_ses, shared_from_this(), s, a, web.url, 0);
 		}
 		if (!c) return;
 			
