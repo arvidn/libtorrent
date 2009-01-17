@@ -234,7 +234,7 @@ namespace libtorrent
 	// defined in storage.cpp
 	int bufs_size(file::iovec_t const* bufs, int num_bufs);
 	
-#if defined TORRENT_WINDOWS || defined TORRENT_DEBUG
+#if defined TORRENT_WINDOWS || defined TORRENT_LINUX || defined TORRENT_DEBUG
 
 	int file::m_page_size = 0;
 
@@ -260,7 +260,7 @@ namespace libtorrent
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
 
-#if defined TORRENT_WINDOWS || defined TORRENT_DEBUG
+#if defined TORRENT_WINDOWS || defined TORRENT_LINUX || defined TORRENT_DEBUG
 		// make sure m_page_size is initialized
 		init_file();
 #endif
@@ -417,7 +417,7 @@ namespace libtorrent
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
 
-#if defined TORRENT_WINDOWS || defined TORRENT_DEBUG
+#if defined TORRENT_WINDOWS || defined TORRENT_LINUX || defined TORRENT_DEBUG
 		// make sure m_page_size is initialized
 		init_file();
 #endif
