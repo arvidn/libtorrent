@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/statvfs.h>
 #include <errno.h>
 
 #include <boost/static_assert.hpp>
@@ -184,6 +185,17 @@ namespace libtorrent
  		m_fd = ::open(path.external_file_string().c_str()
  			, mode & (rw_mask | no_buffer), permissions);
 
+#ifdef TORRENT_LINUX
+		// workaround for linux bug
+		// https://bugs.launchpad.net/ubuntu/+source/linux/+bug/269946
+		if (m_fd == -1 && (mode & no_buffer) && errno == EINVAL)
+		{
+			mode &= ~no_buffer;
+			m_fd = ::open(path.external_file_string().c_str()
+				, mode & (rw_mask | no_buffer), permissions);
+		}
+
+#endif
 		if (m_fd == -1)
 		{
 			ec = error_code(errno, get_posix_category());
