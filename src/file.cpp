@@ -425,6 +425,7 @@ namespace libtorrent
 				return -1;
 			}
 		}
+		CloseHandle(ol.hEvent);
 		return ret;
 #else
 		size_type ret = lseek(m_fd, file_offset, SEEK_SET);
