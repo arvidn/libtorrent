@@ -4974,6 +4974,14 @@ this::
 		virtual bool release_files() = 0;
 		virtual bool delete_files() = 0;
 		virtual ~storage_interface() {}
+
+		// non virtual functions
+
+		disk_io_thread* io_thread();
+		void set_error(boost::filesystem::path const& file, error_code const& ec) const;
+		error_code const& error() const;
+		std::string const& error_file() const;
+		void clear_error();
 	};
 
 
@@ -4991,40 +4999,17 @@ it will also ``ftruncate`` all files to their target size.
 Returning ``true`` indicates an error occurred.
 
 
-readv()
--------
+readv() writev()
+----------------
 
 	::
 
 		int readv(file::iovec_t const* buf, int slot, int offset, int num_bufs) = 0;
-
-This function should read the data in the given ``slot`` and at the given ``offset``.
-It should read ``num_bufs`` buffers, where the size of each buffer is specified in the
-buffer array ``bufs``. The file::iovec_t type has the following members::
-
-	struct iovec_t
-	{
-		void* iov_base;
-		size_t iov_len;
-	};
-
-The return value is the number of bytes actually read.
-
-Every buffer in ``bufs`` can be assumed to be page aligned and be of a page aligned size,
-except for the last buffer of the torrent. The buffer can be assumed to fit a fully page
-aligned number of bytes though.
-
-
-writev()
---------
-
-	::
-
 		int write(const char* buf, int slot, int offset, int size) = 0;
 
-This function should write the data to the given ``slot`` and at the given ``offset``.
-It should write ``num_bufs`` buffers, where the size of each buffer is specified in the
-buffer array ``bufs``. The file::iovec_t type has the following members::
+These functions should read or write the data in or to the given ``slot`` at the given ``offset``.
+It should read or write ``num_bufs`` buffers sequentially, where the size of each buffer
+is specified in the buffer array ``bufs``. The file::iovec_t type has the following members::
 
 	struct iovec_t
 	{
@@ -5032,13 +5017,18 @@ buffer array ``bufs``. The file::iovec_t type has the following members::
 		size_t iov_len;
 	};
 
-The return value is the number of bytes actually written.
+The return value is the number of bytes actually read or written, or -1 on failure. If
+it returns -1, the error code is expected to be set to
 
 Every buffer in ``bufs`` can be assumed to be page aligned and be of a page aligned size,
-except for the last buffer of the torrent. The buffer can be assumed to fit a fully page
-aligned number of bytes though.
-This function should write the data in ``buf`` to the given slot (``slot``) at offset
-``offset`` in that slot. The buffer size is ``size``.
+except for the last buffer of the torrent. The allocated buffer can be assumed to fit a
+fully page aligned number of bytes though. This is useful when reading and writing the
+last piece of a file in unbuffered mode.
+
+The ``offset`` is aligned to 16 kiB boundries  *most of the time*, but there are rare
+exceptions when it's not. Specifically if the read cache is disabled/or full and a
+client requests unaligned data, or the file itself is not aligned in the torrent.
+Most clients request aligned data.
 
 
 move_storage()
