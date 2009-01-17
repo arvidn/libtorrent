@@ -147,8 +147,8 @@ namespace libtorrent
 #else
 		int m_fd;
 #endif
-#if defined TORRENT_WINDOWS || defined TORRENT_DEBUG
-		void init_file();
+#if defined TORRENT_WINDOWS || defined TORRENT_LINUX || defined TORRENT_DEBUG
+		static void init_file();
 		static int m_page_size;
 #endif
 		int m_open_mode;
