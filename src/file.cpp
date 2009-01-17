@@ -115,6 +115,9 @@ namespace libtorrent
 		: m_fd(-1)
 #endif
 		, m_open_mode(0)
+#if defined TORRENT_WINDOWS || defined TORRENT_LINUX
+		, m_sector_size(0)
+#endif
 	{}
 
 	file::file(fs::path const& path, int mode, error_code& ec)
@@ -216,8 +219,51 @@ namespace libtorrent
 #endif
 	}
 
+	int file::pos_alignment() const
+	{
+		// on linux and windows, file offsets needs
+		// to be aligned to the disk sector size
+#if defined TORRENT_LINUX
+		if (m_sector_size == 0)
+		{
+			struct statvfs fs;
+			if (fstatvfs(m_fd, &fs) == 0)
+				m_sector_size = fs.f_bsize;
+			else
+				m_sector_size = 4096;
+		}	
+		return m_sector_size;
+#elif defined TORRENT_WINDOWS
+		if (m_sector_size == 0)
+		{
+			DWORD sectors_per_cluster;
+			DWORD bytes_per_sector;
+			DWORD free_clusters;
+			DWORD total_clusters;
+#ifdef TORRENT_USE_WPATH
+			wchar_t backslash = L'\\';
+#else
+			char backslash = '\\';
+#endif
+			if (GetDiskFreeSpace(m_path.substr(0, m_path.find_first_of(backslash)+1).c_str()
+				, &sectors_per_cluster, &bytes_per_sector
+				, &free_clusters, &total_clusters))
+				m_sector_size = bytes_per_sector;
+			else
+				m_sector_size = 4096;
+		}
+		return m_sector_size;
+#else
+		return 1;
+#endif
+	}
+
 	void file::close()
 	{
+#if defined TORRENT_WINDOWS || defined TORRENT_LINUX
+		m_sector_size = 0;
+#endif
+
 #ifdef TORRENT_WINDOWS
 		if (m_file_handle == INVALID_HANDLE_VALUE) return;
 		CloseHandle(m_file_handle);
@@ -270,7 +316,9 @@ namespace libtorrent
 		{
 			bool eof = false;
 			int size = 0;
-			TORRENT_ASSERT((file_offset & (m_page_size-1)) == 0);
+			// when opened in no_buffer mode, the file_offset must
+			// be aligned to pos_alignment()
+			TORRENT_ASSERT((file_offset & (pos_alignment()-1)) == 0);
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
 				TORRENT_ASSERT((int(i->iov_base) & (m_page_size-1)) == 0);
@@ -427,7 +475,9 @@ namespace libtorrent
 		{
 			bool eof = false;
 			int size = 0;
-			TORRENT_ASSERT((file_offset & (m_page_size-1)) == 0);
+			// when opened in no_buffer mode, the file_offset must
+			// be aligned to pos_alignment()
+			TORRENT_ASSERT((file_offset & (pos_alignment()-1)) == 0);
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
 				TORRENT_ASSERT((int(i->iov_base) & (m_page_size-1)) == 0);

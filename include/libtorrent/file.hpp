@@ -130,6 +130,14 @@ namespace libtorrent
 		void close();
 		bool set_size(size_type size, error_code& ec);
 
+		int open_mode() const { return m_open_mode; }
+
+		// when opened in unbuffered mode, this is the
+		// required alignment of file_offsets. i.e.
+		// any (file_offset & (pos_alignment()-1)) == 0
+		// is a precondition
+		int pos_alignment() const;
+
 		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 
@@ -152,6 +160,9 @@ namespace libtorrent
 		static int m_page_size;
 #endif
 		int m_open_mode;
+#if defined TORRENT_WINDOWS || defined TORRENT_LINUX
+		mutable int m_sector_size;
+#endif
 	};
 
 }
