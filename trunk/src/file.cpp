@@ -270,6 +270,16 @@ namespace libtorrent
 #endif
 	}
 
+	int file::buf_alignment() const
+	{
+#if defined TORRENT_WINDOWS
+		init_file();
+		return m_page_size;
+#else
+		return pos_alignment();
+#endif
+	}
+
 	void file::close()
 	{
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
@@ -333,11 +343,11 @@ namespace libtorrent
 			TORRENT_ASSERT((file_offset & (pos_alignment()-1)) == 0);
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
-				TORRENT_ASSERT((int(i->iov_base) & (m_page_size-1)) == 0);
+				TORRENT_ASSERT((int(i->iov_base) & (buf_alignment()-1)) == 0);
 				// every buffer must be a multiple of the page size
 				// except for the last one
-				TORRENT_ASSERT((i->iov_len & (m_page_size-1)) == 0 || i == end-1);
-				if ((i->iov_len & (m_page_size-1)) != 0) eof = true;
+				TORRENT_ASSERT((i->iov_len & (pos_alignment()-1)) == 0 || i == end-1);
+				if ((i->iov_len & (pos_alignment()-1)) != 0) eof = true;
 				size += i->iov_len;
 			}
 			error_code code;
@@ -442,7 +452,7 @@ namespace libtorrent
 		if (!aligned)
 		{
 			size = bufs_size(bufs, num_bufs);
-			if (size & (m_page_size-1) == 0) aligned = true;
+			if (size & (pos_alignment()-1) == 0) aligned = true;
 		}
 		if (aligned)
 #endif
@@ -459,7 +469,7 @@ namespace libtorrent
 		file::iovec_t* temp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		memcpy(temp_bufs, bufs, sizeof(file::iovec_t) * num_bufs);
 		iovec_t& last = temp_bufs[num_bufs-1];
-		last.iov_len = (last.iov_len & ~(m_page_size-1)) + m_page_size;
+		last.iov_len = (last.iov_len & ~(pos_alignment()-1)) + m_page_size;
 		ret = ::readv(m_fd, temp_bufs, num_bufs);
 		if (ret < 0)
 		{
@@ -493,11 +503,11 @@ namespace libtorrent
 			TORRENT_ASSERT((file_offset & (pos_alignment()-1)) == 0);
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
-				TORRENT_ASSERT((int(i->iov_base) & (m_page_size-1)) == 0);
+				TORRENT_ASSERT((int(i->iov_base) & (buf_alignment()-1)) == 0);
 				// every buffer must be a multiple of the page size
 				// except for the last one
-				TORRENT_ASSERT((i->iov_len & (m_page_size-1)) == 0 || i == end-1);
-				if ((i->iov_len & (m_page_size-1)) != 0) eof = true;
+				TORRENT_ASSERT((i->iov_len & (pos_alignment()-1)) == 0 || i == end-1);
+				if ((i->iov_len & (pos_alignment()-1)) != 0) eof = true;
 				size += i->iov_len;
 			}
 			error_code code;
@@ -646,7 +656,7 @@ namespace libtorrent
 		if (!aligned)
 		{
 			size = bufs_size(bufs, num_bufs);
-			if (size & (m_page_size-1) == 0) aligned = true;
+			if (size & (pos_alignment()-1) == 0) aligned = true;
 		}
 		if (aligned)
 #endif
@@ -663,7 +673,7 @@ namespace libtorrent
 		file::iovec_t* temp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		memcpy(temp_bufs, bufs, sizeof(file::iovec_t) * num_bufs);
 		iovec_t& last = temp_bufs[num_bufs-1];
-		last.iov_len = (last.iov_len & ~(m_page_size-1)) + m_page_size;
+		last.iov_len = (last.iov_len & ~(pos_alignment()-1)) + pos_alignment();
 		ret = ::writev(m_fd, temp_bufs, num_bufs);
 		if (ret < 0)
 		{
