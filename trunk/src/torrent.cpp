@@ -1013,7 +1013,7 @@ namespace libtorrent
 		{
 			m_last_dht_announce = now;
 			m_ses.m_dht->announce(m_torrent_file->info_hash()
-				, m_ses.m_listen_sockets.front().external_port
+				, m_ses.listen_port()
 				, bind(&torrent::on_dht_announce_response_disp, self, _1));
 		}
 #endif
@@ -1070,8 +1070,7 @@ namespace libtorrent
 		req.num_want = (req.event == tracker_request::stopped)
 			?0:m_settings.num_want;
 
-		req.listen_port = m_ses.m_listen_sockets.empty()
-			?0:m_ses.m_listen_sockets.front().external_port;
+		req.listen_port = m_ses.listen_port();
 		req.key = m_ses.m_key;
 
 		ptime now = time_now();

@@ -2056,7 +2056,7 @@ namespace aux {
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		if (m_listen_sockets.empty()) return 0;
-		return m_listen_sockets.front().external_port;;
+		return m_listen_sockets.front().external_port;
 	}
 
 	void session_impl::announce_lsd(sha1_hash const& ih)
