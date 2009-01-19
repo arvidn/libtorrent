@@ -233,7 +233,7 @@ void test_remove(path const& test_path)
 	fs.add_file("temp_storage/folder2/test3.tmp", 0);
 	fs.add_file("temp_storage/_folder3/test4.tmp", 0);
 	fs.add_file("temp_storage/_folder3/subfolder/test5.tmp", 8);
-	libtorrent::create_torrent t(fs, 4);
+	libtorrent::create_torrent t(fs, 4, -1, 0);
 
 	char buf[4] = {0, 0, 0, 0};
 	sha1_hash h = hasher(buf, 4).final();
@@ -287,7 +287,7 @@ void test_check_files(path const& test_path
 	std::generate(piece0, piece0 + piece_size, std::rand);
 	std::generate(piece2, piece2 + piece_size, std::rand);
 
-	libtorrent::create_torrent t(fs, piece_size);
+	libtorrent::create_torrent t(fs, piece_size, -1, 0);
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, sha1_hash(0));
 	t.set_hash(2, sha1_hash(0));
@@ -350,7 +350,7 @@ void run_test(path const& test_path)
 	fs.add_file("temp_storage/test4.tmp", 0);
 	fs.add_file("temp_storage/test5.tmp", 1);
 
-	libtorrent::create_torrent t(fs, piece_size);
+	libtorrent::create_torrent t(fs, piece_size, -1, 0);
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
@@ -376,7 +376,7 @@ void run_test(path const& test_path)
 	{
 	file_storage fs;
 	fs.add_file("temp_storage/test1.tmp", 17 + 612 + 1);
-	libtorrent::create_torrent t(fs, piece_size);
+	libtorrent::create_torrent t(fs, piece_size, -1, 0);
 	TEST_CHECK(fs.begin()->path == "temp_storage/test1.tmp");
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, hasher(piece1, piece_size).final());
