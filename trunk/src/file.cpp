@@ -199,6 +199,7 @@ namespace libtorrent
 		if (m_fd == -1)
 		{
 			ec = error_code(errno, get_posix_category());
+			TORRENT_ASSERT(ec);
 			return false;
 		}
 
