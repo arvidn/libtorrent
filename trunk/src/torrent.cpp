@@ -4385,9 +4385,11 @@ namespace libtorrent
 
 		// if we haven't yet met the seed limits, set the seed_ratio_not_met
 		// flag. That will make this seed prioritized
+		// downloaded may be 0 if the torrent is 0-sized
 		size_type downloaded = (std::max)(m_total_downloaded, m_torrent_file->total_size());
 		if (seed_time < s.seed_time_limit
 			&& (seed_time > 1 && download_time / float(seed_time) < s.seed_time_ratio_limit)
+			&& downloaded > 0
 			&& m_total_uploaded / downloaded < s.share_ratio_limit)
 			ret |= seed_ratio_not_met;
 
