@@ -85,7 +85,7 @@ namespace libtorrent
 		}
 	}
 
-	create_torrent::create_torrent(file_storage& fs, int piece_size, int pad_file_limit)
+	create_torrent::create_torrent(file_storage& fs, int piece_size, int pad_file_limit, int flags)
 		: m_files(fs)
 		, m_creation_date(pt::second_clock::universal_time())
 		, m_multifile(fs.num_files() > 1)
@@ -125,7 +125,8 @@ namespace libtorrent
 		}
 #endif
 		m_files.set_piece_length(piece_size);
-		m_files.optimize(pad_file_limit);
+		if (flags & optimize)
+			m_files.optimize(pad_file_limit);
 		m_files.set_num_pieces(static_cast<int>(
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
 		m_piece_hash.resize(m_files.num_pieces());
