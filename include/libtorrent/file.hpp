@@ -135,8 +135,12 @@ namespace libtorrent
 		// when opened in unbuffered mode, this is the
 		// required alignment of file_offsets. i.e.
 		// any (file_offset & (pos_alignment()-1)) == 0
-		// is a precondition
+		// is a precondition to read and write operations
 		int pos_alignment() const;
+
+		// when opened in unbuffered mode, this is the
+		// required alignment of buffer addresses
+		int buf_alignment() const;
 
 		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
