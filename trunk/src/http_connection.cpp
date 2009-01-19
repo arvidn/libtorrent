@@ -184,6 +184,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		if (m_bind_addr != address_v4::any())
 		{
 			error_code ec;
+			m_sock.open(m_bind_addr.is_v4()?tcp::v4():tcp::v6(), ec);
 			m_sock.bind(tcp::endpoint(m_bind_addr, 0), ec);
 			if (ec)
 			{

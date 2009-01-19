@@ -44,6 +44,7 @@ release 0.14.2
 	* added missing export directives to lazy_entry
 	* fixed disk cache expiry settings bug (if changed, it would be set
 	  to the cache size)
+	* fixed bug in http_connection when binding to a particular IP
 
 release 0.14.1
 
