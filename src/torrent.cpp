@@ -1363,7 +1363,7 @@ namespace libtorrent
 		st.total_wanted_done = 0;
 		st.total_wanted = m_torrent_file->total_size();
 
-		TORRENT_ASSERT(st.total_wanted > m_padding);
+		TORRENT_ASSERT(st.total_wanted >= m_padding);
 		TORRENT_ASSERT(st.total_wanted >= 0);
 		TORRENT_ASSERT(st.total_wanted >= m_torrent_file->piece_length()
 			* (m_torrent_file->num_pieces() - 1));
