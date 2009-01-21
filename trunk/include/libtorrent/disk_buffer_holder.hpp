@@ -41,20 +41,20 @@ namespace libtorrent
 {
 
 	namespace aux { class session_impl; }
-	class disk_io_thread;
+	class disk_buffer_pool;
 
 	struct TORRENT_EXPORT disk_buffer_holder
 	{
 		disk_buffer_holder(aux::session_impl& ses, char* buf);
-		disk_buffer_holder(disk_io_thread& iothread, char* buf);
-		disk_buffer_holder(disk_io_thread& iothread, char* buf, int num_blocks);
+		disk_buffer_holder(disk_buffer_pool& disk_pool, char* buf);
+		disk_buffer_holder(disk_buffer_pool& disk_pool, char* buf, int num_blocks);
 		~disk_buffer_holder();
 		char* release();
 		char* get() const { return m_buf; }
 		void reset(char* buf = 0, int num_blocks = 1);
 		void swap(disk_buffer_holder& h)
 		{
-			TORRENT_ASSERT(&h.m_iothread == &m_iothread);
+			TORRENT_ASSERT(&h.m_disk_pool == &m_disk_pool);
 			std::swap(h.m_buf, m_buf);
 		}
 
@@ -63,7 +63,7 @@ namespace libtorrent
 		{ return m_buf == 0? 0: &disk_buffer_holder::release; }
 
 	private:
-		disk_io_thread& m_iothread;
+		disk_buffer_pool& m_disk_pool;
 		char* m_buf;
 		int m_num_blocks;
 	};

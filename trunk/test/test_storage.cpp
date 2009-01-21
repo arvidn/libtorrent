@@ -49,21 +49,13 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using namespace boost::filesystem;
 
-const int piece_size = 16;
+const int piece_size = 16 * 1024;
 
 const int half = piece_size / 2;
 
-char piece0[piece_size] =
-{ 6, 6, 6, 6, 6, 6, 6, 6
-, 9, 9, 9, 9, 9, 9, 9, 9};
-
-char piece1[piece_size] =
-{ 0, 0, 0, 0, 0, 0, 0, 0
-, 1, 1, 1, 1, 1, 1, 1, 1};
-
-char piece2[piece_size] =
-{ 0, 0, 1, 0, 0, 0, 0, 0
-, 1, 1, 1, 1, 1, 1, 1, 1};
+char* piece0 = page_aligned_allocator::malloc(piece_size);
+char* piece1 = page_aligned_allocator::malloc(piece_size);
+char* piece2 = page_aligned_allocator::malloc(piece_size);
 
 void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 {
@@ -109,24 +101,41 @@ void on_move_storage(int ret, disk_io_job const& j, std::string path)
 void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	, file_storage& fs
 	, path const& test_path
-	, libtorrent::storage_mode_t storage_mode)
+	, libtorrent::storage_mode_t storage_mode
+	, bool unbuffered)
 {
 	TORRENT_ASSERT(fs.num_files() > 0);
 	create_directory(test_path / "temp_storage");
 
-	int num_pieces = (1 + 612 + 17 + piece_size - 1) / piece_size;
+	int num_pieces = fs.num_pieces();
 	TEST_CHECK(info->num_pieces() == num_pieces);
 
-	char piece[piece_size];
+	session_settings set;
+	set.disk_io_write_mode = set.disk_io_read_mode
+		= unbuffered ? session_settings::disable_os_cache_for_aligned_files
+		: session_settings::enable_os_cache;
+
+	char* piece = page_aligned_allocator::malloc(piece_size);
 
 	{ // avoid having two storages use the same files	
 	file_pool fp;
+	disk_buffer_pool dp(16 * 1024);
 	boost::scoped_ptr<storage_interface> s(
 		default_storage_constructor(fs, test_path, fp));
+	s->m_settings = &set;
+	s->m_disk_pool = &dp;
 
 	// write piece 1 (in slot 0)
 	s->write(piece1, 0, 0, half);
 	s->write(piece1 + half, 0, half, half);
+
+	// test unaligned read (where the bytes are aligned)
+	s->read(piece + 3, 0, 3, piece_size-9);
+	TEST_CHECK(std::equal(piece+3, piece + piece_size-9, piece1+3));
+	
+	// test unaligned read (where the bytes are not aligned)
+	s->read(piece, 0, 3, piece_size-9);
+	TEST_CHECK(std::equal(piece, piece + piece_size-9, piece1+3));
 
 	// verify piece 1
 	TEST_CHECK(s->read(piece, 0, 0, piece_size) == piece_size);
@@ -142,7 +151,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 
 	s->read(piece, 2, 0, piece_size);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2));
-	
+
 	s->release_files();
 	}
 
@@ -184,7 +193,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	TEST_CHECK(exists(test_path / "temp_storage2/temp_storage"));
 	pm->async_move_storage(test_path, bind(on_move_storage, _1, _2, test_path.string()));
 
-	test_sleep(2000);
+	test_sleep(1000);
 	ios.reset();
 	ios.poll(ec);
 
@@ -197,7 +206,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	TEST_CHECK(!exists(test_path / "part0"));	
 	pm->async_rename_file(0, "part0", none);
 
-	test_sleep(2000);
+	test_sleep(1000);
 	ios.reset();
 	ios.poll(ec);
 
@@ -217,15 +226,20 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 
 	pm->async_rename_file(0, "temp_storage/test1.tmp", none);
 	test_sleep(1000);
+	ios.reset();
+	ios.poll(ec);
+
 	TEST_CHECK(!exists(test_path / "part0"));	
+	TEST_CHECK(exists(test_path / "temp_storage/test1.tmp"));
 
 	ios.run(ec);
 
 	io.join();
 	}
+	page_aligned_allocator::free(piece);
 }
 
-void test_remove(path const& test_path)
+void test_remove(path const& test_path, bool unbuffered)
 {
 	file_storage fs;
 	fs.add_file("temp_storage/test1.tmp", 8);
@@ -241,9 +255,17 @@ void test_remove(path const& test_path)
 	
 	boost::intrusive_ptr<torrent_info> info(new torrent_info(t.generate()));
 
+	session_settings set;
+	set.disk_io_write_mode = set.disk_io_read_mode
+		= unbuffered ? session_settings::disable_os_cache_for_aligned_files
+		: session_settings::enable_os_cache;
+
 	file_pool fp;
+	disk_buffer_pool dp(16 * 1024);
 	boost::scoped_ptr<storage_interface> s(
 		default_storage_constructor(fs, test_path, fp));
+	s->m_settings = &set;
+	s->m_disk_pool = &dp;
 
 	// allocate the files and create the directories
 	s->initialize(true);
@@ -270,7 +292,8 @@ namespace
 }
 
 void test_check_files(path const& test_path
-	, libtorrent::storage_mode_t storage_mode)
+	, libtorrent::storage_mode_t storage_mode
+	, bool unbuffered)
 {
 	boost::intrusive_ptr<torrent_info> info;
 
@@ -335,7 +358,7 @@ void test_check_files(path const& test_path
 	io.join();
 }
 
-void run_test(path const& test_path)
+void run_test(path const& test_path, bool unbuffered)
 {
 	std::cerr << "\n=== " << test_path.string() << " ===\n" << std::endl;
 
@@ -348,26 +371,35 @@ void run_test(path const& test_path)
 	fs.add_file("temp_storage/test2.tmp", 612);
 	fs.add_file("temp_storage/test3.tmp", 0);
 	fs.add_file("temp_storage/test4.tmp", 0);
-	fs.add_file("temp_storage/test5.tmp", 1);
+	fs.add_file("temp_storage/test5.tmp", 3253);
+	fs.add_file("temp_storage/test6.tmp", 841);
+	const int last_file_size = 4 * piece_size - fs.total_size();
+	fs.add_file("temp_storage/test7.tmp", last_file_size);
 
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
 	
-
 	info = new torrent_info(t.generate());
 	std::cerr << "=== test 1 ===" << std::endl;
 
-	run_storage_tests(info, fs, test_path, storage_mode_compact);
+	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
 
 	// make sure the files have the correct size
-	std::cerr << file_size(test_path / "temp_storage" / "test1.tmp") << std::endl;
 	TEST_CHECK(file_size(test_path / "temp_storage" / "test1.tmp") == 17);
-	std::cerr << file_size(test_path / "temp_storage" / "test2.tmp") << std::endl;
-	TEST_CHECK(file_size(test_path / "temp_storage" / "test2.tmp") == 31);
+	TEST_CHECK(file_size(test_path / "temp_storage" / "test2.tmp") == 612);
 	TEST_CHECK(exists(test_path / "temp_storage/test3.tmp"));
 	TEST_CHECK(exists(test_path / "temp_storage/test4.tmp"));
+	TEST_CHECK(file_size(test_path / "temp_storage" / "test5.tmp") == 3253);
+	TEST_CHECK(file_size(test_path / "temp_storage" / "test6.tmp") == 841);
+	TEST_CHECK(file_size(test_path / "temp_storage" / "test7.tmp") == last_file_size - piece_size);
+	std::cerr << file_size(test_path / "temp_storage" / "test1.tmp") << std::endl;
+	std::cerr << file_size(test_path / "temp_storage" / "test2.tmp") << std::endl;
+	std::cerr << file_size(test_path / "temp_storage" / "test3.tmp") << std::endl;
+	std::cerr << file_size(test_path / "temp_storage" / "test4.tmp") << std::endl;
+	std::cerr << file_size(test_path / "temp_storage" / "test5.tmp") << std::endl;
+	std::cerr << file_size(test_path / "temp_storage" / "test6.tmp") << std::endl;
 	remove_all(test_path / "temp_storage");
 	}
 
@@ -375,7 +407,7 @@ void run_test(path const& test_path)
 
 	{
 	file_storage fs;
-	fs.add_file("temp_storage/test1.tmp", 17 + 612 + 1);
+	fs.add_file("temp_storage/test1.tmp", 3 * piece_size);
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
 	TEST_CHECK(fs.begin()->path == "temp_storage/test1.tmp");
 	t.set_hash(0, hasher(piece0, piece_size).final());
@@ -386,20 +418,19 @@ void run_test(path const& test_path)
 
 	std::cerr << "=== test 3 ===" << std::endl;
 
-	run_storage_tests(info, fs, test_path, storage_mode_compact);
+	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
 
-	// 48 = piece_size * 3
-	TEST_CHECK(file_size(test_path / "temp_storage" / "test1.tmp") == 48);
+	TEST_CHECK(file_size(test_path / "temp_storage" / "test1.tmp") == piece_size * 3);
 	remove_all(test_path / "temp_storage");
 
 // ==============================================
 
 	std::cerr << "=== test 4 ===" << std::endl;
 
-	run_storage_tests(info, fs, test_path, storage_mode_allocate);
+	run_storage_tests(info, fs, test_path, storage_mode_allocate, unbuffered);
 
 	std::cerr << file_size(test_path / "temp_storage" / "test1.tmp") << std::endl;
-	TEST_CHECK(file_size(test_path / "temp_storage" / "test1.tmp") == 17 + 612 + 1);
+	TEST_CHECK(file_size(test_path / "temp_storage" / "test1.tmp") == 3 * piece_size);
 
 	remove_all(test_path / "temp_storage");
 
@@ -408,24 +439,24 @@ void run_test(path const& test_path)
 // ==============================================
 
 	std::cerr << "=== test 5 ===" << std::endl;
-	test_remove(test_path);
+	test_remove(test_path, unbuffered);
 
 // ==============================================
 
 	std::cerr << "=== test 6 ===" << std::endl;
-	test_check_files(test_path, storage_mode_sparse);
-	test_check_files(test_path, storage_mode_compact);
+	test_check_files(test_path, storage_mode_sparse, unbuffered);
+	test_check_files(test_path, storage_mode_compact, unbuffered);
 }
 
-void test_fastresume()
+void test_fastresume(path const& test_path)
 {
 	std::cout << "\n\n=== test fastresume ===" << std::endl;
-	remove_all("tmp1");
-	create_directory("tmp1");
-	std::ofstream file("tmp1/temporary");
+	remove_all(test_path / "tmp1");
+	create_directory(test_path / "tmp1");
+	std::ofstream file((test_path / "tmp1/temporary").external_file_string().c_str());
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file);
 	file.close();
-	TEST_CHECK(exists("tmp1/temporary"));
+	TEST_CHECK(exists(test_path / "tmp1/temporary"));
 
 	entry resume;
 	{
@@ -433,7 +464,7 @@ void test_fastresume()
 		ses.set_alert_mask(alert::all_categories);
 
 		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
-			, "tmp1", entry()
+			, test_path / "tmp1", entry()
 			, storage_mode_compact);
 
 		for (int i = 0; i < 10; ++i)
@@ -450,14 +481,14 @@ void test_fastresume()
 		resume = h.write_resume_data();
 		ses.remove_torrent(h, session::delete_files);
 	}
-	TEST_CHECK(!exists("tmp1/temporary"));
+	TEST_CHECK(!exists(test_path / "tmp1/temporary"));
 	resume.print(std::cout);
 
 	// make sure the fast resume check fails! since we removed the file
 	{
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
-		torrent_handle h = ses.add_torrent(t, "tmp1", resume
+		torrent_handle h = ses.add_torrent(t, test_path / "tmp1", resume
 			, storage_mode_compact);
 	
 		std::auto_ptr<alert> a = ses.pop_alert();
@@ -475,7 +506,7 @@ void test_fastresume()
 		}
 		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) != 0);
 	}
-	remove_all("tmp1");
+	remove_all(test_path / "tmp1");
 }
 
 bool got_file_rename_alert(alert* a)
@@ -484,15 +515,15 @@ bool got_file_rename_alert(alert* a)
 		|| dynamic_cast<libtorrent::file_rename_failed_alert*>(a);
 }
 
-void test_rename_file_in_fastresume()
+void test_rename_file_in_fastresume(path const& test_path)
 {
 	std::cout << "\n\n=== test rename file in fastresume ===" << std::endl;
-	remove_all("tmp2");
-	create_directory("tmp2");
-	std::ofstream file("tmp2/temporary");
+	remove_all(test_path / "tmp2");
+	create_directory(test_path / "tmp2");
+	std::ofstream file((test_path / "tmp2/temporary").external_file_string().c_str());
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file);
 	file.close();
-	TEST_CHECK(exists("tmp2/temporary"));
+	TEST_CHECK(exists(test_path / "tmp2/temporary"));
 
 	entry resume;
 	{
@@ -500,7 +531,7 @@ void test_rename_file_in_fastresume()
 		ses.set_alert_mask(alert::all_categories);
 
 		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
-			, "tmp2", entry()
+			, test_path / "tmp2", entry()
 			, storage_mode_compact);
 
 		h.rename_file(0, "testing_renamed_files");
@@ -515,8 +546,8 @@ void test_rename_file_in_fastresume()
 		resume = h.write_resume_data();
 		ses.remove_torrent(h);
 	}
-	TEST_CHECK(!exists("tmp2/temporary"));
-	TEST_CHECK(exists("tmp2/testing_renamed_files"));
+	TEST_CHECK(!exists(test_path / "tmp2/temporary"));
+	TEST_CHECK(exists(test_path / "tmp2/testing_renamed_files"));
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
 	resume.print(std::cout);
 
@@ -524,7 +555,7 @@ void test_rename_file_in_fastresume()
 	{
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
-		torrent_handle h = ses.add_torrent(t, "tmp2", resume
+		torrent_handle h = ses.add_torrent(t, test_path / "tmp2", resume
 			, storage_mode_compact);
 	
 		for (int i = 0; i < 5; ++i)
@@ -535,13 +566,18 @@ void test_rename_file_in_fastresume()
 		torrent_status stat = h.status();
 		TEST_CHECK(stat.state == torrent_status::seeding);
 	}
-	remove_all("tmp2");
+	remove_all(test_path / "tmp2");
 }
 
 int test_main()
 {
-	test_fastresume();
-	test_rename_file_in_fastresume();
+	// initialize test pieces
+	for (char* p = piece0, *end(piece0 + piece_size); p < end; ++p)
+		*p = rand();
+	for (char* p = piece1, *end(piece1 + piece_size); p < end; ++p)
+		*p = rand();
+	for (char* p = piece2, *end(piece2 + piece_size); p < end; ++p)
+		*p = rand();
 
 	std::vector<path> test_paths;
 	char* env = std::getenv("TORRENT_TEST_PATHS");
@@ -559,7 +595,10 @@ int test_main()
 		}
 	}
 
-	std::for_each(test_paths.begin(), test_paths.end(), bind(&run_test, _1));
+	std::for_each(test_paths.begin(), test_paths.end(), bind(&test_fastresume, _1));
+	std::for_each(test_paths.begin(), test_paths.end(), bind(&test_rename_file_in_fastresume, _1));
+	std::for_each(test_paths.begin(), test_paths.end(), bind(&run_test, _1, true));
+	std::for_each(test_paths.begin(), test_paths.end(), bind(&run_test, _1, false));
 
 	return 0;
 }

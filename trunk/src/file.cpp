@@ -142,22 +142,49 @@ namespace libtorrent
 		close();
 #ifdef TORRENT_WINDOWS
 
+		struct open_mode_t
+		{
+			DWORD rw_mode;
+			DWORD share_mode;
+			DWORD create_mode;
+			DWORD flags;
+		};
+
+		const static open_mode_t mode_array[] =
+		{
+			// read_only
+			{GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS},
+			// write_only
+			{GENERIC_WRITE, FILE_SHARE_READ, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS},
+			// read_write
+			{GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS},
+			// read_only no_buffer
+			{GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
+			// write_only no_buffer
+			{GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
+			// read_write no_buffer
+			{GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
+		};
+
+		const static DWORD attrib_array[] =
+		{
+			FILE_ATTRIBUTE_NORMAL, // no attrib
+			FILE_ATTRIBUTE_HIDDEN, // hidden
+			FILE_ATTRIBUTE_NORMAL, // executable
+			FILE_ATTRIBUTE_HIDDEN, // hidden + executable
+		};
+
 #ifdef TORRENT_USE_WPATH
 		m_path = safe_convert(path.external_file_string());
 #else
 		m_path = utf8_native(path.external_file_string());
 #endif
 
-		m_file_handle = CreateFile(
-			m_path.c_str()
-			, mode & rw_mask
-			, FILE_SHARE_READ | ((mode & no_buffer) ? FILE_SHARE_WRITE : 0)
-			, 0
-			, ((mode & rw_mask) == read_write || (mode & rw_mask) == write_only)?OPEN_ALWAYS:OPEN_EXISTING
-			, FILE_FLAG_RANDOM_ACCESS
-				| ((mode & no_buffer)?FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING:0)
-				| ((mode & attribute_mask)?(mode & attribute_mask):FILE_ATTRIBUTE_NORMAL)
-			, 0);
+		open_mode_t const& m = mode_array[mode & mode_mask];
+		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
+
+		m_file_handle = CreateFile(m_path.c_str(), m.rw_mode, m.share_mode, 0
+			, m.create_mode, m.flags | (a ? a : FILE_ATTRIBUTE_NORMAL), 0);
 
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
@@ -182,8 +209,14 @@ namespace libtorrent
 		if (mode & attribute_executable)
 			permissions |= S_IXGRP | S_IXOTH | S_IXUSR;
 
+		static const int mode_array[] = {O_RDONLY, O_WRONLY | O_CREAT, O_RDWR | O_CREAT};
+#ifdef O_DIRECT
+		static const int no_buffer_flag[] = {0, O_DIRECT};
+#else
+		static const int no_buffer_flag[] = {0, 0};
+#endif
  		m_fd = ::open(path.external_file_string().c_str()
- 			, mode & (rw_mask | no_buffer), permissions);
+ 			, mode_array[mode & rw_mask] | no_buffer_flag[(mode & no_buffer) >> 2], permissions);
 
 #ifdef TORRENT_LINUX
 		// workaround for linux bug
@@ -281,6 +314,16 @@ namespace libtorrent
 #endif
 	}
 
+	int file::size_alignment() const
+	{
+#if defined TORRENT_WINDOWS
+		init_file();
+		return m_page_size;
+#else
+		return pos_alignment();
+#endif
+	}
+
 	void file::close()
 	{
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
@@ -347,8 +390,8 @@ namespace libtorrent
 				TORRENT_ASSERT((int(i->iov_base) & (buf_alignment()-1)) == 0);
 				// every buffer must be a multiple of the page size
 				// except for the last one
-				TORRENT_ASSERT((i->iov_len & (pos_alignment()-1)) == 0 || i == end-1);
-				if ((i->iov_len & (pos_alignment()-1)) != 0) eof = true;
+				TORRENT_ASSERT((i->iov_len & (size_alignment()-1)) == 0 || i == end-1);
+				if ((i->iov_len & (size_alignment()-1)) != 0) eof = true;
 				size += i->iov_len;
 			}
 			error_code code;
@@ -453,7 +496,7 @@ namespace libtorrent
 		if (!aligned)
 		{
 			size = bufs_size(bufs, num_bufs);
-			if (size & (pos_alignment()-1) == 0) aligned = true;
+			if (size & (size_alignment()-1) == 0) aligned = true;
 		}
 		if (aligned)
 #endif
@@ -470,7 +513,7 @@ namespace libtorrent
 		file::iovec_t* temp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		memcpy(temp_bufs, bufs, sizeof(file::iovec_t) * num_bufs);
 		iovec_t& last = temp_bufs[num_bufs-1];
-		last.iov_len = (last.iov_len & ~(pos_alignment()-1)) + m_page_size;
+		last.iov_len = (last.iov_len & ~(size_alignment()-1)) + m_page_size;
 		ret = ::readv(m_fd, temp_bufs, num_bufs);
 		if (ret < 0)
 		{
@@ -507,8 +550,8 @@ namespace libtorrent
 				TORRENT_ASSERT((int(i->iov_base) & (buf_alignment()-1)) == 0);
 				// every buffer must be a multiple of the page size
 				// except for the last one
-				TORRENT_ASSERT((i->iov_len & (pos_alignment()-1)) == 0 || i == end-1);
-				if ((i->iov_len & (pos_alignment()-1)) != 0) eof = true;
+				TORRENT_ASSERT((i->iov_len & (size_alignment()-1)) == 0 || i == end-1);
+				if ((i->iov_len & (size_alignment()-1)) != 0) eof = true;
 				size += i->iov_len;
 			}
 			error_code code;
@@ -657,7 +700,7 @@ namespace libtorrent
 		if (!aligned)
 		{
 			size = bufs_size(bufs, num_bufs);
-			if (size & (pos_alignment()-1) == 0) aligned = true;
+			if (size & (size_alignment()-1) == 0) aligned = true;
 		}
 		if (aligned)
 #endif
@@ -674,7 +717,7 @@ namespace libtorrent
 		file::iovec_t* temp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		memcpy(temp_bufs, bufs, sizeof(file::iovec_t) * num_bufs);
 		iovec_t& last = temp_bufs[num_bufs-1];
-		last.iov_len = (last.iov_len & ~(pos_alignment()-1)) + pos_alignment();
+		last.iov_len = (last.iov_len & ~(size_alignment()-1)) + size_alignment();
 		ret = ::writev(m_fd, temp_bufs, num_bufs);
 		if (ret < 0)
 		{

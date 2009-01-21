@@ -455,6 +455,7 @@ namespace libtorrent
 			size_type (storage::*unaligned_op)(boost::shared_ptr<file> const& f
 				, size_type file_offset, file::iovec_t const* bufs, int num_bufs
 				, error_code& ec);
+			int cache_setting;
 			int mode;
 		};
 
@@ -491,13 +492,13 @@ namespace libtorrent
 		if (slot_size > 0)
 		{
 			int block_size = 16 * 1024;
-			if (io_thread()) block_size = io_thread()->block_size();
+			if (disk_pool()) block_size = disk_pool()->block_size();
 			int size = slot_size;
 			int num_blocks = (size + block_size - 1) / block_size;
 			file::iovec_t* bufs = TORRENT_ALLOCA(file::iovec_t, num_blocks);
 			for (int i = 0; i < num_blocks; ++i)
 			{
-				bufs[i].iov_base = io_thread()->allocate_buffer();
+				bufs[i].iov_base = disk_pool()->allocate_buffer();
 				bufs[i].iov_len = (std::min)(block_size, size);
 				size -= bufs[i].iov_len;
 			}
@@ -506,7 +507,7 @@ namespace libtorrent
 			for (int i = 0; i < num_blocks; ++i)
 			{
 				ph.h.update((char const*)bufs[i].iov_base, bufs[i].iov_len);
-				io_thread()->free_buffer((char*)bufs[i].iov_base);
+				disk_pool()->free_buffer((char*)bufs[i].iov_base);
 			}
 			if (error()) return sha1_hash(0);
 		}
@@ -564,9 +565,10 @@ namespace libtorrent
 			{
 				error_code ec;
 				int mode = file::read_write;
-				if (io_thread()
-					&& io_thread()->no_buffer()
-					&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)
+				if (m_settings
+					&& (settings().disk_io_read_mode == session_settings::disable_os_cache
+					|| (settings().disk_io_read_mode == session_settings::disable_os_cache_for_aligned_files
+					&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)))
 					mode |= file::no_buffer;
 				boost::shared_ptr<file> f = m_pool.open_file(this
 					, m_save_path / file_iter->path, mode, ec);
@@ -954,22 +956,22 @@ namespace libtorrent
 #endif
 
 #define TORRENT_ALLOCATE_BLOCKS(bufs, num_blocks, piece_size) \
-	int num_blocks = (piece_size + io_thread()->block_size() - 1) / io_thread()->block_size(); \
+	int num_blocks = (piece_size + disk_pool()->block_size() - 1) / disk_pool()->block_size(); \
 	file::iovec_t* bufs = TORRENT_ALLOCA(file::iovec_t, num_blocks); \
 	for (int i = 0, size = piece_size; i < num_blocks; ++i) \
 	{ \
-		bufs[i].iov_base = io_thread()->allocate_buffer(); \
-		bufs[i].iov_len = (std::min)(io_thread()->block_size(), size); \
+		bufs[i].iov_base = disk_pool()->allocate_buffer(); \
+		bufs[i].iov_len = (std::min)(disk_pool()->block_size(), size); \
 		size -= bufs[i].iov_len; \
 	}
 
 #define TORRENT_FREE_BLOCKS(bufs, num_blocks) \
 	for (int i = 0; i < num_blocks; ++i) \
-		io_thread()->free_buffer((char*)bufs[i].iov_base);
+		disk_pool()->free_buffer((char*)bufs[i].iov_base);
 
 #define TORRENT_SET_SIZE(bufs, size, num_bufs) \
-	for (num_bufs = 0; size > 0; size -= io_thread()->block_size(), ++num_bufs) \
-		bufs[num_bufs].iov_len = (std::min)(io_thread()->block_size(), size)
+	for (num_bufs = 0; size > 0; size -= disk_pool()->block_size(), ++num_bufs) \
+		bufs[num_bufs].iov_len = (std::min)(disk_pool()->block_size(), size)
 	
 
 	bool storage::move_slot(int src_slot, int dst_slot)
@@ -1044,14 +1046,16 @@ ret:
 	int storage::writev(file::iovec_t const* bufs, int slot, int offset
 		, int num_bufs)
 	{
-		fileop op = { &file::writev, &storage::write_unaligned, file::read_write };
+		fileop op = { &file::writev, &storage::write_unaligned
+			, m_settings ? settings().disk_io_write_mode : 0, file::read_write };
 		return readwritev(bufs, slot, offset, num_bufs, op);
 	}
 
 	int storage::readv(file::iovec_t const* bufs, int slot, int offset
 		, int num_bufs)
 	{
-		fileop op = { &file::readv, &storage::read_unaligned, file::read_only };
+		fileop op = { &file::readv, &storage::read_unaligned
+			, m_settings ? settings().disk_io_read_mode : 0, file::read_only };
 		return readwritev(bufs, slot, offset, num_bufs, op);
 	}
 
@@ -1156,13 +1160,18 @@ ret:
 
 			error_code ec;
 			int mode = op.mode;
-			if (io_thread()
-				&& io_thread()->no_buffer()
-				&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)
+
+			if (op.cache_setting == session_settings::disable_os_cache
+				|| (op.cache_setting == session_settings::disable_os_cache_for_aligned_files
+				&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0))
+			{
 				mode |= file::no_buffer;
+			}
+
 			file_handle = m_pool.open_file(this, path, mode, ec);
 			if (!file_handle || ec)
 			{
+				TORRENT_ASSERT(ec);
 				set_error(path, ec);
 				return -1;
 			}
@@ -1176,7 +1185,8 @@ ret:
 			// special read that reads aligned buffers and copies
 			// it into the one supplied
 			if ((file_handle->open_mode() & file::no_buffer)
-				&& ((file_iter->file_base + file_offset) & (file_handle->pos_alignment()-1)) != 0)
+				&& (((file_iter->file_base + file_offset) & (file_handle->pos_alignment()-1)) != 0
+				|| (int(tmp_bufs->iov_base) & (file_handle->buf_alignment()-1)) != 0))
 			{
 				bytes_transferred = (this->*op.unaligned_op)(file_handle, file_iter->file_base
 					+ file_offset, tmp_bufs, num_tmp_bufs, ec);
@@ -1217,11 +1227,34 @@ ret:
 	// for write cache).
 
 	// they read an unaligned buffer from a file that requires aligned access
+
 	size_type storage::read_unaligned(boost::shared_ptr<file> const& file_handle
 		, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec)
 	{
-		TORRENT_ASSERT(false); // not implemented
-		return 0;
+		const int pos_align = file_handle->pos_alignment()-1;
+		const int size_align = file_handle->size_alignment()-1;
+		const int block_size = disk_pool()->block_size();
+
+		const int size = bufs_size(bufs, num_bufs);
+		const int start_adjust = file_offset & pos_align;
+		const int aligned_start = file_offset - start_adjust;
+		const int aligned_size = ((size+start_adjust) & size_align)
+			? ((size+start_adjust) & ~size_align) + size_align + 1 : size + start_adjust;
+		const int num_blocks = (aligned_size + block_size - 1) / block_size;
+		TORRENT_ASSERT((aligned_size & size_align) == 0);
+
+		disk_buffer_holder tmp_buf(*disk_pool(), disk_pool()->allocate_buffers(num_blocks), num_blocks);
+		file::iovec_t b = {tmp_buf.get(), aligned_size};
+		size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
+		if (ret < 0) return ret;
+		char* read_buf = tmp_buf.get() + start_adjust;
+		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i != end; ++i)
+		{
+			memcpy(i->iov_base, read_buf, i->iov_len);
+			read_buf += i->iov_len;
+		}
+		if (ret < size + start_adjust) return ret - start_adjust;
+		return size;
 	}
 
 	size_type storage::write_unaligned(boost::shared_ptr<file> const& file_handle
@@ -1237,8 +1270,6 @@ ret:
 		, int offset
 		, int size)
 	{
-		// buffers must be page aligned
-		TORRENT_ASSERT((int(buf) % 4096) == 0);
 		file::iovec_t b = { (void*)buf, size };
 		return writev(&b, slot, offset, 1);
 	}
@@ -1249,8 +1280,6 @@ ret:
 		, int offset
 		, int size)
 	{
-		// buffers must be page aligned
-		TORRENT_ASSERT((int(buf) % 4096) == 0);
 		file::iovec_t b = { (void*)buf, size };
 		return readv(&b, slot, offset, 1);
 	}
@@ -1287,7 +1316,7 @@ ret:
 		, m_io_thread(io)
 		, m_torrent(torrent)
 	{
-		m_storage->m_io_thread = &m_io_thread;
+		m_storage->m_disk_pool = &m_io_thread;
 	}
 
 	piece_manager::~piece_manager()

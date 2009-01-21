@@ -38,29 +38,29 @@ namespace libtorrent
 {
 
 	disk_buffer_holder::disk_buffer_holder(aux::session_impl& ses, char* buf)
-		: m_iothread(ses.m_disk_thread), m_buf(buf), m_num_blocks(1)
+		: m_disk_pool(ses.m_disk_thread), m_buf(buf), m_num_blocks(1)
 	{
-		TORRENT_ASSERT(buf == 0 || m_iothread.is_disk_buffer(buf));
+		TORRENT_ASSERT(buf == 0 || m_disk_pool.is_disk_buffer(buf));
 	}
 
-	disk_buffer_holder::disk_buffer_holder(disk_io_thread& iothread, char* buf)
-		: m_iothread(iothread), m_buf(buf), m_num_blocks(1)
+	disk_buffer_holder::disk_buffer_holder(disk_buffer_pool& iothread, char* buf)
+		: m_disk_pool(iothread), m_buf(buf), m_num_blocks(1)
 	{
-		TORRENT_ASSERT(buf == 0 || m_iothread.is_disk_buffer(buf));
+		TORRENT_ASSERT(buf == 0 || m_disk_pool.is_disk_buffer(buf));
 	}
 
-	disk_buffer_holder::disk_buffer_holder(disk_io_thread& iothread, char* buf, int num_blocks)
-		: m_iothread(iothread), m_buf(buf), m_num_blocks(num_blocks)
+	disk_buffer_holder::disk_buffer_holder(disk_buffer_pool& iothread, char* buf, int num_blocks)
+		: m_disk_pool(iothread), m_buf(buf), m_num_blocks(num_blocks)
 	{
-		TORRENT_ASSERT(buf == 0 || m_iothread.is_disk_buffer(buf));
+		TORRENT_ASSERT(buf == 0 || m_disk_pool.is_disk_buffer(buf));
 	}
 
 	void disk_buffer_holder::reset(char* buf, int num_blocks)
 	{
 		if (m_buf)
 		{
-			if (m_num_blocks == 1) m_iothread.free_buffer(m_buf);
-			else m_iothread.free_buffers(m_buf, m_num_blocks);
+			if (m_num_blocks == 1) m_disk_pool.free_buffer(m_buf);
+			else m_disk_pool.free_buffers(m_buf, m_num_blocks);
 		}
 		m_buf = buf;
 		m_num_blocks = num_blocks;
@@ -77,8 +77,8 @@ namespace libtorrent
 	{
 		if (m_buf)
 		{
-			if (m_num_blocks == 1) m_iothread.free_buffer(m_buf);
-			else m_iothread.free_buffers(m_buf, m_num_blocks);
+			if (m_num_blocks == 1) m_disk_pool.free_buffer(m_buf);
+			else m_disk_pool.free_buffers(m_buf, m_num_blocks);
 		}
 	}
 }
