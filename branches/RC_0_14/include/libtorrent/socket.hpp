@@ -213,6 +213,22 @@ namespace libtorrent
 		int m_value;
 	};
 	
+#ifdef TORRENT_WINDOWS
+	struct v6_protection_level
+	{
+		v6_protection_level(int level): m_value(level) {}
+		template<class Protocol>
+		int level(Protocol const&) const { return IPPROTO_IPV6; }
+		template<class Protocol>
+		int name(Protocol const&) const { return IPV6_PROTECTION_LEVEL; }
+		template<class Protocol>
+		int const* data(Protocol const&) const { return &m_value; }
+		template<class Protocol>
+		size_t size(Protocol const&) const { return sizeof(m_value); }
+		int m_value;
+	};
+#endif
+
 	struct type_of_service
 	{
 		type_of_service(char val): m_value(val) {}
