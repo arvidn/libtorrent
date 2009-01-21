@@ -45,6 +45,8 @@ release 0.14.2
 	* fixed disk cache expiry settings bug (if changed, it would be set
 	  to the cache size)
 	* fixed bug in http_connection when binding to a particular IP
+	* fixed typo in python binding (torrent_handle::piece_prioritize should
+	  be torrent_handle::piece_priorities)
 
 release 0.14.1
 
