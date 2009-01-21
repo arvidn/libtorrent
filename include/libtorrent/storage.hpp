@@ -72,6 +72,7 @@ namespace libtorrent
 	class session;
 	struct file_pool;
 	struct disk_io_job;
+	struct disk_buffer_pool;
 
 	enum storage_mode_t
 	{
@@ -116,7 +117,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT storage_interface
 	{
-		storage_interface(): m_io_thread(0) {}
+		storage_interface(): m_disk_pool(0), m_settings(0) {}
 		// create directories and set file sizes
 		// if allocate_files is true. 
 		// allocate_files is true if allocation mode
@@ -168,7 +169,8 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual bool delete_files() = 0;
 
-		disk_io_thread* io_thread() { return m_io_thread; }
+		disk_buffer_pool* disk_pool() { return m_disk_pool; }
+		session_settings const& settings() const { return *m_settings; }
 
 		void set_error(boost::filesystem::path const& file, error_code const& ec) const
 		{
@@ -185,7 +187,8 @@ namespace libtorrent
 
 		virtual ~storage_interface() {}
 
-		disk_io_thread* m_io_thread;
+		disk_buffer_pool* m_disk_pool;
+		session_settings* m_settings;
 	};
 
 	typedef storage_interface* (&storage_constructor_type)(

@@ -86,28 +86,18 @@ namespace libtorrent
 		{
 			// when a file is opened with no_buffer
 			// file offsets have to be aligned to
-			// pages and buffer addresses and sizes
-			// have to be page aligned too
-#ifdef TORRENT_WINDOWS
-			read_only = GENERIC_READ,
-			write_only = GENERIC_WRITE,
-			read_write = GENERIC_READ | GENERIC_WRITE,
-			no_buffer = 1,
-			attribute_hidden = FILE_ATTRIBUTE_HIDDEN,
-			attribute_executable = 0,
-#else
-			read_only = O_RDONLY,
-			write_only = O_WRONLY | O_CREAT,
-			read_write = O_RDWR | O_CREAT,
-#if defined O_DIRECT
-			no_buffer = O_DIRECT,
-#else
-			no_buffer = O_SYNC,
-#endif
-			attribute_hidden = 0,
-			attribute_executable = 0x100000,
-#endif
+			// pos_alignment() and buffer addresses
+			// to buf_alignment() and read/write sizes
+			// to size_alignment()
+			read_only = 0,
+			write_only = 1,
+			read_write = 2,
 			rw_mask = read_only | write_only | read_write,
+			no_buffer = 4,
+			mode_mask = rw_mask | no_buffer,
+
+			attribute_hidden = 0x1000,
+			attribute_executable = 0x2000,
 			attribute_mask = attribute_hidden | attribute_executable
 		};
 
@@ -141,6 +131,10 @@ namespace libtorrent
 		// when opened in unbuffered mode, this is the
 		// required alignment of buffer addresses
 		int buf_alignment() const;
+
+		// read/write buffer sizes needs to be aligned to
+		// this when in unbuffered mode
+		int size_alignment() const;
 
 		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);

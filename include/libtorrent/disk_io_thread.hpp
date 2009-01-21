@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
 #endif
+#include "libtorrent/session_settings.hpp"
 
 namespace libtorrent
 {
@@ -156,17 +157,55 @@ namespace libtorrent
 		int read_cache_size;
 	};
 	
-	// this is a singleton consisting of the thread and a queue
-	// of disk io jobs
-	struct disk_io_thread : boost::noncopyable
+	struct disk_buffer_pool : boost::noncopyable
 	{
-		disk_io_thread(io_service& ios, int block_size = 16 * 1024);
-		~disk_io_thread();
+		disk_buffer_pool(int block_size);
+
+#ifdef TORRENT_DEBUG
+		bool is_disk_buffer(char* buffer) const;
+#endif
+
+		char* allocate_buffer();
+		void free_buffer(char* buf);
+
+		char* allocate_buffers(int blocks);
+		void free_buffers(char* buf, int blocks);
+
+		int block_size() const { return m_block_size; }
 
 #ifdef TORRENT_STATS
 		int disk_allocations() const
 		{ return m_allocations; }
 #endif
+
+		void release_memory();
+
+		// number of bytes per block. The BitTorrent
+		// protocol defines the block size to 16 KiB.
+		const int m_block_size;
+
+	private:
+
+		// this only protects the pool allocator
+		typedef boost::mutex mutex_t;
+		mutable mutex_t m_pool_mutex;
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+		// memory pool for read and write operations
+		// and disk cache
+		boost::pool<page_aligned_allocator> m_pool;
+#endif
+
+#ifdef TORRENT_STATS
+		int m_allocations;
+#endif
+	};
+
+	// this is a singleton consisting of the thread and a queue
+	// of disk io jobs
+	struct disk_io_thread : disk_buffer_pool
+	{
+		disk_io_thread(io_service& ios, int block_size = 16 * 1024);
+		~disk_io_thread();
 
 		void join();
 
@@ -191,22 +230,9 @@ namespace libtorrent
 		void operator()();
 
 #ifdef TORRENT_DEBUG
-		bool is_disk_buffer(char* buffer) const;
-#endif
-
-		char* allocate_buffer();
-		void free_buffer(char* buf);
-
-		char* allocate_buffers(int blocks);
-		void free_buffers(char* buf, int blocks);
-
-#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 		
-		int block_size() const { return m_block_size; }
-		bool no_buffer() const { return m_disk_io_no_buffer; }
-
 	private:
 
 		struct cached_piece_entry
@@ -272,45 +298,11 @@ namespace libtorrent
 		cache_status m_cache_stats;
 		int m_num_cached_blocks;
 
-		// in (16kB) blocks
-		int m_cache_size;
-
-		// expiration time of cache entries in seconds
-		int m_cache_expiry;
-
-		// if set to true, each piece flush will allocate
-		// one piece worth of temporary memory on the heap
-		// and copy the block data into it, and then perform
-		// a single write operation from that buffer.
-		// if memory is constrained, that temporary buffer
-		// might is avoided by setting this to false.
-		// in case the allocation fails, the piece flush
-		// falls back to writing each block separately.
-		bool m_coalesce_writes;
-		bool m_coalesce_reads;
-
-		bool m_use_read_cache;
-		bool m_disk_io_no_buffer;
-
-		// this only protects the pool allocator
-		mutable mutex_t m_pool_mutex;
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		// memory pool for read and write operations
-		// and disk cache
-		boost::pool<page_aligned_allocator> m_pool;
-#endif
-
-		// number of bytes per block. The BitTorrent
-		// protocol defines the block size to 16 KiB.
-		int m_block_size;
+		session_settings m_settings;
 
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
 #endif
-#ifdef TORRENT_STATS
-		int m_allocations;
-#endif
-
 		size_type m_writes;
 		size_type m_blocks_written;
 

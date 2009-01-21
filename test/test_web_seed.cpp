@@ -158,7 +158,7 @@ int test_main()
 
 	// calculate the hash for all pieces
 	int num = t.num_pieces();
-	std::vector<char> buf(t.piece_length());
+	char* buf = page_aligned_allocator::malloc(t.piece_length());
 
 	file_pool fp;
 	boost::scoped_ptr<storage_interface> s(default_storage_constructor(
@@ -166,8 +166,8 @@ int test_main()
 
 	for (int i = 0; i < num; ++i)
 	{
-		s->read(&buf[0], i, 0, fs.piece_size(i));
-		hasher h(&buf[0], fs.piece_size(i));
+		s->read(buf, i, 0, fs.piece_size(i));
+		hasher h(buf, fs.piece_size(i));
 		t.set_hash(i, h.final());
 	}
 	
@@ -181,6 +181,7 @@ int test_main()
 
 	stop_web_server(8000);
 	remove_all("./test_torrent_dir");
+	page_aligned_allocator::free(buf);
 	return 0;
 }
 
