@@ -233,10 +233,11 @@ pause() resume() is_paused()
 		void resume();
 		bool is_paused() const;
 
-Pausing the session has the same effect as pausing every torrent in it. Resuming
-will restore the torrents to their previous paused state. i.e. the session pause
-state is separate from the torrent pause state. A torrent is inactive if it is
-paused or if the session is paused.
+Pausing the session has the same effect as pausing every torrent in it, except that
+torrents will not be resumed by the auto-manage mechanism. Resuming will restore the
+torrents to their previous paused state. i.e. the session pause state is separate from
+the torrent pause state. A torrent is inactive if it is paused or if the session is
+paused.
 
 abort()
 -------
@@ -2096,6 +2097,10 @@ When a torrent is paused, it will however remember all share ratios to all peers
 all potential (not connected) peers. You can use ``is_paused()`` to determine if a torrent
 is currently paused. Torrents may be paused automatically if there is a file error (e.g. disk full)
 or something similar. See file_error_alert_.
+
+torrents that are auto-managed may be automatically resumed again. It does not make sense to
+pause an auto-managed torrent without making it not automanaged first. Torrents are auto-managed
+by default when added to the session. For more information, see queuing_.
 
 ``is_paused()`` only returns true if the torrent itself is paused. If the torrent
 is not running because the session is paused, this still returns false. To know if a
