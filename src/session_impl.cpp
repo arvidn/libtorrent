@@ -2331,11 +2331,11 @@ namespace aux {
 			m_dht_settings.service_port = m_listen_interface.port();
 	}
 
-	void session_impl::dht_state_callback(boost::condition_variable_any& c
+	void session_impl::dht_state_callback(boost::condition& c
 		, entry& e, bool& done) const
 	{
-		if (m_dht) e = m_dht->state();
 		mutex_t::scoped_lock l(m_mutex);
+		if (m_dht) e = m_dht->state();
 		done = true;
 		l.unlock();
 		c.notify_all();
@@ -2343,7 +2343,7 @@ namespace aux {
 
 	entry session_impl::dht_state() const
 	{
-		boost::condition_variable_any cond;
+		boost::condition cond;
 		mutex_t::scoped_lock l(m_mutex);
 		if (!m_dht) return entry();
 		entry e;
