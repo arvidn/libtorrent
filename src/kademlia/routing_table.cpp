@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 
 #include "libtorrent/kademlia/routing_table.hpp"
+#include "libtorrent/session_status.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/session_settings.hpp"
 
@@ -62,10 +63,16 @@ routing_table::routing_table(node_id const& id, int bucket_size
 	, m_lowest_active_bucket(160)
 {
 	// distribute the refresh times for the buckets in an
-	// attempt do even out the network load
+	// attempt to even out the network load
 	for (int i = 0; i < 160; ++i)
 		m_bucket_activity[i] = time_now() - milliseconds(i*5625);
 	m_bucket_activity[0] = time_now() - minutes(15);
+}
+
+void routing_table::status(session_status& s) const
+{
+	boost::tie(s.dht_nodes, s.dht_node_cache) = size();
+	s.dht_global_nodes = num_global_nodes();
 }
 
 boost::tuple<int, int> routing_table::size() const
