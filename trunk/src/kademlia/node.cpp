@@ -419,6 +419,9 @@ namespace
 void node_impl::status(session_status& s)
 {
 	mutex_t::scoped_lock l(m_mutex);
+
+	m_table.status(s);
+	s.dht_torrents = int(m_map.size());
 	s.active_requests.clear();
 	for (std::set<traversal_algorithm*>::iterator i = m_running_requests.begin()
 		, end(m_running_requests.end()); i != end; ++i)

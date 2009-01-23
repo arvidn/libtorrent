@@ -52,6 +52,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/size_type.hpp>
 #include <libtorrent/assert.hpp>
 
+namespace libtorrent
+{
+	struct session_status;
+}
+
 namespace libtorrent { namespace dht
 {
 
@@ -159,6 +164,8 @@ public:
 
 	routing_table(node_id const& id, int bucket_size
 		, dht_settings const& settings);
+
+	void status(session_status& s) const;
 
 	void node_failed(node_id const& id);
 	

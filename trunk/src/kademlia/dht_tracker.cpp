@@ -272,9 +272,6 @@ namespace libtorrent { namespace dht
 	void dht_tracker::dht_status(session_status& s)
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		boost::tie(s.dht_nodes, s.dht_node_cache) = m_dht.size();
-		s.dht_torrents = m_dht.data_size();
-		s.dht_global_nodes = m_dht.num_global_nodes();
 		m_dht.status(s);
 	}
 
