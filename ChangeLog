@@ -47,6 +47,7 @@ release 0.14.2
 	* fixed bug in http_connection when binding to a particular IP
 	* fixed typo in python binding (torrent_handle::piece_prioritize should
 	  be torrent_handle::piece_priorities)
+	* fixed race condition when saving DHT state
 
 release 0.14.1
 

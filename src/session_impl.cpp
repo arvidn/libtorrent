@@ -2331,11 +2331,27 @@ namespace aux {
 			m_dht_settings.service_port = m_listen_interface.port();
 	}
 
+	void session_impl::dht_state_callback(boost::condition_variable_any& c
+		, entry& e, bool& done) const
+	{
+		if (m_dht) e = m_dht->state();
+		mutex_t::scoped_lock l(m_mutex);
+		done = true;
+		l.unlock();
+		c.notify_all();
+	}
+
 	entry session_impl::dht_state() const
 	{
+		boost::condition_variable_any cond;
 		mutex_t::scoped_lock l(m_mutex);
 		if (!m_dht) return entry();
-		return m_dht->state();
+		entry e;
+		bool done = false;
+		m_io_service.post(boost::bind(&session_impl::dht_state_callback
+			, this, boost::ref(cond), boost::ref(e), boost::ref(done)));
+		while (!done) cond.wait(l);
+		return e;
 	}
 
 	void session_impl::add_dht_node(std::pair<std::string, int> const& node)
