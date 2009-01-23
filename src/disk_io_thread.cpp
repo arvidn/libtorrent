@@ -53,6 +53,9 @@ namespace libtorrent
 #ifdef TORRENT_STATS
 		m_allocations = 0;
 #endif
+#ifdef TORRENT_DISK_STATS
+		m_log.open("disk_buffers.log", std::ios::trunc);
+#endif
 	}
 
 #ifdef TORRENT_DEBUG
@@ -67,17 +70,21 @@ namespace libtorrent
 	}
 #endif
 
-	char* disk_buffer_pool::allocate_buffer()
+	char* disk_buffer_pool::allocate_buffer(char const* category)
 	{
 		mutex_t::scoped_lock l(m_pool_mutex);
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+		char* ret = page_aligned_allocator::malloc(m_block_size);
+#else
+		char* ret = (char*)m_pool.ordered_malloc();
+#endif
 #ifdef TORRENT_STATS
 		++m_allocations;
+		++m_categories[category];
+		m_buf_to_category[ret] = category;
+		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
 #endif
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		return page_aligned_allocator::malloc(m_block_size);
-#else
-		return (char*)m_pool.ordered_malloc();
-#endif
+		return ret;
 	}
 
 	void disk_buffer_pool::free_buffer(char* buf)
@@ -86,6 +93,12 @@ namespace libtorrent
 		mutex_t::scoped_lock l(m_pool_mutex);
 #ifdef TORRENT_STATS
 		--m_allocations;
+		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
+			!= m_categories.end());
+		std::string const& category = m_buf_to_category[buf];
+		--m_categories[category];
+		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
+		m_buf_to_category.erase(buf);
 #endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		page_aligned_allocator::free(buf);
@@ -94,17 +107,21 @@ namespace libtorrent
 #endif
 	}
 
-	char* disk_buffer_pool::allocate_buffers(int num_blocks)
+	char* disk_buffer_pool::allocate_buffers(int num_blocks, char const* category)
 	{
 		mutex_t::scoped_lock l(m_pool_mutex);
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+		char* ret = page_aligned_allocator::malloc(m_block_size * num_blocks);
+#else
+		char* ret = (char*)m_pool.ordered_malloc(num_blocks);
+#endif
 #ifdef TORRENT_STATS
 		m_allocations += num_blocks;
+		m_categories[category] += num_blocks;
+		m_buf_to_category[ret] = category;
+		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
 #endif
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		return page_aligned_allocator::malloc(m_block_size * num_blocks);
-#else
-		return (char*)m_pool.ordered_malloc(num_blocks);
-#endif
+		return ret;
 	}
 
 	void disk_buffer_pool::free_buffers(char* buf, int num_blocks)
@@ -114,6 +131,12 @@ namespace libtorrent
 		mutex_t::scoped_lock l(m_pool_mutex);
 #ifdef TORRENT_STATS
 		m_allocations -= num_blocks;
+		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
+			!= m_categories.end());
+		std::string const& category = m_buf_to_category[buf];
+		m_categories[category] -= num_blocks;
+		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
+		m_buf_to_category.erase(buf);
 #endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		page_aligned_allocator::free(buf);
@@ -499,7 +522,7 @@ namespace libtorrent
 			// stop allocating and don't read more than
 			// what we've allocated now
 			if (p.blocks[i]) break;
-			p.blocks[i] = allocate_buffer();
+			p.blocks[i] = allocate_buffer("read cache");
 
 			// the allocation failed, break
 			if (p.blocks[i] == 0) break;
@@ -961,7 +984,7 @@ namespace libtorrent
 #endif
 					INVARIANT_CHECK;
 					TORRENT_ASSERT(j.buffer == 0);
-					j.buffer = allocate_buffer();
+					j.buffer = allocate_buffer("send buffer");
 					TORRENT_ASSERT(j.buffer_size <= m_block_size);
 					if (j.buffer == 0)
 					{

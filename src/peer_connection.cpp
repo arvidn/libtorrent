@@ -1666,7 +1666,7 @@ namespace libtorrent
 
 	void peer_connection::incoming_piece(peer_request const& p, char const* data)
 	{
-		char* buffer = m_ses.allocate_disk_buffer();
+		char* buffer = m_ses.allocate_disk_buffer("receive buffer");
 		if (buffer == 0)
 		{
 			disconnect("out of memory");
@@ -2801,7 +2801,7 @@ namespace libtorrent
 			return false;
 		}
 
-		m_disk_recv_buffer.reset(m_ses.allocate_disk_buffer());
+		m_disk_recv_buffer.reset(m_ses.allocate_disk_buffer("receive buffer"));
 		if (!m_disk_recv_buffer)
 		{
 			disconnect("out of memory");

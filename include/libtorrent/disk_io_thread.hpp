@@ -165,10 +165,10 @@ namespace libtorrent
 		bool is_disk_buffer(char* buffer) const;
 #endif
 
-		char* allocate_buffer();
+		char* allocate_buffer(char const* category);
 		void free_buffer(char* buf);
 
-		char* allocate_buffers(int blocks);
+		char* allocate_buffers(int blocks, char const* category);
 		void free_buffers(char* buf, int blocks);
 
 		int block_size() const { return m_block_size; }
@@ -197,6 +197,9 @@ namespace libtorrent
 
 #ifdef TORRENT_STATS
 		int m_allocations;
+		std::map<std::string, int> m_categories;
+		std::map<char*, std::string> m_buf_to_category;
+		std::ofstream m_log;
 #endif
 	};
 
