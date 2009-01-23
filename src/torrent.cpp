@@ -729,6 +729,7 @@ namespace libtorrent
 	void torrent::on_piece_checked(int ret, disk_io_job const& j)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		INVARIANT_CHECK;
 
 		if (ret == piece_manager::disk_check_aborted)
 		{
