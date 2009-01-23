@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/recursive_mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -175,6 +176,7 @@ namespace libtorrent
 			dht_settings const& get_dht_settings() const { return m_dht_settings; }
 			void start_dht(entry const& startup_state);
 			void stop_dht();
+
 			entry dht_state() const;
 #endif
 
@@ -346,6 +348,8 @@ namespace libtorrent
 
 //		private:
 
+			void session_impl::dht_state_callback(boost::condition_variable_any& c
+				, entry& e, bool& done) const;
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
@@ -366,7 +370,7 @@ namespace libtorrent
 			// this is where all active sockets are stored.
 			// the selector can sleep while there's no activity on
 			// them
-			io_service m_io_service;
+			mutable io_service m_io_service;
 
 			// handles disk io requests asynchronously
 			// peers have pointers into the disk buffer
