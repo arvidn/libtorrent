@@ -319,7 +319,7 @@ namespace libtorrent
 			std::pair<char*, int> allocate_buffer(int size);
 			void free_buffer(char* buf, int size);
 
-			char* allocate_disk_buffer();
+			char* allocate_disk_buffer(char const* category);
 			void free_disk_buffer(char* buf);
 
 			void set_external_address(address const& ip);

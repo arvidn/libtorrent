@@ -498,7 +498,7 @@ namespace libtorrent
 			file::iovec_t* bufs = TORRENT_ALLOCA(file::iovec_t, num_blocks);
 			for (int i = 0; i < num_blocks; ++i)
 			{
-				bufs[i].iov_base = disk_pool()->allocate_buffer();
+				bufs[i].iov_base = disk_pool()->allocate_buffer("hash temp");
 				bufs[i].iov_len = (std::min)(block_size, size);
 				size -= bufs[i].iov_len;
 			}
@@ -960,7 +960,7 @@ namespace libtorrent
 	file::iovec_t* bufs = TORRENT_ALLOCA(file::iovec_t, num_blocks); \
 	for (int i = 0, size = piece_size; i < num_blocks; ++i) \
 	{ \
-		bufs[i].iov_base = disk_pool()->allocate_buffer(); \
+		bufs[i].iov_base = disk_pool()->allocate_buffer("move temp"); \
 		bufs[i].iov_len = (std::min)(disk_pool()->block_size(), size); \
 		size -= bufs[i].iov_len; \
 	}
@@ -1243,7 +1243,7 @@ ret:
 		const int num_blocks = (aligned_size + block_size - 1) / block_size;
 		TORRENT_ASSERT((aligned_size & size_align) == 0);
 
-		disk_buffer_holder tmp_buf(*disk_pool(), disk_pool()->allocate_buffers(num_blocks), num_blocks);
+		disk_buffer_holder tmp_buf(*disk_pool(), disk_pool()->allocate_buffers(num_blocks, "read scratch"), num_blocks);
 		file::iovec_t b = {tmp_buf.get(), aligned_size};
 		size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
 		if (ret < 0) return ret;
@@ -2105,7 +2105,7 @@ ret:
 						int blocks_per_piece = (std::max)(m_files.piece_length()
 							/ m_io_thread.block_size(), 1);
 						m_scratch_buffer2.reset(m_io_thread.allocate_buffers(
-							blocks_per_piece), blocks_per_piece);
+							blocks_per_piece, "check scratch"), blocks_per_piece);
 					}
 
 					int piece_size = m_files.piece_size(other_piece);
@@ -2165,7 +2165,7 @@ ret:
 				{
 					int blocks_per_piece = (std::max)(m_files.piece_length() / m_io_thread.block_size(), 1);
 					m_scratch_buffer.reset(m_io_thread.allocate_buffers(
-						blocks_per_piece), blocks_per_piece);
+						blocks_per_piece, "check scratch"), blocks_per_piece);
 				}
 			
 				int piece_size = m_files.piece_size(other_piece);
@@ -2303,7 +2303,8 @@ ret:
 		if (!m_piece_data)
 		{
 			int blocks_per_piece = (std::max)(m_files.piece_length() / m_io_thread.block_size(), 1);
-			m_piece_data.reset(m_io_thread.allocate_buffers(blocks_per_piece), blocks_per_piece);
+			m_piece_data.reset(m_io_thread.allocate_buffers(blocks_per_piece, "check piece")
+				, blocks_per_piece);
 		}
 
 		int piece_size = m_files.piece_size(m_current_slot);

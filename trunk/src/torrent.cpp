@@ -461,7 +461,7 @@ namespace libtorrent
 				continue;
 
 			p.length = (std::min)(piece_size - p.start, m_block_size);
-			char* buffer = m_ses.allocate_disk_buffer();
+			char* buffer = m_ses.allocate_disk_buffer("add piece");
 			// out of memory
 			if (buffer == 0)
 			{
