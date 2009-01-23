@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/condition_variable.hpp>
+#include <boost/thread/condition.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -329,7 +329,7 @@ namespace libtorrent
 
 //		private:
 
-			void session_impl::dht_state_callback(boost::condition_variable_any& c
+			void dht_state_callback(boost::condition& c
 				, entry& e, bool& done) const;
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 
