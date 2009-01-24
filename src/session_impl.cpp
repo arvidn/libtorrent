@@ -2163,7 +2163,6 @@ namespace aux {
 		mutex_t::scoped_lock l(m_mutex);
 		if (m_dht) e = m_dht->state();
 		done = true;
-		l.unlock();
 		c.notify_all();
 	}
 
