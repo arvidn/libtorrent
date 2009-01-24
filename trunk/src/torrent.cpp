@@ -1365,11 +1365,12 @@ namespace libtorrent
 
 		TORRENT_ASSERT(st.total_wanted >= m_padding);
 		TORRENT_ASSERT(st.total_wanted >= 0);
-		TORRENT_ASSERT(st.total_wanted >= m_torrent_file->piece_length()
-			* (m_torrent_file->num_pieces() - 1));
 
 		if (!valid_metadata() || m_torrent_file->num_pieces() == 0)
 			return;
+
+		TORRENT_ASSERT(st.total_wanted >= m_torrent_file->piece_length()
+			* (m_torrent_file->num_pieces() - 1));
 
 		const int last_piece = m_torrent_file->num_pieces() - 1;
 		const int piece_size = m_torrent_file->piece_length();
