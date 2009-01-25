@@ -57,8 +57,8 @@ namespace libtorrent
 			lru_file_entry e = *i;
 			e.last_use = time_now();
 
-			if (e.key != st && ((e.mode & file::rw_mask) != file::read_only
-				|| (m & file::rw_mask) != file::read_only))
+			if (e.key != st && (e.mode != file::in
+				|| m != file::in))
 			{
 				// this means that another instance of the storage
 				// is using the exact same file.
