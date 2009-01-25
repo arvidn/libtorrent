@@ -2618,6 +2618,10 @@ namespace libtorrent
 		error_code ec;
 		m_socket->close(ec);
 		m_ses.close_connection(this, message);
+
+		// we should only disconnect while we still have
+		// at least one reference left to the connection
+		TORRENT_ASSERT(refcount() > 0);
 	}
 
 	void peer_connection::set_upload_limit(int limit)
@@ -3620,6 +3624,10 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+		// keep ourselves alive in until this function exits in
+		// case we disconnect
+		boost::intrusive_ptr<peer_connection> me(self());
+
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_network);
 		m_channel_state[download_channel] = peer_info::bw_idle;
 
@@ -3910,6 +3918,10 @@ namespace libtorrent
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
+
+		// keep ourselves alive in until this function exits in
+		// case we disconnect
+		boost::intrusive_ptr<peer_connection> me(self());
 
 		TORRENT_ASSERT(m_channel_state[upload_channel] == peer_info::bw_network);
 
