@@ -76,6 +76,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/upnp.hpp"
+#include "libtorrent/natpmp.hpp"
+#include "libtorrent/lsd.hpp"
 
 #ifndef TORRENT_WINDOWS
 #include <sys/resource.h>
@@ -964,6 +967,14 @@ namespace aux {
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		m_key = key;
+	}
+
+	void session_impl::unchoke_peer(peer_connection& c)
+	{
+		torrent* t = c.associated_torrent().lock().get();
+		TORRENT_ASSERT(t);
+		if (t->unchoke_peer(c))
+			++m_num_unchoked;
 	}
 
 	int session_impl::next_port()
@@ -2499,6 +2510,25 @@ namespace aux {
 			, num_buffers * send_buffer_size);
 #endif
 	}
+
+#ifdef TORRENT_STATS
+	void session_impl::log_buffer_usage()
+	{
+		int send_buffer_capacity = 0;
+		int used_send_buffer = 0;
+		for (connection_map::const_iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			send_buffer_capacity += (*i)->send_buffer_capacity();
+			used_send_buffer += (*i)->send_buffer_size();
+		}
+		TORRENT_ASSERT(send_buffer_capacity >= used_send_buffer);
+		m_buffer_usage_logger << log_time() << " send_buffer_size: " << send_buffer_capacity << std::endl;
+		m_buffer_usage_logger << log_time() << " used_send_buffer: " << used_send_buffer << std::endl;
+		m_buffer_usage_logger << log_time() << " send_buffer_utilization: "
+			<< (used_send_buffer * 100.f / send_buffer_capacity) << std::endl;
+	}
+#endif
 
 	void session_impl::free_buffer(char* buf, int size)
 	{
