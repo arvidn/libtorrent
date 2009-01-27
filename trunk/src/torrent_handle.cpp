@@ -75,7 +75,6 @@ namespace std
 #endif
 
 using boost::bind;
-using boost::mutex;
 using libtorrent::aux::session_impl;
 
 #ifdef BOOST_NO_EXCEPTIONS

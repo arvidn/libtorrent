@@ -60,7 +60,7 @@ namespace libtorrent
 		~bitfield() { dealloc(); }
 
 		void assign(char const* bytes, int bits)
-		{ resize(bits); memcpy(m_bytes, bytes, (bits + 7) / 8); }
+		{ resize(bits); std::memcpy(m_bytes, bytes, (bits + 7) / 8); }
 
 		bool operator[](int index) const
 		{ return get_bit(index); }
@@ -197,23 +197,23 @@ namespace libtorrent
 			{
 				if (old_size_bytes && b) m_bytes[old_size_bytes - 1] |= (0xff >> b);
 				if (old_size_bytes < new_size_bytes)
-					memset(m_bytes + old_size_bytes, 0xff, new_size_bytes - old_size_bytes);
+					std::memset(m_bytes + old_size_bytes, 0xff, new_size_bytes - old_size_bytes);
 			}
 			else
 			{
 				if (old_size_bytes < new_size_bytes)
-					memset(m_bytes + old_size_bytes, 0x00, new_size_bytes - old_size_bytes);
+					std::memset(m_bytes + old_size_bytes, 0x00, new_size_bytes - old_size_bytes);
 			}
 		}
 
 		void set_all()
 		{
-			memset(m_bytes, 0xff, (m_size + 7) / 8);
+			std::memset(m_bytes, 0xff, (m_size + 7) / 8);
 		}
 
 		void clear_all()
 		{
-			memset(m_bytes, 0x00, (m_size + 7) / 8);
+			std::memset(m_bytes, 0x00, (m_size + 7) / 8);
 		}
 	
 		void resize(int bits)
@@ -223,20 +223,20 @@ namespace libtorrent
 			{
 				if (m_own)
 				{
-					m_bytes = (unsigned char*)realloc(m_bytes, bytes);
+					m_bytes = (unsigned char*)std::realloc(m_bytes, bytes);
 					m_own = true;
 				}
 				else if (bits > m_size)
 				{
-					unsigned char* tmp = (unsigned char*)malloc(bytes);
-					memcpy(tmp, m_bytes, (std::min)((m_size + 7)/ 8, bytes));
+					unsigned char* tmp = (unsigned char*)std::malloc(bytes);
+					std::memcpy(tmp, m_bytes, (std::min)((m_size + 7)/ 8, bytes));
 					m_bytes = tmp;
 					m_own = true;
 				}
 			}
 			else
 			{
-				m_bytes = (unsigned char*)malloc(bytes);
+				m_bytes = (unsigned char*)std::malloc(bytes);
 				m_own = true;
 			}
 			m_size = bits;
@@ -246,7 +246,7 @@ namespace libtorrent
 
 	private:
 
-		void dealloc() { if (m_own) free(m_bytes); m_bytes = 0; }
+		void dealloc() { if (m_own) std::free(m_bytes); m_bytes = 0; }
 		unsigned char* m_bytes;
 		int m_size; // in bits
 		bool m_own;

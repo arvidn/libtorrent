@@ -274,7 +274,7 @@ void routing_table::node_failed(node_id const& id)
 
 	b.erase(i);
 
-	i = find_if(rb.begin(), rb.end(), bind(&node_entry::pinged, _1) == true);
+	i = std::find_if(rb.begin(), rb.end(), bind(&node_entry::pinged, _1) == true);
 	if (i == rb.end()) i = rb.begin();
 	b.push_back(*i);
 	rb.erase(i);

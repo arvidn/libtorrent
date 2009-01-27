@@ -84,7 +84,6 @@ using boost::tuples::tuple;
 using boost::tuples::get;
 using boost::tuples::make_tuple;
 using boost::bind;
-using boost::mutex;
 using libtorrent::aux::session_impl;
 
 namespace

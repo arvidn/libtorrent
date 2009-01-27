@@ -175,7 +175,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	sha1_hash ih(0);
 	std::istringstream ih_sstr(ih_str);
 	ih_sstr >> ih;
-	int port = atoi(port_str.c_str());
+	int port = std::atoi(port_str.c_str());
 
 	if (!ih.is_all_zeros() && port != 0)
 	{

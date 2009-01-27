@@ -1487,7 +1487,7 @@ namespace libtorrent
 			// we're not using rarest first (only for the first
 			// bucket, since that's where the currently downloading
 			// pieces are)
-			int start_piece = rand() % m_piece_map.size();
+			int start_piece = std::rand() % m_piece_map.size();
 
 			int piece = start_piece;
 			while (num_blocks > 0)

@@ -164,20 +164,25 @@ namespace
 
 	void trim_path_element(std::string& path_element)
 	{
+#ifdef FILENAME_MAX
+		const int max_path_len = FILENAME_MAX;
+#else
 		// on windows, NAME_MAX refers to Unicode characters
 		// on linux it refers to bytes (utf-8 encoded)
 		// TODO: Make this count Unicode characters instead of bytes on windows
-		if (path_element.size() > NAME_MAX)
+		const int max_path_len = NAME_MAX;
+#endif
+		if (path_element.size() > max_path_len)
 		{
 			// truncate filenames that are too long. But keep extensions!
 			std::string ext = fs::extension(path_element);
 			if (ext.size() > 15)
 			{
-				path_element.resize(NAME_MAX);
+				path_element.resize(max_path_len);
 			}
 			else
 			{
-				path_element.resize(NAME_MAX - ext.size());
+				path_element.resize(max_path_len - ext.size());
 				path_element += ext;
 			}
 		}
@@ -446,7 +451,7 @@ namespace libtorrent
 		// copy the info section
 		m_info_section_size = section.second;
 		m_info_section.reset(new char[m_info_section_size]);
-		memcpy(m_info_section.get(), section.first, m_info_section_size);
+		std::memcpy(m_info_section.get(), section.first, m_info_section_size);
 		TORRENT_ASSERT(section.first[0] == 'd');
 		TORRENT_ASSERT(section.first[m_info_section_size-1] == 'e');
 
