@@ -218,8 +218,6 @@ namespace libtorrent
 		torrent_status::state_t state() const { return m_state; }
 		void set_state(torrent_status::state_t s);
 
-		void clear_error();
-
 		session_settings const& settings() const;
 		
 		aux::session_impl& session() { return m_ses; }
@@ -247,7 +245,8 @@ namespace libtorrent
 
 		void ip_filter_updated() { m_policy.ip_filter_updated(); }
 
-		void set_error(std::string const& msg) { m_error = msg; }
+		void clear_error();
+		void set_error(std::string const& msg);
 		bool has_error() const { return !m_error.empty(); }
 		void pause();
 		void resume();

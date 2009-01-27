@@ -580,7 +580,7 @@ namespace libtorrent
 		if (m_torrent_file->num_pieces()
 			> piece_picker::max_pieces)
 		{
-			m_error = "too many pieces in torrent";
+			set_error("too many pieces in torrent");
 			pause();
 		}
 
@@ -682,7 +682,7 @@ namespace libtorrent
 					" ]\n";
 #endif
 			}
-			m_error = j.str;
+			set_error(j.str);
 			pause();
 			set_state(torrent_status::queued_for_checking);
 
@@ -879,7 +879,7 @@ namespace libtorrent
 					" ]\n";
 #endif
 			}
-			m_error = j.str;
+			set_error(j.str);
 			pause();
 			return;
 		}
@@ -923,7 +923,7 @@ namespace libtorrent
 #endif
 			}
 			pause();
-			m_error = j.str;
+			set_error(j.str);
 			if (!m_abort) m_ses.done_checking(shared_from_this());
 			set_state(torrent_status::queued_for_checking);
 			return;
@@ -4338,6 +4338,19 @@ namespace libtorrent
 			m_ses.check_torrent(shared_from_this());
 	}
 
+	void torrent::set_error(std::string const& msg)
+	{
+		bool checking_files = should_check_files();
+		m_error = msg;
+		if (checking_files && !should_check_files())
+		{
+			// stop checking
+			m_storage->abort_disk_io();
+			m_ses.done_checking(shared_from_this());
+			set_state(torrent_status::queued_for_checking);
+		}
+	}
+
 	void torrent::auto_managed(bool a)
 	{
 		INVARIANT_CHECK;
@@ -4846,7 +4859,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<file_error_alert>())
 				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
-			m_error = j.str;
+			set_error(j.str);
 			pause();
 		}
 		f(ret);

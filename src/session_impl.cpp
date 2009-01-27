@@ -1501,12 +1501,8 @@ namespace aux {
 			{
 				--hard_limit;
 				++total_running;
-				if (t->state() != torrent_status::queued_for_checking
-					&& t->state() != torrent_status::checking_files)
-				{
-					--num_downloaders;
-					if (t->is_paused()) t->resume();
-				}
+				--num_downloaders;
+				if (t->is_paused()) t->resume();
 			}
 			else
 			{
