@@ -129,16 +129,16 @@ namespace libtorrent
 				reinterpret_cast<const char*>(tracker_req().pid.begin()), 20);
 
 			url += "&port=";
-			url += boost::lexical_cast<std::string>(tracker_req().listen_port);
+			url += to_string(tracker_req().listen_port).elems;
 
 			url += "&uploaded=";
-			url += boost::lexical_cast<std::string>(tracker_req().uploaded);
+			url += to_string(tracker_req().uploaded).elems;
 
 			url += "&downloaded=";
-			url += boost::lexical_cast<std::string>(tracker_req().downloaded);
+			url += to_string(tracker_req().downloaded).elems;
 
 			url += "&left=";
-			url += boost::lexical_cast<std::string>(tracker_req().left);
+			url += to_string(tracker_req().left).elems;
 
 			if (tracker_req().event != tracker_request::none)
 			{
@@ -155,8 +155,7 @@ namespace libtorrent
 			url += "&compact=1";
 
 			url += "&numwant=";
-			url += boost::lexical_cast<std::string>(
-				(std::min)(tracker_req().num_want, 999));
+			url += to_string((std::min)(tracker_req().num_want, 999)).elems;
 
 			if (settings.announce_ip != address())
 			{

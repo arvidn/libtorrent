@@ -230,11 +230,9 @@ namespace libtorrent
 				request += "\r\nProxy-Connection: keep-alive";
 			}
 			request += "\r\nRange: bytes=";
-			request += boost::lexical_cast<std::string>(size_type(r.piece)
-				* info.piece_length() + r.start);
+			request += to_string(size_type(r.piece) * info.piece_length() + r.start).elems;
 			request += "-";
-			request += boost::lexical_cast<std::string>(r.piece
-				* info.piece_length() + r.start + r.length - 1);
+			request += to_string(r.piece * info.piece_length() + r.start + r.length - 1).elems;
 			if (m_first_request || using_proxy)
 				request += "\r\nConnection: keep-alive";
 			request += "\r\n\r\n";
@@ -287,9 +285,9 @@ namespace libtorrent
 					request += "\r\nProxy-Connection: keep-alive";
 				}
 				request += "\r\nRange: bytes=";
-				request += boost::lexical_cast<std::string>(f.offset);
+				request += to_string(f.offset).elems;
 				request += "-";
-				request += boost::lexical_cast<std::string>(f.offset + f.size - 1);
+				request += to_string(f.offset + f.size - 1).elems;
 				if (m_first_request || using_proxy)
 					request += "\r\nConnection: keep-alive";
 				request += "\r\n\r\n";
@@ -384,8 +382,8 @@ namespace libtorrent
 						t->retry_web_seed(m_url, web_seed_entry::url_seed);
 					}
 					t->remove_web_seed(m_url, web_seed_entry::url_seed);
-					std::string error_msg = boost::lexical_cast<std::string>(m_parser.status_code())
-						+ " " + m_parser.message();
+					std::string error_msg = to_string(m_parser.status_code()).elems
+						+ (" " + m_parser.message());
 					if (m_ses.m_alerts.should_post<url_seed_alert>())
 					{
 						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
