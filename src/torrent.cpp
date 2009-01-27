@@ -452,7 +452,7 @@ namespace libtorrent
 		if (m_torrent_file->num_pieces()
 			> piece_picker::max_pieces)
 		{
-			m_error = "too many pieces in torrent";
+			set_error("too many pieces in torrent");
 			pause();
 		}
 
@@ -526,7 +526,7 @@ namespace libtorrent
 					" ]\n";
 #endif
 			}
-			m_error = j.str;
+			set_error(j.str);
 			pause();
 
 			std::vector<char>().swap(m_resume_data);
@@ -709,7 +709,7 @@ namespace libtorrent
 					" ]\n";
 #endif
 			}
-			m_error = j.str;
+			set_error(j.str);
 			pause();
 			return;
 		}
@@ -732,7 +732,7 @@ namespace libtorrent
 
 		if (ret == piece_manager::disk_check_aborted)
 		{
-			m_error = "aborted";
+			set_error("aborted");
 			m_ses.done_checking(shared_from_this());
 			return;
 		}
@@ -748,7 +748,7 @@ namespace libtorrent
 					" ]\n";
 #endif
 			}
-			m_error = j.str;
+			set_error(j.str);
 			pause();
 			if (!m_abort) m_ses.done_checking(shared_from_this());
 			return;
@@ -3846,9 +3846,25 @@ namespace libtorrent
 	void torrent::clear_error()
 	{
 		if (m_error.empty()) return;
+		bool checking_files = should_check_files();
 		if (m_ses.m_auto_manage_time_scaler > 2)
 			m_ses.m_auto_manage_time_scaler = 2;
 		m_error.clear();
+		if (!checking_files && should_check_files())
+			m_ses.check_torrent(shared_from_this());
+	}
+
+	void torrent::set_error(std::string const& msg)
+	{
+		bool checking_files = should_check_files();
+		m_error = msg;
+		if (checking_files && !should_check_files())
+		{
+			// stop checking
+			m_storage->abort_disk_io();
+			m_ses.done_checking(shared_from_this());
+			set_state(torrent_status::queued_for_checking);
+		}
 	}
 
 	void torrent::auto_managed(bool a)
@@ -3953,7 +3969,15 @@ namespace libtorrent
 			}
 		}
 	}
-	
+
+	bool torrent::should_check_files() const
+	{
+		return (m_state == torrent_status::checking_files
+			|| m_state == torrent_status::queued_for_checking)
+			&& (!is_paused() || m_auto_managed)
+			&& m_error.empty();
+	}
+
 	bool torrent::is_paused() const
 	{
 		return m_paused || m_ses.is_paused();
@@ -3964,9 +3988,17 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_paused) return;
+		bool checking_files = should_check_files();
 		m_paused = true;
 		if (m_ses.is_paused()) return;
 		do_pause();
+		if (checking_files && !should_check_files())
+		{
+			// stop checking
+			m_storage->abort_disk_io();
+			m_ses.done_checking(shared_from_this());
+			set_state(torrent_status::queued_for_checking);
+		}
 	}
 
 	void torrent::do_pause()
@@ -4019,8 +4051,11 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (!m_paused) return;
+		bool checking_files = should_check_files();
 		m_paused = false;
 		do_resume();
+		if (!checking_files && should_check_files())
+			m_ses.check_torrent(shared_from_this());
 	}
 
 	void torrent::do_resume()
@@ -4280,7 +4315,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<file_error_alert>())
 				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
-			m_error = j.str;
+			set_error(j.str);
 			pause();
 		}
 		f(ret);
