@@ -275,7 +275,7 @@ public:
 		// these functions encrypt the send buffer if m_rc4_encrypted
 		// is true, otherwise it passes the call to the
 		// peer_connection functions of the same names
-		void send_buffer(char* buf, int size, int flags = 0);
+		void send_buffer(char const* buf, int size, int flags = 0);
 		buffer::interval allocate_send_buffer(int size);
 		template <class Destructor>
 		void append_send_buffer(char* buffer, int size, Destructor const& destructor)
