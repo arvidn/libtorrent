@@ -195,6 +195,11 @@ the runtime, but on windows you can do both. Example::
   symbol ``clock_gettime``, you have to give ``need-librt=yes`` on the
   bjam command line. This will make libtorrent link against ``librt``.
 
+.. note::
+
+  When building on Solaris, you might have to specify ``stdlib=sun-stlport``
+  on the bjam command line.
+
 The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.
 

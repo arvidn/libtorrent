@@ -49,6 +49,7 @@ release 0.14.2
 	  be torrent_handle::piece_priorities)
 	* fixed race condition when saving DHT state
 	* fixed bugs related to lexical_cast being locale dependent
+	* added support for SunPro C++ compiler
 
 release 0.14.1
 

@@ -82,7 +82,7 @@ void intrusive_ptr_release(observer const* o)
 	if (--o->m_refs == 0)
 	{
 		boost::pool<>& p = o->pool_allocator;
-		o->~observer();
+		(const_cast<observer*>(o))->~observer();
 		p.free(const_cast<observer*>(o));
 	}
 }
@@ -105,7 +105,7 @@ typedef mpl::max_element<
 rpc_manager::rpc_manager(fun const& f, node_id const& our_id
 	, routing_table& table, send_fun const& sf)
 	: m_pool_allocator(sizeof(mpl::deref<max_observer_type_iter::base>::type))
-	, m_next_transaction_id(rand() % max_transactions)
+	, m_next_transaction_id(std::rand() % max_transactions)
 	, m_oldest_transaction_id(m_next_transaction_id)
 	, m_incoming(f)
 	, m_send(sf)

@@ -956,7 +956,7 @@ namespace
 	void find_error_code(int type, char const* string, error_code_parse_state& state)
 	{
 		if (state.exit) return;
-		if (type == xml_start_tag && !strcmp("errorCode", string))
+		if (type == xml_start_tag && !std::strcmp("errorCode", string))
 		{
 			state.in_error_code = true;
 		}
@@ -1088,7 +1088,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	{
 		// The external port cannot be wildcarder
 		// pick a random port
-		m.external_port = 40000 + (rand() % 10000);
+		m.external_port = 40000 + (std::rand() % 10000);
 		m.action = mapping_t::action_add;
 		++m.failcount;
 		update_map(d, mapping);

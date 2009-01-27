@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <limits>
 #include <boost/bind.hpp>
 #include <sstream>
+#include <stdlib.h>
 
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/session.hpp"
@@ -497,7 +498,7 @@ namespace libtorrent
 			else
 			{
 				range_start = 0;
-				range_end = atol(m_parser.header("content-length").c_str());
+				range_end = m_parser.content_length();
 				if (range_end == -1)
 				{
 					// we should not try this server again.

@@ -232,7 +232,7 @@ std::string const& add_suffix(float val)
 	for (int i = 0; i < num_prefix; ++i)
 	{
 		val /= 1000.f;
-		if (fabs(val) < 1000.f)
+		if (std::fabs(val) < 1000.f)
 		{
 			std::string& ret = to_string(val, 4);
 			ret += prefix[i];

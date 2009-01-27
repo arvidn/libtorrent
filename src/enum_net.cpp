@@ -41,14 +41,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/host_name.hpp>
 #endif
 
-#if defined TORRENT_BSD
+#if defined TORRENT_BSD || defined TORRENT_SOLARIS
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/if.h>
 #include <net/route.h>
-#include <sys/sysctl.h>
+#include <string.h>
 #include <boost/scoped_array.hpp>
+#endif
+
+#if defined TORRENT_BSD
+#include <sys/sysctl.h>
 #endif
 
 #if defined TORRENT_WINDOWS
@@ -83,7 +87,7 @@ namespace libtorrent { namespace
 	{
 		typedef asio::ip::address_v4::bytes_type bytes_t;
 		bytes_t b;
-		memcpy(&b[0], ina, b.size());
+		std::memcpy(&b[0], ina, b.size());
 		return address_v4(b);
 	}
 
@@ -91,7 +95,7 @@ namespace libtorrent { namespace
 	{
 		typedef asio::ip::address_v6::bytes_type bytes_t;
 		bytes_t b;
-		memcpy(&b[0], ina6, b.size());
+		std::memcpy(&b[0], ina6, b.size());
 		return address_v6(b);
 	}
 
@@ -244,11 +248,11 @@ namespace libtorrent
 	{
 		std::vector<ip_interface> ret;
 // covers linux, MacOS X and BSD distributions
-#if defined TORRENT_LINUX || defined TORRENT_BSD
+#if defined TORRENT_LINUX || defined TORRENT_BSD || defined TORRENT_SOLARIS
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
-			ec = asio::error::fault;
+			ec = error_code(errno, asio::error::system_category);
 			return ret;
 		}
 		ifconf ifc;
@@ -300,7 +304,7 @@ namespace libtorrent
 
 #if defined TORRENT_BSD
 			int current_size = item.ifr_addr.sa_len + IFNAMSIZ;
-#elif defined TORRENT_LINUX
+#elif defined TORRENT_LINUX || defined TORRENT_SOLARIS
 			int current_size = sizeof(ifreq);
 #endif
 			ifr += current_size;
