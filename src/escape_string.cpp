@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <iostream>
 #include <limits>
+#include <cstring>
 
 #include <boost/optional.hpp>
 #include <boost/array.hpp>
