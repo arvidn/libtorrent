@@ -34,11 +34,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ESCAPE_STRING_HPP_INCLUDED
 
 #include <string>
+#include <limits>
 #include <boost/optional.hpp>
+#include <boost/array.hpp>
 #include "libtorrent/config.hpp"
+#include "libtorrent/size_type.hpp"
 
 namespace libtorrent
 {
+	boost::array<char, 3 + std::numeric_limits<size_type>::digits10> to_string(size_type n);
+
 	std::string TORRENT_EXPORT unescape_string(std::string const& s);
 	std::string TORRENT_EXPORT escape_string(const char* str, int len);
 	std::string TORRENT_EXPORT escape_path(const char* str, int len);

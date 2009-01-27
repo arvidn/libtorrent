@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/convenience.hpp>
 
@@ -214,7 +213,7 @@ namespace
 			error_code ec;
 			return boost::shared_ptr<peer_plugin>(new logger_peer_plugin(
 				pc->remote().address().to_string(ec) + "_"
-				+ boost::lexical_cast<std::string>(pc->remote().port()) + ".log"));
+				+ to_string(pc->remote().port()).elems + ".log"));
 		}
 	};
 

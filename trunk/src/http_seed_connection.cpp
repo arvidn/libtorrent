@@ -196,17 +196,17 @@ namespace libtorrent
 		request += "?info_hash=";
 		request += escape_string((char const*)&t->torrent_file().info_hash()[0], 20);
 		request += "&piece=";
-		request += boost::lexical_cast<std::string>(r.piece);
+		request += to_string(r.piece).elems;
 
 		// if we're requesting less than an entire piece we need to
 		// add ranges
 		if (r.start > 0 || r.length != t->torrent_file().piece_size(r.piece))
 		{
 			request += "&ranges=";
-			request += boost::lexical_cast<std::string>(r.start);
+			request += to_string(r.start).elems;
 			request += "-";
 			// TODO: are ranges inclusive?
-			request += boost::lexical_cast<std::string>(r.start + r.length);
+			request += to_string(r.start + r.length).elems;
 		}
 
 		request += " HTTP/1.1\r\n";
@@ -318,8 +318,8 @@ namespace libtorrent
 						&& m_parser.status_code() < 400))
 				{
 					t->remove_web_seed(m_url, web_seed_entry::http_seed);
-					std::string error_msg = boost::lexical_cast<std::string>(m_parser.status_code())
-						+ " " + m_parser.message();
+					std::string error_msg = to_string(m_parser.status_code()).elems
+						+ (" " + m_parser.message());
 					if (m_ses.m_alerts.should_post<url_seed_alert>())
 					{
 						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);

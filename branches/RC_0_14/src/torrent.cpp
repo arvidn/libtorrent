@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread/mutex.hpp>
@@ -1043,7 +1042,7 @@ namespace libtorrent
 				// assume this is because we got a hostname instead of
 				// an ip address from the tracker
 
-				tcp::resolver::query q(i->ip, boost::lexical_cast<std::string>(i->port));
+				tcp::resolver::query q(i->ip, to_string(i->port).elems);
 				m_host_resolver.async_resolve(q,
 					bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid));
 			}
@@ -2187,8 +2186,7 @@ namespace libtorrent
 			|| ps.type == proxy_settings::http_pw)
 		{
 			// use proxy
-			tcp::resolver::query q(ps.hostname
-				, boost::lexical_cast<std::string>(ps.port));
+			tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
 			m_host_resolver.async_resolve(q,
 				bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, url));
 		}
@@ -2206,7 +2204,7 @@ namespace libtorrent
 				return;
 			}
 
-			tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
+			tcp::resolver::query q(hostname, to_string(port).elems);
 			m_host_resolver.async_resolve(q,
 				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url
 					, tcp::endpoint()));
@@ -2270,7 +2268,7 @@ namespace libtorrent
 			return;
 		}
 
-		tcp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
+		tcp::resolver::query q(hostname, to_string(port).elems);
 		m_host_resolver.async_resolve(q,
 			bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, url, a));
 	}
@@ -3174,6 +3172,8 @@ namespace libtorrent
 
 	int torrent::disconnect_peers(int num)
 	{
+		INVARIANT_CHECK;
+
 		int ret = 0;
 		// buils a list of all connected peers and sort it by 'disconnectability'.
 		std::vector<peer_connection*> peers(m_connections.size());

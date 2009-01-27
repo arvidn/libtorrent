@@ -347,6 +347,15 @@ int test_main()
 {
 	using namespace libtorrent;
 
+	// test itoa
+
+	TEST_CHECK(to_string(345).elems == std::string("345"));
+	TEST_CHECK(to_string(-345).elems == std::string("-345"));
+	TEST_CHECK(to_string(0).elems == std::string("0"));
+	TEST_CHECK(to_string(1000000000).elems == std::string("1000000000"));
+
+	// test url parsing
+
 	TEST_CHECK(parse_url_components("http://foo:bar@host.com:80/path/to/file")
 		== make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file", (char const*)0));
 

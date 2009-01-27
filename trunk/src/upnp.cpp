@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/xml_parse.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/enum_net.hpp"
+#include "libtorrent/escape_string.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
@@ -661,7 +662,7 @@ void upnp::update_map(rootdevice& d, int i)
 			, boost::ref(d), i, _5), true
 			, bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
 
-		d.upnp_connection->start(d.hostname, boost::lexical_cast<std::string>(d.port)
+		d.upnp_connection->start(d.hostname, to_string(d.port).elems
 			, seconds(10), 1);
 	}
 	else if (m.action == mapping_t::action_delete)
@@ -671,7 +672,7 @@ void upnp::update_map(rootdevice& d, int i)
 			, m_cc, bind(&upnp::on_upnp_unmap_response, self(), _1, _2
 			, boost::ref(d), i, _5), true
 			, bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
-		d.upnp_connection->start(d.hostname, boost::lexical_cast<std::string>(d.port)
+		d.upnp_connection->start(d.hostname, to_string(d.port).elems
 			, seconds(10), 1);
 	}
 
@@ -899,7 +900,7 @@ void upnp::on_upnp_xml(error_code const& e
 		boost::tie(protocol, auth, d.hostname, d.port, d.path, error)
 			= parse_url_components(d.url);
 		d.control_url = protocol + "://" + d.hostname + ":"
-			+ boost::lexical_cast<std::string>(d.port) + s.control_url;
+			+ to_string(d.port).elems + s.control_url;
 	}
 
 	std::stringstream msg;
@@ -1136,7 +1137,7 @@ void upnp::return_error(int mapping, int code)
 	error_code_t* e = std::lower_bound(error_codes, end, tmp
 		, bind(&error_code_t::code, _1) < bind(&error_code_t::code, _2));
 	std::string error_string = "UPnP mapping error ";
-	error_string += boost::lexical_cast<std::string>(code);
+	error_string += to_string(code).elems;
 	if (e != end && e->code == code)
 	{
 		error_string += ": ";

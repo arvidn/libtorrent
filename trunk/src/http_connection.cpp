@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/connection_queue.hpp"
 
 #include <boost/bind.hpp>
-#include <boost/lexical_cast.hpp>
 #include <string>
 #include <algorithm>
 
@@ -118,7 +117,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	sendbuffer = headers.str();
 	m_url = url;
-	start(hostname, boost::lexical_cast<std::string>(port), timeout, prio
+	start(hostname, to_string(port).elems, timeout, prio
 		, ps, ssl, handle_redirects, bind_addr);
 }
 
