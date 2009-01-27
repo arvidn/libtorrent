@@ -987,7 +987,7 @@ namespace libtorrent
 						ec = error_code(EIO, get_posix_category());
 #endif
 						set_error(m_save_path / file_iter->path, ec);
-						return -1;
+						return actual_read;
 					}
 					if (actual_read > 0) buf_pos += actual_read;
 					std::memset(buf + buf_pos, 0, size - buf_pos);
@@ -1137,7 +1137,7 @@ namespace libtorrent
 					ec = error_code(EIO, get_posix_category());
 #endif
 					set_error(m_save_path / file_iter->path, ec);
-					return -1;
+					return written;
 				}
 
 				left_to_write -= write_bytes;
