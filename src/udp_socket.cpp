@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg, Magnus Jonsson
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/connection_queue.hpp"
+#include "libtorrent/escape_string.hpp"
 #include <stdlib.h>
 #include <boost/bind.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/array.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/read.hpp>
@@ -394,8 +394,7 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 		|| ps.type == proxy_settings::socks5_pw)
 	{
 		// connect to socks5 server and open up the UDP tunnel
-		tcp::resolver::query q(ps.hostname
-			, boost::lexical_cast<std::string>(ps.port));
+		tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
 		m_resolver.async_resolve(q, boost::bind(
 			&udp_socket::on_name_lookup, this, _1, _2));
 	}

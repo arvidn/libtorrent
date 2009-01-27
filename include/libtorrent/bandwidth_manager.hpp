@@ -269,7 +269,7 @@ private:
 		if (m_abort) return;
 
 		error_code ec;
-		TORRENT_ASSERT(e.expires_at > time_now());
+//		TORRENT_ASSERT(e.expires_at > time_now());
 		m_history_timer.expires_at(e.expires_at, ec);
 		m_history_timer.async_wait(bind(&bandwidth_manager::on_history_expire, this, _1));
 	}

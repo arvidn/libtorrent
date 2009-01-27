@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/escape_string.hpp"
 
 namespace
 {
@@ -111,7 +112,7 @@ namespace libtorrent
 			return;
 		}
 		
-		udp::resolver::query q(hostname, boost::lexical_cast<std::string>(port));
+		udp::resolver::query q(hostname, to_string(port).elems);
 		m_name_lookup.async_resolve(q
 			, boost::bind(
 			&udp_tracker_connection::name_lookup, self(), _1, _2));
