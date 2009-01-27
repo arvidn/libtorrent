@@ -212,7 +212,7 @@ namespace libtorrent
 
 		void ip_filter_updated() { m_policy.ip_filter_updated(); }
 
-		void set_error(std::string const& msg) { m_error = msg; }
+		void set_error(std::string const& msg);
 		bool has_error() const { return !m_error.empty(); }
 		void pause();
 		void resume();
@@ -228,6 +228,8 @@ namespace libtorrent
 
 		bool is_auto_managed() const { return m_auto_managed; }
 		void auto_managed(bool a);
+
+		bool should_check_files() const;
 
 		void delete_files();
 
