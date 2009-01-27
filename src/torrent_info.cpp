@@ -378,7 +378,7 @@ namespace libtorrent
 		// copy the info section
 		m_info_section_size = section.second;
 		m_info_section.reset(new char[m_info_section_size]);
-		memcpy(m_info_section.get(), section.first, m_info_section_size);
+		std::memcpy(m_info_section.get(), section.first, m_info_section_size);
 		TORRENT_ASSERT(section.first[0] == 'd');
 		TORRENT_ASSERT(section.first[m_info_section_size-1] == 'e');
 

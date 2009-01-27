@@ -69,7 +69,7 @@ typedef enum {
 	GEOIP_MEMORY_CACHE = 1,
 	GEOIP_CHECK_CACHE = 2,
 	GEOIP_INDEX_CACHE = 4,
-	GEOIP_MMAP_CACHE = 8,
+	GEOIP_MMAP_CACHE = 8
 } GeoIPOptions;
 
 typedef enum {
@@ -89,14 +89,14 @@ typedef enum {
 typedef enum {
 	GEOIP_ANON_PROXY = 1,
 	GEOIP_HTTP_X_FORWARDED_FOR_PROXY = 2,
-	GEOIP_HTTP_CLIENT_IP_PROXY = 3,
+	GEOIP_HTTP_CLIENT_IP_PROXY = 3
 } GeoIPProxyTypes;
 
 typedef enum {
 	GEOIP_UNKNOWN_SPEED = 0,
 	GEOIP_DIALUP_SPEED = 1,
 	GEOIP_CABLEDSL_SPEED = 2,
-	GEOIP_CORPORATE_SPEED = 3,
+	GEOIP_CORPORATE_SPEED = 3
 } GeoIPNetspeedValues;
 
 extern char **GeoIPDBFileName;

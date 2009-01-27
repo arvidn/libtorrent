@@ -128,7 +128,7 @@ namespace libtorrent
 				*(p-1) = '?';
 				tag_end = p - 1;
 			}
-			else if (start + 5 < p && memcmp(start, "!--", 3) == 0 && memcmp(p-2, "--", 2) == 0)
+			else if (start + 5 < p && std::memcmp(start, "!--", 3) == 0 && std::memcmp(p-2, "--", 2) == 0)
 			{
 				start += 3;
 				*(p-2) = 0;

@@ -115,7 +115,7 @@ namespace libtorrent
 		{
 			hostname.assign(start, port_pos);
 			++port_pos;
-			port = atoi(std::string(port_pos, end).c_str());
+			port = std::atoi(std::string(port_pos, end).c_str());
 		}
 		else
 		{

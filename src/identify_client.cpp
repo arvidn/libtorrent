@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cctype>
 #include <algorithm>
+#include <stdio.h>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)

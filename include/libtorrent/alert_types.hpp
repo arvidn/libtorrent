@@ -223,9 +223,9 @@ namespace libtorrent
 		tracker_error_alert(torrent_handle const& h
 			, int times
 			, int status
-			, std::string const& url
+			, std::string const& url_
 			, std::string const& msg_)
-			: tracker_alert(h, url)
+			: tracker_alert(h, url_)
 			, times_in_row(times)
 			, status_code(status)
 			, msg(msg_)
@@ -252,9 +252,9 @@ namespace libtorrent
 	struct TORRENT_EXPORT tracker_warning_alert: tracker_alert
 	{
 		tracker_warning_alert(torrent_handle const& h
-			, std::string const& url
+			, std::string const& url_
 			, std::string const& msg_)
-			: tracker_alert(h, url)
+			: tracker_alert(h, url_)
 			, msg(msg_)
 		{ TORRENT_ASSERT(!url.empty()); }
 
@@ -276,8 +276,8 @@ namespace libtorrent
 		scrape_reply_alert(torrent_handle const& h
 			, int incomplete_
 			, int complete_
-			, std::string const& url)
-			: tracker_alert(h, url)
+			, std::string const& url_)
+			: tracker_alert(h, url_)
 			, incomplete(incomplete_)
 			, complete(complete_)
 		{ TORRENT_ASSERT(!url.empty()); }
@@ -300,9 +300,9 @@ namespace libtorrent
 	struct TORRENT_EXPORT scrape_failed_alert: tracker_alert
 	{
 		scrape_failed_alert(torrent_handle const& h
-			, std::string const& url
+			, std::string const& url_
 			, std::string const& msg_)
-			: tracker_alert(h, url)
+			: tracker_alert(h, url_)
 			, msg(msg_)
 		{ TORRENT_ASSERT(!url.empty()); }
 
@@ -323,8 +323,8 @@ namespace libtorrent
 	{
 		tracker_reply_alert(torrent_handle const& h
 			, int np
-			, std::string const& url)
-			: tracker_alert(h, url)
+			, std::string const& url_)
+			: tracker_alert(h, url_)
 			, num_peers(np)
 		{ TORRENT_ASSERT(!url.empty()); }
 
@@ -367,8 +367,8 @@ namespace libtorrent
 	struct TORRENT_EXPORT tracker_announce_alert: tracker_alert
 	{
 		tracker_announce_alert(torrent_handle const& h
-			, std::string const& url, int event_)
-			: tracker_alert(h, url)
+			, std::string const& url_, int event_)
+			: tracker_alert(h, url_)
 			, event(event_)
 		{ TORRENT_ASSERT(!url.empty()); }
 

@@ -77,6 +77,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_LINUX
 #elif defined WIN32
 #define TORRENT_WINDOWS
+#elif defined sun || defined __sun 
+#define TORRENT_SOLARIS
 #else
 #warning unkown OS, assuming BSD
 #define TORRENT_BSD
