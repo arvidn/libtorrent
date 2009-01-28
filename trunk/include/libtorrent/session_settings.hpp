@@ -439,7 +439,7 @@ namespace libtorrent
 		float peer_turnover;
 
 		// when we are connected to more than
-		// limit * peer_turnover_enable peers
+		// limit * peer_turnover_cutoff peers
 		// disconnect peer_turnover fraction
 		// of the peers
 		float peer_turnover_cutoff;
