@@ -73,7 +73,6 @@ namespace
 }
 
 using boost::bind;
-using boost::lexical_cast;
 
 namespace libtorrent
 {
