@@ -2445,6 +2445,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(!c.is_choked());
+		TORRENT_ASSERT(!c.ignore_unchoke_slots());
 		TORRENT_ASSERT(m_num_uploads > 0);
 		c.send_choke();
 		--m_num_uploads;
@@ -2455,6 +2456,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(c.is_choked());
+		TORRENT_ASSERT(!c.ignore_unchoke_slots());
 		if (m_num_uploads >= m_max_uploads) return false;
 		if (!c.send_unchoke()) return false;
 		++m_num_uploads;
@@ -2507,7 +2509,7 @@ namespace libtorrent
 			}
 		}
 
-		if (!p->is_choked())
+		if (!p->is_choked() && !p->ignore_unchoke_slots())
 		{
 			--m_num_uploads;
 			m_ses.m_unchoke_time_scaler = 0;
@@ -4090,7 +4092,7 @@ namespace libtorrent
 			for (std::deque<pending_block>::const_iterator i = p.download_queue().begin()
 				, end(p.download_queue().end()); i != end; ++i)
 				++num_requests[i->block];
-			if (!p.is_choked()) ++num_uploads;
+			if (!p.is_choked() && !p.ignore_unchoke_slots()) ++num_uploads;
 			torrent* associated_torrent = p.associated_torrent().lock().get();
 			if (associated_torrent != this)
 				TORRENT_ASSERT(false);
