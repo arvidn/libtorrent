@@ -775,7 +775,9 @@ namespace libtorrent
 		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
 		TORRENT_ASSERT(!j.callback);
-		TORRENT_ASSERT(j.storage);
+		TORRENT_ASSERT(j.storage
+			|| j.action == disk_io_job::abort_thread
+			|| j.action == disk_io_job::update_settings);
 		TORRENT_ASSERT(j.buffer_size <= m_block_size);
 		mutex_t::scoped_lock l(m_queue_mutex);
 
@@ -826,12 +828,12 @@ namespace libtorrent
 		k->callback.swap(const_cast<boost::function<void(int, disk_io_job const&)>&>(f));
 		if (j.action == disk_io_job::write)
 			m_queue_buffer_size += j.buffer_size;
-		TORRENT_ASSERT(j.storage.get());
 		m_signal.notify_all();
 	}
 
 	bool disk_io_thread::test_error(disk_io_job& j)
 	{
+		TORRENT_ASSERT(j.storage);
 		error_code const& ec = j.storage->error();
 		if (ec)
 		{
@@ -880,6 +882,7 @@ namespace libtorrent
 			// released.
 			disk_buffer_holder holder(*this
 				, m_jobs.front().action != disk_io_job::check_fastresume
+				&& m_jobs.front().action != disk_io_job::update_settings
 				? m_jobs.front().buffer : 0);
 
 			boost::function<void(int, disk_io_job const&)> handler;
@@ -894,7 +897,9 @@ namespace libtorrent
 
 			int ret = 0;
 
-			TORRENT_ASSERT(j.storage || j.action == disk_io_job::abort_thread);
+			TORRENT_ASSERT(j.storage
+				|| j.action == disk_io_job::abort_thread
+				|| j.action == disk_io_job::update_settings);
 #ifdef TORRENT_DISK_STATS
 			ptime start = time_now();
 #endif
