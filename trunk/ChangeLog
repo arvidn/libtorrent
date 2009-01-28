@@ -50,6 +50,8 @@ release 0.14.2
 	* fixed race condition when saving DHT state
 	* fixed bugs related to lexical_cast being locale dependent
 	* added support for SunPro C++ compiler
+	* fixed bug where messeges sometimes could be encrypted in the
+	  wrong order, for encrypted connections.
 
 release 0.14.1
 
