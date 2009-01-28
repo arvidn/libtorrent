@@ -125,6 +125,7 @@ namespace libtorrent
 		, m_choked(true)
 		, m_failed(false)
 		, m_ignore_bandwidth_limits(false)
+		, m_ignore_unchoke_slots(false)
 		, m_have_all(false)
 		, m_disconnecting(false)
 		, m_connecting(true)
@@ -235,6 +236,7 @@ namespace libtorrent
 		, m_choked(true)
 		, m_failed(false)
 		, m_ignore_bandwidth_limits(false)
+		, m_ignore_unchoke_slots(false)
 		, m_have_all(false)
 		, m_disconnecting(false)
 		, m_connecting(false)
@@ -1132,6 +1134,7 @@ namespace libtorrent
 #endif
 		m_peer_interested = true;
 		if (is_disconnecting()) return;
+		if (ignore_unchoke_slots()) write_unchoke();
 		t->get_policy().interested(*this);
 	}
 
@@ -1162,7 +1165,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		if (!is_choked())
+		if (!is_choked() && !ignore_unchoke_slots())
 		{
 			if (m_peer_info && m_peer_info->optimistically_unchoked)
 			{
@@ -1174,6 +1177,7 @@ namespace libtorrent
 			m_ses.m_unchoke_time_scaler = 0;
 		}
 
+		if (ignore_unchoke_slots()) write_choke();
 		t->get_policy().not_interested(*this);
 
 		if (t->super_seeding() && m_superseed_piece != -1)
@@ -2993,6 +2997,8 @@ namespace libtorrent
 		keep_alive();
 
 		m_ignore_bandwidth_limits = m_ses.settings().ignore_limits_on_local_network
+			&& on_local_network();
+		m_ignore_unchoke_slots = m_ses.settings().ignore_limits_on_local_network
 			&& on_local_network();
 
 		m_statistics.second_tick(tick_interval);

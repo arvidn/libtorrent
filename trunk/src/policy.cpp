@@ -882,6 +882,7 @@ namespace libtorrent
 		// can't pay for their downloads anyway.
 		if (c.is_choked()
 			&& ses.num_uploads() < ses.max_uploads()
+			&& !c.ignore_unchoke_slots()
 			&& (m_torrent->ratio() == 0
 				|| c.share_diff() >= -free_upload_amount
 				|| m_torrent->is_finished()))

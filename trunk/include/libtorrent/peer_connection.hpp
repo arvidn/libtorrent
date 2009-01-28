@@ -331,6 +331,11 @@ namespace libtorrent
 		void ignore_bandwidth_limits(bool i)
 		{ m_ignore_bandwidth_limits = i; }
 
+		bool ignore_unchoke_slots() const
+		{ return m_ignore_unchoke_slots; }
+		void ignore_unchoke_slots(bool i)
+		{ m_ignore_unchoke_slots = i; }
+
 		bool failed() const { return m_failed; }
 
 		int desired_queue_size() const { return m_desired_queue_size; }
@@ -846,6 +851,11 @@ namespace libtorrent
 		// request bandwidth from the limiter, but instead
 		// just send and receive as much as possible.
 		bool m_ignore_bandwidth_limits:1;
+
+		// set to true if this peer controls its unchoke
+		// state individually, regardless of the global
+		// unchoker
+		bool m_ignore_unchoke_slots:1;
 
 		// this is set to true when a have_all
 		// message is received. This information

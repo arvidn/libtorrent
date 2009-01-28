@@ -984,7 +984,7 @@ namespace aux {
 
 		TORRENT_ASSERT(p->is_disconnecting());
 
-		if (!p->is_choked()) --m_num_unchoked;
+		if (!p->is_choked() && !p->ignore_unchoke_slots()) --m_num_unchoked;
 //		connection_map::iterator i = std::lower_bound(m_connections.begin(), m_connections.end()
 //			, p, bind(&boost::intrusive_ptr<peer_connection>::get, _1) < p);
 //		if (i->get() != p) i == m_connections.end();
@@ -1007,6 +1007,7 @@ namespace aux {
 
 	void session_impl::unchoke_peer(peer_connection& c)
 	{
+		TORRENT_ASSERT(!c.ignore_unchoke_slots());
 		torrent* t = c.associated_torrent().lock().get();
 		TORRENT_ASSERT(t);
 		if (t->unchoke_peer(c))
@@ -1569,6 +1570,7 @@ namespace aux {
 				&& p->is_peer_interested()
 				&& t->free_upload_slots()
 				&& p->is_choked()
+				&& !p->ignore_unchoke_slots()
 				&& t->valid_metadata())
 			{
 				last_unchoke = pi->last_optimistically_unchoked;
@@ -1632,10 +1634,11 @@ namespace aux {
 				|| !p->is_peer_interested()
 				|| p->is_disconnecting()
 				|| p->is_connecting()
+				|| p->ignore_unchoke_slots()
 				|| (p->share_diff() < -free_upload_amount
 					&& !t->is_seed()))
 			{
-				if (!p->is_choked() && t)
+				if (!p->is_choked() && t && !p->ignore_unchoke_slots())
 				{
 					policy::peer* pi = p->peer_info_struct();
 					if (pi && pi->optimistically_unchoked)
@@ -1694,6 +1697,7 @@ namespace aux {
 		{
 			peer_connection* p = *i;
 			TORRENT_ASSERT(p);
+			if (p->ignore_unchoke_slots()) continue;
 			torrent* t = p->associated_torrent().lock().get();
 			TORRENT_ASSERT(t);
 			if (unchoke_set_size > 0)
@@ -2758,6 +2762,7 @@ namespace aux {
 
 			peer_connection* p = i->get();
 			TORRENT_ASSERT(!p->is_disconnecting());
+			if (p->ignore_unchoke_slots()) continue;
 			if (!p->is_choked()) ++unchokes;
 			if (p->peer_info_struct()
 				&& p->peer_info_struct()->optimistically_unchoked)
