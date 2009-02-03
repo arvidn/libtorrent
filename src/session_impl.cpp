@@ -1933,18 +1933,21 @@ namespace aux {
 		INVARIANT_CHECK;
 
 		if (m_queued_for_checking.empty()) return;
-		check_queue_t::iterator next_check = m_queued_for_checking.begin();
+		boost::shared_ptr<torrent> next_check = *m_queued_for_checking.begin();
 		check_queue_t::iterator done = m_queued_for_checking.end();
 		for (check_queue_t::iterator i = m_queued_for_checking.begin()
 			, end(m_queued_for_checking.end()); i != end; ++i)
 		{
 			TORRENT_ASSERT(*i == t || (*i)->should_check_files());
 			if (*i == t) done = i;
-			if (next_check == done || (*next_check)->queue_position() > (*i)->queue_position())
-				next_check = i;
+			if (next_check == t || next_check->queue_position() > (*i)->queue_position())
+				next_check = *i;
 		}
 		// only start a new one if we removed the one that is checking
-		if (next_check != done && t->state() == torrent_status::checking_files) (*next_check)->start_checking();
+		if (done == m_queued_for_checking.end()) return;
+
+		if (next_check != t && t->state() == torrent_status::checking_files)
+			next_check->start_checking();
 		m_queued_for_checking.erase(done);
 	}
 
