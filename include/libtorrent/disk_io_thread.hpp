@@ -91,6 +91,7 @@ namespace libtorrent
 			, clear_read_cache
 			, abort_torrent
 			, update_settings
+			, read_and_hash
 		};
 
 		action_t action;
@@ -260,6 +261,8 @@ namespace libtorrent
 		cache_t::iterator find_cached_piece(
 			cache_t& cache, disk_io_job const& j
 			, mutex_t::scoped_lock& l);
+		int copy_from_piece(cache_t::iterator p, bool& hit
+			, disk_io_job const& j, mutex_t::scoped_lock& l);
 
 		// write cache operations
 		void flush_oldest_piece(mutex_t::scoped_lock& l);
@@ -271,13 +274,16 @@ namespace libtorrent
 		// read cache operations
 		bool clear_oldest_read_piece(cache_t::iterator ignore
 			, mutex_t::scoped_lock& l);
-		int read_into_piece(cached_piece_entry& p, int start_block, mutex_t::scoped_lock& l);
+		int read_into_piece(cached_piece_entry& p, int start_block
+			, int options, mutex_t::scoped_lock& l);
 		int cache_read_block(disk_io_job const& j, mutex_t::scoped_lock& l);
+		int cache_read_piece(disk_io_job const& j, mutex_t::scoped_lock& l);
 		void free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l);
 		bool make_room(int num_blocks
 			, cache_t::iterator ignore
 			, mutex_t::scoped_lock& l);
 		int try_read_from_cache(disk_io_job const& j);
+		int read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h);
 
 		// this mutex only protects m_jobs, m_queue_buffer_size
 		// and m_abort

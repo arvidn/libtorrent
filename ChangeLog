@@ -1,3 +1,5 @@
+	* added 'seed mode', which assumes that all files are complete
+	  and checks hashes lazily, as blocks are requested
 	* added new extension for file attributes (executable and hidden)
 	* added support for unbuffered I/O for aligned files
 	* added workaround for sparse file issue on Windows Vista

@@ -245,7 +245,8 @@ boost::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
-	, boost::intrusive_ptr<torrent_info>* torrent, bool super_seeding)
+	, boost::intrusive_ptr<torrent_info>* torrent, bool super_seeding
+	, add_torrent_params const* p)
 {
 	using namespace boost::filesystem;
 
@@ -289,22 +290,39 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// file pool will complain if two torrents are trying to
 	// use the same files
 	sha1_hash info_hash = t->info_hash();
-	torrent_handle tor1 = ses1->add_torrent(clone_ptr(t), "./tmp1" + suffix);
+	add_torrent_params param;
+	if (p) param = *p;
+	param.ti = clone_ptr(t);
+	param.save_path = "./tmp1" + suffix;
+	torrent_handle tor1 = ses1->add_torrent(param);
 	tor1.super_seeding(super_seeding);
 	TEST_CHECK(!ses1->get_torrents().empty());
 	torrent_handle tor2;
 	torrent_handle tor3;
+
+	// the downloader cannot use seed_mode
+	param.seed_mode = false;
+
 	if (ses3)
 	{
-		tor3 = ses3->add_torrent(clone_ptr(t), "./tmp3" + suffix);
+		param.ti = clone_ptr(t);
+		param.save_path = "./tmp3" + suffix;
+		tor3 = ses3->add_torrent(param);
 		TEST_CHECK(!ses3->get_torrents().empty());
 	}
 
   	if (use_metadata_transfer)
-		tor2 = ses2->add_torrent("http://non-existent-name.com/announce"
-		, t->info_hash(), 0, "./tmp2" + suffix);
+	{
+		param.ti = 0;
+		param.info_hash = t->info_hash();
+	}
 	else
-		tor2 = ses2->add_torrent(clone_ptr(t), "./tmp2" + suffix);
+	{
+		param.ti = clone_ptr(t);
+	}
+	param.save_path = "./tmp2" + suffix;
+
+	tor2 = ses2->add_torrent(param);
 	TEST_CHECK(!ses2->get_torrents().empty());
 
 	assert(ses1->get_torrents().size() == 1);

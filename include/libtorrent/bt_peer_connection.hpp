@@ -425,6 +425,7 @@ private:
 		// the number of bytes in the send buffer
 		// that have been encrypted (only used for
 		// encrypted connections)
+public:
 		int m_encrypted_bytes;
 #endif
 

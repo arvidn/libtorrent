@@ -191,7 +191,7 @@ namespace libtorrent
 		session_settings* m_settings;
 	};
 
-	typedef storage_interface* (&storage_constructor_type)(
+	typedef storage_interface* (*storage_constructor_type)(
 		file_storage const&, fs::path const&, file_pool&);
 
 	TORRENT_EXPORT storage_interface* default_storage_constructor(
@@ -230,6 +230,11 @@ namespace libtorrent
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 
 		void async_read(
+			peer_request const& r
+			, boost::function<void(int, disk_io_job const&)> const& handler
+			, int priority = 0);
+
+		void async_read_and_hash(
 			peer_request const& r
 			, boost::function<void(int, disk_io_job const&)> const& handler
 			, int priority = 0);
