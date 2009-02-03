@@ -519,13 +519,13 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<file_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.str));
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
-					" error: " << j.str <<
-					" torrent: " << torrent_file().name() <<
-					" ]\n";
-#endif
 			}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
+				" error: " << j.str <<
+				" torrent: " << torrent_file().name() <<
+				" ]\n";
+#endif
 			set_error(j.str);
 			pause();
 
@@ -702,13 +702,13 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<file_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.str));
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
-					" error: " << j.str <<
-					" torrent: " << torrent_file().name() <<
-					" ]\n";
-#endif
 			}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
+				" error: " << j.str <<
+				" torrent: " << torrent_file().name() <<
+				" ]\n";
+#endif
 			set_error(j.str);
 			pause();
 			return;
@@ -718,6 +718,7 @@ namespace libtorrent
 
 	void torrent::start_checking()
 	{
+		TORRENT_ASSERT(should_check_files());
 		set_state(torrent_status::checking_files);
 
 		m_storage->async_check_files(bind(
@@ -733,7 +734,6 @@ namespace libtorrent
 		if (ret == piece_manager::disk_check_aborted)
 		{
 			set_error("aborted");
-			m_ses.done_checking(shared_from_this());
 			return;
 		}
 		if (ret == piece_manager::fatal_disk_error)
@@ -741,16 +741,15 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<file_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.str));
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
-					" error: " << j.str <<
-					" torrent: " << torrent_file().name() <<
-					" ]\n";
-#endif
 			}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
+				" error: " << j.str <<
+				" torrent: " << torrent_file().name() <<
+				" ]\n";
+#endif
 			set_error(j.str);
 			pause();
-			if (!m_abort) m_ses.done_checking(shared_from_this());
 			return;
 		}
 
@@ -3872,10 +3871,21 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_auto_managed == a) return;
+		bool checking_files = should_check_files();
 		m_auto_managed = a;
 		// recalculate which torrents should be
 		// paused
 		m_ses.m_auto_manage_time_scaler = 0;
+
+		if (!checking_files && should_check_files())
+			m_ses.check_torrent(shared_from_this());
+		else if (checking_files && !should_check_files())
+		{
+			// stop checking
+			m_storage->abort_disk_io();
+			m_ses.done_checking(shared_from_this());
+			set_state(torrent_status::queued_for_checking);
+		}
 	}
 
 	// the higher seed rank, the more important to seed

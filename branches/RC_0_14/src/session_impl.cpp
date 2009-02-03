@@ -1817,23 +1817,35 @@ namespace aux {
 	void session_impl::check_torrent(boost::shared_ptr<torrent> const& t)
 	{
 		if (m_abort) return;
+		TORRENT_ASSERT(t->should_check_files());
+		TORRENT_ASSERT(t->state() != torrent_status::checking_files);
 		if (m_queued_for_checking.empty()) t->start_checking();
+		else t->set_state(torrent_status::queued_for_checking);
+		TORRENT_ASSERT(std::find(m_queued_for_checking.begin()
+			, m_queued_for_checking.end(), t) == m_queued_for_checking.end());
 		m_queued_for_checking.push_back(t);
 	}
 
 	void session_impl::done_checking(boost::shared_ptr<torrent> const& t)
 	{
+		INVARIANT_CHECK;
+
 		if (m_queued_for_checking.empty()) return;
-		check_queue_t::iterator next_check = m_queued_for_checking.begin();
+		boost::shared_ptr<torrent> next_check = *m_queued_for_checking.begin();
 		check_queue_t::iterator done = m_queued_for_checking.end();
 		for (check_queue_t::iterator i = m_queued_for_checking.begin()
 			, end(m_queued_for_checking.end()); i != end; ++i)
 		{
+			TORRENT_ASSERT(*i == t || (*i)->should_check_files());
 			if (*i == t) done = i;
-			if (next_check == done || (*next_check)->queue_position() > (*i)->queue_position())
-				next_check = i;
+			if (next_check == t || next_check->queue_position() > (*i)->queue_position())
+				next_check = *i;
 		}
-		if (next_check != done) (*next_check)->start_checking();
+		// only start a new one if we removed the one that is checking
+		if (done == m_queued_for_checking.end()) return;
+
+		if (next_check != t && t->state() == torrent_status::checking_files)
+			next_check->start_checking();
 		m_queued_for_checking.erase(done);
 	}
 
