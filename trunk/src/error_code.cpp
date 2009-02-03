@@ -46,7 +46,11 @@ namespace libtorrent
 	std::string libtorrent_error_category::message(int ev) const
 	{
 		static char const* msgs[] =
-		{ "no error", "torrent file collides with file from another torrent" };
+		{
+			"no error",
+			"torrent file collides with file from another torrent",
+			"hash check failed"
+		};
 		if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
 			return "Unknown error";
 		return msgs[ev];

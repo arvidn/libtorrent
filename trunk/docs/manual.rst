@@ -288,6 +288,7 @@ add_torrent()
 			bool duplicate_is_error;
 			storage_constructor_type storage;
 			void* userdata;
+			bool seed_mode;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -360,6 +361,17 @@ that needs to be implemented for a custom storage, see `storage_interface`_.
 
 The ``userdata`` parameter is optional and will be passed on to the extension
 constructor functions, if any (see `add_extension()`_).
+
+If ``seed_mode`` is set to true, libtorrent will assume that all files are present
+for this torrent and that they all match the hashes in the torrent file. Each time
+a peer requests to download a block, the piece is verified against the hash, unless
+it has been verified already. If a hash fails, the torrent will automatically leave
+the seed mode and recheck all the files. The use case for this mode is if a torrent
+is created and seeded, or if the user already know that the files are complete, this
+is a way to avoid the initial file checks, and significantly reduce the startup time.
+
+Setting ``seed_mode`` on a torrent without metadata (a .torrent file) is a no-op
+and will be ignored.
 
 The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.
@@ -2620,6 +2632,8 @@ It contains the following fields::
 		bool has_incoming;
 
 		int sparse_regions;
+
+		bool seed_mode;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -2813,6 +2827,11 @@ to this torrent.'
 ``sparse_regions`` the number of regions of non-downloaded pieces in the
 torrent. This is an interesting metric on windows vista, since there is
 a limit on the number of sparse regions in a single file there.
+
+``seed_mode`` is true if the torrent is in seed_mode. If the torrent was
+started in seed mode, it will leave seed mode once all pieces have been
+checked or as soon as one piece fails the hash check.
+
 
 peer_info
 =========
@@ -4982,7 +5001,7 @@ this::
 
 		// non virtual functions
 
-		disk_io_thread* io_thread();
+		disk_buffer_pool* disk_pool();
 		void set_error(boost::filesystem::path const& file, error_code const& ec) const;
 		error_code const& error() const;
 		std::string const& error_file() const;
@@ -5188,6 +5207,22 @@ delete_files()
 This function should delete all files and directories belonging to this storage.
 
 Returning ``true`` indicates an error occurred.
+
+The ``disk_buffer_pool`` is used to allocate and free disk buffers. It has the
+following members::
+
+	struct disk_buffer_pool : boost::noncopyable
+	{
+		char* allocate_buffer(char const* category);
+		void free_buffer(char* buf);
+
+		char* allocate_buffers(int blocks, char const* category);
+		void free_buffers(char* buf, int blocks);
+
+		int block_size() const { return m_block_size; }
+
+		void release_memory();
+	};
 
 
 magnet links

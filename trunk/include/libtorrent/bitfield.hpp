@@ -244,12 +244,14 @@ namespace libtorrent
 			if (m_size && (bits & 7)) m_bytes[(m_size + 7) / 8 - 1] &= 0xff << (7 - (bits & 7));
 		}
 
+		void free() { dealloc(); m_size = 0; }
+
 	private:
 
 		void dealloc() { if (m_own) std::free(m_bytes); m_bytes = 0; }
 		unsigned char* m_bytes;
-		int m_size; // in bits
-		bool m_own;
+		int m_size:31; // in bits
+		bool m_own:1;
 	};
 
 }

@@ -173,6 +173,7 @@ namespace libtorrent
 			, duplicate_is_error(false)
 			, storage(sc)
 			, userdata(0)
+			, seed_mode(false)
 		{}
 
 		boost::intrusive_ptr<torrent_info> ti;
@@ -187,6 +188,7 @@ namespace libtorrent
 		bool duplicate_is_error;
 		storage_constructor_type storage;
 		void* userdata;
+		bool seed_mode;
 	};
 	
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer

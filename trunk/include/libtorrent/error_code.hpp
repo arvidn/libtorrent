@@ -49,7 +49,8 @@ namespace libtorrent
 		enum error_code_enum
 		{
 			no_error = 0,
-			file_collision
+			file_collision,
+			failed_hash_check
 		};
 	}
 

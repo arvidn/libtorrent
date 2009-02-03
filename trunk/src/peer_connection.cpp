@@ -3233,8 +3233,20 @@ namespace libtorrent
 			TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
 			TORRENT_ASSERT(r.length > 0 && r.start >= 0);
 
-			t->filesystem().async_read(r, bind(&peer_connection::on_disk_read_complete
-				, self(), _1, _2, r));
+			if (!t->seed_mode() || t->verified_piece(r.piece))
+			{
+				t->filesystem().async_read(r, bind(&peer_connection::on_disk_read_complete
+					, self(), _1, _2, r));
+			}
+			else
+			{
+				// this means we're in seed mode and we haven't yet
+				// verified this piece (r.piece)
+				t->filesystem().async_read_and_hash(r, bind(&peer_connection::on_disk_read_complete
+					, self(), _1, _2, r));
+				t->verified(r.piece);
+			}
+
 			m_reading_bytes += r.length;
 
 			m_requests.erase(m_requests.begin());
@@ -3249,20 +3261,34 @@ namespace libtorrent
 
 		disk_buffer_holder buffer(m_ses, j.buffer);
 
+		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (ret != r.length || m_torrent.expired())
 		{
-			boost::shared_ptr<torrent> t = m_torrent.lock();
 			if (!t)
 			{
 				disconnect(j.str.c_str());
 				return;
 			}
 		
-			if (t->alerts().should_post<file_error_alert>())
-				t->alerts().post_alert(file_error_alert(j.error_file, t->get_handle(), j.str));
-			t->set_error(j.str);
-			t->pause();
+			if (ret == -3)
+			{
+				if (t->seed_mode()) t->leave_seed_mode(false);
+				write_reject_request(r);
+			}
+			else
+			{
+				if (t->alerts().should_post<file_error_alert>())
+					t->alerts().post_alert(file_error_alert(j.error_file, t->get_handle(), j.str));
+				t->set_error(j.str);
+				t->pause();
+			}
 			return;
+		}
+
+		if (t)
+		{
+			if (t->seed_mode() && t->all_verified())
+				t->leave_seed_mode(true);
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -3340,7 +3366,6 @@ namespace libtorrent
 				(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ upload prio: "
 					<< priority << "]\n";
 #endif
-
 			}
 			return;
 		}

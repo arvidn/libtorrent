@@ -121,6 +121,7 @@ namespace libtorrent
 			, last_scrape(0)
 			, has_incoming(false)
 			, sparse_regions(0)
+			, seed_mode(false)
 		{}
 
 		enum state_t
@@ -274,6 +275,9 @@ namespace libtorrent
 
 		// the number of "holes" in the torrent
 		int sparse_regions;
+
+		// is true if this torrent is (still) in seed_mode
+		bool seed_mode;
 	};
 
 	struct TORRENT_EXPORT block_info

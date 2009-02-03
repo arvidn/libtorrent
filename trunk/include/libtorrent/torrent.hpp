@@ -83,6 +83,7 @@ namespace libtorrent
 	struct bitfield;
 	struct announce_entry;
 	struct tracker_request;
+	struct add_torrent_params;
 
 	namespace aux
 	{
@@ -118,36 +119,8 @@ namespace libtorrent
 	{
 	public:
 
-		torrent(
-			aux::session_impl& ses
-			, boost::intrusive_ptr<torrent_info> tf
-			, fs::path const& save_path
-			, tcp::endpoint const& net_interface
-			, storage_mode_t m_storage_mode
-			, int block_size
-			, storage_constructor_type sc
-			, bool paused
-			, std::vector<char>* resume_data
-			, int seq
-			, bool auto_managed);
-
-		// used with metadata-less torrents
-		// (the metadata is downloaded from the peers)
-		torrent(
-			aux::session_impl& ses
-			, char const* tracker_url
-			, sha1_hash const& info_hash
-			, char const* name
-			, fs::path const& save_path
-			, tcp::endpoint const& net_interface
-			, storage_mode_t m_storage_mode
-			, int block_size
-			, storage_constructor_type sc
-			, bool paused
-			, std::vector<char>* resume_data
-			, int seq
-			, bool auto_managed);
-
+		torrent(aux::session_impl& ses, tcp::endpoint const& net_interface
+			, int block_size, int seq, add_torrent_params const& p);
 		~torrent();
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -691,6 +664,34 @@ namespace libtorrent
 
 		int sequence_number() const { return m_sequence_number; }
 
+		bool seed_mode() const { return m_seed_mode; }
+		void leave_seed_mode(bool seed)
+		{
+			if (!m_seed_mode) return;
+			m_seed_mode = false;
+			// seed is false if we turned out not
+			// to be a seed after all
+			if (!seed) force_recheck();
+			m_num_verified = 0;
+			m_verified.free();
+		}
+		bool all_verified() const
+		{ return m_num_verified == m_torrent_file->num_pieces(); }
+		bool verified_piece(int piece) const
+		{
+			TORRENT_ASSERT(piece < int(m_verified.size()));
+			TORRENT_ASSERT(piece >= 0);
+			return m_verified.get_bit(piece);
+		}
+		void verified(int piece)
+		{
+			TORRENT_ASSERT(piece < int(m_verified.size()));
+			TORRENT_ASSERT(piece >= 0);
+			TORRENT_ASSERT(m_verified.get_bit(piece) == false);
+			++m_num_verified;
+			m_verified.set_bit(piece);
+		}
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
@@ -866,6 +867,14 @@ namespace libtorrent
 
 		fs::path m_save_path;
 
+		// each bit represents a piece. a set bit means
+		// the piece has had its hash verified. This
+		// is only used in seed mode (when m_seed_mode
+		// is true)
+		bitfield m_verified;
+		// m_num_verified = m_verified.count()
+		int m_num_verified;
+
 		// determines the storage state for this torrent.
 		storage_mode_t m_storage_mode;
 
@@ -1029,6 +1038,12 @@ namespace libtorrent
 		// is in use. i.e. one or more trackers are waiting
 		// for a reannounce
 		bool m_waiting_tracker:1;
+
+		// this means we haven't verified the file content
+		// of the files we're seeding. the m_verified bitfield
+		// indicates which pieces have been verified and which
+		// haven't
+		bool m_seed_mode:1;
 	};
 
 	inline ptime torrent::next_announce() const

@@ -1405,6 +1405,29 @@ ret:
 		m_io_thread.add_job(j, handler);
 	}
 
+	void piece_manager::async_read_and_hash(
+		peer_request const& r
+		, boost::function<void(int, disk_io_job const&)> const& handler
+		, int priority)
+	{
+		disk_io_job j;
+		j.storage = this;
+		j.action = disk_io_job::read_and_hash;
+		j.piece = r.piece;
+		j.offset = r.start;
+		j.buffer_size = r.length;
+		j.buffer = 0;
+		j.priority = priority;
+		TORRENT_ASSERT(r.length <= 16 * 1024);
+		m_io_thread.add_job(j, handler);
+#ifdef TORRENT_DEBUG
+		boost::recursive_mutex::scoped_lock l(m_mutex);
+		// if this assert is hit, it suggests
+		// that check_files was not successful
+		TORRENT_ASSERT(slot_for(r.piece) >= 0);
+#endif
+	}
+
 	void piece_manager::async_read(
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler

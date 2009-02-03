@@ -1882,23 +1882,8 @@ namespace aux {
 			if (pos >= queue_pos) queue_pos = pos + 1;
 		}
 
-		// create the torrent and the data associated with
-		// the checker thread and store it before starting
-		// the thread
-		if (params.ti)
-		{
-			torrent_ptr.reset(new torrent(*this, params.ti, params.save_path
-				, m_listen_interface, params.storage_mode, 16 * 1024
-				, params.storage, params.paused, params.resume_data
-				, queue_pos, params.auto_managed));
-		}
-		else
-		{
-			torrent_ptr.reset(new torrent(*this, params.tracker_url, *ih, params.name
-				, params.save_path, m_listen_interface, params.storage_mode, 16 * 1024
-				, params.storage, params.paused, params.resume_data
-				, queue_pos, params.auto_managed));
-		}
+		torrent_ptr.reset(new torrent(*this, m_listen_interface
+			, 16 * 1024, queue_pos, params));
 		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
