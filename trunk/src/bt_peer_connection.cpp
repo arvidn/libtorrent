@@ -443,6 +443,8 @@ namespace libtorrent
 
 		int pad_size = rand() % 512;
 
+		TORRENT_ASSERT(send_buffer_size() == m_encrypted_bytes);
+
 		// synchash,skeyhash,vc,crypto_provide,len(pad),pad,len(ia)
 		buffer::interval send_buf = 
 			allocate_send_buffer(20 + 20 + 8 + 4 + 2 + pad_size + 2);
@@ -506,7 +508,7 @@ namespace libtorrent
 		const int packet_size = 20 + 20 + 8 + 4 + 2 + pad_size + 2;
 		TORRENT_ASSERT(send_buffer_size() - packet_size == m_encrypted_bytes);
 		m_encrypted_bytes += packet_size;
-		TORRENT_ASSERT(m_encrypted_bytes <= send_buffer_size());
+		TORRENT_ASSERT(m_encrypted_bytes == send_buffer_size());
 #endif
 
 		TORRENT_ASSERT(send_buf.begin == send_buf.end);
@@ -524,6 +526,8 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_sent_handshake);
 
 		int pad_size =rand() % 512;
+
+		TORRENT_ASSERT(send_buffer_size() == m_encrypted_bytes);
 
 		const int buf_size = 8 + 4 + 2 + pad_size;
 		buffer::interval send_buf = allocate_send_buffer(buf_size);
@@ -636,7 +640,6 @@ namespace libtorrent
 			m_RC4_handler->encrypt(const_cast<char*>(buf), size);
 #ifdef TORRENT_DEBUG
 			m_encrypted_bytes += size;
-			TORRENT_ASSERT(m_encrypted_bytes <= send_buffer_size() + size);
 #endif
 		}
 		
@@ -680,6 +683,7 @@ namespace libtorrent
 	void bt_peer_connection::setup_send()
 	{
 		encrypt_pending_buffer();
+		TORRENT_ASSERT(!m_encrypted || !m_rc4_encrypted || m_encrypted_bytes == send_buffer_size());
 		peer_connection::setup_send();
 	}
 
@@ -2777,9 +2781,16 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		if (m_encrypted_bytes > 0)
 		{
-			m_encrypted_bytes -= bytes_transferred;
+			if (m_rc4_encrypted)
+			{
+				m_encrypted_bytes -= bytes_transferred;
+				TORRENT_ASSERT(m_encrypted_bytes >= 0);
+			}
+			else
+			{
+				m_encrypted_bytes -= (std::min)(int(bytes_transferred), m_encrypted_bytes);
+			}
 			TORRENT_ASSERT(m_encrypted_bytes >= 0);
-			TORRENT_ASSERT(m_encrypted_bytes <= send_buffer_size());
 		}
 #endif
 

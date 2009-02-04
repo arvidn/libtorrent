@@ -287,7 +287,7 @@ public:
 				m_RC4_handler->encrypt(buffer, size);
 #ifdef TORRENT_DEBUG
 				m_encrypted_bytes += size;
-				TORRENT_ASSERT(m_encrypted_bytes <= send_buffer_size() + size);
+				TORRENT_ASSERT(m_encrypted_bytes == send_buffer_size() + size);
 #endif
 			}
 #endif
