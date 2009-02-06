@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #endif
 
-#ifndef TORRENT_DISABLE_MLOCK
+#if !defined TORRENT_DISABLE_MLOCK && !defined TORRENT_WINDOWS
 #include <sys/mman.h>
 #endif
 
@@ -819,7 +819,7 @@ namespace libtorrent
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
 			TORRENT_ASSERT(p->blocks[i]);
-			ctx.update((char const*)p->blocks[i], std::min(piece_size, m_block_size));
+			ctx.update((char const*)p->blocks[i], (std::min)(piece_size, m_block_size));
 			piece_size -= m_block_size;
 		}
 		h = ctx.final();
