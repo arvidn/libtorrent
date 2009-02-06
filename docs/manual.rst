@@ -3253,6 +3253,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int seeding_piece_quota;
 
 		int max_sparse_regions;
+
+		bool lock_disk_cache;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3583,6 +3585,10 @@ limit is not hard, it will be exceeded. Once it's exceeded, pieces
 that will maintain or decrease the number of sparse regions are
 prioritized. To disable this functionality, set this to 0. It defaults
 to 0 on all platforms except windows.
+
+``lock_disk_cache`` if lock disk cache is set to true the disk cache
+that's in use, will be locked in physical memory, preventing it from
+being swapped out.
 
 pe_settings
 ===========

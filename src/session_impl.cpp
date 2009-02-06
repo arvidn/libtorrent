@@ -589,6 +589,9 @@ namespace aux {
 		bool update_disk_io_thread = false;
 		if (m_settings.cache_size != s.cache_size
 			|| m_settings.cache_expiry != s.cache_expiry
+#ifndef TORRENT_DISABLE_MLOCK
+			|| m_settings.lock_disk_cache != s.lock_disk_cache
+#endif
 			|| m_settings.use_read_cache != s.use_read_cache)
 			update_disk_io_thread = true;
 
