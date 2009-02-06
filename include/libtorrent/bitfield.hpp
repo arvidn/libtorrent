@@ -60,7 +60,7 @@ namespace libtorrent
 		~bitfield() { dealloc(); }
 
 		void assign(char const* bytes, int bits)
-		{ resize(bits); std::memcpy(m_bytes, bytes, (bits + 7) / 8); }
+		{ resize(bits); std::memcpy(m_bytes, bytes, (bits + 7) / 8); clear_trailing_bits(); }
 
 		bool operator[](int index) const
 		{ return get_bit(index); }
@@ -198,6 +198,7 @@ namespace libtorrent
 				if (old_size_bytes && b) m_bytes[old_size_bytes - 1] |= (0xff >> b);
 				if (old_size_bytes < new_size_bytes)
 					std::memset(m_bytes + old_size_bytes, 0xff, new_size_bytes - old_size_bytes);
+				clear_trailing_bits();
 			}
 			else
 			{
@@ -209,6 +210,7 @@ namespace libtorrent
 		void set_all()
 		{
 			std::memset(m_bytes, 0xff, (m_size + 7) / 8);
+			clear_trailing_bits();
 		}
 
 		void clear_all()
@@ -240,13 +242,18 @@ namespace libtorrent
 				m_own = true;
 			}
 			m_size = bits;
-			// clear the tail bits in the last byte
-			if (m_size && (bits & 7)) m_bytes[(m_size + 7) / 8 - 1] &= 0xff << (7 - (bits & 7));
+			clear_trailing_bits();
 		}
 
 		void free() { dealloc(); m_size = 0; }
 
 	private:
+
+		void clear_trailing_bits()
+		{
+			// clear the tail bits in the last byte
+			if (m_size & 7) m_bytes[(m_size + 7) / 8 - 1] &= 0xff << (8 - (m_size & 7));
+		}
 
 		void dealloc() { if (m_own) std::free(m_bytes); m_bytes = 0; }
 		unsigned char* m_bytes;
