@@ -1563,7 +1563,11 @@ namespace libtorrent
 
 		if (t->is_seed())
 		{
-			memset(i.begin, 0xff, packet_size - 5);
+			memset(i.begin, 0xff, packet_size - 6);
+
+			// Clear trailing bits
+			unsigned char *p = ((unsigned char *)i.begin) + packet_size - 6;
+			*p = (0xff << ((8 - (num_pieces & 7)) & 7)) & 0xff;
 		}
 		else
 		{
