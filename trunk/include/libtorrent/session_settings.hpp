@@ -156,6 +156,9 @@ namespace libtorrent
 #else
 			, max_sparse_regions(0)
 #endif
+#ifndef TORRENT_DISABLE_MLOCK
+			, lock_disk_cache(true)
+#endif
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -513,6 +516,13 @@ namespace libtorrent
 		// don't use unless you have to, it screws with rarest-first
 		// piece selection, and reduces swarm performance
 		int max_sparse_regions;
+
+#ifndef TORRENT_DISABLE_MLOCK
+		// if this is set to true, the memory allocated for the
+		// disk cache will be locked in physical RAM, never to
+		// be swapped out
+		bool lock_disk_cache;
+#endif
 	};
 
 #ifndef TORRENT_DISABLE_DHT

@@ -181,9 +181,13 @@ namespace libtorrent
 
 		void release_memory();
 
+	protected:
+
 		// number of bytes per block. The BitTorrent
 		// protocol defines the block size to 16 KiB.
 		const int m_block_size;
+
+		session_settings m_settings;
 
 	private:
 
@@ -306,8 +310,6 @@ namespace libtorrent
 		// exceed m_cache_size
 		cache_status m_cache_stats;
 		int m_num_cached_blocks;
-
-		session_settings m_settings;
 
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;

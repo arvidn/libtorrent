@@ -43,6 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #endif
 
+#ifndef TORRENT_DISABLE_MLOCK
+#include <sys/mman.h>
+#endif
+
 namespace libtorrent
 {
 	disk_buffer_pool::disk_buffer_pool(int block_size)
@@ -79,6 +83,17 @@ namespace libtorrent
 #else
 		char* ret = (char*)m_pool.ordered_malloc();
 #endif
+#ifndef TORRENT_DISABLE_MLOCK
+		if (m_settings.lock_disk_cache)
+		{
+#ifdef TORRENT_WINDOWS
+			VirtualLock(ret, m_block_size);
+#else
+			mlock(ret, m_block_size);
+#endif		
+		}
+#endif
+
 #ifdef TORRENT_STATS
 		++m_allocations;
 		++m_categories[category];
@@ -101,6 +116,16 @@ namespace libtorrent
 		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
 		m_buf_to_category.erase(buf);
 #endif
+#ifndef TORRENT_DISABLE_MLOCK
+		if (m_settings.lock_disk_cache)
+		{
+#ifdef TORRENT_WINDOWS
+			VirtualUnlock(buf, m_block_size);
+#else
+			munlock(buf, m_block_size);
+#endif		
+		}
+#endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		page_aligned_allocator::free(buf);
 #else
@@ -115,6 +140,16 @@ namespace libtorrent
 		char* ret = page_aligned_allocator::malloc(m_block_size * num_blocks);
 #else
 		char* ret = (char*)m_pool.ordered_malloc(num_blocks);
+#endif
+#ifndef TORRENT_DISABLE_MLOCK
+		if (m_settings.lock_disk_cache)
+		{
+#ifdef TORRENT_WINDOWS
+			VirtualLock(ret, m_block_size * num_blocks);
+#else
+			mlock(ret, m_block_size * num_blocks);
+#endif		
+		}
 #endif
 #ifdef TORRENT_STATS
 		m_allocations += num_blocks;
@@ -138,6 +173,16 @@ namespace libtorrent
 		m_categories[category] -= num_blocks;
 		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
 		m_buf_to_category.erase(buf);
+#endif
+#ifndef TORRENT_DISABLE_MLOCK
+		if (m_settings.lock_disk_cache)
+		{
+#ifdef TORRENT_WINDOWS
+			VirtualUnlock(buf, m_block_size * num_blocks);
+#else
+			munlock(buf, m_block_size * num_blocks);
+#endif		
+		}
 #endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		page_aligned_allocator::free(buf);
