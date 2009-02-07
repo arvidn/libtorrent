@@ -355,6 +355,9 @@ namespace libtorrent
 
 				if (error)
 				{
+#ifdef TORRENT_VERBOSE_LOGGING
+					(*m_logger) << "*** " << std::string(recv_buffer.begin, recv_buffer.end) << "\n";
+#endif
 					disconnect("failed to parse HTTP response", 2);
 					return;
 				}
@@ -408,6 +411,14 @@ namespace libtorrent
 			// we just completed reading the header
 			if (!header_finished)
 			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << "*** STATUS: " << m_parser.status_code()
+					<< " " << m_parser.message() << "\n";
+				std::map<std::string, std::string> const& headers = m_parser.headers();
+				for (std::map<std::string, std::string>::const_iterator i = headers.begin()
+					, end(headers.end()); i != end; ++i)
+					(*m_logger) << "   " << i->first << ": " << i->second << "\n";
+#endif
 				if (m_parser.status_code() >= 300 && m_parser.status_code() < 400)
 				{
 					// this means we got a redirection request
