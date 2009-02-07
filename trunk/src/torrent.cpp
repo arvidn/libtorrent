@@ -2924,14 +2924,13 @@ namespace libtorrent
 		}
 
 		int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
-		if (auto_managed_ != -1) auto_managed(auto_managed_);
+		if (auto_managed_ != -1) m_auto_managed = auto_managed_;
 
 		int sequential_ = rd.dict_find_int_value("sequential_download", -1);
 		if (sequential_ != -1) set_sequential_download(sequential_);
 
 		int paused_ = rd.dict_find_int_value("paused", -1);
-		if (paused_ == 1) pause();
-		else if (paused_ == 0) resume();
+		if (paused_ != -1) m_paused = paused_;
 
 		lazy_entry const* trackers = rd.dict_find_list("trackers");
 		if (trackers)
