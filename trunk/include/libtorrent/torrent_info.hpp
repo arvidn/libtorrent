@@ -157,7 +157,10 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	struct TORRENT_EXPORT invalid_torrent_file: std::exception
 	{
-		virtual const char* what() const throw() { return "invalid torrent file"; }
+		invalid_torrent_file(std::string const& s): m_error(s) {}
+		virtual const char* what() const throw() { return m_error.c_str(); }
+		virtual ~invalid_torrent_file() throw() {}
+		std::string m_error;
 	};
 #endif
 
