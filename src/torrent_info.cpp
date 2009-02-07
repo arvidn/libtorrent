@@ -295,7 +295,7 @@ namespace libtorrent
 		std::string error;
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(e, error))
-			throw invalid_torrent_file();
+			throw invalid_torrent_file(error);
 #else
 		parse_torrent_file(e, error);
 #endif
@@ -312,7 +312,7 @@ namespace libtorrent
 		std::string error;
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(torrent_file, error))
-			throw invalid_torrent_file();
+			throw invalid_torrent_file(error);
 #else
 		parse_torrent_file(torrent_file, error);
 #endif
@@ -330,7 +330,7 @@ namespace libtorrent
 		lazy_bdecode(buffer, buffer + size, e);
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(e, error))
-			throw invalid_torrent_file();
+			throw invalid_torrent_file(error);
 #else
 		parse_torrent_file(e, error);
 #endif
@@ -360,7 +360,7 @@ namespace libtorrent
 
 		if (buf.empty())
 #ifndef BOOST_NO_EXCEPTIONS
-			throw invalid_torrent_file();
+			throw invalid_torrent_file("file not found");
 #else
 			return;
 #endif
@@ -370,7 +370,7 @@ namespace libtorrent
 		std::string error;
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(e, error))
-			throw invalid_torrent_file();
+			throw invalid_torrent_file(error);
 #else
 		parse_torrent_file(e, error);
 #endif
@@ -389,7 +389,7 @@ namespace libtorrent
 
 		if (buf.empty())
 #ifndef BOOST_NO_EXCEPTIONS
-			throw invalid_torrent_file();
+			throw invalid_torrent_file("empty file");
 #else
 			return;
 #endif
@@ -399,7 +399,7 @@ namespace libtorrent
 		std::string error;
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(e, error))
-			throw invalid_torrent_file();
+			throw invalid_torrent_file(error);
 #else
 		parse_torrent_file(e, error);
 #endif

@@ -4643,7 +4643,7 @@ namespace libtorrent
 		// ---- WEB SEEDS ----
 
 		ptime now = time_now();
-		// re-insert urls that are to be retrieds into the m_web_seeds
+		// re-insert urls that are to be retried into the m_web_seeds
 		typedef std::map<web_seed_entry, ptime>::iterator iter_t;
 		for (iter_t i = m_web_seeds_next_retry.begin(); i != m_web_seeds_next_retry.end();)
 		{
