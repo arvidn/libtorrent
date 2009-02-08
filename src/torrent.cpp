@@ -656,7 +656,9 @@ namespace libtorrent
 		{
 			// either the fastresume data was rejected or there are
 			// some files
-			m_ses.check_torrent(shared_from_this());
+			set_state(torrent_status::queued_for_checking);
+			if (should_check_files())
+				m_ses.check_torrent(shared_from_this());
 		}
 
 		std::vector<char>().swap(m_resume_data);
