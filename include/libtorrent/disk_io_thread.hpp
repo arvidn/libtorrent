@@ -309,7 +309,6 @@ namespace libtorrent
 		// and the write cache. This is not supposed to
 		// exceed m_cache_size
 		cache_status m_cache_stats;
-		int m_num_cached_blocks;
 
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
