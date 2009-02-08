@@ -3583,12 +3583,18 @@ namespace libtorrent
 			// assert that there's a torrent that is being
 			// processed right now
 			int found = 0;
+			int found_active = 0;
 			for (aux::session_impl::torrent_map::iterator i = m_ses.m_torrents.begin()
 				, end(m_ses.m_torrents.end()); i != end; ++i)
-				if (i->second->m_state == torrent_status::checking_files) ++found;
+				if (i->second->m_state == torrent_status::checking_files)
+				{
+					++found;
+					if (i->second->should_check_files()) ++found_active;
+				}
 			// the case of 2 is in the special case where one switches over from
 			// checking to complete
-			TORRENT_ASSERT(found == 1 || found == 2);
+			TORRENT_ASSERT(found_active == 1 || found_active == 2);
+			TORRENT_ASSERT(found >= 1);
 		}
 
 		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t
