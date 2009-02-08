@@ -714,6 +714,9 @@ namespace libtorrent
 		void update_peer_interest(bool was_finished);
 		void prioritize_udp_trackers();
 
+		void queue_torrent_check();
+		void dequeue_torrent_check();
+
 		policy m_policy;
 
 		// total time we've been available on this torrent
@@ -1029,6 +1032,10 @@ namespace libtorrent
 		// before the files are checked, we don't try to
 		// connect to peers
 		bool m_files_checked:1;
+
+		// this is true if the torrent has been added to
+		// checking queue in the session
+		bool m_queued_for_checking:1;
 
 		// this is true while tracker announcing is enabled
 		// is is disabled while paused and checking files
