@@ -487,15 +487,15 @@ namespace libtorrent
 			if (error && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 			{
 				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), error));
+			}
+
+			if (error)
+			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*m_ses.m_logger) << "fastresume data for "
 					<< torrent_file().name() << " rejected: "
 					<< error << "\n";
 #endif
-			}
-
-			if (error)
-			{
 				std::vector<char>().swap(m_resume_data);
 				lazy_entry().swap(m_resume_entry);
 			}
