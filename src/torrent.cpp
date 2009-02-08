@@ -186,6 +186,7 @@ namespace libtorrent
 		, m_super_seeding(false)
 		, m_has_incoming(false)
 		, m_files_checked(false)
+		, m_queued_for_checking(false)
 		, m_announcing(false)
 		, m_waiting_tracker(false)
 		, m_seed_mode(p.seed_mode && m_torrent_file->is_valid())
@@ -753,11 +754,25 @@ namespace libtorrent
 			// some files
 			set_state(torrent_status::queued_for_checking);
 			if (should_check_files())
-				m_ses.check_torrent(shared_from_this());
+				queue_torrent_check();
 		}
 
 		std::vector<char>().swap(m_resume_data);
 		lazy_entry().swap(m_resume_entry);
+	}
+
+	void torrent::queue_torrent_check()
+	{
+		if (m_queued_for_checking) return;
+		m_queued_for_checking = true;
+		m_ses.check_torrent(shared_from_this());
+	}
+
+	void torrent::dequeue_torrent_check()
+	{
+		if (!m_queued_for_checking) return;
+		m_queued_for_checking = false;
+		m_ses.done_checking(shared_from_this());
 	}
 
 	void torrent::force_recheck()
@@ -824,7 +839,7 @@ namespace libtorrent
 		if (!is_torrent_paused() || is_auto_managed())
 		{
 			set_state(torrent_status::queued_for_checking);
-			m_ses.check_torrent(shared_from_this());
+			queue_torrent_check();
 		}
 	}
 
@@ -1851,7 +1866,7 @@ namespace libtorrent
 		
 		if (m_state == torrent_status::checking_files)
 		{
-			m_ses.done_checking(shared_from_this());
+			dequeue_torrent_check();
 			set_state(torrent_status::queued_for_checking);
 		}
 		
@@ -4288,7 +4303,7 @@ namespace libtorrent
 			m_ses.m_auto_manage_time_scaler = 2;
 		m_error.clear();
 		if (!checking_files && should_check_files())
-			m_ses.check_torrent(shared_from_this());
+			queue_torrent_check();
 	}
 
 	void torrent::set_error(std::string const& msg)
@@ -4299,7 +4314,7 @@ namespace libtorrent
 		{
 			// stop checking
 			m_storage->abort_disk_io();
-			m_ses.done_checking(shared_from_this());
+			dequeue_torrent_check();
 			set_state(torrent_status::queued_for_checking);
 		}
 	}
@@ -4316,12 +4331,14 @@ namespace libtorrent
 		m_ses.m_auto_manage_time_scaler = 0;
 
 		if (!checking_files && should_check_files())
-			m_ses.check_torrent(shared_from_this());
+		{
+			queue_torrent_check();
+		}
 		else if (checking_files && !should_check_files())
 		{
 			// stop checking
 			m_storage->abort_disk_io();
-			m_ses.done_checking(shared_from_this());
+			dequeue_torrent_check();
 			set_state(torrent_status::queued_for_checking);
 		}
 	}
@@ -4445,7 +4462,7 @@ namespace libtorrent
 		{
 			// stop checking
 			m_storage->abort_disk_io();
-			m_ses.done_checking(shared_from_this());
+			dequeue_torrent_check();
 			set_state(torrent_status::queued_for_checking);
 		}
 	}
@@ -4504,7 +4521,7 @@ namespace libtorrent
 		m_paused = false;
 		do_resume();
 		if (!checking_files && should_check_files())
-			m_ses.check_torrent(shared_from_this());
+			queue_torrent_check();
 	}
 
 	void torrent::do_resume()
