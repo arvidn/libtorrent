@@ -56,6 +56,8 @@ release 0.14.2
 	  wrong order, for encrypted connections.
 	* fixed race condition where torrents could get stuck waiting to
 	  get checked
+	* fixed mapped files bug where it wouldn't be properly restored
+	  from resume data properly
 
 release 0.14.1
 

@@ -536,13 +536,17 @@ void test_rename_file_in_fastresume(path const& test_path)
 
 		h.rename_file(0, "testing_renamed_files");
 		std::cout << "renaming file" << std::endl;
+		bool renamed = false;
 		for (int i = 0; i < 100; ++i)
 		{
-			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) break;
+			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) renamed = true;
 			test_sleep(1000);
 			torrent_status s = h.status();
+			if (s.state == torrent_status::seeding && renamed) return;
 		}
 		std::cout << "stop loop" << std::endl;
+		torrent_status s = h.status();
+		TEST_CHECK(s.state == torrent_status::seeding);
 		resume = h.write_resume_data();
 		ses.remove_torrent(h);
 	}
@@ -565,7 +569,12 @@ void test_rename_file_in_fastresume(path const& test_path)
 		}
 		torrent_status stat = h.status();
 		TEST_CHECK(stat.state == torrent_status::seeding);
+
+		resume = h.write_resume_data();
+		ses.remove_torrent(h);
 	}
+	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
+	resume.print(std::cout);
 	remove_all(test_path / "tmp2");
 }
 

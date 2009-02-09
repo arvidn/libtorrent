@@ -1867,6 +1867,9 @@ namespace libtorrent
 		
 		dequeue_torrent_check();
 
+		if (m_state == torrent_status::checking_files)
+			set_state(torrent_status::queued_for_checking);
+
 		m_owning_storage = 0;
 		m_host_resolver.cancel();
 	}
@@ -2978,7 +2981,7 @@ namespace libtorrent
 			{
 				std::string new_filename = mapped_files->list_string_value_at(i);
 				if (new_filename.empty()) continue;
-				m_torrent_file->rename_file(i, new_filename);
+				rename_file(i, new_filename);
 			}
 		}
 
