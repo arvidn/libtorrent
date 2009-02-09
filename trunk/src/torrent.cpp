@@ -836,11 +836,9 @@ namespace libtorrent
 			pause();
 			return;
 		}
-		if (!is_torrent_paused() || is_auto_managed())
-		{
-			set_state(torrent_status::queued_for_checking);
+		set_state(torrent_status::queued_for_checking);
+		if (should_check_files())
 			queue_torrent_check();
-		}
 	}
 
 	void torrent::start_checking()
@@ -860,6 +858,7 @@ namespace libtorrent
 
 		if (ret == piece_manager::disk_check_aborted)
 		{
+			dequeue_torrent_check();
 			return;
 		}
 		if (ret == piece_manager::fatal_disk_error)
@@ -890,7 +889,7 @@ namespace libtorrent
 		// we're done, or encounter a failure
 		if (ret == piece_manager::need_full_check) return;
 
-		if (!m_abort) m_ses.done_checking(shared_from_this());
+		dequeue_torrent_check();
 		files_checked();
 	}
 
@@ -1838,6 +1837,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		if (m_abort) return;
+
 		m_abort = true;
 		// if the torrent is paused, it doesn't need
 		// to announce with even=stopped again.
@@ -1864,12 +1865,8 @@ namespace libtorrent
 			m_storage->abort_disk_io();
 		}
 		
-		if (m_state == torrent_status::checking_files)
-		{
-			dequeue_torrent_check();
-			set_state(torrent_status::queued_for_checking);
-		}
-		
+		dequeue_torrent_check();
+
 		m_owning_storage = 0;
 		m_host_resolver.cancel();
 	}
@@ -3852,7 +3849,6 @@ namespace libtorrent
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		
 		TORRENT_ASSERT(m_torrent_file->is_valid());
-		INVARIANT_CHECK;
 
 		if (m_abort) return;
 
@@ -3861,6 +3857,8 @@ namespace libtorrent
 		// filtered, we're finished when we start.
 		if (m_state != torrent_status::finished)
 			set_state(torrent_status::downloading);
+
+		INVARIANT_CHECK;
 
 		if (m_ses.m_alerts.should_post<torrent_checked_alert>())
 		{
@@ -4004,6 +4002,8 @@ namespace libtorrent
 
 		if (!should_check_files())
 			TORRENT_ASSERT(m_state != torrent_status::checking_files);
+		else
+			TORRENT_ASSERT(m_queued_for_checking);
 
 		if (!m_ses.m_queued_for_checking.empty())
 		{
@@ -4021,7 +4021,8 @@ namespace libtorrent
 				}
 			// the case of 2 is in the special case where one switches over from
 			// checking to complete.
-			TORRENT_ASSERT(found_active == 1 || found_active == 2);
+			TORRENT_ASSERT(found_active >= 1);
+			TORRENT_ASSERT(found_active <= 2);
 			TORRENT_ASSERT(found >= 1);
 		}
 
@@ -4440,8 +4441,9 @@ namespace libtorrent
 	{
 		return (m_state == torrent_status::checking_files
 			|| m_state == torrent_status::queued_for_checking)
-			&& (!is_paused() || m_auto_managed)
-			&& m_error.empty();
+			&& (!m_paused || m_auto_managed)
+			&& m_error.empty()
+			&& !m_abort;
 	}
 
 	bool torrent::is_paused() const
@@ -4456,8 +4458,8 @@ namespace libtorrent
 		if (m_paused) return;
 		bool checking_files = should_check_files();
 		m_paused = true;
-		if (m_ses.is_paused()) return;
-		do_pause();
+		if (!m_ses.is_paused())
+			do_pause();
 		if (checking_files && !should_check_files())
 		{
 			// stop checking
@@ -5001,6 +5003,9 @@ namespace libtorrent
 	void torrent::set_state(torrent_status::state_t s)
 	{
 #ifdef TORRENT_DEBUG
+		if (s != torrent_status::checking_files
+			&& s != torrent_status::queued_for_checking)
+			TORRENT_ASSERT(!m_queued_for_checking);
 		if (s == torrent_status::seeding)
 			TORRENT_ASSERT(is_seed());
 		if (s == torrent_status::finished)
