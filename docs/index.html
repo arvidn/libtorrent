@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
 <title></title>
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
 <link rel="stylesheet" type="text/css" href="../../css/rst.css" />
@@ -32,47 +32,48 @@
 
 
 <div id="librarySidebar"><ul class="simple">
-<li><a class="reference" href="http://sourceforge.net/project/showfiles.php?group_id=79942">download</a></li>
-<li><a class="reference" href="features.html">features</a></li>
-<li><a class="reference" href="building.html">building libtorrent</a></li>
-<li><a class="reference" href="examples.html">examples</a></li>
-<li><a class="reference" href="manual.html">api documentation</a></li>
-<li><a class="reference" href="make_torrent.html">create torrents</a></li>
-<li><a class="reference" href="running_tests.html">running tests</a></li>
-<li><a class="reference" href="client_test.png">screenshot</a></li>
-<li><a class="reference" href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a> (<a class="reference" href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">archive</a>)</li>
-<li><a class="reference" href="projects.html">who's using libtorrent?</a></li>
-<li><a class="reference" href="http://code.rasterbar.com/libtorrent/newticket">report bugs</a></li>
-<li><a class="reference" href="http://www.sourceforge.net/projects/libtorrent">sourceforge page</a></li>
-<li><a class="reference" href="http://code.rasterbar.com/libtorrent">wiki</a></li>
+<li><a class="reference external" href="http://sourceforge.net/project/showfiles.php?group_id=79942">download</a></li>
+<li><a class="reference external" href="features.html">features</a></li>
+<li><a class="reference external" href="building.html">building libtorrent</a></li>
+<li><a class="reference external" href="examples.html">examples</a></li>
+<li><a class="reference external" href="manual.html">api documentation</a></li>
+<li><a class="reference external" href="make_torrent.html">create torrents</a></li>
+<li><a class="reference external" href="running_tests.html">running tests</a></li>
+<li><a class="reference external" href="client_test.png">screenshot</a></li>
+<li><a class="reference external" href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a> (<a class="reference external" href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">archive</a>)</li>
+<li><a class="reference external" href="projects.html">who's using libtorrent?</a></li>
+<li><a class="reference external" href="http://code.rasterbar.com/libtorrent/newticket">report bugs</a></li>
+<li><a class="reference external" href="http://www.sourceforge.net/projects/libtorrent">sourceforge page</a></li>
+<li><a class="reference external" href="http://code.rasterbar.com/libtorrent">wiki</a></li>
 </ul>
 <hr class="docutils" />
 <p>Extensions</p>
 <ul class="simple">
-<li><a class="reference" href="extension_protocol.html">extensions protocol</a></li>
-<li><a class="reference" href="libtorrent_plugins.html">plugin interface</a></li>
-<li><a class="reference" href="dht_extensions.html">DHT extensions</a></li>
-<li><a class="reference" href="udp_tracker_protocol.html">UDP tracker protocol</a></li>
-<li><a class="reference" href="http://www.getright.com/seedtorrent.html">HTTP seed</a></li>
-<li><a class="reference" href="http://home.elp.rr.com/tur/multitracker-spec.txt">multitracker</a></li>
+<li><a class="reference external" href="extension_protocol.html">extensions protocol</a></li>
+<li><a class="reference external" href="libtorrent_plugins.html">plugin interface</a></li>
+<li><a class="reference external" href="dht_extensions.html">DHT extensions</a></li>
+<li><a class="reference external" href="udp_tracker_protocol.html">UDP tracker protocol</a></li>
+<li><a class="reference external" href="http://www.getright.com/seedtorrent.html">HTTP seed</a></li>
+<li><a class="reference external" href="http://home.elp.rr.com/tur/multitracker-spec.txt">multitracker</a></li>
 </ul>
 <hr class="docutils" />
 <p>Bindings</p>
 <ul class="simple">
-<li><a class="reference" href="http://libtorrent-ruby.rubyforge.org/">ruby bindings</a></li>
-<li><a class="reference" href="python_binding.html">python bindings</a></li>
+<li><a class="reference external" href="http://libtorrent-ruby.rubyforge.org/">ruby bindings</a></li>
+<li><a class="reference external" href="python_binding.html">python bindings</a></li>
 </ul>
 <hr class="docutils" />
 <ul class="simple">
-<li><a class="reference" href="bittorrent.pdf">Introduction, slides</a></li>
+<li><a class="reference external" href="bittorrent.pdf">Introduction, slides</a></li>
 </ul>
 </div>
 <div id="libraryBody"><div class="section" id="libtorrent">
 <h1>libtorrent</h1>
-<p>libtorrent is a C++ library that aims to be a good alternative to all the
-other bittorrent implementations around. It is a
-library and not a full featured client, although it comes with a working
-<a class="reference" href="client_test.html">example client</a>.</p>
+<p>libtorrent is a feature complete C++ bittorrent implementation focusing
+on efficiency and scalability. It runs on embedded devices as well as
+desktops. It boasts a well documented library interface that is easy to
+use. It comes with a <a class="reference external" href="client_test.html">simple bittorrent client</a> demonstrating the use of
+the library.</p>
 <p>The main goals of libtorrent are:</p>
 <ul class="simple">
 <li>to be cpu efficient</li>
@@ -94,16 +95,28 @@ library and not a full featured client, although it comes with a working
 </form></div>
 <div class="section" id="feedback">
 <h2>Feedback</h2>
-<p>There's a <a class="reference" href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a>, general libtorrent discussion.</p>
+<p>There's a <a class="reference external" href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a>, general libtorrent discussion.</p>
 <p>You can usually find me as hydri in <tt class="docutils literal"><span class="pre">#libtorrent</span></tt> on <tt class="docutils literal"><span class="pre">irc.freenode.net</span></tt>.</p>
+</div>
+<div class="section" id="license">
+<h2>license</h2>
+<p>libtorrent is released under the <a class="reference external" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
+<p>This means that you can use the library in your project without having to
+release its source code. The only requirement is that you give credit
+to the author of the library by including the libtorrent license in your
+software or documentation.</p>
+<p>It is however greatly appreciated if additional features are contributed
+back to the open source project. Patches can be emailed to the mailing
+list or posted to the <a class="reference external" href="http://code.rasterbar.com/libtorrent/newticket">bug tracker</a>.</p>
 </div>
 <div class="section" id="acknowledgements">
 <h2>Acknowledgements</h2>
-<p>Written by Arvid Norberg. Copyright (c) 2003-2006</p>
+<p>Written by Arvid Norberg. Copyright © 2003-2009</p>
 <p>Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson</p>
 <p>Thanks to Reimond Retz for bugfixes, suggestions and testing</p>
+<p>Thanks to <a class="reference external" href="http://www.cs.umu.se">Umeå University</a> for providing development and test hardware.</p>
 <p>Project is hosted by sourceforge.</p>
-<p><a class="reference" href="http://sourceforge.net"><img alt="sf_logo" src="http://sourceforge.net/sflogo.php?group_id=7994" /></a></p>
+<p><a class="reference external" href="http://sourceforge.net"><img alt="sf_logo" src="http://sourceforge.net/sflogo.php?group_id=7994" /></a></p>
 </div></div>
 </div>
     </div>
