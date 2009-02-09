@@ -75,17 +75,20 @@ The ``session`` class has the following synopsis::
 		session(fingerprint const& print
 			= libtorrent::fingerprint(
 			"LT", 0, 1, 0, 0)
-			, int flags = start_default_features | add_default_plugins
+			, int flags = start_default_features
+				| add_default_plugins
 			, int alert_mask = alert::error_notification);
 
 		session(
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = 0
-			, int flags = start_default_features | add_default_plugins
+			, int flags = start_default_features 
+				| add_default_plugins
 			, int alert_mask = alert::error_notification);
 
-		torrent_handle add_torrent(add_torrent_params const& params);
+		torrent_handle add_torrent(
+			add_torrent_params const& params);
 
 		void pause();
 		void resume();
@@ -105,7 +108,8 @@ The ``session`` class has the following synopsis::
 			start_default_features = 2
 		};
 
-		void remove_torrent(torrent_handle const& h, int options = none);
+		void remove_torrent(torrent_handle const& h
+			, int options = none);
 		torrent_handle find_torrent(sha_hash const& ih);
 		std::vector<torrent_handle> get_torrents() const;
 
@@ -156,7 +160,8 @@ The ``session`` class has the following synopsis::
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
 		void set_alert_mask(int m);
-		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
+		size_t set_alert_queue_size_limit(
+			size_t queue_size_limit_);
 
 		void add_extension(boost::function<
 			boost::shared_ptr<torrent_plugin>(torrent*)> ext);
@@ -191,13 +196,15 @@ session()
 
 		session(fingerprint const& print
 			= libtorrent::fingerprint("LT", 0, 1, 0, 0)
-			, int flags = start_default_features | add_default_plugins
+			, int flags = start_default_features
+				| add_default_plugins
 			, int alert_mask = alert::error_notification);
 
 		session(fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = 0
-			, int flags = start_default_features | add_default_plugins
+			, int flags = start_default_features
+				| add_default_plugins
 			, int alert_mask = alert::error_notification);
 
 If the fingerprint in the first overload is omited, the client will get a default
@@ -5663,30 +5670,4 @@ altogether. You can use::
 for example. For more information, see the `Boost.Filesystem docs`__.
 
 __ http://www.boost.org/libs/filesystem/doc/index.htm
-
-
-acknowledgments
-===============
-
-Written by Arvid Norberg. Copyright |copy| 2003-2008
-
-Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
-
-Lots of testing, suggestions and contributions by Massaroddel and Tianhao Qiu.
-
-Big thanks to Michael Wojciechowski and Peter Koeleman for making the autotools
-scripts.
-
-Thanks to Reimond Retz for bugfixes, suggestions and testing
-
-Thanks to `University of Umeå`__ for providing development and test hardware.
-
-Project is hosted by sourceforge.
-
-.. raw: html
-	
-	<a href="http://sourceforge.net"><img src="http://sourceforge.net/sflogo.php?group_id=7994"/></a>
-
-.. |copy| unicode:: 0xA9 .. copyright sign
-__ http://www.cs.umu.se
 
