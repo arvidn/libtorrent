@@ -81,7 +81,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_status
 	{
 		torrent_status()
-			: state(queued_for_checking)
+			: state(checking_resume_data)
 			, paused(false)
 			, progress(0.f)
 			, total_download(0)
@@ -130,7 +130,8 @@ namespace libtorrent
 			downloading,
 			finished,
 			seeding,
-			allocating
+			allocating,
+			checking_resume_data
 		};
 		
 		state_t state;

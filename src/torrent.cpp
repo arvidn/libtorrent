@@ -170,7 +170,7 @@ namespace libtorrent
 		, m_net_interface(net_interface.address(), 0)
 		, m_save_path(complete(save_path))
 		, m_storage_mode(storage_mode)
-		, m_state(torrent_status::queued_for_checking)
+		, m_state(torrent_status::checking_resume_data)
 		, m_settings(ses.settings())
 		, m_storage_constructor(sc)
 		, m_progress(0.f)
@@ -252,7 +252,7 @@ namespace libtorrent
 		, m_net_interface(net_interface.address(), 0)
 		, m_save_path(complete(save_path))
 		, m_storage_mode(storage_mode)
-		, m_state(torrent_status::queued_for_checking)
+		, m_state(torrent_status::checking_resume_data)
 		, m_settings(ses.settings())
 		, m_storage_constructor(sc)
 		, m_progress(0.f)
@@ -471,7 +471,7 @@ namespace libtorrent
 		std::copy(url_seeds.begin(), url_seeds.end(), std::inserter(m_web_seeds
 			, m_web_seeds.begin()));
 
-		set_state(torrent_status::queued_for_checking);
+		set_state(torrent_status::checking_resume_data);
 
 		if (m_resume_entry.type() == lazy_entry::dict_t)
 		{
@@ -683,8 +683,10 @@ namespace libtorrent
 
 	void torrent::force_recheck()
 	{
-		if (m_state == torrent_status::checking_files
-			|| m_state == torrent_status::queued_for_checking)
+		// if the torrent is already queued to check its files
+		// don't do anything
+		if (should_check_files()
+			|| m_state == torrent_status::checking_resume_data)
 			return;
 
 		disconnect_all();
@@ -699,7 +701,7 @@ namespace libtorrent
 			, int((m_torrent_file->total_size()+m_block_size-1)/m_block_size));
 		// assume that we don't have anything
 		m_files_checked = false;
-		set_state(torrent_status::queued_for_checking);
+		set_state(torrent_status::checking_resume_data);
 
 		if (m_auto_managed)
 			set_queue_position((std::numeric_limits<int>::max)());
@@ -731,7 +733,9 @@ namespace libtorrent
 			pause();
 			return;
 		}
-		queue_torrent_check();
+		set_state(torrent_status::queued_for_checking);
+		if (should_check_files())
+			queue_torrent_check();
 	}
 
 	void torrent::start_checking()
@@ -782,7 +786,7 @@ namespace libtorrent
 		// we're done, or encounter a failure
 		if (ret == piece_manager::need_full_check) return;
 
-		if (!m_abort) m_ses.done_checking(shared_from_this());
+		dequeue_torrent_check();
 		files_checked();
 	}
 
@@ -1603,6 +1607,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		if (m_abort) return;
+
 		m_abort = true;
 		// if the torrent is paused, it doesn't need
 		// to announce with even=stopped again.
@@ -1629,8 +1635,7 @@ namespace libtorrent
 			m_storage->abort_disk_io();
 		}
 		
-		if (m_state == torrent_status::checking_files)
-			m_ses.done_checking(shared_from_this());
+		dequeue_torrent_check();
 		
 		m_owning_storage = 0;
 		m_host_resolver.cancel();
@@ -3038,7 +3043,8 @@ namespace libtorrent
 		m_has_incoming = true;
 
 		if ((m_state == torrent_status::queued_for_checking
-			|| m_state == torrent_status::checking_files)
+			|| m_state == torrent_status::checking_files
+			|| m_state == torrent_status::checking_resume_data)
 			&& valid_metadata())
 		{
 			p->disconnect("torrent is not ready to accept peers");
@@ -3107,6 +3113,7 @@ namespace libtorrent
 		return int(m_connections.size()) < m_max_connections
 			&& !is_paused()
 			&& m_state != torrent_status::checking_files
+			&& m_state != torrent_status::checking_resume_data
 			&& (m_state != torrent_status::queued_for_checking
 				|| !valid_metadata())
 			&& m_policy.num_connect_candidates() > 0
@@ -3436,7 +3443,6 @@ namespace libtorrent
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		
 		TORRENT_ASSERT(m_torrent_file->is_valid());
-		INVARIANT_CHECK;
 
 		if (m_abort) return;
 
@@ -3444,6 +3450,8 @@ namespace libtorrent
 		// not switch to downloading mode.
 		if (m_state != torrent_status::finished)
 			set_state(torrent_status::downloading);
+
+		INVARIANT_CHECK;
 
 		if (m_ses.m_alerts.should_post<torrent_checked_alert>())
 		{
@@ -3577,6 +3585,11 @@ namespace libtorrent
 
 		if (is_paused()) TORRENT_ASSERT(num_peers() == 0);
 
+		if (!should_check_files())
+			TORRENT_ASSERT(m_state != torrent_status::checking_files);
+		else
+			TORRENT_ASSERT(m_queued_for_checking);
+  
 		if (!m_ses.m_queued_for_checking.empty())
 		{
 			// if there are torrents waiting to be checked
@@ -3593,7 +3606,8 @@ namespace libtorrent
 				}
 			// the case of 2 is in the special case where one switches over from
 			// checking to complete
-			TORRENT_ASSERT(found_active == 1 || found_active == 2);
+			TORRENT_ASSERT(found_active >= 1);
+			TORRENT_ASSERT(found_active <= 2);
 			TORRENT_ASSERT(found >= 1);
 		}
 
@@ -3981,7 +3995,8 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_storage);
 			if (m_state == torrent_status::queued_for_checking
-				|| m_state == torrent_status::checking_files)
+				|| m_state == torrent_status::checking_files
+				|| m_state == torrent_status::checking_resume_data)
 			{
 				if (alerts().should_post<save_resume_data_failed_alert>())
 				{
@@ -4009,8 +4024,9 @@ namespace libtorrent
 	{
 		return (m_state == torrent_status::checking_files
 			|| m_state == torrent_status::queued_for_checking)
-			&& (!is_paused() || m_auto_managed)
-			&& m_error.empty();
+			&& (!m_paused || m_auto_managed)
+			&& m_error.empty()
+			&& !m_abort;
 	}
 
 	bool torrent::is_paused() const
@@ -4025,8 +4041,8 @@ namespace libtorrent
 		if (m_paused) return;
 		bool checking_files = should_check_files();
 		m_paused = true;
-		if (m_ses.is_paused()) return;
-		do_pause();
+		if (!m_ses.is_paused())
+			do_pause();
 		if (checking_files && !should_check_files())
 		{
 			// stop checking
@@ -4513,6 +4529,9 @@ namespace libtorrent
 	void torrent::set_state(torrent_status::state_t s)
 	{
 #ifdef TORRENT_DEBUG
+		if (s != torrent_status::checking_files
+			&& s != torrent_status::queued_for_checking)
+			TORRENT_ASSERT(!m_queued_for_checking);
 		if (s == torrent_status::seeding)
 			TORRENT_ASSERT(is_seed());
 		if (s == torrent_status::finished)
@@ -4612,6 +4631,9 @@ namespace libtorrent
 		// if we don't have any metadata, stop here
 
 		st.state = m_state;
+		// for backwards compatibility
+		if (st.state == torrent_status::checking_resume_data)
+			st.state = torrent_status::queued_for_checking;
 
 		if (!valid_metadata())
 		{
