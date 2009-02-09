@@ -54,6 +54,8 @@ release 0.14.2
 	* added support for SunPro C++ compiler
 	* fixed bug where messeges sometimes could be encrypted in the
 	  wrong order, for encrypted connections.
+	* fixed race condition where torrents could get stuck waiting to
+	  get checked
 
 release 0.14.1
 
