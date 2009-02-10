@@ -2738,10 +2738,6 @@ namespace libtorrent
 		}
 #endif
 
-		// add the newly connected peer to this torrent's peer list
-		m_connections.insert(boost::get_pointer(c));
-		m_ses.m_connections.insert(c);
-
 #ifndef BOOST_NO_EXCEPTIONS
 		try
 		{
