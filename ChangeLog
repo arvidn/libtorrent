@@ -58,6 +58,7 @@ release 0.14.2
 	  get checked
 	* fixed mapped files bug where it wouldn't be properly restored
 	  from resume data properly
+	* removed locale dependency in xml parser (caused asserts on windows)
 
 release 0.14.1
 
