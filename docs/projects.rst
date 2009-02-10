@@ -119,6 +119,34 @@ project listed here, let me_ know.
 
 .. container:: entry
 
+	.. image:: flush.jpg
+		:align: right
+		:target: Flush_
+
+	**Flush**
+
+	Flush_ is a GTK-based BitTorrent client.
+
+	.. _Flush: https://sourceforge.net/projects/flush/
+
+
+
+.. container:: entry
+
+	.. image:: pump.png
+		:align: right
+		:target: Pump_
+
+	**Pump**
+
+	Pump_ Pump brings together all the main features you need in order to find
+	content online and enjoy it on your PC and on your Mobile.
+
+	.. _Pump: http://pump.vipeers.com/
+
+
+.. container:: entry
+
 	.. image:: lince.png
 		:align: right
 		:target: Lince_
