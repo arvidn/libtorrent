@@ -202,6 +202,11 @@ the POSIX clock functions. If you get an error complaining about a missing
 symbol <tt class="docutils literal"><span class="pre">clock_gettime</span></tt>, you have to give <tt class="docutils literal"><span class="pre">need-librt=yes</span></tt> on the
 bjam command line. This will make libtorrent link against <tt class="docutils literal"><span class="pre">librt</span></tt>.</p>
 </div>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">When building on Solaris, you might have to specify <tt class="docutils literal"><span class="pre">stdlib=sun-stlport</span></tt>
+on the bjam command line.</p>
+</div>
 <p>The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.</p>
 <p>To build the examples, just change directory to the examples directory and
