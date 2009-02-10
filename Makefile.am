@@ -36,6 +36,10 @@ docs/electric_sheep_thumb.jpg \
 docs/moopolice_thumb.gif \
 docs/qbittorrent_thumb.jpg \
 docs/ziptorrent_thumb.gif \
+docs/flush.jpg \
+docs/pump.png \
+docs/bubba.png \
+docs/firetorrent.png \
 docs/unicode_support.png docs/client_test.png docs/style.css Jamfile project-root.jam \
 libtorrent-rasterbar.pc \
 bindings/README.txt \
