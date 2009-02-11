@@ -345,30 +345,29 @@ void http_connection::on_connect(error_code const& e)
 
 void http_connection::callback(error_code const& e, char const* data, int size)
 {
-	if (!m_bottled || !m_called)
+	if (m_bottled && m_called) return;
+
+	std::vector<char> buf;
+	if (m_bottled && m_parser.header_finished())
 	{
-		std::vector<char> buf;
-		if (m_bottled && m_parser.header_finished())
+		std::string const& encoding = m_parser.header("content-encoding");
+		if (encoding == "gzip" || encoding == "x-gzip")
 		{
-			std::string const& encoding = m_parser.header("content-encoding");
-			if (encoding == "gzip" || encoding == "x-gzip")
+			std::string error;
+			if (inflate_gzip(data, size, buf, max_bottled_buffer, error))
 			{
-				std::string error;
-				if (inflate_gzip(data, size, buf, max_bottled_buffer, error))
-				{
-					if (m_handler) m_handler(asio::error::fault, m_parser, data, size, *this);
-					close();
-					return;
-				}
-				data = &buf[0];
-				size = int(buf.size());
+				if (m_handler) m_handler(asio::error::fault, m_parser, data, size, *this);
+				close();
+				return;
 			}
+			data = &buf[0];
+			size = int(buf.size());
 		}
-		m_called = true;
-		error_code ec;
-		m_timer.cancel(ec);
-		if (m_handler) m_handler(e, m_parser, data, size, *this);
 	}
+	m_called = true;
+	error_code ec;
+	m_timer.cancel(ec);
+	if (m_handler) m_handler(e, m_parser, data, size, *this);
 }
 
 void http_connection::on_write(error_code const& e)
