@@ -409,8 +409,11 @@ void http_connection::on_read(error_code const& e
 		TORRENT_ASSERT(m_download_quota >= 0);
 	}
 
-	if (e == asio::error::eof)
+	// when using the asio SSL wrapper, it seems like
+	// we get the shut_down error instead of EOF
+	if (e == asio::error::eof || e == asio::error::shut_down)
 	{
+		error_code ec = asio::error::eof;
 		TORRENT_ASSERT(bytes_transferred == 0);
 		char const* data = 0;
 		std::size_t size = 0;
@@ -419,7 +422,7 @@ void http_connection::on_read(error_code const& e
 			data = m_parser.get_body().begin;
 			size = m_parser.get_body().left();
 		}
-		callback(e, data, size);
+		callback(ec, data, size);
 		close();
 		return;
 	}
