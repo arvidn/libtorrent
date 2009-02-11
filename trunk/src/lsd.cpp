@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/http_parser.hpp"
+#include "libtorrent/escape_string.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
@@ -85,7 +86,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	std::stringstream btsearch;
 	btsearch << "BT-SEARCH * HTTP/1.1\r\n"
 		"Host: 239.192.152.143:6771\r\n"
-		"Port: " << listen_port << "\r\n"
+		"Port: " << to_string(listen_port).elems << "\r\n"
 		"Infohash: " << ih << "\r\n"
 		"\r\n\r\n";
 	std::string const& msg = btsearch.str();
@@ -101,7 +102,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string()
-		<< " ==> announce: ih: " << ih << " port: " << listen_port << std::endl;
+		<< " ==> announce: ih: " << ih << " port: " << to_string(listen_port).elems << std::endl;
 #endif
 
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
@@ -182,7 +183,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 		m_log << time_now_string()
 			<< " *** incoming local announce " << from.address()
-			<< ":" << port << " ih: " << ih << std::endl;
+			<< ":" << to_string(port).elems << " ih: " << ih << std::endl;
 #endif
 		// we got an announce, pass it on through the callback
 #ifndef BOOST_NO_EXCEPTIONS
