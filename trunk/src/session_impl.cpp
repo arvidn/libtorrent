@@ -111,6 +111,12 @@ using boost::bind;
 using boost::mutex;
 using libtorrent::aux::session_impl;
 
+#ifdef BOOST_NO_EXCEPTIONS
+namespace boost {
+	void throw_exception(std::exception const& e) { ::abort(); }
+}
+#endif
+
 namespace libtorrent {
 
 namespace fs = boost::filesystem;
