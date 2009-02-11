@@ -59,6 +59,7 @@ release 0.14.2
 	* fixed mapped files bug where it wouldn't be properly restored
 	  from resume data properly
 	* removed locale dependency in xml parser (caused asserts on windows)
+	* fixed bug when talking to https 1.0 servers
 
 release 0.14.1
 
