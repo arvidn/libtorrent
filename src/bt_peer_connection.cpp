@@ -634,6 +634,7 @@ namespace libtorrent
 		
 		encrypt_pending_buffer();
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted && m_rc4_encrypted)
 		{
 			TORRENT_ASSERT(send_buffer_size() == m_encrypted_bytes);
@@ -642,12 +643,14 @@ namespace libtorrent
 			m_encrypted_bytes += size;
 #endif
 		}
+#endif
 		
 		peer_connection::send_buffer(buf, size, flags);
 	}
 
 	buffer::interval bt_peer_connection::allocate_send_buffer(int size)
 	{
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		encrypt_pending_buffer();
 		if (m_encrypted && m_rc4_encrypted)
 		{
@@ -656,12 +659,14 @@ namespace libtorrent
 			return m_enc_send_buffer;
 		}
 		else
+#endif
 		{
 			buffer::interval i = peer_connection::allocate_send_buffer(size);
 			return i;
 		}
 	}
 	
+#ifndef TORRENT_DISABLE_ENCRYPTION
 	void bt_peer_connection::encrypt_pending_buffer()
 	{
  		if (m_encrypted && m_rc4_encrypted && m_enc_send_buffer.left())
@@ -679,11 +684,14 @@ namespace libtorrent
 			m_enc_send_buffer.end = m_enc_send_buffer.begin;
 		}
 	}
+#endif
 
 	void bt_peer_connection::setup_send()
 	{
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		encrypt_pending_buffer();
 		TORRENT_ASSERT(!m_encrypted || !m_rc4_encrypted || m_encrypted_bytes == send_buffer_size());
+#endif
 		peer_connection::setup_send();
 	}
 
@@ -2782,7 +2790,7 @@ namespace libtorrent
 			std::remove_if(m_payloads.begin(), m_payloads.end(), range_below_zero)
 			, m_payloads.end());
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted_bytes > 0)
 		{
 			if (m_rc4_encrypted)
