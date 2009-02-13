@@ -269,8 +269,6 @@ void bind_torrent_handle()
     void (torrent_handle::*resolve_countries1)(bool) = &torrent_handle::resolve_countries;
 #endif
 
-    return_value_policy<copy_const_reference> copy;
-
 #define _ allow_threads
 
     class_<torrent_handle>("torrent_handle")
