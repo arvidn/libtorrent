@@ -99,6 +99,7 @@ option(dht "enable support for Mainline DHT" ON)
 option(resolve-countries "enable support for resolving countries from peer IPs" ON)
 option(unicode "enable unicode support" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
+option(exceptions "build with exception support" ON)
 option(build_tests "build tests" ON)
 option(build_examples "build examples" ON)
 
@@ -130,8 +131,9 @@ else (dht)
 	add_definitions(-DTORRENT_DISABLE_DHT)
 endif (dht)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+
 if (shared)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
 	add_library(torrent-rasterbar SHARED ${sources2} ${zlib_sources2})
 else (shared)
 	add_library(torrent-rasterbar STATIC ${sources2} ${zlib_sources2})
@@ -180,6 +182,12 @@ if (NOT deprecated-functions)
 	add_definitions(-DTORRENT_NO_DEPRECATE)
 endif (NOT deprecated-functions)
 
+if (exceptions)
+	add_definitions(-fexceptions)
+else (exceptions)
+	add_definitions(-fno-exceptions)
+endif (exceptions)
+
 if (MSVC)
 # disable bogus deprecation warnings on msvc8
 	add_definitions(-D_SCL_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_DEPRECATE)
@@ -217,7 +225,7 @@ endforeach (s)
 
 configure_file(libtorrent-rasterbar-cmake.pc.in libtorrent-rasterbar.pc)
 
-install(TARGETS torrent-rasterbar DESTINATION lib)
+install(TARGETS torrent-rasterbar DESTINATION lib CONFIGURATIONS release)
 install(DIRECTORY include/libtorrent
 	DESTINATION include
 	PATTERN ".svn" EXCLUDE)
