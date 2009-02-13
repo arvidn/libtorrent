@@ -50,7 +50,17 @@ namespace libtorrent
 		{
 			no_error = 0,
 			file_collision,
-			failed_hash_check
+			failed_hash_check,
+			torrent_is_no_dict,
+			torrent_missing_info,
+			torrent_info_no_dict,
+			torrent_missing_piece_length,
+			torrent_missing_name,
+			torrent_invalid_name,
+			torrent_invalid_length,
+			torrent_file_parse_failed,
+			torrent_missing_pieces,
+			torrent_invalid_hashes,
 		};
 	}
 

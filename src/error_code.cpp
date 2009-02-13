@@ -49,7 +49,17 @@ namespace libtorrent
 		{
 			"no error",
 			"torrent file collides with file from another torrent",
-			"hash check failed"
+			"hash check failed",
+			"torrent file is not a dictionary",
+			"missing or invalid 'info' section in torrent file",
+			"'info' entry is not a dictionary",
+			"invalid or missing 'piece length' entry in torrent file",
+			"missing name in torrent file",
+			"invalid 'name' of torrent (possible exploit attempt)",
+			"invalid length of torrent",
+			"failed to parse files from torrent file",
+			"invalid or missing 'pieces' entry in torrent file",
+			"incorrect number of piece hashes in torrent file",
 		};
 		if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
 			return "Unknown error";
