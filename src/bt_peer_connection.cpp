@@ -2463,7 +2463,7 @@ namespace libtorrent
 #endif
 
 #ifndef DISABLE_EXTENSIONS
-			std::memcpy(m_reserved_bits, recv_buffer.begin, 20);
+			std::memcpy(m_reserved_bits, recv_buffer.begin, 8);
 			if ((recv_buffer[5] & 0x10))
 				m_supports_extensions = true;
 #endif
