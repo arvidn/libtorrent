@@ -1841,7 +1841,7 @@ namespace aux {
 	{
 		TORRENT_ASSERT(!params.save_path.empty());
 
-		if (params.ti && params.ti->files().num_files() == 0)
+		if (params.ti && params.ti->num_files() == 0)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			throw std::runtime_error("no files in torrent");
