@@ -3416,9 +3416,9 @@ namespace libtorrent
 		}
 
 		lazy_entry metadata;
-		std::string error = "parser error";
 		int ret = lazy_bdecode(metadata_buf, metadata_buf + metadata_size, metadata);
-		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, error))
+		error_code ec;
+		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec))
 		{
 			// this means the metadata is correct, since we
 			// verified it against the info-hash, but we
@@ -3427,7 +3427,7 @@ namespace libtorrent
 			{
 				alerts().post_alert(metadata_failed_alert(get_handle()));
 			}
-			set_error("invalid metadata: " + error);
+			set_error("invalid metadata: " + ec.message());
 			pause();
 			return false;
 		}

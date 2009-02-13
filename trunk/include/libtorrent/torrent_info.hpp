@@ -271,7 +271,7 @@ namespace libtorrent
 		void add_node(std::pair<std::string, int> const& node)
 		{ m_nodes.push_back(node); }
 		
-		bool parse_info_section(lazy_entry const& e, std::string& error);
+		bool parse_info_section(lazy_entry const& e, error_code& ex);
 
 		lazy_entry const* info(char const* key) const
 		{
@@ -291,7 +291,7 @@ namespace libtorrent
 	private:
 
 		void copy_on_write();
-		bool parse_torrent_file(lazy_entry const& libtorrent, std::string& error);
+		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec);
 
 		file_storage m_files;
 
