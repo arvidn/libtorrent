@@ -747,6 +747,13 @@ namespace libtorrent
 			ec = error_code(GetLastError(), get_system_category());
 			return false;
 		}
+		if ((mode & sparse) == 0)
+		{
+			// if the user has permissions, avoid filling
+			// the file with zeroes, but just fill it with
+			// garbage instead
+			SetFileValidData(m_file_handle, offs.QuadPart);
+		}
 		if (::SetEndOfFile(m_file_handle) == FALSE)
 		{
 			ec = error_code(GetLastError(), get_system_category());
