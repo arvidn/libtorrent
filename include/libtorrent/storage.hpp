@@ -330,7 +330,10 @@ namespace libtorrent
 			, int offset
 			, int num_bufs);
 
-		// -1=error 0=ok 1=skip
+		// returns the number of pieces left in the
+		// file currently being checked
+		int skip_file() const;
+		// -1=error 0=ok >0=skip this many pieces
 		int check_one_piece(int& have_piece);
 		int identify_data(
 			char const* piece_data

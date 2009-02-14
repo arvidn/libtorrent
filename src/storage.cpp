@@ -2232,34 +2232,21 @@ ret:
 		{
 			clear_error();
 			// skip means that the piece we checked failed to be read from disk
-			// completely. We should skip all pieces belonging to that file.
-			// find the file that failed, and skip all the pieces in that file
-			size_type file_offset = 0;
-			size_type current_offset = size_type(m_current_slot) * m_files.piece_length();
-			for (file_storage::iterator i = m_files.begin()
-				, end(m_files.end()); i != end; ++i)
-			{
-				file_offset += i->size;
-				if (file_offset > current_offset) break;
-			}
-
-			TORRENT_ASSERT(file_offset > current_offset);
-			int skip_blocks = static_cast<int>(
-				(file_offset - current_offset + m_files.piece_length() - 1)
-				/ m_files.piece_length());
-			TORRENT_ASSERT(skip_blocks >= 1);
+			// completely. This may be caused by the file not being there, or the
+			// piece overlapping with a sparse region. We should skip 'skip' number
+			// of pieces
 
 			if (m_storage_mode == storage_mode_compact)
 			{
-				for (int i = m_current_slot; i < m_current_slot + skip_blocks; ++i)
+				for (int i = m_current_slot; i < m_current_slot + skip; ++i)
 				{
 					TORRENT_ASSERT(m_slot_to_piece[i] == unallocated);
 					m_unallocated_slots.push_back(i);
 				}
 			}
 
-			// current slot will increase by one at the end of the for-loop too
-			m_current_slot += skip_blocks - 1;
+			// current slot will increase by one below
+			m_current_slot += skip - 1;
 			TORRENT_ASSERT(m_current_slot <= m_files.num_pieces());
 		}
 
@@ -2308,7 +2295,26 @@ ret:
 		return need_full_check;
 	}
 
-	// -1=error 0=ok 1=skip
+	int piece_manager::skip_file() const
+	{
+		size_type file_offset = 0;
+		size_type current_offset = size_type(m_current_slot) * m_files.piece_length();
+		for (file_storage::iterator i = m_files.begin()
+			, end(m_files.end()); i != end; ++i)
+		{
+			file_offset += i->size;
+			if (file_offset > current_offset) break;
+		}
+
+		TORRENT_ASSERT(file_offset > current_offset);
+		int ret = static_cast<int>(
+			(file_offset - current_offset + m_files.piece_length() - 1)
+			/ m_files.piece_length());
+		TORRENT_ASSERT(ret >= 1);
+		return ret;
+	}
+
+	// -1 = error, 0 = ok, >0 = skip this many pieces
 	int piece_manager::check_one_piece(int& have_piece)
 	{
 		// ------------------------
@@ -2347,12 +2353,12 @@ ret:
 				&& m_storage->error() != error_code(ENOENT, get_posix_category()))
 #endif
 				return -1;
-			return 1;
+			return skip_file();
 		}
 
 		// if the file is incomplete, skip the rest of it
 		if (num_read != piece_size)
-			return 1;
+			return skip_file();
 
 		int piece_index = identify_data(m_piece_data.get(), m_current_slot);
 
@@ -2425,7 +2431,7 @@ ret:
 			else
 				ret |= m_storage->move_slot(m_current_slot, other_slot);
 
-			if (ret) return 1;
+			if (ret) return skip_file();
 
 			TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 				|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
@@ -2458,7 +2464,7 @@ ret:
 				ret |= m_storage->move_slot(other_slot, m_current_slot);
 
 			}
-			if (ret) return 1;
+			if (ret) return skip_file();
 
 			TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 				|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
@@ -2542,7 +2548,7 @@ ret:
 					ret |= m_storage->move_slot(slot2, m_current_slot);
 				}
 
-				if (ret) return 1;
+				if (ret) return skip_file();
 
 				TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 					|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
