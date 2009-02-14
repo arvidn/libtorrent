@@ -193,7 +193,7 @@ namespace libtorrent
 		}
 
 		// try to make the file sparse if supported
-		if ((mode & rw_mask) == write_only || (mode & rw_mask)  == read_write)
+		if (mode & file::sparse)
 		{
 			DWORD temp;
 			::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, 0, 0

@@ -416,6 +416,7 @@ namespace libtorrent
 			: m_files(fs)
 			, m_pool(fp)
 			, m_page_size(4096)
+			, m_allocate_files(false)
 		{
 			TORRENT_ASSERT(m_files.begin() != m_files.end());
 			m_save_path = fs::complete(path);
@@ -483,6 +484,7 @@ namespace libtorrent
 		file_pool& m_pool;
 
 		int m_page_size;
+		bool m_allocate_files;
 	};
 
 	sha1_hash storage::hash_for_slot(int slot, partial_hash& ph, int piece_size)
@@ -516,6 +518,7 @@ namespace libtorrent
 
 	bool storage::initialize(bool allocate_files)
 	{
+		m_allocate_files = allocate_files;
 		error_code ec;
 		// first, create all missing directories
 		fs::path last_path;
@@ -570,6 +573,7 @@ namespace libtorrent
 					|| (settings().disk_io_read_mode == session_settings::disable_os_cache_for_aligned_files
 					&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)))
 					mode |= file::no_buffer;
+				if (!m_allocate_files) mode |= file::sparse;
 				boost::shared_ptr<file> f = m_pool.open_file(this
 					, m_save_path / file_iter->path, mode, ec);
 				if (ec) set_error(m_save_path / file_iter->path, ec);
@@ -1164,9 +1168,8 @@ ret:
 			if (op.cache_setting == session_settings::disable_os_cache
 				|| (op.cache_setting == session_settings::disable_os_cache_for_aligned_files
 				&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0))
-			{
 				mode |= file::no_buffer;
-			}
+			if (!m_allocate_files) mode |= file::sparse;
 
 			file_handle = m_pool.open_file(this, path, mode, ec);
 			if (!file_handle || ec)

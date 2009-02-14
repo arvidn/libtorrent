@@ -95,6 +95,7 @@ namespace libtorrent
 			rw_mask = read_only | write_only | read_write,
 			no_buffer = 4,
 			mode_mask = rw_mask | no_buffer,
+			sparse = 8,
 
 			attribute_hidden = 0x1000,
 			attribute_executable = 0x2000,
