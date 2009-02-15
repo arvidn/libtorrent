@@ -26,6 +26,22 @@ Community contributed build tutorials can be found on the wiki_.
 
 .. _wiki: http://code.rasterbar.com/libtorrent/wiki/Building
 
+.. warning::
+
+	A common mistake when building and linking against libtorrent is
+	to build with one set of configuration options (#defines) and
+	link against it using a different set of configuration options. Since
+	libtorrent has some code in header files, that code will not be
+	compatible with the built library if they see different configurations.
+
+	Always make sure that the same TORRENT_* macros are defined when you
+	link against libtorrent as when you build it.
+
+	Boost-build supports propagating configuration options to dependencies.
+	When building using the makefiles, this is handled by setting the
+	configuration options in the pkg-config file. Always use pkg-config
+	when linking against libtorrent.
+
 building from svn
 -----------------
 
