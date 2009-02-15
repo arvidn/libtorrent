@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -64,6 +64,20 @@ You'll find instructions on how to do this <a class="reference external" href="h
 following these instructions, you can usually get help in the <tt class="docutils literal"><span class="pre">#libtorrent</span></tt>
 IRC channel on <tt class="docutils literal"><span class="pre">irc.freenode.net</span></tt>.</p>
 <p>Community contributed build tutorials can be found on the <a class="reference external" href="http://code.rasterbar.com/libtorrent/wiki/Building">wiki</a>.</p>
+<div class="warning">
+<p class="first admonition-title">Warning</p>
+<p>A common mistake when building and linking against libtorrent is
+to build with one set of configuration options (#defines) and
+link against it using a different set of configuration options. Since
+libtorrent has some code in header files, that code will not be
+compatible with the built library if they see different configurations.</p>
+<p>Always make sure that the same TORRENT_* macros are defined when you
+link against libtorrent as when you build it.</p>
+<p class="last">Boost-build supports propagating configuration options to dependencies.
+When building using the makefiles, this is handled by setting the
+configuration options in the pkg-config file. Always use pkg-config
+when linking against libtorrent.</p>
+</div>
 <div class="section" id="building-from-svn">
 <h2>building from svn</h2>
 <p>To build libtorrent from svn you need to check out the libtorrent sources from
