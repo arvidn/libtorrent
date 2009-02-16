@@ -765,6 +765,25 @@ namespace libtorrent
 			ec = error_code(errno, get_posix_category());
 			return false;
 		}
+		if ((m_open_mode & sparse) == 0)
+		{
+			// if we're not in sparse mode, allocate the storage
+#ifdef F_PREALLOCATE
+			fstore_t f = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, s, 0};
+			if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
+			{
+				ec = error_code(errno, get_posix_category());
+				return false;
+			}
+#else
+			int ret = posix_fallocate(m_fd, 0, s);
+			if (ret != 0)
+			{
+				ec = error_code(ret, get_posix_category());
+				return false;
+			}
+#endif
+		}
 #endif
 		return true;
 	}

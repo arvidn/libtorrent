@@ -104,6 +104,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef BOOST_WINDOWS
 #include <windows.h>
+#else
+#include <fcntl.h>
 #endif
 
 #include <boost/filesystem/exception.hpp>
