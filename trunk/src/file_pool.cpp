@@ -90,7 +90,7 @@ namespace libtorrent
 				e.mode = m;
 			}
 			pt.replace(i, e);
-			TORRENT_ASSERT((e.mode & ~file::rw_mask) == (m & ~file::rw_mask));
+			TORRENT_ASSERT((e.mode & file::no_buffer) == (m & file::no_buffer));
 			return e.file_ptr;
 		}
 		// the file is not in our cache
