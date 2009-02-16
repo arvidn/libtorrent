@@ -158,12 +158,16 @@ namespace libtorrent
 			{GENERIC_WRITE, FILE_SHARE_READ, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS},
 			// read_write
 			{GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS},
+			// invalid option
+			{0,0,0,0},
 			// read_only no_buffer
 			{GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
 			// write_only no_buffer
 			{GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
 			// read_write no_buffer
 			{GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
+			// invalid option
+			{0,0,0,0}
 		};
 
 		const static DWORD attrib_array[] =
@@ -180,6 +184,7 @@ namespace libtorrent
 		m_path = utf8_native(path.external_file_string());
 #endif
 
+		TORRENT_ASSERT((mode & mode_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
 		open_mode_t const& m = mode_array[mode & mode_mask];
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
 
@@ -747,7 +752,7 @@ namespace libtorrent
 			ec = error_code(GetLastError(), get_system_category());
 			return false;
 		}
-		if ((mode & sparse) == 0)
+		if ((m_open_mode & sparse) == 0)
 		{
 			// if the user has permissions, avoid filling
 			// the file with zeroes, but just fill it with
