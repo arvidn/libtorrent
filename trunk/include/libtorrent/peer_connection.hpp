@@ -246,6 +246,12 @@ namespace libtorrent
 		std::deque<piece_block> const& request_queue() const;
 		std::deque<peer_request> const& upload_queue() const;
 
+		// estimate of how long it will take until we have
+		// received all piece requests that we have sent
+		// if extra_bytes is specified, it will include those
+		// bytes as if they've been requested
+		time_duration download_queue_time(int extra_bytes = 0) const;
+
 		bool is_interesting() const { return m_interesting; }
 		bool is_choked() const { return m_choked; }
 
