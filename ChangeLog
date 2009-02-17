@@ -26,6 +26,7 @@
 	* added bandwidth reports for estimated TCP/IP overhead and DHT
 	* includes DHT traffic in the rate limiter
 	* added support for bitcomet padding files
+	* improved support for sparse files on windows
 
 release 0.14.2
 

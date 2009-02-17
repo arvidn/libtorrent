@@ -795,7 +795,7 @@ namespace libtorrent
 		return true;
 	}
 
-	size_type file::get_size(error_code& ec)
+	size_type file::get_size(error_code& ec) const
 	{
 #ifdef TORRENT_WINDOWS
 		LARGE_INTEGER file_size;
@@ -815,5 +815,46 @@ namespace libtorrent
 		return fs.st_size;
 #endif
 	}
+
+	size_type file::sparse_end(size_type start) const
+	{
+#ifdef TORRENT_WINDOWS
+		FILE_ALLOCATED_RANGE_BUFFER buffer;
+		DWORD bytes_returned = 0;
+		FILE_ALLOCATED_RANGE_BUFFER in;
+		error_code ec;
+		size_type file_size = get_size(ec);
+		if (ec) return start;
+		in.FileOffset.QuadPart = start;
+		in.Length.QuadPart = file_size - start;
+		if (!DeviceIoControl(m_file_handle, FSCTL_QUERY_ALLOCATED_RANGES
+			, &in, sizeof(FILE_ALLOCATED_RANGE_BUFFER)
+			, &buffer, sizeof(FILE_ALLOCATED_RANGE_BUFFER), &bytes_returned, 0))
+		{
+			int err = GetLastError();
+			if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) return start;
+		}
+
+		// if there are no allocated regions within the rest
+		// of the file, return the end of the file
+		if (bytes_returned == 0) return file_size;
+
+		// assume that this range overlaps the start of the
+		// region we were interested in, and that start actually
+		// resides in an allocated region.
+		if (buffer.FileOffset.QuadPart < start) return start;
+
+		// return the offset to the next allocated region
+		return buffer.FileOffset.QuadPart;
+		
+#elif defined SEEK_DATA
+		// this is supported on solaris
+		size_type ret = lseek(m_fd, start, SEEK_DATA);
+		if (ret < 0) return start;
+#else
+		return start;
+#endif
+	}
+
 }
 

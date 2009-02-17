@@ -61,7 +61,7 @@ void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 {
 	std::cerr << "on_read_piece piece: " << j.piece << std::endl;
 	TEST_CHECK(ret == size);
-	TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
+	if (ret > 0) TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
 }
 
 void on_check_resume_data(int ret, disk_io_job const& j)
@@ -98,6 +98,14 @@ void on_move_storage(int ret, disk_io_job const& j, std::string path)
 	TEST_CHECK(j.str == path);
 }
 
+void print_error(int ret, boost::scoped_ptr<storage_interface> const& s)
+{
+	std::cerr << "returned: " << ret
+		<< " error: " << s->error().message()
+		<< " file: " << s->error_file()
+		<< std::endl;
+}
+
 void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	, file_storage& fs
 	, path const& test_path
@@ -125,31 +133,42 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	s->m_settings = &set;
 	s->m_disk_pool = &dp;
 
+	int ret = 0;
+
 	// write piece 1 (in slot 0)
-	s->write(piece1, 0, 0, half);
-	s->write(piece1 + half, 0, half, half);
+	ret = s->write(piece1, 0, 0, half);
+	if (ret != half) print_error(ret, s);
+	ret = s->write(piece1 + half, 0, half, half);
+	if (ret != half) print_error(ret, s);
 
 	// test unaligned read (where the bytes are aligned)
-	s->read(piece + 3, 0, 3, piece_size-9);
+	ret = s->read(piece + 3, 0, 3, piece_size-9);
+	if (ret != piece_size - 9) print_error(ret, s);
 	TEST_CHECK(std::equal(piece+3, piece + piece_size-9, piece1+3));
 	
 	// test unaligned read (where the bytes are not aligned)
-	s->read(piece, 0, 3, piece_size-9);
+	ret = s->read(piece, 0, 3, piece_size-9);
+	if (ret != piece_size - 9) print_error(ret, s);
 	TEST_CHECK(std::equal(piece, piece + piece_size-9, piece1+3));
 
 	// verify piece 1
-	TEST_CHECK(s->read(piece, 0, 0, piece_size) == piece_size);
+	ret = s->read(piece, 0, 0, piece_size);
+	if (ret != piece_size) print_error(ret, s);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece1));
 	
 	// do the same with piece 0 and 2 (in slot 1 and 2)
-	s->write(piece0, 1, 0, piece_size);
-	s->write(piece2, 2, 0, piece_size);
+	ret = s->write(piece0, 1, 0, piece_size);
+	if (ret != piece_size) print_error(ret, s);
+	ret = s->write(piece2, 2, 0, piece_size);
+	if (ret != piece_size) print_error(ret, s);
 
 	// verify piece 0 and 2
-	TEST_CHECK(s->read(piece, 1, 0, piece_size) == piece_size);
+	ret = s->read(piece, 1, 0, piece_size);
+	if (ret != piece_size) print_error(ret, s);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece0));
 
-	s->read(piece, 2, 0, piece_size);
+	ret = s->read(piece, 2, 0, piece_size);
+	if (ret != piece_size) print_error(ret, s);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2));
 
 	s->release_files();

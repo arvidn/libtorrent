@@ -5000,6 +5000,7 @@ this::
 		virtual bool initialize(bool allocate_files) = 0;
 		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
 		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
+		virtual int sparse_end(int start) const;
 		virtual bool move_storage(fs::path save_path) = 0;
 		virtual bool verify_resume_data(lazy_entry const& rd, std::string& error) = 0;
 		virtual bool write_resume_data(entry& rd) const = 0;
@@ -5067,6 +5068,17 @@ exceptions when it's not. Specifically if the read cache is disabled/or full and
 client requests unaligned data, or the file itself is not aligned in the torrent.
 Most clients request aligned data.
 
+sparse_end()
+------------
+
+	::
+
+		int sparse_end(int start) const;
+
+This function is optional. It is supposed to return the first piece, starting at
+``start`` that is fully contained within a data-region on disk (i.e. non-sparse
+region). The purpose of this is to skip parts of files that can be known to contain
+zeros when checking files.
 
 move_storage()
 --------------
