@@ -733,6 +733,38 @@ namespace libtorrent
 		return m_requests;
 	}
 
+	time_duration peer_connection::download_queue_time(int extra_bytes) const
+	{
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
+
+		boost::optional<piece_block_progress> p = downloading_piece_progress();
+		size_type queue_bytes = extra_bytes;
+		bool in_download_queue = false;
+		for (std::deque<pending_block>::const_iterator i = m_download_queue.begin()
+			, end(m_download_queue.end()); i != end; ++i)
+		{
+			// piece packets have 13 bytes overhead
+			queue_bytes += t->block_size() + 13;
+			if (p && p->piece_index == i->block.piece_index)
+			{
+				queue_bytes -= p->bytes_downloaded + 13;
+				in_download_queue = true;
+			}
+		}
+		if (p && !in_download_queue)
+			queue_bytes += p->full_block_bytes - p->bytes_downloaded;
+
+		// queue bytes now contain the number of bytes we have to receive
+		// from this peer before all of the requested blocks complete
+
+		int rate = m_statistics.transfer_rate(stat::download_payload)
+			+ m_statistics.transfer_rate(stat::download_protocol);
+		// avoid division by zero
+		if (rate < 50) rate = 50;
+		return seconds(queue_bytes / rate);
+	}
+
 	void peer_connection::add_stat(size_type downloaded, size_type uploaded)
 	{
 		m_statistics.add_stat(downloaded, uploaded);
@@ -2700,6 +2732,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_GEO_IP
 		p.inet_as_name = m_inet_as_name;
 #endif
+
+		p.download_queue_time = download_queue_time();
 		
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		p.country[0] = m_country[0];

@@ -107,6 +107,10 @@ namespace libtorrent
 		// time since last download or upload
 		time_duration last_active;
 
+		// the time until all blocks in the request
+		// queue will be d
+		time_duration download_queue_time;
+
 		// the number of seconds until the current
 		// pending request times out
 		int request_timeout;
