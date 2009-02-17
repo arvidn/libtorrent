@@ -651,12 +651,14 @@ namespace libtorrent
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
-			if (GetOverlappedResult(m_file_handle, &ol, &ret, true) == 0)
+			DWORD tmp;
+			if (GetOverlappedResult(m_file_handle, &ol, &tmp, true) == 0)
 			{
 				ec = error_code(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
+			if (tmp < ret) ret = tmp;
 		}
 		CloseHandle(ol.hEvent);
 
