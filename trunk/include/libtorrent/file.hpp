@@ -140,7 +140,11 @@ namespace libtorrent
 		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 
-		size_type get_size(error_code& ec);
+		size_type get_size(error_code& ec) const;
+
+		// return the offset of the first byte that
+		// belongs to a data-region
+		size_type sparse_end(size_type start) const;
 
 	private:
 

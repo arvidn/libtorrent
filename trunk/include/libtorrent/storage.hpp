@@ -134,6 +134,11 @@ namespace libtorrent
 		// negative return value indicates an error
 		virtual int write(const char* buf, int slot, int offset, int size) = 0;
 
+		// returns the end of the sparse region the slot 'start'
+		// resides in i.e. the next slot with content. If start
+		// is not in a sparse region, start itself is returned
+		virtual int sparse_end(int start) const { return start; }
+
 		// non-zero return value indicates an error
 		virtual bool move_storage(fs::path save_path) = 0;
 

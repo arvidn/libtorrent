@@ -439,6 +439,7 @@ namespace libtorrent
 		bool move_storage(fs::path save_path);
 		int read(char* buf, int slot, int offset, int size);
 		int write(char const* buf, int slot, int offset, int size);
+		int sparse_end(int start) const;
 		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
 		int writev(file::iovec_t const* buf, int slot, int offset, int num_bufs);
 		bool move_slot(int src_slot, int dst_slot);
@@ -760,6 +761,43 @@ namespace libtorrent
 		}
 
 		return false;
+	}
+
+	int storage::sparse_end(int slot) const
+	{
+		TORRENT_ASSERT(slot >= 0);
+		TORRENT_ASSERT(slot < m_files.num_pieces());
+
+		size_type file_offset = (size_type)slot * m_files.piece_length();
+		std::vector<file_entry>::const_iterator file_iter;
+
+		for (file_iter = files().begin();;)
+		{
+			if (file_offset < file_iter->size)
+				break;
+
+			file_offset -= file_iter->size;
+			++file_iter;
+			TORRENT_ASSERT(file_iter != files().end());
+		}
+	
+		fs::path path = m_save_path / file_iter->path;
+		error_code ec;
+		int mode = file::read_only;
+
+		boost::shared_ptr<file> file_handle;
+		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
+		if (cache_setting == session_settings::disable_os_cache
+			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
+			&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0))
+			mode |= file::no_buffer;
+		if (!m_allocate_files) mode |= file::sparse;
+
+		file_handle = m_pool.open_file(const_cast<storage*>(this), path, mode, ec);
+		if (!file_handle || ec) return slot;
+
+		size_type data_start = file_handle->sparse_end(file_offset);
+		return (data_start + m_files.piece_length() - 1) / m_files.piece_length();
 	}
 
 	bool storage::verify_resume_data(lazy_entry const& rd, std::string& error)
@@ -2230,7 +2268,7 @@ ret:
 			return fatal_disk_error;
 		}
 
-		if (skip)
+		if (skip > 0)
 		{
 			clear_error();
 			// skip means that the piece we checked failed to be read from disk
@@ -2240,7 +2278,7 @@ ret:
 
 			if (m_storage_mode == storage_mode_compact)
 			{
-				for (int i = m_current_slot; i < m_current_slot + skip; ++i)
+				for (int i = m_current_slot; i < m_current_slot + skip - 1; ++i)
 				{
 					TORRENT_ASSERT(m_slot_to_piece[i] == unallocated);
 					m_unallocated_slots.push_back(i);
@@ -2573,6 +2611,17 @@ ret:
 			TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 				|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
 		}
+
+		if (piece_index == unassigned)
+		{
+			// the data did not match any piece. Maybe we're reading
+			// from a sparse region, see if we are and skip
+			if (m_current_slot == m_files.num_pieces() -1) return 0;
+
+			int next_slot = m_storage->sparse_end(m_current_slot + 1);
+			if (next_slot > m_current_slot + 1) return next_slot - m_current_slot;
+		}
+
 		return 0;
 	}
 
