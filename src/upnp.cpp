@@ -658,6 +658,7 @@ void upnp::update_map(rootdevice& d, int i)
 			m_log << time_now_string() << " *** mapping (" << i
 				<< ") does not need update, skipping" << std::endl;
 #endif
+		m.action = mapping_t::action_none;
 		next(d, i);
 		return;
 	}
@@ -673,6 +674,7 @@ void upnp::update_map(rootdevice& d, int i)
 	{
 		if (m.failcount > 5)
 		{
+			m.action = mapping_t::action_none;
 			// giving up
 			next(d, i);
 			return;
