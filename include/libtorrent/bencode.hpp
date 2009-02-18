@@ -80,17 +80,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #include "libtorrent/assert.hpp"
-
-#if defined(_MSC_VER)
-namespace std
-{
-	using ::isdigit;
-	using ::atoi;
-};
-
-#define for if (false) {}  else for
-#endif
-
+#include "libtorrent/escape_string.hpp"
 
 namespace libtorrent
 {
@@ -341,7 +331,7 @@ namespace libtorrent
 			// ----------------------------------------------
 			// string
 			default:
-				if (isdigit((unsigned char)*in))
+				if (is_digit((unsigned char)*in))
 				{
 					std::string len_s = read_until(in, end, ':', err);
 					if (err)
