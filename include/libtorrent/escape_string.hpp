@@ -42,7 +42,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	boost::array<char, 3 + std::numeric_limits<size_type>::digits10> to_string(size_type n);
+	boost::array<char, 3 + std::numeric_limits<size_type>::digits10> TORRENT_EXPORT to_string(size_type n);
+	bool TORRENT_EXPORT is_digit(char c);
+	bool TORRENT_EXPORT isprint(char c);
 
 	std::string TORRENT_EXPORT unescape_string(std::string const& s);
 	std::string TORRENT_EXPORT escape_string(const char* str, int len);

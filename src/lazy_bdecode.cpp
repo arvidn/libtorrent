@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/escape_string.hpp"
 #include <iostream>
 #include <iomanip>
 #include <cstring>
@@ -58,8 +59,7 @@ namespace libtorrent
 	{
 		while (start < end && *start != delimiter)
 		{
-			using namespace std;
-			if (!isdigit(*start)) { return 0; }
+			if (!is_digit(*start)) { return 0; }
 			val *= 10;
 			val += *start - '0';
 			++start;
@@ -154,8 +154,7 @@ namespace libtorrent
 				}
 				default:
 				{
-					using namespace std;
-					if (!isdigit(t)) return fail_bdecode(ret);
+					if (!is_digit(t)) return fail_bdecode(ret);
 
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);

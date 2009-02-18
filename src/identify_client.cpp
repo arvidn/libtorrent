@@ -48,26 +48,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/fingerprint.hpp"
+#include "libtorrent/escape_string.hpp"
 
 namespace
 {
 
 	using namespace libtorrent;
 
-	bool is_digit(char c)
-	{
-		return c >= '0' && c <= '9';
-	}
-
 	int decode_digit(char c)
 	{
 		if (is_digit(c)) return c - '0';
 		return unsigned(c) - 'A' + 10;
-	}
-
-	bool isprint(char c)
-	{
-		return c >= 32 && c < 127;
 	}
 
 	// takes a peer id and returns a valid boost::optional
