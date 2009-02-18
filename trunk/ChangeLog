@@ -61,6 +61,7 @@ release 0.14.2
 	  from resume data properly
 	* removed locale dependency in xml parser (caused asserts on windows)
 	* fixed bug when talking to https 1.0 servers
+	* fixed UPnP bug that could cause stack overflow
 
 release 0.14.1
 
