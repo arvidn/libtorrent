@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/escape_string.hpp"
 
 namespace libtorrent
 {
@@ -168,8 +169,6 @@ namespace libtorrent
 
 	inline std::istream& operator>>(std::istream& is, big_number& peer)
 	{
-		using namespace std;
-
 		for (big_number::iterator i = peer.begin();
 			i != peer.end(); ++i)
 		{
@@ -182,11 +181,11 @@ namespace libtorrent
 				|| ((c[1] < '0' || c[1] > '9') && (c[1] < 'a' || c[1] > 'f'))
 				|| is.fail())
 			{
-				is.setstate(ios_base::failbit);
+				is.setstate(std::ios_base::failbit);
 				return is;
 			}
-			*i = ((isdigit(c[0])?c[0]-'0':c[0]-'a'+10) << 4)
-				+ (isdigit(c[1])?c[1]-'0':c[1]-'a'+10);
+			*i = ((is_digit(c[0])?c[0]-'0':c[0]-'a'+10) << 4)
+				+ (is_digit(c[1])?c[1]-'0':c[1]-'a'+10);
 		}
 		return is;
 	}

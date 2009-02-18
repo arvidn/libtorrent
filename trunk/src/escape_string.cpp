@@ -69,6 +69,16 @@ namespace libtorrent
 		return ret;
 	}
 
+	bool is_digit(char c)
+	{
+		return c >= '0' && c <= '9';
+	}
+
+	bool isprint(char c)
+	{
+		return c >= 32 && c < 127;
+	}
+
 	std::string unescape_string(std::string const& s)
 	{
 		std::string ret;
