@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>libtorrent manual</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="libtorrent-manual">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
+    </div>
+    <div id="main">
+<h1 class="title">libtorrent manual</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#introduction" id="id4">introduction</a></li>
+<li><a class="reference internal" href="#features" id="id5">features</a></li>
+<li><a class="reference internal" href="#portability" id="id6">portability</a></li>
+<li><a class="reference internal" href="#license" id="id7">license</a></li>
+</ul>
+</div>
+<div class="section" id="introduction">
+<h1>introduction</h1>
+<p>libtorrent is a C++ library that aims to be a good alternative to all the
+other bittorrent implementations around. It is a
+library and not a full featured client, although it comes with a working
+example client.</p>
+<p>The main goals of libtorrent are:</p>
+<ul class="simple">
+<li>to be cpu efficient</li>
+<li>to be memory efficient</li>
+<li>to be very easy to use</li>
+</ul>
+</div>
+<div class="section" id="features">
+<h1>features</h1>
+<p>libtorrent is still being developed, however it is stable. It is an ongoing
+project (including this documentation). The current state includes the
+following features:</p>
+<ul class="simple">
+<li>trackerless torrents (using the Mainline kademlia DHT protocol) with
+some <a class="reference external" href="dht_extensions.html">DHT extensions</a>.</li>
+<li>support for IPv6</li>
+<li>NAT-PMP and UPnP support (automatic port mapping on routers that supports it)</li>
+<li>uses a separate disk I/O thread to not have the disk ever block on network or
+client interaction. (see <a class="reference external" href="manual.html#threads">threads</a>).</li>
+<li>supports the bittorrent <a class="reference external" href="extension_protocol.html">extension protocol</a>. See <a class="reference external" href="manual.html#extensions">extensions</a>.</li>
+<li>supports the uTorrent metadata transfer protocol (i.e. magnet links).</li>
+<li>supports the uTorrent peer exchange protocol (PEX).</li>
+<li>supports local peer discovery (multicasts for peers on the same local network)</li>
+<li>adjusts the length of the request queue depending on download rate.</li>
+<li>has an adjustable read and write disk cache for improved disk throughput.</li>
+<li>multitracker extension support (supports both the <a class="reference external" href="http://home.elp.rr.com/tur/multitracker-spec.txt">specification by John Hoffman</a>
+and the uTorrent interpretation).</li>
+<li>tracker scrapes</li>
+<li>supports both sparse files and compact file allocation (where pieces
+are kept consolidated on disk)</li>
+<li>supports files &gt; 2 gigabytes.</li>
+<li>serves multiple torrents on a single port and in a single thread</li>
+<li>fast resume support, a way to get rid of the costly piece check at the
+start of a resumed torrent. Saves the storage state, piece_picker state
+as well as all local peers in a separate fast-resume file.</li>
+<li><a class="reference external" href="manual.html#http-seeding">HTTP seeding</a>, as <a class="reference external" href="http://www.getright.com/seedtorrent.html">specified by Michael Burford of GetRight</a>.</li>
+<li>piece picking on block-level (as opposed to piece-level).
+This means it can download parts of the same piece from different peers.
+It will also prefer to download whole pieces from single peers if the
+download speed is high enough from that particular peer.</li>
+<li>supports the <a class="reference external" href="udp_tracker_protocol.html">udp-tracker protocol</a> by Olaf van der Spek.</li>
+<li>queues torrents for file check, instead of checking all of them in parallel.</li>
+<li>supports http proxies and basic proxy authentication</li>
+<li>gzipped tracker-responses</li>
+<li>can limit the upload and download bandwidth usage and the maximum number of
+unchoked peers</li>
+<li>implements fair trade. User settable trade-ratio, must at least be 1:1,
+but one can choose to trade 1 for 2 or any other ratio that isn't unfair
+to the other party.</li>
+<li>supports the <tt class="docutils literal"><span class="pre">no_peer_id=1</span></tt> extension that will ease the load off trackers.</li>
+<li>possibility to limit the number of connections.</li>
+<li>delays have messages if there's no other outgoing traffic to the peer, and
+doesn't send have messages to peers that already has the piece. This saves
+bandwidth.</li>
+<li>does not have any requirements on the piece order in a torrent that it
+resumes. This means it can resume a torrent downloaded by any client.</li>
+<li>supports the <tt class="docutils literal"><span class="pre">compact=1</span></tt> tracker parameter.</li>
+<li>selective downloading. The ability to select which parts of a torrent you
+want to download.</li>
+<li>ip filter to disallow ip addresses and ip ranges from connecting and
+being connected</li>
+</ul>
+</div>
+<div class="section" id="portability">
+<h1>portability</h1>
+<p>libtorrent is portable at least among Windows, MacOS X and other UNIX-systems.
+It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
+boost libraries as well as <a class="reference external" href="http://www.zlib.org">zlib</a> (shipped) and <a class="reference external" href="http://asio.sf.net">asio</a> (shipped). At least version
+1.33.1 of boost is required.</p>
+<p>Since libtorrent uses asio, it will take full advantage of high performance
+network APIs on the most popular platforms. I/O completion ports on windows,
+epoll on linux and kqueue on MacOS X and BSD.</p>
+<p>libtorrent has been successfully compiled and tested on:</p>
+<ul class="simple">
+<li>Windows 2000 vc7.1, vc8</li>
+<li>Linux x86 GCC 3.3, GCC 3.4.2</li>
+<li>MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0</li>
+<li>SunOS 5.8 GCC 3.1</li>
+<li>Cygwin GCC 3.3.3</li>
+</ul>
+<p>Fails on:</p>
+<ul class="simple">
+<li>GCC 2.95.4</li>
+<li>msvc6</li>
+</ul>
+</div>
+<div class="section" id="license">
+<h1>license</h1>
+<p>libtorrent is released under the <a class="reference external" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
+<p>This means that you can use the library in your project without having to
+release its source code. The only requirement is that you give credit
+to the author of the library by including the libtorrent license in your
+software or documentation.</p>
+<p><a class="reference external" href="projects.html">Here's</a> a list of some projects that uses libtorrent.</p>
+</div>
+    </div>
+    <div id="footer">
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
+</div>
+</body>
+</html>

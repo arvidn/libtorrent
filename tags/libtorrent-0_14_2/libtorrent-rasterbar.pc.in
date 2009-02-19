@@ -1,0 +1,17 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+libdir=@libdir@
+datarootdir=@datarootdir@
+datadir=@datadir@
+sysconfdir=@sysconfdir@
+includedir=@includedir@
+package=@PACKAGE@
+
+Name: libtorrent-rasterbar
+Description: Bittorrent library.
+Version: @VERSION@
+Libs: -L${libdir} -ltorrent-rasterbar
+Libs.private: @LIBS@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LIBS@ @BOOST_SYSTEM_LIB@ @SSL_LDFLAGS@
+Cflags: -I${includedir} -I${includedir}/libtorrent @COMPILETIME_OPTIONS@ @SSL_CXXFLAGS@
+

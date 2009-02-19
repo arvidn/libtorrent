@@ -1,0 +1,61 @@
+import python ;
+
+use-project /torrent : ../.. ;
+
+lib boost_python : : <name>boost_python $(library-search-path) ;
+
+rule libtorrent_linking ( properties * )
+{
+    local result ;
+
+    if <toolset>gcc in $(properties)
+    {
+        result += <library>/torrent//torrent/<link>static/<cxxflags>-fPIC/<cflags>-fPIC <cxxflags>-fPIC ;
+    }
+    else
+    {
+        result += <library>/torrent//torrent/<link>static ;
+    }
+
+    # when building peer_plugin.cpp on msvc-7.1 it fails
+    # running out of internal heap space. Don't add it
+    # to windows build, since it's not critical anyway
+    if <toolset>msvc in $(properties)
+    {
+        result += <define>TORRENT_NO_PYTHON_PLUGINS ;
+    }
+    else
+    {
+        result += <source>src/peer_plugin.cpp ;
+    }
+    return $(result) ;
+}
+
+python-extension libtorrent 
+  : src/module.cpp
+    src/big_number.cpp
+    src/fingerprint.cpp
+    src/utility.cpp
+    src/session.cpp
+    src/entry.cpp
+    src/torrent_info.cpp
+    src/filesystem.cpp
+    src/torrent_handle.cpp
+    src/torrent_status.cpp
+    src/session_settings.cpp
+    src/version.cpp
+    src/alert.cpp
+    src/datetime.cpp
+    src/extensions.cpp
+    src/docstrings.cpp
+    src/torrent.cpp
+    src/peer_info.cpp
+    src/ip_filter.cpp
+    src/magnet_uri.cpp
+  : <include>src
+    <boost>system:<library>boost_python
+    <boost>source,<boost-link>static:<library>/boost/python//boost_python/<link>static
+    <boost>source,<boost-link>shared:<library>/boost/python//boost_python/<link>shared
+    <conditional>@libtorrent_linking
+  ;
+

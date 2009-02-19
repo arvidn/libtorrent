@@ -1,0 +1,454 @@
+AC_PREREQ(2.60)
+
+AC_INIT([libtorrent-rasterbar], [0.14.2], [arvid@rasterbar.com])
+AM_INIT_AUTOMAKE(foreign 1.10)
+AC_CONFIG_SRCDIR([src/torrent.cpp])
+
+
+dnl ---------------------------------------------------------------------------
+dnl interface version info
+dnl ---------------------------------------------------------------------------
+dnl Advanced information about versioning:
+dnl   * "Writing shared libraries" by Mike Hearn
+dnl         http://navi.cx/~mike/writing-shared-libraries.html
+dnl   * libtool.info chapter "Versioning"
+dnl   * libtool.info chapter "Updating library version information"
+dnl ---------------------------------------------------------------------------
+dnl Versioning:
+dnl  - CURRENT (Major):  Increment if the interface has changes. AGE is always
+dnl                      *changed* at the same time.
+dnl  - AGE (Micro):      Increment if any interfaces have been added; set to 0
+dnl                      if any interfaces have been removed. Removal has
+dnl                      precedence over adding, so set to 0 if both happened.
+dnl                      It denotes upward compatibility.
+dnl  - REVISION (Minor): Increment any time the source changes; set to
+dnl                      0 if you incremented CURRENT.
+dnl
+dnl  To summarize. Any interface *change* increment CURRENT. If that interface
+dnl  change does not break upward compatibility (ie it is an addition),
+dnl  increment AGE, Otherwise AGE is reset to 0. If CURRENT has changed,
+dnl  REVISION is set to 0, otherwise REVISION is incremented.
+dnl ---------------------------------------------------------------------------
+VERSION_INFO_CURRENT=2
+VERSION_INFO_REVISION=0
+VERSION_INFO_AGE=0
+INTERFACE_VERSION_INFO=$VERSION_INFO_CURRENT:$VERSION_INFO_REVISION:$VERSION_INFO_AGE
+AC_SUBST(INTERFACE_VERSION_INFO)
+dnl ---------------------------------------------------------------------------
+
+AC_PROG_CC
+
+if test -z "$(which $CC)"; then
+    AC_MSG_ERROR([Unable to find a working C compiler, giving up.])
+fi
+
+AC_PROG_CPP
+AC_PROG_CXX
+
+if test -z "$(which $CXX)"; then
+    AC_MSG_ERROR([Unable to find a working C++ compiler, giving up.])
+fi
+
+AC_CACHE_SAVE
+AC_PROG_INSTALL
+AC_PROG_MAKE_SET
+AC_PROG_LIBTOOL
+# AC_PROG_RANLIB is obsolete by AC_PROC_LIBTOOL
+
+AC_SYS_LARGEFILE
+
+dnl Check for pthreads.
+ACX_PTHREAD
+dnl Apply pthread config.
+CC=$PTHREAD_CC
+CPPFLAGS="$CPPFLAGS $PTHREAD_CFLAGS"
+LIBS="$LIBS $PTHREAD_LIBS"
+
+AM_CONDITIONAL([ENABLE_SHIPPED_ASIO], false)
+
+dnl Check for boost libraries.
+AX_BOOST_BASE([1.35],[
+   AX_BOOST_SYSTEM
+   dnl check that Boost.System was found:
+   if test -z "$BOOST_SYSTEM_LIB"; then
+      AC_MSG_ERROR([unable to find Boost.System library, currently this is required.])
+   fi
+
+   AX_BOOST_ASIO
+   dnl check that Boost.Asio was found:
+   if test -z "$BOOST_ASIO_LIB"; then
+      AC_MSG_ERROR([Unable to find Boost.Asio library, currently this is required.])
+   fi
+],[
+   AX_BOOST_BASE([1.34],[
+
+   dnl the user can choose which Asio library to use
+   AC_ARG_WITH([asio],
+	AS_HELP_STRING([--with-asio=shipped|system|your_path],
+	[Specify the Asio library to use, shipped or system. Default is to use shipped library. You can also specify a path for your system.]),
+	[[asio=$withval]],
+	[[asio=shipped]]
+   )
+
+   dnl Check the value for the --with-asio switch
+   AC_MSG_CHECKING([which Asio implementation to use])
+   case "$asio" in
+	"shipped")
+		AC_MSG_RESULT(shipped)
+		ASIO_HPP=`dirname $0`/include/libtorrent/asio.hpp
+		ASIO_DIR=`dirname $0`/include/libtorrent/asio
+		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,
+			enable_shipped_asio=yes,
+			AC_MSG_ERROR([libtorrent-rasterbar depends on Asio library but it was not found.])
+		)
+		;;
+	"system")
+		AC_MSG_RESULT(system)
+		ASIO_HPP=/usr/include/asio.hpp
+		ASIO_DIR=/usr/include/asio
+		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,
+			enable_shipped_asio=no,
+			AC_MSG_ERROR([libtorrent-rasterbar depends on Asio library but it was not found on your system.])
+		)
+		;;
+	*)
+		AC_MSG_RESULT(detect)
+		ASIO_HPP=$asio/../asio.hpp
+		ASIO_DIR=$asio
+		AC_CHECK_FILES($ASIO_HPP $ASIO_DIR/ssl/stream.hpp $ASIO_DIR/ip/tcp.hpp,
+			enable_shipped_asio=no,
+			AC_MSG_ERROR([libtorrent-rasterbar depends on Asio library but it was not found in the path you specified.])
+		)
+		;;
+    esac
+    AM_CONDITIONAL([ENABLE_SHIPPED_ASIO], [test x$enable_shipped_asio = "xyes"])
+])
+])
+
+AC_MSG_NOTICE([BOOST_CPPFLAGS=$BOOST_CPPFLAGS])
+AC_MSG_NOTICE([BOOST_LDFLAGS=$BOOST_LDFLAGS])
+
+AX_BOOST_FILESYSTEM
+dnl check that Boost.Filesystem was found:
+if test -z "$BOOST_FILESYSTEM_LIB"; then
+   AC_MSG_ERROR([Unable to find Boost.Filesystem library, currently this is required.])
+fi
+
+AX_BOOST_THREAD
+dnl check that Boost.Thread was found:
+if test -z "$BOOST_THREAD_LIB"; then
+   AC_MSG_ERROR([Unable to find Boost.Thread library, currently this is required.])
+fi
+
+AX_BOOST_REGEX
+dnl check that Boost.Regex was found:
+if test -z "$BOOST_REGEX_LIB"; then
+   AC_MSG_RESULT([Unable to find Boost.Regex library, example test_client will not be build.])
+   BUILD_TESTCLIENT=no;
+fi
+
+AX_BOOST_PROGRAM_OPTIONS
+dnl check that Boost.Program_options was found:
+if test -z "$BOOST_PROGRAM_OPTIONS_LIB"; then
+   AC_MSG_RESULT([Unable to find Boost.Program_options library, example test_client will not be build.])
+   BUILD_TESTCLIENT=no;
+fi
+
+dnl Apply boost config.
+CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
+LDFLAGS="$LDFLAGS $BOOST_LDFLAGS"
+
+if [[ "x$BUILD_TESTCLIENT" != "xno" ]]; then
+	CLIENT_TEST_BIN=client_test;
+	AC_SUBST(CLIENT_TEST_BIN)
+fi
+
+dnl try different ways of resolving gethostbyname
+AC_CHECK_FUNC(gethostbyname, ,
+	AC_CHECK_LIB(resolv, gethostbyname, ,
+	AC_CHECK_LIB(nsl, gethostbyname, ,
+	AC_CHECK_LIB(ws2_32, main, 
+	AC_CHECK_LIB(wsock32, main, [LIBS="$LIBS -lws2_32 -lwsock32";] , 
+	AC_MSG_ERROR([wsock32 not found. Stopped.])) ,
+	AC_MSG_ERROR([gethostbyname not found. Stopped.]))))
+)
+
+dnl find out what kind of logging to use
+AC_ARG_WITH(
+	[logging],
+	AS_HELP_STRING([--with-logging=none|default|verbose],[Specify how much logging to use. Default is none.]),
+	[[logging=$withval]],
+	[[logging=none]]
+)
+
+COMPILETIME_OPTIONS=""
+dnl Check the value for the --with-logging switch
+AC_MSG_CHECKING([what form of logging to use])
+case "$logging" in
+	"none")
+		AC_MSG_RESULT(none)
+		;;
+	"default")
+		AC_MSG_RESULT(default)
+		AC_DEFINE(TORRENT_LOGGING,,[define to use some logging])
+		COMPILETIME_OPTIONS+="-DTORRENT_LOGGING "
+		;;
+	"verbose")
+		AC_MSG_RESULT(verbose)
+		AC_DEFINE(TORRENT_VERBOSE_LOGGING,,[define to use verbose logging])
+		COMPILETIME_OPTIONS+="-DTORRENT_VERBOSE_LOGGING "
+		;;
+	*)
+		AC_MSG_RESULT()
+		AC_MSG_ERROR([Unknown logging option "$logging". Use either "none", "default" or "verbose".])
+		;;
+esac
+
+dnl find out what kind of dht-support to use
+AC_ARG_WITH(
+	[dht],
+	AS_HELP_STRING([--with-dht=on|off|logging],[Specify how to use DHT support. Option logging will add extra logging. Default is on.]),
+	[[dht=$withval]],
+	[[dht=on]]
+)
+dnl Check the value for the --with-dht switch
+AC_MSG_CHECKING([how to use DHT])
+case "$dht" in
+	"on")
+		AC_MSG_RESULT(on)
+		;;
+	"off")
+		AC_MSG_RESULT(off)
+		AC_DEFINE(TORRENT_DISABLE_DHT,,[define not to use DHT support])
+		COMPILETIME_OPTIONS+="-DTORRENT_DISABLE_DHT "
+		;;
+	"logging")
+		AC_MSG_RESULT(logging)
+		AC_DEFINE(TORRENT_DHT_VERBOSE_LOGGING,,[define to use DHT support with extra logging])
+		COMPILETIME_OPTIONS+="-DTORRENT_DHT_VERBOSE_LOGGING "
+		;;
+	*)
+		AC_MSG_RESULT()
+		AC_MSG_ERROR([Unknown dht option "$dht". Use either "on", "off" or "logging".])
+		;;
+esac
+AM_CONDITIONAL(USE_DHT, test "x$dht" != "xoff")
+
+dnl encryption support.
+AC_ARG_WITH(
+       [encryption],
+       AS_HELP_STRING([--with-encryption=on|off],[Specify how to use encryption support. Default is on.]),
+       [[encryption=$withval]],
+       [[encryption=on]]
+)
+
+dnl Check the value for the --with-encryption switch
+AC_MSG_CHECKING([how to use encryption])
+case "$encryption" in
+       "on")
+               AC_MSG_RESULT(on)
+               CHECK_SSL()
+               AC_DEFINE(TORRENT_USE_OPENSSL,,[define to use openssl with libtorrent-rasterbar])
+               COMPILETIME_OPTIONS+="-DTORRENT_USE_OPENSSL "
+
+               ;;
+       "off")
+               AC_MSG_RESULT(off)
+               AC_DEFINE(TORRENT_DISABLE_ENCRYPTION,,[define not to use encryption support])
+               COMPILETIME_OPTIONS+="-DTORRENT_DISABLE_ENCRYPTION "
+               ;;
+       *)
+               AC_MSG_RESULT()
+               AC_MSG_ERROR([Unknown encryption option "$encryption". Use either "on" or "off".])
+               ;;
+esac
+AM_CONDITIONAL(USE_ENCRYPTION, test "x$encryption" != "xoff")
+
+dnl the user can choose which zlib to use
+AC_ARG_WITH(
+	[zlib],
+	AS_HELP_STRING([--with-zlib=shipped|system],[Specify the zlib to use, shipped or system. Default is to autodetect system and fallback to shipped.]),
+	[[zlib=$withval]],
+	[[zlib=detect]]
+)
+dnl Check the value for the --with-zlib switch
+AC_MSG_CHECKING([which zlib implementation to use])
+case "$zlib" in
+	"detect")
+		AC_MSG_RESULT([autodetect])
+		AC_CHECK_LIB(z, main,
+			[zlib="system"],
+			[zlib="shipped"]
+		)
+		;;
+	"shipped")
+		AC_MSG_RESULT(shipped)
+		;;
+	"system")
+		AC_MSG_RESULT(system)
+		AC_CHECK_LIB(z, main, ,
+			AC_MSG_ERROR([libtorrent-rasterbar depends on zlib but zlib was not found on your system.])
+		)
+		;;
+	"no")
+		AC_MSG_RESULT()
+		AC_MSG_ERROR([libtorrent-rasterbar depends on zlib, you must specify either "system" or "shipped".])
+		;;
+	*)
+		AC_MSG_RESULT()
+		AC_MSG_ERROR([Unknown zlib option "$zlib". Use either "system" or "shipped".])
+		;;
+esac
+if [[ "$zlib" = "shipped" ]]; then
+	ZLIB="\$(top_builddir)/zlib/libzlib.la"
+	AM_CONDITIONAL([ENABLE_SHIPPED_ZLIB], true)
+	ZLIBINCL="-I\$(top_srcdir)/zlib"
+elif [[ "$zlib" = "system" ]]; then
+	ZLIB="-lz"
+	AM_CONDITIONAL([ENABLE_SHIPPED_ZLIB], false)
+	ZLIBINCL=""
+fi
+
+dnl make ZLIB and ZLIBDIR visible to Makefiles
+AC_SUBST([ZLIB])
+AC_SUBST([ZLIBINCL])
+
+dnl Check whether python bindings should be build
+AC_ARG_ENABLE(
+	[python-binding],
+	AS_HELP_STRING([--enable-python-binding],[Build python binding. Default is to not build them.]),
+	[[ac_python_binding=$enableval]],
+	[[ac_python_binding=no]]
+)
+
+AC_MSG_CHECKING([if python bindings should be build])
+case "$ac_python_binding" in
+	"yes")
+		AC_MSG_RESULT(yes)
+
+		AM_PATH_PYTHON([2.4],,AC_MSG_ERROR([Python not found. Python is required to build python binding.]))
+
+		AX_BOOST_PYTHON
+		dnl check that Boost.Python was found:
+		if test -z "$BOOST_PYTHON_LIB"; then
+			AC_MSG_ERROR([Unable to find Boost.Python library, this is required to build python bindings.])
+		fi
+
+		AM_CONDITIONAL([ENABLE_PYTHON_BINDING],true)
+
+		;;
+	"no")
+		AC_MSG_RESULT(no)
+		AM_CONDITIONAL([ENABLE_PYTHON_BINDING],false)
+		;;
+	"")
+		AC_MSG_RESULT(no)
+		AM_CONDITIONAL([ENABLE_PYTHON_BINDING],false)
+		;;
+	*)
+		AC_MSG_RESULT()
+		AC_MSG_ERROR([Unknown --enable-python option "$python". Use either "yes" or "no".])
+		;;
+esac
+
+dnl Check whether the examples should be build
+AC_ARG_ENABLE(
+	[examples],
+	AS_HELP_STRING([--enable-examples],[Build the examples. Default is not to build them.]),
+	[[examples=$enableval]],
+	[[examples=no]]
+)
+dnl Check the value of the --with-examples switch
+AC_MSG_CHECKING([if the examples should be build])
+case "$examples" in
+	"yes")
+		AC_MSG_RESULT(yes)
+		AM_CONDITIONAL([ENABLE_EXAMPLES], true)
+		;;
+	"no")
+		AC_MSG_RESULT(no)
+		AM_CONDITIONAL([ENABLE_EXAMPLES], false)
+		;;
+	"")
+		AC_MSG_RESULT(yes (default))
+		AM_CONDITIONAL([ENABLE_EXAMPLES], true)
+		;;
+	*)
+		AC_MSG_RESULT()
+		AC_MSG_ERROR([Unknown --enable-examples option "$examples". Use either "yes" or "no".])
+		;;
+esac
+
+dnl Check whether the tests should be build
+AC_ARG_ENABLE(
+	[tests],
+	AS_HELP_STRING([--enable-tests],[Build test files. Default is not to build them.]),
+	[[tests=$enableval]],
+	[[tests=no]]
+)
+dnl Check the value of the --with-tests switch
+AC_MSG_CHECKING([if test files should be build])
+case "$tests" in
+	"yes")
+		AC_MSG_RESULT(yes)
+		AM_CONDITIONAL([ENABLE_TESTS], true)
+		;;
+	"no")
+		AC_MSG_RESULT(no)
+		AM_CONDITIONAL([ENABLE_TESTS], false)
+		;;
+	"")
+		AC_MSG_RESULT(yes (default))
+		AM_CONDITIONAL([ENABLE_TESTS], true)
+		;;
+	*)
+		AC_MSG_RESULT()
+		AC_MSG_ERROR([Unknown --enable-tests option "$tests". Use either "yes" or "no".])
+		;;
+esac
+
+dnl Set some defines if we are building a shared library
+if [[ "x$enable_shared" == "xyes" ]]; then
+	AC_DEFINE(TORRENT_BUILDING_SHARED,,[Make sure the functions and classes are exported.])
+	COMPILETIME_OPTIONS+="-DTORRENT_LINKING_SHARED "
+fi
+
+dnl want some debugging symbols with that?
+AC_ARG_ENABLE(
+	[debug],
+	AS_HELP_STRING([--enable-debug],[Set compiler flags for debug symbols, default is no debugging.]),
+	[case "$enableval" in
+		no)
+			AC_DEFINE(NDEBUG,,[Define to disable debugging])
+			DEBUGFLAGS="-Os"
+#			COMPILETIME_OPTIONS+="-DNDEBUG "
+			;;
+		yes)
+			DEBUGFLAGS="-g"
+			COMPILETIME_OPTIONS+="-DTORRENT_DEBUG "
+			AC_DEFINE(TORRENT_DEBUG,,[Define to enable libtorrent debug build])
+			;;
+		*)
+			AC_MSG_RESULT()
+			AC_MSG_ERROR([Unknown --enable-debug option "$enableval". Use either "yes" or "no".])
+			;;
+	esac],
+	[DEBUGFLAGS="-Os"
+	AC_DEFINE(NDEBUG,,[Define to disable debugging])
+#	COMPILETIME_OPTIONS+="-DNDEBUG "
+	]
+)
+AC_SUBST(DEBUGFLAGS)
+
+dnl Compile time options.
+AC_SUBST(COMPILETIME_OPTIONS)
+
+AC_OUTPUT([Makefile
+	   src/Makefile
+	   include/Makefile
+	   zlib/Makefile
+	   examples/Makefile
+	   test/Makefile
+	   bindings/python/Makefile
+	   bindings/python/setup.py
+	   libtorrent-rasterbar.pc])

@@ -1,0 +1,529 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>Bittorrent udp-tracker protocol extension</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="bittorrent-udp-tracker-protocol-extension">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
+    </div>
+    <div id="main">
+<h1 class="title">Bittorrent udp-tracker protocol extension</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#introduction" id="id2">introduction</a></li>
+<li><a class="reference internal" href="#connecting" id="id3">connecting</a></li>
+<li><a class="reference internal" href="#announcing" id="id4">announcing</a></li>
+<li><a class="reference internal" href="#scraping" id="id5">scraping</a></li>
+<li><a class="reference internal" href="#errors" id="id6">errors</a></li>
+<li><a class="reference internal" href="#actions" id="id7">actions</a></li>
+<li><a class="reference internal" href="#extensions" id="id8">extensions</a><ul>
+<li><a class="reference internal" href="#authentication" id="id9">authentication</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#credits" id="id10">credits</a></li>
+</ul>
+</div>
+<div class="section" id="introduction">
+<h1>introduction</h1>
+<p>A tracker with the protocol &quot;udp://&quot; in its URI
+is supposed to be contacted using this protocol.</p>
+<p>This protocol is supported by
+<a class="reference external" href="http://xbtt.sourceforge.net">xbt-tracker</a>.</p>
+<p>For additional information and descritptions of
+the terminology used in this document, see
+the <a class="reference external" href="http://wiki.theory.org/index.php/BitTorrentSpecification">protocol specification</a></p>
+<p>All values are sent in network byte order (big endian). The sizes
+are specified with ANSI-C standard types.</p>
+<p>If no response to a request is received within 15 seconds, resend
+the request. If no reply has been received after 60 seconds, stop
+retrying.</p>
+</div>
+<div class="section" id="connecting">
+<h1>connecting</h1>
+<p>Client sends packet:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int64_t</td>
+<td>connection_id</td>
+<td>Must be initialized to 0x41727101980
+in network byte order. This will
+identify the protocol.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>action</td>
+<td>0 for a connection request</td>
+</tr>
+<tr><td>int32_t</td>
+<td>transaction_id</td>
+<td>Randomized by client.</td>
+</tr>
+</tbody>
+</table>
+<p>Server replies with packet:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int32_t</td>
+<td>action</td>
+<td>Describes the type of packet, in this
+case it should be 0, for connect.
+If 3 (for error) see <a class="reference internal" href="#errors">errors</a>.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>transaction_id</td>
+<td>Must match the transaction_id sent
+from the client.</td>
+</tr>
+<tr><td>int64_t</td>
+<td>connection_id</td>
+<td>A connection id, this is used when
+further information is exchanged with
+the tracker, to identify you.
+This connection id can be reused for
+multiple requests, but if it's cached
+for too long, it will not be valid
+anymore.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="announcing">
+<h1>announcing</h1>
+<p>Client sends packet:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int64_t</td>
+<td>connection_id</td>
+<td>The connection id acquired from
+establishing the connection.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>action</td>
+<td>Action. in this case, 1 for announce.
+See <a class="reference internal" href="#actions">actions</a>.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>transaction_id</td>
+<td>Randomized by client.</td>
+</tr>
+<tr><td>int8_t[20]</td>
+<td>info_hash</td>
+<td>The info-hash of the torrent you want
+announce yourself in.</td>
+</tr>
+<tr><td>int8_t[20]</td>
+<td>peer_id</td>
+<td>Your peer id.</td>
+</tr>
+<tr><td>int64_t</td>
+<td>downloaded</td>
+<td>The number of byte you've downloaded
+in this session.</td>
+</tr>
+<tr><td>int64_t</td>
+<td>left</td>
+<td>The number of bytes you have left to
+download until you're finished.</td>
+</tr>
+<tr><td>int64_t</td>
+<td>uploaded</td>
+<td>The number of bytes you have uploaded
+in this session.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>event</td>
+<td><p class="first">The event, one of</p>
+<blockquote class="last">
+<ul class="simple">
+<li>none = 0</li>
+<li>completed = 1</li>
+<li>started = 2</li>
+<li>stopped = 3</li>
+</ul>
+</blockquote>
+</td>
+</tr>
+<tr><td>uint32_t</td>
+<td>ip</td>
+<td>Your ip address. Set to 0 if you want
+the tracker to use the <tt class="docutils literal"><span class="pre">sender</span></tt> of
+this udp packet.</td>
+</tr>
+<tr><td>uint32_t</td>
+<td>key</td>
+<td>A unique key that is randomized by the
+client.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>num_want</td>
+<td>The maximum number of peers you want
+in the reply. Use -1 for default.</td>
+</tr>
+<tr><td>uint16_t</td>
+<td>port</td>
+<td>The port you're listening on.</td>
+</tr>
+<tr><td>uint16_t</td>
+<td>extensions</td>
+<td>See <a class="reference internal" href="#extensions">extensions</a></td>
+</tr>
+</tbody>
+</table>
+<p>Server replies with packet:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int32_t</td>
+<td>action</td>
+<td>The action this is a reply to. Should
+in this case be 1 for announce.
+If 3 (for error) see <a class="reference internal" href="#errors">errors</a>.
+See <a class="reference internal" href="#actions">actions</a>.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>transaction_id</td>
+<td>Must match the transaction_id sent
+in the announce request.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>interval</td>
+<td>the number of seconds you should wait
+until reannouncing yourself.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>leechers</td>
+<td>The number of peers in the swarm that
+has not finished downloading.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>seeders</td>
+<td>The number of peers in the swarm that
+has finished downloading and are
+seeding.</td>
+</tr>
+</tbody>
+</table>
+<p>The rest of the server reply is a variable number of the following structure:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int32_t</td>
+<td>ip</td>
+<td>The ip of a peer in the swarm.</td>
+</tr>
+<tr><td>uint16_t</td>
+<td>port</td>
+<td>The peer's listen port.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="scraping">
+<h1>scraping</h1>
+<p>Client sends packet:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int64_t</td>
+<td>connection_id</td>
+<td>The connection id retreived from the
+establishing of the connection.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>action</td>
+<td>The action, in this case, 2 for
+scrape. See <a class="reference internal" href="#actions">actions</a>.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>transaction_id</td>
+<td>Randomized by client.</td>
+</tr>
+</tbody>
+</table>
+<p>The following structure is repeated for each info-hash to scrape, but limited by
+the MTU.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int8_t[20]</td>
+<td>info_hash</td>
+<td>The info hash that is to be scraped.</td>
+</tr>
+</tbody>
+</table>
+<p>Server replies with packet:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int32_t</td>
+<td>action</td>
+<td>The action, should in this case be
+2 for scrape.
+If 3 (for error) see <a class="reference internal" href="#errors">errors</a>.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>transaction_id</td>
+<td>Must match the sent transaction id.</td>
+</tr>
+</tbody>
+</table>
+<p>The rest of the packet contains the following structures once for each info-hash
+you asked in the scrape request.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int32_t</td>
+<td>complete</td>
+<td>The total number of completed
+downloads.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>downloaded</td>
+<td>The current number of connected seeds.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>incomplete</td>
+<td>The current number of connected
+leechers.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="errors">
+<h1>errors</h1>
+<p>In case of a tracker error,</p>
+<p>server replies packet:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int32_t</td>
+<td>action</td>
+<td>The action, in this case 3, for error.
+See <a class="reference internal" href="#actions">actions</a>.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>transaction_id</td>
+<td>Must match the transaction_id sent
+from the client.</td>
+</tr>
+<tr><td>int8_t[]</td>
+<td>error_string</td>
+<td>The rest of the packet is a string
+describing the error.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="actions">
+<h1>actions</h1>
+<p>The action fields has the following encoding:</p>
+<blockquote>
+<ul class="simple">
+<li>connect = 0</li>
+<li>announce = 1</li>
+<li>scrape = 2</li>
+<li>error = 3 (only in server replies)</li>
+</ul>
+</blockquote>
+</div>
+<div class="section" id="extensions">
+<h1>extensions</h1>
+<p>The extensions field is a bitmask. The following
+bits are assigned:</p>
+<blockquote>
+<ul class="simple">
+<li>1 = <a class="reference internal" href="#authentication">authentication</a>.</li>
+</ul>
+</blockquote>
+<div class="section" id="authentication">
+<h2>authentication</h2>
+<p>The packet will have an authentication part
+appended to it. It has the following format:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int8_t</td>
+<td>username_length</td>
+<td>The number of characters in the
+username.</td>
+</tr>
+<tr><td>int8_t[]</td>
+<td>username</td>
+<td>The username, the number of characters
+as specified in the previous field.</td>
+</tr>
+<tr><td>uint8_t[8]</td>
+<td>passwd_hash</td>
+<td>sha1(packet + sha1(password))
+The packet in this case means the
+entire packet except these 8 bytes
+that are the password hash. These are
+the 8 first bytes (most significant)
+from the 20 bytes hash calculated.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="credits">
+<h1>credits</h1>
+<p>Protocol designed by Olaf van der Spek</p>
+</div>
+    </div>
+    <div id="footer">
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
+</div>
+</body>
+</html>
