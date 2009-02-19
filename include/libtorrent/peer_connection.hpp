@@ -202,9 +202,6 @@ namespace libtorrent
 		void request_large_blocks(bool b)
 		{ m_request_large_blocks = b; }
 
-		bool no_download() const { return m_no_download; }
-		void no_download(bool b) { m_no_download = b; }
-
 		void set_priority(int p)
 		{ m_priority = p; }
 
@@ -214,11 +211,6 @@ namespace libtorrent
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
 		void announce_piece(int index);
-		
-		// this will tell the peer to announce the given piece
-		// and only allow it to request that piece
-		void superseed_piece(int index);
-		int superseed_piece() const { return m_superseed_piece; }
 
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
@@ -246,12 +238,6 @@ namespace libtorrent
 		std::deque<piece_block> const& request_queue() const;
 		std::deque<peer_request> const& upload_queue() const;
 
-		// estimate of how long it will take until we have
-		// received all piece requests that we have sent
-		// if extra_bytes is specified, it will include those
-		// bytes as if they've been requested
-		time_duration download_queue_time(int extra_bytes = 0) const;
-
 		bool is_interesting() const { return m_interesting; }
 		bool is_choked() const { return m_choked; }
 
@@ -271,6 +257,8 @@ namespace libtorrent
 
 		const stat& statistics() const { return m_statistics; }
 		void add_stat(size_type downloaded, size_type uploaded);
+
+		void calc_ip_overhead();
 
 		// is called once every second by the main loop
 		void second_tick(float tick_interval);
@@ -334,13 +322,6 @@ namespace libtorrent
 		bool on_local_network() const;
 		bool ignore_bandwidth_limits() const
 		{ return m_ignore_bandwidth_limits; }
-		void ignore_bandwidth_limits(bool i)
-		{ m_ignore_bandwidth_limits = i; }
-
-		bool ignore_unchoke_slots() const
-		{ return m_ignore_unchoke_slots; }
-		void ignore_unchoke_slots(bool i)
-		{ m_ignore_unchoke_slots = i; }
 
 		bool failed() const { return m_failed; }
 
@@ -661,7 +642,6 @@ namespace libtorrent
 		// an unchoke cycle, to unchoke peers the more bytes
 		// they sent us
 		size_type m_downloaded_at_last_unchoke;
-		size_type m_uploaded_at_last_unchoke;
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		std::string m_inet_as_name;
@@ -685,7 +665,7 @@ namespace libtorrent
 		
 		// this is the torrent this connection is
 		// associated with. If the connection is an
-		// incoming connection, this is set to zero
+		// incoming conncetion, this is set to zero
 		// until the info_hash is received. Then it's
 		// set to the torrent it belongs to.
 		boost::weak_ptr<torrent> m_torrent;
@@ -779,14 +759,7 @@ namespace libtorrent
 		// so that it can be removed from the queue
 		// once the connection completes
 		int m_connection_ticket;
-
-		// if this is -1, superseeding is not active. If it is >= 0
-		// this is the piece that is available to this peer. Only
-		// this piece can be downloaded from us by this peer.
-		// This will remain the current piece for this peer until
-		// another peer sends us a have message for this piece
-		int m_superseed_piece;
-
+		
 		// bytes downloaded since last second
 		// timer timeout; used for determining 
 		// approx download rate
@@ -858,11 +831,6 @@ namespace libtorrent
 		// just send and receive as much as possible.
 		bool m_ignore_bandwidth_limits:1;
 
-		// set to true if this peer controls its unchoke
-		// state individually, regardless of the global
-		// unchoker
-		bool m_ignore_unchoke_slots:1;
-
 		// this is set to true when a have_all
 		// message is received. This information
 		// is used to fill the bitmask in init()
@@ -906,10 +874,6 @@ namespace libtorrent
 		// this is set to true once the bitfield is received
 		bool m_bitfield_received:1;
 
-		// if this is set to true, the client will not
-		// pick any pieces from this peer
-		bool m_no_download:1;
-		
 #ifdef TORRENT_DEBUG
 	public:
 		bool m_in_constructor:1;

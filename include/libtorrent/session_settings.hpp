@@ -103,12 +103,12 @@ namespace libtorrent
 			, min_reconnect_time(60)
 			, peer_connect_timeout(7)
 			, ignore_limits_on_local_network(true)
-			, connection_speed(10)
+			, connection_speed(20)
 			, send_redundant_have(false)
 			, lazy_bitfields(true)
 			, inactivity_timeout(600)
 			, unchoke_interval(15)
-			, optimistic_unchoke_interval(30)
+			, optimistic_unchoke_multiplier(4)
 			, num_want(200)
 			, initial_picker_threshold(4)
 			, allowed_fast_set_size(10)
@@ -124,9 +124,6 @@ namespace libtorrent
 			, use_parole_mode(true)
 			, cache_size(512)
 			, cache_expiry(60)
-			, use_read_cache(true)
-			, disk_io_write_mode(0)
-			, disk_io_read_mode(0)
 			, outgoing_ports(0,0)
 			, peer_tos(0)
 			, active_downloads(8)
@@ -147,18 +144,6 @@ namespace libtorrent
 			, prioritize_partial_pieces(false)
 			, auto_manage_startup(120)
 			, rate_limit_ip_overhead(true)
-			, announce_to_all_trackers(false)
-			, prefer_udp_trackers(true)
-			, strict_super_seeding(false)
-			, seeding_piece_quota(3)
-#ifdef TORRENT_WINDOWS
-			, max_sparse_regions(30000)
-#else
-			, max_sparse_regions(0)
-#endif
-#ifndef TORRENT_DISABLE_MLOCK
-			, lock_disk_cache(true)
-#endif
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -296,9 +281,9 @@ namespace libtorrent
 		// the number of seconds between chokes/unchokes
 		int unchoke_interval;
 
-		// the number of seconds between
+		// the number of unchoke intervals between
 		// optimistic unchokes
-		int optimistic_unchoke_interval;
+		int optimistic_unchoke_multiplier;
 
 		// if this is set, this IP will be reported do the
 		// tracker in the ip= parameter.
@@ -378,22 +363,6 @@ namespace libtorrent
 		// to disk. Default is 60 seconds.
 		int cache_expiry;
 
-		// when true, the disk I/O thread uses the disk
-		// cache for caching blocks read from disk too
-		bool use_read_cache;
-
-		enum io_buffer_mode_t
-		{
-			enable_os_cache = 0,
-			disable_os_cache_for_aligned_files = 1,
-			disable_os_cache = 2
-		};
-		int disk_io_write_mode:4;
-		int disk_io_read_mode:4;
-
-		bool coalesce_reads;
-		bool coalesce_writes;
-
 		// if != (0, 0), this is the range of ports that
 		// outgoing connections will be bound to. This
 		// is useful for users that have routers that
@@ -442,7 +411,7 @@ namespace libtorrent
 		float peer_turnover;
 
 		// when we are connected to more than
-		// limit * peer_turnover_cutoff peers
+		// limit * peer_turnover_enable peers
 		// disconnect peer_turnover fraction
 		// of the peers
 		float peer_turnover_cutoff;
@@ -487,42 +456,6 @@ namespace libtorrent
 		// drained from the rate limiters, to avoid exceeding
 		// the limits with the total traffic
 		bool rate_limit_ip_overhead;
-
-		// if set to true, multi tracker torrents are treated
-		// the same way uTorrent treats them. It defaults to
-		// false in order to comply with the extension definition.
-		bool announce_to_all_trackers;
-
-		// when this is set to true, if there is a tracker entry
-		// with udp:// protocol, it is preferred over the same
-		// tracker over http://.
-		bool prefer_udp_trackers;
-
-		// when set to true, a piece has to have been forwarded
-		// to a third peer before another one is handed out
-		bool strict_super_seeding;
-
-		// the number of pieces to send to each peer when seeding
-		// before rotating to a new peer
-		int seeding_piece_quota;
-
-		// the maximum number of sparse regions before starting
-		// to prioritize pieces close to other pieces (to maintain
-		// the number of sparse regions). This is set to 30000 on
-		// windows because windows vista has a new limit on the
-		// numbers of sparse regions one file may have
-		// if it is set to 0 this behavior is disabled
-		// this is a hack to avoid a terrible bug on windows
-		// don't use unless you have to, it screws with rarest-first
-		// piece selection, and reduces swarm performance
-		int max_sparse_regions;
-
-#ifndef TORRENT_DISABLE_MLOCK
-		// if this is set to true, the memory allocated for the
-		// disk cache will be locked in physical RAM, never to
-		// be swapped out
-		bool lock_disk_cache;
-#endif
 	};
 
 #ifndef TORRENT_DISABLE_DHT

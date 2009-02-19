@@ -370,7 +370,7 @@ private:
 		// the peer indicated that it supports the
 		// extension protocol
 		bool m_supports_extensions;
-		char m_reserved_bits[8];
+		char m_reserved_bits[20];
 #endif
 		bool m_supports_dht_port;
 		bool m_supports_fast;
@@ -425,7 +425,6 @@ private:
 		// the number of bytes in the send buffer
 		// that have been encrypted (only used for
 		// encrypted connections)
-public:
 		int m_encrypted_bytes;
 #endif
 

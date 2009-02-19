@@ -1,8 +1,6 @@
 nobase_include_HEADERS = libtorrent/alert.hpp \
-libtorrent/allocator.hpp \
 libtorrent/alert_types.hpp \
 libtorrent/assert.hpp \
-libtorrent/alloca.hpp \
 libtorrent/bandwidth_manager.hpp \
 libtorrent/bandwidth_limit.hpp \
 libtorrent/bandwidth_queue_entry.hpp \
@@ -13,7 +11,6 @@ libtorrent/buffer.hpp \
 libtorrent/connection_queue.hpp \
 libtorrent/create_torrent.hpp \
 libtorrent/config.hpp \
-libtorrent/ConvertUTF.h \
 libtorrent/debug.hpp \
 libtorrent/disk_buffer_holder.hpp \
 libtorrent/disk_io_thread.hpp \
@@ -87,7 +84,6 @@ libtorrent/aux_/session_impl.hpp \
 libtorrent/extensions/metadata_transfer.hpp \
 libtorrent/extensions/ut_pex.hpp \
 libtorrent/extensions/ut_metadata.hpp \
-libtorrent/extensions/lt_trackers.hpp \
 libtorrent/extensions/logger.hpp \
 libtorrent/extensions/smart_ban.hpp \
 \

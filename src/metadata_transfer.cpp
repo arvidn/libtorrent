@@ -159,7 +159,11 @@ namespace libtorrent { namespace
 
 			if (!have_all) return false;
 
-			if (!m_torrent.set_metadata(&m_metadata[0], m_metadata_size))
+			hasher h;
+			h.update(&m_metadata[0], m_metadata_size);
+			sha1_hash info_hash = h.final();
+
+			if (info_hash != m_torrent.torrent_file().info_hash())
 			{
 				std::fill(
 					m_have_metadata.begin()
@@ -167,6 +171,26 @@ namespace libtorrent { namespace
 					, false);
 				m_metadata_progress = 0;
 				m_metadata_size = 0;
+
+				if (m_torrent.alerts().should_post<metadata_failed_alert>())
+				{
+					m_torrent.alerts().post_alert(metadata_failed_alert(
+						m_torrent.get_handle()));
+				}
+
+				return false;
+			}
+
+			lazy_entry e;
+			lazy_bdecode(m_metadata.get(), m_metadata.get() + m_metadata_size, e);
+			std::string error;
+			if (!m_torrent.set_metadata(e, error))
+			{
+				// this means the metadata is correct, since we
+				// verified it against the info-hash, but we
+				// failed to parse it. Pause the torrent
+				// TODO: Post an alert!
+				m_torrent.pause();
 				return false;
 			}
 
@@ -309,7 +333,8 @@ namespace libtorrent { namespace
 			// abort if the peer doesn't support the metadata extension
 			if (m_message_index == 0) return;
 
-			if (m_torrent.valid_metadata())
+			// only send metadata if the torrent is non-private
+			if (m_torrent.valid_metadata() && !m_torrent.torrent_file().priv())
 			{
 				std::pair<int, int> offset
 					= req_to_offset(req, (int)m_tp.metadata().left());
@@ -593,8 +618,6 @@ namespace libtorrent
 
 	boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent* t, void*)
 	{
-		// don't add this extension if the torrent is private
-		if (t->valid_metadata() && t->torrent_file().priv()) return boost::shared_ptr<torrent_plugin>();
 		return boost::shared_ptr<torrent_plugin>(new metadata_plugin(*t));
 	}
 

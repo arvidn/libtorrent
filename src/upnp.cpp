@@ -53,6 +53,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
 
+#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) && !defined(TORRENT_UPNP_LOGGING)
+#define TORRENT_UPNP_LOGGING
+#endif
+
 using boost::bind;
 using namespace libtorrent;
 
@@ -74,7 +78,9 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_ignore_non_routers(ignore_nonrouters)
 	, m_cc(cc)
 {
-	TORRENT_ASSERT(cb);
+#ifdef TORRENT_UPNP_LOGGING
+	m_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
+#endif
 	m_retry_count = 0;
 
 	if (state)
@@ -105,15 +111,8 @@ upnp::~upnp()
 void upnp::discover_device()
 {
 	mutex_t::scoped_lock l(m_mutex);
-	if (m_socket.num_send_sockets() == 0)
-		log("No network interfaces to broadcast to");
 
 	discover_device_impl();
-}
-
-void upnp::log(std::string const& msg)
-{
-	m_callback(-1, 0, msg);
 }
 
 void upnp::discover_device_impl()
@@ -135,9 +134,11 @@ void upnp::discover_device_impl()
 
 	if (ec)
 	{
-		std::stringstream msg;
-		msg << "broadcast failed: " << ec.message() << ". Aborting.";
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " ==> Broadcast FAILED: " << ec.message() << std::endl
+			<< "aborting" << std::endl;
+#endif
 		disable(ec.message().c_str());
 		return;
 	}
@@ -147,7 +148,10 @@ void upnp::discover_device_impl()
 	m_broadcast_timer.async_wait(bind(&upnp::resend_request
 		, self(), _1));
 
-	log("broadcasting search for rootdevice");
+#ifdef TORRENT_UPNP_LOGGING
+	m_log << time_now_string()
+		<< " ==> Broadcasting search for rootdevice" << std::endl;
+#endif
 }
 
 // returns a reference to a mapping or -1 on failure
@@ -155,12 +159,14 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 {
 	mutex_t::scoped_lock l(m_mutex);
 
-	std::stringstream msg;
-	msg << "adding port map: [ protocol: " << (p == tcp?"tcp":"udp")
+#ifdef TORRENT_UPNP_LOGGING
+	m_log << time_now_string()
+		<< " *** add mapping [ proto: " << (p == tcp?"tcp":"udp")
 		<< " ext_port: " << external_port
-		<< " local_port: " << local_port << " ]";
-	if (m_disabled) msg << " DISABLED";
-	log(msg.str());
+		<< " local_port :" << local_port << " ]";
+	if (m_disabled) m_log << " DISABLED";
+	m_log << std::endl;
+#endif
 	if (m_disabled) return -1;
 
 	std::vector<global_mapping_t>::iterator i = std::find_if(
@@ -208,11 +214,13 @@ void upnp::delete_mapping(int mapping)
 
 	global_mapping_t& m = m_mappings[mapping];
 
-	std::stringstream msg;
-	msg << "deleting port map: [ protocol: " << (m.protocol == tcp?"tcp":"udp")
-		<< " ext_port: " << m.external_port
-		<< " local_port :" << m.local_port << " ]";
-	log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+	m_log << time_now_string()
+		<< " *** delete mapping [ proto: " << (m.protocol == tcp?"tcp":"udp")
+		<< " ext_port:" << m.external_port
+		<< " local_port:" << m.local_port << " ]";
+	m_log << std::endl;
+#endif
 
 	if (m.protocol == none) return;
 	
@@ -227,18 +235,6 @@ void upnp::delete_mapping(int mapping)
 
 		if (d.service_namespace) update_map(d, mapping);
 	}
-}
-
-bool upnp::get_mapping(int index, int& local_port, int& external_port, int& protocol) const
-{
-	TORRENT_ASSERT(index < int(m_mappings.size()) && index >= 0);
-	if (index >= int(m_mappings.size()) || index < 0) return false;
-	global_mapping_t const& m = m_mappings[index];
-	if (m.protocol == none) return false;
-	local_port = m.local_port;
-	external_port = m.external_port;
-	protocol = m.protocol;
-	return true;
 }
 
 void upnp::resend_request(error_code const& e)
@@ -258,7 +254,12 @@ void upnp::resend_request(error_code const& e)
 
 	if (m_devices.empty())
 	{
-		disable("no UPnP router found (no response)");
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " *** Got no response in 12 retries. Giving up, "
+			"disabling UPnP." << std::endl;
+#endif
+		disable("no UPnP router found");
 		return;
 	}
 	
@@ -271,29 +272,28 @@ void upnp::resend_request(error_code const& e)
 			// ask for it
 			rootdevice& d = const_cast<rootdevice&>(*i);
 			TORRENT_ASSERT(d.magic == 1337);
-#ifndef BOOST_NO_EXCEPTIONS
 			try
 			{
+#ifdef TORRENT_UPNP_LOGGING
+				m_log << time_now_string()
+					<< " ==> connecting to " << d.url << std::endl;
 #endif
-				std::stringstream msg;
-				msg << "connecting to: " << d.url;
-				log(msg.str());
 				if (d.upnp_connection) d.upnp_connection->close();
 				d.upnp_connection.reset(new http_connection(m_io_service
 					, m_cc, bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d), _5)));
 				d.upnp_connection->get(d.url, seconds(30), 1);
-#ifndef BOOST_NO_EXCEPTIONS
 			}
 			catch (std::exception& e)
 			{
 				(void)e;
-				std::stringstream msg;
-				msg << "connection failed to: " << d.url << " " << e.what();
-				log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+				m_log << time_now_string()
+					<< " *** Connection failed to: " << d.url
+					<< " " << e.what() << std::endl;
+#endif
 				d.disabled = true;
 			}
-#endif
 		}
 	}
 }
@@ -334,53 +334,55 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	error_code ec;
 	if (!in_local_network(m_io_service, from.address(), ec))
 	{
+#ifdef TORRENT_UPNP_LOGGING
 		if (ec)
 		{
-			std::stringstream msg;
-			msg << "when receiving response from: " << from << ": " << ec.message();
-			log(msg.str());
+			m_log << time_now_string() << " <== (" << from << ") error: "
+				<< ec.message() << std::endl;
 		}
 		else
 		{
-			std::stringstream msg;
-			msg << "ignoring response from: " << from << ". IP is not on local network. ";
-
+			m_log << time_now_string() << " <== (" << from << ") UPnP device "
+				"ignored because it's not on our local network ";
 			std::vector<ip_interface> net = enum_net_interfaces(m_io_service, ec);
 			for (std::vector<ip_interface>::const_iterator i = net.begin()
 				, end(net.end()); i != end; ++i)
 			{
-				msg << "(" << i->interface_address << ", " << i->netmask << ") ";
+				m_log << "(" << i->interface_address << ", " << i->netmask << ") ";
 			}
-			log(msg.str());
+			m_log << std::endl;
 		}
+#endif
 		return;
 	} 
 
 	if (m_ignore_non_routers)
 	{
 		std::vector<ip_route> routes = enum_routes(m_io_service, ec);
+	
 		if (std::find_if(routes.begin(), routes.end()
 			, bind(&ip_route::gateway, _1) == from.address()) == routes.end())
 		{
 			// this upnp device is filtered because it's not in the
 			// list of configured routers
+#ifdef TORRENT_UPNP_LOGGING
 			if (ec)
 			{
-				std::stringstream msg;
-				msg << "when receiving response from: " << from << ": " << ec.message();
-				log(msg.str());
+				m_log << time_now_string() << " <== (" << from << ") error: "
+					<< ec.message() << std::endl;
 			}
 			else
 			{
-				std::stringstream msg;
-				msg << "ignoring response from: " << from << ". IP is not a router. ";
+				m_log << time_now_string() << " <== (" << from << ") UPnP device "
+					"ignored because it's not a router on our network ";
 				for (std::vector<ip_route>::const_iterator i = routes.begin()
 					, end(routes.end()); i != end; ++i)
 				{
-					msg << "(" << i->gateway << ", " << i->netmask << ") ";
+					m_log << "(" << i->gateway << ", " << i->netmask << ") ";
 				}
-				log(msg.str());
+				m_log << std::endl;
 			}
+#endif
 			return;
 		}
 	}
@@ -391,43 +393,46 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		, buffer + bytes_transferred), error);
 	if (error)
 	{
-		std::stringstream msg;
-		msg << "received malformed HTTP from " << from;
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string() << " <== (" << from << ") Rootdevice "
+			"responded with incorrect HTTP packet. Ignoring device" << std::endl;
+#endif
 		return;
 	}
 
 	if (p.status_code() != 200 && p.method() != "notify")
 	{
+#ifdef TORRENT_UPNP_LOGGING
 		if (p.method().empty())
-		{
-			std::stringstream msg;
-			msg << "HTTP status " << p.status_code() << " from " << from;
-			log(msg.str());
-		}
+			m_log << time_now_string()
+				<< " <== (" << from << ") Device responded with HTTP status: " << p.status_code()
+				<< ". Ignoring device" << std::endl;
 		else
-		{
-			std::stringstream msg;
-			msg << "HTTP method " << p.method() << " from " << from;
-			log(msg.str());
-		}
+			m_log << time_now_string()
+				<< " <== (" << from << ") Device with HTTP method: " << p.method()
+				<< ". Ignoring device" << std::endl;
+#endif
 		return;
 	}
 
 	if (!p.header_finished())
 	{
-		std::stringstream msg;
-		msg << "incomplete HTTP packet from " << from;
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== (" << from << ") Rootdevice responded with incomplete HTTP "
+			"packet. Ignoring device" << std::endl;
+#endif
 		return;
 	}
 
 	std::string url = p.header("location");
 	if (url.empty())
 	{
-		std::stringstream msg;
-		msg << "missing location header from " << from;
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== (" << from << ") Rootdevice response is missing a location header. "
+			"Ignoring device" << std::endl;
+#endif
 		return;
 	}
 
@@ -448,9 +453,11 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 		if (error)
 		{
-			std::stringstream msg;
-			msg << "invalid URL " << d.url << " from " << from << ": " << error;
-			log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string()
+				<< " <== (" << from << ") Rootdevice advertized an invalid url: '" << d.url
+				<< "'. " << error << ". Ignoring device" << std::endl;
+#endif
 			return;
 		}
 
@@ -459,29 +466,36 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 		if (protocol != "http")
 		{
-			std::stringstream msg;
-			msg << "unsupported protocol " << protocol << " from " << from;
-			log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string()
+				<< " <== (" << from << ") Rootdevice uses unsupported protocol: '" << protocol
+				<< "'. Ignoring device" << std::endl;
+#endif
 			return;
 		}
 
 		if (d.port == 0)
 		{
-			std::stringstream msg;
-			msg << "URL with port 0 from " << from;
-			log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string()
+				<< " <== (" << from << ") Rootdevice responded with a url with port 0. "
+				"Ignoring device" << std::endl;
+#endif
 			return;
 		}
-
-		std::stringstream msg;
-		msg << "found rootdevice: " << d.url << ". (" << m_devices.size() << ")";
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== (" << from << ") Found rootdevice: " << d.url
+			<< " total: " << m_devices.size() << std::endl;
+#endif
 
 		if (m_devices.size() >= 50)
 		{
-			std::stringstream msg;
-			msg << "too many devices (" << m_devices.size() << "). Ignoring " << d.url;
-			log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string()
+				<< " <== (" << from << ") Too many devices (" << m_devices.size() << "), "
+				"ignoring: " << d.url << std::endl;
+#endif
 			return;
 		}
 
@@ -520,10 +534,10 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				try
 				{
 #endif
-					std::stringstream msg;
-					msg << "connecting to: " << d.url;
-					log(msg.str());
-
+#ifdef TORRENT_UPNP_LOGGING
+					m_log << time_now_string()
+						<< " ==> connecting to " << d.url << std::endl;
+#endif
 					if (d.upnp_connection) d.upnp_connection->close();
 					d.upnp_connection.reset(new http_connection(m_io_service
 						, m_cc, bind(&upnp::on_upnp_xml, self(), _1, _2
@@ -534,9 +548,11 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				catch (std::exception& e)
 				{
 					(void)e;
-					std::stringstream msg;
-					msg << "connection failed to: " << d.url << " " << e.what();
-					log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+					m_log << time_now_string()
+						<< " *** Connection failed to: " << d.url
+						<< " " << e.what() << std::endl;
+#endif
 					d.disabled = true;
 				}
 #endif
@@ -561,9 +577,11 @@ void upnp::post(upnp::rootdevice const& d, std::string const& soap
 
 	d.upnp_connection->sendbuffer = header.str();
 
-	std::stringstream msg;
-	msg << "sending: " << header.str();
-	log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+	m_log << time_now_string()
+		<< " ==> sending: " << header.str() << std::endl;
+#endif
+	
 }
 
 void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
@@ -575,9 +593,10 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 	if (!d.upnp_connection)
 	{
 		TORRENT_ASSERT(d.disabled);
-		std::stringstream msg;
-		msg << "mapping " << i << " aborted";
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string() << " *** mapping (" << i
+			<< ") aborted" << std::endl;
+#endif
 		return;
 	}
 	
@@ -634,9 +653,11 @@ void upnp::update_map(rootdevice& d, int i)
 	if (m.action == mapping_t::action_none
 		|| m.protocol == none)
 	{
-		std::stringstream msg;
-		msg << "mapping " << i << " does not need updating, skipping";
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		if (m.protocol != none)
+			m_log << time_now_string() << " *** mapping (" << i
+				<< ") does not need update, skipping" << std::endl;
+#endif
 		m.action = mapping_t::action_none;
 		next(d, i);
 		return;
@@ -645,9 +666,10 @@ void upnp::update_map(rootdevice& d, int i)
 	TORRENT_ASSERT(!d.upnp_connection);
 	TORRENT_ASSERT(d.service_namespace);
 
-	std::stringstream msg;
-	msg << "connecting to " << d.hostname;
-	log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " ==> connecting to " << d.hostname << std::endl;
+#endif
 	if (m.action == mapping_t::action_add)
 	{
 		if (m.failcount > 5)
@@ -690,9 +712,10 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 	if (!d.upnp_connection)
 	{
 		TORRENT_ASSERT(d.disabled);
-		std::stringstream msg;
-		msg << "unmapping " << i << " aborted";
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string() << " *** unmapping (" << i
+			<< ") aborted" << std::endl;
+#endif
 		return;
 	}
 
@@ -827,27 +850,31 @@ void upnp::on_upnp_xml(error_code const& e
 
 	if (e && e != asio::error::eof)
 	{
-		std::stringstream msg;
-		msg << "error while fetching control url from " << d.url << ": " << e.message();
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== (" << d.url << ") error while fetching control url: "
+			<< e.message() << std::endl;
+#endif
 		d.disabled = true;
 		return;
 	}
 
 	if (!p.header_finished())
 	{
-		std::stringstream msg;
-		msg << "error while fetching control url from " << d.url << ": incomplete HTTP message";
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== (" << d.url << ") error while fetching control url: incomplete http message" << std::endl;
+#endif
 		d.disabled = true;
 		return;
 	}
 
 	if (p.status_code() != 200)
 	{
-		std::stringstream msg;
-		msg << "error while fetching control url from " << d.url << ": " << p.message();
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== (" << d.url << ") error while fetching control url: " << p.message() << std::endl;
+#endif
 		d.disabled = true;
 		return;
 	}
@@ -875,9 +902,11 @@ void upnp::on_upnp_xml(error_code const& e
 		}
 		else
 		{
-			std::stringstream msg;
-			msg << "Could not find a port mapping interface in response from " << d.url;
-			log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+			m_log << time_now_string()
+				<< " <== (" << d.url << ") Rootdevice response, did not find "
+				"a port mapping interface" << std::endl;
+#endif
 			d.disabled = true;
 			return;
 		}
@@ -905,19 +934,21 @@ void upnp::on_upnp_xml(error_code const& e
 			+ to_string(d.port).elems + s.control_url;
 	}
 
-	std::stringstream msg;
-	msg << "found control URL: " << d.control_url << " namespace: "
-		<< d.service_namespace << " urlbase: " << s.url_base << " in response from " << d.url;
-	log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+	m_log << time_now_string()
+		<< " <== (" << d.url << ") Rootdevice response, found control URL: " << d.control_url
+		<< " urlbase: " << s.url_base << " namespace: " << d.service_namespace << std::endl;
+#endif
 
 	boost::tie(protocol, auth, d.hostname, d.port, d.path, error)
 		= parse_url_components(d.control_url);
 
 	if (error)
 	{
-		std::stringstream msg;
-		msg << "failed to parse URL '" << d.control_url << "': " << error;
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " *** Failed to parse URL '" << d.control_url << "': " << error << std::endl;
+#endif
 		d.disabled = true;
 		return;
 	}
@@ -1012,9 +1043,10 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	if (e && e != asio::error::eof)
 	{
-		std::stringstream msg;
-		msg << "error while adding port map: " << e.message();
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== error while adding portmap: " << e.message() << std::endl;
+#endif
 		d.disabled = true;
 		return;
 	}
@@ -1040,9 +1072,10 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	if (!p.header_finished())
 	{
-		std::stringstream msg;
-		msg << "error while adding port map: incomplete http message";
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== error while adding portmap: incomplete http message" << std::endl;
+#endif
 		next(d, mapping);
 		return;
 	}
@@ -1054,12 +1087,13 @@ void upnp::on_upnp_map_response(error_code const& e
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
 		, bind(&find_error_code, _1, _2, boost::ref(s)));
 
+#ifdef TORRENT_UPNP_LOGGING
 	if (s.error_code != -1)
 	{
-		std::stringstream msg;
-		msg << "error while adding port map, code: " << s.error_code;
-		log(msg.str());
+		m_log << time_now_string()
+			<< " <== got error message: " << s.error_code << std::endl;
 	}
+#endif
 	
 	mapping_t& m = d.mapping[mapping];
 
@@ -1101,9 +1135,11 @@ void upnp::on_upnp_map_response(error_code const& e
 		return_error(mapping, s.error_code);
 	}
 
-	std::stringstream msg;
-	msg << "map response: " << std::string(p.get_body().begin, p.get_body().end);
-	log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+	m_log << time_now_string()
+		<< " <== map response: " << std::string(p.get_body().begin, p.get_body().end)
+		<< std::endl;
+#endif
 
 	if (s.error_code == -1)
 	{
@@ -1163,27 +1199,32 @@ void upnp::on_upnp_unmap_response(error_code const& e
 
 	if (e && e != asio::error::eof)
 	{
-		std::stringstream msg;
-		msg << "error while deleting portmap: " << e.message();
-		log(msg.str());
-	}
-	else if (!p.header_finished())
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== error while deleting portmap: " << e.message() << std::endl;
+#endif
+	} else if (!p.header_finished())
 	{
-		std::stringstream msg;
-		msg << "error while deleting portmap: incomplete http message";
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== error while deleting portmap: incomplete http message" << std::endl;
+#endif
 	}
 	else if (p.status_code() != 200)
 	{
-		std::stringstream msg;
-		msg << "error while deleting portmap: " << p.message();
-		log(msg.str());
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== error while deleting portmap: " << p.message() << std::endl;
+#endif
 	}
 	else
 	{
-		std::stringstream msg;
-		msg << "unmap response: " << std::string(p.get_body().begin, p.get_body().end);
-		log(msg.str());
+
+#ifdef TORRENT_UPNP_LOGGING
+		m_log << time_now_string()
+			<< " <== unmap response: " << std::string(p.get_body().begin, p.get_body().end)
+			<< std::endl;
+#endif
 	}
 
 	d.mapping[mapping].protocol = none;

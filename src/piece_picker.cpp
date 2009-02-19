@@ -65,7 +65,6 @@ namespace libtorrent
 		, m_num_have(0)
 		, m_cursor(0)
 		, m_reverse_cursor(0)
-		, m_sparse_regions(1)
 		, m_dirty(false)
 	{
 #ifdef TORRENT_PICKER_LOG
@@ -1074,28 +1073,6 @@ namespace libtorrent
 			, has_index(index)) == m_downloads.end());
 
 		if (p.have()) return;
-
-// maintain sparse_regions
-		if (index == 0)
-		{
-			if (index == m_piece_map.size() - 1
-				|| m_piece_map[index + 1].have())
-				--m_sparse_regions;
-		}
-		else if (index == int(m_piece_map.size() - 1))
-		{
-			if (index == 0
-				|| m_piece_map[index - 1].have())
-				--m_sparse_regions;
-		}
-		else
-		{
-			bool have_before = m_piece_map[index-1].have();
-			bool have_after = m_piece_map[index+1].have();
-			if (have_after && have_before) --m_sparse_regions;
-			else if (!have_after && !have_before) ++m_sparse_regions;
-		}
-
 		if (p.filtered())
 		{
 			--m_num_filtered;
@@ -1319,12 +1296,6 @@ namespace libtorrent
 	//     peer
 	// * prioritize_partials
 	//     pick blocks from downloading pieces first
-	// * speed_affinity
-	//     have an affinity to pick pieces in the same speed
-	//     category.
-	// * ignore_whole_pieces
-	//     ignores the prefer_whole_pieces parameter (as if
-	//     it was 0)
 
 	// only one of rarest_first, sequential can be set
 
@@ -1335,8 +1306,6 @@ namespace libtorrent
 	{
 		// prevent the number of partial pieces to grow indefinitely
 		if (m_downloads.size() > 20) options |= prioritize_partials;
-
-		if (options & ignore_whole_pieces) prefer_whole_pieces = 0;
 
 		// only one of rarest_first and sequential can be set.
 		TORRENT_ASSERT(bool(options & rarest_first)
@@ -1820,7 +1789,7 @@ namespace libtorrent
 			// if the state of the piece is none (the
 			// piece will in that case change state).
 			if (dp.state != none && dp.state != speed
-				&& !exclusive_active && (options & speed_affinity))
+				&& !exclusive_active)
 			{
 				if (abs(dp.state - speed) == 1)
 				{
@@ -2149,9 +2118,6 @@ namespace libtorrent
 				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 			TORRENT_ASSERT(i != m_downloads.end());
 			block_info& info = i->info[block.block_index];
-
-			if (info.state == block_info::state_finished) return;
-
 			TORRENT_ASSERT(info.num_peers == 0);
 			info.peer = peer;
 			TORRENT_ASSERT(info.state == block_info::state_writing

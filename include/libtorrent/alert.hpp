@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
-#include <boost/function.hpp>
 
 #include <boost/preprocessor/repetition/enum_params_with_a_default.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
@@ -84,7 +83,6 @@ namespace libtorrent {
 			progress_notification = 0x80,
 			ip_block_notification = 0x100,
 			performance_warning = 0x200,
-			dht_notification = 0x400,
 
 			all_categories = 0xffffffff
 		};
@@ -131,15 +129,12 @@ namespace libtorrent {
 		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
-		void set_dispatch_function(boost::function<void(alert const&)> const&);
-
 	private:
 		std::queue<alert*> m_alerts;
 		mutable boost::mutex m_mutex;
 		boost::condition m_condition;
 		int m_alert_mask;
 		size_t m_queue_size_limit;
-		boost::function<void(alert const&)> m_dispatch;
 	};
 
 	struct TORRENT_EXPORT unhandled_alert : std::exception

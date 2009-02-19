@@ -99,7 +99,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	else
 	{
 		headers << "GET " << path << " HTTP/1.0\r\n"
-			"Host: " << hostname << ":" << port << "\r\n";
+			"Host:" << hostname << ":" << port << "\r\n";
 	}
 
 	if (!auth.empty())
@@ -108,11 +108,9 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	if (!user_agent.empty())
 		headers << "User-Agent: " << user_agent << "\r\n";
 	
-	if (m_bottled)
-		headers << "Accept-Encoding: gzip\r\n";
-
 	headers <<
 		"Connection: close\r\n"
+		"Accept-Encoding: gzip\r\n"
 		"\r\n";
 
 	sendbuffer = headers.str();
@@ -164,16 +162,15 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		if (m_ssl)
 		{
 			m_sock.instantiate<ssl_stream<socket_type> >(m_resolver.get_io_service());
-			ssl_stream<socket_type>* s = m_sock.get<ssl_stream<socket_type> >();
-			TORRENT_ASSERT(s);
-			bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, s->next_layer());
+			ssl_stream<socket_type>& s = m_sock.get<ssl_stream<socket_type> >();
+			bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, s.next_layer());
 			TORRENT_ASSERT(ret);
 		}
 		else
 		{
 			m_sock.instantiate<socket_type>(m_resolver.get_io_service());
 			bool ret = instantiate_connection(m_resolver.get_io_service()
-				, m_proxy, *m_sock.get<socket_type>());
+				, m_proxy, m_sock.get<socket_type>());
 			TORRENT_ASSERT(ret);
 		}
 #else
@@ -275,13 +272,6 @@ void http_connection::on_resolve(error_code const& e
 	std::transform(i, tcp::resolver::iterator(), std::back_inserter(m_endpoints)
 		, boost::bind(&tcp::resolver::iterator::value_type::endpoint, _1));
 
-	if (m_filter_handler) m_filter_handler(*this, m_endpoints);
-	if (m_endpoints.empty())
-	{
-		close();
-		return;
-	}
-
 	// The following statement causes msvc to crash (ICE). Since it's not
 	// necessary in the vast majority of cases, just ignore the endpoint
 	// order for windows
@@ -345,29 +335,30 @@ void http_connection::on_connect(error_code const& e)
 
 void http_connection::callback(error_code const& e, char const* data, int size)
 {
-	if (m_bottled && m_called) return;
-
-	std::vector<char> buf;
-	if (m_bottled && m_parser.header_finished())
+	if (!m_bottled || !m_called)
 	{
-		std::string const& encoding = m_parser.header("content-encoding");
-		if (encoding == "gzip" || encoding == "x-gzip")
+		std::vector<char> buf;
+		if (m_bottled && m_parser.header_finished())
 		{
-			std::string error;
-			if (inflate_gzip(data, size, buf, max_bottled_buffer, error))
+			std::string const& encoding = m_parser.header("content-encoding");
+			if (encoding == "gzip" || encoding == "x-gzip")
 			{
-				if (m_handler) m_handler(asio::error::fault, m_parser, data, size, *this);
-				close();
-				return;
+				std::string error;
+				if (inflate_gzip(data, size, buf, max_bottled_buffer, error))
+				{
+					if (m_handler) m_handler(asio::error::fault, m_parser, data, size, *this);
+					close();
+					return;
+				}
+				data = &buf[0];
+				size = int(buf.size());
 			}
-			data = &buf[0];
-			size = int(buf.size());
 		}
+		m_called = true;
+		error_code ec;
+		m_timer.cancel(ec);
+		if (m_handler) m_handler(e, m_parser, data, size, *this);
 	}
-	m_called = true;
-	error_code ec;
-	m_timer.cancel(ec);
-	if (m_handler) m_handler(e, m_parser, data, size, *this);
 }
 
 void http_connection::on_write(error_code const& e)

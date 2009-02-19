@@ -97,33 +97,6 @@ namespace libtorrent
 		std::string url;
 	};
 
-	struct TORRENT_EXPORT read_piece_alert: torrent_alert
-	{
-		read_piece_alert(torrent_handle const& h
-			, int p, boost::shared_array<char> d, int s)
-			: torrent_alert(h)
-			, buffer(d)
-			, piece(p)
-            , size(s)
-		{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new read_piece_alert(*this)); }
-		const static int static_category = alert::storage_notification;
-		virtual int category() const { return static_category; }
-		virtual char const* what() const { return "read piece"; }
-		virtual std::string message() const
-		{
-			std::stringstream ret;
-			ret << torrent_alert::message() << ": piece " << (buffer ? "successful " : "failed ") << piece;
-			return ret.str();
-		}
-
-		boost::shared_array<char> buffer;
-		int piece;
-        int size;
-	};
-
 	struct TORRENT_EXPORT file_renamed_alert: torrent_alert
 	{
 		file_renamed_alert(torrent_handle const& h
@@ -185,9 +158,7 @@ namespace libtorrent
 		enum performance_warning_t
 		{
 			outstanding_disk_buffer_limit_reached,
-			outstanding_request_limit_reached,
-			upload_limit_too_low,
-			download_limit_too_low
+			outstanding_request_limit_reached
 		};
 
 		performance_alert(torrent_handle const& h
@@ -206,8 +177,6 @@ namespace libtorrent
 			{
 				"max outstanding disk writes reached",
 				"max outstanding piece requests reached",
-				"upload limit too low (download rate will suffer)",
-				"download limit too low (upload rate will suffer)"
 			};
 
 			return torrent_alert::message() + ": performance warning: "
@@ -223,11 +192,9 @@ namespace libtorrent
 	struct TORRENT_EXPORT state_changed_alert: torrent_alert
 	{
 		state_changed_alert(torrent_handle const& h
-			, torrent_status::state_t state_
-			, torrent_status::state_t prev_state_)
+			, torrent_status::state_t const& state_)
 			: torrent_alert(h)
 			, state(state_)
-			, prev_state(prev_state_)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
@@ -250,7 +217,6 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 
 		torrent_status::state_t state;
-		torrent_status::state_t prev_state;
 	};
 
 	struct TORRENT_EXPORT tracker_error_alert: tracker_alert
@@ -1138,29 +1104,6 @@ namespace libtorrent
 		}
 	};
 
-	struct TORRENT_EXPORT portmap_log_alert: alert
-	{
-		portmap_log_alert(int t, std::string const& m)
-			: type(t), msg(m)
-		{}
-
-		int type;
-		std::string msg;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new portmap_log_alert(*this)); }
-		virtual char const* what() const { return "port map log"; }
-		const static int static_category = alert::port_mapping_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			static char const* type_str[] = {"NAT-PMP", "UPnP"};
-			std::stringstream ret;
-			ret << type_str[type] << ": " << msg;
-			return ret.str();
-		}
-	};
-
 	struct TORRENT_EXPORT fastresume_rejected_alert: torrent_alert
 	{
 		fastresume_rejected_alert(torrent_handle const& h
@@ -1200,56 +1143,6 @@ namespace libtorrent
 		{
 			error_code ec;
 			return "blocked peer: " + ip.to_string(ec);
-		}
-	};
-
-	struct TORRENT_EXPORT dht_announce_alert: alert
-	{
-		dht_announce_alert(address const& ip_, int port_
-			, sha1_hash const& info_hash_)
-			: ip(ip_)
-			, port(port_)
-			, info_hash(info_hash_)
-		{}
-		
-		address ip;
-		int port;
-		sha1_hash info_hash;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new dht_announce_alert(*this)); }
-		virtual char const* what() const { return "incoming dht announce"; }
-		const static int static_category = alert::dht_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			error_code ec;
-			std::stringstream ret;
-			ret << "incoming dht annonce: " << ip.to_string(ec) << ":"
-				<< port << " (" << info_hash << ")";
-			return ret.str();
-		}
-	};
-
-	struct TORRENT_EXPORT dht_get_peers_alert: alert
-	{
-		dht_get_peers_alert(sha1_hash const& info_hash_)
-			: info_hash(info_hash_)
-		{}
-		
-		sha1_hash info_hash;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new dht_get_peers_alert(*this)); }
-		virtual char const* what() const { return "incoming dht get_peers request"; }
-		const static int static_category = alert::dht_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			error_code ec;
-			std::stringstream ret;
-			ret << "incoming dht get_peers: " << info_hash;
-			return ret.str();
 		}
 	};
 }

@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/buffer.hpp"
 
 #include <vector>
 #include <boost/function.hpp>
@@ -65,8 +64,6 @@ namespace libtorrent
 
 		void set_proxy_settings(proxy_settings const& ps);
 		proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
-
-		bool is_closed() const { return m_abort; }
 
 	private:
 
@@ -112,30 +109,6 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		int m_magic;
 #endif
-	};
-
-	struct rate_limited_udp_socket : public udp_socket
-	{
-		rate_limited_udp_socket(io_service& ios, callback_t const& c, connection_queue& cc);
-		void set_rate_limit(int limit) { m_rate_limit = limit; }
-		bool can_send() const { return int(m_queue.size()) >= m_queue_size_limit; }
-		bool send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags = 0);
-		void close();
-
-	private:
-		struct queued_packet
-		{
-			udp::endpoint ep;
-			buffer buf;
-		};
-		void on_tick(error_code const& e);
-
-		deadline_timer m_timer;
-		int m_queue_size_limit;
-		int m_rate_limit;
-		int m_quota;
-		ptime m_last_tick;
-		std::list<queued_packet> m_queue;
 	};
 }
 

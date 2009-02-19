@@ -15,26 +15,22 @@ endif
 libtorrent_rasterbar_la_SOURCES = entry.cpp escape_string.cpp \
 lazy_bdecode.cpp assert.cpp enum_net.cpp broadcast_socket.cpp \
 peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
-http_seed_connection.cpp natpmp.cpp piece_picker.cpp policy.cpp \
-session.cpp session_impl.cpp sha1.cpp stat.cpp storage.cpp torrent.cpp \
-torrent_handle.cpp pe_crypto.cpp \
+natpmp.cpp piece_picker.cpp policy.cpp session.cpp session_impl.cpp sha1.cpp \
+stat.cpp storage.cpp torrent.cpp torrent_handle.cpp pe_crypto.cpp \
 torrent_info.cpp tracker_manager.cpp http_connection.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
 logger.cpp file_pool.cpp ut_pex.cpp lsd.cpp upnp.cpp instantiate_connection.cpp \
 socks5_stream.cpp socks4_stream.cpp http_stream.cpp connection_queue.cpp \
-disk_io_thread.cpp ut_metadata.cpp lt_trackers.cpp magnet_uri.cpp udp_socket.cpp smart_ban.cpp \
+disk_io_thread.cpp ut_metadata.cpp magnet_uri.cpp udp_socket.cpp smart_ban.cpp \
 http_parser.cpp gzip.cpp disk_buffer_holder.cpp create_torrent.cpp GeoIP.c \
-parse_url.cpp file_storage.cpp error_code.cpp ConvertUTF.cpp \
-allocator.cpp \
-$(kademlia_sources)
+parse_url.cpp file_storage.cpp error_code.cpp $(kademlia_sources)
+# mapped_storage.cpp 
 
 noinst_HEADERS = \
 $(top_srcdir)/include/libtorrent/alert.hpp \
-$(top_srcdir)/include/libtorrent/allocator.hpp \
 $(top_srcdir)/include/libtorrent/alert_types.hpp \
 $(top_srcdir)/include/libtorrent/assert.hpp \
-$(top_srcdir)/include/libtorrent/alloca.hpp \
 $(top_srcdir)/include/libtorrent/aux_/session_impl.hpp \
 $(top_srcdir)/include/libtorrent/bandwidth_manager.hpp \
 $(top_srcdir)/include/libtorrent/bandwidth_limit.hpp \
@@ -62,7 +58,6 @@ $(top_srcdir)/include/libtorrent/fingerprint.hpp \
 $(top_srcdir)/include/libtorrent/gzip.hpp \
 $(top_srcdir)/include/libtorrent/hasher.hpp \
 $(top_srcdir)/include/libtorrent/http_connection.hpp \
-$(top_srcdir)/include/libtorrent/http_seed_connection.hpp \
 $(top_srcdir)/include/libtorrent/http_stream.hpp \
 $(top_srcdir)/include/libtorrent/http_parser.hpp \
 $(top_srcdir)/include/libtorrent/session_settings.hpp \
@@ -106,8 +101,7 @@ $(top_srcdir)/include/libtorrent/udp_tracker_connection.hpp \
 $(top_srcdir)/include/libtorrent/utf8.hpp \
 $(top_srcdir)/include/libtorrent/xml_parse.hpp \
 $(top_srcdir)/include/libtorrent/variant_stream.hpp \
-$(top_srcdir)/include/libtorrent/version.hpp \
-$(top_srcdir)/include/libtorrent/ConvertUTF.h
+$(top_srcdir)/include/libtorrent/version.hpp
 
 
 libtorrent_rasterbar_la_LDFLAGS = $(LDFLAGS) -version-info $(INTERFACE_VERSION_INFO)

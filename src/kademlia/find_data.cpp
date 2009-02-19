@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/find_data.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
-#include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/io.hpp>
 #include <libtorrent/socket.hpp>
 
@@ -55,18 +54,16 @@ void find_data_observer::reply(msg const& m)
 		return;
 	}
 
-	if (!m.write_token.empty())
-		m_algorithm->got_write_token(m.id, m.write_token);
-
 	if (!m.peers.empty())
+	{
 		m_algorithm->got_data(&m);
-
-	if (!m.nodes.empty())
+	}
+	else
 	{
 		for (msg::nodes_t::const_iterator i = m.nodes.begin()
 			, end(m.nodes.end()); i != end; ++i)
 		{
-			m_algorithm->traverse(i->id, udp::endpoint(i->addr, i->port));
+			m_algorithm->traverse(i->id, i->addr);	
 		}
 	}
 	m_algorithm->finished(m_self);
@@ -82,14 +79,23 @@ void find_data_observer::timeout()
 
 
 find_data::find_data(
-	node_impl& node
-	, node_id target
-	, data_callback const& dcallback
-	, nodes_callback const& ncallback)
-	: traversal_algorithm(node, target, node.m_table.begin(), node.m_table.end())
-	, m_data_callback(dcallback)
-	, m_nodes_callback(ncallback)
-	, m_target(target)
+	node_id target
+	, int branch_factor
+	, int max_results
+	, routing_table& table
+	, rpc_manager& rpc
+	, done_callback const& callback
+)
+	: traversal_algorithm(
+		target
+		, branch_factor
+		, max_results
+		, table
+		, rpc
+		, table.begin()
+		, table.end()
+	)
+	, m_done_callback(callback)
 	, m_done(false)
 {
 	boost::intrusive_ptr<find_data> self(this);
@@ -104,36 +110,36 @@ void find_data::invoke(node_id const& id, udp::endpoint addr)
 		return;
 	}
 
-	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
-	observer_ptr o(new (m_node.m_rpc.allocator().malloc()) find_data_observer(this, id));
+	TORRENT_ASSERT(m_rpc.allocation_size() >= sizeof(find_data_observer));
+	observer_ptr o(new (m_rpc.allocator().malloc()) find_data_observer(this, id, m_target));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
-	m_node.m_rpc.invoke(messages::get_peers, addr, o);
+	m_rpc.invoke(messages::get_peers, addr, o);
 }
 
 void find_data::got_data(msg const* m)
 {
-	m_data_callback(m->peers);
+	m_done = true;
+	m_done_callback(m);
 }
 
 void find_data::done()
 {
 	if (m_invoke_count != 0) return;
+	if (!m_done) m_done_callback(0);
+}
 
-	std::vector<std::pair<node_entry, std::string> > results;
-	int num_results = m_node.m_table.bucket_size();
-	for (std::vector<result>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end && num_results > 0; ++i)
-	{
-		if (i->flags & result::no_id) continue;
-		if ((i->flags & result::queried) == 0) continue;
-		std::map<node_id, std::string>::iterator j = m_write_tokens.find(i->id);
-		if (j == m_write_tokens.end()) continue;
-		results.push_back(std::make_pair(node_entry(i->id, i->addr), j->second));
-		--num_results;
-	}
-	m_nodes_callback(results);
+void find_data::initiate(
+	node_id target
+	, int branch_factor
+	, int max_results
+	, routing_table& table
+	, rpc_manager& rpc
+	, done_callback const& callback
+)
+{
+	new find_data(target, branch_factor, max_results, table, rpc, callback);
 }
 
 } } // namespace libtorrent::dht

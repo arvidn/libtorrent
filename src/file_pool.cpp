@@ -43,12 +43,11 @@ namespace libtorrent
 	using boost::multi_index::get;
 
 	boost::shared_ptr<file> file_pool::open_file(void* st, fs::path const& p
-		, int m, error_code& ec)
+		, file::open_mode m, error_code& ec)
 	{
 		TORRENT_ASSERT(st != 0);
 		TORRENT_ASSERT(p.is_complete());
-		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
-			|| (m & file::rw_mask) == file::read_write);
+		TORRENT_ASSERT(m == file::in || m == (file::in | file::out));
 		boost::mutex::scoped_lock l(m_mutex);
 		typedef nth_index<file_set, 0>::type path_view;
 		path_view& pt = get<0>(m_files);
@@ -58,8 +57,8 @@ namespace libtorrent
 			lru_file_entry e = *i;
 			e.last_use = time_now();
 
-			if (e.key != st && ((e.mode & file::rw_mask) != file::read_only
-				|| (m & file::rw_mask) != file::read_only))
+			if (e.key != st && (e.mode != file::in
+				|| m != file::in))
 			{
 				// this means that another instance of the storage
 				// is using the exact same file.
@@ -70,11 +69,7 @@ namespace libtorrent
 			}
 
 			e.key = st;
-			// if we asked for a file in write mode,
-			// and the cached file is is not opened in
-			// write mode, re-open it
-			if (((e.mode & file::rw_mask) != file::read_write)
-				&& ((m & file::rw_mask) == file::read_write))
+			if ((e.mode & m) != m)
 			{
 				// close the file before we open it with
 				// the new read/write privilages
@@ -90,7 +85,6 @@ namespace libtorrent
 				e.mode = m;
 			}
 			pt.replace(i, e);
-			TORRENT_ASSERT((e.mode & file::no_buffer) == (m & file::no_buffer));
 			return e.file_ptr;
 		}
 		// the file is not in our cache

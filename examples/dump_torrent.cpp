@@ -116,12 +116,7 @@ int main(int argc, char* argv[])
 			int first = t.map_file(index, 0, 1).piece;
 			int last = t.map_file(index, i->size - 1, 1).piece;
 			std::cout << "  " << std::setw(11) << i->size
-				<< " "
-				<< (i->pad_file?'p':'-')
-				<< (i->executable_attribute?'x':'-')
-				<< (i->hidden_attribute?'h':'-')
-				<< " "
-				<< i->path.string() << "[ " << first << ", "
+				<< " " << i->path.string() << "[ " << first << ", "
 				<< last << " ]\n";
 		}
 

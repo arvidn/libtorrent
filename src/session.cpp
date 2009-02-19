@@ -58,7 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
-#include "libtorrent/extensions/lt_trackers.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -91,8 +90,6 @@ void stop_malloc_debug();
 namespace libtorrent
 {
 
-	TORRENT_EXPORT void TORRENT_LINK_TEST_NAME() {}
-
 	std::string log_time()
 	{
 		static const ptime start = time_now();
@@ -118,14 +115,13 @@ namespace libtorrent
 		, std::pair<int, int> listen_port_range
 		, char const* listen_interface
 		, int flags
-		, int alert_mask
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, fs::path logpath
 #endif
 		)
 		: m_impl(new session_impl(listen_port_range, id, listen_interface
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		, logpath
+					, logpath
 #endif
 		))
 	{
@@ -142,13 +138,11 @@ namespace libtorrent
 		boost::function0<void> test = boost::ref(*m_impl);
 		TORRENT_ASSERT(!test.empty());
 #endif
-		set_alert_mask(alert_mask);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
 		{
 			add_extension(create_ut_pex_plugin);
 			add_extension(create_ut_metadata_plugin);
-			add_extension(create_lt_trackers_plugin);
 			add_extension(create_smart_ban_plugin);
 		}
 #endif
@@ -165,7 +159,6 @@ namespace libtorrent
 
 	session::session(fingerprint const& id
 		, int flags
-		, int alert_mask
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, fs::path logpath
 #endif
@@ -183,13 +176,11 @@ namespace libtorrent
 		boost::function0<void> test = boost::ref(*m_impl);
 		TORRENT_ASSERT(!test.empty());
 #endif
-		set_alert_mask(alert_mask);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
 		{
 			add_extension(create_ut_pex_plugin);
 			add_extension(create_ut_metadata_plugin);
-			add_extension(create_lt_trackers_plugin);
 			add_extension(create_smart_ban_plugin);
 		}
 #endif
@@ -230,17 +221,7 @@ namespace libtorrent
 		return m_impl->load_asnum_db(file);
 	}
 
-	bool session::load_asnum_db(wchar_t const* file)
-	{
-		return m_impl->load_asnum_db(file);
-	}
-
 	bool session::load_country_db(char const* file)
-	{
-		return m_impl->load_country_db(file);
-	}
-
-	bool session::load_country_db(wchar_t const* file)
 	{
 		return m_impl->load_country_db(file);
 	}
@@ -519,11 +500,6 @@ namespace libtorrent
 		m_impl->set_max_uploads(limit);
 	}
 
-	int session::max_connections() const
-	{
-		return m_impl->max_connections();
-	}
-
 	void session::set_max_connections(int limit)
 	{
 		m_impl->set_max_connections(limit);
@@ -574,11 +550,6 @@ namespace libtorrent
 		return m_impl->pop_alert();
 	}
 
-	void session::set_alert_dispatch(boost::function<void(alert const&)> const& fun)
-	{
-		return m_impl->set_alert_dispatch(fun);
-	}
-
 	alert const* session::wait_for_alert(time_duration max_wait)
 	{
 		return m_impl->wait_for_alert(max_wait);
@@ -602,10 +573,9 @@ namespace libtorrent
 		{
 			case alert::debug: m = alert::all_categories; break;
 			case alert::info: m = alert::all_categories & ~(alert::debug_notification
-				| alert::progress_notification | alert::dht_notification); break;
+				| alert::progress_notification); break;
 			case alert::warning: m = alert::all_categories & ~(alert::debug_notification
-				| alert::status_notification | alert::progress_notification
-				| alert::dht_notification); break;
+				| alert::status_notification | alert::progress_notification); break;
 			case alert::critical: m = alert::error_notification | alert::storage_notification; break;
 			case alert::fatal: m = alert::error_notification; break;
 			default: break;

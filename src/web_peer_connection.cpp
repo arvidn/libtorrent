@@ -383,9 +383,9 @@ namespace libtorrent
 					if (m_parser.status_code() == 503)
 					{
 						// temporarily unavailable, retry later
-						t->retry_web_seed(m_url, web_seed_entry::url_seed);
+						t->retry_url_seed(m_url);
 					}
-					t->remove_web_seed(m_url, web_seed_entry::url_seed);
+					t->remove_url_seed(m_url);
 					std::string error_msg = to_string(m_parser.status_code()).elems
 						+ (" " + m_parser.message());
 					if (m_ses.m_alerts.should_post<url_seed_alert>())
@@ -428,7 +428,7 @@ namespace libtorrent
 					if (location.empty())
 					{
 						// we should not try this server again.
-						t->remove_web_seed(m_url, web_seed_entry::url_seed);
+						t->remove_url_seed(m_url);
 						disconnect("got HTTP redirection status without location header", 2);
 						return;
 					}
@@ -449,7 +449,7 @@ namespace libtorrent
 						size_t i = location.rfind(path);
 						if (i == std::string::npos)
 						{
-							t->remove_web_seed(m_url, web_seed_entry::url_seed);
+							t->remove_url_seed(m_url);
 							std::stringstream msg;
 							msg << "got invalid HTTP redirection location (\"" << location << "\") "
 								"expected it to end with: " << path;
@@ -458,8 +458,8 @@ namespace libtorrent
 						}
 						location.resize(i);
 					}
-					t->add_web_seed(location, web_seed_entry::url_seed);
-					t->remove_web_seed(m_url, web_seed_entry::url_seed);
+					t->add_url_seed(location);
+					t->remove_url_seed(m_url);
 					std::stringstream msg;
 					msg << "redirecting to \"" << location << "\"";
 					disconnect(msg.str().c_str());
@@ -497,7 +497,7 @@ namespace libtorrent
 				if (!range_str)
 				{
 					// we should not try this server again.
-					t->remove_web_seed(m_url, web_seed_entry::url_seed);
+					t->remove_url_seed(m_url);
 					std::stringstream msg;
 					msg << "invalid range in HTTP response: " << range_str.str();
 					disconnect(msg.str().c_str(), 2);
@@ -513,7 +513,7 @@ namespace libtorrent
 				if (range_end == -1)
 				{
 					// we should not try this server again.
-					t->remove_web_seed(m_url, web_seed_entry::url_seed);
+					t->remove_url_seed(m_url);
 					disconnect("no content-length in HTTP response", 2);
 					return;
 				}
@@ -694,6 +694,7 @@ namespace libtorrent
 		return m_server_string.empty();
 	}
 
+	// throws exception when the client should be disconnected
 	void web_peer_connection::on_sent(error_code const& error
 		, std::size_t bytes_transferred)
 	{

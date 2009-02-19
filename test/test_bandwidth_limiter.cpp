@@ -280,16 +280,14 @@ void do_tick(error_code const&e, deadline_timer& tick, connections_t& v)
 	}
 	std::for_each(v.begin(), v.end()
 		, boost::bind(&peer_connection::tick, _1));
-	error_code ec;
-	tick.expires_from_now(seconds(1), ec);
+	tick.expires_from_now(seconds(1));
 	tick.async_wait(boost::bind(&do_tick, _1, boost::ref(tick), boost::ref(v)));
 }
 
 void do_stop(deadline_timer& tick, connections_t& v)
 {
 	abort_tick = true;
-	error_code ec;
-	tick.cancel(ec);
+	tick.cancel();
 	std::for_each(v.begin(), v.end()
 		, boost::bind(&peer_connection::stop, _1));
 	std::cerr << " stopping..." << std::endl;
@@ -314,8 +312,7 @@ void do_change_rate(error_code const&e, deadline_timer& tick
 	t1->m_bandwidth_limit[0].throttle(limit + limit / 2 * ((counter & 1)?-1:1));
 	t2->m_bandwidth_limit[0].throttle(limit + limit / 2 * ((counter & 1)?1:-1));
 
-	error_code ec;
-	tick.expires_from_now(milliseconds(1600), ec);
+	tick.expires_from_now(milliseconds(1600));
 	tick.async_wait(boost::bind(&do_change_rate, _1, boost::ref(tick), t1, t2, limit, counter-1));
 }
 
@@ -338,8 +335,7 @@ void do_change_peer_rate(error_code const&e, deadline_timer& tick
 	for (connections_t::iterator i = v.begin(); i != v.end(); ++i, ++c)
 		i->get()->throttle(limit + limit / 2 * ((c & 1)?-1:1));
 
-	error_code ec;
-	tick.expires_from_now(milliseconds(1100), ec);
+	tick.expires_from_now(milliseconds(1100));
 	tick.async_wait(boost::bind(&do_change_peer_rate, _1, boost::ref(tick), boost::ref(v), limit, counter-1));
 }
 
@@ -348,19 +344,17 @@ void run_test(io_service& ios, connections_t& v)
 	abort_tick = false;
 	std::cerr << "-------------" << std::endl;
 	deadline_timer tick(ios);
-	
-	error_code ec;
-	tick.expires_from_now(seconds(1), ec);
+	tick.expires_from_now(seconds(1));
 	tick.async_wait(boost::bind(&do_tick, _1, boost::ref(tick), boost::ref(v)));
 
 	deadline_timer complete(ios);
-	complete.expires_from_now(milliseconds(int(sample_time * 1000)), ec);
+	complete.expires_from_now(milliseconds(int(sample_time * 1000)));
 	complete.async_wait(boost::bind(&do_stop, boost::ref(tick), boost::ref(v)));
 
 	std::for_each(v.begin(), v.end()
 		, boost::bind(&peer_connection::start, _1));
 
-	ios.run(ec);
+	ios.run();
 }
 
 bool close_to(float val, float comp, float err)
@@ -426,9 +420,8 @@ void test_connections_variable_rate(int num, int limit, int torrent_limit)
 	std::for_each(v.begin(), v.end()
 		, boost::bind(&peer_connection::throttle, _1, limit));
 
-	error_code ec;
 	deadline_timer change_rate(ios);
-	change_rate.expires_from_now(milliseconds(1600), ec);
+	change_rate.expires_from_now(milliseconds(1600));
 	change_rate.async_wait(boost::bind(&do_change_peer_rate, _1, boost::ref(change_rate)
 		, boost::ref(v), limit, 9));
 	run_test(ios, v);
@@ -559,9 +552,8 @@ void test_torrents_variable_rate(int num, int limit, int global_limit)
 	std::copy(v1.begin(), v1.end(), std::back_inserter(v));
 	std::copy(v2.begin(), v2.end(), std::back_inserter(v));
 
-	error_code ec;
 	deadline_timer change_rate(ios);
-	change_rate.expires_from_now(milliseconds(1100), ec);
+	change_rate.expires_from_now(milliseconds(1100));
 	change_rate.async_wait(boost::bind(&do_change_rate, _1, boost::ref(change_rate), t1, t2, limit, 9));
 	
 	run_test(ios, v);

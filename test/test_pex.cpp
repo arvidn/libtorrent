@@ -47,9 +47,9 @@ void test_pex()
 {
 	using namespace libtorrent;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48200, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49200, 50000), "0.0.0.0", 0);
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50200, 51000), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48200, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49200, 50000));
+	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50200, 51000));
 
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
@@ -90,9 +90,8 @@ void test_pex()
 
 	test_sleep(1000);
 
-	error_code ec;
-	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()));
-	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec), ses3.listen_port()));
+	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1"), ses1.listen_port()));
+	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1"), ses3.listen_port()));
 
 	for (int i = 0; i < 90; ++i)
 	{

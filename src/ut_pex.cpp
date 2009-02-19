@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/broadcast_socket.hpp"
 
 #include "libtorrent/extensions/ut_pex.hpp"
 
@@ -73,18 +72,13 @@ namespace libtorrent { namespace
 
 	struct ut_pex_plugin: torrent_plugin
 	{
-		ut_pex_plugin(torrent& t): m_torrent(t), m_1_minute(55), m_peers_in_message(0) {}
+		ut_pex_plugin(torrent& t): m_torrent(t), m_1_minute(55) {}
 	
 		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection* pc);
 
 		std::vector<char>& get_ut_pex_msg()
 		{
 			return m_ut_pex_msg;
-		}
-
-		int peers_in_msg() const
-		{
-			return m_peers_in_message;
 		}
 
 		// the second tick of the torrent
@@ -115,7 +109,6 @@ namespace libtorrent { namespace
 			std::set<tcp::endpoint> dropped;
 			m_old_peers.swap(dropped);
 
-			m_peers_in_message = 0;
 			int num_added = 0;
 			for (torrent::peer_iterator i = m_torrent.begin()
 				, end(m_torrent.end()); i != end; ++i)
@@ -155,7 +148,6 @@ namespace libtorrent { namespace
 						detail::write_uint8(flags, plf6_out);
 					}
 					++num_added;
-					++m_peers_in_message;
 				}
 				else
 				{
@@ -172,7 +164,6 @@ namespace libtorrent { namespace
 					detail::write_endpoint(*i, pld_out);
 				else
 					detail::write_endpoint(*i, pld6_out);
-				++m_peers_in_message;
 			}
 
 			m_ut_pex_msg.clear();
@@ -185,7 +176,6 @@ namespace libtorrent { namespace
 		std::set<tcp::endpoint> m_old_peers;
 		int m_1_minute;
 		std::vector<char> m_ut_pex_msg;
-		int m_peers_in_message;
 	};
 
 
@@ -234,7 +224,7 @@ namespace libtorrent { namespace
 
 			lazy_entry pex_msg;
 			int ret = lazy_bdecode(body.begin, body.end, pex_msg);
-			if (ret != 0 || pex_msg.type() != lazy_entry::dict_t)
+			if (pex_msg.type() != lazy_entry::dict_t)
 			{
 				m_pc.disconnect("invalid bencoding in ut_metadata message", 2);
 				return true;
@@ -259,8 +249,6 @@ namespace libtorrent { namespace
 				{
 					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
 					char flags = *fin++;
-					// ignore local addresses unless the peer is local to us
-					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
 					p.peer_from_tracker(adr, pid, peer_info::pex, flags);
 				} 
 			}
@@ -283,8 +271,6 @@ namespace libtorrent { namespace
 				{
 					tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
 					char flags = *fin++;
-					// ignore local addresses unless the peer is local to us
-					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
 					p.peer_from_tracker(adr, pid, peer_info::pex, flags);
 				} 
 			}
@@ -314,9 +300,6 @@ namespace libtorrent { namespace
 
 		void send_ut_peer_diff()
 		{
-			// if there's no change in out peer set, don't send anything
-			if (m_tp.peers_in_msg() == 0) return;
-
 			std::vector<char> const& pex_msg = m_tp.get_ut_pex_msg();
 
 			buffer::interval i = m_pc.allocate_send_buffer(6 + pex_msg.size());

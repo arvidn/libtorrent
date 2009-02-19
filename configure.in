@@ -1,6 +1,6 @@
 AC_PREREQ(2.60)
 
-AC_INIT([libtorrent-rasterbar], [0.15.0], [arvid@cs.umu.se])
+AC_INIT([libtorrent-rasterbar], [0.14.2], [arvid@rasterbar.com])
 AM_INIT_AUTOMAKE(foreign 1.10)
 AC_CONFIG_SRCDIR([src/torrent.cpp])
 
@@ -29,8 +29,8 @@ dnl  change does not break upward compatibility (ie it is an addition),
 dnl  increment AGE, Otherwise AGE is reset to 0. If CURRENT has changed,
 dnl  REVISION is set to 0, otherwise REVISION is incremented.
 dnl ---------------------------------------------------------------------------
-VERSION_INFO_CURRENT=1
-VERSION_INFO_REVISION=1
+VERSION_INFO_CURRENT=2
+VERSION_INFO_REVISION=0
 VERSION_INFO_AGE=0
 INTERFACE_VERSION_INFO=$VERSION_INFO_CURRENT:$VERSION_INFO_REVISION:$VERSION_INFO_AGE
 AC_SUBST(INTERFACE_VERSION_INFO)
@@ -412,11 +412,6 @@ if [[ "x$enable_shared" == "xyes" ]]; then
 	AC_DEFINE(TORRENT_BUILDING_SHARED,,[Make sure the functions and classes are exported.])
 	COMPILETIME_OPTIONS+="-DTORRENT_LINKING_SHARED "
 fi
-
-AC_DEFINE(BOOST_MULTI_INDEX_DISABLE_SERIALIZATION,,[Don't depend on boost.serialization headers])
-COMPILETIME_OPTIONS+="-DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION "
-AC_DEFINE(BOOST_EXCEPTION_DISABLE,,[We don't need boost.exception features])
-COMPILETIME_OPTIONS+="-DBOOST_EXCEPTION_DISABLE "
 
 dnl want some debugging symbols with that?
 AC_ARG_ENABLE(

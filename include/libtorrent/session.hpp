@@ -65,7 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 
 #include "libtorrent/storage.hpp"
-#include <boost/preprocessor/cat.hpp>
 
 #ifdef _MSC_VER
 #	include <eh.h>
@@ -80,45 +79,6 @@ namespace libtorrent
 	class connection_queue;
 	class natpmp;
 	class upnp;
-
-	// this is used to create linker errors when trying to link to
-	// a library with a conflicting build configuration than the application
-#ifdef TORRENT_DEBUG
-#define G _release
-#else
-#define G _debug
-#endif
-
-#ifdef TORRENT_USE_OPENSSL
-#define S _ssl
-#else
-#define S _nossl
-#endif
-
-#ifdef TORRENT_DISABLE_DHT
-#define D _nodht
-#else
-#define D _dht
-#endif
-
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-#define P _nopoolalloc
-#else
-#define P _poolalloc
-#endif
-
-#define TORRENT_LINK_TEST_PREFIX libtorrent_build_config
-#define TORRENT_LINK_TEST_NAME BOOST_PP_CAT(TORRENT_LINK_TEST_PREFIX, BOOST_PP_CAT(P, BOOST_PP_CAT(D, BOOST_PP_CAT(S, G))))
-#undef P
-#undef D
-#undef S
-#undef G
-
-	inline void test_link()
-	{
-		extern void TORRENT_LINK_TEST_NAME();
-		TORRENT_LINK_TEST_NAME();
-	}
 
 	namespace fs = boost::filesystem;
 
@@ -173,7 +133,6 @@ namespace libtorrent
 			, duplicate_is_error(false)
 			, storage(sc)
 			, userdata(0)
-			, seed_mode(false)
 		{}
 
 		boost::intrusive_ptr<torrent_info> ti;
@@ -188,7 +147,6 @@ namespace libtorrent
 		bool duplicate_is_error;
 		storage_constructor_type storage;
 		void* userdata;
-		bool seed_mode;
 	};
 	
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
@@ -198,7 +156,6 @@ namespace libtorrent
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			, fs::path logpath = "."
 #endif
@@ -208,7 +165,6 @@ namespace libtorrent
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
 			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			, fs::path logpath = "."
 #endif
@@ -291,9 +247,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_GEO_IP
 		int as_for_ip(address const& addr);
 		bool load_asnum_db(char const* file);
-		bool load_asnum_db(wchar_t const* file);
 		bool load_country_db(char const* file);
-		bool load_country_db(wchar_t const* file);
 #endif
 
 		void load_state(entry const& ses_state);
@@ -372,8 +326,6 @@ namespace libtorrent
 		void set_max_connections(int limit);
 		void set_max_half_open_connections(int limit);
 
-		int max_connections() const;
-
 		std::auto_ptr<alert> pop_alert();
 #ifndef TORRENT_NO_DEPRECATE
 		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;
@@ -382,7 +334,6 @@ namespace libtorrent
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 		alert const* wait_for_alert(time_duration max_wait);
-		void set_alert_dispatch(boost::function<void(alert const&)> const& fun);
 
 		connection_queue& get_connection_queue();
 

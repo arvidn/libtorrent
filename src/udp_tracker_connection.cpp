@@ -59,7 +59,6 @@ using boost::lexical_cast;
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/io.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/escape_string.hpp"
 
 namespace
@@ -85,7 +84,7 @@ namespace libtorrent
 		, tracker_request const& req
 		, address bind_infc
 		, boost::weak_ptr<request_callback> c
-		, aux::session_impl const& ses
+		, session_settings const& stn
 		, proxy_settings const& proxy)
 		: tracker_connection(man, req, ios, bind_infc, c)
 		, m_man(man)
@@ -93,7 +92,7 @@ namespace libtorrent
 		, m_socket(ios, boost::bind(&udp_tracker_connection::on_receive, self(), _1, _2, _3, _4), cc)
 		, m_transaction_id(0)
 		, m_connection_id(0)
-		, m_ses(ses)
+		, m_settings(stn)
 		, m_attempts(0)
 		, m_state(action_error)
 	{
@@ -116,16 +115,14 @@ namespace libtorrent
 			return;
 		}
 		
-		session_settings const& settings = m_ses.settings();
-
 		udp::resolver::query q(hostname, to_string(port).elems);
 		m_name_lookup.async_resolve(q
 			, boost::bind(
 			&udp_tracker_connection::name_lookup, self(), _1, _2));
 		set_timeout(tracker_req().event == tracker_request::stopped
-			? settings.stop_tracker_timeout
-			: settings.tracker_completion_timeout
-			, settings.tracker_receive_timeout);
+			? m_settings.stop_tracker_timeout
+			: m_settings.tracker_completion_timeout
+			, m_settings.tracker_receive_timeout);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->debug_log(("*** UDP_TRACKER [ initiating name lookup: " + hostname + " ]").c_str());
@@ -172,12 +169,6 @@ namespace libtorrent
 		{
 			target_address = *target;
 		}
-
-		if (m_ses.m_ip_filter.access(target_address.address()) & ip_filter::blocked)
-		{
-			fail(-1, "blocked by IP filter");
-			return;
-		}
 		
 		if (cb) cb->m_tracker_address = tcp::endpoint(target_address.address(), target_address.port());
 		m_target = target_address;
@@ -195,9 +186,7 @@ namespace libtorrent
 	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
-		std::stringstream msg;
-		msg << "*** UDP_TRACKER [ timed out url: " << tracker_req().url << " ]";
-		if (cb) cb->debug_log(msg.str().c_str());
+		if (cb) cb->debug_log("*** UDP_TRACKER [ timed out ]");
 #endif
 		m_socket.close();
 		m_name_lookup.cancel();
@@ -223,7 +212,6 @@ namespace libtorrent
 		// ignore packet not sent from the tracker
 		if (m_target != ep) return;
 		
-		received_bytes(size + 28); // assuming UDP/IP header
 		if (e) fail(-1, e.message().c_str());
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
@@ -336,7 +324,6 @@ namespace libtorrent
 		error_code ec;
 		m_socket.send(m_target, buf, 16, ec);
 		m_state = action_connect;
-		sent_bytes(16 + 28); // assuming UDP/IP header
 		++m_attempts;
 		if (ec)
 		{
@@ -366,7 +353,6 @@ namespace libtorrent
 		error_code ec;
 		m_socket.send(m_target, buf, sizeof(buf), ec);
 		m_state = action_scrape;
-		sent_bytes(sizeof(buf) + 28); // assuming UDP/IP header
 		++m_attempts;
 		if (ec)
 		{
@@ -397,10 +383,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb)
 		{
-			boost::shared_ptr<request_callback> cb = requester();
-			std::stringstream msg;
-			msg << "<== UDP_ANNOUNCE_RESPONSE [ url: " << tracker_req().url << " ]";
-			cb->debug_log(msg.str().c_str());
+			cb->debug_log("<== UDP_TRACKER_ANNOUNCE_RESPONSE");
 		}
 #endif
 
@@ -426,7 +409,7 @@ namespace libtorrent
 			peer_list.push_back(e);
 		}
 
-		cb->tracker_response(tracker_req(), m_target.address(), peer_list, interval
+		cb->tracker_response(tracker_req(), peer_list, interval
 			, complete, incomplete, address());
 
 		m_man.remove_request(this);
@@ -494,7 +477,6 @@ namespace libtorrent
 		char* out = buf;
 
 		tracker_request const& req = tracker_req();
-		session_settings const& settings = m_ses.settings();
 
 		detail::write_int64(m_connection_id, out); // connection_id
 		detail::write_int32(action_announce, out); // action (announce)
@@ -508,8 +490,8 @@ namespace libtorrent
 		detail::write_int64(req.uploaded, out); // uploaded
 		detail::write_int32(req.event, out); // event
 		// ip address
-		if (settings.announce_ip != address() && settings.announce_ip.is_v4())
-			detail::write_uint32(settings.announce_ip.to_v4().to_ulong(), out);
+		if (m_settings.announce_ip != address() && m_settings.announce_ip.is_v4())
+			detail::write_uint32(m_settings.announce_ip.to_v4().to_ulong(), out);
 		else
 			detail::write_int32(0, out);
 		detail::write_int32(req.key, out); // key
@@ -531,7 +513,6 @@ namespace libtorrent
 		error_code ec;
 		m_socket.send(m_target, buf, sizeof(buf), ec);
 		m_state = action_announce;
-		sent_bytes(sizeof(buf) + 28); // assuming UDP/IP header
 		++m_attempts;
 		if (ec)
 		{

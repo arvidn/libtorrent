@@ -180,7 +180,6 @@ namespace libtorrent
 	void request_a_block(torrent& t, peer_connection& c)
 	{
 		if (t.is_seed()) return;
-		if (c.no_download()) return;
 
 		TORRENT_ASSERT(t.valid_metadata());
 		TORRENT_ASSERT(c.peer_info_struct() != 0 || !dynamic_cast<bt_peer_connection*>(&c));
@@ -882,7 +881,6 @@ namespace libtorrent
 		// can't pay for their downloads anyway.
 		if (c.is_choked()
 			&& ses.num_uploads() < ses.max_uploads()
-			&& !c.ignore_unchoke_slots()
 			&& (m_torrent->ratio() == 0
 				|| c.share_diff() >= -free_upload_amount
 				|| m_torrent->is_finished()))

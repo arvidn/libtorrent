@@ -245,8 +245,6 @@ namespace libtorrent
 			clear_trailing_bits();
 		}
 
-		void free() { dealloc(); m_size = 0; }
-
 	private:
 
 		void clear_trailing_bits()
@@ -257,8 +255,8 @@ namespace libtorrent
 
 		void dealloc() { if (m_own) std::free(m_bytes); m_bytes = 0; }
 		unsigned char* m_bytes;
-		int m_size:31; // in bits
-		bool m_own:1;
+		int m_size; // in bits
+		bool m_own;
 	};
 
 }

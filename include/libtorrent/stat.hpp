@@ -130,42 +130,6 @@ namespace libtorrent
 				m_stat[i] += s.m_stat[i];
 		}
 
-		void sent_syn(bool ipv6)
-		{
-			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
-		}
-
-		void received_synack(bool ipv6)
-		{
-			// we received SYN-ACK and also sent ACK back
-			m_stat[download_ip_protocol].add(ipv6 ? 60 : 40);
-			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
-		}
-
-		void received_dht_bytes(int bytes)
-		{
-			TORRENT_ASSERT(bytes >= 0);
-			m_stat[download_dht_protocol].add(bytes);
-		}
-
-		void sent_dht_bytes(int bytes)
-		{
-			TORRENT_ASSERT(bytes >= 0);
-			m_stat[upload_dht_protocol].add(bytes);
-		}
-
-		void received_tracker_bytes(int bytes)
-		{
-			TORRENT_ASSERT(bytes >= 0);
-			m_stat[download_tracker_protocol].add(bytes);
-		}
-
-		void sent_tracker_bytes(int bytes)
-		{
-			TORRENT_ASSERT(bytes >= 0);
-			m_stat[upload_tracker_protocol].add(bytes);
-		}
-
 		void received_bytes(int bytes_payload, int bytes_protocol)
 		{
 			TORRENT_ASSERT(bytes_payload >= 0);
@@ -184,28 +148,28 @@ namespace libtorrent
 			m_stat[upload_protocol].add(bytes_protocol);
 		}
 
-		// and IP packet was received or sent
-		// account for the overhead caused by it
-		void trancieve_ip_packet(int bytes_transferred, bool ipv6)
+		// calculate ip protocol overhead
+		void calc_ip_overhead()
 		{
-			// one TCP/IP packet header for the packet
-			// sent or received, and one for the ACK
-			// The IPv4 header is 20 bytes
-			// and IPv6 header is 40 bytes
-			const int header = (ipv6 ? 40 : 20) + 20;
-			const int mtu = 1500;
-			const int packet_size = mtu - header;
-			const int overhead = (std::max)(1, (bytes_transferred + packet_size - 1) / packet_size) * header;
-			m_stat[download_ip_protocol].add(overhead);
-			m_stat[upload_ip_protocol].add(overhead);
+			int uploaded = m_stat[upload_protocol].counter()
+				+ m_stat[upload_payload].counter();
+			int downloaded = m_stat[download_protocol].counter()
+				+ m_stat[download_payload].counter();
+
+			// IP + TCP headers are 40 bytes per MTU (1460)
+			// bytes of payload, but at least 40 bytes
+			m_stat[upload_ip_protocol].add((std::max)(uploaded / 1460, uploaded>0?40:0));
+			m_stat[download_ip_protocol].add((std::max)(downloaded / 1460, downloaded>0?40:0));
+
+			// also account for ACK traffic. That adds to the transfers
+			// in the opposite direction. Even on connections with symmetric
+			// transfer rates, it seems to add a penalty.
+			m_stat[upload_ip_protocol].add((std::max)(downloaded * 40 / 1460, downloaded>0?40:0));
+			m_stat[download_ip_protocol].add((std::max)(uploaded * 40 / 1460, uploaded>0?40:0));
 		}
 
 		int upload_ip_overhead() const { return m_stat[upload_ip_protocol].counter(); }
 		int download_ip_overhead() const { return m_stat[download_ip_protocol].counter(); }
-		int upload_dht() const { return m_stat[upload_dht_protocol].counter(); }
-		int download_dht() const { return m_stat[download_dht_protocol].counter(); }
-		int download_tracker() const { return m_stat[download_tracker_protocol].counter(); }
-		int upload_tracker() const { return m_stat[upload_tracker_protocol].counter(); }
 
 		// should be called once every second
 		void second_tick(float tick_interval)
@@ -218,8 +182,7 @@ namespace libtorrent
 		{
 			return (m_stat[upload_payload].rate_sum()
 				+ m_stat[upload_protocol].rate_sum()
-				+ m_stat[upload_ip_protocol].rate_sum()
-				+ m_stat[upload_dht_protocol].rate_sum())
+				+ m_stat[upload_ip_protocol].rate_sum())
 				/ float(stat_channel::history);
 		}
 
@@ -227,31 +190,13 @@ namespace libtorrent
 		{
 			return (m_stat[download_payload].rate_sum()
 				+ m_stat[download_protocol].rate_sum()
-				+ m_stat[download_ip_protocol].rate_sum()
-				+ m_stat[download_dht_protocol].rate_sum())
+				+ m_stat[download_ip_protocol].rate_sum())
 				/ float(stat_channel::history);
-		}
-
-		size_type total_upload() const
-		{
-			return m_stat[upload_payload].total()
-				+ m_stat[upload_protocol].total()
-				+ m_stat[upload_ip_protocol].total()
-				+ m_stat[upload_dht_protocol].total()
-				+ m_stat[upload_tracker_protocol].total();
-		}
-
-		size_type total_download() const
-		{
-			return m_stat[download_payload].total()
-				+ m_stat[download_protocol].total()
-				+ m_stat[download_ip_protocol].total()
-				+ m_stat[download_dht_protocol].total()
-				+ m_stat[download_tracker_protocol].total();
 		}
 
 		float upload_payload_rate() const
 		{ return m_stat[upload_payload].rate(); }
+
 		float download_payload_rate() const
 		{ return m_stat[download_payload].rate(); }
 
@@ -264,11 +209,6 @@ namespace libtorrent
 		{ return m_stat[upload_protocol].total(); }
 		size_type total_protocol_download() const
 		{ return m_stat[download_protocol].total(); }
-
-		size_type total_transfer(int channel) const
-		{ return m_stat[channel].total(); }
-		float transfer_rate(int channel) const
-		{ return m_stat[channel].rate(); }
 
 		// this is used to offset the statistics when a
 		// peer_connection is opened and have some previous
@@ -285,26 +225,6 @@ namespace libtorrent
 		{ return m_stat[download_payload].counter(); }
 		size_type last_payload_uploaded() const
 		{ return m_stat[upload_payload].counter(); }
-		size_type last_protocol_downloaded() const
-		{ return m_stat[download_protocol].counter(); }
-		size_type last_protocol_uploaded() const
-		{ return m_stat[upload_protocol].counter(); }
-
-		// these are the channels we keep stats for
-		enum
-		{
-			upload_payload,
-			upload_protocol,
-			upload_ip_protocol,
-			upload_dht_protocol,
-			upload_tracker_protocol,
-			download_payload,
-			download_protocol,
-			download_ip_protocol,
-			download_dht_protocol,
-			download_tracker_protocol,
-			num_channels
-		};
 
 		void clear()
 		{
@@ -313,6 +233,18 @@ namespace libtorrent
 		}
 
 	private:
+
+		// these are the channels we keep stats for
+		enum
+		{
+			upload_payload,
+			upload_protocol,
+			upload_ip_protocol,
+			download_payload,
+			download_protocol,
+			download_ip_protocol,
+			num_channels
+		};
 
 		stat_channel m_stat[num_channels];
 	};

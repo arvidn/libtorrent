@@ -107,10 +107,6 @@ namespace libtorrent
 		// time since last download or upload
 		time_duration last_active;
 
-		// the time until all blocks in the request
-		// queue will be d
-		time_duration download_queue_time;
-
 		// the number of seconds until the current
 		// pending request times out
 		int request_timeout;
@@ -179,8 +175,7 @@ namespace libtorrent
 		enum
 		{
 			standard_bittorrent = 0,
-			web_seed = 1,
-			http_seed = 2
+			web_seed = 1
 		};
 		int connection_type;
 		
@@ -197,9 +192,6 @@ namespace libtorrent
 
 		// estimated rtt to peer, in milliseconds
 		int rtt;
-
-		// the number of pieces this peer has
-		int num_pieces;
 
 		// the highest transfer rates seen for this peer
 		int download_rate_peak;

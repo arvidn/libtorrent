@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
 
 using namespace libtorrent;
 using boost::tuples::make_tuple;
@@ -157,16 +156,6 @@ namespace libtorrent
 		close();
 	}
 
-	void tracker_connection::sent_bytes(int bytes)
-	{
-		m_man.sent_bytes(bytes);
-	}
-
-	void tracker_connection::received_bytes(int bytes)
-	{
-		m_man.received_bytes(bytes);
-	}
-
 	void tracker_connection::fail_timeout()
 	{
 		boost::shared_ptr<request_callback> cb = requester();
@@ -178,24 +167,6 @@ namespace libtorrent
 	{
 		cancel();
 		m_man.remove_request(this);
-	}
-
-	tracker_manager::~tracker_manager()
-	{
-		TORRENT_ASSERT(m_abort);
-		abort_all_requests(true);
-	}
-
-	void tracker_manager::sent_bytes(int bytes)
-	{
-		aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.m_stat.sent_tracker_bytes(bytes);
-	}
-
-	void tracker_manager::received_bytes(int bytes)
-	{
-		aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		m_ses.m_stat.received_tracker_bytes(bytes);
 	}
 
 	void tracker_manager::remove_request(tracker_connection const* c)
@@ -219,8 +190,6 @@ namespace libtorrent
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(req.num_want >= 0);
-		TORRENT_ASSERT(!m_abort);
-		if (m_abort) return;
 		if (req.event == tracker_request::stopped)
 			req.num_want = 0;
 
@@ -240,13 +209,13 @@ namespace libtorrent
 		{
 			con = new http_tracker_connection(
 				ios, cc, *this, req, bind_infc, c
-				, m_ses, m_proxy, auth);
+				, m_settings, m_proxy, auth);
 		}
 		else if (protocol == "udp")
 		{
 			con = new udp_tracker_connection(
 				ios, cc, *this, req, bind_infc
-				, c, m_ses, m_proxy);
+				, c, m_settings, m_proxy);
 		}
 		else
 		{
@@ -263,10 +232,11 @@ namespace libtorrent
 		con->start();
 	}
 
-	void tracker_manager::abort_all_requests(bool all)
+	void tracker_manager::abort_all_requests()
 	{
 		// removes all connections from m_connections
-		// except 'event=stopped'-requests
+		// except those with a requester == 0 (since those are
+		// 'event=stopped'-requests)
 		mutex_t::scoped_lock l(m_mutex);
 
 		m_abort = true;
@@ -281,7 +251,7 @@ namespace libtorrent
 				continue;
 			}
 			tracker_request const& req = c->tracker_req();
-			if (req.event == tracker_request::stopped && !all)
+			if (req.event == tracker_request::stopped)
 			{
 				keep_connections.push_back(c);
 				m_connections.pop_back();

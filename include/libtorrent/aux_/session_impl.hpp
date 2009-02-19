@@ -110,7 +110,7 @@ namespace libtorrent
 		{
 
 			// the size of each allocation that is chained in the send buffer
-			enum { send_buffer_size = 128 };
+			enum { send_buffer_size = 200 };
 
 #ifdef TORRENT_DEBUG
 			friend class ::libtorrent::peer_connection;
@@ -179,7 +179,6 @@ namespace libtorrent
 			void stop_dht();
 
 			entry dht_state() const;
-			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -218,7 +217,6 @@ namespace libtorrent
 			void set_alert_mask(int m);
 			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 			std::auto_ptr<alert> pop_alert();
-			void set_alert_dispatch(boost::function<void(alert const&)> const&);
 
 			alert const* wait_for_alert(time_duration max_wait);
 
@@ -281,11 +279,9 @@ namespace libtorrent
 			int as_for_ip(address const& a);
 			std::pair<const int, int>* lookup_as(int as);
 			bool load_asnum_db(char const* file);
-			bool load_asnum_db(wchar_t const* file);
 			bool has_asnum_db() const { return m_asnum_db; }
 
 			bool load_country_db(char const* file);
-			bool load_country_db(wchar_t const* file);
 			bool has_country_db() const { return m_country_db; }
 			char const* country_for_ip(address const& a);
 #endif
@@ -321,7 +317,7 @@ namespace libtorrent
 			std::pair<char*, int> allocate_buffer(int size);
 			void free_buffer(char* buf, int size);
 
-			char* allocate_disk_buffer(char const* category);
+			char* allocate_disk_buffer();
 			void free_disk_buffer(char* buf);
 
 			void set_external_address(address const& ip);
@@ -513,7 +509,6 @@ namespace libtorrent
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots(int congested_torrents
 				, int uncongested_torrents);
-			void recalculate_optimistic_unchoke_slot();
 
 			ptime m_last_tick;
 
@@ -534,7 +529,7 @@ namespace libtorrent
 			// but for the udp port used by the DHT.
 			int m_external_udp_port;
 
-			rate_limited_udp_socket m_dht_socket;
+			udp_socket m_dht_socket;
 
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased
@@ -593,9 +588,6 @@ namespace libtorrent
 		private:
 
 #endif
-#ifdef TORRENT_UPNP_LOGGING
-			std::ofstream m_upnp_log;
-#endif
 			address m_external_address;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -635,7 +627,6 @@ namespace libtorrent
 			}
 
 			void tracker_response(tracker_request const&
-				, libtorrent::address const& tracker_ip
 				, std::vector<peer_entry>& peers
 				, int interval
 				, int complete
