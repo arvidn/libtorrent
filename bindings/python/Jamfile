@@ -35,6 +35,7 @@ rule libtorrent_linking ( properties * )
 python-extension libtorrent 
   : src/module.cpp
     src/big_number.cpp
+    src/converters.cpp
     src/fingerprint.cpp
     src/utility.cpp
     src/session.cpp
