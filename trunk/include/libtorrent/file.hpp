@@ -41,6 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 #include <boost/noncopyable.hpp>
 #include <boost/filesystem/path.hpp>
 

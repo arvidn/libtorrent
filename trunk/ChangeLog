@@ -31,6 +31,7 @@
 release 0.14.3
 
 	* added python binding for create_torrent
+	* fixed boost-1.38 build
 
 release 0.14.2
 
