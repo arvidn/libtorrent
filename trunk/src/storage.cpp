@@ -1229,7 +1229,7 @@ ret:
 			// it into the one supplied
 			if ((file_handle->open_mode() & file::no_buffer)
 				&& (((file_iter->file_base + file_offset) & (file_handle->pos_alignment()-1)) != 0
-				|| (int(tmp_bufs->iov_base) & (file_handle->buf_alignment()-1)) != 0))
+				|| (intptr_t(tmp_bufs->iov_base) & (file_handle->buf_alignment()-1)) != 0))
 			{
 				bytes_transferred = (this->*op.unaligned_op)(file_handle, file_iter->file_base
 					+ file_offset, tmp_bufs, num_tmp_bufs, ec);
