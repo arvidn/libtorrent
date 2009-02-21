@@ -145,6 +145,7 @@ void bind_torrent_info()
         )
         .def_readonly("offset", &file_entry::offset)
         .def_readonly("size", &file_entry::size)
+        .def_readonly("file_base", &file_entry::file_base)
         ;
 
     class_<announce_entry>("announce_entry", init<std::string const&>())
