@@ -28,6 +28,10 @@
 	* added support for bitcomet padding files
 	* improved support for sparse files on windows
 
+release 0.14.3
+
+	* added python binding for create_torrent
+
 release 0.14.2
 
 	* added missing functions to the python bindings torrent_info::map_file,
