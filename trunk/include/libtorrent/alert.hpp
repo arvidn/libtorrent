@@ -122,11 +122,20 @@ namespace libtorrent {
 		std::auto_ptr<alert> get();
 
 		template <class T>
-		bool should_post() const { return (m_alert_mask & T::static_category) != 0; }
+		bool should_post() const
+		{
+			boost::mutex::scoped_lock lock(m_mutex);
+			if (m_alerts.size() >= m_queue_size_limit) return false;
+			return (m_alert_mask & T::static_category) != 0;
+		}
 
 		alert const* wait_for_alert(time_duration max_wait);
 
-		void set_alert_mask(int m) { m_alert_mask = m; }
+		void set_alert_mask(int m)
+		{
+			boost::mutex::scoped_lock lock(m_mutex);
+			m_alert_mask = m;
+		}
 
 		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
