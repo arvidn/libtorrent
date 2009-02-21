@@ -36,6 +36,7 @@ python-extension libtorrent
   : src/module.cpp
     src/big_number.cpp
     src/converters.cpp
+    src/create_torrent.cpp
     src/fingerprint.cpp
     src/utility.cpp
     src/session.cpp
