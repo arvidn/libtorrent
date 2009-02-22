@@ -620,7 +620,12 @@ namespace libtorrent
 		const sha1_hash remote_key = h.final();
 		
 		TORRENT_ASSERT(!m_RC4_handler.get());
-		m_RC4_handler.reset(new RC4_handler (local_key, remote_key));
+		m_RC4_handler.reset(new (std::nothrow) RC4_handler(local_key, remote_key));
+		if (!m_RC4_handler)
+		{
+			disconnect("no memory");
+			return;
+		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << " computed RC4 keys\n";
@@ -1819,7 +1824,6 @@ namespace libtorrent
 	// RECEIVE DATA
 	// --------------------------
 
-	// throws exception when the client should be disconnected
 	void bt_peer_connection::on_receive(error_code const& error
 		, std::size_t bytes_transferred)
 	{
@@ -1938,7 +1942,12 @@ namespace libtorrent
 				h.update("req1", 4);
 				h.update(m_dh_key_exchange->get_secret(), dh_key_len);
 
-				m_sync_hash.reset(new sha1_hash(h.final()));
+				m_sync_hash.reset(new (std::nothrow) sha1_hash(h.final()));
+				if (!m_sync_hash)
+				{
+					disconnect("no memory");
+					return;
+				}
 			}
 
 			int syncoffset = get_syncoffset((char*)m_sync_hash->begin(), 20
@@ -2071,7 +2080,12 @@ namespace libtorrent
 			{
 				TORRENT_ASSERT(m_sync_bytes_read == 0);
 
-				m_sync_vc.reset (new char[8]);
+				m_sync_vc.reset(new (std::nothrow) char[8]);
+				if (!m_sync_vc)
+				{
+					disconnect("no memory");
+					return;
+				}
 				std::fill(m_sync_vc.get(), m_sync_vc.get() + 8, 0);
 				m_RC4_handler->decrypt(m_sync_vc.get(), 8);
 			}
