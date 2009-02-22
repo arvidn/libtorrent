@@ -32,6 +32,8 @@ release 0.14.3
 
 	* added python binding for create_torrent
 	* fixed boost-1.38 build
+	* fixed bug where web seeds would be connected before the files
+	  were checked
 
 release 0.14.2
 
