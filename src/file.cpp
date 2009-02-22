@@ -392,7 +392,7 @@ namespace libtorrent
 			TORRENT_ASSERT((file_offset & (pos_alignment()-1)) == 0);
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
-				TORRENT_ASSERT((int(i->iov_base) & (buf_alignment()-1)) == 0);
+				TORRENT_ASSERT((uintptr_t(i->iov_base) & (buf_alignment()-1)) == 0);
 				// every buffer must be a multiple of the page size
 				// except for the last one
 				TORRENT_ASSERT((i->iov_len & (size_alignment()-1)) == 0 || i == end-1);
@@ -552,7 +552,7 @@ namespace libtorrent
 			TORRENT_ASSERT((file_offset & (pos_alignment()-1)) == 0);
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
-				TORRENT_ASSERT((int(i->iov_base) & (buf_alignment()-1)) == 0);
+				TORRENT_ASSERT((uintptr_t(i->iov_base) & (buf_alignment()-1)) == 0);
 				// every buffer must be a multiple of the page size
 				// except for the last one
 				TORRENT_ASSERT((i->iov_len & (size_alignment()-1)) == 0 || i == end-1);
