@@ -4674,7 +4674,7 @@ namespace libtorrent
 		}
 
 		// if we have everything we want we don't need to connect to any web-seed
-		if (!is_finished() && !m_web_seeds.empty())
+		if (!is_finished() && !m_web_seeds.empty() && m_files_checked)
 		{
 			// keep trying web-seeds if there are any
 			// first find out which web seeds we are connected to
