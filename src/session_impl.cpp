@@ -1837,17 +1837,15 @@ namespace aux {
 		return torrent_handle(find_torrent(info_hash));
 	}
 
-	torrent_handle session_impl::add_torrent(add_torrent_params const& params)
+	torrent_handle session_impl::add_torrent(add_torrent_params const& params
+		, error_code& ec)
 	{
 		TORRENT_ASSERT(!params.save_path.empty());
 
 		if (params.ti && params.ti->num_files() == 0)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw std::runtime_error("no files in torrent");
-#else
+			ec = error_code(errors::no_files_in_torrent, libtorrent_category);
 			return torrent_handle();
-#endif
 		}
 
 		// lock the session and the checker thread (the order is important!)
@@ -1857,11 +1855,8 @@ namespace aux {
 
 		if (is_aborted())
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw std::runtime_error("session is closing");
-#else
+			ec = error_code(errors::session_is_closing, libtorrent_category);
 			return torrent_handle();
-#endif
 		}
 		
 		// figure out the info hash of the torrent
@@ -1876,11 +1871,8 @@ namespace aux {
 			if (!params.duplicate_is_error)
 				return torrent_handle(torrent_ptr);
 
-#ifndef BOOST_NO_EXCEPTIONS
-			throw duplicate_torrent();
-#else
+			ec = error_code(errors::duplicate_torrent, libtorrent_category);
 			return torrent_handle();
-#endif
 		}
 
 		int queue_pos = 0;
@@ -1967,7 +1959,7 @@ namespace aux {
 #ifdef BOOST_NO_EXCEPTIONS
 			return;
 #else
-			throw invalid_handle();
+			throw_invalid_handle();
 #endif
 
 		mutex_t::scoped_lock l(m_mutex);

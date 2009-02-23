@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/array.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
@@ -46,7 +47,7 @@ namespace libtorrent
 	bool TORRENT_EXPORT is_digit(char c);
 	bool TORRENT_EXPORT isprint(char c);
 
-	std::string TORRENT_EXPORT unescape_string(std::string const& s);
+	std::string TORRENT_EXPORT unescape_string(std::string const& s, error_code& ec);
 	std::string TORRENT_EXPORT escape_string(const char* str, int len);
 	std::string TORRENT_EXPORT escape_path(const char* str, int len);
 

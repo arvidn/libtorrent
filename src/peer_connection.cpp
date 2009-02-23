@@ -1965,7 +1965,7 @@ namespace libtorrent
 		
 			if (t->alerts().should_post<file_error_alert>())
 				t->alerts().post_alert(file_error_alert(j.error_file, t->get_handle(), j.str));
-			t->set_error(j.str);
+			t->set_error(j.error, j.error_file);
 			t->pause();
 			return;
 		}
@@ -3313,7 +3313,7 @@ namespace libtorrent
 			{
 				if (t->alerts().should_post<file_error_alert>())
 					t->alerts().post_alert(file_error_alert(j.error_file, t->get_handle(), j.str));
-				t->set_error(j.str);
+				t->set_error(j.error, j.error_file);
 				t->pause();
 			}
 			return;
@@ -3681,7 +3681,6 @@ namespace libtorrent
 	// RECEIVE DATA
 	// --------------------------
 
-	// throws exception when the client should be disconnected
 	void peer_connection::on_receive_data(const error_code& error
 		, std::size_t bytes_transferred)
 	{
@@ -3976,7 +3975,6 @@ namespace libtorrent
 	// SEND DATA
 	// --------------------------
 
-	// throws exception when the client should be disconnected
 	void peer_connection::on_send_data(error_code const& error
 		, std::size_t bytes_transferred)
 	{

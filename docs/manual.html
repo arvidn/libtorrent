@@ -220,44 +220,46 @@
 <li><a class="reference internal" href="#invalid-torrent-file" id="id173">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#storage-interface" id="id174">storage_interface</a><ul>
-<li><a class="reference internal" href="#initialize" id="id175">initialize()</a></li>
-<li><a class="reference internal" href="#readv-writev" id="id176">readv() writev()</a></li>
-<li><a class="reference internal" href="#id12" id="id177">move_storage()</a></li>
-<li><a class="reference internal" href="#verify-resume-data" id="id178">verify_resume_data()</a></li>
-<li><a class="reference internal" href="#write-resume-data" id="id179">write_resume_data()</a></li>
-<li><a class="reference internal" href="#move-slot" id="id180">move_slot()</a></li>
-<li><a class="reference internal" href="#swap-slots" id="id181">swap_slots()</a></li>
-<li><a class="reference internal" href="#swap-slots3" id="id182">swap_slots3()</a></li>
-<li><a class="reference internal" href="#hash-for-slot" id="id183">hash_for_slot()</a></li>
-<li><a class="reference internal" href="#id13" id="id184">rename_file()</a></li>
-<li><a class="reference internal" href="#release-files" id="id185">release_files()</a></li>
-<li><a class="reference internal" href="#delete-files" id="id186">delete_files()</a></li>
+<li><a class="reference internal" href="#error-code" id="id174">error_code</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id175">storage_interface</a><ul>
+<li><a class="reference internal" href="#initialize" id="id176">initialize()</a></li>
+<li><a class="reference internal" href="#readv-writev" id="id177">readv() writev()</a></li>
+<li><a class="reference internal" href="#sparse-end" id="id178">sparse_end()</a></li>
+<li><a class="reference internal" href="#id12" id="id179">move_storage()</a></li>
+<li><a class="reference internal" href="#verify-resume-data" id="id180">verify_resume_data()</a></li>
+<li><a class="reference internal" href="#write-resume-data" id="id181">write_resume_data()</a></li>
+<li><a class="reference internal" href="#move-slot" id="id182">move_slot()</a></li>
+<li><a class="reference internal" href="#swap-slots" id="id183">swap_slots()</a></li>
+<li><a class="reference internal" href="#swap-slots3" id="id184">swap_slots3()</a></li>
+<li><a class="reference internal" href="#hash-for-slot" id="id185">hash_for_slot()</a></li>
+<li><a class="reference internal" href="#id13" id="id186">rename_file()</a></li>
+<li><a class="reference internal" href="#release-files" id="id187">release_files()</a></li>
+<li><a class="reference internal" href="#delete-files" id="id188">delete_files()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#magnet-links" id="id187">magnet links</a></li>
-<li><a class="reference internal" href="#queuing" id="id188">queuing</a><ul>
-<li><a class="reference internal" href="#downloading" id="id189">downloading</a></li>
-<li><a class="reference internal" href="#seeding" id="id190">seeding</a></li>
+<li><a class="reference internal" href="#magnet-links" id="id189">magnet links</a></li>
+<li><a class="reference internal" href="#queuing" id="id190">queuing</a><ul>
+<li><a class="reference internal" href="#downloading" id="id191">downloading</a></li>
+<li><a class="reference internal" href="#seeding" id="id192">seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#fast-resume" id="id191">fast resume</a><ul>
-<li><a class="reference internal" href="#file-format" id="id192">file format</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id193">fast resume</a><ul>
+<li><a class="reference internal" href="#file-format" id="id194">file format</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#threads" id="id193">threads</a></li>
-<li><a class="reference internal" href="#storage-allocation" id="id194">storage allocation</a><ul>
-<li><a class="reference internal" href="#sparse-allocation" id="id195">sparse allocation</a></li>
-<li><a class="reference internal" href="#full-allocation" id="id196">full allocation</a></li>
-<li><a class="reference internal" href="#compact-allocation" id="id197">compact allocation</a></li>
+<li><a class="reference internal" href="#threads" id="id195">threads</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id196">storage allocation</a><ul>
+<li><a class="reference internal" href="#sparse-allocation" id="id197">sparse allocation</a></li>
+<li><a class="reference internal" href="#full-allocation" id="id198">full allocation</a></li>
+<li><a class="reference internal" href="#compact-allocation" id="id199">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#extensions" id="id198">extensions</a><ul>
-<li><a class="reference internal" href="#metadata-from-peers" id="id199">metadata from peers</a></li>
-<li><a class="reference internal" href="#http-seeding" id="id200">HTTP seeding</a></li>
+<li><a class="reference internal" href="#extensions" id="id200">extensions</a><ul>
+<li><a class="reference internal" href="#metadata-from-peers" id="id201">metadata from peers</a></li>
+<li><a class="reference internal" href="#http-seeding" id="id202">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#filename-checks" id="id201">filename checks</a></li>
+<li><a class="reference internal" href="#filename-checks" id="id203">filename checks</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -1394,11 +1396,19 @@ class torrent_info
 {
 public:
 
+        // these constructors throws exceptions on error
         torrent_info(sha1_hash const&amp; info_hash);
         torrent_info(lazy_entry const&amp; torrent_file);
         torrent_info(char const* buffer, int size);
         torrent_info(boost::filesystem::path const&amp; filename);
         torrent_info(boost::filesystem::wpath const&amp; filename);
+
+        // these constructors sets the error code on error
+        torrent_info(sha1_hash const&amp; info_hash, error_code&amp; ec);
+        torrent_info(lazy_entry const&amp; torrent_file, error_code&amp; ec);
+        torrent_info(char const* buffer, int size, error_code&amp; ec);
+        torrent_info(fs::path const&amp; filename, error_code&amp; ec);
+        torrent_info(fs::wpath const&amp; filename, error_code&amp; ec);
 
         void add_tracker(std::string const&amp; url, int tier = 0);
         std::vector&lt;announce_entry&gt; const&amp; trackers() const;
@@ -1463,6 +1473,12 @@ torrent_info(lazy_entry const&amp; torrent_file);
 torrent_info(char const* buffer, int size);
 torrent_info(boost::filesystem::path const&amp; filename);
 torrent_info(boost::filesystem::wpath const&amp; filename);
+
+torrent_info(sha1_hash const&amp; info_hash, error_code&amp; ec);
+torrent_info(lazy_entry const&amp; torrent_file, error_code&amp; ec);
+torrent_info(char const* buffer, int size, error_code&amp; ec);
+torrent_info(fs::path const&amp; filename, error_code&amp; ec);
+torrent_info(fs::wpath const&amp; filename, error_code&amp; ec);
 </pre>
 </blockquote>
 <p>The constructor that takes an info-hash  will initialize the info-hash to the given value,
@@ -1478,6 +1494,11 @@ initialize the torrent_info object for you.</p>
 <p>The version that takes a filename will simply load the torrent file and decode it inside
 the constructor, for convenience. This might not be the most suitable for applications that
 want to be able to report detailed errors on what might go wrong.</p>
+<p>The overloads that takes an <tt class="docutils literal"><span class="pre">error_code</span> <span class="pre">const&amp;</span></tt> never throws if an error occur, they
+will simply set the error code to describe what went wrong and not fully initialize the
+torrent_info object. The overloads that do not take the extra <a class="reference internal" href="#error-code">error_code</a> parameter will
+always throw if an error occurs. These overloads are not available when building without
+exception support.</p>
 </div>
 <div class="section" id="add-tracker">
 <h2>add_tracker()</h2>
@@ -4774,9 +4795,99 @@ doesn't meet the requirements on what information has to be present in a torrent
 struct invalid_torrent_file: std::exception
 {
         const char* what() const throw();
+        boost::system::error_code error() const;
 };
 </pre>
 </div>
+</div>
+<div class="section" id="error-code">
+<h1>error_code</h1>
+<p>libtorrent uses boost.system's <tt class="docutils literal"><span class="pre">error_code</span></tt> class to represent errors. libtorrent has
+its own error category (<tt class="docutils literal"><span class="pre">libtorrent::libtorrent_category</span></tt>) whith the following error
+codes:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="6%" />
+<col width="28%" />
+<col width="66%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">code</th>
+<th class="head">symbol</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>0</td>
+<td>no_error</td>
+<td>Not an error</td>
+</tr>
+<tr><td>1</td>
+<td>file_collision</td>
+<td>Two torrents has files which end up overwriting each other</td>
+</tr>
+<tr><td>2</td>
+<td>failed_hash_check</td>
+<td>A piece did not match its piece hash</td>
+</tr>
+<tr><td>3</td>
+<td>torrent_is_no_dict</td>
+<td>The .torrent file does not contain a bencoded dictionary at
+its top level</td>
+</tr>
+<tr><td>4</td>
+<td>torrent_missing_info</td>
+<td>The .torrent file does not have an <tt class="docutils literal"><span class="pre">info</span></tt> dictionary</td>
+</tr>
+<tr><td>5</td>
+<td>torrent_info_no_dict</td>
+<td>The .torrent file's <tt class="docutils literal"><span class="pre">info</span></tt> entry is not a dictionary</td>
+</tr>
+<tr><td>6</td>
+<td>torrent_missing_piece_length</td>
+<td>The .torrent file does not have a <tt class="docutils literal"><span class="pre">piece</span> <span class="pre">length</span></tt> entry</td>
+</tr>
+<tr><td>7</td>
+<td>torrent_missing_name</td>
+<td>The .torrent file does not have a <tt class="docutils literal"><span class="pre">name</span></tt> entry</td>
+</tr>
+<tr><td>8</td>
+<td>torrent_invalid_name</td>
+<td>The .torrent file's name entry is invalid</td>
+</tr>
+<tr><td>9</td>
+<td>torrent_invalid_length</td>
+<td>The length of a file, or of the whole .torrent file is invalid.
+Either negative or not an integer</td>
+</tr>
+<tr><td>10</td>
+<td>torrent_file_parse_failed</td>
+<td>Failed to parse a file entry in the .torrent</td>
+</tr>
+<tr><td>11</td>
+<td>torrent_missing_pieces</td>
+<td>The <tt class="docutils literal"><span class="pre">pieces</span></tt> field is missing or invalid in the .torrent file</td>
+</tr>
+<tr><td>12</td>
+<td>torrent_invalid_hashes</td>
+<td>The <tt class="docutils literal"><span class="pre">pieces</span></tt> string has incorrect length</td>
+</tr>
+<tr><td>13</td>
+<td>too_many_pieces_in_torrent</td>
+<td>The .torrent file has more pieces than is supported by libtorrent</td>
+</tr>
+<tr><td>14</td>
+<td>invalid_swarm_metadata</td>
+<td>The metadata (.torrent file) that was received from the swarm
+matched the info-hash, but failed to be parsed</td>
+</tr>
+<tr><td>15</td>
+<td>invalid_bencoding</td>
+<td>The file or buffer is not correctly bencoded</td>
+</tr>
+</tbody>
+</table>
+<p>The names of these error codes are declared in then <tt class="docutils literal"><span class="pre">libtorrent::errors</span></tt> namespace.</p>
 </div>
 <div class="section" id="storage-interface">
 <h1>storage_interface</h1>
@@ -4789,6 +4900,7 @@ struct storage_interface
         virtual bool initialize(bool allocate_files) = 0;
         virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
         virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
+        virtual int sparse_end(int start) const;
         virtual bool move_storage(fs::path save_path) = 0;
         virtual bool verify_resume_data(lazy_entry const&amp; rd, std::string&amp; error) = 0;
         virtual bool write_resume_data(entry&amp; rd) const = 0;
@@ -4850,6 +4962,18 @@ last piece of a file in unbuffered mode.</p>
 exceptions when it's not. Specifically if the read cache is disabled/or full and a
 client requests unaligned data, or the file itself is not aligned in the torrent.
 Most clients request aligned data.</p>
+</div>
+<div class="section" id="sparse-end">
+<h2>sparse_end()</h2>
+<blockquote>
+<pre class="literal-block">
+int sparse_end(int start) const;
+</pre>
+</blockquote>
+<p>This function is optional. It is supposed to return the first piece, starting at
+<tt class="docutils literal"><span class="pre">start</span></tt> that is fully contained within a data-region on disk (i.e. non-sparse
+region). The purpose of this is to skip parts of files that can be known to contain
+zeros when checking files.</p>
 </div>
 <div class="section" id="id12">
 <h2>move_storage()</h2>

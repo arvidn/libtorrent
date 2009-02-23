@@ -79,7 +79,7 @@ namespace libtorrent
 		return c >= 32 && c < 127;
 	}
 
-	std::string unescape_string(std::string const& s)
+	std::string unescape_string(std::string const& s, error_code& ec)
 	{
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
@@ -96,41 +96,37 @@ namespace libtorrent
 			{
 				++i;
 				if (i == s.end())
-#ifdef BOOST_NO_EXCEPTIONS
+				{
+					ec = error_code(errors::invalid_escaped_string, libtorrent_category);
 					return ret;
-#else
-					throw std::runtime_error("invalid escaped string");
-#endif
+				}
 
 				int high;
 				if(*i >= '0' && *i <= '9') high = *i - '0';
 				else if(*i >= 'A' && *i <= 'F') high = *i + 10 - 'A';
 				else if(*i >= 'a' && *i <= 'f') high = *i + 10 - 'a';
 				else
-#ifdef BOOST_NO_EXCEPTIONS
+				{
+					ec = error_code(errors::invalid_escaped_string, libtorrent_category);
 					return ret;
-#else
-					throw std::runtime_error("invalid escaped string");
-#endif
+				}
 
 				++i;
 				if (i == s.end())
-#ifdef BOOST_NO_EXCEPTIONS
+				{
+					ec = error_code(errors::invalid_escaped_string, libtorrent_category);
 					return ret;
-#else
-					throw std::runtime_error("invalid escaped string");
-#endif
+				}
 
 				int low;
 				if(*i >= '0' && *i <= '9') low = *i - '0';
 				else if(*i >= 'A' && *i <= 'F') low = *i + 10 - 'A';
 				else if(*i >= 'a' && *i <= 'f') low = *i + 10 - 'a';
 				else
-#ifdef BOOST_NO_EXCEPTIONS
+				{
+					ec = error_code(errors::invalid_escaped_string, libtorrent_category);
 					return ret;
-#else
-					throw std::runtime_error("invalid escaped string");
-#endif
+				}
 
 				ret += char(high * 16 + low);
 			}

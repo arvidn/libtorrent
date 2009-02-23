@@ -206,7 +206,7 @@ namespace libtorrent
 				, const char* net_interface = 0);
 			bool is_listening() const;
 
-			torrent_handle add_torrent(add_torrent_params const&);
+			torrent_handle add_torrent(add_torrent_params const&, error_code& ec);
 
 			void remove_torrent(torrent_handle const& h, int options);
 

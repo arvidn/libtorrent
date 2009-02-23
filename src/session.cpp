@@ -298,9 +298,19 @@ namespace libtorrent
 		return m_impl->find_torrent_handle(info_hash);
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session::add_torrent(add_torrent_params const& params)
 	{
-		return m_impl->add_torrent(params);
+		error_code ec;
+		torrent_handle ret = m_impl->add_torrent(params, ec);
+		if (ec) throw libtorrent_exception(ec);
+		return ret;
+	}
+#endif
+
+	torrent_handle session::add_torrent(add_torrent_params const& params, error_code& ec)
+	{
+		return m_impl->add_torrent(params, ec);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -325,7 +335,7 @@ namespace libtorrent
 		}
 		p.storage_mode = storage_mode;
 		p.paused = paused;
-		return m_impl->add_torrent(p);
+		return add_torrent(p);
 	}
 
 	torrent_handle session::add_torrent(
@@ -349,7 +359,7 @@ namespace libtorrent
 		p.storage_mode = storage_mode;
 		p.paused = paused;
 		p.userdata = userdata;
-		return m_impl->add_torrent(p);
+		return add_torrent(p);
 	}
 
 	torrent_handle session::add_torrent(
@@ -369,7 +379,7 @@ namespace libtorrent
 		p.save_path = save_path;
 		p.paused = paused;
 		p.userdata = userdata;
-		return m_impl->add_torrent(p);
+		return add_torrent(p);
 	}
 #endif
 

@@ -34,12 +34,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ERROR_CODE_HPP_INCLUDED
 
 #include <boost/version.hpp>
+#include <boost/shared_ptr.hpp>
 
 #if BOOST_VERSION < 103500
 #include <asio/error_code.hpp>
 #else
 #include <boost/system/error_code.hpp>
 #endif
+
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
@@ -61,6 +64,15 @@ namespace libtorrent
 			torrent_file_parse_failed,
 			torrent_missing_pieces,
 			torrent_invalid_hashes,
+			too_many_pieces_in_torrent,
+			invalid_swarm_metadata,
+			invalid_bencoding,
+			no_files_in_torrent,
+			invalid_escaped_string,
+			session_is_closing,
+			duplicate_torrent,
+			invalid_torrent_handle,
+			invalid_entry_type,
 		};
 	}
 
@@ -70,7 +82,7 @@ namespace libtorrent
 	inline asio::error::error_category get_system_category() { return asio::error::system_category; }
 #else
 
-	struct libtorrent_error_category : boost::system::error_category
+	struct TORRENT_EXPORT libtorrent_error_category : boost::system::error_category
 	{
 		virtual const char* name() const;
 		virtual std::string message(int ev) const;
@@ -89,6 +101,23 @@ namespace libtorrent
 #else
 	{ return boost::system::get_generic_category(); }
 #endif
+#endif
+
+#ifndef BOOST_NO_EXCEPTIONS
+	struct TORRENT_EXPORT libtorrent_exception: std::exception
+	{
+		libtorrent_exception(error_code const& s): m_error(s) {}
+		virtual const char* what() const throw()
+		{
+			if (!m_msg) m_msg.reset(new std::string(m_error.message()));
+			return m_msg->c_str();
+		}
+		virtual ~libtorrent_exception() throw() {}
+		error_code error() const { return m_error; }
+	private:
+		error_code m_error;
+		mutable boost::shared_ptr<std::string> m_msg;
+	};
 #endif
 }
 
