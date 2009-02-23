@@ -344,7 +344,7 @@ namespace libtorrent
 		if (ret != r.length)
 		{
 			rp->fail = true;
-			set_error(j.str);
+			set_error(j.error, j.error_file);
 			pause();
 		}
 		else
@@ -425,7 +425,7 @@ namespace libtorrent
 			if (has_picker()) picker().write_failed(block_finished);
 			if (alerts().should_post<file_error_alert>())
 				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
-			set_error(j.str);
+			set_error(j.error, j.error_file);
 			pause();
 			return;
 		}
@@ -504,10 +504,9 @@ namespace libtorrent
 
 		m_block_size = (std::min)(m_block_size, m_torrent_file->piece_length());
 
-		if (m_torrent_file->num_pieces()
-			> piece_picker::max_pieces)
+		if (m_torrent_file->num_pieces() > piece_picker::max_pieces)
 		{
-			set_error("too many pieces in torrent");
+			set_error(error_code(errors::too_many_pieces_in_torrent, libtorrent_category), "");
 			pause();
 		}
 
@@ -621,7 +620,7 @@ namespace libtorrent
 				" torrent: " << torrent_file().name() <<
 				" ]\n";
 #endif
-			set_error(j.str);
+			set_error(j.error, j.error_file);
 			pause();
 			set_state(torrent_status::queued_for_checking);
 
@@ -790,7 +789,7 @@ namespace libtorrent
 			set_state(torrent_status::queued_for_checking);
 			return;
 		}
-		if (!m_error.empty()) m_error.clear();
+		clear_error();
 
 		disconnect_all();
 
@@ -832,7 +831,7 @@ namespace libtorrent
 				" torrent: " << torrent_file().name() <<
 				" ]\n";
 #endif
-			set_error(j.str);
+			set_error(j.error, j.error_file);
 			pause();
 			return;
 		}
@@ -874,7 +873,7 @@ namespace libtorrent
 				" ]\n";
 #endif
 			pause();
-			set_error(j.str);
+			set_error(j.error, j.error_file);
 			return;
 		}
 
@@ -3427,7 +3426,7 @@ namespace libtorrent
 			{
 				alerts().post_alert(metadata_failed_alert(get_handle()));
 			}
-			set_error("invalid metadata: " + ec.message());
+			set_error(error_code(errors::invalid_swarm_metadata, libtorrent_category), "");
 			pause();
 			return false;
 		}
@@ -4297,19 +4296,21 @@ namespace libtorrent
 
 	void torrent::clear_error()
 	{
-		if (m_error.empty()) return;
+		if (!m_error) return;
 		bool checking_files = should_check_files();
 		if (m_ses.m_auto_manage_time_scaler > 2)
 			m_ses.m_auto_manage_time_scaler = 2;
-		m_error.clear();
+		m_error = error_code();
+		m_error_file.clear();
 		if (!checking_files && should_check_files())
 			queue_torrent_check();
 	}
 
-	void torrent::set_error(std::string const& msg)
+	void torrent::set_error(error_code const& ec, std::string const& error_file)
 	{
 		bool checking_files = should_check_files();
-		m_error = msg;
+		m_error = ec;
+		m_error_file = error_file;
 		if (checking_files && !should_check_files())
 		{
 			// stop checking
@@ -4441,7 +4442,7 @@ namespace libtorrent
 		return (m_state == torrent_status::checking_files
 			|| m_state == torrent_status::queued_for_checking)
 			&& (!m_paused || m_auto_managed)
-			&& m_error.empty()
+			&& !has_error()
 			&& !m_abort;
 	}
 
@@ -4547,7 +4548,7 @@ namespace libtorrent
 			alerts().post_alert(torrent_resumed_alert(get_handle()));
 
 		m_started = time_now();
-		m_error.clear();
+		clear_error();
 		start_announcing();
 	}
 
@@ -4830,7 +4831,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<file_error_alert>())
 				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
-			set_error(j.str);
+			set_error(j.error, j.error_file);
 			pause();
 		}
 		f(ret);
@@ -5028,7 +5029,7 @@ namespace libtorrent
 		torrent_status st;
 
 		st.has_incoming = m_has_incoming;
-		st.error = m_error;
+		if (m_error) st.error = m_error.message() + ": " + m_error_file;
 		st.seed_mode = m_seed_mode;
 
 		if (m_last_scrape == min_time())

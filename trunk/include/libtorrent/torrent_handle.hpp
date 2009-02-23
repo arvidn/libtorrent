@@ -66,17 +66,12 @@ namespace libtorrent
 
 	struct torrent_plugin;
 
-	struct TORRENT_EXPORT duplicate_torrent: std::exception
-	{
-		virtual const char* what() const throw()
-		{ return "torrent already exists in session"; }
-	};
-
-	struct TORRENT_EXPORT invalid_handle: std::exception
-	{
-		virtual const char* what() const throw()
-		{ return "invalid torrent handle used"; }
-	};
+#ifndef BOOST_NO_EXCEPTIONS
+	// for compatibility with 0.14
+	typedef libtorrent_exception duplicate_torrent;
+	typedef libtorrent_exception invalid_handle;
+	void throw_invalid_handle();
+#endif
 
 	struct TORRENT_EXPORT torrent_status
 	{

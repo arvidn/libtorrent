@@ -155,13 +155,8 @@ namespace libtorrent
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
-	struct TORRENT_EXPORT invalid_torrent_file: std::exception
-	{
-		invalid_torrent_file(std::string const& s): m_error(s) {}
-		virtual const char* what() const throw() { return m_error.c_str(); }
-		virtual ~invalid_torrent_file() throw() {}
-		std::string m_error;
-	};
+	// for backwards compatibility with 0.14
+	typedef libtorrent_exception invalid_torrent_file;
 #endif
 
 	int TORRENT_EXPORT load_file(fs::path const& filename, std::vector<char>& v);
@@ -169,12 +164,20 @@ namespace libtorrent
 	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{
 	public:
-
+#ifndef BOOST_NO_EXCEPTIONS
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
 		torrent_info(fs::path const& filename);
 		torrent_info(fs::wpath const& filename);
+#endif
+
+		torrent_info(sha1_hash const& info_hash, error_code& ec);
+		torrent_info(lazy_entry const& torrent_file, error_code& ec);
+		torrent_info(char const* buffer, int size, error_code& ec);
+		torrent_info(fs::path const& filename, error_code& ec);
+		torrent_info(fs::wpath const& filename, error_code& ec);
+
 		~torrent_info();
 
 		file_storage const& files() const { return m_files; }

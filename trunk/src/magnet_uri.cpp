@@ -100,10 +100,11 @@ namespace libtorrent
 		std::string name;
 		std::string tracker;
 
+		error_code ec;
 		boost::optional<std::string> display_name = url_has_argument(uri, "dn");
-		if (display_name) name = unescape_string(display_name->c_str());
+		if (display_name) name = unescape_string(display_name->c_str(), ec);
 		boost::optional<std::string> tracker_string = url_has_argument(uri, "tr");
-		if (tracker_string) tracker = unescape_string(tracker_string->c_str());
+		if (tracker_string) tracker = unescape_string(tracker_string->c_str(), ec);
 	
 		boost::optional<std::string> btih = url_has_argument(uri, "xt");
 		if (!btih) return torrent_handle();
@@ -124,10 +125,11 @@ namespace libtorrent
 		std::string name;
 		std::string tracker;
 
+		error_code ec;
 		boost::optional<std::string> display_name = url_has_argument(uri, "dn");
-		if (display_name) name = unescape_string(display_name->c_str());
+		if (display_name) name = unescape_string(display_name->c_str(), ec);
 		boost::optional<std::string> tracker_string = url_has_argument(uri, "tr");
-		if (tracker_string) tracker = unescape_string(tracker_string->c_str());
+		if (tracker_string) tracker = unescape_string(tracker_string->c_str(), ec);
 	
 		boost::optional<std::string> btih = url_has_argument(uri, "xt");
 		if (!btih) return torrent_handle();

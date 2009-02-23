@@ -123,15 +123,13 @@ namespace libtorrent
 {
 	namespace fs = boost::filesystem;
 
-	namespace
-	{
 #ifndef BOOST_NO_EXCEPTIONS
-		void throw_invalid_handle()
-		{
-			throw invalid_handle();
-		}
-#endif
+	void throw_invalid_handle()
+	{
+		throw libtorrent_exception(error_code(
+			errors::invalid_torrent_handle, libtorrent_category));
 	}
+#endif
 
 #ifdef TORRENT_DEBUG
 

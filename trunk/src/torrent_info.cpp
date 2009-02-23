@@ -291,17 +291,25 @@ namespace libtorrent
 		bencode(out, torrent_file);
 
 		lazy_entry e;
-		lazy_bdecode(&tmp[0], &tmp[0] + tmp.size(), e);
+		if (lazy_bdecode(&tmp[0], &tmp[0] + tmp.size(), e) != 0)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw invalid_torrent_file(error_code(
+				errors::invalid_bencoding, libtorrent_category));
+#endif
+			return;
+		}
 		error_code ec;
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(e, ec))
-			throw invalid_torrent_file(ec.message());
+			throw invalid_torrent_file(ec);
 #else
 		parse_torrent_file(e, ec);
 #endif
 	}
 #endif
 
+#ifndef BOOST_NO_EXCEPTIONS
 	torrent_info::torrent_info(lazy_entry const& torrent_file)
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
@@ -310,12 +318,8 @@ namespace libtorrent
 		, m_piece_hashes(0)
 	{
 		error_code ec;
-#ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(torrent_file, ec))
-			throw invalid_torrent_file(ec.message());
-#else
-		parse_torrent_file(torrent_file, ec);
-#endif
+			throw invalid_torrent_file(ec);
 	}
 
 	torrent_info::torrent_info(char const* buffer, int size)
@@ -327,13 +331,124 @@ namespace libtorrent
 	{
 		error_code ec;
 		lazy_entry e;
-		lazy_bdecode(buffer, buffer + size, e);
-#ifndef BOOST_NO_EXCEPTIONS
+		if (lazy_bdecode(buffer, buffer + size, e) != 0)
+			throw invalid_torrent_file(error_code(
+				errors::invalid_bencoding, libtorrent_category));
+
 		if (!parse_torrent_file(e, ec))
-			throw invalid_torrent_file(ec.message());
-#else
-		parse_torrent_file(e, ec);
+			throw invalid_torrent_file(ec);
+	}
+
+	torrent_info::torrent_info(fs::path const& filename)
+		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		, m_multifile(false)
+		, m_private(false)
+		, m_info_section_size(0)
+		, m_piece_hashes(0)
+	{
+		std::vector<char> buf;
+		int ret = load_file(filename, buf);
+		if (ret < 0) return;
+
+		lazy_entry e;
+		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
+			throw invalid_torrent_file(error_code(
+				errors::invalid_bencoding, libtorrent_category));
+		error_code ec;
+		if (!parse_torrent_file(e, ec))
+			throw invalid_torrent_file(ec);
+	}
+
+	torrent_info::torrent_info(fs::wpath const& filename)
+		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		, m_multifile(false)
+		, m_private(false)
+		, m_info_section_size(0)
+		, m_piece_hashes(0)
+	{
+		std::vector<char> buf;
+		std::string utf8;
+		wchar_utf8(filename.string(), utf8);
+		int ret = load_file(utf8, buf);
+		if (ret < 0) return;
+
+		lazy_entry e;
+		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
+			throw invalid_torrent_file(error_code(
+				errors::invalid_bencoding, libtorrent_category));
+
+		error_code ec;
+		if (!parse_torrent_file(e, ec))
+			throw invalid_torrent_file(ec);
+	}
 #endif
+
+	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec)
+		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		, m_multifile(false)
+		, m_private(false)
+		, m_info_section_size(0)
+		, m_piece_hashes(0)
+	{
+		parse_torrent_file(torrent_file, ec);
+	}
+
+	torrent_info::torrent_info(char const* buffer, int size, error_code& ec)
+		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		, m_multifile(false)
+		, m_private(false)
+		, m_info_section_size(0)
+		, m_piece_hashes(0)
+	{
+		lazy_entry e;
+		if (lazy_bdecode(buffer, buffer + size, e) != 0)
+		{
+			ec = error_code(errors::invalid_bencoding, libtorrent_category);
+			return;
+		}
+		parse_torrent_file(e, ec);
+	}
+
+	torrent_info::torrent_info(fs::path const& filename, error_code& ec)
+		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		, m_multifile(false)
+		, m_private(false)
+		, m_info_section_size(0)
+		, m_piece_hashes(0)
+	{
+		std::vector<char> buf;
+		int ret = load_file(filename, buf);
+		if (ret < 0) return;
+
+		lazy_entry e;
+		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
+		{
+			ec = error_code(errors::invalid_bencoding, libtorrent_category);
+			return;
+		}
+		parse_torrent_file(e, ec);
+	}
+
+	torrent_info::torrent_info(fs::wpath const& filename, error_code& ec)
+		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		, m_multifile(false)
+		, m_private(false)
+		, m_info_section_size(0)
+		, m_piece_hashes(0)
+	{
+		std::vector<char> buf;
+		std::string utf8;
+		wchar_utf8(filename.string(), utf8);
+		int ret = load_file(utf8, buf);
+		if (ret < 0) return;
+
+		lazy_entry e;
+		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
+		{
+			ec = error_code(errors::invalid_bencoding, libtorrent_category);
+			return;
+		}
+		parse_torrent_file(e, ec);
 	}
 
 	// constructor used for creating new torrents
@@ -348,62 +463,6 @@ namespace libtorrent
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
 	{}
-
-	torrent_info::torrent_info(fs::path const& filename)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
-		, m_multifile(false)
-		, m_private(false)
-	{
-		std::vector<char> buf;
-		int ret = load_file(filename, buf);
-		if (ret < 0) return;
-
-		if (buf.empty())
-#ifndef BOOST_NO_EXCEPTIONS
-			throw invalid_torrent_file("file not found");
-#else
-			return;
-#endif
-
-		lazy_entry e;
-		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
-		error_code ec;
-#ifndef BOOST_NO_EXCEPTIONS
-		if (!parse_torrent_file(e, ec))
-			throw invalid_torrent_file(ec.message());
-#else
-		parse_torrent_file(e, ec);
-#endif
-	}
-
-	torrent_info::torrent_info(fs::wpath const& filename)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
-		, m_multifile(false)
-		, m_private(false)
-	{
-		std::vector<char> buf;
-		std::string utf8;
-		wchar_utf8(filename.string(), utf8);
-		int ret = load_file(utf8, buf);
-		if (ret < 0) return;
-
-		if (buf.empty())
-#ifndef BOOST_NO_EXCEPTIONS
-			throw invalid_torrent_file("empty file");
-#else
-			return;
-#endif
-
-		lazy_entry e;
-		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
-		error_code ec;
-#ifndef BOOST_NO_EXCEPTIONS
-		if (!parse_torrent_file(e, ec))
-			throw invalid_torrent_file(ec.message());
-#else
-		parse_torrent_file(e, ec);
-#endif
-	}
 
 	torrent_info::~torrent_info()
 	{}

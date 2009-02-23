@@ -1255,11 +1255,19 @@ The ``torrent_info`` has the following synopsis::
 	{
 	public:
 
+		// these constructors throws exceptions on error
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
 		torrent_info(boost::filesystem::path const& filename);
 		torrent_info(boost::filesystem::wpath const& filename);
+
+		// these constructors sets the error code on error
+		torrent_info(sha1_hash const& info_hash, error_code& ec);
+		torrent_info(lazy_entry const& torrent_file, error_code& ec);
+		torrent_info(char const* buffer, int size, error_code& ec);
+		torrent_info(fs::path const& filename, error_code& ec);
+		torrent_info(fs::wpath const& filename, error_code& ec);
 
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const;
@@ -1326,6 +1334,12 @@ torrent_info()
 		torrent_info(boost::filesystem::path const& filename);
 		torrent_info(boost::filesystem::wpath const& filename);
 
+		torrent_info(sha1_hash const& info_hash, error_code& ec);
+		torrent_info(lazy_entry const& torrent_file, error_code& ec);
+		torrent_info(char const* buffer, int size, error_code& ec);
+		torrent_info(fs::path const& filename, error_code& ec);
+		torrent_info(fs::wpath const& filename, error_code& ec);
+
 The constructor that takes an info-hash  will initialize the info-hash to the given value,
 but leave all other fields empty. This is used internally when downloading torrents without
 the metadata. The metadata will be created by libtorrent as soon as it has been downloaded
@@ -1342,6 +1356,12 @@ initialize the torrent_info object for you.
 The version that takes a filename will simply load the torrent file and decode it inside
 the constructor, for convenience. This might not be the most suitable for applications that
 want to be able to report detailed errors on what might go wrong.
+
+The overloads that takes an ``error_code const&`` never throws if an error occur, they
+will simply set the error code to describe what went wrong and not fully initialize the
+torrent_info object. The overloads that do not take the extra error_code_ parameter will
+always throw if an error occurs. These overloads are not available when building without
+exception support.
 
 
 add_tracker()
@@ -4914,79 +4934,83 @@ including ``<libtorrent/alert.hpp>``.
 exceptions
 ==========
 
-There are a number of exceptions that can be thrown from different places in libtorrent,
-here's a complete list with description.
+Many functions in libtorrent have two versions, one that throws exceptions on
+errors and one that takes an ``error_code`` reference which is filled with the
+error code on errors.
 
+There is one exception class that is used for errors in libtorrent, it is based
+on boost.system's ``error_code`` class to carry the error code.
 
-invalid_handle
---------------
-
-This exception is thrown when querying information from a torrent_handle_ that hasn't
-been initialized or that has become invalid.
-
-::
-
-	struct invalid_handle: std::exception
-	{
-		const char* what() const throw();
-	};
-
-
-duplicate_torrent
------------------
-
-This is thrown by `add_torrent()`_ if the torrent already has been added to
-the session. Since `remove_torrent()`_ is asynchronous, this exception may
-be thrown if the torrent is removed and then immediately added again.
-
-::
-
-	struct duplicate_torrent: std::exception
-	{
-		const char* what() const throw();
-	};
-
-
-invalid_encoding
-----------------
-
-This is thrown by ``bdecode()`` if the input data is not a valid bencoding.
-
-::
-
-	struct invalid_encoding: std::exception
-	{
-		const char* what() const throw();
-	};
-
-
-type_error
-----------
-
-This is thrown from the accessors of ``entry`` if the data type of the ``entry`` doesn't
-match the type you want to extract from it.
-
-::
-
-	struct type_error: std::runtime_error
-	{
-		type_error(const char* error);
-	};
-
-
-invalid_torrent_file
+libtorrent_exception
 --------------------
 
-This exception is thrown from the constructor of ``torrent_info`` if the given bencoded information
-doesn't meet the requirements on what information has to be present in a torrent file.
-
 ::
 
-	struct invalid_torrent_file: std::exception
+	struct libtorrent_exception: std::exception
 	{
-		const char* what() const throw();
+		libtorrent_exception(error_code const& s);
+		virtual const char* what() const throw();
+		virtual ~libtorrent_exception() throw() {}
+		boost::system::error_code error() const;
 	};
 
+
+error_code
+==========
+
+libtorrent uses boost.system's ``error_code`` class to represent errors. libtorrent has
+its own error category (``libtorrent::libtorrent_category``) whith the following error
+codes:
+
+====== ============================ =================================================================
+code   symbol                       description
+====== ============================ =================================================================
+0      no_error                     Not an error
+------ ---------------------------- -----------------------------------------------------------------
+1      file_collision               Two torrents has files which end up overwriting each other
+------ ---------------------------- -----------------------------------------------------------------
+2      failed_hash_check            A piece did not match its piece hash
+------ ---------------------------- -----------------------------------------------------------------
+3      torrent_is_no_dict           The .torrent file does not contain a bencoded dictionary at
+                                    its top level
+------ ---------------------------- -----------------------------------------------------------------
+4      torrent_missing_info         The .torrent file does not have an ``info`` dictionary
+------ ---------------------------- -----------------------------------------------------------------
+5      torrent_info_no_dict         The .torrent file's ``info`` entry is not a dictionary
+------ ---------------------------- -----------------------------------------------------------------
+6      torrent_missing_piece_length The .torrent file does not have a ``piece length`` entry
+------ ---------------------------- -----------------------------------------------------------------
+7      torrent_missing_name         The .torrent file does not have a ``name`` entry
+------ ---------------------------- -----------------------------------------------------------------
+8      torrent_invalid_name         The .torrent file's name entry is invalid
+------ ---------------------------- -----------------------------------------------------------------
+9      torrent_invalid_length       The length of a file, or of the whole .torrent file is invalid.
+                                    Either negative or not an integer
+------ ---------------------------- -----------------------------------------------------------------
+10     torrent_file_parse_failed    Failed to parse a file entry in the .torrent
+------ ---------------------------- -----------------------------------------------------------------
+11     torrent_missing_pieces       The ``pieces`` field is missing or invalid in the .torrent file
+------ ---------------------------- -----------------------------------------------------------------
+12     torrent_invalid_hashes       The ``pieces`` string has incorrect length
+------ ---------------------------- -----------------------------------------------------------------
+13     too_many_pieces_in_torrent   The .torrent file has more pieces than is supported by libtorrent
+------ ---------------------------- -----------------------------------------------------------------
+14     invalid_swarm_metadata       The metadata (.torrent file) that was received from the swarm
+                                    matched the info-hash, but failed to be parsed
+------ ---------------------------- -----------------------------------------------------------------
+15     invalid_bencoding            The file or buffer is not correctly bencoded
+------ ---------------------------- -----------------------------------------------------------------
+16     no_files_in_torrent          The .torrent file does not contain any files
+------ ---------------------------- -----------------------------------------------------------------
+17     invalid_escaped_string       The string was not properly url-encoded as expected
+------ ---------------------------- -----------------------------------------------------------------
+18     session_is_closing           Operation is not permitted since the session is shutting down
+------ ---------------------------- -----------------------------------------------------------------
+19     duplicate_torrent            There's already a torrent with that info-hash added to the
+                                    session
+====== ============================ =================================================================
+
+The names of these error codes are declared in then ``libtorrent::errors`` namespace.
 
 storage_interface
 =================

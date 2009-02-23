@@ -170,14 +170,10 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
 
-		if (m_files.num_files() == 0)
-		{
-			// TODO: throw something here
-			// throw
-			return entry();
-		}
-
 		entry dict;
+
+		if (m_files.num_files() == 0)
+			return dict;
 
 		if (!m_urls.empty()) dict["announce"] = m_urls.front().first;
 		

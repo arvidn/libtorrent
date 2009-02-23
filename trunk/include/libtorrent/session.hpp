@@ -224,6 +224,7 @@ namespace libtorrent
 
 		// all torrent_handles must be destructed before the session is destructed!
 		torrent_handle add_torrent(add_torrent_params const& params);
+		torrent_handle add_torrent(add_torrent_params const& params, error_code& ec);
 		
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.14
