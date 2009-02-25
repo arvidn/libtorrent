@@ -34,6 +34,7 @@ release 0.14.3
 	* fixed boost-1.38 build
 	* fixed bug where web seeds would be connected before the files
 	  were checked
+	* fixed filename bug when using wide characters
 
 release 0.14.2
 

@@ -65,7 +65,7 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 #include <cstring>
 #include <vector>
 
-#ifdef TORRENT_USE_WPATH
+#if TORRENT_USE_WPATH
 // for safe_convert
 #include "libtorrent/storage.hpp"
 #endif
@@ -178,7 +178,7 @@ namespace libtorrent
 			FILE_ATTRIBUTE_HIDDEN, // hidden + executable
 		};
 
-#ifdef TORRENT_USE_WPATH
+#if TORRENT_USE_WPATH
 		m_path = safe_convert(path.external_file_string());
 #else
 		m_path = utf8_native(path.external_file_string());
@@ -291,7 +291,7 @@ namespace libtorrent
 			DWORD bytes_per_sector;
 			DWORD free_clusters;
 			DWORD total_clusters;
-#ifdef TORRENT_USE_WPATH
+#if TORRENT_USE_WPATH
 			wchar_t backslash = L'\\';
 #else
 			char backslash = '\\';
