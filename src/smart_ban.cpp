@@ -142,7 +142,7 @@ namespace libtorrent { namespace
 				if (*i != 0)
 				{
 					m_torrent.filesystem().async_read(r, bind(&smart_ban_plugin::on_read_failed_block
-						, shared_from_this(), pb, (policy::peer*)*i, _1, _2));
+						, shared_from_this(), pb, ((policy::peer*)*i)->addr, _1, _2));
 				}
 
 				r.start += 16*1024;
@@ -163,9 +163,8 @@ namespace libtorrent { namespace
 			unsigned long crc;
 		};
 
-		void on_read_failed_block(piece_block b, policy::peer* p, int ret, disk_io_job const& j)
+		void on_read_failed_block(piece_block b, address a, int ret, disk_io_job const& j)
 		{
-			TORRENT_ASSERT(p);
 			// ignore read errors
 			if (ret != j.buffer_size) return;
 
@@ -173,13 +172,21 @@ namespace libtorrent { namespace
 			crc.update(j.buffer, j.buffer_size);
 			crc.update((char const*)&m_salt, sizeof(m_salt));
 
-			block_entry e = {p, crc.final()};
-
 			// since this callback is called directory from the disk io
 			// thread, the session mutex is not locked when we get here
 			aux::session_impl::mutex_t::scoped_lock l(m_torrent.session().m_mutex);
 			
+			std::pair<policy::iterator, policy::iterator> range
+				= m_torrent.get_policy().find_peers(a);
+
+			// there is no peer with this address anymore
+			if (range.first == range.second) return;
+
+			policy::peer* p = &range.first->second;
+			block_entry e = {p, crc.final()};
+
 			std::map<piece_block, block_entry>::iterator i = m_block_crc.lower_bound(b);
+
 			if (i != m_block_crc.end() && i->first == b && i->second.peer == p)
 			{
 				// this peer has sent us this block before
@@ -189,7 +196,6 @@ namespace libtorrent { namespace
 					// from the first time it sent it
 					// at least one of them must be bad
 
-					if (p == 0) return;
 					if (!m_torrent.get_policy().has_peer(p)) return;
 
 #ifdef TORRENT_LOGGING
