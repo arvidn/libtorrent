@@ -246,6 +246,8 @@ namespace libtorrent
 		iterator end_peer() { return m_peers.end(); }
 		const_iterator begin_peer() const { return m_peers.begin(); }
 		const_iterator end_peer() const { return m_peers.end(); }
+		std::pair<iterator, iterator> find_peers(address const& a)
+		{ return m_peers.equal_range(a); }
 
 		bool connect_one_peer();
 

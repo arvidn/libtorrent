@@ -35,6 +35,7 @@ release 0.14.3
 	* fixed bug where web seeds would be connected before the files
 	  were checked
 	* fixed filename bug when using wide characters
+	* fixed rare crash in peer banning code
 
 release 0.14.2
 
