@@ -54,28 +54,28 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-#ifndef BOOST_NO_EXCEPTIONS
-	try
-#endif
+	session s;
+	s.listen_on(std::make_pair(6881, 6889));
+	add_torrent_params p;
+	p.save_path = "./";
+	error_code ec;
+	p.ti = new torrent_info(argv[1], ec);
+	if (ec)
 	{
-		session s;
-		s.listen_on(std::make_pair(6881, 6889));
-		add_torrent_params p;
-		p.save_path = "./";
-		p.ti = new torrent_info(argv[1]);
-		s.add_torrent(p);
+		std::cout << ec.message() << std::endl;
+		return 1;
+	}
+	s.add_torrent(p, ec);
+	if (ec)
+	{
+		std::cerr << ec.message() << std::endl;
+		return 1;
+	}
 
-		// wait for the user to end
-		char a;
-		std::cin.unsetf(std::ios_base::skipws);
-		std::cin >> a;
-	}
-#ifndef BOOST_NO_EXCEPTIONS
-	catch (std::exception& e)
-	{
-  		std::cout << e.what() << "\n";
-	}
-#endif
+	// wait for the user to end
+	char a;
+	std::cin.unsetf(std::ios_base::skipws);
+	std::cin >> a;
 	return 0;
 }
 

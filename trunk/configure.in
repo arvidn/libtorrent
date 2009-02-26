@@ -147,13 +147,6 @@ if test -z "$BOOST_REGEX_LIB"; then
    BUILD_TESTCLIENT=no;
 fi
 
-AX_BOOST_PROGRAM_OPTIONS
-dnl check that Boost.Program_options was found:
-if test -z "$BOOST_PROGRAM_OPTIONS_LIB"; then
-   AC_MSG_RESULT([Unable to find Boost.Program_options library, example test_client will not be build.])
-   BUILD_TESTCLIENT=no;
-fi
-
 dnl Apply boost config.
 CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
 LDFLAGS="$LDFLAGS $BOOST_LDFLAGS"

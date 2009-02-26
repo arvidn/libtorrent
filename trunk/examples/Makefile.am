@@ -6,7 +6,7 @@ EXTRA_PROGRAMS = client_test dump_torrent make_torrent simple_client enum_if
 EXTRA_DIST = Jamfile
 
 client_test_SOURCES = client_test.cpp
-client_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la @BOOST_REGEX_LIB@ @BOOST_PROGRAM_OPTIONS_LIB@
+client_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la @BOOST_REGEX_LIB@
 
 dump_torrent_SOURCES = dump_torrent.cpp
 dump_torrent_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la

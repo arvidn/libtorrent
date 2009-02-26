@@ -69,6 +69,7 @@ namespace libtorrent
 			"torrent already exists in session",
 			"invalid torrent handle used",
 			"invalid type requested from entry",
+			"missing info-hash from URI",
 		};
 		if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
 			return "Unknown error";

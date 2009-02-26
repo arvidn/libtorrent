@@ -313,6 +313,7 @@ namespace libtorrent
 		return m_impl->add_torrent(params, ec);
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
 	// if the torrent already exists, this will throw duplicate_torrent
 	torrent_handle session::add_torrent(
@@ -381,6 +382,7 @@ namespace libtorrent
 		p.userdata = userdata;
 		return add_torrent(p);
 	}
+#endif
 #endif
 
 	void session::remove_torrent(const torrent_handle& h, int options)

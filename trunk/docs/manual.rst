@@ -89,6 +89,9 @@ The ``session`` class has the following synopsis::
 
 		torrent_handle add_torrent(
 			add_torrent_params const& params);
+		torrent_handle add_torrent(
+			add_torrent_params const& params
+			, error_code& ec);
 
 		void pause();
 		void resume();
@@ -299,9 +302,14 @@ add_torrent()
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
+		torrent_handle add_torrent(add_torrent_params const& params
+			, error_code& ec);
 
 You add torrents through the ``add_torrent()`` function where you give an
 object with all the parameters.
+
+The overload that does not take an ``error_code`` throws an exception on
+error and is not available when building without exception support.
 
 The only mandatory parameter is ``save_path`` which is the directory where you
 want the files to be saved. You also need to specify either the ``ti`` (the
@@ -4173,12 +4181,17 @@ add_magnet_uri()
 
 		torrent_handle add_magnet_uri(session& ses, std::string const& uri
 			add_torrent_params p);
+		torrent_handle add_magnet_uri(session& ses, std::string const& uri
+			add_torrent_params p, error_code& ec);
 
 This function parses the magnet URI (``uri``) as a bittorrent magnet link,
 and adds the torrent to the specified session (``ses``). It returns the
 handle to the newly added torrent, or an invalid handle in case parsing
 failed. To control some initial settings of the torrent, sepcify those in
 the ``add_torrent_params``, ``p``. See `add_torrent()`_.
+
+The overload that does not take an ``error_code`` throws an exception on
+error and is not available when building without exception support.
 
 For more information about magnet links, see `magnet links`_.
 
@@ -5008,6 +5021,12 @@ code   symbol                       description
 ------ ---------------------------- -----------------------------------------------------------------
 19     duplicate_torrent            There's already a torrent with that info-hash added to the
                                     session
+------ ---------------------------- -----------------------------------------------------------------
+20     invalid_torrent_handle       The supplied torrent_handle is not referring to a valid torrent
+------ ---------------------------- -----------------------------------------------------------------
+21     invalid_entry_type           The type requested from the entry did not match its type
+------ ---------------------------- -----------------------------------------------------------------
+22     missing_info_hash_in_uri     The specified URI does not contain a valid info-hash
 ====== ============================ =================================================================
 
 The names of these error codes are declared in then ``libtorrent::errors`` namespace.
