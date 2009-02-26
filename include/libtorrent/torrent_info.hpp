@@ -172,7 +172,7 @@ namespace libtorrent
 		torrent_info(fs::wpath const& filename);
 #endif
 
-		torrent_info(sha1_hash const& info_hash, error_code& ec);
+		torrent_info(sha1_hash const& info_hash);
 		torrent_info(lazy_entry const& torrent_file, error_code& ec);
 		torrent_info(char const* buffer, int size, error_code& ec);
 		torrent_info(fs::path const& filename, error_code& ec);

@@ -48,6 +48,7 @@ namespace libtorrent
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_info const& info);
 
+#ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
 	// deprecated in 0.14
 	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
@@ -60,6 +61,10 @@ namespace libtorrent
 
 	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
 		, add_torrent_params p);
+#endif
+
+	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
+		, add_torrent_params p, error_code& ec);
 }
 
 #endif

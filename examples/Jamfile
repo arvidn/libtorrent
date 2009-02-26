@@ -9,7 +9,6 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-lib program-options : : <name>boost_program_options ;
 lib regex : : <name>boost_regex ;
 
 project client_test
@@ -20,8 +19,7 @@ project client_test
    ;  
 
 exe client_test : client_test.cpp
-	: <library>/boost/program_options
-	<library>/boost/regex
+	: <library>/boost/regex
 	;
 
 exe simple_client : simple_client.cpp ;

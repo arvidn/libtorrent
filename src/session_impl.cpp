@@ -2420,7 +2420,6 @@ namespace aux {
 
 	void session_impl::set_max_connections(int limit)
 	{
-		TORRENT_ASSERT(limit > 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
@@ -2443,7 +2442,6 @@ namespace aux {
 
 	void session_impl::set_max_half_open_connections(int limit)
 	{
-		TORRENT_ASSERT(limit > 0 || limit == -1);
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
@@ -2454,7 +2452,6 @@ namespace aux {
 
 	void session_impl::set_download_rate_limit(int bytes_per_second)
 	{
-		TORRENT_ASSERT(bytes_per_second > 0 || bytes_per_second == -1);
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
@@ -2465,7 +2462,6 @@ namespace aux {
 
 	void session_impl::set_upload_rate_limit(int bytes_per_second)
 	{
-		TORRENT_ASSERT(bytes_per_second > 0 || bytes_per_second == -1);
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
