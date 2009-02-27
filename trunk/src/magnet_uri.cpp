@@ -125,7 +125,7 @@ namespace libtorrent
 	{
 		error_code ec;
 		torrent_handle ret = add_magnet_uri(ses, uri, p, ec);
-		if (ec) throw libtorrent_exceptions(ec);
+		if (ec) throw libtorrent_exception(ec);
 		return ret;
 	}
 #endif
