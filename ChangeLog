@@ -36,6 +36,7 @@ release 0.14.3
 	  were checked
 	* fixed filename bug when using wide characters
 	* fixed rare crash in peer banning code
+	* fixed potential HTTP compatibility issue
 
 release 0.14.2
 

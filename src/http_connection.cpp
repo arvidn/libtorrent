@@ -63,6 +63,8 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	boost::tie(protocol, auth, hostname, port, path, error)
 		= parse_url_components(url);
 
+	int default_port = protocol == "https" ? 443 : 80;
+
 	if (error)
 	{
 		callback(asio::error::socket_type_not_supported);
@@ -99,7 +101,9 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	else
 	{
 		headers << "GET " << path << " HTTP/1.0\r\n"
-			"Host: " << hostname << ":" << port << "\r\n";
+			"Host: " << hostname;
+		if (port != default_port) headers << ":" << port;
+		headers << "\r\n";
 	}
 
 	if (!auth.empty())
