@@ -165,7 +165,6 @@ namespace libtorrent
 	{
 	public:
 #ifndef BOOST_NO_EXCEPTIONS
-		torrent_info(sha1_hash const& info_hash);
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
 		torrent_info(fs::path const& filename);
