@@ -896,6 +896,7 @@ int main(int argc, char* argv[])
 				break;
 			case 'c': ses.set_max_connections(atoi(arg)); break;
 		}
+		++i; // skip the argument
 	}
 
 	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
