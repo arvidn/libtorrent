@@ -1398,10 +1398,23 @@ to make its mapping differ from the one in the torrent file.
 
 ``orig_files()`` returns the original (unmodified) file storage for this torrent. This
 is used by the web server connection, which needs to request files with the original
-names.
+names. Filename may be chaged using `rename_file()`_.
 
 For more information on the ``file_storage`` object, see the separate document on how
 to create torrents.
+
+rename_file()
+-------------
+
+	::
+
+		void rename_file(int index, std::string const& new_filename);
+		void rename_file(int index, std::wstring const& new_filename);
+
+Renames a the file with the specified index to the new name. The new filename is
+reflected by the ``file_storage`` returned by ``files()`` but not by the one
+returned by ``orig_files()``.
+
 
 begin_files() end_files() rbegin_files() rend_files()
 -----------------------------------------------------
