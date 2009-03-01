@@ -938,7 +938,10 @@ void upnp::disable(char const* msg)
 		m_callback(i - m_mappings.begin(), 0, msg);
 	}
 	
-	m_devices.clear();
+	// we cannot clear the devices since there
+	// might be outstanding requests relying on
+	// the device entry being present when they
+	// complete
 	error_code ec;
 	m_broadcast_timer.cancel(ec);
 	m_refresh_timer.cancel(ec);
