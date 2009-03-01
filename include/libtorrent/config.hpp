@@ -102,5 +102,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UPNP_LOGGING
 #endif
 
+#if !TORRENT_USE_WPATH && defined TORRENT_LINUX
+// libiconv presnce, not implemented yet
+#define TORRENT_USE_LOCALE_FILENAMES 1
+#else
+#define TORRENT_USE_LOCALE_FILENAMES 0
+#endif
+
+
 #endif // TORRENT_CONFIG_HPP_INCLUDED
 

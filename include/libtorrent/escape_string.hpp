@@ -61,6 +61,15 @@ namespace libtorrent
 		std::string const& url, std::string argument);
 
 	TORRENT_EXPORT std::string to_hex(std::string const& s);
+
+#if TORRENT_USE_WPATH
+	TORRENT_EXPORT std::wstring convert_to_wstring(std::string const& s);
+#endif
+	
+#if TORRENT_USE_LOCALE_FILENAMES
+	TORRENT_EXPORT std::string convert_to_native(std::string const& s);
+#endif		
+	
 }
 
 #endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED

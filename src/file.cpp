@@ -65,9 +65,9 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 #include <cstring>
 #include <vector>
 
-#if TORRENT_USE_WPATH
-// for safe_convert
-#include "libtorrent/storage.hpp"
+#if TORRENT_USE_WPATH || TORRENT_USE_LOCALE_FILENAMES
+// for convert_to_wstring and convert_to_native
+#include "libtorrent/escape_string.hpp"
 #endif
 
 #include "libtorrent/assert.hpp"
@@ -179,7 +179,7 @@ namespace libtorrent
 		};
 
 #if TORRENT_USE_WPATH
-		m_path = safe_convert(path.external_file_string());
+		m_path = convert_to_wstring(path.external_file_string());
 #else
 		m_path = utf8_native(path.external_file_string());
 #endif
@@ -220,8 +220,14 @@ namespace libtorrent
 #else
 		static const int no_buffer_flag[] = {0, 0};
 #endif
+
+#if TORRENT_USE_LOCALE_FILENAMES
+ 		m_fd = ::open(convert_to_native(path.external_file_string()).c_str()
+ 			, mode_array[mode & rw_mask] | no_buffer_flag[(mode & no_buffer) >> 2], permissions);
+#else
  		m_fd = ::open(path.external_file_string().c_str()
  			, mode_array[mode & rw_mask] | no_buffer_flag[(mode & no_buffer) >> 2], permissions);
+#endif
 
 #ifdef TORRENT_LINUX
 		// workaround for linux bug
