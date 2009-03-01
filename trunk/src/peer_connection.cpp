@@ -2697,6 +2697,12 @@ namespace libtorrent
 			- m_statistics.total_payload_upload();
 	}
 
+	bool peer_connection::ignore_unchoke_slots() const
+	{
+		return m_ignore_unchoke_slots
+			|| (m_ses.settings().ignore_limits_on_local_network && on_local_network());
+	}
+
 	// defined in upnp.cpp
 	bool is_local(address const& a);
 
@@ -3031,8 +3037,6 @@ namespace libtorrent
 		keep_alive();
 
 		m_ignore_bandwidth_limits = m_ses.settings().ignore_limits_on_local_network
-			&& on_local_network();
-		m_ignore_unchoke_slots = m_ses.settings().ignore_limits_on_local_network
 			&& on_local_network();
 
 		m_statistics.second_tick(tick_interval);
