@@ -81,12 +81,6 @@ namespace libtorrent
 		storage_mode_compact
 	};
 	
-#if TORRENT_USE_WPATH
-
-	TORRENT_EXPORT std::wstring safe_convert(std::string const& s);
-
-#endif
-	
 	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		file_storage const& t
 		, fs::path p);

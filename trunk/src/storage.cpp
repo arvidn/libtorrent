@@ -100,43 +100,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/mount.h>
 #endif
 
-#if TORRENT_USE_WPATH
-
-#ifdef BOOST_WINDOWS
-#include <windows.h>
-#else
-#include <fcntl.h>
-#endif
-
-#include <boost/filesystem/exception.hpp>
-#include "libtorrent/utf8.hpp"
-#include "libtorrent/buffer.hpp"
-
-namespace libtorrent
-{
-	std::wstring safe_convert(std::string const& s)
-	{
-		std::wstring ret;
-		int result = libtorrent::utf8_wchar(s, ret);
-#ifndef BOOST_WINDOWS
-		return ret;
-#else
-		if (result == 0) return ret;
-
-		ret.clear();
-		const char* end = &s[0] + s.size();
-		for (const char* i = &s[0]; i < end;)
-		{
-			wchar_t c = '.';
-			int result = std::mbtowc(&c, i, end - i);
-			if (result > 0) i += result;
-			else ++i;
-			ret += c;
-		}
-		return ret;
-#endif
-	}
-}
+#if TORRENT_USE_WPATH || TORRENT_USE_LOCALE_FILENAMES
+// for convert_to_wstring and convert_to_native
+#include "libtorrent/escape_string.hpp"
 #endif
 
 namespace fs = boost::filesystem;
@@ -222,7 +188,9 @@ namespace libtorrent
 			size_type size = 0;
 			std::time_t time = 0;
 #if TORRENT_USE_WPATH
-			fs::wpath f = safe_convert((p / i->path).string());
+			fs::wpath f = convert_to_wstring((p / i->path).string());
+#elif TORRENT_USE_LOCALE_FILENAMES
+			fs::path f = convert_to_native((p / i->path).string());
 #else
 			fs::path f = p / i->path;
 #endif
@@ -273,7 +241,9 @@ namespace libtorrent
 			if (i->pad_file) continue;
 
 #if TORRENT_USE_WPATH
-			fs::wpath f = safe_convert((p / i->path).string());
+			fs::wpath f = convert_to_wstring((p / i->path).string());
+#elif TORRENT_USE_LOCALE_FILENAMES
+			fs::path f = convert_to_native(p / i->path);
 #else
 			fs::path f = p / i->path;
 #endif
@@ -535,9 +505,13 @@ namespace libtorrent
 				last_path = dir;
 
 #if TORRENT_USE_WPATH
-				fs::wpath wp = safe_convert(last_path.string());
+				fs::wpath wp = convert_to_wstring(last_path.string());
 				if (!exists(wp))
 					create_directories(wp);
+#elif TORRENT_USE_LOCALE_FILENAMES
+				fs::path p = convert_to_native(last_path.string());
+				if (!exists(p))
+					create_directories(p);
 #else
 				if (!exists(last_path))
 					create_directories(last_path);
@@ -558,7 +532,7 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_WPATH
-			fs::wpath file_path = safe_convert((m_save_path / file_iter->path).string());
+			fs::wpath file_path = convert_to_wstring((m_save_path / file_iter->path).string());
 #else
 			fs::path file_path = m_save_path / file_iter->path;
 #endif
@@ -609,8 +583,11 @@ namespace libtorrent
 		m_pool.release(old_name);
 
 #if TORRENT_USE_WPATH
-		fs::wpath old_path = safe_convert(old_name.string());
-		fs::wpath new_path = safe_convert((m_save_path / new_filename).string());
+		fs::wpath old_path = convert_to_wstring(old_name.string());
+		fs::wpath new_path = convert_to_wstring((m_save_path / new_filename).string());
+#elif TORRENT_USE_LOCALE_FILENAMES
+		fs::path const& old_path = convert_to_native(old_name.string());
+		fs::path new_path = convert_to_native((m_save_path / new_filename).string());
 #else
 		fs::path const& old_path = old_name;
 		fs::path new_path = m_save_path / new_filename;
@@ -686,8 +663,14 @@ namespace libtorrent
 			}
 #if TORRENT_USE_WPATH
 			try
-			{ fs::remove(safe_convert(p)); }
+			{ fs::remove(convert_to_wstring(p)); }
 			catch (std::exception& e)
+			{
+				error = errno;
+				error_file = p;
+			}
+#elif TORRENT_USE_LOCALE_FILENAMES
+			if (std::remove(convert_to_native(p).c_str()) != 0 && errno != ENOENT)
 			{
 				error = errno;
 				error_file = p;
@@ -709,8 +692,14 @@ namespace libtorrent
 		{
 #if TORRENT_USE_WPATH
 			try
-			{ fs::remove(safe_convert(*i)); }
+			{ fs::remove(convert_to_wstring(*i)); }
 			catch (std::exception& e)
+			{
+				error = errno;
+				error_file = *i;
+			}
+#elif TORRENT_USE_LOCALE_FILENAMES
+			if (std::remove(convert_to_native(*i).c_str()) != 0 && errno != ENOENT)
 			{
 				error = errno;
 				error_file = *i;
@@ -903,9 +892,9 @@ namespace libtorrent
 				}
 			}
 		}
-
 		return match_filesizes(files(), m_save_path, file_sizes
 			, !full_allocation_mode, &error);
+
 	}
 
 	// returns true on success
@@ -922,10 +911,16 @@ namespace libtorrent
 		save_path = complete(save_path);
 
 #if TORRENT_USE_WPATH
-		fs::wpath wp = safe_convert(save_path.string());
+		fs::wpath wp = convert_to_wstring(save_path.string());
 		if (!exists(wp))
 			create_directory(wp);
 		else if (!is_directory(wp))
+			return false;
+#elif TORRENT_USE_LOCALE_FILENAMES
+		fs::path p = convert_to_native(save_path.string());
+		if (!exists(p))
+			create_directory(p);
+		else if (!is_directory(p))
 			return false;
 #else
 		if (!exists(save_path))
@@ -937,8 +932,11 @@ namespace libtorrent
 		m_pool.release(this);
 
 #if TORRENT_USE_WPATH
-		old_path = safe_convert((m_save_path / files().name()).string());
-		new_path = safe_convert((save_path / files().name()).string());
+		old_path = convert_to_wstring((m_save_path / files().name()).string());
+		new_path = convert_to_wstring((save_path / files().name()).string());
+#elif TORRENT_USE_LOCALE_FILENAMES
+		old_path = convert_to_native((m_save_path / files().name()).string());
+		new_path = convert_to_native((save_path / files().name().string()));
 #else
 		old_path = m_save_path / files().name();
 		new_path = save_path / files().name();
@@ -1858,8 +1856,10 @@ ret:
 			{
 #endif
 #if TORRENT_USE_WPATH
-				fs::wpath wf = safe_convert(f.string());
+				fs::wpath wf = convert_to_wstring(f.string());
 				file_exists = exists(wf);
+#elif TORRENT_USE_LOCALE_FILENAMES
+				file_exists = exists(convert_to_native(f.string()));
 #else
 				file_exists = exists(f);
 #endif

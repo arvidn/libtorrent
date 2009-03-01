@@ -48,6 +48,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/escape_string.hpp"
 
+#if TORRENT_USE_WPATH
+
+#ifdef BOOST_WINDOWS
+#include <windows.h>
+#endif
+
+#include <boost/filesystem/exception.hpp>
+#include "libtorrent/utf8.hpp"
+
+#endif
+
+#if TORRENT_USE_LOCALE_FILENAMES
+#include <iconv.h>
+#include <locale.h>
+#endif 
+
 namespace libtorrent
 {
 
@@ -392,6 +408,51 @@ namespace libtorrent
 		}
 		return ret;
 	}
+
+#if TORRENT_USE_WPATH
+	std::wstring convert_to_wstring(std::string const& s)
+	{
+		std::wstring ret;
+		int result = libtorrent::utf8_wchar(s, ret);
+#ifndef BOOST_WINDOWS
+		return ret;
+#else
+		if (result == 0) return ret;
+
+		ret.clear();
+		const char* end = &s[0] + s.size();
+		for (const char* i = &s[0]; i < end;)
+		{
+			wchar_t c = '.';
+			int result = std::mbtowc(&c, i, end - i);
+			if (result > 0) i += result;
+			else ++i;
+			ret += c;
+		}
+		return ret;
+#endif
+	}
+#endif
+
+#if TORRENT_USE_LOCALE_FILENAMES
+	std::string convert_to_native(std::string const& s)
+	{
+		// the empty string represents the local dependent encoding
+		static iconv_t iconv_handle = iconv_open("", "UTF-8");
+		if (iconv_handle == iconv_t(-1)) return s;
+		std::string ret;
+		size_t insize = s.size();
+		size_t outsize = insize * 4;
+		ret.resize(outsize);
+		char const* in = &s[0];
+		char* out = &ret[0];
+		size_t retval = iconv(iconv_handle, (char**)&in, &insize,
+			&out, &outsize);
+		if (retval == (size_t)-1) return s;
+		ret.resize(outsize);
+		return ret;
+	}
+#endif
 
 }
 
