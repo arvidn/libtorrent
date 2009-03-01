@@ -337,8 +337,7 @@ namespace libtorrent
 		void ignore_bandwidth_limits(bool i)
 		{ m_ignore_bandwidth_limits = i; }
 
-		bool ignore_unchoke_slots() const
-		{ return m_ignore_unchoke_slots; }
+		bool ignore_unchoke_slots() const;
 		void ignore_unchoke_slots(bool i)
 		{ m_ignore_unchoke_slots = i; }
 
