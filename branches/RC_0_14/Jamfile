@@ -261,23 +261,32 @@ lib user32 : : <name>User32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
 
-local library-search-path = <search>/opt/local/lib <search>/usr/lib <search>/usr/local/lib <search>/sw/lib <search>/usr/sfw/lib ;
+local boost-library-search-path =
+  <search>/opt/local/lib
+  <search>/usr/lib
+  <search>/usr/local/lib
+  <search>/sw/lib
+  ;
 
-lib boost_filesystem : : <name>boost_filesystem $(library-search-path) ;
-lib boost_thread : : <name>boost_thread $(library-search-path) ;
-lib boost_system : : <name>boost_system $(library-search-path) ;
+lib boost_filesystem : : <target-os>darwin <name>boost_filesystem-mt $(boost-library-search-path) ;
+lib boost_thread : : <target-os>darwin <name>boost_thread-mt $(boost-library-search-path) ;
+lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-search-path) ;
+
+lib boost_filesystem : : <name>boost_filesystem ;
+lib boost_thread : : <name>boost_thread ;
+lib boost_system : : <name>boost_system ;
 
 # openssl on linux/bsd/macos etc.
-lib crypto : : <name>crypto $(library-search-path) ;
-lib ssl : : <name>ssl $(library-search-path) ;
+lib crypto : : <name>crypto ;
+lib ssl : : <name>ssl ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt ;
 
-lib libsocket : : <use>libnsl <name>socket <link>shared $(library-search-path) ;
-lib libnsl : : <name>nsl <link>shared $(library-search-path) ;
+lib libsocket : : <use>libnsl <name>socket <link>shared <search>/usr/sfw/lib ;
+lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib ;
 
-lib tcmalloc : : <name>tcmalloc $(library-search-path) ;
+lib tcmalloc : : <name>tcmalloc ;
 
 # libz
 lib zlib-target : : <name>z ;

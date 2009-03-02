@@ -2,7 +2,8 @@ import python ;
 
 use-project /torrent : ../.. ;
 
-lib boost_python : : <name>boost_python-mt $(library-search-path) ;
+lib boost_python : : <target-os>darwin <name>boost_python-mt $(boost-library-search-path) ;
+lib boost_python : : <name>boost_python ;
 
 rule libtorrent_linking ( properties * )
 {
@@ -13,10 +14,10 @@ rule libtorrent_linking ( properties * )
         result += <fpic>on ;
     }
 
-    if <toolset>gcc in $(properties) || <toolset>darwin in $(properties)
-    {
-        result += <visibility>hidden ;
-    }
+#    if <toolset>gcc in $(properties) || <toolset>darwin in $(properties)
+#    {
+#        result += <visibility>hidden ;
+#    }
 
     # when building peer_plugin.cpp on msvc-7.1 it fails
     # running out of internal heap space. Don't add it
