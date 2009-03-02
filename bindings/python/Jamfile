@@ -2,7 +2,8 @@ import python ;
 
 use-project /torrent : ../.. ;
 
-lib boost_python : : <name>boost_python $(library-search-path) ;
+lib boost_python : : <target-os>darwin <name>boost_python-mt $(boost-library-search-path) ;
+lib boost_python : : <name>boost_python ;
 
 rule libtorrent_linking ( properties * )
 {
