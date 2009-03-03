@@ -54,7 +54,7 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 
 #ifdef TORRENT_USE_WPATH
-			std::wstring path = safe_convert(p.external_file_string());
+			std::wstring path = convert_to_wstring(p.external_file_string());
 #else
 			std::string path = utf8_native(p.external_file_string());
 #endif
