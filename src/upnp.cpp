@@ -513,14 +513,8 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		boost::tie(i, boost::tuples::ignore) = m_devices.insert(d);
 	}
 
-
-	// since we're using udp, send the query 4 times
-	// just to make sure we find all devices
-	if (m_retry_count >= 4 && !m_devices.empty())
+	if (!m_devices.empty())
 	{
-		error_code ec;
-		m_broadcast_timer.cancel(ec);
-
 		for (std::set<rootdevice>::iterator i = m_devices.begin()
 			, end(m_devices.end()); i != end; ++i)
 		{
