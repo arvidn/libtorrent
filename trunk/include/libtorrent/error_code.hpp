@@ -81,6 +81,8 @@ namespace libtorrent
 	typedef asio::error_code error_code;
 	inline asio::error::error_category get_posix_category() { return asio::error::system_category; }
 	inline asio::error::error_category get_system_category() { return asio::error::system_category; }
+
+	extern asio::error::error_category libtorrent_category;
 #else
 
 	struct TORRENT_EXPORT libtorrent_error_category : boost::system::error_category

@@ -32,12 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 
-#if BOOST_VERSION >= 103500
-
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
+#if BOOST_VERSION >= 103500
+
 	const char* libtorrent_error_category::name() const
 	{
 		return "libtorrent error";
@@ -78,7 +78,11 @@ namespace libtorrent
 
 	libtorrent_error_category libtorrent_category;
 
-}
+#else
+
+	::asio::error::error_category libtorrent_category = asio::error::error_category(20);
 
 #endif
+
+}
 
