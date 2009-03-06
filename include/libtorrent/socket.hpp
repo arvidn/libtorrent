@@ -83,21 +83,19 @@ namespace libtorrent
 {
 
 #if BOOST_VERSION < 103500
-	using asio::ip::tcp;
-	using asio::ip::udp;
-	using asio::async_write;
-	using asio::async_read;
+	using ::asio::ip::tcp;
+	using ::asio::ip::udp;
+	using ::asio::async_write;
+	using ::asio::async_read;
 
-	typedef asio::ip::tcp::socket stream_socket;
-	typedef asio::ip::address address;
-	typedef asio::ip::address_v4 address_v4;
-	typedef asio::ip::address_v6 address_v6;
-	typedef asio::ip::udp::socket datagram_socket;
-	typedef asio::ip::tcp::acceptor socket_acceptor;
-	typedef asio::io_service io_service;
-
-	namespace asio = ::asio;
-	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
+	typedef ::asio::ip::tcp::socket stream_socket;
+	typedef ::asio::ip::address address;
+	typedef ::asio::ip::address_v4 address_v4;
+	typedef ::asio::ip::address_v6 address_v6;
+	typedef ::asio::ip::udp::socket datagram_socket;
+	typedef ::asio::ip::tcp::acceptor socket_acceptor;
+	typedef ::asio::io_service io_service;
+	typedef ::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 #else
 	using boost::asio::ip::tcp;
 	using boost::asio::ip::udp;
