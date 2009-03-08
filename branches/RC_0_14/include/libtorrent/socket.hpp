@@ -214,6 +214,10 @@ namespace libtorrent
 	};
 	
 #ifdef TORRENT_WINDOWS
+
+#ifndef IPV6_PROTECTION_LEVEL
+#define IPV6_PROTECTION_LEVEL 30
+#endif
 	struct v6_protection_level
 	{
 		v6_protection_level(int level): m_value(level) {}
