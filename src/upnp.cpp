@@ -203,7 +203,7 @@ void upnp::delete_mapping(int mapping)
 {
 	mutex_t::scoped_lock l(m_mutex);
 
-	if (mapping <= int(m_mappings.size())) return;
+	if (mapping >= int(m_mappings.size())) return;
 
 	global_mapping_t& m = m_mappings[mapping];
 
