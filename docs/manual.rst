@@ -3303,6 +3303,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		int max_sparse_regions;
 
 		bool lock_disk_cache;
+
+		int max_rejects;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3637,6 +3639,11 @@ to 0 on all platforms except windows.
 ``lock_disk_cache`` if lock disk cache is set to true the disk cache
 that's in use, will be locked in physical memory, preventing it from
 being swapped out.
+
+``max_rejects`` is the number of piece requests we will reject in a row
+while a peer is choked before the peer is considered abusive and is
+disconnected.
+
 
 pe_settings
 ===========

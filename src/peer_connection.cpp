@@ -117,6 +117,7 @@ namespace libtorrent
 		, m_rtt(0)
 		, m_prefer_whole_pieces(0)
 		, m_desired_queue_size(2)
+		, m_choke_rejects(0)
 		, m_fast_reconnect(false)
 		, m_active(true)
 		, m_peer_interested(false)
@@ -228,6 +229,7 @@ namespace libtorrent
 		, m_rtt(0)
 		, m_prefer_whole_pieces(0)
 		, m_desired_queue_size(2)
+		, m_choke_rejects(0)
 		, m_fast_reconnect(false)
 		, m_active(false)
 		, m_peer_interested(false)
@@ -1166,7 +1168,7 @@ namespace libtorrent
 #endif
 		m_peer_interested = true;
 		if (is_disconnecting()) return;
-		if (ignore_unchoke_slots()) write_unchoke();
+		if (ignore_unchoke_slots()) send_unchoke();
 		t->get_policy().interested(*this);
 	}
 
@@ -1209,7 +1211,7 @@ namespace libtorrent
 			m_ses.m_unchoke_time_scaler = 0;
 		}
 
-		if (ignore_unchoke_slots()) write_choke();
+		if (ignore_unchoke_slots()) send_unchoke();
 		t->get_policy().not_interested(*this);
 
 		if (t->super_seeding() && m_superseed_piece != -1)
@@ -1611,6 +1613,7 @@ namespace libtorrent
 			if (m_choked && m_accept_fast.find(r.piece) == m_accept_fast.end())
 			{
 				write_reject_request(r);
+				++m_choke_rejects;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*m_logger) << time_now_string()
 					<< " *** REJECTING REQUEST [ peer choked and piece not in allowed fast set ]\n";
@@ -1620,9 +1623,22 @@ namespace libtorrent
 					"s: " << r.start << " | "
 					"l: " << r.length << " ]\n";
 #endif
+
+				if (m_choke_rejects > m_ses.settings().max_rejects)
+				{
+					disconnect("too many piece requests while choked");
+					return;
+				}
+				else if ((m_choke_rejects & 0xf) == 0)
+				{
+					// tell the peer it's choked again
+					// every 16 requests in a row
+					write_choke();
+				}
 			}
 			else
 			{
+				m_choke_rejects = 0;
 				m_requests.push_back(r);
 				m_last_incoming_request = time_now();
 				fill_send_buffer();
@@ -2437,6 +2453,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
+		if (has_peer_choked()) return;
 		if ((int)m_download_queue.size() >= m_desired_queue_size) return;
 
 		bool empty_download_queue = m_download_queue.empty();
