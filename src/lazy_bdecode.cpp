@@ -385,7 +385,7 @@ namespace libtorrent
 				for (int i = 0; i < e.string_length(); ++i)
 					os << std::hex << std::setfill('0') << std::setw(2)
 					<< int((unsigned char)(str[i]));
-				return os << "'";
+				return os << "'" << std::dec;
 			}
 			case lazy_entry::list_t:
 			{
