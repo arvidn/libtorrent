@@ -2453,7 +2453,6 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		if (has_peer_choked()) return;
 		if ((int)m_download_queue.size() >= m_desired_queue_size) return;
 
 		bool empty_download_queue = m_download_queue.empty();
