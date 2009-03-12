@@ -159,6 +159,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_MLOCK
 			, lock_disk_cache(true)
 #endif
+			, max_rejects(50)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -523,6 +524,10 @@ namespace libtorrent
 		// be swapped out
 		bool lock_disk_cache;
 #endif
+
+		// the number of times to reject requests while being
+		// choked before disconnecting a peer for being malicious
+		int max_rejects;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

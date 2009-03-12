@@ -820,6 +820,14 @@ namespace libtorrent
 		// at the remote end.
 		boost::uint8_t m_desired_queue_size;
 
+		// the number of piece requests we have rejected
+		// in a row because the peer is choked. This is
+		// used to re-send the choked message in case the
+		// other end keeps requesting pieces while being
+		// choked, and eventuelly disconnect if it keeps
+		// requesting too many pieces while being choked
+		boost::uint8_t m_choke_rejects;
+
 		// if this is true, the disconnection
 		// timestamp is not updated when the connection
 		// is closed. This means the time until we can

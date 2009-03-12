@@ -884,7 +884,7 @@ namespace libtorrent
 			&& ses.num_uploads() < ses.max_uploads()
 			&& !c.ignore_unchoke_slots()
 			&& (m_torrent->ratio() == 0
-				|| c.share_diff() >= -free_upload_amount
+				|| c.share_diff() >= size_type(-free_upload_amount)
 				|| m_torrent->is_finished()))
 		{
 			ses.unchoke_peer(c);
