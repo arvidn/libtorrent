@@ -877,7 +877,7 @@ void upnp::on_upnp_xml(error_code const& e
 		}
 	}
 	
-	if (!s.url_base.empty())
+	if (!s.url_base.empty() && s.control_url.substr(7) != "http://")
 	{
 		// avoid double slashes in path
 		if (s.url_base[s.url_base.size()-1] == '/'
