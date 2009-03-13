@@ -895,6 +895,8 @@ namespace libtorrent
 
 		if (m_trackers.empty()) return;
 
+		if (m_currently_trying_tracker < 0) m_currently_trying_tracker = 0;
+
 		restart_tracker_timer(time_now() + seconds(tracker_retry_delay_max));
 
 		if (m_abort) e = tracker_request::stopped;
