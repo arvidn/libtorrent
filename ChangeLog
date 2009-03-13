@@ -40,6 +40,7 @@ release 0.14.3
 	* fixed potential HTTP compatibility issue
 	* fixed UPnP crash
 	* fixed UPnP issue where the control url contained the base url
+	* fixed a replace_trackers bug
 
 release 0.14.2
 
