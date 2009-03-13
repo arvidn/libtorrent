@@ -247,14 +247,27 @@ namespace libtorrent
 		sha1_hash hash_for_piece(int index) const
 		{ return sha1_hash(hash_for_piece_ptr(index)); }
 
+		std::vector<sha1_hash> const& merkle_tree() const { return m_merkle_tree; }
+		void set_merkle_tree(std::vector<sha1_hash>& h)
+		{ TORRENT_ASSERT(h.size() == m_merkle_tree.size() ); m_merkle_tree.swap(h); }
+
 		char const* hash_for_piece_ptr(int index) const
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < m_files.num_pieces());
-			TORRENT_ASSERT(m_piece_hashes);
-			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
-			return &m_piece_hashes[index*20];
+			if (is_merkle_torrent())
+			{
+				TORRENT_ASSERT(index < m_merkle_tree.size() - m_merkle_first_leaf);
+				return (const char*)&m_merkle_tree[m_merkle_first_leaf + index][0];
+			}
+			else
+			{
+				TORRENT_ASSERT(m_piece_hashes);
+				TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
+				TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+				TORRENT_ASSERT(index < m_info_section_size / 20);
+				return &m_piece_hashes[index*20];
+			}
 		}
 
 		boost::optional<pt::ptime> creation_date() const;
@@ -289,6 +302,11 @@ namespace libtorrent
 		{ return m_info_section; }
 
 		int metadata_size() const { return m_info_section_size; }
+
+		bool add_merkle_nodes(std::map<int, sha1_hash> const& subtree
+			, int piece);
+		std::map<int, sha1_hash> build_merkle_list(int piece) const;
+		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
 	private:
 
@@ -344,6 +362,14 @@ namespace libtorrent
 		// this is a pointer into the m_info_section buffer
 		// pointing to the first byte of the first sha-1 hash
 		char const* m_piece_hashes;
+
+		// if this is a merkle torrent, this is the merkle
+		// tree. It has space for merkle_num_nodes(merkle_num_leafs(num_pieces))
+		// hashes
+		std::vector<sha1_hash> m_merkle_tree;
+		// the index to the first leaf. This is where the hash for the
+		// first piece is stored
+		int m_merkle_first_leaf;
 
 		// the info section parsed. points into m_info_section
 		// parsed lazily

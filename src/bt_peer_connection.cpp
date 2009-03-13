@@ -788,9 +788,22 @@ namespace libtorrent
 		*(i.begin + 5) |= 0x10;
 #endif
 
+		// we support merkle torrents
+		*(i.begin + 5) |= 0x08;
+
 		// we support FAST extension
 		*(i.begin + 7) |= 0x04;
 
+#ifdef TORRENT_VERBOSE_LOGGING	
+		for (int k = 0; k < 8; ++k)
+		{
+			for (int j = 0; j < 8; ++j)
+			{
+				if (i.begin[k] & (0x80 >> j)) (*m_logger) << "1";
+				else (*m_logger) << "0";
+			}
+		}
+#endif
 		i.begin += 8;
 
 		// info hash
@@ -1060,17 +1073,57 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = receive_buffer();
 		int recv_pos = recv_buffer.end - recv_buffer.begin;
 
-		if (recv_pos == 1)
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		TORRENT_ASSERT(t);
+		bool merkle = (unsigned char)recv_buffer.begin[0] == 250;
+		if (merkle)
 		{
-			TORRENT_ASSERT(!has_disk_receive_buffer());
-			if (!allocate_disk_receive_buffer(packet_size() - 9))
+			if (recv_pos == 1)
+			{
+				set_soft_packet_size(13);
+				m_statistics.received_bytes(0, received);
+				return;
+			}
+			if (recv_pos < 13)
 			{
 				m_statistics.received_bytes(0, received);
 				return;
 			}
+			if (recv_pos == 13)
+			{
+				const char* ptr = recv_buffer.begin + 9;
+				int list_size = detail::read_int32(ptr);
+				// now we know how long the bencoded hash list is
+				// and we can allocate the disk buffer and receive
+				// into it
+
+				if (list_size > packet_size() - 13)
+				{
+					disconnect("invalid hash list in hash piece message");
+					return;
+				}
+
+				TORRENT_ASSERT(!has_disk_receive_buffer());
+				if (!allocate_disk_receive_buffer(packet_size() - 13 - list_size))
+				{
+					m_statistics.received_bytes(0, received);
+					return;
+				}
+			}
+		}
+		else
+		{
+			if (recv_pos == 1)
+			{
+				TORRENT_ASSERT(!has_disk_receive_buffer());
+				if (!allocate_disk_receive_buffer(packet_size() - 9))
+				{
+					m_statistics.received_bytes(0, received);
+					return;
+				}
+			}
 		}
 		TORRENT_ASSERT(has_disk_receive_buffer() || packet_size() == 9);
-
 		// classify the received data as protocol chatter
 		// or data payload for the statistics
 		if (recv_pos <= 9)
@@ -1090,15 +1143,86 @@ namespace libtorrent
 				, 9 - (recv_pos - received));
 		}
 
-		incoming_piece_fragment();
-		if (is_disconnecting()) return;
-		if (!packet_finished()) return;
-
 		const char* ptr = recv_buffer.begin + 1;
 		peer_request p;
 		p.piece = detail::read_int32(ptr);
 		p.start = detail::read_int32(ptr);
-		p.length = packet_size() - 9;
+
+		const int header_size = merkle?13:9;
+		int list_size = 0;
+
+		if (merkle)
+		{
+			list_size = detail::read_int32(ptr);
+			p.length = packet_size() - list_size - header_size;
+		}
+		else
+		{
+			p.length = packet_size() - header_size;
+		}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+//			(*m_logger) << time_now_string() << " <== PIECE_FRAGMENT p: " << p.piece
+//				<< " start: " << p.start << " length: " << p.length << "\n";
+#endif
+
+		if (recv_pos - received < header_size && recv_pos >= header_size)
+		{
+// begin_receive_piece(p)
+		}
+
+		TORRENT_ASSERT(has_disk_receive_buffer() || packet_size() == header_size);
+
+		incoming_piece_fragment();
+		if (is_disconnecting()) return;
+		if (!packet_finished()) return;
+
+		if (merkle && list_size > 0)
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " <== HASHPIECE " << p.piece << " list: " << list_size << " ";
+#endif
+			lazy_entry hash_list;
+			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.end + 13 + list_size, hash_list) != 0)
+			{
+				disconnect("invalid bencoding in hashpiece message");
+				return;
+			}
+
+			// the list has this format:
+			// [ [node-index, hash], [node-index, hash], ... ]
+			if (hash_list.type() != lazy_entry::list_t)
+			{
+				disconnect("invalid hash-list in hashpiece message");
+				return;
+			}
+
+			std::map<int, sha1_hash> nodes;
+			for (int i = 0; i < hash_list.list_size(); ++i)
+			{
+				lazy_entry const* e = hash_list.list_at(i);
+				if (e->type() != lazy_entry::list_t
+					|| e->list_size() != 2
+					|| e->list_at(0)->type() != lazy_entry::int_t
+					|| e->list_at(1)->type() != lazy_entry::string_t
+					|| e->list_at(1)->string_length() != 20) continue;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << " " << e->list_int_value_at(0) << ": "
+					<< sha1_hash(e->list_at(1)->string_ptr());
+#endif
+				nodes.insert(nodes.begin(), std::make_pair(int(e->list_int_value_at(0))
+					, sha1_hash(e->list_at(1)->string_ptr())));
+			}
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << "\n";
+#endif
+			if (!nodes.empty() && !t->add_merkle_nodes(nodes, p.piece))
+			{
+				disconnect("invalid hashes in hashpiece message");
+				return;
+			}
+		}
 
 		disk_buffer_holder holder(m_ses, release_disk_receive_buffer());
 		incoming_piece(p, holder);
@@ -1404,7 +1528,8 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = receive_buffer();
 
 		TORRENT_ASSERT(recv_buffer.left() >= 1);
-		int packet_type = recv_buffer[0];
+		int packet_type = (unsigned char)recv_buffer[0];
+		if (packet_type == 250) packet_type = msg_piece;
 		if (packet_type < 0
 			|| packet_type >= num_supported_messages
 			|| m_message_handler[packet_type] == 0)
@@ -1780,14 +1905,53 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		char msg[4 + 1 + 4 + 4];
+		bool merkle = t->torrent_file().is_merkle_torrent() && r.start == 0;
+	// the hash piece looks like this:
+	// uint8_t  msg
+	// uint32_t piece index
+	// uint32_t start
+	// uint32_t list len
+	// var      bencoded list
+	// var      piece data
+		char msg[4 + 1 + 4 + 4 + 4];
 		char* ptr = msg;
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		detail::write_int32(r.length + 1 + 4 + 4, ptr);
-		detail::write_uint8(msg_piece, ptr);
+		if (merkle)
+			detail::write_uint8(250, ptr);
+		else
+			detail::write_uint8(msg_piece, ptr);
 		detail::write_int32(r.piece, ptr);
 		detail::write_int32(r.start, ptr);
-		send_buffer(msg, sizeof(msg));
+
+		// if this is a merkle torrent and the start offset
+		// is 0, we need to include the merkle node hashes
+		if (merkle)
+		{
+			std::vector<char>	piece_list_buf;
+			entry piece_list;
+			entry::list_type& l = piece_list.list();
+			std::map<int, sha1_hash> merkle_node_list = t->torrent_file().build_merkle_list(r.piece);
+			for (std::map<int, sha1_hash>::iterator i = merkle_node_list.begin()
+				, end(merkle_node_list.end()); i != end; ++i)
+			{
+				l.push_back(entry(entry::list_t));
+				l.back().list().push_back(i->first);
+				l.back().list().push_back(i->second.to_string());
+			}
+			bencode(std::back_inserter(piece_list_buf), piece_list);
+			detail::write_int32(piece_list_buf.size(), ptr);
+
+			char* ptr = msg;
+			detail::write_int32(r.length + 1 + 4 + 4 + 4 + piece_list_buf.size(), ptr);
+
+			send_buffer(msg, 17);
+			send_buffer(&piece_list_buf[0], piece_list_buf.size());
+		}
+		else
+		{
+			send_buffer(msg, 13);
+		}
 
 		append_send_buffer(buffer.get(), r.length
 			, boost::bind(&session_impl::free_disk_buffer

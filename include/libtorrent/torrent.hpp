@@ -692,6 +692,8 @@ namespace libtorrent
 			m_verified.set_bit(piece);
 		}
 
+		bool add_merkle_nodes(std::map<int, sha1_hash> const& n, int piece);
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);

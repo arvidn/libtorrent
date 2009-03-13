@@ -185,7 +185,8 @@ The ``create_torrent`` class has the following synopsis::
 
 	struct create_torrent
 	{
-		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1);
+		enum { optimize = 1, merkle = 2 };
+		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
 		entry generate() const;
@@ -211,7 +212,8 @@ create_torrent()
 
 	::
 
-		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1);
+		enum { optimize = 1, merkle = 2 };
+		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
 The ``piece_size`` is the size of each piece in bytes. It must
@@ -220,14 +222,29 @@ piece_size will becalculated such that the torrent file is roughly 40 kB.
 
 If a ``pad_size_limit`` is specified (other than -1), any file larger than
 the specified number of bytes will be preceeded by a pad file to align it
-with the start od a piece.
+with the start od a piece. The pad_file_limit is ignored unless the
+``optimize`` flag is passed.
 
-The overlad that takes a ``torrent_info`` object will make a verbatim
+The overload that takes a ``torrent_info`` object will make a verbatim
 copy of its info dictionary (to preserve the info-hash). The copy of
 the info dictionary will be used by ``generate()``. This means
 that none of the member functions of create_torrent that affects
 the content of the info dictionary (such as ``set_hash()``), will
 have any affect.
+
+The ``flags`` arguments specifies options for the torrent creation. It can
+be any combination of the following flags:
+
+optimize
+	This will insert pad files to align the files to piece boundaries, for
+	optimized disk-I/O.
+
+merkle
+	This will create a merkle hash tree torrent. A merkle torrent cannot
+	be opened in clients that don't specifically support merkle torrents.
+	The benefit is that the resulting torrent file will be much smaller and
+	not grow with more pieces. When this option is specified, it is
+	recommended to have a 16 kiB piece size.
 
 generate()
 ----------
