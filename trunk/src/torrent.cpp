@@ -439,6 +439,11 @@ namespace libtorrent
 		}
 	}
 
+	bool torrent::add_merkle_nodes(std::map<int, sha1_hash> const& nodes, int piece)
+	{
+		return m_torrent_file->add_merkle_nodes(nodes, piece);
+	}
+
 	peer_request torrent::to_req(piece_block const& p)
 	{
 		int block_offset = p.block_index * m_block_size;
@@ -3001,6 +3006,29 @@ namespace libtorrent
 				add_web_seed(url, web_seed_entry::http_seed);
 			}
 		}
+
+		if (m_torrent_file->is_merkle_torrent())
+		{
+			lazy_entry const* mt = rd.dict_find_string("merkle tree");
+			if (mt)
+			{
+				std::vector<sha1_hash> tree;
+				tree.resize(m_torrent_file->merkle_tree().size());
+				std::memcpy(&tree[0], mt->string_ptr()
+					, (std::min)(mt->string_length(), int(tree.size()) * 20));
+				if (mt->string_length() < tree.size() * 20)
+					std::memset(&tree[0] + mt->string_length() / 20, 0
+						, tree.size() - mt->string_length() / 20);
+				m_torrent_file->set_merkle_tree(tree);
+			}
+			else
+			{
+				// TODO: if this is a merkle torrent and we can't
+				// restore the tree, we need to wipe all the
+				// bits in the have array
+				TORRENT_ASSERT(false);
+			}
+		}
 	}
 	
 	void torrent::write_resume_data(entry& ret) const
@@ -3033,6 +3061,16 @@ namespace libtorrent
 		int num_blocks_per_piece =
 			static_cast<int>(torrent_file().piece_length()) / block_size();
 		ret["blocks per piece"] = num_blocks_per_piece;
+
+		if (m_torrent_file->is_merkle_torrent())
+		{
+			// we need to save the whole merkle hash tree
+			// in order to resume
+			std::string& tree_str = ret["merkle tree"].string();
+			std::vector<sha1_hash> const& tree = m_torrent_file->merkle_tree();
+			tree_str.resize(tree.size() * 20);
+			std::memcpy(&tree_str[0], &tree[0], tree.size() * 20);
+		}
 
 		// if this torrent is a seed, we won't have a piece picker
 		// and there will be no half-finished pieces.

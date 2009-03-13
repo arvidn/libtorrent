@@ -69,6 +69,11 @@ namespace libtorrent
 			std::memcpy(m_number, &s[0], sl);
 		}
 
+		void assign(char const* str)
+		{
+			std::memcpy(m_number, str, size);
+		}
+
 		void clear()
 		{
 			std::fill(m_number,m_number+number_size,0);

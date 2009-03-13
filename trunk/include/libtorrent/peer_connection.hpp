@@ -538,6 +538,7 @@ namespace libtorrent
 		bool has_disk_receive_buffer() const { return m_disk_recv_buffer; }
 		void cut_receive_buffer(int size, int packet_size);
 		void reset_recv_buffer(int packet_size);
+		void set_soft_packet_size(int size) { m_soft_packet_size = size; }
 
 		void setup_receive();
 
@@ -735,6 +736,12 @@ namespace libtorrent
 		// the size (in bytes) of the bittorrent message
 		// we're currently receiving
 		int m_packet_size;
+
+		// some messages needs to be read from the socket
+		// buffer in multiple stages. This soft packet
+		// size limits the read size between message handler
+		// dispatch. Ignored when set to 0
+		int m_soft_packet_size;
 
 		// the number of bytes of the bittorrent payload
 		// we've received so far

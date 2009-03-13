@@ -46,6 +46,8 @@ extensions
 * super seeding/initial seeding (`BEP 16`_).
 * private torrents (`BEP 27`_).
 * support for IPv6, including `BEP 7`_ and `BEP 24`_.
+* support for merkle hash tree torrents. This makes the size of torrent files
+  scale well with the size of the content.
 
 .. _extensions: manual.html#extensions
 .. _`http seeding`: manual.html#http-seeding
@@ -187,6 +189,38 @@ makes slow peers pick blocks from the same piece, and fast peers pick from the s
 and hence decreasing the likelihood of slow peers blocking the completion of pieces.
 
 The piece picker can also be set to download pieces in sequential order.
+
+
+merkle hash tree torrents
+-------------------------
+
+Merkle hash tree torrents is an extension that lets a torrent file only contain the
+root hash of the hash tree forming the piece hashes. The main benefit of this feature
+is that regardless of how many pieces there is in a torrent, the .torrent file will
+always be the same size. It will only grow with the number of files (since it still
+has to contain the file names).
+
+With regular torrents, clients have to request multiple blocks for pieces, typically
+from different peers, before the data can be verified against the piece hash. The
+larger the pieces are, the longer it will take to download a complete piece and verify
+it. Before the piece is verified, it cannot be shared with the swarm, which means the
+larger piece sizes, the slower turnaround data has when it is downloaded by peers.
+Since on average the data has to sit around, waiting, in client buffers before it has
+been verified and can be uploaded again.
+
+Another problem with large piece sizes is that it is harder for a client to pinpoint
+the malicious or buggy peer when a piece fails, and it will take longer to re-download
+it and take more tries before the piece succeeds the larger the pieces are.
+
+The piece size in regular torrents is a tradeoff between the size of the .torrent file
+itself and the piece size. Often, for files that are 4 GB, the piece size is 2 or 4 MB,
+just to avoid making the .torrent file too big.
+
+Merkle torrents solves these problems by removing the tradeoff between .torrent size and
+piece size. With merkle torrents, the piece size can be the minimum block size (16 kB),
+which lets peers verify every block of data received from peers, immediately. This
+gives a minimum turnaround time and completely removes the problem of identifying malicious
+peers.
 
 
 portability

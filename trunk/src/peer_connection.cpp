@@ -98,6 +98,7 @@ namespace libtorrent
 		, m_num_pieces(0)
 		, m_timeout(m_ses.settings().peer_timeout)
 		, m_packet_size(0)
+		, m_soft_packet_size(0)
 		, m_recv_pos(0)
 		, m_disk_recv_buffer_size(0)
 		, m_reading_bytes(0)
@@ -210,6 +211,7 @@ namespace libtorrent
 		, m_num_pieces(0)
 		, m_timeout(m_ses.settings().peer_timeout)
 		, m_packet_size(0)
+		, m_soft_packet_size(0)
 		, m_recv_pos(0)
 		, m_disk_recv_buffer_size(0)
 		, m_reading_bytes(0)
@@ -3512,6 +3514,9 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_packet_size > 0);
 		int max_receive = m_packet_size - m_recv_pos;
+		if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
+		if (m_soft_packet_size && max_receive > m_soft_packet_size - m_recv_pos)
+			max_receive = m_soft_packet_size - m_recv_pos;
 		int quota_left = m_bandwidth_limit[download_channel].quota_left();
 		if (!m_ignore_bandwidth_limits && max_receive > quota_left)
 			max_receive = quota_left;
@@ -3775,7 +3780,10 @@ namespace libtorrent
 				buffer(m_packet_size).swap(m_recv_buffer);
 			}
 
+			if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
 			max_receive = m_packet_size - m_recv_pos;
+			if (m_soft_packet_size && max_receive > m_soft_packet_size - m_recv_pos)
+				max_receive = m_soft_packet_size - m_recv_pos;
 			int quota_left = m_bandwidth_limit[download_channel].quota_left();
 			if (!m_ignore_bandwidth_limits && max_receive > quota_left)
 				max_receive = quota_left;

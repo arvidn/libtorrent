@@ -72,6 +72,8 @@ void print_usage()
 		"Generates a torrent file from the specified file\n"
 		"or directory and writes it to standard out\n\n"
 		"OPTIONS:\n"
+		"-m          generate a merkle hash tree torrent.\n"
+		"            merkle torrents require client support\n"
 		"-w url      adds a web seed to the torrent with\n"
 		"            the specified url\n"
 		"-t url      adds the specified tracker to the\n"
@@ -103,6 +105,7 @@ int main(int argc, char* argv[])
 		std::vector<std::string> trackers;
 		int pad_file_limit = -1;
 		int piece_size = 0;
+		int flags = 0;
 
 		for (int i = 2; i < argc; ++i)
 		{
@@ -125,10 +128,14 @@ int main(int argc, char* argv[])
 				case 'p':
 					++i;
 					pad_file_limit = atoi(argv[i]);
+					flags |= create_torrent::optimize;
 					break;
 				case 's':
 					++i;
 					piece_size = atoi(argv[i]);
+					break;
+				case 'm':
+					flags |= create_torrent::merkle;
 					break;
 				default:
 					print_usage();
@@ -142,7 +149,7 @@ int main(int argc, char* argv[])
 
 		add_files(fs, full_path, file_filter);
 
-		create_torrent t(fs, piece_size, pad_file_limit);
+		create_torrent t(fs, piece_size, pad_file_limit, flags);
 		for (std::vector<std::string>::iterator i = trackers.begin()
 			, end(trackers.end()); i != end; ++i)
 			t.add_tracker(*i);

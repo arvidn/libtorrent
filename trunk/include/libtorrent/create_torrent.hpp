@@ -69,7 +69,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT create_torrent
 	{
-		enum { optimize = 1 };
+		enum { optimize = 1, merkle = 2 };
 
 		create_torrent(file_storage& fs, int piece_size = 0
 			, int pad_file_limit = -1, int flags = optimize);
@@ -134,11 +134,14 @@ namespace libtorrent
 		// to know if it should be written as a multifile torrent
 		// or not. e.g. test/test  there's one file and one directory
 		// and they have the same name.
-		bool m_multifile;
+		bool m_multifile:1;
 		
 		// this is true if the torrent is private. i.e., is should not
 		// be announced on the dht
-		bool m_private;
+		bool m_private:1;
+
+		// if set to one, a merkle torrent will be generated
+		bool m_merkle_torrent:1;
 	};
 
 	namespace detail

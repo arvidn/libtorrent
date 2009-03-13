@@ -132,7 +132,7 @@ namespace libtorrent
 			msg_have_none,
 			msg_reject_request,
 			msg_allowed_fast,
-			
+
 			// extension protocol message
 			msg_extended = 20,
 
