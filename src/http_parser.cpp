@@ -147,6 +147,9 @@ namespace libtorrent
 					// the header is finished and the body
 					// starts.
 					m_state = read_body;
+					// if this is a request (not a response)
+					// we're done once we reach the end of the headers
+					if (!m_method.empty()) m_finished = true;
 					m_body_start_pos = m_recv_pos;
 					break;
 				}
