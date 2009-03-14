@@ -47,6 +47,12 @@ namespace gr = boost::gregorian;
 
 namespace libtorrent
 {
+	// defined in torrent_info.cpp
+	int merkle_num_leafs(int);
+	int merkle_num_nodes(int);
+	int merkle_get_parent(int);
+	int merkle_get_sibling(int);
+
 	namespace detail
 	{
 		int TORRENT_EXPORT get_file_attributes(boost::filesystem::path const& p)
@@ -300,12 +306,6 @@ namespace libtorrent
 		{
 			std::vector<sha1_hash> merkle_tree;
 			
-			// defined in torrent_info.cpp
-			int merkle_num_leafs(int);
-			int merkle_num_nodes(int);
-			int merkle_get_parent(int);
-			int merkle_get_sibling(int);
-
 			int num_leafs = merkle_num_leafs(m_files.num_pieces());
 			int num_nodes = merkle_num_nodes(num_leafs);
 			int first_leaf = num_nodes - num_leafs;
