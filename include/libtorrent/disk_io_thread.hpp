@@ -313,8 +313,6 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
 #endif
-		size_type m_writes;
-		size_type m_blocks_written;
 
 		io_service& m_ios;
 

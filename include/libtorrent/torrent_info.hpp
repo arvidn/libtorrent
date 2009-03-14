@@ -257,7 +257,7 @@ namespace libtorrent
 			TORRENT_ASSERT(index < m_files.num_pieces());
 			if (is_merkle_torrent())
 			{
-				TORRENT_ASSERT(index < m_merkle_tree.size() - m_merkle_first_leaf);
+				TORRENT_ASSERT(index < int(m_merkle_tree.size()) - m_merkle_first_leaf);
 				return (const char*)&m_merkle_tree[m_merkle_first_leaf + index][0];
 			}
 			else
