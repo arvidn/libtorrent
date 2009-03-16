@@ -110,6 +110,8 @@ namespace libtorrent
 	};
 
 	inline bool is_negative(time_duration dt) { return dt.diff < 0; }
+	inline bool operator==(time_duration lhs, time_duration rhs)
+	{ return lhs.diff == rhs.diff; }
 	inline bool operator<(time_duration lhs, time_duration rhs)
 	{ return lhs.diff < rhs.diff; }
 	inline bool operator<=(time_duration lhs, time_duration rhs)
@@ -118,6 +120,10 @@ namespace libtorrent
 	{ return lhs.diff > rhs.diff; }
 	inline bool operator>=(time_duration lhs, time_duration rhs)
 	{ return lhs.diff >= rhs.diff; }
+	inline time_duration operator*(time_duration lhs, float rhs)
+	{ return time_duration(lhs.diff * rhs); }
+	inline time_duration operator*(float lhs, time_duration rhs)
+	{ return time_duration(lhs * rhs.diff); }
 
 	// libtorrent time type
 	struct ptime
