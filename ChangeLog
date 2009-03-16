@@ -41,6 +41,8 @@ release 0.14.3
 	* fixed UPnP crash
 	* fixed UPnP issue where the control url contained the base url
 	* fixed a replace_trackers bug
+	* fixed bug where the DHT port mapping would not be removed when
+	  changing DHT port
 
 release 0.14.2
 
