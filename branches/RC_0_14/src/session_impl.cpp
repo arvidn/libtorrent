@@ -1934,14 +1934,14 @@ namespace aux {
 			if (m_natpmp.get())
 			{
 				if (m_udp_mapping[0] != -1) m_natpmp->delete_mapping(m_udp_mapping[0]);
-				m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
+				m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::udp
 					, m_dht_settings.service_port
 					, m_dht_settings.service_port);
 			}
 			if (m_upnp.get())
 			{
 				if (m_udp_mapping[1] != -1) m_upnp->delete_mapping(m_udp_mapping[1]);
-				m_udp_mapping[1] = m_upnp->add_mapping(upnp::tcp
+				m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
 					, m_dht_settings.service_port
 					, m_dht_settings.service_port);
 			}
