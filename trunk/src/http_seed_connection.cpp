@@ -264,8 +264,6 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		incoming_piece_fragment();
-
 		for (;;)
 		{
 			buffer::const_interval recv_buffer = receive_buffer();
@@ -385,6 +383,7 @@ namespace libtorrent
 				m_body_start = m_parser.body_start();
 				m_response_left -= payload;
 				m_statistics.received_bytes(payload, 0);
+				incoming_piece_fragment(payload);
 			}
 			else
 			{
@@ -392,6 +391,7 @@ namespace libtorrent
 				if (payload > m_response_left) payload = m_response_left;
 				if (payload > front_request.length) payload = front_request.length;
 				m_statistics.received_bytes(payload, 0);
+				incoming_piece_fragment(payload);
 				m_response_left -= payload;
 			}
 			recv_buffer.begin += m_body_start;

@@ -2059,32 +2059,55 @@ namespace libtorrent
 		TORRENT_ASSERT(block.piece_index < (int)m_piece_map.size());
 		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
 
-		TORRENT_ASSERT(m_piece_map[block.piece_index].downloading);
-
-		std::vector<downloading_piece>::iterator i
-			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
-		TORRENT_ASSERT(i != m_downloads.end());
-		block_info& info = i->info[block.block_index];
-
-		info.peer = peer;
-		TORRENT_ASSERT(info.state == block_info::state_requested);
-		if (info.state == block_info::state_requested) --i->requested;
-		TORRENT_ASSERT(i->requested >= 0);
-		TORRENT_ASSERT(info.state != block_info::state_writing);
-		++i->writing;
-		info.state = block_info::state_writing;
-
-		// all other requests for this block should have been
-		// cancelled now
-		info.num_peers = 0;
-
-		if (i->requested == 0)
+		piece_pos& p = m_piece_map[block.piece_index];
+		if (p.downloading == 0)
 		{
-			// there are no blocks requested in this piece.
-			// remove the fast/slow state from it
-			i->state = none;
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+#endif
+			int prio = p.priority(this);
+			TORRENT_ASSERT(prio < int(m_priority_boundries.size())
+				|| m_dirty);
+			TORRENT_ASSERT(prio >= 0);
+			p.downloading = 1;
+			if (prio >= 0 && !m_dirty) update(prio, p.index);
+
+			downloading_piece& dp = add_download_piece();
+			dp.index = block.piece_index;
+			dp.state = none;
+			block_info& info = dp.info[block.block_index];
+			info.state = block_info::state_writing;
+			info.peer = peer;
+			info.num_peers = 0;
+			dp.writing = 1;
+			sort_piece(m_downloads.end()-1);
 		}
-		sort_piece(i);
+		else
+		{
+			std::vector<downloading_piece>::iterator i
+				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
+			TORRENT_ASSERT(i != m_downloads.end());
+			block_info& info = i->info[block.block_index];
+
+			info.peer = peer;
+			if (info.state == block_info::state_requested) --i->requested;
+			TORRENT_ASSERT(i->requested >= 0);
+			TORRENT_ASSERT(info.state != block_info::state_writing);
+			++i->writing;
+			info.state = block_info::state_writing;
+
+			// all other requests for this block should have been
+			// cancelled now
+			info.num_peers = 0;
+
+			if (i->requested == 0)
+			{
+				// there are no blocks requested in this piece.
+				// remove the fast/slow state from it
+				i->state = none;
+			}
+			sort_piece(i);
+		}
 	}
 
 	void piece_picker::write_failed(piece_block block)

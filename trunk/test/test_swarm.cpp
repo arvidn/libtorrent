@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::filesystem::remove_all;
 using boost::filesystem::exists;
 
-void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode = false)
+void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode = false, bool time_critical = false)
 {
 	using namespace libtorrent;
 
@@ -96,7 +96,14 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	p.seed_mode = seed_mode;
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", 8 * 1024, 0, super_seeding, &p);	
+		, false, true, "_swarm", 8 * 1024, 0, super_seeding, &p);
+
+	if (time_critical)
+	{
+		tor2.set_piece_deadline(2, seconds(0));
+		tor2.set_piece_deadline(5, seconds(1));
+		tor2.set_piece_deadline(8, seconds(2));
+	}
 
 	float sum_dl_rate2 = 0.f;
 	float sum_dl_rate3 = 0.f;
@@ -202,6 +209,9 @@ int test_main()
 {
 	using namespace libtorrent;
 	using namespace boost::filesystem;
+
+	// with time critical pieces
+	test_swarm(false, false, false, true);
 
 	// with seed mode
 	test_swarm(false, false, true);

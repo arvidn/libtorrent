@@ -263,6 +263,7 @@ namespace libtorrent
 		void prioritize_files(std::vector<int> const& files);
 		void file_priorities(std::vector<int>&) const;
 
+		void set_piece_deadline(int piece, time_duration t, int flags);
 		void update_piece_priorities();
 
 		torrent_status status() const;
@@ -854,6 +855,36 @@ namespace libtorrent
 
 		std::vector<announce_entry> m_trackers;
 		// this is an index into m_trackers
+
+		struct time_critical_piece
+		{
+			// when this piece was first requested
+			ptime first_requested;
+			// when this piece was last requested
+			ptime last_requested;
+			// by what time we want this piece
+			ptime deadline;
+			// 1 = send alert with piece data when available
+			int flags;
+			// how many peers it's been requested from
+			int peers;
+			// the piece index
+			int piece;
+			bool operator<(time_critical_piece const& rhs) const
+			{ return deadline < rhs.deadline; }
+		};
+
+		void remove_time_critical_piece(int piece, bool finished = false);
+		void remove_time_critical_pieces(std::vector<int> const& priority);
+		void request_time_critical_pieces();
+
+		// this list is sorted by time_critical_piece::deadline
+		std::list<time_critical_piece> m_time_critical_pieces;
+
+		// the average time it takes to download one time critical piece
+		time_duration m_average_piece_time;
+		// the average piece download time deviation
+		time_duration m_piece_time_deviation;
 
 		// the number of bytes that has been
 		// downloaded that failed the hash-test

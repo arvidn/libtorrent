@@ -708,5 +708,11 @@ namespace libtorrent
 		TORRENT_FORWARD(get_download_queue(queue));
 	}
 
+	void torrent_handle::set_piece_deadline(int index, time_duration deadline, int flags) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(set_piece_deadline(index, deadline, flags));
+	}
+
 }
 

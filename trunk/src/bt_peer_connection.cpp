@@ -833,7 +833,7 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = receive_buffer();
 		// are we currently receiving a 'piece' message?
 		if (m_state != read_packet
-			|| recv_buffer.left() < 9
+			|| recv_buffer.left() <= 9
 			|| recv_buffer[0] != msg_piece)
 			return boost::optional<piece_block_progress>();
 
@@ -1126,12 +1126,18 @@ namespace libtorrent
 		TORRENT_ASSERT(has_disk_receive_buffer() || packet_size() == 9);
 		// classify the received data as protocol chatter
 		// or data payload for the statistics
+		int piece_bytes = 0;
 		if (recv_pos <= 9)
+		{
 			// only received protocol data
 			m_statistics.received_bytes(0, received);
+		}
 		else if (recv_pos - received >= 9)
+		{
 			// only received payload data
 			m_statistics.received_bytes(received, 0);
+			piece_bytes = received;
+		}
 		else
 		{
 			// received a bit of both
@@ -1141,6 +1147,7 @@ namespace libtorrent
 			m_statistics.received_bytes(
 				recv_pos - 9
 				, 9 - (recv_pos - received));
+			piece_bytes = recv_pos - 9;
 		}
 
 		const char* ptr = recv_buffer.begin + 1;
@@ -1168,12 +1175,14 @@ namespace libtorrent
 
 		if (recv_pos - received < header_size && recv_pos >= header_size)
 		{
-// begin_receive_piece(p)
+			// call this once, the first time the entire header
+			// has been received
+			start_receive_piece(p);
 		}
 
 		TORRENT_ASSERT(has_disk_receive_buffer() || packet_size() == header_size);
 
-		incoming_piece_fragment();
+		incoming_piece_fragment(piece_bytes);
 		if (is_disconnecting()) return;
 		if (!packet_finished()) return;
 

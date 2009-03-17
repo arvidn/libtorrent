@@ -337,8 +337,6 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		incoming_piece_fragment();
-
 		for (;;)
 		{
 			buffer::const_interval recv_buffer = receive_buffer();
@@ -522,6 +520,7 @@ namespace libtorrent
 			int left_in_response = range_end - range_start - m_range_pos;
 			int payload_transferred = (std::min)(left_in_response, int(bytes_transferred));
 			m_statistics.received_bytes(payload_transferred, 0);
+			incoming_piece_fragment(payload_transferred);
 			bytes_transferred -= payload_transferred;
 			m_range_pos += payload_transferred;;
 			if (m_range_pos > range_end - range_start) m_range_pos = range_end - range_start;

@@ -94,10 +94,22 @@ namespace libtorrent
 
 	struct pending_block
 	{
-		pending_block(piece_block const& b): skipped(0), block(b) {}
-		int skipped;
+		pending_block(piece_block const& b)
+			: skipped(0), not_wanted(false), timed_out(false), block(b) {}
+
 		// the number of times the request
 		// has been skipped by out of order blocks
+		boost::uint16_t skipped;
+
+		// if any of these are set to true, this block
+		// is not allocated
+		// in the piece picker anymore, and open for
+		// other peers to pick. This may be caused by
+		// it either timing out or being received
+		// unexpectedly from the peer
+		bool not_wanted:1;
+		bool timed_out:1;
+
 		piece_block block;
 	};
 
@@ -242,8 +254,8 @@ namespace libtorrent
 		void set_pid(const peer_id& pid) { m_peer_id = pid; }
 		bool has_piece(int i) const;
 
-		std::deque<pending_block> const& download_queue() const;
-		std::deque<piece_block> const& request_queue() const;
+		std::vector<pending_block> const& download_queue() const;
+		std::vector<piece_block> const& request_queue() const;
 		std::deque<peer_request> const& upload_queue() const;
 
 		// estimate of how long it will take until we have
@@ -380,7 +392,8 @@ namespace libtorrent
 		void incoming_request(peer_request const& r);
 		void incoming_piece(peer_request const& p, disk_buffer_holder& data);
 		void incoming_piece(peer_request const& p, char const* data);
-		void incoming_piece_fragment();
+		void incoming_piece_fragment(int bytes);
+		void start_receive_piece(peer_request const& r);
 		void incoming_cancel(peer_request const& r);
 
 		void incoming_dht_port(int listen_port);
@@ -400,8 +413,12 @@ namespace libtorrent
 
 		void snub_peer();
 
+		bool can_request_time_critical() const;
+
+		void make_time_critical(piece_block const& block);
+
 		// adds a block to the request queue
-		void add_request(piece_block const& b);
+		void add_request(piece_block const& b, bool time_critical = false);
 		// removes a block from the request queue or download queue
 		// sends a cancel message if appropriate
 		// refills the request queue, and possibly ignoring pieces requested
@@ -702,11 +719,11 @@ namespace libtorrent
 
 		// the blocks we have reserved in the piece
 		// picker and will request from this peer.
-		std::deque<piece_block> m_request_queue;
+		std::vector<piece_block> m_request_queue;
 		
 		// the queue of blocks we have requested
 		// from this peer
-		std::deque<pending_block> m_download_queue;
+		std::vector<pending_block> m_download_queue;
 		
 		// the pieces we will send to the peer
 		// if requested (regardless of choke state)
@@ -723,6 +740,22 @@ namespace libtorrent
 		// a list of byte offsets inside the send buffer
 		// the piece requests
 		std::vector<int> m_requests_in_buffer;
+
+		// the number of bytes that the other
+		// end has to send us in order to respond
+		// to all outstanding piece requests we
+		// have sent to it
+		int m_outstanding_bytes;
+
+		// the number of time critical requests
+		// queued up in the m_request_queue that
+		// soon will be committed to the download
+		// queue. This is included in download_queue_time()
+		// so that it can be used while adding more
+		// requests and take the previous requests
+		// into account without submitting it all
+		// immediately
+		int m_queued_time_critical;
 
 		// the number of pieces this peer
 		// has. Must be the same as
@@ -929,6 +962,7 @@ namespace libtorrent
 		bool m_in_constructor:1;
 		bool m_disconnect_started:1;
 		bool m_initialized:1;
+		int m_received_in_piece;
 #endif
 	};
 }

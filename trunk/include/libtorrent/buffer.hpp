@@ -68,6 +68,11 @@ public:
 
 	struct const_interval
 	{
+	   const_interval(interval const& i)
+		  : begin(i.begin)
+		  , end(i.end)
+		{}
+
 	   const_interval(char const* begin, char const* end)
 		  : begin(begin)
 		  , end(end)

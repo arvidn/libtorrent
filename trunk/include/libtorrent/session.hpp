@@ -219,6 +219,8 @@ namespace libtorrent
 		// returns a list of all torrents in this session
 		std::vector<torrent_handle> get_torrents() const;
 		
+		io_service& get_io_service();
+
 		// returns an invalid handle in case the torrent doesn't exist
 		torrent_handle find_torrent(sha1_hash const& info_hash) const;
 

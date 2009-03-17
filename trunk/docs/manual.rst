@@ -1789,6 +1789,9 @@ Its declaration looks like this::
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
 
+		enum deadline_flags { alert_when_available = 1 };
+		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
+
 		void piece_priority(int index, int priority) const;
 		int piece_priority(int index) const;
 		void prioritize_pieces(std::vector<int> const& pieces) const;
@@ -1836,6 +1839,29 @@ it will throw ``invalid_handle``.
 	one exception ``is_valid()`` will never throw.
 	Since the torrents are processed by a background thread, there is no
 	guarantee that a handle will remain valid between two calls.
+
+set_piece_deadline()
+--------------------
+
+	::
+
+		enum deadline_flags { alert_when_available = 1 };
+		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
+
+This function sets or resets the deadline associated with a specific piece
+index (``index``). libtorrent will attempt to download this entire piece before
+the deadline expires. This is not necessarily possible, but pieces with a more
+recent deadline will always be prioritized over pieces with a deadline further
+ahead in time. The deadline (and flags) of a piece can be changed by calling this
+function again.
+
+The ``flags`` parameter can be used to ask libtorrent to send an alert once the
+piece has been downloaded, by passing ``alert_when_available``. When set, the
+read_piece_alert_ alert will be delivered, with the piece data, when it's downloaded.
+
+If the piece is already downloaded when this call is made, nothing happens, unless
+the ``alert_when_available`` flag is set, in which case it will do the same thing
+as calling read_piece_ for ``index``.
 
 
 piece_priority() prioritize_pieces() piece_priorities()

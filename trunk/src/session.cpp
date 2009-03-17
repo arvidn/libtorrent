@@ -283,6 +283,11 @@ namespace libtorrent
 		return m_impl->get_peer_id();
 	}
 
+	io_service& session::get_io_service()
+	{
+		return m_impl->m_io_service;
+	}
+
 	void session::set_key(int key)
 	{
 		m_impl->set_key(key);

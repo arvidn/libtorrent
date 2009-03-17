@@ -151,6 +151,8 @@ namespace libtorrent
 #endif
 		, m_ses(ses)
 		, m_trackers(m_torrent_file->trackers())
+		, m_average_piece_time(0)
+		, m_piece_time_deviation(0)
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 		, m_padding(0)
@@ -1598,6 +1600,8 @@ namespace libtorrent
 				, index));
 		}
 
+		remove_time_critical_piece(index, true);
+
 		bool was_finished = m_picker->num_filtered() + num_have()
 			== torrent_file().num_pieces();
 
@@ -1818,16 +1822,16 @@ namespace libtorrent
 			i != m_connections.end(); ++i)
 		{
 			peer_connection* p = *i;
-			std::deque<pending_block> const& dq = p->download_queue();
-			std::deque<piece_block> const& rq = p->request_queue();
-			for (std::deque<pending_block>::const_iterator k = dq.begin()
+			std::vector<pending_block> const& dq = p->download_queue();
+			std::vector<piece_block> const& rq = p->request_queue();
+			for (std::vector<pending_block>::const_iterator k = dq.begin()
 				, end(dq.end()); k != end; ++k)
 			{
 				if (k->block.piece_index != index) continue;
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
 					, (piece_picker::piece_state_t)p->peer_speed());
 			}
-			for (std::deque<piece_block>::const_iterator k = rq.begin()
+			for (std::vector<piece_block>::const_iterator k = rq.begin()
 				, end(rq.end()); k != end; ++k)
 			{
 				if (k->piece_index != index) continue;
@@ -2025,6 +2029,100 @@ namespace libtorrent
 		return m_username + ":" + m_password;
 	}
 
+	void torrent::set_piece_deadline(int piece, time_duration t, int flags)
+	{
+		ptime deadline = time_now() + t;
+
+		if (is_seed() || m_picker->have_piece(piece))
+		{
+			if (flags & torrent_handle::alert_when_available)
+				read_piece(piece);
+			return;
+		}
+
+		for (std::list<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
+			, end(m_time_critical_pieces.end()); i != end; ++i)
+		{
+			if (i->piece != piece) continue;
+			i->deadline = deadline;
+			i->flags = flags;
+
+			// resort i since deadline might have changed
+			while (boost::next(i) != m_time_critical_pieces.end() && i->deadline > boost::next(i)->deadline)
+			{
+				std::iter_swap(i, boost::next(i));
+				++i;
+			}
+			while (i != m_time_critical_pieces.begin() && i->deadline < boost::prior(i)->deadline)
+			{
+				std::iter_swap(i, boost::next(i));
+				--i;
+			}
+			return;
+		}
+
+		time_critical_piece p;
+		p.first_requested = min_time();
+		p.last_requested = min_time();
+		p.flags = flags;
+		p.deadline = deadline;
+		p.peers = 0;
+		p.piece = piece;
+		std::list<time_critical_piece>::iterator i = std::upper_bound(m_time_critical_pieces.begin()
+			, m_time_critical_pieces.end(), p);
+		m_time_critical_pieces.insert(i, p);
+	}
+
+	void torrent::remove_time_critical_piece(int piece, bool finished)
+	{
+		for (std::list<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
+			, end(m_time_critical_pieces.end()); i != end; ++i)
+		{
+			if (i->piece != piece) continue;
+			if (finished)
+			{
+				if (i->flags & torrent_handle::alert_when_available)
+				{
+					read_piece(i->piece);
+				}
+
+				// update the average download time and average
+				// download time deviation
+				time_duration dl_time = time_now() - i->first_requested;
+
+				if (m_average_piece_time == seconds(0))
+				{
+					m_average_piece_time = dl_time;
+				}
+				else
+				{
+					time_duration diff = time_duration(dl_time.diff - m_average_piece_time.diff);
+					if (m_piece_time_deviation == seconds(0)) m_piece_time_deviation = diff;
+					else m_piece_time_deviation = m_piece_time_deviation * 0.6f + diff * 0.4;
+
+					m_average_piece_time = m_average_piece_time * 0.6f + dl_time * 0.4f;
+				}
+			}
+			m_time_critical_pieces.erase(i);
+			return;
+		}
+	}
+
+	// remove time critical pieces where priority is 0
+	void torrent::remove_time_critical_pieces(std::vector<int> const& priority)
+	{
+		for (std::list<time_critical_piece>::iterator i = m_time_critical_pieces.begin();
+			i != m_time_critical_pieces.end();)
+		{
+			if (priority[i->piece] == 0)
+			{
+				i = m_time_critical_pieces.erase(i);
+				continue;
+			}
+			++i;
+		}
+	}
+
 	void torrent::piece_availability(std::vector<int>& avail) const
 	{
 		INVARIANT_CHECK;
@@ -2054,7 +2152,12 @@ namespace libtorrent
 		bool was_finished = is_finished();
 		bool filter_updated = m_picker->set_piece_priority(index, priority);
 		TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
-		if (filter_updated) update_peer_interest(was_finished);
+		if (filter_updated)
+		{
+			update_peer_interest(was_finished);
+			if (priority == 0) remove_time_critical_piece(index);
+		}
+
 	}
 
 	int torrent::piece_priority(int index) const
@@ -2093,7 +2196,11 @@ namespace libtorrent
 			filter_updated |= m_picker->set_piece_priority(index, *i);
 			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 		}
-		if (filter_updated) update_peer_interest(was_finished);
+		if (filter_updated)
+		{
+			update_peer_interest(was_finished);
+			remove_time_critical_pieces(pieces);
+		}
 	}
 
 	void torrent::piece_priorities(std::vector<int>& pieces) const
@@ -4087,12 +4194,12 @@ namespace libtorrent
 			TORRENT_ASSERT(m_ses.has_peer(*i));
 #endif
 			peer_connection const& p = *(*i);
-			for (std::deque<piece_block>::const_iterator i = p.request_queue().begin()
+			for (std::vector<piece_block>::const_iterator i = p.request_queue().begin()
 				, end(p.request_queue().end()); i != end; ++i)
 				++num_requests[*i];
-			for (std::deque<pending_block>::const_iterator i = p.download_queue().begin()
+			for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
 				, end(p.download_queue().end()); i != end; ++i)
-				++num_requests[i->block];
+				if (!i->not_wanted && !i->timed_out) ++num_requests[i->block];
 			if (!p.is_choked() && !p.ignore_unchoke_slots()) ++num_uploads;
 			torrent* associated_torrent = p.associated_torrent().lock().get();
 			if (associated_torrent != this)
@@ -4105,8 +4212,11 @@ namespace libtorrent
 			for (std::map<piece_block, int>::iterator i = num_requests.begin()
 				, end(num_requests.end()); i != end; ++i)
 			{
-				if (!m_picker->is_downloaded(i->first))
-					TORRENT_ASSERT(m_picker->num_peers(i->first) == i->second);
+				piece_block b = i->first;
+				int count = i->second;
+				int picker_count = m_picker->num_peers(b);
+				if (!m_picker->is_downloaded(b))
+					TORRENT_ASSERT(picker_count == count);
 			}
 			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 		}
@@ -4697,9 +4807,17 @@ namespace libtorrent
 		if (is_seed()) m_seeding_time += since_last_tick;
 		m_active_time += since_last_tick;
 
+		ptime now = time_now();
+
+		// ---- TIME CRITICAL PIECES ----
+
+		if (!m_time_critical_pieces.empty())
+		{
+			request_time_critical_pieces();
+		}
+
 		// ---- WEB SEEDS ----
 
-		ptime now = time_now();
 		// re-insert urls that are to be retried into the m_web_seeds
 		typedef std::map<web_seed_entry, ptime>::iterator iter_t;
 		for (iter_t i = m_web_seeds_next_retry.begin(); i != m_web_seeds_next_retry.end();)
@@ -4790,6 +4908,105 @@ namespace libtorrent
 					update_sparse_piece_prio(i, start, end);
 			}
 			m_policy.pulse();
+		}
+	}
+
+	void torrent::request_time_critical_pieces()
+	{
+		// build a list of peers and sort it by download_queue_time
+		std::vector<peer_connection*> peers;
+		peers.reserve(m_connections.size());
+		std::remove_copy_if(m_connections.begin(), m_connections.end()
+			, std::back_inserter(peers), !boost::bind(&peer_connection::can_request_time_critical, _1));
+		std::sort(peers.begin(), peers.end()
+			, boost::bind(&peer_connection::download_queue_time, _1, 16*1024)
+			< boost::bind(&peer_connection::download_queue_time, _2, 16*1024));
+
+		std::set<peer_connection*> peers_with_requests;
+
+		std::vector<piece_block> interesting_blocks;
+		std::vector<piece_block> backup1;
+		std::vector<piece_block> backup2;
+		std::vector<int> ignore;
+
+		ptime now = time_now();
+
+		for (std::list<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
+			, end(m_time_critical_pieces.end()); i != end; ++i)
+		{
+			if (i != m_time_critical_pieces.begin() && i->deadline > now
+				+ m_average_piece_time + 4 * m_piece_time_deviation)
+			{
+				// don't request pieces whose deadline is too far in the future
+				break;
+			}
+
+			// loop until every block has been requested from
+			do
+			{
+				// pick the peer with the lowest download_queue_time that has i->piece
+				std::vector<peer_connection*>::iterator p = std::find_if(peers.begin(), peers.end()
+					, boost::bind(&peer_connection::has_piece, _1, i->piece));
+
+				if (p == peers.end()) break;
+				peer_connection& c = **p;
+
+				interesting_blocks.clear();
+				backup1.clear();
+				backup2.clear();
+				m_picker->add_blocks(i->piece, c.get_bitfield(), interesting_blocks
+					, backup1, backup2, 1, 0, c.peer_info_struct()
+					, ignore, piece_picker::fast, 0);
+
+				std::vector<piece_block> const& rq = c.request_queue();
+
+				bool added_request = false;
+
+				if (!interesting_blocks.empty() && std::find(rq.begin(), rq.end()
+					, interesting_blocks.front()) != rq.end())
+				{
+					c.make_time_critical(interesting_blocks.front());
+					added_request = true;
+				}
+				else if (!interesting_blocks.empty())
+				{
+					c.add_request(interesting_blocks.front(), true);
+					added_request = true;
+				}
+
+				// TODO: if there's been long enough since we requested something
+				// from this piece, request one of the backup blocks (the one with
+				// the least number of requests to it) and update the last request
+				// timestamp
+
+				if (added_request)
+				{
+					peers_with_requests.insert(peers_with_requests.begin(), &c);
+					if (i->first_requested == min_time()) i->first_requested = now;
+
+					if (!c.can_request_time_critical())
+					{
+						peers.erase(p);
+					}
+					else
+					{
+						// resort p, since it will have a higher download_queue_time now
+						while (p != peers.end()-1 && (*p)->download_queue_time() > (*(p+1))->download_queue_time())
+						{
+							std::iter_swap(p, p+1);
+							++p;
+						}
+					}
+				}
+
+			} while (!interesting_blocks.empty());
+		}
+
+		// commit all the time critical requests
+		for (std::set<peer_connection*>::iterator i = peers_with_requests.begin()
+			, end(peers_with_requests.end()); i != end; ++i)
+		{
+			(*i)->send_block_requests();
 		}
 	}
 
