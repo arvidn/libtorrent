@@ -271,8 +271,8 @@ namespace libtorrent
 		(*c.m_logger) << time_now_string() << " PIECE_PICKER [ php: " << prefer_whole_pieces
 			<< " picked: " << interesting_pieces.size() << " ]\n";
 #endif
-		std::deque<pending_block> const& dq = c.download_queue();
-		std::deque<piece_block> const& rq = c.request_queue();
+		std::vector<pending_block> const& dq = c.download_queue();
+		std::vector<piece_block> const& rq = c.request_queue();
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
@@ -292,6 +292,12 @@ namespace libtorrent
 			}
 
 			TORRENT_ASSERT(p.num_peers(*i) == 0);
+
+			// don't request pieces we already have in our request queue
+			if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
+				|| std::find(rq.begin(), rq.end(), *i) != rq.end())
+				continue;
+
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
 			// and return

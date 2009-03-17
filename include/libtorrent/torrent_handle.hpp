@@ -325,6 +325,9 @@ namespace libtorrent
 		void get_peer_info(std::vector<peer_info>& v) const;
 		torrent_status status() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
+
+		enum deadline_flags { alert_when_available = 1 };
+		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
 		
 #ifndef TORRENT_NO_DEPRECATE
 		// fills the specified vector with the download progress [0, 1]

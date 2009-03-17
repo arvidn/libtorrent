@@ -328,7 +328,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 #endif
 	out << "down     (total | peak   )  up      (total | peak   ) sent-req recv flags         source ";
 	if (print_fails) out << "fail hshf ";
-	if (print_send_bufs) out << "rq sndb            quota rcvb            ";
+	if (print_send_bufs) out << "rq sndb            quota rcvb            q-bytes ";
 	if (print_timers) out << "inactive wait timeout q-time ";
 	out << "disk   rtt ";
 	if (print_block) out << "block-progress ";
@@ -412,7 +412,8 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 			out << to_string(i->requests_in_buffer, 2) << " "
 				<< to_string(i->used_send_buffer, 6) << " ("<< add_suffix(i->send_buffer_size) << ") "
 				<< to_string(i->send_quota, 5) << " "
-				<< to_string(i->used_receive_buffer, 6) << " ("<< add_suffix(i->receive_buffer_size) << ") ";
+				<< to_string(i->used_receive_buffer, 6) << " ("<< add_suffix(i->receive_buffer_size) << ") "
+				<< to_string(i->queue_bytes, 6) << " ";
 		}
 		if (print_timers)
 		{
