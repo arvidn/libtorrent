@@ -931,40 +931,55 @@ namespace libtorrent
 
 		m_pool.release(this);
 
+		bool ret = true;
+		std::set<std::string> to_move;
+		file_storage const& f = files();
+
+		for (file_storage::iterator i = f.begin()
+			, end(f.end()); i != end; ++i)
+		{
+			to_move.insert(to_move.begin(), *i->path.begin());
+		}
+
+		for (std::set<std::string>::const_iterator i = to_move.begin()
+			, end(to_move.end()); i != end; ++i)
+		{
+			
 #if TORRENT_USE_WPATH
-		old_path = convert_to_wstring((m_save_path / files().name()).string());
-		new_path = convert_to_wstring((save_path / files().name()).string());
+			old_path = convert_to_wstring((m_save_path / *i).string());
+			new_path = convert_to_wstring((save_path / *i).string());
 #elif TORRENT_USE_LOCALE_FILENAMES
-		old_path = convert_to_native((m_save_path / files().name()).string());
-		new_path = convert_to_native((save_path / files().name().string()));
+			old_path = convert_to_native((m_save_path / *i).string());
+			new_path = convert_to_native((save_path / *i).string());
 #else
-		old_path = m_save_path / files().name();
-		new_path = save_path / files().name();
+			old_path = m_save_path / *i;
+			new_path = save_path / *i;
 #endif
 
 #ifndef BOOST_NO_EXCEPTIONS
-		try
-		{
-#endif
-			rename(old_path, new_path);
-			m_save_path = save_path;
-			return true;
-#ifndef BOOST_NO_EXCEPTIONS
-		}
-		catch (std::exception& e)
-		{
-			error_code ec;
-			recursive_copy(old_path, new_path, ec);
-			if (ec)
+			try
 			{
-				set_error(m_save_path / files().name(), ec);
-				return true;
-			}
-			m_save_path = save_path;
-			recursive_remove(old_path);
-		}
 #endif
-		return false;
+				rename(old_path, new_path);
+#ifndef BOOST_NO_EXCEPTIONS
+			}
+			catch (std::exception& e)
+			{
+				error_code ec;
+				recursive_copy(old_path, new_path, ec);
+				if (ec)
+				{
+					set_error(m_save_path / files().name(), ec);
+					ret = false;
+				}
+				recursive_remove(old_path);
+			}
+#endif
+		}
+
+		if (ret) m_save_path = save_path;
+
+		return ret;
 	}
 
 #ifdef TORRENT_DEBUG
