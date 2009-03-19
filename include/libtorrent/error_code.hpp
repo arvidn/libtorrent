@@ -41,6 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/error_code.hpp>
 #endif
 
+#include "libtorrent/config.hpp"
+#include <boost/shared_ptr.hpp>
+#include <string>
+
 namespace libtorrent
 {
 
@@ -78,6 +82,23 @@ namespace libtorrent
 #else
 	{ return boost::system::get_generic_category(); }
 #endif
+#endif
+
+#ifndef BOOST_NO_EXCEPTIONS
+	struct TORRENT_EXPORT libtorrent_exception: std::exception
+	{
+		libtorrent_exception(error_code const& s): m_error(s) {}
+		virtual const char* what() const throw()
+		{
+			if (!m_msg) m_msg.reset(new std::string(m_error.message()));
+			return m_msg->c_str();
+		}
+		virtual ~libtorrent_exception() throw() {}
+		error_code error() const { return m_error; }
+	private:
+		error_code m_error;
+		mutable boost::shared_ptr<std::string> m_msg;
+	};
 #endif
 }
 

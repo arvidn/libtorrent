@@ -85,7 +85,12 @@ set_piece_hashes()
 		template <class Fun>
 		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f);
 
+		template <class Fun>
+		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f, error_code& ec);
+
 		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p);
+
+		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, error_code& ec);
 
 This function will assume that the files added to the torrent file exists at path
 ``p``, read those files and hash the content and set the hashes in the ``create_torrent``
@@ -93,6 +98,9 @@ object. The optional function ``f`` is called in between every hash that is set.
 must have the following signature::
 
 	void Fun(int);
+
+The overloads that don't take an ``error_code&`` may throw an exception in case of a
+file error, the other overloads sets the error code to reflect the error, if any.
 
 file_storage
 ============
