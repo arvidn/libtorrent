@@ -1150,12 +1150,15 @@ namespace libtorrent
 			piece_bytes = recv_pos - 9;
 		}
 
+		const int header_size = merkle?13:9;
+
+		if (recv_pos < header_size) return;
+
 		const char* ptr = recv_buffer.begin + 1;
 		peer_request p;
 		p.piece = detail::read_int32(ptr);
 		p.start = detail::read_int32(ptr);
 
-		const int header_size = merkle?13:9;
 		int list_size = 0;
 
 		if (merkle)
