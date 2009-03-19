@@ -45,6 +45,7 @@ release 0.14.3
 	  changing DHT port
 	* fixed move_storage bug when files were renamed to be moved out
 	  of the root directory
+	* added error handling for set_piece_hashes
 
 release 0.14.2
 

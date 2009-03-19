@@ -224,7 +224,8 @@ namespace libtorrent
 	};
 
 	template <class Fun>
-	void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f)
+	void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f
+		, error_code& ec)
 	{
 		file_pool fp;
 		boost::scoped_ptr<storage_interface> st(
@@ -238,16 +239,38 @@ namespace libtorrent
 			// read hits the disk and will block. Progress should
 			// be updated in between reads
 			st->read(buf.bytes(), i, 0, t.piece_size(i));
+			if (st->error())
+			{
+				ec = st->error();
+				return;
+			}
 			hasher h(buf.bytes(), t.piece_size(i));
 			t.set_hash(i, h.final());
 			f(i);
 		}
 	}
 
+	template <class Fun>
+	void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f)
+	{
+		error_code ec;
+		set_piece_hashes(t, p, f, ec);
+		if (ec) throw libtorrent_exception(ec);
+	}
+
+#ifndef BOOST_NOEXCEPTIONS
 	inline void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p)
 	{
-		set_piece_hashes(t, p, detail::nop);
+		error_code ec;
+		set_piece_hashes(t, p, detail::nop, ec);
+		if (ec) throw libtorrent_exception(ec);
 	}
+
+	inline void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, error_code& ec)
+	{
+		set_piece_hashes(t, p, detail::nop, ec);
+	}
+#endif
 
 	// wpath versions
 
@@ -273,7 +296,8 @@ namespace libtorrent
 	}
 	
 	template <class Fun>
-	void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, Fun f)
+	void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, Fun f
+		, error_code& ec)
 	{
 		file_pool fp;
 		std::string utf8;
@@ -289,15 +313,37 @@ namespace libtorrent
 			// read hits the disk and will block. Progress should
 			// be updated in between reads
 			st->read(&buf[0], i, 0, t.piece_size(i));
+			if (st->error())
+			{
+				ec = st->error();
+				return;
+			}
 			hasher h(&buf[0], t.piece_size(i));
 			t.set_hash(i, h.final());
 			f(i);
 		}
 	}
 
+#ifndef BOOST_NOEXCEPTIONS
+	template <class Fun>
+	void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, Fun f)
+	{
+		error_code ec;
+		set_piece_hashes(t, p, f, ec);
+		if (ec) throw libtorrent_exception(ec);
+	}
+
 	inline void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p)
 	{
-		set_piece_hashes(t, p, detail::nop);
+		error_code ec;
+		set_piece_hashes(t, p, detail::nop, ec);
+		if (ec) throw libtorrent_exception(ec);
+	}
+#endif
+
+	inline void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, error_code& ec)
+	{
+		set_piece_hashes(t, p, detail::nop, ec);
 	}
 }
 
