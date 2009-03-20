@@ -46,6 +46,7 @@ release 0.14.3
 	* fixed move_storage bug when files were renamed to be moved out
 	  of the root directory
 	* added error handling for set_piece_hashes
+	* fixed missing include in enum_if.cpp
 
 release 0.14.2
 
