@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/broadcast_socket.hpp>
 #include <vector>
 #include <iomanip>
+#include <iostream>
 
 using namespace libtorrent;
 
