@@ -11,6 +11,8 @@ def substitute_file(name):
 			l = '#define LIBTORRENT_VERSION_MAJOR %d\n' % version[0]
 		elif '#define LIBTORRENT_VERSION_MINOR' in l:
 			l = '#define LIBTORRENT_VERSION_MINOR %d\n' % version[1]
+		if '#define LIBTORRENT_VERSION_TINY' in l:
+			l = '#define LIBTORRENT_VERSION_TINY %d\n' % version[2]
 		elif '#define LIBTORRENT_VERSION' in l:
 			l = '#define LIBTORRENT_VERSION "%d.%d.%d.%d"\n' % (version[0], version[1], version[2], version[3])
 		elif 'AC_INIT([libtorrent-rasterbar]' in l:
