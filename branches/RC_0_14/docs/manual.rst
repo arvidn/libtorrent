@@ -338,10 +338,16 @@ a paused state. I.e. it won't connect to the tracker or any of the peers until i
 resumed. This is typically a good way of avoiding race conditions when setting
 configuration options on torrents before starting them.
 
+If you pass in resume data, the paused state of the torrent when the resume data
+was saved will override the paused state you pass in here.
+
 If ``auto_managed`` is true, this torrent will be queued, started and seeded
 automatically by libtorrent. When this is set, the torrent should also be started
 as paused. The default queue order is the order the torrents were added. They
 are all downloaded in that order. For more details, see queuing_.
+
+If you pass in resume data, the auto_managed state of the torrent when the resume data
+was saved will override the auto_managed state you pass in here.
 
 ``storage`` can be used to customize how the data is stored. The default
 storage will simply write the data to the files it belongs to, but it could be
@@ -1273,7 +1279,7 @@ to make its mapping differ from the one in the torrent file.
 
 ``orig_files()`` returns the original (unmodified) file storage for this torrent. This
 is used by the web server connection, which needs to request files with the original
-names. Filename may be chaged using `rename_file()`_.
+names. Filename may be chaged using ``torrent_info::rename_file()``.
 
 For more information on the ``file_storage`` object, see the separate document on how
 to create torrents.

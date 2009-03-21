@@ -299,6 +299,7 @@ add_torrent()
 			storage_constructor_type storage;
 			void* userdata;
 			bool seed_mode;
+			bool override_resume_data;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -327,7 +328,7 @@ torrent.
 
 If the torrent you are trying to add already exists in the session (is either queued
 for checking, being checked or downloading) ``add_torrent()`` will throw
-duplicate_torrent_ which derives from ``std::exception`` unless ``duplicate_is_error``
+libtorrent_exception_ which derives from ``std::exception`` unless ``duplicate_is_error``
 is set to false. In that case, ``add_torrent`` will return the handle to the existing
 torrent.
 
@@ -363,10 +364,18 @@ a paused state. I.e. it won't connect to the tracker or any of the peers until i
 resumed. This is typically a good way of avoiding race conditions when setting
 configuration options on torrents before starting them.
 
+If you pass in resume data, the paused state of the torrent when the resume data
+was saved will override the paused state you pass in here. You can override this
+by setting ``override_resume_data``.
+
 If ``auto_managed`` is true, this torrent will be queued, started and seeded
 automatically by libtorrent. When this is set, the torrent should also be started
 as paused. The default queue order is the order the torrents were added. They
 are all downloaded in that order. For more details, see queuing_.
+
+If you pass in resume data, the auto_managed state of the torrent when the resume data
+was saved will override the auto_managed state you pass in here. You can override this
+by setting ``override_resume_data``.
 
 ``storage`` can be used to customize how the data is stored. The default
 storage will simply write the data to the files it belongs to, but it could be
@@ -388,8 +397,15 @@ is a way to avoid the initial file checks, and significantly reduce the startup 
 Setting ``seed_mode`` on a torrent without metadata (a .torrent file) is a no-op
 and will be ignored.
 
+If resume data is passed in with this torrent, the seed mode saved in there will
+override the seed mode you set here.
+
 The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
 about the torrent's progress, its peers etc. It is also used to abort a torrent.
+
+If ``override_resume_data`` is set to true, the ``paused`` and ``auto_managed``
+state of the torrent are not loaded from the resume data, but the states requested
+by this ``add_torrent_params`` will override it.
 
 
 remove_torrent()
@@ -404,7 +420,7 @@ the tracker that we've stopped participating in the swarm. The optional second a
 ``options`` can be used to delete all the files downloaded by this torrent. To do this, pass
 in the value ``session::delete_files``. The removal of the torrent is asyncronous, there is
 no guarantee that adding the same torrent immediately after it was removed will not throw
-a duplicate_torrent_ exception.
+a libtorrent_exception_ exception.
 
 find_torrent() get_torrents()
 -----------------------------
@@ -1169,7 +1185,7 @@ integer() string() list() dict() type()
 
 The ``integer()``, ``string()``, ``list()`` and ``dict()`` functions
 are accessors that return the respective type. If the ``entry`` object isn't of the
-type you request, the accessor will throw type_error_ (which derives from
+type you request, the accessor will throw libtorrent_exception_ (which derives from
 ``std::runtime_error``). You can ask an ``entry`` for its type through the
 ``type()`` function.
 
@@ -1398,7 +1414,7 @@ to make its mapping differ from the one in the torrent file.
 
 ``orig_files()`` returns the original (unmodified) file storage for this torrent. This
 is used by the web server connection, which needs to request files with the original
-names. Filename may be chaged using `rename_file()`_.
+names. Filename may be chaged using ``torrent_info::rename_file()``.
 
 For more information on the ``file_storage`` object, see the separate document on how
 to create torrents.
@@ -1834,7 +1850,7 @@ means you cannot perform any operation on it, unless you first assign it a
 valid handle. If you try to perform any operation on an uninitialized handle,
 it will throw ``invalid_handle``.
 
-.. warning:: All operations on a ``torrent_handle`` may throw invalid_handle_
+.. warning:: All operations on a ``torrent_handle`` may throw libtorrent_exception_
 	exception, in case the handle is no longer refering to a torrent. There is
 	one exception ``is_valid()`` will never throw.
 	Since the torrents are processed by a background thread, there is no
@@ -1861,7 +1877,7 @@ read_piece_alert_ alert will be delivered, with the piece data, when it's downlo
 
 If the piece is already downloaded when this call is made, nothing happens, unless
 the ``alert_when_available`` flag is set, in which case it will do the same thing
-as calling read_piece_ for ``index``.
+as calling `read_piece()`_ for ``index``.
 
 
 piece_priority() prioritize_pieces() piece_priorities()
@@ -2085,7 +2101,7 @@ connect_peer()
 torrent. If the peer does not respond, or is not a member of this torrent, it will simply
 be disconnected. No harm can be done by using this other than an unnecessary connection
 attempt is made. If the torrent is uninitialized or in queued or checking mode, this
-will throw invalid_handle_. The second (optional) argument will be bitwised ORed into
+will throw libtorrent_exception_. The second (optional) argument will be bitwised ORed into
 the source mask of this peer. Typically this is one of the source flags in peer_info_.
 i.e. ``tracker``, ``pex``, ``dht`` etc.
 
@@ -2513,7 +2529,7 @@ status()
 		torrent_status status() const;
 
 ``status()`` will return a structure with information about the status of this
-torrent. If the torrent_handle_ is invalid, it will throw invalid_handle_ exception.
+torrent. If the torrent_handle_ is invalid, it will throw libtorrent_exception_ exception.
 See torrent_status_.
 
 
@@ -2583,7 +2599,7 @@ get_peer_info()
 
 ``get_peer_info()`` takes a reference to a vector that will be cleared and filled
 with one entry for each peer connected to this torrent, given the handle is valid. If the
-torrent_handle_ is invalid, it will throw invalid_handle_ exception. Each entry in
+torrent_handle_ is invalid, it will throw libtorrent_exception_ exception. Each entry in
 the vector contains information about that particular peer. See peer_info_.
 
 
@@ -2596,7 +2612,7 @@ get_torrent_info()
 
 Returns a const reference to the torrent_info_ object associated with this torrent.
 This reference is valid as long as the torrent_handle_ is valid, no longer. If the
-torrent_handle_ is invalid or if it doesn't have any metadata, invalid_handle_
+torrent_handle_ is invalid or if it doesn't have any metadata, libtorrent_exception_
 exception will be thrown. The torrent may be in a state without metadata only if
 it was started without a .torrent file, i.e. by using the libtorrent extension of
 just supplying a tracker and info-hash.
@@ -4218,7 +4234,7 @@ Or, if you have a raw char buffer::
 Now we just need to know how to retrieve information from the entry_.
 
 If ``bdecode()`` encounters invalid encoded data in the range given to it
-it will throw invalid_encoding_.
+it will throw libtorrent_exception_.
 
 add_magnet_uri()
 ----------------
@@ -5431,84 +5447,151 @@ file format
 
 The file format is a bencoded dictionary containing the following fields:
 
-+----------------------+--------------------------------------------------------------+
-| ``file-format``      | string: "libtorrent resume file"                             |
-|                      |                                                              |
-+----------------------+--------------------------------------------------------------+
-| ``file-version``     | integer: 1                                                   |
-|                      |                                                              |
-+----------------------+--------------------------------------------------------------+
-| ``info-hash``        | string, the info hash of the torrent this data is saved for. |
-|                      |                                                              |
-+----------------------+--------------------------------------------------------------+
-| ``blocks per piece`` | integer, the number of blocks per piece. Must be: piece_size |
-|                      | / (16 * 1024). Clamped to be within the range [1, 256]. It   |
-|                      | is the number of blocks per (normal sized) piece. Usually    |
-|                      | each block is 16 * 1024 bytes in size. But if piece size is  |
-|                      | greater than 4 megabytes, the block size will increase.      |
-|                      |                                                              |
-+----------------------+--------------------------------------------------------------+
-| ``pieces``           | A string with piece flags, one character per piece.          |
-|                      | Bit 1 means we have that piece.                              |
-+----------------------+--------------------------------------------------------------+
-| ``slots``            | list of integers. The list maps slots to piece indices. It   |
-|                      | tells which piece is on which slot. If piece index is -2 it  |
-|                      | means it is free, that there's no piece there. If it is -1,  |
-|                      | means the slot isn't allocated on disk yet. The pieces have  |
-|                      | to meet the following requirement:                           |
-|                      |                                                              |
-|                      | If there's a slot at the position of the piece index,        |
-|                      | the piece must be located in that slot.                      |
-|                      |                                                              |
-+----------------------+--------------------------------------------------------------+
-| ``peers``            | list of dictionaries. Each dictionary has the following      |
-|                      | layout:                                                      |
-|                      |                                                              |
-|                      | +----------+-----------------------------------------------+ |
-|                      | | ``ip``   | string, the ip address of the peer. This is   | |
-|                      | |          | not a binary representation of the ip         | |
-|                      | |          | address, but the string representation. It    | |
-|                      | |          | may be an IPv6 string or an IPv4 string.      | |
-|                      | +----------+-----------------------------------------------+ |
-|                      | | ``port`` | integer, the listen port of the peer          | |
-|                      | +----------+-----------------------------------------------+ |
-|                      |                                                              |
-|                      | These are the local peers we were connected to when this     |
-|                      | fast-resume data was saved.                                  |
-|                      |                                                              |
-+----------------------+--------------------------------------------------------------+
-| ``unfinished``       | list of dictionaries. Each dictionary represents an          |
-|                      | piece, and has the following layout:                         |
-|                      |                                                              |
-|                      | +-------------+--------------------------------------------+ |
-|                      | | ``piece``   | integer, the index of the piece this entry | |
-|                      | |             | refers to.                                 | |
-|                      | +-------------+--------------------------------------------+ |
-|                      | | ``bitmask`` | string, a binary bitmask representing the  | |
-|                      | |             | blocks that have been downloaded in this   | |
-|                      | |             | piece.                                     | |
-|                      | +-------------+--------------------------------------------+ |
-|                      | | ``adler32`` | The adler32 checksum of the data in the    | |
-|                      | |             | blocks specified by ``bitmask``.           | |
-|                      | |             |                                            | |
-|                      | +-------------+--------------------------------------------+ |
-|                      |                                                              |
-+----------------------+--------------------------------------------------------------+
-| ``file sizes``       | list where each entry corresponds to a file in the file list |
-|                      | in the metadata. Each entry has a list of two values, the    |
-|                      | first value is the size of the file in bytes, the second     |
-|                      | is the time stamp when the last time someone wrote to it.    |
-|                      | This information is used to compare with the files on disk.  |
-|                      | All the files must match exactly this information in order   |
-|                      | to consider the resume data as current. Otherwise a full     |
-|                      | re-check is issued.                                          |
-+----------------------+--------------------------------------------------------------+
-| ``allocation``       | The allocation mode for the storage. Can be either ``full``  |
-|                      | or ``compact``. If this is full, the file sizes and          |
-|                      | timestamps are disregarded. Pieces are assumed not to have   |
-|                      | moved around even if the files have been modified after the  |
-|                      | last resume data checkpoint.                                 |
-+----------------------+--------------------------------------------------------------+
++--------------------------+--------------------------------------------------------------+
+| ``file-format``          | string: "libtorrent resume file"                             |
+|                          |                                                              |
++--------------------------+--------------------------------------------------------------+
+| ``file-version``         | integer: 1                                                   |
+|                          |                                                              |
++--------------------------+--------------------------------------------------------------+
+| ``info-hash``            | string, the info hash of the torrent this data is saved for. |
+|                          |                                                              |
++--------------------------+--------------------------------------------------------------+
+| ``blocks per piece``     | integer, the number of blocks per piece. Must be: piece_size |
+|                          | / (16 * 1024). Clamped to be within the range [1, 256]. It   |
+|                          | is the number of blocks per (normal sized) piece. Usually    |
+|                          | each block is 16 * 1024 bytes in size. But if piece size is  |
+|                          | greater than 4 megabytes, the block size will increase.      |
+|                          |                                                              |
++--------------------------+--------------------------------------------------------------+
+| ``pieces``               | A string with piece flags, one character per piece.          |
+|                          | Bit 1 means we have that piece.                              |
+|                          | Bit 2 means we have verified that this piece is correct.     |
+|                          | This only applies when the torrent is in seed_mode.          |
++--------------------------+--------------------------------------------------------------+
+| ``slots``                | list of integers. The list maps slots to piece indices. It   |
+|                          | tells which piece is on which slot. If piece index is -2 it  |
+|                          | means it is free, that there's no piece there. If it is -1,  |
+|                          | means the slot isn't allocated on disk yet. The pieces have  |
+|                          | to meet the following requirement:                           |
+|                          |                                                              |
+|                          | If there's a slot at the position of the piece index,        |
+|                          | the piece must be located in that slot.                      |
+|                          |                                                              |
++--------------------------+--------------------------------------------------------------+
+| ``total_uploaded``       | integer. The number of bytes that have been uploaded in      |
+|                          | total for this torrent.                                      |
++--------------------------+--------------------------------------------------------------+
+| ``total_downloaded``     | integer. The number of bytes that have been downloaded in    |
+|                          | total for this torrent.                                      |
++--------------------------+--------------------------------------------------------------+
+| ``active_time``          | integer. The number of seconds this torrent has been active. |
+|                          | i.e. not paused.                                             |
++--------------------------+--------------------------------------------------------------+
+| ``seeding_time``         | integer. The number of seconds this torrent has been active  |
+|                          | and seeding.                                                 |
++--------------------------+--------------------------------------------------------------+
+| ``num_seeds``            | integer. An estimate of the number of seeds on this torrent  |
+|                          | when the resume data was saved. This is scrape data or based |
+|                          | on the peer list if scrape data is unavailable.              |
++--------------------------+--------------------------------------------------------------+
+| ``num_downloaders``      | integer. An estimate of the number of downloaders on this    |
+|                          | torrent when the resume data was last saved. This is used as |
+|                          | an initial estimate until we acquire up-to-date scrape info. |
++--------------------------+--------------------------------------------------------------+
+| ``upload_rate_limit``    | integer. In case this torrent has a per-torrent upload rate  |
+|                          | limit, this is that limit. In bytes per second.              |
++--------------------------+--------------------------------------------------------------+
+| ``download_rate_limit``  | integer. The download rate limit for this torrent in case    |
+|                          | one is set, in bytes per second.                             |
++--------------------------+--------------------------------------------------------------+
+| ``max_connections``      | integer. The max number of peer connections this torrent     |
+|                          | may have, if a limit is set.                                 |
++--------------------------+--------------------------------------------------------------+
+| ``max_uploads``          | integer. The max number of unchoked peers this torrent may   |
+|                          | have, if a limit is set.                                     |
++--------------------------+--------------------------------------------------------------+
+| ``seed_mode``            | integer. 1 if the torrent is in seed mode, 0 otherwise.      |
++--------------------------+--------------------------------------------------------------+
+| ``file_priority``        | list of integers. One entry per file in the torrent. Each    |
+|                          | entry is the priority of the file with the same index.       |
++--------------------------+--------------------------------------------------------------+
+| ``piece_priority``       | string of bytes. Each byte is interpreted as an integer and  |
+|                          | is the priority of that piece.                               |
++--------------------------+--------------------------------------------------------------+
+| ``auto_managed``         | integer. 1 if the torrent is auto managed, otherwise 0.      |
++--------------------------+--------------------------------------------------------------+
+| ``sequential_download``  | integer. 1 if the torrent is in sequential download mode,    |
+|                          | 0 otherwise.                                                 |
++--------------------------+--------------------------------------------------------------+
+| ``paused``               | integer. 1 if the torrent is paused, 0 otherwise.            |
++--------------------------+--------------------------------------------------------------+
+| ``trackers``             | list of lists of strings. The top level list lists all       |
+|                          | tracker tiers. Each second level list is one tier of         |
+|                          | trackers.                                                    |
++--------------------------+--------------------------------------------------------------+
+| ``mapped_files``         | list of strings. If any file in the torrent has been         |
+|                          | renamed, this entry contains a list of all the filenames.    |
+|                          | In the same order as in the torrent file.                    |
++--------------------------+--------------------------------------------------------------+
+| ``url-list``             | list of strings. List of url-seed URLs used by this torrent. |
++--------------------------+--------------------------------------------------------------+
+| ``httpseeds``            | list of strings. List of httpseed URLs used by this torrent. |
++--------------------------+--------------------------------------------------------------+
+| ``merkle tree``          | string. In case this torrent is a merkle torrent, this is a  |
+|                          | string containing the entire merkle tree, all nodes,         |
+|                          | including the root and all leaves. The tree is not           |
+|                          | necessarily complete, but complete enough to be able to send |
+|                          | any piece that we have, indicated by the have bitmask.       |
++--------------------------+--------------------------------------------------------------+
+| ``peers``                | list of dictionaries. Each dictionary has the following      |
+|                          | layout:                                                      |
+|                          |                                                              |
+|                          | +----------+-----------------------------------------------+ |
+|                          | | ``ip``   | string, the ip address of the peer. This is   | |
+|                          | |          | not a binary representation of the ip         | |
+|                          | |          | address, but the string representation. It    | |
+|                          | |          | may be an IPv6 string or an IPv4 string.      | |
+|                          | +----------+-----------------------------------------------+ |
+|                          | | ``port`` | integer, the listen port of the peer          | |
+|                          | +----------+-----------------------------------------------+ |
+|                          |                                                              |
+|                          | These are the local peers we were connected to when this     |
+|                          | fast-resume data was saved.                                  |
+|                          |                                                              |
++--------------------------+--------------------------------------------------------------+
+| ``unfinished``           | list of dictionaries. Each dictionary represents an          |
+|                          | piece, and has the following layout:                         |
+|                          |                                                              |
+|                          | +-------------+--------------------------------------------+ |
+|                          | | ``piece``   | integer, the index of the piece this entry | |
+|                          | |             | refers to.                                 | |
+|                          | +-------------+--------------------------------------------+ |
+|                          | | ``bitmask`` | string, a binary bitmask representing the  | |
+|                          | |             | blocks that have been downloaded in this   | |
+|                          | |             | piece.                                     | |
+|                          | +-------------+--------------------------------------------+ |
+|                          | | ``adler32`` | The adler32 checksum of the data in the    | |
+|                          | |             | blocks specified by ``bitmask``.           | |
+|                          | |             |                                            | |
+|                          | +-------------+--------------------------------------------+ |
+|                          |                                                              |
++--------------------------+--------------------------------------------------------------+
+| ``file sizes``           | list where each entry corresponds to a file in the file list |
+|                          | in the metadata. Each entry has a list of two values, the    |
+|                          | first value is the size of the file in bytes, the second     |
+|                          | is the time stamp when the last time someone wrote to it.    |
+|                          | This information is used to compare with the files on disk.  |
+|                          | All the files must match exactly this information in order   |
+|                          | to consider the resume data as current. Otherwise a full     |
+|                          | re-check is issued.                                          |
++--------------------------+--------------------------------------------------------------+
+| ``allocation``           | The allocation mode for the storage. Can be either ``full``  |
+|                          | or ``compact``. If this is full, the file sizes and          |
+|                          | timestamps are disregarded. Pieces are assumed not to have   |
+|                          | moved around even if the files have been modified after the  |
+|                          | last resume data checkpoint.                                 |
++--------------------------+--------------------------------------------------------------+
 
 threads
 =======
