@@ -192,6 +192,7 @@ namespace libtorrent
 		, m_announcing(false)
 		, m_waiting_tracker(false)
 		, m_seed_mode(p.seed_mode && m_torrent_file->is_valid())
+		, m_override_resume_data(p.override_resume_data)
 	{
 		if (m_seed_mode)
 			m_verified.resize(m_torrent_file->num_pieces(), false);
@@ -706,8 +707,8 @@ namespace libtorrent
 					char const* pieces_str = pieces->string_ptr();
 					for (int i = 0, end(pieces->string_length()); i < end; ++i)
 					{
-						if ((pieces_str[i] & 1) == 0) continue;
-						m_picker->we_have(i);
+						if (pieces_str[i] & 1) m_picker->we_have(i);
+						if (m_seed_mode && (pieces_str[i] & 2)) m_verified.set_bit(i);
 					}
 				}
 
@@ -3027,6 +3028,8 @@ namespace libtorrent
 		set_download_limit(rd.dict_find_int_value("download_rate_limit", -1));
 		set_max_connections(rd.dict_find_int_value("max_connections", -1));
 		set_max_uploads(rd.dict_find_int_value("max_uploads", -1));
+		m_seed_mode = rd.dict_find_int_value("seed_mode", 0) && m_torrent_file->is_valid();
+		if (m_seed_mode) m_verified.resize(m_torrent_file->num_pieces(), false);
 
 		lazy_entry const* file_priority = rd.dict_find_list("file_priority");
 		if (file_priority && file_priority->list_size()
@@ -3045,14 +3048,20 @@ namespace libtorrent
 				m_picker->set_piece_priority(i, p[i]);
 		}
 
-		int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
-		if (auto_managed_ != -1) m_auto_managed = auto_managed_;
+		if (!m_override_resume_data)
+		{
+			int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
+			if (auto_managed_ != -1) m_auto_managed = auto_managed_;
+		}
 
 		int sequential_ = rd.dict_find_int_value("sequential_download", -1);
 		if (sequential_ != -1) set_sequential_download(sequential_);
 
-		int paused_ = rd.dict_find_int_value("paused", -1);
-		if (paused_ != -1) m_paused = paused_;
+		if (!m_override_resume_data)
+		{
+			int paused_ = rd.dict_find_int_value("paused", -1);
+			if (paused_ != -1) m_paused = paused_;
+		}
 
 		lazy_entry const* trackers = rd.dict_find_list("trackers");
 		if (trackers)
@@ -3160,6 +3169,8 @@ namespace libtorrent
 		ret["num_downloaders"] = downloaders;
 
 		ret["sequential_download"] = m_sequential_download;
+
+		ret["seed_mode"] = m_seed_mode;
 		
 		const sha1_hash& info_hash = torrent_file().info_hash();
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
@@ -3264,6 +3275,11 @@ namespace libtorrent
 		}
 
 		// write have bitmask
+		// the pieces string has one byte per piece. Each
+		// byte is a bitmask representing different properties
+		// for the piece
+		// bit 0: set if we have the piece
+		// bit 1: set if we have verified the piece (in seed mode)
 		entry::string_type& pieces = ret["pieces"].string();
 		pieces.resize(m_torrent_file->num_pieces());
 		if (is_seed())
@@ -3274,6 +3290,13 @@ namespace libtorrent
 		{
 			for (int i = 0, end(pieces.size()); i < end; ++i)
 				pieces[i] = m_picker->have_piece(i) ? 1 : 0;
+		}
+
+		if (m_seed_mode)
+		{
+			TORRENT_ASSERT(m_verified.size() == pieces.size());
+			for (int i = 0, end(pieces.size()); i < end; ++i)
+				pieces[i] |= m_verified[i] ? 2 : 0;
 		}
 
 		// write local peers

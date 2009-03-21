@@ -1085,6 +1085,10 @@ namespace libtorrent
 		// indicates which pieces have been verified and which
 		// haven't
 		bool m_seed_mode:1;
+
+		// this is set when we don't want to load seed_mode,
+		// paused or auto_managed from the resume data
+		bool m_override_resume_data:1;
 	};
 
 	inline ptime torrent::next_announce() const
