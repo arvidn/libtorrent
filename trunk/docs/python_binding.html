@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
 <title>libtorrent python binding</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -36,18 +36,18 @@
 <col class="docinfo-content" />
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
-<td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference" href="#building" id="id2">building</a><ul>
-<li><a class="reference" href="#building-using-setup-py" id="id3">building using setup.py</a></li>
-<li><a class="reference" href="#building-using-boost-build" id="id4">building using boost build</a></li>
+<li><a class="reference internal" href="#building" id="id2">building</a><ul>
+<li><a class="reference internal" href="#building-using-setup-py" id="id3">building using setup.py</a></li>
+<li><a class="reference internal" href="#building-using-boost-build" id="id4">building using boost build</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#using-libtorrent-in-python" id="id5">using libtorrent in python</a></li>
+<li><a class="reference internal" href="#using-libtorrent-in-python" id="id5">using libtorrent in python</a></li>
 </ul>
 </div>
 <div class="section" id="building">
@@ -92,10 +92,10 @@ using python : 2.3 : /usr ;
 </pre>
 <p>The bindings require <em>at least</em> python version 2.2.</p>
 <p>For more information on how to install and set up boost-build, see the
-<a class="reference" href="building.html#step-2-setup-bbv2">building libtorrent</a> section.</p>
+<a class="reference external" href="building.html#step-2-setup-bbv2">building libtorrent</a> section.</p>
 <p>Once you have boost-build set up, you cd to the <tt class="docutils literal"><span class="pre">bindings/python</span></tt>
 directory and invoke <tt class="docutils literal"><span class="pre">bjam</span></tt> with the apropriate settings. For the available
-build variants, see <a class="reference" href="building.html#step-3-building-libtorrent">libtorrent build options</a>.</p>
+build variants, see <a class="reference external" href="building.html#step-3-building-libtorrent">libtorrent build options</a>.</p>
 <p>For example:</p>
 <pre class="literal-block">
 $ bjam dht-support=on boost=source release link=static
@@ -109,7 +109,7 @@ bin/darwin-4.0/release/dht-support-on/link-static/logging-none/threading-multi/l
 <div class="section" id="using-libtorrent-in-python">
 <h1>using libtorrent in python</h1>
 <p>The python interface is nearly identical to the C++ interface. Please refer to
-the <a class="reference" href="manual.html">main library reference</a>. The main differences are:</p>
+the <a class="reference external" href="manual.html">main library reference</a>. The main differences are:</p>
 <dl class="docutils">
 <dt>asio::tcp::endpoint</dt>
 <dd>The endpoint type is represented as a tuple of a string (as the address) and an int for
