@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
 <title></title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -36,7 +36,7 @@
 <col class="docinfo-content" />
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
-<td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
 <div class="section" id="libtorrent-plugins">
@@ -44,21 +44,21 @@
 <div class="contents topic" id="contents">
 <p class="topic-title first">Contents</p>
 <ul class="simple">
-<li><a class="reference" href="#libtorrent-plugins" id="id1">libtorrent plugins</a><ul>
-<li><a class="reference" href="#a-word-of-caution" id="id2">a word of caution</a></li>
+<li><a class="reference internal" href="#libtorrent-plugins" id="id1">libtorrent plugins</a><ul>
+<li><a class="reference internal" href="#a-word-of-caution" id="id2">a word of caution</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#plugin-interface" id="id3">plugin interface</a></li>
-<li><a class="reference" href="#torrent-plugin" id="id4">torrent_plugin</a><ul>
-<li><a class="reference" href="#new-connection" id="id5">new_connection()</a></li>
-<li><a class="reference" href="#on-piece-pass-on-piece-fail" id="id6">on_piece_pass() on_piece_fail()</a></li>
-<li><a class="reference" href="#tick" id="id7">tick()</a></li>
-<li><a class="reference" href="#on-pause-on-resume" id="id8">on_pause() on_resume()</a></li>
-<li><a class="reference" href="#on-files-checked" id="id9">on_files_checked()</a></li>
+<li><a class="reference internal" href="#plugin-interface" id="id3">plugin interface</a></li>
+<li><a class="reference internal" href="#torrent-plugin" id="id4">torrent_plugin</a><ul>
+<li><a class="reference internal" href="#new-connection" id="id5">new_connection()</a></li>
+<li><a class="reference internal" href="#on-piece-pass-on-piece-fail" id="id6">on_piece_pass() on_piece_fail()</a></li>
+<li><a class="reference internal" href="#tick" id="id7">tick()</a></li>
+<li><a class="reference internal" href="#on-pause-on-resume" id="id8">on_pause() on_resume()</a></li>
+<li><a class="reference internal" href="#on-files-checked" id="id9">on_files_checked()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#peer-plugin" id="id10">peer_plugin</a></li>
-<li><a class="reference" href="#disk-buffer-holder" id="id11">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#peer-plugin" id="id10">peer_plugin</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id11">disk_buffer_holder</a></li>
 </ul>
 </div>
 <p>libtorrent has a plugin interface for implementing extensions to the protocol.
@@ -68,7 +68,7 @@ to fit a particular (closed) network.</p>
 <p>In short, the plugin interface makes it possible to:</p>
 <ul class="simple">
 <li>register extension messages (sent in the extension handshake), see
-<a class="reference" href="extension_protocol.html">extensions</a>.</li>
+<a class="reference external" href="extension_protocol.html">extensions</a>.</li>
 <li>add data and parse data from the extension handshake.</li>
 <li>send extension messages and standard bittorrent messages.</li>
 <li>override or block the handling of standard bittorrent messages.</li>
@@ -85,7 +85,7 @@ thread, you cannot use any of the member functions on the internal structures
 in libtorrent, since those require the mutex to be locked. Futhermore, you would
 also need to have a mutex on your own shared data within the plugin, to make
 sure it is not accessed at the same time from the libtorrent thread (through a
-callback). See <a class="reference" href="http://www.boost.org/doc/html/mutex.html">boost thread's mutex</a>. If you need to send out a message from
+callback). See <a class="reference external" href="http://www.boost.org/doc/html/mutex.html">boost thread's mutex</a>. If you need to send out a message from
 another thread, use an internal queue, and do the actual sending in <tt class="docutils literal"><span class="pre">tick()</span></tt>.</p>
 </div>
 </div>

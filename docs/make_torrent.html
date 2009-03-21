@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
 <title>creating torrents</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -36,30 +36,30 @@
 <col class="docinfo-content" />
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
-<td>Arvid Norberg, <a class="last reference" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference" href="#overview" id="id2">overview</a></li>
-<li><a class="reference" href="#high-level-example" id="id3">high level example</a></li>
-<li><a class="reference" href="#add-files" id="id4">add_files</a></li>
-<li><a class="reference" href="#set-piece-hashes" id="id5">set_piece_hashes()</a></li>
-<li><a class="reference" href="#file-storage" id="id6">file_storage</a><ul>
-<li><a class="reference" href="#add-file" id="id7">add_file()</a></li>
+<li><a class="reference internal" href="#overview" id="id2">overview</a></li>
+<li><a class="reference internal" href="#high-level-example" id="id3">high level example</a></li>
+<li><a class="reference internal" href="#add-files" id="id4">add_files</a></li>
+<li><a class="reference internal" href="#set-piece-hashes" id="id5">set_piece_hashes()</a></li>
+<li><a class="reference internal" href="#file-storage" id="id6">file_storage</a><ul>
+<li><a class="reference internal" href="#add-file" id="id7">add_file()</a></li>
 </ul>
 </li>
-<li><a class="reference" href="#create-torrent" id="id8">create_torrent</a><ul>
-<li><a class="reference" href="#id1" id="id9">create_torrent()</a></li>
-<li><a class="reference" href="#generate" id="id10">generate()</a></li>
-<li><a class="reference" href="#set-comment" id="id11">set_comment()</a></li>
-<li><a class="reference" href="#set-creator" id="id12">set_creator()</a></li>
-<li><a class="reference" href="#set-hash" id="id13">set_hash()</a></li>
-<li><a class="reference" href="#add-url-seed" id="id14">add_url_seed()</a></li>
-<li><a class="reference" href="#add-node" id="id15">add_node()</a></li>
-<li><a class="reference" href="#add-tracker" id="id16">add_tracker()</a></li>
-<li><a class="reference" href="#set-priv-priv" id="id17">set_priv() priv()</a></li>
+<li><a class="reference internal" href="#create-torrent" id="id8">create_torrent</a><ul>
+<li><a class="reference internal" href="#id1" id="id9">create_torrent()</a></li>
+<li><a class="reference internal" href="#generate" id="id10">generate()</a></li>
+<li><a class="reference internal" href="#set-comment" id="id11">set_comment()</a></li>
+<li><a class="reference internal" href="#set-creator" id="id12">set_creator()</a></li>
+<li><a class="reference internal" href="#set-hash" id="id13">set_hash()</a></li>
+<li><a class="reference internal" href="#add-url-seed" id="id14">add_url_seed()</a></li>
+<li><a class="reference internal" href="#add-node" id="id15">add_node()</a></li>
+<li><a class="reference internal" href="#add-tracker" id="id16">add_tracker()</a></li>
+<li><a class="reference internal" href="#set-priv-priv" id="id17">set_priv() priv()</a></li>
 </ul>
 </li>
 </ul>
@@ -142,9 +142,19 @@ template &lt;class Fun&gt;
 void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p, Fun f);
 template &lt;class Fun&gt;
 void set_piece_hashes(create_torrent&amp; t, boost::filesystem::wpath const&amp; p, Fun f);
+template &lt;class Fun&gt;
+void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p, Fun f
+        , error_code&amp; ec);
+template &lt;class Fun&gt;
+void set_piece_hashes(create_torrent&amp; t, boost::filesystem::wpath const&amp; p, Fun f
+        , error_code&amp; ec);
 
 void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p);
 void set_piece_hashes(create_torrent&amp; t, boost::filesystem::wpath const&amp; p);
+void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p
+        , error_code&amp; ec);
+void set_piece_hashes(create_torrent&amp; t, boost::filesystem::wpath const&amp; p
+        , error_code&amp; ec);
 </pre>
 </blockquote>
 <p>This function will assume that the files added to the torrent file exists at path
@@ -154,6 +164,8 @@ must have the following signature:</p>
 <pre class="literal-block">
 void Fun(int);
 </pre>
+<p>The overloads that don't take an <tt class="docutils literal"><span class="pre">error_code&amp;</span></tt> may throw an exception in case of a
+file error, the other overloads sets the error code to reflect the error, if any.</p>
 </div>
 <div class="section" id="file-storage">
 <h1>file_storage</h1>
@@ -234,7 +246,8 @@ attribute_executable
 <pre class="literal-block">
 struct create_torrent
 {
-        create_torrent(file_storage&amp; fs, int piece_size = 0, int pad_size_limit = -1);
+        enum { optimize = 1, merkle = 2 };
+        create_torrent(file_storage&amp; fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
         create_torrent(torrent_info const&amp; ti);
 
         entry generate() const;
@@ -259,7 +272,8 @@ struct create_torrent
 <h2>create_torrent()</h2>
 <blockquote>
 <pre class="literal-block">
-create_torrent(file_storage&amp; fs, int piece_size = 0, int pad_size_limit = -1);
+enum { optimize = 1, merkle = 2 };
+create_torrent(file_storage&amp; fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
 create_torrent(torrent_info const&amp; ti);
 </pre>
 </blockquote>
@@ -268,13 +282,27 @@ be a multiple of 16 kiB. If a piece size of 0 is specified, a
 piece_size will becalculated such that the torrent file is roughly 40 kB.</p>
 <p>If a <tt class="docutils literal"><span class="pre">pad_size_limit</span></tt> is specified (other than -1), any file larger than
 the specified number of bytes will be preceeded by a pad file to align it
-with the start od a piece.</p>
-<p>The overlad that takes a <tt class="docutils literal"><span class="pre">torrent_info</span></tt> object will make a verbatim
+with the start od a piece. The pad_file_limit is ignored unless the
+<tt class="docutils literal"><span class="pre">optimize</span></tt> flag is passed.</p>
+<p>The overload that takes a <tt class="docutils literal"><span class="pre">torrent_info</span></tt> object will make a verbatim
 copy of its info dictionary (to preserve the info-hash). The copy of
 the info dictionary will be used by <tt class="docutils literal"><span class="pre">generate()</span></tt>. This means
 that none of the member functions of create_torrent that affects
 the content of the info dictionary (such as <tt class="docutils literal"><span class="pre">set_hash()</span></tt>), will
 have any affect.</p>
+<p>The <tt class="docutils literal"><span class="pre">flags</span></tt> arguments specifies options for the torrent creation. It can
+be any combination of the following flags:</p>
+<dl class="docutils">
+<dt>optimize</dt>
+<dd>This will insert pad files to align the files to piece boundaries, for
+optimized disk-I/O.</dd>
+<dt>merkle</dt>
+<dd>This will create a merkle hash tree torrent. A merkle torrent cannot
+be opened in clients that don't specifically support merkle torrents.
+The benefit is that the resulting torrent file will be much smaller and
+not grow with more pieces. When this option is specified, it is
+recommended to have a 16 kiB piece size.</dd>
+</dl>
 </div>
 <div class="section" id="generate">
 <h2>generate()</h2>
@@ -318,7 +346,7 @@ void set_hash(int index, sha1_hash const&amp; h);
 <p>This sets the SHA-1 hash for the specified piece (<tt class="docutils literal"><span class="pre">index</span></tt>). You are required
 to set the hash for every piece in the torrent before generating it. If you have
 the files on disk, you can use the high level convenience function to do this.
-See <a class="reference" href="#set-piece-hashes">set_piece_hashes()</a>.</p>
+See <a class="reference internal" href="#set-piece-hashes">set_piece_hashes()</a>.</p>
 </div>
 <div class="section" id="add-url-seed">
 <h2>add_url_seed()</h2>
@@ -353,7 +381,7 @@ void add_tracker(std::string const&amp; url, int tier = 0);
 </pre>
 </blockquote>
 <p>Adds a tracker to the torrent. This is not strictly required, but most torrents
-use a tracker as their main source of peers. The url should be an <a class="reference" href="http://">http://</a> or udp://
+use a tracker as their main source of peers. The url should be an <a class="reference external" href="http://">http://</a> or udp://
 url to a machine running a bittorrent tracker that accepts announces for this torrent's
 info-hash. The tier is the fallback priority of the tracker. All trackers with tier 0 are
 tried first (in any order). If all fail, trackers with tier 1 are tried. If all of those
