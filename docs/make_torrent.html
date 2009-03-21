@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
 <title>creating torrents</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -131,7 +131,12 @@ are traveresed.</p>
 template &lt;class Fun&gt;
 void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p, Fun f);
 
+template &lt;class Fun&gt;
+void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p, Fun f, error_code&amp; ec);
+
 void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p);
+
+void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p, error_code&amp; ec);
 </pre>
 </blockquote>
 <p>This function will assume that the files added to the torrent file exists at path
@@ -141,6 +146,8 @@ must have the following signature:</p>
 <pre class="literal-block">
 void Fun(int);
 </pre>
+<p>The overloads that don't take an <tt class="docutils literal"><span class="pre">error_code&amp;</span></tt> may throw an exception in case of a
+file error, the other overloads sets the error code to reflect the error, if any.</p>
 </div>
 <div class="section" id="file-storage">
 <h1>file_storage</h1>
