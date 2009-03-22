@@ -2748,6 +2748,17 @@ namespace libtorrent
 				pieces[i] = m_picker->have_piece(i) ? 1 : 0;
 		}
 
+		// write renamed files
+		if (&m_torrent_file->files() != &m_torrent_file->orig_files())
+		{
+			entry::list_type& fl = ret["mapped_files"].list();
+			for (torrent_info::file_iterator i = m_torrent_file->begin_files()
+				, end(m_torrent_file->end_files()); i != end; ++i)
+			{
+				fl.push_back(i->path.string());
+			}
+		}
+
 		// write local peers
 
 		entry::list_type& peer_list = ret["peers"].list();
