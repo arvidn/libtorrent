@@ -3667,7 +3667,7 @@ namespace libtorrent
 			return;
 		}
 
-		m_socket->open(t->get_interface().protocol(), ec);
+		m_socket->open(m_remote.protocol(), ec);
 		if (ec)
 		{
 			disconnect(ec.message().c_str());
