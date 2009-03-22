@@ -739,16 +739,6 @@ namespace libtorrent
 			fl.push_back(entry(p));
 		}
 		
-		if (m_mapped_files)
-		{
-			entry::list_type& fl = rd["mapped_files"].list();
-			for (file_storage::iterator i = m_mapped_files->begin()
-				, end(m_mapped_files->end()); i != end; ++i)
-			{
-				fl.push_back(i->path.string());
-			}
-		}
-
 		return false;
 	}
 
