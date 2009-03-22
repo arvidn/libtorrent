@@ -47,6 +47,7 @@ release 0.14.3
 	  of the root directory
 	* added error handling for set_piece_hashes
 	* fixed missing include in enum_if.cpp
+	* fixed dual IP stack issue
 
 release 0.14.2
 
