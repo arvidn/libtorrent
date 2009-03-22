@@ -49,6 +49,8 @@ release 0.14.3
 	* fixed missing include in enum_if.cpp
 	* fixed dual IP stack issue
 	* fixed issue where renamed files were sometimes not saved in resume data
+	* accepts tracker responses with no 'peers' field, as long as 'peers6'
+	  is present
 
 release 0.14.2
 
