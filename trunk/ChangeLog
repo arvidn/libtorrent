@@ -51,6 +51,7 @@ release 0.14.3
 	* fixed issue where renamed files were sometimes not saved in resume data
 	* accepts tracker responses with no 'peers' field, as long as 'peers6'
 	  is present
+	* fixed CIDR-distance calculation in the precense of IPv6 peers
 
 release 0.14.2
 
