@@ -128,7 +128,7 @@ namespace libtorrent
 	// between the addresses.
 	int cidr_distance(address const& a1, address const& a2)
 	{
-		if (a1.is_v4() == a2.is_v4())
+		if (a1.is_v4() && a2.is_v4())
 		{
 			// both are v4
 			address_v4::bytes_type b1 = a1.to_v4().to_bytes();
