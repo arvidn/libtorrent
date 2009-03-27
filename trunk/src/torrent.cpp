@@ -4608,10 +4608,12 @@ namespace libtorrent
 			|| m_state == torrent_status::checking_files
 			|| m_state == torrent_status::checking_resume_data)
 		{
-			if (alerts().should_post<save_resume_data_failed_alert>())
+			if (alerts().should_post<save_resume_data_alert>())
 			{
-				alerts().post_alert(save_resume_data_failed_alert(get_handle()
-					, "won't save resume data, torrent does not have a complete resume state yet"));
+				boost::shared_ptr<entry> rd(new entry);
+				write_resume_data(*rd);
+				alerts().post_alert(save_resume_data_alert(rd
+					, get_handle()));
 			}
 			return;
 		}
