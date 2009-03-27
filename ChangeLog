@@ -52,6 +52,8 @@ release 0.14.3
 	* accepts tracker responses with no 'peers' field, as long as 'peers6'
 	  is present
 	* fixed CIDR-distance calculation in the precense of IPv6 peers
+	* save partial resume data for torrents that are queued for checking
+	  or checking, to maintain stats and renamed files
 
 release 0.14.2
 
