@@ -121,7 +121,7 @@ namespace libtorrent
 
 		boost::shared_array<char> buffer;
 		int piece;
-        int size;
+		int size;
 	};
 
 	struct TORRENT_EXPORT file_renamed_alert: torrent_alert

@@ -1696,9 +1696,9 @@ namespace libtorrent
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << time_now_string()
-				<< " <== INVALID_PIECE [ piece: " << p.piece << " | "
-				"start: " << p.start << " | "
-				"length: " << p.length << " ]\n";
+				<< " <== INVALID_PIECE [ piece: " << r.piece << " | "
+				"start: " << r.start << " | "
+				"length: " << r.length << " ]\n";
 #endif
 			disconnect("got invalid piece packet", 2);
 			return;
