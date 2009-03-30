@@ -1314,7 +1314,7 @@ namespace libtorrent
 					m_log << log_time() << " move" << std::endl;
 #endif
 					TORRENT_ASSERT(j.buffer == 0);
-					ret = j.storage->move_storage_impl(j.str) ? 1 : 0;
+					ret = j.storage->move_storage_impl(j.str) ? 0 : 1;
 					if (ret != 0)
 					{
 						test_error(j);
