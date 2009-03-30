@@ -55,6 +55,7 @@ release 0.14.3
 	* save partial resume data for torrents that are queued for checking
 	  or checking, to maintain stats and renamed files
 	* Don't try IPv6 on windows if it's not installed
+	* move_storage fix
 
 release 0.14.2
 
