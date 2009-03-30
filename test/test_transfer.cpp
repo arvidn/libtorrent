@@ -135,6 +135,10 @@ void test_transfer()
 	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 
+	// also test to move the storage of the downloader and the uploader
+	// to make sure it can handle switching paths
+	bool test_move_storage = false;
+
 	for (int i = 0; i < 30; ++i)
 	{
 		print_alerts(ses1, "ses1");
@@ -156,6 +160,14 @@ void test_transfer()
 			<< std::endl;
 
 		if (tor2.is_finished()) break;
+
+		if (!test_move_storage && st2.progress > 0.25f)
+		{
+			test_move_storage = true;
+			tor1.move_storage("./tmp1_transfer_moved");
+			tor2.move_storage("./tmp2_transfer_moved");
+			std::cerr << "moving storage" << std::endl;
+		}
 
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
@@ -228,7 +240,7 @@ void test_transfer()
 	std::cout << "re-adding" << std::endl;
 	add_torrent_params p;
 	p.ti = t;
-	p.save_path = "./tmp2_transfer";
+	p.save_path = "./tmp2_transfer_moved";
 	p.resume_data = &resume_data;
 	tor2 = ses2.add_torrent(p);
 	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
@@ -297,6 +309,8 @@ int test_main()
 	// in case the previous run was terminated
 	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
 	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
 
 #ifdef NDEBUG
 	// test rate only makes sense in release mode
@@ -304,12 +318,16 @@ int test_main()
 
 	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
 	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
 #endif
 
 	test_transfer();
 	
 	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
 	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
 
 	return 0;
 }
