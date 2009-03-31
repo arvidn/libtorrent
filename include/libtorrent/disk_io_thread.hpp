@@ -221,6 +221,8 @@ namespace libtorrent
 		typedef std::list<cached_piece_entry> cache_t;
 
 		bool test_error(disk_io_job& j);
+		void post_callback(boost::function<void(int, disk_io_job const&)> const& handler
+			, disk_io_job const& j, int ret);
 
 		// cache operations
 		cache_t::iterator find_cached_piece(
