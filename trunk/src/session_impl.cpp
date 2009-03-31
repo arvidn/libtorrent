@@ -725,6 +725,7 @@ namespace aux {
 				async_accept(s.sock);
 			}
 
+#if TORRENT_USE_IPV6
 #ifdef TORRENT_WINDOWS
 			// only try to open the IPv6 port if IPv6 is installed
 			SOCKADDR_STORAGE storage;
@@ -746,6 +747,7 @@ namespace aux {
 #ifdef TORRENT_WINDOWS
 			}
 #endif
+#endif // TORRENT_USE_IPV6
 		}
 		else
 		{

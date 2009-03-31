@@ -1183,7 +1183,11 @@ namespace libtorrent
 	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t, int src)
 		: prev_amount_upload(0)
 		, prev_amount_download(0)
+#if TORRENT_USE_IPV6
 		, addr(ip_.address())
+#else
+		, addr(ip_.address().to_v4())
+#endif
 		, last_optimistically_unchoked(min_time())
 		, connected(min_time())
 		, connection(0)

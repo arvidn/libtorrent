@@ -125,8 +125,14 @@ namespace libtorrent
 			size_type total_upload() const;
 
 			tcp::endpoint ip() const { return tcp::endpoint(addr, port); }
+
+#if TORRENT_USE_IPV6
 			void set_ip(tcp::endpoint const& endp)
 			{ addr = endp.address(); port = endp.port(); }
+#else
+			void set_ip(tcp::endpoint const& endp)
+			{ addr = endp.address().to_v4(); port = endp.port(); }
+#endif
 
 			// this is the accumulated amount of
 			// uploaded and downloaded data to this
@@ -141,7 +147,11 @@ namespace libtorrent
 			size_type prev_amount_download;
 
 			// the ip address this peer is or was connected on
+#if TORRENT_USE_IPV6
 			address addr;
+#else
+			address_v4 addr;
+#endif
 
 			// the time when this peer was optimistically unchoked
 			// the last time.
