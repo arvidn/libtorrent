@@ -91,6 +91,7 @@ namespace libtorrent { namespace
 		return address_v4(b);
 	}
 
+#if TORRENT_USE_IPV6
 	address inaddr6_to_address(in6_addr const* ina6)
 	{
 		typedef asio::ip::address_v6::bytes_type bytes_t;
@@ -98,13 +99,16 @@ namespace libtorrent { namespace
 		std::memcpy(&b[0], ina6, b.size());
 		return address_v6(b);
 	}
+#endif
 
 	address sockaddr_to_address(sockaddr const* sin)
 	{
 		if (sin->sa_family == AF_INET)
 			return inaddr_to_address(&((sockaddr_in const*)sin)->sin_addr);
+#if TORRENT_USE_IPV6
 		else if (sin->sa_family == AF_INET6)
 			return inaddr6_to_address(&((sockaddr_in6 const*)sin)->sin6_addr);
+#endif
 		return address();
 	}
 
@@ -192,7 +196,11 @@ namespace libtorrent { namespace
 		if (sa == 0
 			|| rti_info[RTAX_DST] == 0
 			|| rti_info[RTAX_NETMASK] == 0
-			|| (sa->sa_family != AF_INET && sa->sa_family != AF_INET6))
+			|| (sa->sa_family != AF_INET
+#if TORRENT_USE_IPV6
+				&& sa->sa_family != AF_INET6
+#endif
+				))
 			return false;
 
 		rt_info->gateway = sockaddr_to_address(rti_info[RTAX_GATEWAY]);
@@ -209,8 +217,11 @@ namespace libtorrent { namespace
 	{
 		return (sin->sin_len == sizeof(sockaddr_in)
 			&& sin->sin_family == AF_INET)
+#if TORRENT_USE_IPV6
 			|| (sin->sin_len == sizeof(sockaddr_in6)
-				&& sin->sin_family == AF_INET6);
+				&& sin->sin_family == AF_INET6)
+#endif
+			;
 	}
 #endif
 
@@ -274,7 +285,10 @@ namespace libtorrent
 			ifreq const& item = *reinterpret_cast<ifreq*>(ifr);
 
 			if (item.ifr_addr.sa_family == AF_INET
-				|| item.ifr_addr.sa_family == AF_INET6)
+#if TORRENT_USE_IPV6
+				|| item.ifr_addr.sa_family == AF_INET6
+#endif
+				)
 			{
 				ip_interface iface;
 				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
