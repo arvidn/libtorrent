@@ -621,6 +621,10 @@ namespace libtorrent
 		void on_disk_write_complete(int ret, disk_io_job const& j
 			, peer_request r, boost::shared_ptr<torrent> t);
 
+		// keep the io_service running as long as we
+		// have peer connections
+		io_service::work m_work;
+
 		// the time when we last got a part of a
 		// piece packet from this peer
 		ptime m_last_piece;
