@@ -273,7 +273,7 @@ namespace libtorrent
 			// in sparse mode, allow the files to be more recent
 			// than the resume data, but only by 5 minutes
 			if ((compact_mode && (time > s->second + 1 || time < s->second - 1)) ||
-				(!compact_mode && (time > s->second + 5 * 60) || time < s->second - 1))
+				(!compact_mode && (time > s->second + 5 * 60 || time < s->second - 1)))
 			{
 				if (error) *error = "timestamp mismatch for file '"
 					+ i->path.external_file_string()
