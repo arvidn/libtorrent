@@ -86,6 +86,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_USE_IPV6 1
 
+#define TORRENT_USE_MLOCK 1
+
 // should wpath or path be used?
 #if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \
 	&& BOOST_VERSION >= 103400 && !defined __APPLE__
