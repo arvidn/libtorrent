@@ -60,17 +60,12 @@ namespace libtorrent
 			return piece_length();
 	}
 
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
 	void file_storage::set_name(std::wstring const& n)
 	{
 		std::string utf8;
 		wchar_utf8(n, utf8);
 		m_name = utf8;
-	}
-
-	void file_storage::rename_file(int index, std::string const& new_filename)
-	{
-		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
-		m_files[index].path = new_filename;
 	}
 
 	void file_storage::rename_file(int index, std::wstring const& new_filename)
@@ -79,6 +74,20 @@ namespace libtorrent
 		std::string utf8;
 		wchar_utf8(new_filename, utf8);
 		m_files[index].path = utf8;
+	}
+
+	void file_storage::add_file(fs::wpath const& file, size_type size, int flags)
+	{
+		std::string utf8;
+		wchar_utf8(file.string(), utf8);
+		add_file(utf8, size, flags);
+	}
+#endif
+
+	void file_storage::rename_file(int index, std::string const& new_filename)
+	{
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		m_files[index].path = new_filename;
 	}
 
 	file_storage::iterator file_storage::file_at_offset(size_type offset) const
@@ -153,13 +162,6 @@ namespace libtorrent
 		ret.start = int(offset - ret.piece * piece_length());
 		ret.length = size;
 		return ret;
-	}
-
-	void file_storage::add_file(fs::wpath const& file, size_type size, int flags)
-	{
-		std::string utf8;
-		wchar_utf8(file.string(), utf8);
-		add_file(utf8, size, flags);
 	}
 
 	void file_storage::add_file(fs::path const& file, size_type size, int flags)

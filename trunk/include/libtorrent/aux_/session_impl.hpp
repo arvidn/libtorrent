@@ -281,13 +281,16 @@ namespace libtorrent
 			int as_for_ip(address const& a);
 			std::pair<const int, int>* lookup_as(int as);
 			bool load_asnum_db(char const* file);
-			bool load_asnum_db(wchar_t const* file);
 			bool has_asnum_db() const { return m_asnum_db; }
 
 			bool load_country_db(char const* file);
-			bool load_country_db(wchar_t const* file);
 			bool has_country_db() const { return m_country_db; }
 			char const* country_for_ip(address const& a);
+
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+			bool load_asnum_db(wchar_t const* file);
+			bool load_country_db(wchar_t const* file);
+#endif
 #endif
 
 			void load_state(entry const& ses_state);

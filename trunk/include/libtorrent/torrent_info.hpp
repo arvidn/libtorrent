@@ -168,14 +168,18 @@ namespace libtorrent
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
 		torrent_info(fs::path const& filename);
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
 		torrent_info(fs::wpath const& filename);
+#endif
 #endif
 
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(lazy_entry const& torrent_file, error_code& ec);
 		torrent_info(char const* buffer, int size, error_code& ec);
 		torrent_info(fs::path const& filename, error_code& ec);
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
 		torrent_info(fs::wpath const& filename, error_code& ec);
+#endif
 
 		~torrent_info();
 
@@ -188,11 +192,13 @@ namespace libtorrent
 			m_files.rename_file(index, new_filename);
 		}
 
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
 		void rename_file(int index, std::wstring const& new_filename)
 		{
 			copy_on_write();
 			m_files.rename_file(index, new_filename);
 		}
+#endif
 
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }

@@ -97,9 +97,13 @@ namespace libtorrent
 
 		void add_file(file_entry const& e);
 		void add_file(fs::path const& p, size_type size, int flags = 0);
-		void add_file(fs::wpath const& p, size_type size, int flags = 0);
 		void rename_file(int index, std::string const& new_filename);
+
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+		void add_file(fs::wpath const& p, size_type size, int flags = 0);
 		void rename_file(int index, std::wstring const& new_filename);
+		void set_name(std::wstring const& n);
+#endif
 
 		std::vector<file_slice> map_block(int piece, size_type offset
 			, int size) const;
@@ -130,7 +134,6 @@ namespace libtorrent
 		int piece_size(int index) const;
 
 		void set_name(std::string const& n) { m_name = n; }
-		void set_name(std::wstring const& n);
 		const std::string& name() const { TORRENT_ASSERT(m_piece_length > 0); return m_name; }
 
 		void swap(file_storage& ti)

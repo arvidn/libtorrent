@@ -486,9 +486,12 @@ namespace libtorrent
 
 		// post condition: save_path() == save_path if true is returned
 		void move_storage(fs::path const& save_path) const;
-		void move_storage(fs::wpath const& save_path) const;
 		void rename_file(int index, fs::path const& new_name) const;
+
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+		void move_storage(fs::wpath const& save_path) const;
 		void rename_file(int index, fs::wpath const& new_name) const;
+#endif
 
 		bool super_seeding() const;
 		void super_seeding(bool on) const;
