@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #endif
 
-#if !defined TORRENT_DISABLE_MLOCK && !defined TORRENT_WINDOWS
+#if TORRENT_USE_MLOCK && !defined TORRENT_WINDOWS
 #include <sys/mman.h>
 #endif
 
@@ -83,7 +83,7 @@ namespace libtorrent
 #else
 		char* ret = (char*)m_pool.ordered_malloc();
 #endif
-#ifndef TORRENT_DISABLE_MLOCK
+#if TORRENT_USE_MLOCK
 		if (m_settings.lock_disk_cache)
 		{
 #ifdef TORRENT_WINDOWS
@@ -116,7 +116,7 @@ namespace libtorrent
 		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
 		m_buf_to_category.erase(buf);
 #endif
-#ifndef TORRENT_DISABLE_MLOCK
+#if TORRENT_USE_MLOCK
 		if (m_settings.lock_disk_cache)
 		{
 #ifdef TORRENT_WINDOWS
@@ -141,7 +141,7 @@ namespace libtorrent
 #else
 		char* ret = (char*)m_pool.ordered_malloc(num_blocks);
 #endif
-#ifndef TORRENT_DISABLE_MLOCK
+#if TORRENT_USE_MLOCK
 		if (m_settings.lock_disk_cache)
 		{
 #ifdef TORRENT_WINDOWS
@@ -174,7 +174,7 @@ namespace libtorrent
 		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
 		m_buf_to_category.erase(buf);
 #endif
-#ifndef TORRENT_DISABLE_MLOCK
+#if TORRENT_USE_MLOCK
 		if (m_settings.lock_disk_cache)
 		{
 #ifdef TORRENT_WINDOWS
