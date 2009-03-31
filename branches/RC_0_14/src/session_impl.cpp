@@ -1649,6 +1649,7 @@ namespace aux {
 #endif
 				TORRENT_ASSERT(false);
 			}
+			m_io_service.reset();
 		}
 		while (!m_abort);
 
