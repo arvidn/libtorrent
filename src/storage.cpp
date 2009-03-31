@@ -962,7 +962,10 @@ namespace libtorrent
 					set_error(m_save_path / files().name(), ec);
 					ret = false;
 				}
-				recursive_remove(old_path);
+				else
+				{
+					recursive_remove(old_path);
+				}
 			}
 #endif
 		}
