@@ -114,6 +114,8 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 {
 	TORRENT_ASSERT(fs.num_files() > 0);
 	create_directory(test_path / "temp_storage");
+	remove_all(test_path / "temp_storage2");
+	remove_all(test_path / "part0");
 
 	int num_pieces = fs.num_pieces();
 	TEST_CHECK(info->num_pieces() == num_pieces);
@@ -211,6 +213,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	ios.poll(ec);
 
 	TEST_CHECK(!exists(test_path / "temp_storage/test1.tmp"));
+	TEST_CHECK(!exists(test_path / "temp_storage2"));
 	TEST_CHECK(exists(test_path / "part0"));
 
 	// test move_storage with two files in the root directory

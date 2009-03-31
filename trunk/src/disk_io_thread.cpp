@@ -292,14 +292,13 @@ namespace libtorrent
 			}
 			if (i->action == disk_io_job::read)
 			{
-				if (i->callback) m_ios.post(bind(i->callback, -1, *i));
+				post_callback(i->callback, *i, -1);
 				m_jobs.erase(i++);
 				continue;
 			}
 			if (i->action == disk_io_job::check_files)
 			{
-				if (i->callback) m_ios.post(bind(i->callback
-					, piece_manager::disk_check_aborted, *i));
+				post_callback(i->callback, *i, piece_manager::disk_check_aborted);
 				m_jobs.erase(i++);
 				continue;
 			}
@@ -1006,6 +1005,15 @@ namespace libtorrent
 		return false;
 	}
 
+	void disk_io_thread::post_callback(
+		boost::function<void(int, disk_io_job const&)> const& handler
+		, disk_io_job const& j, int ret)
+	{
+		if (!handler) return;
+
+		m_ios.post(bind(handler, ret, j));
+	}
+
 	void disk_io_thread::operator()()
 	{
 		for (;;)
@@ -1103,8 +1111,7 @@ namespace libtorrent
 						}
 						if (i->action == disk_io_job::check_files)
 						{
-							if (i->callback) m_ios.post(bind(i->callback
-									, piece_manager::disk_check_aborted, *i));
+							post_callback(i->callback, *i, piece_manager::disk_check_aborted);
 							m_jobs.erase(i++);
 							continue;
 						}
@@ -1125,14 +1132,13 @@ namespace libtorrent
 					{
 						if (i->action == disk_io_job::read)
 						{
-							if (i->callback) m_ios.post(bind(i->callback, -1, *i));
+							post_callback(i->callback, *i, -1);
 							m_jobs.erase(i++);
 							continue;
 						}
 						if (i->action == disk_io_job::check_files)
 						{
-							if (i->callback) m_ios.post(bind(i->callback
-								, piece_manager::disk_check_aborted, *i));
+							post_callback(i->callback, *i, piece_manager::disk_check_aborted);
 							m_jobs.erase(i++);
 							continue;
 						}
@@ -1314,7 +1320,7 @@ namespace libtorrent
 					m_log << log_time() << " move" << std::endl;
 #endif
 					TORRENT_ASSERT(j.buffer == 0);
-					ret = j.storage->move_storage_impl(j.str) ? 0 : 1;
+					ret = j.storage->move_storage_impl(j.str);
 					if (ret != 0)
 					{
 						test_error(j);
@@ -1438,7 +1444,7 @@ namespace libtorrent
 #endif
 							TORRENT_ASSERT(handler);
 							if (handler && ret == piece_manager::need_full_check)
-								m_ios.post(bind(handler, ret, j));
+								post_callback(handler, j, ret);
 #ifndef BOOST_NO_EXCEPTIONS
 						} catch (std::exception&) {}
 #endif
@@ -1497,7 +1503,7 @@ namespace libtorrent
 #endif
 				TORRENT_ASSERT(ret != -2 || !j.str.empty()
 					|| j.action == disk_io_job::hash);
-				if (handler) m_ios.post(bind(handler, ret, j));
+				post_callback(handler, j, ret);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (std::exception&)
 			{
