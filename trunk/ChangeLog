@@ -56,6 +56,7 @@ release 0.14.3
 	  or checking, to maintain stats and renamed files
 	* Don't try IPv6 on windows if it's not installed
 	* move_storage fix
+	* fixed potential crash on shutdown
 
 release 0.14.2
 
