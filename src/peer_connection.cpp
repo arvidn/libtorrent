@@ -4194,7 +4194,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_ses.has_peer((peer_connection*)this));
 		}
 
-		if (t && !m_disconnecting)
+		if (t && t->valid_metadata() && !m_disconnecting)
 		{
 			boost::optional<piece_block_progress> p = t?downloading_piece_progress():boost::optional<piece_block_progress>();
 			torrent_info const& ti = t->torrent_file();
