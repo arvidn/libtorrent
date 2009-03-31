@@ -386,6 +386,7 @@ namespace libtorrent
 			throw invalid_torrent_file(ec);
 	}
 
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
 	torrent_info::torrent_info(fs::wpath const& filename)
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
@@ -409,6 +410,7 @@ namespace libtorrent
 		if (!parse_torrent_file(e, ec))
 			throw invalid_torrent_file(ec);
 	}
+#endif
 #endif
 
 	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec)
@@ -458,6 +460,7 @@ namespace libtorrent
 		parse_torrent_file(e, ec);
 	}
 
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
 	torrent_info::torrent_info(fs::wpath const& filename, error_code& ec)
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
@@ -479,6 +482,7 @@ namespace libtorrent
 		}
 		parse_torrent_file(e, ec);
 	}
+#endif
 
 	// constructor used for creating new torrents
 	// will not contain any hashes, comments, creation date

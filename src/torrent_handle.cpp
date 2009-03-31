@@ -218,6 +218,7 @@ namespace libtorrent
 		TORRENT_FORWARD(move_storage(save_path));
 	}
 
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
 	void torrent_handle::move_storage(
 		fs::wpath const& save_path) const
 	{
@@ -227,18 +228,19 @@ namespace libtorrent
 		TORRENT_FORWARD(move_storage(utf8));
 	}
 
-	void torrent_handle::rename_file(int index, fs::path const& new_name) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_FORWARD(rename_file(index, new_name.string()));
-	}
-
 	void torrent_handle::rename_file(int index, fs::wpath const& new_name) const
 	{
 		INVARIANT_CHECK;
 		std::string utf8;
 		wchar_utf8(new_name.string(), utf8);
 		TORRENT_FORWARD(rename_file(index, utf8));
+	}
+#endif
+
+	void torrent_handle::rename_file(int index, fs::path const& new_name) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(rename_file(index, new_name.string()));
 	}
 
 	void torrent_handle::add_extension(
