@@ -57,6 +57,7 @@ release 0.14.3
 	* Don't try IPv6 on windows if it's not installed
 	* move_storage fix
 	* fixed potential crash on shutdown
+	* fixed leaking exception from bdecode on malformed input
 
 release 0.14.2
 

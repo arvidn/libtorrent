@@ -69,7 +69,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/lexical_cast.hpp>
 #include <boost/static_assert.hpp>
 
 #ifdef _MSC_VER
@@ -246,10 +245,20 @@ namespace libtorrent
 				TORRENT_ASSERT(*in == 'e');
 				++in; // 'e' 
 				ret = entry(entry::int_t);
-				ret.integer() = boost::lexical_cast<entry::integer_type>(val);
+				char* end_pointer;
+#ifdef TORRENT_WINDOWS
+				ret.integer() = _strtoi64(val.c_str(), &end_pointer, 10);
+#else
+				ret.integer() = strtoll(val.c_str(), &end_pointer, 10);
+#endif
 #ifdef TORRENT_DEBUG
 				ret.m_type_queried = false;
 #endif
+				if (end_pointer == val.c_str())
+				{
+					err = true;
+					return;
+				}
 				} break;
 
 			// ----------------------------------------------
