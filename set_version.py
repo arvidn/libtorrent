@@ -7,20 +7,22 @@ def substitute_file(name):
 	subst = ''
 	f = open(name)
 	for l in f:
-		if '#define LIBTORRENT_VERSION_MAJOR' in l:
+		if '#define LIBTORRENT_VERSION_MAJOR' in l and filename.endiswith('.hpp'):
 			l = '#define LIBTORRENT_VERSION_MAJOR %d\n' % version[0]
-		elif '#define LIBTORRENT_VERSION_MINOR' in l:
+		elif '#define LIBTORRENT_VERSION_MINOR' in l and filename.endiswith('.hpp'):
 			l = '#define LIBTORRENT_VERSION_MINOR %d\n' % version[1]
-		if '#define LIBTORRENT_VERSION_TINY' in l:
+		if '#define LIBTORRENT_VERSION_TINY' in l and filename.endiswith('.hpp'):
 			l = '#define LIBTORRENT_VERSION_TINY %d\n' % version[2]
-		elif '#define LIBTORRENT_VERSION' in l:
+		elif '#define LIBTORRENT_VERSION' in l and filename.endiswith('.hpp'):
 			l = '#define LIBTORRENT_VERSION "%d.%d.%d.%d"\n' % (version[0], version[1], version[2], version[3])
-		elif 'AC_INIT([libtorrent-rasterbar]' in l:
+		elif 'AC_INIT([libtorrent-rasterbar]' in l and filename.endiswith('.in'):
 			l = 'AC_INIT([libtorrent-rasterbar], [%d.%d.%d], [arvid@cs.umu.se])\n' % (version[0], version[1], version[2])
-		elif 'set (VERSION ' in l:
+		elif 'set (VERSION ' in l and filename.endiswith('.in'):
 			l = 'set (VERSION "%d.%d.%d")\n' % (version[0], version[1], version[2])
-		elif ':Version: ' in l:
+		elif ':Version: ' in l and filename.endiswith('.rst'):
 			l = ':Version: %d.%d.%d\n' % (version[0], version[1], version[2])
+		elif 'VERSION = ' in l and filename.endiswith('Jamfile'):
+			l = 'VERSION = %d.%d.%d ;\n' % (version[0], version[1], version[2])
 
 		subst += l
 
