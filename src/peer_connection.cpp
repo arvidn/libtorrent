@@ -4039,6 +4039,16 @@ namespace libtorrent
 			bind_interface.port(m_ses.next_port());
 		}
 
+		// if we're not binding to a specific interface, bind
+		// to the same protocol family as the target endpoint
+		if (is_any(bind_interface.address()))
+		{
+			if (m_remote.address().is_v4())
+				bind_interface.address(address_v4::any());
+			else
+				bind_interface.address(address_v6::any());
+		}
+
 		m_socket->bind(bind_interface, ec);
 		if (ec)
 		{
