@@ -1841,7 +1841,7 @@ namespace libtorrent
 		i.begin += msg.size();
 		TORRENT_ASSERT(i.begin == i.end);
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING && TORRENT_USE_IOSTREAM
 		std::stringstream ext;
 		handshake.print(ext);
 		(*m_logger) << "==> EXTENDED HANDSHAKE: \n" << ext.str();

@@ -109,7 +109,9 @@ int test_main()
 		lazy_entry e;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
 		TORRENT_ASSERT(ret == 0);
+#if TORRENT_USE_IOSTREAM
 		std::cout << e << std::endl;
+#endif
 		std::pair<const char*, int> section = e.data_section();
 		TORRENT_ASSERT(std::memcmp(b, section.first, section.second) == 0);
 		TORRENT_ASSERT(section.second == sizeof(b) - 1);
@@ -122,7 +124,9 @@ int test_main()
 		lazy_entry e;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
 		TORRENT_ASSERT(ret == 0);
+#if TORRENT_USE_IOSTREAM
 		std::cout << e << std::endl;
+#endif
 		std::pair<const char*, int> section = e.data_section();
 		TORRENT_ASSERT(std::memcmp(b, section.first, section.second) == 0);
 		TORRENT_ASSERT(section.second == sizeof(b) - 1);
@@ -136,7 +140,9 @@ int test_main()
 		lazy_entry e;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
 		TORRENT_ASSERT(ret == 0);
+#if TORRENT_USE_IOSTREAM
 		std::cout << e << std::endl;
+#endif
 		std::pair<const char*, int> section = e.data_section();
 		TORRENT_ASSERT(std::memcmp(b, section.first, section.second) == 0);
 		TORRENT_ASSERT(section.second == sizeof(b) - 1);
@@ -157,7 +163,9 @@ int test_main()
 		lazy_entry e;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
 		TORRENT_ASSERT(ret == 0);
+#if TORRENT_USE_IOSTREAM
 		std::cout << e << std::endl;
+#endif
 		std::pair<const char*, int> section = e.data_section();
 		TORRENT_ASSERT(std::memcmp(b, section.first, section.second) == 0);
 		TORRENT_ASSERT(section.second == sizeof(b) - 1);
