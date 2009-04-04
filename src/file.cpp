@@ -492,13 +492,17 @@ namespace libtorrent
 		}
 		CloseHandle(ol.hEvent);
 		return ret;
-#else
+
+#else // TORRENT_WINDOWS
+
 		size_type ret = lseek(m_fd, file_offset, SEEK_SET);
 		if (ret < 0)
 		{
 			ec = error_code(errno, get_posix_category());
 			return -1;
 		}
+#if TORRENT_USE_READV
+
 #ifdef TORRENT_LINUX
 		bool aligned = false;
 		int size = 0;
@@ -510,7 +514,7 @@ namespace libtorrent
 			if (size & (size_alignment()-1) == 0) aligned = true;
 		}
 		if (aligned)
-#endif
+#endif // TORRENT_LINUX
 		{
 			ret = ::readv(m_fd, bufs, num_bufs);
 			if (ret < 0)
@@ -532,8 +536,27 @@ namespace libtorrent
 			return -1;
 		}
 		return (std::min)(ret, size_type(size));
-#endif
-#endif
+#endif // TORRENT_LINUX
+
+#else // TORRENT_USE_READV
+
+		ret = 0;
+		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
+		{
+			int tmp = read(m_fd, i->iov_base, i->iov_len);
+			if (tmp < 0)
+			{
+				ec = error_code(errno, get_posix_category());
+				return -1;
+			}
+			ret += tmp;
+			if (tmp < i->iov_len) break;
+		}
+		return ret;
+
+#endif // TORRENT_USE_READV
+
+#endif // TORRENT_WINDOWS
 	}
 
 	size_type file::writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec)
@@ -705,6 +728,9 @@ namespace libtorrent
 			ec = error_code(errno, get_posix_category());
 			return -1;
 		}
+
+#if TORRENT_USE_WRITEV
+
 #ifdef TORRENT_LINUX
 		bool aligned = false;
 		int size = 0;
@@ -743,8 +769,27 @@ namespace libtorrent
 			return -1;
 		}
 		return (std::min)(ret, size_type(size));
-#endif
-#endif
+#endif // TORRENT_LINUX
+
+#else // TORRENT_USE_WRITEV
+
+		ret = 0;
+		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
+		{
+			int tmp = write(m_fd, i->iov_base, i->iov_len);
+			if (tmp < 0)
+			{
+				ec = error_code(errno, get_posix_category());
+				return -1;
+			}
+			ret += tmp;
+			if (tmp < i->iov_len) break;
+		}
+		return ret;
+
+#endif // TORRENT_USE_WRITEV
+
+#endif // TORRENT_WINDOWS
 	}
 
   	bool file::set_size(size_type s, error_code& ec)

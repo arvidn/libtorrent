@@ -85,8 +85,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #define TORRENT_USE_IPV6 1
-
 #define TORRENT_USE_MLOCK 1
+#define TORRENT_USE_READV 1
+#define TORRENT_USE_WRITEV 1
 
 // should wpath or path be used?
 #if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \
