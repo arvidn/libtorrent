@@ -856,8 +856,8 @@ namespace libtorrent
 					&& p.piece == ti.num_pieces()-1
 					&& p.start + p.length == ti.piece_size(p.piece))
 				|| (m_request_large_blocks
-					&& p.length <= ti.piece_length() * m_prefer_whole_pieces == 0 ?
-					1 : m_prefer_whole_pieces))
+					&& p.length <= ti.piece_length() * (m_prefer_whole_pieces == 0 ?
+					1 : m_prefer_whole_pieces)))
 			&& p.piece * size_type(ti.piece_length()) + p.start + p.length
 				<= ti.total_size()
 			&& (p.start % t->block_size() == 0);
@@ -2645,18 +2645,15 @@ namespace libtorrent
 			for (extension_list_t::iterator i = m_extensions.begin()
 				, end(m_extensions.end()); i != end; ++i)
 			{
-				if (handled = (*i)->write_request(r)) break;
+				if ((handled = (*i)->write_request(r))) break;
 			}
 			if (is_disconnecting()) return;
 			if (!handled)
+#endif
 			{
 				write_request(r);
 				m_last_request = time_now();
 			}
-#else
-			write_request(r);
-			m_last_request = time_now();
-#endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << time_now_string()
