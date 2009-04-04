@@ -289,7 +289,9 @@ public:
 private:
 
 	detail::filter_impl<address_v4::bytes_type> m_filter4;
+#if TORRENT_USE_IPV6
 	detail::filter_impl<address_v6::bytes_type> m_filter6;
+#endif
 };
 
 class TORRENT_EXPORT port_filter

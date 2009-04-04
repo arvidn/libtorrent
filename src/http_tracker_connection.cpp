@@ -422,6 +422,7 @@ namespace libtorrent
 			peers_ent = 0;
 		}
 
+#if TORRENT_USE_IPV6
 		entry const* ipv6_peers = e.find_key("peers6");
 		if (ipv6_peers && ipv6_peers->type() == entry::string_t)
 		{
@@ -444,6 +445,9 @@ namespace libtorrent
 		{
 			ipv6_peers = 0;
 		}
+#else
+		entry const* ipv6_peers = 0;
+#endif
 
 		if (peers_ent == 0 && ipv6_peers == 0)
 		{
@@ -464,8 +468,10 @@ namespace libtorrent
 			char const* p = &ip[0];
 			if (ip.size() == address_v4::bytes_type::static_size)
 				external_ip = detail::read_v4_address(p);
+#if TORRENT_USE_IPV6
 			else if (ip.size() == address_v6::bytes_type::static_size)
 				external_ip = detail::read_v6_address(p);
+#endif
 		}
 		
 		entry const* complete_ent = e.find_key("complete");

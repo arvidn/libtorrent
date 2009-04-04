@@ -144,39 +144,18 @@ namespace libtorrent
 		}
 		return ret;
 	}
-/*
-	inline std::ostream& print_address(std::ostream& os, address const& addr)
-	{
-		error_code ec;
-		std::string a = addr.to_string(ec);
-		if (ec) return os;
-		os << a;
-		return os;
-	}
 
-	inline std::ostream& print_endpoint(std::ostream& os, tcp::endpoint const& ep)
-	{
-		address const& addr = ep.address();
-		error_code ec;
-		std::string a = addr.to_string(ec);
-		if (ec) return os;
-
-		if (addr.is_v6())
-			os << "[" << a << "]:";
-		else
-			os << a << ":";
-		os << ep.port();
-		return os;
-	}
-*/
 	namespace detail
 	{
 		template<class OutIt>
 		void write_address(address const& a, OutIt& out)
 		{
+#if TORRENT_USE_IPV6
 			if (a.is_v4())
 			{
+#endif
 				write_uint32(a.to_v4().to_ulong(), out);
+#if TORRENT_USE_IPV6
 			}
 			else if (a.is_v6())
 			{
@@ -184,6 +163,7 @@ namespace libtorrent
 					= a.to_v6().to_bytes();
 				std::copy(bytes.begin(), bytes.end(), out);
 			}
+#endif
 		}
 
 		template<class InIt>
@@ -193,6 +173,7 @@ namespace libtorrent
 			return address_v4(ip);
 		}
 
+#if TORRENT_USE_IPV6
 		template<class InIt>
 		address read_v6_address(InIt& in)
 		{
@@ -203,6 +184,7 @@ namespace libtorrent
 				*i = read_uint8(in);
 			return address_v6(bytes);
 		}
+#endif
 
 		template<class Endpoint, class OutIt>
 		void write_endpoint(Endpoint const& e, OutIt& out)
@@ -219,6 +201,7 @@ namespace libtorrent
 			return Endpoint(addr, port);
 		}
 
+#if TORRENT_USE_IPV6
 		template<class Endpoint, class InIt>
 		Endpoint read_v6_endpoint(InIt& in)
 		{
@@ -226,8 +209,10 @@ namespace libtorrent
 			int port = read_uint16(in);
 			return Endpoint(addr, port);
 		}
+#endif
 	}
 
+#if TORRENT_USE_IPV6
 	struct v6only
 	{
 		v6only(bool enable): m_value(enable) {}
@@ -241,6 +226,7 @@ namespace libtorrent
 		size_t size(Protocol const&) const { return sizeof(m_value); }
 		int m_value;
 	};
+#endif
 	
 #ifdef TORRENT_WINDOWS
 

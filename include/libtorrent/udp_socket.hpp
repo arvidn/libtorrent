@@ -54,7 +54,14 @@ namespace libtorrent
 		udp_socket(io_service& ios, callback_t const& c, connection_queue& cc);
 		~udp_socket();
 
-		bool is_open() const { return m_ipv4_sock.is_open() || m_ipv6_sock.is_open(); }
+		bool is_open() const
+		{
+			return m_ipv4_sock.is_open()
+#if TORRENT_USE_IPV6
+				|| m_ipv6_sock.is_open()
+#endif
+				;
+		}
 		io_service& get_io_service() { return m_ipv4_sock.get_io_service(); }
 
 		void send(udp::endpoint const& ep, char const* p, int len, error_code& ec);
@@ -92,11 +99,15 @@ namespace libtorrent
 		mutable mutex_t m_mutex;
 
 		udp::socket m_ipv4_sock;
-		udp::socket m_ipv6_sock;
 		udp::endpoint m_v4_ep;
-		udp::endpoint m_v6_ep;
 		char m_v4_buf[1600];
+
+#if TORRENT_USE_IPV6
+		udp::socket m_ipv6_sock;
+		udp::endpoint m_v6_ep;
 		char m_v6_buf[1600];
+#endif
+
 		int m_bind_port;
 		char m_outstanding;
 
