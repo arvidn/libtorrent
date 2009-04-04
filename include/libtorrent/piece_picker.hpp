@@ -320,7 +320,7 @@ namespace libtorrent
 		void verify_pick(std::vector<piece_block> const& picked
 			, bitfield const& bits) const;
 #endif
-#if defined TORRENT_PICKER_LOG || defined TORRENT_DEBUG
+#if defined TORRENT_PICKER_LOG
 		void print_pieces() const;
 #endif
 
