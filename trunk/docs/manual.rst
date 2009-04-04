@@ -476,6 +476,9 @@ number of uploads is at least one per torrent.
 
 ``max_connections()`` returns the current setting.
 
+The number of unchoke slots may be ignored. In order to make this setting
+take effect, disable ``session_settings::auto_upload_slots_rate_based``.
+
 
 num_uploads() num_connections()
 -------------------------------
@@ -3306,6 +3309,7 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool upnp_ignore_nonrouters;
 		int send_buffer_watermark;
 		bool auto_upload_slots;
+		bool auto_upload_slots_rate_based;
 		bool use_parole_mode;
 		int cache_size;
 		int cache_expiry;
@@ -3529,6 +3533,11 @@ slot is opened. If the upload rate has been saturated for an extended period
 of time, on upload slot is closed. The number of upload slots will never be
 less than what has been set by ``session::set_max_uploads()``. To query the
 current number of upload slots, see ``session_status::allowed_upload_slots``.
+
+When ``auto_upload_slots_rate_based`` is set, and ``auto_upload_slots`` is set,
+the max upload slots setting is ignored and decided completely automatically.
+This algorithm is designed to prevent the peer from spreading its upload
+capacity too thin.
 
 ``use_parole_mode`` specifies if parole mode should be used. Parole mode means
 that peers that participate in pieces that fail the hash check are put in a mode

@@ -90,6 +90,7 @@ namespace libtorrent
 	class natpmp;
 	class lsd;
 	class fingerprint;
+	class torrent;
 
 	namespace dht
 	{
@@ -519,6 +520,10 @@ namespace libtorrent
 			void recalculate_optimistic_unchoke_slot();
 
 			ptime m_last_tick;
+
+			// the last time we went through the peers
+			// to decide which ones to choke/unchoke
+			ptime m_last_choke;
 
 			// when outgoing_ports is configured, this is the
 			// port we'll bind the next outgoing socket to

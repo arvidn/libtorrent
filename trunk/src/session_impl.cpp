@@ -180,6 +180,7 @@ namespace aux {
 		, m_auto_scrape_time_scaler(180)
 		, m_incoming_connection(false)
 		, m_last_tick(time_now())
+		, m_last_choke(m_last_tick)
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
@@ -1644,6 +1645,12 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 
+		ptime now = time_now();
+		time_duration unchoke_interval = now - m_last_choke;
+		m_last_choke = now;
+
+		// build list of all peers that are
+		// unchoke:able.
 		std::vector<peer_connection*> peers;
 		for (connection_map::iterator i = m_connections.begin();
 			i != m_connections.end();)
@@ -1652,29 +1659,54 @@ namespace aux {
 			TORRENT_ASSERT(p);
 			++i;
 			torrent* t = p->associated_torrent().lock().get();
-			if (!p->peer_info_struct()
-				|| t == 0
-				|| !p->is_peer_interested()
+			policy::peer* pi = p->peer_info_struct();
+			if (p->ignore_unchoke_slots() || t == 0 || pi == 0) continue;
+
+			if (!p->is_peer_interested()
 				|| p->is_disconnecting()
 				|| p->is_connecting()
-				|| p->ignore_unchoke_slots()
 				|| (p->share_diff() < -free_upload_amount
 					&& !t->is_seed()))
 			{
-				if (!p->is_choked() && t && !p->ignore_unchoke_slots())
+				// this peer is not unchokable. So, if it's unchoked
+				// already, make sure to choke it.
+				if (p->is_choked()) continue;
+				if (pi && pi->optimistically_unchoked)
 				{
-					policy::peer* pi = p->peer_info_struct();
-					if (pi && pi->optimistically_unchoked)
-					{
-						pi->optimistically_unchoked = false;
-						// force a new optimistic unchoke
-						m_optimistic_unchoke_time_scaler = 0;
-					}
-					t->choke_peer(*p);
+					pi->optimistically_unchoked = false;
+					// force a new optimistic unchoke
+					m_optimistic_unchoke_time_scaler = 0;
 				}
-				continue;
+				t->choke_peer(*p);
 			}
 			peers.push_back(p.get());
+		}
+
+		// if the client is configured to use fully automatic
+		// unchoke slots, ignore m_max_uploads
+		if (m_settings.auto_upload_slots_rate_based
+			&& m_settings.auto_upload_slots)
+		{
+			m_allowed_upload_slots = 0;
+			std::sort(peers.begin(), peers.end()
+				, bind(&peer_connection::upload_rate_compare, _1, _2));
+
+			// TODO: make configurable
+			int rate_threshold = 1024;
+
+			for (std::vector<peer_connection*>::const_iterator i = peers.begin()
+				, end(peers.end()); i != end; ++i)
+			{
+				peer_connection const& p = **i;
+				int rate = p.uploaded_since_unchoke()
+					* 1000 / total_milliseconds(unchoke_interval);
+				if (rate > rate_threshold) ++m_allowed_upload_slots;
+
+				// TODO: make configurable
+				rate_threshold += 1024;
+			}
+			// allow one optimistic unchoke
+			++m_allowed_upload_slots;
 		}
 
 		// sorts the peers that are eligible for unchoke by download rate and secondary
@@ -1689,7 +1721,9 @@ namespace aux {
 
 		// auto unchoke
 		int upload_limit = m_bandwidth_manager[peer_connection::upload_channel]->throttle();
-		if (m_settings.auto_upload_slots && upload_limit != bandwidth_limit::inf)
+		if (!m_settings.auto_upload_slots_rate_based
+			&& m_settings.auto_upload_slots
+			&& upload_limit != bandwidth_limit::inf)
 		{
 			// if our current upload rate is less than 90% of our 
 			// limit AND most torrents are not "congested", i.e.
@@ -1720,11 +1754,12 @@ namespace aux {
 		{
 			peer_connection* p = *i;
 			TORRENT_ASSERT(p);
-			if (p->ignore_unchoke_slots()) continue;
+			TORRENT_ASSERT(!p->ignore_unchoke_slots());
 			torrent* t = p->associated_torrent().lock().get();
 			TORRENT_ASSERT(t);
 			if (unchoke_set_size > 0)
 			{
+				// yes, this peer should be unchoked
 				if (p->is_choked())
 				{
 					if (!t->unchoke_peer(*p))
@@ -1746,6 +1781,7 @@ namespace aux {
 			}
 			else
 			{
+				// no, this peer should be shoked
 				TORRENT_ASSERT(p->peer_info_struct());
 				if (!p->is_choked() && !p->peer_info_struct()->optimistically_unchoked)
 					t->choke_peer(*p);
@@ -2749,7 +2785,8 @@ namespace aux {
 		std::set<peer_connection*> unique_peers;
 		TORRENT_ASSERT(m_max_connections > 0);
 		TORRENT_ASSERT(m_max_uploads > 0);
-		TORRENT_ASSERT(m_allowed_upload_slots >= m_max_uploads);
+		if (!m_settings.auto_upload_slots_rate_based || !m_settings.auto_upload_slots)
+			TORRENT_ASSERT(m_allowed_upload_slots >= m_max_uploads);
 		int unchokes = 0;
 		int num_optimistic = 0;
 		for (connection_map::const_iterator i = m_connections.begin();

@@ -713,6 +713,7 @@ int main(int argc, char* argv[])
 	proxy_settings ps;
 
 	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
+	settings.auto_upload_slots_rate_based = true;
 	settings.announce_to_all_trackers = true;
 
 	std::deque<std::string> events;

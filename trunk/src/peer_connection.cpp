@@ -336,6 +336,17 @@ namespace libtorrent
 		return m_last_unchoke < rhs.m_last_unchoke;
 	}
 
+	bool peer_connection::upload_rate_compare(peer_connection const* p) const
+	{
+		size_type c1;
+		size_type c2;
+
+		c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
+		c2 = p->m_statistics.total_payload_upload() - p->m_uploaded_at_last_unchoke;
+		
+		return c1 > c2;
+	}
+
 	void peer_connection::reset_choke_counters()
 	{
 		m_downloaded_at_last_unchoke = m_statistics.total_payload_download();
