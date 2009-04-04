@@ -52,6 +52,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/peer_connection.hpp"
 
+#if TORRENT_USE_IOSTREAM
+
 namespace libtorrent {
 
 namespace fs = boost::filesystem;
@@ -229,4 +231,5 @@ namespace libtorrent
 
 }
 
+#endif
 

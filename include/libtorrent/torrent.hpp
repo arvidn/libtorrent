@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <set>
 #include <list>
-#include <iostream>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -203,9 +202,6 @@ namespace libtorrent
 		int queue_position() const { return m_sequence_number; }
 
 		void second_tick(stat& accumulator, float tick_interval);
-
-		// debug purpose only
-		void print(std::ostream& os) const;
 
 		std::string name() const;
 

@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/ip_filter.hpp"
 #include <boost/utility.hpp>
-//#include <iostream>
 
 
 namespace libtorrent

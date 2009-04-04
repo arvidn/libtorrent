@@ -33,9 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <ctime>
+
+#if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
 #include <iostream>
-#include <fstream>
 #include <iomanip>
+#endif
+
 #include <iterator>
 #include <algorithm>
 #include <set>
@@ -903,7 +906,7 @@ namespace libtorrent
 			< bind(&announce_entry::tier, _2));
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+#if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
 // ------- start deprecation -------
 
 	void torrent_info::print(std::ostream& os) const

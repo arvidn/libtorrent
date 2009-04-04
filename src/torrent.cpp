@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <ctime>
-#include <fstream>
-#include <iomanip>
 #include <iterator>
 #include <algorithm>
 #include <set>
@@ -78,6 +76,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/broadcast_socket.hpp"
+
+#if TORRENT_USE_IOSTREAM
+#include <iostream>
+#endif
 
 using namespace libtorrent;
 using boost::tuples::tuple;
@@ -1166,7 +1168,7 @@ namespace libtorrent
 		if (complete >= 0 && incomplete >= 0)
 			m_last_scrape = now;
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING) && TORRENT_USE_IOSTREAM
 		std::stringstream s;
 		s << "TRACKER RESPONSE:\n"
 			"interval: " << interval << "\n"
@@ -2783,10 +2785,10 @@ namespace libtorrent
 		{
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
-				std::stringstream msg;
-				msg << "HTTP seed hostname lookup failed: " << e.message();
+				char msg[200];
+				snprintf(msg, 200, "HTTP seed hostname lookup failed: %s", e.message().c_str());
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, msg.str()));
+					url_seed_alert(get_handle(), web.url, msg));
 			}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << web.url << "\n";

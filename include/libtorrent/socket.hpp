@@ -74,6 +74,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/escape_string.hpp" // for to_string
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -114,6 +115,36 @@ namespace libtorrent
 	typedef boost::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 #endif
 	
+	inline std::string print_address(address const& addr)
+	{
+		error_code ec;
+		return addr.to_string(ec);
+	}
+
+	inline std::string print_endpoint(tcp::endpoint const& ep)
+	{
+		error_code ec;
+		std::string ret;
+		address const& addr = ep.address();
+#if TORRENT_USE_IPV6
+		if (addr.is_v6())
+		{
+			ret += '[';
+			ret += addr.to_string(ec);
+			ret += ']';
+			ret += ':';
+			ret += to_string(ep.port()).elems;
+		}
+		else
+#endif
+		{
+			ret += addr.to_string(ec);
+			ret += ':';
+			ret += to_string(ep.port()).elems;
+		}
+		return ret;
+	}
+/*
 	inline std::ostream& print_address(std::ostream& os, address const& addr)
 	{
 		error_code ec;
@@ -137,7 +168,7 @@ namespace libtorrent
 		os << ep.port();
 		return os;
 	}
-
+*/
 	namespace detail
 	{
 		template<class OutIt>

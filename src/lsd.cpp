@@ -83,17 +83,19 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 {
 	if (m_disabled) return;
 
-	std::stringstream btsearch;
-	btsearch << "BT-SEARCH * HTTP/1.1\r\n"
+	char ih_hex[41];
+	to_hex((char const*)&ih[0], 20, ih_hex);
+	char msg[200];
+	int msg_len = snprintf(msg, 200,
+		"BT-SEARCH * HTTP/1.1\r\n"
 		"Host: 239.192.152.143:6771\r\n"
-		"Port: " << to_string(listen_port).elems << "\r\n"
-		"Infohash: " << ih << "\r\n"
-		"\r\n\r\n";
-	std::string const& msg = btsearch.str();
+		"Port: %d\r\n"
+		"Infohash: %s\r\n"
+		"\r\n\r\n", listen_port, ih_hex);
 
 	m_retry_count = 1;
 	error_code ec;
-	m_socket.send(msg.c_str(), int(msg.size()), ec);
+	m_socket.send(msg, msg_len, ec);
 	if (ec)
 	{
 		m_disabled = true;
@@ -101,8 +103,9 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	}
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string()
-		<< " ==> announce: ih: " << ih << " port: " << to_string(listen_port).elems << std::endl;
+	snprintf(msg, 200, "%s ==> announce: ih: %s port: %u\n"
+		, time_now_string(), ih_hex, listen_port);
+	m_log << msg;
 #endif
 
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
@@ -174,16 +177,16 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	}
 
 	sha1_hash ih(0);
-	std::istringstream ih_sstr(ih_str);
-	ih_sstr >> ih;
+	from_hex(ih_str.c_str(), 40, (char*)&ih[0]);
 	int port = std::atoi(port_str.c_str());
 
 	if (!ih.is_all_zeros() && port != 0)
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		m_log << time_now_string()
-			<< " *** incoming local announce " << from.address()
-			<< ":" << to_string(port).elems << " ih: " << ih << std::endl;
+		char msg[200];
+		snprintf(msg, 200, "%s *** incoming local announce %s:%d ih: %s\n"
+			, time_now_string(), print_address(from.address()).c_str()
+			, port, ih_str.c_str());
 #endif
 		// we got an announce, pass it on through the callback
 #ifndef BOOST_NO_EXCEPTIONS
