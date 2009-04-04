@@ -465,7 +465,7 @@ lib torrent
 	<threading>multi
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<dht-support>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-	<dht-support>logging:<source>src/$(KADEMLIA_SOURCES).cpp
+	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<zlib>shipped:<source>zlib/$(ZLIB_SOURCES).c
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
