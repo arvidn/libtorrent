@@ -893,7 +893,9 @@ namespace libtorrent { namespace dht
 				ret["nodes"] = nodes;
 		}
 
-		ret["node-id"] = boost::lexical_cast<std::string>(m_dht.nid());
+		char node_id[41];
+		to_hex((char*)&m_dht.nid()[0], 20, node_id);
+		ret["node-id"] = node_id;
 		return ret;
 	}
 

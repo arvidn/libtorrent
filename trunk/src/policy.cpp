@@ -32,8 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
-#include <iostream>
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -834,9 +832,12 @@ namespace libtorrent
 				// it again.
 
 				error_code ec;
-				m_torrent->debug_log("already connected to peer: " + remote.address().to_string(ec) + ":"
-					+ boost::lexical_cast<std::string>(remote.port()) + " "
-					+ boost::lexical_cast<std::string>(i->second.connection->pid()));
+				char hex_pid[41];
+				to_hex((char*)&i->second.connection->pid()[0], 20, hex_pid);
+				char msg[200];
+				snprintf(msg, 200, "already connected to peer: %s %s"
+					, print_endpoint(remote).c_str(), hex_pid);
+				m_torrent->debug_log(msg);
 
 				TORRENT_ASSERT(i->second.connection->associated_torrent().lock().get() == m_torrent);
 			}

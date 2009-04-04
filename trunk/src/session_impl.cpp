@@ -672,10 +672,10 @@ namespace aux {
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(ep, ec));
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			std::stringstream msg;
-			msg << "cannot bind to interface '";
-			print_endpoint(msg, ep) << "' " << ec.message();
-			(*m_logger) << msg.str() << "\n";
+			char msg[200];
+			snprintf(msg, 200, "cannot bind to interface \"%s\": %s"
+				, print_endpoint(ep).c_str(), ec.message().c_str());
+			(*m_logger) << msg << "\n";
 #endif
 			return listen_socket_t();
 		}
@@ -686,10 +686,10 @@ namespace aux {
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(ep, ec));
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			std::stringstream msg;
-			msg << "cannot listen on interface '";
-			print_endpoint(msg, ep) << "' " << ec.message();
-			(*m_logger) << msg.str() << "\n";
+			char msg[200];
+			snprintf(msg, 200, "cannot listen on interface \"%s\": %s"
+				, print_endpoint(ep).c_str(), ec.message().c_str());
+			(*m_logger) << msg << "\n";
 #endif
 			return listen_socket_t();
 		}

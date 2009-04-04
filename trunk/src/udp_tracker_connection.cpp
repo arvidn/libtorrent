@@ -33,10 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <iostream>
 #include <cctype>
-#include <iomanip>
-#include <sstream>
 
 #include "zlib.h"
 
@@ -45,11 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/bind.hpp>
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-#include <boost/lexical_cast.hpp>
-using boost::lexical_cast;
-#endif
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -195,9 +187,9 @@ namespace libtorrent
 	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
-		std::stringstream msg;
-		msg << "*** UDP_TRACKER [ timed out url: " << tracker_req().url << " ]";
-		if (cb) cb->debug_log(msg.str().c_str());
+		char msg[200];
+		snprintf(msg, 200, "*** UDP_TRACKER [ timed out url: %s ]", tracker_req().url.c_str());
+		if (cb) cb->debug_log(msg);
 #endif
 		m_socket.close();
 		m_name_lookup.cancel();
@@ -230,9 +222,9 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
-			std::stringstream msg;
-			msg << "<== UDP_TRACKER_PACKET [ size: " << size << " ]";
-			cb->debug_log(msg.str());
+			char msg[200];
+			snprintf(msg, 200, "<== UDP_TRACKER_PACKET [ size: %d ]", size);
+			cb->debug_log(msg);
 		}
 #endif
 
@@ -248,9 +240,9 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb)
 		{
-			std::stringstream msg;
-			msg << "*** UDP_TRACKER_PACKET [ acton: " << action << " ]";
-			cb->debug_log(msg.str());
+			char msg[200];
+			snprintf(msg, 200, "*** UDP_TRACKER_PACKET [ action: %d ]", action);
+			cb->debug_log(msg);
 		}
 #endif
 
@@ -269,9 +261,10 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb)
 		{
-			std::stringstream msg;
-			msg << "*** UDP_TRACKER_RESPONSE [ cid: " << m_connection_id << " ]";
-			cb->debug_log(msg.str());
+			char msg[200];
+			snprintf(msg, 200, "*** UDP_TRACKER_RESPONSE [ cid: %x%x ]"
+				, int(m_connection_id >> 32), int(m_connection_id & 0xffffffff));
+			cb->debug_log(msg);
 		}
 #endif
 
@@ -315,8 +308,11 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
-			cb->debug_log("==> UDP_TRACKER_CONNECT ["
-				+ lexical_cast<std::string>(tracker_req().info_hash) + "]");
+			char hex_ih[41];
+			to_hex((char const*)&tracker_req().info_hash[0], 20, hex_ih);
+			char msg[200];
+			snprintf(msg, 200, "==> UDP_TRACKER_CONNECT [%s]", hex_ih);
+			cb->debug_log(msg);
 		}
 #endif
 		if (!m_socket.is_open()) return; // the operation was aborted
@@ -398,9 +394,9 @@ namespace libtorrent
 		if (cb)
 		{
 			boost::shared_ptr<request_callback> cb = requester();
-			std::stringstream msg;
-			msg << "<== UDP_ANNOUNCE_RESPONSE [ url: " << tracker_req().url << " ]";
-			cb->debug_log(msg.str().c_str());
+			char msg[200];
+			snprintf(msg, 200, "<== UDP_TRACKER_RESPONSE [ url: %s ]", tracker_req().url.c_str());
+			cb->debug_log(msg);
 		}
 #endif
 
@@ -415,12 +411,13 @@ namespace libtorrent
 		{
 			// TODO: don't use a string here
 			peer_entry e;
-			std::stringstream s;
-			s << (int)detail::read_uint8(buf) << ".";
-			s << (int)detail::read_uint8(buf) << ".";
-			s << (int)detail::read_uint8(buf) << ".";
-			s << (int)detail::read_uint8(buf);
-			e.ip = s.str();
+			char ip_string[100];
+			unsigned int a = detail::read_uint8(buf);
+			unsigned int b = detail::read_uint8(buf);
+			unsigned int c = detail::read_uint8(buf);
+			unsigned int d = detail::read_uint8(buf);
+			snprintf(ip_string, 100, "%u.%u.%u.%u", a, b, c, d);
+			e.ip = ip_string;
 			e.port = detail::read_uint16(buf);
 			e.pid.clear();
 			peer_list.push_back(e);
@@ -521,11 +518,11 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
-		if (cb)
-		{
-			cb->debug_log("==> UDP_TRACKER_ANNOUNCE ["
-				+ lexical_cast<std::string>(req.info_hash) + "]");
-		}
+		char hex_ih[41];
+		to_hex((char const*)&req.info_hash[0], 20, hex_ih);
+		char msg[200];
+		snprintf(msg, 200, "==> UDP_TRACKER_ANNOUNCE [%s]", hex_ih);
+		cb->debug_log(msg);
 #endif
 
 		error_code ec;

@@ -32,9 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/escape_string.hpp"
+#include <cstring>
+
+#if TORRENT_USE_IOSTREAM
 #include <iostream>
 #include <iomanip>
-#include <cstring>
+#endif
 
 namespace
 {
@@ -363,6 +366,7 @@ namespace libtorrent
 		return return_t(m_begin, m_end - m_begin);
 	}
 
+#if TORRENT_USE_IOSTREAM
 	std::ostream& operator<<(std::ostream& os, lazy_entry const& e)
 	{
 		switch (e.type())
@@ -431,6 +435,6 @@ namespace libtorrent
 		}
 		return os;
 	}
-
+#endif // TORRENT_USE_IOSTREAM
 };
 

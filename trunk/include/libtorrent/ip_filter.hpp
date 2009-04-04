@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_IP_FILTER_HPP
 
 #include <set>
-#include <iostream>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)

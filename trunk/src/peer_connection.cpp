@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <iostream>
-#include <iomanip>
 #include <limits>
 #include <boost/bind.hpp>
 
@@ -1395,11 +1393,10 @@ namespace libtorrent
 		if (t->valid_metadata()
 			&& (bits.size() + 7) / 8 != (m_have_piece.size() + 7) / 8)
 		{
-			std::stringstream msg;
-			msg << "got bitfield with invalid size: " << ((bits.size() + 7) / 8)
-				<< "bytes. expected: " << ((m_have_piece.size() + 7) / 8)
-				<< " bytes";
-			disconnect(msg.str().c_str(), 2);
+			char msg[200];
+			snprintf(msg, 200, "got bitfield with invalid size: %d bytes. expected: %d bytes"
+				, int((bits.size() + 7) / 8), int((m_have_piece.size() + 7) / 8));
+			disconnect(msg, 2);
 			return;
 		}
 

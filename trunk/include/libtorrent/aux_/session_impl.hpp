@@ -650,20 +650,24 @@ namespace libtorrent
 				, int incomplete
 				, address const& external_ip)
 			{
-				std::stringstream s;
-				s << "TRACKER RESPONSE:\n"
-					"interval: " << interval << "\n"
-					"peers:\n";
+				std::string s;
+				s = "TRACKER RESPONSE:\n";
+				char tmp[200];
+				snprintf(tmp, 200, "interval: %d\npeers:\n", interval);
+				s += tmp;
 				for (std::vector<peer_entry>::const_iterator i = peers.begin();
 					i != peers.end(); ++i)
 				{
-					s << "  " << std::setfill(' ') << std::setw(16) << i->ip
-						<< " " << std::setw(5) << std::dec << i->port << "  ";
-					if (!i->pid.is_all_zeros()) s << " " << i->pid;
-					s << "\n";
+					char pid[41];
+					to_hex((const char*)&i->pid[0], 20, pid);
+					if (i->pid.is_all_zeros()) pid[0] = 0;
+
+					snprintf(tmp, 200, " %16s %5d %s\n", i->ip.c_str(), i->port, pid);
+					s += tmp;
 				}
-				s << "external ip: " << external_ip << "\n";
-				debug_log(s.str());
+				snprintf(tmp, 200, "external ip: %s\n", print_address(external_ip).c_str());
+				s += tmp;
+				debug_log(s);
 			}
 
 			void tracker_request_timed_out(

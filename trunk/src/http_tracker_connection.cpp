@@ -33,10 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <iostream>
 #include <cctype>
-#include <iomanip>
-#include <sstream>
 #include <algorithm>
 
 #include "libtorrent/config.hpp"
@@ -148,9 +145,9 @@ namespace libtorrent
 			}
 
 			url += "&key=";
-			std::stringstream key_string;
-			key_string << std::hex << tracker_req().key;
-			url += key_string.str();
+			char key[200];
+			snprintf(key, 200, "%x", tracker_req().key);
+			url += key;
 
 			url += "&compact=1";
 

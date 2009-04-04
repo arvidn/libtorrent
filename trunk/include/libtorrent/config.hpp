@@ -88,6 +88,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_MLOCK 1
 #define TORRENT_USE_READV 1
 #define TORRENT_USE_WRITEV 1
+#define TORRENT_USE_IOSTREAM 1
 
 // should wpath or path be used?
 #if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \

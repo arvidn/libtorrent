@@ -33,11 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <iostream>
-#include <iomanip>
 #include <limits>
 #include <boost/bind.hpp>
-#include <sstream>
 
 #include "libtorrent/http_seed_connection.hpp"
 #include "libtorrent/session.hpp"
@@ -355,9 +352,9 @@ namespace libtorrent
 					// add the redirected url and remove the current one
 					t->add_web_seed(location, web_seed_entry::http_seed);
 					t->remove_web_seed(m_url, web_seed_entry::http_seed);
-					std::stringstream msg;
-					msg << "redirecting to \"" << location << "\"";
-					disconnect(msg.str().c_str());
+					char msg[200];
+					snprintf(msg, 200, "redirecting to \"%s\"", location.c_str());
+					disconnect(msg, 2);
 					return;
 				}
 

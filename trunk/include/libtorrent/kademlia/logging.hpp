@@ -33,6 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_LOGGING_HPP
 #define TORRENT_LOGGING_HPP
 
+#include "libtorrent/config.hpp"
+
+#if TORRENT_USE_IOSTREAM
+
 #include <iostream>
 #include <fstream>
 #include "libtorrent/time.hpp"
@@ -142,6 +146,8 @@ public:
 #define TORRENT_LOG(name) \
 	if (libtorrent::dht::inverted_log_event event_object__ = name ## _log()); \
 	else static_cast<log_event&>(event_object__)
+
+#endif // TORRENT_USE_IOSTREAM
 
 #endif
 

@@ -61,6 +61,8 @@ namespace libtorrent
 		std::string const& url, std::string argument);
 
 	TORRENT_EXPORT std::string to_hex(std::string const& s);
+	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
+	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
 
 #if TORRENT_USE_WPATH
 	TORRENT_EXPORT std::wstring convert_to_wstring(std::string const& s);

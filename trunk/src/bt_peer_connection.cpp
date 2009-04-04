@@ -34,8 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <iostream>
-#include <iomanip>
 #include <limits>
 #include <boost/bind.hpp>
 
@@ -1013,11 +1011,10 @@ namespace libtorrent
 		if (t->valid_metadata()
 			&& packet_size() - 1 != (t->torrent_file().num_pieces() + 7) / 8)
 		{
-			std::stringstream msg;
-			msg << "got bitfield with invalid size: " << (packet_size() - 1)
-				<< " bytes. expected: " << ((t->torrent_file().num_pieces() + 7) / 8)
-				<< " bytes";
-			disconnect(msg.str().c_str(), 2);
+			char msg[200];
+			snprintf(msg, 200, "got bitfield with invalid size: %d bytes. expected: %d bytes"
+				, int(packet_size()-1), int((t->torrent_file().num_pieces() + 7) / 8));
+			disconnect(msg, 2);
 			return;
 		}
 
@@ -1433,9 +1430,9 @@ namespace libtorrent
 		}
 #endif
 
-		std::stringstream msg;
-		msg << "unknown extended message id: " << extended_id;
-		disconnect(msg.str().c_str(), 2);
+		char msg[200];
+		snprintf(msg, 200, "unknown extended message id: %d", extended_id);
+		disconnect(msg, 2);
 		return;
 	}
 
@@ -1558,9 +1555,9 @@ namespace libtorrent
 #endif
 
 			m_statistics.received_bytes(0, received);
-			std::stringstream msg;
-			msg << "unkown message id: " << packet_type << " size: " << packet_size();
-			disconnect(msg.str().c_str(), 2);
+			char msg[200];
+			snprintf(msg, 200, "unknown message message id: %d size: %d", packet_type, packet_size());
+			disconnect(msg, 2);
 			return packet_finished();
 		}
 
@@ -1743,14 +1740,15 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " ==> BITFIELD ";
 
-		std::stringstream bitfield_string;
+		char bitfield_string[1000];
 		for (int k = 0; k < num_pieces; ++k)
 		{
-			if (i.begin[k / 8] & (0x80 >> (k % 8))) bitfield_string << "1";
-			else bitfield_string << "0";
+			if (i.begin[k / 8] & (0x80 >> (k % 8))) bitfield_string[k] = '1';
+			else bitfield_string[k] = '0';
 		}
-		bitfield_string << "\n";
-		(*m_logger) << bitfield_string.str();
+		bitfield_string[num_pieces] = '\n';
+		bitfield_string[num_pieces + 1] = '\0';
+		(*m_logger) << bitfield_string;
 #endif
 #ifdef TORRENT_DEBUG
 		m_sent_bitfield = true;
@@ -2728,18 +2726,18 @@ namespace libtorrent
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			{
-				peer_id tmp;
-				std::copy(recv_buffer.begin, recv_buffer.begin + 20, (char*)tmp.begin());
-				std::stringstream s;
-				s << "received peer_id: " << tmp << " client: " << identify_client(tmp) << "\n";
-				s << "as ascii: ";
-				for (peer_id::iterator i = tmp.begin(); i != tmp.end(); ++i)
+				char hex_pid[41];
+				to_hex(recv_buffer.begin, 20, hex_pid);
+				char ascii_pid[21];
+				for (int i = 0; i != 20; ++i)
 				{
-					if (std::isprint(*i)) s << *i;
-					else s << ".";
+					if (isprint(recv_buffer.begin[i])) ascii_pid[i] = recv_buffer.begin[i];
+					else ascii_pid[i] = '.';
 				}
-				s << "\n";
-				(*m_logger) << s.str();
+				char msg[200];
+				snprintf(msg, 200, "received peer_id: %s client: %s\nas ascii: %s\n"
+					, hex_pid, identify_client(peer_id(recv_buffer.begin)).c_str(), ascii_pid);
+				(*m_logger) << msg;
 			}
 #endif
 			peer_id pid;
@@ -2875,9 +2873,9 @@ namespace libtorrent
 			{
 				m_statistics.received_bytes(0, bytes_transferred);
 				// packet too large
-				std::stringstream msg;
-				msg << "packet > 1 MB (" << (unsigned int)packet_size << " bytes)";
-				disconnect(msg.str().c_str(), 2);
+				char msg[200];
+				printf("packet > 1 MB (%u bytes)", (unsigned int)packet_size);
+				disconnect(msg, 2);
 				return;
 			}
 					

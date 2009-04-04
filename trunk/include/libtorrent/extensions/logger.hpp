@@ -43,12 +43,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/config.hpp"
+
+#if TORRENT_USE_IOSTREAM
+
 namespace libtorrent
 {
 	struct torrent_plugin;
 	class torrent;
 	boost::shared_ptr<torrent_plugin> create_logger_plugin(torrent*);
 }
+
+#endif
 
 #endif // TORRENT_LOGGER_HPP_INCLUDED
 

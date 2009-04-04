@@ -33,12 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <string>
-#include <stdexcept>
-#include <sstream>
-#include <iomanip>
 #include <cctype>
 #include <algorithm>
-#include <iostream>
 #include <limits>
 #include <cstring>
 
@@ -54,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <windows.h>
 #endif
 
-#include <boost/filesystem/exception.hpp>
 #include "libtorrent/utf8.hpp"
 
 #endif
@@ -150,20 +145,21 @@ namespace libtorrent
 		return ret;
 	}
 
+	// http://www.ietf.org/rfc/rfc2396.txt
+	// section 2.3
+	// some trackers seems to require that ' is escaped
+	//static const char unreserved_chars[] = "-_.!~*'()";
+	static const char unreserved_chars[] = "/-_.!~*()"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+		"0123456789";
+	static const char hex_chars[] = "0123456789abcdef";
+
 	std::string escape_string(const char* str, int len)
 	{
 		TORRENT_ASSERT(str != 0);
 		TORRENT_ASSERT(len >= 0);
-		// http://www.ietf.org/rfc/rfc2396.txt
-		// section 2.3
-		// some trackers seems to require that ' is escaped
-//		static const char unreserved_chars[] = "-_.!~*'()";
-		static const char unreserved_chars[] = "-_.!~*()"
-			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-			"0123456789";
 
-		std::stringstream ret;
-		ret << std::hex << std::setfill('0');
+		std::string ret;
 		for (int i = 0; i < len; ++i)
 		{
 			if (std::count(
@@ -171,29 +167,25 @@ namespace libtorrent
 					, unreserved_chars+sizeof(unreserved_chars)-1
 					, *str))
 			{
-				ret << *str;
+				ret += *str;
 			}
 			else
 			{
-				ret << '%'
-					<< std::setw(2)
-					<< (int)static_cast<unsigned char>(*str);
+				ret += '%';
+				ret += hex_chars[((unsigned int)*str) >> 4];
+				ret += hex_chars[((unsigned int)*str) & 15];
 			}
 			++str;
 		}
-		return ret.str();
+		return ret;
 	}
 	
 	std::string escape_path(const char* str, int len)
 	{
 		TORRENT_ASSERT(str != 0);
 		TORRENT_ASSERT(len >= 0);
-		static const char unreserved_chars[] = "/-_.!~*()"
-			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-			"0123456789";
 
-		std::stringstream ret;
-		ret << std::hex << std::setfill('0');
+		std::string ret;
 		for (int i = 0; i < len; ++i)
 		{
 			if (std::count(
@@ -201,17 +193,17 @@ namespace libtorrent
 					, unreserved_chars+sizeof(unreserved_chars)-1
 					, *str))
 			{
-				ret << *str;
+				ret += *str;
 			}
 			else
 			{
-				ret << '%'
-					<< std::setw(2)
-					<< (int)static_cast<unsigned char>(*str);
+				ret += '%';
+				ret += hex_chars[((unsigned int)*str) >> 4];
+				ret += hex_chars[((unsigned int)*str) & 15];
 			}
 			++str;
 		}
-		return ret.str();
+		return ret;
 	}
 
 	std::string base64encode(const std::string& s)
@@ -400,13 +392,44 @@ namespace libtorrent
 	TORRENT_EXPORT std::string to_hex(std::string const& s)
 	{
 		std::string ret;
-		char const* digits = "0123456789abcdef";
 		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
 		{
-			ret += digits[((unsigned char)*i) >> 4];
-			ret += digits[((unsigned char)*i) & 0xf];
+			ret += hex_chars[((unsigned char)*i) >> 4];
+			ret += hex_chars[((unsigned char)*i) & 0xf];
 		}
 		return ret;
+	}
+
+	TORRENT_EXPORT void to_hex(char const *in, int len, char* out)
+	{
+		for (char const* end = in + len; in < end; ++in)
+		{
+			*out++ = hex_chars[((unsigned char)*in) >> 4];
+			*out++ = hex_chars[((unsigned char)*in) & 0xf];
+		}
+		*out = '\0';
+	}
+
+	int hex_to_int(char in)
+	{
+		if (in >= '0' && in <= '9') return int(in) - '0';
+		if (in >= 'A' && in <= 'F') return int(in) - 'A' + 10;
+		if (in >= 'a' && in <= 'f') return int(in) - 'a' + 10;
+		return -1;
+	}
+
+	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out)
+	{
+		for (char const* end = in + len; in < end; ++in, ++out)
+		{
+			int t = hex_to_int(*in);
+			if (t == -1) return false;
+			*out = t << 4;
+			t = hex_to_int(*in);
+			if (t == -1) return false;
+			*out |= t & 15;
+		}
+		return true;
 	}
 
 #if TORRENT_USE_WPATH

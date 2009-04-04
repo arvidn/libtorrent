@@ -45,8 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/ref.hpp>
 #include <boost/bind.hpp>
 #include <boost/version.hpp>
@@ -72,13 +70,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/alloca.hpp"
 
+#include <cstdio>
+
 //#define TORRENT_PARTIAL_HASH_LOG
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_IOSTREAM
+#include <boost/filesystem/fstream.hpp>
 #include <ios>
 #include <iostream>
 #include <iomanip>
-#include <cstdio>
 #endif
 
 #if defined(__APPLE__)
@@ -110,7 +110,7 @@ using boost::bind;
 using namespace ::boost::multi_index;
 using boost::multi_index::multi_index_container;
 
-#if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG
+#if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG && TORRENT_USE_IOSTREAM
 namespace
 {
 	using namespace libtorrent;
@@ -1644,7 +1644,7 @@ ret:
 		// only save the partial hash if the write succeeds
 		if (ret != size) return ret;
 
-#ifdef TORRENT_PARTIAL_HASH_LOG
+#if defined TORRENT_PARTIAL_HASH_LOG && TORRENT_USE_IOSTREAM
 		std::ofstream out("partial_hash.log", std::ios::app);
 #endif
 
@@ -1657,7 +1657,7 @@ ret:
 			for (file::iovec_t* i = iov, *end(iov + num_bufs); i < end; ++i)
 				ph.h.update((char const*)i->iov_base, i->iov_len);
 
-#ifdef TORRENT_PARTIAL_HASH_LOG
+#if defined TORRENT_PARTIAL_HASH_LOG && TORRENT_USE_IOSTREAM
 			out << time_now_string() << " NEW ["
 				" s: " << this
 				<< " p: " << piece_index
@@ -2713,7 +2713,7 @@ ret:
 			&& m_slot_to_piece[piece_index] >= 0)
 		{
 
-#if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG
+#if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG && TORRENT_USE_IOSTREAM
 			std::stringstream s;
 
 			s << "there is another piece at our slot, swapping..";
@@ -2953,7 +2953,7 @@ ret:
 		}
 	}
 
-#ifdef TORRENT_STORAGE_DEBUG
+#ifdef TORRENT_STORAGE_DEBUG && TORRENT_USE_IOSTREAM
 	void piece_manager::debug_log() const
 	{
 		std::stringstream s;

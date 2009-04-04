@@ -33,11 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <iostream>
-#include <iomanip>
 #include <limits>
 #include <boost/bind.hpp>
-#include <sstream>
 #include <stdlib.h>
 
 #include "libtorrent/web_peer_connection.hpp"
@@ -448,19 +445,19 @@ namespace libtorrent
 						if (i == std::string::npos)
 						{
 							t->remove_web_seed(m_url, web_seed_entry::url_seed);
-							std::stringstream msg;
-							msg << "got invalid HTTP redirection location (\"" << location << "\") "
-								"expected it to end with: " << path;
-							disconnect(msg.str().c_str(), 2);
+							char msg[200];
+							snprintf(msg, 200, "got invalid HTTP redirection location (\"%s\") "
+								"expected it to end with: %s", location.c_str(), path.c_str());
+							disconnect(msg, 2);
 							return;
 						}
 						location.resize(i);
 					}
 					t->add_web_seed(location, web_seed_entry::url_seed);
 					t->remove_web_seed(m_url, web_seed_entry::url_seed);
-					std::stringstream msg;
-					msg << "redirecting to \"" << location << "\"";
-					disconnect(msg.str().c_str());
+					char msg[200];
+					snprintf(msg, 200, "redirecting to \"%s\"", location.c_str());
+					disconnect(msg, 2);
 					return;
 				}
 
@@ -488,17 +485,29 @@ namespace libtorrent
 			size_type range_end;
 			if (m_parser.status_code() == 206)
 			{
-				std::stringstream range_str(m_parser.header("content-range"));
-				char dummy;
-				std::string bytes;
-				range_str >> bytes >> range_start >> dummy >> range_end;
-				if (!range_str)
+				std::string const& range_str = m_parser.header("content-range");
+
+				bool success = true;
+				char const* ptr = range_str.c_str();
+				char* end;
+				range_start = strtoll(ptr, &end, 10);
+				if (end == ptr) success = false;
+				else if (*end != '-') success = false;
+				else
+				{
+					ptr = end + 1;
+					range_end = strtoll(ptr, &end, 10);
+					if (end == ptr) success = false;
+				}
+				
+				if (!success)
 				{
 					// we should not try this server again.
 					t->remove_web_seed(m_url, web_seed_entry::url_seed);
-					std::stringstream msg;
-					msg << "invalid range in HTTP response: " << range_str.str();
-					disconnect(msg.str().c_str(), 2);
+					char msg[200];
+					snprintf(msg, 200, "invalid range in HTTP response: %s"
+						, range_str.c_str());
+					disconnect(msg, 2);
 					return;
 				}
 				// the http range is inclusive

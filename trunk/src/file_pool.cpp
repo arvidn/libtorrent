@@ -35,8 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/error_code.hpp"
 
-#include <iostream>
-
 namespace libtorrent
 {
 	using boost::multi_index::nth_index;
