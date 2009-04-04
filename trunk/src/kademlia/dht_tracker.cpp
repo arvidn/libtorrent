@@ -98,8 +98,10 @@ namespace
 			char const* in = e->string_ptr();
 			if (e->string_length() == 6)
 				epl.push_back(read_v4_endpoint<EndpointType>(in));
+#if TORRENT_USE_IPV6
 			else if (e->string_length() == 18)
 				epl.push_back(read_v6_endpoint<EndpointType>(in));
+#endif
 		}
 	}
 
@@ -118,8 +120,10 @@ namespace
 			std::string::const_iterator in = p.begin();
 			if (p.size() == 6)
 				epl.push_back(read_v4_endpoint<EndpointType>(in));
+#if TORRENT_USE_IPV6
 			else if (p.size() == 18)
 				epl.push_back(read_v6_endpoint<EndpointType>(in));
+#endif
 		}
 	}
 
@@ -668,9 +672,11 @@ namespace libtorrent { namespace dht
 					if (p->string_length() == 6 + 20)
 						m.nodes.push_back(libtorrent::dht::node_entry(
 							id, read_v4_endpoint<udp::endpoint>(in)));
+#if TORRENT_USE_IPV6
 					else if (p->string_length() == 18 + 20)
 						m.nodes.push_back(libtorrent::dht::node_entry(
 							id, read_v6_endpoint<udp::endpoint>(in)));
+#endif
 				}
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 				log_line << " n2: " << m.nodes.size();

@@ -102,15 +102,17 @@ namespace libtorrent { namespace
 			std::string& pla = pex["added"].string();
 			std::string& pld = pex["dropped"].string();
 			std::string& plf = pex["added.f"].string();
-			std::string& pla6 = pex["added6"].string();
-			std::string& pld6 = pex["dropped6"].string();
-			std::string& plf6 = pex["added6.f"].string();
 			std::back_insert_iterator<std::string> pla_out(pla);
 			std::back_insert_iterator<std::string> pld_out(pld);
 			std::back_insert_iterator<std::string> plf_out(plf);
+#if TORRENT_USE_IPV6
+			std::string& pla6 = pex["added6"].string();
+			std::string& pld6 = pex["dropped6"].string();
+			std::string& plf6 = pex["added6.f"].string();
 			std::back_insert_iterator<std::string> pla6_out(pla6);
 			std::back_insert_iterator<std::string> pld6_out(pld6);
 			std::back_insert_iterator<std::string> plf6_out(plf6);
+#endif
 
 			std::set<tcp::endpoint> dropped;
 			m_old_peers.swap(dropped);
@@ -149,11 +151,13 @@ namespace libtorrent { namespace
 						detail::write_endpoint(remote, pla_out);
 						detail::write_uint8(flags, plf_out);
 					}
+#if TORRENT_USE_IPV6
 					else
 					{
 						detail::write_endpoint(remote, pla6_out);
 						detail::write_uint8(flags, plf6_out);
 					}
+#endif
 					++num_added;
 					++m_peers_in_message;
 				}
@@ -170,8 +174,10 @@ namespace libtorrent { namespace
 			{	
 				if (i->address().is_v4())
 					detail::write_endpoint(*i, pld_out);
+#if TORRENT_USE_IPV6
 				else
 					detail::write_endpoint(*i, pld6_out);
+#endif
 				++m_peers_in_message;
 			}
 
@@ -265,6 +271,7 @@ namespace libtorrent { namespace
 				} 
 			}
 
+#if TORRENT_USE_IPV6
 			lazy_entry const* p6 = pex_msg.dict_find("added6");
 			lazy_entry const* p6f = pex_msg.dict_find("added6.f");
 			if (p6 != 0
@@ -288,6 +295,7 @@ namespace libtorrent { namespace
 					p.peer_from_tracker(adr, pid, peer_info::pex, flags);
 				} 
 			}
+#endif
 			return true;
 		}
 
@@ -338,13 +346,16 @@ namespace libtorrent { namespace
 			pex["dropped"].string();
 			std::string& pla = pex["added"].string();
 			std::string& plf = pex["added.f"].string();
+			std::back_insert_iterator<std::string> pla_out(pla);
+			std::back_insert_iterator<std::string> plf_out(plf);
+
+#if TORRENT_USE_IPV6
 			pex["dropped6"].string();
 			std::string& pla6 = pex["added6"].string();
 			std::string& plf6 = pex["added6.f"].string();
-			std::back_insert_iterator<std::string> pla_out(pla);
-			std::back_insert_iterator<std::string> plf_out(plf);
 			std::back_insert_iterator<std::string> pla6_out(pla6);
 			std::back_insert_iterator<std::string> plf6_out(plf6);
+#endif
 
 			int num_added = 0;
 			for (torrent::peer_iterator i = m_torrent.begin()
@@ -374,11 +385,13 @@ namespace libtorrent { namespace
 					detail::write_endpoint(remote, pla_out);
 					detail::write_uint8(flags, plf_out);
 				}
+#if TORRENT_USE_IPV6
 				else
 				{
 					detail::write_endpoint(remote, pla6_out);
 					detail::write_uint8(flags, plf6_out);
 				}
+#endif
 				++num_added;
 			}
 			std::vector<char> pex_msg;

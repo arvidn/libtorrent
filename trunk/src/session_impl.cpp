@@ -641,6 +641,7 @@ namespace aux {
 		s.sock.reset(new socket_acceptor(m_io_service));
 		s.sock->open(ep.protocol(), ec);
 		s.sock->set_option(socket_acceptor::reuse_address(true), ec);
+#if TORRENT_USE_IPV6
 		if (ep.protocol() == tcp::v6())
 		{
 			s.sock->set_option(v6only(v6_only), ec);
@@ -649,6 +650,7 @@ namespace aux {
 			s.sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), ec);
 #endif
 		}
+#endif
 		s.sock->bind(ep, ec);
 		while (ec && retries > 0)
 		{

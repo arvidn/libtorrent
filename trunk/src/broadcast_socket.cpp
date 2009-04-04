@@ -161,10 +161,14 @@ namespace libtorrent
 		error_code ec;
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
+#if TORRENT_USE_IPV6
 		if (multicast_endpoint.address().is_v4())
+#endif
 			open_multicast_socket(ios, address_v4::any(), loopback);
+#if TORRENT_USE_IPV6
 		else
 			open_multicast_socket(ios, address_v6::any(), loopback);
+#endif
 
 		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
 			, end(interfaces.end()); i != end; ++i)
@@ -189,10 +193,7 @@ namespace libtorrent
 
 		error_code ec;
 		boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
-		if (addr.is_v4())
-			s->open(udp::v4(), ec);
-		else
-			s->open(udp::v6(), ec);
+		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
 		if (ec) return;
 		s->set_option(datagram_socket::reuse_address(true), ec);
 		if (ec) return;
