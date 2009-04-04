@@ -121,6 +121,7 @@ namespace libtorrent
 			, upnp_ignore_nonrouters(false)
  			, send_buffer_watermark(80 * 1024)
 			, auto_upload_slots(true)
+			, auto_upload_slots_rate_based(false)
 			, use_parole_mode(true)
 			, cache_size(512)
 			, cache_expiry(60)
@@ -362,6 +363,11 @@ namespace libtorrent
 		// upload slots are never automatically decreased below
 		// the manual settings, through max_uploads.
 		bool auto_upload_slots;
+
+		// this only affects the auto upload slots mechanism.
+		// if auto_upload_slots is false, this field is not
+		// considered.
+		bool auto_upload_slots_rate_based;
 
 		// if set to true, peers that participate in a failing
 		// piece is put in parole mode. i.e. They will only

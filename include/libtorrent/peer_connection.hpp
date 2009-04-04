@@ -361,6 +361,7 @@ namespace libtorrent
 		// for which one is more eligible for an unchoke.
 		// returns true if this is more eligible
 		bool unchoke_compare(boost::intrusive_ptr<peer_connection const> const& p) const;
+		bool upload_rate_compare(peer_connection const* p) const;
 
 		// resets the byte counters that are used to measure
 		// the number of bytes transferred within unchoke cycles
@@ -504,6 +505,12 @@ namespace libtorrent
 		// upload and download channel state
 		// enum from peer_info::bw_state
 		char m_channel_state[2];
+
+		size_type uploaded_since_unchoke() const
+		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke; }
+
+		size_type downloaded_since_unchoke() const
+		{ return m_statistics.total_payload_download() - m_downloaded_at_last_unchoke; }
 
 	protected:
 
