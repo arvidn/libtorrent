@@ -425,6 +425,7 @@ namespace libtorrent
 			int t = hex_to_int(*in);
 			if (t == -1) return false;
 			*out = t << 4;
+			++in;
 			t = hex_to_int(*in);
 			if (t == -1) return false;
 			*out |= t & 15;

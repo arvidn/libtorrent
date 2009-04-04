@@ -59,7 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
  */
 
 
-#include <iosfwd>
 #include <map>
 #include <list>
 #include <string>
@@ -69,6 +68,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
+
+#if TORRENT_USE_IOSTREAM
+#include <iosfwd>
+#endif
 
 namespace libtorrent
 {
@@ -171,7 +174,9 @@ namespace libtorrent
 		entry* find_key(std::string const& key);
 		entry const* find_key(std::string const& key) const;
 		
+#if TORRENT_USE_IOSTREAM
 		void print(std::ostream& os, int indent = 0) const;
+#endif
 
 	protected:
 
@@ -219,11 +224,13 @@ namespace libtorrent
 #endif
 	};
 
+#if TORRENT_USE_IOSTREAM
 	inline std::ostream& operator<<(std::ostream& os, const entry& e)
 	{
 		e.print(os, 0);
 		return os;
 	}
+#endif
 
 #ifndef BOOST_NO_EXCEPTIONS
 	inline void throw_type_error()

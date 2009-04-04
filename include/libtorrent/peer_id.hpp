@@ -175,7 +175,7 @@ namespace libtorrent
 	{
 		char hex[40];
 		is.read(hex, 40);
-		if (from_hex(hex, 40, (char*)&peer[0]) == -1)
+		if (!from_hex(hex, 40, (char*)&peer[0]))
 			is.setstate(std::ios_base::failbit);
 		return is;
 	}

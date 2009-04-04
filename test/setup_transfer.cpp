@@ -279,7 +279,9 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 			remove_all("./tmp2" + suffix + "/temporary");
 			remove_all("./tmp3" + suffix + "/temporary");
 		}
-		std::cerr << "generated torrent: " << t->info_hash() << std::endl;
+		char ih_hex[41];
+		to_hex((char const*)&t->info_hash()[0], 20, ih_hex);
+		std::cerr << "generated torrent: " << ih_hex << std::endl;
 	}
 	else
 	{

@@ -54,6 +54,13 @@ using namespace libtorrent;
 using namespace boost::tuples;
 using boost::bind;
 
+sha1_hash to_hash(char const* s)
+{
+	sha1_hash ret;
+	from_hex(s, 40, (char*)&ret[0]);
+	return ret;
+}
+
 tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 {
 	tuple<int, int, bool> ret(0, 0, false);
@@ -347,6 +354,15 @@ int test_main()
 {
 	using namespace libtorrent;
 
+	// test to/from hex conversion
+
+	char const* str = "0123456789012345678901234567890123456789";
+	char bin[20];
+	TEST_CHECK(from_hex(str, 40, bin));
+	char hex[41];
+	to_hex(bin, 20, hex);
+	TEST_CHECK(strcmp(hex, str) == 0);
+
 	// test itoa
 
 	TEST_CHECK(to_string(345).elems == std::string("345"));
@@ -500,7 +516,7 @@ int test_main()
 	TEST_CHECK(atoi(parser.header("port").c_str()) == 6881);
 	TEST_CHECK(parser.header("infohash") == "12345678901234567890");
 
-	TEST_CHECK(!parser.finished());
+	TEST_CHECK(parser.finished());
 
 	parser.reset();
 	TEST_CHECK(!parser.finished());
@@ -653,12 +669,12 @@ int test_main()
 
 	// test kademlia routing table
 	dht_settings s;
-	node_id id = boost::lexical_cast<sha1_hash>("6123456789abcdef01232456789abcdef0123456");
+	node_id id = to_hash("6123456789abcdef01232456789abcdef0123456");
 	dht::routing_table table(id, 10, s);
 	table.node_seen(id, udp::endpoint(address_v4::any(), rand()));
 
 	node_id tmp;
-	node_id diff = boost::lexical_cast<sha1_hash>("00001f7459456a9453f8719b09547c11d5f34064");
+	node_id diff = to_hash("00001f7459456a9453f8719b09547c11d5f34064");
 	std::vector<node_entry> nodes;
 	for (int i = 0; i < 10000; ++i)
 	{
@@ -736,8 +752,8 @@ int test_main()
 	TEST_CHECK(!(h1 < h2));
 	TEST_CHECK(h1.is_all_zeros());
 
-	h1 = boost::lexical_cast<sha1_hash>("0123456789012345678901234567890123456789");
-	h2 = boost::lexical_cast<sha1_hash>("0113456789012345678901234567890123456789");
+	h1 = to_hash("0123456789012345678901234567890123456789");
+	h2 = to_hash("0113456789012345678901234567890123456789");
 
 	TEST_CHECK(h2 < h1);
 	TEST_CHECK(h2 == h2);
@@ -745,34 +761,36 @@ int test_main()
 	h2.clear();
 	TEST_CHECK(h2.is_all_zeros());
 	
-	h2 = boost::lexical_cast<sha1_hash>("ffffffffff0000000000ffffffffff0000000000");
-	h1 = boost::lexical_cast<sha1_hash>("fffff00000fffff00000fffff00000fffff00000");
+	h2 = to_hash("ffffffffff0000000000ffffffffff0000000000");
+	h1 = to_hash("fffff00000fffff00000fffff00000fffff00000");
 	h1 &= h2;
-	TEST_CHECK(h1 == boost::lexical_cast<sha1_hash>("fffff000000000000000fffff000000000000000"));
+	TEST_CHECK(h1 == to_hash("fffff000000000000000fffff000000000000000"));
 
-	h2 = boost::lexical_cast<sha1_hash>("ffffffffff0000000000ffffffffff0000000000");
-	h1 = boost::lexical_cast<sha1_hash>("fffff00000fffff00000fffff00000fffff00000");
+	h2 = to_hash("ffffffffff0000000000ffffffffff0000000000");
+	h1 = to_hash("fffff00000fffff00000fffff00000fffff00000");
 	h1 |= h2;
-	TEST_CHECK(h1 == boost::lexical_cast<sha1_hash>("fffffffffffffff00000fffffffffffffff00000"));
+	TEST_CHECK(h1 == to_hash("fffffffffffffff00000fffffffffffffff00000"));
 	
-	h2 = boost::lexical_cast<sha1_hash>("0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f");
+	h2 = to_hash("0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f");
 	h1 ^= h2;
+#if TORRENT_USE_IOSTREAM
 	std::cerr << h1 << std::endl;
-	TEST_CHECK(h1 == boost::lexical_cast<sha1_hash>("f0f0f0f0f0f0f0ff0f0ff0f0f0f0f0f0f0ff0f0f"));
+#endif
+	TEST_CHECK(h1 == to_hash("f0f0f0f0f0f0f0ff0f0ff0f0f0f0f0f0f0ff0f0f"));
 	TEST_CHECK(h1 != h2);
 
 	h2 = sha1_hash("                    ");
-	TEST_CHECK(h2 == boost::lexical_cast<sha1_hash>("2020202020202020202020202020202020202020"));
+	TEST_CHECK(h2 == to_hash("2020202020202020202020202020202020202020"));
 	
 	// CIDR distance test
-	h1 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
-	h2 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
+	h1 = to_hash("0123456789abcdef01232456789abcdef0123456");
+	h2 = to_hash("0123456789abcdef01232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 160);
-	h2 = boost::lexical_cast<sha1_hash>("0120456789abcdef01232456789abcdef0123456");
+	h2 = to_hash("0120456789abcdef01232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 14);
-	h2 = boost::lexical_cast<sha1_hash>("012f456789abcdef01232456789abcdef0123456");
+	h2 = to_hash("012f456789abcdef01232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 12);
-	h2 = boost::lexical_cast<sha1_hash>("0123456789abcdef11232456789abcdef0123456");
+	h2 = to_hash("0123456789abcdef11232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 16 * 4 + 3);
 
 
