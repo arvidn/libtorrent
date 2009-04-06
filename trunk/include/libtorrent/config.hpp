@@ -102,6 +102,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // this is the maximum number of characters in a
 // path element / filename on windows
 #define NAME_MAX 255
+#define snprintf _snprintf_s
+#define strtoll _strtoi64
 #endif
 
 #if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) && !defined (TORRENT_UPNP_LOGGING)
