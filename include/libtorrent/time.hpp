@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <ctime>
 #include <boost/version.hpp>
+#include "libtorrent/config.hpp"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -106,6 +107,7 @@ namespace libtorrent
 		time_duration& operator-=(time_duration const& c) { diff -= c.diff; return *this; }
 		time_duration& operator+=(time_duration const& c) { diff += c.diff; return *this; }
 		time_duration operator+(time_duration const& c) { return time_duration(diff + c.diff); }
+		time_duration operator-(time_duration const& c) { return time_duration(diff - c.diff); }
 		boost::int64_t diff;
 	};
 
