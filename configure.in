@@ -36,6 +36,8 @@ INTERFACE_VERSION_INFO=$VERSION_INFO_CURRENT:$VERSION_INFO_REVISION:$VERSION_INF
 AC_SUBST(INTERFACE_VERSION_INFO)
 dnl ---------------------------------------------------------------------------
 
+AC_CONFIG_MACRO_DIR([m4])
+
 AC_PROG_CC
 
 if test -z "$(which $CC)"; then
@@ -59,10 +61,6 @@ AC_SYS_LARGEFILE
 
 dnl Check for pthreads.
 ACX_PTHREAD
-dnl Apply pthread config.
-CC=$PTHREAD_CC
-CPPFLAGS="$CPPFLAGS $PTHREAD_CFLAGS"
-LIBS="$LIBS $PTHREAD_LIBS"
 
 AM_CONDITIONAL([ENABLE_SHIPPED_ASIO], false)
 
@@ -297,7 +295,7 @@ if [[ "$zlib" = "shipped" ]]; then
 	AM_CONDITIONAL([ENABLE_SHIPPED_ZLIB], true)
 	ZLIBINCL="-I\$(top_srcdir)/zlib"
 elif [[ "$zlib" = "system" ]]; then
-	ZLIB="-lz"
+	ZLIB="" # AC_CHECK_LIB will add -lz to @LIBS@ automatically
 	AM_CONDITIONAL([ENABLE_SHIPPED_ZLIB], false)
 	ZLIBINCL=""
 fi
