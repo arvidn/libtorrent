@@ -153,8 +153,8 @@ namespace libtorrent
 #endif
 		, m_ses(ses)
 		, m_trackers(m_torrent_file->trackers())
-		, m_average_piece_time(0)
-		, m_piece_time_deviation(0)
+		, m_average_piece_time(seconds(0))
+		, m_piece_time_deviation(seconds(0))
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 		, m_padding(0)
@@ -2099,7 +2099,7 @@ namespace libtorrent
 				}
 				else
 				{
-					time_duration diff = time_duration(dl_time.diff - m_average_piece_time.diff);
+					time_duration diff = dl_time - m_average_piece_time;
 					if (m_piece_time_deviation == seconds(0)) m_piece_time_deviation = diff;
 					else m_piece_time_deviation = m_piece_time_deviation * 0.6f + diff * 0.4;
 
@@ -4973,7 +4973,7 @@ namespace libtorrent
 			, end(m_time_critical_pieces.end()); i != end; ++i)
 		{
 			if (i != m_time_critical_pieces.begin() && i->deadline > now
-				+ m_average_piece_time + 4 * m_piece_time_deviation)
+				+ m_average_piece_time + m_piece_time_deviation * 4)
 			{
 				// don't request pieces whose deadline is too far in the future
 				break;
