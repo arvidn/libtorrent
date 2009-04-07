@@ -476,6 +476,7 @@ namespace libtorrent
 
 		// -1 means unlimited unchokes
 		void set_max_uploads(int max_uploads) const;
+		int max_uploads() const;
 
 		// -1 means unlimited connections
 		void set_max_connections(int max_connections) const;

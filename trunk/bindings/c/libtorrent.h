@@ -35,51 +35,75 @@ POSSIBILITY OF SUCH DAMAGE.
 
 enum tags
 {
-	SES_FINGERPRINT,
-	SES_LISTENPORT,
-	SES_LISTENPORT_END,
-	SES_VERSION_MAJOR,
-	SES_VERSION_MINOR,
-	SES_VERSION_TINY,
-	SES_VERSION_TAG,
-	SES_FLAGS,
-	SES_ALERT_MASK,
-	SES_LISTEN_INTERFACE,
+	TAG_END = 0,
+
+	SES_FINGERPRINT, // char const*, 2 character string
+	SES_LISTENPORT, // int
+	SES_LISTENPORT_END, // int
+	SES_VERSION_MAJOR, // int
+	SES_VERSION_MINOR, // int
+	SES_VERSION_TINY, // int
+	SES_VERSION_TAG, // int
+	SES_FLAGS, // int
+	SES_ALERT_MASK, // int
+	SES_LISTEN_INTERFACE, // char const*
 
 	// === add_torrent tags ===
 
 	// identifying the torrent to add
-	TOR_FILENAME = 0x100,
-	TOR_TORRENT,
-	TOR_TORRENT_SIZE,
-	TOR_INFOHASH,
-	TOR_INFOHASH_HEX,
-	TOR_MAGNETLINK,
+	TOR_FILENAME = 0x100, // char const*
+	TOR_TORRENT, // char const*, specify size of buffer with TOR_TORRENT_SIZE
+	TOR_TORRENT_SIZE, // int
+	TOR_INFOHASH, // char const*, must point to a 20 byte array
+	TOR_INFOHASH_HEX, // char const*, must point to a 40 byte string
+	TOR_MAGNETLINK, // char const*, url
 
-	TOR_TRACKER_URL,
-	TOR_RESUME_DATA,
-	TOR_RESUME_DATA_SIZE,
-	TOR_SAVE_PATH,
-	TOR_NAME,
-	TOR_PAUSED,
-	TOR_AUTO_MANAGED,
-	TOR_DUPLICATE_IS_ERROR,
-	TOR_USER_DATA,
-	TOR_SEED_MODE,
-	TOR_OVERRIDE_RESUME_DATA,
-	TOR_STORAGE_MODE,
+	TOR_TRACKER_URL, // char const*
+	TOR_RESUME_DATA, // char const*
+	TOR_RESUME_DATA_SIZE, // int
+	TOR_SAVE_PATH, // char const*
+	TOR_NAME, // char const*
+	TOR_PAUSED, // int
+	TOR_AUTO_MANAGED, // int
+	TOR_DUPLICATE_IS_ERROR, // int
+	TOR_USER_DATA, //void*
+	TOR_SEED_MODE, // int
+	TOR_OVERRIDE_RESUME_DATA, // int
+	TOR_STORAGE_MODE, // int
 
-	SET_UPLOAD_RATE_LIMIT = 0x200,
-	SET_DOWNLOAD_RATE_LIMIT,
-	SET_MAX_UPLOAD_SLOTS,
-	SET_MAX_CONNECTIONS,
-	SET_SEQUENTIAL_DOWNLOAD, // torrent only
-	SET_SUPER_SEEDING, // torrent only
-	SET_HALF_OPEN_LIMIT, // session only
+	SET_UPLOAD_RATE_LIMIT = 0x200, // int
+	SET_DOWNLOAD_RATE_LIMIT, // int
+	SET_MAX_UPLOAD_SLOTS, // int
+	SET_MAX_CONNECTIONS, // int
+	SET_SEQUENTIAL_DOWNLOAD, // int, torrent only
+	SET_SUPER_SEEDING, // int, torrent only
+	SET_HALF_OPEN_LIMIT, // int, session only
+	SET_PEER_PROXY, // proxy_setting const*, session_only
+	SET_WEB_SEED_PROXY, // proxy_setting const*, session_only
+	SET_TRACKER_PROXY, // proxy_setting const*, session_only
+	SET_DHT_PROXY, // proxy_setting const*, session_only
+	SET_PROXY, // proxy_setting const*, session_only
+};
 
+struct proxy_setting
+{
+	char hostname[256];
+	int port;
 
+	char username[256];
+	char password[256];
 
-	TAG_END = 0x7fffffff
+	int type;
+};
+
+enum proxy_type_t
+{
+	proxy_none,
+	proxy_socks4,
+	proxy_socks5,
+	proxy_socks5_pw,
+	proxy_http,
+	proxy_http_pw
 };
 
 enum storage_mode_t
@@ -155,25 +179,92 @@ struct torrent_status
 	int seed_mode;
 };
 
+struct session_status
+{
+	int has_incoming_connections;
+
+	float upload_rate;
+	float download_rate;
+	long long total_download;
+	long long total_upload;
+
+	float payload_upload_rate;
+	float payload_download_rate;
+	long long total_payload_download;
+	long long total_payload_upload;
+
+	float ip_overhead_upload_rate;
+	float ip_overhead_download_rate;
+	long long total_ip_overhead_download;
+	long long total_ip_overhead_upload;
+
+	float dht_upload_rate;
+	float dht_download_rate;
+	long long total_dht_download;
+	long long total_dht_upload;
+
+	float tracker_upload_rate;
+	float tracker_download_rate;
+	long long total_tracker_download;
+	long long total_tracker_upload;
+
+	long long total_redundant_bytes;
+	long long total_failed_bytes;
+
+	int num_peers;
+	int num_unchoked;
+	int allowed_upload_slots;
+
+	int up_bandwidth_queue;
+	int down_bandwidth_queue;
+
+	int up_bandwidth_bytes_queue;
+	int down_bandwidth_bytes_queue;
+
+	int optimistic_unchoke_counter;
+	int unchoke_counter;
+
+	int dht_nodes;
+	int dht_node_cache;
+	int dht_torrents;
+	long long dht_global_nodes;
+//	std::vector<dht_lookup> active_requests;
+};
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
+// the functions whose signature ends with:
+// , int first_tag, ...);
+// takes a tag list. The tag list is a series
+// of tag-value pairs. The tags are constants
+// identifying which property the value controls.
+// The type of the value varies between tags.
+// The enumeration above specifies which type
+// it expects. All tag lists must always be
+// terminated by TAG_END.
+
 // use SES_* tags in tag list
-void* create_session(int first_tag, ...);
-void close_session(void* ses);
+void* session_create(int first_tag, ...);
+void session_close(void* ses);
 
 // use TOR_* tags in tag list
-int add_torrent(void* ses, int first_tag, ...);
-void remove_torrent(void* ses, int tor, int flags);
-// use SET_* tags in tag list
-int set_session_settings(void* ses, int first_tag, ...);
+int session_add_torrent(void* ses, int first_tag, ...);
+void session_remove_torrent(void* ses, int tor, int flags);
 
-int get_torrent_status(int tor, struct torrent_status* s, int struct_size);
+int session_get_status(void* ses, struct session_status* s, int struct_size);
 
 // use SET_* tags in tag list
-int set_torrent_settings(int tor, int first_tag, ...);
+int session_set_settings(void* ses, int first_tag, ...);
+int session_get_setting(void* ses, int tag, void* value, int* value_size);
+
+int torrent_get_status(int tor, struct torrent_status* s, int struct_size);
+
+// use SET_* tags in tag list
+int torrent_set_settings(int tor, int first_tag, ...);
+int torrent_get_setting(int tor, int tag, void* value, int* value_size);
 
 #ifdef __cplusplus
 }

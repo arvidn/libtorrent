@@ -529,6 +529,11 @@ namespace libtorrent
 	}
 #endif
 
+	int session::max_uploads() const
+	{
+		return m_impl->max_uploads();
+	}
+
 	void session::set_max_uploads(int limit)
 	{
 		m_impl->set_max_uploads(limit);

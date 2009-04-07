@@ -142,6 +142,12 @@ namespace libtorrent
 		TORRENT_FORWARD_RETURN(torrent_file().info_hash(), empty);
 	}
 
+	int torrent_handle::max_uploads() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD_RETURN(max_uploads(), 0);
+	}
+
 	void torrent_handle::set_max_uploads(int max_uploads) const
 	{
 		INVARIANT_CHECK;
