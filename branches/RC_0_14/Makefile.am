@@ -50,6 +50,7 @@ bindings/python/simple_client.py \
 bindings/python/src/alert.cpp \
 bindings/python/src/big_number.cpp \
 bindings/python/src/converters.cpp \
+bindings/python/src/create_torrent.cpp \
 bindings/python/src/datetime.cpp \
 bindings/python/src/docstrings.cpp \
 bindings/python/src/entry.cpp \
