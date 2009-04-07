@@ -142,8 +142,8 @@ namespace libtorrent
 		virtual char const* what() const { return "file renamed"; }
 		virtual std::string message() const
 		{
-			char msg[200];
-			snprintf(msg, 200, "%s: file %d renamed to %s", torrent_alert::message().c_str()
+			char msg[200 + NAME_MAX];
+			snprintf(msg, sizeof(msg), "%s: file %d renamed to %s", torrent_alert::message().c_str()
 				, index, name.c_str());
 			return msg;
 		}
@@ -168,8 +168,8 @@ namespace libtorrent
 		virtual char const* what() const { return "file rename failed"; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s: failed to rename file %d: %s"
+			char ret[200 + NAME_MAX];
+			snprintf(ret, sizeof(msg), "%s: failed to rename file %d: %s"
 				, torrent_alert::message().c_str(), index, msg.c_str());
 			return ret;
 		}
