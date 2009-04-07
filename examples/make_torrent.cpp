@@ -158,8 +158,15 @@ int main(int argc, char* argv[])
 			, end(web_seeds.end()); i != end; ++i)
 			t.add_url_seed(*i);
 
+		error_code ec;
 		set_piece_hashes(t, full_path.branch_path()
-			, boost::bind(&print_progress, _1, t.num_pieces()));
+			, boost::bind(&print_progress, _1, t.num_pieces()), ec);
+		if (ec)
+		{
+			std::cerr << ec.message() << std::endl;
+			return 1;
+		}
+
 		std::cerr << std::endl;
 		t.set_creator(creator_str);
 

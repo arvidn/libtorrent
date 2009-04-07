@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/optional.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <boost/config.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -250,6 +251,7 @@ namespace libtorrent
 		}
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>
 	void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f)
 	{
@@ -258,19 +260,18 @@ namespace libtorrent
 		if (ec) throw libtorrent_exception(ec);
 	}
 
-#ifndef BOOST_NOEXCEPTIONS
 	inline void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, detail::nop, ec);
 		if (ec) throw libtorrent_exception(ec);
 	}
+#endif
 
 	inline void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, error_code& ec)
 	{
 		set_piece_hashes(t, p, detail::nop, ec);
 	}
-#endif
 
 	// wpath versions
 
@@ -324,7 +325,7 @@ namespace libtorrent
 		}
 	}
 
-#ifndef BOOST_NOEXCEPTIONS
+#ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>
 	void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, Fun f)
 	{
