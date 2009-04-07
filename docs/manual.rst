@@ -459,13 +459,14 @@ of upload rate.
 set limits.
 
 
-set_max_uploads() set_max_connections() max_connections()
----------------------------------------------------------
+set_max_uploads() set_max_connections() max_uploads() max_connections()
+-----------------------------------------------------------------------
 
 	::
 
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
+		int max_uploads() const;
 		int max_connections() const;
 
 These functions will set a global limit on the number of unchoked peers (uploads)
@@ -474,7 +475,7 @@ minimum of at least two connections per torrent, so if you set a too low
 connections limit, and open too many torrents, the limit will not be met. The
 number of uploads is at least one per torrent.
 
-``max_connections()`` returns the current setting.
+``max_uploads()`` and ``max_connections()`` returns the current settings.
 
 The number of unchoke slots may be ignored. In order to make this setting
 take effect, disable ``session_settings::auto_upload_slots_rate_based``.
@@ -1777,6 +1778,7 @@ Its declaration looks like this::
 		std::set<std::string> http_seeds() const;
 
 		void set_ratio(float ratio) const;
+		int max_uploads() const;
 		void set_max_uploads(int max_uploads) const;
 		void set_max_connections(int max_connections) const;
 		int max_connections() const;
@@ -2408,12 +2410,13 @@ info_hash()
 ``info_hash()`` returns the info-hash for the torrent.
 
 
-set_max_uploads() set_max_connections() max_connections()
----------------------------------------------------------
+set_max_uploads() max_uploads() set_max_connections() max_connections()
+-----------------------------------------------------------------------
 
 	::
 
 		void set_max_uploads(int max_uploads) const;
+		int max_uploads() const;
 		void set_max_connections(int max_connections) const;
 		int max_connections() const;
 
@@ -2425,7 +2428,7 @@ connections are used up, incoming connections may be refused or poor connections
 This must be at least 2. The default is unlimited number of connections. If -1 is given to the
 function, it means unlimited.
 
-``max_connections()`` returns the current setting.
+``max_uploads()`` and ``max_connections()`` returns the current settings.
 
 
 save_resume_data()

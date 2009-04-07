@@ -52,12 +52,12 @@ int main(int argc, char* argv[])
 	}
 
 	int ret = 0;
-	void* ses = create_session(
+	void* ses = session_create(
 		SES_LISTENPORT, 6881,
 		SES_LISTENPORT_END, 6889,
 		TAG_END);
 
-	int t = add_torrent(ses,
+	int t = session_add_torrent(ses,
 		TOR_FILENAME, argv[1],
 		TOR_SAVE_PATH, "./",
 		TAG_END);
@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
 			, "downloading", "finished", "seeding", "allocating"
 			, "checking_resume_data"};
 
-		if (get_torrent_status(t, &st, sizeof(st)) < 0) break;
+		if (torrent_get_status(t, &st, sizeof(st)) < 0) break;
 		printf("\r%3.f%% %d kB (%5.f kB/s) up: %d kB (%5.f kB/s) peers: %d '%s' %s  "
 			, (double)st.progress * 100.
 			, (int)(st.total_payload_download / 1000)
@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
 
 exit:
 
-	close_session(ses);
+	session_close(ses);
 	return ret;
 }
 

@@ -68,12 +68,29 @@ namespace
 		handles.push_back(h);
 		return handles.size() - 1;
 	}
+
+	int set_int_value(void* dst, int* size, int val)
+	{
+		if (*size < sizeof(int)) return -2;
+		*((int*)dst) = val;
+		*size = sizeof(int);
+		return 0;
+	}
+
+	void copy_proxy_setting(libtorrent::proxy_settings* s, proxy_setting const* ps)
+	{
+		s->hostname.assign(ps->hostname);
+		s->port = ps->port;
+		s->username.assign(ps->username);
+		s->password.assign(ps->password);
+		s->type = (libtorrent::proxy_settings::proxy_type)ps->type;
+	}
 }
 
 extern "C"
 {
 
-TORRENT_EXPORT void* create_session(int tag, ...)
+TORRENT_EXPORT void* session_create(int tag, ...)
 {
 	using namespace libtorrent;
 
@@ -140,12 +157,12 @@ TORRENT_EXPORT void* create_session(int tag, ...)
 	return new (std::nothrow) session(fing, listen_range, listen_interface, flags, alert_mask);
 }
 
-TORRENT_EXPORT void close_session(void* ses)
+TORRENT_EXPORT void session_close(void* ses)
 {
 	delete (libtorrent::session*)ses;
 }
 
-TORRENT_EXPORT int add_torrent(void* ses, int tag, ...)
+TORRENT_EXPORT int session_add_torrent(void* ses, int tag, ...)
 {
 	using namespace libtorrent;
 
@@ -265,7 +282,7 @@ TORRENT_EXPORT int add_torrent(void* ses, int tag, ...)
 	return i;
 }
 
-void remove_torrent(void* ses, int tor, int flags)
+void session_remove_torrent(void* ses, int tor, int flags)
 {
 	using namespace libtorrent;
 	torrent_handle h = get_handle(tor);
@@ -275,7 +292,7 @@ void remove_torrent(void* ses, int tor, int flags)
 	s->remove_torrent(h, flags);	
 }
 
-int set_session_settings(void* ses, int tag, ...)
+int session_set_settings(void* ses, int tag, ...)
 {
 	using namespace libtorrent;
 
@@ -303,6 +320,43 @@ int set_session_settings(void* ses, int tag, ...)
 			case SET_HALF_OPEN_LIMIT:
 				s->set_max_half_open_connections(va_arg(lp, int));
 				break;
+			case SET_PEER_PROXY:
+			{
+				libtorrent::proxy_settings ps;
+				copy_proxy_setting(&ps, va_arg(lp, struct proxy_setting const*));
+				s->set_peer_proxy(ps);
+			}
+			case SET_WEB_SEED_PROXY:
+			{
+				libtorrent::proxy_settings ps;
+				copy_proxy_setting(&ps, va_arg(lp, struct proxy_setting const*));
+				s->set_web_seed_proxy(ps);
+			}
+			case SET_TRACKER_PROXY:
+			{
+				libtorrent::proxy_settings ps;
+				copy_proxy_setting(&ps, va_arg(lp, struct proxy_setting const*));
+				s->set_tracker_proxy(ps);
+			}
+#ifndef TORRENT_DISABLE_DHT
+			case SET_DHT_PROXY:
+			{
+				libtorrent::proxy_settings ps;
+				copy_proxy_setting(&ps, va_arg(lp, struct proxy_setting const*));
+				s->set_dht_proxy(ps);
+			}
+#endif
+			case SET_PROXY:
+			{
+				libtorrent::proxy_settings ps;
+				copy_proxy_setting(&ps, va_arg(lp, struct proxy_setting const*));
+				s->set_peer_proxy(ps);
+				s->set_web_seed_proxy(ps);
+				s->set_tracker_proxy(ps);
+#ifndef TORRENT_DISABLE_DHT
+				s->set_dht_proxy(ps);
+#endif
+			}
 			default:
 				// ignore unknown tags
 				va_arg(lp, void*);
@@ -314,15 +368,93 @@ int set_session_settings(void* ses, int tag, ...)
 	return 0;
 }
 
-int get_torrent_status(int tor, torrent_status* s, int struct_size)
+int session_get_setting(void* ses, int tag, void* value, int* value_size)
 {
 	using namespace libtorrent;
-	torrent_handle h = get_handle(tor);
+	session* s = (session*)ses;
+
+	switch (tag)
+	{
+		case SET_UPLOAD_RATE_LIMIT:
+			return set_int_value(value, value_size, s->upload_rate_limit());
+		case SET_DOWNLOAD_RATE_LIMIT:
+			return set_int_value(value, value_size, s->download_rate_limit());
+		case SET_MAX_UPLOAD_SLOTS:
+			return set_int_value(value, value_size, s->max_uploads());
+		case SET_MAX_CONNECTIONS:
+			return set_int_value(value, value_size, s->max_connections());
+		case SET_HALF_OPEN_LIMIT:
+			return set_int_value(value, value_size, s->max_half_open_connections());
+		default:
+			return -2;
+	}
+}
+
+int session_get_status(void* sesptr, struct session_status* s, int struct_size)
+{
+	libtorrent::session* ses = (libtorrent::session*)sesptr;
+
+	libtorrent::session_status ss = ses->status();
+	if (struct_size != sizeof(session_status)) return -1;
+
+	s->has_incoming_connections = ss.has_incoming_connections;
+
+	s->upload_rate = ss.upload_rate;
+	s->download_rate = ss.download_rate;
+	s->total_download = ss.total_download;
+	s->total_upload = ss.total_upload;
+
+	s->payload_upload_rate = ss.payload_upload_rate;
+	s->payload_download_rate = ss.payload_download_rate;
+	s->total_payload_download = ss.total_payload_download;
+	s->total_payload_upload = ss.total_payload_upload;
+
+	s->ip_overhead_upload_rate = ss.ip_overhead_upload_rate;
+	s->ip_overhead_download_rate = ss.ip_overhead_download_rate;
+	s->total_ip_overhead_download = ss.total_ip_overhead_download;
+	s->total_ip_overhead_upload = ss.total_ip_overhead_upload;
+
+	s->dht_upload_rate = ss.dht_upload_rate;
+	s->dht_download_rate = ss.dht_download_rate;
+	s->total_dht_download = ss.total_dht_download;
+	s->total_dht_upload = ss.total_dht_upload;
+
+	s->tracker_upload_rate = ss.tracker_upload_rate;
+	s->tracker_download_rate = ss.tracker_download_rate;
+	s->total_tracker_download = ss.total_tracker_download;
+	s->total_tracker_upload = ss.total_tracker_upload;
+
+	s->total_redundant_bytes = ss.total_redundant_bytes;
+	s->total_failed_bytes = ss.total_failed_bytes;
+
+	s->num_peers = ss.num_peers;
+	s->num_unchoked = ss.num_unchoked;
+	s->allowed_upload_slots = ss.allowed_upload_slots;
+
+	s->up_bandwidth_queue = ss.up_bandwidth_queue;
+	s->down_bandwidth_queue = ss.down_bandwidth_queue;
+
+	s->up_bandwidth_bytes_queue = ss.up_bandwidth_bytes_queue;
+	s->down_bandwidth_bytes_queue = ss.down_bandwidth_bytes_queue;
+
+	s->optimistic_unchoke_counter = ss.optimistic_unchoke_counter;
+	s->unchoke_counter = ss.unchoke_counter;
+
+	s->dht_nodes = ss.dht_nodes;
+	s->dht_node_cache = ss.dht_node_cache;
+	s->dht_torrents = ss.dht_torrents;
+	s->dht_global_nodes = ss.dht_global_nodes;
+	return 0;
+}
+
+int torrent_get_status(int tor, torrent_status* s, int struct_size)
+{
+	libtorrent::torrent_handle h = get_handle(tor);
 	if (!h.is_valid()) return -1;
 
 	libtorrent::torrent_status ts = h.status();
 
-	if (struct_size != sizeof(::torrent_status)) return -1;
+	if (struct_size != sizeof(torrent_status)) return -1;
 
 	s->state = (state_t)ts.state;
 	s->paused = ts.paused;
@@ -373,7 +505,7 @@ int get_torrent_status(int tor, torrent_status* s, int struct_size)
 	return 0;
 }
 
-int set_torrent_settings(int tor, int tag, ...)
+int torrent_set_settings(int tor, int tag, ...)
 {
 	using namespace libtorrent;
 	torrent_handle h = get_handle(tor);
@@ -413,6 +545,31 @@ int set_torrent_settings(int tor, int tag, ...)
 		tag = va_arg(lp, int);
 	}
 	return 0;
+}
+
+int torrent_get_setting(int tor, int tag, void* value, int* value_size)
+{
+	using namespace libtorrent;
+	torrent_handle h = get_handle(tor);
+	if (!h.is_valid()) return -1;
+
+	switch (tag)
+	{
+		case SET_UPLOAD_RATE_LIMIT:
+			return set_int_value(value, value_size, h.upload_limit());
+		case SET_DOWNLOAD_RATE_LIMIT:
+			return set_int_value(value, value_size, h.download_limit());
+		case SET_MAX_UPLOAD_SLOTS:
+			return set_int_value(value, value_size, h.max_uploads());
+		case SET_MAX_CONNECTIONS:
+			return set_int_value(value, value_size, h.max_connections());
+		case SET_SEQUENTIAL_DOWNLOAD:
+			return set_int_value(value, value_size, h.is_sequential_download());
+		case SET_SUPER_SEEDING:
+			return set_int_value(value, value_size, h.super_seeding());
+		default:
+			return -2;
+	}
 }
 
 } // extern "C"

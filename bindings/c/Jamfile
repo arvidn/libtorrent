@@ -17,7 +17,7 @@ rule libtorrent_linking ( properties * )
     return $(result) ;
 }
 
-lib torrentc-rasterbar
+lib torrentc
 
     : # sources
 	 library.cpp
@@ -34,5 +34,5 @@ lib torrentc-rasterbar
 	 <include>.
 ;
 
-exe simple_client : simple_client.c torrentc-rasterbar ;
+exe simple_client : simple_client.c torrentc ;
 
