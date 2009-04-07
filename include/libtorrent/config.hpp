@@ -102,7 +102,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // this is the maximum number of characters in a
 // path element / filename on windows
 #define NAME_MAX 255
-#define snprintf _snprintf_s
+#define snprintf _snprintf
 #define strtoll _strtoi64
 #endif
 
