@@ -37,13 +37,46 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	namespace socks_error {
+
+		enum socks_error_code
+		{
+			no_error = 0,
+			unsupported_version,
+			unsupported_authentication_method,
+			unsupported_authentication_version,
+			authentication_error,
+			username_required,
+			general_failure,
+			command_not_supported,
+			no_identd,
+			identd_error,
+
+			num_errors
+		};
+	}
+
+struct TORRENT_EXPORT socks_error_category : boost::system::error_category
+{
+	virtual const char* name() const;
+	virtual std::string message(int ev) const;
+	virtual boost::system::error_condition default_error_condition(int ev) const
+	{ return boost::system::error_condition(ev, *this); }
+};
+
+extern socks_error_category socks_category;
+
 class socks5_stream : public proxy_base
 {
 public:
 
 	explicit socks5_stream(io_service& io_service)
 		: proxy_base(io_service)
+		, m_version(5)
+		, m_command(1)
 	{}
+
+	void set_version(int v) { m_version = v; }
 
 	void set_username(std::string const& user
 		, std::string const& password)
@@ -54,6 +87,8 @@ public:
 
 	typedef boost::function<void(error_code const&)> handler_type;
 
+//#error fix error messages to use custom error_code category
+//#error add async_connect() that takes a hostname and port as well
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
 	{
@@ -62,10 +97,11 @@ public:
 		// the connect is split up in the following steps:
 		// 1. resolve name of proxy server
 		// 2. connect to proxy server
-		// 3. send SOCKS5 authentication method message
-		// 4. read SOCKS5 authentication response
-		// 5. send username+password
-		// 6. send SOCKS5 CONNECT message
+		// 3. if version == 5:
+		//   3.1 send SOCKS5 authentication method message
+		//   3.2 read SOCKS5 authentication response
+		//   3.3 send username+password
+		// 4 send SOCKS command message
 
 		// to avoid unnecessary copying of the handler,
 		// store it in a shaed_ptr
@@ -96,6 +132,8 @@ private:
 	// proxy authentication
 	std::string m_user;
 	std::string m_password;
+	int m_version;
+	int m_command;
 };
 
 }
