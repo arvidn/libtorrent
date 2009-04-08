@@ -30,7 +30,6 @@ set(sources
 	policy
 	session
 	session_impl
-	socks4_stream
 	socks5_stream
 	stat
 	storage
