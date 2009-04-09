@@ -458,6 +458,9 @@ of upload rate.
 ``download_rate_limit()`` and ``upload_rate_limit()`` returns the previously
 set limits.
 
+Upload and download rate limits are not applied to peers on the local network
+by default. To change that, see ``session_settings::ignore_limits_on_local_network``.
+
 
 set_max_uploads() set_max_connections() max_uploads() max_connections()
 -----------------------------------------------------------------------
