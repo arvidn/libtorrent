@@ -77,6 +77,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/lsd.hpp"
+#include "libtorrent/instantiate_connection.hpp"
 
 #ifndef TORRENT_WINDOWS
 #include <sys/resource.h>
@@ -766,8 +767,14 @@ namespace aux {
 			}
 		}
 
+		open_new_incoming_socks_connection();
+
+		// figure out which IPv6 address we're listening on
+		// or at least one of them. This is used to announce
+		// to the tracker
 		m_ipv6_interface = tcp::endpoint();
 
+#if TORRENT_USE_IPV6
 		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
 			, end(m_listen_sockets.end()); i != end; ++i)
 		{
@@ -798,6 +805,7 @@ namespace aux {
 				break;
 			}
 		}
+#endif // TORRENT_USE_IPV6
 
 		if (!m_listen_sockets.empty())
 		{
@@ -823,6 +831,25 @@ namespace aux {
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 #endif
+	}
+
+	void session_impl::open_new_incoming_socks_connection()
+	{
+		if (m_peer_proxy.type != proxy_settings::socks5
+			&& m_peer_proxy.type != proxy_settings::socks5_pw
+			&& m_peer_proxy.type != proxy_settings::socks4)
+			return;
+		
+		if (m_socks_listen_socket) return;
+
+		bool ret = instantiate_connection(m_io_service, m_peer_proxy
+			, *m_socks_listen_socket);
+		TORRENT_ASSERT(ret);
+
+		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
+		s.set_command(2); // 2 means BIND (as opposed to CONNECT)
+		s.async_connect(tcp::endpoint(address_v4::any(), m_listen_interface.port())
+			, boost::bind(&session_impl::on_socks_accept, this, m_socks_listen_socket, _1));
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -856,11 +883,11 @@ namespace aux {
 		shared_ptr<socket_type> c(new socket_type(m_io_service));
 		c->instantiate<stream_socket>(m_io_service);
 		listener->async_accept(*c->get<stream_socket>()
-			, bind(&session_impl::on_incoming_connection, this, c
+			, bind(&session_impl::on_accept_connection, this, c
 			, boost::weak_ptr<socket_acceptor>(listener), _1));
 	}
 
-	void session_impl::on_incoming_connection(shared_ptr<socket_type> const& s
+	void session_impl::on_accept_connection(shared_ptr<socket_type> const& s
 		, weak_ptr<socket_acceptor> listen_socket, error_code const& e)
 	{
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
@@ -904,6 +931,12 @@ namespace aux {
 		}
 		async_accept(listener);
 
+		incoming_connection(s);
+	}
+
+	void session_impl::incoming_connection(boost::shared_ptr<socket_type> const& s)
+	{
+		error_code ec;
 		// we got a connection request!
 		tcp::endpoint endp = s->remote_endpoint(ec);
 
@@ -988,6 +1021,23 @@ namespace aux {
 			c->start();
 		}
 	}
+
+	void session_impl::on_socks_accept(boost::shared_ptr<socket_type> const& s
+		, error_code const& e)
+	{
+		m_socks_listen_socket.reset();
+		if (e == asio::error::operation_aborted) return;
+		if (e)
+		{
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(tcp::endpoint(
+					address_v4::any(), m_listen_interface.port()), e));
+			return;
+		}
+		open_new_incoming_socks_connection();
+		incoming_connection(s);
+	}
+
 	void session_impl::close_connection(peer_connection const* p
 		, char const* message)
 	{

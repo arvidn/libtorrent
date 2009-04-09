@@ -356,18 +356,34 @@ namespace libtorrent
 			// we ignore the proxy IP it was bound to
 			if (atyp == 1)
 			{
-				std::vector<char>().swap(m_buffer);
-				(*h)(e);
+				if (m_command == 2)
+				{
+					if (m_listen == 0)
+					{
+						m_listen = 1;
+						connect1(e, h);
+						return;
+					}
+					m_remote_endpoint.address(read_v4_address(p));
+					m_remote_endpoint.port(read_uint16(p));
+					std::vector<char>().swap(m_buffer);
+					(*h)(e);
+				}
+				else
+				{
+					std::vector<char>().swap(m_buffer);
+					(*h)(e);
+				}
 				return;
 			}
-			int skip_bytes = 0;
+			int extra_bytes = 0;
 			if (atyp == 4)
 			{
-				skip_bytes = 12;
+				extra_bytes = 12;
 			}
 			else if (atyp == 3)
 			{
-				skip_bytes = read_uint8(p) - 3;
+				extra_bytes = read_uint8(p) - 3;
 			}
 			else
 			{
@@ -376,10 +392,11 @@ namespace libtorrent
 				close(ec);
 				return;
 			}
-			m_buffer.resize(skip_bytes);
+			m_buffer.resize(m_buffer.size() + extra_bytes);
 
-			async_read(m_sock, asio::buffer(m_buffer)
-					, boost::bind(&socks5_stream::connect3, this, _1, h));
+			TORRENT_ASSERT(extra_bytes > 0);
+			async_read(m_sock, asio::buffer(&m_buffer[m_buffer.size() - extra_bytes], extra_bytes)
+				, boost::bind(&socks5_stream::connect3, this, _1, h));
 		}
 		else if (m_version == 4)
 		{
@@ -394,8 +411,24 @@ namespace libtorrent
 			// access granted
 			if (response == 90)
 			{
-				std::vector<char>().swap(m_buffer);
-				(*h)(e);
+				if (m_command == 2)
+				{
+					if (m_listen == 0)
+					{
+						m_listen = 1;
+						connect1(e, h);
+						return;
+					}
+					m_remote_endpoint.address(read_v4_address(p));
+					m_remote_endpoint.port(read_uint16(p));
+					std::vector<char>().swap(m_buffer);
+					(*h)(e);
+				}
+				else
+				{
+					std::vector<char>().swap(m_buffer);
+					(*h)(e);
+				}
 				return;
 			}
 
@@ -414,6 +447,8 @@ namespace libtorrent
 
 	void socks5_stream::connect3(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
+		using namespace libtorrent::detail;
+
 		if (e)
 		{
 			(*h)(e);
@@ -422,6 +457,32 @@ namespace libtorrent
 			return;
 		}
 
+		if (m_command == 2)
+		{
+			if (m_listen == 0)
+			{
+				m_listen = 1;
+				connect1(e, h);
+				return;
+			}
+
+			char* p = &m_buffer[0];
+			p += 2; // version and response code
+			int atyp = read_uint8(p);
+			TORRENT_ASSERT(atyp == 3 || atyp == 4);
+			if (atyp == 4)
+			{
+				// we don't support resolving the endpoint address
+				// if we receive a domain name, just set the remote
+				// endpoint to INADDR_ANY
+				m_remote_endpoint = tcp::endpoint();
+			}
+			else if (atyp == 3)
+			{
+				m_remote_endpoint.address(read_v4_address(p));
+				m_remote_endpoint.port(read_uint16(p));
+			}
+		}
 		std::vector<char>().swap(m_buffer);
 		(*h)(e);
 	}

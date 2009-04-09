@@ -74,9 +74,12 @@ public:
 		: proxy_base(io_service)
 		, m_version(5)
 		, m_command(1)
+		, m_listen(0)
 	{}
 
 	void set_version(int v) { m_version = v; }
+
+	void set_command(int c) { m_command = c; }
 
 	void set_username(std::string const& user
 		, std::string const& password)
@@ -134,6 +137,9 @@ private:
 	std::string m_password;
 	int m_version;
 	int m_command;
+	// set to one when we're waiting for the
+	// second message to accept an incoming connection
+	int m_listen;
 };
 
 }

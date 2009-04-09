@@ -153,8 +153,12 @@ namespace libtorrent
 			tcp::endpoint get_ipv6_interface() const;
 
 			void async_accept(boost::shared_ptr<socket_acceptor> const& listener);
-			void on_incoming_connection(boost::shared_ptr<socket_type> const& s
+			void on_accept_connection(boost::shared_ptr<socket_type> const& s
 				, boost::weak_ptr<socket_acceptor> listener, error_code const& e);
+			void on_socks_accept(boost::shared_ptr<socket_type> const& s
+				, error_code const& e);
+
+			void incoming_connection(boost::shared_ptr<socket_type> const& s);
 		
 			// must be locked to access the data
 			// in this struct
@@ -254,7 +258,12 @@ namespace libtorrent
 			void announce_lsd(sha1_hash const& ih);
 
 			void set_peer_proxy(proxy_settings const& s)
-			{ m_peer_proxy = s; }
+			{
+				m_peer_proxy = s;
+				// in case we just set a socks proxy, we might have to
+				// open the socks incoming connection
+				if (!m_socks_listen_socket) open_new_incoming_socks_connection();
+			}
 			void set_web_seed_proxy(proxy_settings const& s)
 			{ m_web_seed_proxy = s; }
 			void set_tracker_proxy(proxy_settings const& s)
@@ -441,6 +450,12 @@ namespace libtorrent
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket
 			std::list<listen_socket_t> m_listen_sockets;
+
+			// when as a socks proxy is used for peers, also
+			// listen for incoming connections on a socks connection
+			boost::shared_ptr<socket_type> m_socks_listen_socket;
+
+			void open_new_incoming_socks_connection();
 
 			listen_socket_t setup_listener(tcp::endpoint ep, int retries, bool v6_only = false);
 
