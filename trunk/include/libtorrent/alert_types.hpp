@@ -275,7 +275,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[200];
-			snprintf(ret, 200, "%s (%u) %s (%d)"
+			snprintf(ret, 200, "%s (%d) %s (%d)"
 				, torrent_alert::message().c_str(), status_code, msg.c_str(), times_in_row);
 			return ret;
 		}
