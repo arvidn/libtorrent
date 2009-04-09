@@ -187,6 +187,11 @@ namespace libtorrent
 		{
 			size_type size = 0;
 			std::time_t time = 0;
+			if (i->pad_file)
+			{
+				sizes.push_back(std::make_pair(i->size, time));
+				continue;
+			}
 #if TORRENT_USE_WPATH
 			fs::wpath f = convert_to_wstring((p / i->path).string());
 #elif TORRENT_USE_LOCALE_FILENAMES
@@ -873,7 +878,7 @@ namespace libtorrent
 			for (file_storage::iterator i = files().begin()
 				, end(files().end()); i != end; ++i, ++fs)
 			{
-				if (i->size != fs->first)
+				if (!i->pad_file && i->size != fs->first)
 				{
 					error = "file size for '" + i->path.external_file_string()
 						+ "' was expected to be "
