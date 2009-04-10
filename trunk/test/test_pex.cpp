@@ -54,24 +54,17 @@ void test_pex()
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
-	float rate_limit = 500000;
+	float rate_limit = 1000;
 	ses1.set_upload_rate_limit(int(rate_limit));
 	ses2.set_download_rate_limit(int(rate_limit));
 	ses3.set_download_rate_limit(int(rate_limit));
 	// make the peer connecting the two worthless to transfer
 	// data, to force peer 3 to connect directly to peer 1 through pex
-	ses2.set_upload_rate_limit(200);
+	ses2.set_upload_rate_limit(2000);
 	ses3.set_upload_rate_limit(int(rate_limit / 2));
 
 	ses1.add_extension(&create_ut_pex_plugin);
 	ses2.add_extension(&create_ut_pex_plugin);
-
-	session_settings settings;
-	settings.allow_multiple_connections_per_ip = true;
-	settings.ignore_limits_on_local_network = false;
-	ses1.set_settings(settings);
-	ses2.set_settings(settings);
-	ses3.set_settings(settings);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -90,19 +83,24 @@ void test_pex()
 
 	test_sleep(1000);
 
+	// in this test, ses1 is a seed, ses2 is connected to ses1 and ses3.
+	// the expected behavior is that ses2 will introduce ses1 and ses3 to each other
 	error_code ec;
 	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()));
 	tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec), ses3.listen_port()));
 
+	torrent_status st1;
+	torrent_status st2;
+	torrent_status st3;
 	for (int i = 0; i < 90; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
 		print_alerts(ses3, "ses3");
 
-		torrent_status st1 = tor1.status();
-		torrent_status st2 = tor2.status();
-		torrent_status st3 = tor3.status();
+		st1 = tor1.status();
+		st2 = tor2.status();
+		st3 = tor3.status();
 
 		std::cerr
 			<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
@@ -117,11 +115,14 @@ void test_pex()
 			<< st3.num_peers
 			<< std::endl;
 
+		if (st1.num_peers == 2 && st2.num_peers == 2 && st3.num_peers == 2)
+			break;
+
 		if (st3.state == torrent_status::seeding) break;
 		test_sleep(1000);
 	}
 
-	TEST_CHECK(tor3.is_seed());
+	TEST_CHECK(st1.num_peers == 2 && st2.num_peers == 2 && st3.num_peers == 2)
 
 	if (!tor2.is_seed() && tor3.is_seed()) std::cerr << "done\n";
 }

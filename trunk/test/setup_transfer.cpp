@@ -262,10 +262,14 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	assert(ses2);
 
 	session_settings sess_set;
+	sess_set.allow_multiple_connections_per_ip = true;
 	sess_set.ignore_limits_on_local_network = false;
 	ses1->set_settings(sess_set);
 	ses2->set_settings(sess_set);
 	if (ses3) ses3->set_settings(sess_set);
+	ses1->set_alert_mask(alert::all_categories);
+	ses2->set_alert_mask(alert::all_categories);
+	if (ses3) ses3->set_alert_mask(alert::all_categories);
 
 	std::srand(time(0));
 	peer_id pid;
