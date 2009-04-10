@@ -804,10 +804,6 @@ namespace libtorrent
 		disconnect_all();
 
 		m_owning_storage->async_release_files();
-		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
-			, m_save_path, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor
-			, m_storage_mode);
-		m_storage = m_owning_storage.get();
 		if (!m_picker) m_picker.reset(new piece_picker());
 		m_picker->init(m_torrent_file->piece_length() / m_block_size
 			, int((m_torrent_file->total_size()+m_block_size-1)/m_block_size));
@@ -845,9 +841,17 @@ namespace libtorrent
 			pause();
 			return;
 		}
-		set_state(torrent_status::queued_for_checking);
-		if (should_check_files())
-			queue_torrent_check();
+		if (ret == 0)
+		{
+			// if there are no files, just start
+			files_checked();
+		}
+		else
+		{
+			set_state(torrent_status::queued_for_checking);
+			if (should_check_files())
+				queue_torrent_check();
+		}
 	}
 
 	void torrent::start_checking()

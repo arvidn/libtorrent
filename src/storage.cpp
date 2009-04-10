@@ -407,6 +407,7 @@ namespace libtorrent
 #endif
 		}
 
+		bool has_any_file();
 		bool rename_file(int index, std::string const& new_filename);
 		bool release_files();
 		bool delete_files();
@@ -578,6 +579,43 @@ namespace libtorrent
 		std::vector<boost::uint8_t>().swap(m_file_priority);
 		// close files that were opened in write mode
 		m_pool.release(this);
+		return false;
+	}
+
+	bool storage::has_any_file()
+	{
+		file_storage::iterator i = files().begin();
+		file_storage::iterator end = files().end();
+
+		for (; i != end; ++i)
+		{
+			bool file_exists = false;
+			fs::path f = m_save_path / i->path;
+#ifndef BOOST_NO_EXCEPTIONS
+			try
+			{
+#endif
+#if TORRENT_USE_WPATH
+				fs::wpath wf = convert_to_wstring(f.string());
+				file_exists = exists(wf);
+#elif TORRENT_USE_LOCALE_FILENAMES
+				file_exists = exists(convert_to_native(f.string()));
+#else
+				file_exists = exists(f);
+#endif
+				std::cerr << "has_any_file(): " << f << " " << (file_exists?"exists": "don't exist")
+					<< std::endl;
+#ifndef BOOST_NO_EXCEPTIONS
+			}
+			catch (boost::system::system_error& e)
+			{
+				set_error(f, e.code());
+				return false;
+			}
+#endif
+			if (file_exists && i->size > 0)
+				return true;
+		}
 		return false;
 	}
 
@@ -1857,53 +1895,27 @@ ret:
 
 	int piece_manager::check_no_fastresume(std::string& error)
 	{
-		file_storage::iterator i = m_files.begin();
-		file_storage::iterator end = m_files.end();
+		bool has_files = m_storage->has_any_file();
 
-		for (; i != end; ++i)
+		if (m_storage->error())
+			return fatal_disk_error;
+
+		if (has_files)
 		{
-			bool file_exists = false;
-			fs::path f = m_save_path / i->path;
-#ifndef BOOST_NO_EXCEPTIONS
-			try
+			m_state = state_full_check;
+			m_piece_to_slot.clear();
+			m_piece_to_slot.resize(m_files.num_pieces(), has_no_slot);
+			m_slot_to_piece.clear();
+			m_slot_to_piece.resize(m_files.num_pieces(), unallocated);
+			if (m_storage_mode == storage_mode_compact)
 			{
-#endif
-#if TORRENT_USE_WPATH
-				fs::wpath wf = convert_to_wstring(f.string());
-				file_exists = exists(wf);
-#elif TORRENT_USE_LOCALE_FILENAMES
-				file_exists = exists(convert_to_native(f.string()));
-#else
-				file_exists = exists(f);
-#endif
-#ifndef BOOST_NO_EXCEPTIONS
+				m_unallocated_slots.clear();
+				m_free_slots.clear();
 			}
-			catch (std::exception& e)
-			{
-				error = f.string();
-				error += ": ";
-				error += e.what();
-				TORRENT_ASSERT(!error.empty());
-				return fatal_disk_error;
-			}
-#endif
-			if (file_exists && i->size > 0)
-			{
-				m_state = state_full_check;
-				m_piece_to_slot.clear();
-				m_piece_to_slot.resize(m_files.num_pieces(), has_no_slot);
-				m_slot_to_piece.clear();
-				m_slot_to_piece.resize(m_files.num_pieces(), unallocated);
-				if (m_storage_mode == storage_mode_compact)
-				{
-					m_unallocated_slots.clear();
-					m_free_slots.clear();
-				}
-				TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
-				return need_full_check;
-			}
+			TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
+			return need_full_check;
 		}
-	
+
 		if (m_storage_mode == storage_mode_compact)
 		{
 			// in compact mode without checking, we need to
