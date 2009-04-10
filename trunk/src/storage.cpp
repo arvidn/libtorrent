@@ -603,8 +603,6 @@ namespace libtorrent
 #else
 				file_exists = exists(f);
 #endif
-				std::cerr << "has_any_file(): " << f << " " << (file_exists?"exists": "don't exist")
-					<< std::endl;
 #ifndef BOOST_NO_EXCEPTIONS
 			}
 			catch (boost::system::system_error& e)
