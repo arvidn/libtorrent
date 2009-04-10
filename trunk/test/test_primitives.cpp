@@ -643,9 +643,9 @@ int test_main()
 
 	using namespace libtorrent::dht;
 
-	for (int i = 0; i < 160; i += 4)
+	for (int i = 0; i < 160; i += 8)
 	{
-		for (int j = 0; j < 160; j += 4)
+		for (int j = 0; j < 160; j += 8)
 		{
 			node_id a(0);
 			a[(159-i) / 8] = 1 << (i & 7);
@@ -656,7 +656,7 @@ int test_main()
 			TEST_CHECK(dist >= 0 && dist < 160);
 			TEST_CHECK(dist == ((i == j)?0:(std::max)(i, j)));
 
-			for (int k = 0; k < 160; k += 4)
+			for (int k = 0; k < 160; k += 8)
 			{
 				node_id c(0);
 				c[(159-k) / 8] = 1 << (k & 7);
@@ -676,7 +676,7 @@ int test_main()
 	node_id tmp;
 	node_id diff = to_hash("00001f7459456a9453f8719b09547c11d5f34064");
 	std::vector<node_entry> nodes;
-	for (int i = 0; i < 10000; ++i)
+	for (int i = 0; i < 1000; ++i)
 	{
 		table.node_seen(tmp, udp::endpoint(address_v4::any(), rand()));
 		add_and_replace(tmp, diff);

@@ -51,6 +51,14 @@ using boost::filesystem::create_directory;
 using namespace libtorrent;
 namespace sf = boost::filesystem;
 
+bool tests_failure = false;
+
+void report_failure(char const* err, char const* file, int line)
+{
+	std::cerr << "\033[31m" << file << ":" << line << " \"" << err << "\"\033[0m\n";
+	tests_failure = true;
+}
+
 bool print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
 	, bool (*predicate)(libtorrent::alert*))
@@ -253,6 +261,12 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	assert(ses1);
 	assert(ses2);
 
+	session_settings sess_set;
+	sess_set.ignore_limits_on_local_network = false;
+	ses1->set_settings(sess_set);
+	ses2->set_settings(sess_set);
+	if (ses3) ses3->set_settings(sess_set);
+
 	std::srand(time(0));
 	peer_id pid;
 	std::generate(&pid[0], &pid[0] + 20, std::rand);
@@ -272,7 +286,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	{
 		create_directory("./tmp1" + suffix);
 		std::ofstream file(("./tmp1" + suffix + "/temporary").c_str());
-		t = ::create_torrent(&file, piece_size, 1024 / 8);
+		t = ::create_torrent(&file, piece_size, 19);
 		file.close();
 		if (clear_files)
 		{

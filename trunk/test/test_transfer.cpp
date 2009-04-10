@@ -59,7 +59,7 @@ void test_rate()
 
 	create_directory("./tmp1_transfer");
 	std::ofstream file("./tmp1_transfer/temporary");
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 50);
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 7);
 	file.close();
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
@@ -134,12 +134,17 @@ void test_transfer()
 	// set half of the pieces to priority 0
 	int num_pieces = tor2.get_torrent_info().num_pieces();
 	std::vector<int> priorities(num_pieces, 1);
-	std::fill(priorities.begin(), priorities.begin() + num_pieces / 2, 0);
+	std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0);
 	tor2.prioritize_pieces(priorities);
+	std::cerr << "setting priorities: ";
+	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
+	std::cerr << std::endl;
 
 	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	ses1.set_alert_dispatch(&print_alert);
+
+	ses2.set_download_rate_limit(tor2.get_torrent_info().piece_length() / 2);
 
 	// also test to move the storage of the downloader and the uploader
 	// to make sure it can handle switching paths
@@ -165,8 +170,6 @@ void test_transfer()
 			<< st2.num_peers
 			<< std::endl;
 
-		if (tor2.is_finished()) break;
-
 		if (!test_move_storage && st2.progress > 0.25f)
 		{
 			test_move_storage = true;
@@ -174,6 +177,8 @@ void test_transfer()
 			tor2.move_storage("./tmp2_transfer_moved");
 			std::cerr << "moving storage" << std::endl;
 		}
+
+		if (tor2.is_finished()) break;
 
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
