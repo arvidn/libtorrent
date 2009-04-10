@@ -50,7 +50,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 
 void test_sleep(int millisec);
 
-boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0, int piece_size = 16 * 1024, int num_pieces = 1024 / 8);
+boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0, int piece_size = 16 * 1024, int num_pieces = 13);
 
 boost::tuple<libtorrent::torrent_handle
 	, libtorrent::torrent_handle
