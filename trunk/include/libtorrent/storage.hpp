@@ -119,6 +119,8 @@ namespace libtorrent
 		// false return value indicates an error
 		virtual bool initialize(bool allocate_files) = 0;
 
+		virtual bool has_any_file() = 0;
+
 		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
 		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
 

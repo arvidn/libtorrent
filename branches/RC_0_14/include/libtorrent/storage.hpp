@@ -123,6 +123,8 @@ namespace libtorrent
 		// false return value indicates an error
 		virtual bool initialize(bool allocate_files) = 0;
 
+		virtual bool has_any_file() = 0;
+
 		// negative return value indicates an error
 		virtual int read(char* buf, int slot, int offset, int size) = 0;
 

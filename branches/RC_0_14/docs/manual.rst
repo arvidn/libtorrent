@@ -4610,12 +4610,31 @@ storage_interface
 =================
 
 The storage interface is a pure virtual class that can be implemented to
-change the behavior of the actual file storage. The interface looks like
-this::
+customize how and where data for a torrent is stored. The default storage
+implementation uses regular files in the filesystem, mapping the files in the
+torrent in the way one would assume a torrent is saved to disk. Implementing
+your own storage interface makes it possible to store all data in RAM, or in
+some optimized order on disk (the order the pieces are received for instance),
+or saving multifile torrents in a single file in order to be able to take
+advantage of optimized disk-I/O.
+
+It is also possible to write a thin class that uses the default storage but
+modifies some particular behavior, for instance encrypting the data before
+it's written to disk, and decrypting it when it's read again.
+
+The storage interface is based on slots, each slot is 'piece_size' number
+of bytes. All access is done by writing and reading whole or partial
+slots. One slot is one piece in the torrent, but the data in the slot
+does not necessarily correspond to the piece with the same index (in
+compact allocation mode it won't).
+
+The interface looks like this::
+
 
 	struct storage_interface
 	{
 		virtual bool initialize(bool allocate_files) = 0;
+		virtual bool has_any_file() = 0;
 		virtual int read(char* buf, int slot, int offset, int size) = 0;
 		virtual int write(const char* buf, int slot, int offset, int size) = 0;
 		virtual bool move_storage(fs::path save_path) = 0;
@@ -4644,6 +4663,17 @@ will create directories and empty files at this point. If ``allocate_files`` is 
 it will also ``ftruncate`` all files to their target size.
 
 Returning ``true`` indicates an error occurred.
+
+has_any_file()
+--------------
+
+	::
+
+		virtual bool has_any_file() = 0;
+
+This function is called when first checking (or re-checking) the storage for a torrent.
+It should return true if any of the files that is used in this storage exists on disk.
+If so, the storage will be checked for existing pieces before starting the download.
 
 read()
 ------
