@@ -363,6 +363,18 @@ int test_main()
 	to_hex(bin, 20, hex);
 	TEST_CHECK(strcmp(hex, str) == 0);
 
+	// test to_lower
+
+	TEST_CHECK(to_lower('C') == 'c');
+	TEST_CHECK(to_lower('c') == 'c');
+	TEST_CHECK(to_lower('-') == '-');
+	TEST_CHECK(to_lower('&') == '&');
+
+	// test string_begins_no_case
+
+	TEST_CHECK(string_begins_no_case("foobar", "FoobAR --"));
+	TEST_CHECK(!string_begins_no_case("foobar", "F00"));
+
 	// test itoa
 
 	TEST_CHECK(to_string(345).elems == std::string("345"));

@@ -1680,6 +1680,8 @@ namespace libtorrent
 		m_last_piece = time_now();
 		m_outstanding_bytes -= bytes;
 #ifdef TORRENT_DEBUG
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		TORRENT_ASSERT(m_received_in_piece + bytes <= t->block_size());
 		m_received_in_piece += bytes;
 #endif
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
@@ -1820,6 +1822,7 @@ namespace libtorrent
 			if ((*i)->on_piece(p, data))
 			{
 #ifdef TORRENT_DEBUG
+				TORRENT_ASSERT(m_received_in_piece == p.length);
 				m_received_in_piece = 0;
 #endif
 				return;
@@ -1861,6 +1864,7 @@ namespace libtorrent
 		if (t->is_seed())
 		{
 #ifdef TORRENT_DEBUG
+			TORRENT_ASSERT(m_received_in_piece == p.length);
 			m_received_in_piece = 0;
 #endif
 			if (!m_download_queue.empty()) m_download_queue.erase(m_download_queue.begin());
@@ -1897,6 +1901,7 @@ namespace libtorrent
 				"request queue ***\n";
 #endif
 #ifdef TORRENT_DEBUG
+			TORRENT_ASSERT(m_received_in_piece == p.length);
 			m_received_in_piece = 0;
 #endif
 			t->add_redundant_bytes(p.length);

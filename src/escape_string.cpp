@@ -90,6 +90,22 @@ namespace libtorrent
 		return c >= 32 && c < 127;
 	}
 
+	char to_lower(char c)
+	{
+		return (c >= 'A' && c <= 'Z') ? c - 'A' + 'a' : c;
+	}
+
+	bool string_begins_no_case(char const* s1, char const* s2)
+	{
+		while (*s1 != 0)
+		{
+			if (to_lower(*s1) != to_lower(*s2)) return false;
+			++s1;
+			++s2;
+		}
+		return true;
+	}
+
 	std::string unescape_string(std::string const& s, error_code& ec)
 	{
 		std::string ret;
