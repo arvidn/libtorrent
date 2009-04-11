@@ -2119,6 +2119,7 @@ namespace libtorrent
 				m_sync_hash.reset(new (std::nothrow) sha1_hash(h.final()));
 				if (!m_sync_hash)
 				{
+					m_statistics.received_bytes(0, bytes_transferred);
 					disconnect("no memory");
 					return;
 				}
