@@ -324,6 +324,7 @@ namespace libtorrent
 
 		if (error)
 		{
+			m_statistics.received_bytes(0, bytes_transferred);
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << "*** web_peer_connection error: "
 				<< error.message() << "\n";
@@ -350,6 +351,7 @@ namespace libtorrent
 
 				if (error)
 				{
+					m_statistics.received_bytes(0, bytes_transferred);
 #ifdef TORRENT_VERBOSE_LOGGING
 					(*m_logger) << "*** " << std::string(recv_buffer.begin, recv_buffer.end) << "\n";
 #endif
@@ -389,6 +391,7 @@ namespace libtorrent
 						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
 							, error_msg));
 					}
+					m_statistics.received_bytes(0, bytes_transferred);
 					disconnect(error_msg.c_str(), 1);
 					return;
 				}
@@ -422,6 +425,7 @@ namespace libtorrent
 
 					if (location.empty())
 					{
+						m_statistics.received_bytes(0, bytes_transferred);
 						// we should not try this server again.
 						t->remove_web_seed(m_url, web_seed_entry::url_seed);
 						disconnect("got HTTP redirection status without location header", 2);
@@ -435,6 +439,7 @@ namespace libtorrent
 					// add the redirected url and remove the current one
 					if (!single_file_request)
 					{
+						m_statistics.received_bytes(0, bytes_transferred);
 						TORRENT_ASSERT(!m_file_requests.empty());
 						int file_index = m_file_requests.front();
 
@@ -502,6 +507,7 @@ namespace libtorrent
 				
 				if (!success)
 				{
+					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(m_url, web_seed_entry::url_seed);
 					char msg[200];
@@ -519,6 +525,7 @@ namespace libtorrent
 				range_end = m_parser.content_length();
 				if (range_end == -1)
 				{
+					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(m_url, web_seed_entry::url_seed);
 					disconnect("no content-length in HTTP response", 2);
@@ -541,6 +548,7 @@ namespace libtorrent
 
 			if (m_requests.empty() || m_file_requests.empty())
 			{
+				m_statistics.received_bytes(0, bytes_transferred);
 				disconnect("unexpected HTTP response", 2);
 				return;
 			}
@@ -572,6 +580,7 @@ namespace libtorrent
 
 			if (!range_overlaps_request)
 			{
+				m_statistics.received_bytes(0, bytes_transferred);
 				// this means the end of the incoming request ends _before_ the
 				// first expected byte (fs + m_piece.size())
 				disconnect("invalid range in HTTP response", 2);
