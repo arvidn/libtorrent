@@ -102,7 +102,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	{
 		headers << "GET " << path << " HTTP/1.0\r\n"
 			"Host: " << hostname;
-		if (port != default_port) headers << ":" << port;
+		if (port != default_port) headers << ":" << to_string(port).elems;
 		headers << "\r\n";
 	}
 
