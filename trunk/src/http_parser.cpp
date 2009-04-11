@@ -39,13 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/escape_string.hpp"
 
 using namespace libtorrent;
-
-namespace
-{
-	char to_lower(char c) { return std::tolower(c); }
-}
 
 namespace libtorrent
 {
