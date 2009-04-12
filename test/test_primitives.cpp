@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/identify_client.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -353,6 +354,13 @@ void find_control_url(int type, char const* string, parse_state& state);
 int test_main()
 {
 	using namespace libtorrent;
+
+	// test identify_client
+
+	TEST_CHECK(identify_client(peer_id("-AZ1234-............")) == "Azureus 1.2.3.4");
+	TEST_CHECK(identify_client(peer_id("-AZ1230-............")) == "Azureus 1.2.3");
+	TEST_CHECK(identify_client(peer_id("S123--..............")) == "Shadow 1.2.3");
+	TEST_CHECK(identify_client(peer_id("M1-2-3--............")) == "Mainline 1.2.3");
 
 	// test to/from hex conversion
 
