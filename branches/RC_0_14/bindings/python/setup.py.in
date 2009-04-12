@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from distutils import sysconfig
 from distutils.core import setup, Extension
 import os
 import platform
@@ -51,6 +52,12 @@ if platform.system() == 'Windows':
 		packages = ['libtorrent'],
 	)
 	sys.exit(0)
+
+config_vars = sysconfig.get_config_vars()
+if "CFLAGS" in config_vars and "-Wstrict-prototypes" in config_vars["CFLAGS"]:
+	config_vars["CFLAGS"] = config_vars["CFLAGS"].replace("-Wstrict-prototypes", " ")
+if "OPT" in config_vars and "-Wstrict-prototypes" in config_vars["OPT"]:
+	config_vars["OPT"] = config_vars["OPT"].replace("-Wstrict-prototypes", " ")
 
 source_list = os.listdir(os.path.join(os.path.dirname(__file__), "src"))
 source_list = [os.path.join("src", s) for s in source_list if s.endswith(".cpp")]
