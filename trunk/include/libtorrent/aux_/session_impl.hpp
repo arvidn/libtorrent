@@ -151,6 +151,7 @@ namespace libtorrent
 			// this will return one of the IPv6 addresses on this
 			// machine, otherwise just an empty endpoint
 			tcp::endpoint get_ipv6_interface() const;
+			tcp::endpoint get_ipv4_interface() const;
 
 			void async_accept(boost::shared_ptr<socket_acceptor> const& listener);
 			void on_accept_connection(boost::shared_ptr<socket_type> const& s
@@ -431,6 +432,7 @@ namespace libtorrent
 			// this is one of the non local IPv6 interfaces
 			// on this machine
 			tcp::endpoint m_ipv6_interface;
+			tcp::endpoint m_ipv4_interface;
 			
 			struct listen_socket_t
 			{

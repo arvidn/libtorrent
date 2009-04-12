@@ -919,10 +919,12 @@ namespace libtorrent
 		req.left = bytes_left();
 		if (req.left == -1) req.left = 16*1024;
 		req.event = e;
-		tcp::endpoint ep = m_ses.get_ipv6_interface();
 		error_code ec;
-		if (ep != tcp::endpoint())
-			req.ipv6 = ep.address().to_string(ec);
+		tcp::endpoint ep;
+		ep = m_ses.get_ipv6_interface();
+		if (ep != tcp::endpoint()) req.ipv6 = ep.address().to_string(ec);
+		ep = m_ses.get_ipv4_interface();
+		if (ep != tcp::endpoint()) req.ipv4 = ep.address().to_string(ec);
 
 		req.url = m_trackers[m_currently_trying_tracker].url;
 		// if we are aborting. we don't want any new peers

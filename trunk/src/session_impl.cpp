@@ -634,6 +634,11 @@ namespace aux {
 		return m_ipv6_interface;
 	}
 
+	tcp::endpoint session_impl::get_ipv4_interface() const
+	{
+		return m_ipv4_interface;
+	}
+
 	session_impl::listen_socket_t session_impl::setup_listener(tcp::endpoint ep
 		, int retries, bool v6_only)
 	{
@@ -713,6 +718,9 @@ namespace aux {
 		m_listen_sockets.clear();
 		m_incoming_connection = false;
 
+		m_ipv6_interface = tcp::endpoint();
+		m_ipv4_interface = tcp::endpoint();
+
 		if (is_any(m_listen_interface.address()))
 		{
 			// this means we should open two listen sockets
@@ -751,6 +759,20 @@ namespace aux {
 			}
 #endif
 #endif // TORRENT_USE_IPV6
+
+			// set our main IPv4 and IPv6 interfaces
+			// used to send to the tracker
+			error_code ec;
+			std::vector<ip_interface> ifs = enum_net_interfaces(m_io_service, ec);
+			for (std::vector<ip_interface>::const_iterator i = ifs.begin()
+					, end(ifs.end()); i != end; ++i)
+			{
+				address const& addr = i->interface_address;
+				if (addr.is_v6() && !is_local(addr) && !is_loopback(addr))
+					m_ipv6_interface = tcp::endpoint(addr, m_listen_interface.port());
+				else if (addr.is_v4() && !is_local(addr) && !is_loopback(addr))
+					m_ipv4_interface = tcp::endpoint(addr, m_listen_interface.port());
+			}
 		}
 		else
 		{
@@ -764,48 +786,15 @@ namespace aux {
 			{
 				m_listen_sockets.push_back(s);
 				async_accept(s.sock);
+
+				if (m_listen_interface.address().is_v6())
+					m_ipv6_interface = m_listen_interface;
+				else
+					m_ipv4_interface = m_listen_interface;
 			}
 		}
 
 		open_new_incoming_socks_connection();
-
-		// figure out which IPv6 address we're listening on
-		// or at least one of them. This is used to announce
-		// to the tracker
-		m_ipv6_interface = tcp::endpoint();
-
-#if TORRENT_USE_IPV6
-		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
-		{
-			error_code ec;
-			tcp::endpoint ep = i->sock->local_endpoint(ec);
-			if (ec || ep.address().is_v4()) continue;
-
-			if (ep.address().to_v6() != address_v6::any())
-			{
-				// if we're listening on a specific address
-				// pick it
-				m_ipv6_interface = ep;
-			}
-			else
-			{
-				// if we're listening on any IPv6 address, enumerate them and
-				// pick the first non-local address
-				std::vector<ip_interface> const& ifs = enum_net_interfaces(m_io_service, ec);
-				for (std::vector<ip_interface>::const_iterator i = ifs.begin()
-					, end(ifs.end()); i != end; ++i)
-				{
-					if (i->interface_address.is_v4()
-						|| i->interface_address.to_v6().is_link_local()
-						|| i->interface_address.to_v6().is_loopback()) continue;
-					m_ipv6_interface = tcp::endpoint(i->interface_address, ep.port());
-					break;
-				}
-				break;
-			}
-		}
-#endif // TORRENT_USE_IPV6
 
 		if (!m_listen_sockets.empty())
 		{

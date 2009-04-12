@@ -164,8 +164,17 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			url += "&supportcrypto=1";
 #endif
-			url += "&ipv6=";
-			url += tracker_req().ipv6;
+			if (!tracker_req().ipv6.empty())
+			{
+				url += "&ipv6=";
+				url += tracker_req().ipv6;
+			}
+
+			if (!tracker_req().ipv4.empty())
+			{
+				url += "&ipv4=";
+				url += tracker_req().ipv4;
+			}
 
 			// extension that tells the tracker that
 			// we don't need any peer_id's in the response
