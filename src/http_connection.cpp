@@ -83,43 +83,48 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	}
 #endif
 	
-	std::stringstream headers;
+	char request[2048];
+	char* end = request + sizeof(request);
+	char* ptr = request;
+
+#define APPEND_FMT(fmt) ptr += snprintf(ptr, end - ptr, fmt)
+#define APPEND_FMT1(fmt, arg) ptr += snprintf(ptr, end - ptr, fmt, arg)
+#define APPEND_FMT2(fmt, arg1, arg2) ptr += snprintf(ptr, end - ptr, fmt, arg1, arg2)
+
 	if (ps && (ps->type == proxy_settings::http
 		|| ps->type == proxy_settings::http_pw)
 		&& !ssl)
 	{
 		// if we're using an http proxy and not an ssl
 		// connection, just do a regular http proxy request
-		headers << "GET " << url << " HTTP/1.0\r\n";
+		APPEND_FMT1("GET %s HTTP/1.0\r\n", url.c_str());
 		if (ps->type == proxy_settings::http_pw)
-			headers << "Proxy-Authorization: Basic " << base64encode(
-				ps->username + ":" + ps->password) << "\r\n";
+			APPEND_FMT1("Proxy-Authorization: Basic %s\r\n", base64encode(
+				ps->username + ":" + ps->password).c_str());
 		hostname = ps->hostname;
 		port = ps->port;
 		ps = 0;
 	}
 	else
 	{
-		headers << "GET " << path << " HTTP/1.0\r\n"
-			"Host: " << hostname;
-		if (port != default_port) headers << ":" << to_string(port).elems;
-		headers << "\r\n";
+		APPEND_FMT2("GET %s HTTP/1.0\r\n"
+			"Host: %s", path.c_str(), hostname.c_str());
+		if (port != default_port) APPEND_FMT1(":%d\r\n", port);
+		else APPEND_FMT("\r\n");
 	}
 
 	if (!auth.empty())
-		headers << "Authorization: Basic " << base64encode(auth) << "\r\n";
+		APPEND_FMT1("Authorization: Basic %s\r\n", base64encode(auth).c_str());
 
 	if (!user_agent.empty())
-		headers << "User-Agent: " << user_agent << "\r\n";
+		APPEND_FMT1("User-Agent: %s\r\n", user_agent.c_str());
 	
 	if (m_bottled)
-		headers << "Accept-Encoding: gzip\r\n";
+		APPEND_FMT("Accept-Encoding: gzip\r\n");
 
-	headers <<
-		"Connection: close\r\n"
-		"\r\n";
+	APPEND_FMT("Connection: close\r\n\r\n");
 
-	sendbuffer = headers.str();
+	sendbuffer.assign(request);
 	m_url = url;
 	start(hostname, to_string(port).elems, timeout, prio
 		, ps, ssl, handle_redirects, bind_addr);
