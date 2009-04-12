@@ -480,31 +480,14 @@ namespace libtorrent
 			size_type range_end;
 			if (m_parser.status_code() == 206)
 			{
-				std::string const& range_str = m_parser.header("content-range");
-
-				bool success = true;
-				char const* ptr = range_str.c_str();
-				if (string_begins_no_case("bytes ", ptr)) ptr += 6;
-				else success = false;
-				char* end;
-				range_start = strtoll(ptr, &end, 10);
-				if (end == ptr) success = false;
-				else if (*end != '-') success = false;
-				else
-				{
-					ptr = end + 1;
-					range_end = strtoll(ptr, &end, 10);
-					if (end == ptr) success = false;
-				}
-				
-				if (!success)
+				boost::tie(range_start, range_end) = m_parser.content_range();
+				if (range_start < 0 || range_end < range_start)
 				{
 					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(m_url, web_seed_entry::url_seed);
 					char msg[200];
-					snprintf(msg, 200, "invalid range in HTTP response: %s"
-						, range_str.c_str());
+					snprintf(msg, 200, "invalid range in HTTP response");
 					disconnect(msg, 2);
 					return;
 				}
