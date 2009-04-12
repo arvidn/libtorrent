@@ -625,7 +625,7 @@ namespace libtorrent
 #endif
 #ifndef BOOST_NO_EXCEPTIONS
 			}
-#if BOOST_VERSION > 103500
+#if BOOST_VERSION >= 103500
 			catch (boost::system::system_error& e)
 			{
 				set_error(f, e.code());
