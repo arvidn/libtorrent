@@ -481,11 +481,19 @@ namespace libtorrent
 #endif
 #ifndef BOOST_NO_EXCEPTIONS
 			}
+#if BOOST_VERSION >= 103500
 			catch (boost::system::system_error& e)
 			{
 				set_error(f, e.code());
 				return false;
 			}
+#else
+			catch (boost::filesystem::filesystem_error& e)
+			{
+				set_error(f, error_code(e.system_error(), get_posix_category()));
+				return false;
+			}
+#endif
 #endif
 			if (file_exists && i->size > 0)
 				return true;
