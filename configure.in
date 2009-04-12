@@ -342,6 +342,12 @@ case "$ac_python_binding" in
 		;;
 esac
 
+dnl Use possibly specific python install params
+if [[ "x$PYTHON_INSTALL_PARAMS" == "x" ]]; then
+	PYTHON_INSTALL_PARAMS='--prefix=$(DESTDIR)$(prefix)'
+fi
+AC_SUBST(PYTHON_INSTALL_PARAMS)
+
 dnl Check whether the examples should be build
 AC_ARG_ENABLE(
 	[examples],
