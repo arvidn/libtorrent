@@ -288,7 +288,7 @@ namespace
 			<< "." << (int)f.minor_version
 			<< "." << (int)f.revision_version;
 
-		if (f.name[1] != 0)
+		if (f.tag_version != 0)
 			identity << "." << (int)f.tag_version;
 
 		return identity.str();
