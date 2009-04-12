@@ -163,7 +163,7 @@ namespace
 		, {"BX", "BittorrentX"}
 		, {"CD", "Enhanced CTorrent"}
 		, {"CT", "CTorrent"}
-		, {"DE", "Deluge Torrent"}
+		, {"DE", "Deluge"}
 		, {"EB", "EBit"}
 		, {"ES", "electric sheep"}
 		, {"HL", "Halite"}
@@ -260,7 +260,7 @@ namespace
 
 	std::string lookup(fingerprint const& f)
 	{
-		std::stringstream identity;
+		char identity[200];
 
 		const int size = sizeof(name_map)/sizeof(name_map[0]);
 		map_entry tmp = {f.name, ""};
@@ -276,22 +276,31 @@ namespace
 		}
 #endif
 
+		char temp[3];
+		char const* name = 0;
 		if (i < name_map + size && std::equal(f.name, f.name + 2, i->id))
-			identity << i->name;
+		{
+			name = i->name;
+		}
 		else
 		{
-			identity << f.name[0];
-			if (f.name[1] != 0) identity << f.name[1];
+			// if we don't have this client in the list
+			// just use the one or two letter code
+			memcpy(temp, f.name, 2);
+			temp[2] = 0;
+			name = temp;
 		}
 
-		identity << " " << (int)f.major_version
-			<< "." << (int)f.minor_version
-			<< "." << (int)f.revision_version;
+		int num_chars = snprintf(identity, sizeof(identity), "%s %u.%u.%u", name
+			, f.major_version, f.minor_version, f.revision_version);
 
-		if (f.name[1] != 0)
-			identity << "." << (int)f.tag_version;
+		if (f.tag_version != 0)
+		{
+			snprintf(identity + num_chars, sizeof(identity) - num_chars
+				, ".%u", f.tag_version);
+		}
 
-		return identity.str();
+		return identity;
 	}
 
 	bool find_string(unsigned char const* id, char const* search)
@@ -355,7 +364,7 @@ namespace libtorrent
 		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\0"))
 			return "Experimental 3.1";
 
-		
+
 		// look for azureus style id
 		f = parse_az_style(p);
 		if (f) return lookup(*f);
@@ -367,8 +376,8 @@ namespace libtorrent
 		// look for mainline style id
 		f = parse_mainline_style(p);
 		if (f) return lookup(*f);
-														
-		
+
+
 		if (std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0"))
 			return "Generic";
 
