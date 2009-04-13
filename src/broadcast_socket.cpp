@@ -51,7 +51,9 @@ namespace libtorrent
 {
 	bool is_local(address const& a)
 	{
+#if TORRENT_USE_IPV6
 		if (a.is_v6()) return a.to_v6().is_link_local();
+#endif
 		address_v4 a4 = a.to_v4();
 		unsigned long ip = a4.to_ulong();
 		return ((ip & 0xff000000) == 0x0a000000
@@ -61,28 +63,51 @@ namespace libtorrent
 
 	bool is_loopback(address const& addr)
 	{
+#if TORRENT_USE_IPV6
 		if (addr.is_v4())
-		  return addr.to_v4() == address_v4::loopback();
+			return addr.to_v4() == address_v4::loopback();
 		else
 			return addr.to_v6() == address_v6::loopback();
+#else
+		return addr.to_v4() == address_v4::loopback();
+#endif
 	}
 
 	bool is_multicast(address const& addr)
 	{
+#if TORRENT_USE_IPV6
 		if (addr.is_v4())
 			return addr.to_v4().is_multicast();
 		else
 			return addr.to_v6().is_multicast();
+#else
+		return addr.to_v4().is_multicast();
+#endif
 	}
 
 	bool is_any(address const& addr)
 	{
+#if TORRENT_USE_IPV6
 		if (addr.is_v4())
 			return addr.to_v4() == address_v4::any();
 		else if (addr.to_v6().is_v4_mapped())
 			return (addr.to_v6().to_v4() == address_v4::any());
 		else
 			return addr.to_v6() == address_v6::any();
+#else
+		return addr.to_v4() == address_v4::any();
+#endif
+	}
+
+	bool supports_ipv6()
+	{
+#if TORRENT_USE_IPV6
+		error_code ec;
+		address::from_string("::1", ec);
+		return !ec;
+#else
+		return false;
+#endif
 	}
 
 	address guess_local_address(io_service& ios)
@@ -128,13 +153,16 @@ namespace libtorrent
 	// between the addresses.
 	int cidr_distance(address const& a1, address const& a2)
 	{
+#if TORRENT_USE_IPV6
 		if (a1.is_v4() && a2.is_v4())
 		{
+#endif
 			// both are v4
 			address_v4::bytes_type b1 = a1.to_v4().to_bytes();
 			address_v4::bytes_type b2 = a2.to_v4().to_bytes();
 			return address_v4::bytes_type::static_size * 8
 				- common_bits(b1.c_array(), b2.c_array(), b1.size());
+#if TORRENT_USE_IPV6
 		}
 	
 		address_v6::bytes_type b1;
@@ -145,6 +173,7 @@ namespace libtorrent
 		else b2 = a2.to_v6().to_bytes();
 		return address_v6::bytes_type::static_size * 8
 			- common_bits(b1.c_array(), b2.c_array(), b1.size());
+#endif
 	}
 
 	broadcast_socket::broadcast_socket(io_service& ios

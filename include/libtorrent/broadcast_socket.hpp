@@ -48,6 +48,9 @@ namespace libtorrent
 	TORRENT_EXPORT bool is_any(address const& addr);
 	TORRENT_EXPORT int cidr_distance(address const& a1, address const& a2);
 
+	// determines if the operating system supports IPv6
+	TORRENT_EXPORT bool supports_ipv6();
+
 	int common_bits(unsigned char const* b1
 		, unsigned char const* b2, int n);
 
