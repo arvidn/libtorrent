@@ -150,6 +150,7 @@ struct bandwidth_manager
 
 	void close()
 	{
+		mutex_t::scoped_lock l(m_mutex);
 		m_abort = true;
 		m_queue.clear();
 		m_queued_bytes = 0;
