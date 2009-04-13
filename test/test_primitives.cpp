@@ -355,6 +355,20 @@ int test_main()
 {
 	using namespace libtorrent;
 
+	// make sure the assumption we use in policy's peer list hold
+	std::multimap<address, int> peers;
+	std::multimap<address, int>::iterator i;
+	peers.insert(std::make_pair(address::from_string("::1"), 0));
+	peers.insert(std::make_pair(address::from_string("::2"), 3));
+	peers.insert(std::make_pair(address::from_string("::3"), 5));
+	i = peers.find(address::from_string("::2"));
+	TEST_CHECK(i != peers.end());
+	if (i != peers.end())
+	{
+		TEST_CHECK(i->first == address::from_string("::2"));
+		TEST_CHECK(i->second == 3);
+	}
+
 	// test identify_client
 
 	TEST_CHECK(identify_client(peer_id("-AZ1234-............")) == "Azureus 1.2.3.4");
