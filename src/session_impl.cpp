@@ -688,27 +688,19 @@ namespace aux {
 				async_accept(s.sock);
 			}
 
-#ifdef TORRENT_WINDOWS
 			// only try to open the IPv6 port if IPv6 is installed
-			SOCKADDR_STORAGE storage;
-			int len = sizeof(storage);
-			if (WSAStringToAddressA("::1", AF_INET6, 0,
-				(sockaddr*)&storage, &len) != SOCKET_ERROR)
+			if (supports_ipv6())
 			{
-#endif
+				s = setup_listener(
+					tcp::endpoint(address_v6::any(), m_listen_interface.port())
+					, m_listen_port_retries, true);
 
-			s = setup_listener(
-				tcp::endpoint(address_v6::any(), m_listen_interface.port())
-				, m_listen_port_retries, true);
-
-			if (s.sock)
-			{
-				m_listen_sockets.push_back(s);
-				async_accept(s.sock);
+				if (s.sock)
+				{
+					m_listen_sockets.push_back(s);
+					async_accept(s.sock);
+				}
 			}
-#ifdef TORRENT_WINDOWS
-			}
-#endif
 
 			// set our main IPv4 and IPv6 interfaces
 			// used to send to the tracker

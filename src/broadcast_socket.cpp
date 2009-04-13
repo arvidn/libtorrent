@@ -62,7 +62,7 @@ namespace libtorrent
 	bool is_loopback(address const& addr)
 	{
 		if (addr.is_v4())
-		  return addr.to_v4() == address_v4::loopback();
+			return addr.to_v4() == address_v4::loopback();
 		else
 			return addr.to_v6() == address_v6::loopback();
 	}
@@ -83,6 +83,13 @@ namespace libtorrent
 			return (addr.to_v6().to_v4() == address_v4::any());
 		else
 			return addr.to_v6() == address_v6::any();
+	}
+
+	bool supports_ipv6()
+	{
+		error_code ec;
+		address::from_string("::1", ec);
+		return !ec;
 	}
 
 	address guess_local_address(io_service& ios)
