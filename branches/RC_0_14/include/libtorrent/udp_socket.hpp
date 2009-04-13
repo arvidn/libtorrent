@@ -107,6 +107,7 @@ namespace libtorrent
 		bool m_abort;
 		udp::endpoint m_proxy_addr;
 #ifdef TORRENT_DEBUG
+		bool m_started;
 		int m_magic;
 #endif
 	};
