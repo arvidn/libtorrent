@@ -188,8 +188,8 @@ namespace libtorrent
 			else
 			{
 				ret += '%';
-				ret += hex_chars[((unsigned int)*str) >> 4];
-				ret += hex_chars[((unsigned int)*str) & 15];
+				ret += hex_chars[((unsigned char)*str) >> 4];
+				ret += hex_chars[((unsigned char)*str) & 15];
 			}
 			++str;
 		}
@@ -214,8 +214,8 @@ namespace libtorrent
 			else
 			{
 				ret += '%';
-				ret += hex_chars[((unsigned int)*str) >> 4];
-				ret += hex_chars[((unsigned int)*str) & 15];
+				ret += hex_chars[((unsigned char)*str) >> 4];
+				ret += hex_chars[((unsigned char)*str) & 15];
 			}
 			++str;
 		}
