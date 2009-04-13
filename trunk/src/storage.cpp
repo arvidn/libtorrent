@@ -259,7 +259,7 @@ namespace libtorrent
 #if TORRENT_USE_WPATH
 			fs::wpath f = convert_to_wstring((p / i->path).string());
 #elif TORRENT_USE_LOCALE_FILENAMES
-			fs::path f = convert_to_native(p / i->path);
+			fs::path f = convert_to_native((p / i->path).string());
 #else
 			fs::path f = p / i->path;
 #endif
@@ -610,7 +610,11 @@ namespace libtorrent
 		for (; i != end; ++i)
 		{
 			bool file_exists = false;
+#if TORRENT_USE_LOCALE_FILENAMES
+			fs::path f = convert_to_native((m_save_path / i->path).string());
+#else
 			fs::path f = m_save_path / i->path;
+#endif
 #ifndef BOOST_NO_EXCEPTIONS
 			try
 			{
@@ -618,8 +622,6 @@ namespace libtorrent
 #if TORRENT_USE_WPATH
 				fs::wpath wf = convert_to_wstring(f.string());
 				file_exists = exists(wf);
-#elif TORRENT_USE_LOCALE_FILENAMES
-				file_exists = exists(convert_to_native(f.string()));
 #else
 				file_exists = exists(f);
 #endif
