@@ -30,6 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_GZIP_HPP_INCLUDED
+#define TORRENT_GZIP_HPP_INCLUDED
+
+#include "libtorrent/config.hpp"
+#include <string>
+#include <vector>
+
 namespace libtorrent
 {
 
@@ -40,4 +47,6 @@ namespace libtorrent
 		, std::string& error);
 
 }
+
+#endif
 
