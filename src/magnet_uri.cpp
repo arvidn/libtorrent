@@ -36,57 +36,61 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 
 #include <string>
-#include <sstream>
 
 namespace libtorrent
 {
 	std::string make_magnet_uri(torrent_handle const& handle)
 	{
-		std::stringstream ret;
-		if (!handle.is_valid()) return ret.str();
+		if (!handle.is_valid()) return "";
+
+		char ret[1024];
+		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
+			, std::string((char*)handle.info_hash().begin(), 20).c_str());
 
 		std::string name = handle.name();
 
-		ret << "magnet:?xt=urn:btih:" << base32encode(
-			std::string((char*)handle.info_hash().begin(), 20));
 		if (!name.empty())
-			ret << "&dn=" << escape_string(name.c_str(), name.length());
+			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&dn=%s"
+				, escape_string(name.c_str(), name.length()).c_str());
+
+		char const* tracker = 0;
 		torrent_status st = handle.status();
 		if (!st.current_tracker.empty())
 		{
-			ret << "&tr=" << escape_string(st.current_tracker.c_str()
-				, st.current_tracker.length());
+			tracker = st.current_tracker.c_str();
 		}
 		else
 		{
 			std::vector<announce_entry> const& tr = handle.trackers();
-			if (!tr.empty())
-			{
-				ret << "&tr=" << escape_string(tr[0].url.c_str()
-					, tr[0].url.length());
-			}
+			if (!tr.empty()) tracker = tr[0].url.c_str();
 		}
-		return ret.str();
+		if (tracker)
+			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&tr=%s"
+				, escape_string(tracker, strlen(tracker)).c_str());
+
+		return ret;
 	}
 
 	std::string make_magnet_uri(torrent_info const& info)
 	{
-		std::stringstream ret;
-		if (!info.is_valid()) return ret.str();
+		char ret[1024];
+		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
+			, std::string((char*)info.info_hash().begin(), 20).c_str());
 
-		std::string name = info.name();
+		std::string const& name = info.name();
 
-		ret << "magnet:?xt=urn:btih:" << base32encode(
-			std::string((char*)info.info_hash().begin(), 20));
 		if (!name.empty())
-			ret << "&dn=" << escape_string(name.c_str(), name.length());
+			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&dn=%s"
+				, escape_string(name.c_str(), name.length()).c_str());
+
 		std::vector<announce_entry> const& tr = info.trackers();
 		if (!tr.empty())
 		{
-			ret << "&tr=" << escape_string(tr[0].url.c_str()
-				, tr[0].url.length());
+			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&tr=%s"
+				, escape_string(tr[0].url.c_str(), tr[0].url.length()).c_str());
 		}
-		return ret.str();
+
+		return ret;
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS

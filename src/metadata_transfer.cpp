@@ -460,9 +460,9 @@ namespace libtorrent { namespace
 				break;
 			default:
 				{
-					std::stringstream msg;
-					msg << "unknown metadata extension message: " << type;
-					m_pc.disconnect(msg.str().c_str());
+					char msg[200];
+					snprintf(msg, sizeof(msg), "unknown metadata extension message: %u", type);
+					m_pc.disconnect(msg, 2);
 				}
 			}
 			return true;

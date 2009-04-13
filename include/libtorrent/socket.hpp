@@ -145,6 +145,11 @@ namespace libtorrent
 		return ret;
 	}
 
+	inline std::string print_endpoint(udp::endpoint const& ep)
+	{
+		return print_endpoint(tcp::endpoint(ep.address(), ep.port()));
+	}
+
 	namespace detail
 	{
 		template<class OutIt>
