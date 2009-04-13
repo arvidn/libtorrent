@@ -120,8 +120,8 @@ private:
 
 	void delete_port_mapping(rootdevice& d, int i);
 	void create_port_mapping(http_connection& c, rootdevice& d, int i);
-	void post(upnp::rootdevice const& d, std::string const& soap
-		, std::string const& soap_action);
+	void post(upnp::rootdevice const& d, char const* soap
+		, char const* soap_action);
 
 	int num_mappings() const { return int(m_mappings.size()); }
 

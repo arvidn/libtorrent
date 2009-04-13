@@ -61,7 +61,6 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 
 #include <boost/filesystem/operations.hpp>
 #include "libtorrent/file.hpp"
-#include <sstream>
 #include <cstring>
 #include <vector>
 

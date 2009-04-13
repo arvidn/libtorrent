@@ -34,8 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FINGERPRINT_HPP_INCLUDED
 
 #include <string>
-#include <sstream>
+#include <cstdio>
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/assert.hpp"
 
@@ -62,13 +63,14 @@ namespace libtorrent
 
 		std::string to_string() const
 		{
-			std::stringstream s;
-			s << "-" << name[0] << name[1]
-				<< version_to_char(major_version)
-				<< version_to_char(minor_version)
-				<< version_to_char(revision_version)
-				<< version_to_char(tag_version) << "-";
-			return s.str();
+			char s[100];
+			snprintf(s, 100, "-%c%c%c%c%c%c-"
+				,  name[0], name[1]
+				, version_to_char(major_version)
+				, version_to_char(minor_version)
+				, version_to_char(revision_version)
+				, version_to_char(tag_version));
+			return s;
 		}
 
 		char name[2];

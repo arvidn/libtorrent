@@ -71,10 +71,10 @@ void natpmp::rebind(address const& listen_interface)
 	address gateway = get_default_gateway(m_socket.get_io_service(), ec);
 	if (ec)
 	{
-		std::stringstream msg;
-		msg << "failed to find default route: " << ec.message();
-		log(msg.str());
-		disable("failed to find default router");
+		char msg[200];
+		snprintf(msg, sizeof(msg), "failed to find default route: %s", ec.message().c_str());
+		log(msg);
+		disable(msg);
 		return;
 	}
 
@@ -84,9 +84,10 @@ void natpmp::rebind(address const& listen_interface)
 	if (nat_endpoint == m_nat_endpoint) return;
 	m_nat_endpoint = nat_endpoint;
 
-	std::stringstream msg;
-	msg << "found router at: " << m_nat_endpoint.address();
-	log(msg.str());
+	char msg[200];
+	snprintf(msg, sizeof(msg), "found router at: %s"
+		, print_address(m_nat_endpoint.address()).c_str());
+	log(msg);
 
 	m_socket.open(udp::v4(), ec);
 	if (ec)
@@ -289,12 +290,13 @@ void natpmp::send_map_request(int i)
 	int ttl = m.action == mapping_t::action_add ? 3600 : 0;
 	write_uint32(ttl, out); // port mapping lifetime
 
-	std::stringstream msg;
-	msg << "==> port map [ action: " << (m.action == mapping_t::action_add ? "add" : "delete")
-		<< " proto: " << (m.protocol == udp ? "udp" : "tcp")
-		<< " local: " << m.local_port << " external: " << m.external_port
-		<< " ttl: " << ttl << " ]";
-	log(msg.str());
+	char msg[200];
+	snprintf(msg, sizeof(msg), "==> port map [ action: %s"
+		" proto: %s local: %u external: %u ttl: %u ]"
+		, m.action == mapping_t::action_add ? "add" : "delete"
+		, m.protocol == udp ? "udp" : "tcp"
+		, m.local_port, m.external_port, ttl);
+	log(msg);
 
 	error_code ec;
 	m_socket.send_to(asio::buffer(buf, 12), m_nat_endpoint, 0, ec);
@@ -343,9 +345,9 @@ void natpmp::on_reply(error_code const& e
 	using namespace libtorrent::detail;
 	if (e)
 	{
-		std::stringstream msg;
-		msg << " error on receiving reply: " << e.message();
-		log(msg.str());
+		char msg[200];
+		snprintf(msg, sizeof(msg), "error on receiving reply: %s", e.message().c_str());
+		log(msg);
 		return;
 	}
 
@@ -362,9 +364,10 @@ void natpmp::on_reply(error_code const& e
 */
 	if (m_remote != m_nat_endpoint)
 	{
-		std::stringstream msg;
-		msg << " received packed from wrong IP: " << m_remote;
-		log(msg.str());
+		char msg[200];
+		snprintf(msg, sizeof(msg), "received packet from wrong IP: %s"
+			, print_endpoint(m_remote).c_str());
+		log(msg);
 		return;
 	}
 
@@ -386,17 +389,17 @@ void natpmp::on_reply(error_code const& e
 
 	int protocol = (cmd - 128 == 1)?udp:tcp;
 
-	std::stringstream msg;
-	msg << "<== port map ["
-		<< " protocol: " << (cmd - 128 == 1 ? "udp" : "tcp")
-		<< " local: " << private_port << " external: " << public_port
-		<< " ttl: " << lifetime << " ]";
+	char msg[200];
+	int num_chars = snprintf(msg, sizeof(msg), "<== port map ["
+		" protocol: %s local: %u external: %u ttl: %u ]"
+		, (cmd - 128 == 1 ? "udp" : "tcp")
+		, private_port, public_port, lifetime);
 
 	if (version != 0)
 	{
-		std::stringstream msg;
-		msg << "unexpected version: " << version;
-		log(msg.str());
+		snprintf(msg + num_chars, sizeof(msg) - num_chars, "unexpected version: %u"
+			, version);
+		log(msg);
 	}
 
 	mapping_t* m = 0;
@@ -414,11 +417,11 @@ void natpmp::on_reply(error_code const& e
 
 	if (m == 0)
 	{
-		msg << " not found in map table";
-		log(msg.str());
+		snprintf(msg + num_chars, sizeof(msg) - num_chars, " not found in map table");
+		log(msg);
 		return;
 	}
-	log(msg.str());
+	log(msg);
 
 	if (public_port == 0 || lifetime == 0)
 	{
@@ -434,18 +437,22 @@ void natpmp::on_reply(error_code const& e
 
 	if (result != 0)
 	{
-		std::stringstream errmsg;
-		errmsg << "NAT router reports error (" << result << ") ";
-		switch (result)
+		char msg[200];
+		char const* errors[] =
 		{
-			case 1: errmsg << "Unsupported protocol version"; break;
-			case 2: errmsg << "Not authorized to create port map (enable NAT-PMP on your router)"; break;
-			case 3: errmsg << "Network failure"; break;
-			case 4: errmsg << "Out of resources"; break;
-			case 5: errmsg << "Unsupported opcode"; break;
-		}
+			"Unsupported protocol version",
+			"Not authorized to create port map (enable NAT-PMP on your router)",
+			"Network failure",
+			"Out of resources",
+			"Unsupported opcode"
+		};
+		char const* error_msg = "";
+		if (result >= 1 && result <= 5) error_msg = errors[result - 1];
+
+		snprintf(msg, sizeof(msg), "NAT router reports error (%u) %s"
+			, result, error_msg);
 		m->expires = time_now() + hours(2);
-		m_callback(index, 0, errmsg.str());
+		m_callback(index, 0, msg);
 	}
 	else if (m->action == mapping_t::action_add)
 	{
@@ -519,9 +526,9 @@ void natpmp::mapping_expired(error_code const& e, int i)
 {
 	if (e) return;
 	mutex_t::scoped_lock l(m_mutex);
-	std::stringstream msg;
-	msg << "mapping " << i << " expired";
-	log(msg.str());
+	char msg[200];
+	snprintf(msg, sizeof(msg), "mapping %u expired", i);
+	log(msg);
 	m_mappings[i].action = mapping_t::action_add;
 	if (m_next_refresh == i) m_next_refresh = -1;
 	update_mapping(i);
