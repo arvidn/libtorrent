@@ -279,8 +279,8 @@ private:
 		if (e) return;
 
 		mutex_t::scoped_lock l(m_mutex);
-		INVARIANT_CHECK;
 		if (m_abort) return;
+		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(!m_history.empty());
 
