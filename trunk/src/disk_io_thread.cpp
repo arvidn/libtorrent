@@ -1027,8 +1027,9 @@ namespace libtorrent
 			{
 				// if there hasn't been an event in one second
 				// see if we should flush the cache
-				if (!m_signal.timed_wait(jl, boost::get_system_time() + boost::posix_time::seconds(1)))
-					flush_expired_pieces();
+//				if (!m_signal.timed_wait(jl, boost::posix_time::seconds(1)))
+//					flush_expired_pieces();
+				m_signal.wait(jl);
 			}
 
 			if (m_abort && m_jobs.empty())
