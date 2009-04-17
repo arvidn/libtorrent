@@ -1178,12 +1178,12 @@ namespace libtorrent
 			// call this once, the first time the entire header
 			// has been received
 			start_receive_piece(p);
+			if (is_disconnecting()) return;
 		}
 
 		TORRENT_ASSERT(has_disk_receive_buffer() || packet_size() == header_size);
 
 		incoming_piece_fragment(piece_bytes);
-		if (is_disconnecting()) return;
 		if (!packet_finished()) return;
 
 		if (merkle && list_size > 0)
