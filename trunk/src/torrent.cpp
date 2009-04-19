@@ -872,6 +872,7 @@ namespace libtorrent
 		if (ret == piece_manager::disk_check_aborted)
 		{
 			dequeue_torrent_check();
+			pause();
 			return;
 		}
 		if (ret == piece_manager::fatal_disk_error)
