@@ -2999,6 +2999,8 @@ namespace libtorrent
 		return m_disk_recv_buffer.release();
 	}
 	
+	// size = the packet size to remove from the receive buffer
+	// packet_size = the next packet size to receive in the buffer
 	void peer_connection::cut_receive_buffer(int size, int packet_size)
 	{
 		INVARIANT_CHECK;
