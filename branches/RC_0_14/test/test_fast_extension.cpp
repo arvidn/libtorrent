@@ -97,6 +97,19 @@ void send_suggest_piece(stream_socket& s, int piece)
 	}
 }
 
+void send_keepalive(stream_socket& s)
+{
+	std::cout << "send keepalive" << std::endl;
+	char msg[] = "\0\0\0\0";
+	error_code ec;
+	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 4), libtorrent::asio::transfer_all(), ec);
+	if (ec)
+	{
+		std::cout << ec.message() << std::endl;
+		exit(1);
+	}
+}
+
 void send_unchoke(stream_socket& s)
 {
 	std::cout << "send unchoke" << std::endl;
@@ -246,6 +259,8 @@ void test_respect_suggest()
 		, bind(&send_suggest_piece, boost::ref(s), _1));
 
 	send_unchoke(s);
+
+	send_keepalive(s);
 
 	int fail_counter = 100;	
 	while (!suggested.empty() && fail_counter > 0)

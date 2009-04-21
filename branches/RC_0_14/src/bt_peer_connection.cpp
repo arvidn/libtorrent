@@ -2601,6 +2601,7 @@ namespace libtorrent
 		{
 			// Make sure this is not fallen though into
 			TORRENT_ASSERT(recv_buffer == receive_buffer());
+			TORRENT_ASSERT(packet_size() == 5);
 
 			if (!t) return;
 			m_statistics.received_bytes(0, bytes_transferred);
@@ -2626,7 +2627,7 @@ namespace libtorrent
 				if (is_disconnecting()) return;
 				// keepalive message
 				m_state = read_packet_size;
-				cut_receive_buffer(4, 4);
+				cut_receive_buffer(4, 5);
 				return;
 			}
 			else
