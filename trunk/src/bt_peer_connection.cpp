@@ -2035,7 +2035,6 @@ namespace libtorrent
 			TORRENT_ASSERT(!m_rc4_encrypted);
 			TORRENT_ASSERT(packet_size() == dh_key_len);
 			TORRENT_ASSERT(recv_buffer == receive_buffer());
-			TORRENT_ASSERT(packet_size() == 5);
 
 			if (!packet_finished()) return;
 			
