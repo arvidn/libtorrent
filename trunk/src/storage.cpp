@@ -717,7 +717,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 		try
 #endif
-		{ fs::remove(safe_convert(p)); }
+		{ fs::remove(convert_to_wstring(p)); }
 #ifndef BOOST_NO_EXCEPTIONS
 #if BOOST_VERSION >= 103500
 		catch (boost::system::system_error& e)
