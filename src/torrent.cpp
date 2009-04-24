@@ -2889,7 +2889,7 @@ namespace libtorrent
 	{
 		unsigned long swap_bytes(unsigned long a)
 		{
-			return (a >> 24) | ((a & 0xff0000) >> 8) | ((a & 0xff00) << 8) | (a << 24);
+			return (a >> 24) | ((a & 0xff0000) >> 8) | ((a & 0xff00) << 8) | ((a & 0xff) << 24);
 		}
 	}
 	
