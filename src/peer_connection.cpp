@@ -3244,7 +3244,7 @@ namespace libtorrent
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << time_now_string() << " *** CANNOT WRITE ["
-				" quota: " << m_bandwidth_limit[download_channel].quota_left() <<
+				" quota: " << m_bandwidth_limit[upload_channel].quota_left() <<
 				" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
 				" buf: " << m_send_buffer.size() <<
 				" connecting: " << (m_connecting?"yes":"no") <<
