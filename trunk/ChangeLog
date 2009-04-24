@@ -59,6 +59,8 @@ release 0.14.3
 	* fixed potential crash on shutdown
 	* fixed leaking exception from bdecode on malformed input
 	* fixed bug where connection would hang when receiving a keepalive
+	* fixed bug where an asio exception could be thrown when resolving
+	  peer countries
 
 release 0.14.2
 
