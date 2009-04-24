@@ -518,11 +518,14 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
-		char hex_ih[41];
-		to_hex((char const*)&req.info_hash[0], 20, hex_ih);
-		char msg[200];
-		snprintf(msg, 200, "==> UDP_TRACKER_ANNOUNCE [%s]", hex_ih);
-		cb->debug_log(msg);
+		if (cb)
+		{
+			char hex_ih[41];
+			to_hex((char const*)&req.info_hash[0], 20, hex_ih);
+			char msg[200];
+			snprintf(msg, 200, "==> UDP_TRACKER_ANNOUNCE [%s]", hex_ih);
+			cb->debug_log(msg);
+		}
 #endif
 
 		error_code ec;
