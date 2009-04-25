@@ -61,6 +61,7 @@ release 0.14.3
 	* fixed bug where connection would hang when receiving a keepalive
 	* fixed bug where an asio exception could be thrown when resolving
 	  peer countries
+	* fixed crash when shutting down while checking a torrent
 
 release 0.14.2
 

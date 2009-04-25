@@ -2464,6 +2464,17 @@ namespace aux {
 		abort();
 		TORRENT_ASSERT(m_connections.empty());
 
+		// we need to wait for the disk-io thread to
+		// die first, to make sure it won't post any
+		// more messages to the io_service containing references
+		// to disk_io_pool inside the disk_io_thread. Once
+		// the main thread has handled all the outstanding requests
+		// we know it's safe to destruct the disk thread.
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " waiting for disk io thread\n";
+#endif
+		m_disk_thread.join();
+
 #ifndef TORRENT_DISABLE_GEO_IP
 		if (m_asnum_db) GeoIP_delete(m_asnum_db);
 		if (m_country_db) GeoIP_delete(m_country_db);
@@ -2472,13 +2483,6 @@ namespace aux {
 		(*m_logger) << time_now_string() << " waiting for main thread\n";
 #endif
 		m_thread->join();
-
-		TORRENT_ASSERT(m_torrents.empty());
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " waiting for disk io thread\n";
-#endif
-		m_disk_thread.join();
 
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
