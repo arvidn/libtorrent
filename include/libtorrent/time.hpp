@@ -131,10 +131,10 @@ namespace libtorrent
 	struct ptime
 	{
 		ptime() {}
-		explicit ptime(boost::int64_t t): time(t) {}
+		explicit ptime(boost::uint64_t t): time(t) {}
 		ptime& operator+=(time_duration rhs) { time += rhs.diff; return *this; }
 		ptime& operator-=(time_duration rhs) { time -= rhs.diff; return *this; }
-		boost::int64_t time;
+		boost::uint64_t time;
 	};
 
 	inline bool operator>(ptime lhs, ptime rhs)
@@ -160,7 +160,7 @@ namespace libtorrent
 
 	ptime time_now();
 	inline ptime min_time() { return ptime(0); }
-	inline ptime max_time() { return ptime((std::numeric_limits<boost::int64_t>::max)()); }
+	inline ptime max_time() { return ptime((std::numeric_limits<boost::uint64_t>::max)()); }
 	int total_seconds(time_duration td);
 	int total_milliseconds(time_duration td);
 	boost::int64_t total_microseconds(time_duration td);
@@ -204,71 +204,50 @@ namespace asio
 
 namespace libtorrent
 {
-	namespace aux
-	{
-		inline boost::int64_t absolutetime_to_microseconds(boost::int64_t at)
-		{
-			static mach_timebase_info_data_t timebase_info = {0,0};
-			if (timebase_info.denom == 0)
-				mach_timebase_info(&timebase_info);
-			// make sure we don't overflow
-			TORRENT_ASSERT((at >= 0 && at >= at / 1000 * timebase_info.numer / timebase_info.denom)
-				|| (at < 0 && at < at / 1000 * timebase_info.numer / timebase_info.denom));
-			return at / 1000 * timebase_info.numer / timebase_info.denom;
-		}
-
-		inline boost::int64_t microseconds_to_absolutetime(boost::int64_t ms)
-		{
-			static mach_timebase_info_data_t timebase_info = {0,0};
-			if (timebase_info.denom == 0)
-			{
-				mach_timebase_info(&timebase_info);
-				TORRENT_ASSERT(timebase_info.numer > 0);
-				TORRENT_ASSERT(timebase_info.denom > 0);
-			}
-			// make sure we don't overflow
-			TORRENT_ASSERT((ms >= 0 && ms <= ms * timebase_info.denom / timebase_info.numer * 1000)
-				|| (ms < 0 && ms > ms * timebase_info.denom / timebase_info.numer * 1000));
-			return ms * timebase_info.denom / timebase_info.numer * 1000;
-		}
-	}
-
 	inline int total_seconds(time_duration td)
 	{
-		return aux::absolutetime_to_microseconds(td.diff)
-			/ 1000000;
+		return td.diff / 1000000;
 	}
 	inline int total_milliseconds(time_duration td)
 	{
-		return aux::absolutetime_to_microseconds(td.diff)
-			/ 1000;
+		return td.diff / 1000;
 	}
 	inline boost::int64_t total_microseconds(time_duration td)
 	{
-		return aux::absolutetime_to_microseconds(td.diff);
+		return td.diff;
 	}
 
-	inline ptime time_now() { return ptime(mach_absolute_time()); }
+	inline ptime time_now()
+	{
+		static mach_timebase_info_data_t timebase_info = {0,0};
+		if (timebase_info.denom == 0)
+			mach_timebase_info(&timebase_info);
+		boost::uint64_t at = mach_absolute_time();
+		// make sure we don't overflow
+		TORRENT_ASSERT((at >= 0 && at >= at / 1000 * timebase_info.numer / timebase_info.denom)
+			|| (at < 0 && at < at / 1000 * timebase_info.numer / timebase_info.denom));
+		return ptime(at / 1000 * timebase_info.numer / timebase_info.denom);
+	}
 
 	inline time_duration microsec(boost::int64_t s)
 	{
-		return time_duration(aux::microseconds_to_absolutetime(s));
+		return time_duration(s);
 	}
 	inline time_duration milliseconds(boost::int64_t s)
 	{
-		return time_duration(aux::microseconds_to_absolutetime(s * 1000));
+		return time_duration(s * 1000);
 	}
 	inline time_duration seconds(boost::int64_t s)
 	{
-		return time_duration(aux::microseconds_to_absolutetime(s * 1000000));
+		return time_duration(s * 1000000);
 	}
 	inline time_duration minutes(boost::int64_t s)
 	{
-		return time_duration(aux::microseconds_to_absolutetime(s * 1000000 * 60));
+		return time_duration(s * 1000000 * 60);
 	}
 	inline time_duration hours(boost::int64_t s)
 	{
-		return time_duration(aux::microseconds_to_absolutetime(s * 1000000 * 60 * 60));
+		return time_duration(s * 1000000 * 60 * 60);
 	}
 
 }
@@ -386,7 +365,7 @@ namespace libtorrent
 	{
 		timespec ts;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
-		return ptime(boost::int64_t(ts.tv_sec) * 1000000 + ts.tv_nsec / 1000);
+		return ptime(boost::uint64_t(ts.tv_sec) * 1000000 + ts.tv_nsec / 1000);
 	}
 
 	inline time_duration microsec(boost::int64_t s)
