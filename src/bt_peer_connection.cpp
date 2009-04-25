@@ -1740,14 +1740,14 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " ==> BITFIELD ";
 
-		char bitfield_string[1000];
+		std::string bitfield_string;
+		bitfield_string.resize(num_pieces + 1);
 		for (int k = 0; k < num_pieces; ++k)
 		{
 			if (i.begin[k / 8] & (0x80 >> (k % 8))) bitfield_string[k] = '1';
 			else bitfield_string[k] = '0';
 		}
 		bitfield_string[num_pieces] = '\n';
-		bitfield_string[num_pieces + 1] = '\0';
 		(*m_logger) << bitfield_string;
 #endif
 #ifdef TORRENT_DEBUG
