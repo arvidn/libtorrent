@@ -111,6 +111,12 @@ namespace libtorrent
 		bool timed_out:1;
 
 		piece_block block;
+
+		bool operator==(pending_block const& b)
+		{
+			return b.skipped == skipped && b.block == block
+				&& b.not_wanted == not_wanted && b.timed_out == timed_out;
+		}
 	};
 
 	struct has_block

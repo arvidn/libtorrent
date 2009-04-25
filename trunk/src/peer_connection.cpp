@@ -1731,7 +1731,7 @@ namespace libtorrent
 			if (t->alerts().should_post<unwanted_block_alert>())
 			{
 				t->alerts().post_alert(unwanted_block_alert(t->get_handle(), m_remote
-						, m_peer_id, b.block_index, b.piece_index));
+					, m_peer_id, b.block_index, b.piece_index));
 			}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << " *** The block we just got was not in the "
@@ -1936,7 +1936,7 @@ namespace libtorrent
 				if (!qe.timed_out && !qe.not_wanted)
 					picker.abort_download(qe.block);
 
-				TORRENT_ASSERT(m_download_queue.begin() + i != b);
+				TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
 				m_download_queue.erase(m_download_queue.begin() + i);
 				--i;
 				--block_index;
