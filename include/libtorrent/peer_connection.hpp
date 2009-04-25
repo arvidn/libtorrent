@@ -99,6 +99,9 @@ namespace libtorrent
 		// the number of times the request
 		// has been skipped by out of order blocks
 		piece_block block;
+
+		bool operator==(pending_block const& b)
+		{ return b.skipped == skipped && b.block == block; }
 	};
 
 	struct has_block
