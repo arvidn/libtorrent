@@ -355,6 +355,13 @@ int test_main()
 {
 	using namespace libtorrent;
 
+	// make sure the time classes have correct semantics
+
+	TEST_CHECK(total_milliseconds(milliseconds(100)) == 100);
+	TEST_CHECK(total_milliseconds(milliseconds(1)) == 1);
+	TEST_CHECK(total_milliseconds(seconds(1)) == 1000);
+
+
 	// make sure the assumption we use in policy's peer list hold
 	std::multimap<address, int> peers;
 	std::multimap<address, int>::iterator i;
