@@ -2452,7 +2452,10 @@ namespace libtorrent
 
 	void torrent::replace_trackers(std::vector<announce_entry> const& urls)
 	{
-		m_trackers = urls;
+		m_trackers.clear();
+		std::remove_copy_if(urls.begin(), urls.end(), back_inserter(m_trackers)
+			, boost::bind(&std::string::empty, boost::bind(&announce_entry::url, _1)));
+
 		m_last_working_tracker = -1;
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
