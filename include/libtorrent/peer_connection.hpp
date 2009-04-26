@@ -224,7 +224,10 @@ namespace libtorrent
 		void no_download(bool b) { m_no_download = b; }
 
 		void set_priority(int p)
-		{ m_priority = p; }
+		{
+			TORRENT_ASSERT(p > 0);
+			m_priority = p;
+		}
 
 		void fast_reconnect(bool r);
 		bool fast_reconnect() const { return m_fast_reconnect; }
@@ -433,14 +436,10 @@ namespace libtorrent
 		void cancel_request(piece_block const& b);
 		void send_block_requests();
 
-		int max_assignable_bandwidth(int channel) const
-		{ return m_bandwidth_limit[channel].max_assignable(); }
-		
 		int bandwidth_throttle(int channel) const
-		{ return m_bandwidth_limit[channel].throttle(); }
+		{ return m_bandwidth_channel[channel].throttle(); }
 
 		void assign_bandwidth(int channel, int amount);
-		void expire_bandwidth(int channel, int amount);
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
@@ -578,7 +577,10 @@ namespace libtorrent
 
 		// the bandwidth channels, upload and download
 		// keeps track of the current quotas
-		bandwidth_limit m_bandwidth_limit[num_channels];
+		bandwidth_channel m_bandwidth_channel[num_channels];
+
+		// number of bytes this peer can send and receive
+		int m_quota[2];
 
 		// statistics about upload and download speeds
 		// and total amount of uploads and downloads for

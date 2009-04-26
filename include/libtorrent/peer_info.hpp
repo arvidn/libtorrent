@@ -84,7 +84,10 @@ namespace libtorrent
 		// bw_global: the channel is waiting for global quota
 		// bw_network: the channel is waiting for an async write
 		//   for read operation to complete
-		enum bw_state { bw_idle, bw_torrent, bw_global, bw_network };
+		enum bw_state { bw_idle, bw_limit, bw_network };
+#ifndef TORRENT_NO_DEPRECATE
+		enum bw_state_deprecated { bw_torrent = bw_limit, bw_global = bw_limit };
+#endif
 
 		char read_state;
 		char write_state;

@@ -157,11 +157,11 @@ namespace aux {
 		, m_io_service()
 		, m_disk_thread(m_io_service)
 		, m_half_open(m_io_service)
-		, m_download_channel(m_io_service, peer_connection::download_channel)
+		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-		, m_upload_channel(m_io_service, peer_connection::upload_channel, true)
+		, m_upload_rate(peer_connection::upload_channel, true)
 #else
-		, m_upload_channel(m_io_service, peer_connection::upload_channel)
+		, m_upload_rate(peer_connection::upload_channel)
 #endif
 		, m_tracker_manager(*this, m_tracker_proxy)
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
@@ -178,6 +178,7 @@ namespace aux {
 		, m_auto_scrape_time_scaler(180)
 		, m_incoming_connection(false)
 		, m_last_tick(time_now())
+		, m_last_second_tick(m_last_tick)
 		, m_last_choke(m_last_tick)
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
@@ -222,8 +223,8 @@ namespace aux {
 		}
 #endif
 
-		m_bandwidth_manager[peer_connection::download_channel] = &m_download_channel;
-		m_bandwidth_manager[peer_connection::upload_channel] = &m_upload_channel;
+		m_bandwidth_channel[peer_connection::download_channel] = &m_download_channel;
+		m_bandwidth_channel[peer_connection::upload_channel] = &m_upload_channel;
 
 #ifdef TORRENT_UPNP_LOGGING
 		m_upnp_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
@@ -278,9 +279,9 @@ namespace aux {
 			*i = printable[rand() % (sizeof(printable)-1)];
 		}
 
-		m_timer.expires_from_now(seconds(1), ec);
+		m_timer.expires_from_now(milliseconds(100), ec);
 		m_timer.async_wait(
-			bind(&session_impl::second_tick, this, _1));
+			bind(&session_impl::on_tick, this, _1));
 
 		m_thread.reset(new boost::thread(boost::ref(*this)));
 	}
@@ -554,8 +555,8 @@ namespace aux {
 		(*m_logger) << time_now_string() << " shutting down connection queue\n";
 #endif
 
-		m_download_channel.close();
-		m_upload_channel.close();
+		m_download_rate.close();
+		m_upload_rate.close();
 	}
 
 	void session_impl::set_port_filter(port_filter const& f)
@@ -1086,7 +1087,7 @@ namespace aux {
 		return port;
 	}
 
-	void session_impl::second_tick(error_code const& e)
+	void session_impl::on_tick(error_code const& e)
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 
@@ -1105,13 +1106,22 @@ namespace aux {
 		}
 
 		ptime now = time_now();
-		float tick_interval = total_microseconds(now - m_last_tick) / 1000000.f;
-		m_last_tick = now;
 
 		error_code ec;
-		m_timer.expires_at(now + seconds(1), ec);
+		m_timer.expires_at(now + milliseconds(100), ec);
 		m_timer.async_wait(
-			bind(&session_impl::second_tick, this, _1));
+			bind(&session_impl::on_tick, this, _1));
+
+		m_download_rate.update_quotas(now - m_last_tick);
+		m_upload_rate.update_quotas(now - m_last_tick);
+
+		m_last_tick = now;
+
+		// only tick the rest once every 
+		if (now - m_last_second_tick < seconds(1)) return;
+
+		float tick_interval = total_microseconds(now - m_last_second_tick) / 1000000.f;
+		m_last_second_tick = now;
 
 #ifdef TORRENT_STATS
 		++m_second_counter;
@@ -1198,7 +1208,7 @@ namespace aux {
 		{
 			torrent& t = *i->second;
 			TORRENT_ASSERT(!t.is_aborted());
-			if (t.bandwidth_queue_size(peer_connection::upload_channel))
+			if (t.statistics().upload_rate() > t.upload_limit() * 0.9f)
 				++congested_torrents;
 			else
 				++uncongested_torrents;
@@ -1237,31 +1247,31 @@ namespace aux {
 			m_stat.received_dht_bytes(dht_down);
 		}
 
-		// drain the IP overhead from the bandwidth limiters
 		if (m_settings.rate_limit_ip_overhead)
 		{
-			m_download_channel.drain(
-				m_stat.download_ip_overhead()
-				+ m_stat.download_dht()
+			m_download_channel.use_quota(m_stat.download_dht()
 				+ m_stat.download_tracker());
 
-			if (m_stat.download_ip_overhead() >= m_download_channel.throttle()
-					&& m_alerts.should_post<performance_alert>())
+			m_upload_channel.use_quota(m_stat.upload_dht()
+				+ m_stat.upload_tracker());
+
+			int up_limit = m_upload_channel.throttle();
+			int down_limit = m_download_channel.throttle();
+
+			if (down_limit > 0
+				&& m_stat.download_ip_overhead() >= down_limit
+				&& m_alerts.should_post<performance_alert>())
 			{
 				m_alerts.post_alert(performance_alert(torrent_handle()
-							, performance_alert::download_limit_too_low));
+					, performance_alert::download_limit_too_low));
 			}
 
-			m_upload_channel.drain(
-					m_stat.upload_ip_overhead()
-					+ m_stat.upload_dht()
-					+ m_stat.upload_tracker());
-
-			if (m_stat.upload_ip_overhead() >= m_upload_channel.throttle()
-					&& m_alerts.should_post<performance_alert>())
+			if (up_limit > 0
+				&& m_stat.upload_ip_overhead() >= up_limit
+				&& m_alerts.should_post<performance_alert>())
 			{
 				m_alerts.post_alert(performance_alert(torrent_handle()
-							, performance_alert::upload_limit_too_low));
+					, performance_alert::upload_limit_too_low));
 			}
 		}
 
@@ -1663,7 +1673,7 @@ namespace aux {
 			// assume a reasonable rate is 3 kB/s, unless there's an upload limit and
 			// a max number of slots, in which case we assume each upload slot gets
 			// roughly the same amount of bandwidth
-			if (m_upload_channel.throttle() != bandwidth_limit::inf && m_max_uploads > 0)
+			if (m_upload_channel.throttle() != bandwidth_channel::inf && m_max_uploads > 0)
 				rate = (std::max)(m_upload_channel.throttle() / m_max_uploads, 1);
 
 			// the time it takes to download one piece at this rate (in seconds)
@@ -1752,10 +1762,10 @@ namespace aux {
 			, bind(&peer_connection::reset_choke_counters, _1));
 
 		// auto unchoke
-		int upload_limit = m_bandwidth_manager[peer_connection::upload_channel]->throttle();
+		int upload_limit = m_bandwidth_channel[peer_connection::upload_channel]->throttle();
 		if (!m_settings.auto_upload_slots_rate_based
 			&& m_settings.auto_upload_slots
-			&& upload_limit != bandwidth_limit::inf)
+			&& upload_limit > 0)
 		{
 			// if our current upload rate is less than 90% of our 
 			// limit AND most torrents are not "congested", i.e.
@@ -1764,11 +1774,11 @@ namespace aux {
 			if (m_stat.upload_rate() < upload_limit * 0.9f
 				&& m_allowed_upload_slots <= m_num_unchoked + 1
 				&& congested_torrents < uncongested_torrents
-				&& m_upload_channel.queue_size() < 2)
+				&& m_upload_rate.queue_size() < 2)
 			{
 				++m_allowed_upload_slots;
 			}
-			else if (m_upload_channel.queue_size() > 1
+			else if (m_upload_rate.queue_size() > 1
 				&& m_allowed_upload_slots > m_max_uploads)
 			{
 				--m_allowed_upload_slots;
@@ -2235,11 +2245,11 @@ namespace aux {
 		s.total_redundant_bytes = m_total_redundant_bytes;
 		s.total_failed_bytes = m_total_failed_bytes;
 
-		s.up_bandwidth_queue = m_upload_channel.queue_size();
-		s.down_bandwidth_queue = m_download_channel.queue_size();
+		s.up_bandwidth_queue = m_upload_rate.queue_size();
+		s.down_bandwidth_queue = m_download_rate.queue_size();
 
-		s.up_bandwidth_bytes_queue = m_upload_channel.queued_bytes();
-		s.down_bandwidth_bytes_queue = m_download_channel.queued_bytes();
+		s.up_bandwidth_bytes_queue = m_upload_rate.queued_bytes();
+		s.down_bandwidth_bytes_queue = m_download_rate.queued_bytes();
 
 		s.has_incoming_connections = m_incoming_connection;
 
@@ -2543,8 +2553,8 @@ namespace aux {
 
 		INVARIANT_CHECK;
 
-		if (bytes_per_second <= 0) bytes_per_second = bandwidth_limit::inf;
-		m_bandwidth_manager[peer_connection::download_channel]->throttle(bytes_per_second);
+		if (bytes_per_second <= 0) bytes_per_second = bandwidth_channel::inf;
+		m_bandwidth_channel[peer_connection::download_channel]->throttle(bytes_per_second);
 	}
 
 	void session_impl::set_upload_rate_limit(int bytes_per_second)
@@ -2553,8 +2563,8 @@ namespace aux {
 
 		INVARIANT_CHECK;
 
-		if (bytes_per_second <= 0) bytes_per_second = bandwidth_limit::inf;
-		m_bandwidth_manager[peer_connection::upload_channel]->throttle(bytes_per_second);
+		if (bytes_per_second <= 0) bytes_per_second = bandwidth_channel::inf;
+		m_bandwidth_channel[peer_connection::upload_channel]->throttle(bytes_per_second);
 	}
 
 	void session_impl::set_alert_dispatch(boost::function<void(alert const&)> const& fun)
@@ -2598,14 +2608,14 @@ namespace aux {
 
 		INVARIANT_CHECK;
 
-		int ret = m_bandwidth_manager[peer_connection::upload_channel]->throttle();
+		int ret = m_bandwidth_channel[peer_connection::upload_channel]->throttle();
 		return ret == (std::numeric_limits<int>::max)() ? -1 : ret;
 	}
 
 	int session_impl::download_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		int ret = m_bandwidth_manager[peer_connection::download_channel]->throttle();
+		int ret = m_bandwidth_channel[peer_connection::download_channel]->throttle();
 		return ret == (std::numeric_limits<int>::max)() ? -1 : ret;
 	}
 

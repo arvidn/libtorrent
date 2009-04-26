@@ -2598,18 +2598,6 @@ namespace libtorrent
 		p->set_peer_info(0);
 		TORRENT_ASSERT(i != m_connections.end());
 		m_connections.erase(i);
-
-		// remove from bandwidth request-queue
-		for (int c = 0; c < 2; ++c)
-		{
-			for (queue_t::iterator i = m_bandwidth_queue[c].begin()
-				, end(m_bandwidth_queue[c].end()); i != end; ++i)
-			{
-				if (i->peer != p) continue;
-				m_bandwidth_queue[c].erase(i);
-				break;
-			}
-		}
 	}
 
 	void torrent::connect_to_url_seed(web_seed_entry const& web)
@@ -3823,92 +3811,7 @@ namespace libtorrent
 
 	int torrent::bandwidth_throttle(int channel) const
 	{
-		return m_bandwidth_limit[channel].throttle();
-	}
-
-	int torrent::bandwidth_queue_size(int channel) const
-	{
-		return (int)m_bandwidth_queue[channel].size();
-	}
-
-	void torrent::request_bandwidth(int channel
-		, boost::intrusive_ptr<peer_connection> const& p
-		, int max_block_size, int priority)
-	{
-		TORRENT_ASSERT(max_block_size > 0);
-		TORRENT_ASSERT(m_bandwidth_limit[channel].throttle() > 0);
-		TORRENT_ASSERT(p->max_assignable_bandwidth(channel) > 0);
-		TORRENT_ASSERT(p->m_channel_state[channel] == peer_info::bw_torrent);
-		int block_size = (std::min)(m_bandwidth_limit[channel].throttle() / 10
-			, max_block_size);
-		if (block_size <= 0) block_size = 1;
-
-		if (m_bandwidth_limit[channel].max_assignable() > 0)
-		{
-			perform_bandwidth_request(channel, p, block_size, priority);
-		}
-		else
-		{
-			// skip forward in the queue until we find a prioritized peer
-			// or hit the front of it.
-			queue_t::reverse_iterator i = m_bandwidth_queue[channel].rbegin();
-			while (i != m_bandwidth_queue[channel].rend() && priority > i->priority)
-			{
-				++i->priority;
-				++i;
-			}
-			m_bandwidth_queue[channel].insert(i.base(), bw_queue_entry<peer_connection, torrent>(
-				p, block_size, priority));
-		}
-	}
-
-	void torrent::expire_bandwidth(int channel, int amount)
-	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-
-		INVARIANT_CHECK;
-		
-		TORRENT_ASSERT(amount > 0);
-		m_bandwidth_limit[channel].expire(amount);
-		queue_t tmp;
-		while (!m_bandwidth_queue[channel].empty())
-		{
-			bw_queue_entry<peer_connection, torrent> qe = m_bandwidth_queue[channel].front();
-			if (m_bandwidth_limit[channel].max_assignable() == 0)
-				break;
-			m_bandwidth_queue[channel].pop_front();
-			if (qe.peer->max_assignable_bandwidth(channel) <= 0)
-			{
-				TORRENT_ASSERT(m_ses.m_bandwidth_manager[channel]->is_in_history(qe.peer.get()));
-				if (!qe.peer->is_disconnecting()) tmp.push_back(qe);
-				continue;
-			}
-			perform_bandwidth_request(channel, qe.peer
-				, qe.max_block_size, qe.priority);
-		}
-		m_bandwidth_queue[channel].insert(m_bandwidth_queue[channel].begin(), tmp.begin(), tmp.end());
-	}
-
-	void torrent::perform_bandwidth_request(int channel
-		, boost::intrusive_ptr<peer_connection> const& p
-		, int block_size
-		, int priority)
-	{
-		TORRENT_ASSERT(p->m_channel_state[channel] == peer_info::bw_torrent);
-		p->m_channel_state[channel] = peer_info::bw_global;
-		m_ses.m_bandwidth_manager[channel]->request_bandwidth(p
-			, block_size, priority);
-		m_bandwidth_limit[channel].assign(block_size);
-	}
-
-	void torrent::assign_bandwidth(int channel, int amount, int blk)
-	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-
-		TORRENT_ASSERT(amount > 0);
-		TORRENT_ASSERT(amount <= blk);
-		if (amount < blk)
-			expire_bandwidth(channel, blk - amount);
+		return m_bandwidth_channel[channel].throttle();
 	}
 
 	// called when torrent is finished (all interesting
@@ -4215,19 +4118,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t
 			|| m_resume_entry.type() == lazy_entry::none_t);
 
-		TORRENT_ASSERT(m_bandwidth_queue[0].size() <= m_connections.size());
-		TORRENT_ASSERT(m_bandwidth_queue[1].size() <= m_connections.size());
-
-		for (int c = 0; c < 2; ++c)
-		{
-			queue_t::const_iterator j = m_bandwidth_queue[c].begin();
-			if (j == m_bandwidth_queue[c].end()) continue;
-			++j;
-			for (queue_t::const_iterator i = m_bandwidth_queue[c].begin()
-				, end(m_bandwidth_queue[c].end()); i != end && j != end; ++i, ++j)
-				TORRENT_ASSERT(i->priority >= j->priority);
-		}
-
 		int num_uploads = 0;
 		std::map<piece_block, int> num_requests;
 		for (const_peer_iterator i = begin(); i != end(); ++i)
@@ -4437,14 +4327,14 @@ namespace libtorrent
 	void torrent::set_upload_limit(int limit)
 	{
 		TORRENT_ASSERT(limit >= -1);
-		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
+		if (limit <= 0) limit = 0;
 		if (limit < num_peers() * 10) limit = num_peers() * 10;
-		m_bandwidth_limit[peer_connection::upload_channel].throttle(limit);
+		m_bandwidth_channel[peer_connection::upload_channel].throttle(limit);
 	}
 
 	int torrent::upload_limit() const
 	{
-		int limit = m_bandwidth_limit[peer_connection::upload_channel].throttle();
+		int limit = m_bandwidth_channel[peer_connection::upload_channel].throttle();
 		if (limit == (std::numeric_limits<int>::max)()) limit = -1;
 		return limit;
 	}
@@ -4452,14 +4342,14 @@ namespace libtorrent
 	void torrent::set_download_limit(int limit)
 	{
 		TORRENT_ASSERT(limit >= -1);
-		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
+		if (limit <= 0) limit = 0;
 		if (limit < num_peers() * 10) limit = num_peers() * 10;
-		m_bandwidth_limit[peer_connection::download_channel].throttle(limit);
+		m_bandwidth_channel[peer_connection::download_channel].throttle(limit);
 	}
 
 	int torrent::download_limit() const
 	{
-		int limit = m_bandwidth_limit[peer_connection::download_channel].throttle();
+		int limit = m_bandwidth_channel[peer_connection::download_channel].throttle();
 		if (limit == (std::numeric_limits<int>::max)()) limit = -1;
 		return limit;
 	}
@@ -4846,6 +4736,28 @@ namespace libtorrent
 			// let the stats fade out to 0
  			m_stat.second_tick(tick_interval);
 			return;
+		}
+
+		if (m_settings.rate_limit_ip_overhead)
+		{
+			int up_limit = m_bandwidth_channel[peer_connection::upload_channel].throttle();
+			int down_limit = m_bandwidth_channel[peer_connection::download_channel].throttle();
+
+			if (down_limit > 0
+				&& m_stat.download_ip_overhead() >= down_limit
+				&& alerts().should_post<performance_alert>())
+			{
+				alerts().post_alert(performance_alert(get_handle()
+					, performance_alert::download_limit_too_low));
+			}
+
+			if (up_limit > 0
+				&& m_stat.upload_ip_overhead() >= up_limit
+				&& alerts().should_post<performance_alert>())
+			{
+				alerts().post_alert(performance_alert(get_handle()
+					, performance_alert::upload_limit_too_low));
+			}
 		}
 
 		time_duration since_last_tick = microsec(tick_interval * 1000000L);
@@ -5340,8 +5252,8 @@ namespace libtorrent
 		{
 			st.last_scrape = total_seconds(now - m_last_scrape);
 		}
-		st.up_bandwidth_queue = (int)m_bandwidth_queue[peer_connection::upload_channel].size();
-		st.down_bandwidth_queue = (int)m_bandwidth_queue[peer_connection::download_channel].size();
+		st.up_bandwidth_queue = 0;
+		st.down_bandwidth_queue = 0;
 
 		st.num_peers = (int)std::count_if(m_connections.begin(), m_connections.end()
 			, !boost::bind(&peer_connection::is_connecting, _1));

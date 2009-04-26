@@ -387,10 +387,13 @@ namespace libtorrent
 			// handing out bandwidth to connections that
 			// asks for it, it can also throttle the
 			// rate.
-			bandwidth_manager<peer_connection, torrent> m_download_channel;
-			bandwidth_manager<peer_connection, torrent> m_upload_channel;
+			bandwidth_manager<peer_connection> m_download_rate;
+			bandwidth_manager<peer_connection> m_upload_rate;
 
-			bandwidth_manager<peer_connection, torrent>* m_bandwidth_manager[2];
+			bandwidth_channel m_download_channel;
+			bandwidth_channel m_upload_channel;
+
+			bandwidth_channel* m_bandwidth_channel[2];
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
@@ -530,13 +533,15 @@ namespace libtorrent
 			// NAT or not.
 			bool m_incoming_connection;
 			
-			void second_tick(error_code const& e);
+			void on_tick(error_code const& e);
+
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots(int congested_torrents
 				, int uncongested_torrents);
 			void recalculate_optimistic_unchoke_slot();
 
 			ptime m_last_tick;
+			ptime m_last_second_tick;
 
 			// the last time we went through the peers
 			// to decide which ones to choke/unchoke
@@ -581,11 +586,11 @@ namespace libtorrent
 			int m_tcp_mapping[2];
 			int m_udp_mapping[2];
 
-			// the timer used to fire the second_tick
+			// the timer used to fire the tick
 			deadline_timer m_timer;
 
 			// the index of the torrent that will be offered to
-			// connect to a peer next time second_tick is called.
+			// connect to a peer next time on_tick is called.
 			// This implements a round robin.
 			int m_next_connect_torrent;
 #ifdef TORRENT_DEBUG
