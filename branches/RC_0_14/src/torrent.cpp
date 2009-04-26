@@ -303,7 +303,7 @@ namespace libtorrent
 
 		if (name) m_name.reset(new std::string(name));
 
-		if (tracker_url)
+		if (tracker_url && std::strlen(tracker_url) > 0)
 		{
 			m_trackers.push_back(announce_entry(tracker_url));
 			m_torrent_file->add_tracker(tracker_url);
