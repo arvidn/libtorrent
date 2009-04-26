@@ -70,7 +70,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < m_size);
-			return m_bytes[index / 8] & (0x80 >> (index & 7));
+			return (m_bytes[index / 8] & (0x80 >> (index & 7))) != 0;
 		}
 		
 		void clear_bit(int index)
@@ -135,7 +135,7 @@ namespace libtorrent
 			typedef bool& reference;
 			typedef std::forward_iterator_tag iterator_category;
 
-			bool operator*() { return *byte & bit; }
+			bool operator*() { return (*byte & bit) != 0; }
 			const_iterator& operator++() { inc(); return *this; }
 			const_iterator operator++(int)
 			{ const_iterator ret(*this); inc(); return ret; }

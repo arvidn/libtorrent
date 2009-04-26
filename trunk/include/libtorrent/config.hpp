@@ -52,6 +52,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #elif defined(BOOST_MSVC)
 
+#pragma warning(disable: 4258)
+
 # if defined(TORRENT_BUILDING_SHARED)
 #  define TORRENT_EXPORT __declspec(dllexport)
 # elif defined(TORRENT_LINKING_SHARED)
