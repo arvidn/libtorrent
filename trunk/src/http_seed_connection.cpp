@@ -76,7 +76,7 @@ namespace libtorrent
 		prefer_whole_pieces(1);
 
 		// we only want left-over bandwidth
-		set_priority(0);
+		set_priority(1);
 		shared_ptr<torrent> tor = t.lock();
 		TORRENT_ASSERT(tor);
 		int blocks_per_piece = tor->torrent_file().piece_length() / tor->block_size();

@@ -157,11 +157,11 @@ namespace libtorrent
 		// connection, we have to give it some initial bandwidth
 		// to send the handshake.
 #ifndef TORRENT_DISABLE_ENCRYPTION
-		m_bandwidth_limit[download_channel].assign(2048);
-		m_bandwidth_limit[upload_channel].assign(2048);
+		m_quota[download_channel] = 2048;
+		m_quota[upload_channel] = 2048;
 #else
-		m_bandwidth_limit[download_channel].assign(80);
-		m_bandwidth_limit[upload_channel].assign(80);
+		m_quota[download_channel] = 80;
+		m_quota[upload_channel] = 80;
 #endif
 
 #ifdef TORRENT_DEBUG

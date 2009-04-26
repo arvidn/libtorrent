@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 namespace libtorrent
 {
@@ -288,25 +289,9 @@ namespace libtorrent
 // --------------------------------------------
 		// BANDWIDTH MANAGEMENT
 
-		bandwidth_limit m_bandwidth_limit[2];
+		bandwidth_channel m_bandwidth_channel[2];
 
-		void request_bandwidth(int channel
-			, boost::intrusive_ptr<peer_connection> const& p
-			, int max_block_size, int priority);
-
-		void perform_bandwidth_request(int channel
-			, boost::intrusive_ptr<peer_connection> const& p
-			, int block_size, int priority);
-		
-		void expire_bandwidth(int channel, int amount);
-		void assign_bandwidth(int channel, int amount, int blk);
-		
 		int bandwidth_throttle(int channel) const;
-
-		int max_assignable_bandwidth(int channel) const
-		{ return m_bandwidth_limit[channel].max_assignable(); }
-
-		int bandwidth_queue_size(int channel) const;
 
 // --------------------------------------------
 		// PEER MANAGEMENT
@@ -844,10 +829,6 @@ namespace libtorrent
 		std::vector<boost::uint8_t> m_file_priority;
 
 		boost::scoped_ptr<piece_picker> m_picker;
-
-		// the queue of peer_connections that want more bandwidth
-		typedef std::deque<bw_queue_entry<peer_connection, torrent> > queue_t;
-		queue_t m_bandwidth_queue[2];
 
 		std::vector<announce_entry> m_trackers;
 		// this is an index into m_trackers
