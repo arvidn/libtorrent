@@ -28,27 +28,29 @@ project
    ;
 
 test-suite libtorrent : 	
-	[ run test_auto_unchoke.cpp ]
-	[ run test_http_connection.cpp ]
+	[ run test_bandwidth_limiter.cpp ]
 	[ run test_buffer.cpp ]
-	[ run test_storage.cpp ]
-	[ run test_torrent.cpp ]
-	[ run test_transfer.cpp ]
 	[ run test_piece_picker.cpp ]
-#	[ run test_entry.cpp ]
-	[ run test_fast_extension.cpp ]
-	[ run test_pe_crypto.cpp ]
 	[ run test_bencoding.cpp ]
-	[ run test_bdecode_performance.cpp ]
+	[ run test_fast_extension.cpp ]
 	[ run test_primitives.cpp ]
 	[ run test_ip_filter.cpp ]
 	[ run test_hasher.cpp ]
+	[ run test_storage.cpp ]
+
+	[ run test_web_seed.cpp ]
+	[ run test_bdecode_performance.cpp ]
+	[ run test_pe_crypto.cpp ]
+
+	[ run test_auto_unchoke.cpp ]
+	[ run test_http_connection.cpp ]
+	[ run test_torrent.cpp ]
+	[ run test_transfer.cpp ]
+#	[ run test_entry.cpp ]
 	[ run test_metadata_extension.cpp ]
 	[ run test_trackers_extension.cpp ]
 	[ run test_swarm.cpp ]
 	[ run test_lsd.cpp ]
 	[ run test_pex.cpp ]
-	[ run test_web_seed.cpp ]
-	[ run test_bandwidth_limiter.cpp ]
 	; 
 
