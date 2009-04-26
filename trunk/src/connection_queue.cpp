@@ -1,4 +1,3 @@
-
 /*
 
 Copyright (c) 2007, Arvid Norberg
@@ -177,6 +176,9 @@ namespace libtorrent
 
 		std::list<entry>::iterator i = std::find_if(m_queue.begin()
 			, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
+
+		std::list<entry> to_connect;
+
 		while (i != m_queue.end())
 		{
 			TORRENT_ASSERT(i->connecting == false);
@@ -193,15 +195,7 @@ namespace libtorrent
 
 			INVARIANT_CHECK;
 
-			entry& ent = *i;
-			++i;
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
-				ent.on_connect(ent.ticket);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			to_connect.push_back(*i);
 
 #ifdef TORRENT_CONNECTION_LOGGING
 			m_log << log_time() << " " << free_slots() << std::endl;
@@ -210,6 +204,19 @@ namespace libtorrent
 			if (m_num_connecting >= m_half_open_limit
 				&& m_half_open_limit > 0) break;
 			i = std::find_if(i, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
+		}
+
+		while (!to_connect.empty())
+		{
+			entry& ent = to_connect.front();
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				ent.on_connect(ent.ticket);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
+			to_connect.pop_front();
 		}
 	}
 
