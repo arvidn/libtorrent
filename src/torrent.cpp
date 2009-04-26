@@ -218,7 +218,7 @@ namespace libtorrent
 
 		if (p.name && !p.ti) m_name.reset(new std::string(p.name));
 
-		if (p.tracker_url)
+		if (p.tracker_url && std::strlen(p.tracker_url) > 0)
 		{
 			m_trackers.push_back(announce_entry(p.tracker_url));
 			m_trackers.back().fail_limit = 0;
