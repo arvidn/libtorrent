@@ -66,12 +66,17 @@ namespace libtorrent
 
 	struct torrent_plugin;
 
-#ifndef BOOST_NO_EXCEPTIONS
-	// for compatibility with 0.14
-	typedef libtorrent_exception duplicate_torrent;
-	typedef libtorrent_exception invalid_handle;
-	void throw_invalid_handle();
-#endif
+	struct TORRENT_EXPORT duplicate_torrent: std::exception
+	{
+		virtual const char* what() const throw()
+		{ return "torrent already exists in session"; }
+	};
+
+	struct TORRENT_EXPORT invalid_handle: std::exception
+	{
+		virtual const char* what() const throw()
+		{ return "invalid torrent handle used"; }
+	};
 
 	struct TORRENT_EXPORT torrent_status
 	{
@@ -115,8 +120,6 @@ namespace libtorrent
 			, seed_rank(0)
 			, last_scrape(0)
 			, has_incoming(false)
-			, sparse_regions(0)
-			, seed_mode(false)
 		{}
 
 		enum state_t
@@ -267,12 +270,6 @@ namespace libtorrent
 		// true if there are incoming connections to this
 		// torrent
 		bool has_incoming;
-
-		// the number of "holes" in the torrent
-		int sparse_regions;
-
-		// is true if this torrent is (still) in seed_mode
-		bool seed_mode;
 	};
 
 	struct TORRENT_EXPORT block_info
@@ -317,17 +314,10 @@ namespace libtorrent
 
 		torrent_handle() {}
 
-		enum flags_t { overwrite_existing = 1 };
-		void add_piece(int piece, char const* data, int flags = 0) const;
-		void read_piece(int piece) const;
-
 		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
 		torrent_status status() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
-
-		enum deadline_flags { alert_when_available = 1 };
-		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
 		
 #ifndef TORRENT_NO_DEPRECATE
 		// fills the specified vector with the download progress [0, 1]
@@ -339,17 +329,12 @@ namespace libtorrent
 
 		void clear_error() const;
 
-		std::vector<announce_entry> trackers() const;
+		std::vector<announce_entry> const& trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
-		void add_tracker(announce_entry const&) const;
 
 		void add_url_seed(std::string const& url) const;
 		void remove_url_seed(std::string const& url) const;
 		std::set<std::string> url_seeds() const;
-
-		void add_http_seed(std::string const& url) const;
-		void remove_http_seed(std::string const& url) const;
-		std::set<std::string> http_seeds() const;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
@@ -357,7 +342,6 @@ namespace libtorrent
 #endif
 
 		bool has_metadata() const;
-		bool set_metadata(char const* metadata, int size) const;
 		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;
 
@@ -476,11 +460,9 @@ namespace libtorrent
 
 		// -1 means unlimited unchokes
 		void set_max_uploads(int max_uploads) const;
-		int max_uploads() const;
 
 		// -1 means unlimited connections
 		void set_max_connections(int max_connections) const;
-		int max_connections() const;
 
 		void set_tracker_login(std::string const& name
 			, std::string const& password) const;
@@ -488,14 +470,6 @@ namespace libtorrent
 		// post condition: save_path() == save_path if true is returned
 		void move_storage(fs::path const& save_path) const;
 		void rename_file(int index, fs::path const& new_name) const;
-
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-		void move_storage(fs::wpath const& save_path) const;
-		void rename_file(int index, fs::wpath const& new_name) const;
-#endif
-
-		bool super_seeding() const;
-		void super_seeding(bool on) const;
 
 		sha1_hash info_hash() const;
 

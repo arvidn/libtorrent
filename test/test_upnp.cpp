@@ -41,11 +41,6 @@ using namespace libtorrent;
 
 void callback(int mapping, int port, std::string const& err)
 {
-	if (mapping == -1)
-	{
-		std::cerr << "UPnP: " << err << std::endl;
-		return;
-	}
 	std::cerr << "mapping: " << mapping << ", port: " << port << ", error: \"" << err << "\"\n";
 }
 
@@ -61,34 +56,33 @@ int main(int argc, char* argv[])
 	}
 
 	connection_queue cc(ios);
-	boost::intrusive_ptr<upnp> upnp_handler = new upnp(ios, cc, address_v4(), user_agent, &callback, false);
+	boost::intrusive_ptr<upnp> upnp_handler = new upnp(ios, cc, address_v4(), user_agent, &callback, true);
 	upnp_handler->discover_device();
 
 	libtorrent::deadline_timer timer(ios);
-	error_code ec;
-	timer.expires_from_now(seconds(2), ec);
+	timer.expires_from_now(seconds(2));
 	timer.async_wait(boost::bind(&libtorrent::io_service::stop, boost::ref(ios)));
 
 	std::cerr << "broadcasting for UPnP device" << std::endl;
 
 	ios.reset();
-	ios.run(ec);
+	ios.run();
 
 	upnp_handler->add_mapping(upnp::tcp, atoi(argv[1]), atoi(argv[1]));
 	upnp_handler->add_mapping(upnp::udp, atoi(argv[2]), atoi(argv[2]));
-	timer.expires_from_now(seconds(10), ec);
+	timer.expires_from_now(seconds(10));
 	timer.async_wait(boost::bind(&libtorrent::io_service::stop, boost::ref(ios)));
 	std::cerr << "mapping ports TCP: " << argv[1]
 		<< " UDP: " << argv[2] << std::endl;
 
 	ios.reset();
-	ios.run(ec);
+	ios.run();
 	std::cerr << "router: " << upnp_handler->router_model() << std::endl;
 	std::cerr << "removing mappings" << std::endl;
 	upnp_handler->close();
 
 	ios.reset();
-	ios.run(ec);
+	ios.run();
 	std::cerr << "closing" << std::endl;
 }
 

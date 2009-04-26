@@ -47,9 +47,7 @@ struct path_from_python
                str[len] = 0;
             }
             else str[str.size()-1] = 0;
-
-            std::string utf8;
-            int ret = wchar_utf8(str, utf8);
+            std::string utf8 = wchar_utf8(str);
             new (storage) boost::filesystem::path(utf8);
         }
         else

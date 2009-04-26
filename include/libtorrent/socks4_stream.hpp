@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,36 +30,63 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/allocator.hpp"
-#include "libtorrent/config.hpp"
+#ifndef TORRENT_SOCKS4_STREAM_HPP_INCLUDED
+#define TORRENT_SOCKS4_STREAM_HPP_INCLUDED
 
-#ifdef TORRENT_WINDOWS
-#include <Windows.h>
-#else
-#include <stdlib.h>
-#endif
+#include "libtorrent/proxy_base.hpp"
 
+namespace libtorrent {
 
-namespace libtorrent
+class socks4_stream : public proxy_base
 {
-	char* page_aligned_allocator::malloc(const size_type bytes)
+public:
+
+	explicit socks4_stream(io_service& io_service_)
+		: proxy_base(io_service_)
+	{}
+
+	void set_username(std::string const& user)
 	{
-#ifdef TORRENT_WINDOWS
-		return reinterpret_cast<char*>(VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
-#else
-		return reinterpret_cast<char*>(valloc(bytes));
-#endif
+		m_user = user;
 	}
 
-	void page_aligned_allocator::free(char* const block)
+	typedef boost::function<void(error_code const&)> handler_type;
+
+	template <class Handler>
+	void async_connect(endpoint_type const& endpoint, Handler const& handler)
 	{
-#ifdef TORRENT_WINDOWS
-		VirtualFree(block, 0, MEM_RELEASE);
-#else
-		::free(block);
-#endif
+		m_remote_endpoint = endpoint;
+
+		// the connect is split up in the following steps:
+		// 1. resolve name of proxy server
+		// 2. connect to proxy server
+		// 3. send SOCKS4 CONNECT message
+
+		// to avoid unnecessary copying of the handler,
+		// store it in a shaed_ptr
+		boost::shared_ptr<handler_type> h(new handler_type(handler));
+
+		tcp::resolver::query q(m_hostname
+			, boost::lexical_cast<std::string>(m_port));
+		m_resolver.async_resolve(q, boost::bind(
+			&socks4_stream::name_lookup, this, _1, _2, h));
 	}
 
+private:
+
+	void name_lookup(error_code const& e, tcp::resolver::iterator i
+		, boost::shared_ptr<handler_type> h);
+	void connected(error_code const& e, boost::shared_ptr<handler_type> h);
+	void handshake1(error_code const& e, boost::shared_ptr<handler_type> h);
+	void handshake2(error_code const& e, boost::shared_ptr<handler_type> h);
+
+	// send and receive buffer
+	std::vector<char> m_buffer;
+	// proxy authentication
+	std::string m_user;
+};
 
 }
+
+#endif
 

@@ -130,10 +130,33 @@ namespace libtorrent { namespace
 
 			if (!have_all) return false;
 
-			if (!m_torrent.set_metadata(&m_metadata[0], m_metadata_size))
+			hasher h;
+			h.update(&m_metadata[0], m_metadata_size);
+			sha1_hash info_hash = h.final();
+
+			if (info_hash != m_torrent.torrent_file().info_hash())
 			{
-				if (!m_torrent.valid_metadata())
-					std::fill(m_requested_metadata.begin(), m_requested_metadata.end(), 0);
+				std::fill(m_requested_metadata.begin(), m_requested_metadata.end(), 0);
+
+				if (m_torrent.alerts().should_post<metadata_failed_alert>())
+				{
+					m_torrent.alerts().post_alert(metadata_failed_alert(
+						m_torrent.get_handle()));
+				}
+
+				return false;
+			}
+
+			lazy_entry metadata;
+			int ret = lazy_bdecode(m_metadata.get(), m_metadata.get() + m_metadata_size, metadata);
+			std::string error;
+			if (!m_torrent.set_metadata(metadata, error))
+			{
+				// this means the metadata is correct, since we
+				// verified it against the info-hash, but we
+				// failed to parse it. Pause the torrent
+				// TODO: Post an alert!
+				m_torrent.pause();
 				return false;
 			}
 
@@ -345,9 +368,9 @@ namespace libtorrent { namespace
 				break;
 			default:
 				{
-					char msg[200];
-					snprintf(msg, sizeof(msg), "unknown ut_metadata extension message: %u", type);
-					m_pc.disconnect(msg, 2);
+					std::stringstream msg;
+					msg << "unknown ut_metadata extension message: " << type;
+					m_pc.disconnect(msg.str().c_str(), 2);
 				}
 			}
 			return true;

@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#include <iostream>
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -178,7 +180,6 @@ namespace libtorrent
 	void request_a_block(torrent& t, peer_connection& c)
 	{
 		if (t.is_seed()) return;
-		if (c.no_download()) return;
 
 		TORRENT_ASSERT(t.valid_metadata());
 		TORRENT_ASSERT(c.peer_info_struct() != 0 || !dynamic_cast<bt_peer_connection*>(&c));
@@ -269,8 +270,8 @@ namespace libtorrent
 		(*c.m_logger) << time_now_string() << " PIECE_PICKER [ php: " << prefer_whole_pieces
 			<< " picked: " << interesting_pieces.size() << " ]\n";
 #endif
-		std::vector<pending_block> const& dq = c.download_queue();
-		std::vector<piece_block> const& rq = c.request_queue();
+		std::deque<pending_block> const& dq = c.download_queue();
+		std::deque<piece_block> const& rq = c.request_queue();
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
@@ -290,12 +291,6 @@ namespace libtorrent
 			}
 
 			TORRENT_ASSERT(p.num_peers(*i) == 0);
-
-			// don't request pieces we already have in our request queue
-			if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
-				|| std::find(rq.begin(), rq.end(), *i) != rq.end())
-				continue;
-
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
 			// and return
@@ -832,12 +827,9 @@ namespace libtorrent
 				// it again.
 
 				error_code ec;
-				char hex_pid[41];
-				to_hex((char*)&i->second.connection->pid()[0], 20, hex_pid);
-				char msg[200];
-				snprintf(msg, 200, "already connected to peer: %s %s"
-					, print_endpoint(remote).c_str(), hex_pid);
-				m_torrent->debug_log(msg);
+				m_torrent->debug_log("already connected to peer: " + remote.address().to_string(ec) + ":"
+					+ boost::lexical_cast<std::string>(remote.port()) + " "
+					+ boost::lexical_cast<std::string>(i->second.connection->pid()));
 
 				TORRENT_ASSERT(i->second.connection->associated_torrent().lock().get() == m_torrent);
 			}
@@ -889,9 +881,8 @@ namespace libtorrent
 		// can't pay for their downloads anyway.
 		if (c.is_choked()
 			&& ses.num_uploads() < ses.max_uploads()
-			&& !c.ignore_unchoke_slots()
 			&& (m_torrent->ratio() == 0
-				|| c.share_diff() >= size_type(-free_upload_amount)
+				|| c.share_diff() >= -free_upload_amount
 				|| m_torrent->is_finished()))
 		{
 			ses.unchoke_peer(c);
@@ -1184,11 +1175,7 @@ namespace libtorrent
 	policy::peer::peer(const tcp::endpoint& ip_, peer::connection_type t, int src)
 		: prev_amount_upload(0)
 		, prev_amount_download(0)
-#if TORRENT_USE_IPV6
 		, addr(ip_.address())
-#else
-		, addr(ip_.address().to_v4())
-#endif
 		, last_optimistically_unchoked(min_time())
 		, connected(min_time())
 		, connection(0)

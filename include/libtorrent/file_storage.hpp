@@ -56,9 +56,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT file_entry
 	{
-		file_entry(): offset(0), size(0), file_base(0)
-			, pad_file(false), hidden_attribute(false)
-			, executable_attribute(false) {}
+		file_entry(): offset(0), size(0), file_base(0) {}
 
 		fs::path path;
 		size_type offset; // the offset of this file inside the torrent
@@ -67,9 +65,6 @@ namespace libtorrent
 		// This is always 0 unless parts of the torrent is
 		// compressed into a single file, such as a so-called part file.
 		size_type file_base;
-		bool pad_file:1;
-		bool hidden_attribute:1;
-		bool executable_attribute:1;
 	};
 
 	struct TORRENT_EXPORT file_slice
@@ -88,22 +83,9 @@ namespace libtorrent
 
 		bool is_valid() const { return m_piece_length > 0; }
 
-		enum flags_t
-		{
-			pad_file = 1,
-			attribute_hidden = 2,
-			attribute_executable = 4
-		};
-
 		void add_file(file_entry const& e);
-		void add_file(fs::path const& p, size_type size, int flags = 0);
+		void add_file(fs::path const& p, size_type size);
 		void rename_file(int index, std::string const& new_filename);
-
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-		void add_file(fs::wpath const& p, size_type size, int flags = 0);
-		void rename_file(int index, std::wstring const& new_filename);
-		void set_name(std::wstring const& n);
-#endif
 
 		std::vector<file_slice> map_block(int piece, size_type offset
 			, int size) const;
@@ -126,7 +108,7 @@ namespace libtorrent
 			return m_files[index];
 		}
 		
-		size_type total_size() const { return m_total_size; }
+		size_type total_size() const { TORRENT_ASSERT(m_piece_length > 0); return m_total_size; }
 		void set_num_pieces(int n) { m_num_pieces = n; }
 		int num_pieces() const { TORRENT_ASSERT(m_piece_length > 0); return m_num_pieces; }
 		void set_piece_length(int l)  { m_piece_length = l; }
@@ -145,11 +127,6 @@ namespace libtorrent
 			swap(ti.m_num_pieces, m_num_pieces);
 			swap(ti.m_name, m_name);
 		}
-
-		// if pad_file_limit >= 0, files larger than
-		// that limit will be padded, default is to
-		// not add any padding
-		void optimize(int pad_file_limit = -1);
 
 	private:
 		int m_piece_length;

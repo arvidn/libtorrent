@@ -40,10 +40,6 @@ docs/flush.jpg \
 docs/pump.png \
 docs/bubba.png \
 docs/firetorrent.png \
-docs/read_disk_buffers.png \
-docs/read_disk_buffers.dot \
-docs/write_disk_buffers.png \
-docs/write_disk_buffers.dot \
 docs/unicode_support.png docs/client_test.png docs/style.css Jamfile project-root.jam \
 libtorrent-rasterbar.pc \
 bindings/README.txt \

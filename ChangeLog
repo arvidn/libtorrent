@@ -1,33 +1,3 @@
-	* added support for merkle hash tree torrents (.merkle.torrent)
-	* added 'seed mode', which assumes that all files are complete
-	  and checks hashes lazily, as blocks are requested
-	* added new extension for file attributes (executable and hidden)
-	* added support for unbuffered I/O for aligned files
-	* added workaround for sparse file issue on Windows Vista
-	* added new lt_trackers extension to exchange trackers between
-	  peers
-	* added support for BEP 17 http seeds
-	* added read_piece() to read pieces from torrent storage
-	* added option for udp tracker preference
-	* added super seeding
-	* added add_piece() function to inject data from external sources
-	* add_tracker() function added to torrent_handle
-	* if there is no working tracker, current_tracker is the
-	  tracker that is currently being tried
-	* torrents that are checking can now be paused, which will
-	  pause the checking
-	* introduced another torrent state, checking_resume_data, which
-	  the torrent is in when it's first added, and is comparing
-	  the files on disk with the resume data
-	* DHT bandwidth usage optimizations
-	* rate limited DHT send socket
-	* tracker connections are now also subject to IP filtering
-	* improved optimistic unchoke logic
-	* added monitoring of the DHT lookups
-	* added bandwidth reports for estimated TCP/IP overhead and DHT
-	* includes DHT traffic in the rate limiter
-	* added support for bitcomet padding files
-	* improved support for sparse files on windows
 
 release 0.14.3
 

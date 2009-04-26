@@ -65,7 +65,6 @@ namespace libtorrent
 		, m_num_have(0)
 		, m_cursor(0)
 		, m_reverse_cursor(0)
-		, m_sparse_regions(1)
 		, m_dirty(false)
 	{
 #ifdef TORRENT_PICKER_LOG
@@ -227,7 +226,7 @@ namespace libtorrent
 		}
 	}
 
-#if defined TORRENT_PICKER_LOG
+#if defined TORRENT_PICKER_LOG || defined TORRENT_DEBUG
 	void piece_picker::print_pieces() const
 	{
 		for (std::vector<int>::const_iterator i = m_priority_boundries.begin()
@@ -1074,28 +1073,6 @@ namespace libtorrent
 			, has_index(index)) == m_downloads.end());
 
 		if (p.have()) return;
-
-// maintain sparse_regions
-		if (index == 0)
-		{
-			if (index == m_piece_map.size() - 1
-				|| m_piece_map[index + 1].have())
-				--m_sparse_regions;
-		}
-		else if (index == int(m_piece_map.size() - 1))
-		{
-			if (index == 0
-				|| m_piece_map[index - 1].have())
-				--m_sparse_regions;
-		}
-		else
-		{
-			bool have_before = m_piece_map[index-1].have();
-			bool have_after = m_piece_map[index+1].have();
-			if (have_after && have_before) --m_sparse_regions;
-			else if (!have_after && !have_before) ++m_sparse_regions;
-		}
-
 		if (p.filtered())
 		{
 			--m_num_filtered;
@@ -1319,12 +1296,6 @@ namespace libtorrent
 	//     peer
 	// * prioritize_partials
 	//     pick blocks from downloading pieces first
-	// * speed_affinity
-	//     have an affinity to pick pieces in the same speed
-	//     category.
-	// * ignore_whole_pieces
-	//     ignores the prefer_whole_pieces parameter (as if
-	//     it was 0)
 
 	// only one of rarest_first, sequential can be set
 
@@ -1335,8 +1306,6 @@ namespace libtorrent
 	{
 		// prevent the number of partial pieces to grow indefinitely
 		if (m_downloads.size() > 20) options |= prioritize_partials;
-
-		if (options & ignore_whole_pieces) prefer_whole_pieces = 0;
 
 		// only one of rarest_first and sequential can be set.
 		TORRENT_ASSERT(bool(options & rarest_first)
@@ -1820,7 +1789,7 @@ namespace libtorrent
 			// if the state of the piece is none (the
 			// piece will in that case change state).
 			if (dp.state != none && dp.state != speed
-				&& !exclusive_active && (options & speed_affinity))
+				&& !exclusive_active)
 			{
 				if (abs(dp.state - speed) == 1)
 				{
@@ -2059,55 +2028,32 @@ namespace libtorrent
 		TORRENT_ASSERT(block.piece_index < (int)m_piece_map.size());
 		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
 
-		piece_pos& p = m_piece_map[block.piece_index];
-		if (p.downloading == 0)
+		TORRENT_ASSERT(m_piece_map[block.piece_index].downloading);
+
+		std::vector<downloading_piece>::iterator i
+			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
+		TORRENT_ASSERT(i != m_downloads.end());
+		block_info& info = i->info[block.block_index];
+
+		info.peer = peer;
+		TORRENT_ASSERT(info.state == block_info::state_requested);
+		if (info.state == block_info::state_requested) --i->requested;
+		TORRENT_ASSERT(i->requested >= 0);
+		TORRENT_ASSERT(info.state != block_info::state_writing);
+		++i->writing;
+		info.state = block_info::state_writing;
+
+		// all other requests for this block should have been
+		// cancelled now
+		info.num_peers = 0;
+
+		if (i->requested == 0)
 		{
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
-#endif
-			int prio = p.priority(this);
-			TORRENT_ASSERT(prio < int(m_priority_boundries.size())
-				|| m_dirty);
-			TORRENT_ASSERT(prio >= 0);
-			p.downloading = 1;
-			if (prio >= 0 && !m_dirty) update(prio, p.index);
-
-			downloading_piece& dp = add_download_piece();
-			dp.index = block.piece_index;
-			dp.state = none;
-			block_info& info = dp.info[block.block_index];
-			info.state = block_info::state_writing;
-			info.peer = peer;
-			info.num_peers = 0;
-			dp.writing = 1;
-			sort_piece(m_downloads.end()-1);
+			// there are no blocks requested in this piece.
+			// remove the fast/slow state from it
+			i->state = none;
 		}
-		else
-		{
-			std::vector<downloading_piece>::iterator i
-				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
-			TORRENT_ASSERT(i != m_downloads.end());
-			block_info& info = i->info[block.block_index];
-
-			info.peer = peer;
-			if (info.state == block_info::state_requested) --i->requested;
-			TORRENT_ASSERT(i->requested >= 0);
-			TORRENT_ASSERT(info.state != block_info::state_writing);
-			++i->writing;
-			info.state = block_info::state_writing;
-
-			// all other requests for this block should have been
-			// cancelled now
-			info.num_peers = 0;
-
-			if (i->requested == 0)
-			{
-				// there are no blocks requested in this piece.
-				// remove the fast/slow state from it
-				i->state = none;
-			}
-			sort_piece(i);
-		}
+		sort_piece(i);
 	}
 
 	void piece_picker::write_failed(piece_block block)
@@ -2172,9 +2118,6 @@ namespace libtorrent
 				= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 			TORRENT_ASSERT(i != m_downloads.end());
 			block_info& info = i->info[block.block_index];
-
-			if (info.state == block_info::state_finished) return;
-
 			TORRENT_ASSERT(info.num_peers == 0);
 			info.peer = peer;
 			TORRENT_ASSERT(info.state == block_info::state_writing

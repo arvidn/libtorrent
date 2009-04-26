@@ -2,11 +2,11 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/python.hpp>
 #include <libtorrent/session.hpp>
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/storage.hpp>
 #include <libtorrent/ip_filter.hpp>
+#include <boost/python.hpp>
 #include "gil.hpp"
 
 using namespace boost::python;
@@ -154,10 +154,6 @@ namespace
        p.auto_managed = params["auto_managed"];
     if (params.has_key("duplicate_is_error"))
        p.duplicate_is_error = params["duplicate_is_error"];
-    if (params.has_key("seed_mode"))
-       p.seed_mode = params["seed_mode"];
-    if (params.has_key("override_resume_data"))
-       p.override_resume_data = params["override_resume_data"];
 
     return s.add_torrent(p);
   }

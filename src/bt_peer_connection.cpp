@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
+#include <iostream>
+#include <iomanip>
 #include <limits>
 #include <boost/bind.hpp>
 
@@ -157,11 +159,11 @@ namespace libtorrent
 		// connection, we have to give it some initial bandwidth
 		// to send the handshake.
 #ifndef TORRENT_DISABLE_ENCRYPTION
-		m_quota[download_channel] = 2048;
-		m_quota[upload_channel] = 2048;
+		m_bandwidth_limit[download_channel].assign(2048);
+		m_bandwidth_limit[upload_channel].assign(2048);
 #else
-		m_quota[download_channel] = 80;
-		m_quota[upload_channel] = 80;
+		m_bandwidth_limit[download_channel].assign(80);
+		m_bandwidth_limit[upload_channel].assign(80);
 #endif
 
 #ifdef TORRENT_DEBUG
@@ -786,22 +788,9 @@ namespace libtorrent
 		*(i.begin + 5) |= 0x10;
 #endif
 
-		// we support merkle torrents
-		*(i.begin + 5) |= 0x08;
-
 		// we support FAST extension
 		*(i.begin + 7) |= 0x04;
 
-#ifdef TORRENT_VERBOSE_LOGGING	
-		for (int k = 0; k < 8; ++k)
-		{
-			for (int j = 0; j < 8; ++j)
-			{
-				if (i.begin[k] & (0x80 >> j)) (*m_logger) << "1";
-				else (*m_logger) << "0";
-			}
-		}
-#endif
 		i.begin += 8;
 
 		// info hash
@@ -831,7 +820,7 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = receive_buffer();
 		// are we currently receiving a 'piece' message?
 		if (m_state != read_packet
-			|| recv_buffer.left() <= 9
+			|| recv_buffer.left() < 9
 			|| recv_buffer[0] != msg_piece)
 			return boost::optional<piece_block_progress>();
 
@@ -881,12 +870,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
-		m_statistics.received_bytes(0, received);
 		if (packet_size() != 1)
 		{
 			disconnect("'choke' message size != 1", 2);
 			return;
 		}
+		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		incoming_choke();
@@ -916,12 +905,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
-		m_statistics.received_bytes(0, received);
 		if (packet_size() != 1)
 		{
 			disconnect("'unchoke' message size != 1", 2);
 			return;
 		}
+		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		incoming_unchoke();
@@ -936,12 +925,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
-		m_statistics.received_bytes(0, received);
 		if (packet_size() != 1)
 		{
 			disconnect("'interested' message size != 1", 2);
 			return;
 		}
+		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		incoming_interested();
@@ -956,12 +945,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
-		m_statistics.received_bytes(0, received);
 		if (packet_size() != 1)
 		{
 			disconnect("'not interested' message size != 1", 2);
 			return;
 		}
+		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		incoming_not_interested();
@@ -976,12 +965,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
-		m_statistics.received_bytes(0, received);
 		if (packet_size() != 5)
 		{
 			disconnect("'have' message size != 5", 2);
 			return;
 		}
+		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -1005,19 +994,20 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		m_statistics.received_bytes(0, received);
 		// if we don't have the metedata, we cannot
 		// verify the bitfield size
 		if (t->valid_metadata()
 			&& packet_size() - 1 != (t->torrent_file().num_pieces() + 7) / 8)
 		{
-			char msg[200];
-			snprintf(msg, 200, "got bitfield with invalid size: %d bytes. expected: %d bytes"
-				, int(packet_size()-1), int((t->torrent_file().num_pieces() + 7) / 8));
-			disconnect(msg, 2);
+			std::stringstream msg;
+			msg << "got bitfield with invalid size: " << (packet_size() - 1)
+				<< " bytes. expected: " << ((t->torrent_file().num_pieces() + 7) / 8)
+				<< " bytes";
+			disconnect(msg.str().c_str(), 2);
 			return;
 		}
 
+		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -1038,12 +1028,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
-		m_statistics.received_bytes(0, received);
 		if (packet_size() != 13)
 		{
 			disconnect("'request' message size != 13", 2);
 			return;
 		}
+		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -1053,7 +1043,7 @@ namespace libtorrent
 		r.piece = detail::read_int32(ptr);
 		r.start = detail::read_int32(ptr);
 		r.length = detail::read_int32(ptr);
-
+		
 		incoming_request(r);
 	}
 
@@ -1070,71 +1060,22 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = receive_buffer();
 		int recv_pos = recv_buffer.end - recv_buffer.begin;
 
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
-		bool merkle = (unsigned char)recv_buffer.begin[0] == 250;
-		if (merkle)
+		if (recv_pos == 1)
 		{
-			if (recv_pos == 1)
-			{
-				set_soft_packet_size(13);
-				m_statistics.received_bytes(0, received);
+			TORRENT_ASSERT(!has_disk_receive_buffer());
+			if (!allocate_disk_receive_buffer(packet_size() - 9))
 				return;
-			}
-			if (recv_pos < 13)
-			{
-				m_statistics.received_bytes(0, received);
-				return;
-			}
-			if (recv_pos == 13)
-			{
-				const char* ptr = recv_buffer.begin + 9;
-				int list_size = detail::read_int32(ptr);
-				// now we know how long the bencoded hash list is
-				// and we can allocate the disk buffer and receive
-				// into it
-
-				if (list_size > packet_size() - 13)
-				{
-					disconnect("invalid hash list in hash piece message");
-					return;
-				}
-
-				TORRENT_ASSERT(!has_disk_receive_buffer());
-				if (!allocate_disk_receive_buffer(packet_size() - 13 - list_size))
-				{
-					m_statistics.received_bytes(0, received);
-					return;
-				}
-			}
-		}
-		else
-		{
-			if (recv_pos == 1)
-			{
-				TORRENT_ASSERT(!has_disk_receive_buffer());
-				if (!allocate_disk_receive_buffer(packet_size() - 9))
-				{
-					m_statistics.received_bytes(0, received);
-					return;
-				}
-			}
 		}
 		TORRENT_ASSERT(has_disk_receive_buffer() || packet_size() == 9);
+
 		// classify the received data as protocol chatter
 		// or data payload for the statistics
-		int piece_bytes = 0;
 		if (recv_pos <= 9)
-		{
 			// only received protocol data
 			m_statistics.received_bytes(0, received);
-		}
 		else if (recv_pos - received >= 9)
-		{
 			// only received payload data
 			m_statistics.received_bytes(received, 0);
-			piece_bytes = received;
-		}
 		else
 		{
 			// received a bit of both
@@ -1144,94 +1085,17 @@ namespace libtorrent
 			m_statistics.received_bytes(
 				recv_pos - 9
 				, 9 - (recv_pos - received));
-			piece_bytes = recv_pos - 9;
 		}
 
-		const int header_size = merkle?13:9;
-
-		if (recv_pos < header_size) return;
+		incoming_piece_fragment();
+		if (is_disconnecting()) return;
+		if (!packet_finished()) return;
 
 		const char* ptr = recv_buffer.begin + 1;
 		peer_request p;
 		p.piece = detail::read_int32(ptr);
 		p.start = detail::read_int32(ptr);
-
-		int list_size = 0;
-
-		if (merkle)
-		{
-			list_size = detail::read_int32(ptr);
-			p.length = packet_size() - list_size - header_size;
-		}
-		else
-		{
-			p.length = packet_size() - header_size;
-		}
-
-#ifdef TORRENT_VERBOSE_LOGGING
-//			(*m_logger) << time_now_string() << " <== PIECE_FRAGMENT p: " << p.piece
-//				<< " start: " << p.start << " length: " << p.length << "\n";
-#endif
-
-		if (recv_pos - received < header_size && recv_pos >= header_size)
-		{
-			// call this once, the first time the entire header
-			// has been received
-			start_receive_piece(p);
-			if (is_disconnecting()) return;
-		}
-
-		TORRENT_ASSERT(has_disk_receive_buffer() || packet_size() == header_size);
-
-		incoming_piece_fragment(piece_bytes);
-		if (!packet_finished()) return;
-
-		if (merkle && list_size > 0)
-		{
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " <== HASHPIECE " << p.piece << " list: " << list_size << " ";
-#endif
-			lazy_entry hash_list;
-			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.end + 13 + list_size, hash_list) != 0)
-			{
-				disconnect("invalid bencoding in hashpiece message");
-				return;
-			}
-
-			// the list has this format:
-			// [ [node-index, hash], [node-index, hash], ... ]
-			if (hash_list.type() != lazy_entry::list_t)
-			{
-				disconnect("invalid hash-list in hashpiece message");
-				return;
-			}
-
-			std::map<int, sha1_hash> nodes;
-			for (int i = 0; i < hash_list.list_size(); ++i)
-			{
-				lazy_entry const* e = hash_list.list_at(i);
-				if (e->type() != lazy_entry::list_t
-					|| e->list_size() != 2
-					|| e->list_at(0)->type() != lazy_entry::int_t
-					|| e->list_at(1)->type() != lazy_entry::string_t
-					|| e->list_at(1)->string_length() != 20) continue;
-
-#ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << " " << e->list_int_value_at(0) << ": "
-					<< sha1_hash(e->list_at(1)->string_ptr());
-#endif
-				nodes.insert(nodes.begin(), std::make_pair(int(e->list_int_value_at(0))
-					, sha1_hash(e->list_at(1)->string_ptr())));
-			}
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "\n";
-#endif
-			if (!nodes.empty() && !t->add_merkle_nodes(nodes, p.piece))
-			{
-				disconnect("invalid hashes in hashpiece message");
-				return;
-			}
-		}
+		p.length = packet_size() - 9;
 
 		disk_buffer_holder holder(m_ses, release_disk_receive_buffer());
 		incoming_piece(p, holder);
@@ -1246,12 +1110,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received > 0);
-		m_statistics.received_bytes(0, received);
 		if (packet_size() != 13)
 		{
 			disconnect("'cancel' message size != 13", 2);
 			return;
 		}
+		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -1273,18 +1137,19 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received > 0);
-		m_statistics.received_bytes(0, received);
 		if (!m_supports_dht_port)
 		{
 			disconnect("got 'dht_port' message from peer that doesn't support it", 2);
 			return;
 		}
+
+		TORRENT_ASSERT(received > 0);
 		if (packet_size() != 3)
 		{
 			disconnect("'dht_port' message size != 3", 2);
 			return;
 		}
+		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -1299,13 +1164,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
 			disconnect("got 'suggest_piece' without FAST excension support", 2);
 			return;
 		}
 
+		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -1319,12 +1184,12 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
 			disconnect("got 'have_all' without FAST extension support", 2);
 			return;
 		}
+		m_statistics.received_bytes(0, received);
 		incoming_have_all();
 	}
 
@@ -1332,12 +1197,12 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
 			disconnect("got 'have_none' without FAST extension support", 2);
 			return;
 		}
+		m_statistics.received_bytes(0, received);
 		incoming_have_none();
 	}
 
@@ -1345,13 +1210,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
 			disconnect("got 'reject_request' without FAST extension support", 2);
 			return;
 		}
 
+		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 
 		buffer::const_interval recv_buffer = receive_buffer();
@@ -1369,13 +1234,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
 			disconnect("got 'allowed_fast' without FAST extension support", 2);
 			return;
 		}
 
+		m_statistics.received_bytes(0, received);
 		if (!packet_finished()) return;
 		buffer::const_interval recv_buffer = receive_buffer();
 		const char* ptr = recv_buffer.begin + 1;
@@ -1430,9 +1295,9 @@ namespace libtorrent
 		}
 #endif
 
-		char msg[200];
-		snprintf(msg, 200, "unknown extended message id: %d", extended_id);
-		disconnect(msg, 2);
+		std::stringstream msg;
+		msg << "unknown extended message id: " << extended_id;
+		disconnect(msg.str().c_str(), 2);
 		return;
 	}
 
@@ -1528,17 +1393,12 @@ namespace libtorrent
 		TORRENT_ASSERT(received > 0);
 
 		// this means the connection has been closed already
-		if (associated_torrent().expired())
-		{
-			m_statistics.received_bytes(0, received);
-			return false;
-		}
+		if (associated_torrent().expired()) return false;
 
 		buffer::const_interval recv_buffer = receive_buffer();
 
 		TORRENT_ASSERT(recv_buffer.left() >= 1);
-		int packet_type = (unsigned char)recv_buffer[0];
-		if (packet_type == 250) packet_type = msg_piece;
+		int packet_type = recv_buffer[0];
 		if (packet_type < 0
 			|| packet_type >= num_supported_messages
 			|| m_message_handler[packet_type] == 0)
@@ -1554,28 +1414,16 @@ namespace libtorrent
 			}
 #endif
 
-			m_statistics.received_bytes(0, received);
-			char msg[200];
-			snprintf(msg, 200, "unknown message message id: %d size: %d", packet_type, packet_size());
-			disconnect(msg, 2);
+			std::stringstream msg;
+			msg << "unkown message id: " << packet_type << " size: " << packet_size();
+			disconnect(msg.str().c_str(), 2);
 			return packet_finished();
 		}
 
 		TORRENT_ASSERT(m_message_handler[packet_type] != 0);
 
-#ifdef TORRENT_DEBUG
-		size_type cur_payload_dl = m_statistics.last_payload_downloaded();
-		size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
-#endif
 		// call the correct handler for this packet type
 		(this->*m_message_handler[packet_type])(received);
-#ifdef TORRENT_DEBUG
-		TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
-		TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
-		size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
-			m_statistics.last_protocol_downloaded() - cur_protocol_dl;
-		TORRENT_ASSERT(stats_diff == received);
-#endif
 
 		return packet_finished();
 	}
@@ -1642,22 +1490,7 @@ namespace libtorrent
 		// in this case, have_all or have_none should be sent instead
 		TORRENT_ASSERT(!m_supports_fast || !t->is_seed() || t->num_have() != 0);
 
-		if (t->super_seeding())
-		{
-			if (m_supports_fast) write_have_none();
-
-			// if we are super seeding, pretend to not have any piece
-			// and don't send a bitfield
-#ifdef TORRENT_DEBUG
-			m_sent_bitfield = true;
-#endif
-
-			// bootstrap superseeding by sending one have message
-			superseed_piece(t->get_piece_to_super_seed(
-				get_bitfield()));
-			return;
-		}
-		else if (m_supports_fast && t->is_seed())
+		if (m_supports_fast && t->is_seed())
 		{
 			write_have_all();
 			send_allowed_set();
@@ -1682,7 +1515,6 @@ namespace libtorrent
 		}
 	
 		int num_pieces = t->torrent_file().num_pieces();
-
 		int lazy_pieces[50];
 		int num_lazy_pieces = 0;
 		int lazy_piece = 0;
@@ -1740,15 +1572,14 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " ==> BITFIELD ";
 
-		std::string bitfield_string;
-		bitfield_string.resize(num_pieces + 1);
+		std::stringstream bitfield_string;
 		for (int k = 0; k < num_pieces; ++k)
 		{
-			if (i.begin[k / 8] & (0x80 >> (k % 8))) bitfield_string[k] = '1';
-			else bitfield_string[k] = '0';
+			if (i.begin[k / 8] & (0x80 >> (k % 8))) bitfield_string << "1";
+			else bitfield_string << "0";
 		}
-		bitfield_string[num_pieces] = '\n';
-		(*m_logger) << bitfield_string;
+		bitfield_string << "\n";
+		(*m_logger) << bitfield_string.str();
 #endif
 #ifdef TORRENT_DEBUG
 		m_sent_bitfield = true;
@@ -1766,7 +1597,6 @@ namespace libtorrent
 					<< " ==> HAVE    [ piece: " << lazy_pieces[i] << "]\n";
 #endif
 			}
-			// TODO: if we're finished, send upload_only message
 		}
 
 		if (m_supports_fast)
@@ -1801,11 +1631,7 @@ namespace libtorrent
 		handshake["reqq"] = m_ses.settings().max_allowed_in_request_queue;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-
-		// if we're using lazy bitfields or if we're super seeding, don't say
-		// we're upload only, since it might make peers disconnect
-		if (t->is_finished() && !t->super_seeding() && !m_ses.settings().lazy_bitfields)
-			handshake["upload_only"] = 1;
+		if (t->is_finished()) handshake["upload_only"] = 1;
 
 		tcp::endpoint ep = m_ses.get_ipv6_interface();
 		if (!is_any(ep.address()))
@@ -1841,7 +1667,7 @@ namespace libtorrent
 		i.begin += msg.size();
 		TORRENT_ASSERT(i.begin == i.end);
 
-#if defined TORRENT_VERBOSE_LOGGING && TORRENT_USE_IOSTREAM
+#ifdef TORRENT_VERBOSE_LOGGING
 		std::stringstream ext;
 		handshake.print(ext);
 		(*m_logger) << "==> EXTENDED HANDSHAKE: \n" << ext.str();
@@ -1915,53 +1741,14 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		bool merkle = t->torrent_file().is_merkle_torrent() && r.start == 0;
-	// the hash piece looks like this:
-	// uint8_t  msg
-	// uint32_t piece index
-	// uint32_t start
-	// uint32_t list len
-	// var      bencoded list
-	// var      piece data
-		char msg[4 + 1 + 4 + 4 + 4];
+		char msg[4 + 1 + 4 + 4];
 		char* ptr = msg;
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		detail::write_int32(r.length + 1 + 4 + 4, ptr);
-		if (merkle)
-			detail::write_uint8(250, ptr);
-		else
-			detail::write_uint8(msg_piece, ptr);
+		detail::write_uint8(msg_piece, ptr);
 		detail::write_int32(r.piece, ptr);
 		detail::write_int32(r.start, ptr);
-
-		// if this is a merkle torrent and the start offset
-		// is 0, we need to include the merkle node hashes
-		if (merkle)
-		{
-			std::vector<char>	piece_list_buf;
-			entry piece_list;
-			entry::list_type& l = piece_list.list();
-			std::map<int, sha1_hash> merkle_node_list = t->torrent_file().build_merkle_list(r.piece);
-			for (std::map<int, sha1_hash>::iterator i = merkle_node_list.begin()
-				, end(merkle_node_list.end()); i != end; ++i)
-			{
-				l.push_back(entry(entry::list_t));
-				l.back().list().push_back(i->first);
-				l.back().list().push_back(i->second.to_string());
-			}
-			bencode(std::back_inserter(piece_list_buf), piece_list);
-			detail::write_int32(piece_list_buf.size(), ptr);
-
-			char* ptr = msg;
-			detail::write_int32(r.length + 1 + 4 + 4 + 4 + piece_list_buf.size(), ptr);
-
-			send_buffer(msg, 17);
-			send_buffer(&piece_list_buf[0], piece_list_buf.size());
-		}
-		else
-		{
-			send_buffer(msg, 13);
-		}
+		send_buffer(msg, sizeof(msg));
 
 		append_send_buffer(buffer.get(), r.length
 			, boost::bind(&session_impl::free_disk_buffer
@@ -2003,13 +1790,11 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (error)
-		{
-			m_statistics.received_bytes(0, bytes_transferred);
-			return;
-		}
-
+		if (error) return;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
+
+		if (in_handshake()) 
+			m_statistics.received_bytes(0, bytes_transferred);
 	
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		TORRENT_ASSERT(in_handshake() || !m_rc4_encrypted || m_encrypted);
@@ -2029,8 +1814,6 @@ namespace libtorrent
 		// for outgoing
 		if (m_state == read_pe_dhkey)
 		{
-			m_statistics.received_bytes(0, bytes_transferred);
-
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
 			TORRENT_ASSERT(packet_size() == dh_key_len);
@@ -2100,8 +1883,6 @@ namespace libtorrent
 		   
  			if (recv_buffer.left() < 20)
 			{
-				m_statistics.received_bytes(0, bytes_transferred);
-
 				if (packet_finished())
 					disconnect("sync hash not found", 2);
 				return;
@@ -2119,7 +1900,6 @@ namespace libtorrent
 				m_sync_hash.reset(new (std::nothrow) sha1_hash(h.final()));
 				if (!m_sync_hash)
 				{
-					m_statistics.received_bytes(0, bytes_transferred);
 					disconnect("no memory");
 					return;
 				}
@@ -2131,8 +1911,6 @@ namespace libtorrent
 			// No sync 
 			if (syncoffset == -1)
 			{
-				m_statistics.received_bytes(0, bytes_transferred);
-
 				std::size_t bytes_processed = recv_buffer.left() - 20;
 				m_sync_bytes_read += bytes_processed;
 				if (m_sync_bytes_read >= 512)
@@ -2158,19 +1936,12 @@ namespace libtorrent
 				m_state = read_pe_skey_vc;
 				// skey,vc - 28 bytes
 				m_sync_hash.reset();
-				int transferred_used = bytes_processed - recv_buffer.left() + bytes_transferred;
-				TORRENT_ASSERT(transferred_used <= int(bytes_transferred));
-				m_statistics.received_bytes(0, transferred_used);
-				bytes_transferred -= transferred_used;
 				cut_receive_buffer(bytes_processed, 28);
 			}
 		}
 
 		if (m_state == read_pe_skey_vc)
 		{
-			m_statistics.received_bytes(0, bytes_transferred);
-			bytes_transferred = 0;
-
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
 			TORRENT_ASSERT(!is_local());
@@ -2244,7 +2015,6 @@ namespace libtorrent
 			
 			if (recv_buffer.left() < 8)
 			{
-				m_statistics.received_bytes(0, bytes_transferred);
 				if (packet_finished())
 					disconnect("sync verification constant not found", 2);
 				return;
@@ -2274,18 +2044,16 @@ namespace libtorrent
 			{
 				std::size_t bytes_processed = recv_buffer.left() - 8;
 				m_sync_bytes_read += bytes_processed;
-				m_statistics.received_bytes(0, bytes_transferred);
-
 				if (m_sync_bytes_read >= 512)
 				{
 					disconnect("sync verification constant not found within 520 bytes", 2);
 					return;
 				}
 
-				cut_receive_buffer(bytes_processed, (std::min)(packet_size()
-					, (512+8) - m_sync_bytes_read));
+				cut_receive_buffer(bytes_processed, (std::min)(packet_size(), (512+8) - m_sync_bytes_read));
 
 				TORRENT_ASSERT(!packet_finished());
+				return;
 			}
 			// found complete sync
 			else
@@ -2295,12 +2063,7 @@ namespace libtorrent
 				(*m_logger) << " sync point (verification constant) found at offset " 
 							<< m_sync_bytes_read + bytes_processed - 8 << "\n";
 #endif
-				int transferred_used = bytes_processed - recv_buffer.left() + bytes_transferred;
-				TORRENT_ASSERT(transferred_used <= int(bytes_transferred));
-				m_statistics.received_bytes(0, transferred_used);
-				bytes_transferred -= transferred_used;
-
-				cut_receive_buffer(bytes_processed, 4 + 2);
+				cut_receive_buffer (bytes_processed, 4 + 2);
 
 				// delete verification constant
 				m_sync_vc.reset();
@@ -2314,8 +2077,6 @@ namespace libtorrent
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
 			TORRENT_ASSERT(packet_size() == 4+2);
-			m_statistics.received_bytes(0, bytes_transferred);
-			bytes_transferred = 0;
 			
 			if (!packet_finished()) return;
 
@@ -2442,8 +2203,6 @@ namespace libtorrent
 		if (m_state == read_pe_pad)
 		{
 			TORRENT_ASSERT(!m_encrypted);
-			m_statistics.received_bytes(0, bytes_transferred);
-			bytes_transferred = 0;
 			if (!packet_finished()) return;
 
 			int pad_size = is_local() ? packet_size() : packet_size() - 2;
@@ -2489,8 +2248,6 @@ namespace libtorrent
 
 		if (m_state == read_pe_ia)
 		{
-			m_statistics.received_bytes(0, bytes_transferred);
-			bytes_transferred = 0;
 			TORRENT_ASSERT(!is_local());
 			TORRENT_ASSERT(!m_encrypted);
 
@@ -2521,8 +2278,6 @@ namespace libtorrent
 
 		if (m_state == init_bt_handshake)
 		{
-			m_statistics.received_bytes(0, bytes_transferred);
-			bytes_transferred = 0;
 			TORRENT_ASSERT(m_encrypted);
 
 			// decrypt remaining received bytes
@@ -2563,8 +2318,6 @@ namespace libtorrent
 		
 		if (m_state == read_protocol_identifier)
 		{
-			m_statistics.received_bytes(0, bytes_transferred);
-			bytes_transferred = 0;
 			TORRENT_ASSERT(packet_size() == 20);
 
 			if (!packet_finished()) return;
@@ -2625,8 +2378,6 @@ namespace libtorrent
 		// fall through
 		if (m_state == read_info_hash)
 		{
-			m_statistics.received_bytes(0, bytes_transferred);
-			bytes_transferred = 0;
 			TORRENT_ASSERT(packet_size() == 28);
 
 			if (!packet_finished()) return;
@@ -2652,7 +2403,7 @@ namespace libtorrent
 #endif
 
 #ifndef DISABLE_EXTENSIONS
-			std::memcpy(m_reserved_bits, recv_buffer.begin, 8);
+			std::memcpy(m_reserved_bits, recv_buffer.begin, 20);
 			if ((recv_buffer[5] & 0x10))
 				m_supports_extensions = true;
 #endif
@@ -2713,8 +2464,6 @@ namespace libtorrent
 		// fall through
 		if (m_state == read_peer_id)
 		{
-			m_statistics.received_bytes(0, bytes_transferred);
-			bytes_transferred = 0;
   			if (!t)
 			{
 				TORRENT_ASSERT(!packet_finished()); // TODO
@@ -2727,18 +2476,18 @@ namespace libtorrent
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			{
-				char hex_pid[41];
-				to_hex(recv_buffer.begin, 20, hex_pid);
-				char ascii_pid[21];
-				for (int i = 0; i != 20; ++i)
+				peer_id tmp;
+				std::copy(recv_buffer.begin, recv_buffer.begin + 20, (char*)tmp.begin());
+				std::stringstream s;
+				s << "received peer_id: " << tmp << " client: " << identify_client(tmp) << "\n";
+				s << "as ascii: ";
+				for (peer_id::iterator i = tmp.begin(); i != tmp.end(); ++i)
 				{
-					if (isprint(recv_buffer.begin[i])) ascii_pid[i] = recv_buffer.begin[i];
-					else ascii_pid[i] = '.';
+					if (std::isprint(*i)) s << *i;
+					else s << ".";
 				}
-				char msg[200];
-				snprintf(msg, 200, "received peer_id: %s client: %s\nas ascii: %s\n"
-					, hex_pid, identify_client(peer_id(recv_buffer.begin)).c_str(), ascii_pid);
-				(*m_logger) << msg;
+				s << "\n";
+				(*m_logger) << s.str();
 			}
 #endif
 			peer_id pid;
@@ -2855,16 +2604,9 @@ namespace libtorrent
 			TORRENT_ASSERT(packet_size() == 5);
 
 			if (!t) return;
+			m_statistics.received_bytes(0, bytes_transferred);
 
-			if (recv_buffer.left() < 4)
-			{
-				m_statistics.received_bytes(0, bytes_transferred);
-				return;
-			}
-			int transferred_used = 4 - recv_buffer.left() + bytes_transferred;
-			TORRENT_ASSERT(transferred_used <= int(bytes_transferred));
-			m_statistics.received_bytes(0, transferred_used);
-			bytes_transferred -= transferred_used;
+			if (recv_buffer.left() < 4) return;
 
 			const char* ptr = recv_buffer.begin;
 			int packet_size = detail::read_int32(ptr);
@@ -2872,17 +2614,15 @@ namespace libtorrent
 			// don't accept packets larger than 1 MB
 			if (packet_size > 1024*1024 || packet_size < 0)
 			{
-				m_statistics.received_bytes(0, bytes_transferred);
 				// packet too large
-				char msg[200];
-				printf("packet > 1 MB (%u bytes)", (unsigned int)packet_size);
-				disconnect(msg, 2);
+				std::stringstream msg;
+				msg << "packet > 1 MB (" << (unsigned int)packet_size << " bytes)";
+				disconnect(msg.str().c_str(), 2);
 				return;
 			}
 					
 			if (packet_size == 0)
 			{
-				m_statistics.received_bytes(0, bytes_transferred);
 				incoming_keepalive();
 				if (is_disconnecting()) return;
 				// keepalive message
@@ -2896,7 +2636,7 @@ namespace libtorrent
 
 				m_state = read_packet;
 				cut_receive_buffer(4, packet_size);
-				TORRENT_ASSERT(bytes_transferred == 1);
+				bytes_transferred = 1;
 				recv_buffer = receive_buffer();
 				TORRENT_ASSERT(recv_buffer.left() == 1);
 			}
@@ -2905,28 +2645,12 @@ namespace libtorrent
 		if (m_state == read_packet)
 		{
 			TORRENT_ASSERT(recv_buffer == receive_buffer());
-			if (!t)
-			{
-				m_statistics.received_bytes(0, bytes_transferred);
-				disconnect("torrent removed", 1);
-				return;
-			}
-#ifdef TORRENT_DEBUG
-			size_type cur_payload_dl = m_statistics.last_payload_downloaded();
-			size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
-#endif
+			if (!t) return;
 			if (dispatch_message(bytes_transferred))
 			{
 				m_state = read_packet_size;
 				reset_recv_buffer(5);
 			}
-#ifdef TORRENT_DEBUG
-			TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
-			TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
-			size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
-				m_statistics.last_protocol_downloaded() - cur_protocol_dl;
-			TORRENT_ASSERT(stats_diff == bytes_transferred);
-#endif
 			TORRENT_ASSERT(!packet_finished());
 			return;
 		}
@@ -2943,11 +2667,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (error)
-		{
-			m_statistics.sent_bytes(0, bytes_transferred);
-			return;
-		}
+		if (error) return;
 
 		// manage the payload markers
 		int amount_payload = 0;

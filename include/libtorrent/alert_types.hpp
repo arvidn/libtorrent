@@ -97,34 +97,6 @@ namespace libtorrent
 		std::string url;
 	};
 
-	struct TORRENT_EXPORT read_piece_alert: torrent_alert
-	{
-		read_piece_alert(torrent_handle const& h
-			, int p, boost::shared_array<char> d, int s)
-			: torrent_alert(h)
-			, buffer(d)
-			, piece(p)
-            , size(s)
-		{}
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new read_piece_alert(*this)); }
-		const static int static_category = alert::storage_notification;
-		virtual int category() const { return static_category; }
-		virtual char const* what() const { return "read piece"; }
-		virtual std::string message() const
-		{
-			char msg[200];
-			snprintf(msg, 200, "%s: piece %s %u", torrent_alert::message().c_str()
-				, buffer ? "successful" : "failed", piece);
-			return msg;
-		}
-
-		boost::shared_array<char> buffer;
-		int piece;
-		int size;
-	};
-
 	struct TORRENT_EXPORT file_renamed_alert: torrent_alert
 	{
 		file_renamed_alert(torrent_handle const& h
@@ -142,10 +114,10 @@ namespace libtorrent
 		virtual char const* what() const { return "file renamed"; }
 		virtual std::string message() const
 		{
-			char msg[200 + NAME_MAX];
-			snprintf(msg, sizeof(msg), "%s: file %d renamed to %s", torrent_alert::message().c_str()
-				, index, name.c_str());
-			return msg;
+			std::stringstream ret;
+			ret << torrent_alert::message() << ": file "
+				<< index << " renamed to " << name;
+			return ret.str();
 		}
 
 		std::string name;
@@ -168,10 +140,10 @@ namespace libtorrent
 		virtual char const* what() const { return "file rename failed"; }
 		virtual std::string message() const
 		{
-			char ret[200 + NAME_MAX];
-			snprintf(ret, sizeof(msg), "%s: failed to rename file %d: %s"
-				, torrent_alert::message().c_str(), index, msg.c_str());
-			return ret;
+			std::stringstream ret;
+			ret << torrent_alert::message() << ": failed to rename file "
+				<< index << ": " << msg;
+			return ret.str();
 		}
 
 		const static int static_category = alert::storage_notification;
@@ -186,9 +158,7 @@ namespace libtorrent
 		enum performance_warning_t
 		{
 			outstanding_disk_buffer_limit_reached,
-			outstanding_request_limit_reached,
-			upload_limit_too_low,
-			download_limit_too_low
+			outstanding_request_limit_reached
 		};
 
 		performance_alert(torrent_handle const& h
@@ -207,8 +177,6 @@ namespace libtorrent
 			{
 				"max outstanding disk writes reached",
 				"max outstanding piece requests reached",
-				"upload limit too low (download rate will suffer)",
-				"download limit too low (upload rate will suffer)"
 			};
 
 			return torrent_alert::message() + ": performance warning: "
@@ -224,11 +192,9 @@ namespace libtorrent
 	struct TORRENT_EXPORT state_changed_alert: torrent_alert
 	{
 		state_changed_alert(torrent_handle const& h
-			, torrent_status::state_t state_
-			, torrent_status::state_t prev_state_)
+			, torrent_status::state_t const& state_)
 			: torrent_alert(h)
 			, state(state_)
-			, prev_state(prev_state_)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
@@ -251,7 +217,6 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 
 		torrent_status::state_t state;
-		torrent_status::state_t prev_state;
 	};
 
 	struct TORRENT_EXPORT tracker_error_alert: tracker_alert
@@ -274,10 +239,10 @@ namespace libtorrent
 		virtual char const* what() const { return "tracker error"; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s (%d) %s (%d)"
-				, torrent_alert::message().c_str(), status_code, msg.c_str(), times_in_row);
-			return ret;
+			std::stringstream ret;
+			ret << tracker_alert::message() << " (" << status_code << ") "
+				<< msg << " (" << times_in_row << ")";
+			return ret.str();
 		}
 
 		int times_in_row;
@@ -326,10 +291,10 @@ namespace libtorrent
 		virtual char const* what() const { return "tracker scrape reply"; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s scrape reply: %u %u"
-				, torrent_alert::message().c_str(), incomplete, complete);
-			return ret;
+			std::stringstream ret;
+			ret << tracker_alert::message() << " scrape reply: " << incomplete
+				<< " " << complete;
+			return ret.str();
 		}
 	};
 
@@ -371,10 +336,10 @@ namespace libtorrent
 		virtual char const* what() const { return "tracker reply"; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s received peers: %u"
-				, torrent_alert::message().c_str(), num_peers);
-			return ret;
+			std::stringstream ret;
+			ret << tracker_alert::message() << " received peers: "
+				<< num_peers;
+			return ret.str();
 		}
 	};
 
@@ -393,10 +358,10 @@ namespace libtorrent
 		virtual char const* what() const { return "DHT reply"; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s received DHT peers: %u"
-				, torrent_alert::message().c_str(), num_peers);
-			return ret;
+			std::stringstream ret;
+			ret << torrent_alert::message() << " received DHT peers: "
+				<< num_peers;
+			return ret.str();
 		}
 	};
 
@@ -436,10 +401,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s hash for piece %u failed"
-				, torrent_alert::message().c_str(), piece_index);
-			return ret;
+			std::stringstream ret;
+			ret << torrent_alert::message() << " hash for piece "
+				<< piece_index << " failed";
+			return ret.str();
 		}
 
 		int piece_index;
@@ -568,10 +533,11 @@ namespace libtorrent
 		virtual char const* what() const { return "invalid piece request"; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s peer sent an invalid piece request (piece: %u start: %u len: %u)"
-				, torrent_alert::message().c_str(), request.piece, request.start, request.length);
-			return ret;
+			std::stringstream ret;
+			ret << peer_alert::message() << " peer sent an invalid piece request "
+				"( piece: " << request.piece << " start: " << request.start
+				<< " len: " << request.length << ")";
+			return ret.str();
 		}
 
 		peer_request request;
@@ -613,10 +579,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s piece: %u finished downloading"
-				, torrent_alert::message().c_str(), piece_index);
-			return ret;
+			std::stringstream ret;
+			ret << torrent_alert::message() << " piece " << piece_index
+				<< " finished downloading";
+			return ret.str();
 		}
 	};
 
@@ -640,10 +606,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s peer dropped block ( piece: %u block: %u)"
-				, torrent_alert::message().c_str(), piece_index, block_index);
-			return ret;
+			std::stringstream ret;
+			ret << peer_alert::message() << " peer dropped block ( piece: "
+				<< piece_index << " block: " << block_index << ")";
+			return ret.str();
 		}
 	};
 
@@ -667,10 +633,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s peer timed out request ( piece: %u block: %u)"
-				, torrent_alert::message().c_str(), piece_index, block_index);
-			return ret;
+			std::stringstream ret;
+			ret << peer_alert::message() << " peer timed out request ( piece: "
+				<< piece_index << " block: " << block_index << ")";
+			return ret.str();
 		}
 	};
 
@@ -693,10 +659,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s block finished downloading (piece: %u block: %u)"
-				, torrent_alert::message().c_str(), piece_index, block_index);
-			return ret;
+			std::stringstream ret;
+			ret << peer_alert::message() << " block finished downloading ( piece: "
+				<< piece_index << " block: " << block_index << ")";
+			return ret.str();
 		}
 	};
 
@@ -721,10 +687,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s requested block (piece: %u block: %u) %s"
-				, torrent_alert::message().c_str(), piece_index, block_index, peer_speedmsg);
-			return ret;
+			std::stringstream ret;
+			ret << peer_alert::message() << " requested block ( piece: "
+				<< piece_index << " block: " << block_index << ") " << peer_speedmsg;
+			return ret.str();
 		}
 	};
 
@@ -745,10 +711,10 @@ namespace libtorrent
 		virtual char const* what() const { return "unwanted block received"; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "%s received block not in download queue (piece: %u block: %u)"
-				, torrent_alert::message().c_str(), piece_index, block_index);
-			return ret;
+			std::stringstream ret;
+			ret << peer_alert::message() << " received block not in download queue ( piece: "
+				<< piece_index << " block: " << block_index << ")";
+			return ret.str();
 		}
 	};
 
@@ -1059,10 +1025,11 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "listening on %s failed: %s"
-				, print_endpoint(endpoint).c_str(), error.message().c_str());
-			return ret;
+			error_code ec;
+			std::stringstream ret;
+			ret << "listening on " << endpoint
+				<< " failed: " << error.message();
+			return ret.str();
 		}
 	};
 
@@ -1081,9 +1048,10 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			char ret[200];
-			snprintf(ret, 200, "successfully listening on %s", print_endpoint(endpoint).c_str());
-			return ret;
+			error_code ec;
+			std::stringstream ret;
+			ret << "successfully listening on " << endpoint;
+			return ret.str();
 		}
 	};
 
@@ -1129,33 +1097,10 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			static char const* type_str[] = {"NAT-PMP", "UPnP"};
-			char ret[200];
-			snprintf(ret, 200, "successfully mapped port using %s. external port: %u"
-				, type_str[type], external_port);
-			return ret;
-		}
-	};
-
-	struct TORRENT_EXPORT portmap_log_alert: alert
-	{
-		portmap_log_alert(int t, std::string const& m)
-			: type(t), msg(m)
-		{}
-
-		int type;
-		std::string msg;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new portmap_log_alert(*this)); }
-		virtual char const* what() const { return "port map log"; }
-		const static int static_category = alert::port_mapping_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			static char const* type_str[] = {"NAT-PMP", "UPnP"};
-			char ret[200];
-			snprintf(ret, 200, "%s: %s", type_str[type], msg.c_str());
-			return ret;
+			std::stringstream ret;
+			ret << "successfully mapped port using " << type_str[type]
+				<< ". external port: " << external_port;
+			return ret.str();
 		}
 	};
 
@@ -1198,59 +1143,6 @@ namespace libtorrent
 		{
 			error_code ec;
 			return "blocked peer: " + ip.to_string(ec);
-		}
-	};
-
-	struct TORRENT_EXPORT dht_announce_alert: alert
-	{
-		dht_announce_alert(address const& ip_, int port_
-			, sha1_hash const& info_hash_)
-			: ip(ip_)
-			, port(port_)
-			, info_hash(info_hash_)
-		{}
-		
-		address ip;
-		int port;
-		sha1_hash info_hash;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new dht_announce_alert(*this)); }
-		virtual char const* what() const { return "incoming dht announce"; }
-		const static int static_category = alert::dht_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			error_code ec;
-			char ih_hex[41];
-			to_hex((const char*)&info_hash[0], 20, ih_hex);
-			char msg[200];
-			snprintf(msg, 200, "incoming dht announce: %s:%u (%s)"
-				, ip.to_string(ec).c_str(), port, ih_hex);
-			return msg;
-		}
-	};
-
-	struct TORRENT_EXPORT dht_get_peers_alert: alert
-	{
-		dht_get_peers_alert(sha1_hash const& info_hash_)
-			: info_hash(info_hash_)
-		{}
-		
-		sha1_hash info_hash;
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new dht_get_peers_alert(*this)); }
-		virtual char const* what() const { return "incoming dht get_peers request"; }
-		const static int static_category = alert::dht_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			char ih_hex[41];
-			to_hex((const char*)&info_hash[0], 20, ih_hex);
-			char msg[200];
-			snprintf(msg, 200, "incoming dht get_peers: %s", ih_hex);
-			return msg;
 		}
 	};
 }

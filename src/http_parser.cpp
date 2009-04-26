@@ -39,9 +39,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/escape_string.hpp"
 
 using namespace libtorrent;
+
+namespace
+{
+	char to_lower(char c) { return std::tolower(c); }
+}
 
 namespace libtorrent
 {
@@ -49,8 +53,6 @@ namespace libtorrent
 		: m_recv_pos(0)
 		, m_status_code(-1)
 		, m_content_length(-1)
-		, m_range_start(-1)
-		, m_range_end(-1)
 		, m_state(read_status)
 		, m_recv_buffer(0, 0)
 		, m_body_start_pos(0)
@@ -145,9 +147,6 @@ namespace libtorrent
 					// the header is finished and the body
 					// starts.
 					m_state = read_body;
-					// if this is a request (not a response)
-					// we're done once we reach the end of the headers
-					if (!m_method.empty()) m_finished = true;
 					m_body_start_pos = m_recv_pos;
 					break;
 				}
@@ -164,37 +163,31 @@ namespace libtorrent
 
 				if (name == "content-length")
 				{
-					m_content_length = strtoll(value.c_str(), 0, 10);
+#ifdef TORRENT_WINDOWS
+					m_content_length = _atoi64(value.c_str());
+#else
+					m_content_length = atoll(value.c_str());
+#endif
 				}
 				else if (name == "content-range")
 				{
-					bool success = true;
-					char const* ptr = value.c_str();
-
+					std::stringstream range_str(value);
+					char dummy;
+					std::string bytes;
+					size_type range_start, range_end;
 					// apparently some web servers do not send the "bytes"
-					// in their content-range. Don't treat it as an error
-					// if we can't find it, just assume the byte counters
-					// start immediately
-					if (string_begins_no_case("bytes ", ptr)) ptr += 6;
-					char* end;
-					m_range_start = strtoll(ptr, &end, 10);
-					if (end == ptr) success = false;
-					else if (*end != '-') success = false;
-					else
-					{
-						ptr = end + 1;
-						m_range_end = strtoll(ptr, &end, 10);
-						if (end == ptr) success = false;
-					}
-
-					if (!success || m_range_end < m_range_start)
+					// in their content-range
+					if (value.find(' ') != std::string::npos)
+						range_str >> bytes;
+					range_str >> range_start >> dummy >> range_end;
+					if (!range_str || range_end < range_start)
 					{
 						m_state = error_state;
 						error = true;
 						return ret;
 					}
 					// the http range is inclusive
-					m_content_length = m_range_end - m_range_start + 1;
+					m_content_length = range_end - range_start + 1;
 				}
 
 				TORRENT_ASSERT(m_recv_pos <= (int)recv_buffer.left());
@@ -241,8 +234,6 @@ namespace libtorrent
 		m_body_start_pos = 0;
 		m_status_code = -1;
 		m_content_length = -1;
-		m_range_start = -1;
-		m_range_end = -1;
 		m_finished = false;
 		m_state = read_status;
 		m_recv_buffer.begin = 0;

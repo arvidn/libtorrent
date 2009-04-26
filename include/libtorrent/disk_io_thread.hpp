@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/storage.hpp"
-#include "libtorrent/allocator.hpp"
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
@@ -51,10 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
 #endif
-#include "libtorrent/session_settings.hpp"
 
 namespace libtorrent
 {
+
 	struct cached_piece_info
 	{
 		int piece;
@@ -90,8 +89,6 @@ namespace libtorrent
 			, abort_thread
 			, clear_read_cache
 			, abort_torrent
-			, update_settings
-			, read_and_hash
 		};
 
 		action_t action;
@@ -158,62 +155,17 @@ namespace libtorrent
 		int read_cache_size;
 	};
 	
-	struct disk_buffer_pool : boost::noncopyable
+	// this is a singleton consisting of the thread and a queue
+	// of disk io jobs
+	struct disk_io_thread : boost::noncopyable
 	{
-		disk_buffer_pool(int block_size);
-
-#ifdef TORRENT_DEBUG
-		bool is_disk_buffer(char* buffer) const;
-#endif
-
-		char* allocate_buffer(char const* category);
-		void free_buffer(char* buf);
-
-		char* allocate_buffers(int blocks, char const* category);
-		void free_buffers(char* buf, int blocks);
-
-		int block_size() const { return m_block_size; }
+		disk_io_thread(io_service& ios, int block_size = 16 * 1024);
+		~disk_io_thread();
 
 #ifdef TORRENT_STATS
 		int disk_allocations() const
 		{ return m_allocations; }
 #endif
-
-		void release_memory();
-
-	protected:
-
-		// number of bytes per block. The BitTorrent
-		// protocol defines the block size to 16 KiB.
-		const int m_block_size;
-
-		session_settings m_settings;
-
-	private:
-
-		// this only protects the pool allocator
-		typedef boost::mutex mutex_t;
-		mutable mutex_t m_pool_mutex;
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		// memory pool for read and write operations
-		// and disk cache
-		boost::pool<page_aligned_allocator> m_pool;
-#endif
-
-#ifdef TORRENT_STATS
-		int m_allocations;
-		std::map<std::string, int> m_categories;
-		std::map<char*, std::string> m_buf_to_category;
-		std::ofstream m_log;
-#endif
-	};
-
-	// this is a singleton consisting of the thread and a queue
-	// of disk io jobs
-	struct disk_io_thread : disk_buffer_pool
-	{
-		disk_io_thread(io_service& ios, int block_size = 16 * 1024);
-		~disk_io_thread();
 
 		void join();
 
@@ -234,8 +186,17 @@ namespace libtorrent
 			, std::vector<cached_piece_info>& ret) const;
 
 		cache_status status() const;
+		void set_cache_size(int s);
+		void set_cache_expiry(int ex);
 
 		void operator()();
+
+#ifdef TORRENT_DEBUG
+		bool is_disk_buffer(char* buffer) const;
+#endif
+
+		char* allocate_buffer();
+		void free_buffer(char* buf);
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
@@ -267,8 +228,6 @@ namespace libtorrent
 		cache_t::iterator find_cached_piece(
 			cache_t& cache, disk_io_job const& j
 			, mutex_t::scoped_lock& l);
-		int copy_from_piece(cache_t::iterator p, bool& hit
-			, disk_io_job const& j, mutex_t::scoped_lock& l);
 
 		// write cache operations
 		void flush_oldest_piece(mutex_t::scoped_lock& l);
@@ -280,16 +239,13 @@ namespace libtorrent
 		// read cache operations
 		bool clear_oldest_read_piece(cache_t::iterator ignore
 			, mutex_t::scoped_lock& l);
-		int read_into_piece(cached_piece_entry& p, int start_block
-			, int options, mutex_t::scoped_lock& l);
+		int read_into_piece(cached_piece_entry& p, int start_block, mutex_t::scoped_lock& l);
 		int cache_read_block(disk_io_job const& j, mutex_t::scoped_lock& l);
-		int cache_read_piece(disk_io_job const& j, mutex_t::scoped_lock& l);
 		void free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l);
 		bool make_room(int num_blocks
 			, cache_t::iterator ignore
 			, mutex_t::scoped_lock& l);
 		int try_read_from_cache(disk_io_job const& j);
-		int read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h);
 
 		// this mutex only protects m_jobs, m_queue_buffer_size
 		// and m_abort
@@ -312,9 +268,45 @@ namespace libtorrent
 		// exceed m_cache_size
 		cache_status m_cache_stats;
 
+		// in (16kB) blocks
+		int m_cache_size;
+
+		// expiration time of cache entries in seconds
+		int m_cache_expiry;
+
+		// if set to true, each piece flush will allocate
+		// one piece worth of temporary memory on the heap
+		// and copy the block data into it, and then perform
+		// a single write operation from that buffer.
+		// if memory is constrained, that temporary buffer
+		// might is avoided by setting this to false.
+		// in case the allocation fails, the piece flush
+		// falls back to writing each block separately.
+		bool m_coalesce_writes;
+		bool m_coalesce_reads;
+		bool m_use_read_cache;
+
+		// this only protects the pool allocator
+		mutable mutex_t m_pool_mutex;
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+		// memory pool for read and write operations
+		// and disk cache
+		boost::pool<> m_pool;
+#endif
+
+		// number of bytes per block. The BitTorrent
+		// protocol defines the block size to 16 KiB.
+		int m_block_size;
+
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
 #endif
+#ifdef TORRENT_STATS
+		int m_allocations;
+#endif
+
+		size_type m_writes;
+		size_type m_blocks_written;
 
 		io_service& m_ios;
 

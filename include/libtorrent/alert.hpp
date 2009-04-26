@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
-#include <boost/function.hpp>
 
 #include <boost/preprocessor/repetition/enum_params_with_a_default.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
@@ -84,7 +83,6 @@ namespace libtorrent {
 			progress_notification = 0x80,
 			ip_block_notification = 0x100,
 			performance_warning = 0x200,
-			dht_notification = 0x400,
 
 			all_categories = 0xffffffff
 		};
@@ -122,25 +120,14 @@ namespace libtorrent {
 		std::auto_ptr<alert> get();
 
 		template <class T>
-		bool should_post() const
-		{
-			boost::mutex::scoped_lock lock(m_mutex);
-			if (m_alerts.size() >= m_queue_size_limit) return false;
-			return (m_alert_mask & T::static_category) != 0;
-		}
+		bool should_post() const { return (m_alert_mask & T::static_category) != 0; }
 
 		alert const* wait_for_alert(time_duration max_wait);
 
-		void set_alert_mask(int m)
-		{
-			boost::mutex::scoped_lock lock(m_mutex);
-			m_alert_mask = m;
-		}
+		void set_alert_mask(int m) { m_alert_mask = m; }
 
 		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
-
-		void set_dispatch_function(boost::function<void(alert const&)> const&);
 
 	private:
 		std::queue<alert*> m_alerts;
@@ -148,7 +135,6 @@ namespace libtorrent {
 		boost::condition m_condition;
 		int m_alert_mask;
 		size_t m_queue_size_limit;
-		boost::function<void(alert const&)> m_dispatch;
 	};
 
 	struct TORRENT_EXPORT unhandled_alert : std::exception

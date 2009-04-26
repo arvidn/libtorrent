@@ -86,39 +86,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BSD
 #endif
 
-#define TORRENT_USE_IPV6 1
-#define TORRENT_USE_MLOCK 1
-#define TORRENT_USE_READV 1
-#define TORRENT_USE_WRITEV 1
-#define TORRENT_USE_IOSTREAM 1
-
 // should wpath or path be used?
 #if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \
-	&& BOOST_VERSION >= 103400 && !defined __APPLE__
+	&& BOOST_VERSION >= 103400 && defined WIN32
 #define TORRENT_USE_WPATH 1
 #else
 #define TORRENT_USE_WPATH 0
 #endif
-
-#ifdef TORRENT_WINDOWS
-// this is the maximum number of characters in a
-// path element / filename on windows
-#define NAME_MAX 255
-#define snprintf _snprintf
-#define strtoll _strtoi64
-#endif
-
-#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) && !defined (TORRENT_UPNP_LOGGING)
-#define TORRENT_UPNP_LOGGING
-#endif
-
-#if !TORRENT_USE_WPATH && defined TORRENT_LINUX
-// libiconv presnce, not implemented yet
-#define TORRENT_USE_LOCALE_FILENAMES 1
-#else
-#define TORRENT_USE_LOCALE_FILENAMES 0
-#endif
-
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED
 
