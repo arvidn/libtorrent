@@ -3645,6 +3645,7 @@ namespace libtorrent
 				<< " prio: " << m_priority << " ]\n";
 #endif
 			TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
+			TORRENT_ASSERT(m_outstanding_bytes >= 0);
 			m_channel_state[download_channel] = peer_info::bw_limit;
 			m_ses.m_download_rate.request_bandwidth(self()
 				, m_outstanding_bytes + 30, m_priority
@@ -4260,6 +4261,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_ses.has_peer((peer_connection*)this));
 		}
 
+		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 		if (t && t->valid_metadata() && !m_disconnecting)
 		{
 			boost::optional<piece_block_progress> p = t?downloading_piece_progress():boost::optional<piece_block_progress>();
