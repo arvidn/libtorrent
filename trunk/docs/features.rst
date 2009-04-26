@@ -32,7 +32,7 @@ extensions
 * supports trackerless torrents (using the Mainline kademlia DHT protocol) with
   some `DHT extensions`_. `BEP 5`_.
 * supports the bittorrent `extension protocol`_. See extensions_. `BEP 10`_.
-* supports the uTorrent metadata transfer protocol (i.e. magnet links).
+* supports the uTorrent metadata transfer protocol `BEP 9`_ (i.e. magnet links).
 * supports the uTorrent peer exchange protocol (PEX).
 * supports local peer discovery (multicasts for peers on the same local network)
 * multitracker extension support (supports both strict `BEP  12`_ and the
@@ -102,6 +102,7 @@ network
 .. _`DHT extensions`: dht_extensions.html
 .. _`BEP 5`: http://bittorrent.org/beps/bep_0005.html
 .. _`BEP 7`: http://bittorrent.org/beps/bep_0007.html
+.. _`BEP 9`: http://bittorrent.org/beps/bep_0009.html
 .. _`BEP 10`: http://bittorrent.org/beps/bep_0010.html
 .. _`BEP 12`: http://bittorrent.org/beps/bep_0012.html
 .. _`BEP 15`: http://bittorrent.org/beps/bep_0015.html
