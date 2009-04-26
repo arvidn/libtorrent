@@ -62,6 +62,8 @@ release 0.14.3
 	* fixed bug where an asio exception could be thrown when resolving
 	  peer countries
 	* fixed crash when shutting down while checking a torrent
+	* fixed potential crash in connection_queue when a peer_connection
+	  fail to open its socket
 
 release 0.14.2
 
