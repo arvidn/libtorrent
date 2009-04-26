@@ -58,7 +58,7 @@ namespace libtorrent
 
 	class torrent;
 	class peer_connection;
-	class bitfield;
+	struct bitfield;
 
 	struct TORRENT_EXPORT piece_block
 	{
