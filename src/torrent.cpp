@@ -5217,7 +5217,18 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		if (s != torrent_status::checking_files
 			&& s != torrent_status::queued_for_checking)
-			TORRENT_ASSERT(!m_queued_for_checking);
+		{
+			// the only valid transition away from queued_for_checking
+			// is to checking_files. One exception is to finished
+			// in case all the files are marked with priority 0
+			if (m_queued_for_checking)
+			{
+				std::vector<int> pieces;
+				m_picker->piece_priorities(pieces);
+				// make sure all pieces have priority 0
+				TORRENT_ASSERT(std::count(pieces.begin(), pieces.end(), 0) == pieces.size());
+			}
+		}
 		if (s == torrent_status::seeding)
 			TORRENT_ASSERT(is_seed());
 		if (s == torrent_status::finished)
