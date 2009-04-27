@@ -14,6 +14,7 @@ docs/dht_extensions.html docs/dht_extensions.rst \
 docs/make_torrent.html docs/make_torrent.rst \
 docs/examples.html docs/examples.rst \
 docs/features.html docs/features.rst \
+docs/libtorrent_plugins.html docs/libtorrent_plugins.rst \
 docs/arctic_thumb.png \
 docs/fdm.png \
 docs/tvitty.jpg \
