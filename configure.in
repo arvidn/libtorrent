@@ -172,7 +172,7 @@ AC_ARG_WITH(
 	[[logging=none]]
 )
 
-COMPILETIME_OPTIONS=""
+COMPILETIME_OPTIONS="-DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION "
 dnl Check the value for the --with-logging switch
 AC_MSG_CHECKING([what form of logging to use])
 case "$logging" in
