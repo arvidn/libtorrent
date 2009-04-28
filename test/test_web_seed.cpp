@@ -55,10 +55,11 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 	session ses(fingerprint("  ", 0,0,0,0), 0);
 	session_settings settings;
 	settings.ignore_limits_on_local_network = false;
+	settings.max_outstanding_disk_bytes_per_connection = 64 * 1024;
 	ses.set_settings(settings);
 	ses.set_alert_mask(~alert::progress_notification);
 	ses.listen_on(std::make_pair(51000, 52000));
-	ses.set_download_rate_limit(torrent_file->total_size() / 5);
+	ses.set_download_rate_limit(torrent_file->total_size() / 10);
 	remove_all("./tmp1");
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
@@ -91,14 +92,15 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 	{
 		torrent_status s = th.status();
 		session_status ss = ses.status();
+		rate_sum += s.download_payload_rate;
+		ses_rate_sum += ss.payload_download_rate;
 		std::cerr << (s.progress * 100.f) << " %"
 			<< " torrent rate: " << (s.download_rate / 1000.f) << " kB/s"
 			<< " session rate: " << (ss.download_rate / 1000.f) << " kB/s"
 			<< " session total: " << ss.total_payload_download
 			<< " torrent total: " << s.total_payload_download
+			<< " rate sum:" << ses_rate_sum
 			<< std::endl;
-		rate_sum += s.download_payload_rate;
-		ses_rate_sum += ss.payload_download_rate;
 
 		print_alerts(ses, "ses");
 
