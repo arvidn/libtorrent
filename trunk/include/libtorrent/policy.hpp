@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_POLICY_HPP_INCLUDED
 
 #include <algorithm>
-#include <vector>
+#include <set>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -91,10 +91,10 @@ namespace libtorrent
 
 		// called when an incoming connection is accepted
 		// false means the connection was refused or failed
-		bool new_connection(peer_connection& c);
+		bool new_connection(peer_connection& c, int session_time);
 
 		// the given connection was just closed
-		void connection_closed(const peer_connection& c);
+		void connection_closed(const peer_connection& c, int session_time);
 
 		// the peer has got at least one interesting piece
 		void peer_is_interesting(peer_connection& c);
@@ -116,23 +116,47 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 
+// intended struct layout (on 32 bit architectures)
+// offset size  alignment field
+// 0      12    1         prev_amount_upload, prev_amount_download
+// 12     4     4         connection
+// 16     2     2         last_optimistically_unchoked
+// 18     2     2         last_connected
+// 20     16    1         addr
+// 36     2     2         port
+// 38     1     1         hashfails
+// 39     1     1         failcount, connectable, optimistically_unchoked, seed
+// 40     1     1         fast_reconnects, trust_points
+// 41     1     1         source, pe_support, is_v6_addr
+// 42     1     1         on_parole, banned, added_to_dht
+// 43     1     1         <padding>
+// 44
 		struct peer
 		{
-			enum connection_type { not_connectable, connectable };
-			peer(tcp::endpoint const& ip, connection_type t, int src);
+			peer(tcp::endpoint const& ip, bool connectable, int src);
+
+			peer(libtorrent::address const& a) { set_ip(tcp::endpoint(a, 0)); }
 
 			size_type total_download() const;
 			size_type total_upload() const;
 
-			tcp::endpoint ip() const { return tcp::endpoint(addr, port); }
+			void set_ip(tcp::endpoint const& endp);
 
 #if TORRENT_USE_IPV6
-			void set_ip(tcp::endpoint const& endp)
-			{ addr = endp.address(); port = endp.port(); }
+			libtorrent::address address() const
+			{
+				if (is_v6_addr) return address_v6(addr.v6);
+				else return address_v4(addr.v4);
+			}
 #else
-			void set_ip(tcp::endpoint const& endp)
-			{ addr = endp.address().to_v4(); port = endp.port(); }
+			libtorrent::address address() const
+			{ return addr; }
 #endif
+
+			bool operator<(peer const& rhs) const
+			{ return address() < rhs.address(); }
+
+			tcp::endpoint ip() const { return tcp::endpoint(address(), port); }
 
 			// this is the accumulated amount of
 			// uploaded and downloaded data to this
@@ -143,23 +167,9 @@ namespace libtorrent
 			// total amount of upload and download
 			// we'll have to add thes figures with the
 			// statistics from the peer_connection.
-			size_type prev_amount_upload;
-			size_type prev_amount_download;
-
-			// the ip address this peer is or was connected on
-#if TORRENT_USE_IPV6
-			address addr;
-#else
-			address_v4 addr;
-#endif
-
-			// the time when this peer was optimistically unchoked
-			// the last time.
-			libtorrent::ptime last_optimistically_unchoked;
-
-			// the time when the peer connected to us
-			// or disconnected if it isn't connected right now
-			libtorrent::ptime connected;
+			// 48 bits can fit 256 Terabytes
+			boost::uint64_t prev_amount_upload:48;
+			boost::uint64_t prev_amount_download:48;
 
 			// if the peer is connected now, this
 			// will refer to a valid peer_connection
@@ -175,12 +185,59 @@ namespace libtorrent
 			std::pair<const int, int>* inet_as;
 #endif
 
+			// the time when this peer was optimistically unchoked
+			// the last time. in seconds since session was created
+			// 16 bits is enough to last for 18.2 hours
+			// when the session time reaches 18 hours, it jumps back by
+			// 9 hours, and all peers' times are updated to be
+			// relative to that new time offset
+			boost::uint16_t last_optimistically_unchoked;
+
+			// the time when the peer connected to us
+			// or disconnected if it isn't connected right now
+			// in number of seconds since session was created
+			boost::uint16_t last_connected;
+
+			// the ip address this peer is or was connected on
+#if TORRENT_USE_IPV6
+			union
+			{
+				address_v6::bytes_type v6;
+				address_v4::bytes_type v4;
+			} addr;
+#else
+			address_v4 addr;
+#endif
+
 			// the port this peer is or was connected on
 			boost::uint16_t port;
 
+			// the number of times this peer has been
+			// part of a piece that failed the hash check
+			boost::uint8_t hashfails;
+
 			// the number of failed connection attempts
 			// this peer has
-			boost::uint8_t failcount;
+			unsigned failcount:5; // [0, 31]
+
+			// incoming peers (that don't advertize their listen port)
+			// will not be considered connectable. Peers that
+			// we have a listen port for will be assumed to be.
+			bool connectable:1;
+
+			// true if this peer currently is unchoked
+			// because of an optimistic unchoke.
+			// when the optimistic unchoke is moved to
+			// another peer, this peer will be choked
+			// if this is true
+			bool optimistically_unchoked:1;
+
+			// this is true if the peer is a seed
+			bool seed:1;
+
+			// the number of times we have allowed a fast
+			// reconnect for this peer.
+			unsigned fast_reconnects:4;
 
 			// for every valid piece we receive where this
 			// peer was one of the participants, we increase
@@ -188,24 +245,11 @@ namespace libtorrent
 			// where this peer was a participant, we decrease
 			// this value. If it sinks below a threshold, its
 			// considered a bad peer and will be banned.
-			boost::int8_t trust_points;
+			signed trust_points:4; // [-7, 8]
 
 			// a bitmap combining the peer_source flags
 			// from peer_info.
-			boost::uint8_t source;
-
-			// the number of times this peer has been
-			// part of a piece that failed the hash check
-			boost::uint8_t hashfails;
-
-			// type specifies if the connection was incoming
-			// or outgoing. If we ever saw this peer as connectable
-			// it will remain as connectable
-			unsigned type:4;
-
-			// the number of times we have allowed a fast
-			// reconnect for this peer.
-			unsigned fast_reconnects:4;
+			unsigned source:6;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			// Hints encryption support of peer. Only effective
@@ -219,15 +263,12 @@ namespace libtorrent
 			// encrypted or non-encrypted handshake fails.
 			bool pe_support:1;
 #endif
-			// true if this peer currently is unchoked
-			// because of an optimistic unchoke.
-			// when the optimistic unchoke is moved to
-			// another peer, this peer will be choked
-			// if this is true
-			bool optimistically_unchoked:1;
 
-			// this is true if the peer is a seed
-			bool seed:1;
+#if TORRENT_USE_IPV6
+			// this is true if the v6 union member in addr is
+			// the one to use, false if it's the v4 one
+			bool is_v6_addr:1;
+#endif
 
 			// if this is true, the peer has previously
 			// participated in a piece that failed the piece
@@ -250,8 +291,10 @@ namespace libtorrent
 
 		int num_peers() const { return m_peers.size(); }
 
-		typedef std::multimap<address, peer>::iterator iterator;
-		typedef std::multimap<address, peer>::const_iterator const_iterator;
+		typedef std::multiset<peer> peers_t;
+
+		typedef peers_t::iterator iterator;
+		typedef peers_t::const_iterator const_iterator;
 		iterator begin_peer() { return m_peers.begin(); }
 		iterator end_peer() { return m_peers.end(); }
 		const_iterator begin_peer() const { return m_peers.begin(); }
@@ -259,7 +302,7 @@ namespace libtorrent
 		std::pair<iterator, iterator> find_peers(address const& a)
 		{ return m_peers.equal_range(a); }
 
-		bool connect_one_peer();
+		bool connect_one_peer(int session_time);
 
 		bool has_peer(policy::peer const* p) const;
 
@@ -278,11 +321,11 @@ namespace libtorrent
 		bool compare_peer(policy::peer const& lhs, policy::peer const& rhs
 			, address const& external_ip) const;
 
-		iterator find_connect_candidate();
+		iterator find_connect_candidate(int session_time);
 
 		bool is_connect_candidate(peer const& p, bool finished);
 
-		std::multimap<address, peer> m_peers;
+		peers_t m_peers;
 
 		// since the peer list can grow too large
 		// to scan all of it, start at this iterator

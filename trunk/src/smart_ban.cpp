@@ -142,7 +142,7 @@ namespace libtorrent { namespace
 				if (*i != 0)
 				{
 					m_torrent.filesystem().async_read(r, bind(&smart_ban_plugin::on_read_failed_block
-						, shared_from_this(), pb, ((policy::peer*)*i)->addr, _1, _2));
+						, shared_from_this(), pb, ((policy::peer*)*i)->address(), _1, _2));
 				}
 
 				r.start += 16*1024;
@@ -182,7 +182,7 @@ namespace libtorrent { namespace
 			// there is no peer with this address anymore
 			if (range.first == range.second) return;
 
-			policy::peer* p = &range.first->second;
+			policy::peer* p = (policy::peer*)&(*range.first);
 			block_entry e = {p, crc.final()};
 
 			std::map<piece_block, block_entry>::iterator i = m_block_crc.lower_bound(b);

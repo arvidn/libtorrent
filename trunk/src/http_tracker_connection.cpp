@@ -220,10 +220,14 @@ namespace libtorrent
 	void http_tracker_connection::on_filter(http_connection& c, std::list<tcp::endpoint>& endpoints)
 	{
 		// remove endpoints that are filtered by the IP filter
-		endpoints.erase(std::remove_if(endpoints.begin(), endpoints.end()
-			, boost::bind(&ip_filter::access, boost::ref(m_ses.m_ip_filter)
-				, boost::bind(&tcp::endpoint::address, _1)) == ip_filter::blocked)
-			, endpoints.end());
+		for (std::list<tcp::endpoint>::iterator i = endpoints.begin();
+			i != endpoints.end();)
+		{
+			if (m_ses.m_ip_filter.access(i->address()) == ip_filter::blocked) 
+				i = endpoints.erase(i);
+			else
+				++i;
+		}
 
 		if (endpoints.empty())
 			fail(-1, "blocked by IP filter");

@@ -225,7 +225,7 @@ int test_main()
 	int tmp3;
 	tcp::endpoint endp;
 	piece_picker::downloading_piece st;
-	policy::peer peer_struct(endp, policy::peer::connectable, 0);
+	policy::peer peer_struct(endp, true, 0);
 	std::vector<piece_block> picked;
 	boost::shared_ptr<piece_picker> p;
 	const std::vector<int> empty_vector;

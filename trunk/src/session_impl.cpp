@@ -177,9 +177,10 @@ namespace aux {
 		, m_disconnect_time_scaler(90)
 		, m_auto_scrape_time_scaler(180)
 		, m_incoming_connection(false)
-		, m_last_tick(time_now())
-		, m_last_second_tick(m_last_tick)
-		, m_last_choke(m_last_tick)
+		, m_created(time_now())
+		, m_last_tick(m_created)
+		, m_last_second_tick(m_created)
+		, m_last_choke(m_created)
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
@@ -233,16 +234,31 @@ namespace aux {
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
 
-		(*m_logger) << "sizeof(torrent): " << sizeof(torrent) << "\n";
-		(*m_logger) << "sizeof(peer_connection): " << sizeof(peer_connection) << "\n";
-		(*m_logger) << "sizeof(bt_peer_connection): " << sizeof(bt_peer_connection) << "\n";
-		(*m_logger) << "sizeof(policy::peer): " << sizeof(policy::peer) << "\n";
-		(*m_logger) << "sizeof(tcp::endpoint): " << sizeof(tcp::endpoint) << "\n";
-		(*m_logger) << "sizeof(address): " << sizeof(address) << "\n";
-		(*m_logger) << "sizeof(address_v4): " << sizeof(address_v4) << "\n";
-		(*m_logger) << "sizeof(address_v6): " << sizeof(address_v6) << "\n";
-		(*m_logger) << "sizeof(void*): " << sizeof(void*) << "\n";
-		(*m_logger) << "sizeof(node_entry): " << sizeof(dht::node_entry) << "\n";
+#define PRINT_SIZEOF(x) (*m_logger) << "sizeof(" #x "): " << sizeof(x) << "\n";
+#define PRINT_OFFSETOF(x, y) (*m_logger) << "  offsetof(" #x "," #y "): " << offsetof(x, y) << "\n";
+
+		PRINT_SIZEOF(torrent)
+		PRINT_SIZEOF(peer_connection)
+		PRINT_SIZEOF(bt_peer_connection)
+		PRINT_SIZEOF(address)
+		PRINT_SIZEOF(address_v4)
+		PRINT_SIZEOF(address_v6)
+		PRINT_SIZEOF(address_v4::bytes_type)
+		PRINT_SIZEOF(address_v6::bytes_type)
+		PRINT_SIZEOF(void*)
+		PRINT_SIZEOF(dht::node_entry)
+
+		PRINT_SIZEOF(policy::peer)
+		PRINT_OFFSETOF(policy::peer, connection)
+		PRINT_OFFSETOF(policy::peer, last_optimistically_unchoked)
+		PRINT_OFFSETOF(policy::peer, last_connected)
+		PRINT_OFFSETOF(policy::peer, addr)
+		PRINT_OFFSETOF(policy::peer, port)
+		PRINT_OFFSETOF(policy::peer, hashfails)
+
+#undef PRINT_OFFSETOF
+#undef PRINT_SIZEOF
+
 #endif
 
 #ifdef TORRENT_STATS
@@ -280,8 +296,7 @@ namespace aux {
 		}
 
 		m_timer.expires_from_now(milliseconds(100), ec);
-		m_timer.async_wait(
-			bind(&session_impl::on_tick, this, _1));
+		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
 
 		m_thread.reset(new boost::thread(boost::ref(*this)));
 	}
@@ -1099,7 +1114,7 @@ namespace aux {
 		if (e)
 		{
 #if defined TORRENT_LOGGING
-			(*m_logger) << "*** SECOND TIMER FAILED " << e.message() << "\n";
+			(*m_logger) << "*** TICK TIMER FAILED " << e.message() << "\n";
 #endif
 			::abort();
 			return;
@@ -1109,19 +1124,52 @@ namespace aux {
 
 		error_code ec;
 		m_timer.expires_at(now + milliseconds(100), ec);
-		m_timer.async_wait(
-			bind(&session_impl::on_tick, this, _1));
+		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
 
 		m_download_rate.update_quotas(now - m_last_tick);
 		m_upload_rate.update_quotas(now - m_last_tick);
 
 		m_last_tick = now;
 
-		// only tick the rest once every 
+		// only tick the following once per second
 		if (now - m_last_second_tick < seconds(1)) return;
 
 		float tick_interval = total_microseconds(now - m_last_second_tick) / 1000000.f;
 		m_last_second_tick = now;
+
+		int session_time = total_seconds(now - m_created);
+		if (session_time > 65000)
+		{
+			// we're getting close to the point where our timestamps
+			// in policy::peer are wrapping. We need to step all counters back
+			// four hours. This means that any timestamp that refers to a time
+			// more than 18.2 - 4 = 14.2 hours ago, will be incremented to refer to
+			// 14.2 hours ago.
+
+			m_created += hours(4);
+
+			const int four_hours = 60 * 60 * 4;
+			for (torrent_map::iterator i = m_torrents.begin()
+				, end(m_torrents.end()); i != end; ++i)
+			{
+				policy& p = i->second->get_policy();
+				for (policy::iterator j = p.begin_peer()
+					, end(p.end_peer()); j != end; ++j)
+				{
+					policy::peer* pe = (policy::peer*)&(*j);
+
+					if (pe->last_optimistically_unchoked < four_hours)
+						pe->last_optimistically_unchoked = 0;
+					else
+						pe->last_optimistically_unchoked -= four_hours;
+
+					if (pe->last_connected < four_hours)
+						pe->last_connected = 0;
+					else
+						pe->last_connected -= four_hours;
+				}
+			}
+		}
 
 #ifdef TORRENT_STATS
 		++m_second_counter;
@@ -1611,7 +1659,7 @@ namespace aux {
 		// unchoked
 		connection_map::iterator current_optimistic_unchoke = m_connections.end();
 		connection_map::iterator optimistic_unchoke_candidate = m_connections.end();
-		ptime last_unchoke = max_time();
+		boost::uint32_t last_unchoke = UINT_MAX;
 
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
