@@ -84,7 +84,6 @@ void test_rate()
 			<< "\033[0m" << int(st2.progress * 100) << "% "
 			<< std::endl;
 
-		if (st1.paused) break;
 		if (tor2.is_seed()) break;
 		test_sleep(1000);
 	}
@@ -96,7 +95,7 @@ void test_rate()
 	std::cerr << "downloaded " << t->total_size() << " bytes "
 		"in " << (total_milliseconds(dt) / 1000.f) << " seconds" << std::endl;
 	
-	std::cerr << "average download rate: " << (t->total_size() / total_milliseconds(dt))
+	std::cerr << "average download rate: " << (t->total_size() / (std::max)(total_milliseconds(dt), 1))
 		<< " kB/s" << std::endl;
 
 }

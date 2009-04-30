@@ -55,7 +55,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 	session ses(fingerprint("  ", 0,0,0,0), 0);
 	session_settings settings;
 	settings.ignore_limits_on_local_network = false;
-	settings.max_outstanding_disk_bytes_per_connection = 64 * 1024;
+	settings.max_outstanding_disk_bytes_per_connection = 256 * 1024;
 	ses.set_settings(settings);
 	ses.set_alert_mask(~alert::progress_notification);
 	ses.listen_on(std::make_pair(51000, 52000));
