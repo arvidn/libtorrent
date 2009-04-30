@@ -93,7 +93,7 @@ namespace libtorrent
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
-	extern libtorrent_error_category libtorrent_category;
+	extern TORRENT_EXPORT libtorrent_error_category libtorrent_category;
 
 	using boost::system::error_code;
 	inline boost::system::error_category const& get_system_category()

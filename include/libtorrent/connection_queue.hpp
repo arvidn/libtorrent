@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-class connection_queue : public boost::noncopyable
+class TORRENT_EXPORT connection_queue : public boost::noncopyable
 {
 public:
 	connection_queue(io_service& ios);

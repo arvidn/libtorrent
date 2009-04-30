@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class alert;
-	class add_torrent_params;
+	struct add_torrent_params;
 }
 
 bool print_alerts(libtorrent::session& ses, char const* name

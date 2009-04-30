@@ -76,7 +76,7 @@ namespace libtorrent
 		return msgs[ev];
 	}
 
-	libtorrent_error_category libtorrent_category;
+	TORRENT_EXPORT libtorrent_error_category libtorrent_category;
 
 #else
 
