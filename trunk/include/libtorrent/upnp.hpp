@@ -62,7 +62,7 @@ namespace libtorrent
 // an informational log message
 typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
 
-class upnp : public intrusive_ptr_base<upnp>
+class TORRENT_EXPORT upnp : public intrusive_ptr_base<upnp>
 {
 public:
 	upnp(io_service& ios, connection_queue& cc

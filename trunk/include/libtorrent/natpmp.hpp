@@ -47,7 +47,7 @@ namespace libtorrent
 // std::string: error message
 typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
 
-class natpmp : public intrusive_ptr_base<natpmp>
+class TORRENT_EXPORT natpmp : public intrusive_ptr_base<natpmp>
 {
 public:
 	natpmp(io_service& ios, address const& listen_interface, portmap_callback_t const& cb);

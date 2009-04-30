@@ -89,12 +89,12 @@ namespace libtorrent
 	class upnp;
 	class natpmp;
 	class lsd;
-	class fingerprint;
+	struct fingerprint;
 	class torrent;
 
 	namespace dht
 	{
-		class dht_tracker;
+		struct dht_tracker;
 	};
 
 	namespace aux
