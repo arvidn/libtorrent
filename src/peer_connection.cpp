@@ -686,10 +686,12 @@ namespace libtorrent
 		if (!peer_info_struct() || peer_info_struct()->fast_reconnects > 1)
 			return;
 		m_fast_reconnect = r;
-		peer_info_struct()->connected = time_now()
-			- seconds(m_ses.settings().min_reconnect_time
-			* m_ses.settings().max_failcount);
-		++peer_info_struct()->fast_reconnects;
+		peer_info_struct()->last_connected = m_ses.session_time()
+			- (m_ses.settings().min_reconnect_time * m_ses.settings().max_failcount);
+		int fast_reconnects = peer_info_struct()->fast_reconnects;
+		++fast_reconnects;
+		if (fast_reconnects > 15) fast_reconnects = 15;
+		peer_info_struct()->fast_reconnects = fast_reconnects;
 	}
 
 	void peer_connection::announce_piece(int index)
@@ -820,14 +822,17 @@ namespace libtorrent
 			if (m_ses.settings().use_parole_mode)
 				peer_info_struct()->on_parole = true;
 
-			++peer_info_struct()->hashfails;
-			boost::int8_t& trust_points = peer_info_struct()->trust_points;
+			int hashfails = peer_info_struct()->hashfails;
+			int trust_points = peer_info_struct()->trust_points;
 
 			// we decrease more than we increase, to keep the
 			// allowed failed/passed ratio low.
-			// TODO: make this limit user settable
 			trust_points -= 2;
+			++hashfails;
 			if (trust_points < -7) trust_points = -7;
+			peer_info_struct()->trust_points = trust_points;
+			if (hashfails > 255) hashfails = 255;
+			peer_info_struct()->hashfails = hashfails;
 		}
 	}
 	
@@ -1328,7 +1333,8 @@ namespace libtorrent
 				// the first two seconds. Since some clients implements
 				// lazy bitfields, these will not be reliable to use
 				// for an estimated peer download rate.
-				if (!peer_info_struct() || time_now() - peer_info_struct()->connected > seconds(2))
+				if (!peer_info_struct()
+					|| m_ses.session_time() - peer_info_struct()->last_connected > 2)
 				{
 					// update bytes downloaded since last timer
 					m_remote_bytes_dled += t->torrent_file().piece_size(index);
@@ -4390,7 +4396,7 @@ namespace libtorrent
 			policy::const_iterator end = t->get_policy().end_peer();
 			for (; i != end; ++i)
 			{
-				if (&i->second == m_peer_info) break;
+				if (&(*i) == m_peer_info) break;
 			}
 			TORRENT_ASSERT(i != end);
 		}

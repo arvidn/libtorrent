@@ -540,6 +540,9 @@ namespace libtorrent
 				, int uncongested_torrents);
 			void recalculate_optimistic_unchoke_slot();
 
+			ptime m_created;
+			int session_time() const { return total_seconds(time_now() - m_created); }
+
 			ptime m_last_tick;
 			ptime m_last_second_tick;
 

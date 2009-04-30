@@ -1637,9 +1637,10 @@ namespace libtorrent
 			policy::peer* p = static_cast<policy::peer*>(*i);
 			if (p == 0) continue;
 			p->on_parole = false;
-			++p->trust_points;
-			// TODO: make this limit user settable
-			if (p->trust_points > 20) p->trust_points = 20;
+			int trust_points = p->trust_points;
+			++trust_points;
+			if (trust_points > 8) trust_points = 8;
+			p->trust_points = trust_points;
 			if (p->connection) p->connection->received_valid_data(index);
 		}
 
@@ -1765,7 +1766,6 @@ namespace libtorrent
 
 			// either, we have received too many failed hashes
 			// or this was the only peer that sent us this piece.
-			// TODO: make this a changable setting
 			if (p->trust_points <= -7
 				|| peers.size() == 1)
 			{
@@ -2597,7 +2597,7 @@ namespace libtorrent
 			m_ses.m_optimistic_unchoke_time_scaler = 0;
 		}
 
-		m_policy.connection_closed(*p);
+		m_policy.connection_closed(*p, m_ses.session_time());
 		p->set_peer_info(0);
 		TORRENT_ASSERT(i != m_connections.end());
 		m_connections.erase(i);
@@ -2845,7 +2845,8 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-			boost::shared_ptr<peer_plugin> pp((*i)->new_connection(c.get()));
+			boost::shared_ptr<peer_plugin>
+				pp((*i)->new_connection(c.get()));
 			if (pp) c->add_extension(pp);
 		}
 #endif
@@ -3315,18 +3316,20 @@ namespace libtorrent
 		entry::list_type& peer_list = ret["peers"].list();
 		entry::list_type& banned_peer_list = ret["banned_peers"].list();
 		
-		int max_failcount = m_ses.m_settings.max_failcount;
+		// failcount is a 5 bit value
+		int max_failcount = (std::min)(m_ses.m_settings.max_failcount, 31);
 
 		for (policy::const_iterator i = m_policy.begin_peer()
 			, end(m_policy.end_peer()); i != end; ++i)
 		{
 			error_code ec;
-			if (i->second.banned)
+			policy::peer const& p = *i;
+			if (p.banned)
 			{
 				entry peer(entry::dictionary_t);
-				peer["ip"] = i->second.addr.to_string(ec);
+				peer["ip"] = p.address().to_string(ec);
 				if (ec) continue;
-				peer["port"] = i->second.port;
+				peer["port"] = p.port;
 				banned_peer_list.push_back(peer);
 				continue;
 			}
@@ -3337,15 +3340,15 @@ namespace libtorrent
 			// so, if the peer is not connectable (i.e. we
 			// don't know its listen port) or if it has
 			// been banned, don't save it.
-			if (i->second.type == policy::peer::not_connectable) continue;
+			if (!p.connectable) continue;
 
 			// don't save peers that doesn't work
-			if (i->second.failcount >= max_failcount) continue;
+			if (p.failcount >= max_failcount) continue;
 
 			entry peer(entry::dictionary_t);
-			peer["ip"] = i->second.addr.to_string(ec);
+			peer["ip"] = p.address().to_string(ec);
 			if (ec) continue;
-			peer["port"] = i->second.port;
+			peer["port"] = p.port;
 			peer_list.push_back(peer);
 		}
 
@@ -3385,10 +3388,10 @@ namespace libtorrent
 			i != m_policy.end_peer(); ++i)
 		{
 			peer_list_entry e;
-			e.ip = i->second.ip();
-			e.flags = i->second.banned ? peer_list_entry::banned : 0;
-			e.failcount = i->second.failcount;
-			e.source = i->second.source;
+			e.ip = i->ip();
+			e.flags = i->banned ? peer_list_entry::banned : 0;
+			e.failcount = i->failcount;
+			e.source = i->source;
 			v.push_back(e);
 		}
 	}
@@ -3495,7 +3498,7 @@ namespace libtorrent
 		TORRENT_ASSERT(peerinfo);
 		TORRENT_ASSERT(peerinfo->connection == 0);
 
-		peerinfo->connected = time_now();
+		peerinfo->last_connected = m_ses.session_time();
 #ifdef TORRENT_DEBUG
 		// this asserts that we don't have duplicates in the policy's peer list
 		peer_iterator i_ = std::find_if(m_connections.begin(), m_connections.end()
@@ -3508,7 +3511,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.num_connections() < m_ses.max_connections());
 
 		tcp::endpoint a(peerinfo->ip());
-		TORRENT_ASSERT((m_ses.m_ip_filter.access(peerinfo->addr) & ip_filter::blocked) == 0);
+		TORRENT_ASSERT((m_ses.m_ip_filter.access(peerinfo->address()) & ip_filter::blocked) == 0);
 
 		boost::shared_ptr<socket_type> s(new socket_type(m_ses.m_io_service));
 
@@ -3669,7 +3672,7 @@ namespace libtorrent
 				if (pp) p->add_extension(pp);
 			}
 #endif
-			if (!m_policy.new_connection(*p))
+			if (!m_policy.new_connection(*p, m_ses.session_time()))
 				return false;
 #ifndef BOOST_NO_EXCEPTIONS
 		}
@@ -4167,10 +4170,18 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		for (policy::const_iterator i = m_policy.begin_peer()
-			, end(m_policy.end_peer()); i != end; ++i)
+		// make sure we haven't modified the peer object
+		// in a way that breaks the sort order
+		if (m_policy.begin_peer() != m_policy.end_peer())
 		{
-			TORRENT_ASSERT(i->second.addr == i->first);
+			policy::const_iterator i = m_policy.begin_peer();
+			policy::const_iterator prev = i++;
+			policy::const_iterator end(m_policy.end_peer());
+			for (; i != end; ++i, ++prev)
+			{
+				// this means <= but only using the < operator
+				TORRENT_ASSERT(*prev < *i || !(*i < *prev));
+			}
 		}
 #endif
 
@@ -4993,7 +5004,7 @@ namespace libtorrent
 		TORRENT_ASSERT(want_more_peers());
 		if (m_deficit_counter < 100) return false;
 		m_deficit_counter -= 100;
-		bool ret = m_policy.connect_one_peer();
+		bool ret = m_policy.connect_one_peer(m_ses.session_time());
 		return ret;
 	}
 
