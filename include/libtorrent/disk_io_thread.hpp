@@ -204,6 +204,8 @@ namespace libtorrent
 		int m_allocations;
 		std::map<std::string, int> m_categories;
 		std::map<char*, std::string> m_buf_to_category;
+#endif
+#ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
 #endif
 	};
