@@ -79,6 +79,6 @@ setup( name='python-libtorrent',
 		include_dirs = ['@top_srcdir@/include','@top_srcdir@/include/libtorrent'] + parse_cmd(extra_cmd, '-I'),
 		library_dirs = ['@top_builddir@/src/.libs'] + parse_cmd(extra_cmd, '-L'),
 		extra_link_args = '@LDFLAGS@'.split() + arch(),
-		extra_compile_args = parse_cmd(extra_cmd, '-D', True) + arch(),
+		extra_compile_args = parse_cmd(extra_cmd, '-D', True) + arch() + ['-DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION'],
 		libraries = ['torrent-rasterbar','@BOOST_PYTHON_LIB@'] + parse_cmd(extra_cmd, '-l'))],
 )
