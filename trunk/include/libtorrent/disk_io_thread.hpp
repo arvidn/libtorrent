@@ -181,11 +181,16 @@ namespace libtorrent
 
 		void release_memory();
 
+		int in_use() const { return m_in_use; }
+
 	protected:
 
 		// number of bytes per block. The BitTorrent
 		// protocol defines the block size to 16 KiB.
 		const int m_block_size;
+
+		// number of disk buffers currently allocated
+		int m_in_use;
 
 		session_settings m_settings;
 

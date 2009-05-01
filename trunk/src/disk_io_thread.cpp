@@ -51,6 +51,7 @@ namespace libtorrent
 {
 	disk_buffer_pool::disk_buffer_pool(int block_size)
 		: m_block_size(block_size)
+		, m_in_use(0)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_pool(block_size)
 #endif
@@ -83,6 +84,7 @@ namespace libtorrent
 #else
 		char* ret = (char*)m_pool.ordered_malloc();
 #endif
+		++m_in_use;
 #if TORRENT_USE_MLOCK
 		if (m_settings.lock_disk_cache)
 		{
@@ -131,6 +133,7 @@ namespace libtorrent
 #else
 		m_pool.ordered_free(buf);
 #endif
+		--m_in_use;
 	}
 
 	char* disk_buffer_pool::allocate_buffers(int num_blocks, char const* category)
@@ -141,6 +144,7 @@ namespace libtorrent
 #else
 		char* ret = (char*)m_pool.ordered_malloc(num_blocks);
 #endif
+		m_in_use += num_blocks;
 #if TORRENT_USE_MLOCK
 		if (m_settings.lock_disk_cache)
 		{
@@ -189,6 +193,7 @@ namespace libtorrent
 #else
 		m_pool.ordered_free(buf, num_blocks);
 #endif
+		m_in_use -= num_blocks;
 	}
 
 	void disk_buffer_pool::release_memory()
@@ -567,7 +572,7 @@ namespace libtorrent
 
 		int end_block = start_block;
 		for (int i = start_block; i < blocks_in_piece
-			&& (m_cache_stats.cache_size < m_settings.cache_size
+			&& (in_use() < m_settings.cache_size
 				|| (options && ignore_cache_size)); ++i)
 		{
 			// this is a block that is already allocated
@@ -652,14 +657,14 @@ namespace libtorrent
 		, cache_t::iterator ignore
 		, mutex_t::scoped_lock& l)
 	{
-		if (m_settings.cache_size - m_cache_stats.cache_size < num_blocks)
+		if (m_settings.cache_size - in_use() < num_blocks)
 		{
 			// there's not enough room in the cache, clear a piece
 			// from the read cache
 			if (!clear_oldest_read_piece(ignore, l)) return false;
 		}
 
-		return m_settings.cache_size - m_cache_stats.cache_size >= num_blocks;
+		return m_settings.cache_size - in_use() >= num_blocks;
 	}
 
 	// returns -1 on read error, -2 on out of memory error or the number of bytes read
@@ -829,7 +834,7 @@ namespace libtorrent
 
 		// if read cache is disabled or we exceeded the
 		// limit, remove this piece from the cache
-		if (m_cache_stats.cache_size >= m_settings.cache_size
+		if (in_use() >= m_settings.cache_size
 			|| !m_settings.use_read_cache)
 		{
 			TORRENT_ASSERT(!m_read_pieces.empty());
@@ -1279,7 +1284,7 @@ namespace libtorrent
 					// in the cache, we should not
 					// free it at the end
 					holder.release();
-					if (m_cache_stats.cache_size >= m_settings.cache_size)
+					if (in_use() >= m_settings.cache_size)
 						flush_oldest_piece(l);
 					break;
 				}

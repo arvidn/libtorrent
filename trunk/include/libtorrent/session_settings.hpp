@@ -123,7 +123,7 @@ namespace libtorrent
 			, auto_upload_slots(true)
 			, auto_upload_slots_rate_based(false)
 			, use_parole_mode(true)
-			, cache_size(512)
+			, cache_size(1024)
 			, cache_expiry(60)
 			, use_read_cache(true)
 			, disk_io_write_mode(0)
