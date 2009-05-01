@@ -149,6 +149,13 @@ struct bandwidth_manager
 #ifdef TORRENT_DEBUG
 	void check_invariant() const
 	{
+		int queued = 0;
+		for (typename queue_t::const_iterator i = m_queue.begin()
+			, end(m_queue.end()); i != end; ++i)
+		{
+			queued += i->request_size - i->assigned;
+		}
+		TORRENT_ASSERT(queued == m_queued_bytes);
 	}
 #endif
 
@@ -219,6 +226,7 @@ struct bandwidth_manager
 			if (i->assigned == i->request_size
 				|| (i->ttl <= 0 && i->assigned > 0))
 			{
+				a += i->request_size - i->assigned;
 				TORRENT_ASSERT(i->assigned <= i->request_size);
 				tm.push_back(*i);
 				i = m_queue.erase(i);
