@@ -346,6 +346,7 @@ namespace libtorrent
 			void dht_state_callback(boost::condition& c
 				, entry& e, bool& done) const;
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
+			void setup_socket_buffers(socket_type& s);
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 			// this pool is used to allocate and recycle send

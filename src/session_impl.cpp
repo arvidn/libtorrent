@@ -1006,6 +1006,8 @@ namespace aux {
 		  	return;
 		}
 
+		setup_socket_buffers(*s);
+
 		boost::intrusive_ptr<peer_connection> c(
 			new bt_peer_connection(*this, s, endp, 0));
 #ifdef TORRENT_DEBUG
@@ -1016,6 +1018,23 @@ namespace aux {
 		{
 			m_connections.insert(c);
 			c->start();
+		}
+	}
+
+	void session_impl::setup_socket_buffers(socket_type& s)
+	{
+		error_code ec;
+		if (m_settings.send_socket_buffer_size)
+		{
+			boost::asio::socket_base::send_buffer_size option(
+				m_settings.send_socket_buffer_size);
+			s.set_option(option, ec);
+		}
+		if (m_settings.recv_socket_buffer_size)
+		{
+			boost::asio::socket_base::receive_buffer_size option(
+				m_settings.recv_socket_buffer_size);
+			s.set_option(option, ec);
 		}
 	}
 
