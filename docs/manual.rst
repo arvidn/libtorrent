@@ -3554,8 +3554,11 @@ where they are only allowed to download whole pieces. If the whole piece a peer
 in parole mode fails the hash check, it is banned. If a peer participates in a
 piece that passes the hash check, it is taken out of parole mode.
 
-``cache_size`` is the disk write cache. It is specified in units of 16 KiB blocks.
-It defaults to 512 (= 8 MB).
+``cache_size`` is the disk write and read  cache. It is specified in units of
+16 KiB blocks. It defaults to 1024 (= 16 MB). Buffers that are part of a peer's
+send or receive buffer also count against this limit. Send and receive buffers
+will never be denied to be allocated, but they will cause the actual cached blocks
+to be flushed or evicted.
 
 ``cache_expiry`` is the number of seconds from the last cached write to a piece
 in the write cache, to when it's forcefully flushed to disk. Default is 60 second.
