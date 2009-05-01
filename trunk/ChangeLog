@@ -1,3 +1,5 @@
+	* added support for changing socket buffer sizes through
+	  session_settings
 	* added support for merkle hash tree torrents (.merkle.torrent)
 	* added 'seed mode', which assumes that all files are complete
 	  and checks hashes lazily, as blocks are requested

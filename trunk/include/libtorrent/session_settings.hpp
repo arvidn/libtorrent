@@ -161,6 +161,8 @@ namespace libtorrent
 			, lock_disk_cache(true)
 #endif
 			, max_rejects(50)
+			, recv_socket_buffer_size(0)
+			, send_socket_buffer_size(0)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -534,6 +536,11 @@ namespace libtorrent
 		// the number of times to reject requests while being
 		// choked before disconnecting a peer for being malicious
 		int max_rejects;
+
+		// sets the socket send and receive buffer sizes
+		// 0 means OS default
+		int recv_socket_buffer_size;
+		int send_socket_buffer_size;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

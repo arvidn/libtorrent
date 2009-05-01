@@ -3519,6 +3519,8 @@ namespace libtorrent
 		(void)ret;
 		TORRENT_ASSERT(ret);
 
+		m_ses.setup_socket_buffers(*s);
+
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a, peerinfo));
 

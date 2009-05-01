@@ -3357,6 +3357,9 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 		bool lock_disk_cache;
 
 		int max_rejects;
+
+		int recv_socket_buffer_size;
+		int send_socket_buffer_size;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3700,6 +3703,13 @@ being swapped out.
 ``max_rejects`` is the number of piece requests we will reject in a row
 while a peer is choked before the peer is considered abusive and is
 disconnected.
+
+
+``recv_socket_buffer_size`` and ``send_socket_buffer_size`` specifies
+the buffer sizes set on peer sockets. 0 (which is the default) means
+the OS default (i.e. don't change the buffer sizes). The socket buffer
+sizes are changed using setsockopt() with SOL_SOCKET/SO_RCVBUF and
+SO_SNDBUFFER.
 
 
 pe_settings
