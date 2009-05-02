@@ -116,7 +116,9 @@ namespace libtorrent
 
 		if (btih->compare(0, 9, "urn:btih:") != 0) return torrent_handle();
 
-		sha1_hash info_hash(base32decode(btih->substr(9)));
+		sha1_hash info_hash;
+		if (btih->size() == 40 + 9) from_hex(&(*btih)[9], 40, (char*)&info_hash[0]);
+		else info_hash.assign(base32decode(btih->substr(9)));
 
 		return ses.add_torrent(tracker.empty() ? 0 : tracker.c_str(), info_hash
 			, name.empty() ? 0 : name.c_str(), save_path, entry()
@@ -158,7 +160,9 @@ namespace libtorrent
 			return torrent_handle();
 		}
 
-		sha1_hash info_hash(base32decode(btih->substr(9)));
+		sha1_hash info_hash;
+		if (btih->size() == 40 + 9) from_hex(&(*btih)[9], 40, (char*)&info_hash[0]);
+		else info_hash.assign(base32decode(btih->substr(9)));
 
 		if (!tracker.empty()) p.tracker_url = tracker.c_str();
 		p.info_hash = info_hash;

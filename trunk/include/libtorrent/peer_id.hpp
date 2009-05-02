@@ -72,6 +72,13 @@ namespace libtorrent
 			std::memcpy(m_number, &s[0], sl);
 		}
 
+		void assign(std::string const& s)
+		{
+			TORRENT_ASSERT(s.size() >= 20);
+			int sl = int(s.size()) < size ? int(s.size()) : size;
+			std::memcpy(m_number, &s[0], sl);
+		}
+
 		void assign(char const* str)
 		{
 			std::memcpy(m_number, str, size);
