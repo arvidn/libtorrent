@@ -699,6 +699,7 @@ int main(int argc, char* argv[])
 			"  -t <seconds>          sets the scan interval of the monitor dir\n"
 			"  -x <file>             loads an emule IP-filter file\n"
 			"  -c <limit>            sets the max number of connections\n"
+			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
 			"MAGNETURL is a magnet: url\n"
@@ -895,6 +896,7 @@ int main(int argc, char* argv[])
 				}
 				break;
 			case 'c': ses.set_max_connections(atoi(arg)); break;
+			case 'C': settings.cache_size = atoi(arg); break;
 		}
 		++i; // skip the argument
 	}
@@ -1286,7 +1288,8 @@ int main(int argc, char* argv[])
 			" write cache hits: " << ((cs.blocks_written - cs.writes) * 100 / cs.blocks_written) << "% "
 			" read cache hits: " << (cs.blocks_read_hit * 100 / cs.blocks_read) << "% "
 			" cache size: " << add_suffix(cs.cache_size * 16 * 1024)
-			<< " (" << add_suffix(cs.read_cache_size * 16 * 1024) << ")"
+			<< " (" << add_suffix(cs.read_cache_size * 16 * 1024) << ") / "
+			<< add_suffix(cs.total_used_buffers * 16 * 1024) <<
 			" ====\n"
 			"==== optimistic unchoke: " << sess_stat.optimistic_unchoke_counter
 			<< " unchoke counter: " << sess_stat.unchoke_counter

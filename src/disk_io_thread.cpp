@@ -279,6 +279,7 @@ namespace libtorrent
 	cache_status disk_io_thread::status() const
 	{
 		mutex_t::scoped_lock l(m_piece_mutex);
+		m_cache_stats.total_used_buffers = in_use();
 		return m_cache_stats;
 	}
 
@@ -573,7 +574,7 @@ namespace libtorrent
 		int end_block = start_block;
 		for (int i = start_block; i < blocks_in_piece
 			&& (in_use() < m_settings.cache_size
-				|| (options && ignore_cache_size)); ++i)
+				|| (options & ignore_cache_size)); ++i)
 		{
 			// this is a block that is already allocated
 			// stop allocating and don't read more than
@@ -655,13 +656,25 @@ namespace libtorrent
 	
 	bool disk_io_thread::make_room(int num_blocks
 		, cache_t::iterator ignore
+		, bool flush_write_cache
 		, mutex_t::scoped_lock& l)
 	{
-		if (m_settings.cache_size - in_use() < num_blocks)
+		while (m_settings.cache_size - in_use() < num_blocks)
 		{
 			// there's not enough room in the cache, clear a piece
 			// from the read cache
-			if (!clear_oldest_read_piece(ignore, l)) return false;
+			if (!clear_oldest_read_piece(ignore, l)) break;
+		}
+
+		// try flushing write cache
+		while (flush_write_cache && m_settings.cache_size - in_use() < num_blocks)
+		{
+			cache_t::iterator i = std::min_element(
+				m_pieces.begin(), m_pieces.end()
+				, bind(&cached_piece_entry::last_use, _1)
+				< bind(&cached_piece_entry::last_use, _2));
+			if (i == m_pieces.end()) break;
+			flush_and_remove(i, l);
 		}
 
 		return m_settings.cache_size - in_use() >= num_blocks;
@@ -677,7 +690,7 @@ namespace libtorrent
 		int piece_size = j.storage->info()->piece_size(j.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
-		make_room(blocks_in_piece, m_read_pieces.end(), l);
+		make_room(blocks_in_piece, m_read_pieces.end(), true, l);
 
 		cached_piece_entry p;
 		p.piece = j.piece;
@@ -708,7 +721,7 @@ namespace libtorrent
 		int start_block = j.offset / m_block_size;
 
 		if (!make_room(blocks_in_piece - start_block
-			, m_read_pieces.end(), l)) return -2;
+			, m_read_pieces.end(), false, l)) return -2;
 
 		cached_piece_entry p;
 		p.piece = j.piece;
@@ -869,7 +882,7 @@ namespace libtorrent
 			int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 			int end_block = block;
 			while (end_block < blocks_in_piece && p->blocks[end_block] == 0) ++end_block;
-			if (!make_room(end_block - block, p, l)) return -2;
+			if (!make_room(end_block - block, p, false, l)) return -2;
 			int ret = read_into_piece(*p, block, 0, l);
 			hit = false;
 			if (ret < 0) return ret;
