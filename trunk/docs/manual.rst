@@ -715,6 +715,7 @@ Returns status of the disk cache for this session.
 			size_type reads;
 			int cache_size;
 			int read_cache_size;
+			int total_used_buffers;
 		};
 
 ``blocks_written`` is the total number of 16 KiB blocks written to disk
@@ -739,6 +740,10 @@ for the read cache.
 This includes both read and write cache.
 
 ``read_cache_size`` is the number of 16KiB blocks in the read cache.
+
+``total_used_buffers`` is the total number of buffers currently in use.
+This includes the read/write disk cache as well as send and receive buffers
+used in peer connections.
 
 get_cache_info()
 ----------------

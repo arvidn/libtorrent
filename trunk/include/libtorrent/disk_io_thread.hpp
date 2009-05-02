@@ -134,6 +134,7 @@ namespace libtorrent
 			, reads(0)
 			, cache_size(0)
 			, read_cache_size(0)
+			, total_used_buffers(0)
 		{}
 
 		// the number of 16kB blocks written
@@ -156,6 +157,10 @@ namespace libtorrent
 
 		// the number of blocks in the cache used for read cache
 		int read_cache_size;
+
+		// the total number of blocks that are currently in use
+		// this includes send and receive buffers
+		mutable int total_used_buffers;
 	};
 	
 	struct disk_buffer_pool : boost::noncopyable
@@ -294,6 +299,7 @@ namespace libtorrent
 		void free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l);
 		bool make_room(int num_blocks
 			, cache_t::iterator ignore
+			, bool flush_write_cache
 			, mutex_t::scoped_lock& l);
 		int try_read_from_cache(disk_io_job const& j);
 		int read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h);
