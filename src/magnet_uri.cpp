@@ -45,7 +45,7 @@ namespace libtorrent
 
 		char ret[1024];
 		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
-			, std::string((char*)handle.info_hash().begin(), 20).c_str());
+			, base32encode(std::string((char*)handle.info_hash().begin(), 20)).c_str());
 
 		std::string name = handle.name();
 
@@ -75,7 +75,7 @@ namespace libtorrent
 	{
 		char ret[1024];
 		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
-			, std::string((char*)info.info_hash().begin(), 20).c_str());
+			, base32encode(std::string((char*)info.info_hash().begin(), 20)).c_str());
 
 		std::string const& name = info.name();
 
