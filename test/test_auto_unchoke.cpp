@@ -38,6 +38,8 @@ void test_swarm()
 	session_settings settings;
 	settings.allow_multiple_connections_per_ip = true;
 	settings.ignore_limits_on_local_network = false;
+	settings.auto_upload_slots = true;
+	settings.auto_upload_slots_rate_based = false;
 	ses1.set_settings(settings);
 	ses2.set_settings(settings);
 	ses3.set_settings(settings);

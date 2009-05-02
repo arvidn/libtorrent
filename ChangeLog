@@ -1,3 +1,5 @@
+	* added support for fully automatic unchoker (no need to specify
+	  number of upload slots). This is on by default
 	* added support for changing socket buffer sizes through
 	  session_settings
 	* added support for merkle hash tree torrents (.merkle.torrent)
