@@ -354,6 +354,7 @@ namespace libtorrent
 	void peer_connection::reset_choke_counters()
 	{
 		m_downloaded_at_last_unchoke = m_statistics.total_payload_download();
+		m_uploaded_at_last_unchoke = m_statistics.total_payload_upload();
 	}
 
 	void peer_connection::start()
@@ -2528,8 +2529,6 @@ namespace libtorrent
 		m_last_unchoke = time_now();
 		write_unchoke();
 		m_choked = false;
-
-		m_uploaded_at_last_unchoke = m_statistics.total_payload_upload();
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " ==> UNCHOKE\n";

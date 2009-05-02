@@ -121,7 +121,7 @@ namespace libtorrent
 			, upnp_ignore_nonrouters(false)
  			, send_buffer_watermark(80 * 1024)
 			, auto_upload_slots(true)
-			, auto_upload_slots_rate_based(false)
+			, auto_upload_slots_rate_based(true)
 			, use_parole_mode(true)
 			, cache_size(1024)
 			, cache_expiry(60)

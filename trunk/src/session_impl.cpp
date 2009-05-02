@@ -1787,6 +1787,7 @@ namespace aux {
 					m_optimistic_unchoke_time_scaler = 0;
 				}
 				t->choke_peer(*p);
+				continue;
 			}
 			peers.push_back(p.get());
 		}
@@ -1800,6 +1801,21 @@ namespace aux {
 			std::sort(peers.begin(), peers.end()
 				, bind(&peer_connection::upload_rate_compare, _1, _2));
 
+#ifdef TORRENT_DEBUG
+			for (std::vector<peer_connection*>::const_iterator i = peers.begin()
+				, end(peers.end()), prev(peers.end()); i != end; ++i)
+			{
+				if (prev != end)
+				{
+					TORRENT_ASSERT((*prev)->uploaded_since_unchoke() * 1000
+						/ total_milliseconds(unchoke_interval)
+						>= (*i)->uploaded_since_unchoke() * 1000
+						/ total_milliseconds(unchoke_interval));
+				}
+				prev = i;
+			}
+#endif
+
 			// TODO: make configurable
 			int rate_threshold = 1024;
 
@@ -1809,7 +1825,9 @@ namespace aux {
 				peer_connection const& p = **i;
 				int rate = p.uploaded_since_unchoke()
 					* 1000 / total_milliseconds(unchoke_interval);
-				if (rate > rate_threshold) ++m_allowed_upload_slots;
+
+				if (rate < rate_threshold) break;
+				++m_allowed_upload_slots;
 
 				// TODO: make configurable
 				rate_threshold += 1024;
@@ -1824,9 +1842,6 @@ namespace aux {
 		// be unchoked
 		std::sort(peers.begin(), peers.end()
 			, bind(&peer_connection::unchoke_compare, _1, _2));
-
-		std::for_each(m_connections.begin(), m_connections.end()
-			, bind(&peer_connection::reset_choke_counters, _1));
 
 		// auto unchoke
 		int upload_limit = m_bandwidth_channel[peer_connection::upload_channel]->throttle();
@@ -1864,6 +1879,10 @@ namespace aux {
 			peer_connection* p = *i;
 			TORRENT_ASSERT(p);
 			TORRENT_ASSERT(!p->ignore_unchoke_slots());
+
+			// this will update the m_uploaded_at_last_unchoke
+			p->reset_choke_counters();
+
 			torrent* t = p->associated_torrent().lock().get();
 			TORRENT_ASSERT(t);
 			if (unchoke_set_size > 0)
