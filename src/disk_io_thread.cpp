@@ -71,11 +71,18 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 		m_log.open("disk_io_thread.log", std::ios::trunc);
 #endif
+#ifdef TORRENT_DEBUG
+	m_magic = 0x1337;
+#endif
 	}
 
 	disk_io_thread::~disk_io_thread()
 	{
 		TORRENT_ASSERT(m_abort == true);
+		TORRENT_ASSERT(m_magic == 0x1337);
+#ifdef TORRENT_DEBUG
+		m_magic = 0;
+#endif
 	}
 
 	void disk_io_thread::join()
@@ -700,6 +707,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	bool disk_io_thread::is_disk_buffer(char* buffer) const
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		return true;
 #else
@@ -712,6 +720,7 @@ namespace libtorrent
 	char* disk_io_thread::allocate_buffer()
 	{
 		mutex_t::scoped_lock l(m_pool_mutex);
+		TORRENT_ASSERT(m_magic == 0x1337);
 #ifdef TORRENT_STATS
 		++m_allocations;
 #endif
@@ -725,6 +734,7 @@ namespace libtorrent
 	void disk_io_thread::free_buffer(char* buf)
 	{
 		mutex_t::scoped_lock l(m_pool_mutex);
+		TORRENT_ASSERT(m_magic == 0x1337);
 #ifdef TORRENT_STATS
 		--m_allocations;
 #endif
@@ -1018,6 +1028,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 					{
 						mutex_t::scoped_lock l(m_pool_mutex);
+						TORRENT_ASSERT(m_magic == 0x1337);
 						m_pool.release_memory();
 					}
 #endif
