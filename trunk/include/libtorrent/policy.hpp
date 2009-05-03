@@ -308,11 +308,7 @@ namespace libtorrent
 
 		int num_seeds() const { return m_num_seeds; }
 		int num_connect_candidates() const { return m_num_connect_candidates; }
-		void recalculate_connect_candidates()
-		{
-			if (m_num_connect_candidates == 0)
-				m_num_connect_candidates = 1;
-		}
+		void recalculate_connect_candidates();
 
 		void erase_peer(iterator i);
 
