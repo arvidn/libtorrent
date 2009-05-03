@@ -3422,13 +3422,20 @@ namespace libtorrent
 	void torrent::get_download_queue(std::vector<partial_piece_info>& queue)
 	{
 		queue.clear();
+		std::vector<block_info>& blk = m_ses.m_block_info_storage;
+		blk.clear();
+
 		if (!valid_metadata() || is_seed()) return;
 		piece_picker const& p = picker();
 		std::vector<piece_picker::downloading_piece> const& q
 			= p.get_download_queue();
 
+		const int blocks_per_piece = m_picker->blocks_in_piece(0);
+		blk.resize(q.size() * blocks_per_piece);
+
+		int counter = 0;
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i
-			= q.begin(); i != q.end(); ++i)
+			= q.begin(); i != q.end(); ++i, ++counter)
 		{
 			partial_piece_info pi;
 			pi.piece_state = (partial_piece_info::state_t)i->state;
@@ -3436,9 +3443,9 @@ namespace libtorrent
 			pi.finished = (int)i->finished;
 			pi.writing = (int)i->writing;
 			pi.requested = (int)i->requested;
+			pi.blocks = &blk[counter * blocks_per_piece];
 			int piece_size = int(torrent_file().piece_size(i->index));
-			int num_blocks = (std::min)(pi.blocks_in_piece, int(partial_piece_info::max_blocks_per_piece));
-			for (int j = 0; j < num_blocks; ++j)
+			for (int j = 0; j < pi.blocks_in_piece; ++j)
 			{
 				block_info& bi = pi.blocks[j];
 				bi.state = i->info[j].state;
@@ -3448,7 +3455,7 @@ namespace libtorrent
 					|| bi.state == block_info::finished;
 				if (i->info[j].peer == 0)
 				{
-					bi.peer = tcp::endpoint();
+					bi.set_peer(tcp::endpoint());
 					bi.bytes_progress = complete ? bi.block_size : 0;
 				}
 				else
@@ -3456,7 +3463,7 @@ namespace libtorrent
 					policy::peer* p = static_cast<policy::peer*>(i->info[j].peer);
 					if (p->connection)
 					{
-						bi.peer = p->connection->remote();
+						bi.set_peer(p->connection->remote());
 						if (bi.state == block_info::requested)
 						{
 							boost::optional<piece_block_progress> pbp
@@ -3478,7 +3485,7 @@ namespace libtorrent
 					}
 					else
 					{
-						bi.peer = p->ip();
+						bi.set_peer(p->ip());
 						bi.bytes_progress = complete ? bi.block_size : 0;
 					}
 				}

@@ -1,3 +1,5 @@
+	* change in API for block_info in partial_piece_info, instead of
+	  accessing 'peer', call 'peer()'
 	* added support for fully automatic unchoker (no need to specify
 	  number of upload slots). This is on by default
 	* added support for changing socket buffer sizes through

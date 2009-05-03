@@ -1360,7 +1360,7 @@ int main(int argc, char* argv[])
 					out << to_string(i->piece_index, 4) << ": [";
 					for (int j = 0; j < i->blocks_in_piece; ++j)
 					{
-						int index = peer_index(i->blocks[j].peer, peers);
+						int index = peer_index(i->blocks[j].peer(), peers);
 						char str[] = "+";
 						if (index >= 0)
 							str[0] = (index < 10)?'0' + index:'A' + index - 10;

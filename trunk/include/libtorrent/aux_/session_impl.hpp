@@ -654,6 +654,11 @@ namespace libtorrent
 			size_type m_total_failed_bytes;
 			size_type m_total_redundant_bytes;
 
+			// this vector is used to store the block_info
+			// objects pointed to by partial_piece_info returned
+			// by torrent::get_download_queue.
+			std::vector<block_info> m_block_info_storage;
+
 			// the main working thread
 			boost::scoped_ptr<boost::thread> m_thread;
 		};
