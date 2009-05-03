@@ -2562,9 +2562,9 @@ requested. The entry in the vector (``partial_piece_info``) looks like this::
 	{
 		int piece_index;
 		int blocks_in_piece;
-		block_info blocks[256];
 		enum state_t { none, slow, medium, fast };
 		state_t piece_state;
+		block_info* blocks;
 	};
 
 ``piece_index`` is the index of the piece in question. ``blocks_in_piece`` is the
@@ -2585,11 +2585,19 @@ downloaded pieces down. Pieces set to ``none`` can be converted into any of ``fa
 		enum block_state_t
 		{ none, requested, writing, finished };
 
-		tcp::endpoint peer;
+		void set_peer(tcp::endpoint const& ep);
+		tcp::endpoint peer() const;
+
+		unsigned bytes_progress:15;
+		unsigned block_size:15;
 		unsigned state:2;
 		unsigned num_peers:14;
 	};
 
+
+The ``blocks`` field points to an array of ``blocks_in_piece`` elements. This pointer is
+only valid until the next call to ``get_download_queue()`` for any torrent in the same session.
+They all share the storaga for the block arrays in their session object.
 
 The ``block_info`` array contains data for each individual block in the piece. Each block has
 a state (``state``) which is any of:
@@ -2603,6 +2611,8 @@ The ``peer`` field is the ip address of the peer this block was downloaded from.
 ``num_peers`` is the number of peers that is currently requesting this block. Typically this
 is 0 or 1, but at the end of the torrent blocks may be requested by more peers in parallel to
 speed things up.
+``bytes_progress`` is the number of bytes that have been received for this block, and
+``block_size`` is the total number of bytes in this block.
 
 get_peer_info()
 ---------------
