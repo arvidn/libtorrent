@@ -1059,7 +1059,7 @@ namespace libtorrent
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
-			m_num_connect_candidates += is_connect_candidate(*i, is_finished);
+			m_num_connect_candidates += is_connect_candidate(i->second, is_finished);
 		}
 	}
 
