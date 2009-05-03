@@ -33,12 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_IMPL_HPP_INCLUDED
 #define TORRENT_SESSION_IMPL_HPP_INCLUDED
 
-#include <ctime>
 #include <algorithm>
 #include <vector>
 #include <set>
 #include <list>
-#include <deque>
 
 #ifndef TORRENT_DISABLE_GEO_IP
 #include "libtorrent/GeoIP.h"
@@ -48,8 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/limits.hpp>
-#include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/recursive_mutex.hpp>
@@ -64,13 +60,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/alert.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/stat.hpp"
@@ -79,6 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/disk_io_thread.hpp"
+#include "libtorrent/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent
@@ -91,6 +86,7 @@ namespace libtorrent
 	class lsd;
 	struct fingerprint;
 	class torrent;
+	class alert;
 
 	namespace dht
 	{

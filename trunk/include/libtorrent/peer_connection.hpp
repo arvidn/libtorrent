@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 #include <algorithm>
 #include <vector>
-#include <deque>
 #include <string>
 
 #include "libtorrent/debug.hpp"
@@ -265,7 +264,7 @@ namespace libtorrent
 
 		std::vector<pending_block> const& download_queue() const;
 		std::vector<piece_block> const& request_queue() const;
-		std::deque<peer_request> const& upload_queue() const;
+		std::vector<peer_request> const& upload_queue() const;
 
 		// estimate of how long it will take until we have
 		// received all piece requests that we have sent
@@ -734,7 +733,7 @@ namespace libtorrent
 
 		// the queue of requests we have got
 		// from this peer
-		std::deque<peer_request> m_requests;
+		std::vector<peer_request> m_requests;
 
 		// the blocks we have reserved in the piece
 		// picker and will request from this peer.

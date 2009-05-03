@@ -2953,7 +2953,7 @@ namespace libtorrent
 		int amount_payload = 0;
 		if (!m_payloads.empty())
 		{
-			for (std::deque<range>::iterator i = m_payloads.begin();
+			for (std::vector<range>::iterator i = m_payloads.begin();
 				i != m_payloads.end(); ++i)
 			{
 				i->start -= bytes_transferred;
@@ -3017,7 +3017,7 @@ namespace libtorrent
 
 		if (!m_payloads.empty())
 		{
-			for (std::deque<range>::const_iterator i = m_payloads.begin();
+			for (std::vector<range>::const_iterator i = m_payloads.begin();
 				i != m_payloads.end() - 1; ++i)
 			{
 				TORRENT_ASSERT(i->start + i->length <= (i+1)->start);

@@ -33,19 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_HPP_INCLUDED
 #define TORRENT_SESSION_HPP_INCLUDED
 
-#include <ctime>
 #include <algorithm>
 #include <vector>
-#include <set>
-#include <list>
-#include <deque>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
 
 #include <boost/limits.hpp>
-#include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
 
@@ -56,16 +51,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/alert.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/fingerprint.hpp"
-#include "libtorrent/time.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/peer_id.hpp"
 
 #include "libtorrent/storage.hpp"
 #include <boost/preprocessor/cat.hpp>
+
+#ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/alert.hpp"
+#endif
 
 #ifdef _MSC_VER
 #	include <eh.h>
@@ -80,6 +77,7 @@ namespace libtorrent
 	class connection_queue;
 	class natpmp;
 	class upnp;
+	class alert;
 
 	// this is used to create linker errors when trying to link to
 	// a library with a conflicting build configuration than the application
