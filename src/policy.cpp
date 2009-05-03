@@ -370,6 +370,8 @@ namespace libtorrent
 	// as well, such as in the piece picker.
 	void policy::erase_peer(iterator i)
 	{
+		INVARIANT_CHECK;
+
 		if (m_torrent->has_picker())
 			m_torrent->picker().clear_peer(&i->second);
 		if (i->second.seed) --m_num_seeds;
@@ -1048,6 +1050,17 @@ namespace libtorrent
 			return;
 		request_a_block(*m_torrent, c);
 		c.send_block_requests();
+	}
+
+	void policy::recalculate_connect_candidates()
+	{
+		m_num_connect_candidates = 0;
+		const bool is_finished = m_torrent->is_finished();
+		for (const_iterator i = m_peers.begin();
+			i != m_peers.end(); ++i)
+		{
+			m_num_connect_candidates += is_connect_candidate(*i, is_finished);
+		}
 	}
 
 #ifdef TORRENT_DEBUG
