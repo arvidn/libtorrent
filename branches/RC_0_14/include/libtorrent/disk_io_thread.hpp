@@ -312,6 +312,9 @@ namespace libtorrent
 
 		// thread for performing blocking disk io operations
 		boost::thread m_disk_io_thread;
+#ifdef TORRENT_DEBUG
+		int m_magic;
+#endif
 	};
 
 }
