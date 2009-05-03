@@ -397,8 +397,7 @@ namespace libtorrent
 
 	policy::iterator policy::find_connect_candidate()
 	{
-// too expensive
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		ptime now = time_now();
 		iterator candidate = m_peers.end();
@@ -532,7 +531,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(!c.is_local());
 
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		// if the connection comes from the tracker,
 		// it's probably just a NAT-check. Ignore the
@@ -726,8 +725,7 @@ namespace libtorrent
 	policy::peer* policy::peer_from_tracker(tcp::endpoint const& remote, peer_id const& pid
 		, int src, char flags)
 	{
-		// way too expensive
-		//INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		// just ignore the obviously invalid entries
 		if (remote.address() == address() || remote.port() == 0)
@@ -850,7 +848,7 @@ namespace libtorrent
 	// data from now on
 	void policy::unchoked(peer_connection& c)
 	{
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 		if (c.is_interesting())
 		{
 			request_a_block(*m_torrent, c);
@@ -861,7 +859,7 @@ namespace libtorrent
 	// called when a peer is interested in us
 	void policy::interested(peer_connection& c)
 	{
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(std::find_if(m_peers.begin(), m_peers.end()
 			, boost::bind<bool>(std::equal_to<peer_connection*>(), bind(&peer::connection
@@ -965,7 +963,7 @@ namespace libtorrent
 */
 	bool policy::connect_one_peer()
 	{
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(m_torrent->want_more_peers());
 		
@@ -991,8 +989,7 @@ namespace libtorrent
 	// this is called whenever a peer connection is closed
 	void policy::connection_closed(const peer_connection& c)
 	{
-// too expensive
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		peer* p = c.peer_info_struct();
 
@@ -1042,7 +1039,7 @@ namespace libtorrent
 
 	void policy::peer_is_interesting(peer_connection& c)
 	{
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		if (c.in_handshake()) return;
 		c.send_interested();
@@ -1056,8 +1053,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	bool policy::has_connection(const peer_connection* c)
 	{
-// too expensive
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(c);
 		error_code ec;
@@ -1072,8 +1068,10 @@ namespace libtorrent
 	void policy::check_invariant() const
 	{
 		TORRENT_ASSERT(m_num_connect_candidates >= 0);
+		TORRENT_ASSERT(m_num_connect_candidates <= m_peers.size());
 		if (m_torrent->is_aborted()) return;
 
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		int connected_peers = 0;
 
 		int total_connections = 0;
@@ -1153,6 +1151,7 @@ namespace libtorrent
 					, match_peer_connection(*p->connection)) != m_peers.end());
 			}
 		}
+#endif
 
 		// this invariant is a bit complicated.
 		// the usual case should be that connected_peers
