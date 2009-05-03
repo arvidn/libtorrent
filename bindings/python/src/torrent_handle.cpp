@@ -207,7 +207,7 @@ list get_download_queue(torrent_handle& handle)
             block_info["bytes_progress"] = i->blocks[k].bytes_progress;
             block_info["block_size"] = i->blocks[k].block_size;
             block_info["peer"] = make_tuple(
-                boost::lexical_cast<std::string>(i->blocks[k].peer.address()), i->blocks[k].peer.port());
+                boost::lexical_cast<std::string>(i->blocks[k].peer().address()), i->blocks[k].peer().port());
             block_list.append(block_info);
         }
         partial_piece["blocks"] = block_list;
