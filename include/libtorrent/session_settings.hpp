@@ -163,6 +163,7 @@ namespace libtorrent
 			, max_rejects(50)
 			, recv_socket_buffer_size(0)
 			, send_socket_buffer_size(0)
+			, optimize_hashing_for_speed(true)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -541,6 +542,11 @@ namespace libtorrent
 		// 0 means OS default
 		int recv_socket_buffer_size;
 		int send_socket_buffer_size;
+
+		// if this is set to false, the hashing will be
+		// optimized for memory usage instead of the
+		// number of read operations
+		bool optimize_hashing_for_speed;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

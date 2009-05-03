@@ -714,6 +714,7 @@ int main(int argc, char* argv[])
 	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
 	settings.auto_upload_slots_rate_based = true;
 	settings.announce_to_all_trackers = true;
+	settings.optimize_hashing_for_speed = false;
 
 	std::deque<std::string> events;
 

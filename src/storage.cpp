@@ -488,19 +488,42 @@ namespace libtorrent
 			if (disk_pool()) block_size = disk_pool()->block_size();
 			int size = slot_size;
 			int num_blocks = (size + block_size - 1) / block_size;
-			file::iovec_t* bufs = TORRENT_ALLOCA(file::iovec_t, num_blocks);
-			for (int i = 0; i < num_blocks; ++i)
-			{
-				bufs[i].iov_base = disk_pool()->allocate_buffer("hash temp");
-				bufs[i].iov_len = (std::min)(block_size, size);
-				size -= bufs[i].iov_len;
-			}
-			readv(bufs, slot, ph.offset, num_blocks);
 
-			for (int i = 0; i < num_blocks; ++i)
+			// when we optimize for speed we allocate all the buffers we
+			// need for the rest of the piece, and read it all in one call
+			// and then hash it. When optimizing for memory usage, we read
+			// one block at a time and hash it. This ends up only using a
+			// single buffer
+			if (settings().optimize_hashing_for_speed)
 			{
-				ph.h.update((char const*)bufs[i].iov_base, bufs[i].iov_len);
-				disk_pool()->free_buffer((char*)bufs[i].iov_base);
+				file::iovec_t* bufs = TORRENT_ALLOCA(file::iovec_t, num_blocks);
+				for (int i = 0; i < num_blocks; ++i)
+				{
+					bufs[i].iov_base = disk_pool()->allocate_buffer("hash temp");
+					bufs[i].iov_len = (std::min)(block_size, size);
+					size -= bufs[i].iov_len;
+				}
+				readv(bufs, slot, ph.offset, num_blocks);
+
+				for (int i = 0; i < num_blocks; ++i)
+				{
+					ph.h.update((char const*)bufs[i].iov_base, bufs[i].iov_len);
+					disk_pool()->free_buffer((char*)bufs[i].iov_base);
+				}
+			}
+			else
+			{
+				file::iovec_t buf;
+				disk_buffer_holder holder(*disk_pool(), disk_pool()->allocate_buffer("hash temp"));
+				buf.iov_base = holder.get();
+				for (int i = 0; i < num_blocks; ++i)
+				{
+					buf.iov_len = (std::min)(block_size, size);
+					readv(&buf, slot, ph.offset, 1);
+					ph.h.update((char const*)buf.iov_base, buf.iov_len);
+					ph.offset += buf.iov_len;
+					size -= buf.iov_len;
+				}
 			}
 			if (error()) return sha1_hash(0);
 		}

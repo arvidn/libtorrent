@@ -3375,6 +3375,8 @@ that will be sent to the tracker. The user-agent is a good way to identify your 
 
 		int recv_socket_buffer_size;
 		int send_socket_buffer_size;
+
+		bool optimize_hashing_for_speed;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3728,6 +3730,17 @@ the buffer sizes set on peer sockets. 0 (which is the default) means
 the OS default (i.e. don't change the buffer sizes). The socket buffer
 sizes are changed using setsockopt() with SOL_SOCKET/SO_RCVBUF and
 SO_SNDBUFFER.
+
+``optimize_hashing_for_speed`` chooses between two ways of reading back
+piece data from disk when its complete and needs to be verified against
+the piece hash. This happens if some blocks were flushed to the disk
+out of order. Everything that is flushed in order is hashed as it goes
+along. Optimizing for speed will allocate space to fit all the the
+remaingin, unhashed, part of the piece, reads the data into it in a single
+call and hashes it. This is the default. If ``optimizing_hashing_for_speed``
+is false, a single block will be allocated (16 kB), and the unhashed parts
+of the piece are read, one at a time, and hashed in this single block. This
+is appropriate on systems that are memory constrained.
 
 
 pe_settings
