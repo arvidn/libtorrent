@@ -1182,7 +1182,7 @@ namespace libtorrent
 					, match_peer_connection(*p->connection)) != m_peers.end());
 			}
 		}
-#endif
+#endif // TORRENT_EXPENSIVE_INVARIANT_CHECKS
 
 		// this invariant is a bit complicated.
 		// the usual case should be that connected_peers
@@ -1200,7 +1200,7 @@ namespace libtorrent
 				&& num_torrent_peers > 0));
 */
 	}
-#endif
+#endif // TORRENT_DEBUG
 
 	policy::peer::peer(const tcp::endpoint& ip_, bool conn, int src)
 		: prev_amount_upload(0)
