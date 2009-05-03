@@ -62,11 +62,23 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 		m_log.open("disk_buffers.log", std::ios::trunc);
 #endif
+#ifdef TORRENT_DEBUG
+	m_magic = 0x1337;
+#endif
 	}
+
+#ifdef TORRENT_DEBUG
+	disk_buffer_pool::~disk_buffer_pool()
+	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+		m_magic = 0;
+	}
+#endif
 
 #ifdef TORRENT_DEBUG
 	bool disk_buffer_pool::is_disk_buffer(char* buffer) const
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		return true;
 #else
@@ -79,6 +91,7 @@ namespace libtorrent
 	char* disk_buffer_pool::allocate_buffer(char const* category)
 	{
 		mutex_t::scoped_lock l(m_pool_mutex);
+		TORRENT_ASSERT(m_magic == 0x1337);
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		char* ret = page_aligned_allocator::malloc(m_block_size);
 #else
@@ -109,6 +122,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(buf);
 		mutex_t::scoped_lock l(m_pool_mutex);
+		TORRENT_ASSERT(m_magic == 0x1337);
 #ifdef TORRENT_STATS
 		--m_allocations;
 		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
@@ -139,6 +153,7 @@ namespace libtorrent
 	char* disk_buffer_pool::allocate_buffers(int num_blocks, char const* category)
 	{
 		mutex_t::scoped_lock l(m_pool_mutex);
+		TORRENT_ASSERT(m_magic == 0x1337);
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		char* ret = page_aligned_allocator::malloc(m_block_size * num_blocks);
 #else
@@ -169,6 +184,7 @@ namespace libtorrent
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(num_blocks >= 1);
 		mutex_t::scoped_lock l(m_pool_mutex);
+		TORRENT_ASSERT(m_magic == 0x1337);
 #ifdef TORRENT_STATS
 		m_allocations -= num_blocks;
 		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
@@ -198,6 +214,7 @@ namespace libtorrent
 
 	void disk_buffer_pool::release_memory()
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		mutex_t::scoped_lock l(m_pool_mutex);
 		m_pool.release_memory();

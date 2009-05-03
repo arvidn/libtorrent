@@ -166,6 +166,9 @@ namespace libtorrent
 	struct disk_buffer_pool : boost::noncopyable
 	{
 		disk_buffer_pool(int block_size);
+#ifdef TORRENT_DEBUG
+		~disk_buffer_pool();
+#endif
 
 #ifdef TORRENT_DEBUG
 		bool is_disk_buffer(char* buffer) const;
@@ -217,6 +220,9 @@ namespace libtorrent
 #endif
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
+#endif
+#ifdef TORRENT_DEBUG
+		int m_magic;
 #endif
 	};
 
