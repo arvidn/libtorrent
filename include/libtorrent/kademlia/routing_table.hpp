@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define ROUTING_TABLE_HPP
 
 #include <vector>
-#include <deque>
 #include <boost/cstdint.hpp>
 
 #include <boost/iterator/iterator_facade.hpp>

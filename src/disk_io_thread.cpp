@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/storage.hpp"
-#include <deque>
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/alloca.hpp"

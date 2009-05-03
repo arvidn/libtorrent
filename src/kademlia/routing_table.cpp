@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <deque>
 #include <algorithm>
 #include <functional>
 #include <numeric>

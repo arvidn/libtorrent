@@ -33,12 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 
-#include <boost/shared_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
-#include <boost/function.hpp>
-#include <boost/bind.hpp>
-#include <boost/integer_traits.hpp>
-#include <deque>
 
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
 #include <fstream>
@@ -50,10 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_queue_entry.hpp"
 
-using boost::weak_ptr;
-using boost::shared_ptr;
 using boost::intrusive_ptr;
-using boost::bind;
 
 
 namespace libtorrent {

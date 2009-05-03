@@ -758,7 +758,7 @@ namespace libtorrent
 		return m_download_queue;
 	}
 	
-	std::deque<peer_request> const& peer_connection::upload_queue() const
+	std::vector<peer_request> const& peer_connection::upload_queue() const
 	{
 		return m_requests;
 	}
@@ -2130,7 +2130,7 @@ namespace libtorrent
 			<< " <== CANCEL  [ piece: " << r.piece << " | s: " << r.start << " | l: " << r.length << " ]\n";
 #endif
 
-		std::deque<peer_request>::iterator i
+		std::vector<peer_request>::iterator i
 			= std::find(m_requests.begin(), m_requests.end(), r);
 
 		if (i != m_requests.end())
@@ -2496,7 +2496,7 @@ namespace libtorrent
 
 		// reject the requests we have in the queue
 		// except the allowed fast pieces
-		for (std::deque<peer_request>::iterator i = m_requests.begin();
+		for (std::vector<peer_request>::iterator i = m_requests.begin();
 			i != m_requests.end();)
 		{
 			if (m_accept_fast.count(i->piece))
