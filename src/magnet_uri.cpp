@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <sstream>
+#include <boost/lexical_cast.hpp>
 
 namespace libtorrent
 {
