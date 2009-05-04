@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISK_IO_THREAD
 #define TORRENT_DISK_IO_THREAD
 
-#ifdef TORRENT_DISK_STATS
+#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
 #include <fstream>
 #endif
 
@@ -213,12 +213,12 @@ namespace libtorrent
 		boost::pool<page_aligned_allocator> m_pool;
 #endif
 
-#ifdef TORRENT_STATS
+#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
 		int m_allocations;
-		std::map<std::string, int> m_categories;
-		std::map<char*, std::string> m_buf_to_category;
 #endif
 #ifdef TORRENT_DISK_STATS
+		std::map<std::string, int> m_categories;
+		std::map<char*, std::string> m_buf_to_category;
 		std::ofstream m_log;
 #endif
 #ifdef TORRENT_DEBUG
