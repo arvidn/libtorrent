@@ -265,7 +265,7 @@ namespace aux {
 		m_stats_logger.open("session_stats.log", std::ios::trunc);
 		m_stats_logger <<
 			"second:upload rate:download rate:downloading torrents:seeding torrents"
-			":peers:connecting peers:disk block buffers:unchoked peers\n\n";
+			":peers:connecting peers:disk block buffers:unchoked peers:num list peers\n\n";
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
 		m_second_counter = 0;
 		m_buffer_allocations = 0;
@@ -1200,9 +1200,11 @@ namespace aux {
 		size_type upload_rate = (m_stat.total_upload() - uploaded) / tick_interval;
 		downloaded = m_stat.total_download();
 		uploaded = m_stat.total_upload();
+		size_type num_peers = 0;
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
+			num_peers += i->second->get_policy().num_peers();
 			if (i->second->is_seed())
 				++seeding_torrents;
 			else
@@ -1233,6 +1235,7 @@ namespace aux {
 			<< num_half_open << "\t"
 			<< m_disk_thread.disk_allocations() << "\t"
 			<< unchoked_peers << "\t"
+			<< num_peers << "\t"
 			<< std::endl;
 #endif
 
