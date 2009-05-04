@@ -745,7 +745,7 @@ namespace libtorrent
 		
 		// the pieces we will send to the peer
 		// if requested (regardless of choke state)
-		std::set<int> m_accept_fast;
+		std::vector<int> m_accept_fast;
 
 		// the pieces the peer will send us if
 		// requested (regardless of choke state)
