@@ -52,6 +52,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 
+#ifdef TORRENT_DEBUG
+#include <set>
+#endif
+
 //#define TORRENT_CORRUPT_DATA
 
 using boost::bind;
@@ -448,6 +452,9 @@ namespace libtorrent
 
 		if (num_allowed_pieces >= num_pieces)
 		{
+			// this is a special case where we have more allowed
+			// fast pieces than pieces in the torrent. Just send
+			// an allowed fast message for every single piece
 			for (int i = 0; i < num_pieces; ++i)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -455,7 +462,11 @@ namespace libtorrent
 				<< " ==> ALLOWED_FAST [ " << i << " ]\n";
 #endif
 				write_allow_fast(i);
-				m_accept_fast.insert(i);
+				TORRENT_ASSERT(std::find(m_accept_fast.begin()
+					, m_accept_fast.end(), i)
+					== m_accept_fast.end());
+				if (m_accept_fast.empty()) m_accept_fast.reserve(10);
+				m_accept_fast.push_back(i);
 			}
 			return;
 		}
@@ -481,14 +492,16 @@ namespace libtorrent
 			for (int i = 0; i < 5; ++i)
 			{
 				int piece = detail::read_uint32(p) % num_pieces;
-				if (m_accept_fast.find(piece) == m_accept_fast.end())
+				if (std::find(m_accept_fast.begin(), m_accept_fast.end(), piece)
+					== m_accept_fast.end())
 				{
 #ifdef TORRENT_VERBOSE_LOGGING
 					(*m_logger) << time_now_string()
 						<< " ==> ALLOWED_FAST [ " << piece << " ]\n";
 #endif
 					write_allow_fast(piece);
-					m_accept_fast.insert(piece);
+					if (m_accept_fast.empty()) m_accept_fast.reserve(10);
+					m_accept_fast.push_back(piece);
 					if (int(m_accept_fast.size()) >= num_allowed_pieces
 						|| int(m_accept_fast.size()) == num_pieces) return;
 				}
@@ -1622,7 +1635,8 @@ namespace libtorrent
 #endif
 			// if we have choked the client
 			// ignore the request
-			if (m_choked && m_accept_fast.find(r.piece) == m_accept_fast.end())
+			if (m_choked && std::find(m_accept_fast.begin(), m_accept_fast.end()
+				, r.piece) == m_accept_fast.end())
 			{
 				write_reject_request(r);
 				++m_choke_rejects;
@@ -2499,7 +2513,8 @@ namespace libtorrent
 		for (std::vector<peer_request>::iterator i = m_requests.begin();
 			i != m_requests.end();)
 		{
-			if (m_accept_fast.count(i->piece))
+			if (std::find(m_accept_fast.begin(), m_accept_fast.end(), i->piece)
+				!= m_accept_fast.end())
 			{
 				++i;
 				continue;
