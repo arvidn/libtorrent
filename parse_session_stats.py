@@ -14,7 +14,7 @@ while not 'second:' in line:
 
 keys = line.strip().split(':')[1:]
 
-axes = ['x1y2', 'x1y2', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y1']
+axes = ['x1y2', 'x1y2', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y2']
 
 def gen_report(name, lines):
 	out = open('session_stats_%s.gnuplot' % name, 'wb')
@@ -41,6 +41,6 @@ def gen_report(name, lines):
 	os.system('gnuplot session_stats_%s.gnuplot' % name);
 
 gen_report('rates', ['upload rate', 'download rate', 'downloading torrents', 'seeding torrents', 'peers', 'unchoked peers'])
-gen_report('peers', ['peers', 'connecting peers', 'unchoked peers'])
+gen_report('peers', ['peers', 'connecting peers', 'unchoked peers', 'num list peers'])
 gen_report('buffers', ['upload rate', 'download rate', 'disk block buffers'])
 
