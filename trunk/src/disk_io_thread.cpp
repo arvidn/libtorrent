@@ -55,7 +55,7 @@ namespace libtorrent
 		, m_pool(block_size)
 #endif
 	{
-#ifdef TORRENT_STATS
+#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
 		m_allocations = 0;
 #endif
 #ifdef TORRENT_DISK_STATS
@@ -108,8 +108,10 @@ namespace libtorrent
 		}
 #endif
 
-#ifdef TORRENT_STATS
+#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
 		++m_allocations;
+#endif
+#ifdef TORRENT_DISK_STATS
 		++m_categories[category];
 		m_buf_to_category[ret] = category;
 		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
@@ -122,8 +124,10 @@ namespace libtorrent
 		TORRENT_ASSERT(buf);
 		mutex_t::scoped_lock l(m_pool_mutex);
 		TORRENT_ASSERT(m_magic == 0x1337);
-#ifdef TORRENT_STATS
+#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
 		--m_allocations;
+#endif
+#ifdef TORRENT_DISK_STATS
 		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
 			!= m_categories.end());
 		std::string const& category = m_buf_to_category[buf];
@@ -169,8 +173,10 @@ namespace libtorrent
 #endif		
 		}
 #endif
-#ifdef TORRENT_STATS
+#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
 		m_allocations += num_blocks;
+#endif
+#ifdef TORRENT_DISK_STATS
 		m_categories[category] += num_blocks;
 		m_buf_to_category[ret] = category;
 		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
@@ -184,8 +190,10 @@ namespace libtorrent
 		TORRENT_ASSERT(num_blocks >= 1);
 		mutex_t::scoped_lock l(m_pool_mutex);
 		TORRENT_ASSERT(m_magic == 0x1337);
-#ifdef TORRENT_STATS
+#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
 		m_allocations -= num_blocks;
+#endif
+#ifdef TORRENT_DISK_STATS
 		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
 			!= m_categories.end());
 		std::string const& category = m_buf_to_category[buf];
