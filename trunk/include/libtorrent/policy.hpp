@@ -343,6 +343,16 @@ namespace libtorrent
 
 		// the number of seeds in the peer list
 		int m_num_seeds;
+
+		// this was the state of the torrent the
+		// last time we recalculated the number of
+		// connect candidates. Since seeds (or upload
+		// only) peers are not connect candidates
+		// when we're finished, the set depends on
+		// this state. Every time m_torrent->is_finished()
+		// is different from this state, we need to
+		// recalculate the connect candidates.
+		bool m_finished;
 	};
 
 }

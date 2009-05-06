@@ -1925,7 +1925,6 @@ namespace libtorrent
 			// if we used to be finished, but we aren't anymore
 			// we may need to connect to peers again
 			resume_download();
-			m_policy.recalculate_connect_candidates();
 		}
 	}
 
@@ -3370,6 +3369,8 @@ namespace libtorrent
 		std::for_each(seeds.begin(), seeds.end()
 			, bind(&peer_connection::disconnect, _1, "torrent finished, disconnecting seed", 0));
 
+		m_policy.recalculate_connect_candidates();
+
 		TORRENT_ASSERT(m_storage);
 		// we need to keep the object alive during this operation
 		m_storage->async_release_files(
@@ -3385,6 +3386,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!is_finished());
 		set_state(torrent_status::downloading);
 		set_queue_position((std::numeric_limits<int>::max)());
+		m_policy.recalculate_connect_candidates();
 	}
 
 	// called when torrent is complete (all pieces downloaded)

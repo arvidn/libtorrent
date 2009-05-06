@@ -37,6 +37,8 @@
 
 release 0.14.4
 
+	* connect candidate calculation fix
+	* tightened up disk cache memory usage
 	* fixed magnet link parser to accept hex-encoded info-hashes
 
 release 0.14.3

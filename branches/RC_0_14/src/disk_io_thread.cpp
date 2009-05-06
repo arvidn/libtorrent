@@ -59,7 +59,7 @@ namespace libtorrent
 		, m_coalesce_reads(true)
 		, m_use_read_cache(true)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_pool(block_size)
+		, m_pool(block_size, 10)
 #endif
 		, m_block_size(block_size)
 		, m_ios(ios)

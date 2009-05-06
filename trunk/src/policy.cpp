@@ -335,6 +335,7 @@ namespace libtorrent
 		, m_available_free_upload(0)
 		, m_num_connect_candidates(0)
 		, m_num_seeds(0)
+		, m_finished(false)
 	{ TORRENT_ASSERT(t); }
 
 	// disconnects and removes all peers that are now filtered
@@ -380,7 +381,7 @@ namespace libtorrent
 		if (m_torrent->has_picker())
 			m_torrent->picker().clear_peer((void*)&(*i));
 		if (i->seed) --m_num_seeds;
-		if (is_connect_candidate(*i, m_torrent->is_finished()))
+		if (is_connect_candidate(*i, m_finished))
 			--m_num_connect_candidates;
 		if (m_round_robin == i) ++m_round_robin;
 
@@ -409,11 +410,10 @@ namespace libtorrent
 		iterator candidate = m_peers.end();
 
 		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
-		bool finished = m_torrent->is_finished();
 		address external_ip = m_torrent->session().external_address();
 
 		// don't bias any particular peers when seeding
-		if (finished || external_ip == address())
+		if (m_finished || external_ip == address())
 		{
 			// set external_ip to a random value, to
 			// radomize which peers we prefer
@@ -460,7 +460,7 @@ namespace libtorrent
 			if (pe.connection == 0
 				&& pe.last_connected != 0
 				&& (!pe.banned || session_time - pe.last_connected > 2 * 60 * 60)
-				&& !is_connect_candidate(pe, finished)
+				&& !is_connect_candidate(pe, m_finished)
 				&& m_peers.size() >= m_torrent->settings().max_peerlist_size * 0.9)
 			{
 				erase_peer(m_round_robin++);
@@ -469,7 +469,7 @@ namespace libtorrent
 
 			++m_round_robin;
 
-			if (!is_connect_candidate(pe, finished)) continue;
+			if (!is_connect_candidate(pe, m_finished)) continue;
 
 			if (candidate != m_peers.end()
 				&& !compare_peer(*candidate, pe, external_ip)) continue;
@@ -711,11 +711,11 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_peers.count(p->address()) == 1);
 		}
-		bool was_conn_cand = is_connect_candidate(*p, m_torrent->is_finished());
+		bool was_conn_cand = is_connect_candidate(*p, m_finished);
 		p->port = port;
 		p->source |= src;
 
-		if (was_conn_cand != is_connect_candidate(*p, m_torrent->is_finished()))
+		if (was_conn_cand != is_connect_candidate(*p, m_finished))
 		{
 			m_num_connect_candidates += was_conn_cand ? -1 : 1;
 			if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
@@ -802,14 +802,14 @@ namespace libtorrent
 #endif
 			i->inet_as = ses.lookup_as(as);
 #endif
-			if (is_connect_candidate(*i, m_torrent->is_finished()))
+			if (is_connect_candidate(*i, m_finished))
 				++m_num_connect_candidates;
 		}
 		else
 		{
 			i = (peer*)&(*iter);
 
-			bool was_conn_cand = is_connect_candidate(*i, m_torrent->is_finished());
+			bool was_conn_cand = is_connect_candidate(*i, m_finished);
 
 			i->connectable = true;
 
@@ -852,7 +852,7 @@ namespace libtorrent
 			}
 #endif
 
-			if (was_conn_cand != is_connect_candidate(*i, m_torrent->is_finished()))
+			if (was_conn_cand != is_connect_candidate(*i, m_finished))
 			{
 				m_num_connect_candidates += was_conn_cand ? -1 : 1;
 				if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
@@ -994,7 +994,8 @@ namespace libtorrent
 		TORRENT_ASSERT(!p.connection);
 		TORRENT_ASSERT(p.connectable);
 
-		TORRENT_ASSERT(is_connect_candidate(p, m_torrent->is_finished()));
+		TORRENT_ASSERT(m_finished == m_torrent->is_finished());
+		TORRENT_ASSERT(is_connect_candidate(p, m_finished));
 		if (!m_torrent->connect_to_peer(&p))
 		{
 			// failcount is a 5 bit value
@@ -1002,7 +1003,7 @@ namespace libtorrent
 			return false;
 		}
 		TORRENT_ASSERT(p.connection);
-		TORRENT_ASSERT(!is_connect_candidate(p, m_torrent->is_finished()));
+		TORRENT_ASSERT(!is_connect_candidate(p, m_finished));
 		--m_num_connect_candidates;
 		return true;
 	}
@@ -1040,7 +1041,7 @@ namespace libtorrent
 			if (p->failcount < 31) ++p->failcount;
 		}
 
-		if (is_connect_candidate(*p, m_torrent->is_finished()))
+		if (is_connect_candidate(*p, m_finished))
 			++m_num_connect_candidates;
 
 		// if the share ratio is 0 (infinite), the
@@ -1075,10 +1076,13 @@ namespace libtorrent
 	{
 		m_num_connect_candidates = 0;
 		const bool is_finished = m_torrent->is_finished();
+		if (is_finished == m_finished) return;
+
+		m_finished = is_finished;
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
-			m_num_connect_candidates += is_connect_candidate(*i, is_finished);
+			m_num_connect_candidates += is_connect_candidate(*i, m_finished);
 		}
 	}
 
@@ -1305,7 +1309,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		// don't bias fast peers when seeding
-		if (!m_torrent->is_finished() && m_torrent->session().has_asnum_db())
+		if (!m_finished && m_torrent->session().has_asnum_db())
 		{
 			int lhs_as = lhs.inet_as ? lhs.inet_as->second : 0;
 			int rhs_as = rhs.inet_as ? rhs.inet_as->second : 0;
