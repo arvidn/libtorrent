@@ -274,7 +274,7 @@ namespace libtorrent
 		virtual char const* what() const { return "tracker error"; }
 		virtual std::string message() const
 		{
-			char ret[200];
+			char ret[400];
 			snprintf(ret, 200, "%s (%d) %s (%d)"
 				, torrent_alert::message().c_str(), status_code, msg.c_str(), times_in_row);
 			return ret;
@@ -326,7 +326,7 @@ namespace libtorrent
 		virtual char const* what() const { return "tracker scrape reply"; }
 		virtual std::string message() const
 		{
-			char ret[200];
+			char ret[400];
 			snprintf(ret, 200, "%s scrape reply: %u %u"
 				, torrent_alert::message().c_str(), incomplete, complete);
 			return ret;
@@ -371,7 +371,7 @@ namespace libtorrent
 		virtual char const* what() const { return "tracker reply"; }
 		virtual std::string message() const
 		{
-			char ret[200];
+			char ret[400];
 			snprintf(ret, 200, "%s received peers: %u"
 				, torrent_alert::message().c_str(), num_peers);
 			return ret;
@@ -393,7 +393,7 @@ namespace libtorrent
 		virtual char const* what() const { return "DHT reply"; }
 		virtual std::string message() const
 		{
-			char ret[200];
+			char ret[400];
 			snprintf(ret, 200, "%s received DHT peers: %u"
 				, torrent_alert::message().c_str(), num_peers);
 			return ret;
@@ -436,7 +436,7 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			char ret[200];
+			char ret[400];
 			snprintf(ret, 200, "%s hash for piece %u failed"
 				, torrent_alert::message().c_str(), piece_index);
 			return ret;
