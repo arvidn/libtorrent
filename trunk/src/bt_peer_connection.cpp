@@ -1980,13 +1980,13 @@ namespace libtorrent
 				: m_id(id), m_pc(pc)
 			{ TORRENT_ASSERT(pc); }
 
-			bool operator()(policy::peer const& p) const
+			bool operator()(policy::peer const* p) const
 			{
-				return p.connection != m_pc
-					&& p.connection
-					&& p.connection->pid() == m_id
-					&& !p.connection->pid().is_all_zeros()
-					&& p.address() == m_pc->remote().address();
+				return p->connection != m_pc
+					&& p->connection
+					&& p->connection->pid() == m_id
+					&& !p->connection->pid().is_all_zeros()
+					&& p->address() == m_pc->remote().address();
 			}
 
 			peer_id const& m_id;
@@ -2753,7 +2753,7 @@ namespace libtorrent
 					, match_peer_id(pid, this));
 				if (i != p.end_peer())
 				{
-					TORRENT_ASSERT(i->connection->pid() == pid);
+					TORRENT_ASSERT((*i)->connection->pid() == pid);
 					// we found another connection with the same peer-id
 					// which connection should be closed in order to be
 					// sure that the other end closes the same connection?
@@ -2763,7 +2763,7 @@ namespace libtorrent
 					// if not, we should close the outgoing one.
 					if (pid < m_ses.get_peer_id() && is_local())
 					{
-						i->connection->disconnect("duplicate peer-id, connection closed");
+						(*i)->connection->disconnect("duplicate peer-id, connection closed");
 					}
 					else
 					{

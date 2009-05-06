@@ -143,8 +143,8 @@ namespace
 			: m_ep(ep)
 		{}
 
-		bool operator()(policy::peer const& p) const
-		{ return p.address() == m_ep.address() && p.port == m_ep.port(); }
+		bool operator()(policy::peer const* p) const
+		{ return p->address() == m_ep.address() && p->port == m_ep.port(); }
 
 		tcp::endpoint const& m_ep;
 	};
@@ -156,11 +156,11 @@ namespace
 			: m_conn(c)
 		{}
 
-		bool operator()(policy::peer const& p) const
+		bool operator()(policy::peer const* p) const
 		{
-			return p.connection == &m_conn
-				|| (p.ip() == m_conn.remote()
-					&& p.connectable);
+			return p->connection == &m_conn
+				|| (p->ip() == m_conn.remote()
+					&& p->connectable);
 		}
 
 		peer_connection const& m_conn;
@@ -171,6 +171,20 @@ namespace
 
 namespace libtorrent
 {
+	// returns the rank of a peer's source. We have an affinity
+	// to connecting to peers with higher rank. This is to avoid
+	// problems when out peer list is diluted by stale peers from
+	// the resume data for instance
+	int source_rank(int source_bitmask)
+	{
+		int ret = 0;
+		if (source_bitmask & peer_info::tracker) ret |= 1 << 5;
+		if (source_bitmask & peer_info::lsd) ret |= 1 << 4;
+		if (source_bitmask & peer_info::dht) ret |= 1 << 3;
+		if (source_bitmask & peer_info::pex) ret |= 1 << 2;
+		return ret;
+	}
+
 	// the case where ignore_peer is motivated is if two peers
 	// have only one piece that we don't have, and it's the
 	// same piece for both peers. Then they might get into an
@@ -330,7 +344,7 @@ namespace libtorrent
 	}
 
 	policy::policy(torrent* t)
-		: m_round_robin(m_peers.end())
+		: m_round_robin(0)
 		, m_torrent(t)
 		, m_available_free_upload(0)
 		, m_num_connect_candidates(0)
@@ -347,24 +361,24 @@ namespace libtorrent
 			p = &m_torrent->picker();
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{
-			if ((ses.m_ip_filter.access(i->address()) & ip_filter::blocked) == 0)
+			if ((ses.m_ip_filter.access((*i)->address()) & ip_filter::blocked) == 0)
 			{
 				++i;
 				continue;
 			}
 		
-			if (i->connection)
+			if ((*i)->connection)
 			{
-				i->connection->disconnect("peer banned by IP filter");
+				(*i)->connection->disconnect("peer banned by IP filter");
 				if (ses.m_alerts.should_post<peer_blocked_alert>())
-					ses.m_alerts.post_alert(peer_blocked_alert(i->address()));
-				TORRENT_ASSERT(i->connection == 0
-					|| i->connection->peer_info_struct() == 0);
+					ses.m_alerts.post_alert(peer_blocked_alert((*i)->address()));
+				TORRENT_ASSERT((*i)->connection == 0
+					|| (*i)->connection->peer_info_struct() == 0);
 			}
 			else
 			{
 				if (ses.m_alerts.should_post<peer_blocked_alert>())
-					ses.m_alerts.post_alert(peer_blocked_alert(i->address()));
+					ses.m_alerts.post_alert(peer_blocked_alert((*i)->address()));
 			}
 			erase_peer(i++);
 		}
@@ -378,13 +392,16 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (m_torrent->has_picker())
-			m_torrent->picker().clear_peer((void*)&(*i));
-		if (i->seed) --m_num_seeds;
-		if (is_connect_candidate(*i, m_finished))
-			--m_num_connect_candidates;
-		if (m_round_robin == i) ++m_round_robin;
+		TORRENT_ASSERT(m_finished == m_torrent->is_finished());
 
+		if (m_torrent->has_picker())
+			m_torrent->picker().clear_peer(*i);
+		if ((*i)->seed) --m_num_seeds;
+		if (is_connect_candidate(**i, m_finished))
+			--m_num_connect_candidates;
+		if (m_round_robin > i - m_peers.begin()) --m_round_robin;
+
+		m_torrent->session().m_peer_pool.destroy(*i);
 		m_peers.erase(i);
 	}
 
@@ -407,7 +424,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		iterator candidate = m_peers.end();
+		int candidate = -1;
+
+		TORRENT_ASSERT(m_finished == m_torrent->is_finished());
 
 		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
 		address external_ip = m_torrent->session().external_address();
@@ -422,7 +441,7 @@ namespace libtorrent
 			external_ip = address_v4(bytes);
 		}
 
-		if (m_round_robin == m_peers.end()) m_round_robin = m_peers.begin();
+		if (m_round_robin == m_peers.size()) m_round_robin = 0;
 
 #ifndef TORRENT_DISABLE_DHT
 		bool pinged = false;
@@ -431,10 +450,10 @@ namespace libtorrent
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
 		{
-			if (m_round_robin == m_peers.end()) m_round_robin = m_peers.begin();
+			if (m_round_robin == m_peers.size()) m_round_robin = 0;
 
-			peer& pe = (peer&)*m_round_robin;
-			iterator current = m_round_robin;
+			peer& pe = *m_peers[m_round_robin];
+			int current = m_round_robin;
 
 #ifndef TORRENT_DISABLE_DHT
 			// try to send a DHT ping to this peer
@@ -461,9 +480,11 @@ namespace libtorrent
 				&& pe.last_connected != 0
 				&& (!pe.banned || session_time - pe.last_connected > 2 * 60 * 60)
 				&& !is_connect_candidate(pe, m_finished)
-				&& m_peers.size() >= m_torrent->settings().max_peerlist_size * 0.9)
+				&& m_peers.size() >= m_torrent->settings().max_peerlist_size * 0.9
+				&& m_torrent->settings().max_peerlist_size > 0)
 			{
-				erase_peer(m_round_robin++);
+				if (candidate > m_round_robin) --candidate;
+				erase_peer(m_peers.begin() + m_round_robin);
 				continue;
 			}
 
@@ -471,8 +492,12 @@ namespace libtorrent
 
 			if (!is_connect_candidate(pe, m_finished)) continue;
 
-			if (candidate != m_peers.end()
-				&& compare_peer(*candidate, pe, external_ip)) continue;
+			// compare peer returns true if lhs is better than rhs. In this
+			// case, it returns true if the current candidate is better than
+			// pe, which is the peer m_round_robin points to. If it is, just
+			// keep looking.
+			if (candidate != -1
+				&& compare_peer(*m_peers[candidate], pe, external_ip)) continue;
 
 			if (pe.last_connected
 				&& session_time - pe.last_connected <
@@ -487,15 +512,16 @@ namespace libtorrent
 		{
 			(*m_torrent->session().m_logger) << time_now_string()
 				<< " *** FOUND CONNECTION CANDIDATE ["
-				" ip: " << candidate->ip() <<
-				" d: " << cidr_distance(external_ip, candidate->address()) <<
+				" ip: " << (*candidate)->ip() <<
+				" d: " << cidr_distance(external_ip, (*candidate)->address()) <<
 				" external: " << external_ip <<
-				" t: " << (session_time - candidate->last_connected) <<
+				" t: " << (session_time - (*candidate)->last_connected) <<
 				" ]\n";
 		}
 #endif
 
-		return candidate;
+		if (candidate == -1) return m_peers.end();
+		return m_peers.begin() + candidate;
 	}
 
 	void policy::pulse()
@@ -569,22 +595,27 @@ namespace libtorrent
 		iterator iter;
 		peer* i = 0;
 
+		bool found = false;
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
 		{
 			tcp::endpoint remote = c.remote();
-			std::pair<iterator, iterator> range = m_peers.equal_range(remote.address());
+			std::pair<iterator, iterator> range = find_peers(remote.address());
 			iter = std::find_if(range.first, range.second, match_peer_endpoint(remote));
 	
-			if (iter == range.second) iter = m_peers.end();
+			if (iter != range.second) found = true;
 		}
 		else
 		{
-			iter = m_peers.find(c.remote().address());
+			peer tmp(c.remote().address());
+			peer_ptr_compare cmp;
+			iter = std::lower_bound(m_peers.begin(), m_peers.end()
+				, &tmp, cmp);
+			if (iter != m_peers.end() && (*iter)->address() == c.remote().address()) found = true;
 		}
 
-		if (iter != m_peers.end())
+		if (found)
 		{
-			i = (peer*)&(*iter);
+			i = *iter;
 
 			if (i->banned)
 			{
@@ -658,9 +689,12 @@ namespace libtorrent
 				return false;
 			}
 
-			peer p(c.remote(), false, 0);
-			iter = m_peers.insert(p);
-			i = (peer*)&(*iter);
+			if (m_round_robin > iter - m_peers.begin()) ++m_round_robin;
+			peer* p = m_torrent->session().m_peer_pool.malloc();
+			new (p) peer(c.remote(), false, 0);
+			iter = m_peers.insert(iter, p);
+
+			i = *iter;
 #ifndef TORRENT_DISABLE_GEO_IP
 			int as = ses.as_for_ip(c.remote().address());
 #ifdef TORRENT_DEBUG
@@ -693,12 +727,12 @@ namespace libtorrent
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
 		{
 			tcp::endpoint remote(p->address(), port);
-			std::pair<iterator, iterator> range = m_peers.equal_range(remote.address());
+			std::pair<iterator, iterator> range = find_peers(remote.address());
 			iterator i = std::find_if(range.first, range.second
 				, match_peer_endpoint(remote));
 			if (i != m_peers.end())
 			{
-				policy::peer& pp = (peer&)*i;
+				policy::peer& pp = **i;
 				if (pp.connection)
 				{
 					p->connection->disconnect("duplicate connection");
@@ -707,10 +741,14 @@ namespace libtorrent
 				erase_peer(i);
 			}
 		}
+#ifdef TORRENT_DEBUG
 		else
 		{
-			TORRENT_ASSERT(m_peers.count(p->address()) == 1);
+			std::pair<iterator, iterator> range = find_peers(p->address());
+			TORRENT_ASSERT(range.second - range.first == 1);
 		}
+#endif
+
 		bool was_conn_cand = is_connect_candidate(*p, m_finished);
 		p->port = port;
 		p->source |= src;
@@ -729,7 +767,7 @@ namespace libtorrent
 		for (const_iterator i = m_peers.begin()
 			, end(m_peers.end()); i != end; ++i)
 		{
-			if (&(*i) == p) return true;
+			if (*i == p) return true;
 		}
 		return false;
 	}
@@ -756,18 +794,23 @@ namespace libtorrent
 		iterator iter;
 		peer* i = 0;
 
+		bool found = false;
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
 		{
-			std::pair<iterator, iterator> range = m_peers.equal_range(remote.address());
+			std::pair<iterator, iterator> range = find_peers(remote.address());
 			iter = std::find_if(range.first, range.second, match_peer_endpoint(remote));
-			if (iter == range.second) iter = m_peers.end();
+			if (iter != range.second) found = true;
 		}
 		else
 		{
-			iter = m_peers.find(remote.address());
+			peer tmp(remote.address());
+			peer_ptr_compare cmp;
+			iter = std::lower_bound(m_peers.begin(), m_peers.end()
+				, &tmp, cmp);
+			if (iter != m_peers.end() && (*iter)->address() == remote.address()) found = true;
 		}
 
-		if (iter == m_peers.end())
+		if (!found)
 		{
 			// if the IP is blocked, don't add it
 			if (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked)
@@ -779,13 +822,19 @@ namespace libtorrent
 				return 0;
 			}
 
-			if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
+			if (m_torrent->settings().max_peerlist_size
+				&& int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
 				return 0;
+
+			if (m_round_robin > iter - m_peers.begin()) ++m_round_robin;
 
 			// we don't have any info about this peer.
 			// add a new entry
-			iter = m_peers.insert(peer(remote, true, src));
-			i = (peer*)&(*iter);
+			peer* p = m_torrent->session().m_peer_pool.malloc();
+			new (p) peer(remote, true, src);
+			iter = m_peers.insert(iter, p);
+
+			i = *iter;
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			if (flags & 0x01) i->pe_support = true;
 #endif
@@ -807,7 +856,7 @@ namespace libtorrent
 		}
 		else
 		{
-			i = (peer*)&(*iter);
+			i = *iter;
 
 			bool was_conn_cand = is_connect_candidate(*i, m_finished);
 
@@ -988,7 +1037,7 @@ namespace libtorrent
 		
 		iterator i = find_connect_candidate(session_time);
 		if (i == m_peers.end()) return false;
-		peer& p = (peer&)*i;
+		peer& p = **i;
 
 		TORRENT_ASSERT(!p.banned);
 		TORRENT_ASSERT(!p.connection);
@@ -1082,7 +1131,7 @@ namespace libtorrent
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
-			m_num_connect_candidates += is_connect_candidate(*i, m_finished);
+			m_num_connect_candidates += is_connect_candidate(**i, m_finished);
 		}
 	}
 
@@ -1114,16 +1163,30 @@ namespace libtorrent
 		int nonempty_connections = 0;
 
 		std::set<tcp::endpoint> unique_test;
+		const_iterator prev = m_peers.end();
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
-			peer const& p = *i;
+			if (prev != m_peers.end()) ++prev;
+			if (i == m_peers.begin() + 1) prev = m_peers.begin();
+			if (prev != m_peers.end())
+			{
+				if (m_torrent->settings().allow_multiple_connections_per_ip)
+					TORRENT_ASSERT(!((*i)->address() < (*prev)->address()));
+				else
+					TORRENT_ASSERT((*prev)->address() < (*i)->address());
+			}
+			peer const& p = **i;
 #ifndef TORRENT_DISABLE_GEO_IP
 			TORRENT_ASSERT(p.inet_as == 0 || p.inet_as->first == p.inet_as_num);
 #endif
 			if (!m_torrent->settings().allow_multiple_connections_per_ip)
 			{
-				TORRENT_ASSERT(m_peers.count(p.address()) == 1);
+				peer tmp(p.address());
+				peer_ptr_compare cmp;
+				std::pair<const_iterator, const_iterator> range = std::equal_range(
+					m_peers.begin(), m_peers.end(), &tmp, cmp);
+				TORRENT_ASSERT(range.second - range.first == 1);
 			}
 			else
 			{
@@ -1306,6 +1369,10 @@ namespace libtorrent
 
 		if (lhs.last_connected != rhs.last_connected)
 			return lhs.last_connected < rhs.last_connected;
+
+		int lhs_rank = source_rank(lhs.source);
+		int rhs_rank = source_rank(rhs.source);
+		if (lhs_rank != rhs_rank) return lhs_rank > rhs_rank;
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		// don't bias fast peers when seeding

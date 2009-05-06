@@ -36,14 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <set>
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
 #include "libtorrent/peer.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/socket.hpp"
@@ -152,9 +144,6 @@ namespace libtorrent
 			libtorrent::address address() const
 			{ return addr; }
 #endif
-
-			bool operator<(peer const& rhs) const
-			{ return address() < rhs.address(); }
 
 			tcp::endpoint ip() const { return tcp::endpoint(address(), port); }
 
@@ -291,7 +280,13 @@ namespace libtorrent
 
 		int num_peers() const { return m_peers.size(); }
 
-		typedef std::multiset<peer> peers_t;
+		struct peer_ptr_compare
+		{
+			bool operator()(peer* lhs, peer* rhs) const
+			{ return lhs->address() < rhs->address(); }
+		};
+
+		typedef std::deque<peer*> peers_t;
 
 		typedef peers_t::iterator iterator;
 		typedef peers_t::const_iterator const_iterator;
@@ -300,7 +295,12 @@ namespace libtorrent
 		const_iterator begin_peer() const { return m_peers.begin(); }
 		const_iterator end_peer() const { return m_peers.end(); }
 		std::pair<iterator, iterator> find_peers(address const& a)
-		{ return m_peers.equal_range(a); }
+		{
+			peer tmp(a);
+			peer_ptr_compare cmp;
+			return std::equal_range(m_peers.begin(), m_peers.end()
+				, &tmp, cmp);
+		}
 
 		bool connect_one_peer(int session_time);
 
@@ -325,7 +325,7 @@ namespace libtorrent
 
 		// since the peer list can grow too large
 		// to scan all of it, start at this iterator
-		iterator m_round_robin;
+		int m_round_robin;
 
 		torrent* m_torrent;
 

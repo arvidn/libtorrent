@@ -643,11 +643,60 @@ namespace libtorrent
 
 		if (m_resume_entry.type() == lazy_entry::dict_t)
 		{
+			using namespace libtorrent::detail; // for read_*_endpoint()
+			peer_id id(0);
+
+			if (lazy_entry const* peers_entry = m_resume_entry.dict_find_string("peers"))
+			{
+				int num_peers = peers_entry->string_length() / (sizeof(address_v4::bytes_type) + 2);
+				char const* ptr = peers_entry->string_ptr();
+				for (int i = 0; i < num_peers; ++i)
+				{
+					m_policy.peer_from_tracker(read_v4_endpoint<tcp::endpoint>(ptr)
+						, id, peer_info::resume_data, 0);
+				}
+			}
+
+			if (lazy_entry const* banned_peers_entry = m_resume_entry.dict_find_string("banned_peers"))
+			{
+				int num_peers = banned_peers_entry->string_length() / (sizeof(address_v4::bytes_type) + 2);
+				char const* ptr = banned_peers_entry->string_ptr();
+				for (int i = 0; i < num_peers; ++i)
+				{
+					policy::peer* p = m_policy.peer_from_tracker(read_v4_endpoint<tcp::endpoint>(ptr)
+						, id, peer_info::resume_data, 0);
+					if (p) p->banned = true;
+				}
+			}
+
+#if TORRENT_USE_IPV6
+			if (lazy_entry const* peers6_entry = m_resume_entry.dict_find_string("peers6"))
+			{
+				int num_peers = peers6_entry->string_length() / (sizeof(address_v6::bytes_type) + 2);
+				char const* ptr = peers6_entry->string_ptr();
+				for (int i = 0; i < num_peers; ++i)
+				{
+					m_policy.peer_from_tracker(read_v6_endpoint<tcp::endpoint>(ptr)
+						, id, peer_info::resume_data, 0);
+				}
+			}
+
+			if (lazy_entry const* banned_peers6_entry = m_resume_entry.dict_find_string("banned_peers6"))
+			{
+				int num_peers = banned_peers6_entry->string_length() / (sizeof(address_v6::bytes_type) + 2);
+				char const* ptr = banned_peers6_entry->string_ptr();
+				for (int i = 0; i < num_peers; ++i)
+				{
+					policy::peer* p = m_policy.peer_from_tracker(read_v6_endpoint<tcp::endpoint>(ptr)
+						, id, peer_info::resume_data, 0);
+					if (p) p->banned = true;
+				}
+			}
+#endif
+
 			// parse out "peers" from the resume data and add them to the peer list
 			if (lazy_entry const* peers_entry = m_resume_entry.dict_find_list("peers"))
 			{
-				peer_id id(0);
-
 				for (int i = 0; i < peers_entry->list_size(); ++i)
 				{
 					lazy_entry const* e = peers_entry->list_at(i);
@@ -664,9 +713,7 @@ namespace libtorrent
 
 			// parse out "banned_peers" and add them as banned
 			if (lazy_entry const* banned_peers_entry = m_resume_entry.dict_find_list("banned_peers"))
-			{
-				peer_id id(0);
-	
+			{	
 				for (int i = 0; i < banned_peers_entry->list_size(); ++i)
 				{
 					lazy_entry const* e = banned_peers_entry->list_at(i);
@@ -3150,6 +3197,7 @@ namespace libtorrent
 	
 	void torrent::write_resume_data(entry& ret) const
 	{
+		using namespace libtorrent::detail; // for write_*_endpoint()
 		ret["file-format"] = "libtorrent resume file";
 		ret["file-version"] = 1;
 
@@ -3313,9 +3361,13 @@ namespace libtorrent
 
 		// write local peers
 
-		entry::list_type& peer_list = ret["peers"].list();
-		entry::list_type& banned_peer_list = ret["banned_peers"].list();
-		
+		std::back_insert_iterator<entry::string_type> peers(ret["peers"].string());
+		std::back_insert_iterator<entry::string_type> banned_peers(ret["banned_peers"].string());
+#if TORRENT_USE_IPV6
+		std::back_insert_iterator<entry::string_type> peers6(ret["peers6"].string());
+		std::back_insert_iterator<entry::string_type> banned_peers6(ret["banned_peers6"].string());
+#endif
+
 		// failcount is a 5 bit value
 		int max_failcount = (std::min)(m_ses.m_settings.max_failcount, 31);
 
@@ -3323,16 +3375,19 @@ namespace libtorrent
 			, end(m_policy.end_peer()); i != end; ++i)
 		{
 			error_code ec;
-			policy::peer const& p = *i;
-			if (p.banned)
+			policy::peer const* p = *i;
+			address addr = p->address();
+			if (p->banned)
 			{
-				entry peer(entry::dictionary_t);
-				peer["ip"] = p.address().to_string(ec);
-				if (ec) continue;
-				peer["port"] = p.port;
-				banned_peer_list.push_back(peer);
+#if TORRENT_USE_IPV6
+				if (addr.is_v6())
+					write_endpoint(tcp::endpoint(addr, p->port), banned_peers6);
+				else
+#endif
+					write_endpoint(tcp::endpoint(addr, p->port), banned_peers);
 				continue;
 			}
+
 			// we cannot save remote connection
 			// since we don't know their listen port
 			// unless they gave us their listen port
@@ -3340,16 +3395,17 @@ namespace libtorrent
 			// so, if the peer is not connectable (i.e. we
 			// don't know its listen port) or if it has
 			// been banned, don't save it.
-			if (!p.connectable) continue;
+			if (!p->connectable) continue;
 
-			// don't save peers that doesn't work
-			if (p.failcount >= max_failcount) continue;
+			// don't save peers that don't work
+			if (p->failcount >= max_failcount) continue;
 
-			entry peer(entry::dictionary_t);
-			peer["ip"] = p.address().to_string(ec);
-			if (ec) continue;
-			peer["port"] = p.port;
-			peer_list.push_back(peer);
+#if TORRENT_USE_IPV6
+			if (addr.is_v6())
+				write_endpoint(tcp::endpoint(addr, p->port), peers6);
+			else
+#endif
+				write_endpoint(tcp::endpoint(addr, p->port), peers);
 		}
 
 		ret["upload_rate_limit"] = upload_limit();
@@ -3388,10 +3444,10 @@ namespace libtorrent
 			i != m_policy.end_peer(); ++i)
 		{
 			peer_list_entry e;
-			e.ip = i->ip();
-			e.flags = i->banned ? peer_list_entry::banned : 0;
-			e.failcount = i->failcount;
-			e.source = i->source;
+			e.ip = (*i)->ip();
+			e.flags = (*i)->banned ? peer_list_entry::banned : 0;
+			e.failcount = (*i)->failcount;
+			e.source = (*i)->source;
 			v.push_back(e);
 		}
 	}
@@ -4189,10 +4245,10 @@ namespace libtorrent
 			policy::const_iterator i = m_policy.begin_peer();
 			policy::const_iterator prev = i++;
 			policy::const_iterator end(m_policy.end_peer());
+			policy::peer_ptr_compare cmp;
 			for (; i != end; ++i, ++prev)
 			{
-				// this means <= but only using the < operator
-				TORRENT_ASSERT(*prev < *i || !(*i < *prev));
+				TORRENT_ASSERT(!cmp(*i, *prev));
 			}
 		}
 #endif

@@ -4410,7 +4410,7 @@ namespace libtorrent
 			policy::const_iterator end = t->get_policy().end_peer();
 			for (; i != end; ++i)
 			{
-				if (&(*i) == m_peer_info) break;
+				if (*i == m_peer_info) break;
 			}
 			TORRENT_ASSERT(i != end);
 		}
