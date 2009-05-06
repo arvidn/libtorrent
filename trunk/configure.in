@@ -267,8 +267,7 @@ AC_MSG_CHECKING([which zlib implementation to use])
 case "$zlib" in
 	"detect")
 		AC_MSG_RESULT([autodetect])
-		AC_CHECK_LIB(z, main,
-			[zlib="system"],
+		AC_CHECK_LIB(z, main, ,
 			[zlib="shipped"]
 		)
 		;;
@@ -294,7 +293,7 @@ if [[ "$zlib" = "shipped" ]]; then
 	ZLIB="\$(top_builddir)/zlib/libzlib.la"
 	AM_CONDITIONAL([ENABLE_SHIPPED_ZLIB], true)
 	ZLIBINCL="-I\$(top_srcdir)/zlib"
-elif [[ "$zlib" = "system" ]]; then
+elif [[ "$zlib" = "system" ]] || [[ "$zlib" = "detect" ]]; then
 	ZLIB="" # AC_CHECK_LIB will add -lz to @LIBS@ automatically
 	AM_CONDITIONAL([ENABLE_SHIPPED_ZLIB], false)
 	ZLIBINCL=""
