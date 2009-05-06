@@ -472,7 +472,7 @@ namespace libtorrent
 			if (!is_connect_candidate(pe, m_finished)) continue;
 
 			if (candidate != m_peers.end()
-				&& !compare_peer(*candidate, pe, external_ip)) continue;
+				&& compare_peer(*candidate, pe, external_ip)) continue;
 
 			if (pe.last_connected
 				&& session_time - pe.last_connected <
