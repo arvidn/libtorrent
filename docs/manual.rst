@@ -3662,7 +3662,8 @@ known peers. These peers are not necessarily connected, so this number
 should be much greater than the maximum number of connected peers.
 Peers are evicted from the cache when the list grows passed 90% of
 this limit, and once the size hits the limit, peers are no longer
-added to the list.
+added to the list. If this limit is set to 0, there is no limit on
+how many peers we'll keep in the peer list.
 
 ``min_announce_interval`` is the minimum allowed announce interval
 for a tracker. This is specified in seconds, defaults to 5 minutes and

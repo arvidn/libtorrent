@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/condition.hpp>
+#include <boost/pool/object_pool.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -75,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/policy.hpp" // for policy::peer
 
 namespace libtorrent
 {
@@ -343,6 +345,12 @@ namespace libtorrent
 				, entry& e, bool& done) const;
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);
+
+			// this is a shared pool where policy_peer objects
+			// are allocated. It's a pool since we're likely
+			// to have tens of thousands of peers, and a pool
+			// saves significant overhead
+			boost::object_pool<policy::peer> m_peer_pool;
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 			// this pool is used to allocate and recycle send

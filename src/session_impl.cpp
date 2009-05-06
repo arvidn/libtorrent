@@ -149,11 +149,11 @@ namespace aux {
 		, fs::path const& logpath
 #endif
 		)
-		: 
+		: m_peer_pool(500)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		m_send_buffers(send_buffer_size),
+		, m_send_buffers(send_buffer_size)
 #endif
-		  m_files(40)
+		, m_files(40)
 		, m_io_service()
 		, m_disk_thread(m_io_service)
 		, m_half_open(m_io_service)
