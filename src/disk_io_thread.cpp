@@ -52,7 +52,7 @@ namespace libtorrent
 		: m_block_size(block_size)
 		, m_in_use(0)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_pool(block_size)
+		, m_pool(block_size, 10)
 #endif
 	{
 #if defined TORRENT_DISK_STATS || defined TORRENT_STATS
