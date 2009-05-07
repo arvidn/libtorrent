@@ -241,11 +241,15 @@ namespace libtorrent { namespace dht
 		mutex_t::scoped_lock l(m_mutex);
 		if (bootstrap.type() == entry::dictionary_t)
 		{
+#ifndef BOOST_NO_EXCEPTIONS
 			try
 			{
+#endif
 			if (entry const* nodes = bootstrap.find_key("nodes"))
 				read_endpoint_list<udp::endpoint>(nodes, initial_nodes);
+#ifndef BOOST_NO_EXCEPTIONS
 			} catch (std::exception&) {}
+#endif
 		}
 
 		error_code ec;
