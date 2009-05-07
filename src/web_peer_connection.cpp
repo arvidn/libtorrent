@@ -175,9 +175,14 @@ namespace libtorrent
 
 		TORRENT_ASSERT(t->valid_metadata());
 
-		bool single_file_request = false;
-		if (!m_path.empty() && m_path[m_path.size() - 1] != '/')
-			single_file_request = true;
+		bool single_file_request = t->torrent_file().num_files() == 1;
+
+		// handle incorrect .torrent files which are multi-file
+		// but have web seeds not ending with a slash
+		if (!single_file_request && (m_path.empty() || m_path[m_path.size() - 1] != '/'))
+		{
+			m_path += "/";
+		}
 
 		torrent_info const& info = t->torrent_file();
 		
