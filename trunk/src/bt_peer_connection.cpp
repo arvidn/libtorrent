@@ -2775,6 +2775,7 @@ namespace libtorrent
 
 			if (pid == m_ses.get_peer_id())
 			{
+				if (peer_info_struct()) peer_info_struct()->banned = true;
 				disconnect("closing connection to ourself", 1);
 				return;
 			}
@@ -2791,6 +2792,7 @@ namespace libtorrent
 			// since it most likely is ourself then
 			if (pid == m_ses.get_peer_id())
 			{
+				if (peer_info_struct()) peer_info_struct()->banned = true;
 				disconnect("closing connection to ourself", 1);
 				return;
 			}

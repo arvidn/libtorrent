@@ -4173,6 +4173,7 @@ namespace libtorrent
 		{
 			// if the remote endpoint is the same as the local endpoint, we're connected
 			// to ourselves
+			if (m_peer_info) m_peer_info->banned = true;
 			disconnect("connected to ourselves", 1);
 			return;
 		}
