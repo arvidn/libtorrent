@@ -2068,7 +2068,8 @@ namespace libtorrent
 			else
 			{
 				if (alerts().should_post<file_rename_failed_alert>())
-					alerts().post_alert(file_rename_failed_alert(get_handle(), j.str, j.piece));
+					alerts().post_alert(file_rename_failed_alert(get_handle()
+						, j.piece, j.error));
 			}
 		}
 	}
