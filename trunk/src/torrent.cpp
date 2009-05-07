@@ -2058,19 +2058,17 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		
+		if (ret == 0)
 		{
-			if (ret == 0)
-			{
-				if (alerts().should_post<file_renamed_alert>())
-					alerts().post_alert(file_renamed_alert(get_handle(), j.str, j.piece));
-				m_torrent_file->rename_file(j.piece, j.str);
-			}
-			else
-			{
-				if (alerts().should_post<file_rename_failed_alert>())
-					alerts().post_alert(file_rename_failed_alert(get_handle()
-						, j.piece, j.error));
-			}
+			if (alerts().should_post<file_renamed_alert>())
+				alerts().post_alert(file_renamed_alert(get_handle(), j.str, j.piece));
+			m_torrent_file->rename_file(j.piece, j.str);
+		}
+		else
+		{
+			if (alerts().should_post<file_rename_failed_alert>())
+				alerts().post_alert(file_rename_failed_alert(get_handle()
+					, j.piece, j.error));
 		}
 	}
 
