@@ -59,7 +59,7 @@ namespace libtorrent
 		, m_coalesce_reads(true)
 		, m_use_read_cache(true)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_pool(block_size, 10)
+		, m_pool(block_size, 16)
 #endif
 		, m_block_size(block_size)
 		, m_ios(ios)
@@ -728,6 +728,7 @@ namespace libtorrent
 		return (char*)malloc(m_block_size);
 #else
 		return (char*)m_pool.ordered_malloc();
+		m_pool.set_next_size(16);
 #endif
 	}
 

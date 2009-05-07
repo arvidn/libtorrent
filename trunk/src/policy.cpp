@@ -691,6 +691,7 @@ namespace libtorrent
 
 			if (m_round_robin > iter - m_peers.begin()) ++m_round_robin;
 			peer* p = m_torrent->session().m_peer_pool.malloc();
+			m_torrent->session().m_peer_pool.set_next_size(500);
 			new (p) peer(c.remote(), false, 0);
 			iter = m_peers.insert(iter, p);
 
@@ -831,6 +832,7 @@ namespace libtorrent
 			// we don't have any info about this peer.
 			// add a new entry
 			peer* p = m_torrent->session().m_peer_pool.malloc();
+			m_torrent->session().m_peer_pool.set_next_size(500);
 			new (p) peer(remote, true, src);
 			iter = m_peers.insert(iter, p);
 

@@ -77,6 +77,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/policy.hpp" // for policy::peer
+#include "libtorrent/alert.hpp" // for alert_manager
 
 namespace libtorrent
 {
@@ -350,7 +351,37 @@ namespace libtorrent
 			// are allocated. It's a pool since we're likely
 			// to have tens of thousands of peers, and a pool
 			// saves significant overhead
+#ifdef TORRENT_STATS
+			struct logging_allocator
+			{
+				typedef std::size_t size_type;
+				typedef std::ptrdiff_t difference_type;
+
+				static char* malloc(const size_type bytes)
+				{
+					allocated_bytes += bytes;
+					++allocations;
+					return (char*)::malloc(bytes);
+				}
+
+				static void free(char* const block)
+				{
+					--allocations;
+					return ::free(block);
+				}
+			
+				static int allocations;
+				static int allocated_bytes;
+			};
+			boost::object_pool<policy::peer, logging_allocator> m_peer_pool;
+#else
 			boost::object_pool<policy::peer> m_peer_pool;
+#endif
+
+			// this vector is used to store the block_info
+			// objects pointed to by partial_piece_info returned
+			// by torrent::get_download_queue.
+			std::vector<block_info> m_block_info_storage;
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 			// this pool is used to allocate and recycle send
@@ -657,11 +688,6 @@ namespace libtorrent
 			// total redundant and failed bytes
 			size_type m_total_failed_bytes;
 			size_type m_total_redundant_bytes;
-
-			// this vector is used to store the block_info
-			// objects pointed to by partial_piece_info returned
-			// by torrent::get_download_queue.
-			std::vector<block_info> m_block_info_storage;
 
 			// the main working thread
 			boost::scoped_ptr<boost::thread> m_thread;

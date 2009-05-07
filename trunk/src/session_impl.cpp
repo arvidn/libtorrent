@@ -141,6 +141,11 @@ namespace aux {
 		}
 	};
 
+#ifdef TORRENT_STATS
+	int session_impl::logging_allocator::allocations = 0;
+	int session_impl::logging_allocator::allocated_bytes = 0;
+#endif
+
 	session_impl::session_impl(
 		std::pair<int, int> listen_port_range
 		, fingerprint const& cl_fprint
@@ -265,7 +270,8 @@ namespace aux {
 		m_stats_logger.open("session_stats.log", std::ios::trunc);
 		m_stats_logger <<
 			"second:upload rate:download rate:downloading torrents:seeding torrents"
-			":peers:connecting peers:disk block buffers:unchoked peers:num list peers\n\n";
+			":peers:connecting peers:disk block buffers:unchoked peers:num list peers"
+			":peer allocations:peer storage bytes\n\n";
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
 		m_second_counter = 0;
 		m_buffer_allocations = 0;
@@ -1236,6 +1242,8 @@ namespace aux {
 			<< m_disk_thread.disk_allocations() << "\t"
 			<< unchoked_peers << "\t"
 			<< num_peers << "\t"
+			<< logging_allocator::allocations << "\t"
+			<< logging_allocator::allocated_bytes << "\t"
 			<< std::endl;
 #endif
 
