@@ -4587,6 +4587,42 @@ generated and the torrent is paused.
 		std::string msg;
 	};
 
+file_renamed_alert
+------------------------
+
+This is posted as a response to a ``torrent_handle::rename_file`` call, if the rename
+operation succeeds.
+
+::
+
+	struct file_renamed_alert: torrent_alert
+	{
+		// ...
+		std::string name;
+		int index;
+	};
+
+The ``index`` member refers to the index of the file that was renamed,
+``name`` is the new name of the file.
+
+
+file_rename_failed_alert
+------------------------
+
+This is posted as a response to a ``torrent_handle::rename_file`` call, if the rename
+operation failed.
+
+::
+
+	struct file_rename_failed_alert: torrent_alert
+	{
+		// ...
+		int index;
+		error_code error;
+	};
+
+The ``index`` member refers to the index of the file that was supposed to be renamed,
+``error`` is the error code returned from the filesystem.
 
 tracker_announce_alert
 ----------------------

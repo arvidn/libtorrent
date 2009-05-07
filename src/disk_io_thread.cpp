@@ -1524,6 +1524,11 @@ namespace libtorrent
 					m_log << log_time() << " rename_file" << std::endl;
 #endif
 					ret = j.storage->rename_file_impl(j.piece, j.str);
+					if (ret != 0)
+					{
+						test_error(j);
+						break;
+					}
 				}
 			}
 #ifndef BOOST_NO_EXCEPTIONS

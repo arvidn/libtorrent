@@ -42,6 +42,8 @@ release 0.14.4
 	* fixed magnet link parser to accept hex-encoded info-hashes
 	* fixed inverted logic when picking which peers to connect to
 	  (should mean a slight performance improvement)
+	* fixed a bug where a failed rename_file() would leave the storage
+	  in an error state which would pause the torrent
 
 release 0.14.3
 

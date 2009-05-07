@@ -155,11 +155,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT file_rename_failed_alert: torrent_alert
 	{
 		file_rename_failed_alert(torrent_handle const& h
-			, std::string const& msg_
-			, int index_)
+			, int index_
+			, error_code ec_)
 			: torrent_alert(h)
-			, msg(msg_)
 			, index(index_)
+			, error(ec_)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
@@ -169,16 +169,16 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[200 + NAME_MAX];
-			snprintf(ret, sizeof(msg), "%s: failed to rename file %d: %s"
-				, torrent_alert::message().c_str(), index, msg.c_str());
+			snprintf(ret, sizeof(ret), "%s: failed to rename file %d: %s"
+				, torrent_alert::message().c_str(), index, error.message().c_str());
 			return ret;
 		}
 
 		const static int static_category = alert::storage_notification;
 		virtual int category() const { return static_category; }
 
-		std::string msg;
 		int index;
+		error_code error;
 	};
 
 	struct TORRENT_EXPORT performance_alert: torrent_alert
