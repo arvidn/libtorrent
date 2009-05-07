@@ -56,13 +56,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/alert.hpp"
 
 #include "libtorrent/storage.hpp"
 #include <boost/preprocessor/cat.hpp>
 
-#ifndef TORRENT_NO_DEPRECATE
-#include "libtorrent/alert.hpp"
-#endif
 
 #ifdef _MSC_VER
 #	include <eh.h>
