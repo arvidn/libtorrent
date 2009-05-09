@@ -38,9 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/filesystem/path.hpp>
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/ordered_index.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
 
@@ -53,12 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
-	using boost::multi_index::multi_index_container;
-	using boost::multi_index::ordered_non_unique;
-	using boost::multi_index::ordered_unique;
-	using boost::multi_index::indexed_by;
-	using boost::multi_index::member;
 	namespace fs = boost::filesystem;
 
 	struct TORRENT_EXPORT file_pool : boost::noncopyable
@@ -72,28 +63,21 @@ namespace libtorrent
 		void resize(int size);
 
 	private:
+
+		void remove_oldest();
+
 		int m_size;
 
 		struct lru_file_entry
 		{
 			lru_file_entry(): last_use(time_now()) {}
 			mutable boost::shared_ptr<file> file_ptr;
-			fs::path file_path;
 			void* key;
 			ptime last_use;
 			int mode;
 		};
 
-		typedef multi_index_container<
-			lru_file_entry, indexed_by<
-				ordered_unique<member<lru_file_entry, fs::path
-					, &lru_file_entry::file_path> >
-				, ordered_non_unique<member<lru_file_entry, ptime
-					, &lru_file_entry::last_use> >
-				, ordered_non_unique<member<lru_file_entry, void*
-					, &lru_file_entry::key> >
-				> 
-			> file_set;
+		typedef std::map<std::string, lru_file_entry> file_set;
 		
 		file_set m_files;
 		boost::mutex m_mutex;
