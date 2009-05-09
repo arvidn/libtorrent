@@ -107,8 +107,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace fs = boost::filesystem;
 using boost::bind;
-using namespace ::boost::multi_index;
-using boost::multi_index::multi_index_container;
 
 #if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG && TORRENT_USE_IOSTREAM
 namespace
