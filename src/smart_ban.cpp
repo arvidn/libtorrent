@@ -182,7 +182,7 @@ namespace libtorrent { namespace
 			// there is no peer with this address anymore
 			if (range.first == range.second) return;
 
-			policy::peer* p = (policy::peer*)&(*range.first);
+			policy::peer* p = (*range.first);
 			block_entry e = {p, crc.final()};
 
 			std::map<piece_block, block_entry>::iterator i = m_block_crc.lower_bound(b);
