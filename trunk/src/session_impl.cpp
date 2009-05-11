@@ -1544,6 +1544,8 @@ namespace aux {
 				}
 			}
 		}
+
+//		m_peer_pool.release_memory();
 	}
 
 	namespace
