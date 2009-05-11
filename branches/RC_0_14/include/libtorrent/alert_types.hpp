@@ -739,6 +739,27 @@ namespace libtorrent
 		}
 	};
 
+	struct TORRENT_EXPORT storage_moved_failed_alert: torrent_alert
+	{
+		storage_moved_failed_alert(torrent_handle const& h, error_code const& ec_)
+			: torrent_alert(h)
+			, error(ec_)
+		{}
+	
+		error_code error;
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new storage_moved_failed_alert(*this)); }
+		virtual char const* what() const { return "storage moved failed"; }
+		const static int static_category = alert::storage_notification;
+		virtual int category() const { return static_category; }
+		virtual std::string message() const
+		{
+			return torrent_alert::message() + " storage move failed: "
+				+ error.message();
+		}
+	};
+
 	struct TORRENT_EXPORT torrent_deleted_alert: torrent_alert
 	{
 		torrent_deleted_alert(torrent_handle const& h)

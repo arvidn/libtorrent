@@ -1777,7 +1777,8 @@ drop while copying the file.
 
 Since disk IO is performed in a separate thread, this operation is also asynchronous.
 Once the operation completes, the ``storage_moved_alert`` is generated, with the new
-path as the message.
+path as the message. If the move fails for some reason, ``storage_moved_failed_alert``
+is generated instead, containing the error message.
 
 rename_file()
 -------------
@@ -4467,6 +4468,21 @@ the storage.
 	{
 		// ...
 		std::string path;
+	};
+
+
+storage_moved_failed_alert
+--------------------------
+
+The ``storage_moved_failed_alert`` is generated when an attempt to move the storage
+(via torrent_handle::move_storage()) fails.
+
+::
+
+	struct storage_moved_failed_alert: torrent_alert
+	{
+		// ...
+		error_code error;
 	};
 
 
