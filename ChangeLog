@@ -44,6 +44,8 @@ release 0.14.4
 	  (should mean a slight performance improvement)
 	* fixed a bug where a failed rename_file() would leave the storage
 	  in an error state which would pause the torrent
+	* fixed case when move_storage() would fail. Added a new alert
+	  to be posted when it does
 
 release 0.14.3
 

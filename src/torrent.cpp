@@ -4123,6 +4123,10 @@ namespace libtorrent
 		else
 		{
 			m_save_path = save_path;
+			if (alerts().should_post<storage_moved_alert>())
+			{
+				alerts().post_alert(storage_moved_alert(get_handle(), m_save_path.string()));
+			}
 		}
 	}
 
@@ -4130,11 +4134,21 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		if (alerts().should_post<storage_moved_alert>())
+		if (ret == 0)
 		{
-			alerts().post_alert(storage_moved_alert(get_handle(), j.str));
+			if (alerts().should_post<storage_moved_alert>())
+			{
+				alerts().post_alert(storage_moved_alert(get_handle(), j.str));
+			}
+			m_save_path = j.str;
 		}
-		m_save_path = j.str;
+		else
+		{
+			if (alerts().should_post<storage_moved_failed_alert>())
+			{
+				alerts().post_alert(storage_moved_failed_alert(get_handle(), j.error));
+			}
+		}
 	}
 
 	piece_manager& torrent::filesystem()
