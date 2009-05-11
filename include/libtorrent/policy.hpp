@@ -282,7 +282,7 @@ namespace libtorrent
 
 		struct peer_ptr_compare
 		{
-			bool operator()(peer* lhs, peer* rhs) const
+			bool operator()(peer const* lhs, peer const* rhs) const
 			{ return lhs->address() < rhs->address(); }
 		};
 
@@ -294,12 +294,19 @@ namespace libtorrent
 		iterator end_peer() { return m_peers.end(); }
 		const_iterator begin_peer() const { return m_peers.begin(); }
 		const_iterator end_peer() const { return m_peers.end(); }
+
 		std::pair<iterator, iterator> find_peers(address const& a)
 		{
 			peer tmp(a);
 			peer_ptr_compare cmp;
-			return std::equal_range(m_peers.begin(), m_peers.end()
-				, &tmp, cmp);
+			return std::equal_range(m_peers.begin(), m_peers.end(), &tmp, cmp);
+		}
+
+		std::pair<const_iterator, const_iterator> find_peers(address const& a) const
+		{
+			peer tmp(a);
+			peer_ptr_compare cmp;
+			return std::equal_range(m_peers.begin(), m_peers.end(), &tmp, cmp);
 		}
 
 		bool connect_one_peer(int session_time);
@@ -310,16 +317,22 @@ namespace libtorrent
 		int num_connect_candidates() const { return m_num_connect_candidates; }
 		void recalculate_connect_candidates();
 
+		void erase_peer(policy::peer* p);
 		void erase_peer(iterator i);
 
 	private:
 
+		bool compare_peer_erase(policy::peer const& lhs, policy::peer const& rhs) const;
 		bool compare_peer(policy::peer const& lhs, policy::peer const& rhs
 			, address const& external_ip) const;
 
 		iterator find_connect_candidate(int session_time);
 
-		bool is_connect_candidate(peer const& p, bool finished);
+		bool is_connect_candidate(peer const& p, bool finished) const;
+		bool is_erase_candidate(peer const& p, bool finished) const;
+		bool should_erase_immediately(peer const& p) const;
+
+		void erase_peers();
 
 		peers_t m_peers;
 
