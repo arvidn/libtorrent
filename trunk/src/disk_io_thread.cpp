@@ -62,7 +62,7 @@ namespace libtorrent
 		m_log.open("disk_buffers.log", std::ios::trunc);
 #endif
 #ifdef TORRENT_DEBUG
-	m_magic = 0x1337;
+		m_magic = 0x1337;
 #endif
 	}
 
