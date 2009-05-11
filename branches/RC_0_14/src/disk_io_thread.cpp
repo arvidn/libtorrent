@@ -727,8 +727,8 @@ namespace libtorrent
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		return (char*)malloc(m_block_size);
 #else
-		return (char*)m_pool.ordered_malloc();
 		m_pool.set_next_size(16);
+		return (char*)m_pool.ordered_malloc();
 #endif
 	}
 
