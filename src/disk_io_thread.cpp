@@ -625,10 +625,10 @@ namespace libtorrent
 		TORRENT_ASSERT(buffer_size <= piece_size);
 		TORRENT_ASSERT(buffer_size + start_block * m_block_size <= piece_size);
 		boost::scoped_array<char> buf;
-		boost::scoped_array<file::iovec_t> iov;
+		file::iovec_t* iov = 0;
 		int iov_counter = 0;
 		if (m_settings.coalesce_reads) buf.reset(new (std::nothrow) char[buffer_size]);
-		else iov.reset(new file::iovec_t[end_block - start_block]);
+		else iov = TORRENT_ALLOCA(file::iovec_t, end_block - start_block);
 
 		int ret = 0;
 		if (buf)
@@ -668,7 +668,7 @@ namespace libtorrent
 		if (iov)
 		{
 			l.unlock();
-			ret = p.storage->read_impl(iov.get(), p.piece, start_block * m_block_size, iov_counter);
+			ret = p.storage->read_impl(iov, p.piece, start_block * m_block_size, iov_counter);
 			l.lock();
 			TORRENT_ASSERT(ret == buffer_size || p.storage->error());
 			if (p.storage->error()) { return -1; }
