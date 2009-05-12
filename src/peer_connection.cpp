@@ -2015,7 +2015,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		m_download_queue.erase(b);
 
-		if (m_outstanding_writing_bytes >= m_ses.settings().max_outstanding_disk_bytes_per_connection
+		if (m_outstanding_writing_bytes > m_ses.settings().max_outstanding_disk_bytes_per_connection
 			&& t->alerts().should_post<performance_alert>())
 		{
 			t->alerts().post_alert(performance_alert(t->get_handle()
@@ -4037,7 +4037,7 @@ namespace libtorrent
 		bool ret = (m_quota[download_channel] > 0
 				|| m_ignore_bandwidth_limits)
 			&& !m_connecting
-			&& m_outstanding_writing_bytes <
+			&& m_outstanding_writing_bytes <=
 				m_ses.settings().max_outstanding_disk_bytes_per_connection;
 		
 		return ret;
