@@ -324,7 +324,7 @@ namespace libtorrent
 		// pending in the disk write queue before its download
 		// rate is being throttled. This prevents fast downloads
 		// to slow medias to allocate more and more memory
-		// indefinitely. This should be set to at least 32 kB
+		// indefinitely. This should be set to at least 16 kB
 		// to not completely disrupt normal downloads.
 		int max_outstanding_disk_bytes_per_connection;
 
@@ -334,7 +334,7 @@ namespace libtorrent
 		int handshake_timeout;
 
 #ifndef TORRENT_DISABLE_DHT
-		// while this is true, the dht will note be used unless the
+		// while this is true, the dht will not be used unless the
 		// tracker is online
 		bool use_dht_as_fallback;
 #endif
