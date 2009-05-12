@@ -3281,13 +3281,48 @@ reset to 0 on reconnect.
 
 ``progress`` is the progress of the peer.
 
-session_settings
-================
+session customization
+=====================
 
-You have some control over tracker requests through the ``session_settings`` object. You
+You have some control over session configuration through the ``session_settings`` object. You
 create it and fill it with your settings and then use ``session::set_settings()``
-to apply them. You have control over proxy and authorization settings and also the user-agent
-that will be sent to the tracker. The user-agent is a good way to identify your client.
+to apply them.
+
+You have control over proxy and authorization settings and also the user-agent
+that will be sent to the tracker. The user-agent will also be used to identify the
+client with other peers.
+
+presets
+-------
+
+The default values of the session settings are set for a regular bittorrent client running
+on a desktop system. There are functions that can set the session settings to pre set
+settings for other environments. These can be used for the basis, and should be tweaked to
+fit your needs better.
+
+::
+
+	session_settings min_memory_usage();
+	session_settings high_performance_seed();
+
+``min_memory_usage`` returns settings that will use the minimal amount of RAM, at the
+potential expense of upload and download performance. It adjusts the socket buffer sizes,
+disables the disk cache, lowers the send buffer watermarks so that each connection only has
+at most one block in use at any one time. It lowers the outstanding blocks send to the disk
+I/O thread so that connections only have one block waiting to be flushed to disk at any given
+time. It lowers the max number of peers in the peer list for torrents. It performs multiple
+smaller reads when it hashes pieces, instead of reading it all into memory before hashing.
+
+This configuration is inteded to be the starting point for embedded devices. It will
+significantly reduce memory usage.
+
+``high_performance_seed`` returns settings optimized for a seed box, serving many peers
+and that doesn't do any downloading. It has a 128 MB disk cache and has a limit of 400 files
+in its file pool. It support fast upload rates by allowing large send buffers.
+
+
+session_settings
+----------------
 
 ::
 

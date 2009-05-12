@@ -118,6 +118,9 @@ namespace libtorrent
 
 	namespace fs = boost::filesystem;
 
+	session_settings min_memory_usage();
+	session_settings high_performance_seed();
+
 	namespace aux
 	{
 		// workaround for microsofts

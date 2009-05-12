@@ -110,6 +110,97 @@ namespace libtorrent
 		}
 	}
 
+	// this function returns a session_settings object
+	// which will optimize libtorrent for minimum memory
+	// usage, with no consideration of performance.
+	session_settings min_memory_usage()
+	{
+		session_settings set;
+		// setting this to a low limit, means more
+		// peers are more likely to request from the
+		// same piece. Which means fewer partial
+		// pieces and fewer entries in the partial
+		// piece list
+		set.whole_pieces_threshold = 2;
+		set.use_parole_mode = false;
+		set.prioritize_partial_pieces = true;
+
+		// only have 4 files open at a time
+		set.file_pool_size = 4;
+
+		// we want to keep the peer list as small as possible
+		set.allow_multiple_connections_per_ip = false;
+		set.max_failcount = 2;
+		set.inactivity_timeout = 120;
+
+		// whenever a peer has downloaded one block, write
+		// it to disk, and don't read anything from the
+		// socket until the disk write is complete
+		set.max_outstanding_disk_bytes_per_connection = 0;
+
+		// don't keep track of all upnp devices, keep
+		// the device list small
+		set.upnp_ignore_nonrouters = true;
+
+		// never keep more than one 16kB block in
+		// the send buffer
+		set.send_buffer_watermark = 9;
+
+		// don't use any disk cache
+		set.cache_size = 0;
+		set.use_read_cache = false;
+
+		set.close_redundant_connections = true;
+
+		set.max_peerlist_size = 500;
+
+		// udp trackers are cheaper to talk to
+		set.prefer_udp_trackers = true;
+
+		set.max_rejects = 10;
+
+		set.recv_socket_buffer_size = 16 * 1024;
+		set.send_socket_buffer_size = 16 * 1024;
+
+		// use less memory when checking pieces
+		set.optimize_hashing_for_speed = false;
+
+		// use less memory when reading and writing
+		// whole pieces
+		set.coalesce_reads = false;
+		set.coalesce_writes = false;
+
+		return set;
+	}
+
+	session_settings high_performance_seed()
+	{
+		session_settings set;
+
+		// only have 4 files open at a time
+		set.file_pool_size = 400;
+
+		// as a seed box, we must accept multiple peers behind
+		// the same NAT
+		set.allow_multiple_connections_per_ip = true;
+
+		// support high upload rates
+		set.send_buffer_watermark = 64 * 1024;
+
+		// use 128 MB of cache
+		set.cache_size = 8192;
+		set.use_read_cache = true;
+
+		set.close_redundant_connections = true;
+
+		set.max_rejects = 10;
+
+		// use less memory when checking pieces
+		set.optimize_hashing_for_speed = true;
+
+		return set;
+	}
+
 	session::session(
 		fingerprint const& id
 		, std::pair<int, int> listen_port_range
