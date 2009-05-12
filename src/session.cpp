@@ -148,6 +148,7 @@ namespace libtorrent
 
 		// don't use any disk cache
 		set.cache_size = 0;
+		set.cache_buffer_chunk_size = 1;
 		set.use_read_cache = false;
 
 		set.close_redundant_connections = true;
@@ -190,12 +191,12 @@ namespace libtorrent
 		// use 128 MB of cache
 		set.cache_size = 8192;
 		set.use_read_cache = true;
+		set.cache_buffer_chunk_size = 64;
 
 		set.close_redundant_connections = true;
 
 		set.max_rejects = 10;
 
-		// use less memory when checking pieces
 		set.optimize_hashing_for_speed = true;
 
 		return set;
