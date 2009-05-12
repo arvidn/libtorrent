@@ -1229,6 +1229,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		// no peer should be interesting if we're finished
+		TORRENT_ASSERT(!m_torrent->is_finished());
+
 		if (c.in_handshake()) return;
 		c.send_interested();
 		if (c.has_peer_choked()
