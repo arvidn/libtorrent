@@ -124,6 +124,7 @@ namespace libtorrent
 			, auto_upload_slots_rate_based(true)
 			, use_parole_mode(true)
 			, cache_size(1024)
+			, cache_buffer_chunk_size(16)
 			, cache_expiry(60)
 			, use_read_cache(true)
 			, disk_io_write_mode(0)
@@ -382,6 +383,12 @@ namespace libtorrent
 		// the disk write cache, specified in 16 KiB blocks.
 		// default is 512 (= 8 MB)
 		int cache_size;
+
+		// this is the number of disk buffer blocks (16 kiB)
+		// that should be allocated at a time. It must be
+		// at least 1. Lower number saves memory at the expense
+		// of more heap allocations
+		int cache_buffer_chunk_size;
 
 		// the number of seconds a write cache entry sits
 		// idle in the cache before it's forcefully flushed

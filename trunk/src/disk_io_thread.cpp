@@ -52,7 +52,7 @@ namespace libtorrent
 		: m_block_size(block_size)
 		, m_in_use(0)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_pool(block_size, 16)
+		, m_pool(block_size, m_settings.cache_buffer_chunk_size)
 #endif
 	{
 #if defined TORRENT_DISK_STATS || defined TORRENT_STATS
@@ -95,7 +95,7 @@ namespace libtorrent
 		char* ret = page_aligned_allocator::malloc(m_block_size);
 #else
 		char* ret = (char*)m_pool.ordered_malloc();
-		m_pool.set_next_size(16);
+		m_pool.set_next_size(m_settings.cache_buffer_chunk_size);
 #endif
 		++m_in_use;
 #if TORRENT_USE_MLOCK
@@ -162,7 +162,7 @@ namespace libtorrent
 		char* ret = page_aligned_allocator::malloc(m_block_size * num_blocks);
 #else
 		char* ret = (char*)m_pool.ordered_malloc(num_blocks);
-		m_pool.set_next_size(16);
+		m_pool.set_next_size(m_settings.cache_buffer_chunk_size);
 #endif
 		m_in_use += num_blocks;
 #if TORRENT_USE_MLOCK

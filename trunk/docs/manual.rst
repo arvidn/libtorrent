@@ -3369,6 +3369,7 @@ session_settings
 		bool auto_upload_slots_rate_based;
 		bool use_parole_mode;
 		int cache_size;
+		int cache_buffer_chunk_size;
 		int cache_expiry;
 		bool use_read_cache;
 		bool disk_io_no_buffer;
@@ -3612,6 +3613,11 @@ piece that passes the hash check, it is taken out of parole mode.
 send or receive buffer also count against this limit. Send and receive buffers
 will never be denied to be allocated, but they will cause the actual cached blocks
 to be flushed or evicted.
+
+Disk buffers are allocated using a pool allocator, the number of blocks that
+are allocated at a time when the pool needs to grow can be specified in
+``cache_buffer_chunk_size``. This defaults to 16 blocks. Lower numbers
+saves memory at the expense of more heap allocations. It must be at least 1.
 
 ``cache_expiry`` is the number of seconds from the last cached write to a piece
 in the write cache, to when it's forcefully flushed to disk. Default is 60 second.
