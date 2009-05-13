@@ -417,10 +417,10 @@ namespace libtorrent
 					// this means we got a redirection request
 					// look for the location header
 					std::string location = m_parser.header("location");
+					m_statistics.received_bytes(0, bytes_transferred);
 
 					if (location.empty())
 					{
-						m_statistics.received_bytes(0, bytes_transferred);
 						// we should not try this server again.
 						t->remove_web_seed(m_url, web_seed_entry::url_seed);
 						disconnect("got HTTP redirection status without location header", 2);
