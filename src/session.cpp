@@ -154,6 +154,7 @@ namespace libtorrent
 		set.close_redundant_connections = true;
 
 		set.max_peerlist_size = 500;
+		set.max_paused_peerlist_size = 50;
 
 		// udp trackers are cheaper to talk to
 		set.prefer_udp_trackers = true;

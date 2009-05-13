@@ -145,6 +145,7 @@ namespace libtorrent
 			, auto_scrape_interval(1800)
 			, auto_scrape_min_interval(300)
 			, max_peerlist_size(8000)
+			, max_paused_peerlist_size(8000)
 			, min_announce_interval(5 * 60)
 			, prioritize_partial_pieces(false)
 			, auto_manage_startup(120)
@@ -482,6 +483,10 @@ namespace libtorrent
 		// per torrent. This is the peers we know
 		// about, not necessarily connected to.
 		int max_peerlist_size;
+
+		// when a torrent is paused, this is the max peer
+		// list size that's used
+		int max_paused_peerlist_size;
 
 		// any announce intervals reported from a tracker
 		// that is lower than this, will be clamped to this

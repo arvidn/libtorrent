@@ -429,17 +429,18 @@ namespace libtorrent
 		return pe.connection == 0
 			&& pe.last_connected != 0
 			&& !pe.banned
-			&& !is_connect_candidate(pe, m_finished)
-			&& m_peers.size() >= m_torrent->settings().max_peerlist_size * 0.95
-			&& m_torrent->settings().max_peerlist_size > 0;
+			&& !is_connect_candidate(pe, m_finished);
 	}
 
 	void policy::erase_peers()
 	{
 		INVARIANT_CHECK;
 
-		if (m_torrent->settings().max_peerlist_size == 0
-			|| m_peers.empty()) return;
+		int max_peerlist_size = m_torrent->is_paused()
+			?m_torrent->settings().max_paused_peerlist_size
+			:m_torrent->settings().max_peerlist_size;
+
+		if (max_peerlist_size == 0 || m_peers.empty()) return;
 
 		int erase_candidate = -1;
 
@@ -450,7 +451,7 @@ namespace libtorrent
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
 		{
-			if (m_peers.size() < m_torrent->settings().max_peerlist_size * 0.95)
+			if (m_peers.size() < max_peerlist_size * 0.95)
 				break;
 
 			if (round_robin == m_peers.size()) round_robin = 0;
@@ -525,6 +526,10 @@ namespace libtorrent
 		bool pinged = false;
 #endif
 
+		int max_peerlist_size = m_torrent->is_paused()
+			?m_torrent->settings().max_paused_peerlist_size
+			:m_torrent->settings().max_peerlist_size;
+
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
 		{
@@ -549,8 +554,8 @@ namespace libtorrent
 			// if the number of peers is growing large
 			// we need to start weeding.
 
-			if (m_peers.size() >= m_torrent->settings().max_peerlist_size * 0.95
-				&& m_torrent->settings().max_peerlist_size > 0)
+			if (m_peers.size() >= max_peerlist_size * 0.95
+				&& max_peerlist_size > 0)
 			{
 				if (is_erase_candidate(pe, m_finished)
 					&& (erase_candidate == -1
@@ -663,6 +668,7 @@ namespace libtorrent
 		// override at a time
 		error_code ec;
 		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
+		TORRENT_ASSERT(!m_torrent->is_paused());
 
 		aux::session_impl& ses = m_torrent->session();
 		
@@ -895,6 +901,10 @@ namespace libtorrent
 		iterator iter;
 		peer* i = 0;
 
+		int max_peerlist_size = m_torrent->is_paused()
+			?m_torrent->settings().max_paused_peerlist_size
+			:m_torrent->settings().max_peerlist_size;
+
 		bool found = false;
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
 		{
@@ -913,13 +923,13 @@ namespace libtorrent
 
 		if (!found)
 		{
-			if (m_torrent->settings().max_peerlist_size
-				&& int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
+			if (max_peerlist_size
+				&& int(m_peers.size()) >= max_peerlist_size)
 			{
 				if (src == peer_info::resume_data) return 0;
 
 				erase_peers();
-				if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
+				if (int(m_peers.size()) >= max_peerlist_size)
 					return 0;
 
 				// since some peers were removed, we need to
