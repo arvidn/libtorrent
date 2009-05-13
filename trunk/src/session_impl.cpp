@@ -54,6 +54,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+// for logging the size of DHT structures
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#ifndef TORRENT_DISABLE_DHT
+
+#include <libtorrent/kademlia/find_data.hpp>
+#include <libtorrent/kademlia/closest_nodes.hpp>
+#include <libtorrent/kademlia/refresh.hpp>
+#include <libtorrent/kademlia/node.hpp>
+#include <libtorrent/kademlia/observer.hpp>
+
+#endif
+#endif
+
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/tracker_manager.hpp"
@@ -261,6 +274,12 @@ namespace aux {
 		PRINT_OFFSETOF(policy::peer, port)
 		PRINT_OFFSETOF(policy::peer, hashfails)
 
+		PRINT_SIZEOF(dht::closest_nodes_observer)
+		PRINT_SIZEOF(dht::find_data_observer)
+		PRINT_SIZEOF(dht::announce_observer)
+		PRINT_SIZEOF(dht::refresh_observer)
+		PRINT_SIZEOF(dht::ping_observer)
+		PRINT_SIZEOF(dht::null_observer)
 #undef PRINT_OFFSETOF
 #undef PRINT_SIZEOF
 

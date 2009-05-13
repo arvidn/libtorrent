@@ -84,7 +84,13 @@ struct observer : boost::noncopyable
 	// is being destructed
 	virtual void abort() = 0;
 
-	udp::endpoint target_addr;
+#if TORRENT_USE_IPV6
+	address target_addr;
+#else
+	address_v4 target_addr;
+#endif
+	uint16_t port;
+	udp::endpoint target_ep() const { return udp::endpoint(target_addr, port); }
 	ptime sent;
 #ifdef TORRENT_DEBUG
 	bool m_in_constructor;

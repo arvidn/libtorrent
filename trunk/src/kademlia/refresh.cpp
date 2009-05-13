@@ -103,8 +103,14 @@ void ping_observer::timeout()
 void refresh::invoke(node_id const& nid, udp::endpoint addr)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(refresh_observer));
-	observer_ptr o(new (m_node.m_rpc.allocator().malloc()) refresh_observer(
-		this, nid, m_target));
+	void* ptr = m_node.m_rpc.allocator().malloc();
+	if (ptr == 0)
+	{
+		done();
+		return;
+	}
+	m_node.m_rpc.allocator().set_next_size(10);
+	observer_ptr o(new (ptr) refresh_observer( this, nid));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
@@ -156,19 +162,25 @@ void refresh::invoke_pings_or_finish(bool prevent_request)
 				continue;
 			}
 
+#ifndef BOOST_NO_EXCEPTIONS
 			try
 			{
+#endif
 				TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(ping_observer));
-				observer_ptr o(new (m_node.m_rpc.allocator().malloc()) ping_observer(
-					this, node.id));
+				void* ptr = m_node.m_rpc.allocator().malloc();
+				if (ptr == 0) return;
+				m_node.m_rpc.allocator().set_next_size(10);
+				observer_ptr o(new (ptr) ping_observer(this, node.id));
 #ifdef TORRENT_DEBUG
 				o->m_in_constructor = false;
 #endif
 				m_node.m_rpc.invoke(messages::ping, node.addr, o);
 				++m_active_pings;
 				++m_leftover_nodes_iterator;
+#ifndef BOOST_NO_EXCEPTIONS
 			}
 			catch (std::exception& e) {}
+#endif
 		}
 	}
 

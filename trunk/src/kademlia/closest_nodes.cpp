@@ -59,7 +59,7 @@ void closest_nodes_observer::reply(msg const& in)
 		for (msg::nodes_t::const_iterator i = in.nodes.begin()
 			, end(in.nodes.end()); i != end; ++i)
 		{
-			m_algorithm->traverse(i->id, udp::endpoint(i->addr, i->port));
+			m_algorithm->traverse(i->id, i->ep());
 		}
 	}
 	m_algorithm->finished(m_self);
@@ -87,7 +87,14 @@ closest_nodes::closest_nodes(
 void closest_nodes::invoke(node_id const& id, udp::endpoint addr)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(closest_nodes_observer));
-	observer_ptr o(new (m_node.m_rpc.allocator().malloc()) closest_nodes_observer(this, id, m_target));
+	void* ptr = m_node.m_rpc.allocator().malloc();
+	if (ptr == 0)
+	{
+		done();
+		return;
+	}
+	m_node.m_rpc.allocator().set_next_size(10);
+	observer_ptr o(new (ptr) closest_nodes_observer(this, id));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif

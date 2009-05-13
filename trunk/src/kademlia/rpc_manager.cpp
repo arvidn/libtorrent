@@ -104,7 +104,7 @@ typedef mpl::max_element<
 
 rpc_manager::rpc_manager(fun const& f, node_id const& our_id
 	, routing_table& table, send_fun const& sf)
-	: m_pool_allocator(sizeof(mpl::deref<max_observer_type_iter::base>::type))
+	: m_pool_allocator(sizeof(mpl::deref<max_observer_type_iter::base>::type), 10)
 	, m_next_transaction_id(std::rand() % max_transactions)
 	, m_oldest_transaction_id(m_next_transaction_id)
 	, m_incoming(f)
@@ -184,7 +184,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 		if (tid >= max_transactions) tid = 0;
 		observer_ptr const& o = m_transactions[tid];
 		if (!o) continue;
-		if (o->target_addr != ep) continue;
+		if (o->target_ep() != ep) continue;
 		observer_ptr ptr = m_transactions[tid];
 		m_transactions[tid] = 0;
 		if (tid == m_oldest_transaction_id)
@@ -262,7 +262,7 @@ bool rpc_manager::incoming(msg const& m)
 			return false;
 		}
 		
-		if (m.addr.address() != o->target_addr.address())
+		if (m.addr.address() != o->target_addr)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(rpc) << "Reply with incorrect address and valid transaction id: " 
@@ -336,7 +336,7 @@ time_duration rpc_manager::tick()
 			m_transactions[m_oldest_transaction_id] = 0;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(rpc) << "Timing out transaction id: " 
-				<< m_oldest_transaction_id << " from " << o->target_addr;
+				<< m_oldest_transaction_id << " from " << o->target_ep();
 #endif
 			timeouts.push_back(o);
 		} catch (std::exception) {}
@@ -367,7 +367,7 @@ unsigned int rpc_manager::new_transaction_id(observer_ptr o)
 		m_aborted_transactions.push_back(o);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(rpc) << "[new_transaction_id] Aborting message with transaction id: " 
-			<< m_next_transaction_id << " sent to " << o->target_addr
+			<< m_next_transaction_id << " sent to " << o->target_ep()
 			<< " " << total_seconds(time_now() - o->sent) << " seconds ago";
 #endif
 		m_transactions[m_next_transaction_id] = 0;
@@ -431,7 +431,8 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 		o->send(m);
 
 		o->sent = time_now();
-		o->target_addr = target_addr;
+		o->target_addr = target_addr.address();
+		o->port = target_addr.port();
 
 	#ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(rpc) << "Invoking " << messages::ids[message_id] 
