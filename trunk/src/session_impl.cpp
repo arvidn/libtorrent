@@ -1181,7 +1181,7 @@ namespace aux {
 				for (policy::iterator j = p.begin_peer()
 					, end(p.end_peer()); j != end; ++j)
 				{
-					policy::peer* pe = (policy::peer*)&(*j);
+					policy::peer* pe = *j;
 
 					if (pe->last_optimistically_unchoked < four_hours)
 						pe->last_optimistically_unchoked = 0;
