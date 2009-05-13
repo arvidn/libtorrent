@@ -72,13 +72,16 @@ using boost::bind;
 #include <windows.h>
 #include <conio.h>
 
-bool sleep_and_input(char* c)
+bool sleep_and_input(char* c, int sleep)
 {
-	Sleep(500);
-	if (_kbhit())
+	for (int i = 0; i < sleep * 2; ++i)
 	{
-		*c = _getch();
-		return true;
+		if (_kbhit())
+		{
+			*c = _getch();
+			return true;
+		}
+		Sleep(500);
 	}
 	return false;
 };
@@ -122,7 +125,7 @@ struct set_keypress
 	termios stored_settings;
 };
 
-bool sleep_and_input(char* c)
+bool sleep_and_input(char* c, int sleep)
 {
 	// sets the terminal to single-character mode
 	// and resets when destructed
@@ -131,7 +134,7 @@ bool sleep_and_input(char* c)
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(0, &set);
-	timeval tv = {0, 500000};
+	timeval tv = {sleep, 0};
 	if (select(1, &set, 0, 0, &tv) > 0)
 	{
 		*c = getc(stdin);
@@ -746,6 +749,8 @@ int main(int argc, char* argv[])
 			"  -x <file>             loads an emule IP-filter file\n"
 			"  -c <limit>            sets the max number of connections\n"
 			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
+			"  -F <seconds>          sets the UI refresh rate. This is the number of\n"
+			"                        seconds between screen refreshes.\n"
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
 			"MAGNETURL is a magnet: url\n")
@@ -761,6 +766,8 @@ int main(int argc, char* argv[])
 	settings.auto_upload_slots_rate_based = true;
 	settings.announce_to_all_trackers = true;
 	settings.optimize_hashing_for_speed = false;
+
+	int refresh_delay = 1;
 
 	std::deque<std::string> events;
 
@@ -910,6 +917,7 @@ int main(int argc, char* argv[])
 			case 'b': bind_to_interface = arg; break;
 			case 'w': settings.urlseed_wait_retry = atoi(arg); break;
 			case 't': poll_interval = atoi(arg); break;
+			case 'F': refresh_delay = atoi(arg); break;
 			case 'x':
 				{
 					/*
@@ -958,7 +966,7 @@ int main(int argc, char* argv[])
 	for (;;)
 	{
 		char c;
-		while (sleep_and_input(&c))
+		while (sleep_and_input(&c, refresh_delay))
 		{
 			if (c == 27)
 			{
