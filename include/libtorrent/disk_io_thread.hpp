@@ -337,6 +337,18 @@ namespace libtorrent
 
 		io_service& m_ios;
 
+		// this keeps the io_service::run() call blocked from
+		// returning. When shutting down, it's possible that
+		// the event queue is drained before the disk_io_thread
+		// has posted its last callback. When this happens, the
+		// io_service will have a pending callback from the
+		// disk_io_thread, but the event loop is not running.
+		// this means that the event is destructed after the
+		// disk_io_thread. If the event refers to a disk buffer
+		// it will try to free it, but the buffer pool won't
+		// exist anymore, and crash. This prevents that.
+		boost::optional<asio::io_service::work> m_work;
+
 		// thread for performing blocking disk io operations
 		boost::thread m_disk_io_thread;
 	};
