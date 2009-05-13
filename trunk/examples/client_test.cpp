@@ -754,7 +754,7 @@ int main(int argc, char* argv[])
 	}
 
 	using namespace libtorrent;
-	session_settings settings = min_memory_usage();
+	session_settings settings;
 	proxy_settings ps;
 
 	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
