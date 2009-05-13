@@ -148,7 +148,7 @@ namespace libtorrent { namespace dht
 		struct node_ban_entry
 		{
 			node_ban_entry(): count(0) {}
-			udp::endpoint src;
+			address src;
 			ptime limit;
 			int count;
 		};
