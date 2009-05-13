@@ -63,6 +63,7 @@ namespace libtorrent
 #endif
 		, m_block_size(block_size)
 		, m_ios(ios)
+		, m_work(io_service::work(m_ios))
 		, m_disk_io_thread(boost::ref(*this))
 	{
 #ifdef TORRENT_STATS
@@ -648,6 +649,7 @@ namespace libtorrent
 	void disk_io_thread::add_job(disk_io_job const& j
 		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
+		TORRENT_ASSERT(!m_abort);
 		TORRENT_ASSERT(!j.callback);
 		TORRENT_ASSERT(j.storage);
 		TORRENT_ASSERT(j.buffer_size <= m_block_size);
@@ -788,6 +790,9 @@ namespace libtorrent
 					free_piece(*i, l);
 				m_pieces.clear();
 				m_read_pieces.clear();
+				// release the io_service to allow the run() call to return
+				// we do this once we stop posting new callbacks to it.
+				m_work.reset();
 				return;
 			}
 
@@ -845,7 +850,6 @@ namespace libtorrent
 				case disk_io_job::abort_thread:
 				{
 					mutex_t::scoped_lock jl(m_queue_mutex);
-					m_abort = true;
 
 					for (std::list<disk_io_job>::iterator i = m_jobs.begin();
 							i != m_jobs.end();)
@@ -865,6 +869,8 @@ namespace libtorrent
 						}
 						++i;
 					}
+
+					m_abort = true;
 					break;
 				}
 				case disk_io_job::read:
