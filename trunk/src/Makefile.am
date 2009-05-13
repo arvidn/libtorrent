@@ -22,7 +22,7 @@ torrent_info.cpp tracker_manager.cpp http_connection.cpp \
 http_tracker_connection.cpp udp_tracker_connection.cpp \
 alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
 logger.cpp file_pool.cpp ut_pex.cpp lsd.cpp upnp.cpp instantiate_connection.cpp \
-socks5_stream.cpp socks4_stream.cpp http_stream.cpp connection_queue.cpp \
+socks5_stream.cpp http_stream.cpp connection_queue.cpp \
 disk_io_thread.cpp ut_metadata.cpp lt_trackers.cpp magnet_uri.cpp udp_socket.cpp smart_ban.cpp \
 http_parser.cpp gzip.cpp disk_buffer_holder.cpp create_torrent.cpp GeoIP.c \
 parse_url.cpp file_storage.cpp error_code.cpp ConvertUTF.cpp \
