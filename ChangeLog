@@ -1,3 +1,7 @@
+	* added preset settings for low memory environments and seed machines
+	  min_memory_usage() and high_performance_seeder()
+	* optimized overall memory usage for DHT nodes and requests, peer
+	  entries and disk buffers
 	* change in API for block_info in partial_piece_info, instead of
 	  accessing 'peer', call 'peer()'
 	* added support for fully automatic unchoker (no need to specify
@@ -47,6 +51,8 @@ release 0.14.4
 	* fixed case when move_storage() would fail. Added a new alert
 	  to be posted when it does
 	* fixed crash bug when shutting down while checking a torrent
+	* fixed handling of web seed urls that didn't end with a
+	  slash for multi-file torrents
 
 release 0.14.3
 
