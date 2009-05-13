@@ -46,6 +46,7 @@ release 0.14.4
 	  in an error state which would pause the torrent
 	* fixed case when move_storage() would fail. Added a new alert
 	  to be posted when it does
+	* fixed crash bug when shutting down while checking a torrent
 
 release 0.14.3
 

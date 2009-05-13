@@ -72,7 +72,7 @@ void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 	TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
 }
 
-void on_check_resume_data(int ret, disk_io_job const& j)
+void on_check_resume_data(int ret, disk_io_job const& j, bool* done)
 {
 	std::cerr << "on_check_resume_data ret: " << ret;
 	switch (ret)
@@ -83,19 +83,20 @@ void on_check_resume_data(int ret, disk_io_job const& j)
 			<< " file: " << j.error_file << std::endl; break;
 		case -3: std::cerr << " aborted" << std::endl; break;
 	}
+	*done = true;
 }
 
-void on_check_files(int ret, disk_io_job const& j)
+void on_check_files(int ret, disk_io_job const& j, bool* done)
 {
 	std::cerr << "on_check_files ret: " << ret;
 
 	switch (ret)
 	{
-		case 0: std::cerr << " done" << std::endl; break;
+		case 0: std::cerr << " done" << std::endl; *done = true; break;
 		case -1: std::cerr << " current slot: " << j.piece << " have: " << j.offset << std::endl; break;
 		case -2: std::cerr << " disk error: " << j.str
-			<< " file: " << j.error_file << std::endl; break;
-		case -3: std::cerr << " aborted" << std::endl; break;
+			<< " file: " << j.error_file << std::endl; *done = true; break;
+		case -3: std::cerr << " aborted" << std::endl; *done = true; break;
 	}
 }
 
@@ -158,19 +159,23 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 		, test_path, fp, io, default_storage_constructor, storage_mode);
 	boost::mutex lock;
 
+	bool done = false;
 	lazy_entry frd;
-	pm->async_check_fastresume(&frd, &on_check_resume_data);
+	pm->async_check_fastresume(&frd, boost::bind(&on_check_resume_data, _1, _2, &done));
 	ios.reset();
-	ios.run();
-
-	pm->async_check_files(&on_check_files);
-	for (int i = 0; i < 4; ++i)
+	while (!done)
 	{
 		ios.reset();
 		ios.run_one();
 	}
-	ios.reset();
-	ios.poll();
+  
+	done = false;
+	pm->async_check_files(boost::bind(&on_check_files, _1, _2, &done));
+	while (!done)
+	{
+		ios.reset();
+		ios.run_one();
+	}
 
 	// test rename_file
 	remove(test_path / "part0");
@@ -229,7 +234,8 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 
 	TEST_CHECK(!exists(test_path / "part0"));	
 
-	ios.run();
+	ios.reset();
+	ios.poll();
 
 	io.join();
 	remove_all(test_path / "temp_storage2");
@@ -325,13 +331,18 @@ void test_check_files(path const& test_path
 		, test_path, fp, io, default_storage_constructor, storage_mode);
 	boost::mutex lock;
 
+	bool done = false;
 	lazy_entry frd;
-	pm->async_check_fastresume(&frd, &on_check_resume_data);
+	pm->async_check_fastresume(&frd, boost::bind(&on_check_resume_data, _1, _2, &done));
 	ios.reset();
-	ios.run();
+	while (!done)
+	{
+		ios.reset();
+		ios.run_one();
+	}
 
 	bool pieces[4] = {false, false, false, false};
-	bool done = false;
+	done = false;
 
 	pm->async_check_files(bind(&check_files_fill_array, _1, _2, pieces, &done));
 	while (!done)
