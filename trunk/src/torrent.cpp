@@ -4826,6 +4826,27 @@ namespace libtorrent
 		}
 #endif
 
+		m_time_scaler--;
+		if (m_time_scaler <= 0)
+		{
+			m_time_scaler = 10;
+
+			if (settings().max_sparse_regions > 0
+				&& m_picker
+				&& m_picker->sparse_regions() > settings().max_sparse_regions)
+			{
+				// we have too many sparse regions. Prioritize pieces
+				// that won't introduce new sparse regions
+				// prioritize pieces that will reduce the number of sparse
+				// regions even higher
+				int start = m_picker->cursor();
+				int end = m_picker->reverse_cursor();
+				for (int i = start; i < end; ++i)
+					update_sparse_piece_prio(i, start, end);
+			}
+			m_policy.pulse();
+		}
+
 		if (is_paused())
 		{
 			// let the stats fade out to 0
@@ -4940,27 +4961,6 @@ namespace libtorrent
 		m_total_uploaded += m_stat.last_payload_uploaded();
 		m_total_downloaded += m_stat.last_payload_downloaded();
 		m_stat.second_tick(tick_interval);
-
-		m_time_scaler--;
-		if (m_time_scaler <= 0)
-		{
-			m_time_scaler = 10;
-
-			if (settings().max_sparse_regions > 0
-				&& m_picker
-				&& m_picker->sparse_regions() > settings().max_sparse_regions)
-			{
-				// we have too many sparse regions. Prioritize pieces
-				// that won't introduce new sparse regions
-				// prioritize pieces that will reduce the number of sparse
-				// regions even higher
-				int start = m_picker->cursor();
-				int end = m_picker->reverse_cursor();
-				for (int i = start; i < end; ++i)
-					update_sparse_piece_prio(i, start, end);
-			}
-			m_policy.pulse();
-		}
 	}
 
 	void torrent::request_time_critical_pieces()

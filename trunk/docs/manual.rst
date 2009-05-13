@@ -3707,6 +3707,11 @@ this limit, and once the size hits the limit, peers are no longer
 added to the list. If this limit is set to 0, there is no limit on
 how many peers we'll keep in the peer list.
 
+``max_paused_peerlist_size`` is the max peer list size used for torrents
+that are paused. This default to the same as ``max_peerlist_size``, but
+can be used to save memory for paused torrents, since it's not as
+important for them to keep a large peer list.
+
 ``min_announce_interval`` is the minimum allowed announce interval
 for a tracker. This is specified in seconds, defaults to 5 minutes and
 is used as a sanity check on what is returned from a tracker. It
