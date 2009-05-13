@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_IOSTREAM
 #include <iostream>
-#include <iomanip>
 #endif
 
 namespace
@@ -369,10 +368,22 @@ namespace libtorrent
 #if TORRENT_USE_IOSTREAM
 	std::ostream& operator<<(std::ostream& os, lazy_entry const& e)
 	{
+		return os << print_entry(e);
+	}
+#endif // TORRENT_USE_IOSTREAM
+
+	std::string print_entry(lazy_entry const& e)
+	{
+		std::string ret;
 		switch (e.type())
 		{
-			case lazy_entry::none_t: return os << "none";
-			case lazy_entry::int_t: return os << std::dec << std::setw(0) << e.int_value();
+			case lazy_entry::none_t: return "none";
+			case lazy_entry::int_t:
+			{
+				char str[100];
+				snprintf(str, sizeof(str), "%lld", e.int_value());
+				return str;
+			}
 			case lazy_entry::string_t:
 			{
 				bool printable = true;
@@ -384,16 +395,25 @@ namespace libtorrent
 					printable = false;
 					break;
 				}
-				os << "'";
-				if (printable) return os << e.string_value() << "'";
+				ret += "'";
+				if (printable)
+				{
+					ret += e.string_value();
+					ret += "'";
+					return ret;
+				}
 				for (int i = 0; i < e.string_length(); ++i)
-					os << std::hex << std::setfill('0') << std::setw(2)
-					<< int((unsigned char)(str[i]));
-				return os << "'" << std::dec;
+				{
+					char str[5];
+					snprintf(str, sizeof(str), "%02x", str[i]);
+					ret += str;
+				}
+				ret += "'";
+				return ret;
 			}
 			case lazy_entry::list_t:
 			{
-				os << "[";
+				ret += '[';
 				bool one_liner = (e.list_size() == 0
 					|| (e.list_at(0)->type() == lazy_entry::int_t
 						&& e.list_size() < 20)
@@ -401,19 +421,20 @@ namespace libtorrent
 						&& (e.list_at(0)->string_length() < 10
 							|| e.list_size() < 2)
 						&& e.list_size() < 5));
-				if (!one_liner) os << "\n";
+				if (!one_liner) ret += "\n";
 				for (int i = 0; i < e.list_size(); ++i)
 				{
-					if (i == 0 && one_liner) os << " ";
-					os << *e.list_at(i);
-					if (i < e.list_size() - 1) os << (one_liner?", ":",\n");
-					else os << (one_liner?" ":"\n");
+					if (i == 0 && one_liner) ret += " ";
+					ret += print_entry(*e.list_at(i));
+					if (i < e.list_size() - 1) ret += (one_liner?", ":",\n");
+					else ret += (one_liner?" ":"\n");
 				}
-				return os << "]";
+				ret += "]";
+				return ret;
 			}
 			case lazy_entry::dict_t:
 			{
-				os << "{";
+				ret += "{";
 				bool one_liner = (e.dict_size() == 0
 					|| e.dict_at(0).second->type() == lazy_entry::int_t
 					|| (e.dict_at(0).second->type() == lazy_entry::string_t
@@ -421,20 +442,23 @@ namespace libtorrent
 					|| e.dict_at(0).first.size() < 10)
 					&& e.dict_size() < 5;
 
-				if (!one_liner) os << "\n";
+				if (!one_liner) ret += "\n";
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
-					if (i == 0 && one_liner) os << " ";
+					if (i == 0 && one_liner) ret += " ";
 					std::pair<std::string, lazy_entry const*> ent = e.dict_at(i);
-					os << "'" << ent.first << "': " << *ent.second;
-					if (i < e.dict_size() - 1) os << (one_liner?", ":",\n");
-					else os << (one_liner?" ":"\n");
+					ret += "'";
+					ret += ent.first;
+					ret += "': ";
+					ret += print_entry(*ent.second);
+					if (i < e.dict_size() - 1) ret += (one_liner?", ":",\n");
+					else ret += (one_liner?" ":"\n");
 				}
-				return os << "}";
+				ret += "}";
+				return ret;
 			}
 		}
-		return os;
+		return ret;
 	}
-#endif // TORRENT_USE_IOSTREAM
 };
 

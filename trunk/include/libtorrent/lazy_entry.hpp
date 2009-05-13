@@ -230,6 +230,7 @@ namespace libtorrent
 		char const* m_end;
 	};
 
+	TORRENT_EXPORT std::string print_entry(lazy_entry const& e);
 #if TORRENT_USE_IOSTREAM
 	TORRENT_EXPORT std::ostream& operator<<(std::ostream& os, lazy_entry const& e);
 #endif

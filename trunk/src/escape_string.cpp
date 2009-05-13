@@ -434,6 +434,16 @@ namespace libtorrent
 		return -1;
 	}
 
+	TORRENT_EXPORT bool is_hex(char const *in, int len)
+	{
+		for (char const* end = in + len; in < end; ++in)
+		{
+			int t = hex_to_int(*in);
+			if (t == -1) return false;
+		}
+		return true;
+	}
+
 	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out)
 	{
 		for (char const* end = in + len; in < end; ++in, ++out)

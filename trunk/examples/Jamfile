@@ -9,8 +9,6 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-lib regex : : <name>boost_regex ;
-
 project client_test
    : requirements
 	<threading>multi <library>/torrent//torrent
@@ -18,9 +16,7 @@ project client_test
 	<link>static
    ;  
 
-exe client_test : client_test.cpp
-	: <library>/boost/regex
-	;
+exe client_test : client_test.cpp ;
 
 exe simple_client : simple_client.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
