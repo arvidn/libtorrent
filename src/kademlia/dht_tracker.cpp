@@ -441,7 +441,7 @@ namespace libtorrent { namespace dht
 		ptime now = time_now();
 		for (node_ban_entry* i = m_ban_nodes; i < m_ban_nodes + num_ban_nodes; ++i)
 		{
-			if (i->src == ep)
+			if (i->src == ep.address())
 			{
 				match = i;
 				break;
@@ -480,7 +480,7 @@ namespace libtorrent { namespace dht
 		{
 			min->count = 1;
 			min->limit = now + seconds(5);
-			min->src = ep;
+			min->src = ep.address();
 		}
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
