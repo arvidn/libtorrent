@@ -77,18 +77,16 @@ class closest_nodes_observer : public observer
 public:
 	closest_nodes_observer(
 		boost::intrusive_ptr<traversal_algorithm> const& algorithm
-		, node_id self
-		, node_id target)
+		, node_id self)
 		: observer(algorithm->allocator())
 		, m_algorithm(algorithm)
-		, m_target(target) 
 		, m_self(self)
 	{}
 	~closest_nodes_observer();
 
 	void send(msg& p)
 	{
-		p.info_hash = m_target;
+		p.info_hash = m_algorithm->target();
 	}
 
 	void timeout();
@@ -97,7 +95,6 @@ public:
 
 private:
 	boost::intrusive_ptr<traversal_algorithm> m_algorithm;
-	node_id const m_target;
 	node_id const m_self;
 };
 

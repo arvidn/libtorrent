@@ -68,6 +68,8 @@ public:
 
 	virtual char const* name() const { return "traversal_algorithm"; }
 
+	node_id const& target() const { return m_target; }
+
 protected:
 
 	template<class InIt>

@@ -86,18 +86,16 @@ class refresh_observer : public observer
 public:
 	refresh_observer(
 		boost::intrusive_ptr<refresh> const& algorithm
-		, node_id self
-		, node_id target)
+		, node_id self)
 		: observer(algorithm->allocator())
-		, m_target(target) 
-		, m_self(self)
 		, m_algorithm(algorithm)
+		, m_self(self)
 	{}
 	~refresh_observer();
 
 	void send(msg& m)
 	{
-		m.info_hash = m_target;
+		m.info_hash = m_algorithm->target();
 	}
 
 	void timeout();
@@ -106,9 +104,8 @@ public:
 
 
 private:
-	node_id const m_target;
-	node_id const m_self;
 	boost::intrusive_ptr<refresh> m_algorithm;
+	node_id const m_self;
 };
 
 class ping_observer : public observer
