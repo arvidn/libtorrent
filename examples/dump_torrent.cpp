@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 	}
 
 	std::cout << "\n\n----- raw info -----\n\n";
-	std::cout << e << std::endl;
+	std::cout << print_entry(e) << std::endl;
 
 	error_code ec;
 	torrent_info t(e, ec);
@@ -104,7 +104,9 @@ int main(int argc, char* argv[])
 
 	std::cout << "number of pieces: " << t.num_pieces() << "\n";
 	std::cout << "piece length: " << t.piece_length() << "\n";
-	std::cout << "info hash: " << t.info_hash() << "\n";
+	char ih[41];
+	to_hex((char const*)&t.info_hash()[0], 20, ih);
+	std::cout << "info hash: " << ih << "\n";
 	std::cout << "comment: " << t.comment() << "\n";
 	std::cout << "created by: " << t.creator() << "\n";
 	std::cout << "magnet link: " << make_magnet_uri(t) << "\n";
