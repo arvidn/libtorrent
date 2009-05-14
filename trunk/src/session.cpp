@@ -652,6 +652,16 @@ namespace libtorrent
 		m_impl->set_max_half_open_connections(limit);
 	}
 
+	int session::local_upload_rate_limit() const
+	{
+		return m_impl->local_upload_rate_limit();
+	}
+
+	int session::local_download_rate_limit() const
+	{
+		return m_impl->local_download_rate_limit();
+	}
+
 	int session::upload_rate_limit() const
 	{
 		return m_impl->upload_rate_limit();
@@ -660,6 +670,16 @@ namespace libtorrent
 	int session::download_rate_limit() const
 	{
 		return m_impl->download_rate_limit();
+	}
+
+	void session::set_local_upload_rate_limit(int bytes_per_second)
+	{
+		m_impl->set_local_upload_rate_limit(bytes_per_second);
+	}
+
+	void session::set_local_download_rate_limit(int bytes_per_second)
+	{
+		m_impl->set_local_download_rate_limit(bytes_per_second);
 	}
 
 	void session::set_upload_rate_limit(int bytes_per_second)

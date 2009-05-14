@@ -3565,6 +3565,47 @@ namespace libtorrent
 		}
 	}
 
+	void peer_connection::request_upload_bandwidth(
+		bandwidth_channel* bwc1
+		, bandwidth_channel* bwc2
+		, bandwidth_channel* bwc3
+		, bandwidth_channel* bwc4)
+	{
+		shared_ptr<torrent> t = m_torrent.lock();
+		int priority = 1 + is_interesting() * 2 + m_requests_in_buffer.size();
+		// peers that we are not interested in are non-prioritized
+		m_channel_state[upload_channel] = peer_info::bw_limit;
+		m_ses.m_upload_rate.request_bandwidth(self()
+			, m_send_buffer.size(), priority
+			, bwc1, bwc2, bwc3, bwc4);
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ "
+			"upload: " << m_send_buffer.size()
+			<< " prio: " << priority << "]\n";
+#endif
+	}
+
+	void peer_connection::request_download_bandwidth(
+		bandwidth_channel* bwc1
+		, bandwidth_channel* bwc2
+		, bandwidth_channel* bwc3
+		, bandwidth_channel* bwc4)
+	{
+		shared_ptr<torrent> t = m_torrent.lock();
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ "
+			"download: " << (m_download_queue.size() * 16 * 1024 + 30)
+			<< " prio: " << m_priority << " ]\n";
+#endif
+		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
+		TORRENT_ASSERT(m_outstanding_bytes >= 0);
+		m_channel_state[download_channel] = peer_info::bw_limit;
+		m_ses.m_download_rate.request_bandwidth(self()
+			, m_outstanding_bytes + 30, m_priority
+			, bwc1, bwc2, bwc3, bwc4);
+	}
+
 	void peer_connection::setup_send()
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -3576,26 +3617,27 @@ namespace libtorrent
 		if (m_quota[upload_channel] == 0
 			&& !m_send_buffer.empty()
 			&& !m_connecting
-			&& t
-			&& !m_ignore_bandwidth_limits)
+			&& t)
 		{
-			// in this case, we have data to send, but no
-			// bandwidth. So, we simply request bandwidth
-			// from the torrent
-			TORRENT_ASSERT(t);
-			int priority = 1 + is_interesting() * 2 + m_requests_in_buffer.size();
-			// peers that we are not interested in are non-prioritized
-			m_channel_state[upload_channel] = peer_info::bw_limit;
-			m_ses.m_upload_rate.request_bandwidth(self()
-				, m_send_buffer.size(), priority
-				, &m_ses.m_upload_channel
-				, &t->m_bandwidth_channel[upload_channel]
-				, &m_bandwidth_channel[upload_channel]);
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ "
-				"upload: " << m_send_buffer.size()
-				<< " prio: " << priority << "]\n";
-#endif
+			if (!m_ignore_bandwidth_limits)
+			{
+				// in this case, we have data to send, but no
+				// bandwidth. So, we simply request bandwidth
+				// from the bandwidth manager
+				request_upload_bandwidth(
+					&m_ses.m_upload_channel
+					, &t->m_bandwidth_channel[upload_channel]
+					, &m_bandwidth_channel[upload_channel]);
+			}
+			else
+			{
+				// in this case, we're a local peer, and the settings
+				// are set to ignore rate limits for local peers. So,
+				// instead we rate limit ourself against the special
+				// global bandwidth channel for local peers, which defaults
+				// to unthrottled
+				request_upload_bandwidth(&m_ses.m_local_upload_channel);
+			}
 			return;
 		}
 
@@ -3656,22 +3698,27 @@ namespace libtorrent
 		
 		if (m_quota[download_channel] == 0
 			&& !m_connecting
-			&& t
-			&& !m_ignore_bandwidth_limits)
+			&& t)
 		{
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ "
-				"download: " << (m_download_queue.size() * 16 * 1024 + 30)
-				<< " prio: " << m_priority << " ]\n";
-#endif
-			TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
-			TORRENT_ASSERT(m_outstanding_bytes >= 0);
-			m_channel_state[download_channel] = peer_info::bw_limit;
-			m_ses.m_download_rate.request_bandwidth(self()
-				, m_outstanding_bytes + 30, m_priority
-				, &m_ses.m_download_channel
-				, &t->m_bandwidth_channel[download_channel]
-				, &m_bandwidth_channel[download_channel]);
+			if (!m_ignore_bandwidth_limits)
+			{
+				// in this case, we have outstanding data to
+				// receive, but no bandwidth quota. So, we simply
+				// request bandwidth from the bandwidth manager
+				request_download_bandwidth(
+					&m_ses.m_download_channel
+					, &t->m_bandwidth_channel[download_channel]
+					, &m_bandwidth_channel[download_channel]);
+			}
+			else
+			{
+				// in this case, we're a local peer, and the settings
+				// are set to ignore rate limits for local peers. So,
+				// instead we rate limit ourself against the special
+				// global bandwidth channel for local peers, which defaults
+				// to unthrottled
+				request_download_bandwidth(&m_ses.m_local_download_channel);
+			}
 			return;
 		}
 		
