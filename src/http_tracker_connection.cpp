@@ -116,26 +116,23 @@ namespace libtorrent
 			url += "?";
 
 		url += "info_hash=";
-		url += escape_string(
-			reinterpret_cast<const char*>(tracker_req().info_hash.begin()), 20);
+		url += escape_string((const char*)&tracker_req().info_hash[0], 20);
 		
 		if (tracker_req().kind == tracker_request::announce_request)
 		{
-			url += "&peer_id=";
-			url += escape_string(
-				reinterpret_cast<const char*>(tracker_req().pid.begin()), 20);
-
-			url += "&port=";
-			url += to_string(tracker_req().listen_port).elems;
-
-			url += "&uploaded=";
-			url += to_string(tracker_req().uploaded).elems;
-
-			url += "&downloaded=";
-			url += to_string(tracker_req().downloaded).elems;
-
-			url += "&left=";
-			url += to_string(tracker_req().left).elems;
+			char str[1024];
+			snprintf(str, sizeof(str), "&peer_id=%s&port=%d&uploaded=%lld"
+				"&downloaded=%lld&left=%lld&compact=1&numwant=%d&key=%x&no_peer_id=1"
+#ifndef TORRENT_DISABLE_ENCRYPTION
+				"&supportcrypto=1"
+#endif
+				, escape_string((const char*)&tracker_req().pid[0], 20).c_str()
+				, tracker_req().listen_port
+				, tracker_req().uploaded
+				, tracker_req().downloaded
+				, tracker_req().left
+				, tracker_req().num_want
+				, tracker_req().key);
 
 			if (tracker_req().event != tracker_request::none)
 			{
@@ -144,16 +141,6 @@ namespace libtorrent
 				url += event_string[tracker_req().event - 1];
 			}
 
-			url += "&key=";
-			char key[200];
-			snprintf(key, 200, "%x", tracker_req().key);
-			url += key;
-
-			url += "&compact=1";
-
-			url += "&numwant=";
-			url += to_string((std::min)(tracker_req().num_want, 999)).elems;
-
 			if (settings.announce_ip != address())
 			{
 				error_code ec;
@@ -161,9 +148,6 @@ namespace libtorrent
 				if (!ec) url += "&ip=" + ip;
 			}
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-			url += "&supportcrypto=1";
-#endif
 			if (!tracker_req().ipv6.empty())
 			{
 				url += "&ipv6=";
@@ -175,10 +159,6 @@ namespace libtorrent
 				url += "&ipv4=";
 				url += tracker_req().ipv4;
 			}
-
-			// extension that tells the tracker that
-			// we don't need any peer_id's in the response
-			url += "&no_peer_id=1";
 		}
 
 		m_tracker_connection.reset(new http_connection(m_ios, m_cc
