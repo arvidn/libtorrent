@@ -12,54 +12,6 @@
 using namespace boost::python;
 using namespace libtorrent;
 
-extern char const* session_status_doc;
-extern char const* session_status_has_incoming_connections_doc;
-extern char const* session_status_upload_rate_doc;
-extern char const* session_status_download_rate_doc;
-extern char const* session_status_payload_upload_rate_doc;
-extern char const* session_status_payload_download_rate_doc;
-extern char const* session_status_total_download_doc;
-extern char const* session_status_total_upload_doc;
-extern char const* session_status_total_payload_download_doc;
-extern char const* session_status_total_payload_upload_doc;
-extern char const* session_status_num_peers_doc;
-extern char const* session_status_dht_nodes_doc;
-extern char const* session_status_cache_nodes_doc;
-extern char const* session_status_dht_torrents_doc;
-
-extern char const* session_doc;
-extern char const* session_init_doc;
-extern char const* session_listen_on_doc;
-extern char const* session_is_listening_doc;
-extern char const* session_listen_port_doc;
-extern char const* session_status_m_doc;
-extern char const* session_start_dht_doc;
-extern char const* session_stop_dht_doc;
-extern char const* session_dht_state_doc;
-extern char const* session_add_dht_router_doc;
-extern char const* session_add_torrent_doc;
-extern char const* session_remove_torrent_doc;
-extern char const* session_set_download_rate_limit_doc;
-extern char const* session_download_rate_limit_doc;
-extern char const* session_set_upload_rate_limit_doc;
-extern char const* session_upload_rate_limit_doc;
-extern char const* session_set_max_uploads_doc;
-extern char const* session_set_max_connections_doc;
-extern char const* session_set_max_half_open_connections_doc;
-extern char const* session_num_connections_doc;
-extern char const* session_set_settings_doc;
-extern char const* session_set_pe_settings_doc;
-extern char const* session_get_pe_settings_doc;
-extern char const* session_set_severity_level_doc;
-extern char const* session_pop_alert_doc;
-extern char const* session_start_upnp_doc;
-extern char const* session_start_lsd_doc;
-extern char const* session_stop_lsd_doc;
-extern char const* session_stop_upnp_doc;
-extern char const* session_start_natpmp_doc;
-extern char const* session_stop_natpmp_doc;
-extern char const* session_set_ip_filter_doc;
-
 namespace
 {
 
@@ -205,60 +157,21 @@ namespace
 
 void bind_session()
 {
-    class_<session_status>("session_status", session_status_doc)
-        .def_readonly(
-            "has_incoming_connections", &session_status::has_incoming_connections
-          , session_status_has_incoming_connections_doc
-        )
-        .def_readonly(
-            "upload_rate", &session_status::upload_rate
-          , session_status_upload_rate_doc
-        )
-        .def_readonly(
-            "download_rate", &session_status::download_rate
-          , session_status_download_rate_doc
-        )
-        .def_readonly(
-            "payload_upload_rate", &session_status::payload_upload_rate
-          , session_status_payload_upload_rate_doc
-        )
-        .def_readonly(
-            "payload_download_rate", &session_status::payload_download_rate
-          , session_status_payload_download_rate_doc
-        )
-        .def_readonly(
-            "total_download", &session_status::total_download
-          , session_status_total_download_doc
-        )
-        .def_readonly(
-            "total_upload", &session_status::total_upload
-          , session_status_total_upload_doc
-        )
-        .def_readonly(
-            "total_payload_download", &session_status::total_payload_download
-          , session_status_total_payload_download_doc
-        )
-        .def_readonly(
-            "total_payload_upload", &session_status::total_payload_upload
-          , session_status_total_payload_upload_doc
-        )
-        .def_readonly(
-            "num_peers", &session_status::num_peers
-          , session_status_num_peers_doc
-        )
+    class_<session_status>("session_status")
+        .def_readonly("has_incoming_connections", &session_status::has_incoming_connections)
+        .def_readonly("upload_rate", &session_status::upload_rate)
+        .def_readonly("download_rate", &session_status::download_rate)
+        .def_readonly("payload_upload_rate", &session_status::payload_upload_rate)
+        .def_readonly("payload_download_rate", &session_status::payload_download_rate)
+        .def_readonly("total_download", &session_status::total_download)
+        .def_readonly("total_upload", &session_status::total_upload)
+        .def_readonly("total_payload_download", &session_status::total_payload_download)
+        .def_readonly("total_payload_upload", &session_status::total_payload_upload)
+        .def_readonly("num_peers", &session_status::num_peers)
 #ifndef TORRENT_DISABLE_DHT
-        .def_readonly(
-            "dht_nodes", &session_status::dht_nodes
-          , session_status_dht_nodes_doc
-        )
-        .def_readonly(
-            "dht_cache_nodes", &session_status::dht_node_cache
-          , session_status_cache_nodes_doc
-        )
-        .def_readonly(
-            "dht_torrents", &session_status::dht_torrents
-          , session_status_dht_torrents_doc
-        )
+        .def_readonly("dht_nodes", &session_status::dht_nodes)
+        .def_readonly("dht_cache_nodes", &session_status::dht_node_cache)
+        .def_readonly("dht_torrents", &session_status::dht_torrents)
 #endif
         ;
 
@@ -278,86 +191,64 @@ void bind_session()
         .value("start_default_features", session::start_default_features)
     ;
 
-    class_<session, boost::noncopyable>("session", session_doc, no_init)
+    class_<session, boost::noncopyable>("session", no_init)
         .def(
             init<fingerprint, int>((
                 arg("fingerprint")=fingerprint("LT",0,1,0,0)
-                , arg("flags")=session::start_default_features | session::add_default_plugins)
-                , session_init_doc)
+                , arg("flags")=session::start_default_features | session::add_default_plugins))
         )
         .def(
             "listen_on", &listen_on
           , (arg("min"), "max", arg("interface") = (char const*)0)
-          , session_listen_on_doc
         )
         .def("outgoing_ports", &outgoing_ports)
-        .def("is_listening", allow_threads(&session::is_listening), session_is_listening_doc)
-        .def("listen_port", allow_threads(&session::listen_port), session_listen_port_doc)
-        .def("status", allow_threads(&session::status), session_status_m_doc)
+        .def("is_listening", allow_threads(&session::is_listening))
+        .def("listen_port", allow_threads(&session::listen_port))
+        .def("status", allow_threads(&session::status))
 #ifndef TORRENT_DISABLE_DHT
         .def(
             "add_dht_router", &add_dht_router
           , (arg("router"), "port")
-          , session_add_dht_router_doc
         )
-        .def("start_dht", allow_threads(&session::start_dht), session_start_dht_doc)
-        .def("stop_dht", allow_threads(&session::stop_dht), session_stop_dht_doc)
-        .def("dht_state", allow_threads(&session::dht_state), session_dht_state_doc)
+        .def("start_dht", allow_threads(&session::start_dht))
+        .def("stop_dht", allow_threads(&session::stop_dht))
+        .def("dht_state", allow_threads(&session::dht_state))
         .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
         .def("dht_proxy", allow_threads(&session::dht_proxy), return_value_policy<copy_const_reference>())
 #endif
-        .def("add_torrent", &add_torrent, session_add_torrent_doc)
+        .def("add_torrent", &add_torrent)
 #ifndef TORRENT_NO_DEPRECATE
         .def(
             "add_torrent", &add_torrent_depr
           , (
-                arg("resume_data") = entry(), arg("storage_mode") = storage_mode_sparse,
+                arg("resume_data") = entry(),
+					 arg("storage_mode") = storage_mode_sparse,
                 arg("paused") = false
             )
-          , session_add_torrent_doc
         )
 #endif
         .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = session::none
+)
+        .def("set_local_download_rate_limit", allow_threads(&session::set_local_download_rate_limit))
+        .def("local_download_rate_limit", allow_threads(&session::local_download_rate_limit))
 
-			  , session_remove_torrent_doc)
-        .def(
-            "set_download_rate_limit", allow_threads(&session::set_download_rate_limit)
-          , session_set_download_rate_limit_doc
-        )
-        .def(
-            "download_rate_limit", allow_threads(&session::download_rate_limit)
-          , session_download_rate_limit_doc
-        )
+        .def("set_local_upload_rate_limit", allow_threads(&session::set_local_upload_rate_limit))
+        .def("local_upload_rate_limit", allow_threads(&session::local_upload_rate_limit))
 
-        .def(
-            "set_upload_rate_limit", allow_threads(&session::set_upload_rate_limit)
-          , session_set_upload_rate_limit_doc
-        )
-        .def(
-            "upload_rate_limit", allow_threads(&session::upload_rate_limit)
-          , session_upload_rate_limit_doc
-        )
+        .def("set_download_rate_limit", allow_threads(&session::set_download_rate_limit))
+        .def("download_rate_limit", allow_threads(&session::download_rate_limit))
 
-        .def(
-            "set_max_uploads", allow_threads(&session::set_max_uploads)
-          , session_set_max_uploads_doc
-        )
-        .def(
-            "set_max_connections", allow_threads(&session::set_max_connections)
-          , session_set_max_connections_doc
-        )
-        .def(
-            "set_max_half_open_connections", allow_threads(&session::set_max_half_open_connections)
-          , session_set_max_half_open_connections_doc
-        )
-        .def(
-            "num_connections", allow_threads(&session::num_connections)
-          , session_num_connections_doc
-        )
-        .def("set_settings", allow_threads(&session::set_settings), session_set_settings_doc)
+        .def("set_upload_rate_limit", allow_threads(&session::set_upload_rate_limit))
+        .def("upload_rate_limit", allow_threads(&session::upload_rate_limit))
+
+        .def("set_max_uploads", allow_threads(&session::set_max_uploads))
+        .def("set_max_connections", allow_threads(&session::set_max_connections))
+        .def("set_max_half_open_connections", allow_threads(&session::set_max_half_open_connections))
+        .def("num_connections", allow_threads(&session::num_connections))
+        .def("set_settings", allow_threads(&session::set_settings))
         .def("settings", allow_threads(&session::settings), return_value_policy<copy_const_reference>())
 #ifndef TORRENT_DISABLE_ENCRYPTION
-        .def("set_pe_settings", allow_threads(&session::set_pe_settings), session_set_pe_settings_doc)
+        .def("set_pe_settings", allow_threads(&session::set_pe_settings))
         .def("get_pe_settings", allow_threads(&session::get_pe_settings), return_value_policy<copy_const_reference>())
 #endif
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -367,13 +258,10 @@ void bind_session()
         .def("load_state", allow_threads(&session::load_state))
         .def("state", allow_threads(&session::state))
 #ifndef TORRENT_NO_DEPRECATE
-        .def(
-            "set_severity_level", allow_threads(&session::set_severity_level)
-          , session_set_severity_level_doc
-        )
+        .def("set_severity_level", allow_threads(&session::set_severity_level))
 #endif
         .def("set_alert_mask", allow_threads(&session::set_alert_mask))
-        .def("pop_alert", allow_threads(&session::pop_alert), session_pop_alert_doc)
+        .def("pop_alert", allow_threads(&session::pop_alert))
         .def("add_extension", &add_extension)
         .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))
         .def("set_tracker_proxy", allow_threads(&session::set_tracker_proxy))
@@ -381,13 +269,13 @@ void bind_session()
         .def("peer_proxy", allow_threads(&session::peer_proxy), return_value_policy<copy_const_reference>())
         .def("tracker_proxy", allow_threads(&session::tracker_proxy), return_value_policy<copy_const_reference>())
         .def("web_seed_proxy", allow_threads(&session::web_seed_proxy), return_value_policy<copy_const_reference>())
-        .def("start_upnp", &start_upnp, session_start_upnp_doc)
-        .def("stop_upnp", allow_threads(&session::stop_upnp), session_stop_upnp_doc)
-        .def("start_lsd", allow_threads(&session::start_lsd), session_start_lsd_doc)
-        .def("stop_lsd", allow_threads(&session::stop_lsd), session_stop_lsd_doc)
-        .def("start_natpmp", &start_natpmp, session_start_natpmp_doc)
-        .def("stop_natpmp", allow_threads(&session::stop_natpmp), session_stop_natpmp_doc)
-        .def("set_ip_filter", allow_threads(&session::set_ip_filter), session_set_ip_filter_doc)
+        .def("start_upnp", &start_upnp)
+        .def("stop_upnp", allow_threads(&session::stop_upnp))
+        .def("start_lsd", allow_threads(&session::start_lsd))
+        .def("stop_lsd", allow_threads(&session::stop_lsd))
+        .def("start_natpmp", &start_natpmp)
+        .def("stop_natpmp", allow_threads(&session::stop_natpmp))
+        .def("set_ip_filter", allow_threads(&session::set_ip_filter))
         .def("find_torrent", allow_threads(&session::find_torrent))
         .def("get_torrents", &get_torrents)
         .def("pause", allow_threads(&session::pause))
