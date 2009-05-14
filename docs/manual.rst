@@ -123,6 +123,12 @@ The ``session`` class has the following synopsis::
 		int upload_rate_limit() const;
 		void set_download_rate_limit(int bytes_per_second);
 		int download_rate_limit() const;
+
+		void set_local_upload_rate_limit(int bytes_per_second);
+		int local_upload_rate_limit() const;
+		void set_local_download_rate_limit(int bytes_per_second);
+		int local_download_rate_limit() const;
+
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
 		int max_connections() const;
@@ -452,14 +458,35 @@ set_upload_rate_limit() set_download_rate_limit() upload_rate_limit() download_r
 
 ``set_upload_rate_limit()`` set the maximum number of bytes allowed to be
 sent to peers per second. This bandwidth is distributed among all the peers. If
-you don't want to limit upload rate, you can set this to -1 (the default).
+you don't want to limit upload rate, you can set this to 0 (the default).
 ``set_download_rate_limit()`` works the same way but for download rate instead
 of upload rate.
 ``download_rate_limit()`` and ``upload_rate_limit()`` returns the previously
 set limits.
 
+A rate limit of 0 means infinite.
+
 Upload and download rate limits are not applied to peers on the local network
 by default. To change that, see ``session_settings::ignore_limits_on_local_network``.
+
+
+set_local_upload_rate_limit() set_local_download_rate_limit() local_upload_rate_limit() local_download_rate_limit()
+-------------------------------------------------------------------------------------------------------------------
+
+	::
+
+		void set_local_upload_rate_limit(int bytes_per_second);
+		void set_local_download_rate_limit(int bytes_per_second);
+		int local_upload_rate_limit() const;
+		int local_download_rate_limit() const;
+
+These rate limits are only used for local peers (peers within the same subnet as
+the client itself) and it is only used when ``session_settings::ignore_limits_on_local_network``
+is set to true (which it is by default). These rate limits default to unthrottled,
+but can be useful in case you want to treat local peers preferentially, but not
+quite unthrottled.
+
+A rate limit of 0 means infinite.
 
 
 set_max_uploads() set_max_connections() max_uploads() max_connections()
