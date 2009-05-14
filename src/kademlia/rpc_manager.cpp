@@ -331,15 +331,19 @@ time_duration rpc_manager::tick()
 			}
 		}
 		
+#ifndef BOOST_NO_EXCEPTIONS
 		try
 		{
+#endif
 			m_transactions[m_oldest_transaction_id] = 0;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(rpc) << "Timing out transaction id: " 
 				<< m_oldest_transaction_id << " from " << o->target_ep();
 #endif
 			timeouts.push_back(o);
+#ifndef BOOST_NO_EXCEPTIONS
 		} catch (std::exception) {}
+#endif
 	}
 	
 	std::for_each(timeouts.begin(), timeouts.end(), bind(&observer::timeout, _1));
@@ -422,8 +426,10 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 #ifdef TORRENT_DEBUG
 	int potential_new_id = m_next_transaction_id;
 #endif
+#ifndef BOOST_NO_EXCEPTIONS
 	try
 	{
+#endif
 		m.transaction_id.clear();
 		std::back_insert_iterator<std::string> out(m.transaction_id);
 		io::write_uint16(m_next_transaction_id, out);
@@ -431,15 +437,20 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 		o->send(m);
 
 		o->sent = time_now();
+#if TORRENT_USE_IPV6
 		o->target_addr = target_addr.address();
+#else
+		o->target_addr = target_addr.address().to_v4();
+#endif
 		o->port = target_addr.port();
 
-	#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(rpc) << "Invoking " << messages::ids[message_id] 
 			<< " -> " << target_addr;
-	#endif	
+#endif	
 		m_send(m);
 		new_transaction_id(o);
+#ifndef BOOST_NO_EXCEPTIONS
 	}
 	catch (std::exception& e)
 	{
@@ -447,6 +458,7 @@ void rpc_manager::invoke(int message_id, udp::endpoint target_addr
 		TORRENT_ASSERT(potential_new_id == m_next_transaction_id);
 		o->abort();
 	}
+#endif
 }
 
 void rpc_manager::reply(msg& m)
