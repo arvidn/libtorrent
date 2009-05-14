@@ -183,6 +183,12 @@ void bind_alert()
         "storage_moved_alert", storage_moved_alert_doc, no_init
     );
 
+    class_<storage_moved_failed_alert, bases<torrent_alert>, noncopyable>(
+        "storage_moved_failed_alert", no_init
+    )
+        .def_readonly("error", &storage_moved_failed_alert::error)
+        ;
+
     class_<torrent_deleted_alert, bases<torrent_alert>, noncopyable>(
         "torrent_deleted_alert", torrent_deleted_alert_doc, no_init
     );
