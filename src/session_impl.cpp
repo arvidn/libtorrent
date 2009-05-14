@@ -1772,7 +1772,8 @@ namespace aux {
 			// assume a reasonable rate is 3 kB/s, unless there's an upload limit and
 			// a max number of slots, in which case we assume each upload slot gets
 			// roughly the same amount of bandwidth
-			if (m_upload_channel.throttle() != bandwidth_channel::inf && m_max_uploads > 0)
+			TORRENT_ASSERT(m_upload_channel.throttle() != bandwidth_channel::inf);
+			if (m_upload_channel.throttle() > 0 && m_max_uploads > 0)
 				rate = (std::max)(m_upload_channel.throttle() / m_max_uploads, 1);
 
 			// the time it takes to download one piece at this rate (in seconds)
@@ -2665,14 +2666,34 @@ namespace aux {
 		m_half_open.limit(limit);
 	}
 
+	void session_impl::set_local_download_rate_limit(int bytes_per_second)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
+		if (bytes_per_second <= 0) bytes_per_second = 0;
+		m_local_download_channel.throttle(bytes_per_second);
+	}
+
+	void session_impl::set_local_upload_rate_limit(int bytes_per_second)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+
+		INVARIANT_CHECK;
+
+		if (bytes_per_second <= 0) bytes_per_second = 0;
+		m_local_upload_channel.throttle(bytes_per_second);
+	}
+
 	void session_impl::set_download_rate_limit(int bytes_per_second)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
 
-		if (bytes_per_second <= 0) bytes_per_second = bandwidth_channel::inf;
-		m_bandwidth_channel[peer_connection::download_channel]->throttle(bytes_per_second);
+		if (bytes_per_second <= 0) bytes_per_second = 0;
+		m_download_channel.throttle(bytes_per_second);
 	}
 
 	void session_impl::set_upload_rate_limit(int bytes_per_second)
@@ -2681,8 +2702,8 @@ namespace aux {
 
 		INVARIANT_CHECK;
 
-		if (bytes_per_second <= 0) bytes_per_second = bandwidth_channel::inf;
-		m_bandwidth_channel[peer_connection::upload_channel]->throttle(bytes_per_second);
+		if (bytes_per_second <= 0) bytes_per_second = 0;
+		m_upload_channel.throttle(bytes_per_second);
 	}
 
 	void session_impl::set_alert_dispatch(boost::function<void(alert const&)> const& fun)
@@ -2720,21 +2741,28 @@ namespace aux {
 		return m_alerts.set_alert_queue_size_limit(queue_size_limit_);
 	}
 
+	int session_impl::local_upload_rate_limit() const
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		return m_local_upload_channel.throttle();
+	}
+
+	int session_impl::local_download_rate_limit() const
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		return m_local_download_channel.throttle();
+	}
+
 	int session_impl::upload_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-
-		INVARIANT_CHECK;
-
-		int ret = m_bandwidth_channel[peer_connection::upload_channel]->throttle();
-		return ret == (std::numeric_limits<int>::max)() ? -1 : ret;
+		return m_upload_channel.throttle();
 	}
 
 	int session_impl::download_rate_limit() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		int ret = m_bandwidth_channel[peer_connection::download_channel]->throttle();
-		return ret == (std::numeric_limits<int>::max)() ? -1 : ret;
+		return m_download_channel.throttle();
 	}
 
 	void session_impl::start_lsd()

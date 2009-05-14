@@ -1,3 +1,4 @@
+	* added feature to set a separate global rate limit for local peers
 	* added preset settings for low memory environments and seed machines
 	  min_memory_usage() and high_performance_seeder()
 	* optimized overall memory usage for DHT nodes and requests, peer

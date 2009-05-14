@@ -229,6 +229,11 @@ namespace libtorrent
 
 			int upload_rate_limit() const;
 			int download_rate_limit() const;
+			int local_upload_rate_limit() const;
+			int local_download_rate_limit() const;
+
+			void set_local_download_rate_limit(int bytes_per_second);
+			void set_local_upload_rate_limit(int bytes_per_second);
 
 			void set_download_rate_limit(int bytes_per_second);
 			void set_upload_rate_limit(int bytes_per_second);
@@ -426,8 +431,17 @@ namespace libtorrent
 			bandwidth_manager<peer_connection> m_download_rate;
 			bandwidth_manager<peer_connection> m_upload_rate;
 
+			// the global rate limiter bandwidth channels
 			bandwidth_channel m_download_channel;
 			bandwidth_channel m_upload_channel;
+
+			// bandwidth channels for local peers when
+			// rate limits are ignored. They are only
+			// throttled by these global rate limiters
+			// and they don't have a rate limit set by
+			// default
+			bandwidth_channel m_local_download_channel;
+			bandwidth_channel m_local_upload_channel;
 
 			bandwidth_channel* m_bandwidth_channel[2];
 
