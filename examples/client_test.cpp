@@ -1401,17 +1401,18 @@ int main(int argc, char* argv[])
 				for (std::vector<announce_entry>::iterator i = tr.begin()
 					, end(tr.end()); i != end; ++i)
 				{
-					snprintf(str, sizeof(str), "%2d %55s fails: %3d %s %s\n"
+					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d %s %s\n"
 						, i->tier, i->url.c_str(), i->fails, i->verified?"OK ":"-  "
-						, i->updating?"updating":to_string(
-							total_seconds(i->next_announce - now), 8).c_str());
+						, i->updating?"updating"
+							:!i->verified?""
+							:to_string(total_seconds(i->next_announce - now), 8).c_str());
 					out += str;
 				}
 			}
 
 			if (print_downloads)
 			{
-/*
+
 				h.get_download_queue(queue);
 				std::sort(queue.begin(), queue.end(), bind(&partial_piece_info::piece_index, _1)
 					< bind(&partial_piece_info::piece_index, _2));
@@ -1427,67 +1428,85 @@ int main(int argc, char* argv[])
 						, bind(&cached_piece_info::piece, _1) == i->piece_index);
 					if (cpi != pieces.end()) cp = &*cpi;
 
-					out << to_string(i->piece_index, 4) << ": [";
+					snprintf(str, sizeof(str), "%4d: [", i->piece_index);
+					out += str;
 					for (int j = 0; j < i->blocks_in_piece; ++j)
 					{
 						int index = peer_index(i->blocks[j].peer(), peers);
-						char str[] = "+";
+						char chr = '+';
 						if (index >= 0)
-							str[0] = (index < 10)?'0' + index:'A' + index - 10;
+							chr = (index < 10)?'0' + index:'A' + index - 10;
+
+						char const* color = "";
 
 #ifdef ANSI_TERMINAL_COLORS
-						if (cp && cp->blocks[j]) out << esc("36;7") << str << esc("0");
+						if (cp && cp->blocks[j]) color = esc("36;7");
 						else if (i->blocks[j].bytes_progress > 0
 							&& i->blocks[j].state == block_info::requested)
 						{
-							if (i->blocks[j].num_peers > 1)
-								out << esc("1;7");
-							else
-								out << esc("33;7");
-							out << to_string(i->blocks[j].bytes_progress / float(i->blocks[j].block_size) * 10, 1) << esc("0");
+							if (i->blocks[j].num_peers > 1) color = esc("1;7");
+							else color = esc("33;7");
+							chr = '0' + (i->blocks[j].bytes_progress / float(i->blocks[j].block_size) * 10);
 						}
-						else if (i->blocks[j].state == block_info::finished) out << esc("32;7") << str << esc("0");
-						else if (i->blocks[j].state == block_info::writing) out << esc("35;7") << str << esc("0");
-						else if (i->blocks[j].state == block_info::requested) out << str;
-						else out << " ";
+						else if (i->blocks[j].state == block_info::finished) color = esc("32;7");
+						else if (i->blocks[j].state == block_info::writing) color = esc("35;7");
+						else if (i->blocks[j].state == block_info::requested) color = esc("0");
+						else { color = esc("0"); chr = ' '; }
 #else
-						if (cp && cp->blocks[j]) out << "c";
-						else if (i->blocks[j].state == block_info::finished) out << "#";
-						else if (i->blocks[j].state == block_info::writing) out << "+";
-						else if (i->blocks[j].state == block_info::requested) out << str;
-						else out << " ";
+						if (cp && cp->blocks[j]) chr = 'c';
+						else if (i->blocks[j].state == block_info::finished) chr = '#';
+						else if (i->blocks[j].state == block_info::writing) chr = '+';
+						else if (i->blocks[j].state == block_info::requested) chr = '-';
+						else chr = ' '
 #endif
+						snprintf(str, sizeof(str), "%s%c", color, chr);
+						out += str;
 					}
+#ifdef ANSI_TERMINAL_COLORS
+					out += esc("0");
+#endif
 					char const* piece_state[4] = {"", "slow", "medium", "fast"};
-					out << "] " << piece_state[i->piece_state];
-					if (cp) out << (i->piece_state > 0?" | ":"") << "cache age: " << (total_milliseconds(time_now() - cp->last_use) / 1000.f);
-					out << "\n";
+					snprintf(str, sizeof(str), "] %s", piece_state[i->piece_state]);
+					out += str;
+					if (cp)
+					{
+						snprintf(str, sizeof(str), " %scache age: %f"
+							, i->piece_state > 0?"| ":""
+							, total_milliseconds(time_now() - cp->last_use) / 1000.f);
+						out += str;
+					}
+					out += "\n";
 				}
 
 				for (std::vector<cached_piece_info>::iterator i = pieces.begin()
 					, end(pieces.end()); i != end; ++i)
 				{
 					if (i->kind != cached_piece_info::read_cache) continue;
-					out << to_string(i->piece, 4) << ": [";
+					snprintf(str, sizeof(str), "%4d: [", i->piece);
+					out += str;
 					for (std::vector<bool>::iterator k = i->blocks.begin()
 						, end(i->blocks.end()); k != end; ++k)
 					{
+						char const* color = "";
+						char chr = ' ';
 #ifdef ANSI_TERMINAL_COLORS
-						if (*k) out << esc("33;7") << " " << esc("0");
-						else out << " ";
+						color = *k?esc("33;7"):esc("0");
 #else
-						if (*k) out << "#";
-						else out << " ";
+						chr = *k?'#':' ';
 #endif
+						snprintf(str, sizeof(str), "%s%c", color, chr);
+						out += str;
 					}
-					out << "] " << "cache age: "
-						<< (total_milliseconds(time_now() - i->last_use) / 1000.f)
-						<< "\n";
+#ifdef ANSI_TERMINAL_COLORS
+					out += esc("0");
+#endif
+					snprintf(str, sizeof(str), "] cache age: %f\n"
+						, total_milliseconds(time_now() - i->last_use) / 1000.f);
+					out += str;
 				}
-				*/
 				out += "___________________________________\n";
 			}
-/*
+
 			if (print_file_progress
 				&& s.state != torrent_status::seeding
 				&& h.has_metadata())
@@ -1501,20 +1520,23 @@ int main(int argc, char* argv[])
 					if (!show_pad_files && pad_file) continue;
 					float progress = info.file_at(i).size > 0
 						?float(file_progress[i]) / info.file_at(i).size:1;
-					if (file_progress[i] == info.file_at(i).size)
-						out << progress_bar(1.f, 100, "32");
-					else
-						out << progress_bar(progress, 100, "33");
-					if (pad_file) out << esc("34");
-					out << " " << to_string(progress * 100.f, 5) << "% "
-						<< add_suffix(file_progress[i]) << " "
-						<< info.file_at(i).path.leaf() << "\n";
-					if (pad_file) out << esc("0");
+
+					char const* color = (file_progress[i] == info.file_at(i).size)
+						?"32":"33";
+
+					snprintf(str, sizeof(str), "%s %s %-5.2f%% %s %s%s\n",
+						progress_bar(progress, 100, color).c_str()
+						, pad_file?esc("34"):""
+						, progress * 100.f
+						, add_suffix(file_progress[i]).c_str()
+						, info.file_at(i).path.leaf().c_str()
+						, pad_file?esc("0"):"");
+					out += str;
 				}
 
 				out += "___________________________________\n";
 			}
-*/
+
 		}
 
 		if (print_log)
