@@ -311,6 +311,12 @@ int session_set_settings(void* ses, int tag, ...)
 			case SET_DOWNLOAD_RATE_LIMIT:
 				s->set_download_rate_limit(va_arg(lp, int));
 				break;
+			case SET_LOCAL_UPLOAD_RATE_LIMIT:
+				s->set_local_upload_rate_limit(va_arg(lp, int));
+				break;
+			case SET_LOCAL_DOWNLOAD_RATE_LIMIT:
+				s->set_local_download_rate_limit(va_arg(lp, int));
+				break;
 			case SET_MAX_UPLOAD_SLOTS:
 				s->set_max_uploads(va_arg(lp, int));
 				break;
@@ -379,6 +385,10 @@ int session_get_setting(void* ses, int tag, void* value, int* value_size)
 			return set_int_value(value, value_size, s->upload_rate_limit());
 		case SET_DOWNLOAD_RATE_LIMIT:
 			return set_int_value(value, value_size, s->download_rate_limit());
+		case SET_LOCAL_UPLOAD_RATE_LIMIT:
+			return set_int_value(value, value_size, s->local_upload_rate_limit());
+		case SET_LOCAL_DOWNLOAD_RATE_LIMIT:
+			return set_int_value(value, value_size, s->local_download_rate_limit());
 		case SET_MAX_UPLOAD_SLOTS:
 			return set_int_value(value, value_size, s->max_uploads());
 		case SET_MAX_CONNECTIONS:
