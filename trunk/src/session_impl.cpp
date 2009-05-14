@@ -310,8 +310,9 @@ namespace aux {
 			, m_peer_id.begin());
 
 		// http-accepted characters:
+		// excluding ', since some buggy trackers don't support that
 		static char const printable[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-			"abcdefghijklmnopqrstuvwxyz-_.!~*'()";
+			"abcdefghijklmnopqrstuvwxyz-_.!~*()";
 
 		// the random number
 		for (unsigned char* i = m_peer_id.begin() + print.length();
