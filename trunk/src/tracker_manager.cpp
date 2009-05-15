@@ -133,11 +133,9 @@ namespace libtorrent
 		tracker_manager& man
 		, tracker_request const& req
 		, io_service& ios
-		, address bind_interface_
 		, boost::weak_ptr<request_callback> r)
 		: timeout_handler(ios)
 		, m_requester(r)
-		, m_bind_interface(bind_interface_)
 		, m_man(man)
 		, m_req(req)
 	{}
@@ -211,7 +209,6 @@ namespace libtorrent
 		, connection_queue& cc
 		, tracker_request req
 		, std::string const& auth
-		, address bind_infc
 		, boost::weak_ptr<request_callback> c)
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -236,14 +233,14 @@ namespace libtorrent
 #endif
 		{
 			con = new http_tracker_connection(
-				ios, cc, *this, req, bind_infc, c
+				ios, cc, *this, req, c
 				, m_ses, m_proxy, auth);
 		}
 		else if (protocol == "udp")
 		{
 			con = new udp_tracker_connection(
-				ios, cc, *this, req, bind_infc
-				, c, m_ses, m_proxy);
+				ios, cc, *this, req , c, m_ses
+				, m_proxy);
 		}
 		else
 		{

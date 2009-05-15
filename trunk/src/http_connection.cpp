@@ -298,8 +298,10 @@ void http_connection::on_resolve(error_code const& e
 	// sort the endpoints so that the ones with the same IP version as our
 	// bound listen socket are first. So that when contacting a tracker,
 	// we'll talk to it from the same IP that we're listening on
-	std::partition(m_endpoints.begin(), m_endpoints.end()
-		, boost::bind(&address::is_v4, boost::bind(&tcp::endpoint::address, _1)) == m_bind_addr.is_v4());
+	if (m_bind_addr != address_v4::any())
+		std::partition(m_endpoints.begin(), m_endpoints.end()
+			, boost::bind(&address::is_v4, boost::bind(&tcp::endpoint::address, _1))
+				== m_bind_addr.is_v4());
 #endif
 
 	queue_connect();

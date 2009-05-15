@@ -70,15 +70,13 @@ namespace libtorrent
 		, connection_queue& cc
 		, tracker_manager& man
 		, tracker_request const& req
-		, address bind_infc
 		, boost::weak_ptr<request_callback> c
 		, aux::session_impl const& ses
 		, proxy_settings const& ps
 		, std::string const& auth)
-		: tracker_connection(man, req, ios, bind_infc, c)
+		: tracker_connection(man, req, ios, c)
 		, m_man(man)
 		, m_ses(ses)
-		, m_bind_iface(bind_infc)
 		, m_ps(ps)
 		, m_cc(cc)
 		, m_ios(ios)
@@ -173,7 +171,7 @@ namespace libtorrent
 			:settings.tracker_completion_timeout;
 
 		m_tracker_connection->get(url, seconds(timeout)
-			, 1, &m_ps, 5, settings.user_agent, m_bind_iface);
+			, 1, &m_ps, 5, settings.user_agent, bind_interface());
 
 		// the url + 100 estimated header size
 		sent_bytes(url.size() + 100);
@@ -476,8 +474,14 @@ namespace libtorrent
 		if (incomplete_ent && incomplete_ent->type() == entry::int_t)
 			incomplete = int(incomplete_ent->integer());
 
-		cb->tracker_response(tracker_req(), m_tracker_ip, peer_list, interval->integer(), complete
-			, incomplete, external_ip);
+		std::list<address> ip_list;
+		std::transform(m_tracker_connection->endpoints().begin()
+			, m_tracker_connection->endpoints().end()
+			, std::back_inserter(ip_list)
+			, boost::bind(&tcp::endpoint::address, _1));
+
+		cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, peer_list
+			, interval->integer(), complete, incomplete, external_ip);
 	}
 
 }

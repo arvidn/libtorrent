@@ -363,6 +363,7 @@ namespace libtorrent
 		virtual void tracker_response(
 			tracker_request const& r
 			, address const& tracker_ip
+			, std::list<address> const& ip_list
 			, std::vector<peer_entry>& e, int interval
 			, int complete, int incomplete, address const& external_ip);
 		virtual void tracker_request_timed_out(
@@ -390,7 +391,8 @@ namespace libtorrent
 		void force_tracker_request(ptime);
 		void scrape_tracker();
 		void announce_with_tracker(tracker_request::event_t e
-			= tracker_request::none);
+			= tracker_request::none
+			, address const& bind_interface = address_v4::any());
 		ptime const& last_scrape() const { return m_last_scrape; }
 
 		// sets the username and password that will be sent to
