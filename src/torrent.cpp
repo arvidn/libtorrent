@@ -1054,7 +1054,8 @@ namespace libtorrent
 
 #endif
 
-	void torrent::announce_with_tracker(tracker_request::event_t e)
+	void torrent::announce_with_tracker(tracker_request::event_t e
+		, address const& bind_interface)
 	{
 		INVARIANT_CHECK;
 
@@ -1106,6 +1107,9 @@ namespace libtorrent
 				if (!ae.complete_sent && is_seed()) req.event = tracker_request::completed;
 			}
 
+			if (!is_any(bind_interface)) req.bind_ip = bind_interface;
+			else req.bind_ip = m_ses.m_listen_interface.address();
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			(*m_ses.m_logger) << time_now_string() << " ==> TACKER REQUEST " << req.url
 				<< " event=" << (req.event==tracker_request::stopped?"stopped"
@@ -1115,13 +1119,12 @@ namespace libtorrent
 			{
 				boost::shared_ptr<aux::tracker_logger> tl(new aux::tracker_logger(m_ses));
 				m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
-					, tracker_login(), m_ses.m_listen_interface.address(), tl);
+					, tracker_login(), tl);
 			}
 			else
 #endif
 				m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
-					, tracker_login(), m_ses.m_listen_interface.address()
-					, m_abort?boost::shared_ptr<torrent>():shared_from_this());
+					, tracker_login() , m_abort?boost::shared_ptr<torrent>():shared_from_this());
 			ae.updating = true;
 
 			if (m_ses.m_alerts.should_post<tracker_announce_alert>())
@@ -1146,8 +1149,9 @@ namespace libtorrent
 		req.info_hash = m_torrent_file->info_hash();
 		req.kind = tracker_request::scrape_request;
 		req.url = m_trackers[i].url;
+		req.bind_ip = m_ses.m_listen_interface.address();
 		m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
-			, tracker_login(), m_ses.m_listen_interface.address(), shared_from_this());
+			, tracker_login(), shared_from_this());
 
 		m_last_scrape = time_now();
 	}
@@ -1182,7 +1186,8 @@ namespace libtorrent
  
 	void torrent::tracker_response(
 		tracker_request const& r
-		, address const& tracker_ip
+		, address const& tracker_ip // this is the IP we connected to
+		, std::list<address> const& tracker_ips // these are all the IPs it resolved to
 		, std::vector<peer_entry>& peer_list
 		, int interval
 		, int complete
@@ -1237,6 +1242,10 @@ namespace libtorrent
 			s << "\n";
 		}
 		s << "external ip: " << external_ip << "\n";
+		s << "tracker ips: ";
+		std::copy(tracker_ips.begin(), tracker_ips.end(), std::ostream_iterator<address>(s, " "));
+		s << "\n";
+		s << "we connected to: " << tracker_ip << "\n";
 		debug_log(s.str());
 #endif
 		// for each of the peers we got from the tracker
@@ -1273,6 +1282,41 @@ namespace libtorrent
 				get_handle(), peer_list.size(), r.url));
 		}
 		m_got_tracker_response = true;
+
+		// we're listening on an interface type that was not used
+		// when talking to the tracker. If there is a matching interface
+		// type in the tracker IP list, make another tracker request
+		// using that interface
+		// in order to avoid triggering this case over and over, don't
+		// do it if the bind IP for the tracker request that just completed
+		// matches one of the listen interfaces, since that means this
+		// announce was the second one
+		// don't connect twice just to tell it we're stopping
+
+		if (((!is_any(m_ses.m_ipv6_interface.address()) && tracker_ip.is_v4())
+			|| (!is_any(m_ses.m_ipv4_interface.address()) && tracker_ip.is_v6()))
+			&& r.bind_ip != m_ses.m_ipv4_interface.address()
+			&& r.bind_ip != m_ses.m_ipv6_interface.address()
+			&& r.event != tracker_request::stopped)
+		{
+			std::list<address>::const_iterator i = std::find_if(tracker_ips.begin()
+				, tracker_ips.end(), boost::bind(&address::is_v4, _1) != tracker_ip.is_v4());
+			if (i != tracker_ips.end())
+			{
+				// the tracker did resolve to a different type if address, so announce
+				// to that as well
+
+				// tell the tracker to bind to the opposite protocol type
+				address bind_interface = tracker_ip.is_v4()
+					?m_ses.m_ipv6_interface.address()
+					:m_ses.m_ipv4_interface.address();
+				announce_with_tracker(r.event, bind_interface);
+#if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING) && TORRENT_USE_IOSTREAM
+				debug_log("announce again using " + print_address(bind_interface)
+					+ " as the bind interface");
+#endif
+			}
+		}
 	}
 
 	void torrent::on_peer_name_lookup(error_code const& e, tcp::resolver::iterator host

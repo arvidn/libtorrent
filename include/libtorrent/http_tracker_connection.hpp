@@ -70,7 +70,6 @@ namespace libtorrent
 			, connection_queue& cc
 			, tracker_manager& man
 			, tracker_request const& req
-			, address bind_infc
 			, boost::weak_ptr<request_callback> c
 			, aux::session_impl const& ses
 			, proxy_settings const& ps
@@ -97,7 +96,6 @@ namespace libtorrent
 		tracker_manager& m_man;
 		boost::shared_ptr<http_connection> m_tracker_connection;
 		aux::session_impl const& m_ses;
-		address m_bind_iface;
 		address m_tracker_ip;
 		proxy_settings const& m_ps;
 		connection_queue& m_cc;

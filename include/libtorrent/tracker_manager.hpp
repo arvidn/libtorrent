@@ -110,6 +110,7 @@ namespace libtorrent
 		int num_want;
 		std::string ipv6;
 		std::string ipv4;
+		address bind_ip;
 	};
 
 	struct TORRENT_EXPORT request_callback
@@ -124,6 +125,7 @@ namespace libtorrent
 		virtual void tracker_response(
 			tracker_request const& req
 			, address const& tracker_ip
+			, std::list<address> const& ip_list
 			, std::vector<peer_entry>& peers
 			, int interval
 			, int complete
@@ -187,7 +189,6 @@ namespace libtorrent
 		tracker_connection(tracker_manager& man
 			, tracker_request const& req
 			, io_service& ios
-			, address bind_interface
 			, boost::weak_ptr<request_callback> r);
 
 		boost::shared_ptr<request_callback> requester();
@@ -199,14 +200,13 @@ namespace libtorrent
 		void fail_timeout();
 		virtual void start() = 0;
 		virtual void close();
-		address const& bind_interface() const { return m_bind_interface; }
+		address const& bind_interface() const { return m_req.bind_ip; }
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
 
 	protected:
 		boost::weak_ptr<request_callback> m_requester;
 	private:
-		address m_bind_interface;
 		tracker_manager& m_man;
 		const tracker_request m_req;
 	};
@@ -226,7 +226,6 @@ namespace libtorrent
 			, connection_queue& cc
 			, tracker_request r
 			, std::string const& auth
-			, address bind_infc
 			, boost::weak_ptr<request_callback> c
 				= boost::weak_ptr<request_callback>());
 		void abort_all_requests(bool all = false);

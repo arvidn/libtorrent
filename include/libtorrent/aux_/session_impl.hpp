@@ -719,6 +719,7 @@ namespace libtorrent
 
 			void tracker_response(tracker_request const&
 				, libtorrent::address const& tracker_ip
+				, std::list<address> const& ip_list
 				, std::vector<peer_entry>& peers
 				, int interval
 				, int complete
@@ -737,7 +738,7 @@ namespace libtorrent
 					to_hex((const char*)&i->pid[0], 20, pid);
 					if (i->pid.is_all_zeros()) pid[0] = 0;
 
-					snprintf(tmp, 200, " %16s %5d %s\n", i->ip.c_str(), i->port, pid);
+					snprintf(tmp, 200, " %-16s %-5d %s\n", i->ip.c_str(), i->port, pid);
 					s += tmp;
 				}
 				snprintf(tmp, 200, "external ip: %s\n", print_address(external_ip).c_str());

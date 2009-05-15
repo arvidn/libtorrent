@@ -122,6 +122,8 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 #else
 	socket_type const& socket() const { return m_sock; }
 #endif
+
+	std::list<tcp::endpoint> const& endpoints() const { return m_endpoints; }
 	
 private:
 

@@ -75,11 +75,10 @@ namespace libtorrent
 		, connection_queue& cc
 		, tracker_manager& man
 		, tracker_request const& req
-		, address bind_infc
 		, boost::weak_ptr<request_callback> c
 		, aux::session_impl const& ses
 		, proxy_settings const& proxy)
-		: tracker_connection(man, req, ios, bind_infc, c)
+		: tracker_connection(man, req, ios, c)
 		, m_man(man)
 		, m_name_lookup(ios)
 		, m_socket(ios, boost::bind(&udp_tracker_connection::on_receive, self(), _1, _2, _3, _4), cc)
@@ -143,42 +142,69 @@ namespace libtorrent
 		// look for an address that has the same kind as the one
 		// we're listening on. To make sure the tracker get our
 		// correct listening address.
-		udp::resolver::iterator target = i;
-		udp::resolver::iterator end;
-		udp::endpoint target_address = *i;
-		for (; target != end && target->endpoint().address().is_v4()
-			!= bind_interface().is_v4(); ++target);
-		if (target == end)
+
+		std::transform(i, udp::resolver::iterator(), std::back_inserter(m_endpoints)
+			, boost::bind(&udp::resolver::iterator::value_type::endpoint, _1));
+
+		// remove endpoints that are filtered by the IP filter
+		for (std::list<udp::endpoint>::iterator i = m_endpoints.begin();
+			i != m_endpoints.end();)
 		{
-			TORRENT_ASSERT(target_address.address().is_v4() != bind_interface().is_v4());
-			if (cb)
-			{
-				std::string tracker_address_type = target_address.address().is_v4() ? "IPv4" : "IPv6";
-				std::string bind_address_type = bind_interface().is_v4() ? "IPv4" : "IPv6";
-				cb->tracker_warning(tracker_req(), "the tracker only resolves to an "
-					+ tracker_address_type + " address, and you're listening on an "
-					+ bind_address_type + " socket. This may prevent you from receiving incoming connections.");
-			}
-		}
-		else
-		{
-			target_address = *target;
+			if (m_ses.m_ip_filter.access(i->address()) == ip_filter::blocked) 
+				i = m_endpoints.erase(i);
+			else
+				++i;
 		}
 
-		if (m_ses.m_ip_filter.access(target_address.address()) & ip_filter::blocked)
+		if (m_endpoints.empty())
 		{
 			fail(-1, "blocked by IP filter");
 			return;
 		}
 		
-		if (cb) cb->m_tracker_address = tcp::endpoint(target_address.address(), target_address.port());
-		m_target = target_address;
-		error_code ec;
-		m_socket.bind(udp::endpoint(bind_interface(), 0), ec);
-		if (ec)
+		std::list<udp::endpoint>::iterator iter = m_endpoints.begin();
+		m_target = *iter;
+
+		if (bind_interface() != address_v4::any())
 		{
-			fail(-1, ec.message().c_str());
-			return;
+			// find first endpoint that matches our bind interface type
+			for (; iter != m_endpoints.end() && iter->address().is_v4()
+				!= bind_interface().is_v4(); ++iter);
+
+			if (iter == m_endpoints.end())
+			{
+				TORRENT_ASSERT(m_target.address().is_v4() != bind_interface().is_v4());
+				if (cb)
+				{
+					char const* tracker_address_type = m_target.address().is_v4() ? "IPv4" : "IPv6";
+					char const* bind_address_type = bind_interface().is_v4() ? "IPv4" : "IPv6";
+					char msg[200];
+					snprintf(msg, sizeof(msg)
+						, "the tracker only resolves to an %s  address, and you're "
+						"listening on an %s socket. This may prevent you from receiving "
+						"incoming connections."
+						, tracker_address_type, bind_address_type);
+
+					cb->tracker_warning(tracker_req(), msg);
+				}
+			}
+			else
+			{
+				m_target = *iter;
+			}
+		}
+
+		if (cb) cb->m_tracker_address = tcp::endpoint(m_target.address(), m_target.port());
+
+		if (bind_interface() != address_v4::any())
+		{
+			error_code ec;
+			m_socket.bind(udp::endpoint(bind_interface(), 0), ec);
+			if (ec)
+			{
+				fail(-1, ec.message().c_str());
+				return;
+			}
 		}
 		send_udp_connect();
 	}
@@ -423,8 +449,14 @@ namespace libtorrent
 			peer_list.push_back(e);
 		}
 
-		cb->tracker_response(tracker_req(), m_target.address(), peer_list, interval
-			, complete, incomplete, address());
+		std::list<address> ip_list;
+		std::transform(m_endpoints.begin()
+			, m_endpoints.end()
+			, std::back_inserter(ip_list)
+			, boost::bind(&udp::endpoint::address, _1));
+
+		cb->tracker_response(tracker_req(), m_target.address(), ip_list
+			, peer_list, interval, complete, incomplete, address());
 
 		m_man.remove_request(this);
 		close();
