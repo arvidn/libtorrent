@@ -54,6 +54,8 @@ release 0.14.4
 	* fixed crash bug when shutting down while checking a torrent
 	* fixed handling of web seed urls that didn't end with a
 	  slash for multi-file torrents
+	* lowered the default connection speed to 10 connection attempts
+	  per second
 
 release 0.14.3
 
