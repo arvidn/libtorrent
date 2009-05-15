@@ -659,6 +659,7 @@ namespace libtorrent
 #endif
 			i->second.inet_as = ses.lookup_as(as);
 #endif
+			i->source = peer_info::incoming;
 		}
 	
 		c.set_peer_info(&i->second);

@@ -335,7 +335,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out += "AS                                         ";
 #endif
-	out += "down     (total | peak   )  up      (total | peak   ) sent-req recv flags         source ";
+	out += "down     (total | peak   )  up      (total | peak   ) sent-req recv flags         source  ";
 	if (print_fails) out += "fail hshf ";
 	if (print_send_bufs) out += "rq sndb            quota rcvb            q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
@@ -371,7 +371,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #endif
 
 		snprintf(str, sizeof(str)
-			, "%s%s (%s|%s) %s%s (%s|%s) %s%3d (%3d) %3d %c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c "
+			, "%s%s (%s|%s) %s%s (%s|%s) %s%3d (%3d) %3d %c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c%c "
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
 			, add_suffix(i->total_download).c_str(), add_suffix(i->download_rate_peak, "/s").c_str()
 			, esc("31"), add_suffix(i->up_speed, "/s").c_str(), add_suffix(i->total_upload).c_str()
@@ -406,7 +406,8 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 			, (i->source & peer_info::pex)?'P':'_'
 			, (i->source & peer_info::dht)?'D':'_'
 			, (i->source & peer_info::lsd)?'L':'_'
-			, (i->source & peer_info::resume_data)?'R':'_');
+			, (i->source & peer_info::resume_data)?'R':'_'
+			, (i->source & peer_info::incoming)?'I':'_');
 		out += str;
 
 		if (print_fails)
