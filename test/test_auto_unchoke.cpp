@@ -68,6 +68,7 @@ void test_swarm()
 		print_alerts(ses3, "ses3");
 
 		st = ses1.status();
+		std::cerr << st.allowed_upload_slots << " ";
 		if (st.allowed_upload_slots >= 2) break;
 
 		torrent_status st1 = tor1.status();
@@ -90,7 +91,7 @@ void test_swarm()
 		test_sleep(1000);
 	}
 
-	TEST_CHECK(st.allowed_upload_slots == 2);
+	TEST_CHECK(st.allowed_upload_slots >= 2);
 
 	// make sure the files are deleted
 	ses1.remove_torrent(tor1, session::delete_files);
