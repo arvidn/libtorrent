@@ -104,7 +104,7 @@ namespace libtorrent
 			: torrent_alert(h)
 			, buffer(d)
 			, piece(p)
-            , size(s)
+			, size(s)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
