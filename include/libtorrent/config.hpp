@@ -36,6 +36,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include <boost/version.hpp>
 
+#ifndef WIN32
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+#endif
+
+#ifndef PRId64
+#ifdef _WIN32
+#define PRId64 "I64d"
+#else
+#define PRId64 "lld"
+#endif
+#endif
+
 #if defined(__GNUC__) && __GNUC__ >= 4
 
 #define TORRENT_DEPRECATED __attribute__ ((deprecated))

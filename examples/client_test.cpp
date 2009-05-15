@@ -1262,7 +1262,7 @@ int main(int argc, char* argv[])
 			if (s.num_incomplete >= 0) downloaders = s.num_incomplete;
 			else downloaders = s.list_peers - s.list_seeds;
 
-			snprintf(str, sizeof(str), "%-13s download: (%s%s%s) upload: %s%s%s (%s%s%s) swarm: %4d:%4d"
+			snprintf(str, sizeof(str), "%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
 				"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x%s\n"
 				, (paused && !auto_managed)?"paused":(paused && auto_managed)?"queued":state_str[s.state]
 				, esc("32"), add_suffix(s.total_download).c_str(), term
@@ -1291,7 +1291,7 @@ int main(int argc, char* argv[])
 				progress_bar_color = "32"; // green
 			}
 
-			snprintf(str, sizeof(str), "     %-10s: %s%-10lld%s Bytes %6.2f%% %s\n"
+			snprintf(str, sizeof(str), "     %-10s: %s%-10"PRId64"%s Bytes %6.2f%% %s\n"
 				, sequential_download?"sequential":"progress"
 				, esc("32"), s.total_done, esc("0")
 				, s.progress*100.f
@@ -1344,7 +1344,7 @@ int main(int argc, char* argv[])
 		out += str;
 
 		snprintf(str, sizeof(str), "==== waste: %s fail: %s unchoked: %d / %d "
-			"bw queues: %8d (%d) | %8d (%d) cache: w: %lld%% r: %lld%% size: %s (%s) / %s ===\n"
+			"bw queues: %8d (%d) | %8d (%d) cache: w: %"PRId64"%% r: %lld%% size: %s (%s) / %s ===\n"
 			, add_suffix(sess_stat.total_redundant_bytes).c_str()
 			, add_suffix(sess_stat.total_failed_bytes).c_str()
 			, sess_stat.num_unchoked, sess_stat.allowed_upload_slots
@@ -1365,7 +1365,7 @@ int main(int argc, char* argv[])
 
 		if (show_dht_status)
 		{
-			snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d total DHT size: %lld\n"
+			snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d total DHT size: %"PRId64"\n"
 				, sess_stat.dht_nodes, sess_stat.dht_node_cache, sess_stat.dht_global_nodes);
 			out += str;
 
