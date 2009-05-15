@@ -652,7 +652,7 @@ namespace libtorrent
 				char const* ptr = peers_entry->string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
-					m_policy.peer_from_tracker(read_v4_endpoint<tcp::endpoint>(ptr)
+					m_policy.add_peer(read_v4_endpoint<tcp::endpoint>(ptr)
 						, id, peer_info::resume_data, 0);
 				}
 			}
@@ -663,7 +663,7 @@ namespace libtorrent
 				char const* ptr = banned_peers_entry->string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
-					policy::peer* p = m_policy.peer_from_tracker(read_v4_endpoint<tcp::endpoint>(ptr)
+					policy::peer* p = m_policy.add_peer(read_v4_endpoint<tcp::endpoint>(ptr)
 						, id, peer_info::resume_data, 0);
 					if (p) p->banned = true;
 				}
@@ -676,7 +676,7 @@ namespace libtorrent
 				char const* ptr = peers6_entry->string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
-					m_policy.peer_from_tracker(read_v6_endpoint<tcp::endpoint>(ptr)
+					m_policy.add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
 						, id, peer_info::resume_data, 0);
 				}
 			}
@@ -687,7 +687,7 @@ namespace libtorrent
 				char const* ptr = banned_peers6_entry->string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
-					policy::peer* p = m_policy.peer_from_tracker(read_v6_endpoint<tcp::endpoint>(ptr)
+					policy::peer* p = m_policy.add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
 						, id, peer_info::resume_data, 0);
 					if (p) p->banned = true;
 				}
@@ -707,7 +707,7 @@ namespace libtorrent
 					error_code ec;
 					tcp::endpoint a(address::from_string(ip, ec), (unsigned short)port);
 					if (ec) continue;
-					m_policy.peer_from_tracker(a, id, peer_info::resume_data, 0);
+					m_policy.add_peer(a, id, peer_info::resume_data, 0);
 				}
 			}
 
@@ -724,7 +724,7 @@ namespace libtorrent
 					error_code ec;
 					tcp::endpoint a(address::from_string(ip, ec), (unsigned short)port);
 					if (ec) continue;
-					policy::peer* p = m_policy.peer_from_tracker(a, id, peer_info::resume_data, 0);
+					policy::peer* p = m_policy.add_peer(a, id, peer_info::resume_data, 0);
 					if (p) p->banned = true;
 				}
 			}
@@ -1048,7 +1048,7 @@ namespace libtorrent
 				get_handle(), peers.size()));
 		}
 		std::for_each(peers.begin(), peers.end(), bind(
-			&policy::peer_from_tracker, boost::ref(m_policy), _1, peer_id(0)
+			&policy::add_peer, boost::ref(m_policy), _1, peer_id(0)
 			, peer_info::dht, 0));
 	}
 
@@ -1272,7 +1272,7 @@ namespace libtorrent
 			{
 				// ignore local addresses from the tracker (unless the tracker is local too)
 				if (is_local(a.address()) && !is_local(tracker_ip)) continue;
-				m_policy.peer_from_tracker(a, i->pid, peer_info::tracker, 0);
+				m_policy.add_peer(a, i->pid, peer_info::tracker, 0);
 			}
 		}
 
@@ -1343,7 +1343,7 @@ namespace libtorrent
 			return;
 		}
 			
-		m_policy.peer_from_tracker(*host, pid, peer_info::tracker, 0);
+		m_policy.add_peer(*host, pid, peer_info::tracker, 0);
 	}
 
 	size_type torrent::bytes_left() const

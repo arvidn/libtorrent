@@ -75,7 +75,7 @@ namespace libtorrent
 		struct peer;
 		// this is called once for every peer we get from
 		// the tracker, pex, lsd or dht.
-		policy::peer* peer_from_tracker(const tcp::endpoint& remote, const peer_id& pid
+		policy::peer* add_peer(const tcp::endpoint& remote, const peer_id& pid
 			, int source, char flags);
 
 		// false means duplicate connection
