@@ -2291,7 +2291,7 @@ namespace aux {
 		(*m_logger) << time_now_string()
 			<< ": added peer from local discovery: " << peer << "\n";
 #endif
-		t->get_policy().peer_from_tracker(peer, peer_id(0), peer_info::lsd, 0);
+		t->get_policy().add_peer(peer, peer_id(0), peer_info::lsd, 0);
 	}
 
 	void session_impl::on_port_mapping(int mapping, int port

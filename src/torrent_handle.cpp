@@ -637,7 +637,7 @@ namespace libtorrent
 		
 		peer_id id;
 		std::fill(id.begin(), id.end(), 0);
-		t->get_policy().peer_from_tracker(adr, id, source, 0);
+		t->get_policy().add_peer(adr, id, source, 0);
 	}
 
 	void torrent_handle::force_reannounce(

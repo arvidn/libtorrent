@@ -869,7 +869,7 @@ namespace libtorrent
 		return false;
 	}
 
-	policy::peer* policy::peer_from_tracker(tcp::endpoint const& remote, peer_id const& pid
+	policy::peer* policy::add_peer(tcp::endpoint const& remote, peer_id const& pid
 		, int src, char flags)
 	{
 		INVARIANT_CHECK;
