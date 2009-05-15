@@ -347,6 +347,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 	if (print_peer_rate) out += "peer-rate ";
 	out += "client \n";
 
+	char str[500];
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
 	{
@@ -355,34 +356,31 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 
 		if (print_ip)
 		{
-			char str[100];
 			error_code ec;
-			snprintf(str, sizeof(str), "%-22s:%5d ", i->ip.address().to_string(ec).c_str(), i->ip.port());
+			snprintf(str, sizeof(str), "%-22s:%-5d ", i->ip.address().to_string(ec).c_str(), i->ip.port());
 			out += str;
 		}
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		if (print_as)
 		{
-			char str[100];
 			error_code ec;
-			snprintf(str, sizeof(str), "%42s ", i->inet_as_name.c_str());
+			snprintf(str, sizeof(str), "%-42s ", i->inet_as_name.c_str());
 			out += str;
 		}
 #endif
-		char str[500];
-		snprintf(str, sizeof(str), "%s%s (%s|%s) %s%s (%s|%s) %s"
+
+		snprintf(str, sizeof(str)
+			, "%s%s (%s|%s) %s%s (%s|%s) %s%3d (%3d) %3d %c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c "
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
 			, add_suffix(i->total_download).c_str(), add_suffix(i->download_rate_peak, "/s").c_str()
 			, esc("31"), add_suffix(i->up_speed, "/s").c_str(), add_suffix(i->total_upload).c_str()
-			, add_suffix(i->upload_rate_peak, "/s").c_str(), esc("0"));
-		out += str;
+			, add_suffix(i->upload_rate_peak, "/s").c_str(), esc("0")
 
-		snprintf(str, sizeof(str), "%3d (%3d) %3d "
-			, i->download_queue_length, i->target_dl_queue_length, i->upload_queue_length);
-		out += str;
-	
-		snprintf(str, sizeof(str), "%c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c "
+			, i->download_queue_length
+			, i->target_dl_queue_length
+			, i->upload_queue_length
+
 			, (i->flags & peer_info::interesting)?'I':'.'
 			, (i->flags & peer_info::choked)?'C':'.'
 			, (i->flags & peer_info::remote_interested)?'i':'.'
@@ -1234,7 +1232,9 @@ int main(int argc, char* argv[])
 			if (h.is_paused()) out += esc("34");
 			else out += esc("37");
 
-			snprintf(str, sizeof(str), "%-40s %s ", h.name().c_str(), term);
+			std::string name = h.name();
+			if (name.size() > 40) name.resize(40);
+			snprintf(str, sizeof(str), "%-40s %s ", name.c_str(), term);
 			out += str;
 
 			torrent_status s = h.status();
