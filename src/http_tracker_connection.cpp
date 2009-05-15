@@ -133,6 +133,7 @@ namespace libtorrent
 				, tracker_req().left
 				, tracker_req().num_want
 				, tracker_req().key);
+			url += str;
 
 			if (tracker_req().event != tracker_request::none)
 			{
