@@ -404,8 +404,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_finished == m_torrent->is_finished());
-
 		if (m_torrent->has_picker())
 			m_torrent->picker().clear_peer(*i);
 		if ((*i)->seed) --m_num_seeds;
