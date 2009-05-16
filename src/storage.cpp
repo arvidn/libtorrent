@@ -2227,7 +2227,10 @@ namespace libtorrent
 #else
 				&& m_storage->error() != error_code(ENOENT, get_posix_category()))
 #endif
+			{
+				m_piece_data.reset();
 				return -1;
+			}
 			return 1;
 		}
 
