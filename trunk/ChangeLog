@@ -57,6 +57,7 @@ release 0.14.4
 	  slash for multi-file torrents
 	* lowered the default connection speed to 10 connection attempts
 	  per second
+	* optimized memory usage when checking files fails
 
 release 0.14.3
 
