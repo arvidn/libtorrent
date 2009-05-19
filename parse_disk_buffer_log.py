@@ -48,8 +48,6 @@ print
 	
 out.close()
 
-keys = ['check piece', 'send buffer', 'read cache', 'receive buffer', 'hash temp']
-
 out = open('disk_buffer.gnuplot', 'wb')
 print >>out, "set term png size 1200,700"
 print >>out, 'set output "disk_buffer.png"'
