@@ -405,7 +405,7 @@ namespace libtorrent
 				for (int i = 0; i < e.string_length(); ++i)
 				{
 					char str[5];
-					snprintf(str, sizeof(str), "%02x", str[i]);
+					snprintf(str, sizeof(str), "%02x", (unsigned char)str[i]);
 					ret += str;
 				}
 				ret += "'";
