@@ -60,6 +60,8 @@ namespace libtorrent
 #endif
 #ifdef TORRENT_DISK_STATS
 		m_log.open("disk_buffers.log", std::ios::trunc);
+		m_categories["read cache"] = 0;
+		m_categories["write cache"] = 0;
 #endif
 #ifdef TORRENT_DEBUG
 		m_magic = 0x1337;
@@ -119,6 +121,21 @@ namespace libtorrent
 #endif
 		return ret;
 	}
+
+#ifdef TORRENT_DISK_STATS
+	void disk_buffer_pool::rename_buffer(char* buf, char const* category)
+	{
+		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
+			!= m_categories.end());
+		std::string const& prev_category = m_buf_to_category[buf];
+		--m_categories[prev_category];
+		m_log << log_time() << " " << prev_category << ": " << m_categories[prev_category] << "\n";
+
+		++m_categories[category];
+		m_buf_to_category[buf] = category;
+		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
+	}
+#endif
 
 	void disk_buffer_pool::free_buffer(char* buf)
 	{
@@ -569,6 +586,10 @@ namespace libtorrent
 		TORRENT_ASSERT(find_cached_piece(m_pieces, j, l) == m_pieces.end());
 		cached_piece_entry p;
 
+#ifdef TORRENT_DISK_STATS
+		rename_buffer(j.buffer, "write cache");
+#endif
+
 		int piece_size = j.storage->info()->piece_size(j.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
@@ -821,6 +842,13 @@ namespace libtorrent
 
 		TORRENT_ASSERT(cached_read_blocks + cached_write_blocks == m_cache_stats.cache_size);
 		TORRENT_ASSERT(cached_read_blocks == m_cache_stats.read_cache_size);
+
+#ifdef TORRENT_DISK_STATS
+		int read_allocs = m_categories.find(std::string("read cache"))->second;
+		int write_allocs = m_categories.find(std::string("write cache"))->second;
+		TORRENT_ASSERT(cached_read_blocks == read_allocs);
+		TORRENT_ASSERT(cached_write_blocks == write_allocs);
+#endif
 
 		// when writing, there may be a one block difference, right before an old piece
 		// is flushed
@@ -1317,6 +1345,9 @@ namespace libtorrent
 							--p->num_blocks;
 						}
 						p->blocks[block] = j.buffer;
+#ifdef TORRENT_DISK_STATS
+						rename_buffer(j.buffer, "write cache");
+#endif
 						++m_cache_stats.cache_size;
 						++p->num_blocks;
 						p->last_use = time_now();
