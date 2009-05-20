@@ -3680,7 +3680,9 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " *** ASYNC_WRITE [ bytes: " << amount_to_send << " ]\n";
 #endif
 			std::list<asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
-			m_socket->async_write_some(vec, bind(&peer_connection::on_send_data, self(), _1, _2));
+			m_socket->async_write_some(
+				vec, make_write_handler(bind(
+					&peer_connection::on_send_data, self(), _1, _2)));
 
 			m_channel_state[upload_channel] = peer_info::bw_network;
 		}
@@ -3763,7 +3765,10 @@ namespace libtorrent
 			// only receive into regular buffer
 			TORRENT_ASSERT(m_recv_pos + max_receive <= int(m_recv_buffer.size()));
 			m_socket->async_read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
-				, max_receive), bind(&peer_connection::on_receive_data, self(), _1, _2));
+				, max_receive)
+				, make_read_handler(
+					bind(&peer_connection::on_receive_data, self(), _1, _2)
+				));
 		}
 		else if (m_recv_pos >= regular_buffer_size)
 		{
@@ -3772,7 +3777,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_recv_pos - regular_buffer_size + max_receive <= m_disk_recv_buffer_size);
 			m_socket->async_read_some(asio::buffer(m_disk_recv_buffer.get() + m_recv_pos - regular_buffer_size
 				, max_receive)
-				, bind(&peer_connection::on_receive_data, self(), _1, _2));
+				, make_read_handler(
+					bind(&peer_connection::on_receive_data, self(), _1, _2)
+				));
 		}
 		else
 		{
@@ -3787,8 +3794,9 @@ namespace libtorrent
 				, regular_buffer_size - m_recv_pos);
 			vec[1] = asio::buffer(m_disk_recv_buffer.get()
 				, max_receive - regular_buffer_size + m_recv_pos);
-			m_socket->async_read_some(vec, bind(&peer_connection::on_receive_data
-				, self(), _1, _2));
+			m_socket->async_read_some(
+				vec, make_read_handler(
+					bind(&peer_connection::on_receive_data, self(), _1, _2)));
 		}
 		m_channel_state[download_channel] = peer_info::bw_network;
 	}
