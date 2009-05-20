@@ -985,6 +985,91 @@ namespace libtorrent
 		// pick any pieces from this peer
 		bool m_no_download:1;
 		
+		template <std::size_t Size>
+		struct handler_storage
+		{
+#ifdef TORRENT_DEBUG
+			handler_storage()
+			  : used(false)
+			{}
+
+			bool used;
+#endif
+			boost::aligned_storage<Size> bytes;
+		};
+
+		handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
+		handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
+
+		template <class Handler, std::size_t Size>
+		struct allocating_handler
+		{
+			allocating_handler(
+				Handler const& handler, handler_storage<Size>& storage
+			)
+			  : handler(handler)
+			  , storage(storage)
+			{}
+
+			template <class A0>
+			void operator()(A0 const& a0) const
+			{
+				handler(a0);
+			}
+
+			template <class A0, class A1>
+			void operator()(A0 const& a0, A1 const& a1) const
+			{
+				handler(a0, a1);
+			}
+
+			template <class A0, class A1, class A2>
+			void operator()(A0 const& a0, A1 const& a1, A2 const& a2) const
+			{
+				handler(a0, a1, a2);
+			}
+
+			friend void* asio_handler_allocate(
+			    std::size_t size, allocating_handler<Handler, Size>* ctx)
+			{
+				assert(size <= Size);
+#ifdef TORRENT_DEBUG
+				assert(!ctx->storage.used);
+				ctx->storage.used = true;
+#endif
+				return &ctx->storage.bytes;
+			}
+
+			friend void asio_handler_deallocate(
+				void*, std::size_t, allocating_handler<Handler, Size>* ctx)
+			{
+#ifdef TORRENT_DEBUG
+				ctx->storage.used = false;
+#endif
+			}
+
+			Handler handler;
+			handler_storage<Size>& storage;
+		};
+
+		template <class Handler>
+		allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>
+			make_read_handler(Handler const& handler)
+		{
+			return allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
+				handler, m_read_handler_storage
+			);
+		}
+
+		template <class Handler>
+		allocating_handler<Handler, TORRENT_WRITE_HANDLER_MAX_SIZE>
+			make_write_handler(Handler const& handler)
+		{
+			return allocating_handler<Handler, TORRENT_WRITE_HANDLER_MAX_SIZE>(
+				handler, m_write_handler_storage
+			);
+		}
+
 #ifdef TORRENT_DEBUG
 	public:
 		bool m_in_constructor:1;
