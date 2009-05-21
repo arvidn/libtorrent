@@ -299,7 +299,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 		}
 		char ih_hex[41];
 		to_hex((char const*)&t->info_hash()[0], 20, ih_hex);
-		std::cerr << "generated torrent: " << ih_hex << std::endl;
+		std::cerr << "generated torrent: " << ih_hex << " ./tmp1" << suffix << "/temporary" << std::endl;
 	}
 	else
 	{

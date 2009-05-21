@@ -432,7 +432,6 @@ namespace libtorrent
 		bool swap_slots3(int slot1, int slot2, int slot3);
 		bool verify_resume_data(lazy_entry const& rd, std::string& error);
 		bool write_resume_data(entry& rd) const;
-		sha1_hash hash_for_slot(int slot, partial_hash& ph, int piece_size);
 
 		// this identifies a read or write operation
 		// so that storage::readwrite() knows what to
@@ -476,14 +475,16 @@ namespace libtorrent
 		bool m_allocate_files;
 	};
 
-	sha1_hash storage::hash_for_slot(int slot, partial_hash& ph, int piece_size)
+	int piece_manager::hash_for_slot(int slot, partial_hash& ph, int piece_size
+		, int small_piece_size, sha1_hash* small_hash)
 	{
 		TORRENT_ASSERT(!error());
+		int num_read = 0;
 		int slot_size = piece_size - ph.offset;
 		if (slot_size > 0)
 		{
 			int block_size = 16 * 1024;
-			if (disk_pool()) block_size = disk_pool()->block_size();
+			if (m_storage->disk_pool()) block_size = m_storage->disk_pool()->block_size();
 			int size = slot_size;
 			int num_blocks = (size + block_size - 1) / block_size;
 
@@ -492,40 +493,68 @@ namespace libtorrent
 			// and then hash it. When optimizing for memory usage, we read
 			// one block at a time and hash it. This ends up only using a
 			// single buffer
-			if (settings().optimize_hashing_for_speed)
+			if (m_storage->settings().optimize_hashing_for_speed)
 			{
 				file::iovec_t* bufs = TORRENT_ALLOCA(file::iovec_t, num_blocks);
 				for (int i = 0; i < num_blocks; ++i)
 				{
-					bufs[i].iov_base = disk_pool()->allocate_buffer("hash temp");
+					bufs[i].iov_base = m_storage->disk_pool()->allocate_buffer("hash temp");
 					bufs[i].iov_len = (std::min)(block_size, size);
 					size -= bufs[i].iov_len;
 				}
-				readv(bufs, slot, ph.offset, num_blocks);
+				num_read = m_storage->readv(bufs, slot, ph.offset, num_blocks);
 
 				for (int i = 0; i < num_blocks; ++i)
 				{
-					ph.h.update((char const*)bufs[i].iov_base, bufs[i].iov_len);
-					disk_pool()->free_buffer((char*)bufs[i].iov_base);
+					if (small_hash && small_piece_size < block_size)
+					{
+						ph.h.update((char const*)bufs[i].iov_base, small_piece_size);
+						*small_hash = hasher(ph.h).final();
+						small_hash = 0; // avoid this case again
+						ph.h.update((char const*)bufs[i].iov_base + small_piece_size
+							, bufs[i].iov_len - small_piece_size);
+					}
+					else
+					{
+						ph.h.update((char const*)bufs[i].iov_base, bufs[i].iov_len);
+						small_piece_size -= bufs[i].iov_len;
+					}
+					m_storage->disk_pool()->free_buffer((char*)bufs[i].iov_base);
 				}
 			}
 			else
 			{
 				file::iovec_t buf;
-				disk_buffer_holder holder(*disk_pool(), disk_pool()->allocate_buffer("hash temp"));
+				disk_buffer_holder holder(*m_storage->disk_pool()
+					, m_storage->disk_pool()->allocate_buffer("hash temp"));
 				buf.iov_base = holder.get();
 				for (int i = 0; i < num_blocks; ++i)
 				{
 					buf.iov_len = (std::min)(block_size, size);
-					readv(&buf, slot, ph.offset, 1);
-					ph.h.update((char const*)buf.iov_base, buf.iov_len);
+					int ret = m_storage->readv(&buf, slot, ph.offset, 1);
+					if (ret > 0) num_read += ret;
+
+					if (small_hash && small_piece_size < block_size)
+					{
+						ph.h.update((char const*)buf.iov_base, small_piece_size);
+						*small_hash = hasher(ph.h).final();
+						small_hash = 0; // avoid this case again
+						ph.h.update((char const*)buf.iov_base + small_piece_size
+							, buf.iov_len - small_piece_size);
+					}
+					else
+					{
+						ph.h.update((char const*)buf.iov_base, buf.iov_len);
+						small_piece_size -= buf.iov_len;
+					}
+
 					ph.offset += buf.iov_len;
 					size -= buf.iov_len;
 				}
 			}
-			if (error()) return sha1_hash(0);
+			if (error()) return 0;
 		}
-		return ph.h.final();
+		return num_read;
 	}
 
 	bool storage::initialize(bool allocate_files)
@@ -1333,16 +1362,8 @@ ret:
 			}
 
 			if (file_bytes_left != bytes_transferred)
-			{
-				// the file was not big enough
-#ifdef TORRENT_WINDOWS
-				ec = error_code(ERROR_HANDLE_EOF, get_system_category());
-#else
-				ec = error_code(EIO, get_posix_category());
-#endif
-				set_error(m_save_path / file_iter->path, ec);
 				return bytes_transferred;
-			}
+
 			advance_bufs(current_buf, bytes_transferred);
 			TORRENT_ASSERT(count_bufs(current_buf, bytes_left - file_bytes_left) <= num_bufs);
 		}
@@ -1440,7 +1461,6 @@ ret:
 		, m_scratch_buffer2(io, 0)
 		, m_scratch_piece(-1)
 		, m_storage_constructor(sc)
-		, m_piece_data(io, 0)
 		, m_io_thread(io)
 		, m_torrent(torrent)
 	{
@@ -1631,7 +1651,9 @@ ret:
 
 		int slot = slot_for(piece);
 		TORRENT_ASSERT(slot != has_no_slot);
-		return m_storage->hash_for_slot(slot, ph, m_files.piece_size(piece));
+		hash_for_slot(slot, ph, m_files.piece_size(piece));
+		if (m_storage->error()) return sha1_hash(0);
+		return ph.h.final();
 	}
 
 	int piece_manager::move_storage_impl(fs::path const& save_path)
@@ -1804,31 +1826,11 @@ ret:
 	}
 
 	int piece_manager::identify_data(
-		char const* piece_data
+		sha1_hash const& large_hash
+		, sha1_hash const& small_hash
 		, int current_slot)
 	{
 //		INVARIANT_CHECK;
-
-		const int piece_size = static_cast<int>(m_files.piece_length());
-		const int last_piece_size = static_cast<int>(m_files.piece_size(
-			m_files.num_pieces() - 1));
-
-		// calculate a small digest, with the same
-		// size as the last piece. And a large digest
-		// which has the same size as a normal piece
-		hasher small_digest;
-		small_digest.update(piece_data, last_piece_size);
-		hasher large_digest(small_digest);
-		TORRENT_ASSERT(piece_size - last_piece_size >= 0);
-		if (piece_size - last_piece_size > 0)
-		{
-			large_digest.update(
-				piece_data + last_piece_size
-				, piece_size - last_piece_size);
-		}
-		sha1_hash large_hash = large_digest.final();
-		sha1_hash small_hash = small_digest.final();
-
 		typedef std::multimap<sha1_hash, int>::const_iterator map_iter;
 		map_iter begin1;
 		map_iter end1;
@@ -2359,7 +2361,6 @@ ret:
 			TORRENT_ASSERT(m_current_slot == m_files.num_pieces());
 
 			// clear the memory we've been using
-			m_piece_data.reset();
 			std::multimap<sha1_hash, int>().swap(m_hash_to_piece);
 
 			if (m_storage_mode != storage_mode_compact)
@@ -2433,18 +2434,24 @@ ret:
 				m_hash_to_piece.insert(std::make_pair(m_info->hash_for_piece(i), i));
 		}
 
-		if (!m_piece_data)
-		{
-			int blocks_per_piece = (std::max)(m_files.piece_length() / m_io_thread.block_size(), 1);
-			m_piece_data.reset(m_io_thread.allocate_buffers(blocks_per_piece, "check piece")
-				, blocks_per_piece);
-		}
-
+		partial_hash ph;
+		int num_read = 0;
 		int piece_size = m_files.piece_size(m_current_slot);
-		int num_read = m_storage->read(m_piece_data.get()
-			, m_current_slot, 0, piece_size);
+		int small_piece_size = m_files.piece_size(m_files.num_pieces() - 1);
+		bool read_short = true;
+		sha1_hash small_hash;
+		if (piece_size == small_piece_size)
+		{
+			num_read = hash_for_slot(m_current_slot, ph, piece_size, 0, 0);
+		}
+		else
+		{
+			num_read = hash_for_slot(m_current_slot, ph, piece_size
+				, small_piece_size, &small_hash);
+		}
+		read_short = num_read != piece_size;
 
-		if (num_read < 0)
+		if (read_short)
 		{
 			if (m_storage->error()
 #ifdef TORRENT_WINDOWS
@@ -2454,17 +2461,14 @@ ret:
 				&& m_storage->error() != error_code(ENOENT, get_posix_category()))
 #endif
 			{
-				m_piece_data.reset();
 				return -1;
 			}
+			// if the file is incomplete, skip the rest of it
 			return skip_file();
 		}
 
-		// if the file is incomplete, skip the rest of it
-		if (num_read != piece_size)
-			return skip_file();
-
-		int piece_index = identify_data(m_piece_data.get(), m_current_slot);
+		sha1_hash large_hash = ph.h.final();
+		int piece_index = identify_data(large_hash, small_hash, m_current_slot);
 
 		if (piece_index >= 0) have_piece = piece_index;
 

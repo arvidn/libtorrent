@@ -74,6 +74,7 @@ namespace libtorrent
 			invalid_torrent_handle,
 			invalid_entry_type,
 			missing_info_hash_in_uri,
+			file_too_short,
 		};
 	}
 

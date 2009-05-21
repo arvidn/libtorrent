@@ -659,8 +659,14 @@ namespace libtorrent
 			file::iovec_t b = { buf.get(), buffer_size };
 			ret = p.storage->read_impl(&b, p.piece, start_block * m_block_size, 1);
 			l.lock();
-			TORRENT_ASSERT(ret == buffer_size || p.storage->error());
 			if (p.storage->error()) { return -1; }
+			if (ret != buffer_size)
+			{
+				// this means the file wasn't big enough for this read
+				p.storage->get_storage_impl()->set_error(""
+					, error_code(errors::file_too_short, libtorrent_category));
+				return -1;
+			}
 			++m_cache_stats.reads;
 		}
 		
@@ -692,8 +698,14 @@ namespace libtorrent
 			l.unlock();
 			ret = p.storage->read_impl(iov, p.piece, start_block * m_block_size, iov_counter);
 			l.lock();
-			TORRENT_ASSERT(ret == buffer_size || p.storage->error());
 			if (p.storage->error()) { return -1; }
+			if (ret != buffer_size)
+			{
+				// this means the file wasn't big enough for this read
+				p.storage->get_storage_impl()->set_error(""
+					, error_code(errors::file_too_short, libtorrent_category));
+				return -1;
+			}
 			++m_cache_stats.reads;
 		}
 
@@ -1312,6 +1324,15 @@ namespace libtorrent
 						if (ret < 0)
 						{
 							test_error(j);
+							break;
+						}
+						if (ret != j.storage->m_files.piece_size(j.piece) - j.offset)
+						{
+							// this means the file wasn't big enough for this read
+							j.error = error_code(errors::file_too_short, libtorrent_category);
+							j.error_file.clear();
+							j.str = j.error.message();
+							ret = -1;
 							break;
 						}
 						++m_cache_stats.blocks_read;

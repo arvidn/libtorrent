@@ -5312,7 +5312,6 @@ The interface looks like this::
 		virtual bool move_slot(int src_slot, int dst_slot) = 0;
 		virtual bool swap_slots(int slot1, int slot2) = 0;
 		virtual bool swap_slots3(int slot1, int slot2, int slot3) = 0;
-		virtual sha1_hash hash_for_slot(int slot, partial_hash& h, int piece_size) = 0;
 		virtual bool rename_file(int file, std::string const& new_name) = 0;
 		virtual bool release_files() = 0;
 		virtual bool delete_files() = 0;
@@ -5488,29 +5487,6 @@ This is only used in compact mode.
 
 Returning ``true`` indicates an error occurred.
 
-
-hash_for_slot()
----------------
-
-	::
-
-		sha1_hash hash_for_slot(int slot, partial_hash& h, int piece_size) = 0;
-
-The function should read the remaining bytes of the slot and hash it with the
-sha-1 state in ``partion_hash``. The ``partial_hash`` struct looks like this::
-
-	struct partial_hash
-	{
-		partial_hash();
-		int offset;
-		hasher h;
-	};
-
-``offset`` is the number of bytes in the slot that has already been hashed, and
-``h`` is the sha-1 state of that hash. ``piece_size`` is the size of the piece
-that is stored in the given slot.
-
-The function should return the hash of the piece stored in the slot.
 
 rename_file()
 -------------

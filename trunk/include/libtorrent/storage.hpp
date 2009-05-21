@@ -154,9 +154,6 @@ namespace libtorrent
 		// in slot3 and the data in slot3 in slot1
 		virtual bool swap_slots3(int slot1, int slot2, int slot3) = 0;
 
-		// returns the sha1-hash for the data at the given slot
-		virtual sha1_hash hash_for_slot(int slot, partial_hash& h, int piece_size) = 0;
-
 		// this will close all open files that are opened for
 		// writing. This is called when a torrent has finished
 		// downloading.
@@ -319,6 +316,12 @@ namespace libtorrent
 
 		bool allocate_slots(int num_slots, bool abort_on_disk = false);
 
+		// updates the ph.h hasher object with the data at the given slot
+		// and optionally a 'small hash' as well, the hash for
+		// the partial slot. Returns the number of bytes read
+		int hash_for_slot(int slot, partial_hash& h, int piece_size
+			, int small_piece_size = 0, sha1_hash* small_hash = 0);
+
 		int read_impl(
 			file::iovec_t* bufs
 			, int piece_index
@@ -337,7 +340,8 @@ namespace libtorrent
 		// -1=error 0=ok >0=skip this many pieces
 		int check_one_piece(int& have_piece);
 		int identify_data(
-			char const* piece_data
+			sha1_hash const& large_hash
+			, sha1_hash const& small_hash
 			, int current_slot);
 
 		void switch_to_full_mode();
@@ -419,9 +423,6 @@ namespace libtorrent
 		// storage (osed when remapping files)
 		storage_constructor_type m_storage_constructor;
 
-		// temporary buffer used while checking
-		disk_buffer_holder m_piece_data;
-		
 		// this maps a piece hash to piece index. It will be
 		// build the first time it is used (to save time if it
 		// isn't needed) 				
