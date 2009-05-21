@@ -1,3 +1,7 @@
+	* applied temporary memory storage optimization to when checking
+	  a torrent as well
+	* removed hash_for_slot() from storage_interface. It is now implemented
+	  by using the readv() function from the storage implementation
 	* improved IPv6 support by announcing twice when necessary
 	* added feature to set a separate global rate limit for local peers
 	* added preset settings for low memory environments and seed machines

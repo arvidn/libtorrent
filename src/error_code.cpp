@@ -70,6 +70,7 @@ namespace libtorrent
 			"invalid torrent handle used",
 			"invalid type requested from entry",
 			"missing info-hash from URI",
+			"file too short",
 		};
 		if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
 			return "Unknown error";
