@@ -19,6 +19,9 @@ lib test_common
 	<library>/torrent//torrent
 	;
 
+explicit test_natpmp ;
+explicit test_upnp ;
+
 project
    : requirements
 	<library>test_common
