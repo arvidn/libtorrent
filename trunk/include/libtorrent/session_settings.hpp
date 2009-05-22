@@ -166,6 +166,7 @@ namespace libtorrent
 			, recv_socket_buffer_size(0)
 			, send_socket_buffer_size(0)
 			, optimize_hashing_for_speed(true)
+			, file_checks_delay_per_block(0)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -559,6 +560,16 @@ namespace libtorrent
 		// optimized for memory usage instead of the
 		// number of read operations
 		bool optimize_hashing_for_speed;
+
+		// if > 0, file checks will have a short
+		// delay between disk operations, to make it 
+		// less intrusive on the system as a whole
+		// blocking the disk. This delay is specified
+		// in milliseconds and the delay will be this
+		// long per 16kiB block
+		// the default of 10 ms/16kiB will limit
+		// the checking rate to 1.6 MiB per second
+		int file_checks_delay_per_block;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

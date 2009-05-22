@@ -253,6 +253,7 @@ namespace libtorrent
 	disk_io_thread::disk_io_thread(asio::io_service& ios, int block_size)
 		: disk_buffer_pool(block_size)
 		, m_abort(false)
+		, m_waiting_to_shutdown(false)
 		, m_queue_buffer_size(0)
 		, m_ios(ios)
 		, m_work(io_service::work(m_ios))
@@ -272,6 +273,7 @@ namespace libtorrent
 	{
 		mutex_t::scoped_lock l(m_queue_mutex);
 		disk_io_job j;
+		m_waiting_to_shutdown = true;
 		j.action = disk_io_job::abort_thread;
 		m_jobs.insert(m_jobs.begin(), j);
 		m_signal.notify_all();
@@ -1217,7 +1219,7 @@ namespace libtorrent
 					mutex_t::scoped_lock jl(m_queue_mutex);
 
 					for (std::list<disk_io_job>::iterator i = m_jobs.begin();
-							i != m_jobs.end();)
+						i != m_jobs.end();)
 					{
 						if (i->action == disk_io_job::read)
 						{
@@ -1540,6 +1542,20 @@ namespace libtorrent
 					int piece_size = j.storage->info()->piece_length();
 					for (int processed = 0; processed < 4 * 1024 * 1024; processed += piece_size)
 					{
+						ptime now = time_now();
+						if (now - m_last_file_check < milliseconds(m_settings.file_checks_delay_per_block))
+						{
+							int sleep_time = m_settings.file_checks_delay_per_block
+								* (piece_size / (16 * 1024))
+								- total_milliseconds(now - m_last_file_check);
+	
+							boost::thread::sleep(boost::get_system_time()
+								+ boost::posix_time::milliseconds(sleep_time));
+						}
+						m_last_file_check = time_now();
+
+						if (m_waiting_to_shutdown) break;
+
 						ret = j.storage->check_files(j.piece, j.offset, j.str);
 
 #ifndef BOOST_NO_EXCEPTIONS

@@ -318,8 +318,11 @@ namespace libtorrent
 		mutable mutex_t m_queue_mutex;
 		boost::condition m_signal;
 		bool m_abort;
+		bool m_waiting_to_shutdown;
 		std::list<disk_io_job> m_jobs;
 		size_type m_queue_buffer_size;
+
+		ptime m_last_file_check;
 
 		// this protects the piece cache and related members
 		mutable mutex_t m_piece_mutex;
