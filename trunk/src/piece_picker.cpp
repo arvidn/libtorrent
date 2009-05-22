@@ -830,7 +830,9 @@ namespace libtorrent
 
 	void piece_picker::dec_refcount_all()
 	{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+#endif
 
 		if (m_seeds > 0)
 		{
