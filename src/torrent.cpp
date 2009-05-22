@@ -3853,6 +3853,10 @@ namespace libtorrent
 		// this returns true if lhs is a better disconnect candidate than rhs
 		bool compare_disconnect_peer(peer_connection const* lhs, peer_connection const* rhs)
 		{
+			// prefer to disconnect peers that are already disconnecting
+			if (lhs->is_disconnecting() != rhs->is_disconnecting())
+				return lhs->is_disconnecting();
+
 			// prefer to disconnect peers we're not interested in
 			if (lhs->is_interesting() != rhs->is_interesting())
 				return rhs->is_interesting();
@@ -3869,19 +3873,14 @@ namespace libtorrent
 			size_type lhs_transferred = lhs->statistics().total_payload_download();
 			size_type rhs_transferred = rhs->statistics().total_payload_download();
 
-			if (lhs_transferred != rhs_transferred
-				&& lhs_transferred > 0
-				&& rhs_transferred > 0)
-			{
-				ptime now = time_now();
-				size_type lhs_time_connected = total_seconds(now - lhs->connected_time());
-				size_type rhs_time_connected = total_seconds(now - rhs->connected_time());
+			ptime now = time_now();
+			size_type lhs_time_connected = total_seconds(now - lhs->connected_time());
+			size_type rhs_time_connected = total_seconds(now - rhs->connected_time());
 
-				double lhs_rate = double(lhs_transferred) / (lhs_time_connected + 1);
-				double rhs_rate = double(rhs_transferred) / (rhs_time_connected + 1);
-			
-				return lhs_rate < rhs_rate;
-			}
+			lhs_transferred /= lhs_time_connected + 1;
+			rhs_transferred /= (rhs_time_connected + 1);
+			if (lhs_transferred != rhs_transferred)	
+				return lhs_transferred < rhs_transferred;
 
 			// prefer to disconnect peers that chokes us
 			if (lhs->is_choked() != rhs->is_choked())
@@ -3895,31 +3894,25 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		int ret = 0;
-		// buils a list of all connected peers and sort it by 'disconnectability'.
-		std::vector<peer_connection*> peers(m_connections.size());
-		std::copy(m_connections.begin(), m_connections.end(), peers.begin());
 #ifdef TORRENT_DEBUG
-		for (std::vector<peer_connection*>::iterator i = peers.begin()
-			, end(peers.end()); i != end; ++i)
+		for (std::set<peer_connection*>::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
 		{
 			// make sure this peer is not a dangling pointer
 			TORRENT_ASSERT(m_ses.has_peer(*i));
 		}
 #endif
-		std::sort(peers.begin(), peers.end(), compare_disconnect_peer);
-
-		// never disconnect peers that connected less than 90 seconds ago
-		ptime cut_off = time_now() - seconds(90);
-
-		for (std::vector<peer_connection*>::iterator i = peers.begin()
-			, end(peers.end()); i != end && ret < num; ++i)
+		int ret = 0;
+		while (ret < num && !m_connections.empty())
 		{
+			std::set<peer_connection*>::iterator i = std::min_element(
+				m_connections.begin(), m_connections.end(), compare_disconnect_peer);
+
 			peer_connection* p = *i;
-			if (p->connected_time() > cut_off) continue;
 			++ret;
 			p->disconnect("optimistic disconnect");
 		}
+
 		return ret;
 	}
 
