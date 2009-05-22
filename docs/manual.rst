@@ -3441,6 +3441,8 @@ session_settings
 		int send_socket_buffer_size;
 
 		bool optimize_hashing_for_speed;
+
+		int file_checks_delay_per_block;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3817,6 +3819,12 @@ is false, a single block will be allocated (16 kB), and the unhashed parts
 of the piece are read, one at a time, and hashed in this single block. This
 is appropriate on systems that are memory constrained.
 
+``file_checks_delay_per_block`` is the number of milliseconds to sleep
+in between disk read operations when checking torrents. This defaults
+to 0, but can be set to higher numbers to slow down the rate at which
+data is read from the disk while checking. This may be useful for
+background tasks that doesn't matter if they take a bit longer, as long
+as they leave disk I/O time for other processes.
 
 pe_settings
 ===========

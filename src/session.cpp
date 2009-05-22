@@ -125,6 +125,11 @@ namespace libtorrent
 		set.use_parole_mode = false;
 		set.prioritize_partial_pieces = true;
 
+		// be extra nice on the hard drive when running
+		// on embedded devices. This might slow down
+		// torrent checking
+		set.file_checks_delay_per_block = 15;
+
 		// only have 4 files open at a time
 		set.file_pool_size = 4;
 
