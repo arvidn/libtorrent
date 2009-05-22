@@ -1429,7 +1429,7 @@ int main(int argc, char* argv[])
 						, bind(&cached_piece_info::piece, _1) == i->piece_index);
 					if (cpi != pieces.end()) cp = &*cpi;
 
-					snprintf(str, sizeof(str), "%4d: [", i->piece_index);
+					snprintf(str, sizeof(str), "%5d: [", i->piece_index);
 					out += str;
 					for (int j = 0; j < i->blocks_in_piece; ++j)
 					{
@@ -1471,7 +1471,7 @@ int main(int argc, char* argv[])
 					out += str;
 					if (cp)
 					{
-						snprintf(str, sizeof(str), " %scache age: %f"
+						snprintf(str, sizeof(str), " %scache age: %-.1f"
 							, i->piece_state > 0?"| ":""
 							, total_milliseconds(time_now() - cp->last_use) / 1000.f);
 						out += str;
@@ -1483,7 +1483,7 @@ int main(int argc, char* argv[])
 					, end(pieces.end()); i != end; ++i)
 				{
 					if (i->kind != cached_piece_info::read_cache) continue;
-					snprintf(str, sizeof(str), "%4d: [", i->piece);
+					snprintf(str, sizeof(str), "%5d: [", i->piece);
 					out += str;
 					for (std::vector<bool>::iterator k = i->blocks.begin()
 						, end(i->blocks.end()); k != end; ++k)
@@ -1501,7 +1501,7 @@ int main(int argc, char* argv[])
 #ifdef ANSI_TERMINAL_COLORS
 					out += esc("0");
 #endif
-					snprintf(str, sizeof(str), "] cache age: %f\n"
+					snprintf(str, sizeof(str), "] cache age: %-.1f\n"
 						, total_milliseconds(time_now() - i->last_use) / 1000.f);
 					out += str;
 				}
