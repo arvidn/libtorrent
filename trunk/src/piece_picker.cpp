@@ -830,9 +830,7 @@ namespace libtorrent
 
 	void piece_picker::dec_refcount_all()
 	{
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
-#endif
 
 		if (m_seeds > 0)
 		{
@@ -893,7 +891,9 @@ namespace libtorrent
 
 	void piece_picker::inc_refcount(bitfield const& bitmask)
 	{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+#endif
 		TORRENT_ASSERT(bitmask.size() == m_piece_map.size());
 
 		int index = 0;
@@ -913,7 +913,9 @@ namespace libtorrent
 
 	void piece_picker::dec_refcount(bitfield const& bitmask)
 	{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+#endif
 		TORRENT_ASSERT(bitmask.size() == m_piece_map.size());
 
 		int index = 0;
