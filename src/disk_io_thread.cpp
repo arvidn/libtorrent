@@ -442,23 +442,28 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l)
+	// returns the number of blocks that were freed
+	int disk_io_thread::free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l)
 	{
 		int piece_size = p.storage->info()->piece_size(p.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+		int ret = 0;
 
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
 			if (p.blocks[i] == 0) continue;
 			free_buffer(p.blocks[i]);
+			++ret;
 			p.blocks[i] = 0;
 			--p.num_blocks;
 			--m_cache_stats.cache_size;
 			--m_cache_stats.read_cache_size;
 		}
+		return ret;
 	}
 
-	bool disk_io_thread::clear_oldest_read_piece(
+	// returns the number of blocks that were freed
+	int disk_io_thread::clear_oldest_read_piece(
 		cache_t::iterator ignore
 		, mutex_t::scoped_lock& l)
 	{
@@ -471,38 +476,108 @@ namespace libtorrent
 		if (i != m_read_pieces.end() && i != ignore)
 		{
 			// don't replace an entry that is less than one second old
-			if (time_now() - i->last_use < seconds(1)) return false;
-			free_piece(*i, l);
+			if (time_now() - i->last_use < seconds(1)) return 0;
+			int blocks = free_piece(*i, l);
 			m_read_pieces.erase(i);
-			return true;
+			return blocks;
 		}
-		return false;
+		return 0;
 	}
 
-	void disk_io_thread::flush_oldest_piece(mutex_t::scoped_lock& l)
+	int contiguous_blocks(disk_io_thread::cached_piece_entry const& b)
 	{
-		INVARIANT_CHECK;
+		int ret = 0;
+		int current = 0;
+		int blocks_in_piece = (b.storage->info()->piece_size(b.piece) + 16 * 1024 - 1) / (16 * 1024);
+		for (int i = 0; i < blocks_in_piece; ++i)
+		{
+			if (b.blocks[i]) ++current;
+			else
+			{
+				if (current > ret) ret = current;
+				current = 0;
+			}
+		}
+		return ret;
+	}
+
+	int disk_io_thread::flush_contiguous_blocks(disk_io_thread::cache_t::iterator e
+		, mutex_t::scoped_lock& l)
+	{
+		// first find the largest range of contiguous  blocks
+		int len = 0;
+		int current = 0;
+		int pos = 0;
+		int start = 0;
+		int blocks_in_piece = (e->storage->info()->piece_size(e->piece)
+			+ m_block_size - 1) / m_block_size;
+		for (int i = 0; i < blocks_in_piece; ++i)
+		{
+			if (e->blocks[i]) ++current;
+			else
+			{
+				if (current > len)
+				{
+					len = current;
+					pos = start;
+				}
+				current = 0;
+				start = i + 1;
+			}
+		}
+
+		flush_range(e, pos, pos + len, l);
+		if (e->num_blocks == 0) m_pieces.erase(e);
+		return len;
+	}
+
+	// flushes 'blocks' blocks from the cache
+	void disk_io_thread::flush_cache_blocks(mutex_t::scoped_lock& l
+		, int blocks)
+	{
 		// first look if there are any read cache entries that can
 		// be cleared
-		if (clear_oldest_read_piece(m_read_pieces.end(), l)) return;
+		int ret = 0;
+		do {
+			ret = clear_oldest_read_piece(m_read_pieces.end(), l);
+			blocks -= ret;
+		} while (ret > 0 && blocks > 0);
 
-		cache_t::iterator i = std::min_element(
-			m_pieces.begin(), m_pieces.end()
-			, bind(&cached_piece_entry::last_use, _1)
-			< bind(&cached_piece_entry::last_use, _2));
-		if (i == m_pieces.end()) return;
-		flush_and_remove(i, l);
+		if (m_settings.disk_cache_algorithm == session_settings::lru)
+		{
+			while (blocks > 0)
+			{
+				cache_t::iterator i = std::min_element(
+					m_pieces.begin(), m_pieces.end()
+					, bind(&cached_piece_entry::last_use, _1)
+					< bind(&cached_piece_entry::last_use, _2));
+				if (i == m_pieces.end()) return;
+				flush_and_remove(i, l);
+			}
+		}
+		else if (m_settings.disk_cache_algorithm == session_settings::largest_contiguous)
+		{
+			while (blocks > 0)
+			{
+				cache_t::iterator i = std::max_element(
+					m_pieces.begin(), m_pieces.end()
+					, bind(&contiguous_blocks, _1)
+					< bind(&contiguous_blocks, _2));
+				if (i == m_pieces.end()) return;
+				blocks -= flush_contiguous_blocks(i, l);
+			}
+		}
 	}
 
 	void disk_io_thread::flush_and_remove(disk_io_thread::cache_t::iterator e
 		, mutex_t::scoped_lock& l)
 	{
-		flush(e, l);
+		flush_range(e, 0, INT_MAX, l);
 		m_pieces.erase(e);
 	}
 
-	void disk_io_thread::flush(disk_io_thread::cache_t::iterator e
-		, mutex_t::scoped_lock& l)
+	void disk_io_thread::flush_range(disk_io_thread::cache_t::iterator e
+		, int start, int end, mutex_t::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
 		// TODO: copy *e and unlink it before unlocking
@@ -523,9 +598,10 @@ namespace libtorrent
 		if (m_settings.coalesce_writes) buf.reset(new (std::nothrow) char[piece_size]);
 		else iov = TORRENT_ALLOCA(file::iovec_t, blocks_in_piece);
 
-		for (int i = 0; i <= blocks_in_piece; ++i)
+		end = (std::min)(end, blocks_in_piece);
+		for (int i = start; i <= end; ++i)
 		{
-			if (i == blocks_in_piece || p.blocks[i] == 0)
+			if (i == end || p.blocks[i] == 0)
 			{
 				if (buffer_size == 0) continue;
 			
@@ -572,7 +648,7 @@ namespace libtorrent
 			--m_cache_stats.cache_size;
 		}
 
-		for (int i = 0; i < blocks_in_piece; ++i)
+		for (int i = start; i < end; ++i)
 		{
 			if (p.blocks[i] == 0) continue;
 			free_buffer(p.blocks[i]);
@@ -582,7 +658,7 @@ namespace libtorrent
 		TORRENT_ASSERT(buffer_size == 0);
 //		std::cerr << " flushing p: " << p.piece << " cached_blocks: " << m_cache_stats.cache_size << std::endl;
 #ifdef TORRENT_DEBUG
-		for (int i = 0; i < blocks_in_piece; ++i)
+		for (int i = start; i < end; ++i)
 			TORRENT_ASSERT(p.blocks[i] == 0);
 #endif
 	}
@@ -1134,7 +1210,7 @@ namespace libtorrent
 				// flush all disk caches
 				for (cache_t::iterator i = m_pieces.begin()
 					, end(m_pieces.end()); i != end; ++i)
-					flush(i, l);
+					flush_range(i, 0, INT_MAX, l);
 				for (cache_t::iterator i = m_read_pieces.begin()
 					, end(m_read_pieces.end()); i != end; ++i)
 					free_piece(*i, l);
@@ -1365,6 +1441,10 @@ namespace libtorrent
 #endif
 					mutex_t::scoped_lock l(m_piece_mutex);
 					INVARIANT_CHECK;
+
+					if (in_use() >= m_settings.cache_size)
+						flush_cache_blocks(l, in_use() - m_settings.cache_size + 1);
+
 					cache_t::iterator p
 						= find_cached_piece(m_pieces, j, l);
 					int block = j.offset / m_block_size;
@@ -1394,8 +1474,10 @@ namespace libtorrent
 					// in the cache, we should not
 					// free it at the end
 					holder.release();
-					if (in_use() >= m_settings.cache_size)
-						flush_oldest_piece(l);
+
+					if (in_use() > m_settings.cache_size)
+						flush_cache_blocks(l, in_use() - m_settings.cache_size);
+
 					break;
 				}
 				case disk_io_job::hash:
@@ -1459,7 +1541,7 @@ namespace libtorrent
 					{
 						if (i->storage == j.storage)
 						{
-							flush(i, l);
+							flush_range(i, 0, INT_MAX, l);
 							i = m_pieces.erase(i);
 						}
 						else
