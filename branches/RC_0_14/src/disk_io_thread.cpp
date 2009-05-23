@@ -714,6 +714,10 @@ namespace libtorrent
 		return true;
 #else
 		mutex_t::scoped_lock l(m_pool_mutex);
+#ifdef TORRENT_DISK_STATS
+		if (m_buf_to_category.find(buffer)
+			== m_buf_to_category.end()) return false;
+#endif
 		return m_pool.is_from(buffer);
 #endif
 	}
@@ -753,6 +757,7 @@ namespace libtorrent
 		error_code const& ec = j.storage->error();
 		if (ec)
 		{
+			j.buffer = 0;
 			j.str = ec.message();
 			j.error = ec;
 			j.error_file = j.storage->error_file();
@@ -902,7 +907,6 @@ namespace libtorrent
 					// or that the read cache is disabled
 					if (ret == -1)
 					{
-						j.buffer = 0;
 						test_error(j);
 						break;
 					}
@@ -917,6 +921,7 @@ namespace libtorrent
 						}
 						++m_cache_stats.blocks_read;
 					}
+					TORRENT_ASSERT(j.buffer == read_holder.get());
 					read_holder.release();
 					break;
 				}
@@ -940,6 +945,7 @@ namespace libtorrent
 					if (p != m_pieces.end())
 					{
 						TORRENT_ASSERT(p->blocks[block] == 0);
+
 						if (p->blocks[block])
 						{
 							free_buffer(p->blocks[block]);
