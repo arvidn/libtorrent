@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
-#include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/condition.hpp>
 #include <boost/pool/object_pool.hpp>
 
@@ -162,7 +161,7 @@ namespace libtorrent
 		
 			// must be locked to access the data
 			// in this struct
-			typedef boost::recursive_mutex mutex_t;
+			typedef boost::mutex mutex_t;
 			mutable mutex_t m_mutex;
 
 			boost::weak_ptr<torrent> find_torrent(const sha1_hash& info_hash);
@@ -183,7 +182,7 @@ namespace libtorrent
 			void start_dht(entry const& startup_state);
 			void stop_dht();
 
-			entry dht_state() const;
+			entry dht_state(session_impl::mutex_t::scoped_lock& l) const;
 			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
 #endif
 
@@ -333,9 +332,6 @@ namespace libtorrent
 				m_total_failed_bytes += b;
 			}
 
-			// handles delayed alerts
-			alert_manager m_alerts;
-
 			std::pair<char*, int> allocate_buffer(int size);
 			void free_buffer(char* buf, int size);
 
@@ -347,7 +343,7 @@ namespace libtorrent
 
 //		private:
 
-			void dht_state_callback(boost::condition& c
+			void on_dht_state_callback(boost::condition& c
 				, entry& e, bool& done) const;
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);
@@ -407,6 +403,9 @@ namespace libtorrent
 			// the selector can sleep while there's no activity on
 			// them
 			mutable io_service m_io_service;
+
+			// handles delayed alerts
+			alert_manager m_alerts;
 
 			// handles disk io requests asynchronously
 			// peers have pointers into the disk buffer

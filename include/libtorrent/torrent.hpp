@@ -152,7 +152,8 @@ namespace libtorrent
 		void on_resume_data_checked(int ret, disk_io_job const& j);
 		void on_force_recheck(int ret, disk_io_job const& j);
 		void on_piece_checked(int ret, disk_io_job const& j);
-		void files_checked();
+		void files_checked_lock();
+		void files_checked(aux::session_impl::mutex_t::scoped_lock const&);
 		void start_checking();
 
 		void start_announcing();

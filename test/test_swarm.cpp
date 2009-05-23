@@ -54,12 +54,8 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	try { remove_all("./tmp3_swarm"); } catch (std::exception&) {}
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
-	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000), "0.0.0.0", 0);
-	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000), "0.0.0.0", 0);
-	ses3.set_alert_mask(alert::all_categories & ~alert::progress_notification);
-
 
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
@@ -97,6 +93,11 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
 		, false, true, "_swarm", 32 * 1024, 0, super_seeding, &p);
+
+	int mask = alert::all_categories & ~(alert::progress_notification | alert::performance_warning);
+	ses1.set_alert_mask(mask);
+	ses2.set_alert_mask(mask);
+	ses3.set_alert_mask(mask);
 
 	if (time_critical)
 	{

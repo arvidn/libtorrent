@@ -546,7 +546,7 @@ namespace libtorrent
 
 		if (m_seed_mode)
 		{
-			m_ses.m_io_service.post(boost::bind(&torrent::files_checked, shared_from_this()));
+			m_ses.m_io_service.post(boost::bind(&torrent::files_checked_lock, shared_from_this()));
 			std::vector<char>().swap(m_resume_data);
 			lazy_entry().swap(m_resume_entry);
 			return;
@@ -803,7 +803,7 @@ namespace libtorrent
 				}
 			}
 
-			files_checked();
+			files_checked(l);
 		}
 		else
 		{
@@ -894,7 +894,7 @@ namespace libtorrent
 		if (ret == 0)
 		{
 			// if there are no files, just start
-			files_checked();
+			files_checked(l);
 		}
 		else
 		{
@@ -954,7 +954,7 @@ namespace libtorrent
 		if (ret == piece_manager::need_full_check) return;
 
 		dequeue_torrent_check();
-		files_checked();
+		files_checked(l);
 	}
 
 	void torrent::use_interface(const char* net_interface)
@@ -1645,8 +1645,6 @@ namespace libtorrent
 	// -2: piece failed check
 	void torrent::piece_finished(int index, int passed_hash_check)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " *** PIECE_FINISHED [ p: "
 			<< index << " chk: " << ((passed_hash_check == 0)
@@ -2953,8 +2951,8 @@ namespace libtorrent
 			c->start();
 
 			m_ses.m_half_open.enqueue(
-				bind(&peer_connection::connect, c, _1)
-				, bind(&peer_connection::timed_out, c)
+				bind(&peer_connection::on_connect, c, _1)
+				, bind(&peer_connection::on_timeout, c)
 				, seconds(settings().peer_connect_timeout));
 #ifndef BOOST_NO_EXCEPTIONS
 		}
@@ -3669,8 +3667,8 @@ namespace libtorrent
 		{
 #endif
 			m_ses.m_half_open.enqueue(
-				bind(&peer_connection::connect, c, _1)
-				, bind(&peer_connection::timed_out, c)
+				bind(&peer_connection::on_connect, c, _1)
+				, bind(&peer_connection::on_timeout, c)
 				, seconds(timeout));
 #ifndef BOOST_NO_EXCEPTIONS
 		}
@@ -3823,8 +3821,6 @@ namespace libtorrent
 
 	void torrent::disconnect_all()
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-
 // doesn't work with the m_paused -> m_num_peers == 0 condition
 //		INVARIANT_CHECK;
 
@@ -4045,10 +4041,14 @@ namespace libtorrent
 		return index;
 	}
 
-	void torrent::files_checked()
+	void torrent::files_checked_lock()
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-		
+		files_checked(l);
+	}
+
+	void torrent::files_checked(session_impl::mutex_t::scoped_lock const& l)
+	{
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 
 		if (m_abort) return;
@@ -4211,8 +4211,6 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	void torrent::check_invariant() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-
 		if (is_paused()) TORRENT_ASSERT(num_peers() == 0);
 
 		if (!should_check_files())

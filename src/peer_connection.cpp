@@ -2707,8 +2707,10 @@ namespace libtorrent
 		}
 	}
 
-	void peer_connection::timed_out()
+	void peer_connection::on_timeout()
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
 		TORRENT_ASSERT(m_connecting);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		error_code ec;
@@ -2723,8 +2725,6 @@ namespace libtorrent
 	// 2 protocol error (client sent something invalid)
 	void peer_connection::disconnect(char const* message, int error)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-
 #ifdef TORRENT_DEBUG
 		m_disconnect_started = true;
 #endif
@@ -3545,8 +3545,6 @@ namespace libtorrent
 
 	void peer_connection::assign_bandwidth(int channel, int amount)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << "bandwidth [ " << channel << " ] + " << amount << "\n";
 #endif
@@ -3608,8 +3606,6 @@ namespace libtorrent
 
 	void peer_connection::setup_send()
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-
 		if (m_channel_state[upload_channel] != peer_info::bw_idle) return;
 		
 		shared_ptr<torrent> t = m_torrent.lock();
@@ -3690,8 +3686,6 @@ namespace libtorrent
 
 	void peer_connection::setup_receive()
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (m_channel_state[download_channel] != peer_info::bw_idle) return;
@@ -4098,8 +4092,9 @@ namespace libtorrent
 		return ret;
 	}
 
-	void peer_connection::connect(int ticket)
+	void peer_connection::on_connect(int ticket)
 	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 #ifdef TORRENT_DEBUG
 		// in case we disconnect here, we need to
 		// keep the connection alive until the
