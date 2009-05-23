@@ -2773,6 +2773,8 @@ namespace libtorrent
 				}
 			}
 
+			// disconnect if the peer has the same peer-id as ourself
+			// since it most likely is ourself then
 			if (pid == m_ses.get_peer_id())
 			{
 				if (peer_info_struct()) peer_info_struct()->banned = true;
@@ -2786,15 +2788,6 @@ namespace libtorrent
 			{
 				// if this is a bitcomet client, lower the request queue size limit
 				if (m_max_out_request_queue > 50) m_max_out_request_queue = 50;
-			}
-
-			// disconnect if the peer has the same peer-id as ourself
-			// since it most likely is ourself then
-			if (pid == m_ses.get_peer_id())
-			{
-				if (peer_info_struct()) peer_info_struct()->banned = true;
-				disconnect("closing connection to ourself", 1);
-				return;
 			}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
