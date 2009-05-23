@@ -1,3 +1,4 @@
+	* improved read cache memory efficiency
 	* added another cache flush algorithm to write the largest
 	  contiguous blocks instead of the least recently used
 	* introduced a mechanism to be lighter on the disk when checking torrents

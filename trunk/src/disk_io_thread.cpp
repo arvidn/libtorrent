@@ -720,6 +720,7 @@ namespace libtorrent
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
 		int end_block = start_block;
+		int num_read = 0;
 		for (int i = start_block; i < blocks_in_piece
 			&& (in_use() < m_settings.cache_size
 				|| (options & ignore_cache_size)); ++i)
@@ -736,6 +737,8 @@ namespace libtorrent
 			++m_cache_stats.cache_size;
 			++m_cache_stats.read_cache_size;
 			++end_block;
+			++num_read;
+			if (num_read >= m_settings.read_cache_line_size) break;
 		}
 
 		if (end_block == start_block) return -2;

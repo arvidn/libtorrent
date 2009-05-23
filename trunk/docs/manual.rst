@@ -3448,6 +3448,8 @@ session_settings
 		{ lru, largest_contiguous };
 
 		disk_cache_algo_t disk_cache_algorithm;
+
+		int read_cache_line_size;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3839,6 +3841,10 @@ value. ``session_settings::largest_contiguous`` will flush the largest
 sequences of contiguous blocks from the write cache, regarless of the
 piece's last use time.
 
+``read_cache_line_size`` is the number of blocks to read into the read
+cache when a read cache miss occurs. Setting this to 0 is essentially
+the same thing as disabling read cache. The number of blocks read
+into the read cache is always capped by the piece boundry.
 
 pe_settings
 ===========

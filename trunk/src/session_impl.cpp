@@ -641,6 +641,7 @@ namespace aux {
 			|| m_settings.optimize_hashing_for_speed != s.optimize_hashing_for_speed
 			|| m_settings.file_checks_delay_per_block != s.file_checks_delay_per_block
 			|| m_settings.disk_cache_algorithm != s.disk_cache_algorithm
+			|| m_settings.read_cache_line_size != s.read_cache_line_size
 #ifndef TORRENT_DISABLE_MLOCK
 			|| m_settings.lock_disk_cache != s.lock_disk_cache
 #endif

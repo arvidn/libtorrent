@@ -168,6 +168,7 @@ namespace libtorrent
 			, optimize_hashing_for_speed(true)
 			, file_checks_delay_per_block(0)
 			, disk_cache_algorithm(lru)
+			, read_cache_line_size(16)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -576,6 +577,10 @@ namespace libtorrent
 		{ lru, largest_contiguous };
 
 		disk_cache_algo_t disk_cache_algorithm;
+
+		// the number of blocks that will be read ahead
+		// when reading a block into the read cache
+		int read_cache_line_size;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
