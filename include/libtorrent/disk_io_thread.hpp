@@ -171,6 +171,8 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_DEBUG
+		bool is_disk_buffer(char* buffer
+			, boost::mutex::scoped_lock& l) const;
 		bool is_disk_buffer(char* buffer) const;
 #endif
 
