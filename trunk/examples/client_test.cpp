@@ -765,6 +765,7 @@ int main(int argc, char* argv[])
 	settings.auto_upload_slots_rate_based = true;
 	settings.announce_to_all_trackers = true;
 	settings.optimize_hashing_for_speed = false;
+	settings.disk_cache_algorithm = session_settings::largest_contiguous;
 
 	int refresh_delay = 1;
 

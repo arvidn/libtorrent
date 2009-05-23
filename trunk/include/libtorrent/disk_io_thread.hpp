@@ -266,8 +266,6 @@ namespace libtorrent
 		std::ofstream m_disk_access_log;
 #endif
 
-	private:
-
 		struct cached_piece_entry
 		{
 			int piece;
@@ -284,6 +282,8 @@ namespace libtorrent
 		typedef boost::recursive_mutex mutex_t;
 		typedef std::list<cached_piece_entry> cache_t;
 
+	private:
+
 		bool test_error(disk_io_job& j);
 		void post_callback(boost::function<void(int, disk_io_job const&)> const& handler
 			, disk_io_job const& j, int ret);
@@ -296,20 +296,22 @@ namespace libtorrent
 			, disk_io_job const& j, mutex_t::scoped_lock& l);
 
 		// write cache operations
-		void flush_oldest_piece(mutex_t::scoped_lock& l);
+		void flush_cache_blocks(mutex_t::scoped_lock& l, int blocks);
 		void flush_expired_pieces();
 		void flush_and_remove(cache_t::iterator i, mutex_t::scoped_lock& l);
-		void flush(cache_t::iterator i, mutex_t::scoped_lock& l);
+		int flush_contiguous_blocks(disk_io_thread::cache_t::iterator e
+			, mutex_t::scoped_lock& l);
+		void flush_range(cache_t::iterator i, int start, int end, mutex_t::scoped_lock& l);
 		void cache_block(disk_io_job& j, mutex_t::scoped_lock& l);
 
 		// read cache operations
-		bool clear_oldest_read_piece(cache_t::iterator ignore
+		int clear_oldest_read_piece(cache_t::iterator ignore
 			, mutex_t::scoped_lock& l);
 		int read_into_piece(cached_piece_entry& p, int start_block
 			, int options, mutex_t::scoped_lock& l);
 		int cache_read_block(disk_io_job const& j, mutex_t::scoped_lock& l);
 		int cache_read_piece(disk_io_job const& j, mutex_t::scoped_lock& l);
-		void free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l);
+		int free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l);
 		bool make_room(int num_blocks
 			, cache_t::iterator ignore
 			, bool flush_write_cache

@@ -167,6 +167,7 @@ namespace libtorrent
 			, send_socket_buffer_size(0)
 			, optimize_hashing_for_speed(true)
 			, file_checks_delay_per_block(0)
+			, disk_cache_algorithm(lru)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -570,6 +571,11 @@ namespace libtorrent
 		// the default of 10 ms/16kiB will limit
 		// the checking rate to 1.6 MiB per second
 		int file_checks_delay_per_block;
+
+		enum disk_cache_algo_t
+		{ lru, largest_contiguous };
+
+		disk_cache_algo_t disk_cache_algorithm;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
