@@ -81,6 +81,11 @@ void test_pex()
 
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, false, "_pex");
 
+	int mask = alert::all_categories & ~(alert::progress_notification | alert::performance_warning);
+	ses1.set_alert_mask(mask);
+	ses2.set_alert_mask(mask);
+	ses3.set_alert_mask(mask);
+
 	test_sleep(1000);
 
 	// in this test, ses1 is a seed, ses2 is connected to ses1 and ses3.

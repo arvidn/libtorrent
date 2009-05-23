@@ -183,7 +183,7 @@ namespace libtorrent
 
 	void tracker_manager::sent_bytes(int bytes)
 	{
-		aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+//		aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		m_ses.m_stat.sent_tracker_bytes(bytes);
 	}
 

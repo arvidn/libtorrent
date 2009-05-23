@@ -307,7 +307,7 @@ namespace libtorrent
 		ptime connected_time() const { return m_connect; }
 		ptime last_received() const { return m_last_receive; }
 
-		void timed_out();
+		void on_timeout();
 		// this will cause this peer_connection to be disconnected.
 		void disconnect(char const* message, int error = 0);
 		bool is_disconnecting() const { return m_disconnecting; }
@@ -330,7 +330,7 @@ namespace libtorrent
 		// initiate the tcp connection. This may be postponed until
 		// the library isn't using up the limitation of half-open
 		// tcp connections.	
-		void connect(int ticket);
+		void on_connect(int ticket);
 		
 		// This is called for every peer right after the upload
 		// bandwidth has been distributed among them

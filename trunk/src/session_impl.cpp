@@ -173,6 +173,7 @@ namespace aux {
 #endif
 		, m_files(40)
 		, m_io_service()
+		, m_alerts(m_io_service)
 		, m_disk_thread(m_io_service)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
@@ -379,7 +380,6 @@ namespace aux {
 
 	bool session_impl::load_asnum_db(char const* file)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (m_asnum_db) GeoIP_delete(m_asnum_db);
 		m_asnum_db = GeoIP_open(file, GEOIP_STANDARD);
 		return m_asnum_db;
@@ -388,7 +388,6 @@ namespace aux {
 #ifndef BOOST_FILESYSTEM_NARROW_ONLY
 	bool session_impl::load_asnum_db(wchar_t const* file)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (m_asnum_db) GeoIP_delete(m_asnum_db);
 		std::string utf8;
 		wchar_utf8(file, utf8);
@@ -398,7 +397,6 @@ namespace aux {
 
 	bool session_impl::load_country_db(wchar_t const* file)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (m_country_db) GeoIP_delete(m_country_db);
 		std::string utf8;
 		wchar_utf8(file, utf8);
@@ -409,7 +407,6 @@ namespace aux {
 
 	bool session_impl::load_country_db(char const* file)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (m_country_db) GeoIP_delete(m_country_db);
 		m_country_db = GeoIP_open(file, GEOIP_STANDARD);
 		return m_country_db;
@@ -420,7 +417,6 @@ namespace aux {
 	void session_impl::load_state(entry const& ses_state)
 	{
 		if (ses_state.type() != entry::dictionary_t) return;
-		mutex_t::scoped_lock l(m_mutex);
 #ifndef TORRENT_DISABLE_GEO_IP
 		entry const* as_map = ses_state.find_key("AS map");
 		if (as_map && as_map->type() == entry::dictionary_t)
@@ -440,7 +436,6 @@ namespace aux {
 
 	entry session_impl::state() const
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		entry ret;
 #ifndef TORRENT_DISABLE_GEO_IP
 		entry::dictionary_type& as_map = ret["AS map"].dict();
@@ -484,7 +479,6 @@ namespace aux {
 
 	void session_impl::pause()
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (m_paused) return;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_logger) << time_now_string() << " *** session paused ***\n";
@@ -500,7 +494,6 @@ namespace aux {
 
 	void session_impl::resume()
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (!m_paused) return;
 		m_paused = false;
 		for (torrent_map::iterator i = m_torrents.begin()
@@ -513,7 +506,6 @@ namespace aux {
 	
 	void session_impl::abort()
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (m_abort) return;
 #if defined TORRENT_LOGGING
 		(*m_logger) << time_now_string() << " *** ABORT CALLED ***\n";
@@ -571,7 +563,9 @@ namespace aux {
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " aborting all connections (" << m_connections.size() << ")\n";
 #endif
-		m_half_open.close();
+		// closing all the connections needs to be done from a callback,
+		// when the session mutex is not held
+		m_io_service.post(boost::bind(&connection_queue::close, &m_half_open));
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " connection queue: " << m_half_open.size() << "\n";
@@ -590,7 +584,6 @@ namespace aux {
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " connection queue: " << m_half_open.size() << "\n";
 #endif
-		TORRENT_ASSERT(m_half_open.size() == 0);
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " shutting down connection queue\n";
@@ -602,14 +595,11 @@ namespace aux {
 
 	void session_impl::set_port_filter(port_filter const& f)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		m_port_filter = f;
 	}
 
 	void session_impl::set_ip_filter(ip_filter const& f)
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		m_ip_filter = f;
@@ -623,8 +613,6 @@ namespace aux {
 
 	void session_impl::set_settings(session_settings const& s)
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(s.file_pool_size > 0);
@@ -922,7 +910,6 @@ namespace aux {
 		
 		if (e == asio::error::operation_aborted) return;
 
-		mutex_t::scoped_lock l(m_mutex);
 		if (m_abort) return;
 
 		error_code ec;
@@ -1087,8 +1074,6 @@ namespace aux {
 	void session_impl::close_connection(peer_connection const* p
 		, char const* message)
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 // too expensive
 //		INVARIANT_CHECK;
 
@@ -1116,13 +1101,11 @@ namespace aux {
 
 	void session_impl::set_peer_id(peer_id const& id)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		m_peer_id = id;
 	}
 
 	void session_impl::set_key(int key)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		m_key = key;
 	}
 
@@ -1961,9 +1944,10 @@ namespace aux {
 	{
 		eh_initializer();
 
+		if (m_listen_interface.port() != 0)
 		{
 			session_impl::mutex_t::scoped_lock l(m_mutex);
-			if (m_listen_interface.port() != 0) open_listen_port();
+			open_listen_port();
 		}
 
 		do
@@ -2036,7 +2020,6 @@ namespace aux {
 
 	std::vector<torrent_handle> session_impl::get_torrents()
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		std::vector<torrent_handle> ret;
 
 		for (session_impl::torrent_map::iterator i
@@ -2064,9 +2047,6 @@ namespace aux {
 			ec = error_code(errors::no_files_in_torrent, libtorrent_category);
 			return torrent_handle();
 		}
-
-		// lock the session and the checker thread (the order is important!)
-		mutex_t::scoped_lock l(m_mutex);
 
 //		INVARIANT_CHECK;
 
@@ -2179,8 +2159,6 @@ namespace aux {
 			throw_invalid_handle();
 #endif
 
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		session_impl::torrent_map::iterator i =
@@ -2210,8 +2188,6 @@ namespace aux {
 		std::pair<int, int> const& port_range
 		, const char* net_interface)
 	{
-		session_impl::mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		tcp::endpoint new_interface;
@@ -2267,14 +2243,12 @@ namespace aux {
 
 	unsigned short session_impl::listen_port() const
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (m_listen_sockets.empty()) return 0;
 		return m_listen_sockets.front().external_port;
 	}
 
 	void session_impl::announce_lsd(sha1_hash const& ih)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		// use internal listen port for local peers
 		if (m_lsd.get())
 			m_lsd->announce(ih, m_listen_interface.port());
@@ -2353,8 +2327,6 @@ namespace aux {
 
 	session_status session_impl::status() const
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 //		INVARIANT_CHECK;
 
 		session_status s;
@@ -2428,8 +2400,6 @@ namespace aux {
 
 	void session_impl::start_dht(entry const& startup_state)
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (m_dht)
@@ -2506,7 +2476,6 @@ namespace aux {
 
 	void session_impl::stop_dht()
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (!m_dht) return;
 		m_dht->stop();
 		m_dht = 0;
@@ -2514,7 +2483,6 @@ namespace aux {
 
 	void session_impl::set_dht_settings(dht_settings const& settings)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		// only change the dht listen port in case the settings
 		// contains a vaiid port, and if it is different from
 		// the current setting
@@ -2537,7 +2505,7 @@ namespace aux {
 			m_dht_settings.service_port = m_listen_interface.port();
 	}
 
-	void session_impl::dht_state_callback(boost::condition& c
+	void session_impl::on_dht_state_callback(boost::condition& c
 		, entry& e, bool& done) const
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -2546,14 +2514,13 @@ namespace aux {
 		c.notify_all();
 	}
 
-	entry session_impl::dht_state() const
+	entry session_impl::dht_state(session_impl::mutex_t::scoped_lock& l) const
 	{
 		boost::condition cond;
-		mutex_t::scoped_lock l(m_mutex);
 		if (!m_dht) return entry();
 		entry e;
 		bool done = false;
-		m_io_service.post(boost::bind(&session_impl::dht_state_callback
+		m_io_service.post(boost::bind(&session_impl::on_dht_state_callback
 			, this, boost::ref(cond), boost::ref(e), boost::ref(done)));
 		while (!done) cond.wait(l);
 		return e;
@@ -2562,14 +2529,12 @@ namespace aux {
 	void session_impl::add_dht_node(std::pair<std::string, int> const& node)
 	{
 		TORRENT_ASSERT(m_dht);
-		mutex_t::scoped_lock l(m_mutex);
 		m_dht->add_node(node);
 	}
 
 	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
 	{
 		// router nodes should be added before the DHT is started (and bootstrapped)
-		mutex_t::scoped_lock l(m_mutex);
 		if (m_dht) m_dht->add_router_node(node);
 		else m_dht_router_nodes.push_back(node);
 	}
@@ -2579,25 +2544,26 @@ namespace aux {
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	void session_impl::set_pe_settings(pe_settings const& settings)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		m_pe_settings = settings;
 	}
 #endif
 
 	bool session_impl::is_listening() const
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		return !m_listen_sockets.empty();
 	}
 
 	session_impl::~session_impl()
 	{
+		session_impl::mutex_t::scoped_lock l(m_mutex);
+
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << "\n\n *** shutting down session *** \n\n";
 #endif
 		abort();
 		TORRENT_ASSERT(m_connections.empty());
 
+		l.unlock();
 		// we need to wait for the disk-io thread to
 		// die first, to make sure it won't post any
 		// more messages to the io_service containing references
@@ -2629,7 +2595,6 @@ namespace aux {
 	void session_impl::set_max_uploads(int limit)
 	{
 		TORRENT_ASSERT(limit >= 0 || limit == -1);
-		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -2641,8 +2606,6 @@ namespace aux {
 
 	void session_impl::set_max_connections(int limit)
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (limit <= 0)
@@ -2663,8 +2626,6 @@ namespace aux {
 
 	void session_impl::set_max_half_open_connections(int limit)
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
@@ -2693,8 +2654,6 @@ namespace aux {
 
 	void session_impl::set_download_rate_limit(int bytes_per_second)
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (bytes_per_second <= 0) bytes_per_second = 0;
@@ -2703,8 +2662,6 @@ namespace aux {
 
 	void session_impl::set_upload_rate_limit(int bytes_per_second)
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (bytes_per_second <= 0) bytes_per_second = 0;
@@ -2713,14 +2670,11 @@ namespace aux {
 
 	void session_impl::set_alert_dispatch(boost::function<void(alert const&)> const& fun)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		m_alerts.set_dispatch_function(fun);
 	}
 
 	std::auto_ptr<alert> session_impl::pop_alert()
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 // too expensive
 //		INVARIANT_CHECK;
 
@@ -2736,13 +2690,11 @@ namespace aux {
 
 	void session_impl::set_alert_mask(int m)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		m_alerts.set_alert_mask(m);
 	}
 
 	size_t session_impl::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		return m_alerts.set_alert_queue_size_limit(queue_size_limit_);
 	}
 
@@ -2766,14 +2718,11 @@ namespace aux {
 
 	int session_impl::download_rate_limit() const
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		return m_download_channel.throttle();
 	}
 
 	void session_impl::start_lsd()
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (m_lsd) return;
@@ -2785,8 +2734,6 @@ namespace aux {
 	
 	natpmp* session_impl::start_natpmp()
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (m_natpmp) return m_natpmp.get();
@@ -2812,8 +2759,6 @@ namespace aux {
 
 	upnp* session_impl::start_upnp()
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (m_upnp) return m_upnp.get();
@@ -2842,7 +2787,6 @@ namespace aux {
 
 	void session_impl::stop_lsd()
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (m_lsd.get())
 			m_lsd->close();
 		m_lsd = 0;
@@ -2850,7 +2794,6 @@ namespace aux {
 	
 	void session_impl::stop_natpmp()
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (m_natpmp.get())
 			m_natpmp->close();
 		m_natpmp = 0;
@@ -2858,7 +2801,6 @@ namespace aux {
 	
 	void session_impl::stop_upnp()
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		if (m_upnp.get())
 		{
 			m_upnp->close();

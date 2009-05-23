@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/socket.hpp" // for io_service
 
 #ifndef TORRENT_MAX_ALERT_TYPES
 #define TORRENT_MAX_ALERT_TYPES 15
@@ -114,7 +115,7 @@ namespace libtorrent {
 	public:
 		enum { queue_size_limit_default = 1000 };
 
-		alert_manager();
+		alert_manager(io_service& ios);
 		~alert_manager();
 
 		void post_alert(const alert& alert_);
@@ -149,6 +150,7 @@ namespace libtorrent {
 		int m_alert_mask;
 		size_t m_queue_size_limit;
 		boost::function<void(alert const&)> m_dispatch;
+		io_service& m_ios;
 	};
 
 	struct TORRENT_EXPORT unhandled_alert : std::exception
