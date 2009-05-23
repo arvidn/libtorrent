@@ -677,7 +677,8 @@ namespace libtorrent
 #endif
 	}
 
-	void disk_io_thread::cache_block(disk_io_job& j, mutex_t::scoped_lock& l)
+	// returns -1 on failure
+	int disk_io_thread::cache_block(disk_io_job& j, mutex_t::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(find_cached_piece(m_pieces, j, l) == m_pieces.end());
@@ -694,13 +695,15 @@ namespace libtorrent
 		p.storage = j.storage;
 		p.last_use = time_now();
 		p.num_blocks = 1;
-		p.blocks.reset(new char*[blocks_in_piece]);
+		p.blocks.reset(new (std::nothrow) char*[blocks_in_piece]);
+		if (!p.blocks) return -1;
 		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
 		int block = j.offset / m_block_size;
 //		std::cerr << " adding cache entry for p: " << j.piece << " block: " << block << " cached_blocks: " << m_cache_stats.cache_size << std::endl;
 		p.blocks[block] = j.buffer;
 		++m_cache_stats.cache_size;
 		m_pieces.push_back(p);
+		return 0;
 	}
 
 	enum read_options_t
@@ -747,7 +750,7 @@ namespace libtorrent
 		file::iovec_t* iov = 0;
 		int iov_counter = 0;
 		if (m_settings.coalesce_reads) buf.reset(new (std::nothrow) char[buffer_size]);
-		else iov = TORRENT_ALLOCA(file::iovec_t, end_block - start_block);
+		if (!buf) iov = TORRENT_ALLOCA(file::iovec_t, end_block - start_block);
 
 		int ret = 0;
 		if (buf)
@@ -854,7 +857,8 @@ namespace libtorrent
 		p.storage = j.storage;
 		p.last_use = time_now();
 		p.num_blocks = 0;
-		p.blocks.reset(new char*[blocks_in_piece]);
+		p.blocks.reset(new (std::nothrow) char*[blocks_in_piece]);
+		if (!p.blocks) return -1;
 		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
 		int ret = read_into_piece(p, 0, ignore_cache_size, l);
 		
@@ -885,7 +889,8 @@ namespace libtorrent
 		p.storage = j.storage;
 		p.last_use = time_now();
 		p.num_blocks = 0;
-		p.blocks.reset(new char*[blocks_in_piece]);
+		p.blocks.reset(new (std::nothrow) char*[blocks_in_piece]);
+		if (!p.blocks) return -1;
 		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
 		int ret = read_into_piece(p, start_block, 0, l);
 		
@@ -1482,7 +1487,16 @@ namespace libtorrent
 					}
 					else
 					{
-						cache_block(j, l);
+						if (cache_block(j, l) < 0)
+						{
+							file::iovec_t iov = {j.buffer, j.buffer_size};
+							ret = j.storage->write_impl(&iov, j.piece, j.offset, 1);
+							if (ret < 0)
+							{
+								test_error(j);
+								break;
+							}
+						}
 					}
 					// we've now inserted the buffer
 					// in the cache, we should not

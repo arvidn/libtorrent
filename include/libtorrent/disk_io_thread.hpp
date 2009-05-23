@@ -304,7 +304,7 @@ namespace libtorrent
 		int flush_contiguous_blocks(disk_io_thread::cache_t::iterator e
 			, mutex_t::scoped_lock& l);
 		void flush_range(cache_t::iterator i, int start, int end, mutex_t::scoped_lock& l);
-		void cache_block(disk_io_job& j, mutex_t::scoped_lock& l);
+		int cache_block(disk_io_job& j, mutex_t::scoped_lock& l);
 
 		// read cache operations
 		int clear_oldest_read_piece(cache_t::iterator ignore
