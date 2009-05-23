@@ -65,6 +65,7 @@ release 0.14.4
 	* lowered the default connection speed to 10 connection attempts
 	  per second
 	* optimized memory usage when checking files fails
+	* fixed bug when checking a torrent twice
 
 release 0.14.3
 

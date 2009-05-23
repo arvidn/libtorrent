@@ -699,6 +699,8 @@ namespace libtorrent
 		m_files_checked = false;
 		set_state(torrent_status::checking_resume_data);
 
+		m_policy.recalculate_connect_candidates();
+
 		if (m_auto_managed)
 			set_queue_position((std::numeric_limits<int>::max)());
 
