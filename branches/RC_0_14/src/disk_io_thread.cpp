@@ -376,7 +376,8 @@ namespace libtorrent
 #endif
 	}
 
-	void disk_io_thread::cache_block(disk_io_job& j, mutex_t::scoped_lock& l)
+	// returns -1 on failure
+	int disk_io_thread::cache_block(disk_io_job& j, mutex_t::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(find_cached_piece(m_pieces, j, l) == m_pieces.end());
@@ -389,13 +390,15 @@ namespace libtorrent
 		p.storage = j.storage;
 		p.last_use = time_now();
 		p.num_blocks = 1;
-		p.blocks.reset(new char*[blocks_in_piece]);
+		p.blocks.reset(new (std::nothrow) char*[blocks_in_piece]);
+		if (!p.blocks) return -1;
 		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
 		int block = j.offset / m_block_size;
 //		std::cerr << " adding cache entry for p: " << j.piece << " block: " << block << " cached_blocks: " << m_cache_stats.cache_size << std::endl;
 		p.blocks[block] = j.buffer;
 		++m_cache_stats.cache_size;
 		m_pieces.push_back(p);
+		return 0;
 	}
 
 	// fills a piece with data from disk, returns the total number of bytes
@@ -504,7 +507,8 @@ namespace libtorrent
 		p.storage = j.storage;
 		p.last_use = time_now();
 		p.num_blocks = 0;
-		p.blocks.reset(new char*[blocks_in_piece]);
+		p.blocks.reset(new (std::nothrow) char*[blocks_in_piece]);
+		if (!p.blocks) return -1;
 		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
 		int ret = read_into_piece(p, start_block, l);
 		
@@ -958,7 +962,15 @@ namespace libtorrent
 					}
 					else
 					{
-						cache_block(j, l);
+						if (cache_block(j, l) < 0)
+						{
+							ret = j.storage->write_impl(j.buffer, j.piece, j.offset, j.buffer_size);
+							if (ret < 0)
+							{
+								test_error(j);
+								break;
+							}
+						}
 					}
 					// we've now inserted the buffer
 					// in the cache, we should not

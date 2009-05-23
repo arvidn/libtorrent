@@ -66,6 +66,7 @@ release 0.14.4
 	  per second
 	* optimized memory usage when checking files fails
 	* fixed bug when checking a torrent twice
+	* improved handling of out-of-memory conditions in disk I/O thread
 
 release 0.14.3
 

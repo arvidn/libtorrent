@@ -234,7 +234,7 @@ namespace libtorrent
 		void flush_expired_pieces();
 		void flush_and_remove(cache_t::iterator i, mutex_t::scoped_lock& l);
 		void flush(cache_t::iterator i, mutex_t::scoped_lock& l);
-		void cache_block(disk_io_job& j, mutex_t::scoped_lock& l);
+		int cache_block(disk_io_job& j, mutex_t::scoped_lock& l);
 
 		// read cache operations
 		bool clear_oldest_read_piece(cache_t::iterator ignore
