@@ -1467,8 +1467,8 @@ int main(int argc, char* argv[])
 #ifdef ANSI_TERMINAL_COLORS
 					out += esc("0");
 #endif
-					char const* piece_state[4] = {"", "slow", "medium", "fast"};
-					snprintf(str, sizeof(str), "] %s", piece_state[i->piece_state]);
+					char const* piece_state[4] = {"", " slow", " medium", " fast"};
+					snprintf(str, sizeof(str), "]%s", piece_state[i->piece_state]);
 					out += str;
 					if (cp)
 					{
