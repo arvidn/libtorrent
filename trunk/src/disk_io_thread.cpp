@@ -81,13 +81,13 @@ namespace libtorrent
 		,boost::mutex::scoped_lock& l) const
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		return true;
-#else
 #ifdef TORRENT_DISK_STATS
 		if (m_buf_to_category.find(buffer)
 			== m_buf_to_category.end()) return false;
 #endif
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+		return true;
+#else
 		return m_pool.is_from(buffer);
 #endif
 	}
@@ -105,7 +105,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		char* ret = page_aligned_allocator::malloc(m_block_size);
-		TORRENT_ASSERT(ret == 0 || is_disk_buffer(ret, l));
 #else
 		char* ret = (char*)m_pool.ordered_malloc();
 		m_pool.set_next_size(m_settings.cache_buffer_chunk_size);
@@ -130,12 +129,15 @@ namespace libtorrent
 		m_buf_to_category[ret] = category;
 		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
 #endif
+		TORRENT_ASSERT(ret == 0 || is_disk_buffer(ret, l));
 		return ret;
 	}
 
 #ifdef TORRENT_DISK_STATS
 	void disk_buffer_pool::rename_buffer(char* buf, char const* category)
 	{
+		mutex_t::scoped_lock l(m_pool_mutex);
+		TORRENT_ASSERT(is_disk_buffer(buf, l));
 		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
 			!= m_categories.end());
 		std::string const& prev_category = m_buf_to_category[buf];
@@ -145,6 +147,8 @@ namespace libtorrent
 		++m_categories[category];
 		m_buf_to_category[buf] = category;
 		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
+		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
+			!= m_categories.end());
 	}
 #endif
 
@@ -153,6 +157,7 @@ namespace libtorrent
 		TORRENT_ASSERT(buf);
 		mutex_t::scoped_lock l(m_pool_mutex);
 		TORRENT_ASSERT(m_magic == 0x1337);
+		TORRENT_ASSERT(is_disk_buffer(buf, l));
 #if defined TORRENT_DISK_STATS || defined TORRENT_STATS
 		--m_allocations;
 #endif
@@ -177,7 +182,6 @@ namespace libtorrent
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		page_aligned_allocator::free(buf);
 #else
-		TORRENT_ASSERT(is_disk_buffer(buf, l));
 		m_pool.ordered_free(buf);
 #endif
 		--m_in_use;
@@ -212,6 +216,7 @@ namespace libtorrent
 		m_buf_to_category[ret] = category;
 		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
 #endif
+		TORRENT_ASSERT(ret == 0 || is_disk_buffer(ret, l));
 		return ret;
 	}
 
@@ -221,6 +226,7 @@ namespace libtorrent
 		TORRENT_ASSERT(num_blocks >= 1);
 		mutex_t::scoped_lock l(m_pool_mutex);
 		TORRENT_ASSERT(m_magic == 0x1337);
+		TORRENT_ASSERT(is_disk_buffer(buf, l));
 #if defined TORRENT_DISK_STATS || defined TORRENT_STATS
 		m_allocations -= num_blocks;
 #endif
