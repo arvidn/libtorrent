@@ -84,6 +84,10 @@ namespace libtorrent
 		return true;
 #else
 		mutex_t::scoped_lock l(m_pool_mutex);
+#ifdef TORRENT_DISK_STATS
+		if (m_buf_to_category.find(buffer)
+			== m_buf_to_category.end()) return false;
+#endif
 		return m_pool.is_from(buffer);
 #endif
 	}
@@ -1082,6 +1086,7 @@ namespace libtorrent
 		error_code const& ec = j.storage->error();
 		if (ec)
 		{
+			j.buffer = 0;
 			j.str = ec.message();
 			j.error = ec;
 			j.error_file = j.storage->error_file();
@@ -1272,7 +1277,6 @@ namespace libtorrent
 					ret = read_piece_from_cache_and_hash(j, h);
 					if (ret == -1)
 					{
-						j.buffer = 0;
 						test_error(j);
 						break;
 					}
@@ -1282,8 +1286,11 @@ namespace libtorrent
 						j.storage->mark_failed(j.piece);
 						j.error = error_code(errors::failed_hash_check, libtorrent_category);
 						j.str = j.error.message();
+						j.buffer = 0;
+						break;
 					}
 
+					TORRENT_ASSERT(j.buffer == read_holder.get());
 					read_holder.release();
 					break;
 				}
@@ -1310,6 +1317,7 @@ namespace libtorrent
 					}
 
 					disk_buffer_holder read_holder(*this, j.buffer);
+
 					ret = try_read_from_cache(j);
 
 					// -2 means there's no space in the read cache
@@ -1329,9 +1337,10 @@ namespace libtorrent
 							test_error(j);
 							break;
 						}
-						if (ret != j.storage->m_files.piece_size(j.piece) - j.offset)
+						if (ret != j.buffer_size)
 						{
 							// this means the file wasn't big enough for this read
+							j.buffer = 0;
 							j.error = error_code(errors::file_too_short, libtorrent_category);
 							j.error_file.clear();
 							j.str = j.error.message();
@@ -1340,6 +1349,7 @@ namespace libtorrent
 						}
 						++m_cache_stats.blocks_read;
 					}
+					TORRENT_ASSERT(j.buffer == read_holder.get());
 					read_holder.release();
 					break;
 				}
