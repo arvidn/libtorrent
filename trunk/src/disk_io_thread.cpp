@@ -77,19 +77,25 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_DEBUG
-	bool disk_buffer_pool::is_disk_buffer(char* buffer) const
+	bool disk_buffer_pool::is_disk_buffer(char* buffer
+		,boost::mutex::scoped_lock& l) const
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		return true;
 #else
-		mutex_t::scoped_lock l(m_pool_mutex);
 #ifdef TORRENT_DISK_STATS
 		if (m_buf_to_category.find(buffer)
 			== m_buf_to_category.end()) return false;
 #endif
 		return m_pool.is_from(buffer);
 #endif
+	}
+
+	bool disk_buffer_pool::is_disk_buffer(char* buffer) const
+	{
+		mutex_t::scoped_lock l(m_pool_mutex);
+		return is_disk_buffer(buffer, l);
 	}
 #endif
 
@@ -99,6 +105,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		char* ret = page_aligned_allocator::malloc(m_block_size);
+		TORRENT_ASSERT(ret == 0 || is_disk_buffer(ret, l));
 #else
 		char* ret = (char*)m_pool.ordered_malloc();
 		m_pool.set_next_size(m_settings.cache_buffer_chunk_size);
@@ -170,6 +177,7 @@ namespace libtorrent
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		page_aligned_allocator::free(buf);
 #else
+		TORRENT_ASSERT(is_disk_buffer(buf, l));
 		m_pool.ordered_free(buf);
 #endif
 		--m_in_use;
