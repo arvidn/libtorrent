@@ -261,6 +261,7 @@ namespace libtorrent
 	{
 #ifdef TORRENT_DISK_STATS
 		m_log.open("disk_io_thread.log", std::ios::trunc);
+		m_disk_access_log.open("disk_access.log", std::ios::trunc);
 #endif
 	}
 

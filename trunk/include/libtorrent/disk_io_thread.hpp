@@ -262,6 +262,10 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 		
+#ifdef TORRENT_DISK_STATS
+		std::ofstream m_disk_access_log;
+#endif
+
 	private:
 
 		struct cached_piece_entry
