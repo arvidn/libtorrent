@@ -374,9 +374,17 @@ namespace libtorrent
 				static int allocations;
 				static int allocated_bytes;
 			};
-			boost::object_pool<policy::peer, logging_allocator> m_peer_pool;
+			boost::object_pool<
+				policy::ipv4_peer, logging_allocator> m_ipv4_peer_pool;
+# if TORRENT_USE_IPV6
+			boost::object_pool<
+				policy::ipv6_peer, logging_allocator> m_ipv6_peer_pool;
+# endif
 #else
-			boost::object_pool<policy::peer> m_peer_pool;
+			boost::object_pool<policy::ipv4_peer> m_ipv4_peer_pool;
+# if TORRENT_USE_IPV6
+			boost::object_pool<policy::ipv6_peer> m_ipv6_peer_pool;
+# endif
 #endif
 
 			// this vector is used to store the block_info

@@ -411,7 +411,14 @@ namespace libtorrent
 			--m_num_connect_candidates;
 		if (m_round_robin > i - m_peers.begin()) --m_round_robin;
 
-		m_torrent->session().m_peer_pool.destroy(*i);
+#if TORRENT_USE_IPV6
+		if ((*i)->is_v6_addr)
+			m_torrent->session().m_ipv6_peer_pool.destroy(
+				static_cast<ipv6_peer*>(*i));
+		else
+#endif
+			m_torrent->session().m_ipv4_peer_pool.destroy(
+				static_cast<ipv4_peer*>(*i));
 		m_peers.erase(i);
 	}
 
@@ -699,10 +706,21 @@ namespace libtorrent
 		}
 		else
 		{
-			peer tmp(c.remote().address());
 			peer_ptr_compare cmp;
-			iter = std::lower_bound(m_peers.begin(), m_peers.end()
-				, &tmp, cmp);
+#if TORRENT_USE_IPV6
+			if (c.remote().address().is_v6())
+			{
+				ipv6_peer tmp(c.remote().address());
+				iter = std::lower_bound(m_peers.begin(), m_peers.end()
+					, &tmp, cmp);
+			}
+			else
+#endif
+			{
+				ipv4_peer tmp(c.remote().address());
+				iter = std::lower_bound(m_peers.begin(), m_peers.end()
+					, &tmp, cmp);
+			}
 			if (iter != m_peers.end() && (*iter)->address() == c.remote().address()) found = true;
 		}
 
@@ -783,10 +801,29 @@ namespace libtorrent
 			}
 
 			if (m_round_robin > iter - m_peers.begin()) ++m_round_robin;
-			peer* p = m_torrent->session().m_peer_pool.malloc();
+#if TORRENT_USE_IPV6
+			bool is_v6 = c.remote().address().is_v6();
+#endif
+			peer* p =
+#if TORRENT_USE_IPV6
+				is_v6 ? (peer*)m_torrent->session().m_ipv6_peer_pool.malloc() :
+#endif
+				(peer*)m_torrent->session().m_ipv4_peer_pool.malloc();
 			if (p == 0) return false;
-			m_torrent->session().m_peer_pool.set_next_size(500);
-			new (p) peer(c.remote(), false, 0);
+#if TORRENT_USE_IPV6
+			if (is_v6)
+				m_torrent->session().m_ipv6_peer_pool.set_next_size(500);
+			else
+#endif
+				m_torrent->session().m_ipv4_peer_pool.set_next_size(500);
+
+#if TORRENT_USE_IPV6
+			if (is_v6)
+				new (p) ipv6_peer(c.remote(), false, 0);
+			else
+#endif
+				new (p) ipv4_peer(c.remote(), false, 0);
+
 			iter = m_peers.insert(iter, p);
 
 			i = *iter;
@@ -913,10 +950,22 @@ namespace libtorrent
 		}
 		else
 		{
-			peer tmp(remote.address());
 			peer_ptr_compare cmp;
-			iter = std::lower_bound(m_peers.begin(), m_peers.end()
-				, &tmp, cmp);
+#if TORRENT_USE_IPV6
+			if (remote.address().is_v6())
+			{
+				ipv6_peer tmp(remote.address());
+				iter = std::lower_bound(m_peers.begin(), m_peers.end()
+					, &tmp, cmp);
+			}
+			else
+#endif
+			{
+				ipv4_peer tmp(remote.address());
+				iter = std::lower_bound(m_peers.begin(), m_peers.end()
+					, &tmp, cmp);
+			}
+
 			if (iter != m_peers.end() && (*iter)->address() == remote.address()) found = true;
 		}
 
@@ -933,20 +982,50 @@ namespace libtorrent
 
 				// since some peers were removed, we need to
 				// update the iterator to make it valid again
-				peer tmp(remote.address());
 				peer_ptr_compare cmp;
-				iter = std::lower_bound(m_peers.begin(), m_peers.end()
-					, &tmp, cmp);
+#if TORRENT_USE_IPV6
+				if (remote.address().is_v6())
+				{
+					ipv6_peer tmp(remote.address());
+					iter = std::lower_bound(m_peers.begin(), m_peers.end()
+						, &tmp, cmp);
+				}
+				else
+#endif
+				{
+					ipv4_peer tmp(remote.address());
+					iter = std::lower_bound(m_peers.begin(), m_peers.end()
+						, &tmp, cmp);
+				}
 			}
 
 			if (m_round_robin > iter - m_peers.begin()) ++m_round_robin;
 
 			// we don't have any info about this peer.
 			// add a new entry
-			peer* p = m_torrent->session().m_peer_pool.malloc();
+#if TORRENT_USE_IPV6
+			bool is_v6 = remote.address().is_v6();
+#endif
+			peer* p =
+#if TORRENT_USE_IPV6
+				is_v6 ? (peer*)m_torrent->session().m_ipv6_peer_pool.malloc() :
+#endif
+				(peer*)m_torrent->session().m_ipv4_peer_pool.malloc();
 			if (p == 0) return 0;
-			m_torrent->session().m_peer_pool.set_next_size(500);
-			new (p) peer(remote, true, src);
+#if TORRENT_USE_IPV6
+			if (is_v6)
+				m_torrent->session().m_ipv6_peer_pool.set_next_size(500);
+			else
+#endif
+				m_torrent->session().m_ipv4_peer_pool.set_next_size(500);
+
+#if TORRENT_USE_IPV6
+			if (is_v6)
+				new (p) ipv6_peer(remote, true, src);
+			else
+#endif
+				new (p) ipv4_peer(remote, true, src);
+
 			iter = m_peers.insert(iter, p);
 
 			i = *iter;
@@ -1395,7 +1474,10 @@ namespace libtorrent
 	}
 #endif // TORRENT_DEBUG
 
-	policy::peer::peer(const tcp::endpoint& ip_, bool conn, int src)
+	policy::peer::peer()
+	{}
+
+	policy::peer::peer(boost::uint16_t port, bool conn, int src)
 		: prev_amount_upload(0)
 		, prev_amount_download(0)
 		, connection(0)
@@ -1404,10 +1486,7 @@ namespace libtorrent
 #endif
 		, last_optimistically_unchoked(0)
 		, last_connected(0)
-#if !TORRENT_USE_IPV6
-		, addr(ip_.address().to_v4())
-#endif
-		, port(ip_.port())
+		, port(port)
 		, hashfails(0)
 		, failcount(0)
 		, connectable(conn)
@@ -1428,8 +1507,6 @@ namespace libtorrent
 		, added_to_dht(false)
 #endif
 	{
-		set_ip(ip_);
-
 		TORRENT_ASSERT((src & 0xff) == src);
 	}
 
@@ -1444,27 +1521,6 @@ namespace libtorrent
 		{
 			return prev_amount_download;
 		}
-	}
-
-	void policy::peer::set_ip(tcp::endpoint const& endp)
-	{
-#if TORRENT_USE_IPV6
-		if (endp.address().is_v6())
-		{
-			is_v6_addr = true;
-			addr.v6 = endp.address().to_v6().to_bytes();
-		}
-		else
-		{
-			is_v6_addr = false;
-			addr.v4 = endp.address().to_v4().to_bytes();
-		}
-#else
-		TORRENT_ASSERT(endp.address().is_v4());
-		addr = endp.address().to_v4();
-#endif
-
-		port = endp.port();
 	}
 
 	size_type policy::peer::total_upload() const
