@@ -478,7 +478,8 @@ namespace libtorrent
 
 	// returns the number of blocks that were freed
 	int disk_io_thread::clear_oldest_read_piece(
-		cache_t::iterator ignore
+		int num_blocks
+		, cache_t::iterator ignore
 		, mutex_t::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
@@ -491,8 +492,44 @@ namespace libtorrent
 		{
 			// don't replace an entry that is less than one second old
 			if (time_now() - i->last_use < seconds(1)) return 0;
-			int blocks = free_piece(*i, l);
-			m_read_pieces.erase(i);
+			int blocks = 0;
+			if (num_blocks >= i->num_blocks)
+			{
+				blocks = free_piece(*i, l);
+			}
+			else
+			{
+				// delete blocks from the start and from the end
+				// until num_blocks have been freed
+				int end = (i->storage->info()->piece_size(i->piece) + m_block_size - 1) / m_block_size - 1;
+				int start = 0;
+
+				while (num_blocks)
+				{
+					while (i->blocks[start] == 0 && start <= end) ++start;
+					if (start > end) break;
+					free_buffer(i->blocks[start]);
+					i->blocks[start] = 0;
+					++blocks;
+					--i->num_blocks;
+					--m_cache_stats.cache_size;
+					--m_cache_stats.read_cache_size;
+					--num_blocks;
+					if (!num_blocks) break;
+
+					while (i->blocks[end] == 0 && start <= end) --end;
+					if (start > end) break;
+					free_buffer(i->blocks[end]);
+					i->blocks[end] = 0;
+					++blocks;
+					--i->num_blocks;
+					--m_cache_stats.cache_size;
+					--m_cache_stats.read_cache_size;
+					--num_blocks;
+				}
+			
+			}
+			if (i->num_blocks == 0) m_read_pieces.erase(i);
 			return blocks;
 		}
 		return 0;
@@ -555,7 +592,7 @@ namespace libtorrent
 		int ret = 0;
 		int tmp = 0;
 		do {
-			tmp = clear_oldest_read_piece(ignore, l);
+			tmp = clear_oldest_read_piece(blocks, ignore, l);
 			blocks -= tmp;
 			ret += tmp;
 		} while (tmp > 0 && blocks > 0);
@@ -747,6 +784,7 @@ namespace libtorrent
 			++m_cache_stats.read_cache_size;
 			++end_block;
 			++num_read;
+#error the length should be min(read_cache_line_size, (cache_size - in_use())/2)
 			if (num_read >= m_settings.read_cache_line_size) break;
 		}
 
