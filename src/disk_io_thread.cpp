@@ -516,7 +516,7 @@ namespace libtorrent
 	}
 
 	int disk_io_thread::flush_contiguous_blocks(disk_io_thread::cache_t::iterator e
-		, mutex_t::scoped_lock& l)
+		, mutex_t::scoped_lock& l, int lower_limit)
 	{
 		// first find the largest range of contiguous  blocks
 		int len = 0;
@@ -540,22 +540,27 @@ namespace libtorrent
 			}
 		}
 
-		flush_range(e, pos, pos + len, l);
+		if (len < lower_limit) return 0;
+		len = flush_range(e, pos, pos + len, l);
 		if (e->num_blocks == 0) m_pieces.erase(e);
 		return len;
 	}
 
 	// flushes 'blocks' blocks from the cache
-	void disk_io_thread::flush_cache_blocks(mutex_t::scoped_lock& l
-		, int blocks)
+	int disk_io_thread::flush_cache_blocks(mutex_t::scoped_lock& l
+		, int blocks, cache_t::iterator ignore, int options)
 	{
 		// first look if there are any read cache entries that can
 		// be cleared
 		int ret = 0;
+		int tmp = 0;
 		do {
-			ret = clear_oldest_read_piece(m_read_pieces.end(), l);
-			blocks -= ret;
-		} while (ret > 0 && blocks > 0);
+			tmp = clear_oldest_read_piece(ignore, l);
+			blocks -= tmp;
+			ret += tmp;
+		} while (tmp > 0 && blocks > 0);
+
+		if (options & dont_flush_write_blocks) return ret;
 
 		if (m_settings.disk_cache_algorithm == session_settings::lru)
 		{
@@ -565,8 +570,10 @@ namespace libtorrent
 					m_pieces.begin(), m_pieces.end()
 					, bind(&cached_piece_entry::last_use, _1)
 					< bind(&cached_piece_entry::last_use, _2));
-				if (i == m_pieces.end()) return;
-				flush_and_remove(i, l);
+				if (i == m_pieces.end()) return ret;
+				tmp = flush_and_remove(i, l);
+				blocks -= tmp;
+				ret += tmp;
 			}
 		}
 		else if (m_settings.disk_cache_algorithm == session_settings::largest_contiguous)
@@ -577,20 +584,24 @@ namespace libtorrent
 					m_pieces.begin(), m_pieces.end()
 					, bind(&contiguous_blocks, _1)
 					< bind(&contiguous_blocks, _2));
-				if (i == m_pieces.end()) return;
-				blocks -= flush_contiguous_blocks(i, l);
+				if (i == m_pieces.end()) return ret;
+				tmp = flush_contiguous_blocks(i, l);
+				blocks -= tmp;
+				ret += tmp;
 			}
 		}
+		return ret;
 	}
 
-	void disk_io_thread::flush_and_remove(disk_io_thread::cache_t::iterator e
+	int disk_io_thread::flush_and_remove(disk_io_thread::cache_t::iterator e
 		, mutex_t::scoped_lock& l)
 	{
-		flush_range(e, 0, INT_MAX, l);
+		int ret = flush_range(e, 0, INT_MAX, l);
 		m_pieces.erase(e);
+		return ret;
 	}
 
-	void disk_io_thread::flush_range(disk_io_thread::cache_t::iterator e
+	int disk_io_thread::flush_range(disk_io_thread::cache_t::iterator e
 		, int start, int end, mutex_t::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
@@ -662,11 +673,13 @@ namespace libtorrent
 			--m_cache_stats.cache_size;
 		}
 
+		int ret = 0;
 		for (int i = start; i < end; ++i)
 		{
 			if (p.blocks[i] == 0) continue;
 			free_buffer(p.blocks[i]);
 			p.blocks[i] = 0;
+			++ret;
 		}
 
 		TORRENT_ASSERT(buffer_size == 0);
@@ -675,6 +688,7 @@ namespace libtorrent
 		for (int i = start; i < end; ++i)
 			TORRENT_ASSERT(p.blocks[i] == 0);
 #endif
+		return ret;
 	}
 
 	// returns -1 on failure
@@ -705,11 +719,6 @@ namespace libtorrent
 		m_pieces.push_back(p);
 		return 0;
 	}
-
-	enum read_options_t
-	{
-		ignore_cache_size = 1
-	};
 
 	// fills a piece with data from disk, returns the total number of bytes
 	// read or -1 if there was an error
@@ -817,32 +826,6 @@ namespace libtorrent
 		return (ret != buffer_size) ? -1 : ret;
 	}
 	
-	bool disk_io_thread::make_room(int num_blocks
-		, cache_t::iterator ignore
-		, bool flush_write_cache
-		, mutex_t::scoped_lock& l)
-	{
-		while (m_settings.cache_size - in_use() < num_blocks)
-		{
-			// there's not enough room in the cache, clear a piece
-			// from the read cache
-			if (!clear_oldest_read_piece(ignore, l)) break;
-		}
-
-		// try flushing write cache
-		while (flush_write_cache && m_settings.cache_size - in_use() < num_blocks)
-		{
-			cache_t::iterator i = std::min_element(
-				m_pieces.begin(), m_pieces.end()
-				, bind(&cached_piece_entry::last_use, _1)
-				< bind(&cached_piece_entry::last_use, _2));
-			if (i == m_pieces.end()) break;
-			flush_and_remove(i, l);
-		}
-
-		return m_settings.cache_size - in_use() >= num_blocks;
-	}
-
 	// returns -1 on read error, -2 on out of memory error or the number of bytes read
 	// this function ignores the cache size limit, it will read the entire
 	// piece regardless of the offset in j
@@ -853,7 +836,8 @@ namespace libtorrent
 		int piece_size = j.storage->info()->piece_size(j.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
-		make_room(blocks_in_piece, m_read_pieces.end(), true, l);
+		if (in_use() + blocks_in_piece > m_settings.cache_size)
+			flush_cache_blocks(l, in_use() + blocks_in_piece - m_settings.cache_size, m_read_pieces.end());
 
 		cached_piece_entry p;
 		p.piece = j.piece;
@@ -884,8 +868,12 @@ namespace libtorrent
 
 		int start_block = j.offset / m_block_size;
 
-		if (!make_room(blocks_in_piece - start_block
-			, m_read_pieces.end(), false, l)) return -2;
+		int blocks_to_read = (std::min)(blocks_in_piece - start_block, m_settings.read_cache_line_size);
+
+		if (in_use() + blocks_to_read > m_settings.cache_size)
+			if (flush_cache_blocks(l, in_use() + blocks_to_read - m_settings.cache_size
+				, m_read_pieces.end(), dont_flush_write_blocks) == 0)
+				return -2;
 
 		cached_piece_entry p;
 		p.piece = j.piece;
@@ -1054,7 +1042,13 @@ namespace libtorrent
 			int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 			int end_block = block;
 			while (end_block < blocks_in_piece && p->blocks[end_block] == 0) ++end_block;
-			if (!make_room(end_block - block, p, false, l)) return -2;
+
+			int blocks_to_read = end_block - block;
+			if (in_use() + blocks_to_read > m_settings.cache_size)
+				if (flush_cache_blocks(l, in_use() + blocks_to_read - m_settings.cache_size
+					, p, dont_flush_write_blocks) == 0)
+					return -2;
+
 			int ret = read_into_piece(*p, block, 0, l);
 			hit = false;
 			if (ret < 0) return ret;
@@ -1465,7 +1459,7 @@ namespace libtorrent
 					INVARIANT_CHECK;
 
 					if (in_use() >= m_settings.cache_size)
-						flush_cache_blocks(l, in_use() - m_settings.cache_size + 1);
+						flush_cache_blocks(l, in_use() - m_settings.cache_size + 1, m_read_pieces.end());
 
 					cache_t::iterator p
 						= find_cached_piece(m_pieces, j, l);
@@ -1487,6 +1481,9 @@ namespace libtorrent
 						++m_cache_stats.cache_size;
 						++p->num_blocks;
 						p->last_use = time_now();
+						// we might just have created a contiguous range
+						// that meets the requirement to be flushed. try it
+						flush_contiguous_blocks(p, l, m_settings.write_cache_line_size);
 					}
 					else
 					{
@@ -1507,7 +1504,7 @@ namespace libtorrent
 					holder.release();
 
 					if (in_use() > m_settings.cache_size)
-						flush_cache_blocks(l, in_use() - m_settings.cache_size);
+						flush_cache_blocks(l, in_use() - m_settings.cache_size, m_read_pieces.end());
 
 					break;
 				}

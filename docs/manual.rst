@@ -3450,6 +3450,7 @@ session_settings
 		disk_cache_algo_t disk_cache_algorithm;
 
 		int read_cache_line_size;
+		int write_cache_line_size;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3845,6 +3846,10 @@ piece's last use time.
 cache when a read cache miss occurs. Setting this to 0 is essentially
 the same thing as disabling read cache. The number of blocks read
 into the read cache is always capped by the piece boundry.
+
+When a piece in the write cache has ``write_cache_line_size`` contiguous
+blocks in it, they will be flushed. Setting this to 1 effectively
+disables the write cache.
 
 pe_settings
 ===========
