@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DEBUG_HPP_INCLUDED
 #define TORRENT_DEBUG_HPP_INCLUDED
 
-#ifdef TORRENT_DEBUG
-
 #include <string>
 #include "libtorrent/config.hpp"
 
@@ -102,7 +100,6 @@ namespace libtorrent
 	};
 
 }
-#endif // TORRENT_DEBUG
 
 #endif // TORRENT_DEBUG_HPP_INCLUDED
 
