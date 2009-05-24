@@ -81,7 +81,7 @@ without having to modify libtorrent</li>
 <li>supports trackerless torrents (using the Mainline kademlia DHT protocol) with
 some <a class="reference external" href="dht_extensions.html">DHT extensions</a>. <a class="reference external" href="http://bittorrent.org/beps/bep_0005.html">BEP 5</a>.</li>
 <li>supports the bittorrent <a class="reference external" href="extension_protocol.html">extension protocol</a>. See <a class="reference external" href="manual.html#extensions">extensions</a>. <a class="reference external" href="http://bittorrent.org/beps/bep_0010.html">BEP 10</a>.</li>
-<li>supports the uTorrent metadata transfer protocol (i.e. magnet links).</li>
+<li>supports the uTorrent metadata transfer protocol <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a> (i.e. magnet links).</li>
 <li>supports the uTorrent peer exchange protocol (PEX).</li>
 <li>supports local peer discovery (multicasts for peers on the same local network)</li>
 <li>multitracker extension support (supports both strict <a class="reference external" href="http://bittorrent.org/beps/bep_0012.html">BEP  12</a> and the
@@ -167,6 +167,30 @@ read back into physical memory only to be flushed back out to disk again.</p>
 used to flush multiple cache blocks in a single call.</p>
 <p>On low-memory systems, the disk cache can be disabled altogether or set to smaller
 limit, to save memory.</p>
+<p>The disk caching algorithm is configurable between 'LRU' and 'largest contiguous'.
+The largest contiguous algorithm is the default and flushes the largest contiguous
+block of buffers, instead of flushing all blocks belonging to the piece which was
+written to least recently.</p>
+<p>For version 0.15 a lot of work went into optimizing the cache algorithm, trying
+to increase the cache hit rate and utilization. The graph to the left shows the
+memory utilization in 0.14. This cache is a straight forward, fairly naive, implementation.
+Every block read will also read all subsequent blocks in that piece into the cache.
+Whenever we need more space, the entire oldest piece is evicted from the cache. Caching
+writes always takes presedence over the read cache. Whenever a piece is fully downloaded,
+it is flushed to disk.</p>
+<img alt="disk_buffer_before_optimization.png" src="disk_buffer_before_optimization.png" style="width: 49%;" />
+<img alt="disk_buffer.png" src="disk_buffer.png" style="width: 49%;" />
+<p>The left graph shows the problem of evicting entire pieces at a time, and waiting until
+an entire piece is downloaded until flushing it. These graphs were generated for a torrent
+with fairly large pieces. This means that granularity was poor in 0.14, since it only
+dealt with entire pieces. In 0.15, the granularity problem has been fixed by evicting one
+block at a time from the read cache. This maximizes the read cache utilization. The write
+cache is also flushed when a sufficient number of contiguous blocks have been downloaded
+for a piece, which is not tied to the piece size anymore. This way the cache scales a lot
+better with piece sizes.</p>
+<p>The graph to the right shows the same download but with the new optimized disk cache
+algorithm. It clearly shows an increased utilization, which means higher read hit rates
+or smaller caches with maintained hit rate.</p>
 </div>
 <div class="section" id="network-buffers">
 <h2>network buffers</h2>
