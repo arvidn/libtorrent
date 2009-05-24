@@ -311,7 +311,7 @@ namespace libtorrent
 		int clear_oldest_read_piece(int num_blocks, cache_t::iterator ignore
 			, mutex_t::scoped_lock& l);
 		int read_into_piece(cached_piece_entry& p, int start_block
-			, int options, mutex_t::scoped_lock& l);
+			, int options, int num_blocks, mutex_t::scoped_lock& l);
 		int cache_read_block(disk_io_job const& j, mutex_t::scoped_lock& l);
 		int cache_read_piece(disk_io_job const& j, mutex_t::scoped_lock& l);
 		int free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l);

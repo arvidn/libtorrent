@@ -760,7 +760,7 @@ namespace libtorrent
 	// fills a piece with data from disk, returns the total number of bytes
 	// read or -1 if there was an error
 	int disk_io_thread::read_into_piece(cached_piece_entry& p, int start_block
-		, int options, mutex_t::scoped_lock& l)
+		, int options, int num_blocks, mutex_t::scoped_lock& l)
 	{
 		int piece_size = p.storage->info()->piece_size(p.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
@@ -784,8 +784,7 @@ namespace libtorrent
 			++m_cache_stats.read_cache_size;
 			++end_block;
 			++num_read;
-#error the length should be min(read_cache_line_size, (cache_size - in_use())/2)
-			if (num_read >= m_settings.read_cache_line_size) break;
+			if (num_read >= num_blocks) break;
 		}
 
 		if (end_block == start_block) return -2;
@@ -867,6 +866,8 @@ namespace libtorrent
 	// returns -1 on read error, -2 on out of memory error or the number of bytes read
 	// this function ignores the cache size limit, it will read the entire
 	// piece regardless of the offset in j
+	// this is used for seed-mode, where we need to read the entire piece to calculate
+	// the hash
 	int disk_io_thread::cache_read_piece(disk_io_job const& j, mutex_t::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
@@ -885,7 +886,7 @@ namespace libtorrent
 		p.blocks.reset(new (std::nothrow) char*[blocks_in_piece]);
 		if (!p.blocks) return -1;
 		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
-		int ret = read_into_piece(p, 0, ignore_cache_size, l);
+		int ret = read_into_piece(p, 0, ignore_cache_size, INT_MAX, l);
 		
 		if (ret == -1)
 			free_piece(p, l);
@@ -906,7 +907,10 @@ namespace libtorrent
 
 		int start_block = j.offset / m_block_size;
 
-		int blocks_to_read = (std::min)(blocks_in_piece - start_block, m_settings.read_cache_line_size);
+		int blocks_to_read = blocks_in_piece - start_block;
+		blocks_to_read = (std::min)(blocks_to_read, (std::max)((m_settings.cache_size
+			+ m_cache_stats.read_cache_size - in_use())/2, 3));
+		blocks_to_read = (std::min)(blocks_to_read, m_settings.read_cache_line_size);
 
 		if (in_use() + blocks_to_read > m_settings.cache_size)
 			if (flush_cache_blocks(l, in_use() + blocks_to_read - m_settings.cache_size
@@ -921,7 +925,7 @@ namespace libtorrent
 		p.blocks.reset(new (std::nothrow) char*[blocks_in_piece]);
 		if (!p.blocks) return -1;
 		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
-		int ret = read_into_piece(p, start_block, 0, l);
+		int ret = read_into_piece(p, start_block, 0, blocks_to_read, l);
 		
 		if (ret == -1)
 			free_piece(p, l);
@@ -1082,12 +1086,15 @@ namespace libtorrent
 			while (end_block < blocks_in_piece && p->blocks[end_block] == 0) ++end_block;
 
 			int blocks_to_read = end_block - block;
+			blocks_to_read = (std::min)(blocks_to_read, (std::max)((m_settings.cache_size
+				+ m_cache_stats.read_cache_size - in_use())/2, 3));
+			blocks_to_read = (std::min)(blocks_to_read, m_settings.read_cache_line_size);
 			if (in_use() + blocks_to_read > m_settings.cache_size)
 				if (flush_cache_blocks(l, in_use() + blocks_to_read - m_settings.cache_size
 					, p, dont_flush_write_blocks) == 0)
 					return -2;
 
-			int ret = read_into_piece(*p, block, 0, l);
+			int ret = read_into_piece(*p, block, 0, blocks_to_read, l);
 			hit = false;
 			if (ret < 0) return ret;
 			TORRENT_ASSERT(p->blocks[block]);
