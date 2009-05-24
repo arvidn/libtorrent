@@ -298,12 +298,13 @@ namespace libtorrent
 			, disk_io_job const& j, mutex_t::scoped_lock& l);
 
 		// write cache operations
-		void flush_cache_blocks(mutex_t::scoped_lock& l, int blocks);
+		enum options_t { dont_flush_write_blocks = 1, ignore_cache_size = 2 };
+		int flush_cache_blocks(mutex_t::scoped_lock& l, int blocks, cache_t::iterator ignore, int options = 0);
 		void flush_expired_pieces();
-		void flush_and_remove(cache_t::iterator i, mutex_t::scoped_lock& l);
+		int flush_and_remove(cache_t::iterator i, mutex_t::scoped_lock& l);
 		int flush_contiguous_blocks(disk_io_thread::cache_t::iterator e
-			, mutex_t::scoped_lock& l);
-		void flush_range(cache_t::iterator i, int start, int end, mutex_t::scoped_lock& l);
+			, mutex_t::scoped_lock& l, int lower_limit = 0);
+		int flush_range(cache_t::iterator i, int start, int end, mutex_t::scoped_lock& l);
 		int cache_block(disk_io_job& j, mutex_t::scoped_lock& l);
 
 		// read cache operations
@@ -314,10 +315,6 @@ namespace libtorrent
 		int cache_read_block(disk_io_job const& j, mutex_t::scoped_lock& l);
 		int cache_read_piece(disk_io_job const& j, mutex_t::scoped_lock& l);
 		int free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l);
-		bool make_room(int num_blocks
-			, cache_t::iterator ignore
-			, bool flush_write_cache
-			, mutex_t::scoped_lock& l);
 		int try_read_from_cache(disk_io_job const& j);
 		int read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h);
 
