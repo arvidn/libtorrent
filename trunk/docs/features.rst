@@ -141,6 +141,37 @@ used to flush multiple cache blocks in a single call.
 On low-memory systems, the disk cache can be disabled altogether or set to smaller
 limit, to save memory.
 
+The disk caching algorithm is configurable between 'LRU' and 'largest contiguous'.
+The largest contiguous algorithm is the default and flushes the largest contiguous
+block of buffers, instead of flushing all blocks belonging to the piece which was
+written to least recently.
+
+For version 0.15 a lot of work went into optimizing the cache algorithm, trying
+to increase the cache hit rate and utilization. The graph to the left shows the
+memory utilization in 0.14. This cache is a straight forward, fairly naive, implementation.
+Every block read will also read all subsequent blocks in that piece into the cache.
+Whenever we need more space, the entire oldest piece is evicted from the cache. Caching
+writes always takes presedence over the read cache. Whenever a piece is fully downloaded,
+it is flushed to disk.
+
+.. image:: disk_buffer_before_optimization.png
+	:width: 49%
+
+.. image:: disk_buffer.png
+	:width: 49%
+
+The left graph shows the problem of evicting entire pieces at a time, and waiting until
+an entire piece is downloaded until flushing it. These graphs were generated for a torrent
+with fairly large pieces. This means that granularity was poor in 0.14, since it only
+dealt with entire pieces. In 0.15, the granularity problem has been fixed by evicting one
+block at a time from the read cache. This maximizes the read cache utilization. The write
+cache is also flushed when a sufficient number of contiguous blocks have been downloaded
+for a piece, which is not tied to the piece size anymore. This way the cache scales a lot
+better with piece sizes.
+
+The graph to the right shows the same download but with the new optimized disk cache
+algorithm. It clearly shows an increased utilization, which means higher read hit rates
+or smaller caches with maintained hit rate.
 
 network buffers
 ---------------
