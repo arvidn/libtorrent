@@ -9,10 +9,18 @@ lines = open(sys.argv[1], 'rb').readlines()
 # example:
 # 16434 read cache: 17
 
+key_order = ['receive buffer', 'send buffer', 'write cache', 'read cache', 'hash temp']
+colors = ['30f030', 'f03030', '80f080', 'f08080', '4040ff']
+
 keys = []
 fields = {}
 maximum = {}
 out = open('disk_buffer_log.dat', 'w+')
+
+for c in key_order:
+	keys.append(c)
+	fields[c] = 0
+	maximum[c] = 0
 
 last_t = 0
 for l in lines:
@@ -62,8 +70,8 @@ keys.reverse()
 for k in keys:
 	expr = "$%d" % count
 	for i in xrange(2, count): expr += "+$%d" % i
-	print >>out, ' "disk_buffer_log.dat" using 1:(%s) title "%s" with filledcurves x1,' % (expr, k),
 	count -= 1
+	print >>out, ' "disk_buffer_log.dat" using 1:(%s) title "%s" with filledcurves x1 lt rgb "#%s",' % (expr, k, colors[count-1]),
 print >>out, 'x=0'
 out.close()
 
