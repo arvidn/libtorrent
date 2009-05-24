@@ -167,7 +167,10 @@ namespace aux {
 		, fs::path const& logpath
 #endif
 		)
-		: m_peer_pool(500)
+		: m_ipv4_peer_pool(500)
+#if TORRENT_USE_IPV6
+		, m_ipv6_peer_pool(500)
+#endif
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_send_buffers(send_buffer_size)
 #endif
@@ -271,9 +274,13 @@ namespace aux {
 		PRINT_OFFSETOF(policy::peer, connection)
 		PRINT_OFFSETOF(policy::peer, last_optimistically_unchoked)
 		PRINT_OFFSETOF(policy::peer, last_connected)
-		PRINT_OFFSETOF(policy::peer, addr)
 		PRINT_OFFSETOF(policy::peer, port)
 		PRINT_OFFSETOF(policy::peer, hashfails)
+
+		PRINT_SIZEOF(policy::ipv4_peer)
+#if TORRENT_USE_IPV6
+		PRINT_SIZEOF(policy::ipv6_peer)
+#endif
 
 		PRINT_SIZEOF(dht::closest_nodes_observer)
 		PRINT_SIZEOF(dht::find_data_observer)

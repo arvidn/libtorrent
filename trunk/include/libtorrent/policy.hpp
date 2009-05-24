@@ -125,25 +125,13 @@ namespace libtorrent
 // 44
 		struct peer
 		{
-			peer(tcp::endpoint const& ip, bool connectable, int src);
-
-			peer(libtorrent::address const& a) { set_ip(tcp::endpoint(a, 0)); }
+			peer();
+			peer(boost::uint16_t port, bool connectable, int src);
 
 			size_type total_download() const;
 			size_type total_upload() const;
 
-			void set_ip(tcp::endpoint const& endp);
-
-#if TORRENT_USE_IPV6
-			libtorrent::address address() const
-			{
-				if (is_v6_addr) return address_v6(addr.v6);
-				else return address_v4(addr.v4);
-			}
-#else
-			libtorrent::address address() const
-			{ return addr; }
-#endif
+			libtorrent::address address() const;
 
 			tcp::endpoint ip() const { return tcp::endpoint(address(), port); }
 
@@ -187,16 +175,6 @@ namespace libtorrent
 			// in number of seconds since session was created
 			boost::uint16_t last_connected;
 
-			// the ip address this peer is or was connected on
-#if TORRENT_USE_IPV6
-			union
-			{
-				address_v6::bytes_type v6;
-				address_v4::bytes_type v4;
-			} addr;
-#else
-			address_v4 addr;
-#endif
 
 			// the port this peer is or was connected on
 			boost::uint16_t port;
@@ -278,6 +256,24 @@ namespace libtorrent
 #endif
 		};
 
+		struct ipv4_peer : peer
+		{
+			ipv4_peer(tcp::endpoint const& ip, bool connectable, int src);
+			ipv4_peer(libtorrent::address const& a);
+
+			address_v4 addr;
+		};
+
+#if TORRENT_USE_IPV6
+		struct ipv6_peer : peer
+		{
+			ipv6_peer(tcp::endpoint const& ip, bool connectable, int src);
+			ipv6_peer(libtorrent::address const& a);
+
+			address_v6::bytes_type addr;
+		};
+#endif
+
 		int num_peers() const { return m_peers.size(); }
 
 		struct peer_ptr_compare
@@ -297,16 +293,36 @@ namespace libtorrent
 
 		std::pair<iterator, iterator> find_peers(address const& a)
 		{
-			peer tmp(a);
 			peer_ptr_compare cmp;
-			return std::equal_range(m_peers.begin(), m_peers.end(), &tmp, cmp);
+#if TORRENT_USE_IPV6
+			if (a.is_v6())
+			{
+				ipv6_peer tmp(a);
+				return std::equal_range(m_peers.begin(), m_peers.end(), &tmp, cmp);
+			}
+			else
+#endif
+			{
+				ipv4_peer tmp(a);
+				return std::equal_range(m_peers.begin(), m_peers.end(), &tmp, cmp);
+			}
 		}
 
 		std::pair<const_iterator, const_iterator> find_peers(address const& a) const
 		{
-			peer tmp(a);
 			peer_ptr_compare cmp;
-			return std::equal_range(m_peers.begin(), m_peers.end(), &tmp, cmp);
+#if TORRENT_USE_IPV6
+			if (a.is_v6())
+			{
+				ipv6_peer tmp(a);
+				return std::equal_range(m_peers.begin(), m_peers.end(), &tmp, cmp);
+			}
+			else
+#endif
+			{
+				ipv4_peer tmp(a);
+				return std::equal_range(m_peers.begin(), m_peers.end(), &tmp, cmp);
+			}
 		}
 
 		bool connect_one_peer(int session_time);
@@ -367,6 +383,46 @@ namespace libtorrent
 		// recalculate the connect candidates.
 		bool m_finished;
 	};
+
+	inline policy::ipv4_peer::ipv4_peer(
+		tcp::endpoint const& ip, bool connectable, int src
+	)
+	  : peer(ip.port(), connectable, src)
+	  , addr(ip.address().to_v4())
+	{
+		is_v6_addr = false;
+	}
+
+	inline policy::ipv4_peer::ipv4_peer(libtorrent::address const& a)
+	  : addr(a.to_v4())
+	{
+		is_v6_addr = false;
+	}
+
+	inline policy::ipv6_peer::ipv6_peer(
+		tcp::endpoint const& ip, bool connectable, int src
+	)
+	  : peer(ip.port(), connectable, src)
+	  , addr(ip.address().to_v6().to_bytes())
+	{
+		is_v6_addr = true;
+	}
+
+	inline policy::ipv6_peer::ipv6_peer(libtorrent::address const& a)
+	  : addr(a.to_v6().to_bytes())
+	{
+		is_v6_addr = true;
+	}
+
+	inline libtorrent::address policy::peer::address() const
+	{
+#if TORRENT_USE_IPV6
+		if (is_v6_addr)
+			return libtorrent::address_v6(
+				static_cast<policy::ipv6_peer const*>(this)->addr);
+#endif
+		return static_cast<policy::ipv4_peer const*>(this)->addr;
+	}
 
 }
 
