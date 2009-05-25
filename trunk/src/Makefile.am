@@ -93,7 +93,6 @@ $(top_srcdir)/include/libtorrent/session.hpp \
 $(top_srcdir)/include/libtorrent/size_type.hpp \
 $(top_srcdir)/include/libtorrent/socket.hpp \
 $(top_srcdir)/include/libtorrent/socket_type.hpp \
-$(top_srcdir)/include/libtorrent/socks4_stream.hpp \
 $(top_srcdir)/include/libtorrent/socks5_stream.hpp \
 $(top_srcdir)/include/libtorrent/stat.hpp \
 $(top_srcdir)/include/libtorrent/storage.hpp \
@@ -113,7 +112,7 @@ $(top_srcdir)/include/libtorrent/ConvertUTF.h
 libtorrent_rasterbar_la_LDFLAGS = $(LDFLAGS) -version-info $(INTERFACE_VERSION_INFO)
 libtorrent_rasterbar_la_LIBADD = @ZLIB@ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LIBS@
 
-AM_CXXFLAGS= -ftemplate-depth-100 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @ZLIBINCL@ @DEBUGFLAGS@ @PTHREAD_CFLAGS@ -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION @SSL_CXXFLAGS@
+AM_CXXFLAGS= -ftemplate-depth-100 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @ZLIBINCL@ @DEBUGFLAGS@ @PTHREAD_CFLAGS@ @SSL_CXXFLAGS@
 AM_CFLAGS= -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @ZLIBINCL@ @DEBUGFLAGS@ @PTHREAD_CFLAGS@
 AM_LDFLAGS= $(LDFLAGS) @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LDFLAGS@ @SSL_LIBS@
 
