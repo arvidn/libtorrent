@@ -488,15 +488,15 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		}
 
 		char msg[200];
-		snprintf(msg, sizeof(msg), "found rootdevice: %s (%lu)"
-			, d.url.c_str(), m_devices.size());
+		snprintf(msg, sizeof(msg), "found rootdevice: %s (%d)"
+			, d.url.c_str(), int(m_devices.size()));
 		log(msg);
 
 		if (m_devices.size() >= 50)
 		{
 			char msg[200];
-			snprintf(msg, sizeof(msg), "too many rootdevices: (%lu). Ignoring %s"
-				, m_devices.size(), d.url.c_str());
+			snprintf(msg, sizeof(msg), "too many rootdevices: (%d). Ignoring %s"
+				, int(m_devices.size()), d.url.c_str());
 			log(msg);
 			return;
 		}
@@ -569,11 +569,11 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 	snprintf(header, sizeof(header), "POST %s HTTP/1.0\r\n"
 		"Host: %s:%u\r\n"
 		"Content-Type: text/xml; charset=\"utf-8\"\r\n"
-		"Content-Length: %lu\r\n"
+		"Content-Length: %d\r\n"
 		"Soapaction: \"%s#%s\"\r\n\r\n"
 		"%s"
 		, d.path.c_str(), d.hostname.c_str(), d.port
-		, strlen(soap), d.service_namespace, soap_action
+		, int(strlen(soap)), d.service_namespace, soap_action
 		, soap);
 
 	d.upnp_connection->sendbuffer = header;
