@@ -36,11 +36,11 @@ and benchmark your settings to determine if it's worth the trade-off.
 The typical buffer usage of libtorrent, for a single download, with the cache
 size set to 256 blocks (256 * 16 kiB = 4 MiB) is::
 
-	read cache:      149.5 (2392 kiB)
-	write cache:     89.5  (1432 kiB)
-	receive buffers: 6.5   (104 kiB)
-	send buffers:    4     (64 kiB)
-	hash temp:       0.5   (8 kiB)
+	read cache:      128.6 (2058 kiB)
+	write cache:     103.5 (1656 kiB)
+	receive buffers: 7.3   (117 kiB)
+	send buffers:    4.8   (77 kiB)
+	hash temp:       0.001 (19 Bytes)
 
 The receive buffers is proportional to the number of connections we make, and is
 limited by the total number of connections in the session (default is 200).
