@@ -57,7 +57,7 @@ disable disk cache
 ------------------
 
 The bulk of the memory libtorrent will use is used for the disk cache. To save
-the absolute most amount of memory, you can disable the the cache by setting
+the absolute most amount of memory, you can disable the cache by setting
 ``session_settings::cache_size`` to 0. You might want to consider using the cache
 but just disable caching read operations. You do this by settings
 ``session_settings::use_read_cache`` to false. This is the main factor in how much
@@ -68,7 +68,7 @@ informed trade-off.
 remove torrents
 ---------------
 
-Torrents that have been added to libtorrent will inevitably use up memory, event
+Torrents that have been added to libtorrent will inevitably use up memory, even
 when it's paused. A paused torrent will not use any peer connection objects or
 any send or receive buffers though. Any added torrent holds the entire .torrent
 file in memory, it also remembers the entire list of peers that it's heard about
@@ -89,7 +89,7 @@ socket buffer sizes
 
 You can make libtorrent explicitly set the kernel buffer sizes of all its peer
 sockets. If you set this to a low number, you may see reduced throughput, especially
-for high latency connections. It is however an oportunity to save memory per
+for high latency connections. It is however an opportunity to save memory per
 connection, and might be worth considering if you have a very large number of
 peer connections. This memory will not be visible in your process, this sets
 the amount of kernel memory is used for your sockets.
