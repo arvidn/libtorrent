@@ -9,6 +9,7 @@
 * `api documentation`_
 * `create torrents`_
 * `running tests`_
+* `tuning`_
 * screenshot_
 * `mailing list`_ (archive_)
 * `who's using libtorrent?`_
@@ -54,6 +55,7 @@ libtorrent
 .. _`api documentation`: manual.html
 .. _`create torrents`: make_torrent.html
 .. _`running tests`: running_tests.html
+.. _`tuning`: tuning.html
 .. _screenshot: client_test.png
 .. _`extensions protocol`: extension_protocol.html
 .. _`plugin interface`: libtorrent_plugins.html

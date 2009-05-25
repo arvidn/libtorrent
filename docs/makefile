@@ -16,7 +16,8 @@ TARGETS = index \
 	libtorrent_plugins \
 	python_binding \
 	projects \
-	running_tests
+	running_tests \
+	tuning
 
 FIGURES = read_disk_buffers write_disk_buffers
 

@@ -36,6 +36,7 @@ substitute_file('configure.in')
 substitute_file('docs/manual.rst')
 substitute_file('docs/building.rst')
 substitute_file('docs/features.rst')
+substitute_file('docs/tuning.rst')
 substitute_file('Jamfile')
 
 
