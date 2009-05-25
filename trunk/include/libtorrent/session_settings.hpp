@@ -129,6 +129,8 @@ namespace libtorrent
 			, use_read_cache(true)
 			, disk_io_write_mode(0)
 			, disk_io_read_mode(0)
+			, coalesce_reads(false)
+			, coalesce_writes(false)
 			, outgoing_ports(0,0)
 			, peer_tos(0)
 			, active_downloads(8)
