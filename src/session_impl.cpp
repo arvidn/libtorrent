@@ -644,6 +644,8 @@ namespace aux {
 			|| m_settings.disk_cache_algorithm != s.disk_cache_algorithm
 			|| m_settings.read_cache_line_size != s.read_cache_line_size
 			|| m_settings.write_cache_line_size != s.write_cache_line_size
+			|| m_settings.coalesce_writes != s.coalesce_writes
+			|| m_settings.coalesce_reads != s.coalesce_reads
 #ifndef TORRENT_DISABLE_MLOCK
 			|| m_settings.lock_disk_cache != s.lock_disk_cache
 #endif
