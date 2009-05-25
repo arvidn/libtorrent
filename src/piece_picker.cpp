@@ -90,6 +90,9 @@ namespace libtorrent
 		m_reverse_cursor = int(m_piece_map.size());
 		m_cursor = 0;
 
+		m_downloads.clear();
+		m_block_info.clear();
+
 		m_num_filtered += m_num_have_filtered;
 		m_num_have_filtered = 0;
 		m_num_have = 0;
