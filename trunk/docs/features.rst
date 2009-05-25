@@ -283,6 +283,45 @@ The storage interface supports operating systems where you can ask for sparse re
 that are known to be sparse can be skipped, which can reduce the time to check a torrent
 significantly.
 
+easy to use API
+---------------
+
+One of the design goals of the libtorrent API is to make common operations simple, but still
+have it possible to do complicated and advanced operations. This is best illustrated by example
+code to implement a simple bittorrent client::
+
+	#include <iostream>
+	#include "libtorrent/session.hpp"
+
+	// usage a.out [torrent-file]
+	int main(int argc, char* argv[]) try
+	{
+		using namespace libtorrent;
+
+		session s;
+		s.listen_on(std::make_pair(6881, 6889));
+		add_torrent_params p;
+		p.save_path = "./";
+		p.ti = new torrent_info(argv[1]);
+		s.add_torrent(p);
+
+		// wait for the user to end
+		char a;
+		std::cin.unsetf(std::ios_base::skipws);
+		std::cin >> a;
+		return 0;
+	}
+	catch (std::exception& e)
+	{
+		std::cerr << ec.what() << std::endl;
+		return 1;
+	}
+
+This client doesn't give the user any status information or progress about the torrent, but
+it is fully functional.
+
+libtorrent also comes with python bindings for easy access for python developers.
+
 
 portability
 ===========
