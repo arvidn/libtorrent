@@ -4294,7 +4294,7 @@ namespace libtorrent
 			policy::const_iterator i = m_policy.begin_peer();
 			policy::const_iterator prev = i++;
 			policy::const_iterator end(m_policy.end_peer());
-			policy::peer_ptr_compare cmp;
+			policy::peer_address_compare cmp;
 			for (; i != end; ++i, ++prev)
 			{
 				TORRENT_ASSERT(!cmp(*i, *prev));
