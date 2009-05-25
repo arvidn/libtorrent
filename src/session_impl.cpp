@@ -141,16 +141,22 @@ namespace detail
 		if (user.empty()) return std::string();
 		return user + ":" + passwd;
 	}
-	
-
 }
+
 namespace aux {
+
+	// used to cache the current time
+	// every 100 ms. This is cheaper
+	// than a system call and can be
+	// used where more accurate time
+	// is not necessary
+	ptime g_current_time = time_now_hires();
 
 	struct seed_random_generator
 	{
 		seed_random_generator()
 		{
-			std::srand(total_microseconds(time_now() - min_time()));
+			std::srand(total_microseconds(time_now_hires() - min_time()));
 		}
 	};
 
@@ -199,7 +205,7 @@ namespace aux {
 		, m_disconnect_time_scaler(90)
 		, m_auto_scrape_time_scaler(180)
 		, m_incoming_connection(false)
-		, m_created(time_now())
+		, m_created(time_now_hires())
 		, m_last_tick(m_created)
 		, m_last_second_tick(m_created)
 		, m_last_choke(m_created)
@@ -1146,6 +1152,8 @@ namespace aux {
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 
+		ptime now = time_now_hires();
+		aux::g_current_time = now;
 // too expensive
 //		INVARIANT_CHECK;
 
@@ -1159,8 +1167,6 @@ namespace aux {
 			::abort();
 			return;
 		}
-
-		ptime now = time_now();
 
 		error_code ec;
 		m_timer.expires_at(now + milliseconds(100), ec);

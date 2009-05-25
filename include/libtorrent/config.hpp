@@ -104,12 +104,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_MLOCK 1
 #define TORRENT_USE_READV 1
 #define TORRENT_USE_WRITEV 1
-
-#ifdef TORRENT_DEBUG
 #define TORRENT_USE_IOSTREAM 1
-#else
-#define TORRENT_USE_IOSTREAM 0
-#endif
 
 // should wpath or path be used?
 #if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \
@@ -144,6 +139,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if !defined(TORRENT_WRITE_HANDLER_MAX_SIZE)
 # define TORRENT_WRITE_HANDLER_MAX_SIZE 256
+#endif
+
+// determine what timer implementation we can use
+
+#if defined(__MACH__)
+#define TORRENT_USE_ABSOLUTE_TIME 1
+#elif defined(_WIN32)
+#define TORRENT_USE_QUERY_PERFORMANCE_TIMER 1
+#elif defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0
+#define TORRENT_USE_CLOCK_GETTIME 1
+#else
+#define TORRENT_USE_BOOST_DATE_TIME 1
 #endif
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED

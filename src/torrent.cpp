@@ -4575,7 +4575,7 @@ namespace libtorrent
 
 		int ret = 0;
 
-		ptime now(time_now());
+		ptime now = time_now();
 
 		int seed_time = total_seconds(m_seeding_time);
 		int download_time = total_seconds(m_active_time) - seed_time;
