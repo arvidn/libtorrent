@@ -840,13 +840,6 @@ namespace libtorrent
 			|| m_state == torrent_status::checking_resume_data)
 			return;
 
-		if ((is_paused() && !m_auto_managed))
-		{
-			// set the queued for checking state, so that it's
-			// checked as soon as it's resumed or made auto managed
-			set_state(torrent_status::queued_for_checking);
-			return;
-		}
 		clear_error();
 
 		disconnect_all();
