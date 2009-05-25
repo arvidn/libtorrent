@@ -11,7 +11,7 @@ if len(sys.argv) < 2:
 	print "usage: parse_disk_log.py logfile [seconds]"
 	sys.exit(1)
 
-keys = ['write', 'read', 'hash', 'move', 'release', 'idle', 'delete', 'check_fastresume', 'check_files', 'clear-cache', 'abort_thread', 'abort_torrent', 'save_resume_data', 'rename_file', 'flushing']
+keys = ['write', 'read', 'hash', 'move', 'release', 'idle', 'delete', 'check_fastresume', 'check_files', 'clear-cache', 'abort_thread', 'abort_torrent', 'save_resume_data', 'rename_file', 'flushing', 'update_settings']
 throughput_keys = ['write', 'read']
 
 # logfile format:
