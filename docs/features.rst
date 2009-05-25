@@ -254,6 +254,11 @@ which lets peers verify every block of data received from peers, immediately. Th
 gives a minimum turnaround time and completely removes the problem of identifying malicious
 peers.
 
+.. image:: merkle_tree.png
+
+The root hash is built by hashing all the piece hashes pair-wise, until they all collapse
+down to the root.
+
 .. image:: storage.png
 	:align: right
 
