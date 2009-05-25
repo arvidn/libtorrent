@@ -2873,8 +2873,8 @@ namespace libtorrent
 		{
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
-				char msg[200];
-				snprintf(msg, 200, "HTTP seed hostname lookup failed: %s", e.message().c_str());
+				char msg[400];
+				snprintf(msg, sizeof(msg), "HTTP seed hostname lookup failed: %s", e.message().c_str());
 				m_ses.m_alerts.post_alert(
 					url_seed_alert(get_handle(), web.url, msg));
 			}
@@ -2882,9 +2882,8 @@ namespace libtorrent
 			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << web.url << "\n";
 #endif
 
-			// the name lookup failed for the http host. Don't try
-			// this host again
-			m_web_seeds.erase(web);
+			// unavailable, retry in 30 minutes
+			retry_web_seed(web.url, web.type, 60 * 30);
 			return;
 		}
 
