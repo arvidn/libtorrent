@@ -318,6 +318,11 @@ namespace
 {
 	void check_files_fill_array(int ret, disk_io_job const& j, bool* array, bool* done)
 	{
+		std::cerr << "check_files_fill_array ret: " << ret
+			<< " piece: " << j.piece
+			<< " str: " << j.str
+			<< std::endl;
+
 		if (j.offset >= 0) array[j.offset] = true;
 		if (ret != -1)
 		{
