@@ -43,9 +43,9 @@ docs/pump.png \
 docs/bubba.png \
 docs/firetorrent.png \
 docs/read_disk_buffers.png \
-docs/read_disk_buffers.gaffle \
+docs/read_disk_buffers.graffle \
 docs/write_disk_buffers.png \
-docs/write_disk_buffers.gaffle \
+docs/write_disk_buffers.graffle \
 docs/storage.png \
 docs/disk_buffer.png \
 docs/disk_buffer_before_optimization.png \
