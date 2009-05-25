@@ -708,7 +708,7 @@ namespace libtorrent
 		{
 			iter = std::lower_bound(
 				m_peers.begin(), m_peers.end()
-			  , c.remote().address(), peer_address_compare()
+				, c.remote().address(), peer_address_compare()
 			);
 
 			if (iter != m_peers.end() && (*iter)->address() == c.remote().address()) found = true;
@@ -942,7 +942,7 @@ namespace libtorrent
 		{
 			iter = std::lower_bound(
 				m_peers.begin(), m_peers.end()
-			  , remote.address(), peer_address_compare()
+				, remote.address(), peer_address_compare()
 			);
 
 			if (iter != m_peers.end() && (*iter)->address() == remote.address()) found = true;
@@ -963,7 +963,7 @@ namespace libtorrent
 				// update the iterator to make it valid again
 				iter = std::lower_bound(
 					m_peers.begin(), m_peers.end()
-				  , remote.address(), peer_address_compare()
+					, remote.address(), peer_address_compare()
 				);
 			}
 

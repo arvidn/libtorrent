@@ -289,6 +289,12 @@ namespace libtorrent
 			{
 				return lhs < rhs->address();
 			}
+
+			bool operator()(
+				peer const* lhs, peer const* rhs) const
+			{
+				return lhs->address() < rhs->address();
+			}
 		};
 
 		typedef std::deque<peer*> peers_t;
