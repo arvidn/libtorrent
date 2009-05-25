@@ -3086,7 +3086,7 @@ namespace libtorrent
 
 	void peer_connection::second_tick(float tick_interval)
 	{
-		ptime now(time_now());
+		ptime now = time_now();
 		boost::intrusive_ptr<peer_connection> me(self());
 
 		// the invariant check must be run before me is destructed

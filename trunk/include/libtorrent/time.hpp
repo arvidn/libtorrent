@@ -55,8 +55,7 @@ namespace libtorrent
 	std::string log_time();
 }
 
-#if (!defined (__MACH__) && !defined (_WIN32) && (!defined(_POSIX_MONOTONIC_CLOCK) \
-	|| _POSIX_MONOTONIC_CLOCK < 0)) || defined (TORRENT_USE_BOOST_DATE_TIME)
+#if defined TORRENT_USE_BOOST_DATE_TIME
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "libtorrent/assert.hpp"
@@ -65,7 +64,7 @@ namespace libtorrent
 {
 	typedef boost::posix_time::ptime ptime;
 	typedef boost::posix_time::time_duration time_duration;
-	inline ptime time_now()
+	inline ptime time_now_hires()
 	{ return boost::posix_time::microsec_clock::universal_time(); }
 	inline ptime min_time()
 	{ return boost::posix_time::ptime(boost::posix_time::min_date_time); }
@@ -86,7 +85,7 @@ namespace libtorrent
 
 }
 
-#else
+#else // TORRENT_USE_BOOST_DATE_TIME
 
 #if BOOST_VERSION < 103500
 #include <asio/time_traits.hpp>
@@ -158,7 +157,7 @@ namespace libtorrent
 	inline ptime operator-(ptime lhs, time_duration rhs)
 	{ return ptime(lhs.time - rhs.diff); }
 
-	ptime time_now();
+	ptime time_now_hires();
 	inline ptime min_time() { return ptime(0); }
 	inline ptime max_time() { return ptime((std::numeric_limits<boost::uint64_t>::max)()); }
 	int total_seconds(time_duration td);
@@ -178,7 +177,7 @@ namespace asio
 		typedef libtorrent::ptime time_type;
 		typedef libtorrent::time_duration duration_type;
 		static time_type now()
-		{ return time_type(libtorrent::time_now()); }
+		{ return time_type(libtorrent::time_now_hires()); }
 		static time_type add(time_type t, duration_type d)
 		{ return time_type(t.time + d.diff);}
 		static duration_type subtract(time_type t1, time_type t2)
@@ -194,7 +193,7 @@ namespace asio
 }
 #endif
 
-#if defined(__MACH__)
+#if defined TORRENT_USE_ABSOLUTE_TIME
 
 #include <mach/mach_time.h>
 #include <boost/cstdint.hpp>
@@ -217,7 +216,7 @@ namespace libtorrent
 		return td.diff;
 	}
 
-	inline ptime time_now()
+	inline ptime time_now_hires()
 	{
 		static mach_timebase_info_data_t timebase_info = {0,0};
 		if (timebase_info.denom == 0)
@@ -251,7 +250,7 @@ namespace libtorrent
 	}
 
 }
-#elif defined(_WIN32)
+#elif defined TORRENT_USE_QUERY_PERFORMANCE_TIMER
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -307,7 +306,7 @@ namespace libtorrent
 		return aux::performance_counter_to_microseconds(td.diff);
 	}
 
-	inline ptime time_now()
+	inline ptime time_now_hires()
 	{
 		LARGE_INTEGER now;
 		QueryPerformanceCounter(&now);
@@ -341,7 +340,7 @@ namespace libtorrent
 
 }
 
-#elif defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0
+#elif defined TORRENT_USE_CLOCK_GETTIME
 
 #include <time.h>
 #include "libtorrent/assert.hpp"
@@ -361,7 +360,7 @@ namespace libtorrent
 		return td.diff;
 	}
 
-	inline ptime time_now()
+	inline ptime time_now_hires()
 	{
 		timespec ts;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -391,9 +390,19 @@ namespace libtorrent
 
 }
 
-#endif
+#endif // TORRENT_USE_CLOCK_GETTIME
 
-#endif
+#endif // TORRENT_USE_BOOST_DATE_TIME
 
-#endif
+namespace libtorrent
+{
+	namespace aux
+	{
+		extern ptime g_current_time;
+	}
+
+	inline ptime const& time_now() { return aux::g_current_time; }
+}
+
+#endif // TORRENT_TIME_HPP_INCLUDED
 
