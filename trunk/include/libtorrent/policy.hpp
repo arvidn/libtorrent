@@ -276,10 +276,19 @@ namespace libtorrent
 
 		int num_peers() const { return m_peers.size(); }
 
-		struct peer_ptr_compare
+		struct peer_address_compare
 		{
-			bool operator()(peer const* lhs, peer const* rhs) const
-			{ return lhs->address() < rhs->address(); }
+			bool operator()(
+				peer const* lhs, libtorrent::address const& rhs) const
+			{
+				return lhs->address() < rhs;
+			}
+
+			bool operator()(
+				libtorrent::address const& lhs, peer const* rhs) const
+			{
+				return lhs < rhs->address();
+			}
 		};
 
 		typedef std::deque<peer*> peers_t;
@@ -293,36 +302,14 @@ namespace libtorrent
 
 		std::pair<iterator, iterator> find_peers(address const& a)
 		{
-			peer_ptr_compare cmp;
-#if TORRENT_USE_IPV6
-			if (a.is_v6())
-			{
-				ipv6_peer tmp(a);
-				return std::equal_range(m_peers.begin(), m_peers.end(), &tmp, cmp);
-			}
-			else
-#endif
-			{
-				ipv4_peer tmp(a);
-				return std::equal_range(m_peers.begin(), m_peers.end(), &tmp, cmp);
-			}
+			return std::equal_range(
+				m_peers.begin(), m_peers.end(), a, peer_address_compare());
 		}
 
 		std::pair<const_iterator, const_iterator> find_peers(address const& a) const
 		{
-			peer_ptr_compare cmp;
-#if TORRENT_USE_IPV6
-			if (a.is_v6())
-			{
-				ipv6_peer tmp(a);
-				return std::equal_range(m_peers.begin(), m_peers.end(), &tmp, cmp);
-			}
-			else
-#endif
-			{
-				ipv4_peer tmp(a);
-				return std::equal_range(m_peers.begin(), m_peers.end(), &tmp, cmp);
-			}
+			return std::equal_range(
+				m_peers.begin(), m_peers.end(), a, peer_address_compare());
 		}
 
 		bool connect_one_peer(int session_time);
