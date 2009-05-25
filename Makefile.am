@@ -46,8 +46,12 @@ docs/read_disk_buffers.png \
 docs/read_disk_buffers.graffle \
 docs/write_disk_buffers.png \
 docs/write_disk_buffers.graffle \
+docs/disk_io.png \
+docs/disk_access.png \
 docs/storage.png \
+docs/storage.graffle \
 docs/disk_buffer.png \
+docs/disk_buffer_sample.png \
 docs/disk_buffer_before_optimization.png \
 docs/unicode_support.png docs/client_test.png docs/style.css Jamfile project-root.jam \
 libtorrent-rasterbar.pc \
