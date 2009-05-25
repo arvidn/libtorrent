@@ -56,9 +56,11 @@
 <li><a class="reference internal" href="#network-buffers" id="id9">network buffers</a></li>
 <li><a class="reference internal" href="#piece-picker" id="id10">piece picker</a></li>
 <li><a class="reference internal" href="#merkle-hash-tree-torrents" id="id11">merkle hash tree torrents</a></li>
+<li><a class="reference internal" href="#customizable-file-storage" id="id12">customizable file storage</a></li>
+<li><a class="reference internal" href="#easy-to-use-api" id="id13">easy to use API</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#portability" id="id12">portability</a></li>
+<li><a class="reference internal" href="#portability" id="id14">portability</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -254,6 +256,65 @@ piece size. With merkle torrents, the piece size can be the minimum block size (
 which lets peers verify every block of data received from peers, immediately. This
 gives a minimum turnaround time and completely removes the problem of identifying malicious
 peers.</p>
+<img alt="merkle_tree.png" src="merkle_tree.png" />
+<p>The root hash is built by hashing all the piece hashes pair-wise, until they all collapse
+down to the root.</p>
+<img align="right" alt="storage.png" class="align-right" src="storage.png" />
+</div>
+<div class="section" id="customizable-file-storage">
+<h2>customizable file storage</h2>
+<p>libtorrent's storage implementation is customizable. That means a special purpose bittorrent
+client can replace the default way to store files on disk.</p>
+<p>When implementing a bittorrent cache, it doesn't matter how the data is stored on disk, as
+long as it can be retrieved and seeded. In that case a new storage class can be implemented
+(inheriting from the <tt class="docutils literal"><span class="pre">storage_interface</span></tt> class) that avoids the unnecessary step of mapping
+slots to files and offsets. The storage can ignore the file boundaries and just store the
+entire torrent in a single file (which will end up being all the files concatenated). The main
+advantage of this, other than a slight cpu performance gain, is that all file operations would
+be page (and sector) aligned. This enables efficient unbuffered I/O, and can potentially
+lead to more efficient read caching (using the built in disk cache rather than relying on the
+operating system's disk cache).</p>
+<p>The storage interface supports operating systems where you can ask for sparse regions
+(such as Windows and Solaris). The advantage of this is that when checking files, the regions
+that are known to be sparse can be skipped, which can reduce the time to check a torrent
+significantly.</p>
+</div>
+<div class="section" id="easy-to-use-api">
+<h2>easy to use API</h2>
+<p>One of the design goals of the libtorrent API is to make common operations simple, but still
+have it possible to do complicated and advanced operations. This is best illustrated by example
+code to implement a simple bittorrent client:</p>
+<pre class="literal-block">
+#include &lt;iostream&gt;
+#include &quot;libtorrent/session.hpp&quot;
+
+// usage a.out [torrent-file]
+int main(int argc, char* argv[]) try
+{
+        using namespace libtorrent;
+
+        session s;
+        s.listen_on(std::make_pair(6881, 6889));
+        add_torrent_params p;
+        p.save_path = &quot;./&quot;;
+        p.ti = new torrent_info(argv[1]);
+        s.add_torrent(p);
+
+        // wait for the user to end
+        char a;
+        std::cin.unsetf(std::ios_base::skipws);
+        std::cin &gt;&gt; a;
+        return 0;
+}
+catch (std::exception&amp; e)
+{
+        std::cerr &lt;&lt; ec.what() &lt;&lt; std::endl;
+        return 1;
+}
+</pre>
+<p>This client doesn't give the user any status information or progress about the torrent, but
+it is fully functional.</p>
+<p>libtorrent also comes with python bindings for easy access for python developers.</p>
 </div>
 </div>
 <div class="section" id="portability">
