@@ -17,10 +17,15 @@ fields = {}
 maximum = {}
 out = open('disk_buffer_log.dat', 'w+')
 
+field_sum = {}
+field_num_samples = {}
+
 for c in key_order:
 	keys.append(c)
 	fields[c] = 0
 	maximum[c] = 0
+	field_sum[c] = 0
+	field_num_samples[c] = 0
 
 last_t = 0
 for l in lines:
@@ -44,6 +49,10 @@ for l in lines:
 		maximum[c] = 0
 
 	fields[c] = n
+
+	field_sum[c] += n
+	field_num_samples[c] += 1
+
 	if n > maximum[c]: maximum[c] = n
 
 	if last_t != t:
@@ -51,7 +60,7 @@ for l in lines:
 		maximum = fields
 
 for i in keys:
-	print i,
+	print '%s: avg: %f' % (i, float(field_sum[i]) / float(field_num_samples[i]))
 print
 	
 out.close()
