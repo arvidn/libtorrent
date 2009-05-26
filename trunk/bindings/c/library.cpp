@@ -282,7 +282,7 @@ TORRENT_EXPORT int session_add_torrent(void* ses, int tag, ...)
 	return i;
 }
 
-void session_remove_torrent(void* ses, int tor, int flags)
+TORRENT_EXPORT void session_remove_torrent(void* ses, int tor, int flags)
 {
 	using namespace libtorrent;
 	torrent_handle h = get_handle(tor);
@@ -292,7 +292,23 @@ void session_remove_torrent(void* ses, int tor, int flags)
 	s->remove_torrent(h, flags);	
 }
 
-int session_set_settings(void* ses, int tag, ...)
+TORRENT_EXPORT int session_pop_alert(void* ses, char* dest, int len, int* category)
+{
+	using namespace libtorrent;
+
+	session* s = (session*)ses;
+
+	std::auto_ptr<alert> a = s->pop_alert();
+	if (!a.get()) return -1;
+
+	if (category) *category = a->category();
+	strncpy(dest, a->message().c_str(), len - 1);
+	dest[len - 1] = 0;
+
+	return 0; // for now
+}
+
+TORRENT_EXPORT int session_set_settings(void* ses, int tag, ...)
 {
 	using namespace libtorrent;
 
@@ -344,6 +360,10 @@ int session_set_settings(void* ses, int tag, ...)
 				copy_proxy_setting(&ps, va_arg(lp, struct proxy_setting const*));
 				s->set_tracker_proxy(ps);
 			}
+			case SET_ALERT_MASK:
+			{
+				s->set_alert_mask(va_arg(lp, int));
+			}
 #ifndef TORRENT_DISABLE_DHT
 			case SET_DHT_PROXY:
 			{
@@ -374,7 +394,7 @@ int session_set_settings(void* ses, int tag, ...)
 	return 0;
 }
 
-int session_get_setting(void* ses, int tag, void* value, int* value_size)
+TORRENT_EXPORT int session_get_setting(void* ses, int tag, void* value, int* value_size)
 {
 	using namespace libtorrent;
 	session* s = (session*)ses;
@@ -400,7 +420,7 @@ int session_get_setting(void* ses, int tag, void* value, int* value_size)
 	}
 }
 
-int session_get_status(void* sesptr, struct session_status* s, int struct_size)
+TORRENT_EXPORT int session_get_status(void* sesptr, struct session_status* s, int struct_size)
 {
 	libtorrent::session* ses = (libtorrent::session*)sesptr;
 
@@ -457,7 +477,7 @@ int session_get_status(void* sesptr, struct session_status* s, int struct_size)
 	return 0;
 }
 
-int torrent_get_status(int tor, torrent_status* s, int struct_size)
+TORRENT_EXPORT int torrent_get_status(int tor, torrent_status* s, int struct_size)
 {
 	libtorrent::torrent_handle h = get_handle(tor);
 	if (!h.is_valid()) return -1;
@@ -515,7 +535,7 @@ int torrent_get_status(int tor, torrent_status* s, int struct_size)
 	return 0;
 }
 
-int torrent_set_settings(int tor, int tag, ...)
+TORRENT_EXPORT int torrent_set_settings(int tor, int tag, ...)
 {
 	using namespace libtorrent;
 	torrent_handle h = get_handle(tor);
@@ -557,7 +577,7 @@ int torrent_set_settings(int tor, int tag, ...)
 	return 0;
 }
 
-int torrent_get_setting(int tor, int tag, void* value, int* value_size)
+TORRENT_EXPORT int torrent_get_setting(int tor, int tag, void* value, int* value_size)
 {
 	using namespace libtorrent;
 	torrent_handle h = get_handle(tor);

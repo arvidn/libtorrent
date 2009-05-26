@@ -55,6 +55,7 @@ int main(int argc, char* argv[])
 	void* ses = session_create(
 		SES_LISTENPORT, 6881,
 		SES_LISTENPORT_END, 6889,
+		SES_ALERT_MASK, ~(cat_progress | cat_port_mapping | cat_debug | cat_performance_warning | cat_peer),
 		TAG_END);
 
 	int t = session_add_torrent(ses,
@@ -96,6 +97,12 @@ int main(int argc, char* argv[])
 			, state[st.state]
 			, message);
 
+
+		char msg[400];
+		while (session_pop_alert(ses, msg, sizeof(msg), 0) >= 0)
+		{
+			printf("%s\n", msg);
+		}
 
 		if (strlen(st.error) > 0)
 		{
