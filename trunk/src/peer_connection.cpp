@@ -2616,6 +2616,7 @@ namespace libtorrent
 			if (t->picker().is_finished(block) || t->picker().is_downloaded(block))
 				continue;
 
+			TORRENT_ASSERT(verify_piece(t->to_req(block)));
 			m_download_queue.push_back(block);
 			m_outstanding_bytes += block_size;
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
@@ -2645,6 +2646,7 @@ namespace libtorrent
 						break;
 					block = m_request_queue.front();
 					m_request_queue.erase(m_request_queue.begin());
+					TORRENT_ASSERT(verify_piece(t->to_req(block)));
 					m_download_queue.push_back(block);
 					if (m_queued_time_critical) --m_queued_time_critical;
 
@@ -4342,13 +4344,16 @@ namespace libtorrent
 			int outstanding_bytes = 0;
 			bool in_download_queue = false;
 			int block_size = t->block_size();
-			piece_block last_block(ti.num_pieces()-1, (ti.total_size() % ti.piece_length())
-					/ block_size);
+			piece_block last_block(ti.num_pieces()-1
+				, (ti.total_size() & (ti.piece_length()-1)) / block_size);
 			int last_block_size = t->torrent_file().total_size() & (block_size-1);
 			if (last_block_size == 0) last_block_size = block_size;
 			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
 				, end(m_download_queue.end()); i != end; ++i)
 			{
+				TORRENT_ASSERT(i->block.piece_index <= last_block.piece_index);
+				TORRENT_ASSERT(i->block.piece_index < last_block.piece_index
+					|| i->block.block_index <= last_block.block_index);
 				if (p && i->block == piece_block(p->piece_index, p->block_index))
 				{
 					in_download_queue = true;
