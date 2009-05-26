@@ -85,6 +85,7 @@ enum tags
 	SET_TRACKER_PROXY, // proxy_setting const*, session_only
 	SET_DHT_PROXY, // proxy_setting const*, session_only
 	SET_PROXY, // proxy_setting const*, session_only
+	SET_ALERT_MASK, // int, session_only
 };
 
 struct proxy_setting
@@ -96,6 +97,23 @@ struct proxy_setting
 	char password[256];
 
 	int type;
+};
+
+enum category_t
+{
+	cat_error = 0x1,
+	cat_peer = 0x2,
+	cat_port_mapping = 0x4,
+	cat_storage = 0x8,
+	cat_tracker = 0x10,
+	cat_debug = 0x20,
+	cat_status = 0x40,
+	cat_progress = 0x80,
+	cat_ip_block = 0x100,
+	cat_performance_warning = 0x200,
+	cat_dht = 0x400,
+
+	cat_all_categories = 0xffffffff
 };
 
 enum proxy_type_t
@@ -255,6 +273,10 @@ void session_close(void* ses);
 // use TOR_* tags in tag list
 int session_add_torrent(void* ses, int first_tag, ...);
 void session_remove_torrent(void* ses, int tor, int flags);
+
+// return < 0 if there are no alerts. Otherwise returns the
+// type of alert that was returned
+int session_pop_alert(void* ses, char* dest, int len, int* category);
 
 int session_get_status(void* ses, struct session_status* s, int struct_size);
 
