@@ -3039,7 +3039,7 @@ ret:
 		}
 	}
 
-#ifdef TORRENT_STORAGE_DEBUG && TORRENT_USE_IOSTREAM
+#if defined(TORRENT_STORAGE_DEBUG) && TORRENT_USE_IOSTREAM
 	void piece_manager::debug_log() const
 	{
 		std::stringstream s;
