@@ -56,12 +56,19 @@
 </ul>
 </li>
 <li><a class="reference internal" href="#play-nice-with-the-disk" id="id10">play nice with the disk</a></li>
-<li><a class="reference internal" href="#benchmarking" id="id11">benchmarking</a><ul>
-<li><a class="reference internal" href="#disk-cache-stats" id="id12">disk cache stats</a></li>
-<li><a class="reference internal" href="#disk-access-stats" id="id13">disk access stats</a></li>
-<li><a class="reference internal" href="#session-stats" id="id14">session stats</a></li>
+<li><a class="reference internal" href="#high-performance-seeding" id="id11">high performance seeding</a><ul>
+<li><a class="reference internal" href="#file-pool" id="id12">file pool</a></li>
+<li><a class="reference internal" href="#disk-cache" id="id13">disk cache</a></li>
+<li><a class="reference internal" href="#peers" id="id14">peers</a></li>
+<li><a class="reference internal" href="#torrent-limits" id="id15">torrent limits</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#benchmarking" id="id16">benchmarking</a><ul>
+<li><a class="reference internal" href="#disk-metrics" id="id17">disk metrics</a></li>
+<li><a class="reference internal" href="#session-stats" id="id18">session stats</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#contributions" id="id19">contributions</a></li>
 </ul>
 </div>
 <div class="section" id="tuning-libtorrent">
@@ -86,11 +93,11 @@ and benchmark your settings to determine if it's worth the trade-off.</p>
 <p>The typical buffer usage of libtorrent, for a single download, with the cache
 size set to 256 blocks (256 * 16 kiB = 4 MiB) is:</p>
 <pre class="literal-block">
-read cache:      149.5 (2392 kiB)
-write cache:     89.5  (1432 kiB)
-receive buffers: 6.5   (104 kiB)
-send buffers:    4     (64 kiB)
-hash temp:       0.5   (8 kiB)
+read cache:      128.6 (2058 kiB)
+write cache:     103.5 (1656 kiB)
+receive buffers: 7.3   (117 kiB)
+send buffers:    4.8   (77 kiB)
+hash temp:       0.001 (19 Bytes)
 </pre>
 <p>The receive buffers is proportional to the number of connections we make, and is
 limited by the total number of connections in the session (default is 200).</p>
@@ -102,7 +109,7 @@ speed or memory usage. In this test run it was optimized for memory usage.</p>
 <div class="section" id="disable-disk-cache">
 <h2>disable disk cache</h2>
 <p>The bulk of the memory libtorrent will use is used for the disk cache. To save
-the absolute most amount of memory, you can disable the the cache by setting
+the absolute most amount of memory, you can disable the cache by setting
 <tt class="docutils literal"><span class="pre">session_settings::cache_size</span></tt> to 0. You might want to consider using the cache
 but just disable caching read operations. You do this by settings
 <tt class="docutils literal"><span class="pre">session_settings::use_read_cache</span></tt> to false. This is the main factor in how much
@@ -112,7 +119,7 @@ informed trade-off.</p>
 </div>
 <div class="section" id="remove-torrents">
 <h2>remove torrents</h2>
-<p>Torrents that have been added to libtorrent will inevitably use up memory, event
+<p>Torrents that have been added to libtorrent will inevitably use up memory, even
 when it's paused. A paused torrent will not use any peer connection objects or
 any send or receive buffers though. Any added torrent holds the entire .torrent
 file in memory, it also remembers the entire list of peers that it's heard about
@@ -130,7 +137,7 @@ in the greatest need of seeding, and libtorrent will prioritize to seed those.</
 <h2>socket buffer sizes</h2>
 <p>You can make libtorrent explicitly set the kernel buffer sizes of all its peer
 sockets. If you set this to a low number, you may see reduced throughput, especially
-for high latency connections. It is however an oportunity to save memory per
+for high latency connections. It is however an opportunity to save memory per
 connection, and might be worth considering if you have a very large number of
 peer connections. This memory will not be visible in your process, this sets
 the amount of kernel memory is used for your sockets.</p>
@@ -213,17 +220,263 @@ than zero. This number is the number of milliseconds to sleep between each read 
 but the number will be multiplied by the number of blocks that were read, to maintain the
 same semantics.</p>
 </div>
+<div class="section" id="high-performance-seeding">
+<h1>high performance seeding</h1>
+<p>In the case of a high volume seed, there are two main concerns. Performance and scalability.
+This transelates into high send rates, and low memory and CPU usage per peer connection.</p>
+<div class="section" id="file-pool">
+<h2>file pool</h2>
+<p>libtorrent keeps an LRU file cache. Each file that is opened, is stuck in the cache. The main
+purpose of this is because of anti-virus software that hooks och file-open and file close to
+scan the file. Anti-virus software that does that will significantly increase the cost of
+opening and closing files. However, for a high performance seed, the file open/close might
+be so frequent that it becomes a significant cost. It might therefore be a good idea to allow
+a large file descriptor cache. Adjust this though <tt class="docutils literal"><span class="pre">session_settings::file_pool_size</span></tt>.</p>
+<p>Don't forget to set a high rlimit for file descriptors in yor process as well. This limit
+must be high enough to keep all connections and files open.</p>
+</div>
+<div class="section" id="disk-cache">
+<h2>disk cache</h2>
+<p>You typically want to set the cache size to as high as possible. The
+<tt class="docutils literal"><span class="pre">session_settings::cache_size</span></tt> is specified in 16 kiB blocks. Since you're seeding,
+the cache would be useless unless you also set <tt class="docutils literal"><span class="pre">session_settings::use_read_cache</span></tt>
+to true.</p>
+<p>In order to increase the possibility of read cache hits, set the
+<tt class="docutils literal"><span class="pre">session_settings::cache_expiry</span></tt> to a large number. This won't degrade anything as
+long as the client is only seeding, and not downloading any torrents.</p>
+</div>
+<div class="section" id="peers">
+<h2>peers</h2>
+<p>First of all, in order to allow many connections, set the global connection limit
+high, <tt class="docutils literal"><span class="pre">session::set_max_connections()</span></tt>. Also set the upload rate limit to
+infinite, <tt class="docutils literal"><span class="pre">session::set_upload_rate_limit()</span></tt>, passing 0 means infinite.</p>
+<p>When dealing with a large number of peers, it might be a good idea to have slightly
+stricter timeouts, to get rid of lingering connections as soon as possible.</p>
+<p>There are a couple of relevant settings: <tt class="docutils literal"><span class="pre">session_settings::request_timeout</span></tt>,
+<tt class="docutils literal"><span class="pre">session_settings::peer_timeout</span></tt> and <tt class="docutils literal"><span class="pre">session_settings::inactivity_timeout</span></tt>.</p>
+<p>For seeds that are critical for a delivery system, you most likely want to allow
+multiple connections from the same IP. That way two people from behind the same NAT
+can use the service simultaneously. This is controlled by
+<tt class="docutils literal"><span class="pre">session_settings::allow_multiple_connections_per_ip</span></tt>.</p>
+<p>In order to always unchoke peers, turn off automatic unchoke
+<tt class="docutils literal"><span class="pre">session_settings::auto_upload_slots</span></tt> and set the number of upload slots to a large
+number via <tt class="docutils literal"><span class="pre">session::set_max_uploads()</span></tt>.</p>
+</div>
+<div class="section" id="torrent-limits">
+<h2>torrent limits</h2>
+<p>To seed thousands of torrents, you need to increase the <tt class="docutils literal"><span class="pre">session_settings::active_limit</span></tt>
+and <tt class="docutils literal"><span class="pre">session_settings::active_seeds</span></tt>.</p>
+</div>
+</div>
 <div class="section" id="benchmarking">
 <h1>benchmarking</h1>
-<div class="section" id="disk-cache-stats">
-<h2>disk cache stats</h2>
+<p>There are a bunch of built-in instrumentation of libtorrent that can be used to get an insight
+into what it's doing and how well it performs. This instrumentation is enabled by defining
+preprocessor symbols when building.</p>
+<p>There are also a number of scripts that parses the log files and generates graphs (requires
+gnuplot and python).</p>
+<div class="section" id="disk-metrics">
+<h2>disk metrics</h2>
+<p>To enable disk I/O instrumentation, define <tt class="docutils literal"><span class="pre">TORRENT_DISK_STATS</span></tt> when building. When built
+with this configuration libtorrent will create three log files, measuring various aspects of
+the disk I/O. The following table is an overview of these files and what they measure.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="30%" />
+<col width="70%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">filename</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">disk_io_thread.log</span></tt></td>
+<td>This is a log of which operation the disk I/O thread is
+engaged in, with timestamps. This tells you what the thread
+is spending its time doing.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">disk_buffers.log</span></tt></td>
+<td>This log keeps track of what the buffers allocated from the
+disk buffer pool are used for. There are 5 categories.
+receive buffer, send buffer, write cache, read cache and
+temporary hash storage. This is key when optimizing memory
+usage.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">disk_access.log</span></tt></td>
+<td>This is a low level log of read and write operations, with
+timestamps and file offsets. The file offsets are byte
+offsets in the torrent (not in any particular file, in the
+case of a multi-file torrent). This can be used as an
+estimate of the physical drive location. The purpose of
+this log is to identify the amount of seeking the drive has
+to do.</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="disk-io-thread-log">
+<h3>disk_io_thread.log</h3>
+<p>The structure of this log is simple. For each line, there are two columns, a timestamp and
+the operation that was started. There is a special operation called <tt class="docutils literal"><span class="pre">idle</span></tt> which means
+it looped back to the top and started waiting for new jobs. If there are more jobs to
+handle immediately, the <tt class="docutils literal"><span class="pre">idle</span></tt> state is still there, but the timestamp is the same as the
+next job that is handled.</p>
+<p>Some operations have a 3:rd column with an optional parameter. <tt class="docutils literal"><span class="pre">read</span></tt> and <tt class="docutils literal"><span class="pre">write</span></tt> tells
+you the number of bytes that were requested to be read or written. <tt class="docutils literal"><span class="pre">flushing</span></tt> tells you
+the number of bytes that were flushed from the disk cache.</p>
+<p>This is an example excerpt from a log:</p>
+<pre class="literal-block">
+3702 idle
+3706 check_fastresume
+3707 idle
+4708 save_resume_data
+4708 idle
+8230 read 16384
+8255 idle
+8431 read 16384
+</pre>
+<p>The script to parse this log and generate a graph is called <tt class="docutils literal"><span class="pre">parse_disk_log.py</span></tt>. It takes
+the log file as the first command line argument, and produces a file: <tt class="docutils literal"><span class="pre">disk_io.png</span></tt>.
+The time stamp is in milliseconds since start.</p>
+<p>You can pass in a second, optional, argument to specify the window size it will average
+the time measurements over. The default is 5 seconds. For long test runs, it might be interesting
+to increase that number. It is specified as a number of seconds.</p>
+<img alt="disk_io.png" src="disk_io.png" />
+<p>This is an example graph generated by the parse script.</p>
 </div>
-<div class="section" id="disk-access-stats">
-<h2>disk access stats</h2>
+<div class="section" id="disk-buffers-log">
+<h3>disk_buffers.log</h3>
+<p>The disk buffer log tells you where the buffer memory is used. The log format has a time stamp,
+the name of the buffer usage which use-count changed, colon, and the new number of blocks that are
+in use for this particular key. For example:</p>
+<pre class="literal-block">
+23671 write cache: 18
+23671 receive buffer: 3
+24153 receive buffer: 2
+24153 write cache: 19
+24154 receive buffer: 3
+24198 receive buffer: 2
+24198 write cache: 20
+24202 receive buffer: 3
+24305 send buffer: 0
+24305 send buffer: 1
+24909 receive buffer: 2
+24909 write cache: 21
+24910 receive buffer: 3
+</pre>
+<p>The time stamp is in milliseconds since start.</p>
+<p>To generate a graph, use <tt class="docutils literal"><span class="pre">parse_disk_buffer_log.py</span></tt>. It takes the log file as the first
+command line argument. It generates <tt class="docutils literal"><span class="pre">disk_buffer.png</span></tt>.</p>
+<img alt="disk_buffer_sample.png" src="disk_buffer_sample.png" />
+<p>This is an example graph generated by the parse script.</p>
+</div>
+<div class="section" id="disk-access-log">
+<h3>disk_access.log</h3>
+<p>The disc access log has three fields. The timestamp (milliseconds since start), operation
+and offset. The offset is the absolute offset within the torrent (not within a file). This
+log is only useful when you're downloading a single torrent, otherwise the offsets will not
+be unique.</p>
+<p>In order to easily plot this directly in gnuplot, without parsing it, there are two lines
+associated with each read or write operation. The first one is the offset where the operation
+started, and the second one is where the operation ended.</p>
+<p>Example:</p>
+<pre class="literal-block">
+15437 read 301187072
+15437 read_end 301203456
+16651 read 213385216
+16680 read_end 213647360
+25879 write 249036800
+25879 write_end 249298944
+26811 read 325582848
+26943 read_end 325844992
+36736 read 367001600
+36766 read_end 367263744
+</pre>
+<p>The disk access log does not have any good visualization tool yet. There is however a gnuplot
+file, <tt class="docutils literal"><span class="pre">disk_access.gnuplot</span></tt> which assumes <tt class="docutils literal"><span class="pre">disk_access.log</span></tt> is in the current directory.</p>
+<img alt="disk_access.png" src="disk_access.png" />
+<p>The density of the disk seeks tells you how hard the drive has to work.</p>
+</div>
 </div>
 <div class="section" id="session-stats">
 <h2>session stats</h2>
+<p>By defining <tt class="docutils literal"><span class="pre">TORRENT_STATS</span></tt> libtorrent will write a log file called <tt class="docutils literal"><span class="pre">session_stats.log</span></tt> which
+is in a format ready to be passed directly into gnuplot. The parser script <tt class="docutils literal"><span class="pre">parse_session_stats.py</span></tt>
+will however parse out the field names and generate 3 different views of the data. This script
+is easy to modify to generate the particular view you're interested in.</p>
+<p>The first line in the log contains all the field names, separated by colon:</p>
+<pre class="literal-block">
+second:upload rate:download rate:downloading torrents:seeding torrents:peers...
+</pre>
+<p>The rest of the log is one line per second with all the fields' values.</p>
+<p>These are the fields:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="25%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">field name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>second</td>
+<td>the time, in seconds, for this log line</td>
+</tr>
+<tr><td>upload rate</td>
+<td>the number of bytes uploaded in the last second</td>
+</tr>
+<tr><td>download rate</td>
+<td>the number of bytes downloaded in the last second</td>
+</tr>
+<tr><td>downloading torrents</td>
+<td>the number of torrents that are not seeds</td>
+</tr>
+<tr><td>seeding torrents</td>
+<td>the number of torrents that are seed</td>
+</tr>
+<tr><td>peers</td>
+<td>the total number of connected peers</td>
+</tr>
+<tr><td>connecting peers</td>
+<td>the total number of peers attempting to connect (half-open)</td>
+</tr>
+<tr><td>disk block buffers</td>
+<td>the total number of disk buffer blocks that are in use</td>
+</tr>
+<tr><td>unchoked peers</td>
+<td>the total number of unchoked peers</td>
+</tr>
+<tr><td>num list peers</td>
+<td>the total number of known peers, but not necessarily connected</td>
+</tr>
+<tr><td>peer allocations</td>
+<td>the total number of allocations for the peer list pool</td>
+</tr>
+<tr><td>peer storage bytes</td>
+<td>the total number of bytes allocated for the peer list pool</td>
+</tr>
+</tbody>
+</table>
+<p>This is an example of a graph that can be generated from this log:</p>
+<img alt="session_stats_peers.png" src="session_stats_peers.png" />
+<p>It shows statistics about the number of peers and peers states. How at the startup
+there are a lot of half-open connections, which tapers off as the total number of
+peers approaches the limit (50). It also shows how the total peer list slowly but steadily
+grows over time. This list is plotted against the right axis, as it has a different scale
+as the other fields.</p>
 </div>
+</div>
+<div class="section" id="contributions">
+<h1>contributions</h1>
+<p>If you have added instrumentation for some part of libtorrent that is not covered here, or
+if you have improved any of the parser scrips, please consider contributing it back to the
+project.</p>
+<p>If you have run tests and found that some algorithm or default value in libtorrent is
+suboptimal, please contribute that knowledge back as well, to allow us to improve the library.</p>
+<p>If you have additional suggestions on how to tune libtorrent for any specific use case,
+please let us know and we'll update this document.</p>
 </div>
     </div>
     <div id="footer">

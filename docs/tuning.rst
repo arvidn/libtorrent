@@ -20,8 +20,6 @@ servers seeding thousands of torrents. The default settings in libtorrent
 are tuned for an end-user bittorrent client running on a normal desktop
 computer.
 
-One of the main reasons libtorrent is so configurable, is partly because
-
 This document describes techniques to benchmark libtorrent performance
 and how parameters are likely to affect it.
 
