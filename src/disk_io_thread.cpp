@@ -1717,17 +1717,18 @@ namespace libtorrent
 					int piece_size = j.storage->info()->piece_length();
 					for (int processed = 0; processed < 4 * 1024 * 1024; processed += piece_size)
 					{
-						ptime now = time_now();
+						ptime now = time_now_hires();
 						if (now - m_last_file_check < milliseconds(m_settings.file_checks_delay_per_block))
 						{
 							int sleep_time = m_settings.file_checks_delay_per_block
 								* (piece_size / (16 * 1024))
 								- total_milliseconds(now - m_last_file_check);
+							if (sleep_time < 0) sleep_time = 0;
 	
 							boost::thread::sleep(boost::get_system_time()
 								+ boost::posix_time::milliseconds(sleep_time));
 						}
-						m_last_file_check = time_now();
+						m_last_file_check = time_now_hires();
 
 						if (m_waiting_to_shutdown) break;
 
