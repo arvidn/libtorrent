@@ -136,6 +136,7 @@ namespace libtorrent
 			, active_downloads(8)
 			, active_seeds(5)
 			, active_limit(15)
+			, auto_manage_prefer_seeds(false)
 			, dont_count_slow_torrents(true)
 			, auto_manage_interval(30)
 			, share_ratio_limit(2.f)
@@ -439,6 +440,11 @@ namespace libtorrent
 		int active_seeds;
 		int active_limit;
 
+		// prefer seeding torrents when determining which torrents to give 
+		// active slots to, the default is false which gives preference to
+		// downloading torrents
+		bool auto_manage_prefer_seeds;
+		
 		// if this is true, torrents that don't have any significant
 		// transfers are not counted as active when determining which
 		// auto managed torrents to pause and resume
