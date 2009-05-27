@@ -53,6 +53,7 @@ docs/storage.graffle \
 docs/disk_buffer.png \
 docs/disk_buffer_sample.png \
 docs/disk_buffer_before_optimization.png \
+docs/session_stats_peers.png \
 docs/unicode_support.png docs/client_test.png docs/style.css Jamfile project-root.jam \
 libtorrent-rasterbar.pc \
 bindings/README.txt \

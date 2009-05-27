@@ -20,6 +20,8 @@ servers seeding thousands of torrents. The default settings in libtorrent
 are tuned for an end-user bittorrent client running on a normal desktop
 computer.
 
+One of the main reasons libtorrent is so configurable, is partly because
+
 This document describes techniques to benchmark libtorrent performance
 and how parameters are likely to affect it.
 
@@ -189,6 +191,65 @@ The sleeps are not necessarily in between each 16 kiB block (it might be read in
 but the number will be multiplied by the number of blocks that were read, to maintain the
 same semantics.
 
+high performance seeding
+========================
+
+In the case of a high volume seed, there are two main concerns. Performance and scalability.
+This transelates into high send rates, and low memory and CPU usage per peer connection.
+
+file pool
+---------
+
+libtorrent keeps an LRU file cache. Each file that is opened, is stuck in the cache. The main
+purpose of this is because of anti-virus software that hooks och file-open and file close to
+scan the file. Anti-virus software that does that will significantly increase the cost of
+opening and closing files. However, for a high performance seed, the file open/close might
+be so frequent that it becomes a significant cost. It might therefore be a good idea to allow
+a large file descriptor cache. Adjust this though ``session_settings::file_pool_size``.
+
+Don't forget to set a high rlimit for file descriptors in yor process as well. This limit
+must be high enough to keep all connections and files open.
+
+disk cache
+----------
+
+You typically want to set the cache size to as high as possible. The
+``session_settings::cache_size`` is specified in 16 kiB blocks. Since you're seeding,
+the cache would be useless unless you also set ``session_settings::use_read_cache``
+to true.
+
+In order to increase the possibility of read cache hits, set the
+``session_settings::cache_expiry`` to a large number. This won't degrade anything as
+long as the client is only seeding, and not downloading any torrents.
+
+peers
+-----
+
+First of all, in order to allow many connections, set the global connection limit
+high, ``session::set_max_connections()``. Also set the upload rate limit to
+infinite, ``session::set_upload_rate_limit()``, passing 0 means infinite.
+
+When dealing with a large number of peers, it might be a good idea to have slightly
+stricter timeouts, to get rid of lingering connections as soon as possible.
+
+There are a couple of relevant settings: ``session_settings::request_timeout``,
+``session_settings::peer_timeout`` and ``session_settings::inactivity_timeout``.
+
+For seeds that are critical for a delivery system, you most likely want to allow
+multiple connections from the same IP. That way two people from behind the same NAT
+can use the service simultaneously. This is controlled by
+``session_settings::allow_multiple_connections_per_ip``.
+
+In order to always unchoke peers, turn off automatic unchoke
+``session_settings::auto_upload_slots`` and set the number of upload slots to a large
+number via ``session::set_max_uploads()``.
+
+torrent limits
+--------------
+
+To seed thousands of torrents, you need to increase the ``session_settings::active_limit``
+and ``session_settings::active_seeds``.
+
 benchmarking
 ============
 
@@ -332,4 +393,57 @@ The density of the disk seeks tells you how hard the drive has to work.
 
 session stats
 -------------
+
+By defining ``TORRENT_STATS`` libtorrent will write a log file called ``session_stats.log`` which
+is in a format ready to be passed directly into gnuplot. The parser script ``parse_session_stats.py``
+will however parse out the field names and generate 3 different views of the data. This script
+is easy to modify to generate the particular view you're interested in.
+
+The first line in the log contains all the field names, separated by colon::
+
+	second:upload rate:download rate:downloading torrents:seeding torrents:peers...
+
+The rest of the log is one line per second with all the fields' values.
+
+These are the fields:
+
+===================== ===============================================================
+field name            description
+===================== ===============================================================
+second                the time, in seconds, for this log line
+upload rate           the number of bytes uploaded in the last second
+download rate         the number of bytes downloaded in the last second
+downloading torrents  the number of torrents that are not seeds
+seeding torrents      the number of torrents that are seed
+peers                 the total number of connected peers
+connecting peers      the total number of peers attempting to connect (half-open)
+disk block buffers    the total number of disk buffer blocks that are in use
+unchoked peers        the total number of unchoked peers
+num list peers        the total number of known peers, but not necessarily connected
+peer allocations      the total number of allocations for the peer list pool
+peer storage bytes    the total number of bytes allocated for the peer list pool
+===================== ===============================================================
+
+This is an example of a graph that can be generated from this log:
+
+.. image:: session_stats_peers.png
+
+It shows statistics about the number of peers and peers states. How at the startup
+there are a lot of half-open connections, which tapers off as the total number of
+peers approaches the limit (50). It also shows how the total peer list slowly but steadily
+grows over time. This list is plotted against the right axis, as it has a different scale
+as the other fields.
+
+contributions
+=============
+
+If you have added instrumentation for some part of libtorrent that is not covered here, or
+if you have improved any of the parser scrips, please consider contributing it back to the
+project.
+
+If you have run tests and found that some algorithm or default value in libtorrent is
+suboptimal, please contribute that knowledge back as well, to allow us to improve the library.
+
+If you have additional suggestions on how to tune libtorrent for any specific use case,
+please let us know and we'll update this document.
 
