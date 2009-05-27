@@ -549,6 +549,7 @@ namespace libtorrent
 				current = 0;
 			}
 		}
+		if (current > ret) ret = current;
 		return ret;
 	}
 
@@ -576,8 +577,13 @@ namespace libtorrent
 				start = i + 1;
 			}
 		}
+		if (current > len)
+		{
+			len = current;
+			pos = start;
+		}
 
-		if (len < lower_limit) return 0;
+		if (len < lower_limit || len <= 0) return 0;
 		len = flush_range(e, pos, pos + len, l);
 		if (e->num_blocks == 0) m_pieces.erase(e);
 		return len;
@@ -642,6 +648,9 @@ namespace libtorrent
 		, int start, int end, mutex_t::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(start < end);
+
 		// TODO: copy *e and unlink it before unlocking
 		cached_piece_entry& p = *e;
 		int piece_size = p.storage->info()->piece_size(p.piece);
