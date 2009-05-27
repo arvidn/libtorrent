@@ -1588,6 +1588,34 @@ namespace aux {
 				|| t->statistics().download_payload_rate() != 0.f;
 		}
 	}
+	
+	int session_impl::auto_manage_torrents(std::vector<torrent*>& list
+		, int hard_limit, int type_limit)
+	{
+		for (std::vector<torrent*>::iterator i = list.begin()
+			, end(list.end()); i != end; ++i)
+		{
+			torrent* t = *i;
+			if (!t->is_paused() && !is_active(t, settings())
+				&& hard_limit > 0)
+			{
+				--hard_limit;
+				continue;
+			}
+
+			if (type_limit > 0 && hard_limit > 0)
+			{
+				--hard_limit;
+				--type_limit;
+				if (t->is_paused()) t->resume();
+			}
+			else
+			{
+				if (!t->is_paused()) t->pause();
+			}
+		}
+		return hard_limit;
+	}
 
 	void session_impl::recalculate_auto_managed_torrents()
 	{
@@ -1654,51 +1682,17 @@ namespace aux {
 				> bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
 		}
 
-		for (std::vector<torrent*>::iterator i = downloaders.begin()
-			, end(downloaders.end()); i != end; ++i)
+		if (settings().auto_manage_prefer_seeds)
 		{
-			torrent* t = *i;
-			if (!t->is_paused() && !is_active(t, settings())
-				&& hard_limit > 0)
-			{
-				--hard_limit;
-				continue;
-			}
-
-			if (num_downloaders > 0 && hard_limit > 0)
-			{
-				--hard_limit;
-				--num_downloaders;
-				if (t->is_paused()) t->resume();
-			}
-			else
-			{
-				if (!t->is_paused()) t->pause();
-			}
+			hard_limit = auto_manage_torrents(seeds, hard_limit, num_seeds);
+			hard_limit = auto_manage_torrents(downloaders, hard_limit, num_downloaders);
 		}
-
-		for (std::vector<torrent*>::iterator i = seeds.begin()
-			, end(seeds.end()); i != end; ++i)
+		else
 		{
-			torrent* t = *i;
-			if (!t->is_paused() && !is_active(t, settings())
-				&& hard_limit > 0)
-			{
-				--hard_limit;
-				continue;
-			}
-
-			if (num_seeds > 0 && hard_limit > 0)
-			{
-				--hard_limit;
-				--num_seeds;
-				if (t->is_paused()) t->resume();
-			}
-			else
-			{
-				if (!t->is_paused()) t->pause();
-			}
+			hard_limit = auto_manage_torrents(downloaders, hard_limit, num_downloaders);
+			hard_limit = auto_manage_torrents(seeds, hard_limit, num_seeds);
 		}
+            
 	}
 
 	void session_impl::recalculate_optimistic_unchoke_slot()

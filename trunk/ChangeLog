@@ -48,6 +48,7 @@
 	* includes DHT traffic in the rate limiter
 	* added support for bitcomet padding files
 	* improved support for sparse files on windows
+	* added ability to give seeding torrents preference to active slots
 
 release 0.14.4
 

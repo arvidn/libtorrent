@@ -3406,6 +3406,7 @@ session_settings
 		int active_downloads;
 		int active_seeds;
 		int active_limit;
+		bool auto_manage_prefer_seeds;
 		bool dont_count_slow_torrents;
 		int auto_manage_interval;
 		float share_ratio_limit;
@@ -3698,6 +3699,9 @@ and ``active_seeds`` = 4, then there will be 2 downloading torrents and 4 seedin
 torrents active. Torrents that are not auto managed are also counted against these
 limits. If there are non-auto managed torrents that use up all the slots, no
 auto managed torrent will be activated.
+
+``auto_manage_prefer_seeds`` specifies if libtorrent should prefer giving seeds
+active slots or downloading torrents.  The default is ``false``.
 
 if ``dont_count_slow_torrents`` is true, torrents without any payload transfers are
 not subject to the ``active_seeds`` and ``active_downloads`` limits. This is intended
