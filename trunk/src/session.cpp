@@ -184,26 +184,39 @@ namespace libtorrent
 	{
 		session_settings set;
 
-		// only have 4 files open at a time
-		set.file_pool_size = 400;
+		// allow 500 files open at a time
+		set.file_pool_size = 500;
 
 		// as a seed box, we must accept multiple peers behind
 		// the same NAT
 		set.allow_multiple_connections_per_ip = true;
 
-		// support high upload rates
-		set.send_buffer_watermark = 64 * 1024;
-
-		// use 128 MB of cache
-		set.cache_size = 8192;
+		// use 512 MB of cache
+		set.cache_size = 32768;
 		set.use_read_cache = true;
 		set.cache_buffer_chunk_size = 64;
+		// one hour expiration
+		set.cache_expiry = 60 * 60;
 
 		set.close_redundant_connections = true;
 
 		set.max_rejects = 10;
 
 		set.optimize_hashing_for_speed = true;
+
+		// don't let connections linger for too long
+		set.request_timeout = 10;
+		set.peer_timeout = 20;
+		set.inactivity_timeout = 20;
+
+		set.active_limit = 2000;
+		set.active_seeds = 2000;
+
+		set.auto_upload_slots = false;
+
+		// don't retry peers if they fail once. Let them
+		// connect to us if they want to
+		set.max_failcount = 1;
 
 		return set;
 	}
