@@ -41,10 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#ifdef WIN32
-#include <windows.h>
-#endif
-
 #include <boost/noncopyable.hpp>
 #include <boost/filesystem/path.hpp>
 
@@ -58,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_WINDOWS
 // windows part
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winioctl.h>
 #else
