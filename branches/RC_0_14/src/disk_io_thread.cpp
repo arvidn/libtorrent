@@ -512,7 +512,7 @@ namespace libtorrent
 		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
 		int ret = read_into_piece(p, start_block, l);
 		
-		if (ret == -1)
+		if (ret < 0)
 			free_piece(p, l);
 		else
 			m_read_pieces.push_back(p);
