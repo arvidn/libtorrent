@@ -62,7 +62,7 @@ namespace gr = boost::gregorian;
 
 using namespace libtorrent;
 
-namespace
+namespace libtorrent
 {
 	
 	namespace fs = boost::filesystem;
@@ -161,6 +161,28 @@ namespace
 		if (!verify_encoding(p)) target.path = p;
 	}
 
+	bool valid_path_element(std::string const& element)
+	{
+		if (element.empty()
+			|| element == "." || element == ".."
+			|| element[0] == '/' || element[0] == '\\'
+			|| element[element.size()-1] == ':')
+			return false;
+		return true;
+	}
+
+	fs::path sanitize_path(fs::path const& p)
+	{
+		fs::path new_path;
+		for (fs::path::const_iterator i = p.begin(); i != p.end(); ++i)
+		{
+			if (!valid_path_element(*i)) continue;
+			new_path /= *i;
+		}
+		TORRENT_ASSERT(!new_path.is_complete());
+		return new_path;
+	}
+
 	bool extract_single_file(lazy_entry const& dict, file_entry& target
 		, std::string const& root_dir)
 	{
@@ -186,10 +208,12 @@ namespace
 			if (p->list_at(i)->type() != lazy_entry::string_t)
 				return false;
 			std::string path_element = p->list_at(i)->string_value();
-			if (path_element != "..")
-				target.path /= path_element;
+			target.path /= path_element;
 		}
+		target.path = sanitize_path(target.path);
 		verify_encoding(target);
+		TORRENT_ASSERT(!target.path.is_complete());
+
 		if (target.path.is_complete())
 			return false;
 		return true;
@@ -208,10 +232,6 @@ namespace
 		}
 		return true;
 	}
-}
-
-namespace libtorrent
-{
 
 	int load_file(fs::path const& filename, std::vector<char>& v)
 	{
@@ -400,27 +420,8 @@ namespace libtorrent
 			return false;
 		}
 
-		fs::path tmp = name;
-		if (tmp.is_complete())
-		{
-			name = tmp.leaf();
-		}
-#if BOOST_VERSION < 103600
-		else if (tmp.has_branch_path())
-#else
-		else if (tmp.has_parent_path())
-#endif
-		{
-			fs::path p;
-			for (fs::path::iterator i = tmp.begin()
-				, end(tmp.end()); i != end; ++i)
-			{
-				if (*i == "." || *i == "..") continue;
-				p /= *i;
-			}
-			name = p.string();
-		}
-		if (name == ".." || name == ".")
+		name = sanitize_path(name).string();
+		if (!valid_path_element(name))
 		{
 			error = "invalid 'name' of torrent (possible exploit attempt)";
 			return false;

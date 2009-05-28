@@ -54,6 +54,10 @@ using namespace libtorrent;
 using namespace boost::tuples;
 using boost::bind;
 
+namespace libtorrent {
+	fs::path sanitize_path(fs::path const& p);
+}
+
 tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 {
 	tuple<int, int, bool> ret(0, 0, false);
@@ -347,6 +351,17 @@ int test_main()
 {
 	using namespace libtorrent;
 
+	TEST_CHECK(sanitize_path("/a/b/c").string() == "a/b/c");
+	TEST_CHECK(sanitize_path("a/../c").string() == "a/c");
+	TEST_CHECK(sanitize_path("/.././c").string() == "c");
+	TEST_CHECK(sanitize_path("dev:").string() == "");
+	TEST_CHECK(sanitize_path("c:/b").string() == "b");
+#ifdef TORRENT_WINDOWS
+	TEST_CHECK(sanitize_path("c:\\.\\c").string() == "c");
+#else
+	TEST_CHECK(sanitize_path("//./c").string() == "c");
+#endif
+
 	// test itoa
 
 	TEST_CHECK(to_string(345).elems == std::string("345"));
@@ -615,7 +630,7 @@ int test_main()
 	torrent["info"] = info;
 	torrent_info ti2(torrent);
 	std::cerr << ti2.name() << std::endl;
-	TEST_CHECK(ti2.name() == "test3");
+	TEST_CHECK(ti2.name() == "test1/test2/test3");
 
 	info["name.utf-8"] = "test2/../test3/.././../../test4";
 	torrent["info"] = info;

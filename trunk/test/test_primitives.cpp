@@ -55,6 +55,10 @@ using namespace libtorrent;
 using namespace boost::tuples;
 using boost::bind;
 
+namespace libtorrent {
+	fs::path sanitize_path(fs::path const& p);
+}
+
 sha1_hash to_hash(char const* s)
 {
 	sha1_hash ret;
@@ -354,6 +358,17 @@ void find_control_url(int type, char const* string, parse_state& state);
 int test_main()
 {
 	using namespace libtorrent;
+
+	TEST_CHECK(sanitize_path("/a/b/c").string() == "a/b/c");
+	TEST_CHECK(sanitize_path("a/../c").string() == "a/c");
+	TEST_CHECK(sanitize_path("/.././c").string() == "c");
+	TEST_CHECK(sanitize_path("dev:").string() == "");
+	TEST_CHECK(sanitize_path("c:/b").string() == "b");
+#ifdef TORRENT_WINDOWS
+	TEST_CHECK(sanitize_path("c:\\.\\c").string() == "c");
+#else
+	TEST_CHECK(sanitize_path("//./c").string() == "c");
+#endif
 
 	// make sure the time classes have correct semantics
 
@@ -690,7 +705,7 @@ int test_main()
 	torrent["info"] = info;
 	torrent_info ti2(torrent);
 	std::cerr << ti2.name() << std::endl;
-	TEST_CHECK(ti2.name() == "test3");
+	TEST_CHECK(ti2.name() == "test1/test2/test3");
 
 	info["name.utf-8"] = "test2/../test3/.././../../test4";
 	torrent["info"] = info;
