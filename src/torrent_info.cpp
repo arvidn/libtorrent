@@ -163,6 +163,16 @@ namespace libtorrent
 		if (!verify_encoding(p)) target.path = p;
 	}
 
+	bool valid_path_element(std::string const& element)
+	{
+		if (element.empty()
+			|| element == "." || element == ".."
+			|| element[0] == '/' || element[0] == '\\'
+			|| element[element.size()-1] == ':')
+			return false;
+		return true;
+	}
+
 	void trim_path_element(std::string& path_element)
 	{
 #ifdef FILENAME_MAX
@@ -187,6 +197,20 @@ namespace libtorrent
 				path_element += ext;
 			}
 		}
+	}
+
+	fs::path sanitize_path(fs::path const& p)
+	{
+		fs::path new_path;
+		for (fs::path::const_iterator i = p.begin(); i != p.end(); ++i)
+		{
+			if (!valid_path_element(*i)) continue;
+			std::string pe = *i;
+			trim_path_element(pe);
+			new_path /= pe;
+		}
+		TORRENT_ASSERT(!new_path.is_complete());
+		return new_path;
 	}
 
 	bool extract_single_file(lazy_entry const& dict, file_entry& target
@@ -215,12 +239,11 @@ namespace libtorrent
 				return false;
 			std::string path_element = p->list_at(i)->string_value();
 			trim_path_element(path_element);
-			if (path_element != "..")
-				target.path /= path_element;
+			target.path /= path_element;
 		}
+		target.path = sanitize_path(target.path);
 		verify_encoding(target);
-		if (target.path.is_complete())
-			return false;
+		TORRENT_ASSERT(!target.path.is_complete());
 
 		// bitcomet pad file
 		if (target.path.string().find("_____padding_file_") != std::string::npos)
@@ -568,34 +591,9 @@ namespace libtorrent
 			return false;
 		}
 
-		fs::path tmp = name;
-		if (tmp.is_complete())
-		{
-			name = tmp.leaf();
-			trim_path_element(name);
-		}
-#if BOOST_VERSION < 103600
-		else if (tmp.has_branch_path())
-#else
-		else if (tmp.has_parent_path())
-#endif
-		{
-			fs::path p;
-			for (fs::path::iterator i = tmp.begin()
-				, end(tmp.end()); i != end; ++i)
-			{
-				if (*i == "." || *i == "..") continue;
-				std::string path_element = *i;
-				trim_path_element(path_element);
-				p /= path_element;
-			}
-			name = p.string();
-		}
-		else
-		{
-			trim_path_element(name);
-		}
-		if (name == ".." || name == ".")
+		name = sanitize_path(name).string();
+	
+		if (!valid_path_element(name))
 		{
 			ec = error_code(errors::torrent_invalid_name, libtorrent_category);
 			return false;
