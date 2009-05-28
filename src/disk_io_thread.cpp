@@ -897,7 +897,7 @@ namespace libtorrent
 		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
 		int ret = read_into_piece(p, 0, ignore_cache_size, INT_MAX, l);
 		
-		if (ret == -1)
+		if (ret < 0)
 			free_piece(p, l);
 		else
 			m_read_pieces.push_back(p);
@@ -936,7 +936,7 @@ namespace libtorrent
 		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
 		int ret = read_into_piece(p, start_block, 0, blocks_to_read, l);
 		
-		if (ret == -1)
+		if (ret < 0)
 			free_piece(p, l);
 		else
 			m_read_pieces.push_back(p);
@@ -1421,6 +1421,9 @@ namespace libtorrent
 					// reading and hashing, not for keeping it around)
 					sha1_hash h;
 					ret = read_piece_from_cache_and_hash(j, h);
+
+					// -2 means there's no space in the read cache
+					// or that the read cache is disabled
 					if (ret == -1)
 					{
 						test_error(j);

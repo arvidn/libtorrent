@@ -70,6 +70,7 @@ release 0.14.4
 	* fixed bug when checking a torrent twice
 	* improved handling of out-of-memory conditions in disk I/O thread
 	* fixed bug when force-checking a torrent with partial pieces
+	* fixed memory leak in disk cache
 
 release 0.14.3
 
