@@ -115,10 +115,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef TORRENT_WINDOWS
+#include <stdarg.h>
 // this is the maximum number of characters in a
 // path element / filename on windows
 #define NAME_MAX 255
-#define snprintf sprintf_s
+inline int snprintf(char* buf, int len, char const* fmt, ...)
+{
+	va_list lp;
+	va_start(lp, fmt);
+	return vsnprintf_s(buf, len, _TRUNCATE, fmt, lp);
+}
 #define strtoll _strtoi64
 #endif
 
