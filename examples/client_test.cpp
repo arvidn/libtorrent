@@ -217,7 +217,7 @@ std::string& to_string(float v, int width, int precision = 3)
 	++round_robin;
 	if (round_robin >= num_strings) round_robin = 0;
 	ret.resize(20);
-	int size = std::snprintf(&ret[0], 20, "%*.*f", width, precision, v);
+	int size = snprintf(&ret[0], 20, "%*.*f", width, precision, v);
 	ret.resize((std::min)(size, width));
 	return ret;
 }
@@ -1459,7 +1459,7 @@ int main(int argc, char* argv[])
 						else if (i->blocks[j].state == block_info::finished) chr = '#';
 						else if (i->blocks[j].state == block_info::writing) chr = '+';
 						else if (i->blocks[j].state == block_info::requested) chr = '-';
-						else chr = ' '
+						else chr = ' ';
 #endif
 						snprintf(str, sizeof(str), "%s%c", color, chr);
 						out += str;

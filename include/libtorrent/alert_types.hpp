@@ -275,7 +275,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[400];
-			snprintf(ret, sizeof(msg), "%s (%d) %s (%d)"
+			snprintf(ret, sizeof(ret), "%s (%d) %s (%d)"
 				, torrent_alert::message().c_str(), status_code, msg.c_str(), times_in_row);
 			return ret;
 		}
@@ -327,7 +327,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[400];
-			snprintf(ret, sizeof(msg), "%s scrape reply: %u %u"
+			snprintf(ret, sizeof(ret), "%s scrape reply: %u %u"
 				, torrent_alert::message().c_str(), incomplete, complete);
 			return ret;
 		}
@@ -372,7 +372,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[400];
-			snprintf(ret, sizeof(msg), "%s received peers: %u"
+			snprintf(ret, sizeof(ret), "%s received peers: %u"
 				, torrent_alert::message().c_str(), num_peers);
 			return ret;
 		}
@@ -394,7 +394,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[400];
-			snprintf(ret, sizeof(msg), "%s received DHT peers: %u"
+			snprintf(ret, sizeof(ret), "%s received DHT peers: %u"
 				, torrent_alert::message().c_str(), num_peers);
 			return ret;
 		}
@@ -437,7 +437,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[400];
-			snprintf(ret, sizeof(msg), "%s hash for piece %u failed"
+			snprintf(ret, sizeof(ret), "%s hash for piece %u failed"
 				, torrent_alert::message().c_str(), piece_index);
 			return ret;
 		}
@@ -569,7 +569,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[200];
-			snprintf(ret, sizeof(msg), "%s peer sent an invalid piece request (piece: %u start: %u len: %u)"
+			snprintf(ret, sizeof(ret), "%s peer sent an invalid piece request (piece: %u start: %u len: %u)"
 				, torrent_alert::message().c_str(), request.piece, request.start, request.length);
 			return ret;
 		}
@@ -614,7 +614,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[200];
-			snprintf(ret, sizeof(msg), "%s piece: %u finished downloading"
+			snprintf(ret, sizeof(ret), "%s piece: %u finished downloading"
 				, torrent_alert::message().c_str(), piece_index);
 			return ret;
 		}
@@ -641,7 +641,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[200];
-			snprintf(ret, sizeof(msg), "%s peer dropped block ( piece: %u block: %u)"
+			snprintf(ret, sizeof(ret), "%s peer dropped block ( piece: %u block: %u)"
 				, torrent_alert::message().c_str(), piece_index, block_index);
 			return ret;
 		}
@@ -668,7 +668,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[200];
-			snprintf(ret, sizeof(msg), "%s peer timed out request ( piece: %u block: %u)"
+			snprintf(ret, sizeof(ret), "%s peer timed out request ( piece: %u block: %u)"
 				, torrent_alert::message().c_str(), piece_index, block_index);
 			return ret;
 		}
@@ -694,7 +694,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[200];
-			snprintf(ret, sizeof(msg), "%s block finished downloading (piece: %u block: %u)"
+			snprintf(ret, sizeof(ret), "%s block finished downloading (piece: %u block: %u)"
 				, torrent_alert::message().c_str(), piece_index, block_index);
 			return ret;
 		}
@@ -722,7 +722,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[200];
-			snprintf(ret, sizeof(msg), "%s requested block (piece: %u block: %u) %s"
+			snprintf(ret, sizeof(ret), "%s requested block (piece: %u block: %u) %s"
 				, torrent_alert::message().c_str(), piece_index, block_index, peer_speedmsg);
 			return ret;
 		}
@@ -746,7 +746,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[200];
-			snprintf(ret, sizeof(msg), "%s received block not in download queue (piece: %u block: %u)"
+			snprintf(ret, sizeof(ret), "%s received block not in download queue (piece: %u block: %u)"
 				, torrent_alert::message().c_str(), piece_index, block_index);
 			return ret;
 		}
@@ -1081,7 +1081,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[200];
-			snprintf(ret, sizeof(msg), "listening on %s failed: %s"
+			snprintf(ret, sizeof(ret), "listening on %s failed: %s"
 				, print_endpoint(endpoint).c_str(), error.message().c_str());
 			return ret;
 		}
@@ -1103,7 +1103,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			char ret[200];
-			snprintf(ret, sizeof(msg), "successfully listening on %s", print_endpoint(endpoint).c_str());
+			snprintf(ret, sizeof(ret), "successfully listening on %s", print_endpoint(endpoint).c_str());
 			return ret;
 		}
 	};
@@ -1151,7 +1151,7 @@ namespace libtorrent
 		{
 			static char const* type_str[] = {"NAT-PMP", "UPnP"};
 			char ret[200];
-			snprintf(ret, sizeof(msg), "successfully mapped port using %s. external port: %u"
+			snprintf(ret, sizeof(ret), "successfully mapped port using %s. external port: %u"
 				, type_str[type], external_port);
 			return ret;
 		}
@@ -1175,7 +1175,7 @@ namespace libtorrent
 		{
 			static char const* type_str[] = {"NAT-PMP", "UPnP"};
 			char ret[200];
-			snprintf(ret, sizeof(msg), "%s: %s", type_str[type], msg.c_str());
+			snprintf(ret, sizeof(ret), "%s: %s", type_str[type], msg.c_str());
 			return ret;
 		}
 	};
