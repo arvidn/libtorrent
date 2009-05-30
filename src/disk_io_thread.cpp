@@ -273,6 +273,7 @@ namespace libtorrent
 		, m_abort(false)
 		, m_waiting_to_shutdown(false)
 		, m_queue_buffer_size(0)
+		, m_last_file_check(time_now_hires())
 		, m_ios(ios)
 		, m_work(io_service::work(m_ios))
 		, m_disk_io_thread(boost::ref(*this))
@@ -1721,6 +1722,7 @@ namespace libtorrent
 					for (int processed = 0; processed < 4 * 1024 * 1024; processed += piece_size)
 					{
 						ptime now = time_now_hires();
+						TORRENT_ASSERT(now >= m_last_file_check);
 						if (now - m_last_file_check < milliseconds(m_settings.file_checks_delay_per_block))
 						{
 							int sleep_time = m_settings.file_checks_delay_per_block
