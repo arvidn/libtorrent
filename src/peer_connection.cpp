@@ -1329,6 +1329,14 @@ namespace libtorrent
 			m_have_piece.set_bit(index);
 			++m_num_pieces;
 
+			if (is_seed())
+			{
+				m_peer_info->seed = true;
+				m_upload_only = true;
+				disconnect_if_redundant();
+				if (is_disconnecting()) return;
+			}
+
 			// only update the piece_picker if
 			// we have the metadata and if
 			// we're not a seed (in which case
@@ -1370,14 +1378,6 @@ namespace libtorrent
 					if (!p->has_piece(index)) continue;
 					p->superseed_piece(t->get_piece_to_super_seed(p->get_bitfield()));
 				}
-			}
-
-			if (is_seed())
-			{
-				m_peer_info->seed = true;
-				m_upload_only = true;
-				disconnect_if_redundant();
-				if (is_disconnecting()) return;
 			}
 		}
 	}
