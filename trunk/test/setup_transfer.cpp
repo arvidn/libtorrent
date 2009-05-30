@@ -215,6 +215,8 @@ boost::intrusive_ptr<T> clone_ptr(boost::intrusive_ptr<T> const& ptr)
 boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_size, int num_pieces)
 {
 	char const* tracker_url = "http://non-existent-name.com/announce";
+	// excercise the path when encountering invalid urls
+	char const* invalid_tracker_url = "http:";
 	
 	using namespace boost::filesystem;
 
@@ -223,6 +225,7 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_
 	fs.add_file(path("temporary"), total_size);
 	libtorrent::create_torrent t(fs, piece_size);
 	t.add_tracker(tracker_url);
+	t.add_tracker(invalid_tracker_url);
 
 	std::vector<char> piece(piece_size);
 	for (int i = 0; i < int(piece.size()); ++i)

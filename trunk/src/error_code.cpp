@@ -71,6 +71,8 @@ namespace libtorrent
 			"invalid type requested from entry",
 			"missing info-hash from URI",
 			"file too short",
+			"unsupported URL protocol",
+			"failed to parse URL",
 		};
 		if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
 			return "Unknown error";

@@ -5308,9 +5308,67 @@ code   symbol                       description
 21     invalid_entry_type           The type requested from the entry did not match its type
 ------ ---------------------------- -----------------------------------------------------------------
 22     missing_info_hash_in_uri     The specified URI does not contain a valid info-hash
+------ ---------------------------- -----------------------------------------------------------------
+23     file_too_short               One of the files in the torrent was unexpectadly small. This
+                                    might be caused by files being changed by an external process
+------ ---------------------------- -----------------------------------------------------------------
+24     unsupported_url_protocol     The URL used an unknown protocol. Currently ``http`` and
+                                    ``https`` (if built with openssl support) are recognized. For
+                                    trackers ``udp`` is recognized as well.
+------ ---------------------------- -----------------------------------------------------------------
+25     url_parse_error              The URL did not conform to URL syntax and failed to be parsed
 ====== ============================ =================================================================
 
 The names of these error codes are declared in then ``libtorrent::errors`` namespace.
+
+translating error codes
+-----------------------
+
+The error_code::message() function will typically return a localized error string,
+for system errors. That is, errors that belong to the generic or system category.
+
+Errors that belong to the libtorrent error category are not localized however, they
+are only available in english. In order to translate libtorrent errors, compare the
+error category of the ``error_code`` object against ``libtorrent::libtorrent_category``,
+and if matches, you know the error code refers to the list above. You can provide
+your own mapping from error code to string, which is localized. In this case, you
+cannot rely on ``error_code::message()`` to generate your strings.
+
+The numeric values of the errors are part of the API and will stay the same, although
+new error codes may be appended at the end.
+
+Here's a simple example of how to translate error codes::
+
+	std::string error_code_to_string(boost::system::error_code const& ec)
+	{
+		if (ec.category() != libtorrent::libtorrent_category)
+		{
+			return ec.message();
+		}
+		// the error is a libtorrent error
+
+		int code = ec.value();
+		static const char const* swedish[] =
+		{
+			"inget fel",
+			"en fil i torrenten kolliderar med en fil från en annan torrent",
+			"hash check misslyckades",
+			"torrent filen är inte en dictionary",
+			"'info'-nyckeln saknas eller är korrupt i torrentfilen",
+			"'info'-fältet är inte en dictionary",
+			"'piece length' fältet saknas eller är korrupt i torrentfilen",
+			"torrentfilen saknar namnfältet",
+			"ogiltigt namn i torrentfilen (kan vara en attack)",
+			// ... more strings here
+		};
+
+		// use the default error string in case we don't have it
+		// in our translated list
+		if (code < 0 || code >= sizeof(swedish)/sizeof(swedish[0]))
+			return ec.message();
+
+		return swedish[code];
+	}
 
 storage_interface
 =================
