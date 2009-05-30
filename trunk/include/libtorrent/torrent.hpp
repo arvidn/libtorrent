@@ -894,7 +894,7 @@ namespace libtorrent
 		// determines the storage state for this torrent.
 		storage_mode_t m_storage_mode;
 
-		// the state of this torrent (queued, checking, downloading)
+		// the state of this torrent (queued, checking, downloading, etc.)
 		torrent_status::state_t m_state;
 
 		// set if there's an error on this torrent
