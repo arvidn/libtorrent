@@ -1304,6 +1304,8 @@ namespace aux {
 		torrent_map::iterator least_recently_scraped = m_torrents.begin();
 		int num_paused_auto_managed = 0;
 
+		int num_checking = 0;
+		int num_queued = 0;
 		for (torrent_map::iterator i = m_torrents.begin();
 			i != m_torrents.end();)
 		{
@@ -1314,6 +1316,8 @@ namespace aux {
 			else
 				++uncongested_torrents;
 
+			if (t.state() == torrent_status::checking_files) ++num_checking;
+			else if (t.state() == torrent_status::queued_for_checking)
 			if (t.is_auto_managed() && t.is_paused() && !t.has_error())
 			{
 				++num_paused_auto_managed;
@@ -1337,6 +1341,23 @@ namespace aux {
 
 			t.second_tick(m_stat, tick_interval);
 			++i;
+		}
+
+		// some people claim that there sometimes can be cases where
+		// there is no torrent being checked, but there are torrents
+		// waiting to be checked. I have never seen this, and I can't 
+		// see a way for it to happen. But, if it does, start one of
+		// the queued torrents
+		if (num_checking == 0 && num_queued > 0)
+		{
+			TORRENT_ASSERT(false);
+			check_queue_t::iterator i = std::min_element(m_queued_for_checking.begin()
+				, m_queued_for_checking.end(), boost::bind(&torrent::queue_position, _1)
+				< boost::bind(&torrent::queue_position, _2));
+			if (i != m_queued_for_checking.end())
+			{
+				(*i)->start_checking();
+			}
 		}
 
 		if (m_dht)
