@@ -163,7 +163,8 @@ reduce executable size
 
 Compilers generally add a significant number of bytes to executables that make use
 of C++ exceptions. By disabling exceptions (-fno-exceptions on GCC), you can
-reduce the executable size with up to 45%.
+reduce the executable size with up to 45%. In order to build without exception
+support, you need to patch parts of boost.
 
 Also make sure to optimize for size when compiling.
 
