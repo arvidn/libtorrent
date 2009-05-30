@@ -65,9 +65,23 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	int default_port = protocol == "https" ? 443 : 80;
 
+	if (protocol != "http"
+#ifndef TORRENT_USE_OPENSSL
+		&& protocol != "https"
+#endif
+		)
+	{
+		error_code ec(errors::unsupported_url_protocol, libtorrent_category);
+		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+			, this, ec, (char*)0, 0));
+		return;
+	}
+
 	if (error)
 	{
-		callback(asio::error::socket_type_not_supported);
+		error_code ec(errors::url_parse_error, libtorrent_category);
+		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+			, this, ec, (char*)0, 0));
 		return;
 	}
 
@@ -78,7 +92,9 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 #ifndef TORRENT_USE_OPENSSL
 	if (ssl)
 	{
-		callback(asio::error::socket_type_not_supported);
+		error_code ec(errors::unsupported_url_protocol, libtorrent_category);
+		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+			, this, ec, (char*)0, 0));
 		return;
 	}
 #endif
@@ -152,7 +168,8 @@ void http_connection::start(std::string const& hostname, std::string const& port
 
 	if (ec)
 	{
-		callback(ec);
+		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+			, this, ec, (char*)0, 0));
 		return;
 	}
 
@@ -196,7 +213,8 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			m_sock.bind(tcp::endpoint(m_bind_addr, 0), ec);
 			if (ec)
 			{
-				callback(ec);
+				m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+					, this, ec, (char*)0, 0));
 				return;
 			}
 		}
