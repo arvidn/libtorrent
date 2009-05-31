@@ -743,6 +743,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(find_cached_piece(m_pieces, j, l) == m_pieces.end());
+		TORRENT_ASSERT((j.offset & (m_block_size-1)) == 0);
 		cached_piece_entry p;
 
 #ifdef TORRENT_DISK_STATS
@@ -1088,25 +1089,35 @@ namespace libtorrent
 		int block_offset = j.offset & (m_block_size-1);
 		int buffer_offset = 0;
 		int size = j.buffer_size;
-		if (p->blocks[block] == 0)
+		int min_blocks_to_read = block_offset > 0 ? 2 : 1;
+		TORRENT_ASSERT(size <= m_block_size);
+		int start_block = block;
+		if (p->blocks[start_block] != 0 && min_blocks_to_read > 1)
+			++start_block;
+		// if block_offset > 0, we need to read two blocks, and then
+		// copy parts of both, because it's not aligned to the block
+		// boundaries
+		if (p->blocks[start_block] == 0)
 		{
 			int piece_size = j.storage->info()->piece_size(j.piece);
 			int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
-			int end_block = block;
+			int end_block = start_block;
 			while (end_block < blocks_in_piece && p->blocks[end_block] == 0) ++end_block;
 
 			int blocks_to_read = end_block - block;
 			blocks_to_read = (std::min)(blocks_to_read, (std::max)((m_settings.cache_size
 				+ m_cache_stats.read_cache_size - in_use())/2, 3));
 			blocks_to_read = (std::min)(blocks_to_read, m_settings.read_cache_line_size);
+			blocks_to_read = (std::max)(blocks_to_read, min_blocks_to_read);
 			if (in_use() + blocks_to_read > m_settings.cache_size)
 				if (flush_cache_blocks(l, in_use() + blocks_to_read - m_settings.cache_size
 					, p, dont_flush_write_blocks) == 0)
 					return -2;
 
-			size = read_into_piece(*p, block, 0, blocks_to_read, l);
+			int ret = read_into_piece(*p, block, 0, blocks_to_read, l);
 			hit = false;
-			if (size < 0) return size;
+			if (ret < 0) return ret;
+			if (ret < size + block_offset) return -2;
 			TORRENT_ASSERT(p->blocks[block]);
 		}
 

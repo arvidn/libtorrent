@@ -381,6 +381,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(find_cached_piece(m_pieces, j, l) == m_pieces.end());
+		TORRENT_ASSERT((j.offset & (m_block_size-1)) == 0);
 		cached_piece_entry p;
 
 		int piece_size = j.storage->info()->piece_size(j.piece);
