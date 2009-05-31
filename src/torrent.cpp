@@ -340,6 +340,42 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::handle_disk_error(disk_io_job const& j, peer_connection* c)
+	{
+		if (!j.error) return;
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_ses.m_logger) << "disk error: '" << j.str << "' while " 
+			<< (j.error_op == disk_io_job::read?"reading ":"writing ")
+			<< " piece " << j.error_piece << " in file " << j.error_file << "\n";
+#endif
+
+		if (j.error == error_code(boost::system::errc::not_enough_memory, get_posix_category()))
+		{
+			if (alerts().should_post<file_error_alert>())
+				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
+			if (c) c->disconnect("no memory");
+			return;
+		}
+
+		TORRENT_ASSERT(j.error_piece >= 0);
+
+		if (j.error_op == disk_io_job::write)
+		{
+			// we failed to write j.error_piece to disk
+			// tell the piece picker
+			if (has_picker() && j.error_piece >= 0) picker().write_failed(j.error_piece);
+		}
+
+		// notify the user of the error
+		if (alerts().should_post<file_error_alert>())
+			alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
+
+		// put the torrent in an error-state
+		set_error(j.error, j.error_file);
+		pause();
+	}
+
 	void torrent::on_disk_read_complete(int ret, disk_io_job const& j, peer_request r, read_piece_struct* rp)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
@@ -350,8 +386,7 @@ namespace libtorrent
 		if (ret != r.length)
 		{
 			rp->fail = true;
-			set_error(j.error, j.error_file);
-			pause();
+			handle_disk_error(j);
 		}
 		else
 		{
@@ -428,11 +463,7 @@ namespace libtorrent
 
 		if (ret == -1)
 		{
-			if (has_picker()) picker().write_failed(block_finished);
-			if (alerts().should_post<file_error_alert>())
-				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
-			set_error(j.error, j.error_file);
-			pause();
+			handle_disk_error(j);
 			return;
 		}
 		picker().mark_as_finished(block_finished, 0);

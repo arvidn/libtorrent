@@ -2117,20 +2117,15 @@ namespace libtorrent
 		}
 	}
 
-	void piece_picker::write_failed(piece_block block)
+	void piece_picker::write_failed(int piece)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
 		std::vector<downloading_piece>::iterator i
-			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
+			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(piece));
 		TORRENT_ASSERT(i != m_downloads.end());
-		block_info& info = i->info[block.block_index];
-		TORRENT_ASSERT(info.state == block_info::state_writing);
-		TORRENT_ASSERT(info.num_peers == 0);
 
-		--i->writing;
-		info.state = block_info::state_none;
-		info.peer = 0;
+		erase_download_piece(i);
 	}
 
 	void piece_picker::mark_as_finished(piece_block block, void* peer)

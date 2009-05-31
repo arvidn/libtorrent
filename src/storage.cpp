@@ -481,6 +481,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!error());
 		int num_read = 0;
 		int slot_size = piece_size - ph.offset;
+		m_last_op = disk_io_job::read;
 		if (slot_size > 0)
 		{
 			int block_size = 16 * 1024;
@@ -1485,6 +1486,7 @@ ret:
 		, m_scratch_buffer2(io, 0)
 		, m_scratch_piece(-1)
 		, m_last_piece(-1)
+		, m_last_op(-1)
 		, m_storage_constructor(sc)
 		, m_io_thread(io)
 		, m_torrent(torrent)
@@ -1747,6 +1749,7 @@ ret:
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(num_bufs > 0);
 		m_last_piece = piece_index;
+		m_last_op = disk_io_job::read;
 		int slot = slot_for(piece_index);
 		return m_storage->readv(bufs, slot, offset, num_bufs);
 	}
@@ -1767,6 +1770,7 @@ ret:
 		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		std::copy(bufs, bufs + num_bufs, iov);
 		m_last_piece = piece_index;
+		m_last_op = disk_io_job::write;
 		int slot = allocate_slot_for_piece(piece_index);
 		int ret = m_storage->writev(bufs, slot, offset, num_bufs);
 		// only save the partial hash if the write succeeds
@@ -2340,6 +2344,7 @@ ret:
 			// the slot where this piece belongs is
 			// free. Just move the piece there.
 			m_last_piece = piece;
+			m_last_op = disk_io_job::write;
 			m_storage->move_slot(m_current_slot, piece);
 			if (m_storage->error()) return -1;
 
@@ -2567,6 +2572,7 @@ ret:
 
 			bool ret = false;
 			m_last_piece = piece_index;
+			m_last_op = disk_io_job::write;
 			if (other_piece >= 0)
 				ret |= m_storage->swap_slots(other_slot, m_current_slot);
 			else
@@ -2606,6 +2612,7 @@ ret:
 
 			}
 			m_last_piece = other_piece;
+			m_last_op = disk_io_job::write;
 			if (ret) return skip_file();
 
 			TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
@@ -2645,6 +2652,7 @@ ret:
 				TORRENT_ASSERT(piece_index == slot1);
 
 				m_last_piece = piece_index;
+				m_last_op = disk_io_job::write;
 				m_storage->swap_slots(m_current_slot, slot1);
 
 				TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
@@ -2692,6 +2700,7 @@ ret:
 				}
 
 				m_last_piece = piece_index;
+				m_last_op = disk_io_job::write;
 				if (ret) return skip_file();
 
 				TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
@@ -2838,6 +2847,7 @@ ret:
 				, m_piece_to_slot[piece_at_our_slot]);
 
 			m_last_piece = piece_index;
+			m_last_op = disk_io_job::write;
 			m_storage->move_slot(piece_index, slot_index);
 
 			TORRENT_ASSERT(m_slot_to_piece[piece_index] == piece_index);
@@ -2882,6 +2892,7 @@ ret:
 			if (m_piece_to_slot[pos] != has_no_slot)
 			{
 				m_last_piece = pos;
+				m_last_op = disk_io_job::write;
 				new_free_slot = m_piece_to_slot[pos];
 				m_storage->move_slot(new_free_slot, pos);
 				m_slot_to_piece[pos] = pos;
