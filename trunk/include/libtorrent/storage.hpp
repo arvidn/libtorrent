@@ -289,6 +289,7 @@ namespace libtorrent
 
 		error_code const& error() const { return m_storage->error(); }
 		std::string const& error_file() const { return m_storage->error_file(); }
+		int last_piece() const { return m_last_piece; }
 		void clear_error() { m_storage->clear_error(); }
 
 		int slot_for(int piece) const;
@@ -418,14 +419,17 @@ namespace libtorrent
 		disk_buffer_holder m_scratch_buffer2;
 		// the piece that is in the scratch buffer
 		int m_scratch_piece;
-		
+
+		// the last piece we wrote to or read from
+		int m_last_piece;
+
 		// this is saved in case we need to instantiate a new
 		// storage (osed when remapping files)
 		storage_constructor_type m_storage_constructor;
 
 		// this maps a piece hash to piece index. It will be
 		// build the first time it is used (to save time if it
-		// isn't needed) 				
+		// isn't needed)
 		std::multimap<sha1_hash, int> m_hash_to_piece;
 	
 		// this map contains partial hashes for downloading

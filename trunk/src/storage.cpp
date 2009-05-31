@@ -1484,6 +1484,7 @@ ret:
 		, m_scratch_buffer(io, 0)
 		, m_scratch_buffer2(io, 0)
 		, m_scratch_piece(-1)
+		, m_last_piece(-1)
 		, m_storage_constructor(sc)
 		, m_io_thread(io)
 		, m_torrent(torrent)
@@ -1745,6 +1746,7 @@ ret:
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(num_bufs > 0);
+		m_last_piece = piece_index;
 		int slot = slot_for(piece_index);
 		return m_storage->readv(bufs, slot, offset, num_bufs);
 	}
@@ -1764,6 +1766,7 @@ ret:
 
 		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		std::copy(bufs, bufs + num_bufs, iov);
+		m_last_piece = piece_index;
 		int slot = allocate_slot_for_piece(piece_index);
 		int ret = m_storage->writev(bufs, slot, offset, num_bufs);
 		// only save the partial hash if the write succeeds
@@ -2336,7 +2339,10 @@ ret:
 
 			// the slot where this piece belongs is
 			// free. Just move the piece there.
+			m_last_piece = piece;
 			m_storage->move_slot(m_current_slot, piece);
+			if (m_storage->error()) return -1;
+
 			m_piece_to_slot[piece] = piece;
 			m_slot_to_piece[m_current_slot] = unassigned;
 			m_slot_to_piece[piece] = piece;
@@ -2560,6 +2566,7 @@ ret:
 			}
 
 			bool ret = false;
+			m_last_piece = piece_index;
 			if (other_piece >= 0)
 				ret |= m_storage->swap_slots(other_slot, m_current_slot);
 			else
@@ -2598,6 +2605,7 @@ ret:
 				ret |= m_storage->move_slot(other_slot, m_current_slot);
 
 			}
+			m_last_piece = other_piece;
 			if (ret) return skip_file();
 
 			TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
@@ -2636,6 +2644,7 @@ ret:
 				TORRENT_ASSERT(piece1 == m_current_slot);
 				TORRENT_ASSERT(piece_index == slot1);
 
+				m_last_piece = piece_index;
 				m_storage->swap_slots(m_current_slot, slot1);
 
 				TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
@@ -2682,6 +2691,7 @@ ret:
 					ret |= m_storage->move_slot(slot2, m_current_slot);
 				}
 
+				m_last_piece = piece_index;
 				if (ret) return skip_file();
 
 				TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
@@ -2827,6 +2837,7 @@ ret:
 				m_piece_to_slot[piece_index]
 				, m_piece_to_slot[piece_at_our_slot]);
 
+			m_last_piece = piece_index;
 			m_storage->move_slot(piece_index, slot_index);
 
 			TORRENT_ASSERT(m_slot_to_piece[piece_index] == piece_index);
@@ -2870,6 +2881,7 @@ ret:
 			int new_free_slot = pos;
 			if (m_piece_to_slot[pos] != has_no_slot)
 			{
+				m_last_piece = pos;
 				new_free_slot = m_piece_to_slot[pos];
 				m_storage->move_slot(new_free_slot, pos);
 				m_slot_to_piece[pos] = pos;

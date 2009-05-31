@@ -1248,6 +1248,7 @@ namespace libtorrent
 			j.str = ec.message();
 			j.error = ec;
 			j.error_file = j.storage->error_file();
+			j.error_piece = j.storage->last_piece();
 			j.storage->clear_error();
 #ifdef TORRENT_DEBUG
 			std::cout << "ERROR: '" << j.str << "' " << j.error_file << std::endl;
@@ -1421,6 +1422,7 @@ namespace libtorrent
 					{
 						ret = -1;
 						j.error = error_code(ENOMEM, get_posix_category());
+						j.error_piece = -1;
 						j.str = j.error.message();
 						break;
 					}
@@ -1447,6 +1449,7 @@ namespace libtorrent
 						j.storage->mark_failed(j.piece);
 						j.error = error_code(errors::failed_hash_check, libtorrent_category);
 						j.str = j.error.message();
+						j.error_piece = j.storage->last_piece();
 						j.buffer = 0;
 						break;
 					}
@@ -1473,6 +1476,7 @@ namespace libtorrent
 					{
 						ret = -1;
 						j.error = error_code(ENOMEM, get_posix_category());
+						j.error_piece = -1;
 						j.str = j.error.message();
 						break;
 					}
@@ -1505,6 +1509,7 @@ namespace libtorrent
 							j.error = error_code(errors::file_too_short, libtorrent_category);
 							j.error_file.clear();
 							j.str = j.error.message();
+							j.error_piece = j.storage->last_piece();
 							ret = -1;
 							break;
 						}
