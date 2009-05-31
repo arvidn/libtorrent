@@ -49,7 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using namespace boost::filesystem;
 
-const int piece_size = 16 * 1024;
+const int piece_size = 16 * 1024 * 16;
+const int block_size = 16 * 1024;
 
 const int half = piece_size / 2;
 
@@ -89,6 +90,19 @@ void on_check_files(int ret, disk_io_job const& j, bool* done)
 		case -2: std::cerr << " disk error: " << j.str
 			<< " file: " << j.error_file << std::endl; *done = true; break;
 		case -3: std::cerr << " aborted" << std::endl; *done = true; break;
+	}
+}
+
+void on_read(int ret, disk_io_job const& j, bool* done)
+{
+	std::cerr << "on_read ret: " << ret;
+	*done = true;
+
+	if (ret < 0)
+	{
+		std::cerr << j.error.message() << std::endl;
+		std::cerr << j.error_file << std::endl;
+
 	}
 }
 
@@ -206,6 +220,18 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 		ios.run_one(ec);
 	}
 
+	done = false;
+	peer_request r;
+	r.piece = 0;
+	r.start = 10;
+	r.length = 16 * 1024;
+	pm->async_read(r, boost::bind(&on_read, _1, _2, &done));
+	while (!done)
+	{
+		ios.reset();
+		ios.run_one(ec);
+	}
+
 	// test rename_file
 	remove(test_path / "part0");
 	TEST_CHECK(exists(test_path / "temp_storage/test1.tmp"));
@@ -246,15 +272,14 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	TEST_CHECK(!exists(test_path / "temp_storage2/temp_storage"));	
 	TEST_CHECK(!exists(test_path / "temp_storage2/part0"));	
 
-	peer_request r;
 	r.piece = 0;
 	r.start = 0;
-	r.length = piece_size;
-	pm->async_read(r, bind(&on_read_piece, _1, _2, piece0, piece_size));
+	r.length = block_size;
+	pm->async_read(r, bind(&on_read_piece, _1, _2, piece0, block_size));
 	r.piece = 1;
-	pm->async_read(r, bind(&on_read_piece, _1, _2, piece1, piece_size));
+	pm->async_read(r, bind(&on_read_piece, _1, _2, piece1, block_size));
 	r.piece = 2;
-	pm->async_read(r, bind(&on_read_piece, _1, _2, piece2, piece_size));
+	pm->async_read(r, bind(&on_read_piece, _1, _2, piece2, block_size));
 	pm->async_release_files(none);
 
 	pm->async_rename_file(0, "temp_storage/test1.tmp", none);
