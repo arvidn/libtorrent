@@ -2107,6 +2107,8 @@ namespace libtorrent
 				remote(), pid(), block_finished.block_index, block_finished.piece_index));
 		}
 
+		if (t->is_aborted()) return;
+
 		// did we just finish the piece?
 		if (picker.is_piece_finished(p.piece))
 		{
