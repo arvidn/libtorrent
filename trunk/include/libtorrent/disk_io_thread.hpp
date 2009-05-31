@@ -73,6 +73,8 @@ namespace libtorrent
 			, piece(0)
 			, offset(0)
 			, priority(0)
+			, error_piece(-1)
+			, error_op(-1)
 		{}
 
 		enum action_t
@@ -122,6 +124,9 @@ namespace libtorrent
 
 		// the piece the error occurred on
 		int error_piece;
+
+		// the operation that failed (only read or write)
+		int error_op;
 
 		// this is called when operation completes
 		boost::function<void(int, disk_io_job const&)> callback;

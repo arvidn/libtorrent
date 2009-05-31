@@ -1249,9 +1249,12 @@ namespace libtorrent
 			j.error = ec;
 			j.error_file = j.storage->error_file();
 			j.error_piece = j.storage->last_piece();
+			j.error_op = j.storage->last_operation();
 			j.storage->clear_error();
 #ifdef TORRENT_DEBUG
-			std::cout << "ERROR: '" << j.str << "' " << j.error_file << std::endl;
+			std::cout << "ERROR: '" << j.str << "' while " 
+				<< (j.error_op == disk_io_job::read?"reading ":"writing ")
+				<< j.error_file << std::endl;
 #endif
 			return true;
 		}
@@ -1406,11 +1409,6 @@ namespace libtorrent
 				}
 				case disk_io_job::read_and_hash:
 				{
-					if (test_error(j))
-					{
-						ret = -1;
-						break;
-					}
 #ifdef TORRENT_DISK_STATS
 					m_log << log_time() << " read_and_hash " << j.buffer_size << std::endl;
 #endif
@@ -1421,8 +1419,10 @@ namespace libtorrent
 					if (j.buffer == 0)
 					{
 						ret = -1;
-						j.error = error_code(ENOMEM, get_posix_category());
-						j.error_piece = -1;
+						j.error = error_code(boost::system::errc::not_enough_memory
+							, get_posix_category());
+						j.error_piece = j.piece;
+						j.error_op = disk_io_job::read;
 						j.str = j.error.message();
 						break;
 					}
@@ -1450,6 +1450,7 @@ namespace libtorrent
 						j.error = error_code(errors::failed_hash_check, libtorrent_category);
 						j.str = j.error.message();
 						j.error_piece = j.storage->last_piece();
+						j.error_op = disk_io_job::read;
 						j.buffer = 0;
 						break;
 					}
@@ -1478,8 +1479,10 @@ namespace libtorrent
 					if (j.buffer == 0)
 					{
 						ret = -1;
-						j.error = error_code(ENOMEM, get_posix_category());
-						j.error_piece = -1;
+						j.error = error_code(boost::system::errc::not_enough_memory
+							, get_posix_category());
+						j.error_piece = j.piece;
+						j.error_op = disk_io_job::read;
 						j.str = j.error.message();
 						break;
 					}
@@ -1513,6 +1516,7 @@ namespace libtorrent
 							j.error_file.clear();
 							j.str = j.error.message();
 							j.error_piece = j.storage->last_piece();
+							j.error_op = disk_io_job::read;
 							ret = -1;
 							break;
 						}

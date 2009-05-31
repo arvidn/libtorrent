@@ -2078,18 +2078,14 @@ namespace libtorrent
 
 		if (ret == -1 || !t)
 		{
-			if (t->has_picker()) t->picker().write_failed(block_finished);
-
 			if (!t)
 			{
 				disconnect(j.str.c_str());
 				return;
 			}
-		
-			if (t->alerts().should_post<file_error_alert>())
-				t->alerts().post_alert(file_error_alert(j.error_file, t->get_handle(), j.str));
-			t->set_error(j.error, j.error_file);
-			t->pause();
+
+			// handle_disk_error may disconnect us
+			t->handle_disk_error(j, this);
 			return;
 		}
 
@@ -3530,10 +3526,8 @@ namespace libtorrent
 			}
 			else
 			{
-				if (t->alerts().should_post<file_error_alert>())
-					t->alerts().post_alert(file_error_alert(j.error_file, t->get_handle(), j.str));
-				t->set_error(j.error, j.error_file);
-				t->pause();
+				// handle_disk_error may disconnect us
+				t->handle_disk_error(j, this);
 			}
 			return;
 		}

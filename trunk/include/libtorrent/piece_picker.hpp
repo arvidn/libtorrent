@@ -275,7 +275,7 @@ namespace libtorrent
 			, piece_state_t s);
 		void mark_as_writing(piece_block block, void* peer);
 		void mark_as_finished(piece_block block, void* peer);
-		void write_failed(piece_block block);
+		void write_failed(int piece);
 		int num_peers(piece_block block) const;
 
 		// returns information about the given piece
