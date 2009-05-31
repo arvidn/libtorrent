@@ -120,6 +120,9 @@ namespace libtorrent
 		// the error code from the file operation
 		error_code error;
 
+		// the piece the error occurred on
+		int error_piece;
+
 		// this is called when operation completes
 		boost::function<void(int, disk_io_job const&)> callback;
 	};
