@@ -819,7 +819,7 @@ namespace libtorrent
 			file::iovec_t b = { buf.get(), buffer_size };
 			ret = p.storage->read_impl(&b, p.piece, start_block * m_block_size, 1);
 			l.lock();
-			if (p.storage->error()) { return -1; }
+			if (p.storage->error()) return -1;
 			if (ret != buffer_size)
 			{
 				// this means the file wasn't big enough for this read
@@ -858,7 +858,7 @@ namespace libtorrent
 			l.unlock();
 			ret = p.storage->read_impl(iov, p.piece, start_block * m_block_size, iov_counter);
 			l.lock();
-			if (p.storage->error()) { return -1; }
+			if (p.storage->error()) return -1;
 			if (ret != buffer_size)
 			{
 				// this means the file wasn't big enough for this read
@@ -1456,6 +1456,9 @@ namespace libtorrent
 
 					TORRENT_ASSERT(j.buffer == read_holder.get());
 					read_holder.release();
+#if TORRENT_DISK_STATS
+					rename_buffer(j.buffer, "released send buffer");
+#endif
 					break;
 				}
 				case disk_io_job::read:
@@ -1517,6 +1520,9 @@ namespace libtorrent
 					}
 					TORRENT_ASSERT(j.buffer == read_holder.get());
 					read_holder.release();
+#if TORRENT_DISK_STATS
+					rename_buffer(j.buffer, "released send buffer");
+#endif
 					break;
 				}
 				case disk_io_job::write:
@@ -1745,6 +1751,7 @@ namespace libtorrent
 								* (piece_size / (16 * 1024))
 								- total_milliseconds(now - m_last_file_check);
 							if (sleep_time < 0) sleep_time = 0;
+							TORRENT_ASSERT(sleep_time < 5 * 1000);
 	
 							boost::thread::sleep(boost::get_system_time()
 								+ boost::posix_time::milliseconds(sleep_time));
@@ -1824,6 +1831,11 @@ namespace libtorrent
 #endif
 				TORRENT_ASSERT(ret != -2 || !j.str.empty()
 					|| j.action == disk_io_job::hash);
+#if TORRENT_DISK_STATS
+				if ((j.action == disk_io_job::read || j.action == disk_io_job::read_and_hash)
+					&& j.buffer != 0)
+					rename_buffer(j.buffer, "posted send buffer");
+#endif
 				post_callback(handler, j, ret);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (std::exception&)
