@@ -222,8 +222,9 @@ namespace libtorrent
 		int m_allocations;
 #endif
 #ifdef TORRENT_DISK_STATS
-	protected:
+	public:
 		void rename_buffer(char* buf, char const* category);
+	protected:
 		std::map<std::string, int> m_categories;
 		std::map<char*, std::string> m_buf_to_category;
 		std::ofstream m_log;

@@ -3510,6 +3510,9 @@ namespace libtorrent
 		m_reading_bytes -= r.length;
 
 		disk_buffer_holder buffer(m_ses, j.buffer);
+#if TORRENT_DISK_STATS
+		m_ses.m_disk_thread.rename_buffer(j.buffer, "received send buffer");
+#endif
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (ret != r.length || m_torrent.expired())
@@ -3547,6 +3550,9 @@ namespace libtorrent
 			<< " | l: " << r.length << " ]\n";
 #endif
 
+#if TORRENT_DISK_STATS
+		m_ses.m_disk_thread.rename_buffer(j.buffer, "dispatched send buffer");
+#endif
 		write_piece(r, buffer);
 		setup_send();
 	}

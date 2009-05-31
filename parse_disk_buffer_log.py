@@ -9,8 +9,12 @@ lines = open(sys.argv[1], 'rb').readlines()
 # example:
 # 16434 read cache: 17
 
-key_order = ['receive buffer', 'send buffer', 'write cache', 'read cache', 'hash temp']
-colors = ['30f030', 'f03030', '80f080', 'f08080', '4040ff']
+key_order = ['receive buffer', 'send buffer', 'released send buffer', 'posted send buffer',
+	'received send buffer', 'dispatched send buffer', 'queued send buffer',
+	'write cache', 'read cache', 'hash temp']
+colors = ['30f030', '001070', '101080', '2040a0',
+	'4070d0', '80a0f0', 'f03030',
+	'80f080', 'f08080', '4040ff']
 
 keys = []
 fields = {}
@@ -45,13 +49,7 @@ for l in lines:
 			print >>out, '%d\t' % maximum[i],
 		print >>out, '\n',
 
-	if not c in keys:
-		keys.append(c)
-		fields[c] = 0
-		maximum[c] = 0
-		field_sum[c] = 0
-		field_num_samples[c] = 0
-		field_timestamp[c] = 0
+	if not c in keys: continue
 
 	field_sum[c] += fields[c] * float(t - field_timestamp[c])
 	field_timestamp[c] = t
