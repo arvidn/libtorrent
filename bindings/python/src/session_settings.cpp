@@ -47,6 +47,8 @@ void bind_session_settings()
         .def_readwrite("peer_tos", &session_settings::peer_tos)
         .def_readwrite("rate_limit_ip_overhead", &session_settings::rate_limit_ip_overhead)
         .def_readwrite("outgoing_ports", &session_settings::outgoing_ports)
+        .def_readwrite("cache_size", &session_settings::cache_size)
+        .def_readwrite("cache_expiry", &session_settings::cache_expiry)
 #ifndef TORRENT_DISABLE_DHT
         .def_readwrite("use_dht_as_fallback", &session_settings::use_dht_as_fallback)
 #endif
