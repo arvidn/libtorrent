@@ -72,6 +72,7 @@ release 0.14.4
 	* fixed bug when force-checking a torrent with partial pieces
 	* fixed memory leak in disk cache
 	* fixed torrent file path vulnerability
+	* fixed upnp
 
 release 0.14.3
 
