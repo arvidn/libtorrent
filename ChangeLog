@@ -73,6 +73,8 @@ release 0.14.4
 	* fixed memory leak in disk cache
 	* fixed torrent file path vulnerability
 	* fixed upnp
+	* fixed bug when dealing with clients that drop requests (i.e. BitComet)
+	  fixes assert as well
 
 release 0.14.3
 

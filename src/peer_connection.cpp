@@ -1939,10 +1939,13 @@ namespace libtorrent
 		pending_block pending_b = *b;
 #endif
 
-		int block_index = b - m_download_queue.begin() - 1;
+		int block_index = b - m_download_queue.begin();
+		TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
 		for (int i = 0; i < block_index; ++i)
 		{
 			pending_block& qe = m_download_queue[i];
+			TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
+			TORRENT_ASSERT(i < block_index);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << time_now_string()
@@ -1968,14 +1971,15 @@ namespace libtorrent
 				--i;
 				--block_index;
 				m_outstanding_bytes -= t->block_size();
+				TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
 				check_invariant();
 #endif
 			}
 		}
 		TORRENT_ASSERT(int(m_download_queue.size()) > block_index + 1);
-		b = m_download_queue.begin() + (block_index + 1);
-		TORRENT_ASSERT(b->block == pending_b.block);
+		b = m_download_queue.begin() + block_index;
+		TORRENT_ASSERT(*b == pending_b);
 		
 #ifdef TORRENT_DEBUG
 		TORRENT_ASSERT(m_received_in_piece == p.length);
