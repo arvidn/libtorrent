@@ -14,167 +14,211 @@ using namespace libtorrent;
 
 namespace
 {
+    bool listen_on(session& s, int min_, int max_, char const* interface)
+    {
+        allow_threading_guard guard;
+        return s.listen_on(std::make_pair(min_, max_), interface);
+    }
 
-  bool listen_on(session& s, int min_, int max_, char const* interface)
-  {
-      allow_threading_guard guard;
-      return s.listen_on(std::make_pair(min_, max_), interface);
-  }
-  void outgoing_ports(session& s, int _min, int _max)
-  {
-      allow_threading_guard guard;
-      session_settings settings = s.settings();
-      settings.outgoing_ports = std::make_pair(_min, _max);
-      s.set_settings(settings);
-      return;
-  }
+    void outgoing_ports(session& s, int _min, int _max)
+    {
+        allow_threading_guard guard;
+        session_settings settings = s.settings();
+        settings.outgoing_ports = std::make_pair(_min, _max);
+        s.set_settings(settings);
+        return;
+    }
 #ifndef TORRENT_DISABLE_DHT
-  void add_dht_router(session& s, std::string router_, int port_)
-  {
-      allow_threading_guard guard;
-      return s.add_dht_router(std::make_pair(router_, port_));
-  }
+    void add_dht_router(session& s, std::string router_, int port_)
+    {
+        allow_threading_guard guard;
+        return s.add_dht_router(std::make_pair(router_, port_));
+    }
 #endif
 
-  struct invoke_extension_factory
-  {
-      invoke_extension_factory(object const& callback)
-        : cb(callback)
-      {}
+    struct invoke_extension_factory
+    {
+        invoke_extension_factory(object const& callback)
+            : cb(callback)
+        {}
 
-      boost::shared_ptr<torrent_plugin> operator()(torrent* t, void*)
-      {
-          lock_gil lock;
-          return extract<boost::shared_ptr<torrent_plugin> >(cb(ptr(t)))();
-      }
+        boost::shared_ptr<torrent_plugin> operator()(torrent* t, void*)
+        {
+           lock_gil lock;
+           return extract<boost::shared_ptr<torrent_plugin> >(cb(ptr(t)))();
+        }
 
-      object cb;
-  };
+        object cb;
+    };
 
-  void add_extension(session& s, object const& e)
-  {
-      allow_threading_guard guard;
-      s.add_extension(invoke_extension_factory(e));
-  }
+    void add_extension(session& s, object const& e)
+    {
+        allow_threading_guard guard;
+        s.add_extension(invoke_extension_factory(e));
+    }
 
 #ifndef TORRENT_NO_DEPRECATE
-  torrent_handle add_torrent_depr(session& s, torrent_info const& ti
-    , boost::filesystem::path const& save, entry const& resume
-    , storage_mode_t storage_mode, bool paused)
-  {
-      allow_threading_guard guard;
-      return s.add_torrent(ti, save, resume, storage_mode, paused, default_storage_constructor);
-  }
+    torrent_handle add_torrent_depr(session& s, torrent_info const& ti
+        , boost::filesystem::path const& save, entry const& resume
+        , storage_mode_t storage_mode, bool paused)
+    {
+        allow_threading_guard guard;
+        return s.add_torrent(ti, save, resume, storage_mode, paused, default_storage_constructor);
+    }
 #endif
 
-  torrent_handle add_torrent(session& s, dict params)
-  {
-    add_torrent_params p;
-
-    if (params.has_key("ti"))
-      p.ti = new torrent_info(extract<torrent_info const&>(params["ti"]));
-
-    std::string url;
-    if (params.has_key("tracker_url"))
+    torrent_handle add_torrent(session& s, dict params)
     {
-      url = extract<std::string>(params["tracker_url"]);
-      p.tracker_url = url.c_str();
+        add_torrent_params p;
+
+        if (params.has_key("ti"))
+            p.ti = new torrent_info(extract<torrent_info const&>(params["ti"]));
+
+        std::string url;
+        if (params.has_key("tracker_url"))
+        {
+            url = extract<std::string>(params["tracker_url"]);
+            p.tracker_url = url.c_str();
+        }
+        if (params.has_key("info_hash"))
+            p.info_hash = extract<sha1_hash>(params["info_hash"]);
+        std::string name;
+        if (params.has_key("name"))
+        {
+            name = extract<std::string>(params["name"]);
+            p.name = name.c_str();
+        }
+        p.save_path = fs::path(extract<std::string>(params["save_path"]));
+
+        std::vector<char> resume_buf;
+        if (params.has_key("resume_data"))
+        {
+            std::string resume = extract<std::string>(params["resume_data"]);
+            resume_buf.resize(resume.size());
+            std::memcpy(&resume_buf[0], &resume[0], resume.size());
+            p.resume_data = &resume_buf;
+        }
+        if (params.has_key("storage_mode"))
+            p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
+        if (params.has_key("paused"))
+            p.paused = params["paused"];
+        if (params.has_key("auto_managed"))
+            p.auto_managed = params["auto_managed"];
+        if (params.has_key("duplicate_is_error"))
+            p.duplicate_is_error = params["duplicate_is_error"];
+        if (params.has_key("seed_mode"))
+            p.seed_mode = params["seed_mode"];
+        if (params.has_key("override_resume_data"))
+            p.override_resume_data = params["override_resume_data"];
+            
+        return s.add_torrent(p);
     }
-    if (params.has_key("info_hash"))
-      p.info_hash = extract<sha1_hash>(params["info_hash"]);
-    std::string name;
-    if (params.has_key("name"))
+
+    void start_natpmp(session& s)
     {
-      name = extract<std::string>(params["name"]);
-      p.name = name.c_str();
+        allow_threading_guard guard;
+        s.start_natpmp();
+        return;
     }
-    p.save_path = fs::path(extract<std::string>(params["save_path"]));
 
-    std::vector<char> resume_buf;
-    if (params.has_key("resume_data"))
+    void start_upnp(session& s)
     {
-      std::string resume = extract<std::string>(params["resume_data"]);
-      resume_buf.resize(resume.size());
-      std::memcpy(&resume_buf[0], &resume[0], resume.size());
-      p.resume_data = &resume_buf;
+        allow_threading_guard guard;
+        s.start_upnp();
+        return;
     }
-    if (params.has_key("storage_mode"))
-        p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
-    if (params.has_key("paused"))
-       p.paused = params["paused"];
-    if (params.has_key("auto_managed"))
-       p.auto_managed = params["auto_managed"];
-    if (params.has_key("duplicate_is_error"))
-       p.duplicate_is_error = params["duplicate_is_error"];
-    if (params.has_key("seed_mode"))
-       p.seed_mode = params["seed_mode"];
-    if (params.has_key("override_resume_data"))
-       p.override_resume_data = params["override_resume_data"];
 
-    return s.add_torrent(p);
-  }
+    list get_torrents(session& s)
+    {
+        list ret;
+        std::vector<torrent_handle> torrents = s.get_torrents();
 
-  void start_natpmp(session& s)
-  {
-      allow_threading_guard guard;
-      s.start_natpmp();
-      return;
-  }
-
-  void start_upnp(session& s)
-  {
-      allow_threading_guard guard;
-      s.start_upnp();
-      return;
-  }
-
-  list get_torrents(session& s)
-  {
-     list ret;
-     std::vector<torrent_handle> torrents = s.get_torrents();
-
-     for (std::vector<torrent_handle>::iterator i = torrents.begin(); i != torrents.end(); ++i)
-     {
-       ret.append(*i);
-     }
-     return ret;
-  }
+        for (std::vector<torrent_handle>::iterator i = torrents.begin(); i != torrents.end(); ++i)
+        {
+            ret.append(*i);
+        }
+        return ret;
+    }
 
 #ifndef TORRENT_DISABLE_GEO_IP
-  bool load_asnum_db(session& s, std::string file)
-  {
-      allow_threading_guard guard;
-      return s.load_asnum_db(file.c_str());
-  }
+    bool load_asnum_db(session& s, std::string file)
+    {
+        allow_threading_guard guard;
+        return s.load_asnum_db(file.c_str());
+    }
 
-  bool load_country_db(session& s, std::string file)
-  {
-      allow_threading_guard guard;
-      return s.load_country_db(file.c_str());
-  }
+    bool load_country_db(session& s, std::string file)
+    {
+        allow_threading_guard guard;
+        return s.load_country_db(file.c_str());
+    }
 #endif
 } // namespace unnamed
+
 
 void bind_session()
 {
     class_<session_status>("session_status")
         .def_readonly("has_incoming_connections", &session_status::has_incoming_connections)
+
         .def_readonly("upload_rate", &session_status::upload_rate)
         .def_readonly("download_rate", &session_status::download_rate)
-        .def_readonly("payload_upload_rate", &session_status::payload_upload_rate)
-        .def_readonly("payload_download_rate", &session_status::payload_download_rate)
         .def_readonly("total_download", &session_status::total_download)
         .def_readonly("total_upload", &session_status::total_upload)
+
+        .def_readonly("payload_upload_rate", &session_status::payload_upload_rate)
+        .def_readonly("payload_download_rate", &session_status::payload_download_rate)
         .def_readonly("total_payload_download", &session_status::total_payload_download)
         .def_readonly("total_payload_upload", &session_status::total_payload_upload)
+
+        .def_readonly("ip_overhead_upload_rate", &session_status::ip_overhead_upload_rate)
+        .def_readonly("ip_overhead_download_rate", &session_status::ip_overhead_download_rate)
+        .def_readonly("total_ip_overhead_download", &session_status::total_ip_overhead_download)
+        .def_readonly("total_ip_overhead_upload", &session_status::total_ip_overhead_upload)
+        
+        .def_readonly("dht_upload_rate", &session_status::dht_upload_rate)
+        .def_readonly("dht_download_rate", &session_status::dht_download_rate)
+        .def_readonly("total_dht_download", &session_status::total_dht_download)
+        .def_readonly("total_dht_upload", &session_status::total_dht_upload)
+        
+        .def_readonly("tracker_upload_rate", &session_status::tracker_upload_rate)
+        .def_readonly("tracker_download_rate", &session_status::tracker_download_rate)
+        .def_readonly("total_tracker_download", &session_status::total_tracker_download)
+        .def_readonly("total_tracker_upload", &session_status::total_tracker_upload)
+        
+        .def_readonly("total_redundant_bytes", &session_status::total_redundant_bytes)
+        .def_readonly("total_failed_bytes", &session_status::total_failed_bytes)
+        
         .def_readonly("num_peers", &session_status::num_peers)
+        .def_readonly("num_unchoked", &session_status::num_unchoked)
+        .def_readonly("allowed_upload_slots", &session_status::allowed_upload_slots)
+        
+        .def_readonly("up_bandwidth_queue", &session_status::up_bandwidth_queue)
+        .def_readonly("down_bandwidth_queue", &session_status::down_bandwidth_queue)
+        
+        .def_readonly("up_bandwidth_bytes_queue", &session_status::up_bandwidth_bytes_queue)
+        .def_readonly("down_bandwidth_bytes_queue", &session_status::down_bandwidth_bytes_queue)
+        
+        .def_readonly("optimistic_unchoke_counter", &session_status::optimistic_unchoke_counter)
+        .def_readonly("unchoke_counter", &session_status::unchoke_counter)
+        
 #ifndef TORRENT_DISABLE_DHT
         .def_readonly("dht_nodes", &session_status::dht_nodes)
         .def_readonly("dht_cache_nodes", &session_status::dht_node_cache)
         .def_readonly("dht_torrents", &session_status::dht_torrents)
+        .def_readonly("dht_global_nodes", &session_status::dht_global_nodes)
+        .def_readonly("active_requests", &session_status::active_requests)
 #endif
         ;
 
+    class_<dht_lookup>("dht_lookup")
+        .def_readonly("type", &dht_lookup::type)
+        .def_readonly("outstanding_requests", &dht_lookup::outstanding_requests)
+        .def_readonly("timeouts", &dht_lookup::timeouts)
+        .def_readonly("response", &dht_lookup::responses)
+        .def_readonly("branch_factor", &dht_lookup::branch_factor)
+    ;
+        
     enum_<storage_mode_t>("storage_mode_t")
         .value("storage_mode_allocate", storage_mode_allocate)
         .value("storage_mode_sparse", storage_mode_sparse)
