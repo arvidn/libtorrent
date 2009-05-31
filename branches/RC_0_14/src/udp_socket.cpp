@@ -113,7 +113,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 	TORRENT_ASSERT(m_outstanding > 0);
 	--m_outstanding;
 
-	if (e == asio::error::operation_aborted)
+	if (e == asio::error::operation_aborted || m_abort)
 	{
 		if (m_outstanding == 0)
 		{
