@@ -1977,7 +1977,7 @@ namespace libtorrent
 #endif
 			}
 		}
-		TORRENT_ASSERT(int(m_download_queue.size()) > block_index + 1);
+		TORRENT_ASSERT(int(m_download_queue.size()) > block_index);
 		b = m_download_queue.begin() + block_index;
 		TORRENT_ASSERT(*b == pending_b);
 		
