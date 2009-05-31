@@ -1104,9 +1104,9 @@ namespace libtorrent
 					, p, dont_flush_write_blocks) == 0)
 					return -2;
 
-			int ret = read_into_piece(*p, block, 0, blocks_to_read, l);
+			size = read_into_piece(*p, block, 0, blocks_to_read, l);
 			hit = false;
-			if (ret < 0) return ret;
+			if (size < 0) return size;
 			TORRENT_ASSERT(p->blocks[block]);
 		}
 
