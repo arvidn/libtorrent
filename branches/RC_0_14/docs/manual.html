@@ -38,7 +38,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.14.3</td></tr>
+<td>0.14.4</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -177,80 +177,84 @@
 <li><a class="reference internal" href="#portmap-error-alert" id="id135">portmap_error_alert</a></li>
 <li><a class="reference internal" href="#portmap-alert" id="id136">portmap_alert</a></li>
 <li><a class="reference internal" href="#file-error-alert" id="id137">file_error_alert</a></li>
-<li><a class="reference internal" href="#tracker-announce-alert" id="id138">tracker_announce_alert</a></li>
-<li><a class="reference internal" href="#tracker-error-alert" id="id139">tracker_error_alert</a></li>
-<li><a class="reference internal" href="#tracker-reply-alert" id="id140">tracker_reply_alert</a></li>
-<li><a class="reference internal" href="#dht-reply-alert" id="id141">dht_reply_alert</a></li>
-<li><a class="reference internal" href="#tracker-warning-alert" id="id142">tracker_warning_alert</a></li>
-<li><a class="reference internal" href="#scrape-reply-alert" id="id143">scrape_reply_alert</a></li>
-<li><a class="reference internal" href="#scrape-failed-alert" id="id144">scrape_failed_alert</a></li>
-<li><a class="reference internal" href="#url-seed-alert" id="id145">url_seed_alert</a></li>
-<li><a class="reference internal" href="#hash-failed-alert" id="id146">hash_failed_alert</a></li>
-<li><a class="reference internal" href="#peer-ban-alert" id="id147">peer_ban_alert</a></li>
-<li><a class="reference internal" href="#peer-error-alert" id="id148">peer_error_alert</a></li>
-<li><a class="reference internal" href="#invalid-request-alert" id="id149">invalid_request_alert</a></li>
-<li><a class="reference internal" href="#torrent-finished-alert" id="id150">torrent_finished_alert</a></li>
-<li><a class="reference internal" href="#performance-alert" id="id151">performance_alert</a></li>
-<li><a class="reference internal" href="#metadata-failed-alert" id="id152">metadata_failed_alert</a></li>
-<li><a class="reference internal" href="#metadata-received-alert" id="id153">metadata_received_alert</a></li>
-<li><a class="reference internal" href="#fastresume-rejected-alert" id="id154">fastresume_rejected_alert</a></li>
-<li><a class="reference internal" href="#peer-blocked-alert" id="id155">peer_blocked_alert</a></li>
-<li><a class="reference internal" href="#storage-moved-alert" id="id156">storage_moved_alert</a></li>
-<li><a class="reference internal" href="#torrent-paused-alert" id="id157">torrent_paused_alert</a></li>
-<li><a class="reference internal" href="#torrent-resumed-alert" id="id158">torrent_resumed_alert</a></li>
-<li><a class="reference internal" href="#save-resume-data-alert" id="id159">save_resume_data_alert</a></li>
-<li><a class="reference internal" href="#save-resume-data-failed-alert" id="id160">save_resume_data_failed_alert</a></li>
-<li><a class="reference internal" href="#dispatcher" id="id161">dispatcher</a></li>
+<li><a class="reference internal" href="#file-renamed-alert" id="id138">file_renamed_alert</a></li>
+<li><a class="reference internal" href="#file-rename-failed-alert" id="id139">file_rename_failed_alert</a></li>
+<li><a class="reference internal" href="#tracker-announce-alert" id="id140">tracker_announce_alert</a></li>
+<li><a class="reference internal" href="#tracker-error-alert" id="id141">tracker_error_alert</a></li>
+<li><a class="reference internal" href="#tracker-reply-alert" id="id142">tracker_reply_alert</a></li>
+<li><a class="reference internal" href="#dht-reply-alert" id="id143">dht_reply_alert</a></li>
+<li><a class="reference internal" href="#tracker-warning-alert" id="id144">tracker_warning_alert</a></li>
+<li><a class="reference internal" href="#scrape-reply-alert" id="id145">scrape_reply_alert</a></li>
+<li><a class="reference internal" href="#scrape-failed-alert" id="id146">scrape_failed_alert</a></li>
+<li><a class="reference internal" href="#url-seed-alert" id="id147">url_seed_alert</a></li>
+<li><a class="reference internal" href="#hash-failed-alert" id="id148">hash_failed_alert</a></li>
+<li><a class="reference internal" href="#peer-ban-alert" id="id149">peer_ban_alert</a></li>
+<li><a class="reference internal" href="#peer-error-alert" id="id150">peer_error_alert</a></li>
+<li><a class="reference internal" href="#invalid-request-alert" id="id151">invalid_request_alert</a></li>
+<li><a class="reference internal" href="#torrent-finished-alert" id="id152">torrent_finished_alert</a></li>
+<li><a class="reference internal" href="#performance-alert" id="id153">performance_alert</a></li>
+<li><a class="reference internal" href="#metadata-failed-alert" id="id154">metadata_failed_alert</a></li>
+<li><a class="reference internal" href="#metadata-received-alert" id="id155">metadata_received_alert</a></li>
+<li><a class="reference internal" href="#fastresume-rejected-alert" id="id156">fastresume_rejected_alert</a></li>
+<li><a class="reference internal" href="#peer-blocked-alert" id="id157">peer_blocked_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-alert" id="id158">storage_moved_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-failed-alert" id="id159">storage_moved_failed_alert</a></li>
+<li><a class="reference internal" href="#torrent-paused-alert" id="id160">torrent_paused_alert</a></li>
+<li><a class="reference internal" href="#torrent-resumed-alert" id="id161">torrent_resumed_alert</a></li>
+<li><a class="reference internal" href="#save-resume-data-alert" id="id162">save_resume_data_alert</a></li>
+<li><a class="reference internal" href="#save-resume-data-failed-alert" id="id163">save_resume_data_failed_alert</a></li>
+<li><a class="reference internal" href="#dispatcher" id="id164">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#exceptions" id="id162">exceptions</a><ul>
-<li><a class="reference internal" href="#invalid-handle" id="id163">invalid_handle</a></li>
-<li><a class="reference internal" href="#duplicate-torrent" id="id164">duplicate_torrent</a></li>
-<li><a class="reference internal" href="#invalid-encoding" id="id165">invalid_encoding</a></li>
-<li><a class="reference internal" href="#type-error" id="id166">type_error</a></li>
-<li><a class="reference internal" href="#invalid-torrent-file" id="id167">invalid_torrent_file</a></li>
+<li><a class="reference internal" href="#exceptions" id="id165">exceptions</a><ul>
+<li><a class="reference internal" href="#invalid-handle" id="id166">invalid_handle</a></li>
+<li><a class="reference internal" href="#duplicate-torrent" id="id167">duplicate_torrent</a></li>
+<li><a class="reference internal" href="#invalid-encoding" id="id168">invalid_encoding</a></li>
+<li><a class="reference internal" href="#type-error" id="id169">type_error</a></li>
+<li><a class="reference internal" href="#invalid-torrent-file" id="id170">invalid_torrent_file</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#storage-interface" id="id168">storage_interface</a><ul>
-<li><a class="reference internal" href="#initialize" id="id169">initialize()</a></li>
-<li><a class="reference internal" href="#read" id="id170">read()</a></li>
-<li><a class="reference internal" href="#write" id="id171">write()</a></li>
-<li><a class="reference internal" href="#id13" id="id172">move_storage()</a></li>
-<li><a class="reference internal" href="#verify-resume-data" id="id173">verify_resume_data()</a></li>
-<li><a class="reference internal" href="#write-resume-data" id="id174">write_resume_data()</a></li>
-<li><a class="reference internal" href="#move-slot" id="id175">move_slot()</a></li>
-<li><a class="reference internal" href="#swap-slots" id="id176">swap_slots()</a></li>
-<li><a class="reference internal" href="#swap-slots3" id="id177">swap_slots3()</a></li>
-<li><a class="reference internal" href="#hash-for-slot" id="id178">hash_for_slot()</a></li>
-<li><a class="reference internal" href="#id14" id="id179">rename_file()</a></li>
-<li><a class="reference internal" href="#release-files" id="id180">release_files()</a></li>
-<li><a class="reference internal" href="#delete-files" id="id181">delete_files()</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id171">storage_interface</a><ul>
+<li><a class="reference internal" href="#initialize" id="id172">initialize()</a></li>
+<li><a class="reference internal" href="#has-any-file" id="id173">has_any_file()</a></li>
+<li><a class="reference internal" href="#read" id="id174">read()</a></li>
+<li><a class="reference internal" href="#write" id="id175">write()</a></li>
+<li><a class="reference internal" href="#id13" id="id176">move_storage()</a></li>
+<li><a class="reference internal" href="#verify-resume-data" id="id177">verify_resume_data()</a></li>
+<li><a class="reference internal" href="#write-resume-data" id="id178">write_resume_data()</a></li>
+<li><a class="reference internal" href="#move-slot" id="id179">move_slot()</a></li>
+<li><a class="reference internal" href="#swap-slots" id="id180">swap_slots()</a></li>
+<li><a class="reference internal" href="#swap-slots3" id="id181">swap_slots3()</a></li>
+<li><a class="reference internal" href="#hash-for-slot" id="id182">hash_for_slot()</a></li>
+<li><a class="reference internal" href="#id14" id="id183">rename_file()</a></li>
+<li><a class="reference internal" href="#release-files" id="id184">release_files()</a></li>
+<li><a class="reference internal" href="#delete-files" id="id185">delete_files()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#magnet-links" id="id182">magnet links</a></li>
-<li><a class="reference internal" href="#queuing" id="id183">queuing</a><ul>
-<li><a class="reference internal" href="#downloading" id="id184">downloading</a></li>
-<li><a class="reference internal" href="#seeding" id="id185">seeding</a></li>
+<li><a class="reference internal" href="#magnet-links" id="id186">magnet links</a></li>
+<li><a class="reference internal" href="#queuing" id="id187">queuing</a><ul>
+<li><a class="reference internal" href="#downloading" id="id188">downloading</a></li>
+<li><a class="reference internal" href="#seeding" id="id189">seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#fast-resume" id="id186">fast resume</a><ul>
-<li><a class="reference internal" href="#file-format" id="id187">file format</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id190">fast resume</a><ul>
+<li><a class="reference internal" href="#file-format" id="id191">file format</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#threads" id="id188">threads</a></li>
-<li><a class="reference internal" href="#storage-allocation" id="id189">storage allocation</a><ul>
-<li><a class="reference internal" href="#sparse-allocation" id="id190">sparse allocation</a></li>
-<li><a class="reference internal" href="#full-allocation" id="id191">full allocation</a></li>
-<li><a class="reference internal" href="#compact-allocation" id="id192">compact allocation</a></li>
+<li><a class="reference internal" href="#threads" id="id192">threads</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id193">storage allocation</a><ul>
+<li><a class="reference internal" href="#sparse-allocation" id="id194">sparse allocation</a></li>
+<li><a class="reference internal" href="#full-allocation" id="id195">full allocation</a></li>
+<li><a class="reference internal" href="#compact-allocation" id="id196">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#extensions" id="id193">extensions</a><ul>
-<li><a class="reference internal" href="#metadata-from-peers" id="id194">metadata from peers</a></li>
-<li><a class="reference internal" href="#http-seeding" id="id195">HTTP seeding</a></li>
+<li><a class="reference internal" href="#extensions" id="id197">extensions</a><ul>
+<li><a class="reference internal" href="#metadata-from-peers" id="id198">metadata from peers</a></li>
+<li><a class="reference internal" href="#http-seeding" id="id199">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#filename-checks" id="id196">filename checks</a></li>
-<li><a class="reference internal" href="#acknowledgments" id="id197">acknowledgments</a></li>
+<li><a class="reference internal" href="#filename-checks" id="id200">filename checks</a></li>
+<li><a class="reference internal" href="#acknowledgments" id="id201">acknowledgments</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -632,6 +636,8 @@ you don't want to limit upload rate, you can set this to -1 (the default).
 of upload rate.
 <tt class="docutils literal"><span class="pre">download_rate_limit()</span></tt> and <tt class="docutils literal"><span class="pre">upload_rate_limit()</span></tt> returns the previously
 set limits.</p>
+<p>Upload and download rate limits are not applied to peers on the local network
+by default. To change that, see <tt class="docutils literal"><span class="pre">session_settings::ignore_limits_on_local_network</span></tt>.</p>
 </div>
 <div class="section" id="set-max-uploads-set-max-connections">
 <h2>set_max_uploads() set_max_connections()</h2>
@@ -1872,7 +1878,8 @@ This will block all other disk IO, and other torrents download and upload rates 
 drop while copying the file.</p>
 <p>Since disk IO is performed in a separate thread, this operation is also asynchronous.
 Once the operation completes, the <tt class="docutils literal"><span class="pre">storage_moved_alert</span></tt> is generated, with the new
-path as the message.</p>
+path as the message. If the move fails for some reason, <tt class="docutils literal"><span class="pre">storage_moved_failed_alert</span></tt>
+is generated instead, containing the error message.</p>
 </div>
 <div class="section" id="id5">
 <h2>rename_file()</h2>
@@ -4015,6 +4022,36 @@ struct file_error_alert: torrent_alert
 };
 </pre>
 </div>
+<div class="section" id="file-renamed-alert">
+<h2>file_renamed_alert</h2>
+<p>This is posted as a response to a <tt class="docutils literal"><span class="pre">torrent_handle::rename_file</span></tt> call, if the rename
+operation succeeds.</p>
+<pre class="literal-block">
+struct file_renamed_alert: torrent_alert
+{
+        // ...
+        std::string name;
+        int index;
+};
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">index</span></tt> member refers to the index of the file that was renamed,
+<tt class="docutils literal"><span class="pre">name</span></tt> is the new name of the file.</p>
+</div>
+<div class="section" id="file-rename-failed-alert">
+<h2>file_rename_failed_alert</h2>
+<p>This is posted as a response to a <tt class="docutils literal"><span class="pre">torrent_handle::rename_file</span></tt> call, if the rename
+operation failed.</p>
+<pre class="literal-block">
+struct file_rename_failed_alert: torrent_alert
+{
+        // ...
+        std::string msg;
+        int index;
+};
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">index</span></tt> member refers to the index of the file that was supposed to be renamed,
+<tt class="docutils literal"><span class="pre">msg</span></tt> is the error message returned from the filesystem.</p>
+</div>
 <div class="section" id="tracker-announce-alert">
 <h2>tracker_announce_alert</h2>
 <p>This alert is generated each time a tracker announce is sent (or attempted to be sent).
@@ -4287,6 +4324,18 @@ struct storage_moved_alert: torrent_alert
 };
 </pre>
 </div>
+<div class="section" id="storage-moved-failed-alert">
+<h2>storage_moved_failed_alert</h2>
+<p>The <tt class="docutils literal"><span class="pre">storage_moved_failed_alert</span></tt> is generated when an attempt to move the storage
+(via torrent_handle::move_storage()) fails.</p>
+<pre class="literal-block">
+struct storage_moved_failed_alert: torrent_alert
+{
+        // ...
+        error_code error;
+};
+</pre>
+</div>
 <div class="section" id="torrent-paused-alert">
 <h2>torrent_paused_alert</h2>
 <p>This alert is generated as a response to a <tt class="docutils literal"><span class="pre">torrent_handle::pause</span></tt> request. It is
@@ -4434,12 +4483,27 @@ struct invalid_torrent_file: std::exception
 <div class="section" id="storage-interface">
 <h1>storage_interface</h1>
 <p>The storage interface is a pure virtual class that can be implemented to
-change the behavior of the actual file storage. The interface looks like
-this:</p>
+customize how and where data for a torrent is stored. The default storage
+implementation uses regular files in the filesystem, mapping the files in the
+torrent in the way one would assume a torrent is saved to disk. Implementing
+your own storage interface makes it possible to store all data in RAM, or in
+some optimized order on disk (the order the pieces are received for instance),
+or saving multifile torrents in a single file in order to be able to take
+advantage of optimized disk-I/O.</p>
+<p>It is also possible to write a thin class that uses the default storage but
+modifies some particular behavior, for instance encrypting the data before
+it's written to disk, and decrypting it when it's read again.</p>
+<p>The storage interface is based on slots, each slot is 'piece_size' number
+of bytes. All access is done by writing and reading whole or partial
+slots. One slot is one piece in the torrent, but the data in the slot
+does not necessarily correspond to the piece with the same index (in
+compact allocation mode it won't).</p>
+<p>The interface looks like this:</p>
 <pre class="literal-block">
 struct storage_interface
 {
         virtual bool initialize(bool allocate_files) = 0;
+        virtual bool has_any_file() = 0;
         virtual int read(char* buf, int slot, int offset, int size) = 0;
         virtual int write(const char* buf, int slot, int offset, int size) = 0;
         virtual bool move_storage(fs::path save_path) = 0;
@@ -4466,6 +4530,17 @@ bool initialize(bool allocate_files) = 0;
 will create directories and empty files at this point. If <tt class="docutils literal"><span class="pre">allocate_files</span></tt> is true,
 it will also <tt class="docutils literal"><span class="pre">ftruncate</span></tt> all files to their target size.</p>
 <p>Returning <tt class="docutils literal"><span class="pre">true</span></tt> indicates an error occurred.</p>
+</div>
+<div class="section" id="has-any-file">
+<h2>has_any_file()</h2>
+<blockquote>
+<pre class="literal-block">
+virtual bool has_any_file() = 0;
+</pre>
+</blockquote>
+<p>This function is called when first checking (or re-checking) the storage for a torrent.
+It should return true if any of the files that is used in this storage exists on disk.
+If so, the storage will be checked for existing pieces before starting the download.</p>
 </div>
 <div class="section" id="read">
 <h2>read()</h2>
