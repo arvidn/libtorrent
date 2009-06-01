@@ -52,10 +52,9 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 {
 	using namespace libtorrent;
 
-	session ses(fingerprint("  ", 0,0,0,0), 0);
+	session ses;
 	session_settings settings;
 	settings.ignore_limits_on_local_network = false;
-	settings.max_outstanding_disk_bytes_per_connection = 256 * 1024;
 	ses.set_settings(settings);
 	ses.set_alert_mask(~alert::progress_notification);
 	ses.listen_on(std::make_pair(51000, 52000));
@@ -92,15 +91,14 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 	{
 		torrent_status s = th.status();
 		session_status ss = ses.status();
-		rate_sum += s.download_payload_rate;
-		ses_rate_sum += ss.payload_download_rate;
 		std::cerr << (s.progress * 100.f) << " %"
 			<< " torrent rate: " << (s.download_rate / 1000.f) << " kB/s"
 			<< " session rate: " << (ss.download_rate / 1000.f) << " kB/s"
 			<< " session total: " << ss.total_payload_download
 			<< " torrent total: " << s.total_payload_download
-			<< " rate sum:" << ses_rate_sum
 			<< std::endl;
+		rate_sum += s.download_payload_rate;
+		ses_rate_sum += ss.payload_download_rate;
 
 		print_alerts(ses, "ses");
 
@@ -160,7 +158,7 @@ int test_main()
 
 	// calculate the hash for all pieces
 	int num = t.num_pieces();
-	char* buf = page_aligned_allocator::malloc(t.piece_length());
+	std::vector<char> buf(t.piece_length());
 
 	file_pool fp;
 	boost::scoped_ptr<storage_interface> s(default_storage_constructor(
@@ -168,8 +166,8 @@ int test_main()
 
 	for (int i = 0; i < num; ++i)
 	{
-		s->read(buf, i, 0, fs.piece_size(i));
-		hasher h(buf, fs.piece_size(i));
+		s->read(&buf[0], i, 0, fs.piece_size(i));
+		hasher h(&buf[0], fs.piece_size(i));
 		t.set_hash(i, h.final());
 	}
 	
@@ -183,7 +181,6 @@ int test_main()
 
 	stop_web_server(8000);
 	remove_all("./test_torrent_dir");
-	page_aligned_allocator::free(buf);
 	return 0;
 }
 

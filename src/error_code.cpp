@@ -32,12 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 
+#if BOOST_VERSION >= 103500
+
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
-#if BOOST_VERSION >= 103500
-
 	const char* libtorrent_error_category::name() const
 	{
 		return "libtorrent error";
@@ -46,46 +46,15 @@ namespace libtorrent
 	std::string libtorrent_error_category::message(int ev) const
 	{
 		static char const* msgs[] =
-		{
-			"no error",
-			"torrent file collides with file from another torrent",
-			"hash check failed",
-			"torrent file is not a dictionary",
-			"missing or invalid 'info' section in torrent file",
-			"'info' entry is not a dictionary",
-			"invalid or missing 'piece length' entry in torrent file",
-			"missing name in torrent file",
-			"invalid 'name' of torrent (possible exploit attempt)",
-			"invalid length of torrent",
-			"failed to parse files from torrent file",
-			"invalid or missing 'pieces' entry in torrent file",
-			"incorrect number of piece hashes in torrent file",
-			"too many pieces in torrent",
-			"invalid metadata received from swarm",
-			"invalid bencoding",
-			"no files in torrent",
-			"invalid escaped string",
-			"session is closing",
-			"torrent already exists in session",
-			"invalid torrent handle used",
-			"invalid type requested from entry",
-			"missing info-hash from URI",
-			"file too short",
-			"unsupported URL protocol",
-			"failed to parse URL",
-		};
+		{ "no error", "torrent file collides with file from another torrent" };
 		if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
 			return "Unknown error";
 		return msgs[ev];
 	}
 
-	TORRENT_EXPORT libtorrent_error_category libtorrent_category;
-
-#else
-
-	::asio::error::error_category libtorrent_category = asio::error::error_category(20);
-
-#endif
+	libtorrent_error_category libtorrent_category;
 
 }
+
+#endif
 

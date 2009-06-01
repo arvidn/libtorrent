@@ -161,8 +161,10 @@ namespace libtorrent
 		bool m_first_request;
 		
 		// this is used for intermediate storage of pieces
-		// that are received in more than one HTTP response
+		// that is received in more than on HTTP responses
 		std::vector<char> m_piece;
+		// the mapping of the data in the m_piece buffer
+		peer_request m_intermediate_piece;
 		
 		// the number of bytes into the receive buffer where
 		// current read cursor is.
@@ -174,9 +176,6 @@ namespace libtorrent
 
 		// position in the current range response
 		int m_range_pos;
-
-		// the position in the current block
-		int m_block_pos;
 	};
 }
 

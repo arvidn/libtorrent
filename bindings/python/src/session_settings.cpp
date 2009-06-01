@@ -2,8 +2,8 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/python.hpp>
 #include <libtorrent/session.hpp>
+#include <boost/python.hpp>
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -50,22 +50,14 @@ void bind_session_settings()
         .def_readwrite("upnp_ignore_nonrouters", &session_settings::upnp_ignore_nonrouters)
         .def_readwrite("send_buffer_watermark", &session_settings::send_buffer_watermark)
         .def_readwrite("auto_upload_slots", &session_settings::auto_upload_slots)
-        .def_readwrite("auto_upload_slots_rate_based", &session_settings::auto_upload_slots_rate_based)
         .def_readwrite("use_parole_mode", &session_settings::use_parole_mode)
         .def_readwrite("cache_size", &session_settings::cache_size)
-        .def_readwrite("cache_buffer_chunk_size", &session_settings::cache_buffer_chunk_size)
         .def_readwrite("cache_expiry", &session_settings::cache_expiry)
-        .def_readwrite("use_read_cache", &session_settings::use_read_cache)
-        .def_readwrite("disk_io_write_mode", &session_settings::disk_io_write_mode)
-        .def_readwrite("disk_io_read_mode", &session_settings::disk_io_read_mode)
-        .def_readwrite("coalesce_reads", &session_settings::coalesce_reads)
-        .def_readwrite("coalesce_writes", &session_settings:coalesce_writes)
         .def_readwrite("outgoing_ports", &session_settings::outgoing_ports)
         .def_readwrite("peer_tos", &session_settings::peer_tos)
         .def_readwrite("active_downloads", &session_settings::active_downloads)
         .def_readwrite("active_seeds", &session_settings::active_seeds)
         .def_readwrite("active_limit", &session_settings::active_limit)
-        .def_readwrite("auto_manage_prefer_seeds", &session_settings::automanaged_prefer_seeds)
         .def_readwrite("dont_count_slow_torrents", &session_settings::dont_count_slow_torrents)
         .def_readwrite("auto_manage_interval", &session_settings::auto_manage_interval)
         .def_readwrite("share_ratio_limit", &session_settings::share_ratio_limit)
@@ -77,27 +69,10 @@ void bind_session_settings()
         .def_readwrite("auto_scrape_interval", &session_settings::auto_scrape_interval)
         .def_readwrite("auto_scrape_min_interval", &session_settings::auto_scrape_min_interval)
         .def_readwrite("max_peerlist_size", &session_settings::max_peerlist_size)
-        .def_readwrite("max_paused_peerlist_size", &session_settings::max_paused_peerlist_size)
         .def_readwrite("min_announce_interval", &session_settings::min_announce_interval)
         .def_readwrite("prioritize_partial_pieces", &session_settings::prioritize_partial_pieces)
         .def_readwrite("auto_manage_startup", &session_settings::auto_manage_startup)
         .def_readwrite("rate_limit_ip_overhead", &session_settings::rate_limit_ip_overhead)
-        .def_readwrite("announce_to_all_trackers", &session_settings::announce_to_all_trackers)
-        .def_readwrite("prefer_udp_trackers", &session_settings::prefer_udp_trackers)
-        .def_readwrite("strict_super_seeding", &session_settings::strict_super_seeding)
-        .def_readwrite("seeding_piece_quota", &session_settings::seeding_piece_quota)
-        .def_readwrite("max_sparse_regions", &session_settings::max_sparse_regions)
-#ifndef TORRENT_DISABLE_MLOCK
-        .def_readwrite("lock_disk_cache", &session_settings::lock_disk_cache)
-#endif
-        .def_readwrite("max_rejects", &session_settings::max_rejects)
-        .def_readwrite("recv_socket_buffer_size", &session_settings::recv_socket_buffer_size)
-        .def_readwrite("send_socket_buffer_size", &session_settings::send_socket_buffer_size)
-        .def_readwrite("optimize_hashing_for_speed", &session_settings::optimize_hashing_for_speed)
-        .def_readwrite("file_checks_delay_per_block", &session_settings::file_checks_delay_per_block)
-        .def_readwrite("disk_cache_algorithm", &session_settings::disk_cache_algorithm)
-        .def_readwrite("read_cache_line_size", &session_settings::read_cache_line_size)
-        .def_readwrite("write_cache_line_size", &session_settings::write_cache_line_size)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")
@@ -108,18 +83,6 @@ void bind_session_settings()
         .value("http", proxy_settings::http)
         .value("http_pw", proxy_settings::http_pw)
     ;
-    
-    enum_<session_settings::disk_cache_algo_t("disk_cache_algo_t")
-        .value("lru", session_settings::disk_cache_algo_t::lru)
-        .value("largest_contiguous", session_settings::disk_cache_algo_t::largest_contiguous)
-    ;
-    
-    enum_<session_settings::io_buffer_mode_t("io_buffer_mode_t")
-        .value("enable_os_cache", session_settings::io_buffer_mode_t::enable_os_cache)
-        .value("disable_os_cache_for_aligned_files", session_settings::io_buffer_mode_t:disable_os_cache_for_aligned_files)
-        .value("disable_os_cache", session_settings::io_buffer_mode_t::disable_os_cache)
-    ;
-     
     class_<proxy_settings>("proxy_settings")
         .def_readwrite("hostname", &proxy_settings::hostname)
         .def_readwrite("port", &proxy_settings::port)

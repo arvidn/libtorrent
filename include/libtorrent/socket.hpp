@@ -74,7 +74,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/escape_string.hpp" // for to_string
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -84,19 +83,21 @@ namespace libtorrent
 {
 
 #if BOOST_VERSION < 103500
-	using ::asio::ip::tcp;
-	using ::asio::ip::udp;
-	using ::asio::async_write;
-	using ::asio::async_read;
+	using asio::ip::tcp;
+	using asio::ip::udp;
+	using asio::async_write;
+	using asio::async_read;
 
-	typedef ::asio::ip::tcp::socket stream_socket;
-	typedef ::asio::ip::address address;
-	typedef ::asio::ip::address_v4 address_v4;
-	typedef ::asio::ip::address_v6 address_v6;
-	typedef ::asio::ip::udp::socket datagram_socket;
-	typedef ::asio::ip::tcp::acceptor socket_acceptor;
-	typedef ::asio::io_service io_service;
-	typedef ::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
+	typedef asio::ip::tcp::socket stream_socket;
+	typedef asio::ip::address address;
+	typedef asio::ip::address_v4 address_v4;
+	typedef asio::ip::address_v6 address_v6;
+	typedef asio::ip::udp::socket datagram_socket;
+	typedef asio::ip::tcp::acceptor socket_acceptor;
+	typedef asio::io_service io_service;
+
+	namespace asio = ::asio;
+	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 #else
 	using boost::asio::ip::tcp;
 	using boost::asio::ip::udp;
@@ -115,39 +116,28 @@ namespace libtorrent
 	typedef boost::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 #endif
 	
-	inline std::string print_address(address const& addr)
+	inline std::ostream& print_address(std::ostream& os, address const& addr)
 	{
 		error_code ec;
-		return addr.to_string(ec);
+		std::string a = addr.to_string(ec);
+		if (ec) return os;
+		os << a;
+		return os;
 	}
 
-	inline std::string print_endpoint(tcp::endpoint const& ep)
+	inline std::ostream& print_endpoint(std::ostream& os, tcp::endpoint const& ep)
 	{
-		error_code ec;
-		std::string ret;
 		address const& addr = ep.address();
-#if TORRENT_USE_IPV6
-		if (addr.is_v6())
-		{
-			ret += '[';
-			ret += addr.to_string(ec);
-			ret += ']';
-			ret += ':';
-			ret += to_string(ep.port()).elems;
-		}
-		else
-#endif
-		{
-			ret += addr.to_string(ec);
-			ret += ':';
-			ret += to_string(ep.port()).elems;
-		}
-		return ret;
-	}
+		error_code ec;
+		std::string a = addr.to_string(ec);
+		if (ec) return os;
 
-	inline std::string print_endpoint(udp::endpoint const& ep)
-	{
-		return print_endpoint(tcp::endpoint(ep.address(), ep.port()));
+		if (addr.is_v6())
+			os << "[" << a << "]:";
+		else
+			os << a << ":";
+		os << ep.port();
+		return os;
 	}
 
 	namespace detail
@@ -155,12 +145,9 @@ namespace libtorrent
 		template<class OutIt>
 		void write_address(address const& a, OutIt& out)
 		{
-#if TORRENT_USE_IPV6
 			if (a.is_v4())
 			{
-#endif
 				write_uint32(a.to_v4().to_ulong(), out);
-#if TORRENT_USE_IPV6
 			}
 			else if (a.is_v6())
 			{
@@ -168,7 +155,6 @@ namespace libtorrent
 					= a.to_v6().to_bytes();
 				std::copy(bytes.begin(), bytes.end(), out);
 			}
-#endif
 		}
 
 		template<class InIt>
@@ -178,7 +164,6 @@ namespace libtorrent
 			return address_v4(ip);
 		}
 
-#if TORRENT_USE_IPV6
 		template<class InIt>
 		address read_v6_address(InIt& in)
 		{
@@ -189,7 +174,6 @@ namespace libtorrent
 				*i = read_uint8(in);
 			return address_v6(bytes);
 		}
-#endif
 
 		template<class Endpoint, class OutIt>
 		void write_endpoint(Endpoint const& e, OutIt& out)
@@ -206,7 +190,6 @@ namespace libtorrent
 			return Endpoint(addr, port);
 		}
 
-#if TORRENT_USE_IPV6
 		template<class Endpoint, class InIt>
 		Endpoint read_v6_endpoint(InIt& in)
 		{
@@ -214,10 +197,8 @@ namespace libtorrent
 			int port = read_uint16(in);
 			return Endpoint(addr, port);
 		}
-#endif
 	}
 
-#if TORRENT_USE_IPV6
 	struct v6only
 	{
 		v6only(bool enable): m_value(enable) {}
@@ -231,7 +212,6 @@ namespace libtorrent
 		size_t size(Protocol const&) const { return sizeof(m_value); }
 		int m_value;
 	};
-#endif
 	
 #ifdef TORRENT_WINDOWS
 

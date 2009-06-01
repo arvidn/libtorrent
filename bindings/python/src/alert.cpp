@@ -2,18 +2,12 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/python.hpp>
 #include <libtorrent/alert.hpp>
 #include <libtorrent/alert_types.hpp>
+#include <boost/python.hpp>
 
 using namespace boost::python;
 using namespace libtorrent;
-
-std::string get_buffer(read_piece_alert const& rpa)
-{
-    return rpa.buffer ? std::string(rpa.buffer.get(), rpa.size)
-       : std::string();
-}
 
 void bind_alert()
 {
@@ -30,7 +24,6 @@ void bind_alert()
             .def("__str__", &alert::message)
             ;
 
-#ifndef TORRENT_NO_DEPRECATE
         enum_<alert::severity_t>("severity_levels")
             .value("debug", alert::debug)
             .value("info", alert::info)
@@ -39,7 +32,6 @@ void bind_alert()
             .value("fatal", alert::fatal)
             .value("none", alert::none)
             ;
-#endif
 
         enum_<alert::category_t>("category_t")
             .value("error_notification", alert::error_notification)
@@ -67,14 +59,6 @@ void bind_alert()
         "tracker_alert", no_init
     )
         .def_readonly("url", &tracker_alert::url)
-        ;
-
-    class_<read_piece_alert, bases<torrent_alert>, noncopyable>(
-        "read_piece_alert", 0, no_init
-    )
-        .add_property("buffer", get_buffer)
-        .def_readonly("piece", &read_piece_alert::piece)
-        .def_readonly("size", &read_piece_alert::size)
         ;
 
     class_<peer_alert, bases<torrent_alert>, noncopyable>(
@@ -274,7 +258,7 @@ void bind_alert()
         "file_rename_failed_alert", no_init
     )
         .def_readonly("index", &file_rename_failed_alert::index)
-        .def_readonly("error", &file_rename_failed_alert::error)
+        .def_readonly("msg", &file_rename_failed_alert::msg)
         ;
 
     class_<torrent_resumed_alert, bases<torrent_alert>, noncopyable>(

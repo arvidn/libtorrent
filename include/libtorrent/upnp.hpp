@@ -47,6 +47,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 
 
+#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) && !defined (TORRENT_UPNP_LOGGING)
+#define TORRENT_UPNP_LOGGING
+#endif
+
 #if defined(TORRENT_UPNP_LOGGING)
 #include <fstream>
 #endif
@@ -58,11 +62,9 @@ namespace libtorrent
 // int: external port
 // std::string: error message
 // an empty string as error means success
-// a port-mapping index of -1 means it's
-// an informational log message
 typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
 
-class TORRENT_EXPORT upnp : public intrusive_ptr_base<upnp>
+class upnp : public intrusive_ptr_base<upnp>
 {
 public:
 	upnp(io_service& ios, connection_queue& cc
@@ -75,7 +77,6 @@ public:
 	enum protocol_type { none = 0, udp = 1, tcp = 2 };
 	int add_mapping(protocol_type p, int external_port, int local_port);
 	void delete_mapping(int mapping_index);
-	bool get_mapping(int mapping_index, int& local_port, int& external_port, int& protocol) const;
 
 	void discover_device();
 	void close();
@@ -116,12 +117,11 @@ private:
 
 	void disable(char const* msg);
 	void return_error(int mapping, int code);
-	void log(std::string const&);
 
 	void delete_port_mapping(rootdevice& d, int i);
 	void create_port_mapping(http_connection& c, rootdevice& d, int i);
-	void post(upnp::rootdevice const& d, char const* soap
-		, char const* soap_action);
+	void post(upnp::rootdevice const& d, std::string const& soap
+		, std::string const& soap_action);
 
 	int num_mappings() const { return int(m_mappings.size()); }
 
@@ -272,6 +272,10 @@ private:
 	mutex_t m_mutex;
 
 	std::string m_model;
+
+#ifdef TORRENT_UPNP_LOGGING
+	std::ofstream m_log;
+#endif
 };
 
 }

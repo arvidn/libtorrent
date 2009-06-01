@@ -225,7 +225,7 @@ int test_main()
 	int tmp3;
 	tcp::endpoint endp;
 	piece_picker::downloading_piece st;
-	policy::ipv4_peer peer_struct(endp, true, 0);
+	policy::peer peer_struct(endp, policy::peer::connectable, 0);
 	std::vector<piece_block> picked;
 	boost::shared_ptr<piece_picker> p;
 	const std::vector<int> empty_vector;
@@ -659,7 +659,7 @@ int test_main()
 	p = setup_picker("1111111", "       ", "", "");
 	p->mark_as_downloading(piece_block(2,2), &tmp1, piece_picker::slow);
 	picked = pick_pieces(p, "*******", 7 * blocks_per_piece - 1, 0, &tmp2
-		, piece_picker::fast, options | piece_picker::speed_affinity, empty_vector);
+		, piece_picker::fast, options, empty_vector);
 	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(2,2)) == picked.end());
 	// piece 2 sould be the last one (least matching piece to pick)
@@ -673,8 +673,7 @@ int test_main()
 	p->mark_as_downloading(piece_block(2,2), &tmp1, piece_picker::medium);
 	p->mark_as_downloading(piece_block(4,2), &tmp1, piece_picker::fast);
 	picked = pick_pieces(p, "*******", 2 * blocks_per_piece, 0, 0
-		, piece_picker::fast, piece_picker::prioritize_partials | piece_picker::speed_affinity
-		, empty_vector);
+		, piece_picker::fast, piece_picker::prioritize_partials, empty_vector);
 	TEST_CHECK(picked.size() == 2 * blocks_per_piece);
 	TEST_CHECK(picked[0].piece_index == 4);
 	TEST_CHECK(picked[blocks_per_piece - 1].piece_index == 2);

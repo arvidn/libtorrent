@@ -33,6 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <ctime>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 #include <iterator>
 #include <algorithm>
 #include <set>
@@ -61,7 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/invariant_check.hpp"
-#include "libtorrent/utf8.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -120,13 +122,15 @@ namespace libtorrent
 {
 	namespace fs = boost::filesystem;
 
-#ifndef BOOST_NO_EXCEPTIONS
-	void throw_invalid_handle()
+	namespace
 	{
-		throw libtorrent_exception(error_code(
-			errors::invalid_torrent_handle, libtorrent_category));
-	}
+#ifndef BOOST_NO_EXCEPTIONS
+		void throw_invalid_handle()
+		{
+			throw invalid_handle();
+		}
 #endif
+	}
 
 #ifdef TORRENT_DEBUG
 
@@ -142,12 +146,6 @@ namespace libtorrent
 		TORRENT_FORWARD_RETURN(torrent_file().info_hash(), empty);
 	}
 
-	int torrent_handle::max_uploads() const
-	{
-		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(max_uploads(), 0);
-	}
-
 	void torrent_handle::set_max_uploads(int max_uploads) const
 	{
 		INVARIANT_CHECK;
@@ -159,12 +157,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD(use_interface(net_interface));
-	}
-
-	int torrent_handle::max_connections() const
-	{
-		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(max_connections(), 0);
 	}
 
 	void torrent_handle::set_max_connections(int max_connections) const
@@ -221,25 +213,6 @@ namespace libtorrent
 		TORRENT_FORWARD(move_storage(save_path));
 	}
 
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-	void torrent_handle::move_storage(
-		fs::wpath const& save_path) const
-	{
-		INVARIANT_CHECK;
-		std::string utf8;
-		wchar_utf8(save_path.string(), utf8);
-		TORRENT_FORWARD(move_storage(utf8));
-	}
-
-	void torrent_handle::rename_file(int index, fs::wpath const& new_name) const
-	{
-		INVARIANT_CHECK;
-		std::string utf8;
-		wchar_utf8(new_name.string(), utf8);
-		TORRENT_FORWARD(rename_file(index, utf8));
-	}
-#endif
-
 	void torrent_handle::rename_file(int index, fs::path const& new_name) const
 	{
 		INVARIANT_CHECK;
@@ -258,12 +231,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD_RETURN(valid_metadata(), false);
-	}
-
-	bool torrent_handle::set_metadata(char const* metadata, int size) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(set_metadata(metadata, size), false);
 	}
 
 	bool torrent_handle::is_seed() const
@@ -498,7 +465,7 @@ namespace libtorrent
 // ============ end deprecation ===============
 #endif
 
-	std::vector<announce_entry> torrent_handle::trackers() const
+	std::vector<announce_entry> const& torrent_handle::trackers() const
 	{
 		INVARIANT_CHECK;
 		const static std::vector<announce_entry> empty;
@@ -508,39 +475,20 @@ namespace libtorrent
 	void torrent_handle::add_url_seed(std::string const& url) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(add_web_seed(url, web_seed_entry::url_seed));
+		TORRENT_FORWARD(add_url_seed(url));
 	}
 
 	void torrent_handle::remove_url_seed(std::string const& url) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(remove_web_seed(url, web_seed_entry::url_seed));
+		TORRENT_FORWARD(remove_url_seed(url));
 	}
 
 	std::set<std::string> torrent_handle::url_seeds() const
 	{
 		INVARIANT_CHECK;
 		const static std::set<std::string> empty;
-		TORRENT_FORWARD_RETURN(web_seeds(web_seed_entry::url_seed), empty);
-	}
-
-	void torrent_handle::add_http_seed(std::string const& url) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_FORWARD(add_web_seed(url, web_seed_entry::http_seed));
-	}
-
-	void torrent_handle::remove_http_seed(std::string const& url) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_FORWARD(remove_web_seed(url, web_seed_entry::http_seed));
-	}
-
-	std::set<std::string> torrent_handle::http_seeds() const
-	{
-		INVARIANT_CHECK;
-		const static std::set<std::string> empty;
-		TORRENT_FORWARD_RETURN(web_seeds(web_seed_entry::http_seed), empty);
+		TORRENT_FORWARD_RETURN(url_seeds(), empty);
 	}
 
 	void torrent_handle::replace_trackers(
@@ -548,24 +496,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD(replace_trackers(urls));
-	}
-
-	void torrent_handle::add_tracker(announce_entry const& url) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_FORWARD(add_tracker(url));
-	}
-
-	void torrent_handle::add_piece(int piece, char const* data, int flags) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_FORWARD(add_piece(piece, data, flags));
-	}
-
-	void torrent_handle::read_piece(int piece) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_FORWARD(read_piece(piece));
 	}
 
 	storage_interface* torrent_handle::get_storage_impl() const
@@ -637,7 +567,7 @@ namespace libtorrent
 		
 		peer_id id;
 		std::fill(id.begin(), id.end(), 0);
-		t->get_policy().add_peer(adr, id, source, 0);
+		t->get_policy().peer_from_tracker(adr, id, source, 0);
 	}
 
 	void torrent_handle::force_reannounce(
@@ -657,18 +587,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD(scrape_tracker());
-	}
-
-	bool torrent_handle::super_seeding() const
-	{
-		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(super_seeding(), false);
-	}
-
-	void torrent_handle::super_seeding(bool on) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_FORWARD(super_seeding(on));
 	}
 
 	void torrent_handle::set_ratio(float ratio) const
@@ -711,12 +629,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD(get_download_queue(queue));
-	}
-
-	void torrent_handle::set_piece_deadline(int index, time_duration deadline, int flags) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_piece_deadline(index, deadline, flags));
 	}
 
 }

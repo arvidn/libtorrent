@@ -2,11 +2,11 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/python.hpp>
 #include <libtorrent/session.hpp>
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/storage.hpp>
 #include <libtorrent/ip_filter.hpp>
+#include <boost/python.hpp>
 #include "gil.hpp"
 
 using namespace boost::python;
@@ -106,10 +106,6 @@ namespace
             p.auto_managed = params["auto_managed"];
         if (params.has_key("duplicate_is_error"))
             p.duplicate_is_error = params["duplicate_is_error"];
-        if (params.has_key("seed_mode"))
-            p.seed_mode = params["seed_mode"];
-        if (params.has_key("override_resume_data"))
-            p.override_resume_data = params["override_resume_data"];
             
         return s.add_torrent(p);
     }
@@ -155,70 +151,33 @@ namespace
 #endif
 } // namespace unnamed
 
-
 void bind_session()
 {
     class_<session_status>("session_status")
         .def_readonly("has_incoming_connections", &session_status::has_incoming_connections)
-
         .def_readonly("upload_rate", &session_status::upload_rate)
         .def_readonly("download_rate", &session_status::download_rate)
-        .def_readonly("total_download", &session_status::total_download)
-        .def_readonly("total_upload", &session_status::total_upload)
-
         .def_readonly("payload_upload_rate", &session_status::payload_upload_rate)
         .def_readonly("payload_download_rate", &session_status::payload_download_rate)
+        .def_readonly("total_download", &session_status::total_download)
+        .def_readonly("total_upload", &session_status::total_upload)
         .def_readonly("total_payload_download", &session_status::total_payload_download)
         .def_readonly("total_payload_upload", &session_status::total_payload_upload)
-
-        .def_readonly("ip_overhead_upload_rate", &session_status::ip_overhead_upload_rate)
-        .def_readonly("ip_overhead_download_rate", &session_status::ip_overhead_download_rate)
-        .def_readonly("total_ip_overhead_download", &session_status::total_ip_overhead_download)
-        .def_readonly("total_ip_overhead_upload", &session_status::total_ip_overhead_upload)
-        
-        .def_readonly("dht_upload_rate", &session_status::dht_upload_rate)
-        .def_readonly("dht_download_rate", &session_status::dht_download_rate)
-        .def_readonly("total_dht_download", &session_status::total_dht_download)
-        .def_readonly("total_dht_upload", &session_status::total_dht_upload)
-        
-        .def_readonly("tracker_upload_rate", &session_status::tracker_upload_rate)
-        .def_readonly("tracker_download_rate", &session_status::tracker_download_rate)
-        .def_readonly("total_tracker_download", &session_status::total_tracker_download)
-        .def_readonly("total_tracker_upload", &session_status::total_tracker_upload)
-        
         .def_readonly("total_redundant_bytes", &session_status::total_redundant_bytes)
         .def_readonly("total_failed_bytes", &session_status::total_failed_bytes)
-        
         .def_readonly("num_peers", &session_status::num_peers)
         .def_readonly("num_unchoked", &session_status::num_unchoked)
         .def_readonly("allowed_upload_slots", &session_status::allowed_upload_slots)
-        
         .def_readonly("up_bandwidth_queue", &session_status::up_bandwidth_queue)
         .def_readonly("down_bandwidth_queue", &session_status::down_bandwidth_queue)
-        
-        .def_readonly("up_bandwidth_bytes_queue", &session_status::up_bandwidth_bytes_queue)
-        .def_readonly("down_bandwidth_bytes_queue", &session_status::down_bandwidth_bytes_queue)
-        
-        .def_readonly("optimistic_unchoke_counter", &session_status::optimistic_unchoke_counter)
-        .def_readonly("unchoke_counter", &session_status::unchoke_counter)
-        
 #ifndef TORRENT_DISABLE_DHT
         .def_readonly("dht_nodes", &session_status::dht_nodes)
         .def_readonly("dht_cache_nodes", &session_status::dht_node_cache)
         .def_readonly("dht_torrents", &session_status::dht_torrents)
         .def_readonly("dht_global_nodes", &session_status::dht_global_nodes)
-        .def_readonly("active_requests", &session_status::active_requests)
 #endif
         ;
 
-    class_<dht_lookup>("dht_lookup")
-        .def_readonly("type", &dht_lookup::type)
-        .def_readonly("outstanding_requests", &dht_lookup::outstanding_requests)
-        .def_readonly("timeouts", &dht_lookup::timeouts)
-        .def_readonly("response", &dht_lookup::responses)
-        .def_readonly("branch_factor", &dht_lookup::branch_factor)
-    ;
-        
     enum_<storage_mode_t>("storage_mode_t")
         .value("storage_mode_allocate", storage_mode_allocate)
         .value("storage_mode_sparse", storage_mode_sparse)
@@ -239,21 +198,16 @@ void bind_session()
         .def(
             init<fingerprint, int>((
                 arg("fingerprint")=fingerprint("LT",0,1,0,0)
-                , arg("flags")=session::start_default_features | session::add_default_plugins))
+                , arg("flags")=session::start_default_features | session::add_default_plugins)
+                )
         )
-        .def(
-            "listen_on", &listen_on
-          , (arg("min"), "max", arg("interface") = (char const*)0)
-        )
+        .def("listen_on", &listen_on, (arg("min"), "max", arg("interface") = (char const*)0))
         .def("outgoing_ports", &outgoing_ports)
         .def("is_listening", allow_threads(&session::is_listening))
         .def("listen_port", allow_threads(&session::listen_port))
         .def("status", allow_threads(&session::status))
 #ifndef TORRENT_DISABLE_DHT
-        .def(
-            "add_dht_router", &add_dht_router
-          , (arg("router"), "port")
-        )
+        .def("add_dht_router", &add_dht_router, (arg("router"), "port"))
         .def("start_dht", allow_threads(&session::start_dht))
         .def("stop_dht", allow_threads(&session::stop_dht))
         .def("dht_state", allow_threads(&session::dht_state))
@@ -265,26 +219,16 @@ void bind_session()
         .def(
             "add_torrent", &add_torrent_depr
           , (
-                arg("resume_data") = entry(),
-					 arg("storage_mode") = storage_mode_sparse,
+                arg("resume_data") = entry(), arg("storage_mode") = storage_mode_sparse,
                 arg("paused") = false
             )
         )
 #endif
-        .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = session::none
-)
-        .def("set_local_download_rate_limit", allow_threads(&session::set_local_download_rate_limit))
-        .def("local_download_rate_limit", allow_threads(&session::local_download_rate_limit))
-
-        .def("set_local_upload_rate_limit", allow_threads(&session::set_local_upload_rate_limit))
-        .def("local_upload_rate_limit", allow_threads(&session::local_upload_rate_limit))
-
+        .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = session::none)
         .def("set_download_rate_limit", allow_threads(&session::set_download_rate_limit))
         .def("download_rate_limit", allow_threads(&session::download_rate_limit))
-
         .def("set_upload_rate_limit", allow_threads(&session::set_upload_rate_limit))
         .def("upload_rate_limit", allow_threads(&session::upload_rate_limit))
-
         .def("set_max_uploads", allow_threads(&session::set_max_uploads))
         .def("set_max_connections", allow_threads(&session::set_max_connections))
         .def("set_max_half_open_connections", allow_threads(&session::set_max_half_open_connections))

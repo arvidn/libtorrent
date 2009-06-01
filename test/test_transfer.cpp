@@ -51,15 +51,15 @@ using boost::tuples::ignore;
 // test the maximum transfer rate
 void test_rate()
 {
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000));
 
 	torrent_handle tor1;
 	torrent_handle tor2;
 
 	create_directory("./tmp1_transfer");
 	std::ofstream file("./tmp1_transfer/temporary");
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 7);
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 50);
 	file.close();
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
@@ -84,6 +84,7 @@ void test_rate()
 			<< "\033[0m" << int(st2.progress * 100) << "% "
 			<< std::endl;
 
+		if (st1.paused) break;
 		if (tor2.is_seed()) break;
 		test_sleep(1000);
 	}
@@ -95,20 +96,15 @@ void test_rate()
 	std::cerr << "downloaded " << t->total_size() << " bytes "
 		"in " << (total_milliseconds(dt) / 1000.f) << " seconds" << std::endl;
 	
-	std::cerr << "average download rate: " << (t->total_size() / (std::max)(total_milliseconds(dt), 1))
+	std::cerr << "average download rate: " << (t->total_size() / total_milliseconds(dt))
 		<< " kB/s" << std::endl;
 
 }
 
-void print_alert(alert const& a)
-{
-	std::cout << "ses1 (alert dispatch function): " << a.message() << std::endl;
-}
-
 void test_transfer()
 {
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000));
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -133,17 +129,11 @@ void test_transfer()
 	// set half of the pieces to priority 0
 	int num_pieces = tor2.get_torrent_info().num_pieces();
 	std::vector<int> priorities(num_pieces, 1);
-	std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0);
+	std::fill(priorities.begin(), priorities.begin() + num_pieces / 2, 0);
 	tor2.prioritize_pieces(priorities);
-	std::cerr << "setting priorities: ";
-	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
-	std::cerr << std::endl;
 
 	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
-	ses1.set_alert_dispatch(&print_alert);
-
-	ses2.set_download_rate_limit(tor2.get_torrent_info().piece_length() / 2);
 
 	// also test to move the storage of the downloader and the uploader
 	// to make sure it can handle switching paths
@@ -169,6 +159,8 @@ void test_transfer()
 			<< st2.num_peers
 			<< std::endl;
 
+		if (tor2.is_finished()) break;
+
 		if (!test_move_storage && st2.progress > 0.25f)
 		{
 			test_move_storage = true;
@@ -176,8 +168,6 @@ void test_transfer()
 			tor2.move_storage("./tmp2_transfer_moved");
 			std::cerr << "moving storage" << std::endl;
 		}
-
-		if (tor2.is_finished()) break;
 
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);

@@ -35,14 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <utility>
 #include <vector>
+#include <iosfwd>
 #include <string>
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/size_type.hpp"
-
-#if TORRENT_USE_IOSTREAM
-#include <iosfwd>
-#endif
 
 namespace libtorrent
 {
@@ -230,10 +227,7 @@ namespace libtorrent
 		char const* m_end;
 	};
 
-	TORRENT_EXPORT std::string print_entry(lazy_entry const& e);
-#if TORRENT_USE_IOSTREAM
 	TORRENT_EXPORT std::ostream& operator<<(std::ostream& os, lazy_entry const& e);
-#endif
 
 }
 

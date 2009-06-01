@@ -38,65 +38,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/bind.hpp>
 
-#ifndef TORRENT_WINDOWS
-#include <sys/types.h>
-#include <sys/stat.h>
-#endif
-
 namespace gr = boost::gregorian;
 
 namespace libtorrent
 {
-	// defined in torrent_info.cpp
-	int merkle_num_leafs(int);
-	int merkle_num_nodes(int);
-	int merkle_get_parent(int);
-	int merkle_get_sibling(int);
-
-	namespace detail
-	{
-		int TORRENT_EXPORT get_file_attributes(boost::filesystem::path const& p)
-		{
-#ifdef TORRENT_WINDOWS
-
-#ifdef TORRENT_USE_WPATH
-			std::wstring path = convert_to_wstring(p.external_file_string());
-#else
-			std::string path = utf8_native(p.external_file_string());
-#endif
-			DWORD attr = GetFileAttributes(path.c_str());
-			if (attr & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
-			return 0;
-#else
-			struct stat s;
-			if (stat(p.external_file_string().c_str(), &s) < 0) return 0;
-			return (s.st_mode & S_IXUSR) ? file_storage::attribute_executable : 0;
-#endif
-		}
-	
-		int TORRENT_EXPORT get_file_attributes(boost::filesystem::wpath const& p)
-		{
-#ifdef TORRENT_WINDOWS
-			std::wstring const& path = p.external_file_string();
-			DWORD attr = GetFileAttributes(path.c_str());
-			if (attr & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
-			return 0;
-#else
-			std::string utf8;
-			wchar_utf8(p.string(), utf8);
-			struct stat s;
-			if (stat(utf8.c_str(), &s) < 0) return 0;
-			return (s.st_mode & S_IXUSR) ? file_storage::attribute_executable : 0;
-#endif
-		}
-	}
-
-	create_torrent::create_torrent(file_storage& fs, int piece_size, int pad_file_limit, int flags)
+	create_torrent::create_torrent(file_storage& fs, int size)
 		: m_files(fs)
 		, m_creation_date(pt::second_clock::universal_time())
 		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
-		, m_merkle_torrent(flags & merkle)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
 #if BOOST_VERSION < 103600
@@ -105,87 +55,63 @@ namespace libtorrent
 		if (!m_multifile && m_files.at(0).path.has_parent_path()) m_multifile = true;
 #endif
 
-		// a piece_size of 0 means automatic
-		if (piece_size == 0 && !m_merkle_torrent)
-		{
-			const int target_size = 40 * 1024;
-			piece_size = fs.total_size() / (target_size / 20);
-	
-			int i = 16*1024;
-			for (; i < 2*1024*1024; i *= 2)
-			{
-				if (piece_size > i) continue;
-				break;
-			}
-			piece_size = i;
-		}
-		else if (piece_size == 0 && m_merkle_torrent)
-		{
-			piece_size = 16*1024;
-		}
-
 		// make sure the size is an even power of 2
 #ifndef NDEBUG
 		for (int i = 0; i < 32; ++i)
 		{
-			if (piece_size & (1 << i))
+			if (size & (1 << i))
 			{
-				TORRENT_ASSERT((piece_size & ~(1 << i)) == 0);
+				TORRENT_ASSERT((size & ~(1 << i)) == 0);
 				break;
 			}
 		}
 #endif
-		m_files.set_piece_length(piece_size);
-		if (flags & optimize)
-			m_files.optimize(pad_file_limit);
+		m_files.set_piece_length(size);
 		m_files.set_num_pieces(static_cast<int>(
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
 		m_piece_hash.resize(m_files.num_pieces());
 	}
 
-	create_torrent::create_torrent(torrent_info const& ti)
-		: m_files(const_cast<file_storage&>(ti.files()))
+	create_torrent::create_torrent(file_storage& fs)
+		: m_files(fs)
 		, m_creation_date(pt::second_clock::universal_time())
-		, m_multifile(ti.num_files() > 1)
-		, m_private(ti.priv())
-		, m_merkle_torrent(ti.is_merkle_torrent())
+		, m_multifile(fs.num_files() > 1)
+		, m_private(false)
 	{
-		TORRENT_ASSERT(ti.is_valid());
-		if (ti.creation_date()) m_creation_date = *ti.creation_date();
+		TORRENT_ASSERT(fs.num_files() > 0);
+#if BOOST_VERSION < 103600
+		if (!m_multifile && m_files.at(0).path.has_branch_path()) m_multifile = true;
+#else
+		if (!m_multifile && m_files.at(0).path.has_parent_path()) m_multifile = true;
+#endif
 
-		if (!ti.creator().empty()) set_creator(ti.creator().c_str());
-		if (!ti.comment().empty()) set_comment(ti.comment().c_str());
+		const int target_size = 40 * 1024;
+		int size = fs.total_size() / (target_size / 20);
+	
+		for (int i = 4*1024*1024; i > 16*1024; i /= 2)
+		{
+			if (size < i) continue;
+			size = i;
+			break;
+		}
 
-		torrent_info::nodes_t const& nodes = ti.nodes();
-		for (torrent_info::nodes_t::const_iterator i = nodes.begin()
-			, end(nodes.end()); i != end; ++i)
-			add_node(*i);
-
-		std::vector<libtorrent::announce_entry> const& trackers = ti.trackers();
-		for (std::vector<libtorrent::announce_entry>::const_iterator i = trackers.begin()
-			, end(trackers.end()); i != end; ++i)
-			add_tracker(i->url, i->tier);
-
-		std::vector<std::string> const& web_seeds = ti.url_seeds();
-		for (std::vector<std::string>::const_iterator i = web_seeds.begin()
-			, end(web_seeds.end()); i != end; ++i)
-			add_url_seed(*i);
-
+		m_files.set_piece_length(size);
+		m_files.set_num_pieces(static_cast<int>(
+			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
 		m_piece_hash.resize(m_files.num_pieces());
-		for (int i = 0; i < num_pieces(); ++i) set_hash(i, ti.hash_for_piece(i));
-
-		m_info_dict = bdecode(&ti.metadata()[0], &ti.metadata()[0] + ti.metadata_size());
-		m_info_hash = ti.info_hash();
 	}
-
 	entry create_torrent::generate() const
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
 
-		entry dict;
-
 		if (m_files.num_files() == 0)
-			return dict;
+		{
+			// TODO: throw something here
+			// throw
+			return entry();
+		}
+
+		entry dict;
 
 		if (!m_urls.empty()) dict["announce"] = m_urls.front().first;
 		
@@ -250,12 +176,6 @@ namespace libtorrent
 		}
 
 		entry& info = dict["info"];
-		if (m_info_dict.type() == entry::dictionary_t)
-		{
-			info = m_info_dict;
-			return dict;
-		}
-
 		info["name"] = m_files.name();
 
 		if (m_private) info["private"] = 1;
@@ -290,63 +210,19 @@ namespace libtorrent
 					{
 						path_e.list().push_back(entry(*j));
 					}
-					if (i->pad_file || i->hidden_attribute || i->executable_attribute)
-					{
-						std::string& attr = file_e["attr"].string();
-						if (i->pad_file) attr += 'p';
-						if (i->hidden_attribute) attr += 'h';
-						if (i->executable_attribute) attr += 'x';
-					}
 				}
 			}
 		}
 
 		info["piece length"] = m_files.piece_length();
-		if (m_merkle_torrent)
-		{
-			std::vector<sha1_hash> merkle_tree;
-			
-			int num_leafs = merkle_num_leafs(m_files.num_pieces());
-			int num_nodes = merkle_num_nodes(num_leafs);
-			int first_leaf = num_nodes - num_leafs;
-			merkle_tree.resize(num_nodes);
-			int num_pieces = m_piece_hash.size();
-			for (int i = 0; i < num_pieces; ++i)
-				merkle_tree[first_leaf + i] = m_piece_hash[i];
-			sha1_hash filler(0);
-			for (int i = num_pieces; i < num_leafs; ++i)
-				merkle_tree[first_leaf + i] = filler;
+		entry& pieces = info["pieces"];
 
-			// now that we have initialized all leaves, build
-			// each level bottom-up
-			int level_start = first_leaf;
-			int level_size = num_leafs;
-			while (level_start > 0)
-			{
-				int parent = merkle_get_parent(level_start);
-				for (int i = level_start; i < level_start + level_size; i += 2, ++parent)
-				{
-					hasher h;
-					h.update((char const*)&merkle_tree[i][0], 20);
-					h.update((char const*)&merkle_tree[i+1][0], 20);
-					merkle_tree[parent] = h.final();
-				}
-				level_start = merkle_get_parent(level_start);
-				level_size /= 2;
-			}
-			TORRENT_ASSERT(level_size == 1);
-			std::string& p = info["root hash"].string();
-			p.assign((char const*)&merkle_tree[0][0], 20);
-		}
-		else
-		{
-			std::string& p = info["pieces"].string();
+		std::string& p = pieces.string();
 
-			for (std::vector<sha1_hash>::const_iterator i = m_piece_hash.begin();
-				i != m_piece_hash.end(); ++i)
-			{
-				p.append((char*)i->begin(), (char*)i->end());
-			}
+		for (std::vector<sha1_hash>::const_iterator i = m_piece_hash.begin();
+			i != m_piece_hash.end(); ++i)
+		{
+			p.append((char*)i->begin(), (char*)i->end());
 		}
 
 		std::vector<char> buf;

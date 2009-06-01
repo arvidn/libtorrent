@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SOCKET_TYPE
 
 #include "libtorrent/socks5_stream.hpp"
+#include "libtorrent/socks4_stream.hpp"
 #include "libtorrent/http_stream.hpp"
 #include "libtorrent/variant_stream.hpp"
 
@@ -42,6 +43,7 @@ namespace libtorrent
 	typedef variant_stream<
 		stream_socket
 		, socks5_stream
+		, socks4_stream
 		, http_stream> socket_type;
 }
 

@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ERROR_CODE_HPP_INCLUDED
 
 #include <boost/version.hpp>
-#include <boost/shared_ptr.hpp>
 
 #if BOOST_VERSION < 103500
 #include <asio/error_code.hpp>
@@ -43,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/config.hpp"
+#include <boost/shared_ptr.hpp>
+#include <string>
 
 namespace libtorrent
 {
@@ -52,31 +53,7 @@ namespace libtorrent
 		enum error_code_enum
 		{
 			no_error = 0,
-			file_collision,
-			failed_hash_check,
-			torrent_is_no_dict,
-			torrent_missing_info,
-			torrent_info_no_dict,
-			torrent_missing_piece_length,
-			torrent_missing_name,
-			torrent_invalid_name,
-			torrent_invalid_length,
-			torrent_file_parse_failed,
-			torrent_missing_pieces,
-			torrent_invalid_hashes,
-			too_many_pieces_in_torrent,
-			invalid_swarm_metadata,
-			invalid_bencoding,
-			no_files_in_torrent,
-			invalid_escaped_string,
-			session_is_closing,
-			duplicate_torrent,
-			invalid_torrent_handle,
-			invalid_entry_type,
-			missing_info_hash_in_uri,
-			file_too_short,
-			unsupported_url_protocol,
-			url_parse_error,
+			file_collision
 		};
 	}
 
@@ -84,11 +61,9 @@ namespace libtorrent
 	typedef asio::error_code error_code;
 	inline asio::error::error_category get_posix_category() { return asio::error::system_category; }
 	inline asio::error::error_category get_system_category() { return asio::error::system_category; }
-
-	extern asio::error::error_category libtorrent_category;
 #else
 
-	struct TORRENT_EXPORT libtorrent_error_category : boost::system::error_category
+	struct libtorrent_error_category : boost::system::error_category
 	{
 		virtual const char* name() const;
 		virtual std::string message(int ev) const;
@@ -96,7 +71,7 @@ namespace libtorrent
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
-	extern TORRENT_EXPORT libtorrent_error_category libtorrent_category;
+	extern libtorrent_error_category libtorrent_category;
 
 	using boost::system::error_code;
 	inline boost::system::error_category const& get_system_category()

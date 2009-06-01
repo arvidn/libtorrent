@@ -51,19 +51,9 @@ using boost::filesystem::create_directory;
 using namespace libtorrent;
 namespace sf = boost::filesystem;
 
-bool tests_failure = false;
-
-void report_failure(char const* err, char const* file, int line)
+void print_alerts(libtorrent::session& ses, char const* name
+	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume)
 {
-	std::cerr << "\033[31m" << file << ":" << line << " \"" << err << "\"\033[0m\n";
-	tests_failure = true;
-}
-
-bool print_alerts(libtorrent::session& ses, char const* name
-	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
-	, bool (*predicate)(libtorrent::alert*))
-{
-	bool ret = false;
 	std::vector<torrent_handle> handles = ses.get_torrents();
 	TEST_CHECK(!handles.empty() || allow_no_torrents);
 	torrent_handle h;
@@ -72,7 +62,6 @@ bool print_alerts(libtorrent::session& ses, char const* name
 	a = ses.pop_alert();
 	while (a.get())
 	{
-		if (predicate && predicate(a.get())) ret = true;
 		if (peer_disconnected_alert* p = dynamic_cast<peer_disconnected_alert*>(a.get()))
 		{
 			std::cerr << name << "(" << p->ip << "): " << p->message() << "\n";
@@ -96,7 +85,6 @@ bool print_alerts(libtorrent::session& ses, char const* name
 			|| (allow_disconnects && a->message() == "End of file."));
 		a = ses.pop_alert();
 	}
-	return ret;
 }
 
 void test_sleep(int millisec)
@@ -215,8 +203,6 @@ boost::intrusive_ptr<T> clone_ptr(boost::intrusive_ptr<T> const& ptr)
 boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_size, int num_pieces)
 {
 	char const* tracker_url = "http://non-existent-name.com/announce";
-	// excercise the path when encountering invalid urls
-	char const* invalid_tracker_url = "http:";
 	
 	using namespace boost::filesystem;
 
@@ -225,7 +211,6 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_
 	fs.add_file(path("temporary"), total_size);
 	libtorrent::create_torrent t(fs, piece_size);
 	t.add_tracker(tracker_url);
-	t.add_tracker(invalid_tracker_url);
 
 	std::vector<char> piece(piece_size);
 	for (int i = 0; i < int(piece.size()); ++i)
@@ -256,23 +241,12 @@ boost::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
-	, boost::intrusive_ptr<torrent_info>* torrent, bool super_seeding
-	, add_torrent_params const* p)
+	, boost::intrusive_ptr<torrent_info>* torrent)
 {
 	using namespace boost::filesystem;
 
 	assert(ses1);
 	assert(ses2);
-
-	session_settings sess_set;
-	sess_set.allow_multiple_connections_per_ip = true;
-	sess_set.ignore_limits_on_local_network = false;
-	ses1->set_settings(sess_set);
-	ses2->set_settings(sess_set);
-	if (ses3) ses3->set_settings(sess_set);
-	ses1->set_alert_mask(~alert::progress_notification);
-	ses2->set_alert_mask(~alert::progress_notification);
-	if (ses3) ses3->set_alert_mask(~alert::progress_notification);
 
 	std::srand(time(0));
 	peer_id pid;
@@ -293,16 +267,14 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	{
 		create_directory("./tmp1" + suffix);
 		std::ofstream file(("./tmp1" + suffix + "/temporary").c_str());
-		t = ::create_torrent(&file, piece_size, 19);
+		t = ::create_torrent(&file, piece_size, 1024 / 8);
 		file.close();
 		if (clear_files)
 		{
 			remove_all("./tmp2" + suffix + "/temporary");
 			remove_all("./tmp3" + suffix + "/temporary");
 		}
-		char ih_hex[41];
-		to_hex((char const*)&t->info_hash()[0], 20, ih_hex);
-		std::cerr << "generated torrent: " << ih_hex << " ./tmp1" << suffix << "/temporary" << std::endl;
+		std::cerr << "generated torrent: " << t->info_hash() << std::endl;
 	}
 	else
 	{
@@ -313,39 +285,21 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// file pool will complain if two torrents are trying to
 	// use the same files
 	sha1_hash info_hash = t->info_hash();
-	add_torrent_params param;
-	if (p) param = *p;
-	param.ti = clone_ptr(t);
-	param.save_path = "./tmp1" + suffix;
-	torrent_handle tor1 = ses1->add_torrent(param);
-	tor1.super_seeding(super_seeding);
+	torrent_handle tor1 = ses1->add_torrent(clone_ptr(t), "./tmp1" + suffix);
 	TEST_CHECK(!ses1->get_torrents().empty());
 	torrent_handle tor2;
 	torrent_handle tor3;
-
-	// the downloader cannot use seed_mode
-	param.seed_mode = false;
-
 	if (ses3)
 	{
-		param.ti = clone_ptr(t);
-		param.save_path = "./tmp3" + suffix;
-		tor3 = ses3->add_torrent(param);
+		tor3 = ses3->add_torrent(clone_ptr(t), "./tmp3" + suffix);
 		TEST_CHECK(!ses3->get_torrents().empty());
 	}
 
   	if (use_metadata_transfer)
-	{
-		param.ti = 0;
-		param.info_hash = t->info_hash();
-	}
+		tor2 = ses2->add_torrent("http://non-existent-name.com/announce"
+		, t->info_hash(), 0, "./tmp2" + suffix);
 	else
-	{
-		param.ti = clone_ptr(t);
-	}
-	param.save_path = "./tmp2" + suffix;
-
-	tor2 = ses2->add_torrent(param);
+		tor2 = ses2->add_torrent(clone_ptr(t), "./tmp2" + suffix);
 	TEST_CHECK(!ses2->get_torrents().empty());
 
 	assert(ses1->get_torrents().size() == 1);
@@ -356,8 +310,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (connect_peers)
 	{
 		std::cerr << "connecting peer\n";
-		error_code ec;
-		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1")
 			, ses2->listen_port()));
 
 		if (ses3)
@@ -365,10 +318,10 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 			// give the other peers some time to get an initial
 			// set of pieces before they start sharing with each-other
 			tor3.connect_peer(tcp::endpoint(
-				address::from_string("127.0.0.1", ec)
+				address::from_string("127.0.0.1")
 				, ses2->listen_port()));
 			tor3.connect_peer(tcp::endpoint(
-				address::from_string("127.0.0.1", ec)
+				address::from_string("127.0.0.1")
 				, ses1->listen_port()));
 		}
 	}

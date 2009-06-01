@@ -31,21 +31,23 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <iostream>
-#include <boost/config.hpp>
 
 int test_main();
 
-extern bool tests_failure;
+bool tests_failure = false;
+
+void report_failure(char const* err, char const* file, int line)
+{
+	std::cerr << "\033[31m" << file << ":" << line << " \"" << err << "\"\033[0m\n";
+	tests_failure = true;
+}
 
 int main()
 {
-#ifndef BOOST_NO_EXCEPTIONS
 	try
 	{
-#endif
 		test_main();
 		return tests_failure ? 1 : 0;
-#ifndef BOOST_NO_EXCEPTIONS
 	}
 	catch (std::exception const& e)
 	{
@@ -57,6 +59,5 @@ int main()
 		std::cerr << "Terminated with unknown exception\n";
 		return 1;
 	}
-#endif
 }
 

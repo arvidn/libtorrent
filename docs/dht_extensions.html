@@ -42,15 +42,6 @@
 <div class="section" id="mainline-dht-extensions">
 <h1>Mainline DHT extensions</h1>
 <p>libtorrent implements a few extensions to the Mainline DHT protocol.</p>
-<div class="section" id="get-peers-response">
-<h2>get_peers response</h2>
-<p>libtorrent always responds with <tt class="docutils literal"><span class="pre">nodes</span></tt> to a get_peers request. If it has
-peers for the specified info-hash, it will return <tt class="docutils literal"><span class="pre">values</span></tt> as well. This is
-because just because some peer announced to us, doesn't mean that we are
-among the 8 closest nodes of the info hash. libtorrent also keeps traversing
-nodes using get_peers until it has found the 8 closest ones, and then announces
-to those nodes.</p>
-</div>
 <div class="section" id="client-identification">
 <h2>client identification</h2>
 <p>In each DHT packet, an extra key is inserted named &quot;v&quot;. This is a string

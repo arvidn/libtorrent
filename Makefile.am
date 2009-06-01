@@ -13,7 +13,6 @@ docs/client_test.rst docs/client_test.html \
 docs/dht_extensions.html docs/dht_extensions.rst \
 docs/make_torrent.html docs/make_torrent.rst \
 docs/examples.html docs/examples.rst \
-docs/tuning.html docs/tuning.rst \
 docs/features.html docs/features.rst \
 docs/libtorrent_plugins.html docs/libtorrent_plugins.rst \
 docs/arctic_thumb.png \
@@ -42,18 +41,6 @@ docs/flush.jpg \
 docs/pump.png \
 docs/bubba.png \
 docs/firetorrent.png \
-docs/read_disk_buffers.png \
-docs/read_disk_buffers.graffle \
-docs/write_disk_buffers.png \
-docs/write_disk_buffers.graffle \
-docs/disk_io.png \
-docs/disk_access.png \
-docs/storage.png \
-docs/storage.graffle \
-docs/disk_buffer.png \
-docs/disk_buffer_sample.png \
-docs/disk_buffer_before_optimization.png \
-docs/session_stats_peers.png \
 docs/unicode_support.png docs/client_test.png docs/style.css Jamfile project-root.jam \
 libtorrent-rasterbar.pc \
 bindings/README.txt \

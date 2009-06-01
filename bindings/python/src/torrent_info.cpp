@@ -102,7 +102,6 @@ void bind_torrent_info()
         .def(init<sha1_hash const&>())
         .def(init<char const*, int>())
         .def(init<boost::filesystem::path>())
-        .def(init<boost::filesystem::wpath>())
 
         .def("add_tracker", &torrent_info::add_tracker, (arg("url"), arg("tier")=0))
         .def("add_url_seed", &torrent_info::add_url_seed)

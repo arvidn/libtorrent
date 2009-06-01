@@ -84,10 +84,7 @@ namespace libtorrent
 		// bw_global: the channel is waiting for global quota
 		// bw_network: the channel is waiting for an async write
 		//   for read operation to complete
-		enum bw_state { bw_idle, bw_limit, bw_network };
-#ifndef TORRENT_NO_DEPRECATE
-		enum bw_state_deprecated { bw_torrent = bw_limit, bw_global = bw_limit };
-#endif
+		enum bw_state { bw_idle, bw_torrent, bw_global, bw_network };
 
 		char read_state;
 		char write_state;
@@ -109,11 +106,6 @@ namespace libtorrent
 
 		// time since last download or upload
 		time_duration last_active;
-
-		// the time until all blocks in the request
-		// queue will be d
-		time_duration download_queue_time;
-		int queue_bytes;
 
 		// the number of seconds until the current
 		// pending request times out
@@ -183,8 +175,7 @@ namespace libtorrent
 		enum
 		{
 			standard_bittorrent = 0,
-			web_seed = 1,
-			http_seed = 2
+			web_seed = 1
 		};
 		int connection_type;
 		
@@ -201,9 +192,6 @@ namespace libtorrent
 
 		// estimated rtt to peer, in milliseconds
 		int rtt;
-
-		// the number of pieces this peer has
-		int num_pieces;
 
 		// the highest transfer rates seen for this peer
 		int download_rate_peak;
@@ -225,9 +213,6 @@ namespace libtorrent
 		boost::uint8_t failcount;
 		boost::uint8_t source;
 	};
-
-	// defined in policy.cpp
-	int source_rank(int source_bitmask);
 }
 
 #endif // TORRENT_PEER_INFO_HPP_INCLUDED

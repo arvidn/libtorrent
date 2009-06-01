@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define FIND_DATA_050323_HPP
 
 #include <vector>
-#include <map>
 
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
@@ -52,36 +51,40 @@ namespace libtorrent { namespace dht
 typedef std::vector<char> packet_t;
 
 class rpc_manager;
-class node_impl;
 
 // -------- find data -----------
 
 class find_data : public traversal_algorithm
 {
 public:
-	typedef boost::function<void(std::vector<tcp::endpoint> const&)> data_callback;
-	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
+	typedef boost::function<void(msg const*)> done_callback;
+
+	static void initiate(
+		node_id target
+		, int branch_factor
+		, int max_results
+		, routing_table& table
+		, rpc_manager& rpc
+		, done_callback const& callback
+	);
 
 	void got_data(msg const* m);
-	void got_write_token(node_id const& n, std::string const& write_token)
-	{ m_write_tokens[n] = write_token; }
-
-	find_data(node_impl& node, node_id target
-		, data_callback const& dcallback
-		, nodes_callback const& ncallback);
-
-	virtual char const* name() const { return "get_peers"; }
-	node_id const target() const { return m_target; }
 
 private:
-
 	void done();
 	void invoke(node_id const& id, udp::endpoint addr);
 
-	data_callback m_data_callback;
-	nodes_callback m_nodes_callback;
-	std::map<node_id, std::string> m_write_tokens;
-	node_id const m_target;
+	find_data(
+		node_id target
+		, int branch_factor
+		, int max_results
+		, routing_table& table
+		, rpc_manager& rpc
+		, done_callback const& callback
+	);
+
+	done_callback m_done_callback;
+	boost::shared_ptr<packet_t> m_packet;
 	bool m_done;
 };
 
@@ -90,9 +93,11 @@ class find_data_observer : public observer
 public:
 	find_data_observer(
 		boost::intrusive_ptr<find_data> const& algorithm
-		, node_id self)
+		, node_id self
+		, node_id target)
 		: observer(algorithm->allocator())
 		, m_algorithm(algorithm)
+		, m_target(target) 
 		, m_self(self)
 	{}
 	~find_data_observer();
@@ -101,7 +106,7 @@ public:
 	{
 		m.reply = false;
 		m.message_id = messages::get_peers;
-		m.info_hash = m_algorithm->target();
+		m.info_hash = m_target;
 	}
 
 	void timeout();
@@ -110,6 +115,7 @@ public:
 
 private:
 	boost::intrusive_ptr<find_data> m_algorithm;
+	node_id const m_target;
 	node_id const m_self;
 };
 

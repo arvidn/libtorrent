@@ -33,10 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <algorithm>
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-#include <iomanip>
 #include <iostream>
-#endif
+#include <iomanip>
 #include <boost/bind.hpp>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
@@ -355,7 +353,6 @@ namespace libtorrent
 		TORRENT_ASSERT(false);
 	}
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 	void entry::print(std::ostream& os, int indent) const
 	{
 		TORRENT_ASSERT(indent >= 0);
@@ -418,6 +415,5 @@ namespace libtorrent
 			os << "<uninitialized>\n";
 		}
 	}
-#endif
 }
 

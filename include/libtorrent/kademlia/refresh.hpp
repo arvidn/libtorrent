@@ -57,16 +57,35 @@ class refresh : public traversal_algorithm
 public:
 	typedef boost::function<void()> done_callback;
 
+	template<class InIt>
+	static void initiate(
+		node_id target
+		,	int branch_factor
+		, int max_active_pings
+		, int max_results
+		, routing_table& table
+		, InIt first
+		, InIt last
+		, rpc_manager& rpc
+		, done_callback const& callback
+	);
+
 	void ping_reply(node_id id);
 	void ping_timeout(node_id id, bool prevent_request = false);
 
-	template<class InIt>
-	refresh(node_impl& node, node_id target, InIt first, InIt last
-		, done_callback const& callback);
-
-	virtual char const* name() const { return "refresh"; }
-
 private:
+	template<class InIt>
+	refresh(
+		node_id target
+		,	int branch_factor
+		, int max_active_pings
+		, int max_results
+		, routing_table& table
+		, InIt first
+		, InIt last
+		, rpc_manager& rpc
+		, done_callback const& callback
+	);
 
 	void done();
 	void invoke(node_id const& id, udp::endpoint addr);
@@ -86,16 +105,18 @@ class refresh_observer : public observer
 public:
 	refresh_observer(
 		boost::intrusive_ptr<refresh> const& algorithm
-		, node_id self)
+		, node_id self
+		, node_id target)
 		: observer(algorithm->allocator())
-		, m_algorithm(algorithm)
+		, m_target(target) 
 		, m_self(self)
+		, m_algorithm(algorithm)
 	{}
 	~refresh_observer();
 
 	void send(msg& m)
 	{
-		m.info_hash = m_algorithm->target();
+		m.info_hash = m_target;
 	}
 
 	void timeout();
@@ -104,8 +125,9 @@ public:
 
 
 private:
-	boost::intrusive_ptr<refresh> m_algorithm;
+	node_id const m_target;
 	node_id const m_self;
+	boost::intrusive_ptr<refresh> m_algorithm;
 };
 
 class ping_observer : public observer
@@ -133,18 +155,57 @@ private:
 
 template<class InIt>
 inline refresh::refresh(
-	node_impl& node
-	, node_id target
+	node_id target
+	, int branch_factor
+	, int max_active_pings
+	, int max_results
+	, routing_table& table
 	, InIt first
 	, InIt last
-	, done_callback const& callback)
-	: traversal_algorithm(node, target, first, last)
-	, m_max_active_pings(10)
+	, rpc_manager& rpc
+	, done_callback const& callback
+)
+	: traversal_algorithm(
+		target
+		, branch_factor
+		, max_results
+		, table
+		, rpc
+		, first
+		, last
+	)
+	, m_max_active_pings(max_active_pings)
 	, m_active_pings(0)
 	, m_done_callback(callback)
 {
 	boost::intrusive_ptr<refresh> self(this);
 	add_requests();
+}
+
+template<class InIt>
+inline void refresh::initiate(
+	node_id target
+	, int branch_factor
+	, int max_active_pings
+	, int max_results
+	, routing_table& table
+	, InIt first
+	, InIt last
+	, rpc_manager& rpc
+	, done_callback const& callback
+)
+{
+	new refresh(
+		target
+		, branch_factor
+		, max_active_pings
+		, max_results
+		, table
+		, first
+		, last
+		, rpc
+		, callback
+	);
 }
 
 } } // namespace libtorrent::dht
