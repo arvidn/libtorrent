@@ -50,7 +50,6 @@ python-extension libtorrent
     src/alert.cpp
     src/datetime.cpp
     src/extensions.cpp
-    src/docstrings.cpp
     src/torrent.cpp
     src/peer_info.cpp
     src/ip_filter.cpp
