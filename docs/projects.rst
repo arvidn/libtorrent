@@ -92,6 +92,23 @@ project listed here, let me_ know.
 
 .. container:: entry
 
+	.. image:: tvblob.jpg
+		:align: right
+		:target: BLOBbox_
+
+	**tvblob**
+
+	The BLOBbox_ represents the ability to harness all of the content available
+	on the web, without any filtering or pre-selection by a third party ¿ just
+	like surfing the web.
+
+	This means that anyone will have the ability to reach viewers via the Internet
+	directly on TV, without them having to connect a PC.
+
+
+
+.. container:: entry
+
 	.. image:: halite_thumb.png
 		:align: right
 		:target: Halite_
@@ -355,6 +372,7 @@ for Windows and Mac OSX.
 .. _BitsCast: http://www.bitscast.com/software/
 .. _BitSlug: http://bitslug.sourceforge.net/
 .. _`deluge Torrent`: http://deluge-torrent.org/
+.. _BLOBbox: http://www.tvblob.com
 .. _Halite: http://www.binarynotions.com/halite-bittorrent-client
 .. _DelCo: http://delco.cs.tut.fi/
 
