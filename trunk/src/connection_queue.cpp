@@ -172,7 +172,10 @@ namespace libtorrent
 	void connection_queue::try_connect(connection_queue::mutex_t::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
+
+#if BOOST_VERSION >= 103700
 		TORRENT_ASSERT(l.owns_lock());
+#endif
 
 #ifdef TORRENT_CONNECTION_LOGGING
 		m_log << log_time() << " " << free_slots() << std::endl;
