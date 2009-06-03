@@ -350,7 +350,13 @@ namespace libtorrent
 			<< " piece " << j.error_piece << " in file " << j.error_file << "\n";
 #endif
 
-		if (j.error == error_code(boost::system::errc::not_enough_memory, get_posix_category()))
+		if (j.error ==
+#if BOOST_VERSION >= 103500
+			error_code(boost::system::errc::not_enough_memory, get_posix_category())
+#else
+			asio::error::no_memory
+#endif
+			)
 		{
 			if (alerts().should_post<file_error_alert>())
 				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
