@@ -194,19 +194,19 @@ high performance seeding
 ========================
 
 In the case of a high volume seed, there are two main concerns. Performance and scalability.
-This transelates into high send rates, and low memory and CPU usage per peer connection.
+This translates into high send rates, and low memory and CPU usage per peer connection.
 
 file pool
 ---------
 
 libtorrent keeps an LRU file cache. Each file that is opened, is stuck in the cache. The main
-purpose of this is because of anti-virus software that hooks och file-open and file close to
+purpose of this is because of anti-virus software that hooks on file-open and file close to
 scan the file. Anti-virus software that does that will significantly increase the cost of
 opening and closing files. However, for a high performance seed, the file open/close might
 be so frequent that it becomes a significant cost. It might therefore be a good idea to allow
 a large file descriptor cache. Adjust this though ``session_settings::file_pool_size``.
 
-Don't forget to set a high rlimit for file descriptors in yor process as well. This limit
+Don't forget to set a high rlimit for file descriptors in your process as well. This limit
 must be high enough to keep all connections and files open.
 
 disk cache
