@@ -28,7 +28,8 @@ else:
 out = open('disk_io.dat', 'wb')
 out2 = open('disk_throughput.dat', 'wb')
 state = 'idle'
-time = 0
+time = -1
+start_time = -1
 i = 0
 state_timer = {}
 throughput = {}
@@ -41,13 +42,20 @@ for l in lines:
 		continue
 #	try:
 	new_time = long(l[0])
+	if time == -1:
+		time = new_time
+		i = new_time
+		start_time = new_time
 	while new_time > i + quantization:
 		i += quantization
 		state_timer[state] += i - time
 		time = i
 		for k in keys: print >>out, (state_timer[k] / float(quantization) * 100.),
 		print >>out
-		for k in throughput_keys: print >>out2, throughput[k] / float(quantization),
+		print >>out2, time - start_time,
+		for k in throughput_keys:
+			print >>out2, throughput[k] / float(quantization),
+			print '-- %s %d' % (k, throughput[k])
 		print >>out2
 		for k in keys: state_timer[k] = 0
 		for k in throughput_keys: throughput[k] = 0
@@ -58,6 +66,19 @@ for l in lines:
 		throughput[state] += long(l[2])
 #	except:
 #		print l
+
+i += quantization
+state_timer[state] += i - time
+time = i
+for k in keys: print >>out, (state_timer[k] / float(quantization) * 100.),
+print >>out
+print >>out2, time - start_time,
+for k in throughput_keys:
+	print >>out2, throughput[k] / float(quantization),
+	print '-- %s %d' % (k, throughput[k])
+print >>out2
+for k in keys: state_timer[k] = 0
+for k in throughput_keys: throughput[k] = 0
 out.close()
 out2.close()
 
@@ -70,7 +91,7 @@ print >>out, 'set ylabel "throughput (kB/s)"'
 print >>out, 'plot',
 i = 0
 for k in throughput_keys:
-	print >>out, ' "disk_throughput.dat" using %d title "%s" with lines,' % (i + 1, throughput_keys[i]),
+	print >>out, ' "disk_throughput.dat" using 1:%d title "%s" with lines,' % (i + 1, throughput_keys[i]),
 	i = i + 1
 print >>out, 'x=0'
 
