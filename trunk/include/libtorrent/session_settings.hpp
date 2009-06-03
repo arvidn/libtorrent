@@ -413,8 +413,8 @@ namespace libtorrent
 			disable_os_cache_for_aligned_files = 1,
 			disable_os_cache = 2
 		};
-		int disk_io_write_mode:4;
-		int disk_io_read_mode:4;
+		int disk_io_write_mode;
+		int disk_io_read_mode;
 
 		bool coalesce_reads;
 		bool coalesce_writes;
