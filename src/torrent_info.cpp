@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 #include <algorithm>
 #include <set>
+#include <string>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -73,6 +74,29 @@ namespace
 	{
 		str += 0xc0 | ((chr & 0xff) >> 6);
 		str += 0x80 | (chr & 0x3f);
+	}
+
+	bool valid_path_element(std::string const& element)
+	{
+		if (element.empty()
+			|| element == "." || element == ".."
+			|| element[0] == '/' || element[0] == '\\'
+			|| element[element.size()-1] == ':')
+			return false;
+		return true;
+	}
+
+	fs::path sanitize_path(fs::path const& p)
+	{
+		fs::path new_path;
+		for (fs::path::const_iterator i = p.begin(); i != p.end(); ++i)
+		{
+			if (!valid_path_element(*i)) continue;
+			std::string pe = *i;
+			new_path /= pe;
+		}
+		TORRENT_ASSERT(!new_path.is_complete());
+		return new_path;
 	}
 
 	void verify_encoding(file_entry& target)
@@ -185,9 +209,9 @@ namespace
 		for (entry::list_type::const_iterator i = list->begin();
 			i != list->end(); ++i)
 		{
-			if (i->string() != "..")
-				target.path /= i->string();
+			target.path /= i->string();
 		}
+		target.path = sanitize_path(target.path);
 		verify_encoding(target);
 		if (target.path.is_complete()) throw std::runtime_error("torrent contains "
 			"a file with an absolute path: '"
@@ -350,27 +374,8 @@ namespace libtorrent
 		else
 		{ m_name = info["name"].string(); }
 		
-		fs::path tmp = m_name;
-  		if (tmp.is_complete())
-  		{
- 			m_name = tmp.leaf();
-  		}
-#if BOOST_VERSION < 103600
-		else if (tmp.has_branch_path())
-#else
-		else if (tmp.has_parent_path())
-#endif
-  		{
- 			fs::path p;
- 			for (fs::path::iterator i = tmp.begin()
- 				, end(tmp.end()); i != end; ++i)
- 			{
- 				if (*i == "." || *i == "..") continue;
- 				p /= *i;
- 			}
- 			m_name = p.string();
- 		}
- 		if (m_name == ".." || m_name == ".")
+		m_name = sanitize_path(m_name).string();
+		if (!valid_path_element(m_name))
  			throw std::runtime_error("invalid 'name' of torrent (possible exploit attempt)");
 	
 		// extract file list

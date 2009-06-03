@@ -96,7 +96,7 @@ namespace libtorrent
 	typedef asio::ip::udp::socket datagram_socket;
 	typedef asio::ip::tcp::acceptor socket_acceptor;
 	typedef asio::io_service io_service;
-    typedef asio::error_code error_code;
+	typedef asio::error_code error_code;
     
 	namespace asio = ::asio;
 	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
