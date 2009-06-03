@@ -1,0 +1,87 @@
+#!/usr/bin/make -f
+# Sample debian/rules that uses debhelper.
+# This file is public domain software, originally written by Joey Hess. 
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# $Id$
+
+build: build-stamp
+build-stamp: configure-stamp
+	dh_testdir
+
+	# Add here commands to compile the package.
+	$(MAKE)
+
+	touch build-stamp
+
+configure-stamp:
+	./configure --prefix=/usr CFLAGS=-O3 CXXFLAGS=-O3 CPPFLAGS=-O3
+	touch configure-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	rm -f configure-stamp
+
+	# Add here commands to clean up after the build process.
+	#-$(MAKE) clean
+	[ ! -e Makefile ] || $(MAKE) distclean
+	[ -e configure ] || ./autotool.sh
+	rm -Rf debian/.install
+
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+	# Add here commands to install the package into debian/<packagename>
+	#$(MAKE) prefix=`pwd`/debian/`dh_listpackages`/usr install
+	$(MAKE) DESTDIR=`pwd`/debian/.install install
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs
+#	dh_installdocs
+#	dh_installexamples
+	dh_install --sourcedir=debian/.install
+#	dh_installmenu
+#	dh_installdebconf	
+#	dh_installlogrotate
+#	dh_installemacsen
+#	dh_installcatalogs
+#	dh_installpam
+#	dh_installmime
+#	dh_installinit
+#	dh_installcron
+#	dh_installinfo
+#	dh_installwm
+#	dh_installudev
+#	dh_undocumented
+#	dh_installman
+#	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+#	dh_perl
+#	dh_python
+	dh_makeshlibs
+	dh_installdeb
+#	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install
