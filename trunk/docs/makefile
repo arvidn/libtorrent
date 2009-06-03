@@ -34,10 +34,6 @@ all: html
 	python $(DOCUTILS)/tools/rst2html.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
 	cp $@ $(WEB_PATH)/$@
 
-%.png:%.dot
-	dot -Tpng $? >$@
-	cp $@ $(WEB_PATH)/$@
-
 %.eps:%.dot
 	dot -Teps $? >$@
 	cp $@ $(WEB_PATH)/$@
