@@ -1,4 +1,7 @@
+release 0.13.2
+
 	* Fix bug where FAST pieces were cancelled on choke
+	* fixed torrent file path vulnerability
 
 release 0.13.1
 
