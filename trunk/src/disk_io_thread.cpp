@@ -1419,8 +1419,12 @@ namespace libtorrent
 					if (j.buffer == 0)
 					{
 						ret = -1;
+#if BOOST_VERSION >= 103500
 						j.error = error_code(boost::system::errc::not_enough_memory
 							, get_posix_category());
+#else
+						j.error = asio::error::no_memory;
+#endif
 						j.error_piece = j.piece;
 						j.error_op = disk_io_job::read;
 						j.str = j.error.message();
@@ -1479,8 +1483,12 @@ namespace libtorrent
 					if (j.buffer == 0)
 					{
 						ret = -1;
+#if BOOST_VERSION >= 103500
 						j.error = error_code(boost::system::errc::not_enough_memory
 							, get_posix_category());
+#else
+						j.error = asio::error::no_memory;
+#endif
 						j.error_piece = j.piece;
 						j.error_op = disk_io_job::read;
 						j.str = j.error.message();
