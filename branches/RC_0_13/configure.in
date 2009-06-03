@@ -1,7 +1,7 @@
 AC_PREREQ(2.59)
 
 AC_INIT(src/torrent.cpp)
-AM_INIT_AUTOMAKE(libtorrent-rasterbar, 0.13.1)
+AM_INIT_AUTOMAKE(libtorrent-rasterbar, 0.13.2)
 
 dnl interface version info
 VERSION_INFO_CURRENT=0
