@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cctype>
 #include <algorithm>
-#include <stdio.h>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -48,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/fingerprint.hpp"
-#include "libtorrent/escape_string.hpp"
 
 namespace
 {
@@ -57,8 +55,13 @@ namespace
 
 	int decode_digit(char c)
 	{
-		if (is_digit(c)) return c - '0';
+		if (std::isdigit(c)) return c - '0';
 		return unsigned(c) - 'A' + 10;
+	}
+
+	bool isprint(char c)
+	{
+		return c >= 32 && c < 127;
 	}
 
 	// takes a peer id and returns a valid boost::optional
@@ -163,13 +166,12 @@ namespace
 		, {"BX", "BittorrentX"}
 		, {"CD", "Enhanced CTorrent"}
 		, {"CT", "CTorrent"}
-		, {"DE", "Deluge"}
+		, {"DE", "Deluge Torrent"}
 		, {"EB", "EBit"}
 		, {"ES", "electric sheep"}
 		, {"HL", "Halite"}
 		, {"HN", "Hydranode"}
 		, {"KT", "KTorrent"}
-		, {"LC", "LeechCraft"}
 		, {"LK", "Linkage"}
 		, {"LP", "lphant"}
 		, {"LT", "libtorrent"}
@@ -260,7 +262,7 @@ namespace
 
 	std::string lookup(fingerprint const& f)
 	{
-		char identity[200];
+		std::stringstream identity;
 
 		const int size = sizeof(name_map)/sizeof(name_map[0]);
 		map_entry tmp = {f.name, ""};
@@ -276,31 +278,22 @@ namespace
 		}
 #endif
 
-		char temp[3];
-		char const* name = 0;
 		if (i < name_map + size && std::equal(f.name, f.name + 2, i->id))
-		{
-			name = i->name;
-		}
+			identity << i->name;
 		else
 		{
-			// if we don't have this client in the list
-			// just use the one or two letter code
-			memcpy(temp, f.name, 2);
-			temp[2] = 0;
-			name = temp;
+			identity << f.name[0];
+			if (f.name[1] != 0) identity << f.name[1];
 		}
 
-		int num_chars = snprintf(identity, sizeof(identity), "%s %u.%u.%u", name
-			, f.major_version, f.minor_version, f.revision_version);
+		identity << " " << (int)f.major_version
+			<< "." << (int)f.minor_version
+			<< "." << (int)f.revision_version;
 
-		if (f.tag_version != 0)
-		{
-			snprintf(identity + num_chars, sizeof(identity) - num_chars
-				, ".%u", f.tag_version);
-		}
+		if (f.name[1] != 0)
+			identity << "." << (int)f.tag_version;
 
-		return identity;
+		return identity.str();
 	}
 
 	bool find_string(unsigned char const* id, char const* search)
@@ -364,7 +357,7 @@ namespace libtorrent
 		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\0"))
 			return "Experimental 3.1";
 
-
+		
 		// look for azureus style id
 		f = parse_az_style(p);
 		if (f) return lookup(*f);
@@ -376,15 +369,15 @@ namespace libtorrent
 		// look for mainline style id
 		f = parse_mainline_style(p);
 		if (f) return lookup(*f);
-
-
+														
+		
 		if (std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0"))
 			return "Generic";
 
 		std::string unknown("Unknown [");
 		for (peer_id::const_iterator i = p.begin(); i != p.end(); ++i)
 		{
-			unknown += isprint(char(*i))?*i:'.';
+			unknown += isprint(*i)?*i:'.';
 		}
 		unknown += "]";
 		return unknown;

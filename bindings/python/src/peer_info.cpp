@@ -3,7 +3,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <libtorrent/peer_info.hpp>
-#include <libtorrent/bitfield.hpp>
 #include <boost/python.hpp>
 #include <boost/python/iterator.hpp>
 
@@ -36,7 +35,7 @@ list get_pieces(peer_info const& pi)
 {
     list ret;
 
-    for (bitfield::const_iterator i = pi.pieces.begin()
+    for (std::vector<bool>::const_iterator i = pi.pieces.begin()
         , end(pi.pieces.end()); i != end; ++i)
     {
         ret.append(*i);
@@ -49,8 +48,6 @@ void bind_peer_info()
     scope pi = class_<peer_info>("peer_info")
         .def_readonly("flags", &peer_info::flags)
         .def_readonly("source", &peer_info::source)
-        .def_readonly("read_state", &peer_info::read_state)
-        .def_readonly("write_state", &peer_info::write_state)
         .add_property("ip", get_ip)
         .def_readonly("up_speed", &peer_info::up_speed)
         .def_readonly("down_speed", &peer_info::down_speed)
@@ -70,10 +67,6 @@ void bind_peer_info()
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
         .add_property("country", get_country)
 #endif
-#ifndef TORRENT_DISABLE_GEO_IP
-        .def_readonly("inet_as_name", &peer_info::inet_as_name)
-        .def_readonly("inet_as", &peer_info::inet_as)
-#endif
         .def_readonly("load_balancing", &peer_info::load_balancing)
         .def_readonly("download_queue_length", &peer_info::download_queue_length)
         .def_readonly("upload_queue_length", &peer_info::upload_queue_length)
@@ -86,10 +79,6 @@ void bind_peer_info()
         .def_readonly("connection_type", &peer_info::connection_type)
         .def_readonly("remote_dl_rate", &peer_info::remote_dl_rate)
         .def_readonly("pending_disk_bytes", &peer_info::pending_disk_bytes)
-        .def_readonly("send_quota", &peer_info::send_quota)
-        .def_readonly("receive_quota", &peer_info::receive_quota)
-        .def_readonly("rtt", &peer_info::rtt)
-        .def_readonly("progress", &peer_info::progress)
         ;
 
     // flags
@@ -119,11 +108,5 @@ void bind_peer_info()
     pi.attr("pex") = (int)peer_info::pex;
     pi.attr("lsd") = (int)peer_info::lsd;
     pi.attr("resume_data") = (int)peer_info::resume_data;
-
-    // read/write state
-    pi.attr("bw_idle") = (int)peer_info::bw_idle;
-    pi.attr("bw_torrent") = (int)peer_info::bw_torrent;
-    pi.attr("bw_global") = (int)peer_info::bw_global;
-    pi.attr("bw_network") = (int)peer_info::bw_network;
 }
 

@@ -22,9 +22,6 @@ void bind_peer_plugin();
 void bind_torrent();
 void bind_peer_info();
 void bind_ip_filter();
-void bind_magnet_uri();
-void bind_converters();
-void bind_create_torrent();
 
 BOOST_PYTHON_MODULE(libtorrent)
 {
@@ -45,13 +42,9 @@ BOOST_PYTHON_MODULE(libtorrent)
     bind_alert();
     bind_datetime();
     bind_extensions();
-#ifndef TORRENT_NO_PYTHON_PLUGINS
     bind_peer_plugin();
-#endif
     bind_torrent();
     bind_peer_info();
     bind_ip_filter();
-    bind_magnet_uri();
-    bind_converters();
-    bind_create_torrent();
 }
+

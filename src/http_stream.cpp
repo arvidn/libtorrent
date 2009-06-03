@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include "libtorrent/http_stream.hpp"
-#include "libtorrent/escape_string.hpp" // for base64encode
+#include "libtorrent/tracker_manager.hpp" // for base64encode
 
 namespace libtorrent
 {
@@ -44,8 +44,7 @@ namespace libtorrent
 		if (e || i == tcp::resolver::iterator())
 		{
 			(*h)(e);
-			error_code ec;
-			close(ec);
+			close();
 			return;
 		}
 
@@ -58,8 +57,7 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			error_code ec;
-			close(ec);
+			close();
 			return;
 		}
 
@@ -82,7 +80,7 @@ namespace libtorrent
 				m_user + ":" + m_password) + "\r\n", p);
 		}
 		write_string("\r\n", p);
-		async_write(m_sock, asio::buffer(m_buffer)
+		asio::async_write(m_sock, asio::buffer(m_buffer)
 			, boost::bind(&http_stream::handshake1, this, _1, h));
 	}
 
@@ -91,14 +89,13 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			error_code ec;
-			close(ec);
+			close();
 			return;
 		}
 
 		// read one byte from the socket
 		m_buffer.resize(1);
-		async_read(m_sock, asio::buffer(m_buffer)
+		asio::async_read(m_sock, asio::buffer(m_buffer)
 			, boost::bind(&http_stream::handshake2, this, _1, h));
 	}
 
@@ -107,8 +104,7 @@ namespace libtorrent
 		if (e)
 		{
 			(*h)(e);
-			error_code ec;
-			close(ec);
+			close();
 			return;
 		}
 
@@ -134,22 +130,20 @@ namespace libtorrent
 		if (found_end)
 		{
 			m_buffer.push_back(0);
-			char* status = std::strchr(&m_buffer[0], ' ');
+			char* status = strchr(&m_buffer[0], ' ');
 			if (status == 0)
 			{
 				(*h)(asio::error::operation_not_supported);
-				error_code ec;
-				close(ec);
+				close();
 				return;
 			}
 
 			status++;
-			int code = std::atoi(status);
+			int code = atoi(status);
 			if (code != 200)
 			{
 				(*h)(asio::error::operation_not_supported);
-				error_code ec;
-				close(ec);
+				close();
 				return;
 			}
 
@@ -160,7 +154,7 @@ namespace libtorrent
 
 		// read another byte from the socket
 		m_buffer.resize(read_pos + 1);
-		async_read(m_sock, asio::buffer(&m_buffer[0] + read_pos, 1)
+		asio::async_read(m_sock, asio::buffer(&m_buffer[0] + read_pos, 1)
 			, boost::bind(&http_stream::handshake2, this, _1, h));
 	}
 

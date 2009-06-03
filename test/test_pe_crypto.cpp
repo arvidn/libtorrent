@@ -80,8 +80,8 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	using namespace libtorrent;
 	using std::cerr;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000));
 	pe_settings s;
 	
 	s.out_enc_policy = libtorrent::pe_settings::enabled;
@@ -118,13 +118,11 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 		print_alerts(ses2, "ses2");
 
 		if (tor2.is_seed()) break;
-		test_sleep(1000);
+		test_sleep(100);
 	}
 
 	TEST_CHECK(tor2.is_seed());
  	if (tor2.is_seed()) std::cerr << "done\n";
-	ses1.remove_torrent(tor1);
-	ses2.remove_torrent(tor2);
 
 	using boost::filesystem::remove_all;
 	remove_all("./tmp1_pe");
@@ -136,11 +134,11 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 int test_main()
 {
 	using namespace libtorrent;
-	int repcount = 128;
+	int repcount = 1024;
 
 	for (int rep = 0; rep < repcount; ++rep)
 	{
-		dh_key_exchange DH1, DH2;
+		DH_key_exchange DH1, DH2;
 		
 		DH1.compute_secret(DH2.get_local_key());
 		DH2.compute_secret(DH1.get_local_key());
@@ -148,7 +146,7 @@ int test_main()
 		TEST_CHECK(std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()));
 	}
 
-	dh_key_exchange DH1, DH2;
+	DH_key_exchange DH1, DH2;
 	DH1.compute_secret(DH2.get_local_key());
 	DH2.compute_secret(DH1.get_local_key());
 
@@ -157,8 +155,8 @@ int test_main()
 	sha1_hash test1_key = hasher("test1_key",8).final();
 	sha1_hash test2_key = hasher("test2_key",8).final();
 
-	RC4_handler RC41(test2_key, test1_key);
-	RC4_handler RC42(test1_key, test2_key);
+	RC4_handler RC41 (test2_key, test1_key);
+	RC4_handler RC42 (test1_key, test2_key);
 
 	for (int rep = 0; rep < repcount; ++rep)
 	{

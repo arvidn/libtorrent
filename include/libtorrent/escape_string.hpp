@@ -34,49 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ESCAPE_STRING_HPP_INCLUDED
 
 #include <string>
-#include <limits>
-#include <boost/optional.hpp>
-#include <boost/array.hpp>
 #include "libtorrent/config.hpp"
-#include "libtorrent/size_type.hpp"
-#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
-	boost::array<char, 3 + std::numeric_limits<size_type>::digits10> TORRENT_EXPORT to_string(size_type n);
-	bool TORRENT_EXPORT is_digit(char c);
-	bool TORRENT_EXPORT isprint(char c);
-	char TORRENT_EXPORT to_lower(char c);
-
-	bool TORRENT_EXPORT string_begins_no_case(char const* s1, char const* s2);
-
-	std::string TORRENT_EXPORT unescape_string(std::string const& s, error_code& ec);
+	std::string TORRENT_EXPORT unescape_string(std::string const& s);
 	std::string TORRENT_EXPORT escape_string(const char* str, int len);
 	std::string TORRENT_EXPORT escape_path(const char* str, int len);
-
-	// encodes a string using the base64 scheme
-	TORRENT_EXPORT std::string base64encode(std::string const& s);
-	// encodes a string using the base32 scheme
-	TORRENT_EXPORT std::string base32encode(std::string const& s);
-	TORRENT_EXPORT std::string base32decode(std::string const& s);
-
-	TORRENT_EXPORT boost::optional<std::string> url_has_argument(
-		std::string const& url, std::string argument);
-
-	TORRENT_EXPORT std::string to_hex(std::string const& s);
-	TORRENT_EXPORT bool is_hex(char const *in, int len);
-	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
-	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
-
-#if TORRENT_USE_WPATH
-	TORRENT_EXPORT std::wstring convert_to_wstring(std::string const& s);
-#endif
-	
-#if TORRENT_USE_LOCALE_FILENAMES
-	TORRENT_EXPORT std::string convert_to_native(std::string const& s);
-#endif		
-	
 }
 
 #endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED
-

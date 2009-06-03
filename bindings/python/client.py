@@ -97,7 +97,6 @@ def add_suffix(val):
     return '%6.3gPB' % val
 
 def progress_bar(progress, width):
-    assert(progress <= 1)
     progress_chars = int(progress * width + 0.5)
     return progress_chars * '#' + (width - progress_chars) * '-'
 
@@ -129,7 +128,6 @@ def print_peer_info(console, peers):
         out += ' '
 
         if p.downloading_piece_index >= 0:
-            assert(p.downloading_progress <= p.downloading_total)
             out += progress_bar(float(p.downloading_progress) / p.downloading_total, 15)
         else:
             out += progress_bar(0, 15)
@@ -225,9 +223,8 @@ def main():
     ses.listen_on(options.port, options.port + 10)
     ses.set_settings(settings)
     ses.set_severity_level(lt.alert.severity_levels.info)
-    ses.add_extension(lt.create_ut_pex_plugin)
-    ses.add_extension(lt.create_ut_metadata_plugin)
-    ses.add_extension(lt.create_metadata_plugin)
+#    ses.add_extension(lt.create_ut_pex_plugin);
+#    ses.add_extension(lt.create_metadata_plugin);
 
     handles = []
     alerts = []
@@ -240,26 +237,21 @@ def main():
         info = lt.torrent_info(e)
         print 'Adding \'%s\'...' % info.name()
 
-        atp = {}
         try:
-            atp["resume_data"] = open(os.path.join(options.save_path, info.name() + '.fastresume'), 'rb').read()
+            resume_data = lt.bdecode(open(
+                os.path.join(options.save_path, info.name() + '.fastresume'), 'rb').read())
         except:
-            pass
+            resume_data = None
 
-        atp["ti"] = info
-        atp["save_path"] = options.save_path
-        atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
-        atp["paused"] = False
-        atp["auto_managed"] = True
-        atp["duplicate_is_error"] = True
-
-        h = ses.add_torrent(atp)
+        h = ses.add_torrent(info, options.save_path, 
+                resume_data, lt.storage_mode_t.storage_mode_sparse)
 
         handles.append(h)
 
         h.set_max_connections(60)
         h.set_max_uploads(-1)
         h.set_ratio(options.ratio)
+        h.set_sequenced_download_threshold(15)
 
     if os.name == 'nt':
         console = WindowsConsole()
@@ -282,9 +274,8 @@ def main():
             s = h.status()
 
             if s.state != lt.torrent_status.seeding:
-                state_str = ['queued', 'checking', 'downloading metadata', \
-                             'downloading', 'finished', 'seeding', \
-                             'allocating', 'checking fastresume']
+                state_str = ['queued', 'checking', 'connecting', 'downloading metadata', \
+                             'downloading', 'finished', 'seeding', 'allocating']
                 out += state_str[s.state] + ' '
 
                 out += '%5.4f%% ' % (s.progress*100)
@@ -317,7 +308,7 @@ def main():
                 fp = h.file_progress()
                 ti = h.get_torrent_info()
                 for f,p in zip(ti.files(), fp):
-                    out += progress_bar(p / f.size, 20)
+                    out += progress_bar(p, 20)
                     out += ' ' + f.path + '\n'
                 write_line(console, out)
 
@@ -337,7 +328,7 @@ def main():
             if type(a) == str:
                 write_line(console, a + '\n')
             else:
-                write_line(console, a.message() + '\n')
+                write_line(console, a.msg() + '\n')
 
         c = console.sleep_and_input(0.5)
 
@@ -353,10 +344,10 @@ def main():
         elif c == 'u':
             for h in handles: h.resume()
 
-    ses.pause()
     for h in handles:
         if not h.is_valid() or not h.has_metadata():
             continue
+        h.pause()
         data = lt.bencode(h.write_resume_data())
         open(os.path.join(options.save_path, h.get_torrent_info().name() + '.fastresume'), 'wb').write(data)
 

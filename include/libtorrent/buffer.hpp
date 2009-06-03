@@ -44,11 +44,6 @@ class buffer
 public:
 	struct interval
 	{
-	   interval()
-		  : begin(0)
-		  , end(0)
-		{}
-
 	   interval(char* begin, char* end)
 		  : begin(begin)
 		  , end(end)
@@ -68,11 +63,6 @@ public:
 
 	struct const_interval
 	{
-	   const_interval(interval const& i)
-		  : begin(i.begin)
-		  , end(i.end)
-		{}
-
 	   const_interval(char const* begin, char const* end)
 		  : begin(begin)
 		  , end(end)

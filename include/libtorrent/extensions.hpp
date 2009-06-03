@@ -56,9 +56,6 @@ namespace libtorrent
 	struct peer_request;
 	class peer_connection;
 	class entry;
-	struct lazy_entry;
-	struct disk_buffer_holder;
-	struct bitfield;
 
 	struct TORRENT_EXPORT torrent_plugin
 	{
@@ -101,14 +98,14 @@ namespace libtorrent
 		// means that the other end doesn't support this extension and will remove
 		// it from the list of plugins.
 		// this is not called for web seeds
-		virtual bool on_handshake(char const* reserved_bits) { return true; }
+		virtual bool on_handshake() { return true; }
 		
 		// called when the extension handshake from the other end is received
 		// if this returns false, it means that this extension isn't
 		// supported by this peer. It will result in this peer_plugin
 		// being removed from the peer_connection and destructed. 
 		// this is not called for web seeds
-		virtual bool on_extension_handshake(lazy_entry const& h) { return true; }
+		virtual bool on_extension_handshake(entry const& h) { return true; }
 
 		// returning true from any of the message handlers
 		// indicates that the plugin has handeled the message.
@@ -131,7 +128,7 @@ namespace libtorrent
 		virtual bool on_have(int index)
 		{ return false; }
 
-		virtual bool on_bitfield(bitfield const& bitfield)
+		virtual bool on_bitfield(std::vector<bool> const& bitfield)
 		{ return false; }
 
 		virtual bool on_have_all()
@@ -146,7 +143,7 @@ namespace libtorrent
 		virtual bool on_request(peer_request const& req)
 		{ return false; }
 
-		virtual bool on_piece(peer_request const& piece, disk_buffer_holder& data)
+		virtual bool on_piece(peer_request const& piece, char const* data)
 		{ return false; }
 
 		virtual bool on_cancel(peer_request const& req)

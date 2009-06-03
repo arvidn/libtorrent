@@ -44,19 +44,18 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::filesystem::remove_all;
 using boost::filesystem::exists;
 
-void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode = false, bool time_critical = false)
+void test_swarm()
 {
 	using namespace libtorrent;
 
-	// in case the previous run was terminated
-	try { remove_all("./tmp1_swarm"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_swarm"); } catch (std::exception&) {}
-	try { remove_all("./tmp3_swarm"); } catch (std::exception&) {}
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000));
+	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000));
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000), "0.0.0.0", 0);
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000), "0.0.0.0", 0);
-
+	ses1.set_severity_level(alert::debug);
+	ses2.set_severity_level(alert::debug);
+	ses3.set_severity_level(alert::debug);
+	
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
@@ -70,7 +69,6 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	session_settings settings;
 	settings.allow_multiple_connections_per_ip = true;
 	settings.ignore_limits_on_local_network = false;
-	settings.strict_super_seeding = strict;
 	ses1.set_settings(settings);
 	ses2.set_settings(settings);
 	ses3.set_settings(settings);
@@ -88,30 +86,14 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	torrent_handle tor2;
 	torrent_handle tor3;
 
-	add_torrent_params p;
-	p.seed_mode = seed_mode;
-	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", 32 * 1024, 0, super_seeding, &p);
-
-	int mask = alert::all_categories & ~(alert::progress_notification | alert::performance_warning);
-	ses1.set_alert_mask(mask);
-	ses2.set_alert_mask(mask);
-	ses3.set_alert_mask(mask);
-
-	if (time_critical)
-	{
-		tor2.set_piece_deadline(2, seconds(0));
-		tor2.set_piece_deadline(5, seconds(1));
-		tor2.set_piece_deadline(8, seconds(2));
-	}
+	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_swarm");	
 
 	float sum_dl_rate2 = 0.f;
 	float sum_dl_rate3 = 0.f;
 	int count_dl_rates2 = 0;
 	int count_dl_rates3 = 0;
 
-	for (int i = 0; i < 80; ++i)
+	for (int i = 0; i < 30; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
@@ -159,6 +141,8 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	std::cerr << "average rate: " << (average2 / 1000.f) << "kB/s - "
 		<< (average3 / 1000.f) << "kB/s" << std::endl;
 
+	TEST_CHECK(std::fabs(average2 - float(rate_limit)) < rate_limit / 11.f);
+	TEST_CHECK(std::fabs(average3 - float(rate_limit)) < rate_limit / 11.f);
 	if (tor2.is_seed() && tor3.is_seed()) std::cerr << "done\n";
 
 	// make sure the files are deleted
@@ -177,7 +161,7 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 		}
 		a = ses1.pop_alert();
 		assert(a.get());
-		std::cerr << a->message() << std::endl;
+		std::cerr << a->msg() << std::endl;
 	}
 
 	TEST_CHECK(dynamic_cast<torrent_deleted_alert*>(a.get()) != 0);
@@ -187,23 +171,11 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	// this should time out (ret == 0) and it should take
 	// about 2 seconds
 	ptime start = time_now();
-	alert const* ret;
-	while ((ret = ses1.wait_for_alert(seconds(2))))
-	{
-		a = ses1.pop_alert();
-		std::cerr << ret->message() << std::endl;
-		start = time_now();
-	}
+	alert const* ret = ses1.wait_for_alert(seconds(2));
+	TEST_CHECK(ret == 0);
+	if (ret != 0) std::cerr << ret->msg() << std::endl;
 	TEST_CHECK(time_now() - start < seconds(3));
-	TEST_CHECK(time_now() - start >= seconds(2));
-
-	TEST_CHECK(!exists("./tmp1_swarm/temporary"));
-	TEST_CHECK(!exists("./tmp2_swarm/temporary"));
-	TEST_CHECK(!exists("./tmp3_swarm/temporary"));
-
-	remove_all("./tmp1_swarm");
-	remove_all("./tmp2_swarm");
-	remove_all("./tmp3_swarm");
+	TEST_CHECK(time_now() - start > seconds(2));
 }
 
 int test_main()
@@ -211,19 +183,21 @@ int test_main()
 	using namespace libtorrent;
 	using namespace boost::filesystem;
 
-	// with time critical pieces
-	test_swarm(false, false, false, true);
-
-	// with seed mode
-	test_swarm(false, false, true);
+	// in case the previous run was terminated
+	try { remove_all("./tmp1_swarm"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_swarm"); } catch (std::exception&) {}
+	try { remove_all("./tmp3_swarm"); } catch (std::exception&) {}
 
 	test_swarm();
-
-	// with super seeding
-	test_swarm(true);
 	
-	// with strict super seeding
-	test_swarm(true, true);
+	test_sleep(2000);
+	TEST_CHECK(!exists("./tmp1_swarm/temporary"));
+	TEST_CHECK(!exists("./tmp2_swarm/temporary"));
+	TEST_CHECK(!exists("./tmp3_swarm/temporary"));
+
+	remove_all("./tmp1_swarm");
+	remove_all("./tmp2_swarm");
+	remove_all("./tmp3_swarm");
 
 	return 0;
 }

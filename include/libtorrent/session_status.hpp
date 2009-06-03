@@ -33,24 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_STATUS_HPP_INCLUDED
 #define TORRENT_SESSION_STATUS_HPP_INCLUDED
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/size_type.hpp"
 
 namespace libtorrent
 {
-
-#ifndef TORRENT_DISABLE_DHT
-
-	struct dht_lookup
-	{
-		char const* type;
-		int outstanding_requests;
-		int timeouts;
-		int responses;
-		int branch_factor;
-	};
-
-#endif
 
 	struct TORRENT_EXPORT session_status
 	{
@@ -58,51 +43,26 @@ namespace libtorrent
 
 		float upload_rate;
 		float download_rate;
-		size_type total_download;
-		size_type total_upload;
 
 		float payload_upload_rate;
 		float payload_download_rate;
+
+		size_type total_download;
+		size_type total_upload;
+
 		size_type total_payload_download;
 		size_type total_payload_upload;
 
-		float ip_overhead_upload_rate;
-		float ip_overhead_download_rate;
-		size_type total_ip_overhead_download;
-		size_type total_ip_overhead_upload;
-
-		float dht_upload_rate;
-		float dht_download_rate;
-		size_type total_dht_download;
-		size_type total_dht_upload;
-
-		float tracker_upload_rate;
-		float tracker_download_rate;
-		size_type total_tracker_download;
-		size_type total_tracker_upload;
-
-		size_type total_redundant_bytes;
-		size_type total_failed_bytes;
-
 		int num_peers;
-		int num_unchoked;
-		int allowed_upload_slots;
 
 		int up_bandwidth_queue;
 		int down_bandwidth_queue;
-
-		int up_bandwidth_bytes_queue;
-		int down_bandwidth_bytes_queue;
-
-		int optimistic_unchoke_counter;
-		int unchoke_counter;
 
 #ifndef TORRENT_DISABLE_DHT
 		int dht_nodes;
 		int dht_node_cache;
 		int dht_torrents;
 		size_type dht_global_nodes;
-		std::vector<dht_lookup> active_requests;
 #endif
 	};
 

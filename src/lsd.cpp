@@ -35,9 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
-#include "libtorrent/buffer.hpp"
-#include "libtorrent/http_parser.hpp"
-#include "libtorrent/escape_string.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
@@ -58,16 +55,14 @@ using namespace libtorrent;
 namespace libtorrent
 {
 	// defined in broadcast_socket.cpp
-	address guess_local_address(io_service&);
+	address guess_local_address(asio::io_service&);
 }
-
-static error_code ec;
 
 lsd::lsd(io_service& ios, address const& listen_interface
 	, peer_callback_t const& cb)
 	: m_callback(cb)
 	, m_retry_count(1)
-	, m_socket(ios, udp::endpoint(address_v4::from_string("239.192.152.143", ec), 6771)
+	, m_socket(ios, udp::endpoint(address_v4::from_string("239.192.152.143"), 6771)
 		, bind(&lsd::on_announce, self(), _1, _2, _3))
 	, m_broadcast_timer(ios)
 	, m_disabled(false)
@@ -83,19 +78,17 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 {
 	if (m_disabled) return;
 
-	char ih_hex[41];
-	to_hex((char const*)&ih[0], 20, ih_hex);
-	char msg[200];
-	int msg_len = snprintf(msg, 200,
-		"BT-SEARCH * HTTP/1.1\r\n"
+	std::stringstream btsearch;
+	btsearch << "BT-SEARCH * HTTP/1.1\r\n"
 		"Host: 239.192.152.143:6771\r\n"
-		"Port: %d\r\n"
-		"Infohash: %s\r\n"
-		"\r\n\r\n", listen_port, ih_hex);
+		"Port: " << listen_port << "\r\n"
+		"Infohash: " << ih << "\r\n"
+		"\r\n\r\n";
+	std::string const& msg = btsearch.str();
 
 	m_retry_count = 1;
 	error_code ec;
-	m_socket.send(msg, msg_len, ec);
+	m_socket.send(msg.c_str(), int(msg.size()), ec);
 	if (ec)
 	{
 		m_disabled = true;
@@ -103,16 +96,15 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	}
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	snprintf(msg, 200, "%s ==> announce: ih: %s port: %u\n"
-		, time_now_string(), ih_hex, listen_port);
-	m_log << msg;
+	m_log << time_now_string()
+		<< " ==> announce: ih: " << ih << " port: " << listen_port << std::endl;
 #endif
 
-	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
+	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
 	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, self(), _1, msg));
 }
 
-void lsd::resend_announce(error_code const& e, std::string msg)
+void lsd::resend_announce(error_code const& e, std::string msg) try
 {
 	if (e) return;
 
@@ -123,9 +115,11 @@ void lsd::resend_announce(error_code const& e, std::string msg)
 	if (m_retry_count >= 5)
 		return;
 
-	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
+	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count));
 	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, self(), _1, msg));
 }
+catch (std::exception&)
+{}
 
 void lsd::on_announce(udp::endpoint const& from, char* buffer
 	, std::size_t bytes_transferred)
@@ -134,11 +128,9 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 
 	http_parser p;
 
-	bool error = false;
-	p.incoming(buffer::const_interval(buffer, buffer + bytes_transferred)
-		, error);
+	p.incoming(buffer::const_interval(buffer, buffer + bytes_transferred));
 
-	if (!p.header_finished() || error)
+	if (!p.header_finished())
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string()
@@ -177,34 +169,27 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	}
 
 	sha1_hash ih(0);
-	from_hex(ih_str.c_str(), 40, (char*)&ih[0]);
-	int port = std::atoi(port_str.c_str());
+	std::istringstream ih_sstr(ih_str);
+	ih_sstr >> ih;
+	int port = atoi(port_str.c_str());
 
 	if (!ih.is_all_zeros() && port != 0)
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		char msg[200];
-		snprintf(msg, 200, "%s *** incoming local announce %s:%d ih: %s\n"
-			, time_now_string(), print_address(from.address()).c_str()
-			, port, ih_str.c_str());
+		m_log << time_now_string()
+			<< " *** incoming local announce " << from.address()
+			<< ":" << port << " ih: " << ih << std::endl;
 #endif
 		// we got an announce, pass it on through the callback
-#ifndef BOOST_NO_EXCEPTIONS
-		try {
-#endif
-			m_callback(tcp::endpoint(from.address(), port), ih);
-#ifndef BOOST_NO_EXCEPTIONS
-		}
+		try { m_callback(tcp::endpoint(from.address(), port), ih); }
 		catch (std::exception&) {}
-#endif
 	}
 }
 
 void lsd::close()
 {
 	m_socket.close();
-	error_code ec;
-	m_broadcast_timer.cancel(ec);
+	m_broadcast_timer.cancel();
 	m_disabled = true;
 	m_callback.clear();
 }

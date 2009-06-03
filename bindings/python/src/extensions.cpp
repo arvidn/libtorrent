@@ -2,15 +2,13 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/python.hpp>
 #include <libtorrent/extensions.hpp>
 #include <libtorrent/entry.hpp>
 #include <libtorrent/peer_request.hpp>
 #include <libtorrent/peer_connection.hpp>
 #include <libtorrent/extensions/ut_pex.hpp>
 #include <libtorrent/extensions/metadata_transfer.hpp>
-#include <libtorrent/extensions/ut_metadata.hpp>
-#include <libtorrent/extensions/smart_ban.hpp>
+#include <boost/python.hpp>
 #include "gil.hpp"
 
 using namespace boost::python;
@@ -116,16 +114,8 @@ boost::shared_ptr<torrent_plugin> create_metadata_plugin_wrapper(torrent* t) {
     return create_metadata_plugin(t, NULL);
 }
 
-boost::shared_ptr<torrent_plugin> create_ut_metadata_plugin_wrapper(torrent *t) {
-    return create_ut_metadata_plugin(t, NULL);
-}
-
 boost::shared_ptr<torrent_plugin> create_ut_pex_plugin_wrapper(torrent* t) {
     return create_ut_pex_plugin(t, NULL);
-}
-
-boost::shared_ptr<torrent_plugin> create_smart_ban_plugin_wrapper(torrent* t) {
-    return create_smart_ban_plugin(t, NULL);
 }
 
 void bind_extensions()
@@ -164,8 +154,6 @@ void bind_extensions()
     class_<torrent_plugin, boost::shared_ptr<torrent_plugin> >("torrent_plugin", no_init);
     def("create_ut_pex_plugin", create_ut_pex_plugin_wrapper);
     def("create_metadata_plugin", create_metadata_plugin_wrapper);
-    def("create_ut_metadata_plugin", create_ut_metadata_plugin_wrapper);
-    def("create_smart_ban_plugin", create_smart_ban_plugin_wrapper);
 }
 
 

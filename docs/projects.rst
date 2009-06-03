@@ -6,373 +6,166 @@ project listed here, let me_ know.
 
 .. _me: mailto:arvid@rasterbar.com
 
-
-.. container:: entry
-
-	.. image:: firetorrent.png
-		:align: right
-		:target: firetorrent_
-
-	**firetorrent**
-
-	firetorrent_ is a single click torrent downloader plugin
-	for Firefox and Wyzo.
-
-	.. _firetorrent: http://www.fireaddons.com/
-
-
-.. container:: entry
-
-	.. image:: qbittorrent_thumb.jpg
-		:align: right
-		:target: qBittorrent_
-
-	**qBittorrent**
-
-	qBittorrent_ is a QT bittorrent
-	client available for linux (likely
-	portable to most other desktops as
-	well). Written by Christophe Dumez.
-
-	.. _qBittorrent: http://www.qbittorrent.org/
-
-
-.. container:: entry
-
-	.. image:: deluge.png
-		:align: right
-		:target: `deluge Torrent`_
-
-	**deluge torrent**
-
-	`deluge Torrent`_ is a more full-featured yet still lightweight bittorrent
-	client. It has the ability to automatically resume partial downloads and
-	background to the system tray.
-
-
-
-.. container:: entry
-
-	.. image:: bubba.png
-		:align: right
-		:target: bubba2_
-
-	**bubba**
-
-	Bubba_ is a mini-sized server, designed to fit your home better than
-	an always running PC. Boasting Torrent downloader, DAAP streaming,
-	Web, E-mail, printer and FTP server etc.
-
-	.. _bubba2: http://excito.com/bubba/about-bubba.html
-	.. _Bubba: http://excito.com/bubba/about-bubba.html
-
-
-
-.. container:: entry
-
-	.. image:: btg_thumb.jpg
-		:align: right
-		:target: btg_
-
-	**btg**
-
-	btg_ is a unix bittorrent client
-	which is run as a daemon. It has
-	multiple user interfaces which
-	connects to the daemon. One GUI
-	(Gtkmm), one terminal interface
-	(ncurses) and one web interface
-	(accessable through a web browser).
-	Written by Michael Wojciechowski
-	and Johan Ström.
-
-	.. _btg: http://btg.berlios.de//
-
-
-
-.. container:: entry
-
-	.. image:: tvblob.jpg
-		:align: right
-		:target: BLOBbox_
-
-	**tvblob**
-
-	The BLOBbox_ represents the ability to harness all of the content available
-	on the web, without any filtering or pre-selection by a third party ¿ just
-	like surfing the web.
-
-	This means that anyone will have the ability to reach viewers via the Internet
-	directly on TV, without them having to connect a PC.
-
-
-
-.. container:: entry
-
-	.. image:: halite_thumb.png
-		:align: right
-		:target: Halite_
-
-	**halite BitTorrent**
-
-	Halite_ is a windows bittorrent client controllabel via an xml-rpc
-	interface.
-
-
-
-.. container:: entry
-
-	.. image:: fdm.png
-		:align: right
-		:target: FDM_
-
-	**Free download manager**
-
-	FDM_ is a powerful, easy-to-use and absolutely free download accelerator and
-	manager. Moreover, FDM is 100% safe, open-source software distributed under
-	GPL License.
-
-
-
-.. container:: entry
-
-	.. image:: flush.jpg
-		:align: right
-		:target: Flush_
-
-	**Flush**
-
-	Flush_ is a GTK-based BitTorrent client.
-
-	.. _Flush: https://sourceforge.net/projects/flush/
-
-
-
-.. container:: entry
-
-	.. image:: pump.png
-		:align: right
-		:target: Pump_
-
-	**Pump**
-
-	Pump_ Pump brings together all the main features you need in order to find
-	content online and enjoy it on your PC and on your Mobile.
-
-	.. _Pump: http://pump.vipeers.com/
-
-
-.. container:: entry
-
-	.. image:: lince.png
-		:align: right
-		:target: Lince_
-
-	**Lince**
-
-	Lince_ is a bittorrent client using libtorrent to handle bittorrent protocol
-	and gtkmm for the interface, it has been designed to be a light and full
-	featured client.
-
-	.. _Lince: http://lincetorrent.sourceforge.net/
-
-
-
-.. container:: entry
-
-	.. image:: electric_sheep_thumb.jpg
-		:align: right
-		:target: `electric sheep`_
-
-	**electric sheep**
-
-	`electric sheep`_ is a screensaver
-	which collectively generates
-	animations and lets the users
-	vote which one to live on.
-
-	.. _`electric sheep`: http://electricsheep.org
-
-
-
-.. container:: entry
-
-	.. image:: miro.jpg
-		:align: right
-		:target: Miro_
-
-	**Miro**
-
-	Miro_ is a free application for channels of internet video (also known as
-	video podcasts and video rss). Miro is designed to be easy to use and to give
-	you an elegant fullscreen viewing experience.
-
-	.. _Miro: http://getmiro.com
-
-
-.. container:: entry
-
-	.. image:: tvitty.jpg
-		:align: right
-		:target: tvitty_
-
-	**Tvitty**
-
-	tvitty_ is a bittorrent client for Vista Media Center, which allows
-	searching and downloading of torrents directly on your TV.
-
-	.. _tvitty: http://tvitty.com
-
-
-.. container:: entry
-
-	.. image:: fatrat.png
-		:align: right
-		:target: FatRat_
-
-	**FatRat**
-
-	FatRat_ is an open source download manager for Linux/Unix systems written in
-	C++ with the help of the Trolltech Qt 4 library. It's simple to use and
-	install.
-
-
-
-.. container:: entry
-
-	.. image:: leechcraft.png
-		:align: right
-		:target: LeechCraft_
-
-	**LeechCraft**
-
-	LeechCraft_ LeechCraft is a free open source cross-platform extensible
-	software, which primary goal is support of file sharing networks and
-	protocols like HTTP and FTP
-
-
-
-.. container:: entry
-
-	.. image:: moopolice_thumb.gif
-		:align: right
-		:target: MooPolice_
-
-	**MooPolice**
-
-	MooPolice_ is a windows bittorrent
-	client with a quite unique look.
-
-	.. _MooPolice: http://www.moopolice.de
-
-
-
-.. container:: entry
-
-	.. image:: Linkage.png
-		:align: right
-		:target: Linkage_
-
-	**Linkage**
-
-	Linkage_ is a gtkmm client that aims to be middle weight.
-
-	.. _Linkage: http://code.google.com/p/linkage/
-
-
-
-.. container:: entry
-
-	.. image:: bitrocket_thumb.png
-		:align: right
-		:target: BitRocket_
-
-	**BitRocket**
-
-	BitRocket_ is a MacOS X bittorrent client.
-
-
-
-.. container:: entry
-
-	.. image:: bitscast_thumb.png
-		:align: right
-		:target: BitsCast_
-
-	**BitsCast**
-
-	RSS reader, podcast subscriber,
-	video feed downloader, bittorrent
-	feed downloader. See BitsCast_
-	homepage for more info.
-
-
-
-.. container:: entry
-
-	.. image:: bitfox.png
-		:align: right
-		:target: BitFox_
-
-	**Bitfox**
-
-	Bitfox_ is a firefox plugin integrating bittorrent downloads in firefox.
-
-	.. _Bitfox: http://code.google.com/p/bitfox/
-
-
-.. container:: entry
-
-	.. image:: bitslug_thumb.png
-		:align: right
-		:target: BitSlug_
-
-	**BitSlug**
-
-	BitSlug_ is a MacOSX cocoa client.
-
-
-
-.. container:: entry
-
-	.. image:: arctic_thumb.png
-		:align: right
-		:target: `Arctic Torrent`_
-
-	**Arctic Torrent**
-
-	`Arctic Torrent`_ is a light-weight
-	bittorrent client for windows.
-	Written by Cory Nelson.
-
-.. _`Arctic Torrent`: http://www.int64.org/arctic.html
-
-
-**hrktorrent**
-
-hrktorrent_ hrktorrent is a light console torrent client written in C++.
-
-.. _hrktorrent: http://50hz.ws/hrktorrent/
-
-**DelCo**
-
-DelCo_ is a research project at tempere university of technology, finland.
-
-**FireANT**
-
-FireANT_ is a video blog available
-for Windows and Mac OSX.
-
-.. _FireANT: http://antisnottv.net/
-
-.. _FDM: http://www.freedownloadmanager.org/
-.. _LeechCraft: http://deviant-soft.ws/tiki-index.php?page=LeechCraft
++-------------------------------------------------------------------------------+-------------------------------------+
+| **electric sheep**                                                            | .. image:: electric_sheep_thumb.jpg |
+|                                                                               |                                     |
+| `electric sheep`_ is a screensaver                                            |                                     |
+| which collectively generates                                                  |                                     |
+| animations and lets the users                                                 |                                     |
+| vote which one to live on.                                                    |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **qBittorrent**                                                               | .. image:: qbittorrent_thumb.jpg    |
+|                                                                               |                                     |
+| qBittorrent_ is a QT bittorrent                                               |                                     |
+| client available for linux (likely                                            |                                     |
+| portable to most other desktops as                                            |                                     |
+| well). Written by Christophe Dumez.                                           |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **btg**                                                                       | .. image:: btg_thumb.jpg            |
+|                                                                               |                                     |
+| btg_ is a unix bittorrent client                                              |                                     |
+| which is run as a daemon. It has                                              |                                     |
+| multiple user interfaces which                                                |                                     |
+| connects to the daemon. One GUI                                               |                                     |
+| (Gtkmm), one terminal interface                                               |                                     |
+| (ncurses) and one web interface                                               |                                     |
+| (accessable through a web browser).                                           |                                     |
+| Written by Michael Wojciechowski                                              |                                     |
+| and Johan Ström.                                                              |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **Lince**                                                                     | .. image:: lince.jpg                |
+|                                                                               |                                     |
+| Lince_ is a bittorrent client using libtorrent to handle bittorrent protocol  |                                     |
+| and gtkmm for the interface, it has been designed to be a light and full      |                                     |
+| featured client.                                                              |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **Miro**                                                                      | .. image:: miro.jpg                 |
+|                                                                               |                                     |
+| Miro_ is a free application for channels of internet video (also known as     |                                     |
+| video podcasts and video rss). Miro is designed to be easy to use and to give |                                     |
+| you an elegant fullscreen viewing experience.                                 |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **FatRat**                                                                    | .. image:: fatrat.jpg               |
+|                                                                               |                                     |
+| FatRat_ is an open source download manager for Linux/Unix systems written in  |                                     |
+| C++ with the help of the Trolltech Qt 4 library. It's simple to use and       |                                     |
+| install.                                                                      |                                     | 
++-------------------------------------------------------------------------------+-------------------------------------+
+| **BitRocket**                                                                 | .. image:: bitrocket_thumb.png      |
+|                                                                               |                                     |
+| BitRocket_ is a MacOS X bittorrent client.                                    |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **Bitfox**                                                                    | .. image:: bitfox.png               |
+|                                                                               |                                     |
+| A firefox plugin integrating bittorrent downloads in firefox.                 |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **Acquasition**                                                               | .. image:: acquasition.jpg          |
+|                                                                               |                                     |
+| Acquasition_ is a multi-network peer-to-peer                                  |                                     |
+| client for Mac.                                                               |                                     |
+|                                                                               |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **Instant Media**                                                             | .. image:: im_thumb.jpg             |
+|                                                                               |                                     |
+| IM_ is a client for downloading Internet TV.                                  |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **MooPolice**                                                                 | .. image:: moopolice_thumb.gif      |
+|                                                                               |                                     |
+| MooPolice_ is a windows bittorrent                                            |                                     |
+| client with a quite unique look.                                              |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **Linkage**                                                                   | .. image:: Linkage.jpg              |
+|                                                                               |                                     |
+| Linkage_ is a gtkmm client that aims to be middle weight.                     |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **BitsCast**                                                                  | .. image:: bitscast_thumb.png       |
+|                                                                               |                                     |
+| RSS reader, podcast subscriber,                                               |                                     |
+| video feed downloader, bittorrent                                             |                                     |
+| feed downloader. See BitsCast_                                                |                                     |
+| homepage for more info.                                                       |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **BitSlug**                                                                   | .. image:: bitslug_thumb.png        |
+|                                                                               |                                     |
+| BitSlug_ is a MacOSX cocoa client.                                            |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **BitBuddy**                                                                  | .. image:: bitbuddy_thumb.jpg       |
+|                                                                               |                                     |
+| BitBuddy_ is a windows bittorrent                                             |                                     |
+| client by Daniel Wang, quite                                                  |                                     |
+| similar to BitComet GUI-wise.                                                 |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **Arctic Torrent**                                                            | .. image:: arctic_thumb.png         |
+|                                                                               |                                     |
+| `Arctic Torrent`_ is a light-weight                                           |                                     |
+| bittorrent client for windows.                                                |                                     |
+| Written by Cory Nelson.                                                       |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **deluge torrent**                                                            | .. image:: deluge.png               |
+|                                                                               |                                     |
+| `deluge Torrent`_ is a more full-featured yet still lightweight bittorrent    |                                     |
+| client. It has the ability to automatically resume partial downloads and      |                                     |
+| background to the system tray.                                                |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **halite BitTorrent**                                                         | .. image:: halite_thumb.png         |
+|                                                                               |                                     |
+| Halite_ is a windows bittorrent client controllabel via an xml-rpc            |                                     |
+| interface.                                                                    |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **DelCo**                                                                     |                                     |
+|                                                                               |                                     |
+| DelCo_ is a research project at tempere university of technology, finland.    |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **ZipTorrent**                                                                | .. image:: ziptorrent_thumb.gif     |
+|                                                                               |                                     |
+| ZipTorrent_ is another windows                                                |                                     |
+| bittorrent client with                                                        |                                     |
+| decentralized search facility.                                                |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **Jamplayer**                                                                 |                                     |
+|                                                                               |                                     |
+| Jamplayer_ is a remote controlled                                             |                                     |
+| music player and downloader using                                             |                                     |
+| the jamendo music network.                                                    |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **FireANT**                                                                   |                                     |
+|                                                                               |                                     |
+| FireANT_ is a video blog available                                            |                                     |
+| for Windows and Mac OSX.                                                      |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **eDonkey 2000**                                                              |                                     |
+|                                                                               |                                     |
+| eDonkey2000_ comes bundled with a                                             |                                     |
+| bittorrent plugin by 'The Orphan'.                                            |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+| **pHoeniX**                                                                   |                                     |
+|                                                                               |                                     |
+| pHoeniX_ is an eMule mod supporting,                                          |                                     |
+| among other things, bittorrent.                                               |                                     |
++-------------------------------------------------------------------------------+-------------------------------------+
+
+.. _`electric sheep`: http://electricsheep.org
+.. _qBittorrent: http://www.qbittorrent.org/
+.. _btg: http://developer.berlios.de/projects/btg/
+.. _Lince: http://lincetorrent.sourceforge.net/
+.. _Miro: http://getmiro.com
 .. _FatRat: http://fatrat.dolezel.info
 .. _BitRocket: http://www.bitrocket.org/
+.. _Bitfox: http://code.google.com/p/bitfox/
+.. _Acquasition: http://www.acquisitionx.com
+.. _IM: http://www.im.com/
+.. _MooPolice: http://www.moopolice.de
+.. _Linkage: http://code.google.com/p/linkage/
 .. _BitsCast: http://www.bitscast.com/software/
+.. _Jamplayer: http://www.jamendo.com/en/static/jamendotools_jamplayer/
 .. _BitSlug: http://bitslug.sourceforge.net/
+.. _BitBuddy: http://www.btvampire.com
+.. _`Arctic Torrent`: http://www.int64.org/arctic.html
 .. _`deluge Torrent`: http://deluge-torrent.org/
-.. _BLOBbox: http://www.tvblob.com
 .. _Halite: http://www.binarynotions.com/halite-bittorrent-client
-.. _DelCo: http://delco.cs.tut.fi/
+.. _DelCo: http://atm.tut.fi/delco/
+.. _ZipTorrent: http://www.ziptorrent.com/
+.. _FireANT: http://antisnottv.net/
+.. _eDonkey2000: http://www.edonkey2000.com/
+.. _pHoeniX: http://sourceforge.net/projects/emulephoenix
 

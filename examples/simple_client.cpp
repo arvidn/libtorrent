@@ -35,6 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 #include <exception>
 
+#include <boost/format.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
@@ -54,28 +57,24 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	session s;
-	s.listen_on(std::make_pair(6881, 6889));
-	add_torrent_params p;
-	p.save_path = "./";
-	error_code ec;
-	p.ti = new torrent_info(argv[1], ec);
-	if (ec)
+	try
 	{
-		std::cout << ec.message() << std::endl;
-		return 1;
-	}
-	s.add_torrent(p, ec);
-	if (ec)
-	{
-		std::cerr << ec.message() << std::endl;
-		return 1;
-	}
+		session s;
+		s.listen_on(std::make_pair(6881, 6889));
+	
+		std::ifstream in(argv[1], std::ios_base::binary);
+		in.unsetf(std::ios_base::skipws);
+		entry e = bdecode(std::istream_iterator<char>(in), std::istream_iterator<char>());
+		s.add_torrent(torrent_info(e), "./");
 
-	// wait for the user to end
-	char a;
-	std::cin.unsetf(std::ios_base::skipws);
-	std::cin >> a;
+		// wait for the user to end
+		char a;
+		std::cin.unsetf(std::ios_base::skipws);
+		std::cin >> a;
+	}
+	catch (std::exception& e)
+	{
+  		std::cout << e.what() << "\n";
+	}
 	return 0;
 }
-

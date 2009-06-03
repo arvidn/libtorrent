@@ -1,3 +1,4 @@
+
 /*
 
 Copyright (c) 2007, Arvid Norberg
@@ -33,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/connection_queue.hpp"
-#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {
@@ -41,60 +41,31 @@ namespace libtorrent
 	connection_queue::connection_queue(io_service& ios): m_next_ticket(0)
 		, m_num_connecting(0)
 		, m_half_open_limit(0)
-		, m_abort(false)
 		, m_timer(ios)
-#ifdef TORRENT_DEBUG
+#ifndef NDEBUG
 		, m_in_timeout_function(false)
 #endif
-	{
-#ifdef TORRENT_CONNECTION_LOGGING
-		m_log.open("connection_queue.log");
-#endif
-	}
+	{}
 
-	int connection_queue::free_slots() const
-	{
-		mutex_t::scoped_lock l(m_mutex);
-		return m_half_open_limit == 0 ? (std::numeric_limits<int>::max)()
-			: m_half_open_limit - m_queue.size();
-	}
+	bool connection_queue::free_slots() const
+	{ return m_num_connecting < m_half_open_limit || m_half_open_limit <= 0; }
 
 	void connection_queue::enqueue(boost::function<void(int)> const& on_connect
 		, boost::function<void()> const& on_timeout
-		, time_duration timeout, int priority)
+		, time_duration timeout)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(priority >= 0);
-		TORRENT_ASSERT(priority < 2);
-
-		entry* e = 0;
-
-		switch (priority)
-		{
-			case 0:
-				m_queue.push_back(entry());
-				e = &m_queue.back();
-				break;
-			case 1:
-				m_queue.push_front(entry());
-				e = &m_queue.front();
-				break;
-		}
-
-		e->priority = priority;
-		e->on_connect = on_connect;
-		e->on_timeout = on_timeout;
-		e->ticket = m_next_ticket;
-		e->timeout = timeout;
+		m_queue.push_back(entry());
+		entry& e = m_queue.back();
+		e.on_connect = on_connect;
+		e.on_timeout = on_timeout;
+		e.ticket = m_next_ticket;
+		e.timeout = timeout;
 		++m_next_ticket;
-
-		if (m_num_connecting < m_half_open_limit
-			|| m_half_open_limit == 0)
-			m_timer.get_io_service().post(boost::bind(
-				&connection_queue::on_try_connect, this));
+		try_connect();
 	}
 
 	void connection_queue::done(int ticket)
@@ -112,49 +83,21 @@ namespace libtorrent
 		}
 		if (i->connecting) --m_num_connecting;
 		m_queue.erase(i);
-
-		if (m_num_connecting < m_half_open_limit
-			|| m_half_open_limit == 0)
-			m_timer.get_io_service().post(boost::bind(
-				&connection_queue::on_try_connect, this));
+		try_connect();
 	}
 
 	void connection_queue::close()
 	{
-		error_code ec;
-		mutex_t::scoped_lock l(m_mutex);
-		m_timer.cancel(ec);
-		m_abort = true;
-
-		while (!m_queue.empty())
-		{
-			// we don't want to call the timeout callback while we're locked
-			// since that is a recipie for dead-locks
-			entry e = m_queue.front();
-			m_queue.pop_front();
-			if (e.connecting) --m_num_connecting;
-			l.unlock();
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
-				e.on_timeout();
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
-			l.lock();
-		}
+		m_timer.cancel();
 	}
 
 	void connection_queue::limit(int limit)
-	{
-		TORRENT_ASSERT(limit >= 0);
-		m_half_open_limit = limit;
-	}
+	{ m_half_open_limit = limit; }
 
 	int connection_queue::limit() const
 	{ return m_half_open_limit; }
 
-#ifdef TORRENT_DEBUG
+#ifndef NDEBUG
 
 	void connection_queue::check_invariant() const
 	{
@@ -169,42 +112,28 @@ namespace libtorrent
 
 #endif
 
-	void connection_queue::try_connect(connection_queue::mutex_t::scoped_lock& l)
+	void connection_queue::try_connect()
 	{
 		INVARIANT_CHECK;
 
-#if BOOST_VERSION >= 103700
-		TORRENT_ASSERT(l.owns_lock());
-#endif
-
-#ifdef TORRENT_CONNECTION_LOGGING
-		m_log << log_time() << " " << free_slots() << std::endl;
-#endif
-		if (m_abort) return;
-
-		if (m_num_connecting >= m_half_open_limit
-			&& m_half_open_limit > 0) return;
+		if (!free_slots())
+			return;
 	
 		if (m_queue.empty())
 		{
-			error_code ec;
-			m_timer.cancel(ec);
+			m_timer.cancel();
 			return;
 		}
 
 		std::list<entry>::iterator i = std::find_if(m_queue.begin()
 			, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
-
-		std::list<entry> to_connect;
-
 		while (i != m_queue.end())
 		{
 			TORRENT_ASSERT(i->connecting == false);
 			ptime expire = time_now() + i->timeout;
 			if (m_num_connecting == 0)
 			{
-				error_code ec;
-				m_timer.expires_at(expire, ec);
+				m_timer.expires_at(expire);
 				m_timer.async_wait(boost::bind(&connection_queue::on_timeout, this, _1));
 			}
 			i->connecting = true;
@@ -213,35 +142,16 @@ namespace libtorrent
 
 			INVARIANT_CHECK;
 
-			to_connect.push_back(*i);
+			entry& ent = *i;
+			++i;
+			try { ent.on_connect(ent.ticket); } catch (std::exception&) {}
 
-#ifdef TORRENT_CONNECTION_LOGGING
-			m_log << log_time() << " " << free_slots() << std::endl;
-#endif
-
-			if (m_num_connecting >= m_half_open_limit
-				&& m_half_open_limit > 0) break;
+			if (!free_slots()) break;
 			i = std::find_if(i, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
 		}
-
-		l.unlock();
-
-		while (!to_connect.empty())
-		{
-			entry& ent = to_connect.front();
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
-				ent.on_connect(ent.ticket);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
-			to_connect.pop_front();
-		}
-
 	}
 
-#ifdef TORRENT_DEBUG
+#ifndef NDEBUG
 	struct function_guard
 	{
 		function_guard(bool& v): val(v) { TORRENT_ASSERT(!val); val = true; }
@@ -256,7 +166,7 @@ namespace libtorrent
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
-#ifdef TORRENT_DEBUG
+#ifndef NDEBUG
 		function_guard guard_(m_in_timeout_function);
 #endif
 
@@ -289,30 +199,18 @@ namespace libtorrent
 		for (std::list<entry>::iterator i = timed_out.begin()
 			, end(timed_out.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
-				i->on_timeout();
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			try { i->on_timeout(); } catch (std::exception&) {}
 		}
 		
 		l.lock();
 		
 		if (next_expire < max_time())
 		{
-			error_code ec;
-			m_timer.expires_at(next_expire, ec);
+			m_timer.expires_at(next_expire);
 			m_timer.async_wait(boost::bind(&connection_queue::on_timeout, this, _1));
 		}
-		try_connect(l);
+		try_connect();
 	}
 
-	void connection_queue::on_try_connect()
-	{
-		mutex_t::scoped_lock l(m_mutex);
-		try_connect(l);
-	}
 }
 

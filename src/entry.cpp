@@ -33,14 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <algorithm>
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-#include <iomanip>
 #include <iostream>
-#endif
-#include <boost/bind.hpp>
+#include <iomanip>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/escape_string.hpp"
 
 #if defined(_MSC_VER)
 namespace std
@@ -147,38 +143,9 @@ namespace libtorrent
 	}
 #endif
 
-	entry::entry()
-		: m_type(undefined_t)
-	{
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
-	}
-
-	entry::entry(data_type t)
-		: m_type(undefined_t)
-	{
-		construct(t);
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
-	}
-
-	entry::entry(const entry& e)
-		: m_type(undefined_t)
-	{
-		copy(e);
-#ifdef TORRENT_DEBUG
-		m_type_queried = e.m_type_queried;
-#endif
-	}
-
 	entry::entry(dictionary_type const& v)
 		: m_type(undefined_t)
 	{
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
 		new(data) dictionary_type(v);
 		m_type = dictionary_t;
 	}
@@ -186,9 +153,6 @@ namespace libtorrent
 	entry::entry(string_type const& v)
 		: m_type(undefined_t)
 	{
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
 		new(data) string_type(v);
 		m_type = string_t;
 	}
@@ -196,9 +160,6 @@ namespace libtorrent
 	entry::entry(list_type const& v)
 		: m_type(undefined_t)
 	{
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
 		new(data) list_type(v);
 		m_type = list_t;
 	}
@@ -206,9 +167,6 @@ namespace libtorrent
 	entry::entry(integer_type const& v)
 		: m_type(undefined_t)
 	{
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
 		new(data) integer_type(v);
 		m_type = int_t;
 	}
@@ -218,9 +176,6 @@ namespace libtorrent
 		destruct();
 		new(data) dictionary_type(v);
 		m_type = dictionary_t;
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
 	}
 
 	void entry::operator=(string_type const& v)
@@ -228,9 +183,6 @@ namespace libtorrent
 		destruct();
 		new(data) string_type(v);
 		m_type = string_t;
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
 	}
 
 	void entry::operator=(list_type const& v)
@@ -238,9 +190,6 @@ namespace libtorrent
 		destruct();
 		new(data) list_type(v);
 		m_type = list_t;
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
 	}
 
 	void entry::operator=(integer_type const& v)
@@ -248,9 +197,6 @@ namespace libtorrent
 		destruct();
 		new(data) integer_type(v);
 		m_type = int_t;
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
 	}
 
 	bool entry::operator==(entry const& e) const
@@ -290,17 +236,16 @@ namespace libtorrent
 			new (data) dictionary_type;
 			break;
 		default:
-			TORRENT_ASSERT(t == undefined_t);
+			TORRENT_ASSERT(m_type == undefined_t);
+			m_type = undefined_t;
+			return;
 		}
 		m_type = t;
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
 	}
 
 	void entry::copy(entry const& e)
 	{
-		switch (e.type())
+		switch(e.m_type)
 		{
 		case int_t:
 			new(data) integer_type(e.integer());
@@ -315,12 +260,10 @@ namespace libtorrent
 			new (data) dictionary_type(e.dict());
 			break;
 		default:
-			TORRENT_ASSERT(e.type() == undefined_t);
+			m_type = undefined_t;
+			return;
 		}
-		m_type = e.type();
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
+		m_type = e.m_type;
 	}
 
 	void entry::destruct()
@@ -344,9 +287,6 @@ namespace libtorrent
 			break;
 		}
 		m_type = undefined_t;
-#ifdef TORRENT_DEBUG
-		m_type_queried = false;
-#endif
 	}
 
 	void entry::swap(entry& e)
@@ -355,7 +295,6 @@ namespace libtorrent
 		TORRENT_ASSERT(false);
 	}
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 	void entry::print(std::ostream& os, int indent) const
 	{
 		TORRENT_ASSERT(indent >= 0);
@@ -376,8 +315,21 @@ namespace libtorrent
 						break;
 					}
 				}
-				if (binary_string) os << to_hex(string()) << "\n";
-				else os << string() << "\n";
+				if (binary_string)
+				{
+					os.unsetf(std::ios_base::dec);
+					os.setf(std::ios_base::hex);
+					for (std::string::const_iterator i = string().begin(); i != string().end(); ++i)
+						os << std::setfill('0') << std::setw(2)
+							<< static_cast<unsigned int>((unsigned char)*i);
+					os.unsetf(std::ios_base::hex);
+					os.setf(std::ios_base::dec);
+					os << "\n";
+				}
+				else
+				{
+					os << string() << "\n";
+				}
 			} break;
 		case list_t:
 			{
@@ -392,21 +344,8 @@ namespace libtorrent
 				os << "dictionary\n";
 				for (dictionary_type::const_iterator i = dict().begin(); i != dict().end(); ++i)
 				{
-					bool binary_string = false;
-					for (std::string::const_iterator k = i->first.begin(); k != i->first.end(); ++k)
-					{
-						if (!std::isprint(static_cast<unsigned char>(*k)))
-						{
-							binary_string = true;
-							break;
-						}
-					}
 					for (int j = 0; j < indent+1; ++j) os << " ";
-					os << "[";
-					if (binary_string) os << to_hex(i->first);
-					else os << i->first;
-					os << "]";
-
+					os << "[" << i->first << "]";
 					if (i->second.type() != entry::string_t
 						&& i->second.type() != entry::int_t)
 						os << "\n";
@@ -418,6 +357,5 @@ namespace libtorrent
 			os << "<uninitialized>\n";
 		}
 	}
-#endif
 }
 

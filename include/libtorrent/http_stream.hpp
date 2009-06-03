@@ -41,7 +41,7 @@ class http_stream : public proxy_base
 {
 public:
 
-	explicit http_stream(io_service& io_service)
+	explicit http_stream(asio::io_service& io_service)
 		: proxy_base(io_service)
 		, m_no_connect(false)
 	{}

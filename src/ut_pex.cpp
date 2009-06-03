@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/broadcast_socket.hpp"
 
 #include "libtorrent/extensions/ut_pex.hpp"
 
@@ -73,18 +72,13 @@ namespace libtorrent { namespace
 
 	struct ut_pex_plugin: torrent_plugin
 	{
-		ut_pex_plugin(torrent& t): m_torrent(t), m_1_minute(55), m_peers_in_message(0) {}
+		ut_pex_plugin(torrent& t): m_torrent(t), m_1_minute(55) {}
 	
 		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection* pc);
 
 		std::vector<char>& get_ut_pex_msg()
 		{
 			return m_ut_pex_msg;
-		}
-
-		int peers_in_msg() const
-		{
-			return m_peers_in_message;
 		}
 
 		// the second tick of the torrent
@@ -102,22 +96,19 @@ namespace libtorrent { namespace
 			std::string& pla = pex["added"].string();
 			std::string& pld = pex["dropped"].string();
 			std::string& plf = pex["added.f"].string();
-			std::back_insert_iterator<std::string> pla_out(pla);
-			std::back_insert_iterator<std::string> pld_out(pld);
-			std::back_insert_iterator<std::string> plf_out(plf);
-#if TORRENT_USE_IPV6
 			std::string& pla6 = pex["added6"].string();
 			std::string& pld6 = pex["dropped6"].string();
 			std::string& plf6 = pex["added6.f"].string();
+			std::back_insert_iterator<std::string> pla_out(pla);
+			std::back_insert_iterator<std::string> pld_out(pld);
+			std::back_insert_iterator<std::string> plf_out(plf);
 			std::back_insert_iterator<std::string> pla6_out(pla6);
 			std::back_insert_iterator<std::string> pld6_out(pld6);
 			std::back_insert_iterator<std::string> plf6_out(plf6);
-#endif
 
 			std::set<tcp::endpoint> dropped;
 			m_old_peers.swap(dropped);
 
-			m_peers_in_message = 0;
 			int num_added = 0;
 			for (torrent::peer_iterator i = m_torrent.begin()
 				, end(m_torrent.end()); i != end; ++i)
@@ -151,15 +142,12 @@ namespace libtorrent { namespace
 						detail::write_endpoint(remote, pla_out);
 						detail::write_uint8(flags, plf_out);
 					}
-#if TORRENT_USE_IPV6
 					else
 					{
 						detail::write_endpoint(remote, pla6_out);
 						detail::write_uint8(flags, plf6_out);
 					}
-#endif
 					++num_added;
-					++m_peers_in_message;
 				}
 				else
 				{
@@ -174,11 +162,8 @@ namespace libtorrent { namespace
 			{	
 				if (i->address().is_v4())
 					detail::write_endpoint(*i, pld_out);
-#if TORRENT_USE_IPV6
 				else
 					detail::write_endpoint(*i, pld6_out);
-#endif
-				++m_peers_in_message;
 			}
 
 			m_ut_pex_msg.clear();
@@ -191,7 +176,6 @@ namespace libtorrent { namespace
 		std::set<tcp::endpoint> m_old_peers;
 		int m_1_minute;
 		std::vector<char> m_ut_pex_msg;
-		int m_peers_in_message;
 	};
 
 
@@ -212,17 +196,20 @@ namespace libtorrent { namespace
 			messages[extension_name] = extension_index;
 		}
 
-		virtual bool on_extension_handshake(lazy_entry const& h)
+		virtual bool on_extension_handshake(entry const& h)
 		{
-			m_message_index = 0;
-			if (h.type() != lazy_entry::dict_t) return false;
-			lazy_entry const* messages = h.dict_find("m");
-			if (!messages || messages->type() != lazy_entry::dict_t) return false;
+			entry const& messages = h["m"];
 
-			int index = messages->dict_find_int_value(extension_name, -1);
-			if (index == -1) return false;
-			m_message_index = index;
-			return true;
+			if (entry const* index = messages.find_key(extension_name))
+			{
+				m_message_index = int(index->integer());
+				return true;
+			}
+			else
+			{
+				m_message_index = 0;
+				return false;
+			}
 		}
 
 		virtual bool on_extended(int length, int msg, buffer::const_interval body)
@@ -231,71 +218,58 @@ namespace libtorrent { namespace
 			if (m_message_index == 0) return false;
 
 			if (length > 500 * 1024)
-			{
-				m_pc.disconnect("peer exchange message larger than 500 kB", 2);
-				return true;
-			}
+				throw protocol_error("uT peer exchange message larger than 500 kB");
 
 			if (body.left() < length) return true;
 
-			lazy_entry pex_msg;
-			int ret = lazy_bdecode(body.begin, body.end, pex_msg);
-			if (ret != 0 || pex_msg.type() != lazy_entry::dict_t)
+			try
 			{
-				m_pc.disconnect("invalid bencoding in ut_metadata message", 2);
-				return true;
-			}
+				entry pex_msg = bdecode(body.begin, body.end);
+				std::string const& peers = pex_msg["added"].string();
+				std::string const& peer_flags = pex_msg["added.f"].string();
 
-			lazy_entry const* p = pex_msg.dict_find("added");
-			lazy_entry const* pf = pex_msg.dict_find("added.f");
+				int num_peers = peers.length() / 6;
+				char const* in = peers.c_str();
+				char const* fin = peer_flags.c_str();
 
-			if (p != 0
-				&& pf != 0
-				&& p->type() == lazy_entry::string_t
-				&& pf->type() == lazy_entry::string_t
-				&& pf->string_length() == p->string_length() / 6)
-			{
-				int num_peers = pf->string_length();
-				char const* in = p->string_ptr();
-				char const* fin = pf->string_ptr();
+				if (int(peer_flags.size()) != num_peers)
+					return true;
 
 				peer_id pid(0);
 				policy& p = m_torrent.get_policy();
 				for (int i = 0; i < num_peers; ++i)
 				{
 					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
-					char flags = *fin++;
-					// ignore local addresses unless the peer is local to us
-					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
-					p.add_peer(adr, pid, peer_info::pex, flags);
+					char flags = detail::read_uint8(fin);
+					p.peer_from_tracker(adr, pid, peer_info::pex, flags);
 				} 
-			}
 
-#if TORRENT_USE_IPV6
-			lazy_entry const* p6 = pex_msg.dict_find("added6");
-			lazy_entry const* p6f = pex_msg.dict_find("added6.f");
-			if (p6 != 0
-				&& p6f != 0
-				&& p6->type() == lazy_entry::string_t
-				&& p6f->type() == lazy_entry::string_t
-				&& p6f->string_length() == p6->string_length() / 18)
-			{
-				int num_peers = p6f->string_length();
-				char const* in = p6->string_ptr();
-				char const* fin = p6f->string_ptr();
-
-				peer_id pid(0);
-				policy& p = m_torrent.get_policy();
-				for (int i = 0; i < num_peers; ++i)
+				if (entry const* p6 = pex_msg.find_key("added6"))
 				{
-					tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
-					char flags = *fin++;
-					// ignore local addresses unless the peer is local to us
-					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
-					p.add_peer(adr, pid, peer_info::pex, flags);
-				} 
+					std::string const& peers6 = p6->string();
+					std::string const& peer6_flags = pex_msg["added6.f"].string();
+					
+					int num_peers = peers6.length() / 18;
+					char const* in = peers6.c_str();
+					char const* fin = peer6_flags.c_str();
+
+					if (int(peer6_flags.size()) != num_peers)
+						return true;
+
+					peer_id pid(0);
+					policy& p = m_torrent.get_policy();
+					for (int i = 0; i < num_peers; ++i)
+					{
+						tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
+						char flags = detail::read_uint8(fin);
+						p.peer_from_tracker(adr, pid, peer_info::pex, flags);
+					} 
+				}
 			}
-#endif
+			catch (std::exception&)
+			{
+				throw protocol_error("invalid uT peer exchange message");
+			}
 			return true;
 		}
 
@@ -322,9 +296,6 @@ namespace libtorrent { namespace
 
 		void send_ut_peer_diff()
 		{
-			// if there's no change in out peer set, don't send anything
-			if (m_tp.peers_in_msg() == 0) return;
-
 			std::vector<char> const& pex_msg = m_tp.get_ut_pex_msg();
 
 			buffer::interval i = m_pc.allocate_send_buffer(6 + pex_msg.size());
@@ -346,16 +317,13 @@ namespace libtorrent { namespace
 			pex["dropped"].string();
 			std::string& pla = pex["added"].string();
 			std::string& plf = pex["added.f"].string();
-			std::back_insert_iterator<std::string> pla_out(pla);
-			std::back_insert_iterator<std::string> plf_out(plf);
-
-#if TORRENT_USE_IPV6
 			pex["dropped6"].string();
 			std::string& pla6 = pex["added6"].string();
 			std::string& plf6 = pex["added6.f"].string();
+			std::back_insert_iterator<std::string> pla_out(pla);
+			std::back_insert_iterator<std::string> plf_out(plf);
 			std::back_insert_iterator<std::string> pla6_out(pla6);
 			std::back_insert_iterator<std::string> plf6_out(plf6);
-#endif
 
 			int num_added = 0;
 			for (torrent::peer_iterator i = m_torrent.begin()
@@ -385,13 +353,11 @@ namespace libtorrent { namespace
 					detail::write_endpoint(remote, pla_out);
 					detail::write_uint8(flags, plf_out);
 				}
-#if TORRENT_USE_IPV6
 				else
 				{
 					detail::write_endpoint(remote, pla6_out);
 					detail::write_uint8(flags, plf6_out);
 				}
-#endif
 				++num_added;
 			}
 			std::vector<char> pex_msg;

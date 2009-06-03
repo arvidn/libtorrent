@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <asio/io_service.hpp>
 #include <asio/deadline_timer.hpp>
 #include <asio/write.hpp>
+#include <asio/strand.hpp>
 #include <asio/read.hpp>
 #include <asio/time_traits.hpp>
 #include <asio/basic_deadline_timer.hpp>
@@ -63,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/read.hpp>
+#include <boost/asio/strand.hpp>
 #include <boost/asio/time_traits.hpp>
 #include <boost/asio/basic_deadline_timer.hpp>
 #endif
@@ -73,8 +75,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/io.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/escape_string.hpp" // for to_string
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -84,24 +84,28 @@ namespace libtorrent
 {
 
 #if BOOST_VERSION < 103500
-	using ::asio::ip::tcp;
-	using ::asio::ip::udp;
-	using ::asio::async_write;
-	using ::asio::async_read;
+	using asio::ip::tcp;
+	using asio::ip::udp;
+	using asio::async_write;
+	using asio::async_read;
 
-	typedef ::asio::ip::tcp::socket stream_socket;
-	typedef ::asio::ip::address address;
-	typedef ::asio::ip::address_v4 address_v4;
-	typedef ::asio::ip::address_v6 address_v6;
-	typedef ::asio::ip::udp::socket datagram_socket;
-	typedef ::asio::ip::tcp::acceptor socket_acceptor;
-	typedef ::asio::io_service io_service;
-	typedef ::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
+	typedef asio::ip::tcp::socket stream_socket;
+	typedef asio::ip::address address;
+	typedef asio::ip::address_v4 address_v4;
+	typedef asio::ip::address_v6 address_v6;
+	typedef asio::ip::udp::socket datagram_socket;
+	typedef asio::ip::tcp::acceptor socket_acceptor;
+	typedef asio::io_service io_service;
+	typedef asio::error_code error_code;
+    
+	namespace asio = ::asio;
+	typedef asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 #else
 	using boost::asio::ip::tcp;
 	using boost::asio::ip::udp;
 	using boost::asio::async_write;
 	using boost::asio::async_read;
+	using boost::system::error_code;
 
 	typedef boost::asio::ip::tcp::socket stream_socket;
 	typedef boost::asio::ip::address address;
@@ -110,44 +114,24 @@ namespace libtorrent
 	typedef boost::asio::ip::udp::socket datagram_socket;
 	typedef boost::asio::ip::tcp::acceptor socket_acceptor;
 	typedef boost::asio::io_service io_service;
-
+    
 	namespace asio = boost::asio;
 	typedef boost::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 #endif
 	
-	inline std::string print_address(address const& addr)
+	inline std::ostream& print_endpoint(std::ostream& os, tcp::endpoint const& ep)
 	{
-		error_code ec;
-		return addr.to_string(ec);
-	}
-
-	inline std::string print_endpoint(tcp::endpoint const& ep)
-	{
-		error_code ec;
-		std::string ret;
 		address const& addr = ep.address();
-#if TORRENT_USE_IPV6
-		if (addr.is_v6())
-		{
-			ret += '[';
-			ret += addr.to_string(ec);
-			ret += ']';
-			ret += ':';
-			ret += to_string(ep.port()).elems;
-		}
-		else
-#endif
-		{
-			ret += addr.to_string(ec);
-			ret += ':';
-			ret += to_string(ep.port()).elems;
-		}
-		return ret;
-	}
+		error_code ec;
+		std::string a = addr.to_string(ec);
+		if (ec) return os;
 
-	inline std::string print_endpoint(udp::endpoint const& ep)
-	{
-		return print_endpoint(tcp::endpoint(ep.address(), ep.port()));
+		if (addr.is_v6())
+			os << "[" << a << "]:";
+		else
+			os << a << ":";
+		os << ep.port();
+		return os;
 	}
 
 	namespace detail
@@ -155,41 +139,35 @@ namespace libtorrent
 		template<class OutIt>
 		void write_address(address const& a, OutIt& out)
 		{
-#if TORRENT_USE_IPV6
 			if (a.is_v4())
 			{
-#endif
 				write_uint32(a.to_v4().to_ulong(), out);
-#if TORRENT_USE_IPV6
 			}
 			else if (a.is_v6())
 			{
-				address_v6::bytes_type bytes
+				asio::ip::address_v6::bytes_type bytes
 					= a.to_v6().to_bytes();
 				std::copy(bytes.begin(), bytes.end(), out);
 			}
-#endif
 		}
 
 		template<class InIt>
 		address read_v4_address(InIt& in)
 		{
 			unsigned long ip = read_uint32(in);
-			return address_v4(ip);
+			return asio::ip::address_v4(ip);
 		}
 
-#if TORRENT_USE_IPV6
 		template<class InIt>
 		address read_v6_address(InIt& in)
 		{
-			typedef address_v6::bytes_type bytes_t;
+			typedef asio::ip::address_v6::bytes_type bytes_t;
 			bytes_t bytes;
 			for (bytes_t::iterator i = bytes.begin()
 				, end(bytes.end()); i != end; ++i)
 				*i = read_uint8(in);
-			return address_v6(bytes);
+			return asio::ip::address_v6(bytes);
 		}
-#endif
 
 		template<class Endpoint, class OutIt>
 		void write_endpoint(Endpoint const& e, OutIt& out)
@@ -206,7 +184,6 @@ namespace libtorrent
 			return Endpoint(addr, port);
 		}
 
-#if TORRENT_USE_IPV6
 		template<class Endpoint, class InIt>
 		Endpoint read_v6_endpoint(InIt& in)
 		{
@@ -214,10 +191,8 @@ namespace libtorrent
 			int port = read_uint16(in);
 			return Endpoint(addr, port);
 		}
-#endif
 	}
 
-#if TORRENT_USE_IPV6
 	struct v6only
 	{
 		v6only(bool enable): m_value(enable) {}
@@ -231,41 +206,7 @@ namespace libtorrent
 		size_t size(Protocol const&) const { return sizeof(m_value); }
 		int m_value;
 	};
-#endif
 	
-#ifdef TORRENT_WINDOWS
-
-#ifndef IPV6_PROTECTION_LEVEL
-#define IPV6_PROTECTION_LEVEL 30
-#endif
-	struct v6_protection_level
-	{
-		v6_protection_level(int level): m_value(level) {}
-		template<class Protocol>
-		int level(Protocol const&) const { return IPPROTO_IPV6; }
-		template<class Protocol>
-		int name(Protocol const&) const { return IPV6_PROTECTION_LEVEL; }
-		template<class Protocol>
-		int const* data(Protocol const&) const { return &m_value; }
-		template<class Protocol>
-		size_t size(Protocol const&) const { return sizeof(m_value); }
-		int m_value;
-	};
-#endif
-
-	struct type_of_service
-	{
-		type_of_service(char val): m_value(val) {}
-		template<class Protocol>
-		int level(Protocol const&) const { return IPPROTO_IP; }
-		template<class Protocol>
-		int name(Protocol const&) const { return IP_TOS; }
-		template<class Protocol>
-		char const* data(Protocol const&) const { return &m_value; }
-		template<class Protocol>
-		size_t size(Protocol const&) const { return sizeof(m_value); }
-		char m_value;
-	};
 }
 
 #endif // TORRENT_SOCKET_HPP_INCLUDED

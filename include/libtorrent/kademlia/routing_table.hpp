@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define ROUTING_TABLE_HPP
 
 #include <vector>
+#include <deque>
 #include <boost/cstdint.hpp>
 
 #include <boost/iterator/iterator_facade.hpp>
@@ -51,18 +52,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/size_type.hpp>
 #include <libtorrent/assert.hpp>
 
-namespace libtorrent
-{
-	struct session_status;
-}
-
 namespace libtorrent { namespace dht
 {
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-TORRENT_DECLARE_LOG(table);
-#endif
+using asio::ip::udp;
 
+//TORRENT_DECLARE_LOG(table);
 	
 typedef std::vector<node_entry> bucket_t;
 
@@ -108,9 +103,9 @@ namespace aux
 			, bucket_iterator_t end)
 			: m_bucket_iterator(begin)
 			, m_bucket_end(end)
+			, m_iterator(begin != end ? begin->first.begin() : bucket_t::const_iterator())
 		{
 			if (m_bucket_iterator == m_bucket_end) return;
-			m_iterator = begin->first.begin();
 			while (m_iterator == m_bucket_iterator->first.end())
 			{
 				if (++m_bucket_iterator == m_bucket_end)
@@ -123,14 +118,14 @@ namespace aux
 		{
 			return m_bucket_iterator == other.m_bucket_iterator
 				&& (m_bucket_iterator == m_bucket_end
-					|| *m_iterator == other.m_iterator);
+					|| m_iterator == other.m_iterator);
 		}
 
 		void increment()
 		{
 			TORRENT_ASSERT(m_bucket_iterator != m_bucket_end);
-			++*m_iterator;
-			while (*m_iterator == m_bucket_iterator->first.end())
+			++m_iterator;
+			while (m_iterator == m_bucket_iterator->first.end())
 			{
 				if (++m_bucket_iterator == m_bucket_end)
 					break;
@@ -141,16 +136,12 @@ namespace aux
 		node_entry const& dereference() const
 		{
 			TORRENT_ASSERT(m_bucket_iterator != m_bucket_end);
-			return **m_iterator;
+			return *m_iterator;
 		}
 
 		bucket_iterator_t m_bucket_iterator;
 		bucket_iterator_t m_bucket_end;
-		// when debug iterators are enabled, default constructed
-		// iterators are not allowed to be copied. In the case
-		// where the routing table is empty, m_iterator would be
-		// default constructed and not copyable.
-		boost::optional<bucket_t::const_iterator> m_iterator;
+		bucket_t::const_iterator m_iterator;
 	};
 
 } // namespace aux
@@ -163,8 +154,6 @@ public:
 
 	routing_table(node_id const& id, int bucket_size
 		, dht_settings const& settings);
-
-	void status(session_status& s) const;
 
 	void node_failed(node_id const& id);
 	
@@ -189,20 +178,15 @@ public:
 	// the time from the last activity is more than 15 minutes
 	ptime next_refresh(int bucket);
 
-	enum
-	{
-		include_self = 1,
-		include_failed = 2
-	};
 	// fills the vector with the count nodes from our buckets that
 	// are nearest to the given id.
 	void find_node(node_id const& id, std::vector<node_entry>& l
-		, int options, int count = 0);
+		, bool include_self, int count = 0);
 	
-	// this may add a node to the routing table and mark it as
-	// not pinged. If the bucket the node falls into is full,
-	// the node will be ignored.
-	void heard_about(node_id const& id, udp::endpoint const& ep);
+	// returns true if the given node would be placed in a bucket
+	// that is not full. If the node already exists in the table
+	// this function returns false
+	bool need_node(node_id const& id);
 	
 	// this will set the given bucket's latest activity
 	// to the current time

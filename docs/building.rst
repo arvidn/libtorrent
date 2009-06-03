@@ -3,7 +3,6 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.15.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -25,22 +24,6 @@ IRC channel on ``irc.freenode.net``.
 Community contributed build tutorials can be found on the wiki_.
 
 .. _wiki: http://code.rasterbar.com/libtorrent/wiki/Building
-
-.. warning::
-
-	A common mistake when building and linking against libtorrent is
-	to build with one set of configuration options (#defines) and
-	link against it using a different set of configuration options. Since
-	libtorrent has some code in header files, that code will not be
-	compatible with the built library if they see different configurations.
-
-	Always make sure that the same TORRENT_* macros are defined when you
-	link against libtorrent as when you build it.
-
-	Boost-build supports propagating configuration options to dependencies.
-	When building using the makefiles, this is handled by setting the
-	configuration options in the pkg-config file. Always use pkg-config
-	when linking against libtorrent.
 
 building from svn
 -----------------
@@ -212,11 +195,6 @@ the runtime, but on windows you can do both. Example::
   symbol ``clock_gettime``, you have to give ``need-librt=yes`` on the
   bjam command line. This will make libtorrent link against ``librt``.
 
-.. note::
-
-  When building on Solaris, you might have to specify ``stdlib=sun-stlport``
-  on the bjam command line.
-
 The build targets are put in a directory called bin, and under it they are
 sorted in directories depending on the toolset and build variant used.
 
@@ -237,123 +215,92 @@ For more build configuration flags see `Build configurations`_.
 
 Build features:
 
-+--------------------------+----------------------------------------------------+
-| boost build feature      | values                                             |
-+==========================+====================================================+
-| ``boost``                | * ``system`` - default. Tells the Jamfile that     |
-|                          |   boost is installed and should be linked against  |
-|                          |   the system libraries.                            |
-|                          | * ``source`` - Specifies that boost is to be built |
-|                          |   from source. The environment variable            |
-|                          |   ``BOOST_ROOT`` must be defined to point to the   |
-|                          |   boost directory.                                 |
-+--------------------------+----------------------------------------------------+
-| ``boost-link``           | * ``static`` - links statically against the boost  |
-|                          |   libraries.                                       |
-|                          | * ``shared`` - links dynamically against the boost |
-|                          |   libraries.                                       |
-+--------------------------+----------------------------------------------------+
-| ``logging``              | * ``none`` - no logging.                           |
-|                          | * ``default`` - basic session logging.             |
-|                          | * ``verbose`` - verbose peer wire logging.         |
-|                          | * ``errors`` - like verbose, but limited to errors.|
-+--------------------------+----------------------------------------------------+
-| ``dht-support``          | * ``on`` - build with support for tracker less     |
-|                          |   torrents and DHT support.                        |
-|                          | * ``logging`` - build with DHT support and verbose |
-|                          |   logging of the DHT protocol traffic.             |
-|                          | * ``off`` - build without DHT support.             |
-+--------------------------+----------------------------------------------------+
-| ``need-librt``           | * ``no`` - this platform does not need to link     |
-|                          |   against librt to have POSIX time functions.      |
-|                          | * ``yes`` - specify this if your linux system      |
-|                          |   requires you to link against librt.a. This is    |
-|                          |   typically the case on x86 64 bit systems.        |
-+--------------------------+----------------------------------------------------+
-| ``zlib``                 | * ``system`` - links against the zlib supplied     |
-|                          |   with your operating system.                      |
-|                          | * ``shipped`` - links against the zlib bundled     |
-|                          |   with the libtorrent package.                     |
-+--------------------------+----------------------------------------------------+
-| ``geoip``                | * ``off`` - geo ip lookups disabled                |
-|                          | * ``static`` - MaxMind_ geo ip lookup code linked  |
-|                          |   in statically. Note that this code is under      |
-|                          |   LGPL license.                                    |
-|                          | * ``shared`` - The MaxMind_ geo ip lookup library  |
-|                          |   is expected to be installed on the system and    |
-|                          |   it will be used.                                 |
-+--------------------------+----------------------------------------------------+
-| ``upnp-logging``         | * ``off`` - default. Does not log UPnP traffic.    |
-|                          | * ``on`` - creates "upnp.log" with the messages    |
-|                          |   sent to and received from UPnP devices.          |
-+--------------------------+----------------------------------------------------+
-| ``openssl``              | * ``pe`` - turns on support for encrypted          |
-|                          |   connections. requires openssl (libcrypto)        |
-|                          | * ``sha-1`` - openssl will be used instead of the  |
-|                          |   public domain SHA-1 implementation shipped with  |
-|                          |   libtorrent. ``libcrypto.a`` will be required for |
-|                          |   linking. Encryption support is still turned off. |
-|                          | * ``off`` - turns off support for encrypted        |
-|                          |   connections. openssl is not linked in. The       |
-|                          |   shipped public domain SHA-1 implementation is    |
-|                          |   used.                                            |
-+--------------------------+----------------------------------------------------+
-| ``pool-allocators``      | * ``on`` - default, uses pool allocators for send  |
-|                          |   buffers.                                         |
-|                          | * ``off`` - uses ``malloc()`` and ``free()``       |
-|                          |   instead. Might be useful to debug buffer issues  |
-|                          |   with tools like electric fence or libgmalloc.    |
-+--------------------------+----------------------------------------------------+
-| ``link``                 | * ``static`` - builds libtorrent as a static       |
-|                          |   library (.a / .lib)                              |
-|                          | * ``shared`` - builds libtorrent as a shared       |
-|                          |   library (.so / .dll).                            |
-+--------------------------+----------------------------------------------------+
-| ``runtime-link``         | * ``static`` - links statically against the        |
-|                          |   run-time library (if available on your           |
-|                          |   platform).                                       |
-|                          | * ``shared`` - link dynamically against the        |
-|                          |   run-time library (default).                      |
-+--------------------------+----------------------------------------------------+
-| ``variant``              | * ``debug`` - builds libtorrent with debug         |
-|                          |   information and invariant checks.                |
-|                          | * ``release`` - builds libtorrent in release mode  |
-|                          |   without invariant checks and with optimization.  |
-|                          | * ``profile`` - builds libtorrent with profile     |
-|                          |   information.                                     |
-+--------------------------+----------------------------------------------------+
-| ``character-set``        | This setting will only have an affect on windows.  |
-|                          | Other platforms are expected to support UTF-8.     |
-|                          |                                                    |
-|                          | * ``unicode`` - The unicode version of the win32   |
-|                          |   API is used. This is default.                    |
-|                          | * ``ansi`` - The ansi version of the win32 API is  |
-|                          |   used.                                            |
-+--------------------------+----------------------------------------------------+
-| ``invariant-checks``     | This setting only affects debug builds (where      |
-|                          | ``NDEBUG`` is not defined). It defaults to ``on``. |
-|                          |                                                    |
-|                          | * ``on`` - internal invariant checks are enabled.  |
-|                          | * ``off`` - internal invariant checks are          |
-|                          |   disabled. The resulting executable will run      |
-|                          |   faster than a regular debug build.               |
-|                          | * ``full`` - turns on extra expensive invariant    |
-|                          |   checks.                                          |
-+--------------------------+----------------------------------------------------+
-| ``debug-symbols``        | * ``on`` - default for debug builds. This setting  |
-|                          |   is useful for building release builds with       |
-|                          |   symbols.                                         |
-|                          | * ``off`` - default for release builds.            |
-+--------------------------+----------------------------------------------------+
-| ``deprecated-functions`` | * ``on`` - default. Includes deprecated functions  |
-|                          |   of the API (might produce warnings during build  |
-|                          |   when deprecated functions are used).             |
-|                          | * ``off`` - excludes deprecated functions from the |
-|                          |   API. Generates build errors when deprecated      |
-|                          |   functions are used.                              |
-+--------------------------+----------------------------------------------------+
-
-.. _MaxMind: http://www.maxmind.com/app/api
++------------------------+----------------------------------------------------+
+| boost build feature    | values                                             |
++========================+====================================================+
+| ``boost``              | * ``system`` - default. Tells the Jamfile that     |
+|                        |   boost is installed and should be linked against  |
+|                        |   the system libraries.                            |
+|                        | * ``source`` - Specifies that boost is to be built |
+|                        |   from source. The environment variable            |
+|                        |   ``BOOST_ROOT`` must be defined to point to the   |
+|                        |   boost directory.                                 |
++------------------------+----------------------------------------------------+
+| ``logging``            | * ``none`` - no logging.                           |
+|                        | * ``default`` - basic session logging.             |
+|                        | * ``verbose`` - verbose peer wire logging.         |
++------------------------+----------------------------------------------------+
+| ``dht-support``        | * ``on`` - build with support for tracker less     |
+|                        |   torrents and DHT support.                        |
+|                        | * ``logging`` - build with DHT support and verbose |
+|                        |   logging of the DHT protocol traffic.             |
+|                        | * ``off`` - build without DHT support.             |
++------------------------+----------------------------------------------------+
+| ``need-librt``         | * ``no`` - this platform does not need to link     |
+|                        |   against librt to have POSIX time functions.      |
+|                        | * ``yes`` - specify this if your linux system      |
+|                        |   requires you to link against librt.a. This is    |
+|                        |   typically the case on x86 64 bit systems.        |
++------------------------+----------------------------------------------------+
+| ``zlib``               | * ``system`` - links against the zlib supplied     |
+|                        |   with your operating system.                      |
+|                        | * ``shipped`` - links against the zlib bundled     |
+|                        |   with the libtorrent package.                     |
++------------------------+----------------------------------------------------+
+| ``upnp-logging``       | * ``off`` - default. Does not log UPnP traffic.    |
+|                        | * ``on`` - creates "upnp.log" with the messages    |
+|                        |   sent to and received from UPnP devices.          |
++------------------------+----------------------------------------------------+
+| ``openssl``            | * ``pe`` - turns on support for encrypted          |
+|                        |   connections. requires openssl (libcrypto)        |
+|                        | * ``sha-1`` - openssl will be used instead of the  |
+|                        |   public domain SHA-1 implementation shipped with  |
+|                        |   libtorrent. ``libcrypto.a`` will be required for |
+|                        |   linking. Encryption support is still turned off. |
+|                        | * ``off`` - turns off support for encrypted        |
+|                        |   connections. openssl is not linked in. The       |
+|                        |   shipped public domain SHA-1 implementation is    |
+|                        |   used.                                            |
++------------------------+----------------------------------------------------+
+| ``link``               | * ``static`` - builds libtorrent as a static       |
+|                        |   library (.a / .lib)                              |
+|                        | * ``shared`` - builds libtorrent as a shared       |
+|                        |   library (.so / .dll).                            |
++------------------------+----------------------------------------------------+
+| ``runtime-link``       | * ``static`` - links statically against the        |
+|                        |   run-time library (if available on your           |
+|                        |   platform).                                       |
+|                        | * ``shared`` - link dynamically against the        |
+|                        |   run-time library (default).                      |
++------------------------+----------------------------------------------------+
+| ``variant``            | * ``debug`` - builds libtorrent with debug         |
+|                        |   information and invariant checks.                |
+|                        | * ``release`` - builds libtorrent in release mode  |
+|                        |   without invariant checks and with optimization.  |
+|                        | * ``profile`` - builds libtorrent with profile     |
+|                        |   information.                                     |
++------------------------+----------------------------------------------------+
+| ``character-set``      | This setting will only have an affect on windows.  |
+|                        | Other platforms are expected to support UTF-8.     |
+|                        |                                                    |
+|                        | * ``ansi`` - The ansi version of the win32 API is  |
+|                        |   used.                                            |
+|                        | * ``unicode`` - The unicode version of the win32   |
+|                        |   API is used.                                     |
++------------------------+----------------------------------------------------+
+| ``invariant-checks``   | This setting only affects debug builds (where      |
+|                        | ``NDEBUG`` is not defined). It defaults to ``on``. |
+|                        |                                                    |
+|                        | * ``on`` - internal invariant checks are enabled.  |
+|                        | * ``off`` - internal invariant checks are          |
+|                        |   disabled. The resulting executable will run      |
+|                        |   faster than a regular debug build.               |
++------------------------+----------------------------------------------------+
+| ``debug-symbols``      | * ``on`` - default for debug builds. This setting  |
+|                        |   is useful for building release builds with       |
+|                        |   symbols.                                         |
+|                        | * ``off`` - default for release builds.            |
++------------------------+----------------------------------------------------+
 
 The ``variant`` feature is *implicit*, which means you don't need to specify
 the name of the feature, just the value.
@@ -378,7 +325,7 @@ building with autotools
 First of all, you need to install ``automake`` and ``autoconf``. Many
 unix/linux systems comes with these preinstalled.
 
-The prerequisites for building libtorrent are boost.thread, boost.date_time
+The prerequisites for building libtorrent is boost.thread, boost.date_time
 and boost.filesystem. Those are the *compiled* boost libraries needed. The
 headers-only libraries needed include (but is not necessarily limited to)
 boost.bind, boost.ref, boost.multi_index, boost.optional, boost.lexical_cast,
@@ -524,136 +471,107 @@ invariant checks and asserts built into it. If you want to disable such checks
 (you want to do that in a release build) you can see the table below for which
 defines you can use to control the build.
 
-+----------------------------------------+-------------------------------------------------+
-| macro                                  | description                                     |
-+========================================+=================================================+
-| ``NDEBUG``                             | If you define this macro, all asserts,          |
-|                                        | invariant checks and general debug code will be |
-|                                        | removed. Since there is quite a lot of code in  |
-|                                        | in header files in libtorrent, it may be        |
-|                                        | important to define the symbol consistently     |
-|                                        | across compilation units, including the clients |
-|                                        | files. Potential problems is different          |
-|                                        | compilation units having different views of     |
-|                                        | structs and class layouts and sizes.            |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_LOGGING``                    | This macro will enable logging of the session   |
-|                                        | events, such as tracker announces and incoming  |
-|                                        | connections (as well as blocked connections).   |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_GEO_IP``             | This is defined by default by the Jamfile. It   |
-|                                        | disables the GeoIP features, and avoids linking |
-|                                        | against LGPL:ed code.                           |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_VERBOSE_LOGGING``            | If you define this macro, every peer connection |
-|                                        | will log its traffic to a log file as well as   |
-|                                        | the session log.                                |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_STORAGE_DEBUG``              | This will enable extra expensive invariant      |
-|                                        | checks in the storage, including logging of     |
-|                                        | piece sorting.                                  |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_UPNP_LOGGING``               | Generates a "upnp.log" file with the UPnP       |
-|                                        | traffic. This is very useful when debugging     |
-|                                        | support for various UPnP routers.               |
-|                                        | support for various UPnP routers.               |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISK_STATS``                 | This will create a log of all disk activity     |
-|                                        | which later can parsed and graphed using        |
-|                                        | ``parse_disk_log.py``.                          |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_STATS``                      | This will generate a log with transfer rates,   |
-|                                        | downloading torrents, seeding torrents, peers,  |
-|                                        | connecting peers and disk buffers in use. The   |
-|                                        | log can be parsed and graphed with              |
-|                                        | ``parse_session_stats.py``.                     |
-+----------------------------------------+-------------------------------------------------+
-| ``UNICODE``                            | If building on windows this will make sure the  |
-|                                        | UTF-8 strings in pathnames are converted into   |
-|                                        | UTF-16 before they are passed to the file       |
-|                                        | operations.                                     |
-+----------------------------------------+-------------------------------------------------+
-| ``LITTLE_ENDIAN``                      | This will use the little endian version of the  |
-|                                        | sha-1 code. If defined on a big-endian system   |
-|                                        | the sha-1 hashes will be incorrect and fail.    |
-|                                        | If it is not defined and ``__BIG_ENDIAN__``     |
-|                                        | isn't defined either (it is defined by Apple's  |
-|                                        | GCC) both little-endian and big-endian versions |
-|                                        | will be built and the correct code will be      |
-|                                        | chosen at run-time.                             |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_POOL_ALLOCATOR``     | Disables use of ``boost::pool<>``.              |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_LINKING_SHARED``             | If this is defined when including the           |
-|                                        | libtorrent headers, the classes and functions   |
-|                                        | will be tagged with ``__declspec(dllimport)``   |
-|                                        | on msvc and default visibility on GCC 4 and     |
-|                                        | later. Set this in your project if you're       |
-|                                        | linking against libtorrent as a shared library. |
-|                                        | (This is set by the Jamfile when                |
-|                                        | ``link=shared`` is set).                        |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_BUILDING_SHARED``            | If this is defined, the functions and classes   |
-|                                        | in libtorrent are marked with                   |
-|                                        | ``__declspec(dllexport)`` on msvc, or with      |
-|                                        | default visibility on GCC 4 and later. This     |
-|                                        | should be defined when building libtorrent as   |
-|                                        | a shared library. (This is set by the Jamfile   |
-|                                        | when ``link=shared`` is set).                   |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_DHT``                | If this is defined, the support for trackerless |
-|                                        | torrents will be disabled.                      |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DHT_VERBOSE_LOGGING``        | This will enable verbose logging of the DHT     |
-|                                        | protocol traffic.                               |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_ENCRYPTION``         | This will disable any encryption support and    |
-|                                        | the openssl dependency that comes with it.      |
-|                                        | Encryption support is the peer connection       |
-|                                        | encrypted supported by clients such as          |
-|                                        | uTorrent, Azureus and KTorrent.                 |
-+----------------------------------------+-------------------------------------------------+
-| ``_UNICODE``                           | On windows, this will cause the file IO         |
-|                                        | use wide character API, to properly support     |
-|                                        | non-ansi characters.                            |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_RESOLVE_COUNTRIES``  | Defining this will disable the ability to       |
-|                                        | resolve countries of origin for peer IPs.       |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_INVARIANT_CHECKS``   | This will disable internal invariant checks in  |
-|                                        | libtorrent. The invariant checks can sometime   |
-|                                        | be quite expensive, they typically don't scale  |
-|                                        | very well. This option can be used to still     |
-|                                        | build in debug mode, with asserts enabled, but  |
-|                                        | make the resulting executable faster.           |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_EXPENSIVE_INVARIANT_CHECKS`` | This will enable extra expensive invariant      |
-|                                        | checks. Useful for finding particular bugs      |
-|                                        | or for running before releases.                 |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_NO_DEPRECATE``               | This will exclude all deprecated functions from |
-|                                        | the header files and cpp files.                 |
-+----------------------------------------+-------------------------------------------------+
++---------------------------------------+-------------------------------------------------+
+| macro                                 | description                                     |
++=======================================+=================================================+
+| ``NDEBUG``                            | If you define this macro, all asserts,          |
+|                                       | invariant checks and general debug code will be |
+|                                       | removed. Since there is quite a lot of code in  |
+|                                       | in header files in libtorrent, it may be        |
+|                                       | important to define the symbol consistently     |
+|                                       | across compilation units, including the clients |
+|                                       | files. Potential problems is different          |
+|                                       | compilation units having different views of     |
+|                                       | structs and class layouts and sizes.            |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_LOGGING``                   | This macro will enable logging of the session   |
+|                                       | events, such as tracker announces and incoming  |
+|                                       | connections (as well as blocked connections).   |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_VERBOSE_LOGGING``           | If you define this macro, every peer connection |
+|                                       | will log its traffic to a log file as well as   |
+|                                       | the session log.                                |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_STORAGE_DEBUG``             | This will enable extra expensive invariant      |
+|                                       | checks in the storage, including logging of     |
+|                                       | piece sorting.                                  |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_UPNP_LOGGING``              | Generates a "upnp.log" file with the UPnP       |
+|                                       | traffic. This is very useful when debugging     |
+|                                       | support for various UPnP routers.               |
+|                                       | support for various UPnP routers.               |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISK_STATS``                | This will create a log of all disk activity     |
+|                                       | which later can parsed and graphed using        |
+|                                       | ``parse_disk_log.py``.                          |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_STATS``                     | This will generate a log with transfer rates,   |
+|                                       | downloading torrents, seeding torrents, peers,  |
+|                                       | connecting peers and disk buffers in use. The   |
+|                                       | log can be parsed and graphed with              |
+|                                       | ``parse_session_stats.py``.                     |
++---------------------------------------+-------------------------------------------------+
+| ``UNICODE``                           | If building on windows this will make sure the  |
+|                                       | UTF-8 strings in pathnames are converted into   |
+|                                       | UTF-16 before they are passed to the file       |
+|                                       | operations.                                     |
++---------------------------------------+-------------------------------------------------+
+| ``LITTLE_ENDIAN``                     | This will use the little endian version of the  |
+|                                       | sha-1 code. If defined on a big-endian system   |
+|                                       | the sha-1 hashes will be incorrect and fail.    |
+|                                       | If it is not defined and ``__BIG_ENDIAN__``     |
+|                                       | isn't defined either (it is defined by Apple's  |
+|                                       | GCC) both little-endian and big-endian versions |
+|                                       | will be built and the correct code will be      |
+|                                       | chosen at run-time.                             |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_LINKING_SHARED``            | If this is defined when including the           |
+|                                       | libtorrent headers, the classes and functions   |
+|                                       | will be tagged with ``__declspec(dllimport)``   |
+|                                       | on msvc and default visibility on GCC 4 and     |
+|                                       | later. Set this in your project if you're       |
+|                                       | linking against libtorrent as a shared library. |
+|                                       | (This is set by the Jamfile when                |
+|                                       | ``link=shared`` is set).                        |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_BUILDING_SHARED``           | If this is defined, the functions and classes   |
+|                                       | in libtorrent are marked with                   |
+|                                       | ``__declspec(dllexport)`` on msvc, or with      |
+|                                       | default visibility on GCC 4 and later. This     |
+|                                       | should be defined when building libtorrent as   |
+|                                       | a shared library. (This is set by the Jamfile   |
+|                                       | when ``link=shared`` is set).                   |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_DHT``               | If this is defined, the support for trackerless |
+|                                       | torrents will be disabled.                      |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DHT_VERBOSE_LOGGING``       | This will enable verbose logging of the DHT     |
+|                                       | protocol traffic.                               |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_ENCRYPTION``        | This will disable any encryption support and    |
+|                                       | the openssl dependency that comes with it.      |
+|                                       | Encryption support is the peer connection       |
+|                                       | encrypted supported by clients such as          |
+|                                       | uTorrent, Azureus and KTorrent.                 |
++---------------------------------------+-------------------------------------------------+
+| ``_UNICODE``                          | On windows, this will cause the file IO         |
+|                                       | use wide character API, to properly support     |
+|                                       | non-ansi characters.                            |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_RESOLVE_COUNTRIES`` | Defining this will disable the ability to       |
+|                                       | resolve countries of origin for peer IPs.       |
++---------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_INVARIANT_CHECKS``  | This will disable internal invariant checks in  |
+|                                       | libtorrent. The invariant checks can sometime   |
+|                                       | be quite expensive, they typically don't scale  |
+|                                       | very well. This option can be used to still     |
+|                                       | build in debug mode, with asserts enabled, but  |
+|                                       | make the resulting executable faster.           |
++---------------------------------------+-------------------------------------------------+
 
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will
 definitely help to define ``NDEBUG``, since it will remove the invariant checks
 within the library.
 
-building openssl for windows
-----------------------------
-
-To build openssl for windows with Visual Studio 7.1 (2003) execute the following commands
-in a command shell::
-
-	perl Configure VC-WIN32 --prefix="c:/openssl
-	call ms\do_nasm
-	call "C:\Program Files\Microsoft Visual Studio .NET 2003\vc7\bin\vcvars32.bat"
-	nmake -f ms\nt.mak
-	copy inc32\openssl "C:\Program Files\Microsoft Visual Studio .NET 2003\vc7\include\"
-	copy out32\libeay32.lib "C:\Program Files\Microsoft Visual Studio .NET 2003\vc7\lib"
-	copy out32\ssleay32.lib "C:\Program Files\Microsoft Visual Studio .NET 2003\vc7\lib"
-
-This will also install the headers and library files in the visual studio directories to
-be picked up by libtorrent.
 

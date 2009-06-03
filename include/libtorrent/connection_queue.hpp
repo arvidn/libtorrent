@@ -36,50 +36,42 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include "libtorrent/socket.hpp"
 #include "libtorrent/time.hpp"
-
-#ifdef TORRENT_CONNECTION_LOGGING
-#include <fstream>
-#endif
 
 namespace libtorrent
 {
 
-class TORRENT_EXPORT connection_queue : public boost::noncopyable
+class connection_queue : public boost::noncopyable
 {
 public:
 	connection_queue(io_service& ios);
 
-	// if there are no free slots, returns the negative
-	// number of queued up connections
-	int free_slots() const;
+	bool free_slots() const;
 
 	void enqueue(boost::function<void(int)> const& on_connect
 		, boost::function<void()> const& on_timeout
-		, time_duration timeout, int priority = 0);
+		, time_duration timeout);
 	void done(int ticket);
 	void limit(int limit);
 	int limit() const;
 	void close();
-	int size() const { return m_queue.size(); }
 
-#ifdef TORRENT_DEBUG
+#ifndef NDEBUG
+
 	void check_invariant() const;
+
 #endif
 
 private:
 
-	typedef boost::mutex mutex_t;
-
-	void try_connect(mutex_t::scoped_lock& l);
+	void try_connect();
 	void on_timeout(error_code const& e);
-	void on_try_connect();
 
 	struct entry
 	{
-		entry(): connecting(false), ticket(0), expires(max_time()), priority(0) {}
+		entry(): connecting(false), ticket(0), expires(max_time()) {}
 		// called when the connection is initiated
 		boost::function<void(int)> on_connect;
 		// called if done hasn't been called within the timeout
@@ -88,7 +80,6 @@ private:
 		int ticket;
 		ptime expires;
 		time_duration timeout;
-		int priority;
 	};
 
 	std::list<entry> m_queue;
@@ -97,17 +88,14 @@ private:
 	int m_next_ticket;
 	int m_num_connecting;
 	int m_half_open_limit;
-	bool m_abort;
 
 	deadline_timer m_timer;
 
+	typedef boost::recursive_mutex mutex_t;
 	mutable mutex_t m_mutex;
 
-#ifdef TORRENT_DEBUG
+#ifndef NDEBUG
 	bool m_in_timeout_function;
-#endif
-#ifdef TORRENT_CONNECTION_LOGGING
-	std::ofstream m_log;
 #endif
 };
 

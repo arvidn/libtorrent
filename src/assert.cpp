@@ -30,86 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifdef TORRENT_DEBUG
-
-#ifdef __APPLE__
-#include <AvailabilityMacros.h>
-#endif
-
-#ifdef __GNUC__
-
-#include <cxxabi.h>
-#include <string>
-#include <cstring>
-#include <stdlib.h>
-
-std::string demangle(char const* name)
-{
-// in case this string comes
-	// this is needed on linux
-	char const* start = strchr(name, '(');
-	if (start != 0)
-	{
-		++start;
-	}
-	else
-	{
-		// this is needed on macos x
-		start = strstr(name, "0x");
-		if (start != 0)
-		{
-			start = strchr(start, ' ');
-			if (start != 0) ++start;
-			else start = name;
-		}
-		else start = name;
-	}
-
-	char const* end = strchr(start, '+');
-	if (end) while (*(end-1) == ' ') --end;
-
-	std::string in;
-	if (end == 0) in.assign(start);
-	else in.assign(start, end);
-
-	size_t len;
-	int status;
-	char* unmangled = ::abi::__cxa_demangle(in.c_str(), 0, &len, &status);
-	if (unmangled == 0) return in;
-	std::string ret(unmangled);
-	free(unmangled);
-	return ret;
-}
-
-#endif
+#ifndef NDEBUG
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
-#include "libtorrent/version.hpp"
-
-// execinfo.h is available in the MacOS X 10.5 SDK.
-#if (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
+#if defined __linux__ && defined __GNUC__
 #include <execinfo.h>
-
-void print_backtrace(char const* label)
-{
-	void* stack[50];
-	int size = backtrace(stack, 50);
-	char** symbols = backtrace_symbols(stack, size);
-
-	fprintf(stderr, "%s\n", label);
-	for (int i = 1; i < size; ++i)
-	{
-		fprintf(stderr, "%d: %s\n", i, demangle(symbols[i]).c_str());
-	}
-
-	free(symbols);
-}
-#else
-
-void print_backtrace(char const* label) {}
-
 #endif
 
 void assert_fail(char const* expr, int line, char const* file, char const* function)
@@ -118,15 +45,24 @@ void assert_fail(char const* expr, int line, char const* file, char const* funct
 	fprintf(stderr, "assertion failed. Please file a bugreport at "
 		"http://code.rasterbar.com/libtorrent/newticket\n"
 		"Please include the following information:\n\n"
-		"version: " LIBTORRENT_VERSION "\n"
-		"%s\n"
 		"file: '%s'\n"
 		"line: %d\n"
 		"function: %s\n"
-		"expression: %s\n", LIBTORRENT_REVISION, file, line, function, expr);
+		"expression: %s\n"
+		"stack:\n", file, line, function, expr);
 
-	print_backtrace("stack:");
+#if defined __linux__ && defined __GNUC__
+	void* stack[50];
+	int size = backtrace(stack, 50);
+	char** symbols = backtrace_symbols(stack, size);
 
+	for (int i = 0; i < size; ++i)
+	{
+		fprintf(stderr, "%d: %s\n", i, symbols[i]);
+	}
+
+	free(symbols);
+#endif
  	// send SIGINT to the current process
  	// to break into the debugger
  	raise(SIGINT);

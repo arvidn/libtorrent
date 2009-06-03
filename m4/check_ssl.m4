@@ -51,14 +51,18 @@ dnl [   AC_MSG_RESULT(yes)
         ssldir="$dir"
         if test -f "$dir/include/openssl/ssl.h"; then
             found_ssl="yes";
-            SSL_CFLAGS="-I$ssldir/include/openssl -DHAVE_SSL";
-            SSL_CXXFLAGS="-I$ssldir/include/openssl -DHAVE_SSL";
+            SSL_CFLAGS="$CFLAGS -I$ssldir/include/openssl -DHAVE_SSL";
+            AC_SUBST(SSL_CFLAGS)
+            SSL_CXXFLAGS="$CXXFLAGS -I$ssldir/include/openssl -DHAVE_SSL";
+            AC_SUBST(SSL_CXXFLAGS)
             break;
         fi
         if test -f "$dir/include/ssl.h"; then
             found_ssl="yes";
-            SSL_CFLAGS="-I$ssldir/include/ -DHAVE_SSL";
-            SSL_CXXFLAGS="-I$ssldir/include/ -DHAVE_SSL";
+            SSL_CFLAGS="$CFLAGS -I$ssldir/include/ -DHAVE_SSL";
+            AC_SUBST(SSL_CFLAGS)
+            SSL_CXXFLAGS="$CXXFLAGS -I$ssldir/include/ -DHAVE_SSL";
+            AC_SUBST(SSL_CXXFLAGS)
             break
         fi
     done
@@ -66,14 +70,12 @@ dnl [   AC_MSG_RESULT(yes)
         AC_MSG_ERROR(Cannot find ssl libraries)
     else
         printf "OpenSSL found in $ssldir\n";
-        SSL_LIBS="-lssl -lcrypto";
-        SSL_LDFLAGS="-L$ssldir/lib";
+        SSL_LIBS="$LIBS -lssl -lcrypto";
+        AC_SUBST(SSL_LIBS)
+        SSL_LDFLAGS="$LDFLAGS -L$ssldir/lib";
+        AC_SUBST(SSL_LDFLAGS)
         HAVE_SSL=yes
     fi
-    AC_SUBST(SSL_CFLAGS)
-    AC_SUBST(SSL_CXXFLAGS)
-    AC_SUBST(SSL_LIBS)
-    AC_SUBST(SSL_LDFLAGS)
     AC_SUBST(HAVE_SSL)
 dnl ],
 dnl [

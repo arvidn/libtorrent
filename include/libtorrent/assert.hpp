@@ -33,27 +33,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ASSERT
 
 #include "libtorrent/config.hpp"
+#include <cassert>
 
-#if !defined TORRENT_DEBUG
-#define TORRENT_ASSERT(a) do {} while(false)
-#else
-
-#include <string>
-
-#ifdef __GNUC__
-std::string demangle(char const* name);
-#endif
-
-#if (defined __linux__ || defined __MACH__) && defined __GNUC__ && defined TORRENT_DEBUG
+#if (defined __linux__ || defined __MACH__) && defined __GNUC__ && !defined(NDEBUG)
 
 TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file, char const* function);
-#define TORRENT_ASSERT(x) do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__); } while (false)
+#define TORRENT_ASSERT(x) if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__)
 
 #else
 #include <cassert>
 #define TORRENT_ASSERT(x) assert(x)
-#endif
-
 #endif
 
 #endif

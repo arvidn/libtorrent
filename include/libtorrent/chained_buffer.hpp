@@ -45,9 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-#if BOOST_VERSION >= 103500
-	namespace asio = boost::asio;
-#endif
 	struct chained_buffer
 	{
 		chained_buffer(): m_bytes(0), m_capacity(0) {}

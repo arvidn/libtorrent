@@ -2,15 +2,9 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <cctype>
-#include <iostream>
-
 #include <libtorrent/extensions.hpp>
 #include <libtorrent/entry.hpp>
-#include <libtorrent/lazy_entry.hpp>
 #include <libtorrent/peer_request.hpp>
-#include <libtorrent/disk_buffer_holder.hpp>
-#include <libtorrent/bitfield.hpp>
 #include <boost/python.hpp>
 
 using namespace boost::python;
@@ -33,20 +27,20 @@ namespace
           this->peer_plugin::add_handshake(e);
       }
 
-      bool on_handshake(char const* reserved_bits)
+      bool on_handshake()
       {
           if (override f = this->get_override("on_handshake"))
               return f();
           else
-              return peer_plugin::on_handshake(reserved_bits);
+              return peer_plugin::on_handshake();
       }
 
-      bool default_on_handshake(char const* reserved_bits)
+      bool default_on_handshake()
       {
-          return this->peer_plugin::on_handshake(reserved_bits);
+          return this->peer_plugin::on_handshake();
       }
 
-      bool on_extension_handshake(lazy_entry const& e)
+      bool on_extension_handshake(entry const& e)
       {
           if (override f = this->get_override("on_extension_handshake"))
               return f(e);
@@ -54,7 +48,7 @@ namespace
               return peer_plugin::on_extension_handshake(e);
       }
 
-      bool default_on_extension_handshake(lazy_entry const& e)
+      bool default_on_extension_handshake(entry const& e)
       {
           return this->peer_plugin::on_extension_handshake(e);
       }
@@ -124,26 +118,17 @@ namespace
           return this->peer_plugin::on_have(index);
       }
 
-      bool on_bitfield(list _bf)
+      bool on_bitfield(std::vector<bool> const& bitfield)
       {
-          //Convert list to a bitfield
-          bitfield bf(len(_bf));
-          for (int i = 0; i < len(_bf); ++i)
-          {
-              if (_bf[i])
-                  bf.set_bit(i);
-              else
-                  bf.clear_bit(i);
-          }   
           if (override f = this->get_override("on_bitfield"))
-              return f(bf);
+              return f(bitfield);
           else
-              return peer_plugin::on_bitfield(bf);
+              return peer_plugin::on_bitfield(bitfield);
       }
 
-      bool default_on_bitfield(const bitfield &bf)
+      bool default_on_bitfield(std::vector<bool> const& bitfield)
       {
-          return this->peer_plugin::on_bitfield(bf);
+          return this->peer_plugin::on_bitfield(bitfield);
       }
 
       bool on_request(peer_request const& req)
@@ -159,7 +144,7 @@ namespace
           return this->peer_plugin::on_request(req);
       }
 
-      bool on_piece(peer_request const& piece, disk_buffer_holder& data)
+      bool on_piece(peer_request const& piece, char const* data)
       {
           if (override f = this->get_override("on_piece"))
               return f(piece, data);
@@ -167,7 +152,7 @@ namespace
               return peer_plugin::on_piece(piece, data);
       }
 
-      bool default_on_piece(peer_request const& piece, disk_buffer_holder& data)
+      bool default_on_piece(peer_request const& piece, char const* data)
       {
           return this->peer_plugin::on_piece(piece, data);
       }

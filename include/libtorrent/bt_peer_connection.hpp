@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 #include <algorithm>
 #include <vector>
+#include <deque>
 #include <string>
 
 #include "libtorrent/debug.hpp"
@@ -102,8 +103,6 @@ namespace libtorrent
 			, tcp::endpoint const& remote
 			, policy::peer* peerinfo);
 
-		void start();
-
 		~bt_peer_connection();
 		
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -131,7 +130,7 @@ namespace libtorrent
 			msg_have_none,
 			msg_reject_request,
 			msg_allowed_fast,
-
+			
 			// extension protocol message
 			msg_extended = 20,
 
@@ -208,9 +207,9 @@ namespace libtorrent
 		void write_not_interested();
 		void write_request(peer_request const& r);
 		void write_cancel(peer_request const& r);
-		void write_bitfield();
+		void write_bitfield(std::vector<bool> const& bitfield);
 		void write_have(int index);
-		void write_piece(peer_request const& r, disk_buffer_holder& buffer);
+		void write_piece(peer_request const& r, char* buffer);
 		void write_handshake();
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
@@ -232,7 +231,7 @@ namespace libtorrent
 		void on_connected();
 		void on_metadata();
 
-#ifdef TORRENT_DEBUG
+#ifndef NDEBUG
 		void check_invariant() const;
 		ptime m_last_choke;
 #endif
@@ -261,48 +260,35 @@ namespace libtorrent
 		void write_pe3_sync();
 		void write_pe4_sync(int crypto_select);
 
-		void write_pe_vc_cryptofield(buffer::interval& write_buf
-			, int crypto_field, int pad_size);
+		void write_pe_vc_cryptofield(buffer::interval& write_buf, 
+									 int crypto_field, int pad_size);
 
 		// stream key (info hash of attached torrent)
 		// secret is the DH shared secret
 		// initializes m_RC4_handler
 		void init_pe_RC4_handler(char const* secret, sha1_hash const& stream_key);
 
-public:
-
 		// these functions encrypt the send buffer if m_rc4_encrypted
 		// is true, otherwise it passes the call to the
 		// peer_connection functions of the same names
-		void send_buffer(char const* buf, int size, int flags = 0);
+		void send_buffer(char* buf, int size);
 		buffer::interval allocate_send_buffer(int size);
 		template <class Destructor>
 		void append_send_buffer(char* buffer, int size, Destructor const& destructor)
 		{
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			if (m_rc4_encrypted)
-			{
-				TORRENT_ASSERT(send_buffer_size() == m_encrypted_bytes);
 				m_RC4_handler->encrypt(buffer, size);
-#ifdef TORRENT_DEBUG
-				m_encrypted_bytes += size;
-				TORRENT_ASSERT(m_encrypted_bytes == send_buffer_size() + size);
-#endif
-			}
 #endif
 			peer_connection::append_send_buffer(buffer, size, destructor);
 		}
 		void setup_send();
 
-private:
-
-		void encrypt_pending_buffer();
-
 		// Returns offset at which bytestream (src, src + src_size)
 		// matches bytestream(target, target + target_size).
 		// If no sync found, return -1
-		int get_syncoffset(char const* src, int src_size
-			, char const* target, int target_size) const;
+		int get_syncoffset(char const* src, int src_size,
+						   char const* target, int target_size) const;
 #endif
 
 		enum state
@@ -341,6 +327,9 @@ private:
 		// state of on_receive
 		state m_state;
 
+		// the timeout in seconds
+		int m_timeout;
+
 		static const message_handler m_message_handler[num_supported_messages];
 
 		// this is a queue of ranges that describes
@@ -362,14 +351,13 @@ private:
 		};
 		static bool range_below_zero(const range& r)
 		{ return r.start < 0; }
-		std::vector<range> m_payloads;
+		std::deque<range> m_payloads;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
 		// extension protocol
 		bool m_supports_extensions;
-		char m_reserved_bits[8];
 #endif
 		bool m_supports_dht_port;
 		bool m_supports_fast;
@@ -394,7 +382,7 @@ private:
 		// initialized during write_pe1_2_dhkey, and destroyed on
 		// creation of m_RC4_handler. Cannot reinitialize once
 		// initialized.
-		boost::scoped_ptr<dh_key_exchange> m_dh_key_exchange;
+		boost::scoped_ptr<DH_key_exchange> m_DH_key_exchange;
 		
 		// if RC4 is negotiated, this is used for
 		// encryption/decryption during the entire session. Destroyed
@@ -412,7 +400,7 @@ private:
 		boost::scoped_ptr<sha1_hash> m_sync_hash;
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 
-#ifdef TORRENT_DEBUG
+#ifndef NDEBUG
 		// this is set to true when the client's
 		// bitfield is sent to this peer
 		bool m_sent_bitfield;
@@ -420,12 +408,6 @@ private:
 		bool m_in_constructor;
 		
 		bool m_sent_handshake;
-
-		// the number of bytes in the send buffer
-		// that have been encrypted (only used for
-		// encrypted connections)
-public:
-		int m_encrypted_bytes;
 #endif
 
 	};

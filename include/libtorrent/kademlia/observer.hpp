@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/pool/pool.hpp>
 #include <boost/detail/atomic_count.hpp>
 #include <boost/intrusive_ptr.hpp>
-#include <boost/cstdint.hpp>
 
 namespace libtorrent {
 namespace dht {
@@ -58,7 +57,7 @@ struct observer : boost::noncopyable
 		, pool_allocator(p)
 		, m_refs(0)
 	{
-#ifdef TORRENT_DEBUG
+#ifndef NDEBUG
 		m_in_constructor = true;
 #endif
 	}
@@ -85,15 +84,9 @@ struct observer : boost::noncopyable
 	// is being destructed
 	virtual void abort() = 0;
 
-#if TORRENT_USE_IPV6
-	address target_addr;
-#else
-	address_v4 target_addr;
-#endif
-	boost::uint16_t port;
-	udp::endpoint target_ep() const { return udp::endpoint(target_addr, port); }
+	udp::endpoint target_addr;
 	ptime sent;
-#ifdef TORRENT_DEBUG
+#ifndef NDEBUG
 	bool m_in_constructor;
 #endif
 private:

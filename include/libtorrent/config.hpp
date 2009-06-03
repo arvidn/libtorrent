@@ -36,19 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include <boost/version.hpp>
 
-#ifndef WIN32
-#define __STDC_FORMAT_MACROS
-#include <inttypes.h>
-#endif
-
-#ifndef PRId64
-#ifdef _WIN32
-#define PRId64 "I64d"
-#else
-#define PRId64 "lld"
-#endif
-#endif
-
 #if defined(__GNUC__) && __GNUC__ >= 4
 
 #define TORRENT_DEPRECATED __attribute__ ((deprecated))
@@ -64,9 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 # define TORRENT_EXPORT
 
 #elif defined(BOOST_MSVC)
-
-#pragma warning(disable: 4258)
-#pragma warning(disable: 4251)
 
 # if defined(TORRENT_BUILDING_SHARED)
 #  define TORRENT_EXPORT __declspec(dllexport)
@@ -93,70 +77,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_LINUX
 #elif defined WIN32
 #define TORRENT_WINDOWS
-#elif defined sun || defined __sun 
-#define TORRENT_SOLARIS
 #else
 #warning unkown OS, assuming BSD
 #define TORRENT_BSD
 #endif
 
-#define TORRENT_USE_IPV6 1
-#define TORRENT_USE_MLOCK 1
-#define TORRENT_USE_READV 1
-#define TORRENT_USE_WRITEV 1
-#define TORRENT_USE_IOSTREAM 1
-
 // should wpath or path be used?
-#if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \
-	&& BOOST_VERSION >= 103400 && !defined __APPLE__
+#if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY && BOOST_VERSION >= 103400
 #define TORRENT_USE_WPATH 1
 #else
 #define TORRENT_USE_WPATH 0
-#endif
-
-#ifdef TORRENT_WINDOWS
-#include <stdarg.h>
-// this is the maximum number of characters in a
-// path element / filename on windows
-#define NAME_MAX 255
-inline int snprintf(char* buf, int len, char const* fmt, ...)
-{
-	va_list lp;
-	va_start(lp, fmt);
-	return vsnprintf_s(buf, len, _TRUNCATE, fmt, lp);
-}
-#define strtoll _strtoi64
-#endif
-
-#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) && !defined (TORRENT_UPNP_LOGGING)
-#define TORRENT_UPNP_LOGGING
-#endif
-
-#if !TORRENT_USE_WPATH && defined TORRENT_LINUX
-// libiconv presnce, not implemented yet
-#define TORRENT_USE_LOCALE_FILENAMES 1
-#else
-#define TORRENT_USE_LOCALE_FILENAMES 0
-#endif
-
-#if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
-# define TORRENT_READ_HANDLER_MAX_SIZE 256
-#endif
-
-#if !defined(TORRENT_WRITE_HANDLER_MAX_SIZE)
-# define TORRENT_WRITE_HANDLER_MAX_SIZE 256
-#endif
-
-// determine what timer implementation we can use
-
-#if defined(__MACH__)
-#define TORRENT_USE_ABSOLUTE_TIME 1
-#elif defined(_WIN32)
-#define TORRENT_USE_QUERY_PERFORMANCE_TIMER 1
-#elif defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0
-#define TORRENT_USE_CLOCK_GETTIME 1
-#else
-#define TORRENT_USE_BOOST_DATE_TIME 1
 #endif
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED

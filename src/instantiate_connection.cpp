@@ -37,11 +37,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include <boost/shared_ptr.hpp>
 #include <stdexcept>
+#if BOOST_VERSION < 103500
+#include <asio/io_service.hpp>
+#else
+#include <boost/asio/io_service.hpp>
+#endif
+
 
 namespace libtorrent
 {
 
-	bool instantiate_connection(io_service& ios
+	bool instantiate_connection(asio::io_service& ios
 		, proxy_settings const& ps, socket_type& s)
 	{
 		if (ps.type == proxy_settings::none)
@@ -52,20 +58,23 @@ namespace libtorrent
 			|| ps.type == proxy_settings::http_pw)
 		{
 			s.instantiate<http_stream>(ios);
-			s.get<http_stream>()->set_proxy(ps.hostname, ps.port);
+			s.get<http_stream>().set_proxy(ps.hostname, ps.port);
 			if (ps.type == proxy_settings::http_pw)
-				s.get<http_stream>()->set_username(ps.username, ps.password);
+				s.get<http_stream>().set_username(ps.username, ps.password);
 		}
 		else if (ps.type == proxy_settings::socks5
-			|| ps.type == proxy_settings::socks5_pw
-			|| ps.type == proxy_settings::socks4)
+			|| ps.type == proxy_settings::socks5_pw)
 		{
 			s.instantiate<socks5_stream>(ios);
-			s.get<socks5_stream>()->set_proxy(ps.hostname, ps.port);
+			s.get<socks5_stream>().set_proxy(ps.hostname, ps.port);
 			if (ps.type == proxy_settings::socks5_pw)
-				s.get<socks5_stream>()->set_username(ps.username, ps.password);
-			if (ps.type == proxy_settings::socks4)
-				s.get<socks5_stream>()->set_version(4);
+				s.get<socks5_stream>().set_username(ps.username, ps.password);
+		}
+		else if (ps.type == proxy_settings::socks4)
+		{
+			s.instantiate<socks4_stream>(ios);
+			s.get<socks4_stream>().set_proxy(ps.hostname, ps.port);
+			s.get<socks4_stream>().set_username(ps.username);
 		}
 		else
 		{

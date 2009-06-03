@@ -34,8 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FILE_HPP_INCLUDED
 
 #include <memory>
-#include <string>
-#include <vector>
+#include <stdexcept>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -48,125 +47,83 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
 
-#ifdef TORRENT_WINDOWS
-// windows part
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winioctl.h>
-#else
-// posix part
-#define _FILE_OFFSET_BITS 64
-
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 600
-#endif
-
-#include <unistd.h>
-#include <sys/uio.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#endif
 namespace libtorrent
 {
 	namespace fs = boost::filesystem;
+
+	struct TORRENT_EXPORT file_error: std::runtime_error
+	{
+		file_error(std::string const& msg): std::runtime_error(msg) {}
+	};
 
 	class TORRENT_EXPORT file: public boost::noncopyable
 	{
 	public:
 
-		enum
+		class seek_mode
 		{
-			// when a file is opened with no_buffer
-			// file offsets have to be aligned to
-			// pos_alignment() and buffer addresses
-			// to buf_alignment() and read/write sizes
-			// to size_alignment()
-			read_only = 0,
-			write_only = 1,
-			read_write = 2,
-			rw_mask = read_only | write_only | read_write,
-			no_buffer = 4,
-			mode_mask = rw_mask | no_buffer,
-			sparse = 8,
-
-			attribute_hidden = 0x1000,
-			attribute_executable = 0x2000,
-			attribute_mask = attribute_hidden | attribute_executable
+		friend class file;
+		private:
+			seek_mode(int v): m_val(v) {}
+			int m_val;
 		};
 
-#ifdef TORRENT_WINDOWS
-		struct iovec_t
+		static const seek_mode begin;
+		static const seek_mode end;
+
+		class open_mode
 		{
-			void* iov_base;
-			size_t iov_len;
+		friend class file;
+		public:
+
+			open_mode(): m_mask(0) {}
+
+			open_mode operator|(open_mode m) const
+			{ return open_mode(m.m_mask | m_mask); }
+
+			open_mode operator&(open_mode m) const
+			{ return open_mode(m.m_mask & m_mask); }
+
+			open_mode operator|=(open_mode m)
+			{
+				m_mask |= m.m_mask;
+				return *this;
+			}
+
+			bool operator==(open_mode m) const { return m_mask == m.m_mask; }
+			bool operator!=(open_mode m) const { return m_mask != m.m_mask; }
+
+		private:
+
+			open_mode(int val): m_mask(val) {}
+			int m_mask;
 		};
-#else
-		typedef iovec iovec_t;
-#endif
+
+		static const open_mode in;
+		static const open_mode out;
 
 		file();
-		file(fs::path const& p, int m, error_code& ec);
+		file(fs::path const& p, open_mode m);
 		~file();
 
-		bool open(fs::path const& p, int m, error_code& ec);
-		bool is_open() const;
+		void open(fs::path const& p, open_mode m);
 		void close();
-		bool set_size(size_type size, error_code& ec);
+		void set_size(size_type size);
 
-		int open_mode() const { return m_open_mode; }
+		size_type write(const char*, size_type num_bytes);
+		size_type read(char*, size_type num_bytes);
 
-		// when opened in unbuffered mode, this is the
-		// required alignment of file_offsets. i.e.
-		// any (file_offset & (pos_alignment()-1)) == 0
-		// is a precondition to read and write operations
-		int pos_alignment() const;
-
-		// when opened in unbuffered mode, this is the
-		// required alignment of buffer addresses
-		int buf_alignment() const;
-
-		// read/write buffer sizes needs to be aligned to
-		// this when in unbuffered mode
-		int size_alignment() const;
-
-		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
-		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
-
-		size_type get_size(error_code& ec) const;
-
-		// return the offset of the first byte that
-		// belongs to a data-region
-		size_type sparse_end(size_type start) const;
+		size_type seek(size_type pos, seek_mode m = begin);
+		size_type tell();
 
 	private:
 
-#ifdef TORRENT_WINDOWS
-		HANDLE m_file_handle;
-#ifdef TORRENT_USE_WPATH
-		std::wstring m_path;
-#else
-		std::string m_path;
-#endif
-#else
-		int m_fd;
-#endif
-#if defined TORRENT_WINDOWS || defined TORRENT_LINUX || defined TORRENT_DEBUG
-		static void init_file();
-		static int m_page_size;
-#endif
-		int m_open_mode;
-#if defined TORRENT_WINDOWS || defined TORRENT_LINUX
-		mutable int m_sector_size;
-#endif
+		struct impl;
+		const std::auto_ptr<impl> m_impl;
+
 	};
 
 }

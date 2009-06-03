@@ -2,9 +2,9 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include <libtorrent/torrent_handle.hpp>
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
-#include <libtorrent/torrent_handle.hpp>
 #include <boost/lexical_cast.hpp>
 #include "gil.hpp"
 
@@ -75,7 +75,7 @@ namespace
 
 list file_progress(torrent_handle& handle)
 {
-    std::vector<size_type> p;
+    std::vector<float> p;
 
     {
         allow_threading_guard guard;
@@ -85,7 +85,7 @@ list file_progress(torrent_handle& handle)
 
     list result;
 
-    for (std::vector<size_type>::iterator i(p.begin()), e(p.end()); i != e; ++i)
+    for (std::vector<float>::iterator i(p.begin()), e(p.end()); i != e; ++i)
         result.append(*i);
 
     return result;
@@ -148,16 +148,6 @@ void prioritize_files(torrent_handle& info, object o)
    }
 }
 
-list file_priorities(torrent_handle& handle)
-{
-    list ret;
-    std::vector<int> priorities = handle.file_priorities();
-
-    for (std::vector<int>::iterator i = priorities.begin(); i != priorities.end(); ++i)
-        ret.append(*i);
-
-    return ret;
-}
 
 void replace_trackers(torrent_handle& info, object trackers)
 {
@@ -207,7 +197,7 @@ list get_download_queue(torrent_handle& handle)
             block_info["bytes_progress"] = i->blocks[k].bytes_progress;
             block_info["block_size"] = i->blocks[k].block_size;
             block_info["peer"] = make_tuple(
-                boost::lexical_cast<std::string>(i->blocks[k].peer().address()), i->blocks[k].peer().port());
+                boost::lexical_cast<std::string>(i->blocks[k].peer.address()), i->blocks[k].peer.port());
             block_list.append(block_info);
         }
         partial_piece["blocks"] = block_list;
@@ -246,11 +236,6 @@ void set_peer_download_limit(torrent_handle& th, tuple const& ip, int limit)
     th.set_peer_download_limit(tuple_to_endpoint(ip), limit);
 }
 
-void add_piece(torrent_handle& th, int piece, char const *data, int flags)
-{
-   th.add_piece(piece, data, flags);
-}
-
 void bind_torrent_handle()
 {
     void (torrent_handle::*force_reannounce0)() const = &torrent_handle::force_reannounce;
@@ -258,16 +243,12 @@ void bind_torrent_handle()
     int (torrent_handle::*piece_priority0)(int) const = &torrent_handle::piece_priority;
     void (torrent_handle::*piece_priority1)(int, int) const = &torrent_handle::piece_priority;
 
-    void (torrent_handle::*move_storage0)(fs::path const&) const = &torrent_handle::move_storage;
-    void (torrent_handle::*move_storage1)(fs::wpath const&) const = &torrent_handle::move_storage;
-
-    void (torrent_handle::*rename_file0)(int, fs::path const&) const = &torrent_handle::rename_file;
-    void (torrent_handle::*rename_file1)(int, fs::wpath const&) const = &torrent_handle::rename_file;
-	
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
     bool (torrent_handle::*resolve_countries0)() const = &torrent_handle::resolve_countries;
     void (torrent_handle::*resolve_countries1)(bool) = &torrent_handle::resolve_countries;
 #endif
+
+    return_value_policy<copy_const_reference> copy;
 
 #define _ allow_threads
 
@@ -289,37 +270,22 @@ void bind_torrent_handle()
         .def("is_paused", _(&torrent_handle::is_paused))
         .def("pause", _(&torrent_handle::pause))
         .def("resume", _(&torrent_handle::resume))
-        .def("clear_error", _(&torrent_handle::clear_error))
-
-        .def("is_auto_managed", _(&torrent_handle::is_auto_managed))
-        .def("auto_managed", _(&torrent_handle::auto_managed))
-        .def("queue_position", _(&torrent_handle::queue_position))
-        .def("queue_position_up", _(&torrent_handle::queue_position_up))
-        .def("queue_position_down", _(&torrent_handle::queue_position_down))
-        .def("queue_position_top", _(&torrent_handle::queue_position_top))
-        .def("queue_position_bottom", _(&torrent_handle::queue_position_bottom))
-
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
         .def("resolve_countries", _(resolve_countries0))
         .def("resolve_countries", _(resolve_countries1))
 #endif
         // deprecated
-#ifndef TORRENT_NO_DEPRECATE
         .def("filter_piece", _(&torrent_handle::filter_piece))
         .def("is_piece_filtered", _(&torrent_handle::is_piece_filtered))
-        .def("write_resume_data", _(&torrent_handle::write_resume_data))
-#endif
-        .def("add_piece", add_piece)
-        .def("read_piece", _(&torrent_handle::read_piece))
+
         .def("piece_availability", piece_availability)
         .def("piece_priority", _(piece_priority0))
         .def("piece_priority", _(piece_priority1))
         .def("prioritize_pieces", prioritize_pieces)
-        .def("piece_priorities", piece_priorities)
+        .def("piece_prioritize", piece_priorities)
         .def("prioritize_files", prioritize_files)
-        .def("file_priorities", file_priorities)
         .def("use_interface", &torrent_handle::use_interface)
-        .def("save_resume_data", _(&torrent_handle::save_resume_data))
+        .def("write_resume_data", _(&torrent_handle::write_resume_data))
         .def("force_reannounce", _(force_reannounce0))
         .def("force_reannounce", force_reannounce)
         .def("scrape_tracker", _(&torrent_handle::scrape_tracker))
@@ -328,7 +294,7 @@ void bind_torrent_handle()
         .def("upload_limit", _(&torrent_handle::upload_limit))
         .def("set_download_limit", _(&torrent_handle::set_download_limit))
         .def("download_limit", _(&torrent_handle::download_limit))
-        .def("set_sequential_download", _(&torrent_handle::set_sequential_download))
+        .def("set_sequenced_download_threshold", _(&torrent_handle::set_sequenced_download_threshold))
         .def("set_peer_upload_limit", set_peer_upload_limit)
         .def("set_peer_download_limit", set_peer_download_limit)
         .def("connect_peer", connect_peer)
@@ -337,11 +303,8 @@ void bind_torrent_handle()
         .def("set_max_uploads", _(&torrent_handle::set_max_uploads))
         .def("set_max_connections", _(&torrent_handle::set_max_connections))
         .def("set_tracker_login", _(&torrent_handle::set_tracker_login))
-        .def("move_storage", _(move_storage0))
-        .def("move_storage", _(move_storage1))
-        .def("info_hash", _(&torrent_handle::info_hash))
-        .def("force_recheck", _(&torrent_handle::force_recheck))
-        .def("rename_file", _(rename_file0))
-        .def("rename_file", _(rename_file1))
+        .def("move_storage", _(&torrent_handle::move_storage))
+        .def("info_hash", _(&torrent_handle::info_hash), copy)
         ;
 }
+

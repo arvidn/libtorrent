@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
-#include <boost/function.hpp>
 
 #include <boost/preprocessor/repetition/enum_params_with_a_default.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
@@ -58,7 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/socket.hpp" // for io_service
 
 #ifndef TORRENT_MAX_ALERT_TYPES
 #define TORRENT_MAX_ALERT_TYPES 15
@@ -69,88 +67,46 @@ namespace libtorrent {
 	class TORRENT_EXPORT alert
 	{
 	public:
-
-		// only here for backwards compatibility
 		enum severity_t { debug, info, warning, critical, fatal, none };
 
-		enum category_t
-		{
-			error_notification = 0x1,
-			peer_notification = 0x2,
-			port_mapping_notification = 0x4,
-			storage_notification = 0x8,
-			tracker_notification = 0x10,
-			debug_notification = 0x20,
-			status_notification = 0x40,
-			progress_notification = 0x80,
-			ip_block_notification = 0x100,
-			performance_warning = 0x200,
-			dht_notification = 0x400,
-
-			all_categories = 0xffffffff
-		};
-
-		alert();
+		alert(severity_t severity, const std::string& msg);
 		virtual ~alert();
 
 		// a timestamp is automatically created in the constructor
 		ptime timestamp() const;
 
-		virtual char const* what() const = 0;
-		virtual std::string message() const = 0;
-		virtual int category() const = 0;
+		std::string const& msg() const;
 
-#ifndef TORRENT_NO_DEPRECATE
-		severity_t severity() const TORRENT_DEPRECATED { return warning; }
-#endif
+		severity_t severity() const;
 
 		virtual std::auto_ptr<alert> clone() const = 0;
 
 	private:
+		std::string m_msg;
+		severity_t m_severity;
 		ptime m_timestamp;
 	};
 
 	class TORRENT_EXPORT alert_manager
 	{
 	public:
-		enum { queue_size_limit_default = 1000 };
-
-		alert_manager(io_service& ios);
+		alert_manager();
 		~alert_manager();
 
 		void post_alert(const alert& alert_);
 		bool pending() const;
 		std::auto_ptr<alert> get();
 
-		template <class T>
-		bool should_post() const
-		{
-			boost::mutex::scoped_lock lock(m_mutex);
-			if (m_alerts.size() >= m_queue_size_limit) return false;
-			return (m_alert_mask & T::static_category) != 0;
-		}
+		void set_severity(alert::severity_t severity);
+		bool should_post(alert::severity_t severity) const;
 
 		alert const* wait_for_alert(time_duration max_wait);
 
-		void set_alert_mask(int m)
-		{
-			boost::mutex::scoped_lock lock(m_mutex);
-			m_alert_mask = m;
-		}
-
-		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
-		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
-
-		void set_dispatch_function(boost::function<void(alert const&)> const&);
-
 	private:
 		std::queue<alert*> m_alerts;
+		alert::severity_t m_severity;
 		mutable boost::mutex m_mutex;
 		boost::condition m_condition;
-		int m_alert_mask;
-		size_t m_queue_size_limit;
-		boost::function<void(alert const&)> m_dispatch;
-		io_service& m_ios;
 	};
 
 	struct TORRENT_EXPORT unhandled_alert : std::exception

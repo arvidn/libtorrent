@@ -2,8 +2,8 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/python.hpp>
 #include <libtorrent/session.hpp>
+#include <boost/python.hpp>
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -47,13 +47,6 @@ struct entry_to_python
         default:
             return object();
         }
-    }
-
-    static PyObject* convert(boost::shared_ptr<entry> const& e)
-    {
-        if (!e)
-            return incref(Py_None);
-        return convert(*e);
     }
 
     static PyObject* convert(entry const& e)
@@ -133,7 +126,6 @@ struct entry_from_python
 
 void bind_entry()
 {
-    to_python_converter<boost::shared_ptr<libtorrent::entry>, entry_to_python>();
     to_python_converter<entry, entry_to_python>();
     entry_from_python();
 }
