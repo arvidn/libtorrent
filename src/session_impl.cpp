@@ -1059,13 +1059,13 @@ namespace aux {
 		error_code ec;
 		if (m_settings.send_socket_buffer_size)
 		{
-			boost::asio::socket_base::send_buffer_size option(
+			stream_socket::send_buffer_size option(
 				m_settings.send_socket_buffer_size);
 			s.set_option(option, ec);
 		}
 		if (m_settings.recv_socket_buffer_size)
 		{
-			boost::asio::socket_base::receive_buffer_size option(
+			stream_socket::receive_buffer_size option(
 				m_settings.recv_socket_buffer_size);
 			s.set_option(option, ec);
 		}

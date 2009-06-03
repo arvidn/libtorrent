@@ -40,6 +40,7 @@ namespace libtorrent
 
 	socks_error_category socks_category;
 
+#if BOOST_VERSION >= 103500
 	const char* socks_error_category::name() const
 	{
 		return "socks error";
@@ -64,6 +65,7 @@ namespace libtorrent
 		if (ev < 0 || ev > socks_error::num_errors) return "unknown error";
 		return messages[ev];
 	}
+#endif
 
 	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h)

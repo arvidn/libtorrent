@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_POLICY_HPP_INCLUDED
 
 #include <algorithm>
-#include <set>
+#include <deque>
 
 #include "libtorrent/peer.hpp"
 #include "libtorrent/piece_picker.hpp"

@@ -56,6 +56,10 @@ namespace libtorrent {
 		};
 	}
 
+#if BOOST_VERSION < 103500
+typedef asio::error::error_category socks_error_category;
+#else
+
 struct TORRENT_EXPORT socks_error_category : boost::system::error_category
 {
 	virtual const char* name() const;
@@ -63,6 +67,8 @@ struct TORRENT_EXPORT socks_error_category : boost::system::error_category
 	virtual boost::system::error_condition default_error_condition(int ev) const
 	{ return boost::system::error_condition(ev, *this); }
 };
+
+#endif
 
 extern socks_error_category socks_category;
 
