@@ -59,18 +59,6 @@ namespace
       return ret;
   }
 
-  std::vector<announce_entry>::const_iterator begin_trackers(torrent_handle& i)
-  {
-      allow_threading_guard guard;
-      return i.trackers().begin();
-  }
-
-  std::vector<announce_entry>::const_iterator end_trackers(torrent_handle& i)
-  {
-      allow_threading_guard guard;
-      return i.trackers().end();
-  }
-
 } // namespace unnamed
 
 list file_progress(torrent_handle& handle)
@@ -159,7 +147,7 @@ list file_priorities(torrent_handle& handle)
     return ret;
 }
 
-void replace_trackers(torrent_handle& info, object trackers)
+void replace_trackers(torrent_handle& h, object trackers)
 {
     object iter(trackers.attr("__iter__")());
 
@@ -172,11 +160,46 @@ void replace_trackers(torrent_handle& info, object trackers)
         if (entry == handle<>())
             break;
 
-        result.push_back(extract<announce_entry const&>(object(entry)));
+        dict d;
+        d = extract<dict>(object(entry));
+
+        std::string url;
+        url = extract<std::string>(d["url"]);
+
+        announce_entry a(url);
+
+        if (d.has_key("tier"))
+            a.tier = extract<int>(d["tier"]);
+
+        if (d.has_key("fail_limit"))
+            a.fail_limit = extract<int>(d["fail_limit"]);
+
+        result.push_back(a);
     }
 
     allow_threading_guard guard;
-    info.replace_trackers(result);
+    h.replace_trackers(result);
+}
+
+list trackers(torrent_handle &h)
+{
+    list ret;
+    std::vector<announce_entry> const trackers = h.trackers();
+    for (std::vector<announce_entry>::const_iterator i = trackers.begin(), end(trackers.end()); i != end; ++i)
+    {
+        dict d;
+        d["url"] = i->url;
+        d["tier"] = i->tier;
+        d["fail_limit"] = i->fail_limit;
+        d["fails"] = i->fails;
+        d["source"] = i->source;
+        d["verified"] = i->verified;
+        d["updating"] = i->updating;
+        d["start_sent"] = i->start_sent;
+        d["complete_sent"] = i->complete_sent;
+        ret.append(d);
+    }
+    return ret;
 }
 
 list get_download_queue(torrent_handle& handle)
@@ -263,7 +286,7 @@ void bind_torrent_handle()
 
     void (torrent_handle::*rename_file0)(int, fs::path const&) const = &torrent_handle::rename_file;
     void (torrent_handle::*rename_file1)(int, fs::wpath const&) const = &torrent_handle::rename_file;
-	
+
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
     bool (torrent_handle::*resolve_countries0)() const = &torrent_handle::resolve_countries;
     void (torrent_handle::*resolve_countries1)(bool) = &torrent_handle::resolve_countries;
@@ -276,7 +299,7 @@ void bind_torrent_handle()
         .def("status", _(&torrent_handle::status))
         .def("get_download_queue", get_download_queue)
         .def("file_progress", file_progress)
-        .def("trackers", range(begin_trackers, end_trackers))
+        .def("trackers", trackers)
         .def("replace_trackers", replace_trackers)
         .def("add_url_seed", _(&torrent_handle::add_url_seed))
         .def("remove_url_seed", _(&torrent_handle::remove_url_seed))
