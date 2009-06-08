@@ -104,7 +104,7 @@ void bind_alert()
     class_<tracker_announce_alert, bases<tracker_alert>, noncopyable>(
         "tracker_announce_alert", no_init
     )
-        .def_readonly("event", &tracker_reply_alert::event)
+        .def_readonly("event", &tracker_announce_alert::event)
         ;
 
     class_<hash_failed_alert, bases<torrent_alert>, noncopyable>(
@@ -162,7 +162,7 @@ void bind_alert()
     class_<storage_moved_alert, bases<torrent_alert>, noncopyable>(
         "storage_moved_alert", no_init
     )
-        .def_readonly("path", &storaged_moved_alert::path)
+        .def_readonly("path", &storage_moved_alert::path)
         ;
 
     class_<storage_moved_failed_alert, bases<torrent_alert>, noncopyable>(
@@ -317,7 +317,7 @@ void bind_alert()
     class_<dht_announce_alert, bases<alert>, noncopyable>(
         "dht_announce_alert", no_init
     )
-        .def_readonly("ip" &dht_announce_alert::ip)
+        .def_readonly("ip", &dht_announce_alert::ip)
         .def_readonly("port", &dht_announce_alert::port)
         .def_readonly("info_hash", &dht_announce_alert::info_hash)
     ;
