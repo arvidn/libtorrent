@@ -196,6 +196,7 @@ namespace libtorrent
 
 		tracker_request const& tracker_req() const { return m_req; }
 
+		void fail_disp(int code, std::string const& msg) { fail(code, msg.c_str()); }
 		void fail(int code, char const* msg);
 		void fail_timeout();
 		virtual void start() = 0;
