@@ -553,7 +553,7 @@ void test_fastresume(path const& test_path)
 		ses.remove_torrent(h, session::delete_files);
 	}
 	TEST_CHECK(!exists(test_path / "tmp1/temporary"));
-#if TORRENT_USE_IOSTREAM
+#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 	resume.print(std::cout);
 #endif
 
@@ -626,7 +626,7 @@ void test_rename_file_in_fastresume(path const& test_path)
 	TEST_CHECK(!exists(test_path / "tmp2/temporary"));
 	TEST_CHECK(exists(test_path / "tmp2/testing_renamed_files"));
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
-#if TORRENT_USE_IOSTREAM
+#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 	resume.print(std::cout);
 #endif
 
@@ -649,7 +649,7 @@ void test_rename_file_in_fastresume(path const& test_path)
 		ses.remove_torrent(h);
 	}
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
-#if TORRENT_USE_IOSTREAM
+#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 	resume.print(std::cout);
 #endif
 	remove_all(test_path / "tmp2");
