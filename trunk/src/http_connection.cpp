@@ -66,7 +66,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	int default_port = protocol == "https" ? 443 : 80;
 
 	if (protocol != "http"
-#ifndef TORRENT_USE_OPENSSL
+#ifdef TORRENT_USE_OPENSSL
 		&& protocol != "https"
 #endif
 		)
