@@ -705,6 +705,7 @@ namespace libtorrent
 		bool was_conn_cand = is_connect_candidate(*p, m_finished);
 		p->port = port;
 		p->source |= src;
+		p->type = policy::peer::connectable;
 
 		if (was_conn_cand != is_connect_candidate(*p, m_finished))
 		{
