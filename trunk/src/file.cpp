@@ -54,7 +54,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/static_assert.hpp>
 // make sure the _FILE_OFFSET_BITS define worked
-// on this platform
+// on this platform. It's supposed to make file
+// related functions support 64-bit offsets.
+// this test makes sure lseed() returns a type
+// at least 64 bits wide
 BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 
 #endif
@@ -804,6 +807,7 @@ namespace libtorrent
 			ec = error_code(GetLastError(), get_system_category());
 			return false;
 		}
+#if _WIN32_WINNT >= 0x501
 		if ((m_open_mode & sparse) == 0)
 		{
 			// if the user has permissions, avoid filling
@@ -811,6 +815,7 @@ namespace libtorrent
 			// garbage instead
 			SetFileValidData(m_file_handle, offs.QuadPart);
 		}
+#endif
 		if (::SetEndOfFile(m_file_handle) == FALSE)
 		{
 			ec = error_code(GetLastError(), get_system_category());
