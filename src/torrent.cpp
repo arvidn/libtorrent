@@ -4489,7 +4489,6 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = 0;
-		if (limit < num_peers() * 10) limit = num_peers() * 10;
 		m_bandwidth_channel[peer_connection::upload_channel].throttle(limit);
 	}
 
@@ -4504,7 +4503,6 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = 0;
-		if (limit < num_peers() * 10) limit = num_peers() * 10;
 		m_bandwidth_channel[peer_connection::download_channel].throttle(limit);
 	}
 
