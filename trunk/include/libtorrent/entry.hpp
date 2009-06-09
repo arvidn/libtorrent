@@ -224,7 +224,7 @@ namespace libtorrent
 #endif
 	};
 
-#if TORRENT_USE_IOSTREAM
+#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 	inline std::ostream& operator<<(std::ostream& os, const entry& e)
 	{
 		e.print(os, 0);
