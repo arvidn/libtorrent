@@ -382,7 +382,6 @@ namespace libtorrent
 						+ (" " + m_parser.message());
 					if (m_ses.m_alerts.should_post<url_seed_alert>())
 					{
-						session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
 							, error_msg));
 					}
