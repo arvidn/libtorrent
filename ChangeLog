@@ -1,3 +1,6 @@
+	* by default, all piece priorities are set to 0 when a write fails.
+	  this lets libtorrent keep uploading the parts it has when it
+	  encounters a disk-full error for instance
 	* improved disk error handling and expanded use of error_code in
 	  error reporting. added a bandwidth state, bw_disk, when waiting
 	  for the disk io thread to catch up writing buffers

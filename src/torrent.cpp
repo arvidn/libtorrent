@@ -376,10 +376,34 @@ namespace libtorrent
 			return;
 		}
 
-
 		// notify the user of the error
 		if (alerts().should_post<file_error_alert>())
 			alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.error));
+
+		if (j.action == disk_io_job::write)
+		{
+			// if we failed to write, stop downloading and just
+			// keep seeding.
+			// TODO: make this depend on the error and on the filesystem the
+			// files are being downloaded to. If the error is no_space_left_on_device
+			// and the filesystem doesn't support sparse files, only zero the priorities
+			// of the pieces that are at the tails of all files, leaving everything
+			// up to the highest written piece in each file
+			if (m_ses.settings().adjust_priority_on_disk_failure
+				&& has_picker())
+			{
+				bool filter_updated = false;
+				bool was_finished = is_finished();
+				const int num_pieces = m_torrent_file->num_pieces();
+				for (int i = 0; i < num_pieces; ++i)
+				{
+					filter_updated |= m_picker->set_piece_priority(i, 0);
+					TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
+				}
+				if (filter_updated) update_peer_interest(was_finished);
+				return;
+			}
+		}
 
 		// put the torrent in an error-state
 		set_error(j.error, j.error_file);
