@@ -186,7 +186,7 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	// make sure that the timer in wait_for_alert() works
 	// this should time out (ret == 0) and it should take
 	// about 2 seconds
-	ptime start = time_now();
+	ptime start = time_now_hires();
 	alert const* ret;
 	while ((ret = ses1.wait_for_alert(seconds(2))))
 	{
@@ -194,8 +194,8 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 		std::cerr << ret->message() << std::endl;
 		start = time_now();
 	}
-	TEST_CHECK(time_now() - start < seconds(3));
-	TEST_CHECK(time_now() - start >= seconds(2));
+	TEST_CHECK(time_now_hires() - start < seconds(3));
+	TEST_CHECK(time_now_hires() - start >= seconds(2));
 
 	TEST_CHECK(!exists("./tmp1_swarm/temporary"));
 	TEST_CHECK(!exists("./tmp2_swarm/temporary"));
