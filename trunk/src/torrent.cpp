@@ -1101,7 +1101,7 @@ namespace libtorrent
 		ptime now = time_now();
 
 		int tier = INT_MAX;
-		for (int i = 0; i < m_trackers.size(); ++i)
+		for (int i = 0; i < int(m_trackers.size()); ++i)
 		{
 			announce_entry& ae = m_trackers[i];
 			if (ae.tier > tier) break;
@@ -3241,7 +3241,7 @@ namespace libtorrent
 				tree.resize(m_torrent_file->merkle_tree().size());
 				std::memcpy(&tree[0], mt->string_ptr()
 					, (std::min)(mt->string_length(), int(tree.size()) * 20));
-				if (mt->string_length() < tree.size() * 20)
+				if (mt->string_length() < int(tree.size()) * 20)
 					std::memset(&tree[0] + mt->string_length() / 20, 0
 						, tree.size() - mt->string_length() / 20);
 				m_torrent_file->set_merkle_tree(tree);
@@ -3459,7 +3459,7 @@ namespace libtorrent
 			if (!p->connectable) continue;
 
 			// don't save peers that don't work
-			if (p->failcount >= max_failcount) continue;
+			if (int(p->failcount) >= max_failcount) continue;
 
 #if TORRENT_USE_IPV6
 			if (addr.is_v6())
@@ -4028,7 +4028,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < m_trackers.size());
+		TORRENT_ASSERT(index < int(m_trackers.size()));
 		if (index >= (int)m_trackers.size()) return -1;
 
 		while (index > 0 && m_trackers[index].tier == m_trackers[index-1].tier)
@@ -4047,10 +4047,10 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < m_trackers.size());
+		TORRENT_ASSERT(index < int(m_trackers.size()));
 		if (index >= (int)m_trackers.size()) return -1;
 
-		while (index < m_trackers.size() - 1 && m_trackers[index].tier == m_trackers[index + 1].tier)
+		while (index < int(m_trackers.size()) - 1 && m_trackers[index].tier == m_trackers[index + 1].tier)
 		{
 			using std::swap;
 			swap(m_trackers[index], m_trackers[index + 1]);
@@ -5370,7 +5370,7 @@ namespace libtorrent
 				std::vector<int> pieces;
 				m_picker->piece_priorities(pieces);
 				// make sure all pieces have priority 0
-				TORRENT_ASSERT(std::count(pieces.begin(), pieces.end(), 0) == pieces.size());
+				TORRENT_ASSERT(std::count(pieces.begin(), pieces.end(), 0) == int(pieces.size()));
 			}
 		}
 		if (s == torrent_status::seeding)
@@ -5466,7 +5466,7 @@ namespace libtorrent
 
 		if (m_last_working_tracker >= 0)
 		{
-			TORRENT_ASSERT(m_last_working_tracker < m_trackers.size());
+			TORRENT_ASSERT(m_last_working_tracker < int(m_trackers.size()));
 			st.current_tracker = m_trackers[m_last_working_tracker].url;
 		}
 		else
