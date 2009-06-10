@@ -73,8 +73,6 @@ namespace libtorrent
 			, piece(0)
 			, offset(0)
 			, priority(0)
-			, error_piece(-1)
-			, error_op(-1)
 		{}
 
 		enum action_t
@@ -121,12 +119,6 @@ namespace libtorrent
 
 		// the error code from the file operation
 		error_code error;
-
-		// the piece the error occurred on
-		int error_piece;
-
-		// the operation that failed (only read or write)
-		int error_op;
 
 		// this is called when operation completes
 		boost::function<void(int, disk_io_job const&)> callback;
@@ -244,7 +236,9 @@ namespace libtorrent
 	// of disk io jobs
 	struct disk_io_thread : disk_buffer_pool
 	{
-		disk_io_thread(io_service& ios, int block_size = 16 * 1024);
+		disk_io_thread(io_service& ios
+			, boost::function<void()> const& queue_callback
+			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
 		void join();
@@ -254,6 +248,8 @@ namespace libtorrent
 		void add_job(disk_io_job const& j
 			, boost::function<void(int, disk_io_job const&)> const& f
 			= boost::function<void(int, disk_io_job const&)>());
+
+		int queued_write_bytes() const;
 
 		// keep track of the number of bytes in the job queue
 		// at any given time. i.e. the sum of all buffer_size.
@@ -277,6 +273,17 @@ namespace libtorrent
 		std::ofstream m_disk_access_log;
 #endif
 
+		struct cached_block_entry
+		{
+			cached_block_entry(): buf(0) {}
+			// the buffer pointer (this is a disk_pool buffer)
+			// or 0
+			char* buf;
+
+			// callback for when this block is flushed to disk
+			boost::function<void(int, disk_io_job const&)> callback;
+		};
+
 		struct cached_piece_entry
 		{
 			int piece;
@@ -287,7 +294,7 @@ namespace libtorrent
 			// the number of blocks in the cache for this piece
 			int num_blocks;
 			// the pointers to the block data
-			boost::shared_array<char*> blocks;
+			boost::shared_array<cached_block_entry> blocks;
 		};
 
 		typedef boost::recursive_mutex mutex_t;
@@ -308,13 +315,17 @@ namespace libtorrent
 
 		// write cache operations
 		enum options_t { dont_flush_write_blocks = 1, ignore_cache_size = 2 };
-		int flush_cache_blocks(mutex_t::scoped_lock& l, int blocks, cache_t::iterator ignore, int options = 0);
+		int flush_cache_blocks(mutex_t::scoped_lock& l
+			, int blocks, cache_t::iterator ignore
+			, int options = 0);
 		void flush_expired_pieces();
 		int flush_and_remove(cache_t::iterator i, mutex_t::scoped_lock& l);
 		int flush_contiguous_blocks(disk_io_thread::cache_t::iterator e
 			, mutex_t::scoped_lock& l, int lower_limit = 0);
 		int flush_range(cache_t::iterator i, int start, int end, mutex_t::scoped_lock& l);
-		int cache_block(disk_io_job& j, mutex_t::scoped_lock& l);
+		int cache_block(disk_io_job& j
+			, boost::function<void(int,disk_io_job const&)>& handler
+			, mutex_t::scoped_lock& l);
 
 		// read cache operations
 		int clear_oldest_read_piece(int num_blocks, cache_t::iterator ignore
@@ -351,11 +362,15 @@ namespace libtorrent
 		// exceed m_cache_size
 		cache_status m_cache_stats;
 
+		int m_queued_write_bytes;
+
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
 #endif
 
 		io_service& m_ios;
+
+		boost::function<void()> m_queue_callback;
 
 		// this keeps the io_service::run() call blocked from
 		// returning. When shutting down, it's possible that

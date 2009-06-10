@@ -80,11 +80,12 @@ namespace libtorrent
 		int source;
 
 		// bw_idle: the channel is not used
-		// bw_torrent: the channel is waiting for torrent quota
-		// bw_global: the channel is waiting for global quota
+		// bw_limit: the channel is waiting for quota
 		// bw_network: the channel is waiting for an async write
 		//   for read operation to complete
-		enum bw_state { bw_idle, bw_limit, bw_network };
+		// bw_disk: the peer is waiting for the disk io thread
+		//   to catch up
+		enum bw_state { bw_idle, bw_limit, bw_network, bw_disk };
 #ifndef TORRENT_NO_DEPRECATE
 		enum bw_state_deprecated { bw_torrent = bw_limit, bw_global = bw_limit };
 #endif

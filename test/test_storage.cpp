@@ -195,7 +195,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	{
 	file_pool fp;
 	libtorrent::asio::io_service ios;
-	disk_io_thread io(ios);
+	disk_io_thread io(ios, boost::function<void()>());
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
 		, test_path, fp, io, default_storage_constructor, storage_mode);
@@ -396,7 +396,7 @@ void test_check_files(path const& test_path
 
 	file_pool fp;
 	libtorrent::asio::io_service ios;
-	disk_io_thread io(ios);
+	disk_io_thread io(ios, boost::function<void()>());
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
 		, test_path, fp, io, default_storage_constructor, storage_mode);

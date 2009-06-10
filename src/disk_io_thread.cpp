@@ -268,13 +268,17 @@ namespace libtorrent
 // ------- disk_io_thread ------
 
 
-	disk_io_thread::disk_io_thread(asio::io_service& ios, int block_size)
+	disk_io_thread::disk_io_thread(asio::io_service& ios
+		, boost::function<void()> const& queue_callback
+		, int block_size)
 		: disk_buffer_pool(block_size)
 		, m_abort(false)
 		, m_waiting_to_shutdown(false)
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
+		, m_queued_write_bytes(0)
 		, m_ios(ios)
+		, m_queue_callback(queue_callback)
 		, m_work(io_service::work(m_ios))
 		, m_disk_io_thread(boost::ref(*this))
 	{
@@ -322,7 +326,7 @@ namespace libtorrent
 			int blocks_in_piece = (ti.piece_size(i->piece) + (m_block_size) - 1) / m_block_size;
 			info.blocks.resize(blocks_in_piece);
 			for (int b = 0; b < blocks_in_piece; ++b)
-				if (i->blocks[b]) info.blocks[b] = true;
+				if (i->blocks[b].buf) info.blocks[b] = true;
 			ret.push_back(info);
 		}
 		for (cache_t::const_iterator i = m_read_pieces.begin()
@@ -337,7 +341,7 @@ namespace libtorrent
 			int blocks_in_piece = (ti.piece_size(i->piece) + (m_block_size) - 1) / m_block_size;
 			info.blocks.resize(blocks_in_piece);
 			for (int b = 0; b < blocks_in_piece; ++b)
-				if (i->blocks[b]) info.blocks[b] = true;
+				if (i->blocks[b].buf) info.blocks[b] = true;
 			ret.push_back(info);
 		}
 	}
@@ -466,10 +470,10 @@ namespace libtorrent
 
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
-			if (p.blocks[i] == 0) continue;
-			free_buffer(p.blocks[i]);
+			if (p.blocks[i].buf == 0) continue;
+			free_buffer(p.blocks[i].buf);
 			++ret;
-			p.blocks[i] = 0;
+			p.blocks[i].buf = 0;
 			--p.num_blocks;
 			--m_cache_stats.cache_size;
 			--m_cache_stats.read_cache_size;
@@ -507,10 +511,10 @@ namespace libtorrent
 
 				while (num_blocks)
 				{
-					while (i->blocks[start] == 0 && start <= end) ++start;
+					while (i->blocks[start].buf == 0 && start <= end) ++start;
 					if (start > end) break;
-					free_buffer(i->blocks[start]);
-					i->blocks[start] = 0;
+					free_buffer(i->blocks[start].buf);
+					i->blocks[start].buf = 0;
 					++blocks;
 					--i->num_blocks;
 					--m_cache_stats.cache_size;
@@ -518,10 +522,10 @@ namespace libtorrent
 					--num_blocks;
 					if (!num_blocks) break;
 
-					while (i->blocks[end] == 0 && start <= end) --end;
+					while (i->blocks[end].buf == 0 && start <= end) --end;
 					if (start > end) break;
-					free_buffer(i->blocks[end]);
-					i->blocks[end] = 0;
+					free_buffer(i->blocks[end].buf);
+					i->blocks[end].buf = 0;
 					++blocks;
 					--i->num_blocks;
 					--m_cache_stats.cache_size;
@@ -543,7 +547,7 @@ namespace libtorrent
 		int blocks_in_piece = (b.storage->info()->piece_size(b.piece) + 16 * 1024 - 1) / (16 * 1024);
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
-			if (b.blocks[i]) ++current;
+			if (b.blocks[i].buf) ++current;
 			else
 			{
 				if (current > ret) ret = current;
@@ -566,7 +570,7 @@ namespace libtorrent
 			+ m_block_size - 1) / m_block_size;
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
-			if (e->blocks[i]) ++current;
+			if (e->blocks[i].buf) ++current;
 			else
 			{
 				if (current > len)
@@ -673,7 +677,7 @@ namespace libtorrent
 		end = (std::min)(end, blocks_in_piece);
 		for (int i = start; i <= end; ++i)
 		{
-			if (i == end || p.blocks[i] == 0)
+			if (i == end || p.blocks[i].buf == 0)
 			{
 				if (buffer_size == 0) continue;
 			
@@ -704,13 +708,13 @@ namespace libtorrent
 			TORRENT_ASSERT(offset + block_size > 0);
 			if (!buf)
 			{
-				iov[iov_counter].iov_base = p.blocks[i];
+				iov[iov_counter].iov_base = p.blocks[i].buf;
 				iov[iov_counter].iov_len = block_size;
 				++iov_counter;
 			}
 			else
 			{
-				std::memcpy(buf.get() + offset, p.blocks[i], block_size);
+				std::memcpy(buf.get() + offset, p.blocks[i].buf, block_size);
 				offset += m_block_size;
 			}
 			buffer_size += block_size;
@@ -721,11 +725,22 @@ namespace libtorrent
 		}
 
 		int ret = 0;
+		disk_io_job j;
+		j.storage = p.storage;
+		j.action = disk_io_job::write;
+		j.buffer = 0;
+		j.piece = p.piece;
+		test_error(j);
 		for (int i = start; i < end; ++i)
 		{
-			if (p.blocks[i] == 0) continue;
-			free_buffer(p.blocks[i]);
-			p.blocks[i] = 0;
+			if (p.blocks[i].buf == 0) continue;
+			j.buffer_size = (std::min)(piece_size - i * m_block_size, m_block_size);
+			int result = j.error ? -1 : j.buffer_size;
+			j.offset = i * m_block_size;
+			free_buffer(p.blocks[i].buf);
+			post_callback(p.blocks[i].callback, j, result);
+			p.blocks[i].callback.clear();
+			p.blocks[i].buf = 0;
 			++ret;
 		}
 
@@ -733,36 +748,41 @@ namespace libtorrent
 //		std::cerr << " flushing p: " << p.piece << " cached_blocks: " << m_cache_stats.cache_size << std::endl;
 #ifdef TORRENT_DEBUG
 		for (int i = start; i < end; ++i)
-			TORRENT_ASSERT(p.blocks[i] == 0);
+			TORRENT_ASSERT(p.blocks[i].buf == 0);
 #endif
 		return ret;
 	}
 
 	// returns -1 on failure
-	int disk_io_thread::cache_block(disk_io_job& j, mutex_t::scoped_lock& l)
+	int disk_io_thread::cache_block(disk_io_job& j
+		, boost::function<void(int,disk_io_job const&)>& handler
+		, mutex_t::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(find_cached_piece(m_pieces, j, l) == m_pieces.end());
 		TORRENT_ASSERT((j.offset & (m_block_size-1)) == 0);
 		cached_piece_entry p;
 
+		int piece_size = j.storage->info()->piece_size(j.piece);
+		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+		// there's no point in caching the piece if
+		// there's only one block in it
+		if (blocks_in_piece <= 1) return -1;
+
 #ifdef TORRENT_DISK_STATS
 		rename_buffer(j.buffer, "write cache");
 #endif
-
-		int piece_size = j.storage->info()->piece_size(j.piece);
-		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
 		p.piece = j.piece;
 		p.storage = j.storage;
 		p.last_use = time_now();
 		p.num_blocks = 1;
-		p.blocks.reset(new (std::nothrow) char*[blocks_in_piece]);
+		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!p.blocks) return -1;
-		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
 		int block = j.offset / m_block_size;
 //		std::cerr << " adding cache entry for p: " << j.piece << " block: " << block << " cached_blocks: " << m_cache_stats.cache_size << std::endl;
-		p.blocks[block] = j.buffer;
+		p.blocks[block].buf = j.buffer;
+		p.blocks[block].callback.swap(handler);
 		++m_cache_stats.cache_size;
 		m_pieces.push_back(p);
 		return 0;
@@ -785,11 +805,11 @@ namespace libtorrent
 			// this is a block that is already allocated
 			// stop allocating and don't read more than
 			// what we've allocated now
-			if (p.blocks[i]) break;
-			p.blocks[i] = allocate_buffer("read cache");
+			if (p.blocks[i].buf) break;
+			p.blocks[i].buf = allocate_buffer("read cache");
 
 			// the allocation failed, break
-			if (p.blocks[i] == 0) break;
+			if (p.blocks[i].buf == 0) break;
 			++p.num_blocks;
 			++m_cache_stats.cache_size;
 			++m_cache_stats.read_cache_size;
@@ -835,17 +855,17 @@ namespace libtorrent
 		for (int i = start_block; i < end_block; ++i)
 		{
 			int block_size = (std::min)(piece_size - piece_offset, m_block_size);
-			if (p.blocks[i] == 0) break;
+			if (p.blocks[i].buf == 0) break;
 			TORRENT_ASSERT(offset <= buffer_size);
 			TORRENT_ASSERT(piece_offset <= piece_size);
 			TORRENT_ASSERT(offset + block_size <= buffer_size);
 			if (buf)
 			{
-				std::memcpy(p.blocks[i], buf.get() + offset, block_size);
+				std::memcpy(p.blocks[i].buf, buf.get() + offset, block_size);
 			}
 			else
 			{
-				iov[iov_counter].iov_base = p.blocks[i];
+				iov[iov_counter].iov_base = p.blocks[i].buf;
 				iov[iov_counter].iov_len = block_size;
 				++iov_counter;
 			}
@@ -894,9 +914,8 @@ namespace libtorrent
 		p.storage = j.storage;
 		p.last_use = time_now();
 		p.num_blocks = 0;
-		p.blocks.reset(new (std::nothrow) char*[blocks_in_piece]);
+		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!p.blocks) return -1;
-		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
 		int ret = read_into_piece(p, 0, ignore_cache_size, INT_MAX, l);
 		
 		if (ret < 0)
@@ -933,9 +952,8 @@ namespace libtorrent
 		p.storage = j.storage;
 		p.last_use = time_now();
 		p.num_blocks = 0;
-		p.blocks.reset(new (std::nothrow) char*[blocks_in_piece]);
+		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!p.blocks) return -1;
-		std::memset(&p.blocks[0], 0, blocks_in_piece * sizeof(char*));
 		int ret = read_into_piece(p, start_block, 0, blocks_to_read, l);
 		
 		if (ret < 0)
@@ -962,10 +980,10 @@ namespace libtorrent
 			int blocks = 0;
 			for (int k = 0; k < blocks_in_piece; ++k)
 			{
-				if (p.blocks[k])
+				if (p.blocks[k].buf)
 				{
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-					TORRENT_ASSERT(is_disk_buffer(p.blocks[k]));
+					TORRENT_ASSERT(is_disk_buffer(p.blocks[k].buf));
 #endif
 					++blocks;
 				}
@@ -986,10 +1004,10 @@ namespace libtorrent
 			int blocks = 0;
 			for (int k = 0; k < blocks_in_piece; ++k)
 			{
-				if (p.blocks[k])
+				if (p.blocks[k].buf)
 				{
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-					TORRENT_ASSERT(is_disk_buffer(p.blocks[k]));
+					TORRENT_ASSERT(is_disk_buffer(p.blocks[k].buf));
 #endif
 					++blocks;
 				}
@@ -1048,8 +1066,8 @@ namespace libtorrent
 
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
-			TORRENT_ASSERT(p->blocks[i]);
-			ctx.update((char const*)p->blocks[i], (std::min)(piece_size, m_block_size));
+			TORRENT_ASSERT(p->blocks[i].buf);
+			ctx.update((char const*)p->blocks[i].buf, (std::min)(piece_size, m_block_size));
 			piece_size -= m_block_size;
 		}
 		h = ctx.final();
@@ -1092,17 +1110,17 @@ namespace libtorrent
 		int min_blocks_to_read = block_offset > 0 ? 2 : 1;
 		TORRENT_ASSERT(size <= m_block_size);
 		int start_block = block;
-		if (p->blocks[start_block] != 0 && min_blocks_to_read > 1)
+		if (p->blocks[start_block].buf != 0 && min_blocks_to_read > 1)
 			++start_block;
 		// if block_offset > 0, we need to read two blocks, and then
 		// copy parts of both, because it's not aligned to the block
 		// boundaries
-		if (p->blocks[start_block] == 0)
+		if (p->blocks[start_block].buf == 0)
 		{
 			int piece_size = j.storage->info()->piece_size(j.piece);
 			int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 			int end_block = start_block;
-			while (end_block < blocks_in_piece && p->blocks[end_block] == 0) ++end_block;
+			while (end_block < blocks_in_piece && p->blocks[end_block].buf == 0) ++end_block;
 
 			int blocks_to_read = end_block - block;
 			blocks_to_read = (std::min)(blocks_to_read, (std::max)((m_settings.cache_size
@@ -1118,17 +1136,17 @@ namespace libtorrent
 			hit = false;
 			if (ret < 0) return ret;
 			if (ret < size + block_offset) return -2;
-			TORRENT_ASSERT(p->blocks[block]);
+			TORRENT_ASSERT(p->blocks[block].buf);
 		}
 
 		p->last_use = time_now();
 		while (size > 0)
 		{
-			TORRENT_ASSERT(p->blocks[block]);
+			TORRENT_ASSERT(p->blocks[block].buf);
 			int to_copy = (std::min)(m_block_size
 					- block_offset, size);
 			std::memcpy(j.buffer + buffer_offset
-					, p->blocks[block] + block_offset
+					, p->blocks[block].buf + block_offset
 					, to_copy);
 			size -= to_copy;
 			block_offset = 0;
@@ -1177,6 +1195,12 @@ namespace libtorrent
 		return ret;
 	}
 
+	int disk_io_thread::queued_write_bytes() const
+	{
+		mutex_t::scoped_lock l(m_queue_mutex);
+		return m_queued_write_bytes;
+	}
+
 	void disk_io_thread::add_job(disk_io_job const& j
 		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
@@ -1212,6 +1236,7 @@ namespace libtorrent
 		}
 		else if (j.action == disk_io_job::write)
 		{
+			m_queued_write_bytes += j.buffer_size;
 			for (; i != m_jobs.rend(); ++i)
 			{
 				if (*i < j)
@@ -1245,17 +1270,14 @@ namespace libtorrent
 		if (ec)
 		{
 			j.buffer = 0;
-			j.str = ec.message();
+			j.str.clear();
 			j.error = ec;
 			j.error_file = j.storage->error_file();
-			j.error_piece = j.storage->last_piece();
-			j.error_op = j.storage->last_operation();
-			j.storage->clear_error();
 #ifdef TORRENT_DEBUG
-			std::cout << "ERROR: '" << j.str << "' while " 
-				<< (j.error_op == disk_io_job::read?"reading ":"writing ")
+			std::cout << "ERROR: '" << ec.message() << " in " 
 				<< j.error_file << std::endl;
 #endif
+			j.storage->clear_error();
 			return true;
 		}
 		return false;
@@ -1323,6 +1345,16 @@ namespace libtorrent
 			m_jobs.pop_front();
 			m_queue_buffer_size -= j.buffer_size;
 			jl.unlock();
+
+			if (m_queue_buffer_size + j.buffer_size >= m_settings.max_queued_disk_bytes
+				&& m_queue_buffer_size < m_settings.max_queued_disk_bytes
+				&& m_queue_callback)
+			{
+				// we just dropped below the high watermark of number of bytes
+				// queued for writing to the disk. Notify the session so that it
+				// can trigger all the connections waiting for this event
+				m_ios.post(m_queue_callback);
+			}
 
 			flush_expired_pieces();
 
@@ -1425,9 +1457,7 @@ namespace libtorrent
 #else
 						j.error = asio::error::no_memory;
 #endif
-						j.error_piece = j.piece;
-						j.error_op = disk_io_job::read;
-						j.str = j.error.message();
+						j.str.clear();
 						break;
 					}
 
@@ -1452,9 +1482,7 @@ namespace libtorrent
 					{
 						j.storage->mark_failed(j.piece);
 						j.error = error_code(errors::failed_hash_check, libtorrent_category);
-						j.str = j.error.message();
-						j.error_piece = j.storage->last_piece();
-						j.error_op = disk_io_job::read;
+						j.str.clear();
 						j.buffer = 0;
 						break;
 					}
@@ -1489,9 +1517,7 @@ namespace libtorrent
 #else
 						j.error = asio::error::no_memory;
 #endif
-						j.error_piece = j.piece;
-						j.error_op = disk_io_job::read;
-						j.str = j.error.message();
+						j.str.clear();
 						break;
 					}
 
@@ -1522,9 +1548,7 @@ namespace libtorrent
 							j.buffer = 0;
 							j.error = error_code(errors::file_too_short, libtorrent_category);
 							j.error_file.clear();
-							j.str = j.error.message();
-							j.error_piece = j.storage->last_piece();
-							j.error_op = disk_io_job::read;
+							j.str.clear();
 							ret = -1;
 							break;
 						}
@@ -1539,11 +1563,7 @@ namespace libtorrent
 				}
 				case disk_io_job::write:
 				{
-					if (test_error(j))
-					{
-						ret = -1;
-						break;
-					}
+					m_queued_write_bytes -= j.buffer_size;
 #ifdef TORRENT_DISK_STATS
 					m_log << log_time() << " write " << j.buffer_size << std::endl;
 #endif
@@ -1560,13 +1580,14 @@ namespace libtorrent
 					TORRENT_ASSERT(j.buffer_size <= m_block_size);
 					if (p != m_pieces.end())
 					{
-						TORRENT_ASSERT(p->blocks[block] == 0);
-						if (p->blocks[block])
+						TORRENT_ASSERT(p->blocks[block].buf == 0);
+						if (p->blocks[block].buf)
 						{
-							free_buffer(p->blocks[block]);
+							free_buffer(p->blocks[block].buf);
 							--p->num_blocks;
 						}
-						p->blocks[block] = j.buffer;
+						p->blocks[block].buf = j.buffer;
+						p->blocks[block].callback.swap(handler);
 #ifdef TORRENT_DISK_STATS
 						rename_buffer(j.buffer, "write cache");
 #endif
@@ -1579,7 +1600,7 @@ namespace libtorrent
 					}
 					else
 					{
-						if (cache_block(j, l) < 0)
+						if (cache_block(j, handler, l) < 0)
 						{
 							file::iovec_t iov = {j.buffer, j.buffer_size};
 							ret = j.storage->write_impl(&iov, j.piece, j.offset, 1);
@@ -1723,9 +1744,9 @@ namespace libtorrent
 						int blocks_in_piece = (ti.piece_size(k->piece) + m_block_size - 1) / m_block_size;
 						for (int j = 0; j < blocks_in_piece; ++j)
 						{
-							if (k->blocks[j] == 0) continue;
-							free_buffer(k->blocks[j]);
-							k->blocks[j] = 0;
+							if (k->blocks[j].buf == 0) continue;
+							free_buffer(k->blocks[j].buf);
+							k->blocks[j].buf = 0;
 							--m_cache_stats.cache_size;
 						}
 					}
