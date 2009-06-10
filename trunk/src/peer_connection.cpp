@@ -3652,6 +3652,7 @@ namespace libtorrent
 					" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
 					" buf: " << m_send_buffer.size() <<
 					" connecting: " << (m_connecting?"yes":"no") <<
+					" disconnecting: " << (m_disconnecting?"yes":"no") <<
 					" ]\n";
 			}
 			else
@@ -3661,6 +3662,7 @@ namespace libtorrent
 					" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
 					" buf: " << m_send_buffer.size() <<
 					" connecting: " << (m_connecting?"yes":"no") <<
+					" disconnecting: " << (m_disconnecting?"yes":"no") <<
 					" ]\n";
 			}
 #endif

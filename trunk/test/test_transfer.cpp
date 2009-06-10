@@ -105,7 +105,93 @@ void print_alert(alert const& a)
 	std::cout << "ses1 (alert dispatch function): " << a.message() << std::endl;
 }
 
-void test_transfer()
+// simulate a full disk
+struct test_storage : storage_interface
+{
+	test_storage(file_storage const& fs, fs::path const& p, file_pool& fp)
+		: m_lower_layer(default_storage_constructor(fs, p, fp))
+  		, m_written(0)
+		, m_limit(16 * 1024 * 2)
+	{}
+
+	virtual bool initialize(bool allocate_files)
+	{ return m_lower_layer->initialize(allocate_files); }
+
+	virtual bool has_any_file()
+	{ return m_lower_layer->has_any_file(); }
+
+	virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
+	{ return m_lower_layer->readv(bufs, slot, offset, num_bufs); }
+
+	virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
+	{
+		int ret = m_lower_layer->writev(bufs, slot, offset, num_bufs);
+		if (ret > 0) m_written += ret;
+		if (m_written > m_limit)
+		{
+			set_error("", error_code(boost::system::errc::no_space_on_device, get_posix_category()));
+			return -1;
+		}
+		return ret;
+	}
+
+	virtual int read(char* buf, int slot, int offset, int size)
+	{ return m_lower_layer->read(buf, slot, offset, size); }
+
+	virtual int write(const char* buf, int slot, int offset, int size)
+	{
+		int ret = m_lower_layer->write(buf, slot, offset, size);
+		if (ret > 0) m_written += ret;
+		if (m_written > m_limit)
+		{
+			set_error("", error_code(boost::system::errc::no_space_on_device, get_posix_category()));
+			return -1;
+		}
+		return ret;
+	}
+
+	virtual int sparse_end(int start) const
+	{ return m_lower_layer->sparse_end(start); }
+
+	virtual bool move_storage(fs::path save_path)
+	{ return m_lower_layer->move_storage(save_path); }
+
+	virtual bool verify_resume_data(lazy_entry const& rd, std::string& error)
+	{ return m_lower_layer->verify_resume_data(rd, error); }
+
+	virtual bool write_resume_data(entry& rd) const
+	{ return m_lower_layer->write_resume_data(rd); }
+
+	virtual bool move_slot(int src_slot, int dst_slot)
+	{ return m_lower_layer->move_slot(src_slot, dst_slot); }
+
+	virtual bool swap_slots(int slot1, int slot2)
+	{ return m_lower_layer->swap_slots(slot1, slot2); }
+
+	virtual bool swap_slots3(int slot1, int slot2, int slot3)
+	{ return m_lower_layer->swap_slots3(slot1, slot2, slot3); }
+
+	virtual bool release_files() { return m_lower_layer->release_files(); }
+
+	virtual bool rename_file(int index, std::string const& new_filename)
+	{ return m_lower_layer->rename_file(index, new_filename); }
+
+	virtual bool delete_files() { return m_lower_layer->delete_files(); }
+
+	virtual ~test_storage() {}
+
+	boost::scoped_ptr<storage_interface> m_lower_layer;
+	int m_written;
+	int m_limit;
+};
+
+storage_interface* test_storage_constructor(file_storage const& fs
+	, fs::path const& path, file_pool& fp)
+{
+	return new test_storage(fs, path, fp);
+}
+
+void test_transfer(bool test_disk_full = false)
 {
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0);
@@ -126,9 +212,16 @@ void test_transfer()
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024);
 	file.close();
 
+	add_torrent_params addp(&test_storage_constructor);
+
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_transfer", 8 * 1024, &t);
+		, true, false, true, "_transfer", 8 * 1024, &t, false, test_disk_full?&addp:0);
+
+	session_settings settings = ses1.settings();
+	settings.min_reconnect_time = 1;
+	ses1.set_settings(settings);
+	ses2.set_settings(settings);
 
 	// set half of the pieces to priority 0
 	int num_pieces = tor2.get_torrent_info().num_pieces();
@@ -167,6 +260,7 @@ void test_transfer()
 			<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
 			<< "\033[0m" << int(st2.progress * 100) << "% "
 			<< st2.num_peers
+			<< " cc: " << st2.connect_candidates
 			<< std::endl;
 
 		if (!test_move_storage && st2.progress > 0.25f)
@@ -177,18 +271,43 @@ void test_transfer()
 			std::cerr << "moving storage" << std::endl;
 		}
 
-		if (tor2.is_finished()) break;
+		if (test_disk_full && tor2.is_finished())
+		{
+			test_disk_full = false;
+			std::vector<int> priorities2 = tor2.piece_priorities();
+			std::cerr << "piece priorities: ";
+			for (std::vector<int>::iterator i = priorities2.begin()
+				, end(priorities2.end()); i != end; ++i)
+			{
+				TEST_CHECK(*i == 0);
+				std::cerr << *i << ", ";
+			}
+			std::cerr << std::endl;
+
+			((test_storage*)tor2.get_storage_impl())->m_limit = 16 * 1024 * 1024;
+			tor2.prioritize_pieces(priorities);
+			std::cerr << "setting priorities: ";
+			std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
+			std::cerr << std::endl;
+			continue;
+		}
+
+		if (!test_disk_full && tor2.is_finished()) break;
 
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
-		TEST_CHECK(st2.state == torrent_status::downloading);
+		TEST_CHECK(st2.state == torrent_status::downloading
+			|| (test_disk_full && !st2.error.empty()));
 
 		test_sleep(1000);
 	}
 
 	TEST_CHECK(!tor2.is_seed());
-	std::cerr << "torrent is finished (50% complete)" << std::endl;
+	TEST_CHECK(tor2.is_finished());
+	if (tor2.is_finished())
+		std::cerr << "torrent is finished (50% complete)" << std::endl;
 
+	std::cerr << "force recheck" << std::endl;
 	tor2.force_recheck();
 	
 	for (int i = 0; i < 10; ++i)
@@ -298,6 +417,7 @@ void test_transfer()
 			<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
 			<< "\033[0m" << int(st2.progress * 100) << "% "
 			<< st2.num_peers
+			<< " cc: " << st2.connect_candidates
 			<< std::endl;
 
 		if (tor2.is_finished()) break;
@@ -317,6 +437,15 @@ int test_main()
 	using namespace boost::filesystem;
 
 	// in case the previous run was terminated
+	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
+
+	// test with a (simulated) full disk
+	test_transfer(true);
+	return 0;
+	
 	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
 	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
 	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}

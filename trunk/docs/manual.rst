@@ -3450,6 +3450,8 @@ session_settings
 
 		int read_cache_line_size;
 		int write_cache_line_size;
+
+		bool adjust_priority_on_disk_failure;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3854,6 +3856,16 @@ into the read cache is always capped by the piece boundry.
 When a piece in the write cache has ``write_cache_line_size`` contiguous
 blocks in it, they will be flushed. Setting this to 1 effectively
 disables the write cache.
+
+``adjust_priority_on_disk_failure`` specifies what libtorrent should do
+on disk failures. If this is set to true, instead of pausing the torrent
+and setting it to an error state when it fails to write to disk, the
+priorities of all pieces are set to 0. This effectively means the client
+can keep seeding the parts that were already downloaded, instead of
+leaving the swarm because of the error.
+
+If a read operation fails, it will still set an error on the torrent
+and pause it.
 
 pe_settings
 ===========
