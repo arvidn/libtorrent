@@ -1,3 +1,6 @@
+	* improved disk error handling and expanded use of error_code in
+	  error reporting. added a bandwidth state, bw_disk, when waiting
+	  for the disk io thread to catch up writing buffers
 	* improved read cache memory efficiency
 	* added another cache flush algorithm to write the largest
 	  contiguous blocks instead of the least recently used

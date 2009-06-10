@@ -224,6 +224,8 @@ namespace libtorrent
 		
 		void async_check_files(boost::function<void(int, disk_io_job const&)> const& handler);
 
+		int queued_bytes() const;
+
 		void async_rename_file(int index, std::string const& name
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 

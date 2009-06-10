@@ -1871,7 +1871,8 @@ namespace libtorrent
 			"s: " << p.start << " | "
 			"l: " << p.length << " | "
 			"ds: " << statistics().download_rate() << " | "
-			"qs: " << int(m_desired_queue_size) << " ]\n";
+			"qs: " << int(m_desired_queue_size) << " | "
+			"q: " << int(m_download_queue.size()) << " ]\n";
 #endif
 
 		if (p.length == 0)
@@ -2019,7 +2020,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		m_download_queue.erase(b);
 
-		if (m_outstanding_writing_bytes > m_ses.settings().max_outstanding_disk_bytes_per_connection
+		if (t->filesystem().queued_bytes() >= m_ses.settings().max_queued_disk_bytes
+			&& m_ses.settings().max_queued_disk_bytes
 			&& t->alerts().should_post<performance_alert>())
 		{
 			t->alerts().post_alert(performance_alert(t->get_handle()
@@ -2052,6 +2054,19 @@ namespace libtorrent
 	&& defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		t->check_invariant();
 #endif
+
+		// did we just finish the piece?
+		// this means all blocks are either written
+		// to disk or are in the disk write cache
+		if (picker.is_piece_finished(p.piece))
+		{
+#ifdef TORRENT_DEBUG
+			check_postcondition post_checker2_(t, false);
+#endif
+			t->async_verify_piece(p.piece, bind(&torrent::piece_finished, t
+				, p.piece, _1));
+		}
+
 		request_a_block(*t, *this);
 		send_block_requests();
 	}
@@ -2104,24 +2119,6 @@ namespace libtorrent
 		}
 
 		if (t->is_aborted()) return;
-
-		// did we just finish the piece?
-		if (picker.is_piece_finished(p.piece))
-		{
-#ifdef TORRENT_DEBUG
-			check_postcondition post_checker2_(t, false);
-#endif
-			t->async_verify_piece(p.piece, bind(&torrent::piece_finished, t
-				, p.piece, _1));
-		}
-
-		if (!t->is_seed() && !m_torrent.expired())
-		{
-			// this is a free function defined in policy.cpp
-			request_a_block(*t, *this);
-			send_block_requests();
-		}
-
 	}
 
 	// -----------------------------
@@ -3696,7 +3693,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (m_channel_state[download_channel] != peer_info::bw_idle) return;
+		if (m_channel_state[download_channel] != peer_info::bw_idle
+			&& m_channel_state[download_channel] != peer_info::bw_disk) return;
 
 		shared_ptr<torrent> t = m_torrent.lock();
 		
@@ -3732,10 +3730,19 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " *** CANNOT READ ["
 				" quota: " << m_quota[download_channel] <<
 				" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
-				" outstanding: " << m_outstanding_writing_bytes <<
-				" outstanding-limit: " << m_ses.settings().max_outstanding_disk_bytes_per_connection <<
+				" queue-size: " << ((t && t->get_storage())?t->filesystem().queued_bytes():0) <<
+				" queue-limit: " << m_ses.settings().max_queued_disk_bytes <<
+				" disconnecting: " << (m_disconnecting?"yes":"no") <<
 				" ]\n";
 #endif
+			if (m_ses.settings().max_queued_disk_bytes > 0
+				&& t && t->get_storage()
+				&& t->filesystem().queued_bytes() >= m_ses.settings().max_queued_disk_bytes)
+				m_channel_state[download_channel] = peer_info::bw_disk;
+
+			// if we block reading, waiting for the disk, we will wake up
+			// by the disk_io_thread posting a message every time it drops
+			// from being at or exceeding the limit down to below the limit
 			return;
 		}
 
@@ -4091,11 +4098,16 @@ namespace libtorrent
 
 	bool peer_connection::can_read() const
 	{
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+
 		bool ret = (m_quota[download_channel] > 0
 				|| m_ignore_bandwidth_limits)
 			&& !m_connecting
-			&& m_outstanding_writing_bytes <=
-				m_ses.settings().max_outstanding_disk_bytes_per_connection;
+			&& (m_ses.settings().max_queued_disk_bytes == 0
+				|| !t
+				|| t->get_storage() == 0
+				|| t->filesystem().queued_bytes() < m_ses.settings().max_queued_disk_bytes)
+			&& !m_disconnecting;
 		
 		return ret;
 	}

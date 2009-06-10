@@ -590,6 +590,7 @@ namespace libtorrent
 			// NAT or not.
 			bool m_incoming_connection;
 			
+			void on_disk_queue();
 			void on_tick(error_code const& e);
 
 			int auto_manage_torrents(std::vector<torrent*>& list

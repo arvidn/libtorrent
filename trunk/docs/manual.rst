@@ -3014,7 +3014,7 @@ It contains the following fields::
 
 		int source;
 
-		enum bw_state { bw_idle, bw_torrent, bw_global, bw_network };
+		enum bw_state { bw_idle, bw_limit, bw_network, bw_disk };
 
 		char read_state;
 		char write_state;
@@ -3172,19 +3172,17 @@ defines as follows:
 |                        | send or receive data.                                  |
 |                        |                                                        |
 +------------------------+--------------------------------------------------------+
-| ``bw_torrent``         | The peer is waiting for the torrent to receive         |
-|                        | bandwidth quota in order to forward the bandwidth      |
-|                        | request to the global manager.                         |
-|                        |                                                        |
-+------------------------+--------------------------------------------------------+
-| ``bw_global``          | The peer is waiting for the global bandwidth manager   |
-|                        | to receive more quota in order to handle the request.  |
+| ``bw_limit``           | The peer is waiting for the rate limiter.              |
 |                        |                                                        |
 +------------------------+--------------------------------------------------------+
 | ``bw_network``         | The peer has quota and is currently waiting for a      |
 |                        | network read or write operation to complete. This is   |
 |                        | the state all peers are in if there are no bandwidth   |
 |                        | limits.                                                |
+|                        |                                                        |
++------------------------+--------------------------------------------------------+
+| ``bw_disk``            | The peer is waiting for the disk I/O thread to catch   |
+|                        | up writing buffers to disk before downloading more.    |
 |                        |                                                        |
 +------------------------+--------------------------------------------------------+
 
@@ -3386,7 +3384,7 @@ session_settings
 		int num_want;
 		int initial_picker_threshold;
 		int allowed_fast_set_size;
-		int max_outstanding_disk_bytes_per_connection;
+		int max_queued_disk_bytes;
 		int handshake_timeout;
 		bool use_dht_as_fallback;
 		bool free_torrent_hashes;
@@ -3595,10 +3593,12 @@ in rarest first order.
 ``allowed_fast_set_size`` is the number of pieces we allow peers to download
 from us without being unchoked.
 
-``max_outstanding_disk_bytes_per_connection`` is the number of bytes each
-connection is allowed to have waiting in the disk I/O queue before it is
-throttled back. This limit is meant to stop fast internet connections to
-queue up bufferes indefinitely on slow hard-drives or storage.
+``max_queued_disk_bytes`` is the number maximum number of bytes, to be
+written to disk, that can wait in the disk I/O thread queue. This queue
+is only for waiting for the disk I/O thread to receive the job and either
+write it to disk or insert it in the write cache. When this limit is reached,
+the peer connections will stop reading data from their sockets, until the disk
+thread catches up. Setting this too low will severly limit your download rate.
 
 ``handshake_timeout`` specifies the number of seconds we allow a peer to
 delay responding to a protocol handshake. If no response is received within
@@ -4687,7 +4687,7 @@ generated and the torrent is paused.
 
 ``file`` is the path to the file that was accessed when the error occurred.
 
-``msg`` is the error message received from the OS.
+``error`` is the error code describing the error.
 
 ::
 
@@ -4695,7 +4695,7 @@ generated and the torrent is paused.
 	{
 		// ...
 		std::string file;
-		std::string msg;
+		error_code error;
 	};
 
 file_renamed_alert

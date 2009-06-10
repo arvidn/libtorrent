@@ -519,6 +519,8 @@ namespace libtorrent
 		size_type downloaded_since_unchoke() const
 		{ return m_statistics.total_payload_download() - m_downloaded_at_last_unchoke; }
 
+		void setup_receive();
+
 	protected:
 
 		virtual void get_specific_peer_info(peer_info& p) const = 0;
@@ -570,8 +572,6 @@ namespace libtorrent
 		void cut_receive_buffer(int size, int packet_size);
 		void reset_recv_buffer(int packet_size);
 		void set_soft_packet_size(int size) { m_soft_packet_size = size; }
-
-		void setup_receive();
 
 		void attach_to_torrent(sha1_hash const& ih);
 

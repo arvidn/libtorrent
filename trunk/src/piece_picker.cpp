@@ -196,6 +196,7 @@ namespace libtorrent
 			std::copy(other->info, other->info + m_blocks_per_piece, i->info);
 			other->info = i->info;
 		}
+		m_piece_map[i->index].downloading = false;
 		m_downloads.erase(i);
 	}
 
@@ -792,18 +793,17 @@ namespace libtorrent
 
 		TORRENT_ASSERT(i != m_downloads.end());
 #ifdef TORRENT_DEBUG
-			int num_blocks = blocks_in_piece(i->index);
-			for (int k = 0; k < num_blocks; ++k)
-			{
-				TORRENT_ASSERT(i->info[k].state == block_info::state_finished);
-				TORRENT_ASSERT(i->info[k].num_peers == 0);
-			}
+		int num_blocks = blocks_in_piece(i->index);
+		for (int k = 0; k < num_blocks; ++k)
+		{
+			TORRENT_ASSERT(i->info[k].state == block_info::state_finished);
+			TORRENT_ASSERT(i->info[k].num_peers == 0);
+		}
 #endif
-		erase_download_piece(i);
 
 		piece_pos& p = m_piece_map[index];
 		int prev_priority = p.priority(this);
-		p.downloading = 0;
+		erase_download_piece(i);
 		int new_priority = p.priority(this);
 
 		if (new_priority == prev_priority) return;
@@ -1074,7 +1074,6 @@ namespace libtorrent
 				, has_index(index));
 			TORRENT_ASSERT(i != m_downloads.end());
 			erase_download_piece(i);
-			p.downloading = 0;
 		}
 
 		TORRENT_ASSERT(std::find_if(m_downloads.begin(), m_downloads.end()
@@ -1907,16 +1906,17 @@ namespace libtorrent
 		TORRENT_ASSERT(i != m_downloads.end());
 		TORRENT_ASSERT((int)i->finished <= m_blocks_per_piece);
 		int max_blocks = blocks_in_piece(index);
-		if ((int)i->finished < max_blocks) return false;
+		if (int(i->finished) + int(i->writing) < max_blocks) return false;
+		TORRENT_ASSERT(int(i->finished) + int(i->writing) == max_blocks);
 
 #ifdef TORRENT_DEBUG
 		for (int k = 0; k < max_blocks; ++k)
 		{
-			TORRENT_ASSERT(i->info[k].state == block_info::state_finished);
+			TORRENT_ASSERT(i->info[k].state == block_info::state_finished
+				|| i->info[k].state == block_info::state_writing);
 		}
 #endif
 
-		TORRENT_ASSERT((int)i->finished == max_blocks);
 		return true;
 	}
 
@@ -2117,15 +2117,46 @@ namespace libtorrent
 		}
 	}
 
-	void piece_picker::write_failed(int piece)
+	void piece_picker::write_failed(piece_block block)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
 		std::vector<downloading_piece>::iterator i
-			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(piece));
+			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
 		TORRENT_ASSERT(i != m_downloads.end());
+		if (i == m_downloads.end()) return;
 
-		erase_download_piece(i);
+		block_info& info = i->info[block.block_index];
+		TORRENT_ASSERT(info.state == block_info::state_writing);
+		TORRENT_ASSERT(info.num_peers == 0);
+
+		TORRENT_ASSERT(i->writing > 0);
+		TORRENT_ASSERT(info.state == block_info::state_writing);
+
+		if (info.state == block_info::state_finished) return;
+		if (info.state == block_info::state_writing) --i->writing;
+
+		info.peer = 0;
+
+		info.state = block_info::state_none;
+
+		if (i->finished + i->writing + i->requested == 0)
+		{
+			piece_pos& p = m_piece_map[block.piece_index];
+			int prev_priority = p.priority(this);
+			erase_download_piece(i);
+			int new_priority = p.priority(this);
+			TORRENT_ASSERT(new_priority >= 0);
+
+			if (m_dirty) return;
+			if (new_priority == prev_priority) return;
+			if (prev_priority == -1) add(p.index);
+			else update(prev_priority, p.index);
+		}
+		else
+		{
+			sort_piece(i);
+		}
 	}
 
 	void piece_picker::mark_as_finished(piece_block block, void* peer)
@@ -2283,12 +2314,11 @@ namespace libtorrent
 		// that's being downloaded, remove it from the list
 		if (i->requested + i->finished + i->writing == 0)
 		{
-			erase_download_piece(i);
 			piece_pos& p = m_piece_map[block.piece_index];
 			int prev_prio = p.priority(this);
 			TORRENT_ASSERT(prev_prio < int(m_priority_boundries.size())
 				|| m_dirty);
-			p.downloading = 0;
+			erase_download_piece(i);
 			if (!m_dirty)
 			{
 				int prio = p.priority(this);

@@ -183,7 +183,7 @@ namespace aux {
 		, m_files(40)
 		, m_io_service()
 		, m_alerts(m_io_service)
-		, m_disk_thread(m_io_service)
+		, m_disk_thread(m_io_service, boost::bind(&session_impl::on_disk_queue, this))
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
@@ -646,6 +646,7 @@ namespace aux {
 			|| m_settings.write_cache_line_size != s.write_cache_line_size
 			|| m_settings.coalesce_writes != s.coalesce_writes
 			|| m_settings.coalesce_reads != s.coalesce_reads
+			|| m_settings.max_queued_disk_bytes != s.max_queued_disk_bytes
 #ifndef TORRENT_DISABLE_MLOCK
 			|| m_settings.lock_disk_cache != s.lock_disk_cache
 #endif
@@ -1148,6 +1149,25 @@ namespace aux {
 			"port: " << port << " ]\n";
 #endif
 		return port;
+	}
+
+	// this function is called from the disk-io thread
+	// when the disk queue is low enough to post new
+	// write jobs to it. It will go through all peer
+	// connections that are blocked on the disk and
+	// wake them up
+	void session_impl::on_disk_queue()
+	{
+		session_impl::mutex_t::scoped_lock l(m_mutex);
+		
+		for (connection_map::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			if ((*i)->m_channel_state[peer_connection::download_channel]
+				!= peer_info::bw_disk) continue;
+
+			(*i)->setup_receive();
+		}
 	}
 
 	void session_impl::on_tick(error_code const& e)

@@ -345,10 +345,22 @@ namespace libtorrent
 		if (!j.error) return;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_ses.m_logger) << "disk error: '" << j.str << "' while " 
-			<< (j.error_op == disk_io_job::read?"reading ":"writing ")
-			<< " piece " << j.error_piece << " in file " << j.error_file << "\n";
+		(*m_ses.m_logger) << "disk error: '" << j.error.message()
+			<< " in file " << j.error_file
+			<< " in torrent " << torrent_file().name()
+			<< "\n";
 #endif
+
+		TORRENT_ASSERT(j.piece >= 0);
+
+		piece_block block_finished(j.piece, j.offset / block_size());
+
+		if (j.action == disk_io_job::write
+			|| j.action == disk_io_job::hash)
+		{
+			// we failed to write j.piece to disk tell the piece picker
+			if (has_picker() && j.piece >= 0) picker().write_failed(block_finished);
+		}
 
 		if (j.error ==
 #if BOOST_VERSION >= 103500
@@ -359,23 +371,15 @@ namespace libtorrent
 			)
 		{
 			if (alerts().should_post<file_error_alert>())
-				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
+				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.error));
 			if (c) c->disconnect("no memory");
 			return;
 		}
 
-		TORRENT_ASSERT(j.error_piece >= 0);
-
-		if (j.error_op == disk_io_job::write)
-		{
-			// we failed to write j.error_piece to disk
-			// tell the piece picker
-			if (has_picker() && j.error_piece >= 0) picker().write_failed(j.error_piece);
-		}
 
 		// notify the user of the error
 		if (alerts().should_post<file_error_alert>())
-			alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
+			alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.error));
 
 		// put the torrent in an error-state
 		set_error(j.error, j.error_file);
@@ -658,23 +662,10 @@ namespace libtorrent
 
 		if (ret == piece_manager::fatal_disk_error)
 		{
-			if (m_ses.m_alerts.should_post<file_error_alert>())
-			{
-				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.str));
-			}
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
-				" error: " << j.str <<
-				" torrent: " << torrent_file().name() <<
-				" ]\n";
-#endif
-			set_error(j.error, j.error_file);
-			pause();
+			handle_disk_error(j);
 			set_state(torrent_status::queued_for_checking);
-
 			std::vector<char>().swap(m_resume_data);
 			lazy_entry().swap(m_resume_entry);
-
 			return;
 		}
 
@@ -886,12 +877,13 @@ namespace libtorrent
 		m_picker->init(m_torrent_file->piece_length() / m_block_size
 			, int((m_torrent_file->total_size()+m_block_size-1)/m_block_size));
 		// assume that we don't have anything
+		TORRENT_ASSERT(m_picker->num_have() == 0);
 		m_files_checked = false;
 		set_state(torrent_status::checking_resume_data);
 
 		m_policy.recalculate_connect_candidates();
 
-		if (m_auto_managed)
+		if (m_auto_managed && !is_finished())
 			set_queue_position((std::numeric_limits<int>::max)());
 
 		std::vector<char>().swap(m_resume_data);
@@ -907,18 +899,7 @@ namespace libtorrent
 
 		if (ret == piece_manager::fatal_disk_error)
 		{
-			if (m_ses.m_alerts.should_post<file_error_alert>())
-			{
-				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.str));
-			}
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
-				" error: " << j.str <<
-				" torrent: " << torrent_file().name() <<
-				" ]\n";
-#endif
-			set_error(j.error, j.error_file);
-			pause();
+			handle_disk_error(j);
 			return;
 		}
 		if (ret == 0)
@@ -959,7 +940,7 @@ namespace libtorrent
 		{
 			if (m_ses.m_alerts.should_post<file_error_alert>())
 			{
-				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.str));
+				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.error));
 			}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
@@ -1684,6 +1665,14 @@ namespace libtorrent
 
 		TORRENT_ASSERT(valid_metadata());
 
+		// even though the piece passed the hash-check
+		// it might still have failed being written to disk
+		// if so, piece_picker::write_failed() has been
+		// called, and the piece is no longer finished.
+		// in this case, we have to ignore the fact that
+		// it passed the check
+		if (!m_picker->is_piece_finished(index)) return;
+
 		if (passed_hash_check == 0)
 		{
 			// the following call may cause picker to become invalid
@@ -1991,7 +1980,7 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
-			(*(*i)->m_logger) << "*** ABORTING TORRENT\n";
+			(*(*i)->m_logger) << time_now_string() << " *** ABORTING TORRENT\n";
 		}
 #endif
 
@@ -3991,6 +3980,8 @@ namespace libtorrent
 		std::for_each(seeds.begin(), seeds.end()
 			, bind(&peer_connection::disconnect, _1, "torrent finished, disconnecting seed", 0));
 
+		if (m_abort) return;
+
 		m_policy.recalculate_connect_candidates();
 
 		TORRENT_ASSERT(m_storage);
@@ -5198,13 +5189,7 @@ namespace libtorrent
 		// -1: disk failure
 		// -2: hash check failed
 
-		if (ret == -1)
-		{
-			if (alerts().should_post<file_error_alert>())
-				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.str));
-			set_error(j.error, j.error_file);
-			pause();
-		}
+		if (ret == -1) handle_disk_error(j);
 		f(ret);
 	}
 

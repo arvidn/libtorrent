@@ -958,15 +958,23 @@ namespace libtorrent
 	{
 		file_error_alert(
 			std::string const& f
-			, const torrent_handle& h
-			, const std::string& msg_)
+			, torrent_handle const& h
+			, error_code const& e)
 			: torrent_alert(h)
 			, file(f)
-			, msg(msg_)
-		{}
+			, error(e)
+		{
+#ifndef TORRENT_NO_DEPRECATE
+			msg = error.message();
+#endif
+		}
 
 		std::string file;
+		error_code error;
+
+#ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
+#endif
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new file_error_alert(*this)); }
@@ -978,7 +986,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			return torrent_alert::message() + " file (" + file + ") error: "
-				+ msg;
+				+ error.message();
 		}
 	};
 

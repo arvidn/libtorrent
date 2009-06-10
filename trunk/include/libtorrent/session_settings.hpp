@@ -112,7 +112,7 @@ namespace libtorrent
 			, num_want(200)
 			, initial_picker_threshold(4)
 			, allowed_fast_set_size(10)
-			, max_outstanding_disk_bytes_per_connection(64 * 1024)
+			, max_queued_disk_bytes(256 * 1024)
 			, handshake_timeout(10)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(false)
@@ -334,8 +334,11 @@ namespace libtorrent
 		// rate is being throttled. This prevents fast downloads
 		// to slow medias to allocate more and more memory
 		// indefinitely. This should be set to at least 16 kB
-		// to not completely disrupt normal downloads.
-		int max_outstanding_disk_bytes_per_connection;
+		// to not completely disrupt normal downloads. If it's
+		// set to 0, you will be starving the disk thread and
+		// nothing will be written to disk.
+		// this is a per session setting.
+		int max_queued_disk_bytes;
 
 		// the number of seconds to wait for a handshake
 		// response from a peer. If no response is received
