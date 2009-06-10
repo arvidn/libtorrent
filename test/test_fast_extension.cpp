@@ -43,19 +43,21 @@ int read_message(stream_socket& s, char* buffer)
 {
 	using namespace libtorrent::detail;
 	error_code ec;
-	libtorrent::asio::read(s, libtorrent::asio::buffer(buffer, 4), libtorrent::asio::transfer_all(), ec);
+	libtorrent::asio::read(s, libtorrent::asio::buffer(buffer, 4)
+		, libtorrent::asio::transfer_all(), ec);
 	if (ec)
 	{
-		std::cout << ec.message() << std::endl;
+		std::cout << time_now_string() << ": " << ec.message() << std::endl;
 		exit(1);
 	}
 	char* ptr = buffer;
 	int length = read_int32(ptr);
 
-	libtorrent::asio::read(s, libtorrent::asio::buffer(buffer, length), libtorrent::asio::transfer_all(), ec);
+	libtorrent::asio::read(s, libtorrent::asio::buffer(buffer, length)
+		, libtorrent::asio::transfer_all(), ec);
 	if (ec)
 	{
-		std::cout << ec.message() << std::endl;
+		std::cout << time_now_string() << ": " << ec.message() << std::endl;
 		exit(1);
 	}
 	return length;
@@ -67,60 +69,44 @@ char const* message_name[] = {"choke", "unchoke", "interested", "not_interested"
 
 void send_allow_fast(stream_socket& s, int piece)
 {
-	std::cout << "send allow fast: " << piece << std::endl;
+	std::cout << time_now_string() << " ==> allow fast: " << piece << std::endl;
 	using namespace libtorrent::detail;
 	char msg[] = "\0\0\0\x05\x11\0\0\0\0";
 	char* ptr = msg + 5;
 	write_int32(piece, ptr);
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 9), libtorrent::asio::transfer_all(), ec);
-	if (ec)
-	{
-		std::cout << ec.message() << std::endl;
-		exit(1);
-	}
+	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 9)
+		, libtorrent::asio::transfer_all(), ec);
 }
 
 void send_suggest_piece(stream_socket& s, int piece)
 {
-	std::cout << "send suggest piece: " << piece << std::endl;
+	std::cout << time_now_string() << " ==> suggest piece: " << piece << std::endl;
 	using namespace libtorrent::detail;
 	char msg[] = "\0\0\0\x05\x0d\0\0\0\0";
 	char* ptr = msg + 5;
 	write_int32(piece, ptr);
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 9), libtorrent::asio::transfer_all(), ec);
-	if (ec)
-	{
-		std::cout << ec.message() << std::endl;
-		exit(1);
-	}
+	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 9)
+		, libtorrent::asio::transfer_all(), ec);
 }
 
 void send_keepalive(stream_socket& s)
 {
-	std::cout << "send keepalive" << std::endl;
+	std::cout << time_now_string() << " ==> keepalive" << std::endl;
 	char msg[] = "\0\0\0\0";
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 4), libtorrent::asio::transfer_all(), ec);
-	if (ec)
-	{
-		std::cout << ec.message() << std::endl;
-		exit(1);
-	}
+	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 4)
+		, libtorrent::asio::transfer_all(), ec);
 }
 
 void send_unchoke(stream_socket& s)
 {
-	std::cout << "send unchoke" << std::endl;
+	std::cout << time_now_string() << " ==> unchoke" << std::endl;
 	char msg[] = "\0\0\0\x01\x01";
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5), libtorrent::asio::transfer_all(), ec);
-	if (ec)
-	{
-		std::cout << ec.message() << std::endl;
-		exit(1);
-	}
+	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
+		, libtorrent::asio::transfer_all(), ec);
 }
 
 void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
@@ -129,24 +115,22 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 		"                    " // space for info-hash
 		"aaaaaaaaaaaaaaaaaaaa" // peer-id
 		"\0\0\0\x01\x0e"; // have_all
-	std::cout << "send handshake" << std::endl;
+	std::cout << time_now_string() << " ==> handshake" << std::endl;
+	std::cout << time_now_string() << " ==> have_all" << std::endl;
 	error_code ec;
 	std::memcpy(handshake + 28, ih.begin(), 20);
-	libtorrent::asio::write(s, libtorrent::asio::buffer(handshake, sizeof(handshake) - 1), libtorrent::asio::transfer_all(), ec);
-	if (ec)
-	{
-		std::cout << ec.message() << std::endl;
-		exit(1);
-	}
+	libtorrent::asio::write(s, libtorrent::asio::buffer(handshake, sizeof(handshake) - 1)
+		, libtorrent::asio::transfer_all(), ec);
 
 	// read handshake
-	libtorrent::asio::read(s, libtorrent::asio::buffer(buffer, 68), libtorrent::asio::transfer_all(), ec);
+	libtorrent::asio::read(s, libtorrent::asio::buffer(buffer, 68)
+		, libtorrent::asio::transfer_all(), ec);
 	if (ec)
 	{
-		std::cout << ec.message() << std::endl;
+		std::cout << time_now_string() << ": " << ec.message() << std::endl;
 		exit(1);
 	}
-	std::cout << "received handshake" << std::endl;
+	std::cout << time_now_string() << " <== handshake" << std::endl;
 
 	TEST_CHECK(buffer[0] == 19);
 	TEST_CHECK(std::memcmp(buffer + 1, "BitTorrent protocol", 19) == 0);
@@ -172,10 +156,12 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 // rejected aren't requested again
 void test_reject_fast()
 {
+	std::cerr << " === test reject ===" << std::endl;
+
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
 	sha1_hash ih = t->info_hash();
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
-	ses1.add_torrent(t, "./tmp1");
+	ses1.add_torrent(t, "./tmp1_fast");
 
 	test_sleep(2000);
 
@@ -201,9 +187,9 @@ void test_reject_fast()
 		read_message(s, recv_buffer);
 		int msg = recv_buffer[0];
 		if (msg >= 0 && msg < int(sizeof(message_name)/sizeof(message_name[0])))
-			std::cerr << message_name[msg] << std::endl;
+			std::cerr << time_now_string() << " <== " << message_name[msg] << std::endl;
 		else
-			std::cerr << msg << std::endl;
+			std::cerr << time_now_string() << " <== " << msg << std::endl;
 		if (recv_buffer[0] != 0x6) continue;
 
 		using namespace libtorrent::detail;
@@ -218,28 +204,21 @@ void test_reject_fast()
 		// send reject request
 		recv_buffer[0] = 0x10;
 		error_code ec;
-		libtorrent::asio::write(s, libtorrent::asio::buffer("\0\0\0\x0d", 4), libtorrent::asio::transfer_all(), ec);
-		if (ec)
-		{
-			std::cout << ec.message() << std::endl;
-			exit(1);
-		}
-		libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 13), libtorrent::asio::transfer_all(), ec);
-		std::cout << ec.message() << std::endl;
-		if (ec)
-		{
-			std::cout << ec.message() << std::endl;
-			exit(1);
-		}
+		std::cerr << time_now_string() << " ==> reject" << std::endl;
+		libtorrent::asio::write(s, libtorrent::asio::buffer("\0\0\0\x0d", 4)
+			, libtorrent::asio::transfer_all(), ec);
+		libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 13)
+			, libtorrent::asio::transfer_all(), ec);
 	}
 }
 
 void test_respect_suggest()
 {
+	std::cerr << " === test suggest ===" << std::endl;
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
 	sha1_hash ih = t->info_hash();
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
-	ses1.add_torrent(t, "./tmp1");
+	ses1.add_torrent(t, "./tmp1_fast");
 
 	test_sleep(2000);
 
@@ -268,7 +247,7 @@ void test_respect_suggest()
 	while (!suggested.empty() && fail_counter > 0)
 	{
 		read_message(s, recv_buffer);
-		std::cerr << "msg: ";
+		std::cerr << time_now_string() << " <== ";
 		int msg = recv_buffer[0];
 		if (msg >= 0 && msg < int(sizeof(message_name)/sizeof(message_name[0])))
 			std::cerr << message_name[msg] << std::endl;
@@ -289,18 +268,11 @@ void test_respect_suggest()
 		// send reject request
 		recv_buffer[0] = 0x10;
 		error_code ec;
-		libtorrent::asio::write(s, libtorrent::asio::buffer("\0\0\0\x0d", 4), libtorrent::asio::transfer_all(), ec);
-		if (ec)
-		{
-			std::cout << ec.message() << std::endl;
-			exit(1);
-		}
-		libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 13), libtorrent::asio::transfer_all(), ec);
-		if (ec)
-		{
-			std::cout << ec.message() << std::endl;
-			exit(1);
-		}
+		std::cerr << time_now_string() << " ==> reject" << std::endl;
+		libtorrent::asio::write(s, libtorrent::asio::buffer("\0\0\0\x0d", 4)
+			, libtorrent::asio::transfer_all(), ec);
+		libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 13)
+			, libtorrent::asio::transfer_all(), ec);
 	}
 	TEST_CHECK(fail_counter > 0);
 }
