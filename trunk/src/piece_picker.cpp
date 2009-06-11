@@ -2146,7 +2146,6 @@ namespace libtorrent
 			int prev_priority = p.priority(this);
 			erase_download_piece(i);
 			int new_priority = p.priority(this);
-			TORRENT_ASSERT(new_priority >= 0);
 
 			if (m_dirty) return;
 			if (new_priority == prev_priority) return;
