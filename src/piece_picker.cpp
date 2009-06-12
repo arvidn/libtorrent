@@ -852,6 +852,8 @@ namespace libtorrent
 		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
 			, end(m_piece_map.end()); i != end; ++i)
 		{
+			// we don't maintain peer count for pieces we have
+			if (i->index == piece_pos::have_index) continue;
 			TORRENT_ASSERT(i->peer_count > 0);
 			--i->peer_count;
 		}
