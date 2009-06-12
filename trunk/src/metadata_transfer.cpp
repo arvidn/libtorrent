@@ -367,7 +367,7 @@ namespace libtorrent { namespace
 
 			if (length > 500 * 1024)
 			{
-				m_pc.disconnect("LT_metadata message larger than 500 kB");
+				m_pc.disconnect(error_code(errors::metadata_too_large, libtorrent_category), 2);
 				return true;
 			}
 
@@ -392,7 +392,7 @@ namespace libtorrent { namespace
 					if (length != 3)
 					{
 						// invalid metadata request
-						m_pc.disconnect("invalid metadata request");
+						m_pc.disconnect(error_code(errors::invalid_metadata_request, libtorrent_category), 2);
 						return true;
 					}
 
@@ -417,22 +417,22 @@ namespace libtorrent { namespace
 
 					if (total_size > 500 * 1024)
 					{
-						m_pc.disconnect("metadata size larger than 500 kB");
+						m_pc.disconnect(error_code(errors::metadata_too_large, libtorrent_category), 2);
 						return true;
 					}
 					if (total_size <= 0)
 					{
-						m_pc.disconnect("invalid metadata size");
+						m_pc.disconnect(error_code(errors::invalid_metadata_size, libtorrent_category), 2);
 						return true;
 					}
 					if (offset > total_size || offset < 0)
 					{
-						m_pc.disconnect("invalid metadata offset");
+						m_pc.disconnect(error_code(errors::invalid_metadata_offset, libtorrent_category), 2);
 						return true;
 					}
 					if (offset + data_size > total_size)
 					{
-						m_pc.disconnect("invalid metadata message");
+						m_pc.disconnect(error_code(errors::invalid_metadata_message, libtorrent_category), 2);
 						return true;
 					}
 
@@ -460,9 +460,7 @@ namespace libtorrent { namespace
 				break;
 			default:
 				{
-					char msg[200];
-					snprintf(msg, sizeof(msg), "unknown metadata extension message: %u", type);
-					m_pc.disconnect(msg, 2);
+					m_pc.disconnect(error_code(errors::invalid_metadata_message, libtorrent_category), 2);
 				}
 			}
 			return true;

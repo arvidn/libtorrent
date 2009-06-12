@@ -590,7 +590,7 @@ namespace aux {
 #ifdef TORRENT_DEBUG
 			int conn = m_connections.size();
 #endif
-			(*m_connections.begin())->disconnect("stopping torrent");
+			(*m_connections.begin())->disconnect(error_code(errors::stopping_torrent, libtorrent_category));
 			TORRENT_ASSERT(conn == int(m_connections.size()) + 1);
 		}
 
@@ -1089,7 +1089,7 @@ namespace aux {
 	}
 
 	void session_impl::close_connection(peer_connection const* p
-		, char const* message)
+		, error_code const& ec)
 	{
 // too expensive
 //		INVARIANT_CHECK;
@@ -1102,7 +1102,7 @@ namespace aux {
 
 #if defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " CLOSING CONNECTION "
-			<< p->remote() << " : " << message << "\n";
+			<< p->remote() << " : " << ec.message() << "\n";
 #endif
 
 		TORRENT_ASSERT(p->is_disconnecting());
@@ -1303,7 +1303,7 @@ namespace aux {
 			// are ticked through the torrents' second_tick
 			if (!p->associated_torrent().expired()) continue;
 			if (m_last_tick - p->connected_time() > seconds(m_settings.handshake_timeout))
-				p->disconnect("timeout: incoming connection");
+				p->disconnect(error_code(errors::timed_out, libtorrent_category));
 		}
 
 		// --------------------------------------------------------------
@@ -2318,22 +2318,25 @@ namespace aux {
 		t->get_policy().add_peer(peer, peer_id(0), peer_info::lsd, 0);
 	}
 
-	void session_impl::on_port_mapping(int mapping, int port
-		, std::string const& errmsg, int map_transport)
+	void session_impl::on_port_map_log(
+		char const* msg, int map_transport)
 	{
 		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
 		// log message
-		if (mapping == -1)
-		{
 #ifdef TORRENT_UPNP_LOGGING
-			char const* transport_names[] = {"NAT-PMP", "UPnP"};
-			m_upnp_log << time_now_string() << " "
-				<< transport_names[map_transport] << ": " << errmsg;
+		char const* transport_names[] = {"NAT-PMP", "UPnP"};
+		m_upnp_log << time_now_string() << " "
+			<< transport_names[map_transport] << ": " << msg;
 #endif
-			if (m_alerts.should_post<portmap_log_alert>())
-				m_alerts.post_alert(portmap_log_alert(map_transport, errmsg));
-			return;
-		}
+		if (m_alerts.should_post<portmap_log_alert>())
+			m_alerts.post_alert(portmap_log_alert(map_transport, msg));
+	}
+
+	void session_impl::on_port_mapping(int mapping, int port
+		, error_code const& ec, int map_transport)
+	{
+		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
 
 #ifndef TORRENT_DISABLE_DHT
 		if (mapping == m_udp_mapping[map_transport] && port != 0)
@@ -2357,11 +2360,11 @@ namespace aux {
 			return;
 		}
 
-		if (!errmsg.empty())
+		if (ec)
 		{
 			if (m_alerts.should_post<portmap_error_alert>())
 				m_alerts.post_alert(portmap_error_alert(mapping
-					, map_transport, errmsg));
+					, map_transport, ec));
 		}
 		else
 		{
@@ -2787,7 +2790,9 @@ namespace aux {
 		m_natpmp = new natpmp(m_io_service
 			, m_listen_interface.address()
 			, bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, 0));
+				, this, _1, _2, _3, 0)
+			, bind(&session_impl::on_port_map_log
+				, this, _1, 0));
 
 		if (m_listen_interface.port() > 0)
 		{
@@ -2814,6 +2819,8 @@ namespace aux {
 			, m_settings.user_agent
 			, bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, 1)
+			, bind(&session_impl::on_port_map_log
+				, this, _1, 0)
 			, m_settings.upnp_ignore_nonrouters);
 
 		m_upnp->discover_device();

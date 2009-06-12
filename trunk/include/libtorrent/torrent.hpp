@@ -496,7 +496,7 @@ namespace libtorrent
 		int block_size() const { TORRENT_ASSERT(m_block_size > 0); return m_block_size; }
 		peer_request to_req(piece_block const& p);
 
-		void disconnect_all();
+		void disconnect_all(error_code const& ec);
 		int disconnect_peers(int num);
 
 		// this is called wheh the torrent has completed

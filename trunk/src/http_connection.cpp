@@ -57,11 +57,11 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	std::string auth;
 	std::string hostname;
 	std::string path;
-	char const* error;
+	error_code ec;
 	int port;
 
-	boost::tie(protocol, auth, hostname, port, path, error)
-		= parse_url_components(url);
+	boost::tie(protocol, auth, hostname, port, path)
+		= parse_url_components(url, ec);
 
 	int default_port = protocol == "https" ? 443 : 80;
 
@@ -77,9 +77,8 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		return;
 	}
 
-	if (error)
+	if (ec)
 	{
-		error_code ec(errors::url_parse_error, libtorrent_category);
 		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
 			, this, ec, (char*)0, 0));
 		return;
@@ -89,15 +88,6 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	bool ssl = false;
 	if (protocol == "https") ssl = true;
-#ifndef TORRENT_USE_OPENSSL
-	if (ssl)
-	{
-		error_code ec(errors::unsupported_url_protocol, libtorrent_category);
-		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
-			, this, ec, (char*)0, 0));
-		return;
-	}
-#endif
 	
 	char request[2048];
 	char* end = request + sizeof(request);
@@ -500,10 +490,9 @@ void http_connection::on_read(error_code const& e
 				error_code ec;
 				m_sock.close(ec);
 				using boost::tuples::ignore;
-				char const* error;
-				boost::tie(ignore, ignore, ignore, ignore, ignore, error)
-					= parse_url_components(location);
-				if (error == 0)
+				boost::tie(ignore, ignore, ignore, ignore, ignore)
+					= parse_url_components(location, ec);
+				if (!ec)
 				{
 					get(location, m_timeout, m_priority, &m_proxy, m_redirects - 1);
 				}

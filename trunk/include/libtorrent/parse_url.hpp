@@ -45,13 +45,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include "libtorrent/config.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
 
 	TORRENT_EXPORT boost::tuple<std::string, std::string
-		, std::string, int, std::string, char const*>
-		parse_url_components(std::string url);
+		, std::string, int, std::string>
+		parse_url_components(std::string url, error_code& ec);
 
 }
 

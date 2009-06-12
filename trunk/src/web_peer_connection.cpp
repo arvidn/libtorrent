@@ -98,10 +98,10 @@ namespace libtorrent
 #endif
 
 		std::string protocol;
-		char const* error;
-		boost::tie(protocol, m_auth, m_host, m_port, m_path, error)
-			= parse_url_components(url);
-		TORRENT_ASSERT(error == 0);
+		error_code ec;
+		boost::tie(protocol, m_auth, m_host, m_port, m_path)
+			= parse_url_components(url, ec);
+		TORRENT_ASSERT(!ec);
 		
 		if (!m_auth.empty())
 			m_auth = base64encode(m_auth);
@@ -350,7 +350,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 					(*m_logger) << "*** " << std::string(recv_buffer.begin, recv_buffer.end) << "\n";
 #endif
-					disconnect("failed to parse HTTP response", 2);
+					disconnect(error_code(errors::http_parse_error, libtorrent_category), 2);
 					return;
 				}
 
@@ -386,7 +386,7 @@ namespace libtorrent
 							, error_msg));
 					}
 					m_statistics.received_bytes(0, bytes_transferred);
-					disconnect(error_msg.c_str(), 1);
+					disconnect(error_code(errors::http_error, libtorrent_category), 1);
 					return;
 				}
 				if (!m_parser.header_finished())
@@ -422,7 +422,7 @@ namespace libtorrent
 					{
 						// we should not try this server again.
 						t->remove_web_seed(m_url, web_seed_entry::url_seed);
-						disconnect("got HTTP redirection status without location header", 2);
+						disconnect(error_code(errors::missing_location, libtorrent_category), 2);
 						return;
 					}
 					
@@ -444,19 +444,14 @@ namespace libtorrent
 						if (i == std::string::npos)
 						{
 							t->remove_web_seed(m_url, web_seed_entry::url_seed);
-							char msg[200];
-							snprintf(msg, 200, "got invalid HTTP redirection location (\"%s\") "
-								"expected it to end with: %s", location.c_str(), path.c_str());
-							disconnect(msg, 2);
+							disconnect(error_code(errors::invalid_redirection, libtorrent_category), 2);
 							return;
 						}
 						location.resize(i);
 					}
 					t->add_web_seed(location, web_seed_entry::url_seed);
 					t->remove_web_seed(m_url, web_seed_entry::url_seed);
-					char msg[200];
-					snprintf(msg, 200, "redirecting to \"%s\"", location.c_str());
-					disconnect(msg, 2);
+					disconnect(error_code(errors::redirecting, libtorrent_category), 2);
 					return;
 				}
 
@@ -490,9 +485,7 @@ namespace libtorrent
 					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(m_url, web_seed_entry::url_seed);
-					char msg[200];
-					snprintf(msg, 200, "invalid range in HTTP response");
-					disconnect(msg, 2);
+					disconnect(error_code(errors::invalid_range, libtorrent_category));
 					return;
 				}
 				// the http range is inclusive
@@ -507,7 +500,7 @@ namespace libtorrent
 					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(m_url, web_seed_entry::url_seed);
-					disconnect("no content-length in HTTP response", 2);
+					disconnect(error_code(errors::no_content_length, libtorrent_category), 2);
 					return;
 				}
 			}
@@ -515,7 +508,7 @@ namespace libtorrent
 			if (m_requests.empty() || m_file_requests.empty())
 			{
 				m_statistics.received_bytes(0, bytes_transferred);
-				disconnect("unexpected HTTP response", 2);
+				disconnect(error_code(errors::http_error, libtorrent_category), 2);
 				return;
 			}
 
@@ -568,7 +561,7 @@ namespace libtorrent
 				m_statistics.received_bytes(0, bytes_transferred);
 				// this means the end of the incoming request ends _before_ the
 				// first expected byte (fs + m_piece.size())
-				disconnect("invalid range in HTTP response", 2);
+				disconnect(error_code(errors::invalid_range, libtorrent_category), 2);
 				return;
 			}
 

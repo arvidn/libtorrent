@@ -49,8 +49,10 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::bind;
 using namespace libtorrent;
 
-natpmp::natpmp(io_service& ios, address const& listen_interface, portmap_callback_t const& cb)
+natpmp::natpmp(io_service& ios, address const& listen_interface
+	, portmap_callback_t const& cb, log_callback_t const& lcb)
 	: m_callback(cb)
+	, m_log_callback(lcb)
 	, m_currently_mapping(-1)
 	, m_retry_count(0)
 	, m_socket(ios)
@@ -74,7 +76,7 @@ void natpmp::rebind(address const& listen_interface)
 		char msg[200];
 		snprintf(msg, sizeof(msg), "failed to find default route: %s", ec.message().c_str());
 		log(msg);
-		disable(msg);
+		disable(ec);
 		return;
 	}
 
@@ -92,13 +94,13 @@ void natpmp::rebind(address const& listen_interface)
 	m_socket.open(udp::v4(), ec);
 	if (ec)
 	{
-		disable(ec.message().c_str());
+		disable(ec);
 		return;
 	}
 	m_socket.bind(udp::endpoint(address_v4::any(), 0), ec);
 	if (ec)
 	{
-		disable(ec.message().c_str());
+		disable(ec);
 		return;
 	}
 
@@ -128,12 +130,12 @@ bool natpmp::get_mapping(int index, int& local_port, int& external_port, int& pr
 	return true;
 }
 
-void natpmp::log(std::string const& msg)
+void natpmp::log(char const* msg)
 {
-	m_callback(-1, 0, msg);
+	m_log_callback(msg);
 }
 
-void natpmp::disable(char const* message)
+void natpmp::disable(error_code const& ec)
 {
 	m_disabled = true;
 
@@ -142,7 +144,7 @@ void natpmp::disable(char const* message)
 	{
 		if (i->protocol == none) continue;
 		i->protocol = none;
-		m_callback(i - m_mappings.begin(), 0, message);
+		m_callback(i - m_mappings.begin(), 0, ec);
 	}
 	close();
 }
@@ -437,26 +439,23 @@ void natpmp::on_reply(error_code const& e
 
 	if (result != 0)
 	{
-		char msg[200];
-		char const* errors[] =
+		int errors[] =
 		{
-			"Unsupported protocol version",
-			"Not authorized to create port map (enable NAT-PMP on your router)",
-			"Network failure",
-			"Out of resources",
-			"Unsupported opcode"
+			errors::unsupported_protocol_version,
+			errors::natpmp_not_authorized,
+			errors::network_failure,
+			errors::no_resources,
+			errors::unsupported_opcode,
 		};
-		char const* error_msg = "";
-		if (result >= 1 && result <= 5) error_msg = errors[result - 1];
+		int ev = errors::no_error;
+		if (result >= 1 && result <= 5) ev = errors[result - 1];
 
-		snprintf(msg, sizeof(msg), "NAT router reports error (%u) %s"
-			, result, error_msg);
 		m->expires = time_now() + hours(2);
-		m_callback(index, 0, msg);
+		m_callback(index, 0, error_code(ev, libtorrent_category));
 	}
 	else if (m->action == mapping_t::action_add)
 	{
-		m_callback(index, m->external_port, "");
+		m_callback(index, m->external_port, error_code(errors::no_error, libtorrent_category));
 	}
 
 	m_currently_mapping = -1;

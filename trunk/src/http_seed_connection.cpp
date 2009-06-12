@@ -94,10 +94,10 @@ namespace libtorrent
 #endif
 
 		std::string protocol;
-		char const* error;
-		boost::tie(protocol, m_auth, m_host, m_port, m_path, error)
-			= parse_url_components(url);
-		TORRENT_ASSERT(error == 0);
+		error_code ec;
+		boost::tie(protocol, m_auth, m_host, m_port, m_path)
+			= parse_url_components(url, ec);
+		TORRENT_ASSERT(!ec);
 		
 		if (!m_auth.empty())
 			m_auth = base64encode(m_auth);
@@ -271,7 +271,7 @@ namespace libtorrent
 			TORRENT_ASSERT(!m_requests.empty());
 			if (m_requests.empty())
 			{
-				disconnect("unexpected HTTP response", 2);
+				disconnect(error_code(errors::http_error, libtorrent_category), 2);
 				return;
 			}
 
@@ -290,7 +290,7 @@ namespace libtorrent
 
 				if (error)
 				{
-					disconnect("failed to parse HTTP response", 2);
+					disconnect(error_code(errors::http_parse_error, libtorrent_category), 2);
 					return;
 				}
 
@@ -320,7 +320,7 @@ namespace libtorrent
 						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
 							, error_msg));
 					}
-					disconnect(error_msg.c_str(), 1);
+					disconnect(error_code(errors::http_error, libtorrent_category), 1);
 					return;
 				}
 				if (!m_parser.header_finished())
@@ -344,16 +344,14 @@ namespace libtorrent
 					{
 						// we should not try this server again.
 						t->remove_web_seed(m_url, web_seed_entry::http_seed);
-						disconnect("got HTTP redirection status without location header", 2);
+						disconnect(error_code(errors::missing_location, libtorrent_category), 2);
 						return;
 					}
 					
 					// add the redirected url and remove the current one
 					t->add_web_seed(location, web_seed_entry::http_seed);
 					t->remove_web_seed(m_url, web_seed_entry::http_seed);
-					char msg[200];
-					snprintf(msg, 200, "redirecting to \"%s\"", location.c_str());
-					disconnect(msg, 2);
+					disconnect(error_code(errors::redirecting, libtorrent_category), 2);
 					return;
 				}
 
@@ -372,7 +370,7 @@ namespace libtorrent
 				{
 					// we should not try this server again.
 					t->remove_web_seed(m_url, web_seed_entry::http_seed);
-					disconnect("no content-length in HTTP response", 2);
+					disconnect(error_code(errors::no_content_length, libtorrent_category), 2);
 					return;
 				}
 				if (payload > m_response_left) payload = m_response_left;
@@ -408,7 +406,7 @@ namespace libtorrent
 				// temporarily unavailable, retry later
 				t->retry_web_seed(m_url, web_seed_entry::http_seed, retry_time);
 				t->remove_web_seed(m_url, web_seed_entry::http_seed);
-				disconnect("503 retrying later", 1);
+				disconnect(error_code(errors::http_error, libtorrent_category), 1);
 				return;
 			}
 

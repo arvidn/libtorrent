@@ -369,7 +369,7 @@ namespace libtorrent
 		
 			if ((*i)->connection)
 			{
-				(*i)->connection->disconnect("peer banned by IP filter");
+				(*i)->connection->disconnect(error_code(errors::banned_by_ip_filter, libtorrent_category));
 				if (ses.m_alerts.should_post<peer_blocked_alert>())
 					ses.m_alerts.post_alert(peer_blocked_alert((*i)->address()));
 				TORRENT_ASSERT((*i)->connection == 0
@@ -681,7 +681,7 @@ namespace libtorrent
 			&& ses.num_connections() >= ses.max_connections()
 			&& c.remote().address() != m_torrent->current_tracker().address())
 		{
-			c.disconnect("too many connections, refusing incoming connection");
+			c.disconnect(error_code(errors::too_many_connections, libtorrent_category));
 			return false;
 		}
 
@@ -720,7 +720,7 @@ namespace libtorrent
 
 			if (i->banned)
 			{
-				c.disconnect("ip address banned, closing");
+				c.disconnect(error_code(errors::peer_banned, libtorrent_category));
 				return false;
 			}
 
@@ -739,14 +739,14 @@ namespace libtorrent
 
 				if (ec1)
 				{
-					c.disconnect(ec1.message().c_str());
+					c.disconnect(ec1);
 					return false;
 				}
 
 				if (self_connection)
 				{
-					c.disconnect("connected to ourselves", 1);
-					i->connection->disconnect("connected to ourselves", 1);
+					c.disconnect(error_code(errors::self_connection, libtorrent_category), 1);
+					i->connection->disconnect(error_code(errors::self_connection, libtorrent_category), 1);
 					return false;
 				}
 
@@ -755,11 +755,11 @@ namespace libtorrent
 				// or the current one is already connected
 				if (ec2)
 				{
-					i->connection->disconnect(ec2.message().c_str());
+					i->connection->disconnect(ec2);
 				}
 				else if (!i->connection->is_connecting() || c.is_local())
 				{
-					c.disconnect("duplicate connection, closing");
+					c.disconnect(error_code(errors::duplicate_peer_id, libtorrent_category));
 					return false;
 				}
 				else
@@ -769,8 +769,7 @@ namespace libtorrent
 					" is connecting and this connection is incoming. closing existing "
 					"connection in favour of this one");
 #endif
-					i->connection->disconnect("incoming duplicate connection "
-						"with higher priority, closing");
+					i->connection->disconnect(error_code(errors::duplicate_peer_id, libtorrent_category));
 				}
 			}
 
@@ -786,7 +785,7 @@ namespace libtorrent
 
 			if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
 			{
-				c.disconnect("peer list size exceeded, refusing incoming connection");
+				c.disconnect(error_code(errors::too_many_connections, libtorrent_category));
 				return false;
 			}
 
@@ -858,7 +857,7 @@ namespace libtorrent
 				policy::peer& pp = **i;
 				if (pp.connection)
 				{
-					p->connection->disconnect("duplicate connection");
+					p->connection->disconnect(error_code(errors::duplicate_peer_id, libtorrent_category));
 					return false;
 				}
 				erase_peer(i);

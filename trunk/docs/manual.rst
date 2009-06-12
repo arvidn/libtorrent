@@ -4640,6 +4640,7 @@ the index returned from add_mapping_.
 
 ``type`` is 0 for NAT-PMP and 1 for UPnP.
 
+``error`` tells you what failed.
 ::
 
 	struct portmap_error_alert: alert
@@ -4647,6 +4648,7 @@ the index returned from add_mapping_.
 		// ...
 		int mapping;
 		int type;
+		error_code error;
 	};
 
 portmap_alert
@@ -4906,6 +4908,21 @@ to the torrent which got the failed piece and the index of the piece itself from
 	};
 
 
+peer_alert
+----------
+
+The peer alert is a base class for alerts that refer to a specific peer. It includes all
+the information to identify the peer. i.e. ``ip`` and ``peer-id``.
+
+::
+
+	struct peer_alert: torrent_alert
+	{
+		// ...
+		tcp::endpoint ip;
+		peer_id pid;
+	};
+
 peer_ban_alert
 --------------
 
@@ -4914,10 +4931,37 @@ to us. ``ip`` is the endpoint to the peer that was banned.
 
 ::
 
-	struct peer_ban_alert: torrent_alert
+	struct peer_ban_alert: peer_alert
 	{
 		// ...
-		asio::ip::tcp::endpoint ip;
+	};
+
+
+peer_snubbed_alert
+------------------
+
+This alert is generated when a peer is snubbed, when it stops sending data when we request
+it.
+
+::
+
+	struct peer_snubbed_alert: peer_alert
+	{
+		// ...
+	};
+
+
+peer_unsnubbed_alert
+--------------------
+
+This alert is generated when a peer is unsnubbed. Essentially when it was snubbed for stalling
+sending data, and now it started sending data again.
+
+::
+
+	struct peer_unsnubbed_alert: peer_alert
+	{
+		// ...
 	};
 
 
@@ -4927,13 +4971,44 @@ peer_error_alert
 This alert is generated when a peer sends invalid data over the peer-peer protocol. The peer
 will be disconnected, but you get its ip address from the alert, to identify it.
 
+The ``error_code`` tells you what error caused this alert.
+
 ::
 
-	struct peer_error_alert: torrent_alert
+	struct peer_error_alert: peer_alert
 	{
 		// ...
-		asio::ip::tcp::endpoint ip;
-		peer_id id;
+		error_code error;
+	};
+
+
+peer_connected_alert
+--------------------
+
+This alert is generated when a peer is connected.
+
+::
+
+	struct peer_connected_alert: peer_alert
+	{
+		// ...
+	};
+
+
+peer_disconnected_alert
+-----------------------
+
+This alert is generated when a peer is disconnected for any reason (other than the ones
+covered by ``peer_error_alert``).
+
+The ``error_code`` tells you what error caused peer to disconnect.
+
+::
+
+	struct peer_disconnected_alert: peer_alert
+	{
+		// ...
+		error_code error;
 	};
 
 
@@ -4946,20 +5021,10 @@ request from the peer.
 
 ::
 
-	struct invalid_request_alert: torrent_alert
+	struct invalid_request_alert: peer_alert
 	{
-		invalid_request_alert(
-			peer_request const& r
-			, torrent_handle const& h
-			, asio::ip::tcp::endpoint const& send
-			, peer_id const& pid
-			, std::string const& msg);
-
-		virtual std::auto_ptr<alert> clone() const;
-
-		asio::ip::tcp::endpoint ip;
+		// ...
 		peer_request request;
-		peer_id id;
 	};
 
 
@@ -4975,6 +5040,97 @@ request from the peer.
 The ``peer_request`` contains the values the client sent in its ``request`` message. ``piece`` is
 the index of the piece it want data from, ``start`` is the offset within the piece where the data
 should be read, and ``length`` is the amount of data it wants.
+
+request_dropped_alert
+---------------------
+
+This alert is generated when a peer rejects or ignores a piece request.
+
+::
+
+	struct request_dropped_alert: peer_alert
+	{
+		// ...
+		int block_index;
+		int piece_index;
+	};
+
+
+block_timeout_alert
+-------------------
+
+This alert is generated when a block request times out.
+
+::
+
+	struct block_timeout_alert: peer_alert
+	{
+		// ...
+		int block_index;
+		int piece_index;
+	};
+
+
+block_finished_alert
+--------------------
+
+This alert is generated when a block request receives a response.
+
+::
+
+	struct block_finished_alert: peer_alert
+	{
+		// ...
+		int block_index;
+		int piece_index;
+	};
+
+
+block_downloading_alert
+-----------------------
+
+This alert is generated when a block request is sent to a peer.
+
+::
+
+	struct block_downloading_alert: peer_alert
+	{
+		// ...
+		int block_index;
+		int piece_index;
+	};
+
+
+unwanted_block_alert
+--------------------
+
+This alert is generated when a block is received that was not requested or
+whose request timed out.
+
+::
+
+	struct unwanted_block_alert: peer_alert
+	{
+		// ...
+		int block_index;
+		int piece_index;
+	};
+
+
+torrent_delete_failed_alert
+---------------------------
+
+This alert is generated when a request to delete the files of a torrent fails.
+
+The ``error_code`` tells you why it failed.
+
+::
+
+	struct torrent_delete_failed_alert: torrent_alert
+	{
+		// ...
+		error_code error;
+	};
 
 torrent_finished_alert
 ----------------------
@@ -5053,7 +5209,7 @@ fastresume_rejected_alert
 -------------------------
 
 This alert is generated when a fastresume file has been passed to ``add_torrent`` but the
-files on disk did not match the fastresume file. The string explains the reason why the
+files on disk did not match the fastresume file. The ``error_code`` explains the reason why the
 resume file was rejected.
 
 ::
@@ -5061,7 +5217,7 @@ resume file was rejected.
 	struct fastresume_rejected_alert: torrent_alert
 	{
 		// ...
-		std::string msg;
+		error_code error;
 	};
 
 
@@ -5148,14 +5304,14 @@ save_resume_data_failed_alert
 -----------------------------
 
 This alert is generated instead of ``save_resume_data_alert`` if there was an error
-generating the resume data. ``msg`` describes what went wrong.
+generating the resume data. ``error`` describes what went wrong.
 
 ::
 
 	struct save_resume_data_failed_alert: torrent_alert
 	{
 		// ...
-		std::string msg;
+		error_code error;
 	};
 
 dht_announce_alert
@@ -5268,70 +5424,302 @@ libtorrent uses boost.system's ``error_code`` class to represent errors. libtorr
 its own error category (``libtorrent::libtorrent_category``) whith the following error
 codes:
 
-====== ============================ =================================================================
-code   symbol                       description
-====== ============================ =================================================================
-0      no_error                     Not an error
------- ---------------------------- -----------------------------------------------------------------
-1      file_collision               Two torrents has files which end up overwriting each other
------- ---------------------------- -----------------------------------------------------------------
-2      failed_hash_check            A piece did not match its piece hash
------- ---------------------------- -----------------------------------------------------------------
-3      torrent_is_no_dict           The .torrent file does not contain a bencoded dictionary at
-                                    its top level
------- ---------------------------- -----------------------------------------------------------------
-4      torrent_missing_info         The .torrent file does not have an ``info`` dictionary
------- ---------------------------- -----------------------------------------------------------------
-5      torrent_info_no_dict         The .torrent file's ``info`` entry is not a dictionary
------- ---------------------------- -----------------------------------------------------------------
-6      torrent_missing_piece_length The .torrent file does not have a ``piece length`` entry
------- ---------------------------- -----------------------------------------------------------------
-7      torrent_missing_name         The .torrent file does not have a ``name`` entry
------- ---------------------------- -----------------------------------------------------------------
-8      torrent_invalid_name         The .torrent file's name entry is invalid
------- ---------------------------- -----------------------------------------------------------------
-9      torrent_invalid_length       The length of a file, or of the whole .torrent file is invalid.
-                                    Either negative or not an integer
------- ---------------------------- -----------------------------------------------------------------
-10     torrent_file_parse_failed    Failed to parse a file entry in the .torrent
------- ---------------------------- -----------------------------------------------------------------
-11     torrent_missing_pieces       The ``pieces`` field is missing or invalid in the .torrent file
------- ---------------------------- -----------------------------------------------------------------
-12     torrent_invalid_hashes       The ``pieces`` string has incorrect length
------- ---------------------------- -----------------------------------------------------------------
-13     too_many_pieces_in_torrent   The .torrent file has more pieces than is supported by libtorrent
------- ---------------------------- -----------------------------------------------------------------
-14     invalid_swarm_metadata       The metadata (.torrent file) that was received from the swarm
-                                    matched the info-hash, but failed to be parsed
------- ---------------------------- -----------------------------------------------------------------
-15     invalid_bencoding            The file or buffer is not correctly bencoded
------- ---------------------------- -----------------------------------------------------------------
-16     no_files_in_torrent          The .torrent file does not contain any files
------- ---------------------------- -----------------------------------------------------------------
-17     invalid_escaped_string       The string was not properly url-encoded as expected
------- ---------------------------- -----------------------------------------------------------------
-18     session_is_closing           Operation is not permitted since the session is shutting down
------- ---------------------------- -----------------------------------------------------------------
-19     duplicate_torrent            There's already a torrent with that info-hash added to the
-                                    session
------- ---------------------------- -----------------------------------------------------------------
-20     invalid_torrent_handle       The supplied torrent_handle is not referring to a valid torrent
------- ---------------------------- -----------------------------------------------------------------
-21     invalid_entry_type           The type requested from the entry did not match its type
------- ---------------------------- -----------------------------------------------------------------
-22     missing_info_hash_in_uri     The specified URI does not contain a valid info-hash
------- ---------------------------- -----------------------------------------------------------------
-23     file_too_short               One of the files in the torrent was unexpectadly small. This
-                                    might be caused by files being changed by an external process
------- ---------------------------- -----------------------------------------------------------------
-24     unsupported_url_protocol     The URL used an unknown protocol. Currently ``http`` and
-                                    ``https`` (if built with openssl support) are recognized. For
-                                    trackers ``udp`` is recognized as well.
------- ---------------------------- -----------------------------------------------------------------
-25     url_parse_error              The URL did not conform to URL syntax and failed to be parsed
-====== ============================ =================================================================
+====== ========================================= =================================================================
+code   symbol                                    description
+====== ========================================= =================================================================
+0      no_error                                  Not an error
+------ ----------------------------------------- -----------------------------------------------------------------
+1      file_collision                            Two torrents has files which end up overwriting each other
+------ ----------------------------------------- -----------------------------------------------------------------
+2      failed_hash_check                         A piece did not match its piece hash
+------ ----------------------------------------- -----------------------------------------------------------------
+3      torrent_is_no_dict                        The .torrent file does not contain a bencoded dictionary at
+                                                 its top level
+------ ----------------------------------------- -----------------------------------------------------------------
+4      torrent_missing_info                      The .torrent file does not have an ``info`` dictionary
+------ ----------------------------------------- -----------------------------------------------------------------
+5      torrent_info_no_dict                      The .torrent file's ``info`` entry is not a dictionary
+------ ----------------------------------------- -----------------------------------------------------------------
+6      torrent_missing_piece_length              The .torrent file does not have a ``piece length`` entry
+------ ----------------------------------------- -----------------------------------------------------------------
+7      torrent_missing_name                      The .torrent file does not have a ``name`` entry
+------ ----------------------------------------- -----------------------------------------------------------------
+8      torrent_invalid_name                      The .torrent file's name entry is invalid
+------ ----------------------------------------- -----------------------------------------------------------------
+9      torrent_invalid_length                    The length of a file, or of the whole .torrent file is invalid.
+                                                 Either negative or not an integer
+------ ----------------------------------------- -----------------------------------------------------------------
+10     torrent_file_parse_failed                 Failed to parse a file entry in the .torrent
+------ ----------------------------------------- -----------------------------------------------------------------
+11     torrent_missing_pieces                    The ``pieces`` field is missing or invalid in the .torrent file
+------ ----------------------------------------- -----------------------------------------------------------------
+12     torrent_invalid_hashes                    The ``pieces`` string has incorrect length
+------ ----------------------------------------- -----------------------------------------------------------------
+13     too_many_pieces_in_torrent                The .torrent file has more pieces than is supported by libtorrent
+------ ----------------------------------------- -----------------------------------------------------------------
+14     invalid_swarm_metadata                    The metadata (.torrent file) that was received from the swarm
+                                                 matched the info-hash, but failed to be parsed
+------ ----------------------------------------- -----------------------------------------------------------------
+15     invalid_bencoding                         The file or buffer is not correctly bencoded
+------ ----------------------------------------- -----------------------------------------------------------------
+16     no_files_in_torrent                       The .torrent file does not contain any files
+------ ----------------------------------------- -----------------------------------------------------------------
+17     invalid_escaped_string                    The string was not properly url-encoded as expected
+------ ----------------------------------------- -----------------------------------------------------------------
+18     session_is_closing                        Operation is not permitted since the session is shutting down
+------ ----------------------------------------- -----------------------------------------------------------------
+19     duplicate_torrent                         There's already a torrent with that info-hash added to the
+                                                 session
+------ ----------------------------------------- -----------------------------------------------------------------
+20     invalid_torrent_handle                    The supplied torrent_handle is not referring to a valid torrent
+------ ----------------------------------------- -----------------------------------------------------------------
+21     invalid_entry_type                        The type requested from the entry did not match its type
+------ ----------------------------------------- -----------------------------------------------------------------
+22     missing_info_hash_in_uri                  The specified URI does not contain a valid info-hash
+------ ----------------------------------------- -----------------------------------------------------------------
+23     file_too_short                            One of the files in the torrent was unexpectadly small. This
+                                                 might be caused by files being changed by an external process
+------ ----------------------------------------- -----------------------------------------------------------------
+24     unsupported_url_protocol                  The URL used an unknown protocol. Currently ``http`` and
+                                                 ``https`` (if built with openssl support) are recognized. For
+                                                 trackers ``udp`` is recognized as well.
+------ ----------------------------------------- -----------------------------------------------------------------
+25     url_parse_error                           The URL did not conform to URL syntax and failed to be parsed
+------ ----------------------------------------- -----------------------------------------------------------------
+26     peer_sent_empty_piece                     The peer sent a 'piece' message of length 0
+------ ----------------------------------------- -----------------------------------------------------------------
+27     parse_failed                              A bencoded structure was currupt and failed to be parsed
+------ ----------------------------------------- -----------------------------------------------------------------
+28     invalid_file_tag                          The fast resume file was missing or had an invalid file version
+                                                 tag
+------ ----------------------------------------- -----------------------------------------------------------------
+29     missing_info_hash                         The fast resume file was missing or had an invalid info-hash
+------ ----------------------------------------- -----------------------------------------------------------------
+30     mismatching_info_hash                     The info-hash in the resume file did not match the torrent
+------ ----------------------------------------- -----------------------------------------------------------------
+31     invalid_hostname                          The URL contained an invalid hostname
+------ ----------------------------------------- -----------------------------------------------------------------
+32     invalid_port                              The URL had an invalid port
+------ ----------------------------------------- -----------------------------------------------------------------
+33     port_blocked                              The port is blocked by the port-filter, and prevented the
+                                                 connection
+------ ----------------------------------------- -----------------------------------------------------------------
+34     expected_close_bracket_in_address         The IPv6 address was expected to end with ']'
+------ ----------------------------------------- -----------------------------------------------------------------
+35     destructing_torrent                       The torrent is being destructed, preventing the operation to
+                                                 succeed
+------ ----------------------------------------- -----------------------------------------------------------------
+36     timed_out                                 The connection timed out
+------ ----------------------------------------- -----------------------------------------------------------------
+37     upload_upload_connection                  The peer is upload only, and we are upload only. There's no point
+                                                 in keeping the connection
+------ ----------------------------------------- -----------------------------------------------------------------
+38     uninteresting_upload_peer                 The peer is upload only, and we're not interested in it. There's
+                                                 no point in keeping the connection
+------ ----------------------------------------- -----------------------------------------------------------------
+39     invalid_info_hash                         The peer sent an unknown info-hash
+------ ----------------------------------------- -----------------------------------------------------------------
+40     torrent_paused                            The torrent is paused, preventing the operation from succeeding
+------ ----------------------------------------- -----------------------------------------------------------------
+41     invalid_have                              The peer sent an invalid have message, either wrong size or
+                                                 referring to a piece that doesn't exist in the torrent
+------ ----------------------------------------- -----------------------------------------------------------------
+42     invalid_bitfield_size                     The bitfield message had the incorrect size
+------ ----------------------------------------- -----------------------------------------------------------------
+43     too_many_requests_when_choked             The peer kept requesting pieces after it was choked, possible
+                                                 abuse attempt.
+------ ----------------------------------------- -----------------------------------------------------------------
+44     invalid_piece                             The peer sent a piece message that does not correspond to a
+                                                 piece request sent by the client
+------ ----------------------------------------- -----------------------------------------------------------------
+45     no_memory                                 memory allocation failed
+------ ----------------------------------------- -----------------------------------------------------------------
+46     torrent_aborted                           The torrent is aborted, preventing the operation to succeed
+------ ----------------------------------------- -----------------------------------------------------------------
+47     self_connection                           The peer is a connection to ourself, no point in keeping it
+------ ----------------------------------------- -----------------------------------------------------------------
+48     invalid_piece_size                        The peer sent a piece message with invalid size, either negative
+                                                 or greater than one block
+------ ----------------------------------------- -----------------------------------------------------------------
+49     timed_out_no_interest                     The peer has not been interesting or interested in us for too
+                                                 long, no point in keeping it around
+------ ----------------------------------------- -----------------------------------------------------------------
+50     timed_out_inactivity                      The peer has not said anything in a long time, possibly dead
+------ ----------------------------------------- -----------------------------------------------------------------
+51     timed_out_no_handshake                    The peer did not send a handshake within a reasonable amount of
+                                                 time, it might not be a bittorrent peer
+------ ----------------------------------------- -----------------------------------------------------------------
+52     timed_out_no_request                      The peer has been unchoked for too long without requesting any
+                                                 data. It might be lying about its interest in us
+------ ----------------------------------------- -----------------------------------------------------------------
+53     invalid_choke                             The peer sent an invalid choke message
+------ ----------------------------------------- -----------------------------------------------------------------
+54     invalid_unchoke                           The peer send an invalid unchoke message
+------ ----------------------------------------- -----------------------------------------------------------------
+55     invalid_interested                        The peer sent an invalid interested message
+------ ----------------------------------------- -----------------------------------------------------------------
+56     invalid_not_interested                    The peer sent an invalid not-interested message
+------ ----------------------------------------- -----------------------------------------------------------------
+57     invalid_request                           The peer sent an invalid piece request message
+------ ----------------------------------------- -----------------------------------------------------------------
+58     invalid_hash_list                         The peer sent an invalid hash-list message (this is part of the
+                                                 merkle-torrent extension)
+------ ----------------------------------------- -----------------------------------------------------------------
+59     invalid_hash_piece                        The peer sent an invalid hash-piece message (this is part of the
+                                                 merkle-torrent extension)
+------ ----------------------------------------- -----------------------------------------------------------------
+60     invalid_cancel                            The peer sent an invalid cancel message
+------ ----------------------------------------- -----------------------------------------------------------------
+61     invalid_dht_port                          The peer sent an invalid DHT port-message
+------ ----------------------------------------- -----------------------------------------------------------------
+62     invalid_suggest                           The peer sent an invalid suggest piece-message
+------ ----------------------------------------- -----------------------------------------------------------------
+63     invalid_have_all                          The peer sent an invalid have all-message
+------ ----------------------------------------- -----------------------------------------------------------------
+64     invalid_have_none                         The peer sent an invalid have none-message
+------ ----------------------------------------- -----------------------------------------------------------------
+65     invalid_reject                            The peer sent an invalid reject message
+------ ----------------------------------------- -----------------------------------------------------------------
+66     invalid_allow_fast                        The peer sent an invalid allow fast-message
+------ ----------------------------------------- -----------------------------------------------------------------
+67     invalid_extended                          The peer sent an invalid extesion message ID
+------ ----------------------------------------- -----------------------------------------------------------------
+68     invalid_message                           The peer sent an invalid message ID
+------ ----------------------------------------- -----------------------------------------------------------------
+69     sync_hash_not_found                       The synchronization hash was not found in the encrypted handshake
+------ ----------------------------------------- -----------------------------------------------------------------
+70     invalid_encryption_constant               The encryption constant in the handshake is invalid
+------ ----------------------------------------- -----------------------------------------------------------------
+71     no_plaintext_mode                         The peer does not support plaintext, which is the selected mode
+------ ----------------------------------------- -----------------------------------------------------------------
+72     no_rc4_mode                               The peer does not support rc4, which is the selected mode
+------ ----------------------------------------- -----------------------------------------------------------------
+73     unsupported_encryption_mode               The peer does not support any of the encryption modes that the
+                                                 client supports
+------ ----------------------------------------- -----------------------------------------------------------------
+74     unsupported_encryption_mode_selected      The peer selected an encryption mode that the client did not
+                                                 advertise and does not support
+------ ----------------------------------------- -----------------------------------------------------------------
+75     invalid_pad_size                          The pad size used in the encryption handshake is of invalid size
+------ ----------------------------------------- -----------------------------------------------------------------
+76     invalid_encrypt_handshake                 The encryption handshake is invalid
+------ ----------------------------------------- -----------------------------------------------------------------
+77     no_incoming_encrypted                     The client is set to not support incoming encrypted connections
+                                                 and this is an encrypted connection
+------ ----------------------------------------- -----------------------------------------------------------------
+78     no_incoming_regular                       The client is set to not support incoming regular bittorrent
+                                                 connections, and this is a regular connection
+------ ----------------------------------------- -----------------------------------------------------------------
+79     duplicate_peer_id                         The client is already connected to this peer-ID
+------ ----------------------------------------- -----------------------------------------------------------------
+80     torrent_removed                           Torrent was removed
+------ ----------------------------------------- -----------------------------------------------------------------
+81     packet_too_large                          The packet size exceeded the upper sanity check-limit
+------ ----------------------------------------- -----------------------------------------------------------------
+82     http_parse_error                          Failed to parse HTTP response
+------ ----------------------------------------- -----------------------------------------------------------------
+83     http_error                                The web server responded with an error
+------ ----------------------------------------- -----------------------------------------------------------------
+84     missing_location                          The web server response is missing a location header
+------ ----------------------------------------- -----------------------------------------------------------------
+85     invalid_redirection                       The web seed redirected to a path that no longer matches the
+                                                 .torrent directory structure
+------ ----------------------------------------- -----------------------------------------------------------------
+86     redirecting                               The connection was closed becaused it redirected to a different
+                                                 URL
+------ ----------------------------------------- -----------------------------------------------------------------
+87     invalid_range                             The HTTP range header is invalid
+------ ----------------------------------------- -----------------------------------------------------------------
+88     no_content_length                         The HTTP response did not have a content length
+------ ----------------------------------------- -----------------------------------------------------------------
+89     banned_by_ip_filter                       The IP is blocked by the IP filter
+------ ----------------------------------------- -----------------------------------------------------------------
+90     too_many_connections                      At the connection limit
+------ ----------------------------------------- -----------------------------------------------------------------
+91     peer_banned                               The peer is marked as banned
+------ ----------------------------------------- -----------------------------------------------------------------
+92     stopping_torrent                          The torrent is stopping, causing the operation to fail
+------ ----------------------------------------- -----------------------------------------------------------------
+93     too_many_corrupt_pieces                   The peer has sent too many corrupt pieces and is banned
+------ ----------------------------------------- -----------------------------------------------------------------
+94     torrent_not_ready                         The torrent is not ready to receive peers
+------ ----------------------------------------- -----------------------------------------------------------------
+95     peer_not_constructed                      The peer is not completely constructed yet
+------ ----------------------------------------- -----------------------------------------------------------------
+96     session_closing                           The session is closing, causing the operation to fail
+------ ----------------------------------------- -----------------------------------------------------------------
+97     optimistic_disconnect                     The peer was disconnected in order to leave room for a
+                                                 potentially better peer
+------ ----------------------------------------- -----------------------------------------------------------------
+98     torrent_finished                          The torrent is finished
+------ ----------------------------------------- -----------------------------------------------------------------
+99     no_router                                 No UPnP router found
+------ ----------------------------------------- -----------------------------------------------------------------
+100    metadata_too_large                        The metadata message says the metadata exceeds the limit
+------ ----------------------------------------- -----------------------------------------------------------------
+101    invalid_metadata_request                  The peer sent an invalid metadata request message
+------ ----------------------------------------- -----------------------------------------------------------------
+102    invalid_metadata_size                     The peer advertised an invalid metadata size
+------ ----------------------------------------- -----------------------------------------------------------------
+103    invalid_metadata_offset                   The peer sent a message with an invalid metadata offset
+------ ----------------------------------------- -----------------------------------------------------------------
+104    invalid_metadata_message                  The peer sent an invalid metadata message
+------ ----------------------------------------- -----------------------------------------------------------------
+105    pex_message_too_large                     The peer sent a peer exchange message that was too large
+------ ----------------------------------------- -----------------------------------------------------------------
+106    invalid_pex_message                       The peer sent an invalid peer exchange message
+------ ----------------------------------------- -----------------------------------------------------------------
+107    invalid_lt_tracker_message                The peer sent an invalid tracker exchange message
+------ ----------------------------------------- -----------------------------------------------------------------
+108    unsupported_protocol_version              The NAT-PMP router responded with an unsupported protocol version
+------ ----------------------------------------- -----------------------------------------------------------------
+109    natpmp_not_authorized                     You are not authorized to map ports on this NAT-PMP router
+------ ----------------------------------------- -----------------------------------------------------------------
+110    network_failure                           The NAT-PMP router failed because of a network failure
+------ ----------------------------------------- -----------------------------------------------------------------
+111    no_resources                              The NAT-PMP router failed because of lack of resources
+------ ----------------------------------------- -----------------------------------------------------------------
+112    unsupported_opcode                        The NAT-PMP router failed because an unsupported opcode was sent
+====== ========================================= =================================================================
 
 The names of these error codes are declared in then ``libtorrent::errors`` namespace.
+
+There is also another error category, ``libtorrent::upnp_category``, defining errors
+retrned by UPnP routers. Here's a (possibly incomplete) list of UPnP error codes:
+
+====== ========================================= ====================================================
+code   symbol                                    description
+====== ========================================= ====================================================
+0      no_error                                  No error
+------ ----------------------------------------- ----------------------------------------------------
+402    invalid_argument                          One of the arguments in the request is invalid
+------ ----------------------------------------- ----------------------------------------------------
+501    action_failed                             The request failed
+------ ----------------------------------------- ----------------------------------------------------
+714    value_not_in_array                        The specified value does not exist in the array
+------ ----------------------------------------- ----------------------------------------------------
+715    source_ip_cannot_be_wildcarded            The source IP address cannot be wild-carded, but
+                                                 must be fully specified
+------ ----------------------------------------- ----------------------------------------------------
+716    external_port_cannot_be_wildcarded        The external port cannot be wildcarded, but must
+                                                 be specified
+------ ----------------------------------------- ----------------------------------------------------
+718    port_mapping_conflict                     The port mapping entry specified conflicts with a
+                                                 mapping assigned previously to another client
+------ ----------------------------------------- ----------------------------------------------------
+724    internal_port_must_match_external         Internal and external port value must be the same
+------ ----------------------------------------- ----------------------------------------------------
+725    only_permanent_leases_supported           The NAT implementation only supports permanent
+                                                 lease times on port mappings
+------ ----------------------------------------- ----------------------------------------------------
+726    remote_host_must_be_wildcard              RemoteHost must be a wildcard and cannot be a
+                                                 specific IP addres or DNS name
+------ ----------------------------------------- ----------------------------------------------------
+727    external_port_must_be_wildcard            ExternalPort must be a wildcard and cannot be a
+                                                 specific port
+====== ========================================= ====================================================
+
+The UPnP errors are declared in the ``libtorrent::upnp_errors`` namespace.
 
 translating error codes
 -----------------------

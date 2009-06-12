@@ -95,15 +95,15 @@ namespace libtorrent
 	{
 		std::string hostname;
 		int port;
-		char const* error;
+		error_code ec;
 
 		using boost::tuples::ignore;
-		boost::tie(ignore, ignore, hostname, port, ignore, error)
-			= parse_url_components(tracker_req().url);
+		boost::tie(ignore, ignore, hostname, port, ignore)
+			= parse_url_components(tracker_req().url, ec);
 
-		if (error)
+		if (ec)
 		{
-			fail(-1, error);
+			fail(-1, ec.message().c_str());
 			return;
 		}
 		

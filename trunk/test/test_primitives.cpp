@@ -428,23 +428,24 @@ int test_main()
 
 	// test url parsing
 
-	TEST_CHECK(parse_url_components("http://foo:bar@host.com:80/path/to/file")
-		== make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file", (char const*)0));
+	error_code ec;
+	TEST_CHECK(parse_url_components("http://foo:bar@host.com:80/path/to/file", ec)
+		== make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file"));
 
-	TEST_CHECK(parse_url_components("http://host.com/path/to/file")
-		== make_tuple("http", "", "host.com", 80, "/path/to/file", (char const*)0));
+	TEST_CHECK(parse_url_components("http://host.com/path/to/file", ec)
+		== make_tuple("http", "", "host.com", 80, "/path/to/file"));
 
-	TEST_CHECK(parse_url_components("ftp://host.com:21/path/to/file")
-		== make_tuple("ftp", "", "host.com", 21, "/path/to/file", (char const*)0));
+	TEST_CHECK(parse_url_components("ftp://host.com:21/path/to/file", ec)
+		== make_tuple("ftp", "", "host.com", 21, "/path/to/file"));
 
-	TEST_CHECK(parse_url_components("http://host.com/path?foo:bar@foo:")
-		== make_tuple("http", "", "host.com", 80, "/path?foo:bar@foo:", (char const*)0));
+	TEST_CHECK(parse_url_components("http://host.com/path?foo:bar@foo:", ec)
+		== make_tuple("http", "", "host.com", 80, "/path?foo:bar@foo:"));
 
-	TEST_CHECK(parse_url_components("http://192.168.0.1/path/to/file")
-		== make_tuple("http", "", "192.168.0.1", 80, "/path/to/file", (char const*)0));
+	TEST_CHECK(parse_url_components("http://192.168.0.1/path/to/file", ec)
+		== make_tuple("http", "", "192.168.0.1", 80, "/path/to/file"));
 
-	TEST_CHECK(parse_url_components("http://[::1]/path/to/file")
-		== make_tuple("http", "", "[::1]", 80, "/path/to/file", (char const*)0));
+	TEST_CHECK(parse_url_components("http://[::1]/path/to/file", ec)
+		== make_tuple("http", "", "[::1]", 80, "/path/to/file"));
 
 	// base64 test vectors from http://www.faqs.org/rfcs/rfc4648.html
 
@@ -669,7 +670,6 @@ int test_main()
 
 	// test network functions
 
-	error_code ec;
 	TEST_CHECK(is_local(address::from_string("192.168.0.1", ec)));
 	TEST_CHECK(is_local(address::from_string("10.1.1.56", ec)));
 	TEST_CHECK(!is_local(address::from_string("14.14.251.63", ec)));

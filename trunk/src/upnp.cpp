@@ -60,9 +60,11 @@ static error_code ec;
 
 upnp::upnp(io_service& ios, connection_queue& cc
 	, address const& listen_interface, std::string const& user_agent
-	, portmap_callback_t const& cb, bool ignore_nonrouters, void* state)
+	, portmap_callback_t const& cb, log_callback_t const& lcb
+	, bool ignore_nonrouters, void* state)
 	: m_user_agent(user_agent)
 	, m_callback(cb)
+	, m_log_callback(lcb)
 	, m_retry_count(0)
 	, m_io_service(ios)
 	, m_socket(ios, udp::endpoint(address_v4::from_string("239.255.255.250", ec), 1900)
@@ -110,9 +112,9 @@ void upnp::discover_device()
 	discover_device_impl();
 }
 
-void upnp::log(std::string const& msg)
+void upnp::log(char const* msg)
 {
-	m_callback(-1, 0, msg);
+	m_log_callback(msg);
 }
 
 void upnp::discover_device_impl()
@@ -137,7 +139,7 @@ void upnp::discover_device_impl()
 		char msg[200];
 		snprintf(msg, sizeof(msg), "broadcast failed: %s. Aborting.", ec.message().c_str());
 		log(msg);
-		disable(ec.message().c_str());
+		disable(ec);
 		return;
 	}
 
@@ -256,7 +258,7 @@ void upnp::resend_request(error_code const& e)
 
 	if (m_devices.empty())
 	{
-		disable("no UPnP router found (no response)");
+		disable(error_code(errors::no_router, libtorrent_category));
 		return;
 	}
 	
@@ -452,16 +454,16 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 		std::string protocol;
 		std::string auth;
-		char const* error;
+		error_code ec;
 		// we don't have this device in our list. Add it
-		boost::tie(protocol, auth, d.hostname, d.port, d.path, error)
-			= parse_url_components(d.url);
+		boost::tie(protocol, auth, d.hostname, d.port, d.path)
+			= parse_url_components(d.url, ec);
 
-		if (error)
+		if (ec)
 		{
 			char msg[200];
 			snprintf(msg, sizeof(msg), "invalid URL %s from %s: %s"
-				, d.url.c_str(), print_endpoint(from).c_str(), error);
+				, d.url.c_str(), print_endpoint(from).c_str(), ec.message().c_str());
 			log(msg);
 			return;
 		}
@@ -916,11 +918,11 @@ void upnp::on_upnp_xml(error_code const& e
 
 	std::string protocol;
 	std::string auth;
-	char const* error;
+	error_code ec;
 	if (!d.control_url.empty() && d.control_url[0] == '/')
 	{
-		boost::tie(protocol, auth, d.hostname, d.port, d.path, error)
-			= parse_url_components(d.url);
+		boost::tie(protocol, auth, d.hostname, d.port, d.path)
+			= parse_url_components(d.url, ec);
 		d.control_url = protocol + "://" + d.hostname + ":"
 			+ to_string(d.port).elems + s.control_url;
 	}
@@ -932,14 +934,14 @@ void upnp::on_upnp_xml(error_code const& e
 		, s.url_base.c_str(), d.url.c_str());
 	log(msg);
 
-	boost::tie(protocol, auth, d.hostname, d.port, d.path, error)
-		= parse_url_components(d.control_url);
+	boost::tie(protocol, auth, d.hostname, d.port, d.path)
+		= parse_url_components(d.control_url, ec);
 
-	if (error)
+	if (ec)
 	{
 		char msg[200];
 		snprintf(msg, sizeof(msg), "failed to parse URL '%s': %s"
-			, d.control_url.c_str(), error);
+			, d.control_url.c_str(), ec.message().c_str());
 		log(msg);
 		d.disabled = true;
 		return;
@@ -948,7 +950,7 @@ void upnp::on_upnp_xml(error_code const& e
 	if (num_mappings() > 0) update_map(d, 0);
 }
 
-void upnp::disable(char const* msg)
+void upnp::disable(error_code const& ec)
 {
 	m_disabled = true;
 
@@ -958,16 +960,16 @@ void upnp::disable(char const* msg)
 	{
 		if (i->protocol == none) continue;
 		i->protocol = none;
-		m_callback(i - m_mappings.begin(), 0, msg);
+		m_callback(i - m_mappings.begin(), 0, ec);
 	}
 	
 	// we cannot clear the devices since there
 	// might be outstanding requests relying on
 	// the device entry being present when they
 	// complete
-	error_code ec;
-	m_broadcast_timer.cancel(ec);
-	m_refresh_timer.cancel(ec);
+	error_code e;
+	m_broadcast_timer.cancel(e);
+	m_refresh_timer.cancel(e);
 	m_socket.close();
 }
 
@@ -994,10 +996,7 @@ namespace
 			state.exit = true;
 		}
 	}
-}
 
-namespace
-{
 	struct error_code_t
 	{
 		int code;
@@ -1006,7 +1005,8 @@ namespace
 	
 	error_code_t error_codes[] =
 	{
-		{402, "Invalid Arguments"}
+		{0, "no error"}
+		, {402, "Invalid Arguments"}
 		, {501, "Action Failed"}
 		, {714, "The specified value does not exist in the array"}
 		, {715, "The source IP address cannot be wild-carded"}
@@ -1022,6 +1022,42 @@ namespace
 	};
 
 }
+
+#if BOOST_VERSION >= 103500
+
+
+const char* upnp_error_category::name() const
+{
+	return "UPnP error";
+}
+
+std::string upnp_error_category::message(int ev) const
+{
+	int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
+	error_code_t* end = error_codes + num_errors;
+	error_code_t tmp = {ev, 0};
+	error_code_t* e = std::lower_bound(error_codes, end, tmp
+		, bind(&error_code_t::code, _1) < bind(&error_code_t::code, _2));
+	if (e != end && e->code == ev)
+	{
+		return e->msg;
+	}
+	return "unknown UPnP error";
+}
+
+namespace libtorrent
+{
+	TORRENT_EXPORT upnp_error_category upnp_category;
+}
+
+#else
+
+namespace libtorrent
+{
+	TORRENT_EXPORT ::asio::error::error_category upnp_category(21);
+}
+
+#endif
 
 void upnp::on_upnp_map_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping
@@ -1134,7 +1170,7 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	if (s.error_code == -1)
 	{
-		m_callback(mapping, m.external_port, "");
+		m_callback(mapping, m.external_port, error_code());
 		if (d.lease_duration > 0)
 		{
 			m.expires = time_now()
@@ -1172,7 +1208,7 @@ void upnp::return_error(int mapping, int code)
 		error_string += ": ";
 		error_string += e->msg;
 	}
-	m_callback(mapping, 0, error_string);
+	m_callback(mapping, 0, error_code(code, upnp_category));
 }
 
 void upnp::on_upnp_unmap_response(error_code const& e
