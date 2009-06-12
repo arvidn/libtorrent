@@ -201,74 +201,85 @@
 <li><a class="reference internal" href="#scrape-failed-alert" id="id154">scrape_failed_alert</a></li>
 <li><a class="reference internal" href="#url-seed-alert" id="id155">url_seed_alert</a></li>
 <li><a class="reference internal" href="#hash-failed-alert" id="id156">hash_failed_alert</a></li>
-<li><a class="reference internal" href="#peer-ban-alert" id="id157">peer_ban_alert</a></li>
-<li><a class="reference internal" href="#peer-error-alert" id="id158">peer_error_alert</a></li>
-<li><a class="reference internal" href="#invalid-request-alert" id="id159">invalid_request_alert</a></li>
-<li><a class="reference internal" href="#torrent-finished-alert" id="id160">torrent_finished_alert</a></li>
-<li><a class="reference internal" href="#performance-alert" id="id161">performance_alert</a></li>
-<li><a class="reference internal" href="#state-changed-alert" id="id162">state_changed_alert</a></li>
-<li><a class="reference internal" href="#metadata-failed-alert" id="id163">metadata_failed_alert</a></li>
-<li><a class="reference internal" href="#metadata-received-alert" id="id164">metadata_received_alert</a></li>
-<li><a class="reference internal" href="#fastresume-rejected-alert" id="id165">fastresume_rejected_alert</a></li>
-<li><a class="reference internal" href="#peer-blocked-alert" id="id166">peer_blocked_alert</a></li>
-<li><a class="reference internal" href="#storage-moved-alert" id="id167">storage_moved_alert</a></li>
-<li><a class="reference internal" href="#storage-moved-failed-alert" id="id168">storage_moved_failed_alert</a></li>
-<li><a class="reference internal" href="#torrent-paused-alert" id="id169">torrent_paused_alert</a></li>
-<li><a class="reference internal" href="#torrent-resumed-alert" id="id170">torrent_resumed_alert</a></li>
-<li><a class="reference internal" href="#save-resume-data-alert" id="id171">save_resume_data_alert</a></li>
-<li><a class="reference internal" href="#save-resume-data-failed-alert" id="id172">save_resume_data_failed_alert</a></li>
-<li><a class="reference internal" href="#dht-announce-alert" id="id173">dht_announce_alert</a></li>
-<li><a class="reference internal" href="#dht-get-peers-alert" id="id174">dht_get_peers_alert</a></li>
-<li><a class="reference internal" href="#dispatcher" id="id175">dispatcher</a></li>
+<li><a class="reference internal" href="#peer-alert" id="id157">peer_alert</a></li>
+<li><a class="reference internal" href="#peer-ban-alert" id="id158">peer_ban_alert</a></li>
+<li><a class="reference internal" href="#peer-snubbed-alert" id="id159">peer_snubbed_alert</a></li>
+<li><a class="reference internal" href="#peer-unsnubbed-alert" id="id160">peer_unsnubbed_alert</a></li>
+<li><a class="reference internal" href="#peer-error-alert" id="id161">peer_error_alert</a></li>
+<li><a class="reference internal" href="#peer-connected-alert" id="id162">peer_connected_alert</a></li>
+<li><a class="reference internal" href="#peer-disconnected-alert" id="id163">peer_disconnected_alert</a></li>
+<li><a class="reference internal" href="#invalid-request-alert" id="id164">invalid_request_alert</a></li>
+<li><a class="reference internal" href="#request-dropped-alert" id="id165">request_dropped_alert</a></li>
+<li><a class="reference internal" href="#block-timeout-alert" id="id166">block_timeout_alert</a></li>
+<li><a class="reference internal" href="#block-finished-alert" id="id167">block_finished_alert</a></li>
+<li><a class="reference internal" href="#block-downloading-alert" id="id168">block_downloading_alert</a></li>
+<li><a class="reference internal" href="#unwanted-block-alert" id="id169">unwanted_block_alert</a></li>
+<li><a class="reference internal" href="#torrent-delete-failed-alert" id="id170">torrent_delete_failed_alert</a></li>
+<li><a class="reference internal" href="#torrent-finished-alert" id="id171">torrent_finished_alert</a></li>
+<li><a class="reference internal" href="#performance-alert" id="id172">performance_alert</a></li>
+<li><a class="reference internal" href="#state-changed-alert" id="id173">state_changed_alert</a></li>
+<li><a class="reference internal" href="#metadata-failed-alert" id="id174">metadata_failed_alert</a></li>
+<li><a class="reference internal" href="#metadata-received-alert" id="id175">metadata_received_alert</a></li>
+<li><a class="reference internal" href="#fastresume-rejected-alert" id="id176">fastresume_rejected_alert</a></li>
+<li><a class="reference internal" href="#peer-blocked-alert" id="id177">peer_blocked_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-alert" id="id178">storage_moved_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-failed-alert" id="id179">storage_moved_failed_alert</a></li>
+<li><a class="reference internal" href="#torrent-paused-alert" id="id180">torrent_paused_alert</a></li>
+<li><a class="reference internal" href="#torrent-resumed-alert" id="id181">torrent_resumed_alert</a></li>
+<li><a class="reference internal" href="#save-resume-data-alert" id="id182">save_resume_data_alert</a></li>
+<li><a class="reference internal" href="#save-resume-data-failed-alert" id="id183">save_resume_data_failed_alert</a></li>
+<li><a class="reference internal" href="#dht-announce-alert" id="id184">dht_announce_alert</a></li>
+<li><a class="reference internal" href="#dht-get-peers-alert" id="id185">dht_get_peers_alert</a></li>
+<li><a class="reference internal" href="#dispatcher" id="id186">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#exceptions" id="id176">exceptions</a><ul>
-<li><a class="reference internal" href="#libtorrent-exception" id="id177">libtorrent_exception</a></li>
+<li><a class="reference internal" href="#exceptions" id="id187">exceptions</a><ul>
+<li><a class="reference internal" href="#libtorrent-exception" id="id188">libtorrent_exception</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#error-code" id="id178">error_code</a><ul>
-<li><a class="reference internal" href="#translating-error-codes" id="id179">translating error codes</a></li>
+<li><a class="reference internal" href="#error-code" id="id189">error_code</a><ul>
+<li><a class="reference internal" href="#translating-error-codes" id="id190">translating error codes</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#storage-interface" id="id180">storage_interface</a><ul>
-<li><a class="reference internal" href="#initialize" id="id181">initialize()</a></li>
-<li><a class="reference internal" href="#has-any-file" id="id182">has_any_file()</a></li>
-<li><a class="reference internal" href="#readv-writev" id="id183">readv() writev()</a></li>
-<li><a class="reference internal" href="#sparse-end" id="id184">sparse_end()</a></li>
-<li><a class="reference internal" href="#id12" id="id185">move_storage()</a></li>
-<li><a class="reference internal" href="#verify-resume-data" id="id186">verify_resume_data()</a></li>
-<li><a class="reference internal" href="#write-resume-data" id="id187">write_resume_data()</a></li>
-<li><a class="reference internal" href="#move-slot" id="id188">move_slot()</a></li>
-<li><a class="reference internal" href="#swap-slots" id="id189">swap_slots()</a></li>
-<li><a class="reference internal" href="#swap-slots3" id="id190">swap_slots3()</a></li>
-<li><a class="reference internal" href="#id13" id="id191">rename_file()</a></li>
-<li><a class="reference internal" href="#release-files" id="id192">release_files()</a></li>
-<li><a class="reference internal" href="#delete-files" id="id193">delete_files()</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id191">storage_interface</a><ul>
+<li><a class="reference internal" href="#initialize" id="id192">initialize()</a></li>
+<li><a class="reference internal" href="#has-any-file" id="id193">has_any_file()</a></li>
+<li><a class="reference internal" href="#readv-writev" id="id194">readv() writev()</a></li>
+<li><a class="reference internal" href="#sparse-end" id="id195">sparse_end()</a></li>
+<li><a class="reference internal" href="#id12" id="id196">move_storage()</a></li>
+<li><a class="reference internal" href="#verify-resume-data" id="id197">verify_resume_data()</a></li>
+<li><a class="reference internal" href="#write-resume-data" id="id198">write_resume_data()</a></li>
+<li><a class="reference internal" href="#move-slot" id="id199">move_slot()</a></li>
+<li><a class="reference internal" href="#swap-slots" id="id200">swap_slots()</a></li>
+<li><a class="reference internal" href="#swap-slots3" id="id201">swap_slots3()</a></li>
+<li><a class="reference internal" href="#id13" id="id202">rename_file()</a></li>
+<li><a class="reference internal" href="#release-files" id="id203">release_files()</a></li>
+<li><a class="reference internal" href="#delete-files" id="id204">delete_files()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#magnet-links" id="id194">magnet links</a></li>
-<li><a class="reference internal" href="#queuing" id="id195">queuing</a><ul>
-<li><a class="reference internal" href="#downloading" id="id196">downloading</a></li>
-<li><a class="reference internal" href="#seeding" id="id197">seeding</a></li>
+<li><a class="reference internal" href="#magnet-links" id="id205">magnet links</a></li>
+<li><a class="reference internal" href="#queuing" id="id206">queuing</a><ul>
+<li><a class="reference internal" href="#downloading" id="id207">downloading</a></li>
+<li><a class="reference internal" href="#seeding" id="id208">seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#fast-resume" id="id198">fast resume</a><ul>
-<li><a class="reference internal" href="#file-format" id="id199">file format</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id209">fast resume</a><ul>
+<li><a class="reference internal" href="#file-format" id="id210">file format</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#threads" id="id200">threads</a></li>
-<li><a class="reference internal" href="#storage-allocation" id="id201">storage allocation</a><ul>
-<li><a class="reference internal" href="#sparse-allocation" id="id202">sparse allocation</a></li>
-<li><a class="reference internal" href="#full-allocation" id="id203">full allocation</a></li>
-<li><a class="reference internal" href="#compact-allocation" id="id204">compact allocation</a></li>
+<li><a class="reference internal" href="#threads" id="id211">threads</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id212">storage allocation</a><ul>
+<li><a class="reference internal" href="#sparse-allocation" id="id213">sparse allocation</a></li>
+<li><a class="reference internal" href="#full-allocation" id="id214">full allocation</a></li>
+<li><a class="reference internal" href="#compact-allocation" id="id215">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#extensions" id="id205">extensions</a><ul>
-<li><a class="reference internal" href="#metadata-from-peers" id="id206">metadata from peers</a></li>
-<li><a class="reference internal" href="#http-seeding" id="id207">HTTP seeding</a></li>
+<li><a class="reference internal" href="#extensions" id="id216">extensions</a><ul>
+<li><a class="reference internal" href="#metadata-from-peers" id="id217">metadata from peers</a></li>
+<li><a class="reference internal" href="#http-seeding" id="id218">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#filename-checks" id="id208">filename checks</a></li>
+<li><a class="reference internal" href="#filename-checks" id="id219">filename checks</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -3032,7 +3043,7 @@ struct peer_info
 
         int source;
 
-        enum bw_state { bw_idle, bw_torrent, bw_global, bw_network };
+        enum bw_state { bw_idle, bw_limit, bw_network, bw_disk };
 
         char read_state;
         char write_state;
@@ -3221,20 +3232,18 @@ defines as follows:</p>
 <td>The peer is not waiting for any external events to
 send or receive data.</td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">bw_torrent</span></tt></td>
-<td>The peer is waiting for the torrent to receive
-bandwidth quota in order to forward the bandwidth
-request to the global manager.</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">bw_global</span></tt></td>
-<td>The peer is waiting for the global bandwidth manager
-to receive more quota in order to handle the request.</td>
+<tr><td><tt class="docutils literal"><span class="pre">bw_limit</span></tt></td>
+<td>The peer is waiting for the rate limiter.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">bw_network</span></tt></td>
 <td>The peer has quota and is currently waiting for a
 network read or write operation to complete. This is
 the state all peers are in if there are no bandwidth
 limits.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">bw_disk</span></tt></td>
+<td>The peer is waiting for the disk I/O thread to catch
+up writing buffers to disk before downloading more.</td>
 </tr>
 </tbody>
 </table>
@@ -3391,7 +3400,7 @@ struct session_settings
         int num_want;
         int initial_picker_threshold;
         int allowed_fast_set_size;
-        int max_outstanding_disk_bytes_per_connection;
+        int max_queued_disk_bytes;
         int handshake_timeout;
         bool use_dht_as_fallback;
         bool free_torrent_hashes;
@@ -3457,6 +3466,8 @@ struct session_settings
 
         int read_cache_line_size;
         int write_cache_line_size;
+
+        bool adjust_priority_on_disk_failure;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -3571,10 +3582,12 @@ pieces in any torrent are picked at random, the following pieces are picked
 in rarest first order.</p>
 <p><tt class="docutils literal"><span class="pre">allowed_fast_set_size</span></tt> is the number of pieces we allow peers to download
 from us without being unchoked.</p>
-<p><tt class="docutils literal"><span class="pre">max_outstanding_disk_bytes_per_connection</span></tt> is the number of bytes each
-connection is allowed to have waiting in the disk I/O queue before it is
-throttled back. This limit is meant to stop fast internet connections to
-queue up bufferes indefinitely on slow hard-drives or storage.</p>
+<p><tt class="docutils literal"><span class="pre">max_queued_disk_bytes</span></tt> is the number maximum number of bytes, to be
+written to disk, that can wait in the disk I/O thread queue. This queue
+is only for waiting for the disk I/O thread to receive the job and either
+write it to disk or insert it in the write cache. When this limit is reached,
+the peer connections will stop reading data from their sockets, until the disk
+thread catches up. Setting this too low will severly limit your download rate.</p>
 <p><tt class="docutils literal"><span class="pre">handshake_timeout</span></tt> specifies the number of seconds we allow a peer to
 delay responding to a protocol handshake. If no response is received within
 this time, the connection is closed.</p>
@@ -3781,6 +3794,14 @@ into the read cache is always capped by the piece boundry.</p>
 <p>When a piece in the write cache has <tt class="docutils literal"><span class="pre">write_cache_line_size</span></tt> contiguous
 blocks in it, they will be flushed. Setting this to 1 effectively
 disables the write cache.</p>
+<p><tt class="docutils literal"><span class="pre">adjust_priority_on_disk_failure</span></tt> specifies what libtorrent should do
+on disk failures. If this is set to true, instead of pausing the torrent
+and setting it to an error state when it fails to write to disk, the
+priorities of all pieces are set to 0. This effectively means the client
+can keep seeding the parts that were already downloaded, instead of
+leaving the swarm because of the error.</p>
+<p>If a read operation fails, it will still set an error on the torrent
+and pause it.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">
@@ -4499,12 +4520,14 @@ mappings.</p>
 <p><tt class="docutils literal"><span class="pre">mapping</span></tt> refers to the mapping index of the port map that failed, i.e.
 the index returned from <a class="reference internal" href="#add-mapping">add_mapping</a>.</p>
 <p><tt class="docutils literal"><span class="pre">type</span></tt> is 0 for NAT-PMP and 1 for UPnP.</p>
+<p><tt class="docutils literal"><span class="pre">error</span></tt> tells you what failed.</p>
 <pre class="literal-block">
 struct portmap_error_alert: alert
 {
         // ...
         int mapping;
         int type;
+        error_code error;
 };
 </pre>
 </div>
@@ -4548,13 +4571,13 @@ struct portmap_log_alert: alert
 <p>If the storage fails to read or write files that it needs access to, this alert is
 generated and the torrent is paused.</p>
 <p><tt class="docutils literal"><span class="pre">file</span></tt> is the path to the file that was accessed when the error occurred.</p>
-<p><tt class="docutils literal"><span class="pre">msg</span></tt> is the error message received from the OS.</p>
+<p><tt class="docutils literal"><span class="pre">error</span></tt> is the error code describing the error.</p>
 <pre class="literal-block">
 struct file_error_alert: torrent_alert
 {
         // ...
         std::string file;
-        std::string msg;
+        error_code error;
 };
 </pre>
 </div>
@@ -4720,15 +4743,49 @@ struct hash_failed_alert: torrent_alert
 };
 </pre>
 </div>
+<div class="section" id="peer-alert">
+<h2>peer_alert</h2>
+<p>The peer alert is a base class for alerts that refer to a specific peer. It includes all
+the information to identify the peer. i.e. <tt class="docutils literal"><span class="pre">ip</span></tt> and <tt class="docutils literal"><span class="pre">peer-id</span></tt>.</p>
+<pre class="literal-block">
+struct peer_alert: torrent_alert
+{
+        // ...
+        tcp::endpoint ip;
+        peer_id pid;
+};
+</pre>
+</div>
 <div class="section" id="peer-ban-alert">
 <h2>peer_ban_alert</h2>
 <p>This alert is generated when a peer is banned because it has sent too many corrupt pieces
 to us. <tt class="docutils literal"><span class="pre">ip</span></tt> is the endpoint to the peer that was banned.</p>
 <pre class="literal-block">
-struct peer_ban_alert: torrent_alert
+struct peer_ban_alert: peer_alert
 {
         // ...
-        asio::ip::tcp::endpoint ip;
+};
+</pre>
+</div>
+<div class="section" id="peer-snubbed-alert">
+<h2>peer_snubbed_alert</h2>
+<p>This alert is generated when a peer is snubbed, when it stops sending data when we request
+it.</p>
+<pre class="literal-block">
+struct peer_snubbed_alert: peer_alert
+{
+        // ...
+};
+</pre>
+</div>
+<div class="section" id="peer-unsnubbed-alert">
+<h2>peer_unsnubbed_alert</h2>
+<p>This alert is generated when a peer is unsnubbed. Essentially when it was snubbed for stalling
+sending data, and now it started sending data again.</p>
+<pre class="literal-block">
+struct peer_unsnubbed_alert: peer_alert
+{
+        // ...
 };
 </pre>
 </div>
@@ -4736,12 +4793,35 @@ struct peer_ban_alert: torrent_alert
 <h2>peer_error_alert</h2>
 <p>This alert is generated when a peer sends invalid data over the peer-peer protocol. The peer
 will be disconnected, but you get its ip address from the alert, to identify it.</p>
+<p>The <tt class="docutils literal"><span class="pre">error_code</span></tt> tells you what error caused this alert.</p>
 <pre class="literal-block">
-struct peer_error_alert: torrent_alert
+struct peer_error_alert: peer_alert
 {
         // ...
-        asio::ip::tcp::endpoint ip;
-        peer_id id;
+        error_code error;
+};
+</pre>
+</div>
+<div class="section" id="peer-connected-alert">
+<h2>peer_connected_alert</h2>
+<p>This alert is generated when a peer is connected.</p>
+<pre class="literal-block">
+struct peer_connected_alert: peer_alert
+{
+        // ...
+};
+</pre>
+</div>
+<div class="section" id="peer-disconnected-alert">
+<h2>peer_disconnected_alert</h2>
+<p>This alert is generated when a peer is disconnected for any reason (other than the ones
+covered by <tt class="docutils literal"><span class="pre">peer_error_alert</span></tt>).</p>
+<p>The <tt class="docutils literal"><span class="pre">error_code</span></tt> tells you what error caused peer to disconnect.</p>
+<pre class="literal-block">
+struct peer_disconnected_alert: peer_alert
+{
+        // ...
+        error_code error;
 };
 </pre>
 </div>
@@ -4751,20 +4831,10 @@ struct peer_error_alert: torrent_alert
 <tt class="docutils literal"><span class="pre">ìp</span></tt> is the address of the peer and the <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming
 request from the peer.</p>
 <pre class="literal-block">
-struct invalid_request_alert: torrent_alert
+struct invalid_request_alert: peer_alert
 {
-        invalid_request_alert(
-                peer_request const&amp; r
-                , torrent_handle const&amp; h
-                , asio::ip::tcp::endpoint const&amp; send
-                , peer_id const&amp; pid
-                , std::string const&amp; msg);
-
-        virtual std::auto_ptr&lt;alert&gt; clone() const;
-
-        asio::ip::tcp::endpoint ip;
+        // ...
         peer_request request;
-        peer_id id;
 };
 
 
@@ -4779,6 +4849,79 @@ struct peer_request
 <p>The <tt class="docutils literal"><span class="pre">peer_request</span></tt> contains the values the client sent in its <tt class="docutils literal"><span class="pre">request</span></tt> message. <tt class="docutils literal"><span class="pre">piece</span></tt> is
 the index of the piece it want data from, <tt class="docutils literal"><span class="pre">start</span></tt> is the offset within the piece where the data
 should be read, and <tt class="docutils literal"><span class="pre">length</span></tt> is the amount of data it wants.</p>
+</div>
+<div class="section" id="request-dropped-alert">
+<h2>request_dropped_alert</h2>
+<p>This alert is generated when a peer rejects or ignores a piece request.</p>
+<pre class="literal-block">
+struct request_dropped_alert: peer_alert
+{
+        // ...
+        int block_index;
+        int piece_index;
+};
+</pre>
+</div>
+<div class="section" id="block-timeout-alert">
+<h2>block_timeout_alert</h2>
+<p>This alert is generated when a block request times out.</p>
+<pre class="literal-block">
+struct block_timeout_alert: peer_alert
+{
+        // ...
+        int block_index;
+        int piece_index;
+};
+</pre>
+</div>
+<div class="section" id="block-finished-alert">
+<h2>block_finished_alert</h2>
+<p>This alert is generated when a block request receives a response.</p>
+<pre class="literal-block">
+struct block_finished_alert: peer_alert
+{
+        // ...
+        int block_index;
+        int piece_index;
+};
+</pre>
+</div>
+<div class="section" id="block-downloading-alert">
+<h2>block_downloading_alert</h2>
+<p>This alert is generated when a block request is sent to a peer.</p>
+<pre class="literal-block">
+struct block_downloading_alert: peer_alert
+{
+        // ...
+        int block_index;
+        int piece_index;
+};
+</pre>
+</div>
+<div class="section" id="unwanted-block-alert">
+<h2>unwanted_block_alert</h2>
+<p>This alert is generated when a block is received that was not requested or
+whose request timed out.</p>
+<pre class="literal-block">
+struct unwanted_block_alert: peer_alert
+{
+        // ...
+        int block_index;
+        int piece_index;
+};
+</pre>
+</div>
+<div class="section" id="torrent-delete-failed-alert">
+<h2>torrent_delete_failed_alert</h2>
+<p>This alert is generated when a request to delete the files of a torrent fails.</p>
+<p>The <tt class="docutils literal"><span class="pre">error_code</span></tt> tells you why it failed.</p>
+<pre class="literal-block">
+struct torrent_delete_failed_alert: torrent_alert
+{
+        // ...
+        error_code error;
+};
+</pre>
 </div>
 <div class="section" id="torrent-finished-alert">
 <h2>torrent_finished_alert</h2>
@@ -4840,13 +4983,13 @@ only those that needs to download it from peers (when utilizing the libtorrent e
 <div class="section" id="fastresume-rejected-alert">
 <h2>fastresume_rejected_alert</h2>
 <p>This alert is generated when a fastresume file has been passed to <tt class="docutils literal"><span class="pre">add_torrent</span></tt> but the
-files on disk did not match the fastresume file. The string explains the reason why the
+files on disk did not match the fastresume file. The <tt class="docutils literal"><span class="pre">error_code</span></tt> explains the reason why the
 resume file was rejected.</p>
 <pre class="literal-block">
 struct fastresume_rejected_alert: torrent_alert
 {
         // ...
-        std::string msg;
+        error_code error;
 };
 </pre>
 </div>
@@ -4917,12 +5060,12 @@ struct save_resume_data_alert: torrent_alert
 <div class="section" id="save-resume-data-failed-alert">
 <h2>save_resume_data_failed_alert</h2>
 <p>This alert is generated instead of <tt class="docutils literal"><span class="pre">save_resume_data_alert</span></tt> if there was an error
-generating the resume data. <tt class="docutils literal"><span class="pre">msg</span></tt> describes what went wrong.</p>
+generating the resume data. <tt class="docutils literal"><span class="pre">error</span></tt> describes what went wrong.</p>
 <pre class="literal-block">
 struct save_resume_data_failed_alert: torrent_alert
 {
         // ...
-        std::string msg;
+        error_code error;
 };
 </pre>
 </div>
@@ -5025,9 +5168,9 @@ its own error category (<tt class="docutils literal"><span class="pre">libtorren
 codes:</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="6%" />
-<col width="28%" />
-<col width="66%" />
+<col width="5%" />
+<col width="37%" />
+<col width="58%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">code</th>
@@ -5147,9 +5290,446 @@ trackers <tt class="docutils literal"><span class="pre">udp</span></tt> is recog
 <td>url_parse_error</td>
 <td>The URL did not conform to URL syntax and failed to be parsed</td>
 </tr>
+<tr><td>26</td>
+<td>peer_sent_empty_piece</td>
+<td>The peer sent a 'piece' message of length 0</td>
+</tr>
+<tr><td>27</td>
+<td>parse_failed</td>
+<td>A bencoded structure was currupt and failed to be parsed</td>
+</tr>
+<tr><td>28</td>
+<td>invalid_file_tag</td>
+<td>The fast resume file was missing or had an invalid file version
+tag</td>
+</tr>
+<tr><td>29</td>
+<td>missing_info_hash</td>
+<td>The fast resume file was missing or had an invalid info-hash</td>
+</tr>
+<tr><td>30</td>
+<td>mismatching_info_hash</td>
+<td>The info-hash in the resume file did not match the torrent</td>
+</tr>
+<tr><td>31</td>
+<td>invalid_hostname</td>
+<td>The URL contained an invalid hostname</td>
+</tr>
+<tr><td>32</td>
+<td>invalid_port</td>
+<td>The URL had an invalid port</td>
+</tr>
+<tr><td>33</td>
+<td>port_blocked</td>
+<td>The port is blocked by the port-filter, and prevented the
+connection</td>
+</tr>
+<tr><td>34</td>
+<td>expected_close_bracket_in_address</td>
+<td>The IPv6 address was expected to end with ']'</td>
+</tr>
+<tr><td>35</td>
+<td>destructing_torrent</td>
+<td>The torrent is being destructed, preventing the operation to
+succeed</td>
+</tr>
+<tr><td>36</td>
+<td>timed_out</td>
+<td>The connection timed out</td>
+</tr>
+<tr><td>37</td>
+<td>upload_upload_connection</td>
+<td>The peer is upload only, and we are upload only. There's no point
+in keeping the connection</td>
+</tr>
+<tr><td>38</td>
+<td>uninteresting_upload_peer</td>
+<td>The peer is upload only, and we're not interested in it. There's
+no point in keeping the connection</td>
+</tr>
+<tr><td>39</td>
+<td>invalid_info_hash</td>
+<td>The peer sent an unknown info-hash</td>
+</tr>
+<tr><td>40</td>
+<td>torrent_paused</td>
+<td>The torrent is paused, preventing the operation from succeeding</td>
+</tr>
+<tr><td>41</td>
+<td>invalid_have</td>
+<td>The peer sent an invalid have message, either wrong size or
+referring to a piece that doesn't exist in the torrent</td>
+</tr>
+<tr><td>42</td>
+<td>invalid_bitfield_size</td>
+<td>The bitfield message had the incorrect size</td>
+</tr>
+<tr><td>43</td>
+<td>too_many_requests_when_choked</td>
+<td>The peer kept requesting pieces after it was choked, possible
+abuse attempt.</td>
+</tr>
+<tr><td>44</td>
+<td>invalid_piece</td>
+<td>The peer sent a piece message that does not correspond to a
+piece request sent by the client</td>
+</tr>
+<tr><td>45</td>
+<td>no_memory</td>
+<td>memory allocation failed</td>
+</tr>
+<tr><td>46</td>
+<td>torrent_aborted</td>
+<td>The torrent is aborted, preventing the operation to succeed</td>
+</tr>
+<tr><td>47</td>
+<td>self_connection</td>
+<td>The peer is a connection to ourself, no point in keeping it</td>
+</tr>
+<tr><td>48</td>
+<td>invalid_piece_size</td>
+<td>The peer sent a piece message with invalid size, either negative
+or greater than one block</td>
+</tr>
+<tr><td>49</td>
+<td>timed_out_no_interest</td>
+<td>The peer has not been interesting or interested in us for too
+long, no point in keeping it around</td>
+</tr>
+<tr><td>50</td>
+<td>timed_out_inactivity</td>
+<td>The peer has not said anything in a long time, possibly dead</td>
+</tr>
+<tr><td>51</td>
+<td>timed_out_no_handshake</td>
+<td>The peer did not send a handshake within a reasonable amount of
+time, it might not be a bittorrent peer</td>
+</tr>
+<tr><td>52</td>
+<td>timed_out_no_request</td>
+<td>The peer has been unchoked for too long without requesting any
+data. It might be lying about its interest in us</td>
+</tr>
+<tr><td>53</td>
+<td>invalid_choke</td>
+<td>The peer sent an invalid choke message</td>
+</tr>
+<tr><td>54</td>
+<td>invalid_unchoke</td>
+<td>The peer send an invalid unchoke message</td>
+</tr>
+<tr><td>55</td>
+<td>invalid_interested</td>
+<td>The peer sent an invalid interested message</td>
+</tr>
+<tr><td>56</td>
+<td>invalid_not_interested</td>
+<td>The peer sent an invalid not-interested message</td>
+</tr>
+<tr><td>57</td>
+<td>invalid_request</td>
+<td>The peer sent an invalid piece request message</td>
+</tr>
+<tr><td>58</td>
+<td>invalid_hash_list</td>
+<td>The peer sent an invalid hash-list message (this is part of the
+merkle-torrent extension)</td>
+</tr>
+<tr><td>59</td>
+<td>invalid_hash_piece</td>
+<td>The peer sent an invalid hash-piece message (this is part of the
+merkle-torrent extension)</td>
+</tr>
+<tr><td>60</td>
+<td>invalid_cancel</td>
+<td>The peer sent an invalid cancel message</td>
+</tr>
+<tr><td>61</td>
+<td>invalid_dht_port</td>
+<td>The peer sent an invalid DHT port-message</td>
+</tr>
+<tr><td>62</td>
+<td>invalid_suggest</td>
+<td>The peer sent an invalid suggest piece-message</td>
+</tr>
+<tr><td>63</td>
+<td>invalid_have_all</td>
+<td>The peer sent an invalid have all-message</td>
+</tr>
+<tr><td>64</td>
+<td>invalid_have_none</td>
+<td>The peer sent an invalid have none-message</td>
+</tr>
+<tr><td>65</td>
+<td>invalid_reject</td>
+<td>The peer sent an invalid reject message</td>
+</tr>
+<tr><td>66</td>
+<td>invalid_allow_fast</td>
+<td>The peer sent an invalid allow fast-message</td>
+</tr>
+<tr><td>67</td>
+<td>invalid_extended</td>
+<td>The peer sent an invalid extesion message ID</td>
+</tr>
+<tr><td>68</td>
+<td>invalid_message</td>
+<td>The peer sent an invalid message ID</td>
+</tr>
+<tr><td>69</td>
+<td>sync_hash_not_found</td>
+<td>The synchronization hash was not found in the encrypted handshake</td>
+</tr>
+<tr><td>70</td>
+<td>invalid_encryption_constant</td>
+<td>The encryption constant in the handshake is invalid</td>
+</tr>
+<tr><td>71</td>
+<td>no_plaintext_mode</td>
+<td>The peer does not support plaintext, which is the selected mode</td>
+</tr>
+<tr><td>72</td>
+<td>no_rc4_mode</td>
+<td>The peer does not support rc4, which is the selected mode</td>
+</tr>
+<tr><td>73</td>
+<td>unsupported_encryption_mode</td>
+<td>The peer does not support any of the encryption modes that the
+client supports</td>
+</tr>
+<tr><td>74</td>
+<td>unsupported_encryption_mode_selected</td>
+<td>The peer selected an encryption mode that the client did not
+advertise and does not support</td>
+</tr>
+<tr><td>75</td>
+<td>invalid_pad_size</td>
+<td>The pad size used in the encryption handshake is of invalid size</td>
+</tr>
+<tr><td>76</td>
+<td>invalid_encrypt_handshake</td>
+<td>The encryption handshake is invalid</td>
+</tr>
+<tr><td>77</td>
+<td>no_incoming_encrypted</td>
+<td>The client is set to not support incoming encrypted connections
+and this is an encrypted connection</td>
+</tr>
+<tr><td>78</td>
+<td>no_incoming_regular</td>
+<td>The client is set to not support incoming regular bittorrent
+connections, and this is a regular connection</td>
+</tr>
+<tr><td>79</td>
+<td>duplicate_peer_id</td>
+<td>The client is already connected to this peer-ID</td>
+</tr>
+<tr><td>80</td>
+<td>torrent_removed</td>
+<td>Torrent was removed</td>
+</tr>
+<tr><td>81</td>
+<td>packet_too_large</td>
+<td>The packet size exceeded the upper sanity check-limit</td>
+</tr>
+<tr><td>82</td>
+<td>http_parse_error</td>
+<td>Failed to parse HTTP response</td>
+</tr>
+<tr><td>83</td>
+<td>http_error</td>
+<td>The web server responded with an error</td>
+</tr>
+<tr><td>84</td>
+<td>missing_location</td>
+<td>The web server response is missing a location header</td>
+</tr>
+<tr><td>85</td>
+<td>invalid_redirection</td>
+<td>The web seed redirected to a path that no longer matches the
+.torrent directory structure</td>
+</tr>
+<tr><td>86</td>
+<td>redirecting</td>
+<td>The connection was closed becaused it redirected to a different
+URL</td>
+</tr>
+<tr><td>87</td>
+<td>invalid_range</td>
+<td>The HTTP range header is invalid</td>
+</tr>
+<tr><td>88</td>
+<td>no_content_length</td>
+<td>The HTTP response did not have a content length</td>
+</tr>
+<tr><td>89</td>
+<td>banned_by_ip_filter</td>
+<td>The IP is blocked by the IP filter</td>
+</tr>
+<tr><td>90</td>
+<td>too_many_connections</td>
+<td>At the connection limit</td>
+</tr>
+<tr><td>91</td>
+<td>peer_banned</td>
+<td>The peer is marked as banned</td>
+</tr>
+<tr><td>92</td>
+<td>stopping_torrent</td>
+<td>The torrent is stopping, causing the operation to fail</td>
+</tr>
+<tr><td>93</td>
+<td>too_many_corrupt_pieces</td>
+<td>The peer has sent too many corrupt pieces and is banned</td>
+</tr>
+<tr><td>94</td>
+<td>torrent_not_ready</td>
+<td>The torrent is not ready to receive peers</td>
+</tr>
+<tr><td>95</td>
+<td>peer_not_constructed</td>
+<td>The peer is not completely constructed yet</td>
+</tr>
+<tr><td>96</td>
+<td>session_closing</td>
+<td>The session is closing, causing the operation to fail</td>
+</tr>
+<tr><td>97</td>
+<td>optimistic_disconnect</td>
+<td>The peer was disconnected in order to leave room for a
+potentially better peer</td>
+</tr>
+<tr><td>98</td>
+<td>torrent_finished</td>
+<td>The torrent is finished</td>
+</tr>
+<tr><td>99</td>
+<td>no_router</td>
+<td>No UPnP router found</td>
+</tr>
+<tr><td>100</td>
+<td>metadata_too_large</td>
+<td>The metadata message says the metadata exceeds the limit</td>
+</tr>
+<tr><td>101</td>
+<td>invalid_metadata_request</td>
+<td>The peer sent an invalid metadata request message</td>
+</tr>
+<tr><td>102</td>
+<td>invalid_metadata_size</td>
+<td>The peer advertised an invalid metadata size</td>
+</tr>
+<tr><td>103</td>
+<td>invalid_metadata_offset</td>
+<td>The peer sent a message with an invalid metadata offset</td>
+</tr>
+<tr><td>104</td>
+<td>invalid_metadata_message</td>
+<td>The peer sent an invalid metadata message</td>
+</tr>
+<tr><td>105</td>
+<td>pex_message_too_large</td>
+<td>The peer sent a peer exchange message that was too large</td>
+</tr>
+<tr><td>106</td>
+<td>invalid_pex_message</td>
+<td>The peer sent an invalid peer exchange message</td>
+</tr>
+<tr><td>107</td>
+<td>invalid_lt_tracker_message</td>
+<td>The peer sent an invalid tracker exchange message</td>
+</tr>
+<tr><td>108</td>
+<td>unsupported_protocol_version</td>
+<td>The NAT-PMP router responded with an unsupported protocol version</td>
+</tr>
+<tr><td>109</td>
+<td>natpmp_not_authorized</td>
+<td>You are not authorized to map ports on this NAT-PMP router</td>
+</tr>
+<tr><td>110</td>
+<td>network_failure</td>
+<td>The NAT-PMP router failed because of a network failure</td>
+</tr>
+<tr><td>111</td>
+<td>no_resources</td>
+<td>The NAT-PMP router failed because of lack of resources</td>
+</tr>
+<tr><td>112</td>
+<td>unsupported_opcode</td>
+<td>The NAT-PMP router failed because an unsupported opcode was sent</td>
+</tr>
 </tbody>
 </table>
 <p>The names of these error codes are declared in then <tt class="docutils literal"><span class="pre">libtorrent::errors</span></tt> namespace.</p>
+<p>There is also another error category, <tt class="docutils literal"><span class="pre">libtorrent::upnp_category</span></tt>, defining errors
+retrned by UPnP routers. Here's a (possibly incomplete) list of UPnP error codes:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="6%" />
+<col width="41%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">code</th>
+<th class="head">symbol</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>0</td>
+<td>no_error</td>
+<td>No error</td>
+</tr>
+<tr><td>402</td>
+<td>invalid_argument</td>
+<td>One of the arguments in the request is invalid</td>
+</tr>
+<tr><td>501</td>
+<td>action_failed</td>
+<td>The request failed</td>
+</tr>
+<tr><td>714</td>
+<td>value_not_in_array</td>
+<td>The specified value does not exist in the array</td>
+</tr>
+<tr><td>715</td>
+<td>source_ip_cannot_be_wildcarded</td>
+<td>The source IP address cannot be wild-carded, but
+must be fully specified</td>
+</tr>
+<tr><td>716</td>
+<td>external_port_cannot_be_wildcarded</td>
+<td>The external port cannot be wildcarded, but must
+be specified</td>
+</tr>
+<tr><td>718</td>
+<td>port_mapping_conflict</td>
+<td>The port mapping entry specified conflicts with a
+mapping assigned previously to another client</td>
+</tr>
+<tr><td>724</td>
+<td>internal_port_must_match_external</td>
+<td>Internal and external port value must be the same</td>
+</tr>
+<tr><td>725</td>
+<td>only_permanent_leases_supported</td>
+<td>The NAT implementation only supports permanent
+lease times on port mappings</td>
+</tr>
+<tr><td>726</td>
+<td>remote_host_must_be_wildcard</td>
+<td>RemoteHost must be a wildcard and cannot be a
+specific IP addres or DNS name</td>
+</tr>
+<tr><td>727</td>
+<td>external_port_must_be_wildcard</td>
+<td>ExternalPort must be a wildcard and cannot be a
+specific port</td>
+</tr>
+</tbody>
+</table>
+<p>The UPnP errors are declared in the <tt class="docutils literal"><span class="pre">libtorrent::upnp_errors</span></tt> namespace.</p>
 <div class="section" id="translating-error-codes">
 <h2>translating error codes</h2>
 <p>The error_code::message() function will typically return a localized error string,
