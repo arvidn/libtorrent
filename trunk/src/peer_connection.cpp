@@ -1329,14 +1329,6 @@ namespace libtorrent
 			m_have_piece.set_bit(index);
 			++m_num_pieces;
 
-			if (is_seed())
-			{
-				m_peer_info->seed = true;
-				m_upload_only = true;
-				disconnect_if_redundant();
-				if (is_disconnecting()) return;
-			}
-
 			// only update the piece_picker if
 			// we have the metadata and if
 			// we're not a seed (in which case
@@ -1363,6 +1355,17 @@ namespace libtorrent
 				}
 			}
 			
+			// it's important to not disconnect before we have
+			// updated the piece picker, otherwise we will incorrectly
+			// decrement the piece count without first incrementing it
+			if (is_seed())
+			{
+				m_peer_info->seed = true;
+				m_upload_only = true;
+				disconnect_if_redundant();
+				if (is_disconnecting()) return;
+			}
+
 			// if we're super seeding, this might mean that somebody
 			// forwarded this piece. In which case we need to give
 			// a new piece to that peer
