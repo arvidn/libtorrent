@@ -167,8 +167,7 @@ namespace libtorrent
 			boost::weak_ptr<torrent> find_torrent(const sha1_hash& info_hash);
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
-			void close_connection(peer_connection const* p
-				, char const* message);
+			void close_connection(peer_connection const* p, error_code const& ec);
 
 			void set_settings(session_settings const& s);
 			session_settings const& settings() const { return m_settings; }
@@ -191,9 +190,11 @@ namespace libtorrent
 			pe_settings const& get_pe_settings() const { return m_pe_settings; }
 #endif
 
+			void on_port_map_log(char const* msg, int map_transport);
+
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
-			void on_port_mapping(int mapping, int port, std::string const& errmsg
+			void on_port_mapping(int mapping, int port, error_code const& ec
 				, int nat_transport);
 
 			bool is_aborted() const { return m_abort; }

@@ -54,20 +54,55 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	namespace upnp_errors
+	{
+		enum error_code_enum
+		{
+			no_error = 0,
+			invalid_argument = 402,
+			action_failed = 501,
+			value_not_in_array = 714,
+			source_ip_cannot_be_wildcarded = 715,
+			external_port_cannot_be_wildcarded = 716,
+			port_mapping_conflict = 718,
+			internal_port_must_match_external = 724,
+			only_permanent_leases_supported = 725,
+			remote_host_must_be_wildcard = 726,
+			external_port_must_be_wildcard = 727,
+		};
+	}
+
+#if BOOST_VERSION < 103500
+	extern asio::error::error_category upnp_category;
+#else
+
+	struct TORRENT_EXPORT upnp_error_category : boost::system::error_category
+	{
+		virtual const char* name() const;
+		virtual std::string message(int ev) const;
+		virtual boost::system::error_condition default_error_condition(int ev) const
+		{ return boost::system::error_condition(ev, *this); }
+	};
+
+	extern TORRENT_EXPORT upnp_error_category upnp_category;
+#endif
+
 // int: port-mapping index
 // int: external port
 // std::string: error message
 // an empty string as error means success
 // a port-mapping index of -1 means it's
 // an informational log message
-typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
+typedef boost::function<void(int, int, error_code const&)> portmap_callback_t;
+typedef boost::function<void(char const*)> log_callback_t;
 
 class TORRENT_EXPORT upnp : public intrusive_ptr_base<upnp>
 {
 public:
 	upnp(io_service& ios, connection_queue& cc
 		, address const& listen_interface, std::string const& user_agent
-		, portmap_callback_t const& cb, bool ignore_nonrouters, void* state = 0);
+		, portmap_callback_t const& cb, log_callback_t const& lcb
+		, bool ignore_nonrouters, void* state = 0);
 	~upnp();
 
 	void* drain_state();
@@ -114,9 +149,9 @@ private:
 		, int mapping, http_connection& c);
 	void on_expire(error_code const& e);
 
-	void disable(char const* msg);
+	void disable(error_code const& ec);
 	void return_error(int mapping, int code);
-	void log(std::string const&);
+	void log(char const* msg);
 
 	void delete_port_mapping(rootdevice& d, int i);
 	void create_port_mapping(http_connection& c, rootdevice& d, int i);
@@ -245,6 +280,7 @@ private:
 	std::set<rootdevice> m_devices;
 	
 	portmap_callback_t m_callback;
+	log_callback_t m_log_callback;
 
 	// current retry count
 	int m_retry_count;

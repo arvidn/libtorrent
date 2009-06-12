@@ -45,12 +45,15 @@ namespace libtorrent
 // int: port mapping index
 // int: external port
 // std::string: error message
-typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
+typedef boost::function<void(int, int, error_code const&)> portmap_callback_t;
+typedef boost::function<void(char const*)> log_callback_t;
 
 class TORRENT_EXPORT natpmp : public intrusive_ptr_base<natpmp>
 {
 public:
-	natpmp(io_service& ios, address const& listen_interface, portmap_callback_t const& cb);
+	natpmp(io_service& ios, address const& listen_interface
+		, portmap_callback_t const& cb
+		, log_callback_t const& lcb);
 
 	void rebind(address const& listen_interface);
 
@@ -74,8 +77,8 @@ private:
 	void update_expiration_timer();
 	void mapping_expired(error_code const& e, int i);
 
-	void log(std::string const& msg);
-	void disable(char const* message);
+	void log(char const* msg);
+	void disable(error_code const& ec);
 
 	struct mapping_t
 	{
@@ -111,6 +114,7 @@ private:
 	};
 
 	portmap_callback_t m_callback;
+	log_callback_t m_log_callback;
 
 	std::vector<mapping_t> m_mappings;
 	

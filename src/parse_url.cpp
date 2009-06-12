@@ -36,14 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	// returns protocol, auth, hostname, port, path, error
-	boost::tuple<std::string, std::string, std::string, int, std::string, char const*>
-		parse_url_components(std::string url)
+	// returns protocol, auth, hostname, port, path
+	boost::tuple<std::string, std::string, std::string, int, std::string>
+		parse_url_components(std::string url, error_code& ec)
 	{
 		std::string hostname; // hostname only
 		std::string auth; // user:pass
 		std::string protocol; // http or https for instance
-		char const* error = 0;
 		int port = 80;
 
 		std::string::iterator at;
@@ -63,19 +62,19 @@ namespace libtorrent
 
 		if (end == url.end())
 		{
-			error = "no protocol in url";
+			ec = error_code(errors::unsupported_url_protocol, libtorrent_category);
 			goto exit;
 		}
 		++end;
 		if (end == url.end() || *end != '/')
 		{
-			error = "incomplete protocol";
+			ec = error_code(errors::unsupported_url_protocol, libtorrent_category);
 			goto exit;
 		}
 		++end;
 		if (end == url.end() || *end != '/')
 		{
-			error = "incomplete protocol";
+			ec = error_code(errors::unsupported_url_protocol, libtorrent_category);
 			goto exit;
 		}
 		++end;
@@ -101,7 +100,7 @@ namespace libtorrent
 			port_pos = std::find(start, url.end(), ']');
 			if (port_pos == url.end())
 			{
-				error = "expected closing ']' for address";
+				ec = error_code(errors::expected_close_bracket_in_address, libtorrent_category);
 				goto exit;
 			}
 			port_pos = std::find(port_pos, url.end(), ':');
@@ -125,7 +124,7 @@ namespace libtorrent
 		start = end;
 exit:
 		return boost::make_tuple(protocol, auth, hostname, port
-			, std::string(start, url.end()), error);
+			, std::string(start, url.end()));
 	}
 
 }

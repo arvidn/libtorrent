@@ -194,7 +194,7 @@ namespace libtorrent { namespace
 			int ret = lazy_bdecode(body.begin, body.end, msg);
 			if (ret != 0 || msg.type() != lazy_entry::dict_t)
 			{
-				m_pc.disconnect("invalid bencoding in lt_tracker message", 2);
+				m_pc.disconnect(error_code(errors::invalid_lt_tracker_message, libtorrent_category), 2);
 				return true;
 			}
 

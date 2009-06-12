@@ -260,12 +260,27 @@ namespace libtorrent
 			, int times
 			, int status
 			, std::string const& url_
+			, error_code const& e)
+			: tracker_alert(h, url_)
+			, times_in_row(times)
+			, status_code(status)
+			, msg(e.message())
+		{
+			TORRENT_ASSERT(!url.empty());
+		}
+
+		tracker_error_alert(torrent_handle const& h
+			, int times
+			, int status
+			, std::string const& url_
 			, std::string const& msg_)
 			: tracker_alert(h, url_)
 			, times_in_row(times)
 			, status_code(status)
 			, msg(msg_)
-		{ TORRENT_ASSERT(!url.empty()); }
+		{
+			TORRENT_ASSERT(!url.empty());
+		}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new tracker_error_alert(*this)); }
@@ -276,7 +291,8 @@ namespace libtorrent
 		{
 			char ret[400];
 			snprintf(ret, sizeof(ret), "%s (%d) %s (%d)"
-				, torrent_alert::message().c_str(), status_code, msg.c_str(), times_in_row);
+				, torrent_alert::message().c_str(), status_code
+				, msg.c_str(), times_in_row);
 			return ret;
 		}
 
@@ -335,6 +351,13 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT scrape_failed_alert: tracker_alert
 	{
+		scrape_failed_alert(torrent_handle const& h
+			, std::string const& url_
+			, error_code const& e)
+			: tracker_alert(h, url_)
+			, msg(e.message())
+		{ TORRENT_ASSERT(!url.empty()); }
+
 		scrape_failed_alert(torrent_handle const& h
 			, std::string const& url_
 			, std::string const& msg_)
@@ -497,10 +520,14 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_error_alert: peer_alert
 	{
 		peer_error_alert(torrent_handle const& h, tcp::endpoint const& ip
-			, peer_id const& pid, std::string const& msg_)
+			, peer_id const& pid, error_code const& e)
 			: peer_alert(h, ip, pid)
-			, msg(msg_)
-		{}
+			, error(e)
+		{
+#ifndef TORRENT_NO_DEPRECATE
+			msg = error.message();
+#endif
+		}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new peer_error_alert(*this)); }
@@ -510,10 +537,14 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			error_code ec;
-			return peer_alert::message() + " peer error: " + msg;
+			return peer_alert::message() + " peer error: " + error.message();
 		}
 
+		error_code error;
+
+#ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
+#endif
 	};
 
 	struct TORRENT_EXPORT peer_connect_alert: peer_alert
@@ -537,10 +568,14 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_disconnected_alert: peer_alert
 	{
 		peer_disconnected_alert(torrent_handle const& h, tcp::endpoint const& ip
-			, peer_id const& pid, std::string const& msg_)
+			, peer_id const& pid, error_code const& e)
 			: peer_alert(h, ip, pid)
-			, msg(msg_)
-		{}
+			, error(e)
+		{
+#ifndef TORRENT_NO_DEPRECATE
+			msg = error.message();
+#endif
+		}
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new peer_disconnected_alert(*this)); }
@@ -549,10 +584,14 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			return peer_alert::message() + " disconnecting: " + msg;
+			return peer_alert::message() + " disconnecting: " + error.message();
 		}
 
+		error_code error;
+
+#ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
+#endif
 	};
 
 	struct TORRENT_EXPORT invalid_request_alert: peer_alert
@@ -813,12 +852,20 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT torrent_delete_failed_alert: torrent_alert
 	{
-		torrent_delete_failed_alert(torrent_handle const& h, std::string msg_)
+		torrent_delete_failed_alert(torrent_handle const& h, error_code const& e)
 			: torrent_alert(h)
-			, msg(msg_)
-		{}
+			, error(e)
+		{
+#ifndef TORRENT_NO_DEPRECATE
+			msg = error.message();
+#endif
+		}
 	
+		error_code error;
+
+#ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
+#endif
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new torrent_delete_failed_alert(*this)); }
@@ -829,7 +876,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			return torrent_alert::message() + " torrent deletion failed: "
-				+ msg;
+				+ error.message();
 		}
 	};
 
@@ -857,12 +904,20 @@ namespace libtorrent
 	struct TORRENT_EXPORT save_resume_data_failed_alert: torrent_alert
 	{
 		save_resume_data_failed_alert(torrent_handle const& h
-			, std::string const& msg_)
+			, error_code const& e)
 			: torrent_alert(h)
-			, msg(msg_)
-		{}
+			, error(e)
+		{
+#ifndef TORRENT_NO_DEPRECATE
+			msg = error.message();
+#endif
+		}
 	
+		error_code error;
+
+#ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
+#endif
 		
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new save_resume_data_failed_alert(*this)); }
@@ -873,7 +928,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			return torrent_alert::message() + " resume data was not generated: "
-				+ msg;
+				+ error.message();
 		}
 	};
 
@@ -932,8 +987,17 @@ namespace libtorrent
 	{
 		url_seed_alert(
 			torrent_handle const& h
-			, const std::string& url_
-			, const std::string& msg_)
+			, std::string const& url_
+			, error_code const& e)
+			: torrent_alert(h)
+			, url(url_)
+			, msg(e.message())
+		{}
+
+		url_seed_alert(
+			torrent_handle const& h
+			, std::string const& url_
+			, std::string const& msg_)
 			: torrent_alert(h)
 			, url(url_)
 			, msg(msg_)
@@ -1118,13 +1182,20 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT portmap_error_alert: alert
 	{
-		portmap_error_alert(int i, int t, const std::string& msg_)
-			:  mapping(i), type(t), msg(msg_)
-		{}
+		portmap_error_alert(int i, int t, error_code const& e)
+			:  mapping(i), type(t), error(e)
+		{
+#ifndef TORRENT_NO_DEPRECATE
+			msg = error.message();
+#endif
+		}
 
 		int mapping;
 		int type;
+		error_code error;
+#ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
+#endif
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new portmap_error_alert(*this)); }
@@ -1136,7 +1207,7 @@ namespace libtorrent
 		{
 			static char const* type_str[] = {"NAT-PMP", "UPnP"};
 			return std::string("could not map port using ") + type_str[type]
-				+ ": " + msg;
+				+ ": " + error.message();
 		}
 	};
 
@@ -1191,12 +1262,20 @@ namespace libtorrent
 	struct TORRENT_EXPORT fastresume_rejected_alert: torrent_alert
 	{
 		fastresume_rejected_alert(torrent_handle const& h
-			, std::string const& msg_)
+			, error_code const& e)
 			: torrent_alert(h)
-			, msg(msg_)
-		{}
+			, error(e)
+		{
+#ifndef TORRENT_NO_DEPRECATE
+			msg = error.message();
+#endif
+		}
 
+		error_code error;
+
+#ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
+#endif
 
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new fastresume_rejected_alert(*this)); }
@@ -1206,7 +1285,7 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
-			return torrent_alert::message() + " fast resume rejected: " + msg;
+			return torrent_alert::message() + " fast resume rejected: " + error.message();
 		}
 	};
 

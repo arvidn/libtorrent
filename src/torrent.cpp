@@ -245,10 +245,11 @@ namespace libtorrent
 					std::vector<char>().swap(m_resume_data);
 					if (m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 					{
-						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), "parse failed"));
+						error_code ec(errors::parse_failed, libtorrent_category);
+						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 						(*m_ses.m_logger) << "fastresume data for "
-							<< torrent_file().name() << " rejected: parse failed\n";
+							<< torrent_file().name() << " rejected: " << ec.message() << "\n";
 #endif
 					}
 				}
@@ -314,7 +315,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_abort);
 		if (!m_connections.empty())
-			disconnect_all();
+			disconnect_all(error_code(errors::torrent_aborted, libtorrent_category));
 	}
 
 	void torrent::read_piece(int piece)
@@ -372,7 +373,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<file_error_alert>())
 				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.error));
-			if (c) c->disconnect("no memory");
+			if (c) c->disconnect(error_code(errors::no_memory, libtorrent_category));
 			return;
 		}
 
@@ -621,28 +622,29 @@ namespace libtorrent
 
 		if (m_resume_entry.type() == lazy_entry::dict_t)
 		{
-			char const* error = 0;
+			int ev = 0;
 			if (m_resume_entry.dict_find_string_value("file-format") != "libtorrent resume file")
-				error = "invalid file format tag";
+				ev = errors::invalid_file_tag;
 	
 			std::string info_hash = m_resume_entry.dict_find_string_value("info-hash");
-			if (!error && info_hash.empty())
-				error = "missing info-hash";
+			if (!ev && info_hash.empty())
+				ev = errors::missing_info_hash;
 
-			if (!error && sha1_hash(info_hash) != m_torrent_file->info_hash())
-				error = "mismatching info-hash";
+			if (!ev && sha1_hash(info_hash) != m_torrent_file->info_hash())
+				ev = errors::mismatching_info_hash;
 
-			if (error && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
+			if (ev && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 			{
-				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), error));
+				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle()
+					, error_code(ev, libtorrent_category)));
 			}
 
-			if (error)
+			if (ev)
 			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*m_ses.m_logger) << "fastresume data for "
 					<< torrent_file().name() << " rejected: "
-					<< error << "\n";
+					<< error_code(ev, libtorrent_category).message() << "\n";
 #endif
 				std::vector<char>().swap(m_resume_data);
 				lazy_entry().swap(m_resume_entry);
@@ -786,12 +788,12 @@ namespace libtorrent
 		
 		if (fastresume_rejected && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 		{
-			m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), j.str));
+			m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), j.error));
 		}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_ses.m_logger) << "fastresume data for "
 			<< torrent_file().name() << " rejected: "
-			<< j.str << "\n";
+			<< j.error.message() << "\n";
 #endif
 
 		if (ret == 0)
@@ -894,7 +896,7 @@ namespace libtorrent
 
 		clear_error();
 
-		disconnect_all();
+		disconnect_all(error_code(errors::stopping_torrent, libtorrent_category));
 
 		m_owning_storage->async_release_files();
 		if (!m_picker) m_picker.reset(new piece_picker());
@@ -1927,7 +1929,8 @@ namespace libtorrent
 					(*p->connection->m_logger) << "*** BANNING PEER [ " << p->ip()
 						<< " ] 'too many corrupt pieces'\n";
 #endif
-					p->connection->disconnect("too many corrupt pieces, banning peer");
+					p->connection->disconnect(error_code(errors::too_many_corrupt_pieces
+						, libtorrent_category));
 				}
 			}
 		}
@@ -2010,7 +2013,7 @@ namespace libtorrent
 
 		// disconnect all peers and close all
 		// files belonging to the torrents
-		disconnect_all();
+		disconnect_all(error_code(errors::torrent_aborted, libtorrent_category));
 		if (m_owning_storage.get())
 		{
 			m_storage->async_release_files(
@@ -2102,7 +2105,7 @@ namespace libtorrent
 		if (ret != 0)
 		{
 			if (alerts().should_post<torrent_delete_failed_alert>())
-				alerts().post_alert(torrent_delete_failed_alert(get_handle(), j.str));
+				alerts().post_alert(torrent_delete_failed_alert(get_handle(), j.error));
 		}
 		else
 		{
@@ -2129,7 +2132,7 @@ namespace libtorrent
 
 		if (!j.resume_data && alerts().should_post<save_resume_data_failed_alert>())
 		{
-			alerts().post_alert(save_resume_data_failed_alert(get_handle(), j.str));
+			alerts().post_alert(save_resume_data_failed_alert(get_handle(), j.error));
 			return;
 		}
 
@@ -2611,16 +2614,17 @@ namespace libtorrent
 			// now, look for trackers with the same hostname
 			// that is has higher priority than this one
 			// if we find one, swap with the udp-tracker
+			error_code ec;
 			std::string udp_hostname;
 			using boost::tuples::ignore;
-			boost::tie(ignore, ignore, udp_hostname, ignore, ignore, ignore)
-				= parse_url_components(i->url);
+			boost::tie(ignore, ignore, udp_hostname, ignore, ignore)
+				= parse_url_components(i->url, ec);
 			for (std::vector<announce_entry>::iterator j = m_trackers.begin();
 				j != i; ++j)
 			{
 				std::string hostname;
-				boost::tie(ignore, ignore, hostname, ignore, ignore, ignore)
-					= parse_url_components(j->url);
+				boost::tie(ignore, ignore, hostname, ignore, ignore)
+					= parse_url_components(j->url, ec);
 				if (hostname != udp_hostname) continue;
 				if (j->url.substr(0, 6) == "udp://") continue;
 				using std::swap;
@@ -2749,14 +2753,14 @@ namespace libtorrent
 		std::string hostname;
 		int port;
 		std::string path;
-		char const* error;
-		boost::tie(protocol, auth, hostname, port, path, error)
-			= parse_url_components(web.url);
+		error_code ec;
+		boost::tie(protocol, auth, hostname, port, path)
+			= parse_url_components(web.url, ec);
 
-		if (error)
+		if (ec)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-			(*m_ses.m_logger) << time_now_string() << " failed to parse web seed url: " << error << "\n";
+			(*m_ses.m_logger) << time_now_string() << " failed to parse web seed url: " << ec.message() << "\n";
 #endif
 			// never try it again
 			m_web_seeds.erase(web);
@@ -2772,7 +2776,8 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, "unknown protocol"));
+					url_seed_alert(get_handle(), web.url, error_code(
+						errors::unsupported_url_protocol, libtorrent_category)));
 			}
 			// never try it again
 			m_web_seeds.erase(web);
@@ -2784,7 +2789,8 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, "invalid hostname"));
+					url_seed_alert(get_handle(), web.url, error_code(
+						errors::invalid_hostname, libtorrent_category)));
 			}
 			// never try it again
 			m_web_seeds.erase(web);
@@ -2796,7 +2802,8 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, "invalid port"));
+					url_seed_alert(get_handle(), web.url, error_code(
+						errors::invalid_port, libtorrent_category)));
 			}
 			// never try it again
 			m_web_seeds.erase(web);
@@ -2820,7 +2827,8 @@ namespace libtorrent
 				if (m_ses.m_alerts.should_post<url_seed_alert>())
 				{
 					m_ses.m_alerts.post_alert(
-						url_seed_alert(get_handle(), web.url, "port blocked by port-filter"));
+					url_seed_alert(get_handle(), web.url, error_code(
+						errors::port_blocked, libtorrent_category)));
 				}
 				// never try it again
 				m_web_seeds.erase(web);
@@ -2853,7 +2861,7 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, e.message()));
+					url_seed_alert(get_handle(), web.url, e));
 			}
 
 			// the name lookup failed for the http host. Don't try
@@ -2869,16 +2877,16 @@ namespace libtorrent
 		using boost::tuples::ignore;
 		std::string hostname;
 		int port;
-		char const* error;
-		boost::tie(ignore, ignore, hostname, port, ignore, error)
-			= parse_url_components(web.url);
+		error_code ec;
+		boost::tie(ignore, ignore, hostname, port, ignore)
+			= parse_url_components(web.url, ec);
 
-		if (error)
+		if (ec)
 		{
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, error));
+					url_seed_alert(get_handle(), web.url, ec));
 			}
 			m_web_seeds.erase(web);
 			return;
@@ -2916,13 +2924,11 @@ namespace libtorrent
 		{
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
-				char msg[400];
-				snprintf(msg, sizeof(msg), "HTTP seed hostname lookup failed: %s", e.message().c_str());
-				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, msg));
+				m_ses.m_alerts.post_alert(url_seed_alert(get_handle(), web.url, e));
 			}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << web.url << "\n";
+			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << web.url
+				<< " " << e.message() << "\n";
 #endif
 
 			// unavailable, retry in 30 minutes
@@ -3003,7 +3009,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << e.what() << "\n";
 #endif
-			c->disconnect(e.what(), 1);
+			c->disconnect(error_code(errors::no_error, libtorrent_category), 1);
 		}
 #endif
 	}
@@ -3719,7 +3725,7 @@ namespace libtorrent
 			std::set<peer_connection*>::iterator i
 				= m_connections.find(boost::get_pointer(c));
 			if (i != m_connections.end()) m_connections.erase(i);
-			c->disconnect(e.what());
+			c->disconnect(error_code(errors::no_error, libtorrent_category), 1);
 			return false;
 		}
 #endif
@@ -3788,25 +3794,25 @@ namespace libtorrent
 			|| m_state == torrent_status::checking_resume_data)
 			&& valid_metadata())
 		{
-			p->disconnect("torrent is not ready to accept peers");
+			p->disconnect(error_code(errors::torrent_not_ready, libtorrent_category));
 			return false;
 		}
 		
 		if (m_ses.m_connections.find(p) == m_ses.m_connections.end())
 		{
-			p->disconnect("peer is not properly constructed");
+			p->disconnect(error_code(errors::peer_not_constructed, libtorrent_category));
 			return false;
 		}
 
 		if (m_ses.is_aborted())
 		{
-			p->disconnect("session is closing");
+			p->disconnect(error_code(errors::session_closing, libtorrent_category));
 			return false;
 		}
 
 		if (int(m_connections.size()) >= m_max_connections)
 		{
-			p->disconnect("reached connection limit");
+			p->disconnect(error_code(errors::too_many_connections, libtorrent_category));
 			return false;
 		}
 
@@ -3832,7 +3838,7 @@ namespace libtorrent
 			(*m_ses.m_logger) << time_now_string() << " CLOSING CONNECTION "
 				<< p->remote() << " policy::new_connection threw: " << e.what() << "\n";
 #endif
-			p->disconnect(e.what());
+			p->disconnect(error_code(errors::no_error, libtorrent_category));
 			return false;
 		}
 #endif
@@ -3861,7 +3867,7 @@ namespace libtorrent
 			&& !m_abort;
 	}
 
-	void torrent::disconnect_all()
+	void torrent::disconnect_all(error_code const& ec)
 	{
 // doesn't work with the m_paused -> m_num_peers == 0 condition
 //		INVARIANT_CHECK;
@@ -3883,7 +3889,7 @@ namespace libtorrent
 			if (p->is_disconnecting())
 				m_connections.erase(m_connections.begin());
 			else
-				p->disconnect(m_abort?"stopping torrent":"pausing torrent");
+				p->disconnect(ec);
 			TORRENT_ASSERT(m_connections.size() <= size);
 		}
 	}
@@ -3950,7 +3956,7 @@ namespace libtorrent
 
 			peer_connection* p = *i;
 			++ret;
-			p->disconnect("optimistic disconnect");
+			p->disconnect(error_code(errors::optimistic_disconnect, libtorrent_category));
 		}
 
 		return ret;
@@ -4002,7 +4008,8 @@ namespace libtorrent
 			}
 		}
 		std::for_each(seeds.begin(), seeds.end()
-			, bind(&peer_connection::disconnect, _1, "torrent finished, disconnecting seed", 0));
+			, bind(&peer_connection::disconnect, _1, error_code(errors::torrent_finished
+				, libtorrent_category), 0));
 
 		if (m_abort) return;
 
@@ -4538,7 +4545,7 @@ namespace libtorrent
 		}
 #endif
 
-		disconnect_all();
+		disconnect_all(error_code(errors::torrent_removed, libtorrent_category));
 		stop_announcing();
 
 		if (m_owning_storage.get())
@@ -4671,7 +4678,7 @@ namespace libtorrent
 			if (alerts().should_post<save_resume_data_failed_alert>())
 			{
 				alerts().post_alert(save_resume_data_failed_alert(get_handle()
-					, "save resume data failed, torrent is being destructed"));
+					, error_code(errors::destructing_torrent, libtorrent_category)));
 			}
 			return;
 		}
@@ -4767,7 +4774,7 @@ namespace libtorrent
 				alerts().post_alert(torrent_paused_alert(get_handle()));
 		}
 
-		disconnect_all();
+		disconnect_all(error_code(errors::torrent_paused, libtorrent_category));
 		stop_announcing();
 	}
 
@@ -5032,7 +5039,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*p->m_logger) << "**ERROR**: " << e.what() << "\n";
 #endif
-				p->disconnect(e.what(), 1);
+				p->disconnect(error_code(errors::no_error, libtorrent_category), 1);
 			}
 #endif
 		}
@@ -5587,7 +5594,8 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<tracker_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(tracker_error_alert(get_handle()
-					, ae?ae->fails:0, 0, r.url, "tracker timed out"));
+					, ae?ae->fails:0, 0, r.url
+					, error_code(errors::timed_out, libtorrent_category)));
 			}
 		}
 		else if (r.kind == tracker_request::scrape_request)
@@ -5595,7 +5603,7 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<scrape_failed_alert>())
 			{
 				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle()
-					, r.url, "tracker timed out"));
+					, r.url, error_code(errors::timed_out, libtorrent_category)));
 			}
 		}
 		update_tracker_timer();
