@@ -515,8 +515,8 @@ namespace libtorrent
 		p.userdata = userdata;
 		return add_torrent(p);
 	}
-#endif
-#endif
+#endif // TORRENT_NO_DEPRECATE
+#endif // BOOST_NO_EXCEPTIONS
 
 	void session::remove_torrent(const torrent_handle& h, int options)
 	{
@@ -736,11 +736,13 @@ namespace libtorrent
 
 	int session::local_upload_rate_limit() const
 	{
+		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
 		return m_impl->local_upload_rate_limit();
 	}
 
 	int session::local_download_rate_limit() const
 	{
+		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
 		return m_impl->local_download_rate_limit();
 	}
 
@@ -758,11 +760,13 @@ namespace libtorrent
 
 	void session::set_local_upload_rate_limit(int bytes_per_second)
 	{
+		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_local_upload_rate_limit(bytes_per_second);
 	}
 
 	void session::set_local_download_rate_limit(int bytes_per_second)
 	{
+		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_local_download_rate_limit(bytes_per_second);
 	}
 
@@ -798,11 +802,13 @@ namespace libtorrent
 
 	void session::set_alert_dispatch(boost::function<void(alert const&)> const& fun)
 	{
+		// this function deliberately doesn't acquire the mutex
 		return m_impl->set_alert_dispatch(fun);
 	}
 
 	alert const* session::wait_for_alert(time_duration max_wait)
 	{
+		// this function deliberately doesn't acquire the mutex
 		return m_impl->wait_for_alert(max_wait);
 	}
 
