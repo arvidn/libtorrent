@@ -356,8 +356,7 @@ namespace libtorrent
 
 		piece_block block_finished(j.piece, j.offset / block_size());
 
-		if (j.action == disk_io_job::write
-			|| j.action == disk_io_job::hash)
+		if (j.action == disk_io_job::write)
 		{
 			// we failed to write j.piece to disk tell the piece picker
 			if (has_picker() && j.piece >= 0) picker().write_failed(block_finished);
