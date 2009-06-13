@@ -102,6 +102,8 @@ namespace libtorrent
 
 		void ip_filter_updated();
 
+		void set_seed(policy::peer* p, bool s);
+
 #ifdef TORRENT_DEBUG
 		bool has_connection(const peer_connection* p);
 

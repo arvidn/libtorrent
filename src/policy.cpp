@@ -895,6 +895,15 @@ namespace libtorrent
 		return false;
 	}
 
+	void policy::set_seed(policy::peer* p, bool s)
+	{
+		if (p == 0) return;
+		if (p->seed == s) return;
+		p->seed = s;
+		if (s) ++m_num_seeds;
+		else --m_num_seeds;
+	}
+
 	policy::peer* policy::add_peer(tcp::endpoint const& remote, peer_id const& pid
 		, int src, char flags)
 	{
