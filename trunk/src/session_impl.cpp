@@ -2774,18 +2774,11 @@ namespace aux {
 			, bind(&session_impl::on_lsd_peer, this, _1, _2));
 	}
 	
-	natpmp* session_impl::start_natpmp()
+	void session_impl::start_natpmp(natpmp* n)
 	{
 		INVARIANT_CHECK;
 
-		if (m_natpmp) return m_natpmp.get();
-
-		m_natpmp = new natpmp(m_io_service
-			, m_listen_interface.address()
-			, bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, 0)
-			, bind(&session_impl::on_port_map_log
-				, this, _1, 0));
+		m_natpmp = n;
 
 		if (m_listen_interface.port() > 0)
 		{
@@ -2798,23 +2791,13 @@ namespace aux {
 				, m_dht_settings.service_port 
 				, m_dht_settings.service_port);
 #endif
-		return m_natpmp.get();
 	}
 
-	upnp* session_impl::start_upnp()
+	void session_impl::start_upnp(upnp* u)
 	{
 		INVARIANT_CHECK;
 
-		if (m_upnp) return m_upnp.get();
-
-		m_upnp = new upnp(m_io_service, m_half_open
-			, m_listen_interface.address()
-			, m_settings.user_agent
-			, bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, 1)
-			, bind(&session_impl::on_port_map_log
-				, this, _1, 0)
-			, m_settings.upnp_ignore_nonrouters);
+		m_upnp = u;
 
 		m_upnp->discover_device();
 		if (m_listen_interface.port() > 0)
@@ -2828,7 +2811,6 @@ namespace aux {
 				, m_dht_settings.service_port 
 				, m_dht_settings.service_port);
 #endif
-		return m_upnp.get();
 	}
 
 	void session_impl::stop_lsd()

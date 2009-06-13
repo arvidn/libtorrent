@@ -312,8 +312,8 @@ namespace libtorrent
 			entry state() const;
 
 			void start_lsd();
-			natpmp* start_natpmp();
-			upnp* start_upnp();
+			void start_natpmp(natpmp* n);
+			void start_upnp(upnp* u);
 
 			void stop_lsd();
 			void stop_natpmp();
