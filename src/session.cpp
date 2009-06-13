@@ -74,6 +74,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
+#include "libtorrent/natpmp.hpp"
+#include "libtorrent/upnp.hpp"
 
 using boost::shared_ptr;
 using boost::weak_ptr;
@@ -855,13 +857,49 @@ namespace libtorrent
 	natpmp* session::start_natpmp()
 	{
 		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
-		return m_impl->start_natpmp();
+		if (m_impl->m_natpmp) return m_impl->m_natpmp.get();
+
+		// the natpmp constructor may fail and call the callbacks
+		// into the session_impl. We cannot hold the mutex then
+		l.unlock();
+		natpmp* n = new (std::nothrow) natpmp(m_impl->m_io_service
+			, m_impl->m_listen_interface.address()
+			, bind(&session_impl::on_port_mapping
+				, m_impl.get(), _1, _2, _3, 0)
+			, bind(&session_impl::on_port_map_log
+				, m_impl.get(), _1, 0));
+		l.lock();
+
+		if (n == 0) return 0;
+
+		m_impl->start_natpmp(n);
+		return n;
 	}
 	
 	upnp* session::start_upnp()
 	{
 		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
-		return m_impl->start_upnp();
+
+		if (m_impl->m_upnp) return m_impl->m_upnp.get();
+
+		// the upnp constructor may fail and call the callbacks
+		// into the session_impl. We cannot hold the mutex then
+		l.unlock();
+		upnp* u = new (std::nothrow) upnp(m_impl->m_io_service
+			, m_impl->m_half_open
+			, m_impl->m_listen_interface.address()
+			, m_impl->m_settings.user_agent
+			, bind(&session_impl::on_port_mapping
+				, m_impl.get(), _1, _2, _3, 1)
+			, bind(&session_impl::on_port_map_log
+				, m_impl.get(), _1, 0)
+			, m_impl->m_settings.upnp_ignore_nonrouters);
+		l.lock();
+
+		if (u == 0) return 0;
+
+		m_impl->start_upnp(u);
+		return u;
 	}
 	
 	void session::stop_lsd()
