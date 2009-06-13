@@ -467,7 +467,7 @@ namespace libtorrent
 				<< " *** on_metadata(): THIS IS A SEED ***\n";
 #endif
 			// if this is a web seed. we don't have a peer_info struct
-			if (m_peer_info) m_peer_info->seed = true;
+			t->get_policy().set_seed(m_peer_info, true);
 			m_upload_only = true;
 
 			t->peer_has_all();
@@ -535,7 +535,7 @@ namespace libtorrent
 			(*m_logger) << " *** THIS IS A SEED ***\n";
 #endif
 			// if this is a web seed. we don't have a peer_info struct
-			if (m_peer_info) m_peer_info->seed = true;
+			t->get_policy().set_seed(m_peer_info, true);
 			m_upload_only = true;
 
 			t->peer_has_all();
@@ -1272,7 +1272,7 @@ namespace libtorrent
 			
 			if (is_seed())
 			{
-				m_peer_info->seed = true;
+				t->get_policy().set_seed(m_peer_info, true);
 				m_upload_only = true;
 				disconnect_if_redundant();
 				if (is_disconnecting()) return;
@@ -1335,7 +1335,7 @@ namespace libtorrent
 		{
 			m_have_piece = bits;
 			m_num_pieces = bits.count();
-			if (m_peer_info) m_peer_info->seed = (m_num_pieces == int(bits.size()));
+			t->get_policy().set_seed(m_peer_info, m_num_pieces == int(bits.size()));
 			return;
 		}
 
@@ -1348,7 +1348,7 @@ namespace libtorrent
 			(*m_logger) << " *** THIS IS A SEED ***\n";
 #endif
 			// if this is a web seed. we don't have a peer_info struct
-			if (m_peer_info) m_peer_info->seed = true;
+			t->get_policy().set_seed(m_peer_info, true);
 			m_upload_only = true;
 
 			m_have_piece.set_all();
@@ -1997,7 +1997,7 @@ namespace libtorrent
 
 		m_have_all = true;
 
-		if (m_peer_info) m_peer_info->seed = true;
+		t->get_policy().set_seed(m_peer_info, true);
 		m_upload_only = true;
 		m_bitfield_received = true;
 
@@ -2058,7 +2058,7 @@ namespace libtorrent
 		}
 #endif
 		if (is_disconnecting()) return;
-		if (m_peer_info) m_peer_info->seed = false;
+		t->get_policy().set_seed(m_peer_info, false);
 		m_bitfield_received = true;
 
 		// we're never interested in a peer that doesn't have anything
