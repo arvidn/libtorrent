@@ -123,7 +123,9 @@ public:
 
 private:
 
-	void discover_device_impl();
+	typedef boost::mutex mutex_t;
+
+	void discover_device_impl(mutex_t::scoped_lock& l);
 	static address_v4 upnp_multicast_address;
 	static udp::endpoint upnp_multicast_endpoint;
 
@@ -134,8 +136,8 @@ private:
 		, std::size_t bytes_transferred);
 
 	struct rootdevice;
-	void next(rootdevice& d, int i);
-	void update_map(rootdevice& d, int i);
+	void next(rootdevice& d, int i, mutex_t::scoped_lock& l);
+	void update_map(rootdevice& d, int i, mutex_t::scoped_lock& l);
 
 	
 	void on_upnp_xml(error_code const& e
@@ -149,14 +151,14 @@ private:
 		, int mapping, http_connection& c);
 	void on_expire(error_code const& e);
 
-	void disable(error_code const& ec);
-	void return_error(int mapping, int code);
-	void log(char const* msg);
+	void disable(error_code const& ec, mutex_t::scoped_lock& l);
+	void return_error(int mapping, int code, mutex_t::scoped_lock& l);
+	void log(char const* msg, mutex_t::scoped_lock& l);
 
 	void delete_port_mapping(rootdevice& d, int i);
 	void create_port_mapping(http_connection& c, rootdevice& d, int i);
 	void post(upnp::rootdevice const& d, char const* soap
-		, char const* soap_action);
+		, char const* soap_action, mutex_t::scoped_lock& l);
 
 	int num_mappings() const { return int(m_mappings.size()); }
 
@@ -304,7 +306,6 @@ private:
 
 	connection_queue& m_cc;
 
-	typedef boost::mutex mutex_t;
 	mutex_t m_mutex;
 
 	std::string m_model;

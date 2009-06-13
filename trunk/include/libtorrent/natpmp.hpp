@@ -68,17 +68,19 @@ public:
 
 private:
 	
-	void update_mapping(int i);
-	void send_map_request(int i);
+	typedef boost::mutex mutex_t;
+
+	void update_mapping(int i, mutex_t::scoped_lock& l);
+	void send_map_request(int i, mutex_t::scoped_lock& l);
 	void resend_request(int i, error_code const& e);
 	void on_reply(error_code const& e
 		, std::size_t bytes_transferred);
-	void try_next_mapping(int i);
+	void try_next_mapping(int i, mutex_t::scoped_lock& l);
 	void update_expiration_timer();
 	void mapping_expired(error_code const& e, int i);
 
-	void log(char const* msg);
-	void disable(error_code const& ec);
+	void log(char const* msg, mutex_t::scoped_lock& l);
+	void disable(error_code const& ec, mutex_t::scoped_lock& l);
 
 	struct mapping_t
 	{
@@ -153,8 +155,7 @@ private:
 
 	bool m_abort;
 
-	typedef boost::mutex mutex_t;
-	mutex_t m_mutex;
+	mutable mutex_t m_mutex;
 };
 
 }

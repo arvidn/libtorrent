@@ -107,17 +107,19 @@ void upnp::discover_device()
 {
 	mutex_t::scoped_lock l(m_mutex);
 	if (m_socket.num_send_sockets() == 0)
-		log("No network interfaces to broadcast to");
+		log("No network interfaces to broadcast to", l);
 
-	discover_device_impl();
+	discover_device_impl(l);
 }
 
-void upnp::log(char const* msg)
+void upnp::log(char const* msg, mutex_t::scoped_lock& l)
 {
+	l.unlock();
 	m_log_callback(msg);
+	l.lock();
 }
 
-void upnp::discover_device_impl()
+void upnp::discover_device_impl(mutex_t::scoped_lock& l)
 {
 	const char msearch[] = 
 		"M-SEARCH * HTTP/1.1\r\n"
@@ -138,8 +140,8 @@ void upnp::discover_device_impl()
 	{
 		char msg[200];
 		snprintf(msg, sizeof(msg), "broadcast failed: %s. Aborting.", ec.message().c_str());
-		log(msg);
-		disable(ec);
+		log(msg, l);
+		disable(ec, l);
 		return;
 	}
 
@@ -148,7 +150,7 @@ void upnp::discover_device_impl()
 	m_broadcast_timer.async_wait(bind(&upnp::resend_request
 		, self(), _1));
 
-	log("broadcasting search for rootdevice");
+	log("broadcasting search for rootdevice", l);
 }
 
 // returns a reference to a mapping or -1 on failure
@@ -160,7 +162,7 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 	snprintf(msg, sizeof(msg), "adding port map: [ protocol: %s ext_port: %u "
 		"local_port: %u ] %s", (p == tcp?"tcp":"udp"), external_port
 		, local_port, m_disabled ? "DISABLED": "");
-	log(msg);
+	log(msg, l);
 	if (m_disabled) return -1;
 
 	std::vector<global_mapping_t>::iterator i = std::find_if(
@@ -194,7 +196,7 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 		m.external_port = external_port;
 		m.local_port = local_port;
 
-		if (d.service_namespace) update_map(d, mapping_index);
+		if (d.service_namespace) update_map(d, mapping_index, l);
 	}
 
 	return mapping_index;
@@ -212,7 +214,7 @@ void upnp::delete_mapping(int mapping)
 	snprintf(msg, sizeof(msg), "deleting port map: [ protocol: %s ext_port: %u "
 		"local_port: %u ]", (m.protocol == tcp?"tcp":"udp"), m.external_port
 		, m.local_port);
-	log(msg);
+	log(msg, l);
 
 	if (m.protocol == none) return;
 	
@@ -225,7 +227,7 @@ void upnp::delete_mapping(int mapping)
 		TORRENT_ASSERT(mapping < int(d.mapping.size()));
 		d.mapping[mapping].action = mapping_t::action_delete;
 
-		if (d.service_namespace) update_map(d, mapping);
+		if (d.service_namespace) update_map(d, mapping, l);
 	}
 }
 
@@ -252,13 +254,13 @@ void upnp::resend_request(error_code const& e)
 	if (m_retry_count < 12
 		&& (m_devices.empty() || m_retry_count < 4))
 	{
-		discover_device_impl();
+		discover_device_impl(l);
 		return;
 	}
 
 	if (m_devices.empty())
 	{
-		disable(error_code(errors::no_router, libtorrent_category));
+		disable(error_code(errors::no_router, libtorrent_category), l);
 		return;
 	}
 	
@@ -277,7 +279,7 @@ void upnp::resend_request(error_code const& e)
 #endif
 				char msg[200];
 				snprintf(msg, sizeof(msg), "connecting to: %s", d.url.c_str());
-				log(msg);
+				log(msg, l);
 				if (d.upnp_connection) d.upnp_connection->close();
 				d.upnp_connection.reset(new http_connection(m_io_service
 					, m_cc, bind(&upnp::on_upnp_xml, self(), _1, _2
@@ -290,7 +292,7 @@ void upnp::resend_request(error_code const& e)
 				(void)e;
 				char msg[200];
 				snprintf(msg, sizeof(msg), "connection failed to: %s %s", d.url.c_str(), e.what());
-				log(msg);
+				log(msg, l);
 				d.disabled = true;
 			}
 #endif
@@ -339,7 +341,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			char msg[200];
 			snprintf(msg, sizeof(msg), "when receiving response from: %s: %s"
 				, print_endpoint(from).c_str(), ec.message().c_str());
-			log(msg);
+			log(msg, l);
 		}
 		else
 		{
@@ -347,7 +349,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			int num_chars = snprintf(msg, sizeof(msg)
 				, "ignoring response from: %s. IP is not on local network. "
 				, print_endpoint(from).c_str());
-			log(msg);
+			log(msg, l);
 
 			std::vector<ip_interface> net = enum_net_interfaces(m_io_service, ec);
 			for (std::vector<ip_interface>::const_iterator i = net.begin()
@@ -356,7 +358,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
 					, print_address(i->interface_address).c_str(), print_address(i->netmask).c_str());
 			}
-			log(msg);
+			log(msg, l);
 		}
 		return;
 	} 
@@ -374,7 +376,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				char msg[200];
 				snprintf(msg, sizeof(msg), "when receiving response from: %s: %s"
 					, print_endpoint(from).c_str(), ec.message().c_str());
-				log(msg);
+				log(msg, l);
 			}
 			else
 			{
@@ -387,7 +389,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 					num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
 						, print_address(i->gateway).c_str(), print_address(i->netmask).c_str());
 				}
-				log(msg);
+				log(msg, l);
 			}
 			return;
 		}
@@ -402,7 +404,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		char msg[200];
 		snprintf(msg, sizeof(msg), "received malformed HTTP from: %s"
 			, print_endpoint(from).c_str());
-		log(msg);
+		log(msg, l);
 		return;
 	}
 
@@ -413,14 +415,14 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			char msg[200];
 			snprintf(msg, sizeof(msg), "HTTP status %u from %s"
 				, p.status_code(), print_endpoint(from).c_str());
-			log(msg);
+			log(msg, l);
 		}
 		else
 		{
 			char msg[200];
 			snprintf(msg, sizeof(msg), "HTTP method %s from %s"
 				, p.method().c_str(), print_endpoint(from).c_str());
-			log(msg);
+			log(msg, l);
 		}
 		return;
 	}
@@ -430,7 +432,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		char msg[200];
 		snprintf(msg, sizeof(msg), "incomplete HTTP packet from %s"
 			, print_endpoint(from).c_str());
-		log(msg);
+		log(msg, l);
 		return;
 	}
 
@@ -440,7 +442,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		char msg[200];
 		snprintf(msg, sizeof(msg), "missing location header from %s"
 			, print_endpoint(from).c_str());
-		log(msg);
+		log(msg, l);
 		return;
 	}
 
@@ -464,7 +466,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			char msg[200];
 			snprintf(msg, sizeof(msg), "invalid URL %s from %s: %s"
 				, d.url.c_str(), print_endpoint(from).c_str(), ec.message().c_str());
-			log(msg);
+			log(msg, l);
 			return;
 		}
 
@@ -476,7 +478,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			char msg[200];
 			snprintf(msg, sizeof(msg), "unsupported protocol %s from %s"
 				, protocol.c_str(), print_endpoint(from).c_str());
-			log(msg);
+			log(msg, l);
 			return;
 		}
 
@@ -485,21 +487,21 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			char msg[200];
 			snprintf(msg, sizeof(msg), "URL with port 0 from %s"
 				, print_endpoint(from).c_str());
-			log(msg);
+			log(msg, l);
 			return;
 		}
 
 		char msg[200];
 		snprintf(msg, sizeof(msg), "found rootdevice: %s (%d)"
 			, d.url.c_str(), int(m_devices.size()));
-		log(msg);
+		log(msg, l);
 
 		if (m_devices.size() >= 50)
 		{
 			char msg[200];
 			snprintf(msg, sizeof(msg), "too many rootdevices: (%d). Ignoring %s"
 				, int(m_devices.size()), d.url.c_str());
-			log(msg);
+			log(msg, l);
 			return;
 		}
 
@@ -536,7 +538,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 					char msg[200];
 					snprintf(msg, sizeof(msg), "connecting to: %s"
 						, d.url.c_str());
-					log(msg);
+					log(msg, l);
 
 					if (d.upnp_connection) d.upnp_connection->close();
 					d.upnp_connection.reset(new http_connection(m_io_service
@@ -552,7 +554,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 					char msg[200];
 					snprintf(msg, sizeof(msg), "connection failed to: %s %s"
 						, d.url.c_str(), e.what());
-					log(msg);
+					log(msg, l);
 					d.disabled = true;
 				}
 #endif
@@ -562,7 +564,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 }
 
 void upnp::post(upnp::rootdevice const& d, char const* soap
-	, char const* soap_action)
+	, char const* soap_action, mutex_t::scoped_lock& l)
 {
 	TORRENT_ASSERT(d.magic == 1337);
 	TORRENT_ASSERT(d.upnp_connection);
@@ -582,7 +584,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 
 	char msg[400];
 	snprintf(msg, sizeof(msg), "sending: %s", header);
-	log(msg);
+	log(msg, l);
 }
 
 void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
@@ -596,7 +598,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 		TORRENT_ASSERT(d.disabled);
 		char msg[200];
 		snprintf(msg, sizeof(msg), "mapping %u aborted", i);
-		log(msg);
+		log(msg, l);
 		return;
 	}
 	
@@ -623,14 +625,14 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 		, print_address(c.socket().local_endpoint(ec).address()).c_str()
 		, m_user_agent.c_str(), d.lease_duration, soap_action);
 
-	post(d, soap, soap_action);
+	post(d, soap, soap_action, l);
 }
 
-void upnp::next(rootdevice& d, int i)
+void upnp::next(rootdevice& d, int i, mutex_t::scoped_lock& l)
 {
 	if (i < num_mappings() - 1)
 	{
-		update_map(d, i + 1);
+		update_map(d, i + 1, l);
 	}
 	else
 	{
@@ -639,11 +641,11 @@ void upnp::next(rootdevice& d, int i)
 			, boost::bind(&mapping_t::action, _1) != int(mapping_t::action_none));
 		if (i == d.mapping.end()) return;
 
-		update_map(d, i - d.mapping.begin());
+		update_map(d, i - d.mapping.begin(), l);
 	}
 }
 
-void upnp::update_map(rootdevice& d, int i)
+void upnp::update_map(rootdevice& d, int i, mutex_t::scoped_lock& l)
 {
 	TORRENT_ASSERT(d.magic == 1337);
 	TORRENT_ASSERT(i < int(d.mapping.size()));
@@ -658,9 +660,9 @@ void upnp::update_map(rootdevice& d, int i)
 	{
 		char msg[200];
 		snprintf(msg, sizeof(msg), "mapping %u does not need updating, skipping", i);
-		log(msg);
+		log(msg, l);
 		m.action = mapping_t::action_none;
-		next(d, i);
+		next(d, i, l);
 		return;
 	}
 
@@ -669,14 +671,14 @@ void upnp::update_map(rootdevice& d, int i)
 
 	char msg[200];
 	snprintf(msg, sizeof(msg), "connecting to %s", d.hostname.c_str());
-	log(msg);
+	log(msg, l);
 	if (m.action == mapping_t::action_add)
 	{
 		if (m.failcount > 5)
 		{
 			m.action = mapping_t::action_none;
 			// giving up
-			next(d, i);
+			next(d, i, l);
 			return;
 		}
 
@@ -714,7 +716,7 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 		TORRENT_ASSERT(d.disabled);
 		char msg[200];
 		snprintf(msg, sizeof(msg), "unmapping %u aborted", i);
-		log(msg);
+		log(msg, l);
 		return;
 	}
 
@@ -734,7 +736,7 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 		, (d.mapping[i].protocol == udp ? "UDP" : "TCP")
 		, soap_action);
 	
-	post(d, soap, soap_action);
+	post(d, soap, soap_action, l);
 }
 
 namespace
@@ -848,7 +850,7 @@ void upnp::on_upnp_xml(error_code const& e
 		char msg[200];
 		snprintf(msg, sizeof(msg), "error while fetching control url from: %s: %s"
 			, d.url.c_str(), e.message().c_str());
-		log(msg);
+		log(msg, l);
 		d.disabled = true;
 		return;
 	}
@@ -858,7 +860,7 @@ void upnp::on_upnp_xml(error_code const& e
 		char msg[200];
 		snprintf(msg, sizeof(msg), "error while fetching control url from: %s: incomplete HTTP message"
 			, d.url.c_str());
-		log(msg);
+		log(msg, l);
 		d.disabled = true;
 		return;
 	}
@@ -868,7 +870,7 @@ void upnp::on_upnp_xml(error_code const& e
 		char msg[200];
 		snprintf(msg, sizeof(msg), "error while fetching control url from: %s: %s"
 			, d.url.c_str(), p.message().c_str());
-		log(msg);
+		log(msg, l);
 		d.disabled = true;
 		return;
 	}
@@ -899,7 +901,7 @@ void upnp::on_upnp_xml(error_code const& e
 			char msg[200];
 			snprintf(msg, sizeof(msg), "could not find a port mapping interface in response from: %s"
 				, d.url.c_str());
-			log(msg);
+			log(msg, l);
 			d.disabled = true;
 			return;
 		}
@@ -932,7 +934,7 @@ void upnp::on_upnp_xml(error_code const& e
 		"urlbase: %s in response from %s"
 		, d.control_url.c_str(), d.service_namespace
 		, s.url_base.c_str(), d.url.c_str());
-	log(msg);
+	log(msg, l);
 
 	boost::tie(protocol, auth, d.hostname, d.port, d.path)
 		= parse_url_components(d.control_url, ec);
@@ -942,15 +944,15 @@ void upnp::on_upnp_xml(error_code const& e
 		char msg[200];
 		snprintf(msg, sizeof(msg), "failed to parse URL '%s': %s"
 			, d.control_url.c_str(), ec.message().c_str());
-		log(msg);
+		log(msg, l);
 		d.disabled = true;
 		return;
 	}
 
-	if (num_mappings() > 0) update_map(d, 0);
+	if (num_mappings() > 0) update_map(d, 0, l);
 }
 
-void upnp::disable(error_code const& ec)
+void upnp::disable(error_code const& ec, mutex_t::scoped_lock& l)
 {
 	m_disabled = true;
 
@@ -960,7 +962,9 @@ void upnp::disable(error_code const& ec)
 	{
 		if (i->protocol == none) continue;
 		i->protocol = none;
+		l.unlock();
 		m_callback(i - m_mappings.begin(), 0, ec);
+		l.lock();
 	}
 	
 	// we cannot clear the devices since there
@@ -1077,7 +1081,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		char msg[200];
 		snprintf(msg, sizeof(msg), "error while adding port map: %s"
 			, e.message().c_str());
-		log(msg);
+		log(msg, l);
 		d.disabled = true;
 		return;
 	}
@@ -1103,8 +1107,8 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	if (!p.header_finished())
 	{
-		log("error while adding port map: incomplete http message");
-		next(d, mapping);
+		log("error while adding port map: incomplete http message", l);
+		next(d, mapping, l);
 		return;
 	}
 
@@ -1120,7 +1124,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		char msg[200];
 		snprintf(msg, sizeof(msg), "error while adding port map, code: %u"
 			, s.error_code);
-		log(msg);
+		log(msg, l);
 	}
 	
 	mapping_t& m = d.mapping[mapping];
@@ -1131,7 +1135,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		d.lease_duration = 0;
 		m.action = mapping_t::action_add;
 		++m.failcount;
-		update_map(d, mapping);
+		update_map(d, mapping, l);
 		return;
 	}
 	else if (s.error_code == 718 || s.error_code == 727)
@@ -1143,10 +1147,10 @@ void upnp::on_upnp_map_response(error_code const& e
 			m.external_port = 0;
 			m.action = mapping_t::action_add;
 			++m.failcount;
-			update_map(d, mapping);
+			update_map(d, mapping, l);
 			return;
 		}
-		return_error(mapping, s.error_code);
+		return_error(mapping, s.error_code, l);
 	}
 	else if (s.error_code == 716)
 	{
@@ -1155,22 +1159,24 @@ void upnp::on_upnp_map_response(error_code const& e
 		m.external_port = 40000 + (std::rand() % 10000);
 		m.action = mapping_t::action_add;
 		++m.failcount;
-		update_map(d, mapping);
+		update_map(d, mapping, l);
 		return;
 	}
 	else if (s.error_code != -1)
 	{
-		return_error(mapping, s.error_code);
+		return_error(mapping, s.error_code, l);
 	}
 
 	char msg[200];
 	snprintf(msg, sizeof(msg), "map response: %s"
 		, std::string(p.get_body().begin, p.get_body().end).c_str());
-	log(msg);
+	log(msg, l);
 
 	if (s.error_code == -1)
 	{
+		l.unlock();
 		m_callback(mapping, m.external_port, error_code());
+		l.lock();
 		if (d.lease_duration > 0)
 		{
 			m.expires = time_now()
@@ -1191,10 +1197,10 @@ void upnp::on_upnp_map_response(error_code const& e
 		m.failcount = 0;
 	}
 
-	next(d, mapping);
+	next(d, mapping, l);
 }
 
-void upnp::return_error(int mapping, int code)
+void upnp::return_error(int mapping, int code, mutex_t::scoped_lock& l)
 {
 	int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
 	error_code_t* end = error_codes + num_errors;
@@ -1208,7 +1214,9 @@ void upnp::return_error(int mapping, int code)
 		error_string += ": ";
 		error_string += e->msg;
 	}
+	l.unlock();
 	m_callback(mapping, 0, error_code(code, upnp_category));
+	l.lock();
 }
 
 void upnp::on_upnp_unmap_response(error_code const& e
@@ -1228,29 +1236,29 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	{
 		char msg[200];
 		snprintf(msg, sizeof(msg), "error while deleing portmap: %s", e.message().c_str());
-		log(msg);
+		log(msg, l);
 	}
 	else if (!p.header_finished())
 	{
-		log("error while deleting portmap: incomplete http message");
+		log("error while deleting portmap: incomplete http message", l);
 	}
 	else if (p.status_code() != 200)
 	{
 		char msg[200];
 		snprintf(msg, sizeof(msg), "error while deleing portmap: %s", p.message().c_str());
-		log(msg);
+		log(msg, l);
 	}
 	else
 	{
 		char msg[200];
 		snprintf(msg, sizeof(msg), "unmap response: %s"
 			, std::string(p.get_body().begin, p.get_body().end).c_str());
-		log(msg);
+		log(msg, l);
 	}
 
 	d.mapping[mapping].protocol = none;
 
-	next(d, mapping);
+	next(d, mapping, l);
 }
 
 void upnp::on_expire(error_code const& e)
@@ -1275,7 +1283,7 @@ void upnp::on_expire(error_code const& e)
 			if (d.mapping[m].expires < now)
 			{
 				d.mapping[m].expires = max_time();
-				update_map(d, m);
+				update_map(d, m, l);
 			}
 			else if (d.mapping[m].expires < next_expire)
 			{
@@ -1319,7 +1327,7 @@ void upnp::close()
 			j->action = mapping_t::action_delete;
 			m_mappings[j - d.mapping.begin()].protocol = none;
 		}
-		if (num_mappings() > 0) update_map(d, 0);
+		if (num_mappings() > 0) update_map(d, 0, l);
 	}
 }
 
