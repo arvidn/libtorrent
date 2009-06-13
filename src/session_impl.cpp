@@ -2683,8 +2683,6 @@ namespace aux {
 
 	void session_impl::set_local_download_rate_limit(int bytes_per_second)
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (bytes_per_second <= 0) bytes_per_second = 0;
@@ -2693,8 +2691,6 @@ namespace aux {
 
 	void session_impl::set_local_upload_rate_limit(int bytes_per_second)
 	{
-		mutex_t::scoped_lock l(m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (bytes_per_second <= 0) bytes_per_second = 0;
@@ -2749,19 +2745,16 @@ namespace aux {
 
 	int session_impl::local_upload_rate_limit() const
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		return m_local_upload_channel.throttle();
 	}
 
 	int session_impl::local_download_rate_limit() const
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		return m_local_download_channel.throttle();
 	}
 
 	int session_impl::upload_rate_limit() const
 	{
-		mutex_t::scoped_lock l(m_mutex);
 		return m_upload_channel.throttle();
 	}
 
