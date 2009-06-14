@@ -30,15 +30,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <cstddef>
-
 #ifndef TORRENT_ALLOCATOR_HPP_INCLUDED
 #define TORRENT_ALLOCATOR_HPP_INCLUDED
+
+#include <cstddef>
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
 
-	struct page_aligned_allocator
+	struct TORRENT_EXPORT page_aligned_allocator
 	{
 		typedef std::size_t size_type;
 		typedef std::ptrdiff_t difference_type;
