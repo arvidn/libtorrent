@@ -189,6 +189,10 @@ namespace libtorrent
 		{ return m_allocations; }
 #endif
 
+#ifdef TORRENT_DISK_STATS
+		std::ofstream m_disk_access_log;
+#endif
+
 		void release_memory();
 
 		int in_use() const { return m_in_use; }
@@ -269,10 +273,6 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 		
-#ifdef TORRENT_DISK_STATS
-		std::ofstream m_disk_access_log;
-#endif
-
 		struct cached_block_entry
 		{
 			cached_block_entry(): buf(0) {}
