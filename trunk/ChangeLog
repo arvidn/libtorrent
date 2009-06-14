@@ -61,6 +61,7 @@ release 0.14.5
 	* fixed bug when handling malformed webseed urls and an http proxy
 	* fixed bug when setting unlimited upload or download rates for torrents
 	* fix to make torrent_status::list_peers more accurate.
+	* fixed memory leak in disk io thread when not using the cache
 
 release 0.14.4
 
