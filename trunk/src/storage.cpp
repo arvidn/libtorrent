@@ -537,7 +537,7 @@ namespace libtorrent
 
 					if (small_hash && small_piece_size < block_size)
 					{
-						ph.h.update((char const*)buf.iov_base, small_piece_size);
+						if (small_piece_size > 0) ph.h.update((char const*)buf.iov_base, small_piece_size);
 						*small_hash = hasher(ph.h).final();
 						small_hash = 0; // avoid this case again
 						ph.h.update((char const*)buf.iov_base + small_piece_size
