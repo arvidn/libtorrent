@@ -1206,16 +1206,22 @@ ret:
 		, int num_bufs)
 	{
 #ifdef TORRENT_DISK_STATS
-		disk_io_thread* iothread = (disk_io_thread*)disk_pool();
-		iothread->m_disk_access_log << log_time() << " write "
-			<< (size_type(slot) * m_files.piece_length() + offset) << std::endl;
+		disk_buffer_pool* pool = disk_pool();
+		if (pool)
+		{
+			pool->m_disk_access_log << log_time() << " write "
+				<< (size_type(slot) * m_files.piece_length() + offset) << std::endl;
+		}
 #endif
 		fileop op = { &file::writev, &storage::write_unaligned
 			, m_settings ? settings().disk_io_write_mode : 0, file::read_write };
 #ifdef TORRENT_DISK_STATS
 		int ret = readwritev(bufs, slot, offset, num_bufs, op);
-		iothread->m_disk_access_log << log_time() << " write_end "
-			<< (size_type(slot) * m_files.piece_length() + offset + ret) << std::endl;
+		if (pool)
+		{
+			pool->m_disk_access_log << log_time() << " write_end "
+				<< (size_type(slot) * m_files.piece_length() + offset + ret) << std::endl;
+		}
 		return ret;
 #else
 		return readwritev(bufs, slot, offset, num_bufs, op);
@@ -1226,16 +1232,22 @@ ret:
 		, int num_bufs)
 	{
 #ifdef TORRENT_DISK_STATS
-		disk_io_thread* iothread = (disk_io_thread*)disk_pool();
-		iothread->m_disk_access_log << log_time() << " read "
-			<< (size_type(slot) * m_files.piece_length() + offset) << std::endl;
+		disk_buffer_pool* pool = disk_pool();
+		if (pool)
+		{
+			pool->m_disk_access_log << log_time() << " read "
+				<< (size_type(slot) * m_files.piece_length() + offset) << std::endl;
+		}
 #endif
 		fileop op = { &file::readv, &storage::read_unaligned
 			, m_settings ? settings().disk_io_read_mode : 0, file::read_only };
 #ifdef TORRENT_DISK_STATS
 		int ret = readwritev(bufs, slot, offset, num_bufs, op);
-		iothread->m_disk_access_log << log_time() << " read_end "
-			<< (size_type(slot) * m_files.piece_length() + offset + ret) << std::endl;
+		if (pool)
+		{
+			pool->m_disk_access_log << log_time() << " read_end "
+				<< (size_type(slot) * m_files.piece_length() + offset + ret) << std::endl;
+		}
 		return ret;
 #else
 		return readwritev(bufs, slot, offset, num_bufs, op);

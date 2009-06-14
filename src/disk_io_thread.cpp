@@ -62,6 +62,9 @@ namespace libtorrent
 		m_log.open("disk_buffers.log", std::ios::trunc);
 		m_categories["read cache"] = 0;
 		m_categories["write cache"] = 0;
+
+		m_log.open("disk_io_thread.log", std::ios::trunc);
+		m_disk_access_log.open("disk_access.log", std::ios::trunc);
 #endif
 #ifdef TORRENT_DEBUG
 		m_magic = 0x1337;
@@ -282,10 +285,6 @@ namespace libtorrent
 		, m_work(io_service::work(m_ios))
 		, m_disk_io_thread(boost::ref(*this))
 	{
-#ifdef TORRENT_DISK_STATS
-		m_log.open("disk_io_thread.log", std::ios::trunc);
-		m_disk_access_log.open("disk_access.log", std::ios::trunc);
-#endif
 	}
 
 	disk_io_thread::~disk_io_thread()
