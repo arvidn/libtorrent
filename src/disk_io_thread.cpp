@@ -971,6 +971,7 @@ namespace libtorrent
 								test_error(j);
 								break;
 							}
+							break;
 						}
 					}
 					// we've now inserted the buffer
