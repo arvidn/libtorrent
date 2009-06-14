@@ -88,6 +88,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 	float rate_sum = 0.f;
 	float ses_rate_sum = 0.f;
 
+	cache_status cs;
+
 	for (int i = 0; i < 30; ++i)
 	{
 		torrent_status s = th.status();
@@ -95,7 +97,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 		rate_sum += s.download_payload_rate;
 		ses_rate_sum += ss.payload_download_rate;
 
-		cache_status cs = ses.get_cache_status();
+		cs = ses.get_cache_status();
 		if (cs.blocks_read < 1) cs.blocks_read = 1;
 		if (cs.blocks_written < 1) cs.blocks_written = 1;
 
@@ -120,6 +122,9 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 		}
 		test_sleep(1000);
 	}
+
+	TEST_CHECK(cs.cache_size == 0);
+	TEST_CHECK(cs.total_used_buffers == 0);
 
 	std::cerr << "total_size: " << total_size
 		<< " rate_sum: " << rate_sum
