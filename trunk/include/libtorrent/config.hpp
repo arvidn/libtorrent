@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/config.hpp>
 #include <boost/version.hpp>
+#include <stdio.h> // for snprintf
 
 #ifndef WIN32
 #define __STDC_FORMAT_MACROS
