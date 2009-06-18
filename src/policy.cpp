@@ -193,6 +193,7 @@ namespace libtorrent
 	{
 		if (t.is_seed()) return;
 		if (c.no_download()) return;
+		if (t.upload_mode()) return;
 
 		TORRENT_ASSERT(t.valid_metadata());
 		TORRENT_ASSERT(c.peer_info_struct() != 0 || !dynamic_cast<bt_peer_connection*>(&c));
@@ -313,7 +314,7 @@ namespace libtorrent
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
 			// and return
-			c.add_request(*i);
+			if (!c.add_request(*i)) continue;
 			TORRENT_ASSERT(p.num_peers(*i) == 1);
 			TORRENT_ASSERT(p.is_requested(*i));
 			num_requests--;

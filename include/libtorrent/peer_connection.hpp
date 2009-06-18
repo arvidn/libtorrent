@@ -427,7 +427,13 @@ namespace libtorrent
 		void make_time_critical(piece_block const& block);
 
 		// adds a block to the request queue
-		void add_request(piece_block const& b, bool time_critical = false);
+		// returns true if successful, false otherwise
+		bool add_request(piece_block const& b, bool time_critical = false);
+
+		// clears the request queue and sends cancels for all messages
+		// in the download queue
+		void cancel_all_requests();
+
 		// removes a block from the request queue or download queue
 		// sends a cancel message if appropriate
 		// refills the request queue, and possibly ignoring pieces requested

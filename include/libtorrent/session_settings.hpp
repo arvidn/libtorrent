@@ -173,7 +173,7 @@ namespace libtorrent
 			, disk_cache_algorithm(largest_contiguous)
 			, read_cache_line_size(16)
 			, write_cache_line_size(32)
-			, adjust_priority_on_disk_failure(true)
+			, optimistic_disk_retry(10 * 60)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -600,13 +600,9 @@ namespace libtorrent
 		// is flushed immediately
 		int write_cache_line_size;
 
-		// if this is set to true, piece priorities
-		// will be automatically changed if there is
-		// an error writing to the disk, attempting
-		// to avoid hitting the error again. If there
-		// is an error reading, the torrent will be
-		// paused
-		bool adjust_priority_on_disk_failure;
+		// this is the number of seconds a disk failure
+		// occurs until libtorrent will re-try.
+		int optimistic_disk_retry;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
