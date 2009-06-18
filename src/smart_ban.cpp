@@ -213,7 +213,7 @@ namespace libtorrent { namespace
 						<< " | crc2: " << e.crc
 						<< " | ip: " << p->ip() << " ]\n";
 #endif
-					p->banned = true;
+					m_torrent.get_policy().ban_peer(p);
 					if (p->connection) p->connection->disconnect(
 						error_code(errors::peer_banned, libtorrent_category));
 				}
@@ -276,7 +276,7 @@ namespace libtorrent { namespace
 				<< " | bad_crc: " << b.second.crc
 				<< " | ip: " << p->ip() << " ]\n";
 #endif
-			p->banned = true;
+			m_torrent.get_policy().ban_peer(p);
 			if (p->connection) p->connection->disconnect(
 				error_code(errors::peer_banned, libtorrent_category));
 		}
