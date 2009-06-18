@@ -1,4 +1,5 @@
-	* by default, all piece priorities are set to 0 when a write fails.
+	* introduced an upload mode, which torrents are switched into when
+	  it hits a disk write error, instead of stopping the torrent.
 	  this lets libtorrent keep uploading the parts it has when it
 	  encounters a disk-full error for instance
 	* improved disk error handling and expanded use of error_code in

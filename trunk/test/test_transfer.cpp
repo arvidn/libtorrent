@@ -271,24 +271,11 @@ void test_transfer(bool test_disk_full = false)
 			std::cerr << "moving storage" << std::endl;
 		}
 
-		if (test_disk_full && tor2.is_finished())
+		if (test_disk_full && st2.upload_mode)
 		{
 			test_disk_full = false;
-			std::vector<int> priorities2 = tor2.piece_priorities();
-			std::cerr << "piece priorities: ";
-			for (std::vector<int>::iterator i = priorities2.begin()
-				, end(priorities2.end()); i != end; ++i)
-			{
-				TEST_CHECK(*i == 0);
-				std::cerr << *i << ", ";
-			}
-			std::cerr << std::endl;
-
 			((test_storage*)tor2.get_storage_impl())->m_limit = 16 * 1024 * 1024;
-			tor2.prioritize_pieces(priorities);
-			std::cerr << "setting priorities: ";
-			std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
-			std::cerr << std::endl;
+			tor2.set_upload_mode(false);
 			continue;
 		}
 

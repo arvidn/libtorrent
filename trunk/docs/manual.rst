@@ -38,6 +38,34 @@ For a description on how to create torrent files, see make_torrent_.
 
 .. _make_torrent: make_torrent.html
 
+things to keep in mind
+======================
+
+A common problem developers are facing is torrents stopping without explanation.
+Here is a description on which conditions libtorrent will stop your torrents,
+how to find out about it and what to do about it.
+
+Make sure to keep track of the paused state, the error state and the upload
+mode of your torrents. By default, torrents are auto-managed, which means
+libtorrent will pause them, unpause them, scrape them and take them out
+of upload-mode automatically.
+
+Whenever a torrent encounters a fatal error, it will be stopped, and the
+``session_status::error`` will describe the error that caused it. If a torrent
+is auto managed, it is scraped periodically and paused or resumed based on
+the number of downloaders per seed. This will effectively seed torrents that
+are in the greatest need of seeds.
+
+If a torrent hits a disk write error, it will be put into upload mode. This
+means it will not download anything, but only upload. The assumption is that
+the write error is caused by a full disk or write permission errors. If the
+torrent is auto-managed, it will periodically be taken out of the upload
+mode, trying to write things to the disk again. This means torrent will recover
+from certain disk errors if the problem is resolved. If the torrent is not
+auto managed, you have to call `set_upload_mode()`_ to turn
+downloading back on again.
+
+
 network primitives
 ==================
 
@@ -306,6 +334,7 @@ add_torrent()
 			void* userdata;
 			bool seed_mode;
 			bool override_resume_data;
+			bool upload_mode;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -413,6 +442,11 @@ If ``override_resume_data`` is set to true, the ``paused`` and ``auto_managed``
 state of the torrent are not loaded from the resume data, but the states requested
 by this ``add_torrent_params`` will override it.
 
+If ``upload_mode`` is set to true, the torrent will be initialized in upload-mode,
+which means it will not make any piece requests. This state is typically entered
+on disk I/O errors, and if the torrent is also auto managed, it will be taken out
+of this state periodically. This mode can be used to avoid race conditions when
+adjusting priorities of pieces before allowing the torrent to start downloading.
 
 remove_torrent()
 ----------------
@@ -1841,6 +1875,7 @@ Its declaration looks like this::
 		bool is_seed() const;
 		void force_recheck() const;
 		void clear_error() const;
+		void set_upload_mode(bool m) const;
 
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
@@ -2272,6 +2307,23 @@ clear_error()
 
 If the torrent is in an error state (i.e. ``torrent_status::error`` is non-empty), this
 will clear the error and start the torrent again.
+
+set_upload_mode()
+-----------------
+
+::
+
+		void set_upload_mode(bool m) const;
+
+Explicitly sets the upload mode of the torrent. In upload mode, the torrent will not
+request any pieces. If the torrent is auto managed, it will automatically be taken out
+of upload mode periodically (see ``session_settings::optimistic_disk_retry``). Torrents
+are automatically put in upload mode whenever they encounter a disk write error.
+
+``m`` should be true to enter upload mode, and false to leave it.
+
+To test if a torrent is in upload mode, call ``torrent_handle::status()`` and inspect
+``torrent_status::upload_mode``.
 
 resolve_countries()
 -------------------
@@ -2776,6 +2828,8 @@ It contains the following fields::
 		int sparse_regions;
 
 		bool seed_mode;
+
+		bool upload_mode;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -2974,6 +3028,13 @@ a limit on the number of sparse regions in a single file there.
 started in seed mode, it will leave seed mode once all pieces have been
 checked or as soon as one piece fails the hash check.
 
+``upload_mode`` is true if the torrent is blocked from downloading. This
+typically happens when a disk write operation fails. If the torrent is
+auto-managed, it will periodically be taken out of this state, in the
+hope that the disk condition (be it disk full or permission errors) has
+been resolved. If the torrent is not auto-managed, you have to explicitly
+take it out of the upload mode by calling `set_upload_mode()`_ on the
+torrent_handle_.
 
 peer_info
 =========
@@ -3451,7 +3512,7 @@ session_settings
 		int read_cache_line_size;
 		int write_cache_line_size;
 
-		bool adjust_priority_on_disk_failure;
+		int optimistic_disk_retry;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3857,15 +3918,14 @@ When a piece in the write cache has ``write_cache_line_size`` contiguous
 blocks in it, they will be flushed. Setting this to 1 effectively
 disables the write cache.
 
-``adjust_priority_on_disk_failure`` specifies what libtorrent should do
-on disk failures. If this is set to true, instead of pausing the torrent
-and setting it to an error state when it fails to write to disk, the
-priorities of all pieces are set to 0. This effectively means the client
-can keep seeding the parts that were already downloaded, instead of
-leaving the swarm because of the error.
+``optimistic_disk_retry`` is the number of seconds from a disk write
+errors occur on a torrent until libtorrent will take it out of the
+upload mode, to test if the error condition has been fixed.
 
-If a read operation fails, it will still set an error on the torrent
-and pause it.
+libtorrent will only do this automatically for auto managed torrents.
+
+You can explicitly take a torrent out of upload only mode using
+`set_upload_mode()`_.
 
 pe_settings
 ===========

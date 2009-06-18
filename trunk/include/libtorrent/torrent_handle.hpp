@@ -273,6 +273,11 @@ namespace libtorrent
 
 		// is true if this torrent is (still) in seed_mode
 		bool seed_mode;
+
+		// this is set to true when the torrent is blocked
+		// from downloading, typically caused by a file
+		// write operation failing
+		bool upload_mode;
 	};
 
 	struct TORRENT_EXPORT block_info
@@ -397,6 +402,8 @@ namespace libtorrent
 		bool is_paused() const;
 		void pause() const;
 		void resume() const;
+		void set_upload_mode(bool b) const;
+
 		void force_recheck() const;
 		void save_resume_data() const;
 

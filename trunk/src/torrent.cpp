@@ -144,6 +144,7 @@ namespace libtorrent
 		, m_total_downloaded(0)
 		, m_started(time_now())
 		, m_last_scrape(min_time())
+		, m_upload_mode_time(time_now())
 		, m_torrent_file(p.ti ? p.ti : new torrent_info(p.info_hash))
 		, m_storage(0)
 		, m_host_resolver(ses.m_io_service)
@@ -180,6 +181,7 @@ namespace libtorrent
 		, m_time_scaler(0)
 		, m_abort(false)
 		, m_paused(p.paused)
+		, m_upload_mode(p.upload_mode)
 		, m_auto_managed(p.auto_managed)
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		, m_resolving_country(false)
@@ -341,6 +343,36 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::set_upload_mode(bool b)
+	{
+		if (b == m_upload_mode) return;
+
+		m_upload_mode = b;
+
+		if (m_upload_mode)
+		{
+			// clear request queues of all peers
+			for (std::set<peer_connection*>::iterator i = m_connections.begin()
+				, end(m_connections.end()); i != end; ++i)
+			{
+				peer_connection* p = (*i);
+				p->cancel_all_requests();
+			}
+			// this is used to try leaving upload only mode periodically
+			m_upload_mode_time = time_now();
+		}
+		else
+		{
+			// send_block_requests on all peers
+			for (std::set<peer_connection*>::iterator i = m_connections.begin()
+				, end(m_connections.end()); i != end; ++i)
+			{
+				peer_connection* p = (*i);
+				p->send_block_requests();
+			}
+		}
+	}
+
 	void torrent::handle_disk_error(disk_io_job const& j, peer_connection* c)
 	{
 		if (!j.error) return;
@@ -389,20 +421,8 @@ namespace libtorrent
 			// and the filesystem doesn't support sparse files, only zero the priorities
 			// of the pieces that are at the tails of all files, leaving everything
 			// up to the highest written piece in each file
-			if (m_ses.settings().adjust_priority_on_disk_failure
-				&& has_picker())
-			{
-				bool filter_updated = false;
-				bool was_finished = is_finished();
-				const int num_pieces = m_torrent_file->num_pieces();
-				for (int i = 0; i < num_pieces; ++i)
-				{
-					filter_updated |= m_picker->set_piece_priority(i, 0);
-					TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
-				}
-				if (filter_updated) update_peer_interest(was_finished);
-				return;
-			}
+			set_upload_mode(true);
+			return;
 		}
 
 		// put the torrent in an error-state
@@ -4897,6 +4917,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		ptime now = time_now();
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -4932,6 +4954,15 @@ namespace libtorrent
 			m_policy.pulse();
 		}
 
+		// if we're in upload only mode and we're auto-managed
+		// leave upload mode every 10 minutes hoping that the error
+		// condition has been fixed
+		if (m_upload_mode && m_auto_managed && now - m_upload_mode_time
+			> seconds(m_settings.optimistic_disk_retry))
+		{
+			set_upload_mode(false);
+		}
+
 		if (is_paused())
 		{
 			// let the stats fade out to 0
@@ -4964,8 +4995,6 @@ namespace libtorrent
 		time_duration since_last_tick = microsec(tick_interval * 1000000L);
 		if (is_seed()) m_seeding_time += since_last_tick;
 		m_active_time += since_last_tick;
-
-		ptime now = time_now();
 
 		// ---- TIME CRITICAL PIECES ----
 
@@ -5437,6 +5466,7 @@ namespace libtorrent
 		{
 			st.last_scrape = total_seconds(now - m_last_scrape);
 		}
+		st.upload_mode = m_upload_mode;
 		st.up_bandwidth_queue = 0;
 		st.down_bandwidth_queue = 0;
 

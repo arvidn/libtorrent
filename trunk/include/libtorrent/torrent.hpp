@@ -159,6 +159,9 @@ namespace libtorrent
 		void start_announcing();
 		void stop_announcing();
 
+		void set_upload_mode(bool b);
+		bool upload_mode() const { return m_upload_mode; }
+
 		int seed_rank(session_settings const& s) const;
 
 		enum flags_t { overwrite_existing = 1 };
@@ -730,6 +733,9 @@ namespace libtorrent
 		// one of the trackers in this torrent
 		ptime m_last_scrape;
 
+		// the time when we switched to upload mode
+		ptime m_upload_mode_time;
+
 		boost::intrusive_ptr<torrent_info> m_torrent_file;
 
 		void parse_response(const entry& e, std::vector<peer_entry>& peer_list);
@@ -994,6 +1000,9 @@ namespace libtorrent
 
 		// is true if this torrent has been paused
 		bool m_paused:1;
+
+		// set to true when this torrent may not download anything
+		bool m_upload_mode:1;
 
 		// if this is true, libtorrent may pause and resume
 		// this torrent depending on queuing rules. Torrents

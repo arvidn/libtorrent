@@ -2374,7 +2374,7 @@ namespace libtorrent
 		++m_queued_time_critical;
 	}
 
-	void peer_connection::add_request(piece_block const& block, bool time_critical)
+	bool peer_connection::add_request(piece_block const& block, bool time_critical)
 	{
 //		INVARIANT_CHECK;
 
@@ -2392,6 +2392,8 @@ namespace libtorrent
 			, has_block(block)) == m_download_queue.end());
 		TORRENT_ASSERT(std::find(m_request_queue.begin(), m_request_queue.end()
 			, block) == m_request_queue.end());
+
+		if (t->upload_mode()) return false;
 
 		piece_picker::piece_state_t state;
 		peer_speed_t speed = peer_speed();
@@ -2413,7 +2415,7 @@ namespace libtorrent
 		}
 
 		if (!t->picker().mark_as_downloading(block, peer_info_struct(), state))
-			return;
+			return false;
 
 		if (t->alerts().should_post<block_downloading_alert>())
 		{
@@ -2430,6 +2432,53 @@ namespace libtorrent
 		else
 		{
 			m_request_queue.push_back(block);
+		}
+		return true;
+	}
+
+	void peer_connection::cancel_all_requests()
+	{
+		INVARIANT_CHECK;
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		// this peer might be disconnecting
+		if (!t) return;
+
+		TORRENT_ASSERT(t->valid_metadata());
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " *** CANCEL ALL REQUESTS\n";
+#endif
+
+		while (!m_request_queue.empty())
+		{
+			t->picker().abort_download(m_request_queue.back());
+			m_request_queue.pop_back();
+		}
+
+		for (std::vector<pending_block>::iterator i = m_download_queue.begin()
+			, end(m_download_queue.end()); i != end; ++i)
+		{
+			piece_block b = i->block;
+
+			int block_offset = b.block_index * t->block_size();
+			int block_size
+				= (std::min)(t->torrent_file().piece_size(b.piece_index)-block_offset,
+					t->block_size());
+			TORRENT_ASSERT(block_size > 0);
+			TORRENT_ASSERT(block_size <= t->block_size());
+
+			peer_request r;
+			r.piece = b.piece_index;
+			r.start = block_offset;
+			r.length = block_size;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string()
+				<< " ==> CANCEL  [ piece: " << b.piece_index << " | s: "
+				<< block_offset << " | l: " << block_size << " | " << b.block_index << " ]\n";
+#endif
+			write_cancel(r);
 		}
 	}
 
@@ -2588,7 +2637,8 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		if ((int)m_download_queue.size() >= m_desired_queue_size) return;
+		if ((int)m_download_queue.size() >= m_desired_queue_size
+			|| t->upload_mode()) return;
 
 		bool empty_download_queue = m_download_queue.empty();
 

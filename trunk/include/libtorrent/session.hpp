@@ -174,6 +174,7 @@ namespace libtorrent
 			, userdata(0)
 			, seed_mode(false)
 			, override_resume_data(false)
+			, upload_mode(false)
 		{}
 
 		boost::intrusive_ptr<torrent_info> ti;
@@ -190,6 +191,7 @@ namespace libtorrent
 		void* userdata;
 		bool seed_mode;
 		bool override_resume_data;
+		bool upload_mode;
 	};
 	
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
