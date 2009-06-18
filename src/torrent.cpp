@@ -1542,7 +1542,7 @@ namespace libtorrent
 				}
 
 				// mark the peer as banned
-				p->banned = true;
+				m_policy.ban_peer(p);
 
 				if (p->connection)
 				{

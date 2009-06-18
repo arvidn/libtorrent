@@ -96,6 +96,8 @@ namespace libtorrent
 		// the given connection was just closed
 		void connection_closed(const peer_connection& c);
 
+		void ban_peer(policy::peer* p);
+
 		// the peer has got at least one interesting piece
 		void peer_is_interesting(peer_connection& c);
 
@@ -268,7 +270,7 @@ namespace libtorrent
 
 		iterator find_connect_candidate();
 
-		bool is_connect_candidate(peer const& p, bool finished);
+		bool is_connect_candidate(peer const& p, bool finished) const;
 
 		std::multimap<address, peer> m_peers;
 
