@@ -534,6 +534,7 @@ namespace aux {
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		m_port_filter = f;
+		// TODO: recalculate all connect candidates for all torrents
 	}
 
 	void session_impl::set_ip_filter(ip_filter const& f)

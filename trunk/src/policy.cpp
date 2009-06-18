@@ -408,7 +408,10 @@ namespace libtorrent
 			m_torrent->picker().clear_peer(*i);
 		if ((*i)->seed) --m_num_seeds;
 		if (is_connect_candidate(**i, m_finished))
+		{
+			TORRENT_ASSERT(m_num_connect_candidates > 0);
 			--m_num_connect_candidates;
+		}
 		if (m_round_robin > i - m_peers.begin()) --m_round_robin;
 
 #if TORRENT_USE_IPV6
@@ -486,6 +489,16 @@ namespace libtorrent
 		
 		if (erase_candidate > -1)
 			erase_peer(m_peers.begin() + erase_candidate);
+	}
+
+	void policy::ban_peer(policy::peer* p)
+	{
+		INVARIANT_CHECK;
+
+		if (is_connect_candidate(*p, m_finished))
+			--m_num_connect_candidates;
+
+		p->banned = true;
 	}
 
 	bool policy::is_connect_candidate(peer const& p, bool finished) const
@@ -714,6 +727,8 @@ namespace libtorrent
 			if (iter != m_peers.end() && (*iter)->address() == c.remote().address()) found = true;
 		}
 
+		bool was_conn_cand = false;
+
 		if (found)
 		{
 			i = *iter;
@@ -723,6 +738,8 @@ namespace libtorrent
 				c.disconnect(error_code(errors::peer_banned, libtorrent_category));
 				return false;
 			}
+
+			was_conn_cand = is_connect_candidate(*i, m_finished);
 
 			if (i->connection != 0)
 			{
@@ -772,9 +789,6 @@ namespace libtorrent
 					i->connection->disconnect(error_code(errors::duplicate_peer_id, libtorrent_category));
 				}
 			}
-
-			if (m_num_connect_candidates > 0)
-				--m_num_connect_candidates;
 		}
 		else
 		{
@@ -836,6 +850,13 @@ namespace libtorrent
 		TORRENT_ASSERT(i->connection);
 		if (!c.fast_reconnect())
 			i->last_connected = session_time;
+
+		if (was_conn_cand != is_connect_candidate(*i, m_finished))
+		{
+			m_num_connect_candidates += was_conn_cand ? -1 : 1;
+			TORRENT_ASSERT(m_num_connect_candidates >= 0);
+			if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
+		}
 		return true;
 	}
 
@@ -843,6 +864,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(p != 0);
 		TORRENT_ASSERT(p->connection);
+
+		INVARIANT_CHECK;
 
 		if (p->port == port) return true;
 
@@ -857,7 +880,15 @@ namespace libtorrent
 				policy::peer& pp = **i;
 				if (pp.connection)
 				{
+					bool was_conn_cand = is_connect_candidate(pp, m_finished);
+					// if we already have an entry with this
+					// new endpoint, disconnect this one
+					pp.connectable = true;
+					pp.source |= src;
+					if (!was_conn_cand && is_connect_candidate(pp, m_finished))
+						++m_num_connect_candidates;
 					p->connection->disconnect(error_code(errors::duplicate_peer_id, libtorrent_category));
+					erase_peer(p);
 					return false;
 				}
 				erase_peer(i);
@@ -879,6 +910,7 @@ namespace libtorrent
 		if (was_conn_cand != is_connect_candidate(*p, m_finished))
 		{
 			m_num_connect_candidates += was_conn_cand ? -1 : 1;
+			TORRENT_ASSERT(m_num_connect_candidates >= 0);
 			if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
 		}
 		return true;
@@ -899,7 +931,14 @@ namespace libtorrent
 	{
 		if (p == 0) return;
 		if (p->seed == s) return;
+		bool was_conn_cand = is_connect_candidate(*p, m_finished);
 		p->seed = s;
+		if (was_conn_cand && !is_connect_candidate(*p, m_finished))
+		{
+			--m_num_connect_candidates;
+			if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
+		}
+
 		if (s) ++m_num_seeds;
 		else --m_num_seeds;
 	}
@@ -1220,6 +1259,8 @@ namespace libtorrent
 		{
 			// failcount is a 5 bit value
 			if (p.failcount < 31) ++p.failcount;
+			if (!is_connect_candidate(p, m_finished))
+				--m_num_connect_candidates;
 			return false;
 		}
 		TORRENT_ASSERT(p.connection);
@@ -1308,10 +1349,12 @@ namespace libtorrent
 
 	void policy::recalculate_connect_candidates()
 	{
-		m_num_connect_candidates = 0;
+		INVARIANT_CHECK;
+
 		const bool is_finished = m_torrent->is_finished();
 		if (is_finished == m_finished) return;
 
+		m_num_connect_candidates = 0;
 		m_finished = is_finished;
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
@@ -1346,6 +1389,7 @@ namespace libtorrent
 
 		int total_connections = 0;
 		int nonempty_connections = 0;
+		int connect_candidates = 0;
 
 		std::set<tcp::endpoint> unique_test;
 		const_iterator prev = m_peers.end();
@@ -1362,6 +1406,7 @@ namespace libtorrent
 					TORRENT_ASSERT((*prev)->address() < (*i)->address());
 			}
 			peer const& p = **i;
+			if (is_connect_candidate(p, m_finished)) ++connect_candidates;
 #ifndef TORRENT_DISABLE_GEO_IP
 			TORRENT_ASSERT(p.inet_as == 0 || p.inet_as->first == p.inet_as_num);
 #endif
@@ -1394,6 +1439,8 @@ namespace libtorrent
 			if (!p.connection->is_disconnecting())
 				++connected_peers;
 		}
+
+		TORRENT_ASSERT(m_num_connect_candidates == connect_candidates);
 
 		int num_torrent_peers = 0;
 		for (torrent::const_peer_iterator i = m_torrent->begin();

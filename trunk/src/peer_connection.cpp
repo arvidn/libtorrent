@@ -4247,7 +4247,8 @@ namespace libtorrent
 		{
 			// if the remote endpoint is the same as the local endpoint, we're connected
 			// to ourselves
-			if (m_peer_info) m_peer_info->banned = true;
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			if (m_peer_info && t) t->get_policy().ban_peer(m_peer_info);
 			disconnect(error_code(errors::self_connection, libtorrent_category), 1);
 			return;
 		}
