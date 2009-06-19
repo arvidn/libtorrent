@@ -837,7 +837,7 @@ namespace libtorrent
 		lazy_entry const* url_seeds = torrent_file.dict_find("url-list");
 		if (url_seeds && url_seeds->type() == lazy_entry::string_t)
 		{
-			m_url_seeds.push_back(url_seeds->string_value());
+			m_url_seeds.push_back(maybe_url_encode(url_seeds->string_value()));
 		}
 		else if (url_seeds && url_seeds->type() == lazy_entry::list_t)
 		{
@@ -845,7 +845,7 @@ namespace libtorrent
 			{
 				lazy_entry const* url = url_seeds->list_at(i);
 				if (url->type() != lazy_entry::string_t) continue;
-				m_url_seeds.push_back(url->string_value());
+				m_url_seeds.push_back(maybe_url_encode(url->string_value()));
 			}
 		}
 
@@ -853,7 +853,7 @@ namespace libtorrent
 		lazy_entry const* http_seeds = torrent_file.dict_find("httpseeds");
 		if (http_seeds && http_seeds->type() == lazy_entry::string_t)
 		{
-			m_http_seeds.push_back(http_seeds->string_value());
+			m_http_seeds.push_back(maybe_url_encode(http_seeds->string_value()));
 		}
 		else if (http_seeds && http_seeds->type() == lazy_entry::list_t)
 		{
@@ -861,7 +861,7 @@ namespace libtorrent
 			{
 				lazy_entry const* url = http_seeds->list_at(i);
 				if (url->type() != lazy_entry::string_t) continue;
-				m_http_seeds.push_back(url->string_value());
+				m_http_seeds.push_back(maybe_url_encode(url->string_value()));
 			}
 		}
 

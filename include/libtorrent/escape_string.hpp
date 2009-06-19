@@ -51,8 +51,13 @@ namespace libtorrent
 	bool TORRENT_EXPORT string_begins_no_case(char const* s1, char const* s2);
 
 	std::string TORRENT_EXPORT unescape_string(std::string const& s, error_code& ec);
+	// replaces all disallowed URL characters by their %-encoding
 	std::string TORRENT_EXPORT escape_string(const char* str, int len);
+	// same as escape_string but does not encode '/'
 	std::string TORRENT_EXPORT escape_path(const char* str, int len);
+	// if the url does not appear to be encoded, and it contains illegal url characters
+	// it will be encoded
+	std::string TORRENT_EXPORT maybe_url_encode(std::string const& url);
 
 	// encodes a string using the base64 scheme
 	TORRENT_EXPORT std::string base64encode(std::string const& s);

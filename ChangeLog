@@ -1,3 +1,4 @@
+	* encodes urls in torrent files that needs to be encoded
 	* fixed not passing &supportcrypto=1 when encryption is disabled
 	* introduced an upload mode, which torrents are switched into when
 	  it hits a disk write error, instead of stopping the torrent.
