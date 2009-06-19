@@ -129,7 +129,13 @@ struct test_storage : storage_interface
 		if (ret > 0) m_written += ret;
 		if (m_written > m_limit)
 		{
+#if BOOST_VERSION == 103500
+			set_error("", error_code(boost::system::posix_error::no_space_on_device, get_posix_category()));
+#elif BOOST_VERSION > 103500
 			set_error("", error_code(boost::system::errc::no_space_on_device, get_posix_category()));
+#else
+			set_error("", error_code(ENOSPC, get_posix_category()));
+#endif
 			return -1;
 		}
 		return ret;
@@ -144,7 +150,13 @@ struct test_storage : storage_interface
 		if (ret > 0) m_written += ret;
 		if (m_written > m_limit)
 		{
+#if BOOST_VERSION == 103500
+			set_error("", error_code(boost::system::posix_error::no_space_on_device, get_posix_category()));
+#elif BOOST_VERSION > 103500
 			set_error("", error_code(boost::system::errc::no_space_on_device, get_posix_category()));
+#else
+			set_error("", error_code(ENOSPC, get_posix_category()));
+#endif
 			return -1;
 		}
 		return ret;
