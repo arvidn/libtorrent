@@ -40,9 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/optional.hpp>
 #include <boost/array.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/parse_url.hpp"
 
 #if TORRENT_USE_WPATH
 
@@ -164,22 +166,24 @@ namespace libtorrent
 	// http://www.ietf.org/rfc/rfc2396.txt
 	// section 2.3
 	// some trackers seems to require that ' is escaped
-	//static const char unreserved_chars[] = "-_.!~*'()";
-	static const char unreserved_chars[] = "/-_.!~*()"
+	static const char unreserved_chars[] = "%'/-_.!~*()"
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 		"0123456789";
 	static const char hex_chars[] = "0123456789abcdef";
 
-	std::string escape_string(const char* str, int len)
+	// the offset is used to ignore the first characters in the unreserved_chars table.
+	static std::string escape_string_impl(const char* str, int len, int offset)
 	{
 		TORRENT_ASSERT(str != 0);
 		TORRENT_ASSERT(len >= 0);
+		TORRENT_ASSERT(offset >= 0);
+		TORRENT_ASSERT(offset < sizeof(unreserved_chars)-1);
 
 		std::string ret;
 		for (int i = 0; i < len; ++i)
 		{
 			if (std::count(
-					unreserved_chars
+					unreserved_chars+offset
 					, unreserved_chars+sizeof(unreserved_chars)-1
 					, *str))
 			{
@@ -196,30 +200,49 @@ namespace libtorrent
 		return ret;
 	}
 	
+	std::string escape_string(const char* str, int len)
+	{
+		return escape_string_impl(str, len, 3);
+	}
+
 	std::string escape_path(const char* str, int len)
 	{
-		TORRENT_ASSERT(str != 0);
-		TORRENT_ASSERT(len >= 0);
+		return escape_string_impl(str, len, 2);
+	}
 
-		std::string ret;
+	static bool need_encoding(char const* str, int len)
+	{
 		for (int i = 0; i < len; ++i)
 		{
 			if (std::count(
 					unreserved_chars
 					, unreserved_chars+sizeof(unreserved_chars)-1
-					, *str))
+					, *str) == 0)
 			{
-				ret += *str;
-			}
-			else
-			{
-				ret += '%';
-				ret += hex_chars[((unsigned char)*str) >> 4];
-				ret += hex_chars[((unsigned char)*str) & 15];
+				return true;
 			}
 			++str;
 		}
-		return ret;
+		return false;
+	}
+	
+	std::string maybe_url_encode(std::string const& url)
+	{
+		std::string protocol, host, auth, path;
+		int port;
+		error_code ec;
+		boost::tie(protocol, auth, host, port, path) = parse_url_components(url, ec);
+		if (ec) return url;
+		
+		// first figure out if this url contains unencoded characters
+		if (!need_encoding(path.c_str(), path.size()))
+			return url;
+
+		char msg[NAME_MAX*4];
+		snprintf(msg, sizeof(msg), "%s://%s%s%s:%d%s", protocol.c_str(), auth.c_str()
+			, auth.empty()?"":"@", host.c_str(), port
+			, escape_path(path.c_str(), path.size()).c_str());
+		return msg;
 	}
 
 	std::string base64encode(const std::string& s)

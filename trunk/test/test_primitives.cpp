@@ -359,6 +359,15 @@ int test_main()
 {
 	using namespace libtorrent;
 
+	// test maybe_url_encode
+
+	TEST_CHECK(maybe_url_encode("http://test:test@abc.com/abc<>abc") == "http://test:test@abc.com:80/abc%3c%3eabc");
+	TEST_CHECK(maybe_url_encode("http://abc.com/foo bar") == "http://abc.com:80/foo%20bar");
+	TEST_CHECK(maybe_url_encode("abc") == "abc");
+	TEST_CHECK(maybe_url_encode("http://abc.com/abc") == "http://abc.com/abc");
+	
+	// test sanitize_path
+
 	TEST_CHECK(sanitize_path("/a/b/c").string() == "a/b/c");
 	TEST_CHECK(sanitize_path("a/../c").string() == "a/c");
 	TEST_CHECK(sanitize_path("/.././c").string() == "c");
