@@ -122,7 +122,7 @@ namespace libtorrent
 			snprintf(str, sizeof(str), "&peer_id=%s&port=%d&uploaded=%lld"
 				"&downloaded=%lld&left=%lld&compact=1&numwant=%d&key=%x&no_peer_id=1"
 #ifndef TORRENT_DISABLE_ENCRYPTION
-				"&supportcrypto=1"
+				"%s"
 #endif
 				, escape_string((const char*)&tracker_req().pid[0], 20).c_str()
 				, tracker_req().listen_port
@@ -130,7 +130,12 @@ namespace libtorrent
 				, tracker_req().downloaded
 				, tracker_req().left
 				, tracker_req().num_want
-				, tracker_req().key);
+				, tracker_req().key
+#ifndef TORRENT_DISABLE_ENCRYPTION
+				, m_ses.get_pe_settings().in_enc_policy == pe_settings::disabled
+					? "" : "&supportcrypto=1"
+#endif
+				);
 			url += str;
 
 			if (tracker_req().event != tracker_request::none)
