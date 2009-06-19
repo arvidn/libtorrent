@@ -3653,7 +3653,8 @@ namespace libtorrent
 			"download: " << (m_download_queue.size() * 16 * 1024 + 30)
 			<< " prio: " << m_priority << " ]\n";
 #endif
-		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
+		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle
+			|| m_channel_state[download_channel] == peer_info::bw_disk);
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 		m_channel_state[download_channel] = peer_info::bw_limit;
 		m_ses.m_download_rate.request_bandwidth(self()
