@@ -41,7 +41,6 @@ void bind_session_settings()
         .def_readwrite("num_want", &session_settings::num_want)
         .def_readwrite("initial_picker_threshold", &session_settings::initial_picker_threshold)
         .def_readwrite("allowed_fast_set_size", &session_settings::allowed_fast_set_size)
-        .def_readwrite("max_outstanding_disk_bytes_per_connection", &session_settings::max_outstanding_disk_bytes_per_connection)
         .def_readwrite("handshake_timeout", &session_settings::handshake_timeout)
 #ifndef TORRENT_DISABLE_DHT
         .def_readwrite("use_dht_as_fallback", &session_settings::use_dht_as_fallback)
@@ -108,18 +107,18 @@ void bind_session_settings()
         .value("http", proxy_settings::http)
         .value("http_pw", proxy_settings::http_pw)
     ;
-    
+
     enum_<session_settings::disk_cache_algo_t>("disk_cache_algo_t")
         .value("lru", session_settings::lru)
         .value("largest_contiguous", session_settings::largest_contiguous)
     ;
-    
+
     enum_<session_settings::io_buffer_mode_t>("io_buffer_mode_t")
         .value("enable_os_cache", session_settings::enable_os_cache)
         .value("disable_os_cache_for_aligned_files", session_settings::disable_os_cache_for_aligned_files)
         .value("disable_os_cache", session_settings::disable_os_cache)
     ;
-     
+
     class_<proxy_settings>("proxy_settings")
         .def_readwrite("hostname", &proxy_settings::hostname)
         .def_readwrite("port", &proxy_settings::port)
