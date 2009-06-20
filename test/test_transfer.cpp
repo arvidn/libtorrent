@@ -51,6 +51,12 @@ using boost::tuples::ignore;
 // test the maximum transfer rate
 void test_rate()
 {
+	// in case the previous run was terminated
+	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
+
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000));
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000));
 
@@ -101,10 +107,23 @@ void test_rate()
 
 }
 
-void test_transfer()
+void test_transfer(bool test_allowed_fast = false)
 {
+	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
+
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000));
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000));
+
+	if (test_allowed_fast)
+	{
+		session_settings sett;
+		sett.allowed_fast_set_size = 2000;
+		ses1.set_max_uploads(0);
+		ses1.set_settings(sett);
+	}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -306,24 +325,15 @@ int test_main()
 	using namespace libtorrent;
 	using namespace boost::filesystem;
 
-	// in case the previous run was terminated
-	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
-
 #ifdef NDEBUG
 	// test rate only makes sense in release mode
 	test_rate();
-
-	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
 #endif
 
 	test_transfer();
 	
+	test_transfer(true);
+
 	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
 	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
 	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
