@@ -241,7 +241,7 @@ can use the service simultaneously. This is controlled by
 
 In order to always unchoke peers, turn off automatic unchoke
 ``session_settings::auto_upload_slots`` and set the number of upload slots to a large
-number via ``session::set_max_uploads()``.
+number via ``session::set_max_uploads()``, or use -1 (which means infinite).
 
 torrent limits
 --------------

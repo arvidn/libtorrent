@@ -66,6 +66,7 @@ release 0.14.5
 	* fix to make torrent_status::list_peers more accurate.
 	* fixed memory leak in disk io thread when not using the cache
 	* fixed bug in connect candidate counter
+	* allow 0 upload slots
 
 release 0.14.4
 
