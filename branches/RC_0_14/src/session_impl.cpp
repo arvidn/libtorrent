@@ -2289,7 +2289,7 @@ namespace aux {
 
 		INVARIANT_CHECK;
 
-		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
+		if (limit < 0) limit = (std::numeric_limits<int>::max)();
 		if (m_max_uploads == limit) return;
 		m_max_uploads = limit;
 		m_allowed_upload_slots = limit;
@@ -2600,7 +2600,7 @@ namespace aux {
 		TORRENT_ASSERT(int(unique.size()) == total_downloaders);
 
 		TORRENT_ASSERT(m_max_connections > 0);
-		TORRENT_ASSERT(m_max_uploads > 0);
+		TORRENT_ASSERT(m_max_uploads >= 0);
 		TORRENT_ASSERT(m_allowed_upload_slots >= m_max_uploads);
 		int unchokes = 0;
 		int num_optimistic = 0;

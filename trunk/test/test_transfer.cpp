@@ -51,6 +51,12 @@ using boost::tuples::ignore;
 // test the maximum transfer rate
 void test_rate()
 {
+	// in case the previous run was terminated
+	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
+
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0);
 
@@ -203,10 +209,24 @@ storage_interface* test_storage_constructor(file_storage const& fs
 	return new test_storage(fs, path, fp);
 }
 
-void test_transfer(bool test_disk_full = false)
+void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 {
+	// in case the previous run was terminated
+	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
+
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0);
+
+	if (test_allowed_fast)
+	{
+		session_settings sett;
+		sett.allowed_fast_set_size = 2000;
+		ses1.set_max_uploads(0);
+		ses1.set_settings(sett);
+	}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -435,32 +455,18 @@ int test_main()
 	using namespace libtorrent;
 	using namespace boost::filesystem;
 
-	// in case the previous run was terminated
-	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
-
-	// test with a (simulated) full disk
-	test_transfer(true);
-	return 0;
-	
-	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
-
 #ifdef NDEBUG
 	// test rate only makes sense in release mode
 	test_rate();
-
-	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
 #endif
 
 	test_transfer();
+	
+	// test with a (simulated) full disk
+	test_transfer(true);
+	
+	// test allowed fast
+	test_transfer(false, true);
 	
 	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
 	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}

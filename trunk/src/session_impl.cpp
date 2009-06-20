@@ -2648,7 +2648,7 @@ namespace aux {
 
 		INVARIANT_CHECK;
 
-		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
+		if (limit < 0) limit = (std::numeric_limits<int>::max)();
 		if (m_max_uploads == limit) return;
 		m_max_uploads = limit;
 		m_allowed_upload_slots = limit;
@@ -2952,7 +2952,7 @@ namespace aux {
 
 		std::set<peer_connection*> unique_peers;
 		TORRENT_ASSERT(m_max_connections > 0);
-		TORRENT_ASSERT(m_max_uploads > 0);
+		TORRENT_ASSERT(m_max_uploads >= 0);
 		if (!m_settings.auto_upload_slots_rate_based || !m_settings.auto_upload_slots)
 			TORRENT_ASSERT(m_allowed_upload_slots >= m_max_uploads);
 		int unchokes = 0;
