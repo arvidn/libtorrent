@@ -77,8 +77,10 @@ namespace libtorrent
 	TORRENT_EXPORT std::wstring convert_to_wstring(std::string const& s);
 #endif
 	
-#if TORRENT_USE_LOCALE_FILENAMES
+#if defined TORRENT_WINDOWS || TORRENT_USE_LOCALE_FILENAMES
 	TORRENT_EXPORT std::string convert_to_native(std::string const& s);
+#else
+	inline std::string const& convert_to_native(std::string const& s) { return s; }
 #endif		
 	
 }

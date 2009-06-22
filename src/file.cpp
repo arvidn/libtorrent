@@ -67,10 +67,8 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 #include <cstring>
 #include <vector>
 
-#if TORRENT_USE_WPATH || TORRENT_USE_LOCALE_FILENAMES
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/escape_string.hpp"
-#endif
 
 #include "libtorrent/assert.hpp"
 
@@ -79,33 +77,6 @@ BOOST_STATIC_ASSERT((libtorrent::file::rw_mask & libtorrent::file::no_buffer) ==
 BOOST_STATIC_ASSERT((libtorrent::file::rw_mask & libtorrent::file::attribute_mask) == 0);
 BOOST_STATIC_ASSERT((libtorrent::file::no_buffer & libtorrent::file::attribute_mask) == 0);
 #endif
-
-namespace
-{
-#ifdef TORRENT_WINDOWS
-	std::string utf8_native(std::string const& s)
-	{
-		try
-		{
-			std::wstring ws;
-			libtorrent::utf8_wchar(s, ws);
-			std::size_t size = wcstombs(0, ws.c_str(), 0);
-			if (size == std::size_t(-1)) return s;
-			std::string ret;
-			ret.resize(size);
-			size = wcstombs(&ret[0], ws.c_str(), size + 1);
-			if (size == std::size_t(-1)) return s;
-			ret.resize(size);
-			return ret;
-		}
-		catch(std::exception)
-		{
-			return s;
-		}
-	}
-#endif
-
-}
 
 namespace libtorrent
 {
@@ -183,7 +154,7 @@ namespace libtorrent
 #if TORRENT_USE_WPATH
 		m_path = convert_to_wstring(path.external_file_string());
 #else
-		m_path = utf8_native(path.external_file_string());
+		m_path = convert_to_native(path.external_file_string());
 #endif
 
 		TORRENT_ASSERT((mode & mode_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
@@ -223,13 +194,8 @@ namespace libtorrent
 		static const int no_buffer_flag[] = {0, 0};
 #endif
 
-#if TORRENT_USE_LOCALE_FILENAMES
  		m_fd = ::open(convert_to_native(path.external_file_string()).c_str()
  			, mode_array[mode & rw_mask] | no_buffer_flag[(mode & no_buffer) >> 2], permissions);
-#else
- 		m_fd = ::open(path.external_file_string().c_str()
- 			, mode_array[mode & rw_mask] | no_buffer_flag[(mode & no_buffer) >> 2], permissions);
-#endif
 
 #ifdef TORRENT_LINUX
 		// workaround for linux bug

@@ -61,15 +61,16 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_WPATH
 			std::wstring path = convert_to_wstring(p.external_file_string());
+			DWORD attr = GetFileAttributesW(path.c_str());
 #else
-			std::string path = utf8_native(p.external_file_string());
+			std::string path = convert_to_native(p.external_file_string());
+			DWORD attr = GetFileAttributesA(path.c_str());
 #endif
-			DWORD attr = GetFileAttributes(path.c_str());
 			if (attr & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
 			return 0;
 #else
 			struct stat s;
-			if (stat(p.external_file_string().c_str(), &s) < 0) return 0;
+			if (stat(convert_to_native(p.external_file_string()).c_str(), &s) < 0) return 0;
 			return (s.st_mode & S_IXUSR) ? file_storage::attribute_executable : 0;
 #endif
 		}
@@ -78,7 +79,7 @@ namespace libtorrent
 		{
 #ifdef TORRENT_WINDOWS
 			std::wstring const& path = p.external_file_string();
-			DWORD attr = GetFileAttributes(path.c_str());
+			DWORD attr = GetFileAttributesW(path.c_str());
 			if (attr & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
 			return 0;
 #else
