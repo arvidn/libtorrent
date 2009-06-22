@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/intrusive_ptr_base.hpp"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/function.hpp>
 #include <boost/bind.hpp>
 
 struct torrent;
