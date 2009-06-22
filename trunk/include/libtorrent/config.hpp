@@ -127,6 +127,8 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 	return vsnprintf_s(buf, len, _TRUNCATE, fmt, lp);
 }
 #define strtoll _strtoi64
+#else
+#include <limits.h>
 #endif
 
 #if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) && !defined (TORRENT_UPNP_LOGGING)
