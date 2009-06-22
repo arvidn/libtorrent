@@ -507,7 +507,33 @@ namespace libtorrent
 	}
 #endif
 
-#if TORRENT_USE_LOCALE_FILENAMES
+#ifdef TORRENT_WINDOWS
+	std::string convert_to_native(std::string const& s)
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		try
+		{
+#endif
+			std::wstring ws;
+			libtorrent::utf8_wchar(s, ws);
+			std::size_t size = wcstombs(0, ws.c_str(), 0);
+			if (size == std::size_t(-1)) return s;
+			std::string ret;
+			ret.resize(size);
+			size = wcstombs(&ret[0], ws.c_str(), size + 1);
+			if (size == std::size_t(-1)) return s;
+			ret.resize(size);
+			return ret;
+#ifndef BOOST_NO_EXCEPTIONS
+		}
+		catch(std::exception)
+		{
+			return s;
+		}
+#endif
+	}
+
+#elif TORRENT_USE_LOCALE_FILENAMES
 	std::string convert_to_native(std::string const& s)
 	{
 		// the empty string represents the local dependent encoding
