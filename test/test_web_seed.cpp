@@ -167,7 +167,7 @@ int test_main()
 
 	file_pool fp;
 	boost::scoped_ptr<storage_interface> s(default_storage_constructor(
-		fs, ".", fp));
+		fs, 0, ".", fp));
 
 	for (int i = 0; i < num; ++i)
 	{

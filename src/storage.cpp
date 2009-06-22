@@ -327,10 +327,12 @@ namespace libtorrent
 	class storage : public storage_interface, boost::noncopyable
 	{
 	public:
-		storage(file_storage const& fs, fs::path const& path, file_pool& fp)
+		storage(file_storage const& fs, file_storage const* orig, fs::path const& path, file_pool& fp)
 			: m_files(fs)
 			, m_pool(fp)
 		{
+			if (orig) m_mapped_files.reset(new file_storage(*orig));
+
 			TORRENT_ASSERT(m_files.begin() != m_files.end());
 			m_save_path = fs::complete(path);
 			TORRENT_ASSERT(m_save_path.is_complete());
@@ -670,6 +672,18 @@ namespace libtorrent
 
 	bool storage::verify_resume_data(lazy_entry const& rd, std::string& error)
 	{
+		lazy_entry const* mapped_files = rd.dict_find_list("mapped_files");
+		if (mapped_files && mapped_files->list_size() == m_files.num_files())
+		{
+			m_mapped_files.reset(new file_storage(m_files));
+			for (int i = 0; i < m_files.num_files(); ++i)
+			{
+				std::string new_filename = mapped_files->list_string_value_at(i);
+				if (new_filename.empty()) continue;
+				m_mapped_files->rename_file(i, new_filename);
+			}
+		}
+		
 		lazy_entry const* file_priority = rd.dict_find_list("file_priority");
 		if (file_priority && file_priority->list_size()
 			== files().num_files())
@@ -1244,9 +1258,9 @@ namespace libtorrent
 	}
 
 	storage_interface* default_storage_constructor(file_storage const& fs
-		, fs::path const& path, file_pool& fp)
+		, file_storage const* orig, fs::path const& path, file_pool& fp)
 	{
-		return new storage(fs, path, fp);
+		return new storage(fs, orig, path, fp);
 	}
 
 	// -- piece_manager -----------------------------------------------------
@@ -1261,7 +1275,8 @@ namespace libtorrent
 		, storage_mode_t sm)
 		: m_info(info)
 		, m_files(m_info->files())
-		, m_storage(sc(m_files, save_path, fp))
+		, m_storage(sc(m_info->files(), &m_info->files() != &m_info->orig_files()
+			? &m_info->orig_files() : 0, save_path, fp))
 		, m_storage_mode(sm)
 		, m_save_path(complete(save_path))
 		, m_state(state_none)

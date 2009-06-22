@@ -125,7 +125,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	{ // avoid having two storages use the same files	
 	file_pool fp;
 	boost::scoped_ptr<storage_interface> s(
-		default_storage_constructor(fs, test_path, fp));
+		default_storage_constructor(fs, 0, test_path, fp));
 
 	// write piece 1 (in slot 0)
 	s->write(piece1, 0, 0, half);
@@ -261,7 +261,7 @@ void test_remove(path const& test_path)
 
 	file_pool fp;
 	boost::scoped_ptr<storage_interface> s(
-		default_storage_constructor(fs, test_path, fp));
+		default_storage_constructor(fs, 0, test_path, fp));
 
 	// allocate the files and create the directories
 	s->initialize(true);
