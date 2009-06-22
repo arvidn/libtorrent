@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/utf8.hpp"
 #include <boost/bind.hpp>
+#include <cstdio>
 
 
 namespace libtorrent
