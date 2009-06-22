@@ -190,10 +190,10 @@ namespace libtorrent
 	};
 
 	typedef storage_interface* (*storage_constructor_type)(
-		file_storage const&, fs::path const&, file_pool&);
+		file_storage const&, file_storage const*, fs::path const&, file_pool&);
 
 	TORRENT_EXPORT storage_interface* default_storage_constructor(
-		file_storage const&, fs::path const&, file_pool&);
+		file_storage const&, file_storage const* orig, fs::path const&, file_pool&);
 
 	struct disk_io_thread;
 

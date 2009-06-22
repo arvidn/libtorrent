@@ -115,7 +115,7 @@ void print_alert(alert const& a)
 struct test_storage : storage_interface
 {
 	test_storage(file_storage const& fs, fs::path const& p, file_pool& fp)
-		: m_lower_layer(default_storage_constructor(fs, p, fp))
+		: m_lower_layer(default_storage_constructor(fs, 0, p, fp))
   		, m_written(0)
 		, m_limit(16 * 1024 * 2)
 	{}
@@ -204,7 +204,7 @@ struct test_storage : storage_interface
 };
 
 storage_interface* test_storage_constructor(file_storage const& fs
-	, fs::path const& path, file_pool& fp)
+	, file_storage const*, fs::path const& path, file_pool& fp)
 {
 	return new test_storage(fs, path, fp);
 }

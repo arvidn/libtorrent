@@ -67,6 +67,8 @@ release 0.14.5
 	* fixed memory leak in disk io thread when not using the cache
 	* fixed bug in connect candidate counter
 	* allow 0 upload slots
+	* fixed bug in rename_file(). The new name would not always be saved in
+	  the resume data
 
 release 0.14.4
 

@@ -146,7 +146,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	file_pool fp;
 	disk_buffer_pool dp(16 * 1024);
 	boost::scoped_ptr<storage_interface> s(
-		default_storage_constructor(fs, test_path, fp));
+		default_storage_constructor(fs, 0, test_path, fp));
 	s->m_settings = &set;
 	s->m_disk_pool = &dp;
 
@@ -324,7 +324,7 @@ void test_remove(path const& test_path, bool unbuffered)
 	file_pool fp;
 	disk_buffer_pool dp(16 * 1024);
 	boost::scoped_ptr<storage_interface> s(
-		default_storage_constructor(fs, test_path, fp));
+		default_storage_constructor(fs, 0, test_path, fp));
 	s->m_settings = &set;
 	s->m_disk_pool = &dp;
 
