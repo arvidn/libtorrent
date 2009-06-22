@@ -99,6 +99,8 @@ option(resolve-countries "enable support for resolving countries from peer IPs" 
 option(unicode "enable unicode support" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
 option(exceptions "build with exception support" ON)
+option(logging "build with logging" OFF)
+option(verbose-logging "build with verbose logging" OFF)
 option(build_tests "build tests" ON)
 option(build_examples "build examples" ON)
 
@@ -111,9 +113,19 @@ endif (NOT CMAKE_BUILD_TYPE)
 # add_definitions() doesn't seem to let you say wich build type to apply it to
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DTORRENT_DEBUG")
 
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Os -g")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+
 if (encryption)
 	list(APPEND sources pe_crypto)
 endif (encryption)
+
+if (logging)
+	add_definitions(-DTORRENT_LOGGING)
+endif (logging)
+if (verbose-logging)
+	add_definitions(-DTORRENT_VERBOSE_LOGGING)
+endif (verbose-logging)
 
 foreach(s ${sources})
 	list(APPEND sources2 src/${s})
@@ -224,7 +236,15 @@ endforeach (s)
 
 configure_file(libtorrent-rasterbar-cmake.pc.in libtorrent-rasterbar.pc)
 
-install(TARGETS torrent-rasterbar DESTINATION lib CONFIGURATIONS release)
+string (COMPARE EQUAL ${CMAKE_SIZEOF_VOID_P} "8" IS64BITS)
+
+if (IS64BITS AND RESPECTLIB64)
+	set (LIBDIR "lib64")
+else (IS64BITS AND RESPECTLIB64)
+	set (LIBDIR "lib")
+endif (IS64BITS AND RESPECTLIB64)
+
+install(TARGETS torrent-rasterbar DESTINATION ${LIBDIR} CONFIGURATIONS release)
 install(DIRECTORY include/libtorrent
 	DESTINATION include
 	PATTERN ".svn" EXCLUDE)
