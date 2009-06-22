@@ -314,7 +314,7 @@ add_torrent()
 	::
 
 		typedef storage_interface* (&storage_constructor_type)(
-			file_storage const&, fs::path const&, file_pool&);
+			file_storage const&, file_storage const*, fs::path const&, file_pool&);
 
 		struct add_torrent_params
 		{
