@@ -3574,7 +3574,7 @@ namespace libtorrent
 
 		disk_buffer_holder buffer(m_ses, j.buffer);
 #if TORRENT_DISK_STATS
-		m_ses.m_disk_thread.rename_buffer(j.buffer, "received send buffer");
+		if (j.buffer) m_ses.m_disk_thread.rename_buffer(j.buffer, "received send buffer");
 #endif
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -3612,7 +3612,7 @@ namespace libtorrent
 #endif
 
 #if TORRENT_DISK_STATS
-		m_ses.m_disk_thread.rename_buffer(j.buffer, "dispatched send buffer");
+		if (j.buffer) m_ses.m_disk_thread.rename_buffer(j.buffer, "dispatched send buffer");
 #endif
 		write_piece(r, buffer);
 		setup_send();
