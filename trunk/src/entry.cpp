@@ -43,10 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 
 #if defined(_MSC_VER)
-namespace std
-{
-	using ::isprint;
-}
 #define for if (false) {} else for
 #endif
 
@@ -370,7 +366,7 @@ namespace libtorrent
 				bool binary_string = false;
 				for (std::string::const_iterator i = string().begin(); i != string().end(); ++i)
 				{
-					if (!std::isprint(static_cast<unsigned char>(*i)))
+					if (!is_print(static_cast<unsigned char>(*i)))
 					{
 						binary_string = true;
 						break;
@@ -395,7 +391,7 @@ namespace libtorrent
 					bool binary_string = false;
 					for (std::string::const_iterator k = i->first.begin(); k != i->first.end(); ++k)
 					{
-						if (!std::isprint(static_cast<unsigned char>(*k)))
+						if (!is_print(static_cast<unsigned char>(*k)))
 						{
 							binary_string = true;
 							break;

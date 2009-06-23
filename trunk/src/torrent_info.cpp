@@ -776,6 +776,7 @@ namespace libtorrent
 					e.tier = j;
 					e.fail_limit = 0;
 					e.source = announce_entry::source_torrent;
+					e.trim();
 					m_urls.push_back(e);
 				}
 			}
@@ -805,6 +806,7 @@ namespace libtorrent
 			announce_entry e(torrent_file.dict_find_string_value("announce"));
 			e.fail_limit = 0;
 			e.source = announce_entry::source_torrent;
+			e.trim();
 			if (!e.url.empty()) m_urls.push_back(e);
 		}
 
