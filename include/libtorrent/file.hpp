@@ -151,7 +151,7 @@ namespace libtorrent
 
 #ifdef TORRENT_WINDOWS
 		HANDLE m_file_handle;
-#ifdef TORRENT_USE_WPATH
+#if TORRENT_USE_WPATH
 		std::wstring m_path;
 #else
 		std::string m_path;
