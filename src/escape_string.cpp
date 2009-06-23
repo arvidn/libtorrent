@@ -46,15 +46,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/parse_url.hpp"
 
+#ifdef TORRENT_WINDOWS
 #if TORRENT_USE_WPATH
-
-#ifdef BOOST_WINDOWS
 #include <windows.h>
+#endif
 #endif
 
 #include "libtorrent/utf8.hpp"
-
-#endif
 
 #if TORRENT_USE_LOCALE_FILENAMES
 #include <iconv.h>
