@@ -100,10 +100,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/mount.h>
 #endif
 
-#if TORRENT_USE_WPATH || TORRENT_USE_LOCALE_FILENAMES
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/escape_string.hpp"
-#endif
 
 namespace fs = boost::filesystem;
 using boost::bind;
@@ -203,10 +201,8 @@ namespace libtorrent
 			}
 #if TORRENT_USE_WPATH
 			fs::wpath f = convert_to_wstring((p / i->path).string());
-#elif TORRENT_USE_LOCALE_FILENAMES
-			fs::path f = convert_to_native((p / i->path).string());
 #else
-			fs::path f = p / i->path;
+			fs::path f = convert_to_native((p / i->path).string());
 #endif
 			// TODO: optimize
 			if (exists(f))
@@ -256,10 +252,8 @@ namespace libtorrent
 
 #if TORRENT_USE_WPATH
 			fs::wpath f = convert_to_wstring((p / i->path).string());
-#elif TORRENT_USE_LOCALE_FILENAMES
-			fs::path f = convert_to_native((p / i->path).string());
 #else
-			fs::path f = p / i->path;
+			fs::path f = convert_to_native((p / i->path).string());
 #endif
 			// TODO: Optimize this! This will result in 3 stat calls per file!
 			if (exists(f))
@@ -579,13 +573,10 @@ namespace libtorrent
 				fs::wpath wp = convert_to_wstring(last_path.string());
 				if (!exists(wp))
 					create_directories(wp);
-#elif TORRENT_USE_LOCALE_FILENAMES
+#else
 				fs::path p = convert_to_native(last_path.string());
 				if (!exists(p))
 					create_directories(p);
-#else
-				if (!exists(last_path))
-					create_directories(last_path);
 #endif
 			}
 
@@ -605,7 +596,7 @@ namespace libtorrent
 #if TORRENT_USE_WPATH
 			fs::wpath file_path = convert_to_wstring((m_save_path / file_iter->path).string());
 #else
-			fs::path file_path = m_save_path / file_iter->path;
+			fs::path file_path = convert_to_native((m_save_path / file_iter->path).string());
 #endif
 			// if the file is empty, just create it either way.
 			// if the file already exists, but is larger than what
@@ -663,21 +654,16 @@ namespace libtorrent
 		for (; i != end; ++i)
 		{
 			bool file_exists = false;
-#if TORRENT_USE_LOCALE_FILENAMES
-			fs::path f = convert_to_native((m_save_path / i->path).string());
+#if TORRENT_USE_WPATH
+			fs::wpath f = convert_to_wstring((m_save_path / i->path).string());
 #else
-			fs::path f = m_save_path / i->path;
+			fs::path f = convert_to_native((m_save_path / i->path).string());
 #endif
 #ifndef BOOST_NO_EXCEPTIONS
 			try
 			{
 #endif
-#if TORRENT_USE_WPATH
-				fs::wpath wf = convert_to_wstring(f.string());
-				file_exists = exists(wf);
-#else
 				file_exists = exists(f);
-#endif
 #ifndef BOOST_NO_EXCEPTIONS
 			}
 #if BOOST_VERSION >= 103500
@@ -709,12 +695,9 @@ namespace libtorrent
 #if TORRENT_USE_WPATH
 		fs::wpath old_path = convert_to_wstring(old_name.string());
 		fs::wpath new_path = convert_to_wstring((m_save_path / new_filename).string());
-#elif TORRENT_USE_LOCALE_FILENAMES
+#else
 		fs::path const& old_path = convert_to_native(old_name.string());
 		fs::path new_path = convert_to_native((m_save_path / new_filename).string());
-#else
-		fs::path const& old_path = old_name;
-		fs::path new_path = m_save_path / new_filename;
 #endif
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -784,13 +767,8 @@ namespace libtorrent
 		}
 #endif // BOOST_VERSION
 #endif // BOOST_NO_EXCEPTIONS
-#elif TORRENT_USE_LOCALE_FILENAMES
+#else
 		if (std::remove(convert_to_native(p).c_str()) != 0 && errno != ENOENT)
-		{
-			set_error(p, error_code(errno, get_posix_category()));
-		}
-#else // TORRENT_USE_WPATH
-		if (std::remove(p.c_str()) != 0 && errno != ENOENT)
 		{
 			set_error(p, error_code(errno, get_posix_category()));
 		}
@@ -1029,16 +1007,11 @@ namespace libtorrent
 			create_directory(wp);
 		else if (!is_directory(wp))
 			return false;
-#elif TORRENT_USE_LOCALE_FILENAMES
+#else
 		fs::path p = convert_to_native(save_path.string());
 		if (!exists(p))
 			create_directory(p);
 		else if (!is_directory(p))
-			return false;
-#else
-		if (!exists(save_path))
-			create_directory(save_path);
-		else if (!is_directory(save_path))
 			return false;
 #endif
 
@@ -1061,12 +1034,9 @@ namespace libtorrent
 #if TORRENT_USE_WPATH
 			old_path = convert_to_wstring((m_save_path / *i).string());
 			new_path = convert_to_wstring((save_path / *i).string());
-#elif TORRENT_USE_LOCALE_FILENAMES
+#else
 			old_path = convert_to_native((m_save_path / *i).string());
 			new_path = convert_to_native((save_path / *i).string());
-#else
-			old_path = m_save_path / *i;
-			new_path = save_path / *i;
 #endif
 
 #ifndef BOOST_NO_EXCEPTIONS
