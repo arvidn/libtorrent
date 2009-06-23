@@ -152,6 +152,12 @@ namespace libtorrent
 		{
 			return fails == 0;
 		}
+
+		void trim()
+		{
+			while (!url.empty() && is_space(url[0]))
+				url.erase(url.begin());
+		}
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS

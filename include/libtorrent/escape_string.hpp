@@ -45,7 +45,8 @@ namespace libtorrent
 {
 	boost::array<char, 3 + std::numeric_limits<size_type>::digits10> TORRENT_EXPORT to_string(size_type n);
 	bool TORRENT_EXPORT is_digit(char c);
-	bool TORRENT_EXPORT isprint(char c);
+	bool TORRENT_EXPORT is_print(char c);
+	bool TORRENT_EXPORT is_space(char c);
 	char TORRENT_EXPORT to_lower(char c);
 
 	bool TORRENT_EXPORT string_begins_no_case(char const* s1, char const* s2);

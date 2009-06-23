@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/escape_string.hpp"
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 #include "libtorrent/pe_crypto.hpp"
@@ -2728,7 +2729,7 @@ namespace libtorrent
 				char ascii_pid[21];
 				for (int i = 0; i != 20; ++i)
 				{
-					if (isprint(recv_buffer.begin[i])) ascii_pid[i] = recv_buffer.begin[i];
+					if (is_print(recv_buffer.begin[i])) ascii_pid[i] = recv_buffer.begin[i];
 					else ascii_pid[i] = '.';
 				}
 				char msg[200];

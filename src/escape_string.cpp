@@ -87,9 +87,14 @@ namespace libtorrent
 		return c >= '0' && c <= '9';
 	}
 
-	bool isprint(char c)
+	bool is_print(char c)
 	{
 		return c >= 32 && c < 127;
+	}
+
+	bool is_space(char c)
+	{
+		return c == ' ' || c == '\t';
 	}
 
 	char to_lower(char c)
