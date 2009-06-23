@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <cstdio>
 
-
 namespace libtorrent
 {
 	file_storage::file_storage()
@@ -77,11 +76,11 @@ namespace libtorrent
 		m_files[index].path = utf8;
 	}
 
-	void file_storage::add_file(fs::wpath const& file, size_type size, int flags)
+	void file_storage::add_file(fs::wpath const& file, size_type size, int flags, std::time_t mtime)
 	{
 		std::string utf8;
 		wchar_utf8(file.string(), utf8);
-		add_file(utf8, size, flags);
+		add_file(utf8, size, flags, mtime);
 	}
 #endif
 
@@ -165,7 +164,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	void file_storage::add_file(fs::path const& file, size_type size, int flags)
+	void file_storage::add_file(fs::path const& file, size_type size, int flags, std::time_t mtime)
 	{
 		TORRENT_ASSERT(size >= 0);
 #if BOOST_VERSION < 103600
@@ -195,6 +194,7 @@ namespace libtorrent
 		e.pad_file = bool(flags & pad_file);
 		e.hidden_attribute = bool(flags & attribute_hidden);
 		e.executable_attribute = bool(flags & attribute_executable);
+		e.mtime = mtime;
 		m_total_size += size;
 	}
 

@@ -223,6 +223,9 @@ namespace libtorrent
 		target.path = root_dir;
 		target.file_base = 0;
 
+		size_type ts = dict.dict_find_int_value("mtime", -1);
+		if (ts >= 0) target.mtime = std::time_t(ts);
+
 		// prefer the name.utf-8
 		// because if it exists, it is more
 		// likely to be correctly encoded
@@ -612,6 +615,22 @@ namespace libtorrent
 			e.path = name;
 			e.offset = 0;
 			e.size = info.dict_find_int_value("length", -1);
+			size_type ts = info.dict_find_int_value("mtime", -1);
+			if (ts >= 0)
+				e.mtime = std::time_t(ts);
+			lazy_entry const* attr = info.dict_find_string("attr");
+			if (attr)
+			{
+				for (int i = 0; i < attr->string_length(); ++i)	
+				{
+					switch (attr->string_ptr()[i])
+					{
+						case 'x': e.executable_attribute = true; break;
+						case 'h': e.hidden_attribute = true; break;
+						case 'p': e.pad_file = true; break;
+					}
+				}
+			}	
 			// bitcomet pad file
 			if (e.path.string().find("_____padding_file_") != std::string::npos)
 				e.pad_file = true;
