@@ -3345,9 +3345,25 @@ namespace libtorrent
 			}
 		}
 
+		int piece_timeout = m_ses.settings().piece_timeout;
+		int rate_limit = INT_MAX;
+		if (m_bandwidth_channel[download_channel].throttle() > 0)
+			rate_limit = (std::min)(m_bandwidth_channel[download_channel].throttle(), rate_limit);
+		if (t->bandwidth_throttle(download_channel) > 0)
+			rate_limit = (std::min)(t->bandwidth_throttle(download_channel) / t->num_peers(), rate_limit);
+		if (m_ses.m_download_channel.throttle() > 0)
+			rate_limit = (std::min)(m_ses.m_download_channel.throttle()
+				/ m_ses.num_connections(), rate_limit);
+
+		// rate_limit is an approximation of what this connection is
+		// allowed to download. If it is impossible to beat the piece
+		// timeout at this rate, adjust it to be realistic
+
+		int rate_limit_timeout = rate_limit / block_size;
+		if (piece_timeout < rate_limit_timeout) piece_timeout = rate_limit_timeout;
+
 		if (!m_download_queue.empty()
-			&& now - m_last_piece > seconds(m_ses.settings().piece_timeout
-				+ m_timeout_extend))
+			&& now - m_last_piece > seconds(piece_timeout + m_timeout_extend))
 		{
 			// this peer isn't sending the pieces we've
 			// requested (this has been observed by BitComet)
@@ -3356,7 +3372,9 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << time_now_string()
 				<< " *** PIECE_REQUESTS TIMED OUT [ " << (int)m_download_queue.size()
-				<< " " << total_seconds(now - m_last_piece) << "] ***\n";
+				<< " time: " << total_seconds(now - m_last_piece)
+				<< " to: " << piece_timeout
+				<< " extened: " << m_timeout_extend << " ] ***\n";
 #endif
 
 			snub_peer();
