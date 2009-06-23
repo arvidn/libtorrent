@@ -161,6 +161,9 @@ namespace libtorrent
 		int TORRENT_EXPORT get_file_attributes(boost::filesystem::path const& p);
 		int TORRENT_EXPORT get_file_attributes(boost::filesystem::wpath const& p);
 
+		std::time_t TORRENT_EXPORT get_file_mtime(boost::filesystem::path const& p);
+		std::time_t TORRENT_EXPORT get_file_mtime(boost::filesystem::wpath const& p);
+
 		template <class Pred, class Str, class PathTraits>
 		void add_files_impl(file_storage& fs, boost::filesystem::basic_path<Str, PathTraits> const& p
 			, boost::filesystem::basic_path<Str, PathTraits> const& l, Pred pred)
@@ -187,7 +190,8 @@ namespace libtorrent
 			else
 			{
 				int file_flags = get_file_attributes(f);
-				fs.add_file(l, file_size(f), file_flags);
+				std::time_t mtime = get_file_mtime(f);
+				fs.add_file(l, file_size(f), file_flags, mtime);
 			}
 		}
 	}
@@ -349,4 +353,3 @@ namespace libtorrent
 }
 
 #endif
-

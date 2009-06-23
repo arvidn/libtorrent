@@ -67,6 +67,7 @@ namespace libtorrent
 		// This is always 0 unless parts of the torrent is
 		// compressed into a single file, such as a so-called part file.
 		size_type file_base;
+		std::time_t mtime;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
@@ -96,11 +97,11 @@ namespace libtorrent
 		};
 
 		void add_file(file_entry const& e);
-		void add_file(fs::path const& p, size_type size, int flags = 0);
+		void add_file(fs::path const& p, size_type size, int flags = 0, std::time_t mtime = 0);
 		void rename_file(int index, std::string const& new_filename);
 
 #ifndef BOOST_FILESYSTEM_NARROW_ONLY
-		void add_file(fs::wpath const& p, size_type size, int flags = 0);
+		void add_file(fs::wpath const& p, size_type size, int flags = 0, std::time_t mtime = 0);
 		void rename_file(int index, std::wstring const& new_filename);
 		void set_name(std::wstring const& n);
 #endif

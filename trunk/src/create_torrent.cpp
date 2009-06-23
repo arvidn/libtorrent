@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/storage.hpp"
+#include "libtorrent/escape_string.hpp"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/gregorian/gregorian.hpp>
@@ -59,7 +60,7 @@ namespace libtorrent
 		{
 #ifdef TORRENT_WINDOWS
 
-#ifdef TORRENT_USE_WPATH
+#if TORRENT_USE_WPATH
 			std::wstring path = convert_to_wstring(p.external_file_string());
 			DWORD attr = GetFileAttributesW(path.c_str());
 #else
@@ -83,11 +84,52 @@ namespace libtorrent
 			if (attr & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
 			return 0;
 #else
+			std::string native;
+			wchar_utf8(p.string(), native);
+			native = convert_to_native(native);
+
+			struct stat s;
+			if (stat(native.c_str(), &s) < 0) return 0;
+			return (s.st_mode & S_IXUSR) ? file_storage::attribute_executable : 0;
+#endif
+		}
+
+		std::time_t get_file_mtime(char const* path)
+		{
+#ifdef TORRENT_WINDOWS
+			struct _stat s;
+			if (::_stat(path, &s) < 0) return 0;
+#else
+			struct stat s;
+			if (lstat(path, &s) < 0) return 0;
+#endif
+			return s.st_mtime;
+		}
+
+		std::time_t TORRENT_EXPORT get_file_mtime(boost::filesystem::path const& p)
+		{
+#if defined TORRENT_WINDOWS && TORRENT_USE_WPATH
+			std::wstring path = convert_to_wstring(p.external_file_string());
+			struct _stat s;
+			if (::_wstat(path.c_str(), &s) < 0) return 0;
+			return s.st_mtime;
+#else
+			std::string path = convert_to_native(p.external_file_string());
+			return get_file_mtime(p.string().c_str());
+#endif
+		}
+
+		std::time_t TORRENT_EXPORT get_file_mtime(boost::filesystem::wpath const& p)
+		{
+#ifdef TORRENT_WINDOWS
+			struct _stat s;
+			if (::_wstat(p.string().c_str(), &s) < 0) return 0;
+			return s.st_mtime;
+#else
 			std::string utf8;
 			wchar_utf8(p.string(), utf8);
-			struct stat s;
-			if (stat(utf8.c_str(), &s) < 0) return 0;
-			return (s.st_mode & S_IXUSR) ? file_storage::attribute_executable : 0;
+			utf8 = convert_to_native(utf8);
+			return get_file_mtime(utf8.c_str());
 #endif
 		}
 	}
@@ -263,7 +305,15 @@ namespace libtorrent
 
 		if (!m_multifile)
 		{
+			info["mtime"] = m_files.at(0).mtime;
 			info["length"] = m_files.at(0).size;
+			if (m_files.at(0).pad_file || m_files.at(0).hidden_attribute || m_files.at(0).executable_attribute)
+			{
+				std::string& attr = info["attr"].string();
+				if (m_files.at(0).pad_file) attr += 'p';
+				if (m_files.at(0).hidden_attribute) attr += 'h';
+				if (m_files.at(0).executable_attribute) attr += 'x';
+			}
 		}
 		else
 		{
@@ -276,6 +326,7 @@ namespace libtorrent
 				{
 					files.list().push_back(entry());
 					entry& file_e = files.list().back();
+					file_e["mtime"] = i->mtime; 
 					file_e["length"] = i->size;
 					entry& path_e = file_e["path"];
 
