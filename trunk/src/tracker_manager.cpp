@@ -244,9 +244,10 @@ namespace libtorrent
 		}
 		else
 		{
+			// we need to post the error to avoid deadlock
 			if (boost::shared_ptr<request_callback> r = c.lock())
-				r->tracker_request_error(req, -1, "unknown protocol in tracker url: "
-					+ req.url);
+				ios.post(boost::bind(&request_callback::tracker_request_error, r, req, -1
+					, "unknown protocol in tracker url: " + req.url));
 			return;
 		}
 
