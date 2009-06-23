@@ -39,10 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/bind.hpp>
 
-#ifndef TORRENT_WINDOWS
 #include <sys/types.h>
 #include <sys/stat.h>
-#endif
 
 namespace gr = boost::gregorian;
 
