@@ -257,7 +257,7 @@ merkle
 	be opened in clients that don't specifically support merkle torrents.
 	The benefit is that the resulting torrent file will be much smaller and
 	not grow with more pieces. When this option is specified, it is
-	recommended to have a 16 kiB piece size.
+	recommended to have a fairly small piece size, say 64 kiB.
 
 generate()
 ----------
