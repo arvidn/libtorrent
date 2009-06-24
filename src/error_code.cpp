@@ -84,7 +84,7 @@ namespace libtorrent
 			"expected closing ] for address",
 			"destructing torrent",
 			"timed out",
-			"upload to uplaod connection",
+			"upload to upload connection",
 			"uninteresting upload-only peer",
 			"invalid info-hash",
 			"torrent paused",
