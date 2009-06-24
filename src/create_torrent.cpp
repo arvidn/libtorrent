@@ -162,7 +162,7 @@ namespace libtorrent
 		}
 		else if (piece_size == 0 && m_merkle_torrent)
 		{
-			piece_size = 16*1024;
+			piece_size = 64*1024;
 		}
 
 		// make sure the size is an even power of 2
