@@ -231,11 +231,11 @@ create_torrent()
 
 The ``piece_size`` is the size of each piece in bytes. It must
 be a multiple of 16 kiB. If a piece size of 0 is specified, a
-piece_size will becalculated such that the torrent file is roughly 40 kB.
+piece_size will be calculated such that the torrent file is roughly 40 kB.
 
 If a ``pad_size_limit`` is specified (other than -1), any file larger than
 the specified number of bytes will be preceeded by a pad file to align it
-with the start od a piece. The pad_file_limit is ignored unless the
+with the start of a piece. The pad_file_limit is ignored unless the
 ``optimize`` flag is passed.
 
 The overload that takes a ``torrent_info`` object will make a verbatim
