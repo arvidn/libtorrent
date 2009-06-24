@@ -669,13 +669,13 @@ namespace libtorrent
 #if BOOST_VERSION >= 103500
 			catch (boost::system::system_error& e)
 			{
-				set_error(f, e.code());
+				set_error(m_save_path / i->path, e.code());
 				return false;
 			}
 #else
 			catch (boost::filesystem::filesystem_error& e)
 			{
-				set_error(f, error_code(e.system_error(), get_system_category()));
+				set_error(m_save_path / i->path, error_code(e.system_error(), get_system_category()));
 				return false;
 			}
 #endif // BOOST_VERSION
