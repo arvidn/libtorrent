@@ -7,6 +7,7 @@
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/storage.hpp>
 #include <libtorrent/ip_filter.hpp>
+#include <libtorrent/disk_io_thread.hpp>
 #include "gil.hpp"
 
 using namespace boost::python;
@@ -110,7 +111,7 @@ namespace
             p.seed_mode = params["seed_mode"];
         if (params.has_key("override_resume_data"))
             p.override_resume_data = params["override_resume_data"];
-            
+
         return s.add_torrent(p);
     }
 
@@ -175,33 +176,33 @@ void bind_session()
         .def_readonly("ip_overhead_download_rate", &session_status::ip_overhead_download_rate)
         .def_readonly("total_ip_overhead_download", &session_status::total_ip_overhead_download)
         .def_readonly("total_ip_overhead_upload", &session_status::total_ip_overhead_upload)
-        
+
         .def_readonly("dht_upload_rate", &session_status::dht_upload_rate)
         .def_readonly("dht_download_rate", &session_status::dht_download_rate)
         .def_readonly("total_dht_download", &session_status::total_dht_download)
         .def_readonly("total_dht_upload", &session_status::total_dht_upload)
-        
+
         .def_readonly("tracker_upload_rate", &session_status::tracker_upload_rate)
         .def_readonly("tracker_download_rate", &session_status::tracker_download_rate)
         .def_readonly("total_tracker_download", &session_status::total_tracker_download)
         .def_readonly("total_tracker_upload", &session_status::total_tracker_upload)
-        
+
         .def_readonly("total_redundant_bytes", &session_status::total_redundant_bytes)
         .def_readonly("total_failed_bytes", &session_status::total_failed_bytes)
-        
+
         .def_readonly("num_peers", &session_status::num_peers)
         .def_readonly("num_unchoked", &session_status::num_unchoked)
         .def_readonly("allowed_upload_slots", &session_status::allowed_upload_slots)
-        
+
         .def_readonly("up_bandwidth_queue", &session_status::up_bandwidth_queue)
         .def_readonly("down_bandwidth_queue", &session_status::down_bandwidth_queue)
-        
+
         .def_readonly("up_bandwidth_bytes_queue", &session_status::up_bandwidth_bytes_queue)
         .def_readonly("down_bandwidth_bytes_queue", &session_status::down_bandwidth_bytes_queue)
-        
+
         .def_readonly("optimistic_unchoke_counter", &session_status::optimistic_unchoke_counter)
         .def_readonly("unchoke_counter", &session_status::unchoke_counter)
-        
+
 #ifndef TORRENT_DISABLE_DHT
         .def_readonly("dht_nodes", &session_status::dht_nodes)
         .def_readonly("dht_cache_nodes", &session_status::dht_node_cache)
@@ -218,7 +219,7 @@ void bind_session()
         .def_readonly("response", &dht_lookup::responses)
         .def_readonly("branch_factor", &dht_lookup::branch_factor)
     ;
-        
+
     enum_<storage_mode_t>("storage_mode_t")
         .value("storage_mode_allocate", storage_mode_allocate)
         .value("storage_mode_sparse", storage_mode_sparse)
@@ -233,6 +234,17 @@ void bind_session()
     enum_<session::session_flags_t>("session_flags_t")
         .value("add_default_plugins", session::add_default_plugins)
         .value("start_default_features", session::start_default_features)
+    ;
+
+    class_<cache_status>("cache_status")
+        .def_readonly("blocks_written", &cache_status::blocks_written)
+        .def_readonly("writes", &cache_status::writes)
+        .def_readonly("blocks_read", &cache_status::blocks_read)
+        .def_readonly("blocks_read_hit", &cache_status::blocks_read_hit)
+        .def_readonly("reads", &cache_status::reads)
+        .def_readonly("cache_size", &cache_status::cache_size)
+        .def_readonly("read_cache_size", &cache_status::read_cache_size)
+        .def_readonly("total_used_buffers", &cache_status::total_used_buffers)
     ;
 
     class_<session, boost::noncopyable>("session", no_init)
@@ -326,6 +338,7 @@ void bind_session()
         .def("resume", allow_threads(&session::resume))
         .def("is_paused", allow_threads(&session::is_paused))
         .def("id", allow_threads(&session::id))
+        .def("get_cache_status", allow_threads(&session::get_cache_status))
         ;
 
     register_ptr_to_python<std::auto_ptr<alert> >();
