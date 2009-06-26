@@ -746,17 +746,6 @@ namespace
 		dst.clear();
 		while (*src) dst.push_back(to_lower(*src++));
 	}
-	
-	bool string_equal_nocase(char const* lhs, char const* rhs)
-	{
-		while (to_lower(*lhs) == to_lower(*rhs))
-		{
-			if (*lhs == 0) return true;
-			++lhs;
-			++rhs;
-		}
-		return false;
-	}
 }
 
 struct parse_state
@@ -781,10 +770,10 @@ struct parse_state
 	{
 		std::list<std::string>::reverse_iterator i = tag_stack.rbegin();
 		if (i == tag_stack.rend()) return false;
-		if (!string_equal_nocase(i->c_str(), str2)) return false;
+		if (!string_equal_no_case(i->c_str(), str2)) return false;
 		++i;
 		if (i == tag_stack.rend()) return false;
-		if (!string_equal_nocase(i->c_str(), str1)) return false;
+		if (!string_equal_no_case(i->c_str(), str1)) return false;
 		return true;
 	}
 };
@@ -814,7 +803,7 @@ void find_control_url(int type, char const* string, parse_state& state)
 //		std::cout << " " << string << std::endl;
 		if (!state.in_service && state.top_tags("service", "servicetype"))
 		{
-			if (string_equal_nocase(string, state.service_type))
+			if (string_equal_no_case(string, state.service_type))
 				state.in_service = true;
 		}
 		else if (state.in_service && state.top_tags("service", "controlurl"))

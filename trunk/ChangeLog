@@ -1,3 +1,4 @@
+	* handle torrents with duplicate filenames
 	* piece timeouts are adjusted to download rate limits
 	* encodes urls in torrent files that needs to be encoded
 	* fixed not passing &supportcrypto=1 when encryption is disabled

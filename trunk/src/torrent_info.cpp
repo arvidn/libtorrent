@@ -264,7 +264,7 @@ namespace libtorrent
 					case 'p': target.pad_file = true; break;
 				}
 			}
-		}	
+		}
 
 		return true;
 	}
@@ -278,6 +278,22 @@ namespace libtorrent
 			file_entry e;
 			if (!extract_single_file(*list.list_at(i), e, root_dir))
 				return false;
+			int cnt = 0;
+			for (file_storage::iterator k = target.begin()
+				, end(target.end()); k != end; ++k)
+			{
+				if (string_equal_no_case(e.path.string().c_str()
+					, k->path.string().c_str())) ++cnt;
+			}
+			if (cnt)
+			{
+				char suffix[15];
+				snprintf(suffix, sizeof(suffix), ".%d", cnt);
+				e.path.replace_extension(suffix + e.path.extension());
+				// TODO: we should really make sure that this new name
+				// doesn't already exist as well, otherwise we might
+				// just create another collision
+			}
 			target.add_file(e);
 		}
 		return true;

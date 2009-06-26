@@ -111,6 +111,17 @@ namespace libtorrent
 		return true;
 	}
 
+	bool string_equal_no_case(char const* s1, char const* s2)
+	{
+		while (to_lower(*s1) == to_lower(*s2))
+		{
+			if (*s1 == 0) return true;
+			++s1;
+			++s2;
+		}
+		return false;
+	}
+
 	std::string unescape_string(std::string const& s, error_code& ec)
 	{
 		std::string ret;
