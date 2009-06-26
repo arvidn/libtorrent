@@ -728,8 +728,6 @@ namespace libtorrent
 			if (iter != m_peers.end() && (*iter)->address() == c.remote().address()) found = true;
 		}
 
-		bool was_conn_cand = false;
-
 		if (found)
 		{
 			i = *iter;
@@ -739,8 +737,6 @@ namespace libtorrent
 				c.disconnect(error_code(errors::peer_banned, libtorrent_category));
 				return false;
 			}
-
-			was_conn_cand = is_connect_candidate(*i, m_finished);
 
 			if (i->connection != 0)
 			{
@@ -789,6 +785,13 @@ namespace libtorrent
 #endif
 					i->connection->disconnect(error_code(errors::duplicate_peer_id, libtorrent_category));
 				}
+			}
+
+			if (is_connect_candidate(*i, m_finished))
+			{
+				m_num_connect_candidates--;
+				TORRENT_ASSERT(m_num_connect_candidates >= 0);
+				if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
 			}
 		}
 		else
@@ -852,12 +855,8 @@ namespace libtorrent
 		if (!c.fast_reconnect())
 			i->last_connected = session_time;
 
-		if (was_conn_cand != is_connect_candidate(*i, m_finished))
-		{
-			m_num_connect_candidates += was_conn_cand ? -1 : 1;
-			TORRENT_ASSERT(m_num_connect_candidates >= 0);
-			if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
-		}
+		// this cannot be a connect candidate anymore, since i->connection is set
+		TORRENT_ASSERT(!is_connect_candidate(*i, m_finished));
 		return true;
 	}
 
@@ -1287,6 +1286,7 @@ namespace libtorrent
 		if (p == 0) return;
 
 		TORRENT_ASSERT(p->connection == &c);
+		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
 
 		p->connection = 0;
 		p->optimistically_unchoked = false;
