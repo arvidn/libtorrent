@@ -279,10 +279,10 @@ create_torrent(torrent_info const&amp; ti);
 </blockquote>
 <p>The <tt class="docutils literal"><span class="pre">piece_size</span></tt> is the size of each piece in bytes. It must
 be a multiple of 16 kiB. If a piece size of 0 is specified, a
-piece_size will becalculated such that the torrent file is roughly 40 kB.</p>
+piece_size will be calculated such that the torrent file is roughly 40 kB.</p>
 <p>If a <tt class="docutils literal"><span class="pre">pad_size_limit</span></tt> is specified (other than -1), any file larger than
 the specified number of bytes will be preceeded by a pad file to align it
-with the start od a piece. The pad_file_limit is ignored unless the
+with the start of a piece. The pad_file_limit is ignored unless the
 <tt class="docutils literal"><span class="pre">optimize</span></tt> flag is passed.</p>
 <p>The overload that takes a <tt class="docutils literal"><span class="pre">torrent_info</span></tt> object will make a verbatim
 copy of its info dictionary (to preserve the info-hash). The copy of
@@ -301,7 +301,7 @@ optimized disk-I/O.</dd>
 be opened in clients that don't specifically support merkle torrents.
 The benefit is that the resulting torrent file will be much smaller and
 not grow with more pieces. When this option is specified, it is
-recommended to have a 16 kiB piece size.</dd>
+recommended to have a fairly small piece size, say 64 kiB.</dd>
 </dl>
 </div>
 <div class="section" id="generate">

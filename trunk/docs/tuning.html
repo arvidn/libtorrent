@@ -261,7 +261,7 @@ can use the service simultaneously. This is controlled by
 <tt class="docutils literal"><span class="pre">session_settings::allow_multiple_connections_per_ip</span></tt>.</p>
 <p>In order to always unchoke peers, turn off automatic unchoke
 <tt class="docutils literal"><span class="pre">session_settings::auto_upload_slots</span></tt> and set the number of upload slots to a large
-number via <tt class="docutils literal"><span class="pre">session::set_max_uploads()</span></tt>.</p>
+number via <tt class="docutils literal"><span class="pre">session::set_max_uploads()</span></tt>, or use -1 (which means infinite).</p>
 </div>
 <div class="section" id="torrent-limits">
 <h2>torrent limits</h2>
