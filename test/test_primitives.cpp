@@ -423,6 +423,13 @@ int test_main()
 	TEST_CHECK(to_lower('-') == '-');
 	TEST_CHECK(to_lower('&') == '&');
 
+	// test string_equal_no_case
+
+	TEST_CHECK(string_equal_no_case("foobar", "FoobAR"));
+	TEST_CHECK(string_equal_no_case("foobar", "foobar"));
+	TEST_CHECK(!string_equal_no_case("foobar", "foobar "));
+	TEST_CHECK(!string_equal_no_case("foobar", "F00"));
+
 	// test string_begins_no_case
 
 	TEST_CHECK(string_begins_no_case("foobar", "FoobAR --"));
