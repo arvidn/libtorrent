@@ -206,10 +206,10 @@ you asked in the scrape request.
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
 +=============+=====================+========================================+
-| int32_t     | complete            | The total number of completed          |
-|             |                     | downloads.                             |
+| int32_t     | complete            | The current number of connected seeds. |
 +-------------+---------------------+----------------------------------------+
-| int32_t     | downloaded          | The current number of connected seeds. |
+| int32_t     | downloaded          | The number of times this torrent has   |
+|             |                     | been downloaded.                       |
 +-------------+---------------------+----------------------------------------+
 | int32_t     | incomplete          | The current number of connected        |
 |             |                     | leechers.                              |
