@@ -654,7 +654,7 @@ public:
         );
     }
 
-	 asio::io_service& io_service()
+	 asio::io_service& get_io_service()
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
