@@ -71,6 +71,7 @@ release 0.14.5
 	* allow 0 upload slots
 	* fixed bug in rename_file(). The new name would not always be saved in
 	  the resume data
+	* fixed resume data compatibility with 0.13
 
 release 0.14.4
 
