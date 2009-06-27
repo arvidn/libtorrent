@@ -54,17 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/escape_string.hpp"
 
-namespace
-{
-	enum
-	{
-		udp_connection_retries = 4,
-		udp_announce_retries = 15,
-		udp_connect_timeout = 15,
-		udp_announce_timeout = 10
-	};
-}
-
 using boost::bind;
 
 namespace libtorrent
