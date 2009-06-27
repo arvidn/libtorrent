@@ -122,6 +122,7 @@ void bind_torrent_info()
         .def("file_at", &torrent_info::file_at, return_internal_reference<>())
         .def("file_at_offset", &torrent_info::file_at_offset)
         .def("files", &files, (arg("storage")=false))
+        .def("rename_file", &torrent_info::rename_file)
 
         .def("priv", &torrent_info::priv)
         .def("trackers", range(begin_trackers, end_trackers))
