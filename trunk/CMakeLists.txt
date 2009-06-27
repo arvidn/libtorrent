@@ -157,6 +157,9 @@ endif (NOT Boost_VERSION LESS 103500)
 include_directories(${Boost_INCLUDE_DIR})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
 
+# this works around a bug in asio in boost-1.39
+add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021)
+
 if (WIN32)
 	target_link_libraries(torrent-rasterbar wsock32 ws2_32)
 endif (WIN32)

@@ -449,6 +449,8 @@ local usage-requirements =
 	<toolset>gcc:<cflags>-Wno-missing-braces
 	<boost>system:<cxxflags>$(CXXFLAGS)
 	<boost>system:<linkflags>$(LDFLAGS)
+# this works around a bug in asio in boost-1.39
+	<define>BOOST_ASIO_HASH_MAP_BUCKETS=1021
 	<tag>@tag
 	;
 
