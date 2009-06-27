@@ -610,6 +610,18 @@ namespace libtorrent
 						m_picker->we_have(i);
 					}
 				}
+				else
+				{
+					lazy_entry const* slots = m_resume_entry.dict_find("slots");
+					if (slots && slots->type() == lazy_entry::list_t)
+					{
+						for (int i = 0; i < slots->list_size(); ++i)
+						{
+							int piece = slots->list_int_value_at(i, -1);
+							if (piece >= 0) m_picker->we_have(piece);
+						}
+					}
+				}
 
 				// parse unfinished pieces
 				int num_blocks_per_piece =
@@ -2643,6 +2655,7 @@ namespace libtorrent
 	{
 		ret["file-format"] = "libtorrent resume file";
 		ret["file-version"] = 1;
+		ret["libtorrent-version"] = LIBTORRENT_VERSION;
 
 		ret["total_uploaded"] = m_total_uploaded;
 		ret["total_downloaded"] = m_total_downloaded;
