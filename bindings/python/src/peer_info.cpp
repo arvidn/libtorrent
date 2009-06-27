@@ -29,7 +29,7 @@ str get_country(peer_info const& pi)
 
 tuple get_ip(peer_info const& pi)
 {
-    return make_tuple(boost::lexical_cast<std::string>(pi.ip.address()), pi.ip.port());
+    return make_tuple(pi.ip.address().to_string(), pi.ip.port());
 }
 
 list get_pieces(peer_info const& pi)
