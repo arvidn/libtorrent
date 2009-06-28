@@ -4782,7 +4782,7 @@ not, set ``error`` to a description of what mismatched and return false.
 
 The default storage may compare file sizes and time stamps of the files.
 
-Returning ``true`` indicates an error occurred.
+Returning ``false`` indicates an error occurred.
 
 
 write_resume_data()

@@ -139,7 +139,7 @@ namespace libtorrent
 		virtual bool move_storage(fs::path save_path) = 0;
 
 		// verify storage dependent fast resume entries
-		virtual bool verify_resume_data(lazy_entry const& rd, std::string& error) = 0;
+		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
 
 		// write storage dependent fast resume entries
 		virtual bool write_resume_data(entry& rd) const = 0;
@@ -281,7 +281,7 @@ namespace libtorrent
 
 		fs::path save_path() const;
 
-		bool verify_resume_data(lazy_entry const& rd, std::string& error)
+		bool verify_resume_data(lazy_entry const& rd, error_code& error)
 		{ return m_storage->verify_resume_data(rd, error); }
 
 		bool is_allocating() const
@@ -299,17 +299,17 @@ namespace libtorrent
 		int piece_for(int slot) const;
 	
 		// helper functions for check_dastresume	
-		int check_no_fastresume(std::string& error);
-		int check_init_storage(std::string& error);
+		int check_no_fastresume(error_code& error);
+		int check_init_storage(error_code& error);
 		
 		// if error is set and return value is 'no_error' or 'need_full_check'
 		// the error message indicates that the fast resume data was rejected
 		// if 'fatal_disk_error' is returned, the error message indicates what
 		// when wrong in the disk access
-		int check_fastresume(lazy_entry const& rd, std::string& error);
+		int check_fastresume(lazy_entry const& rd, error_code& error);
 
 		// this function returns true if the checking is complete
-		int check_files(int& current_slot, int& have_piece, std::string& error);
+		int check_files(int& current_slot, int& have_piece, error_code& error);
 
 		bool compact_allocation() const
 		{ return m_storage_mode == storage_mode_compact; }

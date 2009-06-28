@@ -174,7 +174,7 @@ struct test_storage : storage_interface
 	virtual bool move_storage(fs::path save_path)
 	{ return m_lower_layer->move_storage(save_path); }
 
-	virtual bool verify_resume_data(lazy_entry const& rd, std::string& error)
+	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
 	{ return m_lower_layer->verify_resume_data(rd, error); }
 
 	virtual bool write_resume_data(entry& rd) const

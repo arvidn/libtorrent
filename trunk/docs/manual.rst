@@ -5730,7 +5730,13 @@ code   symbol                                    description
 106    invalid_pex_message                       The peer sent an invalid peer exchange message
 ------ ----------------------------------------- -----------------------------------------------------------------
 107    invalid_lt_tracker_message                The peer sent an invalid tracker exchange message
------- ----------------------------------------- -----------------------------------------------------------------
+====== ========================================= =================================================================
+
+NAT-PMP errors:
+
+====== ========================================= =================================================================
+code   symbol                                    description
+====== ========================================= =================================================================
 108    unsupported_protocol_version              The NAT-PMP router responded with an unsupported protocol version
 ------ ----------------------------------------- -----------------------------------------------------------------
 109    natpmp_not_authorized                     You are not authorized to map ports on this NAT-PMP router
@@ -5740,6 +5746,45 @@ code   symbol                                    description
 111    no_resources                              The NAT-PMP router failed because of lack of resources
 ------ ----------------------------------------- -----------------------------------------------------------------
 112    unsupported_opcode                        The NAT-PMP router failed because an unsupported opcode was sent
+====== ========================================= =================================================================
+
+fastresume data errors:
+
+====== ========================================= =================================================================
+code   symbol                                    description
+====== ========================================= =================================================================
+113    missing_file_sizes                        The resume data file is missing the 'file sizes' entry
+------ ----------------------------------------- -----------------------------------------------------------------
+114    no_files_in_resume_data                   The resume data file 'file sizes' entry is empty
+------ ----------------------------------------- -----------------------------------------------------------------
+115    missing_pieces                            The resume data file is missing the 'pieces' and 'slots' entry
+------ ----------------------------------------- -----------------------------------------------------------------
+116    mismatching_number_of_files               The number of files in the resume data does not match the number
+                                                 of files in the torrent
+------ ----------------------------------------- -----------------------------------------------------------------
+117    mismatching_files_size                    One of the files on disk has a different size than in the fast
+                                                 resume file
+------ ----------------------------------------- -----------------------------------------------------------------
+118    mismatching_file_timestamp                One of the files on disk has a different timestamp than in the
+                                                 fast resume file
+------ ----------------------------------------- -----------------------------------------------------------------
+119    not_a_dictionary                          The resume data file is not a dictionary
+------ ----------------------------------------- -----------------------------------------------------------------
+120    invalid_blocks_per_piece                  The 'blocks per piece' entry is invalid in the resume data file
+------ ----------------------------------------- -----------------------------------------------------------------
+121    missing_slots                             The resume file is missing the 'slots' entry, which is required
+                                                 for torrents with compact allocation
+------ ----------------------------------------- -----------------------------------------------------------------
+122    too_many_slots                            The resume file contains more slots than the torrent
+------ ----------------------------------------- -----------------------------------------------------------------
+123    invalid_slot_list                         The 'slot' entry is invalid in the resume data
+------ ----------------------------------------- -----------------------------------------------------------------
+124    invalid_piece_index                       One index in the 'slot' list is invalid
+------ ----------------------------------------- -----------------------------------------------------------------
+125    pieces_need_reorder                       The pieces on disk needs to be re-ordered for the specified
+                                                 allocation mode. This happens if you specify sparse allocation
+                                                 and the files on disk are using compact storage. The pieces needs
+                                                 to be moved to their right position
 ====== ========================================= =================================================================
 
 The names of these error codes are declared in then ``libtorrent::errors`` namespace.
@@ -5862,7 +5907,7 @@ The interface looks like this::
 		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
 		virtual int sparse_end(int start) const;
 		virtual bool move_storage(fs::path save_path) = 0;
-		virtual bool verify_resume_data(lazy_entry const& rd, std::string& error) = 0;
+		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
 		virtual bool write_resume_data(entry& rd) const = 0;
 		virtual bool move_slot(int src_slot, int dst_slot) = 0;
 		virtual bool swap_slots(int slot1, int slot2) = 0;
@@ -5970,7 +6015,7 @@ verify_resume_data()
 
 	::
 
-		bool verify_resume_data(lazy_entry const& rd, std::string& error) = 0;
+		bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
 
 This function should verify the resume data ``rd`` with the files
 on disk. If the resume data seems to be up-to-date, return true. If
@@ -5978,7 +6023,7 @@ not, set ``error`` to a description of what mismatched and return false.
 
 The default storage may compare file sizes and time stamps of the files.
 
-Returning ``true`` indicates an error occurred.
+Returning ``false`` indicates an error occurred.
 
 
 write_resume_data()

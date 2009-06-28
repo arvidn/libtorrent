@@ -160,11 +160,35 @@ namespace libtorrent
 			invalid_pex_message,
 			invalid_lt_tracker_message,
 
+// natpmp errors
 			unsupported_protocol_version,
 			natpmp_not_authorized,
 			network_failure,
 			no_resources,
 			unsupported_opcode,
+
+// fastresume errors
+			missing_file_sizes,
+			no_files_in_resume_data,
+			missing_pieces,
+			mismatching_number_of_files,
+			mismatching_file_size,
+			mismatching_file_timestamp,
+			not_a_dictionary,
+			invalid_blocks_per_piece,
+			missing_slots,
+			too_many_slots,
+			invalid_slot_list,
+			invalid_piece_index,
+			pieces_need_reorder,
+			reserved1,
+			reserved2,
+			reserved3,
+			reserved4,
+			reserved5,
+			reserved6,
+			reserved7,
+			reserved8,
 		};
 	}
 
