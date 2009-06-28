@@ -2540,7 +2540,7 @@ namespace libtorrent
 		TORRENT_ASSERT(block_size > 0);
 		TORRENT_ASSERT(block_size <= t->block_size());
 
-		if (m_outstanding_bytes < block_size) break;
+		if (m_outstanding_bytes < block_size) return;
 
 		peer_request r;
 		r.piece = block.piece_index;
