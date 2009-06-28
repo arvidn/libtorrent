@@ -111,7 +111,7 @@ namespace
 {
 	using namespace libtorrent;
 
-	void print_to_log(const std::string& s)
+	void print_to_log(std::string const& s)
 	{
 		static std::ofstream log("log.txt");
 		log << s;
@@ -232,11 +232,11 @@ namespace libtorrent
 		, fs::path p
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
 		, bool compact_mode
-		, std::string* error)
+		, error_code& error)
 	{
 		if ((int)sizes.size() != fs.num_files())
 		{
-			if (error) *error = "mismatching number of files";
+			error = error_code(errors::mismatching_number_of_files, libtorrent_category);
 			return false;
 		}
 		p = complete(p);
@@ -270,11 +270,7 @@ namespace libtorrent
 			if ((compact_mode && size != s->first)
 				|| (!compact_mode && size < s->first))
 			{
-				if (error) *error = "filesize mismatch for file '"
-					+ i->path.external_file_string()
-					+ "', size: " + boost::lexical_cast<std::string>(size)
-					+ ", expected to be " + boost::lexical_cast<std::string>(s->first)
-					+ " bytes";
+				error = error_code(errors::mismatching_file_size, libtorrent_category);
 				return false;
 			}
 			// allow one second 'slack', because of FAT volumes
@@ -283,11 +279,7 @@ namespace libtorrent
 			if ((compact_mode && (time > s->second + 1 || time < s->second - 1)) ||
 				(!compact_mode && (time > s->second + 5 * 60 || time < s->second - 1)))
 			{
-				if (error) *error = "timestamp mismatch for file '"
-					+ i->path.external_file_string()
-					+ "', modification date: " + boost::lexical_cast<std::string>(time)
-					+ ", expected to have modification date "
-					+ boost::lexical_cast<std::string>(s->second);
+				error = error_code(errors::mismatching_file_timestamp, libtorrent_category);
 				return false;
 			}
 		}
@@ -426,7 +418,7 @@ namespace libtorrent
 		bool move_slot(int src_slot, int dst_slot);
 		bool swap_slots(int slot1, int slot2);
 		bool swap_slots3(int slot1, int slot2, int slot3);
-		bool verify_resume_data(lazy_entry const& rd, std::string& error);
+		bool verify_resume_data(lazy_entry const& rd, error_code& error);
 		bool write_resume_data(entry& rd) const;
 
 		// this identifies a read or write operation
@@ -868,7 +860,7 @@ namespace libtorrent
 		return (data_start + m_files.piece_length() - 1) / m_files.piece_length();
 	}
 
-	bool storage::verify_resume_data(lazy_entry const& rd, std::string& error)
+	bool storage::verify_resume_data(lazy_entry const& rd, error_code& error)
 	{
 		lazy_entry const* mapped_files = rd.dict_find_list("mapped_files");
 		if (mapped_files && mapped_files->list_size() == m_files.num_files())
@@ -895,7 +887,7 @@ namespace libtorrent
 		lazy_entry const* file_sizes_ent = rd.dict_find_list("file sizes");
 		if (file_sizes_ent == 0)
 		{
-			error = "missing or invalid 'file sizes' entry in resume data";
+			error = error_code(errors::missing_file_sizes, libtorrent_category);
 			return false;
 		}
 		
@@ -913,7 +905,7 @@ namespace libtorrent
 
 		if (file_sizes.empty())
 		{
-			error = "the number of files in resume data is 0";
+			error = error_code(errors::no_files_in_resume_data, libtorrent_category);
 			return false;
 		}
 		
@@ -949,7 +941,7 @@ namespace libtorrent
 		}
 		else
 		{
-			error = "missing 'slots' and 'pieces' entry in resume data";
+			error = error_code(errors::missing_pieces, libtorrent_category);
 			return false;
 		}
 
@@ -961,9 +953,7 @@ namespace libtorrent
 		{
 			if (files().num_files() != (int)file_sizes.size())
 			{
-				error = "the number of files does not match the torrent (num: "
-					+ boost::lexical_cast<std::string>(file_sizes.size()) + " actual: "
-					+ boost::lexical_cast<std::string>(files().num_files()) + ")";
+				error = error_code(errors::mismatching_number_of_files, libtorrent_category);
 				return false;
 			}
 
@@ -976,15 +966,13 @@ namespace libtorrent
 			{
 				if (!i->pad_file && i->size != fs->first)
 				{
-					error = "file size for '" + i->path.external_file_string()
-						+ "' was expected to be "
-						+ boost::lexical_cast<std::string>(i->size) + " bytes";
+					error = error_code(errors::mismatching_file_size, libtorrent_category);
 					return false;
 				}
 			}
 		}
 		return match_filesizes(files(), m_save_path, file_sizes
-			, !full_allocation_mode, &error);
+			, !full_allocation_mode, error);
 
 	}
 
@@ -1961,7 +1949,7 @@ ret:
 		}
 	}
 
-	int piece_manager::check_no_fastresume(std::string& error)
+	int piece_manager::check_no_fastresume(error_code& error)
 	{
 		bool has_files = m_storage->has_any_file();
 
@@ -2000,12 +1988,12 @@ ret:
 		return check_init_storage(error);
 	}
 	
-	int piece_manager::check_init_storage(std::string& error)
+	int piece_manager::check_init_storage(error_code& error)
 	{
 		if (m_storage->initialize(m_storage_mode == storage_mode_allocate))
 		{
-			error = m_storage->error().message();
-			TORRENT_ASSERT(!error.empty());
+			error = m_storage->error();
+			TORRENT_ASSERT(error);
 			return fatal_disk_error;
 		}
 		m_state = state_finished;
@@ -2029,7 +2017,7 @@ ret:
 	// isn't return false and the full check
 	// will be run
 	int piece_manager::check_fastresume(
-		lazy_entry const& rd, std::string& error)
+		lazy_entry const& rd, error_code& error)
 	{
 		boost::recursive_mutex::scoped_lock lock(m_mutex);
 
@@ -2044,7 +2032,7 @@ ret:
 
 		if (rd.type() != lazy_entry::dict_t)
 		{
-			error = "invalid fastresume data (not a dictionary)";
+			error = error_code(errors::not_a_dictionary, libtorrent_category);
 			return check_no_fastresume(error);
 		}
 
@@ -2053,7 +2041,7 @@ ret:
 		if (blocks_per_piece != -1
 			&& blocks_per_piece != m_files.piece_length() / block_size)
 		{
-			error = "invalid 'blocks per piece' entry";
+			error = error_code(errors::invalid_blocks_per_piece, libtorrent_category);
 			return check_no_fastresume(error);
 		}
 
@@ -2076,15 +2064,13 @@ ret:
 			lazy_entry const* slots = rd.dict_find_list("slots");
 			if (slots == 0)
 			{
-				error = "missing slot list";
+				error = error_code(errors::missing_slots, libtorrent_category);
 				return check_no_fastresume(error);
 			}
 
 			if ((int)slots->list_size() > m_files.num_pieces())
 			{
-				error = "file has more slots than torrent (slots: "
-					+ boost::lexical_cast<std::string>(slots->list_size()) + " size: "
-					+ boost::lexical_cast<std::string>(m_files.num_pieces()) + " )";
+				error = error_code(errors::too_many_slots, libtorrent_category);
 				return check_no_fastresume(error);
 			}
 
@@ -2098,16 +2084,14 @@ ret:
 					lazy_entry const* e = slots->list_at(i);
 					if (e->type() != lazy_entry::int_t)
 					{
-						error = "invalid entry type in slot list";
+						error = error_code(errors::invalid_slot_list, libtorrent_category);
 						return check_no_fastresume(error);
 					}
 
 					int index = int(e->int_value());
 					if (index >= num_pieces || index < -2)
 					{
-						error = "too high index number in slot map (index: "
-							+ boost::lexical_cast<std::string>(index) + " size: "
-							+ boost::lexical_cast<std::string>(num_pieces) + ")";
+						error = error_code(errors::invalid_piece_index, libtorrent_category);
 						return check_no_fastresume(error);
 					}
 					if (index >= 0)
@@ -2136,14 +2120,14 @@ ret:
 					lazy_entry const* e = slots->list_at(i);
 					if (e->type() != lazy_entry::int_t)
 					{
-						error = "invalid entry type in slot list";
+						error = error_code(errors::invalid_slot_list, libtorrent_category);
 						return check_no_fastresume(error);
 					}
 
 					int index = int(e->int_value());
 					if (index != i && index >= 0)
 					{
-						error = "invalid slot index";
+						error = error_code(errors::invalid_piece_index, libtorrent_category);
 						return check_no_fastresume(error);
 					}
 				}
@@ -2170,7 +2154,7 @@ ret:
 					// we're resuming a compact allocated storage
 					m_state = state_expand_pieces;
 					m_current_slot = 0;
-					error = "pieces needs to be reordered";
+					error = error_code(errors::pieces_need_reorder, libtorrent_category);
 					TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
 					return need_full_check;
 				}
@@ -2183,15 +2167,13 @@ ret:
 			lazy_entry const* pieces = rd.dict_find("pieces");
 			if (pieces == 0 || pieces->type() != lazy_entry::string_t)
 			{
-				error = "missing pieces entry";
+				error = error_code(errors::missing_pieces, libtorrent_category);
 				return check_no_fastresume(error);
 			}
 
 			if ((int)pieces->string_length() != m_files.num_pieces())
 			{
-				error = "file has more slots than torrent (slots: "
-					+ boost::lexical_cast<std::string>(pieces->string_length()) + " size: "
-					+ boost::lexical_cast<std::string>(m_files.num_pieces()) + " )";
+				error = error_code(errors::too_many_slots, libtorrent_category);
 				return check_no_fastresume(error);
 			}
 
@@ -2241,7 +2223,7 @@ ret:
 	// the second return value is the progress the
 	// file check is at. 0 is nothing done, and 1
 	// is finished
-	int piece_manager::check_files(int& current_slot, int& have_piece, std::string& error)
+	int piece_manager::check_files(int& current_slot, int& have_piece, error_code& error)
 	{
 		if (m_state == state_none) return check_no_fastresume(error);
 
@@ -2273,8 +2255,8 @@ ret:
 					if (m_storage->read(m_scratch_buffer2.get(), piece, 0, piece_size)
 						!= piece_size)
 					{
-						error = m_storage->error().message();
-						TORRENT_ASSERT(!error.empty());
+						error = m_storage->error();
+						TORRENT_ASSERT(error);
 						return fatal_disk_error;
 					}
 					m_scratch_piece = other_piece;
@@ -2286,8 +2268,8 @@ ret:
 				int piece_size = m_files.piece_size(piece);
 				if (m_storage->write(m_scratch_buffer.get(), piece, 0, piece_size) != piece_size)
 				{
-					error = m_storage->error().message();
-					TORRENT_ASSERT(!error.empty());
+					error = m_storage->error();
+					TORRENT_ASSERT(error);
 					return fatal_disk_error;
 				}
 				m_piece_to_slot[piece] = piece;
@@ -2332,8 +2314,8 @@ ret:
 				int piece_size = m_files.piece_size(other_piece);
 				if (m_storage->read(m_scratch_buffer.get(), piece, 0, piece_size) != piece_size)
 				{
-					error = m_storage->error().message();
-					TORRENT_ASSERT(!error.empty());
+					error = m_storage->error();
+					TORRENT_ASSERT(error);
 					return fatal_disk_error;
 				}
 				m_scratch_piece = other_piece;
@@ -2361,8 +2343,8 @@ ret:
 
 		if (skip == -1)
 		{
-			error = m_storage->error().message();
-			TORRENT_ASSERT(!error.empty());
+			error = m_storage->error();
+			TORRENT_ASSERT(error);
 			return fatal_disk_error;
 		}
 

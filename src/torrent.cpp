@@ -805,9 +805,7 @@ namespace libtorrent
 			}
 		}
 
-		bool fastresume_rejected = !j.str.empty();
-		
-		if (fastresume_rejected && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
+		if (j.error && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 		{
 			m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), j.error));
 		}
@@ -822,7 +820,7 @@ namespace libtorrent
 			// there are either no files for this torrent
 			// or the resume_data was accepted
 
-			if (!fastresume_rejected && m_resume_entry.type() == lazy_entry::dict_t)
+			if (!j.error && m_resume_entry.type() == lazy_entry::dict_t)
 			{
 				// parse have bitmask
 				lazy_entry const* pieces = m_resume_entry.dict_find("pieces");

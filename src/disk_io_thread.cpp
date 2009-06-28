@@ -1771,7 +1771,7 @@ namespace libtorrent
 #endif
 					lazy_entry const* rd = (lazy_entry const*)j.buffer;
 					TORRENT_ASSERT(rd != 0);
-					ret = j.storage->check_fastresume(*rd, j.str);
+					ret = j.storage->check_fastresume(*rd, j.error);
 					break;
 				}
 				case disk_io_job::check_files:
@@ -1801,7 +1801,7 @@ namespace libtorrent
 
 						if (m_waiting_to_shutdown) break;
 
-						ret = j.storage->check_files(j.piece, j.offset, j.str);
+						ret = j.storage->check_files(j.piece, j.offset, j.error);
 
 #ifndef BOOST_NO_EXCEPTIONS
 						try {

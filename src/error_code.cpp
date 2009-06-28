@@ -155,12 +155,34 @@ namespace libtorrent
 			"pex message too large",
 			"invalid pex message",
 			"invalid lt_tracker message",
-
+// natpmp errors
 			"unsupported protocol version",
 			"not authorized to create port map (enable NAT-PMP on your router)",
 			"network failure",
 			"out of resources",
 			"unsupported opcode",
+// fastresume errors
+			"missing or invalid 'file sizes' entry",
+			"no files in resume data",
+			"missing 'slots' and 'pieces' entry",
+			"mismatching number of files",
+			"mismatching file size",
+			"mismatching file timestamp",
+			"not a dictionary",
+			"invalid 'blocks per piece' entry",
+			"missing slots list",
+			"file has more slots than torrent",
+			"invalid entry type in slot list",
+			"invalid piece index in slot list",
+			"pieces needs to be reordered",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
 		};
 		if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
 			return "Unknown error";
