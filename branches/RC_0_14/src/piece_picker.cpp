@@ -1468,9 +1468,9 @@ namespace libtorrent
 				// skip pieces we can't pick, and suggested pieces
 				// since we've already picked those
 				while (!can_pick(piece, pieces)
-					&& std::find(suggested_pieces.begin()
+					|| std::find(suggested_pieces.begin()
 					, suggested_pieces.end(), piece)
-					== suggested_pieces.end())
+					!= suggested_pieces.end())
 				{
 					++piece;
 					if (piece == int(m_piece_map.size())) piece = 0;
@@ -1479,11 +1479,14 @@ namespace libtorrent
 				}
 				if (done) break;
 
+				TORRENT_ASSERT(can_pick(piece, pieces));
+				TORRENT_ASSERT(m_piece_map[piece].downloading == false);
+
 				int start, end;
 				boost::tie(start, end) = expand_piece(piece, prefer_whole_pieces, pieces);
 				for (int k = start; k < end; ++k)
 				{
-					TORRENT_ASSERT(m_piece_map[piece].downloading == false);
+					TORRENT_ASSERT(m_piece_map[k].downloading == false);
 					TORRENT_ASSERT(m_piece_map[k].priority(this) >= 0);
 					int num_blocks_in_piece = blocks_in_piece(k);
 					if (prefer_whole_pieces == 0 && num_blocks_in_piece > num_blocks)
