@@ -1061,6 +1061,7 @@ namespace libtorrent
 			piece_block b = i->block;
 			bool remove_from_picker = !i->timed_out && !i->not_wanted;
 			m_download_queue.erase(i);
+			TORRENT_ASSERT(m_outstanding_bytes >= r.length);
 			m_outstanding_bytes -= r.length;
 			
 			// if the peer is in parole mode, keep the request
@@ -1709,6 +1710,7 @@ namespace libtorrent
 	void peer_connection::incoming_piece_fragment(int bytes)
 	{
 		m_last_piece = time_now();
+		TORRENT_ASSERT(m_outstanding_bytes >= bytes);
 		m_outstanding_bytes -= bytes;
 #ifdef TORRENT_DEBUG
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
@@ -1975,6 +1977,7 @@ namespace libtorrent
 				m_download_queue.erase(m_download_queue.begin() + i);
 				--i;
 				--block_index;
+				TORRENT_ASSERT(m_outstanding_bytes >= t->block_size());
 				m_outstanding_bytes -= t->block_size();
 				TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
