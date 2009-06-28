@@ -2473,6 +2473,11 @@ namespace libtorrent
 			TORRENT_ASSERT(block_size > 0);
 			TORRENT_ASSERT(block_size <= t->block_size());
 
+			// we can't cancel the piece if we've started receiving it
+			// if m_outstsanding_bytes is less than the block size,
+			// it means we have received parts of it already
+			if (m_outstanding_bytes < block_size) break;
+
 			peer_request r;
 			r.piece = b.piece_index;
 			r.start = block_offset;
