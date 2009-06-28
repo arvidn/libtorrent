@@ -1157,15 +1157,35 @@ namespace libtorrent
 
 		ptime now = time_now();
 
+		// the tier is kept as INT_MAX until we find the first
+		// tracker that works, then it's set to that tracker's
+		// tier.
 		int tier = INT_MAX;
+
+		// have we sent an announce in this tier yet?
+		bool sent_announce = false;
+
 		for (int i = 0; i < int(m_trackers.size()); ++i)
 		{
 			announce_entry& ae = m_trackers[i];
-			if (ae.tier > tier) break;
-			if (ae.is_working()) tier = ae.tier;
+			if (m_settings.announce_to_all_tiers
+				&& sent_announce
+				&& ae.tier <= tier
+				&& tier != INT_MAX)
+				continue;
+
+			if (ae.tier > tier && !m_settings.announce_to_all_tiers) break;
+			if (ae.is_working()) { tier = ae.tier; sent_announce = false; }
 			if (!ae.can_announce(now))
 			{
-				if (ae.is_working() && !m_settings.announce_to_all_trackers) break;
+				if (ae.is_working())
+				{
+					sent_announce = true; // this counts
+
+					if (!m_settings.announce_to_all_trackers
+						&& !m_settings.announce_to_all_tiers)
+						break;
+				}
 				continue;
 			}
 			
@@ -1203,7 +1223,11 @@ namespace libtorrent
 					tracker_announce_alert(get_handle(), req.url, req.event));
 			}
 
-			if (ae.is_working() && !m_settings.announce_to_all_trackers) break;
+			sent_announce = true;
+			if (ae.is_working()
+				&& !m_settings.announce_to_all_trackers
+				&& !m_settings.announce_to_all_tiers)
+				break;
 		}
 		update_tracker_timer();
 	}
@@ -4854,15 +4878,29 @@ namespace libtorrent
 
 		ptime next_announce = max_time();
 		int tier = INT_MAX;
+
+		bool found_working = false;
+
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
 		{
-			if (i->tier > tier) break;
-			if (i->is_working()) tier = i->tier;
+			if (m_settings.announce_to_all_tiers
+				&& found_working
+				&& i->tier <= tier
+				&& tier != INT_MAX)
+				continue;
+
+			if (i->tier > tier && !m_settings.announce_to_all_tiers) break;
+			if (i->is_working()) { tier = i->tier; found_working = false; }
 			if (i->fails >= i->fail_limit && i->fail_limit != 0) continue;
-			if (i->updating) continue;
+			if (i->updating) { found_working = true; continue; }
 			if (i->next_announce < next_announce) next_announce = i->next_announce;
-			if (i->is_working() && !m_settings.announce_to_all_trackers) break;
+			if (i->is_working())
+			{
+				found_working = true;
+				if (!m_settings.announce_to_all_trackers
+					&& !m_settings.announce_to_all_tiers) break;
+			}
 		}
 		if (next_announce == max_time()) return;
 

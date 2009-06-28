@@ -154,6 +154,7 @@ namespace libtorrent
 			, auto_manage_startup(120)
 			, rate_limit_ip_overhead(true)
 			, announce_to_all_trackers(false)
+			, announce_to_all_tiers(false)
 			, prefer_udp_trackers(true)
 			, strict_super_seeding(false)
 			, seeding_piece_quota(3)
@@ -526,10 +527,18 @@ namespace libtorrent
 		// the limits with the total traffic
 		bool rate_limit_ip_overhead;
 
+		// this announces to all trackers within the current
+		// tier. Trackers within a tier are supposed to share
+		// peers, this could be used for trackers that don't,
+		// and require the clients to announce to all of them.
+		bool announce_to_all_trackers;
+
 		// if set to true, multi tracker torrents are treated
 		// the same way uTorrent treats them. It defaults to
 		// false in order to comply with the extension definition.
-		bool announce_to_all_trackers;
+		// When this is enabled, one tracker from each tier is
+		// announced
+		bool announce_to_all_tiers;
 
 		// when this is set to true, if there is a tracker entry
 		// with udp:// protocol, it is preferred over the same

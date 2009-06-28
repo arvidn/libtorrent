@@ -3486,6 +3486,8 @@ session_settings
 		bool rate_limit_ip_overhead;
 
 		bool announce_to_all_trackers;
+		bool announce_to_all_tiers;
+
 		bool prefer_udp_trackers;
 		bool strict_super_seeding;
 
@@ -3837,10 +3839,14 @@ drained from the rate limiters, to avoid exceeding the limits with the total tra
 ``announce_to_all_trackers`` controls how multi tracker torrents are
 treated. If this is set to true, all trackers in the same tier are
 announced to in parallel. If all trackers in tier 0 fails, all trackers
-in tier 1 are announced as well. This is the uTorrent behavior. If it's
-set to false, the behavior is as defined by the multi tracker
-specification. It defaults to false, which is the same behavior previous
-versions of libtorrent has had as well.
+in tier 1 are announced as well. If it's set to false, the behavior is as
+defined by the multi tracker specification. It defaults to false, which
+is the same behavior previous versions of libtorrent has had as well.
+
+``announce_to_all_tiers`` also controls how multi tracker torrents are
+treated. When this is set to true, one tracker from each tier is announced
+to. This is the uTorrent behavior. This is false by default in order
+to comply with the multi-tracker specification.
 
 ``prefer_udp_trackers`` is true by default. It means that trackers may
 be rearranged in a way that udp trackers are always tried before http
