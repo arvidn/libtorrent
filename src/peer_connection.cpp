@@ -402,6 +402,8 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 		int num_allowed_pieces = m_ses.settings().allowed_fast_set_size;
+		if (num_allowed_pieces == 0) return;
+
 		int num_pieces = t->torrent_file().num_pieces();
 
 		if (num_allowed_pieces >= num_pieces)
