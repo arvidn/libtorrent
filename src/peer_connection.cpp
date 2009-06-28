@@ -1063,6 +1063,7 @@ namespace libtorrent
 			m_download_queue.erase(i);
 			TORRENT_ASSERT(m_outstanding_bytes >= r.length);
 			m_outstanding_bytes -= r.length;
+			if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 			
 			// if the peer is in parole mode, keep the request
 			if (peer_info_struct() && peer_info_struct()->on_parole)
@@ -1712,6 +1713,7 @@ namespace libtorrent
 		m_last_piece = time_now();
 		TORRENT_ASSERT(m_outstanding_bytes >= bytes);
 		m_outstanding_bytes -= bytes;
+		if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 #ifdef TORRENT_DEBUG
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(m_received_in_piece + bytes <= t->block_size());
@@ -1979,6 +1981,7 @@ namespace libtorrent
 				--block_index;
 				TORRENT_ASSERT(m_outstanding_bytes >= t->block_size());
 				m_outstanding_bytes -= t->block_size();
+				if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 				TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
 				check_invariant();
@@ -2536,6 +2539,8 @@ namespace libtorrent
 			t->block_size());
 		TORRENT_ASSERT(block_size > 0);
 		TORRENT_ASSERT(block_size <= t->block_size());
+
+		if (m_outstanding_bytes < block_size) break;
 
 		peer_request r;
 		r.piece = block.piece_index;
