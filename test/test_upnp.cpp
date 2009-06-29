@@ -33,63 +33,226 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/connection_queue.hpp"
+#include "test.hpp"
+#include "setup_transfer.hpp"
+#include <fstream>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/intrusive_ptr.hpp>
 
 using namespace libtorrent;
 
-void callback(int mapping, int port, std::string const& err)
+broadcast_socket* sock = 0;
+
+char upnp_xml[] = 
+"<root>"
+"<specVersion>"
+"<major>1</major>"
+"<minor>0</minor>"
+"</specVersion>"
+"<URLBase>http://127.0.0.1:8888</URLBase>"
+"<device>"
+"<deviceType>"
+"urn:schemas-upnp-org:device:InternetGatewayDevice:1"
+"</deviceType>"
+"<presentationURL>http://192.168.0.1:80</presentationURL>"
+"<friendlyName>D-Link Router</friendlyName>"
+"<manufacturer>D-Link</manufacturer>"
+"<manufacturerURL>http://www.dlink.com</manufacturerURL>"
+"<modelDescription>Internet Access Router</modelDescription>"
+"<modelName>D-Link Router</modelName>"
+"<UDN>uuid:upnp-InternetGatewayDevice-1_0-12345678900001</UDN>"
+"<UPC>123456789001</UPC>"
+"<serviceList>"
+"<service>"
+"<serviceType>urn:schemas-upnp-org:service:Layer3Forwarding:1</serviceType>"
+"<serviceId>urn:upnp-org:serviceId:L3Forwarding1</serviceId>"
+"<controlURL>/Layer3Forwarding</controlURL>"
+"<eventSubURL>/Layer3Forwarding</eventSubURL>"
+"<SCPDURL>/Layer3Forwarding.xml</SCPDURL>"
+"</service>"
+"</serviceList>"
+"<deviceList>"
+"<device>"
+"<deviceType>urn:schemas-upnp-org:device:WANDevice:1</deviceType>"
+"<friendlyName>WANDevice</friendlyName>"
+"<manufacturer>D-Link</manufacturer>"
+"<manufacturerURL>http://www.dlink.com</manufacturerURL>"
+"<modelDescription>Internet Access Router</modelDescription>"
+"<modelName>D-Link Router</modelName>"
+"<modelNumber>1</modelNumber>"
+"<modelURL>http://support.dlink.com</modelURL>"
+"<serialNumber>12345678900001</serialNumber>"
+"<UDN>uuid:upnp-WANDevice-1_0-12345678900001</UDN>"
+"<UPC>123456789001</UPC>"
+"<serviceList>"
+"<service>"
+"<serviceType>"
+"urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1"
+"</serviceType>"
+"<serviceId>urn:upnp-org:serviceId:WANCommonInterfaceConfig</serviceId>"
+"<controlURL>/WANCommonInterfaceConfig</controlURL>"
+"<eventSubURL>/WANCommonInterfaceConfig</eventSubURL>"
+"<SCPDURL>/WANCommonInterfaceConfig.xml</SCPDURL>"
+"</service>"
+"</serviceList>"
+"<deviceList>"
+"<device>"
+"<deviceType>urn:schemas-upnp-org:device:WANConnectionDevice:1</deviceType>"
+"<friendlyName>WAN Connection Device</friendlyName>"
+"<manufacturer>D-Link</manufacturer>"
+"<manufacturerURL>http://www.dlink.com</manufacturerURL>"
+"<modelDescription>Internet Access Router</modelDescription>"
+"<modelName>D-Link Router</modelName>"
+"<modelNumber>1</modelNumber>"
+"<modelURL>http://support.dlink.com</modelURL>"
+"<serialNumber>12345678900001</serialNumber>"
+"<UDN>uuid:upnp-WANConnectionDevice-1_0-12345678900001</UDN>"
+"<UPC>123456789001</UPC>"
+"<serviceList>"
+"<service>"
+"<serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>"
+"<serviceId>urn:upnp-org:serviceId:WANIPConnection</serviceId>"
+"<controlURL>/WANIPConnection</controlURL>"
+"<eventSubURL>/WANIPConnection</eventSubURL>"
+"<SCPDURL>/WANIPConnection.xml</SCPDURL>"
+"</service>"
+"</serviceList>"
+"</device>"
+"</deviceList>"
+"</device>"
+"</deviceList>"
+"</device>"
+"</root>";
+
+char soap_add_response[] =
+	"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+	"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
+	"<s:Body><u:AddPortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">"
+	"</u:AddPortMapping></s:Body></s:Envelope>";
+
+char soap_delete_response[] =
+	"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+	"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
+	"<s:Body><u:DeletePortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">"
+	"</u:DeletePortMapping></s:Body></s:Envelope>";
+
+void incoming_msearch(udp::endpoint const& from, char* buffer
+	, int size)
 {
-	if (mapping == -1)
+	http_parser p;
+	bool error = false;
+	p.incoming(buffer::const_interval(buffer, buffer + size), error);
+	if (error || !p.header_finished())
 	{
-		std::cerr << "UPnP: " << err << std::endl;
+		std::cerr << "*** malformed HTTP from " << from << std::endl;
 		return;
 	}
-	std::cerr << "mapping: " << mapping << ", port: " << port << ", error: \"" << err << "\"\n";
+
+	if (p.method() != "m-search") return;
+
+	std::cerr << "< incoming m-search from " << from << std::endl;
+
+	char msg[] = "HTTP/1.1 200 OK\r\n"
+		"ST:upnp:rootdevice\r\n"
+		"USN:uuid:000f-66d6-7296000099dc::upnp:rootdevice\r\n"
+		"Location: http://127.0.0.1:8888/upnp.xml\r\n"
+		"Server: Custom/1.0 UPnP/1.0 Proc/Ver\r\n"
+		"EXT:\r\n"
+		"Cache-Control:max-age=180\r\n"
+		"DATE: Fri, 02 Jan 1970 08:10:38 GMT\r\n\r\n";
+
+	error_code ec;
+	sock->send(msg, sizeof(msg)-1, ec);
+	if (ec) std::cerr << "*** error sending " << ec.message() << std::endl;
 }
 
-int main(int argc, char* argv[])
+void log_callback(char const* err)
+{
+	std::cerr << "UPnP: " << err << std::endl;
+	//TODO: store the log and verify that some key messages are there
+}
+
+struct callback_info
+{
+	int mapping;
+	int port;
+	error_code ec;
+	bool operator==(callback_info const& e)
+	{ return mapping == e.mapping && port == e.port && !ec == !e.ec; }
+};
+
+std::list<callback_info> callbacks;
+
+void callback(int mapping, int port, error_code const& err)
+{
+	callback_info info = {mapping, port, err};
+	callbacks.push_back(info);
+	std::cerr << "mapping: " << mapping << ", port: " << port
+		<< ", error: \"" << err.message() << "\"\n";
+	//TODO: store the callbacks and verify that the ports were successful
+}
+
+int test_main()
 {
 	libtorrent::io_service ios;
+	
+	start_web_server(8888);
+	std::ofstream xml("upnp.xml", std::ios::trunc);
+	xml.write(upnp_xml, sizeof(upnp_xml) - 1);
+	xml.close();
+
+	xml.open("WANIPConnection", std::ios::trunc);
+	xml.write(soap_add_response, sizeof(soap_add_response)-1);
+	xml.close();
+
+	sock = new broadcast_socket(ios, udp::endpoint(address_v4::from_string("239.255.255.250"), 1900)
+		, &incoming_msearch);
+
 	std::string user_agent = "test agent";
 
-	if (argc != 3)
-	{
-		std::cerr << "usage: " << argv[0] << " tcp-port udp-port" << std::endl;
-		return 1;
-	}
-
 	connection_queue cc(ios);
-	boost::intrusive_ptr<upnp> upnp_handler = new upnp(ios, cc, address_v4(), user_agent, &callback, false);
+	boost::intrusive_ptr<upnp> upnp_handler = new upnp(ios, cc, address_v4::from_string("127.0.0.1")
+		, user_agent, &callback, &log_callback, false);
 	upnp_handler->discover_device();
 
 	libtorrent::deadline_timer timer(ios);
 	error_code ec;
-	timer.expires_from_now(seconds(2), ec);
-	timer.async_wait(boost::bind(&libtorrent::io_service::stop, boost::ref(ios)));
-
-	std::cerr << "broadcasting for UPnP device" << std::endl;
-
-	ios.reset();
-	ios.run(ec);
-
-	upnp_handler->add_mapping(upnp::tcp, atoi(argv[1]), atoi(argv[1]));
-	upnp_handler->add_mapping(upnp::udp, atoi(argv[2]), atoi(argv[2]));
 	timer.expires_from_now(seconds(10), ec);
 	timer.async_wait(boost::bind(&libtorrent::io_service::stop, boost::ref(ios)));
-	std::cerr << "mapping ports TCP: " << argv[1]
-		<< " UDP: " << argv[2] << std::endl;
 
 	ios.reset();
 	ios.run(ec);
+
+	int mapping1 = upnp_handler->add_mapping(upnp::tcp, 500, 500);
+	int mapping2 = upnp_handler->add_mapping(upnp::udp, 501, 501);
+	timer.expires_from_now(seconds(10), ec);
+	timer.async_wait(boost::bind(&libtorrent::io_service::stop, boost::ref(ios)));
+
+	ios.reset();
+	ios.run(ec);
+
+	xml.open("WANIPConnection", std::ios::trunc);
+	xml.write(soap_delete_response, sizeof(soap_delete_response)-1);
+	xml.close();
+
 	std::cerr << "router: " << upnp_handler->router_model() << std::endl;
-	std::cerr << "removing mappings" << std::endl;
+	TEST_CHECK(upnp_handler->router_model() == "D-Link Router");
 	upnp_handler->close();
+	sock->close();
 
 	ios.reset();
 	ios.run(ec);
-	std::cerr << "closing" << std::endl;
+
+	callback_info expected1 = {mapping1, 500, error_code()};
+	callback_info expected2 = {mapping2, 501, error_code()};
+	TEST_CHECK(std::count(callbacks.begin(), callbacks.end(), expected1) == 1);
+	TEST_CHECK(std::count(callbacks.begin(), callbacks.end(), expected2) == 1);
+
+	stop_web_server(8888);
+
+	delete sock;
+	return 0;
 }
 
 

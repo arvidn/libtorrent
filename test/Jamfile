@@ -10,9 +10,6 @@ lib test_common
 	<threading>multi
 	;
 
-exe test_upnp : test_upnp.cpp /torrent//torrent
-	: <link>shared <threading>multi <debug-iterators>on <invariant-checks>full ;
-
 exe test_natpmp : test_natpmp.cpp /torrent//torrent
 	: <link>shared <threading>multi <debug-iterators>on <invariant-checks>full ;
 
@@ -40,6 +37,7 @@ test-suite libtorrent :
 	[ run test_ip_filter.cpp ]
 	[ run test_hasher.cpp ]
 	[ run test_storage.cpp ]
+	[ run test_upnp.cpp ]
 
 	[ run test_web_seed.cpp ]
 	[ run test_bdecode_performance.cpp ]

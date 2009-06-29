@@ -582,7 +582,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 
 	d.upnp_connection->sendbuffer = header;
 
-	char msg[400];
+	char msg[1024];
 	snprintf(msg, sizeof(msg), "sending: %s", header);
 	log(msg, l);
 }
@@ -1224,7 +1224,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	if (e && e != asio::error::eof)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "error while deleing portmap: %s", e.message().c_str());
+		snprintf(msg, sizeof(msg), "error while deleting portmap: %s", e.message().c_str());
 		log(msg, l);
 	}
 	else if (!p.header_finished())
@@ -1234,7 +1234,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	else if (p.status_code() != 200)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "error while deleing portmap: %s", p.message().c_str());
+		snprintf(msg, sizeof(msg), "error while deleting portmap: %s", p.message().c_str());
 		log(msg, l);
 	}
 	else
