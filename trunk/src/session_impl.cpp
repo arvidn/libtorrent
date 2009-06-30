@@ -111,7 +111,7 @@ namespace
 }
 
 #endif
-#ifdef _WIN32
+#ifdef TORRENT_WINDOWS
 // for ERROR_SEM_TIMEOUT
 #include <winerror.h>
 #endif

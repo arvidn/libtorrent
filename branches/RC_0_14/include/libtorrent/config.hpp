@@ -77,6 +77,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BSD
 #elif defined __linux__
 #define TORRENT_LINUX
+#elif defined __MINGW32__
+#define TORRENT_MINGW
 #elif defined WIN32
 #define TORRENT_WINDOWS
 #elif defined sun || defined __sun 
