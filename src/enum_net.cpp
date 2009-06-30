@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/sysctl.h>
 #endif
 
-#if defined TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS || defined TORRENT_MINGW
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -312,7 +312,7 @@ namespace libtorrent
 		}
 		close(s);
 
-#elif defined TORRENT_WINDOWS
+#elif defined TORRENT_WINDOWS || defined TORRENT_MINGW
 
 		SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s == SOCKET_ERROR)
@@ -366,7 +366,7 @@ namespace libtorrent
 	address get_default_gateway(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret = enum_routes(ios, ec);
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS || defined TORRENT_MINGW
 		std::vector<ip_route>::iterator i = std::find_if(ret.begin(), ret.end()
 			, boost::bind(&is_loopback, boost::bind(&ip_route::destination, _1)));
 #else
@@ -522,7 +522,7 @@ namespace libtorrent
 		if (parse_route(rtm, &r)) ret.push_back(r);
 	}
 	
-#elif defined TORRENT_WINDOWS
+#elif defined TORRENT_WINDOWS || defined TORRENT_MINGW
 
 		// Load Iphlpapi library
 		HMODULE iphlp = LoadLibraryA("Iphlpapi.dll");
