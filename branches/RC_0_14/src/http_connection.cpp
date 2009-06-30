@@ -65,6 +65,10 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	int default_port = protocol == "https" ? 443 : 80;
 
+	// keep ourselves alive even if the callback function
+	// deletes this object
+	boost::shared_ptr<http_connection> me(shared_from_this());
+
 	if (error)
 	{
 		callback(asio::error::socket_type_not_supported);
@@ -143,6 +147,10 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	m_read_pos = 0;
 	m_priority = prio;
 
+	// keep ourselves alive even if the callback function
+	// deletes this object
+	boost::shared_ptr<http_connection> me(shared_from_this());
+
 	if (ec)
 	{
 		callback(ec);
@@ -206,6 +214,10 @@ void http_connection::on_connect_timeout()
 	if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
 	m_connection_ticket = -1;
 
+	// keep ourselves alive even if the callback function
+	// deletes this object
+	boost::shared_ptr<http_connection> me(shared_from_this());
+
 	if (!m_endpoints.empty())
 	{
 		error_code ec;
@@ -267,6 +279,8 @@ void http_connection::on_resolve(error_code const& e
 {
 	if (e)
 	{
+		boost::shared_ptr<http_connection> me(shared_from_this());
+
 		callback(e);
 		close();
 		return;
@@ -332,6 +346,7 @@ void http_connection::on_connect(error_code const& e)
 	} 
 	else
 	{ 
+		boost::shared_ptr<http_connection> me(shared_from_this());
 		callback(e);
 		close();
 	}
@@ -369,6 +384,7 @@ void http_connection::on_write(error_code const& e)
 {
 	if (e)
 	{
+		boost::shared_ptr<http_connection> me(shared_from_this());
 		callback(e);
 		close();
 		return;
@@ -402,6 +418,10 @@ void http_connection::on_read(error_code const& e
 		m_download_quota -= bytes_transferred;
 		TORRENT_ASSERT(m_download_quota >= 0);
 	}
+
+	// keep ourselves alive even if the callback function
+	// deletes this object
+	boost::shared_ptr<http_connection> me(shared_from_this());
 
 	// when using the asio SSL wrapper, it seems like
 	// we get the shut_down error instead of EOF
@@ -543,7 +563,7 @@ void http_connection::on_read(error_code const& e
 	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
 		, bind(&http_connection::on_read
-		, shared_from_this(), _1, _2));
+		, me, _1, _2));
 }
 
 void http_connection::on_assign_bandwidth(error_code const& e)
