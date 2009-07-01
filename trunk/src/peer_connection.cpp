@@ -98,6 +98,7 @@ namespace libtorrent
 		, m_socket(s)
 		, m_remote(endp)
 		, m_torrent(tor)
+		, m_receiving_block(-1, -1)
 		, m_outstanding_bytes(0)
 		, m_queued_time_critical(0)
 		, m_num_pieces(0)
@@ -218,6 +219,7 @@ namespace libtorrent
 		, m_disk_recv_buffer(ses, 0)
 		, m_socket(s)
 		, m_remote(endp)
+		, m_receiving_block(-1, -1)
 		, m_outstanding_bytes(0)
 		, m_queued_time_critical(0)
 		, m_num_pieces(0)
@@ -1738,6 +1740,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 		piece_block b(r.piece, r.start / t->block_size());
+		m_receiving_block = b;
 
 		if (!verify_piece(r))
 		{
@@ -1835,6 +1838,10 @@ namespace libtorrent
 
 		TORRENT_ASSERT(!m_disk_recv_buffer);
 		TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
+
+		// we're not receiving any block right now
+		m_receiving_block.piece_index = -1;
+		m_receiving_block.block_index = -1;
 
 #ifdef TORRENT_CORRUPT_DATA
 		// corrupt all pieces from certain peers
@@ -2477,9 +2484,7 @@ namespace libtorrent
 			TORRENT_ASSERT(block_size <= t->block_size());
 
 			// we can't cancel the piece if we've started receiving it
-			// if m_outstsanding_bytes is less than the block size,
-			// it means we have received parts of it already
-			if (m_outstanding_bytes < block_size) break;
+			if (m_receiving_block == b) continue;
 
 			peer_request r;
 			r.piece = b.piece_index;
