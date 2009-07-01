@@ -778,6 +778,10 @@ namespace libtorrent
 		// the piece requests
 		std::vector<int> m_requests_in_buffer;
 
+		// the block we're currently receiving. Or
+		// (-1, -1) if we're not receiving one
+		piece_block m_receiving_block;
+
 		// the number of bytes that the other
 		// end has to send us in order to respond
 		// to all outstanding piece requests we
