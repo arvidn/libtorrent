@@ -259,10 +259,22 @@ namespace libtorrent
 			{
 				switch (attr->string_ptr()[i])
 				{
+					case 'l': target.symlink_attribute = true; target.size = 0; break;
 					case 'x': target.executable_attribute = true; break;
 					case 'h': target.hidden_attribute = true; break;
 					case 'p': target.pad_file = true; break;
 				}
+			}
+		}
+
+		lazy_entry const* s_p = dict.dict_find("symlink path");
+		if (s_p != 0 && s_p->type() == lazy_entry::list_t)
+		{
+			for (int i = 0, end(s_p->list_size()); i < end; ++i)
+			{
+				std::string path_element = s_p->list_at(i)->string_value();
+				trim_path_element(path_element);
+				target.symlink_path /= path_element;
 			}
 		}
 
@@ -641,12 +653,24 @@ namespace libtorrent
 				{
 					switch (attr->string_ptr()[i])
 					{
+						case 'l': e.symlink_attribute = true; e.size = 0; break;
 						case 'x': e.executable_attribute = true; break;
 						case 'h': e.hidden_attribute = true; break;
 						case 'p': e.pad_file = true; break;
 					}
 				}
-			}	
+			}
+
+			lazy_entry const* s_p = info.dict_find("symlink path");
+			if (s_p != 0 && s_p->type() == lazy_entry::list_t)
+			{
+				for (int i = 0, end(s_p->list_size()); i < end; ++i)
+				{
+					std::string path_element = s_p->list_at(i)->string_value();
+					trim_path_element(path_element);
+					e.symlink_path /= path_element;
+				}
+			}
 			// bitcomet pad file
 			if (e.path.string().find("_____padding_file_") != std::string::npos)
 				e.pad_file = true;

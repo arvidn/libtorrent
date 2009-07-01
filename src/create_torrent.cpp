@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#define MAX_SYMLINK_PATH 200
+
 namespace gr = boost::gregorian;
 
 namespace libtorrent
@@ -69,8 +71,13 @@ namespace libtorrent
 			return 0;
 #else
 			struct stat s;
-			if (stat(convert_to_native(p.external_file_string()).c_str(), &s) < 0) return 0;
-			return (s.st_mode & S_IXUSR) ? file_storage::attribute_executable : 0;
+			if (lstat(convert_to_native(p.external_file_string()).c_str(), &s) < 0) return 0;
+			int file_attr = 0;
+			if (s.st_mode & S_IXUSR) 
+				file_attr += file_storage::attribute_executable;
+			if(S_ISLNK(s.st_mode))
+				file_attr += file_storage::attribute_symlink;
+			return file_attr;
 #endif
 		}
 	
@@ -87,8 +94,13 @@ namespace libtorrent
 			native = convert_to_native(native);
 
 			struct stat s;
-			if (stat(native.c_str(), &s) < 0) return 0;
-			return (s.st_mode & S_IXUSR) ? file_storage::attribute_executable : 0;
+			if (lstat(native.c_str(), &s) < 0) return 0;
+			int file_attr = 0;
+			if (s.st_mode & S_IXUSR) 
+				file_attr += file_storage::attribute_executable;
+			if (S_ISLNK(s.st_mode))
+				file_attr += file_storage::attribute_symlink;
+			return file_attr;
 #endif
 		}
 
@@ -130,6 +142,40 @@ namespace libtorrent
 			return get_file_mtime(utf8.c_str());
 #endif
 		}
+
+		boost::filesystem::path get_symlink_path(char const* path)
+		{
+			char buf[MAX_SYMLINK_PATH];
+			int char_read = readlink(path,buf,MAX_SYMLINK_PATH);
+			if (char_read < 0) return "";
+			if (char_read < MAX_SYMLINK_PATH) buf[char_read] = 0;
+			else buf[0] = 0;
+			return buf;
+		}
+
+		boost::filesystem::path TORRENT_EXPORT get_symlink_path(boost::filesystem::path const& p)
+		{
+#if defined TORRENT_WINDOWS && TORRENT_USE_WPATH
+			std::wstring path = convert_to_wstring(p.external_file_string());
+			return get_symlink_path(path.c_str());
+#else
+			std::string path = convert_to_native(p.external_file_string());
+			return get_symlink_path(p.string().c_str());
+#endif
+		}
+
+		boost::filesystem::path TORRENT_EXPORT get_symlink_path(boost::filesystem::wpath const& p)
+		{
+#ifdef TORRENT_WINDOWS
+			return get_symlink_path(p.string().c_str());
+#else
+			std::string utf8;
+			wchar_utf8(p.string(), utf8);
+			utf8 = convert_to_native(utf8);
+			return get_symlink_path(utf8.c_str());
+#endif
+		}
+
 	}
 
 	create_torrent::create_torrent(file_storage& fs, int piece_size, int pad_file_limit, int flags)
@@ -305,12 +351,23 @@ namespace libtorrent
 		{
 			info["mtime"] = m_files.at(0).mtime;
 			info["length"] = m_files.at(0).size;
-			if (m_files.at(0).pad_file || m_files.at(0).hidden_attribute || m_files.at(0).executable_attribute)
+			if (m_files.at(0).pad_file || m_files.at(0).hidden_attribute || m_files.at(0).executable_attribute || m_files.at(0).symlink_attribute)
 			{
 				std::string& attr = info["attr"].string();
 				if (m_files.at(0).pad_file) attr += 'p';
 				if (m_files.at(0).hidden_attribute) attr += 'h';
 				if (m_files.at(0).executable_attribute) attr += 'x';
+				if (m_files.at(0).symlink_attribute) attr += 'l';
+			}
+			if (m_files.at(0).symlink_attribute)
+			{
+				entry& sympath_e = info["symlink path"];
+				
+				for (fs::path::iterator j = (m_files.at(0).symlink_path.begin());
+					j != m_files.at(0).symlink_path.end(); ++j)
+				{
+					sympath_e.list().push_back(entry(*j));
+				}
 			}
 		}
 		else
@@ -340,12 +397,23 @@ namespace libtorrent
 					{
 						path_e.list().push_back(entry(*j));
 					}
-					if (i->pad_file || i->hidden_attribute || i->executable_attribute)
+					if (i->pad_file || i->hidden_attribute || i->executable_attribute || i->symlink_attribute)
 					{
 						std::string& attr = file_e["attr"].string();
 						if (i->pad_file) attr += 'p';
 						if (i->hidden_attribute) attr += 'h';
 						if (i->executable_attribute) attr += 'x';
+						if (i->symlink_attribute) attr += 'l';
+					}
+					if (i->symlink_attribute)
+					{
+						entry& sympath_e = file_e["symlink path"];
+
+						for (fs::path::iterator j = (i->symlink_path.begin());
+							j != i->symlink_path.end(); ++j)
+						{
+							sympath_e.list().push_back(entry(*j));
+						}
 					}
 				}
 			}
