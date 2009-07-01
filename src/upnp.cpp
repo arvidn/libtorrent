@@ -241,6 +241,8 @@ void upnp::resend_request(error_code const& e)
 {
 	if (e) return;
 
+	boost::intrusive_ptr<upnp> me(self());
+
 	mutex_t::scoped_lock l(m_mutex);
 
 	if (m_closing) return;
@@ -301,6 +303,8 @@ void upnp::resend_request(error_code const& e)
 void upnp::on_reply(udp::endpoint const& from, char* buffer
 	, std::size_t bytes_transferred)
 {
+	boost::intrusive_ptr<upnp> me(self());
+
 	mutex_t::scoped_lock l(m_mutex);
 
 	using namespace libtorrent::detail;
@@ -642,6 +646,8 @@ void upnp::update_map(rootdevice& d, int i)
 
 	if (d.upnp_connection) return;
 
+	boost::intrusive_ptr<upnp> me(self());
+
 	mapping_t& m = d.mapping[i];
 
 	if (m.action == mapping_t::action_none
@@ -833,6 +839,8 @@ void upnp::on_upnp_xml(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d
 	, http_connection& c)
 {
+	boost::intrusive_ptr<upnp> me(self());
+
 	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
@@ -1026,6 +1034,8 @@ void upnp::on_upnp_map_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping
 	, http_connection& c)
 {
+	boost::intrusive_ptr<upnp> me(self());
+
 	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
@@ -1182,6 +1192,8 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping
 	, http_connection& c)
 {
+	boost::intrusive_ptr<upnp> me(self());
+
 	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
