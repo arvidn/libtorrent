@@ -164,6 +164,9 @@ namespace libtorrent
 		std::time_t TORRENT_EXPORT get_file_mtime(boost::filesystem::path const& p);
 		std::time_t TORRENT_EXPORT get_file_mtime(boost::filesystem::wpath const& p);
 
+		fs::path TORRENT_EXPORT get_symlink_path(boost::filesystem::path const& p);
+		fs::path TORRENT_EXPORT get_symlink_path(boost::filesystem::wpath const& p);
+
 		template <class Pred, class Str, class PathTraits>
 		void add_files_impl(file_storage& fs, boost::filesystem::basic_path<Str, PathTraits> const& p
 			, boost::filesystem::basic_path<Str, PathTraits> const& l, Pred pred)
@@ -191,7 +194,16 @@ namespace libtorrent
 			{
 				int file_flags = get_file_attributes(f);
 				std::time_t mtime = get_file_mtime(f);
-				fs.add_file(l, file_size(f), file_flags, mtime);
+				//Masking all bits to check if the file is a symlink
+				if(file_flags & file_storage::attribute_symlink) 
+				{
+					fs::path sym_path = get_symlink_path(f);
+					fs.add_file(l, 0 ,file_flags, mtime, sym_path);
+				}
+				else
+				{
+					fs.add_file(l, file_size(f), file_flags, mtime);
+				}
 			}
 		}
 	}

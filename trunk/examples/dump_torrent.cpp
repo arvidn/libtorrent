@@ -123,9 +123,13 @@ int main(int argc, char* argv[])
 			<< (i->pad_file?'p':'-')
 			<< (i->executable_attribute?'x':'-')
 			<< (i->hidden_attribute?'h':'-')
+			<< (i->symlink_attribute?'l':'-')
 			<< " "
-			<< i->path.string() << "[ " << first << ", "
-			<< last << " ]\n";
+			<< "[ " << std::setw(3) << first << ", " << std::setw(3) << last << " ]\t"
+			<< i->path.string() ;
+		if (i->symlink_attribute)
+			std::cout << " -> " << i->symlink_path.string();
+		std::cout << std::endl;
 	}
 
 	return 0;

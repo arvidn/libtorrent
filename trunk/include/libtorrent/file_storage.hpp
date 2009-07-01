@@ -57,8 +57,10 @@ namespace libtorrent
 	struct TORRENT_EXPORT file_entry
 	{
 		file_entry(): offset(0), size(0), file_base(0)
-			, pad_file(false), hidden_attribute(false)
-			, executable_attribute(false) {}
+			, mtime(0), pad_file(false), hidden_attribute(false)
+			, executable_attribute(false)
+			, symlink_attribute(false)
+		{}
 
 		fs::path path;
 		size_type offset; // the offset of this file inside the torrent
@@ -71,6 +73,8 @@ namespace libtorrent
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
+		bool symlink_attribute:1;
+		fs::path symlink_path;
 	};
 
 	struct TORRENT_EXPORT file_slice
@@ -93,15 +97,16 @@ namespace libtorrent
 		{
 			pad_file = 1,
 			attribute_hidden = 2,
-			attribute_executable = 4
+			attribute_executable = 4,
+			attribute_symlink = 8
 		};
 
 		void add_file(file_entry const& e);
-		void add_file(fs::path const& p, size_type size, int flags = 0, std::time_t mtime = 0);
+		void add_file(fs::path const& p, size_type size, int flags = 0, std::time_t mtime = 0, fs::path const& s_p = "");
 		void rename_file(int index, std::string const& new_filename);
 
 #ifndef BOOST_FILESYSTEM_NARROW_ONLY
-		void add_file(fs::wpath const& p, size_type size, int flags = 0, std::time_t mtime = 0);
+		void add_file(fs::wpath const& p, size_type size, int flags = 0, std::time_t mtime = 0, fs::path const& s_p = "");
 		void rename_file(int index, std::wstring const& new_filename);
 		void set_name(std::wstring const& n);
 #endif

@@ -76,11 +76,12 @@ namespace libtorrent
 		m_files[index].path = utf8;
 	}
 
-	void file_storage::add_file(fs::wpath const& file, size_type size, int flags, std::time_t mtime)
+	void file_storage::add_file(fs::wpath const& file, size_type size, int flags
+		, std::time_t mtime, fs::path const& symlink_path)
 	{
 		std::string utf8;
 		wchar_utf8(file.string(), utf8);
-		add_file(utf8, size, flags, mtime);
+		add_file(utf8, size, flags, mtime, symlink_path);
 	}
 #endif
 
@@ -164,7 +165,8 @@ namespace libtorrent
 		return ret;
 	}
 
-	void file_storage::add_file(fs::path const& file, size_type size, int flags, std::time_t mtime)
+	void file_storage::add_file(fs::path const& file, size_type size, int flags
+		, std::time_t mtime, fs::path const& symlink_path)
 	{
 		TORRENT_ASSERT(size >= 0);
 #if BOOST_VERSION < 103600
@@ -194,6 +196,8 @@ namespace libtorrent
 		e.pad_file = bool(flags & pad_file);
 		e.hidden_attribute = bool(flags & attribute_hidden);
 		e.executable_attribute = bool(flags & attribute_executable);
+		e.symlink_attribute = bool(flags & attribute_symlink);
+		if (e.symlink_attribute) e.symlink_path = symlink_path.string();
 		e.mtime = mtime;
 		m_total_size += size;
 	}
