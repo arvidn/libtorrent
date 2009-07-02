@@ -1070,7 +1070,10 @@ namespace libtorrent
 			// if the peer is in parole mode, keep the request
 			if (peer_info_struct() && peer_info_struct()->on_parole)
 			{
-				m_request_queue.insert(m_request_queue.begin(), b);
+				// we should only add it if the block is marked as
+				// busy in the piece-picker
+				if (remove_from_picker)
+					m_request_queue.insert(m_request_queue.begin(), b);
 			}
 			else if (!t->is_seed() && remove_from_picker)
 			{
