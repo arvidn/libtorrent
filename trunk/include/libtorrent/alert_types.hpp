@@ -125,6 +125,30 @@ namespace libtorrent
 		int size;
 	};
 
+	struct TORRENT_EXPORT file_completed_alert: torrent_alert
+	{
+		file_completed_alert(torrent_handle const& h
+			, int index_)
+			: torrent_alert(h)
+			, index(index_)
+		{}
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new file_completed_alert(*this)); }
+		const static int static_category = alert::progress_notification;
+		virtual int category() const { return static_category; }
+		virtual char const* what() const { return "file completed"; }
+		virtual std::string message() const
+		{
+			char msg[200];
+			snprintf(msg, sizeof(msg), "%s: file %d finished downloading"
+				, torrent_alert::message().c_str(), index);
+			return msg;
+		}
+
+		int index;
+	};
+
 	struct TORRENT_EXPORT file_renamed_alert: torrent_alert
 	{
 		file_renamed_alert(torrent_handle const& h

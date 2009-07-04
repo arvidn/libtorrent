@@ -371,7 +371,12 @@ namespace libtorrent
 		// the torrent_info.
 		void file_progress(std::vector<float>& progress) const TORRENT_DEPRECATED;
 #endif
-		void file_progress(std::vector<size_type>& progress) const;
+		enum file_progress_flags_t
+		{
+			piece_granularity = 1
+		};
+
+		void file_progress(std::vector<size_type>& progress, int flags = 0) const;
 
 		void clear_error() const;
 

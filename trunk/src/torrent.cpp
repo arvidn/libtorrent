@@ -238,6 +238,7 @@ namespace libtorrent
 		if (!m_seed_mode)
 		{
 			m_picker.reset(new piece_picker());
+			std::fill(m_file_progress.begin(), m_file_progress.end(), 0);
 
 			if (!m_resume_data.empty())
 			{
@@ -599,6 +600,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent_file->total_size() >= 0);
 
 		m_file_priority.resize(m_torrent_file->num_files(), 1);
+		m_file_progress.resize(m_torrent_file->num_files(), 0);
 
 		m_block_size = (std::min)(m_block_size, m_torrent_file->piece_length());
 
@@ -830,7 +832,7 @@ namespace libtorrent
 					char const* pieces_str = pieces->string_ptr();
 					for (int i = 0, end(pieces->string_length()); i < end; ++i)
 					{
-						if (pieces_str[i] & 1) m_picker->we_have(i);
+						if (pieces_str[i] & 1) we_have(i);
 						if (m_seed_mode && (pieces_str[i] & 2)) m_verified.set_bit(i);
 					}
 				}
@@ -842,7 +844,7 @@ namespace libtorrent
 						for (int i = 0; i < slots->list_size(); ++i)
 						{
 							int piece = slots->list_int_value_at(i, -1);
-							if (piece >= 0) m_picker->we_have(piece);
+							if (piece >= 0) we_have(piece);
 						}
 					}
 				}
@@ -931,6 +933,7 @@ namespace libtorrent
 
 		m_owning_storage->async_release_files();
 		if (!m_picker) m_picker.reset(new piece_picker());
+		std::fill(m_file_progress.begin(), m_file_progress.end(), 0);
 		m_picker->init(m_torrent_file->piece_length() / m_block_size
 			, int((m_torrent_file->total_size()+m_block_size-1)/m_block_size));
 		// assume that we don't have anything
@@ -1014,7 +1017,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_picker);
 		if (j.offset >= 0 && !m_picker->have_piece(j.offset))
-			m_picker->we_have(j.offset);
+			we_have(j.offset);
 
 		// we're not done checking yet
 		// this handler will be called repeatedly until
@@ -1789,6 +1792,48 @@ namespace libtorrent
 			m_picker->set_piece_priority(i, 6);
 	}
 
+	void torrent::we_have(int index)
+	{
+		// update m_file_progress
+		TORRENT_ASSERT(m_picker);
+		TORRENT_ASSERT(!have_piece(index));
+
+		std::cerr << "[" << this << "] GOT PIECE " << index << std::endl;
+
+		const int piece_size = m_torrent_file->piece_length();
+		size_type off = size_type(index) * piece_size;
+		file_storage::iterator f = m_torrent_file->files().file_at_offset(off);
+		int size = m_torrent_file->piece_size(index);
+		int file_index = f - m_torrent_file->files().begin();
+		for (; size > 0; ++f, ++file_index)
+		{
+			size_type file_offset = off - f->offset;
+			TORRENT_ASSERT(f != m_torrent_file->files().end());
+			TORRENT_ASSERT(file_offset < f->size);
+			int add = (std::min)(f->size - file_offset, (size_type)size);
+			m_file_progress[file_index] += add;
+			std::cerr << " adding " << add << " to " << file_index << std::endl;
+
+			TORRENT_ASSERT(m_file_progress[file_index]
+				<= m_torrent_file->files().at(file_index).size);
+
+			if (m_file_progress[file_index] >= m_torrent_file->files().at(file_index).size)
+			{
+				if (m_ses.m_alerts.should_post<piece_finished_alert>())
+				{
+					// this file just completed, post alert
+					m_ses.m_alerts.post_alert(file_completed_alert(get_handle()
+						, file_index));
+				}
+			}
+			size -= add;
+			off += add;
+			TORRENT_ASSERT(size >= 0);
+		}
+
+		m_picker->we_have(index);
+	}
+
 	void torrent::piece_passed(int index)
 	{
 //		INVARIANT_CHECK;
@@ -1815,7 +1860,8 @@ namespace libtorrent
 		std::set<void*> peers;
 		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
 
-		m_picker->we_have(index);
+		we_have(index);
+
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end();)
 		{
 			peer_connection* p = *i;
@@ -4454,6 +4500,14 @@ namespace libtorrent
 			TORRENT_ASSERT((m_torrent_file->piece_length() & (m_block_size-1)) == 0);
 		}
 //		if (is_seed()) TORRENT_ASSERT(m_picker.get() == 0);
+
+
+		for (std::vector<size_type>::const_iterator i = m_file_progress.begin()
+			, end(m_file_progress.end()); i != end; ++i)
+		{
+			int index = i - m_file_progress.begin();
+			TORRENT_ASSERT(*i <= m_torrent_file->files().at(index).size);
+		}
 	}
 #endif
 
@@ -5333,11 +5387,17 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::file_progress(std::vector<size_type>& fp) const
+	void torrent::file_progress(std::vector<size_type>& fp, int flags) const
 	{
 		TORRENT_ASSERT(valid_metadata());
 	
 		fp.resize(m_torrent_file->num_files(), 0);
+
+		if (flags & torrent_handle::piece_granularity)
+		{
+			std::copy(m_file_progress.begin(), m_file_progress.end(), fp.begin());
+			return;
+		}
 
 		if (is_seed())
 		{
