@@ -1798,8 +1798,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_picker);
 		TORRENT_ASSERT(!have_piece(index));
 
-		std::cerr << "[" << this << "] GOT PIECE " << index << std::endl;
-
 		const int piece_size = m_torrent_file->piece_length();
 		size_type off = size_type(index) * piece_size;
 		file_storage::iterator f = m_torrent_file->files().file_at_offset(off);
@@ -1812,7 +1810,6 @@ namespace libtorrent
 			TORRENT_ASSERT(file_offset < f->size);
 			int add = (std::min)(f->size - file_offset, (size_type)size);
 			m_file_progress[file_index] += add;
-			std::cerr << " adding " << add << " to " << file_index << std::endl;
 
 			TORRENT_ASSERT(m_file_progress[file_index]
 				<= m_torrent_file->files().at(file_index).size);
