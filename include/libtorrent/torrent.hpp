@@ -270,7 +270,7 @@ namespace libtorrent
 
 		torrent_status status() const;
 
-		void file_progress(std::vector<size_type>& fp) const;
+		void file_progress(std::vector<size_type>& fp, int flags = 0) const;
 
 		void use_interface(const char* net_interface);
 		tcp::endpoint const& get_interface() const { return m_net_interface; }
@@ -426,6 +426,10 @@ namespace libtorrent
 		{
 			return has_picker()?m_picker->have_piece(index):true;
 		}
+
+		// called when we learn that we have a piece
+		// only once per piece
+		void we_have(int index);
 
 		int num_have() const
 		{
@@ -837,6 +841,11 @@ namespace libtorrent
 		aux::session_impl& m_ses;
 
 		std::vector<boost::uint8_t> m_file_priority;
+
+		// this vector contains the number of bytes completely
+		// downloaded (as in passed-hash-check) in each file.
+		// this lets us trigger on individual files completing
+		std::vector<size_type> m_file_progress;
 
 		boost::scoped_ptr<piece_picker> m_picker;
 

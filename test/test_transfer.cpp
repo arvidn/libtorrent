@@ -71,8 +71,8 @@ void test_rate()
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 0, &t);
 
-	ses1.set_alert_mask(alert::all_categories & ~(alert::progress_notification | alert::performance_warning));
-	ses2.set_alert_mask(alert::all_categories & ~(alert::progress_notification | alert::performance_warning));
+	ses1.set_alert_mask(alert::all_categories & ~(alert::performance_warning));
+	ses2.set_alert_mask(alert::all_categories & ~(alert::performance_warning));
 
 	ptime start = time_now();
 

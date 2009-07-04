@@ -1,3 +1,4 @@
+	* added new alert when individual files complete
 	* added support for storing symbolic links in .torrent files
 	* added support for uTorrent interpretation of multi-tracker torrents
 	* handle torrents with duplicate filenames

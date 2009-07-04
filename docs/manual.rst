@@ -1817,7 +1817,7 @@ Its declaration looks like this::
 		torrent_handle();
 
 		torrent_status status();
-		void file_progress(std::vector<size_type>& fp);
+		void file_progress(std::vector<size_type>& fp, int flags = 0);
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
 		torrent_info const& get_torrent_info() const;
@@ -2029,13 +2029,21 @@ file_progress()
 
 	::
 
-		void file_progress(std::vector<size_type>& fp);
+		void file_progress(std::vector<size_type>& fp, int flags = 0);
 
 This function fills in the supplied vector with the the number of bytes downloaded
 of each file in this torrent. The progress values are ordered the same as the files
 in the `torrent_info`_. This operation is not very cheap. Its complexity is *O(n + mj)*.
 Where *n* is the number of files, *m* is the number of downloading pieces and *j*
 is the number of blocks in a piece.
+
+The ``flags`` parameter can be used to specify the granularity of the file progress. If
+left at the default value of 0, the progress will be as accurate as possible, but also
+more expensive to calculate. If ``torrent_handle::piece_granularity`` is specified,
+the progress will be specified in piece granularity. i.e. only pieces that have been
+fully downloaded and passed the hash check count. When specifying piece granularity,
+the operation is a lot cheaper, since libtorrent already keeps track of this internally
+and no calculation is required.
 
 
 save_path()
@@ -4779,7 +4787,7 @@ generated and the torrent is paused.
 	};
 
 file_renamed_alert
-------------------------
+------------------
 
 This is posted as a response to a ``torrent_handle::rename_file`` call, if the rename
 operation succeeds.
@@ -5150,6 +5158,23 @@ This alert is generated when a block request receives a response.
 		int block_index;
 		int piece_index;
 	};
+
+
+file_completed_alert
+--------------------
+
+This is posted whenever an individual file completes its download. i.e.
+All pieces overlapping this file have passed their hash check.
+
+::
+
+	struct file_completed_alert: torrent_alert
+	{
+		// ...
+		int index;
+	};
+
+The ``index`` member refers to the index of the file that completed.
 
 
 block_downloading_alert

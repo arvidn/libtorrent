@@ -378,10 +378,10 @@ namespace libtorrent
 	}
 #endif
 
-	void torrent_handle::file_progress(std::vector<size_type>& progress) const
+	void torrent_handle::file_progress(std::vector<size_type>& progress, int flags) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(file_progress(progress));
+		TORRENT_FORWARD(file_progress(progress, flags));
 	}
 
 	torrent_status torrent_handle::status() const

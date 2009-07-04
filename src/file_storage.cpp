@@ -91,24 +91,27 @@ namespace libtorrent
 		m_files[index].path = new_filename;
 	}
 
-	file_storage::iterator file_storage::file_at_offset(size_type offset) const
-	{
-		// TODO: do a binary search
-		std::vector<file_entry>::const_iterator i;
-		for (i = begin(); i != end(); ++i)
-		{
-			if (i->offset <= offset && i->offset + i->size > offset)
-				return i;
-		}
-		return i;
-	}
-
 	namespace
 	{
 		bool compare_file_offset(file_entry const& lhs, file_entry const& rhs)
 		{
 			return lhs.offset < rhs.offset;
 		}
+	}
+
+	file_storage::iterator file_storage::file_at_offset(size_type offset) const
+	{
+		// find the file iterator and file offset
+		file_entry target;
+		target.offset = offset;
+		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
+
+		std::vector<file_entry>::const_iterator file_iter = std::upper_bound(
+			begin(), end(), target, compare_file_offset);
+
+		TORRENT_ASSERT(file_iter != begin());
+		--file_iter;
+		return file_iter;
 	}
 
 	std::vector<file_slice> file_storage::map_block(int piece, size_type offset
