@@ -145,12 +145,16 @@ namespace libtorrent
 
 		boost::filesystem::path get_symlink_path(char const* path)
 		{
+#ifdef TORRENT_WINDOWS
+			return "";
+#else
 			char buf[MAX_SYMLINK_PATH];
 			int char_read = readlink(path,buf,MAX_SYMLINK_PATH);
 			if (char_read < 0) return "";
 			if (char_read < MAX_SYMLINK_PATH) buf[char_read] = 0;
 			else buf[0] = 0;
 			return buf;
+#endif
 		}
 
 		boost::filesystem::path TORRENT_EXPORT get_symlink_path(boost::filesystem::path const& p)
