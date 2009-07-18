@@ -3709,9 +3709,9 @@ less than what has been set by ``session::set_max_uploads()``. To query the
 current number of upload slots, see ``session_status::allowed_upload_slots``.
 
 When ``auto_upload_slots_rate_based`` is set, and ``auto_upload_slots`` is set,
-the max upload slots setting is ignored and decided completely automatically.
+the max upload slots setting is used as a minimum number of unchoked slots.
 This algorithm is designed to prevent the peer from spreading its upload
-capacity too thin.
+capacity too thin, but still open more slots in order to utilize the full capacity.
 
 ``use_parole_mode`` specifies if parole mode should be used. Parole mode means
 that peers that participate in pieces that fail the hash check are put in a mode
