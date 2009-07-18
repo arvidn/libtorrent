@@ -6352,8 +6352,12 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | In the same order as in the torrent file.                    |
 +--------------------------+--------------------------------------------------------------+
 | ``url-list``             | list of strings. List of url-seed URLs used by this torrent. |
+|                          | The urls are expected to be properly encoded and not contain |
+|                          | any illegal url characters.                                  |
 +--------------------------+--------------------------------------------------------------+
 | ``httpseeds``            | list of strings. List of httpseed URLs used by this torrent. |
+|                          | The urls are expected to be properly encoded and not contain |
+|                          | any illegal url characters.                                  |
 +--------------------------+--------------------------------------------------------------+
 | ``merkle tree``          | string. In case this torrent is a merkle torrent, this is a  |
 |                          | string containing the entire merkle tree, all nodes,         |
