@@ -1856,7 +1856,7 @@ namespace aux {
 		}
 
 		// if the client is configured to use fully automatic
-		// unchoke slots, ignore m_max_uploads
+		// unchoke slots, m_max_uploads is still a lower limit
 		if (m_settings.auto_upload_slots_rate_based
 			&& m_settings.auto_upload_slots)
 		{
@@ -1889,7 +1889,10 @@ namespace aux {
 				int rate = p.uploaded_since_unchoke()
 					* 1000 / total_milliseconds(unchoke_interval);
 
-				if (rate < rate_threshold) break;
+				if (rate < rate_threshold
+					&& m_allowed_upload_slots >= m_max_uploads)
+					break;
+
 				++m_allowed_upload_slots;
 
 				// TODO: make configurable
