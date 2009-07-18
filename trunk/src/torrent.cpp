@@ -283,13 +283,14 @@ namespace libtorrent
 		// don't announce private torrents
 		if (m_torrent_file->is_valid() && m_torrent_file->priv()) return false;
 		if (m_trackers.empty()) return true;
+		if (!m_settings.use_dht_as_fallback) return true;
 
 		int verified_trackers = 0;
 		for (std::vector<announce_entry>::const_iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
 			if (i->verified) ++verified_trackers;
 			
-		return verified_trackers == 0 || !m_settings.use_dht_as_fallback;
+		return verified_trackers == 0;
 	}
 #endif
 
