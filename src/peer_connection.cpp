@@ -2474,8 +2474,13 @@ namespace libtorrent
 			m_request_queue.pop_back();
 		}
 
-		for (std::vector<pending_block>::iterator i = m_download_queue.begin()
-			, end(m_download_queue.end()); i != end; ++i)
+		// make a local temporary copy of the download queue, since it
+		// may be modified when we call write_cancel (for peers that don't
+		// support the FAST extensions).
+		std::vector<pending_block> temp_copy = m_download_queue;
+
+		for (std::vector<pending_block>::iterator i = temp_copy.begin()
+			, end(temp_copy.end()); i != end; ++i)
 		{
 			piece_block b = i->block;
 
