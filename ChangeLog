@@ -79,6 +79,7 @@ release 0.14.5
 	* fixed bug where one allowed-fast message would be sent even when
 	  disabled
 	* fixed race condition in UPnP which could lead to crash
+	* fixed inversed seed_time ratio logic
 
 release 0.14.4
 
