@@ -608,6 +608,8 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 	
 	char const* soap_action = "AddPortMapping";
 
+	std::string local_endpoint = print_address(c.socket().local_endpoint(ec).address());
+
 	char soap[2048];
 	error_code ec;
 	snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
@@ -620,14 +622,15 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 		"<NewInternalPort>%u</NewInternalPort>"
 		"<NewInternalClient>%s</NewInternalClient>"
 		"<NewEnabled>1</NewEnabled>"
-		"<NewPortMappingDescription>%s</NewPortMappingDescription>"
+		"<NewPortMappingDescription>%s at %s:%d</NewPortMappingDescription>"
 		"<NewLeaseDuration>%u</NewLeaseDuration>"
 		"</u:%s></s:Body></s:Envelope>"
 		, soap_action, d.service_namespace, d.mapping[i].external_port
 		, (d.mapping[i].protocol == udp ? "UDP" : "TCP")
 		, d.mapping[i].local_port
-		, print_address(c.socket().local_endpoint(ec).address()).c_str()
-		, m_user_agent.c_str(), d.lease_duration, soap_action);
+		, local_endpoint.c_str()
+		, m_user_agent.c_str(), local_endpoint.c_str(), d.mapping[i].local_port
+		, d.lease_duration, soap_action);
 
 	post(d, soap, soap_action, l);
 }
