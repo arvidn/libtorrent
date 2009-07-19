@@ -85,12 +85,14 @@ struct bandwidth_channel
 	{
 		TORRENT_ASSERT(amount >= 0);
 		if (m_limit == 0) return;
+		TORRENT_ASSERT(m_quota_left <= m_quota_left + amount);
 		m_quota_left += amount;
 	}
 
 	void use_quota(int amount)
 	{
 		TORRENT_ASSERT(amount >= 0);
+		TORRENT_ASSERT(m_limit >= 0);
 		if (m_limit == 0) return;
 		m_quota_left -= amount;
 	}

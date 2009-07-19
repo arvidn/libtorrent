@@ -3190,13 +3190,24 @@ namespace libtorrent
 			m_bandwidth_channel[download_channel].use_quota(download_overhead);
 			m_bandwidth_channel[upload_channel].use_quota(upload_overhead);
 
+			bandwidth_channel* upc = &m_ses.m_upload_channel;
+			bandwidth_channel* downc = &m_ses.m_download_channel;
+			if (m_ignore_bandwidth_limits)
+			{
+				upc = &m_ses.m_local_upload_channel;
+				downc = &m_ses.m_local_download_channel;
+			}
+	
 			int up_limit = m_bandwidth_channel[upload_channel].throttle();
 			int down_limit = m_bandwidth_channel[download_channel].throttle();
 
 			if (t)
 			{
-				t->m_bandwidth_channel[download_channel].use_quota(download_overhead);
-				t->m_bandwidth_channel[upload_channel].use_quota(upload_overhead);
+				if (!m_ignore_bandwidth_limits)
+				{
+					t->m_bandwidth_channel[download_channel].use_quota(download_overhead);
+					t->m_bandwidth_channel[upload_channel].use_quota(upload_overhead);
+				}
 
 				if (down_limit > 0
 					&& download_overhead >= down_limit
@@ -3214,8 +3225,8 @@ namespace libtorrent
 						, performance_alert::upload_limit_too_low));
 				}
 			}
-			m_ses.m_download_channel.use_quota(download_overhead);
-			m_ses.m_upload_channel.use_quota(upload_overhead);
+			downc->use_quota(download_overhead);
+			upc->use_quota(upload_overhead);
 		}
 
 		if (!t || m_disconnecting)
@@ -3685,7 +3696,10 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ "
 			"upload: " << m_send_buffer.size()
-			<< " prio: " << priority << "]\n";
+			<< " prio: " << priority
+			<< " channels: " << bwc1 << " " << bwc2 << " " << bwc3 << " " << bwc4
+			<< " ignore: " << m_ignore_bandwidth_limits
+			<< " ]\n";
 #endif
 	}
 
@@ -3739,7 +3753,8 @@ namespace libtorrent
 				// instead we rate limit ourself against the special
 				// global bandwidth channel for local peers, which defaults
 				// to unthrottled
-				request_upload_bandwidth(&m_ses.m_local_upload_channel);
+				request_upload_bandwidth(&m_ses.m_local_upload_channel
+					, &m_bandwidth_channel[upload_channel]);
 			}
 			return;
 		}
@@ -3823,7 +3838,8 @@ namespace libtorrent
 				// instead we rate limit ourself against the special
 				// global bandwidth channel for local peers, which defaults
 				// to unthrottled
-				request_download_bandwidth(&m_ses.m_local_download_channel);
+				request_download_bandwidth(&m_ses.m_local_download_channel
+					, &m_bandwidth_channel[download_channel]);
 			}
 			return;
 		}
