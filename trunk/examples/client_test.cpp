@@ -1297,11 +1297,11 @@ int main(int argc, char* argv[])
 			snprintf(str, sizeof(str), "     %-10s: %s%-10"PRId64"%s Bytes %6.2f%% %s\n"
 				, sequential_download?"sequential":"progress"
 				, esc("32"), s.total_done, esc("0")
-				, s.progress*100.f
+				, s.progress_ppm / 10000.f
 				, progress_bar(s.progress_ppm / 1000, terminal_width - 42, progress_bar_color).c_str());
 			out += str;
 
-			if (print_piece_bar && s.progress < 1.f)
+			if (print_piece_bar && s.progress_ppm < 1000000)
 			{
 				out += "     ";
 				out += piece_bar(s.pieces, terminal_width - 7);
@@ -1530,7 +1530,7 @@ int main(int argc, char* argv[])
 					snprintf(str, sizeof(str), "%s %s %-5.2f%% %s %s%s\n",
 						progress_bar(progress, 100, color).c_str()
 						, pad_file?esc("34"):""
-						, progress * 100.f
+						, progress / 10.f
 						, add_suffix(file_progress[i]).c_str()
 						, info.file_at(i).path.leaf().c_str()
 						, pad_file?esc("0"):"");
