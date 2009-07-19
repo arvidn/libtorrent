@@ -614,7 +614,9 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 		"<NewInternalPort>" << d.mapping[i].local_port << "</NewInternalPort>"
 		"<NewInternalClient>" << c.socket().local_endpoint(ec).address() << "</NewInternalClient>"
 		"<NewEnabled>1</NewEnabled>"
-		"<NewPortMappingDescription>" << m_user_agent << "</NewPortMappingDescription>"
+		"<NewPortMappingDescription>" << m_user_agent << " at " <<
+			c.socket().local_endpoint(ec).address() << ":" << to_string(d.mapping[i].local_port).elems
+			<< "</NewPortMappingDescription>"
 		"<NewLeaseDuration>" << d.lease_duration << "</NewLeaseDuration>";
 	soap << "</u:" << soap_action << "></s:Body></s:Envelope>";
 
