@@ -89,7 +89,7 @@ namespace libtorrent
 			, tracker_maximum_response_length(1024*1024)
 			, piece_timeout(20)
 			, request_timeout(50)
-			, request_queue_time(3.f)
+			, request_queue_time(3)
 			, max_allowed_in_request_queue(250)
 			, max_out_request_queue(200)
 			, whole_pieces_threshold(20)
@@ -214,7 +214,7 @@ namespace libtorrent
 		// of seconds it should take for the other end to send
 		// all the pieces. i.e. the actual number of requests
 		// depends on the download rate and this number.
-		float request_queue_time;
+		int request_queue_time;
 		
 		// the number of outstanding block requests a peer is
 		// allowed to queue up in the client. If a peer sends

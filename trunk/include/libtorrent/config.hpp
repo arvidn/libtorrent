@@ -119,6 +119,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_WPATH 0
 #endif
 
+// set this to 1 to disable all floating point operations
+// (disables some float-dependent APIs)
+#define TORRENT_NO_FPU 1
+
 #ifdef TORRENT_WINDOWS
 #include <stdarg.h>
 // this is the maximum number of characters in a
@@ -152,6 +156,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #if !defined(TORRENT_WRITE_HANDLER_MAX_SIZE)
 # define TORRENT_WRITE_HANDLER_MAX_SIZE 256
+#endif
+
+#if defined _MSC_VER && _MSC_VER <= 1200
+#define for if (false) {} else for
 #endif
 
 // determine what timer implementation we can use

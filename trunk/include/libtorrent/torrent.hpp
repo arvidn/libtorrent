@@ -206,7 +206,7 @@ namespace libtorrent
 		void set_queue_position(int p);
 		int queue_position() const { return m_sequence_number; }
 
-		void second_tick(stat& accumulator, float tick_interval);
+		void second_tick(stat& accumulator, int tick_interval_ms);
 
 		std::string name() const;
 
@@ -248,7 +248,9 @@ namespace libtorrent
 		bool is_piece_filtered(int index) const;
 		void filtered_pieces(std::vector<bool>& bitmask) const;
 		void filter_files(std::vector<bool> const& files);
+#if !TORRENT_NO_FPU
 		void file_progress(std::vector<float>& fp) const;
+#endif
 		// ============ end deprecation =============
 
 		void piece_availability(std::vector<int>& avail) const;
@@ -937,7 +939,7 @@ namespace libtorrent
 
 		storage_constructor_type m_storage_constructor;
 
-		float m_progress;
+		int m_progress_ppm;
 
 		// the upload/download ratio that each peer
 		// tries to maintain.

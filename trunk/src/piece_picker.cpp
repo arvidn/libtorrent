@@ -469,10 +469,10 @@ namespace libtorrent
 	}
 #endif
 
-	float piece_picker::distributed_copies() const
+	std::pair<int, int> piece_picker::distributed_copies() const
 	{
 		TORRENT_ASSERT(m_seeds >= 0);
-		const float num_pieces = static_cast<float>(m_piece_map.size());
+		const int num_pieces = m_piece_map.size();
 
 		int min_availability = piece_pos::max_peer_count;
 		// find the lowest availability count
@@ -503,7 +503,7 @@ namespace libtorrent
 			}
 		}
 		TORRENT_ASSERT(integer_part + fraction_part == num_pieces);
-		return float(min_availability + m_seeds) + (fraction_part / num_pieces);
+		return std::make_pair(min_availability + m_seeds, fraction_part * 1000 / num_pieces);
 	}
 
 	void piece_picker::priority_range(int prio, int* start, int* end)

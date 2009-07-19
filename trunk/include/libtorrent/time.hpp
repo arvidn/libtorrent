@@ -121,9 +121,9 @@ namespace libtorrent
 	{ return lhs.diff > rhs.diff; }
 	inline bool operator>=(time_duration lhs, time_duration rhs)
 	{ return lhs.diff >= rhs.diff; }
-	inline time_duration operator*(time_duration lhs, float rhs)
+	inline time_duration operator*(time_duration lhs, int rhs)
 	{ return time_duration(boost::int64_t(lhs.diff * rhs)); }
-	inline time_duration operator*(float lhs, time_duration rhs)
+	inline time_duration operator*(int lhs, time_duration rhs)
 	{ return time_duration(boost::int64_t(lhs * rhs.diff)); }
 
 	// libtorrent time type

@@ -1,3 +1,5 @@
+	* reduced the number of floating point operations (to better support
+	  systems without FPU)
 	* added new alert when individual files complete
 	* added support for storing symbolic links in .torrent files
 	* added support for uTorrent interpretation of multi-tracker torrents

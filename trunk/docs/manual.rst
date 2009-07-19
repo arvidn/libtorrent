@@ -652,28 +652,28 @@ struct has the following members::
 	{
 		bool has_incoming_connections;
 
-		float upload_rate;
-		float download_rate;
+		int upload_rate;
+		int download_rate;
 		size_type total_download;
 		size_type total_upload;
 
-		float payload_upload_rate;
-		float payload_download_rate;
+		int payload_upload_rate;
+		int payload_download_rate;
 		size_type total_payload_download;
 		size_type total_payload_upload;
 
-		float ip_overhead_upload_rate;
-		float ip_overhead_download_rate;
+		int ip_overhead_upload_rate;
+		int ip_overhead_download_rate;
 		size_type total_ip_overhead_download;
 		size_type total_ip_overhead_upload;
 
-		float dht_upload_rate;
-		float dht_download_rate;
+		int dht_upload_rate;
+		int dht_download_rate;
 		size_type total_dht_download;
 		size_type total_dht_upload;
 
-		float tracker_upload_rate;
-		float tracker_download_rate;
+		int tracker_upload_rate;
+		int tracker_download_rate;
 		size_type total_tracker_download;
 		size_type total_tracker_upload;
 
@@ -2767,6 +2767,7 @@ It contains the following fields::
 		state_t state;
 		bool paused;
 		float progress;
+		int progress_ppm;
 		std::string error;
 
 		boost::posix_time::time_duration next_announce;
@@ -2783,11 +2784,11 @@ It contains the following fields::
 		size_type total_failed_bytes;
 		size_type total_redundant_bytes;
 
-		float download_rate;
-		float upload_rate;
+		int download_rate;
+		int upload_rate;
 
-		float download_payload_rate;
-		float upload_payload_rate;
+		int download_payload_rate;
+		int upload_payload_rate;
 
 		int num_peers;
 
@@ -2807,6 +2808,10 @@ It contains the following fields::
 		size_type total_wanted;
 
 		int num_seeds;
+
+		int distributed_full_copies;
+		int distributed_fraction;
+
 		float distributed_copies;
 
 		int block_size;
@@ -2841,8 +2846,13 @@ It contains the following fields::
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
-torrent's current task. It may be checking files or downloading. The torrent's
-current task is in the ``state`` member, it will be one of the following:
+torrent's current task. It may be checking files or downloading.
+
+``progress_ppm`` reflects the same value as ``progress``, but instead in a range
+[0, 1000000] (ppm = parts per million). When floating point operations are disabled,
+this is the only alternative to the floating point value in ``progress``.
+
+The torrent's current task is in the ``state`` member, it will be one of the following:
 
 +--------------------------+----------------------------------------------------------+
 |``checking_resume_data``  |The torrent is currently checking the fastresume data and |
@@ -2969,17 +2979,27 @@ excluding pieces that have been filtered.
 ``num_seeds`` is the number of peers that are seeding that this client is
 currently connected to.
 
-``distributed_copies`` is the number of distributed copies of the torrent.
-Note that one copy may be spread out among many peers. The integer part
-tells how many copies there are currently of the rarest piece(s) among the
-peers this client is connected to. The fractional part tells the share of
-pieces that have more copies than the rarest piece(s). For example: 2.5 would
-mean that the rarest pieces have only 2 copies among the peers this torrent is
-connected to, and that 50% of all the pieces have more than two copies.
+``distributed_full_copies`` is the number of distributed copies of the torrent.
+Note that one copy may be spread out among many peers. It tells how many copies
+there are currently of the rarest piece(s) among the peers this client is
+connected to.
+
+``distributed_fraction`` tells the share of pieces that have more copies than
+the rarest piece(s). Divide this number by 1000 to get the fraction.
+
+For example, if ``distributed_full_copies`` is 2 and ``distrbuted_fraction``
+is 500, it means that the rarest pieces have only 2 copies among the peers
+this torrent is connected to, and that 50% of all the pieces have more than
+two copies.
 
 If we are a seed, the piece picker is deallocated as an optimization, and
 piece availability is no longer tracked. In this case the distributed
-copies is set to -1.
+copies members are set to -1.
+
+``distributed_copies`` is a floating point representation of the
+``distributed_full_copies`` as the integer part and ``distributed_fraction``
+/ 1000 as the fraction part. If floating point operations are disabled
+this value is always -1.
 
 ``block_size`` is the size of a block, in bytes. A block is a sub piece, it
 is the number of bytes that each piece request asks for and the number of
@@ -3089,10 +3109,10 @@ It contains the following fields::
 		char write_state;
 
 		asio::ip::tcp::endpoint ip;
-		float up_speed;
-		float down_speed;
-		float payload_up_speed;
-		float payload_down_speed;
+		int up_speed;
+		int down_speed;
+		int payload_up_speed;
+		int payload_down_speed;
 		size_type total_download;
 		size_type total_upload;
 		peer_id pid;
@@ -3154,6 +3174,7 @@ It contains the following fields::
 		int upload_rate_peak;
 
 		float progress;
+		int progress_ppm;
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -3373,7 +3394,11 @@ estimated by timing the the tcp ``connect()``. It may be 0 for incoming connecti
 rates seen on this connection. They are given in bytes per second. This number is
 reset to 0 on reconnect.
 
-``progress`` is the progress of the peer.
+``progress`` is the progress of the peer in the range [0, 1]. This is always 0 when
+floating point operations are diabled, instead use ``progress_ppm``.
+
+``progress_ppm`` indicates the download progress of the peer in the range [0, 1000000]
+(parts per million).
 
 session customization
 =====================

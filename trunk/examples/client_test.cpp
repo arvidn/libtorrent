@@ -304,13 +304,13 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 	return bar;
 }
 
-std::string const& progress_bar(float progress, int width, char const* code = "33")
+std::string const& progress_bar(int progress, int width, char const* code = "33")
 {
 	static std::string bar;
 	bar.clear();
 	bar.reserve(width + 10);
 
-	int progress_chars = static_cast<int>(progress * width + .5f);
+	int progress_chars = (progress * width + 500) / 1000;
 	bar = esc(code);
 	std::fill_n(std::back_inserter(bar), progress_chars, '#');
 	bar += esc("0");
@@ -443,11 +443,11 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 			if (i->downloading_piece_index >= 0)
 			{
 				out += progress_bar(
-					i->downloading_progress / float(i->downloading_total), 14);
+					i->downloading_progress * 1000 / i->downloading_total, 14);
 			}
 			else
 			{
-				out += progress_bar(0.f, 14);
+				out += progress_bar(0, 14);
 			}
 		}
 
@@ -1298,7 +1298,7 @@ int main(int argc, char* argv[])
 				, sequential_download?"sequential":"progress"
 				, esc("32"), s.total_done, esc("0")
 				, s.progress*100.f
-				, progress_bar(s.progress, terminal_width - 42, progress_bar_color).c_str());
+				, progress_bar(s.progress_ppm / 1000, terminal_width - 42, progress_bar_color).c_str());
 			out += str;
 
 			if (print_piece_bar && s.progress < 1.f)
@@ -1521,8 +1521,8 @@ int main(int argc, char* argv[])
 				{
 					bool pad_file = info.file_at(i).pad_file;
 					if (!show_pad_files && pad_file) continue;
-					float progress = info.file_at(i).size > 0
-						?float(file_progress[i]) / info.file_at(i).size:1;
+					int progress = info.file_at(i).size > 0
+						?file_progress[i] * 1000 / info.file_at(i).size:1000;
 
 					char const* color = (file_progress[i] == info.file_at(i).size)
 						?"32":"33";

@@ -167,7 +167,7 @@ namespace libtorrent
 		, m_state(torrent_status::checking_resume_data)
 		, m_settings(ses.settings())
 		, m_storage_constructor(p.storage)
-		, m_progress(0.f)
+		, m_progress_ppm(0)
 		, m_ratio(0.f)
 		, m_max_uploads((std::numeric_limits<int>::max)())
 		, m_num_uploads(0)
@@ -1014,7 +1014,7 @@ namespace libtorrent
 			return;
 		}
 
-		m_progress = j.piece / float(torrent_file().num_pieces());
+		m_progress_ppm = j.piece * 1000000 / torrent_file().num_pieces();
 
 		TORRENT_ASSERT(m_picker);
 		if (j.offset >= 0 && !m_picker->have_piece(j.offset))
@@ -2344,9 +2344,9 @@ namespace libtorrent
 				{
 					time_duration diff = dl_time - m_average_piece_time;
 					if (m_piece_time_deviation == seconds(0)) m_piece_time_deviation = diff;
-					else m_piece_time_deviation = m_piece_time_deviation * 0.6f + diff * 0.4;
+					else m_piece_time_deviation = (m_piece_time_deviation * 6 + diff * 4) / 10;
 
-					m_average_piece_time = m_average_piece_time * 0.6f + dl_time * 0.4f;
+					m_average_piece_time = (m_average_piece_time * 6 + dl_time * 4) / 10;
 				}
 			}
 			m_time_critical_pieces.erase(i);
@@ -5016,7 +5016,7 @@ namespace libtorrent
 		announce_with_tracker(tracker_request::stopped);
 	}
 
-	void torrent::second_tick(stat& accumulator, float tick_interval)
+	void torrent::second_tick(stat& accumulator, int tick_interval_ms)
 	{
 		INVARIANT_CHECK;
 
@@ -5069,7 +5069,7 @@ namespace libtorrent
 		if (is_paused())
 		{
 			// let the stats fade out to 0
- 			m_stat.second_tick(tick_interval);
+ 			m_stat.second_tick(tick_interval_ms);
 			return;
 		}
 
@@ -5095,7 +5095,7 @@ namespace libtorrent
 			}
 		}
 
-		time_duration since_last_tick = microsec(tick_interval * 1000000L);
+		time_duration since_last_tick = milliseconds(tick_interval_ms);
 		if (is_seed()) m_seeding_time += since_last_tick;
 		m_active_time += since_last_tick;
 
@@ -5162,7 +5162,7 @@ namespace libtorrent
 			try
 			{
 #endif
-				p->second_tick(tick_interval);
+				p->second_tick(tick_interval_ms);
 #ifndef BOOST_NO_EXCEPTIONS
 			}
 			catch (std::exception& e)
@@ -5177,7 +5177,7 @@ namespace libtorrent
 		accumulator += m_stat;
 		m_total_uploaded += m_stat.last_payload_uploaded();
 		m_total_downloaded += m_stat.last_payload_downloaded();
-		m_stat.second_tick(tick_interval);
+		m_stat.second_tick(tick_interval_ms);
 	}
 
 	void torrent::request_time_critical_pieces()
@@ -5369,6 +5369,7 @@ namespace libtorrent
 		return &*i;
 	}
 
+#if !TORRENT_NO_FPU
 	void torrent::file_progress(std::vector<float>& fp) const
 	{
 		fp.clear();
@@ -5384,6 +5385,7 @@ namespace libtorrent
 			else fp[i] = float(progress[i]) / f.size;
 		}
 	}
+#endif
 
 	void torrent::file_progress(std::vector<size_type>& fp, int flags) const
 	{
@@ -5657,7 +5659,10 @@ namespace libtorrent
 		if (!valid_metadata())
 		{
 			st.state = torrent_status::downloading_metadata;
-			st.progress = m_progress;
+			st.progress_ppm = m_progress_ppm;
+#if !TORRENT_NO_FPU
+			st.progress = m_progress_ppm / 1000000.f;
+#endif
 			st.block_size = 0;
 			return st;
 		}
@@ -5665,10 +5670,25 @@ namespace libtorrent
 		st.block_size = block_size();
 
 		if (m_state == torrent_status::checking_files)
-			st.progress = m_progress;
-		else if (st.total_wanted == 0) st.progress = 1.f;
-		else st.progress = st.total_wanted_done
-			/ static_cast<float>(st.total_wanted);
+		{
+			st.progress_ppm = m_progress_ppm;
+#if !TORRENT_NO_FPU
+			st.progress = m_progress_ppm / 1000000.f;
+#endif
+		}
+		else if (st.total_wanted == 0)
+		{
+			st.progress_ppm = 1000000;
+			st.progress = 1.f;
+		}
+		else
+		{
+			st.progress_ppm = st.total_wanted_done * 1000000
+				/ st.total_wanted;
+#if !TORRENT_NO_FPU
+			st.progress = st.progress_ppm / 1000000.f;
+#endif
+		}
 
 		if (has_picker())
 		{
@@ -5681,9 +5701,22 @@ namespace libtorrent
 		st.num_pieces = num_have();
 		st.num_seeds = num_seeds();
 		if (m_picker.get())
-			st.distributed_copies = m_picker->distributed_copies();
+		{
+			boost::tie(st.distributed_full_copies, st.distributed_fraction) =
+				m_picker->distributed_copies();
+#if TORRENT_NO_FPU
+			st.distributed_copies = -1.f;
+#else
+			st.distributed_copies = st.distributed_full_copies
+				+ float(st.distributed_fraction) / 1000;
+#endif
+		}
 		else
-			st.distributed_copies = -1;
+		{
+			st.distributed_full_copies = -1;
+			st.distributed_fraction = -1;
+			st.distributed_copies = -1.f;
+		}
 		return st;
 	}
 

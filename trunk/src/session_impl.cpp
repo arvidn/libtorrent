@@ -1198,7 +1198,7 @@ namespace aux {
 		// only tick the following once per second
 		if (now - m_last_second_tick < seconds(1)) return;
 
-		float tick_interval = total_microseconds(now - m_last_second_tick) / 1000000.f;
+		int tick_interval_ms = total_milliseconds(now - m_last_second_tick);
 		m_last_second_tick = now;
 
 		int session_time = total_seconds(now - m_created);
@@ -1241,8 +1241,8 @@ namespace aux {
 		int seeding_torrents = 0;
 		static size_type downloaded = 0;
 		static size_type uploaded = 0;
-		size_type download_rate = (m_stat.total_download() - downloaded) / tick_interval;
-		size_type upload_rate = (m_stat.total_upload() - uploaded) / tick_interval;
+		size_type download_rate = (m_stat.total_download() - downloaded) * 1000 / tick_interval_ms;
+		size_type upload_rate = (m_stat.total_upload() - uploaded) * 1000 / tick_interval_ms;
 		downloaded = m_stat.total_download();
 		uploaded = m_stat.total_upload();
 		size_type num_peers = 0;
@@ -1355,7 +1355,7 @@ namespace aux {
 				num_downloads_peers += t.num_peers();
 			}
 
-			t.second_tick(m_stat, tick_interval);
+			t.second_tick(m_stat, tick_interval_ms);
 			++i;
 		}
 
@@ -1413,7 +1413,7 @@ namespace aux {
 			}
 		}
 
-		m_stat.second_tick(tick_interval);
+		m_stat.second_tick(tick_interval_ms);
 
 		// --------------------------------------------------------------
 		// scrape paused torrents that are auto managed

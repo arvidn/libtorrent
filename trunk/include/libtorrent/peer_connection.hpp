@@ -293,7 +293,7 @@ namespace libtorrent
 		void add_stat(size_type downloaded, size_type uploaded);
 
 		// is called once every second by the main loop
-		void second_tick(float tick_interval);
+		void second_tick(int tick_interval_ms);
 
 		void timeout_requests();
 
