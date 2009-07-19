@@ -121,7 +121,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // set this to 1 to disable all floating point operations
 // (disables some float-dependent APIs)
-#define TORRENT_NO_FPU 1
+#define TORRENT_NO_FPU 0
 
 #ifdef TORRENT_WINDOWS
 #include <stdarg.h>
