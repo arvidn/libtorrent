@@ -43,14 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat.hpp"
 #include "libtorrent/invariant_check.hpp"
 
-#if defined _MSC_VER && _MSC_VER <= 1200
-#define for if (false) {} else for
-#endif
-
 namespace libtorrent
 {
 
-void stat_channel::second_tick(float tick_interval)
+void stat_channel::second_tick(int tick_interval_ms)
 {
 	INVARIANT_CHECK;
 
@@ -59,7 +55,7 @@ void stat_channel::second_tick(float tick_interval)
 	for (int i = history - 2; i >= 0; --i)
 		m_rate_history[i + 1] = m_rate_history[i];
 
-	m_rate_history[0] = m_counter / tick_interval;
+	m_rate_history[0] = m_counter * 1000 / tick_interval_ms;
 	m_rate_sum += m_rate_history[0];
 	m_counter = 0;
 }

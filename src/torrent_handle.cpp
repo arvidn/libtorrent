@@ -371,11 +371,13 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
+#if !TORRENT_NO_FPU
 	void torrent_handle::file_progress(std::vector<float>& progress) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD(file_progress(progress));
 	}
+#endif
 #endif
 
 	void torrent_handle::file_progress(std::vector<size_type>& progress, int flags) const

@@ -25,6 +25,7 @@ void bind_torrent_status()
         .def_readonly("state", &torrent_status::state)
         .def_readonly("paused", &torrent_status::paused)
         .def_readonly("progress", &torrent_status::progress)
+        .def_readonly("progress_ppm", &torrent_status::progress_ppm)
         .add_property(
             "next_announce"
           , make_getter(
@@ -59,6 +60,8 @@ void bind_torrent_status()
         .def_readonly("total_done", &torrent_status::total_done)
         .def_readonly("total_wanted_done", &torrent_status::total_wanted_done)
         .def_readonly("total_wanted", &torrent_status::total_wanted)
+        .def_readonly("distributed_full_copies", &torrent_status::distributed_full_copies)
+        .def_readonly("distributed_fraction", &torrent_status::distributed_fraction)
         .def_readonly("distributed_copies", &torrent_status::distributed_copies)
         .def_readonly("block_size", &torrent_status::block_size)
         .def_readonly("num_uploads", &torrent_status::num_uploads)

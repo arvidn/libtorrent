@@ -74,8 +74,8 @@ namespace libtorrent
 		}
 
 		// should be called once every second
-		void second_tick(float tick_interval);
-		float rate() const { return m_rate_sum / float(history); }
+		void second_tick(int tick_interval_ms);
+		int rate() const { return m_rate_sum / history; }
 		size_type rate_sum() const { return m_rate_sum; }
 		size_type total() const { return m_total_counter; }
 
@@ -208,28 +208,28 @@ namespace libtorrent
 		int upload_tracker() const { return m_stat[upload_tracker_protocol].counter(); }
 
 		// should be called once every second
-		void second_tick(float tick_interval)
+		void second_tick(int tick_interval_ms)
 		{
 			for (int i = 0; i < num_channels; ++i)
-				m_stat[i].second_tick(tick_interval);
+				m_stat[i].second_tick(tick_interval_ms);
 		}
 
-		float upload_rate() const
+		int upload_rate() const
 		{
 			return (m_stat[upload_payload].rate_sum()
 				+ m_stat[upload_protocol].rate_sum()
 				+ m_stat[upload_ip_protocol].rate_sum()
 				+ m_stat[upload_dht_protocol].rate_sum())
-				/ float(stat_channel::history);
+				/ stat_channel::history;
 		}
 
-		float download_rate() const
+		int download_rate() const
 		{
 			return (m_stat[download_payload].rate_sum()
 				+ m_stat[download_protocol].rate_sum()
 				+ m_stat[download_ip_protocol].rate_sum()
 				+ m_stat[download_dht_protocol].rate_sum())
-				/ float(stat_channel::history);
+				/ stat_channel::history;
 		}
 
 		size_type total_upload() const
@@ -250,9 +250,9 @@ namespace libtorrent
 				+ m_stat[download_tracker_protocol].total();
 		}
 
-		float upload_payload_rate() const
+		int upload_payload_rate() const
 		{ return m_stat[upload_payload].rate(); }
-		float download_payload_rate() const
+		int download_payload_rate() const
 		{ return m_stat[download_payload].rate(); }
 
 		size_type total_payload_upload() const
@@ -267,7 +267,7 @@ namespace libtorrent
 
 		size_type total_transfer(int channel) const
 		{ return m_stat[channel].total(); }
-		float transfer_rate(int channel) const
+		int transfer_rate(int channel) const
 		{ return m_stat[channel].rate(); }
 
 		// this is used to offset the statistics when a

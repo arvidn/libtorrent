@@ -346,7 +346,7 @@ time_duration node_impl::refresh_timeout()
 
 	time_duration next_refresh = next - now;
 	time_duration min_next_refresh
-		= minutes(15) / (m_table.num_active_buckets());
+		= minutes(15) / m_table.num_active_buckets();
 	if (min_next_refresh > seconds(40))
 		min_next_refresh = seconds(40);
 

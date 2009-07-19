@@ -3064,7 +3064,13 @@ namespace libtorrent
 		p.write_state = m_channel_state[upload_channel];
 		p.read_state = m_channel_state[download_channel];
 		
+#if TORRENT_NO_FPU
+		p.progress = 0.f;
+#else
 		p.progress = (float)p.pieces.count() / (float)p.pieces.size();
+#endif
+
+		p.progress_ppm = p.pieces.count() * 1000000 / p.pieces.size();
 	}
 
 	// allocates a disk buffer of size 'disk_buffer_size' and replaces the
@@ -3165,7 +3171,7 @@ namespace libtorrent
 		m_superseed_piece = index;
 	}
 
-	void peer_connection::second_tick(float tick_interval)
+	void peer_connection::second_tick(int tick_interval_ms)
 	{
 		ptime now = time_now();
 		boost::intrusive_ptr<peer_connection> me(self());
@@ -3319,7 +3325,7 @@ namespace libtorrent
 		m_ignore_bandwidth_limits = m_ses.settings().ignore_limits_on_local_network
 			&& on_local_network();
 
-		m_statistics.second_tick(tick_interval);
+		m_statistics.second_tick(tick_interval_ms);
 
 		if (m_statistics.upload_payload_rate() > m_upload_rate_peak)
 		{
@@ -3342,7 +3348,7 @@ namespace libtorrent
 		if (!t->ready_for_connections()) return;
 
 		// calculate the desired download queue size
-		const float queue_time = m_ses.settings().request_queue_time;
+		const int queue_time = m_ses.settings().request_queue_time;
 		// (if the latency is more than this, the download will stall)
 		// so, the queue size is queue_time * down_rate / 16 kiB
 		// (16 kB is the size of each request)
@@ -3358,8 +3364,8 @@ namespace libtorrent
 		}
 		else
 		{
-			m_desired_queue_size = static_cast<int>(queue_time
-				* statistics().download_rate() / block_size);
+			m_desired_queue_size = queue_time
+				* statistics().download_rate() / block_size;
 			if (m_desired_queue_size > m_max_out_request_queue)
 				m_desired_queue_size = m_max_out_request_queue;
 			if (m_desired_queue_size < min_request_queue)
@@ -3426,40 +3432,37 @@ namespace libtorrent
 		{
 			size_type bias = 0x10000 + 2 * t->block_size() + m_free_upload;
 
-			double break_even_time = 15; // seconds.
+			const int break_even_time = 15; // seconds.
 			size_type have_uploaded = m_statistics.total_payload_upload();
 			size_type have_downloaded = m_statistics.total_payload_download();
-			double download_speed = m_statistics.download_rate();
+			int download_speed = m_statistics.download_rate();
 
 			size_type soon_downloaded =
-				have_downloaded + (size_type)(download_speed * break_even_time*1.5);
+				have_downloaded + (size_type)(download_speed * (break_even_time + break_even_time / 2));
 
 			if (t->ratio() != 1.f)
-				soon_downloaded = (size_type)(soon_downloaded*(double)t->ratio());
+				soon_downloaded = size_type(soon_downloaded * t->ratio());
 
-			double upload_speed_limit = (soon_downloaded - have_uploaded
+			int upload_speed_limit = (soon_downloaded - have_uploaded
 				+ bias) / break_even_time;
 
 			if (m_upload_limit > 0 && m_upload_limit < upload_speed_limit)
 				upload_speed_limit = m_upload_limit;
 
-			upload_speed_limit = (std::min)(upload_speed_limit,
-				(double)(std::numeric_limits<int>::max)());
+			upload_speed_limit = (std::min)(upload_speed_limit, (std::numeric_limits<int>::max)());
 
 			m_bandwidth_channel[upload_channel].throttle(
-				(std::min)((std::max)((int)upload_speed_limit, 10)
-				, m_upload_limit));
+				(std::min)((std::max)(upload_speed_limit, 10), m_upload_limit));
 		}
 
 		// update once every minute
 		if (now - m_remote_dl_update >= seconds(60))
 		{
-			float factor = 0.6666666666667f;
-			
-			if (m_remote_dl_rate == 0) factor = 0.0f;
-
-			m_remote_dl_rate = int((m_remote_dl_rate * factor) + 
-				((m_remote_bytes_dled * (1.0f-factor)) / 60.f));
+			if (m_remote_dl_rate > 0)
+				m_remote_dl_rate = (m_remote_dl_rate * 2 / 3) + 
+					((m_remote_bytes_dled / 3) / 60);
+			else
+				m_remote_dl_rate = m_remote_dl_rate / 60;
 			
 			m_remote_bytes_dled = 0;
 			m_remote_dl_update = now;

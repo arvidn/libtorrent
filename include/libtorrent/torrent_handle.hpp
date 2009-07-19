@@ -79,6 +79,7 @@ namespace libtorrent
 			: state(checking_resume_data)
 			, paused(false)
 			, progress(0.f)
+			, progress_ppm(0)
 			, total_download(0)
 			, total_upload(0)
 			, total_payload_download(0)
@@ -134,6 +135,10 @@ namespace libtorrent
 		state_t state;
 		bool paused;
 		float progress;
+		// progress parts per million (progress * 1000000)
+		// when disabling floating point operations, this is
+		// the only option to query progress
+		int progress_ppm;
 		std::string error;
 
 		boost::posix_time::time_duration next_announce;
@@ -160,13 +165,13 @@ namespace libtorrent
 
 		// current transfer rate
 		// payload plus protocol
-		float download_rate;
-		float upload_rate;
+		int download_rate;
+		int upload_rate;
 
 		// the rate of payload that is
 		// sent and received
-		float download_payload_rate;
-		float upload_payload_rate;
+		int download_payload_rate;
+		int upload_payload_rate;
 
 		// the number of peers this torrent is connected to
 		// that are seeding.
@@ -227,6 +232,16 @@ namespace libtorrent
 		//
 		// the fractional part tells the fraction of pieces that
 		//   have more copies than the rarest piece(s).
+
+		// the number of full distributed copies (i.e. the number
+		// of peers that have the rarest piece)
+		int distributed_full_copies;
+
+		// the fraction of pieces that more peers has than the
+		// rarest pieces. This indicates how close the swarm is
+		// to have one more full distributed copy
+		int distributed_fraction;
+
 		float distributed_copies;
 
 		// the block size that is used in this torrent. i.e.
@@ -366,10 +381,12 @@ namespace libtorrent
 		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
 		
 #ifndef TORRENT_NO_DEPRECATE
+#if !TORRENT_NO_FPU
 		// fills the specified vector with the download progress [0, 1]
 		// of each file in the torrent. The files are ordered as in
 		// the torrent_info.
 		void file_progress(std::vector<float>& progress) const TORRENT_DEPRECATED;
+#endif
 #endif
 		enum file_progress_flags_t
 		{

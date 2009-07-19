@@ -94,10 +94,10 @@ namespace libtorrent
 		char write_state;
 		
 		tcp::endpoint ip;
-		float up_speed;
-		float down_speed;
-		float payload_up_speed;
-		float payload_down_speed;
+		int up_speed;
+		int down_speed;
+		int payload_up_speed;
+		int payload_down_speed;
 		size_type total_download;
 		size_type total_upload;
 		peer_id pid;
@@ -211,7 +211,8 @@ namespace libtorrent
 		int upload_rate_peak;
 		
 		// the peers progress
-		float progress;
+		float progress; // [0, 1]
+		int progress_ppm; // [0, 1000000]
 	};
 
 	struct TORRENT_EXPORT peer_list_entry

@@ -56,28 +56,28 @@ namespace libtorrent
 	{
 		bool has_incoming_connections;
 
-		float upload_rate;
-		float download_rate;
+		int upload_rate;
+		int download_rate;
 		size_type total_download;
 		size_type total_upload;
 
-		float payload_upload_rate;
-		float payload_download_rate;
+		int payload_upload_rate;
+		int payload_download_rate;
 		size_type total_payload_download;
 		size_type total_payload_upload;
 
-		float ip_overhead_upload_rate;
-		float ip_overhead_download_rate;
+		int ip_overhead_upload_rate;
+		int ip_overhead_download_rate;
 		size_type total_ip_overhead_download;
 		size_type total_ip_overhead_upload;
 
-		float dht_upload_rate;
-		float dht_download_rate;
+		int dht_upload_rate;
+		int dht_download_rate;
 		size_type total_dht_download;
 		size_type total_dht_upload;
 
-		float tracker_upload_rate;
-		float tracker_download_rate;
+		int tracker_upload_rate;
+		int tracker_download_rate;
 		size_type total_tracker_download;
 		size_type total_tracker_upload;
 
