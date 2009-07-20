@@ -85,7 +85,7 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 			tie(payload, protocol) = parser.incoming(recv_buf, error);
 			ret.get<0>() += payload;
 			ret.get<1>() += protocol;
-			ret.get<2>() += error;
+			ret.get<2>() |= error;
 //			std::cerr << payload << ", " << protocol << ", " << chunk_size << std::endl;
 			TORRENT_ASSERT(payload + protocol == chunk_size);
 		}
@@ -358,6 +358,12 @@ void find_control_url(int type, char const* string, parse_state& state);
 int test_main()
 {
 	using namespace libtorrent;
+
+	// test snprintf
+
+	char msg[10];
+	snprintf(msg, sizeof(msg), "too %s format string", "long");
+	TEST_CHECK(strcmp(msg, "too long ") == 0);
 
 	// test maybe_url_encode
 

@@ -69,7 +69,7 @@ namespace libtorrent { namespace dht
 TORRENT_DECLARE_LOG(node);
 #endif
 
-struct traversal_algorithm;
+class traversal_algorithm;
 
 // this is the entry for every peer
 // the timestamp is there to make it possible
