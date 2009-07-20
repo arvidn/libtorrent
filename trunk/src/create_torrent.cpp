@@ -143,40 +143,37 @@ namespace libtorrent
 #endif
 		}
 
-		boost::filesystem::path get_symlink_path(char const* path)
+#ifndef TORRENT_WINDOWS
+		boost::filesystem::path get_symlink_path_impl(char const* path)
 		{
-#ifdef TORRENT_WINDOWS
-			return "";
-#else
 			char buf[MAX_SYMLINK_PATH];
 			int char_read = readlink(path,buf,MAX_SYMLINK_PATH);
 			if (char_read < 0) return "";
 			if (char_read < MAX_SYMLINK_PATH) buf[char_read] = 0;
 			else buf[0] = 0;
 			return buf;
-#endif
 		}
+#endif
 
 		boost::filesystem::path TORRENT_EXPORT get_symlink_path(boost::filesystem::path const& p)
 		{
 #if defined TORRENT_WINDOWS && TORRENT_USE_WPATH
-			std::wstring path = convert_to_wstring(p.external_file_string());
-			return get_symlink_path(path.c_str());
+			return "";
 #else
 			std::string path = convert_to_native(p.external_file_string());
-			return get_symlink_path(p.string().c_str());
+			return get_symlink_path_impl(p.string().c_str());
 #endif
 		}
 
 		boost::filesystem::path TORRENT_EXPORT get_symlink_path(boost::filesystem::wpath const& p)
 		{
 #ifdef TORRENT_WINDOWS
-			return get_symlink_path(p.string().c_str());
+			return "";
 #else
 			std::string utf8;
 			wchar_utf8(p.string(), utf8);
 			utf8 = convert_to_native(utf8);
-			return get_symlink_path(utf8.c_str());
+			return get_symlink_path_impl(utf8.c_str());
 #endif
 		}
 
