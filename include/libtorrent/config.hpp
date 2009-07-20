@@ -36,8 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include <boost/version.hpp>
 #include <stdio.h> // for snprintf
-#include <stdlib.h> // for _TRUNCATE (windows)
-#include <stdarg.h>
 
 #ifndef WIN32
 #define __STDC_FORMAT_MACROS
@@ -128,12 +126,17 @@ POSSIBILITY OF SUCH DAMAGE.
 // this is the maximum number of characters in a
 // path element / filename on windows
 #define NAME_MAX 255
+
 inline int snprintf(char* buf, int len, char const* fmt, ...)
 {
 	va_list lp;
 	va_start(lp, fmt);
-	return vsnprintf_s(buf, len, _TRUNCATE, fmt, lp);
+	int ret = _vsnprintf(buf, len, fmt, lp);
+	va_end(lp);
+	if (ret < 0) { buf[len-1] = 0; ret = len-1; }
+	return ret;
 }
+
 #define strtoll _strtoi64
 #else
 #include <limits.h>
