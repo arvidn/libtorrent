@@ -122,6 +122,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_NO_FPU 0
 
 #ifdef TORRENT_WINDOWS
+
+#pragma warning(disable:4251) // class X needs to have dll-interface to be used by clients of class Y
+
 #include <stdarg.h>
 // this is the maximum number of characters in a
 // path element / filename on windows
