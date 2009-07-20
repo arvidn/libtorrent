@@ -173,7 +173,7 @@ AC_ARG_WITH(
 )
 
 # this works around a bug in asio in boost-1.39
-COMPILETIME_OPTIONS="-DBOOST_ASIO_HASH_MAP_BUCKETS=1024"
+COMPILETIME_OPTIONS="-DBOOST_ASIO_HASH_MAP_BUCKETS=1024 "
 
 dnl Check the value for the --with-logging switch
 AC_MSG_CHECKING([what form of logging to use])
