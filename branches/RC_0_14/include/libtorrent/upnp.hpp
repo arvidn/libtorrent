@@ -93,7 +93,11 @@ private:
 	static address_v4 upnp_multicast_address;
 	static udp::endpoint upnp_multicast_endpoint;
 
-	enum { default_lease_time = 3600 };
+	// there are routers that's don't support timed
+	// port maps, without returning error 725. It seems
+	// safer to always assume that we have to ask for
+	// permanent leases
+	enum { default_lease_time = 0 };
 	
 	void resend_request(error_code const& e);
 	void on_reply(udp::endpoint const& from, char* buffer
