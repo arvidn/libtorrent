@@ -279,7 +279,6 @@ namespace libtorrent
 		, m_waiting_to_shutdown(false)
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
-		, m_queued_write_bytes(0)
 		, m_ios(ios)
 		, m_queue_callback(queue_callback)
 		, m_work(io_service::work(m_ios))
@@ -349,6 +348,7 @@ namespace libtorrent
 	{
 		mutex_t::scoped_lock l(m_piece_mutex);
 		m_cache_stats.total_used_buffers = in_use();
+		m_cache_stats.queued_bytes = m_queue_buffer_size;
 		return m_cache_stats;
 	}
 
@@ -1194,10 +1194,10 @@ namespace libtorrent
 		return ret;
 	}
 
-	int disk_io_thread::queued_write_bytes() const
+	size_type disk_io_thread::queue_buffer_size() const
 	{
 		mutex_t::scoped_lock l(m_queue_mutex);
-		return m_queued_write_bytes;
+		return m_queue_buffer_size;
 	}
 
 	void disk_io_thread::add_job(disk_io_job const& j
@@ -1235,7 +1235,6 @@ namespace libtorrent
 		}
 		else if (j.action == disk_io_job::write)
 		{
-			m_queued_write_bytes += j.buffer_size;
 			for (; i != m_jobs.rend(); ++i)
 			{
 				if (*i < j)
@@ -1347,7 +1346,8 @@ namespace libtorrent
 
 			if (m_queue_buffer_size + j.buffer_size >= m_settings.max_queued_disk_bytes
 				&& m_queue_buffer_size < m_settings.max_queued_disk_bytes
-				&& m_queue_callback)
+				&& m_queue_callback
+				&& m_settings.max_queued_disk_bytes > 0)
 			{
 				// we just dropped below the high watermark of number of bytes
 				// queued for writing to the disk. Notify the session so that it
@@ -1568,7 +1568,6 @@ namespace libtorrent
 				}
 				case disk_io_job::write:
 				{
-					m_queued_write_bytes -= j.buffer_size;
 #ifdef TORRENT_DISK_STATS
 					m_log << log_time() << " write " << j.buffer_size << std::endl;
 #endif

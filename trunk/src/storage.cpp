@@ -1614,7 +1614,7 @@ ret:
 
 	int piece_manager::queued_bytes() const
 	{
-		return m_io_thread.queued_write_bytes();
+		return m_io_thread.queue_buffer_size();
 	}
 
 	void piece_manager::async_write(
