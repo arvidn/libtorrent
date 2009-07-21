@@ -138,6 +138,7 @@ The ``session`` class has the following synopsis::
 		entry state() const;
 
 		void set_ip_filter(ip_filter const& f);
+		ip_filter const& get_ip_filter() const;
       
 		session_status status() const;
 		cache_status get_cache_status() const;
@@ -509,6 +510,14 @@ accepted and not, see ip_filter_.
 
 Each time a peer is blocked because of the IP filter, a peer_blocked_alert_ is
 generated.
+
+get_ip_filter()
+---------------
+
+	::
+		ip_filter const& get_ip_filter() const;
+		
+Returns the ip_filter currently in the session. See ip_filter_.
 
 
 status()

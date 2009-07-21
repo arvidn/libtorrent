@@ -387,6 +387,11 @@ namespace libtorrent
 		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_ip_filter(f);
 	}
+	
+	ip_filter const& session::get_ip_filter() const
+	{
+	    m_impl->get_ip_filter();
+	}
 
 	void session::set_port_filter(port_filter const& f)
 	{

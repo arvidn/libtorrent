@@ -82,6 +82,7 @@ release 0.14.5
 	  disabled
 	* fixed race condition in UPnP which could lead to crash
 	* fixed inversed seed_time ratio logic
+	* added get_ip_filter() to session
 
 release 0.14.4
 
