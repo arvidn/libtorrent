@@ -248,6 +248,11 @@ namespace libtorrent
 	{
 		m_impl->set_ip_filter(f);
 	}
+	
+	ip_filter const& session::get_ip_filter() const
+	{
+	    m_impl->get_ip_filter();
+	}
 
 	void session::set_port_filter(port_filter const& f)
 	{

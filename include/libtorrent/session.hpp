@@ -254,6 +254,8 @@ namespace libtorrent
 		entry state() const;
 
 		void set_ip_filter(ip_filter const& f);
+		ip_filter const& get_ip_filter() const;
+		
 		void set_port_filter(port_filter const& f);
 		void set_peer_id(peer_id const& pid);
 		void set_key(int key);

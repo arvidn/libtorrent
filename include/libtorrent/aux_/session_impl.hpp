@@ -199,6 +199,8 @@ namespace libtorrent
 			void resume();
 
 			void set_ip_filter(ip_filter const& f);
+			ip_filter const& get_ip_filter() const;
+			
 			void set_port_filter(port_filter const& f);
 
 			bool listen_on(
