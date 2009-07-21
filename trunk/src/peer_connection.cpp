@@ -3844,7 +3844,7 @@ namespace libtorrent
 			return;
 		}
 		
-		if (!can_read())
+		if (!can_read(&m_channel_state[download_channel]))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << time_now_string() << " *** CANNOT READ ["
@@ -3855,11 +3855,6 @@ namespace libtorrent
 				" disconnecting: " << (m_disconnecting?"yes":"no") <<
 				" ]\n";
 #endif
-			if (m_ses.settings().max_queued_disk_bytes > 0
-				&& t && t->get_storage()
-				&& t->filesystem().queued_bytes() >= m_ses.settings().max_queued_disk_bytes)
-				m_channel_state[download_channel] = peer_info::bw_disk;
-
 			// if we block reading, waiting for the disk, we will wake up
 			// by the disk_io_thread posting a message every time it drops
 			// from being at or exceeding the limit down to below the limit
@@ -4216,20 +4211,26 @@ namespace libtorrent
 			&& !m_connecting;
 	}
 
-	bool peer_connection::can_read() const
+	bool peer_connection::can_read(char* state) const
 	{
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
-		bool ret = (m_quota[download_channel] > 0
-				|| m_ignore_bandwidth_limits)
-			&& !m_connecting
-			&& (m_ses.settings().max_queued_disk_bytes == 0
-				|| !t
-				|| t->get_storage() == 0
-				|| t->filesystem().queued_bytes() < m_ses.settings().max_queued_disk_bytes)
-			&& !m_disconnecting;
-		
-		return ret;
+		bool bw_limit = (m_quota[download_channel] > 0
+			|| m_ignore_bandwidth_limits);
+
+		if (!bw_limit) return false;
+
+		bool disk = m_ses.settings().max_queued_disk_bytes == 0
+			|| !t || t->get_storage() == 0
+			|| t->filesystem().queued_bytes() < m_ses.settings().max_queued_disk_bytes;
+
+		if (!disk)
+		{
+			if (state) *state = peer_info::bw_disk;
+			return false;
+		}
+
+		return !m_connecting && !m_disconnecting;
 	}
 
 	void peer_connection::on_connect(int ticket)
