@@ -251,7 +251,7 @@ namespace libtorrent
 	
 	ip_filter const& session::get_ip_filter() const
 	{
-	    m_impl->get_ip_filter();
+		return m_impl->get_ip_filter();
 	}
 
 	void session::set_port_filter(port_filter const& f)
