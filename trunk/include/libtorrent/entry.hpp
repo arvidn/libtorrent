@@ -174,7 +174,7 @@ namespace libtorrent
 		entry* find_key(std::string const& key);
 		entry const* find_key(std::string const& key) const;
 		
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
+#if defined TORRENT_VERBOSE_LOGGING && TORRENT_USE_IOSTREAM
 		void print(std::ostream& os, int indent = 0) const;
 #endif
 

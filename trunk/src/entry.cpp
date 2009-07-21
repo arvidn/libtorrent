@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <algorithm>
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
+#if defined TORRENT_VERBOSE_LOGGING && TORRENT_USE_IOSTREAM
 #include <iomanip>
 #include <iostream>
 #endif
@@ -351,7 +351,7 @@ namespace libtorrent
 		TORRENT_ASSERT(false);
 	}
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
+#if defined TORRENT_VERBOSE_LOGGING && TORRENT_USE_IOSTREAM
 	void entry::print(std::ostream& os, int indent) const
 	{
 		TORRENT_ASSERT(indent >= 0);
