@@ -103,9 +103,9 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	}
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	snprintf(msg, 200, "%s ==> announce: ih: %s port: %u\n"
+	snprintf(msg, 200, "%s ==> announce: ih: %s port: %u"
 		, time_now_string(), ih_hex, listen_port);
-	m_log << msg;
+	m_log << msg << std::endl;
 #endif
 
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
@@ -142,7 +142,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string()
-		<< " <== announce: incomplete HTTP message\n";
+		<< " <== announce: incomplete HTTP message" << std::endl;
 #endif
 		return;
 	}
