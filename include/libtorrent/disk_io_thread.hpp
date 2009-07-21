@@ -152,6 +152,8 @@ namespace libtorrent
 		// the number of read operations used
 		size_type reads;
 
+		mutable size_type queued_bytes;
+
 		// the number of blocks in the cache (both read and write)
 		int cache_size;
 
@@ -253,14 +255,11 @@ namespace libtorrent
 			, boost::function<void(int, disk_io_job const&)> const& f
 			= boost::function<void(int, disk_io_job const&)>());
 
-		int queued_write_bytes() const;
-
 		// keep track of the number of bytes in the job queue
 		// at any given time. i.e. the sum of all buffer_size.
 		// this is used to slow down the download global download
 		// speed when the queue buffer size is too big.
-		size_type queue_buffer_size() const
-		{ return m_queue_buffer_size; }
+		size_type queue_buffer_size() const;
 
 		void get_cache_info(sha1_hash const& ih
 			, std::vector<cached_piece_info>& ret) const;
@@ -361,8 +360,6 @@ namespace libtorrent
 		// and the write cache. This is not supposed to
 		// exceed m_cache_size
 		cache_status m_cache_stats;
-
-		int m_queued_write_bytes;
 
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
