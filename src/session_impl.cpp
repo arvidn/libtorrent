@@ -622,8 +622,7 @@ namespace aux {
 
 	ip_filter const& session_impl::get_ip_filter() const
 	{
-	    mutex_t::scoped_lock l(m_mutex);
-	    return m_ip_filter;
+		return m_ip_filter;
 	}
 
 	void session_impl::set_settings(session_settings const& s)
