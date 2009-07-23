@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
+#include <iostream>
 
 struct torrent;
 struct peer_connection;
