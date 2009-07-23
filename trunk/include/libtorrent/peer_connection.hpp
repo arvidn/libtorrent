@@ -415,7 +415,7 @@ namespace libtorrent
 
 		// the following functions appends messages
 		// to the send buffer
-		void send_choke();
+		bool send_choke();
 		bool send_unchoke();
 		void send_interested();
 		void send_not_interested();

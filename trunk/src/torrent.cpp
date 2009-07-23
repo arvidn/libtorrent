@@ -91,6 +91,71 @@ using libtorrent::aux::session_impl;
 
 namespace
 {
+	size_type collect_free_download(
+		torrent::peer_iterator start
+		, torrent::peer_iterator end)
+	{
+		size_type accumulator = 0;
+		for (torrent::peer_iterator i = start; i != end; ++i)
+		{
+			// if the peer is interested in us, it means it may
+			// want to trade it's surplus uploads for downloads itself
+			// (and we should not consider it free). If the share diff is
+			// negative, there's no free download to get from this peer.
+			size_type diff = (*i)->share_diff();
+			TORRENT_ASSERT(diff < (std::numeric_limits<size_type>::max)());
+			if ((*i)->is_peer_interested() || diff <= 0)
+				continue;
+
+			TORRENT_ASSERT(diff > 0);
+			(*i)->add_free_upload(-diff);
+			accumulator += diff;
+			TORRENT_ASSERT(accumulator > 0);
+		}
+		TORRENT_ASSERT(accumulator >= 0);
+		return accumulator;
+	}
+
+	// returns the amount of free upload left after
+	// it has been distributed to the peers
+	size_type distribute_free_upload(
+		torrent::peer_iterator start
+		, torrent::peer_iterator end
+		, size_type free_upload)
+	{
+		if (free_upload <= 0) return free_upload;
+		int num_peers = 0;
+		size_type total_diff = 0;
+		for (torrent::peer_iterator i = start; i != end; ++i)
+		{
+			size_type d = (*i)->share_diff();
+			TORRENT_ASSERT(d < (std::numeric_limits<size_type>::max)());
+			total_diff += d;
+			if (!(*i)->is_peer_interested() || (*i)->share_diff() >= 0) continue;
+			++num_peers;
+		}
+
+		if (num_peers == 0) return free_upload;
+		size_type upload_share;
+		if (total_diff >= 0)
+		{
+			upload_share = (std::min)(free_upload, total_diff) / num_peers;
+		}
+		else
+		{
+			upload_share = (free_upload + total_diff) / num_peers;
+		}
+		if (upload_share < 0) return free_upload;
+
+		for (torrent::peer_iterator i = start; i != end; ++i)
+		{
+			peer_connection* p = *i;
+			if (!p->is_peer_interested() || p->share_diff() >= 0) continue;
+			p->add_free_upload(upload_share);
+			free_upload -= upload_share;
+		}
+		return free_upload;
+	}
 
 	struct find_peer_by_ip
 	{
@@ -163,6 +228,7 @@ namespace libtorrent
 		, m_net_interface(net_interface.address(), 0)
 		, m_save_path(complete(p.save_path))
 		, m_num_verified(0)
+		, m_available_free_upload(0)
 		, m_storage_mode(p.storage_mode)
 		, m_state(torrent_status::checking_resume_data)
 		, m_settings(ses.settings())
@@ -2753,15 +2819,16 @@ namespace libtorrent
 		if (!m_trackers.empty()) start_announcing();
 	}
 
-	void torrent::choke_peer(peer_connection& c)
+	bool torrent::choke_peer(peer_connection& c)
 	{
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(!c.is_choked());
 		TORRENT_ASSERT(!c.ignore_unchoke_slots());
 		TORRENT_ASSERT(m_num_uploads > 0);
-		c.send_choke();
+		if (!c.send_choke()) return false;
 		--m_num_uploads;
+		return true;
 	}
 	
 	bool torrent::unchoke_peer(peer_connection& c)
@@ -2828,9 +2895,25 @@ namespace libtorrent
 			m_ses.m_unchoke_time_scaler = 0;
 		}
 
-		if (p->peer_info_struct() && p->peer_info_struct()->optimistically_unchoked)
+		policy::peer* pp = p->peer_info_struct();
+		if (pp)
 		{
-			m_ses.m_optimistic_unchoke_time_scaler = 0;
+			if (pp->optimistically_unchoked)
+				m_ses.m_optimistic_unchoke_time_scaler = 0;
+
+			// if the share ratio is 0 (infinite), the
+			// m_available_free_upload isn't used,
+			// because it isn't necessary.
+			if (ratio() != 0.f)
+			{
+				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
+				TORRENT_ASSERT(p->share_diff() < (std::numeric_limits<size_type>::max)());
+				m_available_free_upload += p->share_diff();
+			}
+			TORRENT_ASSERT(pp->prev_amount_upload == 0);
+			TORRENT_ASSERT(pp->prev_amount_download == 0);
+			pp->prev_amount_download += p->statistics().total_payload_download();
+			pp->prev_amount_upload += p->statistics().total_payload_upload();
 		}
 
 		m_policy.connection_closed(*p, m_ses.session_time());
@@ -5054,6 +5137,34 @@ namespace libtorrent
 				for (int i = start; i < end; ++i)
 					update_sparse_piece_prio(i, start, end);
 			}
+
+			// ------------------------
+			// upload shift
+			// ------------------------
+
+			// this part will shift downloads
+			// from peers that are seeds and peers
+			// that don't want to download from us
+			// to peers that cannot upload anything
+			// to us. The shifting will make sure
+			// that the torrent's share ratio
+			// will be maintained
+
+			// if the share ratio is 0 (infinite)
+			// m_available_free_upload isn't used
+			// because it isn't necessary
+			if (ratio() != 0.f)
+			{
+				// accumulate all the free download we get
+				// and add it to the available free upload
+				m_available_free_upload += collect_free_download(
+					this->begin(), this->end());
+
+				// distribute the free upload among the peers
+				m_available_free_upload = distribute_free_upload(
+					this->begin(), this->end(), m_available_free_upload);
+			}
+
 			m_policy.pulse();
 		}
 
