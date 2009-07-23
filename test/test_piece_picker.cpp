@@ -380,8 +380,8 @@ int test_main()
 	// there are 2 pieces with availability 2 and 5 with availability 3
 	print_title("test distributed copies");
 	p = setup_picker("1233333", "*      ", "", "");
-	float dc = p->distributed_copies();
-	TEST_CHECK(fabs(dc - (2.f + 5.f / 7.f)) < 0.01f);
+	std::pair<int, int> dc = p->distributed_copies();
+	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
 
 // ========================================================
 	
@@ -748,21 +748,20 @@ int test_main()
 	print_title("test have_all and have_none");
 	p = setup_picker("0123333", "*      ", "", "");
 	dc = p->distributed_copies();
-	std::cout << "distributed copies: " << dc << std::endl;
-	TEST_CHECK(fabs(dc - (1.f + 5.f / 7.f)) < 0.01f);
+	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
+	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
 	p->inc_refcount_all();
 	dc = p->distributed_copies();
-	std::cout << "distributed copies: " << dc << std::endl;
-	TEST_CHECK(fabs(dc - (2.f + 5.f / 7.f)) < 0.01f);
+	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
 	p->dec_refcount_all();
 	dc = p->distributed_copies();
-	std::cout << "distributed copies: " << dc << std::endl;
-	TEST_CHECK(fabs(dc - (1.f + 5.f / 7.f)) < 0.01f);
+	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
+	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
 	p->inc_refcount(0);
 	p->dec_refcount_all();
 	dc = p->distributed_copies();
-	std::cout << "distributed copies: " << dc << std::endl;
-	TEST_CHECK(fabs(dc - (0.f + 6.f / 7.f)) < 0.01f);
+	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
+	TEST_CHECK(dc == std::make_pair(0, 6000 / 7));
 	TEST_CHECK(test_pick(p) == 2);
 
 // ========================================================
@@ -771,12 +770,12 @@ int test_main()
 	print_title("test have_all and have_none with sequential download");
 	p = setup_picker("0123333", "*      ", "", "");
 	dc = p->distributed_copies();
-	std::cout << "distributed copies: " << dc << std::endl;
-	TEST_CHECK(fabs(dc - (1.f + 5.f / 7.f)) < 0.01f);
+	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
+	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
 	p->inc_refcount_all();
 	dc = p->distributed_copies();
-	std::cout << "distributed copies: " << dc << std::endl;
-	TEST_CHECK(fabs(dc - (2.f + 5.f / 7.f)) < 0.01f);
+	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
+	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
 	TEST_CHECK(test_pick(p) == 1);
 
 // ========================================================
