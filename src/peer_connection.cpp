@@ -1176,7 +1176,11 @@ namespace libtorrent
 		m_peer_choked = false;
 		if (is_disconnecting()) return;
 
-		t->get_policy().unchoked(*this);
+		if (is_interesting())
+		{
+			request_a_block(*t, *this);
+			send_block_requests();
+		}
 	}
 
 	// -----------------------------
@@ -1203,8 +1207,55 @@ namespace libtorrent
 #endif
 		m_peer_interested = true;
 		if (is_disconnecting()) return;
-		if (ignore_unchoke_slots()) send_unchoke();
-		t->get_policy().interested(*this);
+	
+		if (is_choked())
+		{
+			if (ignore_unchoke_slots())
+			{
+				// if this peer is expempted from the choker
+				// just unchoke it immediately
+				send_unchoke();
+			}
+			else if (m_ses.num_uploads() < m_ses.max_uploads()
+				&& !ignore_unchoke_slots()
+				&& (t->ratio() == 0
+					|| share_diff() >= size_type(-free_upload_amount)
+					|| t->is_finished()))
+			{
+				// if the peer is choked and we have upload slots left,
+				// then unchoke it. Another condition that has to be met
+				// is that the torrent doesn't keep track of the individual
+				// up/down ratio for each peer (ratio == 0) or (if it does
+				// keep track) this particular connection isn't a leecher.
+				// If the peer was choked because it was leeching, don't
+				// unchoke it again.
+				// The exception to this last condition is if we're a seed.
+				// In that case we don't care if people are leeching, they
+				// can't pay for their downloads anyway.
+				m_ses.unchoke_peer(*this);
+			}
+#if defined TORRENT_VERBOSE_LOGGING
+			else
+			{
+				std::string reason;
+				if (m_ses.num_uploads() >= m_ses.max_uploads())
+				{
+					(*m_logger) << time_now_string() << " DID NOT UNCHOKE [ "
+						"the number of uploads (" << m_ses.num_uploads() <<
+						") is more than or equal to the limit ("
+						<< m_ses.max_uploads() << ") ]\n";
+				}
+				else
+				{
+					(*m_logger) << time_now_string() << " DID NOT UNCHOKE [ "
+						"the share ratio (" << share_diff() << 
+						") is <= free_upload_amount (" << int(free_upload_amount)
+						<< ") and we are not seeding and the ratio ("
+						<< t->ratio() << ")is non-zero";
+				}
+			}
+#endif
+		}
 	}
 
 	// -----------------------------
@@ -1234,20 +1285,37 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		if (!is_choked() && !ignore_unchoke_slots())
+		if (!is_choked())
 		{
-			if (m_peer_info && m_peer_info->optimistically_unchoked)
+			if (ignore_unchoke_slots())
 			{
-				m_peer_info->optimistically_unchoked = false;
-				m_ses.m_optimistic_unchoke_time_scaler = 0;
+				send_choke();
 			}
-			t->choke_peer(*this);
-			--m_ses.m_num_unchoked;
-			m_ses.m_unchoke_time_scaler = 0;
+			else
+			{
+				if (m_peer_info && m_peer_info->optimistically_unchoked)
+				{
+					m_peer_info->optimistically_unchoked = false;
+					m_ses.m_optimistic_unchoke_time_scaler = 0;
+				}
+				m_ses.choke_peer(*this);
+				m_ses.m_unchoke_time_scaler = 0;
+			}
 		}
 
-		if (ignore_unchoke_slots()) send_unchoke();
-		t->get_policy().not_interested(*this);
+		if (t->ratio() != 0.f)
+		{
+			TORRENT_ASSERT(share_diff() < (std::numeric_limits<size_type>::max)());
+			size_type diff = share_diff();
+			if (diff > 0 && is_seed())
+			{
+				// the peer is a seed and has sent
+				// us more than we have sent it back.
+				// consider the download as free download
+				t->add_free_upload(diff);
+				add_free_upload(-diff);
+			}
+		}
 
 		if (t->super_seeding() && m_superseed_piece != -1)
 		{
@@ -2568,13 +2636,13 @@ namespace libtorrent
 		write_cancel(r);
 	}
 
-	void peer_connection::send_choke()
+	bool peer_connection::send_choke()
 	{
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(!m_peer_info || !m_peer_info->optimistically_unchoked);
 
-		if (m_choked) return;
+		if (m_choked) return false;
 		write_choke();
 		m_choked = true;
 
@@ -2610,6 +2678,7 @@ namespace libtorrent
 #endif
 			i = m_requests.erase(i);
 		}
+		return true;
 	}
 
 	bool peer_connection::send_unchoke()

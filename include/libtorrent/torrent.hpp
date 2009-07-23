@@ -321,7 +321,7 @@ namespace libtorrent
 		bool free_upload_slots() const
 		{ return m_num_uploads < m_max_uploads; }
 
-		void choke_peer(peer_connection& c);
+		bool choke_peer(peer_connection& c);
 		bool unchoke_peer(peer_connection& c);
 
 		// used by peer_connection to attach itself to a torrent
@@ -621,6 +621,8 @@ namespace libtorrent
 // --------------------------------------------
 		// RESOURCE MANAGEMENT
 
+		void add_free_upload(int diff) { m_available_free_upload += diff; }
+
 		void set_peer_upload_limit(tcp::endpoint ip, int limit);
 		void set_peer_download_limit(tcp::endpoint ip, int limit);
 
@@ -908,6 +910,10 @@ namespace libtorrent
 		bitfield m_verified;
 		// m_num_verified = m_verified.count()
 		int m_num_verified;
+
+		// free download we have got that hasn't
+		// been distributed yet.
+		size_type m_available_free_upload;
 
 		// determines the storage state for this torrent.
 		storage_mode_t m_storage_mode;

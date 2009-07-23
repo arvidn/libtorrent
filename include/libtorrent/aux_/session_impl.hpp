@@ -252,6 +252,7 @@ namespace libtorrent
 			{ return m_connections.size(); }
 
 			void unchoke_peer(peer_connection& c);
+			void choke_peer(peer_connection& c);
 
 			session_status status() const;
 			void set_peer_id(peer_id const& id);

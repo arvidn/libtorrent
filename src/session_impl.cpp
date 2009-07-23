@@ -1136,6 +1136,15 @@ namespace aux {
 			++m_num_unchoked;
 	}
 
+	void session_impl::choke_peer(peer_connection& c)
+	{
+		TORRENT_ASSERT(!c.ignore_unchoke_slots());
+		torrent* t = c.associated_torrent().lock().get();
+		TORRENT_ASSERT(t);
+		if (t->choke_peer(c))
+			--m_num_unchoked;
+	}
+
 	int session_impl::next_port()
 	{
 		std::pair<int, int> const& out_ports = m_settings.outgoing_ports;

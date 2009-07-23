@@ -70,73 +70,6 @@ namespace
 {
 	using namespace libtorrent;
 
-	size_type collect_free_download(
-		torrent::peer_iterator start
-		, torrent::peer_iterator end)
-	{
-		size_type accumulator = 0;
-		for (torrent::peer_iterator i = start; i != end; ++i)
-		{
-			// if the peer is interested in us, it means it may
-			// want to trade it's surplus uploads for downloads itself
-			// (and we should not consider it free). If the share diff is
-			// negative, there's no free download to get from this peer.
-			size_type diff = (*i)->share_diff();
-			TORRENT_ASSERT(diff < (std::numeric_limits<size_type>::max)());
-			if ((*i)->is_peer_interested() || diff <= 0)
-				continue;
-
-			TORRENT_ASSERT(diff > 0);
-			(*i)->add_free_upload(-diff);
-			accumulator += diff;
-			TORRENT_ASSERT(accumulator > 0);
-		}
-		TORRENT_ASSERT(accumulator >= 0);
-		return accumulator;
-	}
-
-
-	// returns the amount of free upload left after
-	// it has been distributed to the peers
-	size_type distribute_free_upload(
-		torrent::peer_iterator start
-		, torrent::peer_iterator end
-		, size_type free_upload)
-	{
-		if (free_upload <= 0) return free_upload;
-		int num_peers = 0;
-		size_type total_diff = 0;
-		for (torrent::peer_iterator i = start; i != end; ++i)
-		{
-			size_type d = (*i)->share_diff();
-			TORRENT_ASSERT(d < (std::numeric_limits<size_type>::max)());
-			total_diff += d;
-			if (!(*i)->is_peer_interested() || (*i)->share_diff() >= 0) continue;
-			++num_peers;
-		}
-
-		if (num_peers == 0) return free_upload;
-		size_type upload_share;
-		if (total_diff >= 0)
-		{
-			upload_share = (std::min)(free_upload, total_diff) / num_peers;
-		}
-		else
-		{
-			upload_share = (free_upload + total_diff) / num_peers;
-		}
-		if (upload_share < 0) return free_upload;
-
-		for (torrent::peer_iterator i = start; i != end; ++i)
-		{
-			peer_connection* p = *i;
-			if (!p->is_peer_interested() || p->share_diff() >= 0) continue;
-			p->add_free_upload(upload_share);
-			free_upload -= upload_share;
-		}
-		return free_upload;
-	}
-
 	struct match_peer_endpoint
 	{
 		match_peer_endpoint(tcp::endpoint const& ep)
@@ -347,7 +280,6 @@ namespace libtorrent
 	policy::policy(torrent* t)
 		: m_round_robin(0)
 		, m_torrent(t)
-		, m_available_free_upload(0)
 		, m_num_connect_candidates(0)
 		, m_num_seeds(0)
 		, m_finished(false)
@@ -638,37 +570,6 @@ namespace libtorrent
 	void policy::pulse()
 	{
 		INVARIANT_CHECK;
-
-		// ------------------------
-		// upload shift
-		// ------------------------
-
-		// this part will shift downloads
-		// from peers that are seeds and peers
-		// that don't want to download from us
-		// to peers that cannot upload anything
-		// to us. The shifting will make sure
-		// that the torrent's share ratio
-		// will be maintained
-
-		// if the share ratio is 0 (infinite)
-		// m_available_free_upload isn't used
-		// because it isn't necessary
-		if (m_torrent->ratio() != 0.f)
-		{
-			// accumulate all the free download we get
-			// and add it to the available free upload
-			m_available_free_upload
-				+= collect_free_download(
-					m_torrent->begin()
-					, m_torrent->end());
-
-			// distribute the free upload among the peers
-			m_available_free_upload = distribute_free_upload(
-				m_torrent->begin()
-				, m_torrent->end()
-				, m_available_free_upload);
-		}
 
 		erase_peers();
 	}
@@ -1121,124 +1022,6 @@ namespace libtorrent
 		return i;
 	}
 
-	// this is called when we are unchoked by a peer
-	// i.e. a peer lets us know that we will receive
-	// data from now on
-	void policy::unchoked(peer_connection& c)
-	{
-		INVARIANT_CHECK;
-		if (c.is_interesting())
-		{
-			request_a_block(*m_torrent, c);
-			c.send_block_requests();
-		}
-	}
-
-	// called when a peer is interested in us
-	void policy::interested(peer_connection& c)
-	{
-		INVARIANT_CHECK;
-
-		TORRENT_ASSERT(std::find_if(m_peers.begin(), m_peers.end()
-			, bind(&peer::connection, _1) == &c) != m_peers.end());
-		
-		aux::session_impl& ses = m_torrent->session();
-
-		// if the peer is choked and we have upload slots left,
-		// then unchoke it. Another condition that has to be met
-		// is that the torrent doesn't keep track of the individual
-		// up/down ratio for each peer (ratio == 0) or (if it does
-		// keep track) this particular connection isn't a leecher.
-		// If the peer was choked because it was leeching, don't
-		// unchoke it again.
-		// The exception to this last condition is if we're a seed.
-		// In that case we don't care if people are leeching, they
-		// can't pay for their downloads anyway.
-		if (c.is_choked()
-			&& ses.num_uploads() < ses.max_uploads()
-			&& !c.ignore_unchoke_slots()
-			&& (m_torrent->ratio() == 0
-				|| c.share_diff() >= size_type(-free_upload_amount)
-				|| m_torrent->is_finished()))
-		{
-			ses.unchoke_peer(c);
-		}
-#if defined TORRENT_VERBOSE_LOGGING
-		else if (c.is_choked())
-		{
-			std::string reason;
-			if (ses.num_uploads() >= ses.max_uploads())
-			{
-				reason = "the number of uploads ("
-					+ boost::lexical_cast<std::string>(ses.num_uploads())
-					+ ") is more than or equal to the limit ("
-					+ boost::lexical_cast<std::string>(ses.max_uploads())
-					+ ")";
-			}
-			else
-			{
-				reason = "the share ratio ("
-					+ boost::lexical_cast<std::string>(c.share_diff())
-					+ ") is <= free_upload_amount ("
-					+ boost::lexical_cast<std::string>(int(free_upload_amount))
-					+ ") and we are not seeding and the ratio ("
-					+ boost::lexical_cast<std::string>(m_torrent->ratio())
-					+ ")is non-zero";
-			}
-			(*c.m_logger) << time_now_string() << " DID NOT UNCHOKE [ " << reason << " ]\n";
-		}
-#endif
-	}
-
-	// called when a peer is no longer interested in us
-	void policy::not_interested(peer_connection& c)
-	{
-		INVARIANT_CHECK;
-
-		if (m_torrent->ratio() != 0.f)
-		{
-			TORRENT_ASSERT(c.share_diff() < (std::numeric_limits<size_type>::max)());
-			size_type diff = c.share_diff();
-			if (diff > 0 && c.is_seed())
-			{
-				// the peer is a seed and has sent
-				// us more than we have sent it back.
-				// consider the download as free download
-				m_available_free_upload += diff;
-				c.add_free_upload(-diff);
-			}
-		}
-	}
-/*
-	bool policy::unchoke_one_peer()
-	{
-		INVARIANT_CHECK;
-
-		iterator p = find_unchoke_candidate();
-		if (p == m_peers.end()) return false;
-		TORRENT_ASSERT(p->connection);
-		TORRENT_ASSERT(!p->connection->is_disconnecting());
-
-		TORRENT_ASSERT(p->connection->is_choked());
-		p->connection->send_unchoke();
-		p->last_optimistically_unchoked = time_now();
-		++m_num_unchoked;
-		return true;
-	}
-
-	void policy::choke_one_peer()
-	{
-		INVARIANT_CHECK;
-
-		iterator p = find_choke_candidate();
-		if (p == m_peers.end()) return;
-		TORRENT_ASSERT(p->connection);
-		TORRENT_ASSERT(!p->connection->is_disconnecting());
-		TORRENT_ASSERT(!p->connection->is_choked());
-		p->connection->send_choke();
-		--m_num_unchoked;
-	}
-*/
 	bool policy::connect_one_peer(int session_time)
 	{
 		INVARIANT_CHECK;
@@ -1305,20 +1088,6 @@ namespace libtorrent
 
 		if (is_connect_candidate(*p, m_finished))
 			++m_num_connect_candidates;
-
-		// if the share ratio is 0 (infinite), the
-		// m_available_free_upload isn't used,
-		// because it isn't necessary.
-		if (m_torrent->ratio() != 0.f)
-		{
-			TORRENT_ASSERT(c.associated_torrent().lock().get() == m_torrent);
-			TORRENT_ASSERT(c.share_diff() < (std::numeric_limits<size_type>::max)());
-			m_available_free_upload += c.share_diff();
-		}
-		TORRENT_ASSERT(p->prev_amount_upload == 0);
-		TORRENT_ASSERT(p->prev_amount_download == 0);
-		p->prev_amount_download += c.statistics().total_payload_download();
-		p->prev_amount_upload += c.statistics().total_payload_upload();
 
 		// if we're already a seed, it's not as important
 		// to keep all the possibly stale peers
@@ -1427,8 +1196,6 @@ namespace libtorrent
 			{
 				continue;
 			}
-			TORRENT_ASSERT(p.prev_amount_upload == 0);
-			TORRENT_ASSERT(p.prev_amount_download == 0);
 			if (p.optimistically_unchoked)
 			{
 				TORRENT_ASSERT(p.connection);

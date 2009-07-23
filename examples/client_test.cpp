@@ -552,6 +552,8 @@ void add_torrent(libtorrent::session& ses
 	p.auto_managed = true;
 	torrent_handle h = ses.add_torrent(p, ec);
 
+	h.connect_peer(tcp::endpoint(address::from_string("10.0.1.4"), 6881));
+
 	handles.insert(std::make_pair(
 		monitored_dir?std::string(torrent):std::string(), h));
 
@@ -767,6 +769,8 @@ int main(int argc, char* argv[])
 	//settings.announce_to_all_trackers = true;
 	settings.optimize_hashing_for_speed = false;
 	settings.disk_cache_algorithm = session_settings::largest_contiguous;
+	settings.max_queued_disk_bytes = 1;
+
 
 	int refresh_delay = 1;
 
@@ -959,6 +963,17 @@ int main(int argc, char* argv[])
 		, bind_to_interface.c_str());
 
 	ses.set_settings(settings);
+
+	ip_filter filter;
+	filter.add_rule(
+		address_v4::from_string("0.0.0.0")
+		, address_v4::from_string("255.255.255.255")
+		, ip_filter::blocked);
+	filter.add_rule(
+		address_v4::from_string("10.0.1.4")
+		, address_v4::from_string("10.0.1.4")
+		, 0);
+	ses.set_ip_filter(filter);
 
 	// main loop
 	std::vector<peer_info> peers;
@@ -1347,7 +1362,7 @@ int main(int argc, char* argv[])
 		out += str;
 
 		snprintf(str, sizeof(str), "==== waste: %s fail: %s unchoked: %d / %d "
-			"bw queues: %8d (%d) | %8d (%d) cache: w: %"PRId64"%% r: %lld%% size: %s (%s) / %s ===\n"
+			"bw queues: %8d (%d) | %8d (%d) cache: w: %"PRId64"%% r: %lld%% size: %s (%s) / %s dq: %"PRId64" ===\n"
 			, add_suffix(sess_stat.total_redundant_bytes).c_str()
 			, add_suffix(sess_stat.total_failed_bytes).c_str()
 			, sess_stat.num_unchoked, sess_stat.allowed_upload_slots
@@ -1359,7 +1374,8 @@ int main(int argc, char* argv[])
 			, cs.blocks_read_hit * 100 / cs.blocks_read
 			, add_suffix(cs.cache_size * 16 * 1024).c_str()
 			, add_suffix(cs.read_cache_size * 16 * 1024).c_str()
-			, add_suffix(cs.total_used_buffers * 16 * 1024).c_str());
+			, add_suffix(cs.total_used_buffers * 16 * 1024).c_str()
+			, cs.queued_bytes);
 		out += str;
 
 		snprintf(str, sizeof(str), "==== optimistic unchoke: %d unchoke counter: %d ====\n"

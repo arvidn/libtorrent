@@ -93,15 +93,6 @@ namespace libtorrent
 		// the peer has got at least one interesting piece
 		void peer_is_interesting(peer_connection& c);
 
-		// the peer unchoked us
-		void unchoked(peer_connection& c);
-
-		// the peer is interested in our pieces
-		void interested(peer_connection& c);
-
-		// the peer is not interested in our pieces
-		void not_interested(peer_connection& c);
-
 		void ip_filter_updated();
 
 		void set_seed(policy::peer* p, bool s);
@@ -354,10 +345,6 @@ namespace libtorrent
 		int m_round_robin;
 
 		torrent* m_torrent;
-
-		// free download we have got that hasn't
-		// been distributed yet.
-		size_type m_available_free_upload;
 
 		// The number of peers in our peer list
 		// that are connect candidates. i.e. they're
