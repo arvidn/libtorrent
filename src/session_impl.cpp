@@ -1331,7 +1331,7 @@ namespace aux {
 		// count the number of peers of downloading torrents
 		int num_downloads_peers = 0;
 
-		torrent_map::iterator least_recently_scraped = m_torrents.begin();
+		torrent_map::iterator least_recently_scraped = m_torrents.end();
 		int num_paused_auto_managed = 0;
 
 		int num_checking = 0;
@@ -1351,8 +1351,7 @@ namespace aux {
 			if (t.is_auto_managed() && t.is_paused() && !t.has_error())
 			{
 				++num_paused_auto_managed;
-				if (!least_recently_scraped->second->is_auto_managed()
-					|| !least_recently_scraped->second->is_paused()
+				if (least_recently_scraped == m_torrents.end()
 					|| least_recently_scraped->second->last_scrape() > t.last_scrape())
 				{
 					least_recently_scraped = i;
@@ -1429,8 +1428,13 @@ namespace aux {
 
 		m_stat.second_tick(tick_interval_ms);
 
+		TORRENT_ASSERT(least_recently_scraped == m_torrents.end()
+			|| least_recently_scraped->second->is_paused()
+			&& least_recently_scraped->second->is_auto_managed());
+
 		// --------------------------------------------------------------
 		// scrape paused torrents that are auto managed
+		// (unless the session is paused)
 		// --------------------------------------------------------------
 		if (!is_paused())
 		{
