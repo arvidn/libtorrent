@@ -200,8 +200,6 @@ namespace libtorrent
 	extern TORRENT_EXPORT asio::error::error_category libtorrent_category;
 #else
 
-	class TORRENT_EXPORT boost::system::error_category;
-
 	struct TORRENT_EXPORT libtorrent_error_category : boost::system::error_category
 	{
 		virtual const char* name() const;
