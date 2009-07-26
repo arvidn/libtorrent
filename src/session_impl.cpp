@@ -150,7 +150,7 @@ namespace aux {
 	// than a system call and can be
 	// used where more accurate time
 	// is not necessary
-	ptime g_current_time = time_now_hires();
+	TORRENT_EXPORT ptime g_current_time = time_now_hires();
 
 	struct seed_random_generator
 	{
@@ -1873,8 +1873,6 @@ namespace aux {
 			peers.push_back(p.get());
 		}
 
-		// if the client is configured to use fully automatic
-		// unchoke slots, m_max_uploads is still a lower limit
 		if (m_settings.auto_upload_slots_rate_based
 			&& m_settings.auto_upload_slots)
 		{
@@ -1907,9 +1905,7 @@ namespace aux {
 				int rate = p.uploaded_since_unchoke()
 					* 1000 / total_milliseconds(unchoke_interval);
 
-				if (rate < rate_threshold
-					&& m_allowed_upload_slots >= m_max_uploads)
-					break;
+				if (rate < rate_threshold) break;
 
 				++m_allowed_upload_slots;
 

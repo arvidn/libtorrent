@@ -398,7 +398,7 @@ namespace libtorrent
 {
 	namespace aux
 	{
-		extern ptime g_current_time;
+		extern TORRENT_EXPORT ptime g_current_time;
 	}
 
 	inline ptime const& time_now() { return aux::g_current_time; }
