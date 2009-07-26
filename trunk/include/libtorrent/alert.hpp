@@ -101,6 +101,7 @@ namespace libtorrent {
 		virtual int category() const = 0;
 
 #ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED_PREFIX
 		severity_t severity() const TORRENT_DEPRECATED { return warning; }
 #endif
 

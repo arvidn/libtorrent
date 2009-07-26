@@ -233,6 +233,7 @@ namespace libtorrent
 		
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.14
+		TORRENT_DEPRECATED_PREFIX
 		torrent_handle add_torrent(
 			torrent_info const& ti
 			, fs::path const& save_path
@@ -242,6 +243,7 @@ namespace libtorrent
 			, storage_constructor_type sc = default_storage_constructor) TORRENT_DEPRECATED;
 
 		// deprecated in 0.14
+		TORRENT_DEPRECATED_PREFIX
 		torrent_handle add_torrent(
 			boost::intrusive_ptr<torrent_info> ti
 			, fs::path const& save_path
@@ -252,6 +254,7 @@ namespace libtorrent
 			, void* userdata = 0) TORRENT_DEPRECATED;
 
 		// deprecated in 0.14
+		TORRENT_DEPRECATED_PREFIX
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
@@ -391,6 +394,7 @@ namespace libtorrent
 
 		std::auto_ptr<alert> pop_alert();
 #ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED_PREFIX
 		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;
 #endif
 		void set_alert_mask(int m);

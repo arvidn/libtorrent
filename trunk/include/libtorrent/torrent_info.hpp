@@ -245,7 +245,9 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 // ------- start deprecation -------
 // these functions will be removed in a future version
+		TORRENT_DEPRECATED_PREFIX
 		torrent_info(entry const& torrent_file) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
 		void print(std::ostream& os) const TORRENT_DEPRECATED;
 // ------- end deprecation -------
 #endif
