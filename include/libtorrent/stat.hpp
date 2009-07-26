@@ -61,8 +61,13 @@ namespace libtorrent
 
 		void operator+=(stat_channel const& s)
 		{
+			TORRENT_ASSERT(m_counter >= 0);
+			TORRENT_ASSERT(m_total_counter >= 0);
+			TORRENT_ASSERT(s.m_counter >= 0);
 			m_counter += s.m_counter;
 			m_total_counter += s.m_counter;
+			TORRENT_ASSERT(m_counter >= 0);
+			TORRENT_ASSERT(m_total_counter >= 0);
 		}
 
 		void add(int count)
@@ -70,7 +75,9 @@ namespace libtorrent
 			TORRENT_ASSERT(count >= 0);
 
 			m_counter += count;
+			TORRENT_ASSERT(m_counter >= 0);
 			m_total_counter += count;
+			TORRENT_ASSERT(m_total_counter >= 0);
 		}
 
 		// should be called once every second
@@ -82,7 +89,9 @@ namespace libtorrent
 		void offset(size_type counter)
 		{
 			TORRENT_ASSERT(counter >= 0);
+			TORRENT_ASSERT(m_total_counter >= 0);
 			m_total_counter += counter;
+			TORRENT_ASSERT(m_total_counter >= 0);
 		}
 
 		size_type counter() const { return m_counter; }
@@ -100,7 +109,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		void check_invariant() const
 		{
-			int sum = 0;
+			size_type sum = 0;
 			for (int i = 0; i < history; ++i) sum += m_rate_history[i];
 			TORRENT_ASSERT(m_rate_sum == sum);
 			TORRENT_ASSERT(m_total_counter >= 0);
@@ -275,8 +284,6 @@ namespace libtorrent
 		// transfers from earlier connections.
 		void add_stat(size_type downloaded, size_type uploaded)
 		{
-			TORRENT_ASSERT(downloaded >= 0);
-			TORRENT_ASSERT(uploaded >= 0);
 			m_stat[download_payload].offset(downloaded);
 			m_stat[upload_payload].offset(uploaded);
 		}
