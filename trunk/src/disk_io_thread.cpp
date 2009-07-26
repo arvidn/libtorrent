@@ -1341,9 +1341,13 @@ namespace libtorrent
 
 			disk_io_job j = m_jobs.front();
 			m_jobs.pop_front();
-			m_queue_buffer_size -= j.buffer_size;
-			jl.unlock();
+			if (j.action == disk_io_job::write)
+			{
+				TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
+				m_queue_buffer_size -= j.buffer_size;
+			}
 
+			bool post = false;
 			if (m_queue_buffer_size + j.buffer_size >= m_settings.max_queued_disk_bytes
 				&& m_queue_buffer_size < m_settings.max_queued_disk_bytes
 				&& m_queue_callback
@@ -1352,8 +1356,11 @@ namespace libtorrent
 				// we just dropped below the high watermark of number of bytes
 				// queued for writing to the disk. Notify the session so that it
 				// can trigger all the connections waiting for this event
-				m_ios.post(m_queue_callback);
+				post = true;
 			}
+			jl.unlock();
+
+			if (post) m_ios.post(m_queue_callback);
 
 			flush_expired_pieces();
 
