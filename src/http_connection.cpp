@@ -254,7 +254,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 
 	if (e == asio::error::operation_aborted) return;
 
-	if (c->m_last_receive + c->m_timeout < time_now())
+	if (c->m_last_receive + c->m_timeout < time_now_hires())
 	{
 		if (c->m_connection_ticket > -1 && !c->m_endpoints.empty())
 		{
@@ -355,7 +355,7 @@ void http_connection::on_connect(error_code const& e)
 		m_connection_ticket = -1;
 	}
 
-	m_last_receive = time_now();
+	m_last_receive = time_now_hires();
 	if (!e)
 	{ 
 		if (m_connect_handler) m_connect_handler(*this);
@@ -547,7 +547,7 @@ void http_connection::on_read(error_code const& e
 				callback(e, &m_recvbuffer[0] + m_parser.body_start()
 					, m_read_pos - m_parser.body_start());
 			m_read_pos = 0;
-			m_last_receive = time_now();
+			m_last_receive = time_now_hires();
 		}
 		else if (m_bottled && m_parser.finished())
 		{
@@ -561,7 +561,7 @@ void http_connection::on_read(error_code const& e
 		TORRENT_ASSERT(!m_bottled);
 		callback(e, &m_recvbuffer[0], m_read_pos);
 		m_read_pos = 0;
-		m_last_receive = time_now();
+		m_last_receive = time_now_hires();
 	}
 
 	if (int(m_recvbuffer.size()) == m_read_pos)
