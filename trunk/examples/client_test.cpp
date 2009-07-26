@@ -767,8 +767,6 @@ int main(int argc, char* argv[])
 	//settings.announce_to_all_trackers = true;
 	settings.optimize_hashing_for_speed = false;
 	settings.disk_cache_algorithm = session_settings::largest_contiguous;
-	settings.max_queued_disk_bytes = 1;
-
 
 	int refresh_delay = 1;
 
