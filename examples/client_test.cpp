@@ -552,8 +552,6 @@ void add_torrent(libtorrent::session& ses
 	p.auto_managed = true;
 	torrent_handle h = ses.add_torrent(p, ec);
 
-	h.connect_peer(tcp::endpoint(address::from_string("10.0.1.4"), 6881));
-
 	handles.insert(std::make_pair(
 		monitored_dir?std::string(torrent):std::string(), h));
 
@@ -963,17 +961,6 @@ int main(int argc, char* argv[])
 		, bind_to_interface.c_str());
 
 	ses.set_settings(settings);
-
-	ip_filter filter;
-	filter.add_rule(
-		address_v4::from_string("0.0.0.0")
-		, address_v4::from_string("255.255.255.255")
-		, ip_filter::blocked);
-	filter.add_rule(
-		address_v4::from_string("10.0.1.4")
-		, address_v4::from_string("10.0.1.4")
-		, 0);
-	ses.set_ip_filter(filter);
 
 	// main loop
 	std::vector<peer_info> peers;
