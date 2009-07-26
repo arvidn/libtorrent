@@ -385,6 +385,7 @@ namespace libtorrent
 		// fills the specified vector with the download progress [0, 1]
 		// of each file in the torrent. The files are ordered as in
 		// the torrent_info.
+		TORRENT_DEPRECATED_PREFIX
 		void file_progress(std::vector<float>& progress) const TORRENT_DEPRECATED;
 #endif
 #endif
@@ -454,12 +455,17 @@ namespace libtorrent
 		// deprecated in 0.13
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
+		TORRENT_DEPRECATED_PREFIX
 		void filter_piece(int index, bool filter) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
 		void filter_pieces(std::vector<bool> const& pieces) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
 		bool is_piece_filtered(int index) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
 		std::vector<bool> filtered_pieces() const TORRENT_DEPRECATED;
 		// marks the file with the given index as filtered
 		// it will not be downloaded
+		TORRENT_DEPRECATED_PREFIX
 		void filter_files(std::vector<bool> const& files) const TORRENT_DEPRECATED;
 
 		// ================ end deprecation ============
@@ -489,6 +495,7 @@ namespace libtorrent
 		// deprecated in 0.14
 		// use save_resume_data() instead. It is async. and
 		// will return the resume data in an alert
+		TORRENT_DEPRECATED_PREFIX
 		entry write_resume_data() const TORRENT_DEPRECATED;
 #endif
 
