@@ -1217,7 +1217,6 @@ namespace libtorrent
 				send_unchoke();
 			}
 			else if (m_ses.num_uploads() < m_ses.max_uploads()
-				&& !ignore_unchoke_slots()
 				&& (t->ratio() == 0
 					|| share_diff() >= size_type(-free_upload_amount)
 					|| t->is_finished()))
