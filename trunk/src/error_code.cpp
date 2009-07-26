@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent
@@ -193,7 +194,7 @@ namespace libtorrent
 
 #else
 
-	::asio::error::error_category libtorrent_category(20);
+	TORRENT_EXPORT ::asio::error::error_category libtorrent_category(20);
 
 #endif
 
