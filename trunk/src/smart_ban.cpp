@@ -196,6 +196,10 @@ namespace libtorrent { namespace
 					// from the first time it sent it
 					// at least one of them must be bad
 
+					// verify that this is not a dangling pointer
+					// if the pointer is in the policy's list, it
+					// still live, if it's not, it has been removed
+					// and we can't use this pointer
 					if (!m_torrent.get_policy().has_peer(p)) return;
 
 #ifdef TORRENT_LOGGING

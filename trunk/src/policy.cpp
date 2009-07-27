@@ -817,6 +817,9 @@ namespace libtorrent
 		return true;
 	}
 
+	// it's important that we don't dereference
+	// p here, since it is allowed to be a dangling
+	// pointer. see smart_ban.cpp
 	bool policy::has_peer(policy::peer const* p) const
 	{
 		// find p in m_peers
