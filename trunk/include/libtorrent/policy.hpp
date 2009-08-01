@@ -89,6 +89,8 @@ namespace libtorrent
 		void connection_closed(const peer_connection& c, int session_time);
 
 		void ban_peer(policy::peer* p);
+		void set_connection(policy::peer* p, peer_connection* c);
+		void set_failcount(policy::peer* p, int f);
 
 		// the peer has got at least one interesting piece
 		void peer_is_interesting(peer_connection& c);

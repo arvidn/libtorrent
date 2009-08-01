@@ -288,6 +288,8 @@ namespace libtorrent
 	// disconnects and removes all peers that are now filtered
 	void policy::ip_filter_updated()
 	{
+		INVARIANT_CHECK;
+
 		aux::session_impl& ses = m_torrent->session();
 		piece_picker* p = 0;
 		if (m_torrent->has_picker()) p = &m_torrent->picker();
@@ -345,6 +347,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_num_connect_candidates > 0);
 			--m_num_connect_candidates;
 		}
+		TORRENT_ASSERT(m_num_connect_candidates < m_peers.size());
 		if (m_round_robin > i - m_peers.begin()) --m_round_robin;
 
 #if TORRENT_USE_IPV6
@@ -432,6 +435,31 @@ namespace libtorrent
 			--m_num_connect_candidates;
 
 		p->banned = true;
+		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
+	}
+
+	void policy::set_connection(policy::peer* p, peer_connection* c)
+	{
+		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(c);
+
+		const bool was_conn_cand = is_connect_candidate(*p, m_finished);
+		p->connection = c;
+		if (was_conn_cand) --m_num_connect_candidates;
+	}
+
+	void policy::set_failcount(policy::peer* p, int f)
+	{
+		INVARIANT_CHECK;
+
+		const bool was_conn_cand = is_connect_candidate(*p, m_finished);
+		p->failcount = f;
+		if (was_conn_cand != is_connect_candidate(*p, m_finished))
+		{
+			if (was_conn_cand) --m_num_connect_candidates;
+			else ++m_num_connect_candidates;
+		}
 	}
 
 	bool policy::is_connect_candidate(peer const& p, bool finished) const
@@ -1047,14 +1075,14 @@ namespace libtorrent
 		if (!m_torrent->connect_to_peer(&p))
 		{
 			// failcount is a 5 bit value
+			const bool was_conn_cand = is_connect_candidate(p, m_finished);
 			if (p.failcount < 31) ++p.failcount;
-			if (!is_connect_candidate(p, m_finished))
+			if (was_conn_cand && !is_connect_candidate(p, m_finished))
 				--m_num_connect_candidates;
 			return false;
 		}
 		TORRENT_ASSERT(p.connection);
 		TORRENT_ASSERT(!is_connect_candidate(p, m_finished));
-		--m_num_connect_candidates;
 		return true;
 	}
 

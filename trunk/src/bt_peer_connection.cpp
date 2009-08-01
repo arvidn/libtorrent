@@ -2775,7 +2775,7 @@ namespace libtorrent
 			// since it most likely is ourself then
 			if (pid == m_ses.get_peer_id())
 			{
-				if (peer_info_struct()) peer_info_struct()->banned = true;
+				if (peer_info_struct()) t->get_policy().ban_peer(peer_info_struct());
 				disconnect(error_code(errors::self_connection, libtorrent_category), 1);
 				return;
 			}
@@ -2810,7 +2810,7 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " <== HANDSHAKE\n";
 #endif
 			// consider this a successful connection, reset the failcount
-			if (peer_info_struct()) peer_info_struct()->failcount = 0;
+			if (peer_info_struct()) t->get_policy().set_failcount(peer_info_struct(), 0);
 			
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			// Toggle pe_support back to false if this is a
