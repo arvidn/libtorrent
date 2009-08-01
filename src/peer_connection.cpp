@@ -2712,7 +2712,12 @@ namespace libtorrent
 
 	void peer_connection::send_not_interested()
 	{
-		if (!m_interesting) return;
+		if (!m_interesting)
+		{
+			disconnect_if_redundant();
+			return;
+		}
+
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t->ready_for_connections()) return;
 		m_interesting = false;
