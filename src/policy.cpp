@@ -840,11 +840,14 @@ namespace libtorrent
 		if (was_conn_cand && !is_connect_candidate(*p, m_finished))
 		{
 			--m_num_connect_candidates;
+			TORRENT_ASSERT(m_num_connect_candidates >= 0);
 			if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
 		}
 
 		if (s) ++m_num_seeds;
 		else --m_num_seeds;
+		TORRENT_ASSERT(m_num_seeds >= 0);
+		TORRENT_ASSERT(m_num_seeds <= m_peers.size());
 	}
 
 	policy::peer* policy::add_peer(tcp::endpoint const& remote, peer_id const& pid
