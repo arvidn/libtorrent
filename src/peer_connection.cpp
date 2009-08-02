@@ -1577,7 +1577,8 @@ namespace libtorrent
 		if (!m_ses.settings().close_redundant_connections) return;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT(t);
+		if (!t) return;
+
 		if (m_upload_only && t->is_finished())
 		{
 			disconnect(error_code(errors::upload_upload_connection, libtorrent_category));
