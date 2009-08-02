@@ -9,14 +9,15 @@ lines = open(sys.argv[1], 'rb').readlines()
 # example:
 # 16434 read cache: 17
 
-keys = ['read', 'write', 'head movement', 'read', 'write']
-colors = ['30f030', 'f03030', '3030f0', '10a010', 'a01010']
-style = ['points pointsize 1', 'points pointsize 2', 'lines', 'lines', 'lines']
+keys = ['read', 'write', 'head movement', 'seek per read byte', 'seek per written byte']
+colors = ['70e070', 'e07070', '3030f0', '10a010', 'a01010']
+style = ['points pointtype 1', 'points pointtype 2', 'lines', 'lines', 'lines']
 axis = ['x1y1', 'x1y1', 'x1y2', 'x1y2', 'x1y2']
+plot = [True, True, False, True, True]
 
 out = open('disk_access_log.dat', 'w+')
 
-time = 5000
+time = 1000
 
 last_pos = 0
 last_t = 0
@@ -50,8 +51,10 @@ for l in lines:
 
 	if last_t + time <= t:
 		movement = '%d' % cur_movement
-		amount_read = '%d' % cur_read
-		amount_write = '%d' % cur_write
+		if cur_read > 0:
+			amount_read = '%d' % (cur_movement / cur_read)
+		if cur_write > 0:
+			amount_write = '%d' % (cur_movement / cur_write)
 		cur_movement = 0
 		cur_read = 0
 		cur_write = 0
@@ -65,14 +68,18 @@ out = open('disk_access.gnuplot', 'wb')
 print >>out, "set term png size 1200,700"
 print >>out, 'set output "disk_access.png"'
 print >>out, 'set xrange [0:*]'
+print >>out, 'set y2range [0:*]'
 print >>out, 'set xlabel "time (ms)"'
 print >>out, 'set ylabel "file position"'
 print >>out, 'set y2label "bytes / %d second(s)"' % (time / 1000)
 print >>out, "set key box"
+print >>out, "set tics nomirror"
+print >>out, "set y2tics 100"
 print >>out, 'plot',
 count = 1
 for k in keys:
 	count += 1
+	if not plot[count-2]: continue
 	print >>out, ' "disk_access_log.dat" using 1:%d title "%s" with %s lt rgb "#%s" axis %s,' \
 		% (count, k, style[count-2], colors[count-2], axis[count-2]),
 print >>out, 'x=0'
