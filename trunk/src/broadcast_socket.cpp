@@ -56,9 +56,10 @@ namespace libtorrent
 #endif
 		address_v4 a4 = a.to_v4();
 		unsigned long ip = a4.to_ulong();
-		return ((ip & 0xff000000) == 0x0a000000
-			|| (ip & 0xfff00000) == 0xac100000
-			|| (ip & 0xffff0000) == 0xc0a80000);
+		return ((ip & 0xff000000) == 0x0a000000 // 10.x.x.x
+			|| (ip & 0xfff00000) == 0xac100000 // 172.16.x.x
+			|| (ip & 0xffff0000) == 0xc0a80000 // 192.168.x.x
+			|| (ip & 0xa9fe0000) == 0xa9fe0000); // 169.254.x.x
 	}
 
 	bool is_loopback(address const& addr)
