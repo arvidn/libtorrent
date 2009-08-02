@@ -175,6 +175,7 @@ namespace libtorrent
 			, read_cache_line_size(16)
 			, write_cache_line_size(32)
 			, optimistic_disk_retry(10 * 60)
+			, disable_hash_checks(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -612,6 +613,14 @@ namespace libtorrent
 		// this is the number of seconds a disk failure
 		// occurs until libtorrent will re-try.
 		int optimistic_disk_retry;
+
+		// when set to true, all data downloaded from
+		// peers will be assumed to be correct, and not
+		// tested to match the hashes in the torrent
+		// this is only useful for simulation and
+		// testing purposes (typically combined with
+		// disabled_storage)
+		bool disable_hash_checks;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

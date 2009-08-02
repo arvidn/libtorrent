@@ -195,6 +195,9 @@ namespace libtorrent
 	TORRENT_EXPORT storage_interface* default_storage_constructor(
 		file_storage const&, file_storage const* mapped, fs::path const&, file_pool&);
 
+	TORRENT_EXPORT storage_interface* disabled_storage_constructor(
+		file_storage const&, file_storage const* mapped, fs::path const&, file_pool&);
+
 	struct disk_io_thread;
 
 	class TORRENT_EXPORT piece_manager

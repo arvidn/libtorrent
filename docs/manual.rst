@@ -3557,6 +3557,7 @@ session_settings
 		int write_cache_line_size;
 
 		int optimistic_disk_retry;
+		bool disable_hash_check;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3974,6 +3975,12 @@ libtorrent will only do this automatically for auto managed torrents.
 
 You can explicitly take a torrent out of upload only mode using
 `set_upload_mode()`_.
+
+``disable_hash_check`` controls if downloaded pieces are verified against
+the piece hashes in the torrent file or not. The default is false, i.e.
+to verify all downloaded data. It may be useful to turn this off for performance
+profiling and simulation scenarios. Do not disable the hash check for regular
+bittorrent clients.
 
 pe_settings
 ===========
