@@ -1448,6 +1448,85 @@ ret:
 		return new storage(fs, mapped, path, fp);
 	}
 
+	// this storage implementation does not write anything to disk
+	// and it pretends to read, and just leaves garbage in the buffers
+	// this is useful when simulating many clients on the same machine
+	// or when running stress tests and want to take the cost of the
+	// disk I/O out of the picture. This cannot be used for any kind
+	// of normal bittorrent operation, since it will just send garbage
+	// to peers and throw away all the data it downloads. It would end
+	// up being banned immediately
+	class disabled_storage : public storage_interface, boost::noncopyable
+	{
+	public:
+		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
+		bool has_any_file() { return false; }
+		bool rename_file(int index, std::string const& new_filename) { return false; }
+		bool release_files() { return false; }
+		bool delete_files() { return false; }
+		bool initialize(bool allocate_files) { return false; }
+		bool move_storage(fs::path save_path) { return false; }
+		int read(char* buf, int slot, int offset, int size) { return size; }
+		int write(char const* buf, int slot, int offset, int size) { return size; }
+		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
+		{
+#ifdef TORRENT_DISK_STATS
+			disk_buffer_pool* pool = disk_pool();
+			if (pool)
+			{
+				pool->m_disk_access_log << log_time() << " read "
+					<< (size_type(slot) * m_piece_size + offset) << std::endl;
+			}
+#endif
+			int ret = 0;
+			for (int i = 0; i < num_bufs; ++i)
+				ret += bufs[i].iov_len;
+#ifdef TORRENT_DISK_STATS
+			if (pool)
+			{
+				pool->m_disk_access_log << log_time() << " read_end "
+					<< (size_type(slot) * m_piece_size + offset + ret) << std::endl;
+			}
+#endif
+			return ret;
+		}
+		int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
+		{
+#ifdef TORRENT_DISK_STATS
+			disk_buffer_pool* pool = disk_pool();
+			if (pool)
+			{
+				pool->m_disk_access_log << log_time() << " write "
+					<< (size_type(slot) * m_piece_size + offset) << std::endl;
+			}
+#endif
+			int ret = 0;
+			for (int i = 0; i < num_bufs; ++i)
+				ret += bufs[i].iov_len;
+#ifdef TORRENT_DISK_STATS
+			if (pool)
+			{
+				pool->m_disk_access_log << log_time() << " write_end "
+					<< (size_type(slot) * m_piece_size + offset + ret) << std::endl;
+			}
+#endif
+			return ret;
+		}
+		bool move_slot(int src_slot, int dst_slot) { return false; }
+		bool swap_slots(int slot1, int slot2) { return false; }
+		bool swap_slots3(int slot1, int slot2, int slot3) { return false; }
+		bool verify_resume_data(lazy_entry const& rd, error_code& error) { return false; }
+		bool write_resume_data(entry& rd) const { return false; }
+
+		int m_piece_size;
+	};
+
+	storage_interface* disabled_storage_constructor(file_storage const& fs
+		, file_storage const* mapped, fs::path const& path, file_pool& fp)
+	{
+		return new disabled_storage(fs.piece_length());
+	}
+
 	// -- piece_manager -----------------------------------------------------
 
 	piece_manager::piece_manager(

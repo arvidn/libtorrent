@@ -1488,7 +1488,8 @@ namespace libtorrent
 						test_error(j);
 						break;
 					}
-					ret = (j.storage->info()->hash_for_piece(j.piece) == h)?ret:-3;
+					if (!m_settings.disable_hash_checks)
+						ret = (j.storage->info()->hash_for_piece(j.piece) == h)?ret:-3;
 					if (ret == -3)
 					{
 						j.storage->mark_failed(j.piece);
@@ -1656,6 +1657,11 @@ namespace libtorrent
 						}
 					}
 					l.unlock();
+					if (m_settings.disable_hash_checks)
+					{
+						ret = 0;
+						break;
+					}
 					sha1_hash h = j.storage->hash_for_piece_impl(j.piece);
 					if (test_error(j))
 					{
@@ -1663,6 +1669,7 @@ namespace libtorrent
 						j.storage->mark_failed(j.piece);
 						break;
 					}
+
 					ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
 					if (ret == -2) j.storage->mark_failed(j.piece);
 					break;

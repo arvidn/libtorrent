@@ -648,6 +648,7 @@ namespace aux {
 			|| m_settings.coalesce_writes != s.coalesce_writes
 			|| m_settings.coalesce_reads != s.coalesce_reads
 			|| m_settings.max_queued_disk_bytes != s.max_queued_disk_bytes
+			|| m_settings.disable_hash_checks != s.disable_hash_checks
 #ifndef TORRENT_DISABLE_MLOCK
 			|| m_settings.lock_disk_cache != s.lock_disk_cache
 #endif
