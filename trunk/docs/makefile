@@ -1,7 +1,6 @@
 # this makefile assumes that you have docutils and rst2pdf installed
 
 WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
-DOCUTILS = ~/docutils
 
 TARGETS = index \
 	udp_tracker_protocol \
@@ -31,7 +30,7 @@ all: html
 	rst2pdf $? -o $@ --stylesheets stylesheet
 
 %.html:%.rst
-	python $(DOCUTILS)/tools/rst2html.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
+	rst2html.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
 	cp $@ $(WEB_PATH)/$@
 
 %.eps:%.dot
