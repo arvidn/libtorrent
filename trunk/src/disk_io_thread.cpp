@@ -78,7 +78,7 @@ namespace libtorrent
 	}
 #endif
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || defined TORRENT_DISK_STATS
 	bool disk_buffer_pool::is_disk_buffer(char* buffer
 		,boost::mutex::scoped_lock& l) const
 	{
