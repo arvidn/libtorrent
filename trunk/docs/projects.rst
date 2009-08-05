@@ -39,6 +39,22 @@ project listed here, let me_ know.
 
 .. container:: entry
 
+	.. image:: limewire.png
+		:align: right
+		:target: Limewire_
+
+	**Limewire**
+
+	LimeWire_ is the world's most popular peer-to-peer file-sharing
+	program. With over 70 million unique monthly users, the software
+	is downloaded hundreds of thousands of times every day and boasts
+	millions of active users at any given moment. LimeWire uses the
+	BitTorrent protocol and the Gnutella network to provide an
+	unparalleled searches and download speed to the user
+
+
+.. container:: entry
+
 	.. image:: deluge.png
 		:align: right
 		:target: `deluge Torrent`_
@@ -372,6 +388,7 @@ for Windows and Mac OSX.
 .. _BitsCast: http://www.bitscast.com/software/
 .. _BitSlug: http://bitslug.sourceforge.net/
 .. _`deluge Torrent`: http://deluge-torrent.org/
+.. _Limewire: http://www.limewire.com/
 .. _BLOBbox: http://www.tvblob.com
 .. _Halite: http://www.binarynotions.com/halite-bittorrent-client
 .. _DelCo: http://delco.cs.tut.fi/

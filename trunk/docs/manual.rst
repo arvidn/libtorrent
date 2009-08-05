@@ -3712,10 +3712,11 @@ thread catches up. Setting this too low will severly limit your download rate.
 delay responding to a protocol handshake. If no response is received within
 this time, the connection is closed.
 
-``use_dht_as_fallback`` determines how the DHT is used. If this is true
-(which it is by default), the DHT will only be used for torrents where
-all trackers in its tracker list has failed. Either by an explicit error
-message or a time out.
+``use_dht_as_fallback`` determines how the DHT is used. If this is true,
+the DHT will only be used for torrents where all trackers in its tracker
+list has failed. Either by an explicit error message or a time out. This
+is false by default, which means the DHT is used by default regardless of
+if the trackers fail or not.
 
 ``free_torrent_hashes`` determines whether or not the torrent's piece hashes
 are kept in memory after the torrent becomes a seed or not. If it is set to
@@ -6079,7 +6080,7 @@ The default storage moves the single file or the directory of the torrent.
 Before moving the files, any open file handles may have to be closed, like
 ``release_files()``.
 
-Returning ``true`` indicates an error occurred.
+Returning ``false`` indicates an error occurred.
 
 
 verify_resume_data()
