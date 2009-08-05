@@ -894,6 +894,11 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 		if (!m_supports_fast)
 		{
+			// we just got choked, and the peer that choked use
+			// doesn't support fast extensions, so we have to
+			// assume that the choke message implies that all
+			// of our requests are rejected. Go through them and
+			// pretend that we received reject request messages
 			boost::shared_ptr<torrent> t = associated_torrent().lock();
 			TORRENT_ASSERT(t);
 			while (!download_queue().empty())
@@ -903,6 +908,16 @@ namespace libtorrent
 				r.piece = b.piece_index;
 				r.start = b.block_index * t->block_size();
 				r.length = t->block_size();
+				// if it's the last piece, make sure to
+				// set the length of the request to not
+				// exceed the end of the torrent. This is
+				// necessary in order to maintain a correct
+				// m_outsanding_bytes
+				if (r.piece == t->torrent_file().num_pieces() - 1)
+				{
+					r.length = (std::min)(t->torrent_file().piece_size(
+						r.piece) - r.start, r.length);
+				}
 				incoming_reject_request(r);
 			}
 		}
