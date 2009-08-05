@@ -116,8 +116,8 @@ int main(int argc, char* argv[])
 	for (torrent_info::file_iterator i = t.begin_files();
 		i != t.end_files(); ++i, ++index)
 	{
-		int first = t.map_file(index, 0, 1).piece;
-		int last = t.map_file(index, i->size - 1, 1).piece;
+		int first = t.map_file(index, 0, 0).piece;
+		int last = t.map_file(index, (std::max)(i->size-1, size_type(0)), 0).piece;
 		std::cout << "  " << std::setw(11) << i->size
 			<< " "
 			<< (i->pad_file?'p':'-')
@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
 			<< (i->hidden_attribute?'h':'-')
 			<< (i->symlink_attribute?'l':'-')
 			<< " "
-			<< "[ " << std::setw(3) << first << ", " << std::setw(3) << last << " ]\t"
+			<< "[ " << std::setw(4) << first << ", " << std::setw(4) << last << " ]\t"
 			<< i->path.string() ;
 		if (i->symlink_attribute)
 			std::cout << " -> " << i->symlink_path.string();
