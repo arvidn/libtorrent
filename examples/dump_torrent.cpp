@@ -113,8 +113,8 @@ int main(int argc, char* argv[])
 		for (torrent_info::file_iterator i = t.begin_files();
 			i != t.end_files(); ++i, ++index)
 		{
-			int first = t.map_file(index, 0, 1).piece;
-			int last = t.map_file(index, i->size - 1, 1).piece;
+			int first = t.map_file(index, 0, 0).piece;
+			int last = t.map_file(index, (std::max)(i->size - 1, size_type(0)), 1).piece;
 			std::cout << "  " << std::setw(11) << i->size
 				<< " " << i->path.string() << "[ " << first << ", "
 				<< last << " ]\n";
