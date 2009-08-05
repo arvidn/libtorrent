@@ -1465,7 +1465,7 @@ ret:
 		bool release_files() { return false; }
 		bool delete_files() { return false; }
 		bool initialize(bool allocate_files) { return false; }
-		bool move_storage(fs::path save_path) { return false; }
+		bool move_storage(fs::path save_path) { return true; }
 		int read(char* buf, int slot, int offset, int size) { return size; }
 		int write(char const* buf, int slot, int offset, int size) { return size; }
 		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
