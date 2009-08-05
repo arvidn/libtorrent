@@ -481,7 +481,8 @@ namespace libtorrent
 		void append_send_buffer(char* buffer, int size, Destructor const& destructor)
 		{
 #if TORRENT_DISK_STATS
-			m_ses.m_disk_thread.rename_buffer(buffer, "queued send buffer");
+			if (m_ses.m_disk_thread.is_disk_buffer(buffer))
+				m_ses.m_disk_thread.rename_buffer(buffer, "queued send buffer");
 #endif
 			m_send_buffer.append_buffer(buffer, size, size, destructor);
 #ifdef TORRENT_STATS
