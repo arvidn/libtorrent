@@ -1574,6 +1574,8 @@ namespace libtorrent
 
 	void peer_connection::disconnect_if_redundant()
 	{
+		// we cannot disconnect in a constructor
+		TORRENT_ASSERT(m_in_constructor == false);
 		if (!m_ses.settings().close_redundant_connections) return;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -2283,6 +2285,10 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
+		// we cannot disconnect in a constructor, and
+		// this function may end up doing that
+		TORRENT_ASSERT(m_in_constructor == false);
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " <== HAVE_ALL\n";
 #endif
@@ -2713,6 +2719,10 @@ namespace libtorrent
 
 	void peer_connection::send_not_interested()
 	{
+		// we cannot disconnect in a constructor, and
+		// this function may end up doing that
+		TORRENT_ASSERT(m_in_constructor == false);
+
 		if (!m_interesting)
 		{
 			disconnect_if_redundant();
