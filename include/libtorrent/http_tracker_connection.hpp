@@ -57,7 +57,6 @@ namespace libtorrent
 	class http_parser;
 	class connection_queue;
 	struct session_settings;
-	namespace aux { struct session_impl; }
 
 	class TORRENT_EXPORT http_tracker_connection
 		: public tracker_connection
@@ -70,8 +69,9 @@ namespace libtorrent
 			, connection_queue& cc
 			, tracker_manager& man
 			, tracker_request const& req
+			, address bind_infc
 			, boost::weak_ptr<request_callback> c
-			, aux::session_impl const& ses
+			, session_settings const& stn
 			, proxy_settings const& ps
 			, std::string const& password = "");
 
@@ -83,8 +83,6 @@ namespace libtorrent
 		boost::intrusive_ptr<http_tracker_connection> self()
 		{ return boost::intrusive_ptr<http_tracker_connection>(this); }
 
-		void on_filter(http_connection& c, std::list<tcp::endpoint>& endpoints);
-		void on_connect(http_connection& c);
 		void on_response(error_code const& ec, http_parser const& parser
 			, char const* data, int size);
 
@@ -95,8 +93,8 @@ namespace libtorrent
 
 		tracker_manager& m_man;
 		boost::shared_ptr<http_connection> m_tracker_connection;
-		aux::session_impl const& m_ses;
-		address m_tracker_ip;
+		session_settings const& m_settings;
+		address m_bind_iface;
 		proxy_settings const& m_ps;
 		connection_queue& m_cc;
 		io_service& m_ios;

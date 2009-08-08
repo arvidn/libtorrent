@@ -69,7 +69,7 @@ namespace
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
-		if (id[0] != '-' || !is_print(id[1]) || (id[2] < '0')
+		if (id[0] != '-' || !isprint(id[1]) || (id[2] < '0')
 			|| (id[3] < '0') || (id[4] < '0')
 			|| (id[5] < '0') || (id[6] < '0')
 			|| id[7] != '-')
@@ -131,7 +131,7 @@ namespace
 		ret.tag_version = 0;
 		if (sscanf(ids, "%c%d-%d-%d--", &ret.name[0], &ret.major_version, &ret.minor_version
 			, &ret.revision_version) != 4
-			|| !is_print(ret.name[0]))
+			|| !isprint(ret.name[0]))
 			return boost::optional<fingerprint>();
 
 		return boost::optional<fingerprint>(ret);
@@ -163,7 +163,7 @@ namespace
 		, {"BX", "BittorrentX"}
 		, {"CD", "Enhanced CTorrent"}
 		, {"CT", "CTorrent"}
-		, {"DE", "Deluge"}
+		, {"DE", "Deluge Torrent"}
 		, {"EB", "EBit"}
 		, {"ES", "electric sheep"}
 		, {"HL", "Halite"}
@@ -260,7 +260,7 @@ namespace
 
 	std::string lookup(fingerprint const& f)
 	{
-		char identity[200];
+		std::stringstream identity;
 
 		const int size = sizeof(name_map)/sizeof(name_map[0]);
 		map_entry tmp = {f.name, ""};
@@ -268,7 +268,7 @@ namespace
 			std::lower_bound(name_map, name_map + size
 				, tmp, &compare_id);
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		for (int i = 1; i < size; ++i)
 		{
 			TORRENT_ASSERT(compare_id(name_map[i-1]
@@ -276,31 +276,22 @@ namespace
 		}
 #endif
 
-		char temp[3];
-		char const* name = 0;
 		if (i < name_map + size && std::equal(f.name, f.name + 2, i->id))
-		{
-			name = i->name;
-		}
+			identity << i->name;
 		else
 		{
-			// if we don't have this client in the list
-			// just use the one or two letter code
-			memcpy(temp, f.name, 2);
-			temp[2] = 0;
-			name = temp;
+			identity << f.name[0];
+			if (f.name[1] != 0) identity << f.name[1];
 		}
 
-		int num_chars = snprintf(identity, sizeof(identity), "%s %u.%u.%u", name
-			, f.major_version, f.minor_version, f.revision_version);
+		identity << " " << (int)f.major_version
+			<< "." << (int)f.minor_version
+			<< "." << (int)f.revision_version;
 
 		if (f.tag_version != 0)
-		{
-			snprintf(identity + num_chars, sizeof(identity) - num_chars
-				, ".%u", f.tag_version);
-		}
+			identity << "." << (int)f.tag_version;
 
-		return identity;
+		return identity.str();
 	}
 
 	bool find_string(unsigned char const* id, char const* search)
@@ -364,7 +355,7 @@ namespace libtorrent
 		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\0"))
 			return "Experimental 3.1";
 
-
+		
 		// look for azureus style id
 		f = parse_az_style(p);
 		if (f) return lookup(*f);
@@ -376,15 +367,15 @@ namespace libtorrent
 		// look for mainline style id
 		f = parse_mainline_style(p);
 		if (f) return lookup(*f);
-
-
+														
+		
 		if (std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0"))
 			return "Generic";
 
 		std::string unknown("Unknown [");
 		for (peer_id::const_iterator i = p.begin(); i != p.end(); ++i)
 		{
-			unknown += is_print(char(*i))?*i:'.';
+			unknown += isprint(char(*i))?*i:'.';
 		}
 		unknown += "]";
 		return unknown;

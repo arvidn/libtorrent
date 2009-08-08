@@ -2,18 +2,12 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/python.hpp>
 #include <libtorrent/alert.hpp>
 #include <libtorrent/alert_types.hpp>
+#include <boost/python.hpp>
 
 using namespace boost::python;
 using namespace libtorrent;
-
-std::string get_buffer(read_piece_alert const& rpa)
-{
-    return rpa.buffer ? std::string(rpa.buffer.get(), rpa.size)
-       : std::string();
-}
 
 void bind_alert()
 {
@@ -30,7 +24,6 @@ void bind_alert()
             .def("__str__", &alert::message)
             ;
 
-#ifndef TORRENT_NO_DEPRECATE
         enum_<alert::severity_t>("severity_levels")
             .value("debug", alert::debug)
             .value("info", alert::info)
@@ -39,7 +32,6 @@ void bind_alert()
             .value("fatal", alert::fatal)
             .value("none", alert::none)
             ;
-#endif
 
         enum_<alert::category_t>("category_t")
             .value("error_notification", alert::error_notification)
@@ -69,14 +61,6 @@ void bind_alert()
         .def_readonly("url", &tracker_alert::url)
         ;
 
-    class_<read_piece_alert, bases<torrent_alert>, noncopyable>(
-        "read_piece_alert", 0, no_init
-    )
-        .add_property("buffer", get_buffer)
-        .def_readonly("piece", &read_piece_alert::piece)
-        .def_readonly("size", &read_piece_alert::size)
-        ;
-
     class_<peer_alert, bases<torrent_alert>, noncopyable>(
         "peer_alert", no_init
     )
@@ -103,9 +87,7 @@ void bind_alert()
 
     class_<tracker_announce_alert, bases<tracker_alert>, noncopyable>(
         "tracker_announce_alert", no_init
-    )
-        .def_readonly("event", &tracker_announce_alert::event)
-        ;
+    );
 
     class_<hash_failed_alert, bases<torrent_alert>, noncopyable>(
         "hash_failed_alert", no_init
@@ -161,9 +143,7 @@ void bind_alert()
 
     class_<storage_moved_alert, bases<torrent_alert>, noncopyable>(
         "storage_moved_alert", no_init
-    )
-        .def_readonly("path", &storage_moved_alert::path)
-        ;
+    );
 
     class_<storage_moved_failed_alert, bases<torrent_alert>, noncopyable>(
         "storage_moved_failed_alert", no_init
@@ -187,14 +167,12 @@ void bind_alert()
         "url_seed_alert", no_init
     )
         .def_readonly("url", &url_seed_alert::url)
-        .def_readonly("msg", &url_seed_alert::msg)
         ;
 
     class_<file_error_alert, bases<torrent_alert>, noncopyable>(
         "file_error_alert", no_init
     )
         .def_readonly("file", &file_error_alert::file)
-        .def_readonly("msg", &file_error_alert::msg)
         ;
 
     class_<metadata_failed_alert, bases<torrent_alert>, noncopyable>(
@@ -207,10 +185,7 @@ void bind_alert()
 
     class_<listen_failed_alert, bases<alert>, noncopyable>(
         "listen_failed_alert", no_init
-    )
-        .def_readonly("endpoint", &listen_failed_alert::endpoint)
-        .def_readonly("error", &listen_failed_alert::error)
-        ;
+    );
 
     class_<listen_succeeded_alert, bases<alert>, noncopyable>(
         "listen_succeeded_alert", no_init
@@ -223,7 +198,6 @@ void bind_alert()
     )
         .def_readonly("mapping", &portmap_error_alert::mapping)
         .def_readonly("type", &portmap_error_alert::type)
-        .def_readonly("msg", &portmap_error_alert::msg)
         ;
 
     class_<portmap_alert, bases<alert>, noncopyable>(
@@ -234,18 +208,9 @@ void bind_alert()
         .def_readonly("type", &portmap_alert::type)
         ;
 
-    class_<portmap_log_alert, bases<alert>, noncopyable>(
-        "portmap_log_alert", no_init
-    )
-        .def_readonly("type", &portmap_log_alert::type)
-        .def_readonly("msg", &portmap_log_alert::msg)
-        ;
-
     class_<fastresume_rejected_alert, bases<torrent_alert>, noncopyable>(
         "fastresume_rejected_alert", no_init
-    )
-        .def_readonly("msg", &fastresume_rejected_alert::msg)
-        ;
+    );
 
     class_<peer_blocked_alert, bases<alert>, noncopyable>(
         "peer_blocked_alert", no_init
@@ -268,7 +233,6 @@ void bind_alert()
         "udp_error_alert", no_init
     )
         .def_readonly("endpoint", &udp_error_alert::endpoint)
-        .def_readonly("error", &udp_error_alert::error)
         ;
 
     class_<external_ip_alert, bases<alert>, noncopyable>(
@@ -294,7 +258,7 @@ void bind_alert()
         "file_rename_failed_alert", no_init
     )
         .def_readonly("index", &file_rename_failed_alert::index)
-        .def_readonly("error", &file_rename_failed_alert::error)
+        .def_readonly("msg", &file_rename_failed_alert::msg)
         ;
 
     class_<torrent_resumed_alert, bases<torrent_alert>, noncopyable>(
@@ -305,7 +269,6 @@ void bind_alert()
 	    "state_changed_alert", no_init
 	)
 	    .def_readonly("state", &state_changed_alert::state)
-	    .def_readonly("prev_state", &state_changed_alert::prev_state)
 	    ;
 
 	class_<dht_reply_alert, bases<tracker_alert>, noncopyable>(
@@ -313,20 +276,6 @@ void bind_alert()
 	)
 	    .def_readonly("num_peers", &dht_reply_alert::num_peers)
 	    ;
-
-    class_<dht_announce_alert, bases<alert>, noncopyable>(
-        "dht_announce_alert", no_init
-    )
-        .def_readonly("ip", &dht_announce_alert::ip)
-        .def_readonly("port", &dht_announce_alert::port)
-        .def_readonly("info_hash", &dht_announce_alert::info_hash)
-    ;
-
-    class_<dht_get_peers_alert, bases<alert>, noncopyable>(
-        "dht_get_peers_alert", no_init
-    )
-        .def_readonly("info_hash", &dht_get_peers_alert::info_hash)
-    ;
 
 	class_<peer_unsnubbed_alert, bases<peer_alert>, noncopyable>(
 	    "peer_unsnubbed_alert", no_init
@@ -342,9 +291,7 @@ void bind_alert()
 
     class_<peer_disconnected_alert, bases<peer_alert>, noncopyable>(
         "peer_disconnected_alert", no_init
-    )
-        .def_readonly("msg", &peer_disconnected_alert::msg)
-        ;
+    );
 
     class_<request_dropped_alert, bases<peer_alert>, noncopyable>(
         "request_dropped_alert", no_init
@@ -369,15 +316,11 @@ void bind_alert()
 
     class_<torrent_delete_failed_alert, bases<torrent_alert>, noncopyable>(
         "torrent_delete_failed_alert", no_init
-    )
-        .def_readonly("msg", &torrent_delete_failed_alert::msg)
-        ;
+    );
 
     class_<save_resume_data_failed_alert, bases<torrent_alert>, noncopyable>(
         "save_resume_data_failed_alert", no_init
-    )
-        .def_readonly("msg", &save_resume_data_failed_alert::msg)
-        ;
+    );
 
     class_<performance_alert, bases<torrent_alert>, noncopyable>(
         "performance_alert", no_init
@@ -387,8 +330,6 @@ void bind_alert()
     enum_<performance_alert::performance_warning_t>("performance_warning_t")
         .value("outstanding_disk_buffer_limit_reached", performance_alert::outstanding_disk_buffer_limit_reached)
         .value("outstanding_request_limit_reached", performance_alert::outstanding_request_limit_reached)
-        .value("upload_limit_too_low", performance_alert::upload_limit_too_low)
-        .value("download_limit_too_low", performance_alert::download_limit_too_low)
     ;
 
 

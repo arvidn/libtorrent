@@ -89,11 +89,6 @@ void bind_torrent_info()
 {
     return_value_policy<copy_const_reference> copy;
 
-    void (torrent_info::*rename_file0)(int, std::string const&) = &torrent_info::rename_file;
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-    void (torrent_info::*rename_file1)(int, std::wstring const&) = &torrent_info::rename_file;
-#endif
-
     class_<file_slice>("file_slice")
         .def_readwrite("file_index", &file_slice::file_index)
         .def_readwrite("offset", &file_slice::offset)
@@ -107,7 +102,6 @@ void bind_torrent_info()
         .def(init<sha1_hash const&>())
         .def(init<char const*, int>())
         .def(init<boost::filesystem::path>())
-        .def(init<boost::filesystem::wpath>())
 
         .def("add_tracker", &torrent_info::add_tracker, (arg("url"), arg("tier")=0))
         .def("add_url_seed", &torrent_info::add_url_seed)
@@ -128,10 +122,7 @@ void bind_torrent_info()
         .def("file_at", &torrent_info::file_at, return_internal_reference<>())
         .def("file_at_offset", &torrent_info::file_at_offset)
         .def("files", &files, (arg("storage")=false))
-        .def("rename_file", rename_file0)
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-        .def("rename_file", rename_file1)
-#endif
+        .def("rename_file", &torrent_info::rename_file)
 
         .def("priv", &torrent_info::priv)
         .def("trackers", range(begin_trackers, end_trackers))

@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <ctime>
 #include <boost/version.hpp>
-#include "libtorrent/config.hpp"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -55,7 +54,8 @@ namespace libtorrent
 	std::string log_time();
 }
 
-#if defined TORRENT_USE_BOOST_DATE_TIME
+#if (!defined (__MACH__) && !defined (_WIN32) && (!defined(_POSIX_MONOTONIC_CLOCK) \
+	|| _POSIX_MONOTONIC_CLOCK < 0)) || defined (TORRENT_USE_BOOST_DATE_TIME)
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "libtorrent/assert.hpp"
@@ -64,7 +64,7 @@ namespace libtorrent
 {
 	typedef boost::posix_time::ptime ptime;
 	typedef boost::posix_time::time_duration time_duration;
-	inline ptime time_now_hires()
+	inline ptime time_now()
 	{ return boost::posix_time::microsec_clock::universal_time(); }
 	inline ptime min_time()
 	{ return boost::posix_time::ptime(boost::posix_time::min_date_time); }
@@ -85,7 +85,7 @@ namespace libtorrent
 
 }
 
-#else // TORRENT_USE_BOOST_DATE_TIME
+#else
 
 #if BOOST_VERSION < 103500
 #include <asio/time_traits.hpp>
@@ -106,13 +106,10 @@ namespace libtorrent
 		time_duration& operator-=(time_duration const& c) { diff -= c.diff; return *this; }
 		time_duration& operator+=(time_duration const& c) { diff += c.diff; return *this; }
 		time_duration operator+(time_duration const& c) { return time_duration(diff + c.diff); }
-		time_duration operator-(time_duration const& c) { return time_duration(diff - c.diff); }
 		boost::int64_t diff;
 	};
 
 	inline bool is_negative(time_duration dt) { return dt.diff < 0; }
-	inline bool operator==(time_duration lhs, time_duration rhs)
-	{ return lhs.diff == rhs.diff; }
 	inline bool operator<(time_duration lhs, time_duration rhs)
 	{ return lhs.diff < rhs.diff; }
 	inline bool operator<=(time_duration lhs, time_duration rhs)
@@ -121,19 +118,15 @@ namespace libtorrent
 	{ return lhs.diff > rhs.diff; }
 	inline bool operator>=(time_duration lhs, time_duration rhs)
 	{ return lhs.diff >= rhs.diff; }
-	inline time_duration operator*(time_duration lhs, int rhs)
-	{ return time_duration(boost::int64_t(lhs.diff * rhs)); }
-	inline time_duration operator*(int lhs, time_duration rhs)
-	{ return time_duration(boost::int64_t(lhs * rhs.diff)); }
 
 	// libtorrent time type
 	struct ptime
 	{
 		ptime() {}
-		explicit ptime(boost::uint64_t t): time(t) {}
+		explicit ptime(boost::int64_t t): time(t) {}
 		ptime& operator+=(time_duration rhs) { time += rhs.diff; return *this; }
 		ptime& operator-=(time_duration rhs) { time -= rhs.diff; return *this; }
-		boost::uint64_t time;
+		boost::int64_t time;
 	};
 
 	inline bool operator>(ptime lhs, ptime rhs)
@@ -157,9 +150,9 @@ namespace libtorrent
 	inline ptime operator-(ptime lhs, time_duration rhs)
 	{ return ptime(lhs.time - rhs.diff); }
 
-	ptime time_now_hires();
+	ptime time_now();
 	inline ptime min_time() { return ptime(0); }
-	inline ptime max_time() { return ptime((std::numeric_limits<boost::uint64_t>::max)()); }
+	inline ptime max_time() { return ptime((std::numeric_limits<boost::int64_t>::max)()); }
 	int total_seconds(time_duration td);
 	int total_milliseconds(time_duration td);
 	boost::int64_t total_microseconds(time_duration td);
@@ -177,7 +170,7 @@ namespace asio
 		typedef libtorrent::ptime time_type;
 		typedef libtorrent::time_duration duration_type;
 		static time_type now()
-		{ return time_type(libtorrent::time_now_hires()); }
+		{ return time_type(libtorrent::time_now()); }
 		static time_type add(time_type t, duration_type d)
 		{ return time_type(t.time + d.diff);}
 		static duration_type subtract(time_type t1, time_type t2)
@@ -193,7 +186,7 @@ namespace asio
 }
 #endif
 
-#if defined TORRENT_USE_ABSOLUTE_TIME
+#if defined(__MACH__)
 
 #include <mach/mach_time.h>
 #include <boost/cstdint.hpp>
@@ -203,54 +196,75 @@ namespace asio
 
 namespace libtorrent
 {
+	namespace aux
+	{
+		inline boost::int64_t absolutetime_to_microseconds(boost::int64_t at)
+		{
+			static mach_timebase_info_data_t timebase_info = {0,0};
+			if (timebase_info.denom == 0)
+				mach_timebase_info(&timebase_info);
+			// make sure we don't overflow
+			TORRENT_ASSERT((at >= 0 && at >= at / 1000 * timebase_info.numer / timebase_info.denom)
+				|| (at < 0 && at < at / 1000 * timebase_info.numer / timebase_info.denom));
+			return at / 1000 * timebase_info.numer / timebase_info.denom;
+		}
+
+		inline boost::int64_t microseconds_to_absolutetime(boost::int64_t ms)
+		{
+			static mach_timebase_info_data_t timebase_info = {0,0};
+			if (timebase_info.denom == 0)
+			{
+				mach_timebase_info(&timebase_info);
+				TORRENT_ASSERT(timebase_info.numer > 0);
+				TORRENT_ASSERT(timebase_info.denom > 0);
+			}
+			// make sure we don't overflow
+			TORRENT_ASSERT((ms >= 0 && ms <= ms * timebase_info.denom / timebase_info.numer * 1000)
+				|| (ms < 0 && ms > ms * timebase_info.denom / timebase_info.numer * 1000));
+			return ms * timebase_info.denom / timebase_info.numer * 1000;
+		}
+	}
+
 	inline int total_seconds(time_duration td)
 	{
-		return td.diff / 1000000;
+		return aux::absolutetime_to_microseconds(td.diff)
+			/ 1000000;
 	}
 	inline int total_milliseconds(time_duration td)
 	{
-		return td.diff / 1000;
+		return aux::absolutetime_to_microseconds(td.diff)
+			/ 1000;
 	}
 	inline boost::int64_t total_microseconds(time_duration td)
 	{
-		return td.diff;
+		return aux::absolutetime_to_microseconds(td.diff);
 	}
 
-	inline ptime time_now_hires()
-	{
-		static mach_timebase_info_data_t timebase_info = {0,0};
-		if (timebase_info.denom == 0)
-			mach_timebase_info(&timebase_info);
-		boost::uint64_t at = mach_absolute_time();
-		// make sure we don't overflow
-		TORRENT_ASSERT((at >= 0 && at >= at / 1000 * timebase_info.numer / timebase_info.denom)
-			|| (at < 0 && at < at / 1000 * timebase_info.numer / timebase_info.denom));
-		return ptime(at / 1000 * timebase_info.numer / timebase_info.denom);
-	}
+	inline ptime time_now() { return ptime(mach_absolute_time()); }
 
 	inline time_duration microsec(boost::int64_t s)
 	{
-		return time_duration(s);
+		return time_duration(aux::microseconds_to_absolutetime(s));
 	}
 	inline time_duration milliseconds(boost::int64_t s)
 	{
-		return time_duration(s * 1000);
+		return time_duration(aux::microseconds_to_absolutetime(s * 1000));
 	}
 	inline time_duration seconds(boost::int64_t s)
 	{
-		return time_duration(s * 1000000);
+		return time_duration(aux::microseconds_to_absolutetime(s * 1000000));
 	}
 	inline time_duration minutes(boost::int64_t s)
 	{
-		return time_duration(s * 1000000 * 60);
+		return time_duration(aux::microseconds_to_absolutetime(s * 1000000 * 60));
 	}
 	inline time_duration hours(boost::int64_t s)
 	{
-		return time_duration(s * 1000000 * 60 * 60);
+		return time_duration(aux::microseconds_to_absolutetime(s * 1000000 * 60 * 60));
 	}
 
 }
-#elif defined TORRENT_USE_QUERY_PERFORMANCE_TIMER
+#elif defined(_WIN32)
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -306,7 +320,7 @@ namespace libtorrent
 		return aux::performance_counter_to_microseconds(td.diff);
 	}
 
-	inline ptime time_now_hires()
+	inline ptime time_now()
 	{
 		LARGE_INTEGER now;
 		QueryPerformanceCounter(&now);
@@ -340,7 +354,7 @@ namespace libtorrent
 
 }
 
-#elif defined TORRENT_USE_CLOCK_GETTIME
+#elif defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0
 
 #include <time.h>
 #include "libtorrent/assert.hpp"
@@ -360,11 +374,11 @@ namespace libtorrent
 		return td.diff;
 	}
 
-	inline ptime time_now_hires()
+	inline ptime time_now()
 	{
 		timespec ts;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
-		return ptime(boost::uint64_t(ts.tv_sec) * 1000000 + ts.tv_nsec / 1000);
+		return ptime(boost::int64_t(ts.tv_sec) * 1000000 + ts.tv_nsec / 1000);
 	}
 
 	inline time_duration microsec(boost::int64_t s)
@@ -390,19 +404,9 @@ namespace libtorrent
 
 }
 
-#endif // TORRENT_USE_CLOCK_GETTIME
+#endif
 
-#endif // TORRENT_USE_BOOST_DATE_TIME
+#endif
 
-namespace libtorrent
-{
-	namespace aux
-	{
-		extern TORRENT_EXPORT ptime g_current_time;
-	}
-
-	inline ptime const& time_now() { return aux::g_current_time; }
-}
-
-#endif // TORRENT_TIME_HPP_INCLUDED
+#endif
 

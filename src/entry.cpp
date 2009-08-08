@@ -33,16 +33,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <algorithm>
-#if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
-#include <iomanip>
 #include <iostream>
-#endif
+#include <iomanip>
 #include <boost/bind.hpp>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/escape_string.hpp"
 
 #if defined(_MSC_VER)
+namespace std
+{
+	using ::isprint;
+}
 #define for if (false) {} else for
 #endif
 
@@ -351,7 +353,6 @@ namespace libtorrent
 		TORRENT_ASSERT(false);
 	}
 
-#if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
 	void entry::print(std::ostream& os, int indent) const
 	{
 		TORRENT_ASSERT(indent >= 0);
@@ -366,7 +367,7 @@ namespace libtorrent
 				bool binary_string = false;
 				for (std::string::const_iterator i = string().begin(); i != string().end(); ++i)
 				{
-					if (!is_print(static_cast<unsigned char>(*i)))
+					if (!std::isprint(static_cast<unsigned char>(*i)))
 					{
 						binary_string = true;
 						break;
@@ -391,7 +392,7 @@ namespace libtorrent
 					bool binary_string = false;
 					for (std::string::const_iterator k = i->first.begin(); k != i->first.end(); ++k)
 					{
-						if (!is_print(static_cast<unsigned char>(*k)))
+						if (!std::isprint(static_cast<unsigned char>(*k)))
 						{
 							binary_string = true;
 							break;
@@ -414,6 +415,5 @@ namespace libtorrent
 			os << "<uninitialized>\n";
 		}
 	}
-#endif
 }
 

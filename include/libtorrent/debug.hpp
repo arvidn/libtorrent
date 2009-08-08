@@ -34,12 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DEBUG_HPP_INCLUDED
 
 #include <string>
-#include "libtorrent/config.hpp"
-
-#if TORRENT_USE_IOSTREAM
 #include <fstream>
 #include <iostream>
-#endif
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -64,8 +60,6 @@ namespace libtorrent
 	{
 		logger(fs::path const& logpath, fs::path const& filename, int instance, bool append = true)
 		{
-#if TORRENT_USE_IOSTREAM
-
 #ifndef BOOST_NO_EXCEPTIONS
 			try
 			{
@@ -81,22 +75,17 @@ namespace libtorrent
 				std::cerr << "failed to create log '" << filename.string() << "': " << e.what() << std::endl;
 			}
 #endif
-#endif
 		}
 
 		template <class T>
 		logger& operator<<(T const& v)
 		{
-#if TORRENT_USE_IOSTREAM
 			m_file << v;
 			m_file.flush();
-#endif
 			return *this;
 		}
 
-#if TORRENT_USE_IOSTREAM
 		std::ofstream m_file;
-#endif
 	};
 
 }
