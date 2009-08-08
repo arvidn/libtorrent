@@ -2103,12 +2103,6 @@ namespace libtorrent
 		// we have to let the piece_picker know that
 		// this piece failed the check as it can restore it
 		// and mark it as being interesting for download
-		// TODO: do this more intelligently! and keep track
-		// of how much crap (data that failed hash-check) and
-		// how much redundant data we have downloaded
-		// if some clients has sent more than one piece
-		// start with redownloading the pieces that the client
-		// that has sent the least number of pieces
 		m_picker->restore_piece(index);
 		restore_piece_state(index);
 		TORRENT_ASSERT(m_storage);
@@ -3462,7 +3456,9 @@ namespace libtorrent
 			{
 				// TODO: if this is a merkle torrent and we can't
 				// restore the tree, we need to wipe all the
-				// bits in the have array
+				// bits in the have array, but not necessarily
+				// we might want to do a full check to see if we have
+				// all the pieces
 				TORRENT_ASSERT(false);
 			}
 		}
