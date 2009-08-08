@@ -97,6 +97,7 @@ namespace libtorrent
 			, tcp::endpoint const& remote
 			, std::string const& url
 			, policy::peer* peerinfo);
+		void start();
 
 		~http_seed_connection();
 

@@ -73,7 +73,6 @@ namespace libtorrent
 		// we want large blocks as well, so
 		// we can request more bytes at once
 		request_large_blocks(true);
-		set_upload_only(true);
 
 		// we only want left-over bandwidth
 		set_priority(1);
@@ -108,6 +107,13 @@ namespace libtorrent
 
 		m_server_string = "URL seed @ ";
 		m_server_string += m_host;
+	}
+
+	void web_peer_connection::start()
+	{
+		set_upload_only(true);
+		if (is_disconnecting()) return;
+		peer_connection::start();
 	}
 
 	web_peer_connection::~web_peer_connection()
