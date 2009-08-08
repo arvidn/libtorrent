@@ -119,7 +119,6 @@ namespace
 using boost::shared_ptr;
 using boost::weak_ptr;
 using boost::bind;
-using boost::mutex;
 using libtorrent::aux::session_impl;
 
 #ifdef BOOST_NO_EXCEPTIONS
