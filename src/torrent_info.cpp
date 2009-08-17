@@ -290,6 +290,7 @@ namespace libtorrent
 			file_entry e;
 			if (!extract_single_file(*list.list_at(i), e, root_dir))
 				return false;
+#if BOOST_VERSON > 103600
 			int cnt = 0;
 			for (file_storage::iterator k = target.begin()
 				, end(target.end()); k != end; ++k)
@@ -306,6 +307,7 @@ namespace libtorrent
 				// doesn't already exist as well, otherwise we might
 				// just create another collision
 			}
+#endif
 			target.add_file(e);
 		}
 		return true;
