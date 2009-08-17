@@ -5292,7 +5292,8 @@ upload or download rate performance.
 			outstanding_disk_buffer_limit_reached,
 			outstanding_request_limit_reached,
 			upload_limit_too_low,
-			download_limit_too_low
+			download_limit_too_low,
+			send_buffer_watermark_too_low
 		};
 
 		performance_warning_t warning_code;

@@ -3658,7 +3658,14 @@ namespace libtorrent
 		int buffer_size_watermark = int(m_statistics.upload_rate()) / 2;
 		if (buffer_size_watermark < 512) buffer_size_watermark = 512;
 		else if (buffer_size_watermark > m_ses.settings().send_buffer_watermark)
+		{
 			buffer_size_watermark = m_ses.settings().send_buffer_watermark;
+			if (t->alerts().should_post<performance_alert>())
+			{
+				t->alerts().post_alert(performance_alert(t->get_handle()
+					, performance_alert::send_buffer_watermark_too_low));
+			}
+		}
 
 		while (!m_requests.empty()
 			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark))
