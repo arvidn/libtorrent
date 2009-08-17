@@ -212,7 +212,8 @@ namespace libtorrent
 			outstanding_disk_buffer_limit_reached,
 			outstanding_request_limit_reached,
 			upload_limit_too_low,
-			download_limit_too_low
+			download_limit_too_low,
+			send_buffer_watermark_too_low
 		};
 
 		performance_alert(torrent_handle const& h
@@ -232,7 +233,8 @@ namespace libtorrent
 				"max outstanding disk writes reached",
 				"max outstanding piece requests reached",
 				"upload limit too low (download rate will suffer)",
-				"download limit too low (upload rate will suffer)"
+				"download limit too low (upload rate will suffer)",
+				"send buffer watermark too low (upload rate will suffer)"
 			};
 
 			return torrent_alert::message() + ": performance warning: "

@@ -119,7 +119,7 @@ namespace libtorrent
 #endif
 			, free_torrent_hashes(true)
 			, upnp_ignore_nonrouters(false)
- 			, send_buffer_watermark(80 * 1024)
+ 			, send_buffer_watermark(100 * 1024)
 			, auto_upload_slots(true)
 			, auto_upload_slots_rate_based(true)
 			, use_parole_mode(true)
