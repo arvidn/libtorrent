@@ -218,6 +218,13 @@ namespace libtorrent
 
 		set.auto_upload_slots = false;
 
+		// in order to be able to deliver very high
+		// upload rates, this should be able to cover
+		// the bandwidth delay product. Assuming an RTT
+		// of 500 ms, and a send rate of 10 MB/s, the upper
+		// limit should be 5 MB
+		set.send_buffer_watermark = 5 * 1024 * 1024;
+
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
 		set.max_failcount = 1;
