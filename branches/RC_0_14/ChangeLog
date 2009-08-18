@@ -1,3 +1,7 @@
+
+
+	* fixed to add filename on web seed urls that lack it
+
 release 0.14.5
 
 	* fixed bug when handling malformed webseed urls and an http proxy
