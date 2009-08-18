@@ -875,6 +875,7 @@ namespace aux {
 		
 		if (m_socks_listen_socket) return;
 
+		m_socks_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
 		bool ret = instantiate_connection(m_io_service, m_peer_proxy
 			, *m_socks_listen_socket);
 		TORRENT_ASSERT(ret);
