@@ -183,12 +183,20 @@ namespace libtorrent
 
 		bool single_file_request = t->torrent_file().num_files() == 1;
 
-		// handle incorrect .torrent files which are multi-file
-		// but have web seeds not ending with a slash
-		if (!single_file_request && (m_path.empty() || m_path[m_path.size() - 1] != '/'))
-			m_path += "/";
-		if (!single_file_request && (m_url.empty() || m_url[m_url.size() - 1] != '/'))
-			m_url += "/";
+		if (!single_file_request)
+		{
+			// handle incorrect .torrent files which are multi-file
+			// but have web seeds not ending with a slash
+			if (m_path.empty() || m_path[m_path.size() - 1] != '/') m_path += "/";
+			if (m_url.empty() || m_url[m_url.size() - 1] != '/') m_url += "/";
+		}
+		else
+		{
+			// handle .torrent files that don't include the filename in the url
+			if (m_path.empty()) m_path += "/" + t->torrent_file().name();
+			else if (m_path[m_path.size() - 1] == '/') m_path += t->torrent_file().name();
+			if (!m_url.empty() && m_url[m_url.size() - 1] == '/') m_url += t->torrent_file().name();
+		}
 
 		torrent_info const& info = t->torrent_file();
 		
