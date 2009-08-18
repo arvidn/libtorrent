@@ -115,6 +115,8 @@ namespace libtorrent
 			{
 				m_method = m_protocol;
 				std::transform(m_method.begin(), m_method.end(), m_method.begin(), &to_lower);
+				// the content length is assumed to be 0 for requests
+				m_content_length = 0;
 				m_protocol.clear();
 				line >> m_path >> m_protocol;
 				m_status_code = 0;
