@@ -66,6 +66,8 @@
 	* improved support for sparse files on windows
 	* added ability to give seeding torrents preference to active slots
 
+	* fixed to add filename on web seed urls that lack it
+
 release 0.14.5
 
 	* fixed bug when handling malformed webseed urls and an http proxy
