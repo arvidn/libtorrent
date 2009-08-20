@@ -4737,8 +4737,33 @@ listen_failed_alert
 -------------------
 
 This alert is generated when none of the ports, given in the port range, to
-session_ can be opened for listening. This alert doesn't have any extra
-data members.
+session_ can be opened for listening. The ``endpoint`` member is the
+interface and port that failed, ``error`` is the error code describing
+the failure.
+
+::
+
+	struct listen_failed_alert: alert
+	{
+		// ...
+		tcp::endpoint endpoint;
+		error_code error;
+	};
+
+listen_succeeded_alert
+----------------------
+
+This alert is posted when the listen port succeeds to be opened on a
+particular interface. ``endpoint`` is the endpoint that successfully
+was opened for listening.
+
+::
+
+	struct listen_succeeded_alert: alert
+	{
+		// ...
+		tcp::endpoint endpoint;
+	};
 
 
 portmap_error_alert
@@ -5037,6 +5062,18 @@ the information to identify the peer. i.e. ``ip`` and ``peer-id``.
 		// ...
 		tcp::endpoint ip;
 		peer_id pid;
+	};
+
+peer_connect_alert
+------------------
+
+This alert is posted every time an outgoing  peer connect attempts succeeds.
+
+::
+
+	struct peer_connect_alert: peer_alert
+	{
+		// ...
 	};
 
 peer_ban_alert
@@ -5487,17 +5524,17 @@ Examples usage::
 
 	struct my_handler
 	{
-		void operator()(portmap_error_alert const& a)
+		void operator()(portmap_error_alert const& a) const
 		{
 			std::cout << "Portmapper: " << a.msg << std::endl;
 		}
 
-		void operator()(tracker_warning_alert const& a)
+		void operator()(tracker_warning_alert const& a) const
 		{
 			std::cout << "Tracker warning: " << a.msg << std::endl;
 		}
 
-		void operator()(torrent_finished_alert const& a)
+		void operator()(torrent_finished_alert const& a) const
 		{
 			// write fast resume data
 			// ...
