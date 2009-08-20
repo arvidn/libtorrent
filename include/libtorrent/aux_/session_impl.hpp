@@ -294,6 +294,20 @@ namespace libtorrent
 			{ return m_dht_proxy; }
 #endif
 
+#if TORRENT_USE_I2P
+			void set_i2p_proxy(proxy_settings const& s)
+			{
+				m_i2p_conn.open(s, boost::bind(&session_impl::on_i2p_open, this, _1));
+				open_new_incoming_i2p_connection();
+			}
+			void on_i2p_open(error_code const& ec);
+			proxy_settings const& i2p_proxy() const
+			{ return m_i2p_conn.proxy(); }
+			void open_new_incoming_i2p_connection();
+			void on_i2p_accept(boost::shared_ptr<socket_type> const& s
+				, error_code const& e);
+#endif
+
 #ifndef TORRENT_DISABLE_GEO_IP
 			std::string as_name_for_ip(address const& a);
 			int as_for_ip(address const& a);
@@ -380,15 +394,22 @@ namespace libtorrent
 			};
 			boost::object_pool<
 				policy::ipv4_peer, logging_allocator> m_ipv4_peer_pool;
-# if TORRENT_USE_IPV6
+#if TORRENT_USE_IPV6
 			boost::object_pool<
 				policy::ipv6_peer, logging_allocator> m_ipv6_peer_pool;
-# endif
+#endif
+#if TORRENT_USE_I2P
+			boost::object_pool<
+				policy::i2p_peer, logging_allocator> m_i2p_peer_pool;
+#endif
 #else
 			boost::object_pool<policy::ipv4_peer> m_ipv4_peer_pool;
-# if TORRENT_USE_IPV6
+#if TORRENT_USE_IPV6
 			boost::object_pool<policy::ipv6_peer> m_ipv6_peer_pool;
-# endif
+#endif
+#if TORRENT_USE_I2P
+			boost::object_pool<policy::i2p_peer> m_i2p_peer_pool;
+#endif
 #endif
 
 			// this vector is used to store the block_info
@@ -522,6 +543,11 @@ namespace libtorrent
 			boost::shared_ptr<socket_type> m_socks_listen_socket;
 
 			void open_new_incoming_socks_connection();
+
+#if TORRENT_USE_I2P
+			i2p_connection m_i2p_conn;
+			boost::shared_ptr<socket_type> m_i2p_listen_socket;
+#endif
 
 			listen_socket_t setup_listener(tcp::endpoint ep, int retries, bool v6_only = false);
 

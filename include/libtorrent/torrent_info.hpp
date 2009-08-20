@@ -256,6 +256,8 @@ namespace libtorrent
 
 		bool priv() const { return m_private; }
 
+		bool is_i2p() const { return m_i2p; }
+
 		int piece_size(int index) const { return m_files.piece_size(index); }
 
 		sha1_hash hash_for_piece(int index) const
@@ -366,6 +368,12 @@ namespace libtorrent
 		// this is true if the torrent is private. i.e., is should not
 		// be announced on the dht
 		bool m_private;
+
+		// this is true if one of the trackers has an .i2p top
+		// domain in its hostname. This means the DHT and LSD
+		// features are disabled for this torrent (unless the
+		// settings allows mixing i2p peers with regular peers)
+		bool m_i2p;
 
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to

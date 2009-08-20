@@ -184,6 +184,7 @@ namespace libtorrent
 			"",
 			"",
 			"",
+			"no i2p router is set up",
 		};
 		if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
 			return "Unknown error";

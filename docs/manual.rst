@@ -1042,6 +1042,21 @@ These functions returns references to their respective current settings.
 The ``dht_proxy`` is not available when DHT is disabled.
 
 
+set_i2p_proxy() i2p_proxy()
+---------------------------
+
+	::
+
+		void set_i2p_proxy(proxy_settings const&);
+		proxy_settings const& i2p_proxy();
+
+``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistant
+connection to it. The only used fields in the proxy settings structs
+are ``hostname`` and ``port``.
+
+``i2p_proxy`` returns the current i2p proxy in use.
+
+
 start_dht() stop_dht() set_dht_settings() dht_state()
 -----------------------------------------------------
 

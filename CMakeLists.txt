@@ -18,6 +18,7 @@ set(sources
 	http_connection
 	http_stream
 	http_parser
+	i2p_stream
 	identify_client
 	ip_filter
 	peer_connection

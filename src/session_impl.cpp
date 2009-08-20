@@ -192,6 +192,9 @@ namespace aux {
 #endif
 		, m_tracker_manager(*this, m_tracker_proxy)
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
+#if TORRENT_USE_I2P
+		, m_i2p_conn(m_io_service)
+#endif
 		, m_abort(false)
 		, m_paused(false)
 		, m_max_uploads(8)
@@ -524,6 +527,9 @@ namespace aux {
 #endif
 		// abort the main thread
 		m_abort = true;
+#if TORRENT_USE_I2P
+		m_i2p_conn.close();
+#endif
 		m_queued_for_checking.clear();
 		if (m_lsd) m_lsd->close();
 		if (m_upnp) m_upnp->close();
@@ -839,6 +845,9 @@ namespace aux {
 		}
 
 		open_new_incoming_socks_connection();
+#if TORRENT_USE_I2P
+		open_new_incoming_i2p_connection();
+#endif
 
 		if (!m_listen_sockets.empty())
 		{
@@ -885,6 +894,47 @@ namespace aux {
 		s.async_connect(tcp::endpoint(address_v4::any(), m_listen_interface.port())
 			, boost::bind(&session_impl::on_socks_accept, this, m_socks_listen_socket, _1));
 	}
+
+#if TORRENT_USE_I2P
+	void session_impl::on_i2p_open(error_code const& ec)
+	{
+		open_new_incoming_i2p_connection();
+	}
+
+	void session_impl::open_new_incoming_i2p_connection()
+	{
+		if (!m_i2p_conn.is_open()) return;
+
+		if (m_i2p_listen_socket) return;
+
+		m_i2p_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
+		bool ret = instantiate_connection(m_io_service, m_i2p_conn.proxy()
+			, *m_i2p_listen_socket);
+		TORRENT_ASSERT(ret);
+
+		i2p_stream& s = *m_i2p_listen_socket->get<i2p_stream>();
+		s.set_command(i2p_stream::cmd_accept);
+		s.set_session_id(m_i2p_conn.session_id());
+		s.async_connect(tcp::endpoint(address_v4::any(), m_listen_interface.port())
+			, boost::bind(&session_impl::on_i2p_accept, this, m_i2p_listen_socket, _1));
+	}
+
+	void session_impl::on_i2p_accept(boost::shared_ptr<socket_type> const& s
+		, error_code const& e)
+	{
+		m_i2p_listen_socket.reset();
+		if (e == asio::error::operation_aborted) return;
+		if (e)
+		{
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(tcp::endpoint(
+					address_v4::any(), m_listen_interface.port()), e));
+			return;
+		}
+		open_new_incoming_i2p_connection();
+		incoming_connection(s);
+	}
+#endif
 
 #ifndef TORRENT_DISABLE_DHT
 
@@ -2323,7 +2373,8 @@ namespace aux {
 		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
 		if (!t) return;
 		// don't add peers from lsd to private torrents
-		if (t->torrent_file().priv()) return;
+		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
+			&& !m_settings.allow_i2p_mixed)) return;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string()

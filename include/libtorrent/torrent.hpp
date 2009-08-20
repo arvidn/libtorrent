@@ -513,6 +513,10 @@ namespace libtorrent
 		// all seeds and let the tracker know we're finished.
 		void completed();
 
+#if TORRENT_USE_I2P
+		void on_i2p_resolve(error_code const& ec, char const* dest);
+#endif
+
 		// this is the asio callback that is called when a name
 		// lookup for a PEER is completed.
 		void on_peer_name_lookup(error_code const& e, tcp::resolver::iterator i

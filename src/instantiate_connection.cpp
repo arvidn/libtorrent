@@ -67,6 +67,13 @@ namespace libtorrent
 			if (ps.type == proxy_settings::socks4)
 				s.get<socks5_stream>()->set_version(4);
 		}
+#if TORRENT_USE_I2P
+		else if (ps.type == proxy_settings::i2p_proxy)
+		{
+			s.instantiate<i2p_stream>(ios);
+			s.get<i2p_stream>()->set_proxy(ps.hostname, ps.port);
+		}
+#endif
 		else
 		{
 			return false;

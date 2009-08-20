@@ -375,6 +375,11 @@ namespace libtorrent
 		proxy_settings const& dht_proxy() const;
 #endif
 
+#if TORRENT_USE_I2P
+		void set_i2p_proxy(proxy_settings const& s);
+		proxy_settings const& i2p_proxy() const;
+#endif
+
 		int upload_rate_limit() const;
 		int download_rate_limit() const;
 		int local_upload_rate_limit() const;

@@ -715,6 +715,20 @@ namespace libtorrent
 	}
 #endif
 
+#if TORRENT_USE_I2P
+	void session::set_i2p_proxy(proxy_settings const& s)
+	{
+		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		m_impl->set_i2p_proxy(s);
+	}
+	
+	proxy_settings const& session::i2p_proxy() const
+	{
+		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		return m_impl->i2p_proxy();
+	}
+#endif
+
 	int session::max_uploads() const
 	{
 		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);

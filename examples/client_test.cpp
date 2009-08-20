@@ -747,6 +747,9 @@ int main(int argc, char* argv[])
 			"  -t <seconds>          sets the scan interval of the monitor dir\n"
 			"  -x <file>             loads an emule IP-filter file\n"
 			"  -c <limit>            sets the max number of connections\n"
+#if TORRENT_USE_I2P
+			"  -i <i2p-host>         the hostname to an I2P SAM bridge to use\n"
+#endif
 			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
 			"  -F <seconds>          sets the UI refresh rate. This is the number of\n"
 			"                        seconds between screen refreshes.\n"
@@ -759,7 +762,6 @@ int main(int argc, char* argv[])
 
 	using namespace libtorrent;
 	session_settings settings;
-	proxy_settings ps;
 
 	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
 	settings.auto_upload_slots_rate_based = true;
@@ -780,7 +782,8 @@ int main(int argc, char* argv[])
 	// monitor when they're not in the directory anymore.
 	handles_t handles;
 	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-		, session::start_default_features | session::add_default_plugins, alert::all_categories);
+		, session::add_default_plugins
+		, alert::all_categories & (~alert::dht_notification));
 
 	std::vector<char> in;
 	if (load_file(".ses_state", in) == 0)
@@ -950,6 +953,17 @@ int main(int argc, char* argv[])
 				}
 				break;
 			case 'c': ses.set_max_connections(atoi(arg)); break;
+#if TORRENT_USE_I2P
+			case 'i':
+				{
+					proxy_settings ps;
+					ps.hostname = arg;
+					ps.port = 7656; // default SAM port
+					ps.type = proxy_settings::i2p_proxy;
+					ses.set_i2p_proxy(ps);
+					break;
+				}
+#endif // TORRENT_USE_I2P
 			case 'C': settings.cache_size = atoi(arg); break;
 		}
 		++i; // skip the argument

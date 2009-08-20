@@ -73,6 +73,11 @@ namespace libtorrent
 		void pulse();
 
 		struct peer;
+
+#if TORRENT_USE_I2P
+		policy::peer* add_i2p_peer(char const* destination, int source, char flags);
+#endif
+
 		// this is called once for every peer we get from
 		// the tracker, pex, lsd or dht.
 		policy::peer* add_peer(const tcp::endpoint& remote, const peer_id& pid
@@ -129,6 +134,7 @@ namespace libtorrent
 			size_type total_upload() const;
 
 			libtorrent::address address() const;
+			char const* dest() const;
 
 			tcp::endpoint ip() const { return tcp::endpoint(address(), port); }
 
@@ -171,7 +177,6 @@ namespace libtorrent
 			// or disconnected if it isn't connected right now
 			// in number of seconds since session was created
 			boost::uint16_t last_connected;
-
 
 			// the port this peer is or was connected on
 			boost::uint16_t port;
@@ -233,6 +238,10 @@ namespace libtorrent
 			// the one to use, false if it's the v4 one
 			bool is_v6_addr:1;
 #endif
+#if TORRENT_USE_I2P
+			// set if the i2p_destination is in use in the addr union
+			bool is_i2p_addr:1;
+#endif
 
 			// if this is true, the peer has previously
 			// participated in a piece that failed the piece
@@ -261,6 +270,17 @@ namespace libtorrent
 			address_v4 addr;
 		};
 
+#if TORRENT_USE_I2P
+		struct i2p_peer : peer
+		{
+			i2p_peer(char const* destination, bool connectable, int src);
+			i2p_peer(char const* destination);
+			~i2p_peer();
+
+			char* destination;
+		};
+#endif
+
 #if TORRENT_USE_IPV6
 		struct ipv6_peer : peer
 		{
@@ -287,9 +307,27 @@ namespace libtorrent
 				return lhs < rhs->address();
 			}
 
+#if TORRENT_USE_I2P
+			bool operator()(
+				peer const* lhs, char const* rhs) const
+			{
+				return strcmp(lhs->dest(), rhs) < 0;
+			}
+
+			bool operator()(
+				char const* lhs, peer const* rhs) const
+			{
+				return strcmp(lhs, rhs->dest()) < 0;
+			}
+#endif
+
 			bool operator()(
 				peer const* lhs, peer const* rhs) const
 			{
+#if TORRENT_USE_I2P
+				if (rhs->is_i2p_addr == lhs->is_i2p_addr)
+					return strcmp(lhs->dest(), rhs->dest()) < 0;
+#endif
 				return lhs->address() < rhs->address();
 			}
 		};
@@ -327,6 +365,10 @@ namespace libtorrent
 		void erase_peer(iterator i);
 
 	private:
+
+		void update_peer(policy::peer* p, int src, int flags
+		, tcp::endpoint const& remote, char const* destination);
+		bool insert_peer(policy::peer* p, iterator iter, int flags);
 
 		bool compare_peer_erase(policy::peer const& lhs, policy::peer const& rhs) const;
 		bool compare_peer(policy::peer const& lhs, policy::peer const& rhs
@@ -376,15 +418,48 @@ namespace libtorrent
 	  : peer(ip.port(), connectable, src)
 	  , addr(ip.address().to_v4())
 	{
+#if TORRENT_USE_IPV6
 		is_v6_addr = false;
+#endif
+#if TORRENT_USE_I2P
+		is_i2p_addr = false;
+#endif
 	}
 
 	inline policy::ipv4_peer::ipv4_peer(libtorrent::address const& a)
 	  : addr(a.to_v4())
 	{
+#if TORRENT_USE_IPV6
 		is_v6_addr = false;
+#endif
+#if TORRENT_USE_I2P
+		is_i2p_addr = false;
+#endif
 	}
 
+#if TORRENT_USE_I2P
+	inline policy::i2p_peer::i2p_peer(char const* dest, bool connectable, int src)
+		: peer(0, connectable, src), destination(strdup(dest))
+	{
+#if TORRENT_USE_IPV6
+		is_v6_addr = false;
+#endif
+		is_i2p_addr = true;
+	}
+	inline policy::i2p_peer::i2p_peer(char const* dest)
+		: destination(strdup(dest))
+	{
+#if TORRENT_USE_IPV6
+		is_v6_addr = false;
+#endif
+		is_i2p_addr = true;
+	}
+
+	inline policy::i2p_peer::~i2p_peer()
+	{ free(destination); }
+#endif // TORRENT_USE_I2P
+
+#if TORRENT_USE_IPV6
 	inline policy::ipv6_peer::ipv6_peer(
 		tcp::endpoint const& ip, bool connectable, int src
 	)
@@ -392,20 +467,41 @@ namespace libtorrent
 	  , addr(ip.address().to_v6().to_bytes())
 	{
 		is_v6_addr = true;
+#if TORRENT_USE_I2P
+		is_i2p_addr = false;
+#endif
 	}
 
 	inline policy::ipv6_peer::ipv6_peer(libtorrent::address const& a)
 	  : addr(a.to_v6().to_bytes())
 	{
 		is_v6_addr = true;
+#if TORRENT_USE_I2P
+		is_i2p_addr = false;
+#endif
 	}
+#endif // TORRENT_USE_IPV6
 
+#if TORRENT_USE_I2P
+	inline char const* policy::peer::dest() const
+	{
+		if (is_i2p_addr)
+			return static_cast<policy::i2p_peer const*>(this)->destination;
+		return "";
+	}
+#endif
+	
 	inline libtorrent::address policy::peer::address() const
 	{
 #if TORRENT_USE_IPV6
 		if (is_v6_addr)
 			return libtorrent::address_v6(
 				static_cast<policy::ipv6_peer const*>(this)->addr);
+		else
+#endif
+#if TORRENT_USE_I2P
+		if (is_i2p_addr) return libtorrent::address();
+		else
 #endif
 		return static_cast<policy::ipv4_peer const*>(this)->addr;
 	}

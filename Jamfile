@@ -358,6 +358,7 @@ SOURCES =
 	bt_peer_connection
 	web_peer_connection
 	http_seed_connection
+	i2p_stream
 	instantiate_connection
 	natpmp
 	piece_picker

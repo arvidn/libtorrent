@@ -189,6 +189,8 @@ namespace libtorrent
 			reserved6,
 			reserved7,
 			reserved8,
+
+			no_i2p_router,
 		};
 	}
 
