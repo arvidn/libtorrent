@@ -436,7 +436,8 @@ namespace libtorrent
 
 	boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent* t, void*)
 	{
-		if (t->torrent_file().priv())
+		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
+			&& !t->settings().allow_i2p_mixed))
 		{
 			return boost::shared_ptr<torrent_plugin>();
 		}

@@ -150,6 +150,14 @@ namespace libtorrent
 		, m_received_in_piece(0)
 #endif
 	{
+#if TORRENT_USE_I2P
+		if (peerinfo && peerinfo->is_i2p_addr)
+		{
+			// quadruple the timeout for i2p peers
+			m_timeout *= 4;
+		}
+#endif
+
 		m_channel_state[upload_channel] = peer_info::bw_idle;
 		m_channel_state[download_channel] = peer_info::bw_idle;
 
@@ -271,6 +279,14 @@ namespace libtorrent
 		, m_received_in_piece(0)
 #endif
 	{
+#if TORRENT_USE_I2P
+		if (peerinfo && peerinfo->is_i2p_addr)
+		{
+			// quadruple the timeout for i2p peers
+			m_timeout *= 4;
+		}
+#endif
+
 		m_channel_state[upload_channel] = peer_info::bw_idle;
 		m_channel_state[download_channel] = peer_info::bw_idle;
 
@@ -935,6 +951,18 @@ namespace libtorrent
 			(*m_logger) << " rejected connection to paused torrent\n";
 #endif
 			disconnect(error_code(errors::torrent_paused, libtorrent_category), 2);
+			return;
+		}
+
+		i2p_stream* i2ps = m_socket->get<i2p_stream>();
+		if (!i2ps && t->torrent_file().is_i2p() && !m_ses.m_settings.allow_i2p_mixed)
+		{
+			// the torrent is an i2p torrent, the peer is a regular peer
+			// and we don't allow mixed mode. Disconnect the peer.
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_logger) << " rejected regular connection to i2p torrent\n";
+#endif
+			disconnect(error_code(errors::peer_banned, libtorrent_category), 2);
 			return;
 		}
 

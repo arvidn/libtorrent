@@ -234,7 +234,11 @@ namespace libtorrent
 		{
 			con = new http_tracker_connection(
 				ios, cc, *this, req, c
-				, m_ses, m_proxy, auth);
+				, m_ses, m_proxy, auth
+#if TORRENT_USE_I2P
+				, &m_ses.m_i2p_conn
+#endif
+				);
 		}
 		else if (protocol == "udp")
 		{

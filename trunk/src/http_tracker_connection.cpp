@@ -73,13 +73,20 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> c
 		, aux::session_impl const& ses
 		, proxy_settings const& ps
-		, std::string const& auth)
+		, std::string const& auth
+#if TORRENT_USE_I2P
+		, i2p_connection* i2p_conn
+#endif
+		)
 		: tracker_connection(man, req, ios, c)
 		, m_man(man)
 		, m_ses(ses)
 		, m_ps(ps)
 		, m_cc(cc)
 		, m_ios(ios)
+#if TORRENT_USE_I2P
+		, m_i2p_conn(i2p_conn)
+#endif
 	{}
 
 	void http_tracker_connection::start()
@@ -102,6 +109,14 @@ namespace libtorrent
 			url.replace(pos, 8, "scrape");
 		}
 		
+#if TORRENT_USE_I2P
+		// defined in torrent_info.cpp
+		bool is_i2p_url(std::string const& url);
+		bool i2p = is_i2p_url(url);
+#else
+		static const bool i2p = false;
+#endif
+
 		session_settings const& settings = m_ses.settings();
 
 		// if request-string already contains
@@ -125,7 +140,9 @@ namespace libtorrent
 				"%s"
 #endif
 				, escape_string((const char*)&tracker_req().pid[0], 20).c_str()
-				, tracker_req().listen_port
+				// the i2p tracker seems to verify that the port is not 0,
+				// even though it ignores it otherwise
+				, i2p ? 1 : tracker_req().listen_port
 				, tracker_req().uploaded
 				, tracker_req().downloaded
 				, tracker_req().left
@@ -145,6 +162,16 @@ namespace libtorrent
 				url += event_string[tracker_req().event - 1];
 			}
 
+#if TORRENT_USE_I2P
+			if (i2p)
+			{
+				url += "&ip=";
+				url += escape_string(m_i2p_conn->local_endpoint().c_str()
+					, m_i2p_conn->local_endpoint().size());
+				url += ".i2p";
+			}
+			else
+#endif
 			if (settings.announce_ip != address())
 			{
 				error_code ec;
@@ -152,13 +179,13 @@ namespace libtorrent
 				if (!ec) url += "&ip=" + ip;
 			}
 
-			if (!tracker_req().ipv6.empty())
+			if (!tracker_req().ipv6.empty() && !i2p)
 			{
 				url += "&ipv6=";
 				url += tracker_req().ipv6;
 			}
 
-			if (!tracker_req().ipv4.empty())
+			if (!tracker_req().ipv4.empty() && !i2p)
 			{
 				url += "&ipv4=";
 				url += tracker_req().ipv4;
@@ -176,7 +203,11 @@ namespace libtorrent
 			:settings.tracker_completion_timeout;
 
 		m_tracker_connection->get(url, seconds(timeout)
-			, 1, &m_ps, 5, settings.user_agent, bind_interface());
+			, 1, &m_ps, 5, settings.user_agent, bind_interface()
+#if TORRENT_USE_I2P
+			, m_i2p_conn
+#endif
+			);
 
 		// the url + 100 estimated header size
 		sent_bytes(url.size() + 100);

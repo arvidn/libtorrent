@@ -26,7 +26,7 @@ socks5_stream.cpp http_stream.cpp connection_queue.cpp \
 disk_io_thread.cpp ut_metadata.cpp lt_trackers.cpp magnet_uri.cpp udp_socket.cpp smart_ban.cpp \
 http_parser.cpp gzip.cpp disk_buffer_holder.cpp create_torrent.cpp GeoIP.c \
 parse_url.cpp file_storage.cpp error_code.cpp ConvertUTF.cpp \
-allocator.cpp \
+allocator.cpp i2p_stream.cpp \
 $(kademlia_sources)
 
 noinst_HEADERS = \
@@ -67,6 +67,7 @@ $(top_srcdir)/include/libtorrent/http_stream.hpp \
 $(top_srcdir)/include/libtorrent/http_parser.hpp \
 $(top_srcdir)/include/libtorrent/session_settings.hpp \
 $(top_srcdir)/include/libtorrent/http_tracker_connection.hpp \
+$(top_srcdir)/include/libtorrent/i2p_stream.hpp \
 $(top_srcdir)/include/libtorrent/identify_client.hpp \
 $(top_srcdir)/include/libtorrent/instantiate_connection.hpp \
 $(top_srcdir)/include/libtorrent/intrusive_ptr_base.hpp \

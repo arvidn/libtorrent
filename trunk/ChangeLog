@@ -1,3 +1,5 @@
+	* added support for i2p torrents
+
 0.15 release
 
 	* reduced the number of floating point operations (to better support

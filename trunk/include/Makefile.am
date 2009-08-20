@@ -33,6 +33,7 @@ libtorrent/http_connection.hpp \
 libtorrent/http_stream.hpp \
 libtorrent/http_parser.hpp \
 libtorrent/http_tracker_connection.hpp \
+libtorrent/i2p_stream.hpp \
 libtorrent/identify_client.hpp \
 libtorrent/instantiate_connection.hpp \
 libtorrent/intrusive_ptr_base.hpp \

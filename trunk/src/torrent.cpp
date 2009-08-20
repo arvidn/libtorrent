@@ -1138,8 +1138,12 @@ namespace libtorrent
 		if (m_abort) return;
 
 		TORRENT_ASSERT(!m_torrent_file->priv());
-		if (m_torrent_file->is_valid() && m_torrent_file->priv())
+		if (m_torrent_file->is_valid()
+			&& (m_torrent_file->priv()
+				|| (torrent_file().is_i2p()
+					&& !m_settings.allow_i2p_mixed)))
 			return;
+
 
 		if (is_paused()) return;
 
@@ -1187,6 +1191,10 @@ namespace libtorrent
 			m_ses.m_alerts.post_alert(dht_reply_alert(
 				get_handle(), peers.size()));
 		}
+
+		if (torrent_file().priv() || (torrent_file().is_i2p()
+			&& !m_settings.allow_i2p_mixed)) return;
+
 		std::for_each(peers.begin(), peers.end(), bind(
 			&policy::add_peer, boost::ref(m_policy), _1, peer_id(0)
 			, peer_info::dht, 0));
@@ -1428,9 +1436,30 @@ namespace libtorrent
 				// assume this is because we got a hostname instead of
 				// an ip address from the tracker
 
-				tcp::resolver::query q(i->ip, to_string(i->port).elems);
-				m_host_resolver.async_resolve(q,
-					bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid));
+#if TORRENT_USE_I2P
+				char const* top_domain = strrchr(i->ip.c_str(), '.');
+				if (top_domain && strcmp(top_domain, ".i2p") == 0 && m_ses.m_i2p_conn.is_open())
+				{
+					// this is an i2p name, we need to use the sam connection
+					// to do the name lookup
+					/*
+					m_ses.m_i2p_conn.async_name_lookup(i->ip.c_str()
+						, bind(&torrent::on_i2p_resolve
+						, shared_from_this(), _1, _2));
+					*/
+					// it seems like you're not supposed to do a name lookup
+					// on the peers returned from the tracker, but just strip
+					// the .i2p and use it as a destination
+					i->ip.resize(i->ip.size() - 4);
+					m_policy.add_i2p_peer(i->ip.c_str(), peer_info::tracker, 0);
+				}
+				else
+#endif
+				{
+					tcp::resolver::query q(i->ip, to_string(i->port).elems);
+					m_host_resolver.async_resolve(q,
+						bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid));
+				}
 			}
 			else
 			{
@@ -1483,6 +1512,19 @@ namespace libtorrent
 		}
 	}
 
+#if TORRENT_USE_I2P
+	void torrent::on_i2p_resolve(error_code const& ec, char const* dest)
+	{
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+		INVARIANT_CHECK;
+
+		if (ec || m_ses.is_aborted()) return;
+
+		m_policy.add_i2p_peer(dest, peer_info::tracker, 0);
+	}
+#endif
+
 	void torrent::on_peer_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, peer_id pid)
 	{
@@ -1500,10 +1542,7 @@ namespace libtorrent
 			debug_log("blocked ip from tracker: " + host->endpoint().address().to_string(ec));
 #endif
 			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
-			{
 				m_ses.m_alerts.post_alert(peer_blocked_alert(host->endpoint().address()));
-			}
-
 			return;
 		}
 			
@@ -3837,7 +3876,11 @@ namespace libtorrent
 		peer_iterator i_ = std::find_if(m_connections.begin(), m_connections.end()
 			, bind(&peer_connection::remote, _1) == peerinfo->ip());
 		TORRENT_ASSERT(i_ == m_connections.end()
-			|| dynamic_cast<bt_peer_connection*>(*i_) == 0);
+			|| dynamic_cast<bt_peer_connection*>(*i_) == 0
+#if TORRENT_USE_I2P
+			|| peerinfo->is_i2p_addr
+#endif
+			);
 #endif
 
 		TORRENT_ASSERT(want_more_peers());
@@ -3848,9 +3891,24 @@ namespace libtorrent
 
 		boost::shared_ptr<socket_type> s(new socket_type(m_ses.m_io_service));
 
-		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy(), *s);
-		(void)ret;
-		TORRENT_ASSERT(ret);
+#if TORRENT_USE_I2P
+		bool i2p = peerinfo->is_i2p_addr;
+		if (i2p)
+		{
+			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.i2p_proxy(), *s);
+			(void)ret;
+			TORRENT_ASSERT(ret);
+			s->get<i2p_stream>()->set_destination(static_cast<policy::i2p_peer*>(peerinfo)->destination);
+			s->get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
+			s->get<i2p_stream>()->set_session_id(m_ses.m_i2p_conn.session_id());
+		}
+		else
+#endif
+		{
+			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy(), *s);
+			(void)ret;
+			TORRENT_ASSERT(ret);
+		}
 
 		m_ses.setup_socket_buffers(*s);
 
@@ -5068,7 +5126,10 @@ namespace libtorrent
 
 		// private torrents are never announced on LSD
 		// or on DHT, we don't need this timer.
-		if (!m_torrent_file->is_valid() || !m_torrent_file->priv())
+		if (!m_torrent_file->is_valid()
+			|| (!m_torrent_file->priv()
+				&& (!m_torrent_file->is_i2p()
+					|| m_settings.allow_i2p_mixed)))
 		{
 			error_code ec;
 			boost::weak_ptr<torrent> self(shared_from_this());

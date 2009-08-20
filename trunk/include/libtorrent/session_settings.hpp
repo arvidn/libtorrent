@@ -71,7 +71,9 @@ namespace libtorrent
 			http,
 			// http proxy with basic authentication
 			// uses username and password
-			http_pw
+			http_pw,
+			// route through a i2p SAM proxy
+			i2p_proxy
 		};
 		
 		proxy_type type;
@@ -176,6 +178,7 @@ namespace libtorrent
 			, write_cache_line_size(32)
 			, optimistic_disk_retry(10 * 60)
 			, disable_hash_checks(false)
+			, allow_i2p_mixed(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -621,6 +624,15 @@ namespace libtorrent
 		// testing purposes (typically combined with
 		// disabled_storage)
 		bool disable_hash_checks;
+
+		// if this is true, i2p torrents are allowed
+		// to also get peers from other sources than
+		// the tracker, and connect to regular IPs,
+		// not providing any anonymization. This may
+		// be useful if the user is not interested in
+		// the anonymization of i2p, but still wants to
+		// be able to connect to i2p peers.
+		bool allow_i2p_mixed;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

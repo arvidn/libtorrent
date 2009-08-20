@@ -62,6 +62,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/utf8.hpp"
 
+#if TORRENT_USE_I2P
+#include "libtorrent/parse_url.hpp"
+#endif
+
 namespace gr = boost::gregorian;
 
 namespace libtorrent
@@ -366,6 +370,7 @@ namespace libtorrent
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
+		, m_i2p(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
 		, m_merkle_first_leaf(0)
@@ -579,6 +584,7 @@ namespace libtorrent
 		m_created_by.swap(ti.m_created_by);
 		swap(m_multifile, ti.m_multifile);
 		swap(m_private, ti.m_private);
+		swap(m_i2p, ti.m_i2p);
 		swap(m_info_section, ti.m_info_section);
 		swap(m_info_section_size, ti.m_info_section_size);
 		swap(m_piece_hashes, ti.m_piece_hashes);
@@ -813,6 +819,19 @@ namespace libtorrent
 		return ret;
 	}
 
+#if TORRENT_USE_I2P
+	bool is_i2p_url(std::string const& url)
+	{
+		using boost::tuples::ignore;
+		std::string hostname;
+		error_code ec;
+		boost::tie(ignore, ignore, hostname, ignore, ignore)
+			= parse_url_components(url, ec);
+		char const* top_domain = strrchr(hostname.c_str(), '.');
+		return top_domain && strcmp(top_domain, ".i2p") == 0;
+	}
+#endif
+
 	bool torrent_info::parse_torrent_file(lazy_entry const& torrent_file, error_code& ec)
 	{
 		if (torrent_file.type() != lazy_entry::dict_t)
@@ -838,6 +857,9 @@ namespace libtorrent
 					e.fail_limit = 0;
 					e.source = announce_entry::source_torrent;
 					e.trim();
+#if TORRENT_USE_I2P
+					if (is_i2p_url(e.url)) m_i2p = true;
+#endif
 					m_urls.push_back(e);
 				}
 			}
@@ -868,6 +890,9 @@ namespace libtorrent
 			e.fail_limit = 0;
 			e.source = announce_entry::source_torrent;
 			e.trim();
+#if TORRENT_USE_I2P
+			if (is_i2p_url(e.url)) m_i2p = true;
+#endif
 			if (!e.url.empty()) m_urls.push_back(e);
 		}
 
