@@ -931,11 +931,11 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_GEO_IP
-		int as = ses.as_for_ip(remote.address());
+		int as = m_torrent->session().as_for_ip(p->address());
 #ifdef TORRENT_DEBUG
 		p->inet_as_num = as;
 #endif
-		p->inet_as = ses.lookup_as(as);
+		p->inet_as = m_torrent->session().lookup_as(as);
 #endif
 		if (is_connect_candidate(*p, m_finished))
 			++m_num_connect_candidates;
