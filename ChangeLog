@@ -1,6 +1,7 @@
 
 
 	* fixed to add filename on web seed urls that lack it
+	* fixed BOOST_ASIO_HASH_MAP_BUCKETS define for boost 1.39
 
 release 0.14.5
 
