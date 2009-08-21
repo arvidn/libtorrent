@@ -62,6 +62,9 @@ AC_SYS_LARGEFILE
 dnl Check for pthreads.
 ACX_PTHREAD
 
+dnl Pass some build options to setup.py and .pc file
+COMPILETIME_OPTIONS=""
+
 AM_CONDITIONAL([ENABLE_SHIPPED_ASIO], false)
 
 dnl Check for boost libraries.
@@ -173,7 +176,9 @@ AC_ARG_WITH(
 )
 
 # this works around a bug in asio in boost-1.39
-COMPILETIME_OPTIONS="-DBOOST_ASIO_HASH_MAP_BUCKETS=1024 "
+# see: https://svn.boost.org/trac/boost/ticket/3095
+AC_DEFINE(BOOST_ASIO_HASH_MAP_BUCKETS,1021,)
+COMPILETIME_OPTIONS+="-DBOOST_ASIO_HASH_MAP_BUCKETS=1021 "
 
 dnl Check the value for the --with-logging switch
 AC_MSG_CHECKING([what form of logging to use])
