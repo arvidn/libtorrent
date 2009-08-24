@@ -1056,6 +1056,8 @@ are ``hostname`` and ``port``.
 
 ``i2p_proxy`` returns the current i2p proxy in use.
 
+.. _i2p: http://www.i2p2.de
+
 
 start_dht() stop_dht() set_dht_settings() dht_state()
 -----------------------------------------------------
