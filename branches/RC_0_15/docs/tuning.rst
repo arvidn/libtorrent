@@ -221,6 +221,20 @@ In order to increase the possibility of read cache hits, set the
 ``session_settings::cache_expiry`` to a large number. This won't degrade anything as
 long as the client is only seeding, and not downloading any torrents.
 
+send buffer low watermark
+-------------------------
+
+libtorrent uses a low watermark for send buffers to determine when a new piece should
+be requested from the disk I/O subsystem, to be appended to the send buffer. The low
+watermark is determined based on the send rate of the socket. It needs to be large
+enough to not draining the socket's send buffer before the disk operation completes.
+
+The watermark is bound to a max value, to avoid buffer sizes growing out of control.
+The default max send buffer size might not be enough to sustain very high upload rates,
+and you might have to increase it. It's specified in bytes in
+``session_settings::send_buffer_watermark``. The ``high_performance_seed()`` preset
+sets this value to 5 MB.
+
 peers
 -----
 
