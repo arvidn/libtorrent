@@ -522,7 +522,9 @@ int test_main()
 	// HTTP request parser
 
 	http_parser parser;
-	boost::tuple<int, int, bool> received = feed_bytes(parser
+	boost::tuple<int, int, bool> received;
+
+	received = feed_bytes(parser
 		, "HTTP/1.1 200 OK\r\n"
 		"Content-Length: 4\r\n"
 		"Content-Type: text/plain\r\n"
@@ -585,11 +587,11 @@ int test_main()
 		"Host: 239.192.152.143:6771\r\n"
 		"Port: 6881\r\n"
 		"Infohash: 12345678901234567890\r\n"
-		"\r\n\r\n";
+		"\r\n";
 
 	received = feed_bytes(parser, bt_lsd);
 
-	TEST_CHECK(received == make_tuple(2, int(strlen(bt_lsd) - 2), false));
+	TEST_CHECK(received == make_tuple(0, int(strlen(bt_lsd)), false));
 	TEST_CHECK(parser.method() == "bt-search");
 	TEST_CHECK(parser.path() == "*");
 	TEST_CHECK(atoi(parser.header("port").c_str()) == 6881);
