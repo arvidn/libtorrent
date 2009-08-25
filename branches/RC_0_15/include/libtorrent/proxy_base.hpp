@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/socket.hpp"
 #include <boost/bind.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/read.hpp>

@@ -96,18 +96,18 @@ namespace libtorrent
 			char const* line_end = newline;
 			if (pos != line_end && *(line_end - 1) == '\r') --line_end;
 
-			std::istringstream line(std::string(pos, line_end));
+			char const* line = pos;
 			++newline;
 			int incoming = (int)std::distance(pos, newline);
 			m_recv_pos += incoming;
 			boost::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
 			pos = newline;
 
-			line >> m_protocol;
+			m_protocol = read_until(line, ' ', line_end);
 			if (m_protocol.substr(0, 5) == "HTTP/")
 			{
-				line >> m_status_code;
-				std::getline(line, m_server_message);
+				m_status_code = atoi(read_until(line, ' ', line_end).c_str());
+				m_server_message = read_until(line, '\r', line_end);
 			}
 			else
 			{
@@ -116,7 +116,8 @@ namespace libtorrent
 				// the content length is assumed to be 0 for requests
 				m_content_length = 0;
 				m_protocol.clear();
-				line >> m_path >> m_protocol;
+				m_path = read_until(line, ' ', line_end);
+				m_protocol = read_until(line, ' ', line_end);
 				m_status_code = 0;
 			}
 			m_state = read_header;

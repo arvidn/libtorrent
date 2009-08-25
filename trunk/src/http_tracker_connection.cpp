@@ -303,7 +303,12 @@ namespace libtorrent
 			for (char const* i = data, *end(data + size); i != end; ++i)
 			{
 				if (*i >= ' ' && *i <= '~') error_str += *i;
-				else error_str += "0x" + boost::lexical_cast<std::string>((unsigned int)*i) + " ";
+				else
+				{
+					char val[30];
+					snprintf(val, sizeof(val), "0x%02x ", *i);
+					error_str += val;
+				}
 			}
 			error_str += "\"";
 			fail(parser.status_code(), error_str.c_str());

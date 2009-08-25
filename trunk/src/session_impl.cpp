@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/lexical_cast.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/limits.hpp>
@@ -987,7 +986,7 @@ namespace aux {
 			tcp::endpoint ep = listener->local_endpoint(ec);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			std::string msg = "error accepting connection on '"
-				+ boost::lexical_cast<std::string>(ep) + "' " + e.message();
+				+ print_endpoint(ep) + "' " + e.message();
 			(*m_logger) << msg << "\n";
 #endif
 #ifdef TORRENT_WINDOWS
