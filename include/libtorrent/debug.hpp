@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/lexical_cast.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/convenience.hpp>
 
@@ -70,7 +69,9 @@ namespace libtorrent
 			try
 			{
 #endif
-				fs::path dir(fs::complete(logpath / ("libtorrent_logs" + boost::lexical_cast<std::string>(instance))));
+				char log_name[256];
+				snprintf(log_name, sizeof(log_name), "libtorrent_logs%d", instance);
+				fs::path dir(fs::complete(logpath / log_name));
 				if (!fs::exists(dir)) fs::create_directories(dir);
 				m_file.open((dir / filename).string().c_str(), std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
 				*this << "\n\n\n*** starting log ***\n";

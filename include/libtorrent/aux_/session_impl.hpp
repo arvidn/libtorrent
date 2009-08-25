@@ -797,9 +797,9 @@ namespace libtorrent
 				, int response_code
 				, const std::string& str)
 			{
-				debug_log(std::string("*** tracker error: ")
-					+ boost::lexical_cast<std::string>(response_code) + ": "
-					+ str);
+				char msg[256];
+				snprintf(msg, sizeof(msg), "*** tracker error: %d: %s", response_code, str.c_str());
+				debug_log(msg);
 			}
 			
 			void debug_log(const std::string& line)
