@@ -41,8 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/identify_client.hpp"
 
-#include <boost/lexical_cast.hpp>
-
 namespace libtorrent
 {
 	struct TORRENT_EXPORT torrent_alert: alert

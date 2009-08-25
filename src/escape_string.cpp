@@ -240,6 +240,21 @@ namespace libtorrent
 		return false;
 	}
 	
+	std::string read_until(char const*& str, char delim, char const* end)
+	{
+		TORRENT_ASSERT(str <= end);
+
+		std::string ret;
+		while (str != end && *str != delim)
+		{
+			ret += *str;
+			++str;
+		}
+		// skip the delimiter as well
+		while (str != end && *str == delim) ++str;
+		return ret;
+	}
+
 	std::string maybe_url_encode(std::string const& url)
 	{
 		std::string protocol, host, auth, path;
