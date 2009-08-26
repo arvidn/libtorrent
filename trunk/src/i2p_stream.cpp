@@ -76,7 +76,7 @@ namespace libtorrent
 
 	void i2p_connection::close()
 	{
-		m_sam_socket->close();
+		if (m_sam_socket) m_sam_socket->close();
 	}
 
 	void i2p_connection::open(proxy_settings const& s, i2p_stream::handler_type const& handler)
