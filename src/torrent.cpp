@@ -1913,7 +1913,7 @@ namespace libtorrent
 		{
 			size_type file_offset = off - f->offset;
 			TORRENT_ASSERT(f != m_torrent_file->files().end());
-			TORRENT_ASSERT(file_offset < f->size);
+			TORRENT_ASSERT(file_offset <= f->size);
 			int add = (std::min)(f->size - file_offset, (size_type)size);
 			m_file_progress[file_index] += add;
 
