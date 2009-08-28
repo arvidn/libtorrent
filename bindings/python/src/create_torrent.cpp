@@ -10,10 +10,21 @@
 using namespace boost::python;
 using namespace libtorrent;
 
+namespace
+{
+    void set_hash(create_torrent& c, int p, char const* hash)
+    {
+        c.set_hash(p, sha1_hash(hash));
+    }
+}
+
 void bind_create_torrent()
 {
     void (file_storage::*add_file0)(file_entry const&) = &file_storage::add_file;
     void (file_storage::*add_file1)(fs::path const&, size_type) = &file_storage::add_file;
+
+    void (*set_piece_hashes0)(create_torrent&, boost::filesystem::path const&) = &set_piece_hashes;
+    void (*add_files0)(file_storage&, boost::filesystem::path const&) = add_files;
 
     class_<file_storage>("file_storage")
         .def("is_valid", &file_storage::is_valid)
@@ -40,7 +51,7 @@ void bind_create_torrent()
         .def("files", &create_torrent::files, return_internal_reference<>())
         .def("set_comment", &create_torrent::set_comment)
         .def("set_creator", &create_torrent::set_creator)
-        .def("set_hash", &create_torrent::set_hash)
+        .def("set_hash", &set_hash)
         .def("add_url_seed", &create_torrent::add_url_seed)
         .def("add_node", &create_torrent::add_node)
         .def("add_tracker", &create_torrent::add_tracker)
@@ -50,4 +61,8 @@ void bind_create_torrent()
         .def("piece_size", &create_torrent::piece_size)
         .def("priv", &create_torrent::priv)
         ;
+
+    def("add_files", add_files0);
+    def("set_piece_hashes", set_piece_hashes0);
+
 }
