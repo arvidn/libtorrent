@@ -920,7 +920,7 @@ namespace libtorrent
 			, bind(&session_impl::on_port_mapping
 				, m_impl.get(), _1, _2, _3, 1)
 			, bind(&session_impl::on_port_map_log
-				, m_impl.get(), _1, 0)
+				, m_impl.get(), _1, 1)
 			, m_impl->m_settings.upnp_ignore_nonrouters);
 		l.lock();
 
