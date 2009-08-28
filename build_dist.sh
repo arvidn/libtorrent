@@ -1,14 +1,15 @@
 #!/bin/sh
 rm -f config.cache
 rm -fr autom4te.cache
+rm -rf config.log
+rm -rf Makefile
 chmod a-x docs/*.rst docs/*.htm*
 
-/opt/local/bin/autoheader
-/opt/local/bin/aclocal -I m4
-/opt/local/bin/glibtool -f
-/opt/local/bin/automake -ac
-/opt/local/bin/autoconf
-./configure --enable-python-binding --with-zlib=shipped --enable-examples=yes --enable-tests=yes
-# --with-boost-python=mt-1_35 --with-boost-thread=mt-1_35 --with-boost-system=mt-1_35 --with-boost-filesystem=mt-1_35 --with-boost-regex=mt-1_35 --with-boost-program-options=mt-1_35
-make dist check
+autoheader
+aclocal -I m4
+glibtoolize -f
+automake -ac
+autoconf
+./configure --enable-python-binding --with-zlib=shipped --enable-examples=yes --enable-tests=yes --with-boost-system=mt --with-boost-python=mt --with-boost-thread=mt --with-boost-filesystem=mt --with-boost-regex=mt --with-boost-program-options=mt
+make -j 8 dist check
 
