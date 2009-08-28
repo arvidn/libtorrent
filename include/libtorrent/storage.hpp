@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
+#include <boost/function.hpp>
 #include <boost/limits.hpp>
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
