@@ -1863,21 +1863,34 @@ namespace libtorrent
 			in_req_queue = true;
 			break;
 		}
+
 		// if this is not in the request queue, we have to
 		// assume our outstanding bytes includes this piece too
 		if (!in_req_queue)
 		{
-			if (t->alerts().should_post<unwanted_block_alert>())
+			for (std::vector<piece_block>::iterator i = m_request_queue.begin()
+				, end(m_request_queue.end()); i != end; ++i)
 			{
-				t->alerts().post_alert(unwanted_block_alert(t->get_handle(), m_remote
-					, m_peer_id, b.block_index, b.piece_index));
+				if (*i != b) continue;
+				in_req_queue = true;
+				m_request_queue.erase(i);
+				break;
 			}
+
+			if (!in_req_queue)
+			{
+				if (t->alerts().should_post<unwanted_block_alert>())
+				{
+					t->alerts().post_alert(unwanted_block_alert(t->get_handle(), m_remote
+						, m_peer_id, b.block_index, b.piece_index));
+				}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << " *** The block we just got was not in the "
-				"request queue ***\n";
+				(*m_logger) << " *** The block we just got was not in the "
+					"request queue ***\n";
 #endif
+			}
 			m_download_queue.insert(m_download_queue.begin(), b);
-			m_download_queue.front().not_wanted = true;
+			if (!in_req_queue) m_download_queue.front().not_wanted = true;
 			m_outstanding_bytes += r.length;
 		}
 	}
