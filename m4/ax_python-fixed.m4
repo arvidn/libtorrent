@@ -59,13 +59,18 @@ AC_DEFUN([AX_PYTHON],
 [AC_MSG_CHECKING(for python build information)
 AC_MSG_RESULT([])
 for python in python2.6 python2.5 python2.4 python2.3 python2.2 python2.1 python; do
-AC_CHECK_PROGS(PYTHON_BIN, [$python])
+# AC_CHECK_PROGS(PYTHON_BIN, [$python])
+PYTHON_BIN=$python
 ax_python_bin=$PYTHON_BIN
 if test x$ax_python_bin != x; then
    AC_CHECK_LIB($ax_python_bin, main, ax_python_lib=$ax_python_bin, ax_python_lib=no)
-   AC_CHECK_HEADER([$ax_python_bin/Python.h],
-   ax_python_header=/usr/include/$ax_python_bin,
-   ax_python_header=no)
+   AC_CHECK_HEADER([$ax_python_bin/Python.h], ax_python_header=/usr/include/$ax_python_bin, ax_python_header=no)
+   if test $ax_python_lib != no; then
+     if test $ax_python_header != no; then
+       break;
+     fi
+   fi
+   AC_CHECK_HEADER([$ax_python_bin/Python.h], ax_python_header=/opt/local/include/$ax_python_bin, ax_python_header=no)
    if test $ax_python_lib != no; then
      if test $ax_python_header != no; then
        break;
