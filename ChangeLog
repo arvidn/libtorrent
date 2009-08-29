@@ -70,6 +70,9 @@
 	* improved support for sparse files on windows
 	* added ability to give seeding torrents preference to active slots
 
+release 0.14.6
+
+	* various missing include fixes to be buildable with boost 1.40
 	* added missing functions to python binding related to torrent creation
 	* fixed to add filename on web seed urls that lack it
 	* fixed BOOST_ASIO_HASH_MAP_BUCKETS define for boost 1.39
