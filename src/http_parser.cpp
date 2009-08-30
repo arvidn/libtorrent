@@ -98,7 +98,7 @@ namespace libtorrent
 
 			char const* line = pos;
 			++newline;
-			int incoming = (int)std::distance(pos, newline);
+			int incoming = int(newline - pos);
 			m_recv_pos += incoming;
 			boost::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
 			pos = newline;

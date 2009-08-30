@@ -93,7 +93,7 @@ namespace libtorrent
 				continue;
 			}
 			
-			if (std::distance(i, end) < 2)
+			if (end - i < 2)
 			{
 				convert_to_utf8(tmp_path, *i);
 				valid_encoding = false;
@@ -110,7 +110,7 @@ namespace libtorrent
 				continue;
 			}
 
-			if (std::distance(i, end) < 3)
+			if (end - i < 3)
 			{
 				convert_to_utf8(tmp_path, *i);
 				valid_encoding = false;
@@ -129,7 +129,7 @@ namespace libtorrent
 				continue;
 			}
 
-			if (std::distance(i, end) < 4)
+			if (end - i < 4)
 			{
 				convert_to_utf8(tmp_path, *i);
 				valid_encoding = false;

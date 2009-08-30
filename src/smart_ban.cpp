@@ -226,7 +226,7 @@ namespace libtorrent { namespace
 				return;
 			}
 			
-			m_block_crc.insert(i, std::make_pair(b, e));
+			m_block_crc.insert(i, std::pair<const piece_block, block_entry>(b, e));
 
 #ifdef TORRENT_LOGGING
 			char const* client = "-";

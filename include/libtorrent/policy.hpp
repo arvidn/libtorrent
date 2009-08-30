@@ -148,8 +148,13 @@ namespace libtorrent
 			// we'll have to add thes figures with the
 			// statistics from the peer_connection.
 			// 48 bits can fit 256 Terabytes
+#ifdef __SUNPRO_CC
+			unsigned prev_amount_upload:48;
+			unsigned prev_amount_download:48;
+#else
 			boost::uint64_t prev_amount_upload:48;
 			boost::uint64_t prev_amount_download:48;
+#endif
 
 			// if the peer is connected now, this
 			// will refer to a valid peer_connection

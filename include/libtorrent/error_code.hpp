@@ -191,6 +191,8 @@ namespace libtorrent
 			reserved8,
 
 			no_i2p_router,
+
+			error_code_max
 		};
 	}
 

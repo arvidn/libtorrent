@@ -50,21 +50,43 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-#if defined(__GNUC__) && __GNUC__ >= 4
 
-#define TORRENT_DEPRECATED __attribute__ ((deprecated))
+// ======= GCC =========
 
-# if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
-#  define TORRENT_EXPORT __attribute__ ((visibility("default")))
+#if defined __GNUC__
+
+# define TORRENT_DEPRECATED __attribute__ ((deprecated))
+
+// GCC pre 4.0 did not have support for the visibility attribute
+# if __GNUC__ >= 4
+#  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
+#   define TORRENT_EXPORT __attribute__ ((visibility("default")))
+#  else
+#   define TORRENT_EXPORT
+#  endif
 # else
 #  define TORRENT_EXPORT
 # endif
 
-#elif defined(__GNUC__)
 
-# define TORRENT_EXPORT
+// ======= SUNPRO =========
 
-#elif defined(BOOST_MSVC)
+#elif defined __SUNPRO_CC
+
+# if __SUNPRO_CC >= 0x550
+#  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
+#   define TORRENT_EXPORT __global
+#  else
+#   define TORRENT_EXPORT
+#  endif
+# else
+#  define TORRENT_EXPORT
+# endif
+
+
+// ======= MSVC =========
+
+#elif defined BOOST_MSVC
 
 #pragma warning(disable: 4258)
 #pragma warning(disable: 4251)
@@ -79,9 +101,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_DEPRECATED_PREFIX __declspec(deprecated("function is deprecated"))
 
+
+
+// ======= GENERIC COMPILER =========
+
 #else
 # define TORRENT_EXPORT
 #endif
+
+
 
 #ifndef TORRENT_DEPRECATED_PREFIX
 #define TORRENT_DEPRECATED_PREFIX
@@ -129,14 +157,22 @@ POSSIBILITY OF SUCH DAMAGE.
 // (disables some float-dependent APIs)
 #define TORRENT_NO_FPU 0
 
+// make sure NAME_MAX is defined
+#ifndef NAME_MAX
+#ifdef MAXPATH
+#define NAME_MAX MAXPATH
+#else
+// this is the maximum number of characters in a
+// path element / filename on windows
+#define NAME_MAX 255
+#endif // MAXPATH
+#endif // NAME_MAX
+
 #ifdef TORRENT_WINDOWS
 
 #pragma warning(disable:4251) // class X needs to have dll-interface to be used by clients of class Y
 
 #include <stdarg.h>
-// this is the maximum number of characters in a
-// path element / filename on windows
-#define NAME_MAX 255
 
 inline int snprintf(char* buf, int len, char const* fmt, ...)
 {

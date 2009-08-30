@@ -552,7 +552,7 @@ void add_torrent(libtorrent::session& ses
 	p.auto_managed = true;
 	torrent_handle h = ses.add_torrent(p, ec);
 
-	handles.insert(std::make_pair(
+	handles.insert(std::pair<const std::string, torrent_handle>(
 		monitored_dir?std::string(torrent):std::string(), h));
 
 	h.set_max_connections(50);
@@ -846,7 +846,7 @@ int main(int argc, char* argv[])
 					continue;
 				}
 
-				handles.insert(std::make_pair(std::string(), h));
+				handles.insert(std::pair<const std::string, torrent_handle>(std::string(), h));
 
 				h.set_max_connections(50);
 				h.set_max_uploads(-1);
@@ -881,7 +881,7 @@ int main(int argc, char* argv[])
 					continue;
 				}
 
-				handles.insert(std::make_pair(std::string(), h));
+				handles.insert(std::pair<const std::string, torrent_handle>(std::string(), h));
 
 				h.set_max_connections(50);
 				h.set_max_uploads(-1);

@@ -196,10 +196,7 @@ namespace libtorrent
 		std::string ret;
 		for (int i = 0; i < len; ++i)
 		{
-			if (std::count(
-					unreserved_chars+offset
-					, unreserved_chars+sizeof(unreserved_chars)-1
-					, *str))
+			if (std::strchr(unreserved_chars+offset, *str))
 			{
 				ret += *str;
 			}
@@ -228,13 +225,8 @@ namespace libtorrent
 	{
 		for (int i = 0; i < len; ++i)
 		{
-			if (std::count(
-					unreserved_chars
-					, unreserved_chars+sizeof(unreserved_chars)-1
-					, *str) == 0)
-			{
+			if (std::strchr(unreserved_chars, *str) == 0)
 				return true;
-			}
 			++str;
 		}
 		return false;
@@ -296,7 +288,7 @@ namespace libtorrent
 		{
 			// available input is 1,2 or 3 bytes
 			// since we read 3 bytes at a time at most
-			int available_input = (std::min)(3, (int)std::distance(i, s.end()));
+			int available_input = (std::min)(3, int(s.end()-i));
 
 			// clear input buffer
 			std::fill(inbuf, inbuf+3, 0);
@@ -344,7 +336,7 @@ namespace libtorrent
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
 		{
-			int available_input = (std::min)(5, (int)std::distance(i, s.end()));
+			int available_input = (std::min)(5, int(s.end()-i));
 
 			// clear input buffer
 			std::fill(inbuf, inbuf+5, 0);
@@ -387,7 +379,7 @@ namespace libtorrent
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
 		{
-			int available_input = (std::min)(8, (int)std::distance(i, s.end()));
+			int available_input = (std::min)(8, int(s.end()-i));
 
 			int pad_start = 0;
 			if (available_input < 8) pad_start = available_input;
