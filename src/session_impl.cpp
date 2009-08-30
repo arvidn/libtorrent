@@ -1389,6 +1389,7 @@ namespace aux {
 			}
 		}
 
+#ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
 		{
 			int dht_down;
@@ -1397,6 +1398,7 @@ namespace aux {
 			m_stat.sent_dht_bytes(dht_up);
 			m_stat.received_dht_bytes(dht_down);
 		}
+#endif
 
 		if (m_settings.rate_limit_ip_overhead)
 		{
