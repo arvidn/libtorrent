@@ -68,7 +68,7 @@ namespace libtorrent
 			internal_port_must_match_external = 724,
 			only_permanent_leases_supported = 725,
 			remote_host_must_be_wildcard = 726,
-			external_port_must_be_wildcard = 727,
+			external_port_must_be_wildcard = 727
 		};
 	}
 

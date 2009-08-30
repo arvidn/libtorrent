@@ -189,6 +189,8 @@ namespace libtorrent
 			reserved6,
 			reserved7,
 			reserved8,
+
+			error_code_max
 		};
 	}
 

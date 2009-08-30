@@ -55,12 +55,12 @@ class rpc_manager;
 class refresh : public traversal_algorithm
 {
 public:
+	typedef std::vector<node_entry>::iterator InIt;
 	typedef boost::function<void()> done_callback;
 
 	void ping_reply(node_id id);
 	void ping_timeout(node_id id, bool prevent_request = false);
 
-	template<class InIt>
 	refresh(node_impl& node, node_id target, InIt first, InIt last
 		, done_callback const& callback);
 
@@ -131,12 +131,11 @@ private:
 	boost::intrusive_ptr<refresh> m_algorithm;
 };
 
-template<class InIt>
 inline refresh::refresh(
 	node_impl& node
 	, node_id target
-	, InIt first
-	, InIt last
+	, refresh::InIt first
+	, refresh::InIt last
 	, done_callback const& callback)
 	: traversal_algorithm(node, target, first, last)
 	, m_max_active_pings(10)

@@ -232,7 +232,7 @@ namespace libtorrent
 				else if (bits > m_size)
 				{
 					unsigned char* tmp = (unsigned char*)std::malloc(bytes);
-					std::memcpy(tmp, m_bytes, (std::min)((m_size + 7)/ 8, bytes));
+					std::memcpy(tmp, m_bytes, (std::min)(int(m_size + 7)/ 8, bytes));
 					m_bytes = tmp;
 					m_own = true;
 				}
