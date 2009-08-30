@@ -429,7 +429,7 @@ namespace libtorrent
 			for (std::string::const_iterator i = peers.begin();
 				i != peers.end();)
 			{
-				if (std::distance(i, peers.end()) < 6) break;
+				if (peers.end() - i < 6) break;
 
 				peer_entry p;
 				p.pid.clear();
@@ -463,7 +463,7 @@ namespace libtorrent
 			for (std::string::const_iterator i = peers.begin();
 				i != peers.end();)
 			{
-				if (std::distance(i, peers.end()) < 18) break;
+				if (peers.end() - i < 18) break;
 
 				peer_entry p;
 				p.pid.clear();

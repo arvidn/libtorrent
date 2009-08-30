@@ -87,16 +87,14 @@ namespace detail
 	Addr plus_one(Addr const& a)
 	{
 		Addr tmp(a);
-		typedef typename Addr::reverse_iterator iter;
-		for (iter i = tmp.rbegin()
-			, end(tmp.rend()); i != end; ++i)
+		for (int i = tmp.size() - 1; i >= 0; --i)
 		{
-			if (*i < (std::numeric_limits<typename iter::value_type>::max)())
+			if (tmp[i] < (std::numeric_limits<typename Addr::value_type>::max)())
 			{
-				*i += 1;
+				tmp[i] += 1;
 				break;
 			}
-			*i = 0;
+			tmp[i] = 0;
 		}
 		return tmp;
 	}
@@ -107,16 +105,14 @@ namespace detail
 	Addr minus_one(Addr const& a)
 	{
 		Addr tmp(a);
-		typedef typename Addr::reverse_iterator iter;
-		for (iter i = tmp.rbegin()
-			, end(tmp.rend()); i != end; ++i)
+		for (int i = tmp.size() - 1; i >= 0; --i)
 		{
-			if (*i > 0)
+			if (tmp[i] > 0)
 			{
-				*i -= 1;
+				tmp[i] -= 1;
 				break;
 			}
-			*i = (std::numeric_limits<typename iter::value_type>::max)();
+			tmp[i] = (std::numeric_limits<typename Addr::value_type>::max)();
 		}
 		return tmp;
 	}

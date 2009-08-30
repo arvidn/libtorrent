@@ -85,8 +85,7 @@ namespace libtorrent
 		dictionary_type::iterator i = dict().find(key);
 		if (i != dict().end()) return i->second;
 		dictionary_type::iterator ret = dict().insert(
-			dict().begin()
-			, std::make_pair(key, entry()));
+			std::pair<const std::string, entry>(key, entry())).first;
 		return ret->second;
 	}
 
@@ -95,8 +94,7 @@ namespace libtorrent
 		dictionary_type::iterator i = dict().find(key);
 		if (i != dict().end()) return i->second;
 		dictionary_type::iterator ret = dict().insert(
-			dict().begin()
-			, std::make_pair(std::string(key), entry()));
+			std::make_pair(key, entry())).first;
 		return ret->second;
 	}
 

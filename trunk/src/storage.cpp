@@ -1427,7 +1427,7 @@ ret:
 		, int offset
 		, int size)
 	{
-		file::iovec_t b = { (void*)buf, size };
+		file::iovec_t b = { (file::iovec_base_t)buf, size };
 		return writev(&b, slot, offset, 1);
 	}
 
@@ -1437,7 +1437,7 @@ ret:
 		, int offset
 		, int size)
 	{
-		file::iovec_t b = { (void*)buf, size };
+		file::iovec_t b = { (file::iovec_base_t)buf, size };
 		return readv(&b, slot, offset, 1);
 	}
 
@@ -2526,7 +2526,7 @@ ret:
 		if (m_hash_to_piece.empty())
 		{
 			for (int i = 0; i < m_files.num_pieces(); ++i)
-				m_hash_to_piece.insert(std::make_pair(m_info->hash_for_piece(i), i));
+				m_hash_to_piece.insert(std::pair<const sha1_hash, int>(m_info->hash_for_piece(i), i));
 		}
 
 		partial_hash ph;

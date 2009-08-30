@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/cstdint.hpp>
 #include <string>
+#include <algorithm> // for copy
+#include <cstring> // for memcpy
 
 namespace libtorrent
 {
@@ -137,7 +139,7 @@ namespace libtorrent
 
 		inline void write_string(std::string const& str, char*& start)
 		{
-			std::copy(str.begin(), str.end(), start);
+			std::memcpy((void*)start, &str[0], str.size());
 			start += str.size();
 		}
 

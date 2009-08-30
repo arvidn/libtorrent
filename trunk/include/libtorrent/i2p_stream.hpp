@@ -148,7 +148,7 @@ private:
 		read_connect_response,
 		read_accept_response,
 		read_session_create_response,
-		read_name_lookup_response,
+		read_name_lookup_response
 	};
 
 	int m_state;

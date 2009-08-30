@@ -349,12 +349,12 @@ namespace libtorrent
 		}
 
 		if (find_string(PID, "-BOW") && PID[7] == '-')
-			return "Bits on Wheels " + std::string(PID + 4, PID + 7);
+			return "Bits on Wheels " + std::string((char const*)PID + 4, (char const*)PID + 7);
 		
 
 		if (find_string(PID, "eX"))
 		{
-			std::string user(PID + 2, PID + 14);
+			std::string user((char const*)PID + 2, (char const*)PID + 14);
 			return std::string("eXeem ('") + user.c_str() + "')"; 
 		}
 

@@ -80,8 +80,7 @@ namespace
 		void operator()(std::pair<libtorrent::dht::node_id
 			, libtorrent::dht::torrent_entry> const& t)
 		{
-			count += std::distance(t.second.peers.begin()
-				, t.second.peers.end());
+			count += t.second.peers.size();
 		}
 	};
 	
@@ -1024,7 +1023,7 @@ namespace libtorrent { namespace dht
 			e["y"] = "r";
 			e["r"] = entry(entry::dictionary_t);
 			entry& r = e["r"];
-			r["id"] = std::string(m.id.begin(), m.id.end());
+			r["id"] = std::string((char*)m.id.begin(), (char*)m.id.end());
 			if (!m.write_token.empty())
 			{
 			 	r["token"] = m.write_token;
@@ -1085,7 +1084,7 @@ namespace libtorrent { namespace dht
 			e["y"] = "q";
 			e["a"] = entry(entry::dictionary_t);
 			entry& a = e["a"];
-			a["id"] = std::string(m.id.begin(), m.id.end());
+			a["id"] = std::string((char*)m.id.begin(), (char*)m.id.end());
 
 			TORRENT_ASSERT(m.message_id <= messages::error);
 			e["q"] = messages::ids[m.message_id];
@@ -1100,7 +1099,7 @@ namespace libtorrent { namespace dht
 				case messages::find_node:
 				{
 					send_flags = 1;
-					a["target"] = std::string(m.info_hash.begin(), m.info_hash.end());
+					a["target"] = std::string((char*)m.info_hash.begin(), (char*)m.info_hash.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 					log_line << " target: " << boost::lexical_cast<std::string>(m.info_hash);
 #endif
@@ -1109,7 +1108,7 @@ namespace libtorrent { namespace dht
 				case messages::get_peers:
 				{
 					send_flags = 1;
-					a["info_hash"] = std::string(m.info_hash.begin(), m.info_hash.end());
+					a["info_hash"] = std::string((char*)m.info_hash.begin(), (char*)m.info_hash.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 					log_line << " ih: " << boost::lexical_cast<std::string>(m.info_hash);
 #endif
@@ -1118,7 +1117,7 @@ namespace libtorrent { namespace dht
 				case messages::announce_peer:
 					send_flags = 1;
 					a["port"] = m.port;
-					a["info_hash"] = std::string(m.info_hash.begin(), m.info_hash.end());
+					a["info_hash"] = std::string((char*)m.info_hash.begin(), (char*)m.info_hash.end());
 					a["token"] = m.write_token;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 					log_line << " port: " << m.port

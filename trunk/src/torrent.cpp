@@ -185,7 +185,7 @@ namespace
 			if (p->pid() != pid) return false;
 			// have a special case for all zeros. We can have any number
 			// of peers with that pid, since it's used to indicate no pid.
-			if (std::count(pid.begin(), pid.end(), 0) == 20) return false;
+			if (pid.is_all_zeros()) return false;
 			return true;
 		}
 
@@ -5708,7 +5708,7 @@ namespace libtorrent
 				std::vector<int> pieces;
 				m_picker->piece_priorities(pieces);
 				// make sure all pieces have priority 0
-				TORRENT_ASSERT(std::count(pieces.begin(), pieces.end(), 0) == int(pieces.size()));
+				TORRENT_ASSERT(std::accumulate(pieces.begin(), pieces.end(), 0) == 0);
 			}
 		}
 		if (s == torrent_status::seeding)
@@ -5906,8 +5906,11 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		return (int)std::count_if(m_connections.begin(), m_connections.end()
-			, boost::bind(&peer_connection::is_seed, _1));
+		int ret = 0;
+		for (std::set<peer_connection*>::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+			if ((*i)->is_seed()) ++ret;
+		return ret;
 	}
 
 	void torrent::tracker_request_timed_out(

@@ -86,12 +86,14 @@ namespace libtorrent
 
 		void clear()
 		{
-			std::fill(m_number,m_number+number_size,0);
+			std::fill(m_number,m_number+number_size,(const unsigned char)(0));
 		}
 
 		bool is_all_zeros() const
 		{
-			return std::count(m_number,m_number+number_size,0) == number_size;
+			for (const unsigned char* i = m_number; i < m_number+number_size; ++i)
+				if (*i != 0) return false;
+			return true;
 		}
 
 		bool operator==(big_number const& n) const

@@ -2992,9 +2992,12 @@ namespace aux {
 #ifdef TORRENT_DEBUG
 	void session_impl::check_invariant() const
 	{
-		int num_checking =  std::count_if(m_queued_for_checking.begin()
-			, m_queued_for_checking.end(), boost::bind(&torrent::state, _1)
-			== torrent_status::checking_files);
+		int num_checking = 0;
+		for (check_queue_t::const_iterator i = m_queued_for_checking.begin()
+			, end(m_queued_for_checking.end()); i != end; ++i)
+		{
+			if ((*i)->state() == torrent_status::checking_files) ++num_checking;
+		}
 
 		// the queue is either empty, or it has exactly one checking torrent in it
 		TORRENT_ASSERT(m_queued_for_checking.empty() || num_checking == 1);

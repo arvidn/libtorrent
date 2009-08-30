@@ -1233,7 +1233,7 @@ namespace libtorrent
 				(*m_logger) << " " << e->list_int_value_at(0) << ": "
 					<< sha1_hash(e->list_at(1)->string_ptr());
 #endif
-				nodes.insert(nodes.begin(), std::make_pair(int(e->list_int_value_at(0))
+				nodes.insert(std::make_pair(int(e->list_int_value_at(0))
 					, sha1_hash(e->list_at(1)->string_ptr())));
 			}
 #ifdef TORRENT_VERBOSE_LOGGING

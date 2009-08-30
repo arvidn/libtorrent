@@ -106,10 +106,10 @@ namespace libtorrent
 			i->index = 0;
 		}
 
-		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin() + m_cursor
+		for (std::vector<piece_pos>::iterator i = m_piece_map.begin() + m_cursor
 			, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
 			++i, ++m_cursor);
-		for (std::vector<piece_pos>::const_reverse_iterator i = m_piece_map.rend()
+		for (std::vector<piece_pos>::reverse_iterator i = m_piece_map.rend()
 			- m_reverse_cursor; m_reverse_cursor > 0 && (i->have() || i->filtered());
 			++i, --m_reverse_cursor);
 
@@ -345,7 +345,7 @@ namespace libtorrent
 		index = num_pieces;
 		if (num_pieces > 0)
 		{
-			for (std::vector<piece_pos>::const_reverse_iterator i = m_piece_map.rend()
+			for (std::vector<piece_pos>::reverse_iterator i = m_piece_map.rend()
 				- index; index > 0 && (i->have() || i->filtered()); ++i, --index);
 			TORRENT_ASSERT(index == num_pieces
 				|| m_piece_map[index].have()

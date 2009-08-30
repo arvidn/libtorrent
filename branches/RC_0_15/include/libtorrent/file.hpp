@@ -115,6 +115,14 @@ namespace libtorrent
 		typedef iovec iovec_t;
 #endif
 
+		// use a typedef for the type of iovec_t::iov_base
+		// since it may differ
+#ifdef TORRENT_SOLARIS
+		typedef char* iovec_base_t;
+#else
+		typedef void* iovec_base_t;
+#endif
+
 		file();
 		file(fs::path const& p, int m, error_code& ec);
 		~file();
