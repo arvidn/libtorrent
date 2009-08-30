@@ -2110,6 +2110,7 @@ namespace aux {
 
 		INVARIANT_CHECK;
 
+#ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
 		{
 			m_dht->stop();
@@ -2142,6 +2143,7 @@ namespace aux {
 		{
 			m_dht_socket.bind(m_dht_settings.service_port);
 		}
+#endif
 
 		for (std::list<std::pair<std::string, int> >::iterator i = m_dht_router_nodes.begin()
 			, end(m_dht_router_nodes.end()); i != end; ++i)

@@ -1381,6 +1381,7 @@ int main(int argc, char* argv[])
 			, sess_stat.optimistic_unchoke_counter, sess_stat.unchoke_counter);
 		out += str;
 
+#ifndef TORRENT_DISABLE_DHT
 		if (show_dht_status)
 		{
 			snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d total DHT size: %"PRId64"\n"
@@ -1395,6 +1396,7 @@ int main(int argc, char* argv[])
 				out += str;
 			}
 		}
+#endif
 
 		if (active_handle.is_valid())
 		{
