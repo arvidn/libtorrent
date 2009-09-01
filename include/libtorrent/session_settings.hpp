@@ -179,6 +179,7 @@ namespace libtorrent
 			, optimistic_disk_retry(10 * 60)
 			, disable_hash_checks(false)
 			, allow_i2p_mixed(false)
+			, max_suggest_pieces(10)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -633,6 +634,11 @@ namespace libtorrent
 		// the anonymization of i2p, but still wants to
 		// be able to connect to i2p peers.
 		bool allow_i2p_mixed;
+
+		// the max number of pieces that a peer can
+		// suggest to use before we start dropping
+		// previous suggested piece
+		int max_suggest_pieces;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
