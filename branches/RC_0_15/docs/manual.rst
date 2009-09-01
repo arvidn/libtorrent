@@ -3558,6 +3558,8 @@ session_settings
 
 		int optimistic_disk_retry;
 		bool disable_hash_check;
+
+		int max_suggest_pieces;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3982,6 +3984,10 @@ the piece hashes in the torrent file or not. The default is false, i.e.
 to verify all downloaded data. It may be useful to turn this off for performance
 profiling and simulation scenarios. Do not disable the hash check for regular
 bittorrent clients.
+
+``max_suggest_pieces`` is the max number of suggested piece indices received
+from a peer that's remembered. If a peer floods suggest messages, this limit
+prevents libtorrent from using too much RAM. It defaults to 10.
 
 pe_settings
 ===========

@@ -535,6 +535,32 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
 		m_num_pieces = m_have_piece.count();
+
+		// now that we know how many pieces there are
+		// remove any invalid allowed_fast and suggest pieces
+		// now that we know what the number of pieces are
+		for (std::vector<int>::iterator i = m_allowed_fast.begin();
+			i != m_allowed_fast.end();)
+		{
+			if (*i < m_num_pieces)
+			{
+				++i;
+				continue;
+			}
+			i = m_allowed_fast.erase(i);
+		}
+
+		for (std::vector<int>::iterator i = m_suggested_pieces.begin();
+			i != m_suggested_pieces.end();)
+		{
+			if (*i < m_num_pieces)
+			{
+				++i;
+				continue;
+			}
+			i = m_suggested_pieces.erase(i);
+		}
+		
 		if (m_num_pieces == int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -738,6 +764,10 @@ namespace libtorrent
 		std::vector<int>::iterator i = std::find(
 			m_suggested_pieces.begin(), m_suggested_pieces.end(), index);
 		if (i != m_suggested_pieces.end()) m_suggested_pieces.erase(i);
+
+		// remove allowed fast pieces
+		i = std::find(m_allowed_fast.begin(), m_allowed_fast.end(), index);
+		if (i != m_allowed_fast.end()) m_allowed_fast.erase(i);
 
 		if (has_piece(index))
 		{
@@ -1167,10 +1197,34 @@ namespace libtorrent
 #endif
 
 		if (is_disconnecting()) return;
-		if (t->have_piece(index)) return;
+		if (index < 0)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_logger) << time_now_string() << " <== INVALID_SUGGEST_PIECE [ " << index << " ]\n";
+#endif
+			return;
+		}
 		
-		if (m_suggested_pieces.size() > 9)
+		if (t->valid_metadata())
+		{
+			if (index >= int(m_have_piece.size()))
+			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+				(*m_logger) << time_now_string() << " <== INVALID_ALLOWED_FAST [ " << index << " | s: "
+					<< int(m_have_piece.size()) << " ]\n";
+#endif
+				return;
+			}
+
+			// if we already have the piece, we can
+			// ignore this message
+			if (t->have_piece(index))
+				return;
+		}
+
+		if (m_suggested_pieces.size() > m_ses.m_settings.max_suggest_pieces)
 			m_suggested_pieces.erase(m_suggested_pieces.begin());
+
 		m_suggested_pieces.push_back(index);
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -2439,10 +2493,17 @@ namespace libtorrent
 		}
 #endif
 		if (is_disconnecting()) return;
+		if (index < 0)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_logger) << time_now_string() << " <== INVALID_ALLOWED_FAST [ " << " ]\n";
+#endif
+			return;
+		}
 
 		if (t->valid_metadata())
 		{
-			if (index < 0 || index >= int(m_have_piece.size()))
+			if (index >= int(m_have_piece.size()))
 			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*m_logger) << time_now_string() << " <== INVALID_ALLOWED_FAST [ " << index << " | s: "
@@ -2457,6 +2518,8 @@ namespace libtorrent
 				return;
 		}
 
+		// if we don't have the metadata, we'll verify
+		// this piece index later
 		m_allowed_fast.push_back(index);
 
 		// if the peer has the piece and we want
@@ -2475,10 +2538,6 @@ namespace libtorrent
 	{
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
-
-		m_allowed_fast.erase(std::remove_if(m_allowed_fast.begin()
-			, m_allowed_fast.end(), bind(&torrent::have_piece, t, _1))
-			, m_allowed_fast.end());
 
 		// TODO: sort the allowed fast set in priority order
 		return m_allowed_fast;
