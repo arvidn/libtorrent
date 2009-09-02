@@ -1394,6 +1394,7 @@ namespace libtorrent
 					TORRENT_ASSERT(s.cache_expiry > 0);
 
 					m_settings = s;
+					break;
 				}
 				case disk_io_job::abort_torrent:
 				{

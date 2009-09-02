@@ -479,7 +479,7 @@ namespace libtorrent
 		if (!aligned)
 		{
 			size = bufs_size(bufs, num_bufs);
-			if (size & (size_alignment()-1) == 0) aligned = true;
+			if ((size & (size_alignment()-1)) == 0) aligned = true;
 		}
 		if (aligned)
 #endif // TORRENT_LINUX
@@ -707,7 +707,7 @@ namespace libtorrent
 		if (!aligned)
 		{
 			size = bufs_size(bufs, num_bufs);
-			if (size & (size_alignment()-1) == 0) aligned = true;
+			if ((size & (size_alignment()-1)) == 0) aligned = true;
 		}
 		if (aligned)
 #endif
