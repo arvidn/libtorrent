@@ -85,9 +85,6 @@ network
 * supports gzipped tracker-responses
 * can limit the upload and download bandwidth usage and the maximum number of
   unchoked peers
-* implements fair trade. User settable trade-ratio, must at least be 1:1,
-  but one can choose to trade 1 for 2 or any other ratio that isn't unfair
-  to the other party.
 * possibility to limit the number of connections.
 * delays have messages if there's no other outgoing traffic to the peer, and
   doesn't send have messages to peers that already has the piece. This saves
@@ -95,8 +92,12 @@ network
 * selective downloading. The ability to select which parts of a torrent you
   want to download.
 * ip filter to disallow ip addresses and ip ranges from connecting and
-  being connected
+  being connected.
 * NAT-PMP and UPnP support (automatic port mapping on routers that supports it)
+* implements automatic upload slots, to optimize download rate without spreading
+  upload capacity too thin. The number of upload slots is adjusted based on the
+  peers' download capacity to work even for connections that are orders of
+  magnitude faster than others.
 
 
 .. _`DHT extensions`: dht_extensions.html
