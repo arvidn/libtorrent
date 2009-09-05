@@ -61,6 +61,8 @@ namespace libtorrent
 	// it will be encoded
 	std::string TORRENT_EXPORT maybe_url_encode(std::string const& url);
 
+	bool TORRENT_EXPORT need_encoding(char const* str, int len);
+
 	// encodes a string using the base64 scheme
 	TORRENT_EXPORT std::string base64encode(std::string const& s);
 	TORRENT_EXPORT std::string base64decode(std::string const& s);
