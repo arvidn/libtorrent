@@ -50,23 +50,23 @@ POSSIBILITY OF SUCH DAMAGE.
 // posix part
 #define _FILE_OFFSET_BITS 64
 #include <unistd.h>
-#include <fcntl.h>
+#include <fcntl.h> // for F_LOG2PHYS
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/statvfs.h>
 #include <errno.h>
-#ifdef HAVE_FIEMAP
-#include <ioctl.h>
+#ifdef TORRENT_LINUX
+#include <sys/ioctl.h>
+#ifdef FS_IOC_FIEMAP
 #include <linux/fiemap.h>
 #endif
-
-#include <fcntl.h> // for F_LOG2PHYS
+#endif // TORRENT_LINUX
 
 #include <boost/static_assert.hpp>
 // make sure the _FILE_OFFSET_BITS define worked
 // on this platform. It's supposed to make file
 // related functions support 64-bit offsets.
-// this test makes sure lseed() returns a type
+// this test makes sure lseek() returns a type
 // at least 64 bits wide
 BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 
@@ -772,7 +772,7 @@ namespace libtorrent
 
 	size_type file::phys_offset(size_type offset)
 	{
-#ifdef HAVE_FIEMAP
+#ifdef FS_IOC_FIEMAP
 		// for documentation of this feature
 		// http://lwn.net/Articles/297696/
 		struct
