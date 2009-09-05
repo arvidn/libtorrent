@@ -499,8 +499,9 @@ namespace libtorrent
 						ph.h.update((char const*)bufs[i].iov_base, small_piece_size);
 						*small_hash = hasher(ph.h).final();
 						small_hash = 0; // avoid this case again
-						ph.h.update((char const*)bufs[i].iov_base + small_piece_size
-							, bufs[i].iov_len - small_piece_size);
+						if (bufs[i].iov_len > small_piece_size)
+							ph.h.update((char const*)bufs[i].iov_base + small_piece_size
+								, bufs[i].iov_len - small_piece_size);
 					}
 					else
 					{
@@ -523,13 +524,14 @@ namespace libtorrent
 					int ret = m_storage->readv(&buf, slot, ph.offset, 1);
 					if (ret > 0) num_read += ret;
 
-					if (small_hash && small_piece_size < block_size)
+					if (small_hash && small_piece_size <= block_size)
 					{
 						if (small_piece_size > 0) ph.h.update((char const*)buf.iov_base, small_piece_size);
 						*small_hash = hasher(ph.h).final();
 						small_hash = 0; // avoid this case again
-						ph.h.update((char const*)buf.iov_base + small_piece_size
-							, buf.iov_len - small_piece_size);
+						if (buf.iov_len > small_piece_size)
+							ph.h.update((char const*)buf.iov_base + small_piece_size
+								, buf.iov_len - small_piece_size);
 					}
 					else
 					{
