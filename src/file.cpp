@@ -30,6 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+/*
+	Physical file offset patch by Morten Husveit
+*/
+
 #include "libtorrent/pch.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
@@ -51,6 +55,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 #include <sys/statvfs.h>
 #include <errno.h>
+#ifdef HAVE_FIEMAP
+#include <ioctl.h>
+#include <linux/fiemap.h>
+#endif
+
+#include <fcntl.h> // for F_LOG2PHYS
 
 #include <boost/static_assert.hpp>
 // make sure the _FILE_OFFSET_BITS define worked
@@ -758,6 +768,48 @@ namespace libtorrent
 #endif // TORRENT_USE_WRITEV
 
 #endif // TORRENT_WINDOWS
+	}
+
+	size_type file::phys_offset(size_type offset)
+	{
+#ifdef HAVE_FIEMAP
+		// for documentation of this feature
+		// http://lwn.net/Articles/297696/
+		struct
+		{
+			struct fiemap fiemap;
+			struct fiemap_extent extent;
+		} fm;
+
+		memset(&fm, 0, sizeof(fm));
+		fm.fiemap.fm_start = offset;
+		fm.fiemap.fm_length = size_alignment();
+		// this sounds expensive
+		fm.fiemap.fm_flags = FIEMAP_FLAG_SYNC;
+		fm.fiemap.fm_extent_count = 1;
+
+		if (ioctl(m_fd, FS_IOC_FIEMAP, &fm) == -1)
+			return 0;
+
+		if (fm.fiemap.fm_extents[0].fe_flags & FIEMAP_EXTENT_UNKNOWN)
+			return 0;
+
+		// the returned extent is not guaranteed to start
+		// at the requested offset, adjust for that in
+		// case they differ
+		return fm.fiemap.fm_extents[0].fe_physical + (offset - fm.fiemap.fm_extents[0].fe_logical);
+
+#elif defined F_LOG2PHYS
+		// for documentation of this feature
+		// http://developer.apple.com/mac/library/documentation/Darwin/Reference/ManPages/man2/fcntl.2.html
+
+		log2phys l;
+		size_type ret = lseek(m_fd, offset, SEEK_SET);
+		if (ret < 0) return 0;
+		if (fcntl(m_fd, F_LOG2PHYS, &l) != -1)
+			return l.l2p_devoffset;
+#endif
+		return 0;
 	}
 
   	bool file::set_size(size_type s, error_code& ec)

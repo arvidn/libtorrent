@@ -131,6 +131,8 @@ namespace libtorrent
 		// negative return value indicates an error
 		virtual int write(const char* buf, int slot, int offset, int size) = 0;
 
+		virtual size_type physical_offset(int slot, int offset) = 0;
+
 		// returns the end of the sparse region the slot 'start'
 		// resides in i.e. the next slot with content. If start
 		// is not in a sparse region, start itself is returned
@@ -341,6 +343,8 @@ namespace libtorrent
 			, int piece_index
 			, int offset
 			, int num_bufs);
+
+		size_type physical_offset(int piece_index, int offset);
 
 		// returns the number of pieces left in the
 		// file currently being checked
