@@ -147,6 +147,9 @@ struct test_storage : storage_interface
 		return ret;
 	}
 
+	virtual size_type physical_offset(int piece_index, int offset)
+	{ return m_lower_layer->physical_offset(piece_index, offset); }
+
 	virtual int read(char* buf, int slot, int offset, int size)
 	{ return m_lower_layer->read(buf, slot, offset, size); }
 

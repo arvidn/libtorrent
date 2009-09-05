@@ -30,6 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+/*
+	Disk queue elevator patch by Morten Husveit
+*/
+
 #include "libtorrent/storage.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
@@ -1292,8 +1296,55 @@ namespace libtorrent
 		m_ios.post(bind(handler, ret, j));
 	}
 
+	enum action_flags_t
+	{
+		read_operation = 1
+		, fence_operation = 2
+		, buffer_operation = 4
+	};
+
+	static const uint8_t action_flags[] =
+	{
+		read_operation + buffer_operation // read
+		, buffer_operation // write
+		, 0 // hash
+		, fence_operation // move_storage
+		, fence_operation // release_files
+		, fence_operation // delete_files
+		, fence_operation // check_fastresume
+		, read_operation // check_files
+		, fence_operation // save_resume_data
+		, fence_operation // rename_file
+		, fence_operation // abort_thread
+		, fence_operation // clear_read_cache
+		, fence_operation // abort_torrent
+		, 0 // update_settings
+		, read_operation // read_and_hash
+	};
+
+	bool is_fence_operation(disk_io_job const& j)
+	{
+		TORRENT_ASSERT(j.action >= 0 && j.action < sizeof(action_flags));
+		return action_flags[j.action] & fence_operation;
+	}
+
+	bool is_read_operation(disk_io_job const& j)
+	{
+		TORRENT_ASSERT(j.action >= 0 && j.action < sizeof(action_flags));
+		return action_flags[j.action] & read_operation;
+	}
+
+	bool operation_has_buffer(disk_io_job const& j)
+	{
+		TORRENT_ASSERT(j.action >= 0 && j.action < sizeof(action_flags));
+		return action_flags[j.action] & buffer_operation;
+	}
+
 	void disk_io_thread::operator()()
 	{
+		size_type elevator_position = 0;
+		int elevator_direction = 1;
+
 		for (;;)
 		{
 #ifdef TORRENT_DISK_STATS
@@ -1330,19 +1381,88 @@ namespace libtorrent
 				return;
 			}
 
+			std::list<disk_io_job>::iterator selected_job = m_jobs.begin();
+
+			if (m_settings.allow_reordered_disk_operations
+				&& is_read_operation(*selected_job))
+			{
+				// Before reading the current block, read any
+				// blocks between the read head and the queued
+				// block, elevator style
+
+				std::list<disk_io_job>::iterator best_job, i;
+				size_type score, best_score = (size_type) -1;
+
+				for (;;)
+				{
+					for (i = m_jobs.begin(); i != m_jobs.end(); ++i)
+					{
+						// ignore fence_operations
+						if (is_fence_operation(*i))
+							continue;
+
+						// always prioritize all disk-I/O jobs
+						// that are not read operations
+						if (!is_read_operation(*i))
+						{
+							best_job = i;
+							best_score = 0;
+							break;
+						}
+
+						// we only need to query for physical offset
+						// for read operations, since those are
+						// the only ones we re-order
+						if (i->phys_offset == -1)
+							i->phys_offset = i->storage->physical_offset(i->piece, i->offset);
+
+						if (elevator_direction > 0)
+						{
+							score = i->phys_offset - elevator_position;
+							if (i->phys_offset >= elevator_position
+								&& (score < best_score
+									|| best_score == (size_type)-1))
+							{
+								best_score = score;
+								best_job = i;
+							}
+						}
+						else
+						{
+							score = elevator_position - i->phys_offset;
+							if (i->phys_offset <= elevator_position
+								&& (score < best_score
+									|| best_score == (size_type)-1))
+							{
+								best_score = score;
+								best_job = i;
+							}
+						}
+					}
+
+					if (best_score != (size_type) -1)
+						break;
+
+					elevator_direction = -elevator_direction;
+				}
+
+				selected_job = best_job;
+				// only update the elevator position for read jobs
+				if (is_read_operation(*selected_job))
+					elevator_position = selected_job->phys_offset;
+			}
+
 			// if there's a buffer in this job, it will be freed
 			// when this holder is destructed, unless it has been
 			// released.
 			disk_buffer_holder holder(*this
-				, m_jobs.front().action != disk_io_job::check_fastresume
-				&& m_jobs.front().action != disk_io_job::update_settings
-				? m_jobs.front().buffer : 0);
+				, operation_has_buffer(*selected_job) ? selected_job->buffer : 0);
 
 			boost::function<void(int, disk_io_job const&)> handler;
-			handler.swap(m_jobs.front().callback);
+			handler.swap(selected_job->callback);
 
-			disk_io_job j = m_jobs.front();
-			m_jobs.pop_front();
+			disk_io_job j = *selected_job;
+			m_jobs.erase(selected_job);
 			if (j.action == disk_io_job::write)
 			{
 				TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
