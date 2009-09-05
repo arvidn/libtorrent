@@ -244,6 +244,9 @@ feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 feature memdebug : off on : composite propagated ;
 feature.compose <memdebug>on : <define>TORRENT_MEMDEBUG ;
 
+feature simulate-slow-read : off on : composite propagated ;
+feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
+
 feature logging : none default errors verbose : composite propagated link-incompatible ;
 feature.compose <logging>default : <define>TORRENT_LOGGING ;
 feature.compose <logging>errors : <define>TORRENT_ERROR_LOGGING ;

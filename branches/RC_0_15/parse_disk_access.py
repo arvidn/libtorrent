@@ -11,9 +11,9 @@ lines = open(sys.argv[1], 'rb').readlines()
 
 keys = ['read', 'write', 'head movement', 'seek per read byte', 'seek per written byte']
 colors = ['70e070', 'e07070', '3030f0', '10a010', 'a01010']
-style = ['points pointtype 1', 'points pointtype 2', 'lines', 'lines', 'lines']
+style = ['linespoints', 'points pointtype 2', 'lines', 'lines', 'lines']
 axis = ['x1y1', 'x1y1', 'x1y2', 'x1y2', 'x1y2']
-plot = [True, True, False, True, True]
+plot = [True, False, False, False, False]
 
 out = open('disk_access_log.dat', 'w+')
 
@@ -65,16 +65,16 @@ for l in lines:
 out.close()
 
 out = open('disk_access.gnuplot', 'wb')
-print >>out, "set term png size 1200,700"
+print >>out, "set term png size 600,300"
 print >>out, 'set output "disk_access.png"'
-print >>out, 'set xrange [0:*]'
-print >>out, 'set y2range [0:*]'
+print >>out, 'set xrange [*:*]'
+#print >>out, 'set y2range [0:*]'
 print >>out, 'set xlabel "time (ms)"'
 print >>out, 'set ylabel "file position"'
-print >>out, 'set y2label "bytes / %d second(s)"' % (time / 1000)
+#print >>out, 'set y2label "bytes / %d second(s)"' % (time / 1000)
 print >>out, "set key box"
 print >>out, "set tics nomirror"
-print >>out, "set y2tics 100"
+#print >>out, "set y2tics 100"
 print >>out, 'plot',
 count = 1
 for k in keys:

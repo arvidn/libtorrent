@@ -72,6 +72,7 @@ namespace libtorrent
 			, buffer_size(0)
 			, piece(0)
 			, offset(0)
+			, phys_offset(-1)
 			, priority(0)
 		{}
 
@@ -101,6 +102,7 @@ namespace libtorrent
 		boost::intrusive_ptr<piece_manager> storage;
 		// arguments used for read and write
 		int piece, offset;
+		size_type phys_offset;
 		// used for move_storage and rename_file. On errors, this is set
 		// to the error message
 		std::string str;
@@ -123,6 +125,20 @@ namespace libtorrent
 		// this is called when operation completes
 		boost::function<void(int, disk_io_job const&)> callback;
 	};
+
+	// returns true if the disk job requires ordering
+	// some jobs may not be processed until all jobs
+	// ahead of it in the queue have been processed
+	// jobs that require this are fence operation
+	bool is_fence_operation(disk_io_job const& j);
+
+	// returns true if the fundamental operation
+	// of the given disk job is a read operation
+	bool is_read_operation(disk_io_job const& j);
+
+	// this is true if the buffer field in the disk_io_job
+	// points to a disk buffer
+	bool operation_has_buffer(disk_io_job const& j);
 
 	struct cache_status
 	{

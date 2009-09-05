@@ -294,7 +294,7 @@ namespace libtorrent
 		int ret = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
-			int r = write((char const*)i->iov_base, slot, offset, i->iov_len);
+			int r = read((char*)i->iov_base, slot, offset, i->iov_len);
 			offset += i->iov_len;
 			if (r == -1) return -1;
 			ret += r;
@@ -308,7 +308,7 @@ namespace libtorrent
 		int ret = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
-			int r = read((char*)i->iov_base, slot, offset, i->iov_len);
+			int r = write((char const*)i->iov_base, slot, offset, i->iov_len);
 			offset += i->iov_len;
 			if (r == -1) return -1;
 			ret += r;
@@ -414,6 +414,7 @@ namespace libtorrent
 		int sparse_end(int start) const;
 		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
 		int writev(file::iovec_t const* buf, int slot, int offset, int num_bufs);
+		size_type physical_offset(int slot, int offset);
 		bool move_slot(int src_slot, int dst_slot);
 		bool swap_slots(int slot1, int slot2);
 		bool swap_slots3(int slot1, int slot2, int slot3);
@@ -1181,7 +1182,7 @@ ret:
 		if (pool)
 		{
 			pool->m_disk_access_log << log_time() << " write "
-				<< (size_type(slot) * m_files.piece_length() + offset) << std::endl;
+				<< physical_offset(slot, offset) << std::endl;
 		}
 #endif
 		fileop op = { &file::writev, &storage::write_unaligned
@@ -1191,12 +1192,46 @@ ret:
 		if (pool)
 		{
 			pool->m_disk_access_log << log_time() << " write_end "
-				<< (size_type(slot) * m_files.piece_length() + offset + ret) << std::endl;
+				<< (physical_offset(slot, offset) + ret) << std::endl;
 		}
 		return ret;
 #else
-		return readwritev(bufs, slot, offset, num_bufs, op);
+	return readwritev(bufs, slot, offset, num_bufs, op);
 #endif
+	}
+
+	size_type storage::physical_offset(int slot, int offset)
+	{
+		TORRENT_ASSERT(slot >= 0);
+		TORRENT_ASSERT(slot < m_files.num_pieces());
+		TORRENT_ASSERT(offset >= 0);
+
+		// find the file and file
+		size_type tor_off = size_type(slot)
+			* files().piece_length() + offset;
+		file_storage::iterator file_iter = files().file_at_offset(tor_off);
+
+		size_type file_offset = tor_off - file_iter->offset;
+		TORRENT_ASSERT(file_offset >= 0);
+
+		fs::path p(m_save_path / file_iter->path);
+		error_code ec;
+	
+		// open the file read only to avoid re-opening
+		// it in case it's already opened in read-only mode
+		boost::shared_ptr<file> f = m_pool.open_file(
+			this, p, file::read_only, ec);
+
+		size_type ret = 0;
+		if (f && !ec) ret = f->phys_offset(file_offset);
+
+		if (ret == 0)
+		{
+			// this means we don't support true physical offset
+			// just make something up
+			return size_type(slot) * files().piece_length() + offset;
+		}
+		return ret;
 	}
 
 	int storage::readv(file::iovec_t const* bufs, int slot, int offset
@@ -1207,17 +1242,21 @@ ret:
 		if (pool)
 		{
 			pool->m_disk_access_log << log_time() << " read "
-				<< (size_type(slot) * m_files.piece_length() + offset) << std::endl;
+				<< physical_offset(slot, offset) << std::endl;
 		}
 #endif
 		fileop op = { &file::readv, &storage::read_unaligned
 			, m_settings ? settings().disk_io_read_mode : 0, file::read_only };
+#ifdef TORRENT_SIMULATE_SLOW_READ
+		boost::thread::sleep(boost::get_system_time()
+			+ boost::posix_time::milliseconds(1000));
+#endif
 #ifdef TORRENT_DISK_STATS
 		int ret = readwritev(bufs, slot, offset, num_bufs, op);
 		if (pool)
 		{
 			pool->m_disk_access_log << log_time() << " read_end "
-				<< (size_type(slot) * m_files.piece_length() + offset + ret) << std::endl;
+				<< (physical_offset(slot, offset) + ret) << std::endl;
 		}
 		return ret;
 #else
@@ -1467,6 +1506,7 @@ ret:
 		bool move_storage(fs::path save_path) { return true; }
 		int read(char* buf, int slot, int offset, int size) { return size; }
 		int write(char const* buf, int slot, int offset, int size) { return size; }
+		size_type physical_offset(int slot, int offset) { return 0; }
 		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
 		{
 #ifdef TORRENT_DISK_STATS
@@ -1474,7 +1514,7 @@ ret:
 			if (pool)
 			{
 				pool->m_disk_access_log << log_time() << " read "
-					<< (size_type(slot) * m_piece_size + offset) << std::endl;
+					<< physical_offset(slot, offset) << std::endl;
 			}
 #endif
 			int ret = 0;
@@ -1484,7 +1524,7 @@ ret:
 			if (pool)
 			{
 				pool->m_disk_access_log << log_time() << " read_end "
-					<< (size_type(slot) * m_piece_size + offset + ret) << std::endl;
+					<< (physical_offset(slot, offset) + ret) << std::endl;
 			}
 #endif
 			return ret;
@@ -1496,7 +1536,7 @@ ret:
 			if (pool)
 			{
 				pool->m_disk_access_log << log_time() << " write "
-					<< (size_type(slot) * m_piece_size + offset) << std::endl;
+					<< physical_offset(slot, offset) << std::endl;
 			}
 #endif
 			int ret = 0;
@@ -1506,7 +1546,7 @@ ret:
 			if (pool)
 			{
 				pool->m_disk_access_log << log_time() << " write_end "
-					<< (size_type(slot) * m_piece_size + offset + ret) << std::endl;
+					<< (physical_offset(slot, offset) + ret) << std::endl;
 			}
 #endif
 			return ret;
@@ -1919,6 +1959,20 @@ ret:
 		}
 		
 		return ret;
+	}
+
+	size_type piece_manager::physical_offset(
+		int piece_index
+		, int offset)
+	{
+		TORRENT_ASSERT(offset >= 0);
+		TORRENT_ASSERT(piece_index >= 0 && piece_index < m_files.num_pieces());
+
+		int slot = slot_for(piece_index);
+		// we may not have a slot for this piece yet.
+		// assume there is no re-mapping of slots
+		if (slot < 0) slot = piece_index;
+		return m_storage->physical_offset(slot, offset);
 	}
 
 	int piece_manager::identify_data(

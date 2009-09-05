@@ -174,6 +174,34 @@ The graph to the right shows the same download but with the new optimized disk c
 algorithm. It clearly shows an increased utilization, which means higher read hit rates
 or smaller caches with maintained hit rate.
 
+high performance disk subsystem
+-------------------------------
+
+In some circumstances, the disk cache may not suffice to provide maximum performance.
+One such example is high performance seeding, to a large number of peers, over a fast
+up-link. In such a case, the amount of RAM may simply not be enough to cache disk
+reads. When there's not enough RAM to cache disk reads, the disk throughput  would
+typically degrade to perform as poorly as with no cache at all, with the majority
+of the time spent waiting for the disk head to seek.
+
+To solve this problem, libtorrent sorts read requests by their physical offset on the
+disk. They are processed by having the disk read head sweep back and forth over the drive.
+
+This makes libtorrent very suitable for large scale, high-throughput seeding.
+
+.. image:: disk_access_no_elevator.png
+	:width: 49%
+
+.. image:: disk_access_elevator.png
+	:width: 49%
+
+These plots illustrates the physical disk offset for reads over time. The left plot
+is of a run where disk operation re-ordering is turned off and the righ is when it's
+turned on. The right one has a relatively smooth sine wave shape whereas the left
+one is more random and involves much longer seeks back and forth over the disk.
+
+True physical disk offset queries are only supported on newer linux kernels and Mac OS X.
+
 network buffers
 ---------------
 

@@ -176,6 +176,7 @@ namespace libtorrent
 			, write_cache_line_size(32)
 			, optimistic_disk_retry(10 * 60)
 			, disable_hash_checks(false)
+			, allow_reordered_disk_operations(true)
 			, max_suggest_pieces(10)
 		{}
 
@@ -622,6 +623,16 @@ namespace libtorrent
 		// testing purposes (typically combined with
 		// disabled_storage)
 		bool disable_hash_checks;
+
+		// if this is true, disk read operations may
+		// be re-ordered based on their physical disk
+		// read offset. This greatly improves throughput
+		// when uploading to many peers. This assumes
+		// a traditional hard drive with a read head
+		// and spinning platters. If your storage medium
+		// is a solid state drive, this optimization
+		// doesn't give you an benefits
+		bool allow_reordered_disk_operations;
 
 		// the max number of pieces that a peer can
 		// suggest to use before we start dropping

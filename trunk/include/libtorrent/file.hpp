@@ -157,6 +157,8 @@ namespace libtorrent
 		// belongs to a data-region
 		size_type sparse_end(size_type start) const;
 
+		size_type phys_offset(size_type offset);
+
 	private:
 
 #ifdef TORRENT_WINDOWS

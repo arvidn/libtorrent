@@ -121,6 +121,170 @@ void print_error(int ret, boost::scoped_ptr<storage_interface> const& s)
 		<< std::endl;
 }
 
+int bufs_size(file::iovec_t const* bufs, int num_bufs);
+
+// simulate a very slow first read
+struct test_storage : storage_interface
+{
+	test_storage() {}
+
+	virtual bool initialize(bool allocate_files) { return true; }
+	virtual bool has_any_file() { return true; }
+
+	int write(
+		const char* buf
+		, int slot
+		, int offset
+		, int size)
+	{
+		return size;
+	}
+
+	int read(
+		char* buf
+		, int slot
+		, int offset
+		, int size)
+	{
+		if (slot == 0 || slot == 5999)
+		{
+			boost::thread::sleep(boost::get_system_time()
+				+ boost::posix_time::seconds(2));
+			std::cerr << "--- starting ---\n" << std::endl;
+		}
+		return size;
+	}
+
+	size_type physical_offset(int slot, int offset)
+	{ return slot * 16 * 1024 + offset; }
+
+	virtual int sparse_end(int start) const
+	{ return start; }
+
+	virtual bool move_storage(fs::path save_path)
+	{ return false; }
+
+	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
+	{ return false; }
+
+	virtual bool write_resume_data(entry& rd) const
+	{ return false; }
+
+	virtual bool move_slot(int src_slot, int dst_slot)
+	{ return false; }
+
+	virtual bool swap_slots(int slot1, int slot2)
+	{ return false; }
+
+	virtual bool swap_slots3(int slot1, int slot2, int slot3)
+	{ return false; }
+
+	virtual bool release_files() { return false; }
+
+	virtual bool rename_file(int index, std::string const& new_filename)
+	{ return false; }
+
+	virtual bool delete_files() { return false; }
+
+	virtual ~test_storage() {}
+};
+
+storage_interface* create_test_storage(file_storage const& fs
+	, file_storage const* mapped, fs::path const& path, file_pool& fp)
+{
+	return new test_storage;
+}
+
+void nop() {}
+
+int job_counter = 0;
+
+void callback_up(int ret, disk_io_job const& j)
+{
+	static int last_job = 0;
+	TEST_CHECK(last_job <= j.piece);
+	last_job = j.piece;
+	std::cerr << "completed job #" << j.piece << std::endl;
+	--job_counter;
+}
+
+void callback_down(int ret, disk_io_job const& j)
+{
+	static int last_job = 6000;
+	TEST_CHECK(last_job >= j.piece);
+	last_job = j.piece;
+	std::cerr << "completed job #" << j.piece << std::endl;
+	--job_counter;
+}
+
+void add_job_up(disk_io_thread& dio, int piece, boost::intrusive_ptr<piece_manager>& pm)
+{
+	disk_io_job j;
+	j.action = disk_io_job::read;
+	j.storage = pm;
+	j.piece = piece;
+	++job_counter;
+	dio.add_job(j, boost::bind(&callback_up, _1, _2));
+}
+
+void add_job_down(disk_io_thread& dio, int piece, boost::intrusive_ptr<piece_manager>& pm)
+{
+	disk_io_job j;
+	j.action = disk_io_job::read;
+	j.storage = pm;
+	j.piece = piece;
+	++job_counter;
+	dio.add_job(j, boost::bind(&callback_down, _1, _2));
+}
+
+void run_elevator_test()
+{
+	io_service ios;
+	file_pool fp;
+	boost::intrusive_ptr<torrent_info> ti = ::create_torrent(0, 16, 6000);
+
+	{
+		disk_io_thread dio(ios, &nop);
+		boost::intrusive_ptr<piece_manager> pm(new piece_manager(boost::shared_ptr<void>(), ti, ""
+			, fp, dio, &create_test_storage, storage_mode_sparse));
+
+		// test the elevator going up
+		add_job_up(dio, 0, pm);
+
+		uint32_t p = 1234513;
+		for (int i = 0; i < 100; ++i)
+		{
+			p *= 123;
+			int job = (p % 5999) + 1;
+			std::cerr << "starting job #" << job << std::endl;
+			add_job_up(dio, job, pm);
+		}
+
+		for (int i = 0; i < 101; ++i)
+			ios.run_one();
+
+		TEST_CHECK(job_counter == 0);
+
+		// test the elevator going down
+		add_job_down(dio, 5999, pm);
+
+		for (int i = 0; i < 100; ++i)
+		{
+			p *= 123;
+			int job = (p % 5999) + 1;
+			std::cerr << "starting job #" << job << std::endl;
+			add_job_down(dio, job, pm);
+		}
+
+		for (int i = 0; i < 101; ++i)
+			ios.run_one();
+
+		TEST_CHECK(job_counter == 0);
+
+		dio.join();
+	}
+}
+
 void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	, file_storage& fs
 	, path const& test_path
@@ -657,6 +821,9 @@ void test_rename_file_in_fastresume(path const& test_path)
 
 int test_main()
 {
+
+	run_elevator_test();
+
 	// initialize test pieces
 	for (char* p = piece0, *end(piece0 + piece_size); p < end; ++p)
 		*p = rand();
