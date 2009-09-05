@@ -179,10 +179,19 @@ namespace libtorrent
 
 	// http://www.ietf.org/rfc/rfc2396.txt
 	// section 2.3
-	// some trackers seems to require that ' is escaped
-	static const char unreserved_chars[] = "%'/-_.!~*()"
+	static const char unreserved_chars[] =
+		// when determining if a url needs encoding
+		// % should be ok
+		"%+"
+		// reserved
+		";?:@=&/"
+		// unreserved (special characters) ' excluded,
+		// since some buggy trackers fail with those
+		"$-_.!~*(),"
+		// unreserved (alphanumerics)
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 		"0123456789";
+
 	static const char hex_chars[] = "0123456789abcdef";
 
 	// the offset is used to ignore the first characters in the unreserved_chars table.
@@ -213,15 +222,15 @@ namespace libtorrent
 	
 	std::string escape_string(const char* str, int len)
 	{
-		return escape_string_impl(str, len, 3);
+		return escape_string_impl(str, len, 9);
 	}
 
 	std::string escape_path(const char* str, int len)
 	{
-		return escape_string_impl(str, len, 2);
+		return escape_string_impl(str, len, 8);
 	}
 
-	static bool need_encoding(char const* str, int len)
+	bool need_encoding(char const* str, int len)
 	{
 		for (int i = 0; i < len; ++i)
 		{
