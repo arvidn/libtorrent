@@ -99,7 +99,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_EXPORT
 # endif
 
-#define TORRENT_DEPRECATED_PREFIX __declspec(deprecated("function is deprecated"))
+#define TORRENT_DEPRECATED_PREFIX __declspec(deprecated)
 
 
 
