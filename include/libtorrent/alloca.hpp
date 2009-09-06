@@ -41,11 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #else
 
-#if defined (_LINUX_) || defined (_CYGWIN_)
-#include <alloca.h>
-#elif defined (_FREEBSD_)
 #include <stdlib.h>
-#endif
 
 #define TORRENT_ALLOCA(t, n) static_cast<t*>(alloca(sizeof(t) * (n)))
 
