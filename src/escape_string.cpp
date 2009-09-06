@@ -205,7 +205,7 @@ namespace libtorrent
 		std::string ret;
 		for (int i = 0; i < len; ++i)
 		{
-			if (std::strchr(unreserved_chars+offset, *str))
+			if (std::strchr(unreserved_chars+offset, *str) && *str != 0)
 			{
 				ret += *str;
 			}
@@ -234,7 +234,7 @@ namespace libtorrent
 	{
 		for (int i = 0; i < len; ++i)
 		{
-			if (std::strchr(unreserved_chars, *str) == 0)
+			if (std::strchr(unreserved_chars, *str) == 0 || *str == 0)
 				return true;
 			++str;
 		}
