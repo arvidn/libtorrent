@@ -404,6 +404,7 @@ namespace libtorrent
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
+		, m_i2p(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
 		, m_merkle_first_leaf(0)
@@ -417,6 +418,7 @@ namespace libtorrent
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
+		, m_i2p(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
 		, m_merkle_first_leaf(0)
@@ -435,6 +437,7 @@ namespace libtorrent
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
+		, m_i2p(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
 	{
@@ -456,6 +459,7 @@ namespace libtorrent
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
+		, m_i2p(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
 		, m_merkle_first_leaf(0)
@@ -482,6 +486,7 @@ namespace libtorrent
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
+		, m_i2p(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
 	{
@@ -492,6 +497,7 @@ namespace libtorrent
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
+		, m_i2p(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
 		, m_merkle_first_leaf(0)
@@ -509,6 +515,7 @@ namespace libtorrent
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
+		, m_i2p(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
 	{
@@ -530,6 +537,7 @@ namespace libtorrent
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
+		, m_i2p(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
 	{
@@ -558,6 +566,7 @@ namespace libtorrent
 		, m_creation_date(pt::second_clock::universal_time())
 		, m_multifile(false)
 		, m_private(false)
+		, m_i2p(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
 	{}
