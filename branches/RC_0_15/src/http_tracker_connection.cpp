@@ -123,8 +123,8 @@ namespace libtorrent
 		if (tracker_req().kind == tracker_request::announce_request)
 		{
 			char str[1024];
-			snprintf(str, sizeof(str), "&peer_id=%s&port=%d&uploaded=%lld"
-				"&downloaded=%lld&left=%lld&compact=1&numwant=%d&key=%x&no_peer_id=1"
+			snprintf(str, sizeof(str), "&peer_id=%s&port=%d&uploaded=%"PRId64
+				"&downloaded=%"PRId64"&left=%"PRId64"&compact=1&numwant=%d&key=%x&no_peer_id=1"
 				, escape_string((const char*)&tracker_req().pid[0], 20).c_str()
 				, tracker_req().listen_port
 				, tracker_req().uploaded
