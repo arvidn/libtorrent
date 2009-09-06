@@ -179,6 +179,9 @@ namespace libtorrent
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
 		mutable int m_sector_size;
 #endif
+#if defined TORRENT_WINDOWS
+		mutable int m_cluster_size;
+#endif
 	};
 
 }
