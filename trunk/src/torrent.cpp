@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -3875,12 +3876,16 @@ namespace libtorrent
 		// this asserts that we don't have duplicates in the policy's peer list
 		peer_iterator i_ = std::find_if(m_connections.begin(), m_connections.end()
 			, bind(&peer_connection::remote, _1) == peerinfo->ip());
+#if TORRENT_USE_I2P
 		TORRENT_ASSERT(i_ == m_connections.end()
 			|| dynamic_cast<bt_peer_connection*>(*i_) == 0
-#if TORRENT_USE_I2P
 			|| peerinfo->is_i2p_addr
-#endif
 			);
+#else
+		TORRENT_ASSERT(i_ == m_connections.end()
+			|| dynamic_cast<bt_peer_connection*>(*i_) == 0
+			);
+#endif
 #endif
 
 		TORRENT_ASSERT(want_more_peers());

@@ -1303,7 +1303,7 @@ namespace libtorrent
 		, buffer_operation = 4
 	};
 
-	static const uint8_t action_flags[] =
+	static const boost::uint8_t action_flags[] =
 	{
 		read_operation + buffer_operation // read
 		, buffer_operation // write

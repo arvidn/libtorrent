@@ -439,10 +439,11 @@ namespace libtorrent
 		}
 
 		std::list<address> ip_list;
-		std::transform(m_endpoints.begin()
-			, m_endpoints.end()
-			, std::back_inserter(ip_list)
-			, boost::bind(&udp::endpoint::address, _1));
+		for (std::list<udp::endpoint>::const_iterator i = m_endpoints.begin()
+			, end(m_endpoints.end()); i != end; ++i)
+		{
+			ip_list.push_back(i->address());
+		}
 
 		cb->tracker_response(tracker_req(), m_target.address(), ip_list
 			, peer_list, interval, complete, incomplete, address());
