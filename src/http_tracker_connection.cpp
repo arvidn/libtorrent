@@ -64,7 +64,11 @@ using boost::bind;
 
 namespace libtorrent
 {
-	
+#if TORRENT_USE_I2P	
+	// defined in torrent_info.cpp
+	bool is_i2p_url(std::string const& url);
+#endif
+
 	http_tracker_connection::http_tracker_connection(
 		io_service& ios
 		, connection_queue& cc
@@ -110,8 +114,6 @@ namespace libtorrent
 		}
 		
 #if TORRENT_USE_I2P
-		// defined in torrent_info.cpp
-		bool is_i2p_url(std::string const& url);
 		bool i2p = is_i2p_url(url);
 #else
 		static const bool i2p = false;
@@ -516,10 +518,12 @@ namespace libtorrent
 			incomplete = int(incomplete_ent->integer());
 
 		std::list<address> ip_list;
-		std::transform(m_tracker_connection->endpoints().begin()
-			, m_tracker_connection->endpoints().end()
-			, std::back_inserter(ip_list)
-			, boost::bind(&tcp::endpoint::address, _1));
+		std::list<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
+		for (std::list<tcp::endpoint>::const_iterator i = epts.begin()
+			, end(epts.end()); i != end; ++i)
+		{
+			ip_list.push_back(i->address());
+		}
 
 		cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, peer_list
 			, interval->integer(), complete, incomplete, external_ip);

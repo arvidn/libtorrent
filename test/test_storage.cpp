@@ -251,7 +251,7 @@ void run_elevator_test()
 		// test the elevator going up
 		add_job_up(dio, 0, pm);
 
-		uint32_t p = 1234513;
+		boost::uint32_t p = 1234513;
 		for (int i = 0; i < 100; ++i)
 		{
 			p *= 123;
