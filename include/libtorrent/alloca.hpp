@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 
 #include <alloca.h>
+#include <stdlib.h>
 #define TORRENT_ALLOCA(t, n) static_cast<t*>(alloca(sizeof(t) * (n)))
 
 #endif
