@@ -283,9 +283,16 @@ namespace libtorrent
 			if (GetDiskFreeSpace(m_path.substr(0, m_path.find_first_of(backslash)+1).c_str()
 				, &sectors_per_cluster, &bytes_per_sector
 				, &free_clusters, &total_clusters))
+			{
 				m_sector_size = bytes_per_sector;
+				m_cluster_size = sectors_per_cluster * bytes_per_sector;
+			}
 			else
-				m_sector_size = 4096;
+			{
+				// make a conservative guess
+				m_sector_size = 512;
+				m_cluster_size = 4096;
+			}
 		}
 		return m_sector_size;
 #else
@@ -797,6 +804,7 @@ namespace libtorrent
 		// the returned extent is not guaranteed to start
 		// at the requested offset, adjust for that in
 		// case they differ
+		TORRENT_ASSERT(offset >= fm.fiemap.fm_extents[0].fe_logical);
 		return fm.fiemap.fm_extents[0].fe_physical + (offset - fm.fiemap.fm_extents[0].fe_logical);
 
 #elif defined F_LOG2PHYS
@@ -806,8 +814,30 @@ namespace libtorrent
 		log2phys l;
 		size_type ret = lseek(m_fd, offset, SEEK_SET);
 		if (ret < 0) return 0;
-		if (fcntl(m_fd, F_LOG2PHYS, &l) != -1)
-			return l.l2p_devoffset;
+		if (fcntl(m_fd, F_LOG2PHYS, &l) == -1) return 0;
+		return l.l2p_devoffset;
+#elif defined TORRENT_WINDOWS
+		// for documentation of this feature
+		// http://msdn.microsoft.com/en-us/library/aa364572(VS.85).aspx
+		STARTING_VCN_INPUT_BUFFER in;
+		RETRIEVAL_POINTERS_BUFFER out;
+		DWORD out_bytes;
+
+		// query cluster size
+		pos_alignment();
+		in.StartingVcn.QuadPart = offset / m_cluster_size;
+		int cluster_offset = in.StartingVcn.QuadPart % m_cluster_size;
+
+		if (DeviceIoControl(m_file_handle, FSCTL_GET_RETRIEVAL_POINTERS, &in
+			, sizeof(in), &out, sizeof(out), &out_bytes, 0) == 0)
+			return 0;
+		if (out_bytes < sizeof(out)) return 0;
+		if (out.ExtentCount == 0) return 0;
+		if (out.Extents[0].Lcn.QuadPart == (LONGLONG)-1) return 0;
+		TORRENT_ASSERT(in.StartingVcn.QuadPart >= out.StartingVcn.QuadPart);
+		return (out.Extents[0].Lcn.QuadPart
+			+ (in.StartingVcn.QuadPart - out.StartingVcn.QuadPart))
+			* m_cluster_size + cluster_offset;
 #endif
 		return 0;
 	}
