@@ -77,6 +77,8 @@ release 0.14.6
 	* fixed to add filename on web seed urls that lack it
 	* fixed BOOST_ASIO_HASH_MAP_BUCKETS define for boost 1.39
 	* fixed checking of fast and suggest messages when used with magnet links
+	* fixed bug where web seeds would not disconnect if being resolved when
+	  the torrent was paused
 
 release 0.14.5
 
