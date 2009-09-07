@@ -1048,7 +1048,7 @@ namespace aux {
 			(*m_logger) << "filtered blocked ip\n";
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
-				m_alerts.post_alert(peer_blocked_alert(endp.address()));
+				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
 			return;
 		}
 

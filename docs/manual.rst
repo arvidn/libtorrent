@@ -5423,7 +5423,7 @@ address that was blocked.
 
 ::
 
-	struct peer_blocked_alert: alert
+	struct peer_blocked_alert: torrent_alert
 	{
 		// ...
 		address ip;

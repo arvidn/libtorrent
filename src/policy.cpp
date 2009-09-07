@@ -306,14 +306,14 @@ namespace libtorrent
 			{
 				(*i)->connection->disconnect(error_code(errors::banned_by_ip_filter, libtorrent_category));
 				if (ses.m_alerts.should_post<peer_blocked_alert>())
-					ses.m_alerts.post_alert(peer_blocked_alert((*i)->address()));
+					ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
 				TORRENT_ASSERT((*i)->connection == 0
 					|| (*i)->connection->peer_info_struct() == 0);
 			}
 			else
 			{
 				if (ses.m_alerts.should_post<peer_blocked_alert>())
-					ses.m_alerts.post_alert(peer_blocked_alert((*i)->address()));
+					ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
 			}
 			int current = i - m_peers.begin();
 			erase_peer(i);
@@ -1048,13 +1048,17 @@ namespace libtorrent
 		// if this is an i2p torrent, and we don't allow mixed mode
 		// no regular peers should ever be added!
 		if (!ses.m_settings.allow_i2p_mixed && m_torrent->torrent_file().is_i2p())
+		{
+			if (ses.m_alerts.should_post<peer_blocked_alert>())
+				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 			return 0;
+		}
 
 		port_filter const& pf = ses.m_port_filter;
 		if (pf.access(remote.port()) & port_filter::blocked)
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
-				ses.m_alerts.post_alert(peer_blocked_alert(remote.address()));
+				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 			return 0;
 		}
 
@@ -1062,7 +1066,7 @@ namespace libtorrent
 		if (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked)
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
-				ses.m_alerts.post_alert(peer_blocked_alert(remote.address()));
+				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 			return 0;
 		}
 
