@@ -2337,6 +2337,12 @@ namespace libtorrent
 		std::set<std::string>::iterator i = m_resolving_web_seeds.find(url);
 		if (i != m_resolving_web_seeds.end()) m_resolving_web_seeds.erase(i);
 
+		if (is_paused())
+		{
+			m_web_seeds.insert(web);
+			return;
+		}
+
 		if (e || host == tcp::resolver::iterator())
 		{
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
