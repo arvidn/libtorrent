@@ -391,6 +391,7 @@ local usage-requirements =
 	<variant>debug:<define>TORRENT_DEBUG
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
+	<define>BOOST_EXCEPTION_DISABLE
 	<conditional>@linking
 	<zlib>system:<library>zlib-target
 # these compiler settings just makes the compiler standard conforming
