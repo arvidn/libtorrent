@@ -830,7 +830,14 @@ namespace libtorrent
 
 		if (DeviceIoControl(m_file_handle, FSCTL_GET_RETRIEVAL_POINTERS, &in
 			, sizeof(in), &out, sizeof(out), &out_bytes, 0) == 0)
-			return 0;
+		{
+			DWORD error = GetLastError();
+			TORRENT_ASSERT(error != ERROR_INVALID_PARAMETER);
+
+			// insufficient buffer error is expected, but we're
+			// only interested in the first extent anyway
+			if (error != ERROR_MORE_DATA) return 0;
+		}
 		if (out_bytes < sizeof(out)) return 0;
 		if (out.ExtentCount == 0) return 0;
 		if (out.Extents[0].Lcn.QuadPart == (LONGLONG)-1) return 0;
