@@ -106,7 +106,7 @@ namespace libtorrent
 		{ return url == e.url && type == e.type; }
 
 		bool operator<(web_seed_entry const& e) const
-		{ return url < e.url && type < e.type; }
+		{ return url < e.url ? true : type < e.type; }
 	};
 
 	namespace fs = boost::filesystem;
