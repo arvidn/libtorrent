@@ -2339,7 +2339,7 @@ namespace libtorrent
 
 		if (is_paused())
 		{
-			m_web_seeds.insert(web);
+			m_web_seeds.insert(url);
 			return;
 		}
 
