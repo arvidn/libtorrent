@@ -1313,10 +1313,11 @@ namespace libtorrent
 		}
 	};
 
-	struct TORRENT_EXPORT peer_blocked_alert: alert
+	struct TORRENT_EXPORT peer_blocked_alert: torrent_alert
 	{
-		peer_blocked_alert(address const& ip_)
-			: ip(ip_)
+		peer_blocked_alert(torrent_handle const& h, address const& ip_)
+			: torrent_alert(h)
+			, ip(ip_)
 		{}
 		
 		address ip;
@@ -1329,7 +1330,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			error_code ec;
-			return "blocked peer: " + ip.to_string(ec);
+			return torrent_alert::message() + ": blocked peer: " + ip.to_string(ec);
 		}
 	};
 
