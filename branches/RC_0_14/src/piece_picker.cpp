@@ -763,16 +763,29 @@ namespace libtorrent
 	void piece_picker::sort_piece(std::vector<downloading_piece>::iterator dp)
 	{
 		TORRENT_ASSERT(m_piece_map[dp->index].downloading);
-		if (dp == m_downloads.begin()) return;
 		int complete = dp->writing + dp->finished;
-		for (std::vector<downloading_piece>::iterator i = dp, j(dp-1);
-			i != m_downloads.begin(); --i, --j)
+		if (dp != m_downloads.begin())
 		{
-			TORRENT_ASSERT(j >= m_downloads.begin());
-			if (j->finished + j->writing >= complete) return;
+			for (std::vector<downloading_piece>::iterator j(dp-1);
+				dp != m_downloads.begin(); --dp, --j)
+			{
+				TORRENT_ASSERT(j >= m_downloads.begin());
+				if (j->finished + j->writing >= complete) break;
+				using std::swap;
+				swap(*j, *dp);
+				if (j == m_downloads.begin()) return;
+			}
+		}
+
+		TORRENT_ASSERT(dp != m_downloads.end());
+		for (std::vector<downloading_piece>::iterator j(dp+1);
+			dp != m_downloads.end() - 1; ++dp, ++j)
+		{
+			TORRENT_ASSERT(j < m_downloads.end());
+			if (j->finished + j->writing <= complete) break;
 			using std::swap;
-			swap(*j, *i);
-			if (j == m_downloads.begin()) break;
+			swap(*j, *dp);
+			if (j == m_downloads.end() - 1) return;
 		}
 	}
 

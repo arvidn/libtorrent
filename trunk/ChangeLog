@@ -79,6 +79,7 @@ release 0.14.6
 	* fixed checking of fast and suggest messages when used with magnet links
 	* fixed bug where web seeds would not disconnect if being resolved when
 	  the torrent was paused
+	* fixed download piece performance bug in piece picker
 
 release 0.14.5
 
