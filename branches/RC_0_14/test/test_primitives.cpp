@@ -345,6 +345,12 @@ struct parse_state
 	std::string url_base;
 };
 
+namespace libtorrent
+{
+	// defined in torrent_info.cpp
+	bool verify_encoding(std::string& target);
+}
+
 void find_control_url(int type, char const* string, parse_state& state);
 
 int test_main()
@@ -439,6 +445,19 @@ int test_main()
 	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "a") == "e");
 	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "b"));
 
+	// verify_encoding
+
+	test = "\b?filename=4";
+	TEST_CHECK(!verify_encoding(test));
+#ifdef TORRENT_WINDOWS
+	TEST_CHECK(test == "..filename=4");
+#else
+	TEST_CHECK(test == ".?filename=4");
+#endif
+
+	test = "filename=4";
+	TEST_CHECK(verify_encoding(test));
+	TEST_CHECK(test == "filename=4");
 	// HTTP request parser
 
 	http_parser parser;
@@ -515,7 +534,8 @@ int test_main()
 	TEST_CHECK(atoi(parser.header("port").c_str()) == 6881);
 	TEST_CHECK(parser.header("infohash") == "12345678901234567890");
 
-	TEST_CHECK(!parser.finished());
+	// requests are assumed to have a content-length of 0
+	TEST_CHECK(parser.finished());
 
 	parser.reset();
 	TEST_CHECK(!parser.finished());

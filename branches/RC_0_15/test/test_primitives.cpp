@@ -353,6 +353,12 @@ struct parse_state
 	std::string url_base;
 };
 
+namespace libtorrent
+{
+	// defined in torrent_info.cpp
+	bool verify_encoding(std::string& target);
+}
+
 void find_control_url(int type, char const* string, parse_state& state);
 
 int test_main()
@@ -544,6 +550,19 @@ int test_main()
 		== test_string);
 	std::cerr << unescape_string(escape_string(test_string, strlen(test_string)), ec) << std::endl;
 
+	// verify_encoding
+
+	test = "\b?filename=4";
+	TEST_CHECK(!verify_encoding(test));
+#ifdef TORRENT_WINDOWS
+	TEST_CHECK(test == "..filename=4");
+#else
+	TEST_CHECK(test == ".?filename=4");
+#endif
+
+	test = "filename=4";
+	TEST_CHECK(verify_encoding(test));
+	TEST_CHECK(test == "filename=4");
 	// HTTP request parser
 
 	http_parser parser;
