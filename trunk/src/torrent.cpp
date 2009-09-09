@@ -1732,8 +1732,10 @@ namespace libtorrent
 
 			for (int j = 0; j < blocks_per_piece; ++j)
 			{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 				TORRENT_ASSERT(m_picker->is_finished(piece_block(index, j))
 					== (i->info[j].state == piece_picker::block_info::state_finished));
+#endif
 				if (i->info[j].state == piece_picker::block_info::state_finished)
 				{
 					corr += block_bytes_wanted(piece_block(index, j));
