@@ -647,7 +647,8 @@ namespace libtorrent
 				}
 			}
 
-			if (m_num_connect_candidates > 0)
+			if (is_connect_candidate(i->second, m_finished)
+				&& m_num_connect_candidates > 0)
 				--m_num_connect_candidates;
 		}
 		else
