@@ -80,6 +80,7 @@ release 0.14.6
 	* fixed bug where web seeds would not disconnect if being resolved when
 	  the torrent was paused
 	* fixed download piece performance bug in piece picker
+	* fixed bug in connect candidate counter
 
 release 0.14.5
 
