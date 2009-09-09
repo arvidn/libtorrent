@@ -81,6 +81,7 @@ release 0.14.6
 	  the torrent was paused
 	* fixed download piece performance bug in piece picker
 	* fixed bug in connect candidate counter
+	* replaces invalid filename characters with .
 
 release 0.14.5
 
