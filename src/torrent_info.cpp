@@ -73,6 +73,20 @@ namespace libtorrent
 		str += 0x80 | (chr & 0x3f);
 	}
 
+	bool valid_path_character(char c)
+	{
+#ifdef TORRENT_WINDOWS
+		static const char invalid_chars[] = "&?<>\"|\b*:+";
+#else
+		static const char invalid_chars[] = "";
+#endif
+		if (c >= 0 && c < 32) return false;
+		return std::strchr(invalid_chars, c) == 0;
+	}
+
+	// fixes invalid UTF-8 sequences and
+	// replaces characters that are invalid
+	// in paths
 	bool verify_encoding(std::string& target)
 	{
 		std::string tmp_path;
@@ -83,7 +97,16 @@ namespace libtorrent
 			// valid ascii-character
 			if ((*i & 0x80) == 0)
 			{
-				tmp_path += *i;
+				// replace invalid characters with '.'
+				if (valid_path_character(*i))
+				{
+					tmp_path += *i;
+				}
+				else
+				{
+					tmp_path += '.';
+					valid_encoding = false;
+				}
 				continue;
 			}
 			
