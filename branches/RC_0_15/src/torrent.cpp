@@ -1081,7 +1081,7 @@ namespace libtorrent
 			return;
 		}
 
-		m_progress_ppm = j.piece * 1000000 / torrent_file().num_pieces();
+		m_progress_ppm = size_type(j.piece) * 1000000 / torrent_file().num_pieces();
 
 		TORRENT_ASSERT(m_picker);
 		if (j.offset >= 0 && !m_picker->have_piece(j.offset))
