@@ -157,20 +157,36 @@ POSSIBILITY OF SUCH DAMAGE.
 // (disables some float-dependent APIs)
 #define TORRENT_NO_FPU 0
 
-// make sure NAME_MAX is defined
-#ifndef NAME_MAX
-#ifdef MAXPATH
-#define NAME_MAX MAXPATH
+
+// on windows, NAME_MAX refers to Unicode characters
+// on linux it refers to bytes (utf-8 encoded)
+// TODO: Make this count Unicode characters instead of bytes on windows
+
+// windows
+#if defined FILENAME_MAX
+#define TORRENT_MAX_PATH FILENAME_MAX
+
+// solaris
+#elif defined MAXPATH
+#define TORRENT_MAX_PATH MAXPATH
+
+// posix
+#elif defined NAME_MAX
+#define TORRENT_MAX_PATH NAME_MAX
+
+// none of the above
 #else
 // this is the maximum number of characters in a
 // path element / filename on windows
 #define NAME_MAX 255
-#endif // MAXPATH
-#endif // NAME_MAX
+#warning unknown platform, assuming the longest path is 255
+
+#endif
 
 #ifdef TORRENT_WINDOWS
 
-#pragma warning(disable:4251) // class X needs to have dll-interface to be used by clients of class Y
+// class X needs to have dll-interface to be used by clients of class Y
+#pragma warning(disable:4251)
 
 #include <stdarg.h>
 
