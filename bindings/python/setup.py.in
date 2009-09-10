@@ -62,7 +62,7 @@ if "OPT" in config_vars and "-Wstrict-prototypes" in config_vars["OPT"]:
 source_list = os.listdir(os.path.join(os.path.dirname(__file__), "src"))
 source_list = [os.path.join("src", s) for s in source_list if s.endswith(".cpp")]
 
-extra_cmd = '@COMPILETIME_OPTIONS@ @CPPFLAGS@ @LIBS@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LIBS@ @BOOST_SYSTEM_LIB@ @SSL_LDFLAGS@ @SSL_CXXFLAGS@'
+extra_cmd = '@COMPILETIME_OPTIONS@ @CPPFLAGS@ @LIBS@ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @BOOST_PYTHON_LIB@ @PTHREAD_LIBS@ @OPENSSL_LIBS@ @OPENSSL_LDFLAGS@ @OPENSSL_INCLUDES@'
 
 setup( name='python-libtorrent',
 	version='@PACKAGE_VERSION@',
@@ -76,9 +76,9 @@ setup( name='python-libtorrent',
 	ext_modules = [Extension('libtorrent',
 		sources = source_list,
 		language='c++',
-		include_dirs = ['@top_srcdir@/include','@top_srcdir@/include/libtorrent'] + parse_cmd(extra_cmd, '-I'),
+		include_dirs = ['@top_srcdir@/include'] + parse_cmd(extra_cmd, '-I'),
 		library_dirs = ['@top_builddir@/src/.libs'] + parse_cmd(extra_cmd, '-L'),
 		extra_link_args = '@LDFLAGS@'.split() + arch(),
 		extra_compile_args = parse_cmd(extra_cmd, '-D', True) + arch(),
-		libraries = ['torrent-rasterbar','@BOOST_PYTHON_LIB@'] + parse_cmd(extra_cmd, '-l'))],
+		libraries = ['torrent-rasterbar'] + parse_cmd(extra_cmd, '-l'))],
 )

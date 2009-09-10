@@ -2,12 +2,15 @@
 
 # $Id$
 
+# The result of using "autoreconf -fi" should be identical to using this
+# script.
+
 set -e
 set -x
 
-aclocal -I m4
-libtoolize -c -f
-automake -a -c -f
-autoconf
-
-rm -Rf config.cache autom4te.cache
+#${AUTOPOINT:-autopoint} -f
+${LIBTOOLIZE:-libtoolize} -c -f || glibtoolize -c -f
+${ACLOCAL:-aclocal} -I m4
+${AUTOCONF:-autoconf}
+#${AUTOHEADER:-autoheader}
+${AUTOMAKE:-automake} -acf --foreign
