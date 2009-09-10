@@ -178,7 +178,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 // this is the maximum number of characters in a
 // path element / filename on windows
-#define NAME_MAX 255
+#define TORRENT_MAX_PATH 255
 #warning unknown platform, assuming the longest path is 255
 
 #endif
