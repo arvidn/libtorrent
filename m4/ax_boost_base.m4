@@ -1,10 +1,10 @@
 # ===========================================================================
-#             http://autoconf-archive.cryp.to/ax_boost_base.html
+#          http://www.nongnu.org/autoconf-archive/ax_boost_base.html
 # ===========================================================================
 #
 # SYNOPSIS
 #
-#   AX_BOOST_BASE([MINIMUM-VERSION],[ACTION-IF-FOUND],[ACTION-IF-NOT-FOUND])
+#   AX_BOOST_BASE([MINIMUM-VERSION])
 #
 # DESCRIPTION
 #
@@ -23,17 +23,12 @@
 #
 #     HAVE_BOOST
 #
-# LAST MODIFICATION
+#   EDIT: 2009-09-07 Cristian Greco <cristian.debian@gmail.com>
+#     - Call AC_SUBST(BOOST_VERSION).
 #
-#   2008-04-12 - original
-#   2008-06-13 - AIF/AINF parameters
-#
-# COPYLEFT
+# LICENSE
 #
 #   Copyright (c) 2008 Thomas Porschberg <thomas@randspringer.de>
-#
-#   Copyright (c) 2008 Roman Rybalko <libtorrent@romanr.info> (under RbLibtorrent project)
-#   (ACTION-IF-FOUND/ACTION-IF-NOT-FOUND options, re-enterability fixes)
 #
 #   Copying and distribution of this file, with or without modification, are
 #   permitted in any medium without royalty provided the copyright notice
@@ -44,9 +39,9 @@ AC_DEFUN([AX_BOOST_BASE],
 AC_ARG_WITH([boost],
 	AS_HELP_STRING([--with-boost@<:@=DIR@:>@], [use boost (default is yes) - it is possible to specify the root directory for boost (optional)]),
 	[
-    if test "$withval" = "no"; then
+    if test "x$withval" = "xno"; then
 		want_boost="no"
-    elif test "$withval" = "yes"; then
+    elif test "x$withval" = "xyes"; then
         want_boost="yes"
         ac_boost_path=""
     else
@@ -87,7 +82,7 @@ if test "x$want_boost" = "xyes"; then
 	dnl first we check the system location for boost libraries
 	dnl this location ist chosen if boost libraries are installed with the --layout=system option
 	dnl or if you install boost with RPM
-	if test "$ac_boost_path" != ""; then
+	if test "x$ac_boost_path" != "x"; then
 		BOOST_LDFLAGS="-L$ac_boost_path/lib"
 		BOOST_CPPFLAGS="-I$ac_boost_path/include"
 	else
@@ -95,6 +90,7 @@ if test "x$want_boost" = "xyes"; then
 			if test -d "$ac_boost_path_tmp/include/boost" && test -r "$ac_boost_path_tmp/include/boost"; then
 				BOOST_LDFLAGS="-L$ac_boost_path_tmp/lib"
 				BOOST_CPPFLAGS="-I$ac_boost_path_tmp/include"
+        BOOST_VERSION=`grep "define BOOST_LIB_VERSION" $ac_boost_path_tmp/include/boost/version.hpp | sed 's,^.*\"\([[0-9]][[_0-9]]*\)\"$,\1, ; s,_0$,, ; s,_,.,'`
 				break;
 			fi
 		done
@@ -102,7 +98,7 @@ if test "x$want_boost" = "xyes"; then
 
     dnl overwrite ld flags if we have required special directory with
     dnl --with-boost-libdir parameter
-    if test "$ac_boost_lib_path" != ""; then
+    if test "x$ac_boost_lib_path" != "x"; then
        BOOST_LDFLAGS="-L$ac_boost_lib_path"
     fi
 
@@ -137,7 +133,7 @@ if test "x$want_boost" = "xyes"; then
 	dnl built and installed without the --layout=system option or for a staged(not installed) version
 	if test "x$succeeded" != "xyes"; then
 		_version=0
-		if test "$ac_boost_path" != ""; then
+		if test "x$ac_boost_path" != "x"; then
 			if test -d "$ac_boost_path" && test -r "$ac_boost_path"; then
 				for i in `ls -d $ac_boost_path/include/boost-* 2>/dev/null`; do
 					_version_tmp=`echo $i | sed "s#$ac_boost_path##" | sed 's/\/include\/boost-//' | sed 's/_/./'`
@@ -165,7 +161,7 @@ if test "x$want_boost" = "xyes"; then
 
 			VERSION_UNDERSCORE=`echo $_version | sed 's/\./_/'`
 			BOOST_CPPFLAGS="-I$best_path/include/boost-$VERSION_UNDERSCORE"
-            if test "$ac_boost_lib_path" = ""
+            if test "x$ac_boost_lib_path" = "x"
             then
                BOOST_LDFLAGS="-L$best_path/lib"
             fi
@@ -176,7 +172,7 @@ if test "x$want_boost" = "xyes"; then
 					stage_version=`echo $version_dir | sed 's/boost_//' | sed 's/_/./g'`
 			        	stage_version_shorten=`expr $stage_version : '\([[0-9]]*\.[[0-9]]*\)'`
 					V_CHECK=`expr $stage_version_shorten \>\= $_version`
-                    if test "$V_CHECK" = "1" -a "$ac_boost_lib_path" = "" ; then
+                    if test "$V_CHECK" = "1" -a "x$ac_boost_lib_path" = "x" ; then
 						AC_MSG_NOTICE(We will use a staged boost library from $BOOST_ROOT)
 						BOOST_CPPFLAGS="-I$BOOST_ROOT"
 						BOOST_LDFLAGS="-L$BOOST_ROOT/stage/lib"
@@ -207,28 +203,22 @@ if test "x$want_boost" = "xyes"; then
 	       	])
 		AC_LANG_POP([C++])
 	fi
-	
-        CPPFLAGS="$CPPFLAGS_SAVED"
-       	LDFLAGS="$LDFLAGS_SAVED"
-	unset ac_boost_path # re-enterability
 
-	if test "$succeeded" != "yes" ; then
-		ifelse([$3], ,[
-			if test "$_version" = "0" ; then
-				AC_MSG_ERROR([[We could not detect the boost libraries (version $boost_lib_version_req_shorten or higher). If you have a staged boost library (still not installed) please specify \$BOOST_ROOT in your environment and do not give a PATH to --with-boost option.  If you are sure you have boost installed, then check your version number looking in <boost/version.hpp>. See http://randspringer.de/boost for more documentation.]])
-			else
-				AC_MSG_NOTICE([Your boost libraries seems to old (version $_version).])
-			fi
-		],[
-			AC_MSG_RESULT(no)
-			$3
-		])
+	if test "x$succeeded" != "xyes" ; then
+		if test "$_version" = "0" ; then
+			AC_MSG_ERROR([[We could not detect the boost libraries (version $boost_lib_version_req_shorten or higher). If you have a staged boost library (still not installed) please specify \$BOOST_ROOT in your environment and do not give a PATH to --with-boost option.  If you are sure you have boost installed, then check your version number looking in <boost/version.hpp>. See http://randspringer.de/boost for more documentation.]])
+		else
+			AC_MSG_NOTICE([Your boost libraries seems to old (version $_version).])
+		fi
 	else
-		$2
 		AC_SUBST(BOOST_CPPFLAGS)
 		AC_SUBST(BOOST_LDFLAGS)
-		AC_DEFINE(HAVE_BOOST,,[define if the Boost library is available])
+    AC_SUBST(BOOST_VERSION)
+		AC_DEFINE(HAVE_BOOST,[1],[define if the Boost library is available])
 	fi
+
+        CPPFLAGS="$CPPFLAGS_SAVED"
+       	LDFLAGS="$LDFLAGS_SAVED"
 fi
 
 ])

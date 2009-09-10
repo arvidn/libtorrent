@@ -1,5 +1,5 @@
 # ===========================================================================
-#               http://autoconf-archive.cryp.to/ax_python.html
+#            http://www.nongnu.org/autoconf-archive/ax_python.html
 # ===========================================================================
 #
 # SYNOPSIS
@@ -10,7 +10,7 @@
 #
 #   This macro does a complete Python development environment check.
 #
-#   It recurses through several python versions (from 2.1 to 2.5 in this
+#   It recurses through several python versions (from 2.1 to 2.6 in this
 #   version), looking for an executable. When it finds an executable, it
 #   looks to find the header files and library.
 #
@@ -21,11 +21,12 @@
 #   This macro calls AC_SUBST on PYTHON_BIN (via AC_CHECK_PROG),
 #   PYTHON_INCLUDE_DIR and PYTHON_LIB.
 #
-# LAST MODIFICATION
+#   EDIT: 2009.09.05 - Modified by Cristian Greco <cristian.debian@gmail.com>
+#   Dirty hack on the for loop in order to avoid problems with caching in
+#   AC_CHECK_ARGS, and a special test for ${host} in darwin (MacOS).
+#   Note that now the macro calls directly AC_SUBST on PYTHON_BIN.
 #
-#   2008-04-12
-#
-# COPYLEFT
+# LICENSE
 #
 #   Copyright (c) 2008 Michael Tindal
 #
@@ -51,53 +52,60 @@
 #   all other use of the material that constitutes the Autoconf Macro.
 #
 #   This special exception to the GPL applies to versions of the Autoconf
-#   Macro released by the Autoconf Macro Archive. When you make and
-#   distribute a modified version of the Autoconf Macro, you may extend this
-#   special exception to the GPL to apply to your modified version as well.
+#   Macro released by the Autoconf Archive. When you make and distribute a
+#   modified version of the Autoconf Macro, you may extend this special
+#   exception to the GPL to apply to your modified version as well.
 
 AC_DEFUN([AX_PYTHON],
 [AC_MSG_CHECKING(for python build information)
 AC_MSG_RESULT([])
-for python in python2.6 python2.5 python2.4 python2.3 python2.2 python2.1 python; do
-# AC_CHECK_PROGS(PYTHON_BIN, [$python])
-PYTHON_BIN=$python
-ax_python_bin=$PYTHON_BIN
-if test x$ax_python_bin != x; then
-   AC_CHECK_LIB($ax_python_bin, main, ax_python_lib=$ax_python_bin, ax_python_lib=no)
-   AC_CHECK_HEADER([$ax_python_bin/Python.h], ax_python_header=/usr/include/$ax_python_bin, ax_python_header=no)
-   if test $ax_python_lib != no; then
-     if test $ax_python_header != no; then
-       break;
-     fi
-   fi
-   AC_CHECK_HEADER([$ax_python_bin/Python.h], ax_python_header=/opt/local/include/$ax_python_bin, ax_python_header=no)
-   if test $ax_python_lib != no; then
-     if test $ax_python_header != no; then
-       break;
-     fi
-   fi
+
+found="no"
+m4_foreach_w([PYVER], [ 2_6 2_5 2_4 ], [
+if test "x$found" != "xyes"; then
+  python="python`echo PYVER | sed -e 's/_/./'`"
+  AC_CHECK_PROGS(PYTHON_BIN_[]PYVER, [$python])
+  ax_python_bin=$PYTHON_BIN_[]PYVER
+  if test "x$ax_python_bin" != "x"; then
+    AC_CHECK_LIB($ax_python_bin, main, ax_python_lib=$ax_python_bin, ax_python_lib=no)
+
+    if test `echo ${host} | grep '.*-darwin.*'`; then
+      python_prefix=/System/Library/Frameworks/Python.framework/*/
+    fi
+    AC_CHECK_HEADER([$ax_python_bin/Python.h],
+      [[ax_python_header=`locate $python_prefix$ax_python_bin/Python.h | sed -e s,/Python.h,,`]],
+      [ax_python_header="no"])
+    if test "x$ax_python_lib" != "xno" -a "x$ax_python_header" != "xno"; then
+        found="yes";
+    fi
+  fi
 fi
-done
-if test x$ax_python_bin = x; then
-   ax_python_bin=no
+])
+
+if test "x$ax_python_bin" = "x"; then
+   ax_python_bin="no"
 fi
-if test x$ax_python_header = x; then
-   ax_python_header=no
+if test "x$ax_python_header" = "x"; then
+   ax_python_header="no"
 fi
-if test x$ax_python_lib = x; then
-   ax_python_lib=no
+if test "x$ax_python_lib" = "x"; then
+   ax_python_lib="no"
 fi
 
-AC_MSG_RESULT([  results of the Python check:])
-AC_MSG_RESULT([    Binary:      $ax_python_bin])
-AC_MSG_RESULT([    Library:     $ax_python_lib])
-AC_MSG_RESULT([    Include Dir: $ax_python_header])
+#AC_MSG_RESULT([  results of the Python check:])
+#AC_MSG_RESULT([    Binary:      $ax_python_bin])
+#AC_MSG_RESULT([    Library:     $ax_python_lib])
+#AC_MSG_RESULT([    Include Dir: $ax_python_header])
 
-if test x$ax_python_header != xno; then
+if test "x$ax_python_bin" != "xno"; then
+  PYTHON_BIN=$ax_python_bin
+  AC_SUBST(PYTHON_BIN)
+fi
+if test "x$ax_python_header" != "xno"; then
   PYTHON_INCLUDE_DIR=$ax_python_header
   AC_SUBST(PYTHON_INCLUDE_DIR)
 fi
-if test x$ax_python_lib != xno; then
+if test "x$ax_python_lib" != "xno"; then
   PYTHON_LIB=$ax_python_lib
   AC_SUBST(PYTHON_LIB)
 fi

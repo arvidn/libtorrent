@@ -1,25 +1,36 @@
+example_programs = \
+  client_test      \
+  dump_torrent     \
+  enum_if          \
+  make_torrent     \
+  simple_client
+
 if ENABLE_EXAMPLES
-# no indent here! - BSD make issue
-bin_PROGRAMS = @CLIENT_TEST_BIN@ dump_torrent make_torrent simple_client enum_if
+bin_PROGRAMS = $(example_programs)
 endif
-EXTRA_PROGRAMS = client_test dump_torrent make_torrent simple_client enum_if
+
+EXTRA_PROGRAMS = $(example_programs)
 EXTRA_DIST = Jamfile
 
 client_test_SOURCES = client_test.cpp
-client_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la @BOOST_REGEX_LIB@
+#client_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 dump_torrent_SOURCES = dump_torrent.cpp
-dump_torrent_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
+#dump_torrent_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 make_torrent_SOURCES = make_torrent.cpp
-make_torrent_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
+#make_torrent_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 simple_client_SOURCES = simple_client.cpp
-simple_client_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
+#simple_client_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 enum_if_SOURCES = enum_if.cpp
-enum_if_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
+#enum_if_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
-AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@
+LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
-AM_LDFLAGS= ${LDLAGS} -L./ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LDFLAGS@ @SSL_LIBS@
+AM_CPPFLAGS = -ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
+
+#AM_LDFLAGS = ${LDLAGS} -L./ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
+#AM_LDFLAGS = $(LDFLAGS) @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
+#AM_LDFLAGS = @OPENSSL_LDFLAGS@
