@@ -203,14 +203,7 @@ namespace libtorrent
 
 	void trim_path_element(std::string& path_element)
 	{
-#ifdef FILENAME_MAX
-		const int max_path_len = FILENAME_MAX;
-#else
-		// on windows, NAME_MAX refers to Unicode characters
-		// on linux it refers to bytes (utf-8 encoded)
-		// TODO: Make this count Unicode characters instead of bytes on windows
-		const int max_path_len = NAME_MAX;
-#endif
+		const int max_path_len = TORRENT_MAX_PATH;
 		if (path_element.size() > max_path_len)
 		{
 			// truncate filenames that are too long. But keep extensions!

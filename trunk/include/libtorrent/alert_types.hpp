@@ -138,7 +138,7 @@ namespace libtorrent
 		virtual char const* what() const { return "file completed"; }
 		virtual std::string message() const
 		{
-			char msg[200];
+			char msg[200 + TORRENT_MAX_PATH];
 			snprintf(msg, sizeof(msg), "%s: file %d finished downloading"
 				, torrent_alert::message().c_str(), index);
 			return msg;
@@ -164,7 +164,7 @@ namespace libtorrent
 		virtual char const* what() const { return "file renamed"; }
 		virtual std::string message() const
 		{
-			char msg[200 + NAME_MAX];
+			char msg[200 + TORRENT_MAX_PATH * 2];
 			snprintf(msg, sizeof(msg), "%s: file %d renamed to %s", torrent_alert::message().c_str()
 				, index, name.c_str());
 			return msg;
@@ -190,7 +190,7 @@ namespace libtorrent
 		virtual char const* what() const { return "file rename failed"; }
 		virtual std::string message() const
 		{
-			char ret[200 + NAME_MAX];
+			char ret[200 + TORRENT_MAX_PATH * 2];
 			snprintf(ret, sizeof(ret), "%s: failed to rename file %d: %s"
 				, torrent_alert::message().c_str(), index, error.message().c_str());
 			return ret;

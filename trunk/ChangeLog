@@ -1,4 +1,5 @@
 	* added support for i2p torrents
+	* cleaned up usage of MAX_PATH and related macros
 
 0.15 release
 
