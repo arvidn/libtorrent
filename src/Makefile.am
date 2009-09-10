@@ -12,6 +12,10 @@ kademlia/rpc_manager.cpp \
 kademlia/traversal_algorithm.cpp
 endif
 
+if WITH_SHIPPED_GEOIP
+GEOIP_SOURCES = GeoIP.c
+endif
+
 libtorrent_rasterbar_la_SOURCES = entry.cpp escape_string.cpp \
 lazy_bdecode.cpp assert.cpp enum_net.cpp broadcast_socket.cpp \
 peer_connection.cpp bt_peer_connection.cpp web_peer_connection.cpp \
@@ -23,8 +27,8 @@ alert.cpp identify_client.cpp ip_filter.cpp file.cpp metadata_transfer.cpp \
 logger.cpp file_pool.cpp ut_pex.cpp lsd.cpp upnp.cpp instantiate_connection.cpp \
 socks5_stream.cpp socks4_stream.cpp http_stream.cpp connection_queue.cpp \
 disk_io_thread.cpp ut_metadata.cpp magnet_uri.cpp udp_socket.cpp smart_ban.cpp \
-http_parser.cpp gzip.cpp disk_buffer_holder.cpp create_torrent.cpp GeoIP.c \
-parse_url.cpp file_storage.cpp error_code.cpp $(kademlia_sources)
+http_parser.cpp gzip.cpp disk_buffer_holder.cpp create_torrent.cpp \
+parse_url.cpp file_storage.cpp error_code.cpp $(kademlia_sources) $(GEOIP_SOURCES)
 # mapped_storage.cpp 
 
 noinst_HEADERS = \
