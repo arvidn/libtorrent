@@ -268,7 +268,7 @@ namespace libtorrent
 		if (!need_encoding(path.c_str(), path.size()))
 			return url;
 
-		char msg[NAME_MAX*4];
+		char msg[TORRENT_MAX_PATH*4];
 		snprintf(msg, sizeof(msg), "%s://%s%s%s:%d%s", protocol.c_str(), auth.c_str()
 			, auth.empty()?"":"@", host.c_str(), port
 			, escape_path(path.c_str(), path.size()).c_str());
