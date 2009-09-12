@@ -1482,64 +1482,62 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << "   got redundant HAVE message for index: " << index << "\n";
 #endif
+			return;
 		}
-		else
+
+		m_have_piece.set_bit(index);
+		++m_num_pieces;
+
+		// only update the piece_picker if
+		// we have the metadata and if
+		// we're not a seed (in which case
+		// we won't have a piece picker)
+		if (!t->valid_metadata()) return;
+
+		t->peer_has(index);
+
+		// this will disregard all have messages we get within
+		// the first two seconds. Since some clients implements
+		// lazy bitfields, these will not be reliable to use
+		// for an estimated peer download rate.
+		if (!peer_info_struct()
+			|| m_ses.session_time() - peer_info_struct()->last_connected > 2)
 		{
-			m_have_piece.set_bit(index);
-			++m_num_pieces;
+			// update bytes downloaded since last timer
+			m_remote_bytes_dled += t->torrent_file().piece_size(index);
+		}
+		
+		// it's important to not disconnect before we have
+		// updated the piece picker, otherwise we will incorrectly
+		// decrement the piece count without first incrementing it
+		if (is_seed())
+		{
+			t->get_policy().set_seed(m_peer_info, true);
+			m_upload_only = true;
+			disconnect_if_redundant();
+			if (is_disconnecting()) return;
+		}
 
-			// only update the piece_picker if
-			// we have the metadata and if
-			// we're not a seed (in which case
-			// we won't have a piece picker)
-			if (t->valid_metadata())
+		if (!t->have_piece(index)
+			&& !t->is_seed()
+			&& !is_interesting()
+			&& t->picker().piece_priority(index) != 0)
+			t->get_policy().peer_is_interesting(*this);
+
+		// if we're super seeding, this might mean that somebody
+		// forwarded this piece. In which case we need to give
+		// a new piece to that peer
+		if (t->super_seeding()
+			&& m_ses.settings().strict_super_seeding
+			&& (index != m_superseed_piece || t->num_peers() == 1))
+		{
+			for (torrent::peer_iterator i = t->begin()
+				, end(t->end()); i != end; ++i)
 			{
-				t->peer_has(index);
-
-				if (!t->have_piece(index)
-					&& !t->is_seed()
-					&& !is_interesting()
-					&& t->picker().piece_priority(index) != 0)
-					t->get_policy().peer_is_interesting(*this);
-
-				// this will disregard all have messages we get within
-				// the first two seconds. Since some clients implements
-				// lazy bitfields, these will not be reliable to use
-				// for an estimated peer download rate.
-				if (!peer_info_struct()
-					|| m_ses.session_time() - peer_info_struct()->last_connected > 2)
-				{
-					// update bytes downloaded since last timer
-					m_remote_bytes_dled += t->torrent_file().piece_size(index);
-				}
-			}
-			
-			// it's important to not disconnect before we have
-			// updated the piece picker, otherwise we will incorrectly
-			// decrement the piece count without first incrementing it
-			if (is_seed())
-			{
-				t->get_policy().set_seed(m_peer_info, true);
-				m_upload_only = true;
-				disconnect_if_redundant();
-				if (is_disconnecting()) return;
-			}
-
-			// if we're super seeding, this might mean that somebody
-			// forwarded this piece. In which case we need to give
-			// a new piece to that peer
-			if (t->super_seeding()
-				&& m_ses.settings().strict_super_seeding
-				&& (index != m_superseed_piece || t->num_peers() == 1))
-			{
-				for (torrent::peer_iterator i = t->begin()
-					, end(t->end()); i != end; ++i)
-				{
-					peer_connection* p = *i;
-					if (p->superseed_piece() != index) continue;
-					if (!p->has_piece(index)) continue;
-					p->superseed_piece(t->get_piece_to_super_seed(p->get_bitfield()));
-				}
+				peer_connection* p = *i;
+				if (p->superseed_piece() != index) continue;
+				if (!p->has_piece(index)) continue;
+				p->superseed_piece(t->get_piece_to_super_seed(p->get_bitfield()));
 			}
 		}
 	}

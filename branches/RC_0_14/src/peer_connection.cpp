@@ -1291,44 +1291,47 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << "   got redundant HAVE message for index: " << index << "\n";
 #endif
+			return;
 		}
-		else
+
+		m_have_piece.set_bit(index);
+		++m_num_pieces;
+
+		// only update the piece_picker if
+		// we have the metadata and if
+		// we're not a seed (in which case
+		// we won't have a piece picker)
+		if (!t->valid_metadata()) return;
+
+		t->peer_has(index);
+
+		// it is important that we don't disconnect before the
+		// torrent has accounted for this piece, otherwise
+		// we will have an inconsistent count for it in the
+		// piece picker since disconnecting will decrement the
+		// count
+		if (is_seed())
 		{
-			m_have_piece.set_bit(index);
-			++m_num_pieces;
+			t->get_policy().set_seed(m_peer_info, true);
+			m_upload_only = true;
+			disconnect_if_redundant();
+			if (is_disconnecting()) return;
+		}
 
-			// only update the piece_picker if
-			// we have the metadata and if
-			// we're not a seed (in which case
-			// we won't have a piece picker)
-			if (t->valid_metadata())
-			{
-				t->peer_has(index);
+		if (!t->have_piece(index)
+			&& !t->is_seed()
+			&& !is_interesting()
+			&& t->picker().piece_priority(index) != 0)
+			t->get_policy().peer_is_interesting(*this);
 
-				if (!t->have_piece(index)
-					&& !t->is_seed()
-					&& !is_interesting()
-					&& t->picker().piece_priority(index) != 0)
-					t->get_policy().peer_is_interesting(*this);
-
-				// this will disregard all have messages we get within
-				// the first two seconds. Since some clients implements
-				// lazy bitfields, these will not be reliable to use
-				// for an estimated peer download rate.
-				if (!peer_info_struct() || time_now() - peer_info_struct()->connected > seconds(2))
-				{
-					// update bytes downloaded since last timer
-					m_remote_bytes_dled += t->torrent_file().piece_size(index);
-				}
-			}
-			
-			if (is_seed())
-			{
-				t->get_policy().set_seed(m_peer_info, true);
-				m_upload_only = true;
-				disconnect_if_redundant();
-				if (is_disconnecting()) return;
-			}
+		// this will disregard all have messages we get within
+		// the first two seconds. Since some clients implements
+		// lazy bitfields, these will not be reliable to use
+		// for an estimated peer download rate.
+		if (!peer_info_struct() || time_now() - peer_info_struct()->connected > seconds(2))
+		{
+			// update bytes downloaded since last timer
+			m_remote_bytes_dled += t->torrent_file().piece_size(index);
 		}
 	}
 
