@@ -1,5 +1,6 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
+
 # $Id$
 
 AC_PREREQ(2.64)
@@ -725,6 +726,12 @@ Python environment:
   binary:               ${PYTHON}
   version:              ${PYTHON_VERSION}
   platform:             ${PYTHON_PLATFORM}
+  prefix:               ${PYTHON_PREFIX}
+  exec_prefix:          ${PYTHON_EXEC_PREFIX}
+  pythondir:            ${pythondir}
+  pkgpythondir:         ${pkgpythondir}
+  pyexecdir:            ${pyexecdir}
+  pkgpyexecdir:         ${pkgpyexecdir}
 
   -m4-
   binary:               ${PYTHON_BIN}
