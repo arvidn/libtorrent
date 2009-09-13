@@ -2521,7 +2521,7 @@ This sets the bandwidth priority of this torrent. The priority of a torrent dete
 how much bandwidth its peers are assigned when distributing upload and download rate quotas.
 A high number gives more bandwidth. The priority must be within the range [0, 255].
 
-The default priority is, which is the lowest priority.
+The default priority is 0, which is the lowest priority.
 
 To query the priority of a torrent, use the `status()`_ call.
 
