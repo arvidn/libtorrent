@@ -5761,6 +5761,7 @@ namespace libtorrent
 		st.upload_mode = m_upload_mode;
 		st.up_bandwidth_queue = 0;
 		st.down_bandwidth_queue = 0;
+		st.priority = m_priority;
 
 		st.num_peers = (int)std::count_if(m_connections.begin(), m_connections.end()
 			, !boost::bind(&peer_connection::is_connecting, _1));

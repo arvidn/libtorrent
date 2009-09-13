@@ -118,6 +118,8 @@ namespace libtorrent
 			, has_incoming(false)
 			, sparse_regions(0)
 			, seed_mode(false)
+			, upload_mode(false)
+			, priority(0)
 		{}
 
 		enum state_t
@@ -293,6 +295,9 @@ namespace libtorrent
 		// from downloading, typically caused by a file
 		// write operation failing
 		bool upload_mode;
+
+		// the priority of this torrent
+		int priority;
 	};
 
 	struct TORRENT_EXPORT block_info
@@ -384,6 +389,8 @@ namespace libtorrent
 
 		enum deadline_flags { alert_when_available = 1 };
 		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
+
+		void set_priority(int prio) const;
 		
 #ifndef TORRENT_NO_DEPRECATE
 #if !TORRENT_NO_FPU

@@ -228,6 +228,8 @@ namespace libtorrent
 		void set_priority(int p)
 		{
 			TORRENT_ASSERT(p > 0);
+			TORRENT_ASSERT(m_priority <= 255);
+			if (p > 255) p = 255;
 			m_priority = p;
 		}
 
