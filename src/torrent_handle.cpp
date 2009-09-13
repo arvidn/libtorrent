@@ -326,6 +326,12 @@ namespace libtorrent
 		TORRENT_FORWARD(auto_managed(m));
 	}
 
+	void torrent_handle::set_priority(int p) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(set_priority(p));
+	}
+
 	int torrent_handle::queue_position() const
 	{
 		INVARIANT_CHECK;
