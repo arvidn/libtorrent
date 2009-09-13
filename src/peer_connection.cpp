@@ -3877,6 +3877,10 @@ namespace libtorrent
 	{
 		shared_ptr<torrent> t = m_torrent.lock();
 		int priority = 1 + is_interesting() * 2 + m_requests_in_buffer.size();
+
+		if (priority > 255) priority = 255;
+		priority += t->priority() << 8;
+
 		// peers that we are not interested in are non-prioritized
 		m_channel_state[upload_channel] = peer_info::bw_limit;
 		m_ses.m_upload_rate.request_bandwidth(self()
@@ -3905,12 +3909,15 @@ namespace libtorrent
 			"download: " << (m_download_queue.size() * 16 * 1024 + 30)
 			<< " prio: " << m_priority << " ]\n";
 #endif
+		TORRENT_ASSERT(m_priority <= 255);
+		int priority = m_priority + (t->priority() << 8);
+
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle
 			|| m_channel_state[download_channel] == peer_info::bw_disk);
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 		m_channel_state[download_channel] = peer_info::bw_limit;
 		m_ses.m_download_rate.request_bandwidth(self()
-			, m_outstanding_bytes + 30, m_priority
+			, m_outstanding_bytes + 30, priority
 			, bwc1, bwc2, bwc3, bwc4);
 	}
 

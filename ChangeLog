@@ -3,6 +3,7 @@
 
 0.15 release
 
+	* added torrent priority to affect bandwidth allocation for its peers
 	* reduced the number of floating point operations (to better support
 	  systems without FPU)
 	* added new alert when individual files complete

@@ -77,7 +77,8 @@ struct bw_request
 		for (int j = 0; j < 5 && channel[j]; ++j)
 		{
 			if (channel[j]->throttle() == 0) continue;
-			quota = (std::min)(channel[j]->distribute_quota * priority / channel[j]->tmp, quota);
+			quota = (std::min)(int(boost::uint64_t(channel[j]->distribute_quota)
+				* priority / channel[j]->tmp), quota);
 		}
 		assigned += quota;
 		for (int j = 0; j < 5 && channel[j]; ++j)

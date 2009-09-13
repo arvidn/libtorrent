@@ -1893,6 +1893,8 @@ Its declaration looks like this::
 		void queue_position_top() const;
 		void queue_position_bottom() const;
 
+		void set_priority(int prio) const;
+
 		void use_interface(char const* net_interface) const;
 
 		void pause() const;
@@ -2508,6 +2510,25 @@ The ``queue_position_*()`` functions adjust the torrents position in the queue. 
 closer to the front and down means closer to the back of the queue. Top and bottom refers
 to the front and the back of the queue respectively.
 
+set_priority()
+--------------
+
+	::
+
+		void set_priority(int prio) const;
+
+This sets the bandwidth priority of this torrent. The priority of a torrent determines
+how much bandwidth its peers are assigned when distributing upload and download rate quotas.
+A high number gives more bandwidth. The priority must be within the range [0, 255].
+
+The default priority is, which is the lowest priority.
+
+To query the priority of a torrent, use the `status()`_ call.
+
+Torrents with higher priority will not nececcarily get as much bandwidth as they can
+consume, even if there's is more quota. Other peers will still be weighed in when
+bandwidth is being distributed. With other words, bandwidth is not distributed strictly
+in order of priority, but the priority is used as a weight.
 
 use_interface()
 ---------------
@@ -2869,6 +2890,8 @@ It contains the following fields::
 		bool seed_mode;
 
 		bool upload_mode;
+
+		int priority;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the

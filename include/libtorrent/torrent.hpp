@@ -286,6 +286,15 @@ namespace libtorrent
 		float ratio() const
 		{ return m_ratio; }
 
+		int priority() const { return m_priority; }
+		void set_priority(int prio)
+		{
+			TORRENT_ASSERT(prio <= 255 && prio >= 0);
+			if (prio > 255) prio = 255;
+			else if (prio < 0) prio = 0;
+			m_priority = prio;
+		}
+
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		void resolve_countries(bool r)
 		{ m_resolve_countries = r; }
@@ -1014,6 +1023,11 @@ namespace libtorrent
 		// second, and when it reaches 0, the policy::pulse()
 		// is called and the time scaler is reset to 10.
 		boost::int8_t m_time_scaler;
+
+		// this is the priority of the torrent. The higher
+		// the value is, the more bandwidth is assigned to
+		// the torrent's peers
+		boost::uint8_t m_priority;
 
 		// is set to true when the torrent has
 		// been aborted.

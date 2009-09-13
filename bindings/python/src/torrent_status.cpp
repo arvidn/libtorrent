@@ -78,6 +78,7 @@ void bind_torrent_status()
         .def_readonly("seed_rank", &torrent_status::seed_rank)
         .def_readonly("last_scrape", &torrent_status::last_scrape)
         .def_readonly("error", &torrent_status::error)
+        .def_readonly("priority", &torrent_status::priority)
         ;
 
     enum_<torrent_status::state_t>("states")
