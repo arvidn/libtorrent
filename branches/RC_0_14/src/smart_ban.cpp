@@ -165,6 +165,10 @@ namespace libtorrent { namespace
 
 		void on_read_failed_block(piece_block b, address a, int ret, disk_io_job const& j)
 		{
+			aux::session_impl::mutex_t::scoped_lock l(m_torrent.session().m_mutex);
+			
+			disk_buffer_holder buffer(m_torrent.session(), j.buffer);
+
 			// ignore read errors
 			if (ret != j.buffer_size) return;
 
@@ -172,10 +176,6 @@ namespace libtorrent { namespace
 			crc.update(j.buffer, j.buffer_size);
 			crc.update((char const*)&m_salt, sizeof(m_salt));
 
-			// since this callback is called directory from the disk io
-			// thread, the session mutex is not locked when we get here
-			aux::session_impl::mutex_t::scoped_lock l(m_torrent.session().m_mutex);
-			
 			std::pair<policy::iterator, policy::iterator> range
 				= m_torrent.get_policy().find_peers(a);
 
@@ -241,9 +241,9 @@ namespace libtorrent { namespace
 		
 		void on_read_ok_block(std::pair<piece_block, block_entry> b, int ret, disk_io_job const& j)
 		{
-			// since this callback is called directory from the disk io
-			// thread, the session mutex is not locked when we get here
 			aux::session_impl::mutex_t::scoped_lock l(m_torrent.session().m_mutex);
+
+			disk_buffer_holder buffer(m_torrent.session(), j.buffer);
 
 			// ignore read errors
 			if (ret != j.buffer_size) return;
