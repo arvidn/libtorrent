@@ -3,7 +3,7 @@
 
 # $Id$
 
-AC_PREREQ(2.64)
+AC_PREREQ([2.64])
 
 AC_INIT([libtorrent-rasterbar],[0.15.0],[arvid@cs.umu.se],[libtorrent-rasterbar],[http://www.libtorrent.org])
 AC_CONFIG_SRCDIR([src/torrent.cpp])
@@ -78,12 +78,12 @@ AC_CANONICAL_TARGET
 
 AS_ECHO
 AS_ECHO "Initializing Automake:"
-AM_INIT_AUTOMAKE(1.10 foreign)
+AM_INIT_AUTOMAKE([1.11 foreign])
 
 
 AS_ECHO
 AS_ECHO "Initializing Libtool:"
-LT_PREREQ(2.2.6)
+LT_PREREQ([2.2.6])
 LT_INIT
 
 
