@@ -84,6 +84,9 @@ release 0.14.6
 	* fixed download piece performance bug in piece picker
 	* fixed bug in connect candidate counter
 	* replaces invalid filename characters with .
+	* added --with-libgeoip option to configure script to allow building and
+	  linking against system wide library
+	* fixed potential pure virtual function call in extensions on shutdown
 
 release 0.14.5
 

@@ -679,6 +679,10 @@ namespace libtorrent
 
 		m_disk_recv_buffer_size = 0;
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		m_extensions.clear();
+#endif
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		if (m_logger)
 		{
