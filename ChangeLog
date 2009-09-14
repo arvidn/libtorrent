@@ -87,6 +87,7 @@ release 0.14.6
 	* added --with-libgeoip option to configure script to allow building and
 	  linking against system wide library
 	* fixed potential pure virtual function call in extensions on shutdown
+	* fixed disk buffer leak in smart_ban extension
 
 release 0.14.5
 
