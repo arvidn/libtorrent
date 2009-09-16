@@ -65,7 +65,7 @@ for l in lines:
 out.close()
 
 out = open('disk_access.gnuplot', 'wb')
-print >>out, "set term png size 600,300"
+print >>out, "set term png size 1200,900"
 print >>out, 'set output "disk_access.png"'
 print >>out, 'set xrange [*:*]'
 #print >>out, 'set y2range [0:*]'
