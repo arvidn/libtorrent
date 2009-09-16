@@ -43,8 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/error_code.hpp"
 #include "libtorrent/http_parser.hpp"
-#include "libtorrent/time.hpp"
+#include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_settings.hpp"

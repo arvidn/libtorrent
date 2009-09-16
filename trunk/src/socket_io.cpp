@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,70 +30,49 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_LSD_HPP
-#define TORRENT_LSD_HPP
+#include <string>
 
+#include "libtorrent/escape_string.hpp"
+#include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
-#include "libtorrent/deadline_timer.hpp"
-
-#include <boost/function.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-#include <fstream>
-#endif
 
 namespace libtorrent
 {
 
-typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
+	std::string print_address(address const& addr)
+	{
+		error_code ec;
+		return addr.to_string(ec);
+	}
 
-class lsd : public intrusive_ptr_base<lsd>
-{
-public:
-	lsd(io_service& ios, address const& listen_interface
-		, peer_callback_t const& cb);
-	~lsd();
-
-//	void rebind(address const& listen_interface);
-
-	void announce(sha1_hash const& ih, int listen_port);
-	void close();
-
-private:
-
-	void resend_announce(error_code const& e, std::string msg);
-	void on_announce(udp::endpoint const& from, char* buffer
-		, std::size_t bytes_transferred);
-//	void setup_receive();
-
-	peer_callback_t m_callback;
-
-	// current retry count
-	int m_retry_count;
-
-	// the udp socket used to send and receive
-	// multicast messages on
-	broadcast_socket m_socket;
-
-	// used to resend udp packets in case
-	// they time out
-	deadline_timer m_broadcast_timer;
-
-	bool m_disabled;
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	std::ofstream m_log;
+	std::string print_endpoint(tcp::endpoint const& ep)
+	{
+		error_code ec;
+		std::string ret;
+		address const& addr = ep.address();
+#if TORRENT_USE_IPV6
+		if (addr.is_v6())
+		{
+			ret += '[';
+			ret += addr.to_string(ec);
+			ret += ']';
+			ret += ':';
+			ret += to_string(ep.port()).elems;
+		}
+		else
 #endif
-};
+		{
+			ret += addr.to_string(ec);
+			ret += ':';
+			ret += to_string(ep.port()).elems;
+		}
+		return ret;
+	}
+
+	std::string print_endpoint(udp::endpoint const& ep)
+	{
+		return print_endpoint(tcp::endpoint(ep.address(), ep.port()));
+	}
 
 }
-
-
-#endif
 

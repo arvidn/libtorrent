@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/gzip.hpp"
+#include "libtorrent/socket_io.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)

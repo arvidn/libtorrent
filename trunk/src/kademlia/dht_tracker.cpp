@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/socket_io.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"

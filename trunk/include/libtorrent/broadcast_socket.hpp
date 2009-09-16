@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/error_code.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <list>

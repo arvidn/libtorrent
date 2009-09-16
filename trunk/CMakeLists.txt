@@ -31,6 +31,7 @@ set(sources
 	policy
 	session
 	session_impl
+	socket_io
 	socks5_stream
 	stat
 	storage

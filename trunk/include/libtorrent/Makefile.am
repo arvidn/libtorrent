@@ -18,6 +18,7 @@ nobase_include_HEADERS = \
   ConvertUTF.h                 \
   create_torrent.hpp           \
   debug.hpp                    \
+  deadline_timer.hpp           \
   disk_buffer_holder.hpp       \
   disk_io_thread.hpp           \
   entry.hpp                    \
@@ -67,6 +68,7 @@ nobase_include_HEADERS = \
   size_type.hpp                \
   socket.hpp                   \
   socket_type.hpp              \
+  socket_io.hpp                \
   socks5_stream.hpp            \
   ssl_stream.hpp               \
   stat.hpp                     \

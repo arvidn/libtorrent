@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/utility.hpp>
 
 #include "test.hpp"
+#include "libtorrent/socket_io.hpp"
 
 /*
 

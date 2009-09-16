@@ -40,10 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/error_code.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_queue_entry.hpp"
+#include "libtorrent/time.hpp"
 
 using boost::intrusive_ptr;
 

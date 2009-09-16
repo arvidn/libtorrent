@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/socket_io.hpp"
 
 #include "libtorrent/extensions/ut_pex.hpp"
 

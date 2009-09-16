@@ -38,7 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
 #include "libtorrent/socket.hpp"
-#include "libtorrent/time.hpp"
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/deadline_timer.hpp"
 
 #ifdef TORRENT_CONNECTION_LOGGING
 #include <fstream>

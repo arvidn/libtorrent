@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PEER_INFO_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"

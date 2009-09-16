@@ -34,8 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UDP_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/error_code.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/deadline_timer.hpp"
 
 #include <vector>
 #include <boost/function.hpp>
