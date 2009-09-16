@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_queue_entry.hpp"
+#include "libtorrent/bandwidth_socket.hpp"
 #include "libtorrent/time.hpp"
 
 using boost::intrusive_ptr;
@@ -52,197 +53,42 @@ using boost::intrusive_ptr;
 
 namespace libtorrent {
 
-template<class PeerConnection>
 struct bandwidth_manager
 {
 	bandwidth_manager(int channel
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
 		, bool log = false
 #endif		
-		)
-		: m_queued_bytes(0)
-		, m_channel(channel)
-		, m_abort(false)
-	{
-#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-		if (log)
-			m_log.open("bandwidth_limiter.log", std::ios::trunc);
-		m_start = time_now();
-#endif
-	}
+		);
 
-	void close()
-	{
-		m_abort = true;
-		m_queue.clear();
-		m_queued_bytes = 0;
-		error_code ec;
-	}
+	void close();
 
 #ifdef TORRENT_DEBUG
-	bool is_queued(PeerConnection const* peer) const
-	{
-		for (typename queue_t::const_iterator i = m_queue.begin()
-			, end(m_queue.end()); i != end; ++i)
-		{
-			if (i->peer.get() == peer) return true;
-		}
-		return false;
-	}
+	bool is_queued(bandwidth_socket const* peer) const;
 #endif
 
-	int queue_size() const
-	{
-		return m_queue.size();
-	}
-
-	int queued_bytes() const
-	{
-		return m_queued_bytes;
-	}
+	int queue_size() const;
+	int queued_bytes() const;
 	
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds
-	void request_bandwidth(intrusive_ptr<PeerConnection> const& peer
+	void request_bandwidth(intrusive_ptr<bandwidth_socket> const& peer
 		, int blk, int priority
 		, bandwidth_channel* chan1 = 0
 		, bandwidth_channel* chan2 = 0
 		, bandwidth_channel* chan3 = 0
 		, bandwidth_channel* chan4 = 0
-		, bandwidth_channel* chan5 = 0
-		)
-	{
-		INVARIANT_CHECK;
-		if (m_abort) return;
-
-		TORRENT_ASSERT(blk > 0);
-		TORRENT_ASSERT(priority > 0);
-		TORRENT_ASSERT(!is_queued(peer.get()));
-
-		bw_request<PeerConnection> bwr(peer, blk, priority);
-		int i = 0;
-		if (chan1 && chan1->throttle() > 0) bwr.channel[i++] = chan1;
-		if (chan2 && chan2->throttle() > 0) bwr.channel[i++] = chan2;
-		if (chan3 && chan3->throttle() > 0) bwr.channel[i++] = chan3;
-		if (chan4 && chan4->throttle() > 0) bwr.channel[i++] = chan4;
-		if (chan5 && chan5->throttle() > 0) bwr.channel[i++] = chan5;
-		if (i == 0)
-		{
-			// the connection is not rate limited by any of its
-			// bandwidth channels, or it doesn't belong to any
-			// channels. There's no point in adding it to
-			// the queue, just satisfy the request immediately
-			bwr.peer->assign_bandwidth(m_channel, blk);
-			return;
-		}
-		m_queued_bytes += blk;
-		m_queue.push_back(bwr);
-	}
+		, bandwidth_channel* chan5 = 0);
 
 #ifdef TORRENT_DEBUG
-	void check_invariant() const
-	{
-		int queued = 0;
-		for (typename queue_t::const_iterator i = m_queue.begin()
-			, end(m_queue.end()); i != end; ++i)
-		{
-			queued += i->request_size - i->assigned;
-		}
-		TORRENT_ASSERT(queued == m_queued_bytes);
-	}
+	void check_invariant() const;
 #endif
 
-	void update_quotas(time_duration const& dt)
-	{
-		if (m_abort) return;
-		if (m_queue.empty()) return;
-
-		INVARIANT_CHECK;
-
-		int dt_milliseconds = total_milliseconds(dt);
-		if (dt_milliseconds > 3000) dt_milliseconds = 3000;
-
-		// for each bandwidth channel, call update_quota(dt)
-
-		std::vector<bandwidth_channel*> channels;
-
-		for (typename queue_t::iterator i = m_queue.begin();
-			i != m_queue.end();)
-		{
-			if (i->peer->is_disconnecting())
-			{
-				m_queued_bytes -= i->request_size - i->assigned;
-
-				// return all assigned quota to all the
-				// bandwidth channels this peer belongs to
-				for (int j = 0; j < 5 && i->channel[j]; ++j)
-				{
-					bandwidth_channel* bwc = i->channel[j];
-					bwc->return_quota(i->assigned);
-				}
-
-				i = m_queue.erase(i);
-				continue;
-			}
-			for (int j = 0; j < 5 && i->channel[j]; ++j)
-			{
-				bandwidth_channel* bwc = i->channel[j];
-				bwc->tmp = 0;
-			}
-			++i;
-		}
-
-		for (typename queue_t::iterator i = m_queue.begin()
-			, end(m_queue.end()); i != end; ++i)
-		{
-			for (int j = 0; j < 5 && i->channel[j]; ++j)
-			{
-				bandwidth_channel* bwc = i->channel[j];
-				if (bwc->tmp == 0) channels.push_back(bwc);
-				bwc->tmp += i->priority;
-				TORRENT_ASSERT(i->priority > 0);
-			}
-		}
-
-		for (std::vector<bandwidth_channel*>::iterator i = channels.begin()
-			, end(channels.end()); i != end; ++i)
-		{
-			(*i)->update_quota(dt_milliseconds);
-		}
-
-		queue_t tm;
-
-		for (typename queue_t::iterator i = m_queue.begin();
-			i != m_queue.end();)
-		{
-			int a = i->assign_bandwidth();
-			if (i->assigned == i->request_size
-				|| (i->ttl <= 0 && i->assigned > 0))
-			{
-				a += i->request_size - i->assigned;
-				TORRENT_ASSERT(i->assigned <= i->request_size);
-				tm.push_back(*i);
-				i = m_queue.erase(i);
-			}
-			else
-			{
-				++i;
-			}
-			m_queued_bytes -= a;
-		}
-
-		while (!tm.empty())
-		{
-			bw_request<PeerConnection>& bwr = tm.back();
-			bwr.peer->assign_bandwidth(m_channel, bwr.assigned);
-			tm.pop_back();
-		}
-	}
-
+	void update_quotas(time_duration const& dt);
 
 	// these are the consumers that want bandwidth
-	typedef std::vector<bw_request<PeerConnection> > queue_t;
+	typedef std::vector<bw_request> queue_t;
 	queue_t m_queue;
 	// the number of bytes all the requests in queue are for
 	int m_queued_bytes;

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,54 +30,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
-#define TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
 
-#include <boost/integer_traits.hpp>
+#ifndef TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
+#define TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
 
-#include "libtorrent/assert.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
 
-namespace libtorrent {
-
-// member of peer_connection
-struct bandwidth_channel
+namespace libtorrent
 {
-	static const int inf = boost::integer_traits<int>::const_max;
-
-	bandwidth_channel();
-
-	// 0 means infinite
-	void throttle(int limit);
-	int throttle() const { return m_limit; }
-
-	int quota_left() const;
-	void update_quota(int dt_milliseconds);
-
-	// this is used when connections disconnect with
-	// some quota left. It's returned to its bandwidth
-	// channels.
-	void return_quota(int amount);
-	void use_quota(int amount);
-
-	// used as temporary storage while distributing
-	// bandwidth
-	int tmp;
-
-	// this is the number of bytes to distribute this round
-	int distribute_quota;
-
-private:
-
-	// this is the amount of bandwidth we have
-	// been assigned without using yet.
-	int m_quota_left;
-
-	// the limit is the number of bytes
-	// per second we are allowed to use.
-	int m_limit;
-};
-
+	struct bandwidth_socket
+		: public intrusive_ptr_base<bandwidth_socket>
+	{
+		virtual void assign_bandwidth(int channel, int amount) = 0;
+		virtual bool is_disconnecting() const = 0;
+		virtual ~bandwidth_socket() {}
+	};
 }
 
-#endif
+#endif // TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
 
