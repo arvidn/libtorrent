@@ -34,10 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UPNP_HPP
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/error_code.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
+#include "libtorrent/deadline_timer.hpp"
 
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>

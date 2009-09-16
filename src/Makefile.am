@@ -62,6 +62,7 @@ libtorrent_rasterbar_la_SOURCES = \
   sha1.cpp                        \
   smart_ban.cpp                   \
   socks5_stream.cpp               \
+  socket_io.cpp                   \
   stat.cpp                        \
   storage.cpp                     \
   torrent.cpp                     \
@@ -77,7 +78,6 @@ libtorrent_rasterbar_la_SOURCES = \
 	\
   $(KADEMLIA_SOURCES)             \
   $(GEOIP_SOURCES)
-
 
 #libtorrent_rasterbar_la_LDFLAGS = $(LDFLAGS) -version-info $(INTERFACE_VERSION_INFO)
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)
@@ -99,3 +99,4 @@ if WITH_SHIPPED_ZLIB
 libtorrent_rasterbar_la_LIBADD += $(top_builddir)/zlib/libzlib.la 
 AM_CPPFLAGS += -I$(top_srcdir)/zlib
 endif
+

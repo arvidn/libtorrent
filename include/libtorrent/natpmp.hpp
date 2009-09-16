@@ -34,7 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_NATPMP_HPP
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/error_code.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
+#include "libtorrent/deadline_timer.hpp"
 
 #include <boost/function.hpp>
 #include <boost/thread/mutex.hpp>

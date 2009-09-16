@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/io.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/escape_string.hpp"
+#include "libtorrent/error_code.hpp"
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #if BOOST_VERSION < 103500

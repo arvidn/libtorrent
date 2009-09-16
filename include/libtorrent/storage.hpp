@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STORAGE_HPP_INCLUDE
 
 #include <vector>
-#include <bitset>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)

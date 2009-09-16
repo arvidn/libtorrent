@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {

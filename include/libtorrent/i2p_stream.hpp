@@ -169,7 +169,7 @@ public:
 			&& m_state != sam_connecting;
 	}
 	void open(proxy_settings const& s, i2p_stream::handler_type const& h);
-	void close();
+	void close(error_code&);
 
 	char const* session_id() const { return m_session_id.c_str(); }
 	std::string const& local_endpoint() const { return m_i2p_local_endpoint; }

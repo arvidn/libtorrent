@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/deadline_timer.hpp"
 
 namespace libtorrent
 {

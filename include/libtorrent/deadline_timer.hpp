@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,70 +30,64 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_LSD_HPP
-#define TORRENT_LSD_HPP
+#ifndef TORRENT_DEADLINE_TIMER_HPP_INCLUDED
+#define TORRENT_DEADLINE_TIMER_HPP_INCLUDED
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#ifdef __OBJC__
+#define Protocol Protocol_
+#endif
 
-#include <boost/function.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
+#if BOOST_VERSION < 103500
+#include <asio/basic_deadline_timer.hpp>
+#include <asio/time_traits.hpp>
+#else
+#include <boost/asio/basic_deadline_timer.hpp>
+#include <boost/asio/time_traits.hpp>
+#endif
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-#include <fstream>
+#ifdef __OBJC__ 
+#undef Protocol
+#endif
+
+#include "libtorrent/time.hpp"
+
+// asio time_traits
+#if BOOST_VERSION >= 103500
+namespace boost { 
+#endif
+namespace asio
+{
+	template<>
+	struct time_traits<libtorrent::ptime>
+	{
+		typedef libtorrent::ptime time_type;
+		typedef libtorrent::time_duration duration_type;
+		static time_type now()
+		{ return time_type(libtorrent::time_now_hires()); }
+		static time_type add(time_type t, duration_type d)
+		{ return time_type(t.time + d.diff);}
+		static duration_type subtract(time_type t1, time_type t2)
+		{ return duration_type(t1 - t2); }
+		static bool less_than(time_type t1, time_type t2)
+		{ return t1 < t2; }
+		static boost::posix_time::time_duration to_posix_duration(
+			duration_type d)
+		{ return boost::posix_time::microseconds(libtorrent::total_microseconds(d)); }
+	};
+}
+#if BOOST_VERSION >= 103500
+}
 #endif
 
 namespace libtorrent
 {
 
-typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
-
-class lsd : public intrusive_ptr_base<lsd>
-{
-public:
-	lsd(io_service& ios, address const& listen_interface
-		, peer_callback_t const& cb);
-	~lsd();
-
-//	void rebind(address const& listen_interface);
-
-	void announce(sha1_hash const& ih, int listen_port);
-	void close();
-
-private:
-
-	void resend_announce(error_code const& e, std::string msg);
-	void on_announce(udp::endpoint const& from, char* buffer
-		, std::size_t bytes_transferred);
-//	void setup_receive();
-
-	peer_callback_t m_callback;
-
-	// current retry count
-	int m_retry_count;
-
-	// the udp socket used to send and receive
-	// multicast messages on
-	broadcast_socket m_socket;
-
-	// used to resend udp packets in case
-	// they time out
-	deadline_timer m_broadcast_timer;
-
-	bool m_disabled;
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	std::ofstream m_log;
+#if BOOST_VERSION < 103500
+	typedef ::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
+#else
+	typedef boost::asio::basic_deadline_timer<libtorrent::ptime> deadline_timer;
 #endif
-};
-
 }
 
-
-#endif
+#endif // TORRENT_DEADLINE_TIMER_HPP_INCLUDED
 

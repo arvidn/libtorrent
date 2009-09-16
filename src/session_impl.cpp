@@ -526,8 +526,9 @@ namespace aux {
 #endif
 		// abort the main thread
 		m_abort = true;
+		error_code ec;
 #if TORRENT_USE_I2P
-		m_i2p_conn.close();
+		m_i2p_conn.close(ec);
 #endif
 		m_queued_for_checking.clear();
 		if (m_lsd) m_lsd->close();
@@ -537,7 +538,6 @@ namespace aux {
 		if (m_dht) m_dht->stop();
 		m_dht_socket.close();
 #endif
-		error_code ec;
 		m_timer.cancel(ec);
 
 		// close the listen sockets

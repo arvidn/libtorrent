@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/error_code.hpp"
 
 #include <boost/bind.hpp>
 
@@ -74,9 +75,9 @@ namespace libtorrent
 	i2p_connection::~i2p_connection()
 	{}
 
-	void i2p_connection::close()
+	void i2p_connection::close(error_code& e)
 	{
-		if (m_sam_socket) m_sam_socket->close();
+		if (m_sam_socket) m_sam_socket->close(e);
 	}
 
 	void i2p_connection::open(proxy_settings const& s, i2p_stream::handler_type const& handler)

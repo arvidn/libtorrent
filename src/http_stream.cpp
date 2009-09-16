@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/http_stream.hpp"
 #include "libtorrent/escape_string.hpp" // for base64encode
+#include "libtorrent/socket_io.hpp"
 
 namespace libtorrent
 {

@@ -87,11 +87,6 @@ namespace libtorrent
 
 #else // TORRENT_USE_BOOST_DATE_TIME
 
-#if BOOST_VERSION < 103500
-#include <asio/time_traits.hpp>
-#else
-#include <boost/asio/time_traits.hpp>
-#endif
 #include <boost/cstdint.hpp>
 #include "libtorrent/assert.hpp"
 
@@ -165,34 +160,6 @@ namespace libtorrent
 	int total_milliseconds(time_duration td);
 	boost::int64_t total_microseconds(time_duration td);
 }
-
-// asio time_traits
-#if BOOST_VERSION >= 103500
-namespace boost { 
-#endif
-namespace asio
-{
-	template<>
-	struct time_traits<libtorrent::ptime>
-	{
-		typedef libtorrent::ptime time_type;
-		typedef libtorrent::time_duration duration_type;
-		static time_type now()
-		{ return time_type(libtorrent::time_now_hires()); }
-		static time_type add(time_type t, duration_type d)
-		{ return time_type(t.time + d.diff);}
-		static duration_type subtract(time_type t1, time_type t2)
-		{ return duration_type(t1 - t2); }
-		static bool less_than(time_type t1, time_type t2)
-		{ return t1 < t2; }
-		static boost::posix_time::time_duration to_posix_duration(
-			duration_type d)
-		{ return boost::posix_time::microseconds(libtorrent::total_microseconds(d)); }
-	};
-}
-#if BOOST_VERSION >= 103500
-}
-#endif
 
 #if defined TORRENT_USE_ABSOLUTE_TIME
 
