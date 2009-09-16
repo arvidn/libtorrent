@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,54 +30,58 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
-#define TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
+#include "libtorrent/bandwidth_limit.hpp"
 
-#include <boost/integer_traits.hpp>
-
-#include "libtorrent/assert.hpp"
-
-namespace libtorrent {
-
-// member of peer_connection
-struct bandwidth_channel
+namespace libtorrent
 {
-	static const int inf = boost::integer_traits<int>::const_max;
-
-	bandwidth_channel();
+	bandwidth_channel::bandwidth_channel()
+		: m_quota_left(0)
+		, m_limit(0)
+	{}
 
 	// 0 means infinite
-	void throttle(int limit);
-	int throttle() const { return m_limit; }
+	void bandwidth_channel::throttle(int limit)
+	{
+		TORRENT_ASSERT(limit >= 0);
+		// if the throttle is more than this, we might overflow
+		TORRENT_ASSERT(limit < INT_MAX / 31);
+		m_limit = limit;
+	}
+	
+	int bandwidth_channel::quota_left() const
+	{
+		if (m_limit == 0) return inf;
+		return (std::max)(m_quota_left, 0);
+	}
 
-	int quota_left() const;
-	void update_quota(int dt_milliseconds);
+	void bandwidth_channel::update_quota(int dt_milliseconds)
+	{
+		if (m_limit == 0) return;
+		m_quota_left += (m_limit * dt_milliseconds + 500) / 1000;
+		if (m_quota_left > m_limit * 3) m_quota_left = m_limit * 3;
+		distribute_quota = (std::max)(m_quota_left, 0);
+//		fprintf(stderr, "%p: [%d]: + %d limit: %d\n", this
+//			, dt_milliseconds, (m_limit * dt_milliseconds + 500) / 1000, m_limit);
+	}
 
 	// this is used when connections disconnect with
 	// some quota left. It's returned to its bandwidth
 	// channels.
-	void return_quota(int amount);
-	void use_quota(int amount);
+	void bandwidth_channel::return_quota(int amount)
+	{
+		TORRENT_ASSERT(amount >= 0);
+		if (m_limit == 0) return;
+		TORRENT_ASSERT(m_quota_left <= m_quota_left + amount);
+		m_quota_left += amount;
+	}
 
-	// used as temporary storage while distributing
-	// bandwidth
-	int tmp;
-
-	// this is the number of bytes to distribute this round
-	int distribute_quota;
-
-private:
-
-	// this is the amount of bandwidth we have
-	// been assigned without using yet.
-	int m_quota_left;
-
-	// the limit is the number of bytes
-	// per second we are allowed to use.
-	int m_limit;
-};
+	void bandwidth_channel::use_quota(int amount)
+	{
+		TORRENT_ASSERT(amount >= 0);
+		TORRENT_ASSERT(m_limit >= 0);
+		if (m_limit == 0) return;
+		m_quota_left -= amount;
+	}
 
 }
-
-#endif
 

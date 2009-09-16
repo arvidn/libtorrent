@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,54 +30,41 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
-#define TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
+#include <boost/cstdint.hpp>
+#include "libtorrent/bandwidth_queue_entry.hpp"
 
-#include <boost/integer_traits.hpp>
-
-#include "libtorrent/assert.hpp"
-
-namespace libtorrent {
-
-// member of peer_connection
-struct bandwidth_channel
+namespace libtorrent
 {
-	static const int inf = boost::integer_traits<int>::const_max;
+	bw_request::bw_request(boost::intrusive_ptr<bandwidth_socket> const& pe
+		, int blk, int prio)
+		: peer(pe)
+		, priority(prio)
+		, assigned(0)
+		, request_size(blk)
+		, ttl(20)
+	{
+		TORRENT_ASSERT(priority > 0);
+		std::memset(channel, 0, sizeof(channel));
+	}
 
-	bandwidth_channel();
-
-	// 0 means infinite
-	void throttle(int limit);
-	int throttle() const { return m_limit; }
-
-	int quota_left() const;
-	void update_quota(int dt_milliseconds);
-
-	// this is used when connections disconnect with
-	// some quota left. It's returned to its bandwidth
-	// channels.
-	void return_quota(int amount);
-	void use_quota(int amount);
-
-	// used as temporary storage while distributing
-	// bandwidth
-	int tmp;
-
-	// this is the number of bytes to distribute this round
-	int distribute_quota;
-
-private:
-
-	// this is the amount of bandwidth we have
-	// been assigned without using yet.
-	int m_quota_left;
-
-	// the limit is the number of bytes
-	// per second we are allowed to use.
-	int m_limit;
-};
-
+	int bw_request::assign_bandwidth()
+	{
+		TORRENT_ASSERT(assigned < request_size);
+		int quota = request_size - assigned;
+		TORRENT_ASSERT(quota >= 0);
+		for (int j = 0; j < 5 && channel[j]; ++j)
+		{
+			if (channel[j]->throttle() == 0) continue;
+			quota = (std::min)(int(boost::uint64_t(channel[j]->distribute_quota)
+				* priority / channel[j]->tmp), quota);
+		}
+		assigned += quota;
+		for (int j = 0; j < 5 && channel[j]; ++j)
+			channel[j]->use_quota(quota);
+		TORRENT_ASSERT(assigned <= request_size);
+		--ttl;
+		TORRENT_ASSERT(assigned <= request_size);
+		return quota;
+	}
 }
-
-#endif
 

@@ -6,6 +6,7 @@ nobase_include_HEADERS = \
   assert.hpp                   \
   bandwidth_limit.hpp          \
   bandwidth_manager.hpp        \
+  bandwidth_socket.hpp         \
   bandwidth_queue_entry.hpp    \
   bencode.hpp                  \
   bitfield.hpp                 \

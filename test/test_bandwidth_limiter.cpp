@@ -35,10 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_manager.hpp"
 #include "libtorrent/bandwidth_queue_entry.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
+#include "libtorrent/bandwidth_socket.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
@@ -56,9 +56,9 @@ const float sample_time = 20.f; // seconds
 
 bandwidth_channel global_bwc;
 
-struct peer_connection: intrusive_ptr_base<peer_connection>
+struct peer_connection: bandwidth_socket
 {
-	peer_connection(bandwidth_manager<peer_connection>& bwm
+	peer_connection(bandwidth_manager& bwm
 		, bandwidth_channel& torrent_bwc, int prio, bool ignore_limits, std::string name)
 		: m_bwm(bwm)
 		, m_torrent_bandwidth_channel(torrent_bwc)
@@ -76,7 +76,7 @@ struct peer_connection: intrusive_ptr_base<peer_connection>
 
 	void start();
 
-	bandwidth_manager<peer_connection>& m_bwm;
+	bandwidth_manager& m_bwm;
 
 	bandwidth_channel m_bandwidth_channel;
 	bandwidth_channel& m_torrent_bandwidth_channel;
@@ -143,7 +143,7 @@ void do_change_peer_rate(connections_t& v, int limit)
 void nop() {}
 
 void run_test(connections_t& v
-	, bandwidth_manager<peer_connection>& manager
+	, bandwidth_manager& manager
 	, boost::function<void()> f = &nop)
 {
 	std::cerr << "-------------" << std::endl;
@@ -163,7 +163,7 @@ bool close_to(float val, float comp, float err)
 	return fabs(val - comp) <= err;
 }
 
-void spawn_connections(connections_t& v, bandwidth_manager<peer_connection>& bwm
+void spawn_connections(connections_t& v, bandwidth_manager& bwm
 	, bandwidth_channel& bwc, int num, char const* prefix)
 {
 	for (int i = 0; i < num; ++i)
@@ -176,7 +176,7 @@ void spawn_connections(connections_t& v, bandwidth_manager<peer_connection>& bwm
 void test_equal_connections(int num, int limit)
 {
 	std::cerr << "\ntest equal connections " << num << " " << limit << std::endl;
-	bandwidth_manager<peer_connection> manager(0);
+	bandwidth_manager manager(0);
 	global_bwc.throttle(limit);
 
 	bandwidth_channel t1;
@@ -208,7 +208,7 @@ void test_connections_variable_rate(int num, int limit, int torrent_limit)
 		<< " l: " << limit
 		<< " t: " << torrent_limit
 		<< std::endl;
-	bandwidth_manager<peer_connection> manager(0);
+	bandwidth_manager manager(0);
 	global_bwc.throttle(0);
 
 	bandwidth_channel t1;
@@ -246,7 +246,7 @@ void test_connections_variable_rate(int num, int limit, int torrent_limit)
 void test_single_peer(int limit, bool torrent_limit)
 {
 	std::cerr << "\ntest single peer " << limit << " " << torrent_limit << std::endl;
-	bandwidth_manager<peer_connection> manager(0);
+	bandwidth_manager manager(0);
 	bandwidth_channel t1;
 	global_bwc.throttle(0);
 
@@ -277,7 +277,7 @@ void test_torrents(int num, int limit1, int limit2, int global_limit)
 		<< " l1: " << limit1
 		<< " l2: " << limit2
 		<< " g: " << global_limit << std::endl;
-	bandwidth_manager<peer_connection> manager(0);
+	bandwidth_manager manager(0);
 	global_bwc.throttle(global_limit);
 
 	bandwidth_channel t1;
@@ -328,7 +328,7 @@ void test_torrents_variable_rate(int num, int limit, int global_limit)
 	std::cerr << "\ntest torrents variable rate" << num
 		<< " l: " << limit
 		<< " g: " << global_limit << std::endl;
-	bandwidth_manager<peer_connection> manager(0);
+	bandwidth_manager manager(0);
 	global_bwc.throttle(global_limit);
 
 	bandwidth_channel t1;
@@ -376,7 +376,7 @@ void test_torrents_variable_rate(int num, int limit, int global_limit)
 void test_peer_priority(int limit, bool torrent_limit)
 {
 	std::cerr << "\ntest peer priority " << limit << " " << torrent_limit << std::endl;
-	bandwidth_manager<peer_connection> manager(0);
+	bandwidth_manager manager(0);
 	bandwidth_channel t1;
 	global_bwc.throttle(0);
 
@@ -413,7 +413,7 @@ void test_peer_priority(int limit, bool torrent_limit)
 void test_no_starvation(int limit)
 {
 	std::cerr << "\ntest no starvation " << limit << std::endl;
-	bandwidth_manager<peer_connection> manager(0);
+	bandwidth_manager manager(0);
 	bandwidth_channel t1;
 	bandwidth_channel t2;
 

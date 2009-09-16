@@ -21,6 +21,9 @@ libtorrent_rasterbar_la_SOURCES = \
   alert.cpp                       \
   allocator.cpp                   \
   assert.cpp                      \
+  bandwidth_limit                 \
+  bandwidth_manager               \
+  bandwidth_queue_entry           \
   broadcast_socket.cpp            \
   bt_peer_connection.cpp          \
   connection_queue.cpp            \

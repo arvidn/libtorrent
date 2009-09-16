@@ -5,6 +5,9 @@ set(sources
 	alert
 	allocator
 	assert
+	bandwidth_limit
+	bandwidth_manager
+	bandwidth_queue_entry
 	connection_queue
 	create_torrent
 	disk_buffer_holder

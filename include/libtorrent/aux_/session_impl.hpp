@@ -461,8 +461,8 @@ namespace libtorrent
 			// handing out bandwidth to connections that
 			// asks for it, it can also throttle the
 			// rate.
-			bandwidth_manager<peer_connection> m_download_rate;
-			bandwidth_manager<peer_connection> m_upload_rate;
+			bandwidth_manager m_download_rate;
+			bandwidth_manager m_upload_rate;
 
 			// the global rate limiter bandwidth channels
 			bandwidth_channel m_download_channel;

@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/chained_buffer.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/bandwidth_socket.hpp"
 
 #ifdef TORRENT_STATS
 #include "libtorrent/aux_/session_impl.hpp"
@@ -127,7 +128,7 @@ namespace libtorrent
 	};
 
 	class TORRENT_EXPORT peer_connection
-		: public intrusive_ptr_base<peer_connection>
+		: public bandwidth_socket
 		, public boost::noncopyable
 	{
 	friend class invariant_access;
@@ -639,7 +640,7 @@ namespace libtorrent
 		boost::intrusive_ptr<peer_connection> self()
 		{
 			TORRENT_ASSERT(!m_in_constructor);
-			return intrusive_ptr_base<peer_connection>::self();
+			return intrusive_ptr<peer_connection>(this);
 		}
 #endif
 
