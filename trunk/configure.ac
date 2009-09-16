@@ -3,7 +3,7 @@
 
 # $Id$
 
-AC_PREREQ([2.64])
+AC_PREREQ([2.63])
 
 AC_INIT([libtorrent-rasterbar],[0.15.0],[arvid@cs.umu.se],[libtorrent-rasterbar],[http://www.libtorrent.org])
 AC_CONFIG_SRCDIR([src/torrent.cpp])
