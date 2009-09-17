@@ -41,6 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #endif
 
+#include <algorithm>
+#include <limits>
+
 namespace libtorrent
 {
 	inline char const* time_now_string()

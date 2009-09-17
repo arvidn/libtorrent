@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bandwidth_limit.hpp"
+#include <algorithm>
 
 namespace libtorrent
 {

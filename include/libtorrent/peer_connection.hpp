@@ -636,13 +636,11 @@ namespace libtorrent
 		char m_country[2];
 #endif
 
-#ifdef TORRENT_DEBUG
 		boost::intrusive_ptr<peer_connection> self()
 		{
 			TORRENT_ASSERT(!m_in_constructor);
 			return intrusive_ptr<peer_connection>(this);
 		}
-#endif
 
 	private:
 
