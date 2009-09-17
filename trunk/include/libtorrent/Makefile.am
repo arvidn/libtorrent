@@ -1,3 +1,5 @@
+includedir = @includedir@/libtorrent
+
 nobase_include_HEADERS = \
   alert.hpp                    \
   alert_types.hpp              \
