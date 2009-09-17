@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/cstdint.hpp>
 #include "libtorrent/bandwidth_queue_entry.hpp"
+#include <cstring>
+#include <algorithm>
 
 namespace libtorrent
 {
