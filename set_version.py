@@ -15,9 +15,9 @@ def substitute_file(name):
 			l = '#define LIBTORRENT_VERSION_TINY %d\n' % version[2]
 		elif '#define LIBTORRENT_VERSION' in l and name.endswith('.hpp'):
 			l = '#define LIBTORRENT_VERSION "%d.%d.%d.%d"\n' % (version[0], version[1], version[2], version[3])
-		elif 'AC_INIT([libtorrent-rasterbar]' in l and name.endswith('.in'):
-			l = 'AC_INIT([libtorrent-rasterbar], [%d.%d.%d], [arvid@cs.umu.se])\n' % (version[0], version[1], version[2])
-		elif 'set (VERSION ' in l and name.endswith('.in'):
+		elif 'AC_INIT([libtorrent-rasterbar]' in l and name.endswith('.ac'):
+			l = 'AC_INIT([libtorrent-rasterbar],[%d.%d.%d],[arvid@cs.umu.se],\n' % (version[0], version[1], version[2])
+		elif 'set (VERSION ' in l and name.endswith('.txt'):
 			l = 'set (VERSION "%d.%d.%d")\n' % (version[0], version[1], version[2])
 		elif ':Version: ' in l and name.endswith('.rst'):
 			l = ':Version: %d.%d.%d\n' % (version[0], version[1], version[2])
@@ -32,7 +32,7 @@ def substitute_file(name):
 
 substitute_file('include/libtorrent/version.hpp')
 substitute_file('CMakeLists.txt')
-substitute_file('configure.in')
+substitute_file('configure.ac')
 substitute_file('docs/manual.rst')
 substitute_file('docs/building.rst')
 substitute_file('docs/features.rst')
