@@ -21,7 +21,11 @@
 #   In order to ensure that the Python headers are specified on the include
 #   path, this macro requires AX_PYTHON to be called.
 #
-#   EDIT: 2009-09-07 Cristian Greco <cristian.debian@gmail.com>
+#   EDIT:
+#   2009-09-14 Cristian Greco <cristian.debian@gmail.com>
+#    - Require AX_PYTHON_DEVEL to be called before this macro to properly
+#      detect python include path, instead of AX_PYTHON.
+#   2009-09-07 Cristian Greco <cristian.debian@gmail.com>
 #    - Prefix BOOST_PYTHON_LIB with a `-l` for consistency with other
 #      ax_boost_libname.m4 scripts.
 #
