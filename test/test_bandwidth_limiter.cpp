@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 
-#include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <iostream>
@@ -168,8 +167,9 @@ void spawn_connections(connections_t& v, bandwidth_manager<peer_connection>& bwm
 {
 	for (int i = 0; i < num; ++i)
 	{
-		v.push_back(new peer_connection(bwm, bwc, 200, false
-			, prefix + boost::lexical_cast<std::string>(i)));
+		char name[200];
+		snprintf(name, sizeof(name), "%s%d", prefix, i);
+		v.push_back(new peer_connection(bwm, bwc, 200, false, name));
 	}
 }
 
