@@ -1,9 +1,9 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-# $Id$
+# $Id: configure.ac 3872 2009-09-18 18:47:57Z cristiangreco $
 
-AC_PREREQ(2.64)
+AC_PREREQ([2.63])
 
 AC_INIT([libtorrent-rasterbar],[0.15.0],[arvid@cs.umu.se],
         [libtorrent-rasterbar],[http://www.libtorrent.org])
@@ -79,12 +79,12 @@ AC_CANONICAL_TARGET
 
 AS_ECHO
 AS_ECHO "Initializing Automake:"
-AM_INIT_AUTOMAKE(1.10 foreign)
+AM_INIT_AUTOMAKE([1.11 foreign])
 
 
 AS_ECHO
 AS_ECHO "Initializing Libtool:"
-LT_PREREQ(2.2.6)
+LT_PREREQ([2.2.6])
 LT_INIT
 
 
@@ -520,8 +520,7 @@ AS_CASE(["$ARG_ENABLE_PYTHON_BINDING"],
       AC_MSG_RESULT([yes])
 
       AM_PATH_PYTHON([2.4], [], AC_MSG_ERROR([Python interpreter not found.]))
-
-      AX_PYTHON()
+      AX_PYTHON_DEVEL([>= '2.4'])
       AX_BOOST_PYTHON()
 
       AS_IF([test -z "$BOOST_PYTHON_LIB"],
@@ -735,9 +734,11 @@ Python environment:
   pkgpyexecdir:         ${pkgpyexecdir}
 
   -m4-
-  binary:               ${PYTHON_BIN}
-  library:              ${PYTHON_LIB}
-  include dir:          ${PYTHON_INCLUDE_DIR}
+  cppflags:             ${PYTHON_CPPFLAGS}
+  ldflags:              ${PYTHON_LDFLAGS}
+  extra libs:           ${PYTHON_EXTRA_LIBS}
+  extra ldflags:        ${PYTHON_EXTRA_LDFLAGS}
+
 END
 ])
 
