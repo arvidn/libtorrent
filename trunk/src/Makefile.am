@@ -21,9 +21,9 @@ libtorrent_rasterbar_la_SOURCES = \
   alert.cpp                       \
   allocator.cpp                   \
   assert.cpp                      \
-  bandwidth_limit                 \
-  bandwidth_manager               \
-  bandwidth_queue_entry           \
+  bandwidth_limit.cpp             \
+  bandwidth_manager.cpp           \
+  bandwidth_queue_entry.cpp       \
   broadcast_socket.cpp            \
   bt_peer_connection.cpp          \
   connection_queue.cpp            \
@@ -78,7 +78,7 @@ libtorrent_rasterbar_la_SOURCES = \
   ut_metadata.cpp                 \
   ut_pex.cpp                      \
   web_peer_connection.cpp         \
-	\
+  \
   $(KADEMLIA_SOURCES)             \
   $(GEOIP_SOURCES)
 
