@@ -369,8 +369,8 @@ void http_connection::callback(error_code const& e, char const* data, int size)
 					close();
 					return;
 				}
-				data = &buf[0];
 				size = int(buf.size());
+				data = size == 0 ? 0 : &buf[0];
 			}
 		}
 		m_called = true;
