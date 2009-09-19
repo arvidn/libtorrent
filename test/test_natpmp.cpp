@@ -4,12 +4,21 @@
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/intrusive_ptr.hpp>
+#include <iostream>
 
 using namespace libtorrent;
 
-void callback(int mapping, int port, std::string const& err)
+void callback(int mapping, int port, error_code const& err)
 {
-	std::cerr << "mapping: " << mapping << ", port: " << port << ", error: \"" << err << "\"\n";
+	std::cerr
+		<< "mapping: " << mapping
+		<< ", port: " << port
+		<< ", error: \"" << err.message() << "\"\n";
+}
+
+void log_callback(char const* line)
+{
+	std::cerr << line << std::endl;
 }
 
 int main(int argc, char* argv[])
@@ -24,7 +33,8 @@ int main(int argc, char* argv[])
 	}
 
 	connection_queue cc(ios);
-	boost::intrusive_ptr<natpmp> natpmp_handler = new natpmp(ios, address_v4(), &callback);
+	boost::intrusive_ptr<natpmp> natpmp_handler = new natpmp(ios, address_v4()
+		, &callback, &log_callback);
 
 	deadline_timer timer(ios);
 
