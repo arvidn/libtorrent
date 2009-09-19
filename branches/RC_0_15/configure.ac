@@ -11,9 +11,8 @@ AC_CONFIG_SRCDIR([src/torrent.cpp])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 
+# Silencing build output (automake-1.11)
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
-
-SVN_REVISION=`grep REVISION include/libtorrent/version.hpp | sed 's,.* \([[0-9]]*\) .*,\1,'`
 
 
 ###############################################################################
@@ -605,7 +604,7 @@ AM_CONDITIONAL([WITH_SHIPPED_GEOIP], [test "x$ARG_WITH_LIBGEOIP" = "xno" ])
 
 
 ###############################################################################
-# 
+# Other useful stuff
 ###############################################################################
 
 # this works around a bug in asio in boost-1.39
@@ -629,6 +628,12 @@ AS_IF([test "x$enable_shared" = "xyes"],
 AC_SUBST(DEBUGFLAGS)
 AC_SUBST(PYTHON_INSTALL_PARAMS)
 AC_SUBST(COMPILETIME_OPTIONS)
+
+
+# Try to guess real svn revision if any, fallback to hardcoded otherwise
+SVN_REVISION=`svn info 2>/dev/null | sed -n -e '/^URL\:.*libtorrent.svn.sourceforge.net/,$!d;s,^Revision\: \([[0-9]]*\)$,\1,p'`
+AS_IF([test -z "$SVN_REVISION"],
+      [SVN_REVISION=`sed -n -e 's/^#define LIBTORRENT_REVISION \"\$Rev\: \([0-9]*\) \$\" $/\1/p' include/libtorrent/version.hpp`])
 
 
 ###############################################################################
