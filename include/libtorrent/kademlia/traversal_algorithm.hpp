@@ -87,7 +87,7 @@ public:
 
 protected:
 
-	traversal_algorithm::traversal_algorithm(
+	traversal_algorithm(
 		node_impl& node
 		, node_id target)
 		: m_ref_count(0)

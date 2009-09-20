@@ -122,6 +122,7 @@ private:
 
 	bool m_is_v6:1;
 #ifdef TORRENT_DEBUG
+public:
 	bool m_in_constructor:1;
 #endif
 };

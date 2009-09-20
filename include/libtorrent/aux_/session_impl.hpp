@@ -78,6 +78,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/policy.hpp" // for policy::peer
 #include "libtorrent/alert.hpp" // for alert_manager
 #include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/socket_io.hpp" // for print_address
 
 namespace libtorrent
 {
