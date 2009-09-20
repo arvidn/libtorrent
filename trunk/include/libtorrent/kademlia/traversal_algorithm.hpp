@@ -67,21 +67,11 @@ public:
 	void status(dht_lookup& l);
 
 	virtual char const* name() const { return "traversal_algorithm"; }
+	virtual void start();
 
 	node_id const& target() const { return m_target; }
 
-protected:
-
-	template<class InIt>
-	traversal_algorithm(node_impl& node, node_id target, InIt start, InIt end);
-
-	void add_requests();
 	void add_entry(node_id const& id, udp::endpoint addr, unsigned char flags);
-	void add_router_entries();
-	void init();
-
-	virtual void done() = 0;
-	virtual void invoke(node_id const& id, udp::endpoint addr) = 0;
 
 	struct result
 	{
@@ -89,10 +79,32 @@ protected:
 			: id(id), addr(addr), flags(f) {}
 
 		node_id id;
+		// TODO: replace with union of address_v4 and address_v6 and a port
 		udp::endpoint addr;
 		enum { queried = 1, initial = 2, no_id = 4 };
 		unsigned char flags;
 	};
+
+protected:
+
+	traversal_algorithm::traversal_algorithm(
+		node_impl& node
+		, node_id target)
+		: m_ref_count(0)
+		, m_node(node)
+		, m_target(target)
+		, m_invoke_count(0)
+		, m_branch_factor(3)
+		, m_responses(0)
+		, m_timeouts(0)
+	{}
+
+	void add_requests();
+	void add_router_entries();
+	void init();
+
+	virtual void done() = 0;
+	virtual void invoke(node_id const& id, udp::endpoint addr) = 0;
 
 	std::vector<result>::iterator last_iterator();
 
@@ -118,33 +130,6 @@ protected:
 	int m_responses;
 	int m_timeouts;
 };
-
-template<class InIt>
-traversal_algorithm::traversal_algorithm(
-	node_impl& node
-	, node_id target
-	, InIt start	// <- nodes to initiate traversal with
-	, InIt end)
-	: m_ref_count(0)
-	, m_node(node)
-	, m_target(target)
-	, m_invoke_count(0)
-	, m_branch_factor(3)
-	, m_responses(0)
-	, m_timeouts(0)
-{
-	using boost::bind;
-
-	for (InIt i = start; i != end; ++i)
-	{
-		add_entry(i->id, udp::endpoint(i->addr, i->port), result::initial);
-	}
-	
-	// in case the routing table is empty, use the
-	// router nodes in the table
-	if (start == end) add_router_entries();
-	init();
-}
 
 } } // namespace libtorrent::dht
 

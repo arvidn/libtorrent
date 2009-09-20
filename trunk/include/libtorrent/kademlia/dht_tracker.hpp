@@ -77,6 +77,7 @@ namespace libtorrent { namespace dht
 	{
 		friend void intrusive_ptr_add_ref(dht_tracker const*);
 		friend void intrusive_ptr_release(dht_tracker const*);
+		friend void send_callback(void* userdata, entry const& e, udp::endpoint const& addr, int flags);
 		dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
 			, dht_settings const& settings, entry const* state = 0);
 
@@ -113,8 +114,8 @@ namespace libtorrent { namespace dht
 		void refresh_timeout(error_code const& e);
 		void tick(error_code const& e);
 
-		void on_bootstrap();
-		void send_packet(msg const& m);
+		void on_bootstrap(std::vector<std::pair<node_entry, std::string> > const&);
+		void send_packet(libtorrent::entry const& e, udp::endpoint const& addr, int send_flags);
 
 		void incoming_error(char const* msg, lazy_entry const& e, udp::endpoint const& ep);
 
@@ -170,13 +171,6 @@ namespace libtorrent { namespace dht
 		int m_failed_announces;
 
 		int m_total_message_input;
-		int m_az_message_input;
-		int m_ut_message_input;
-		int m_lt_message_input;
-		int m_mp_message_input;
-		int m_gr_message_input;
-		int m_mo_message_input;
-		
 		int m_total_in_bytes;
 		int m_total_out_bytes;
 		

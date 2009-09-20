@@ -65,7 +65,6 @@ struct null_observer : public observer
 	null_observer(boost::pool<>& allocator): observer(allocator) {}
 	virtual void reply(msg const&) {}
 	virtual void timeout() {}
-	virtual void send(msg&) {}
 	void abort() {}
 };
 
@@ -74,11 +73,11 @@ class routing_table;
 class rpc_manager
 {
 public:
-	typedef boost::function1<void, msg const&> fun;
-	typedef boost::function1<void, msg const&> send_fun;
+	typedef void (*send_fun)(void* userdata, entry const&, udp::endpoint const&, int);
 
-	rpc_manager(fun const& incoming_fun, node_id const& our_id
-		, routing_table& table, send_fun const& sf);
+	rpc_manager(node_id const& our_id
+		, routing_table& table, send_fun const& sf
+		, void* userdata);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
@@ -87,10 +86,10 @@ public:
 	bool incoming(msg const&);
 	time_duration tick();
 
-	void invoke(int message_id, udp::endpoint target
+	void invoke(entry& e, udp::endpoint target
 		, observer_ptr o);
 
-	void reply(msg& m);
+	void add_our_id(entry& e);
 
 #ifdef TORRENT_DEBUG
 	size_t allocation_size() const;
@@ -124,8 +123,8 @@ private:
 	// waiting for to time out
 	int m_oldest_transaction_id;
 	
-	fun m_incoming;
 	send_fun m_send;
+	void* m_userdata;
 	node_id m_our_id;
 	routing_table& m_table;
 	ptime m_timer;

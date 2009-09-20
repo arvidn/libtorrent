@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/lazy_entry.hpp"
 #include <string>
 
 namespace libtorrent
@@ -109,6 +110,27 @@ namespace libtorrent
 			return Endpoint(addr, port);
 		}
 #endif
+
+		template <class EndpointType>
+		void read_endpoint_list(libtorrent::lazy_entry const* n, std::vector<EndpointType>& epl)
+		{
+			using namespace libtorrent;
+			if (n->type() != lazy_entry::list_t) return;
+			for (int i = 0; i < n->list_size(); ++i)
+			{
+				lazy_entry const* e = n->list_at(i);
+				if (e->type() != lazy_entry::string_t) return;
+				if (e->string_length() < 6) continue;
+				char const* in = e->string_ptr();
+				if (e->string_length() == 6)
+					epl.push_back(read_v4_endpoint<EndpointType>(in));
+#if TORRENT_USE_IPV6
+				else if (e->string_length() == 18)
+					epl.push_back(read_v6_endpoint<EndpointType>(in));
+#endif
+			}
+		}
+
 	}
 
 

@@ -82,6 +82,16 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	}
 }
 
+void traversal_algorithm::start()
+{
+	add_requests();
+
+	// in case the routing table is empty, use the
+	// router nodes in the table
+	if (m_results.empty()) add_router_entries();
+	init();
+}
+
 boost::pool<>& traversal_algorithm::allocator() const
 {
 	return m_node.m_rpc.allocator();

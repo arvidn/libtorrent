@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/msg.hpp>
+#include <libtorrent/kademlia/find_data.hpp>
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/session_settings.hpp>
@@ -108,13 +109,6 @@ public:
 		, m_token(write_token)
 	{}
 
-	void send(msg& m)
-	{
-		m.port = m_listen_port;
-		m.info_hash = m_info_hash;
-		m.write_token = m_token;
-	}
-
 	void timeout() {}
 	void reply(msg const&) {}
 	void abort() {}
@@ -129,16 +123,16 @@ class node_impl : boost::noncopyable
 {
 typedef std::map<node_id, torrent_entry> table_t;
 public:
-	node_impl(libtorrent::aux::session_impl& ses, boost::function<void(msg const&)> const& f
-		, dht_settings const& settings, boost::optional<node_id> nid);
+	node_impl(libtorrent::aux::session_impl& ses
+		, void (*f)(void*, entry const&, udp::endpoint const&, int)
+		, dht_settings const& settings, boost::optional<node_id> nid
+		, void* userdata);
 
 	virtual ~node_impl() {}
 
-	void refresh(node_id const& id, boost::function0<void> f);
+	void refresh(node_id const& id, find_data::nodes_callback const& f);
 	void bootstrap(std::vector<udp::endpoint> const& nodes
-		, boost::function0<void> f);
-	void find_node(node_id const& id, boost::function<
-	void(std::vector<node_entry> const&)> f);
+		, find_data::nodes_callback const& f);
 	void add_router_node(udp::endpoint router);
 		
 	void unreachable(udp::endpoint const& ep);
@@ -173,8 +167,10 @@ public:
 	void announce(sha1_hash const& info_hash, int listen_port
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 
-	bool verify_token(msg const& m);
-	std::string generate_token(msg const& m);
+	bool verify_token(std::string const& token, char const* info_hash
+		, udp::endpoint const& addr);
+
+	std::string generate_token(udp::endpoint const& addr, char const* info_hash);
 	
 	// the returned time is the delay until connection_timeout()
 	// should be called again the next time
@@ -212,7 +208,7 @@ protected:
 	// is called when a find data request is received. Should
 	// return false if the data is not stored on this node. If
 	// the data is stored, it should be serialized into 'data'.
-	bool on_find(msg const& m, std::vector<tcp::endpoint>& peers) const;
+	bool on_find(sha1_hash const& info_hash, std::vector<tcp::endpoint>& peers) const;
 
 	// this is called when a store request is received. The data
 	// is store-parameters and the data to be stored.
@@ -233,7 +229,7 @@ private:
 	// since it might have references to it
 	std::set<traversal_algorithm*> m_running_requests;
 
-	void incoming_request(msg const& h);
+	void incoming_request(msg const& h, entry& e);
 
 	node_id m_id;
 
@@ -250,6 +246,8 @@ private:
 	int m_secret[2];
 
 	libtorrent::aux::session_impl& m_ses;
+	void (*m_send)(void*, entry const&, udp::endpoint const&, int);
+	void* m_userdata;
 };
 
 

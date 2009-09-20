@@ -372,7 +372,7 @@ namespace libtorrent
 	}
 #endif // TORRENT_USE_IOSTREAM
 
-	std::string print_entry(lazy_entry const& e)
+	std::string print_entry(lazy_entry const& e, bool single_line)
 	{
 		std::string ret;
 		switch (e.type())
@@ -420,7 +420,9 @@ namespace libtorrent
 					|| (e.list_at(0)->type() == lazy_entry::string_t
 						&& (e.list_at(0)->string_length() < 10
 							|| e.list_size() < 2)
-						&& e.list_size() < 5));
+						&& e.list_size() < 5))
+					|| single_line;
+
 				if (!one_liner) ret += "\n";
 				for (int i = 0; i < e.list_size(); ++i)
 				{
@@ -435,12 +437,13 @@ namespace libtorrent
 			case lazy_entry::dict_t:
 			{
 				ret += "{";
-				bool one_liner = (e.dict_size() == 0
+				bool one_liner = ((e.dict_size() == 0
 					|| e.dict_at(0).second->type() == lazy_entry::int_t
 					|| (e.dict_at(0).second->type() == lazy_entry::string_t
 						&& e.dict_at(0).second->string_length() < 30)
 					|| e.dict_at(0).first.size() < 10)
-					&& e.dict_size() < 5;
+					&& e.dict_size() < 5)
+					|| single_line;
 
 				if (!one_liner) ret += "\n";
 				for (int i = 0; i < e.dict_size(); ++i)
