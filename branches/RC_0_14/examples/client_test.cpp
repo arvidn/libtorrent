@@ -1547,7 +1547,6 @@ int main(int ac, char* av[])
 				next_dir_scan = time_now() + seconds(poll_interval);
 			}
 		}
-#endif
 
 		std::cout << "saving session state" << std::endl;
 		{	
