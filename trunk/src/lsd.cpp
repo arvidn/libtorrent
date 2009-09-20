@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/socket_io.hpp" // for print_address
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>

@@ -525,7 +525,9 @@ namespace libtorrent { namespace dht
 		int ret = lazy_bdecode(buf, buf + bytes_transferred, e);
 		if (ret != 0)
 		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(dht_tracker) << "<== " << ep << " ERROR: Invalid bencoding";
+#endif
 			return;
 		}
 

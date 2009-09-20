@@ -58,7 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_DHT
 
 #include <libtorrent/kademlia/find_data.hpp>
-#include <libtorrent/kademlia/closest_nodes.hpp>
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/observer.hpp>
