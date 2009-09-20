@@ -515,11 +515,14 @@ namespace libtorrent
 			incomplete = int(incomplete_ent->integer());
 
 		std::list<address> ip_list;
-		std::list<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
-		for (std::list<tcp::endpoint>::const_iterator i = epts.begin()
-			, end(epts.end()); i != end; ++i)
+		if (m_tracker_connection)
 		{
-			ip_list.push_back(i->address());
+			std::list<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
+			for (std::list<tcp::endpoint>::const_iterator i = epts.begin()
+				, end(epts.end()); i != end; ++i)
+			{
+				ip_list.push_back(i->address());
+			}
 		}
 
 		cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, peer_list
