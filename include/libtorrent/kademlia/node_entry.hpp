@@ -79,6 +79,7 @@ struct node_entry
 	udp::endpoint ep() const { return udp::endpoint(addr, port); }
 	bool confirmed() const { return timeout_count == 0; }
 
+	// TODO: replace with a union of address_v4 and address_v6
 	address addr;
 	boost::uint16_t port;
 	// the number of times this node has failed to

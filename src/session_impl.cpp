@@ -289,11 +289,8 @@ namespace aux {
 		PRINT_SIZEOF(policy::ipv6_peer)
 #endif
 
-		PRINT_SIZEOF(dht::closest_nodes_observer)
 		PRINT_SIZEOF(dht::find_data_observer)
 		PRINT_SIZEOF(dht::announce_observer)
-		PRINT_SIZEOF(dht::refresh_observer)
-		PRINT_SIZEOF(dht::ping_observer)
 		PRINT_SIZEOF(dht::null_observer)
 #undef PRINT_OFFSETOF
 #undef PRINT_SIZEOF

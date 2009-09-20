@@ -56,13 +56,14 @@ class node_impl;
 
 // -------- find data -----------
 
+//TODO: rename this to find_peers
 class find_data : public traversal_algorithm
 {
 public:
 	typedef boost::function<void(std::vector<tcp::endpoint> const&)> data_callback;
 	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
 
-	void got_data(msg const* m);
+	void got_peers(std::vector<tcp::endpoint> const& peers);
 	void got_write_token(node_id const& n, std::string const& write_token)
 	{ m_write_tokens[n] = write_token; }
 
@@ -71,12 +72,16 @@ public:
 		, nodes_callback const& ncallback);
 
 	virtual char const* name() const { return "get_peers"; }
+
 	node_id const target() const { return m_target; }
+
+protected:
+
+	void done();
 
 private:
 
-	void done();
-	void invoke(node_id const& id, udp::endpoint addr);
+	virtual void invoke(node_id const& id, udp::endpoint addr);
 
 	data_callback m_data_callback;
 	nodes_callback m_nodes_callback;
@@ -96,20 +101,21 @@ public:
 		, m_self(self)
 	{}
 	~find_data_observer();
-
-	void send(msg& m)
-	{
-		m.reply = false;
-		m.message_id = messages::get_peers;
-		m.info_hash = m_algorithm->target();
-	}
-
 	void timeout();
 	void reply(msg const&);
 	void abort() { m_algorithm = 0; }
 
+	// with verbose logging, we log the size and
+	// offset of this structs members, so we need
+	// access to all of them
+#ifndef TORRENT_DHT_VERBOSE_LOGGING
 private:
+#endif
 	boost::intrusive_ptr<find_data> m_algorithm;
+	// the node this observer sent a message to
+	// this is used to mark the result in the right
+	// node when we get a response
+	// TODO: replace this with the observer this-pointer
 	node_id const m_self;
 };
 

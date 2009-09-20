@@ -66,7 +66,6 @@ set(sources
 
 # -- kademlia --
 set(kademlia_sources
-	closest_nodes
 	dht_tracker
 	node
 	refresh

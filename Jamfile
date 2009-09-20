@@ -403,7 +403,6 @@ SOURCES =
 	;
 
 KADEMLIA_SOURCES =
-	closest_nodes
 	dht_tracker
 	node
 	refresh

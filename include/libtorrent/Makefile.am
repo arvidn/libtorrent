@@ -99,7 +99,6 @@ nobase_include_HEADERS = \
   extensions/ut_metadata.hpp        \
   extensions/ut_pex.hpp             \
   \
-  kademlia/closest_nodes.hpp        \
   kademlia/dht_tracker.hpp          \
   kademlia/find_data.hpp            \
   kademlia/logging.hpp              \
