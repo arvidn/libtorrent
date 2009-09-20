@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/optional.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/detail/atomic_count.hpp>
@@ -53,13 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/deadline_timer.hpp"
-
-namespace libtorrent
-{
-	namespace aux { struct session_impl; }
-	struct lazy_entry;
-}
 
 namespace libtorrent { namespace dht
 {
@@ -77,9 +71,8 @@ namespace libtorrent { namespace dht
 	{
 		friend void intrusive_ptr_add_ref(dht_tracker const*);
 		friend void intrusive_ptr_release(dht_tracker const*);
-		friend void send_callback(void* userdata, entry const& e, udp::endpoint const& addr, int flags);
-		dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
-			, dht_settings const& settings, entry const* state = 0);
+		dht_tracker(udp_socket& sock, dht_settings const& settings
+			, entry const* state);
 
 		void start(entry const& bootstrap);
 		void stop();
@@ -91,10 +84,10 @@ namespace libtorrent { namespace dht
 		entry state() const;
 
 		void announce(sha1_hash const& ih, int listen_port
-			, boost::function<void(std::vector<tcp::endpoint> const&)> f);
+			, boost::function<void(std::vector<tcp::endpoint> const&
+			, sha1_hash const&)> f);
 
 		void dht_status(session_status& s);
-		void network_stats(int& sent, int& received);
 
 		// translate bittorrent kademlia message into the generic kademlia message
 		// used by the library
@@ -114,14 +107,11 @@ namespace libtorrent { namespace dht
 		void refresh_timeout(error_code const& e);
 		void tick(error_code const& e);
 
-		void on_bootstrap(std::vector<std::pair<node_entry, std::string> > const&);
-		void send_packet(libtorrent::entry const& e, udp::endpoint const& addr, int send_flags);
-
-		void incoming_error(char const* msg, lazy_entry const& e, udp::endpoint const& ep);
+		void on_bootstrap();
+		void send_packet(msg const& m);
 
 		node_impl m_dht;
-		libtorrent::aux::session_impl& m_ses;
-		rate_limited_udp_socket& m_sock;
+		udp_socket& m_sock;
 
 		std::vector<char> m_send_buf;
 
@@ -141,15 +131,11 @@ namespace libtorrent { namespace dht
 		// used to resolve hostnames for nodes
 		udp::resolver m_host_resolver;
 
-		// sent and received bytes since queried last time
-		int m_sent_bytes;
-		int m_received_bytes;
-
 		// used to ignore abusive dht nodes
 		struct node_ban_entry
 		{
 			node_ban_entry(): count(0) {}
-			address src;
+			udp::endpoint src;
 			ptime limit;
 			int count;
 		};
@@ -171,6 +157,12 @@ namespace libtorrent { namespace dht
 		int m_failed_announces;
 
 		int m_total_message_input;
+		int m_ut_message_input;
+		int m_lt_message_input;
+		int m_mp_message_input;
+		int m_gr_message_input;
+		int m_mo_message_input;
+		
 		int m_total_in_bytes;
 		int m_total_out_bytes;
 		

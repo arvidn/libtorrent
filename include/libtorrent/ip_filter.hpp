@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_IP_FILTER_HPP
 
 #include <set>
+#include <iostream>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -87,14 +88,16 @@ namespace detail
 	Addr plus_one(Addr const& a)
 	{
 		Addr tmp(a);
-		for (int i = tmp.size() - 1; i >= 0; --i)
+		typedef typename Addr::reverse_iterator iter;
+		for (iter i = tmp.rbegin()
+			, end(tmp.rend()); i != end; ++i)
 		{
-			if (tmp[i] < (std::numeric_limits<typename Addr::value_type>::max)())
+			if (*i < (std::numeric_limits<typename iter::value_type>::max)())
 			{
-				tmp[i] += 1;
+				*i += 1;
 				break;
 			}
-			tmp[i] = 0;
+			*i = 0;
 		}
 		return tmp;
 	}
@@ -105,14 +108,16 @@ namespace detail
 	Addr minus_one(Addr const& a)
 	{
 		Addr tmp(a);
-		for (int i = tmp.size() - 1; i >= 0; --i)
+		typedef typename Addr::reverse_iterator iter;
+		for (iter i = tmp.rbegin()
+			, end(tmp.rend()); i != end; ++i)
 		{
-			if (tmp[i] > 0)
+			if (*i > 0)
 			{
-				tmp[i] -= 1;
+				*i -= 1;
 				break;
 			}
-			tmp[i] = (std::numeric_limits<typename Addr::value_type>::max)();
+			*i = (std::numeric_limits<typename iter::value_type>::max)();
 		}
 		return tmp;
 	}
@@ -285,9 +290,7 @@ public:
 private:
 
 	detail::filter_impl<address_v4::bytes_type> m_filter4;
-#if TORRENT_USE_IPV6
 	detail::filter_impl<address_v6::bytes_type> m_filter6;
-#endif
 };
 
 class TORRENT_EXPORT port_filter

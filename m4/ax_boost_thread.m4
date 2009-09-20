@@ -1,5 +1,5 @@
 # ===========================================================================
-#         http://www.nongnu.org/autoconf-archive/ax_boost_thread.html
+#            http://autoconf-archive.cryp.to/ax_boost_thread.html
 # ===========================================================================
 #
 # SYNOPSIS
@@ -20,10 +20,14 @@
 #
 #     HAVE_BOOST_THREAD
 #
-# LICENSE
+# LAST MODIFICATION
 #
-#   Copyright (c) 2009 Thomas Porschberg <thomas@randspringer.de>
-#   Copyright (c) 2009 Michael Tindal
+#   2008-04-12
+#
+# COPYLEFT
+#
+#   Copyright (c) 2008 Thomas Porschberg <thomas@randspringer.de>
+#   Copyright (c) 2008 Michael Tindal
 #
 #   Copying and distribution of this file, with or without modification, are
 #   permitted in any medium without royalty provided the copyright notice
@@ -36,9 +40,9 @@ AC_DEFUN([AX_BOOST_THREAD],
                    [use the Thread library from boost - it is possible to specify a certain library for the linker
                         e.g. --with-boost-thread=boost_thread-gcc-mt ]),
         [
-        if test "x$withval" = "xno"; then
+        if test "$withval" = "no"; then
 			want_boost="no"
-        elif test "x$withval" = "xyes"; then
+        elif test "$withval" = "yes"; then
             want_boost="yes"
             ax_boost_user_thread_lib=""
         else
@@ -65,13 +69,13 @@ AC_DEFUN([AX_BOOST_THREAD],
         [AC_LANG_PUSH([C++])
 			 CXXFLAGS_SAVE=$CXXFLAGS
 
-dnl			 if test "x$build_os" = "xsolaris" ; then
-dnl  				 CXXFLAGS="-pthreads $CXXFLAGS"
-dnl			 elif test "x$build_os" = "xming32" ; then
-dnl				 CXXFLAGS="-mthreads $CXXFLAGS"
-dnl			 else
-dnl				CXXFLAGS="-pthread $CXXFLAGS"
-dnl			 fi
+			 if test "x$build_os" = "xsolaris" ; then
+  				 CXXFLAGS="-pthreads $CXXFLAGS"
+			 elif test "x$build_os" = "xming32" ; then
+				 CXXFLAGS="-mthreads $CXXFLAGS"
+			 else
+				CXXFLAGS="-pthread $CXXFLAGS"
+			 fi
 			 AC_COMPILE_IFELSE(AC_LANG_PROGRAM([[@%:@include <boost/thread/thread.hpp>]],
                                    [[boost::thread_group thrds;
                                    return 0;]]),
@@ -80,17 +84,17 @@ dnl			 fi
              AC_LANG_POP([C++])
 		])
 		if test "x$ax_cv_boost_thread" = "xyes"; then
-dnl           if test "x$build_os" = "xsolaris" ; then
-dnl			  BOOST_CPPFLAGS="-pthreads $BOOST_CPPFLAGS"
-dnl		   elif test "x$build_os" = "xming32" ; then
-dnl			  BOOST_CPPFLAGS="-mthreads $BOOST_CPPFLAGS"
-dnl		   else
-dnl			  BOOST_CPPFLAGS="-pthread $BOOST_CPPFLAGS"
-dnl		   fi
+           if test "x$build_os" = "xsolaris" ; then
+			  BOOST_CPPFLAGS="-pthreads $BOOST_CPPFLAGS"
+		   elif test "x$build_os" = "xming32" ; then
+			  BOOST_CPPFLAGS="-mthreads $BOOST_CPPFLAGS"
+		   else
+			  BOOST_CPPFLAGS="-pthread $BOOST_CPPFLAGS"
+		   fi
 
 			AC_SUBST(BOOST_CPPFLAGS)
 
-			AC_DEFINE(HAVE_BOOST_THREAD,[1],[define if the Boost::Thread library is available])
+			AC_DEFINE(HAVE_BOOST_THREAD,,[define if the Boost::Thread library is available])
             BOOSTLIBDIR=`echo $BOOST_LDFLAGS | sed -e 's/@<:@^\/@:>@*//'`
 
 			LDFLAGS_SAVE=$LDFLAGS
@@ -101,14 +105,14 @@ dnl		   fi
                           ;;
                         esac
             if test "x$ax_boost_user_thread_lib" = "x"; then
-                for libextension in `ls $BOOSTLIBDIR/libboost_thread*.so* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^lib\(boost_thread.*\)\.so.*$;\1;'` `ls $BOOSTLIBDIR/libboost_thread*.a* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^lib\(boost_thread.*\)\.a*$;\1;'`; do
+                for libextension in `ls $BOOSTLIBDIR/libboost_thread*.{so,a}* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^lib\(boost_thread.*\)\.so.*$;\1;' -e 's;^lib\(boost_thread.*\)\.a*$;\1;'` ; do
                      ax_lib=${libextension}
 				    AC_CHECK_LIB($ax_lib, exit,
                                  [BOOST_THREAD_LIB="-l$ax_lib"; AC_SUBST(BOOST_THREAD_LIB) link_thread="yes"; break],
                                  [link_thread="no"])
   				done
                 if test "x$link_thread" != "xyes"; then
-                for libextension in `ls $BOOSTLIBDIR/boost_thread*.dll* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^\(boost_thread.*\)\.dll.*$;\1;'` `ls $BOOSTLIBDIR/boost_thread*.a* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^\(boost_thread.*\)\.a*$;\1;'` ; do
+                for libextension in `ls $BOOSTLIBDIR/boost_thread*.{dll,a}* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^\(boost_thread.*\)\.dll.*$;\1;' -e 's;^\(boost_thread.*\)\.a*$;\1;'` ; do
                      ax_lib=${libextension}
 				    AC_CHECK_LIB($ax_lib, exit,
                                  [BOOST_THREAD_LIB="-l$ax_lib"; AC_SUBST(BOOST_THREAD_LIB) link_thread="yes"; break],

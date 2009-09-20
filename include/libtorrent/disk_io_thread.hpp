@@ -33,12 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISK_IO_THREAD
 #define TORRENT_DISK_IO_THREAD
 
-#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
+#ifdef TORRENT_DISK_STATS
 #include <fstream>
 #endif
 
 #include "libtorrent/storage.hpp"
-#include "libtorrent/allocator.hpp"
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
@@ -51,10 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
 #endif
-#include "libtorrent/session_settings.hpp"
 
 namespace libtorrent
 {
+
 	struct cached_piece_info
 	{
 		int piece;
@@ -72,7 +71,6 @@ namespace libtorrent
 			, buffer_size(0)
 			, piece(0)
 			, offset(0)
-			, phys_offset(-1)
 			, priority(0)
 		{}
 
@@ -91,8 +89,6 @@ namespace libtorrent
 			, abort_thread
 			, clear_read_cache
 			, abort_torrent
-			, update_settings
-			, read_and_hash
 		};
 
 		action_t action;
@@ -102,7 +98,6 @@ namespace libtorrent
 		boost::intrusive_ptr<piece_manager> storage;
 		// arguments used for read and write
 		int piece, offset;
-		size_type phys_offset;
 		// used for move_storage and rename_file. On errors, this is set
 		// to the error message
 		std::string str;
@@ -126,20 +121,6 @@ namespace libtorrent
 		boost::function<void(int, disk_io_job const&)> callback;
 	};
 
-	// returns true if the disk job requires ordering
-	// some jobs may not be processed until all jobs
-	// ahead of it in the queue have been processed
-	// jobs that require this are fence operation
-	bool is_fence_operation(disk_io_job const& j);
-
-	// returns true if the fundamental operation
-	// of the given disk job is a read operation
-	bool is_read_operation(disk_io_job const& j);
-
-	// this is true if the buffer field in the disk_io_job
-	// points to a disk buffer
-	bool operation_has_buffer(disk_io_job const& j);
-
 	struct cache_status
 	{
 		cache_status()
@@ -150,7 +131,6 @@ namespace libtorrent
 			, reads(0)
 			, cache_size(0)
 			, read_cache_size(0)
-			, total_used_buffers(0)
 		{}
 
 		// the number of 16kB blocks written
@@ -168,100 +148,24 @@ namespace libtorrent
 		// the number of read operations used
 		size_type reads;
 
-		mutable size_type queued_bytes;
-
 		// the number of blocks in the cache (both read and write)
 		int cache_size;
 
 		// the number of blocks in the cache used for read cache
 		int read_cache_size;
-
-		// the total number of blocks that are currently in use
-		// this includes send and receive buffers
-		mutable int total_used_buffers;
 	};
 	
-	struct disk_buffer_pool : boost::noncopyable
+	// this is a singleton consisting of the thread and a queue
+	// of disk io jobs
+	struct disk_io_thread : boost::noncopyable
 	{
-		disk_buffer_pool(int block_size);
-#ifdef TORRENT_DEBUG
-		~disk_buffer_pool();
-#endif
-
-#if defined TORRENT_DEBUG || defined TORRENT_DISK_STATS
-		bool is_disk_buffer(char* buffer
-			, boost::mutex::scoped_lock& l) const;
-		bool is_disk_buffer(char* buffer) const;
-#endif
-
-		char* allocate_buffer(char const* category);
-		void free_buffer(char* buf);
-
-		char* allocate_buffers(int blocks, char const* category);
-		void free_buffers(char* buf, int blocks);
-
-		int block_size() const { return m_block_size; }
+		disk_io_thread(io_service& ios, int block_size = 16 * 1024);
+		~disk_io_thread();
 
 #ifdef TORRENT_STATS
 		int disk_allocations() const
 		{ return m_allocations; }
 #endif
-
-#ifdef TORRENT_DISK_STATS
-		std::ofstream m_disk_access_log;
-#endif
-
-		void release_memory();
-
-		int in_use() const { return m_in_use; }
-
-	protected:
-
-		// number of bytes per block. The BitTorrent
-		// protocol defines the block size to 16 KiB.
-		const int m_block_size;
-
-		// number of disk buffers currently allocated
-		int m_in_use;
-
-		session_settings m_settings;
-
-	private:
-
-		// this only protects the pool allocator
-		typedef boost::mutex mutex_t;
-		mutable mutex_t m_pool_mutex;
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		// memory pool for read and write operations
-		// and disk cache
-		boost::pool<page_aligned_allocator> m_pool;
-#endif
-
-#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
-		int m_allocations;
-#endif
-#ifdef TORRENT_DISK_STATS
-	public:
-		void rename_buffer(char* buf, char const* category);
-	protected:
-		std::map<std::string, int> m_categories;
-		std::map<char*, std::string> m_buf_to_category;
-		std::ofstream m_log;
-	private:
-#endif
-#ifdef TORRENT_DEBUG
-		int m_magic;
-#endif
-	};
-
-	// this is a singleton consisting of the thread and a queue
-	// of disk io jobs
-	struct disk_io_thread : disk_buffer_pool
-	{
-		disk_io_thread(io_service& ios
-			, boost::function<void()> const& queue_callback
-			, int block_size = 16 * 1024);
-		~disk_io_thread();
 
 		void join();
 
@@ -275,29 +179,30 @@ namespace libtorrent
 		// at any given time. i.e. the sum of all buffer_size.
 		// this is used to slow down the download global download
 		// speed when the queue buffer size is too big.
-		size_type queue_buffer_size() const;
+		size_type queue_buffer_size() const
+		{ return m_queue_buffer_size; }
 
 		void get_cache_info(sha1_hash const& ih
 			, std::vector<cached_piece_info>& ret) const;
 
 		cache_status status() const;
+		void set_cache_size(int s);
+		void set_cache_expiry(int ex);
 
 		void operator()();
+
+#ifdef TORRENT_DEBUG
+		bool is_disk_buffer(char* buffer) const;
+#endif
+
+		char* allocate_buffer();
+		void free_buffer(char* buf);
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 		
-		struct cached_block_entry
-		{
-			cached_block_entry(): buf(0) {}
-			// the buffer pointer (this is a disk_pool buffer)
-			// or 0
-			char* buf;
-
-			// callback for when this block is flushed to disk
-			boost::function<void(int, disk_io_job const&)> callback;
-		};
+	private:
 
 		struct cached_piece_entry
 		{
@@ -309,13 +214,11 @@ namespace libtorrent
 			// the number of blocks in the cache for this piece
 			int num_blocks;
 			// the pointers to the block data
-			boost::shared_array<cached_block_entry> blocks;
+			boost::shared_array<char*> blocks;
 		};
 
 		typedef boost::recursive_mutex mutex_t;
 		typedef std::list<cached_piece_entry> cache_t;
-
-	private:
 
 		bool test_error(disk_io_job& j);
 		void post_callback(boost::function<void(int, disk_io_job const&)> const& handler
@@ -325,44 +228,32 @@ namespace libtorrent
 		cache_t::iterator find_cached_piece(
 			cache_t& cache, disk_io_job const& j
 			, mutex_t::scoped_lock& l);
-		int copy_from_piece(cache_t::iterator p, bool& hit
-			, disk_io_job const& j, mutex_t::scoped_lock& l);
 
 		// write cache operations
-		enum options_t { dont_flush_write_blocks = 1, ignore_cache_size = 2 };
-		int flush_cache_blocks(mutex_t::scoped_lock& l
-			, int blocks, cache_t::iterator ignore
-			, int options = 0);
+		void flush_oldest_piece(mutex_t::scoped_lock& l);
 		void flush_expired_pieces();
-		int flush_and_remove(cache_t::iterator i, mutex_t::scoped_lock& l);
-		int flush_contiguous_blocks(disk_io_thread::cache_t::iterator e
-			, mutex_t::scoped_lock& l, int lower_limit = 0);
-		int flush_range(cache_t::iterator i, int start, int end, mutex_t::scoped_lock& l);
-		int cache_block(disk_io_job& j
-			, boost::function<void(int,disk_io_job const&)>& handler
-			, mutex_t::scoped_lock& l);
+		void flush_and_remove(cache_t::iterator i, mutex_t::scoped_lock& l);
+		void flush(cache_t::iterator i, mutex_t::scoped_lock& l);
+		int cache_block(disk_io_job& j, mutex_t::scoped_lock& l);
 
 		// read cache operations
-		int clear_oldest_read_piece(int num_blocks, cache_t::iterator ignore
+		bool clear_oldest_read_piece(cache_t::iterator ignore
 			, mutex_t::scoped_lock& l);
-		int read_into_piece(cached_piece_entry& p, int start_block
-			, int options, int num_blocks, mutex_t::scoped_lock& l);
+		int read_into_piece(cached_piece_entry& p, int start_block, mutex_t::scoped_lock& l);
 		int cache_read_block(disk_io_job const& j, mutex_t::scoped_lock& l);
-		int cache_read_piece(disk_io_job const& j, mutex_t::scoped_lock& l);
-		int free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l);
+		void free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l);
+		bool make_room(int num_blocks
+			, cache_t::iterator ignore
+			, mutex_t::scoped_lock& l);
 		int try_read_from_cache(disk_io_job const& j);
-		int read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h);
 
 		// this mutex only protects m_jobs, m_queue_buffer_size
 		// and m_abort
 		mutable mutex_t m_queue_mutex;
 		boost::condition m_signal;
 		bool m_abort;
-		bool m_waiting_to_shutdown;
 		std::list<disk_io_job> m_jobs;
 		size_type m_queue_buffer_size;
-
-		ptime m_last_file_check;
 
 		// this protects the piece cache and related members
 		mutable mutex_t m_piece_mutex;
@@ -377,13 +268,47 @@ namespace libtorrent
 		// exceed m_cache_size
 		cache_status m_cache_stats;
 
+		// in (16kB) blocks
+		int m_cache_size;
+
+		// expiration time of cache entries in seconds
+		int m_cache_expiry;
+
+		// if set to true, each piece flush will allocate
+		// one piece worth of temporary memory on the heap
+		// and copy the block data into it, and then perform
+		// a single write operation from that buffer.
+		// if memory is constrained, that temporary buffer
+		// might is avoided by setting this to false.
+		// in case the allocation fails, the piece flush
+		// falls back to writing each block separately.
+		bool m_coalesce_writes;
+		bool m_coalesce_reads;
+		bool m_use_read_cache;
+
+		// this only protects the pool allocator
+		mutable mutex_t m_pool_mutex;
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+		// memory pool for read and write operations
+		// and disk cache
+		boost::pool<> m_pool;
+#endif
+
+		// number of bytes per block. The BitTorrent
+		// protocol defines the block size to 16 KiB.
+		int m_block_size;
+
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
 #endif
+#ifdef TORRENT_STATS
+		int m_allocations;
+#endif
+
+		size_type m_writes;
+		size_type m_blocks_written;
 
 		io_service& m_ios;
-
-		boost::function<void()> m_queue_callback;
 
 		// this keeps the io_service::run() call blocked from
 		// returning. When shutting down, it's possible that
@@ -399,6 +324,9 @@ namespace libtorrent
 
 		// thread for performing blocking disk io operations
 		boost::thread m_disk_io_thread;
+#ifdef TORRENT_DEBUG
+		int m_magic;
+#endif
 	};
 
 }

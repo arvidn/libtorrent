@@ -36,10 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include "libtorrent/socket.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/time.hpp"
 
 #ifdef TORRENT_CONNECTION_LOGGING
 #include <fstream>
@@ -48,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-class TORRENT_EXPORT connection_queue : public boost::noncopyable
+class connection_queue : public boost::noncopyable
 {
 public:
 	connection_queue(io_service& ios);
@@ -72,11 +71,8 @@ public:
 
 private:
 
-	typedef boost::mutex mutex_t;
-
-	void try_connect(mutex_t::scoped_lock& l);
+	void try_connect();
 	void on_timeout(error_code const& e);
-	void on_try_connect();
 
 	struct entry
 	{
@@ -102,6 +98,7 @@ private:
 
 	deadline_timer m_timer;
 
+	typedef boost::recursive_mutex mutex_t;
 	mutable mutex_t m_mutex;
 
 #ifdef TORRENT_DEBUG

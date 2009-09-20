@@ -58,7 +58,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/iterator_adaptors.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/limits.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 #include <boost/next_prior.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>

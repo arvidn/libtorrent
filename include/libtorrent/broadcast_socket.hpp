@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/error_code.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <list>
@@ -69,7 +68,6 @@ namespace libtorrent
 
 		void send(char const* buffer, int size, error_code& ec);
 		void close();
-		int num_send_sockets() const { return m_unicast_sockets.size(); }
 
 	private:
 

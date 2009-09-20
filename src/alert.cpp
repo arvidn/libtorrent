@@ -34,8 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/alert.hpp"
 #include <boost/thread/xtime.hpp>
-#include <boost/function.hpp>
-#include <boost/bind.hpp>
 
 namespace libtorrent {
 
@@ -43,10 +41,9 @@ namespace libtorrent {
 	alert::~alert() {}
 	ptime alert::timestamp() const { return m_timestamp; }
 
-	alert_manager::alert_manager(io_service& ios)
+	alert_manager::alert_manager()
 		: m_alert_mask(alert::error_notification)
 		, m_queue_size_limit(queue_size_limit_default)
-		, m_ios(ios)
 	{}
 
 	alert_manager::~alert_manager()
@@ -78,47 +75,14 @@ namespace libtorrent {
 		xt.nsec = boost::xtime::xtime_nsec_t(nsec);
 		// apparently this call can be interrupted
 		// prematurely if there are other signals
-		while (m_condition.timed_wait(lock, xt))
-			if (!m_alerts.empty()) return m_alerts.front();
-
-		return 0;
-	}
-
-	void alert_manager::set_dispatch_function(boost::function<void(alert const&)> const& fun)
-	{
-		boost::mutex::scoped_lock lock(m_mutex);
-
-		m_dispatch = fun;
-
-		std::queue<alert*> alerts = m_alerts;
-		while (!m_alerts.empty()) m_alerts.pop();
-		lock.unlock();
-
-		while (!alerts.empty())
-		{
-			m_dispatch(*alerts.front());
-			delete alerts.front();
-			alerts.pop();
-		}
-	}
-
-	void dispatch_alert(boost::function<void(alert const&)> dispatcher
-		, alert* alert_)
-	{
-		std::auto_ptr<alert> holder(alert_);
-		dispatcher(*alert_);
+		if (!m_condition.timed_wait(lock, xt)) return 0;
+		if (m_alerts.empty()) return 0;
+		return m_alerts.front();
 	}
 
 	void alert_manager::post_alert(const alert& alert_)
 	{
 		boost::mutex::scoped_lock lock(m_mutex);
-
-		if (m_dispatch)
-		{
-			TORRENT_ASSERT(m_alerts.empty());
-			m_ios.post(boost::bind(&dispatch_alert, m_dispatch, alert_.clone().release()));
-			return;
-		}
 
 		if (m_alerts.size() >= m_queue_size_limit) return;
 		m_alerts.push(alert_.clone().release());

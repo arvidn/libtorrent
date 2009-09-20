@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {

@@ -52,28 +52,24 @@ namespace libtorrent
 			|| ps.type == proxy_settings::http_pw)
 		{
 			s.instantiate<http_stream>(ios);
-			s.get<http_stream>()->set_proxy(ps.hostname, ps.port);
+			s.get<http_stream>().set_proxy(ps.hostname, ps.port);
 			if (ps.type == proxy_settings::http_pw)
-				s.get<http_stream>()->set_username(ps.username, ps.password);
+				s.get<http_stream>().set_username(ps.username, ps.password);
 		}
 		else if (ps.type == proxy_settings::socks5
-			|| ps.type == proxy_settings::socks5_pw
-			|| ps.type == proxy_settings::socks4)
+			|| ps.type == proxy_settings::socks5_pw)
 		{
 			s.instantiate<socks5_stream>(ios);
-			s.get<socks5_stream>()->set_proxy(ps.hostname, ps.port);
+			s.get<socks5_stream>().set_proxy(ps.hostname, ps.port);
 			if (ps.type == proxy_settings::socks5_pw)
-				s.get<socks5_stream>()->set_username(ps.username, ps.password);
-			if (ps.type == proxy_settings::socks4)
-				s.get<socks5_stream>()->set_version(4);
+				s.get<socks5_stream>().set_username(ps.username, ps.password);
 		}
-#if TORRENT_USE_I2P
-		else if (ps.type == proxy_settings::i2p_proxy)
+		else if (ps.type == proxy_settings::socks4)
 		{
-			s.instantiate<i2p_stream>(ios);
-			s.get<i2p_stream>()->set_proxy(ps.hostname, ps.port);
+			s.instantiate<socks4_stream>(ios);
+			s.get<socks4_stream>().set_proxy(ps.hostname, ps.port);
+			s.get<socks4_stream>().set_username(ps.username);
 		}
-#endif
 		else
 		{
 			return false;

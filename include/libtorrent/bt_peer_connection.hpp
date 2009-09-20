@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 #include <algorithm>
 #include <vector>
+#include <deque>
 #include <string>
 
 #include "libtorrent/debug.hpp"
@@ -131,7 +132,7 @@ namespace libtorrent
 			msg_have_none,
 			msg_reject_request,
 			msg_allowed_fast,
-
+			
 			// extension protocol message
 			msg_extended = 20,
 
@@ -362,14 +363,14 @@ private:
 		};
 		static bool range_below_zero(const range& r)
 		{ return r.start < 0; }
-		std::vector<range> m_payloads;
+		std::deque<range> m_payloads;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
 		// extension protocol
 		bool m_supports_extensions;
-		char m_reserved_bits[8];
+		char m_reserved_bits[20];
 #endif
 		bool m_supports_dht_port;
 		bool m_supports_fast;
@@ -424,7 +425,6 @@ private:
 		// the number of bytes in the send buffer
 		// that have been encrypted (only used for
 		// encrypted connections)
-public:
 		int m_encrypted_bytes;
 #endif
 

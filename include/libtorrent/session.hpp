@@ -33,14 +33,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_HPP_INCLUDED
 #define TORRENT_SESSION_HPP_INCLUDED
 
+#include <ctime>
 #include <algorithm>
 #include <vector>
+#include <set>
+#include <list>
+#include <deque>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
 
 #include <boost/limits.hpp>
+#include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
 
@@ -51,16 +56,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
+#include "libtorrent/alert.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/fingerprint.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/alert.hpp"
 
 #include "libtorrent/storage.hpp"
-#include <boost/preprocessor/cat.hpp>
-
 
 #ifdef _MSC_VER
 #	include <eh.h>
@@ -75,51 +79,8 @@ namespace libtorrent
 	class connection_queue;
 	class natpmp;
 	class upnp;
-	class alert;
-
-	// this is used to create linker errors when trying to link to
-	// a library with a conflicting build configuration than the application
-#ifdef TORRENT_DEBUG
-#define G _release
-#else
-#define G _debug
-#endif
-
-#ifdef TORRENT_USE_OPENSSL
-#define S _ssl
-#else
-#define S _nossl
-#endif
-
-#ifdef TORRENT_DISABLE_DHT
-#define D _nodht
-#else
-#define D _dht
-#endif
-
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-#define P _nopoolalloc
-#else
-#define P _poolalloc
-#endif
-
-#define TORRENT_LINK_TEST_PREFIX libtorrent_build_config
-#define TORRENT_LINK_TEST_NAME BOOST_PP_CAT(TORRENT_LINK_TEST_PREFIX, BOOST_PP_CAT(P, BOOST_PP_CAT(D, BOOST_PP_CAT(S, G))))
-#undef P
-#undef D
-#undef S
-#undef G
-
-	inline void test_link()
-	{
-		extern void TORRENT_LINK_TEST_NAME();
-		TORRENT_LINK_TEST_NAME();
-	}
 
 	namespace fs = boost::filesystem;
-
-	session_settings min_memory_usage();
-	session_settings high_performance_seed();
 
 	namespace aux
 	{
@@ -172,9 +133,6 @@ namespace libtorrent
 			, duplicate_is_error(false)
 			, storage(sc)
 			, userdata(0)
-			, seed_mode(false)
-			, override_resume_data(false)
-			, upload_mode(false)
 		{}
 
 		boost::intrusive_ptr<torrent_info> ti;
@@ -189,9 +147,6 @@ namespace libtorrent
 		bool duplicate_is_error;
 		storage_constructor_type storage;
 		void* userdata;
-		bool seed_mode;
-		bool override_resume_data;
-		bool upload_mode;
 	};
 	
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
@@ -201,7 +156,6 @@ namespace libtorrent
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			, fs::path logpath = "."
 #endif
@@ -211,7 +165,6 @@ namespace libtorrent
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
 			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			, fs::path logpath = "."
 #endif
@@ -222,18 +175,14 @@ namespace libtorrent
 		// returns a list of all torrents in this session
 		std::vector<torrent_handle> get_torrents() const;
 		
-		io_service& get_io_service();
-
 		// returns an invalid handle in case the torrent doesn't exist
 		torrent_handle find_torrent(sha1_hash const& info_hash) const;
 
 		// all torrent_handles must be destructed before the session is destructed!
 		torrent_handle add_torrent(add_torrent_params const& params);
-		torrent_handle add_torrent(add_torrent_params const& params, error_code& ec);
 		
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.14
-		TORRENT_DEPRECATED_PREFIX
 		torrent_handle add_torrent(
 			torrent_info const& ti
 			, fs::path const& save_path
@@ -243,7 +192,6 @@ namespace libtorrent
 			, storage_constructor_type sc = default_storage_constructor) TORRENT_DEPRECATED;
 
 		// deprecated in 0.14
-		TORRENT_DEPRECATED_PREFIX
 		torrent_handle add_torrent(
 			boost::intrusive_ptr<torrent_info> ti
 			, fs::path const& save_path
@@ -254,7 +202,6 @@ namespace libtorrent
 			, void* userdata = 0) TORRENT_DEPRECATED;
 
 		// deprecated in 0.14
-		TORRENT_DEPRECATED_PREFIX
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
@@ -301,10 +248,6 @@ namespace libtorrent
 		int as_for_ip(address const& addr);
 		bool load_asnum_db(char const* file);
 		bool load_country_db(char const* file);
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-		bool load_country_db(wchar_t const* file);
-		bool load_asnum_db(wchar_t const* file);
-#endif
 #endif
 
 		void load_state(entry const& ses_state);
@@ -375,38 +318,24 @@ namespace libtorrent
 		proxy_settings const& dht_proxy() const;
 #endif
 
-#if TORRENT_USE_I2P
-		void set_i2p_proxy(proxy_settings const& s);
-		proxy_settings const& i2p_proxy() const;
-#endif
-
 		int upload_rate_limit() const;
 		int download_rate_limit() const;
-		int local_upload_rate_limit() const;
-		int local_download_rate_limit() const;
 		int max_half_open_connections() const;
 
-		void set_local_upload_rate_limit(int bytes_per_second);
-		void set_local_download_rate_limit(int bytes_per_second);
 		void set_upload_rate_limit(int bytes_per_second);
 		void set_download_rate_limit(int bytes_per_second);
 		void set_max_uploads(int limit);
 		void set_max_connections(int limit);
 		void set_max_half_open_connections(int limit);
 
-		int max_connections() const;
-		int max_uploads() const;
-
 		std::auto_ptr<alert> pop_alert();
 #ifndef TORRENT_NO_DEPRECATE
-		TORRENT_DEPRECATED_PREFIX
 		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;
 #endif
 		void set_alert_mask(int m);
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 		alert const* wait_for_alert(time_duration max_wait);
-		void set_alert_dispatch(boost::function<void(alert const&)> const& fun);
 
 		connection_queue& get_connection_queue();
 
