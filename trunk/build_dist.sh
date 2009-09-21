@@ -1,5 +1,9 @@
 #!/bin/sh
 
+
+#clear out any extended attributes that Finder may add
+sudo xattr -r -d com.apple.FinderInfo *
+
 rm -f config.log config.report configure
 rm -f m4/libtool.m4 m4/lt~obsolete.m4 m4/ltsugar.m4 m4/ltversion.m4 m4/ltoptions.m4
 rm -fr autom4te.cache build-aux
