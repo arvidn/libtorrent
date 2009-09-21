@@ -1,4 +1,8 @@
 #!/bin/sh
+
+#clear out any extended attributes that Finder may add
+sudo xattr -r -d com.apple.FinderInfo *
+
 rm -f config.cache
 rm -fr autom4te.cache
 rm -rf config.log
