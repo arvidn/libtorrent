@@ -153,7 +153,7 @@ void natpmp::disable(error_code const& ec, mutex_t::scoped_lock& l)
 		m_callback(index, 0, ec);
 		l.lock();
 	}
-	close();
+	close_impl(l);
 }
 
 void natpmp::delete_mapping(int index)
@@ -549,6 +549,11 @@ void natpmp::mapping_expired(error_code const& e, int i)
 void natpmp::close()
 {
 	mutex_t::scoped_lock l(m_mutex);
+	close_impl(l);
+}
+
+void natpmp::close_impl(mutex_t::scoped_lock& l)
+{
 	m_abort = true;
 	log("closing", l);
 /*
