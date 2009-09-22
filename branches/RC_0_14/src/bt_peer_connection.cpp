@@ -1415,7 +1415,7 @@ namespace libtorrent
 #endif
 
 			std::stringstream msg;
-			msg << "unkown message id: " << packet_type << " size: " << packet_size();
+			msg << "unknown message id: " << packet_type << " size: " << packet_size();
 			disconnect(msg.str().c_str(), 2);
 			return packet_finished();
 		}
