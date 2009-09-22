@@ -72,6 +72,10 @@
 	* improved support for sparse files on windows
 	* added ability to give seeding torrents preference to active slots
 
+release 0.14.7
+
+	* fixed deadlock in natpmp
+
 release 0.14.6
 
 	* various missing include fixes to be buildable with boost 1.40
