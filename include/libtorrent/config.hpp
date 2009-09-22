@@ -84,7 +84,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
 #else
-#warning unkown OS, assuming BSD
+#warning unknown OS, assuming BSD
 #define TORRENT_BSD
 #endif
 
