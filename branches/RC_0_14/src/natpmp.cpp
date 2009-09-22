@@ -135,7 +135,7 @@ void natpmp::disable(char const* message)
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string() << " NAT-PMP disabled: " << message << std::endl;
 #endif
-	close();
+	close_impl();
 }
 void natpmp::delete_mapping(int index)
 {
@@ -524,6 +524,11 @@ void natpmp::mapping_expired(error_code const& e, int i)
 void natpmp::close()
 {
 	mutex_t::scoped_lock l(m_mutex);
+	close_impl();
+}
+
+void natpmp::close_impl()
+{
 	m_abort = true;
 	error_code ec;
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)

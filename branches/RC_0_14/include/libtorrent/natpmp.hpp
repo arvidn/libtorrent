@@ -76,6 +76,7 @@ private:
 	void try_next_mapping(int i);
 	void update_expiration_timer();
 	void mapping_expired(error_code const& e, int i);
+	void close_impl();
 
 	void disable(char const* message);
 

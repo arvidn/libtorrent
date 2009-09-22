@@ -80,6 +80,7 @@ private:
 	void try_next_mapping(int i, mutex_t::scoped_lock& l);
 	void update_expiration_timer();
 	void mapping_expired(error_code const& e, int i);
+	void close_impl(mutex_t::scoped_lock& l);
 
 	void log(char const* msg, mutex_t::scoped_lock& l);
 	void disable(error_code const& ec, mutex_t::scoped_lock& l);
