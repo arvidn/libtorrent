@@ -2331,13 +2331,11 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
-		if (!j.resume_data && alerts().should_post<save_resume_data_failed_alert>())
+		if (!j.resume_data)
 		{
 			alerts().post_alert(save_resume_data_failed_alert(get_handle(), j.error));
-			return;
 		}
-
-		if (j.resume_data && alerts().should_post<save_resume_data_alert>())
+		else
 		{
 			write_resume_data(*j.resume_data);
 			alerts().post_alert(save_resume_data_alert(j.resume_data
@@ -4933,11 +4931,8 @@ namespace libtorrent
 	
 		if (!m_owning_storage.get())
 		{
-			if (alerts().should_post<save_resume_data_failed_alert>())
-			{
-				alerts().post_alert(save_resume_data_failed_alert(get_handle()
-					, error_code(errors::destructing_torrent, libtorrent_category)));
-			}
+			alerts().post_alert(save_resume_data_failed_alert(get_handle()
+				, error_code(errors::destructing_torrent, libtorrent_category)));
 			return;
 		}
 
@@ -4946,13 +4941,10 @@ namespace libtorrent
 			|| m_state == torrent_status::checking_files
 			|| m_state == torrent_status::checking_resume_data)
 		{
-			if (alerts().should_post<save_resume_data_alert>())
-			{
-				boost::shared_ptr<entry> rd(new entry);
-				write_resume_data(*rd);
-				alerts().post_alert(save_resume_data_alert(rd
-					, get_handle()));
-			}
+			boost::shared_ptr<entry> rd(new entry);
+			write_resume_data(*rd);
+			alerts().post_alert(save_resume_data_alert(rd
+				, get_handle()));
 			return;
 		}
 		m_storage->async_save_resume_data(
