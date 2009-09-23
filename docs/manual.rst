@@ -934,6 +934,9 @@ can be called and it can pop the alert independently.
 If this limit is reached, new incoming alerts can not be received until alerts are popped
 by calling ``pop_alert``. Default value is 1000.
 
+``save_resume_data_alert`` and ``save_resume_data_failed_alert`` are always posted, regardelss
+of the alert mask.
+
 add_extension()
 ---------------
 
