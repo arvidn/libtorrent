@@ -87,6 +87,7 @@ namespace libtorrent
 			, updating(false)
 			, start_sent(false)
 			, complete_sent(false)
+			, send_stats(true)
 		{}
 
 		std::string url;
@@ -125,6 +126,9 @@ namespace libtorrent
 
 		// this is true if event completed has been sent to the tracker
 		bool complete_sent:1;
+
+		// this is false the stats sent to this tracker will be 0
+		bool send_stats:1;
 
 		void reset()
 		{
