@@ -76,6 +76,7 @@ release 0.14.7
 
 	* fixed deadlock in natpmp
 	* resume data alerts are always posted, regardless of alert mask
+	* added wait_for_alert to python binding
 
 release 0.14.6
 

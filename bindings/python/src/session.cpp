@@ -129,6 +129,11 @@ namespace
         return;
     }
 
+    alert const* wait_for_alert(session& s, int ms)
+    {
+        return s.wait_for_alert(milliseconds(ms));
+    }
+
     list get_torrents(session& s)
     {
         list ret;
@@ -318,6 +323,7 @@ void bind_session()
 #endif
         .def("set_alert_mask", allow_threads(&session::set_alert_mask))
         .def("pop_alert", allow_threads(&session::pop_alert))
+        .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
         .def("add_extension", &add_extension)
         .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))
         .def("set_tracker_proxy", allow_threads(&session::set_tracker_proxy))
