@@ -3606,6 +3606,9 @@ namespace libtorrent
 			for (std::vector<announce_entry>::const_iterator i = m_trackers.begin()
 				, end(m_trackers.end()); i != end; ++i)
 			{
+				// don't save trackers we can't trust
+				// TODO: save the send_stats state instead
+				if (i->send_stats == false) continue;
 				if (i->tier == tier)
 				{
 					tr_list.back().list().push_back(i->url);
