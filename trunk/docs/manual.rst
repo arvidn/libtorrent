@@ -930,6 +930,8 @@ same pointer until the alert is popped by calling ``pop_alert``. This is useful 
 leaving any alert dispatching mechanism independent of this blocking call, the dispatcher
 can be called and it can pop the alert independently.
 
+In the python binding, ``wait_for_alert`` takes the number of milliseconds to wait as an integer.
+
 ``set_alert_queue_size_limit()`` you can specify how many alerts can be awaiting for dispatching.
 If this limit is reached, new incoming alerts can not be received until alerts are popped
 by calling ``pop_alert``. Default value is 1000.
