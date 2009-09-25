@@ -57,6 +57,8 @@ using boost::bind;
 namespace libtorrent { namespace dht
 {
 
+void incoming_error(entry& e, char const* msg);
+
 using detail::write_endpoint;
 
 #ifdef _MSC_VER
@@ -240,8 +242,6 @@ void node_impl::unreachable(udp::endpoint const& ep)
 
 void node_impl::incoming(msg const& m)
 {
-	extern void incoming_error(entry& e, char const* msg);
-
 	// is this a reply?
 	lazy_entry const* y_ent = m.message.dict_find_string("y");
 	if (!y_ent || y_ent->string_length() == 0)

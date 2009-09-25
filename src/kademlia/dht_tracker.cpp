@@ -111,6 +111,8 @@ namespace
 namespace libtorrent { namespace dht
 {
 
+	void incoming_error(entry& e, char const* msg);
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	int g_az_message_input = 0;
 	int g_ut_message_input = 0;
@@ -518,8 +520,6 @@ namespace libtorrent { namespace dht
 		using libtorrent::bdecode;
 			
 		TORRENT_ASSERT(bytes_transferred > 0);
-
-		extern void incoming_error(entry& e, char const* msg);
 
 		lazy_entry e;
 		int ret = lazy_bdecode(buf, buf + bytes_transferred, e);
