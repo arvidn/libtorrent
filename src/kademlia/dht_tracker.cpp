@@ -540,7 +540,7 @@ namespace libtorrent { namespace dht
 				<< print_entry(e, true);
 #endif
 			entry r;
-			incoming_error(r, "message is not a dictionary");
+			libtorrent::dht::incoming_error(r, "message is not a dictionary");
 			send_packet(r, ep, 0);
 			return;
 		}
