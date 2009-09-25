@@ -82,6 +82,7 @@ namespace libtorrent
 			, event(none)
 			, key(0)
 			, num_want(0)
+			, send_stats(true)
 		{}
 
 		enum
@@ -111,6 +112,7 @@ namespace libtorrent
 		std::string ipv6;
 		std::string ipv4;
 		address bind_ip;
+		bool send_stats;
 	};
 
 	struct TORRENT_EXPORT request_callback

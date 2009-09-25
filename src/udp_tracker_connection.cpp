@@ -513,6 +513,7 @@ namespace libtorrent
 		char* out = buf;
 
 		tracker_request const& req = tracker_req();
+		const bool stats = req.send_stats;
 		session_settings const& settings = m_ses.settings();
 
 		detail::write_int64(m_connection_id, out); // connection_id
@@ -522,9 +523,9 @@ namespace libtorrent
 		out += 20;
 		std::copy(req.pid.begin(), req.pid.end(), out); // peer_id
 		out += 20;
-		detail::write_int64(req.downloaded, out); // downloaded
-		detail::write_int64(req.left, out); // left
-		detail::write_int64(req.uploaded, out); // uploaded
+		detail::write_int64(stats ? req.downloaded : 0, out); // downloaded
+		detail::write_int64(stats ? req.left : 0, out); // left
+		detail::write_int64(stats ? req.uploaded : 0, out); // uploaded
 		detail::write_int32(req.event, out); // event
 		// ip address
 		if (settings.announce_ip != address() && settings.announce_ip.is_v4())
