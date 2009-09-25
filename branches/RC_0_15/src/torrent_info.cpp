@@ -79,7 +79,7 @@ namespace libtorrent
 	bool valid_path_character(char c)
 	{
 #ifdef TORRENT_WINDOWS
-		static const char invalid_chars[] = "&?<>\"|\b*:+";
+		static const char invalid_chars[] = "?<>\"|\b*:";
 #else
 		static const char invalid_chars[] = "";
 #endif
@@ -107,7 +107,7 @@ namespace libtorrent
 				}
 				else
 				{
-					tmp_path += '.';
+					tmp_path += '_';
 					valid_encoding = false;
 				}
 				continue;
