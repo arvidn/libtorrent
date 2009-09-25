@@ -274,6 +274,11 @@ void add_piece(torrent_handle& th, int piece, char const *data, int flags)
    th.add_piece(piece, data, flags);
 }
 
+void set_piece_deadline(torrent_handle const& th, int index, int deadline_ms, int flags)
+{
+	th.set_piece_deadline(index, milliseconds(deadline_ms), flags);
+}
+
 void bind_torrent_handle()
 {
     void (torrent_handle::*force_reannounce0)() const = &torrent_handle::force_reannounce;
@@ -335,17 +340,19 @@ void bind_torrent_handle()
 #endif
         .def("add_piece", add_piece)
         .def("read_piece", _(&torrent_handle::read_piece))
-        .def("piece_availability", piece_availability)
+        .def("set_piece_deadline", &set_piece_deadline
+            , (arg("index"), arg("deadline"), arg("flags") = 0))
+        .def("piece_availability", &piece_availability)
         .def("piece_priority", _(piece_priority0))
         .def("piece_priority", _(piece_priority1))
-        .def("prioritize_pieces", prioritize_pieces)
-        .def("piece_priorities", piece_priorities)
-        .def("prioritize_files", prioritize_files)
-        .def("file_priorities", file_priorities)
+        .def("prioritize_pieces", &prioritize_pieces)
+        .def("piece_priorities", &piece_priorities)
+        .def("prioritize_files", &prioritize_files)
+        .def("file_priorities", &file_priorities)
         .def("use_interface", &torrent_handle::use_interface)
         .def("save_resume_data", _(&torrent_handle::save_resume_data))
         .def("force_reannounce", _(force_reannounce0))
-        .def("force_reannounce", force_reannounce)
+        .def("force_reannounce", &force_reannounce)
         .def("scrape_tracker", _(&torrent_handle::scrape_tracker))
         .def("name", _(&torrent_handle::name))
         .def("set_upload_limit", _(&torrent_handle::set_upload_limit))
@@ -353,9 +360,9 @@ void bind_torrent_handle()
         .def("set_download_limit", _(&torrent_handle::set_download_limit))
         .def("download_limit", _(&torrent_handle::download_limit))
         .def("set_sequential_download", _(&torrent_handle::set_sequential_download))
-        .def("set_peer_upload_limit", set_peer_upload_limit)
-        .def("set_peer_download_limit", set_peer_download_limit)
-        .def("connect_peer", connect_peer)
+        .def("set_peer_upload_limit", &set_peer_upload_limit)
+        .def("set_peer_download_limit", &set_peer_download_limit)
+        .def("connect_peer", &connect_peer)
         .def("set_ratio", _(&torrent_handle::set_ratio))
         .def("save_path", _(&torrent_handle::save_path))
         .def("set_max_uploads", _(&torrent_handle::set_max_uploads))
@@ -368,4 +375,9 @@ void bind_torrent_handle()
         .def("rename_file", _(rename_file0))
         .def("rename_file", _(rename_file1))
         ;
+
+    enum_<torrent_handle::deadline_flags>("deadline_flags")
+        .value("alert_when_available", torrent_handle::alert_when_available)
+    ;
+
 }

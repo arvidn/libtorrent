@@ -1987,6 +1987,9 @@ If the piece is already downloaded when this call is made, nothing happens, unle
 the ``alert_when_available`` flag is set, in which case it will do the same thing
 as calling `read_piece()`_ for ``index``.
 
+In the python binding for this function, the ``deadline`` is the number of milliseconds
+as an integer.
+
 
 piece_priority() prioritize_pieces() piece_priorities()
 -------------------------------------------------------
