@@ -61,6 +61,89 @@ void incoming_error(entry& e, char const* msg);
 
 using detail::write_endpoint;
 
+int search_torrent_entry::match(char const* in_tags[], int num_tags) const
+{
+	int ret = 0;
+	for (int i = 0; i < num_tags; ++i)
+	{
+		char const* t = in_tags[i];
+		std::map<std::string, int>::const_iterator i = tags.find(t);
+		if (i == tags.end()) continue;
+		// weigh the score by how popular this tag is in this torrent
+		ret += 100 * i->second / total_tag_points;
+	}
+	return ret;
+}
+
+bool search_torrent_entry::tick()
+{
+	int sum = 0;
+	for (std::map<std::string, int>::iterator i = tags.begin()
+		, end(tags.end()); i != end;)
+	{
+		i->second = (i->second * 2) / 3;
+		sum += i->second;
+		if (i->second > 0) { ++i; continue; }
+		tags.erase(i++);
+	}
+	total_tag_points = sum;
+
+	sum = 0;
+	for (std::map<std::string, int>::iterator i = name.begin()
+		, end(name.end()); i != end;)
+	{
+		i->second = (i->second * 2) / 3;
+		sum += i->second;
+		if (i->second > 0) { ++i; continue; }
+		name.erase(i++);
+	}
+	total_name_points = sum;
+
+	return total_tag_points == 0;
+}
+
+void search_torrent_entry::publish(std::string const& torrent_name, char const* in_tags[]
+	, int num_tags)
+{
+	for (int i = 0; i < num_tags; ++i)
+	{
+		char const* t = in_tags[i];
+		std::map<std::string, int>::iterator i = tags.find(t);
+		if (i != tags.end())
+			++i->second;
+		else
+			tags[t] = 1;
+		++total_tag_points;
+		// TODO: limit the number of tags
+	}
+
+	name[torrent_name] += 1;
+	++total_name_points;
+
+	// TODO: limit the number of names
+}
+
+void search_torrent_entry::get_name(std::string& t) const
+{
+	std::map<std::string, int>::const_iterator max = name.begin();
+	for (std::map<std::string, int>::const_iterator i = name.begin()
+		, end(name.end()); i != end; ++i)
+	{
+		if (i->second > max->second) max = i;
+	}
+	t = max->first;
+}
+
+void search_torrent_entry::get_tags(std::string& t) const
+{
+	for (std::map<std::string, int>::const_iterator i = tags.begin()
+		, end(tags.end()); i != end; ++i)
+	{
+		if (i != tags.begin()) t += " ";
+		t += i->first;
+	}
+}
+
 #ifdef _MSC_VER
 namespace
 {
@@ -96,6 +179,9 @@ void purge_peers(std::set<peer_entry>& peers)
 
 void nop() {}
 
+// TODO: the session_impl argument could be an alert reference
+// instead, and make the dht_tracker less dependent on session_impl
+// which would make it simpler to unit test
 node_impl::node_impl(libtorrent::aux::session_impl& ses
 	, void (*f)(void*, entry const&, udp::endpoint const&, int)
 	, dht_settings const& settings
@@ -407,7 +493,7 @@ time_duration node_impl::connection_timeout()
 	m_last_tracker_tick = now;
 
 	// look through all peers and see if any have timed out
-	for (data_iterator i = begin_data(), end(end_data()); i != end;)
+	for (table_t::iterator i = m_map.begin(), end(m_map.end()); i != end;)
 	{
 		torrent_entry& t = i->second;
 		node_id const& key = i->first;
@@ -423,18 +509,6 @@ time_duration node_impl::connection_timeout()
 	}
 
 	return d;
-}
-
-void node_impl::on_announce(msg const& m, msg& reply)
-{
-}
-
-namespace
-{
-	tcp::endpoint get_endpoint(peer_entry const& p)
-	{
-		return p.addr;
-	}
 }
 
 void node_impl::status(session_status& s)
@@ -453,7 +527,54 @@ void node_impl::status(session_status& s)
 	}
 }
 
-bool node_impl::on_find(sha1_hash const& info_hash, std::vector<tcp::endpoint>& peers) const
+bool node_impl::lookup_torrents(sha1_hash const& target
+	, entry& reply, char* tags) const
+{
+//	if (m_ses.m_alerts.should_post<dht_find_torrents_alert>())
+//		m_ses.m_alerts.post_alert(dht_find_torrents_alert(info_hash));
+
+	search_table_t::const_iterator first, last;
+	first = m_search_map.lower_bound(std::make_pair(target, sha1_hash::min()));
+	last = m_search_map.upper_bound(std::make_pair(target, sha1_hash::max()));
+
+	if (first == last) return false;
+
+	std::string tags_copy(tags);
+	char const* in_tags[20];
+	int num_tags = 0;
+	num_tags = split_string(in_tags, 20, &tags_copy[0]);
+
+	typedef std::pair<int, search_table_t::const_iterator> sort_item;
+	std::vector<sort_item> result;
+	for (; first != last; ++first)
+	{
+		result.push_back(std::make_pair(
+			first->second.match(in_tags, num_tags), first));
+	}
+
+	std::sort(result.begin(), result.end()
+		, boost::bind(&sort_item::first, _1) > boost::bind(&sort_item::first, _2));
+	int num = (std::min)((int)result.size(), m_settings.max_torrent_search_reply);
+
+	entry::list_type& pe = reply["values"].list();
+	for (int i = 0; i < num; ++i)
+	{
+		pe.push_back(entry());
+		entry::list_type& e = pe.back().list();
+		// push name
+		e.push_back(entry());
+		result[i].second->second.get_name(e.back().string());
+		// push tags
+		e.push_back(entry());
+		result[i].second->second.get_tags(e.back().string());
+		// push info-hash
+		e.push_back(entry());
+		e.back().string() = result[i].second->first.second.to_string();
+	}
+	return true;
+}
+
+bool node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply) const
 {
 	if (m_ses.m_alerts.should_post<dht_get_peers_alert>())
 		m_ses.m_alerts.post_alert(dht_get_peers_alert(info_hash));
@@ -464,11 +585,32 @@ bool node_impl::on_find(sha1_hash const& info_hash, std::vector<tcp::endpoint>& 
 	torrent_entry const& v = i->second;
 
 	int num = (std::min)((int)v.peers.size(), m_settings.max_peers_reply);
-	peers.clear();
-	peers.reserve(num);
-	random_sample_n(boost::make_transform_iterator(v.peers.begin(), &get_endpoint)
-		, boost::make_transform_iterator(v.peers.end(), &get_endpoint)
-		, std::back_inserter(peers), num);
+	int t = 0;
+	int m = 0;
+	std::set<peer_entry>::iterator iter = v.peers.begin();
+	entry::list_type& pe = reply["values"].list();
+	std::string endpoint;
+
+	while (m < num)
+	{
+		if ((std::rand() / (RAND_MAX + 1.f)) * (num - t) >= num - m)
+		{
+			++iter;
+			++t;
+		}
+		else
+		{
+			endpoint.resize(18);
+			std::string::iterator out = endpoint.begin();
+			write_endpoint(iter->addr, out);
+			endpoint.resize(out - endpoint.begin());
+			pe.push_back(entry(endpoint));
+
+			++iter;
+			++t;
+			++m;
+		}
+	}
 	return true;
 }
 
@@ -556,7 +698,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	entry& reply = e["r"];
 	m_rpc.add_our_id(reply);
 
-
 	if (strcmp(query, "ping") == 0)
 	{
 		// we already have 't' and 'id' in the response
@@ -579,25 +720,10 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		m_table.find_node(info_hash, n, 0);
 		write_nodes_entry(reply, n);
 
-		peers_t p;
-		on_find(info_hash, p);
-		if (!p.empty())
-		{
-			entry::list_type& pe = reply["values"].list();
-			std::string endpoint;
-			for (peers_t::const_iterator i = p.begin()
-				, end(p.end()); i != end; ++i)
-			{
-				endpoint.resize(18);
-				std::string::iterator out = endpoint.begin();
-				write_endpoint(*i, out);
-				endpoint.resize(out - endpoint.begin());
-				pe.push_back(entry(endpoint));
-			}
+		lookup_peers(info_hash, reply);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(node) << " values: " << p.size();
+		TORRENT_LOG(node) << " values: " << reply["values"].list().size();
 #endif
-		}
 	}
 	else if (strcmp(query, "find_node") == 0)
 	{
@@ -610,7 +736,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		sha1_hash target(target_ent->string_ptr());
 		nodes_t n;
-		// always return nodes as well as peers
 		m_table.find_node(target, n, 0);
 		write_nodes_entry(reply, n);
 	}
@@ -661,6 +786,101 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		std::set<peer_entry>::iterator i = v.peers.find(e);
 		if (i != v.peers.end()) v.peers.erase(i++);
 		v.peers.insert(i, e);
+	}
+	else if (strcmp(query, "find_torrent") == 0)
+	{
+		lazy_entry const* target_ent = arg_ent->dict_find_string("target");
+		if (target_ent == 0 || target_ent->string_length() != 20)
+		{
+			incoming_error(e, "missing 'target' key");
+			return;
+		}
+
+		lazy_entry const* tags_ent = arg_ent->dict_find_string("tags");
+		if (tags_ent == 0)
+		{
+			incoming_error(e, "missing 'tags' key");
+			return;
+		}
+
+		reply["token"] = generate_token(m.addr, target_ent->string_ptr());
+
+		sha1_hash target(target_ent->string_ptr());
+		nodes_t n;
+		// always return nodes as well as torrents
+		m_table.find_node(target, n, 0);
+		write_nodes_entry(reply, n);
+
+		lookup_torrents(target, reply, (char*)tags_ent->string_cstr());
+	}
+	else if (strcmp(query, "announce_torrent") == 0)
+	{
+		lazy_entry const* target_ent = arg_ent->dict_find_string("target");
+		if (target_ent == 0 || target_ent->string_length() != 20)
+		{
+			incoming_error(e, "missing 'target' key");
+			return;
+		}
+
+		lazy_entry const* info_hash_ent = arg_ent->dict_find_string("info_hash");
+		if (info_hash_ent == 0 || info_hash_ent->string_length() != 20)
+		{
+			incoming_error(e, "missing 'target' key");
+			return;
+		}
+
+		lazy_entry const* name_ent = arg_ent->dict_find_string("name");
+		if (name_ent == 0)
+		{
+			incoming_error(e, "missing 'name' key");
+			return;
+		}
+
+		lazy_entry const* tags_ent = arg_ent->dict_find_string("tags");
+		if (tags_ent == 0)
+		{
+			incoming_error(e, "missing 'tags' key");
+			return;
+		}
+
+//		if (m_ses.m_alerts.should_post<dht_announce_torrent_alert>())
+//			m_ses.m_alerts.post_alert(dht_announce_torrent_alert(
+//				m.addr.address(), name, tags, info_hash));
+
+		lazy_entry const* token = arg_ent->dict_find_string("token");
+		if (!token)
+		{
+			incoming_error(e, "missing 'token' key in announce");
+			return;
+		}
+
+		if (!verify_token(token->string_value(), target_ent->string_ptr(), m.addr))
+		{
+			incoming_error(e, "invalid token in announce");
+			return;
+		}
+
+		sha1_hash target(target_ent->string_ptr());
+		sha1_hash info_hash(info_hash_ent->string_ptr());
+
+		// the token was correct. That means this
+		// node is not spoofing its address. So, let
+		// the table get a chance to add it.
+		m_table.node_seen(id, m.addr);
+
+		search_table_t::iterator i = m_search_map.find(std::make_pair(target, info_hash));
+		if (i == m_search_map.end())
+		{
+			boost::tie(i, boost::tuples::ignore)
+				= m_search_map.insert(std::make_pair(std::make_pair(target, info_hash)
+				, search_torrent_entry()));
+		}
+
+		char const* in_tags[20];
+		int num_tags = 0;
+		num_tags = split_string(in_tags, 20, (char*)tags_ent->string_cstr());
+
+		i->second.publish(name_ent->string_value(), in_tags, num_tags);
 	}
 	else
 	{

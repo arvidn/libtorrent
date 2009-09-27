@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
+#include "libtorrent/kademlia/node.hpp"
 #endif
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -364,6 +365,49 @@ void find_control_url(int type, char const* string, parse_state& state);
 int test_main()
 {
 	using namespace libtorrent;
+
+#ifndef TORRENT_DISABLE_DHT
+	// test search_torrent_entry
+
+	dht::search_torrent_entry ste1;
+	dht::search_torrent_entry ste2;
+	char const* ste1_tags[] = {"tag1", "tag2", "tag3", "tag4"};
+	ste1.publish("ste1", ste1_tags, 4);
+	char const* ste11_tags[] = {"tag2", "tag3"};
+	ste1.publish("ste1", ste11_tags, 2);
+	char const* ste2_tags[] = {"tag1", "tag2", "tag5", "tag6"};
+	ste2.publish("ste2", ste2_tags, 4);
+	char const* ste21_tags[] = {"tag1", "tag5"};
+	ste2.publish("ste2", ste21_tags, 2);
+
+	char const* test_tags1[] = {"tag1", "tag2"};
+	char const* test_tags2[] = {"tag3", "tag2"};
+	int m1 = ste1.match(test_tags1, 2);
+	int m2 = ste2.match(test_tags1, 2);
+	TEST_CHECK(m1 == m2);
+	m1 = ste1.match(test_tags2, 2);
+	m2 = ste2.match(test_tags2, 2);
+	TEST_CHECK(m1 > m2);
+#endif
+
+	// test split_string
+
+	char const* tags[10];
+	char tags_str[] = "  this  is\ta test\t string\x01to be split  and it cannot "
+		"extend over the limit of elements \t";
+	int ret = split_string(tags, 10, tags_str);
+
+	TEST_CHECK(ret == 10);
+	TEST_CHECK(strcmp(tags[0], "this") == 0);
+	TEST_CHECK(strcmp(tags[1], "is") == 0);
+	TEST_CHECK(strcmp(tags[2], "a") == 0);
+	TEST_CHECK(strcmp(tags[3], "test") == 0);
+	TEST_CHECK(strcmp(tags[4], "string") == 0);
+	TEST_CHECK(strcmp(tags[5], "to") == 0);
+	TEST_CHECK(strcmp(tags[6], "be") == 0);
+	TEST_CHECK(strcmp(tags[7], "split") == 0);
+	TEST_CHECK(strcmp(tags[8], "and") == 0);
+	TEST_CHECK(strcmp(tags[9], "it") == 0);
 
 	// test snprintf
 

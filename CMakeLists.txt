@@ -277,6 +277,7 @@ if(build_tests)
 		test_buffer
 		test_storage
 		test_torrent
+		test_dht
 		test_transfer
 		test_piece_picker
 		test_fast_extension

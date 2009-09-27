@@ -73,17 +73,6 @@ namespace
 {
 	const int tick_period = 1; // minutes
 
-	struct count_peers
-	{
-		int& count;
-		count_peers(int& c): count(c) {}
-		void operator()(std::pair<libtorrent::dht::node_id
-			, libtorrent::dht::torrent_entry> const& t)
-		{
-			count += t.second.peers.size();
-		}
-	};
-	
 	template <class EndpointType>
 	void read_endpoint_list(libtorrent::entry const* n, std::vector<EndpointType>& epl)
 	{
@@ -365,11 +354,10 @@ namespace libtorrent { namespace dht
 		m_dht.print_state(st);
 		
 		// count torrents
-		int torrents = std::distance(m_dht.begin_data(), m_dht.end_data());
+		int torrents = m_dht.num_torrents();
 		
 		// count peers
-		int peers = 0;
-		std::for_each(m_dht.begin_data(), m_dht.end_data(), count_peers(peers));
+		int peers = m_dht.num_peers();
 
 		std::ofstream pc("dht_stats.log", first ? std::ios_base::trunc : std::ios_base::app);
 		if (first)

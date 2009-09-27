@@ -87,6 +87,48 @@ struct torrent_entry
 	std::set<peer_entry> peers;
 };
 
+// this is the entry for a torrent that has been published
+// in the DHT.
+struct search_torrent_entry
+{
+	// the tags of the torrent. The key of
+	// this entry is the sha-1 hash of one of
+	// these tags. The counter is the number of
+	// times a tag has been included in a publish
+	// call. The counters are periodically
+	// decremented by a factor, so that the
+	// popularity ratio between the tags is
+	// maintained. The decrement is rounded down.
+	std::map<std::string, int> tags;
+
+	// this is the sum of all values in the tags
+	// map. It is only an optimization to avoid
+	// recalculating it constantly
+	int total_tag_points;
+	
+	// the name of the torrent
+	std::map<std::string, int> name;
+	int total_name_points;
+
+	// increase the popularity counters for this torrent
+	void publish(std::string const& name, char const* in_tags[], int num_tags);
+
+	// return a score of how well this torrent matches
+	// the given set of tags. Each word in the string
+	// (separated by a space) is considered a tag.
+	// tags with 2 letters or fewer are ignored
+	int match(char const* tags[], int num_tags) const;
+
+	// this is called once every hour, and will
+	// decrement the popularity counters of the
+	// tags. Returns true if this entry should
+	// be deleted
+	bool tick();
+	
+	void get_name(std::string& t) const;
+	void get_tags(std::string& t) const;
+};
+
 inline bool operator<(peer_entry const& lhs, peer_entry const& rhs)
 {
 	return lhs.addr.address() == rhs.addr.address()
@@ -119,9 +161,21 @@ private:
 	std::string m_token;
 };
 
+struct count_peers
+{
+	int& count;
+	count_peers(int& c): count(c) {}
+	void operator()(std::pair<libtorrent::dht::node_id
+		, libtorrent::dht::torrent_entry> const& t)
+	{
+		count += t.second.peers.size();
+	}
+};
+	
 class node_impl : boost::noncopyable
 {
 typedef std::map<node_id, torrent_entry> table_t;
+typedef std::map<std::pair<node_id, sha1_hash>, search_torrent_entry> search_table_t;
 public:
 	node_impl(libtorrent::aux::session_impl& ses
 		, void (*f)(void*, entry const&, udp::endpoint const&, int)
@@ -138,6 +192,14 @@ public:
 	void unreachable(udp::endpoint const& ep);
 	void incoming(msg const& m);
 
+	int num_torrents() const { return m_map.size(); }
+	int num_peers() const
+	{
+		int ret = 0;
+		std::for_each(m_map.begin(), m_map.end(), count_peers(ret));
+		return ret;
+	}
+
 	void refresh();
 	void refresh_bucket(int bucket);
 	int bucket_size(int bucket);
@@ -147,16 +209,12 @@ public:
 	iterator begin() const { return m_table.begin(); }
 	iterator end() const { return m_table.end(); }
 
-	typedef table_t::iterator data_iterator;
-
 	node_id const& nid() const { return m_id; }
 
 	boost::tuple<int, int> size() const{ return m_table.size(); }
 	size_type num_global_nodes() const
 	{ return m_table.num_global_nodes(); }
 
-	data_iterator begin_data() { return m_map.begin(); }
-	data_iterator end_data() { return m_map.end(); }
 	int data_size() const { return int(m_map.size()); }
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -208,11 +266,9 @@ protected:
 	// is called when a find data request is received. Should
 	// return false if the data is not stored on this node. If
 	// the data is stored, it should be serialized into 'data'.
-	bool on_find(sha1_hash const& info_hash, std::vector<tcp::endpoint>& peers) const;
-
-	// this is called when a store request is received. The data
-	// is store-parameters and the data to be stored.
-	void on_announce(msg const& m, msg& reply);
+	bool lookup_peers(sha1_hash const& info_hash, entry& reply) const;
+	bool lookup_torrents(sha1_hash const& target, entry& reply
+		, char* tags) const;
 
 	dht_settings const& m_settings;
 	
@@ -239,6 +295,7 @@ public:
 
 private:
 	table_t m_map;
+	search_table_t m_search_map;
 	
 	ptime m_last_tracker_tick;
 

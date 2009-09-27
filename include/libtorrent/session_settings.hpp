@@ -660,6 +660,7 @@ namespace libtorrent
 			, search_branching(5)
 			, service_port(0)
 			, max_fail_count(20)
+			, max_torrent_search_reply(20)
 		{}
 		
 		// the maximum number of peers to send in a
@@ -677,6 +678,10 @@ namespace libtorrent
 		// the maximum number of times a node can fail
 		// in a row before it is removed from the table.
 		int max_fail_count;
+
+		// the max number of torrents to return in a
+		// torrent search query to the DHT
+		int max_torrent_search_reply;
 	};
 #endif
 

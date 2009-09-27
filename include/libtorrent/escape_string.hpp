@@ -49,6 +49,7 @@ namespace libtorrent
 	bool TORRENT_EXPORT is_space(char c);
 	char TORRENT_EXPORT to_lower(char c);
 
+	int TORRENT_EXPORT split_string(char const** tags, int buf_size, char* in);
 	bool TORRENT_EXPORT string_begins_no_case(char const* s1, char const* s2);
 	bool TORRENT_EXPORT string_equal_no_case(char const* s1, char const* s2);
 

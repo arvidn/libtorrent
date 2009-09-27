@@ -117,8 +117,6 @@ namespace libtorrent { namespace dht
 		void on_bootstrap(std::vector<std::pair<node_entry, std::string> > const&);
 		void send_packet(libtorrent::entry const& e, udp::endpoint const& addr, int send_flags);
 
-		void incoming_error(char const* msg, lazy_entry const& e, udp::endpoint const& ep);
-
 		node_impl m_dht;
 		libtorrent::aux::session_impl& m_ses;
 		rate_limited_udp_socket& m_sock;
