@@ -31,14 +31,44 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
+#include "libtorrent/kademlia/node.hpp" // for verify_message
+#include "libtorrent/bencode.hpp"
 
 #include "test.hpp"
 
+using namespace libtorrent;
+
+int dht_port = 48199;
+
+void send_dht_msg(datagram_socket& sock, char const* msg, lazy_entry* reply, char const* t = "10")
+{
+	entry e;
+	e["q"] = msg;
+	e["t"] = t;
+	e["y"] = "q";
+	entry::dictionary_type& a = e["a"].dict();
+	a["id"] = "00000000000000000000";
+	char msg_buf[1500];
+	int size = bencode(msg_buf, e);
+
+	error_code ec;
+	sock.send_to(asio::buffer(msg_buf, size)
+		, udp::endpoint(address::from_string("127.0.0.1"), dht_port), 0, ec);
+	TEST_CHECK(!ec);
+	if (ec) std::cout << ec.message() << std::endl;
+
+	static char inbuf[1500];
+	udp::endpoint ep;
+	size = sock.receive_from(asio::buffer(inbuf, sizeof(inbuf)), ep, 0, ec);
+	TEST_CHECK(!ec);
+	if (ec) std::cout << ec.message() << std::endl;
+
+	int ret = lazy_bdecode(inbuf, inbuf + size, *reply);
+	TEST_CHECK(ret == 0);
+}
+
 int test_main()
 {
-	using namespace libtorrent;
-
-	int dht_port = 48199;
 	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(dht_port, 49000));
 
 	// DHT should be running on port 48199 now
@@ -51,37 +81,54 @@ int test_main()
 	TEST_CHECK(!ec);
 	if (ec) std::cout << ec.message() << std::endl;
 
-	char const ping_msg[] = "d1:ad2:id20:00000000000000000001e1:q4:ping1:t2:101:y1:qe";
+	lazy_entry response;
+	lazy_entry const* parsed[5];
+	char error_string[200];
+	bool ret;
 
-	// ping
-	sock.send_to(asio::buffer(ping_msg, sizeof(ping_msg) - 1)
-		, udp::endpoint(address::from_string("127.0.0.1"), dht_port), 0, ec);
-	TEST_CHECK(!ec);
-	if (ec) std::cout << ec.message() << std::endl;
+	// ====== ping ======
 
-	char inbuf[1600];
-	udp::endpoint ep;
-	int size = sock.receive_from(asio::buffer(inbuf, sizeof(inbuf)), ep, 0, ec);
-	TEST_CHECK(!ec);
-	if (ec) std::cout << ec.message() << std::endl;
+	send_dht_msg(sock, "ping", &response, "10");
 
-	lazy_entry pong;
-	int ret = lazy_bdecode(inbuf, inbuf + size, pong);
-	TEST_CHECK(ret == 0);
+	dht::key_desc_t pong_desc[] = {
+		{"y", lazy_entry::string_t, 1, 0},
+		{"t", lazy_entry::string_t, 2, 0},
+	};
 
-	if (ret != 0) return 1;
+	ret = dht::verify_message(&response, pong_desc, parsed, 2, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	if (ret)
+	{
+		TEST_CHECK(parsed[0]->string_value() == "r");
+		TEST_CHECK(parsed[1]->string_value() == "10");
+	}
 
-	TEST_CHECK(pong.type() == lazy_entry::dict_t);
+	// ====== invalid message ======
 
-	if (pong.type() != lazy_entry::dict_t) return 1;
+	send_dht_msg(sock, "find_node", &response, "10");
 
-	lazy_entry const* t = pong.dict_find_string("t");
-	TEST_CHECK(t);
-	if (t) TEST_CHECK(t->string_value() == "10");
+	dht::key_desc_t err_desc[] = {
+		{"y", lazy_entry::string_t, 1, 0},
+		{"e", lazy_entry::list_t, 0, 0},
+	};
 
-	lazy_entry const* y = pong.dict_find_string("y");
-	TEST_CHECK(y);
-	if (y) TEST_CHECK(y->string_value() == "r");
+	ret = dht::verify_message(&response, err_desc, parsed, 2, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	if (ret)
+	{
+		TEST_CHECK(parsed[0]->string_value() == "e");
+		TEST_CHECK(parsed[1]->list_size() >= 2);
+		if (parsed[1]->list_size() >= 2
+			&& parsed[1]->list_at(0)->type() == lazy_entry::int_t
+			&& parsed[1]->list_at(1)->type() == lazy_entry::string_t)
+		{
+			TEST_CHECK(parsed[1]->list_at(1)->string_value() == "missing 'target' key");
+		}
+		else
+		{
+			TEST_ERROR("invalid error response");
+		}
+	}
 
 	return 0;
 }
