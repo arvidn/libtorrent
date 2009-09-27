@@ -555,9 +555,9 @@ int test_main()
 	test = "\b?filename=4";
 	TEST_CHECK(!verify_encoding(test));
 #ifdef TORRENT_WINDOWS
-	TEST_CHECK(test == "..filename=4");
+	TEST_CHECK(test == "__filename=4");
 #else
-	TEST_CHECK(test == ".?filename=4");
+	TEST_CHECK(test == "_?filename=4");
 #endif
 
 	test = "filename=4";
