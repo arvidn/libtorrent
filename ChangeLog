@@ -78,6 +78,7 @@ release 0.14.7
 	* resume data alerts are always posted, regardless of alert mask
 	* added wait_for_alert to python binding
 	* improved invalid filename character replacement
+	* improved forward compatibility in DHT
 
 release 0.14.6
 

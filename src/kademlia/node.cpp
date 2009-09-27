@@ -664,7 +664,25 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	}
 	else
 	{
-		incoming_error(e, "unknown message");
+		// if we don't recognize the message but there's a
+		// 'target' or 'info_hash' in the arguments, treat it
+		// as find_node to be future compatible
+		lazy_entry const* target_ent = arg_ent->dict_find_string("target");
+		if (target_ent == 0 || target_ent->string_length() != 20)
+		{
+			target_ent = arg_ent->dict_find_string("info_hash");
+			if (target_ent == 0 || target_ent->string_length() != 20)
+			{
+				incoming_error(e, "unknown message");
+				return;
+			}
+		}
+
+		sha1_hash target(target_ent->string_ptr());
+		nodes_t n;
+		// always return nodes as well as peers
+		m_table.find_node(target, n, 0);
+		write_nodes_entry(reply, n);
 		return;
 	}
 }
