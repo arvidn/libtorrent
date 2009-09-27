@@ -100,6 +100,26 @@ namespace libtorrent
 		return (c >= 'A' && c <= 'Z') ? c - 'A' + 'a' : c;
 	}
 
+	int split_string(char const** tags, int buf_size, char* in)
+	{
+		int ret = 0;
+		char* i = in;
+		for (;*i; ++i)
+		{
+			if (!is_print(*i) || is_space(*i))
+			{
+				*i = 0;
+				if (ret == buf_size) return ret;
+				continue;
+			}
+			if (i == in || i[-1] == 0)
+			{
+				tags[ret++] = i;
+			}
+		}
+		return ret;
+	}
+
 	bool string_begins_no_case(char const* s1, char const* s2)
 	{
 		while (*s1 != 0)

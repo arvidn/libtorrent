@@ -59,6 +59,20 @@ namespace libtorrent
 
 		big_number() {}
 
+		static big_number max()
+		{
+			big_number ret;
+			memset(ret.m_number, 0xff, size);
+			return ret;
+		}
+
+		static big_number min()
+		{
+			big_number ret;
+			memset(ret.m_number, 0, size);
+			return ret;
+		}
+
 		explicit big_number(char const* s)
 		{
 			if (s == 0) clear();
