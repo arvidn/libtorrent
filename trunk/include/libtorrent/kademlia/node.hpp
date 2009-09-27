@@ -72,6 +72,19 @@ TORRENT_DECLARE_LOG(node);
 
 class traversal_algorithm;
 
+struct key_desc_t
+{
+	char const* name;
+	int type;
+	int size;
+	int flags;
+
+	enum { optional = 1}; 
+};
+
+bool TORRENT_EXPORT verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry const* ret[]
+	, int size , char* error, int error_size);
+
 // this is the entry for every peer
 // the timestamp is there to make it possible
 // to remove stale peers

@@ -651,57 +651,48 @@ namespace
 			}
 		}
 	}
+}
 
-	struct key_desc_t
+// verifies that a message has all the required
+// entries and returns them in ret
+bool verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry const* ret[]
+	, int size , char* error, int error_size)
+{
+	// clear the return buffer
+	memset(ret, 0, sizeof(ret[0]) * size);
+
+	if (msg->type() != lazy_entry::dict_t)
 	{
-		char const* name;
-		int type;
-		int size;
-		int flags;
-
-		enum { optional = 1}; 
-	};
-
-	// verifies that a message has all the required
-	// entries and returns them in ret
-	bool verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry const* ret[]
-		, int size , char* error, int error_size)
+		snprintf(error, error_size, "not a dictionary");
+		return false;
+	}
+	for (int i = 0; i < size; ++i)
 	{
-		for (int i = 0; i < size; ++i) ret[i] = 0;
-
-		if (msg->type() != lazy_entry::dict_t)
+		key_desc_t const& k = desc[i];
+		ret[i] = msg->dict_find(k.name);
+		if (ret[i] && ret[i]->type() != k.type) ret[i] = 0;
+		if (ret[i] == 0 && (k.flags & key_desc_t::optional) == 0)
 		{
-			snprintf(error, error_size, "not a dictionary");
+			// the key was not found, and it's not an optiona key
+			snprintf(error, error_size, "missing '%s' key", k.name);
 			return false;
 		}
-		for (int i = 0; i < size; ++i)
+
+		if (k.size > 0
+			&& ret[i]
+			&& k.type == lazy_entry::string_t
+			&& ret[i]->string_length() != k.size)
 		{
-			key_desc_t const& k = desc[i];
-			ret[i] = msg->dict_find(k.name);
-			if (ret[i] && ret[i]->type() != k.type) ret[i] = 0;
-			if (ret[i] == 0 && (k.flags & key_desc_t::optional) == 0)
+			// the string was not of the required size
+			ret[i] = 0;
+			if ((k.flags & key_desc_t::optional) == 0)
 			{
-				// the key was not found, and it's not an optiona key
-				snprintf(error, error_size, "missing '%s' key", k.name);
+				snprintf(error, error_size, "invalid value for '%s'", k.name);
 				return false;
 			}
-
-			if (k.size > 0
-				&& ret[i]
-				&& k.type == lazy_entry::string_t
-				&& ret[i]->string_length() != k.size)
-			{
-				// the string was not of the required size
-				ret[i] = 0;
-				if ((k.flags & key_desc_t::optional) == 0)
-				{
-					snprintf(error, error_size, "invalid value for '%s'", k.name);
-					return false;
-				}
-			}
 		}
-		return true;
 	}
+	return true;
 }
 
 void incoming_error(entry& e, char const* msg)
