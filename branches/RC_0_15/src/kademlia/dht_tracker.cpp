@@ -822,8 +822,22 @@ namespace libtorrent { namespace dht
 			}
 			else
 			{
-				incoming_error("unknown query", e, ep);
-				return;
+				// if we don't recognize the message but there's a
+				// 'target' or 'info_hash' in the arguments, treat it
+				// as find_node to be future compatible
+				lazy_entry const* target_ent = a->dict_find_string("target");
+				if (target_ent == 0 || target_ent->string_length() != 20)
+				{
+					target_ent = a->dict_find_string("info_hash");
+					if (target_ent == 0 || target_ent->string_length() != 20)
+					{
+						incoming_error("unknown query", e, ep);
+						return;
+					}
+				}
+				std::copy(target_ent->string_ptr(), target_ent->string_ptr() + 20
+					, m.info_hash.begin());
+				m.message_id = libtorrent::dht::messages::find_node;
 			}
 		}
 		else if (msg_type == 'e')
