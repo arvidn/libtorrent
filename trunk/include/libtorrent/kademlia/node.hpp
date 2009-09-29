@@ -164,6 +164,7 @@ public:
 		, m_token(write_token)
 	{}
 
+	void short_timeout() {}
 	void timeout() {}
 	void reply(msg const&) {}
 	void abort() {}

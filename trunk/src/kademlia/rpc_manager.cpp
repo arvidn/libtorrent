@@ -338,15 +338,17 @@ time_duration rpc_manager::tick()
 {
 	INVARIANT_CHECK;
 
-	const int timeout_ms = 10 * 1000;
+	const static int short_timeout = 2;
+	const static int timeout = 10;
 
-	//	look for observers that has timed out
+	//	look for observers that have timed out
 
-	if (m_next_transaction_id == m_oldest_transaction_id) return milliseconds(timeout_ms);
+	if (m_next_transaction_id == m_oldest_transaction_id) return seconds(short_timeout);
 
 	std::vector<observer_ptr> timeouts;
 
-	time_duration ret = milliseconds(timeout_ms);
+	time_duration ret = seconds(short_timeout);
+	ptime now = time_now();
 
 	for (;m_next_transaction_id != m_oldest_transaction_id;
 		m_oldest_transaction_id = (m_oldest_transaction_id + 1) % max_transactions)
@@ -357,19 +359,14 @@ time_duration rpc_manager::tick()
 		observer_ptr o = m_transactions[m_oldest_transaction_id];
 		if (!o) continue;
 
-		time_duration diff = o->sent() + milliseconds(timeout_ms) - time_now();
-		if (diff > seconds(0))
+		// if we reach an observer that hasn't timed out
+		// break, because every observer after this one will
+		// also not have timed out yet
+		time_duration diff = now - o->sent();
+		if (diff < seconds(timeout))
 		{
-			if (diff < seconds(1))
-			{
-				ret = seconds(1);
-				break;
-			}
-			else
-			{
-				ret = diff;
-				break;	
-			}
+			ret = seconds(timeout) - diff;
+			break;
 		}
 		
 #ifndef BOOST_NO_EXCEPTIONS
@@ -389,11 +386,35 @@ time_duration rpc_manager::tick()
 	
 	std::for_each(timeouts.begin(), timeouts.end(), bind(&observer::timeout, _1));
 	timeouts.clear();
-	
+
 	// clear the aborted transactions, will likely
 	// generate new requests. We need to swap, since the
 	// destrutors may add more observers to the m_aborted_transactions
 	std::vector<observer_ptr>().swap(m_aborted_transactions);
+
+	for (int i = m_oldest_transaction_id; i != m_next_transaction_id;
+		i = (i + 1) % max_transactions)
+	{
+		observer_ptr o = m_transactions[i];
+		if (!o) continue;
+
+		// if we reach an observer that hasn't timed out
+		// break, because every observer after this one will
+		// also not have timed out yet
+		time_duration diff = now - o->sent();
+		if (diff < seconds(short_timeout))
+		{
+			ret = seconds(short_timeout) - diff;
+			break;
+		}
+		
+		// TODO: don't call short_timeout() again if we've
+		// already called it once
+		timeouts.push_back(o);
+	}
+
+	std::for_each(timeouts.begin(), timeouts.end(), bind(&observer::short_timeout, _1));
+	
 	return ret;
 }
 

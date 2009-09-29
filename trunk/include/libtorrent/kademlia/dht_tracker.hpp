@@ -165,8 +165,6 @@ namespace libtorrent { namespace dht
 		int m_replies_bytes_sent[5];
 		int m_queries_bytes_received[5];
 		int m_counter;
-		int m_announces;
-		int m_failed_announces;
 
 		int m_total_message_input;
 		int m_total_in_bytes;

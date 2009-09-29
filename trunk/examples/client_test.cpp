@@ -1391,8 +1391,9 @@ int main(int argc, char* argv[])
 			for (std::vector<dht_lookup>::iterator i = sess_stat.active_requests.begin()
 				, end(sess_stat.active_requests.end()); i != end; ++i)
 			{
-				snprintf(str, sizeof(str), "  %s %d (%d) ( timeouts %d responses %d)\n"
-					, i->type, i->outstanding_requests, i->branch_factor, i->timeouts, i->responses);
+				snprintf(str, sizeof(str), "  %s in flight: %d [limit: %d] timeouts %d responses %d\n"
+					, i->type, i->outstanding_requests, i->branch_factor, i->timeouts
+					, i->responses);
 				out += str;
 			}
 		}

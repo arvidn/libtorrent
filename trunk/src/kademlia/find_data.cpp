@@ -177,13 +177,18 @@ void find_data_observer::reply(msg const& m)
 #endif
 }
 
+void find_data_observer::short_timeout()
+{
+	if (!m_algorithm) return;
+	m_algorithm->failed(m_self, traversal_algorithm::short_timeout);
+}
+
 void find_data_observer::timeout()
 {
 	if (!m_algorithm) return;
 	m_algorithm->failed(m_self);
 	m_algorithm = 0;
 }
-
 
 find_data::find_data(
 	node_impl& node

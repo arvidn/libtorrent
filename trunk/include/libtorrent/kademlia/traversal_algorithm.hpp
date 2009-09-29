@@ -61,7 +61,9 @@ class traversal_algorithm : boost::noncopyable
 public:
 	void traverse(node_id const& id, udp::endpoint addr);
 	void finished(node_id const& id);
-	void failed(node_id const& id, bool prevent_request = false);
+
+	enum flags_t { prevent_request = 1, short_timeout = 2 };
+	void failed(node_id const& id, int flags = 0);
 	virtual ~traversal_algorithm();
 	boost::pool<>& allocator() const;
 	void status(dht_lookup& l);
@@ -81,7 +83,7 @@ public:
 		node_id id;
 		// TODO: replace with union of address_v4 and address_v6 and a port
 		udp::endpoint addr;
-		enum { queried = 1, initial = 2, no_id = 4 };
+		enum { queried = 1, initial = 2, no_id = 4, short_timeout = 8 };
 		unsigned char flags;
 	};
 

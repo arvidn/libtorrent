@@ -82,6 +82,10 @@ struct observer : boost::noncopyable
 	// this is called when a reply is received
 	virtual void reply(msg const& m) = 0;
 
+	// this is called if no response has been received after
+	// a few seconds, before the request has timed out
+	virtual void short_timeout() = 0;
+
 	// this is called when no reply has been received within
 	// some timeout
 	virtual void timeout() = 0;

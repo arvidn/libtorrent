@@ -110,6 +110,9 @@ namespace libtorrent { namespace dht
 	int g_gr_message_input = 0;
 	int g_mo_message_input = 0;
 	int g_unknown_message_input = 0;
+
+	int g_announces = 0;
+	int g_failed_announces = 0;
 #endif
 		
 	void intrusive_ptr_add_ref(dht_tracker const* c)
@@ -230,8 +233,8 @@ namespace libtorrent { namespace dht
 		std::fill_n(m_queries_bytes_received, 5, 0);
 		std::fill_n(m_replies_sent, 5, 0);
 		std::fill_n(m_queries_received, 5, 0);
-		m_announces = 0;
-		m_failed_announces = 0;
+		g_announces = 0;
+		g_failed_announces = 0;
 		m_total_message_input = 0;
 		m_total_in_bytes = 0;
 		m_total_out_bytes = 0;
@@ -396,8 +399,8 @@ namespace libtorrent { namespace dht
 		
 		pc << "\t" << torrents
 			<< "\t" << peers
-			<< "\t" << m_announces / float(tick_period)
-			<< "\t" << m_failed_announces / float(tick_period)
+			<< "\t" << g_announces / float(tick_period)
+			<< "\t" << g_failed_announces / float(tick_period)
 			<< "\t" << (m_total_message_input / float(tick_period))
 			<< "\t" << (g_az_message_input / float(tick_period))
 			<< "\t" << (g_ut_message_input / float(tick_period))
@@ -414,8 +417,8 @@ namespace libtorrent { namespace dht
 		std::fill_n(m_queries_bytes_received, 5, 0);
 		std::fill_n(m_replies_sent, 5, 0);
 		std::fill_n(m_queries_received, 5, 0);
-		m_announces = 0;
-		m_failed_announces = 0;
+		g_announces = 0;
+		g_failed_announces = 0;
 		m_total_message_input = 0;
 		g_az_message_input = 0;
 		g_ut_message_input = 0;
