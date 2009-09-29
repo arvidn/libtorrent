@@ -54,8 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-struct observer;
-
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DECLARE_LOG(rpc);
 #endif
@@ -64,6 +62,7 @@ struct null_observer : public observer
 {
 	null_observer(boost::pool<>& allocator): observer(allocator) {}
 	virtual void reply(msg const&) {}
+	virtual void short_timeout() {}
 	virtual void timeout() {}
 	void abort() {}
 };

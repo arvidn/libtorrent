@@ -108,8 +108,29 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 
 void traversal_algorithm::finished(node_id const& id)
 {
+	std::vector<result>::iterator i = std::find_if(
+		m_results.begin()
+		, m_results.end()
+		, bind(
+			std::equal_to<node_id>()
+			, bind(&result::id, _1)
+			, id
+		)
+	);
+
+	TORRENT_ASSERT(i != m_results.end());
+
+	if (i != m_results.end())
+	{
+		// if this flag is set, it means we increased the
+		// branch factor for it, and we should restore it
+		if (i->flags & result::short_timeout)
+			--m_branch_factor;
+	}
+
 	++m_responses;
 	--m_invoke_count;
+	TORRENT_ASSERT(m_invoke_count >= 0);
 	add_requests();
 	if (m_invoke_count == 0) done();
 }
@@ -117,9 +138,9 @@ void traversal_algorithm::finished(node_id const& id)
 // prevent request means that the total number of requests has
 // overflown. This query failed because it was the oldest one.
 // So, if this is true, don't make another request
-void traversal_algorithm::failed(node_id const& id, bool prevent_request)
+void traversal_algorithm::failed(node_id const& id, int flags)
 {
-	--m_invoke_count;
+	TORRENT_ASSERT(m_invoke_count >= 0);
 
 	TORRENT_ASSERT(!id.is_all_zeros());
 	std::vector<result>::iterator i = std::find_if(
@@ -137,18 +158,44 @@ void traversal_algorithm::failed(node_id const& id, bool prevent_request)
 	if (i != m_results.end())
 	{
 		TORRENT_ASSERT(i->flags & result::queried);
-		m_failed.insert(i->addr);
+		if (flags & short_timeout)
+		{
+			// short timeout means that it has been more than
+			// two seconds since we sent the request, and that
+			// we'll most likely not get a response. But, in case
+			// we do get a late response, keep the handler
+			// around for some more, but open up the slot
+			// by increasing the branch factor
+			if ((i->flags & result::short_timeout) == 0)
+				++m_branch_factor;
+			i->flags |= result::short_timeout;
+		}
+		else
+		{
+			m_failed.insert(i->addr);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "failed: " << i->id << " " << i->addr;
+			TORRENT_LOG(traversal) << "failed: " << i->id << " " << i->addr;
 #endif
-		// don't tell the routing table about
-		// node ids that we just generated ourself
-		if ((i->flags & result::no_id) == 0)
-			m_node.m_table.node_failed(id);
-		m_results.erase(i);
-		++m_timeouts;
+			// if this flag is set, it means we increased the
+			// branch factor for it, and we should restore it
+			if (i->flags & result::short_timeout)
+				--m_branch_factor;
+
+			// don't tell the routing table about
+			// node ids that we just generated ourself
+			if ((i->flags & result::no_id) == 0)
+				m_node.m_table.node_failed(id);
+			m_results.erase(i);
+			++m_timeouts;
+			--m_invoke_count;
+		}
 	}
-	if (prevent_request)
+	else
+	{
+		--m_invoke_count;
+	}
+
+	if (flags & prevent_request)
 	{
 		--m_branch_factor;
 		if (m_branch_factor <= 0) m_branch_factor = 1;
@@ -186,13 +233,17 @@ void traversal_algorithm::add_requests()
 
 		if (i == last_iterator()) break;
 
+#ifndef BOOST_NO_EXCEPTIONS
 		try
 		{
+#endif
 			invoke(i->id, i->addr);
 			++m_invoke_count;
 			i->flags |= result::queried;
+#ifndef BOOST_NO_EXCEPTIONS
 		}
 		catch (std::exception& e) {}
+#endif
 	}
 }
 

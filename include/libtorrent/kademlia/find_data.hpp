@@ -101,6 +101,7 @@ public:
 		, m_self(self)
 	{}
 	~find_data_observer();
+	void short_timeout();
 	void timeout();
 	void reply(msg const&);
 	void abort() { m_algorithm = 0; }
