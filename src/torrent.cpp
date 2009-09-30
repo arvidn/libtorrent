@@ -205,6 +205,7 @@ namespace libtorrent
 		, add_torrent_params const& p)
 		: m_policy(this)
 		, m_active_time(seconds(0))
+		, m_finished_time(seconds(0))
 		, m_seeding_time(seconds(0))
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
@@ -3382,6 +3383,7 @@ namespace libtorrent
 		m_total_uploaded = rd.dict_find_int_value("total_uploaded");
 		m_total_downloaded = rd.dict_find_int_value("total_downloaded");
 		m_active_time = seconds(rd.dict_find_int_value("active_time"));
+		m_finished_time = seconds(rd.dict_find_int_value("finished_time"));
 		m_seeding_time = seconds(rd.dict_find_int_value("seeding_time"));
 		m_complete = rd.dict_find_int_value("num_seeds", -1);
 		m_incomplete = rd.dict_find_int_value("num_downloaders", -1);
@@ -3521,6 +3523,7 @@ namespace libtorrent
 		ret["total_downloaded"] = m_total_downloaded;
 
 		ret["active_time"] = total_seconds(m_active_time);
+		ret["finished_time"] = total_seconds(m_finished_time);
 		ret["seeding_time"] = total_seconds(m_seeding_time);
 
 		int seeds = 0;
@@ -4885,15 +4888,15 @@ namespace libtorrent
 
 		ptime now = time_now();
 
-		int seed_time = total_seconds(m_seeding_time);
-		int download_time = total_seconds(m_active_time) - seed_time;
+		int finished_time = total_seconds(m_finished_time);
+		int download_time = total_seconds(m_active_time) - finished_time;
 
 		// if we haven't yet met the seed limits, set the seed_ratio_not_met
 		// flag. That will make this seed prioritized
 		// downloaded may be 0 if the torrent is 0-sized
 		size_type downloaded = (std::max)(m_total_downloaded, m_torrent_file->total_size());
-		if (seed_time < s.seed_time_limit
-			&& (download_time > 1 && seed_time / download_time < s.seed_time_ratio_limit)
+		if (finished_time < s.seed_time_limit
+			&& (download_time > 1 && finished_time / download_time < s.seed_time_ratio_limit)
 			&& downloaded > 0
 			&& m_total_uploaded / downloaded < s.share_ratio_limit)
 			ret |= seed_ratio_not_met;
@@ -5769,6 +5772,7 @@ namespace libtorrent
 		st.all_time_upload = m_total_uploaded;
 		st.all_time_download = m_total_downloaded;
 
+		st.active_time = total_seconds(m_active_time);
 		st.active_time = total_seconds(m_active_time);
 		st.seeding_time = total_seconds(m_seeding_time);
 

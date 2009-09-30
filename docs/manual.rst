@@ -2885,6 +2885,7 @@ It contains the following fields::
 		size_type all_time_download;
 
 		int active_time;
+		int finished_time;
 		int seeding_time;
 
 		int seed_rank;
@@ -3089,11 +3090,12 @@ the ``session_status`` object.
 payload byte counters. They are saved in and restored from resume data to keep totals
 across sessions.
 
-``active_time`` and ``seeding_time`` are second counters. They keep track of the
-number of seconds this torrent has been active (not paused) and the number of
-seconds it has been active while being a seed. ``seeding_time`` should be >=
-``active_time`` They are saved in and restored from resume data, to keep totals
-across sessions.
+``active_time``, ``finished_time`` and ``seeding_time`` are second counters.
+They keep track of the number of seconds this torrent has been active (not
+paused) and the number of seconds it has been active while being finished and
+active while being a seed. ``seeding_time`` should be >= ``finished_time`` which
+should be >= ``active_time``. They are all saved in and restored from resume data,
+to keep totals across sessions.
 
 ``seed_rank`` is a rank of how important it is to seed the torrent, it is used
 to determine which torrents to seed and which to queue. It is based on the peer
