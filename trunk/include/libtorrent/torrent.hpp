@@ -736,6 +736,10 @@ namespace libtorrent
 		// does not count when the torrent is stopped or paused
 		time_duration m_active_time;
 
+		// total time we've been finished with this torrent
+		// does not count when the torrent is stopped or paused
+		time_duration m_finished_time;
+
 		// total time we've been available as a seed on this torrent
 		// does not count when the torrent is stopped or paused
 		time_duration m_seeding_time;

@@ -112,6 +112,7 @@ namespace libtorrent
 			, all_time_upload(0)
 			, all_time_download(0)
 			, active_time(0)
+			, finished_time(0)
 			, seeding_time(0)
 			, seed_rank(0)
 			, last_scrape(0)
@@ -272,6 +273,7 @@ namespace libtorrent
 		// and as being a seed, saved and restored
 		// from resume data
 		int active_time;
+		int finished_time;
 		int seeding_time;
 
 		// higher value means more important to seed
