@@ -70,7 +70,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/stat.hpp"
@@ -80,6 +79,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/udp_socket.hpp"
 
 namespace libtorrent
 {
