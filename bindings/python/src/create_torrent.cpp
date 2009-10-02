@@ -16,6 +16,17 @@ namespace
     {
         c.set_hash(p, sha1_hash(hash));
     }
+
+    void call_python_object(boost::python::object const& obj, int i)
+    {
+       obj(i);
+    }
+
+    void set_piece_hashes_callback(create_torrent& c, boost::filesystem::path const& p
+        , boost::python::object cb)
+    {
+        set_piece_hashes(c, p, boost::bind(call_python_object, cb, _1));
+    }
 }
 
 void bind_create_torrent()
@@ -64,5 +75,6 @@ void bind_create_torrent()
 
     def("add_files", add_files0);
     def("set_piece_hashes", set_piece_hashes0);
+    def("set_piece_hashes", set_piece_hashes_callback);
 
 }
