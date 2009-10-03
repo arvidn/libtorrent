@@ -3250,13 +3250,21 @@ namespace libtorrent
 		p.write_state = m_channel_state[upload_channel];
 		p.read_state = m_channel_state[download_channel];
 		
+		// pieces may be empty if we don't have metadata yet
+		if (p.pieces.size() == 0)
+		{
+			p.progress = 0.f;
+			p.progress_ppm = 0;
+		}
+		else
+		{
 #if TORRENT_NO_FPU
-		p.progress = 0.f;
+			p.progress = 0.f;
 #else
-		p.progress = (float)p.pieces.count() / (float)p.pieces.size();
+			p.progress = (float)p.pieces.count() / (float)p.pieces.size();
 #endif
-
-		p.progress_ppm = p.pieces.count() * 1000000 / p.pieces.size();
+			p.progress_ppm = p.pieces.count() * 1000000 / p.pieces.size();
+		}
 	}
 
 	// allocates a disk buffer of size 'disk_buffer_size' and replaces the

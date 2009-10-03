@@ -81,6 +81,7 @@ release 0.14.7
 	* improved invalid filename character replacement
 	* improved forward compatibility in DHT
 	* added set_piece_hashes that takes a callback to the python binding
+	* fixed division by zero in get_peer_info()
 
 release 0.14.6
 
