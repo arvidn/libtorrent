@@ -61,6 +61,7 @@ namespace libtorrent
 		void release(void* st);
 		void release(fs::path const& p);
 		void resize(int size);
+		int size_limit() const { return m_size; }
 
 	private:
 
