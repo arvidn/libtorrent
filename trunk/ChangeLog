@@ -72,6 +72,7 @@
 	* improved support for sparse files on windows
 	* added ability to give seeding torrents preference to active slots
 	* added torrent_status::finished_time
+	* automatically caps files and connections by default to rlimit
 
 release 0.14.7
 

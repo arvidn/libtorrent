@@ -307,6 +307,32 @@ namespace aux {
 		m_buffer_allocations = 0;
 #endif
 
+#if defined TORRENT_BSD || defined TORRENT_LINUX
+		// ---- auto-cap open files ----
+
+		struct rlimit rl;
+		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_logger) << time_now_string() << "max number of open files: " << rl.rlim_cur << "\n";
+#endif
+
+			// deduct some margin for epoll/kqueue, log files,
+			// futexes, shared objects etc.
+			rl.rlim_cur -= 20;
+
+			// 80% of the available file descriptors should go
+			m_max_connections = (std::min)(m_max_connections, int(rl.rlim_cur * 8 / 10));
+			// 20% goes towards regular files
+			m_files.resize((std::min)(m_files.size_limit(), int(rl.rlim_cur * 2 / 10)));
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_logger) << time_now_string() << "   max connections: " << m_max_connections << "\n";
+			(*m_logger) << time_now_string() << "   max files: " << m_files.size_limit() << "\n";
+#endif
+		}
+#endif // TORRENT_BSD || TORRENT_LINUX
+
+
 		// ---- generate a peer id ----
 		static seed_random_generator seeder;
 
