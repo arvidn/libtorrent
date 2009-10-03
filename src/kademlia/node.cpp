@@ -794,7 +794,9 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	}
 	else if (strcmp(query, "announce_peer") == 0)
 	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 		extern int g_failed_announces;
+#endif
 		key_desc_t msg_desc[] = {
 			{"info_hash", lazy_entry::string_t, 20, 0},
 			{"port", lazy_entry::int_t, 0, 0},
@@ -804,7 +806,9 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		lazy_entry const* msg_keys[3];
 		if (!verify_message(arg_ent, msg_desc, msg_keys, 3, error_string, sizeof(error_string)))
 		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 			++g_failed_announces;
+#endif
 			incoming_error(e, error_string);
 			return;
 		}
@@ -812,7 +816,9 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		int port = msg_keys[1]->int_value();
 		if (port < 0 || port >= 65536)
 		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 			++g_failed_announces;
+#endif
 			incoming_error(e, "invalid 'port' in announce");
 			return;
 		}
@@ -825,7 +831,9 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		if (!verify_token(msg_keys[2]->string_value(), msg_keys[0]->string_ptr(), m.addr))
 		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 			++g_failed_announces;
+#endif
 			incoming_error(e, "invalid token in announce");
 			return;
 		}
@@ -842,8 +850,10 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		std::set<peer_entry>::iterator i = v.peers.find(e);
 		if (i != v.peers.end()) v.peers.erase(i++);
 		v.peers.insert(i, e);
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 		extern int g_announces;
 		++g_announces;
+#endif
 	}
 	else if (strcmp(query, "find_torrent") == 0)
 	{
