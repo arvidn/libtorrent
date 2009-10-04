@@ -67,10 +67,10 @@ int search_torrent_entry::match(char const* in_tags[], int num_tags) const
 	for (int i = 0; i < num_tags; ++i)
 	{
 		char const* t = in_tags[i];
-		std::map<std::string, int>::const_iterator i = tags.find(t);
-		if (i == tags.end()) continue;
+		std::map<std::string, int>::const_iterator j = tags.find(t);
+		if (j == tags.end()) continue;
 		// weigh the score by how popular this tag is in this torrent
-		ret += 100 * i->second / total_tag_points;
+		ret += 100 * j->second / total_tag_points;
 	}
 	return ret;
 }
@@ -108,9 +108,9 @@ void search_torrent_entry::publish(std::string const& torrent_name, char const* 
 	for (int i = 0; i < num_tags; ++i)
 	{
 		char const* t = in_tags[i];
-		std::map<std::string, int>::iterator i = tags.find(t);
-		if (i != tags.end())
-			++i->second;
+		std::map<std::string, int>::iterator j = tags.find(t);
+		if (j != tags.end())
+			++j->second;
 		else
 			tags[t] = 1;
 		++total_tag_points;
@@ -534,8 +534,8 @@ bool node_impl::lookup_torrents(sha1_hash const& target
 //		m_ses.m_alerts.post_alert(dht_find_torrents_alert(info_hash));
 
 	search_table_t::const_iterator first, last;
-	first = m_search_map.lower_bound(std::make_pair(target, sha1_hash::min()));
-	last = m_search_map.upper_bound(std::make_pair(target, sha1_hash::max()));
+	first = m_search_map.lower_bound(std::make_pair(target, (sha1_hash::min)()));
+	last = m_search_map.upper_bound(std::make_pair(target, (sha1_hash::max)()));
 
 	if (first == last) return false;
 
@@ -587,7 +587,7 @@ bool node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply) const
 	int num = (std::min)((int)v.peers.size(), m_settings.max_peers_reply);
 	int t = 0;
 	int m = 0;
-	std::set<peer_entry>::iterator iter = v.peers.begin();
+	std::set<peer_entry>::const_iterator iter = v.peers.begin();
 	entry::list_type& pe = reply["values"].list();
 	std::string endpoint;
 

@@ -47,6 +47,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #endif
 
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
+
 namespace libtorrent
 {
 
