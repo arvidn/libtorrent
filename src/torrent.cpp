@@ -5855,7 +5855,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		int ret = 0;
-		for (std::set<peer_connection*>::iterator i = m_connections.begin()
+		for (std::set<peer_connection*>::const_iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 			if ((*i)->is_seed()) ++ret;
 		return ret;
