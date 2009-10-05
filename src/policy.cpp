@@ -128,6 +128,9 @@ namespace libtorrent
 		if (c.no_download()) return;
 		if (t.upload_mode()) return;
 
+		// don't request pieces before we have the metadata
+		if (!t.valid_metadata()) return;
+
 		TORRENT_ASSERT(t.valid_metadata());
 		TORRENT_ASSERT(c.peer_info_struct() != 0 || !dynamic_cast<bt_peer_connection*>(&c));
 		int num_requests = c.desired_queue_size()
