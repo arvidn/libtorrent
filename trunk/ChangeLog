@@ -83,6 +83,8 @@ release 0.14.7
 	* improved forward compatibility in DHT
 	* added set_piece_hashes that takes a callback to the python binding
 	* fixed division by zero in get_peer_info()
+	* fixed bug where pieces may have been requested before the metadata
+	  was received
 
 release 0.14.6
 
