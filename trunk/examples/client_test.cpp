@@ -783,7 +783,10 @@ int main(int argc, char* argv[])
 	handles_t handles;
 	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 		, session::add_default_plugins
-		, alert::all_categories & (~alert::dht_notification));
+		, alert::all_categories
+			& ~(alert::dht_notification
+			+ alert::progress_notification
+			+ alert::debug_notification));
 
 	std::vector<char> in;
 	if (load_file(".ses_state", in) == 0)

@@ -50,8 +50,6 @@ TORRENT_DEFINE_LOG(traversal)
 
 void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
 {
-	if (m_failed.find(addr) != m_failed.end()) return;
-
 	result entry(id, addr, flags);
 	if (entry.id.is_all_zeros())
 	{
@@ -76,7 +74,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		TORRENT_ASSERT(std::find_if(m_results.begin(), m_results.end()
 			, bind(&result::id, _1) == id) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "adding result: " << id << " " << addr;
+		TORRENT_LOG(traversal) << "[" << this << "] adding result: " << id << " " << addr;
 #endif
 		m_results.insert(i, entry);
 	}
@@ -84,12 +82,11 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 void traversal_algorithm::start()
 {
-	add_requests();
-
 	// in case the routing table is empty, use the
 	// router nodes in the table
 	if (m_results.empty()) add_router_entries();
 	init();
+	add_requests();
 }
 
 boost::pool<>& traversal_algorithm::allocator() const
@@ -101,20 +98,21 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	if (id.is_all_zeros())
-	TORRENT_LOG(traversal) << time_now_string() << " WARNING: node returned a list which included a node with id 0";
+		TORRENT_LOG(traversal) << time_now_string() << "[" << this << "] WARNING: "
+			"node returned a list which included a node with id 0";
 #endif
 	add_entry(id, addr, 0);
 }
 
-void traversal_algorithm::finished(node_id const& id)
+void traversal_algorithm::finished(udp::endpoint const& ep)
 {
 	std::vector<result>::iterator i = std::find_if(
 		m_results.begin()
 		, m_results.end()
 		, bind(
-			std::equal_to<node_id>()
-			, bind(&result::id, _1)
-			, id
+			std::equal_to<udp::endpoint>()
+			, bind(&result::endpoint, _1)
+			, ep
 		)
 	);
 
@@ -138,18 +136,19 @@ void traversal_algorithm::finished(node_id const& id)
 // prevent request means that the total number of requests has
 // overflown. This query failed because it was the oldest one.
 // So, if this is true, don't make another request
-void traversal_algorithm::failed(node_id const& id, int flags)
+void traversal_algorithm::failed(udp::endpoint const& ep, int flags)
 {
 	TORRENT_ASSERT(m_invoke_count >= 0);
 
-	TORRENT_ASSERT(!id.is_all_zeros());
+	if (m_results.empty()) return;
+
 	std::vector<result>::iterator i = std::find_if(
 		m_results.begin()
 		, m_results.end()
 		, bind(
-			std::equal_to<node_id>()
-			, bind(&result::id, _1)
-			, id
+			std::equal_to<udp::endpoint>()
+			, bind(&result::endpoint, _1)
+			, ep
 		)
 	);
 
@@ -172,9 +171,10 @@ void traversal_algorithm::failed(node_id const& id, int flags)
 		}
 		else
 		{
-			m_failed.insert(i->addr);
+			i->flags |= result::failed;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(traversal) << "failed: " << i->id << " " << i->addr;
+			TORRENT_LOG(traversal) << " [" << this << "] failed: "
+				<< i->id << " " << i->endpoint();
 #endif
 			// if this flag is set, it means we increased the
 			// branch factor for it, and we should restore it
@@ -184,15 +184,11 @@ void traversal_algorithm::failed(node_id const& id, int flags)
 			// don't tell the routing table about
 			// node ids that we just generated ourself
 			if ((i->flags & result::no_id) == 0)
-				m_node.m_table.node_failed(id);
-			m_results.erase(i);
+				m_node.m_table.node_failed(i->id);
 			++m_timeouts;
 			--m_invoke_count;
+			TORRENT_ASSERT(m_invoke_count >= 0);
 		}
-	}
-	else
-	{
-		--m_invoke_count;
 	}
 
 	if (flags & prevent_request)
@@ -228,22 +224,18 @@ void traversal_algorithm::add_requests()
 			)
 		);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "nodes left (" << this << "): " << (last_iterator() - i);
+		TORRENT_LOG(traversal) << " [" << this << "] nodes left ("
+			<< this << "): " << (last_iterator() - i);
 #endif
 
 		if (i == last_iterator()) break;
 
-#ifndef BOOST_NO_EXCEPTIONS
-		try
+		if (invoke(i->id, i->endpoint()))
 		{
-#endif
-			invoke(i->id, i->addr);
+			TORRENT_ASSERT(m_invoke_count >= 0);
 			++m_invoke_count;
 			i->flags |= result::queried;
-#ifndef BOOST_NO_EXCEPTIONS
 		}
-		catch (std::exception& e) {}
-#endif
 	}
 }
 

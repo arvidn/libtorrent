@@ -308,12 +308,7 @@ namespace libtorrent
 		{ none, requested, writing, finished };
 
 	private:
-#ifdef __SUNPRO_CC
-		// sunpro is strict about POD types in unions
-		struct
-#else
-		union
-#endif
+		union addr_t
 		{
 			address_v4::bytes_type v4;
 			address_v6::bytes_type v6;

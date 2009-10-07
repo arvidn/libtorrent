@@ -54,14 +54,14 @@ char const* refresh::name() const
 	return "refresh";
 }
 
-void refresh::invoke(node_id const& nid, udp::endpoint addr)
+bool refresh::invoke(node_id const& nid, udp::endpoint addr)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
 	void* ptr = m_node.m_rpc.allocator().malloc();
 	if (ptr == 0)
 	{
 		done();
-		return;
+		return false;
 	}
 	m_node.m_rpc.allocator().set_next_size(10);
 	observer_ptr o(new (ptr) find_data_observer(this, nid));
@@ -74,6 +74,7 @@ void refresh::invoke(node_id const& nid, udp::endpoint addr)
 	entry& a = e["a"];
 	a["target"] = target().to_string();
 	m_node.m_rpc.invoke(e, addr, o);
+	return true;
 }
 
 } } // namespace libtorrent::dht

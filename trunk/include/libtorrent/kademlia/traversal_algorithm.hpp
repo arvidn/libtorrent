@@ -60,10 +60,10 @@ class traversal_algorithm : boost::noncopyable
 {
 public:
 	void traverse(node_id const& id, udp::endpoint addr);
-	void finished(node_id const& id);
+	void finished(udp::endpoint const& ep);
 
 	enum flags_t { prevent_request = 1, short_timeout = 2 };
-	void failed(node_id const& id, int flags = 0);
+	void failed(udp::endpoint const& ep, int flags = 0);
 	virtual ~traversal_algorithm();
 	boost::pool<>& allocator() const;
 	void status(dht_lookup& l);
@@ -77,17 +77,50 @@ public:
 
 	struct result
 	{
-		result(node_id const& id, udp::endpoint addr, unsigned char f = 0) 
-			: id(id), addr(addr), flags(f) {}
+		result(node_id const& id, udp::endpoint ep, unsigned char f = 0) 
+			: id(id), flags(f)
+		{
+			if (ep.address().is_v6())
+			{
+				flags |= ipv6_address;
+				addr.v6 = ep.address().to_v6().to_bytes();
+			}
+			else
+			{
+				flags &= ~ipv6_address;
+				addr.v4 = ep.address().to_v4().to_bytes();
+			}
+			port = ep.port();
+		}
+
+		udp::endpoint endpoint() const
+		{
+			if (flags & ipv6_address)
+				return udp::endpoint(address_v6(addr.v6), port);
+			else
+				return udp::endpoint(address_v4(addr.v4), port);
+		}
 
 		node_id id;
-		// TODO: replace with union of address_v4 and address_v6 and a port
-		udp::endpoint addr;
-		enum { queried = 1, initial = 2, no_id = 4, short_timeout = 8 };
+
+		union addr_t
+		{
+			address_v4::bytes_type v4;
+			address_v6::bytes_type v6;
+		} addr;
+
+		boost::uint16_t port;
+
+		enum {
+			queried = 1,
+			initial = 2,
+			no_id = 4,
+			short_timeout = 8,
+			failed = 16,
+			ipv6_address = 32
+		};
 		unsigned char flags;
 	};
-
-protected:
 
 	traversal_algorithm(
 		node_impl& node
@@ -99,14 +132,20 @@ protected:
 		, m_branch_factor(3)
 		, m_responses(0)
 		, m_timeouts(0)
-	{}
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(traversal) << " [" << this << "] new traversal process";
+#endif
+	}
+
+protected:
 
 	void add_requests();
 	void add_router_entries();
 	void init();
 
-	virtual void done() = 0;
-	virtual void invoke(node_id const& id, udp::endpoint addr) = 0;
+	virtual void done() {}
+	virtual bool invoke(node_id const& id, udp::endpoint addr) { return false; }
 
 	std::vector<result>::iterator last_iterator();
 
@@ -126,7 +165,6 @@ protected:
 	node_impl& m_node;
 	node_id m_target;
 	std::vector<result> m_results;
-	std::set<udp::endpoint> m_failed;
 	int m_invoke_count;
 	int m_branch_factor;
 	int m_responses;

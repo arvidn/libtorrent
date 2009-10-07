@@ -183,7 +183,7 @@ void nop() {}
 // instead, and make the dht_tracker less dependent on session_impl
 // which would make it simpler to unit test
 node_impl::node_impl(libtorrent::aux::session_impl& ses
-	, void (*f)(void*, entry const&, udp::endpoint const&, int)
+	, bool (*f)(void*, entry const&, udp::endpoint const&, int)
 	, dht_settings const& settings
 	, boost::optional<node_id> nid
 	, void* userdata)
@@ -372,14 +372,18 @@ void node_impl::incoming(msg const& m)
 namespace
 {
 	void announce_fun(std::vector<std::pair<node_entry, std::string> > const& v
-		, rpc_manager& rpc, int listen_port, sha1_hash const& ih)
+		, node_impl& node, int listen_port, sha1_hash const& ih)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(node) << "sending announce_peer [ ih: " << ih
 			<< " p: " << listen_port
 			<< " nodes: " << v.size() << " ]" ;
 #endif
-		
+
+		// create a dummy traversal_algorithm		
+		boost::intrusive_ptr<traversal_algorithm> algo(
+			new traversal_algorithm(node, node_id::min()));
+
 		// store on the first k nodes
 		for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = v.begin()
 			, end(v.end()); i != end; ++i)
@@ -388,11 +392,10 @@ namespace
 			TORRENT_LOG(node) << "  distance: " << (160 - distance_exp(ih, i->first.id));
 #endif
 
-			void* ptr = rpc.allocator().malloc();
+			void* ptr = node.m_rpc.allocator().malloc();
 			if (ptr == 0) return;
-			rpc.allocator().set_next_size(10);
-			observer_ptr o(new (ptr) announce_observer(
-				rpc.allocator(), ih, listen_port, i->second));
+			node.m_rpc.allocator().set_next_size(10);
+			observer_ptr o(new (ptr) announce_observer(algo));
 #ifdef TORRENT_DEBUG
 			o->m_in_constructor = false;
 #endif
@@ -400,9 +403,10 @@ namespace
 			e["y"] = "q";
 			e["q"] = "announce_peer";
 			entry& a = e["a"];
+			a["info_hash"] = ih.to_string();
 			a["port"] = listen_port;
 			a["token"] = i->second;
-			rpc.invoke(e, i->first.ep(), o);
+			node.m_rpc.invoke(e, i->first.ep(), o);
 		}
 	}
 }
@@ -422,7 +426,11 @@ void node_impl::add_node(udp::endpoint node)
 	void* ptr = m_rpc.allocator().malloc();
 	if (ptr == 0) return;
 	m_rpc.allocator().set_next_size(10);
-	observer_ptr o(new (ptr) null_observer(m_rpc.allocator()));
+
+	// create a dummy traversal_algorithm		
+	boost::intrusive_ptr<traversal_algorithm> algo(
+		new traversal_algorithm(*this, node_id::min()));
+	observer_ptr o(new (ptr) null_observer(algo));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
@@ -441,7 +449,7 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port
 	// search for nodes with ids close to id or with peers
 	// for info-hash id. then send announce_peer to them.
 	boost::intrusive_ptr<find_data> ta(new find_data(*this, info_hash, f
-		, boost::bind(&announce_fun, _1, boost::ref(m_rpc)
+		, boost::bind(&announce_fun, _1, boost::ref(*this)
 		, listen_port, info_hash)));
 	ta->start();
 }
@@ -583,6 +591,7 @@ bool node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply) const
 	if (i == m_map.end()) return false;
 
 	torrent_entry const& v = i->second;
+	if (v.peers.empty()) return false;
 
 	int num = (std::min)((int)v.peers.size(), m_settings.max_peers_reply);
 	int t = 0;
@@ -767,9 +776,9 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		m_table.find_node(info_hash, n, 0);
 		write_nodes_entry(reply, n);
 
-		lookup_peers(info_hash, reply);
+		bool ret = lookup_peers(info_hash, reply);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(node) << " values: " << reply["values"].list().size();
+		if (ret) TORRENT_LOG(node) << " values: " << reply["values"].list().size();
 #endif
 	}
 	else if (strcmp(query, "find_node") == 0)
