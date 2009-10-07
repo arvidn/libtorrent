@@ -427,7 +427,7 @@ namespace libtorrent
 				for (int i = 0; i < e.list_size(); ++i)
 				{
 					if (i == 0 && one_liner) ret += " ";
-					ret += print_entry(*e.list_at(i));
+					ret += print_entry(*e.list_at(i), single_line);
 					if (i < e.list_size() - 1) ret += (one_liner?", ":",\n");
 					else ret += (one_liner?" ":"\n");
 				}
@@ -453,7 +453,7 @@ namespace libtorrent
 					ret += "'";
 					ret += ent.first;
 					ret += "': ";
-					ret += print_entry(*ent.second);
+					ret += print_entry(*ent.second, single_line);
 					if (i < e.dict_size() - 1) ret += (one_liner?", ":",\n");
 					else ret += (one_liner?" ":"\n");
 				}
