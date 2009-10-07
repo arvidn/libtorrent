@@ -200,10 +200,10 @@ namespace libtorrent { namespace dht
 		return boost::optional<node_id>(node_id(nid->string().c_str()));
 	}
 
-	void send_callback(void* userdata, entry const& e, udp::endpoint const& addr, int flags)
+	bool send_callback(void* userdata, entry const& e, udp::endpoint const& addr, int flags)
 	{
 		dht_tracker* self = (dht_tracker*)userdata;
-		self->send_packet(e, addr, flags);
+		return self->send_packet(e, addr, flags);
 	}
 
 	// class that puts the networking and the kademlia node in a single
@@ -244,7 +244,7 @@ namespace libtorrent { namespace dht
 
 //		rpc_log().enable(false);
 //		node_log().enable(false);
-		traversal_log().enable(false);
+//		traversal_log().enable(false);
 //		dht_tracker_log.enable(false);
 
 		TORRENT_LOG(dht_tracker) << "starting DHT tracker with node id: " << m_dht.nid();
@@ -617,7 +617,7 @@ namespace libtorrent { namespace dht
 	void dht_tracker::on_bootstrap(std::vector<std::pair<node_entry, std::string> > const&)
 	{}
 
-	void dht_tracker::send_packet(libtorrent::entry const& e, udp::endpoint const& addr, int send_flags)
+	bool dht_tracker::send_packet(libtorrent::entry const& e, udp::endpoint const& addr, int send_flags)
 	{
 		using libtorrent::bencode;
 		using libtorrent::entry;
@@ -636,6 +636,8 @@ namespace libtorrent { namespace dht
 		error_code ec;
 		if (m_sock.send(addr, &m_send_buf[0], (int)m_send_buf.size(), ec, send_flags))
 		{
+			if (ec) return false;
+
 			// account for IP and UDP overhead
 			m_sent_bytes += m_send_buf.size() + (addr.address().is_v6() ? 48 : 28);
 
@@ -654,13 +656,15 @@ namespace libtorrent { namespace dht
 			}
 			TORRENT_LOG(dht_tracker) << "==> " << addr << " " << log_line.str();
 #endif
+			return true;
 		}
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
 		else
 		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(dht_tracker) << "==> " << addr << " DROPPED " << log_line.str();
-		}
 #endif
+			return false;
+		}
 	}
 
 }}

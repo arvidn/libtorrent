@@ -61,7 +61,7 @@ class find_data : public traversal_algorithm
 {
 public:
 	typedef boost::function<void(std::vector<tcp::endpoint> const&)> data_callback;
-	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
+	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&, bool)> nodes_callback;
 
 	void got_peers(std::vector<tcp::endpoint> const& peers);
 	void got_write_token(node_id const& n, std::string const& write_token)
@@ -78,46 +78,27 @@ public:
 protected:
 
 	void done();
+	virtual bool invoke(node_id const& id, udp::endpoint addr);
 
 private:
-
-	virtual void invoke(node_id const& id, udp::endpoint addr);
 
 	data_callback m_data_callback;
 	nodes_callback m_nodes_callback;
 	std::map<node_id, std::string> m_write_tokens;
 	node_id const m_target;
-	bool m_done;
+	bool m_done:1;
+	bool m_got_peers:1;
 };
 
 class find_data_observer : public observer
 {
 public:
 	find_data_observer(
-		boost::intrusive_ptr<find_data> const& algorithm
+		boost::intrusive_ptr<traversal_algorithm> const& algorithm
 		, node_id self)
-		: observer(algorithm->allocator())
-		, m_algorithm(algorithm)
-		, m_self(self)
+		: observer(algorithm)
 	{}
-	~find_data_observer();
-	void short_timeout();
-	void timeout();
 	void reply(msg const&);
-	void abort() { m_algorithm = 0; }
-
-	// with verbose logging, we log the size and
-	// offset of this structs members, so we need
-	// access to all of them
-#ifndef TORRENT_DHT_VERBOSE_LOGGING
-private:
-#endif
-	boost::intrusive_ptr<find_data> m_algorithm;
-	// the node this observer sent a message to
-	// this is used to mark the result in the right
-	// node when we get a response
-	// TODO: replace this with the observer this-pointer
-	node_id const m_self;
 };
 
 } } // namespace libtorrent::dht

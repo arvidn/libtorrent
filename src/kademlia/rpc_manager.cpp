@@ -80,7 +80,7 @@ void intrusive_ptr_release(observer const* o)
 	TORRENT_ASSERT(o != 0);
 	if (--o->m_refs == 0)
 	{
-		boost::pool<>& p = o->pool_allocator;
+		boost::pool<>& p = o->m_algorithm->allocator();
 		(const_cast<observer*>(o))->~observer();
 		p.free(const_cast<observer*>(o));
 	}
@@ -123,6 +123,36 @@ udp::endpoint observer::target_ep() const
 	return udp::endpoint(target_addr(), m_port);
 }
 
+void observer::abort()
+{
+	if (m_done) return;
+	m_done = true;
+	m_algorithm->failed(target_ep(), traversal_algorithm::prevent_request);
+}
+
+void observer::done()
+{
+	if (m_done) return;
+	m_done = true;
+	m_algorithm->finished(target_ep());
+}
+
+void observer::short_timeout()
+{
+	if (m_short_timeout) return;
+	TORRENT_ASSERT(m_short_timeout == false);
+	m_short_timeout = true;
+	m_algorithm->failed(target_ep(), traversal_algorithm::short_timeout);
+}
+
+// this is called when no reply has been received within
+// some timeout
+void observer::timeout()
+{
+	if (m_done) return;
+	m_done = true;
+	m_algorithm->failed(target_ep());
+}
 
 node_id generate_id();
 
@@ -140,8 +170,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, routing_table& table, send_fun const& sf
 	, void* userdata)
 	: m_pool_allocator(sizeof(mpl::deref<max_observer_type_iter::base>::type), 10)
-	, m_next_transaction_id(std::rand() % max_transactions)
-	, m_oldest_transaction_id(m_next_transaction_id)
+	, m_next_transaction_id(std::rand() % max_transaction_id)
 	, m_send(sf)
 	, m_userdata(userdata)
 	, m_our_id(our_id)
@@ -154,24 +183,30 @@ rpc_manager::rpc_manager(node_id const& our_id
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "Constructing";
-	TORRENT_LOG(rpc) << " announce_observer: " << sizeof(announce_observer);
-	TORRENT_LOG(rpc) << " null_observer: " << sizeof(null_observer);
 
 #define PRINT_OFFSETOF(x, y) TORRENT_LOG(rpc) << "  +" << offsetof(x, y) << ": " #y
 
 	TORRENT_LOG(rpc) << " observer: " << sizeof(observer);
-	PRINT_OFFSETOF(observer, pool_allocator);
 	PRINT_OFFSETOF(observer, m_sent);
 	PRINT_OFFSETOF(observer, m_refs);
+	PRINT_OFFSETOF(observer, m_algorithm);
 	PRINT_OFFSETOF(observer, m_addr);
 	PRINT_OFFSETOF(observer, m_port);
+	PRINT_OFFSETOF(observer, m_transaction_id);
 
+	TORRENT_LOG(rpc) << " announce_observer: " << sizeof(announce_observer);
+	TORRENT_LOG(rpc) << " null_observer: " << sizeof(null_observer);
 	TORRENT_LOG(rpc) << " find_data_observer: " << sizeof(find_data_observer);
-	PRINT_OFFSETOF(find_data_observer, m_algorithm);
-	PRINT_OFFSETOF(find_data_observer, m_self);
+
+	TORRENT_LOG(rpc) << " traversal_algorithm::result: " << sizeof(traversal_algorithm::result);
+	PRINT_OFFSETOF(traversal_algorithm::result, id);
+	PRINT_OFFSETOF(traversal_algorithm::result, addr);
+	PRINT_OFFSETOF(traversal_algorithm::result, port);
+	PRINT_OFFSETOF(traversal_algorithm::result, flags);
 
 #undef PRINT_OFFSETOF
 #endif
+
 }
 
 rpc_manager::~rpc_manager()
@@ -181,13 +216,11 @@ rpc_manager::~rpc_manager()
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "Destructing";
 #endif
-	std::for_each(m_aborted_transactions.begin(), m_aborted_transactions.end()
-		, bind(&observer::abort, _1));
 	
 	for (transactions_t::iterator i = m_transactions.begin()
 		, end(m_transactions.end()); i != end; ++i)
 	{
-		if (*i) (*i)->abort();
+		(*i)->abort();
 	}
 }
 
@@ -200,16 +233,13 @@ size_t rpc_manager::allocation_size() const
 
 void rpc_manager::check_invariant() const
 {
-	TORRENT_ASSERT(m_oldest_transaction_id >= 0);
-	TORRENT_ASSERT(m_oldest_transaction_id < max_transactions);
 	TORRENT_ASSERT(m_next_transaction_id >= 0);
-	TORRENT_ASSERT(m_next_transaction_id < max_transactions);
-	TORRENT_ASSERT(!m_transactions[m_next_transaction_id]);
+	TORRENT_ASSERT(m_next_transaction_id < max_transaction_id);
 
-	for (int i = (m_next_transaction_id + 1) % max_transactions;
-		i != m_oldest_transaction_id; i = (i + 1) % max_transactions)
+	for (transactions_t::const_iterator i = m_transactions.begin()
+		, end(m_transactions.end()); i != end; ++i)
 	{
-		TORRENT_ASSERT(!m_transactions[i]);
+		TORRENT_ASSERT(*i);
 	}
 }
 #endif
@@ -219,31 +249,20 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << time_now_string() << " PORT_UNREACHABLE [ ip: " << ep << " ]";
 #endif
-	int num_active = m_oldest_transaction_id < m_next_transaction_id
-		? m_next_transaction_id - m_oldest_transaction_id
-		: max_transactions - m_oldest_transaction_id + m_next_transaction_id;
-	TORRENT_ASSERT((m_oldest_transaction_id + num_active) % max_transactions
-		== m_next_transaction_id);
-	int tid = m_oldest_transaction_id;
-	for (int i = 0; i < num_active; ++i, ++tid)
+
+	for (transactions_t::iterator i = m_transactions.begin();
+		i != m_transactions.end();)
 	{
-		if (tid >= max_transactions) tid = 0;
-		observer_ptr const& o = m_transactions[tid];
-		if (!o) continue;
+		TORRENT_ASSERT(*i);
+		observer_ptr const& o = *i;
 		if (o->target_ep() != ep) continue;
-		observer_ptr ptr = m_transactions[tid];
-		m_transactions[tid] = 0;
-		if (tid == m_oldest_transaction_id)
-		{
-			++m_oldest_transaction_id;
-			if (m_oldest_transaction_id >= max_transactions)
-				m_oldest_transaction_id = 0;
-		}
+		observer_ptr ptr = *i;
+		m_transactions.erase(i++);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(rpc) << "  found transaction [ tid: " << tid << " ]";
+		TORRENT_LOG(rpc) << "  found transaction [ tid: " << ptr->transaction_id() << " ]";
 #endif
 		ptr->timeout();
-		return;
+		break;
 	}
 }
 
@@ -269,7 +288,18 @@ bool rpc_manager::incoming(msg const& m)
 
 	observer_ptr o;
 
-	if (tid >= (int)m_transactions.size() || tid < 0)
+	for (transactions_t::iterator i = m_transactions.begin()
+		, end(m_transactions.end()); i != end; ++i)
+	{
+		TORRENT_ASSERT(*i);
+		if ((*i)->transaction_id() != tid) continue;
+		if (m.addr.address() != (*i)->target_addr()) continue;
+		o = *i;
+		m_transactions.erase(i);
+		break;
+	}
+
+	if (!o)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(rpc) << "Reply with invalid transaction id size: " 
@@ -278,26 +308,6 @@ bool rpc_manager::incoming(msg const& m)
 		entry e;
 		incoming_error(e, "invalid transaction id");
 		m_send(m_userdata, e, m.addr, 0);
-		return false;
-	}
-
-	o = m_transactions[tid];
-
-	if (!o)
-	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(rpc) << "Reply to a timed out request " 
-			<< tid << " from " << m.addr;
-#endif
-		return false;
-	}
-
-	if (m.addr.address() != o->target_addr())
-	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(rpc) << "Reply with incorrect address and valid transaction id: " 
-			<< tid << " from " << m.addr << " expected: " << o->target_addr();
-#endif
 		return false;
 	}
 
@@ -326,11 +336,10 @@ bool rpc_manager::incoming(msg const& m)
 	}
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(rpc) << "Reply with transaction id: " 
+	TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Reply with transaction id: " 
 		<< tid << " from " << m.addr;
 #endif
 	o->reply(m);
-	m_transactions[tid] = 0;
 	return m_table.node_seen(node_id(node_id_ent->string_ptr()), m.addr);
 }
 
@@ -338,26 +347,22 @@ time_duration rpc_manager::tick()
 {
 	INVARIANT_CHECK;
 
-	const static int short_timeout = 2;
-	const static int timeout = 10;
+	const static int short_timeout = 3;
+	const static int timeout = 20;
 
 	//	look for observers that have timed out
 
-	if (m_next_transaction_id == m_oldest_transaction_id) return seconds(short_timeout);
+	if (m_transactions.empty()) return seconds(short_timeout);
 
-	std::vector<observer_ptr> timeouts;
+	std::list<observer_ptr> timeouts;
 
 	time_duration ret = seconds(short_timeout);
 	ptime now = time_now();
 
-	for (;m_next_transaction_id != m_oldest_transaction_id;
-		m_oldest_transaction_id = (m_oldest_transaction_id + 1) % max_transactions)
+	for (transactions_t::iterator i = m_transactions.begin();
+		i != m_transactions.end();)
 	{
-		TORRENT_ASSERT(m_oldest_transaction_id >= 0);
-		TORRENT_ASSERT(m_oldest_transaction_id < max_transactions);
-
-		observer_ptr o = m_transactions[m_oldest_transaction_id];
-		if (!o) continue;
+		observer_ptr o = *i;
 
 		// if we reach an observer that hasn't timed out
 		// break, because every observer after this one will
@@ -369,34 +374,21 @@ time_duration rpc_manager::tick()
 			break;
 		}
 		
-#ifndef BOOST_NO_EXCEPTIONS
-		try
-		{
-#endif
-			m_transactions[m_oldest_transaction_id] = 0;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(rpc) << "Timing out transaction id: " 
-				<< m_oldest_transaction_id << " from " << o->target_ep();
+		TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Timing out transaction id: " 
+			<< (*i)->transaction_id() << " from " << o->target_ep();
 #endif
-			timeouts.push_back(o);
-#ifndef BOOST_NO_EXCEPTIONS
-		} catch (std::exception) {}
-#endif
+		m_transactions.erase(i++);
+		timeouts.push_back(o);
 	}
 	
 	std::for_each(timeouts.begin(), timeouts.end(), bind(&observer::timeout, _1));
 	timeouts.clear();
 
-	// clear the aborted transactions, will likely
-	// generate new requests. We need to swap, since the
-	// destrutors may add more observers to the m_aborted_transactions
-	std::vector<observer_ptr>().swap(m_aborted_transactions);
-
-	for (int i = m_oldest_transaction_id; i != m_next_transaction_id;
-		i = (i + 1) % max_transactions)
+	for (transactions_t::iterator i = m_transactions.begin();
+		i != m_transactions.end(); ++i)
 	{
-		observer_ptr o = m_transactions[i];
-		if (!o) continue;
+		observer_ptr o = *i;
 
 		// if we reach an observer that hasn't timed out
 		// break, because every observer after this one will
@@ -408,6 +400,8 @@ time_duration rpc_manager::tick()
 			break;
 		}
 		
+		if (o->has_short_timeout()) continue;
+
 		// TODO: don't call short_timeout() again if we've
 		// already called it once
 		timeouts.push_back(o);
@@ -418,119 +412,57 @@ time_duration rpc_manager::tick()
 	return ret;
 }
 
-unsigned int rpc_manager::new_transaction_id(observer_ptr o)
-{
-	INVARIANT_CHECK;
-
-	unsigned int tid = m_next_transaction_id;
-	m_next_transaction_id = (m_next_transaction_id + 1) % max_transactions;
-	if (m_transactions[m_next_transaction_id])
-	{
-		// moving the observer into the set of aborted transactions
-		// it will prevent it from spawning new requests right now,
-		// since that would break the invariant
-		observer_ptr o = m_transactions[m_next_transaction_id];
-		m_aborted_transactions.push_back(o);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(rpc) << "[new_transaction_id] Aborting message with transaction id: " 
-			<< m_next_transaction_id << " sent to " << o->target_ep()
-			<< " " << total_seconds(time_now() - o->sent()) << " seconds ago";
-#endif
-		m_transactions[m_next_transaction_id] = 0;
-		TORRENT_ASSERT(m_oldest_transaction_id == m_next_transaction_id);
-	}
-	TORRENT_ASSERT(!m_transactions[tid]);
-	m_transactions[tid] = o;
-	if (m_oldest_transaction_id == m_next_transaction_id)
-	{
-		m_oldest_transaction_id = (m_oldest_transaction_id + 1) % max_transactions;
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(rpc) << "WARNING: transaction limit reached! Too many concurrent"
-			" messages! limit: " << (int)max_transactions;
-#endif
-		update_oldest_transaction_id();
-	}
-
-	return tid;
-}
-
-void rpc_manager::update_oldest_transaction_id()
-{
-	INVARIANT_CHECK;
-
-	TORRENT_ASSERT(m_oldest_transaction_id != m_next_transaction_id);
-	while (!m_transactions[m_oldest_transaction_id])
-	{
-		m_oldest_transaction_id = (m_oldest_transaction_id + 1)
-			% max_transactions;
-		if (m_oldest_transaction_id == m_next_transaction_id)
-			break;
-	}
-}
-
 void rpc_manager::add_our_id(entry& e)
 {
 	e["id"] = m_our_id.to_string();
 }
 
-void rpc_manager::invoke(entry& e, udp::endpoint target_addr
+bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	, observer_ptr o)
 {
 	INVARIANT_CHECK;
 
-	if (m_destructing)
-	{
-		o->abort();
-		return;
-	}
+	if (m_destructing) return false;
 
 	e["y"] = "q";
 	entry& a = e["a"];
 	add_our_id(a);
 
-	TORRENT_ASSERT(!m_transactions[m_next_transaction_id]);
-#ifdef TORRENT_DEBUG
-	int potential_new_id = m_next_transaction_id;
-#endif
-#ifndef BOOST_NO_EXCEPTIONS
-	try
-	{
-#endif
-		std::string transaction_id;
-		transaction_id.resize(2);
-		char* out = &transaction_id[0];
-		io::write_uint16(m_next_transaction_id, out);
-		e["t"] = transaction_id;
+	std::string transaction_id;
+	transaction_id.resize(2);
+	char* out = &transaction_id[0];
+	io::write_uint16(m_next_transaction_id, out);
+	e["t"] = transaction_id;
 		
-		o->set_target(target_addr);
+	o->set_target(target_addr);
+	o->set_transaction_id(m_next_transaction_id);
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(rpc) << "Invoking " << e["q"].string() << " -> " << target_addr;
-#endif	
-		m_send(m_userdata, e, target_addr, 1);
-		new_transaction_id(o);
-#ifndef BOOST_NO_EXCEPTIONS
-	}
-	catch (std::exception& e)
-	{
-		// m_send may fail with "no route to host"
-		TORRENT_ASSERT(potential_new_id == m_next_transaction_id);
-		o->abort();
-	}
+	TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] invoking "
+		<< e["q"].string() << " -> " << target_addr;
 #endif
+
+	if (m_send(m_userdata, e, target_addr, 1))
+	{
+		m_transactions.push_back(o);
+		++m_next_transaction_id;
+  		m_next_transaction_id %= max_transaction_id;
+#ifdef TORRENT_DEBUG
+		o->m_was_sent = true;
+#endif
+	}
+	return true;
 }
-/*
-void rpc_manager::reply(msg& m)
+
+observer::~observer()
 {
-	INVARIANT_CHECK;
-
-	if (m_destructing) return;
-
-	TORRENT_ASSERT(m.reply);
-	m.id = m_our_id;
-	
-	m_send(m);
+	// if the message was sent, it must have been
+	// reported back to the traversal_algorithm as
+	// well. If it wasn't sent, it cannot have been
+	// reported back
+	TORRENT_ASSERT(m_was_sent == m_done);
+	TORRENT_ASSERT(!m_in_constructor);
 }
-*/
+
 } } // namespace libtorrent::dht
 

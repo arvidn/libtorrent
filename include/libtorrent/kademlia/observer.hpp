@@ -43,6 +43,7 @@ namespace dht {
 
 struct observer;
 struct msg;
+struct traversal_algorithm;
 
 // defined in rpc_manager.cpp
 TORRENT_EXPORT void intrusive_ptr_add_ref(observer const*);
@@ -55,7 +56,7 @@ TORRENT_EXPORT void intrusive_ptr_release(observer const*);
 // 16     4     4         pool_allocator
 // 20     16    4         m_addr
 // 36     2     2         m_port
-// 38     1     1         m_is_v6, m_in_constructor
+// 38     1     1         m_is_v6, m_short_timeout, m_in_constructor, m_was_sent
 // 39     1     1         <padding>
 // 40
 
@@ -64,37 +65,41 @@ struct observer : boost::noncopyable
 	friend TORRENT_EXPORT void intrusive_ptr_add_ref(observer const*);
 	friend TORRENT_EXPORT void intrusive_ptr_release(observer const*);
 
-	observer(boost::pool<>& p)
+	observer(boost::intrusive_ptr<traversal_algorithm> const& a)
 		: m_sent()
 		, m_refs(0)
-		, pool_allocator(p)
+		, m_algorithm(a)
+		, m_is_v6(false)
+		, m_short_timeout(false)
+		, m_done(false)
 	{
+		TORRENT_ASSERT(a);
 #ifdef TORRENT_DEBUG
 		m_in_constructor = true;
+		m_was_sent = false;
 #endif
 	}
 
-	virtual ~observer()
-	{
-		TORRENT_ASSERT(!m_in_constructor);
-	}
+	virtual ~observer();
 
 	// this is called when a reply is received
 	virtual void reply(msg const& m) = 0;
 
 	// this is called if no response has been received after
 	// a few seconds, before the request has timed out
-	virtual void short_timeout() = 0;
+	void short_timeout();
+
+	bool has_short_timeout() const { return m_short_timeout; }
 
 	// this is called when no reply has been received within
 	// some timeout
-	virtual void timeout() = 0;
+	void timeout();
 	
 	// if this is called the destructor should
 	// not invoke any new messages, and should
 	// only clean up. It means the rpc-manager
 	// is being destructed
-	virtual void abort() = 0;
+	void abort();
 
 	ptime sent() const { return m_sent; }
 
@@ -102,18 +107,25 @@ struct observer : boost::noncopyable
 	address target_addr() const;
 	udp::endpoint target_ep() const;
 
-	// with verbose logging, we log the size and
-	// offset of this structs members, so we need
-	// access to all of them
+	void set_transaction_id(boost::uint16_t tid)
+	{ m_transaction_id = tid; }
+
+	boost::uint16_t transaction_id() const
+	{ return m_transaction_id; }
+
 #ifndef TORRENT_DHT_VERBOSE_LOGGING
-private:
+protected:
 #endif
+
+	void done();
 
 	ptime m_sent;
 
 	// reference counter for intrusive_ptr
 	mutable boost::detail::atomic_count m_refs;
-	boost::pool<>& pool_allocator;
+
+	const boost::intrusive_ptr<traversal_algorithm> m_algorithm;
+
 	union addr_t
 	{
 #if TORRENT_USE_IPV6
@@ -124,10 +136,19 @@ private:
 
 	boost::uint16_t m_port;
 
+	// the transaction ID for this call
+	boost::uint16_t m_transaction_id;
+
 	bool m_is_v6:1;
+	bool m_short_timeout:1;
+	// when true, this observer has reported
+	// back to the traversal algorithm already
+	bool m_done:1;
+
 #ifdef TORRENT_DEBUG
 public:
 	bool m_in_constructor:1;
+	bool m_was_sent:1;
 #endif
 };
 

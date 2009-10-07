@@ -154,25 +154,11 @@ struct null_type {};
 class announce_observer : public observer
 {
 public:
-	announce_observer(boost::pool<>& allocator
-		, sha1_hash const& info_hash
-		, int listen_port
-		, std::string const& write_token)
-		: observer(allocator)
-		, m_info_hash(info_hash)
-		, m_listen_port(listen_port)
-		, m_token(write_token)
+	announce_observer(boost::intrusive_ptr<traversal_algorithm> const& algo)
+		: observer(algo)
 	{}
 
-	void short_timeout() {}
-	void timeout() {}
-	void reply(msg const&) {}
-	void abort() {}
-
-private:
-	sha1_hash m_info_hash;
-	int m_listen_port;
-	std::string m_token;
+	void reply(msg const&) { m_done = true; }
 };
 
 struct count_peers
@@ -192,7 +178,7 @@ typedef std::map<node_id, torrent_entry> table_t;
 typedef std::map<std::pair<node_id, sha1_hash>, search_torrent_entry> search_table_t;
 public:
 	node_impl(libtorrent::aux::session_impl& ses
-		, void (*f)(void*, entry const&, udp::endpoint const&, int)
+		, bool (*f)(void*, entry const&, udp::endpoint const&, int)
 		, dht_settings const& settings, boost::optional<node_id> nid
 		, void* userdata);
 
@@ -317,7 +303,7 @@ private:
 	int m_secret[2];
 
 	libtorrent::aux::session_impl& m_ses;
-	void (*m_send)(void*, entry const&, udp::endpoint const&, int);
+	bool (*m_send)(void*, entry const&, udp::endpoint const&, int);
 	void* m_userdata;
 };
 

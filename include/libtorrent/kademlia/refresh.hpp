@@ -55,9 +55,9 @@ public:
 
 	virtual char const* name() const;
 
-private:
+protected:
 
-	void invoke(node_id const& id, udp::endpoint addr);
+	virtual bool invoke(node_id const& id, udp::endpoint addr);
 };
 
 } } // namespace libtorrent::dht

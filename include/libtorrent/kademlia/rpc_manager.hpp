@@ -60,11 +60,8 @@ TORRENT_DECLARE_LOG(rpc);
 
 struct null_observer : public observer
 {
-	null_observer(boost::pool<>& allocator): observer(allocator) {}
-	virtual void reply(msg const&) {}
-	virtual void short_timeout() {}
-	virtual void timeout() {}
-	void abort() {}
+	null_observer(boost::intrusive_ptr<traversal_algorithm>& a): observer(a) {}
+	virtual void reply(msg const&) { m_done = true; }
 };
 
 class routing_table;
@@ -72,7 +69,7 @@ class routing_table;
 class rpc_manager
 {
 public:
-	typedef void (*send_fun)(void* userdata, entry const&, udp::endpoint const&, int);
+	typedef bool (*send_fun)(void* userdata, entry const&, udp::endpoint const&, int);
 
 	rpc_manager(node_id const& our_id
 		, routing_table& table, send_fun const& sf
@@ -85,7 +82,7 @@ public:
 	bool incoming(msg const&);
 	time_duration tick();
 
-	void invoke(entry& e, udp::endpoint target
+	bool invoke(entry& e, udp::endpoint target
 		, observer_ptr o);
 
 	void add_our_id(entry& e);
@@ -100,27 +97,17 @@ public:
 
 private:
 
-	enum { max_transactions = 2048 };
+	enum { max_transaction_id = 0x10000 };
 
-	unsigned int new_transaction_id(observer_ptr o);
-	void update_oldest_transaction_id();
-	
 	boost::uint32_t calc_connection_id(udp::endpoint addr);
 
 	mutable boost::pool<> m_pool_allocator;
 
-	typedef boost::array<observer_ptr, max_transactions>
-		transactions_t;
+	typedef std::list<observer_ptr> transactions_t;
 	transactions_t m_transactions;
-	std::vector<observer_ptr> m_aborted_transactions;
 	
 	// this is the next transaction id to be used
 	int m_next_transaction_id;
-	// this is the oldest transaction id still
-	// (possibly) in use. This is the transaction
-	// that will time out first, the one we are
-	// waiting for to time out
-	int m_oldest_transaction_id;
 	
 	send_fun m_send;
 	void* m_userdata;

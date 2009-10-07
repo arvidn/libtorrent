@@ -52,29 +52,18 @@ using detail::read_v4_endpoint;
 using detail::read_v6_endpoint;
 using detail::read_endpoint_list;
 
-find_data_observer::~find_data_observer()
-{
-	if (m_algorithm) m_algorithm->failed(m_self);
-}
-
 void find_data_observer::reply(msg const& m)
 {
-	if (!m_algorithm)
-	{
-		TORRENT_ASSERT(false);
-		return;
-	}
-
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	std::stringstream log_line;
-	log_line << " incoming get_peer response [ ";
+	log_line << "[" << m_algorithm.get() << "] incoming get_peer response [ ";
 #endif
 
 	lazy_entry const* r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(dht_tracker) << " missing response dict";
+		TORRENT_LOG(dht_tracker) << "[" << m_algorithm.get() << "] missing response dict";
 #endif
 		return;
 	}
@@ -83,7 +72,7 @@ void find_data_observer::reply(msg const& m)
 	if (!id || id->string_length() != 20)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(dht_tracker) << " invalid id in response";
+		TORRENT_LOG(dht_tracker) << "[" << m_algorithm.get() << "] invalid id in response";
 #endif
 		return;
 	}
@@ -91,7 +80,9 @@ void find_data_observer::reply(msg const& m)
 	lazy_entry const* token = r->dict_find_string("token");
 	if (token)
 	{
-		m_algorithm->got_write_token(node_id(id->string_ptr()), token->string_value());
+		static_cast<find_data*>(m_algorithm.get())->got_write_token(
+			node_id(id->string_ptr()), token->string_value());
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		log_line << " token: " << to_hex(token->string_value());
 #endif
@@ -122,7 +113,7 @@ void find_data_observer::reply(msg const& m)
 			log_line << " p: " << n->list_size();
 #endif
 		}
-		m_algorithm->got_peers(peer_list);
+		static_cast<find_data*>(m_algorithm.get())->got_peers(peer_list);
 	}
 
 	// look for nodes
@@ -169,25 +160,11 @@ void find_data_observer::reply(msg const& m)
 #endif
 		}
 	}
-	m_algorithm->finished(m_self);
-	m_algorithm = 0;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	log_line << " ]";
 	TORRENT_LOG(dht_tracker) << log_line.str();
 #endif
-}
-
-void find_data_observer::short_timeout()
-{
-	if (!m_algorithm) return;
-	m_algorithm->failed(m_self, traversal_algorithm::short_timeout);
-}
-
-void find_data_observer::timeout()
-{
-	if (!m_algorithm) return;
-	m_algorithm->failed(m_self);
-	m_algorithm = 0;
+	done();
 }
 
 find_data::find_data(
@@ -200,6 +177,7 @@ find_data::find_data(
 	, m_nodes_callback(ncallback)
 	, m_target(target)
 	, m_done(false)
+	, m_got_peers(false)
 {
 	for (routing_table::const_iterator i = node.m_table.begin()
 		, end(node.m_table.end()); i != end; ++i)
@@ -208,12 +186,12 @@ find_data::find_data(
 	}
 }
 
-void find_data::invoke(node_id const& id, udp::endpoint addr)
+bool find_data::invoke(node_id const& id, udp::endpoint addr)
 {
 	if (m_done)
 	{
 		m_invoke_count = -1;
-		return;
+		return false;
 	}
 
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
@@ -221,7 +199,7 @@ void find_data::invoke(node_id const& id, udp::endpoint addr)
 	if (ptr == 0)
 	{
 		done();
-		return;
+		return false;
 	}
 	m_node.m_rpc.allocator().set_next_size(10);
 	observer_ptr o(new (ptr) find_data_observer(this, id));
@@ -233,17 +211,20 @@ void find_data::invoke(node_id const& id, udp::endpoint addr)
 	e["q"] = "get_peers";
 	entry& a = e["a"];
 	a["info_hash"] = id.to_string();
-	m_node.m_rpc.invoke(e, addr, o);
+	return m_node.m_rpc.invoke(e, addr, o);
 }
 
 void find_data::got_peers(std::vector<tcp::endpoint> const& peers)
 {
+	if (!peers.empty()) m_got_peers = true;
 	m_data_callback(peers);
 }
 
 void find_data::done()
 {
 	if (m_invoke_count != 0) return;
+
+	m_done = true;
 
 	std::vector<std::pair<node_entry, std::string> > results;
 	int num_results = m_node.m_table.bucket_size();
@@ -254,10 +235,10 @@ void find_data::done()
 		if ((i->flags & result::queried) == 0) continue;
 		std::map<node_id, std::string>::iterator j = m_write_tokens.find(i->id);
 		if (j == m_write_tokens.end()) continue;
-		results.push_back(std::make_pair(node_entry(i->id, i->addr), j->second));
+		results.push_back(std::make_pair(node_entry(i->id, i->endpoint()), j->second));
 		--num_results;
 	}
-	m_nodes_callback(results);
+	m_nodes_callback(results, m_got_peers);
 }
 
 } } // namespace libtorrent::dht
