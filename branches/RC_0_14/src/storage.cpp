@@ -596,7 +596,9 @@ namespace libtorrent
 #if BOOST_VERSION >= 103500
 		catch (boost::system::system_error& e)
 		{
-			set_error(p, e.code());
+			// no such file or directory is not an error
+			if (e.code() != make_error_code(boost::system::errc::no_such_file_or_directory))
+				set_error(p, e.code());
 		}
 #else
 		catch (boost::filesystem::filesystem_error& e)
@@ -606,6 +608,7 @@ namespace libtorrent
 #endif // BOOST_VERSION
 #endif // BOOST_NO_EXCEPTIONS
 #else // TORRENT_USE_WPATH
+		// no such file or directory is not an error
 		if (std::remove(p.c_str()) != 0 && errno != ENOENT)
 		{
 			set_error(p, error_code(errno, get_posix_category()));
