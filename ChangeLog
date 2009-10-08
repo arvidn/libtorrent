@@ -85,6 +85,8 @@ release 0.14.7
 	* fixed division by zero in get_peer_info()
 	* fixed bug where pieces may have been requested before the metadata
 	  was received
+	* fixed incorrect error when deleting files from a torrent where
+	  not all files have been created
 
 release 0.14.6
 
