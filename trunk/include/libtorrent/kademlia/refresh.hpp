@@ -57,7 +57,7 @@ public:
 
 protected:
 
-	virtual bool invoke(node_id const& id, udp::endpoint addr);
+	virtual bool invoke(udp::endpoint addr);
 };
 
 } } // namespace libtorrent::dht

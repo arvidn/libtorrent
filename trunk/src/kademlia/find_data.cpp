@@ -45,7 +45,7 @@ namespace libtorrent { namespace dht
 {
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_DECLARE_LOG(dht_tracker);
+	TORRENT_DECLARE_LOG(traversal);
 #endif
 
 using detail::read_v4_endpoint;
@@ -63,7 +63,7 @@ void find_data_observer::reply(msg const& m)
 	if (!r)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(dht_tracker) << "[" << m_algorithm.get() << "] missing response dict";
+		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] missing response dict";
 #endif
 		return;
 	}
@@ -72,7 +72,7 @@ void find_data_observer::reply(msg const& m)
 	if (!id || id->string_length() != 20)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(dht_tracker) << "[" << m_algorithm.get() << "] invalid id in response";
+		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] invalid id in response";
 #endif
 		return;
 	}
@@ -162,7 +162,7 @@ void find_data_observer::reply(msg const& m)
 	}
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	log_line << " ]";
-	TORRENT_LOG(dht_tracker) << log_line.str();
+	TORRENT_LOG(traversal) << log_line.str();
 #endif
 	done();
 }
@@ -186,7 +186,7 @@ find_data::find_data(
 	}
 }
 
-bool find_data::invoke(node_id const& id, udp::endpoint addr)
+bool find_data::invoke(udp::endpoint addr)
 {
 	if (m_done)
 	{
@@ -198,11 +198,15 @@ bool find_data::invoke(node_id const& id, udp::endpoint addr)
 	void* ptr = m_node.m_rpc.allocator().malloc();
 	if (ptr == 0)
 	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(traversal) << "[" << this << "] failed to "
+			"allocate memory for observer. aborting!";
+#endif
 		done();
 		return false;
 	}
 	m_node.m_rpc.allocator().set_next_size(10);
-	observer_ptr o(new (ptr) find_data_observer(this, id));
+	observer_ptr o(new (ptr) find_data_observer(this));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
@@ -210,7 +214,7 @@ bool find_data::invoke(node_id const& id, udp::endpoint addr)
 	e["y"] = "q";
 	e["q"] = "get_peers";
 	entry& a = e["a"];
-	a["info_hash"] = id.to_string();
+	a["info_hash"] = m_target.to_string();
 	return m_node.m_rpc.invoke(e, addr, o);
 }
 

@@ -126,6 +126,8 @@ void traversal_algorithm::finished(udp::endpoint const& ep)
 			--m_branch_factor;
 	}
 
+	i->flags |= result::alive;
+
 	++m_responses;
 	--m_invoke_count;
 	TORRENT_ASSERT(m_invoke_count >= 0);
@@ -210,27 +212,22 @@ namespace
 
 void traversal_algorithm::add_requests()
 {
-	while (m_invoke_count < m_branch_factor)
+	int results_target = m_node.m_table.bucket_size();
+
+	// Find the first node that hasn't already been queried.
+	for (std::vector<result>::iterator i = m_results.begin()
+		, end(m_results.end()); i != end
+		&& results_target > 0 && m_invoke_count < m_branch_factor; ++i)
 	{
-		// Find the first node that hasn't already been queried.
-		// TODO: Better heuristic
-		std::vector<result>::iterator i = std::find_if(
-			m_results.begin()
-			, last_iterator()
-			, bind(
-				&bitwise_nand
-				, bind(&result::flags, _1)
-				, (unsigned char)result::queried
-			)
-		);
+		if (i->flags & result::alive) --results_target;
+		if (i->flags & result::queried) continue;
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << "] nodes left ("
-			<< this << "): " << (last_iterator() - i);
+		TORRENT_LOG(traversal) << " [" << this << "] nodes left: "
+			<< (m_results.end() - i);
 #endif
 
-		if (i == last_iterator()) break;
-
-		if (invoke(i->id, i->endpoint()))
+		if (invoke(i->endpoint()))
 		{
 			TORRENT_ASSERT(m_invoke_count >= 0);
 			++m_invoke_count;
@@ -266,13 +263,13 @@ void traversal_algorithm::status(dht_lookup& l)
 	l.outstanding_requests = m_invoke_count;
 	l.branch_factor = m_branch_factor;
 	l.type = name();
-}
-
-std::vector<traversal_algorithm::result>::iterator traversal_algorithm::last_iterator()
-{
-	int max_results = m_node.m_table.bucket_size();
-	return (int)m_results.size() >= max_results ?
-		m_results.begin() + max_results : m_results.end();
+	l.nodes_left = 0;
+	for (std::vector<result>::iterator i = m_results.begin()
+		, end(m_results.end()); i != end; ++i)
+	{
+		if (i->flags & result::queried) continue;
+		++l.nodes_left;
+	}
 }
 
 } } // namespace libtorrent::dht
