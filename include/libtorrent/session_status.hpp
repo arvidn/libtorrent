@@ -48,6 +48,7 @@ namespace libtorrent
 		int timeouts;
 		int responses;
 		int branch_factor;
+		int nodes_left;
 	};
 
 #endif

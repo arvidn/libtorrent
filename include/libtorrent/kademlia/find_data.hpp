@@ -78,7 +78,7 @@ public:
 protected:
 
 	void done();
-	virtual bool invoke(node_id const& id, udp::endpoint addr);
+	virtual bool invoke(udp::endpoint addr);
 
 private:
 
@@ -94,8 +94,7 @@ class find_data_observer : public observer
 {
 public:
 	find_data_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
-		, node_id self)
+		boost::intrusive_ptr<traversal_algorithm> const& algorithm)
 		: observer(algorithm)
 	{}
 	void reply(msg const&);

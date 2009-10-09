@@ -41,6 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_DECLARE_LOG(traversal);
+#endif
+
 refresh::refresh(
 	node_impl& node
 	, node_id target
@@ -54,17 +58,21 @@ char const* refresh::name() const
 	return "refresh";
 }
 
-bool refresh::invoke(node_id const& nid, udp::endpoint addr)
+bool refresh::invoke(udp::endpoint addr)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
 	void* ptr = m_node.m_rpc.allocator().malloc();
 	if (ptr == 0)
 	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(traversal) << "[" << this << "] failed to "
+			"allocate memory for observer. aborting!";
+#endif
 		done();
 		return false;
 	}
 	m_node.m_rpc.allocator().set_next_size(10);
-	observer_ptr o(new (ptr) find_data_observer(this, nid));
+	observer_ptr o(new (ptr) find_data_observer(this));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif

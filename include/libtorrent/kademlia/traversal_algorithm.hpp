@@ -117,7 +117,8 @@ public:
 			no_id = 4,
 			short_timeout = 8,
 			failed = 16,
-			ipv6_address = 32
+			ipv6_address = 32,
+			alive = 64
 		};
 		unsigned char flags;
 	};
@@ -145,9 +146,7 @@ protected:
 	void init();
 
 	virtual void done() {}
-	virtual bool invoke(node_id const& id, udp::endpoint addr) { return false; }
-
-	std::vector<result>::iterator last_iterator();
+	virtual bool invoke(udp::endpoint addr) { return false; }
 
 	friend void intrusive_ptr_add_ref(traversal_algorithm* p)
 	{
