@@ -39,7 +39,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 
 #ifndef TORRENT_DISABLE_GEO_IP
+#ifdef WITH_SHIPPED_GEOIP_H
 #include "libtorrent/GeoIP.h"
+#else
+#include <GeoIP.h>
+#endif
 #endif
 
 #ifdef _MSC_VER
