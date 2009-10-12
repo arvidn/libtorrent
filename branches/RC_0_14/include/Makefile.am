@@ -23,7 +23,6 @@ libtorrent/file.hpp \
 libtorrent/file_pool.hpp \
 libtorrent/file_storage.hpp \
 libtorrent/fingerprint.hpp \
-libtorrent/GeoIP.h \
 libtorrent/gzip.hpp \
 libtorrent/hasher.hpp \
 libtorrent/http_connection.hpp \
@@ -100,6 +99,10 @@ libtorrent/kademlia/refresh.hpp \
 libtorrent/kademlia/routing_table.hpp \
 libtorrent/kademlia/rpc_manager.hpp \
 libtorrent/kademlia/traversal_algorithm.hpp
+
+if WITH_SHIPPED_GEOIP
+nobase_include_HEADERS += libtorrent/GeoIP.h
+endif
 
 if ENABLE_SHIPPED_ASIO
 nobase_include_HEADERS += \

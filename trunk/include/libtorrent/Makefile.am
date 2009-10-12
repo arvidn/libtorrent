@@ -1,5 +1,9 @@
 includedir = @includedir@/libtorrent
 
+if WITH_SHIPPED_GEOIP
+GEOIP_H = GeoIP.h
+endif
+
 nobase_include_HEADERS = \
   alert.hpp                    \
   alert_types.hpp              \
@@ -33,7 +37,6 @@ nobase_include_HEADERS = \
   file_pool.hpp                \
   file_storage.hpp             \
   fingerprint.hpp              \
-  GeoIP.h                      \
   gzip.hpp                     \
   hasher.hpp                   \
   http_connection.hpp          \
@@ -89,6 +92,8 @@ nobase_include_HEADERS = \
   version.hpp                  \
   web_peer_connection.hpp      \
   xml_parse.hpp                \
+  \
+  $(GEOIP_H) \
   \
   aux_/session_impl.hpp        \
   \
