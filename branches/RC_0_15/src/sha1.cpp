@@ -194,9 +194,11 @@ void SHA1_Init(SHA_CTX* context)
 
 void SHA1_Update(SHA_CTX* context, u8 const* data, u32 len)
 {
+	// GCC standard defines for endianness
+	// test with: cpp -dM /dev/null
 #if defined __BIG_ENDIAN__
 	internal_update<big_endian_blk0>(context, data, len);
-#elif defined LITTLE_ENDIAN
+#elif defined __LITTLE_ENDIAN__
 	internal_update<little_endian_blk0>(context, data, len);
 #else
 	// select different functions depending on endianess
