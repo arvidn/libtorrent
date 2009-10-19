@@ -111,9 +111,11 @@ void observer::set_target(udp::endpoint const& ep)
 
 address observer::target_addr() const
 {
+#if TORRENT_USE_IPV6
 	if (m_is_v6)
 		return address_v6(m_addr.v6);
 	else
+#endif
 		return address_v4(m_addr.v4);
 }
 
