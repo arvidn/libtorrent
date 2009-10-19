@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 
 // asio time_traits
+#if !TORRENT_USE_BOOST_DATE_TIME
 #if BOOST_VERSION >= 103500
 namespace boost { 
 #endif
@@ -77,6 +78,7 @@ namespace asio
 }
 #if BOOST_VERSION >= 103500
 }
+#endif
 #endif
 
 namespace libtorrent
