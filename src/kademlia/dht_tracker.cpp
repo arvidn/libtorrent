@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/optional.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/filesystem/operations.hpp>
 
 #include "libtorrent/kademlia/node.hpp"
@@ -57,7 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 
 using boost::ref;
-using boost::lexical_cast;
 using libtorrent::dht::node_impl;
 using libtorrent::dht::node_id;
 using libtorrent::dht::packet_t;
@@ -587,7 +585,9 @@ namespace libtorrent { namespace dht
 	void dht_tracker::add_node(std::pair<std::string, int> const& node)
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		udp::resolver::query q(node.first, lexical_cast<std::string>(node.second));
+		char port[7];
+		snprintf(port, sizeof(port), "%d", node.second);
+		udp::resolver::query q(node.first, port);
 		m_host_resolver.async_resolve(q,
 			bind(&dht_tracker::on_name_lookup, self(), _1, _2));
 	}
@@ -602,7 +602,9 @@ namespace libtorrent { namespace dht
 	void dht_tracker::add_router_node(std::pair<std::string, int> const& node)
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		udp::resolver::query q(node.first, lexical_cast<std::string>(node.second));
+		char port[7];
+		snprintf(port, sizeof(port), "%d", node.second);
+		udp::resolver::query q(node.first, port);
 		m_host_resolver.async_resolve(q,
 			bind(&dht_tracker::on_router_name_lookup, self(), _1, _2));
 	}
