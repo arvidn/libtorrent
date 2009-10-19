@@ -999,6 +999,7 @@ namespace libtorrent
 		}
 	}
 
+#if TORRENT_USE_I2P
 	policy::peer* policy::add_i2p_peer(char const* destination, int src, char flags)
 	{
 		INVARIANT_CHECK;
@@ -1036,6 +1037,7 @@ namespace libtorrent
 		}
 		return p;
 	}
+#endif // TORRENT_USE_I2P
 
 	policy::peer* policy::add_peer(tcp::endpoint const& remote, peer_id const& pid
 		, int src, char flags)
