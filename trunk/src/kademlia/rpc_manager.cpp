@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/mpl/sizeof.hpp>
 #include <boost/mpl/transform_view.hpp>
 #include <boost/mpl/deref.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/invariant_check.hpp>
