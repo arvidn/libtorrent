@@ -48,9 +48,11 @@ namespace libtorrent { namespace dht
 	TORRENT_DECLARE_LOG(traversal);
 #endif
 
-using detail::read_v4_endpoint;
-using detail::read_v6_endpoint;
 using detail::read_endpoint_list;
+using detail::read_v4_endpoint;
+#if TORRENT_USE_IPV6
+using detail::read_v6_endpoint;
+#endif
 
 void find_data_observer::reply(msg const& m)
 {
