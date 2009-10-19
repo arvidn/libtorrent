@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/mpl/sizeof.hpp>
 #include <boost/mpl/transform_view.hpp>
 #include <boost/mpl/deref.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/invariant_check.hpp>
@@ -222,8 +221,9 @@ bool rpc_manager::incoming(msg const& m)
 			reply.reply = true;
 			reply.message_id = messages::error;
 			reply.error_code = 203; // Protocol error
-			reply.error_msg = "reply with invalid transaction id, size "
-				+ boost::lexical_cast<std::string>(m.transaction_id.size());
+			char msg[100];
+			snprintf(msg, sizeof(msg), "reply with invaliud transaction "
+				"id, size %d", m.transaction_id.size());
 			reply.addr = m.addr;
 			reply.transaction_id = "";
 			m_send(reply);
