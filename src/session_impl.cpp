@@ -361,7 +361,7 @@ namespace aux {
 		m_timer.expires_from_now(milliseconds(100), ec);
 		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
 
-		m_thread.reset(new boost::thread(boost::ref(*this)));
+		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
 
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -1240,7 +1240,7 @@ namespace aux {
 	// wake them up
 	void session_impl::on_disk_queue()
 	{
-		session_impl::mutex_t::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 		
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
@@ -1254,7 +1254,7 @@ namespace aux {
 
 	void session_impl::on_tick(error_code const& e)
 	{
-		session_impl::mutex_t::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 
 		ptime now = time_now_hires();
 		aux::g_current_time = now;
@@ -1503,8 +1503,8 @@ namespace aux {
 		m_stat.second_tick(tick_interval_ms);
 
 		TORRENT_ASSERT(least_recently_scraped == m_torrents.end()
-			|| least_recently_scraped->second->is_paused()
-			&& least_recently_scraped->second->is_auto_managed());
+			|| (least_recently_scraped->second->is_paused()
+			&& least_recently_scraped->second->is_auto_managed()));
 
 		// --------------------------------------------------------------
 		// scrape paused torrents that are auto managed
@@ -2073,13 +2073,13 @@ namespace aux {
 		}
 	}
 
-	void session_impl::operator()()
+	void session_impl::main_thread()
 	{
 		eh_initializer();
 
 		if (m_listen_interface.port() != 0)
 		{
-			session_impl::mutex_t::scoped_lock l(m_mutex);
+			mutex::scoped_lock l(m_mutex);
 			open_listen_port();
 		}
 
@@ -2091,7 +2091,7 @@ namespace aux {
 			if (ec)
 			{
 #ifdef TORRENT_DEBUG
-				std::cerr << ec.message() << "\n";
+				fprintf(stderr, "%s\n", ec.message().c_str());
 				std::string err = ec.message();
 #endif
 				TORRENT_ASSERT(false);
@@ -2104,7 +2104,7 @@ namespace aux {
 		(*m_logger) << time_now_string() << " locking mutex\n";
 #endif
 
-		session_impl::mutex_t::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 /*
 #ifdef TORRENT_DEBUG
 		for (torrent_map::iterator i = m_torrents.begin();
@@ -2389,7 +2389,7 @@ namespace aux {
 
 	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -2423,7 +2423,7 @@ namespace aux {
 	void session_impl::on_port_mapping(int mapping, int port
 		, error_code const& ec, int map_transport)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
 
 #ifndef TORRENT_DISABLE_DHT
@@ -2642,18 +2642,18 @@ namespace aux {
 			m_dht_settings.service_port = m_listen_interface.port();
 	}
 
-	void session_impl::on_dht_state_callback(boost::condition& c
+	void session_impl::on_dht_state_callback(condition& c
 		, entry& e, bool& done) const
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 		if (m_dht) e = m_dht->state();
 		done = true;
-		c.notify_all();
+		c.signal(l);
 	}
 
-	entry session_impl::dht_state(session_impl::mutex_t::scoped_lock& l) const
+	entry session_impl::dht_state(mutex::scoped_lock& l) const
 	{
-		boost::condition cond;
+		condition cond;
 		if (!m_dht) return entry();
 		entry e;
 		bool done = false;
@@ -2692,7 +2692,7 @@ namespace aux {
 
 	session_impl::~session_impl()
 	{
-		session_impl::mutex_t::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << "\n\n *** shutting down session *** \n\n";
@@ -2955,7 +2955,7 @@ namespace aux {
 		int num_buffers = (size + send_buffer_size - 1) / send_buffer_size;
 		TORRENT_ASSERT(num_buffers > 0);
 
-		boost::mutex::scoped_lock l(m_send_buffer_mutex);
+		mutex::scoped_lock l(m_send_buffer_mutex);
 #ifdef TORRENT_STATS
 		TORRENT_ASSERT(m_buffer_allocations >= 0);
 		m_buffer_allocations += num_buffers;
@@ -2997,7 +2997,7 @@ namespace aux {
 		int num_buffers = size / send_buffer_size;
 		TORRENT_ASSERT(num_buffers > 0);
 
-		boost::mutex::scoped_lock l(m_send_buffer_mutex);
+		mutex::scoped_lock l(m_send_buffer_mutex);
 #ifdef TORRENT_STATS
 		m_buffer_allocations -= num_buffers;
 		TORRENT_ASSERT(m_buffer_allocations >= 0);

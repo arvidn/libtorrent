@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/limits.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/thread.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)

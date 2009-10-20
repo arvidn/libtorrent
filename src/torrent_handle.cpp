@@ -79,19 +79,19 @@ using libtorrent::aux::session_impl;
 #define TORRENT_FORWARD(call) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
-	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
+	mutex::scoped_lock l(t->session().m_mutex); \
 	t->call
 	
 #define TORRENT_FORWARD_RETURN(call, def) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return def; \
-	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
+	mutex::scoped_lock l(t->session().m_mutex); \
 	return t->call
 
 #define TORRENT_FORWARD_RETURN2(call, def) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return def; \
-	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
+	mutex::scoped_lock l(t->session().m_mutex); \
 	t->call
 
 #else
@@ -99,19 +99,19 @@ using libtorrent::aux::session_impl;
 #define TORRENT_FORWARD(call) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) throw_invalid_handle(); \
-	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
+	mutex::scoped_lock l(t->session().m_mutex); \
 	t->call
 	
 #define TORRENT_FORWARD_RETURN(call, def) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) throw_invalid_handle(); \
-	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
+	mutex::scoped_lock l(t->session().m_mutex); \
 	return t->call
 
 #define TORRENT_FORWARD_RETURN2(call, def) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) throw_invalid_handle(); \
-	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
+	mutex::scoped_lock l(t->session().m_mutex); \
 	t->call
 
 #endif
@@ -601,7 +601,7 @@ namespace libtorrent
 #else
 			throw_invalid_handle();
 #endif
-		session_impl::mutex_t::scoped_lock l(t->session().m_mutex);
+		mutex::scoped_lock l(t->session().m_mutex);
 		if (!t->valid_metadata())
 #ifdef BOOST_NO_EXCEPTIONS
 			return empty;
@@ -647,7 +647,7 @@ namespace libtorrent
 #else
 			throw_invalid_handle();
 #endif
-		session_impl::mutex_t::scoped_lock l(t->session().m_mutex);
+		mutex::scoped_lock l(t->session().m_mutex);
 		
 		peer_id id;
 		std::fill(id.begin(), id.end(), 0);

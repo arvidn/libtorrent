@@ -46,8 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/recursive_mutex.hpp>
 #include <boost/tuple/tuple.hpp>
 
 #ifdef _MSC_VER
@@ -180,7 +178,7 @@ namespace libtorrent
 		int m_completion_timeout;
 		int m_read_timeout;
 
-		typedef boost::mutex mutex_t;
+		typedef mutex mutex_t;
 		mutable mutex_t m_mutex;
 		bool m_abort;
 	};
@@ -242,7 +240,7 @@ namespace libtorrent
 		
 	private:
 
-		typedef boost::recursive_mutex mutex_t;
+		typedef mutex mutex_t;
 		mutable mutex_t m_mutex;
 
 		typedef std::list<boost::intrusive_ptr<tracker_connection> >

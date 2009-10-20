@@ -39,9 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/storage.hpp"
 #include "libtorrent/allocator.hpp"
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <boost/noncopyable.hpp>
@@ -52,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/pool/pool.hpp>
 #endif
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/thread.hpp"
 
 namespace libtorrent
 {
@@ -190,7 +188,7 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || defined TORRENT_DISK_STATS
 		bool is_disk_buffer(char* buffer
-			, boost::mutex::scoped_lock& l) const;
+			, mutex::scoped_lock& l) const;
 		bool is_disk_buffer(char* buffer) const;
 #endif
 
@@ -228,9 +226,8 @@ namespace libtorrent
 
 	private:
 
-		// this only protects the pool allocator
-		typedef boost::mutex mutex_t;
-		mutable mutex_t m_pool_mutex;
+		mutable mutex m_pool_mutex;
+
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		// memory pool for read and write operations
 		// and disk cache
@@ -282,7 +279,7 @@ namespace libtorrent
 
 		cache_status status() const;
 
-		void operator()();
+		void thread_fun();
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
@@ -312,10 +309,14 @@ namespace libtorrent
 			boost::shared_array<cached_block_entry> blocks;
 		};
 
-		typedef boost::recursive_mutex mutex_t;
 		typedef std::list<cached_piece_entry> cache_t;
 
 	private:
+
+		void add_job(disk_io_job const& j
+			, mutex::scoped_lock& l
+			, boost::function<void(int, disk_io_job const&)> const& f
+			= boost::function<void(int, disk_io_job const&)>());
 
 		bool test_error(disk_io_job& j);
 		void post_callback(boost::function<void(int, disk_io_job const&)> const& handler
@@ -324,39 +325,39 @@ namespace libtorrent
 		// cache operations
 		cache_t::iterator find_cached_piece(
 			cache_t& cache, disk_io_job const& j
-			, mutex_t::scoped_lock& l);
+			, mutex::scoped_lock& l);
 		int copy_from_piece(cache_t::iterator p, bool& hit
-			, disk_io_job const& j, mutex_t::scoped_lock& l);
+			, disk_io_job const& j, mutex::scoped_lock& l);
 
 		// write cache operations
 		enum options_t { dont_flush_write_blocks = 1, ignore_cache_size = 2 };
-		int flush_cache_blocks(mutex_t::scoped_lock& l
+		int flush_cache_blocks(mutex::scoped_lock& l
 			, int blocks, cache_t::iterator ignore
 			, int options = 0);
 		void flush_expired_pieces();
-		int flush_and_remove(cache_t::iterator i, mutex_t::scoped_lock& l);
+		int flush_and_remove(cache_t::iterator i, mutex::scoped_lock& l);
 		int flush_contiguous_blocks(disk_io_thread::cache_t::iterator e
-			, mutex_t::scoped_lock& l, int lower_limit = 0);
-		int flush_range(cache_t::iterator i, int start, int end, mutex_t::scoped_lock& l);
+			, mutex::scoped_lock& l, int lower_limit = 0);
+		int flush_range(cache_t::iterator i, int start, int end, mutex::scoped_lock& l);
 		int cache_block(disk_io_job& j
 			, boost::function<void(int,disk_io_job const&)>& handler
-			, mutex_t::scoped_lock& l);
+			, mutex::scoped_lock& l);
 
 		// read cache operations
 		int clear_oldest_read_piece(int num_blocks, cache_t::iterator ignore
-			, mutex_t::scoped_lock& l);
+			, mutex::scoped_lock& l);
 		int read_into_piece(cached_piece_entry& p, int start_block
-			, int options, int num_blocks, mutex_t::scoped_lock& l);
-		int cache_read_block(disk_io_job const& j, mutex_t::scoped_lock& l);
-		int cache_read_piece(disk_io_job const& j, mutex_t::scoped_lock& l);
-		int free_piece(cached_piece_entry& p, mutex_t::scoped_lock& l);
+			, int options, int num_blocks, mutex::scoped_lock& l);
+		int cache_read_block(disk_io_job const& j, mutex::scoped_lock& l);
+		int cache_read_piece(disk_io_job const& j, mutex::scoped_lock& l);
+		int free_piece(cached_piece_entry& p, mutex::scoped_lock& l);
 		int try_read_from_cache(disk_io_job const& j);
 		int read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h);
 
 		// this mutex only protects m_jobs, m_queue_buffer_size
 		// and m_abort
-		mutable mutex_t m_queue_mutex;
-		boost::condition m_signal;
+		mutable mutex m_queue_mutex;
+		condition m_signal;
 		bool m_abort;
 		bool m_waiting_to_shutdown;
 		std::list<disk_io_job> m_jobs;
@@ -365,7 +366,7 @@ namespace libtorrent
 		ptime m_last_file_check;
 
 		// this protects the piece cache and related members
-		mutable mutex_t m_piece_mutex;
+		mutable mutex m_piece_mutex;
 		// write cache
 		cache_t m_pieces;
 		
@@ -398,7 +399,7 @@ namespace libtorrent
 		boost::optional<asio::io_service::work> m_work;
 
 		// thread for performing blocking disk io operations
-		boost::thread m_disk_io_thread;
+		thread m_disk_io_thread;
 	};
 
 }

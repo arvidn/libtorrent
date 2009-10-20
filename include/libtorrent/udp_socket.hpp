@@ -37,11 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 
 #include <vector>
 #include <boost/function.hpp>
-#include <boost/thread/mutex.hpp>
 
 namespace libtorrent
 {
@@ -97,8 +97,7 @@ namespace libtorrent
 		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
 
-		typedef boost::mutex mutex_t;
-		mutable mutex_t m_mutex;
+		mutable mutex m_mutex;
 
 		udp::socket m_ipv4_sock;
 		udp::endpoint m_v4_ep;

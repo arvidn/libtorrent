@@ -165,7 +165,7 @@ namespace libtorrent { namespace
 
 		void on_read_failed_block(piece_block b, address a, int ret, disk_io_job const& j)
 		{
-			aux::session_impl::mutex_t::scoped_lock l(m_torrent.session().m_mutex);
+			mutex::scoped_lock l(m_torrent.session().m_mutex);
 			
 			disk_buffer_holder buffer(m_torrent.session(), j.buffer);
 
@@ -246,7 +246,7 @@ namespace libtorrent { namespace
 		
 		void on_read_ok_block(std::pair<piece_block, block_entry> b, int ret, disk_io_job const& j)
 		{
-			aux::session_impl::mutex_t::scoped_lock l(m_torrent.session().m_mutex);
+			mutex::scoped_lock l(m_torrent.session().m_mutex);
 
 			disk_buffer_holder buffer(m_torrent.session(), j.buffer);
 

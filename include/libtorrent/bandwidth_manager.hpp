@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_queue_entry.hpp"
+#include "libtorrent/thread.hpp"
 #include "libtorrent/bandwidth_socket.hpp"
 #include "libtorrent/time.hpp"
 

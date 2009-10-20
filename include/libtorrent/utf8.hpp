@@ -33,15 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UTF8_HPP_INCLUDED
 #define TORRENT_UTF8_HPP_INCLUDED
 
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+#if !defined BOOST_FILESYSTEM_NARROW_ONLY && !defined BOOST_NO_STD_WSTRING
 
 #include <string>
 #include <cwchar>
+
 #include "libtorrent/ConvertUTF.h"
 
 namespace libtorrent
 {
-
 	inline int utf8_wchar(const std::string &utf8, std::wstring &wide)
 	{
 		// allocate space for worst-case
@@ -100,7 +100,7 @@ namespace libtorrent
 		}
 	}
 }
-#endif
+#endif // !FILESYSTEM_NARROW_ONLY && !BOOST_NO_STD_WSTRING
 
 #endif
 

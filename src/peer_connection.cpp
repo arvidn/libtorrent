@@ -988,6 +988,7 @@ namespace libtorrent
 			return;
 		}
 
+#if TORRENT_USE_I2P
 		i2p_stream* i2ps = m_socket->get<i2p_stream>();
 		if (!i2ps && t->torrent_file().is_i2p() && !m_ses.m_settings.allow_i2p_mixed)
 		{
@@ -999,6 +1000,7 @@ namespace libtorrent
 			disconnect(error_code(errors::peer_banned, libtorrent_category), 2);
 			return;
 		}
+#endif // TORRENT_USE_I2P
 
 		TORRENT_ASSERT(m_torrent.expired());
 		// check to make sure we don't have another connection with the same
@@ -2261,7 +2263,7 @@ namespace libtorrent
 	void peer_connection::on_disk_write_complete(int ret, disk_io_job const& j
 		, peer_request p, boost::shared_ptr<torrent> t)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -2976,7 +2978,7 @@ namespace libtorrent
 
 	void peer_connection::on_timeout()
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		TORRENT_ASSERT(m_connecting);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -3811,7 +3813,7 @@ namespace libtorrent
 
 	void peer_connection::on_disk_read_complete(int ret, disk_io_job const& j, peer_request r)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		m_reading_bytes -= r.length;
 
@@ -4272,7 +4274,7 @@ namespace libtorrent
 	void peer_connection::on_receive_data(const error_code& error
 		, std::size_t bytes_transferred)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -4443,7 +4445,7 @@ namespace libtorrent
 
 	void peer_connection::on_connect(int ticket)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 #ifdef TORRENT_DEBUG
 		// in case we disconnect here, we need to
 		// keep the connection alive until the
@@ -4533,7 +4535,7 @@ namespace libtorrent
 	{
 		ptime completed = time_now();
 
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -4596,7 +4598,7 @@ namespace libtorrent
 	void peer_connection::on_send_data(error_code const& error
 		, std::size_t bytes_transferred)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 

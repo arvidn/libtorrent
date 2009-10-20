@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/filesystem/convenience.hpp>
 #include <boost/bind.hpp>
-#include <boost/thread/mutex.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -504,7 +503,7 @@ namespace libtorrent
 
 	void torrent::on_disk_read_complete(int ret, disk_io_job const& j, peer_request r, read_piece_struct* rp)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		disk_buffer_holder buffer(m_ses, j.buffer);
 
@@ -575,7 +574,7 @@ namespace libtorrent
 	void torrent::on_disk_write_complete(int ret, disk_io_job const& j
 		, peer_request p)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 	
@@ -776,7 +775,7 @@ namespace libtorrent
 
 	void torrent::on_resume_data_checked(int ret, disk_io_job const& j)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		if (ret == piece_manager::fatal_disk_error)
 		{
@@ -1024,7 +1023,7 @@ namespace libtorrent
 
 	void torrent::on_force_recheck(int ret, disk_io_job const& j)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		if (ret == piece_manager::fatal_disk_error)
 		{
@@ -1056,7 +1055,7 @@ namespace libtorrent
 	
 	void torrent::on_piece_checked(int ret, disk_io_job const& j)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 		INVARIANT_CHECK;
 
 		if (ret == piece_manager::disk_check_aborted)
@@ -1118,7 +1117,7 @@ namespace libtorrent
 
 	void torrent::on_tracker_announce()
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 		m_waiting_tracker = false;	
 		if (m_abort) return;
 		announce_with_tracker();
@@ -1135,7 +1134,7 @@ namespace libtorrent
 
 	void torrent::on_lsd_announce()
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		if (m_abort) return;
 
@@ -1332,7 +1331,7 @@ namespace libtorrent
 
 	void torrent::tracker_warning(tracker_request const& req, std::string const& msg)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -1343,7 +1342,7 @@ namespace libtorrent
  	void torrent::tracker_scrape_response(tracker_request const& req
  		, int complete, int incomplete, int downloaded)
  	{
- 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+ 		mutex::scoped_lock l(m_ses.m_mutex);
  
  		INVARIANT_CHECK;
 		TORRENT_ASSERT(req.kind == tracker_request::scrape_request);
@@ -1368,7 +1367,7 @@ namespace libtorrent
 		, int incomplete
 		, address const& external_ip)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(r.kind == tracker_request::announce_request);
@@ -1517,7 +1516,7 @@ namespace libtorrent
 #if TORRENT_USE_I2P
 	void torrent::on_i2p_resolve(error_code const& ec, char const* dest)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -1530,7 +1529,7 @@ namespace libtorrent
 	void torrent::on_peer_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, peer_id pid)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -2302,7 +2301,7 @@ namespace libtorrent
 
 	void torrent::on_files_deleted(int ret, disk_io_job const& j)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		if (ret != 0)
 		{
@@ -2319,7 +2318,7 @@ namespace libtorrent
 	void torrent::on_files_released(int ret, disk_io_job const& j)
 	{
 /*
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		if (alerts().should_post<torrent_paused_alert>())
 		{
@@ -2330,7 +2329,7 @@ namespace libtorrent
 
 	void torrent::on_save_resume_data(int ret, disk_io_job const& j)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		if (!j.resume_data)
 		{
@@ -2346,7 +2345,7 @@ namespace libtorrent
 
 	void torrent::on_file_renamed(int ret, disk_io_job const& j)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 		
 		if (ret == 0)
 		{
@@ -2364,7 +2363,7 @@ namespace libtorrent
 
 	void torrent::on_torrent_paused(int ret, disk_io_job const& j)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		if (alerts().should_post<torrent_paused_alert>())
 			alerts().post_alert(torrent_paused_alert(get_handle()));
@@ -3063,7 +3062,7 @@ namespace libtorrent
 	void torrent::on_proxy_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, web_seed_entry web)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -3124,7 +3123,7 @@ namespace libtorrent
 	void torrent::on_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, web_seed_entry web, tcp::endpoint proxy)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -3280,7 +3279,7 @@ namespace libtorrent
 	void torrent::on_country_lookup(error_code const& error, tcp::resolver::iterator i
 		, intrusive_ptr<peer_connection> p) const
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 		
@@ -4348,11 +4347,11 @@ namespace libtorrent
 
 	void torrent::files_checked_lock()
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 		files_checked(l);
 	}
 
-	void torrent::files_checked(session_impl::mutex_t::scoped_lock const& l)
+	void torrent::files_checked(mutex::scoped_lock const& l)
 	{
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 
@@ -4476,7 +4475,7 @@ namespace libtorrent
 
 	void torrent::on_storage_moved(int ret, disk_io_job const& j)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		if (ret == 0)
 		{
@@ -5523,7 +5522,7 @@ namespace libtorrent
 	void torrent::on_piece_verified(int ret, disk_io_job const& j
 		, boost::function<void(int)> f)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		// return value:
 		// 0: success, piece passed hash check
@@ -5929,7 +5928,7 @@ namespace libtorrent
 	void torrent::tracker_request_timed_out(
 		tracker_request const& r)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -5970,7 +5969,7 @@ namespace libtorrent
 	void torrent::tracker_request_error(tracker_request const& r
 		, int response_code, const std::string& str)
 	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 

@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/thread/mutex.hpp>
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/deadline_timer.hpp"
@@ -44,6 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_CONNECTION_LOGGING
 #include <fstream>
 #endif
+
+#include "libtorrent/thread.hpp"
 
 namespace libtorrent
 {
@@ -72,7 +73,7 @@ public:
 
 private:
 
-	typedef boost::mutex mutex_t;
+	typedef mutex mutex_t;
 
 	void try_connect(mutex_t::scoped_lock& l);
 	void on_timeout(error_code const& e);
