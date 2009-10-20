@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/operations.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/detail/atomic_count.hpp>
-#include <boost/thread/mutex.hpp>
 
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
@@ -53,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 
 namespace libtorrent
@@ -132,7 +132,7 @@ namespace libtorrent { namespace dht
 
 		// The mutex is used to abort the dht node
 		// it's only used to set m_abort to true
-		typedef boost::mutex mutex_t;
+		typedef mutex mutex_t;
 		mutable mutex_t m_mutex;
 		bool m_abort;
 

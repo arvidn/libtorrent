@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/size_type.hpp>
 #include <libtorrent/assert.hpp>
+#include <libtorrent/time.hpp>
 
 namespace libtorrent
 {

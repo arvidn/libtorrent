@@ -46,12 +46,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/io.hpp>
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/assert.hpp>
+#include <libtorrent/thread.hpp>
 
 #include <boost/cstdint.hpp>
 #include <boost/optional.hpp>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/ref.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/optional.hpp>
 
 #include "libtorrent/socket.hpp"
@@ -278,7 +278,7 @@ protected:
 	int m_max_peers_reply;
 
 private:
-	typedef boost::mutex mutex_t;
+	typedef libtorrent::mutex mutex_t;
 	mutex_t m_mutex;
 
 	// this list must be destructed after the rpc manager

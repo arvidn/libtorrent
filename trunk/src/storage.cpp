@@ -1703,7 +1703,7 @@ ret:
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		m_io_thread.add_job(j, handler);
 #ifdef TORRENT_DEBUG
-		boost::recursive_mutex::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 		// if this assert is hit, it suggests
 		// that check_files was not successful
 		TORRENT_ASSERT(slot_for(r.piece) >= 0);
@@ -1728,7 +1728,7 @@ ret:
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		m_io_thread.add_job(j, handler);
 #ifdef TORRENT_DEBUG
-		boost::recursive_mutex::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 		// if this assert is hit, it suggests
 		// that check_files was not successful
 		TORRENT_ASSERT(slot_for(r.piece) >= 0);
@@ -1773,7 +1773,7 @@ ret:
 
 	fs::path piece_manager::save_path() const
 	{
-		boost::recursive_mutex::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 		return m_save_path;
 	}
 
@@ -1807,7 +1807,7 @@ ret:
 
 	void piece_manager::write_resume_data(entry& rd) const
 	{
-		boost::recursive_mutex::scoped_lock lock(m_mutex);
+		mutex::scoped_lock lock(m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -1838,6 +1838,8 @@ ret:
 
 	void piece_manager::mark_failed(int piece_index)
 	{
+		mutex::scoped_lock lock(m_mutex);
+
 		INVARIANT_CHECK;
 
 		if (m_storage_mode != storage_mode_compact) return;
@@ -2156,7 +2158,7 @@ ret:
 	int piece_manager::check_fastresume(
 		lazy_entry const& rd, error_code& error)
 	{
-		boost::recursive_mutex::scoped_lock lock(m_mutex);
+		mutex::scoped_lock lock(m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -2867,7 +2869,7 @@ ret:
 
 	int piece_manager::allocate_slot_for_piece(int piece_index)
 	{
-		boost::recursive_mutex::scoped_lock lock(m_mutex);
+		mutex::scoped_lock lock(m_mutex);
 
 		if (m_storage_mode != storage_mode_compact) return piece_index;
 
@@ -2982,7 +2984,7 @@ ret:
 
 	bool piece_manager::allocate_slots(int num_slots, bool abort_on_disk)
 	{
-		boost::recursive_mutex::scoped_lock lock(m_mutex);
+		mutex::scoped_lock lock(m_mutex);
 		TORRENT_ASSERT(num_slots > 0);
 
 		INVARIANT_CHECK;
@@ -3039,8 +3041,6 @@ ret:
 #ifdef TORRENT_DEBUG
 	void piece_manager::check_invariant() const
 	{
-		boost::recursive_mutex::scoped_lock lock(m_mutex);
-
 		TORRENT_ASSERT(m_current_slot <= m_files.num_pieces());
 		
 		if (m_unallocated_slots.empty()

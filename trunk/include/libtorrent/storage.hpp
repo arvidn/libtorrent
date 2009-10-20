@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/function.hpp>
 #include <boost/limits.hpp>
-#include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/filesystem/path.hpp>
@@ -59,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/thread.hpp"
 
 namespace libtorrent
 {
@@ -405,7 +405,7 @@ namespace libtorrent
 
 		fs::path m_save_path;
 
-		mutable boost::recursive_mutex m_mutex;
+		mutable mutex m_mutex;
 
 		enum {
 			// the default initial state

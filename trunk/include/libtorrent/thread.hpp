@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,60 +30,28 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_FILE_POOL_HPP
-#define TORRENT_FILE_POOL_HPP
+#ifndef TORRENT_THREAD_HPP_INCLUDED
+#define TORRENT_THREAD_HPP_INCLUDED
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
-
-#include <boost/filesystem/path.hpp>
-#include <boost/shared_ptr.hpp>
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-#include <map>
-#include "libtorrent/file.hpp"
-#include "libtorrent/time.hpp"
-#include "libtorrent/thread.hpp"
+#include "libtorrent/config.hpp"
+#include <boost/asio/detail/thread.hpp>
+#include <boost/asio/detail/mutex.hpp>
+#include <boost/asio/detail/event.hpp>
 
 namespace libtorrent
 {
-	namespace fs = boost::filesystem;
-
-	struct TORRENT_EXPORT file_pool : boost::noncopyable
+	typedef boost::asio::detail::thread thread;
+	typedef boost::asio::detail::mutex mutex;
+	typedef boost::asio::detail::event condition;
+	inline void sleep(int milliseconds)
 	{
-		file_pool(int size = 40): m_size(size) {}
-
-		boost::shared_ptr<file> open_file(void* st, fs::path const& p
-			, int m, error_code& ec);
-		void release(void* st);
-		void release(fs::path const& p);
-		void resize(int size);
-		int size_limit() const { return m_size; }
-
-	private:
-
-		void remove_oldest();
-
-		int m_size;
-
-		struct lru_file_entry
-		{
-			lru_file_entry(): last_use(time_now()) {}
-			mutable boost::shared_ptr<file> file_ptr;
-			void* key;
-			ptime last_use;
-			int mode;
-		};
-
-		typedef std::map<std::string, lru_file_entry> file_set;
-		
-		file_set m_files;
-		mutex m_mutex;
-	};
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+		Sleep(milliseconds);
+#else
+		usleep(milliseconds * 1000);
+#endif
+	}
 }
 
 #endif
+

@@ -45,7 +45,7 @@ namespace libtorrent
 		TORRENT_ASSERT(p.is_complete());
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
-		boost::mutex::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 		file_set::iterator i = m_files.find(p.string());
 		if (i != m_files.end())
 		{
@@ -119,7 +119,7 @@ namespace libtorrent
 
 	void file_pool::release(fs::path const& p)
 	{
-		boost::mutex::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 
 		file_set::iterator i = m_files.find(p.string());
 		if (i != m_files.end()) m_files.erase(i);
@@ -127,7 +127,7 @@ namespace libtorrent
 
 	void file_pool::release(void* st)
 	{
-		boost::mutex::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(st != 0);
 
 		for (file_set::iterator i = m_files.begin();
@@ -144,7 +144,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(size > 0);
 		if (size == m_size) return;
-		boost::mutex::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 		m_size = size;
 		if (int(m_files.size()) <= m_size) return;
 

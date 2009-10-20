@@ -253,13 +253,6 @@ namespace libtorrent
 		// turn off the filename checking in boost.filesystem
 		TORRENT_ASSERT(listen_port_range.first > 0);
 		TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
-#ifdef TORRENT_DEBUG
-		// this test was added after it came to my attention
-		// that devstudios managed c++ failed to generate
-		// correct code for boost.function
-		boost::function0<void> test = boost::ref(*m_impl);
-		TORRENT_ASSERT(!test.empty());
-#endif
 		set_alert_mask(alert_mask);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
@@ -297,10 +290,6 @@ namespace libtorrent
 #ifdef TORRENT_MEMDEBUG
 		start_malloc_debug();
 #endif
-#ifdef TORRENT_DEBUG
-		boost::function0<void> test = boost::ref(*m_impl);
-		TORRENT_ASSERT(!test.empty());
-#endif
 		set_alert_mask(alert_mask);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
@@ -324,7 +313,7 @@ namespace libtorrent
 
 	session::~session()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 #ifdef TORRENT_MEMDEBUG
 		stop_malloc_debug();
 #endif
@@ -339,7 +328,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->add_extension(ext);
 	}
 #endif
@@ -347,32 +336,32 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_GEO_IP
 	bool session::load_asnum_db(char const* file)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->load_asnum_db(file);
 	}
 
 	bool session::load_country_db(char const* file)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->load_country_db(file);
 	}
 
 	int session::as_for_ip(address const& addr)
 	{
-		aux::session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		aux::mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->as_for_ip(addr);
 	}
 
 #ifndef BOOST_FILESYSTEM_NARROW_ONLY
 	bool session::load_asnum_db(wchar_t const* file)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->load_asnum_db(file);
 	}
 
 	bool session::load_country_db(wchar_t const* file)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->load_country_db(file);
 	}
 #endif
@@ -380,74 +369,74 @@ namespace libtorrent
 
 	void session::load_state(entry const& ses_state)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->load_state(ses_state);
 	}
 
 	entry session::state() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->state();
 	}
 
 	void session::set_ip_filter(ip_filter const& f)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_ip_filter(f);
 	}
 	
 	ip_filter const& session::get_ip_filter() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->get_ip_filter();
 	}
 
 	void session::set_port_filter(port_filter const& f)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_port_filter(f);
 	}
 
 	void session::set_peer_id(peer_id const& id)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_peer_id(id);
 	}
 	
 	peer_id session::id() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->get_peer_id();
 	}
 
 	io_service& session::get_io_service()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->m_io_service;
 	}
 
 	void session::set_key(int key)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_key(key);
 	}
 
 	std::vector<torrent_handle> session::get_torrents() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->get_torrents();
 	}
 	
 	torrent_handle session::find_torrent(sha1_hash const& info_hash) const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->find_torrent_handle(info_hash);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session::add_torrent(add_torrent_params const& params)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 
 		error_code ec;
 		torrent_handle ret = m_impl->add_torrent(params, ec);
@@ -458,7 +447,7 @@ namespace libtorrent
 
 	torrent_handle session::add_torrent(add_torrent_params const& params, error_code& ec)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->add_torrent(params, ec);
 	}
 
@@ -536,7 +525,7 @@ namespace libtorrent
 
 	void session::remove_torrent(const torrent_handle& h, int options)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->remove_torrent(h, options);
 	}
 
@@ -544,50 +533,50 @@ namespace libtorrent
 		std::pair<int, int> const& port_range
 		, const char* net_interface)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->listen_on(port_range, net_interface);
 	}
 
 	unsigned short session::listen_port() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->listen_port();
 	}
 
 	session_status session::status() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->status();
 	}
 
 	void session::pause()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->pause();
 	}
 
 	void session::resume()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->resume();
 	}
 
 	bool session::is_paused() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->is_paused();
 	}
 
 	void session::get_cache_info(sha1_hash const& ih
 		, std::vector<cached_piece_info>& ret) const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->m_disk_thread.get_cache_info(ih, ret);
 	}
 
 	cache_status session::get_cache_status() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->m_disk_thread.status();
 	}
 
@@ -595,37 +584,37 @@ namespace libtorrent
 
 	void session::start_dht(entry const& startup_state)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->start_dht(startup_state);
 	}
 
 	void session::stop_dht()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->stop_dht();
 	}
 
 	void session::set_dht_settings(dht_settings const& settings)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_dht_settings(settings);
 	}
 
 	entry session::dht_state() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->dht_state(l);
 	}
 	
 	void session::add_dht_node(std::pair<std::string, int> const& node)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->add_dht_node(node);
 	}
 
 	void session::add_dht_router(std::pair<std::string, int> const& node)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->add_dht_router(node);
 	}
 
@@ -634,68 +623,68 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	void session::set_pe_settings(pe_settings const& settings)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_pe_settings(settings);
 	}
 
 	pe_settings const& session::get_pe_settings() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->get_pe_settings();
 	}
 #endif
 
 	bool session::is_listening() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->is_listening();
 	}
 
 	void session::set_settings(session_settings const& s)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_settings(s);
 	}
 
 	session_settings const& session::settings()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->settings();
 	}
 
 	void session::set_peer_proxy(proxy_settings const& s)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_peer_proxy(s);
 	}
 
 	void session::set_web_seed_proxy(proxy_settings const& s)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_web_seed_proxy(s);
 	}
 
 	void session::set_tracker_proxy(proxy_settings const& s)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_tracker_proxy(s);
 	}
 
 	proxy_settings const& session::peer_proxy() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->peer_proxy();
 	}
 
 	proxy_settings const& session::web_seed_proxy() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->web_seed_proxy();
 	}
 
 	proxy_settings const& session::tracker_proxy() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->tracker_proxy();
 	}
 
@@ -703,13 +692,13 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 	void session::set_dht_proxy(proxy_settings const& s)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_dht_proxy(s);
 	}
 
 	proxy_settings const& session::dht_proxy() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->dht_proxy();
 	}
 #endif
@@ -717,116 +706,116 @@ namespace libtorrent
 #if TORRENT_USE_I2P
 	void session::set_i2p_proxy(proxy_settings const& s)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_i2p_proxy(s);
 	}
 	
 	proxy_settings const& session::i2p_proxy() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->i2p_proxy();
 	}
 #endif
 
 	int session::max_uploads() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->max_uploads();
 	}
 
 	void session::set_max_uploads(int limit)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_max_uploads(limit);
 	}
 
 	int session::max_connections() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->max_connections();
 	}
 
 	void session::set_max_connections(int limit)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_max_connections(limit);
 	}
 
 	int session::max_half_open_connections() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->max_half_open_connections();
 	}
 
 	void session::set_max_half_open_connections(int limit)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_max_half_open_connections(limit);
 	}
 
 	int session::local_upload_rate_limit() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->local_upload_rate_limit();
 	}
 
 	int session::local_download_rate_limit() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->local_download_rate_limit();
 	}
 
 	int session::upload_rate_limit() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->upload_rate_limit();
 	}
 
 	int session::download_rate_limit() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->download_rate_limit();
 	}
 
 	void session::set_local_upload_rate_limit(int bytes_per_second)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_local_upload_rate_limit(bytes_per_second);
 	}
 
 	void session::set_local_download_rate_limit(int bytes_per_second)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_local_download_rate_limit(bytes_per_second);
 	}
 
 	void session::set_upload_rate_limit(int bytes_per_second)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_upload_rate_limit(bytes_per_second);
 	}
 
 	void session::set_download_rate_limit(int bytes_per_second)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_download_rate_limit(bytes_per_second);
 	}
 
 	int session::num_uploads() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->num_uploads();
 	}
 
 	int session::num_connections() const
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->num_connections();
 	}
 
 	std::auto_ptr<alert> session::pop_alert()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->pop_alert();
 	}
 
@@ -844,20 +833,20 @@ namespace libtorrent
 
 	void session::set_alert_mask(int m)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->set_alert_mask(m);
 	}
 
 	size_t session::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->set_alert_queue_size_limit(queue_size_limit_);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
 	void session::set_severity_level(alert::severity_t s)
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		int m = 0;
 		switch (s)
 		{
@@ -878,13 +867,13 @@ namespace libtorrent
 
 	void session::start_lsd()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->start_lsd();
 	}
 	
 	natpmp* session::start_natpmp()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		if (m_impl->m_natpmp) return m_impl->m_natpmp.get();
 
 		// the natpmp constructor may fail and call the callbacks
@@ -906,7 +895,7 @@ namespace libtorrent
 	
 	upnp* session::start_upnp()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 
 		if (m_impl->m_upnp) return m_impl->m_upnp.get();
 
@@ -932,25 +921,25 @@ namespace libtorrent
 	
 	void session::stop_lsd()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->stop_lsd();
 	}
 	
 	void session::stop_natpmp()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->stop_natpmp();
 	}
 	
 	void session::stop_upnp()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		m_impl->stop_upnp();
 	}
 	
 	connection_queue& session::get_connection_queue()
 	{
-		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->m_half_open;
 	}
 }

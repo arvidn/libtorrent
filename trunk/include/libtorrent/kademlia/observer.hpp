@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/detail/atomic_count.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/cstdint.hpp>
+#include <libtorrent/time.hpp>
 
 namespace libtorrent {
 namespace dht {

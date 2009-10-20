@@ -101,18 +101,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 
 void test_sleep(int millisec)
 {
-	boost::xtime xt;
-	boost::xtime_get(&xt, boost::TIME_UTC);
-	boost::uint64_t nanosec = (millisec % 1000) * 1000000 + xt.nsec;
-	int sec = millisec / 1000;
-	if (nanosec > 1000000000)
-	{
-		nanosec -= 1000000000;
-		sec++;
-	}
-	xt.nsec = nanosec;
-	xt.sec += sec;
-	boost::thread::sleep(xt);
+	libtorrent::sleep(millisec);
 }
 
 void stop_web_server(int port)

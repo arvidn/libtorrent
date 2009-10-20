@@ -37,11 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/thread.hpp"
 
 #include <boost/utility.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include <boost/thread/mutex.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -148,8 +148,7 @@ struct test_storage : storage_interface
 	{
 		if (slot == 0 || slot == 5999)
 		{
-			boost::thread::sleep(boost::get_system_time()
-				+ boost::posix_time::seconds(2));
+			sleep(2000);
 			std::cerr << "--- starting ---\n" << std::endl;
 		}
 		return size;
@@ -363,7 +362,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
 		, test_path, fp, io, default_storage_constructor, storage_mode);
-	boost::mutex lock;
+	mutex lock;
 
 	error_code ec;
 	bool done = false;
@@ -564,7 +563,7 @@ void test_check_files(path const& test_path
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
 		, test_path, fp, io, default_storage_constructor, storage_mode);
-	boost::mutex lock;
+	mutex lock;
 
 	error_code ec;
 	bool done = false;

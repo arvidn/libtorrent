@@ -42,8 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
 #include <boost/function.hpp>
 
 #include <boost/preprocessor/repetition/enum_params_with_a_default.hpp>
@@ -58,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/thread.hpp"
 #include "libtorrent/socket.hpp" // for io_service
 
 #ifndef TORRENT_MAX_ALERT_TYPES
@@ -126,7 +125,7 @@ namespace libtorrent {
 		template <class T>
 		bool should_post() const
 		{
-			boost::mutex::scoped_lock lock(m_mutex);
+			mutex::scoped_lock lock(m_mutex);
 			if (m_alerts.size() >= m_queue_size_limit) return false;
 			return (m_alert_mask & T::static_category) != 0;
 		}
@@ -135,7 +134,7 @@ namespace libtorrent {
 
 		void set_alert_mask(int m)
 		{
-			boost::mutex::scoped_lock lock(m_mutex);
+			mutex::scoped_lock lock(m_mutex);
 			m_alert_mask = m;
 		}
 
@@ -146,8 +145,8 @@ namespace libtorrent {
 
 	private:
 		std::queue<alert*> m_alerts;
-		mutable boost::mutex m_mutex;
-		boost::condition m_condition;
+		mutable mutex m_mutex;
+		condition m_condition;
 		int m_alert_mask;
 		size_t m_queue_size_limit;
 		boost::function<void(alert const&)> m_dispatch;

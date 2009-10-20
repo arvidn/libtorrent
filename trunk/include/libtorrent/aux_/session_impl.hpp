@@ -51,8 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/filesystem/path.hpp>
-#include <boost/thread.hpp>
-#include <boost/thread/condition.hpp>
 #include <boost/pool/object_pool.hpp>
 
 #ifdef _MSC_VER
@@ -79,6 +77,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/thread.hpp"
 #include "libtorrent/policy.hpp" // for policy::peer
 #include "libtorrent/alert.hpp" // for alert_manager
 #include "libtorrent/deadline_timer.hpp"
@@ -147,7 +146,7 @@ namespace libtorrent
 					!= m_connections.end();
 			}
 #endif
-			void operator()();
+			void main_thread();
 
 			void open_listen_port();
 
@@ -167,8 +166,7 @@ namespace libtorrent
 		
 			// must be locked to access the data
 			// in this struct
-			typedef boost::mutex mutex_t;
-			mutable mutex_t m_mutex;
+			mutable mutex m_mutex;
 
 			boost::weak_ptr<torrent> find_torrent(const sha1_hash& info_hash);
 			peer_id const& get_peer_id() const { return m_peer_id; }
@@ -187,7 +185,7 @@ namespace libtorrent
 			void start_dht(entry const& startup_state);
 			void stop_dht();
 
-			entry dht_state(session_impl::mutex_t::scoped_lock& l) const;
+			entry dht_state(mutex::scoped_lock& l) const;
 			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
 #endif
 
@@ -367,7 +365,7 @@ namespace libtorrent
 
 //		private:
 
-			void on_dht_state_callback(boost::condition& c
+			void on_dht_state_callback(condition& c
 				, entry& e, bool& done) const;
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);
@@ -428,7 +426,7 @@ namespace libtorrent
 			// buffers from.
 			boost::pool<> m_send_buffers;
 #endif
-			boost::mutex m_send_buffer_mutex;
+			mutex m_send_buffer_mutex;
 
 			// the file pool that all storages in this session's
 			// torrents uses. It sets a limit on the number of
@@ -750,7 +748,7 @@ namespace libtorrent
 			size_type m_total_redundant_bytes;
 
 			// the main working thread
-			boost::scoped_ptr<boost::thread> m_thread;
+			boost::scoped_ptr<thread> m_thread;
 		};
 		
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING

@@ -183,13 +183,13 @@ namespace libtorrent
 
 	void tracker_manager::sent_bytes(int bytes)
 	{
-//		aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+//		mutex::scoped_lock l(m_ses.m_mutex);
 		m_ses.m_stat.sent_tracker_bytes(bytes);
 	}
 
 	void tracker_manager::received_bytes(int bytes)
 	{
-		aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		mutex::scoped_lock l(m_ses.m_mutex);
 		m_ses.m_stat.received_tracker_bytes(bytes);
 	}
 
@@ -269,34 +269,30 @@ namespace libtorrent
 		mutex_t::scoped_lock l(m_mutex);
 
 		m_abort = true;
-		tracker_connections_t keep_connections;
+		tracker_connections_t close_connections;
 
-		while (!m_connections.empty())
+		for (tracker_connections_t::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
 		{
-			boost::intrusive_ptr<tracker_connection>& c = m_connections.back();
-			if (!c)
-			{
-				m_connections.pop_back();
-				continue;
-			}
+			intrusive_ptr<tracker_connection> c = *i;
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
-			{
-				keep_connections.push_back(c);
-				m_connections.pop_back();
 				continue;
-			}
-			// close will remove the entry from m_connections
-			// so no need to pop
+
+			close_connections.push_back(c);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			boost::shared_ptr<request_callback> rc = c->requester();
 			if (rc) rc->debug_log("aborting: " + req.url);
 #endif
-			c->close();
 		}
+		l.unlock();
 
-		std::swap(m_connections, keep_connections);
+		for (tracker_connections_t::iterator i = close_connections.begin()
+			, end(close_connections.end()); i != end; ++i)
+		{
+			(*i)->close();
+		}
 	}
 	
 	bool tracker_manager::empty() const

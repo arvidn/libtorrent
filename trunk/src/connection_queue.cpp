@@ -174,10 +174,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-#if BOOST_VERSION >= 103700
-		TORRENT_ASSERT(l.owns_lock());
-#endif
-
 #ifdef TORRENT_CONNECTION_LOGGING
 		m_log << log_time() << " " << free_slots() << std::endl;
 #endif

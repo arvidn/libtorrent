@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
 #endif
-#include <boost/thread/mutex.hpp>
 #include <cstdlib>
 #include <boost/config.hpp>
 
