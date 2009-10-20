@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/optional.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/config.hpp>
 
@@ -148,7 +148,9 @@ namespace libtorrent
 	namespace detail
 	{
 		inline bool default_pred(boost::filesystem::path const&) { return true; }
+#if TORRENT_USE_WPATH
 		inline bool wdefault_pred(boost::filesystem::wpath const&) { return true; }
+#endif
 
 		inline bool ignore_subdir(std::string const& leaf)
 		{ return leaf == ".." || leaf == "."; }
@@ -159,13 +161,19 @@ namespace libtorrent
 		inline void nop(int i) {}
 
 		int TORRENT_EXPORT get_file_attributes(boost::filesystem::path const& p);
+#if TORRENT_USE_WPATH
 		int TORRENT_EXPORT get_file_attributes(boost::filesystem::wpath const& p);
+#endif
 
 		std::time_t TORRENT_EXPORT get_file_mtime(boost::filesystem::path const& p);
+#if TORRENT_USE_WPATH
 		std::time_t TORRENT_EXPORT get_file_mtime(boost::filesystem::wpath const& p);
+#endif
 
 		fs::path TORRENT_EXPORT get_symlink_path(boost::filesystem::path const& p);
+#if TORRENT_USE_WPATH
 		fs::path TORRENT_EXPORT get_symlink_path(boost::filesystem::wpath const& p);
+#endif
 
 		template <class Pred, class Str, class PathTraits>
 		void add_files_impl(file_storage& fs, boost::filesystem::basic_path<Str, PathTraits> const& p
@@ -289,6 +297,7 @@ namespace libtorrent
 		set_piece_hashes(t, p, detail::nop, ec);
 	}
 
+#if TORRENT_USE_WPATH
 	// wpath versions
 
 	template <class Pred>
@@ -362,6 +371,9 @@ namespace libtorrent
 	{
 		set_piece_hashes(t, p, detail::nop, ec);
 	}
+
+#endif // TORRENT_USE_WPATH
+
 }
 
 #endif

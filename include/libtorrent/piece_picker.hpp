@@ -62,6 +62,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT piece_block
 	{
+		piece_block() {}
 		piece_block(int p_index, int b_index)
 			: piece_index(p_index)
 			, block_index(b_index)
