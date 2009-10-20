@@ -2531,7 +2531,7 @@ A high number gives more bandwidth. The priority must be within the range [0, 25
 
 The default priority is 0, which is the lowest priority.
 
-To query the priority of a torrent, use the `status()`_ call.
+To query the priority of a torrent, use the ``torrent_handle::status()`` call.
 
 Torrents with higher priority will not nececcarily get as much bandwidth as they can
 consume, even if there's is more quota. Other peers will still be weighed in when
