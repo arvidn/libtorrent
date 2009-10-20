@@ -253,6 +253,7 @@ feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRI
 
 feature character-set : unicode ansi : composite propagated link-incompatible ;
 feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
+feature.compose <character-set>ansi : <define>BOOST_FILESYSTEM_NARROW_ONLY=1 ;
 
 feature zlib : shipped system : composite propagated link-incompatible ;
 
