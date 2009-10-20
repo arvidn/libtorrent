@@ -87,7 +87,6 @@ namespace libtorrent
 
 	namespace aux
 	{
-		struct session_impl;
 		struct piece_checker_data;
 	}
 

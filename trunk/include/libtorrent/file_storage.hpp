@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
+#include <ctime>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)

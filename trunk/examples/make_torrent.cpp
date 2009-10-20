@@ -30,11 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <iostream>
-#include <fstream>
-#include <iterator>
-#include <iomanip>
-
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -45,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/filesystem/fstream.hpp>
 #include <boost/bind.hpp>
 
 using namespace boost::filesystem;
@@ -56,18 +50,18 @@ using namespace libtorrent;
 bool file_filter(boost::filesystem::path const& filename)
 {
 	if (filename.leaf()[0] == '.') return false;
-	std::cerr << filename << std::endl;
+	fprintf(stderr, "%s\n", filename.string().c_str());
 	return true;
 }
 
 void print_progress(int i, int num)
 {
-	std::cerr << "\r" << (i+1) << "/" << num;
+	fprintf(stderr, "\r%d/%d", i+1, num);
 }
 
 void print_usage()
 {
-	std::cerr << "usage: make_torrent FILE [OPTIONS]\n"
+	fputs("usage: make_torrent FILE [OPTIONS]\n"
 		"\n"
 		"Generates a torrent file from the specified file\n"
 		"or directory and writes it to standard out\n\n"
@@ -81,7 +75,8 @@ void print_usage()
 		"-p bytes    enables padding files. Files larger\n"
 		"            than bytes will be piece-aligned\n"
 		"-s bytes    specifies a piece size for the torrent\n"
-		"            This has to be a multiple of 16 kiB\n";
+		"            This has to be a multiple of 16 kiB\n"
+		, stderr);
 }
 
 int main(int argc, char* argv[])
@@ -163,20 +158,23 @@ int main(int argc, char* argv[])
 			, boost::bind(&print_progress, _1, t.num_pieces()), ec);
 		if (ec)
 		{
-			std::cerr << ec.message() << std::endl;
+			fprintf(stderr, "%s\n", ec.message().c_str());
 			return 1;
 		}
 
-		std::cerr << std::endl;
+		fprintf(stderr, "\n");
 		t.set_creator(creator_str);
 
 		// create the torrent and print it to stdout
-		bencode(std::ostream_iterator<char>(std::cout), t.generate());
+		std::vector<char> torrent;
+		bencode(back_inserter(torrent), t.generate());
+		fwrite(&torrent[0], 1, torrent.size(), stdout);
+
 #ifndef BOOST_NO_EXCEPTIONS
 	}
 	catch (std::exception& e)
 	{
-		std::cerr << e.what() << "\n";
+		fprintf(stderr, "%s\n", e.what());
 	}
 #endif
 

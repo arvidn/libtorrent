@@ -35,9 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/escape_string.hpp"
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/gregorian/greg_date.hpp>
 #include <boost/bind.hpp>
+#include <boost/next_prior.hpp>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -81,6 +82,7 @@ namespace libtorrent
 #endif
 		}
 	
+#if TORRENT_USE_WPATH
 		int TORRENT_EXPORT get_file_attributes(boost::filesystem::wpath const& p)
 		{
 #ifdef TORRENT_WINDOWS
@@ -103,6 +105,7 @@ namespace libtorrent
 			return file_attr;
 #endif
 		}
+#endif // TORRENT_USE_WPATH
 
 		std::time_t get_file_mtime(char const* path)
 		{
@@ -129,6 +132,7 @@ namespace libtorrent
 #endif
 		}
 
+#if TORRENT_USE_WPATH
 		std::time_t TORRENT_EXPORT get_file_mtime(boost::filesystem::wpath const& p)
 		{
 #ifdef TORRENT_WINDOWS
@@ -142,6 +146,7 @@ namespace libtorrent
 			return get_file_mtime(utf8.c_str());
 #endif
 		}
+#endif // TORRENT_USE_WPATH
 
 #ifndef TORRENT_WINDOWS
 		boost::filesystem::path get_symlink_path_impl(char const* path)
@@ -165,6 +170,7 @@ namespace libtorrent
 #endif
 		}
 
+#if TORRENT_USE_WPATH
 		boost::filesystem::path TORRENT_EXPORT get_symlink_path(boost::filesystem::wpath const& p)
 		{
 #ifdef TORRENT_WINDOWS
@@ -176,6 +182,7 @@ namespace libtorrent
 			return get_symlink_path_impl(utf8.c_str());
 #endif
 		}
+#endif // TORRENT_USE_WPATH
 
 	}
 
@@ -464,7 +471,7 @@ namespace libtorrent
 			for (std::vector<sha1_hash>::const_iterator i = m_piece_hash.begin();
 				i != m_piece_hash.end(); ++i)
 			{
-				p.append((char*)i->begin(), (char*)i->end());
+				p.append((char*)i->begin(), sha1_hash::size);
 			}
 		}
 
