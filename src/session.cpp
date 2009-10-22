@@ -348,7 +348,7 @@ namespace libtorrent
 
 	int session::as_for_ip(address const& addr)
 	{
-		aux::mutex::scoped_lock l(m_impl->m_mutex);
+		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->as_for_ip(addr);
 	}
 
