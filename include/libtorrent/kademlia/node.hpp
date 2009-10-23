@@ -104,6 +104,8 @@ struct torrent_entry
 // in the DHT.
 struct search_torrent_entry
 {
+	search_torrent_entry(): total_tag_points(0), total_name_points(0) {}
+
 	// the tags of the torrent. The key of
 	// this entry is the sha-1 hash of one of
 	// these tags. The counter is the number of
