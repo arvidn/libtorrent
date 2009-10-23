@@ -187,9 +187,14 @@ AC_ARG_ENABLE(
   [AS_HELP_STRING(
     [--enable-debug],
     [enable debug build [default=no]])],
-  [[ARG_ENABLE_DEBUG=$enableval]],
-  [[ARG_ENABLE_DEBUG=no
-   ac_arg_enable_debug=no]]
+  [
+   ARG_ENABLE_DEBUG=$enableval
+   ac_arg_enable_debug=$enableval
+  ],
+  [
+   ARG_ENABLE_DEBUG=no
+   ac_arg_enable_debug=no
+  ]
 )
 
 AC_ARG_ENABLE(
@@ -225,7 +230,11 @@ AC_ARG_ENABLE(
     [--enable-invariant-checks],
     [enable invariant checks (use value "full" to turn on extra expensive invariant checks) @<:@default=yes if debug is enabled, no otherwhise@:>@])],
   [[ARG_ENABLE_INVARIANT=$enableval]],
-  [[if test "x$ac_arg_enable_debug" = "xno" ; then ARG_ENABLE_INVARIANT=no ; else ARG_ENABLE_INVARIANT=yes ; fi]]
+  [
+   AS_IF([test "x$ac_arg_enable_debug" = "xyes"],
+         [ARG_ENABLE_INVARIANT=yes],
+         [ARG_ENABLE_INVARIANT=no])
+  ]
 )
 
 AC_ARG_ENABLE(
@@ -260,9 +269,14 @@ AC_ARG_ENABLE(
   [AS_HELP_STRING(
     [--disable-geoip],
     [disable geoip support (if enabled, you can use --with-libgeoip to choose whether to link against shipped or system library) [default=yes]])],
-  [[ARG_ENABLE_GEOIP=$enableval]],
-  [[ARG_ENABLE_GEOIP=yes
-   ac_arg_enable_geoip=yes]]
+  [
+   ARG_ENABLE_GEOIP=$enableval
+   ac_arg_enable_geoip=$enableval
+  ],
+  [
+   ARG_ENABLE_GEOIP=yes
+   ac_arg_enable_geoip=yes
+  ]
 )
 
 AC_ARG_ENABLE(
@@ -338,14 +352,12 @@ AS_CASE(["$ARG_ENABLE_DEBUG"],
       AC_DEFINE([TORRENT_DEBUG],[1],[Define to enable debug code.])
       COMPILETIME_OPTIONS+="-DTORRENT_DEBUG "
       DEBUGFLAGS="-g"
-      ac_arg_enable_debug=yes
    ],
   ["no"], [
       AC_MSG_RESULT([no])
       AC_DEFINE([NDEBUG],[1],[Define to disable debug code.])
       #COMPILETIME_OPTIONS+="-DNDEBUG "
       DEBUGFLAGS="-Os"
-      ac_arg_enable_debug=no
    ],
   [AC_MSG_RESULT([$ARG_ENABLE_DEBUG])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DEBUG". Use either "yes" or "no".])]
@@ -456,7 +468,6 @@ AS_CASE(["$ARG_ENABLE_GEOIP"],
   ["no"], [
     AC_MSG_RESULT([no])
     AC_DEFINE([TORRENT_DISABLE_GEO_IP],[1],[Define to disable the GeoIP support and avoid linking against LGPLed code.])
-    ac_arg_enable_geoip="no"
    ],
   [AC_MSG_RESULT([$ARG_ENABLE_GEOIP])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_GEOIP". Use either "yes" or "no".])]
@@ -575,9 +586,9 @@ AS_CASE(["$ARG_WITH_LIBGEOIP"],
    ],
   ["no"|"shipped"], [
       AS_IF([test "x$ac_arg_enable_geoip" = "xno"], [
-            # if geoip support is disabled via --disable-geoip,
-            # prevent from building/linking libgeoip at all
-            # (either system or shipped)
+            # redundant check: session_impl.hpp just won't check for any
+            # GeoIP.h, so any value would be ok (ie. this AS_IF could be
+            # removed)
             AC_MSG_RESULT([disabled])
             ARG_WITH_LIBGEOIP="disabled"
        ], [
