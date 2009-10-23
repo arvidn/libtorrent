@@ -382,7 +382,7 @@ namespace
 
 		// create a dummy traversal_algorithm		
 		boost::intrusive_ptr<traversal_algorithm> algo(
-			new traversal_algorithm(node, node_id::min()));
+			new traversal_algorithm(node, (node_id::min)()));
 
 		// store on the first k nodes
 		for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = v.begin()
