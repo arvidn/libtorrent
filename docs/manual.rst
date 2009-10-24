@@ -213,6 +213,7 @@ The ``session`` class has the following synopsis::
 			, int> const& node);
 		void add_dht_router(std::pair<std::string
 			, int> const& node);
+		bool is_dht_running() const;
 
 		void start_lsd();
 		void stop_lsd();
@@ -1047,8 +1048,8 @@ These functions returns references to their respective current settings.
 The ``dht_proxy`` is not available when DHT is disabled.
 
 
-start_dht() stop_dht() set_dht_settings() dht_state()
------------------------------------------------------
+start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()
+----------------------------------------------------------------------
 
 	::
 
@@ -1056,6 +1057,7 @@ start_dht() stop_dht() set_dht_settings() dht_state()
 		void stop_dht();
 		void set_dht_settings(dht_settings const& settings);
 		entry dht_state() const;
+		bool is_dht_running() const;
 
 These functions are not available in case ``TORRENT_DISABLE_DHT`` is
 defined. ``start_dht`` starts the dht node and makes the trackerless service
@@ -1115,6 +1117,9 @@ before it is removed from the routing table. If there are known working nodes
 that are ready to replace a failing node, it will be replaced immediately,
 this limit is only used to clear out nodes that don't have any node that can
 replace them.
+
+``is_dht_running`` returns true if the DHT support has been started and false
+otherwise.
 
 
 add_dht_node() add_dht_router()
