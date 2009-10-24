@@ -618,6 +618,12 @@ namespace libtorrent
 		m_impl->add_dht_router(node);
 	}
 
+	bool session::is_dht_running() const
+	{
+		mutex::scoped_lock l(m_impl->m_mutex);
+		return m_impl->m_dht;
+	}
+
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION

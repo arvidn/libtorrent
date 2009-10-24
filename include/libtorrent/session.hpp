@@ -285,6 +285,7 @@ namespace libtorrent
 		entry dht_state() const;
 		void add_dht_node(std::pair<std::string, int> const& node);
 		void add_dht_router(std::pair<std::string, int> const& node);
+		bool is_dht_running() const;
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
