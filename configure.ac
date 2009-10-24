@@ -595,6 +595,7 @@ AS_CASE(["$ARG_WITH_LIBGEOIP"],
             AC_MSG_RESULT([no])
             ARG_WITH_LIBGEOIP="no"
             AC_DEFINE([WITH_SHIPPED_GEOIP_H],[1],[Define to use shipped copy of GeoIP.h])
+            COMPILETIME_OPTIONS+="-DWITH_SHIPPED_GEOIP_H "
       ])
    ],
   [AC_MSG_RESULT([$ARG_WITH_LIBGEOIP])
