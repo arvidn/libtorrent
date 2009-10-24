@@ -73,6 +73,7 @@
 	* added ability to give seeding torrents preference to active slots
 	* added torrent_status::finished_time
 	* automatically caps files and connections by default to rlimit
+	* added session::is_dht_running() function
 
 release 0.14.7
 
