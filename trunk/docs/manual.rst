@@ -1863,6 +1863,7 @@ Its declaration looks like this::
 
 		void save_resume_data() const;
 		void force_reannounce() const;
+		void force_dht_announce() const;
 		void force_reannounce(boost::posix_time::time_duration) const;
 		void scrape_tracker() const;
 		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0) const;
@@ -2188,17 +2189,20 @@ read_piece_alert_. In order to receive this alert, you must enable
 Note that if you read multiple pieces, the read operations are not guaranteed to
 finish in the same order as you initiated them.
 
-force_reannounce()
-------------------
+force_reannounce() force_dht_announce()
+---------------------------------------
 
 	::
 
 		void force_reannounce() const;
 		void force_reannounce(boost::posix_time::time_duration) const;
+		void force_dht_announce() const;
 
 ``force_reannounce()`` will force this torrent to do another tracker request, to receive new
 peers. The second overload of ``force_reannounce`` that takes a ``time_duration`` as
 argument will schedule a reannounce in that amount of time from now.
+
+``force_dht_announce`` will announce the torrent to the DHT immediately.
 
 scrape_tracker()
 ----------------

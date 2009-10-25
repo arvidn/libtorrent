@@ -401,6 +401,10 @@ namespace libtorrent
 			= tracker_request::none);
 		ptime const& last_scrape() const { return m_last_scrape; }
 
+#ifndef TORRENT_DISABLE_DHT
+		void force_dht_announce();
+#endif
+
 		// sets the username and password that will be sent to
 		// the tracker
 		void set_tracker_login(std::string const& name, std::string const& pw);

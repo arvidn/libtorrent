@@ -359,6 +359,18 @@ namespace libtorrent
 			
 		return verified_trackers == 0;
 	}
+
+	void torrent::force_dht_announce()
+	{
+		m_last_dht_announce = min_time();
+		// DHT announces are done on the local service
+		// discovery timer. Trigger it.
+		error_code ec;
+		boost::weak_ptr<torrent> self(shared_from_this());
+		m_lsd_announce_timer.expires_from_now(seconds(1), ec);
+		m_lsd_announce_timer.async_wait(
+			bind(&torrent::on_lsd_announce_disp, self, _1));
+	}
 #endif
 
 	torrent::~torrent()
