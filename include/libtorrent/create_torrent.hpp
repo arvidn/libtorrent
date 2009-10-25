@@ -181,22 +181,20 @@ namespace libtorrent
 		{
 			using boost::filesystem::basic_path;
 			using boost::filesystem::basic_directory_iterator;
-#if BOOST_VERSION < 103600
-			Str const& leaf = l.leaf();
-#else
-			Str const& leaf = l.filename();
-#endif
-			if (ignore_subdir(leaf)) return;
 			if (!pred(l)) return;
 			basic_path<Str, PathTraits> f(p / l);
 			if (is_directory(f))
 			{
 				for (basic_directory_iterator<basic_path<Str, PathTraits> > i(f), end; i != end; ++i)
+				{
 #if BOOST_VERSION < 103600
-					add_files_impl(fs, p, l / i->path().leaf(), pred);
+					Str const& leaf = i->path().leaf();
 #else
-					add_files_impl(fs, p, l / i->path().filename(), pred);
+					Str const& leaf = i->path().filename();
 #endif
+					if (ignore_subdir(leaf)) continue;
+					add_files_impl(fs, p, l / leaf, pred);
+				}
 			}
 			else
 			{
