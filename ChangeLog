@@ -74,6 +74,7 @@
 	* added torrent_status::finished_time
 	* automatically caps files and connections by default to rlimit
 	* added session::is_dht_running() function
+	* added torrent_handle::force_dht_announce()
 
 release 0.14.7
 
@@ -88,6 +89,7 @@ release 0.14.7
 	  was received
 	* fixed incorrect error when deleting files from a torrent where
 	  not all files have been created
+	* announces torrents immediately to the DHT when it's started
 
 release 0.14.6
 

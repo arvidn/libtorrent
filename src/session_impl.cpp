@@ -2570,6 +2570,13 @@ namespace aux {
 		std::list<std::pair<std::string, int> >().swap(m_dht_router_nodes);
 
 		m_dht->start(startup_state);
+
+		// announce all torrents we have to the DHT
+		for (torrent_map::const_iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			i->second->force_dht_announce();
+		}
 	}
 
 #ifndef TORRENT_DISABLE_DHT	
