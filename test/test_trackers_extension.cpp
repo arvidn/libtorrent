@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::filesystem::remove_all;
 using boost::tuples::ignore;
 
-void test_main()
+int test_main()
 {
 	using namespace libtorrent;
 
