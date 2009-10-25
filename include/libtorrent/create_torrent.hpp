@@ -148,17 +148,20 @@ namespace libtorrent
 #else
 			std::string const& leaf = l.filename();
 #endif
-			if (leaf == ".." || leaf == ".") return;
 			if (!pred(l)) return;
 			path f(p / l);
 			if (is_directory(f))
 			{
 				for (directory_iterator i(f), end; i != end; ++i)
+				{
 #if BOOST_VERSION < 103600
-					add_files_impl(fs, p, l / i->path().leaf(), pred);
+					std::string leaf = i->path().leaf();
 #else
-					add_files_impl(fs, p, l / i->path().filename(), pred);
+					std::string leaf = i->path().filename();
 #endif
+					if (leaf == ".." || leaf == ".") continue;
+					add_files_impl(fs, p, l / leaf, pred);
+				}
 			}
 			else
 			{
