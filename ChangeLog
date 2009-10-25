@@ -90,6 +90,8 @@ release 0.14.7
 	* fixed incorrect error when deleting files from a torrent where
 	  not all files have been created
 	* announces torrents immediately to the DHT when it's started
+	* fixed bug in add_files that would fail to recurse if the path
+	  ended with a /
 
 release 0.14.6
 
