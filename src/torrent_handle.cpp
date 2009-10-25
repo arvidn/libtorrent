@@ -661,6 +661,14 @@ namespace libtorrent
 		TORRENT_FORWARD(force_tracker_request(time_now() + seconds(duration.total_seconds())));
 	}
 
+#ifndef TORRENT_DISABLE_DHT
+	void torrent_handle::force_dht_announce() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(force_dht_announce());
+	}
+#endif
+
 	void torrent_handle::force_reannounce() const
 	{
 		INVARIANT_CHECK;
