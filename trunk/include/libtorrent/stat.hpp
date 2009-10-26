@@ -82,7 +82,7 @@ namespace libtorrent
 
 		// should be called once every second
 		void second_tick(int tick_interval_ms);
-		int rate() const { return m_rate_sum / history; }
+		int rate() const { return int(m_rate_sum / history); }
 		size_type rate_sum() const { return m_rate_sum; }
 		size_type total() const { return m_total_counter; }
 
@@ -94,7 +94,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_total_counter >= 0);
 		}
 
-		size_type counter() const { return m_counter; }
+		int counter() const { return m_counter; }
 
 		void clear()
 		{
@@ -225,20 +225,20 @@ namespace libtorrent
 
 		int upload_rate() const
 		{
-			return (m_stat[upload_payload].rate_sum()
+			return int((m_stat[upload_payload].rate_sum()
 				+ m_stat[upload_protocol].rate_sum()
 				+ m_stat[upload_ip_protocol].rate_sum()
 				+ m_stat[upload_dht_protocol].rate_sum())
-				/ stat_channel::history;
+				/ stat_channel::history);
 		}
 
 		int download_rate() const
 		{
-			return (m_stat[download_payload].rate_sum()
+			return int((m_stat[download_payload].rate_sum()
 				+ m_stat[download_protocol].rate_sum()
 				+ m_stat[download_ip_protocol].rate_sum()
 				+ m_stat[download_dht_protocol].rate_sum())
-				/ stat_channel::history;
+				/ stat_channel::history);
 		}
 
 		size_type total_upload() const
@@ -288,13 +288,13 @@ namespace libtorrent
 			m_stat[upload_payload].offset(uploaded);
 		}
 
-		size_type last_payload_downloaded() const
+		int last_payload_downloaded() const
 		{ return m_stat[download_payload].counter(); }
-		size_type last_payload_uploaded() const
+		int last_payload_uploaded() const
 		{ return m_stat[upload_payload].counter(); }
-		size_type last_protocol_downloaded() const
+		int last_protocol_downloaded() const
 		{ return m_stat[download_protocol].counter(); }
-		size_type last_protocol_uploaded() const
+		int last_protocol_uploaded() const
 		{ return m_stat[upload_protocol].counter(); }
 
 		// these are the channels we keep stats for
