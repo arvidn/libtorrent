@@ -43,7 +43,6 @@ python-extension libtorrent
     src/session.cpp
     src/entry.cpp
     src/torrent_info.cpp
-    src/filesystem.cpp
     src/torrent_handle.cpp
     src/torrent_status.cpp
     src/session_settings.cpp

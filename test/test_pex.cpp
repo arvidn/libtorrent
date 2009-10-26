@@ -36,12 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/ut_pex.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/filesystem/operations.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
-
-using boost::filesystem::remove_all;
 
 void test_pex()
 {
@@ -135,18 +132,18 @@ void test_pex()
 int test_main()
 {
 	using namespace libtorrent;
-	using namespace boost::filesystem;
 
 	// in case the previous run was terminated
-	try { remove_all("./tmp1_pex"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_pex"); } catch (std::exception&) {}
-	try { remove_all("./tmp3_pex"); } catch (std::exception&) {}
+	error_code ec;
+	remove_all("./tmp1_pex", ec);
+	remove_all("./tmp2_pex", ec);
+	remove_all("./tmp3_pex", ec);
 
 	test_pex();
 	
-	remove_all("./tmp1_pex");
-	remove_all("./tmp2_pex");
-	remove_all("./tmp3_pex");
+	remove_all("./tmp1_pex", ec);
+	remove_all("./tmp2_pex", ec);
+	remove_all("./tmp3_pex", ec);
 
 	return 0;
 }

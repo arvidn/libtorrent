@@ -38,24 +38,26 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
 
 #include "test.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/create_torrent.hpp"
 
-using boost::filesystem::remove_all;
-using boost::filesystem::create_directory;
 using namespace libtorrent;
-namespace sf = boost::filesystem;
 
 bool tests_failure = false;
 
 void report_failure(char const* err, char const* file, int line)
 {
+#ifdef TORRENT_WINDOWS
+	HANDLE console = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, 0, CONSOLE_TEXTMODE_BUFFER, 0);
+	SetConsoleTextAttribute(console, FOREGROUND_RED);
+	std::cerr << "\n**** " << file << ":" << line << " \"" << err << " ****\n\n";
+	CloseHandle(console);
+#else
 	std::cerr << "\033[31m" << file << ":" << line << " \"" << err << "\"\033[0m\n";
+#endif
 	tests_failure = true;
 }
 
@@ -106,9 +108,9 @@ void test_sleep(int millisec)
 
 void stop_web_server(int port)
 {
-	std::stringstream cmd;
-	cmd << "kill `cat ./lighty" << port << ".pid` >/dev/null";
-	system(cmd.str().c_str());
+	char buf[100];
+	snprintf(buf, sizeof(buf), "kill `cat ./lighty%d.pid` >/dev/null", port);
+	system(buf);
 }
 
 void start_web_server(int port, bool ssl)
@@ -117,6 +119,7 @@ void start_web_server(int port, bool ssl)
 
 	if (ssl)
 	{
+		fprintf(stderr, "generating SSL key\n");
 		system("echo . > tmp");
 		system("echo test province >>tmp");
 		system("echo test city >> tmp");
@@ -128,38 +131,56 @@ void start_web_server(int port, bool ssl)
 			"-days 365 -nodes <tmp");
 	}
 	
-	std::ofstream f("lighty_config");
-	f << "server.modules = (\"mod_access\", \"mod_redirect\", \"mod_setenv\")\n"
-		"server.document-root = \"" << fs::initial_path<fs::path>().string() << "\"\n"
+	error_code ec;
+	file f("lighty_config", file::write_only, ec);
+	if (ec)
+	{
+		fprintf(stderr, "error writing lighty config file: %s\n", ec.message().c_str());
+		return;
+	}
+
+	// this requires lighttpd to be built with ssl support.
+	// The port distribution for mac is not built with ssl
+	// support by default.
+	char buf[1024];
+	int buf_size = snprintf(buf, sizeof(buf),
+		"server.modules = (\"mod_access\", \"mod_redirect\", \"mod_setenv\")\n"
+		"server.document-root = \"%s\"\n"
 		"server.range-requests = \"enable\"\n"
-		"server.port = " << port << "\n"
-		"server.pid-file = \"./lighty" << port << ".pid\"\n"
+		"server.port = %d\n"
+		"server.pid-file = \"./lighty%d.pid\"\n"
 		"url.redirect = ("
-			"\"^/redirect$\" => \"" << (ssl?"https":"http") << "://127.0.0.1:" << port << "/test_file\""
-			", \"^/infinite_redirect$\" => \"" << (ssl?"https":"http") << "://127.0.0.1:" << port << "/infinite_redirect\""
+			"\"^/redirect$\" => \"%s://127.0.0.1:%d/test_file\""
+			", \"^/infinite_redirect$\" => \"%s://127.0.0.1:%d/infinite_redirect\""
 			", \"^/relative/redirect$\" => \"../test_file\""
 			")\n"
 		"$HTTP[\"url\"] == \"/test_file.gz\" {\n"
 		"    setenv.add-response-header = ( \"Content-Encoding\" => \"gzip\" )\n"
-		"#    mimetype.assign = ()\n"
-		"}\n";
-	// this requires lighttpd to be built with ssl support.
-	// The port distribution for mac is not built with ssl
-	// support by default.
-	if (ssl)
-		f << "ssl.engine = \"enable\"\n"
-			"ssl.pemfile = \"server.pem\"\n";
+		"}\n"
+		"ssl.engine = \"%s\"\n"
+		"ssl.pemfile = \"server.pem\"\n"
+		, current_working_directory().c_str(), port, port
+		, (ssl?"https":"http"), port, (ssl?"https":"http"), port
+		, (ssl?"enable":"disable"));
+	file::iovec_t b = { buf, buf_size };
+	f.writev(0, &b, 1, ec);
+	if (ec)
+	{
+		fprintf(stderr, "error writing lighty config file: %s\n", ec.message().c_str());
+		return;
+	}
 	f.close();
 	
+	fprintf(stderr, "starting lighty\n\n%s\n\n", buf);
 	system("lighttpd -f lighty_config 2> lighty.err >lighty.log &");
 	test_sleep(1000);
 }
 
 void stop_proxy(int port)
 {
-	std::stringstream cmd;
-	cmd << "delegated -P" << port << " -Fkill";
-	system(cmd.str().c_str());
+	char buf[100];
+	snprintf(buf, sizeof(buf), "delegated -P%d -Fkill", port);
+	system(buf);
 }
 
 void start_proxy(int port, int proxy_type)
@@ -167,29 +188,39 @@ void start_proxy(int port, int proxy_type)
 	using namespace libtorrent;
 
 	stop_proxy(port);
-	std::stringstream cmd;
-	// we need to echo n since dg will ask us to configure it
-	cmd << "echo n | delegated -P" << port << " ADMIN=test@test.com "
-		"PERMIT=\"*:*:localhost\" REMITTABLE=+,https RELAY=proxy,delegate";
+
+	char const* type = "";
+	char const* auth = "";
+
 	switch (proxy_type)
 	{
 		case proxy_settings::socks4:
-			cmd << " SERVER=socks4";
+			type = "socks4";
 			break;
 		case proxy_settings::socks5:
-			cmd << " SERVER=socks5";
+			type = "socks5";
 			break;
 		case proxy_settings::socks5_pw:
-			cmd << " SERVER=socks5 AUTHORIZER=-list{testuser:testpass}";
+			type = "socks5";
+			auth = "AUTHORIZER=-list{testuser:testpass}";
 			break;
 		case proxy_settings::http:
-			cmd << " SERVER=http";
+			type = "http";
 			break;
 		case proxy_settings::http_pw:
-			cmd << " SERVER=http AUTHORIZER=-list{testuser:testpass}";
+			type = "http";
+			auth = "AUTHORIZER=-list{testuser:testpass}";
 			break;
 	}
-	system(cmd.str().c_str());
+
+	char buf[512];
+	// we need to echo n since dg will ask us to configure it
+	snprintf(buf, sizeof(buf), "echo n | delegated -P%d ADMIN=test@test.com "
+		"PERMIT=\"*:*:localhost\" REMITTABLE=+,https RELAY=proxy,delegate "
+		"SERVER=%s %s"
+		, port, type, auth);
+
+	system(buf);
 	test_sleep(1000);
 }
 
@@ -208,11 +239,9 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_
 	char const* invalid_tracker_url = "http:";
 	char const* invalid_tracker_protocol = "foo://non/existent-name.com/announce";
 	
-	using namespace boost::filesystem;
-
 	file_storage fs;
 	int total_size = piece_size * num_pieces;
-	fs.add_file(path("temporary"), total_size);
+	fs.add_file("temporary", total_size);
 	libtorrent::create_torrent t(fs, piece_size);
 	t.add_tracker(tracker_url);
 	t.add_tracker(invalid_tracker_url);
@@ -239,6 +268,7 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_
 	
 	std::vector<char> tmp;
 	std::back_insert_iterator<std::vector<char> > out(tmp);
+
 	bencode(out, t.generate());
 	return boost::intrusive_ptr<torrent_info>(new torrent_info(&tmp[0], tmp.size()));
 }
@@ -250,8 +280,6 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	, boost::intrusive_ptr<torrent_info>* torrent, bool super_seeding
 	, add_torrent_params const* p)
 {
-	using namespace boost::filesystem;
-
 	assert(ses1);
 	assert(ses2);
 
@@ -282,14 +310,15 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	boost::intrusive_ptr<torrent_info> t;
 	if (torrent == 0)
 	{
-		create_directory("./tmp1" + suffix);
+		error_code ec;
+		create_directory("./tmp1" + suffix, ec);
 		std::ofstream file(("./tmp1" + suffix + "/temporary").c_str());
 		t = ::create_torrent(&file, piece_size, 19);
 		file.close();
 		if (clear_files)
 		{
-			remove_all("./tmp2" + suffix + "/temporary");
-			remove_all("./tmp3" + suffix + "/temporary");
+			remove_all("./tmp2" + suffix + "/temporary", ec);
+			remove_all("./tmp3" + suffix + "/temporary", ec);
 		}
 		char ih_hex[41];
 		to_hex((char const*)&t->info_hash()[0], 20, ih_hex);

@@ -429,7 +429,7 @@ void node_impl::add_node(udp::endpoint node)
 
 	// create a dummy traversal_algorithm		
 	boost::intrusive_ptr<traversal_algorithm> algo(
-		new traversal_algorithm(*this, node_id::min()));
+		new traversal_algorithm(*this, (node_id::min)()));
 	observer_ptr o(new (ptr) null_observer(algo));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;

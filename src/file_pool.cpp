@@ -38,15 +38,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	boost::shared_ptr<file> file_pool::open_file(void* st, fs::path const& p
+	boost::shared_ptr<file> file_pool::open_file(void* st, std::string const& p
 		, int m, error_code& ec)
 	{
 		TORRENT_ASSERT(st != 0);
-		TORRENT_ASSERT(p.is_complete());
+		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
 		mutex::scoped_lock l(m_mutex);
-		file_set::iterator i = m_files.find(p.string());
+		file_set::iterator i = m_files.find(p);
 		if (i != m_files.end())
 		{
 			lru_file_entry& e = i->second;
@@ -103,7 +103,7 @@ namespace libtorrent
 			return boost::shared_ptr<file>();
 		e.mode = m;
 		e.key = st;
-		m_files.insert(std::make_pair(p.string(), e));
+		m_files.insert(std::make_pair(p, e));
 		TORRENT_ASSERT(e.file_ptr->is_open());
 		return e.file_ptr;
 	}
@@ -117,11 +117,11 @@ namespace libtorrent
 		m_files.erase(i);
 	}
 
-	void file_pool::release(fs::path const& p)
+	void file_pool::release(std::string const& p)
 	{
 		mutex::scoped_lock l(m_mutex);
 
-		file_set::iterator i = m_files.find(p.string());
+		file_set::iterator i = m_files.find(p);
 		if (i != m_files.end()) m_files.erase(i);
 	}
 

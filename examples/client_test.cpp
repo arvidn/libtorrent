@@ -38,8 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
 #include <boost/bind.hpp>
 
 #ifdef _MSC_VER
@@ -502,11 +500,6 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
 
 using boost::bind;
-using boost::filesystem::path;
-using boost::filesystem::exists;
-using boost::filesystem::directory_iterator;
-using boost::filesystem::extension;
-
 
 // monitored_dir is true if this torrent is added because
 // it was found in the directory that is monitored. If it
@@ -517,7 +510,7 @@ void add_torrent(libtorrent::session& ses
 	, std::string const& torrent
 	, float preferred_ratio
 	, bool compact_mode
-	, path const& save_path
+	, std::string const& save_path
 	, bool monitored_dir
 	, int torrent_upload_limit
 	, int torrent_download_limit)
@@ -538,7 +531,7 @@ void add_torrent(libtorrent::session& ses
 	add_torrent_params p;
 	lazy_entry resume_data;
 
-	std::string filename = (save_path / (t->name() + ".resume")).string();
+	std::string filename = combine_path(save_path, t->name() + ".resume");
 
 	std::vector<char> buf;
 	if (load_file(filename.c_str(), buf) == 0)
@@ -565,12 +558,12 @@ void add_torrent(libtorrent::session& ses
 #endif
 }
 
-void scan_dir(path const& dir_path
+void scan_dir(std::string const& dir_path
 	, libtorrent::session& ses
 	, handles_t& handles
 	, float preferred_ratio
 	, bool compact_mode
-	, path const& save_path
+	, std::string const& save_path
 	, int torrent_upload_limit
 	, int torrent_download_limit)
 {
@@ -578,10 +571,11 @@ void scan_dir(path const& dir_path
 
 	using namespace libtorrent;
 
-	for (directory_iterator i(dir_path), end; i != end; ++i)
+	error_code ec;
+	for (directory i(dir_path, ec); !i.done(); i.next(ec))
 	{
-		if (extension(*i) != ".torrent") continue;
-		std::string file = i->path().string();
+		std::string file = i.file();
+		if (extension(file) != ".torrent") continue;
 
 		handles_t::iterator k = handles.find(file);
 		if (k != handles.end())
@@ -659,7 +653,7 @@ void print_alert(libtorrent::alert const* a, std::string& str)
 		fprintf(g_log_file, "[%s] %s\n", time_now_string(),  a->message().c_str());
 }
 
-int save_file(boost::filesystem::path const& filename, std::vector<char>& v)
+int save_file(std::string const& filename, std::vector<char>& v)
 {
 	using namespace libtorrent;
 
@@ -697,7 +691,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
-			save_file(h.save_path() / (h.name() + ".resume"), out);
+			save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
 			if (std::find_if(handles.begin(), handles.end()
 				, bind(&handles_t::value_type::second, _1) == h) == handles.end())
 				ses.remove_torrent(h);
@@ -718,11 +712,6 @@ static char const* state_str[] =
 
 int main(int argc, char* argv[])
 {
-#if BOOST_VERSION < 103400
-	using boost::filesystem::no_check;
-	path::default_name_check(no_check);
-#endif
-
 	if (argc == 1)
 	{
 		fprintf(stderr, "usage: client_test [OPTIONS] [TORRENT|MAGNETURL]\n\n"
@@ -818,10 +807,10 @@ int main(int argc, char* argv[])
 	int listen_port = 6881;
 	float preferred_ratio = 0.f;
 	std::string allocation_mode = "sparse";
-	boost::filesystem::path save_path(".");
+	std::string save_path(".");
 	int torrent_upload_limit = 0;
 	int torrent_download_limit = 0;
-	boost::filesystem::path monitor_dir;
+	std::string monitor_dir;
 	std::string bind_to_interface = "";
 	int poll_interval = 5;
 
@@ -1097,7 +1086,7 @@ int main(int argc, char* argv[])
 					torrent_handle h = rd->handle;
 					std::vector<char> out;
 					bencode(std::back_inserter(out), *rd->resume_data);
-					save_file(h.save_path() / (h.name() + ".resume"), out);
+					save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
 				}
 				break;
 			}
@@ -1554,7 +1543,7 @@ int main(int argc, char* argv[])
 						, pad_file?esc("34"):""
 						, progress / 10.f
 						, add_suffix(file_progress[i]).c_str()
-						, info.file_at(i).path.leaf().c_str()
+						, filename(info.file_at(i).path).c_str()
 						, pad_file?esc("0"):"");
 					out += str;
 				}

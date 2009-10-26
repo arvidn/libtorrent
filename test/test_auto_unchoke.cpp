@@ -4,13 +4,9 @@
 #include "libtorrent/alert_types.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/filesystem/operations.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
-
-using boost::filesystem::remove_all;
-using boost::filesystem::exists;
 
 void test_swarm()
 {
@@ -102,12 +98,12 @@ void test_swarm()
 int test_main()
 {
 	using namespace libtorrent;
-	using namespace boost::filesystem;
 
-	// in case the previous run was terminated
-	try { remove_all("./tmp1_unchoke"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_unchoke"); } catch (std::exception&) {}
-	try { remove_all("./tmp3_unchoke"); } catch (std::exception&) {}
+	// in case the previous run was t r catch (std::exception&) {}erminated
+	error_code ec;
+	remove_all("./tmp1_unchoke", ec);
+	remove_all("./tmp2_unchoke", ec);
+	remove_all("./tmp3_unchoke", ec);
 
 	test_swarm();
 	
@@ -116,9 +112,9 @@ int test_main()
 	TEST_CHECK(!exists("./tmp2_unchoke/temporary"));
 	TEST_CHECK(!exists("./tmp3_unchoke/temporary"));
 
-	remove_all("./tmp1_unchoke");
-	remove_all("./tmp2_unchoke");
-	remove_all("./tmp3_unchoke");
+	remove_all("./tmp1_unchoke", ec);
+	remove_all("./tmp2_unchoke", ec);
+	remove_all("./tmp3_unchoke", ec);
 
 	return 0;
 }

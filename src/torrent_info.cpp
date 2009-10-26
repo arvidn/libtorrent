@@ -47,8 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/bind.hpp>
 
 #ifdef _MSC_VER
@@ -72,8 +70,6 @@ namespace gr = boost::gregorian;
 namespace libtorrent
 {
 	
-	namespace fs = boost::filesystem;
-
 	void convert_to_utf8(std::string& str, unsigned char chr)
 	{
 		str += 0xc0 | ((chr & 0xff) >> 6);
@@ -187,10 +183,11 @@ namespace libtorrent
 
 	void verify_encoding(file_entry& target)
 	{
-		std::string p = target.path.string();
+		std::string p = target.path;
 		if (!verify_encoding(p)) target.path = p;
 	}
 
+	// TODO: should this take a char const*?
 	bool valid_path_element(std::string const& element)
 	{
 		if (element.empty()
@@ -207,7 +204,7 @@ namespace libtorrent
 		if (path_element.size() > max_path_len)
 		{
 			// truncate filenames that are too long. But keep extensions!
-			std::string ext = fs::extension(path_element);
+			std::string ext = extension(path_element);
 			if (ext.size() > 15)
 			{
 				path_element.resize(max_path_len);
@@ -220,17 +217,17 @@ namespace libtorrent
 		}
 	}
 
-	fs::path sanitize_path(fs::path const& p)
+	std::string sanitize_path(std::string const& p)
 	{
-		fs::path new_path;
-		for (fs::path::const_iterator i = p.begin(); i != p.end(); ++i)
+		std::string new_path;
+		std::string split = split_path(p);
+		for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
 		{
-			if (!valid_path_element(*i)) continue;
-			std::string pe = *i;
+			std::string pe = e;
+			if (!valid_path_element(pe)) continue;
 			trim_path_element(pe);
-			new_path /= pe;
+			new_path = combine_path(new_path, pe);
 		}
-		TORRENT_ASSERT(!new_path.is_complete());
 		return new_path;
 	}
 
@@ -263,14 +260,13 @@ namespace libtorrent
 				return false;
 			std::string path_element = p->list_at(i)->string_value();
 			trim_path_element(path_element);
-			target.path /= path_element;
+			target.path = combine_path(target.path, path_element);
 		}
 		target.path = sanitize_path(target.path);
 		verify_encoding(target);
-		TORRENT_ASSERT(!target.path.is_complete());
 
 		// bitcomet pad file
-		if (target.path.string().find("_____padding_file_") != std::string::npos)
+		if (target.path.find("_____padding_file_") != std::string::npos)
 			target.pad_file = true;
 
 		lazy_entry const* attr = dict.dict_find_string("attr");
@@ -295,7 +291,7 @@ namespace libtorrent
 			{
 				std::string path_element = s_p->list_at(i)->string_value();
 				trim_path_element(path_element);
-				target.symlink_path /= path_element;
+				target.symlink_path = combine_path(target.symlink_path, path_element);
 			}
 		}
 
@@ -311,24 +307,22 @@ namespace libtorrent
 			file_entry e;
 			if (!extract_single_file(*list.list_at(i), e, root_dir))
 				return false;
-#if BOOST_VERSON > 103600
 			int cnt = 0;
 			for (file_storage::iterator k = target.begin()
 				, end(target.end()); k != end; ++k)
 			{
-				if (string_equal_no_case(e.path.string().c_str()
-					, k->path.string().c_str())) ++cnt;
+				if (string_equal_no_case(e.path.c_str()
+					, k->path.c_str())) ++cnt;
 			}
 			if (cnt)
 			{
 				char suffix[15];
 				snprintf(suffix, sizeof(suffix), ".%d", cnt);
-				e.path.replace_extension(suffix + e.path.extension());
+				replace_extension(e.path, suffix + extension(e.path));
 				// TODO: we should really make sure that this new name
 				// doesn't already exist as well, otherwise we might
 				// just create another collision
 			}
-#endif
 			target.add_file(e);
 		}
 		return true;
@@ -364,7 +358,7 @@ namespace libtorrent
 		return 1 << i;
 	}
 
-	int load_file(fs::path const& filename, std::vector<char>& v)
+	int load_file(std::string const& filename, std::vector<char>& v)
 	{
 		file f;
 		error_code ec;
@@ -449,7 +443,7 @@ namespace libtorrent
 			throw invalid_torrent_file(ec);
 	}
 
-	torrent_info::torrent_info(fs::path const& filename)
+	torrent_info::torrent_info(std::string const& filename)
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
@@ -470,8 +464,8 @@ namespace libtorrent
 			throw invalid_torrent_file(ec);
 	}
 
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-	torrent_info::torrent_info(fs::wpath const& filename)
+#if TORRENT_USE_WSTRING
+	torrent_info::torrent_info(std::wstring const& filename)
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
@@ -482,7 +476,7 @@ namespace libtorrent
 	{
 		std::vector<char> buf;
 		std::string utf8;
-		wchar_utf8(filename.string(), utf8);
+		wchar_utf8(filename, utf8);
 		int ret = load_file(utf8, buf);
 		if (ret < 0) return;
 
@@ -527,7 +521,7 @@ namespace libtorrent
 		parse_torrent_file(e, ec);
 	}
 
-	torrent_info::torrent_info(fs::path const& filename, error_code& ec)
+	torrent_info::torrent_info(std::string const& filename, error_code& ec)
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
@@ -548,8 +542,8 @@ namespace libtorrent
 		parse_torrent_file(e, ec);
 	}
 
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-	torrent_info::torrent_info(fs::wpath const& filename, error_code& ec)
+#if TORRENT_USE_WSTRING
+	torrent_info::torrent_info(std::wstring const& filename, error_code& ec)
 		: m_creation_date(pt::ptime(pt::not_a_date_time))
 		, m_multifile(false)
 		, m_private(false)
@@ -559,7 +553,7 @@ namespace libtorrent
 	{
 		std::vector<char> buf;
 		std::string utf8;
-		wchar_utf8(filename.string(), utf8);
+		wchar_utf8(filename, utf8);
 		int ret = load_file(utf8, buf);
 		if (ret < 0) return;
 
@@ -656,7 +650,7 @@ namespace libtorrent
 			return false;
 		}
 
-		name = sanitize_path(name).string();
+		name = sanitize_path(name);
 	
 		if (!valid_path_element(name))
 		{
@@ -702,11 +696,11 @@ namespace libtorrent
 				{
 					std::string path_element = s_p->list_at(i)->string_value();
 					trim_path_element(path_element);
-					e.symlink_path /= path_element;
+					e.symlink_path = combine_path(e.symlink_path, path_element);
 				}
 			}
 			// bitcomet pad file
-			if (e.path.string().find("_____padding_file_") != std::string::npos)
+			if (e.path.find("_____padding_file_") != std::string::npos)
 				e.pad_file = true;
 			if (e.size < 0)
 			{
@@ -1038,7 +1032,7 @@ namespace libtorrent
 		os << "piece length: " << piece_length() << "\n";
 		os << "files:\n";
 		for (file_storage::iterator i = m_files.begin(); i != m_files.end(); ++i)
-			os << "  " << std::setw(11) << i->size << "  " << i->path.string() << "\n";
+			os << "  " << std::setw(11) << i->size << "  " << i->path << "\n";
 	}
 
 // ------- end deprecation -------

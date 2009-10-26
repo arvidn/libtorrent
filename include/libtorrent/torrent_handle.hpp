@@ -56,8 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace fs = boost::filesystem;
-
 	namespace aux
 	{
 		struct session_impl;
@@ -552,7 +550,7 @@ namespace libtorrent
 		// the ratio is uploaded / downloaded. less than 1 is not allowed
 		void set_ratio(float up_down_ratio) const;
 
-		fs::path save_path() const;
+		std::string save_path() const;
 
 		// -1 means unlimited unchokes
 		void set_max_uploads(int max_uploads) const;
@@ -566,12 +564,12 @@ namespace libtorrent
 			, std::string const& password) const;
 
 		// post condition: save_path() == save_path if true is returned
-		void move_storage(fs::path const& save_path) const;
-		void rename_file(int index, fs::path const& new_name) const;
+		void move_storage(std::string const& save_path) const;
+		void rename_file(int index, std::string const& new_name) const;
 
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-		void move_storage(fs::wpath const& save_path) const;
-		void rename_file(int index, fs::wpath const& new_name) const;
+#if TORRENT_USE_WSTRING
+		void move_storage(std::wstring const& save_path) const;
+		void rename_file(int index, std::wstring const& new_name) const;
 #endif
 
 		bool super_seeding() const;

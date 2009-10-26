@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/optional.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/detail/atomic_count.hpp>
 

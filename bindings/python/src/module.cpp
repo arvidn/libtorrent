@@ -10,7 +10,6 @@ void bind_big_number();
 void bind_session();
 void bind_entry();
 void bind_torrent_info();
-void bind_filesystem();
 void bind_torrent_handle();
 void bind_torrent_status();
 void bind_session_settings();
@@ -37,7 +36,6 @@ BOOST_PYTHON_MODULE(libtorrent)
     bind_entry();
     bind_session();
     bind_torrent_info();
-    bind_filesystem();
     bind_torrent_handle();
     bind_torrent_status();
     bind_session_settings();

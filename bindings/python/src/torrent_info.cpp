@@ -69,7 +69,7 @@ namespace
     }
 
     torrent_info construct0(std::string path) {
-        return torrent_info(fs::path(path));
+        return torrent_info(path);
     }
 
     list map_block(torrent_info& ti, int piece, size_type offset, int size)
@@ -106,8 +106,8 @@ void bind_torrent_info()
 #endif
         .def(init<sha1_hash const&>())
         .def(init<char const*, int>())
-        .def(init<boost::filesystem::path>())
-        .def(init<boost::filesystem::wpath>())
+        .def(init<std::string>())
+        .def(init<std::wstring>())
 
         .def("add_tracker", &torrent_info::add_tracker, (arg("url"), arg("tier")=0))
         .def("add_url_seed", &torrent_info::add_url_seed)

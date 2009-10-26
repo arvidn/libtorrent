@@ -47,14 +47,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 
 #ifdef TORRENT_WINDOWS
-#if TORRENT_USE_WPATH
 #include <windows.h>
-#endif
 #endif
 
 #include "libtorrent/utf8.hpp"
 
-#if TORRENT_USE_LOCALE_FILENAMES
+#if TORRENT_USE_ICONV
 #include <iconv.h>
 #include <locale.h>
 #endif 
@@ -78,6 +76,11 @@ namespace libtorrent
 		if (n < 0) *--p = '-';
 		std::memmove(&ret.front(), p, sizeof(ret.elems));
 		return ret;
+	}
+
+	bool is_alpha(char c)
+	{
+		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 	}
 
 	bool is_digit(char c)
@@ -532,14 +535,11 @@ namespace libtorrent
 		return true;
 	}
 
-#if TORRENT_USE_WPATH
+#if defined TORRENT_WINDOWS && defined UNICODE
 	std::wstring convert_to_wstring(std::string const& s)
 	{
 		std::wstring ret;
 		int result = libtorrent::utf8_wchar(s, ret);
-#ifndef BOOST_WINDOWS
-		return ret;
-#else
 		if (result == 0) return ret;
 
 		ret.clear();
@@ -553,42 +553,65 @@ namespace libtorrent
 			ret += c;
 		}
 		return ret;
-#endif
+	}
+
+	std::string convert_from_wstring(std::wstring const& s)
+	{
+		std::string ret;
+		int result = libtorrent::wchar_utf8(s, ret);
+		if (result == 0) return ret;
+
+		ret.clear();
+		const wchar_t* end = &s[0] + s.size();
+		for (const wchar_t* i = &s[0]; i < end;)
+		{
+			char c[10];
+			TORRENT_ASSERT(sizeof(c) >= MB_CUR_MAX);
+			int result = std::wctomb(c, *i);
+			if (result > 0)
+			{
+				i += result;
+				ret.append(c, result);
+			}
+			else
+			{
+				++i;
+				ret += ".";
+			}
+		}
+		return ret;
 	}
 #endif
 
 #ifdef TORRENT_WINDOWS
 	std::string convert_to_native(std::string const& s)
 	{
-#ifndef BOOST_NO_EXCEPTIONS
-		try
-		{
-#endif
-			std::wstring ws;
-			libtorrent::utf8_wchar(s, ws);
-			std::size_t size = wcstombs(0, ws.c_str(), 0);
-			if (size == std::size_t(-1)) return s;
-			std::string ret;
-			ret.resize(size);
-			size = wcstombs(&ret[0], ws.c_str(), size + 1);
-			if (size == std::size_t(-1)) return s;
-			ret.resize(size);
-			return ret;
-#ifndef BOOST_NO_EXCEPTIONS
-		}
-		catch(std::exception)
-		{
-			return s;
-		}
-#endif
+		std::wstring ws;
+		libtorrent::utf8_wchar(s, ws);
+		std::size_t size = wcstombs(0, ws.c_str(), 0);
+		if (size == std::size_t(-1)) return s;
+		std::string ret;
+		ret.resize(size);
+		size = wcstombs(&ret[0], ws.c_str(), size + 1);
+		if (size == std::size_t(-1)) return s;
+		ret.resize(size);
+		return ret;
 	}
 
-#elif TORRENT_USE_LOCALE_FILENAMES
-	std::string convert_to_native(std::string const& s)
+	std::string convert_from_native(std::string const& s)
 	{
-		// the empty string represents the local dependent encoding
-		static iconv_t iconv_handle = iconv_open("", "UTF-8");
-		if (iconv_handle == iconv_t(-1)) return s;
+		std::wstring ws;
+		ws.resize(s.size());
+		std::size_t size = mbstowcs(&ws[0], s.c_str(), s.size());
+		if (size == std::size_t(-1)) return s;
+		std::string ret;
+		libtorrent::wchar_utf8(ws, ret);
+		return ret;
+	}
+
+#elif TORRENT_USE_ICONV
+	std::string iconv_convert_impl(std::string const& s, iconv_t h)
+	{
 		std::string ret;
 		size_t insize = s.size();
 		size_t outsize = insize * 4;
@@ -600,6 +623,22 @@ namespace libtorrent
 		if (retval == (size_t)-1) return s;
 		ret.resize(outsize);
 		return ret;
+	}
+
+	std::string convert_to_native(std::string const& s)
+	{
+		// the empty string represents the local dependent encoding
+		static iconv_t iconv_handle = iconv_open("", "UTF-8");
+		if (iconv_handle == iconv_t(-1)) return s;
+		return iconv_convert_impl(s, iconv_handle);
+	}
+
+	std::string convert_from_native(std::string const& s)
+	{
+		// the empty string represents the local dependent encoding
+		static iconv_t iconv_handle = iconv_open("UTF-8", "");
+		if (iconv_handle == iconv_t(-1)) return s;
+		return iconv_convert_impl(s, iconv_handle);
 	}
 #endif
 

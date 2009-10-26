@@ -96,7 +96,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
-		, fs::path const& save_path
+		, std::string const& save_path
 		, storage_mode_t storage_mode
 		, bool paused
 		, storage_constructor_type sc

@@ -36,22 +36,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/filesystem/operations.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
-
-using boost::filesystem::remove_all;
-using boost::filesystem::exists;
 
 void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode = false, bool time_critical = false)
 {
 	using namespace libtorrent;
 
 	// in case the previous run was terminated
-	try { remove_all("./tmp1_swarm"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_swarm"); } catch (std::exception&) {}
-	try { remove_all("./tmp3_swarm"); } catch (std::exception&) {}
+	error_code ec;
+	remove_all("./tmp1_swarm", ec);
+	remove_all("./tmp2_swarm", ec);
+	remove_all("./tmp3_swarm", ec);
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000), "0.0.0.0", 0);
@@ -201,15 +198,14 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	TEST_CHECK(!exists("./tmp2_swarm/temporary"));
 	TEST_CHECK(!exists("./tmp3_swarm/temporary"));
 
-	remove_all("./tmp1_swarm");
-	remove_all("./tmp2_swarm");
-	remove_all("./tmp3_swarm");
+	remove_all("./tmp1_swarm", ec);
+	remove_all("./tmp2_swarm", ec);
+	remove_all("./tmp3_swarm", ec);
 }
 
 int test_main()
 {
 	using namespace libtorrent;
-	using namespace boost::filesystem;
 
 	// with time critical pieces
 	test_swarm(false, false, false, true);
