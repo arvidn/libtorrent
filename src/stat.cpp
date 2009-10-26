@@ -55,7 +55,7 @@ void stat_channel::second_tick(int tick_interval_ms)
 	for (int i = history - 2; i >= 0; --i)
 		m_rate_history[i + 1] = m_rate_history[i];
 
-	m_rate_history[0] = size_type(m_counter) * 1000 / tick_interval_ms;
+	m_rate_history[0] = int(size_type(m_counter) * 1000 / tick_interval_ms);
 	TORRENT_ASSERT(m_rate_history[0] >= 0);
 	m_rate_sum += m_rate_history[0];
 	m_counter = 0;
