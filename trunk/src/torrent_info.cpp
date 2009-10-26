@@ -234,6 +234,7 @@ namespace libtorrent
 	bool extract_single_file(lazy_entry const& dict, file_entry& target
 		, std::string const& root_dir)
 	{
+		if (dict.type() != lazy_entry::dict_t) return false;
 		lazy_entry const* length = dict.dict_find("length");
 		if (length == 0 || length->type() != lazy_entry::int_t)
 			return false;
