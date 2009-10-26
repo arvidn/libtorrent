@@ -1,3 +1,5 @@
+	* replaced boost.filesystem with custom functions
+	* replaced dependency on boost.thread by asio's internal thread primitives
 	* added support for i2p torrents
 	* cleaned up usage of MAX_PATH and related macros
 

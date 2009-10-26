@@ -43,8 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
 #include <boost/function_equal.hpp>
@@ -127,8 +125,6 @@ namespace boost {
 
 namespace libtorrent {
 
-namespace fs = boost::filesystem;
-
 namespace detail
 {
 
@@ -167,7 +163,7 @@ namespace aux {
 		, fingerprint const& cl_fprint
 		, char const* listen_interface
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		, fs::path const& logpath
+		, std::string const& logpath
 #endif
 		)
 		: m_ipv4_peer_pool(500)

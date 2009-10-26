@@ -37,14 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/filesystem/operations.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
-using boost::filesystem::remove_all;
-using boost::filesystem::exists;
-using boost::filesystem::create_directory;
 using namespace libtorrent;
 using boost::tuples::ignore;
 
@@ -52,10 +48,11 @@ using boost::tuples::ignore;
 void test_rate()
 {
 	// in case the previous run was terminated
-	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
+	error_code ec;
+	remove_all("./tmp1_transfer", ec);
+	remove_all("./tmp2_transfer", ec);
+	remove_all("./tmp1_transfer_moved", ec);
+	remove_all("./tmp2_transfer_moved", ec);
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0);
@@ -63,7 +60,7 @@ void test_rate()
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	create_directory("./tmp1_transfer");
+	create_directory("./tmp1_transfer", ec);
 	std::ofstream file("./tmp1_transfer/temporary");
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 7);
 	file.close();
@@ -114,7 +111,7 @@ void print_alert(alert const& a)
 // simulate a full disk
 struct test_storage : storage_interface
 {
-	test_storage(file_storage const& fs, fs::path const& p, file_pool& fp)
+	test_storage(file_storage const& fs, std::string const& p, file_pool& fp)
 		: m_lower_layer(default_storage_constructor(fs, 0, p, fp))
   		, m_written(0)
 		, m_limit(16 * 1024 * 2)
@@ -174,7 +171,7 @@ struct test_storage : storage_interface
 	virtual int sparse_end(int start) const
 	{ return m_lower_layer->sparse_end(start); }
 
-	virtual bool move_storage(fs::path save_path)
+	virtual bool move_storage(std::string const& save_path)
 	{ return m_lower_layer->move_storage(save_path); }
 
 	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
@@ -207,7 +204,7 @@ struct test_storage : storage_interface
 };
 
 storage_interface* test_storage_constructor(file_storage const& fs
-	, file_storage const*, fs::path const& path, file_pool& fp)
+	, file_storage const*, std::string const& path, file_pool& fp)
 {
 	return new test_storage(fs, path, fp);
 }
@@ -215,10 +212,11 @@ storage_interface* test_storage_constructor(file_storage const& fs
 void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 {
 	// in case the previous run was terminated
-	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
+	error_code ec;
+	remove_all("./tmp1_transfer", ec);
+	remove_all("./tmp2_transfer", ec);
+	remove_all("./tmp1_transfer_moved", ec);
+	remove_all("./tmp2_transfer_moved", ec);
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0);
@@ -242,7 +240,7 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	create_directory("./tmp1_transfer");
+	create_directory("./tmp1_transfer", ec);
 	std::ofstream file("./tmp1_transfer/temporary");
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024);
 	file.close();
@@ -456,7 +454,6 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 int test_main()
 {
 	using namespace libtorrent;
-	using namespace boost::filesystem;
 
 #ifdef NDEBUG
 	// test rate only makes sense in release mode
@@ -471,10 +468,11 @@ int test_main()
 	// test allowed fast
 	test_transfer(false, true);
 	
-	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
-	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
-	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
+	error_code ec;
+	remove_all("./tmp1_transfer", ec);
+	remove_all("./tmp2_transfer", ec);
+	remove_all("./tmp1_transfer_moved", ec);
+	remove_all("./tmp2_transfer_moved", ec);
 
 	return 0;
 }

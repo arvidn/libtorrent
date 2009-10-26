@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/limits.hpp>
-#include <boost/filesystem/path.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -115,8 +114,6 @@ namespace libtorrent
 		TORRENT_LINK_TEST_NAME();
 	}
 
-	namespace fs = boost::filesystem;
-
 	session_settings min_memory_usage();
 	session_settings high_performance_seed();
 
@@ -140,12 +137,6 @@ namespace libtorrent
 		struct eh_initializer {};
 #endif
 		struct session_impl;
-		
-		struct filesystem_init
-		{
-			filesystem_init();
-		};
-
 	}
 
 	class TORRENT_EXPORT session_proxy
@@ -180,7 +171,7 @@ namespace libtorrent
 		char const* tracker_url;
 		sha1_hash info_hash;
 		char const* name;
-		fs::path save_path;
+		std::string save_path;
 		std::vector<char>* resume_data;
 		storage_mode_t storage_mode;
 		bool paused;
@@ -202,7 +193,7 @@ namespace libtorrent
 			, int flags = start_default_features | add_default_plugins
 			, int alert_mask = alert::error_notification
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			, fs::path logpath = "."
+			, std::string logpath = "."
 #endif
 				);
 		session(
@@ -212,7 +203,7 @@ namespace libtorrent
 			, int flags = start_default_features | add_default_plugins
 			, int alert_mask = alert::error_notification
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			, fs::path logpath = "."
+			, std::string logpath = "."
 #endif
 			);
 			
@@ -235,7 +226,7 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		torrent_handle add_torrent(
 			torrent_info const& ti
-			, fs::path const& save_path
+			, std::string const& save_path
 			, entry const& resume_data = entry()
 			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
@@ -245,7 +236,7 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		torrent_handle add_torrent(
 			boost::intrusive_ptr<torrent_info> ti
-			, fs::path const& save_path
+			, std::string const& save_path
 			, entry const& resume_data = entry()
 			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
@@ -258,7 +249,7 @@ namespace libtorrent
 			char const* tracker_url
 			, sha1_hash const& info_hash
 			, char const* name
-			, fs::path const& save_path
+			, std::string const& save_path
 			, entry const& resume_data = entry()
 			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
@@ -421,10 +412,6 @@ namespace libtorrent
 		void stop_upnp();
 		
 	private:
-
-		// just a way to initialize boost.filesystem
-		// before the session_impl is created
-		aux::filesystem_init m_dummy;
 
 		// data shared between the main thread
 		// and the working thread

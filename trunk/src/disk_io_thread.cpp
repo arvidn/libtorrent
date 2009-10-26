@@ -1771,7 +1771,7 @@ namespace libtorrent
 						test_error(j);
 						break;
 					}
-					j.str = j.storage->save_path().string();
+					j.str = j.storage->save_path();
 					break;
 				}
 				case disk_io_job::release_files:

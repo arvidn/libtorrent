@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/filesystem/path.hpp>
 #include <boost/pool/object_pool.hpp>
 
 #ifdef _MSC_VER
@@ -87,7 +86,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	namespace fs = boost::filesystem;
 	class upnp;
 	class natpmp;
 	class lsd;
@@ -129,7 +127,7 @@ namespace libtorrent
 				, fingerprint const& cl_fprint
 				, char const* listen_interface
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				, fs::path const& logpath
+				, std::string const& logpath
 #endif
 				);
 			~session_impl();
@@ -714,7 +712,7 @@ namespace libtorrent
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
 
-			fs::path m_logpath;
+			std::string m_logpath;
 		public:
 			boost::shared_ptr<logger> m_logger;
 		private:

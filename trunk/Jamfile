@@ -100,9 +100,7 @@ rule linking ( properties * )
 
 	if <boost>system in $(properties)
 	{
-		result += <library>boost_filesystem
-			<library>boost_system
-		;
+		result += <library>boost_system ;
 	}
 
 	if <toolset>gcc in $(properties)
@@ -123,16 +121,11 @@ rule linking ( properties * )
 				result += <fpic>on ;
 			}
 
-			result += <library>/boost/filesystem//boost_filesystem/<link>static
-				<library>/boost/system//boost_system/<link>static
-				;
+			result += <library>/boost/system//boost_system/<link>static ;
 		}
 		else
 		{
-			result +=
-				<library>/boost/filesystem//boost_filesystem/<link>shared
-				<library>/boost/system//boost_system/<link>shared
-				;
+			result += <library>/boost/system//boost_system/<link>shared ;
 		}
 		result += <include>$(BOOST_ROOT) <define>BOOST_ALL_NO_LIB ;
 	}
@@ -296,10 +289,8 @@ local boost-library-search-path =
   <search>/sw/lib
   ;
 
-lib boost_filesystem : : <target-os>darwin <name>boost_filesystem-mt $(boost-library-search-path) ;
 lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-search-path) ;
 
-lib boost_filesystem : : <name>boost_filesystem ;
 lib boost_system : : <name>boost_system ;
 
 # openssl on linux/bsd/macos etc.

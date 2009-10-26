@@ -120,7 +120,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // set up defines for target environments
-#if (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
+#if (defined __APPLE__ && defined __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
 	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__ \
 	|| defined __FreeBSD_kernel__
 #define TORRENT_BSD
@@ -144,14 +144,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_IOSTREAM 1
 
 #define TORRENT_USE_I2P 1
-
-// should wpath or path be used?
-#if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \
-	&& BOOST_VERSION >= 103400 && !defined __APPLE__
-#define TORRENT_USE_WPATH 1
-#else
-#define TORRENT_USE_WPATH 0
-#endif
 
 // set this to 1 to disable all floating point operations
 // (disables some float-dependent APIs)
@@ -209,12 +201,21 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_UPNP_LOGGING
 #endif
 
-#if !TORRENT_USE_WPATH && defined TORRENT_LINUX
-// libiconv presnce, not implemented yet
-#define TORRENT_USE_LOCALE_FILENAMES 1
+// windows has its own functions to convert
+// apple uses utf-8 as its locale, so no conversion
+// is necessary
+#if !defined TORRENT_WINDOWS && !defined __APPLE__
+// libiconv presence, not implemented yet
+#define TORRENT_USE_ICONV 1
 #else
-#define TORRENT_USE_LOCALE_FILENAMES 0
+#define TORRENT_ISE_ICONV 0
 #endif
+
+#if defined UNICODE
+#define TORRENT_USE_WSTRING 1
+#else
+#define TORRENT_USE_WSTRING 0
+#endif // TORRENT_WINDOWS
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
 # define TORRENT_READ_HANDLER_MAX_SIZE 256

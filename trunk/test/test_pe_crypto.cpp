@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/session.hpp"
-#include <boost/filesystem/convenience.hpp>
 
 #include "setup_transfer.hpp"
 #include "test.hpp"
@@ -126,10 +125,10 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	ses1.remove_torrent(tor1);
 	ses2.remove_torrent(tor2);
 
-	using boost::filesystem::remove_all;
-	remove_all("./tmp1_pe");
-	remove_all("./tmp2_pe");
-	remove_all("./tmp3_pe");
+	error_code ec;
+	remove_all("./tmp1_pe", ec);
+	remove_all("./tmp2_pe", ec);
+	remove_all("./tmp3_pe", ec);
 }
 
 

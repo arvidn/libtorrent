@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/limits.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -109,8 +108,6 @@ namespace libtorrent
 		bool operator<(web_seed_entry const& e) const
 		{ return url < e.url ? true : type < e.type; }
 	};
-
-	namespace fs = boost::filesystem;
 
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
@@ -599,7 +596,7 @@ namespace libtorrent
 				- m_picker->num_have() - m_picker->num_filtered() == 0;
 		}
 
-		fs::path save_path() const;
+		std::string save_path() const;
 		alert_manager& alerts() const;
 		piece_picker& picker()
 		{
@@ -654,7 +651,7 @@ namespace libtorrent
 		void set_max_connections(int limit);
 		int max_connections() const { return m_max_connections; }
 
-		void move_storage(fs::path const& save_path);
+		void move_storage(std::string const& save_path);
 
 		// renames the file with the given index to the new name
 		// the name may include a directory path
@@ -923,7 +920,7 @@ namespace libtorrent
 		// are opened through
 		tcp::endpoint m_net_interface;
 
-		fs::path m_save_path;
+		std::string m_save_path;
 
 		// each bit represents a piece. a set bit means
 		// the piece has had its hash verified. This

@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/allocator.hpp"
+#include "libtorrent/file.hpp" // for combine_path etc.
 
 #include <vector>
 #include <string>
@@ -51,8 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <boost/optional.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -64,7 +63,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace fs = boost::filesystem;
 	namespace pt = boost::posix_time;
 	class torrent_info;
 
@@ -147,94 +145,64 @@ namespace libtorrent
 
 	namespace detail
 	{
-		inline bool default_pred(boost::filesystem::path const&) { return true; }
-#if TORRENT_USE_WPATH
-		inline bool wdefault_pred(boost::filesystem::wpath const&) { return true; }
-#endif
+		inline bool default_pred(std::string const&) { return true; }
 
 		inline bool ignore_subdir(std::string const& leaf)
 		{ return leaf == ".." || leaf == "."; }
 
-		inline bool ignore_subdir(std::wstring const& leaf)
-		{ return leaf == L".." || leaf == L"."; }
-
 		inline void nop(int i) {}
 
-		int TORRENT_EXPORT get_file_attributes(boost::filesystem::path const& p);
-#if TORRENT_USE_WPATH
-		int TORRENT_EXPORT get_file_attributes(boost::filesystem::wpath const& p);
-#endif
+		int TORRENT_EXPORT get_file_attributes(std::string const& p);
+		std::string TORRENT_EXPORT get_symlink_path(std::string const& p);
 
-		std::time_t TORRENT_EXPORT get_file_mtime(boost::filesystem::path const& p);
-#if TORRENT_USE_WPATH
-		std::time_t TORRENT_EXPORT get_file_mtime(boost::filesystem::wpath const& p);
-#endif
-
-		fs::path TORRENT_EXPORT get_symlink_path(boost::filesystem::path const& p);
-#if TORRENT_USE_WPATH
-		fs::path TORRENT_EXPORT get_symlink_path(boost::filesystem::wpath const& p);
-#endif
-
-		template <class Pred, class Str, class PathTraits>
-		void add_files_impl(file_storage& fs, boost::filesystem::basic_path<Str, PathTraits> const& p
-			, boost::filesystem::basic_path<Str, PathTraits> const& l, Pred pred)
+		template <class Pred>
+		void add_files_impl(file_storage& fs, std::string const& p
+			, std::string const& l, Pred pred)
 		{
-			using boost::filesystem::basic_path;
-			using boost::filesystem::basic_directory_iterator;
 			if (!pred(l)) return;
-			basic_path<Str, PathTraits> f(p / l);
-			if (is_directory(f))
+			std::string f = combine_path(p, l);
+			error_code ec;
+			file_status s;
+			stat_file(f, &s, ec);
+			if (ec) return;
+
+			if (s.mode & file_status::directory)
 			{
-				for (basic_directory_iterator<basic_path<Str, PathTraits> > i(f), end; i != end; ++i)
+				for (directory i(f, ec); !i.done(); i.next(ec))
 				{
-#if BOOST_VERSION < 103600
-					Str const& leaf = i->path().leaf();
-#else
-					Str const& leaf = i->path().filename();
-#endif
+					std::string leaf = i.file();
 					if (ignore_subdir(leaf)) continue;
-					add_files_impl(fs, p, l / leaf, pred);
+					add_files_impl(fs, p, combine_path(l, leaf), pred);
 				}
 			}
 			else
 			{
+				// #error use the fields from s
 				int file_flags = get_file_attributes(f);
-				std::time_t mtime = get_file_mtime(f);
-				//Masking all bits to check if the file is a symlink
-				if(file_flags & file_storage::attribute_symlink) 
+
+				// mask all bits to check if the file is a symlink
+				if (file_flags & file_storage::attribute_symlink) 
 				{
-					fs::path sym_path = get_symlink_path(f);
-					fs.add_file(l, 0 ,file_flags, mtime, sym_path);
+					std::string sym_path = get_symlink_path(f);
+					fs.add_file(l, 0, file_flags, s.mtime, sym_path);
 				}
 				else
 				{
-					fs.add_file(l, file_size(f), file_flags, mtime);
+					fs.add_file(l, s.file_size, file_flags, s.mtime);
 				}
 			}
 		}
 	}
 
-	// path versions
-
 	template <class Pred>
-	void add_files(file_storage& fs, boost::filesystem::path const& file, Pred p)
+	void add_files(file_storage& fs, std::string const& file, Pred p)
 	{
-		using boost::filesystem::path;
-#if BOOST_VERSION < 103600
-		detail::add_files_impl(fs, complete(file).branch_path(), path(file.leaf()), p);
-#else
-		detail::add_files_impl(fs, complete(file).parent_path(), path(file.filename()), p);
-#endif
+		detail::add_files_impl(fs, parent_path(complete(file)), filename(file), p);
 	}
 
-	inline void add_files(file_storage& fs, boost::filesystem::path const& file)
+	inline void add_files(file_storage& fs, std::string const& file)
 	{
-		using boost::filesystem::path;
-#if BOOST_VERSION < 103600
-		detail::add_files_impl(fs, complete(file).branch_path(), path(file.leaf()), detail::default_pred);
-#else
-		detail::add_files_impl(fs, complete(file).parent_path(), path(file.filename()), detail::default_pred);
-#endif
+		detail::add_files_impl(fs, parent_path(complete(file)), filename(file), detail::default_pred);
 	}
 	
 	struct piece_holder
@@ -247,7 +215,7 @@ namespace libtorrent
 	};
 
 	template <class Fun>
-	void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f
+	void set_piece_hashes(create_torrent& t, std::string const& p, Fun f
 		, error_code& ec)
 	{
 		file_pool fp;
@@ -275,14 +243,14 @@ namespace libtorrent
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>
-	void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f)
+	void set_piece_hashes(create_torrent& t, std::string const& p, Fun f)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, f, ec);
 		if (ec) throw libtorrent_exception(ec);
 	}
 
-	inline void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p)
+	inline void set_piece_hashes(create_torrent& t, std::string const& p)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, detail::nop, ec);
@@ -290,42 +258,36 @@ namespace libtorrent
 	}
 #endif
 
-	inline void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, error_code& ec)
+	inline void set_piece_hashes(create_torrent& t, std::string const& p, error_code& ec)
 	{
 		set_piece_hashes(t, p, detail::nop, ec);
 	}
 
-#if TORRENT_USE_WPATH
-	// wpath versions
+#if TORRENT_USE_WSTRING
+	// wstring versions
 
 	template <class Pred>
-	void add_files(file_storage& fs, boost::filesystem::wpath const& file, Pred p)
+	void add_files(file_storage& fs, std::wstring const& wfile, Pred p)
 	{
-		using boost::filesystem::wpath;
-#if BOOST_VERSION < 103600
-		detail::add_files_impl(fs, complete(file).branch_path(), wpath(file.leaf()), p);
-#else
-		detail::add_files_impl(fs, complete(file).parent_path(), wpath(file.filename()), p);
-#endif
+		std::string utf8;
+		wchar_utf8(wfile, utf8);
+		detail::add_files_impl(fs, parent_path(complete(utf8)), filename(utf8), p);
 	}
 
-	inline void add_files(file_storage& fs, boost::filesystem::wpath const& file)
+	inline void add_files(file_storage& fs, std::wstring const& wfile)
 	{
-		using boost::filesystem::wpath;
-#if BOOST_VERSION < 103600
-		detail::add_files_impl(fs, complete(file).branch_path(), wpath(file.leaf()), detail::wdefault_pred);
-#else
-		detail::add_files_impl(fs, complete(file).parent_path(), wpath(file.filename()), detail::wdefault_pred);
-#endif
+		std::string utf8;
+		wchar_utf8(wfile, utf8);
+		detail::add_files_impl(fs, parent_path(complete(utf8)), filename(utf8), detail::default_pred);
 	}
 	
 	template <class Fun>
-	void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, Fun f
+	void set_piece_hashes(create_torrent& t, std::wstring const& p, Fun f
 		, error_code& ec)
 	{
 		file_pool fp;
 		std::string utf8;
-		wchar_utf8(p.string(), utf8);
+		wchar_utf8(p, utf8);
 		boost::scoped_ptr<storage_interface> st(
 			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, utf8, fp));
 
@@ -350,14 +312,14 @@ namespace libtorrent
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>
-	void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, Fun f)
+	void set_piece_hashes(create_torrent& t, std::wstring const& p, Fun f)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, f, ec);
 		if (ec) throw libtorrent_exception(ec);
 	}
 
-	inline void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p)
+	inline void set_piece_hashes(create_torrent& t, std::wstring const& p)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, detail::nop, ec);
@@ -365,7 +327,7 @@ namespace libtorrent
 	}
 #endif
 
-	inline void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, error_code& ec)
+	inline void set_piece_hashes(create_torrent& t, std::wstring const& p, error_code& ec)
 	{
 		set_piece_hashes(t, p, detail::nop, ec);
 	}
@@ -375,3 +337,4 @@ namespace libtorrent
 }
 
 #endif
+

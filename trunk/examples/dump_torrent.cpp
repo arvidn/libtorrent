@@ -40,22 +40,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/magnet_uri.hpp"
-#include <boost/filesystem/operations.hpp>
 
 
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
-	using namespace boost::filesystem;
 
 	if (argc != 2)
 	{
 		std::cerr << "usage: dump_torrent torrent-file\n";
 		return 1;
 	}
-#if BOOST_VERSION < 103400
-	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
-#endif
 
 	int size = file_size(argv[1]);
 	if (size > 10 * 1000000)
@@ -126,9 +121,9 @@ int main(int argc, char* argv[])
 			<< (i->symlink_attribute?'l':'-')
 			<< " "
 			<< "[ " << std::setw(4) << first << ", " << std::setw(4) << last << " ]\t"
-			<< i->path.string() ;
+			<< i->path;
 		if (i->symlink_attribute)
-			std::cout << " -> " << i->symlink_path.string();
+			std::cout << " -> " << i->symlink_path;
 		std::cout << std::endl;
 	}
 

@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/filesystem/convenience.hpp>
 #include <boost/optional.hpp>
 #include <boost/bind.hpp>
 
@@ -118,8 +117,6 @@ using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
-	namespace fs = boost::filesystem;
-
 #ifndef BOOST_NO_EXCEPTIONS
 	void throw_invalid_handle()
 	{
@@ -215,35 +212,35 @@ namespace libtorrent
 	}
 
 	void torrent_handle::move_storage(
-		fs::path const& save_path) const
+		std::string const& save_path) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD(move_storage(save_path));
 	}
 
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+#if TORRENT_USE_WSTRING
 	void torrent_handle::move_storage(
-		fs::wpath const& save_path) const
+		std::wstring const& save_path) const
 	{
 		INVARIANT_CHECK;
 		std::string utf8;
-		wchar_utf8(save_path.string(), utf8);
+		wchar_utf8(save_path, utf8);
 		TORRENT_FORWARD(move_storage(utf8));
 	}
 
-	void torrent_handle::rename_file(int index, fs::wpath const& new_name) const
+	void torrent_handle::rename_file(int index, std::wstring const& new_name) const
 	{
 		INVARIANT_CHECK;
 		std::string utf8;
-		wchar_utf8(new_name.string(), utf8);
+		wchar_utf8(new_name, utf8);
 		TORRENT_FORWARD(rename_file(index, utf8));
 	}
-#endif
+#endif // TORRENT_USE_WSTRING
 
-	void torrent_handle::rename_file(int index, fs::path const& new_name) const
+	void torrent_handle::rename_file(int index, std::string const& new_name) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(rename_file(index, new_name.string()));
+		TORRENT_FORWARD(rename_file(index, new_name));
 	}
 
 	void torrent_handle::add_extension(
@@ -630,10 +627,10 @@ namespace libtorrent
 	}
 #endif
 
-	fs::path torrent_handle::save_path() const
+	std::string torrent_handle::save_path() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(save_path(), fs::path());
+		TORRENT_FORWARD_RETURN(save_path(), std::string());
 	}
 
 	void torrent_handle::connect_peer(tcp::endpoint const& adr, int source) const

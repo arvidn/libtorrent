@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	boost::array<char, 3 + std::numeric_limits<size_type>::digits10> TORRENT_EXPORT to_string(size_type n);
+	bool TORRENT_EXPORT is_alpha(char c);
 	bool TORRENT_EXPORT is_digit(char c);
 	bool TORRENT_EXPORT is_print(char c);
 	bool TORRENT_EXPORT is_space(char c);
@@ -80,16 +81,18 @@ namespace libtorrent
 	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
 	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
 
-#if TORRENT_USE_WPATH
+#if defined TORRENT_WINDOWS && defined UNICODE
 	TORRENT_EXPORT std::wstring convert_to_wstring(std::string const& s);
+	TORRENT_EXPORT std::string convert_from_wstring(std::wstring const& s);
 #endif
 	
-#if defined TORRENT_WINDOWS || TORRENT_USE_LOCALE_FILENAMES
+#if defined TORRENT_WINDOWS || TORRENT_USE_ICONV
 	TORRENT_EXPORT std::string convert_to_native(std::string const& s);
+	TORRENT_EXPORT std::string convert_from_native(std::string const& s);
 #else
 	inline std::string const& convert_to_native(std::string const& s) { return s; }
+	inline std::string const& convert_from_native(std::string const& s) { return s; }
 #endif		
-	
 }
 
 #endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED

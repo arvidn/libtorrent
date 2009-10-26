@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/filesystem/path.hpp>
 #include <boost/shared_ptr.hpp>
 
 #ifdef _MSC_VER
@@ -51,16 +50,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace fs = boost::filesystem;
-
 	struct TORRENT_EXPORT file_pool : boost::noncopyable
 	{
 		file_pool(int size = 40): m_size(size) {}
 
-		boost::shared_ptr<file> open_file(void* st, fs::path const& p
+		boost::shared_ptr<file> open_file(void* st, std::string const& p
 			, int m, error_code& ec);
 		void release(void* st);
-		void release(fs::path const& p);
+		void release(std::string const& p);
 		void resize(int size);
 		int size_limit() const { return m_size; }
 

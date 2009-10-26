@@ -43,8 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
 
@@ -97,18 +95,6 @@ namespace libtorrent
 		char ret[200];
 		std::sprintf(ret, "%d", total_milliseconds(time_now() - start));
 		return ret;
-	}
-
-	namespace aux
-	{
-		filesystem_init::filesystem_init()
-		{
-#if BOOST_VERSION < 103400
-			using namespace boost::filesystem;
-			if (path::default_name_check_writable())
-				path::default_name_check(no_check);
-#endif
-		}
 	}
 
 	// this function returns a session_settings object
@@ -238,7 +224,7 @@ namespace libtorrent
 		, int flags
 		, int alert_mask
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		, fs::path logpath
+		, std::string logpath
 #endif
 		)
 		: m_impl(new session_impl(listen_port_range, id, listen_interface
@@ -250,7 +236,6 @@ namespace libtorrent
 #ifdef TORRENT_MEMDEBUG
 		start_malloc_debug();
 #endif
-		// turn off the filename checking in boost.filesystem
 		TORRENT_ASSERT(listen_port_range.first > 0);
 		TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
 		set_alert_mask(alert_mask);
@@ -278,7 +263,7 @@ namespace libtorrent
 		, int flags
 		, int alert_mask
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		, fs::path logpath
+		, std::string logpath
 #endif
 		)
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -456,7 +441,7 @@ namespace libtorrent
 	// if the torrent already exists, this will throw duplicate_torrent
 	torrent_handle session::add_torrent(
 		torrent_info const& ti
-		, fs::path const& save_path
+		, std::string const& save_path
 		, entry const& resume_data
 		, storage_mode_t storage_mode
 		, bool paused
@@ -479,7 +464,7 @@ namespace libtorrent
 
 	torrent_handle session::add_torrent(
 		boost::intrusive_ptr<torrent_info> ti
-		, fs::path const& save_path
+		, std::string const& save_path
 		, entry const& resume_data
 		, storage_mode_t storage_mode
 		, bool paused
@@ -505,7 +490,7 @@ namespace libtorrent
 		char const* tracker_url
 		, sha1_hash const& info_hash
 		, char const* name
-		, fs::path const& save_path
+		, std::string const& save_path
 		, entry const& e
 		, storage_mode_t storage_mode
 		, bool paused

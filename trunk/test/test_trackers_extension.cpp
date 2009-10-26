@@ -34,8 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -43,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/extensions/lt_trackers.hpp"
 
-using boost::filesystem::remove_all;
 using boost::tuples::ignore;
 
 int test_main()

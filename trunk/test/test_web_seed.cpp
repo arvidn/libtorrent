@@ -38,13 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <fstream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
-using namespace boost::filesystem;
 using namespace libtorrent;
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
@@ -60,7 +58,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 	ses.set_alert_mask(~alert::progress_notification);
 	ses.listen_on(std::make_pair(51000, 52000));
 	ses.set_download_rate_limit(torrent_file->total_size() / 10);
-	remove_all("./tmp2_web_seed");
+	error_code ec;
+	remove_all("./tmp2_web_seed", ec);
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
@@ -139,22 +138,16 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 
 	if (proxy) stop_proxy(8002);
 
-	TEST_CHECK(exists("./tmp2_web_seed" / torrent_file->file_at(0).path));
-	remove_all("./tmp2_web_seed");
+	TEST_CHECK(exists(combine_path("./tmp2_web_seed", torrent_file->file_at(0).path)));
+	remove_all("./tmp2_web_seed", ec);
 }
 
 int test_main()
 {
 	using namespace libtorrent;
-	using namespace boost::filesystem;
 
-	try {
-		create_directory("./tmp1_web_seed");
-	} catch (std::exception&) {}
-
-	try {
-		create_directory("./tmp1_web_seed/test_torrent_dir");
-	} catch (std::exception&) {}
+	error_code ec;
+	create_directories("./tmp1_web_seed/test_torrent_dir", ec);
 
 	char random_data[300000];
 	std::srand(10);
@@ -169,7 +162,7 @@ int test_main()
 	std::ofstream("./tmp1_web_seed/test_torrent_dir/test7").write(random_data, 300000);
 
 	file_storage fs;
-	add_files(fs, path("./tmp1_web_seed/test_torrent_dir"));
+	add_files(fs, "./tmp1_web_seed/test_torrent_dir");
 
 	libtorrent::create_torrent t(fs, 16 * 1024);
 	t.add_url_seed("http://127.0.0.1:8000/tmp1_web_seed");
@@ -187,7 +180,7 @@ int test_main()
 	test_transfer(torrent_file, 0);
 
 	stop_web_server(8000);
-	remove_all("./tmp1_web_seed");
+	remove_all("./tmp1_web_seed", ec);
 	return 0;
 }
 

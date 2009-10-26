@@ -286,11 +286,13 @@ void bind_torrent_handle()
     int (torrent_handle::*piece_priority0)(int) const = &torrent_handle::piece_priority;
     void (torrent_handle::*piece_priority1)(int, int) const = &torrent_handle::piece_priority;
 
-    void (torrent_handle::*move_storage0)(fs::path const&) const = &torrent_handle::move_storage;
-    void (torrent_handle::*move_storage1)(fs::wpath const&) const = &torrent_handle::move_storage;
+    void (torrent_handle::*move_storage0)(std::string const&) const = &torrent_handle::move_storage;
+    void (torrent_handle::*rename_file0)(int, std::string const&) const = &torrent_handle::rename_file;
 
-    void (torrent_handle::*rename_file0)(int, fs::path const&) const = &torrent_handle::rename_file;
-    void (torrent_handle::*rename_file1)(int, fs::wpath const&) const = &torrent_handle::rename_file;
+#if TORRENT_USE_WSTRING
+    void (torrent_handle::*move_storage1)(std::wstring const&) const = &torrent_handle::move_storage;
+    void (torrent_handle::*rename_file1)(int, std::wstring const&) const = &torrent_handle::rename_file;
+#endif
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
     bool (torrent_handle::*resolve_countries0)() const = &torrent_handle::resolve_countries;
@@ -370,11 +372,13 @@ void bind_torrent_handle()
         .def("set_max_connections", _(&torrent_handle::set_max_connections))
         .def("set_tracker_login", _(&torrent_handle::set_tracker_login))
         .def("move_storage", _(move_storage0))
-        .def("move_storage", _(move_storage1))
         .def("info_hash", _(&torrent_handle::info_hash))
         .def("force_recheck", _(&torrent_handle::force_recheck))
         .def("rename_file", _(rename_file0))
+#if TORRENT_USE_WSTRING
+        .def("move_storage", _(move_storage1))
         .def("rename_file", _(rename_file1))
+#endif
         ;
 
     enum_<torrent_handle::deadline_flags>("deadline_flags")

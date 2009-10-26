@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/filesystem/convenience.hpp>
 #include <boost/bind.hpp>
 
 #ifdef _MSC_VER
@@ -3688,7 +3687,7 @@ namespace libtorrent
 			for (torrent_info::file_iterator i = m_torrent_file->begin_files()
 				, end(m_torrent_file->end_files()); i != end; ++i)
 			{
-				fl.push_back(i->path.string());
+				fl.push_back(i->path);
 			}
 		}
 
@@ -4447,7 +4446,7 @@ namespace libtorrent
 		return m_ses.m_alerts;
 	}
 
-	fs::path torrent::save_path() const
+	std::string torrent::save_path() const
 	{
 		return m_save_path;
 	}
@@ -4466,7 +4465,7 @@ namespace libtorrent
 		return true;
 	}
 
-	void torrent::move_storage(fs::path const& save_path)
+	void torrent::move_storage(std::string const& save_path)
 	{
 		INVARIANT_CHECK;
 
@@ -4480,7 +4479,7 @@ namespace libtorrent
 			m_save_path = save_path;
 			if (alerts().should_post<storage_moved_alert>())
 			{
-				alerts().post_alert(storage_moved_alert(get_handle(), m_save_path.string()));
+				alerts().post_alert(storage_moved_alert(get_handle(), m_save_path));
 			}
 		}
 	}

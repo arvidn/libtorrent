@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UTF8_HPP_INCLUDED
 #define TORRENT_UTF8_HPP_INCLUDED
 
-#if !defined BOOST_FILESYSTEM_NARROW_ONLY && !defined BOOST_NO_STD_WSTRING
+#if !defined BOOST_NO_STD_WSTRING
 
 #include <string>
 #include <cwchar>
@@ -100,7 +100,7 @@ namespace libtorrent
 		}
 	}
 }
-#endif // !FILESYSTEM_NARROW_ONLY && !BOOST_NO_STD_WSTRING
+#endif // !BOOST_NO_STD_WSTRING
 
 #endif
 

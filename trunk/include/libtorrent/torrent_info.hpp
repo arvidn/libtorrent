@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/optional.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/shared_array.hpp>
 
 #ifdef _MSC_VER
@@ -64,7 +63,6 @@ namespace libtorrent
 {
 	namespace pt = boost::posix_time;
 	namespace gr = boost::gregorian;
-	namespace fs = boost::filesystem;
 
 	enum
 	{
@@ -169,7 +167,7 @@ namespace libtorrent
 	typedef libtorrent_exception invalid_torrent_file;
 #endif
 
-	int TORRENT_EXPORT load_file(fs::path const& filename, std::vector<char>& v);
+	int TORRENT_EXPORT load_file(std::string const& filename, std::vector<char>& v);
 
 	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{
@@ -177,19 +175,19 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
-		torrent_info(fs::path const& filename);
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-		torrent_info(fs::wpath const& filename);
-#endif
+		torrent_info(std::string const& filename);
+#if TORRENT_USE_WSTRING
+		torrent_info(std::wstring const& filename);
+#endif // TORRENT_USE_WSTRING
 #endif
 
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(lazy_entry const& torrent_file, error_code& ec);
 		torrent_info(char const* buffer, int size, error_code& ec);
-		torrent_info(fs::path const& filename, error_code& ec);
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-		torrent_info(fs::wpath const& filename, error_code& ec);
-#endif
+		torrent_info(std::string const& filename, error_code& ec);
+#if TORRENT_USE_WSTRING
+		torrent_info(std::wstring const& filename, error_code& ec);
+#endif // TORRENT_USE_WSTRING
 
 		~torrent_info();
 
@@ -202,13 +200,13 @@ namespace libtorrent
 			m_files.rename_file(index, new_filename);
 		}
 
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+#if TORRENT_USE_WSTRING
 		void rename_file(int index, std::wstring const& new_filename)
 		{
 			copy_on_write();
 			m_files.rename_file(index, new_filename);
 		}
-#endif
+#endif // TORRENT_USE_WSTRING
 
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }

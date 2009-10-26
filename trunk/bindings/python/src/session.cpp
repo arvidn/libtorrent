@@ -60,7 +60,7 @@ namespace
 
 #ifndef TORRENT_NO_DEPRECATE
     torrent_handle add_torrent_depr(session& s, torrent_info const& ti
-        , boost::filesystem::path const& save, entry const& resume
+        , std::string const& save, entry const& resume
         , storage_mode_t storage_mode, bool paused)
     {
         allow_threading_guard guard;
@@ -89,7 +89,7 @@ namespace
             name = extract<std::string>(params["name"]);
             p.name = name.c_str();
         }
-        p.save_path = fs::path(extract<std::string>(params["save_path"]));
+        p.save_path = extract<std::string>(params["save_path"]);
 
         std::vector<char> resume_buf;
         if (params.has_key("resume_data"))

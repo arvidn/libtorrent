@@ -42,10 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
-#if BOOST_VERSION < 103400
-	namespace fs = boost::filesystem;
-	fs::path::default_name_check(fs::no_check);
-#endif
 
 	if (argc != 2)
 	{
