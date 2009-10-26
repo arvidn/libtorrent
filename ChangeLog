@@ -94,6 +94,7 @@ release 0.14.7
 	* announces torrents immediately to the DHT when it's started
 	* fixed bug in add_files that would fail to recurse if the path
 	  ended with a /
+	* fixed bug in error handling when parsing torrent files
 
 release 0.14.6
 
