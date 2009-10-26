@@ -106,7 +106,11 @@ namespace libtorrent
 		{ return url == e.url && type == e.type; }
 
 		bool operator<(web_seed_entry const& e) const
-		{ return url < e.url ? true : type < e.type; }
+		{
+			if (url < e.url) return true;
+			if (url > e.url) return false;
+		  	return type < e.type;
+		}
 	};
 
 	// a torrent is a class that holds information
