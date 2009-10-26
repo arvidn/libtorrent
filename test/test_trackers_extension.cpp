@@ -75,5 +75,6 @@ int test_main()
 	}
 
 	TEST_CHECK(tor1.trackers().size() == 1);
+	return 0;
 }
 
