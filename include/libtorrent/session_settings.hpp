@@ -462,7 +462,7 @@ namespace libtorrent
 	struct dht_settings
 	{
 		dht_settings()
-			: max_peers_reply(50)
+			: max_peers_reply(100)
 			, search_branching(5)
 			, service_port(0)
 			, max_fail_count(20)
