@@ -93,7 +93,7 @@ BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/escape_string.hpp"
-
+#include <stdio.h>
 #include "libtorrent/assert.hpp"
 
 #ifdef TORRENT_DEBUG
@@ -152,7 +152,7 @@ namespace libtorrent
 #else
 		std::string f1 = convert_to_native(inf);
 		std::string f2 = convert_to_native(newf);
-		if (std::rename(f1.c_str(), f2.c_str()) < 0)
+		if (::rename(f1.c_str(), f2.c_str()) < 0)
 #endif
 		{
 			ec.assign(errno, boost::system::get_generic_category());
@@ -457,7 +457,7 @@ namespace libtorrent
 		}
 #else // TORRENT_WINDOWS
 		std::string f = convert_to_native(inf);
-		if (std::remove(f.c_str()) < 0)
+		if (::remove(f.c_str()) < 0)
 		{
 			ec.assign(errno, boost::system::get_generic_category());
 			return;
