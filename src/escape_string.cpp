@@ -618,7 +618,7 @@ namespace libtorrent
 		ret.resize(outsize);
 		char const* in = &s[0];
 		char* out = &ret[0];
-		size_t retval = iconv(iconv_handle, (char**)&in, &insize,
+		size_t retval = iconv(h, (char**)&in, &insize,
 			&out, &outsize);
 		if (retval == (size_t)-1) return s;
 		ret.resize(outsize);
