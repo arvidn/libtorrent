@@ -325,6 +325,17 @@ namespace libtorrent
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 	}
 
+#if TORRENT_STATS
+	void peer_connection::log_buffer_usage(char* buffer, int size, char const* label)
+	{
+		if (m_ses.m_disk_thread.is_disk_buffer(buffer))
+			m_ses.m_disk_thread.rename_buffer(buffer, label);
+	
+		m_ses.m_buffer_usage_logger << log_time() << " append_send_buffer: " << size << std::endl;
+		m_ses.log_buffer_usage();
+	}
+#endif
+
 	bool peer_connection::unchoke_compare(boost::intrusive_ptr<peer_connection const> const& p) const
 	{
 		TORRENT_ASSERT(p);
