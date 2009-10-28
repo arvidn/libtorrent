@@ -225,13 +225,21 @@ namespace libtorrent
 			ec.assign(errno, boost::system::get_generic_category());
 		copyfile_state_free(state);
 #else
-		int infd = open(inf.c_str(), O_RDONLY);
+		int infd = ::open(inf.c_str(), O_RDONLY);
 		if (infd < 0)
 		{
 			ec.assign(errno, boost::system::get_generic_category());
 			return;
 		}
-		int outfd = open(newf.c_str(), O_WRONLY | O_CREAT);
+
+		// rely on default umask to filter x and w permissions
+		// for group and others
+		// TODO: copy the mode from the source file
+		int permissions = S_IRUSR | S_IWUSR
+			| S_IRGRP | S_IWGRP
+			| S_IROTH | S_IWOTH;
+
+		int outfd = ::open(newf.c_str(), O_WRONLY | O_CREAT, permissions);
 		if (outfd < 0)
 		{
 			close(infd);
@@ -408,7 +416,7 @@ namespace libtorrent
 #endif // UNICODE
 #else
 		char cwd[TORRENT_MAX_PATH];
-		getcwd(cwd, sizeof(cwd));
+		if (getcwd(cwd, sizeof(cwd)) == 0) return "/";
 #endif
 #if defined TORRENT_WINDOWS && defined UNICODE
 		return convert_from_wstring(cwd);
