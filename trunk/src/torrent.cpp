@@ -1820,28 +1820,25 @@ namespace libtorrent
 		{
 			// Thist happens when a piece has been downloaded completely
 			// but not yet verified against the hash
-			std::cerr << "num_have: " << num_have() << std::endl;
-			
-			std::cerr << "unfinished:" << std::endl;
-			
+			fprintf(stderr, "num_have: %d\nunfinished:\n", num_have());
 			for (std::vector<piece_picker::downloading_piece>::const_iterator i =
 				dl_queue.begin(); i != dl_queue.end(); ++i)
 			{
-				std::cerr << "   " << i->index << " ";
+				fprintf(stderr, "  %d ", i->index);
 				for (int j = 0; j < blocks_per_piece; ++j)
 				{
-					std::cerr << (i->info[j].state == piece_picker::block_info::state_finished ? "1" : "0");
+					char const* state = i->info[j].state == piece_picker::block_info::state_finished ? "1" : "0";
+					fputs(state, stderr);
 				}
-				std::cerr << std::endl;
+				fputs("\n", stderr);
 			}
 			
-			std::cerr << "downloading pieces:" << std::endl;
+			fputs("downloading pieces:\n", stderr);
 
 			for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
 				i != downloading_piece.end(); ++i)
 			{
-				std::cerr << "   " << i->first.piece_index << ":" << i->first.block_index
-					<< "  " << i->second << std::endl;
+				fprintf(stderr, "   %d:%d  %d\n", i->first.piece_index, i->first.block_index, i->second);
 			}
 
 		}
@@ -3601,7 +3598,7 @@ namespace libtorrent
 					for (int k = 0; k < bits; ++k)
 						v |= (i->info[j*8+k].state == piece_picker::block_info::state_finished)
 						? (1 << k) : 0;
-					bitmask.insert(bitmask.end(), v);
+					bitmask.append(1, v);
 					TORRENT_ASSERT(bits == 8 || j == num_bitmask_bytes - 1);
 				}
 				piece_struct["bitmask"] = bitmask;
