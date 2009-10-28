@@ -95,6 +95,7 @@ release 0.14.7
 	* fixed bug in add_files that would fail to recurse if the path
 	  ended with a /
 	* fixed bug in error handling when parsing torrent files
+	* fixed file checking bug when renaming a file before checking the torrent
 
 release 0.14.6
 
