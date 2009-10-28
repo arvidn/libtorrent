@@ -483,18 +483,17 @@ namespace libtorrent
 		virtual buffer::interval allocate_send_buffer(int size);
 		virtual void setup_send();
 
+#if TORRENT_STATS
+		void log_buffer_usage(char* buffer, int size, char const* label);
+#endif
+
 		template <class Destructor>
 		void append_send_buffer(char* buffer, int size, Destructor const& destructor)
 		{
-#if TORRENT_DISK_STATS
-			if (m_ses.m_disk_thread.is_disk_buffer(buffer))
-				m_ses.m_disk_thread.rename_buffer(buffer, "queued send buffer");
+#if TORRENT_STATS
+			log_buffer_usage(buffer, size, "queued send buffer");
 #endif
 			m_send_buffer.append_buffer(buffer, size, size, destructor);
-#ifdef TORRENT_STATS
-			m_ses.m_buffer_usage_logger << log_time() << " append_send_buffer: " << size << std::endl;
-			m_ses.log_buffer_usage();
-#endif
 		}
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	

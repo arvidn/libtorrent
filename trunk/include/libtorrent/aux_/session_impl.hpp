@@ -83,6 +83,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/peer_connection.hpp" // for intrusive_ptr_release
 
+#ifdef TORRENT_STATS
+#include <fstream>
+#endif
+
 namespace libtorrent
 {
 
