@@ -484,8 +484,8 @@ namespace libtorrent
 
 	bool storage::has_any_file()
 	{
-		file_storage::iterator i = m_files.begin();
-		file_storage::iterator end = m_files.end();
+		file_storage::iterator i = files().begin();
+		file_storage::iterator end = files().end();
 
 		for (; i != end; ++i)
 		{
