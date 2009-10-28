@@ -22,5 +22,4 @@ exe simple_client : simple_client.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
 exe make_torrent : make_torrent.cpp ;
 exe enum_if : enum_if.cpp ;
-exe test : test.cpp ;
 
