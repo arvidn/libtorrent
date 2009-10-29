@@ -417,7 +417,7 @@ namespace aux {
 		return m_asnum_db;
 	}
 
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+#if TORRENT_USE_WSTRING
 	bool session_impl::load_asnum_db(wchar_t const* file)
 	{
 		if (m_asnum_db) GeoIP_delete(m_asnum_db);
@@ -435,7 +435,7 @@ namespace aux {
 		m_country_db = GeoIP_open(utf8.c_str(), GEOIP_STANDARD);
 		return m_country_db;
 	}
-#endif
+#endif // TORRENT_USE_WSTRING
 
 	bool session_impl::load_country_db(char const* file)
 	{
@@ -444,7 +444,7 @@ namespace aux {
 		return m_country_db;
 	}
 
-#endif
+#endif // TORRENT_DISABLE_GEO_IP
 
 	void session_impl::load_state(entry const& ses_state)
 	{
