@@ -38,7 +38,9 @@ void bind_create_torrent()
 #endif
 
     void (file_storage::*set_name0)(std::string const&) = &file_storage::set_name;
+#if TORRENT_USE_WSTRING
     void (file_storage::*set_name1)(std::wstring const&) = &file_storage::set_name;
+#endif
 
     void (*set_piece_hashes0)(create_torrent&, std::string const&) = &set_piece_hashes;
     void (*add_files0)(file_storage&, std::string const&) = add_files;
@@ -59,7 +61,9 @@ void bind_create_torrent()
         .def("piece_length", &file_storage::piece_length)
         .def("piece_size", &file_storage::piece_size)
         .def("set_name", set_name0)
+#if TORRENT_USE_WSTRING
         .def("set_name", set_name1)
+#endif
         .def("name", &file_storage::name, return_internal_reference<>())
         ;
 
