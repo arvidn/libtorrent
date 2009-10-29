@@ -337,7 +337,7 @@ namespace libtorrent
 		return m_impl->as_for_ip(addr);
 	}
 
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+#if TORRENT_USE_WSTRING
 	bool session::load_asnum_db(wchar_t const* file)
 	{
 		mutex::scoped_lock l(m_impl->m_mutex);
@@ -349,8 +349,8 @@ namespace libtorrent
 		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->load_country_db(file);
 	}
-#endif
-#endif
+#endif // TORRENT_USE_WSTRING
+#endif // TORRENT_DISABLE_GEO_IP
 
 	void session::load_state(entry const& ses_state)
 	{

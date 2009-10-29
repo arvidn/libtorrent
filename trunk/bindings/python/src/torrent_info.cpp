@@ -131,7 +131,7 @@ void bind_torrent_info()
         .def("file_at_offset", &torrent_info::file_at_offset)
         .def("files", &files, (arg("storage")=false))
         .def("rename_file", rename_file0)
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+#if TORRENT_USE_WSTRING
         .def("rename_file", rename_file1)
 #endif
 

@@ -325,11 +325,11 @@ namespace libtorrent
 			bool has_country_db() const { return m_country_db; }
 			char const* country_for_ip(address const& a);
 
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+#if TORRENT_USE_WSTRING
 			bool load_asnum_db(wchar_t const* file);
 			bool load_country_db(wchar_t const* file);
-#endif
-#endif
+#endif // TORRENT_USE_WSTRING
+#endif // TORRENT_DISABLE_GEO_IP
 
 			void load_state(entry const& ses_state);
 			entry state() const;
