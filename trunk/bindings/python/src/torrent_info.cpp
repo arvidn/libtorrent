@@ -90,7 +90,7 @@ void bind_torrent_info()
     return_value_policy<copy_const_reference> copy;
 
     void (torrent_info::*rename_file0)(int, std::string const&) = &torrent_info::rename_file;
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+#if TORRENT_USE_WSTRING
     void (torrent_info::*rename_file1)(int, std::wstring const&) = &torrent_info::rename_file;
 #endif
 
@@ -107,7 +107,9 @@ void bind_torrent_info()
         .def(init<sha1_hash const&>())
         .def(init<char const*, int>())
         .def(init<std::string>())
+#if TORRENT_USE_WSTRING
         .def(init<std::wstring>())
+#endif
 
         .def("add_tracker", &torrent_info::add_tracker, (arg("url"), arg("tier")=0))
         .def("add_url_seed", &torrent_info::add_url_seed)
