@@ -96,6 +96,14 @@ namespace libtorrent
 		std::string url;
 	};
 
+#define TORRENT_DEFINE_ALERT(name) \
+	const static int alert_type = __LINE__; \
+	virtual int type() const { return alert_type; } \
+	virtual std::auto_ptr<alert> clone() const \
+	{ return std::auto_ptr<alert>(new name(*this)); } \
+	virtual int category() const { return static_category; } \
+	virtual char const* what() const { return #name; }
+
 	struct TORRENT_EXPORT read_piece_alert: torrent_alert
 	{
 		read_piece_alert(torrent_handle const& h
@@ -106,11 +114,9 @@ namespace libtorrent
 			, size(s)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new read_piece_alert(*this)); }
+		TORRENT_DEFINE_ALERT(read_piece_alert);
+
 		const static int static_category = alert::storage_notification;
-		virtual int category() const { return static_category; }
-		virtual char const* what() const { return "read piece"; }
 		virtual std::string message() const
 		{
 			char msg[200];
@@ -132,11 +138,9 @@ namespace libtorrent
 			, index(index_)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new file_completed_alert(*this)); }
+		TORRENT_DEFINE_ALERT(file_completed_alert);
+
 		const static int static_category = alert::progress_notification;
-		virtual int category() const { return static_category; }
-		virtual char const* what() const { return "file completed"; }
 		virtual std::string message() const
 		{
 			char msg[200 + TORRENT_MAX_PATH];
@@ -158,11 +162,9 @@ namespace libtorrent
 			, index(index_)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new file_renamed_alert(*this)); }
+		TORRENT_DEFINE_ALERT(file_renamed_alert);
+
 		const static int static_category = alert::storage_notification;
-		virtual int category() const { return static_category; }
-		virtual char const* what() const { return "file renamed"; }
 		virtual std::string message() const
 		{
 			char msg[200 + TORRENT_MAX_PATH * 2];
@@ -185,10 +187,10 @@ namespace libtorrent
 			, error(ec_)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new file_rename_failed_alert(*this)); }
+		TORRENT_DEFINE_ALERT(file_rename_failed_alert);
 
-		virtual char const* what() const { return "file rename failed"; }
+		const static int static_category = alert::storage_notification;
+
 		virtual std::string message() const
 		{
 			char ret[200 + TORRENT_MAX_PATH * 2];
@@ -196,9 +198,6 @@ namespace libtorrent
 				, torrent_alert::message().c_str(), index, error.message().c_str());
 			return ret;
 		}
-
-		const static int static_category = alert::storage_notification;
-		virtual int category() const { return static_category; }
 
 		int index;
 		error_code error;
@@ -221,10 +220,10 @@ namespace libtorrent
 			, warning_code(w)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new performance_alert(*this)); }
+		TORRENT_DEFINE_ALERT(performance_alert);
 
-		virtual char const* what() const { return "performance warning"; }
+		const static int static_category = alert::performance_warning;
+
 		virtual std::string message() const
 		{
 			static char const* warning_str[] =
@@ -240,9 +239,6 @@ namespace libtorrent
 				+ warning_str[warning_code];
 		}
 
-		const static int static_category = alert::performance_warning;
-		virtual int category() const { return static_category; }
-
 		performance_warning_t warning_code;
 	};
 
@@ -256,10 +252,10 @@ namespace libtorrent
 			, prev_state(prev_state_)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new state_changed_alert(*this)); }
+		TORRENT_DEFINE_ALERT(state_changed_alert);
 
-		virtual char const* what() const { return "torrent state changed"; }
+		const static int static_category = alert::status_notification;
+
 		virtual std::string message() const
 		{
 			static char const* state_str[] =
@@ -270,10 +266,6 @@ namespace libtorrent
 			return torrent_alert::message() + ": state changed to: "
 				+ state_str[state];
 		}
-
-
-		const static int static_category = alert::status_notification;
-		virtual int category() const { return static_category; }
 
 		torrent_status::state_t state;
 		torrent_status::state_t prev_state;
@@ -307,11 +299,9 @@ namespace libtorrent
 			TORRENT_ASSERT(!url.empty());
 		}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new tracker_error_alert(*this)); }
+		TORRENT_DEFINE_ALERT(tracker_error_alert);
+
 		const static int static_category = alert::tracker_notification | alert::error_notification;
-		virtual int category() const { return static_category; }
-		virtual char const* what() const { return "tracker error"; }
 		virtual std::string message() const
 		{
 			char ret[400];
@@ -335,17 +325,15 @@ namespace libtorrent
 			, msg(msg_)
 		{ TORRENT_ASSERT(!url.empty()); }
 
-		std::string msg;
+		TORRENT_DEFINE_ALERT(tracker_warning_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new tracker_warning_alert(*this)); }
 		const static int static_category = alert::tracker_notification | alert::error_notification;
-		virtual int category() const { return static_category; }
-		virtual char const* what() const { return "tracker warning"; }
 		virtual std::string message() const
 		{
 			return tracker_alert::message() + " warning: " + msg;
 		}
+
+		std::string msg;
 	};
 
 	struct TORRENT_EXPORT scrape_reply_alert: tracker_alert
@@ -359,12 +347,8 @@ namespace libtorrent
 			, complete(complete_)
 		{ TORRENT_ASSERT(!url.empty()); }
 
-		int incomplete;
-		int complete;
+		TORRENT_DEFINE_ALERT(scrape_reply_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new scrape_reply_alert(*this)); }
-		virtual char const* what() const { return "tracker scrape reply"; }
 		virtual std::string message() const
 		{
 			char ret[400];
@@ -372,6 +356,9 @@ namespace libtorrent
 				, torrent_alert::message().c_str(), incomplete, complete);
 			return ret;
 		}
+
+		int incomplete;
+		int complete;
 	};
 
 	struct TORRENT_EXPORT scrape_failed_alert: tracker_alert
@@ -390,17 +377,13 @@ namespace libtorrent
 			, msg(msg_)
 		{ TORRENT_ASSERT(!url.empty()); }
 
-		std::string msg;
+		TORRENT_DEFINE_ALERT(scrape_failed_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new scrape_failed_alert(*this)); }
 		const static int static_category = alert::tracker_notification | alert::error_notification;
-		virtual int category() const { return static_category; }
-		virtual char const* what() const { return "tracker scrape failed"; }
 		virtual std::string message() const
-		{
-			return tracker_alert::message() + " scrape failed: " + msg;
-		}
+		{ return tracker_alert::message() + " scrape failed: " + msg; }
+
+		std::string msg;
 	};
 
 	struct TORRENT_EXPORT tracker_reply_alert: tracker_alert
@@ -412,11 +395,8 @@ namespace libtorrent
 			, num_peers(np)
 		{ TORRENT_ASSERT(!url.empty()); }
 
-		int num_peers;
+		TORRENT_DEFINE_ALERT(tracker_reply_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new tracker_reply_alert(*this)); }
-		virtual char const* what() const { return "tracker reply"; }
 		virtual std::string message() const
 		{
 			char ret[400];
@@ -424,6 +404,8 @@ namespace libtorrent
 				, torrent_alert::message().c_str(), num_peers);
 			return ret;
 		}
+
+		int num_peers;
 	};
 
 	struct TORRENT_EXPORT dht_reply_alert: tracker_alert
@@ -434,11 +416,8 @@ namespace libtorrent
 			, num_peers(np)
 		{}
 
-		int num_peers;
+		TORRENT_DEFINE_ALERT(dht_reply_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new dht_reply_alert(*this)); }
-		virtual char const* what() const { return "DHT reply"; }
 		virtual std::string message() const
 		{
 			char ret[400];
@@ -446,6 +425,8 @@ namespace libtorrent
 				, torrent_alert::message().c_str(), num_peers);
 			return ret;
 		}
+
+		int num_peers;
 	};
 
 	struct TORRENT_EXPORT tracker_announce_alert: tracker_alert
@@ -456,16 +437,15 @@ namespace libtorrent
 			, event(event_)
 		{ TORRENT_ASSERT(!url.empty()); }
 
-		int event;
-	
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new tracker_announce_alert(*this)); }
-		virtual char const* what() const { return "tracker announce sent"; }
+		TORRENT_DEFINE_ALERT(tracker_announce_alert);
+
 		virtual std::string message() const
 		{
 			const static char* event_str[] = {"none", "completed", "started", "stopped"};
 			return tracker_alert::message() + " sending announce (" + event_str[event] + ")";
 		}
+
+		int event;
 	};
 	
 	struct TORRENT_EXPORT hash_failed_alert: torrent_alert
@@ -477,11 +457,9 @@ namespace libtorrent
 			, piece_index(index)
 		{ TORRENT_ASSERT(index >= 0);}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new hash_failed_alert(*this)); }
-		virtual char const* what() const { return "piece hash failed"; }
+		TORRENT_DEFINE_ALERT(hash_failed_alert);
+
 		const static int static_category = alert::status_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			char ret[400];
@@ -500,14 +478,10 @@ namespace libtorrent
 			: peer_alert(h, ip, pid)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new peer_ban_alert(*this)); }
-		virtual char const* what() const { return "peer banned"; }
+		TORRENT_DEFINE_ALERT(peer_ban_alert);
+
 		virtual std::string message() const
-		{
-			error_code ec;
-			return peer_alert::message() + " banned peer";
-		}
+		{ return peer_alert::message() + " banned peer"; }
 	};
 
 	struct TORRENT_EXPORT peer_unsnubbed_alert: peer_alert
@@ -517,13 +491,10 @@ namespace libtorrent
 			: peer_alert(h, ip, pid)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new peer_unsnubbed_alert(*this)); }
-		virtual char const* what() const { return "peer unsnubbed"; }
+		TORRENT_DEFINE_ALERT(peer_unsnubbed_alert);
+
 		virtual std::string message() const
-		{
-			return peer_alert::message() + " peer unsnubbed";
-		}
+		{ return peer_alert::message() + " peer unsnubbed"; }
 	};
 
 	struct TORRENT_EXPORT peer_snubbed_alert: peer_alert
@@ -533,13 +504,10 @@ namespace libtorrent
 			: peer_alert(h, ip, pid)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new peer_snubbed_alert(*this)); }
-		virtual char const* what() const { return "peer snubbed"; }
+		TORRENT_DEFINE_ALERT(peer_snubbed_alert);
+
 		virtual std::string message() const
-		{
-			return peer_alert::message() + " peer snubbed";
-		}
+		{ return peer_alert::message() + " peer snubbed"; }
 	};
 
 	struct TORRENT_EXPORT peer_error_alert: peer_alert
@@ -554,11 +522,9 @@ namespace libtorrent
 #endif
 		}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new peer_error_alert(*this)); }
-		virtual char const* what() const { return "peer error"; }
+		TORRENT_DEFINE_ALERT(peer_error_alert);
+
 		const static int static_category = alert::peer_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			error_code ec;
@@ -579,15 +545,11 @@ namespace libtorrent
 			: peer_alert(h, ip, pid)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new peer_connect_alert(*this)); }
-		virtual char const* what() const { return "connecting to peer"; }
+		TORRENT_DEFINE_ALERT(peer_connect_alert);
+
 		const static int static_category = alert::debug_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
-		{
-			return peer_alert::message() + " connecting to peer";
-		}
+		{ return peer_alert::message() + " connecting to peer"; }
 	};
 
 	struct TORRENT_EXPORT peer_disconnected_alert: peer_alert
@@ -602,15 +564,11 @@ namespace libtorrent
 #endif
 		}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new peer_disconnected_alert(*this)); }
-		virtual char const* what() const { return "peer disconnected"; }
+		TORRENT_DEFINE_ALERT(peer_disconnected_alert);
+
 		const static int static_category = alert::debug_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
-		{
-			return peer_alert::message() + " disconnecting: " + error.message();
-		}
+		{ return peer_alert::message() + " disconnecting: " + error.message(); }
 
 		error_code error;
 
@@ -627,9 +585,8 @@ namespace libtorrent
 			, request(r)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new invalid_request_alert(*this)); }
-		virtual char const* what() const { return "invalid piece request"; }
+		TORRENT_DEFINE_ALERT(invalid_request_alert);
+
 		virtual std::string message() const
 		{
 			char ret[200];
@@ -648,15 +605,11 @@ namespace libtorrent
 			: torrent_alert(h)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new torrent_finished_alert(*this)); }
-		virtual char const* what() const { return "torrent finished"; }
+		TORRENT_DEFINE_ALERT(torrent_finished_alert);
+
 		const static int static_category = alert::status_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
-		{
-			return torrent_alert::message() + " torrent finished downloading";
-		}
+		{ return torrent_alert::message() + " torrent finished downloading"; }
 	};
 
 	struct TORRENT_EXPORT piece_finished_alert: torrent_alert
@@ -668,13 +621,9 @@ namespace libtorrent
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(piece_index >= 0);}
 
-		int piece_index;
+		TORRENT_DEFINE_ALERT(piece_finished_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new piece_finished_alert(*this)); }
-		virtual char const* what() const { return "piece finished downloading"; }
 		const static int static_category = alert::progress_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			char ret[200];
@@ -682,6 +631,8 @@ namespace libtorrent
 				, torrent_alert::message().c_str(), piece_index);
 			return ret;
 		}
+
+		int piece_index;
 	};
 
 	struct TORRENT_EXPORT request_dropped_alert: peer_alert
@@ -693,15 +644,10 @@ namespace libtorrent
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
 
-		int block_index;
-		int piece_index;
+		TORRENT_DEFINE_ALERT(request_dropped_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new request_dropped_alert(*this)); }
-		virtual char const* what() const { return "block request dropped"; }
 		const static int static_category = alert::progress_notification
 			| alert::peer_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			char ret[200];
@@ -709,6 +655,9 @@ namespace libtorrent
 				, torrent_alert::message().c_str(), piece_index, block_index);
 			return ret;
 		}
+
+		int block_index;
+		int piece_index;
 	};
 
 	struct TORRENT_EXPORT block_timeout_alert: peer_alert
@@ -720,15 +669,10 @@ namespace libtorrent
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
 
-		int block_index;
-		int piece_index;
+		TORRENT_DEFINE_ALERT(block_timeout_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new block_timeout_alert(*this)); }
-		virtual char const* what() const { return "block timed out"; }
 		const static int static_category = alert::progress_notification
 			| alert::peer_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			char ret[200];
@@ -736,6 +680,9 @@ namespace libtorrent
 				, torrent_alert::message().c_str(), piece_index, block_index);
 			return ret;
 		}
+
+		int block_index;
+		int piece_index;
 	};
 
 	struct TORRENT_EXPORT block_finished_alert: peer_alert
@@ -747,14 +694,9 @@ namespace libtorrent
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
 
-		int block_index;
-		int piece_index;
+		TORRENT_DEFINE_ALERT(block_finished_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new block_finished_alert(*this)); }
-		virtual char const* what() const { return "block finished downloading"; }
 		const static int static_category = alert::progress_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			char ret[200];
@@ -762,6 +704,9 @@ namespace libtorrent
 				, torrent_alert::message().c_str(), piece_index, block_index);
 			return ret;
 		}
+
+		int block_index;
+		int piece_index;
 	};
 
 	struct TORRENT_EXPORT block_downloading_alert: peer_alert
@@ -772,17 +717,11 @@ namespace libtorrent
 			, peer_speedmsg(speedmsg)
 			, block_index(block_num)
 			, piece_index(piece_num)
-		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
+		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0); }
 
-		char const* peer_speedmsg;
-		int block_index;
-		int piece_index;
+		TORRENT_DEFINE_ALERT(block_downloading_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new block_downloading_alert(*this)); }
-		virtual char const* what() const { return "block requested"; }
 		const static int static_category = alert::progress_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			char ret[200];
@@ -790,6 +729,10 @@ namespace libtorrent
 				, torrent_alert::message().c_str(), piece_index, block_index, peer_speedmsg);
 			return ret;
 		}
+
+		char const* peer_speedmsg;
+		int block_index;
+		int piece_index;
 	};
 
 	struct TORRENT_EXPORT unwanted_block_alert: peer_alert
@@ -801,12 +744,8 @@ namespace libtorrent
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
 
-		int block_index;
-		int piece_index;
+		TORRENT_DEFINE_ALERT(unwanted_block_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new unwanted_block_alert(*this)); }
-		virtual char const* what() const { return "unwanted block received"; }
 		virtual std::string message() const
 		{
 			char ret[200];
@@ -814,6 +753,9 @@ namespace libtorrent
 				, torrent_alert::message().c_str(), piece_index, block_index);
 			return ret;
 		}
+
+		int block_index;
+		int piece_index;
 	};
 
 	struct TORRENT_EXPORT storage_moved_alert: torrent_alert
@@ -823,18 +765,16 @@ namespace libtorrent
 			, path(path_)
 		{}
 	
-		std::string path;
+		TORRENT_DEFINE_ALERT(storage_moved_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new storage_moved_alert(*this)); }
-		virtual char const* what() const { return "storage moved"; }
 		const static int static_category = alert::storage_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			return torrent_alert::message() + " moved storage to: "
 				+ path;
 		}
+
+		std::string path;
 	};
 
 	struct TORRENT_EXPORT storage_moved_failed_alert: torrent_alert
@@ -844,18 +784,16 @@ namespace libtorrent
 			, error(ec_)
 		{}
 	
-		error_code error;
+		TORRENT_DEFINE_ALERT(storage_moved_failed_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new storage_moved_failed_alert(*this)); }
-		virtual char const* what() const { return "storage moved failed"; }
 		const static int static_category = alert::storage_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			return torrent_alert::message() + " storage move failed: "
 				+ error.message();
 		}
+
+		error_code error;
 	};
 
 	struct TORRENT_EXPORT torrent_deleted_alert: torrent_alert
@@ -864,15 +802,11 @@ namespace libtorrent
 			: torrent_alert(h)
 		{}
 	
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new torrent_deleted_alert(*this)); }
-		virtual char const* what() const { return "torrent deleted"; }
+		TORRENT_DEFINE_ALERT(torrent_deleted_alert);
+
 		const static int static_category = alert::storage_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
-		{
-			return torrent_alert::message() + " deleted";
-		}
+		{ return torrent_alert::message() + " deleted"; }
 	};
 
 	struct TORRENT_EXPORT torrent_delete_failed_alert: torrent_alert
@@ -886,23 +820,21 @@ namespace libtorrent
 #endif
 		}
 	
-		error_code error;
+		TORRENT_DEFINE_ALERT(torrent_delete_failed_alert);
 
-#ifndef TORRENT_NO_DEPRECATE
-		std::string msg;
-#endif
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new torrent_delete_failed_alert(*this)); }
-		virtual char const* what() const { return "torrent delete failed"; }
 		const static int static_category = alert::storage_notification
 			| alert::error_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			return torrent_alert::message() + " torrent deletion failed: "
 				+ error.message();
 		}
+
+		error_code error;
+
+#ifndef TORRENT_NO_DEPRECATE
+		std::string msg;
+#endif
 	};
 
 	struct TORRENT_EXPORT save_resume_data_alert: torrent_alert
@@ -913,17 +845,13 @@ namespace libtorrent
 			, resume_data(rd)
 		{}
 	
-		boost::shared_ptr<entry> resume_data;
-		
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new save_resume_data_alert(*this)); }
-		virtual char const* what() const { return "save resume data complete"; }
+		TORRENT_DEFINE_ALERT(save_resume_data_alert);
+
 		const static int static_category = alert::storage_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
-		{
-			return torrent_alert::message() + " resume data generated";
-		}
+		{ return torrent_alert::message() + " resume data generated"; }
+
+		boost::shared_ptr<entry> resume_data;
 	};
 
 	struct TORRENT_EXPORT save_resume_data_failed_alert: torrent_alert
@@ -938,23 +866,21 @@ namespace libtorrent
 #endif
 		}
 	
-		error_code error;
+		TORRENT_DEFINE_ALERT(save_resume_data_failed_alert);
 
-#ifndef TORRENT_NO_DEPRECATE
-		std::string msg;
-#endif
-		
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new save_resume_data_failed_alert(*this)); }
-		virtual char const* what() const { return "save resume data failed"; }
 		const static int static_category = alert::storage_notification
 			| alert::error_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			return torrent_alert::message() + " resume data was not generated: "
 				+ error.message();
 		}
+
+		error_code error;
+
+#ifndef TORRENT_NO_DEPRECATE
+		std::string msg;
+#endif
 	};
 
 	struct TORRENT_EXPORT torrent_paused_alert: torrent_alert
@@ -963,15 +889,11 @@ namespace libtorrent
 			: torrent_alert(h)
 		{}
 	
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new torrent_paused_alert(*this)); }
-		virtual char const* what() const { return "torrent paused"; }
+		TORRENT_DEFINE_ALERT(torrent_paused_alert);
+
 		const static int static_category = alert::status_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
-		{
-			return torrent_alert::message() + " paused";
-		}
+		{ return torrent_alert::message() + " paused"; }
 	};
 
 	struct TORRENT_EXPORT torrent_resumed_alert: torrent_alert
@@ -979,15 +901,11 @@ namespace libtorrent
 		torrent_resumed_alert(torrent_handle const& h)
 			: torrent_alert(h) {}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new torrent_resumed_alert(*this)); }
-		virtual char const* what() const { return "torrent resumed"; }
+		TORRENT_DEFINE_ALERT(torrent_resumed_alert);
+
 		const static int static_category = alert::status_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
-		{
-			return torrent_alert::message() + " resumed";
-		}
+		{ return torrent_alert::message() + " resumed"; }
 	};
 
 	struct TORRENT_EXPORT torrent_checked_alert: torrent_alert
@@ -996,17 +914,12 @@ namespace libtorrent
 			: torrent_alert(h)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new torrent_checked_alert(*this)); }
-		virtual char const* what() const { return "torrent checked"; }
-		const static int static_category = alert::status_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			return torrent_alert::message() + " checked";
-		}
-  };
+		TORRENT_DEFINE_ALERT(torrent_checked_alert);
 
+		const static int static_category = alert::status_notification;
+		virtual std::string message() const
+		{ return torrent_alert::message() + " checked"; }
+	};
 
 	struct TORRENT_EXPORT url_seed_alert: torrent_alert
 	{
@@ -1028,11 +941,9 @@ namespace libtorrent
 			, msg(msg_)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new url_seed_alert(*this)); }
-		virtual char const* what() const { return "web seed error"; }
+		TORRENT_DEFINE_ALERT(url_seed_alert);
+
 		const static int static_category = alert::peer_notification | alert::error_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			return torrent_alert::message() + " url seed ("
@@ -1058,25 +969,23 @@ namespace libtorrent
 #endif
 		}
 
+		TORRENT_DEFINE_ALERT(file_error_alert);
+
+		const static int static_category = alert::status_notification
+			| alert::error_notification
+			| alert::storage_notification;
+		virtual std::string message() const
+		{
+			return torrent_alert::message() + " file (" + file + ") error: "
+				+ error.message();
+		}
+
 		std::string file;
 		error_code error;
 
 #ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
 #endif
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new file_error_alert(*this)); }
-		virtual char const* what() const { return "file error"; }
-		const static int static_category = alert::status_notification
-			| alert::error_notification
-			| alert::storage_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			return torrent_alert::message() + " file (" + file + ") error: "
-				+ error.message();
-		}
 	};
 
 	struct TORRENT_EXPORT metadata_failed_alert: torrent_alert
@@ -1085,15 +994,11 @@ namespace libtorrent
 			: torrent_alert(h)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new metadata_failed_alert(*this)); }
-		virtual char const* what() const { return "metadata failed"; }
+		TORRENT_DEFINE_ALERT(metadata_failed_alert);
+
 		const static int static_category = alert::error_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
-		{
-			return torrent_alert::message() + " invalid metadata received";
-		}
+		{ return torrent_alert::message() + " invalid metadata received"; }
 	};
 	
 	struct TORRENT_EXPORT metadata_received_alert: torrent_alert
@@ -1103,15 +1008,11 @@ namespace libtorrent
 			: torrent_alert(h)
 		{}
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new metadata_received_alert(*this)); }
-		virtual char const* what() const { return "metadata received"; }
+		TORRENT_DEFINE_ALERT(metadata_received_alert);
+
 		const static int static_category = alert::status_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
-		{
-			return torrent_alert::message() + " metadata successfully received";
-		}
+		{ return torrent_alert::message() + " metadata successfully received"; }
 	};
 
 	struct TORRENT_EXPORT udp_error_alert: alert
@@ -1123,19 +1024,17 @@ namespace libtorrent
 			, error(ec)
 		{}
 
-		udp::endpoint endpoint;
-		error_code error;
+		TORRENT_DEFINE_ALERT(udp_error_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new udp_error_alert(*this)); }
-		virtual char const* what() const { return "udp error"; }
 		const static int static_category = alert::error_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			error_code ec;
 			return "UDP error: " + error.message() + " from: " + endpoint.address().to_string(ec);
 		}
+
+		udp::endpoint endpoint;
+		error_code error;
 	};
 
 	struct TORRENT_EXPORT external_ip_alert: alert
@@ -1144,18 +1043,16 @@ namespace libtorrent
 			: external_address(ip)
 		{}
 
-		address external_address;
+		TORRENT_DEFINE_ALERT(external_ip_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new external_ip_alert(*this)); }
-		virtual char const* what() const { return "external IP received"; }
 		const static int static_category = alert::status_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			error_code ec;
 			return "external IP received: " + external_address.to_string(ec);
 		}
+
+		address external_address;
 	};
 
 	struct TORRENT_EXPORT listen_failed_alert: alert
@@ -1167,14 +1064,9 @@ namespace libtorrent
 			, error(ec)
 		{}
 
-		tcp::endpoint endpoint;
-		error_code error;
+		TORRENT_DEFINE_ALERT(listen_failed_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new listen_failed_alert(*this)); }
-		virtual char const* what() const { return "listen failed"; }
 		const static int static_category = alert::status_notification | alert::error_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			char ret[200];
@@ -1182,6 +1074,9 @@ namespace libtorrent
 				, print_endpoint(endpoint).c_str(), error.message().c_str());
 			return ret;
 		}
+
+		tcp::endpoint endpoint;
+		error_code error;
 	};
 
 	struct TORRENT_EXPORT listen_succeeded_alert: alert
@@ -1190,98 +1085,90 @@ namespace libtorrent
 			: endpoint(ep)
 		{}
 
-		tcp::endpoint endpoint;
+		TORRENT_DEFINE_ALERT(listen_succeeded_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new listen_succeeded_alert(*this)); }
-		virtual char const* what() const { return "listen succeeded"; }
 		const static int static_category = alert::status_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			char ret[200];
 			snprintf(ret, sizeof(ret), "successfully listening on %s", print_endpoint(endpoint).c_str());
 			return ret;
 		}
+
+		tcp::endpoint endpoint;
 	};
 
 	struct TORRENT_EXPORT portmap_error_alert: alert
 	{
 		portmap_error_alert(int i, int t, error_code const& e)
-			:  mapping(i), type(t), error(e)
+			:  mapping(i), map_type(t), error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
 			msg = error.message();
 #endif
 		}
 
+		TORRENT_DEFINE_ALERT(portmap_error_alert);
+
+		const static int static_category = alert::port_mapping_notification
+			| alert::error_notification;
+		virtual std::string message() const
+		{
+			static char const* type_str[] = {"NAT-PMP", "UPnP"};
+			return std::string("could not map port using ") + type_str[map_type]
+				+ ": " + error.message();
+		}
+
 		int mapping;
-		int type;
+		int map_type;
 		error_code error;
 #ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
 #endif
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new portmap_error_alert(*this)); }
-		virtual char const* what() const { return "port map error"; }
-		const static int static_category = alert::port_mapping_notification
-			| alert::error_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			static char const* type_str[] = {"NAT-PMP", "UPnP"};
-			return std::string("could not map port using ") + type_str[type]
-				+ ": " + error.message();
-		}
 	};
 
 	struct TORRENT_EXPORT portmap_alert: alert
 	{
 		portmap_alert(int i, int port, int t)
-			: mapping(i), external_port(port), type(t)
+			: mapping(i), external_port(port), map_type(t)
 		{}
 
-		int mapping;
-		int external_port;
-		int type;
+		TORRENT_DEFINE_ALERT(portmap_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new portmap_alert(*this)); }
-		virtual char const* what() const { return "port map succeeded"; }
 		const static int static_category = alert::port_mapping_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			static char const* type_str[] = {"NAT-PMP", "UPnP"};
 			char ret[200];
 			snprintf(ret, sizeof(ret), "successfully mapped port using %s. external port: %u"
-				, type_str[type], external_port);
+				, type_str[map_type], external_port);
 			return ret;
 		}
+
+		int mapping;
+		int external_port;
+		int map_type;
 	};
 
 	struct TORRENT_EXPORT portmap_log_alert: alert
 	{
 		portmap_log_alert(int t, std::string const& m)
-			: type(t), msg(m)
+			: map_type(t), msg(m)
 		{}
 
-		int type;
-		std::string msg;
+		TORRENT_DEFINE_ALERT(portmap_log_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new portmap_log_alert(*this)); }
-		virtual char const* what() const { return "port map log"; }
 		const static int static_category = alert::port_mapping_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			static char const* type_str[] = {"NAT-PMP", "UPnP"};
 			char ret[200];
-			snprintf(ret, sizeof(ret), "%s: %s", type_str[type], msg.c_str());
+			snprintf(ret, sizeof(ret), "%s: %s", type_str[map_type], msg.c_str());
 			return ret;
 		}
+
+		int map_type;
+		std::string msg;
 	};
 
 	struct TORRENT_EXPORT fastresume_rejected_alert: torrent_alert
@@ -1296,22 +1183,18 @@ namespace libtorrent
 #endif
 		}
 
+		TORRENT_DEFINE_ALERT(fastresume_rejected_alert);
+
+		const static int static_category = alert::status_notification
+			| alert::error_notification;
+		virtual std::string message() const
+		{ return torrent_alert::message() + " fast resume rejected: " + error.message(); }
+
 		error_code error;
 
 #ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
 #endif
-
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new fastresume_rejected_alert(*this)); }
-		virtual char const* what() const { return "resume data rejected"; }
-		const static int static_category = alert::status_notification
-			| alert::error_notification;
-		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			return torrent_alert::message() + " fast resume rejected: " + error.message();
-		}
 	};
 
 	struct TORRENT_EXPORT peer_blocked_alert: torrent_alert
@@ -1321,18 +1204,16 @@ namespace libtorrent
 			, ip(ip_)
 		{}
 		
-		address ip;
+		TORRENT_DEFINE_ALERT(peer_blocked_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new peer_blocked_alert(*this)); }
-		virtual char const* what() const { return "peer blocked"; }
 		const static int static_category = alert::ip_block_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			error_code ec;
 			return torrent_alert::message() + ": blocked peer: " + ip.to_string(ec);
 		}
+
+		address ip;
 	};
 
 	struct TORRENT_EXPORT dht_announce_alert: alert
@@ -1344,15 +1225,9 @@ namespace libtorrent
 			, info_hash(info_hash_)
 		{}
 		
-		address ip;
-		int port;
-		sha1_hash info_hash;
+		TORRENT_DEFINE_ALERT(dht_announce_alert);
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new dht_announce_alert(*this)); }
-		virtual char const* what() const { return "incoming dht announce"; }
 		const static int static_category = alert::dht_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			error_code ec;
@@ -1363,6 +1238,10 @@ namespace libtorrent
 				, ip.to_string(ec).c_str(), port, ih_hex);
 			return msg;
 		}
+
+		address ip;
+		int port;
+		sha1_hash info_hash;
 	};
 
 	struct TORRENT_EXPORT dht_get_peers_alert: alert
@@ -1370,14 +1249,10 @@ namespace libtorrent
 		dht_get_peers_alert(sha1_hash const& info_hash_)
 			: info_hash(info_hash_)
 		{}
-		
-		sha1_hash info_hash;
 
-		virtual std::auto_ptr<alert> clone() const
-		{ return std::auto_ptr<alert>(new dht_get_peers_alert(*this)); }
-		virtual char const* what() const { return "incoming dht get_peers request"; }
+		TORRENT_DEFINE_ALERT(dht_get_peers_alert);
+
 		const static int static_category = alert::dht_notification;
-		virtual int category() const { return static_category; }
 		virtual std::string message() const
 		{
 			char ih_hex[41];
@@ -1386,6 +1261,8 @@ namespace libtorrent
 			snprintf(msg, sizeof(msg), "incoming dht get_peers: %s", ih_hex);
 			return msg;
 		}
+
+		sha1_hash info_hash;
 	};
 }
 

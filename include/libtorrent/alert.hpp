@@ -69,8 +69,10 @@ namespace libtorrent {
 	{
 	public:
 
+#ifndef TORRENT_NO_DEPRECATE
 		// only here for backwards compatibility
 		enum severity_t { debug, info, warning, critical, fatal, none };
+#endif
 
 		enum category_t
 		{
@@ -95,6 +97,7 @@ namespace libtorrent {
 		// a timestamp is automatically created in the constructor
 		ptime timestamp() const;
 
+		virtual int type() const = 0;
 		virtual char const* what() const = 0;
 		virtual std::string message() const = 0;
 		virtual int category() const = 0;
@@ -158,6 +161,8 @@ namespace libtorrent {
 		unhandled_alert() {}
 	};
 
+#ifndef BOOST_NO_TYPEID
+
 	namespace detail {
 
 		struct void_;
@@ -205,6 +210,9 @@ namespace libtorrent {
 			#undef ALERT_POINTER_TYPE
 		}
 	};
+
+#endif // BOOST_NO_TYPEID
+
 
 } // namespace libtorrent
 
