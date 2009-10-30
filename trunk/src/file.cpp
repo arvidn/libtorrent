@@ -307,7 +307,7 @@ namespace libtorrent
 
 	void replace_extension(std::string& f, std::string const& ext)
 	{
-		char* e = strrchr(f.c_str(), '.');
+		char const* e = strrchr(f.c_str(), '.');
 		if (e == 0) f += '.';
 		else f.resize(e - f.c_str() + 1);
 		f += ext;
@@ -380,9 +380,9 @@ namespace libtorrent
 
 	std::string filename(std::string const& f)
 	{
-		char* sep = strrchr(f.c_str(), '/');
+		char const* sep = strrchr(f.c_str(), '/');
 #ifdef TORRENT_WINDOWS
-		char* altsep = strrchr(f.c_str(), '\\');
+		char const* altsep = strrchr(f.c_str(), '\\');
 		if (sep == 0 || altsep > sep) sep = altsep;
 #endif
 		if (sep == 0) return f;
