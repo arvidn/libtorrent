@@ -261,12 +261,18 @@ namespace libtorrent
 				{
 					request += m_url;
 					std::string path = info.orig_files().at(f.file_index).path;
+#ifdef TORRENT_WINDOWS
+					convert_path_to_posix(path);
+#endif
 					request += escape_path(path.c_str(), path.length());
 				}
 				else
 				{
 					std::string path = m_path;
 					path += info.orig_files().at(f.file_index).path;
+#ifdef TORRENT_WINDOWS
+					convert_path_to_posix(path);
+#endif
 					request += escape_path(path.c_str(), path.length());
 				}
 				request += " HTTP/1.1\r\n";
@@ -453,6 +459,9 @@ namespace libtorrent
 
 						torrent_info const& info = t->torrent_file();
 						std::string path = info.orig_files().at(file_index).path;
+#ifdef TORRENT_WINDOWS
+						convert_path_to_posix(path);
+#endif
 						path = escape_path(path.c_str(), path.length());
 						size_t i = location.rfind(path);
 						if (i == std::string::npos)
