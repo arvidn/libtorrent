@@ -4723,11 +4723,34 @@ is its synopsis:
 
 		virtual ~alert();
 
+		virtual int type() const = 0;
 		virtual std::string message() const = 0;
 		virtual char const* what() const = 0;
 		virtual int category() const = 0;
 		virtual std::auto_ptr<alert> clone() const = 0;
 	};
+
+``type()`` returns an integer that is unique to this alert type. It can be
+compared against a specific alert by querying a static constant called ``alert_type``
+in the alert. It can be used to determine the run-time type of an alert* in
+order to cast to that alert type and access specific members.
+
+e.g::
+
+	std::auto_ptr<alert> a = ses.pop_alert();
+	switch (a->type())
+	{
+		case read_piece_alert::alert_type:
+		{
+			read_piece_alert* p = (read_piece_alert*)a.get();
+			// use p
+			break;
+		}
+		case file_renamed_alert::alert_type:
+		{
+			// etc...
+		}
+	}
 
 ``what()`` returns a string literal describing the type of the alert. It does
 not include any information that might be bundled with the alert.
@@ -4844,7 +4867,7 @@ mappings.
 ``mapping`` refers to the mapping index of the port map that failed, i.e.
 the index returned from add_mapping_.
 
-``type`` is 0 for NAT-PMP and 1 for UPnP.
+``map_type`` is 0 for NAT-PMP and 1 for UPnP.
 
 ``error`` tells you what failed.
 ::
@@ -4879,7 +4902,7 @@ the index returned from add_mapping_.
 		// ...
 		int mapping;
 		int external_port;
-		int type;
+		int map_type;
 	};
 
 portmap_log_alert
@@ -4895,7 +4918,7 @@ for debugging the UPnP or NAT-PMP implementation.
 	struct portmap_log_alert: alert
 	{
 		//...
-		int type;
+		int map_type;
 		std::string msg;
 	};
 
