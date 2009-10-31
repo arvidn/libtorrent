@@ -96,6 +96,7 @@ release 0.14.7
 	  ended with a /
 	* fixed bug in error handling when parsing torrent files
 	* fixed file checking bug when renaming a file before checking the torrent
+	* fixed race conditon when receiving metadata from swarm
 
 release 0.14.6
 
