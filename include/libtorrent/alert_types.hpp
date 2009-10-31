@@ -51,7 +51,16 @@ namespace libtorrent
 		{}
 		
 		virtual std::string message() const
-		{ return handle.is_valid()?handle.name():" - "; }
+		{
+			if (!handle.is_valid()) return " - ";
+			if (handle.name().empty())
+			{
+				char msg[41];
+				to_hex((char const*)&handle.info_hash()[0], 20, msg);
+				return msg;
+			}
+			return handle.name();
+		}
 
 		torrent_handle handle;
 	};
