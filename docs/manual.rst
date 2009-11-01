@@ -1871,9 +1871,9 @@ Its declaration looks like this::
 		void set_tracker_login(std::string const& username
 			, std::string const& password) const;
 
-		std::vector<announce_entry> const& trackers() const;
+		std::vector<announce_entry> trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&);
-		void add_tracker(announc_entry const& url);
+		void add_tracker(announce_entry const& url);
 
 		void add_url_seed(std::string const& url);
 		void remove_url_seed(std::string const& url);
@@ -2450,7 +2450,7 @@ trackers() replace_trackers() add_tracker()
 
   ::
 
-		std::vector<announce_entry> const& trackers() const;
+		std::vector<announce_entry> trackers() const;
 		void replace_trackers(std::vector<announce_entry> const&) const;
 		void add_tracker(announc_entry const& url);
 
@@ -2461,7 +2461,7 @@ which this tracker is tried. If you want libtorrent to use another list of
 trackers for this torrent, you can use ``replace_trackers()`` which takes
 a list of the same form as the one returned from ``trackers()`` and will
 replace it. If you want an immediate effect, you have to call
-`force_reannounce()`_.
+`force_reannounce()`_. See `trackers()`_ for the definition of ``announce_entry``.
 
 ``add_tracker()`` will look if the specified tracker is already in the set.
 If it is, it doesn't do anything. If it's not in the current set of trackers,
