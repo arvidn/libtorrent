@@ -119,7 +119,18 @@ namespace libtorrent { namespace
 			if (piece < 0 || piece >= int(m_requested_metadata.size()))
 				return false;
 
-			TORRENT_ASSERT(piece * 16 * 1024 + size <= m_metadata_size);
+			if (total_size != m_metadata_size)
+			{
+				// they disagree about the size!
+				return false;
+			}
+
+			if (piece * 16 * 1024 + size > m_metadata_size)
+			{
+				// this piece is invalid 
+				return false;
+			}
+
 			std::memcpy(&m_metadata[piece * 16 * 1024], buf, size);
 			// mark this piece has 'have'
 			m_requested_metadata[piece] = (std::numeric_limits<int>::max)();
