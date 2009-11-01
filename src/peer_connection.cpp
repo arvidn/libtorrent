@@ -2583,7 +2583,7 @@ namespace libtorrent
 
 	bool peer_connection::add_request(piece_block const& block, bool time_critical)
 	{
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
@@ -2662,6 +2662,7 @@ namespace libtorrent
 			t->picker().abort_download(m_request_queue.back());
 			m_request_queue.pop_back();
 		}
+		m_queued_time_critical = 0;
 
 		// make a local temporary copy of the download queue, since it
 		// may be modified when we call write_cancel (for peers that don't
@@ -3715,12 +3716,24 @@ namespace libtorrent
 		if (!t->has_picker()) return;
 		piece_picker& picker = t->picker();
 
+		int prev_request_queue = m_request_queue.size();
+
+		// request a new block before removing the previous
+		// one, in order to prevent it from
+		// picking the same block again, stalling the
+		// same piece indefinitely.
+		m_desired_queue_size = 2;
+		request_a_block(*t, *this);
+		m_desired_queue_size = 1;
+
 		piece_block r(-1, -1);
 		// time out the last request in the queue
-		if (!m_request_queue.empty())
+		if (prev_request_queue > 0)
 		{
-			r = m_request_queue.back();
-			m_request_queue.pop_back();
+			std::vector<piece_block>::iterator i
+				= m_request_queue.begin() + (prev_request_queue - 1);
+			r = *i;
+			m_request_queue.erase(i);
 		}
 		else
 		{
@@ -3752,14 +3765,6 @@ namespace libtorrent
 		if (!m_download_queue.empty() || !m_request_queue.empty())
 			m_timeout_extend += m_ses.settings().request_timeout;
 
-		m_desired_queue_size = 2;
-		request_a_block(*t, *this);
-		m_desired_queue_size = 1;
-
-		// abort the block after the new one has
-		// been requested in order to prevent it from
-		// picking the same block again, stalling the
-		// same piece indefinitely.
 		if (r != piece_block(-1, -1))
 			picker.abort_download(r);
 
@@ -4679,6 +4684,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	void peer_connection::check_invariant() const
 	{
+		TORRENT_ASSERT(m_queued_time_critical <= m_request_queue.size());
+
 		TORRENT_ASSERT(bool(m_disk_recv_buffer) == (m_disk_recv_buffer_size > 0));
 
 		TORRENT_ASSERT(m_upload_limit >= 0);
