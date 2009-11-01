@@ -75,7 +75,7 @@
 <li><a class="reference internal" href="#set-peer-proxy-set-web-seed-proxy-set-tracker-proxy-set-dht-proxy" id="id44">set_peer_proxy() set_web_seed_proxy() set_tracker_proxy() set_dht_proxy()</a></li>
 <li><a class="reference internal" href="#peer-proxy-web-seed-proxy-tracker-proxy-dht-proxy" id="id45">peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()</a></li>
 <li><a class="reference internal" href="#set-i2p-proxy-i2p-proxy" id="id46">set_i2p_proxy() i2p_proxy()</a></li>
-<li><a class="reference internal" href="#start-dht-stop-dht-set-dht-settings-dht-state" id="id47">start_dht() stop_dht() set_dht_settings() dht_state()</a></li>
+<li><a class="reference internal" href="#start-dht-stop-dht-set-dht-settings-dht-state-is-dht-running" id="id47">start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()</a></li>
 <li><a class="reference internal" href="#add-dht-node-add-dht-router" id="id48">add_dht_node() add_dht_router()</a></li>
 <li><a class="reference internal" href="#start-lsd-stop-lsd" id="id49">start_lsd() stop_lsd()</a></li>
 <li><a class="reference internal" href="#start-upnp-stop-upnp" id="id50">start_upnp() stop_upnp()</a></li>
@@ -120,7 +120,7 @@
 <li><a class="reference internal" href="#super-seeding" id="id83">super_seeding()</a></li>
 <li><a class="reference internal" href="#add-piece" id="id84">add_piece()</a></li>
 <li><a class="reference internal" href="#read-piece" id="id85">read_piece()</a></li>
-<li><a class="reference internal" href="#force-reannounce" id="id86">force_reannounce()</a></li>
+<li><a class="reference internal" href="#force-reannounce-force-dht-announce" id="id86">force_reannounce() force_dht_announce()</a></li>
 <li><a class="reference internal" href="#scrape-tracker" id="id87">scrape_tracker()</a></li>
 <li><a class="reference internal" href="#connect-peer" id="id88">connect_peer()</a></li>
 <li><a class="reference internal" href="#name" id="id89">name()</a></li>
@@ -300,7 +300,7 @@ the <tt class="docutils literal"><span class="pre">session</span></tt>, it conta
 </li>
 <li><p class="first">start extensions (see <a class="reference internal" href="#add-extension">add_extension()</a>).</p>
 </li>
-<li><p class="first">start DHT, LSD, UPnP, NAT-PMP etc (see <a class="reference internal" href="#start-dht-stop-dht-set-dht-settings-dht-state">start_dht() stop_dht() set_dht_settings() dht_state()</a>
+<li><p class="first">start DHT, LSD, UPnP, NAT-PMP etc (see <a class="reference internal" href="#start-dht-stop-dht-set-dht-settings-dht-state-is-dht-running">start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()</a>
 <a class="reference internal" href="#start-lsd-stop-lsd">start_lsd() stop_lsd()</a>, <a class="reference internal" href="#start-upnp-stop-upnp">start_upnp() stop_upnp()</a> and <a class="reference internal" href="#start-natpmp-stop-natpmp">start_natpmp() stop_natpmp()</a>)</p>
 </li>
 <li><p class="first">parse .torrent-files and add them to the session (see <a class="reference internal" href="#bdecode-bencode">bdecode() bencode()</a> and <a class="reference internal" href="#add-torrent">add_torrent()</a>)</p>
@@ -487,6 +487,7 @@ class session: public boost::noncopyable
                 , int&gt; const&amp; node);
         void add_dht_router(std::pair&lt;std::string
                 , int&gt; const&amp; node);
+        bool is_dht_running() const;
 
         void start_lsd();
         void stop_lsd();
@@ -1244,14 +1245,15 @@ connection to it. The only used fields in the proxy settings structs
 are <tt class="docutils literal"><span class="pre">hostname</span></tt> and <tt class="docutils literal"><span class="pre">port</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">i2p_proxy</span></tt> returns the current i2p proxy in use.</p>
 </div>
-<div class="section" id="start-dht-stop-dht-set-dht-settings-dht-state">
-<h2>start_dht() stop_dht() set_dht_settings() dht_state()</h2>
+<div class="section" id="start-dht-stop-dht-set-dht-settings-dht-state-is-dht-running">
+<h2>start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()</h2>
 <blockquote>
 <pre class="literal-block">
 void start_dht(entry const&amp; startup_state);
 void stop_dht();
 void set_dht_settings(dht_settings const&amp; settings);
 entry dht_state() const;
+bool is_dht_running() const;
 </pre>
 </blockquote>
 <p>These functions are not available in case <tt class="docutils literal"><span class="pre">TORRENT_DISABLE_DHT</span></tt> is
@@ -1304,6 +1306,8 @@ before it is removed from the routing table. If there are known working nodes
 that are ready to replace a failing node, it will be replaced immediately,
 this limit is only used to clear out nodes that don't have any node that can
 replace them.</p>
+<p><tt class="docutils literal"><span class="pre">is_dht_running</span></tt> returns true if the DHT support has been started and false
+otherwise.</p>
 </div>
 <div class="section" id="add-dht-node-add-dht-router">
 <h2>add_dht_node() add_dht_router()</h2>
@@ -1964,6 +1968,7 @@ struct torrent_handle
 
         void save_resume_data() const;
         void force_reannounce() const;
+        void force_dht_announce() const;
         void force_reannounce(boost::posix_time::time_duration) const;
         void scrape_tracker() const;
         void connect_peer(asio::ip::tcp::endpoint const&amp; adr, int source = 0) const;
@@ -1971,9 +1976,9 @@ struct torrent_handle
         void set_tracker_login(std::string const&amp; username
                 , std::string const&amp; password) const;
 
-        std::vector&lt;announce_entry&gt; const&amp; trackers() const;
+        std::vector&lt;announce_entry&gt; trackers() const;
         void replace_trackers(std::vector&lt;announce_entry&gt; const&amp;);
-        void add_tracker(announc_entry const&amp; url);
+        void add_tracker(announce_entry const&amp; url);
 
         void add_url_seed(std::string const&amp; url);
         void remove_url_seed(std::string const&amp; url);
@@ -2272,17 +2277,19 @@ calling this function.</p>
 <p>Note that if you read multiple pieces, the read operations are not guaranteed to
 finish in the same order as you initiated them.</p>
 </div>
-<div class="section" id="force-reannounce">
-<h2>force_reannounce()</h2>
+<div class="section" id="force-reannounce-force-dht-announce">
+<h2>force_reannounce() force_dht_announce()</h2>
 <blockquote>
 <pre class="literal-block">
 void force_reannounce() const;
 void force_reannounce(boost::posix_time::time_duration) const;
+void force_dht_announce() const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">force_reannounce()</span></tt> will force this torrent to do another tracker request, to receive new
 peers. The second overload of <tt class="docutils literal"><span class="pre">force_reannounce</span></tt> that takes a <tt class="docutils literal"><span class="pre">time_duration</span></tt> as
 argument will schedule a reannounce in that amount of time from now.</p>
+<p><tt class="docutils literal"><span class="pre">force_dht_announce</span></tt> will announce the torrent to the DHT immediately.</p>
 </div>
 <div class="section" id="scrape-tracker">
 <h2>scrape_tracker()</h2>
@@ -2510,7 +2517,7 @@ of the tracker announce. Set this if the tracker requires authorization.</p>
 <h2>trackers() replace_trackers() add_tracker()</h2>
 <blockquote>
 <pre class="literal-block">
-std::vector&lt;announce_entry&gt; const&amp; trackers() const;
+std::vector&lt;announce_entry&gt; trackers() const;
 void replace_trackers(std::vector&lt;announce_entry&gt; const&amp;) const;
 void add_tracker(announc_entry const&amp; url);
 </pre>
@@ -2522,7 +2529,7 @@ which this tracker is tried. If you want libtorrent to use another list of
 trackers for this torrent, you can use <tt class="docutils literal"><span class="pre">replace_trackers()</span></tt> which takes
 a list of the same form as the one returned from <tt class="docutils literal"><span class="pre">trackers()</span></tt> and will
 replace it. If you want an immediate effect, you have to call
-<a class="reference internal" href="#force-reannounce">force_reannounce()</a>.</p>
+<a class="reference internal" href="#force-reannounce-force-dht-announce">force_reannounce() force_dht_announce()</a>. See <a class="reference internal" href="#trackers">trackers()</a> for the definition of <tt class="docutils literal"><span class="pre">announce_entry</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">add_tracker()</span></tt> will look if the specified tracker is already in the set.
 If it is, it doesn't do anything. If it's not in the current set of trackers,
 it will insert it in the tier specified in the announce_entry.</p>
@@ -2592,7 +2599,7 @@ void set_priority(int prio) const;
 how much bandwidth its peers are assigned when distributing upload and download rate quotas.
 A high number gives more bandwidth. The priority must be within the range [0, 255].</p>
 <p>The default priority is 0, which is the lowest priority.</p>
-<p>To query the priority of a torrent, use the <a href="#id228"><span class="problematic" id="id229">`status()`_</span></a> call.</p>
+<p>To query the priority of a torrent, use the <tt class="docutils literal"><span class="pre">torrent_handle::status()</span></tt> call.</p>
 <p>Torrents with higher priority will not nececcarily get as much bandwidth as they can
 consume, even if there's is more quota. Other peers will still be weighed in when
 bandwidth is being distributed. With other words, bandwidth is not distributed strictly
@@ -4591,11 +4598,33 @@ public:
 
         virtual ~alert();
 
+        virtual int type() const = 0;
         virtual std::string message() const = 0;
         virtual char const* what() const = 0;
         virtual int category() const = 0;
         virtual std::auto_ptr&lt;alert&gt; clone() const = 0;
 };
+</pre>
+<p><tt class="docutils literal"><span class="pre">type()</span></tt> returns an integer that is unique to this alert type. It can be
+compared against a specific alert by querying a static constant called <tt class="docutils literal"><span class="pre">alert_type</span></tt>
+in the alert. It can be used to determine the run-time type of an alert* in
+order to cast to that alert type and access specific members.</p>
+<p>e.g:</p>
+<pre class="literal-block">
+std::auto_ptr&lt;alert&gt; a = ses.pop_alert();
+switch (a-&gt;type())
+{
+        case read_piece_alert::alert_type:
+        {
+                read_piece_alert* p = (read_piece_alert*)a.get();
+                // use p
+                break;
+        }
+        case file_renamed_alert::alert_type:
+        {
+                // etc...
+        }
+}
 </pre>
 <p><tt class="docutils literal"><span class="pre">what()</span></tt> returns a string literal describing the type of the alert. It does
 not include any information that might be bundled with the alert.</p>
@@ -4694,7 +4723,7 @@ appears there is no NAT router that can be remote controlled to add port
 mappings.</p>
 <p><tt class="docutils literal"><span class="pre">mapping</span></tt> refers to the mapping index of the port map that failed, i.e.
 the index returned from <a class="reference internal" href="#add-mapping">add_mapping</a>.</p>
-<p><tt class="docutils literal"><span class="pre">type</span></tt> is 0 for NAT-PMP and 1 for UPnP.</p>
+<p><tt class="docutils literal"><span class="pre">map_type</span></tt> is 0 for NAT-PMP and 1 for UPnP.</p>
 <p><tt class="docutils literal"><span class="pre">error</span></tt> tells you what failed.</p>
 <pre class="literal-block">
 struct portmap_error_alert: alert
@@ -4722,7 +4751,7 @@ struct portmap_alert: alert
         // ...
         int mapping;
         int external_port;
-        int type;
+        int map_type;
 };
 </pre>
 </div>
@@ -4736,7 +4765,7 @@ for debugging the UPnP or NAT-PMP implementation.</p>
 struct portmap_log_alert: alert
 {
         //...
-        int type;
+        int map_type;
         std::string msg;
 };
 </pre>
@@ -6856,12 +6885,6 @@ altogether. You can use:</p>
 boost::filesystem::path::default_name_check(boost::filesystem::native);
 </pre>
 <p>for example. For more information, see the <a class="reference external" href="http://www.boost.org/libs/filesystem/doc/index.htm">Boost.Filesystem docs</a>.</p>
-</div>
-<div class="system-messages section">
-<h1>Docutils System Messages</h1>
-<div class="system-message" id="id228">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 2534); <em><a href="#id229">backlink</a></em></p>
-Duplicate target name, cannot be used as a unique reference: &quot;status()&quot;.</div>
 </div>
     </div>
     <div id="footer">

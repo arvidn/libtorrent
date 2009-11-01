@@ -19,7 +19,7 @@ The basic usage is as follows:
 
 * construct a session
 * start extensions (see `add_extension()`_).
-* start DHT, LSD, UPnP, NAT-PMP etc (see `start_dht() stop_dht() set_dht_settings() dht_state()`_
+* start DHT, LSD, UPnP, NAT-PMP etc (see `start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()`_
   `start_lsd() stop_lsd()`_, `start_upnp() stop_upnp()`_ and `start_natpmp() stop_natpmp()`_)
 * parse .torrent-files and add them to the session (see `bdecode() bencode()`_ and `add_torrent()`_)
 * main loop (see session_)
@@ -2461,7 +2461,7 @@ which this tracker is tried. If you want libtorrent to use another list of
 trackers for this torrent, you can use ``replace_trackers()`` which takes
 a list of the same form as the one returned from ``trackers()`` and will
 replace it. If you want an immediate effect, you have to call
-`force_reannounce()`_. See `trackers()`_ for the definition of ``announce_entry``.
+`force_reannounce() force_dht_announce()`_. See `trackers()`_ for the definition of ``announce_entry``.
 
 ``add_tracker()`` will look if the specified tracker is already in the set.
 If it is, it doesn't do anything. If it's not in the current set of trackers,
