@@ -24,8 +24,8 @@ nobase_include_HEADERS = \
   connection_queue.hpp         \
   ConvertUTF.h                 \
   create_torrent.hpp           \
-  debug.hpp                    \
   deadline_timer.hpp           \
+  debug.hpp                    \
   disk_buffer_holder.hpp       \
   disk_io_thread.hpp           \
   entry.hpp                    \
@@ -73,12 +73,13 @@ nobase_include_HEADERS = \
   session_status.hpp           \
   size_type.hpp                \
   socket.hpp                   \
-  socket_type.hpp              \
   socket_io.hpp                \
+  socket_type.hpp              \
   socks5_stream.hpp            \
   ssl_stream.hpp               \
   stat.hpp                     \
   storage.hpp                  \
+  thread.hpp                   \
   time.hpp                     \
   torrent_handle.hpp           \
   torrent.hpp                  \
@@ -108,8 +109,8 @@ nobase_include_HEADERS = \
   kademlia/find_data.hpp            \
   kademlia/logging.hpp              \
   kademlia/msg.hpp                  \
-  kademlia/node_entry.hpp           \
   kademlia/node.hpp                 \
+  kademlia/node_entry.hpp           \
   kademlia/node_id.hpp              \
   kademlia/observer.hpp             \
   kademlia/refresh.hpp              \
