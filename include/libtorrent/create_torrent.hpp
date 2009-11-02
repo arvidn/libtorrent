@@ -143,11 +143,6 @@ namespace libtorrent
 		{
 			using boost::filesystem::path;
 			using boost::filesystem::directory_iterator;
-#if BOOST_VERSION < 103600
-			std::string const& leaf = l.leaf();
-#else
-			std::string const& leaf = l.filename();
-#endif
 			if (!pred(l)) return;
 			path f(p / l);
 			if (is_directory(f))
@@ -173,19 +168,25 @@ namespace libtorrent
 	template <class Pred>
 	void add_files(file_storage& fs, boost::filesystem::path const& file, Pred p)
 	{
+		boost::filesystem::path f = file;
 #if BOOST_VERSION < 103600
-		detail::add_files_impl(fs, complete(file).branch_path(), file.leaf(), p);
+		if (f.leaf() == ".") f = f.branch_path();
+		detail::add_files_impl(fs, complete(f).branch_path(), f.leaf(), p);
 #else
-		detail::add_files_impl(fs, complete(file).parent_path(), file.filename(), p);
+		if (f.filename() == ".") f = f.parent_path();
+		detail::add_files_impl(fs, complete(f).parent_path(), f.filename(), p);
 #endif
 	}
 
 	inline void add_files(file_storage& fs, boost::filesystem::path const& file)
 	{
+		boost::filesystem::path f = file;
 #if BOOST_VERSION < 103600
-		detail::add_files_impl(fs, complete(file).branch_path(), file.leaf(), detail::default_pred);
+		if (f.leaf() == ".") f = f.branch_path();
+		detail::add_files_impl(fs, complete(f).branch_path(), f.leaf(), detail::default_pred);
 #else
-		detail::add_files_impl(fs, complete(file).parent_path(), file.filename(), detail::default_pred);
+		if (f.filename() == ".") f = f.parent_path();
+		detail::add_files_impl(fs, complete(f).parent_path(), f.filename(), detail::default_pred);
 #endif
 	}
 	
