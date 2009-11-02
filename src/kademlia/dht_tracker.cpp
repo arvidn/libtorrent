@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/optional.hpp>
-#include <boost/filesystem/operations.hpp>
 
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
