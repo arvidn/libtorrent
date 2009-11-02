@@ -220,20 +220,26 @@ namespace libtorrent
 	void add_files(file_storage& fs, boost::filesystem::path const& file, Pred p)
 	{
 		using boost::filesystem::path;
+		boost::filesystem::path f = file;
 #if BOOST_VERSION < 103600
-		detail::add_files_impl(fs, complete(file).branch_path(), path(file.leaf()), p);
+		if (f.leaf() == ".") f = f.branch_path();
+		detail::add_files_impl(fs, complete(f).branch_path(), path(f.leaf()), p);
 #else
-		detail::add_files_impl(fs, complete(file).parent_path(), path(file.filename()), p);
+		if (f.filename() == ".") f = f.parent_path();
+		detail::add_files_impl(fs, complete(f).parent_path(), path(f.filename()), p);
 #endif
 	}
 
 	inline void add_files(file_storage& fs, boost::filesystem::path const& file)
 	{
 		using boost::filesystem::path;
+		boost::filesystem::path f = file;
 #if BOOST_VERSION < 103600
-		detail::add_files_impl(fs, complete(file).branch_path(), path(file.leaf()), detail::default_pred);
+		if (f.leaf() == ".") f = f.branch_path();
+		detail::add_files_impl(fs, complete(f).branch_path(), path(f.leaf()), detail::default_pred);
 #else
-		detail::add_files_impl(fs, complete(file).parent_path(), path(file.filename()), detail::default_pred);
+		if (f.filename() == ".") f = f.parent_path();
+		detail::add_files_impl(fs, complete(f).parent_path(), path(f.filename()), detail::default_pred);
 #endif
 	}
 	
@@ -302,20 +308,26 @@ namespace libtorrent
 	void add_files(file_storage& fs, boost::filesystem::wpath const& file, Pred p)
 	{
 		using boost::filesystem::wpath;
+		wpath f = file;
 #if BOOST_VERSION < 103600
-		detail::add_files_impl(fs, complete(file).branch_path(), wpath(file.leaf()), p);
+		if (f.leaf() == L".") f = f.branch_path();
+		detail::add_files_impl(fs, complete(f).branch_path(), wpath(f.leaf()), p);
 #else
-		detail::add_files_impl(fs, complete(file).parent_path(), wpath(file.filename()), p);
+		if (f.filename() == L".") f = f.parent_path();
+		detail::add_files_impl(fs, complete(f).parent_path(), wpath(f.filename()), p);
 #endif
 	}
 
 	inline void add_files(file_storage& fs, boost::filesystem::wpath const& file)
 	{
 		using boost::filesystem::wpath;
+		wpath f = file;
 #if BOOST_VERSION < 103600
-		detail::add_files_impl(fs, complete(file).branch_path(), wpath(file.leaf()), detail::wdefault_pred);
+		if (f.leaf() == L".") f = f.branch_path();
+		detail::add_files_impl(fs, complete(f).branch_path(), wpath(f.leaf()), detail::wdefault_pred);
 #else
-		detail::add_files_impl(fs, complete(file).parent_path(), wpath(file.filename()), detail::wdefault_pred);
+		if (f.filename() == L".") f = f.parent_path();
+		detail::add_files_impl(fs, complete(f).parent_path(), wpath(f.filename()), detail::wdefault_pred);
 #endif
 	}
 	
