@@ -293,26 +293,26 @@ lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-sea
 lib boost_system : : <name>boost_system ;
 
 # openssl on linux/bsd/macos etc.
-lib crypto : : <name>crypto ;
-lib ssl : : <name>ssl ;
+lib crypto : : <name>crypto <link>shared ;
+lib ssl : : <name>ssl <link>shared ;
 
 # time functions used on linux require librt
-lib librt : : <name>rt ;
+lib librt : : <name>rt <link>shared ;
 
-lib libsocket : : <use>libnsl <name>socket <link>shared <search>/usr/sfw/lib ;
-lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib ;
+lib libsocket : : <use>libnsl <name>socket <link>shared <search>/usr/sfw/lib <link>shared ;
+lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib <link>shared ;
 
-lib tcmalloc : : <name>tcmalloc ;
+lib tcmalloc : : <name>tcmalloc <link>shared ;
 
 # libz
-lib zlib-target : : <name>z ;
+lib zlib-target : : <name>z <link>shared ;
 
 # GeoIP shared library
-lib GeoIP : : <name>GeoIP ;
+lib GeoIP : : <name>GeoIP <link>shared ;
 
 # socket libraries on windows
-lib wsock32 : : <name>wsock32 ;
-lib ws2_32 : : <name>ws2_32 ;
+lib wsock32 : : <name>wsock32 <link>shared ;
+lib ws2_32 : : <name>ws2_32 <link>shared ;
 
 SOURCES =
 	alert
