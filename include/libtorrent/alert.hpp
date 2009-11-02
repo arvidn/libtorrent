@@ -213,6 +213,19 @@ namespace libtorrent {
 
 #endif // BOOST_NO_TYPEID
 
+template <class T>
+T* alert_cast(alert* a)
+{
+	if (a->type() == T::alert_type) return static_cast<T*>(a);
+	return 0;
+}
+
+template <class T>
+T const* alert_cast(alert const* a)
+{
+	if (a->type() == T::alert_type) return static_cast<T const*>(a);
+	return 0;
+}
 
 } // namespace libtorrent
 

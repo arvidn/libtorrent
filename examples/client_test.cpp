@@ -571,10 +571,12 @@ void scan_dir(std::string const& dir_path
 
 	using namespace libtorrent;
 
+	printf("scanning dir: %s\n", dir_path.c_str());
 	error_code ec;
 	for (directory i(dir_path, ec); !i.done(); i.next(ec))
 	{
 		std::string file = i.file();
+		printf("  found: %s\n", file.c_str());
 		if (extension(file) != ".torrent") continue;
 
 		handles_t::iterator k = handles.find(file);
@@ -673,7 +675,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 {
 	using namespace libtorrent;
 
-	if (torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a))
+	if (torrent_finished_alert* p = alert_cast<torrent_finished_alert>(a))
 	{
 		p->handle.set_max_connections(30);
 
@@ -683,7 +685,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		torrent_handle h = p->handle;
 		h.save_resume_data();
 	}
-	else if (save_resume_data_alert* p = dynamic_cast<save_resume_data_alert*>(a))
+	else if (save_resume_data_alert* p = alert_cast<save_resume_data_alert>(a))
 	{
 		torrent_handle h = p->handle;
 		TORRENT_ASSERT(p->resume_data);
@@ -697,7 +699,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 				ses.remove_torrent(h);
 		}
 	}
-	else if (save_resume_data_failed_alert* p = dynamic_cast<save_resume_data_failed_alert*>(a))
+	else if (save_resume_data_failed_alert* p = alert_cast<save_resume_data_failed_alert>(a))
 	{
 		torrent_handle h = p->handle;
 		if (std::find_if(handles.begin(), handles.end()
@@ -770,7 +772,7 @@ int main(int argc, char* argv[])
 	// be able to remove torrents that were added via the directory
 	// monitor when they're not in the directory anymore.
 	handles_t handles;
-	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
+	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR-1, 0, 0)
 		, session::add_default_plugins
 		, alert::all_categories
 			& ~(alert::dht_notification
@@ -1071,13 +1073,13 @@ int main(int argc, char* argv[])
 					::print_alert(holder.get(), log);
 					printf("%s\n", log.c_str());
 
-					if (dynamic_cast<save_resume_data_failed_alert const*>(a))
+					if (alert_cast<save_resume_data_failed_alert>(a))
 					{
 						--num_resume_data;
 						continue;
 					}
 
-					save_resume_data_alert const* rd = dynamic_cast<save_resume_data_alert const*>(a);
+					save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
 					if (!rd) continue;
 					--num_resume_data;
 
