@@ -1091,6 +1091,7 @@ namespace libtorrent
 				}
 			}
 			m_request_queue.clear();
+			m_queued_time_critical = 0;
 		}
 	}
 
@@ -2561,9 +2562,8 @@ namespace libtorrent
 	bool peer_connection::can_request_time_critical() const
 	{
 		if (has_peer_choked() || !is_interesting()) return false;
-		if (m_desired_queue_size * 2 <
-			- (int)m_download_queue.size()
-			- (int)m_request_queue.size()) return false;
+		if ((int)m_download_queue.size() + (int)m_request_queue.size()
+			> m_desired_queue_size * 2) return false;
 		if (on_parole()) return false; 
 		return true;
 	}
@@ -3077,6 +3077,7 @@ namespace libtorrent
 					m_request_queue.pop_back();
 				}
 			}
+			m_queued_time_critical = 0;
 
 			t->remove_peer(this);
 			m_torrent.reset();
@@ -3734,6 +3735,8 @@ namespace libtorrent
 				= m_request_queue.begin() + (prev_request_queue - 1);
 			r = *i;
 			m_request_queue.erase(i);
+			if (prev_request_queue <= m_queued_time_critical)
+				--m_queued_time_critical;
 		}
 		else
 		{
