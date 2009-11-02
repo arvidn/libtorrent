@@ -174,15 +174,15 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		if (m_ssl)
 		{
 			m_sock.instantiate<ssl_stream<socket_type> >(m_resolver.get_io_service());
-			ssl_stream<socket_type>& s = m_sock.get<ssl_stream<socket_type> >();
-			bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, s.next_layer());
+			ssl_stream<socket_type>* s = m_sock.get<ssl_stream<socket_type> >();
+			bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, s->next_layer());
 			TORRENT_ASSERT(ret);
 		}
 		else
 		{
 			m_sock.instantiate<socket_type>(m_resolver.get_io_service());
 			bool ret = instantiate_connection(m_resolver.get_io_service()
-				, m_proxy, m_sock.get<socket_type>());
+				, m_proxy, *m_sock.get<socket_type>());
 			TORRENT_ASSERT(ret);
 		}
 #else

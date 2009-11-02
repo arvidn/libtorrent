@@ -216,6 +216,7 @@ namespace libtorrent
 		}
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>
 	void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f)
 	{
@@ -230,6 +231,7 @@ namespace libtorrent
 		set_piece_hashes(t, p, detail::nop, ec);
 		if (ec) throw libtorrent_exception(ec);
 	}
+#endif
 
 	inline void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, error_code& ec)
 	{
