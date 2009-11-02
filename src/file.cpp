@@ -380,12 +380,34 @@ namespace libtorrent
 
 	std::string filename(std::string const& f)
 	{
-		char const* sep = strrchr(f.c_str(), '/');
+		if (f.empty()) return "";
+		char const* first = f.c_str();
+		char const* sep = strrchr(first, '/');
 #ifdef TORRENT_WINDOWS
-		char const* altsep = strrchr(f.c_str(), '\\');
+		char const* altsep = strrchr(first, '\\');
 		if (sep == 0 || altsep > sep) sep = altsep;
 #endif
 		if (sep == 0) return f;
+
+		if (sep - first == f.size() - 1)
+		{
+			// if the last character is a / (or \)
+			// ignore it
+			int len = 0;
+			while (sep > first)
+			{
+				--sep;
+				if (*sep == '/'
+#ifdef TORRENT_WINDOWS
+					|| *sep == '\\'
+#endif
+					)
+					return std::string(sep + 1, len);
+				++len;
+			}
+			return std::string(first, len);
+			
+		}
 		return std::string(sep + 1);
 	}
 
