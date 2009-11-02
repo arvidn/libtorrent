@@ -542,9 +542,9 @@ public:
     }
 
     template <class S>
-    S& get()
+    S* get()
     {
-        return *boost::get<S*>(m_variant);
+        return boost::get<S>(&m_variant);
     }
 
     bool instantiated() const

@@ -98,6 +98,7 @@ release 0.14.7
 	* fixed file checking bug when renaming a file before checking the torrent
 	* fixed race conditon when receiving metadata from swarm
 	* fixed assert in ut_metadata plugin
+	* back-ported some fixes for building with no exceptions
 
 release 0.14.6
 

@@ -52,23 +52,23 @@ namespace libtorrent
 			|| ps.type == proxy_settings::http_pw)
 		{
 			s.instantiate<http_stream>(ios);
-			s.get<http_stream>().set_proxy(ps.hostname, ps.port);
+			s.get<http_stream>()->set_proxy(ps.hostname, ps.port);
 			if (ps.type == proxy_settings::http_pw)
-				s.get<http_stream>().set_username(ps.username, ps.password);
+				s.get<http_stream>()->set_username(ps.username, ps.password);
 		}
 		else if (ps.type == proxy_settings::socks5
 			|| ps.type == proxy_settings::socks5_pw)
 		{
 			s.instantiate<socks5_stream>(ios);
-			s.get<socks5_stream>().set_proxy(ps.hostname, ps.port);
+			s.get<socks5_stream>()->set_proxy(ps.hostname, ps.port);
 			if (ps.type == proxy_settings::socks5_pw)
-				s.get<socks5_stream>().set_username(ps.username, ps.password);
+				s.get<socks5_stream>()->set_username(ps.username, ps.password);
 		}
 		else if (ps.type == proxy_settings::socks4)
 		{
 			s.instantiate<socks4_stream>(ios);
-			s.get<socks4_stream>().set_proxy(ps.hostname, ps.port);
-			s.get<socks4_stream>().set_username(ps.username);
+			s.get<socks4_stream>()->set_proxy(ps.hostname, ps.port);
+			s.get<socks4_stream>()->set_username(ps.username);
 		}
 		else
 		{
