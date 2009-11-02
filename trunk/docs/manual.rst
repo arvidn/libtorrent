@@ -2663,14 +2663,14 @@ Example code to pause and save resume data for all torrents and wait for the ale
 		
 		std::auto_ptr<alert> holder = ses.pop_alert();
 
-		if (dynamic_cast<save_resume_data_failed_alert const*>(a))
+		if (alert_cast<save_resume_data_failed_alert>(a))
 		{
 			process_alert(a);
 			--num_resume_data;
 			continue;
 		}
 
-		save_resume_data_alert const* rd = dynamic_cast<save_resume_data_alert const*>(a);
+		save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
 		if (rd == 0)
 		{
 			process_alert(a);
@@ -4687,9 +4687,14 @@ Every alert belongs to one or more category. There is a small cost involved in p
 alerts that belong to an enabled category are posted. Setting the alert bitmask to 0 will disable
 all alerts
 
-When you get an alert, you can use ``typeid()`` or ``dynamic_cast<>`` to get more detailed
-information on exactly which type it is. i.e. what kind of error it is. You can also use a
-dispatcher_ mechanism that's available in libtorrent.
+When you get an alert, you can use ``alert_cast<>`` to attempt to cast the pointer to a
+more specific alert type, to be queried for more information about the alert. ``alert_cast``
+has the followinf signature::
+
+	template <T> T* alert_cast(alert* a);
+	template <T> T const* alert_cast(alert const* a);
+
+You can also use a dispatcher_ mechanism that's available in libtorrent.
 
 All alert types are defined in the ``<libtorrent/alert_types.hpp>`` header file.
 
