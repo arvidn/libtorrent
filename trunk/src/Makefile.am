@@ -63,8 +63,8 @@ libtorrent_rasterbar_la_SOURCES = \
   session_impl.cpp                \
   sha1.cpp                        \
   smart_ban.cpp                   \
-  socks5_stream.cpp               \
   socket_io.cpp                   \
+  socks5_stream.cpp               \
   stat.cpp                        \
   storage.cpp                     \
   torrent.cpp                     \
@@ -85,7 +85,7 @@ libtorrent_rasterbar_la_SOURCES = \
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)
 
 #libtorrent_rasterbar_la_LIBADD = @ZLIB@ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LIBS@
-libtorrent_rasterbar_la_LIBADD = @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LIBS@
+libtorrent_rasterbar_la_LIBADD = @BOOST_SYSTEM_LIB@ @OPENSSL_LIBS@
 
 #libtorrent_rasterbar_la_LIBADD = @ZLIB@
 

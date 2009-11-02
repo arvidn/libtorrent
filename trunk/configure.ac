@@ -109,14 +109,6 @@ AX_BOOST_SYSTEM()
 AS_IF([test -z "$BOOST_SYSTEM_LIB"],
       [AC_MSG_ERROR(Boost.System library not found. Try using --with-boost-system=lib)])
 
-AX_BOOST_FILESYSTEM()
-AS_IF([test -z "$BOOST_FILESYSTEM_LIB"],
-      [AC_MSG_ERROR(Boost.Filesystem library not found. Try using --with-boost-filesystem=lib)])
-
-AX_BOOST_THREAD()
-AS_IF([test -z "$BOOST_THREAD_LIB"],
-      [AC_MSG_ERROR(Boost.Thread library not found. Try using --with-boost-thread=lib)])
-
 CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
 LDFLAGS="$BOOST_LDFLAGS $LDFLAGS"
 
@@ -731,8 +723,6 @@ Boost libraries:
   CPPFlags:             ${BOOST_CPPFLAGS}
   LDFlags:              ${BOOST_LDFLAGS}
   boost.system:         ${BOOST_SYSTEM_LIB}
-  boost.filesystem:     ${BOOST_FILESYSTEM_LIB}
-  boost.thread:         ${BOOST_THREAD_LIB}
 END
 
 AS_IF([test "x$ARG_ENABLE_PYTHON_BINDING" = "xyes"], [
