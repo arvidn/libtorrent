@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/create_torrent.hpp"
-#include <boost/thread.hpp>
+#include "libtorrent/thread.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <fstream>
 
