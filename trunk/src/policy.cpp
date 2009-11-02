@@ -136,7 +136,7 @@ namespace libtorrent
 		if (!t.are_files_checked()) return;
 
 		TORRENT_ASSERT(t.valid_metadata());
-		TORRENT_ASSERT(c.peer_info_struct() != 0 || !dynamic_cast<bt_peer_connection*>(&c));
+		TORRENT_ASSERT(c.peer_info_struct() != 0 || c.type() != peer_connection::bittorrent_connection);
 		int num_requests = c.desired_queue_size()
 			- (int)c.download_queue().size()
 			- (int)c.request_queue().size();
@@ -1345,7 +1345,7 @@ namespace libtorrent
 			if ((*i)->is_disconnecting()) continue;
 			// ignore web_peer_connections since they are not managed
 			// by the policy class
-			if (dynamic_cast<web_peer_connection*>(*i)) continue;
+			if ((*i)->type() != peer_connection::bittorrent_connection) continue;
 			++num_torrent_peers;
 		}
 

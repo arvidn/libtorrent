@@ -134,6 +134,15 @@ namespace libtorrent
 	friend class invariant_access;
 	public:
 
+		enum connection_type
+		{
+			bittorrent_connection = 0,
+			url_seed_connection = 1,
+			http_seed_connection = 2
+		};
+
+		virtual int type() const = 0;
+
 		enum channels
 		{
 			upload_channel,

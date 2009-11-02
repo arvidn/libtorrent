@@ -136,8 +136,10 @@ namespace libtorrent { namespace
 					if (num_added >= max_peer_entries) break;
 
 					// only send proper bittorrent peers
-					bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(peer);
-					if (!p) continue;
+					if (peer->type() != peer_connection::bittorrent_connection)
+						continue;
+
+					bt_peer_connection* p = static_cast<bt_peer_connection*>(peer);
 
 					// no supported flags to set yet
 					// 0x01 - peer supports encryption
@@ -369,8 +371,10 @@ namespace libtorrent { namespace
 				if (num_added >= max_peer_entries) break;
 
 				// only send proper bittorrent peers
-				bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(peer);
-				if (!p) continue;
+				if (peer->type() != peer_connection::bittorrent_connection)
+					continue;
+
+				bt_peer_connection* p = static_cast<bt_peer_connection*>(peer);
 
 				// no supported flags to set yet
 				// 0x01 - peer supports encryption
@@ -425,8 +429,10 @@ namespace libtorrent { namespace
 
 	boost::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection* pc)
 	{
-		bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(pc);
-		if (!c) return boost::shared_ptr<peer_plugin>();
+		if (pc->type() != peer_connection::bittorrent_connection)
+			return boost::shared_ptr<peer_plugin>();
+
+		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc);
 		return boost::shared_ptr<peer_plugin>(new ut_pex_peer_plugin(m_torrent
 			, *pc, *this));
 	}
