@@ -571,12 +571,10 @@ void scan_dir(std::string const& dir_path
 
 	using namespace libtorrent;
 
-	printf("scanning dir: %s\n", dir_path.c_str());
 	error_code ec;
 	for (directory i(dir_path, ec); !i.done(); i.next(ec))
 	{
 		std::string file = i.file();
-		printf("  found: %s\n", file.c_str());
 		if (extension(file) != ".torrent") continue;
 
 		handles_t::iterator k = handles.find(file);
@@ -588,7 +586,7 @@ void scan_dir(std::string const& dir_path
 
 		// the file has been added to the dir, start
 		// downloading it.
-		add_torrent(ses, handles, file, preferred_ratio, compact_mode
+		add_torrent(ses, handles, combine_path(dir_path, file), preferred_ratio, compact_mode
 			, save_path, true, torrent_upload_limit, torrent_download_limit);
 		valid.insert(file);
 	}
