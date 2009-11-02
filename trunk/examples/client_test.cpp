@@ -770,7 +770,7 @@ int main(int argc, char* argv[])
 	// be able to remove torrents that were added via the directory
 	// monitor when they're not in the directory anymore.
 	handles_t handles;
-	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR-1, 0, 0)
+	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 		, session::add_default_plugins
 		, alert::all_categories
 			& ~(alert::dht_notification
