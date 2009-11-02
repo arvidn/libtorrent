@@ -384,6 +384,8 @@ int test_main()
 
 	TEST_EQUAL(filename("blah"), "blah");
 	TEST_EQUAL(filename("/blah/foo/bar"), "bar");
+	TEST_EQUAL(filename("/blah/foo/bar/"), "bar");
+	TEST_EQUAL(filename("blah/"), "blah");
 
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(is_root_path("c:\\blah"), false);
