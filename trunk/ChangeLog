@@ -99,6 +99,7 @@ release 0.14.7
 	* fixed race conditon when receiving metadata from swarm
 	* fixed assert in ut_metadata plugin
 	* back-ported some fixes for building with no exceptions
+	* fixed create_torrent when passing in a path ending with /
 
 release 0.14.6
 
