@@ -1109,6 +1109,20 @@ int main(int argc, char* argv[])
 				if (h.is_valid()) h.set_sequential_download(!h.is_sequential_download());
 			}
 
+			if (c == 'o')
+			{
+				torrent_handle h = get_active_torrent(handles);
+				if (h.is_valid())
+				{
+					int num_pieces = h.get_torrent_info().num_pieces();
+					if (num_pieces > 300) num_pieces = 300;
+					for (int i = 0; i < num_pieces; ++i)
+					{
+						h.set_piece_deadline(i, seconds(i+5), torrent_handle::alert_when_available);
+					}
+				}
+			}
+
 			if (c == 'v')
 			{
 				torrent_handle h = get_active_torrent(handles);
