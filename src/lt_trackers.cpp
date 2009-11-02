@@ -327,8 +327,10 @@ namespace libtorrent { namespace
 	boost::shared_ptr<peer_plugin> lt_tracker_plugin::new_connection(
 		peer_connection* pc)
 	{
-		bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(pc);
-		if (!c) return boost::shared_ptr<peer_plugin>();
+		if (pc->type() != peer_connection::bittorrent_connection)
+			return boost::shared_ptr<peer_plugin>();
+
+		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc);
 		return boost::shared_ptr<peer_plugin>(new lt_tracker_peer_plugin(m_torrent, *c, *this));
 	}
 

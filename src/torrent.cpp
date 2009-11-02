@@ -3897,12 +3897,12 @@ namespace libtorrent
 			, bind(&peer_connection::remote, _1) == peerinfo->ip());
 #if TORRENT_USE_I2P
 		TORRENT_ASSERT(i_ == m_connections.end()
-			|| dynamic_cast<bt_peer_connection*>(*i_) == 0
+			|| (*i_)->type() != peer_connection::bittorrent_connection
 			|| peerinfo->is_i2p_addr
 			);
 #else
 		TORRENT_ASSERT(i_ == m_connections.end()
-			|| dynamic_cast<bt_peer_connection*>(*i_) == 0
+			|| (*i_)->type() != peer_connection::bittorrent_connection
 			);
 #endif
 #endif
@@ -5315,10 +5315,21 @@ namespace libtorrent
 			for (peer_iterator i = m_connections.begin();
 				i != m_connections.end(); ++i)
 			{
-				web_peer_connection* p = dynamic_cast<web_peer_connection*>(*i);
-				if (p) web_seeds.insert(web_seed_entry(p->url(), web_seed_entry::url_seed));
-				http_seed_connection* s = dynamic_cast<http_seed_connection*>(*i);
-				if (s) web_seeds.insert(web_seed_entry(s->url(), web_seed_entry::http_seed));
+				switch ((*i)->type())
+				{
+					case peer_connection::url_seed_connection:
+					{
+						web_peer_connection* p = static_cast<web_peer_connection*>(*i);
+						web_seeds.insert(web_seed_entry(p->url(), web_seed_entry::url_seed));
+						break;
+					}
+					case peer_connection::http_seed_connection:
+					{
+						http_seed_connection* p = static_cast<http_seed_connection*>(*i);
+						web_seeds.insert(web_seed_entry(p->url(), web_seed_entry::http_seed));
+						break;
+					}
+				}
 			}
 
 			for (std::set<web_seed_entry>::iterator i = m_resolving_web_seeds.begin()

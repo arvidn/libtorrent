@@ -111,6 +111,8 @@ namespace libtorrent
 		{ return m_encrypted; }
 #endif
 
+		virtual int type() const { return peer_connection::bittorrent_connection; }
+
 		enum message_type
 		{
 	// standard messages
@@ -151,18 +153,6 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		bool support_extensions() const { return m_supports_extensions; }
-
-		template <class T>
-		T* supports_extension() const
-		{
-			for (extension_list_t::const_iterator i = m_extensions.begin()
-				, end(m_extensions.end()); i != end; ++i)
-			{
-				T* ret = dynamic_cast<T*>(i->get());
-				if (ret) return ret;
-			}
-			return 0;
-		}
 #endif
 
 		// the message handlers are called

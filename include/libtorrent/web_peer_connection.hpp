@@ -101,6 +101,8 @@ namespace libtorrent
 
 		~web_peer_connection();
 
+		virtual int type() const { return peer_connection::url_seed_connection; }
+
 		// called from the main loop when this connection has any
 		// work to do.
 		void on_sent(error_code const& error

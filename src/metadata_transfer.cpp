@@ -527,32 +527,17 @@ namespace libtorrent { namespace
 	boost::shared_ptr<peer_plugin> metadata_plugin::new_connection(
 		peer_connection* pc)
 	{
-		bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(pc);
-		if (!c) return boost::shared_ptr<peer_plugin>();
+		if (pc->type() != peer_connection::bittorrent_connection)
+			return boost::shared_ptr<peer_plugin>();
+
+		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc);
 		return boost::shared_ptr<peer_plugin>(new metadata_peer_plugin(m_torrent, *pc, *this));
 	}
 
 	std::pair<int, int> metadata_plugin::metadata_request()
 	{
-		// count the number of peers that supports the
-		// extension and that has metadata
-		int peers = 0;
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (torrent::peer_iterator i = m_torrent.begin()
-			, end(m_torrent.end()); i != end; ++i)
-		{
-			bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(*i);
-			if (c == 0) continue;
-			metadata_peer_plugin* p
-				= c->supports_extension<metadata_peer_plugin>();
-			if (p == 0) continue;
-			if (!p->has_metadata()) continue;
-			++peers;
-		}
-#endif
-
 		// the number of blocks to request
-		int num_blocks = 256 / (peers + 1);
+		int num_blocks = 256 / 4;
 		if (num_blocks < 1) num_blocks = 1;
 		TORRENT_ASSERT(num_blocks <= 128);
 
