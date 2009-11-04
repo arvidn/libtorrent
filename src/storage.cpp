@@ -1036,7 +1036,9 @@ namespace libtorrent
 			try
 			{
 #endif
-				rename(old_path, new_path);
+
+				if (exists(old_path))
+					rename(old_path, new_path);
 #ifndef BOOST_NO_EXCEPTIONS
 			}
 			catch (std::exception& e)
