@@ -101,6 +101,7 @@ release 0.14.7
 	* fixed assert in ut_metadata plugin
 	* back-ported some fixes for building with no exceptions
 	* fixed create_torrent when passing in a path ending with /
+	* fixed move_storage when source doesn't exist
 
 release 0.14.6
 
