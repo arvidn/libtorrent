@@ -76,6 +76,7 @@ libtorrent_rasterbar_la_SOURCES = \
   upnp.cpp                        \
   ut_metadata.cpp                 \
   ut_pex.cpp                      \
+  utp_stream.cpp                  \
   web_peer_connection.cpp         \
   \
   $(KADEMLIA_SOURCES)             \

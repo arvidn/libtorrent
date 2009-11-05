@@ -3,7 +3,8 @@ example_programs = \
   dump_torrent     \
   enum_if          \
   make_torrent     \
-  simple_client
+  simple_client    \
+  utp_test
 
 if ENABLE_EXAMPLES
 bin_PROGRAMS = $(example_programs)
