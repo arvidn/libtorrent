@@ -123,8 +123,7 @@ public:
 	
 	void bind(endpoint_type const& ep, error_code& ec);
 	void bind(udp::endpoint const& ep, error_code& ec);
-	void on_receive(error_code const& e, udp::endpoint const& ep
-			, char const* buf, int size);
+	bool incoming_packet(char const* buf, int size);
 
 	~utp_stream();
 	

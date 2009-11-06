@@ -30,31 +30,40 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/utp_stream.hpp"
+#ifndef TORRENT_UTP_SOCKET_MANAGER_HPP_INCLUDED
+#define TORRENT_UTP_SOCKET_MANAGER_HPP_INCLUDED
 
-namespace libtorrent {
+#include <boost/shared_ptr.hpp>
+#include <map>
 
-utp_stream::~utp_stream()
+namespace
 {
+	struct udp_socket;
+	struct utp_stream;
+
+	typedef void (*incoming_utp_fun)(void*, boost::shared_ptr<utp_stream> const&);
+
+	struct utp_socket_manager
+	{
+		utp_socket_manager(udp_socket& s, incoming_utp_fun cb, void* userdata);
+
+		// return false if this is not a uTP packet
+		bool incoming_packet(char const* p, int size);
+
+		void tick();
+
+		// internal, used by utp_stream
+		void remove_socket(boost::uint16_t id);
+
+	private:
+		udp_socket& m_sock;
+		// replace with a hash-map
+		typedef std::map<boost::uint16_t, utp_stream*> socket_map_t;
+		socket_map_t m_utp_sockets;
+
+		void add_socket(boost::uint16_t id, utp_stream* s);
+	};
 }
 
-bool utp_stream::incoming_packet(char const* buf, int size)
-{
-	utp_header* ph = (utp_header*)buf;
+#endif
 
-	if (ph->ver != 1) return false;
-
-	if (ph->connection_id != m_recv_id) return false;
-
-
-}
-
-void utp_stream::bind(endpoint_type const& ep, error_code& ec)
-{
-}
-
-void utp_stream::bind(udp::endpoint const& ep, error_code& ec)
-{
-}
-
-}
