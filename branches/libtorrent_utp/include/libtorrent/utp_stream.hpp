@@ -100,24 +100,15 @@ struct utp_header
 	be_uint16 ack_nr;
 };
 
-struct utp_socket
-{
-	udp_socket& socket;
-	int state;
-	int seq_nr;
-	int ack_nr;
-	int conn_id_recv;
-	int conn_id_send;
-};
-
 class utp_stream : public proxy_base
 {
 public:
 
-	explicit utp_stream(io_service& ios, connection_queue& cc)
-		: proxy_base(ios)
-		, m_sock(ios, boost::bind(&utp_stream::on_receive, this, _1, _2, _3, _4), cc)
-		, m_state(action_error)
+	explicit utp_stream(utp_socket_manager& sm, boost::uint16_t id)
+		: m_sm(sm)
+		, m_send_id(id + 1)
+		, m_recv_id(id)
+		, m_state(UTP_STATE_NONE)
 	{}
 
 	typedef boost::function<void(error_code const&)> handler_type;
@@ -125,22 +116,9 @@ public:
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
 	{
-		m_remote_endpoint = udp::endpoint(endpoint.address(), endpoint.port());
-
-		// the connect is split up in the following steps:
-		// 1. 
-
-		// to avoid unnecessary copying of the handler,
-		// store it in a shaed_ptr
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
-		
-		if (!m_sock.is_open()) return; // the operation was aborted
-		
-		error_code ec;
-		char buf[30];
-		m_sock.send(m_remote_endpoint, buf, 16, ec);
-		
-		m_state = action_connect;
+		TORRENT_ASSERT(m_state == UTP_STATE_NONE);
+		// store handler
+		async_connect_impl();
 	}
 	
 	void bind(endpoint_type const& ep, error_code& ec);
@@ -151,16 +129,21 @@ public:
 	~utp_stream();
 	
 private:
+	
+	void async_connect_impl();
 
-	enum action_t
-	{
-		action_connect,
-		action_error
+	utp_socket_manager& m_sm;
+	boost::uint16_t m_send_id;
+	boost::uint16_t m_recv_id;
+	boost::uint16_t m_ack_nr;
+	boost::uint16_t m_seq_nr;
+	enum state_t {
+		UTP_STATE_NONE,
+		UTP_STATE_SYN_SENT,
+		UTP_STATE_CONNECTED,
+		UTP_STATE_FIN_SENT
 	};
-
-	udp_socket m_sock;
-	udp::endpoint m_remote_endpoint;
-	action_t m_state;
+	unsigned char m_state;
 };
 
 }

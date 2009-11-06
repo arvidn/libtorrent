@@ -82,6 +82,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/peer_connection.hpp" // for intrusive_ptr_release
+#include "libtorrent/utp_socket_manager.hpp"
 
 #ifdef TORRENT_STATS
 #include <fstream>
@@ -429,6 +430,8 @@ namespace libtorrent
 			boost::pool<> m_send_buffers;
 #endif
 			mutex m_send_buffer_mutex;
+
+			utp_socket_manager m_utp_sockets;
 
 			// the file pool that all storages in this session's
 			// torrents uses. It sets a limit on the number of

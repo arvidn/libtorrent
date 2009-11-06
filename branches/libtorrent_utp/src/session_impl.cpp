@@ -970,11 +970,13 @@ namespace aux {
 			return;
 		}
 
-		if (len > 20 && *buf == 'd' && m_dht)
+		if (len > 20 && *buf == 'd' && buf[len-1] == 'e' && m_dht)
 		{
 			// this is probably a dht message
 			m_dht->on_receive(ep, buf, len);
 		}
+
+		m_utp_sockets.incoming_packet(buf, len);
 	}
 
 #endif
