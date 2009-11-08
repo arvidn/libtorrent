@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	utp_socket_manager::utp_socket_manager(udp_socket& s, incoming_utp_fun cb
+	utp_socket_manager::utp_socket_manager(udp_socket& s, incoming_utp_callback_t cb
 		, void* userdata)
 		: m_sock(s)
 		, m_cb(cb)

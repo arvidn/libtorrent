@@ -41,11 +41,11 @@ namespace libtorrent
 	struct udp_socket;
 	struct utp_stream;
 
-	typedef void (*incoming_utp_fun)(void*, boost::shared_ptr<utp_stream> const&);
+	typedef boost::function<void(void*, boost::shared_ptr<utp_stream> const&)> incoming_utp_callback_t;
 
 	struct utp_socket_manager
 	{
-		utp_socket_manager(udp_socket& s, incoming_utp_fun cb, void* userdata);
+		utp_socket_manager(udp_socket& s, incoming_utp_callback_t cb, void* userdata);
 
 		// return false if this is not a uTP packet
 		bool incoming_packet(char const* p, int size);
@@ -57,7 +57,7 @@ namespace libtorrent
 
 	private:
 		udp_socket& m_sock;
-		incoming_utp_fun m_cb;
+		incoming_utp_callback_t m_cb;
 		void* m_userdata;
 		
 		// replace with a hash-map
