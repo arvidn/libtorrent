@@ -54,7 +54,7 @@ namespace libtorrent
 		}
 		operator T() const
 		{
-			char* p = m_storage;
+			const char* p = m_storage;
 			return detail::read_impl(p, detail::type<T>());
 		}
 	private:
