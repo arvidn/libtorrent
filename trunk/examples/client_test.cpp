@@ -196,12 +196,9 @@ char const* esc(char const* code)
 
 std::string to_string(int v, int width)
 {
-	std::stringstream s;
-	s.flags(std::ios_base::right);
-	s.width(width);
-	s.fill(' ');
-	s << v;
-	return s.str();
+	char buf[100];
+	snprintf(buf, sizeof(buf), "%*d", width, v);
+	return buf;
 }
 
 std::string& to_string(float v, int width, int precision = 3)
