@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/proxy_base.hpp"
+#include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/io.hpp"
 
@@ -125,6 +126,8 @@ public:
 	void bind(endpoint_type const& ep, error_code& ec);
 	void bind(udp::endpoint const& ep, error_code& ec);
 	bool incoming_packet(char const* buf, int size);
+	
+	void tick();
 
 	~utp_stream();
 	

@@ -57,4 +57,8 @@ void utp_stream::bind(udp::endpoint const& ep, error_code& ec)
 {
 }
 
+void utp_stream::tick()
+{
+}
+
 }
