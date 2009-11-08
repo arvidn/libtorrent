@@ -45,7 +45,7 @@ namespace libtorrent
 
 	void utp_socket_manager::tick()
 	{
-		for (socket_map::iterator i = m_utp_sockets.begin()
+		for (socket_map_t::iterator i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end; ++i)
 		{
 			i->second->tick();
