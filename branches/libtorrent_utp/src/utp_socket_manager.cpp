@@ -78,7 +78,7 @@ namespace libtorrent
 		}
 
 		if (i != m_utp_sockets.end())
-			return i->second->incoming_packet(p, len);
+			return i->second->incoming_packet(p, size);
 
 		return false;
 	}
