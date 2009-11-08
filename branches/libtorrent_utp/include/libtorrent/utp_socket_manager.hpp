@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <map>
 
-namespace
+namespace libtorrent
 {
 	struct udp_socket;
 	struct utp_stream;
