@@ -33,6 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_CONFIG_HPP_INCLUDED
 #define TORRENT_CONFIG_HPP_INCLUDED
 
+#if !defined TORRENT_USE_OPENSSL \
+	&& !defined TORRENT_USE_GCRYPT \
+	&& !defined TORRENT_DISABLE_ENCRYPTION
+#error you need to either disable encryption or specify which library to use
+#endif
+
 #include <boost/config.hpp>
 #include <boost/version.hpp>
 #include <stdio.h> // for snprintf
