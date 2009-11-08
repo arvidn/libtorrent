@@ -73,7 +73,7 @@ namespace libtorrent
 			boost::shared_ptr<utp_stream> c(new utp_stream(m_sock.get_io_service(), *this, id));
 
 			TORRENT_ASSERT(m_utp_sockets.find(id) == m_utp_sockets.end());
-			i = m_utp_sockets.insert(std::make_pair(id, c.get()));
+			i = m_utp_sockets.insert(i, std::make_pair(id, c.get()));
 			m_cb(m_userdata, c);
 		}
 
