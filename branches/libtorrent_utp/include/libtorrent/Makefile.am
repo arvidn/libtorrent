@@ -88,6 +88,7 @@ nobase_include_HEADERS = \
   udp_socket.hpp               \
   udp_tracker_connection.hpp   \
   upnp.hpp                     \
+  utp_socket_manager.hpp       \
   utp_stream.hpp               \
   utf8.hpp                     \
   variant_stream.hpp           \
