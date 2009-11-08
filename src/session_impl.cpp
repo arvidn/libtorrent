@@ -92,7 +92,31 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/resource.h>
 #endif
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#ifdef TORRENT_USE_GCRYPT
+
+extern "C" {
+GCRY_THREAD_OPTION_PTHREAD_IMPL;
+}
+
+namespace
+{
+	// libgcrypt requires this to initialize the library
+	struct gcrypt_setup
+	{
+		gcrypt_setup()
+		{
+			gcry_check_version(0);
+			gcry_error_t e = gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+			if (e != 0) fprintf(stderr, "libcrypt ERROR: %s\n", gcry_strerror(e));
+			e = gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
+			if (e != 0) fprintf(stderr, "initialization finished error: %s\n", gcry_strerror(e));
+		}
+	} gcrypt_global_constructor;
+}
+
+#endif // TORRENT_USE_GCRYPT
+
+#ifdef TORRENT_USE_OPENSSL
 
 #include <openssl/crypto.h>
 
@@ -106,7 +130,8 @@ namespace
 	} openssl_global_destructor;
 }
 
-#endif
+#endif // TORRENT_USE_OPENSSL
+
 #ifdef TORRENT_WINDOWS
 // for ERROR_SEM_TIMEOUT
 #include <winerror.h>

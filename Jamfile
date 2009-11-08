@@ -29,8 +29,7 @@ rule linking ( properties * )
 	local result ;
 
 	# openssl libraries, if enabled
-	if <openssl>sha-1 in $(properties)
-		|| <openssl>pe in $(properties)
+	if <encryption>openssl in $(properties)
 	{
 		# exclude gcc from a regular windows build to make mingw
 		# link against the regular unix library name
@@ -53,6 +52,17 @@ rule linking ( properties * )
 		{
 			result += <library>crypto <library>ssl ;
 		}
+	}
+
+	# gcrypt libraries, if enabled
+	if <encryption>gcrypt in $(properties)
+	{
+		# on mac os x, adding the /opt/local/include path
+		# would include openssl headers incompatible with
+		# the system library. Only add this include path
+		# if we're not using openssl (which we're most
+		# likely not if we're using libgcrypt)
+		result += <library>gcrypt <include>/opt/local/include ;
 	}
 
 	if <geoip>shared in $(properties)
@@ -161,16 +171,13 @@ rule building ( properties * )
 		result += <source>src/GeoIP.c ;
 	}
 
-	if <openssl>off in $(properties)
+	if <encryption>off in $(properties)
 	{
 		result += <source>src/sha1.cpp ;
 	}
 	else
 	{
-		if <openssl>pe in $(properties)
-		{
-			result += <source>src/pe_crypto.cpp ;
-		}
+		result += <source>src/pe_crypto.cpp ;
 
 		if <target-os>linux in $(properties)
 		{
@@ -228,10 +235,10 @@ feature dht-support : on off logging : composite propagated link-incompatible ;
 feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
 feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
-feature openssl : pe sha-1 off : composite propagated link-incompatible ;
-feature.compose <openssl>pe : <define>TORRENT_USE_OPENSSL ;
-feature.compose <openssl>sha-1 : <define>TORRENT_USE_OPENSSL <define>TORRENT_DISABLE_ENCRYPTION ;
-feature.compose <openssl>off : <define>TORRENT_DISABLE_ENCRYPTION ;
+feature encryption : off openssl gcrypt : composite propagated link-incompatible ;
+feature.compose <encryption>openssl : <define>TORRENT_USE_OPENSSL ;
+feature.compose <encryption>gcrypt : <define>TORRENT_USE_GCRYPT ;
+feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 
 feature resolve-countries : on off : composite propagated link-incompatible ;
 feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
@@ -285,8 +292,9 @@ lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-sea
 lib boost_system : : <name>boost_system ;
 
 # openssl on linux/bsd/macos etc.
+lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
 lib crypto : : <name>crypto <link>shared ;
-lib ssl : : <name>ssl <link>shared ;
+lib ssl : : <name>ssl <link>shared <use>crypto ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt <link>shared ;

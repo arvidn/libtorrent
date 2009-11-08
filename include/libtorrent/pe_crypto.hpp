@@ -35,9 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PE_CRYPTO_HPP_INCLUDED
 #define TORRENT_PE_CRYPTO_HPP_INCLUDED
 
-#include <openssl/dh.h>
-#include <openssl/engine.h>
+#ifdef TORRENT_USE_GCRYPT
+#include <gcrypt.h>
+#endif
+
+#ifdef TORRENT_USE_OPENSSL
 #include <openssl/rc4.h>
+#endif
 
 #include "libtorrent/peer_id.hpp" // For sha1_hash
 #include "libtorrent/assert.hpp"
@@ -48,31 +52,27 @@ namespace libtorrent
 	{
 	public:
 		dh_key_exchange();
-		~dh_key_exchange();
-		bool good() const { return m_dh; }
+		bool good() const { return true; }
 
 		// Get local public key, always 96 bytes
 		char const* get_local_key() const;
 
 		// read remote_pubkey, generate and store shared secret in
-		// m_dh_secret.
+		// m_dh_shared_secret.
 		int compute_secret(const char* remote_pubkey);
 
-		char const* get_secret() const { return m_dh_secret; }
+		char const* get_secret() const { return m_dh_shared_secret; }
 
 		sha1_hash const& get_hash_xor_mask() const { return m_xor_mask; }
 		
 	private:
-		int get_local_key_size() const
-		{
-			TORRENT_ASSERT(m_dh);
-			return BN_num_bytes(m_dh->pub_key);
-		}
 
-		DH* m_dh;
+		int get_local_key_size() const
+		{ return sizeof(m_dh_local_key); }
 
 		char m_dh_local_key[96];
-		char m_dh_secret[96];
+		char m_dh_local_secret[96];
+		char m_dh_shared_secret[96];
 		sha1_hash m_xor_mask;
 	};
 	
@@ -80,13 +80,18 @@ namespace libtorrent
 	{
 	public:
 		// Input longkeys must be 20 bytes
-		RC4_handler(const sha1_hash& rc4_local_longkey,
-			const sha1_hash& rc4_remote_longkey)
+		RC4_handler(sha1_hash const& rc4_local_longkey,
+			sha1_hash const& rc4_remote_longkey)
 		{
-			RC4_set_key(&m_local_key, 20,
-				reinterpret_cast<unsigned char const*>(rc4_local_longkey.begin()));
-			RC4_set_key(&m_remote_key, 20,
-				reinterpret_cast<unsigned char const*>(rc4_remote_longkey.begin()));
+#ifdef TORRENT_USE_GCRYPT
+			gcry_cipher_open(&m_rc4_incoming, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
+			gcry_cipher_open(&m_rc4_outgoing, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
+			gcry_cipher_setkey(m_rc4_incoming, &rc4_remote_longkey[0], 20);
+			gcry_cipher_setkey(m_rc4_outgoing, &rc4_local_longkey[0], 20);
+#elif defined TORRENT_USE_OPENSSL
+			RC4_set_key(&m_local_key, 20, &rc4_local_longkey[0]);
+			RC4_set_key(&m_remote_key, 20, &rc4_remote_longkey[0]);
+#endif
 
 			// Discard first 1024 bytes
 			char buf[1024];
@@ -94,15 +99,24 @@ namespace libtorrent
 			decrypt(buf, 1024);
 		};
 		
-		~RC4_handler() {};
+		~RC4_handler()
+		{
+#ifdef TORRENT_USE_GCRYPT
+			gcry_cipher_close(m_rc4_incoming);
+			gcry_cipher_close(m_rc4_outgoing);
+#endif
+		};
 
 		void encrypt(char* pos, int len)
 		{
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
 
-			RC4(&m_local_key, len, reinterpret_cast<unsigned char const*>(pos),
-				reinterpret_cast<unsigned char*>(pos));
+#ifdef TORRENT_USE_GCRYPT
+			gcry_cipher_encrypt(m_rc4_outgoing, pos, len, 0, 0);
+#elif defined TORRENT_USE_OPENSSL
+			RC4(&m_local_key, len, (const unsigned char*)pos, (unsigned char*)pos);
+#endif
 		}
 
 		void decrypt(char* pos, int len)
@@ -110,13 +124,21 @@ namespace libtorrent
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
 
-			RC4(&m_remote_key, len, reinterpret_cast<unsigned char const*>(pos),
-				reinterpret_cast<unsigned char*>(pos));
+#ifdef TORRENT_USE_GCRYPT
+			gcry_cipher_decrypt(m_rc4_incoming, pos, len, 0, 0);
+#elif defined TORRENT_USE_OPENSSL
+			RC4(&m_remote_key, len, (const unsigned char*)pos, (unsigned char*)pos);
+#endif
 		}
 
 	private:
+#ifdef TORRENT_USE_GCRYPT
+		gcry_cipher_hd_t m_rc4_incoming;
+		gcry_cipher_hd_t m_rc4_outgoing;
+#elif defined TORRENT_USE_OPENSSL
 		RC4_KEY m_local_key; // Key to encrypt outgoing data
 		RC4_KEY m_remote_key; // Key to decrypt incoming data
+#endif
 	};
 
 } // namespace libtorrent
