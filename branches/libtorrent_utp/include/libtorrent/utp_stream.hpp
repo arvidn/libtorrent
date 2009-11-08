@@ -104,8 +104,9 @@ class utp_stream : public proxy_base
 {
 public:
 
-	explicit utp_stream(utp_socket_manager& sm, boost::uint16_t id)
-		: m_sm(sm)
+	explicit utp_stream(io_service& ios, utp_socket_manager& sm, boost::uint16_t id)
+		: proxy_base(ios)
+		, m_sm(sm)
 		, m_send_id(id + 1)
 		, m_recv_id(id)
 		, m_state(UTP_STATE_NONE)
