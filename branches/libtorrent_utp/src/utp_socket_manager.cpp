@@ -70,7 +70,7 @@ namespace libtorrent
 		if (i == m_utp_sockets.end() && ph->type == ST_SYN)
 		{
 			boost::uint16_t id = rand();
-			boost::shared_ptr<utp_stream> c = new utp_stream(*this, id);
+			boost::shared_ptr<utp_stream> c(new utp_stream(m_sock.get_io_service(), *this, id));
 
 			TORRENT_ASSERT(m_utp_sockets.find(id) == m_utp_sockets.end());
 			i = m_utp_sockets.insert(std::make_pair(id, c.get()));
