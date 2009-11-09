@@ -37,10 +37,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_USE_GCRYPT
 #include <gcrypt.h>
-#endif
-
-#ifdef TORRENT_USE_OPENSSL
+#elif defined TORRENT_USE_OPENSSL
 #include <openssl/rc4.h>
+#else
+// RC4 state from libtomcrypt
+struct rc4 {
+	int x, y;
+	unsigned char buf[256];
+};
+
+void rc4_init(const unsigned char* in, unsigned long len, rc4 *state);
+unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
 #endif
 
 #include "libtorrent/peer_id.hpp" // For sha1_hash
@@ -75,7 +82,7 @@ namespace libtorrent
 		char m_dh_shared_secret[96];
 		sha1_hash m_xor_mask;
 	};
-	
+
 	class RC4_handler // Non copyable
 	{
 	public:
@@ -91,6 +98,9 @@ namespace libtorrent
 #elif defined TORRENT_USE_OPENSSL
 			RC4_set_key(&m_local_key, 20, &rc4_local_longkey[0]);
 			RC4_set_key(&m_remote_key, 20, &rc4_remote_longkey[0]);
+#else
+			rc4_init(&rc4_remote_longkey[0], 20, &m_rc4_incoming);
+			rc4_init(&rc4_local_longkey[0], 20, &m_rc4_outgoing);
 #endif
 
 			// Discard first 1024 bytes
@@ -116,6 +126,8 @@ namespace libtorrent
 			gcry_cipher_encrypt(m_rc4_outgoing, pos, len, 0, 0);
 #elif defined TORRENT_USE_OPENSSL
 			RC4(&m_local_key, len, (const unsigned char*)pos, (unsigned char*)pos);
+#else
+			rc4_encrypt((unsigned char*)pos, len, &m_rc4_outgoing);
 #endif
 		}
 
@@ -128,6 +140,8 @@ namespace libtorrent
 			gcry_cipher_decrypt(m_rc4_incoming, pos, len, 0, 0);
 #elif defined TORRENT_USE_OPENSSL
 			RC4(&m_remote_key, len, (const unsigned char*)pos, (unsigned char*)pos);
+#else
+			rc4_encrypt((unsigned char*)pos, len, &m_rc4_incoming);
 #endif
 		}
 
@@ -138,6 +152,9 @@ namespace libtorrent
 #elif defined TORRENT_USE_OPENSSL
 		RC4_KEY m_local_key; // Key to encrypt outgoing data
 		RC4_KEY m_remote_key; // Key to decrypt incoming data
+#else
+		rc4 m_rc4_incoming;
+		rc4 m_rc4_outgoing;
 #endif
 	};
 

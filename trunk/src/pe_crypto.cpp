@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 
+#include <boost/cstdint.hpp>
 #include <algorithm>
 
 #if defined TORRENT_USE_GCRYPT
@@ -39,6 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined TORRENT_USE_OPENSSL
 #include <openssl/bn.h>
 #include <openssl/rand.h>
+#elif defined TORRENT_USE_TOMMATH
+extern "C" {
+#include <tommath.h>
+}
 #endif
 
 #include "libtorrent/pe_crypto.hpp"
@@ -60,6 +65,7 @@ namespace libtorrent
 			0xA6, 0x3A, 0x36, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x05, 0x63
 		};
 	}
+
 
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
@@ -135,8 +141,43 @@ get_out:
 		if (key) BN_free(key);
 		if (secret) BN_free(secret);
 		if (prime) BN_free(prime);
+#elif defined TORRENT_USE_TOMMATH
+		// create local key
+		for (int i = 0; i < sizeof(m_dh_local_secret); ++i)
+			m_dh_local_secret[i] = rand();
+
+		mp_int prime;
+		mp_int secret;
+		mp_int key;
+		int e;
+		int size;
+
+		mp_init(&prime);
+		mp_init(&secret);
+		mp_init(&key);
+
+		e = mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime));
+		if (e) goto get_out;
+		e = mp_read_unsigned_bin(&secret, (unsigned char*)m_dh_local_secret, sizeof(m_dh_local_secret));
+		if (e) goto get_out;
+
+		// generator is 2
+		mp_set_int(&key, 2);
+		// key = (2 ^ secret) % prime
+		e = mp_exptmod(&key, &secret, &prime, &key);
+		if (e) goto get_out;
+
+		// key is now our local key
+		size = mp_unsigned_bin_size(&key);
+		memset(m_dh_local_key, 0, sizeof(m_dh_local_key) - size);
+		mp_to_unsigned_bin(&key, (unsigned char*)m_dh_local_key + sizeof(m_dh_local_key) - size);
+
+get_out:
+		mp_clear(&key);
+		mp_clear(&prime);
+		mp_clear(&secret);
 #else
-#error you must define TORRENT_USE_OPENSSL or TORRENT_USE_GCRYPT
+#error you must define which bigint library to use
 #endif
 	}
 
@@ -215,8 +256,38 @@ get_out:
 		BN_free(remote_key);
 		BN_free(secret);
 		BN_free(prime);
+#elif defined TORRENT_USE_TOMMATH
+		mp_int prime;
+		mp_int secret;
+		mp_int remote_key;
+		int size;
+		int e;
+
+		mp_init(&prime);
+		mp_init(&secret);
+		mp_init(&remote_key);
+
+		e = mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime));
+		if (e) { ret = 1; goto get_out; }
+		e = mp_read_unsigned_bin(&secret, (unsigned char*)m_dh_local_secret, sizeof(m_dh_local_secret));
+		if (e) { ret = 1; goto get_out; }
+		e = mp_read_unsigned_bin(&remote_key, (unsigned char*)remote_pubkey, 96);
+		if (e) { ret = 1; goto get_out; }
+
+		e = mp_exptmod(&remote_key, &secret, &prime, &remote_key);
+		if (e) goto get_out;
+
+		// remote_key is now the shared secret
+		size = mp_unsigned_bin_size(&remote_key);
+		memset(m_dh_shared_secret, 0, sizeof(m_dh_shared_secret) - size);
+		mp_to_unsigned_bin(&remote_key, (unsigned char*)m_dh_shared_secret + sizeof(m_dh_shared_secret) - size);
+
+get_out:
+		mp_clear(&remote_key);
+		mp_clear(&secret);
+		mp_clear(&prime);
 #else
-#error you must define TORRENT_USE_OPENSSL or TORRENT_USE_GCRYPT
+#error you must define which bigint library to use
 #endif
 
 		// calculate the xor mask for the obfuscated hash
@@ -228,6 +299,73 @@ get_out:
 	}
 
 } // namespace libtorrent
+
+#if !defined TORRENT_USE_OPENSSL && !defined TORRENT_USE_GCRYPT
+
+// All this code is based on libTomCrypt (http://www.libtomcrypt.com/)
+// this library is public domain and has been specially
+// tailored for libtorrent by Arvid Norberg
+
+void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
+{
+	unsigned char key[256], tmp, *s;
+	int keylen, x, y, j;
+
+	TORRENT_ASSERT(key != 0);
+	TORRENT_ASSERT(state != 0);
+	TORRENT_ASSERT(len <= 256);
+
+	state->x = 0;
+	while (len--) {
+		state->buf[state->x++] = *in++;
+	}
+
+	/* extract the key */
+	s = state->buf;
+	memcpy(key, s, 256);
+	keylen = state->x;
+
+	/* make RC4 perm and shuffle */
+	for (x = 0; x < 256; x++) {
+		s[x] = x;
+	}
+
+	for (j = x = y = 0; x < 256; x++) {
+		y = (y + state->buf[x] + key[j++]) & 255;
+		if (j == keylen) {
+			j = 0; 
+		}
+		tmp = s[x]; s[x] = s[y]; s[y] = tmp;
+	}
+	state->x = 0;
+	state->y = 0;
+}
+
+unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
+{
+	unsigned char x, y, *s, tmp;
+	unsigned long n;
+
+	TORRENT_ASSERT(out != 0);
+	TORRENT_ASSERT(state != 0);
+
+	n = outlen;
+	x = state->x;
+	y = state->y;
+	s = state->buf;
+	while (outlen--) {
+		x = (x + 1) & 255;
+		y = (y + s[x]) & 255;
+		tmp = s[x]; s[x] = s[y]; s[y] = tmp;
+		tmp = (s[x] + s[y]) & 255;
+		*out++ ^= s[tmp];
+	}
+	state->x = x;
+	state->y = y;
+	return n;
+}
+
+#endif
 
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 

@@ -292,6 +292,10 @@ Build features:
 |                          |   bittorrent connections.                          |
 |                          | * ``gcrypt`` - links against libgcrypt to enable   |
 |                          |   encrypted bittorrent connections.                |
+|                          | * ``tommath`` - uses a shipped version of          |
+|                          |   libtommath and a custom rc4 implementation       |
+|                          |   (based on libtomcrypt). This is the default      |
+|                          |   option.                                          |
 |                          | * ``off`` - turns off support for encrypted        |
 |                          |   connections. The shipped public domain SHA-1     |
 |                          |   implementation is used.                          |

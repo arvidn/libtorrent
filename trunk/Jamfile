@@ -65,6 +65,11 @@ rule linking ( properties * )
 		result += <library>gcrypt <include>/opt/local/include ;
 	}
 
+	if <encryption>tommath in $(properties)
+	{
+		result += <source>src/mpi.c ;
+	}
+
 	if <geoip>shared in $(properties)
 	{
 		result += <library>GeoIP ;
@@ -172,10 +177,12 @@ rule building ( properties * )
 	}
 
 	if <encryption>off in $(properties)
+		|| <encryption>tommath in $(properties)
 	{
 		result += <source>src/sha1.cpp ;
 	}
-	else
+
+	if ! ( <encryption>off in $(properties) )
 	{
 		result += <source>src/pe_crypto.cpp ;
 
@@ -235,9 +242,10 @@ feature dht-support : on off logging : composite propagated link-incompatible ;
 feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
 feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
-feature encryption : off openssl gcrypt : composite propagated link-incompatible ;
+feature encryption : tommath off openssl gcrypt : composite propagated link-incompatible ;
 feature.compose <encryption>openssl : <define>TORRENT_USE_OPENSSL ;
 feature.compose <encryption>gcrypt : <define>TORRENT_USE_GCRYPT ;
+feature.compose <encryption>tommath : <define>TORRENT_USE_TOMMATH ;
 feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 
 feature resolve-countries : on off : composite propagated link-incompatible ;
