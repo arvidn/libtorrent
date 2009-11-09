@@ -165,9 +165,14 @@ int test_main()
 {
 	std::srand(std::time(0));
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
-	std::ofstream test_file("test_file", std::ios::trunc);
-	test_file.write(data_buffer, 3216);
-	TEST_CHECK(test_file.good());
+	error_code ec;
+	file test_file("test_file", file::write_only, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "file error: %s\n", ec.message().c_str());
+	file::iovec_t b = { data_buffer, 3216};
+	test_file.writev(0, &b, 1, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "file error: %s\n", ec.message().c_str());
 	test_file.close();
 	std::system("gzip -9 -c test_file > test_file.gz");
 	
