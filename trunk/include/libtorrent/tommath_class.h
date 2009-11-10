@@ -989,8 +989,8 @@
 #ifdef LTM3
 #define LTM_LAST
 #endif
-#include <tommath_superclass.h>
-#include <tommath_class.h>
+#include "libtorrent/tommath_superclass.h"
+#include "libtorrent/tommath_class.h"
 #else
 #define LTM_LAST
 #endif

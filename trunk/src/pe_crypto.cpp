@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <openssl/rand.h>
 #elif defined TORRENT_USE_TOMMATH
 extern "C" {
-#include <tommath.h>
+#include "libtorrent/tommath.h"
 }
 #endif
 
