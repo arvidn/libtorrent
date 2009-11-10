@@ -102,6 +102,7 @@ release 0.14.7
 	* back-ported some fixes for building with no exceptions
 	* fixed create_torrent when passing in a path ending with /
 	* fixed move_storage when source doesn't exist
+	* fixed DHT state save bug for node-id
 
 release 0.14.6
 
