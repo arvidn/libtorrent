@@ -147,6 +147,25 @@ file structure. Its synopsis::
 		void swap(file_storage& ti);
 	}
 
+add_file
+--------
+
+	::
+
+		void add_file(file_entry const& e);
+		void add_file(fs::path const& p, size_type size);
+
+Adds a file to the file storage. If more files than one are added,
+certain restrictions to their paths apply. In a multi-file file
+storage (torrent), all files must share the same root directory.
+
+That is, the first path element of all files must be the same.
+This shared path element is also set to the name of the torrent. It
+can be changed by calling ``set_name``.
+
+The built in functions to traverse a directory to add files will
+make sure this requirement is fulfilled.
+
 
 create_torrent
 ==============
@@ -203,6 +222,24 @@ generate the flat file, use the bencode() function.
 
 It may be useful to add custom entries to the torrent file before bencoding it
 and saving it to disk.
+
+If anything goes wrong during torrent generation, this function will return
+an empty ``entry`` structure. You can test for this condition by querying the
+type of the entry::
+
+	file_storage fs;
+	// add file ...
+	create_torrent t(fs);
+	// add trackers and piece hashes ...
+	e = t.generate();
+
+	if (e.type() == entry::undefined_t)
+	{
+		// something went wrong
+	}
+
+For instance, you cannot generate a torrent with 0 files in it. If you don't add
+any files to the ``file_storage``, torrent generation will fail.
 
 set_comment()
 -------------

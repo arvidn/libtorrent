@@ -554,7 +554,7 @@ struct has the following members::
 		int allowed_upload_slots;
 
 		int dht_nodes;
-		int dht_cache_nodes;
+		int dht_node_cache;
 		int dht_torrents;
 		int dht_global_nodes;
 	};
@@ -588,11 +588,11 @@ be assigned a torrent yet.
 ``num_unchoked`` is the current number of unchoked peers.
 ``allowed_upload_slots`` is the current allowed number of unchoked peers.
 
-``dht_nodes``, ``dht_cache_nodes`` and ``dht_torrents`` are only available when
+``dht_nodes``, ``dht_node_cache`` and ``dht_torrents`` are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
 the DHT is running, ``dht_nodes`` is set to the number of nodes in the routing
 table. This number only includes *active* nodes, not cache nodes. The
-``dht_cache_nodes`` is set to the number of nodes in the node cache. These nodes
+``dht_node_cache`` is set to the number of nodes in the node cache. These nodes
 are used to replace the regular nodes in the routing table in case any of them
 becomes unresponsive.
 
