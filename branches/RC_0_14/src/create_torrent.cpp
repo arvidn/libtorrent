@@ -100,6 +100,7 @@ namespace libtorrent
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
 		m_piece_hash.resize(m_files.num_pieces());
 	}
+
 	entry create_torrent::generate() const
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
