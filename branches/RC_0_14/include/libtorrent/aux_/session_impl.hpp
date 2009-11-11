@@ -98,7 +98,7 @@ namespace libtorrent
 	namespace dht
 	{
 		class dht_tracker;
-	};
+	}
 
 	namespace aux
 	{
