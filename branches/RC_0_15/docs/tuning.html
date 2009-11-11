@@ -59,16 +59,17 @@
 <li><a class="reference internal" href="#high-performance-seeding" id="id11">high performance seeding</a><ul>
 <li><a class="reference internal" href="#file-pool" id="id12">file pool</a></li>
 <li><a class="reference internal" href="#disk-cache" id="id13">disk cache</a></li>
-<li><a class="reference internal" href="#peers" id="id14">peers</a></li>
-<li><a class="reference internal" href="#torrent-limits" id="id15">torrent limits</a></li>
+<li><a class="reference internal" href="#send-buffer-low-watermark" id="id14">send buffer low watermark</a></li>
+<li><a class="reference internal" href="#peers" id="id15">peers</a></li>
+<li><a class="reference internal" href="#torrent-limits" id="id16">torrent limits</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#benchmarking" id="id16">benchmarking</a><ul>
-<li><a class="reference internal" href="#disk-metrics" id="id17">disk metrics</a></li>
-<li><a class="reference internal" href="#session-stats" id="id18">session stats</a></li>
+<li><a class="reference internal" href="#benchmarking" id="id17">benchmarking</a><ul>
+<li><a class="reference internal" href="#disk-metrics" id="id18">disk metrics</a></li>
+<li><a class="reference internal" href="#session-stats" id="id19">session stats</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#contributions" id="id19">contributions</a></li>
+<li><a class="reference internal" href="#contributions" id="id20">contributions</a></li>
 </ul>
 </div>
 <div class="section" id="tuning-libtorrent">
@@ -245,6 +246,18 @@ to true.</p>
 <p>In order to increase the possibility of read cache hits, set the
 <tt class="docutils literal"><span class="pre">session_settings::cache_expiry</span></tt> to a large number. This won't degrade anything as
 long as the client is only seeding, and not downloading any torrents.</p>
+</div>
+<div class="section" id="send-buffer-low-watermark">
+<h2>send buffer low watermark</h2>
+<p>libtorrent uses a low watermark for send buffers to determine when a new piece should
+be requested from the disk I/O subsystem, to be appended to the send buffer. The low
+watermark is determined based on the send rate of the socket. It needs to be large
+enough to not draining the socket's send buffer before the disk operation completes.</p>
+<p>The watermark is bound to a max value, to avoid buffer sizes growing out of control.
+The default max send buffer size might not be enough to sustain very high upload rates,
+and you might have to increase it. It's specified in bytes in
+<tt class="docutils literal"><span class="pre">session_settings::send_buffer_watermark</span></tt>. The <tt class="docutils literal"><span class="pre">high_performance_seed()</span></tt> preset
+sets this value to 5 MB.</p>
 </div>
 <div class="section" id="peers">
 <h2>peers</h2>

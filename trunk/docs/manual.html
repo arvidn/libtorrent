@@ -930,7 +930,7 @@ struct session_status
         int unchoke_counter;
 
         int dht_nodes;
-        int dht_cache_nodes;
+        int dht_node_cache;
         int dht_torrents;
         int dht_global_nodes;
         std::vector&lt;dht_lookup&gt; active_requests;
@@ -970,11 +970,11 @@ be assigned a torrent yet.</p>
 seconds until the next optimistic unchoke change and the start of the next
 unchoke interval. These numbers may be reset prematurely if a peer that is
 unchoked disconnects or becomes notinterested.</p>
-<p><tt class="docutils literal"><span class="pre">dht_nodes</span></tt>, <tt class="docutils literal"><span class="pre">dht_cache_nodes</span></tt> and <tt class="docutils literal"><span class="pre">dht_torrents</span></tt> are only available when
+<p><tt class="docutils literal"><span class="pre">dht_nodes</span></tt>, <tt class="docutils literal"><span class="pre">dht_node_cache</span></tt> and <tt class="docutils literal"><span class="pre">dht_torrents</span></tt> are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
 the DHT is running, <tt class="docutils literal"><span class="pre">dht_nodes</span></tt> is set to the number of nodes in the routing
 table. This number only includes <em>active</em> nodes, not cache nodes. The
-<tt class="docutils literal"><span class="pre">dht_cache_nodes</span></tt> is set to the number of nodes in the node cache. These nodes
+<tt class="docutils literal"><span class="pre">dht_node_cache</span></tt> is set to the number of nodes in the node cache. These nodes
 are used to replace the regular nodes in the routing table in case any of them
 becomes unresponsive.</p>
 <p><tt class="docutils literal"><span class="pre">dht_torrents</span></tt> are the number of torrents tracked by the DHT at the moment.</p>
@@ -2716,14 +2716,14 @@ while (num_resume_data &gt; 0)
 
         std::auto_ptr&lt;alert&gt; holder = ses.pop_alert();
 
-        if (dynamic_cast&lt;save_resume_data_failed_alert const*&gt;(a))
+        if (alert_cast&lt;save_resume_data_failed_alert&gt;(a))
         {
                 process_alert(a);
                 --num_resume_data;
                 continue;
         }
 
-        save_resume_data_alert const* rd = dynamic_cast&lt;save_resume_data_alert const*&gt;(a);
+        save_resume_data_alert const* rd = alert_cast&lt;save_resume_data_alert&gt;(a);
         if (rd == 0)
         {
                 process_alert(a);
@@ -4566,9 +4566,14 @@ or upload rate.</td>
 <p>Every alert belongs to one or more category. There is a small cost involved in posting alerts. Only
 alerts that belong to an enabled category are posted. Setting the alert bitmask to 0 will disable
 all alerts</p>
-<p>When you get an alert, you can use <tt class="docutils literal"><span class="pre">typeid()</span></tt> or <tt class="docutils literal"><span class="pre">dynamic_cast&lt;&gt;</span></tt> to get more detailed
-information on exactly which type it is. i.e. what kind of error it is. You can also use a
-<a class="reference internal" href="#dispatcher">dispatcher</a> mechanism that's available in libtorrent.</p>
+<p>When you get an alert, you can use <tt class="docutils literal"><span class="pre">alert_cast&lt;&gt;</span></tt> to attempt to cast the pointer to a
+more specific alert type, to be queried for more information about the alert. <tt class="docutils literal"><span class="pre">alert_cast</span></tt>
+has the followinf signature:</p>
+<pre class="literal-block">
+template &lt;T&gt; T* alert_cast(alert* a);
+template &lt;T&gt; T const* alert_cast(alert const* a);
+</pre>
+<p>You can also use a <a class="reference internal" href="#dispatcher">dispatcher</a> mechanism that's available in libtorrent.</p>
 <p>All alert types are defined in the <tt class="docutils literal"><span class="pre">&lt;libtorrent/alert_types.hpp&gt;</span></tt> header file.</p>
 <p>The <tt class="docutils literal"><span class="pre">alert</span></tt> class is the base class that specific messages are derived from. This
 is its synopsis:</p>
