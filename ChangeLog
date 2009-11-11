@@ -104,6 +104,7 @@ release 0.14.7
 	* fixed create_torrent when passing in a path ending with /
 	* fixed move_storage when source doesn't exist
 	* fixed DHT state save bug for node-id
+	* fixed typo in python binding session_status struct
 
 release 0.14.6
 

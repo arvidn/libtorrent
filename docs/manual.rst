@@ -698,7 +698,7 @@ struct has the following members::
 		int unchoke_counter;
 
 		int dht_nodes;
-		int dht_cache_nodes;
+		int dht_node_cache;
 		int dht_torrents;
 		int dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
@@ -750,11 +750,11 @@ seconds until the next optimistic unchoke change and the start of the next
 unchoke interval. These numbers may be reset prematurely if a peer that is
 unchoked disconnects or becomes notinterested.
 
-``dht_nodes``, ``dht_cache_nodes`` and ``dht_torrents`` are only available when
+``dht_nodes``, ``dht_node_cache`` and ``dht_torrents`` are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
 the DHT is running, ``dht_nodes`` is set to the number of nodes in the routing
 table. This number only includes *active* nodes, not cache nodes. The
-``dht_cache_nodes`` is set to the number of nodes in the node cache. These nodes
+``dht_node_cache`` is set to the number of nodes in the node cache. These nodes
 are used to replace the regular nodes in the routing table in case any of them
 becomes unresponsive.
 
