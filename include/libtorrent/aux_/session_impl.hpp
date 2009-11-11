@@ -100,7 +100,7 @@ namespace libtorrent
 	namespace dht
 	{
 		struct dht_tracker;
-	};
+	}
 
 	namespace aux
 	{

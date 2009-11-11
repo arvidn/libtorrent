@@ -166,7 +166,7 @@ public:
 	}
 #endif
 
-	endpoint_type remote_endpoint(error_code& ec) const
+	endpoint_type remote_endpoint(error_code& /*ec*/) const
 	{
 		return m_remote_endpoint;
 	}
