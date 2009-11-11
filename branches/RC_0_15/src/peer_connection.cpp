@@ -3264,6 +3264,10 @@ namespace libtorrent
 			return false;
 		}
 
+		// first free the old buffer
+		m_disk_recv_buffer.reset();
+		// then allocate a new one
+
 		m_disk_recv_buffer.reset(m_ses.allocate_disk_buffer("receive buffer"));
 		if (!m_disk_recv_buffer)
 		{
