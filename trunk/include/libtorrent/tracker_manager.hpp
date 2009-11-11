@@ -120,8 +120,8 @@ namespace libtorrent
 		virtual ~request_callback() {}
 		virtual void tracker_warning(tracker_request const& req
 			, std::string const& msg) = 0;
-		virtual void tracker_scrape_response(tracker_request const& req
-			, int complete, int incomplete, int downloads) {}
+		virtual void tracker_scrape_response(tracker_request const& /*req*/
+			, int /*complete*/, int /*incomplete*/, int /*downloads*/) {}
 		virtual void tracker_response(
 			tracker_request const& req
 			, address const& tracker_ip
