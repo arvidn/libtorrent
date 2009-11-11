@@ -72,6 +72,7 @@
 	* automatically caps files and connections by default to rlimit
 	* added session::is_dht_running() function
 	* added torrent_handle::force_dht_announce()
+	* fixed typo in python binding session_status struct
 
 release 0.14.7
 

@@ -178,7 +178,7 @@ void bind_session()
         .def_readonly("down_bandwidth_queue", &session_status::down_bandwidth_queue)
 #ifndef TORRENT_DISABLE_DHT
         .def_readonly("dht_nodes", &session_status::dht_nodes)
-        .def_readonly("dht_cache_nodes", &session_status::dht_node_cache)
+        .def_readonly("dht_node_cache", &session_status::dht_node_cache)
         .def_readonly("dht_torrents", &session_status::dht_torrents)
         .def_readonly("dht_global_nodes", &session_status::dht_global_nodes)
 #endif
