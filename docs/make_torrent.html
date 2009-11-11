@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>creating torrents</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -46,17 +46,20 @@
 <li><a class="reference internal" href="#high-level-example" id="id3">high level example</a></li>
 <li><a class="reference internal" href="#add-files" id="id4">add_files</a></li>
 <li><a class="reference internal" href="#set-piece-hashes" id="id5">set_piece_hashes()</a></li>
-<li><a class="reference internal" href="#file-storage" id="id6">file_storage</a></li>
-<li><a class="reference internal" href="#create-torrent" id="id7">create_torrent</a><ul>
-<li><a class="reference internal" href="#id1" id="id8">create_torrent()</a></li>
-<li><a class="reference internal" href="#generate" id="id9">generate()</a></li>
-<li><a class="reference internal" href="#set-comment" id="id10">set_comment()</a></li>
-<li><a class="reference internal" href="#set-creator" id="id11">set_creator()</a></li>
-<li><a class="reference internal" href="#set-hash" id="id12">set_hash()</a></li>
-<li><a class="reference internal" href="#add-url-seed" id="id13">add_url_seed()</a></li>
-<li><a class="reference internal" href="#add-node" id="id14">add_node()</a></li>
-<li><a class="reference internal" href="#add-tracker" id="id15">add_tracker()</a></li>
-<li><a class="reference internal" href="#set-priv-priv" id="id16">set_priv() priv()</a></li>
+<li><a class="reference internal" href="#file-storage" id="id6">file_storage</a><ul>
+<li><a class="reference internal" href="#add-file" id="id7">add_file</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#create-torrent" id="id8">create_torrent</a><ul>
+<li><a class="reference internal" href="#id1" id="id9">create_torrent()</a></li>
+<li><a class="reference internal" href="#generate" id="id10">generate()</a></li>
+<li><a class="reference internal" href="#set-comment" id="id11">set_comment()</a></li>
+<li><a class="reference internal" href="#set-creator" id="id12">set_creator()</a></li>
+<li><a class="reference internal" href="#set-hash" id="id13">set_hash()</a></li>
+<li><a class="reference internal" href="#add-url-seed" id="id14">add_url_seed()</a></li>
+<li><a class="reference internal" href="#add-node" id="id15">add_node()</a></li>
+<li><a class="reference internal" href="#add-tracker" id="id16">add_tracker()</a></li>
+<li><a class="reference internal" href="#set-priv-priv" id="id17">set_priv() priv()</a></li>
 </ul>
 </li>
 </ul>
@@ -193,6 +196,23 @@ public:
         void swap(file_storage&amp; ti);
 }
 </pre>
+<div class="section" id="add-file">
+<h2>add_file</h2>
+<blockquote>
+<pre class="literal-block">
+void add_file(file_entry const&amp; e);
+void add_file(fs::path const&amp; p, size_type size);
+</pre>
+</blockquote>
+<p>Adds a file to the file storage. If more files than one are added,
+certain restrictions to their paths apply. In a multi-file file
+storage (torrent), all files must share the same root directory.</p>
+<p>That is, the first path element of all files must be the same.
+This shared path element is also set to the name of the torrent. It
+can be changed by calling <tt class="docutils literal"><span class="pre">set_name</span></tt>.</p>
+<p>The built in functions to traverse a directory to add files will
+make sure this requirement is fulfilled.</p>
+</div>
 </div>
 <div class="section" id="create-torrent">
 <h1>create_torrent</h1>
@@ -245,6 +265,23 @@ entry generate() const;
 generate the flat file, use the bencode() function.</p>
 <p>It may be useful to add custom entries to the torrent file before bencoding it
 and saving it to disk.</p>
+<p>If anything goes wrong during torrent generation, this function will return
+an empty <tt class="docutils literal"><span class="pre">entry</span></tt> structure. You can test for this condition by querying the
+type of the entry:</p>
+<pre class="literal-block">
+file_storage fs;
+// add file ...
+create_torrent t(fs);
+// add trackers and piece hashes ...
+e = t.generate();
+
+if (e.type() == entry::undefined_t)
+{
+        // something went wrong
+}
+</pre>
+<p>For instance, you cannot generate a torrent with 0 files in it. If you don't add
+any files to the <tt class="docutils literal"><span class="pre">file_storage</span></tt>, torrent generation will fail.</p>
 </div>
 <div class="section" id="set-comment">
 <h2>set_comment()</h2>
