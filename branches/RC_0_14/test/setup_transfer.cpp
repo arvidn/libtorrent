@@ -105,9 +105,9 @@ void test_sleep(int millisec)
 
 void stop_web_server(int port)
 {
-	char buf[100];
-	snprintf(buf, sizeof(buf), "kill `cat ./lighty%d.pid` >/dev/null", port);
-	system(buf);
+	std::stringstream cmd;
+	cmd << "kill `cat ./lighty" << port << ".pid` >/dev/null";
+	system(cmd.str().c_str());
 }
 
 void start_web_server(int port, bool ssl)
@@ -116,7 +116,6 @@ void start_web_server(int port, bool ssl)
 
 	if (ssl)
 	{
-		fprintf(stderr, "generating SSL key\n");
 		system("echo . > tmp");
 		system("echo test province >>tmp");
 		system("echo test city >> tmp");
@@ -128,55 +127,38 @@ void start_web_server(int port, bool ssl)
 			"-days 365 -nodes <tmp");
 	}
 	
-	error_code ec;
-	file f("lighty_config", file::out, ec);
-	if (ec)
-	{
-		fprintf(stderr, "error writing lighty config file: %s\n", ec.message().c_str());
-		return;
-	}
-
-	// this requires lighttpd to be built with ssl support.
-	// The port distribution for mac is not built with ssl
-	// support by default.
-	char buf[1024];
-	int buf_size = snprintf(buf, sizeof(buf),
-		"server.modules = (\"mod_access\", \"mod_redirect\", \"mod_setenv\")\n"
-		"server.document-root = \"%s\"\n"
+	std::ofstream f("lighty_config");
+	f << "server.modules = (\"mod_access\", \"mod_redirect\", \"mod_setenv\")\n"
+		"server.document-root = \"" << fs::initial_path<fs::path>().string() << "\"\n"
 		"server.range-requests = \"enable\"\n"
-		"server.port = %d\n"
-		"server.pid-file = \"./lighty%d.pid\"\n"
+		"server.port = " << port << "\n"
+		"server.pid-file = \"./lighty" << port << ".pid\"\n"
 		"url.redirect = ("
-			"\"^/redirect$\" => \"%s://127.0.0.1:%d/test_file\""
-			", \"^/infinite_redirect$\" => \"%s://127.0.0.1:%d/infinite_redirect\""
+			"\"^/redirect$\" => \"" << (ssl?"https":"http") << "://127.0.0.1:" << port << "/test_file\""
+			", \"^/infinite_redirect$\" => \"" << (ssl?"https":"http") << "://127.0.0.1:" << port << "/infinite_redirect\""
 			", \"^/relative/redirect$\" => \"../test_file\""
 			")\n"
 		"$HTTP[\"url\"] == \"/test_file.gz\" {\n"
 		"    setenv.add-response-header = ( \"Content-Encoding\" => \"gzip\" )\n"
-		"}\n"
-		"ssl.engine = \"%s\"\n"
-		"ssl.pemfile = \"server.pem\"\n"
-		, fs::initial_path<fs::path>().string().c_str(), port, port
-		, (ssl?"https":"http"), port, (ssl?"https":"http"), port
-		, (ssl?"enable":"disable"));
-	f.write(buf, buf_size, ec);
-	if (ec)
-	{
-		fprintf(stderr, "error writing lighty config file: %s\n", ec.message().c_str());
-		return;
-	}
+		"#    mimetype.assign = ()\n"
+		"}\n";
+	// this requires lighttpd to be built with ssl support.
+	// The port distribution for mac is not built with ssl
+	// support by default.
+	if (ssl)
+		f << "ssl.engine = \"enable\"\n"
+			"ssl.pemfile = \"server.pem\"\n";
 	f.close();
 	
-	fprintf(stderr, "starting lighty\n\n%s\n\n", buf);
 	system("lighttpd -f lighty_config 2> lighty.err >lighty.log &");
 	test_sleep(1000);
 }
 
 void stop_proxy(int port)
 {
-	char buf[100];
-	snprintf(buf, sizeof(buf), "delegated -P%d -Fkill", port);
-	system(buf);
+	std::stringstream cmd;
+	cmd << "delegated -P" << port << " -Fkill";
+	system(cmd.str().c_str());
 }
 
 void start_proxy(int port, int proxy_type)
@@ -184,39 +166,29 @@ void start_proxy(int port, int proxy_type)
 	using namespace libtorrent;
 
 	stop_proxy(port);
-
-	char const* type = "";
-	char const* auth = "";
-
+	std::stringstream cmd;
+	// we need to echo n since dg will ask us to configure it
+	cmd << "echo n | delegated -P" << port << " ADMIN=test@test.com "
+		"PERMIT=\"*:*:localhost\" REMITTABLE=+,https RELAY=proxy,delegate";
 	switch (proxy_type)
 	{
 		case proxy_settings::socks4:
-			type = "socks4";
+			cmd << " SERVER=socks4";
 			break;
 		case proxy_settings::socks5:
-			type = "socks5";
+			cmd << " SERVER=socks5";
 			break;
 		case proxy_settings::socks5_pw:
-			type = "socks5";
-			auth = "AUTHORIZER=-list{testuser:testpass}";
+			cmd << " SERVER=socks5 AUTHORIZER=-list{testuser:testpass}";
 			break;
 		case proxy_settings::http:
-			type = "http";
+			cmd << " SERVER=http";
 			break;
 		case proxy_settings::http_pw:
-			type = "http";
-			auth = "AUTHORIZER=-list{testuser:testpass}";
+			cmd << " SERVER=http AUTHORIZER=-list{testuser:testpass}";
 			break;
 	}
-
-	char buf[512];
-	// we need to echo n since dg will ask us to configure it
-	snprintf(buf, sizeof(buf), "echo n | delegated -P%d ADMIN=test@test.com "
-		"PERMIT=\"*:*:localhost\" REMITTABLE=+,https RELAY=proxy,delegate "
-		"SERVER=%s %s"
-		, port, type, auth);
-
-	system(buf);
+	system(cmd.str().c_str());
 	test_sleep(1000);
 }
 
