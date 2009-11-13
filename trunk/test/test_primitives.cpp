@@ -358,7 +358,7 @@ struct parse_state
 namespace libtorrent
 {
 	// defined in torrent_info.cpp
-	bool verify_encoding(std::string& target);
+	bool verify_encoding(std::string& target, bool path = true);
 }
 
 void find_control_url(int type, char const* string, parse_state& state);

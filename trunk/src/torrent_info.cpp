@@ -90,7 +90,7 @@ namespace libtorrent
 	// fixes invalid UTF-8 sequences and
 	// replaces characters that are invalid
 	// in paths
-	bool verify_encoding(std::string& target)
+	bool verify_encoding(std::string& target, bool fix_paths = false)
 	{
 		std::string tmp_path;
 		bool valid_encoding = true;
@@ -101,7 +101,7 @@ namespace libtorrent
 			if ((*i & 0x80) == 0)
 			{
 				// replace invalid characters with '.'
-				if (valid_path_character(*i))
+				if (!fix_paths || valid_path_character(*i))
 				{
 					tmp_path += *i;
 				}
@@ -184,7 +184,7 @@ namespace libtorrent
 	void verify_encoding(file_entry& target)
 	{
 		std::string p = target.path;
-		if (!verify_encoding(p)) target.path = p;
+		if (!verify_encoding(p, true)) target.path = p;
 	}
 
 	// TODO: should this take a char const*?
@@ -660,7 +660,7 @@ namespace libtorrent
 		}
 
 		// correct utf-8 encoding errors
-		verify_encoding(name);
+		verify_encoding(name, true);
 	
 		// extract file list
 		lazy_entry const* i = info.dict_find_list("files");
