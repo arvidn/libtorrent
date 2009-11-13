@@ -256,7 +256,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 	{
 		TORRENT_ASSERT(*i);
 		observer_ptr const& o = *i;
-		if (o->target_ep() != ep) continue;
+		if (o->target_ep() != ep) { ++i; continue; }
 		observer_ptr ptr = *i;
 		m_transactions.erase(i++);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
