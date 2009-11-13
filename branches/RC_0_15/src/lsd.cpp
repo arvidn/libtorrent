@@ -109,7 +109,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 #endif
 
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
-	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, self(), _1, msg));
+	m_broadcast_timer.async_wait(bind(&lsd::resend_announce, self(), _1, std::string(msg)));
 }
 
 void lsd::resend_announce(error_code const& e, std::string msg)
