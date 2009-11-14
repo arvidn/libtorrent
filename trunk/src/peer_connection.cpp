@@ -3686,7 +3686,7 @@ namespace libtorrent
 				m_remote_dl_rate = (m_remote_dl_rate * 2 / 3) + 
 					((m_remote_bytes_dled / 3) / 60);
 			else
-				m_remote_dl_rate = m_remote_dl_rate / 60;
+				m_remote_dl_rate = m_remote_bytes_dled / 60;
 			
 			m_remote_bytes_dled = 0;
 			m_remote_dl_update = now;
