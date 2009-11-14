@@ -1922,6 +1922,7 @@ Its declaration looks like this::
 		enum deadline_flags { alert_when_available = 1 };
 		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
 
+		void piece_availability(std::vector<int>& avail) const;
 		void piece_priority(int index, int priority) const;
 		int piece_priority(int index) const;
 		void prioritize_pieces(std::vector<int> const& pieces) const;
@@ -1995,6 +1996,23 @@ as calling `read_piece()`_ for ``index``.
 
 In the python binding for this function, the ``deadline`` is the number of milliseconds
 as an integer.
+
+
+piece_availability()
+--------------------
+
+	::
+
+		void piece_availability(std::vector<int>& avail) const;
+
+Fills the specified ``std::vector<int>`` with the availability for each
+piece in this torrent. libtorrent does not keep track of availability for
+seeds, so if the torrent is seeding the availability for all pieces is
+reported as 0.
+
+The piece availability is the number of peers that we are connected that has
+advertized having a particular piece. This is the information that libtorrent
+uses in order to prefer picking rare pieces.
 
 
 piece_priority() prioritize_pieces() piece_priorities()
