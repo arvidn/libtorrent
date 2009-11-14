@@ -105,6 +105,8 @@ release 0.14.7
 	* fixed move_storage when source doesn't exist
 	* fixed DHT state save bug for node-id
 	* fixed typo in python binding session_status struct
+	* broadcast sockets now join every network interface (used for UPnP and
+	  local peer discovery)
 
 release 0.14.6
 
