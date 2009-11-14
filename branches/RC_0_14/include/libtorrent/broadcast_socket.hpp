@@ -89,7 +89,7 @@ namespace libtorrent
 			, std::size_t bytes_transferred);
 		void open_unicast_socket(io_service& ios, address const& addr);
 		void open_multicast_socket(io_service& ios, address const& addr
-			, bool loopback);
+			, bool loopback, error_code& ec);
 
 		// these sockets are used to
 		// join the multicast group (on each interface)

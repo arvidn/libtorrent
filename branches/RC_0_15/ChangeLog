@@ -72,7 +72,6 @@
 	* automatically caps files and connections by default to rlimit
 	* added session::is_dht_running() function
 	* added torrent_handle::force_dht_announce()
-	* fixed typo in python binding session_status struct
 
 release 0.14.7
 
@@ -98,6 +97,9 @@ release 0.14.7
 	* fixed create_torrent when passing in a path ending with /
 	* fixed move_storage when source doesn't exist
 	* fixed DHT state save bug for node-id
+	* fixed typo in python binding session_status struct
+	* broadcast sockets now join every network interface (used for UPnP and
+	  local peer discovery)
 
 release 0.14.6
 
