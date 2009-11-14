@@ -191,15 +191,6 @@ namespace libtorrent
 		error_code ec;
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
-#if TORRENT_USE_IPV6
-		if (multicast_endpoint.address().is_v4())
-#endif
-			open_multicast_socket(ios, address_v4::any(), loopback);
-#if TORRENT_USE_IPV6
-		else
-			open_multicast_socket(ios, address_v6::any(), loopback);
-#endif
-
 		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
 			, end(interfaces.end()); i != end; ++i)
 		{
@@ -208,20 +199,24 @@ namespace libtorrent
 			// ignore any loopback interface
 			if (is_loopback(i->interface_address)) continue;
 
+			ec.clear();
+			open_multicast_socket(ios, i->interface_address, loopback, ec);
 #ifndef NDEBUG
-//			std::cerr << "broadcast socket [ if: " << i->interface_address.to_v4().to_string()
-//				<< " group: " << multicast_endpoint.address() << " ]" << std::endl;
+//			extern std::string print_address(address const& addr);
+//			fprintf(stderr, "broadcast socket [ if: %s group: %s ] %s\n"
+//				, i->interface_address.to_string().c_str()
+//				, print_address(multicast_endpoint.address()).c_str()
+//				, ec.message().c_str());
 #endif
 			open_unicast_socket(ios, i->interface_address);
 		}
 	}
 
 	void broadcast_socket::open_multicast_socket(io_service& ios
-		, address const& addr, bool loopback)
+		, address const& addr, bool loopback, error_code& ec)
 	{
 		using namespace asio::ip::multicast;
 
-		error_code ec;
 		boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
 		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
 		if (ec) return;
@@ -265,7 +260,10 @@ namespace libtorrent
 			error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 #ifndef NDEBUG
-//			std::cerr << " sending on " << i->socket->local_endpoint().address().to_string() << " to: " << m_multicast_endpoint << std::endl;
+//			extern std::string print_address(address const& addr);
+//			extern std::string print_endpoint(udp::endpoint const& ep);
+//			fprintf(stderr, " sending on %s to: %s\n", print_address(i->socket->local_endpoint().address()).c_str()
+//				, print_endpoint(m_multicast_endpoint).c_str());
 #endif
 			if (e)
 			{
