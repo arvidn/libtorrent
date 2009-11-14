@@ -1644,6 +1644,7 @@ Its declaration looks like this::
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
 
+		void piece_availability(std::vector<int>& avail) const;
 		void piece_priority(int index, int priority) const;
 		int piece_priority(int index) const;
 		void prioritize_pieces(std::vector<int> const& pieces) const;
@@ -1681,6 +1682,23 @@ it will throw ``invalid_handle``.
 	one exception ``is_valid()`` will never throw.
 	Since the torrents are processed by a background thread, there is no
 	guarantee that a handle will remain valid between two calls.
+
+
+piece_availability()
+--------------------
+
+	::
+
+		void piece_availability(std::vector<int>& avail) const;
+
+Fills the specified ``std::vector<int>`` with the availability for each
+piece in this torrent. libtorrent does not keep track of availability for
+seeds, so if the torrent is seeding the availability for all pieces is
+reported as 0.
+
+The piece availability is the number of peers that we are connected that has
+advertized having a particular piece. This is the information that libtorrent
+uses in order to prefer picking rare pieces.
 
 
 piece_priority() prioritize_pieces() piece_priorities()
