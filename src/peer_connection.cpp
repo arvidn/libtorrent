@@ -3141,7 +3141,9 @@ namespace libtorrent
 	bool peer_connection::ignore_unchoke_slots() const
 	{
 		return m_ignore_unchoke_slots
-			|| (m_ses.settings().ignore_limits_on_local_network && on_local_network());
+			|| (m_ses.settings().ignore_limits_on_local_network
+			&& on_local_network()
+			&& m_ses.m_local_upload_channel.throttle() == 0);
 	}
 
 	// defined in upnp.cpp
@@ -3403,12 +3405,17 @@ namespace libtorrent
 			m_bandwidth_channel[download_channel].use_quota(download_overhead);
 			m_bandwidth_channel[upload_channel].use_quota(upload_overhead);
 
-			bandwidth_channel* upc = &m_ses.m_upload_channel;
-			bandwidth_channel* downc = &m_ses.m_download_channel;
+			bandwidth_channel* upc = 0;
+			bandwidth_channel* downc = 0;
 			if (m_ignore_bandwidth_limits)
 			{
 				upc = &m_ses.m_local_upload_channel;
 				downc = &m_ses.m_local_download_channel;
+			}
+			else
+			{
+				upc = &m_ses.m_upload_channel;
+				downc = &m_ses.m_download_channel;
 			}
 	
 			int up_limit = m_bandwidth_channel[upload_channel].throttle();
@@ -4024,7 +4031,7 @@ namespace libtorrent
 		{
 			int amount_to_send = m_send_buffer.size();
 			int quota_left = m_quota[upload_channel];
-			if (!m_ignore_bandwidth_limits && amount_to_send > quota_left)
+			if (amount_to_send > quota_left)
 				amount_to_send = quota_left;
 
 			TORRENT_ASSERT(amount_to_send > 0);
@@ -4100,7 +4107,7 @@ namespace libtorrent
 		if (m_soft_packet_size && max_receive > m_soft_packet_size - m_recv_pos)
 			max_receive = m_soft_packet_size - m_recv_pos;
 		int quota_left = m_quota[download_channel];
-		if (!m_ignore_bandwidth_limits && max_receive > quota_left)
+		if (max_receive > quota_left)
 			max_receive = quota_left;
 
 		if (max_receive == 0) return;
@@ -4329,11 +4336,8 @@ namespace libtorrent
 			(*m_logger) << "read " << bytes_transferred << " bytes\n";
 #endif
 			// correct the dl quota usage, if not all of the buffer was actually read
-			if (!m_ignore_bandwidth_limits)
-			{
-				TORRENT_ASSERT(bytes_transferred <= m_quota[download_channel]);
-				m_quota[download_channel] -= bytes_transferred;
-			}
+			TORRENT_ASSERT(bytes_transferred <= m_quota[download_channel]);
+			m_quota[download_channel] -= bytes_transferred;
 
 			if (m_disconnecting)
 			{
@@ -4376,7 +4380,7 @@ namespace libtorrent
 			if (m_soft_packet_size && max_receive > m_soft_packet_size - m_recv_pos)
 				max_receive = m_soft_packet_size - m_recv_pos;
 			int quota_left = m_quota[download_channel];
-			if (!m_ignore_bandwidth_limits && max_receive > quota_left)
+			if (max_receive > quota_left)
 				max_receive = quota_left;
 
 			if (max_receive == 0) break;
@@ -4439,8 +4443,7 @@ namespace libtorrent
 		// if we have requests or pending data to be sent or announcements to be made
 		// we want to send data
 		return !m_send_buffer.empty()
-			&& (m_quota[upload_channel] > 0
-				|| m_ignore_bandwidth_limits)
+			&& m_quota[upload_channel] > 0
 			&& !m_connecting;
 	}
 
@@ -4448,8 +4451,7 @@ namespace libtorrent
 	{
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
-		bool bw_limit = (m_quota[download_channel] > 0
-			|| m_ignore_bandwidth_limits);
+		bool bw_limit = m_quota[download_channel] > 0;
 
 		if (!bw_limit) return false;
 
@@ -4643,11 +4645,8 @@ namespace libtorrent
 		
 		m_channel_state[upload_channel] = peer_info::bw_idle;
 
-		if (!m_ignore_bandwidth_limits)
-		{
-			TORRENT_ASSERT(bytes_transferred <= m_quota[upload_channel]);
-			m_quota[upload_channel] -= bytes_transferred;
-		}
+		TORRENT_ASSERT(bytes_transferred <= m_quota[upload_channel]);
+		m_quota[upload_channel] -= bytes_transferred;
 
 		m_statistics.trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
 
