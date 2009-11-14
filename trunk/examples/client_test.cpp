@@ -794,7 +794,15 @@ int main(int argc, char* argv[])
 	{
 		ses.start_dht(bdecode(in.begin(), in.end()));
 	}
+	else
+	{
+		ses.start_dht();
+	}
 #endif
+
+	ses.start_lsd();
+	ses.start_upnp();
+	ses.start_natpmp();
 
 #ifndef TORRENT_DISABLE_GEO_IP
 	ses.load_asnum_db("GeoIPASNum.dat");
