@@ -199,7 +199,7 @@ namespace libtorrent
 			// ignore any loopback interface
 			if (is_loopback(i->interface_address)) continue;
 
-			ec.clear();
+			ec = error_code();
 			open_multicast_socket(ios, i->interface_address, loopback, ec);
 #ifndef NDEBUG
 //			extern std::string print_address(address const& addr);
