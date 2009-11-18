@@ -3401,6 +3401,7 @@ namespace libtorrent
 		set_max_uploads(rd.dict_find_int_value("max_uploads", -1));
 		m_seed_mode = rd.dict_find_int_value("seed_mode", 0) && m_torrent_file->is_valid();
 		if (m_seed_mode) m_verified.resize(m_torrent_file->num_pieces(), false);
+		super_seeding(rd.dict_find_int_value("super_seeding", 0));
 
 		lazy_entry const* file_priority = rd.dict_find_list("file_priority");
 		if (file_priority && file_priority->list_size()
@@ -3547,6 +3548,7 @@ namespace libtorrent
 		ret["sequential_download"] = m_sequential_download;
 
 		ret["seed_mode"] = m_seed_mode;
+		ret["super_seeding"] = m_super_seeding;
 		
 		const sha1_hash& info_hash = torrent_file().info_hash();
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
