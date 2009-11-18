@@ -762,12 +762,13 @@ namespace libtorrent
 		if (!peer_info_struct() || peer_info_struct()->fast_reconnects > 1)
 			return;
 		m_fast_reconnect = r;
-		peer_info_struct()->last_connected = m_ses.session_time()
-			- (m_ses.settings().min_reconnect_time * m_ses.settings().max_failcount);
-		int fast_reconnects = peer_info_struct()->fast_reconnects;
-		++fast_reconnects;
-		if (fast_reconnects > 15) fast_reconnects = 15;
-		peer_info_struct()->fast_reconnects = fast_reconnects;
+		peer_info_struct()->last_connected = m_ses.session_time();
+		int rewind = m_ses.settings().min_reconnect_time * m_ses.settings().max_failcount;
+		if (peer_info_struct()->last_connected < rewind) peer_info_struct()->last_connected = 0;
+		else peer_info_struct()->last_connected -= rewind;
+
+		if (peer_info_struct()->fast_reconnects < 15)
+			++peer_info_struct()->fast_reconnects;
 	}
 
 	void peer_connection::announce_piece(int index)
@@ -3253,7 +3254,6 @@ namespace libtorrent
 			p.source = 0;
 			p.failcount = 0;
 			p.num_hashfails = 0;
-			p.remote_dl_rate = 0;
 #ifndef TORRENT_DISABLE_GEO_IP
 			p.inet_as = 0xffff;
 #endif
