@@ -245,6 +245,7 @@ namespace libtorrent
 		, m_sequence_number(seq)
 		, m_last_working_tracker(-1)
 		, m_time_scaler(0)
+		, m_priority(0)
 		, m_abort(false)
 		, m_paused(p.paused)
 		, m_upload_mode(p.upload_mode)
