@@ -68,11 +68,6 @@ public:
 
 	struct const_interval
 	{
-	   const_interval(interval const& i)
-		  : begin(i.begin)
-		  , end(i.end)
-		{}
-
 	   const_interval(char const* begin, char const* end)
 		  : begin(begin)
 		  , end(end)
@@ -116,7 +111,6 @@ public:
 
 	buffer& operator=(buffer const& b)
 	{
-		if (&b == this) return *this;
 		resize(b.size());
 		std::memcpy(m_begin, b.begin(), b.size());
 		return *this;
@@ -124,7 +118,7 @@ public:
 
 	~buffer()
 	{
-		std::free(m_begin);
+		::operator delete (m_begin);
 	}
 
 	buffer::interval data() { return interval(m_begin, m_end); }
@@ -173,9 +167,12 @@ public:
 		if (n <= capacity()) return;
 		TORRENT_ASSERT(n > 0);
 
+		char* buf = (char*)::operator new(n);
 		std::size_t s = size();
-		m_begin = (char*)std::realloc(m_begin, n);
-		m_end = m_begin + s;
+		std::memcpy(buf, m_begin, s);
+		::operator delete (m_begin);
+		m_begin = buf;
+		m_end = buf + s;
 		m_last = m_begin + n;
 	}
 

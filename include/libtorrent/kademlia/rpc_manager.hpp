@@ -54,14 +54,19 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
+struct observer;
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DECLARE_LOG(rpc);
 #endif
 
 struct null_observer : public observer
 {
-	null_observer(boost::intrusive_ptr<traversal_algorithm>& a): observer(a) {}
-	virtual void reply(msg const&) { m_done = true; }
+	null_observer(boost::pool<>& allocator): observer(allocator) {}
+	virtual void reply(msg const&) {}
+	virtual void timeout() {}
+	virtual void send(msg&) {}
+	void abort() {}
 };
 
 class routing_table;
@@ -69,11 +74,11 @@ class routing_table;
 class rpc_manager
 {
 public:
-	typedef bool (*send_fun)(void* userdata, entry const&, udp::endpoint const&, int);
+	typedef boost::function1<void, msg const&> fun;
+	typedef boost::function1<void, msg const&> send_fun;
 
-	rpc_manager(node_id const& our_id
-		, routing_table& table, send_fun const& sf
-		, void* userdata);
+	rpc_manager(fun const& incoming_fun, node_id const& our_id
+		, routing_table& table, send_fun const& sf);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
@@ -82,10 +87,11 @@ public:
 	bool incoming(msg const&);
 	time_duration tick();
 
-	bool invoke(entry& e, udp::endpoint target
+	void invoke(int message_id, udp::endpoint target
 		, observer_ptr o);
 
-	void add_our_id(entry& e);
+	void reply(msg& m);
+	void reply_with_ping(msg& m);
 
 #ifdef TORRENT_DEBUG
 	size_t allocation_size() const;
@@ -97,20 +103,30 @@ public:
 
 private:
 
-	enum { max_transaction_id = 0x10000 };
+	enum { max_transactions = 2048 };
 
+	unsigned int new_transaction_id(observer_ptr o);
+	void update_oldest_transaction_id();
+	
 	boost::uint32_t calc_connection_id(udp::endpoint addr);
 
 	mutable boost::pool<> m_pool_allocator;
 
-	typedef std::list<observer_ptr> transactions_t;
+	typedef boost::array<observer_ptr, max_transactions>
+		transactions_t;
 	transactions_t m_transactions;
+	std::vector<observer_ptr> m_aborted_transactions;
 	
 	// this is the next transaction id to be used
 	int m_next_transaction_id;
+	// this is the oldest transaction id still
+	// (possibly) in use. This is the transaction
+	// that will time out first, the one we are
+	// waiting for to time out
+	int m_oldest_transaction_id;
 	
+	fun m_incoming;
 	send_fun m_send;
-	void* m_userdata;
 	node_id m_our_id;
 	routing_table& m_table;
 	ptime m_timer;

@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
+#if BOOST_VERSION < 103400
+	namespace fs = boost::filesystem;
+	fs::path::default_name_check(fs::no_check);
+#endif
 
 	if (argc != 2)
 	{
@@ -50,28 +54,28 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	session s;
-	s.listen_on(std::make_pair(6881, 6889));
-	add_torrent_params p;
-	p.save_path = "./";
-	error_code ec;
-	p.ti = new torrent_info(argv[1], ec);
-	if (ec)
+#ifndef BOOST_NO_EXCEPTIONS
+	try
+#endif
 	{
-		std::cout << ec.message() << std::endl;
-		return 1;
-	}
-	s.add_torrent(p, ec);
-	if (ec)
-	{
-		std::cerr << ec.message() << std::endl;
-		return 1;
-	}
+		session s;
+		s.listen_on(std::make_pair(6881, 6889));
+		add_torrent_params p;
+		p.save_path = "./";
+		p.ti = new torrent_info(argv[1]);
+		s.add_torrent(p);
 
-	// wait for the user to end
-	char a;
-	std::cin.unsetf(std::ios_base::skipws);
-	std::cin >> a;
+		// wait for the user to end
+		char a;
+		std::cin.unsetf(std::ios_base::skipws);
+		std::cin >> a;
+	}
+#ifndef BOOST_NO_EXCEPTIONS
+	catch (std::exception& e)
+	{
+  		std::cout << e.what() << "\n";
+	}
+#endif
 	return 0;
 }
 

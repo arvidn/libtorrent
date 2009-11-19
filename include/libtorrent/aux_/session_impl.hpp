@@ -33,10 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_IMPL_HPP_INCLUDED
 #define TORRENT_SESSION_IMPL_HPP_INCLUDED
 
+#include <ctime>
 #include <algorithm>
 #include <vector>
 #include <set>
 #include <list>
+#include <deque>
 
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef WITH_SHIPPED_GEOIP_H
@@ -50,7 +52,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/pool/object_pool.hpp>
+#include <boost/limits.hpp>
+#include <boost/tuple/tuple.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/thread.hpp>
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/thread/condition.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -61,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/alert.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/ip_filter.hpp"
@@ -74,32 +82,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/disk_io_thread.hpp"
-#include "libtorrent/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/policy.hpp" // for policy::peer
-#include "libtorrent/alert.hpp" // for alert_manager
-#include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/socket_io.hpp" // for print_address
-#include "libtorrent/peer_connection.hpp" // for intrusive_ptr_release
-
-#ifdef TORRENT_STATS
-#include <fstream>
-#endif
+#include "libtorrent/udp_socket.hpp"
 
 namespace libtorrent
 {
 
+	namespace fs = boost::filesystem;
+	class peer_connection;
 	class upnp;
 	class natpmp;
 	class lsd;
-	struct fingerprint;
-	class torrent;
-	class alert;
+	class fingerprint;
 
 	namespace dht
 	{
-		struct dht_tracker;
+		class dht_tracker;
 	}
 
 	namespace aux
@@ -116,7 +114,7 @@ namespace libtorrent
 		{
 
 			// the size of each allocation that is chained in the send buffer
-			enum { send_buffer_size = 128 };
+			enum { send_buffer_size = 200 };
 
 #ifdef TORRENT_DEBUG
 			friend class ::libtorrent::peer_connection;
@@ -131,7 +129,7 @@ namespace libtorrent
 				, fingerprint const& cl_fprint
 				, char const* listen_interface
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				, std::string const& logpath
+				, fs::path const& logpath
 #endif
 				);
 			~session_impl();
@@ -148,7 +146,7 @@ namespace libtorrent
 					!= m_connections.end();
 			}
 #endif
-			void main_thread();
+			void operator()();
 
 			void open_listen_port();
 
@@ -159,21 +157,19 @@ namespace libtorrent
 			tcp::endpoint get_ipv4_interface() const;
 
 			void async_accept(boost::shared_ptr<socket_acceptor> const& listener);
-			void on_accept_connection(boost::shared_ptr<socket_type> const& s
+			void on_incoming_connection(boost::shared_ptr<socket_type> const& s
 				, boost::weak_ptr<socket_acceptor> listener, error_code const& e);
-			void on_socks_accept(boost::shared_ptr<socket_type> const& s
-				, error_code const& e);
-
-			void incoming_connection(boost::shared_ptr<socket_type> const& s);
 		
 			// must be locked to access the data
 			// in this struct
-			mutable mutex m_mutex;
+			typedef boost::recursive_mutex mutex_t;
+			mutable mutex_t m_mutex;
 
 			boost::weak_ptr<torrent> find_torrent(const sha1_hash& info_hash);
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
-			void close_connection(peer_connection const* p, error_code const& ec);
+			void close_connection(peer_connection const* p
+				, char const* message);
 
 			void set_settings(session_settings const& s);
 			session_settings const& settings() const { return m_settings; }
@@ -187,8 +183,7 @@ namespace libtorrent
 			void start_dht(entry const& startup_state);
 			void stop_dht();
 
-			entry dht_state(mutex::scoped_lock& l) const;
-			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
+			entry dht_state() const;
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -196,11 +191,9 @@ namespace libtorrent
 			pe_settings const& get_pe_settings() const { return m_pe_settings; }
 #endif
 
-			void on_port_map_log(char const* msg, int map_transport);
-
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
-			void on_port_mapping(int mapping, int port, error_code const& ec
+			void on_port_mapping(int mapping, int port, std::string const& errmsg
 				, int nat_transport);
 
 			bool is_aborted() const { return m_abort; }
@@ -219,7 +212,7 @@ namespace libtorrent
 				, const char* net_interface = 0);
 			bool is_listening() const;
 
-			torrent_handle add_torrent(add_torrent_params const&, error_code& ec);
+			torrent_handle add_torrent(add_torrent_params const&);
 
 			void remove_torrent(torrent_handle const& h, int options);
 
@@ -231,17 +224,11 @@ namespace libtorrent
 			void set_alert_mask(int m);
 			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 			std::auto_ptr<alert> pop_alert();
-			void set_alert_dispatch(boost::function<void(alert const&)> const&);
 
 			alert const* wait_for_alert(time_duration max_wait);
 
 			int upload_rate_limit() const;
 			int download_rate_limit() const;
-			int local_upload_rate_limit() const;
-			int local_download_rate_limit() const;
-
-			void set_local_download_rate_limit(int bytes_per_second);
-			void set_local_upload_rate_limit(int bytes_per_second);
 
 			void set_download_rate_limit(int bytes_per_second);
 			void set_upload_rate_limit(int bytes_per_second);
@@ -258,7 +245,6 @@ namespace libtorrent
 			{ return m_connections.size(); }
 
 			void unchoke_peer(peer_connection& c);
-			void choke_peer(peer_connection& c);
 
 			session_status status() const;
 			void set_peer_id(peer_id const& id);
@@ -272,12 +258,7 @@ namespace libtorrent
 			void announce_lsd(sha1_hash const& ih);
 
 			void set_peer_proxy(proxy_settings const& s)
-			{
-				m_peer_proxy = s;
-				// in case we just set a socks proxy, we might have to
-				// open the socks incoming connection
-				if (!m_socks_listen_socket) open_new_incoming_socks_connection();
-			}
+			{ m_peer_proxy = s; }
 			void set_web_seed_proxy(proxy_settings const& s)
 			{ m_web_seed_proxy = s; }
 			void set_tracker_proxy(proxy_settings const& s)
@@ -300,20 +281,6 @@ namespace libtorrent
 			{ return m_dht_proxy; }
 #endif
 
-#if TORRENT_USE_I2P
-			void set_i2p_proxy(proxy_settings const& s)
-			{
-				m_i2p_conn.open(s, boost::bind(&session_impl::on_i2p_open, this, _1));
-				open_new_incoming_i2p_connection();
-			}
-			void on_i2p_open(error_code const& ec);
-			proxy_settings const& i2p_proxy() const
-			{ return m_i2p_conn.proxy(); }
-			void open_new_incoming_i2p_connection();
-			void on_i2p_accept(boost::shared_ptr<socket_type> const& s
-				, error_code const& e);
-#endif
-
 #ifndef TORRENT_DISABLE_GEO_IP
 			std::string as_name_for_ip(address const& a);
 			int as_for_ip(address const& a);
@@ -324,19 +291,14 @@ namespace libtorrent
 			bool load_country_db(char const* file);
 			bool has_country_db() const { return m_country_db; }
 			char const* country_for_ip(address const& a);
-
-#if TORRENT_USE_WSTRING
-			bool load_asnum_db(wchar_t const* file);
-			bool load_country_db(wchar_t const* file);
-#endif // TORRENT_USE_WSTRING
-#endif // TORRENT_DISABLE_GEO_IP
+#endif
 
 			void load_state(entry const& ses_state);
 			entry state() const;
 
 			void start_lsd();
-			void start_natpmp(natpmp* n);
-			void start_upnp(upnp* u);
+			natpmp* start_natpmp();
+			upnp* start_upnp();
 
 			void stop_lsd();
 			void stop_natpmp();
@@ -356,10 +318,13 @@ namespace libtorrent
 				m_total_failed_bytes += b;
 			}
 
+			// handles delayed alerts
+			alert_manager m_alerts;
+
 			std::pair<char*, int> allocate_buffer(int size);
 			void free_buffer(char* buf, int size);
 
-			char* allocate_disk_buffer(char const* category);
+			char* allocate_disk_buffer();
 			void free_disk_buffer(char* buf);
 
 			void set_external_address(address const& ip);
@@ -367,68 +332,16 @@ namespace libtorrent
 
 //		private:
 
-			void on_dht_state_callback(condition& c
+			void dht_state_callback(boost::condition& c
 				, entry& e, bool& done) const;
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
-			void setup_socket_buffers(socket_type& s);
-
-			// this is a shared pool where policy_peer objects
-			// are allocated. It's a pool since we're likely
-			// to have tens of thousands of peers, and a pool
-			// saves significant overhead
-#ifdef TORRENT_STATS
-			struct logging_allocator
-			{
-				typedef std::size_t size_type;
-				typedef std::ptrdiff_t difference_type;
-
-				static char* malloc(const size_type bytes)
-				{
-					allocated_bytes += bytes;
-					++allocations;
-					return (char*)::malloc(bytes);
-				}
-
-				static void free(char* const block)
-				{
-					--allocations;
-					return ::free(block);
-				}
-			
-				static int allocations;
-				static int allocated_bytes;
-			};
-			boost::object_pool<
-				policy::ipv4_peer, logging_allocator> m_ipv4_peer_pool;
-#if TORRENT_USE_IPV6
-			boost::object_pool<
-				policy::ipv6_peer, logging_allocator> m_ipv6_peer_pool;
-#endif
-#if TORRENT_USE_I2P
-			boost::object_pool<
-				policy::i2p_peer, logging_allocator> m_i2p_peer_pool;
-#endif
-#else
-			boost::object_pool<policy::ipv4_peer> m_ipv4_peer_pool;
-#if TORRENT_USE_IPV6
-			boost::object_pool<policy::ipv6_peer> m_ipv6_peer_pool;
-#endif
-#if TORRENT_USE_I2P
-			boost::object_pool<policy::i2p_peer> m_i2p_peer_pool;
-#endif
-#endif
-
-			// this vector is used to store the block_info
-			// objects pointed to by partial_piece_info returned
-			// by torrent::get_download_queue.
-			std::vector<block_info> m_block_info_storage;
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 			// this pool is used to allocate and recycle send
 			// buffers from.
 			boost::pool<> m_send_buffers;
 #endif
-			mutex m_send_buffer_mutex;
+			boost::mutex m_send_buffer_mutex;
 
 			// the file pool that all storages in this session's
 			// torrents uses. It sets a limit on the number of
@@ -442,9 +355,6 @@ namespace libtorrent
 			// the selector can sleep while there's no activity on
 			// them
 			mutable io_service m_io_service;
-
-			// handles delayed alerts
-			alert_manager m_alerts;
 
 			// handles disk io requests asynchronously
 			// peers have pointers into the disk buffer
@@ -466,22 +376,10 @@ namespace libtorrent
 			// handing out bandwidth to connections that
 			// asks for it, it can also throttle the
 			// rate.
-			bandwidth_manager m_download_rate;
-			bandwidth_manager m_upload_rate;
+			bandwidth_manager<peer_connection, torrent> m_download_channel;
+			bandwidth_manager<peer_connection, torrent> m_upload_channel;
 
-			// the global rate limiter bandwidth channels
-			bandwidth_channel m_download_channel;
-			bandwidth_channel m_upload_channel;
-
-			// bandwidth channels for local peers when
-			// rate limits are ignored. They are only
-			// throttled by these global rate limiters
-			// and they don't have a rate limit set by
-			// default
-			bandwidth_channel m_local_download_channel;
-			bandwidth_channel m_local_upload_channel;
-
-			bandwidth_channel* m_bandwidth_channel[2];
+			bandwidth_manager<peer_connection, torrent>* m_bandwidth_manager[2];
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
@@ -543,17 +441,6 @@ namespace libtorrent
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket
 			std::list<listen_socket_t> m_listen_sockets;
-
-			// when as a socks proxy is used for peers, also
-			// listen for incoming connections on a socks connection
-			boost::shared_ptr<socket_type> m_socks_listen_socket;
-
-			void open_new_incoming_socks_connection();
-
-#if TORRENT_USE_I2P
-			i2p_connection m_i2p_conn;
-			boost::shared_ptr<socket_type> m_i2p_listen_socket;
-#endif
 
 			listen_socket_t setup_listener(tcp::endpoint ep, int retries, bool v6_only = false);
 
@@ -626,25 +513,12 @@ namespace libtorrent
 			// NAT or not.
 			bool m_incoming_connection;
 			
-			void on_disk_queue();
-			void on_tick(error_code const& e);
-
-			int auto_manage_torrents(std::vector<torrent*>& list
-				, int hard_limit, int type_limit);
+			void second_tick(error_code const& e);
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots(int congested_torrents
 				, int uncongested_torrents);
-			void recalculate_optimistic_unchoke_slot();
-
-			ptime m_created;
-			int session_time() const { return total_seconds(time_now() - m_created); }
 
 			ptime m_last_tick;
-			ptime m_last_second_tick;
-
-			// the last time we went through the peers
-			// to decide which ones to choke/unchoke
-			ptime m_last_choke;
 
 			// when outgoing_ports is configured, this is the
 			// port we'll bind the next outgoing socket to
@@ -663,7 +537,7 @@ namespace libtorrent
 			// but for the udp port used by the DHT.
 			int m_external_udp_port;
 
-			rate_limited_udp_socket m_dht_socket;
+			udp_socket m_dht_socket;
 
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased
@@ -685,11 +559,11 @@ namespace libtorrent
 			int m_tcp_mapping[2];
 			int m_udp_mapping[2];
 
-			// the timer used to fire the tick
+			// the timer used to fire the second_tick
 			deadline_timer m_timer;
 
 			// the index of the torrent that will be offered to
-			// connect to a peer next time on_tick is called.
+			// connect to a peer next time second_tick is called.
 			// This implements a round robin.
 			int m_next_connect_torrent;
 #ifdef TORRENT_DEBUG
@@ -716,14 +590,11 @@ namespace libtorrent
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
 
-			std::string m_logpath;
+			fs::path m_logpath;
 		public:
 			boost::shared_ptr<logger> m_logger;
 		private:
 
-#endif
-#ifdef TORRENT_UPNP_LOGGING
-			std::ofstream m_upnp_log;
 #endif
 			address m_external_address;
 
@@ -750,7 +621,7 @@ namespace libtorrent
 			size_type m_total_redundant_bytes;
 
 			// the main working thread
-			boost::scoped_ptr<thread> m_thread;
+			boost::scoped_ptr<boost::thread> m_thread;
 		};
 		
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -764,32 +635,26 @@ namespace libtorrent
 			}
 
 			void tracker_response(tracker_request const&
-				, libtorrent::address const& tracker_ip
-				, std::list<address> const& ip_list
 				, std::vector<peer_entry>& peers
 				, int interval
 				, int complete
 				, int incomplete
 				, address const& external_ip)
 			{
-				std::string s;
-				s = "TRACKER RESPONSE:\n";
-				char tmp[200];
-				snprintf(tmp, 200, "interval: %d\npeers:\n", interval);
-				s += tmp;
+				std::stringstream s;
+				s << "TRACKER RESPONSE:\n"
+					"interval: " << interval << "\n"
+					"peers:\n";
 				for (std::vector<peer_entry>::const_iterator i = peers.begin();
 					i != peers.end(); ++i)
 				{
-					char pid[41];
-					to_hex((const char*)&i->pid[0], 20, pid);
-					if (i->pid.is_all_zeros()) pid[0] = 0;
-
-					snprintf(tmp, 200, " %-16s %-5d %s\n", i->ip.c_str(), i->port, pid);
-					s += tmp;
+					s << "  " << std::setfill(' ') << std::setw(16) << i->ip
+						<< " " << std::setw(5) << std::dec << i->port << "  ";
+					if (!i->pid.is_all_zeros()) s << " " << i->pid;
+					s << "\n";
 				}
-				snprintf(tmp, 200, "external ip: %s\n", print_address(external_ip).c_str());
-				s += tmp;
-				debug_log(s);
+				s << "external ip: " << external_ip << "\n";
+				debug_log(s.str());
 			}
 
 			void tracker_request_timed_out(
@@ -803,9 +668,9 @@ namespace libtorrent
 				, int response_code
 				, const std::string& str)
 			{
-				char msg[256];
-				snprintf(msg, sizeof(msg), "*** tracker error: %d: %s", response_code, str.c_str());
-				debug_log(msg);
+				debug_log(std::string("*** tracker error: ")
+					+ boost::lexical_cast<std::string>(response_code) + ": "
+					+ str);
 			}
 			
 			void debug_log(const std::string& line)

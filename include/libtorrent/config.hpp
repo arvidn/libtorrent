@@ -35,61 +35,24 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/config.hpp>
 #include <boost/version.hpp>
-#include <stdio.h> // for snprintf
 
-#ifndef WIN32
-#define __STDC_FORMAT_MACROS
-#include <inttypes.h>
-#endif
+#if defined(__GNUC__) && __GNUC__ >= 4
 
-#ifndef PRId64
-#ifdef _WIN32
-#define PRId64 "I64d"
-#else
-#define PRId64 "lld"
-#endif
-#endif
+#define TORRENT_DEPRECATED __attribute__ ((deprecated))
 
-
-// ======= GCC =========
-
-#if defined __GNUC__
-
-# define TORRENT_DEPRECATED __attribute__ ((deprecated))
-
-// GCC pre 4.0 did not have support for the visibility attribute
-# if __GNUC__ >= 4
-#  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
-#   define TORRENT_EXPORT __attribute__ ((visibility("default")))
-#  else
-#   define TORRENT_EXPORT
-#  endif
+# if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
+#  define TORRENT_EXPORT __attribute__ ((visibility("default")))
 # else
 #  define TORRENT_EXPORT
 # endif
 
+#elif defined(__GNUC__)
 
-// ======= SUNPRO =========
+# define TORRENT_EXPORT
 
-#elif defined __SUNPRO_CC
-
-# if __SUNPRO_CC >= 0x550
-#  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
-#   define TORRENT_EXPORT __global
-#  else
-#   define TORRENT_EXPORT
-#  endif
-# else
-#  define TORRENT_EXPORT
-# endif
-
-
-// ======= MSVC =========
-
-#elif defined BOOST_MSVC
+#elif defined(BOOST_MSVC)
 
 #pragma warning(disable: 4258)
-#pragma warning(disable: 4251)
 
 # if defined(TORRENT_BUILDING_SHARED)
 #  define TORRENT_EXPORT __declspec(dllexport)
@@ -99,20 +62,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_EXPORT
 # endif
 
-#define TORRENT_DEPRECATED_PREFIX __declspec(deprecated)
-
-
-
-// ======= GENERIC COMPILER =========
-
 #else
 # define TORRENT_EXPORT
-#endif
-
-
-
-#ifndef TORRENT_DEPRECATED_PREFIX
-#define TORRENT_DEPRECATED_PREFIX
 #endif
 
 #ifndef TORRENT_DEPRECATED
@@ -120,7 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // set up defines for target environments
-#if (defined __APPLE__ && defined __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
+#if (defined __APPLE__ && __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
 	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__ \
 	|| defined __FreeBSD_kernel__
 #define TORRENT_BSD
@@ -137,108 +88,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BSD
 #endif
 
-#define TORRENT_USE_IPV6 1
-#define TORRENT_USE_MLOCK 1
-#define TORRENT_USE_READV 1
-#define TORRENT_USE_WRITEV 1
-#define TORRENT_USE_IOSTREAM 1
-
-#define TORRENT_USE_I2P 1
-
-// set this to 1 to disable all floating point operations
-// (disables some float-dependent APIs)
-#define TORRENT_NO_FPU 0
-
-
-// on windows, NAME_MAX refers to Unicode characters
-// on linux it refers to bytes (utf-8 encoded)
-// TODO: Make this count Unicode characters instead of bytes on windows
-
-// windows
-#if defined FILENAME_MAX
-#define TORRENT_MAX_PATH FILENAME_MAX
-
-// solaris
-#elif defined MAXPATH
-#define TORRENT_MAX_PATH MAXPATH
-
-// posix
-#elif defined NAME_MAX
-#define TORRENT_MAX_PATH NAME_MAX
-
-// none of the above
+// should wpath or path be used?
+#if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \
+	&& BOOST_VERSION >= 103400 && defined WIN32
+#define TORRENT_USE_WPATH 1
 #else
-// this is the maximum number of characters in a
-// path element / filename on windows
-#define TORRENT_MAX_PATH 255
-#warning unknown platform, assuming the longest path is 255
-
-#endif
-
-#ifdef TORRENT_WINDOWS
-
-// class X needs to have dll-interface to be used by clients of class Y
-#pragma warning(disable:4251)
-
-#include <stdarg.h>
-
-inline int snprintf(char* buf, int len, char const* fmt, ...)
-{
-	va_list lp;
-	va_start(lp, fmt);
-	int ret = _vsnprintf(buf, len, fmt, lp);
-	va_end(lp);
-	if (ret < 0) { buf[len-1] = 0; ret = len-1; }
-	return ret;
-}
-
-#define strtoll _strtoi64
-#else
-#include <limits.h>
-#endif
-
-#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) && !defined (TORRENT_UPNP_LOGGING)
-#define TORRENT_UPNP_LOGGING
-#endif
-
-// windows has its own functions to convert
-// apple uses utf-8 as its locale, so no conversion
-// is necessary
-#if !defined TORRENT_WINDOWS && !defined __APPLE__
-// libiconv presence, not implemented yet
-#define TORRENT_USE_ICONV 1
-#else
-#define TORRENT_ISE_ICONV 0
-#endif
-
-#if defined UNICODE
-#define TORRENT_USE_WSTRING 1
-#else
-#define TORRENT_USE_WSTRING 0
-#endif // TORRENT_WINDOWS
-
-#if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
-# define TORRENT_READ_HANDLER_MAX_SIZE 256
-#endif
-
-#if !defined(TORRENT_WRITE_HANDLER_MAX_SIZE)
-# define TORRENT_WRITE_HANDLER_MAX_SIZE 256
-#endif
-
-#if defined _MSC_VER && _MSC_VER <= 1200
-#define for if (false) {} else for
-#endif
-
-// determine what timer implementation we can use
-
-#if defined(__MACH__)
-#define TORRENT_USE_ABSOLUTE_TIME 1
-#elif defined(_WIN32)
-#define TORRENT_USE_QUERY_PERFORMANCE_TIMER 1
-#elif defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0
-#define TORRENT_USE_CLOCK_GETTIME 1
-#else
-#define TORRENT_USE_BOOST_DATE_TIME 1
+#define TORRENT_USE_WPATH 0
 #endif
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED

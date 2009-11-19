@@ -39,35 +39,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/array.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/size_type.hpp"
-#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
 	boost::array<char, 3 + std::numeric_limits<size_type>::digits10> TORRENT_EXPORT to_string(size_type n);
-	bool TORRENT_EXPORT is_alpha(char c);
 	bool TORRENT_EXPORT is_digit(char c);
-	bool TORRENT_EXPORT is_print(char c);
-	bool TORRENT_EXPORT is_space(char c);
-	char TORRENT_EXPORT to_lower(char c);
+	bool TORRENT_EXPORT isprint(char c);
 
-	int TORRENT_EXPORT split_string(char const** tags, int buf_size, char* in);
-	bool TORRENT_EXPORT string_begins_no_case(char const* s1, char const* s2);
-	bool TORRENT_EXPORT string_equal_no_case(char const* s1, char const* s2);
-
-	std::string TORRENT_EXPORT unescape_string(std::string const& s, error_code& ec);
-	// replaces all disallowed URL characters by their %-encoding
+	std::string TORRENT_EXPORT unescape_string(std::string const& s);
 	std::string TORRENT_EXPORT escape_string(const char* str, int len);
-	// same as escape_string but does not encode '/'
 	std::string TORRENT_EXPORT escape_path(const char* str, int len);
-	// if the url does not appear to be encoded, and it contains illegal url characters
-	// it will be encoded
-	std::string TORRENT_EXPORT maybe_url_encode(std::string const& url);
-
-	bool TORRENT_EXPORT need_encoding(char const* str, int len);
 
 	// encodes a string using the base64 scheme
 	TORRENT_EXPORT std::string base64encode(std::string const& s);
-	TORRENT_EXPORT std::string base64decode(std::string const& s);
 	// encodes a string using the base32 scheme
 	TORRENT_EXPORT std::string base32encode(std::string const& s);
 	TORRENT_EXPORT std::string base32decode(std::string const& s);
@@ -75,28 +59,7 @@ namespace libtorrent
 	TORRENT_EXPORT boost::optional<std::string> url_has_argument(
 		std::string const& url, std::string argument);
 
-	// replaces \ with /
-	TORRENT_EXPORT void convert_path_to_posix(std::string& path);
-
-	TORRENT_EXPORT std::string read_until(char const*& str, char delim, char const* end);
 	TORRENT_EXPORT std::string to_hex(std::string const& s);
-	TORRENT_EXPORT bool is_hex(char const *in, int len);
-	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
-	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
-
-#if defined TORRENT_WINDOWS && defined UNICODE
-	TORRENT_EXPORT std::wstring convert_to_wstring(std::string const& s);
-	TORRENT_EXPORT std::string convert_from_wstring(std::wstring const& s);
-#endif
-	
-#if defined TORRENT_WINDOWS || TORRENT_USE_ICONV
-	TORRENT_EXPORT std::string convert_to_native(std::string const& s);
-	TORRENT_EXPORT std::string convert_from_native(std::string const& s);
-#else
-	inline std::string const& convert_to_native(std::string const& s) { return s; }
-	inline std::string const& convert_from_native(std::string const& s) { return s; }
-#endif		
 }
 
 #endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED
-

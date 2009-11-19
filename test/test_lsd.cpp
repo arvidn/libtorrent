@@ -33,19 +33,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/thread.hpp"
+#include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+
+using boost::filesystem::remove_all;
 
 void test_lsd()
 {
 	using namespace libtorrent;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50100, 51000), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000));
+	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50100, 51000));
 
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
@@ -119,18 +122,18 @@ void test_lsd()
 int test_main()
 {
 	using namespace libtorrent;
+	using namespace boost::filesystem;
 
 	// in case the previous run was terminated
-	error_code ec;
-	remove_all("./tmp1_lsd", ec);
-	remove_all("./tmp2_lsd", ec);
-	remove_all("./tmp3_lsd", ec);
+	try { remove_all("./tmp1_lsd"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_lsd"); } catch (std::exception&) {}
+	try { remove_all("./tmp3_lsd"); } catch (std::exception&) {}
 
 	test_lsd();
 	
-	remove_all("./tmp1_lsd", ec);
-	remove_all("./tmp2_lsd", ec);
-	remove_all("./tmp3_lsd", ec);
+	remove_all("./tmp1_lsd");
+	remove_all("./tmp2_lsd");
+	remove_all("./tmp3_lsd");
 
 	return 0;
 }

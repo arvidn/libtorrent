@@ -32,11 +32,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/escape_string.hpp"
-#include <cstring>
-
-#if TORRENT_USE_IOSTREAM
 #include <iostream>
-#endif
+#include <iomanip>
+#include <cstring>
 
 namespace
 {
@@ -365,25 +363,12 @@ namespace libtorrent
 		return return_t(m_begin, m_end - m_begin);
 	}
 
-#if TORRENT_USE_IOSTREAM
 	std::ostream& operator<<(std::ostream& os, lazy_entry const& e)
 	{
-		return os << print_entry(e);
-	}
-#endif // TORRENT_USE_IOSTREAM
-
-	std::string print_entry(lazy_entry const& e, bool single_line)
-	{
-		std::string ret;
 		switch (e.type())
 		{
-			case lazy_entry::none_t: return "none";
-			case lazy_entry::int_t:
-			{
-				char str[100];
-				snprintf(str, sizeof(str), "%"PRId64, e.int_value());
-				return str;
-			}
+			case lazy_entry::none_t: return os << "none";
+			case lazy_entry::int_t: return os << std::dec << std::setw(0) << e.int_value();
 			case lazy_entry::string_t:
 			{
 				bool printable = true;
@@ -391,77 +376,61 @@ namespace libtorrent
 				for (int i = 0; i < e.string_length(); ++i)
 				{
 					using namespace std;
-					if (is_print((unsigned char)str[i])) continue;
+					if (isprint((unsigned char)str[i])) continue;
 					printable = false;
 					break;
 				}
-				ret += "'";
-				if (printable)
-				{
-					ret += e.string_value();
-					ret += "'";
-					return ret;
-				}
+				os << "'";
+				if (printable) return os << e.string_value() << "'";
 				for (int i = 0; i < e.string_length(); ++i)
-				{
-					char tmp[5];
-					snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)str[i]);
-					ret += tmp;
-				}
-				ret += "'";
-				return ret;
+					os << std::hex << std::setfill('0') << std::setw(2)
+					<< int((unsigned char)(str[i]));
+				return os << "'" << std::dec;
 			}
 			case lazy_entry::list_t:
 			{
-				ret += '[';
+				os << "[";
 				bool one_liner = (e.list_size() == 0
 					|| (e.list_at(0)->type() == lazy_entry::int_t
 						&& e.list_size() < 20)
 					|| (e.list_at(0)->type() == lazy_entry::string_t
 						&& (e.list_at(0)->string_length() < 10
 							|| e.list_size() < 2)
-						&& e.list_size() < 5))
-					|| single_line;
-
-				if (!one_liner) ret += "\n";
+						&& e.list_size() < 5));
+				if (!one_liner) os << "\n";
 				for (int i = 0; i < e.list_size(); ++i)
 				{
-					if (i == 0 && one_liner) ret += " ";
-					ret += print_entry(*e.list_at(i), single_line);
-					if (i < e.list_size() - 1) ret += (one_liner?", ":",\n");
-					else ret += (one_liner?" ":"\n");
+					if (i == 0 && one_liner) os << " ";
+					os << *e.list_at(i);
+					if (i < e.list_size() - 1) os << (one_liner?", ":",\n");
+					else os << (one_liner?" ":"\n");
 				}
-				ret += "]";
-				return ret;
+				return os << "]";
 			}
 			case lazy_entry::dict_t:
 			{
-				ret += "{";
-				bool one_liner = ((e.dict_size() == 0
+				os << "{";
+				bool one_liner = (e.dict_size() == 0
 					|| e.dict_at(0).second->type() == lazy_entry::int_t
 					|| (e.dict_at(0).second->type() == lazy_entry::string_t
 						&& e.dict_at(0).second->string_length() < 30)
 					|| e.dict_at(0).first.size() < 10)
-					&& e.dict_size() < 5)
-					|| single_line;
+					&& e.dict_size() < 5;
 
-				if (!one_liner) ret += "\n";
+				if (!one_liner) os << "\n";
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
-					if (i == 0 && one_liner) ret += " ";
+					if (i == 0 && one_liner) os << " ";
 					std::pair<std::string, lazy_entry const*> ent = e.dict_at(i);
-					ret += "'";
-					ret += ent.first;
-					ret += "': ";
-					ret += print_entry(*ent.second, single_line);
-					if (i < e.dict_size() - 1) ret += (one_liner?", ":",\n");
-					else ret += (one_liner?" ":"\n");
+					os << "'" << ent.first << "': " << *ent.second;
+					if (i < e.dict_size() - 1) os << (one_liner?", ":",\n");
+					else os << (one_liner?" ":"\n");
 				}
-				ret += "}";
-				return ret;
+				return os << "}";
 			}
 		}
-		return ret;
+		return os;
 	}
+
 };
 

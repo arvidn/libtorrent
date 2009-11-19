@@ -39,48 +39,21 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-#ifndef TORRENT_DISABLE_DHT
-
-	struct dht_lookup
-	{
-		char const* type;
-		int outstanding_requests;
-		int timeouts;
-		int responses;
-		int branch_factor;
-		int nodes_left;
-	};
-
-#endif
-
 	struct TORRENT_EXPORT session_status
 	{
 		bool has_incoming_connections;
 
-		int upload_rate;
-		int download_rate;
+		float upload_rate;
+		float download_rate;
+
+		float payload_upload_rate;
+		float payload_download_rate;
+
 		size_type total_download;
 		size_type total_upload;
 
-		int payload_upload_rate;
-		int payload_download_rate;
 		size_type total_payload_download;
 		size_type total_payload_upload;
-
-		int ip_overhead_upload_rate;
-		int ip_overhead_download_rate;
-		size_type total_ip_overhead_download;
-		size_type total_ip_overhead_upload;
-
-		int dht_upload_rate;
-		int dht_download_rate;
-		size_type total_dht_download;
-		size_type total_dht_upload;
-
-		int tracker_upload_rate;
-		int tracker_download_rate;
-		size_type total_tracker_download;
-		size_type total_tracker_upload;
 
 		size_type total_redundant_bytes;
 		size_type total_failed_bytes;
@@ -92,18 +65,11 @@ namespace libtorrent
 		int up_bandwidth_queue;
 		int down_bandwidth_queue;
 
-		int up_bandwidth_bytes_queue;
-		int down_bandwidth_bytes_queue;
-
-		int optimistic_unchoke_counter;
-		int unchoke_counter;
-
 #ifndef TORRENT_DISABLE_DHT
 		int dht_nodes;
 		int dht_node_cache;
 		int dht_torrents;
 		size_type dht_global_nodes;
-		std::vector<dht_lookup> active_requests;
 #endif
 	};
 

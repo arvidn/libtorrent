@@ -69,7 +69,7 @@ namespace
     }
 
     torrent_info construct0(std::string path) {
-        return torrent_info(path);
+        return torrent_info(fs::path(path));
     }
 
     list map_block(torrent_info& ti, int piece, size_type offset, int size)
@@ -89,11 +89,6 @@ void bind_torrent_info()
 {
     return_value_policy<copy_const_reference> copy;
 
-    void (torrent_info::*rename_file0)(int, std::string const&) = &torrent_info::rename_file;
-#if TORRENT_USE_WSTRING
-    void (torrent_info::*rename_file1)(int, std::wstring const&) = &torrent_info::rename_file;
-#endif
-
     class_<file_slice>("file_slice")
         .def_readwrite("file_index", &file_slice::file_index)
         .def_readwrite("offset", &file_slice::offset)
@@ -106,10 +101,7 @@ void bind_torrent_info()
 #endif
         .def(init<sha1_hash const&>())
         .def(init<char const*, int>())
-        .def(init<std::string>())
-#if TORRENT_USE_WSTRING
-        .def(init<std::wstring>())
-#endif
+        .def(init<boost::filesystem::path>())
 
         .def("add_tracker", &torrent_info::add_tracker, (arg("url"), arg("tier")=0))
         .def("add_url_seed", &torrent_info::add_url_seed)
@@ -130,10 +122,7 @@ void bind_torrent_info()
         .def("file_at", &torrent_info::file_at, return_internal_reference<>())
         .def("file_at_offset", &torrent_info::file_at_offset)
         .def("files", &files, (arg("storage")=false))
-        .def("rename_file", rename_file0)
-#if TORRENT_USE_WSTRING
-        .def("rename_file", rename_file1)
-#endif
+        .def("rename_file", &torrent_info::rename_file)
 
         .def("priv", &torrent_info::priv)
         .def("trackers", range(begin_trackers, end_trackers))

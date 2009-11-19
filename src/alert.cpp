@@ -33,8 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include "libtorrent/alert.hpp"
-#include <boost/function.hpp>
-#include <boost/bind.hpp>
+#include <boost/thread/xtime.hpp>
 
 namespace libtorrent {
 
@@ -42,10 +41,9 @@ namespace libtorrent {
 	alert::~alert() {}
 	ptime alert::timestamp() const { return m_timestamp; }
 
-	alert_manager::alert_manager(io_service& ios)
+	alert_manager::alert_manager()
 		: m_alert_mask(alert::error_notification)
 		, m_queue_size_limit(queue_size_limit_default)
-		, m_ios(ios)
 	{}
 
 	alert_manager::~alert_manager()
@@ -59,76 +57,41 @@ namespace libtorrent {
 
 	alert const* alert_manager::wait_for_alert(time_duration max_wait)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(m_mutex);
 
 		if (!m_alerts.empty()) return m_alerts.front();
 		
-//		system_time end = get_system_time()
-//			+ boost::posix_time::microseconds(total_microseconds(max_wait));
-
+		int secs = total_seconds(max_wait);
+		max_wait -= seconds(secs);
+		boost::xtime xt;
+		boost::xtime_get(&xt, boost::TIME_UTC);
+		xt.sec += secs;
+		boost::int64_t nsec = xt.nsec + total_microseconds(max_wait) * 1000;
+		if (nsec > 1000000000)
+		{
+			nsec -= 1000000000;
+			xt.sec += 1;
+		}
+		xt.nsec = boost::xtime::xtime_nsec_t(nsec);
 		// apparently this call can be interrupted
 		// prematurely if there are other signals
-//		while (m_condition.timed_wait(lock, end))
-//			if (!m_alerts.empty()) return m_alerts.front();
-
-		ptime start = time_now_hires();
-
-		// TODO: change this to use an asio timer instead
-		while (m_alerts.empty())
-		{
-			lock.unlock();
-			sleep(50);
-			lock.lock();
-			if (time_now_hires() - start >= max_wait) return 0;
-		}
+		if (!m_condition.timed_wait(lock, xt)) return 0;
+		if (m_alerts.empty()) return 0;
 		return m_alerts.front();
-	}
-
-	void alert_manager::set_dispatch_function(boost::function<void(alert const&)> const& fun)
-	{
-		mutex::scoped_lock lock(m_mutex);
-
-		m_dispatch = fun;
-
-		std::queue<alert*> alerts = m_alerts;
-		while (!m_alerts.empty()) m_alerts.pop();
-		lock.unlock();
-
-		while (!alerts.empty())
-		{
-			m_dispatch(*alerts.front());
-			delete alerts.front();
-			alerts.pop();
-		}
-	}
-
-	void dispatch_alert(boost::function<void(alert const&)> dispatcher
-		, alert* alert_)
-	{
-		std::auto_ptr<alert> holder(alert_);
-		dispatcher(*alert_);
 	}
 
 	void alert_manager::post_alert(const alert& alert_)
 	{
-		mutex::scoped_lock lock(m_mutex);
-
-		if (m_dispatch)
-		{
-			TORRENT_ASSERT(m_alerts.empty());
-			m_ios.post(boost::bind(&dispatch_alert, m_dispatch, alert_.clone().release()));
-			return;
-		}
+		boost::mutex::scoped_lock lock(m_mutex);
 
 		if (m_alerts.size() >= m_queue_size_limit) return;
 		m_alerts.push(alert_.clone().release());
-		m_condition.signal(lock);
-		m_condition.clear(lock);
+		m_condition.notify_all();
 	}
 
 	std::auto_ptr<alert> alert_manager::get()
 	{
-		mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(m_mutex);
 		
 		TORRENT_ASSERT(!m_alerts.empty());
 
@@ -139,14 +102,14 @@ namespace libtorrent {
 
 	bool alert_manager::pending() const
 	{
-		mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(m_mutex);
 		
 		return !m_alerts.empty();
 	}
 
 	size_t alert_manager::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(m_mutex);
 
 		std::swap(m_queue_size_limit, queue_size_limit_);
 		return queue_size_limit_;

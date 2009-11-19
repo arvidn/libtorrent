@@ -37,19 +37,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/session.hpp"
+#include <boost/filesystem/path.hpp>
 
 namespace libtorrent
 {
+	namespace fs = boost::filesystem;
+
 	struct torrent_handle;
 
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_info const& info);
 
-#ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
 	// deprecated in 0.14
 	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
-		, std::string const& save_path
+		, fs::path const& save_path
 		, storage_mode_t storage_mode = storage_mode_sparse
 		, bool paused = false
 		, storage_constructor_type sc = default_storage_constructor
@@ -58,10 +60,6 @@ namespace libtorrent
 
 	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
 		, add_torrent_params p);
-#endif
-
-	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
-		, add_torrent_params p, error_code& ec);
 }
 
 #endif

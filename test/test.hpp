@@ -52,36 +52,8 @@ void report_failure(char const* str, char const* file, int line);
 	report_failure(x, line, file)
 
 #define TEST_CHECK(x) \
-	try \
-	{ \
-		if (!(x)) \
-			TEST_REPORT_AUX("TEST_CHECK failed: \"" #x "\"", __FILE__, __LINE__); \
-	} \
-	catch (std::exception& e) \
-	{ \
-		TEST_ERROR("Exception thrown: " #x " :" + std::string(e.what())); \
-	} \
-	catch (...) \
-	{ \
-		TEST_ERROR("Exception thrown: " #x); \
-	}
-
-#define TEST_EQUAL(x, y) \
-	try { \
-		if (x != y) { \
-			std::stringstream s; \
-			s << "TEST_EQUAL_ERROR: " << #x << ": " << x << " expected: " << y << std::endl; \
-			TEST_REPORT_AUX(s.str().c_str(), __FILE__, __LINE__); \
-		} \
-	} \
-	catch (std::exception& e) \
-	{ \
-		TEST_ERROR("Exception thrown: " #x " :" + std::string(e.what())); \
-	} \
-	catch (...) \
-	{ \
-		TEST_ERROR("Exception thrown: " #x); \
-	}
+    if (!(x)) \
+        TEST_REPORT_AUX("TEST_CHECK failed: \"" #x "\"", __FILE__, __LINE__)
 
 #define TEST_ERROR(x) \
 	TEST_REPORT_AUX((std::string("ERROR: \"") + x + "\"").c_str(), __FILE__, __LINE__)

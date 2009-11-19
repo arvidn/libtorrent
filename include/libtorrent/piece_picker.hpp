@@ -62,7 +62,6 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT piece_block
 	{
-		piece_block() {}
 		piece_block(int p_index, int b_index)
 			: piece_index(p_index)
 			, block_index(b_index)
@@ -130,11 +129,7 @@ namespace libtorrent
 			// always pick partial pieces before any other piece
 			prioritize_partials = 8,
 			// pick pieces in sequential order
-			sequential = 16,
-			// have affinity to pieces with the same speed category
-			speed_affinity = 32,
-			// ignore the prefer_whole_pieces parameter
-			ignore_whole_pieces = 64
+			sequential = 16
 		};
 
 		struct downloading_piece
@@ -187,7 +182,6 @@ namespace libtorrent
 
 		int cursor() const { return m_cursor; }
 		int reverse_cursor() const { return m_reverse_cursor; }
-		int sparse_regions() const { return m_sparse_regions; }
 
 		// sets all pieces to dont-have
 		void init(int blocks_per_piece, int total_num_blocks);
@@ -321,7 +315,7 @@ namespace libtorrent
 		void verify_pick(std::vector<piece_block> const& picked
 			, bitfield const& bits) const;
 #endif
-#if defined TORRENT_PICKER_LOG
+#if defined TORRENT_PICKER_LOG || defined TORRENT_DEBUG
 		void print_pieces() const;
 #endif
 
@@ -337,7 +331,7 @@ namespace libtorrent
 		int blocks_in_last_piece() const
 		{ return m_blocks_in_last_piece; }
 
-		std::pair<int, int> distributed_copies() const;
+		float distributed_copies() const;
 
 	private:
 
@@ -528,9 +522,6 @@ namespace libtorrent
 		// m_reverse_cursor is the first piece where we also have
 		// all the subsequent pieces
 		int m_reverse_cursor;
-
-		// the number of regions of pieces we don't have.
-		int m_sparse_regions;
 
 		// if this is set to true, it means update_pieces()
 		// has to be called before accessing m_pieces.
