@@ -218,7 +218,7 @@ void test_transfer(bool test_allowed_fast = false)
 		torrent_status st2 = tor2.status();
 		std::cerr << "\033[0m" << int(st2.progress * 100) << "% " << std::endl;
 		TEST_CHECK(st2.state == torrent_status::finished);
-		test_sleep(1000);
+		test_sleep(100);
 	}
 
 	tor2.pause();
@@ -230,6 +230,11 @@ void test_transfer(bool test_allowed_fast = false)
 		if (dynamic_cast<torrent_paused_alert const*>(a)) break;	
 		a = ses2.wait_for_alert(seconds(10));
 	}
+
+	std::vector<announce_entry> tr;
+	tr.push_back(announce_entry("http://test.com/announce"));
+	tor2.replace_trackers(tr);
+	tr.clear();
 
 	tor2.save_resume_data();
 
@@ -254,7 +259,7 @@ void test_transfer(bool test_allowed_fast = false)
 
 	std::cerr << "removed" << std::endl;
 
-	test_sleep(1000);
+	test_sleep(100);
 
 	std::cout << "re-adding" << std::endl;
 	add_torrent_params p;
@@ -267,7 +272,10 @@ void test_transfer(bool test_allowed_fast = false)
 	std::cout << "resetting priorities" << std::endl;
 	tor2.resume();
 
-	test_sleep(1000);
+	tr = tor2.trackers();
+	TEST_CHECK(tr.size() == 2 && tr[1].url == "http://test.com/announce");
+
+	test_sleep(100);
 
 	for (int i = 0; i < 5; ++i)
 	{
@@ -280,7 +288,7 @@ void test_transfer(bool test_allowed_fast = false)
 		TEST_CHECK(st1.state == torrent_status::seeding);
 		TEST_CHECK(st2.state == torrent_status::finished);
 
-		test_sleep(1000);
+		test_sleep(100);
 	}
 
 	TEST_CHECK(!tor2.is_seed());
