@@ -115,9 +115,9 @@ void traversal_algorithm::failed(node_id const& id, bool prevent_request)
 	std::vector<result>::iterator i = std::find_if(
 		m_results.begin()
 		, m_results.end()
-		, bind(
+		, boost::bind(
 			std::equal_to<node_id>()
-			, bind(&result::id, _1)
+			, boost::bind(&result::id, _1)
 			, id
 		)
 	);
@@ -164,9 +164,9 @@ void traversal_algorithm::add_requests()
 		std::vector<result>::iterator i = std::find_if(
 			m_results.begin()
 			, last_iterator()
-			, bind(
+			, boost::bind(
 				&bitwise_nand
-				, bind(&result::flags, _1)
+				, boost::bind(&result::flags, _1)
 				, (unsigned char)result::queried
 			)
 		);

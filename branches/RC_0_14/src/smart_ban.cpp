@@ -90,7 +90,7 @@ namespace libtorrent { namespace
 			{
 				if (i->first.block_index == pb.block_index)
 				{
-					m_torrent.filesystem().async_read(r, bind(&smart_ban_plugin::on_read_ok_block
+					m_torrent.filesystem().async_read(r, boost::bind(&smart_ban_plugin::on_read_ok_block
 						, shared_from_this(), *i, _1, _2));
 					m_block_crc.erase(i++);
 				}
