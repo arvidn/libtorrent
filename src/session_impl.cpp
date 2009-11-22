@@ -1690,8 +1690,8 @@ namespace aux {
 				&& !m_torrents.empty())
 			{
 				torrent_map::iterator i = std::max_element(m_torrents.begin(), m_torrents.end()
-					, bind(&torrent::num_peers, bind(&torrent_map::value_type::second, _1))
-					< bind(&torrent::num_peers, bind(&torrent_map::value_type::second, _2)));
+					, boost::bind(&torrent::num_peers, boost::bind(&torrent_map::value_type::second, _1))
+					< boost::bind(&torrent::num_peers, boost::bind(&torrent_map::value_type::second, _2)));
 			
 				TORRENT_ASSERT(i != m_torrents.end());
 				int peers_to_disconnect = (std::min)((std::max)(int(i->second->num_peers()
@@ -2251,7 +2251,7 @@ namespace aux {
 		if (m_dht && params.ti)
 		{
 			torrent_info::nodes_t const& nodes = params.ti->nodes();
-			std::for_each(nodes.begin(), nodes.end(), bind(
+			std::for_each(nodes.begin(), nodes.end(), boost::bind(
 				(void(dht::dht_tracker::*)(std::pair<std::string, int> const&))
 				&dht::dht_tracker::add_node
 				, boost::ref(m_dht), _1));

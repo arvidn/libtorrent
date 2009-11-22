@@ -1256,7 +1256,7 @@ namespace libtorrent
 	{
 		if (!handler) return;
 
-		m_ios.post(bind(handler, ret, j));
+		m_ios.post(boost::bind(handler, ret, j));
 	}
 
 	enum action_flags_t

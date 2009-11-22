@@ -278,7 +278,7 @@ namespace libtorrent { namespace dht
 
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(bind(&dht_tracker::refresh_timeout, self(), _1));
-		m_dht.bootstrap(initial_nodes, bind(&dht_tracker::on_bootstrap, self(), _1));
+		m_dht.bootstrap(initial_nodes, boost::bind(&dht_tracker::on_bootstrap, self(), _1));
 	}
 
 	void dht_tracker::stop()

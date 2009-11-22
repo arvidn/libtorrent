@@ -109,9 +109,9 @@ void traversal_algorithm::finished(udp::endpoint const& ep)
 	std::vector<result>::iterator i = std::find_if(
 		m_results.begin()
 		, m_results.end()
-		, bind(
+		, boost::bind(
 			std::equal_to<udp::endpoint>()
-			, bind(&result::endpoint, _1)
+			, boost::bind(&result::endpoint, _1)
 			, ep
 		)
 	);
@@ -147,9 +147,9 @@ void traversal_algorithm::failed(udp::endpoint const& ep, int flags)
 	std::vector<result>::iterator i = std::find_if(
 		m_results.begin()
 		, m_results.end()
-		, bind(
+		, boost::bind(
 			std::equal_to<udp::endpoint>()
-			, bind(&result::endpoint, _1)
+			, boost::bind(&result::endpoint, _1)
 			, ep
 		)
 	);
