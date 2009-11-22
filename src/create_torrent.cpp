@@ -240,7 +240,7 @@ namespace libtorrent
 
 		using boost::bind;
 		std::sort(m_urls.begin(), m_urls.end()
-			, bind(&announce_entry::second, _1) < bind(&announce_entry::second, _2));
+			, boost::bind(&announce_entry::second, _1) < boost::bind(&announce_entry::second, _2));
 	}
 
 	void create_torrent::set_hash(int index, sha1_hash const& h)

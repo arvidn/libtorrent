@@ -182,7 +182,7 @@ namespace detail
 			TORRENT_ASSERT(!m_access_list.empty());
 			TORRENT_ASSERT(i != m_access_list.end());
 
-			if (i != j) m_access_list.erase(next(i), j);
+			if (i != j) m_access_list.erase(boost::next(i), j);
 			if (i->start == first)
 			{
 				// we can do this const-cast because we know that the new

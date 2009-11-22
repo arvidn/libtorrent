@@ -173,13 +173,13 @@ namespace libtorrent
 			}
 			if (i->action == disk_io_job::read)
 			{
-				if (i->callback) m_ios.post(bind(i->callback, -1, *i));
+				if (i->callback) m_ios.post(boost::bind(i->callback, -1, *i));
 				m_jobs.erase(i++);
 				continue;
 			}
 			if (i->action == disk_io_job::check_files)
 			{
-				if (i->callback) m_ios.post(bind(i->callback
+				if (i->callback) m_ios.post(boost::bind(i->callback
 					, piece_manager::disk_check_aborted, *i));
 				m_jobs.erase(i++);
 				continue;
@@ -848,7 +848,7 @@ namespace libtorrent
 						}
 						if (i->action == disk_io_job::check_files)
 						{
-							if (i->callback) m_ios.post(bind(i->callback
+							if (i->callback) m_ios.post(boost::bind(i->callback
 									, piece_manager::disk_check_aborted, *i));
 							m_jobs.erase(i++);
 							continue;
@@ -866,7 +866,7 @@ namespace libtorrent
 					{
 						if (i->action == disk_io_job::read)
 						{
-							if (i->callback) m_ios.post(bind(i->callback, -1, *i));
+							if (i->callback) m_ios.post(boost::bind(i->callback, -1, *i));
 							m_jobs.erase(i++);
 							continue;
 						}
@@ -1221,7 +1221,7 @@ namespace libtorrent
 #endif
 				TORRENT_ASSERT(ret != -2 || !j.str.empty()
 					|| j.action == disk_io_job::hash);
-				if (handler) m_ios.post(bind(handler, ret, j));
+				if (handler) m_ios.post(boost::bind(handler, ret, j));
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (std::exception&)
 			{
