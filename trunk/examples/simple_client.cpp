@@ -30,11 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <iostream>
-#include <fstream>
-#include <iterator>
-#include <exception>
-
+#include <stdlib.h>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
@@ -45,8 +41,8 @@ int main(int argc, char* argv[])
 
 	if (argc != 2)
 	{
-		std::cerr << "usage: ./simple_client torrent-file\n"
-			"to stop the client, press return.\n";
+		fputs("usage: ./simple_client torrent-file\n"
+			"to stop the client, press return.\n", stderr);
 		return 1;
 	}
 
@@ -58,20 +54,19 @@ int main(int argc, char* argv[])
 	p.ti = new torrent_info(argv[1], ec);
 	if (ec)
 	{
-		std::cout << ec.message() << std::endl;
+		fprintf(stderr, "%s\n", ec.message().c_str());
 		return 1;
 	}
 	s.add_torrent(p, ec);
 	if (ec)
 	{
-		std::cerr << ec.message() << std::endl;
+		fprintf(stderr, "%s\n", ec.message().c_str());
 		return 1;
 	}
 
 	// wait for the user to end
 	char a;
-	std::cin.unsetf(std::ios_base::skipws);
-	std::cin >> a;
+	scanf("%c\n", &a);
 	return 0;
 }
 
