@@ -223,7 +223,7 @@ bool rpc_manager::incoming(msg const& m)
 			reply.error_code = 203; // Protocol error
 			char msg[100];
 			snprintf(msg, sizeof(msg), "reply with invaliud transaction "
-				"id, size %d", m.transaction_id.size());
+				"id, size %d", int(m.transaction_id.size()));
 			reply.addr = m.addr;
 			reply.transaction_id = "";
 			m_send(reply);
