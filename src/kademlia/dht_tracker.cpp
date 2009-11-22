@@ -32,10 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 #include <fstream>
+#endif
+
 #include <set>
 #include <numeric>
-#include <stdexcept>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/optional.hpp>
