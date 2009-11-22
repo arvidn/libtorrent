@@ -171,6 +171,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable:4251) // class X needs to have dll-interface to be used by clients of class Y
 
 #include <stdarg.h>
+// '_vsnprintf': This function or variable may be unsafe
+#pragma warning(disable:4996)
 
 inline int snprintf(char* buf, int len, char const* fmt, ...)
 {
