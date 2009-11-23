@@ -33,13 +33,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_NATPMP_HPP
 #define TORRENT_NATPMP_HPP
 
+#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/deadline_timer.hpp"
 
-#include <boost/function.hpp>
+#include <boost/function/function1.hpp>
+#include <boost/function/function3.hpp>
 
 namespace libtorrent
 {

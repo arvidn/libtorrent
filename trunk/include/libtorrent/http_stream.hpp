@@ -33,7 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_STREAM_HPP_INCLUDED
 #define TORRENT_HTTP_STREAM_HPP_INCLUDED
 
+#include <boost/function/function1.hpp>
 #include "libtorrent/proxy_base.hpp"
+#include <boost/bind.hpp>
 
 namespace libtorrent {
 

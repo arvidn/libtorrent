@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include "libtorrent/alert.hpp"
-#include <boost/function.hpp>
+#include "libtorrent/io_service.hpp"
 #include <boost/bind.hpp>
 
 namespace libtorrent {

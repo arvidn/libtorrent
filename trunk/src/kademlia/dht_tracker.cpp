@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
-#include <boost/optional.hpp>
 
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
@@ -182,21 +181,21 @@ namespace libtorrent { namespace dht
 	TORRENT_DEFINE_LOG(dht_tracker)
 #endif
 
-	boost::optional<node_id> extract_node_id(lazy_entry const* e)
+	node_id extract_node_id(lazy_entry const* e)
 	{
-		if (e == 0 || e->type() != lazy_entry::dict_t) return boost::optional<node_id>();
+		if (e == 0 || e->type() != lazy_entry::dict_t) return (node_id::min)();
 		lazy_entry const* nid = e->dict_find_string("node-id");
-		if (nid == 0 || nid->string_length() != 20) return boost::optional<node_id>();
-		return boost::optional<node_id>(node_id(nid->string_ptr()));
+		if (nid == 0 || nid->string_length() != 20) return (node_id::min)();
+		return node_id(node_id(nid->string_ptr()));
 	}
 
-	boost::optional<node_id> extract_node_id(entry const* e)
+	node_id extract_node_id(entry const* e)
 	{
-		if (e == 0 || e->type() != entry::dictionary_t) return boost::optional<node_id>();
+		if (e == 0 || e->type() != entry::dictionary_t) return (node_id::min)();
 		entry const* nid = e->find_key("node-id");
 		if (nid == 0 || nid->type() != entry::string_t || nid->string().length() != 20)
-			return boost::optional<node_id>();
-		return boost::optional<node_id>(node_id(nid->string().c_str()));
+			return (node_id::min)();
+		return node_id(node_id(nid->string().c_str()));
 	}
 
 	bool send_callback(void* userdata, entry const& e, udp::endpoint const& addr, int flags)

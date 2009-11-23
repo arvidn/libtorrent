@@ -44,7 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/msg.hpp>
 
 #include <boost/optional.hpp>
-#include <boost/function.hpp>
+#include <boost/function/function1.hpp>
+#include <boost/function/function2.hpp>
 
 namespace libtorrent { namespace dht
 {

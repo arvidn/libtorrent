@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SOCKET_IO_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/lazy_entry.hpp"

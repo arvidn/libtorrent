@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006, Arvid Norberg & Daniel Wallin
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,45 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_RANDOM_SAMPLE_HPP
-#define TORRENT_RANDOM_SAMPLE_HPP
-
-#include <iterator>
-#include <cstdlib>
-
-#include "libtorrent/config.hpp"
+#ifndef TORRENT_SOCKET_TYPE_FWD_HPP
+#define TORRENT_SOCKET_TYPE_FWD_HPP
 
 namespace libtorrent
 {
-
-	template<class InIter, class OutIter, class Distance>
-	inline void random_sample_n(InIter start, InIter end
-			, OutIter out, Distance n)
-	{
-		Distance t = 0;
-		Distance m = 0;
-		Distance N = std::distance(start, end);
-
-		TORRENT_ASSERT(N >= n);
-
-		while (m < n)
-		{
-			if ((std::rand() / (RAND_MAX + 1.f)) * (N - t) >= n - m)
-			{
-				++start;
-				++t;
-			}
-			else
-			{
-				*out = *start;
-				++out;
-				++start;
-				++t;
-				++m;
-			}
-		}
-	}
-
+	struct socket_type;
 }
 
 #endif
+

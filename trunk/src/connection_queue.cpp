@@ -33,8 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/connection_queue.hpp"
-#include "libtorrent/socket.hpp"
+#include "libtorrent/io_service.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/error.hpp"
 
 namespace libtorrent
 {
@@ -257,7 +258,7 @@ namespace libtorrent
 		function_guard guard_(m_in_timeout_function);
 #endif
 
-		TORRENT_ASSERT(!e || e == asio::error::operation_aborted);
+		TORRENT_ASSERT(!e || e == error::operation_aborted);
 		if (e) return;
 
 		ptime next_expire = max_time();

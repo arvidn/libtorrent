@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/torrent.hpp"
 
 #ifdef TORRENT_DEBUG
 #include <set>

@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ERROR_CODE_HPP_INCLUDED
 
 #include <boost/version.hpp>
-#include <boost/shared_ptr.hpp>
 
 #if BOOST_VERSION < 103500
 #include <asio/error_code.hpp>
@@ -228,17 +227,22 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	struct TORRENT_EXPORT libtorrent_exception: std::exception
 	{
-		libtorrent_exception(error_code const& s): m_error(s) {}
+		libtorrent_exception(error_code const& s): m_error(s), m_msg(0) {}
 		virtual const char* what() const throw()
 		{
-			if (!m_msg) m_msg.reset(new std::string(m_error.message()));
-			return m_msg->c_str();
+			if (!m_msg)
+			{
+				std::string msg = m_error.message();
+				m_msg = strdup(msg.c_str());
+			}
+
+			return m_msg;
 		}
-		virtual ~libtorrent_exception() throw() {}
+		virtual ~libtorrent_exception() throw() { free(m_msg); }
 		error_code error() const { return m_error; }
 	private:
 		error_code m_error;
-		mutable boost::shared_ptr<std::string> m_msg;
+		mutable char* m_msg;
 	};
 #endif
 }

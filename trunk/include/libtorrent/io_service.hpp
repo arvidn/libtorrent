@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,68 +30,43 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_LSD_HPP
-#define TORRENT_LSD_HPP
+#ifndef TORRENT_IO_SERVICE_HPP_INCLUDED
+#define TORRENT_IO_SERVICE_HPP_INCLUDED
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#ifdef __OBJC__
+#define Protocol Protocol_
+#endif
 
-#include <boost/function/function2.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-#include <fstream>
+#include <boost/version.hpp>
+
+#if BOOST_VERSION < 103500
+#include <asio/io_service.hpp>
+#else
+#include <boost/asio/io_service.hpp>
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+#ifdef __OBJC__ 
+#undef Protocol
 #endif
 
 namespace libtorrent
 {
 
-typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
-
-class lsd : public intrusive_ptr_base<lsd>
-{
-public:
-	lsd(io_service& ios, address const& listen_interface
-		, peer_callback_t const& cb);
-	~lsd();
-
-//	void rebind(address const& listen_interface);
-
-	void announce(sha1_hash const& ih, int listen_port);
-	void close();
-
-private:
-
-	void resend_announce(error_code const& e, std::string msg);
-	void on_announce(udp::endpoint const& from, char* buffer
-		, std::size_t bytes_transferred);
-//	void setup_receive();
-
-	peer_callback_t m_callback;
-
-	// current retry count
-	int m_retry_count;
-
-	// the udp socket used to send and receive
-	// multicast messages on
-	broadcast_socket m_socket;
-
-	// used to resend udp packets in case
-	// they time out
-	deadline_timer m_broadcast_timer;
-
-	bool m_disabled;
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	std::ofstream m_log;
+#if BOOST_VERSION < 103500
+	typedef ::asio::io_service io_service;
+#else
+	typedef boost::asio::io_service io_service;
 #endif
-};
-
 }
 
-
 #endif
+
 

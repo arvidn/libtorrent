@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
+#include "libtorrent/address.hpp"
 
 namespace libtorrent
 {

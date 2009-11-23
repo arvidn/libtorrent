@@ -3560,7 +3560,7 @@ session_settings
 		int inactivity_timeout;
 		int unchoke_interval;
 		int optimistic_unchoke_interval;
-		address announce_ip;
+		std::string announce_ip;
 		int num_want;
 		int initial_picker_threshold;
 		int allowed_fast_set_size;
@@ -3767,7 +3767,7 @@ each *optimistic* unchoke. On this timer, the currently optimistically
 unchoked peer will change.
 
 ``announce_ip`` is the ip address passed along to trackers as the ``&ip=`` parameter.
-If left as the default (default constructed), that parameter is ommited.
+If left as the default (an empty string), that parameter is omitted.
 
 ``num_want`` is the number of peers we want from each tracker request. It defines
 what is sent as the ``&num_want=`` parameter to the tracker.

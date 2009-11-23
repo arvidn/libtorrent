@@ -34,10 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BROADCAST_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
+#include <boost/function/function3.hpp>
 #include <list>
 
 namespace libtorrent

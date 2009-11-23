@@ -528,10 +528,15 @@ namespace libtorrent
 		detail::write_int64(stats ? req.uploaded : 0, out); // uploaded
 		detail::write_int32(req.event, out); // event
 		// ip address
-		if (settings.announce_ip != address() && settings.announce_ip.is_v4())
-			detail::write_uint32(settings.announce_ip.to_v4().to_ulong(), out);
-		else
-			detail::write_int32(0, out);
+		address_v4 announce_ip;
+
+		if (!settings.announce_ip.empty())
+		{
+			error_code ec;
+			address ip = address::from_string(settings.announce_ip.c_str(), ec);
+			if (!ec && ip.is_v4()) announce_ip = ip.to_v4();
+		}
+		detail::write_uint32(announce_ip.to_ulong(), out);
 		detail::write_int32(req.key, out); // key
 		detail::write_int32(req.num_want, out); // num_want
 		detail::write_uint16(req.listen_port, out); // port

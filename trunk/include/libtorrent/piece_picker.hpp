@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"

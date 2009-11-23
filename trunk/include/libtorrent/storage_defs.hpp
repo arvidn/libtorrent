@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,68 +30,35 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_LSD_HPP
-#define TORRENT_LSD_HPP
+#ifndef TORRENT_STORAGE_DEFS_HPP_INCLUDE
+#define TORRENT_STORAGE_DEFS_HPP_INCLUDE
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
-#include "libtorrent/deadline_timer.hpp"
-
-#include <boost/function/function2.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-#include <fstream>
-#endif
+#include "libtorrent/config.hpp"
+#include <string>
 
 namespace libtorrent
 {
+	struct storage_interface;
+	struct file_storage;
+	struct file_pool;
 
-typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
+	enum storage_mode_t
+	{
+		storage_mode_allocate = 0,
+		storage_mode_sparse,
+		storage_mode_compact
+	};
+	
+	typedef storage_interface* (*storage_constructor_type)(
+		file_storage const&, file_storage const*, std::string const&, file_pool&);
 
-class lsd : public intrusive_ptr_base<lsd>
-{
-public:
-	lsd(io_service& ios, address const& listen_interface
-		, peer_callback_t const& cb);
-	~lsd();
+	TORRENT_EXPORT storage_interface* default_storage_constructor(
+		file_storage const&, file_storage const* mapped, std::string const&, file_pool&);
 
-//	void rebind(address const& listen_interface);
-
-	void announce(sha1_hash const& ih, int listen_port);
-	void close();
-
-private:
-
-	void resend_announce(error_code const& e, std::string msg);
-	void on_announce(udp::endpoint const& from, char* buffer
-		, std::size_t bytes_transferred);
-//	void setup_receive();
-
-	peer_callback_t m_callback;
-
-	// current retry count
-	int m_retry_count;
-
-	// the udp socket used to send and receive
-	// multicast messages on
-	broadcast_socket m_socket;
-
-	// used to resend udp packets in case
-	// they time out
-	deadline_timer m_broadcast_timer;
-
-	bool m_disabled;
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	std::ofstream m_log;
-#endif
-};
+	TORRENT_EXPORT storage_interface* disabled_storage_constructor(
+		file_storage const&, file_storage const* mapped, std::string const&, file_pool&);
 
 }
-
 
 #endif
 

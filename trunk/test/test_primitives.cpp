@@ -634,14 +634,14 @@ int test_main()
 
 	// url_has_argument
 
-	TEST_CHECK(!url_has_argument("http://127.0.0.1/test", "test"));
-	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24", "bar"));
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24", "foo") == "24");
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "foo") == "24");
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "bar") == "23");
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "bar") == "23");
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "a") == "e");
-	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "b"));
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test", "test") == "");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24", "bar") == "");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24", "foo") == "24");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "foo") == "24");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "bar") == "23");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "bar") == "23");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "a") == "e");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "b") == "");
 
 	// escape_string
 	char const* test_string = "!@#$%^&*()-_=+/,. %?";

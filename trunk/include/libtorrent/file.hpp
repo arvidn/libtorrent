@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 #include <string>
-#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -56,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-#include <windows.h>
+#include <winbase.h>
 #include <winioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>

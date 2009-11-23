@@ -41,9 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #endif
 
-#include <algorithm>
-#include <limits>
-
 namespace libtorrent
 {
 	inline char const* time_now_string()
@@ -60,7 +57,9 @@ namespace libtorrent
 
 #if defined TORRENT_USE_BOOST_DATE_TIME
 
-#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/date_time/microsec_time_clock.hpp>
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent
@@ -68,7 +67,7 @@ namespace libtorrent
 	typedef boost::posix_time::ptime ptime;
 	typedef boost::posix_time::time_duration time_duration;
 	inline ptime time_now_hires()
-	{ return boost::posix_time::microsec_clock::universal_time(); }
+	{ return boost::date_time::microsec_clock<ptime>::universal_time(); }
 	inline ptime min_time()
 	{ return boost::posix_time::ptime(boost::posix_time::min_date_time); }
 	inline ptime max_time()
@@ -90,6 +89,7 @@ namespace libtorrent
 
 #else // TORRENT_USE_BOOST_DATE_TIME
 
+#include <limits>
 #include <boost/cstdint.hpp>
 #include "libtorrent/assert.hpp"
 

@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/logging.hpp>
+#include <libtorrent/address.hpp>
 
 #include <boost/noncopyable.hpp>
 #include <boost/intrusive_ptr.hpp>

@@ -40,13 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/torrent.hpp"
-#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
-using namespace libtorrent;
 using boost::tuples::make_tuple;
 using boost::tuples::tuple;
 using boost::bind;

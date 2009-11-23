@@ -324,7 +324,7 @@ namespace libtorrent
 
 		// if this is set, this IP will be reported do the
 		// tracker in the ip= parameter.
-		address announce_ip;
+		std::string announce_ip;
 
 		// the num want sent to trackers
 		int num_want;

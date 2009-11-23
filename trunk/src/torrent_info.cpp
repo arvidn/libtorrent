@@ -48,6 +48,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/bind.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/time_clock.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -568,13 +571,15 @@ namespace libtorrent
 	}
 #endif
 
+	typedef boost::date_time::second_clock<pt::ptime> second_clock;
+
 	// constructor used for creating new torrents
 	// will not contain any hashes, comments, creation date
 	// just the necessary to use it with piece manager
 	// used for torrents with no metadata
 	torrent_info::torrent_info(sha1_hash const& info_hash)
 		: m_info_hash(info_hash)
-		, m_creation_date(pt::second_clock::universal_time())
+		, m_creation_date(second_clock::universal_time())
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
