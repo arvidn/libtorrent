@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/smart_ban.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/peer_connection.hpp"
 
 namespace libtorrent {
 
