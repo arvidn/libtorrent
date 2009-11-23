@@ -48,11 +48,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/peer_request.hpp"
-#include "libtorrent/peer_connection.hpp"
 
 #if TORRENT_USE_IOSTREAM
 
+#include <fstream>
+#include "libtorrent/file.hpp"
+#include "libtorrent/time.hpp"
+#include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/peer_connection.hpp"
+
 namespace libtorrent {
+
+	struct peer_connection;
 
 namespace
 {

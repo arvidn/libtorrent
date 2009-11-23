@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/config.hpp"

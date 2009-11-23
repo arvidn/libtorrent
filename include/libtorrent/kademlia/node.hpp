@@ -49,10 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/thread.hpp>
 
 #include <boost/cstdint.hpp>
-#include <boost/optional.hpp>
-#include <boost/iterator/transform_iterator.hpp>
 #include <boost/ref.hpp>
-#include <boost/optional.hpp>
 
 #include "libtorrent/socket.hpp"
 
@@ -181,7 +178,7 @@ typedef std::map<std::pair<node_id, sha1_hash>, search_torrent_entry> search_tab
 public:
 	node_impl(libtorrent::aux::session_impl& ses
 		, bool (*f)(void*, entry const&, udp::endpoint const&, int)
-		, dht_settings const& settings, boost::optional<node_id> nid
+		, dht_settings const& settings, node_id nid
 		, void* userdata);
 
 	virtual ~node_impl() {}

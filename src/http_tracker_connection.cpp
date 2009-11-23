@@ -172,11 +172,11 @@ namespace libtorrent
 			}
 			else
 #endif
-			if (settings.announce_ip != address())
+			if (!settings.announce_ip.empty())
 			{
 				error_code ec;
-				std::string ip = settings.announce_ip.to_string(ec);
-				if (!ec) url += "&ip=" + ip;
+				if (!ec) url += "&ip=" + escape_string(
+					settings.announce_ip.c_str(), settings.announce_ip.size());
 			}
 
 			if (!tracker_req().ipv6.empty() && !i2p)

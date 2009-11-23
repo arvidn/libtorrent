@@ -34,9 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CONNECTION_QUEUE
 
 #include <list>
-#include <boost/function.hpp>
+#include <boost/function/function1.hpp>
+#include <boost/function/function0.hpp>
 #include <boost/noncopyable.hpp>
-#include "libtorrent/socket.hpp"
+#include "libtorrent/io_service.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/deadline_timer.hpp"
 

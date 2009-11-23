@@ -39,8 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <string>
 
-#include "libtorrent/debug.hpp"
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -56,20 +54,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/buffer.hpp"
-#include "libtorrent/peer_connection.hpp"
-#include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/storage.hpp"
-#include "libtorrent/stat.hpp"
-#include "libtorrent/alert.hpp"
-#include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/torrent.hpp"
-#include "libtorrent/peer_request.hpp"
-#include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
-// parse_url
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/torrent.hpp"
+#include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/http_parser.hpp"
 
 namespace libtorrent

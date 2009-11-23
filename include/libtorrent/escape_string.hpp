@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <limits>
-#include <boost/optional.hpp>
 #include <boost/array.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/size_type.hpp"
@@ -72,7 +71,7 @@ namespace libtorrent
 	TORRENT_EXPORT std::string base32encode(std::string const& s);
 	TORRENT_EXPORT std::string base32decode(std::string const& s);
 
-	TORRENT_EXPORT boost::optional<std::string> url_has_argument(
+	TORRENT_EXPORT std::string url_has_argument(
 		std::string const& url, std::string argument);
 
 	// replaces \ with /

@@ -35,18 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <map>
-#include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/cstdint.hpp>
-#include <boost/array.hpp>
 #include <boost/pool/pool.hpp>
 
 #include <libtorrent/socket.hpp>
 #include <libtorrent/entry.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/logging.hpp>
-#include <libtorrent/kademlia/node_entry.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 
 #include "libtorrent/time.hpp"

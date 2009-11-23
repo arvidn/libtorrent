@@ -82,6 +82,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/peer_connection.hpp" // for intrusive_ptr_release
+#include "libtorrent/address.hpp"
 
 #ifdef TORRENT_STATS
 #include <fstream>

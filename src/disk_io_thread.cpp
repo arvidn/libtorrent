@@ -40,7 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/error.hpp"
 #include <boost/scoped_array.hpp>
+#include <boost/bind.hpp>
 
 #ifdef TORRENT_DISK_STATS
 #include "libtorrent/time.hpp"
@@ -274,7 +276,7 @@ namespace libtorrent
 // ------- disk_io_thread ------
 
 
-	disk_io_thread::disk_io_thread(asio::io_service& ios
+	disk_io_thread::disk_io_thread(io_service& ios
 		, boost::function<void()> const& queue_callback
 		, int block_size)
 		: disk_buffer_pool(block_size)
@@ -1551,7 +1553,7 @@ namespace libtorrent
 						j.error = error_code(boost::system::errc::not_enough_memory
 							, get_posix_category());
 #else
-						j.error = asio::error::no_memory;
+						j.error = error::no_memory;
 #endif
 						j.str.clear();
 						break;
@@ -1615,7 +1617,7 @@ namespace libtorrent
 						j.error = error_code(boost::system::errc::not_enough_memory
 							, get_posix_category());
 #else
-						j.error = asio::error::no_memory;
+						j.error = error::no_memory;
 #endif
 						j.str.clear();
 						break;

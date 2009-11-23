@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_IP_FILTER_HPP
 
 #include <set>
+#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -49,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent

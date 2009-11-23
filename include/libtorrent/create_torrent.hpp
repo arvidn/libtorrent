@@ -52,8 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/optional.hpp>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/config.hpp>
 
@@ -63,7 +62,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace pt = boost::posix_time;
 	class torrent_info;
 
 	struct TORRENT_EXPORT create_torrent
@@ -118,7 +116,7 @@ namespace libtorrent
 		// if a creation date is found in the torrent file
 		// this will be set to that, otherwise it'll be
 		// 1970, Jan 1
-		pt::ptime m_creation_date;
+		boost::posix_time::ptime m_creation_date;
 
 		// if a comment is found in the torrent file
 		// this will be set to that comment

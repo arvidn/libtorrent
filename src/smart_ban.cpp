@@ -49,18 +49,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <cstdio>
 
-#include "libtorrent/peer_connection.hpp"
-#include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
-#include "libtorrent/alert_types.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
-namespace libtorrent { namespace
+namespace libtorrent {
+
+	struct torrent;
+
+namespace
 {
 
 	struct smart_ban_plugin : torrent_plugin, boost::enable_shared_from_this<smart_ban_plugin>

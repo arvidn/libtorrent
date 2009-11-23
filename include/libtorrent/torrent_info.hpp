@@ -43,17 +43,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/optional.hpp>
 #include <boost/shared_array.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/lazy_entry.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
-#include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/assert.hpp"
@@ -62,7 +62,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	namespace pt = boost::posix_time;
-	namespace gr = boost::gregorian;
 
 	enum
 	{

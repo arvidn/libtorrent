@@ -34,13 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <utility>
 #include <boost/bind.hpp>
-#include <boost/optional.hpp>
-#include <boost/function.hpp>
-#include <boost/iterator_adaptors.hpp>
+#include <boost/function/function1.hpp>
 
 #include "libtorrent/io.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/random_sample.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
@@ -185,10 +182,10 @@ void nop() {}
 node_impl::node_impl(libtorrent::aux::session_impl& ses
 	, bool (*f)(void*, entry const&, udp::endpoint const&, int)
 	, dht_settings const& settings
-	, boost::optional<node_id> nid
+	, node_id nid
 	, void* userdata)
 	: m_settings(settings)
-	, m_id(nid ? *nid : generate_id())
+	, m_id(nid == (node_id::min)()? nid : generate_id())
 	, m_table(m_id, 8, settings)
 	, m_rpc(m_id, m_table, f, userdata)
 	, m_last_tracker_tick(time_now())

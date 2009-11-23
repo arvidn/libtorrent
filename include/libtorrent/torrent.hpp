@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
 #include "libtorrent/policy.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/stat.hpp"
@@ -65,7 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_queue_entry.hpp"
-#include "libtorrent/storage.hpp"
+#include "libtorrent/storage_defs.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/bitfield.hpp"
@@ -84,6 +85,7 @@ namespace libtorrent
 	struct announce_entry;
 	struct tracker_request;
 	struct add_torrent_params;
+	struct storage_interface;
 
 	namespace aux
 	{

@@ -52,12 +52,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/session_settings.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/peer.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
+#include "libtorrent/peer_id.hpp"
+#include "libtorrent/peer.hpp" // peer_entry
+#include "libtorrent/session_settings.hpp" // proxy_settings
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"

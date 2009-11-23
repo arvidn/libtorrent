@@ -59,11 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bt_peer_connection.hpp"
 #endif
 
-namespace libtorrent
-{
-	class peer_connection;
-}
-
 using boost::bind;
 
 namespace

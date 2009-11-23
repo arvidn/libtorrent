@@ -37,9 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/thread.hpp"
 #include <boost/tuple/tuple.hpp>
+#include <boost/bind.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include <fstream>
 
 using namespace libtorrent;
 using boost::tuples::ignore;

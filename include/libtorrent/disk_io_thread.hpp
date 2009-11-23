@@ -39,8 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/storage.hpp"
 #include "libtorrent/allocator.hpp"
-#include <boost/function.hpp>
-#include <boost/bind.hpp>
+#include "libtorrent/io_service.hpp"
+
+#include <boost/function/function0.hpp>
+#include <boost/function/function2.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_array.hpp>
 #include <list>
@@ -396,7 +398,7 @@ namespace libtorrent
 		// disk_io_thread. If the event refers to a disk buffer
 		// it will try to free it, but the buffer pool won't
 		// exist anymore, and crash. This prevents that.
-		boost::optional<asio::io_service::work> m_work;
+		boost::optional<io_service::work> m_work;
 
 		// thread for performing blocking disk io operations
 		thread m_disk_io_thread;

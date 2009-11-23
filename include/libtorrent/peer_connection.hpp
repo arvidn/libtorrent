@@ -38,7 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 #include "libtorrent/debug.hpp"
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -46,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/smart_ptr.hpp>
 #include <boost/weak_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
 #include <boost/optional.hpp>
@@ -57,26 +60,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/buffer.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/storage.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
-#include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/policy.hpp"
-#include "libtorrent/socket_type.hpp"
+#include "libtorrent/socket_type_fwd.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/chained_buffer.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/bandwidth_socket.hpp"
+#include "libtorrent/socket_type_fwd.hpp"
 
 #ifdef TORRENT_STATS
 #include "libtorrent/aux_/session_impl.hpp"
@@ -647,7 +647,7 @@ namespace libtorrent
 		boost::intrusive_ptr<peer_connection> self()
 		{
 			TORRENT_ASSERT(!m_in_constructor);
-			return intrusive_ptr<peer_connection>(this);
+			return boost::intrusive_ptr<peer_connection>(this);
 		}
 
 	private:

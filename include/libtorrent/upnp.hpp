@@ -42,7 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 
-#include <boost/function.hpp>
+#include <boost/function/function1.hpp>
+#include <boost/function/function3.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <set>

@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/io_service.hpp"
 
 using boost::bind;
 using namespace libtorrent;

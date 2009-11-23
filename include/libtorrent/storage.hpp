@@ -41,9 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/function.hpp>
+#include <boost/function/function2.hpp>
 #include <boost/limits.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 
 #ifdef _MSC_VER
@@ -60,26 +61,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/storage_defs.hpp"
 
 namespace libtorrent
 {
-	namespace aux
-	{
-		struct piece_checker_data;
-	}
-
 	class session;
 	struct file_pool;
 	struct disk_io_job;
 	struct disk_buffer_pool;
 
-	enum storage_mode_t
-	{
-		storage_mode_allocate = 0,
-		storage_mode_sparse,
-		storage_mode_compact
-	};
-	
 	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		file_storage const& t
 		, std::string const& p);
@@ -189,15 +179,6 @@ namespace libtorrent
 		disk_buffer_pool* m_disk_pool;
 		session_settings* m_settings;
 	};
-
-	typedef storage_interface* (*storage_constructor_type)(
-		file_storage const&, file_storage const*, std::string const&, file_pool&);
-
-	TORRENT_EXPORT storage_interface* default_storage_constructor(
-		file_storage const&, file_storage const* mapped, std::string const&, file_pool&);
-
-	TORRENT_EXPORT storage_interface* disabled_storage_constructor(
-		file_storage const&, file_storage const* mapped, std::string const&, file_pool&);
 
 	struct disk_io_thread;
 

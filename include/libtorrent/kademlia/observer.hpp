@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/intrusive_ptr.hpp>
 #include <boost/cstdint.hpp>
 #include <libtorrent/time.hpp>
+#include <libtorrent/address.hpp>
 
 namespace libtorrent {
 namespace dht {
