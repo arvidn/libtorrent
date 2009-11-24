@@ -97,6 +97,7 @@ namespace libtorrent
 			, peerinfo)
 		, m_state(read_protocol_identifier)
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		, m_upload_only_id(0)
 		, m_supports_extensions(false)
 #endif
 		, m_supports_dht_port(false)
@@ -1433,6 +1434,13 @@ namespace libtorrent
 			return;
 		}
 
+		if (extended_id == upload_only_msg)
+		{
+			if (!packet_finished()) return;
+			set_upload_only(detail::read_uint8(recv_buffer.begin));
+			return;
+		}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -1484,6 +1492,10 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 #endif
 
+		// upload_only
+		if (lazy_entry const* m = root.dict_find_dict("m"))
+			m_upload_only_id = m->dict_find_int_value("upload_only", 0);
+
 		// there is supposed to be a remote listen port
 		int listen_port = root.dict_find_int_value("p");
 		if (listen_port > 0 && peer_info_struct() != 0)
@@ -1501,7 +1513,7 @@ namespace libtorrent
 		int reqq = root.dict_find_int_value("reqq");
 		if (reqq > 0) m_max_out_request_queue = reqq;
 
-		if (root.dict_find_int_value("upload_only"))
+		if (root.dict_find_int_value("upload_only", 0))
 			set_upload_only(true);
 
 		std::string myip = root.dict_find_string_value("yourip");
@@ -1588,6 +1600,22 @@ namespace libtorrent
 
 		return packet_finished();
 	}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	void bt_peer_connection::write_upload_only()
+	{
+		INVARIANT_CHECK;
+		
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		if (m_upload_only_id == 0) return;
+
+		char msg[7] = {0, 0, 0, 3, msg_extended};
+		char* ptr = msg + 5;
+		detail::write_uint8(m_upload_only_id, ptr);
+		detail::write_uint8(t->is_upload_only(), ptr);
+		send_buffer(msg, sizeof(msg));
+	}
+#endif
 
 	void bt_peer_connection::write_keepalive()
 	{
@@ -1793,10 +1821,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_supports_extensions);
 		TORRENT_ASSERT(m_sent_handshake);
 
-		entry handshake(entry::dictionary_t);
-		entry extension_list(entry::dictionary_t);
-
-		handshake["m"] = extension_list;
+		entry handshake;
+		entry::dictionary_type& m = handshake["m"].dict();
 
 		// only send the port in case we bade the connection
 		// on incoming connections the other end already knows
@@ -1811,9 +1837,11 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
+		m["upload_only"] = upload_only_msg;
+
 		// if we're using lazy bitfields or if we're super seeding, don't say
 		// we're upload only, since it might make peers disconnect
-		if (t->is_finished() && !t->super_seeding() && !m_ses.settings().lazy_bitfields)
+		if (t->is_upload_only())
 			handshake["upload_only"] = 1;
 
 		tcp::endpoint ep = m_ses.get_ipv6_interface();
