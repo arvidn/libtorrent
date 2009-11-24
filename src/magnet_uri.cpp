@@ -44,8 +44,9 @@ namespace libtorrent
 		if (!handle.is_valid()) return "";
 
 		char ret[1024];
+		sha1_hash const& ih = handle.info_hash();
 		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
-			, base32encode(std::string((char*)handle.info_hash().begin(), 20)).c_str());
+			, base32encode(std::string((char const*)&ih[0], 20)).c_str());
 
 		std::string name = handle.name();
 
@@ -74,8 +75,9 @@ namespace libtorrent
 	std::string make_magnet_uri(torrent_info const& info)
 	{
 		char ret[1024];
+		sha1_hash const& ih = info.info_hash();
 		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
-			, base32encode(std::string((char*)info.info_hash().begin(), 20)).c_str());
+			, base32encode(std::string((char*)&ih[0], 20)).c_str());
 
 		std::string const& name = info.name();
 
