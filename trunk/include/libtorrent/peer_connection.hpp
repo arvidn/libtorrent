@@ -262,12 +262,7 @@ namespace libtorrent
 
 		bool is_seed() const;
 
-		void set_upload_only(bool u)
-		{
-			m_upload_only = u;
-			disconnect_if_redundant();
-		}
-
+		void set_upload_only(bool u);
 		bool upload_only() const { return m_upload_only; }
 
 		// will send a keep-alive message to the peer

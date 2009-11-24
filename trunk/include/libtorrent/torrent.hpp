@@ -163,8 +163,15 @@ namespace libtorrent
 		void start_announcing();
 		void stop_announcing();
 
+		void send_upload_only();
+
 		void set_upload_mode(bool b);
 		bool upload_mode() const { return m_upload_mode; }
+		bool is_upload_only() const
+		{
+			return (((is_finished() && !super_seeding()) || upload_mode())
+				&& !m_ses.settings().lazy_bitfields);
+		}
 
 		int seed_rank(session_settings const& s) const;
 
