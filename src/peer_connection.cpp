@@ -4967,5 +4967,14 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		return m_num_pieces == (int)m_have_piece.size() && m_num_pieces > 0 && t && t->valid_metadata();
 	}
+
+	void peer_connection::set_upload_only(bool u)
+	{
+		m_upload_only = u;
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		t->get_policy().set_seed(m_peer_info, u);
+		disconnect_if_redundant();
+	}
+
 }
 

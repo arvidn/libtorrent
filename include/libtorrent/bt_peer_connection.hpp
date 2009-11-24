@@ -103,6 +103,8 @@ namespace libtorrent
 
 		void start();
 
+		enum { upload_only_msg = 2 };
+
 		~bt_peer_connection();
 		
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -203,8 +205,8 @@ namespace libtorrent
 		void write_handshake();
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
+		void write_upload_only();
 #endif
-		void write_chat_message(const std::string& msg);
 		void write_metadata(std::pair<int, int> req);
 		void write_metadata_request(std::pair<int, int> req);
 		void write_keepalive();
@@ -354,14 +356,18 @@ private:
 		std::vector<range> m_payloads;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		// the message ID for upload only message
+		// 0 if not supported
+		int m_upload_only_id;
+
+		char m_reserved_bits[8];
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
 		// extension protocol
-		bool m_supports_extensions;
-		char m_reserved_bits[8];
+		bool m_supports_extensions:1;
 #endif
-		bool m_supports_dht_port;
-		bool m_supports_fast;
+		bool m_supports_dht_port:1;
+		bool m_supports_fast:1;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		// this is set to true after the encryption method has been

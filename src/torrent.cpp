@@ -423,11 +423,26 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::send_upload_only()
+	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (std::set<peer_connection*>::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(*i);
+			if (p == 0) continue;
+			p->write_upload_only();
+		}
+#endif
+	}
+
 	void torrent::set_upload_mode(bool b)
 	{
 		if (b == m_upload_mode) return;
 
 		m_upload_mode = b;
+
+		send_upload_only();
 
 		if (m_upload_mode)
 		{
@@ -4253,6 +4268,8 @@ namespace libtorrent
 		// to make sure we're cleared the piece picker
 		if (is_seed()) completed();
 
+		send_upload_only();
+
 		// disconnect all seeds
 		// TODO: should disconnect all peers that have the pieces we have
 		// not just seeds
@@ -4294,6 +4311,8 @@ namespace libtorrent
 		set_state(torrent_status::downloading);
 		set_queue_position((std::numeric_limits<int>::max)());
 		m_policy.recalculate_connect_candidates();
+
+		send_upload_only();
 	}
 
 	// called when torrent is complete (all pieces downloaded)
