@@ -355,9 +355,7 @@ namespace libtorrent { namespace
 				}
 				break;
 			default:
-				{
-					m_pc.disconnect(error_code(errors::invalid_metadata_message, libtorrent_category), 2);
-				}
+				// unknown message, ignore
 			}
 			return true;
 		}

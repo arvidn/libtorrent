@@ -80,6 +80,10 @@
 	* added session::is_dht_running() function
 	* added torrent_handle::force_dht_announce()
 
+release 0.14.8
+
+	* ignore unkown metadata messages
+
 release 0.14.7
 
 	* fixed deadlock in natpmp
