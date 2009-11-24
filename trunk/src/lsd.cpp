@@ -86,7 +86,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	char ih_hex[41];
 	to_hex((char const*)&ih[0], 20, ih_hex);
 	char msg[200];
-	int msg_len = snprintf(msg, 200,
+	int msg_len = snprintf(msg, sizeof(msg),
 		"BT-SEARCH * HTTP/1.1\r\n"
 		"Host: 239.192.152.143:6771\r\n"
 		"Port: %d\r\n"
@@ -103,9 +103,12 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	}
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	snprintf(msg, 200, "%s ==> announce: ih: %s port: %u"
-		, time_now_string(), ih_hex, listen_port);
-	m_log << msg << std::endl;
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "%s ==> announce: ih: %s port: %u"
+			, time_now_string(), ih_hex, listen_port);
+		m_log << msg << std::endl;
+	}
 #endif
 
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
