@@ -386,29 +386,6 @@ namespace libtorrent
 					break;
 				}
 
-				// if the status code is not one of the accepted ones, abort
-				if (m_parser.status_code() != 206 // partial content
-					&& m_parser.status_code() != 200 // OK
-					&& !(m_parser.status_code() >= 300 // redirect
-						&& m_parser.status_code() < 400))
-				{
-					if (m_parser.status_code() == 503)
-					{
-						// temporarily unavailable, retry later
-						t->retry_web_seed(m_url, web_seed_entry::url_seed);
-					}
-					t->remove_web_seed(m_url, web_seed_entry::url_seed);
-					std::string error_msg = to_string(m_parser.status_code()).elems
-						+ (" " + m_parser.message());
-					if (m_ses.m_alerts.should_post<url_seed_alert>())
-					{
-						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
-							, error_msg));
-					}
-					m_statistics.received_bytes(0, bytes_transferred);
-					disconnect(error_code(errors::http_error, libtorrent_category), 1);
-					return;
-				}
 				if (!m_parser.header_finished())
 				{
 					TORRENT_ASSERT(payload == 0);
@@ -431,6 +408,30 @@ namespace libtorrent
 					, end(headers.end()); i != end; ++i)
 					(*m_logger) << "   " << i->first << ": " << i->second << "\n";
 #endif
+				// if the status code is not one of the accepted ones, abort
+				if (m_parser.status_code() != 206 // partial content
+					&& m_parser.status_code() != 200 // OK
+					&& !(m_parser.status_code() >= 300 // redirect
+						&& m_parser.status_code() < 400))
+				{
+					if (m_parser.status_code() == 503)
+					{
+						std::string retry_after = m_parser.header("retry-after");
+						// temporarily unavailable, retry later
+						t->retry_web_seed(m_url, web_seed_entry::url_seed, atoi(retry_after.c_str()));
+					}
+					t->remove_web_seed(m_url, web_seed_entry::url_seed);
+					std::string error_msg = to_string(m_parser.status_code()).elems
+						+ (" " + m_parser.message());
+					if (m_ses.m_alerts.should_post<url_seed_alert>())
+					{
+						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
+							, error_msg));
+					}
+					m_statistics.received_bytes(0, bytes_transferred);
+					disconnect(error_code(errors::http_error, libtorrent_category), 1);
+					return;
+				}
 				if (m_parser.status_code() >= 300 && m_parser.status_code() < 400)
 				{
 					// this means we got a redirection request
