@@ -379,6 +379,7 @@ namespace libtorrent { namespace
 				break;
 			default:
 				// unknown message, ignore
+				break;
 			}
 			return true;
 		}
