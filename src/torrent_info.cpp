@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/utf8.hpp"
+#include "libtorrent/time.hpp"
 
 #if TORRENT_USE_I2P
 #include "libtorrent/parse_url.hpp"
@@ -377,6 +378,15 @@ namespace libtorrent
 		if (read != s) return -3;
 		if (ec) return -3;
 		return 0;
+	}
+
+	void announce_entry::failed()
+	{
+		++fails;
+		int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails) * tracker_retry_delay_min
+			, int(tracker_retry_delay_max));
+		next_announce = time_now() + seconds(delay);
+		updating = false;
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

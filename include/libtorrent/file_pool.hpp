@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <map>
 #include "libtorrent/file.hpp"
-#include "libtorrent/time.hpp"
+#include "libtorrent/ptime.hpp"
 #include "libtorrent/thread.hpp"
 
 namespace libtorrent

@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 
-#include "libtorrent/time.hpp"
+#include "libtorrent/ptime.hpp"
 
 namespace libtorrent { namespace dht
 {

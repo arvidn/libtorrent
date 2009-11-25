@@ -30,6 +30,7 @@ nobase_include_HEADERS = \
   disk_io_thread.hpp           \
   entry.hpp                    \
   enum_net.hpp                 \
+  error.hpp                    \
   error_code.hpp               \
   escape_string.hpp            \
   extensions.hpp               \
@@ -54,6 +55,7 @@ nobase_include_HEADERS = \
   lazy_entry.hpp               \
   lsd.hpp                      \
   magnet_uri.hpp               \
+  max.hpp                      \
   natpmp.hpp                   \
   parse_url.hpp                \
   pch.hpp                      \
@@ -67,7 +69,7 @@ nobase_include_HEADERS = \
   piece_picker.hpp             \
   policy.hpp                   \
   proxy_base.hpp               \
-  random_sample.hpp            \
+  ptime.hpp                    \
   session.hpp                  \
   session_settings.hpp         \
   session_status.hpp           \
