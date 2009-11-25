@@ -45,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/time_traits.hpp>
 #endif
 
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+
 #ifdef __OBJC__ 
 #undef Protocol
 #endif

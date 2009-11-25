@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/alert.hpp"
 #include "libtorrent/io_service.hpp"
+#include "libtorrent/time.hpp"
 #include <boost/bind.hpp>
 
 namespace libtorrent {

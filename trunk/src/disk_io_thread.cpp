@@ -44,9 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/scoped_array.hpp>
 #include <boost/bind.hpp>
 
-#ifdef TORRENT_DISK_STATS
 #include "libtorrent/time.hpp"
-#endif
 
 #if TORRENT_USE_MLOCK && !defined TORRENT_WINDOWS
 #include <sys/mman.h>

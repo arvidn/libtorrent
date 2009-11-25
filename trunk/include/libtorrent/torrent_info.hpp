@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
-#include "libtorrent/time.hpp"
+#include "libtorrent/ptime.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_storage.hpp"
@@ -133,14 +133,7 @@ namespace libtorrent
 			next_announce = min_time();
 		}
 
-		void failed()
-		{
-			++fails;
-			int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails) * tracker_retry_delay_min
-				, int(tracker_retry_delay_max));
-			next_announce = time_now() + seconds(delay);
-			updating = false;
-		}
+		void failed();
 
 		bool can_announce(ptime now) const
 		{

@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bandwidth_manager.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {

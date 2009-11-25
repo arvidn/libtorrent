@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/time.hpp"
 
 using boost::bind;
 using boost::uint8_t;

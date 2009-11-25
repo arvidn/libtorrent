@@ -88,14 +88,6 @@ namespace libtorrent
 
 	TORRENT_EXPORT void TORRENT_LINK_TEST_NAME() {}
 
-	std::string log_time()
-	{
-		static const ptime start = time_now_hires();
-		char ret[200];
-		std::sprintf(ret, "%d", total_milliseconds(time_now() - start));
-		return ret;
-	}
-
 	// this function returns a session_settings object
 	// which will optimize libtorrent for minimum memory
 	// usage, with no consideration of performance.

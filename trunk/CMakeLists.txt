@@ -38,6 +38,7 @@ set(sources
 	socks5_stream
 	stat
 	storage
+	time
 	torrent
 	torrent_handle
 	torrent_info
