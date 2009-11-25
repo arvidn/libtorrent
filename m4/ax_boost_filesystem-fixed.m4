@@ -88,7 +88,7 @@ AC_DEFUN([AX_BOOST_FILESYSTEM],
                                  [BOOST_FILESYSTEM_LIB="-l$ax_lib"; AC_SUBST(BOOST_FILESYSTEM_LIB) link_filesystem="yes"; break],
                                  [link_filesystem="no"])
   				done
-                if test "x$link_program_options" != "xyes"; then
+                if test "x$link_filesystem" != "xyes"; then
                 for libextension in `ls $BOOSTLIBDIR/boost_filesystem*.{dll,a}* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^\(boost_filesystem.*\)\.dll.*$;\1;' -e 's;^\(boost_filesystem.*\)\.a*$;\1;'` ; do
                      ax_lib=${libextension}
 				    AC_CHECK_LIB($ax_lib, exit,
