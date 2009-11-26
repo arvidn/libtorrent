@@ -174,6 +174,7 @@ namespace libtorrent
 	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{
 	public:
+		torrent_info::torrent_info(torrent_info const& t);
 #ifndef BOOST_NO_EXCEPTIONS
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
@@ -327,6 +328,9 @@ namespace libtorrent
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
 	private:
+
+		// not assignable
+		torrent_info const& operator=(torrent_info const&);
 
 		void copy_on_write();
 		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec);

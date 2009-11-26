@@ -49,7 +49,7 @@ namespace libtorrent
 {
 	int fail_bdecode(lazy_entry& ret)
 	{
-		ret = lazy_entry();
+		ret.clear();
 		return -1;
 	}
 
@@ -264,6 +264,13 @@ namespace libtorrent
 		return e->string_value();
 	}
 
+	pascal_string lazy_entry::dict_find_pstr(char const* name) const
+	{
+		lazy_entry const* e = dict_find(name);
+		if (e == 0 || e->type() != lazy_entry::string_t) return pascal_string(0, 0);
+		return e->string_pstr();
+	}
+
 	lazy_entry const* lazy_entry::dict_find_string(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
@@ -336,6 +343,13 @@ namespace libtorrent
 		lazy_entry const* e = list_at(i);
 		if (e == 0 || e->type() != lazy_entry::string_t) return std::string();
 		return e->string_value();
+	}
+
+	pascal_string lazy_entry::list_pstr_at(int i) const
+	{
+		lazy_entry const* e = list_at(i);
+		if (e == 0 || e->type() != lazy_entry::string_t) return pascal_string(0, 0);
+		return e->string_pstr();
 	}
 
 	size_type lazy_entry::list_int_value_at(int i, size_type default_val) const

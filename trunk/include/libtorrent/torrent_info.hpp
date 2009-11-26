@@ -173,6 +173,7 @@ namespace libtorrent
 #endif // TORRENT_USE_WSTRING
 #endif
 
+		torrent_info(torrent_info const& t);
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(lazy_entry const& torrent_file, error_code& ec);
 		torrent_info(char const* buffer, int size, error_code& ec);
@@ -319,6 +320,9 @@ namespace libtorrent
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
 	private:
+
+		// not assignable
+		torrent_info const& operator=(torrent_info const&);
 
 		void copy_on_write();
 		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec);
