@@ -3100,7 +3100,7 @@ larger if the pieces are larger.
 
 ``num_connections`` is the number of peer connections this torrent has, including
 half-open connections that hasn't completed the bittorrent handshake yet. This is
-always <= ``num_peers``.
+always >= ``num_peers``.
 
 ``uploads_limit`` is the set limit of upload slots (unchoked peers) for this torrent.
 
