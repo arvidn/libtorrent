@@ -53,6 +53,18 @@ namespace libtorrent
 	// return 0 = success
 	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end, lazy_entry& ret, int depth_limit = 1000);
 
+	struct pascal_string
+	{
+		pascal_string(char const* p, int l): len(l), ptr(p) {}
+		int len;
+		char const* ptr;
+		bool operator<(pascal_string const& rhs) const
+		{
+			return memcmp(ptr, rhs.ptr, (std::min)(len, rhs.len)) < 0
+				|| len < rhs.len;
+		}
+	};
+
 	struct TORRENT_EXPORT lazy_entry
 	{
 		enum entry_type_t
@@ -98,6 +110,12 @@ namespace libtorrent
 			TORRENT_ASSERT(m_type == string_t);
 			const_cast<char*>(m_data.start)[m_size] = 0;
 			return m_data.start;
+		}
+
+		pascal_string string_pstr() const
+		{
+			TORRENT_ASSERT(m_type == string_t);
+			return pascal_string(m_data.start, m_size);
 		}
 
 		std::string string_value() const
@@ -228,6 +246,10 @@ namespace libtorrent
 		// in the original buffer they are based on
 		char const* m_begin;
 		char const* m_end;
+
+		// non-copyable
+		lazy_entry(lazy_entry const&);
+		lazy_entry const& operator=(lazy_entry const&);
 	};
 
 	TORRENT_EXPORT std::string print_entry(lazy_entry const& e, bool single_line = false);
