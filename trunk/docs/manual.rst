@@ -2084,6 +2084,10 @@ Whenever a file priority is changed, all other piece priorities are reset
 to match the file priorities. In order to maintain sepcial priorities for
 particular pieces, ``piece_priority`` has to be called again for those pieces.
 
+You cannot set the file priorities on a torrent that does not yet
+have metadata or a torrent that is a seed. ``file_priority(int, int)`` and
+``prioritize_files()`` are both no-ops for such torrents.
+
 file_progress()
 ---------------
 

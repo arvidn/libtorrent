@@ -2617,6 +2617,10 @@ namespace libtorrent
 	void torrent::set_file_priority(int index, int prio)
 	{
 		INVARIANT_CHECK;
+
+		// this call is only valid on torrents with metadata
+		if (!valid_metadata() || is_seed()) return;
+
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 		TORRENT_ASSERT(index >= 0);
 		if (m_file_priority[index] == prio) return;
@@ -2626,6 +2630,9 @@ namespace libtorrent
 	
 	int torrent::file_priority(int index) const
 	{
+		// this call is only valid on torrents with metadata
+		if (!valid_metadata()) return 1;
+
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 		TORRENT_ASSERT(index >= 0);
 		return m_file_priority[index];

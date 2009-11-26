@@ -303,6 +303,17 @@ namespace libtorrent
 		return true;
 	}
 
+	struct pascal_string
+	{
+		int len;
+		char const* ptr;
+		bool operator<(pascal_string const& rhs) const
+		{
+			return memcmp(ptr, rhs.ptr, (std::min)(len, rhs.len)) < 0
+				|| len < rhs.len;
+		}
+	};
+
 	bool extract_files(lazy_entry const& list, file_storage& target
 		, std::string const& root_dir)
 	{
@@ -313,6 +324,9 @@ namespace libtorrent
 			if (!extract_single_file(*list.list_at(i), e, root_dir))
 				return false;
 			int cnt = 0;
+			std::set<pascal_string> files;
+			pascal_string = 
+			while (!files.insert(path).second)
 			for (file_storage::iterator k = target.begin()
 				, end(target.end()); k != end; ++k)
 			{
