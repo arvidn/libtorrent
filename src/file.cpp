@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp" // for string conversion
 
 #include <boost/scoped_ptr.hpp>
+#include <boost/static_assert.hpp>
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -81,7 +82,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-#include <boost/static_assert.hpp>
 // make sure the _FILE_OFFSET_BITS define worked
 // on this platform. It's supposed to make file
 // related functions support 64-bit offsets.

@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/peer_connection.hpp"
+#include "libtorrent/peer_info.hpp"
 
 namespace libtorrent {
 

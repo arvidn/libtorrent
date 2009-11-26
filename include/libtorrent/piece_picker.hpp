@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/static_assert.hpp>
+#include <boost/cstdint.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)

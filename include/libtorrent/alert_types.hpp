@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/escape_string.hpp" // to_hex
 
 namespace libtorrent
 {
