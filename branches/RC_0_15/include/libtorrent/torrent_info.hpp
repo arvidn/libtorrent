@@ -174,7 +174,7 @@ namespace libtorrent
 	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{
 	public:
-		torrent_info::torrent_info(torrent_info const& t);
+		torrent_info(torrent_info const& t);
 #ifndef BOOST_NO_EXCEPTIONS
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
