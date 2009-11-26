@@ -84,6 +84,7 @@
 release 0.14.8
 
 	* ignore unkown metadata messages
+	* fixed typo that would sometimes prevent queued torrents to be checked
 
 release 0.14.7
 

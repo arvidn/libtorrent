@@ -1440,7 +1440,8 @@ namespace aux {
 				++uncongested_torrents;
 
 			if (t.state() == torrent_status::checking_files) ++num_checking;
-			else if (t.state() == torrent_status::queued_for_checking)
+			else if (t.state() == torrent_status::queued_for_checking) ++num_queued;
+
 			if (t.is_auto_managed() && t.is_paused() && !t.has_error())
 			{
 				++num_paused_auto_managed;
