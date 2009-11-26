@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/escape_string.hpp" // is_space
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
@@ -405,6 +406,12 @@ namespace libtorrent
 			, int(tracker_retry_delay_max));
 		next_announce = time_now() + seconds(delay);
 		updating = false;
+	}
+
+	void announce_entry::trim()
+	{
+		while (!url.empty() && is_space(url[0]))
+			url.erase(url.begin());
 	}
 
 	torrent_info::torrent_info(torrent_info const& t)
