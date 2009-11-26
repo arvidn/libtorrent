@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct storage_interface;
-	struct file_storage;
+	class file_storage;
 	struct file_pool;
 
 	enum storage_mode_t

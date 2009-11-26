@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-#include <winbase.h>
+#include <windows.h>
 #include <winioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>

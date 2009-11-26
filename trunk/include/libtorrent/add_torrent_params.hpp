@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct torrent_info;
+	class torrent_info;
 
 	struct add_torrent_params
 	{
