@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKET_TYPE
 #define TORRENT_SOCKET_TYPE
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socks5_stream.hpp"
 #include "libtorrent/http_stream.hpp"
@@ -40,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/max.hpp"
 #include "libtorrent/assert.hpp"
+
+#if TORRENT_USE_I2P
 
 #define TORRENT_SOCKTYPE_FORWARD(x) \
 	switch (m_type) { \
@@ -66,6 +69,32 @@ POSSIBILITY OF SUCH DAMAGE.
 			return get<i2p_stream>()->x; \
 		default: TORRENT_ASSERT(false); return def; \
 	}
+
+#else // TORRENT_USE_I2P
+
+#define TORRENT_SOCKTYPE_FORWARD(x) \
+	switch (m_type) { \
+		case socket_type_int_impl<stream_socket>::value: \
+			get<stream_socket>()->x; break; \
+		case socket_type_int_impl<socks5_stream>::value: \
+			get<socks5_stream>()->x; break; \
+		case socket_type_int_impl<http_stream>::value: \
+			get<http_stream>()->x; break; \
+		default: TORRENT_ASSERT(false); \
+	}
+
+#define TORRENT_SOCKTYPE_FORWARD_RET(x, def) \
+	switch (m_type) { \
+		case socket_type_int_impl<stream_socket>::value: \
+			return get<stream_socket>()->x; \
+		case socket_type_int_impl<socks5_stream>::value: \
+			return get<socks5_stream>()->x; \
+		case socket_type_int_impl<http_stream>::value: \
+			return get<http_stream>()->x; \
+		default: TORRENT_ASSERT(false); return def; \
+	}
+
+#endif // TORRENT_USE_I2P
 
 namespace libtorrent
 {
