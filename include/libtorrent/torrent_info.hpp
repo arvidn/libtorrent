@@ -143,15 +143,9 @@ namespace libtorrent
 		}
 
 		bool is_working() const
-		{
-			return fails == 0;
-		}
+		{ return fails == 0; }
 
-		void trim()
-		{
-			while (!url.empty() && is_space(url[0]))
-				url.erase(url.begin());
-		}
+		void trim();
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
