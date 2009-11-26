@@ -145,6 +145,7 @@ namespace libtorrent
 		{ return const_cast<lazy_entry*>(this)->dict_find(name); }
 
 		std::string dict_find_string_value(char const* name) const;
+		pascal_string dict_find_pstr(char const* name) const;
 		size_type dict_find_int_value(char const* name, size_type default_val = 0) const;
 		lazy_entry const* dict_find_dict(char const* name) const;
 		lazy_entry const* dict_find_list(char const* name) const;
@@ -187,6 +188,7 @@ namespace libtorrent
 		{ return const_cast<lazy_entry*>(this)->list_at(i); }
 
 		std::string list_string_value_at(int i) const;
+		pascal_string list_pstr_at(int i) const;
 		size_type list_int_value_at(int i, size_type default_val = 0) const;
 
 		int list_size() const

@@ -303,14 +303,24 @@ namespace libtorrent
 		return true;
 	}
 
-	struct pascal_string
+	struct string_less_no_case
 	{
-		int len;
-		char const* ptr;
-		bool operator<(pascal_string const& rhs) const
+		bool operator()(std::string const& lhs, std::string const& rhs)
 		{
-			return memcmp(ptr, rhs.ptr, (std::min)(len, rhs.len)) < 0
-				|| len < rhs.len;
+			char c1, c2;
+			char const* s1 = lhs.c_str();
+			char const* s2 = rhs.c_str();
+	
+			while (*s1 != 0 && *s2 != 0)
+			{
+				c1 = to_lower(*s1);
+				c2 = to_lower(*s2);
+				if (c1 < c2) return true;
+				if (c1 > c2) return false;
+				++s1;
+				++s2;
+			}
+			return false;
 		}
 	};
 
@@ -318,29 +328,23 @@ namespace libtorrent
 		, std::string const& root_dir)
 	{
 		if (list.type() != lazy_entry::list_t) return false;
+		target.reserve(list.list_size());
 		for (int i = 0, end(list.list_size()); i < end; ++i)
 		{
 			file_entry e;
 			if (!extract_single_file(*list.list_at(i), e, root_dir))
 				return false;
 			int cnt = 0;
-			std::set<pascal_string> files;
-			pascal_string = 
-			while (!files.insert(path).second)
-			for (file_storage::iterator k = target.begin()
-				, end(target.end()); k != end; ++k)
+			std::set<std::string, string_less_no_case> files;
+
+			// as long as we this file already exists
+			// increase the counter
+			while (!files.insert(e.path).second)
 			{
-				if (string_equal_no_case(e.path.c_str()
-					, k->path.c_str())) ++cnt;
-			}
-			if (cnt)
-			{
-				char suffix[15];
-				snprintf(suffix, sizeof(suffix), ".%d", cnt);
-				replace_extension(e.path, suffix + extension(e.path));
-				// TODO: we should really make sure that this new name
-				// doesn't already exist as well, otherwise we might
-				// just create another collision
+				++cnt;
+				char suffix[50];
+				snprintf(suffix, sizeof(suffix), ".%d%s", cnt, extension(e.path).c_str());
+				replace_extension(e.path, suffix);
 			}
 			target.add_file(e);
 		}
@@ -401,6 +405,42 @@ namespace libtorrent
 			, int(tracker_retry_delay_max));
 		next_announce = time_now() + seconds(delay);
 		updating = false;
+	}
+
+	torrent_info::torrent_info(torrent_info const& t)
+		: m_files(t.m_files)
+		, m_orig_files(t.m_orig_files)
+		, m_urls(t.m_urls)
+		, m_url_seeds(t.m_url_seeds)
+		, m_http_seeds(t.m_http_seeds)
+		, m_nodes(t.m_nodes)
+		, m_info_hash(t.m_info_hash)
+		, m_creation_date(t.m_creation_date)
+		, m_comment(t.m_comment)
+		, m_created_by(t.m_created_by)
+		, m_multifile(t.m_multifile)
+		, m_private(t.m_private)
+		, m_i2p(t.m_i2p)
+		, m_info_section_size(t.m_info_section_size)
+		, m_piece_hashes(t.m_piece_hashes)
+		, m_merkle_tree(t.m_merkle_tree)
+		, m_merkle_first_leaf(t.m_merkle_first_leaf)
+	{
+		if (m_info_section_size > 0)
+		{
+			m_info_section.reset(new char[m_info_section_size]);
+			memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
+			int ret = lazy_bdecode(m_info_section.get(), m_info_section.get()
+				+ m_info_section_size, m_info_dict);
+
+			lazy_entry const* pieces = m_info_dict.dict_find_string("pieces");
+			if (pieces && pieces->string_length() == m_files.num_pieces() * 20)
+			{
+				m_piece_hashes = m_info_section.get() + (pieces->string_ptr() - m_info_section.get());
+				TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
+				TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+			}
+		}
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -638,7 +678,9 @@ namespace libtorrent
 		swap(m_info_section, ti.m_info_section);
 		swap(m_info_section_size, ti.m_info_section_size);
 		swap(m_piece_hashes, ti.m_piece_hashes);
-		swap(m_info_dict, ti.m_info_dict);
+		m_info_dict.swap(ti.m_info_dict);
+		swap(m_merkle_tree, ti.m_merkle_tree);
+		swap(m_merkle_first_leaf, ti.m_merkle_first_leaf);
 	}
 
 	bool torrent_info::parse_info_section(lazy_entry const& info, error_code& ec)
