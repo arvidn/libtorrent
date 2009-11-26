@@ -228,6 +228,10 @@ namespace libtorrent
 		// in the original buffer they are based on
 		char const* m_begin;
 		char const* m_end;
+
+		// non-copyable
+		lazy_entry(lazy_entry const&);
+		lazy_entry const& operator=(lazy_entry const&);
 	};
 
 	TORRENT_EXPORT std::string print_entry(lazy_entry const& e);

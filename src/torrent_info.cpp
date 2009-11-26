@@ -385,6 +385,41 @@ namespace libtorrent
 		return 0;
 	}
 
+	torrent_info::torrent_info(torrent_info const& t)
+		: m_files(t.m_files)
+		, m_orig_files(t.m_orig_files)
+		, m_urls(t.m_urls)
+		, m_url_seeds(t.m_url_seeds)
+		, m_http_seeds(t.m_http_seeds)
+		, m_nodes(t.m_nodes)
+		, m_info_hash(t.m_info_hash)
+		, m_creation_date(t.m_creation_date)
+		, m_comment(t.m_comment)
+		, m_created_by(t.m_created_by)
+		, m_multifile(t.m_multifile)
+		, m_private(t.m_private)
+		, m_info_section_size(t.m_info_section_size)
+		, m_piece_hashes(t.m_piece_hashes)
+		, m_merkle_tree(t.m_merkle_tree)
+		, m_merkle_first_leaf(t.m_merkle_first_leaf)
+	{
+		if (m_info_section_size > 0)
+		{
+			m_info_section.reset(new char[m_info_section_size]);
+			memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
+			int ret = lazy_bdecode(m_info_section.get(), m_info_section.get()
+				+ m_info_section_size, m_info_dict);
+
+			lazy_entry const* pieces = m_info_dict.dict_find_string("pieces");
+			if (pieces && pieces->string_length() == m_files.num_pieces() * 20)
+			{
+				m_piece_hashes = m_info_section.get() + (pieces->string_ptr() - m_info_section.get());
+				TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
+				TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+			}
+		}
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(entry const& torrent_file)
@@ -607,7 +642,9 @@ namespace libtorrent
 		swap(m_info_section, ti.m_info_section);
 		swap(m_info_section_size, ti.m_info_section_size);
 		swap(m_piece_hashes, ti.m_piece_hashes);
-		swap(m_info_dict, ti.m_info_dict);
+		m_info_dict.swap(ti.m_info_dict);
+		swap(m_merkle_tree, ti.m_merkle_tree);
+		swap(m_merkle_first_leaf, ti.m_merkle_first_leaf);
 	}
 
 	bool torrent_info::parse_info_section(lazy_entry const& info, error_code& ec)

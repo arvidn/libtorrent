@@ -49,7 +49,7 @@ namespace libtorrent
 {
 	int fail_bdecode(lazy_entry& ret)
 	{
-		ret = lazy_entry();
+		ret.clear();
 		return -1;
 	}
 
