@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_USE_BOOST_DATE_TIME
 
+#include <boost/assert.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 
