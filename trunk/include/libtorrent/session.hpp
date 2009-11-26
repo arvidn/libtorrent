@@ -54,7 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/alert.hpp"
+#include "libtorrent/alert.hpp" // alert::error_notification
+#include "libtorrent/add_torrent_params.hpp"
 
 #include "libtorrent/storage.hpp"
 #include <boost/preprocessor/cat.hpp>
@@ -150,40 +151,6 @@ namespace libtorrent
 		boost::shared_ptr<aux::session_impl> m_impl;
 	};
 
-	struct add_torrent_params
-	{
-		add_torrent_params(storage_constructor_type sc = default_storage_constructor)
-			: tracker_url(0)
-			, name(0)
-			, resume_data(0)
-			, storage_mode(storage_mode_sparse)
-			, paused(true)
-			, auto_managed(true)
-			, duplicate_is_error(false)
-			, storage(sc)
-			, userdata(0)
-			, seed_mode(false)
-			, override_resume_data(false)
-			, upload_mode(false)
-		{}
-
-		boost::intrusive_ptr<torrent_info> ti;
-		char const* tracker_url;
-		sha1_hash info_hash;
-		char const* name;
-		std::string save_path;
-		std::vector<char>* resume_data;
-		storage_mode_t storage_mode;
-		bool paused;
-		bool auto_managed;
-		bool duplicate_is_error;
-		storage_constructor_type storage;
-		void* userdata;
-		bool seed_mode;
-		bool override_resume_data;
-		bool upload_mode;
-	};
-	
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
 	{
 	public:

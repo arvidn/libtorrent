@@ -86,6 +86,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/instantiate_connection.hpp"
+#include "libtorrent/peer_info.hpp"
 
 #ifndef TORRENT_WINDOWS
 #include <sys/resource.h>

@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PTIME_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include <string>
 
 #if defined TORRENT_USE_BOOST_DATE_TIME
 
@@ -89,13 +90,6 @@ namespace libtorrent
 	inline bool operator==(ptime lhs, ptime rhs)
 	{ return lhs.time == rhs.time;}
 
-	ptime time_now_hires();
-	ptime min_time();
-	ptime max_time();
-
-	char const* time_now_string();
-	std::string log_time();
-
 	inline bool is_negative(time_duration dt) { return dt.diff < 0; }
 	inline bool operator==(time_duration lhs, time_duration rhs)
 	{ return lhs.diff == rhs.diff; }
@@ -121,6 +115,19 @@ namespace libtorrent
 	inline ptime operator-(ptime lhs, time_duration rhs)
 	{ return ptime(lhs.time - rhs.diff); }
 
+}
+
+#endif // TORRENT_USE_BOOST_DATE_TIME
+
+namespace libtorrent
+{
+	ptime time_now_hires();
+	ptime min_time();
+	ptime max_time();
+
+	char const* time_now_string();
+	std::string log_time();
+
 	namespace aux
 	{
 		extern TORRENT_EXPORT ptime g_current_time;
@@ -128,9 +135,6 @@ namespace libtorrent
 
 	inline ptime const& time_now() { return aux::g_current_time; }
 }
-
-#endif // TORRENT_USE_BOOST_DATE_TIME
-
 
 #endif
 

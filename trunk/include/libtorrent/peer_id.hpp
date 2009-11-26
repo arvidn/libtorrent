@@ -40,9 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/escape_string.hpp"
 
 #if TORRENT_USE_IOSTREAM
+#include "libtorrent/escape_string.hpp" // to_hex, from_hex
 #include <iostream>
 #include <iomanip>
 #endif

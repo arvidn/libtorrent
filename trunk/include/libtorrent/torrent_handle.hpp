@@ -47,13 +47,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/peer_info.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/ptime.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/bitfield.hpp"
+#include "libtorrent/socket.hpp" // tcp::endpoint
 
 namespace libtorrent
 {
@@ -64,6 +65,8 @@ namespace libtorrent
 	}
 
 	struct torrent_plugin;
+	struct peer_info;
+	struct peer_list_entry;
 
 #ifndef BOOST_NO_EXCEPTIONS
 	// for compatibility with 0.14
