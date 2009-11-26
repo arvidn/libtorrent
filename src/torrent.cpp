@@ -863,7 +863,6 @@ namespace libtorrent
 
 		if (m_abort) return;
 
-		TORRENT_ASSERT(!m_torrent_file->priv());
 		if (m_torrent_file->is_valid() && m_torrent_file->priv())
 			return;
 
