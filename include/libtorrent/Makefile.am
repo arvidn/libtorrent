@@ -5,6 +5,7 @@ GEOIP_H = GeoIP.h
 endif
 
 nobase_include_HEADERS = \
+  add_torrent_params.hpp       \
   alert.hpp                    \
   alert_types.hpp              \
   alloca.hpp                   \

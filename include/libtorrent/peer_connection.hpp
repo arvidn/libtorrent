@@ -66,7 +66,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/session.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/policy.hpp"
 #include "libtorrent/socket_type_fwd.hpp"
@@ -86,6 +85,8 @@ namespace libtorrent
 {
 	class torrent;
 	struct peer_plugin;
+	struct peer_info;
+	struct disk_io_job;
 
 	namespace detail
 	{

@@ -232,6 +232,13 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 // determine what timer implementation we can use
+// if one is already defined, don't pick one
+// autmatically. This lets the user control this
+// from the Jamfile
+#if !defined TORRENT_USE_ABSOLUTE_TIME \
+	&& !defined TORRENT_USE_QUERY_PERFORMANCE_TIMER \
+	&& !defined TORRENT_USE_CLOCK_GETTIME \
+	&& !defined TORRENT_USE_BOOST_DATE_TIME
 
 #if defined(__MACH__)
 #define TORRENT_USE_ABSOLUTE_TIME 1
@@ -241,6 +248,8 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_CLOCK_GETTIME 1
 #else
 #define TORRENT_USE_BOOST_DATE_TIME 1
+#endif
+
 #endif
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED

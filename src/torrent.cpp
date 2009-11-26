@@ -75,6 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
+#include "libtorrent/peer_info.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <iostream>

@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/peer_info.hpp"
 
 using boost::bind;
 

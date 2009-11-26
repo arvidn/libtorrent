@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/peer_info.hpp"
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/bt_peer_connection.hpp"

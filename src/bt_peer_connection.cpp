@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/peer_info.hpp"
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 #include "libtorrent/pe_crypto.hpp"

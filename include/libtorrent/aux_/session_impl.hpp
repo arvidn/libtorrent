@@ -67,7 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session_status.hpp"
-#include "libtorrent/session.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/bandwidth_manager.hpp"

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,39 +30,53 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_MAGNET_URI_HPP_INCLUDED
-#define TORRENT_MAGNET_URI_HPP_INCLUDED
+#ifndef TORRENT_ADD_TORRENT_PARAMS_HPP_INCLUDED
+#define TORRENT_ADD_TORRENT_PARAMS_HPP_INCLUDED
 
 #include <string>
-#include "libtorrent/config.hpp"
-#include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/add_torrent_params.hpp"
+#include <vector>
+#include <boost/intrusive_ptr.hpp>
+
+#include "libtorrent/storage_defs.hpp"
+#include "libtorrent/peer_id.hpp" // sha1_hash
 
 namespace libtorrent
 {
-	struct torrent_handle;
-	struct session;
+	struct torrent_info;
 
-	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
-	std::string TORRENT_EXPORT make_magnet_uri(torrent_info const& info);
+	struct add_torrent_params
+	{
+		add_torrent_params(storage_constructor_type sc = default_storage_constructor)
+			: tracker_url(0)
+			, name(0)
+			, resume_data(0)
+			, storage_mode(storage_mode_sparse)
+			, paused(true)
+			, auto_managed(true)
+			, duplicate_is_error(false)
+			, storage(sc)
+			, userdata(0)
+			, seed_mode(false)
+			, override_resume_data(false)
+			, upload_mode(false)
+		{}
 
-#ifndef BOOST_NO_EXCEPTIONS
-#ifndef TORRENT_NO_DEPRECATE
-	// deprecated in 0.14
-	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
-		, std::string const& save_path
-		, storage_mode_t storage_mode = storage_mode_sparse
-		, bool paused = false
-		, storage_constructor_type sc = default_storage_constructor
-		, void* userdata = 0) TORRENT_DEPRECATED;
-#endif
-
-	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
-		, add_torrent_params p);
-#endif
-
-	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
-		, add_torrent_params p, error_code& ec);
+		boost::intrusive_ptr<torrent_info> ti;
+		char const* tracker_url;
+		sha1_hash info_hash;
+		char const* name;
+		std::string save_path;
+		std::vector<char>* resume_data;
+		storage_mode_t storage_mode;
+		bool paused;
+		bool auto_managed;
+		bool duplicate_is_error;
+		storage_constructor_type storage;
+		void* userdata;
+		bool seed_mode;
+		bool override_resume_data;
+		bool upload_mode;
+	};
 }
 
 #endif
