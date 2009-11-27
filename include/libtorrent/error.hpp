@@ -53,7 +53,7 @@ namespace libtorrent
 #if BOOST_VERSION < 103500
 	namespace error = asio::error;
 #else
-	namespace error =  boost::asio::error;
+	namespace error = boost::asio::error;
 #endif
 
 }
