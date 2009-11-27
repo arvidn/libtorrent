@@ -451,6 +451,17 @@ namespace libtorrent
 		}
 	}
 
+	void torrent_info::remap_files(file_storage const& f)
+	{
+		// the new specified file storage must have the exact
+		// same size as the current file storage
+		TORRENT_ASSERT(m_files.total_size() == f.total_size());
+
+		if (m_files.total_size() != f.total_size()) return;
+		copy_on_write();
+		m_files = f;
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(entry const& torrent_file)
