@@ -35,18 +35,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
 
-#if BOOST_VERSION < 103500
-#include <asio/ip/host_name.hpp>
-#else
-#include <boost/asio/ip/host_name.hpp>
-#endif
-
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/io_service.hpp"
+
+#if BOOST_VERSION < 103500
+#include <asio/ip/host_name.hpp>
+#else
+#include <boost/asio/ip/host_name.hpp>
+#endif
 
 using boost::bind;
 using namespace libtorrent;

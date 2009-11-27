@@ -45,6 +45,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define Protocol Protocol_
 #endif
 
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+// asio assumes that the windows error codes are defined already
+#include <winsock2.h>
+#endif
+
 #include <boost/version.hpp>
 
 #if BOOST_VERSION < 103500

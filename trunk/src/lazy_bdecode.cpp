@@ -191,26 +191,26 @@ namespace libtorrent
 		if (m_capacity == 0)
 		{
 			int capacity = lazy_entry_dict_init;
-			m_data.dict = new (std::nothrow) std::pair<char const*, lazy_entry>[capacity];
+			m_data.dict = new (std::nothrow) lazy_dict_entry[capacity];
 			if (m_data.dict == 0) return 0;
 			m_capacity = capacity;
 		}
 		else if (m_size == m_capacity)
 		{
 			int capacity = m_capacity * lazy_entry_grow_factor;
-			std::pair<char const*, lazy_entry>* tmp = new (std::nothrow) std::pair<char const*, lazy_entry>[capacity];
+			lazy_dict_entry* tmp = new (std::nothrow) lazy_dict_entry[capacity];
 			if (tmp == 0) return 0;
-			std::memcpy(tmp, m_data.dict, sizeof(std::pair<char const*, lazy_entry>) * m_size);
-			for (int i = 0; i < m_size; ++i) m_data.dict[i].second.release();
+			std::memcpy(tmp, m_data.dict, sizeof(lazy_dict_entry) * m_size);
+			for (int i = 0; i < m_size; ++i) m_data.dict[i].val.release();
 			delete[] m_data.dict;
 			m_data.dict = tmp;
 			m_capacity = capacity;
 		}
 
 		TORRENT_ASSERT(m_size < m_capacity);
-		std::pair<char const*, lazy_entry>& ret = m_data.dict[m_size++];
-		ret.first = name;
-		return &ret.second;
+		lazy_dict_entry& ret = m_data.dict[m_size++];
+		ret.name = name;
+		return &ret.val;
 	}
 
 	namespace
@@ -255,6 +255,14 @@ namespace libtorrent
 			}
 			return *str1 == 0;
 		}
+	}
+
+	std::pair<std::string, lazy_entry const*> lazy_entry::dict_at(int i) const
+	{
+		TORRENT_ASSERT(m_type == dict_t);
+		TORRENT_ASSERT(i < m_size);
+		lazy_dict_entry const& e = m_data.dict[i];
+		return std::make_pair(std::string(e.name, e.val.m_begin - e.name), &e.val);
 	}
 
 	std::string lazy_entry::dict_find_string_value(char const* name) const
@@ -304,9 +312,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type == dict_t);
 		for (int i = 0; i < m_size; ++i)
 		{
-			std::pair<char const*, lazy_entry> const& e = m_data.dict[i];
-			if (string_equal(name, e.first, e.second.m_begin - e.first))
-				return &m_data.dict[i].second;
+			lazy_dict_entry& e = m_data.dict[i];
+			if (string_equal(name, e.name, e.val.m_begin - e.name))
+				return &e.val;
 		}
 		return 0;
 	}
