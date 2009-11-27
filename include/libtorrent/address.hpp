@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ADDRESS_HPP_INCLUDED
 
 #include <boost/version.hpp>
+#include "libtorrent/config.hpp"
 
 #ifdef __OBJC__
 #define Protocol Protocol_
