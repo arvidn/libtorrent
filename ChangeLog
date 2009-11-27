@@ -80,6 +80,7 @@
 	* automatically caps files and connections by default to rlimit
 	* added session::is_dht_running() function
 	* added torrent_handle::force_dht_announce()
+	* added torrent_info::remap_files()
 
 release 0.14.8
 

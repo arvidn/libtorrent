@@ -1408,6 +1408,8 @@ The ``torrent_info`` has the following synopsis::
 		file_storage const& files() const;
 		file_storage const& orig_files() const;
 
+		void remap_files(file_storage const& f);
+
 		void rename_file(int index, std::string const& new_filename);
 		void rename_file(int index, std::wstring const& new_filename);
 
@@ -1527,6 +1529,19 @@ names. Filename may be chaged using ``torrent_info::rename_file()``.
 
 For more information on the ``file_storage`` object, see the separate document on how
 to create torrents.
+
+remap_files()
+-------------
+
+	::
+
+		void remap_files(file_storage const& f);
+
+Remaps the file storage to a new file layout. This can be used to, for instance,
+download all data in a torrent to a single file, or to a number of fixed size
+sector aligned files, regardless of the number and sizes of the files in the torrent.
+
+The new specified ``file_storage`` must have the exact same size as the current one.
 
 rename_file()
 -------------

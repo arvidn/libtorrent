@@ -195,6 +195,8 @@ namespace libtorrent
 		}
 #endif // TORRENT_USE_WSTRING
 
+		void remap_files(file_storage const& f);
+
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 
