@@ -1527,6 +1527,7 @@ namespace libtorrent
 				std::copy(myip.begin(), myip.end(), bytes.begin());
 				m_ses.set_external_address(address_v4(bytes));
 			}
+#if TORRENT_USE_IPV6
 			else if (myip.size() == address_v6::bytes_type::static_size)
 			{
 				address_v6::bytes_type bytes;
@@ -1537,6 +1538,7 @@ namespace libtorrent
 				else
 					m_ses.set_external_address(ipv6_address);
 			}
+#endif
 		}
 
 		// if we're finished and this peer is uploading only

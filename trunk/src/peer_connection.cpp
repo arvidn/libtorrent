@@ -511,11 +511,13 @@ namespace libtorrent
 			address_v4::bytes_type bytes = addr.to_v4().to_bytes();
 			x.assign((char*)&bytes[0], bytes.size());
 		}
+#if TORRENT_USE_IPV6
 		else
 		{
 			address_v6::bytes_type bytes = addr.to_v6().to_bytes();
 			x.assign((char*)&bytes[0], bytes.size());
 		}
+#endif
 		x.append((char*)&t->torrent_file().info_hash()[0], 20);
 
 		sha1_hash hash = hasher(&x[0], x.size()).final();
@@ -4534,10 +4536,12 @@ namespace libtorrent
 		// to the same protocol family as the target endpoint
 		if (is_any(bind_interface.address()))
 		{
-			if (m_remote.address().is_v4())
-				bind_interface.address(address_v4::any());
-			else
+#if TORRENT_USE_IPV6
+			if (m_remote.address().is_v6())
 				bind_interface.address(address_v6::any());
+			else
+#endif
+				bind_interface.address(address_v4::any());
 		}
 
 		m_socket->bind(bind_interface, ec);

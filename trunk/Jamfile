@@ -218,6 +218,9 @@ feature.compose <timer>absolute : <define>TORRENT_USE_ABSOLUTE_TIME=1 ;
 feature.compose <timer>performance : <define>TORRENT_USE_PERFORMANCE_TIMER=1 ;
 feature.compose <timer>clock : <define>TORRENT_USE_CLOCK_GETTIME=1 ;
 
+feature ipv6 : on off : composite propagated link-incompatible ;
+feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
+
 feature need-librt : no yes : composite propagated link-incompatible ;
 
 feature pool-allocators : on off : composite propagated link-incompatible ;

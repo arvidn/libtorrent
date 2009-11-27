@@ -276,8 +276,12 @@ public:
 	void add_rule(address first, address last, int flags);
 	int access(address const& addr) const;
 
+#if TORRENT_USE_IPV6
 	typedef boost::tuple<std::vector<ip_range<address_v4> >
 		, std::vector<ip_range<address_v6> > > filter_tuple_t;
+#else
+	typedef std::vector<ip_range<address_v4> > filter_tuple_t;
+#endif
 	
 	filter_tuple_t export_filter() const;
 

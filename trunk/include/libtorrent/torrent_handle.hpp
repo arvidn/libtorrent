@@ -314,7 +314,9 @@ namespace libtorrent
 		union addr_t
 		{
 			address_v4::bytes_type v4;
+#if TORRENT_USE_IPV6
 			address_v6::bytes_type v6;
+#endif
 		} addr;
 
 		boost::uint16_t port;
@@ -322,19 +324,23 @@ namespace libtorrent
 
 		void set_peer(tcp::endpoint const& ep)
 		{
+#if TORRENT_USE_IPV6
 			is_v6_addr = ep.address().is_v6();
 			if (is_v6_addr)
 				addr.v6 = ep.address().to_v6().to_bytes();
 			else
+#endif
 				addr.v4 = ep.address().to_v4().to_bytes();
 			port = ep.port();
 		}
 
 		tcp::endpoint peer() const
 		{
+#if TORRENT_USE_IPV6
 			if (is_v6_addr)
 				return tcp::endpoint(address_v6(addr.v6), port);
 			else
+#endif
 				return tcp::endpoint(address_v4(addr.v4), port);
 		}
 
