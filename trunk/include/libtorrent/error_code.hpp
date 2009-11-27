@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/error_code.hpp>
 #endif
 
-#include "libtorrent/config.hpp"
+#include <string.h>
 
 namespace libtorrent
 {
