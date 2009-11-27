@@ -111,6 +111,18 @@ namespace libtorrent {
 		ptime m_timestamp;
 	};
 
+	template <class T>
+	T* alert_cast(alert* a)
+	{
+		return dynamic_cast<T*>(a);
+	}
+
+	template <class T>
+	T const* alert_cast(alert const* a)
+	{
+		return dynamic_cast<T const*>(a);
+	}
+
 	class TORRENT_EXPORT alert_manager
 	{
 	public:
