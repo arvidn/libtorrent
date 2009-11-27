@@ -430,8 +430,8 @@ namespace libtorrent
 		for (std::set<peer_connection*>::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
-			bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(*i);
-			if (p == 0) continue;
+			if ((*i)->type() != peer_connection::bittorrent_connection) continue;
+			bt_peer_connection* p = (bt_peer_connection*)*i;
 			p->write_upload_only();
 		}
 #endif

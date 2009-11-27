@@ -291,9 +291,11 @@ namespace aux {
 		PRINT_SIZEOF(bt_peer_connection)
 		PRINT_SIZEOF(address)
 		PRINT_SIZEOF(address_v4)
-		PRINT_SIZEOF(address_v6)
 		PRINT_SIZEOF(address_v4::bytes_type)
+#if TORRENT_USE_IPV6
+		PRINT_SIZEOF(address_v6)
 		PRINT_SIZEOF(address_v6::bytes_type)
+#endif
 		PRINT_SIZEOF(void*)
 		PRINT_SIZEOF(dht::node_entry)
 
