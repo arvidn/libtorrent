@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <vector>
 #include <string>
+#include <cstring>
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/size_type.hpp"
@@ -60,7 +61,7 @@ namespace libtorrent
 		char const* ptr;
 		bool operator<(pascal_string const& rhs) const
 		{
-			return memcmp(ptr, rhs.ptr, (std::min)(len, rhs.len)) < 0
+			return std::memcmp(ptr, rhs.ptr, (std::min)(len, rhs.len)) < 0
 				|| len < rhs.len;
 		}
 	};

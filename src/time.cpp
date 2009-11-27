@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <ctime>
 #include <string>
+#include <cstdio>
+#include <limits>
 #include <boost/version.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
