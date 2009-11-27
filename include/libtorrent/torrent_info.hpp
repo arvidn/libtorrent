@@ -101,6 +101,8 @@ namespace libtorrent
 			m_files.rename_file(index, new_filename);
 		}
 
+		void remap_files(file_storage const& f);
+
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 
