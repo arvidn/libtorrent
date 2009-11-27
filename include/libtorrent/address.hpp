@@ -60,11 +60,15 @@ namespace libtorrent
 #if BOOST_VERSION < 103500
 	typedef ::asio::ip::address address;
 	typedef ::asio::ip::address_v4 address_v4;
+#if TORRENT_USE_IPV6
 	typedef ::asio::ip::address_v6 address_v6;
+#endif
 #else
 	typedef boost::asio::ip::address address;
 	typedef boost::asio::ip::address_v4 address_v4;
+#if TORRENT_USE_IPV6
 	typedef boost::asio::ip::address_v6 address_v6;
+#endif
 #endif
 }
 

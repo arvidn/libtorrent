@@ -298,12 +298,14 @@ namespace libtorrent
 				ifreq netmask = item;
 				if (ioctl(s, SIOCGIFNETMASK, &netmask) < 0)
 				{
+#if TORRENT_USE_IPV6
 					if (iface.interface_address.is_v6())
 					{
 						// this is expected to fail (at least on MacOS X)
 						iface.netmask = address_v6::any();
 					}
 					else
+#endif
 					{
 						ec = error_code(errno, asio::error::system_category);
 						close(s);
