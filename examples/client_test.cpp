@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/socket_io.hpp" // print_address
 
 using boost::bind;
 
