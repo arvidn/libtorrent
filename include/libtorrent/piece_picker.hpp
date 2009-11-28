@@ -465,9 +465,13 @@ namespace libtorrent
 		downloading_piece& add_download_piece();
 		void erase_download_piece(std::vector<downloading_piece>::iterator i);
 
+		// some compilers (e.g. gcc 2.95, does not inherit access
+		// privileges to nested classes)
+	public:
 		// the number of seeds. These are not added to
 		// the availability counters of the pieces
 		int m_seeds;
+	private:
 
 		// the following vectors are mutable because they sometimes may
 		// be updated lazily, triggered by const functions

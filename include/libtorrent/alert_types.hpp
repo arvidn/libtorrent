@@ -429,7 +429,6 @@ namespace libtorrent
 		const static int static_category = alert::peer_notification;
 		virtual std::string message() const
 		{
-			error_code ec;
 			return peer_alert::message() + " peer error: " + error.message();
 		}
 

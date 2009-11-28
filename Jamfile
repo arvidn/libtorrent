@@ -212,11 +212,13 @@ rule tag ( name : type  ? : property-set )
 
 feature tcmalloc : no yes : composite propagated link-incompatible ;
 
-feature timer : auto boost absolute performance clock : composite propagated link-incompatible ;
+feature timer : auto boost absolute performance clock system_time
+	: composite propagated link-incompatible ;
 feature.compose <timer>boost : <define>TORRENT_USE_BOOST_DATE_TIME=1 ;
 feature.compose <timer>absolute : <define>TORRENT_USE_ABSOLUTE_TIME=1 ;
 feature.compose <timer>performance : <define>TORRENT_USE_PERFORMANCE_TIMER=1 ;
 feature.compose <timer>clock : <define>TORRENT_USE_CLOCK_GETTIME=1 ;
+feature.compose <timer>system_time : <define>TORRENT_USE_SYSTEM_TIME=1 ;
 
 feature ipv6 : on off : composite propagated link-incompatible ;
 feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;

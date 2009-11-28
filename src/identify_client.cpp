@@ -91,7 +91,7 @@ namespace
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
-		if (!std::isalnum(id[0]))
+		if (!is_alpha(id[0]) && !is_digit(id[0]))
 			return boost::optional<fingerprint>();
 
 		if (std::equal(id.begin()+4, id.begin()+6, "--"))

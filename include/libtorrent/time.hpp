@@ -128,7 +128,7 @@ namespace libtorrent
 			s * 1000000 * 60 * 60));
 	}
 
-#elif defined TORRENT_USE_CLOCK_GETTIME
+#elif defined TORRENT_USE_CLOCK_GETTIME || defined TORRENT_USE_SYSTEM_TIME
 
 	inline int total_seconds(time_duration td)
 	{ return td.diff / 1000000; }

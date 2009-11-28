@@ -124,7 +124,7 @@ namespace libtorrent
 		}
 #endif
 
-		void update(std::string const& data) { update(&data[0], data.size()); }
+		void update(std::string const& data) { update(data.c_str(), data.size()); }
 		void update(const char* data, int len)
 		{
 			TORRENT_ASSERT(data != 0);

@@ -57,7 +57,6 @@ namespace libtorrent
 		m_abort = true;
 		m_queue.clear();
 		m_queued_bytes = 0;
-		error_code ec;
 	}
 
 #ifdef TORRENT_DEBUG

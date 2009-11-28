@@ -44,10 +44,15 @@ namespace libtorrent
 {
 	char* page_aligned_allocator::malloc(const size_type bytes)
 	{
-#ifdef TORRENT_WINDOWS
-		return reinterpret_cast<char*>(VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
+#if defined TORRENT_WINDOWS
+		return (char*)VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+#elif defined TORRENT_BEOS
+		// we could potentially use create_area() here, but
+		// you can't free it through its pointer, you need to
+		// associate the area_id with the pointer somehow
+		return (char*)::malloc(bytes);
 #else
-		return reinterpret_cast<char*>(valloc(bytes));
+		return (char*)valloc(bytes);
 #endif
 	}
 
@@ -55,6 +60,8 @@ namespace libtorrent
 	{
 #ifdef TORRENT_WINDOWS
 		VirtualFree(block, 0, MEM_RELEASE);
+#elif defined TORRENT_BEOS
+		return ::free(block);
 #else
 		::free(block);
 #endif

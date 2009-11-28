@@ -149,9 +149,6 @@ namespace detail
 
 		void add_rule(Addr first, Addr last, int flags)
 		{
-			using boost::next;
-			using boost::prior;
-
 			TORRENT_ASSERT(!m_access_list.empty());
 			TORRENT_ASSERT(first < last || first == last);
 			
@@ -164,13 +161,13 @@ namespace detail
 			TORRENT_ASSERT(j != i);
 			
 			int first_access = i->access;
-			int last_access = prior(j)->access;
+			int last_access = boost::prior(j)->access;
 
 			if (i->start != first && first_access != flags)
 			{
 				i = m_access_list.insert(i, range(first, flags));
 			}
-			else if (i != m_access_list.begin() && prior(i)->access == flags)
+			else if (i != m_access_list.begin() && boost::prior(i)->access == flags)
 			{
 				--i;
 				first_access = i->access;
