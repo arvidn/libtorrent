@@ -798,105 +798,134 @@ namespace libtorrent
 	int disk_io_thread::read_into_piece(cached_piece_entry& p, int start_block
 		, int options, int num_blocks, mutex::scoped_lock& l)
 	{
+		TORRENT_ASSERT(num_blocks > 0);
 		int piece_size = p.storage->info()->piece_size(p.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
 		int end_block = start_block;
 		int num_read = 0;
+
+		int iov_counter = 0;
+		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, (std::min)(blocks_in_piece - start_block, num_blocks));
+
+		int piece_offset = start_block * m_block_size;
+
+		int ret = 0;
+
+		boost::scoped_array<char> buf;
 		for (int i = start_block; i < blocks_in_piece
-			&& (in_use() < m_settings.cache_size
-				|| (options & ignore_cache_size)); ++i)
+			&& ((options & ignore_cache_size)
+				|| in_use() < m_settings.cache_size); ++i)
 		{
+			int block_size = (std::min)(piece_size - piece_offset, m_block_size);
+			TORRENT_ASSERT(piece_offset <= piece_size);
+
 			// this is a block that is already allocated
-			// stop allocating and don't read more than
-			// what we've allocated now
-			if (p.blocks[i].buf) break;
+			// free it an allocate a new one
+			if (p.blocks[i].buf)
+			{
+				free_buffer(p.blocks[i].buf);
+				--p.num_blocks;
+				--m_cache_stats.cache_size;
+				--m_cache_stats.read_cache_size;
+			}
 			p.blocks[i].buf = allocate_buffer("read cache");
 
 			// the allocation failed, break
-			if (p.blocks[i].buf == 0) break;
+			if (p.blocks[i].buf == 0)
+			{
+				free_piece(p, l);
+				return -1;
+			}
 			++p.num_blocks;
 			++m_cache_stats.cache_size;
 			++m_cache_stats.read_cache_size;
 			++end_block;
 			++num_read;
+			iov[iov_counter].iov_base = p.blocks[i].buf;
+			iov[iov_counter].iov_len = block_size;
+			++iov_counter;
+			piece_offset += m_block_size;
 			if (num_read >= num_blocks) break;
 		}
 
-		if (end_block == start_block) return -2;
+		if (end_block == start_block)
+		{
+			// something failed. Free all buffers
+			// we just allocated
+			free_piece(p, l);
+			return -2;
+		}
+
+		TORRENT_ASSERT(iov_counter <= (std::min)(blocks_in_piece - start_block, num_blocks));
 
 		// the buffer_size is the size of the buffer we need to read
 		// all these blocks.
 		const int buffer_size = (std::min)((end_block - start_block) * m_block_size
 			, piece_size - start_block * m_block_size);
+		TORRENT_ASSERT(buffer_size > 0);
 		TORRENT_ASSERT(buffer_size <= piece_size);
 		TORRENT_ASSERT(buffer_size + start_block * m_block_size <= piece_size);
-		boost::scoped_array<char> buf;
-		file::iovec_t* iov = 0;
-		int iov_counter = 0;
-		if (m_settings.coalesce_reads) buf.reset(new (std::nothrow) char[buffer_size]);
-		if (!buf) iov = TORRENT_ALLOCA(file::iovec_t, end_block - start_block);
 
-		int ret = 0;
+		if (m_settings.coalesce_reads)
+			buf.reset(new (std::nothrow) char[buffer_size]);
+
 		if (buf)
 		{
 			l.unlock();
 			file::iovec_t b = { buf.get(), buffer_size };
 			ret = p.storage->read_impl(&b, p.piece, start_block * m_block_size, 1);
 			l.lock();
-			if (p.storage->error()) return -1;
+			++m_cache_stats.reads;
+			if (p.storage->error())
+			{
+				free_piece(p, l);
+				return -1;
+			}
+
 			if (ret != buffer_size)
 			{
 				// this means the file wasn't big enough for this read
 				p.storage->get_storage_impl()->set_error(""
 					, error_code(errors::file_too_short, libtorrent_category));
+				free_piece(p, l);
 				return -1;
 			}
-			++m_cache_stats.reads;
-		}
 		
-		int piece_offset = start_block * m_block_size;
-		int offset = 0;
-		for (int i = start_block; i < end_block; ++i)
-		{
-			int block_size = (std::min)(piece_size - piece_offset, m_block_size);
-			if (p.blocks[i].buf == 0) break;
-			TORRENT_ASSERT(offset <= buffer_size);
-			TORRENT_ASSERT(piece_offset <= piece_size);
-			TORRENT_ASSERT(offset + block_size <= buffer_size);
-			if (buf)
+			int offset = 0;
+			for (int i = 0; i < iov_counter; ++i)
 			{
-				std::memcpy(p.blocks[i].buf, buf.get() + offset, block_size);
+				TORRENT_ASSERT(iov[i].iov_base);
+				TORRENT_ASSERT(iov[i].iov_len > 0);
+				TORRENT_ASSERT(offset + iov[i].iov_len <= buffer_size);
+				std::memcpy(iov[i].iov_base, buf.get() + offset, iov[i].iov_len);
+				offset += iov[i].iov_len;
 			}
-			else
-			{
-				iov[iov_counter].iov_base = p.blocks[i].buf;
-				iov[iov_counter].iov_len = block_size;
-				++iov_counter;
-			}
-			offset += m_block_size;
-			piece_offset += m_block_size;
 		}
-
-		if (iov)
+		else
 		{
 			l.unlock();
 			ret = p.storage->read_impl(iov, p.piece, start_block * m_block_size, iov_counter);
 			l.lock();
-			if (p.storage->error()) return -1;
+			++m_cache_stats.reads;
+			if (p.storage->error())
+			{
+				free_piece(p, l);
+				return -1;
+			}
+
 			if (ret != buffer_size)
 			{
 				// this means the file wasn't big enough for this read
 				p.storage->get_storage_impl()->set_error(""
 					, error_code(errors::file_too_short, libtorrent_category));
+				free_piece(p, l);
 				return -1;
 			}
-			++m_cache_stats.reads;
 		}
 
-		TORRENT_ASSERT(ret <= buffer_size);
-		TORRENT_ASSERT(ret == buffer_size || p.storage->error());
-		return (ret != buffer_size) ? -1 : ret;
+		TORRENT_ASSERT(ret == buffer_size);
+		return ret;
 	}
 	
 	// returns -1 on read error, -2 on out of memory error or the number of bytes read
@@ -923,10 +952,7 @@ namespace libtorrent
 		if (!p.blocks) return -1;
 		int ret = read_into_piece(p, 0, ignore_cache_size, INT_MAX, l);
 		
-		if (ret < 0)
-			free_piece(p, l);
-		else
-			m_read_pieces.push_back(p);
+		if (ret >= 0) m_read_pieces.push_back(p);
 
 		return ret;
 	}
@@ -961,10 +987,7 @@ namespace libtorrent
 		if (!p.blocks) return -1;
 		int ret = read_into_piece(p, start_block, 0, blocks_to_read, l);
 		
-		if (ret < 0)
-			free_piece(p, l);
-		else
-			m_read_pieces.push_back(p);
+		if (ret >= 0) m_read_pieces.push_back(p);
 
 		return ret;
 	}
@@ -1049,6 +1072,20 @@ namespace libtorrent
 		bool hit = true;
 		int ret = 0;
 
+		int piece_size = j.storage->info()->piece_size(j.piece);
+		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+
+		if (p != m_read_pieces.end() && p->num_blocks != blocks_in_piece)
+		{
+			// we have the piece in the cache, but not all of the blocks
+			ret = read_into_piece(*p, 0, ignore_cache_size, blocks_in_piece, l);
+			hit = false;
+			if (ret < 0) return ret;
+			TORRENT_ASSERT(!m_read_pieces.empty());
+			TORRENT_ASSERT(p->piece == j.piece);
+			TORRENT_ASSERT(p->storage == j.storage);
+		}
+
 		// if the piece cannot be found in the cache,
 		// read the whole piece starting at the block
 		// we got a request for.
@@ -1065,9 +1102,6 @@ namespace libtorrent
 		}
 
 		hasher ctx;
-
-		int piece_size = j.storage->info()->piece_size(j.piece);
-		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
@@ -1683,6 +1717,7 @@ namespace libtorrent
 						if (p->blocks[block].buf)
 						{
 							free_buffer(p->blocks[block].buf);
+							--m_cache_stats.cache_size;
 							--p->num_blocks;
 						}
 						p->blocks[block].buf = j.buffer;
