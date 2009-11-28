@@ -474,10 +474,18 @@ namespace libtorrent
 		ec.clear();
 
 #ifdef TORRENT_WINDOWS
+		// windows does not allow trailing / or \ in
+		// the path when removing files
+		std::string pruned;
+		if (inf[inf.size() - 1] == '/'
+			|| inf[inf.size() - 1] == '\\')
+			pruned = inf.substr(0, inf.size() - 1);
+		else
+			pruned = inf;
 #ifdef UNICODE
-		std::wstring f = convert_to_wstring(inf);
+		std::wstring f = convert_to_wstring(pruned);
 #else
-		std::string f = convert_to_native(inf);
+		std::string f = convert_to_native(pruned);
 #endif
 		if (DeleteFile(f.c_str()) == 0)
 		{

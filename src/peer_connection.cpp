@@ -4361,7 +4361,10 @@ namespace libtorrent
 			size_type cur_payload_dl = m_statistics.last_payload_downloaded();
 			size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
 #endif
-			on_receive(error, bytes_transferred);
+			{
+				INVARIANT_CHECK;
+				on_receive(error, bytes_transferred);
+			}
 #ifdef TORRENT_DEBUG
 			TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
 			TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
