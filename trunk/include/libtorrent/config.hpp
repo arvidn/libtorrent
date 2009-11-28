@@ -55,17 +55,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined __GNUC__
 
-# define TORRENT_DEPRECATED __attribute__ ((deprecated))
+# if __GNUC__ >= 3
+#  define TORRENT_DEPRECATED __attribute__ ((deprecated))
+# endif
 
 // GCC pre 4.0 did not have support for the visibility attribute
 # if __GNUC__ >= 4
 #  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
 #   define TORRENT_EXPORT __attribute__ ((visibility("default")))
-#  else
-#   define TORRENT_EXPORT
 #  endif
-# else
-#  define TORRENT_EXPORT
 # endif
 
 
@@ -76,11 +74,7 @@ POSSIBILITY OF SUCH DAMAGE.
 # if __SUNPRO_CC >= 0x550
 #  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
 #   define TORRENT_EXPORT __global
-#  else
-#   define TORRENT_EXPORT
 #  endif
-# else
-#  define TORRENT_EXPORT
 # endif
 
 
@@ -95,29 +89,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_EXPORT __declspec(dllexport)
 # elif defined(TORRENT_LINKING_SHARED)
 #  define TORRENT_EXPORT __declspec(dllimport)
-# else
-#  define TORRENT_EXPORT
 # endif
 
 #define TORRENT_DEPRECATED_PREFIX __declspec(deprecated)
 
-
-
-// ======= GENERIC COMPILER =========
-
-#else
-# define TORRENT_EXPORT
 #endif
 
 
+// ======= PLATFORMS =========
 
-#ifndef TORRENT_DEPRECATED_PREFIX
-#define TORRENT_DEPRECATED_PREFIX
-#endif
-
-#ifndef TORRENT_DEPRECATED
-#define TORRENT_DEPRECATED
-#endif
 
 // set up defines for target environments
 #if (defined __APPLE__ && defined __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
@@ -132,9 +112,25 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_WINDOWS
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
+#elif defined __BEOS__ || defined __HAIKU__
+#define TORRENT_BEOS
+#include <storage/StorageDefs.h> // B_PATH_NAME_LENGTH
+#define TORRENT_HAS_FALLOCATE 0
 #else
 #warning unknown OS, assuming BSD
 #define TORRENT_BSD
+#endif
+
+#ifndef TORRENT_EXPORT
+# define TORRENT_EXPORT
+#endif
+
+#ifndef TORRENT_DEPRECATED_PREFIX
+#define TORRENT_DEPRECATED_PREFIX
+#endif
+
+#ifndef TORRENT_DEPRECATED
+#define TORRENT_DEPRECATED
 #endif
 
 #ifndef TORRENT_USE_IPV6
@@ -144,7 +140,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_MLOCK 1
 #define TORRENT_USE_READV 1
 #define TORRENT_USE_WRITEV 1
+
+#if !defined TORRENT_USE_IOSTREAM && !defined BOOST_NO_IOSTREAM
 #define TORRENT_USE_IOSTREAM 1
+#else
+#define TORRENT_USE_IOSTREAM 0
+#endif
 
 #define TORRENT_USE_I2P 1
 
@@ -160,6 +161,10 @@ POSSIBILITY OF SUCH DAMAGE.
 // windows
 #if defined FILENAME_MAX
 #define TORRENT_MAX_PATH FILENAME_MAX
+
+// beos
+#elif defined B_PATH_NAME_LENGTH
+#defined TORRENT_MAX_PATH B_PATH_NAME_LENGTH
 
 // solaris
 #elif defined MAXPATH
@@ -216,11 +221,15 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_ISE_ICONV 0
 #endif
 
-#if defined UNICODE
+#if defined UNICODE && !defined BOOST_NO_STD_WSTRING
 #define TORRENT_USE_WSTRING 1
 #else
 #define TORRENT_USE_WSTRING 0
-#endif // TORRENT_WINDOWS
+#endif // UNICODE
+
+#ifndef TORRENT_HAS_FALLOCATE
+#define TORRENT_HAS_FALLOCATE 1
+#endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
 # define TORRENT_READ_HANDLER_MAX_SIZE 256
@@ -241,7 +250,8 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #if !defined TORRENT_USE_ABSOLUTE_TIME \
 	&& !defined TORRENT_USE_QUERY_PERFORMANCE_TIMER \
 	&& !defined TORRENT_USE_CLOCK_GETTIME \
-	&& !defined TORRENT_USE_BOOST_DATE_TIME
+	&& !defined TORRENT_USE_BOOST_DATE_TIME \
+	&& !defined TORRENT_USE_SYSTEM_TIME
 
 #if defined(__MACH__)
 #define TORRENT_USE_ABSOLUTE_TIME 1
@@ -249,6 +259,8 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_QUERY_PERFORMANCE_TIMER 1
 #elif defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0
 #define TORRENT_USE_CLOCK_GETTIME 1
+#elif defined(TORRENT_BEOS)
+#define TORRENT_USE_SYSTEM_TIME 1
 #else
 #define TORRENT_USE_BOOST_DATE_TIME 1
 #endif

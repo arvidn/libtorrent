@@ -33,7 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UTF8_HPP_INCLUDED
 #define TORRENT_UTF8_HPP_INCLUDED
 
-#if !defined BOOST_NO_STD_WSTRING
+#include "libtorrent/config.hpp"
+
+#if TORRENT_USE_WSTRING
 
 #include <string>
 #include <cwchar>

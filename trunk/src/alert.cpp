@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/escape_string.hpp"
 #include <boost/bind.hpp>
 
 namespace libtorrent {

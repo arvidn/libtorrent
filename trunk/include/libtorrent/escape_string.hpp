@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ESCAPE_STRING_HPP_INCLUDED
 
 #include <string>
-#include <limits>
+#include <boost/limits.hpp>
 #include <boost/array.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/size_type.hpp"

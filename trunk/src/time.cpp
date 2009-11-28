@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 #include <string>
 #include <cstdio>
-#include <limits>
+#include <boost/limits.hpp>
 #include <boost/version.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
@@ -182,7 +182,17 @@ namespace libtorrent
 	}
 }
 
-#endif // TORRENT_USE_CLOCK_GETTIME
+#elif defined TORRENT_USE_SYSTEM_TIME
+
+#include <kernel/OS.h>
+
+namespace libtorrent
+{
+	ptime time_now_hires()
+	{ return ptime(get_system_time()); }
+}
+
+#endif // TORRENT_USE_SYSTEM_TIME
 
 #endif // TORRENT_USE_BOOST_DATE_TIME
 

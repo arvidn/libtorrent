@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cctype>
 #include <algorithm>
-#include <limits>
+#include <boost/limits.hpp>
 #include <cstring>
 
 #include <boost/optional.hpp>
