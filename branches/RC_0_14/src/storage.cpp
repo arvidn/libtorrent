@@ -634,7 +634,7 @@ namespace libtorrent
 			ret.second = true;
 			while (ret.second && !bp.empty())
 			{
-				std::pair<iter_t, bool> ret = directories.insert((m_save_path / bp).string());
+				ret = directories.insert((m_save_path / bp).string());
 				bp = bp.branch_path();
 			}
 			delete_one_file(p);
