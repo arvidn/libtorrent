@@ -473,6 +473,8 @@ void natpmp::on_reply(error_code const& e
 		l.lock();
 	}
 
+	if (m_abort) return;
+
 	m_currently_mapping = -1;
 	m->action = mapping_t::action_none;
 	m_send_timer.cancel(ec);
