@@ -122,12 +122,12 @@ namespace libtorrent
 
 namespace libtorrent
 {
-	ptime time_now_hires();
-	ptime min_time();
-	ptime max_time();
+	ptime TORRENT_EXPORT time_now_hires();
+	ptime TORRENT_EXPORT min_time();
+	ptime TORRENT_EXPORT max_time();
 
 	char const* time_now_string();
-	std::string log_time();
+	std::string TORRENT_EXPORT log_time();
 
 	namespace aux
 	{

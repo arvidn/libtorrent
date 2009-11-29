@@ -42,50 +42,30 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	char const* time_now_string();
-	std::string log_time();
+	std::string TORRENT_EXPORT log_time();
 
-	ptime time_now_hires();
-	ptime min_time();
-	ptime max_time();
+	ptime TORRENT_EXPORT time_now_hires();
+	ptime TORRENT_EXPORT min_time();
+	ptime TORRENT_EXPORT max_time();
 
 #if defined TORRENT_USE_BOOST_DATE_TIME
 
-	time_duration seconds(int s);
-	time_duration milliseconds(int s);
-	time_duration microsec(int s);
-	time_duration minutes(int s);
-	time_duration hours(int s);
+	time_duration TORRENT_EXPORT seconds(int s);
+	time_duration TORRENT_EXPORT milliseconds(int s);
+	time_duration TORRENT_EXPORT microsec(int s);
+	time_duration TORRENT_EXPORT minutes(int s);
+	time_duration TORRENT_EXPORT hours(int s);
 
-	int total_seconds(time_duration td);
-	int total_milliseconds(time_duration td);
-	boost::int64_t total_microseconds(time_duration td);
-
-#elif defined TORRENT_USE_ABSOLUTE_TIME
-
-	inline int total_seconds(time_duration td)
-	{ return td.diff / 1000000; }
-	inline int total_milliseconds(time_duration td)
-	{ return td.diff / 1000; }
-	inline boost::int64_t total_microseconds(time_duration td)
-	{ return td.diff; }
-
-	inline time_duration microsec(boost::int64_t s)
-	{ return time_duration(s); }
-	inline time_duration milliseconds(boost::int64_t s)
-	{ return time_duration(s * 1000); }
-	inline time_duration seconds(boost::int64_t s)
-	{ return time_duration(s * 1000000); }
-	inline time_duration minutes(boost::int64_t s)
-	{ return time_duration(s * 1000000 * 60); }
-	inline time_duration hours(boost::int64_t s)
-	{ return time_duration(s * 1000000 * 60 * 60); }
+	int TORRENT_EXPORT total_seconds(time_duration td);
+	int TORRENT_EXPORT total_milliseconds(time_duration td);
+	boost::int64_t TORRENT_EXPORT total_microseconds(time_duration td);
 
 #elif defined TORRENT_USE_QUERY_PERFORMANCE_TIMER
 
 	namespace aux
 	{
-		boost::int64_t performance_counter_to_microseconds(boost::int64_t pc);
-		boost::int64_t microseconds_to_performance_counter(boost::int64_t ms);
+		boost::int64_t TORRENT_EXPORT performance_counter_to_microseconds(boost::int64_t pc);
+		boost::int64_t TORRENT_EXPORT microseconds_to_performance_counter(boost::int64_t ms);
 	}
 
 	inline int total_seconds(time_duration td)
@@ -128,7 +108,7 @@ namespace libtorrent
 			s * 1000000 * 60 * 60));
 	}
 
-#elif defined TORRENT_USE_CLOCK_GETTIME || defined TORRENT_USE_SYSTEM_TIME
+#elif TORRENT_USE_CLOCK_GETTIME || TORRENT_USE_SYSTEM_TIME || TORRENT_USE_ABSOLUTE_TIME
 
 	inline int total_seconds(time_duration td)
 	{ return td.diff / 1000000; }
