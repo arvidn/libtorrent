@@ -1016,6 +1016,8 @@ namespace libtorrent
 
 	void torrent::force_recheck()
 	{
+		if (!valid_metadata()) return;
+
 		// if the torrent is already queued to check its files
 		// don't do anything
 		if (should_check_files()
