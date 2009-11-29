@@ -23,6 +23,21 @@ project listed here, let me_ know.
 
 .. container:: entry
 
+	.. image:: tonidoplug.png
+		:align: right
+		:target: Tonidoplug_
+
+	**tonidoplug**
+
+	Tonidoplug_ is a tiny, low-power, low-cost home server and
+	NAS device powered by Tonido software that allows you to access
+	your apps, files, music and media from anywhere.
+
+	.. _Tonidoplug: http://www.tonidoplug.com/
+
+
+.. container:: entry
+
 	.. image:: qbittorrent_thumb.jpg
 		:align: right
 		:target: qBittorrent_
