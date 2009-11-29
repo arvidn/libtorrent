@@ -86,6 +86,8 @@ release 0.14.8
 
 	* ignore unkown metadata messages
 	* fixed typo that would sometimes prevent queued torrents to be checked
+	* fixed bug in auto-manager where active_downloads and active_seeds would
+	  sometimes be used incorrectly
 
 release 0.14.7
 

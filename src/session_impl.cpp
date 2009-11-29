@@ -1813,8 +1813,10 @@ namespace aux {
 					// this is not an auto managed torrent,
 					// if it's running and active, decrease the
 					// counters.
-					--num_downloaders;
-					--num_seeds;
+					if (t->is_finished())
+						--num_seeds;
+					else
+						--num_downloaders;
 				}
 			}
 		}
