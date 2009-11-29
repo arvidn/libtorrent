@@ -88,6 +88,7 @@ release 0.14.8
 	* fixed typo that would sometimes prevent queued torrents to be checked
 	* fixed bug in auto-manager where active_downloads and active_seeds would
 	  sometimes be used incorrectly
+	* force_recheck() no longer crashes on torrents with no metadata
 
 release 0.14.7
 
