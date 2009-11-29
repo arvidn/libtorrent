@@ -195,7 +195,7 @@ namespace libtorrent
 	{
 		if ((int)sizes.size() != fs.num_files())
 		{
-			error = error_code(errors::mismatching_number_of_files, libtorrent_category);
+			error = errors::mismatching_number_of_files;
 			return false;
 		}
 		p = complete(p);
@@ -222,7 +222,7 @@ namespace libtorrent
 			if ((compact_mode && size != size_iter->first)
 				|| (!compact_mode && size < size_iter->first))
 			{
-				error = error_code(errors::mismatching_file_size, libtorrent_category);
+				error = errors::mismatching_file_size;
 				return false;
 			}
 			// allow one second 'slack', because of FAT volumes
@@ -231,7 +231,7 @@ namespace libtorrent
 			if ((compact_mode && (time > size_iter->second + 1 || time < size_iter->second - 1)) ||
 				(!compact_mode && (time > size_iter->second + 5 * 60 || time < size_iter->second - 1)))
 			{
-				error = error_code(errors::mismatching_file_timestamp, libtorrent_category);
+				error = errors::mismatching_file_timestamp;
 				return false;
 			}
 		}
@@ -748,7 +748,7 @@ namespace libtorrent
 		lazy_entry const* file_sizes_ent = rd.dict_find_list("file sizes");
 		if (file_sizes_ent == 0)
 		{
-			error = error_code(errors::missing_file_sizes, libtorrent_category);
+			error = errors::missing_file_sizes;
 			return false;
 		}
 		
@@ -766,7 +766,7 @@ namespace libtorrent
 
 		if (file_sizes.empty())
 		{
-			error = error_code(errors::no_files_in_resume_data, libtorrent_category);
+			error = errors::no_files_in_resume_data;
 			return false;
 		}
 		
@@ -802,7 +802,7 @@ namespace libtorrent
 		}
 		else
 		{
-			error = error_code(errors::missing_pieces, libtorrent_category);
+			error = errors::missing_pieces;
 			return false;
 		}
 
@@ -814,7 +814,7 @@ namespace libtorrent
 		{
 			if (files().num_files() != (int)file_sizes.size())
 			{
-				error = error_code(errors::mismatching_number_of_files, libtorrent_category);
+				error = errors::mismatching_number_of_files;
 				return false;
 			}
 
@@ -827,7 +827,7 @@ namespace libtorrent
 			{
 				if (!i->pad_file && i->size != fs->first)
 				{
-					error = error_code(errors::mismatching_file_size, libtorrent_category);
+					error = errors::mismatching_file_size;
 					return false;
 				}
 			}
@@ -2002,7 +2002,7 @@ ret:
 
 		if (rd.type() != lazy_entry::dict_t)
 		{
-			error = error_code(errors::not_a_dictionary, libtorrent_category);
+			error = errors::not_a_dictionary;
 			return check_no_fastresume(error);
 		}
 
@@ -2011,7 +2011,7 @@ ret:
 		if (blocks_per_piece != -1
 			&& blocks_per_piece != m_files.piece_length() / block_size)
 		{
-			error = error_code(errors::invalid_blocks_per_piece, libtorrent_category);
+			error = errors::invalid_blocks_per_piece;
 			return check_no_fastresume(error);
 		}
 
@@ -2034,13 +2034,13 @@ ret:
 			lazy_entry const* slots = rd.dict_find_list("slots");
 			if (slots == 0)
 			{
-				error = error_code(errors::missing_slots, libtorrent_category);
+				error = errors::missing_slots;
 				return check_no_fastresume(error);
 			}
 
 			if ((int)slots->list_size() > m_files.num_pieces())
 			{
-				error = error_code(errors::too_many_slots, libtorrent_category);
+				error = errors::too_many_slots;
 				return check_no_fastresume(error);
 			}
 
@@ -2054,14 +2054,14 @@ ret:
 					lazy_entry const* e = slots->list_at(i);
 					if (e->type() != lazy_entry::int_t)
 					{
-						error = error_code(errors::invalid_slot_list, libtorrent_category);
+						error = errors::invalid_slot_list;
 						return check_no_fastresume(error);
 					}
 
 					int index = int(e->int_value());
 					if (index >= num_pieces || index < -2)
 					{
-						error = error_code(errors::invalid_piece_index, libtorrent_category);
+						error = errors::invalid_piece_index;
 						return check_no_fastresume(error);
 					}
 					if (index >= 0)
@@ -2090,14 +2090,14 @@ ret:
 					lazy_entry const* e = slots->list_at(i);
 					if (e->type() != lazy_entry::int_t)
 					{
-						error = error_code(errors::invalid_slot_list, libtorrent_category);
+						error = errors::invalid_slot_list;
 						return check_no_fastresume(error);
 					}
 
 					int index = int(e->int_value());
 					if (index != i && index >= 0)
 					{
-						error = error_code(errors::invalid_piece_index, libtorrent_category);
+						error = errors::invalid_piece_index;
 						return check_no_fastresume(error);
 					}
 				}
@@ -2124,7 +2124,7 @@ ret:
 					// we're resuming a compact allocated storage
 					m_state = state_expand_pieces;
 					m_current_slot = 0;
-					error = error_code(errors::pieces_need_reorder, libtorrent_category);
+					error = errors::pieces_need_reorder;
 					TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
 					return need_full_check;
 				}
@@ -2137,13 +2137,13 @@ ret:
 			lazy_entry const* pieces = rd.dict_find("pieces");
 			if (pieces == 0 || pieces->type() != lazy_entry::string_t)
 			{
-				error = error_code(errors::missing_pieces, libtorrent_category);
+				error = errors::missing_pieces;
 				return check_no_fastresume(error);
 			}
 
 			if ((int)pieces->string_length() != m_files.num_pieces())
 			{
-				error = error_code(errors::too_many_slots, libtorrent_category);
+				error = errors::too_many_slots;
 				return check_no_fastresume(error);
 			}
 

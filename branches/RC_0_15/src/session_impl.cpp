@@ -609,7 +609,7 @@ namespace aux {
 #ifdef TORRENT_DEBUG
 			int conn = m_connections.size();
 #endif
-			(*m_connections.begin())->disconnect(error_code(errors::stopping_torrent, libtorrent_category));
+			(*m_connections.begin())->disconnect(errors::stopping_torrent);
 			TORRENT_ASSERT(conn == int(m_connections.size()) + 1);
 		}
 
@@ -1339,7 +1339,7 @@ namespace aux {
 			// are ticked through the torrents' second_tick
 			if (!p->associated_torrent().expired()) continue;
 			if (m_last_tick - p->connected_time() > seconds(m_settings.handshake_timeout))
-				p->disconnect(error_code(errors::timed_out, libtorrent_category));
+				p->disconnect(errors::timed_out);
 		}
 
 		// --------------------------------------------------------------
@@ -2134,7 +2134,7 @@ namespace aux {
 
 		if (params.ti && params.ti->num_files() == 0)
 		{
-			ec = error_code(errors::no_files_in_torrent, libtorrent_category);
+			ec = errors::no_files_in_torrent;
 			return torrent_handle();
 		}
 
@@ -2142,7 +2142,7 @@ namespace aux {
 
 		if (is_aborted())
 		{
-			ec = error_code(errors::session_is_closing, libtorrent_category);
+			ec = errors::session_is_closing;
 			return torrent_handle();
 		}
 		
@@ -2158,7 +2158,7 @@ namespace aux {
 			if (!params.duplicate_is_error)
 				return torrent_handle(torrent_ptr);
 
-			ec = error_code(errors::duplicate_torrent, libtorrent_category);
+			ec = errors::duplicate_torrent;
 			return torrent_handle();
 		}
 

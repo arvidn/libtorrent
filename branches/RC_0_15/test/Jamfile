@@ -11,7 +11,7 @@ lib test_common
 	;
 
 exe test_natpmp : test_natpmp.cpp /torrent//torrent
-	: <link>shared <threading>multi <debug-iterators>on <invariant-checks>full ;
+	: <threading>multi <debug-iterators>on <invariant-checks>full ;
 
 explicit test_natpmp ;
 

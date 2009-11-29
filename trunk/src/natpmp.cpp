@@ -463,13 +463,13 @@ void natpmp::on_reply(error_code const& e
 
 		m->expires = time_now() + hours(2);
 		l.unlock();
-		m_callback(index, 0, error_code(ev, libtorrent_category));
+		m_callback(index, 0, error_code(ev, get_libtorrent_category()));
 		l.lock();
 	}
 	else if (m->action == mapping_t::action_add)
 	{
 		l.unlock();
-		m_callback(index, m->external_port, error_code(errors::no_error, libtorrent_category));
+		m_callback(index, m->external_port, error_code(errors::no_error, get_libtorrent_category()));
 		l.lock();
 	}
 

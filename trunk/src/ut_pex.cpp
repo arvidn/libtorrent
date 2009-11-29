@@ -236,7 +236,7 @@ namespace libtorrent { namespace
 
 			if (length > 500 * 1024)
 			{
-				m_pc.disconnect(error_code(errors::pex_message_too_large, libtorrent_category), 2);
+				m_pc.disconnect(errors::pex_message_too_large, 2);
 				return true;
 			}
 
@@ -246,7 +246,7 @@ namespace libtorrent { namespace
 			int ret = lazy_bdecode(body.begin, body.end, pex_msg);
 			if (ret != 0 || pex_msg.type() != lazy_entry::dict_t)
 			{
-				m_pc.disconnect(error_code(errors::invalid_pex_message, libtorrent_category), 2);
+				m_pc.disconnect(errors::invalid_pex_message, 2);
 				return true;
 			}
 

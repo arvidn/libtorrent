@@ -152,13 +152,13 @@ namespace libtorrent
 		std::string btih = url_has_argument(uri, "xt");
 		if (btih.empty())
 		{
-			ec = error_code(errors::missing_info_hash_in_uri, libtorrent_category);
+			ec = errors::missing_info_hash_in_uri;
 			return torrent_handle();
 		}
 
 		if (btih.compare(0, 9, "urn:btih:") != 0)
 		{
-			ec = error_code(errors::missing_info_hash_in_uri, libtorrent_category);
+			ec = errors::missing_info_hash_in_uri;
 			return torrent_handle();
 		}
 

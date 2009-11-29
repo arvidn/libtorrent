@@ -262,7 +262,7 @@ void upnp::resend_request(error_code const& e)
 
 	if (m_devices.empty())
 	{
-		disable(error_code(errors::no_router, libtorrent_category), l);
+		disable(errors::no_router, l);
 		return;
 	}
 	

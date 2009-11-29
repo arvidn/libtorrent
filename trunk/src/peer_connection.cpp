@@ -622,8 +622,7 @@ namespace libtorrent
 		}
 
 		if (interesting) t->get_policy().peer_is_interesting(*this);
-		else if (upload_only()) disconnect(error_code(
-			errors::upload_upload_connection, libtorrent_category));
+		else if (upload_only()) disconnect(errors::upload_upload_connection);
 	}
 
 	void peer_connection::init()
@@ -989,7 +988,7 @@ namespace libtorrent
 				(*m_logger) << "   " << i->second->torrent_file().info_hash() << "\n";
 			}
 #endif
-			disconnect(error_code(errors::invalid_info_hash, libtorrent_category), 2);
+			disconnect(errors::invalid_info_hash, 2);
 			return;
 		}
 
@@ -1000,7 +999,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << " rejected connection to paused torrent\n";
 #endif
-			disconnect(error_code(errors::torrent_paused, libtorrent_category), 2);
+			disconnect(errors::torrent_paused, 2);
 			return;
 		}
 
@@ -1013,7 +1012,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << " rejected regular connection to i2p torrent\n";
 #endif
-			disconnect(error_code(errors::peer_banned, libtorrent_category), 2);
+			disconnect(errors::peer_banned, 2);
 			return;
 		}
 #endif // TORRENT_USE_I2P
@@ -1482,7 +1481,7 @@ namespace libtorrent
 		// if we got an invalid message, abort
 		if (index >= int(m_have_piece.size()) || index < 0)
 		{
-			disconnect(error_code(errors::invalid_have, libtorrent_category), 2);
+			disconnect(errors::invalid_have, 2);
 			return;
 		}
 
@@ -1602,7 +1601,7 @@ namespace libtorrent
 		if (t->valid_metadata()
 			&& (bits.size() + 7) / 8 != (m_have_piece.size() + 7) / 8)
 		{
-			disconnect(error_code(errors::invalid_bitfield_size, libtorrent_category), 2);
+			disconnect(errors::invalid_bitfield_size, 2);
 			return;
 		}
 
@@ -1671,8 +1670,7 @@ namespace libtorrent
 		m_num_pieces = num_pieces;
 
 		if (interesting) t->get_policy().peer_is_interesting(*this);
-		else if (upload_only()) disconnect(error_code(
-			errors::upload_upload_connection, libtorrent_category));
+		else if (upload_only()) disconnect(errors::upload_upload_connection);
 	}
 
 	void peer_connection::disconnect_if_redundant()
@@ -1686,7 +1684,7 @@ namespace libtorrent
 
 		if (m_upload_only && t->is_finished())
 		{
-			disconnect(error_code(errors::upload_upload_connection, libtorrent_category));
+			disconnect(errors::upload_upload_connection);
 			return;
 		}
 
@@ -1695,7 +1693,7 @@ namespace libtorrent
 			&& m_bitfield_received
 			&& t->are_files_checked())
 		{
-			disconnect(error_code(errors::uninteresting_upload_peer, libtorrent_category));
+			disconnect(errors::uninteresting_upload_peer);
 			return;
 		}
 	}
@@ -1836,7 +1834,7 @@ namespace libtorrent
 
 				if (m_choke_rejects > m_ses.settings().max_rejects)
 				{
-					disconnect(error_code(errors::too_many_requests_when_choked, libtorrent_category));
+					disconnect(errors::too_many_requests_when_choked);
 					return;
 				}
 				else if ((m_choke_rejects & 0xf) == 0)
@@ -1926,7 +1924,7 @@ namespace libtorrent
 				"start: " << r.start << " | "
 				"length: " << r.length << " ]\n";
 #endif
-			disconnect(error_code(errors::invalid_piece, libtorrent_category), 2);
+			disconnect(errors::invalid_piece, 2);
 			return;
 		}
 
@@ -2010,7 +2008,7 @@ namespace libtorrent
 		char* buffer = m_ses.allocate_disk_buffer("receive buffer");
 		if (buffer == 0)
 		{
-			disconnect(error_code(errors::no_memory, libtorrent_category));
+			disconnect(errors::no_memory);
 			return;
 		}
 		disk_buffer_holder holder(m_ses, buffer);
@@ -2084,7 +2082,7 @@ namespace libtorrent
 			if (t->alerts().should_post<peer_error_alert>())
 			{
 				t->alerts().post_alert(peer_error_alert(t->get_handle(), m_remote
-					, m_peer_id, error_code(errors::peer_sent_empty_piece, libtorrent_category)));
+					, m_peer_id, errors::peer_sent_empty_piece));
 			}
 			// This is used as a reject-request by bitcomet
 			incoming_reject_request(p);
@@ -3003,7 +3001,7 @@ namespace libtorrent
 		(*m_ses.m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << m_remote.address().to_string(ec)
 			<< "\n";
 #endif
-		disconnect(error_code(errors::timed_out, libtorrent_category), 1);
+		disconnect(errors::timed_out, 1);
 	}
 
 	// the error argument defaults to 0, which means deliberate disconnect
@@ -3307,7 +3305,7 @@ namespace libtorrent
 
 		if (disk_buffer_size > 16 * 1024)
 		{
-			disconnect(error_code(errors::invalid_piece_size, libtorrent_category), 2);
+			disconnect(errors::invalid_piece_size, 2);
 			return false;
 		}
 
@@ -3318,7 +3316,7 @@ namespace libtorrent
 		m_disk_recv_buffer.reset(m_ses.allocate_disk_buffer("receive buffer"));
 		if (!m_disk_recv_buffer)
 		{
-			disconnect(error_code(errors::no_memory, libtorrent_category));
+			disconnect(errors::no_memory);
 			return false;
 		}
 		m_disk_recv_buffer_size = disk_buffer_size;
@@ -3457,7 +3455,7 @@ namespace libtorrent
 		{
 			m_ses.m_half_open.done(m_connection_ticket);
 			m_connecting = false;
-			disconnect(error_code(errors::torrent_aborted, libtorrent_category));
+			disconnect(errors::torrent_aborted);
 			return;
 		}
 
@@ -3482,7 +3480,7 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " *** LAST ACTIVITY [ "
 				<< total_seconds(d) << " seconds ago ] ***\n";
 #endif
-			disconnect(error_code(errors::timed_out_inactivity, libtorrent_category));
+			disconnect(errors::timed_out_inactivity);
 			return;
 		}
 
@@ -3495,7 +3493,7 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " *** NO HANDSHAKE [ waited "
 				<< total_seconds(d) << " seconds ] ***\n";
 #endif
-			disconnect(error_code(errors::timed_out_no_handshake, libtorrent_category));
+			disconnect(errors::timed_out_no_handshake);
 			return;
 		}
 
@@ -3514,7 +3512,7 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " *** NO REQUEST [ t: "
 				<< total_seconds(d) << " ] ***\n";
 #endif
-			disconnect(error_code(errors::timed_out_no_request, libtorrent_category));
+			disconnect(errors::timed_out_no_request);
 			return;
 		}
 
@@ -3543,7 +3541,7 @@ namespace libtorrent
 				"t1: " << total_seconds(d1) << " | "
 				"t2: " << total_seconds(d2) << " ] ***\n";
 #endif
-			disconnect(error_code(errors::timed_out_no_interest, libtorrent_category));
+			disconnect(errors::timed_out_no_interest);
 			return;
 		}
 
@@ -4241,7 +4239,7 @@ namespace libtorrent
 		std::pair<char*, int> buffer = m_ses.allocate_buffer(size);
 		if (buffer.first == 0)
 		{
-			disconnect(error_code(errors::no_memory, libtorrent_category));
+			disconnect(errors::no_memory);
 			return;
 		}
 		TORRENT_ASSERT(buffer.second >= size);
@@ -4266,7 +4264,7 @@ namespace libtorrent
 			std::pair<char*, int> buffer = m_ses.allocate_buffer(size);
 			if (buffer.first == 0)
 			{
-				disconnect(error_code(errors::no_memory, libtorrent_category));
+				disconnect(errors::no_memory);
 				return buffer::interval(0, 0);
 			}
 			TORRENT_ASSERT(buffer.second >= size);
@@ -4500,7 +4498,7 @@ namespace libtorrent
 
 		if (!t)
 		{
-			disconnect(error_code(errors::torrent_aborted, libtorrent_category));
+			disconnect(errors::torrent_aborted);
 			return;
 		}
 
@@ -4610,7 +4608,7 @@ namespace libtorrent
 			// to ourselves
 			boost::shared_ptr<torrent> t = m_torrent.lock();
 			if (m_peer_info && t) t->get_policy().ban_peer(m_peer_info);
-			disconnect(error_code(errors::self_connection, libtorrent_category), 1);
+			disconnect(errors::self_connection, 1);
 			return;
 		}
 

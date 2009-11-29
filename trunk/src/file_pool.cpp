@@ -59,7 +59,7 @@ namespace libtorrent
 				// this means that another instance of the storage
 				// is using the exact same file.
 #if BOOST_VERSION >= 103500
-				ec = error_code(errors::file_collision, libtorrent_category);
+				ec = errors::file_collision;
 #endif
 				return boost::shared_ptr<file>();
 			}

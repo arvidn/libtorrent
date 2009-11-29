@@ -211,7 +211,7 @@ namespace libtorrent
 	inline void throw_type_error()
 	{
 		throw libtorrent_exception(error_code(errors::invalid_entry_type
-			, libtorrent_category));
+			, get_libtorrent_category()));
 	}
 #endif
 

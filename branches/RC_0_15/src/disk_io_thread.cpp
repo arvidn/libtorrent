@@ -887,7 +887,7 @@ namespace libtorrent
 			{
 				// this means the file wasn't big enough for this read
 				p.storage->get_storage_impl()->set_error(""
-					, error_code(errors::file_too_short, libtorrent_category));
+					, errors::file_too_short);
 				free_piece(p, l);
 				return -1;
 			}
@@ -918,7 +918,7 @@ namespace libtorrent
 			{
 				// this means the file wasn't big enough for this read
 				p.storage->get_storage_impl()->set_error(""
-					, error_code(errors::file_too_short, libtorrent_category));
+					, errors::file_too_short);
 				free_piece(p, l);
 				return -1;
 			}
@@ -1648,7 +1648,7 @@ namespace libtorrent
 					if (ret == -3)
 					{
 						j.storage->mark_failed(j.piece);
-						j.error = error_code(errors::failed_hash_check, libtorrent_category);
+						j.error = errors::failed_hash_check;
 						j.str.clear();
 						j.buffer = 0;
 						break;
@@ -1716,7 +1716,7 @@ namespace libtorrent
 						{
 							// this means the file wasn't big enough for this read
 							j.buffer = 0;
-							j.error = error_code(errors::file_too_short, libtorrent_category);
+							j.error = errors::file_too_short;
 							j.error_file.clear();
 							j.str.clear();
 							ret = -1;

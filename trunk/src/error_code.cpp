@@ -191,12 +191,6 @@ namespace libtorrent
 		return msgs[ev];
 	}
 
-	TORRENT_EXPORT libtorrent_error_category libtorrent_category;
-
-#else
-
-	TORRENT_EXPORT ::asio::error::error_category libtorrent_category(20);
-
 #endif
 
 }
