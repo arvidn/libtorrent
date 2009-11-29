@@ -39,6 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/assert.hpp"
 
+#ifndef NDEBUG
+//#include "libtorrent/socket_io.hpp"
+#endif
+
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #include <asio/ip/multicast.hpp>
@@ -191,18 +195,22 @@ namespace libtorrent
 		error_code ec;
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
+		if (multicast_endpoint.address().is_v4())
+			open_multicast_socket(ios, address_v4::any(), loopback, ec);
+		else
+			open_multicast_socket(ios, address_v6::any(), loopback, ec);
+		
 		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
 			, end(interfaces.end()); i != end; ++i)
 		{
 			// only multicast on compatible networks
 			if (i->interface_address.is_v4() != multicast_endpoint.address().is_v4()) continue;
 			// ignore any loopback interface
-			if (is_loopback(i->interface_address)) continue;
+			if (!loopback && is_loopback(i->interface_address)) continue;
 
 			ec = error_code();
 			open_multicast_socket(ios, i->interface_address, loopback, ec);
 #ifndef NDEBUG
-//			extern std::string print_address(address const& addr);
 //			fprintf(stderr, "broadcast socket [ if: %s group: %s ] %s\n"
 //				, i->interface_address.to_string().c_str()
 //				, print_address(multicast_endpoint.address()).c_str()
@@ -260,13 +268,36 @@ namespace libtorrent
 			error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 #ifndef NDEBUG
-//			extern std::string print_address(address const& addr);
-//			extern std::string print_endpoint(udp::endpoint const& ep);
-//			fprintf(stderr, " sending on %s to: %s\n", print_address(i->socket->local_endpoint().address()).c_str()
+//			fprintf(stderr, " sending on unicast %s to: %s\n", print_address(i->socket->local_endpoint().address()).c_str()
 //				, print_endpoint(m_multicast_endpoint).c_str());
 #endif
 			if (e)
 			{
+#ifndef NDEBUG
+//				fprintf(stderr, " ERROR: %s\n", e.message().c_str());
+#endif
+				i->socket->close(e);
+				i->socket.reset();
+			}
+		}
+
+		for (std::list<socket_entry>::iterator i = m_sockets.begin()
+			, end(m_sockets.end()); i != end; ++i)
+		{
+			if (!i->socket) continue;
+			error_code e;
+			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+#ifndef NDEBUG
+//			extern std::string print_address(address const& addr);
+//			extern std::string print_endpoint(udp::endpoint const& ep);
+//			fprintf(stderr, " sending on multicast %s to: %s\n", print_address(i->socket->local_endpoint().address()).c_str()
+//				, print_endpoint(m_multicast_endpoint).c_str());
+#endif
+			if (e)
+			{
+#ifndef NDEBUG
+//				fprintf(stderr, " ERROR: %s\n", e.message().c_str());
+#endif
 				i->socket->close(e);
 				i->socket.reset();
 			}

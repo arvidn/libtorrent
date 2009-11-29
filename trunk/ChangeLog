@@ -89,6 +89,7 @@ release 0.14.8
 	* fixed bug in auto-manager where active_downloads and active_seeds would
 	  sometimes be used incorrectly
 	* force_recheck() no longer crashes on torrents with no metadata
+	* fixed broadcast socket regression from 0.14.7
 
 release 0.14.7
 
