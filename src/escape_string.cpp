@@ -143,7 +143,7 @@ namespace libtorrent
 				++i;
 				if (i == s.end())
 				{
-					ec = error_code(errors::invalid_escaped_string, libtorrent_category);
+					ec = errors::invalid_escaped_string;
 					return ret;
 				}
 
@@ -153,14 +153,14 @@ namespace libtorrent
 				else if(*i >= 'a' && *i <= 'f') high = *i + 10 - 'a';
 				else
 				{
-					ec = error_code(errors::invalid_escaped_string, libtorrent_category);
+					ec = errors::invalid_escaped_string;
 					return ret;
 				}
 
 				++i;
 				if (i == s.end())
 				{
-					ec = error_code(errors::invalid_escaped_string, libtorrent_category);
+					ec = errors::invalid_escaped_string;
 					return ret;
 				}
 
@@ -170,7 +170,7 @@ namespace libtorrent
 				else if(*i >= 'a' && *i <= 'f') low = *i + 10 - 'a';
 				else
 				{
-					ec = error_code(errors::invalid_escaped_string, libtorrent_category);
+					ec = errors::invalid_escaped_string;
 					return ret;
 				}
 

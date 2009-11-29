@@ -449,8 +449,7 @@ namespace libtorrent
 		if (lazy_bdecode(&tmp[0], &tmp[0] + tmp.size(), e) != 0)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
-			throw invalid_torrent_file(error_code(
-				errors::invalid_bencoding, libtorrent_category));
+			throw invalid_torrent_file(errors::invalid_bencoding);
 #endif
 			return;
 		}
@@ -489,8 +488,7 @@ namespace libtorrent
 		error_code ec;
 		lazy_entry e;
 		if (lazy_bdecode(buffer, buffer + size, e) != 0)
-			throw invalid_torrent_file(error_code(
-				errors::invalid_bencoding, libtorrent_category));
+			throw invalid_torrent_file(errors::invalid_bencoding);
 
 		if (!parse_torrent_file(e, ec))
 			throw invalid_torrent_file(ec);
@@ -509,8 +507,7 @@ namespace libtorrent
 
 		lazy_entry e;
 		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
-			throw invalid_torrent_file(error_code(
-				errors::invalid_bencoding, libtorrent_category));
+			throw invalid_torrent_file(errors::invalid_bencoding);
 		error_code ec;
 		if (!parse_torrent_file(e, ec))
 			throw invalid_torrent_file(ec);
@@ -533,8 +530,7 @@ namespace libtorrent
 
 		lazy_entry e;
 		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
-			throw invalid_torrent_file(error_code(
-				errors::invalid_bencoding, libtorrent_category));
+			throw invalid_torrent_file(errors::invalid_bencoding);
 
 		error_code ec;
 		if (!parse_torrent_file(e, ec))
@@ -564,7 +560,7 @@ namespace libtorrent
 		lazy_entry e;
 		if (lazy_bdecode(buffer, buffer + size, e) != 0)
 		{
-			ec = error_code(errors::invalid_bencoding, libtorrent_category);
+			ec = errors::invalid_bencoding;
 			return;
 		}
 		parse_torrent_file(e, ec);
@@ -584,7 +580,7 @@ namespace libtorrent
 		lazy_entry e;
 		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
 		{
-			ec = error_code(errors::invalid_bencoding, libtorrent_category);
+			ec = errors::invalid_bencoding;
 			return;
 		}
 		parse_torrent_file(e, ec);
@@ -607,7 +603,7 @@ namespace libtorrent
 		lazy_entry e;
 		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
 		{
-			ec = error_code(errors::invalid_bencoding, libtorrent_category);
+			ec = errors::invalid_bencoding;
 			return;
 		}
 		parse_torrent_file(e, ec);
@@ -662,7 +658,7 @@ namespace libtorrent
 	{
 		if (info.type() != lazy_entry::dict_t)
 		{
-			ec = error_code(errors::torrent_info_no_dict, libtorrent_category);
+			ec = errors::torrent_info_no_dict;
 			return false;
 		}
 
@@ -683,7 +679,7 @@ namespace libtorrent
 		int piece_length = info.dict_find_int_value("piece length", -1);
 		if (piece_length <= 0)
 		{
-			ec = error_code(errors::torrent_missing_piece_length, libtorrent_category);
+			ec = errors::torrent_missing_piece_length;
 			return false;
 		}
 		m_files.set_piece_length(piece_length);
@@ -693,7 +689,7 @@ namespace libtorrent
 		if (name.empty()) name = info.dict_find_string_value("name");
 		if (name.empty())
 		{
-			ec = error_code(errors::torrent_missing_name, libtorrent_category);
+			ec = errors::torrent_missing_name;
 			return false;
 		}
 
@@ -701,7 +697,7 @@ namespace libtorrent
 	
 		if (!valid_path_element(name))
 		{
-			ec = error_code(errors::torrent_invalid_name, libtorrent_category);
+			ec = errors::torrent_invalid_name;
 			return false;
 		}
 
@@ -751,7 +747,7 @@ namespace libtorrent
 				e.pad_file = true;
 			if (e.size < 0)
 			{
-				ec = error_code(errors::torrent_invalid_length, libtorrent_category);
+				ec = errors::torrent_invalid_length;
 				return false;
 			}
 			m_files.add_file(e);
@@ -761,7 +757,7 @@ namespace libtorrent
 		{
 			if (!extract_files(*i, m_files, name))
 			{
-				ec = error_code(errors::torrent_file_parse_failed, libtorrent_category);
+				ec = errors::torrent_file_parse_failed;
 				return false;
 			}
 			m_multifile = true;
@@ -780,7 +776,7 @@ namespace libtorrent
 		if ((pieces == 0 || pieces->type() != lazy_entry::string_t)
 			&& (root_hash == 0 || root_hash->type() != lazy_entry::string_t))
 		{
-			ec = error_code(errors::torrent_missing_pieces, libtorrent_category);
+			ec = errors::torrent_missing_pieces;
 			return false;
 		}
 		
@@ -788,7 +784,7 @@ namespace libtorrent
 		{
 			if (pieces->string_length() != m_files.num_pieces() * 20)
 			{
-				ec = error_code(errors::torrent_invalid_hashes, libtorrent_category);
+				ec = errors::torrent_invalid_hashes;
 				return false;
 			}
 
@@ -801,7 +797,7 @@ namespace libtorrent
 			TORRENT_ASSERT(root_hash);
 			if (root_hash->string_length() != 20)
 			{
-				ec = error_code(errors::torrent_invalid_hashes, libtorrent_category);
+				ec = errors::torrent_invalid_hashes;
 				return false;
 			}
 			int num_leafs = merkle_num_leafs(m_files.num_pieces());
@@ -890,7 +886,7 @@ namespace libtorrent
 	{
 		if (torrent_file.type() != lazy_entry::dict_t)
 		{
-			ec = error_code(errors::torrent_is_no_dict, libtorrent_category);
+			ec = errors::torrent_is_no_dict;
 			return false;
 		}
 
@@ -1012,7 +1008,7 @@ namespace libtorrent
 		lazy_entry const* info = torrent_file.dict_find_dict("info");
 		if (info == 0)
 		{
-			ec = error_code(errors::torrent_missing_info, libtorrent_category);
+			ec = errors::torrent_missing_info;
 			return false;
 		}
 		return parse_info_section(*info, ec);
