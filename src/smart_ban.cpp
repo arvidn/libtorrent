@@ -221,7 +221,7 @@ namespace
 #endif
 					m_torrent.get_policy().ban_peer(p);
 					if (p->connection) p->connection->disconnect(
-						error_code(errors::peer_banned, libtorrent_category));
+						errors::peer_banned);
 				}
 				// we already have this exact entry in the map
 				// we don't have to insert it
@@ -284,7 +284,7 @@ namespace
 #endif
 			m_torrent.get_policy().ban_peer(p);
 			if (p->connection) p->connection->disconnect(
-				error_code(errors::peer_banned, libtorrent_category));
+				errors::peer_banned);
 		}
 		
 		torrent& m_torrent;

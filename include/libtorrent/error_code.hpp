@@ -200,13 +200,35 @@ namespace libtorrent
 			error_code_max
 		};
 	}
+}
+
+#if BOOST_VERSION >= 103500
+
+namespace boost { namespace system {
+
+	template<> struct is_error_code_enum<libtorrent::errors::error_code_enum>
+	{ static const bool value = true; };
+
+	template<> struct is_error_condition_enum<libtorrent::errors::error_code_enum>
+	{ static const bool value = true; };
+} }
+
+#endif
+
+namespace libtorrent
+{
 
 #if BOOST_VERSION < 103500
 	typedef asio::error_code error_code;
 	inline asio::error::error_category get_posix_category() { return asio::error::system_category; }
 	inline asio::error::error_category get_system_category() { return asio::error::system_category; }
 
-	extern TORRENT_EXPORT asio::error::error_category libtorrent_category;
+	boost::system::error_category const& get_libtorrent_category()
+	{
+		static ::asio::error::error_category libtorrent_category(20);
+		return libtorrent_category;
+	}
+
 #else
 
 	struct TORRENT_EXPORT libtorrent_error_category : boost::system::error_category
@@ -217,7 +239,19 @@ namespace libtorrent
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
-	extern TORRENT_EXPORT libtorrent_error_category libtorrent_category;
+	inline boost::system::error_category& get_libtorrent_category()
+	{
+		static libtorrent_error_category libtorrent_category;
+		return libtorrent_category;
+	}
+
+	namespace errors
+	{
+		inline boost::system::error_code make_error_code(error_code_enum e)
+		{
+			return boost::system::error_code(e, get_libtorrent_category());
+		}
+	}
 
 	using boost::system::error_code;
 	inline boost::system::error_category const& get_system_category()
@@ -227,8 +261,8 @@ namespace libtorrent
 	{ return boost::system::get_posix_category(); }
 #else
 	{ return boost::system::get_generic_category(); }
-#endif
-#endif
+#endif // BOOST_VERSION < 103600
+#endif // BOOST_VERSION < 103500
 
 #ifndef BOOST_NO_EXCEPTIONS
 	struct TORRENT_EXPORT libtorrent_exception: std::exception

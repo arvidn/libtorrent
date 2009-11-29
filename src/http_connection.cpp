@@ -79,7 +79,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 #endif
 		)
 	{
-		error_code ec(errors::unsupported_url_protocol, libtorrent_category);
+		error_code ec(errors::unsupported_url_protocol);
 		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
 			, this, ec, (char*)0, 0));
 		return;
@@ -215,7 +215,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		if (is_i2p && i2p_conn->proxy().type != proxy_settings::i2p_proxy)
 		{
 			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
-				, this, error_code(errors::no_i2p_router, libtorrent_category), (char*)0, 0));
+				, this, error_code(errors::no_i2p_router, get_libtorrent_category()), (char*)0, 0));
 			return;
 		}
 #endif

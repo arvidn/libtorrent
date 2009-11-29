@@ -371,7 +371,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 					(*m_logger) << "*** " << std::string(recv_buffer.begin, recv_buffer.end) << "\n";
 #endif
-					disconnect(error_code(errors::http_parse_error, libtorrent_category), 2);
+					disconnect(errors::http_parse_error, 2);
 					return;
 				}
 
@@ -430,7 +430,7 @@ namespace libtorrent
 							, error_msg));
 					}
 					m_statistics.received_bytes(0, bytes_transferred);
-					disconnect(error_code(errors::http_error, libtorrent_category), 1);
+					disconnect(errors::http_error, 1);
 					return;
 				}
 				if (m_parser.status_code() >= 300 && m_parser.status_code() < 400)
@@ -444,7 +444,7 @@ namespace libtorrent
 					{
 						// we should not try this server again.
 						t->remove_web_seed(m_url, web_seed_entry::url_seed);
-						disconnect(error_code(errors::missing_location, libtorrent_category), 2);
+						disconnect(errors::missing_location, 2);
 						return;
 					}
 					
@@ -469,14 +469,14 @@ namespace libtorrent
 						if (i == std::string::npos)
 						{
 							t->remove_web_seed(m_url, web_seed_entry::url_seed);
-							disconnect(error_code(errors::invalid_redirection, libtorrent_category), 2);
+							disconnect(errors::invalid_redirection, 2);
 							return;
 						}
 						location.resize(i);
 					}
 					t->add_web_seed(location, web_seed_entry::url_seed);
 					t->remove_web_seed(m_url, web_seed_entry::url_seed);
-					disconnect(error_code(errors::redirecting, libtorrent_category), 2);
+					disconnect(errors::redirecting, 2);
 					return;
 				}
 
@@ -510,7 +510,7 @@ namespace libtorrent
 					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(m_url, web_seed_entry::url_seed);
-					disconnect(error_code(errors::invalid_range, libtorrent_category));
+					disconnect(errors::invalid_range);
 					return;
 				}
 				// the http range is inclusive
@@ -525,7 +525,7 @@ namespace libtorrent
 					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(m_url, web_seed_entry::url_seed);
-					disconnect(error_code(errors::no_content_length, libtorrent_category), 2);
+					disconnect(errors::no_content_length, 2);
 					return;
 				}
 			}
@@ -533,7 +533,7 @@ namespace libtorrent
 			if (m_requests.empty() || m_file_requests.empty())
 			{
 				m_statistics.received_bytes(0, bytes_transferred);
-				disconnect(error_code(errors::http_error, libtorrent_category), 2);
+				disconnect(errors::http_error, 2);
 				return;
 			}
 
@@ -586,7 +586,7 @@ namespace libtorrent
 				m_statistics.received_bytes(0, bytes_transferred);
 				// this means the end of the incoming request ends _before_ the
 				// first expected byte (fs + m_piece.size())
-				disconnect(error_code(errors::invalid_range, libtorrent_category), 2);
+				disconnect(errors::invalid_range, 2);
 				return;
 			}
 

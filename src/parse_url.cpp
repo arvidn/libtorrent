@@ -62,19 +62,19 @@ namespace libtorrent
 
 		if (end == url.end())
 		{
-			ec = error_code(errors::unsupported_url_protocol, libtorrent_category);
+			ec = errors::unsupported_url_protocol;
 			goto exit;
 		}
 		++end;
 		if (end == url.end() || *end != '/')
 		{
-			ec = error_code(errors::unsupported_url_protocol, libtorrent_category);
+			ec = errors::unsupported_url_protocol;
 			goto exit;
 		}
 		++end;
 		if (end == url.end() || *end != '/')
 		{
-			ec = error_code(errors::unsupported_url_protocol, libtorrent_category);
+			ec = errors::unsupported_url_protocol;
 			goto exit;
 		}
 		++end;
@@ -100,7 +100,7 @@ namespace libtorrent
 			port_pos = std::find(start, url.end(), ']');
 			if (port_pos == url.end())
 			{
-				ec = error_code(errors::expected_close_bracket_in_address, libtorrent_category);
+				ec = errors::expected_close_bracket_in_address;
 				goto exit;
 			}
 			port_pos = std::find(port_pos, url.end(), ':');

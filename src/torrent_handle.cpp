@@ -120,8 +120,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	void throw_invalid_handle()
 	{
-		throw libtorrent_exception(error_code(
-			errors::invalid_torrent_handle, libtorrent_category));
+		throw libtorrent_exception(errors::invalid_torrent_handle);
 	}
 #endif
 

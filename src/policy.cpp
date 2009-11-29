@@ -307,7 +307,7 @@ namespace libtorrent
 		
 			if ((*i)->connection)
 			{
-				(*i)->connection->disconnect(error_code(errors::banned_by_ip_filter, libtorrent_category));
+				(*i)->connection->disconnect(errors::banned_by_ip_filter);
 				if (ses.m_alerts.should_post<peer_blocked_alert>())
 					ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
 				TORRENT_ASSERT((*i)->connection == 0
@@ -633,7 +633,7 @@ namespace libtorrent
 			&& ses.num_connections() >= ses.max_connections()
 			&& c.remote().address() != m_torrent->current_tracker().address())
 		{
-			c.disconnect(error_code(errors::too_many_connections, libtorrent_category));
+			c.disconnect(errors::too_many_connections);
 			return false;
 		}
 
@@ -672,7 +672,7 @@ namespace libtorrent
 
 			if (i->banned)
 			{
-				c.disconnect(error_code(errors::peer_banned, libtorrent_category));
+				c.disconnect(errors::peer_banned);
 				return false;
 			}
 
@@ -697,8 +697,8 @@ namespace libtorrent
 
 				if (self_connection)
 				{
-					c.disconnect(error_code(errors::self_connection, libtorrent_category), 1);
-					i->connection->disconnect(error_code(errors::self_connection, libtorrent_category), 1);
+					c.disconnect(errors::self_connection, 1);
+					i->connection->disconnect(errors::self_connection, 1);
 					return false;
 				}
 
@@ -711,7 +711,7 @@ namespace libtorrent
 				}
 				else if (!i->connection->is_connecting() || c.is_local())
 				{
-					c.disconnect(error_code(errors::duplicate_peer_id, libtorrent_category));
+					c.disconnect(errors::duplicate_peer_id);
 					return false;
 				}
 				else
@@ -721,7 +721,7 @@ namespace libtorrent
 					" is connecting and this connection is incoming. closing existing "
 					"connection in favour of this one");
 #endif
-					i->connection->disconnect(error_code(errors::duplicate_peer_id, libtorrent_category));
+					i->connection->disconnect(errors::duplicate_peer_id);
 				}
 			}
 
@@ -741,7 +741,7 @@ namespace libtorrent
 
 			if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
 			{
-				c.disconnect(error_code(errors::too_many_connections, libtorrent_category));
+				c.disconnect(errors::too_many_connections);
 				return false;
 			}
 
@@ -825,7 +825,7 @@ namespace libtorrent
 					pp.source |= src;
 					if (!was_conn_cand && is_connect_candidate(pp, m_finished))
 						++m_num_connect_candidates;
-					p->connection->disconnect(error_code(errors::duplicate_peer_id, libtorrent_category));
+					p->connection->disconnect(errors::duplicate_peer_id);
 					erase_peer(p);
 					return false;
 				}
