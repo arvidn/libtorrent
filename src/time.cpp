@@ -44,6 +44,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	namespace aux
+	{
+		// used to cache the current time
+		// every 100 ms. This is cheaper
+		// than a system call and can be
+		// used where more accurate time
+		// is not necessary
+		ptime g_current_time;
+	}
+
+	ptime const& TORRENT_EXPORT time_now() { return aux::g_current_time; }
+
 	char const* time_now_string()
 	{
 		time_t t = std::time(0);

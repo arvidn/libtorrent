@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-struct bw_request
+struct TORRENT_EXPORT bw_request
 {
 	bw_request(boost::intrusive_ptr<bandwidth_socket> const& pe
 		, int blk, int prio);

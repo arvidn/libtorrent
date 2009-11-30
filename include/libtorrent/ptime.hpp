@@ -129,12 +129,7 @@ namespace libtorrent
 	char const* time_now_string();
 	std::string TORRENT_EXPORT log_time();
 
-	namespace aux
-	{
-		extern TORRENT_EXPORT ptime g_current_time;
-	}
-
-	inline ptime const& time_now() { return aux::g_current_time; }
+	ptime const& TORRENT_EXPORT time_now();
 }
 
 #endif
