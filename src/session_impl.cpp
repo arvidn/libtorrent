@@ -149,6 +149,11 @@ namespace aux {
 	// used where more accurate time
 	// is not necessary
 	TORRENT_EXPORT ptime g_current_time = time_now_hires();
+}
+
+	ptime const& TORRENT_EXPORT time_now() { return aux::g_current_time; }
+
+namespace aux {
 
 	struct seed_random_generator
 	{

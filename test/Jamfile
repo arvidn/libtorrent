@@ -1,15 +1,5 @@
 use-project /torrent : .. ;
 
-lib test_common
-	:
-	setup_transfer.cpp
-	:
-	<library>/torrent//torrent
-	<threading>multi
-	:
-	<threading>multi
-	;
-
 exe test_natpmp : test_natpmp.cpp /torrent//torrent
 	: <threading>multi <debug-iterators>on <invariant-checks>full ;
 
@@ -17,9 +7,9 @@ explicit test_natpmp ;
 
 project
    : requirements
-	<library>test_common
 	<library>/torrent//torrent
 	<source>main.cpp
+	<source>setup_transfer.cpp
    : default-build
 	<threading>multi
 	<invariant-checks>full

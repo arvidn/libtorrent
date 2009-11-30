@@ -48,7 +48,7 @@ namespace libtorrent
 {
 	struct torrent_plugin;
 	class torrent;
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_lt_trackers_plugin(torrent*, void*);
+	boost::shared_ptr<torrent_plugin> TORRENT_EXPORT create_lt_trackers_plugin(torrent*, void*);
 }
 
 #endif // TORRENT_LT_TRACKERS_HPP_INCLUDED
