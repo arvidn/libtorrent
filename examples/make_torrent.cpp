@@ -90,6 +90,11 @@ int main(int argc, char* argv[])
 		path full_path = complete(path(argv[3]));
 
 		add_files(fs, full_path, file_filter);
+		if (fs.num_files() == 0)
+		{
+			std::cerr << "no files specified." << std::cerr;
+			return 1;
+		}
 
 		create_torrent t(fs, piece_size);
 		t.add_tracker(argv[2]);
