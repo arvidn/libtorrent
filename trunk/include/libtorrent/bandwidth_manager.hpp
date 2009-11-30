@@ -54,7 +54,7 @@ using boost::intrusive_ptr;
 
 namespace libtorrent {
 
-struct bandwidth_manager
+struct TORRENT_EXPORT bandwidth_manager
 {
 	bandwidth_manager(int channel
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT

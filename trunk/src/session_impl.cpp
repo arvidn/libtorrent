@@ -163,13 +163,6 @@ namespace detail
 
 namespace aux {
 
-	// used to cache the current time
-	// every 100 ms. This is cheaper
-	// than a system call and can be
-	// used where more accurate time
-	// is not necessary
-	TORRENT_EXPORT ptime g_current_time = time_now_hires();
-
 	struct seed_random_generator
 	{
 		seed_random_generator()
@@ -1274,6 +1267,13 @@ namespace aux {
 			(*i)->setup_receive();
 		}
 	}
+
+	// used to cache the current time
+	// every 100 ms. This is cheaper
+	// than a system call and can be
+	// used where more accurate time
+	// is not necessary
+	extern ptime g_current_time;
 
 	void session_impl::on_tick(error_code const& e)
 	{
