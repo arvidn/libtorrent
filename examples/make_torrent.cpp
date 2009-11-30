@@ -143,6 +143,11 @@ int main(int argc, char* argv[])
 		path full_path = complete(path(argv[1]));
 
 		add_files(fs, full_path, file_filter);
+		if (fs.num_files() == 0)
+		{
+			fputs("no files specified.\n", stderr);
+			return 1;
+		}
 
 		create_torrent t(fs, piece_size, pad_file_limit, flags);
 		for (std::vector<std::string>::iterator i = trackers.begin()
