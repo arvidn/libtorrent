@@ -121,7 +121,7 @@ namespace libtorrent
 	{ enum { value = 4 }; };
 #endif
 
-	struct socket_type
+	struct TORRENT_EXPORT socket_type
 	{
 		typedef stream_socket::lowest_layer_type lowest_layer_type;
 		typedef stream_socket::endpoint_type endpoint_type;

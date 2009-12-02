@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PE_CRYPTO_HPP_INCLUDED
 #define TORRENT_PE_CRYPTO_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
+
 #ifdef TORRENT_USE_GCRYPT
 #include <gcrypt.h>
 #elif defined TORRENT_USE_OPENSSL
@@ -46,8 +48,8 @@ struct rc4 {
 	unsigned char buf[256];
 };
 
-void rc4_init(const unsigned char* in, unsigned long len, rc4 *state);
-unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
+void TORRENT_EXPORT rc4_init(const unsigned char* in, unsigned long len, rc4 *state);
+unsigned long TORRENT_EXPORT rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
 #endif
 
 #include "libtorrent/peer_id.hpp" // For sha1_hash
@@ -55,7 +57,7 @@ unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
 
 namespace libtorrent
 {
-	class dh_key_exchange
+	class TORRENT_EXPORT dh_key_exchange
 	{
 	public:
 		dh_key_exchange();

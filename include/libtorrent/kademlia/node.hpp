@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <set>
 
+#include <libtorrent/config.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
@@ -67,7 +68,7 @@ namespace libtorrent { namespace dht
 TORRENT_DECLARE_LOG(node);
 #endif
 
-class traversal_algorithm;
+struct traversal_algorithm;
 
 struct key_desc_t
 {
@@ -99,7 +100,7 @@ struct torrent_entry
 
 // this is the entry for a torrent that has been published
 // in the DHT.
-struct search_torrent_entry
+struct TORRENT_EXPORT search_torrent_entry
 {
 	search_torrent_entry(): total_tag_points(0), total_name_points(0) {}
 
