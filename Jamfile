@@ -447,6 +447,10 @@ local usage-requirements =
 	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
 # disable warning C4503: decorated name length exceeded, name was truncated
 	<toolset>msvc:<cxxflags>/wd4503
+# disable warning C4275: non-dll interface class 'x' used as base for dll-interface struct 'y'
+	<toolset>msvc:<cxxflags>/wd4275
+# disable warning C4251: 'x' needs to have dll-interface to be used by clients of class 'y'
+	<toolset>msvc:<cxxflags>/wd4251
 # disable some warnings for gcc
 	<toolset>gcc:<cflags>-fno-strict-aliasing
 	<toolset>gcc:<cflags>-Wno-missing-braces

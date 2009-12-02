@@ -155,7 +155,7 @@ namespace aux
 
 } // namespace aux
 
-class routing_table
+class TORRENT_EXPORT routing_table
 {
 public:
 	typedef aux::routing_table_iterator iterator;
