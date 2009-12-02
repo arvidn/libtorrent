@@ -81,6 +81,7 @@
 	* added session::is_dht_running() function
 	* added torrent_handle::force_dht_announce()
 	* added torrent_info::remap_files()
+	* support min_interval tracker extension
 
 release 0.14.8
 

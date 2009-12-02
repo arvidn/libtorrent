@@ -385,6 +385,12 @@ namespace libtorrent
 		return 0;
 	}
 
+	int announce_entry::next_announce_in() const
+	{ return total_seconds(time_now() - next_announce); }
+
+	int announce_entry::min_announce_in() const
+	{ return total_seconds(time_now() - min_announce); }
+
 	torrent_info::torrent_info(torrent_info const& t)
 		: m_files(t.m_files)
 		, m_orig_files(t.m_orig_files)
