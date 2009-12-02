@@ -1696,6 +1696,10 @@ ones with lower tier will always be tried before the one with higher tier number
 	{
 		announce_entry(std::string const& url);
 		std::string url;
+
+		int next_announce_in() const;
+		int min_announce_in() const;
+
 		boost::uint8_t tier;
 		boost::uint8_t fail_limit;
 		boost::uint8_t fails;
@@ -1714,6 +1718,10 @@ ones with lower tier will always be tried before the one with higher tier number
 		bool start_sent:1;
 		bool complete_sent:1;
 	};
+
+``next_announce_in()`` returns the number of seconds to the next announce on
+this tracker. ``min_announce_in()`` returns the number of seconds until we are
+allowed to force another tracker update with this tracker.
 
 ``fail_limit`` is the max number of failures to announce to this tracker in
 a row, before this tracker is not used anymore.

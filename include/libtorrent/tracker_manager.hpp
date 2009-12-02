@@ -130,6 +130,7 @@ namespace libtorrent
 			, std::list<address> const& ip_list
 			, std::vector<peer_entry>& peers
 			, int interval
+			, int min_interval
 			, int complete
 			, int incomplete
 			, address const& external_ip) = 0;

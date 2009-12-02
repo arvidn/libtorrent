@@ -1335,6 +1335,8 @@ namespace libtorrent
 
 	void torrent::scrape_tracker()
 	{
+		m_last_scrape = time_now();
+
 		if (m_trackers.empty()) return;
 
 		int i = m_last_working_tracker;
@@ -1347,8 +1349,6 @@ namespace libtorrent
 		req.bind_ip = m_ses.m_listen_interface.address();
 		m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
 			, tracker_login(), shared_from_this());
-
-		m_last_scrape = time_now();
 	}
 
 	void torrent::tracker_warning(tracker_request const& req, std::string const& msg)
@@ -1385,6 +1385,7 @@ namespace libtorrent
 		, std::list<address> const& tracker_ips // these are all the IPs it resolved to
 		, std::vector<peer_entry>& peer_list
 		, int interval
+		, int min_interval
 		, int complete
 		, int incomplete
 		, address const& external_ip)
@@ -1413,6 +1414,7 @@ namespace libtorrent
 			ae->updating = false;
 			ae->fails = 0;
 			ae->next_announce = now + seconds(interval);
+			ae->min_announce = now + seconds(min_interval);
 			int tracker_index = ae - &m_trackers[0];
 			m_last_working_tracker = prioritize_tracker(tracker_index);
 		}
@@ -4275,6 +4277,7 @@ namespace libtorrent
 		{
 			if (i->complete_sent) continue;
 			i->next_announce = now;
+			i->min_announce = now;
 		}
 		announce_with_tracker();
 	}
@@ -5134,7 +5137,10 @@ namespace libtorrent
 		ptime now = time_now();
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
+		{
 			i->next_announce = now;
+			i->min_announce = now;
+		}
 		announce_with_tracker(tracker_request::stopped);
 	}
 

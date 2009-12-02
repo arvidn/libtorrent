@@ -45,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/config.hpp"
+#include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/config.hpp"
@@ -90,8 +92,8 @@ namespace libtorrent
 
 		virtual void on_timeout() {}
 
-		void parse(int status_code, const entry& e);
-		bool extract_peer_info(const entry& e, peer_entry& ret);
+		void parse(int status_code, lazy_entry const& e);
+		bool extract_peer_info(lazy_entry const& e, peer_entry& ret);
 
 		tracker_manager& m_man;
 		boost::shared_ptr<http_connection> m_tracker_connection;
