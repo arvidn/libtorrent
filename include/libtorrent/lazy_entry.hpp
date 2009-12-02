@@ -153,6 +153,7 @@ namespace libtorrent
 		lazy_entry const* dict_find_dict(char const* name) const;
 		lazy_entry const* dict_find_list(char const* name) const;
 		lazy_entry const* dict_find_string(char const* name) const;
+		lazy_entry const* dict_find_int(char const* name) const;
 
 		std::pair<std::string, lazy_entry const*> dict_at(int i) const;
 

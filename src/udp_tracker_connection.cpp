@@ -395,6 +395,7 @@ namespace libtorrent
 		buf += 8; // skip header
 		restart_read_timeout();
 		int interval = detail::read_int32(buf);
+		int min_interval = 60;
 		int incomplete = detail::read_int32(buf);
 		int complete = detail::read_int32(buf);
 		int num_peers = (size - 20) / 6;
@@ -446,7 +447,7 @@ namespace libtorrent
 		}
 
 		cb->tracker_response(tracker_req(), m_target.address(), ip_list
-			, peer_list, interval, complete, incomplete, address());
+			, peer_list, interval, min_interval, complete, incomplete, address());
 
 		m_man.remove_request(this);
 		close();

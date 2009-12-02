@@ -89,8 +89,14 @@ namespace libtorrent
 
 		std::string url;
 
+		int next_announce_in() const;
+		int min_announce_in() const;
+
 		// the time of next tracker announce
 		ptime next_announce;
+
+		// no announces before this time
+		ptime min_announce;
 
 		boost::uint8_t tier;
 		// the number of times this tracker can fail
@@ -131,6 +137,7 @@ namespace libtorrent
 		{
 			start_sent = false;
 			next_announce = min_time();
+			min_announce = min_time();
 		}
 
 		void failed();
@@ -138,6 +145,7 @@ namespace libtorrent
 		bool can_announce(ptime now) const
 		{
 			return now >= next_announce
+				&& now >= min_announce
 				&& (fails < fail_limit || fail_limit == 0)
 				&& !updating;
 		}

@@ -400,6 +400,12 @@ namespace libtorrent
 		return 0;
 	}
 
+	int announce_entry::next_announce_in() const
+	{ return total_seconds(time_now() - next_announce); }
+
+	int announce_entry::min_announce_in() const
+	{ return total_seconds(time_now() - min_announce); }
+
 	void announce_entry::failed()
 	{
 		++fails;
