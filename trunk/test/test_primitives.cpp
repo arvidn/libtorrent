@@ -58,7 +58,7 @@ using namespace boost::tuples;
 using boost::bind;
 
 namespace libtorrent {
-	std::string sanitize_path(std::string const& p);
+	TORRENT_EXPORT std::string sanitize_path(std::string const& p);
 }
 
 sha1_hash to_hash(char const* s)
@@ -358,10 +358,10 @@ struct parse_state
 namespace libtorrent
 {
 	// defined in torrent_info.cpp
-	bool verify_encoding(std::string& target, bool path = true);
+	TORRENT_EXPORT bool verify_encoding(std::string& target, bool path = true);
 }
 
-void find_control_url(int type, char const* string, parse_state& state);
+TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state);
 
 int test_main()
 {

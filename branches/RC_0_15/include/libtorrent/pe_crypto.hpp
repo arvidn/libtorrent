@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	class dh_key_exchange
+	class TORRENT_EXPORT dh_key_exchange
 	{
 	public:
 		dh_key_exchange();

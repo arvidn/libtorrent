@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	
-	class http_parser
+	class TORRENT_EXPORT http_parser
 	{
 	public:
 		http_parser();

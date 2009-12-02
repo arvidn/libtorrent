@@ -41,31 +41,31 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	char const* time_now_string();
-	std::string TORRENT_EXPORT log_time();
+	TORRENT_EXPORT char const* time_now_string();
+	TORRENT_EXPORT std::string log_time();
 
-	ptime TORRENT_EXPORT time_now_hires();
-	ptime TORRENT_EXPORT min_time();
-	ptime TORRENT_EXPORT max_time();
+	TORRENT_EXPORT ptime time_now_hires();
+	TORRENT_EXPORT ptime min_time();
+	TORRENT_EXPORT ptime max_time();
 
 #if defined TORRENT_USE_BOOST_DATE_TIME
 
-	time_duration TORRENT_EXPORT seconds(int s);
-	time_duration TORRENT_EXPORT milliseconds(int s);
-	time_duration TORRENT_EXPORT microsec(int s);
-	time_duration TORRENT_EXPORT minutes(int s);
-	time_duration TORRENT_EXPORT hours(int s);
+	TORRENT_EXPORT time_duration seconds(int s);
+	TORRENT_EXPORT time_duration milliseconds(int s);
+	TORRENT_EXPORT time_duration microsec(int s);
+	TORRENT_EXPORT time_duration minutes(int s);
+	TORRENT_EXPORT time_duration hours(int s);
 
-	int TORRENT_EXPORT total_seconds(time_duration td);
-	int TORRENT_EXPORT total_milliseconds(time_duration td);
-	boost::int64_t TORRENT_EXPORT total_microseconds(time_duration td);
+	TORRENT_EXPORT int total_seconds(time_duration td);
+	TORRENT_EXPORT int total_milliseconds(time_duration td);
+	TORRENT_EXPORT boost::int64_t total_microseconds(time_duration td);
 
 #elif defined TORRENT_USE_QUERY_PERFORMANCE_TIMER
 
 	namespace aux
 	{
-		boost::int64_t TORRENT_EXPORT performance_counter_to_microseconds(boost::int64_t pc);
-		boost::int64_t TORRENT_EXPORT microseconds_to_performance_counter(boost::int64_t ms);
+		TORRENT_EXPORT boost::int64_t performance_counter_to_microseconds(boost::int64_t pc);
+		TORRENT_EXPORT boost::int64_t microseconds_to_performance_counter(boost::int64_t ms);
 	}
 
 	inline int total_seconds(time_duration td)

@@ -51,7 +51,7 @@ namespace libtorrent
 	// determines if the operating system supports IPv6
 	TORRENT_EXPORT bool supports_ipv6();
 
-	int common_bits(unsigned char const* b1
+	TORRENT_EXPORT int common_bits(unsigned char const* b1
 		, unsigned char const* b2, int n);
 
 	TORRENT_EXPORT address guess_local_address(io_service&);

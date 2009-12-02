@@ -74,7 +74,7 @@ typedef boost::function<void(http_connection&, std::list<tcp::endpoint>&)> http_
 
 // when bottled, the last two arguments to the handler
 // will always be 0
-struct http_connection : boost::enable_shared_from_this<http_connection>, boost::noncopyable
+struct TORRENT_EXPORT http_connection : boost::enable_shared_from_this<http_connection>, boost::noncopyable
 {
 	http_connection(io_service& ios, connection_queue& cc
 		, http_handler const& handler, bool bottled = true

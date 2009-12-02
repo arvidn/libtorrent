@@ -90,7 +90,7 @@ namespace libtorrent
 	// fixes invalid UTF-8 sequences and
 	// replaces characters that are invalid
 	// in paths
-	bool verify_encoding(std::string& target, bool fix_paths = false)
+	TORRENT_EXPORT bool verify_encoding(std::string& target, bool fix_paths = false)
 	{
 		std::string tmp_path;
 		bool valid_encoding = true;
@@ -223,7 +223,7 @@ namespace libtorrent
 		}
 	}
 
-	fs::path sanitize_path(fs::path const& p)
+	TORRENT_EXPORT fs::path sanitize_path(fs::path const& p)
 	{
 		fs::path new_path;
 		for (fs::path::const_iterator i = p.begin(); i != p.end(); ++i)

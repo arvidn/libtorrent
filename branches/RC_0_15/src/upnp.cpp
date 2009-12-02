@@ -787,7 +787,7 @@ struct parse_state
 	}
 };
 
-void find_control_url(int type, char const* string, parse_state& state)
+TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state)
 {
 	if (type == xml_start_tag)
 	{

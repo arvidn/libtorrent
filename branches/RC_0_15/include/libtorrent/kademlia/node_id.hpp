@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 #include <boost/cstdint.hpp>
+#include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/assert.hpp"
 
@@ -45,16 +46,16 @@ typedef libtorrent::big_number node_id;
 
 // returns the distance between the two nodes
 // using the kademlia XOR-metric
-node_id distance(node_id const& n1, node_id const& n2);
+node_id TORRENT_EXPORT distance(node_id const& n1, node_id const& n2);
 
 // returns true if: distance(n1, ref) < distance(n2, ref)
-bool compare_ref(node_id const& n1, node_id const& n2, node_id const& ref);
+bool TORRENT_EXPORT compare_ref(node_id const& n1, node_id const& n2, node_id const& ref);
 
 // returns n in: 2^n <= distance(n1, n2) < 2^(n+1)
 // usefult for finding out which bucket a node belongs to
-int distance_exp(node_id const& n1, node_id const& n2);
+int TORRENT_EXPORT distance_exp(node_id const& n1, node_id const& n2);
 
-node_id generate_id();
+node_id TORRENT_EXPORT generate_id();
 
 } } // namespace libtorrent::dht
 

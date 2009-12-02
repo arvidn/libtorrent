@@ -36,6 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #include <boost/shared_ptr.hpp>
 
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+// asio assumes that the windows error codes are defined already
+#include <winsock2.h>
+#endif
+
 #if BOOST_VERSION < 103500
 #include <asio/error_code.hpp>
 #else
