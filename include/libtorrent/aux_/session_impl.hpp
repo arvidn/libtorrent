@@ -743,6 +743,7 @@ namespace libtorrent
 				, std::list<address> const& ip_list
 				, std::vector<peer_entry>& peers
 				, int interval
+				, int min_interval
 				, int complete
 				, int incomplete
 				, address const& external_ip)
@@ -750,7 +751,7 @@ namespace libtorrent
 				std::string s;
 				s = "TRACKER RESPONSE:\n";
 				char tmp[200];
-				snprintf(tmp, 200, "interval: %d\npeers:\n", interval);
+				snprintf(tmp, 200, "interval: %d\nmin_interval: %d\npeers:\n", interval, min_interval);
 				s += tmp;
 				for (std::vector<peer_entry>::const_iterator i = peers.begin();
 					i != peers.end(); ++i)
