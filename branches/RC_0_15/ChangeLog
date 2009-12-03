@@ -74,6 +74,7 @@
 	* added torrent_handle::force_dht_announce()
 	* added torrent_info::remap_files()
 	* support min_interval tracker extension
+	* added session saving and loading functions
 
 release 0.14.8
 

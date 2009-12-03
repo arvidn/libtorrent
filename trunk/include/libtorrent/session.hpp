@@ -176,6 +176,9 @@ namespace libtorrent
 			
 		~session();
 
+		void save_state(entry& e) const;
+		void load_state(lazy_entry const& e);
+
 		// returns a list of all torrents in this session
 		std::vector<torrent_handle> get_torrents() const;
 		

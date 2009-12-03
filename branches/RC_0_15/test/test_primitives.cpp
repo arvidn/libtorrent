@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/identify_client.hpp"
+#include "libtorrent/session.hpp"
+#include "libtorrent/bencode.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -364,6 +366,74 @@ TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& 
 int test_main()
 {
 	using namespace libtorrent;
+
+	int ret = 0;
+
+	{
+	// test session state load/restore
+	session* s = new session(fingerprint("LT",0,0,0,0), 0);
+
+	session_settings sett;
+	sett.user_agent = "test";
+	sett.tracker_receive_timeout = 1234;
+	sett.file_pool_size = 543;
+	sett.urlseed_wait_retry = 74;
+	sett.file_pool_size = 754;
+	sett.initial_picker_threshold = 351;
+	sett.upnp_ignore_nonrouters = 5326;
+	sett.coalesce_writes = 623;
+	sett.auto_scrape_interval = 753;
+	sett.close_redundant_connections = 245;
+	sett.auto_scrape_interval = 235;
+	sett.auto_scrape_min_interval = 62;
+	s->set_settings(sett);
+/*
+#ifndef TORRENT_DISABLE_DHT
+	dht_settings dht_sett;
+	s->set_dht_settings(dht_sett);
+#endif
+*/
+	entry session_state;
+	s->save_state(session_state);
+	
+	delete s;
+	s = new session(fingerprint("LT",0,0,0,0), 0);
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), session_state);
+	lazy_entry session_state2;
+	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), session_state2);
+	TEST_CHECK(ret == 0);
+
+	printf("session_state\n%s\n", print_entry(session_state2).c_str());
+	s->load_state(session_state2);
+#define CMP_SET(x) TEST_CHECK(s->settings().x == sett.x)
+
+	CMP_SET(user_agent);
+	CMP_SET(tracker_receive_timeout);
+	CMP_SET(file_pool_size);
+	CMP_SET(urlseed_wait_retry);
+	CMP_SET(file_pool_size);
+	CMP_SET(initial_picker_threshold);
+	CMP_SET(upnp_ignore_nonrouters);
+	CMP_SET(coalesce_writes);
+	CMP_SET(auto_scrape_interval);
+	CMP_SET(close_redundant_connections);
+	CMP_SET(auto_scrape_interval);
+	CMP_SET(auto_scrape_min_interval);
+	CMP_SET(max_peerlist_size);
+	CMP_SET(max_paused_peerlist_size);
+	CMP_SET(min_announce_interval);
+	CMP_SET(prioritize_partial_pieces);
+	CMP_SET(auto_manage_startup);
+	CMP_SET(rate_limit_ip_overhead);
+	CMP_SET(announce_to_all_trackers);
+	CMP_SET(announce_to_all_tiers);
+	CMP_SET(prefer_udp_trackers);
+	CMP_SET(strict_super_seeding);
+	CMP_SET(seeding_piece_quota);
+	delete s;
+	}
 
 	// test snprintf
 

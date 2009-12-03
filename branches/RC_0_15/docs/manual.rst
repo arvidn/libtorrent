@@ -18,6 +18,7 @@ the ``session``, it contains the main loop that serves all torrents.
 The basic usage is as follows:
 
 * construct a session
+* load session state from settings file (see `load_state() save_state()`_)
 * start extensions (see `add_extension()`_).
 * start DHT, LSD, UPnP, NAT-PMP etc (see `start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()`_)
   `start_lsd() stop_lsd()`_, `start_upnp() stop_upnp()`_ and `start_natpmp() stop_natpmp()`_)
@@ -30,6 +31,7 @@ The basic usage is as follows:
 
 * save resume data for all torrent_handles (optional, see
   `save_resume_data()`_)
+* save session state (see `load_state() save_state()`_)
 * destruct session object
 
 Each class and function is described in this manual.
@@ -114,6 +116,9 @@ The ``session`` class has the following synopsis::
 			, int flags = start_default_features 
 				| add_default_plugins
 			, int alert_mask = alert::error_notification);
+
+		void load_state(lazy_entry const& e);
+		void save_state(entry& e) const;
 
 		torrent_handle add_torrent(
 			add_torrent_params const& params);
@@ -269,6 +274,22 @@ If some trackers are down, they will time out. All this before the destructor of
 returns. So, it's advised that any kind of interface (such as windows) are closed before
 destructing the session object. Because it can take a few second for it to finish. The
 timeout can be set with ``set_settings()``.
+
+load_state() save_state()
+-------------------------
+
+	::
+
+		void load_state(lazy_entry const& e);
+		void save_state(entry& e) const;
+
+loads and saves all session settings, including dht_settings, encryption settings and proxy
+settings. ``save_state`` writes all keys to the ``entry`` that's passed in, which needs to
+either not be initialized, or initialized as a dictionary.
+
+``load_state`` expects a ``lazy_entry`` which can be built from a bencoded buffer with
+``lazy_bdecode``.
+
 
 pause() resume() is_paused()
 ----------------------------

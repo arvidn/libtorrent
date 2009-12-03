@@ -269,6 +269,9 @@ namespace libtorrent
 
 			void announce_lsd(sha1_hash const& ih);
 
+			void save_state(entry& e) const;
+			void load_state(lazy_entry const& e);
+
 			void set_peer_proxy(proxy_settings const& s)
 			{
 				m_peer_proxy = s;
