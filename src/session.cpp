@@ -301,6 +301,18 @@ namespace libtorrent
 			m_impl->abort();
 	}
 
+	void session::save_state(entry& e) const
+	{
+		mutex::scoped_lock l(m_impl->m_mutex);
+		m_impl->save_state(e);
+	}
+
+	void session::load_state(lazy_entry const& e)
+	{
+		mutex::scoped_lock l(m_impl->m_mutex);
+		m_impl->load_state(e);
+	}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{
