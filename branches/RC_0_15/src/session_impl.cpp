@@ -207,7 +207,6 @@ namespace aux {
 		TORRENT_SETTING(integer, inactivity_timeout)
 		TORRENT_SETTING(integer, unchoke_interval)
 		TORRENT_SETTING(integer, optimistic_unchoke_interval)
-		TORRENT_SETTING(std_string, announce_ip)
 		TORRENT_SETTING(integer, num_want)
 		TORRENT_SETTING(integer, initial_picker_threshold)
 		TORRENT_SETTING(integer, allowed_fast_set_size)
@@ -271,7 +270,6 @@ namespace aux {
 		TORRENT_SETTING(integer, optimistic_disk_retry)
 		TORRENT_SETTING(boolean, disable_hash_checks)
 		TORRENT_SETTING(boolean, allow_reordered_disk_operations)
-		TORRENT_SETTING(boolean, allow_i2p_mixed)
 		TORRENT_SETTING(integer, max_suggest_pieces)
 	};
 
@@ -296,7 +294,6 @@ namespace aux {
 		TORRENT_SETTING(integer, search_branching)
 		TORRENT_SETTING(integer, service_port)
 		TORRENT_SETTING(integer, max_fail_count)
-		TORRENT_SETTING(integer, max_torrent_search_reply)
 	};
 #undef TORRENT_SETTING
 #endif

@@ -338,13 +338,13 @@ namespace libtorrent
 
 	void session::save_state(entry& e) const
 	{
-		mutex::scoped_lock l(m_impl->m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
 		m_impl->save_state(e);
 	}
 
 	void session::load_state(lazy_entry const& e)
 	{
-		mutex::scoped_lock l(m_impl->m_mutex);
+		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
 		m_impl->load_state(e);
 	}
 
