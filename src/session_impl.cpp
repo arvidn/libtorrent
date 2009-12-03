@@ -163,6 +163,213 @@ namespace aux {
 		}
 	};
 
+	enum { std_string = 0, character = 1, short_integer = 2
+		, integer = 3, floating_point = 4, boolean = 5};
+
+	// this is used to map struct entries
+	// to names in a bencoded dictionary to
+	// save and load the struct
+	struct bencode_map_entry
+	{
+		char const* name;
+		int offset; // struct offset
+		int type;
+	};
+
+#define TORRENT_SETTING(t, x) {#x, offsetof(session_settings,x), t},
+
+	bencode_map_entry session_settings_map[] =
+	{
+		TORRENT_SETTING(std_string, user_agent)
+		TORRENT_SETTING(integer, tracker_completion_timeout)
+		TORRENT_SETTING(integer, tracker_receive_timeout)
+		TORRENT_SETTING(integer, stop_tracker_timeout)
+		TORRENT_SETTING(integer, tracker_maximum_response_length)
+		TORRENT_SETTING(integer, piece_timeout)
+		TORRENT_SETTING(integer, request_timeout)
+		TORRENT_SETTING(integer, request_queue_time)
+		TORRENT_SETTING(integer, max_allowed_in_request_queue)
+		TORRENT_SETTING(integer, max_out_request_queue)
+		TORRENT_SETTING(integer, whole_pieces_threshold)
+		TORRENT_SETTING(integer, peer_timeout)
+		TORRENT_SETTING(integer, urlseed_timeout)
+		TORRENT_SETTING(integer, urlseed_pipeline_size)
+		TORRENT_SETTING(integer, urlseed_wait_retry)
+		TORRENT_SETTING(integer, file_pool_size)
+		TORRENT_SETTING(boolean, allow_multiple_connections_per_ip)
+		TORRENT_SETTING(integer, max_failcount)
+		TORRENT_SETTING(integer, min_reconnect_time)
+		TORRENT_SETTING(integer, peer_connect_timeout)
+		TORRENT_SETTING(boolean, ignore_limits_on_local_network)
+		TORRENT_SETTING(integer, connection_speed)
+		TORRENT_SETTING(boolean, send_redundant_have)
+		TORRENT_SETTING(boolean, lazy_bitfields)
+		TORRENT_SETTING(integer, inactivity_timeout)
+		TORRENT_SETTING(integer, unchoke_interval)
+		TORRENT_SETTING(integer, optimistic_unchoke_interval)
+		TORRENT_SETTING(std_string, announce_ip)
+		TORRENT_SETTING(integer, num_want)
+		TORRENT_SETTING(integer, initial_picker_threshold)
+		TORRENT_SETTING(integer, allowed_fast_set_size)
+		TORRENT_SETTING(integer, max_queued_disk_bytes)
+		TORRENT_SETTING(integer, handshake_timeout)
+#ifndef TORRENT_DISABLE_DHT
+		TORRENT_SETTING(boolean, use_dht_as_fallback)
+#endif
+		TORRENT_SETTING(boolean, free_torrent_hashes)
+		TORRENT_SETTING(boolean, upnp_ignore_nonrouters)
+ 		TORRENT_SETTING(integer, send_buffer_watermark)
+		TORRENT_SETTING(boolean, auto_upload_slots)
+		TORRENT_SETTING(boolean, auto_upload_slots_rate_based)
+		TORRENT_SETTING(boolean, use_parole_mode)
+		TORRENT_SETTING(integer, cache_size)
+		TORRENT_SETTING(integer, cache_buffer_chunk_size)
+		TORRENT_SETTING(integer, cache_expiry)
+		TORRENT_SETTING(boolean, use_read_cache)
+		TORRENT_SETTING(integer, disk_io_write_mode)
+		TORRENT_SETTING(integer, disk_io_read_mode)
+		TORRENT_SETTING(boolean, coalesce_reads)
+		TORRENT_SETTING(boolean, coalesce_writes)
+		TORRENT_SETTING(character, peer_tos)
+		TORRENT_SETTING(integer, active_downloads)
+		TORRENT_SETTING(integer, active_seeds)
+		TORRENT_SETTING(integer, active_limit)
+		TORRENT_SETTING(boolean, auto_manage_prefer_seeds)
+		TORRENT_SETTING(boolean, dont_count_slow_torrents)
+		TORRENT_SETTING(integer, auto_manage_interval)
+		TORRENT_SETTING(floating_point, share_ratio_limit)
+		TORRENT_SETTING(floating_point, seed_time_ratio_limit)
+		TORRENT_SETTING(integer, seed_time_limit)
+		TORRENT_SETTING(floating_point, peer_turnover)
+		TORRENT_SETTING(floating_point, peer_turnover_cutoff)
+		TORRENT_SETTING(boolean, close_redundant_connections)
+		TORRENT_SETTING(integer, auto_scrape_interval)
+		TORRENT_SETTING(integer, auto_scrape_min_interval)
+		TORRENT_SETTING(integer, max_peerlist_size)
+		TORRENT_SETTING(integer, max_paused_peerlist_size)
+		TORRENT_SETTING(integer, min_announce_interval)
+		TORRENT_SETTING(boolean, prioritize_partial_pieces)
+		TORRENT_SETTING(integer, auto_manage_startup)
+		TORRENT_SETTING(boolean, rate_limit_ip_overhead)
+		TORRENT_SETTING(boolean, announce_to_all_trackers)
+		TORRENT_SETTING(boolean, announce_to_all_tiers)
+		TORRENT_SETTING(boolean, prefer_udp_trackers)
+		TORRENT_SETTING(boolean, strict_super_seeding)
+		TORRENT_SETTING(integer, seeding_piece_quota)
+		TORRENT_SETTING(integer, max_sparse_regions)
+#ifndef TORRENT_DISABLE_MLOCK
+		TORRENT_SETTING(boolean, lock_disk_cache)
+#endif
+		TORRENT_SETTING(integer, max_rejects)
+		TORRENT_SETTING(integer, recv_socket_buffer_size)
+		TORRENT_SETTING(integer, send_socket_buffer_size)
+		TORRENT_SETTING(boolean, optimize_hashing_for_speed)
+		TORRENT_SETTING(integer, file_checks_delay_per_block)
+		TORRENT_SETTING(integer, disk_cache_algorithm)
+		TORRENT_SETTING(integer, read_cache_line_size)
+		TORRENT_SETTING(integer, write_cache_line_size)
+		TORRENT_SETTING(integer, optimistic_disk_retry)
+		TORRENT_SETTING(boolean, disable_hash_checks)
+		TORRENT_SETTING(boolean, allow_reordered_disk_operations)
+		TORRENT_SETTING(boolean, allow_i2p_mixed)
+		TORRENT_SETTING(integer, max_suggest_pieces)
+	};
+
+#undef TORRENT_SETTING
+#define TORRENT_SETTING(t, x) {#x, offsetof(proxy_settings,x), t},
+
+	bencode_map_entry proxy_settings_map[] =
+	{
+		TORRENT_SETTING(std_string, hostname)
+		TORRENT_SETTING(integer, port)
+		TORRENT_SETTING(std_string, username)
+		TORRENT_SETTING(std_string, password)
+		TORRENT_SETTING(integer, type)
+	};
+#undef TORRENT_SETTING
+
+#ifndef TORRENT_DISABLE_DHT
+#define TORRENT_SETTING(t, x) {#x, offsetof(dht_settings,x), t},
+	bencode_map_entry dht_settings_map[] =
+	{
+		TORRENT_SETTING(integer, max_peers_reply)
+		TORRENT_SETTING(integer, search_branching)
+		TORRENT_SETTING(integer, service_port)
+		TORRENT_SETTING(integer, max_fail_count)
+		TORRENT_SETTING(integer, max_torrent_search_reply)
+	};
+#undef TORRENT_SETTING
+#endif
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+#define TORRENT_SETTING(t, x) {#x, offsetof(pe_settings,x), t},
+	bencode_map_entry pe_settings_map[] = 
+	{
+		TORRENT_SETTING(integer, out_enc_policy)
+		TORRENT_SETTING(integer, in_enc_policy)
+		TORRENT_SETTING(integer, allowed_enc_level)
+		TORRENT_SETTING(boolean, prefer_rc4)
+	};
+#undef TORRENT_SETTING
+#endif
+
+	void load_struct(lazy_entry const& e, void* s, bencode_map_entry const* m, int num)
+	{
+		for (int i = 0; i < num; ++i)
+		{
+			lazy_entry const* key = e.dict_find(m[i].name);
+			if (key == 0) continue;
+			void* dest = ((char*)s) + m[i].offset;
+			switch (m[i].type)
+			{
+				case std_string:
+				{
+					if (key->type() != lazy_entry::string_t) continue;
+					*((std::string*)dest) = key->string_value();
+					break;
+				}
+				case character:
+				case boolean:
+				case integer:
+				case floating_point:
+				{
+					if (key->type() != lazy_entry::int_t) continue;
+					size_type val = key->int_value();
+					switch (m[i].type)
+					{
+						case character: *((char*)dest) = val; break;
+						case integer: *((int*)dest) = val; break;
+						case floating_point: *((float*)dest) = float(val) / 1000.f; break;
+						case boolean: *((bool*)dest) = val; break;
+					}
+				}
+			}
+		}
+	}
+
+	void save_struct(entry& e, void const* s, bencode_map_entry const* m, int num)
+	{
+		for (int i = 0; i < num; ++i)
+		{
+			char const* key = m[i].name;
+			void const* src = ((char*)s) + m[i].offset;
+			entry& val = e[key];
+			TORRENT_ASSERT(val.type() == entry::undefined_t);
+			switch (m[i].type)
+			{
+				case std_string:
+				{
+					val = *((std::string*)src);
+					break;
+				}
+				case character: val = *((char*)src); break;
+				case integer: val = *((int*)src); break;
+				case floating_point: val = size_type(*((float*)src) * 1000.f); break;
+				case boolean: val = *((bool*)src); break;
+			}
+		}
+	}
+
 #ifdef TORRENT_STATS
 	int session_impl::logging_allocator::allocations = 0;
 	int session_impl::logging_allocator::allocated_bytes = 0;
@@ -368,6 +575,116 @@ namespace aux {
 		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
 
 		m_thread.reset(new boost::thread(boost::ref(*this)));
+	}
+
+	void session_impl::save_state(entry& e) const
+	{
+		save_struct(e["settings"], &m_settings, session_settings_map
+			, sizeof(session_settings_map)/sizeof(session_settings_map[0]));
+#ifndef TORRENT_DISABLE_DHT
+		save_struct(e["dht"], &dht_settings(), dht_settings_map
+			, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
+		save_struct(e["dht proxy"], &dht_proxy(), proxy_settings_map
+			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+#endif
+#if TORRENT_USE_I2P
+		save_struct(e["i2p"], &i2p_proxy(), proxy_settings_map
+			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+#endif
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		save_struct(e["encryption"], &get_pe_settings(), pe_settings_map
+			, sizeof(pe_settings_map)/sizeof(pe_settings_map[0]));
+#endif
+
+		save_struct(e["peer proxy"], &peer_proxy(), proxy_settings_map
+			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+		save_struct(e["web proxy"], &web_seed_proxy(), proxy_settings_map
+			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+		save_struct(e["tracker proxy"], &tracker_proxy(), proxy_settings_map
+			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+	}
+	
+	void session_impl::load_state(lazy_entry const& e)
+	{
+		lazy_entry const* settings;
+	  
+		settings = e.dict_find_dict("settings");
+		if (settings)
+		{
+			session_settings s;
+			load_struct(*settings, &s, session_settings_map
+				, sizeof(session_settings_map)/sizeof(session_settings_map[0]));
+			set_settings(s);
+		}
+
+#ifndef TORRENT_DISABLE_DHT
+		settings = e.dict_find_dict("dht");
+		if (settings)
+		{
+			dht_settings s;
+			load_struct(*settings, &s, dht_settings_map
+				, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
+			set_dht_settings(s);
+		}
+
+		settings = e.dict_find_dict("dht proxy");
+		if (settings)
+		{
+			proxy_settings s;
+			load_struct(*settings, &s, proxy_settings_map
+				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+			set_dht_proxy(s);
+		}
+#endif
+
+#if TORRENT_USE_I2P
+		settings = e.dict_find_dict("i2p");
+		if (settings)
+		{
+			proxy_settings s;
+			load_struct(*settings, &s, proxy_settings_map
+				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+			set_i2p_proxy(s);
+		}
+#endif
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		settings = e.dict_find_dict("encryption");
+		if (settings)
+		{
+			pe_settings s;
+			load_struct(*settings, &s, pe_settings_map
+				, sizeof(pe_settings_map)/sizeof(pe_settings_map[0]));
+			set_pe_settings(s);
+		}
+#endif
+
+		settings = e.dict_find_dict("peer proxy");
+		if (settings)
+		{
+			proxy_settings s;
+			load_struct(*settings, &s, proxy_settings_map
+				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+			set_peer_proxy(s);
+		}
+
+		settings = e.dict_find_dict("web proxy");
+		if (settings)
+		{
+			proxy_settings s;
+			load_struct(*settings, &s, proxy_settings_map
+				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+			set_web_seed_proxy(s);
+		}
+
+		settings = e.dict_find_dict("tracker proxy");
+		if (settings)
+		{
+			proxy_settings s;
+			load_struct(*settings, &s, proxy_settings_map
+				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+			set_tracker_proxy(s);
+		}
 	}
 
 #ifndef TORRENT_DISABLE_GEO_IP
