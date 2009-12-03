@@ -408,7 +408,7 @@ namespace libtorrent
 		{
 			char const* peers = peers_ent->string_ptr();
 			int len = peers_ent->string_length();
-			for (int i = 0; i < len; ++i)
+			for (int i = 0; i < len; i += 6)
 			{
 				if (len - i < 6) break;
 
@@ -442,7 +442,7 @@ namespace libtorrent
 		{
 			char const* peers = ipv6_peers->string_ptr();
 			int len = ipv6_peers->string_length();
-			for (int i = 0; i < len; ++i)
+			for (int i = 0; i < len; i += 18)
 			{
 				if (len - i < 18) break;
 
