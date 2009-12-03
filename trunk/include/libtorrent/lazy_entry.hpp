@@ -259,7 +259,8 @@ namespace libtorrent
 		lazy_entry val;
 	};
 
-	TORRENT_EXPORT std::string print_entry(lazy_entry const& e, bool single_line = false);
+	TORRENT_EXPORT std::string print_entry(lazy_entry const& e
+		, bool single_line = false, int indent = 0);
 #if TORRENT_USE_IOSTREAM
 	TORRENT_EXPORT std::ostream& operator<<(std::ostream& os, lazy_entry const& e);
 #endif
