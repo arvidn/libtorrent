@@ -1841,7 +1841,7 @@ namespace libtorrent
 
 		// if we're using lazy bitfields or if we're super seeding, don't say
 		// we're upload only, since it might make peers disconnect
-		if (t->is_upload_only())
+		if (t->is_upload_only() && !m_ses.settings().lazy_bitfields)
 			handshake["upload_only"] = 1;
 
 		tcp::endpoint ep = m_ses.get_ipv6_interface();
