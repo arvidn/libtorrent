@@ -35,11 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/http_parser.hpp"
 
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/bind.hpp>
 
 #include "test.hpp"
 #include "libtorrent/assert.hpp"
@@ -113,76 +115,6 @@ void test_sleep(int millisec)
 	xt.nsec = nanosec;
 	xt.sec += sec;
 	boost::thread::sleep(xt);
-}
-
-void stop_web_server(int port)
-{
-	char buf[100];
-	snprintf(buf, sizeof(buf), "kill `cat ./lighty%d.pid` >/dev/null", port);
-	system(buf);
-}
-
-void start_web_server(int port, bool ssl)
-{
-	stop_web_server(port);
-
-	if (ssl)
-	{
-		fprintf(stderr, "generating SSL key\n");
-		system("echo . > tmp");
-		system("echo test province >>tmp");
-		system("echo test city >> tmp");
-		system("echo test company >> tmp");
-		system("echo test department >> tmp");
-		system("echo tester >> tmp");
-		system("echo test@test.com >> tmp");	
-		system("openssl req -new -x509 -keyout server.pem -out server.pem "
-			"-days 365 -nodes <tmp");
-	}
-	
-	error_code ec;
-	file f("lighty_config", file::write_only, ec);
-	if (ec)
-	{
-		fprintf(stderr, "error writing lighty config file: %s\n", ec.message().c_str());
-		return;
-	}
-
-	// this requires lighttpd to be built with ssl support.
-	// The port distribution for mac is not built with ssl
-	// support by default.
-	char buf[1024];
-	int buf_size = snprintf(buf, sizeof(buf),
-		"server.modules = (\"mod_access\", \"mod_redirect\", \"mod_setenv\")\n"
-		"server.document-root = \"%s\"\n"
-		"server.range-requests = \"enable\"\n"
-		"server.port = %d\n"
-		"server.pid-file = \"./lighty%d.pid\"\n"
-		"url.redirect = ("
-			"\"^/redirect$\" => \"%s://127.0.0.1:%d/test_file\""
-			", \"^/infinite_redirect$\" => \"%s://127.0.0.1:%d/infinite_redirect\""
-			", \"^/relative/redirect$\" => \"../test_file\""
-			")\n"
-		"$HTTP[\"url\"] == \"/test_file.gz\" {\n"
-		"    setenv.add-response-header = ( \"Content-Encoding\" => \"gzip\" )\n"
-		"}\n"
-		"ssl.engine = \"%s\"\n"
-		"ssl.pemfile = \"server.pem\"\n"
-		, fs::initial_path<fs::path>().string().c_str(), port, port
-		, (ssl?"https":"http"), port, (ssl?"https":"http"), port
-		, (ssl?"enable":"disable"));
-	file::iovec_t b = { buf, buf_size };
-	f.writev(0, &b, 1, ec);
-	if (ec)
-	{
-		fprintf(stderr, "error writing lighty config file: %s\n", ec.message().c_str());
-		return;
-	}
-	f.close();
-	
-	fprintf(stderr, "starting lighty\n\n%s\n\n", buf);
-	system("lighttpd -f lighty_config 2> lighty.err >lighty.log &");
-	test_sleep(1000);
 }
 
 void stop_proxy(int port)
@@ -406,4 +338,188 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 
 	return boost::make_tuple(tor1, tor2, tor3);
 }
+
+
+socket_acceptor* web_socket = 0;
+boost::shared_ptr<boost::thread> web_server;
+
+void stop_web_server(int port)
+{
+	if (web_server && web_socket)
+	{
+		web_socket->close();
+		web_server->join();
+		web_server.reset();
+		web_socket = 0;
+	}
+}
+
+void web_server_thread(int port, bool ssl);
+
+void start_web_server(int port, bool ssl)
+{
+	stop_web_server(port);
+
+	web_server.reset(new boost::thread(boost::bind(&web_server_thread, port, ssl)));
+
+	// create this directory so that the path
+	// "relative/../test_file" can resolve
+	create_directory("relative");
+	test_sleep(100);
+}
+
+void send_response(stream_socket& s, error_code& ec
+	, int code, char const* status_message, char const* extra_header
+	, int len)
+{
+	char msg[400];
+	int pkt_len = snprintf(msg, sizeof(msg), "HTTP/1.0 %d %s\r\n"
+		"content-length: %d\r\n"
+		"connection: close\r\n"
+		"%s%s"
+		"\r\n"
+		, code, status_message, len
+		, extra_header ? extra_header : "", extra_header ? "\r\n" : "");
+	fprintf(stderr, ">> %s\n", msg);
+	write(s, boost::asio::buffer(msg, pkt_len), boost::asio::transfer_all(), ec);
+}
+
+void web_server_thread(int port, bool ssl)
+{
+	// TODO: support SSL
+
+	io_service ios;
+	socket_acceptor acceptor(ios);
+	web_socket = &acceptor;
+	error_code ec;
+	acceptor.open(tcp::v4(), ec);
+	if (ec)
+	{
+		fprintf(stderr, "Error opening listen socket: %s\n", ec.message().c_str());
+		return;
+	}
+	acceptor.set_option(socket_acceptor::reuse_address(true), ec);
+	if (ec)
+	{
+		fprintf(stderr, "Error setting listen socket to reuse addr: %s\n", ec.message().c_str());
+		return;
+	}
+	acceptor.bind(tcp::endpoint(address_v4::any(), port), ec);
+	if (ec)
+	{
+		fprintf(stderr, "Error binding listen socket: %s\n", ec.message().c_str());
+		return;
+	}
+	acceptor.listen(10, ec);
+	if (ec)
+	{
+		fprintf(stderr, "Error listening on socket: %s\n", ec.message().c_str());
+		return;
+	}
+
+	char buf[10000];
+	int len = 0;
+	stream_socket s(ios);
+	
+	for (;;)
+	{
+		s.close(ec);
+
+		len = 0;
+		acceptor.accept(s, ec);
+		if (ec)
+		{
+			fprintf(stderr, "accept failed: %s\n", ec.message().c_str());
+			return;
+		}
+
+		http_parser p;
+		bool failed = false;
+
+		while (!p.finished())
+		{
+			size_t received = s.read_some(boost::asio::buffer(&buf[len], sizeof(buf) - len), ec);
+			if (ec || received <= 0)
+			{
+				fprintf(stderr, "read failed: %s\n", ec.message().c_str());
+				failed = true;
+				break;
+			}
+			len += received;
+
+			bool error = false;
+			p.incoming(buffer::const_interval(buf, buf + len), error);
+		}
+
+		if (failed) continue;
+
+		if (p.method() != "get" && p.method() != "post")
+		{
+				fprintf(stderr, "incorrect method: %s\n", p.method().c_str());
+				continue;
+		}
+
+		std::string path = p.path();
+
+		if (path == "/redirect")
+		{
+			send_response(s, ec, 301, "Moved Permanently", "Location: /test_file", 0);
+			continue;
+		}
+
+		if (path == "/infinite_redirect")
+		{
+			send_response(s, ec, 301, "Moved Permanently", "Location: /infinite_redirect", 0);
+			continue;
+		}
+
+		if (path == "/relative/redirect")
+		{
+			send_response(s, ec, 301, "Moved Permanently", "Location: ../test_file", 0);
+			continue;
+		}
+
+		fprintf(stderr, ">> serving file %s\n", path.c_str());
+		std::vector<char> file_buf;
+		// remove the / from the path
+		path = path.substr(1);
+		int res = load_file(path, file_buf);
+		if (res == -1)
+		{
+			send_response(s, ec, 404, "Not Found", 0, 0);
+			continue;
+		}
+
+		if (res != 0)
+		{
+			// this means the file was either too big or couldn't be read
+			send_response(s, ec, 503, "Internal Error", 0, 0);
+			continue;
+		}
+		
+		// serve file
+
+		char const* extra_header = 0;
+
+		if (boost::filesystem::extension(path) == ".gz")
+		{
+			extra_header = "Content-Encoding: gzip";
+		}
+
+		if (!p.header("range").empty())
+		{
+			std::string range = p.header("range");
+			int start, end;
+			sscanf(range.c_str(), "bytes=%d-%d", &start, &end);
+			send_response(s, ec, 206, "Partial", extra_header, end - start + 1);
+			write(s, boost::asio::buffer(&file_buf[0] + start, end - start + 1), boost::asio::transfer_all(), ec);
+		}
+		else
+		{
+			send_response(s, ec, 200, "OK", extra_header, file_buf.size());
+			write(s, boost::asio::buffer(&file_buf[0], file_buf.size()), boost::asio::transfer_all(), ec);
+		}
+	}
+}
+
 
