@@ -500,14 +500,11 @@ void http_connection::on_read(error_code const& e
 					std::string url = m_url;
 					// remove the leaf filename
 					std::size_t i = url.find_last_of('/');
-					if (i == std::string::npos)
-					{
+					if (i != std::string::npos)
+						url.resize(i);
+					if ((url.empty() || url[url.size()-1] != '/')
+						&& (location.empty() || location[0] != '/'))
 						url += '/';
-					}
-					else
-					{
-						url.resize(i + 1);
-					}
 					url += location;
 
 					get(url, m_timeout, m_priority, &m_proxy, m_redirects - 1);
