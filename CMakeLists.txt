@@ -35,6 +35,7 @@ set(sources
 	session
 	session_impl
 	socket_io
+	socket_type  
 	socks5_stream
 	stat
 	storage
