@@ -5945,7 +5945,7 @@ code   symbol                                    description
 ------ ----------------------------------------- -----------------------------------------------------------------
 81     packet_too_large                          The packet size exceeded the upper sanity check-limit
 ------ ----------------------------------------- -----------------------------------------------------------------
-82     http_parse_error                          Failed to parse HTTP response
+82     reserved                                                                    
 ------ ----------------------------------------- -----------------------------------------------------------------
 83     http_error                                The web server responded with an error
 ------ ----------------------------------------- -----------------------------------------------------------------
@@ -6006,15 +6006,15 @@ NAT-PMP errors:
 ====== ========================================= =================================================================
 code   symbol                                    description
 ====== ========================================= =================================================================
-108    unsupported_protocol_version              The NAT-PMP router responded with an unsupported protocol version
+120    unsupported_protocol_version              The NAT-PMP router responded with an unsupported protocol version
 ------ ----------------------------------------- -----------------------------------------------------------------
-109    natpmp_not_authorized                     You are not authorized to map ports on this NAT-PMP router
+121    natpmp_not_authorized                     You are not authorized to map ports on this NAT-PMP router
 ------ ----------------------------------------- -----------------------------------------------------------------
-110    network_failure                           The NAT-PMP router failed because of a network failure
+122    network_failure                           The NAT-PMP router failed because of a network failure
 ------ ----------------------------------------- -----------------------------------------------------------------
-111    no_resources                              The NAT-PMP router failed because of lack of resources
+123    no_resources                              The NAT-PMP router failed because of lack of resources
 ------ ----------------------------------------- -----------------------------------------------------------------
-112    unsupported_opcode                        The NAT-PMP router failed because an unsupported opcode was sent
+124    unsupported_opcode                        The NAT-PMP router failed because an unsupported opcode was sent
 ====== ========================================= =================================================================
 
 fastresume data errors:
@@ -6022,38 +6022,56 @@ fastresume data errors:
 ====== ========================================= =================================================================
 code   symbol                                    description
 ====== ========================================= =================================================================
-113    missing_file_sizes                        The resume data file is missing the 'file sizes' entry
+130    missing_file_sizes                        The resume data file is missing the 'file sizes' entry
 ------ ----------------------------------------- -----------------------------------------------------------------
-114    no_files_in_resume_data                   The resume data file 'file sizes' entry is empty
+131    no_files_in_resume_data                   The resume data file 'file sizes' entry is empty
 ------ ----------------------------------------- -----------------------------------------------------------------
-115    missing_pieces                            The resume data file is missing the 'pieces' and 'slots' entry
+132    missing_pieces                            The resume data file is missing the 'pieces' and 'slots' entry
 ------ ----------------------------------------- -----------------------------------------------------------------
-116    mismatching_number_of_files               The number of files in the resume data does not match the number
+133    mismatching_number_of_files               The number of files in the resume data does not match the number
                                                  of files in the torrent
 ------ ----------------------------------------- -----------------------------------------------------------------
-117    mismatching_files_size                    One of the files on disk has a different size than in the fast
+134    mismatching_files_size                    One of the files on disk has a different size than in the fast
                                                  resume file
 ------ ----------------------------------------- -----------------------------------------------------------------
-118    mismatching_file_timestamp                One of the files on disk has a different timestamp than in the
+135    mismatching_file_timestamp                One of the files on disk has a different timestamp than in the
                                                  fast resume file
 ------ ----------------------------------------- -----------------------------------------------------------------
-119    not_a_dictionary                          The resume data file is not a dictionary
+136    not_a_dictionary                          The resume data file is not a dictionary
 ------ ----------------------------------------- -----------------------------------------------------------------
-120    invalid_blocks_per_piece                  The 'blocks per piece' entry is invalid in the resume data file
+137    invalid_blocks_per_piece                  The 'blocks per piece' entry is invalid in the resume data file
 ------ ----------------------------------------- -----------------------------------------------------------------
-121    missing_slots                             The resume file is missing the 'slots' entry, which is required
+138    missing_slots                             The resume file is missing the 'slots' entry, which is required
                                                  for torrents with compact allocation
 ------ ----------------------------------------- -----------------------------------------------------------------
-122    too_many_slots                            The resume file contains more slots than the torrent
+139    too_many_slots                            The resume file contains more slots than the torrent
 ------ ----------------------------------------- -----------------------------------------------------------------
-123    invalid_slot_list                         The 'slot' entry is invalid in the resume data
+140    invalid_slot_list                         The 'slot' entry is invalid in the resume data
 ------ ----------------------------------------- -----------------------------------------------------------------
-124    invalid_piece_index                       One index in the 'slot' list is invalid
+141    invalid_piece_index                       One index in the 'slot' list is invalid
 ------ ----------------------------------------- -----------------------------------------------------------------
-125    pieces_need_reorder                       The pieces on disk needs to be re-ordered for the specified
+142    pieces_need_reorder                       The pieces on disk needs to be re-ordered for the specified
                                                  allocation mode. This happens if you specify sparse allocation
                                                  and the files on disk are using compact storage. The pieces needs
                                                  to be moved to their right position
+====== ========================================= =================================================================
+
+HTTP errors:
+
+====== ========================================= =================================================================
+150    http_parse_error                          The HTTP header was not correctly formatted
+------ ----------------------------------------- -----------------------------------------------------------------
+151    http_missing_location                     The HTTP response was in the 300-399 range but lacked a location
+                                                 header
+------ ----------------------------------------- -----------------------------------------------------------------
+152    http_failed_decompress                    The HTTP response was encoded with gzip or deflate but
+                                                 decompressing it failed
+====== ========================================= =================================================================
+
+I2P errors:
+
+====== ========================================= =================================================================
+160    no_i2p_router                             The URL specified an i2p address, but no i2p router is configured
 ====== ========================================= =================================================================
 
 The names of these error codes are declared in then ``libtorrent::errors`` namespace.
