@@ -159,6 +159,18 @@ namespace
         return s.load_country_db(file.c_str());
     }
 #endif
+
+    entry save_state(session const& s)
+    {
+        entry e;
+        s.save_state(e);
+        return e;
+    }
+
+    void load_state(session& s, entry const& e)
+    {
+        s.load_state(e);
+    }
 } // namespace unnamed
 
 
@@ -316,8 +328,8 @@ void bind_session()
         .def("load_asnum_db", &load_asnum_db)
         .def("load_country_db", &load_country_db)
 #endif
-        .def("load_state", allow_threads(&session::load_state))
-        .def("state", allow_threads(&session::state))
+        .def("load_state", &load_state)
+        .def("save_state", &save_state)
 #ifndef TORRENT_NO_DEPRECATE
         .def("set_severity_level", allow_threads(&session::set_severity_level))
 #endif

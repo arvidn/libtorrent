@@ -278,7 +278,7 @@ namespace libtorrent
 		void prioritize_files(std::vector<int> const& files);
 		void file_priorities(std::vector<int>&) const;
 
-		void set_piece_deadline(int piece, time_duration t, int flags);
+		void set_piece_deadline(int piece, int t, int flags);
 		void update_piece_priorities();
 
 		torrent_status status() const;

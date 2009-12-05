@@ -394,7 +394,7 @@ namespace libtorrent
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
 		enum deadline_flags { alert_when_available = 1 };
-		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
+		void set_piece_deadline(int index, int deadline, int flags = 0) const;
 
 		void set_priority(int prio) const;
 		

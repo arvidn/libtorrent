@@ -4,6 +4,7 @@
 
 #include <boost/python.hpp>
 #include <libtorrent/extensions.hpp>
+#include <libtorrent/torrent.hpp>
 #include <libtorrent/entry.hpp>
 #include <libtorrent/peer_request.hpp>
 #include <libtorrent/peer_connection.hpp>

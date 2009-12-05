@@ -2367,9 +2367,9 @@ namespace libtorrent
 		return m_username + ":" + m_password;
 	}
 
-	void torrent::set_piece_deadline(int piece, time_duration t, int flags)
+	void torrent::set_piece_deadline(int piece, int t, int flags)
 	{
-		ptime deadline = time_now() + t;
+		ptime deadline = time_now() + milliseconds(t);
 
 		if (is_seed() || m_picker->have_piece(piece))
 		{
