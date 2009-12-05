@@ -1125,7 +1125,7 @@ int main(int argc, char* argv[])
 					if (num_pieces > 300) num_pieces = 300;
 					for (int i = 0; i < num_pieces; ++i)
 					{
-						h.set_piece_deadline(i, seconds(i+5), torrent_handle::alert_when_available);
+						h.set_piece_deadline(i, (i+5) * 1000, torrent_handle::alert_when_available);
 					}
 				}
 			}
