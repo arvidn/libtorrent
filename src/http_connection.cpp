@@ -390,7 +390,7 @@ void http_connection::callback(error_code const& e, char const* data, int size)
 			std::string error;
 			if (inflate_gzip(data, size, buf, max_bottled_buffer, error))
 			{
-				if (m_handler) m_handler(asio::error::fault, m_parser, data, size, *this);
+				if (m_handler) m_handler(errors::http_failed_decompress, m_parser, data, size, *this);
 				close();
 				return;
 			}
@@ -485,7 +485,7 @@ void http_connection::on_read(error_code const& e
 		if (error)
 		{
 			// HTTP parse error
-			error_code ec = asio::error::fault;
+			error_code ec = errors::http_parse_error;
 			callback(ec, 0, 0);
 			return;
 		}
@@ -502,7 +502,7 @@ void http_connection::on_read(error_code const& e
 				if (location.empty())
 				{
 					// missing location header
-					callback(asio::error::fault);
+					callback(error_code(errors::http_missing_location));
 					close();
 					return;
 				}
