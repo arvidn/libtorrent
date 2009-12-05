@@ -64,6 +64,7 @@ libtorrent_rasterbar_la_SOURCES = \
   sha1.cpp                        \
   smart_ban.cpp                   \
   socket_io.cpp                   \
+  socket_type.cpp                 \
   socks5_stream.cpp               \
   stat.cpp                        \
   storage.cpp                     \
