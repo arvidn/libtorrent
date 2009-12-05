@@ -4976,6 +4976,10 @@ namespace libtorrent
 
 	void peer_connection::set_upload_only(bool u)
 	{
+		// if the peer is a seed, don't allow setting
+		// upload_only to false
+		if (m_upload_only && is_seed()) return;
+
 		m_upload_only = u;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		t->get_policy().set_seed(m_peer_info, u);
