@@ -1964,7 +1964,7 @@ Its declaration looks like this::
 		bool resolve_countries() const;
 
 		enum deadline_flags { alert_when_available = 1 };
-		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
+		void set_piece_deadline(int index, int deadline, int flags = 0) const;
 
 		void piece_availability(std::vector<int>& avail) const;
 		void piece_priority(int index, int priority) const;
@@ -2021,7 +2021,7 @@ set_piece_deadline()
 	::
 
 		enum deadline_flags { alert_when_available = 1 };
-		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
+		void set_piece_deadline(int index, int deadline, int flags = 0) const;
 
 This function sets or resets the deadline associated with a specific piece
 index (``index``). libtorrent will attempt to download this entire piece before
@@ -2038,8 +2038,7 @@ If the piece is already downloaded when this call is made, nothing happens, unle
 the ``alert_when_available`` flag is set, in which case it will do the same thing
 as calling `read_piece()`_ for ``index``.
 
-In the python binding for this function, the ``deadline`` is the number of milliseconds
-as an integer.
+``deadline`` is the number of milliseconds until this piece should be completed.
 
 
 piece_availability()
