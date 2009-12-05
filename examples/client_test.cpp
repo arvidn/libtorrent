@@ -741,6 +741,7 @@ int main(int argc, char* argv[])
 			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
 			"  -F <seconds>          sets the UI refresh rate. This is the number of\n"
 			"                        seconds between screen refreshes.\n"
+			"  -n                    announce to trackers in all tiers\n"
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
 			"MAGNETURL is a magnet: url\n")
@@ -753,7 +754,6 @@ int main(int argc, char* argv[])
 
 	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
 	settings.auto_upload_slots_rate_based = true;
-	//settings.announce_to_all_tiers = true;
 	//settings.announce_to_all_trackers = true;
 	settings.optimize_hashing_for_speed = false;
 	settings.disk_cache_algorithm = session_settings::largest_contiguous;
@@ -909,6 +909,7 @@ int main(int argc, char* argv[])
 				preferred_ratio = atoi(arg);
 				if (preferred_ratio != 0 && preferred_ratio < 1.f) preferred_ratio = 1.f;
 				break;
+			case 'n': settings.announce_to_all_tiers = true; --i; break;
 			case 'd': ses.set_download_rate_limit(atoi(arg) * 1000); break;
 			case 'u': ses.set_upload_rate_limit(atoi(arg) * 1000); break;
 			case 'S': ses.set_max_uploads(atoi(arg)); break;
