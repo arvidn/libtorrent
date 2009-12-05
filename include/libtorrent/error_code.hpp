@@ -138,7 +138,7 @@ namespace libtorrent
 			duplicate_peer_id,
 			torrent_removed,
 			packet_too_large,
-			http_parse_error,
+			reserved82,
 			http_error,
 			missing_location,
 			invalid_redirection,
@@ -164,16 +164,33 @@ namespace libtorrent
 			pex_message_too_large,
 			invalid_pex_message,
 			invalid_lt_tracker_message,
+			reserved108,
+			reserved109,
+			reserved110,
+			reserved111,
+			reserved112,
+			reserved113,
+			reserved114,
+			reserved115,
+			reserved116,
+			reserved117,
+			reserved118,
+			reserved119,
 
 // natpmp errors
-			unsupported_protocol_version,
+			unsupported_protocol_version, // 120
 			natpmp_not_authorized,
 			network_failure,
 			no_resources,
 			unsupported_opcode,
+			reserved125,
+			reserved126,
+			reserved127,
+			reserved128,
+			reserved129,
 
 // fastresume errors
-			missing_file_sizes,
+			missing_file_sizes, // 130
 			no_files_in_resume_data,
 			missing_pieces,
 			mismatching_number_of_files,
@@ -186,16 +203,26 @@ namespace libtorrent
 			invalid_slot_list,
 			invalid_piece_index,
 			pieces_need_reorder,
-			reserved1,
-			reserved2,
-			reserved3,
-			reserved4,
-			reserved5,
-			reserved6,
-			reserved7,
-			reserved8,
-
-			no_i2p_router,
+			reserved143,
+			reserved144,
+			reserved145,
+			reserved146,
+			reserved147,
+			reserved148,
+			reserved149,
+// HTTP errors
+			http_parse_error, // 150
+			http_missing_location,
+			http_failed_decompress,
+			reserved153,
+			reserved154,
+			reserved155,
+			reserved156,
+			reserved157,
+			reserved158,
+			reserved159,
+// i2p errors
+			no_i2p_router, // 160
 
 			error_code_max
 		};

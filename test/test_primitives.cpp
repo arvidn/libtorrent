@@ -371,6 +371,17 @@ int test_main()
 	error_code ec;
 	int ret = 0;
 
+	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
+	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
+	TEST_CHECK(error_code(errors::unsupported_protocol_version).message() == "unsupported protocol version");
+	TEST_CHECK(error_code(errors::no_i2p_router).message() == "no i2p router is set up");
+	TEST_CHECK(error_code(errors::http_parse_error).message() == "Invalid HTTP header");
+	TEST_CHECK(error_code(errors::error_code_max).message() == "Unknown error");
+
+	TEST_CHECK(errors::reserved129 == 129);
+	TEST_CHECK(errors::reserved159 == 159);
+	TEST_CHECK(errors::reserved108 == 108);
+
 	{
 	// test session state load/restore
 	session* s = new session(fingerprint("LT",0,0,0,0), 0);
