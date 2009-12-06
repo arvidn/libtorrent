@@ -150,7 +150,7 @@ rule linking ( properties * )
 		# on mac the boost headers are installed in
 		# a directory that isn't automatically accessable
 		result += <include>/opt/local/include/boost-1_35
-			<include>/opt/local/include/boost
+			<include>/opt/local/include
 			;
 	}
 
