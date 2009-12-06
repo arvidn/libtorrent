@@ -66,7 +66,7 @@ namespace libtorrent
 		const int total_size = size;
 
 		// The zip header cannot be shorter than 10 bytes
-		if (size < 10) return -1;
+		if (size < 10 || buf == 0) return -1;
 
 		// check the magic header of gzip
 		if ((buffer[0] != GZIP_MAGIC0) || (buffer[1] != GZIP_MAGIC1)) return -1;
