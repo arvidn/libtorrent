@@ -385,7 +385,7 @@ void http_connection::callback(error_code const& e, char const* data, int size)
 	if (m_bottled && m_parser.header_finished())
 	{
 		std::string const& encoding = m_parser.header("content-encoding");
-		if (encoding == "gzip" || encoding == "x-gzip")
+		if ((encoding == "gzip" || encoding == "x-gzip") && size > 0 && data)
 		{
 			std::string error;
 			if (inflate_gzip(data, size, buf, max_bottled_buffer, error))
