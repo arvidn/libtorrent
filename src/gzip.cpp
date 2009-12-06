@@ -60,7 +60,6 @@ namespace libtorrent
 	int gzip_header(const char* buf, int size)
 	{
 		TORRENT_ASSERT(buf != 0);
-		TORRENT_ASSERT(size > 0);
 
 		const unsigned char* buffer = reinterpret_cast<const unsigned char*>(buf);
 		const int total_size = size;
