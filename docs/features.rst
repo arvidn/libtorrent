@@ -79,7 +79,7 @@ following features:
   being connected
 
 .. _`DHT extensions`: dht_extensions.html
-__ http://home.elp.rr.com/tur/multitracker-spec.txt
+__ http://bittorrent.org/beps/bep_0012.html
 __ http://www.getright.com/seedtorrent.html
 .. _`extension protocol`: extension_protocol.html
 .. _`udp-tracker protocol`: udp_tracker_protocol.html
