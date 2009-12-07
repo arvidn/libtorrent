@@ -552,6 +552,7 @@ void natpmp::close_impl()
 		i->action = mapping_t::action_delete;
 	}
 	m_refresh_timer.cancel(ec);
+	m_currently_mapping = -1;
 	update_mapping(0);
 }
 
