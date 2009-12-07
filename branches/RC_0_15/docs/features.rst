@@ -35,7 +35,7 @@ extensions
 * supports the uTorrent metadata transfer protocol `BEP 9`_ (i.e. magnet links).
 * supports the uTorrent peer exchange protocol (PEX).
 * supports local peer discovery (multicasts for peers on the same local network)
-* multitracker extension support (supports both strict `BEP  12`_ and the
+* multitracker extension support (supports both strict `BEP 12`_ and the
   uTorrent interpretation).
 * tracker scrapes
 * supports lt_trackers extension, to exchange trackers between peers
