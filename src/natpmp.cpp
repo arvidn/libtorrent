@@ -586,6 +586,7 @@ void natpmp::close_impl(mutex::scoped_lock& l)
 	}
 	error_code ec;
 	m_refresh_timer.cancel(ec);
+	m_currently_mapping = -1;
 	update_mapping(0, l);
 }
 
