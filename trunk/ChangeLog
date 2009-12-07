@@ -92,6 +92,7 @@ release 0.14.8
 	  sometimes be used incorrectly
 	* force_recheck() no longer crashes on torrents with no metadata
 	* fixed broadcast socket regression from 0.14.7
+	* fixed hang in NATPMP when shut down while waiting for a response
 
 release 0.14.7
 
