@@ -1155,7 +1155,16 @@ namespace libtorrent
 	void torrent::on_lsd_announce_disp(boost::weak_ptr<torrent> p
 		, error_code const& e)
 	{
+#if defined TORRENT_LOGGING
+		if (e)
+		{
+			boost::shared_ptr<torrent> t = p.lock();
+			if (!t) return;
+			(*t->session().m_logger) << time_now_string() << " on_lsd_announce_disp: " << e.message() << "\n";
+		}
+#else
 		if (e) return;
+#endif
 		boost::shared_ptr<torrent> t = p.lock();
 		if (!t) return;
 		t->on_lsd_announce();
@@ -1551,6 +1560,10 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+#if defined TORRENT_LOGGING
+		if (ec)
+			*m_ses.m_logger << time_now_string() << " on_i2p_resolve: " << e.message() << "\n";
+#endif
 		if (ec || m_ses.is_aborted()) return;
 
 		m_policy.add_i2p_peer(dest, peer_info::tracker, 0);
@@ -1564,6 +1577,10 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+#if defined TORRENT_LOGGING
+		if (ec)
+			*m_ses.m_logger << time_now_string() << " on_peer_name_lookup: " << e.message() << "\n";
+#endif
 		if (e || host == tcp::resolver::iterator() ||
 			m_ses.is_aborted()) return;
 
@@ -3098,6 +3115,8 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " completed resolve proxy hostname for: " << web.url << "\n";
+		if (ec)
+			*m_ses.m_logger << time_now_string() << " on_proxy_name_lookup: " << e.message() << "\n";
 #endif
 
 		if (m_abort) return;
