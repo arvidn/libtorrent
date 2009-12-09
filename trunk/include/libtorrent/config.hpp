@@ -100,18 +100,41 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 // set up defines for target environments
-#if (defined __APPLE__ && defined __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
+// ==== AMIGA ===
+#if defined __AMIGA__ || defined __amigaos__ || defined __AROS__
+#define TORRENT_AMIGA
+#define TORRENT_USE_MLOCK 0
+#define TORRENT_USE_WRITEV 0
+#define TORRENT_USE_READV 0
+#define TORRENT_USE_IPV6 0
+#define TORRENT_USE_BOOST_THREAD 0
+#define TORRENT_USE_IOSTREAM 0
+// set this to 1 to disable all floating point operations
+// (disables some float-dependent APIs)
+#define TORRENT_NO_FPU 1
+#define TORRENT_USE_I2P 0
+
+// ==== Darwin/BSD ===
+#elif (defined __APPLE__ && defined __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
 	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__ \
 	|| defined __FreeBSD_kernel__
 #define TORRENT_BSD
+
+// ==== LINUX ===
 #elif defined __linux__
 #define TORRENT_LINUX
 #elif defined __MINGW32__
 #define TORRENT_MINGW
+
+// ==== WINDOWS ===
 #elif defined WIN32
 #define TORRENT_WINDOWS
+
+// ==== SOLARIS ===
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
+
+// ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
 #define TORRENT_BEOS
 #include <storage/StorageDefs.h> // B_PATH_NAME_LENGTH
@@ -128,39 +151,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BSD
 #endif
 
-#ifndef TORRENT_EXPORT
-# define TORRENT_EXPORT
-#endif
-
-#ifndef TORRENT_DEPRECATED_PREFIX
-#define TORRENT_DEPRECATED_PREFIX
-#endif
-
-#ifndef TORRENT_DEPRECATED
-#define TORRENT_DEPRECATED
-#endif
-
-#ifndef TORRENT_USE_IPV6
-#define TORRENT_USE_IPV6 1
-#endif
-
-#define TORRENT_USE_MLOCK 1
-#define TORRENT_USE_READV 1
-#define TORRENT_USE_WRITEV 1
-
-#if !defined TORRENT_USE_IOSTREAM && !defined BOOST_NO_IOSTREAM
-#define TORRENT_USE_IOSTREAM 1
-#else
-#define TORRENT_USE_IOSTREAM 0
-#endif
-
-#define TORRENT_USE_I2P 1
-
-// set this to 1 to disable all floating point operations
-// (disables some float-dependent APIs)
-#define TORRENT_NO_FPU 0
-
-
 // on windows, NAME_MAX refers to Unicode characters
 // on linux it refers to bytes (utf-8 encoded)
 // TODO: Make this count Unicode characters instead of bytes on windows
@@ -171,7 +161,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // beos
 #elif defined B_PATH_NAME_LENGTH
-#defined TORRENT_MAX_PATH B_PATH_NAME_LENGTH
+#define TORRENT_MAX_PATH B_PATH_NAME_LENGTH
 
 // solaris
 #elif defined MAXPATH
@@ -214,14 +204,15 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #include <limits.h>
 #endif
 
-#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) && !defined (TORRENT_UPNP_LOGGING)
+#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) \
+	&& !defined (TORRENT_UPNP_LOGGING) && TORRENT_USE_IOSTREAM
 #define TORRENT_UPNP_LOGGING
 #endif
 
 // windows has its own functions to convert
 // apple uses utf-8 as its locale, so no conversion
 // is necessary
-#if !defined TORRENT_WINDOWS && !defined __APPLE__
+#if !defined TORRENT_WINDOWS && !defined __APPLE__ && !defined TORRENT_AMIGA
 // libiconv presence, not implemented yet
 #define TORRENT_USE_ICONV 1
 #else
@@ -236,6 +227,48 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_HAS_FALLOCATE
 #define TORRENT_HAS_FALLOCATE 1
+#endif
+
+#ifndef TORRENT_EXPORT
+# define TORRENT_EXPORT
+#endif
+
+#ifndef TORRENT_DEPRECATED_PREFIX
+#define TORRENT_DEPRECATED_PREFIX
+#endif
+
+#ifndef TORRENT_DEPRECATED
+#define TORRENT_DEPRECATED
+#endif
+
+#ifndef TORRENT_USE_IPV6
+#define TORRENT_USE_IPV6 1
+#endif
+
+#ifndef TORRENT_USE_MLOCK
+#define TORRENT_USE_MLOCK 1
+#endif
+
+#ifndef TORRENT_USE_WRITEV
+#define TORRENT_USE_WRITEV 1
+#endif
+
+#ifndef TORRENT_USE_READV
+#define TORRENT_USE_READV 1
+#endif
+
+#ifndef TORRENT_NO_FPU
+#define TORRENT_NO_FPU 0
+#endif
+
+#if !defined TORRENT_USE_IOSTREAM && !defined BOOST_NO_IOSTREAM
+#define TORRENT_USE_IOSTREAM 1
+#else
+#define TORRENT_USE_IOSTREAM 0
+#endif
+
+#ifndef TORRENT_USE_I2P
+#define TORRENT_USE_I2P 1
 #endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
@@ -258,6 +291,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 	&& !defined TORRENT_USE_QUERY_PERFORMANCE_TIMER \
 	&& !defined TORRENT_USE_CLOCK_GETTIME \
 	&& !defined TORRENT_USE_BOOST_DATE_TIME \
+	&& !defined TORRENT_USE_ECLOCK \
 	&& !defined TORRENT_USE_SYSTEM_TIME
 
 #if defined(__MACH__)
@@ -266,6 +300,8 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_QUERY_PERFORMANCE_TIMER 1
 #elif defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0
 #define TORRENT_USE_CLOCK_GETTIME 1
+#elif defined(TORRENT_AMIGA)
+#define TORRENT_USE_ECLOCK 1
 #elif defined(TORRENT_BEOS)
 #define TORRENT_USE_SYSTEM_TIME 1
 #else
