@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_WINDOWS
 #include <Windows.h>
+#elif defined TORRENT_BEOS
+#include <kernel/OS.h>
 #else
 #include <stdlib.h>
 #include <unistd.h> // _SC_PAGESIZE
@@ -52,6 +54,8 @@ namespace libtorrent
 		SYSTEM_INFO si;
 		GetSystemInfo(&si);
 		s = si.dwPageSize;
+#elif defined TORRENT_BEOS
+		s = B_PAGE_SIZE;
 #else
 		s = sysconf(_SC_PAGESIZE);
 #endif

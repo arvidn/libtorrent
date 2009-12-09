@@ -116,6 +116,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BEOS
 #include <storage/StorageDefs.h> // B_PATH_NAME_LENGTH
 #define TORRENT_HAS_FALLOCATE 0
+#if __GNUCC__ == 2
+# if defined(TORRENT_BUILDING_SHARED)
+#  define TORRENT_EXPORT __declspec(dllexport)
+# elif defined(TORRENT_LINKING_SHARED)
+#  define TORRENT_EXPORT __declspec(dllimport)
+# endif
+#endif
 #else
 #warning unknown OS, assuming BSD
 #define TORRENT_BSD

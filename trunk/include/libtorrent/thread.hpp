@@ -44,15 +44,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/detail/mutex.hpp>
 #include <boost/asio/detail/event.hpp>
 
+#ifdef TORRENT_BEOS
+#include <kernel/OS.h>
+#endif
+
 namespace libtorrent
 {
 	typedef boost::asio::detail::thread thread;
 	typedef boost::asio::detail::mutex mutex;
 	typedef boost::asio::detail::event condition;
+
 	inline void sleep(int milliseconds)
 	{
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 		Sleep(milliseconds);
+#elif defined TORRENT_BEOS
+		snooze_until(system_time() + boost::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
 #else
 		usleep(milliseconds * 1000);
 #endif
