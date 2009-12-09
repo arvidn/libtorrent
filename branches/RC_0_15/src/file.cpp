@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
+#include "libtorrent/allocator.hpp" // page_size
 
 #include <boost/scoped_ptr.hpp>
 #ifdef TORRENT_WINDOWS
@@ -353,13 +354,7 @@ namespace libtorrent
 	{
 		if (m_page_size != 0) return;
 
-#ifdef TORRENT_WINDOWS
-		SYSTEM_INFO si;
-		GetSystemInfo(&si);
-		m_page_size = si.dwPageSize;
-#else
-		m_page_size = sysconf(_SC_PAGESIZE);
-#endif
+		m_page_size = page_size();
 	}
 
 #endif

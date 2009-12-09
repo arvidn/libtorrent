@@ -37,14 +37,39 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <Windows.h>
 #else
 #include <stdlib.h>
+#include <unistd.h> // _SC_PAGESIZE
 #endif
 
 
 namespace libtorrent
 {
+	int page_size()
+	{
+		static int s = 0;
+		if (s != 0) return s;
+
+#ifdef TORRENT_WINDOWS
+		SYSTEM_INFO si;
+		GetSystemInfo(&si);
+		s = si.dwPageSize;
+#else
+		s = sysconf(_SC_PAGESIZE);
+#endif
+		// assume the page size is 4 kiB if we
+		// fail to query it
+		if (s <= 0) s = 4096;
+		return s;
+	}
+
 	char* page_aligned_allocator::malloc(const size_type bytes)
 	{
-#ifdef TORRENT_WINDOWS
+#if TORRENT_USE_POSIX_MEMALIGN
+		void* ret;
+		if (posix_memalign(&ret, page_size(), bytes) != 0) ret = 0;
+		return ret;
+#elif TORRENT_USE_MEMALIGN
+		return memalign(page_size(), bytes);
+#elif defined TORRENT_WINDOWS
 		return reinterpret_cast<char*>(VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
 #else
 		return reinterpret_cast<char*>(valloc(bytes));
