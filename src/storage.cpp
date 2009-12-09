@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/alloca.hpp"
+#include "libtorrent/allocator.hpp" // page_size
 
 #include <cstdio>
 
@@ -386,7 +387,7 @@ namespace libtorrent
 		storage(file_storage const& fs, file_storage const* mapped, fs::path const& path, file_pool& fp)
 			: m_files(fs)
 			, m_pool(fp)
-			, m_page_size(4096)
+			, m_page_size(page_size())
 			, m_allocate_files(false)
 		{
 			if (mapped) m_mapped_files.reset(new file_storage(*mapped));
@@ -394,13 +395,6 @@ namespace libtorrent
 			TORRENT_ASSERT(m_files.begin() != m_files.end());
 			m_save_path = fs::complete(path);
 			TORRENT_ASSERT(m_save_path.is_complete());
-#ifdef TORRENT_WINDOWS
-			SYSTEM_INFO si;
-			GetSystemInfo(&si);
-			m_page_size = si.dwPageSize;
-#else
-			m_page_size = sysconf(_SC_PAGESIZE);
-#endif
 		}
 
 		bool has_any_file();

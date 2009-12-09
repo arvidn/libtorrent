@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	TORRENT_EXPORT int page_size();
+
 	struct TORRENT_EXPORT page_aligned_allocator
 	{
 		typedef std::size_t size_type;
