@@ -30,12 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <stdio.h>
 #include <libtorrent/enum_net.hpp>
 #include <libtorrent/socket.hpp>
 #include <libtorrent/broadcast_socket.hpp>
-#include <vector>
-#include <iomanip>
-#include <iostream>
 
 using namespace libtorrent;
 
@@ -43,73 +41,60 @@ int main()
 {
 	io_service ios;
 	error_code ec;
-
 	address local = guess_local_address(ios);
-	std::cout << "Local address: " << local << std::endl;
+	printf("Local address: %s\n", local.to_string(ec).c_str());
 
 	address def_gw = get_default_gateway(ios, ec);
 	if (ec)
 	{
-		std::cerr << ec.message() << std::endl;
+		fprintf(stderr, "%s\n", ec.message().c_str());
 		return 1;
 	}
-	std::cout << "Default gateway: " << def_gw << std::endl;
 
-	std::cout << "=========== Routes ===========\n";
+	printf("Default gateway: %s\n", def_gw.to_string(ec).c_str());
+
+	printf("=========== Routes ===========\n");
 	std::vector<ip_route> routes = enum_routes(ios, ec);
 	if (ec)
 	{
-		std::cerr << ec.message() << std::endl;
+		printf("%s\n", ec.message().c_str());
 		return 1;
 	}
 
-	std::cout << std::setiosflags(std::ios::left)
-		<< std::setw(18) << "destination"
-		<< std::setw(18) << "netmask"
-		<< std::setw(35) << "gateway"
-		<< "interface name"
-		<< std::endl;
+	printf("%-18s%-18s%-35sinterface name\n", "destination", "network", "gateway");
 
 	for (std::vector<ip_route>::const_iterator i = routes.begin()
 		, end(routes.end()); i != end; ++i)
 	{
-		std::cout << std::setiosflags(std::ios::left)
-			<< std::setw(18) << i->destination
-			<< std::setw(18) << i->netmask
-			<< std::setw(35) << i->gateway
-			<< i->name
-			<< std::endl;
+		printf("%-18s%-18s%-35s%s\n"
+			, i->destination.to_string(ec).c_str()
+			, i->netmask.to_string(ec).c_str()
+			, i->gateway.to_string(ec).c_str()
+			, i->name);
 	}
 
-	std::cout << "========= Interfaces =========\n";
+	printf("========= Interfaces =========\n");
 
 	std::vector<ip_interface> const& net = enum_net_interfaces(ios, ec);
 	if (ec)
 	{
-		std::cerr << ec.message() << std::endl;
+		printf("%s\n", ec.message().c_str());
 		return 1;
 	}
 
-	std::cout << std::setiosflags(std::ios::left)
-		<< std::setw(35) << "address"
-		<< std::setw(18) << "netmask"
-		<< std::setw(18) << "name"
-		<< "flags"
-		<< std::endl;
+	printf("%-18s%-18s%-35sflags\n", "address", "netmask", "name");
 
 	for (std::vector<ip_interface>::const_iterator i = net.begin()
 		, end(net.end()); i != end; ++i)
 	{
-		std::cout << std::setiosflags(std::ios::left)
-			<< std::setw(35) << i->interface_address
-			<< std::setw(18) << i->netmask
-			<< std::setw(18) << i->name
-			<< (is_multicast(i->interface_address)?"multicast ":"")
-			<< (is_local(i->interface_address)?"local ":"")
-			<< (is_loopback(i->interface_address)?"loopback ":"")
-			
-			<< std::endl;
+		printf("%-18s%-18s%-35s%s%s%s\n"
+			, i->interface_address.to_string(ec).c_str()
+			, i->netmask.to_string(ec).c_str()
+			, i->name
+			, (is_multicast(i->interface_address)?"multicast ":"")
+			, (is_local(i->interface_address)?"local ":"")
+			, (is_loopback(i->interface_address)?"loopback ":"")
+			);
 	}
-
 }
 
