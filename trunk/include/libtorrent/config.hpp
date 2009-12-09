@@ -113,12 +113,18 @@ POSSIBILITY OF SUCH DAMAGE.
 // (disables some float-dependent APIs)
 #define TORRENT_NO_FPU 1
 #define TORRENT_USE_I2P 0
+#define TORRENT_USE_ICONV 0
 
 // ==== Darwin/BSD ===
 #elif (defined __APPLE__ && defined __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
 	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__ \
 	|| defined __FreeBSD_kernel__
 #define TORRENT_BSD
+// we don't need iconv on mac, because
+// the locale is always utf-8
+#if defined __APPLE__
+#define TORRENT_USE_ICONV 0
+#endif
 
 // ==== LINUX ===
 #elif defined __linux__
@@ -129,6 +135,10 @@ POSSIBILITY OF SUCH DAMAGE.
 // ==== WINDOWS ===
 #elif defined WIN32
 #define TORRENT_WINDOWS
+// windows has its own functions to convert
+// apple uses utf-8 as its locale, so no conversion
+// is necessary
+#define TORRENT_USE_ICONV 0
 
 // ==== SOLARIS ===
 #elif defined sun || defined __sun 
@@ -139,6 +149,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BEOS
 #include <storage/StorageDefs.h> // B_PATH_NAME_LENGTH
 #define TORRENT_HAS_FALLOCATE 0
+#define TORRENT_USE_MLOCK 0
+#define TORRENT_USE_ICONV 0
 #if __GNUCC__ == 2
 # if defined(TORRENT_BUILDING_SHARED)
 #  define TORRENT_EXPORT __declspec(dllexport)
@@ -209,14 +221,9 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_UPNP_LOGGING
 #endif
 
-// windows has its own functions to convert
-// apple uses utf-8 as its locale, so no conversion
-// is necessary
-#if !defined TORRENT_WINDOWS && !defined __APPLE__ && !defined TORRENT_AMIGA
 // libiconv presence, not implemented yet
+#ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 1
-#else
-#define TORRENT_ISE_ICONV 0
 #endif
 
 #if defined UNICODE && !defined BOOST_NO_STD_WSTRING

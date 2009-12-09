@@ -37,8 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <Windows.h>
 #elif defined TORRENT_BEOS
 #include <kernel/OS.h>
+#include <stdlib.h> // malloc/free
 #else
-#include <stdlib.h>
+#include <stdlib.h> // valloc/free
 #include <unistd.h> // _SC_PAGESIZE
 #endif
 
