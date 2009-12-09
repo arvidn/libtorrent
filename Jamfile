@@ -89,6 +89,11 @@ rule linking ( properties * )
 		;
 	}
 
+	if <target-os>beos in $(properties)
+	{
+		result += <library>netkit ;
+	}
+
 	if <target-os>solaris in $(properties)
 	{
 		result += <library>libsocket <library>libnsl ;
@@ -298,6 +303,9 @@ lib advapi32 : : <name>Advapi32 ;
 lib user32 : : <name>User32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
+
+# required for networking on beos
+lib netkit : : <name>net <search>/boot/system/lib <link>shared ;
 
 local boost-library-search-path =
   <search>/opt/local/lib

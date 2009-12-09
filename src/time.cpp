@@ -201,7 +201,7 @@ namespace libtorrent
 namespace libtorrent
 {
 	ptime time_now_hires()
-	{ return ptime(get_system_time()); }
+	{ return ptime(system_time()); }
 }
 
 #endif // TORRENT_USE_SYSTEM_TIME

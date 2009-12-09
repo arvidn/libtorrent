@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/bandwidth_socket.hpp"
 #include "libtorrent/socket_type_fwd.hpp"
+#include "libtorrent/error_code.hpp"
 
 #ifdef TORRENT_STATS
 #include "libtorrent/aux_/session_impl.hpp"
