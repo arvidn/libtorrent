@@ -1592,6 +1592,11 @@ namespace aux {
 	// is not necessary
 	extern ptime g_current_time;
 
+	initialize_timer::initialize_timer()
+	{
+		g_current_time = time_now_hires();
+	}
+
 	void session_impl::on_tick(error_code const& e)
 	{
 		mutex::scoped_lock l(m_mutex);
