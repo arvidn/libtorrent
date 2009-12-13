@@ -110,9 +110,16 @@ namespace libtorrent
 		struct tracker_logger;
 #endif
 
+		// used to initialize the g_current_time before
+		// anything else
+		struct initialize_timer
+		{
+			initialize_timer();
+		};
+
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
-		struct session_impl: boost::noncopyable
+		struct session_impl: boost::noncopyable, initialize_timer
 		{
 
 			// the size of each allocation that is chained in the send buffer
