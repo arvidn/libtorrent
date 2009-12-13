@@ -195,10 +195,12 @@ namespace libtorrent
 		error_code ec;
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
-		if (multicast_endpoint.address().is_v4())
-			open_multicast_socket(ios, address_v4::any(), loopback, ec);
-		else
+#if TORRENT_USE_IPV6
+		if (multicast_endpoint.address().is_v6())
 			open_multicast_socket(ios, address_v6::any(), loopback, ec);
+		else
+#endif
+			open_multicast_socket(ios, address_v4::any(), loopback, ec);
 		
 		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
 			, end(interfaces.end()); i != end; ++i)
