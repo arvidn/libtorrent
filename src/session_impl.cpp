@@ -1525,6 +1525,11 @@ namespace aux {
 		}
 	}
 
+	initialize_timer::initialize_timer()
+	{
+		g_current_time = time_now_hires();
+	}
+
 	void session_impl::on_tick(error_code const& e)
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
