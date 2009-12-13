@@ -1516,6 +1516,38 @@ namespace libtorrent
 		}
 	}
 
+	ptime torrent::next_announce() const
+	{
+		return m_waiting_tracker?m_tracker_timer.expires_at():min_time();
+	}
+
+	void torrent::force_tracker_request()
+	{
+		if (is_paused()) return;
+		ptime now = time_now();
+		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
+			, end(m_trackers.end()); i != end; ++i)
+			i->next_announce = (std::max)(now, i->min_announce);
+		update_tracker_timer();
+	}
+
+	void torrent::force_tracker_request(ptime t)
+	{
+		if (is_paused()) return;
+		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
+			, end(m_trackers.end()); i != end; ++i)
+			i->next_announce = (std::max)(t, i->min_announce);
+		update_tracker_timer();
+	}
+
+	void torrent::set_tracker_login(
+		std::string const& name
+		, std::string const& pw)
+	{
+		m_username = name;
+		m_password = pw;
+	}
+
 	void torrent::on_peer_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, peer_id pid)
 	{
@@ -5071,9 +5103,10 @@ namespace libtorrent
 			if (i->is_working()) { tier = i->tier; found_working = false; }
 			if (i->fails >= i->fail_limit && i->fail_limit != 0) continue;
 			if (i->updating) { found_working = true; continue; }
-			if (i->next_announce < next_announce) next_announce = i->next_announce;
 			if (i->is_working())
 			{
+				ptime next_tracker_announce = (std::max)(i->next_announce, i->min_announce);
+				if (!i->updating && next_tracker_announce < next_announce) next_announce = next_tracker_announce;
 				found_working = true;
 				if (!m_settings.announce_to_all_trackers
 					&& !m_settings.announce_to_all_tiers) break;

@@ -1126,39 +1126,6 @@ namespace libtorrent
 		// paused or auto_managed from the resume data
 		bool m_override_resume_data:1;
 	};
-
-	inline ptime torrent::next_announce() const
-	{
-		return m_waiting_tracker?m_tracker_timer.expires_at():min_time();
-	}
-
-	inline void torrent::force_tracker_request()
-	{
-		if (is_paused()) return;
-		ptime now = time_now();
-		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
-			, end(m_trackers.end()); i != end; ++i)
-			i->next_announce = now;
-		update_tracker_timer();
-	}
-
-	inline void torrent::force_tracker_request(ptime t)
-	{
-		if (is_paused()) return;
-		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
-			, end(m_trackers.end()); i != end; ++i)
-			i->next_announce = t;
-		update_tracker_timer();
-	}
-
-	inline void torrent::set_tracker_login(
-		std::string const& name
-		, std::string const& pw)
-	{
-		m_username = name;
-		m_password = pw;
-	}
-
 }
 
 #endif // TORRENT_TORRENT_HPP_INCLUDED
