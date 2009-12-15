@@ -77,10 +77,11 @@ namespace libtorrent
 #elif defined TORRENT_WINDOWS
 		return (char*)VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 #elif defined TORRENT_BEOS
-		// we could potentially use create_area() here, but
-		// you can't free it through its pointer, you need to
-		// associate the area_id with the pointer somehow
-		return (char*)::malloc(bytes);
+		void* ret = 0;
+		area_id id = create_area("", &ret, B_ANY_ADDRESS
+			, (bytes + page_size() - 1) & (page_size()-1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);
+		if (id < B_OK) return 0;
+		return (char*)ret;
 #else
 		return (char*)valloc(bytes);
 #endif
@@ -91,7 +92,9 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 		VirtualFree(block, 0, MEM_RELEASE);
 #elif defined TORRENT_BEOS
-		return ::free(block);
+		area_id id = area_for(block);
+		if (id < B_OK) return;
+		delete_area(id);
 #else
 		::free(block);
 #endif

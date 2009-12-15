@@ -188,7 +188,9 @@ namespace libtorrent
 		torrent_handle find_torrent(sha1_hash const& info_hash) const;
 
 		// all torrent_handles must be destructed before the session is destructed!
+#ifndef BOOST_NO_EXCEPTIONS
 		torrent_handle add_torrent(add_torrent_params const& params);
+#endif
 		torrent_handle add_torrent(add_torrent_params const& params, error_code& ec);
 		
 #ifndef TORRENT_NO_DEPRECATE

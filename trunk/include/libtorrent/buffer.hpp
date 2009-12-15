@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
+#include <cstdlib> // malloc/free/realloc
 
 namespace libtorrent {
 

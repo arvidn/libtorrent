@@ -135,11 +135,12 @@ bool sleep_and_input(char* c, int sleep)
 	FD_ZERO(&set);
 	FD_SET(0, &set);
 	timeval tv = {sleep, 0};
-	if (select(1, &set, 0, 0, &tv) > 0)
-	{
-		*c = getc(stdin);
-		return true;
-	}
+//	if (select(1, &set, 0, 0, &tv) > 0)
+//	{
+//		*c = getc(stdin);
+//		return true;
+//	}
+	libtorrent::sleep(500);
 	return false;
 }
 
@@ -751,6 +752,11 @@ int main(int argc, char* argv[])
 
 	using namespace libtorrent;
 	session_settings settings;
+
+	{
+		mutex m;
+		mutex::scoped_lock l(m);
+	}
 
 	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
 	settings.auto_upload_slots_rate_based = true;

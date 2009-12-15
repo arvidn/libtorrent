@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
+#include <iostream>
 
 using boost::tuples::ignore;
 

@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include <fstream>
+#include <iostream>
 
 using namespace libtorrent;
 using boost::tuples::ignore;
@@ -399,7 +400,7 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 	p.ti = t;
 	p.save_path = "./tmp2_transfer_moved";
 	p.resume_data = &resume_data;
-	tor2 = ses2.add_torrent(p);
+	tor2 = ses2.add_torrent(p, ec);
 	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	tor2.prioritize_pieces(priorities);
 	std::cout << "resetting priorities" << std::endl;

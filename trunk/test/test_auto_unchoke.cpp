@@ -4,6 +4,7 @@
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/thread.hpp"
 #include <boost/tuple/tuple.hpp>
+#include <iostream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
