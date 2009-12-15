@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <fstream>
+#include <iostream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -77,7 +78,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 		ses.set_web_seed_proxy(ps);
 	}
 
-	torrent_handle th = ses.add_torrent(*torrent_file, "./tmp2_web_seed");
+	torrent_handle th = ses.add_torrent(*torrent_file, "./tmp2_web_seed", ec);
 
 	std::vector<announce_entry> empty;
 	th.replace_trackers(empty);
@@ -170,7 +171,7 @@ int test_main()
 	start_web_server(8000);
 
 	// calculate the hash for all pieces
-	set_piece_hashes(t, "./tmp1_web_seed");
+	set_piece_hashes(t, "./tmp1_web_seed", ec);
 	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(t.generate()));
 
 	for (int i = 0; i < 6; ++i)

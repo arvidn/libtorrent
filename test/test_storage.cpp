@@ -43,6 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include <iostream>
+#include <fstream>
 
 using namespace libtorrent;
 
@@ -732,7 +734,8 @@ void test_fastresume(std::string const& test_path)
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
 
-		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
+		error_code ec;
+		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t), ec)
 			, combine_path(test_path, "tmp1"), entry(), storage_mode_compact);
 
 		for (int i = 0; i < 10; ++i)
@@ -804,7 +807,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
 
-		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
+		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t, ec))
 			, combine_path(test_path, "tmp2"), entry()
 			, storage_mode_compact);
 

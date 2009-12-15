@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/kademlia/node.hpp" // for verify_message
 #include "libtorrent/bencode.hpp"
+#include <iostream>
 
 #include "test.hpp"
 

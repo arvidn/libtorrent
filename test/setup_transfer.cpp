@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <fstream>
-#include <sstream>
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
@@ -45,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/socket_io.hpp" // print_endpoint
 
 using namespace libtorrent;
 
@@ -55,10 +55,10 @@ void report_failure(char const* err, char const* file, int line)
 #ifdef TORRENT_WINDOWS
 	HANDLE console = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, 0, CONSOLE_TEXTMODE_BUFFER, 0);
 	SetConsoleTextAttribute(console, FOREGROUND_RED);
-	std::cerr << "\n**** " << file << ":" << line << " \"" << err << " ****\n\n";
+	fprintf(stderr, "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
 	CloseHandle(console);
 #else
-	std::cerr << "\033[31m" << file << ":" << line << " \"" << err << "\"\033[0m\n";
+	fprintf(stderr, "\033[31m %s:%d \"%s\"\033[0m\n", file, line, err);
 #endif
 	tests_failure = true;
 }
@@ -79,13 +79,13 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		if (predicate && predicate(a.get())) ret = true;
 		if (peer_disconnected_alert* p = dynamic_cast<peer_disconnected_alert*>(a.get()))
 		{
-			std::cerr << name << "(" << p->ip << "): " << p->message() << "\n";
+			fprintf(stderr, "%s(%s): %s\n", name, print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
 		else if (a->message() != "block downloading"
 			&& a->message() != "block finished"
 			&& a->message() != "piece finished")
 		{
-			std::cerr << name << ": " << a->message() << "\n";
+			fprintf(stderr, "%s: %s\n", name, p->message().c_str());
 		}
 		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) == 0 || allow_failed_fastresume);
 
@@ -202,7 +202,9 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_
 	std::back_insert_iterator<std::vector<char> > out(tmp);
 
 	bencode(out, t.generate());
-	return boost::intrusive_ptr<torrent_info>(new torrent_info(&tmp[0], tmp.size()));
+	error_code ec;
+	return boost::intrusive_ptr<torrent_info>(new torrent_info(
+		&tmp[0], tmp.size(), ec));
 }
 
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
@@ -254,7 +256,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 		}
 		char ih_hex[41];
 		to_hex((char const*)&t->info_hash()[0], 20, ih_hex);
-		std::cerr << "generated torrent: " << ih_hex << " ./tmp1" << suffix << "/temporary" << std::endl;
+		fprintf(stderr, "generated torrent: %s ./tmp1%s/temporary\n", ih_hex, suffix.c_str());
 	}
 	else
 	{
@@ -269,7 +271,8 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (p) param = *p;
 	param.ti = clone_ptr(t);
 	param.save_path = "./tmp1" + suffix;
-	torrent_handle tor1 = ses1->add_torrent(param);
+	error_code ec;
+	torrent_handle tor1 = ses1->add_torrent(param, ec);
 	tor1.super_seeding(super_seeding);
 	TEST_CHECK(!ses1->get_torrents().empty());
 	torrent_handle tor2;
@@ -282,7 +285,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	{
 		param.ti = clone_ptr(t);
 		param.save_path = "./tmp3" + suffix;
-		tor3 = ses3->add_torrent(param);
+		tor3 = ses3->add_torrent(param, ec);
 		TEST_CHECK(!ses3->get_torrents().empty());
 	}
 
@@ -297,7 +300,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	}
 	param.save_path = "./tmp2" + suffix;
 
-	tor2 = ses2->add_torrent(param);
+	tor2 = ses2->add_torrent(param, ec);
 	TEST_CHECK(!ses2->get_torrents().empty());
 
 	assert(ses1->get_torrents().size() == 1);
@@ -307,7 +310,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 
 	if (connect_peers)
 	{
-		std::cerr << "connecting peer\n";
+		fprintf(stderr, "connecting peer\n");
 		error_code ec;
 		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 			, ses2->listen_port()));

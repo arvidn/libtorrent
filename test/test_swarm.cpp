@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include <iostream>
 
 void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode = false, bool time_critical = false)
 {

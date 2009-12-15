@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/intrusive_ptr.hpp>
+#include <iostream>
 
 using namespace libtorrent;
 
@@ -145,7 +146,8 @@ void incoming_msearch(udp::endpoint const& from, char* buffer
 	p.incoming(buffer::const_interval(buffer, buffer + size), error);
 	if (error || !p.header_finished())
 	{
-		std::cerr << "*** malformed HTTP from " << from << std::endl;
+		std::cerr << "*** malformed HTTP from "
+			<< print_endpoint(from) << std::endl;
 		return;
 	}
 

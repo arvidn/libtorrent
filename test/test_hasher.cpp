@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/hasher.hpp"
 #include <boost/lexical_cast.hpp>
+#include "libtorrent/escape_string.hpp" // from_hex
 
 #include "test.hpp"
 
