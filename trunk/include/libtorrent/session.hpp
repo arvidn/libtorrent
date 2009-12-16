@@ -193,6 +193,7 @@ namespace libtorrent
 #endif
 		torrent_handle add_torrent(add_torrent_params const& params, error_code& ec);
 		
+#ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.14
 		TORRENT_DEPRECATED_PREFIX
@@ -227,6 +228,7 @@ namespace libtorrent
 			, bool paused = false
 			, storage_constructor_type sc = default_storage_constructor
 			, void* userdata = 0) TORRENT_DEPRECATED;
+#endif
 #endif
 
 		session_proxy abort() { return session_proxy(m_impl); }
