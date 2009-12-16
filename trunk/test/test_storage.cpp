@@ -735,9 +735,13 @@ void test_fastresume(std::string const& test_path)
 		ses.set_alert_mask(alert::all_categories);
 
 		error_code ec;
-		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t), ec)
-			, combine_path(test_path, "tmp1"), entry(), storage_mode_compact);
 
+		add_torrent_params p;
+		p.ti = new torrent_info(*t);
+		p.save_path = combine_path(test_path, "tmp1");
+		p.storage_mode = storage_mode_compact;
+		torrent_handle h = ses.add_torrent(p, ec);
+				
 		for (int i = 0; i < 10; ++i)
 		{
 			print_alerts(ses, "ses");
@@ -761,8 +765,15 @@ void test_fastresume(std::string const& test_path)
 	{
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
-		torrent_handle h = ses.add_torrent(t, combine_path(test_path, "tmp1"), resume
-			, storage_mode_compact);
+
+		add_torrent_params p;
+		p.ti = new torrent_info(*t);
+		p.save_path = combine_path(test_path, "tmp1");
+		p.storage_mode = storage_mode_compact;
+		std::vector<char> resume_buf;
+		bencode(std::back_inserter(resume_buf), resume);
+		p.resume_data = &resume_buf;
+		torrent_handle h = ses.add_torrent(p, ec);
 	
 		std::auto_ptr<alert> a = ses.pop_alert();
 		ptime end = time_now() + seconds(20);
@@ -807,9 +818,12 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
 
-		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t, ec))
-			, combine_path(test_path, "tmp2"), entry()
-			, storage_mode_compact);
+
+		add_torrent_params p;
+		p.ti = new torrent_info(*t);
+		p.save_path = combine_path(test_path, "tmp2");
+		p.storage_mode = storage_mode_compact;
+		torrent_handle h = ses.add_torrent(p, ec);
 
 		h.rename_file(0, "testing_renamed_files");
 		std::cout << "renaming file" << std::endl;
@@ -838,9 +852,16 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	{
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
-		torrent_handle h = ses.add_torrent(t, combine_path(test_path, "tmp2"), resume
-			, storage_mode_compact);
-	
+
+		add_torrent_params p;
+		p.ti = new torrent_info(*t);
+		p.save_path = combine_path(test_path, "tmp2");
+		p.storage_mode = storage_mode_compact;
+		std::vector<char> resume_buf;
+		bencode(std::back_inserter(resume_buf), resume);
+		p.resume_data = &resume_buf;
+		torrent_handle h = ses.add_torrent(p, ec);
+
 		for (int i = 0; i < 5; ++i)
 		{
 			print_alerts(ses, "ses");

@@ -78,7 +78,11 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 		ses.set_web_seed_proxy(ps);
 	}
 
-	torrent_handle th = ses.add_torrent(*torrent_file, "./tmp2_web_seed", ec);
+	add_torrent_params p;
+	p.ti = torrent_file;
+	p.save_path = "./tmp2_web_seed";
+	p.storage_mode = storage_mode_compact;
+	torrent_handle th = ses.add_torrent(p, ec);
 
 	std::vector<announce_entry> empty;
 	th.replace_trackers(empty);
