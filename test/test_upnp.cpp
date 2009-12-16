@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/connection_queue.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp"

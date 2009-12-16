@@ -85,7 +85,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 			&& a->message() != "block finished"
 			&& a->message() != "piece finished")
 		{
-			fprintf(stderr, "%s: %s\n", name, p->message().c_str());
+			fprintf(stderr, "%s: %s\n", name, a->message().c_str());
 		}
 		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) == 0 || allow_failed_fastresume);
 

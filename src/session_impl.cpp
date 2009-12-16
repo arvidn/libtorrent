@@ -592,9 +592,9 @@ namespace aux {
 		save_struct(e["settings"], &m_settings, session_settings_map
 			, sizeof(session_settings_map)/sizeof(session_settings_map[0]));
 #ifndef TORRENT_DISABLE_DHT
-		save_struct(e["dht"], &dht_settings(), dht_settings_map
+		save_struct(e["dht"], &m_dht_settings, dht_settings_map
 			, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
-		save_struct(e["dht proxy"], &dht_proxy(), proxy_settings_map
+		save_struct(e["dht proxy"], &m_dht_proxy, proxy_settings_map
 			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
 #endif
 #if TORRENT_USE_I2P
@@ -602,15 +602,15 @@ namespace aux {
 			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
 #endif
 #ifndef TORRENT_DISABLE_ENCRYPTION
-		save_struct(e["encryption"], &get_pe_settings(), pe_settings_map
+		save_struct(e["encryption"], &m_pe_settings, pe_settings_map
 			, sizeof(pe_settings_map)/sizeof(pe_settings_map[0]));
 #endif
 
-		save_struct(e["peer proxy"], &peer_proxy(), proxy_settings_map
+		save_struct(e["peer proxy"], &m_peer_proxy, proxy_settings_map
 			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-		save_struct(e["web proxy"], &web_seed_proxy(), proxy_settings_map
+		save_struct(e["web proxy"], &m_web_seed_proxy, proxy_settings_map
 			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-		save_struct(e["tracker proxy"], &tracker_proxy(), proxy_settings_map
+		save_struct(e["tracker proxy"], &m_tracker_proxy, proxy_settings_map
 			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
 	}
 	
