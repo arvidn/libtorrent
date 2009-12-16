@@ -1136,6 +1136,30 @@ namespace libtorrent
 		return ret;
 	}
 
+	// this doesn't modify the read cache, it only
+	// checks to see if the given read request can
+	// be fully satisfied from the given cached piece
+	// this is similar to copy_from_piece() but it
+	// doesn't do anything but determining if it's a
+	// cache hit or not
+	bool disk_io_thread::is_cache_hit(cache_t::iterator p
+		, disk_io_job const& j, mutex::scoped_lock& l)
+	{
+		int block = j.offset / m_block_size;
+		int block_offset = j.offset & (m_block_size-1);
+		int size = j.buffer_size;
+		int min_blocks_to_read = block_offset > 0 ? 2 : 1;
+		TORRENT_ASSERT(size <= m_block_size);
+		int start_block = block;
+		// if we have to read more than one block, and
+		// the first block is there, make sure we test
+		// for the second block
+		if (p->blocks[start_block].buf != 0 && min_blocks_to_read > 1)
+			++start_block;
+
+		return p->blocks[start_block].buf != 0;
+	}
+
 	int disk_io_thread::copy_from_piece(cache_t::iterator p, bool& hit
 		, disk_io_job const& j, mutex::scoped_lock& l)
 	{
@@ -1406,6 +1430,29 @@ namespace libtorrent
 							best_job = i;
 							best_score = 0;
 							break;
+						}
+
+						// at this point the operation we're looking
+						// at is a read operation. If this read operation
+						// can be fully satisfied by the read cache, handle
+						// it immediately
+						if (m_settings.use_read_cache)
+						{
+							// unfortunately we need to lock the cache
+							// if the cache querying function would be
+							// made asyncronous, this would not be
+							// necessary anymore
+							mutex::scoped_lock l(m_piece_mutex);
+							cache_t::iterator p
+								= find_cached_piece(m_read_pieces, *i, l);
+					
+							// if it's a cache hit, process the job immediately
+							if (p != m_read_pieces.end() && is_cache_hit(p, *i, l))
+							{
+								best_job = i;
+								best_score = 0;
+								break;
+							}
 						}
 
 						// we only need to query for physical offset

@@ -247,6 +247,17 @@ void run_elevator_test()
 		boost::intrusive_ptr<piece_manager> pm(new piece_manager(boost::shared_ptr<void>(), ti, ""
 			, fp, dio, &create_test_storage, storage_mode_sparse));
 
+		// we must disable the read cache in order to
+		// verify that the elevator algorithm works.
+		// since any read cache hit will circumvent
+		// the elevator order
+		session_settings set;
+		set.use_read_cache = false;
+		disk_io_job j;
+		j.buffer = (char*)&set;
+		j.action = disk_io_job::update_settings;
+		dio.add_job(j);
+
 		// test the elevator going up
 		add_job_up(dio, 0, pm);
 
