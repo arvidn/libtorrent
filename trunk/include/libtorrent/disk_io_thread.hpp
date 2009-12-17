@@ -328,7 +328,7 @@ namespace libtorrent
 		cache_t::iterator find_cached_piece(
 			cache_t& cache, disk_io_job const& j
 			, mutex::scoped_lock& l);
-		bool disk_io_thread::is_cache_hit(cache_t::iterator p
+		bool is_cache_hit(cache_t::iterator p
 			, disk_io_job const& j, mutex::scoped_lock& l);
 		int copy_from_piece(cache_t::iterator p, bool& hit
 			, disk_io_job const& j, mutex::scoped_lock& l);
