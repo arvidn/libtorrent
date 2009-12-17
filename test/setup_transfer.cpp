@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/http_parser.hpp"
+#include "libtorrent/thread.hpp"
 
 #include "libtorrent/thread.hpp"
 #include <boost/tuple/tuple.hpp>
@@ -152,8 +153,9 @@ void start_proxy(int port, int proxy_type)
 		"SERVER=%s %s"
 		, port, type, auth);
 
+	fprintf(stderr, "starting delegated proxy...\n");
 	system(buf);
-	test_sleep(1000);
+	fprintf(stderr, "launched\n");
 }
 
 using namespace libtorrent;
@@ -332,17 +334,19 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 }
 
 
-socket_acceptor* web_socket = 0;
+boost::asio::io_service* web_ios = 0;
 boost::shared_ptr<libtorrent::thread> web_server;
+libtorrent::mutex web_lock;
+libtorrent::condition web_initialized;
 
 void stop_web_server(int port)
 {
-	if (web_server && web_socket)
+	if (web_server && web_ios)
 	{
-		web_socket->close();
+		web_ios->stop();
 		web_server->join();
 		web_server.reset();
-		web_socket = 0;
+		web_ios = 0;
 	}
 }
 
@@ -352,7 +356,18 @@ void start_web_server(int port, bool ssl)
 {
 	stop_web_server(port);
 
+	{
+		mutex::scoped_lock l(web_lock);
+		web_initialized.clear(l);
+	}
+
+	fprintf(stderr, "starting web server on port %d\n", port);
 	web_server.reset(new libtorrent::thread(boost::bind(&web_server_thread, port, ssl)));
+
+	{
+		mutex::scoped_lock l(web_lock);
+		web_initialized.wait(l);
+	}
 
 	// create this directory so that the path
 	// "relative/../test_file" can resolve
@@ -377,37 +392,69 @@ void send_response(stream_socket& s, error_code& ec
 	write(s, boost::asio::buffer(msg, pkt_len), boost::asio::transfer_all(), ec);
 }
 
+bool accept_done = false;
+
+void on_accept(error_code const& ec)
+{
+	if (ec)
+	{
+		fprintf(stderr, "Error accepting socket: %s\n", ec.message().c_str());
+		accept_done = false;
+	}
+	else
+	{
+		fprintf(stderr, "accepting connection\n");
+		accept_done = true;
+	}
+}
+
 void web_server_thread(int port, bool ssl)
 {
 	// TODO: support SSL
 
 	io_service ios;
 	socket_acceptor acceptor(ios);
-	web_socket = &acceptor;
 	error_code ec;
 	acceptor.open(tcp::v4(), ec);
 	if (ec)
 	{
 		fprintf(stderr, "Error opening listen socket: %s\n", ec.message().c_str());
+		mutex::scoped_lock l(web_lock);
+		web_initialized.signal(l);
 		return;
 	}
 	acceptor.set_option(socket_acceptor::reuse_address(true), ec);
 	if (ec)
 	{
 		fprintf(stderr, "Error setting listen socket to reuse addr: %s\n", ec.message().c_str());
+		mutex::scoped_lock l(web_lock);
+		web_initialized.signal(l);
 		return;
 	}
 	acceptor.bind(tcp::endpoint(address_v4::any(), port), ec);
 	if (ec)
 	{
-		fprintf(stderr, "Error binding listen socket: %s\n", ec.message().c_str());
+		fprintf(stderr, "Error binding listen socket to port %d: %s\n", port, ec.message().c_str());
+		mutex::scoped_lock l(web_lock);
+		web_initialized.signal(l);
 		return;
 	}
 	acceptor.listen(10, ec);
 	if (ec)
 	{
 		fprintf(stderr, "Error listening on socket: %s\n", ec.message().c_str());
+		mutex::scoped_lock l(web_lock);
+		web_initialized.signal(l);
 		return;
+	}
+
+	web_ios = &ios;
+
+	fprintf(stderr, "web server initialized on port %d\n", port);
+
+	{
+		mutex::scoped_lock l(web_lock);
+		web_initialized.signal(l);
 	}
 
 	char buf[10000];
@@ -419,12 +466,17 @@ void web_server_thread(int port, bool ssl)
 		s.close(ec);
 
 		len = 0;
-		acceptor.accept(s, ec);
-		if (ec)
+		accept_done = false;
+		acceptor.async_accept(s, &on_accept);
+		ios.reset();
+		ios.run_one();
+		if (!accept_done)
 		{
-			fprintf(stderr, "accept failed: %s\n", ec.message().c_str());
+			fprintf(stderr, "accept failed\n");
 			return;
 		}
+
+		if (!s.is_open()) continue;
 
 		http_parser p;
 		bool failed = false;
@@ -434,7 +486,7 @@ void web_server_thread(int port, bool ssl)
 			size_t received = s.read_some(boost::asio::buffer(&buf[len], sizeof(buf) - len), ec);
 			if (ec || received <= 0)
 			{
-				fprintf(stderr, "read failed: %s\n", ec.message().c_str());
+				fprintf(stderr, "read failed: %s received: %d\n", ec.message().c_str(), int(received));
 				failed = true;
 				break;
 			}
@@ -513,6 +565,7 @@ void web_server_thread(int port, bool ssl)
 			write(s, boost::asio::buffer(&file_buf[0], file_buf.size()), boost::asio::transfer_all(), ec);
 		}
 	}
+	fprintf(stderr, "exiting web server thread\n");
 }
 
 
