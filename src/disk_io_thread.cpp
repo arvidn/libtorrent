@@ -1143,7 +1143,7 @@ namespace libtorrent
 	// doesn't do anything but determining if it's a
 	// cache hit or not
 	bool disk_io_thread::is_cache_hit(cache_t::iterator p
-		, disk_io_job const& j, mutex::scoped_lock& l)
+		, disk_io_job const& j, mutex_t::scoped_lock& l)
 	{
 		int block = j.offset / m_block_size;
 		int block_offset = j.offset & (m_block_size-1);
@@ -1478,7 +1478,7 @@ namespace libtorrent
 							// if the cache querying function would be
 							// made asyncronous, this would not be
 							// necessary anymore
-							mutex::scoped_lock l(m_piece_mutex);
+							mutex_t::scoped_lock l(m_piece_mutex);
 							cache_t::iterator p
 								= find_cached_piece(m_read_pieces, *i, l);
 					
