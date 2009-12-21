@@ -392,7 +392,7 @@ namespace libtorrent
 		virtual void tracker_request_timed_out(
 			tracker_request const& r);
 		virtual void tracker_request_error(tracker_request const& r
-			, int response_code, const std::string& str);
+			, int response_code, const std::string& str, int retry_interval);
 		virtual void tracker_warning(tracker_request const& req
 			, std::string const& msg);
 		virtual void tracker_scrape_response(tracker_request const& req

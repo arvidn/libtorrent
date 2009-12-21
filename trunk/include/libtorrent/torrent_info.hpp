@@ -140,7 +140,7 @@ namespace libtorrent
 			min_announce = min_time();
 		}
 
-		void failed();
+		void failed(int retry_interval = 0);
 
 		bool can_announce(ptime now) const
 		{

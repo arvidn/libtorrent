@@ -361,11 +361,14 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = requester();
 		if (!cb) return;
 
+		int interval = e.dict_find_int_value("interval", 1800);
+		int min_interval = e.dict_find_int_value("min interval", 60);
+
 		// parse the response
 		lazy_entry const* failure = e.dict_find_string("failure reason");
 		if (failure)
 		{
-			fail(status_code, failure->string_value().c_str());
+			fail(status_code, failure->string_value().c_str(), interval, min_interval);
 			return;
 		}
 
@@ -382,14 +385,16 @@ namespace libtorrent
 			lazy_entry const* files = e.dict_find_dict("files");
 			if (files == 0)
 			{
-				fail(-1, "invalid or missing 'files' entry in scrape response");
+				fail(-1, "invalid or missing 'files' entry in scrape response"
+					, interval, min_interval);
 				return;
 			}
 
 			lazy_entry const* scrape_data = files->dict_find_dict(ih.c_str());
 			if (scrape_data == 0)
 			{
-				fail(-1, "missing or invalid info-hash entry in scrape response");
+				fail(-1, "missing or invalid info-hash entry in scrape response"
+					, interval, min_interval);
 				return;
 			}
 			int complete = scrape_data->dict_find_int_value("complete", -1);
@@ -399,9 +404,6 @@ namespace libtorrent
 				, incomplete, downloaded);
 			return;
 		}
-
-		int interval = e.dict_find_int_value("interval", 1800);
-		int min_interval = e.dict_find_int_value("min interval", 60);
 
 		lazy_entry const* peers_ent = e.dict_find("peers");
 		if (peers_ent && peers_ent->type() == lazy_entry::string_t)
@@ -465,7 +467,8 @@ namespace libtorrent
 
 		if (peers_ent == 0 && ipv6_peers == 0)
 		{
-			fail(-1, "missing 'peers' and 'peers6' entry in tracker response");
+			fail(-1, "missing 'peers' and 'peers6' entry in tracker response"
+				, interval, min_interval);
 			return;
 		}
 

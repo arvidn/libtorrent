@@ -5978,7 +5978,8 @@ namespace libtorrent
 	// the tracker as a failure and not retry
 	// it anymore
 	void torrent::tracker_request_error(tracker_request const& r
-		, int response_code, const std::string& str)
+		, int response_code, const std::string& str
+		, int retry_interval)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
@@ -5992,7 +5993,7 @@ namespace libtorrent
 			announce_entry* ae = find_tracker(r);
 			if (ae)
 			{
-				ae->failed();
+				ae->failed(retry_interval);
 				int tracker_index = ae - &m_trackers[0];
 				deprioritize_tracker(tracker_index);
 			}

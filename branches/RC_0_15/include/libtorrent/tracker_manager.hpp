@@ -139,7 +139,8 @@ namespace libtorrent
 		virtual void tracker_request_error(
 			tracker_request const& req
 			, int response_code
-			, const std::string& description) = 0;
+			, const std::string& description
+			, int retry_interval) = 0;
 
 		tcp::endpoint m_tracker_address;
 
@@ -200,7 +201,7 @@ namespace libtorrent
 		tracker_request const& tracker_req() const { return m_req; }
 
 		void fail_disp(int code, std::string const& msg) { fail(code, msg.c_str()); }
-		void fail(int code, char const* msg);
+		void fail(int code, char const* msg, int interval = 0, int min_interval = 0);
 		void fail_timeout();
 		virtual void start() = 0;
 		virtual void close();
