@@ -143,11 +143,12 @@ namespace libtorrent
 			min_announce = min_time();
 		}
 
-		void failed()
+		void failed(int retry_interval = 0)
 		{
 			++fails;
-			int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails) * tracker_retry_delay_min
-				, int(tracker_retry_delay_max));
+			int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails)
+				* tracker_retry_delay_min, int(tracker_retry_delay_max));
+			delay = (std::max)(delay, retry_interval);
 			next_announce = time_now() + seconds(delay);
 			updating = false;
 		}
