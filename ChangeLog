@@ -83,6 +83,7 @@
 	* added torrent_info::remap_files()
 	* support min_interval tracker extension
 	* added session saving and loading functions
+	* added support for min-interval in tracker responses
 
 release 0.14.8
 
