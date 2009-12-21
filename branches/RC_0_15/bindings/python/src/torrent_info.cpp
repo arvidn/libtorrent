@@ -83,6 +83,17 @@ namespace
        return result;
     }
 
+    bool get_verified(announce_entry const& ae)
+    { return ae.verified; }
+    bool get_updating(announce_entry const& ae)
+    { return ae.updating; }
+    bool get_start_sent(announce_entry const& ae)
+    { return ae.start_sent; }
+    bool get_complete_sent(announce_entry const& ae)
+    { return ae.complete_sent; }
+    bool get_send_stats(announce_entry const& ae)
+    { return ae.send_stats; }
+
 } // namespace unnamed
 
 void bind_torrent_info()
@@ -161,5 +172,19 @@ void bind_torrent_info()
     class_<announce_entry>("announce_entry", init<std::string const&>())
         .def_readwrite("url", &announce_entry::url)
         .def_readwrite("tier", &announce_entry::tier)
+        .add_property("fail_limit", &announce_entry::fail_limit)
+        .add_property("fails", &announce_entry::fails)
+        .add_property("source", &announce_entry::source)
+        .add_property("verified", &get_verified)
+        .add_property("updating", &get_updating)
+        .add_property("start_sent", &get_start_sent)
+        .add_property("complete_sent", &get_complete_sent)
+        .add_property("send_stats", &get_send_stats)
+
+        .def("reset", &announce_entry::reset)
+        .def("failed", &announce_entry::failed, arg("retry_interval") = 0)
+        .def("can_announce", &announce_entry::can_announce)
+        .def("is_working", &announce_entry::is_working)
+        .def("trim", &announce_entry::trim)
         ;
 }

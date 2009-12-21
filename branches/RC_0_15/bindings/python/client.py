@@ -224,7 +224,7 @@ def main():
     ses.set_upload_rate_limit(int(options.max_upload_rate))
     ses.listen_on(options.port, options.port + 10)
     ses.set_settings(settings)
-    ses.set_severity_level(lt.alert.severity_levels.info)
+#   ses.set_severity_level(lt.alert.severity_levels.info)
     ses.add_extension(lt.create_ut_pex_plugin)
     ses.add_extension(lt.create_ut_metadata_plugin)
     ses.add_extension(lt.create_metadata_plugin)

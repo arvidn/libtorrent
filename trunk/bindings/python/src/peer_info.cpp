@@ -122,8 +122,10 @@ void bind_peer_info()
 
     // read/write state
     pi.attr("bw_idle") = (int)peer_info::bw_idle;
+#ifndef TORRENT_NO_DEPRECATE
     pi.attr("bw_torrent") = (int)peer_info::bw_torrent;
     pi.attr("bw_global") = (int)peer_info::bw_global;
+#endif
     pi.attr("bw_network") = (int)peer_info::bw_network;
 }
 
