@@ -194,7 +194,9 @@ void bind_alert()
         "file_error_alert", no_init
     )
         .def_readonly("file", &file_error_alert::file)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &file_error_alert::msg)
+#endif
         ;
 
     class_<metadata_failed_alert, bases<torrent_alert>, noncopyable>(
@@ -223,7 +225,9 @@ void bind_alert()
     )
         .def_readonly("mapping", &portmap_error_alert::mapping)
         .def_readonly("type", &portmap_error_alert::type)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &portmap_error_alert::msg)
+#endif
         ;
 
     class_<portmap_alert, bases<alert>, noncopyable>(
@@ -238,13 +242,17 @@ void bind_alert()
         "portmap_log_alert", no_init
     )
         .def_readonly("type", &portmap_log_alert::type)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &portmap_log_alert::msg)
+#endif
         ;
 
     class_<fastresume_rejected_alert, bases<torrent_alert>, noncopyable>(
         "fastresume_rejected_alert", no_init
     )
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &fastresume_rejected_alert::msg)
+#endif
         ;
 
     class_<peer_blocked_alert, bases<alert>, noncopyable>(
@@ -343,7 +351,9 @@ void bind_alert()
     class_<peer_disconnected_alert, bases<peer_alert>, noncopyable>(
         "peer_disconnected_alert", no_init
     )
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &peer_disconnected_alert::msg)
+#endif
         ;
 
     class_<request_dropped_alert, bases<peer_alert>, noncopyable>(
@@ -370,13 +380,17 @@ void bind_alert()
     class_<torrent_delete_failed_alert, bases<torrent_alert>, noncopyable>(
         "torrent_delete_failed_alert", no_init
     )
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &torrent_delete_failed_alert::msg)
+#endif
         ;
 
     class_<save_resume_data_failed_alert, bases<torrent_alert>, noncopyable>(
         "save_resume_data_failed_alert", no_init
     )
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &save_resume_data_failed_alert::msg)
+#endif
         ;
 
     class_<performance_alert, bases<torrent_alert>, noncopyable>(
