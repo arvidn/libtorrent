@@ -384,10 +384,10 @@ void send_response(stream_socket& s, error_code& ec
 	int pkt_len = snprintf(msg, sizeof(msg), "HTTP/1.0 %d %s\r\n"
 		"content-length: %d\r\n"
 		"connection: close\r\n"
-		"%s%s"
+		"%s"
 		"\r\n"
 		, code, status_message, len
-		, extra_header ? extra_header : "", extra_header ? "\r\n" : "");
+		, extra_header ? extra_header : "");
 	fprintf(stderr, ">> %s\n", msg);
 	write(s, boost::asio::buffer(msg, pkt_len), boost::asio::transfer_all(), ec);
 }
@@ -459,13 +459,15 @@ void web_server_thread(int port, bool ssl)
 
 	char buf[10000];
 	int len = 0;
+	int offset = 0;
 	stream_socket s(ios);
-	
+
 	for (;;)
 	{
 		s.close(ec);
 
 		len = 0;
+		offset = 0;
 		accept_done = false;
 		acceptor.async_accept(s, &on_accept);
 		ios.reset();
@@ -481,89 +483,121 @@ void web_server_thread(int port, bool ssl)
 		http_parser p;
 		bool failed = false;
 
-		while (!p.finished())
+		do
 		{
-			size_t received = s.read_some(boost::asio::buffer(&buf[len], sizeof(buf) - len), ec);
-			if (ec || received <= 0)
+			p.reset();
+			bool error = false;
+
+			p.incoming(buffer::const_interval(buf + offset, buf + len), error);
+
+			TEST_CHECK(error == false);
+			if (error)
 			{
-				fprintf(stderr, "read failed: %s received: %d\n", ec.message().c_str(), int(received));
+				fprintf(stderr, "parse failed\n");
 				failed = true;
 				break;
 			}
-			len += received;
 
-			bool error = false;
-			p.incoming(buffer::const_interval(buf, buf + len), error);
-		}
+			while (!p.finished())
+			{
+				size_t received = s.read_some(boost::asio::buffer(&buf[len]
+					, sizeof(buf) - len), ec);
 
-		if (failed) continue;
+				if (ec || received <= 0)
+				{
+					fprintf(stderr, "read failed: %s received: %d\n", ec.message().c_str(), int(received));
+					failed = true;
+					break;
+				}
+				len += received;
+	
+	
+				p.incoming(buffer::const_interval(buf + offset, buf + len), error);
+				TEST_CHECK(error == false);
+				if (error)
+				{
+					fprintf(stderr, "parse failed\n");
+					failed = true;
+					break;
+				}
+			}
+			fprintf(stderr, "%s", std::string(buf + offset, p.body_start()).c_str());
 
-		if (p.method() != "get" && p.method() != "post")
-		{
+			if (failed) break;
+
+			if (p.method() != "get" && p.method() != "post")
+			{
 				fprintf(stderr, "incorrect method: %s\n", p.method().c_str());
+				break;
+			}
+
+			std::string path = p.path();
+
+			if (path == "/redirect")
+			{
+				send_response(s, ec, 301, "Moved Permanently", "Location: /test_file", 0);
+				break;
+			}
+
+			if (path == "/infinite_redirect")
+			{
+				send_response(s, ec, 301, "Moved Permanently", "Location: /infinite_redirect", 0);
+				break;
+			}
+
+			if (path == "/relative/redirect")
+			{
+				send_response(s, ec, 301, "Moved Permanently", "Location: ../test_file", 0);
+				break;
+			}
+
+			fprintf(stderr, ">> serving file %s\n", path.c_str());
+			std::vector<char> file_buf;
+			// remove the / from the path
+			path = path.substr(1);
+			int res = load_file(path, file_buf);
+			if (res == -1)
+			{
+				send_response(s, ec, 404, "Not Found", 0, 0);
 				continue;
-		}
+			}
 
-		std::string path = p.path();
+			if (res != 0)
+			{
+				// this means the file was either too big or couldn't be read
+				send_response(s, ec, 503, "Internal Error", 0, 0);
+				continue;
+			}
 
-		if (path == "/redirect")
-		{
-			send_response(s, ec, 301, "Moved Permanently", "Location: /test_file", 0);
-			continue;
-		}
+			// serve file
 
-		if (path == "/infinite_redirect")
-		{
-			send_response(s, ec, 301, "Moved Permanently", "Location: /infinite_redirect", 0);
-			continue;
-		}
+			char const* extra_header = 0;
 
-		if (path == "/relative/redirect")
-		{
-			send_response(s, ec, 301, "Moved Permanently", "Location: ../test_file", 0);
-			continue;
-		}
+			if (extension(path) == ".gz")
+			{
+				extra_header = "Content-Encoding: gzip\r\n";
+			}
 
-		fprintf(stderr, ">> serving file %s\n", path.c_str());
-		std::vector<char> file_buf;
-		// remove the / from the path
-		path = path.substr(1);
-		int res = load_file(path, file_buf);
-		if (res == -1)
-		{
-			send_response(s, ec, 404, "Not Found", 0, 0);
-			continue;
-		}
-
-		if (res != 0)
-		{
-			// this means the file was either too big or couldn't be read
-			send_response(s, ec, 503, "Internal Error", 0, 0);
-			continue;
-		}
-		
-		// serve file
-
-		char const* extra_header = 0;
-
-		if (extension(path) == ".gz")
-		{
-			extra_header = "Content-Encoding: gzip";
-		}
-
-		if (!p.header("range").empty())
-		{
-			std::string range = p.header("range");
-			int start, end;
-			sscanf(range.c_str(), "bytes=%d-%d", &start, &end);
-			send_response(s, ec, 206, "Partial", extra_header, end - start + 1);
-			write(s, boost::asio::buffer(&file_buf[0] + start, end - start + 1), boost::asio::transfer_all(), ec);
-		}
-		else
-		{
-			send_response(s, ec, 200, "OK", extra_header, file_buf.size());
-			write(s, boost::asio::buffer(&file_buf[0], file_buf.size()), boost::asio::transfer_all(), ec);
-		}
+			if (!p.header("range").empty())
+			{
+				std::string range = p.header("range");
+				int start, end;
+				sscanf(range.c_str(), "bytes=%d-%d", &start, &end);
+				char eh[200];
+				snprintf(eh, sizeof(eh), "%sContent-Range: bytes %d-%d\r\n"
+						, extra_header ? extra_header : "", start, end);
+				send_response(s, ec, 206, "Partial", eh, end - start + 1);
+				write(s, boost::asio::buffer(&file_buf[0] + start, end - start + 1), boost::asio::transfer_all(), ec);
+				fprintf(stderr, "send %d bytes of payload\n", end - start + 1);
+			}
+			else
+			{
+				send_response(s, ec, 200, "OK", extra_header, file_buf.size());
+				write(s, boost::asio::buffer(&file_buf[0], file_buf.size()), boost::asio::transfer_all(), ec);
+			}
+			offset += p.body_start() + p.content_length();
+			fprintf(stderr, "%d bytes left in receive buffer. offset: %d\n", len - offset, offset);
+		} while (offset < len);
 	}
 	fprintf(stderr, "exiting web server thread\n");
 }
