@@ -1819,8 +1819,10 @@ namespace libtorrent
 					{
 						if (cache_block(j, handler, l) < 0)
 						{
+							l.unlock();
 							file::iovec_t iov = {j.buffer, j.buffer_size};
 							ret = j.storage->write_impl(&iov, j.piece, j.offset, 1);
+							l.lock();
 							if (ret < 0)
 							{
 								test_error(j);
