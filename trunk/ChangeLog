@@ -84,6 +84,8 @@
 	* support min_interval tracker extension
 	* added session saving and loading functions
 	* added support for min-interval in tracker responses
+	* only keeps one outstanding duplicate request per peer
+	  reduces waste download, specifically when streaming
 
 release 0.14.8
 

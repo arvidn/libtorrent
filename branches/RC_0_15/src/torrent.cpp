@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/peer.hpp"
+#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/http_seed_connection.hpp"
@@ -2196,7 +2197,7 @@ namespace libtorrent
 		{
 			peer_connection* p = *i;
 			std::vector<pending_block> const& dq = p->download_queue();
-			std::vector<piece_block> const& rq = p->request_queue();
+			std::vector<pending_block> const& rq = p->request_queue();
 			for (std::vector<pending_block>::const_iterator k = dq.begin()
 				, end(dq.end()); k != end; ++k)
 			{
@@ -2204,11 +2205,11 @@ namespace libtorrent
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
 					, (piece_picker::piece_state_t)p->peer_speed());
 			}
-			for (std::vector<piece_block>::const_iterator k = rq.begin()
+			for (std::vector<pending_block>::const_iterator k = rq.begin()
 				, end(rq.end()); k != end; ++k)
 			{
-				if (k->piece_index != index) continue;
-				m_picker->mark_as_downloading(*k, p->peer_info_struct()
+				if (k->block.piece_index != index) continue;
+				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
 					, (piece_picker::piece_state_t)p->peer_speed());
 			}
 		}
@@ -4565,9 +4566,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_ses.has_peer(*i));
 #endif
 			peer_connection const& p = *(*i);
-			for (std::vector<piece_block>::const_iterator i = p.request_queue().begin()
+			for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
 				, end(p.request_queue().end()); i != end; ++i)
-				++num_requests[*i];
+				++num_requests[i->block];
 			for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
 				, end(p.download_queue().end()); i != end; ++i)
 				if (!i->not_wanted && !i->timed_out) ++num_requests[i->block];
@@ -5416,19 +5417,19 @@ namespace libtorrent
 					, backup1, backup2, 1, 0, c.peer_info_struct()
 					, ignore, piece_picker::fast, 0);
 
-				std::vector<piece_block> const& rq = c.request_queue();
+				std::vector<pending_block> const& rq = c.request_queue();
 
 				bool added_request = false;
 
-				if (!interesting_blocks.empty() && std::find(rq.begin(), rq.end()
-					, interesting_blocks.front()) != rq.end())
+				if (!interesting_blocks.empty() && std::find_if(rq.begin(), rq.end()
+					, has_block(interesting_blocks.front())) != rq.end())
 				{
 					c.make_time_critical(interesting_blocks.front());
 					added_request = true;
 				}
 				else if (!interesting_blocks.empty())
 				{
-					c.add_request(interesting_blocks.front(), true);
+					c.add_request(interesting_blocks.front(), peer_connection::req_time_critical);
 					added_request = true;
 				}
 

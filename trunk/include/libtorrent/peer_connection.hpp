@@ -97,7 +97,8 @@ namespace libtorrent
 	struct pending_block
 	{
 		pending_block(piece_block const& b)
-			: skipped(0), not_wanted(false), timed_out(false), block(b) {}
+			: skipped(0), not_wanted(false), timed_out(false)
+			, busy(false), block(b) {}
 
 		// the number of times the request
 		// has been skipped by out of order blocks
@@ -111,6 +112,12 @@ namespace libtorrent
 		// unexpectedly from the peer
 		bool not_wanted:1;
 		bool timed_out:1;
+		
+		// the busy flag is set if the block was
+		// requested from another peer when this
+		// request was queued. We only allow a single
+		// busy request at a time in each peer's queue
+		bool busy:1;
 
 		piece_block block;
 
@@ -275,7 +282,7 @@ namespace libtorrent
 		bool has_piece(int i) const;
 
 		std::vector<pending_block> const& download_queue() const;
-		std::vector<piece_block> const& request_queue() const;
+		std::vector<pending_block> const& request_queue() const;
 		std::vector<peer_request> const& upload_queue() const;
 
 		// estimate of how long it will take until we have
@@ -440,7 +447,8 @@ namespace libtorrent
 
 		// adds a block to the request queue
 		// returns true if successful, false otherwise
-		bool add_request(piece_block const& b, bool time_critical = false);
+		enum flags_t { req_time_critical = 1, req_busy = 2 };
+		bool add_request(piece_block const& b, int flags = 0);
 
 		// clears the request queue and sends cancels for all messages
 		// in the download queue
@@ -766,7 +774,7 @@ namespace libtorrent
 
 		// the blocks we have reserved in the piece
 		// picker and will request from this peer.
-		std::vector<piece_block> m_request_queue;
+		std::vector<pending_block> m_request_queue;
 		
 		// the queue of blocks we have requested
 		// from this peer
