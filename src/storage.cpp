@@ -2715,7 +2715,7 @@ ret:
 
 		if (m_free_slots.empty())
 		{
-			allocate_slots(1);
+			allocate_slots_impl(1, lock);
 			TORRENT_ASSERT(!m_free_slots.empty());
 		}
 
@@ -2736,7 +2736,7 @@ ret:
 			if (*iter == m_files.num_pieces() - 1 && piece_index != *iter)
 			{
 				if (m_free_slots.size() == 1)
-					allocate_slots(1);
+					allocate_slots_impl(1, lock);
 				TORRENT_ASSERT(m_free_slots.size() > 1);
 				// assumes that all allocated slots
 				// are put at the end of the free_slots vector
@@ -2807,9 +2807,9 @@ ret:
 		return slot_index;
 	}
 
-	bool piece_manager::allocate_slots(int num_slots, bool abort_on_disk)
+	bool piece_manager::allocate_slots_impl(int num_slots, mutex::scoped_lock& l
+		, bool abort_on_disk)
 	{
-		mutex::scoped_lock lock(m_mutex);
 		TORRENT_ASSERT(num_slots > 0);
 
 		INVARIANT_CHECK;
