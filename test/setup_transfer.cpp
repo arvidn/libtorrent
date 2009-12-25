@@ -166,6 +166,7 @@ void start_proxy(int port, int proxy_type)
 	fprintf(stderr, "starting delegated proxy...\n");
 	system(buf);
 	fprintf(stderr, "launched\n");
+	test_sleep(1000);
 }
 
 using namespace libtorrent;
@@ -385,7 +386,6 @@ void send_response(stream_socket& s, error_code& ec
 	char msg[400];
 	int pkt_len = snprintf(msg, sizeof(msg), "HTTP/1.0 %d %s\r\n"
 		"content-length: %d\r\n"
-		"connection: close\r\n"
 		"%s"
 		"\r\n"
 		, code, status_message, len
@@ -527,6 +527,8 @@ void web_server_thread(int port, bool ssl)
 
 			if (failed) break;
 
+			offset += p.body_start() + p.content_length();
+
 			if (p.method() != "get" && p.method() != "post")
 			{
 				fprintf(stderr, "incorrect method: %s\n", p.method().c_str());
@@ -537,19 +539,19 @@ void web_server_thread(int port, bool ssl)
 
 			if (path == "/redirect")
 			{
-				send_response(s, ec, 301, "Moved Permanently", "Location: /test_file", 0);
+				send_response(s, ec, 301, "Moved Permanently", "Location: /test_file\r\n", 0);
 				break;
 			}
 
 			if (path == "/infinite_redirect")
 			{
-				send_response(s, ec, 301, "Moved Permanently", "Location: /infinite_redirect", 0);
+				send_response(s, ec, 301, "Moved Permanently", "Location: /infinite_redirect\r\n", 0);
 				break;
 			}
 
 			if (path == "/relative/redirect")
 			{
-				send_response(s, ec, 301, "Moved Permanently", "Location: ../test_file", 0);
+				send_response(s, ec, 301, "Moved Permanently", "Location: ../test_file\r\n", 0);
 				break;
 			}
 
@@ -597,7 +599,6 @@ void web_server_thread(int port, bool ssl)
 				send_response(s, ec, 200, "OK", extra_header, file_buf.size());
 				write(s, boost::asio::buffer(&file_buf[0], file_buf.size()), boost::asio::transfer_all(), ec);
 			}
-			offset += p.body_start() + p.content_length();
 //			fprintf(stderr, "%d bytes left in receive buffer. offset: %d\n", len - offset, offset);
 		} while (offset < len);
 	}
