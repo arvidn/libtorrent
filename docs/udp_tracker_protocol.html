@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>Bittorrent udp-tracker protocol extension</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -398,12 +398,12 @@ you asked in the scrape request.</p>
 <tbody valign="top">
 <tr><td>int32_t</td>
 <td>complete</td>
-<td>The total number of completed
-downloads.</td>
+<td>The current number of connected seeds.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>downloaded</td>
-<td>The current number of connected seeds.</td>
+<td>The number of times this torrent has
+been downloaded.</td>
 </tr>
 <tr><td>int32_t</td>
 <td>incomplete</td>
