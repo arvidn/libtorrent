@@ -225,7 +225,7 @@ namespace libtorrent
 			<< " picked: " << interesting_pieces.size() << " ]\n";
 #endif
 		std::vector<pending_block> const& dq = c.download_queue();
-		std::vector<piece_block> const& rq = c.request_queue();
+		std::vector<pending_block> const& rq = c.request_queue();
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
@@ -236,7 +236,7 @@ namespace libtorrent
 				if (num_requests <= 0) break;
 				// don't request pieces we already have in our request queue
 				if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
-					|| std::find(rq.begin(), rq.end(), *i) != rq.end())
+					|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
 					continue;
 	
 				TORRENT_ASSERT(p.num_peers(*i) > 0);
@@ -248,13 +248,13 @@ namespace libtorrent
 
 			// don't request pieces we already have in our request queue
 			if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
-				|| std::find(rq.begin(), rq.end(), *i) != rq.end())
+				|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
 				continue;
 
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
 			// and return
-			if (!c.add_request(*i)) continue;
+			if (!c.add_request(*i, 0)) continue;
 			TORRENT_ASSERT(p.num_peers(*i) == 1);
 			TORRENT_ASSERT(p.is_requested(*i));
 			num_requests--;
@@ -281,7 +281,7 @@ namespace libtorrent
 #endif
 		TORRENT_ASSERT(p.is_requested(*i));
 		TORRENT_ASSERT(p.num_peers(*i) > 0);
-		c.add_request(*i);
+		c.add_request(*i, peer_connection::req_busy);
 	}
 
 	policy::policy(torrent* t)

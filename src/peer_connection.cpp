@@ -796,7 +796,7 @@ namespace libtorrent
 		return m_have_piece[i];
 	}
 
-	std::vector<piece_block> const& peer_connection::request_queue() const
+	std::vector<pending_block> const& peer_connection::request_queue() const
 	{
 		return m_request_queue;
 	}
@@ -1039,10 +1039,10 @@ namespace libtorrent
 			if (!t->is_seed())
 			{
 				piece_picker& p = t->picker();
-				for (std::vector<piece_block>::const_iterator i = m_request_queue.begin()
+				for (std::vector<pending_block>::const_iterator i = m_request_queue.begin()
 					, end(m_request_queue.end()); i != end; ++i)
 				{
-					p.abort_download(*i);
+					p.abort_download(i->block);
 				}
 			}
 			m_request_queue.clear();
@@ -1091,7 +1091,7 @@ namespace libtorrent
 
 		if (i != m_download_queue.end())
 		{
-			piece_block b = i->block;
+			pending_block b = *i;
 			bool remove_from_picker = !i->timed_out && !i->not_wanted;
 			m_download_queue.erase(i);
 			TORRENT_ASSERT(m_outstanding_bytes >= r.length);
@@ -1109,7 +1109,7 @@ namespace libtorrent
 			else if (!t->is_seed() && remove_from_picker)
 			{
 				piece_picker& p = t->picker();
-				p.abort_download(b);
+				p.abort_download(b.block);
 			}
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
 			check_invariant();
@@ -1892,10 +1892,10 @@ namespace libtorrent
 		// assume our outstanding bytes includes this piece too
 		if (!in_req_queue)
 		{
-			for (std::vector<piece_block>::iterator i = m_request_queue.begin()
+			for (std::vector<pending_block>::iterator i = m_request_queue.begin()
 				, end(m_request_queue.end()); i != end; ++i)
 			{
-				if (*i != b) continue;
+				if (i->block != b) continue;
 				in_req_queue = true;
 				m_request_queue.erase(i);
 				break;
@@ -2528,18 +2528,18 @@ namespace libtorrent
 
 	void peer_connection::make_time_critical(piece_block const& block)
 	{
-		std::vector<piece_block>::iterator rit = std::find(m_request_queue.begin()
-			, m_request_queue.end(), block);
+		std::vector<pending_block>::iterator rit = std::find_if(m_request_queue.begin()
+			, m_request_queue.end(), has_block(block));
 		if (rit == m_request_queue.end()) return;
 		// ignore it if it's already time critical
 		if (rit - m_request_queue.begin() < m_queued_time_critical) return;
-		piece_block b = *rit;
+		pending_block b = *rit;
 		m_request_queue.erase(rit);
 		m_request_queue.insert(m_request_queue.begin() + m_queued_time_critical, b);
 		++m_queued_time_critical;
 	}
 
-	bool peer_connection::add_request(piece_block const& block, bool time_critical)
+	bool peer_connection::add_request(piece_block const& block, int flags)
 	{
 		INVARIANT_CHECK;
 
@@ -2579,6 +2579,24 @@ namespace libtorrent
 			state = piece_picker::slow;
 		}
 
+		if (flags & req_busy)
+		{
+			// this block is busy (i.e. it has been requested
+			// from another peer already). Only allow one busy
+			// request in the pipeline at the time
+			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
+				, end(m_download_queue.end()); i != end; ++i)
+			{
+				if (i->busy) return false;
+			}
+
+			for (std::vector<pending_block>::const_iterator i = m_request_queue.begin()
+				, end(m_request_queue.end()); i != end; ++i)
+			{
+				if (i->busy) return false;
+			}
+		}
+
 		if (!t->picker().mark_as_downloading(block, peer_info_struct(), state))
 			return false;
 
@@ -2588,15 +2606,17 @@ namespace libtorrent
 				remote(), pid(), speedmsg, block.block_index, block.piece_index));
 		}
 
-		if (time_critical)
+		pending_block pb(block);
+		pb.busy = flags & req_busy;
+		if (flags & req_time_critical)
 		{
 			m_request_queue.insert(m_request_queue.begin() + m_queued_time_critical
-				, block);
+				, pb);
 			++m_queued_time_critical;
 		}
 		else
 		{
-			m_request_queue.push_back(block);
+			m_request_queue.push_back(pb);
 		}
 		return true;
 	}
@@ -2617,7 +2637,7 @@ namespace libtorrent
 
 		while (!m_request_queue.empty())
 		{
-			t->picker().abort_download(m_request_queue.back());
+			t->picker().abort_download(m_request_queue.back().block);
 			m_request_queue.pop_back();
 		}
 		m_queued_time_critical = 0;
@@ -2679,8 +2699,8 @@ namespace libtorrent
 			= std::find_if(m_download_queue.begin(), m_download_queue.end(), has_block(block));
 		if (it == m_download_queue.end())
 		{
-			std::vector<piece_block>::iterator rit = std::find(m_request_queue.begin()
-				, m_request_queue.end(), block);
+			std::vector<pending_block>::iterator rit = std::find_if(m_request_queue.begin()
+				, m_request_queue.end(), has_block(block));
 
 			// when a multi block is received, it is cancelled
 			// from all peers, so if this one hasn't requested
@@ -2832,16 +2852,16 @@ namespace libtorrent
 			&& ((int)m_download_queue.size() < m_desired_queue_size
 				|| m_queued_time_critical > 0))
 		{
-			piece_block block = m_request_queue.front();
+			pending_block block = m_request_queue.front();
 
-			int block_offset = block.block_index * t->block_size();
+			int block_offset = block.block.block_index * t->block_size();
 			int block_size = (std::min)(t->torrent_file().piece_size(
-				block.piece_index) - block_offset, t->block_size());
+				block.block.piece_index) - block_offset, t->block_size());
 			TORRENT_ASSERT(block_size > 0);
 			TORRENT_ASSERT(block_size <= t->block_size());
 
 			peer_request r;
-			r.piece = block.piece_index;
+			r.piece = block.block.piece_index;
 			r.start = block_offset;
 			r.length = block_size;
 
@@ -2850,10 +2870,11 @@ namespace libtorrent
 			if (t->is_seed()) continue;
 			// this can happen if a block times out, is re-requested and
 			// then arrives "unexpectedly"
-			if (t->picker().is_finished(block) || t->picker().is_downloaded(block))
+			if (t->picker().is_finished(block.block)
+				|| t->picker().is_downloaded(block.block))
 				continue;
 
-			TORRENT_ASSERT(verify_piece(t->to_req(block)));
+			TORRENT_ASSERT(verify_piece(t->to_req(block.block)));
 			m_download_queue.push_back(block);
 			m_outstanding_bytes += block_size;
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
@@ -2877,26 +2898,26 @@ namespace libtorrent
 				{
 					// check to see if this block is connected to the previous one
 					// if it is, merge them, otherwise, break this merge loop
-					piece_block const& front = m_request_queue.front();
-					if (front.piece_index * blocks_per_piece + front.block_index
-						!= block.piece_index * blocks_per_piece + block.block_index + 1)
+					pending_block const& front = m_request_queue.front();
+					if (front.block.piece_index * blocks_per_piece + front.block.block_index
+						!= block.block.piece_index * blocks_per_piece + block.block.block_index + 1)
 						break;
 					block = m_request_queue.front();
 					m_request_queue.erase(m_request_queue.begin());
-					TORRENT_ASSERT(verify_piece(t->to_req(block)));
+					TORRENT_ASSERT(verify_piece(t->to_req(block.block)));
 					m_download_queue.push_back(block);
 					if (m_queued_time_critical) --m_queued_time_critical;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 					(*m_logger) << time_now_string()
 						<< " *** MERGING REQUEST ** [ "
-						"piece: " << block.piece_index << " | "
-						"block: " << block.block_index << " ]\n";
+						"piece: " << block.block.piece_index << " | "
+						"block: " << block.block.block_index << " ]\n";
 #endif
 
-					block_offset = block.block_index * t->block_size();
+					block_offset = block.block.block_index * t->block_size();
 					block_size = (std::min)(t->torrent_file().piece_size(
-						block.piece_index) - block_offset, t->block_size());
+						block.block.piece_index) - block_offset, t->block_size());
 					TORRENT_ASSERT(block_size > 0);
 					TORRENT_ASSERT(block_size <= t->block_size());
 
@@ -3031,7 +3052,7 @@ namespace libtorrent
 				}
 				while (!m_request_queue.empty())
 				{
-					picker.abort_download(m_request_queue.back());
+					picker.abort_download(m_request_queue.back().block);
 					m_request_queue.pop_back();
 				}
 			}
@@ -3699,9 +3720,9 @@ namespace libtorrent
 		// time out the last request in the queue
 		if (prev_request_queue > 0)
 		{
-			std::vector<piece_block>::iterator i
+			std::vector<pending_block>::iterator i
 				= m_request_queue.begin() + (prev_request_queue - 1);
-			r = *i;
+			r = i->block;
 			m_request_queue.erase(i);
 			if (prev_request_queue <= m_queued_time_critical)
 				--m_queued_time_critical;
@@ -4714,7 +4735,8 @@ namespace libtorrent
 		std::set<piece_block> unique;
 		std::transform(m_download_queue.begin(), m_download_queue.end()
 			, std::inserter(unique, unique.begin()), boost::bind(&pending_block::block, _1));
-		std::copy(m_request_queue.begin(), m_request_queue.end(), std::inserter(unique, unique.begin()));
+		std::transform(m_request_queue.begin(), m_request_queue.end()
+			, std::inserter(unique, unique.begin()), boost::bind(&pending_block::block, _1));
 		TORRENT_ASSERT(unique.size() == m_download_queue.size() + m_request_queue.size());
 		if (m_peer_info)
 		{
@@ -4775,9 +4797,9 @@ namespace libtorrent
 				TORRENT_ASSERT(m_ses.has_peer(*i));
 #endif
 				peer_connection const& p = *(*i);
-				for (std::vector<piece_block>::const_iterator i = p.request_queue().begin()
+				for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
 					, end(p.request_queue().end()); i != end; ++i)
-					++num_requests[*i];
+					++num_requests[i->block];
 				for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
 					, end(p.download_queue().end()); i != end; ++i)
 					if (!i->not_wanted && !i->timed_out) ++num_requests[i->block];
