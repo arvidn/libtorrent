@@ -1169,7 +1169,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		return_error(mapping, s.error_code, l);
 	}
 
-	char msg[200];
+	char msg[500];
 	snprintf(msg, sizeof(msg), "map response: %s"
 		, std::string(p.get_body().begin, p.get_body().end).c_str());
 	log(msg, l);
