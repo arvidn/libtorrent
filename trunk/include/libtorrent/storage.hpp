@@ -303,7 +303,7 @@ namespace libtorrent
 		std::string name() const { return m_info->name(); }
 #endif
 
-		bool allocate_slots(int num_slots, bool abort_on_disk = false);
+		bool allocate_slots_impl(int num_slots, mutex::scoped_lock& l, bool abort_on_disk = false);
 
 		// updates the ph.h hasher object with the data at the given slot
 		// and optionally a 'small hash' as well, the hash for
