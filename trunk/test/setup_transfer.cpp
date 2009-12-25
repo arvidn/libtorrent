@@ -156,6 +156,8 @@ void start_proxy(int port, int proxy_type)
 	fprintf(stderr, "starting delegated proxy...\n");
 	system(buf);
 	fprintf(stderr, "launched\n");
+	// apparently delegate takes a while to open its listen port
+	test_sleep(1000);
 }
 
 using namespace libtorrent;
@@ -383,12 +385,11 @@ void send_response(stream_socket& s, error_code& ec
 	char msg[400];
 	int pkt_len = snprintf(msg, sizeof(msg), "HTTP/1.0 %d %s\r\n"
 		"content-length: %d\r\n"
-		"connection: close\r\n"
 		"%s"
 		"\r\n"
 		, code, status_message, len
 		, extra_header ? extra_header : "");
-	fprintf(stderr, ">> %s\n", msg);
+//	fprintf(stderr, ">> %s\n", msg);
 	write(s, boost::asio::buffer(msg, pkt_len), boost::asio::transfer_all(), ec);
 }
 
@@ -521,9 +522,11 @@ void web_server_thread(int port, bool ssl)
 					break;
 				}
 			}
-			fprintf(stderr, "%s", std::string(buf + offset, p.body_start()).c_str());
+//			fprintf(stderr, "%s", std::string(buf + offset, p.body_start()).c_str());
 
 			if (failed) break;
+
+			offset += p.body_start() + p.content_length();
 
 			if (p.method() != "get" && p.method() != "post")
 			{
@@ -535,23 +538,23 @@ void web_server_thread(int port, bool ssl)
 
 			if (path == "/redirect")
 			{
-				send_response(s, ec, 301, "Moved Permanently", "Location: /test_file", 0);
+				send_response(s, ec, 301, "Moved Permanently", "Location: /test_file\r\n", 0);
 				break;
 			}
 
 			if (path == "/infinite_redirect")
 			{
-				send_response(s, ec, 301, "Moved Permanently", "Location: /infinite_redirect", 0);
+				send_response(s, ec, 301, "Moved Permanently", "Location: /infinite_redirect\r\n", 0);
 				break;
 			}
 
 			if (path == "/relative/redirect")
 			{
-				send_response(s, ec, 301, "Moved Permanently", "Location: ../test_file", 0);
+				send_response(s, ec, 301, "Moved Permanently", "Location: ../test_file\r\n", 0);
 				break;
 			}
 
-			fprintf(stderr, ">> serving file %s\n", path.c_str());
+//			fprintf(stderr, ">> serving file %s\n", path.c_str());
 			std::vector<char> file_buf;
 			// remove the / from the path
 			path = path.substr(1);
@@ -588,15 +591,14 @@ void web_server_thread(int port, bool ssl)
 						, extra_header ? extra_header : "", start, end);
 				send_response(s, ec, 206, "Partial", eh, end - start + 1);
 				write(s, boost::asio::buffer(&file_buf[0] + start, end - start + 1), boost::asio::transfer_all(), ec);
-				fprintf(stderr, "send %d bytes of payload\n", end - start + 1);
+//				fprintf(stderr, "send %d bytes of payload\n", end - start + 1);
 			}
 			else
 			{
 				send_response(s, ec, 200, "OK", extra_header, file_buf.size());
 				write(s, boost::asio::buffer(&file_buf[0], file_buf.size()), boost::asio::transfer_all(), ec);
 			}
-			offset += p.body_start() + p.content_length();
-			fprintf(stderr, "%d bytes left in receive buffer. offset: %d\n", len - offset, offset);
+//			fprintf(stderr, "%d bytes left in receive buffer. offset: %d\n", len - offset, offset);
 		} while (offset < len);
 	}
 	fprintf(stderr, "exiting web server thread\n");
