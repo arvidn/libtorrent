@@ -296,7 +296,7 @@ namespace libtorrent {
 	std::string portmap_log_alert::message() const
 	{
 		static char const* type_str[] = {"NAT-PMP", "UPnP"};
-		char ret[200];
+		char ret[600];
 		snprintf(ret, sizeof(ret), "%s: %s", type_str[map_type], msg.c_str());
 		return ret;
 	}
