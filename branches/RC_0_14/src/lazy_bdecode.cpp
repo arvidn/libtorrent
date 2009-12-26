@@ -45,10 +45,10 @@ namespace
 
 namespace libtorrent
 {
-	int fail_bdecode(lazy_entry& ret)
+	int fail_bdecode(lazy_entry& ret, int return_value = -1)
 	{
 		ret = lazy_entry();
-		return -1;
+		return return_value;
 	}
 
 	// fills in 'val' with what the string between start and the
@@ -108,10 +108,11 @@ namespace libtorrent
 					start = parse_int(start, end, ':', len);
 					if (start == 0 || start + len + 3 > end || *start != ':') return fail_bdecode(ret);
 					++start;
-					if (start == end) fail_bdecode(ret);
+					if (start == end) return fail_bdecode(ret);
 					lazy_entry* ent = top->dict_append(start);
+					if (ent == 0) return fail_bdecode(ret, -2);
 					start += len;
-					if (start >= end) fail_bdecode(ret);
+					if (start >= end) return fail_bdecode(ret);
 					stack.push_back(ent);
 					t = *start;
 					++start;
@@ -126,6 +127,7 @@ namespace libtorrent
 						continue;
 					}
 					lazy_entry* ent = top->list_append();
+					if (ent == 0) return fail_bdecode(ret, -2);
 					stack.push_back(ent);
 					break;
 				}
