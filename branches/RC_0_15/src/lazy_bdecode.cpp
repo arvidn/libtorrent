@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace
 {
-	const float lazy_entry_grow_factor = 1.5f;
+	const int lazy_entry_grow_factor = 150; // percent
 	const int lazy_entry_dict_init = 5;
 	const int lazy_entry_list_init = 5;
 }
@@ -199,7 +199,7 @@ namespace libtorrent
 		}
 		else if (m_size == m_capacity)
 		{
-			int capacity = m_capacity * lazy_entry_grow_factor;
+			int capacity = m_capacity * lazy_entry_grow_factor / 100;
 			lazy_dict_entry* tmp = new (std::nothrow) lazy_dict_entry[capacity];
 			if (tmp == 0) return 0;
 			std::memcpy(tmp, m_data.dict, sizeof(lazy_dict_entry) * m_size);
@@ -334,7 +334,7 @@ namespace libtorrent
 		}
 		else if (m_size == m_capacity)
 		{
-			int capacity = m_capacity * lazy_entry_grow_factor;
+			int capacity = m_capacity * lazy_entry_grow_factor / 100;
 			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity];
 			if (tmp == 0) return 0;
 			std::memcpy(tmp, m_data.list, sizeof(lazy_entry) * m_size);
