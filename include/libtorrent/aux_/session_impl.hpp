@@ -784,7 +784,8 @@ namespace libtorrent
 			void tracker_request_error(
 				tracker_request const&
 				, int response_code
-				, const std::string& str)
+				, const std::string& str
+				, int retry_interval)
 			{
 				char msg[256];
 				snprintf(msg, sizeof(msg), "*** tracker error: %d: %s", response_code, str.c_str());
