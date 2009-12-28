@@ -3148,7 +3148,7 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " completed resolve proxy hostname for: " << web.url << "\n";
-		if (ec)
+		if (e)
 			*m_ses.m_logger << time_now_string() << " on_proxy_name_lookup: " << e.message() << "\n";
 #endif
 
