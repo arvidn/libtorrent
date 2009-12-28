@@ -58,18 +58,31 @@ namespace libtorrent
 
 	char const* time_now_string()
 	{
-		time_t t = std::time(0);
-		tm* timeinfo = std::localtime(&t);
-		static char str[200];
-		std::strftime(str, 200, "%b %d %X", timeinfo);
-		return str;
+//		time_t t = std::time(0);
+//		tm* timeinfo = std::localtime(&t);
+//		static char str[200];
+//		std::strftime(str, 200, "%b %d %X", timeinfo);
+//		return str;
+
+		static const ptime start = time_now_hires();
+		static char ret[200];
+		int t = total_milliseconds(time_now_hires() - start);
+		int h = t / 1000 / 60 / 60;
+		t -= h * 60 * 60 * 1000;
+		int m = t / 1000 / 60;
+		t -= m * 60 * 1000;
+		int s = t / 1000;
+		t -= s * 1000;
+		int ms = t;
+		snprintf(ret, sizeof(ret), "%02d:%02d:%02d.%03d", h, m, s, ms);
+		return ret;
 	}
 
 	std::string log_time()
 	{
 		static const ptime start = time_now_hires();
 		char ret[200];
-		std::sprintf(ret, "%d", total_milliseconds(time_now() - start));
+		snprintf(ret, sizeof(ret), "%d", total_milliseconds(time_now_hires() - start));
 		return ret;
 	}
 }

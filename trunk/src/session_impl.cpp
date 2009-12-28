@@ -537,7 +537,7 @@ namespace aux {
 		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string() << "max number of open files: " << rl.rlim_cur << "\n";
+			(*m_logger) << time_now_string() << " max number of open files: " << rl.rlim_cur << "\n";
 #endif
 
 			// deduct some margin for epoll/kqueue, log files,
