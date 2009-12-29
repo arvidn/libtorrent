@@ -1691,7 +1691,7 @@ namespace aux {
 		{
 			torrent& t = *i->second;
 			TORRENT_ASSERT(!t.is_aborted());
-			if (t.statistics().upload_rate() > t.upload_limit() * 0.9f)
+			if (t.statistics().upload_rate() > t.upload_limit() * 9 / 10)
 				++congested_torrents;
 			else
 				++uncongested_torrents;
