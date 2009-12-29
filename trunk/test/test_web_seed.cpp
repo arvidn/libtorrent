@@ -53,12 +53,10 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 
 	session ses(fingerprint("  ", 0,0,0,0), 0);
 	session_settings settings;
-	settings.ignore_limits_on_local_network = false;
 	settings.max_queued_disk_bytes = 256 * 1024;
 	ses.set_settings(settings);
 	ses.set_alert_mask(~alert::progress_notification);
 	ses.listen_on(std::make_pair(51000, 52000));
-	ses.set_download_rate_limit(torrent_file->total_size() / 2);
 	error_code ec;
 	remove_all("./tmp2_web_seed", ec);
 
@@ -94,7 +92,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 
 	cache_status cs;
 
-	for (int i = 0; i < 15; ++i)
+	for (int i = 0; i < 10; ++i)
 	{
 		torrent_status s = th.status();
 		session_status ss = ses.status();
@@ -120,8 +118,10 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
 
 		if (th.is_seed()/* && ss.download_rate == 0.f*/)
 		{
-			TEST_CHECK(ses.status().total_payload_download == total_size);
 			TEST_CHECK(th.status().total_payload_download == total_size);
+			// we need to sleep here a bit to let the session sync with the torrent stats
+			test_sleep(1000);
+			TEST_CHECK(ses.status().total_payload_download == total_size);
 			break;
 		}
 		test_sleep(500);

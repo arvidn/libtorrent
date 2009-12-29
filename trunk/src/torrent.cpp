@@ -5339,6 +5339,7 @@ namespace libtorrent
 		if (is_paused())
 		{
 			// let the stats fade out to 0
+			accumulator += m_stat;
  			m_stat.second_tick(tick_interval_ms);
 			return;
 		}
@@ -5459,6 +5460,13 @@ namespace libtorrent
 		m_total_uploaded += m_stat.last_payload_uploaded();
 		m_total_downloaded += m_stat.last_payload_downloaded();
 		m_stat.second_tick(tick_interval_ms);
+	}
+
+	void torrent::add_stats(stat const& s)
+	{
+		// these stats are propagated to the session
+		// stats the next time second_tick is called
+		m_stat += s;
 	}
 
 	void torrent::request_time_critical_pieces()

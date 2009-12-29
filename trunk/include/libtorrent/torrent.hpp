@@ -219,7 +219,7 @@ namespace libtorrent
 		std::string name() const;
 
 		stat statistics() const { return m_stat; }
-		void add_stats(stat const& s) { m_stat += s; }
+		void add_stats(stat const& s);
 		size_type bytes_left() const;
 		int block_bytes_wanted(piece_block const& p) const;
 		void bytes_done(torrent_status& st) const;
