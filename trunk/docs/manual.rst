@@ -883,7 +883,7 @@ is_listening() listen_port() listen_on()
 
 ``is_listening()`` will tell you whether or not the session has successfully
 opened a listening port. If it hasn't, this function will return false, and
-then you can use ``listen_on()`` to make another try.
+then you can use ``listen_on()`` to make another attempt.
 
 ``listen_port()`` returns the port we ended up listening on. Since you just pass
 a port-range to the constructor and to ``listen_on()``, to know which port it
@@ -900,7 +900,10 @@ if it managed to open the socket, and false if it failed. If it fails, it will a
 generate an appropriate alert (listen_failed_alert_).
 
 The interface parameter can also be a hostname that will resolve to the device you
-want to listen on.
+want to listen on. If you don't specify an interface, libtorrent may attempt to
+listen on multiple interfaces (typically 0.0.0.0 and ::). This means that if your
+IPv6 interface doesn't work, you may still see a listen_failed_alert_, even though
+the IPv4 port succeeded.
 
 If you're also starting the DHT, it is a good idea to do that after you've called
 ``listen_on()``, since the default listen port for the DHT is the same as the tcp
