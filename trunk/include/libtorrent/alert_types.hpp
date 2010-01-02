@@ -40,6 +40,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/stat.hpp"
+
+// lines reserved for future includes
+// the type-ids of the alert types
+// are derived from the line on which
+// they are declared
+
+
+
+
 
 namespace libtorrent
 {
@@ -1078,6 +1088,36 @@ namespace libtorrent
 
 		sha1_hash info_hash;
 	};
+
+	struct TORRENT_EXPORT stats_alert: torrent_alert
+	{
+		stats_alert(torrent_handle const& h, int interval
+			, stat const& s);
+
+		TORRENT_DEFINE_ALERT(stats_alert);
+
+		const static int static_category = alert::stats_notification;
+		virtual std::string message() const;
+
+		enum stats_channel
+		{
+			upload_payload,
+			upload_protocol,
+			upload_ip_protocol,
+			upload_dht_protocol,
+			upload_tracker_protocol,
+			download_payload,
+			download_protocol,
+			download_ip_protocol,
+			download_dht_protocol,
+			download_tracker_protocol,
+			num_channels
+		};
+
+		int transferred[num_channels];
+		int interval;
+	};
+
 }
 
 

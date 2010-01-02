@@ -86,6 +86,7 @@ namespace libtorrent {
 			ip_block_notification = 0x100,
 			performance_warning = 0x200,
 			dht_notification = 0x400,
+			stats_notification = 0x800,
 
 			all_categories = 0xffffffff
 		};

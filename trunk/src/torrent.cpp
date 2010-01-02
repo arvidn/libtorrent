@@ -5456,6 +5456,9 @@ namespace libtorrent
 			}
 #endif
 		}
+		if (m_ses.m_alerts.should_post<stats_alert>())
+			m_ses.m_alerts.post_alert(stats_alert(get_handle(), tick_interval_ms, m_stat));
+
 		accumulator += m_stat;
 		m_total_uploaded += m_stat.last_payload_uploaded();
 		m_total_downloaded += m_stat.last_payload_downloaded();

@@ -319,6 +319,12 @@ namespace libtorrent
 				m_stat[i].clear();
 		}
 
+		stat_channel const& operator[](int i) const
+		{
+			TORRENT_ASSERT(i >= 0 && i < num_channels);
+			return m_stat[i];
+		}
+
 	private:
 
 		stat_channel m_stat[num_channels];

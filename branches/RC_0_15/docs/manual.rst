@@ -4732,6 +4732,11 @@ is a bitmask with the following bits:
 | ``performance_warning``        | Alerts when some limit is reached that might limit the download     |
 |                                | or upload rate.                                                     |
 +--------------------------------+---------------------------------------------------------------------+
+| ``stats_notification``         | If you enable these alerts, you will receive a ``stats_alert``      |
+|                                | approximately once every second, for every active torrent.          |
+|                                | These alerts contain all statistics counters for the interval since |
+|                                | the lasts stats alert.                                              |
++--------------------------------+---------------------------------------------------------------------+
 | ``all_categories``             | The full bitmask, representing all available categories.            |
 +--------------------------------+---------------------------------------------------------------------+
 
@@ -5606,6 +5611,45 @@ generating the resume data. ``error`` describes what went wrong.
 		// ...
 		error_code error;
 	};
+
+stats_alert
+-----------
+
+This alert is posted approximately once every second, and it contains
+byte counters of most statistics that's tracked for torrents. Each active
+torrent posts these alerts regularly.
+
+::
+
+	struct stats_alert: torrent_alert
+	{
+		// ...
+		enum stats_channel
+		{
+			upload_payload,
+			upload_protocol,
+			upload_ip_protocol,
+			upload_dht_protocol,
+			upload_tracker_protocol,
+			download_payload,
+			download_protocol,
+			download_ip_protocol,
+			download_dht_protocol,
+			download_tracker_protocol,
+			num_channels
+		};
+
+		int transferred[num_channels];
+		int interval;
+	};
+
+``transferred`` this is an array of samples. The enum describes what each
+sample is a measurement of. All of these are raw, and not smoothing is performed.
+
+``interval`` the number of milliseconds during which these stats
+were collected. This is typically just above 1000, but if CPU is
+limited, it may be higher than that.
+
 
 dht_announce_alert
 ------------------

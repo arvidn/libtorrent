@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include "libtorrent/alert.hpp"
+#include "libtorrent/alert_types.hpp"
 #include <boost/thread/xtime.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -149,6 +150,34 @@ namespace libtorrent {
 
 		std::swap(m_queue_size_limit, queue_size_limit_);
 		return queue_size_limit_;
+	}
+
+	stats_alert::stats_alert(torrent_handle const& h, int in
+		, stat const& s)
+		: torrent_alert(h)
+		, interval(in)
+	{
+		for (int i = 0; i < num_channels; ++i)
+			transferred[i] = s[i].counter();
+	}
+
+	std::string stats_alert::message() const
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "%s: [%d] %d %d %d %d %d %d %d %d %d %d"
+			, torrent_alert::message().c_str()
+			, interval
+			, transferred[0]
+			, transferred[1]
+			, transferred[2]
+			, transferred[3]
+			, transferred[4]
+			, transferred[5]
+			, transferred[6]
+			, transferred[7]
+			, transferred[8]
+			, transferred[9]);
+		return msg;
 	}
 
 } // namespace libtorrent
