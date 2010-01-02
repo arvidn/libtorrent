@@ -36,12 +36,19 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	utp_socket_manager::utp_socket_manager(udp_socket& s, incoming_utp_callback_t cb
-		, void* userdata)
+	utp_socket_manager::utp_socket_manager(udp_socket& s, incoming_utp_callback_t cb)
 		: m_sock(s)
 		, m_cb(cb)
-		, m_userdata(userdata)
 	{}
+
+	utp_socket_manager::~utp_socket_manager()
+	{
+		for (socket_map_t::iterator i = m_utp_sockets.begin()
+			, end(m_utp_sockets.end()); i != end; ++i)
+		{
+			delete i->second;
+		}
+	}
 
 	void utp_socket_manager::tick()
 	{
@@ -70,11 +77,11 @@ namespace libtorrent
 		if (i == m_utp_sockets.end() && ph->type == ST_SYN)
 		{
 			boost::uint16_t id = rand();
-			boost::shared_ptr<utp_stream> c(new utp_stream(m_sock.get_io_service(), *this, id));
+			utp_socket_impl* c = new utp_socket_impl;
 
 			TORRENT_ASSERT(m_utp_sockets.find(id) == m_utp_sockets.end());
-			i = m_utp_sockets.insert(i, std::make_pair(id, c.get()));
-			m_cb(m_userdata, c);
+			i = m_utp_sockets.insert(i, std::make_pair(id, c));
+//			m_cb(c);
 		}
 
 		if (i != m_utp_sockets.end())
@@ -87,10 +94,11 @@ namespace libtorrent
 	{
 		socket_map_t::iterator i = m_utp_sockets.find(id);
 		if (i == m_utp_sockets.end()) return;
+		delete i->second;
 		m_utp_sockets.erase(i);
 	}
 
-	void utp_socket_manager::add_socket(boost::uint16_t id, utp_stream* s)
+	void utp_socket_manager::add_socket(boost::uint16_t id, utp_socket_impl* s)
 	{
 	}
 }

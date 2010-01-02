@@ -431,8 +431,6 @@ namespace libtorrent
 #endif
 			mutex m_send_buffer_mutex;
 
-			utp_socket_manager m_utp_sockets;
-
 			// the file pool that all storages in this session's
 			// torrents uses. It sets a limit on the number of
 			// open files by this session.
@@ -666,8 +664,6 @@ namespace libtorrent
 			// but for the udp port used by the DHT.
 			int m_external_udp_port;
 
-			rate_limited_udp_socket m_dht_socket;
-
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased
 			std::list<std::pair<std::string, int> > m_dht_router_nodes;
@@ -675,6 +671,10 @@ namespace libtorrent
 			void on_receive_udp(error_code const& e
 				, udp::endpoint const& ep, char const* buf, int len);
 #endif
+
+			rate_limited_udp_socket m_dht_socket;
+
+			utp_socket_manager m_utp_sockets;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			pe_settings m_pe_settings;

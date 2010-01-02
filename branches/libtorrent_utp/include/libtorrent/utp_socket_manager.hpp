@@ -33,19 +33,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UTP_SOCKET_MANAGER_HPP_INCLUDED
 #define TORRENT_UTP_SOCKET_MANAGER_HPP_INCLUDED
 
-#include <boost/shared_ptr.hpp>
 #include <map>
+
+#include "libtorrent/socket_type.hpp"
 
 namespace libtorrent
 {
 	struct udp_socket;
 	struct utp_stream;
+	struct utp_socket_impl;
 
-	typedef boost::function<void(void*, boost::shared_ptr<utp_stream> const&)> incoming_utp_callback_t;
+	typedef boost::function<void(boost::shared_ptr<socket_type> const&)> incoming_utp_callback_t;
 
 	struct utp_socket_manager
 	{
-		utp_socket_manager(udp_socket& s, incoming_utp_callback_t cb, void* userdata);
+		utp_socket_manager(udp_socket& s, incoming_utp_callback_t cb);
+		~utp_socket_manager();
 
 		// return false if this is not a uTP packet
 		bool incoming_packet(char const* p, int size);
@@ -58,13 +61,12 @@ namespace libtorrent
 	private:
 		udp_socket& m_sock;
 		incoming_utp_callback_t m_cb;
-		void* m_userdata;
 		
 		// replace with a hash-map
-		typedef std::map<boost::uint16_t, utp_stream*> socket_map_t;
+		typedef std::map<boost::uint16_t, utp_socket_impl*> socket_map_t;
 		socket_map_t m_utp_sockets;
 
-		void add_socket(boost::uint16_t id, utp_stream* s);
+		void add_socket(boost::uint16_t id, utp_socket_impl* s);
 	};
 }
 

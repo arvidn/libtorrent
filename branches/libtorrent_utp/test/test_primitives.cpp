@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/packet_buffer.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -367,6 +368,56 @@ int test_main()
 {
 	using namespace libtorrent;
 	error_code ec;
+
+	// test packet_buffer
+	{
+		packet_buffer pb;
+
+		TEST_EQUAL(pb.capacity(), 0);
+		TEST_EQUAL(pb.size(), 0);
+
+		pb.insert(123, (void*)123);
+		
+		TEST_CHECK(pb.at(123) == (void*)123);
+		TEST_CHECK(pb.capacity() > 0);
+		TEST_EQUAL(pb.size(), 1);
+		TEST_EQUAL(pb.cursor(), 123);
+
+		pb.insert(125, (void*)125);
+
+		TEST_CHECK(pb.at(125) == (void*)125);
+		TEST_EQUAL(pb.size(), 2);
+		TEST_EQUAL(pb.cursor(), 123);
+
+		pb.insert(500, (void*)500);
+		TEST_EQUAL(pb.size(), 3);
+		TEST_EQUAL(pb.capacity(), 512);
+
+		TEST_CHECK(pb.remove(123) == (void*)123);
+		TEST_EQUAL(pb.size(), 2);
+		TEST_EQUAL(pb.cursor(), 125);
+		TEST_CHECK(pb.remove(125) == (void*)125);
+		TEST_EQUAL(pb.size(), 1);
+		TEST_EQUAL(pb.cursor(), 500);
+
+		TEST_CHECK(pb.remove(500) == (void*)500);
+		TEST_EQUAL(pb.size(), 0);
+
+		for (int i = 0; i < 0xff; ++i)
+		{
+			int index = (i + 0xfff0) & 0xffff;
+			pb.insert(index, (void*)(index + 1));
+			fprintf(stderr, "insert: %u (mask: %x)\n", index, pb.capacity() - 1);
+			TEST_EQUAL(pb.capacity(), 512);
+			if (i >= 14)
+			{
+				index = (index - 14) & 0xffff;
+				fprintf(stderr, "remove: %u\n", index);
+				TEST_CHECK(pb.remove(index) == (void*)(index + 1));
+				TEST_EQUAL(pb.size(), 14);
+			}
+		}
+	}
 
 	// test path functions
 	TEST_EQUAL(combine_path("test1/", "test2"), "test1/test2");

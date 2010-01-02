@@ -335,6 +335,7 @@ SOURCES =
 	i2p_stream
 	instantiate_connection
 	natpmp
+	packet_buffer
 	piece_picker
 	policy
 	session
@@ -352,6 +353,8 @@ SOURCES =
 	sha1
 	udp_socket
 	upnp
+	utp_socket_manager
+	utp_stream
 	logger
 	file_pool
 	lsd

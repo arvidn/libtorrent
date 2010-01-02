@@ -208,9 +208,11 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
+#endif
 		, m_dht_socket(m_io_service, bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, m_half_open)
-#endif
+		, m_utp_sockets(m_dht_socket
+			, boost::bind(&session_impl::incoming_connection, this, _1))
 		, m_timer(m_io_service)
 		, m_next_connect_torrent(0)
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING

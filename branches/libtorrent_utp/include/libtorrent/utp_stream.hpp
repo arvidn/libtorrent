@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/packet_buffer.hpp"
 
 #define CCONTROL_TARGET 100
 
@@ -68,6 +69,15 @@ namespace libtorrent
 	typedef big_endian_int<boost::int32_t> be_int32;
 	typedef big_endian_int<boost::int16_t> be_int16;
 
+	// this is used to keep the minimum difference in
+	// timestamps.
+	struct delay_history
+	{
+		void add_sample(boost::uint32_t v);
+		void minimum() const;
+		void tick();
+	};
+
 /*
 	uTP header from BEP 29
 
@@ -86,7 +96,7 @@ namespace libtorrent
 
 */
 
-enum { ST_DATA = 0, ST_FIN, ST_STATE, ST_RESET, ST_SYN } type;
+enum type { ST_DATA = 0, ST_FIN, ST_STATE, ST_RESET, ST_SYN };
 
 struct utp_header
 {
@@ -101,41 +111,29 @@ struct utp_header
 	be_uint16 ack_nr;
 };
 
-class utp_stream : public proxy_base
-{
-public:
+// since the uTP socket state may be needed after the
+// utp_stream is closed, it's kept in a separate struct
+// whose lifetime is not tied to the lifetime of utp_stream
 
-	explicit utp_stream(io_service& ios, utp_socket_manager& sm, boost::uint16_t id)
-		: proxy_base(ios)
-		, m_sm(sm)
-		, m_send_id(id + 1)
-		, m_recv_id(id)
+struct utp_socket_impl
+{
+	utp_socket_impl()
+		: m_sm(0)
+		, m_send_id(0)
+		, m_recv_id(0)
 		, m_state(UTP_STATE_NONE)
 	{}
 
-	typedef boost::function<void(error_code const&)> handler_type;
-
-	template <class Handler>
-	void async_connect(endpoint_type const& endpoint, Handler const& handler)
-	{
-		TORRENT_ASSERT(m_state == UTP_STATE_NONE);
-		// store handler
-		async_connect_impl();
-	}
-	
-	void bind(endpoint_type const& ep, error_code& ec);
-	void bind(udp::endpoint const& ep, error_code& ec);
-	bool incoming_packet(char const* buf, int size);
-	
 	void tick();
+	bool incoming_packet(char const* buf, int size);
 
-	~utp_stream();
-	
-private:
-	
-	void async_connect_impl();
+	utp_socket_manager* m_sm;
 
-	utp_socket_manager& m_sm;
+	// the send and receive buffers
+	// maps packet sequence numbers
+	packet_buffer m_inbuf;
+	packet_buffer m_outbuf;
+
 	boost::uint16_t m_send_id;
 	boost::uint16_t m_recv_id;
 	boost::uint16_t m_ack_nr;
@@ -147,6 +145,35 @@ private:
 		UTP_STATE_FIN_SENT
 	};
 	unsigned char m_state;
+};
+
+class utp_stream : public proxy_base
+{
+public:
+
+	explicit utp_stream(io_service& ios)
+		: proxy_base(ios)
+	{}
+
+	typedef boost::function<void(error_code const&)> handler_type;
+
+	template <class Handler>
+	void async_connect(endpoint_type const& endpoint, Handler const& handler)
+	{
+		// store handler
+		async_connect_impl();
+	}
+	
+	void bind(endpoint_type const& ep, error_code& ec);
+	void bind(udp::endpoint const& ep, error_code& ec);
+	
+	~utp_stream();
+	
+private:
+	
+	void async_connect_impl();
+
+	utp_socket_impl* m_impl;
 };
 
 }

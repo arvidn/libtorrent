@@ -38,7 +38,7 @@ utp_stream::~utp_stream()
 {
 }
 
-bool utp_stream::incoming_packet(char const* buf, int size)
+bool utp_socket_impl::incoming_packet(char const* buf, int size)
 {
 	utp_header* ph = (utp_header*)buf;
 
@@ -46,7 +46,7 @@ bool utp_stream::incoming_packet(char const* buf, int size)
 
 	if (ph->connection_id != m_recv_id) return false;
 
-
+	return false;
 }
 
 void utp_stream::bind(endpoint_type const& ep, error_code& ec)
@@ -57,7 +57,7 @@ void utp_stream::bind(udp::endpoint const& ep, error_code& ec)
 {
 }
 
-void utp_stream::tick()
+void utp_socket_impl::tick()
 {
 }
 
