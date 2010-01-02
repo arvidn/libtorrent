@@ -30,11 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-// TODO: Use two algorithms to estimate transfer rate.
-// one (simple) for transfer rates that are >= 1 packet
-// per second and one (low pass-filter) for rates < 1
-// packet per second.
-
 #include "libtorrent/pch.hpp"
 
 #include <numeric>
@@ -43,14 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat.hpp"
 #include "libtorrent/invariant_check.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 void stat_channel::second_tick(int tick_interval_ms)
 {
 	INVARIANT_CHECK;
 
-	m_rate_sum -= m_rate_history[history-1];
+	m_rate_sum -= m_rate_history[m_window-1];
 
 	for (int i = history - 2; i >= 0; --i)
 		m_rate_history[i + 1] = m_rate_history[i];
@@ -61,6 +55,16 @@ void stat_channel::second_tick(int tick_interval_ms)
 	m_counter = 0;
 }
 
+void stat_channel::set_window(int w)
+{
+	if (w < 1) w = 1;
+	else if (w > history) w = history;
+	m_window = w;
+	m_rate_sum = 0;
+	for (int i = 0; i < m_window; ++i)
+		m_rate_sum += m_rate_history[i];
+
+}
 
 }
 

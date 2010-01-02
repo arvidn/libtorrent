@@ -52,12 +52,15 @@ namespace libtorrent
 		enum { history = 10 };
 
 		stat_channel()
-			: m_counter(0)
+			: m_window(3)
+			, m_counter(0)
 			, m_total_counter(0)
 			, m_rate_sum(0)
 		{
 			std::memset(m_rate_history, 0, sizeof(m_rate_history));
 		}
+
+		void set_window(int w);
 
 		void operator+=(stat_channel const& s)
 		{
@@ -82,7 +85,7 @@ namespace libtorrent
 
 		// should be called once every second
 		void second_tick(int tick_interval_ms);
-		int rate() const { return int(m_rate_sum / history); }
+		int rate() const { return int(m_rate_sum / m_window); }
 		size_type rate_sum() const { return m_rate_sum; }
 		size_type total() const { return m_total_counter; }
 
@@ -104,13 +107,15 @@ namespace libtorrent
 			m_rate_sum = 0;
 		}
 
+		int window() const { return m_window; }
+
 	private:
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const
 		{
 			size_type sum = 0;
-			for (int i = 0; i < history; ++i) sum += m_rate_history[i];
+			for (int i = 0; i < m_window; ++i) sum += m_rate_history[i];
 			TORRENT_ASSERT(m_rate_sum == sum);
 			TORRENT_ASSERT(m_total_counter >= 0);
 		}
@@ -118,6 +123,9 @@ namespace libtorrent
 
 		// history of rates a few seconds back
 		int m_rate_history[history];
+
+		// averaging window (seconds). 'history' is the max size
+		int m_window;
 
 		// the accumulator for this second.
 		int m_counter;
@@ -216,6 +224,12 @@ namespace libtorrent
 		int download_tracker() const { return m_stat[download_tracker_protocol].counter(); }
 		int upload_tracker() const { return m_stat[upload_tracker_protocol].counter(); }
 
+		void set_window(int w)
+		{
+			for (int i = 0; i < num_channels; ++i)
+				m_stat[i].set_window(w);
+		}
+
 		// should be called once every second
 		void second_tick(int tick_interval_ms)
 		{
@@ -229,7 +243,7 @@ namespace libtorrent
 				+ m_stat[upload_protocol].rate_sum()
 				+ m_stat[upload_ip_protocol].rate_sum()
 				+ m_stat[upload_dht_protocol].rate_sum())
-				/ stat_channel::history);
+				/ m_stat[0].window());
 		}
 
 		int download_rate() const
@@ -238,7 +252,7 @@ namespace libtorrent
 				+ m_stat[download_protocol].rate_sum()
 				+ m_stat[download_ip_protocol].rate_sum()
 				+ m_stat[download_dht_protocol].rate_sum())
-				/ stat_channel::history);
+				/ m_stat[0].window());
 		}
 
 		size_type total_upload() const
@@ -317,6 +331,12 @@ namespace libtorrent
 		{
 			for (int i = 0; i < num_channels; ++i)
 				m_stat[i].clear();
+		}
+
+		stat_channel const& operator[](int i) const
+		{
+			TORRENT_ASSERT(i >= 0 && i < num_channels);
+			return m_stat[i];
 		}
 
 	private:
