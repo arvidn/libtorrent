@@ -52,6 +52,7 @@ struct node_entry
 		first_seen = time_now();
 #endif
 	}
+
 	node_entry(udp::endpoint ep)
 		: addr(ep.address())
 		, port(ep.port())

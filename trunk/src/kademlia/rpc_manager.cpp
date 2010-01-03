@@ -271,7 +271,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 // defined in node.cpp
 void incoming_error(entry& e, char const* msg);
 
-bool rpc_manager::incoming(msg const& m)
+bool rpc_manager::incoming(msg const& m, node_id* id)
 {
 	INVARIANT_CHECK;
 
@@ -342,7 +342,11 @@ bool rpc_manager::incoming(msg const& m)
 		<< tid << " from " << m.addr;
 #endif
 	o->reply(m);
-	return m_table.node_seen(node_id(node_id_ent->string_ptr()), m.addr);
+	*id = node_id(node_id_ent->string_ptr());
+
+	// we found an observer for this reply, hence the node is not spoofing
+	// add it to the routing table
+	return m_table.node_seen(*id, m.addr);
 }
 
 time_duration rpc_manager::tick()

@@ -74,7 +74,8 @@ public:
 	void unreachable(udp::endpoint const& ep);
 
 	// returns true if the node needs a refresh
-	bool incoming(msg const&);
+	// if so, id is assigned the node id to refresh
+	bool incoming(msg const&, node_id* id);
 	time_duration tick();
 
 	bool invoke(entry& e, udp::endpoint target

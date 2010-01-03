@@ -138,6 +138,16 @@ void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id con
 		carry = sum > 255;
 	}
 }
+
+void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
+{
+	using namespace libtorrent::dht;
+	std::vector<node_entry>* nv = (std::vector<node_entry>*)userdata;
+	nv->push_back(n);
+}
+
+void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
+
 #endif
 
 char upnp_xml[] = 
@@ -1021,39 +1031,39 @@ int test_main()
 
 	// test kademlia routing table
 	dht_settings s;
-	node_id id = to_hash("6123456789abcdef01232456789abcdef0123456");
+	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 	dht::routing_table table(id, 10, s);
 	table.node_seen(id, udp::endpoint(address_v4::any(), rand()));
 
-	node_id tmp;
-	node_id diff = to_hash("00001f7459456a9453f8719b09547c11d5f34064");
+	node_id tmp = id;
+	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
 	std::vector<node_entry> nodes;
-	for (int i = 0; i < 1000; ++i)
+	for (int i = 0; i < 7000; ++i)
 	{
 		table.node_seen(tmp, udp::endpoint(address_v4::any(), rand()));
 		add_and_replace(tmp, diff);
 	}
+	TEST_EQUAL(table.num_active_buckets(), 11);
 
-	std::copy(table.begin(), table.end(), std::back_inserter(nodes));
+#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
+	table.print_state(std::cerr);
+#endif
+
+	table.for_each_node(node_push_back, nop, &nodes);
 
 	std::cout << "nodes: " << nodes.size() << std::endl;
 
 	std::vector<node_entry> temp;
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, 0, nodes.size() + 1);
+	table.find_node(tmp, temp, 0, nodes.size() * 2);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == nodes.size());
-
-	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, routing_table::include_self, nodes.size() + 1);
-	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == nodes.size() + 1);
+	TEST_EQUAL(temp.size(), nodes.size());
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
 	table.find_node(tmp, temp, 0, 7);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == 7);
+	TEST_EQUAL(temp.size(), 7);
 
 	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
 		, bind(&node_entry::id, _1)
@@ -1073,7 +1083,7 @@ int test_main()
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
 	table.find_node(tmp, temp, 0, 15);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == (std::min)(15, int(nodes.size())));
+	TEST_EQUAL(temp.size(), (std::min)(15, int(nodes.size())));
 
 	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
 		, bind(&node_entry::id, _1)

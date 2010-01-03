@@ -169,6 +169,12 @@ void find_data_observer::reply(msg const& m)
 	done();
 }
 
+void add_entry_fun(void* userdata, node_entry const& e)
+{
+	traversal_algorithm* f = (traversal_algorithm*)userdata;
+	f->add_entry(e.id, e.ep(), traversal_algorithm::result::initial);
+}
+
 find_data::find_data(
 	node_impl& node
 	, node_id target
@@ -181,11 +187,7 @@ find_data::find_data(
 	, m_done(false)
 	, m_got_peers(false)
 {
-	for (routing_table::const_iterator i = node.m_table.begin()
-		, end(node.m_table.end()); i != end; ++i)
-	{
-		add_entry(i->id, i->ep(), result::initial);
-	}
+	node.m_table.for_each_node(&add_entry_fun, 0, (traversal_algorithm*)this);
 }
 
 bool find_data::invoke(udp::endpoint addr)

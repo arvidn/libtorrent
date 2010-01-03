@@ -322,9 +322,9 @@ namespace libtorrent { namespace dht
 		mutex_t::scoped_lock l(m_mutex);
 		if (e || m_abort) return;
 
-		time_duration d = m_dht.refresh_timeout();
+		m_dht.tick();
 		error_code ec;
-		m_refresh_timer.expires_from_now(d, ec);
+		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(
 			bind(&dht_tracker::refresh_timeout, self(), _1));
 	}
@@ -542,20 +542,22 @@ namespace libtorrent { namespace dht
 		m_dht.incoming(m);
 	}
 
+	void add_node_fun(void* userdata, node_entry const& e)
+	{
+		entry* n = (entry*)userdata;
+		std::string node;
+		std::back_insert_iterator<std::string> out(node);
+		write_endpoint(e.ep(), out);
+		n->list().push_back(entry(node));
+	}
+	
 	entry dht_tracker::state() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		entry ret(entry::dictionary_t);
 		{
 			entry nodes(entry::list_t);
-			for (node_impl::iterator i(m_dht.begin())
-				, end(m_dht.end()); i != end; ++i)
-			{
-				std::string node;
-				std::back_insert_iterator<std::string> out(node);
-				write_endpoint(udp::endpoint(i->addr, i->port), out);
-				nodes.list().push_back(entry(node));
-			}
+			m_dht.m_table.for_each_node(&add_node_fun, &add_node_fun, &nodes);
 			bucket_t cache;
 			m_dht.replacement_cache(cache);
 			for (bucket_t::iterator i(cache.begin())
