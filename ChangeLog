@@ -5,6 +5,7 @@
 	* cleaned up usage of MAX_PATH and related macros
 	* made it possible to build libtorrent without RTTI support
 	* added support to build with libgcrypt and a shipped version of libtommath
+	* optimized DHT routing table memory usage
 
 0.15 release
 

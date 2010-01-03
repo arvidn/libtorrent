@@ -267,13 +267,13 @@ void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 	
 	r->start();
 }
-
+/*
 void node_impl::refresh()
 {
 	boost::intrusive_ptr<dht::refresh> r(new dht::refresh(*this, m_id, boost::bind(&nop)));
 	r->start();
 }
-
+*/
 int node_impl::bucket_size(int bucket)
 {
 	return m_table.bucket_size(bucket);
@@ -283,39 +283,6 @@ void node_impl::new_write_key()
 {
 	m_secret[1] = m_secret[0];
 	m_secret[0] = std::rand();
-}
-
-void node_impl::refresh_bucket(int bucket)
-{
-	TORRENT_ASSERT(bucket >= 0 && bucket < 160);
-	
-	// generate a random node_id within the given bucket
-	node_id target = generate_id();
-	int num_bits = 160 - bucket;
-	node_id mask(0);
-	for (int i = 0; i < num_bits; ++i)
-	{
-		int byte = i / 8;
-		mask[byte] |= 0x80 >> (i % 8);
-	}
-
-	node_id root = m_id;
-	root &= mask;
-	target &= ~mask;
-	target |= root;
-
-	// make sure this is in another subtree than m_id
-	// clear the (num_bits - 1) bit and then set it to the
-	// inverse of m_id's corresponding bit.
-	target[(num_bits - 1) / 8] &= ~(0x80 >> ((num_bits - 1) % 8));
-	target[(num_bits - 1) / 8] |=
-		(~(m_id[(num_bits - 1) / 8])) & (0x80 >> ((num_bits - 1) % 8));
-
-	TORRENT_ASSERT(distance_exp(m_id, target) == bucket);
-
-	boost::intrusive_ptr<dht::refresh> ta(new dht::refresh(*this, target, bind(&nop)));
-	ta->start();
-	m_table.touch_bucket(bucket);
 }
 
 void node_impl::unreachable(udp::endpoint const& ep)
@@ -341,7 +308,9 @@ void node_impl::incoming(msg const& m)
 	{
 		case 'r':
 		{
-			if (m_rpc.incoming(m)) refresh();
+			node_id id;
+			if (m_rpc.incoming(m, &id))
+				refresh(id, boost::bind(&nop));
 			break;
 		}
 		case 'q':
@@ -451,43 +420,11 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port
 	ta->start();
 }
 
-time_duration node_impl::refresh_timeout()
+void node_impl::tick()
 {
-	int refresh = -1;
-	ptime now = time_now();
-	ptime next = now + minutes(15);
-	for (int i = 0; i < 160; ++i)
-	{
-		ptime r = m_table.next_refresh(i);
-		if (r <= next)
-		{
-			refresh = i;
-			next = r;
-		}
-	}
-	if (next < now)
-	{
-		TORRENT_ASSERT(refresh > -1);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "refreshing bucket: " << refresh;
-#endif
-		refresh_bucket(refresh);
-	}
-
-	time_duration next_refresh = next - now;
-	time_duration min_next_refresh
-		= minutes(15) / m_table.num_active_buckets();
-	if (min_next_refresh > seconds(40))
-		min_next_refresh = seconds(40);
-
-	if (next_refresh < min_next_refresh)
-		next_refresh = min_next_refresh;
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "next refresh: " << total_seconds(next_refresh) << " seconds";
-#endif
-
-	return next_refresh;
+	node_id target;
+	if (m_table.need_refresh(target))
+		refresh(target, boost::bind(&nop));
 }
 
 time_duration node_impl::connection_timeout()

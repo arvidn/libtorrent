@@ -184,6 +184,7 @@ public:
 
 	virtual ~node_impl() {}
 
+	void tick();
 	void refresh(node_id const& id, find_data::nodes_callback const& f);
 	void bootstrap(std::vector<udp::endpoint> const& nodes
 		, find_data::nodes_callback const& f);
@@ -200,14 +201,7 @@ public:
 		return ret;
 	}
 
-	void refresh();
-	void refresh_bucket(int bucket);
 	int bucket_size(int bucket);
-
-	typedef routing_table::iterator iterator;
-	
-	iterator begin() const { return m_table.begin(); }
-	iterator end() const { return m_table.end(); }
 
 	node_id const& nid() const { return m_id; }
 
@@ -233,7 +227,6 @@ public:
 	// the returned time is the delay until connection_timeout()
 	// should be called again the next time
 	time_duration connection_timeout();
-	time_duration refresh_timeout();
 
 	// generates a new secret number used to generate write tokens
 	void new_write_key();
