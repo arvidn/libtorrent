@@ -891,7 +891,7 @@ bool listen_on(
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">is_listening()</span></tt> will tell you whether or not the session has successfully
 opened a listening port. If it hasn't, this function will return false, and
-then you can use <tt class="docutils literal"><span class="pre">listen_on()</span></tt> to make another try.</p>
+then you can use <tt class="docutils literal"><span class="pre">listen_on()</span></tt> to make another attempt.</p>
 <p><tt class="docutils literal"><span class="pre">listen_port()</span></tt> returns the port we ended up listening on. Since you just pass
 a port-range to the constructor and to <tt class="docutils literal"><span class="pre">listen_on()</span></tt>, to know which port it
 ended up using, you have to ask the session using this function.</p>
@@ -903,9 +903,15 @@ the range and so on. The interface parameter can be left as 0, in that case the
 os will decide which interface to listen on, otherwise it should be the ip-address
 of the interface you want the listener socket bound to. <tt class="docutils literal"><span class="pre">listen_on()</span></tt> returns true
 if it managed to open the socket, and false if it failed. If it fails, it will also
-generate an appropriate alert (<a class="reference internal" href="#listen-failed-alert">listen_failed_alert</a>).</p>
+generate an appropriate alert (<a class="reference internal" href="#listen-failed-alert">listen_failed_alert</a>). If all ports in the specified
+range fails to be opened for listening, libtorrent will try to use port 0 (which
+tells the operating system to pick a port that's free). If that still fails you
+may see a <a class="reference internal" href="#listen-failed-alert">listen_failed_alert</a> with port 0 even if you didn't ask to listen on it.</p>
 <p>The interface parameter can also be a hostname that will resolve to the device you
-want to listen on.</p>
+want to listen on. If you don't specify an interface, libtorrent may attempt to
+listen on multiple interfaces (typically 0.0.0.0 and ::). This means that if your
+IPv6 interface doesn't work, you may still see a <a class="reference internal" href="#listen-failed-alert">listen_failed_alert</a>, even though
+the IPv4 port succeeded.</p>
 <p>If you're also starting the DHT, it is a good idea to do that after you've called
 <tt class="docutils literal"><span class="pre">listen_on()</span></tt>, since the default listen port for the DHT is the same as the tcp
 listen socket. If you start the DHT first, it will assume the tcp port is free and
@@ -3997,8 +4003,22 @@ struct external_ip_alert: alert
 <div class="section" id="listen-failed-alert">
 <h2>listen_failed_alert</h2>
 <p>This alert is generated when none of the ports, given in the port range, to
-<a class="reference internal" href="#session">session</a> can be opened for listening. This alert doesn't have any extra
-data members.</p>
+<a class="reference internal" href="#session">session</a> can be opened for listening.</p>
+<p>libtorrent may sometimes try to listen on port 0, if all other ports failed.
+Port 0 asks the operating system to pick a port that's free). If that fails
+you may see a <a class="reference internal" href="#listen-failed-alert">listen_failed_alert</a> with port 0 even if you didn't ask to
+listen on it.</p>
+<pre class="literal-block">
+struct external_ip_alert: alert
+{
+        // ...
+        tcp::endpoint endpoint;
+        error_code error;
+};
+</pre>
+<p><tt class="docutils literal"><span class="pre">endpoint</span></tt> is the address and port that libtorrent tried to listen on
+but failed.</p>
+<p><tt class="docutils literal"><span class="pre">error</span></tt> is the error message from the failed socket operation.</p>
 </div>
 <div class="section" id="portmap-error-alert">
 <h2>portmap_error_alert</h2>
