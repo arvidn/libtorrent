@@ -382,7 +382,7 @@ for Windows and Mac OSX.
 .. _FireANT: http://antisnottv.net/
 
 .. _FDM: http://www.freedownloadmanager.org/
-.. _LeechCraft: http://deviant-soft.ws/tiki-index.php?page=LeechCraft
+.. _LeechCraft: http://leechcraft.org/
 .. _FatRat: http://fatrat.dolezel.info
 .. _BitRocket: http://www.bitrocket.org/
 .. _BitsCast: http://www.bitscast.com/software/
