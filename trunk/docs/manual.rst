@@ -897,7 +897,10 @@ the range and so on. The interface parameter can be left as 0, in that case the
 os will decide which interface to listen on, otherwise it should be the ip-address
 of the interface you want the listener socket bound to. ``listen_on()`` returns true
 if it managed to open the socket, and false if it failed. If it fails, it will also
-generate an appropriate alert (listen_failed_alert_).
+generate an appropriate alert (listen_failed_alert_). If all ports in the specified
+range fails to be opened for listening, libtorrent will try to use port 0 (which
+tells the operating system to pick a port that's free). If that still fails you
+may see a listen_failed_alert_ with port 0 even if you didn't ask to listen on it.
 
 The interface parameter can also be a hostname that will resolve to the device you
 want to listen on. If you don't specify an interface, libtorrent may attempt to
@@ -4906,6 +4909,11 @@ This alert is generated when none of the ports, given in the port range, to
 session_ can be opened for listening. The ``endpoint`` member is the
 interface and port that failed, ``error`` is the error code describing
 the failure.
+
+libtorrent may sometimes try to listen on port 0, if all other ports failed.
+Port 0 asks the operating system to pick a port that's free). If that fails
+you may see a listen_failed_alert_ with port 0 even if you didn't ask to
+listen on it.
 
 ::
 
