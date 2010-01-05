@@ -4071,8 +4071,26 @@ listen_failed_alert
 -------------------
 
 This alert is generated when none of the ports, given in the port range, to
-session_ can be opened for listening. This alert doesn't have any extra
-data members.
+session_ can be opened for listening.
+
+libtorrent may sometimes try to listen on port 0, if all other ports failed.
+Port 0 asks the operating system to pick a port that's free). If that fails
+you may see a listen_failed_alert_ with port 0 even if you didn't ask to
+listen on it.
+
+::
+
+	struct external_ip_alert: alert
+	{
+		// ...
+		tcp::endpoint endpoint;
+		error_code error;
+	};
+
+``endpoint`` is the address and port that libtorrent tried to listen on
+but failed.
+
+``error`` is the error message from the failed socket operation.
 
 
 portmap_error_alert
@@ -4688,11 +4706,6 @@ invalid_torrent_file
 
 This exception is thrown from the constructor of ``torrent_info`` if the given bencoded information
 doesn't meet the requirements on what information has to be present in a torrent file.
-
-libtorrent may sometimes try to listen on port 0, if all other ports failed.
-Port 0 asks the operating system to pick a port that's free). If that fails
-you may see a listen_failed_alert_ with port 0 even if you didn't ask to
-listen on it.
 
 ::
 
