@@ -161,21 +161,7 @@ void replace_trackers(torrent_handle& h, object trackers)
         if (entry == handle<>())
             break;
 
-        dict d;
-        d = extract<dict>(object(entry));
-
-        std::string url;
-        url = extract<std::string>(d["url"]);
-
-        announce_entry a(url);
-
-        if (d.has_key("tier"))
-            a.tier = extract<int>(d["tier"]);
-
-        if (d.has_key("fail_limit"))
-            a.fail_limit = extract<int>(d["fail_limit"]);
-
-        result.push_back(a);
+        result.push_back(extract<announce_entry const&>(object(entry)));
     }
 
     allow_threading_guard guard;
