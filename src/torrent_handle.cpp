@@ -295,6 +295,12 @@ namespace libtorrent
 		TORRENT_FORWARD(set_upload_mode(b));
 	}
 
+	void torrent_handle::flush_cache() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(flush_cache());
+	}
+
 	void torrent_handle::save_resume_data() const
 	{
 		INVARIANT_CHECK;

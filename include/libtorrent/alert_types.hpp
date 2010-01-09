@@ -1419,6 +1419,16 @@ namespace libtorrent
 		int interval;
 	};
 
+	struct TORRENT_EXPORT cache_flushed_alert: torrent_alert
+	{
+		cache_flushed_alert(torrent_handle const& h);
+
+		virtual std::auto_ptr<alert> clone() const
+		{ return std::auto_ptr<alert>(new cache_flushed_alert(*this)); }
+		const static int static_category = alert::storage_notification;
+		virtual int category() const { return static_category; }
+		virtual char const* what() const { return "cache_flushed_alert"; }
+	};
 }
 
 
