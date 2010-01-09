@@ -176,7 +176,7 @@ bool routing_table::need_refresh(node_id& target) const
 
 	// generate a random node_id within the given bucket
 	target = generate_id();
-	int num_bits = std::distance(m_buckets.begin(), i);
+	int num_bits = std::distance(m_buckets.begin(), i) + 1;
 	node_id mask(0);
 	for (int i = 0; i < num_bits; ++i) mask[i/8] |= 0x80 >> (i&7);
 
@@ -193,7 +193,7 @@ bool routing_table::need_refresh(node_id& target) const
 	target[(num_bits - 1) / 8] |=
 		(~(m_id[(num_bits - 1) / 8])) & (0x80 >> ((num_bits - 1) % 8));
 
-	TORRENT_ASSERT(distance_exp(m_id, target) == 160 - std::distance(m_buckets.begin(), i));
+	TORRENT_ASSERT(distance_exp(m_id, target) == 160 - num_bits);
 	return true;
 }
 /*
