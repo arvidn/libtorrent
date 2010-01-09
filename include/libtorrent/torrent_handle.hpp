@@ -444,6 +444,7 @@ namespace libtorrent
 		void pause() const;
 		void resume() const;
 		void set_upload_mode(bool b) const;
+		void flush_cache() const;
 
 		void force_recheck() const;
 		void save_resume_data() const;

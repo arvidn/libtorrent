@@ -5054,6 +5054,18 @@ namespace libtorrent
 			&& !m_abort;
 	}
 
+	void torrent::flush_cache()
+	{
+		m_storage->async_release_files(
+			bind(&torrent::on_cache_flushed, shared_from_this(), _1, _2));
+	}
+
+	void torrent::on_cache_flushed(int ret, disk_io_job const& j)
+	{
+		if (alerts().should_post<cache_flushed_alert>())
+			alerts().post_alert(cache_flushed_alert(get_handle()));
+	}
+
 	bool torrent::is_paused() const
 	{
 		return m_paused || m_ses.is_paused();

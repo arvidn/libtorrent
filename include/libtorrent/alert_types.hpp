@@ -1118,6 +1118,14 @@ namespace libtorrent
 		int interval;
 	};
 
+	struct TORRENT_EXPORT cache_flushed_alert: torrent_alert
+	{
+		cache_flushed_alert(torrent_handle const& h);
+
+		TORRENT_DEFINE_ALERT(cache_flushed_alert);
+
+		const static int static_category = alert::storage_notification;
+	};
 }
 
 
