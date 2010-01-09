@@ -629,6 +629,7 @@ void routing_table::find_node(node_id const& target
 			copy_if_n(b.begin(), b.end(), std::back_inserter(l)
 				, to_copy, bind(&node_entry::confirmed, _1));
 		}
+		++j;
 	}
 	while (j != m_buckets.begin() && l.size() < count);
 }
