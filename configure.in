@@ -1,6 +1,6 @@
 AC_PREREQ(2.60)
 
-AC_INIT([libtorrent-rasterbar], [0.14.7], [arvid@cs.umu.se])
+AC_INIT([libtorrent-rasterbar], [0.14.8], [arvid@cs.umu.se])
 AM_INIT_AUTOMAKE(foreign 1.10)
 AC_CONFIG_SRCDIR([src/torrent.cpp])
 
