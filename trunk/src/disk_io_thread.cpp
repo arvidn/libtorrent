@@ -1341,6 +1341,7 @@ namespace libtorrent
 		, fence_operation // abort_torrent
 		, 0 // update_settings
 		, read_operation // read_and_hash
+		, 0 // finalize_file
 	};
 
 	bool is_fence_operation(disk_io_job const& j)
@@ -1670,6 +1671,14 @@ namespace libtorrent
 #if TORRENT_DISK_STATS
 					rename_buffer(j.buffer, "released send buffer");
 #endif
+					break;
+				}
+				case disk_io_job::finalize_file:
+				{
+#ifdef TORRENT_DISK_STATS
+					m_log << log_time() << " finalize_file " << j.piece << std::endl;
+#endif
+					j.storage->finalize_file(j.piece);
 					break;
 				}
 				case disk_io_job::read:

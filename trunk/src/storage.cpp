@@ -349,6 +349,7 @@ namespace libtorrent
 			m_save_path = complete(path);
 		}
 
+		void finalize_file(int file);
 		bool has_any_file();
 		bool rename_file(int index, std::string const& new_filename);
 		bool release_files();
@@ -397,6 +398,9 @@ namespace libtorrent
 
 		boost::scoped_ptr<file_storage> m_mapped_files;
 		file_storage const& m_files;
+
+		// helper function to open a file in the file pool with the right mode
+		boost::shared_ptr<file> open_file(file_entry const& fe, int mode, error_code& ec) const;
 
 		std::vector<boost::uint8_t> m_file_priority;
 		std::string m_save_path;
@@ -540,20 +544,13 @@ namespace libtorrent
 			if (ec || s.file_size > file_iter->size || file_iter->size == 0)
 			{
 				ec.clear();
-				int mode = file::read_write;
-				if (m_settings
-					&& (settings().disk_io_read_mode == session_settings::disable_os_cache
-					|| (settings().disk_io_read_mode == session_settings::disable_os_cache_for_aligned_files
-					&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)))
-					mode |= file::no_buffer;
-				if (!m_allocate_files) mode |= file::sparse;
-				boost::shared_ptr<file> f = m_pool.open_file(this
-					, combine_path(m_save_path, file_iter->path), mode, ec);
-				if (ec) set_error(combine_path(m_save_path, file_iter->path), ec);
+				boost::shared_ptr<file> f = open_file(*file_iter, file::read_write, ec);
+				std::string path = combine_path(m_save_path, file_iter->path);
+				if (ec) set_error(path, ec);
 				else if (f)
 				{
 					f->set_size(file_iter->size, ec);
-					if (ec) set_error(combine_path(m_save_path, file_iter->path), ec);
+					if (ec) set_error(path, ec);
 				}
 			}
 
@@ -564,6 +561,18 @@ namespace libtorrent
 		// close files that were opened in write mode
 		m_pool.release(this);
 		return false;
+	}
+
+	void storage::finalize_file(int index)
+	{
+		TORRENT_ASSERT(index >= 0 && index < m_files.num_files());
+		if (index < 0 || index >= m_files.num_files()) return;
+	
+		error_code ec;
+		boost::shared_ptr<file> f = open_file(files().at(index), file::read_write, ec);
+		if (ec || !f) return;
+
+		f->finalize();
 	}
 
 	bool storage::has_any_file()
@@ -696,19 +705,8 @@ namespace libtorrent
 			TORRENT_ASSERT(file_iter != files().end());
 		}
 	
-		std::string path = combine_path(m_save_path, file_iter->path);
 		error_code ec;
-		int mode = file::read_only;
-
-		boost::shared_ptr<file> file_handle;
-		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
-		if (cache_setting == session_settings::disable_os_cache
-			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
-			&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0))
-			mode |= file::no_buffer;
-		if (!m_allocate_files) mode |= file::sparse;
-
-		file_handle = m_pool.open_file(const_cast<storage*>(this), path, mode, ec);
+		boost::shared_ptr<file> file_handle = open_file(*file_iter, file::read_only, ec);
 		if (!file_handle || ec) return slot;
 
 		size_type data_start = file_handle->sparse_end(file_offset);
@@ -1044,13 +1042,10 @@ ret:
 		size_type file_offset = tor_off - file_iter->offset;
 		TORRENT_ASSERT(file_offset >= 0);
 
-		std::string p = combine_path(m_save_path, file_iter->path);
-		error_code ec;
-	
 		// open the file read only to avoid re-opening
 		// it in case it's already opened in read-only mode
-		boost::shared_ptr<file> f = m_pool.open_file(
-			this, p, file::read_only, ec);
+		error_code ec;
+		boost::shared_ptr<file> f = open_file(*file_iter, file::read_only, ec);
 
 		size_type ret = 0;
 		if (f && !ec) ret = f->phys_offset(file_offset);
@@ -1191,20 +1186,11 @@ ret:
 				continue;
 			}
 
-			std::string path = combine_path(m_save_path, file_iter->path);
-
 			error_code ec;
-			int mode = op.mode;
-
-			if (op.cache_setting == session_settings::disable_os_cache
-				|| (op.cache_setting == session_settings::disable_os_cache_for_aligned_files
-				&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0))
-				mode |= file::no_buffer;
-			if (!m_allocate_files) mode |= file::sparse;
-
-			file_handle = m_pool.open_file(this, path, mode, ec);
+			file_handle = open_file(*file_iter, op.mode, ec);
 			if (!file_handle || ec)
 			{
+				std::string path = combine_path(m_save_path, file_iter->path);
 				TORRENT_ASSERT(ec);
 				set_error(path, ec);
 				return -1;
@@ -1308,6 +1294,18 @@ ret:
 	{
 		file::iovec_t b = { (file::iovec_base_t)buf, size };
 		return readv(&b, slot, offset, 1);
+	}
+
+	boost::shared_ptr<file> storage::open_file(file_entry const& fe, int mode, error_code& ec) const
+	{
+		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
+		if (cache_setting == session_settings::disable_os_cache
+			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
+			&& ((fe.offset + fe.file_base) & (m_page_size-1)) == 0))
+			mode |= file::no_buffer;
+		if (!m_allocate_files) mode |= file::sparse;
+
+		return m_pool.open_file(const_cast<storage*>(this), combine_path(m_save_path, fe.path), mode, ec);
 	}
 
 	storage_interface* default_storage_constructor(file_storage const& fs
@@ -1426,8 +1424,21 @@ ret:
 		m_storage->m_disk_pool = &m_io_thread;
 	}
 
+	void piece_manager::finalize_file(int index)
+	{ m_storage->finalize_file(index); }
+
 	piece_manager::~piece_manager()
 	{
+	}
+
+	void piece_manager::async_finalize_file(int file)
+	{
+		disk_io_job j;
+		j.storage = this;
+		j.action = disk_io_job::finalize_file;
+		j.piece = file;
+		boost::function<void(int, disk_io_job const&)> empty;
+		m_io_thread.add_job(j, empty);
 	}
 
 	void piece_manager::async_save_resume_data(
