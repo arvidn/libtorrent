@@ -1949,6 +1949,8 @@ Its declaration looks like this::
 		void clear_error() const;
 		void set_upload_mode(bool m) const;
 
+		void flush_cache() const;
+
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
 
@@ -2391,6 +2393,21 @@ by default when added to the session. For more information, see queuing_.
 is not running because the session is paused, this still returns false. To know if a
 torrent is active or not, you need to inspect both ``torrent_handle::is_paused()``
 and ``session::is_paused()``.
+
+flush_cache()
+-------------
+
+	::
+
+		void flush_cache() const;
+
+Instructs libtorrent to flush all the disk caches for this torrent and close all
+file handles. This is done asynchronously and you will be notified that it's complete
+through cache_flushed_alert_.
+
+Note that by the time you get the alert, libtorrent may have cached more data for the
+torrent, but you are guaranteed that whatever cached data libtorrent had by the time
+you called ``torrent_handle::flush_cache()`` has been written to disk.
 
 force_recheck()
 ---------------
@@ -5658,6 +5675,20 @@ sample is a measurement of. All of these are raw, and not smoothing is performed
 were collected. This is typically just above 1000, but if CPU is
 limited, it may be higher than that.
 
+
+cache_flushed_alert
+-------------------
+
+This alert is posted when the disk cache has been flushed for a specific torrent
+as a result of a call to `flush_cache_()`_. This alert belongs to the
+``storage_notification`` category, which must be enabled to let this alert through.
+
+::
+
+	struct flush_cached_alert: torrent_alert
+	{
+		// ...
+	};
 
 dht_announce_alert
 ------------------

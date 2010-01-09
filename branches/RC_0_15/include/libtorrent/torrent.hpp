@@ -230,6 +230,8 @@ namespace libtorrent
 		void clear_error();
 		void set_error(error_code const& ec, std::string const& file);
 		bool has_error() const { return m_error; }
+
+		void flush_cache();
 		void pause();
 		void resume();
 
@@ -719,6 +721,7 @@ namespace libtorrent
 		void on_storage_moved(int ret, disk_io_job const& j);
 		void on_save_resume_data(int ret, disk_io_job const& j);
 		void on_file_renamed(int ret, disk_io_job const& j);
+		void on_cache_flushed(int ret, disk_io_job const& j);
 
 		void on_piece_verified(int ret, disk_io_job const& j
 			, boost::function<void(int)> f);
