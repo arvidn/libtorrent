@@ -521,7 +521,7 @@ bool routing_table::need_bootstrap() const
 		, end(m_buckets.end()); i != end; ++i)
 	{
 		for (bucket_t::const_iterator j = i->live_nodes.begin()
-			, end(i->live_nodes.end()); j != end; ++i)
+			, end(i->live_nodes.end()); j != end; ++j)
 		{
 			if (j->confirmed()) return false;
 		}
