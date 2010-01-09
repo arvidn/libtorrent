@@ -93,6 +93,7 @@ namespace libtorrent
 			, abort_torrent
 			, update_settings
 			, read_and_hash
+			, finalize_file
 		};
 
 		action_t action;

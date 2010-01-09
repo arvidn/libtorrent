@@ -1,3 +1,4 @@
+	* clear sparse flag on files that complete on windows
 	* support retry-after header for web seeds
 	* replaced boost.filesystem with custom functions
 	* replaced dependency on boost.thread by asio's internal thread primitives

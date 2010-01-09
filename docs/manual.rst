@@ -6257,6 +6257,7 @@ The interface looks like this::
 		virtual bool rename_file(int file, std::string const& new_name) = 0;
 		virtual bool release_files() = 0;
 		virtual bool delete_files() = 0;
+		virtual void finalize_file(int index) {}
 		virtual ~storage_interface() {}
 
 		// non virtual functions
@@ -6482,6 +6483,21 @@ following members::
 		void release_memory();
 	};
 
+finalize_file()
+---------------
+
+	::
+
+		virtual void finalize_file(int index);
+
+This function is called each time a file is completely downloaded. The
+storage implementation can perform last operations on a file. The file will
+not be opened for writing after this.
+
+``index`` is the index of the file that completed.
+
+On windows the default storage implementation clears the sparse file flag
+on the specified file.
 
 magnet links
 ============

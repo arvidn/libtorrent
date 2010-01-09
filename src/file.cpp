@@ -732,7 +732,8 @@ namespace libtorrent
 		}
 
 		// try to make the file sparse if supported
-		if (mode & file::sparse)
+		// only set this flag if the file is opened for writing
+		if ((mode & file::sparse) && (mode & rw_mask) != read_only)
 		{
 			DWORD temp;
 			::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, 0, 0
@@ -1449,6 +1450,19 @@ namespace libtorrent
 		}
 #endif
 		return true;
+	}
+
+	void file::finalize()
+	{
+#ifdef TORRENT_WINDOWS
+		// according to MSDN, clearing the sparse flag of a file only
+		// works on windows vista and later
+		DWORD temp;
+		FILE_SET_SPARSE_BUFFER b;
+		b.SetSparse = FALSE;
+		::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, &b, sizeof(b)
+			, 0, 0, &temp, 0);
+#endif
 	}
 
 	size_type file::get_size(error_code& ec) const

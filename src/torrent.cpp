@@ -2003,6 +2003,7 @@ namespace libtorrent
 
 			if (m_file_progress[file_index] >= m_torrent_file->files().at(file_index).size)
 			{
+				filesystem().async_finalize_file(file_index);
 				if (m_ses.m_alerts.should_post<piece_finished_alert>())
 				{
 					// this file just completed, post alert

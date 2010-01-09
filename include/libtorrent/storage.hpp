@@ -158,6 +158,8 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual bool delete_files() = 0;
 
+		virtual void finalize_file(int file) {}
+
 		disk_buffer_pool* disk_pool() { return m_disk_pool; }
 		session_settings const& settings() const { return *m_settings; }
 
@@ -203,6 +205,8 @@ namespace libtorrent
 
 		boost::intrusive_ptr<torrent_info const> info() const { return m_info; }
 		void write_resume_data(entry& rd) const;
+
+		void async_finalize_file(int file);
 
 		void async_check_fastresume(lazy_entry const* resume_data
 			, boost::function<void(int, disk_io_job const&)> const& handler);
@@ -324,6 +328,8 @@ namespace libtorrent
 			, int num_bufs);
 
 		size_type physical_offset(int piece_index, int offset);
+
+		void finalize_file(int index);
 
 		// returns the number of pieces left in the
 		// file currently being checked
