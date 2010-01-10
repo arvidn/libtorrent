@@ -30,6 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <iostream>
+#include <fstream>
+#include <iterator>
+#include <iomanip>
+
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -37,55 +42,42 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/create_torrent.hpp"
-#include "libtorrent/file.hpp"
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/fstream.hpp>
 #include <boost/bind.hpp>
 
+using namespace boost::filesystem;
 using namespace libtorrent;
 
 // do not include files and folders whose
 // name starts with a .
-bool file_filter(std::string const& f)
+bool file_filter(boost::filesystem::path const& filename)
 {
-	if (filename(f)[0] == '.') return false;
-	fprintf(stderr, "%s\n", f.c_str());
+	if (filename.leaf()[0] == '.') return false;
+	std::cerr << filename << std::endl;
 	return true;
 }
 
 void print_progress(int i, int num)
 {
-	fprintf(stderr, "\r%d/%d", i+1, num);
-}
-
-void print_usage()
-{
-	fputs("usage: make_torrent FILE [OPTIONS]\n"
-		"\n"
-		"Generates a torrent file from the specified file\n"
-		"or directory and writes it to standard out\n\n"
-		"OPTIONS:\n"
-		"-m          generate a merkle hash tree torrent.\n"
-		"            merkle torrents require client support\n"
-		"-w url      adds a web seed to the torrent with\n"
-		"            the specified url\n"
-		"-t url      adds the specified tracker to the\n"
-		"            torrent\n"
-		"-p bytes    enables padding files. Files larger\n"
-		"            than bytes will be piece-aligned\n"
-		"-s bytes    specifies a piece size for the torrent\n"
-		"            This has to be a multiple of 16 kiB\n"
-		, stderr);
+	std::cerr << "\r" << (i+1) << "/" << num;
 }
 
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
+	using namespace boost::filesystem;
 
+	int piece_size = 256 * 1024;
 	char const* creator_str = "libtorrent";
 
-	if (argc < 2)
+	if (argc != 4 && argc != 5)
 	{
-		print_usage();
+		std::cerr << "usage: make_torrent <output torrent-file> "
+			"<announce url> <file or directory to create torrent from> "
+			"[url-seed]\n";
 		return 1;
 	}
 
@@ -93,90 +85,34 @@ int main(int argc, char* argv[])
 	try
 	{
 #endif
-		std::vector<std::string> web_seeds;
-		std::vector<std::string> trackers;
-		int pad_file_limit = -1;
-		int piece_size = 0;
-		int flags = 0;
-
-		for (int i = 2; i < argc; ++i)
-		{
-			if (argv[i][0] != '-')
-			{
-				print_usage();
-				return 1;
-			}
-
-			switch (argv[i][1])
-			{
-				case 'w':
-					++i;
-					web_seeds.push_back(argv[i]);
-					break;
-				case 't':
-					++i;
-					trackers.push_back(argv[i]);
-					break;
-				case 'p':
-					++i;
-					pad_file_limit = atoi(argv[i]);
-					flags |= create_torrent::optimize;
-					break;
-				case 's':
-					++i;
-					piece_size = atoi(argv[i]);
-					break;
-				case 'm':
-					flags |= create_torrent::merkle;
-					break;
-				default:
-					print_usage();
-					return 1;
-			}
-		}
-
 		file_storage fs;
 		file_pool fp;
-		std::string full_path = libtorrent::complete(argv[1]);
+		path full_path = complete(path(argv[3]));
 
 		add_files(fs, full_path, file_filter);
 		if (fs.num_files() == 0)
 		{
-			fputs("no files specified.\n", stderr);
+			std::cerr << "no files specified." << std::cerr;
 			return 1;
 		}
 
-		create_torrent t(fs, piece_size, pad_file_limit, flags);
-		for (std::vector<std::string>::iterator i = trackers.begin()
-			, end(trackers.end()); i != end; ++i)
-			t.add_tracker(*i);
-
-		for (std::vector<std::string>::iterator i = web_seeds.begin()
-			, end(web_seeds.end()); i != end; ++i)
-			t.add_url_seed(*i);
-
-		error_code ec;
-		set_piece_hashes(t, parent_path(full_path)
-			, boost::bind(&print_progress, _1, t.num_pieces()), ec);
-		if (ec)
-		{
-			fprintf(stderr, "%s\n", ec.message().c_str());
-			return 1;
-		}
-
-		fprintf(stderr, "\n");
+		create_torrent t(fs, piece_size);
+		t.add_tracker(argv[2]);
+		set_piece_hashes(t, full_path.branch_path()
+			, boost::bind(&print_progress, _1, t.num_pieces()));
+		std::cerr << std::endl;
 		t.set_creator(creator_str);
 
-		// create the torrent and print it to stdout
-		std::vector<char> torrent;
-		bencode(back_inserter(torrent), t.generate());
-		fwrite(&torrent[0], 1, torrent.size(), stdout);
+		if (argc == 5) t.add_url_seed(argv[4]);
 
+		// create the torrent and print it to out
+		ofstream out(complete(path(argv[1])), std::ios_base::binary);
+		bencode(std::ostream_iterator<char>(out), t.generate());
 #ifndef BOOST_NO_EXCEPTIONS
 	}
 	catch (std::exception& e)
 	{
-		fprintf(stderr, "%s\n", e.what());
+		std::cerr << e.what() << "\n";
 	}
 #endif
 

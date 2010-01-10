@@ -35,218 +35,111 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/find_data.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
-#include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/io.hpp>
 #include <libtorrent/socket.hpp>
-#include <libtorrent/socket_io.hpp>
-#include <vector>
 
 namespace libtorrent { namespace dht
 {
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_DECLARE_LOG(traversal);
-#endif
-
-using detail::read_endpoint_list;
-using detail::read_v4_endpoint;
-#if TORRENT_USE_IPV6
-using detail::read_v6_endpoint;
-#endif
+find_data_observer::~find_data_observer()
+{
+	if (m_algorithm) m_algorithm->failed(m_self);
+}
 
 void find_data_observer::reply(msg const& m)
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	std::stringstream log_line;
-	log_line << "[" << m_algorithm.get() << "] incoming get_peer response [ ";
-#endif
-
-	lazy_entry const* r = m.message.dict_find_dict("r");
-	if (!r)
+	if (!m_algorithm)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] missing response dict";
-#endif
+		TORRENT_ASSERT(false);
 		return;
 	}
 
-	lazy_entry const* id = r->dict_find_string("id");
-	if (!id || id->string_length() != 20)
+	if (!m.peers.empty())
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] invalid id in response";
-#endif
-		return;
+		m_algorithm->got_data(&m);
 	}
-
-	lazy_entry const* token = r->dict_find_string("token");
-	if (token)
+	else
 	{
-		static_cast<find_data*>(m_algorithm.get())->got_write_token(
-			node_id(id->string_ptr()), token->string_value());
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		log_line << " token: " << to_hex(token->string_value());
-#endif
-	}
-
-	// look for peers
-	lazy_entry const* n = r->dict_find_list("values");
-	if (n)
-	{
-		std::vector<tcp::endpoint> peer_list;
-		if (n->list_size() == 1 && n->list_at(0)->type() == lazy_entry::string_t)
+		for (msg::nodes_t::const_iterator i = m.nodes.begin()
+			, end(m.nodes.end()); i != end; ++i)
 		{
-			// assume it's mainline format
-			char const* peers = n->list_at(0)->string_ptr();
-			char const* end = peers + n->list_at(0)->string_length();
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			log_line << " p: " << ((end - peers) / 6);
-#endif
-			while (end - peers >= 6)
-				peer_list.push_back(read_v4_endpoint<tcp::endpoint>(peers));
-		}
-		else
-		{
-			// assume it's uTorrent/libtorrent format
-			read_endpoint_list<tcp::endpoint>(n, peer_list);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			log_line << " p: " << n->list_size();
-#endif
-		}
-		static_cast<find_data*>(m_algorithm.get())->got_peers(peer_list);
-	}
-
-	// look for nodes
-	n = r->dict_find_string("nodes");
-	if (n)
-	{
-		std::vector<node_entry> node_list;
-		char const* nodes = n->string_ptr();
-		char const* end = nodes + n->string_length();
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		log_line << " nodes: " << ((end - nodes) / 26);
-#endif
-		while (end - nodes >= 26)
-		{
-			node_id id;
-			std::copy(nodes, nodes + 20, id.begin());
-			nodes += 20;
-			m_algorithm->traverse(id, read_v4_endpoint<udp::endpoint>(nodes));
+			m_algorithm->traverse(i->id, i->addr);	
 		}
 	}
-
-	n = r->dict_find_list("nodes2");
-	if (n)
-	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		log_line << " nodes2: " << n->list_size();
-#endif
-		for (int i = 0; i < n->list_size(); ++i)
-		{
-			lazy_entry const* p = n->list_at(0);
-			if (p->type() != lazy_entry::string_t) continue;
-			if (p->string_length() < 6 + 20) continue;
-			char const* in = p->string_ptr();
-
-			node_id id;
-			std::copy(in, in + 20, id.begin());
-			in += 20;
-			if (p->string_length() == 6 + 20)
-				m_algorithm->traverse(id, read_v4_endpoint<udp::endpoint>(in));
-#if TORRENT_USE_IPV6
-			else if (p->string_length() == 18 + 20)
-				m_algorithm->traverse(id, read_v6_endpoint<udp::endpoint>(in));
-#endif
-		}
-	}
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	log_line << " ]";
-	TORRENT_LOG(traversal) << log_line.str();
-#endif
-	done();
+	m_algorithm->finished(m_self);
+	m_algorithm = 0;
 }
 
-void add_entry_fun(void* userdata, node_entry const& e)
+void find_data_observer::timeout()
 {
-	traversal_algorithm* f = (traversal_algorithm*)userdata;
-	f->add_entry(e.id, e.ep(), traversal_algorithm::result::initial);
+	if (!m_algorithm) return;
+	m_algorithm->failed(m_self);
+	m_algorithm = 0;
 }
+
 
 find_data::find_data(
-	node_impl& node
-	, node_id target
-	, data_callback const& dcallback
-	, nodes_callback const& ncallback)
-	: traversal_algorithm(node, target)
-	, m_data_callback(dcallback)
-	, m_nodes_callback(ncallback)
-	, m_target(target)
+	node_id target
+	, int branch_factor
+	, int max_results
+	, routing_table& table
+	, rpc_manager& rpc
+	, done_callback const& callback
+)
+	: traversal_algorithm(
+		target
+		, branch_factor
+		, max_results
+		, table
+		, rpc
+		, table.begin()
+		, table.end()
+	)
+	, m_done_callback(callback)
 	, m_done(false)
-	, m_got_peers(false)
 {
-	node.m_table.for_each_node(&add_entry_fun, 0, (traversal_algorithm*)this);
+	boost::intrusive_ptr<find_data> self(this);
+	add_requests();
 }
 
-bool find_data::invoke(udp::endpoint addr)
+void find_data::invoke(node_id const& id, udp::endpoint addr)
 {
 	if (m_done)
 	{
 		m_invoke_count = -1;
-		return false;
+		return;
 	}
 
-	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
-	void* ptr = m_node.m_rpc.allocator().malloc();
-	if (ptr == 0)
-	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << "] failed to "
-			"allocate memory for observer. aborting!";
-#endif
-		done();
-		return false;
-	}
-	m_node.m_rpc.allocator().set_next_size(10);
-	observer_ptr o(new (ptr) find_data_observer(this));
+	TORRENT_ASSERT(m_rpc.allocation_size() >= sizeof(find_data_observer));
+	observer_ptr o(new (m_rpc.allocator().malloc()) find_data_observer(this, id, m_target));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
-	entry e;
-	e["y"] = "q";
-	e["q"] = "get_peers";
-	entry& a = e["a"];
-	a["info_hash"] = m_target.to_string();
-	return m_node.m_rpc.invoke(e, addr, o);
+	m_rpc.invoke(messages::get_peers, addr, o);
 }
 
-void find_data::got_peers(std::vector<tcp::endpoint> const& peers)
+void find_data::got_data(msg const* m)
 {
-	if (!peers.empty()) m_got_peers = true;
-	m_data_callback(peers);
+	m_done = true;
+	m_done_callback(m);
 }
 
 void find_data::done()
 {
 	if (m_invoke_count != 0) return;
+	if (!m_done) m_done_callback(0);
+}
 
-	m_done = true;
-
-	std::vector<std::pair<node_entry, std::string> > results;
-	int num_results = m_node.m_table.bucket_size();
-	for (std::vector<result>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end && num_results > 0; ++i)
-	{
-		if (i->flags & result::no_id) continue;
-		if ((i->flags & result::queried) == 0) continue;
-		std::map<node_id, std::string>::iterator j = m_write_tokens.find(i->id);
-		if (j == m_write_tokens.end()) continue;
-		results.push_back(std::make_pair(node_entry(i->id, i->endpoint()), j->second));
-		--num_results;
-	}
-	m_nodes_callback(results, m_got_peers);
+void find_data::initiate(
+	node_id target
+	, int branch_factor
+	, int max_results
+	, routing_table& table
+	, rpc_manager& rpc
+	, done_callback const& callback
+)
+{
+	new find_data(target, branch_factor, max_results, table, rpc, callback);
 }
 
 } } // namespace libtorrent::dht

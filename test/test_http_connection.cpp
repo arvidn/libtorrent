@@ -32,13 +32,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/http_connection.hpp"
 #include "setup_transfer.hpp"
 
 #include <fstream>
-#include <iostream>
 #include <boost/optional.hpp>
 
 using namespace libtorrent;
@@ -68,10 +66,8 @@ void http_connect_handler(http_connection& c)
 {
 	++connect_handler_called;
 	TEST_CHECK(c.socket().is_open());
-	error_code ec;
-	std::cerr << "connected to: " << print_endpoint(c.socket().remote_endpoint(ec))
-		<< std::endl;
-	TEST_CHECK(c.socket().remote_endpoint(ec).address() == address::from_string("127.0.0.1", ec));
+	std::cerr << "connected to: " << c.socket().remote_endpoint() << std::endl;
+	TEST_CHECK(c.socket().remote_endpoint().address() == address::from_string("127.0.0.1"));
 }
 
 void http_handler(error_code const& ec, http_parser const& parser
@@ -108,17 +104,11 @@ void run_test(std::string const& url, int size, int status, int connected
 
 	std::cerr << " ===== TESTING: " << url << " =====" << std::endl;
 
-	std::cerr << " expecting: size: " << size
-		<< " status: " << status
-		<< " connected: " << connected
-		<< " error: " << (ec?ec->message():"no error") << std::endl;
-
 	boost::shared_ptr<http_connection> h(new http_connection(ios, cq
 		, &::http_handler, true, &::http_connect_handler));
 	h->get(url, seconds(1), 0, &ps);
 	ios.reset();
-	error_code e;
-	ios.run(e);
+	ios.run();
 
 	std::cerr << "connect_handler_called: " << connect_handler_called << std::endl;
 	std::cerr << "handler_called: " << handler_called << std::endl;
@@ -168,14 +158,9 @@ int test_main()
 {
 	std::srand(std::time(0));
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
-	error_code ec;
-	file test_file("test_file", file::write_only, ec);
-	TEST_CHECK(!ec);
-	if (ec) fprintf(stderr, "file error: %s\n", ec.message().c_str());
-	file::iovec_t b = { data_buffer, 3216};
-	test_file.writev(0, &b, 1, ec);
-	TEST_CHECK(!ec);
-	if (ec) fprintf(stderr, "file error: %s\n", ec.message().c_str());
+	std::ofstream test_file("test_file", std::ios::trunc);
+	test_file.write(data_buffer, 3216);
+	TEST_CHECK(test_file.good());
 	test_file.close();
 	std::system("gzip -9 -c test_file > test_file.gz");
 	

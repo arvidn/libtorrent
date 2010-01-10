@@ -35,16 +35,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/time.hpp"
+#include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/bind.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
-#include <fstream>
-#include <iostream>
 
+using boost::filesystem::remove_all;
+using boost::filesystem::exists;
+using boost::filesystem::create_directory;
 using namespace libtorrent;
 using boost::tuples::ignore;
 
@@ -52,28 +52,27 @@ using boost::tuples::ignore;
 void test_rate()
 {
 	// in case the previous run was terminated
-	error_code ec;
-	remove_all("./tmp1_transfer", ec);
-	remove_all("./tmp2_transfer", ec);
-	remove_all("./tmp1_transfer_moved", ec);
-	remove_all("./tmp2_transfer_moved", ec);
+	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000));
 
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	create_directory("./tmp1_transfer", ec);
+	create_directory("./tmp1_transfer");
 	std::ofstream file("./tmp1_transfer/temporary");
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 7);
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 50);
 	file.close();
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 0, &t);
 
-	ses1.set_alert_mask(alert::all_categories & ~(alert::performance_warning));
-	ses2.set_alert_mask(alert::all_categories & ~(alert::performance_warning));
+	ses1.set_alert_mask(alert::all_categories & ~(alert::progress_notification | alert::performance_warning));
+	ses2.set_alert_mask(alert::all_categories & ~(alert::progress_notification | alert::performance_warning));
 
 	ptime start = time_now();
 
@@ -91,6 +90,7 @@ void test_rate()
 			<< "\033[0m" << int(st2.progress * 100) << "% "
 			<< std::endl;
 
+		if (st1.paused) break;
 		if (tor2.is_seed()) break;
 		test_sleep(1000);
 	}
@@ -102,128 +102,20 @@ void test_rate()
 	std::cerr << "downloaded " << t->total_size() << " bytes "
 		"in " << (total_milliseconds(dt) / 1000.f) << " seconds" << std::endl;
 	
-	std::cerr << "average download rate: " << (t->total_size() / (std::max)(total_milliseconds(dt), 1))
+	std::cerr << "average download rate: " << (t->total_size() / total_milliseconds(dt))
 		<< " kB/s" << std::endl;
 
 }
 
-void print_alert(alert const& a)
+void test_transfer(bool test_allowed_fast = false)
 {
-	std::cout << "ses1 (alert dispatch function): " << a.message() << std::endl;
-}
+	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
 
-// simulate a full disk
-struct test_storage : storage_interface
-{
-	test_storage(file_storage const& fs, std::string const& p, file_pool& fp)
-		: m_lower_layer(default_storage_constructor(fs, 0, p, fp))
-  		, m_written(0)
-		, m_limit(16 * 1024 * 2)
-	{}
-
-	virtual bool initialize(bool allocate_files)
-	{ return m_lower_layer->initialize(allocate_files); }
-
-	virtual bool has_any_file()
-	{ return m_lower_layer->has_any_file(); }
-
-	virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
-	{ return m_lower_layer->readv(bufs, slot, offset, num_bufs); }
-
-	virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
-	{
-		int ret = m_lower_layer->writev(bufs, slot, offset, num_bufs);
-		if (ret > 0) m_written += ret;
-		if (m_written > m_limit)
-		{
-#if BOOST_VERSION == 103500
-			set_error("", error_code(boost::system::posix_error::no_space_on_device, get_posix_category()));
-#elif BOOST_VERSION > 103500
-			set_error("", error_code(boost::system::errc::no_space_on_device, get_posix_category()));
-#else
-			set_error("", error_code(ENOSPC, get_posix_category()));
-#endif
-			return -1;
-		}
-		return ret;
-	}
-
-	virtual size_type physical_offset(int piece_index, int offset)
-	{ return m_lower_layer->physical_offset(piece_index, offset); }
-
-	virtual int read(char* buf, int slot, int offset, int size)
-	{ return m_lower_layer->read(buf, slot, offset, size); }
-
-	virtual int write(const char* buf, int slot, int offset, int size)
-	{
-		int ret = m_lower_layer->write(buf, slot, offset, size);
-		if (ret > 0) m_written += ret;
-		if (m_written > m_limit)
-		{
-#if BOOST_VERSION == 103500
-			set_error("", error_code(boost::system::posix_error::no_space_on_device, get_posix_category()));
-#elif BOOST_VERSION > 103500
-			set_error("", error_code(boost::system::errc::no_space_on_device, get_posix_category()));
-#else
-			set_error("", error_code(ENOSPC, get_posix_category()));
-#endif
-			return -1;
-		}
-		return ret;
-	}
-
-	virtual int sparse_end(int start) const
-	{ return m_lower_layer->sparse_end(start); }
-
-	virtual bool move_storage(std::string const& save_path)
-	{ return m_lower_layer->move_storage(save_path); }
-
-	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
-	{ return m_lower_layer->verify_resume_data(rd, error); }
-
-	virtual bool write_resume_data(entry& rd) const
-	{ return m_lower_layer->write_resume_data(rd); }
-
-	virtual bool move_slot(int src_slot, int dst_slot)
-	{ return m_lower_layer->move_slot(src_slot, dst_slot); }
-
-	virtual bool swap_slots(int slot1, int slot2)
-	{ return m_lower_layer->swap_slots(slot1, slot2); }
-
-	virtual bool swap_slots3(int slot1, int slot2, int slot3)
-	{ return m_lower_layer->swap_slots3(slot1, slot2, slot3); }
-
-	virtual bool release_files() { return m_lower_layer->release_files(); }
-
-	virtual bool rename_file(int index, std::string const& new_filename)
-	{ return m_lower_layer->rename_file(index, new_filename); }
-
-	virtual bool delete_files() { return m_lower_layer->delete_files(); }
-
-	virtual ~test_storage() {}
-
-	boost::scoped_ptr<storage_interface> m_lower_layer;
-	int m_written;
-	int m_limit;
-};
-
-storage_interface* test_storage_constructor(file_storage const& fs
-	, file_storage const*, std::string const& path, file_pool& fp)
-{
-	return new test_storage(fs, path, fp);
-}
-
-void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
-{
-	// in case the previous run was terminated
-	error_code ec;
-	remove_all("./tmp1_transfer", ec);
-	remove_all("./tmp2_transfer", ec);
-	remove_all("./tmp1_transfer_moved", ec);
-	remove_all("./tmp2_transfer_moved", ec);
-
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000));
 
 	if (test_allowed_fast)
 	{
@@ -244,36 +136,23 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	create_directory("./tmp1_transfer", ec);
+	create_directory("./tmp1_transfer");
 	std::ofstream file("./tmp1_transfer/temporary");
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024);
 	file.close();
 
-	add_torrent_params addp(&test_storage_constructor);
-
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_transfer", 8 * 1024, &t, false, test_disk_full?&addp:0);
-
-	session_settings settings = ses1.settings();
-	settings.min_reconnect_time = 1;
-	ses1.set_settings(settings);
-	ses2.set_settings(settings);
+		, true, false, true, "_transfer", 8 * 1024, &t);
 
 	// set half of the pieces to priority 0
 	int num_pieces = tor2.get_torrent_info().num_pieces();
 	std::vector<int> priorities(num_pieces, 1);
-	std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0);
+	std::fill(priorities.begin(), priorities.begin() + num_pieces / 2, 0);
 	tor2.prioritize_pieces(priorities);
-	std::cerr << "setting priorities: ";
-	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
-	std::cerr << std::endl;
 
 	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
-	ses1.set_alert_dispatch(&print_alert);
-
-	ses2.set_download_rate_limit(tor2.get_torrent_info().piece_length() / 2);
 
 	// also test to move the storage of the downloader and the uploader
 	// to make sure it can handle switching paths
@@ -297,8 +176,9 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 			<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
 			<< "\033[0m" << int(st2.progress * 100) << "% "
 			<< st2.num_peers
-			<< " cc: " << st2.connect_candidates
 			<< std::endl;
+
+		if (tor2.is_finished()) break;
 
 		if (!test_move_storage && st2.progress > 0.25f)
 		{
@@ -308,30 +188,16 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 			std::cerr << "moving storage" << std::endl;
 		}
 
-		if (test_disk_full && st2.upload_mode)
-		{
-			test_disk_full = false;
-			((test_storage*)tor2.get_storage_impl())->m_limit = 16 * 1024 * 1024;
-			tor2.set_upload_mode(false);
-			continue;
-		}
-
-		if (!test_disk_full && tor2.is_finished()) break;
-
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
-		TEST_CHECK(st2.state == torrent_status::downloading
-			|| (test_disk_full && !st2.error.empty()));
+		TEST_CHECK(st2.state == torrent_status::downloading);
 
 		test_sleep(1000);
 	}
 
 	TEST_CHECK(!tor2.is_seed());
-	TEST_CHECK(tor2.is_finished());
-	if (tor2.is_finished())
-		std::cerr << "torrent is finished (50% complete)" << std::endl;
+	std::cerr << "torrent is finished (50% complete)" << std::endl;
 
-	std::cerr << "force recheck" << std::endl;
 	tor2.force_recheck();
 	
 	for (int i = 0; i < 10; ++i)
@@ -400,15 +266,14 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 	p.ti = t;
 	p.save_path = "./tmp2_transfer_moved";
 	p.resume_data = &resume_data;
-	tor2 = ses2.add_torrent(p, ec);
+	tor2 = ses2.add_torrent(p);
 	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	tor2.prioritize_pieces(priorities);
 	std::cout << "resetting priorities" << std::endl;
 	tor2.resume();
 
 	tr = tor2.trackers();
-	TEST_CHECK(std::find_if(tr.begin(), tr.end()
-		, boost::bind(&announce_entry::url, _1) == "http://test.com/announce") != tr.end());
+	TEST_CHECK(tr.size() == 2 && tr[1].url == "http://test.com/announce");
 
 	test_sleep(100);
 
@@ -450,7 +315,6 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 			<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
 			<< "\033[0m" << int(st2.progress * 100) << "% "
 			<< st2.num_peers
-			<< " cc: " << st2.connect_candidates
 			<< std::endl;
 
 		if (tor2.is_finished()) break;
@@ -467,6 +331,7 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 int test_main()
 {
 	using namespace libtorrent;
+	using namespace boost::filesystem;
 
 #ifdef NDEBUG
 	// test rate only makes sense in release mode
@@ -475,17 +340,12 @@ int test_main()
 
 	test_transfer();
 	
-	// test with a (simulated) full disk
 	test_transfer(true);
-	
-	// test allowed fast
-	test_transfer(false, true);
-	
-	error_code ec;
-	remove_all("./tmp1_transfer", ec);
-	remove_all("./tmp2_transfer", ec);
-	remove_all("./tmp1_transfer_moved", ec);
-	remove_all("./tmp2_transfer_moved", ec);
+
+	try { remove_all("./tmp1_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer"); } catch (std::exception&) {}
+	try { remove_all("./tmp1_transfer_moved"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_transfer_moved"); } catch (std::exception&) {}
 
 	return 0;
 }

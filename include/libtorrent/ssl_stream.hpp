@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SSL_STREAM_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
-#include <boost/bind.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/ssl.hpp>
 #else

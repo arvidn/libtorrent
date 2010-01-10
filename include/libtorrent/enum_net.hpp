@@ -34,10 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ENUM_NET_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include <vector>
-#include "libtorrent/io_service_fwd.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/error_code.hpp"
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {
