@@ -31,6 +31,11 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/pch.hpp"
+#include "libtorrent/config.hpp"
+
+#ifdef TORRENT_WINDOWS
+#include <winsock2.h> // for error codes
+#endif
 
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
