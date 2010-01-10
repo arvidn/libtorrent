@@ -613,10 +613,10 @@ void routing_table::find_node(node_id const& target
 
 	if (i == m_buckets.begin()) return;
 	j = i;
-	--j;
 
 	do
 	{
+		--j;
 		bucket_t& b = j->live_nodes;
 	
 		size_t to_copy = (std::min)(count - l.size(), b.size());
@@ -629,7 +629,6 @@ void routing_table::find_node(node_id const& target
 			copy_if_n(b.begin(), b.end(), std::back_inserter(l)
 				, to_copy, bind(&node_entry::confirmed, _1));
 		}
-		++j;
 	}
 	while (j != m_buckets.begin() && l.size() < count);
 }
