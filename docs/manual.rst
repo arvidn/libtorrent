@@ -5684,7 +5684,7 @@ cache_flushed_alert
 -------------------
 
 This alert is posted when the disk cache has been flushed for a specific torrent
-as a result of a call to `flush_cache_()`_. This alert belongs to the
+as a result of a call to `flush_cache()`_. This alert belongs to the
 ``storage_notification`` category, which must be enabled to let this alert through.
 
 ::
