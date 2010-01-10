@@ -3512,6 +3512,7 @@ namespace libtorrent
 		lazy_entry const* trackers = rd.dict_find_list("trackers");
 		if (trackers)
 		{
+			m_trackers.clear();
 			int tier = 0;
 			for (int i = 0; i < trackers->list_size(); ++i)
 			{
