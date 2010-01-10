@@ -48,7 +48,7 @@ Bindings
 libtorrent
 ==========
 
-.. _download: http://sourceforge.net/project/showfiles.php?group_id=79942
+.. _download: http://code.google.com/p/libtorrent/downloads/list
 .. _features: features.html
 .. _`building libtorrent`: building.html
 .. _examples: examples.html
