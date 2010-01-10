@@ -68,7 +68,7 @@ libtorrent
 .. _`who's using libtorrent?`: projects.html
 .. _`report bugs`: http://code.google.com/p/libtorrent/issues/entry
 .. _sourceforge page: http://www.sourceforge.net/projects/libtorrent
-.. _wiki: http://code.rasterbar.com/libtorrent
+.. _wiki: http://code.google.com/p/libtorrent/wiki/index
 
 .. _`ruby bindings`: http://libtorrent-ruby.rubyforge.org/
 .. _`python bindings`: python_binding.html
