@@ -2539,6 +2539,10 @@ the definition of ``announce_entry``.
 If it is, it doesn't do anything. If it's not in the current set of trackers,
 it will insert it in the tier specified in the announce_entry.
 
+The updated set of trackers will be saved in the resume data, and when a torrent
+is started with resume data, the trackers from the resume data will replace the
+original ones.
+
 
 add_url_seed() remove_url_seed() url_seeds()
 --------------------------------------------
