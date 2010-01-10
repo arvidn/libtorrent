@@ -36,6 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 //#include "libtorrent/socket_io.hpp"
 #endif
 
+#include "libtorrent/config.hpp"
+
+#ifdef TORRENT_WINDOWS
+#include <winsock2.h> // for error codes
+#endif
+
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #include <asio/ip/multicast.hpp>
