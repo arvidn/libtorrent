@@ -11,7 +11,11 @@ if len(sys.argv) < 2:
 	print "usage: parse_disk_log.py logfile [seconds]"
 	sys.exit(1)
 
-keys = ['write', 'read', 'hash', 'move', 'release', 'idle', 'delete', 'check_fastresume', 'check_files', 'clear-cache', 'abort_thread', 'abort_torrent', 'save_resume_data', 'rename_file', 'flushing', 'update_settings']
+keys = ['write', 'read', 'hash', 'move', 'release', 'idle', \
+	'delete', 'check_fastresume', 'check_files', 'clear-cache', \
+	'abort_thread', 'abort_torrent', 'save_resume_data', 'rename_file', \
+	'flushing', 'update_settings', 'finalize_file', 'sorting_job', \
+	'check_cache_hit']
 throughput_keys = ['write', 'read']
 
 # logfile format:
@@ -21,9 +25,9 @@ throughput_keys = ['write', 'read']
 # 34722 write
 
 if len(sys.argv) > 2:
-	quantization = long(sys.argv[2]) * 1000
+	quantization = long(sys.argv[2]) * 1000000
 else:
-	quantization = 5000
+	quantization = 500000
 
 out = open('disk_io.dat', 'wb')
 out2 = open('disk_throughput.dat', 'wb')
@@ -86,7 +90,7 @@ out = open('disk_io.gnuplot', 'wb')
 print >>out, "set term png size 1200,700"
 
 print >>out, 'set output "disk_throughput.png"'
-print >>out, 'set title "disk throughput per %s second(s)"' % (quantization / 1000)
+print >>out, 'set title "disk throughput per %f second(s)"' % (quantization / 1000000.f)
 print >>out, 'set ylabel "throughput (kB/s)"'
 print >>out, 'plot',
 i = 0
@@ -98,7 +102,7 @@ print >>out, 'x=0'
 print >>out, 'set output "disk_io.png"'
 print >>out, 'set ylabel "utilization (%)"'
 print >>out, 'set xrange [0:*]'
-print >>out, 'set title "disk io utilization per %s second(s)"' % (quantization / 1000)
+print >>out, 'set title "disk io utilization per %f second(s)"' % (quantization / 1000000.f)
 print >>out, "set key box"
 print >>out, "set style data histogram"
 print >>out, "set style histogram rowstacked"
