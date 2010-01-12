@@ -501,6 +501,17 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 
 typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
 
+int listen_port = 6881;
+float preferred_ratio = 0.f;
+std::string allocation_mode = "sparse";
+std::string save_path(".");
+int torrent_upload_limit = 0;
+int torrent_download_limit = 0;
+std::string monitor_dir;
+std::string bind_to_interface = "";
+int poll_interval = 5;
+int max_connections_per_torrent = 50;
+
 using boost::bind;
 using boost::filesystem::path;
 using boost::filesystem::exists;
@@ -555,7 +566,7 @@ void add_torrent(libtorrent::session& ses
 	handles.insert(std::pair<const std::string, torrent_handle>(
 		monitored_dir?std::string(torrent):std::string(), h));
 
-	h.set_max_connections(50);
+	h.set_max_connections(max_connections_per_torrent);
 	h.set_max_uploads(-1);
 	h.set_ratio(preferred_ratio);
 	h.set_upload_limit(torrent_upload_limit);
@@ -681,7 +692,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 
 	if (torrent_finished_alert* p = dynamic_cast<torrent_finished_alert*>(a))
 	{
-		p->handle.set_max_connections(30);
+		p->handle.set_max_connections(max_connections_per_torrent / 2);
 
 		// write resume data for the finished torrent
 		// the alert handler for save_resume_data_alert
@@ -747,10 +758,12 @@ int main(int argc, char* argv[])
 			"  -t <seconds>          sets the scan interval of the monitor dir\n"
 			"  -x <file>             loads an emule IP-filter file\n"
 			"  -c <limit>            sets the max number of connections\n"
+			"  -T <limit>            sets the max number of connections per torrent\n"
 			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
 			"  -F <seconds>          sets the UI refresh rate. This is the number of\n"
 			"                        seconds between screen refreshes.\n"
 			"  -n                    announce to trackers in all tiers\n"
+			"  -h                    allow multiple connections from the same IP\n"
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
 			"MAGNETURL is a magnet: url\n")
@@ -809,16 +822,6 @@ int main(int argc, char* argv[])
 	ses.load_country_db("GeoIP.dat");
 #endif
 
-	int listen_port = 6881;
-	float preferred_ratio = 0.f;
-	std::string allocation_mode = "sparse";
-	boost::filesystem::path save_path(".");
-	int torrent_upload_limit = 0;
-	int torrent_download_limit = 0;
-	boost::filesystem::path monitor_dir;
-	std::string bind_to_interface = "";
-	int poll_interval = 5;
-
 	// load the torrents given on the commandline
 
 	for (int i = 1; i < argc; ++i)
@@ -845,7 +848,7 @@ int main(int argc, char* argv[])
 
 				handles.insert(std::pair<const std::string, torrent_handle>(std::string(), h));
 
-				h.set_max_connections(50);
+				h.set_max_connections(max_connections_per_torrent);
 				h.set_max_uploads(-1);
 				h.set_ratio(preferred_ratio);
 				h.set_upload_limit(torrent_upload_limit);
@@ -880,7 +883,7 @@ int main(int argc, char* argv[])
 
 				handles.insert(std::pair<const std::string, torrent_handle>(std::string(), h));
 
-				h.set_max_connections(50);
+				h.set_max_connections(max_connections_per_torrent);
 				h.set_max_uploads(-1);
 				h.set_ratio(preferred_ratio);
 				h.set_upload_limit(torrent_upload_limit);
@@ -902,6 +905,7 @@ int main(int argc, char* argv[])
 		{
 			case 'f': g_log_file = fopen(arg, "w+"); break;
 			case 'o': ses.set_max_half_open_connections(atoi(arg)); break;
+			case 'h': settings.allow_multiple_connections_per_ip = true; --i; break;
 			case 'p': listen_port = atoi(arg); break;
 			case 'r':
 				preferred_ratio = atoi(arg);
@@ -951,6 +955,7 @@ int main(int argc, char* argv[])
 				}
 				break;
 			case 'c': ses.set_max_connections(atoi(arg)); break;
+			case 'T': max_connections_per_torrent = atoi(arg); break;
 			case 'C': settings.cache_size = atoi(arg); break;
 		}
 		++i; // skip the argument
