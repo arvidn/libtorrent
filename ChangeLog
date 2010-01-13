@@ -90,6 +90,8 @@
 	* only keeps one outstanding duplicate request per peer
 	  reduces waste download, specifically when streaming
 
+	* fixed range request bug for files larger than 2 GB in web seeds
+
 release 0.14.8
 
 	* ignore unkown metadata messages
