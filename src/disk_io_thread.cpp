@@ -1266,7 +1266,6 @@ namespace libtorrent
 		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
 		TORRENT_ASSERT(!m_abort);
-		TORRENT_ASSERT(!j.callback);
 		TORRENT_ASSERT(j.storage
 			|| j.action == disk_io_job::abort_thread
 			|| j.action == disk_io_job::update_settings);
@@ -1483,6 +1482,7 @@ namespace libtorrent
 					}
 				}
 
+				TORRENT_ASSERT(j.offset >= 0);
 				if (m_settings.allow_reordered_disk_operations && defer)
 				{
 #ifdef TORRENT_DISK_STATS
@@ -2050,6 +2050,9 @@ namespace libtorrent
 					// if the check is not done, add it at the end of the job queue
 					if (ret == piece_manager::need_full_check)
 					{
+						// offset needs to be reset to 0 so that the disk
+						// job sorting can be done correctly
+						j.offset = 0;
 						add_job(j, j.callback);
 						continue;
 					}
