@@ -2104,19 +2104,28 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << time_now_string()
 				<< " *** SKIPPED_PIECE [ piece: " << qe.block.piece_index << " | "
-				"b: " << qe.block.block_index << " ] ***\n";
+				"b: " << qe.block.block_index << " | skip: " << qe.skipped << " | "
+				"dqs: " << int(m_desired_queue_size) << "] ***\n";
 #endif
 
 			++qe.skipped;
 			// if the number of times a block is skipped by out of order
 			// blocks exceeds the size of the outstanding queue, assume that
 			// the other end dropped the request.
-			if (qe.skipped > m_desired_queue_size * 2)
+			if (m_ses.m_settings.drop_skipped_requests
+				&& qe.skipped > m_desired_queue_size)
+			if (qe.skipped > m_desired_queue_size)
 			{
 				if (m_ses.m_alerts.should_post<request_dropped_alert>())
 					m_ses.m_alerts.post_alert(request_dropped_alert(t->get_handle()
 						, remote(), pid(), qe.block.block_index, qe.block.piece_index));
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+				(*m_logger) << time_now_string()
+					<< " *** DROPPED_PIECE [ piece: " << qe.block.piece_index << " | "
+					"b: " << qe.block.block_index << " | skip: " << qe.skipped << " | "
+					"dqs: " << int(m_desired_queue_size) << "] ***\n";
+#endif
 				if (!qe.timed_out && !qe.not_wanted)
 					picker.abort_download(qe.block);
 
@@ -2953,7 +2962,8 @@ namespace libtorrent
 				"s: " << r.start << " | "
 				"l: " << r.length << " | "
 				"ds: " << statistics().download_rate() << " B/s | "
-				"qs: " << int(m_desired_queue_size) << " "
+				"dqs: " << int(m_desired_queue_size) << " "
+				"rqs: " << int(m_download_queue.size()) << " "
 				"blk: " << (m_request_large_blocks?"large":"single") << " ]\n";
 #endif
 		}
