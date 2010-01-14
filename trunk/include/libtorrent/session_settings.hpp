@@ -181,6 +181,7 @@ namespace libtorrent
 			, allow_reordered_disk_operations(true)
 			, allow_i2p_mixed(false)
 			, max_suggest_pieces(10)
+			, drop_skipped_requests(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -650,6 +651,11 @@ namespace libtorrent
 		// suggest to use before we start dropping
 		// previous suggested piece
 		int max_suggest_pieces;
+
+		// if set to true, requests that have have not been
+		// satisfied after the equivalence of the entire
+		// request queue has been received, will be considered lost
+		bool drop_skipped_requests;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

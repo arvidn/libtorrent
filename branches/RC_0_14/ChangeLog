@@ -1,4 +1,5 @@
 
+	* disabled feature to drop requests after having been skipped too many times
 	* fixed range request bug for files larger than 2 GB in web seeds
 
 release 0.14.8
