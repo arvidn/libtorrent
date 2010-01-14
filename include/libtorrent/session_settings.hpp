@@ -144,6 +144,7 @@ namespace libtorrent
 			, prioritize_partial_pieces(false)
 			, auto_manage_startup(120)
 			, rate_limit_ip_overhead(true)
+			, drop_skipped_requests(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -456,6 +457,11 @@ namespace libtorrent
 		// drained from the rate limiters, to avoid exceeding
 		// the limits with the total traffic
 		bool rate_limit_ip_overhead;
+
+		// if set to true, requests that have have not been
+		// satisfied after the equivalence of the entire
+		// request queue has been received, will be considered lost
+		bool drop_skipped_requests;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
