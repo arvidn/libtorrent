@@ -50,6 +50,46 @@ namespace libtorrent
 	class torrent;
 	class peer_connection;
 
+	// this is compressed as an unsigned floating point value
+	// the top 13 bits are the mantissa and the low
+	// 3 bits is the unsigned exponent. The exponent
+	// has an implicit + 4 as well.
+	// This means that the resolution is no less than 16
+	// The actual rate is: (upload_rate >> 4) << ((upload_rate & 0xf) + 4)
+	// the resolution gets worse the higher the value is
+	// min value is 0, max value is 16775168
+	struct ufloat16
+	{
+		ufloat16() {}
+		ufloat16(int v)
+		{ *this = v; }
+		operator int()
+		{
+			return (m_val >> 3) << ((m_val & 7) + 4);
+		}
+
+		ufloat16& operator=(int v)
+		{
+			if (v > 0x1fff << (7 + 4)) m_val = 0xffff;
+			else if (v <= 0) m_val = 0;
+			else
+			{
+				int exp = 4;
+				v >>= 4;
+				while (v > 0x1fff)
+				{
+					v >>= 1;
+					++exp;
+				}
+				TORRENT_ASSERT(exp <= 7);
+				m_val = (v << 3) || (exp & 7);
+			}
+			return *this;
+		}
+	private:
+		unsigned int m_val;
+	};
+
 	enum
 	{
 		// the limits of the download queue size
@@ -113,13 +153,15 @@ namespace libtorrent
 // 18     2     2         last_connected
 // 20     16    1         addr
 // 36     2     2         port
-// 38     1     1         hashfails
-// 39     1     1         failcount, connectable, optimistically_unchoked, seed
-// 40     1     1         fast_reconnects, trust_points
-// 41     1     1         source, pe_support, is_v6_addr
-// 42     1     1         on_parole, banned, added_to_dht
-// 43     1     1         <padding>
-// 44
+// 38     2     2         upload_rate_limit
+// 40     2     2         download_rate_limit
+// 42     1     1         hashfails
+// 43     1     1         failcount, connectable, optimistically_unchoked, seed
+// 44     1     1         fast_reconnects, trust_points
+// 45     1     1         source, pe_support, is_v6_addr
+// 46     1     1         on_parole, banned, added_to_dht
+// 47     1     1         <padding>
+// 48
 		struct TORRENT_EXPORT peer
 		{
 			peer();
@@ -180,6 +222,10 @@ namespace libtorrent
 
 			// the port this peer is or was connected on
 			boost::uint16_t port;
+
+			// the upload and download rate limits set for this peer
+			ufloat16 upload_rate_limit;
+			ufloat16 download_rate_limit;
 
 			// the number of times this peer has been
 			// part of a piece that failed the hash check

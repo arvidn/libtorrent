@@ -3386,7 +3386,7 @@ namespace libtorrent
 
 		// we have to call completed() before we start
 		// disconnecting peers, since there's an assert
-		// to make sure we're cleared the piece picker
+		// to make sure we've cleared the piece picker
 		if (is_seed()) completed();
 
 		// disconnect all seeds
