@@ -79,6 +79,7 @@
 	* added support for min-interval in tracker responses
 	* only keeps one outstanding duplicate request per peer
 	  reduces waste download, specifically when streaming
+	* added support for storing per-peer rate limits across reconnects
 
 	* disabled feature to drop requests after having been skipped too many times
 	* fixed range request bug for files larger than 2 GB in web seeds
