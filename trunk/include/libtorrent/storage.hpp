@@ -228,6 +228,10 @@ namespace libtorrent
 			, boost::function<void(int, disk_io_job const&)> const& handler
 			, int priority = 0);
 
+		void async_cache(int piece
+			, boost::function<void(int, disk_io_job const&)> const& handler
+			, int priority = 0);
+
 		void async_write(
 			peer_request const& r
 			, disk_buffer_holder& buffer

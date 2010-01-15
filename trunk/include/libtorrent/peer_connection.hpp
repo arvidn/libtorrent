@@ -438,6 +438,7 @@ namespace libtorrent
 		bool send_unchoke();
 		void send_interested();
 		void send_not_interested();
+		void send_suggest(int piece);
 
 		void snub_peer();
 
@@ -560,6 +561,7 @@ namespace libtorrent
 		virtual void write_have(int index) = 0;
 		virtual void write_keepalive() = 0;
 		virtual void write_piece(peer_request const& r, disk_buffer_holder& buffer) = 0;
+		virtual void write_suggest(int piece) = 0;
 		
 		virtual void write_reject_request(peer_request const& r) = 0;
 		virtual void write_allow_fast(int piece) = 0;
@@ -1015,6 +1017,9 @@ namespace libtorrent
 		// if this is set to true, the client will not
 		// pick any pieces from this peer
 		bool m_no_download:1;
+
+		// set to true when we've sent the first round of suggests
+		bool m_sent_suggests:1;
 		
 		template <std::size_t Size>
 		struct handler_storage

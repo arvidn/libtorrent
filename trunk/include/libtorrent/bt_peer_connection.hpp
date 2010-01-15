@@ -218,6 +218,7 @@ namespace libtorrent
 		void write_have_none();
 		void write_reject_request(peer_request const&);
 		void write_allow_fast(int piece);
+		void write_suggest(int piece);
 		
 		void on_connected();
 		void on_metadata();
@@ -353,6 +354,10 @@ private:
 		static bool range_below_zero(const range& r)
 		{ return r.start < 0; }
 		std::vector<range> m_payloads;
+
+		// we have suggested these pieces to the peer
+		// don't suggest it again
+		bitfield m_sent_suggested_pieces;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for upload only message

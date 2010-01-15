@@ -339,6 +339,29 @@ namespace libtorrent
 		send_buffer(msg, sizeof(msg));
 	}
 
+	void bt_peer_connection::write_suggest(int piece)
+	{
+		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
+		TORRENT_ASSERT(m_supports_fast);
+
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		TORRENT_ASSERT(t);
+
+		if (m_sent_suggested_pieces.empty())
+			m_sent_suggested_pieces.resize(t->torrent_file().num_pieces(), false);
+
+		if (m_sent_suggested_pieces[piece]) return;
+		m_sent_suggested_pieces.set_bit(piece);
+
+		char msg[] = {0,0,0,5, msg_suggest_piece, 0, 0, 0, 0};
+		char* ptr = msg + 5;
+		detail::write_int32(piece, ptr);
+		send_buffer(msg, sizeof(msg));
+	}
+
 	void bt_peer_connection::get_specific_peer_info(peer_info& p) const
 	{
 		TORRENT_ASSERT(!associated_torrent().expired());

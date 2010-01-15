@@ -176,6 +176,7 @@ namespace libtorrent
 		void add_piece(int piece, char const* data, int flags = 0);
 		void on_disk_write_complete(int ret, disk_io_job const& j
 			, peer_request p);
+		void on_disk_cache_complete(int ret, disk_io_job const& j);
 
 		struct read_piece_struct
 		{
@@ -379,6 +380,8 @@ namespace libtorrent
 		void get_peer_info(std::vector<peer_info>& v);
 		void get_download_queue(std::vector<partial_piece_info>& queue);
 
+		void refresh_explicit_cache(int cache_size);
+
 // --------------------------------------------
 		// TRACKER MANAGEMENT
 
@@ -439,6 +442,8 @@ namespace libtorrent
 		// PIECE MANAGEMENT
 
 		void update_sparse_piece_prio(int piece, int cursor, int reverse_cursor);
+
+		void get_suggested_pieces(std::vector<int>& s) const;
 
 		bool super_seeding() const
 		{ return m_super_seeding; }
@@ -1017,7 +1022,7 @@ namespace libtorrent
 		// connection attempt. See:
 		// http://www.ecs.umass.edu/ece/wolf/courses/ECE697J/papers/DRR.pdf
 		// The quanta assigned to each torrent depends on the torrents
-		// priority, whether it's seed and the number of connected
+		// priority, whether it's a seed and the number of connected
 		// peers it has. This has the effect that some torrents
 		// will have more connection attempts than other. Each
 		// connection attempt costs 100 points from the deficit
