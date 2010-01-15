@@ -786,6 +786,14 @@ namespace libtorrent
 		c.set_peer_info(i);
 		TORRENT_ASSERT(i->connection == 0);
 		c.add_stat(i->prev_amount_download, i->prev_amount_upload);
+
+		// restore transfer rate limits
+		int rate_limit;
+		rate_limit = i->upload_rate_limit;
+		if (rate_limit) c.set_upload_limit(rate_limit);
+		rate_limit = i->download_rate_limit;
+		if (rate_limit) c.set_download_limit(rate_limit);
+
 		i->prev_amount_download = 0;
 		i->prev_amount_upload = 0;
 		i->connection = &c;
@@ -1195,6 +1203,11 @@ namespace libtorrent
 		TORRENT_ASSERT(p->connection == &c);
 		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
 
+		// save transfer rate limits
+		int rate_limit;
+		p->upload_rate_limit = c.upload_limit();
+		p->download_rate_limit = c.download_limit();
+
 		p->connection = 0;
 		p->optimistically_unchoked = false;
 
@@ -1404,6 +1417,8 @@ namespace libtorrent
 		, last_connected(0)
 		, port(port)
 		, hashfails(0)
+		, upload_rate_limit(0)
+		, download_rate_limit(0)
 		, failcount(0)
 		, connectable(conn)
 		, optimistically_unchoked(false)
