@@ -2057,7 +2057,7 @@ namespace libtorrent
 		block_info const& info = i->info[block.block_index];
 		return info.num_peers;
 	}
-	
+
 	void piece_picker::get_availability(std::vector<int>& avail) const
 	{
 		TORRENT_ASSERT(m_seeds >= 0);

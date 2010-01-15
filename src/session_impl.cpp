@@ -219,6 +219,7 @@ namespace aux {
 		TORRENT_SETTING(integer, num_want)
 		TORRENT_SETTING(integer, initial_picker_threshold)
 		TORRENT_SETTING(integer, allowed_fast_set_size)
+		TORRENT_SETTING(integer, suggest_mode)
 		TORRENT_SETTING(integer, max_queued_disk_bytes)
 		TORRENT_SETTING(integer, handshake_timeout)
 #ifndef TORRENT_DISABLE_DHT
@@ -234,6 +235,7 @@ namespace aux {
 		TORRENT_SETTING(integer, cache_buffer_chunk_size)
 		TORRENT_SETTING(integer, cache_expiry)
 		TORRENT_SETTING(boolean, use_read_cache)
+		TORRENT_SETTING(boolean, explicit_read_cache)
 		TORRENT_SETTING(integer, disk_io_write_mode)
 		TORRENT_SETTING(integer, disk_io_read_mode)
 		TORRENT_SETTING(boolean, coalesce_reads)
@@ -425,6 +427,8 @@ namespace aux {
 		, m_optimistic_unchoke_time_scaler(0)
 		, m_disconnect_time_scaler(90)
 		, m_auto_scrape_time_scaler(180)
+		, m_next_explicit_cache_torrent(0)
+		, m_cache_rotation_timer(0)
 		, m_incoming_connection(false)
 		, m_created(time_now_hires())
 		, m_last_tick(m_created)
@@ -1008,6 +1012,7 @@ namespace aux {
 			|| m_settings.coalesce_reads != s.coalesce_reads
 			|| m_settings.max_queued_disk_bytes != s.max_queued_disk_bytes
 			|| m_settings.disable_hash_checks != s.disable_hash_checks
+			|| m_settings.explicit_read_cache != s.explicit_read_cache
 #ifndef TORRENT_DISABLE_MLOCK
 			|| m_settings.lock_disk_cache != s.lock_disk_cache
 #endif
@@ -1871,6 +1876,40 @@ namespace aux {
 					least_recently_scraped->second->scrape_tracker();
 				}
 			}
+		}
+
+		// --------------------------------------------------------------
+		// refresh explicit disk read cache
+		// --------------------------------------------------------------
+		--m_cache_rotation_timer;
+		if (m_settings.explicit_read_cache
+			&& m_cache_rotation_timer <= 0)
+		{
+			m_cache_rotation_timer = m_settings.explicit_cache_interval;
+
+			torrent_map::iterator least_recently_refreshed = m_torrents.begin();
+			if (m_next_explicit_cache_torrent >= m_torrents.size())
+				m_next_explicit_cache_torrent = 0;
+
+			std::advance(least_recently_refreshed, m_next_explicit_cache_torrent);
+
+			// how many blocks does this torrent get?
+			int cache_size = (std::max)(0, m_settings.cache_size * 9 / 10);
+
+			if (m_connections.empty())
+			{
+				// if we don't have any connections at all, split the
+				// cache evenly across all torrents
+				cache_size = cache_size / m_torrents.size();
+			}
+			else
+			{
+				cache_size = cache_size * least_recently_refreshed->second->num_peers()
+					/ m_connections.size();
+			}
+
+			least_recently_refreshed->second->refresh_explicit_cache(cache_size);
+			++m_next_explicit_cache_torrent;
 		}
 
 		// --------------------------------------------------------------

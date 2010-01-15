@@ -221,6 +221,27 @@ In order to increase the possibility of read cache hits, set the
 ``session_settings::cache_expiry`` to a large number. This won't degrade anything as
 long as the client is only seeding, and not downloading any torrents.
 
+In order to increase the disk cache hit rate, you can enable suggest messages based on
+what's in the read cache. To do this, set ``session_settings::suggest_mode`` to
+``session_settings::suggest_read_cache``. This will send suggest messages to peers
+for the most recently used pieces in the read cache. This is especially useful if you
+also enable explicit read cache, by settings ``session_settings::explicit_read_cache``
+to the number of pieces to keep in the cache. The explicit read cache will make the
+disk read cache stick, and not be evicted by cache misses. The explicit read cache
+will automatically pull in the rarest pieces in the read cache.
+
+Assuming that you seed much more data than you can keep in the cache, to a large
+numbers of peers (so that the read cache wouldn't be useful anyway), this may be a
+good idea.
+
+When peers first connect, libtorrent will send them a number of allow-fast messages,
+which lets the peers download certain pieces even when they are choked, since peers
+are choked by default, this often triggers immediate requests for those pieces. In the
+case of using explicit read cache and suggesting those pieces, allowing fast pieces
+should be disabled, to not systematically trigger requests for pieces that are not cached
+for all peers. You can turn off allow-fast by settings ``session_settings::allowed_fast_set_size``
+to 0.
+
 send buffer low watermark
 -------------------------
 

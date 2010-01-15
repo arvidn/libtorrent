@@ -114,6 +114,7 @@ namespace libtorrent
 			, num_want(200)
 			, initial_picker_threshold(4)
 			, allowed_fast_set_size(10)
+			, suggest_mode(no_piece_suggestions)
 			, max_queued_disk_bytes(256 * 1024)
 			, handshake_timeout(10)
 #ifndef TORRENT_DISABLE_DHT
@@ -129,6 +130,8 @@ namespace libtorrent
 			, cache_buffer_chunk_size(16)
 			, cache_expiry(60)
 			, use_read_cache(true)
+			, explicit_read_cache(0)
+			, explicit_cache_interval(30)
 			, disk_io_write_mode(0)
 			, disk_io_read_mode(0)
 			, coalesce_reads(false)
@@ -338,6 +341,13 @@ namespace libtorrent
 		// that supports the fast extensions
 		int allowed_fast_set_size;
 
+		// this determines which pieces will be suggested to peers
+		// suggest read cache will make libtorrent suggest pieces
+		// that are fresh in the disk read cache, to potentially
+		// lower disk access and increase the cache hit ratio
+		enum { no_piece_suggestions = 0, suggest_read_cache = 1 };
+		int suggest_mode;
+
 		// the maximum number of bytes a connection may have
 		// pending in the disk write queue before its download
 		// rate is being throttled. This prevents fast downloads
@@ -418,6 +428,15 @@ namespace libtorrent
 		// when true, the disk I/O thread uses the disk
 		// cache for caching blocks read from disk too
 		bool use_read_cache;
+
+		// don't implicitly cache pieces in the read cache,
+		// only cache pieces that are explicitly asked to be
+		// cached.
+		bool explicit_read_cache;
+
+		// the number of seconds between refreshes of
+		// explicit caches
+		int explicit_cache_interval;
 
 		enum io_buffer_mode_t
 		{

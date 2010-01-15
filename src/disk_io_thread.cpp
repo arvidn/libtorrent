@@ -449,6 +449,8 @@ namespace libtorrent
 			flush_and_remove(i, l);
 		}
 
+		if (m_settings.explicit_read_cache) return;
+
 		// flush read cache
 		for (;;)
 		{
@@ -819,7 +821,7 @@ namespace libtorrent
 			TORRENT_ASSERT(piece_offset <= piece_size);
 
 			// this is a block that is already allocated
-			// free it an allocate a new one
+			// free it and allocate a new one
 			if (p.blocks[i].buf)
 			{
 				free_buffer(p.blocks[i].buf);
@@ -925,41 +927,16 @@ namespace libtorrent
 		TORRENT_ASSERT(ret == buffer_size);
 		return ret;
 	}
-	
-	// returns -1 on read error, -2 on out of memory error or the number of bytes read
-	// this function ignores the cache size limit, it will read the entire
-	// piece regardless of the offset in j
-	// this is used for seed-mode, where we need to read the entire piece to calculate
-	// the hash
-	int disk_io_thread::cache_read_piece(disk_io_job const& j, mutex::scoped_lock& l)
-	{
-		INVARIANT_CHECK;
-
-		int piece_size = j.storage->info()->piece_size(j.piece);
-		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
-
-		if (in_use() + blocks_in_piece > m_settings.cache_size)
-			flush_cache_blocks(l, in_use() + blocks_in_piece - m_settings.cache_size, m_read_pieces.end());
-
-		cached_piece_entry p;
-		p.piece = j.piece;
-		p.storage = j.storage;
-		p.last_use = time_now();
-		p.num_blocks = 0;
-		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
-		if (!p.blocks) return -1;
-		int ret = read_into_piece(p, 0, ignore_cache_size, INT_MAX, l);
-		
-		if (ret >= 0) m_read_pieces.push_back(p);
-
-		return ret;
-	}
 
 	// returns -1 on read error, -2 if there isn't any space in the cache
 	// or the number of bytes read
 	int disk_io_thread::cache_read_block(disk_io_job const& j, mutex::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
+
+		// this function will create a new cached_piece_entry
+		// and requires that it doesn't already exist
+		TORRENT_ASSERT(find_cached_piece(m_read_pieces, j, l) == m_read_pieces.end());
 
 		int piece_size = j.storage->info()->piece_size(j.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
@@ -972,9 +949,11 @@ namespace libtorrent
 		blocks_to_read = (std::min)(blocks_to_read, m_settings.read_cache_line_size);
 
 		if (in_use() + blocks_to_read > m_settings.cache_size)
-			if (flush_cache_blocks(l, in_use() + blocks_to_read - m_settings.cache_size
-				, m_read_pieces.end(), dont_flush_write_blocks) == 0)
+		{
+			int clear = in_use() + blocks_to_read - m_settings.cache_size;
+			if (flush_cache_blocks(l, clear, m_read_pieces.end(), dont_flush_write_blocks) < clear)
 				return -2;
+		}
 
 		cached_piece_entry p;
 		p.piece = j.piece;
@@ -984,7 +963,7 @@ namespace libtorrent
 		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!p.blocks) return -1;
 		int ret = read_into_piece(p, start_block, 0, blocks_to_read, l);
-		
+
 		if (ret >= 0) m_read_pieces.push_back(p);
 
 		return ret;
@@ -1058,16 +1037,17 @@ namespace libtorrent
 	}
 #endif
 
-	int disk_io_thread::read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h)
+	// reads the full piece specified by j into the read cache
+	// returns the iterator to it and whether or not it already
+	// was in the cache (hit).
+	int disk_io_thread::cache_piece(disk_io_job const& j, cache_t::iterator& p
+		, bool& hit, int options, mutex::scoped_lock& l)
 	{
-		TORRENT_ASSERT(j.buffer);
+		INVARIANT_CHECK;
 
-		mutex::scoped_lock l(m_piece_mutex);
-	
-		cache_t::iterator p
-			= find_cached_piece(m_read_pieces, j, l);
+		p = find_cached_piece(m_read_pieces, j, l);
 
-		bool hit = true;
+		hit = true;
 		int ret = 0;
 
 		int piece_size = j.storage->info()->piece_size(j.piece);
@@ -1075,29 +1055,54 @@ namespace libtorrent
 
 		if (p != m_read_pieces.end() && p->num_blocks != blocks_in_piece)
 		{
+			INVARIANT_CHECK;
 			// we have the piece in the cache, but not all of the blocks
-			ret = read_into_piece(*p, 0, ignore_cache_size, blocks_in_piece, l);
+			ret = read_into_piece(*p, 0, options, blocks_in_piece, l);
 			hit = false;
 			if (ret < 0) return ret;
-			TORRENT_ASSERT(!m_read_pieces.empty());
-			TORRENT_ASSERT(p->piece == j.piece);
-			TORRENT_ASSERT(p->storage == j.storage);
 		}
-
-		// if the piece cannot be found in the cache,
-		// read the whole piece starting at the block
-		// we got a request for.
-		if (p == m_read_pieces.end())
+		else if (p == m_read_pieces.end())
 		{
-			ret = cache_read_piece(j, l);
+			INVARIANT_CHECK;
+			// if the piece cannot be found in the cache,
+			// read the whole piece starting at the block
+			// we got a request for.
+
+			cached_piece_entry pe;
+			pe.piece = j.piece;
+			pe.storage = j.storage;
+			pe.last_use = time_now();
+			pe.num_blocks = 0;
+			pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
+			if (!pe.blocks) return -1;
+			ret = read_into_piece(pe, 0, options, INT_MAX, l);
+
+			if (ret >= 0) m_read_pieces.push_back(pe);
 			hit = false;
-			if (ret < 0) return ret;
 			p = m_read_pieces.end();
 			--p;
-			TORRENT_ASSERT(!m_read_pieces.empty());
-			TORRENT_ASSERT(p->piece == j.piece);
-			TORRENT_ASSERT(p->storage == j.storage);
 		}
+		p->last_use = time_now();
+		TORRENT_ASSERT(!m_read_pieces.empty());
+		TORRENT_ASSERT(p->piece == j.piece);
+		TORRENT_ASSERT(p->storage == j.storage);
+		return ret;
+	}
+
+	// cache the entire piece and hash it
+	int disk_io_thread::read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h)
+	{
+		TORRENT_ASSERT(j.buffer);
+
+		mutex::scoped_lock l(m_piece_mutex);
+	
+		cache_t::iterator p;
+		bool hit;
+		int ret = cache_piece(j, p, hit, ignore_cache_size, l);
+		if (ret < 0) return ret;
+
+		int piece_size = j.storage->info()->piece_size(j.piece);
+		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
 		hasher ctx;
 
@@ -1115,8 +1120,12 @@ namespace libtorrent
 
 		// if read cache is disabled or we exceeded the
 		// limit, remove this piece from the cache
+		// also, if the piece wasn't in the cache when
+		// the function was called, and we're using an
+		// explicit read cache, remove it again
 		if (in_use() >= m_settings.cache_size
-			|| !m_settings.use_read_cache)
+			|| !m_settings.use_read_cache
+			|| (m_settings.explicit_read_cache && !hit))
 		{
 			TORRENT_ASSERT(!m_read_pieces.empty());
 			TORRENT_ASSERT(p->piece == j.piece);
@@ -1178,6 +1187,10 @@ namespace libtorrent
 		// boundaries
 		if (p->blocks[start_block].buf == 0)
 		{
+			// if we use an explicit read cache, pretend there's no
+			// space to force hitting disk without caching anything
+			if (m_settings.explicit_read_cache) return -2;
+
 			int piece_size = j.storage->info()->piece_size(j.piece);
 			int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 			int end_block = start_block;
@@ -1188,10 +1201,14 @@ namespace libtorrent
 				+ m_cache_stats.read_cache_size - in_use())/2, 3));
 			blocks_to_read = (std::min)(blocks_to_read, m_settings.read_cache_line_size);
 			blocks_to_read = (std::max)(blocks_to_read, min_blocks_to_read);
+			
+			// if we don't have enough space for the new piece, try flushing something else
 			if (in_use() + blocks_to_read > m_settings.cache_size)
-				if (flush_cache_blocks(l, in_use() + blocks_to_read - m_settings.cache_size
-					, p, dont_flush_write_blocks) == 0)
+			{
+				int clear = in_use() + blocks_to_read - m_settings.cache_size;
+				if (flush_cache_blocks(l, clear, m_read_pieces.end(), dont_flush_write_blocks) < clear)
 					return -2;
+			}
 
 			int ret = read_into_piece(*p, block, 0, blocks_to_read, l);
 			hit = false;
@@ -1235,6 +1252,13 @@ namespace libtorrent
 		// we got a request for.
 		if (p == m_read_pieces.end())
 		{
+			// if we use an explicit read cache and we
+			// couldn't find the block in the cache,
+			// pretend that there's not enough space
+			// to cache it, to force the read operation
+			// go go straight to disk
+			if (m_settings.explicit_read_cache) return -2;
+
 			ret = cache_read_block(j, l);
 			hit = false;
 			if (ret < 0) return ret;
@@ -1338,6 +1362,7 @@ namespace libtorrent
 		, 0 // abort_torrent
 		, cancel_on_abort // update_settings
 		, read_operation + cancel_on_abort // read_and_hash
+		, read_operation + cancel_on_abort // cache_piece
 		, 0 // finalize_file
 	};
 
@@ -1819,6 +1844,29 @@ namespace libtorrent
 					if (in_use() > m_settings.cache_size)
 						flush_cache_blocks(l, in_use() - m_settings.cache_size, m_read_pieces.end());
 
+					break;
+				}
+				case disk_io_job::cache_piece:
+				{
+					mutex::scoped_lock l(m_piece_mutex);
+
+					if (test_error(j))
+					{
+						ret = -1;
+						break;
+					}
+#ifdef TORRENT_DISK_STATS
+					m_log << log_time() << " cache " << j.piece << std::endl;
+#endif
+					INVARIANT_CHECK;
+					TORRENT_ASSERT(j.buffer == 0);
+
+					cache_t::iterator p;
+					bool hit;
+					ret = cache_piece(j, p, hit, 0, l);
+					if (ret == -2) ret = -1;
+
+					if (ret < 0) test_error(j);
 					break;
 				}
 				case disk_io_job::hash:

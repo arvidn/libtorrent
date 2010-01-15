@@ -1546,6 +1546,21 @@ ret:
 #endif
 	}
 
+	void piece_manager::async_cache(int piece
+		, boost::function<void(int, disk_io_job const&)> const& handler
+		, int priority)
+	{
+		disk_io_job j;
+		j.storage = this;
+		j.action = disk_io_job::cache_piece;
+		j.piece = piece;
+		j.offset = 0;
+		j.buffer_size = 0;
+		j.buffer = 0;
+		j.priority = priority;
+		m_io_thread.add_job(j, handler);
+	}
+
 	void piece_manager::async_read(
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler

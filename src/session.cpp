@@ -169,14 +169,25 @@ namespace libtorrent
 		// the same NAT
 		set.allow_multiple_connections_per_ip = true;
 
-		// use 512 MB of cache
-		set.cache_size = 32768;
+		// use 1 GB of cache
+		set.cache_size = 32768 * 2;
 		set.use_read_cache = true;
 		set.cache_buffer_chunk_size = 128;
 		set.read_cache_line_size = 512;
 		set.write_cache_line_size = 512;
 		// one hour expiration
 		set.cache_expiry = 60 * 60;
+
+		// flush write cache based on largest contiguous block
+		set.disk_cache_algorithm = session_settings::largest_contiguous;
+
+		// explicitly cache rare pieces
+		set.explicit_read_cache = true;
+		// prevent fast pieces to interfere with suggested pieces
+		// since we unchoke everyone, we don't need fast pieces anyway
+		set.allowed_fast_set_size = 0;
+		// suggest pieces in the read cache for higher cache hit rate
+		set.suggest_mode = session_settings::suggest_read_cache;
 
 		set.close_redundant_connections = true;
 

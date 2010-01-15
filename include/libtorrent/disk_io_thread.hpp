@@ -92,6 +92,7 @@ namespace libtorrent
 			, abort_torrent
 			, update_settings
 			, read_and_hash
+			, cache_piece
 			, finalize_file
 		};
 
@@ -348,10 +349,11 @@ namespace libtorrent
 		int read_into_piece(cached_piece_entry& p, int start_block
 			, int options, int num_blocks, mutex::scoped_lock& l);
 		int cache_read_block(disk_io_job const& j, mutex::scoped_lock& l);
-		int cache_read_piece(disk_io_job const& j, mutex::scoped_lock& l);
 		int free_piece(cached_piece_entry& p, mutex::scoped_lock& l);
 		int try_read_from_cache(disk_io_job const& j);
 		int read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h);
+		int cache_piece(disk_io_job const& j, cache_t::iterator& p
+			, bool& hit, int options, mutex::scoped_lock& l);
 
 		// this mutex only protects m_jobs, m_queue_buffer_size
 		// and m_abort

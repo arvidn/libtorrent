@@ -1,3 +1,6 @@
+	* support 'explicit read cache' which keeps a specific set of pieces
+	  in the read cache, without implicitly caching other pieces
+	* support sending suggest messages based on what's in the read cache
 	* clear sparse flag on files that complete on windows
 	* support retry-after header for web seeds
 	* replaced boost.filesystem with custom functions

@@ -245,6 +245,7 @@ namespace libtorrent
 		, m_deficit_counter(0)
 		, m_sequence_number(seq)
 		, m_last_working_tracker(-1)
+		, m_failed_trackers(0)
 		, m_time_scaler(0)
 		, m_priority(0)
 		, m_abort(false)
@@ -627,6 +628,14 @@ namespace libtorrent
 			async_verify_piece(p.piece, bind(&torrent::piece_finished, shared_from_this()
 				, p.piece, _1));
 		}
+	}
+	
+	void torrent::on_disk_cache_complete(int ret, disk_io_job const& j)
+	{
+		// suggest this piece to all peers
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+			(*i)->send_suggest(j.piece);
 	}
 
 	bool torrent::add_merkle_nodes(std::map<int, sha1_hash> const& nodes, int piece)
@@ -5477,6 +5486,126 @@ namespace libtorrent
 		m_total_uploaded += m_stat.last_payload_uploaded();
 		m_total_downloaded += m_stat.last_payload_downloaded();
 		m_stat.second_tick(tick_interval_ms);
+	}
+
+	void torrent::refresh_explicit_cache(int cache_size)
+	{
+		if (!ready_for_connections()) return;
+		// rotate the cached pieces
+
+		// add blocks_per_piece / 2 in order to round to closest whole piece
+		int blocks_per_piece = m_torrent_file->piece_length() / m_block_size;
+		int num_cache_pieces = (cache_size + blocks_per_piece / 2) / blocks_per_piece;
+		if (num_cache_pieces > m_torrent_file->num_pieces())
+			num_cache_pieces = m_torrent_file->num_pieces();
+
+		std::vector<int> avail_vec;
+		if (has_picker())
+		{
+			m_picker->get_availability(avail_vec);
+		}
+		else
+		{
+			// we don't keep track of availability, do it the expensive way
+			// do a linear search from the first piece
+			for (int i = 0; i < m_torrent_file->num_pieces(); ++i)
+			{
+				int availability = 0;
+				if (!have_piece(i))
+				{
+					avail_vec.push_back(INT_MAX);
+					continue;
+				}
+
+				for (const_peer_iterator j = this->begin(); j != this->end(); ++j)
+					if ((*j)->has_piece(i)) ++availability;
+				avail_vec.push_back(availability);
+			}
+		}
+
+		// now pick the num_cache_pieces rarest pieces from avail_vec
+		std::vector<std::pair<int, int> > pieces(m_torrent_file->num_pieces());
+		for (int i = 0; i < m_torrent_file->num_pieces(); ++i)
+		{
+			pieces[i].second = i;
+			if (!have_piece(i)) pieces[i].first = INT_MAX;
+			else pieces[i].first = avail_vec[i];
+		}
+
+		// decrease the availability of the pieces that are
+		// already in the read cache, to move them closer to
+		// the beginning of the pieces list, and more likely
+		// to be included in this round of cache pieces
+		std::vector<cached_piece_info> ret;
+		m_ses.m_disk_thread.get_cache_info(info_hash(), ret);
+		// remove write cache entries
+		ret.erase(std::remove_if(ret.begin(), ret.end()
+			, boost::bind(&cached_piece_info::kind, _1) == cached_piece_info::write_cache)
+			, ret.end());
+		for (std::vector<cached_piece_info>::iterator i = ret.begin()
+			, end(ret.end()); i != end; ++i)
+		{
+			--pieces[i->piece].first;
+		}
+
+		std::random_shuffle(pieces.begin(), pieces.end());
+		std::stable_sort(pieces.begin(), pieces.end()
+			, boost::bind(&std::pair<int, int>::first, _1) <
+			boost::bind(&std::pair<int, int>::first, _2));
+		avail_vec.clear();
+		for (int i = 0; i < num_cache_pieces; ++i)
+		{
+			if (pieces[i].first == INT_MAX) break;
+			avail_vec.push_back(pieces[i].second);
+		}
+
+		if (!avail_vec.empty())
+		{
+			// the number of pieces to cache for this torrent is proportional
+			// the number of peers it has, divided by the total number of peers.
+			// Each peer gets an equal share of the cache
+
+			avail_vec.resize((std::min)(num_cache_pieces, int(avail_vec.size())));
+
+			for (std::vector<int>::iterator i = avail_vec.begin()
+				, end(avail_vec.end()); i != end; ++i)
+				filesystem().async_cache(*i, bind(&torrent::on_disk_cache_complete
+					, shared_from_this(), _1, _2));
+		}
+	}
+
+	void torrent::get_suggested_pieces(std::vector<int>& s) const
+	{
+		if (m_ses.m_settings.suggest_mode == session_settings::no_piece_suggestions)
+		{
+			s.clear();
+			return;
+		}
+
+		std::vector<cached_piece_info> ret;
+		m_ses.m_disk_thread.get_cache_info(info_hash(), ret);
+		ptime now = time_now();
+
+		// remove write cache entries
+		ret.erase(std::remove_if(ret.begin(), ret.end()
+			, boost::bind(&cached_piece_info::kind, _1) == cached_piece_info::write_cache)
+			, ret.end());
+
+		// sort by how new the cached entry is, new pieces first
+		std::sort(ret.begin(), ret.end()
+			, boost::bind(&cached_piece_info::last_use, _1)
+			< boost::bind(&cached_piece_info::last_use, _2));
+
+		// cut off the oldest pieces that we don't want to suggest
+		// if we have an explicit cache, it's much more likely to
+		// stick around, so we should suggest all pieces
+		int num_pieces_to_suggest = int(ret.size());
+		if (!m_ses.m_settings.explicit_read_cache)
+			num_pieces_to_suggest = (std::max)(1, int(ret.size() / 2));
+		ret.resize(num_pieces_to_suggest);
+
+		std::transform(ret.begin(), ret.end(), std::back_inserter(s)
+			, boost::bind(&cached_piece_info::piece, _1));
 	}
 
 	void torrent::add_stats(stat const& s)

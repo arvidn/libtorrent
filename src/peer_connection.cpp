@@ -145,6 +145,7 @@ namespace libtorrent
 		, m_snubbed(false)
 		, m_bitfield_received(false)
 		, m_no_download(false)
+		, m_sent_suggests(false)
 #ifdef TORRENT_DEBUG
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -274,6 +275,7 @@ namespace libtorrent
 		, m_snubbed(false)
 		, m_bitfield_received(false)
 		, m_no_download(false)
+		, m_sent_suggests(false)
 #ifdef TORRENT_DEBUG
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -779,7 +781,7 @@ namespace libtorrent
 		// dont announce during handshake
 		if (in_handshake()) return;
 
-		// remove suggested pieces that we have		
+		// remove suggested pieces once we have them
 		std::vector<int>::iterator i = std::find(
 			m_suggested_pieces.begin(), m_suggested_pieces.end(), index);
 		if (i != m_suggested_pieces.end()) m_suggested_pieces.erase(i);
@@ -2842,6 +2844,18 @@ namespace libtorrent
 		if (!m_choked) return false;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t->ready_for_connections()) return false;
+
+		if (!m_sent_suggests)
+		{
+			std::vector<int> ret;
+			t->get_suggested_pieces(ret);
+			for (std::vector<int>::iterator i = ret.begin()
+				, end(ret.end()); i != end; ++i)
+				send_suggest(*i);
+
+			m_sent_suggests = true;
+		}
+
 		m_last_unchoke = time_now();
 		write_unchoke();
 		m_choked = false;
@@ -2888,6 +2902,20 @@ namespace libtorrent
 		(*m_logger) << time_now_string() << " ==> NOT_INTERESTED\n";
 #endif
 		disconnect_if_redundant();
+	}
+
+	void peer_connection::send_suggest(int piece)
+	{
+		if (m_connecting) return;
+		if (in_handshake()) return;
+
+		// don't suggest a piece that the peer already has
+		// don't suggest anything to a peer that isn't interested
+		if (has_piece(piece)
+			|| !m_peer_interested)
+			return;
+	
+		write_suggest(piece);
 	}
 
 	void peer_connection::send_block_requests()

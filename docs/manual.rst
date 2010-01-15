@@ -3638,6 +3638,9 @@ session_settings
 		int num_want;
 		int initial_picker_threshold;
 		int allowed_fast_set_size;
+
+		enum { no_piece_suggestions = 0, suggest_read_cache = 1 };
+		int suggest_mode;
 		int max_queued_disk_bytes;
 		int handshake_timeout;
 		bool use_dht_as_fallback;
@@ -3651,6 +3654,8 @@ session_settings
 		int cache_buffer_chunk_size;
 		int cache_expiry;
 		bool use_read_cache;
+		bool explicit_read_cache;
+		int explicit_cache_interval;
 		bool disk_io_no_buffer;
 		std::pair<int, int> outgoing_ports;
 		char peer_tos;
@@ -3856,6 +3861,15 @@ in rarest first order.
 ``allowed_fast_set_size`` is the number of pieces we allow peers to download
 from us without being unchoked.
 
+``suggest_mode`` controls whether or not libtorrent will send out suggest
+messages to create a bias of its peers to request certain pieces. The modes
+are:
+
+* ``no_piece_suggestsions`` which is the default and will not send out suggest
+  messages.
+* ``suggest_read_cache`` which will send out suggest messages for the most
+  recent pieces that are in the read cache.
+
 ``max_queued_disk_bytes`` is the number maximum number of bytes, to be
 written to disk, that can wait in the disk I/O thread queue. This queue
 is only for waiting for the disk I/O thread to receive the job and either
@@ -3926,6 +3940,21 @@ in the write cache, to when it's forcefully flushed to disk. Default is 60 secon
 
 ``use_read_cache``, is set to true (default), the disk cache is also used to
 cache pieces read from disk. Blocks for writing pieces takes presedence.
+
+``explicit_read_cache`` defaults to 0. If set to something greater than 0, the
+disk read cache will not be evicted by cache misses and will explicitly be
+controlled based on the rarity of pieces. Rare pieces are more likely to be
+cached. This would typically be used together with ``suggest_mode`` set to
+``suggest_read_cache``. The value is the number of pieces to keep in the read
+cache. If the actual read cache can't fit as many, it will essentially be clamped.
+
+``explicit_cache_interval`` is the number of seconds in between each refresh of
+a part of the explicit read cache. Torrents take turns in refreshing and this
+is the time in between each torrent refresh. Refreshing a torrent's explicit
+read cache means scanning all pieces and picking a random set of the rarest ones.
+There is an affinity to pick pieces that are already in the cache, so that
+subsequent refreshes only swaps in pieces that are rarer than whatever is in
+the cache at the time.
 
 ``disk_io_no_buffer`` defaults to true. When set to true, files are preferred
 to be opened in unbuffered mode. This helps the operating system from growing
