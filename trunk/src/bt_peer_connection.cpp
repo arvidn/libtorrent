@@ -343,9 +343,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		if (!m_supports_fast) return;
+
 		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
-		TORRENT_ASSERT(m_supports_fast);
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);

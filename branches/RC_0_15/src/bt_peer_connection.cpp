@@ -328,9 +328,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		if (!m_supports_fast) return;
+
 		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
-		TORRENT_ASSERT(m_supports_fast);
 
 		char msg[] = {0,0,0,5, msg_allowed_fast, 0, 0, 0, 0};
 		char* ptr = msg + 5;
