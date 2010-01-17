@@ -1579,6 +1579,9 @@ namespace libtorrent
 #endif
 
 			m_statistics.received_bytes(0, received);
+			// What's going on here?!
+			// break in debug builds to allow investigation
+			TORRENT_ASSERT(false);
 			disconnect(errors::invalid_message);
 			return packet_finished();
 		}
