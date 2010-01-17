@@ -1810,7 +1810,8 @@ namespace libtorrent
 			// if the number of times a block is skipped by out of order
 			// blocks exceeds the size of the outstanding queue, assume that
 			// the other end dropped the request.
-			if (m_ses.m_settings.drop_skipped_requests
+			// never use this feature in the 0.14 branch. It's optional in 0.15+
+			if (false
 				&& qe.skipped > m_desired_queue_size)
 			{
 				if (m_ses.m_alerts.should_post<request_dropped_alert>())
