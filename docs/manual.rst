@@ -53,7 +53,7 @@ libtorrent will pause them, unpause them, scrape them and take them out
 of upload-mode automatically.
 
 Whenever a torrent encounters a fatal error, it will be stopped, and the
-``session_status::error`` will describe the error that caused it. If a torrent
+``torrent_status::error`` will describe the error that caused it. If a torrent
 is auto managed, it is scraped periodically and paused or resumed based on
 the number of downloaders per seed. This will effectively seed torrents that
 are in the greatest need of seeds.
