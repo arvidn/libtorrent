@@ -230,8 +230,8 @@ namespace libtorrent
 
 			std::vector<torrent_handle> get_torrents();
 			
-			void check_torrent(boost::shared_ptr<torrent> const& t);
-			void done_checking(boost::shared_ptr<torrent> const& t);
+			void queue_check_torrent(boost::shared_ptr<torrent> const& t);
+			void dequeue_check_torrent(boost::shared_ptr<torrent> const& t);
 
 			void set_alert_mask(int m);
 			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
@@ -473,6 +473,8 @@ namespace libtorrent
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
 			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
+
+			// this has all torrents that wants to be checked in it
 			check_queue_t m_queued_for_checking;
 
 			// this maps sockets to their peer_connection
