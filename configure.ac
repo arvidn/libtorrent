@@ -567,6 +567,9 @@ AS_CASE(["$ARG_WITH_ZLIB"],
    AC_MSG_ERROR([Unknown option "$ARG_WITH_ZLIB". Use either "yes" or "no".])]
 )
 
+AC_MSG_CHECKING([for FIEMAP support])
+AC_CHECK_HEADERS([linux/fiemap.h])
+
 AC_MSG_CHECKING([whether to link against system libgeoip]) #depends: $ac_arg_enable_geoip
 AS_CASE(["$ARG_WITH_LIBGEOIP"],
   ["yes"|"system"], [

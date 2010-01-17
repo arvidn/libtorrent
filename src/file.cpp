@@ -61,7 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <errno.h>
 #ifdef TORRENT_LINUX
 #include <sys/ioctl.h>
-#ifdef FS_IOC_FIEMAP
+#ifdef HAVE_LINUX_FIEMAP_H
 #include <linux/fiemap.h>
 #endif
 #endif // TORRENT_LINUX
