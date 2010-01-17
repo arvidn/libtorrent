@@ -1014,14 +1014,14 @@ namespace libtorrent
 	{
 		if (m_queued_for_checking) return;
 		m_queued_for_checking = true;
-		m_ses.check_torrent(shared_from_this());
+		m_ses.queue_check_torrent(shared_from_this());
 	}
 
 	void torrent::dequeue_torrent_check()
 	{
 		if (!m_queued_for_checking) return;
 		m_queued_for_checking = false;
-		m_ses.done_checking(shared_from_this());
+		m_ses.dequeue_check_torrent(shared_from_this());
 	}
 
 	void torrent::force_recheck()
