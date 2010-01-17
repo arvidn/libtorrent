@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/storage_defs.hpp"
+#include "libtorrent/storage.hpp"
 
 int main(int argc, char* argv[])
 {
