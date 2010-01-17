@@ -1900,7 +1900,7 @@ namespace aux {
 			{
 				// if we don't have any connections at all, split the
 				// cache evenly across all torrents
-				cache_size = cache_size / m_torrents.size();
+				cache_size = cache_size / (std::max)(int(m_torrents.size()), 1);
 			}
 			else
 			{
@@ -1908,7 +1908,8 @@ namespace aux {
 					/ m_connections.size();
 			}
 
-			least_recently_refreshed->second->refresh_explicit_cache(cache_size);
+			if (least_recently_refreshed != m_torrents.end())
+				least_recently_refreshed->second->refresh_explicit_cache(cache_size);
 			++m_next_explicit_cache_torrent;
 		}
 
