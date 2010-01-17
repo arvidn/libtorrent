@@ -1024,7 +1024,7 @@ ret:
 		}
 		return ret;
 #else
-	return readwritev(bufs, slot, offset, num_bufs, op);
+		return readwritev(bufs, slot, offset, num_bufs, op);
 #endif
 	}
 
