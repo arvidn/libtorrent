@@ -788,7 +788,8 @@ int main(int argc, char* argv[])
 		, alert::all_categories
 			& ~(alert::dht_notification
 			+ alert::progress_notification
-			+ alert::debug_notification));
+			+ alert::debug_notification
+			+ alert::stats_notification));
 
 	std::vector<char> in;
 	if (load_file(".ses_state", in) == 0)

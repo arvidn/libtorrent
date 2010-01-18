@@ -793,7 +793,12 @@ int main(int argc, char* argv[])
 	// monitor when they're not in the directory anymore.
 	handles_t handles;
 	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-		, session::start_default_features | session::add_default_plugins, alert::all_categories);
+		, session::start_default_features | session::add_default_plugins
+		, alert::all_categories
+			& ~(alert::dht_notification
+			+ alert::progress_notification
+			+ alert::debug_notification
+			+ alert::stats_notification));
 
 	std::vector<char> in;
 	if (load_file(".ses_state", in) == 0)
