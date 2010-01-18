@@ -81,9 +81,17 @@ namespace
 #ifdef TORRENT_DEBUG
 	struct match_peer_connection
 	{
-		match_peer_connection(peer_connection const& c)
-			: m_conn(c)
-		{}
+		match_peer_connection(peer_connection const& c) : m_conn(c) {}
+
+		bool operator()(policy::peer const* p) const
+		{ return p->connection == &m_conn; }
+
+		peer_connection const& m_conn;
+	};
+
+	struct match_peer_connection_or_endpoint
+	{
+		match_peer_connection_or_endpoint(peer_connection const& c) : m_conn(c) {}
 
 		bool operator()(policy::peer const* p) const
 		{
@@ -1282,7 +1290,7 @@ namespace libtorrent
 		return std::find_if(
 			m_peers.begin()
 			, m_peers.end()
-			, match_peer_connection(*c)) != m_peers.end();
+			, match_peer_connection_or_endpoint(*c)) != m_peers.end();
 	}
 
 	void policy::check_invariant() const
@@ -1380,7 +1388,7 @@ namespace libtorrent
 				if (p == 0) continue;
 				if (p->connection == 0) continue;
 				TORRENT_ASSERT(std::find_if(m_peers.begin(), m_peers.end()
-					, match_peer_connection(*p->connection)) != m_peers.end());
+					, match_peer_connection_or_endpoint(*p->connection)) != m_peers.end());
 			}
 		}
 #endif // TORRENT_EXPENSIVE_INVARIANT_CHECKS
