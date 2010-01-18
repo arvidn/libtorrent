@@ -64,6 +64,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef HAVE_LINUX_FIEMAP_H
 #include <linux/fiemap.h>
 #endif
+
+#include <linux/falloc.h>
+#include <asm/unistd_64.h> // For __NR_fallocate
+
+// circumvent the lack of support in glibc
+static int fallocate(int fd, int mode, loff_t offset, loff_t len)
+{
+	return syscall(__NR_fallocate, fd, mode, offset, len);
+}
+
 #endif // TORRENT_LINUX
 
 #include <boost/static_assert.hpp>
@@ -888,6 +898,13 @@ namespace libtorrent
 			if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
 			{
 				ec = error_code(errno, get_posix_category());
+				return false;
+			}
+#elif defined TORRENT_LINUX
+			int ret = fallocate(m_fd, FALLOC_FL_KEEP_SIZE, 0, s);
+			if (ret != 0 && ret != EOPNOTSUPP && errno != ENOSYS)
+			{
+				ec = error_code(ret, get_posix_category());
 				return false;
 			}
 #else
