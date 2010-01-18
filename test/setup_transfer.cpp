@@ -77,7 +77,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 	while (a.get())
 	{
 		if (predicate && predicate(a.get())) ret = true;
-		if (peer_disconnected_alert* p = dynamic_cast<peer_disconnected_alert*>(a.get()))
+		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(a.get()))
 		{
 			std::cerr << name << "(" << p->ip << "): " << p->message() << "\n";
 		}
@@ -87,9 +87,9 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		{
 			std::cerr << name << ": " << a->message() << "\n";
 		}
-		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) == 0 || allow_failed_fastresume);
+		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a.get()) == 0 || allow_failed_fastresume);
 
-		TEST_CHECK(dynamic_cast<peer_error_alert*>(a.get()) == 0
+		TEST_CHECK(alert_cast<peer_error_alert>(a.get()) == 0
 			|| (!handles.empty() && h.is_seed())
 			|| a->message() == "connecting to peer"
 			|| a->message() == "closing connection to ourself"
