@@ -1450,7 +1450,26 @@ namespace libtorrent
 			}
 #elif defined TORRENT_LINUX
 			int ret = my_fallocate(m_fd, FALLOC_FL_KEEP_SIZE, 0, s);
-			if (ret != 0 && ret != EOPNOTSUPP && errno != ENOSYS)
+			if (ret == 0 && errno != ENOSYS) return true;
+			if (ret != EOPNOTSUPP) ec.assign(ret, get_posix_category());
+			// if fallocate failed, we have to use posix_fallocate
+			// which can be painfully slow, so only use it if we really
+			// have to
+			struct stat st;
+			if (fstat(m_fd, &st) != 0)
+			{
+				ec.assign(errno, get_posix_category());
+				return false;
+			}
+			// if the number of allocated blocks already matches
+			// the size of the file. No need to allocate it
+			if (st.st_blocks >= (s + st.st_blksize - 1) / st.st_blksize)
+			{
+				ec.clear();
+				return true;
+			}
+			ret = posix_fallocate(m_fd, 0, s);
+			if (ret != 0)
 			{
 				ec.assign(ret, get_posix_category());
 				return false;
