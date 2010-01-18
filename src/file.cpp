@@ -65,7 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <linux/fiemap.h>
 #endif
 
-#include <linux/falloc.h>
 #include <asm/unistd_64.h> // For __NR_fallocate
 
 // circumvent the lack of support in glibc
@@ -901,7 +900,7 @@ namespace libtorrent
 				return false;
 			}
 #elif defined TORRENT_LINUX
-			int ret = my_fallocate(m_fd, FALLOC_FL_KEEP_SIZE, 0, s);
+			int ret = my_fallocate(m_fd, 0, 0, s);
 			if (ret == 0 && errno != ENOSYS) return true;
 			if (ret != EOPNOTSUPP) ec.assign(ret, get_posix_category());
 			// if fallocate failed, we have to use posix_fallocate
