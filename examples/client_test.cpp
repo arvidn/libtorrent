@@ -503,7 +503,7 @@ typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
 
 int listen_port = 6881;
 float preferred_ratio = 0.f;
-std::string allocation_mode = "sparse";
+int allocation_mode = libtorrent::storage_mode_sparse;
 std::string save_path(".");
 int torrent_upload_limit = 0;
 int torrent_download_limit = 0;
@@ -527,7 +527,7 @@ void add_torrent(libtorrent::session& ses
 	, handles_t& handles
 	, std::string const& torrent
 	, float preferred_ratio
-	, bool compact_mode
+	, int allocation_mode
 	, path const& save_path
 	, bool monitored_dir
 	, int torrent_upload_limit
@@ -557,7 +557,7 @@ void add_torrent(libtorrent::session& ses
 
 	p.ti = t;
 	p.save_path = save_path;
-	p.storage_mode = compact_mode ? storage_mode_compact : storage_mode_sparse;
+	p.storage_mode = (storage_mode_t)allocation_mode;
 	p.paused = true;
 	p.duplicate_is_error = false;
 	p.auto_managed = true;
@@ -580,7 +580,7 @@ void scan_dir(path const& dir_path
 	, libtorrent::session& ses
 	, handles_t& handles
 	, float preferred_ratio
-	, bool compact_mode
+	, int allocation_mode
 	, path const& save_path
 	, int torrent_upload_limit
 	, int torrent_download_limit)
@@ -603,7 +603,7 @@ void scan_dir(path const& dir_path
 
 		// the file has been added to the dir, start
 		// downloading it.
-		add_torrent(ses, handles, file, preferred_ratio, compact_mode
+		add_torrent(ses, handles, file, preferred_ratio, allocation_mode
 			, save_path, true, torrent_upload_limit, torrent_download_limit);
 		valid.insert(file);
 	}
@@ -835,8 +835,7 @@ int main(int argc, char* argv[])
 			{
 				add_torrent_params p;
 				p.save_path = save_path;
-				p.storage_mode = allocation_mode == "compact" ? storage_mode_compact
-					: storage_mode_sparse;
+				p.storage_mode = (storage_mode_t)allocation_mode;
 				printf("adding MANGET link: %s\n", argv[i]);
 				error_code ec;
 				torrent_handle h = add_magnet_uri(ses, argv[i], p, ec);
@@ -868,8 +867,7 @@ int main(int argc, char* argv[])
 				p.tracker_url = argv[i] + 41;
 				p.info_hash = info_hash;
 				p.save_path = save_path;
-				p.storage_mode = allocation_mode == "compact" ? storage_mode_compact
-					: storage_mode_sparse;
+				p.storage_mode = (storage_mode_t)allocation_mode;
 				p.paused = true;
 				p.duplicate_is_error = false;
 				p.auto_managed = true;
@@ -893,7 +891,7 @@ int main(int argc, char* argv[])
 
 			// if it's a torrent file, open it as usual
 			add_torrent(ses, handles, argv[i], preferred_ratio
-				, allocation_mode == "compact", save_path, false
+				, allocation_mode, save_path, false
 				, torrent_upload_limit, torrent_download_limit);
 			continue;
 		}
@@ -915,7 +913,10 @@ int main(int argc, char* argv[])
 			case 'd': ses.set_download_rate_limit(atoi(arg) * 1000); break;
 			case 'u': ses.set_upload_rate_limit(atoi(arg) * 1000); break;
 			case 'S': ses.set_max_uploads(atoi(arg)); break;
-			case 'a': allocation_mode = arg; break;
+			case 'a':
+				if (strcmp(arg, "allocate") == 0) allocation_mode = storage_mode_allocate;
+				if (strcmp(arg, "compact") == 0) allocation_mode = storage_mode_compact;
+				break;
 			case 's': save_path = arg; break;
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
 			case 'D': torrent_download_limit = atoi(arg) * 1000; break;
@@ -1594,7 +1595,7 @@ int main(int argc, char* argv[])
 			&& next_dir_scan < time_now())
 		{
 			scan_dir(monitor_dir, ses, handles, preferred_ratio
-				, allocation_mode == "compact", save_path, torrent_upload_limit
+				, allocation_mode, save_path, torrent_upload_limit
 				, torrent_download_limit);
 			next_dir_scan = time_now() + seconds(poll_interval);
 		}
