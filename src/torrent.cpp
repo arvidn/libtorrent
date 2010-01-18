@@ -4123,6 +4123,13 @@ namespace libtorrent
 				get_handle()));
 		}
 
+		// this makes the resume data "paused" and
+		// "auto_managed" fields be ignored. If the paused
+		// field is not ignored, the invariant check will fail
+		// since we will be paused but without having disconnected
+		// any of the peers.
+		m_override_resume_data = true;
+
 		init();
 
 		return true;
@@ -4226,10 +4233,7 @@ namespace libtorrent
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			if (m_abort)
-				(*p->m_logger) << "*** CLOSING CONNECTION 'aborting'\n";
-			else
-				(*p->m_logger) << "*** CLOSING CONNECTION 'pausing'\n";
+			(*p->m_logger) << "*** CLOSING CONNECTION: " << ec.message() << "\n";
 #endif
 #ifdef TORRENT_DEBUG
 			std::size_t size = m_connections.size();
