@@ -209,8 +209,8 @@ namespace libtorrent
 			request += "&ranges=";
 			request += to_string(r.start).elems;
 			request += "-";
-			// TODO: are ranges inclusive?
-			request += to_string(r.start + r.length).elems;
+			// ranges are inclusive, just like HTTP
+			request += to_string(r.start + r.length - 1).elems;
 		}
 
 		request += " HTTP/1.1\r\n";
