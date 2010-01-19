@@ -372,7 +372,7 @@ hrktorrent_ hrktorrent is a light console torrent client written in C++.
 
 **DelCo**
 
-DelCo_ is a research project at tempere university of technology, finland.
+DelCo_ is a research project at Tampere university of technology, finland.
 
 **FireANT**
 
