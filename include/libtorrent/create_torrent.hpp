@@ -157,8 +157,8 @@ namespace libtorrent
 		void add_files_impl(file_storage& fs, std::string const& p
 			, std::string const& l, Pred pred)
 		{
-			if (!pred(l)) return;
 			std::string f = combine_path(p, l);
+			if (!pred(f)) return;
 			error_code ec;
 			file_status s;
 			stat_file(f, &s, ec);
