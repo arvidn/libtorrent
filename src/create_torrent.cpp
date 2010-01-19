@@ -115,6 +115,10 @@ namespace libtorrent
 		, m_merkle_torrent(flags & merkle)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
+
+		// return instead of crash in release mode
+		if (fs.num_files() == 0) return;
+
 		if (!m_multifile && has_parent_path(m_files.at(0).path)) m_multifile = true;
 
 		// a piece_size of 0 means automatic
