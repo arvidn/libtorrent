@@ -194,6 +194,10 @@ namespace libtorrent
 		, m_merkle_torrent(flags & merkle)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
+
+		// return instead of crash in release mode
+		if (fs.num_files() == 0) return;
+
 #if BOOST_VERSION < 103600
 		if (!m_multifile && m_files.at(0).path.has_branch_path()) m_multifile = true;
 #else
