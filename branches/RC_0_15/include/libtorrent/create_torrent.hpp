@@ -181,8 +181,8 @@ namespace libtorrent
 		{
 			using boost::filesystem::basic_path;
 			using boost::filesystem::basic_directory_iterator;
-			if (!pred(l)) return;
 			basic_path<Str, PathTraits> f(p / l);
+			if (!pred(f)) return;
 			if (is_directory(f))
 			{
 				for (basic_directory_iterator<basic_path<Str, PathTraits> > i(f), end; i != end; ++i)
