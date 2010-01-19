@@ -1,6 +1,9 @@
 
+release 0.14.9
+
 	* disabled feature to drop requests after having been skipped too many times
 	* fixed range request bug for files larger than 2 GB in web seeds
+	* don't crash when trying to create torrents with 0 files
 
 release 0.14.8
 
