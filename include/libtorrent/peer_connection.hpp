@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/pool/pool.hpp>
+#include <boost/aligned_storage.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
