@@ -94,7 +94,7 @@ size_type routing_table::num_global_nodes() const
 	return (2 << m_buckets.size()) * num_nodes;
 }
 
-#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
+#if (defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
 
 void routing_table::print_state(std::ostream& os) const
 {
