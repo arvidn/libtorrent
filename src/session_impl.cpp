@@ -151,7 +151,7 @@ namespace aux {
 	ptime g_current_time = time_now_hires();
 }
 
-ptime const& TORRENT_EXPORT time_now() { return aux::g_current_time; }
+TORRENT_EXPORT ptime const& time_now() { return aux::g_current_time; }
 
 namespace aux {
 
