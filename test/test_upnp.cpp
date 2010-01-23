@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 
 broadcast_socket* sock = 0;
+int g_port = 0;
 
 char upnp_xml[] = 
 "<root>"
@@ -52,7 +53,7 @@ char upnp_xml[] =
 "<major>1</major>"
 "<minor>0</minor>"
 "</specVersion>"
-"<URLBase>http://127.0.0.1:8888</URLBase>"
+"<URLBase>http://127.0.0.1:%d</URLBase>"
 "<device>"
 "<deviceType>"
 "urn:schemas-upnp-org:device:InternetGatewayDevice:1"
@@ -159,14 +160,19 @@ void incoming_msearch(udp::endpoint const& from, char* buffer
 	char msg[] = "HTTP/1.1 200 OK\r\n"
 		"ST:upnp:rootdevice\r\n"
 		"USN:uuid:000f-66d6-7296000099dc::upnp:rootdevice\r\n"
-		"Location: http://127.0.0.1:8888/upnp.xml\r\n"
+		"Location: http://127.0.0.1:%d/upnp.xml\r\n"
 		"Server: Custom/1.0 UPnP/1.0 Proc/Ver\r\n"
 		"EXT:\r\n"
 		"Cache-Control:max-age=180\r\n"
 		"DATE: Fri, 02 Jan 1970 08:10:38 GMT\r\n\r\n";
 
+	TORRENT_ASSERT(g_port != 0);
+	char buf[sizeof(msg) + 30];
+	int len = snprintf(buf, sizeof(buf), msg, g_port);
+
 	error_code ec;
-	sock->send(msg, sizeof(msg)-1, ec);
+	sock->send(buf, len, ec);
+
 	if (ec) std::cerr << "*** error sending " << ec.message() << std::endl;
 }
 
@@ -200,12 +206,12 @@ int test_main()
 {
 	libtorrent::io_service ios;
 	
-	start_web_server(8888);
-	std::ofstream xml("upnp.xml", std::ios::trunc);
-	xml.write(upnp_xml, sizeof(upnp_xml) - 1);
-	xml.close();
+	g_port = start_web_server();
+	FILE* xml_file = fopen("upnp.xml", "w+");
+	fprintf(xml_file, upnp_xml, g_port);
+	fclose(xml_file);
 
-	xml.open("WANIPConnection", std::ios::trunc);
+	std::ofstream xml("WANIPConnection", std::ios::trunc);
 	xml.write(soap_add_response, sizeof(soap_add_response)-1);
 	xml.close();
 
@@ -252,7 +258,7 @@ int test_main()
 	TEST_CHECK(std::count(callbacks.begin(), callbacks.end(), expected1) == 1);
 	TEST_CHECK(std::count(callbacks.begin(), callbacks.end(), expected2) == 1);
 
-	stop_web_server(8888);
+	stop_web_server();
 
 	delete sock;
 	return 0;

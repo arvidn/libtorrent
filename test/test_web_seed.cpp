@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
-void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy)
+void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, int port)
 {
 	using namespace libtorrent;
 
@@ -171,22 +171,24 @@ int test_main()
 	file_storage fs;
 	add_files(fs, "./tmp1_web_seed/test_torrent_dir");
 
-	libtorrent::create_torrent t(fs, 16 * 1024);
-	t.add_url_seed("http://127.0.0.1:8000/tmp1_web_seed");
+	int port = start_web_server();
 
-	start_web_server(8000);
+	libtorrent::create_torrent t(fs, 16 * 1024);
+	char tmp[512];
+	snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/tmp1_web_seed", port);
+	t.add_url_seed(tmp);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "./tmp1_web_seed", ec);
 	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(t.generate()));
 
 	for (int i = 0; i < 6; ++i)
-		test_transfer(torrent_file, i);
+		test_transfer(torrent_file, i, port);
 	
 	torrent_file->rename_file(0, "./tmp2_web_seed/test_torrent_dir/renamed_test1");
-	test_transfer(torrent_file, 0);
+	test_transfer(torrent_file, 0, port);
 
-	stop_web_server(8000);
+	stop_web_server();
 	remove_all("./tmp1_web_seed", ec);
 	return 0;
 }
