@@ -185,6 +185,7 @@ namespace libtorrent
 			, allow_i2p_mixed(false)
 			, max_suggest_pieces(10)
 			, drop_skipped_requests(false)
+			, low_prio_disk(true)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -675,6 +676,13 @@ namespace libtorrent
 		// satisfied after the equivalence of the entire
 		// request queue has been received, will be considered lost
 		bool drop_skipped_requests;
+
+		// if this is set to true, the disk I/O will be
+		// run at lower-than-normal priority. This is
+		// intended to make the machine more responsive
+		// to foreground tasks, while bittorrent runs
+		// in the background
+		bool low_prio_disk;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

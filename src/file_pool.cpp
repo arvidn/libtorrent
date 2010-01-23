@@ -80,6 +80,15 @@ namespace libtorrent
 					m_files.erase(i);
 					return boost::shared_ptr<file>();
 				}
+#ifdef TORRENT_WINDOWS
+				if (m_low_prio_io)
+				{
+					FILE_IO_PRIORITY_HINT_INFO priorityHint;
+					priorityHint.PriorityHint = IoPriorityHintLow;
+					result = SetFileInformationByHandle(e.file_ptr->native_handle(),
+						FileIoPriorityHintInfo, &priorityHint, sizeof(PriorityHint));
+				}
+#endif
 				TORRENT_ASSERT(e.file_ptr->is_open());
 				e.mode = m;
 			}
@@ -126,10 +135,16 @@ namespace libtorrent
 		if (i != m_files.end()) m_files.erase(i);
 	}
 
+	// closes files belonging to the specified
+	// storage. If 0 is passed, all files are closed
 	void file_pool::release(void* st)
 	{
 		mutex::scoped_lock l(m_mutex);
-		TORRENT_ASSERT(st != 0);
+		if (st == 0)
+		{
+			m_files.clear();
+			return;
+		}
 
 		for (file_set::iterator i = m_files.begin();
 			i != m_files.end();)
