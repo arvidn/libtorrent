@@ -2398,7 +2398,7 @@ namespace libtorrent
 		else
 		{
 			if (alerts().should_post<torrent_deleted_alert>())
-				alerts().post_alert(torrent_deleted_alert(get_handle()));
+				alerts().post_alert(torrent_deleted_alert(get_handle(), m_torrent_file->info_hash()));
 		}
 	}
 
