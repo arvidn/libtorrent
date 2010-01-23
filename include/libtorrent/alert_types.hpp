@@ -862,7 +862,7 @@ namespace libtorrent
 	{
 		torrent_deleted_alert(torrent_handle const& h)
 			: torrent_alert(h)
-		{}
+		{ info_hash = h.info_hash(); }
 	
 		virtual std::auto_ptr<alert> clone() const
 		{ return std::auto_ptr<alert>(new torrent_deleted_alert(*this)); }
@@ -873,6 +873,8 @@ namespace libtorrent
 		{
 			return torrent_alert::message() + " deleted";
 		}
+
+		sha1_hash info_hash;
 	};
 
 	struct TORRENT_EXPORT torrent_delete_failed_alert: torrent_alert

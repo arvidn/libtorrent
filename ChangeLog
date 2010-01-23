@@ -83,6 +83,7 @@
 	* improved fallocate support
 	* fixed magnet link issue when using resume data
 	* support disk I/O priority settings
+	* added info_hash to torrent_deleted_alert
 
 release 0.14.9
 
