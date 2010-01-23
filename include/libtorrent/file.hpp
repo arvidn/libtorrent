@@ -159,6 +159,12 @@ namespace libtorrent
 
 		size_type phys_offset(size_type offset);
 
+#ifdef TORRENT_WINDOWS
+		HANDLE native_handle() const { return m_file_handle; }
+#else
+		int native_handle() const { return m_fd; }
+#endif
+
 	private:
 
 #ifdef TORRENT_WINDOWS

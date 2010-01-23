@@ -82,6 +82,7 @@
 	* added support for storing per-peer rate limits across reconnects
 	* improved fallocate support
 	* fixed magnet link issue when using resume data
+	* support disk I/O priority settings
 
 release 0.14.9
 

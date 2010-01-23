@@ -3697,6 +3697,8 @@ session_settings
 		int max_suggest_pieces;
 
 		bool drop_skipped_requests;
+
+		bool low_prio_disk;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4135,6 +4137,13 @@ BitComet peers silently ignoring some requests. It may cause problems
 at high rates, and high level of reordering in the uploading peer, that's
 why it's disabled by default.
 
+``low_prio_disk`` determines if the disk I/O should use a normal
+or low priority policy. This defaults to true, which means that
+it's low priority by default. Other processes doing disk I/O will
+normally take priority in this mode. This is meant to improve the
+overall responsiveness of the system while downloading in the
+background. For high-performance server setups, this might not
+be desirable.
 
 pe_settings
 ===========
