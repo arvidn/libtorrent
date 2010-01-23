@@ -129,7 +129,7 @@ void run_test(std::string const& url, int size, int status, int connected
 	TEST_CHECK(http_status == status || status == -1);
 }
 
-void run_suite(std::string const& protocol, proxy_settings const& ps)
+void run_suite(std::string const& protocol, proxy_settings const& ps, int port)
 {
 	if (ps.type != proxy_settings::none)
 	{
@@ -144,12 +144,16 @@ void run_suite(std::string const& protocol, proxy_settings const& ps)
 	// this requires the hosts file to be modified
 //	run_test(protocol + "://test.dns.ts:8001/test_file", 3216, 200, 1, error_code(), ps);
 
-	run_test(protocol + "://127.0.0.1:8001/relative/redirect", 3216, 200, 2, error_code(), ps);
-	run_test(protocol + "://127.0.0.1:8001/redirect", 3216, 200, 2, error_code(), ps);
-	run_test(protocol + "://127.0.0.1:8001/infinite_redirect", 0, 301, 6, error_code(), ps);
-	run_test(protocol + "://127.0.0.1:8001/test_file", 3216, 200, 1, error_code(), ps);
-	run_test(protocol + "://127.0.0.1:8001/test_file.gz", 3216, 200, 1, error_code(), ps);
-	run_test(protocol + "://127.0.0.1:8001/non-existing-file", -1, 404, 1, err(), ps);
+	char url[256];
+	snprintf(url, sizeof(url), "%s://127.0.0.1:%d/", protocol.c_str(), port);
+	std::string url_base(url);
+
+	run_test(url_base + "relative/redirect", 3216, 200, 2, error_code(), ps);
+	run_test(url_base + "redirect", 3216, 200, 2, error_code(), ps);
+	run_test(url_base + "infinite_redirect", 0, 301, 6, error_code(), ps);
+	run_test(url_base + "test_file", 3216, 200, 1, error_code(), ps);
+	run_test(url_base + "test_file.gz", 3216, 200, 1, error_code(), ps);
+	run_test(url_base + "non-existing-file", -1, 404, 1, err(), ps);
 	// if we're going through an http proxy, we won't get the same error as if the hostname
 	// resolution failed
 	if ((ps.type == proxy_settings::http || ps.type == proxy_settings::http_pw) && protocol != "https")
@@ -177,22 +181,22 @@ int test_main()
 	ps.username = "testuser";
 	ps.password = "testpass";
 	
-	start_web_server(8001);
+	int port = start_web_server();
 	for (int i = 0; i < 5; ++i)
 	{
 		ps.type = (proxy_settings::proxy_type)i;
-		run_suite("http", ps);
+		run_suite("http", ps, port);
 	}
-	stop_web_server(8001);
+	stop_web_server();
 
 #ifdef TORRENT_USE_OPENSSL
-	start_web_server(8001, true);
+	port = start_web_server(true);
 	for (int i = 0; i < 5; ++i)
 	{
 		ps.type = (proxy_settings::proxy_type)i;
-		run_suite("https", ps);
+		run_suite("https", ps, port);
 	}
-	stop_web_server(8001);
+	stop_web_server();
 #endif
 
 	std::remove("test_file");

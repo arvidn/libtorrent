@@ -349,7 +349,7 @@ boost::shared_ptr<boost::thread> web_server;
 boost::mutex web_lock;
 boost::condition web_initialized;
 
-void stop_web_server(int port)
+void stop_web_server()
 {
 	if (web_server && web_ios)
 	{
@@ -360,16 +360,16 @@ void stop_web_server(int port)
 	}
 }
 
-void web_server_thread(int port, bool ssl);
+void web_server_thread(int* port, bool ssl);
 
-void start_web_server(int port, bool ssl)
+int start_web_server(bool ssl)
 {
-	stop_web_server(port);
+	stop_web_server();
 
+	int port = 0;
 	{
 		boost::mutex::scoped_lock l(web_lock);
-		fprintf(stderr, "starting web server on port %d\n", port);
-		web_server.reset(new boost::thread(boost::bind(&web_server_thread, port, ssl)));
+		web_server.reset(new boost::thread(boost::bind(&web_server_thread, &port, ssl)));
 		web_initialized.wait(l);
 	}
 
@@ -377,6 +377,7 @@ void start_web_server(int port, bool ssl)
 	// "relative/../test_file" can resolve
 	create_directory("relative");
 	test_sleep(100);
+	return port;
 }
 
 void send_response(stream_socket& s, error_code& ec
@@ -410,7 +411,7 @@ void on_accept(error_code const& ec)
 	}
 }
 
-void web_server_thread(int port, bool ssl)
+void web_server_thread(int* port, bool ssl)
 {
 	// TODO: support SSL
 
@@ -433,14 +434,15 @@ void web_server_thread(int port, bool ssl)
 		web_initialized.notify_all();
 		return;
 	}
-	acceptor.bind(tcp::endpoint(address_v4::any(), port), ec);
+	acceptor.bind(tcp::endpoint(address_v4::any(), 0), ec);
 	if (ec)
 	{
-		fprintf(stderr, "Error binding listen socket to port %d: %s\n", port, ec.message().c_str());
+		fprintf(stderr, "Error binding listen socket to port 0: %s\n", ec.message().c_str());
 		boost::mutex::scoped_lock l(web_lock);
 		web_initialized.notify_all();
 		return;
 	}
+	*port = acceptor.local_endpoint().port();
 	acceptor.listen(10, ec);
 	if (ec)
 	{
@@ -452,7 +454,7 @@ void web_server_thread(int port, bool ssl)
 
 	web_ios = &ios;
 
-	fprintf(stderr, "web server initialized on port %d\n", port);
+	fprintf(stderr, "web server initialized on port %d\n", *port);
 
 	{
 		boost::mutex::scoped_lock l(web_lock);
@@ -591,7 +593,11 @@ void web_server_thread(int port, bool ssl)
 				snprintf(eh, sizeof(eh), "%sContent-Range: bytes %d-%d\r\n"
 						, extra_header ? extra_header : "", start, end);
 				send_response(s, ec, 206, "Partial", eh, end - start + 1);
-				write(s, boost::asio::buffer(&file_buf[0] + start, end - start + 1), boost::asio::transfer_all(), ec);
+				if (!file_buf.empty())
+				{
+					write(s, boost::asio::buffer(&file_buf[0] + start, end - start + 1)
+						, boost::asio::transfer_all(), ec);
+				}
 				fprintf(stderr, "send %d bytes of payload\n", end - start + 1);
 			}
 			else

@@ -61,8 +61,8 @@ setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 	, boost::intrusive_ptr<libtorrent::torrent_info>* torrent = 0, bool super_seeding = false
 	, libtorrent::add_torrent_params const* p = 0);
 
-void start_web_server(int port, bool ssl = false);
-void stop_web_server(int port);
+int start_web_server(bool ssl = false);
+void stop_web_server();
 void start_proxy(int port, int type);
 void stop_proxy(int port);
 
