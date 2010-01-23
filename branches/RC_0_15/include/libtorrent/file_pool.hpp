@@ -54,7 +54,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT file_pool : boost::noncopyable
 	{
-		file_pool(int size = 40): m_size(size) {}
+		file_pool(int size = 40): m_size(size), m_low_prio_io(true) {}
 
 		boost::shared_ptr<file> open_file(void* st, fs::path const& p
 			, int m, error_code& ec);
@@ -62,12 +62,15 @@ namespace libtorrent
 		void release(fs::path const& p);
 		void resize(int size);
 		int size_limit() const { return m_size; }
+		void set_low_prio_io(bool b) { m_low_prio_io = b; }
 
 	private:
+		file_pool(file_pool const&);
 
 		void remove_oldest();
 
 		int m_size;
+		bool m_low_prio_io;
 
 		struct lru_file_entry
 		{

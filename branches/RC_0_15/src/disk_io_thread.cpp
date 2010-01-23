@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/file_pool.hpp"
 #include <boost/scoped_array.hpp>
 
 #ifdef TORRENT_DISK_STATS
@@ -280,6 +281,7 @@ namespace libtorrent
 
 	disk_io_thread::disk_io_thread(asio::io_service& ios
 		, boost::function<void()> const& queue_callback
+		, file_pool& fp
 		, int block_size)
 		: disk_buffer_pool(block_size)
 		, m_abort(false)
@@ -289,6 +291,7 @@ namespace libtorrent
 		, m_ios(ios)
 		, m_queue_callback(queue_callback)
 		, m_work(io_service::work(m_ios))
+		, m_file_pool(fp)
 		, m_disk_io_thread(boost::ref(*this))
 	{
 #ifdef TORRENT_DISK_STATS
@@ -1580,7 +1583,21 @@ namespace libtorrent
 					TORRENT_ASSERT(s.cache_size >= 0);
 					TORRENT_ASSERT(s.cache_expiry > 0);
 
+#if defined TORRENT_WINDOWS
+					if (m_settings.low_prio_disk != s.low_prio_disk)
+					{
+						m_file_pool.set_low_prio_io(s.low_prio_disk);
+						// we need to close all files, since the prio
+						// only takes affect when files are opened
+						m_file_pool.release(0);
+					}
+#endif
 					m_settings = s;
+					m_file_pool.resize(m_settings.file_pool_size);
+#if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
+					setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
+						, m_settings.low_prio_disk ? IOPOL_THROTTLE : IOPOL_DEFAULT);
+#endif
 					break;
 				}
 				case disk_io_job::abort_torrent:

@@ -253,6 +253,7 @@ namespace libtorrent
 	{
 		disk_io_thread(io_service& ios
 			, boost::function<void()> const& queue_callback
+			, file_pool& fp
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
@@ -398,6 +399,10 @@ namespace libtorrent
 		// it will try to free it, but the buffer pool won't
 		// exist anymore, and crash. This prevents that.
 		boost::optional<io_service::work> m_work;
+
+		// reference to the file_pool which is a member of
+		// the session_impl object
+		file_pool& m_file_pool;
 
 		// thread for performing blocking disk io operations
 		thread m_disk_io_thread;

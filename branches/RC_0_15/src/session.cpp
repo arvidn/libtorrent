@@ -198,6 +198,7 @@ namespace libtorrent
 		set.cache_buffer_chunk_size = 128;
 		set.read_cache_line_size = 512;
 		set.write_cache_line_size = 512;
+		set.low_prio_disk = false;
 		// one hour expiration
 		set.cache_expiry = 60 * 60;
 

@@ -99,6 +99,12 @@ void bind_session_settings()
         .def_readwrite("disk_cache_algorithm", &session_settings::disk_cache_algorithm)
         .def_readwrite("read_cache_line_size", &session_settings::read_cache_line_size)
         .def_readwrite("write_cache_line_size", &session_settings::write_cache_line_size)
+        .def_readwrite("optimistic_disk_retry", &session_settings::optimistic_disk_retry)
+        .def_readwrite("disable_hash_checks", &session_settings::disable_hash_checks)
+        .def_readwrite("allow_reordered_disk_operations", &session_settings::allow_reordered_disk_operations)
+        .def_readwrite("max_suggest_pieces", &session_settings::max_suggest_pieces)
+        .def_readwrite("drop_skipped_requests", &session_settings::drop_skipped_requests)
+        .def_readwrite("low_prio_disk", &session_settings::low_prio_disk)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")

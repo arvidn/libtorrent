@@ -390,7 +390,7 @@ namespace aux {
 		, m_files(40)
 		, m_io_service()
 		, m_alerts(m_io_service)
-		, m_disk_thread(m_io_service, boost::bind(&session_impl::on_disk_queue, this))
+		, m_disk_thread(m_io_service, boost::bind(&session_impl::on_disk_queue, this), m_files)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
@@ -995,7 +995,10 @@ namespace aux {
 #ifndef TORRENT_DISABLE_MLOCK
 			|| m_settings.lock_disk_cache != s.lock_disk_cache
 #endif
-			|| m_settings.use_read_cache != s.use_read_cache)
+			|| m_settings.use_read_cache != s.use_read_cache
+			|| m_settings.allow_reordered_disk_operations != s.allow_reordered_disk_operations
+			|| m_settings.file_pool_size != s.file_pool_size
+			|| m_settings.low_prio_disk != s.low_prio_disk)
 			update_disk_io_thread = true;
 
 		// if queuing settings were changed, recalculate
@@ -1016,7 +1019,6 @@ namespace aux {
 			m_disk_thread.add_job(j);
 		}
 
-		m_files.resize(m_settings.file_pool_size);
 		if (!s.auto_upload_slots) m_allowed_upload_slots = m_max_uploads;
 		// replace all occurances of '\n' with ' '.
 		std::string::iterator i = m_settings.user_agent.begin();
