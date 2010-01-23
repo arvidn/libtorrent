@@ -669,13 +669,15 @@ namespace libtorrent
 	{
 		torrent_deleted_alert(torrent_handle const& h)
 			: torrent_alert(h)
-		{}
+		{ info_hash = h.info_hash(); }
 	
 		TORRENT_DEFINE_ALERT(torrent_deleted_alert);
 
 		const static int static_category = alert::storage_notification;
 		virtual std::string message() const
 		{ return torrent_alert::message() + " deleted"; }
+
+		sha1_hash info_hash;
 	};
 
 	struct TORRENT_EXPORT torrent_delete_failed_alert: torrent_alert

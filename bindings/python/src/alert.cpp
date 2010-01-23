@@ -173,7 +173,9 @@ void bind_alert()
 
     class_<torrent_deleted_alert, bases<torrent_alert>, noncopyable>(
         "torrent_deleted_alert", no_init
-    );
+    )
+        .def_readonly("info_hash", &torrent_deleted_alert::info_hash)
+    ;
 
     class_<torrent_paused_alert, bases<torrent_alert>, noncopyable>(
         "torrent_paused_alert", no_init
