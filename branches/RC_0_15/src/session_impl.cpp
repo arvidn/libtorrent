@@ -271,6 +271,8 @@ namespace aux {
 		TORRENT_SETTING(boolean, disable_hash_checks)
 		TORRENT_SETTING(boolean, allow_reordered_disk_operations)
 		TORRENT_SETTING(integer, max_suggest_pieces)
+		TORRENT_SETTING(boolean, drop_skipped_requests)
+		TORRENT_SETTING(boolean, low_prio_disk)
 	};
 
 #undef TORRENT_SETTING
