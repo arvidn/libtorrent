@@ -196,43 +196,44 @@ storage_interface* create_test_storage(file_storage const& fs
 void nop() {}
 
 int job_counter = 0;
+// the number of elevator turns
+int turns = 0;
+int direction = 0;
+int last_job = 0;
 
-void callback_up(int ret, disk_io_job const& j)
+void callback(int ret, disk_io_job const& j)
 {
-	static int last_job = 0;
-	TEST_CHECK(last_job <= j.piece);
+	if (j.piece > last_job && direction <= 0)
+	{
+		if (direction == -1)
+		{
+			++turns;
+			std::cerr << " === ELEVATOR TURN dir: " << direction << std::endl;
+		}
+		direction = 1;
+	}
+	else if (j.piece < last_job && direction >= 0)
+	{
+		if (direction == 1)
+		{
+			++turns;
+			std::cerr << " === ELEVATOR TURN dir: " << direction << std::endl;
+		}
+		direction = -1;
+	}
 	last_job = j.piece;
 	std::cerr << "completed job #" << j.piece << std::endl;
 	--job_counter;
 }
 
-void callback_down(int ret, disk_io_job const& j)
-{
-	static int last_job = 6000;
-	TEST_CHECK(last_job >= j.piece);
-	last_job = j.piece;
-	std::cerr << "completed job #" << j.piece << std::endl;
-	--job_counter;
-}
-
-void add_job_up(disk_io_thread& dio, int piece, boost::intrusive_ptr<piece_manager>& pm)
+void add_job(disk_io_thread& dio, int piece, boost::intrusive_ptr<piece_manager>& pm)
 {
 	disk_io_job j;
 	j.action = disk_io_job::read;
 	j.storage = pm;
 	j.piece = piece;
 	++job_counter;
-	dio.add_job(j, boost::bind(&callback_up, _1, _2));
-}
-
-void add_job_down(disk_io_thread& dio, int piece, boost::intrusive_ptr<piece_manager>& pm)
-{
-	disk_io_job j;
-	j.action = disk_io_job::read;
-	j.storage = pm;
-	j.piece = piece;
-	++job_counter;
-	dio.add_job(j, boost::bind(&callback_down, _1, _2));
+	dio.add_job(j, boost::bind(&callback, _1, _2));
 }
 
 void run_elevator_test()
@@ -259,15 +260,19 @@ void run_elevator_test()
 		dio.add_job(j);
 
 		// test the elevator going up
-		add_job_up(dio, 0, pm);
+		direction = 1;
+		last_job = 0;
+		add_job(dio, 0, pm); // trigger delay in storage
+		// make sure the job is processed
+		sleep(200);
 
 		boost::uint32_t p = 1234513;
 		for (int i = 0; i < 100; ++i)
 		{
 			p *= 123;
-			int job = (p % 5999) + 1;
+			int job = (p % 5998) + 1;
 			std::cerr << "starting job #" << job << std::endl;
-			add_job_up(dio, job, pm);
+			add_job(dio, job, pm);
 		}
 
 		for (int i = 0; i < 101; ++i)
@@ -276,17 +281,53 @@ void run_elevator_test()
 			if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
 		}
 
+		TEST_CHECK(turns < 2);
 		TEST_EQUAL(job_counter, 0);
+		std::cerr << "number of elevator turns: " << turns << std::endl;
 
 		// test the elevator going down
-		add_job_down(dio, 5999, pm);
+		direction = -1;
+		last_job = 6000;
+		add_job(dio, 5999, pm); // trigger delay in storage
+		// make sure the job is processed
+		sleep(200);
 
 		for (int i = 0; i < 100; ++i)
 		{
 			p *= 123;
-			int job = (p % 5999) + 1;
+			int job = (p % 5998) + 1;
 			std::cerr << "starting job #" << job << std::endl;
-			add_job_down(dio, job, pm);
+			add_job(dio, job, pm);
+		}
+
+		for (int i = 0; i < 101; ++i)
+		{
+			ios.run_one(ec);
+			if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
+		}
+
+		TEST_CHECK(turns < 2);
+		TEST_EQUAL(job_counter, 0);
+		std::cerr << "number of elevator turns: " << turns << std::endl;
+
+		// test disabling disk-reordering
+		set.allow_reordered_disk_operations = false;
+		j.buffer = (char*)&set;
+		j.action = disk_io_job::update_settings;
+		dio.add_job(j);
+
+		turns = 0;
+		direction = 0;
+		add_job(dio, 0, pm); // trigger delay in storage
+		// make sure the job is processed
+		sleep(200);
+
+		for (int i = 0; i < 100; ++i)
+		{
+			p *= 123;
+			int job = (p % 5998) + 1;
+			std::cerr << "starting job #" << job << std::endl;
+			add_job(dio, job, pm);
 		}
 
 		for (int i = 0; i < 101; ++i)
@@ -296,6 +337,10 @@ void run_elevator_test()
 		}
 
 		TEST_EQUAL(job_counter, 0);
+		std::cerr << "number of elevator turns: " << turns << std::endl;
+
+		// this is not guaranteed, but very very likely
+		TEST_CHECK(turns > 20);
 
 		dio.join();
 	}
