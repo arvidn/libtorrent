@@ -80,6 +80,8 @@ namespace libtorrent
 					return boost::shared_ptr<file>();
 				}
 #ifdef TORRENT_WINDOWS
+// file prio is supported on vista and up
+#if _WIN32_WINNT >= 0x0600
 				if (m_low_prio_io)
 				{
 					FILE_IO_PRIORITY_HINT_INFO priorityHint;
@@ -87,6 +89,7 @@ namespace libtorrent
 					result = SetFileInformationByHandle(e.file_ptr->native_handle(),
 						FileIoPriorityHintInfo, &priorityHint, sizeof(PriorityHint));
 				}
+#endif
 #endif
 				TORRENT_ASSERT(e.file_ptr->is_open());
 				e.mode = m;
