@@ -99,7 +99,8 @@ namespace libtorrent
 
 	bool is_space(char c)
 	{
-		return c == ' ' || c == '\t';
+		const static char* ws = " \t\n\r\f\v";
+		return bool(std::strchr(ws, c));
 	}
 
 	char to_lower(char c)

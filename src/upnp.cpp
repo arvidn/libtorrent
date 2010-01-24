@@ -68,7 +68,7 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_retry_count(0)
 	, m_io_service(ios)
 	, m_socket(ios, udp::endpoint(address_v4::from_string("239.255.255.250", ec), 1900)
-		, bind(&upnp::on_reply, self(), _1, _2, _3), false)
+		, bind(&upnp::on_reply, self(), _1, _2, _3))
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
 	, m_disabled(false)
