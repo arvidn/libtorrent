@@ -1275,51 +1275,8 @@ namespace libtorrent
 		TORRENT_ASSERT(j.buffer_size <= m_block_size);
 		mutex_t::scoped_lock l(m_queue_mutex);
 
-		std::list<disk_io_job>::reverse_iterator i = m_jobs.rbegin();
-		if (j.action == disk_io_job::read)
-		{
-			// when we're reading, we may not skip
-			// ahead of any write operation that overlaps
-			// the region we're reading
-			for (; i != m_jobs.rend(); i++)
-			{
-				// if *i should come before j, stop
-				// and insert j before i
-				if (*i < j) break;
-				// if we come across a write operation that
-				// overlaps the region we're reading, we need
-				// to stop
-				if (i->action == disk_io_job::write
-					&& i->storage == j.storage
-					&& i->piece == j.piece
-					&& range_overlap(i->offset, i->buffer_size
-						, j.offset, j.buffer_size))
-					break;
-			}
-		}
-		else if (j.action == disk_io_job::write)
-		{
-			for (; i != m_jobs.rend(); ++i)
-			{
-				if (*i < j)
-				{
-					if (i != m_jobs.rbegin()
-						&& i.base()->storage.get() != j.storage.get())
-						i = m_jobs.rbegin();
-					break;
-				}
-			}
-		}
-		
-		// if we are placed in front of all other jobs, put it on the back of
-		// the queue, to sweep the disk in the same direction, and to avoid
-		// starvation. The exception is if the priority is higher than the
-		// job at the front of the queue
-		if (i == m_jobs.rend() && (m_jobs.empty() || j.priority <= m_jobs.back().priority))
-			i = m_jobs.rbegin();
-
-		std::list<disk_io_job>::iterator k = m_jobs.insert(i.base(), j);
-		k->callback.swap(const_cast<boost::function<void(int, disk_io_job const&)>&>(f));
+		m_jobs.push_back(j);
+		m_jobs.back().callback = f;
 		if (j.action == disk_io_job::write)
 			m_queue_buffer_size += j.buffer_size;
 		m_signal.notify_all();
