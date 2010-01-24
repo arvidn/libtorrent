@@ -638,6 +638,17 @@ int test_main()
 	to_hex(bin, 20, hex);
 	TEST_CHECK(strcmp(hex, str) == 0);
 
+	// test is_space
+
+	TEST_CHECK(!is_space('C'));
+	TEST_CHECK(!is_space('\b'));
+	TEST_CHECK(!is_space('8'));
+	TEST_CHECK(!is_space('='));
+	TEST_CHECK(is_space(' '));
+	TEST_CHECK(is_space('\t'));
+	TEST_CHECK(is_space('\n'));
+	TEST_CHECK(is_space('\r'));
+
 	// test to_lower
 
 	TEST_CHECK(to_lower('C') == 'c');

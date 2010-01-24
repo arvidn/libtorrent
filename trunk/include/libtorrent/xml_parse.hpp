@@ -50,12 +50,6 @@ namespace libtorrent
 		xml_parse_error
 	};
 
-	inline bool isspace(char c)
-	{
-		const static char* ws = " \t\n\r\f\v";
-		return std::strchr(ws, c);
-	}
-
 	// callback(int type, char const* name, char const* val)
 	// str2 is only used for attributes. name is element or attribute
 	// name and val is attribute value
