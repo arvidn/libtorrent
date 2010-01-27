@@ -53,8 +53,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/thread.hpp"
 
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/mem_fun.hpp>
+
 namespace libtorrent
 {
+	using boost::multi_index::multi_index_container;
+	using boost::multi_index::ordered_non_unique;
+	using boost::multi_index::ordered_unique;
+	using boost::multi_index::indexed_by;
+	using boost::multi_index::member;
+	using boost::multi_index::const_mem_fun;
+
 	struct cached_piece_info
 	{
 		int piece;
@@ -304,11 +316,22 @@ namespace libtorrent
 			int num_blocks;
 			// the pointers to the block data
 			boost::shared_array<cached_block_entry> blocks;
+			
+			std::pair<void*, int> storage_piece_pair() const
+			{ return std::pair<void*, int>(storage.get(), piece); }
 		};
 
-		// TODO: turn this into a multi-index list
-		// sorted by piece and last use time
-		typedef std::list<cached_piece_entry> cache_t;
+		typedef multi_index_container<
+			cached_piece_entry, indexed_by<
+				ordered_unique<const_mem_fun<cached_piece_entry, std::pair<void*, int>
+				, &cached_piece_entry::storage_piece_pair> >
+				, ordered_non_unique<member<cached_piece_entry, ptime
+					, &cached_piece_entry::last_use>, std::greater<ptime> >
+				> 
+			> cache_t;
+
+		typedef cache_t::nth_index<0>::type cache_piece_index_t;
+		typedef cache_t::nth_index<1>::type cache_lru_index_t;
 
 	private:
 
@@ -322,30 +345,28 @@ namespace libtorrent
 			, disk_io_job const& j, int ret);
 
 		// cache operations
-		cache_t::iterator find_cached_piece(
+		cache_piece_index_t::iterator find_cached_piece(
 			cache_t& cache, disk_io_job const& j
 			, mutex::scoped_lock& l);
-		bool is_cache_hit(cache_t::iterator p
+		bool is_cache_hit(cached_piece_entry& p
 			, disk_io_job const& j, mutex::scoped_lock& l);
-		int copy_from_piece(cache_t::iterator p, bool& hit
+		int copy_from_piece(cached_piece_entry& p, bool& hit
 			, disk_io_job const& j, mutex::scoped_lock& l);
 
 		// write cache operations
 		enum options_t { dont_flush_write_blocks = 1, ignore_cache_size = 2 };
 		int flush_cache_blocks(mutex::scoped_lock& l
-			, int blocks, cache_t::iterator ignore
-			, int options = 0);
+			, int blocks, int ignore = -1, int options = 0);
 		void flush_expired_pieces();
-		int flush_and_remove(cache_t::iterator i, mutex::scoped_lock& l);
-		int flush_contiguous_blocks(disk_io_thread::cache_t::iterator e
+		int flush_contiguous_blocks(cached_piece_entry& p
 			, mutex::scoped_lock& l, int lower_limit = 0);
-		int flush_range(cache_t::iterator i, int start, int end, mutex::scoped_lock& l);
+		int flush_range(cached_piece_entry& p, int start, int end, mutex::scoped_lock& l);
 		int cache_block(disk_io_job& j
 			, boost::function<void(int,disk_io_job const&)>& handler
 			, mutex::scoped_lock& l);
 
 		// read cache operations
-		int clear_oldest_read_piece(int num_blocks, cache_t::iterator ignore
+		int clear_oldest_read_piece(int num_blocks, int ignore
 			, mutex::scoped_lock& l);
 		int read_into_piece(cached_piece_entry& p, int start_block
 			, int options, int num_blocks, mutex::scoped_lock& l);
@@ -353,7 +374,7 @@ namespace libtorrent
 		int free_piece(cached_piece_entry& p, mutex::scoped_lock& l);
 		int try_read_from_cache(disk_io_job const& j);
 		int read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h);
-		int cache_piece(disk_io_job const& j, cache_t::iterator& p
+		int cache_piece(disk_io_job const& j, cache_piece_index_t::iterator& p
 			, bool& hit, int options, mutex::scoped_lock& l);
 
 		// this mutex only protects m_jobs, m_queue_buffer_size
