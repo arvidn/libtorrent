@@ -581,7 +581,7 @@ namespace aux {
 		save_struct(e["settings"], &m_settings, session_settings_map
 			, sizeof(session_settings_map)/sizeof(session_settings_map[0]));
 #ifndef TORRENT_DISABLE_DHT
-		save_struct(e["dht"], &dht_settings(), dht_settings_map
+		save_struct(e["dht"], &get_dht_settings(), dht_settings_map
 			, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
 		save_struct(e["dht proxy"], &dht_proxy(), proxy_settings_map
 			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
