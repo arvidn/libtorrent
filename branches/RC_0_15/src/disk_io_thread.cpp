@@ -1166,6 +1166,11 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(j.buffer);
 
+		// update timestamp early so that we
+		// don't run the risk of evicting our own piece
+		// when making more room in the cache
+		p->last_use = time_now();
+
 		// copy from the cache and update the last use timestamp
 		int block = j.offset / m_block_size;
 		int block_offset = j.offset & (m_block_size-1);
@@ -1203,7 +1208,6 @@ namespace libtorrent
 			TORRENT_ASSERT(p->blocks[block].buf);
 		}
 
-		p->last_use = time_now();
 		while (size > 0)
 		{
 			TORRENT_ASSERT(p->blocks[block].buf);
