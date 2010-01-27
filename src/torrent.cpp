@@ -571,6 +571,9 @@ namespace libtorrent
 		int piece_size = m_torrent_file->piece_size(piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
+		// avoid crash trying to access the picker when there is nont
+		if (is_seed()) return;
+
 		peer_request p;
 		p.piece = piece;
 		p.start = 0;
@@ -607,6 +610,8 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 	
+		if (is_seed()) return;
+
 		if (m_abort)
 		{
 			piece_block block_finished(p.piece, p.start / m_block_size);
@@ -620,6 +625,12 @@ namespace libtorrent
 			handle_disk_error(j);
 			return;
 		}
+
+		// if we already have this block, just ignore it.
+		// this can happen if the same block is passed in through
+		// add_piece() multiple times
+		if (picker().is_finished(block_finished)) return;
+
 		picker().mark_as_finished(block_finished, 0);
 
 		// did we just finish the piece?
