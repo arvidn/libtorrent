@@ -186,6 +186,7 @@ namespace libtorrent
 			, max_suggest_pieces(10)
 			, drop_skipped_requests(false)
 			, low_prio_disk(true)
+			, volatile_read_cache(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -683,6 +684,12 @@ namespace libtorrent
 		// to foreground tasks, while bittorrent runs
 		// in the background
 		bool low_prio_disk;
+
+		// if this is set to true, any block read from the
+		// disk cache will be dropped from the cache immediately
+		// following. This may be useful if the block is not
+		// expected to be hit again. It would save some memory
+		bool volatile_read_cache;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

@@ -106,6 +106,7 @@ void bind_session_settings()
         .def_readwrite("max_suggest_pieces", &session_settings::max_suggest_pieces)
         .def_readwrite("drop_skipped_requests", &session_settings::drop_skipped_requests)
         .def_readwrite("low_prio_disk", &session_settings::low_prio_disk)
+        .def_readwrite("volatile_read_cache", &session_settings::volatile_read_cache)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")
