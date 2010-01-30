@@ -711,6 +711,12 @@ namespace libtorrent
 			{
 				std::memcpy(buf.get() + offset, p.blocks[i].buf, block_size);
 				offset += m_block_size;
+				if (m_settings.volatile_read_cache)
+				{
+					free_buffer(p.blocks[i].buf);
+					p.blocks[i].buf = 0;
+					--p.num_blocks;
+				}
 			}
 			buffer_size += block_size;
 			TORRENT_ASSERT(p.num_blocks > 0);
@@ -1227,11 +1233,17 @@ namespace libtorrent
 			int to_copy = (std::min)(m_block_size
 					- block_offset, size);
 			std::memcpy(j.buffer + buffer_offset
-					, p.blocks[block].buf + block_offset
-					, to_copy);
+				, p.blocks[block].buf + block_offset
+				, to_copy);
 			size -= to_copy;
 			block_offset = 0;
 			buffer_offset += to_copy;
+			if (m_settings.volatile_read_cache)
+			{
+				free_buffer(p.blocks[block].buf);
+				p.blocks[block].buf = 0;
+				--p.num_blocks;
+			}
 			++block;
 		}
 		return j.buffer_size;

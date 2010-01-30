@@ -3721,6 +3721,7 @@ session_settings
 		bool drop_skipped_requests;
 
 		bool low_prio_disk;
+		bool volatile_read_cache;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4190,6 +4191,12 @@ normally take priority in this mode. This is meant to improve the
 overall responsiveness of the system while downloading in the
 background. For high-performance server setups, this might not
 be desirable.
+
+``volatile_read_cache``, if this is set to true, read cache blocks
+that are hit by peer read requests are removed from the disk cache
+to free up more space. This is useful if you don't expect the disk
+cache to create any cache hits from other peers than the one who
+triggered the cache line to be read into the cache in the first place.
 
 pe_settings
 ===========
