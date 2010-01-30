@@ -326,7 +326,7 @@ namespace libtorrent
 				ordered_unique<const_mem_fun<cached_piece_entry, std::pair<void*, int>
 				, &cached_piece_entry::storage_piece_pair> >
 				, ordered_non_unique<member<cached_piece_entry, ptime
-					, &cached_piece_entry::last_use>, std::greater<ptime> >
+					, &cached_piece_entry::last_use> >
 				> 
 			> cache_t;
 
