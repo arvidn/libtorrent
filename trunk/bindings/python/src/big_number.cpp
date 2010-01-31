@@ -15,6 +15,7 @@ void bind_big_number()
         .def(self != self)
         .def(self < self)
         .def(self_ns::str(self))
+        .def(init<char const*>())
         ;
 }
 
