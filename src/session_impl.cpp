@@ -1024,13 +1024,14 @@ namespace aux {
 			|| m_settings.low_prio_disk != s.low_prio_disk)
 			update_disk_io_thread = true;
 
-		// 
+		// safety check
 		if (m_settings.volatile_read_cache
-			&& m_settings.suggest_mode == session_settings::suggest_read_cache)
+			&& (m_settings.suggest_mode == session_settings::suggest_read_cache
+				|| m_settings.explicit_read_cache))
 		{
 			// If you hit this assert, you're trying to set your cache to be
-			// volatile and to suggest pieces out of it at the same time
-			// this is a bad configuration, don't do it
+			// volatile and to suggest pieces out of it (or to make the cache
+			// explicit) at the same time this is a bad configuration, don't do it
 			TORRENT_ASSERT(false);
 			m_settings.volatile_read_cache = false;
 		}
