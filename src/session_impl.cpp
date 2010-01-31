@@ -999,7 +999,6 @@ namespace aux {
 		// less than 5 seconds unchoke interval is insane
 		TORRENT_ASSERT(s.unchoke_interval >= 5);
 
-
 		// if disk io thread settings were changed
 		// post a notification to that thread
 		bool update_disk_io_thread = false;
@@ -1024,6 +1023,17 @@ namespace aux {
 			|| m_settings.volatile_read_cache != s.volatile_read_cache
 			|| m_settings.low_prio_disk != s.low_prio_disk)
 			update_disk_io_thread = true;
+
+		// 
+		if (m_settings.volatile_read_cache
+			&& m_settings.suggest_mode == session_settings::suggest_read_cache)
+		{
+			// If you hit this assert, you're trying to set your cache to be
+			// volatile and to suggest pieces out of it at the same time
+			// this is a bad configuration, don't do it
+			TORRENT_ASSERT(false);
+			m_settings.volatile_read_cache = false;
+		}
 
 		// if queuing settings were changed, recalculate
 		// queued torrents sooner
