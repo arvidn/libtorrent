@@ -329,7 +329,7 @@ namespace libtorrent
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 	}
 
-#ifdef TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 	void peer_connection::log_buffer_usage(char* buffer, int size, char const* label)
 	{
 		if (m_ses.m_disk_thread.is_disk_buffer(buffer))
@@ -4321,7 +4321,7 @@ namespace libtorrent
 			m_send_buffer.append(buf, free_space);
 			size -= free_space;
 			buf += free_space;
-#ifdef TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 			m_ses.m_buffer_usage_logger << log_time() << " send_buffer: "
 				<< free_space << std::endl;
 			m_ses.log_buffer_usage();
@@ -4339,7 +4339,7 @@ namespace libtorrent
 		std::memcpy(buffer.first, buf, size);
 		m_send_buffer.append_buffer(buffer.first, buffer.second, size
 			, bind(&session_impl::free_buffer, boost::ref(m_ses), _1, buffer.second));
-#ifdef TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 		m_ses.m_buffer_usage_logger << log_time() << " send_buffer_alloc: " << size << std::endl;
 		m_ses.log_buffer_usage();
 #endif
@@ -4364,7 +4364,7 @@ namespace libtorrent
 			m_send_buffer.append_buffer(buffer.first, buffer.second, size
 				, bind(&session_impl::free_buffer, boost::ref(m_ses), _1, buffer.second));
 			buffer::interval ret(buffer.first, buffer.first + size);
-#ifdef TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 			m_ses.m_buffer_usage_logger << log_time() << " allocate_buffer_alloc: " << size << std::endl;
 			m_ses.log_buffer_usage();
 #endif
@@ -4372,7 +4372,7 @@ namespace libtorrent
 		}
 		else
 		{
-#ifdef TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 			m_ses.m_buffer_usage_logger << log_time() << " allocate_buffer: " << size << std::endl;
 			m_ses.log_buffer_usage();
 #endif
