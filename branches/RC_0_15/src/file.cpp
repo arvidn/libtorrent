@@ -65,12 +65,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <linux/fiemap.h>
 #endif
 
-#include <asm/unistd_64.h> // For __NR_fallocate
+#include <asm/unistd.h> // For __NR_fallocate
 
 // circumvent the lack of support in glibc
 static int my_fallocate(int fd, int mode, loff_t offset, loff_t len)
 {
+#ifdef __NR_fallocate
 	return syscall(__NR_fallocate, fd, mode, offset, len);
+#else
+	return EOPNOTSUPP;
+#endif
 }
 
 #endif // TORRENT_LINUX
