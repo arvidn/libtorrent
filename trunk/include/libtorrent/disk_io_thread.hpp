@@ -379,7 +379,7 @@ namespace libtorrent
 			, int options, int num_blocks, mutex::scoped_lock& l);
 		int cache_read_block(disk_io_job const& j, mutex::scoped_lock& l);
 		int free_piece(cached_piece_entry& p, mutex::scoped_lock& l);
-		int try_read_from_cache(disk_io_job const& j);
+		int try_read_from_cache(disk_io_job const& j, bool& hit);
 		int read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h);
 		int cache_piece(disk_io_job const& j, cache_piece_index_t::iterator& p
 			, bool& hit, int options, mutex::scoped_lock& l);

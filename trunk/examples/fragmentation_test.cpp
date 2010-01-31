@@ -112,7 +112,7 @@ int main(int argc, char const* argv[])
 		"set output \"fragmentation.png\"\n"
 		"set xrange [*:*]\n"
 		"set xlabel \"piece\"\n"
-		"set ylabel \"file position\"\n"
+		"set ylabel \"drive offset\"\n"
 		"set key box\n"
 		"set title \"fragmentation for '%s'\"\n"
 		"set tics nomirror\n"

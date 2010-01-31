@@ -1234,7 +1234,7 @@ namespace libtorrent
 		return j.buffer_size;
 	}
 
-	int disk_io_thread::try_read_from_cache(disk_io_job const& j)
+	int disk_io_thread::try_read_from_cache(disk_io_job const& j, bool& hit)
 	{
 		TORRENT_ASSERT(j.buffer);
 		TORRENT_ASSERT(j.cache_min_time >= 0);
@@ -1246,7 +1246,7 @@ namespace libtorrent
 		cache_piece_index_t::iterator p
 			= find_cached_piece(m_read_pieces, j, l);
 
-		bool hit = true;
+		hit = true;
 		int ret = 0;
 
 		// if the piece cannot be found in the cache,
@@ -1749,7 +1749,7 @@ namespace libtorrent
 						break;
 					}
 #ifdef TORRENT_DISK_STATS
-					m_log << log_time() << " read " << j.buffer_size << std::endl;
+					m_log << log_time();
 #endif
 					INVARIANT_CHECK;
 					TORRENT_ASSERT(j.buffer == 0);
@@ -1757,6 +1757,9 @@ namespace libtorrent
 					TORRENT_ASSERT(j.buffer_size <= m_block_size);
 					if (j.buffer == 0)
 					{
+#ifdef TORRENT_DISK_STATS
+						m_log << " read 0" << std::endl;
+#endif
 						ret = -1;
 #if BOOST_VERSION == 103500
 						j.error = error_code(boost::system::posix_error::not_enough_memory
@@ -1773,8 +1776,12 @@ namespace libtorrent
 
 					disk_buffer_holder read_holder(*this, j.buffer);
 
-					ret = try_read_from_cache(j);
+					bool hit;
+					ret = try_read_from_cache(j, hit);
 
+#ifdef TORRENT_DISK_STATS
+					m_log << (hit?" read-cache-hit ":" read ") << j.buffer_size << std::endl;
+#endif
 					// -2 means there's no space in the read cache
 					// or that the read cache is disabled
 					if (ret == -1)
