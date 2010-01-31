@@ -494,7 +494,7 @@ namespace libtorrent
 				m_ses.m_disk_thread.rename_buffer(buffer, "queued send buffer");
 #endif
 			m_send_buffer.append_buffer(buffer, size, size, destructor);
-#ifdef TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 			m_ses.m_buffer_usage_logger << log_time() << " append_send_buffer: " << size << std::endl;
 			m_ses.log_buffer_usage();
 #endif
