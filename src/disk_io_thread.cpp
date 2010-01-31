@@ -392,33 +392,6 @@ namespace libtorrent
 		add_job(j, l);
 	}
 
-	bool range_overlap(int start1, int length1, int start2, int length2)
-	{
-		return (start1 <= start2 && start1 + length1 > start2)
-			|| (start2 <= start1 && start2 + length2 > start1);
-	}
-	
-	namespace
-	{
-		// The semantic of this operator is:
-		// should lhs come before rhs in the job queue
-		bool operator<(disk_io_job const& lhs, disk_io_job const& rhs)
-		{
-			// NOTE: comparison inverted to make higher priority
-			// skip _in_front_of_ lower priority
-			if (lhs.priority > rhs.priority) return true;
-			if (lhs.priority < rhs.priority) return false;
-
-			if (lhs.storage.get() < rhs.storage.get()) return true;
-			if (lhs.storage.get() > rhs.storage.get()) return false;
-			if (lhs.piece < rhs.piece) return true;
-			if (lhs.piece > rhs.piece) return false;
-			if (lhs.offset < rhs.offset) return true;
-//			if (lhs.offset > rhs.offset) return false;
-			return false;
-		}
-	}
-
 	struct update_last_use
 	{
 		void operator()(disk_io_thread::cached_piece_entry& p)
@@ -463,7 +436,10 @@ namespace libtorrent
 		cache_lru_index_t& ridx = m_read_pieces.get<1>();
 		i = ridx.begin();
 		while (i != ridx.end() && now - i->last_use > cut_off)
+		{
+			free_piece(const_cast<cached_piece_entry&>(*i), l);
 			ridx.erase(i++);
+		}
 	}
 
 	// returns the number of blocks that were freed
@@ -711,12 +687,6 @@ namespace libtorrent
 			{
 				std::memcpy(buf.get() + offset, p.blocks[i].buf, block_size);
 				offset += m_block_size;
-				if (m_settings.volatile_read_cache)
-				{
-					free_buffer(p.blocks[i].buf);
-					p.blocks[i].buf = 0;
-					--p.num_blocks;
-				}
 			}
 			buffer_size += block_size;
 			TORRENT_ASSERT(p.num_blocks > 0);
@@ -1126,7 +1096,8 @@ namespace libtorrent
 		TORRENT_ASSERT(ret > 0);
 		if (ret < 0) return ret;
 		cache_piece_index_t& idx = m_read_pieces.get<0>();
-		idx.modify(p, update_last_use());
+		if (p->num_blocks == 0) idx.erase(p);
+		else idx.modify(p, update_last_use());
 
 		// if read cache is disabled or we exceeded the
 		// limit, remove this piece from the cache
@@ -1243,6 +1214,8 @@ namespace libtorrent
 				free_buffer(p.blocks[block].buf);
 				p.blocks[block].buf = 0;
 				--p.num_blocks;
+				--m_cache_stats.cache_size;
+				--m_cache_stats.read_cache_size;
 			}
 			++block;
 		}
@@ -1289,7 +1262,8 @@ namespace libtorrent
 
 		ret = copy_from_piece(const_cast<cached_piece_entry&>(*p), hit, j, l);
 		if (ret < 0) return ret;
-		idx.modify(p, update_last_use());
+		if (p->num_blocks == 0) idx.erase(p);
+		else idx.modify(p, update_last_use());
 
 		ret = j.buffer_size;
 		++m_cache_stats.blocks_read;
