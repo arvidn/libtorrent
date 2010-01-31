@@ -84,7 +84,8 @@ namespace libtorrent
 			, buffer_size(0)
 			, piece(0)
 			, offset(0)
-			, priority(0)
+			, max_cache_line(0)
+			, cache_min_time(0)
 		{}
 
 		enum action_t
@@ -123,11 +124,14 @@ namespace libtorrent
 		// file the disk operation failed on
 		std::string error_file;
 
-		// priority decides whether or not this
-		// job will skip entries in the queue or
-		// not. It always skips in front of entries
-		// with lower priority
-		int priority;
+		// if this is > 0, it specifies the max number of blocks to read
+		// ahead in the read cache for this access. This is only valid
+		// for 'read' actions
+		int max_cache_line;
+
+		// if this is > 0, it may increase the minimum time the cache
+		// line caused by this operation stays in the cache
+		int cache_min_time;
 
 		boost::shared_ptr<entry> resume_data;
 
@@ -311,7 +315,9 @@ namespace libtorrent
 			// storage this piece belongs to
 			boost::intrusive_ptr<piece_manager> storage;
 			// the last time a block was writting to this piece
-			ptime last_use;
+			// plus the minimum amount of time the block is guaranteed
+			// to stay in the cache
+			ptime expire;
 			// the number of blocks in the cache for this piece
 			int num_blocks;
 			// the pointers to the block data
@@ -326,7 +332,7 @@ namespace libtorrent
 				ordered_unique<const_mem_fun<cached_piece_entry, std::pair<void*, int>
 				, &cached_piece_entry::storage_piece_pair> >
 				, ordered_non_unique<member<cached_piece_entry, ptime
-					, &cached_piece_entry::last_use> >
+					, &cached_piece_entry::expire> >
 				> 
 			> cache_t;
 
@@ -363,6 +369,7 @@ namespace libtorrent
 		int flush_range(cached_piece_entry& p, int start, int end, mutex::scoped_lock& l);
 		int cache_block(disk_io_job& j
 			, boost::function<void(int,disk_io_job const&)>& handler
+			, int cache_expire
 			, mutex::scoped_lock& l);
 
 		// read cache operations

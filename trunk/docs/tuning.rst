@@ -242,6 +242,23 @@ should be disabled, to not systematically trigger requests for pieces that are n
 for all peers. You can turn off allow-fast by settings ``session_settings::allowed_fast_set_size``
 to 0.
 
+As an alternative to the explicit cache and suggest messages, there's a *guided cache*
+mode. This means the size of the read cache line that's stored in the cache is determined
+based on the upload rate to the peer that triggered the read operation. The idea being
+that slow peers don't use up a disproportional amount of space in the cache. This
+is enabled through ``session_settings::guided_read_cache``.
+
+In cases where the assumption is that the cache is only used as a read-ahead, and that no
+other peer will ever request the same block while it's still in the cache, the read
+cache can be set to be *volatile*. This means that every block that is requested out of
+the read cache is removed immediately. This saves a significant amount of cache space
+which can be used as read-ahead for other peers. This mode should **never** be combined
+with either ``explicit_read_cache`` or ``suggest_read_cache``, since those uses opposite
+strategies for the read cache. You don't want to on one hand attract peers to request
+the same pieces, and on the other hand assume that they won't request the same pieces
+and drop them when the first peer requests it. To enable volatile read cache, set
+``session_settings::volatile_read_cache`` to true.
+
 send buffer low watermark
 -------------------------
 
