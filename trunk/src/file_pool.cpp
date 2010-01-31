@@ -68,8 +68,9 @@ namespace libtorrent
 			// if we asked for a file in write mode,
 			// and the cached file is is not opened in
 			// write mode, re-open it
-			if (((e.mode & file::rw_mask) != file::read_write)
+			if ((((e.mode & file::rw_mask) != file::read_write)
 				&& ((m & file::rw_mask) == file::read_write))
+				|| (e.mode & file::no_buffer) != (m & file::no_buffer))
 			{
 				// close the file before we open it with
 				// the new read/write privilages
