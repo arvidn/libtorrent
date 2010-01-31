@@ -1428,8 +1428,16 @@ namespace aux {
 		}
 
 		// don't allow more connections than the max setting
-		if (num_connections() >= max_connections())
+		bool reject = false;
+		if (m_settings.ignore_limits_on_local_network && is_local(endp.address()))
+			reject = max_connections() < INT_MAX / 12
+				&& num_connections() >= max_connections() * 12 / 10;
+		else
+			reject = num_connections() >= max_connections();
+
+		if (reject)
 		{
+			// TODO: post alert
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "number of connections limit exceeded (conns: "
 				<< num_connections() << ", limit: " << max_connections()
