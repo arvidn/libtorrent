@@ -3395,7 +3395,7 @@ namespace aux {
 #endif
 	}
 
-#ifdef TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 	void session_impl::log_buffer_usage()
 	{
 		int send_buffer_capacity = 0;

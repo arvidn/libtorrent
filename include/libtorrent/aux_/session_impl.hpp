@@ -717,9 +717,11 @@ namespace libtorrent
 			void check_invariant() const;
 #endif
 
-#ifdef TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 			void log_buffer_usage();
+#endif
 
+#if defined TORRENT_STATS
 			// logger used to write bandwidth usage statistics
 			std::ofstream m_stats_logger;
 			int m_second_counter;

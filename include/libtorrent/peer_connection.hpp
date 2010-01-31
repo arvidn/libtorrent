@@ -499,14 +499,14 @@ namespace libtorrent
 		virtual buffer::interval allocate_send_buffer(int size);
 		virtual void setup_send();
 
-#if TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 		void log_buffer_usage(char* buffer, int size, char const* label);
 #endif
 
 		template <class Destructor>
 		void append_send_buffer(char* buffer, int size, Destructor const& destructor)
 		{
-#if TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 			log_buffer_usage(buffer, size, "queued send buffer");
 #endif
 			m_send_buffer.append_buffer(buffer, size, size, destructor);
