@@ -756,6 +756,10 @@ int main(int argc, char* argv[])
 			"                        seconds between screen refreshes.\n"
 			"  -n                    announce to trackers in all tiers\n"
 			"  -h                    allow multiple connections from the same IP\n"
+			"  -A <num pieces>       allowed pieces set size\n"
+			"  -R <num blocks>       number of blocks per read cache line\n"
+			"  -O                    Disallow disk job reordering\n"
+			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
 			"MAGNETURL is a magnet: url\n")
@@ -973,7 +977,14 @@ int main(int argc, char* argv[])
 					break;
 				}
 #endif // TORRENT_USE_I2P
-			case 'C': settings.cache_size = atoi(arg); break;
+			case 'C':
+				settings.cache_size = atoi(arg);
+				settings.use_read_cache = settings.cache_size > 0;
+				settings.cache_buffer_chunk_size = settings.cache_size / 100;
+				break;
+			case 'A': settings.allowed_fast_set_size = atoi(arg); break;
+			case 'R': settings.read_cache_line_size = atoi(arg); break;
+			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
 		}
 		++i; // skip the argument
 	}
@@ -1051,62 +1062,7 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			if (c == 'q')
-			{
-				// keep track of the number of resume data
-				// alerts to wait for
-				int num_resume_data = 0;
-				ses.pause();
-				for (handles_t::iterator i = handles.begin();
-					i != handles.end(); ++i)
-				{
-					torrent_handle& h = i->second;
-					if (!h.is_valid()) continue;
-					if (h.is_paused()) continue;
-					if (!h.has_metadata()) continue;
-
-					printf("saving resume data for %s\n", h.name().c_str());
-					// save_resume_data will generate an alert when it's done
-					h.save_resume_data();
-					++num_resume_data;
-				}
-				printf("waiting for resume data\n");
-
-				while (num_resume_data > 0)
-				{
-					alert const* a = ses.wait_for_alert(seconds(30));
-					if (a == 0)
-					{
-						printf(" aborting with %d outstanding "
-							"torrents to save resume data for", num_resume_data);
-						break;
-					}
-
-					std::auto_ptr<alert> holder = ses.pop_alert();
-
-					std::string log;
-					::print_alert(holder.get(), log);
-					printf("%s\n", log.c_str());
-
-					if (alert_cast<save_resume_data_failed_alert>(a))
-					{
-						--num_resume_data;
-						continue;
-					}
-
-					save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
-					if (!rd) continue;
-					--num_resume_data;
-
-					if (!rd->resume_data) continue;
-
-					torrent_handle h = rd->handle;
-					std::vector<char> out;
-					bencode(std::back_inserter(out), *rd->resume_data);
-					save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
-				}
-				break;
-			}
+			if (c == 'q') break;
 
 			if (c == 'j')
 			{
@@ -1332,18 +1288,18 @@ int main(int argc, char* argv[])
 					progress_bar_color = "32"; // green
 				}
 
-				snprintf(str, sizeof(str), "     %-10s: %s%-10"PRId64"%s Bytes %6.2f%% %s\n"
+				snprintf(str, sizeof(str), "     %-10s: %s%-11"PRId64"%s Bytes %6.2f%% %s\n"
 					, sequential_download?"sequential":"progress"
 					, esc("32"), s.total_done, esc("0")
 					, s.progress_ppm / 10000.f
-					, progress_bar(s.progress_ppm / 1000, terminal_width - 42, progress_bar_color).c_str());
+					, progress_bar(s.progress_ppm / 1000, terminal_width - 43, progress_bar_color).c_str());
 				out += str;
 			}
 			else
 			{
 				snprintf(str, sizeof(str), "%-13s %s\n"
 					, state_str[s.state]
-					, progress_bar(s.progress_ppm / 1000, terminal_width - 42 - 20, "35").c_str());
+					, progress_bar(s.progress_ppm / 1000, terminal_width - 43 - 20, "35").c_str());
 				out += str;
 			}
 
@@ -1489,7 +1445,7 @@ int main(int argc, char* argv[])
 					out += str;
 					for (int j = 0; j < i->blocks_in_piece; ++j)
 					{
-						int index = peer_index(i->blocks[j].peer(), peers);
+						int index = peer_index(i->blocks[j].peer(), peers) % 36;
 						char chr = '+';
 						if (index >= 0)
 							chr = (index < 10)?'0' + index:'A' + index - 10;
@@ -1619,6 +1575,58 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	// keep track of the number of resume data
+	// alerts to wait for
+	int num_resume_data = 0;
+	ses.pause();
+	for (handles_t::iterator i = handles.begin();
+		i != handles.end(); ++i)
+	{
+		torrent_handle& h = i->second;
+		if (!h.is_valid()) continue;
+		if (h.is_paused()) continue;
+		if (!h.has_metadata()) continue;
+
+		printf("saving resume data for %s\n", h.name().c_str());
+		// save_resume_data will generate an alert when it's done
+		h.save_resume_data();
+		++num_resume_data;
+	}
+	printf("waiting for resume data\n");
+
+	while (num_resume_data > 0)
+	{
+		alert const* a = ses.wait_for_alert(seconds(30));
+		if (a == 0)
+		{
+			printf(" aborting with %d outstanding "
+				"torrents to save resume data for", num_resume_data);
+			break;
+		}
+
+		std::auto_ptr<alert> holder = ses.pop_alert();
+
+		std::string log;
+		::print_alert(holder.get(), log);
+		printf("%s\n", log.c_str());
+
+		if (alert_cast<save_resume_data_failed_alert>(a))
+		{
+			--num_resume_data;
+			continue;
+		}
+
+		save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
+		if (!rd) continue;
+		--num_resume_data;
+
+		if (!rd->resume_data) continue;
+
+		torrent_handle h = rd->handle;
+		std::vector<char> out;
+		bencode(std::back_inserter(out), *rd->resume_data);
+		save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
+	}
 	printf("saving session state\n");
 	{	
 		entry session_state = ses.state();
