@@ -3846,6 +3846,37 @@ namespace libtorrent
 		send_block_requests();
 	}
 
+	std::pair<int, int> peer_connection::preferred_caching() const
+	{
+		int line_size = 0;
+		int expiry = 0;
+		if (m_ses.m_settings.guided_read_cache)
+		{
+			int upload_rate = m_statistics.upload_payload_rate();
+			if (upload_rate == 0) upload_rate = 1;
+
+			int num_uploads = m_ses.num_uploads();
+			if (num_uploads == 0) num_uploads = 1;
+			// assume half of the cache is write cache if we're downloading
+			// this torrent as well
+			int cache_size = m_ses.m_settings.cache_size / num_uploads;
+			if (!t->is_finished()) cache_size /= 2;
+			// cache_size is the amount of cache we have per peer. The
+			// cache line should not be greater than this
+
+			// try to avoid locking caches for more than a couple of seconds
+			if (upload_rate * 4 / 16 / 1024 < cache_size)
+				cache_size = upload_rate * 4 / 16 / 1024;
+
+			expiry = cache_size * 16 * 1024 / upload_rate;
+			if (expiry < 1) expiry = 1;
+			else if (expiry > 10) expiry = 10;
+
+			line_size = cache_size;
+		}
+		return std::make_pai(line_size, expiry);
+	}
+
 	void peer_connection::fill_send_buffer()
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -3882,17 +3913,19 @@ namespace libtorrent
 			TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
 			TORRENT_ASSERT(r.length > 0 && r.start >= 0);
 
+			std::pair<int, int> cache = preferred_caching();
+
 			if (!t->seed_mode() || t->verified_piece(r.piece))
 			{
 				t->filesystem().async_read(r, bind(&peer_connection::on_disk_read_complete
-					, self(), _1, _2, r));
+					, self(), _1, _2, r), cache.first, cache.second);
 			}
 			else
 			{
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				t->filesystem().async_read_and_hash(r, bind(&peer_connection::on_disk_read_complete
-					, self(), _1, _2, r));
+					, self(), _1, _2, r), cache.second);
 				t->verified(r.piece);
 			}
 

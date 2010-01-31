@@ -1526,7 +1526,7 @@ ret:
 	void piece_manager::async_read_and_hash(
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler
-		, int priority)
+		, int cache_expiry)
 	{
 		disk_io_job j;
 		j.storage = this;
@@ -1535,7 +1535,7 @@ ret:
 		j.offset = r.start;
 		j.buffer_size = r.length;
 		j.buffer = 0;
-		j.priority = priority;
+		j.cache_min_time = cache_expiry;
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		m_io_thread.add_job(j, handler);
 #ifdef TORRENT_DEBUG
@@ -1548,7 +1548,7 @@ ret:
 
 	void piece_manager::async_cache(int piece
 		, boost::function<void(int, disk_io_job const&)> const& handler
-		, int priority)
+		, int cache_expiry)
 	{
 		disk_io_job j;
 		j.storage = this;
@@ -1557,14 +1557,15 @@ ret:
 		j.offset = 0;
 		j.buffer_size = 0;
 		j.buffer = 0;
-		j.priority = priority;
+		j.cache_min_time = cache_expiry;
 		m_io_thread.add_job(j, handler);
 	}
 
 	void piece_manager::async_read(
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler
-		, int priority)
+		, int cache_line_size
+		, int cache_expiry)
 	{
 		disk_io_job j;
 		j.storage = this;
@@ -1573,7 +1574,9 @@ ret:
 		j.offset = r.start;
 		j.buffer_size = r.length;
 		j.buffer = 0;
-		j.priority = priority;
+		j.max_cache_line = cache_line_size;
+		j.cache_min_time = cache_expiry;
+
 		// if a buffer is not specified, only one block can be read
 		// since that is the size of the pool allocator's buffers
 		TORRENT_ASSERT(r.length <= 16 * 1024);

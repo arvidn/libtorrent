@@ -332,7 +332,7 @@ namespace libtorrent
 			if (ti.info_hash() != ih) continue;
 			cached_piece_info info;
 			info.piece = i->piece;
-			info.last_use = i->last_use;
+			info.last_use = i->expire;
 			info.kind = cached_piece_info::write_cache;
 			int blocks_in_piece = (ti.piece_size(i->piece) + (m_block_size) - 1) / m_block_size;
 			info.blocks.resize(blocks_in_piece);
@@ -347,7 +347,7 @@ namespace libtorrent
 			if (ti.info_hash() != ih) continue;
 			cached_piece_info info;
 			info.piece = i->piece;
-			info.last_use = i->last_use;
+			info.last_use = i->expire;
 			info.kind = cached_piece_info::read_cache;
 			int blocks_in_piece = (ti.piece_size(i->piece) + (m_block_size) - 1) / m_block_size;
 			info.blocks.resize(blocks_in_piece);
@@ -394,11 +394,13 @@ namespace libtorrent
 
 	struct update_last_use
 	{
+		update_last_use(int exp): expire(exp) {}
 		void operator()(disk_io_thread::cached_piece_entry& p)
 		{
 			TORRENT_ASSERT(p.storage);
-			p.last_use = time_now();
+			p.expire = time_now() + seconds(expire);
 		}
+		int expire;
 	};
 
 	disk_io_thread::cache_piece_index_t::iterator disk_io_thread::find_cached_piece(
@@ -423,7 +425,7 @@ namespace libtorrent
 		cache_lru_index_t& widx = m_pieces.get<1>();
 		cache_lru_index_t::iterator i = widx.begin();
 		time_duration cut_off = seconds(m_settings.cache_expiry);
-		while (i != widx.end() && now - i->last_use > cut_off)
+		while (i != widx.end() && now - i->expire > cut_off)
 		{
 			TORRENT_ASSERT(i->storage);
 			flush_range(const_cast<cached_piece_entry&>(*i), 0, INT_MAX, l);
@@ -435,7 +437,9 @@ namespace libtorrent
 		// flush read cache
 		cache_lru_index_t& ridx = m_read_pieces.get<1>();
 		i = ridx.begin();
-		while (i != ridx.end() && now - i->last_use > cut_off)
+		while (i != ridx.end() && now - i->expire > cut_off)
+		{
+			free_piece(const_cast<cached_piece_entry&>(*i), l);
 		{
 			free_piece(const_cast<cached_piece_entry&>(*i), l);
 			ridx.erase(i++);
@@ -478,8 +482,8 @@ namespace libtorrent
 			if (i == idx.end()) return 0;
 		}
 
-		// don't replace an entry that is less than one second old
-		if (time_now() - i->last_use < seconds(1)) return 0;
+		// don't replace an entry that is is too young
+		if (time_now() > i->expire) return 0;
 		int blocks = 0;
 		if (num_blocks >= i->num_blocks)
 		{
@@ -727,11 +731,13 @@ namespace libtorrent
 	// returns -1 on failure
 	int disk_io_thread::cache_block(disk_io_job& j
 		, boost::function<void(int,disk_io_job const&)>& handler
+		, int cache_expire
 		, mutex::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(find_cached_piece(m_pieces, j, l) == m_pieces.end());
 		TORRENT_ASSERT((j.offset & (m_block_size-1)) == 0);
+		TORRENT_ASSERT(j.cache_min_time >= 0);
 		cached_piece_entry p;
 
 		int piece_size = j.storage->info()->piece_size(j.piece);
@@ -746,7 +752,7 @@ namespace libtorrent
 
 		p.piece = j.piece;
 		p.storage = j.storage;
-		p.last_use = time_now();
+		p.expire = time_now() + seconds(j.cache_min_time);
 		p.num_blocks = 1;
 		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!p.blocks) return -1;
@@ -902,6 +908,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(j.cache_min_time >= 0);
+
 		// this function will create a new cached_piece_entry
 		// and requires that it doesn't already exist
 		cache_piece_index_t& idx = m_read_pieces.get<0>();
@@ -916,6 +924,7 @@ namespace libtorrent
 		blocks_to_read = (std::min)(blocks_to_read, (std::max)((m_settings.cache_size
 			+ m_cache_stats.read_cache_size - in_use())/2, 3));
 		blocks_to_read = (std::min)(blocks_to_read, m_settings.read_cache_line_size);
+		if (j.max_cache_line > 0) blocks_to_read = (std::min)(blocks_to_read, j.max_cache_line);
 
 		if (in_use() + blocks_to_read > m_settings.cache_size)
 		{
@@ -927,7 +936,7 @@ namespace libtorrent
 		cached_piece_entry p;
 		p.piece = j.piece;
 		p.storage = j.storage;
-		p.last_use = time_now();
+		p.expire = time_now() + seconds(j.cache_min_time);
 		p.num_blocks = 0;
 		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!p.blocks) return -1;
@@ -1017,6 +1026,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(j.cache_min_time >= 0);
+
 		cache_piece_index_t& idx = m_read_pieces.get<0>();
 		p = find_cached_piece(m_read_pieces, j, l);
 
@@ -1034,7 +1045,7 @@ namespace libtorrent
 				, options, blocks_in_piece, l);
 			hit = false;
 			if (ret < 0) return ret;
-			idx.modify(p, update_last_use());
+			idx.modify(p, update_last_use(j.cache_min_time));
 		}
 		else if (p == m_read_pieces.end())
 		{
@@ -1046,7 +1057,7 @@ namespace libtorrent
 			cached_piece_entry pe;
 			pe.piece = j.piece;
 			pe.storage = j.storage;
-			pe.last_use = time_now();
+			pe.expire = time_now() + seconds(j.cache_min_time);
 			pe.num_blocks = 0;
 			pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 			if (!pe.blocks) return -1;
@@ -1059,7 +1070,7 @@ namespace libtorrent
 		}
 		else
 		{
-			idx.modify(p, update_last_use());
+			idx.modify(p, update_last_use(j.cache_min_time));
 		}
 		TORRENT_ASSERT(!m_read_pieces.empty());
 		TORRENT_ASSERT(p->piece == j.piece);
@@ -1071,6 +1082,8 @@ namespace libtorrent
 	int disk_io_thread::read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h)
 	{
 		TORRENT_ASSERT(j.buffer);
+
+		TORRENT_ASSERT(j.cache_min_time >= 0);
 
 		mutex::scoped_lock l(m_piece_mutex);
 	
@@ -1097,7 +1110,7 @@ namespace libtorrent
 		if (ret < 0) return ret;
 		cache_piece_index_t& idx = m_read_pieces.get<0>();
 		if (p->num_blocks == 0) idx.erase(p);
-		else idx.modify(p, update_last_use());
+		else idx.modify(p, update_last_use(j.cache_min_time));
 
 		// if read cache is disabled or we exceeded the
 		// limit, remove this piece from the cache
@@ -1182,6 +1195,7 @@ namespace libtorrent
 				+ m_cache_stats.read_cache_size - in_use())/2, 3));
 			blocks_to_read = (std::min)(blocks_to_read, m_settings.read_cache_line_size);
 			blocks_to_read = (std::max)(blocks_to_read, min_blocks_to_read);
+			if (j.max_cache_line > 0) blocks_to_read = (std::min)(blocks_to_read, j.max_cache_line);
 			
 			// if we don't have enough space for the new piece, try flushing something else
 			if (in_use() + blocks_to_read > m_settings.cache_size)
@@ -1225,6 +1239,7 @@ namespace libtorrent
 	int disk_io_thread::try_read_from_cache(disk_io_job const& j)
 	{
 		TORRENT_ASSERT(j.buffer);
+		TORRENT_ASSERT(j.cache_min_time >= 0);
 
 		mutex::scoped_lock l(m_piece_mutex);
 		if (!m_settings.use_read_cache) return -2;
@@ -1263,7 +1278,7 @@ namespace libtorrent
 		ret = copy_from_piece(const_cast<cached_piece_entry&>(*p), hit, j, l);
 		if (ret < 0) return ret;
 		if (p->num_blocks == 0) idx.erase(p);
-		else idx.modify(p, update_last_use());
+		else idx.modify(p, update_last_use(j.cache_min_time));
 
 		ret = j.buffer_size;
 		++m_cache_stats.blocks_read;
@@ -1547,6 +1562,11 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 			ptime start = time_now();
 #endif
+
+			if (j.cache_min_time < 0)
+				j.cache_min_time = j.cache_min_time == 0 ? m_settings.default_cache_min_age
+					: (std::max)(m_settings.default_cache_min_age, j.cache_min_time);
+
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
@@ -1801,6 +1821,8 @@ namespace libtorrent
 					mutex::scoped_lock l(m_piece_mutex);
 					INVARIANT_CHECK;
 
+					TORRENT_ASSERT(j.cache_min_time >= 0);
+
 					if (in_use() >= m_settings.cache_size)
 						flush_cache_blocks(l, in_use() - m_settings.cache_size + 1);
 
@@ -1825,7 +1847,7 @@ namespace libtorrent
 #endif
 						++m_cache_stats.cache_size;
 						++const_cast<cached_piece_entry&>(*p).num_blocks;
-						idx.modify(p, update_last_use());
+						idx.modify(p, update_last_use(j.cache_min_time));
 						// we might just have created a contiguous range
 						// that meets the requirement to be flushed. try it
 						flush_contiguous_blocks(const_cast<cached_piece_entry&>(*p)
@@ -1834,7 +1856,7 @@ namespace libtorrent
 					}
 					else
 					{
-						if (cache_block(j, j.callback, l) < 0)
+						if (cache_block(j, j.callback, j.cache_min_time, l) < 0)
 						{
 							l.unlock();
 							file::iovec_t iov = {j.buffer, j.buffer_size};

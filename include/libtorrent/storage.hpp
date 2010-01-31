@@ -221,16 +221,17 @@ namespace libtorrent
 		void async_read(
 			peer_request const& r
 			, boost::function<void(int, disk_io_job const&)> const& handler
-			, int priority = 0);
+			, int cache_line_size = 0
+			, int cache_expiry = 0);
 
 		void async_read_and_hash(
 			peer_request const& r
 			, boost::function<void(int, disk_io_job const&)> const& handler
-			, int priority = 0);
+			, int cache_expiry = 0);
 
 		void async_cache(int piece
 			, boost::function<void(int, disk_io_job const&)> const& handler
-			, int priority = 0);
+			, int cache_expiry = 0);
 
 		void async_write(
 			peer_request const& r
