@@ -3852,6 +3852,7 @@ namespace libtorrent
 		int expiry = 0;
 		if (m_ses.m_settings.guided_read_cache)
 		{
+			boost::shared_ptr<torrent> t = m_torrent.lock();
 			int upload_rate = m_statistics.upload_payload_rate();
 			if (upload_rate == 0) upload_rate = 1;
 
@@ -3874,7 +3875,7 @@ namespace libtorrent
 
 			line_size = cache_size;
 		}
-		return std::make_pai(line_size, expiry);
+		return std::make_pair(line_size, expiry);
 	}
 
 	void peer_connection::fill_send_buffer()

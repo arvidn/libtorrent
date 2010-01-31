@@ -440,8 +440,6 @@ namespace libtorrent
 		while (i != ridx.end() && now - i->expire > cut_off)
 		{
 			free_piece(const_cast<cached_piece_entry&>(*i), l);
-		{
-			free_piece(const_cast<cached_piece_entry&>(*i), l);
 			ridx.erase(i++);
 		}
 	}

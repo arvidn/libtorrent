@@ -660,6 +660,7 @@ namespace libtorrent
 
 	private:
 
+		std::pair<int, int> preferred_caching() const;
 		void fill_send_buffer();
 		void on_disk_read_complete(int ret, disk_io_job const& j, peer_request r);
 		void on_disk_write_complete(int ret, disk_io_job const& j
