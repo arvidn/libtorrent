@@ -496,16 +496,22 @@ namespace libtorrent
 
 			while (num_blocks)
 			{
-				while (i->blocks[start].buf == 0 && start <= end) ++start;
-				if (start > end) break;
-				free_buffer(i->blocks[start].buf);
-				i->blocks[start].buf = 0;
-				++blocks;
-				--const_cast<cached_piece_entry&>(*i).num_blocks;
-				--m_cache_stats.cache_size;
-				--m_cache_stats.read_cache_size;
-				--num_blocks;
-				if (!num_blocks) break;
+				// if we have a volatile read cache, only clear
+				// from the end, since we're already clearing
+				// from the start as blocks are read
+				if (!m_settings.volatile_read_cache)
+				{
+					while (i->blocks[start].buf == 0 && start <= end) ++start;
+					if (start > end) break;
+					free_buffer(i->blocks[start].buf);
+					i->blocks[start].buf = 0;
+					++blocks;
+					--const_cast<cached_piece_entry&>(*i).num_blocks;
+					--m_cache_stats.cache_size;
+					--m_cache_stats.read_cache_size;
+					--num_blocks;
+					if (!num_blocks) break;
+				}
 
 				while (i->blocks[end].buf == 0 && start <= end) --end;
 				if (start > end) break;
