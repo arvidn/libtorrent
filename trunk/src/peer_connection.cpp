@@ -3858,6 +3858,7 @@ namespace libtorrent
 
 			int num_uploads = m_ses.num_uploads();
 			if (num_uploads == 0) num_uploads = 1;
+
 			// assume half of the cache is write cache if we're downloading
 			// this torrent as well
 			int cache_size = m_ses.m_settings.cache_size / num_uploads;
@@ -3866,9 +3867,6 @@ namespace libtorrent
 			// cache line should not be greater than this
 
 			// try to avoid locking caches for more than a couple of seconds
-			if (upload_rate * 4 / 16 / 1024 < cache_size)
-				cache_size = upload_rate * 4 / 16 / 1024;
-
 			expiry = cache_size * 16 * 1024 / upload_rate;
 			if (expiry < 1) expiry = 1;
 			else if (expiry > 10) expiry = 10;
