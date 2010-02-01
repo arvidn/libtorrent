@@ -601,6 +601,8 @@ namespace libtorrent
 			picker().mark_as_downloading(block, 0, piece_picker::fast);
 			picker().mark_as_writing(block, 0);
 		}
+		async_verify_piece(piece, bind(&torrent::piece_finished
+			, shared_from_this(), piece, _1));
 		picker().dec_refcount(piece);
 	}
 
