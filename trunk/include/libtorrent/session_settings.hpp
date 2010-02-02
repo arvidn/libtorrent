@@ -189,6 +189,7 @@ namespace libtorrent
 			, volatile_read_cache(false)
 			, guided_read_cache(true)
 			, default_cache_min_age(1)
+			, num_optimistic_unchoke_slots(0)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -704,6 +705,10 @@ namespace libtorrent
 		// this is the default minimum time any read cache line
 		// is kept in the cache.
 		int default_cache_min_age;
+
+		// the global number of optimistic unchokes
+		// 0 means automatic
+		int num_optimistic_unchoke_slots;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

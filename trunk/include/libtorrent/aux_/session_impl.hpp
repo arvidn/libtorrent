@@ -655,7 +655,7 @@ namespace libtorrent
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots(int congested_torrents
 				, int uncongested_torrents);
-			void recalculate_optimistic_unchoke_slot();
+			void recalculate_optimistic_unchoke_slots();
 
 			ptime m_created;
 			int session_time() const { return total_seconds(time_now() - m_created); }
