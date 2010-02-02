@@ -2062,7 +2062,7 @@ namespace aux {
 		{
 			m_optimistic_unchoke_time_scaler
 				= settings().optimistic_unchoke_interval;
-			recalculate_optimistic_unchoke_slot();
+			recalculate_optimistic_unchoke_slots();
 		}
 
 		// --------------------------------------------------------------
@@ -2236,15 +2236,11 @@ namespace aux {
             
 	}
 
-	void session_impl::recalculate_optimistic_unchoke_slot()
+	void session_impl::recalculate_optimistic_unchoke_slots()
 	{
 		if (m_allowed_upload_slots == 0) return;
 	
-		// find the peer that has been waiting the longest to be optimistically
-		// unchoked
-		connection_map::iterator current_optimistic_unchoke = m_connections.end();
-		connection_map::iterator optimistic_unchoke_candidate = m_connections.end();
-		boost::uint32_t last_unchoke = UINT_MAX;
+		std::vector<policy::peer*> opt_unchoke;
 
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
@@ -2259,12 +2255,10 @@ namespace aux {
 			if (pi->optimistically_unchoked)
 			{
 				TORRENT_ASSERT(!p->is_choked());
-				TORRENT_ASSERT(current_optimistic_unchoke == m_connections.end());
-				current_optimistic_unchoke = i;
+				opt_unchoke.push_back(pi);
 			}
 
-			if (pi->last_optimistically_unchoked < last_unchoke
-				&& !p->is_connecting()
+			if (!p->is_connecting()
 				&& !p->is_disconnecting()
 				&& p->is_peer_interested()
 				&& t->free_upload_slots()
@@ -2272,47 +2266,54 @@ namespace aux {
 				&& !p->ignore_unchoke_slots()
 				&& t->valid_metadata())
 			{
-				last_unchoke = pi->last_optimistically_unchoked;
-				optimistic_unchoke_candidate = i;
+				opt_unchoke.push_back(pi);
 			}
 		}
 
-		if (optimistic_unchoke_candidate != m_connections.end()
-			&& optimistic_unchoke_candidate != current_optimistic_unchoke)
+		// find the peers that has been waiting the longest to be optimistically
+		// unchoked
+
+		// avoid having a bias towards peers that happen to be sorted first
+		std::random_shuffle(opt_unchoke.begin(), opt_unchoke.end());
+
+		// sort all candidates based on when they were last optimistically
+		// unchoked.
+		std::sort(opt_unchoke.begin(), opt_unchoke.end()
+			, boost::bind(&policy::peer::last_optimistically_unchoked, _1)
+			< boost::bind(&policy::peer::last_optimistically_unchoked, _2));
+
+		int num_opt_unchoke = m_settings.num_optimistic_unchoke_slots;
+		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, m_allowed_upload_slots / 5);
+
+		// unchoke the first num_opt_unchoke peers in the candidate set
+		// and make sure that the others are choked
+		for (std::vector<policy::peer*>::iterator i = opt_unchoke.begin()
+			, end(opt_unchoke.end()); i != end; ++i)
 		{
-			if (current_optimistic_unchoke != m_connections.end())
+			policy::peer* pi = *i;
+			if (num_opt_unchoke > 0)
 			{
-				torrent* t = (*current_optimistic_unchoke)->associated_torrent().lock().get();
-				TORRENT_ASSERT(t);
-				(*current_optimistic_unchoke)->peer_info_struct()->optimistically_unchoked = false;
-				t->choke_peer(*current_optimistic_unchoke->get());
+				--num_opt_unchoke;
+				if (!pi->optimistically_unchoked)
+				{
+					torrent* t = pi->connection->associated_torrent().lock().get();
+					bool ret = t->unchoke_peer(*pi->connection);
+					TORRENT_ASSERT(ret);
+					pi->optimistically_unchoked = true;
+					++m_num_unchoked;
+					pi->last_optimistically_unchoked = session_time();
+				}
 			}
 			else
 			{
-				++m_num_unchoked;
+				if (pi->optimistically_unchoked)
+				{
+					torrent* t = pi->connection->associated_torrent().lock().get();
+					pi->optimistically_unchoked = false;
+					t->choke_peer(*pi->connection);
+					--m_num_unchoked;
+				}	
 			}
-
-			torrent* t = (*optimistic_unchoke_candidate)->associated_torrent().lock().get();
-			TORRENT_ASSERT(t);
-			bool ret = t->unchoke_peer(*optimistic_unchoke_candidate->get());
-			TORRENT_ASSERT(ret);
-			(*optimistic_unchoke_candidate)->peer_info_struct()->optimistically_unchoked = true;
-
-			// adjust the optimistic unchoke interval depending on the piece-size
-			// the peer should be able to download one whole piece within the optimistic
-			// unchoke interval, at a reasonable rate
-			int piece_size = t->torrent_file().piece_length();
-			int rate = 3000;
-			// assume a reasonable rate is 3 kB/s, unless there's an upload limit and
-			// a max number of slots, in which case we assume each upload slot gets
-			// roughly the same amount of bandwidth
-			TORRENT_ASSERT(m_upload_channel.throttle() != bandwidth_channel::inf);
-			if (m_upload_channel.throttle() > 0 && m_max_uploads > 0)
-				rate = (std::max)(m_upload_channel.throttle() / m_max_uploads, 1);
-
-			// the time it takes to download one piece at this rate (in seconds)
-			int piece_dl_time = piece_size / rate;
-			m_optimistic_unchoke_time_scaler = piece_dl_time;
 		}
 	}
 
@@ -2433,8 +2434,11 @@ namespace aux {
 			}
 		}
 
+		int num_opt_unchoke = m_settings.num_optimistic_unchoke_slots;
+		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, m_allowed_upload_slots / 5);
+
 		// reserve one upload slot for optimistic unchokes
-		int unchoke_set_size = m_allowed_upload_slots - 1;
+		int unchoke_set_size = m_allowed_upload_slots - num_opt_unchoke;
 
 		m_num_unchoked = 0;
 		// go through all the peers and unchoke the first ones and choke
@@ -3494,7 +3498,10 @@ namespace aux {
 				TORRENT_ASSERT(t->get_policy().has_connection(p));
 			}
 		}
-		TORRENT_ASSERT(num_optimistic == 0 || num_optimistic == 1);
+
+		if (m_settings.num_optimistic_unchoke_slots)
+			TORRENT_ASSERT(num_optimistic <= m_settings.num_optimistic_unchoke_slots);
+
 		if (m_num_unchoked != unchokes)
 		{
 			TORRENT_ASSERT(false);

@@ -11,6 +11,8 @@
 	* added support to build with libgcrypt and a shipped version of libtommath
 	* optimized DHT routing table memory usage
 	* optimized disk cache to work with large caches
+	* support variable number of optimistic unchoke slots and to dynamically
+	  adjust based on the total number of unchoke slots
 
 0.15 release
 
