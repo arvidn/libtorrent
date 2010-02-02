@@ -1304,6 +1304,7 @@ ret:
 			&& ((fe.offset + fe.file_base) & (m_page_size-1)) == 0))
 			mode |= file::no_buffer;
 		if (!m_allocate_files) mode |= file::sparse;
+		if (m_settings && settings().no_atime_storage) mode |= file::no_atime;
 
 		return m_pool.open_file(const_cast<storage*>(this), combine_path(m_save_path, fe.path), mode, ec);
 	}

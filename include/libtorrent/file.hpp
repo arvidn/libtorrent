@@ -177,6 +177,7 @@ namespace libtorrent
 			no_buffer = 4,
 			mode_mask = rw_mask | no_buffer,
 			sparse = 8,
+			no_atime = 16,
 
 			attribute_hidden = 0x1000,
 			attribute_executable = 0x2000,

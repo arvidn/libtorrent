@@ -769,8 +769,17 @@ namespace libtorrent
 		static const int no_buffer_flag[] = {0, 0};
 #endif
 
+#ifdef O_NOATIME
+		static const int no_atime_flag[] = {0, O_NOATIME};
+#endif
+
  		m_fd = ::open(convert_to_native(path).c_str()
- 			, mode_array[mode & rw_mask] | no_buffer_flag[(mode & no_buffer) >> 2], permissions);
+ 			, mode_array[mode & rw_mask]
+			| no_buffer_flag[(mode & no_buffer) >> 2]
+#ifdef O_NOATIME
+			| no_atime_flag[(mode & no_atime) >> 4]
+#endif
+			, permissions);
 
 #ifdef TORRENT_LINUX
 		// workaround for linux bug
