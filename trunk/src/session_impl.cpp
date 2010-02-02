@@ -1021,6 +1021,7 @@ namespace aux {
 			|| m_settings.allow_reordered_disk_operations != s.allow_reordered_disk_operations
 			|| m_settings.file_pool_size != s.file_pool_size
 			|| m_settings.volatile_read_cache != s.volatile_read_cache
+			|| m_settings.no_atime_storage!= s.no_atime_storage
 			|| m_settings.low_prio_disk != s.low_prio_disk)
 			update_disk_io_thread = true;
 
