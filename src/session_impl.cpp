@@ -2170,7 +2170,7 @@ namespace aux {
 			bool ret = t->unchoke_peer(*optimistic_unchoke_candidate->get());
 			TORRENT_ASSERT(ret);
 			(*optimistic_unchoke_candidate)->peer_info_struct()->optimistically_unchoked = true;
-			pi->last_optimistically_unchoked = session_time();
+			(*optimistic_unchoke_candidate)->peer_info_struct()->last_optimistically_unchoked = session_time();
 
 			// adjust the optimistic unchoke interval depending on the piece-size
 			// the peer should be able to download one whole piece within the optimistic
