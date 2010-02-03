@@ -468,6 +468,7 @@ AS_CASE(["$ARG_ENABLE_GEOIP"],
   ["no"], [
     AC_MSG_RESULT([no])
     AC_DEFINE([TORRENT_DISABLE_GEO_IP],[1],[Define to disable the GeoIP support and avoid linking against LGPLed code.])
+    COMPILETIME_OPTIONS+="-DTORRENT_DISABLE_GEO_IP "
    ],
   [AC_MSG_RESULT([$ARG_ENABLE_GEOIP])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_GEOIP". Use either "yes" or "no".])]
