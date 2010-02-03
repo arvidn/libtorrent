@@ -88,7 +88,7 @@ namespace libtorrent
 				{
 					FILE_IO_PRIORITY_HINT_INFO priorityHint;
 					priorityHint.PriorityHint = IoPriorityHintLow;
-					result = SetFileInformationByHandle(e.file_ptr->native_handle(),
+					SetFileInformationByHandle(e.file_ptr->native_handle(),
 						FileIoPriorityHintInfo, &priorityHint, sizeof(PriorityHint));
 				}
 #endif
