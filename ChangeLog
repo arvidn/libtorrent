@@ -100,6 +100,7 @@
 	* fixed magnet link issue when using resume data
 	* support disk I/O priority settings
 	* added info_hash to torrent_deleted_alert
+	* improved LSD performance and made the interval configurable
 
 release 0.14.9
 

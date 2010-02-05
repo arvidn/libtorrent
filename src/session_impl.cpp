@@ -285,6 +285,7 @@ namespace aux {
 		TORRENT_SETTING(integer, max_suggest_pieces)
 		TORRENT_SETTING(boolean, drop_skipped_requests)
 		TORRENT_SETTING(boolean, low_prio_disk)
+		TORRENT_SETTING(boolean, local_service_announce_interval)
 	};
 
 #undef TORRENT_SETTING
@@ -443,7 +444,7 @@ namespace aux {
 			, m_half_open)
 #endif
 		, m_timer(m_io_service)
-		, m_next_connect_torrent(0)
+		, m_lsd_announce_timer(m_io_service)
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, m_logpath(logpath)
 #endif
@@ -454,6 +455,9 @@ namespace aux {
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 	{
+		m_next_lsd_torrent = m_torrents.begin();
+		m_next_connect_torrent = m_torrents.begin();
+
 		TORRENT_ASSERT(listen_interface);
 		error_code ec;
 		m_listen_interface = tcp::endpoint(address::from_string(listen_interface, ec), listen_port_range.first);
@@ -589,6 +593,12 @@ namespace aux {
 
 		m_timer.expires_from_now(milliseconds(100), ec);
 		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
+
+		int delay = (std::max)(m_settings.local_service_announce_interval
+			/ (std::max)(int(m_torrents.size()), 1), 1);
+		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
+		m_lsd_announce_timer.async_wait(
+			bind(&session_impl::on_lsd_announce, this, _1));
 
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
@@ -900,6 +910,7 @@ namespace aux {
 		m_dht_socket.close();
 #endif
 		m_timer.cancel(ec);
+		m_lsd_announce_timer.cancel(ec);
 
 		// close the listen sockets
 		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
@@ -1963,16 +1974,14 @@ namespace aux {
 			if (num_downloads > 0)
 				average_peers = num_downloads_peers / num_downloads;
 
-			torrent_map::iterator i = m_torrents.begin();
-			if (m_next_connect_torrent < int(m_torrents.size()))
-				std::advance(i, m_next_connect_torrent);
-			else
-				m_next_connect_torrent = 0;
+			if (m_next_connect_torrent == m_torrents.end())
+				m_next_connect_torrent = m_torrents.begin();
+
 			int steps_since_last_connect = 0;
 			int num_torrents = int(m_torrents.size());
 			for (;;)
 			{
-				torrent& t = *i->second;
+				torrent& t = *m_next_connect_torrent->second;
 				if (t.want_more_peers())
 				{
 					int connect_points = 100;
@@ -2012,15 +2021,12 @@ namespace aux {
 					}
 #endif
 				}
+
 				++m_next_connect_torrent;
 				++steps_since_last_connect;
-				++i;
-				if (i == m_torrents.end())
-				{
-					TORRENT_ASSERT(m_next_connect_torrent == num_torrents);
-					i = m_torrents.begin();
-					m_next_connect_torrent = 0;
-				}
+				if (m_next_connect_torrent == m_torrents.end())
+					m_next_connect_torrent = m_torrents.begin();
+
 				// if we have gone two whole loops without
 				// handing out a single connection, break
 				if (steps_since_last_connect > num_torrents * 2) break;
@@ -2109,6 +2115,27 @@ namespace aux {
 		}
 
 //		m_peer_pool.release_memory();
+	}
+
+	void session_impl::on_lsd_announce(error_code const& e)
+	{
+		if (e) return;
+
+		mutex::scoped_lock l(m_mutex);
+
+		// announce on local network every 5 minutes
+		int delay = (std::max)(m_settings.local_service_announce_interval
+			/ (std::max)(int(m_torrents.size()), 1), 1);
+		error_code ec;
+		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
+		m_lsd_announce_timer.async_wait(
+			bind(&session_impl::on_lsd_announce, this, _1));
+
+		if (m_next_lsd_torrent == m_torrents.end()) return;
+		m_next_lsd_torrent->second->lsd_announce();
+		++m_next_lsd_torrent;
+		if (m_next_lsd_torrent == m_torrents.end())
+			m_next_lsd_torrent = m_torrents.begin();
 	}
 
 	namespace
@@ -2729,8 +2756,19 @@ namespace aux {
 #ifdef TORRENT_DEBUG
 			sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
+			if (i == m_next_lsd_torrent)
+				++m_next_lsd_torrent;
+			if (i == m_next_connect_torrent)
+				++m_next_connect_torrent;
+
 			t.set_queue_position(-1);
 			m_torrents.erase(i);
+
+			if (m_next_lsd_torrent == m_torrents.end())
+				m_next_lsd_torrent = m_torrents.begin();
+			if (m_next_connect_torrent == m_torrents.end())
+				m_next_connect_torrent = m_torrents.begin();
+
 			std::list<boost::shared_ptr<torrent> >::iterator k
 				= std::find(m_queued_for_checking.begin(), m_queued_for_checking.end(), tptr);
 			if (k != m_queued_for_checking.end()) m_queued_for_checking.erase(k);
