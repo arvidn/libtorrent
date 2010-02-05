@@ -600,7 +600,7 @@ namespace libtorrent
 
 		if (m_settings.disk_cache_algorithm == session_settings::lru)
 		{
-			cache_lru_index_t& idx = m_read_pieces.get<1>();
+			cache_lru_index_t& idx = m_pieces.get<1>();
 			while (blocks > 0)
 			{
 				cache_lru_index_t::iterator i = idx.begin();
@@ -613,7 +613,7 @@ namespace libtorrent
 		}
 		else if (m_settings.disk_cache_algorithm == session_settings::largest_contiguous)
 		{
-			cache_lru_index_t& idx = m_read_pieces.get<1>();
+			cache_lru_index_t& idx = m_pieces.get<1>();
 			while (blocks > 0)
 			{
 				cache_lru_index_t::iterator i =
