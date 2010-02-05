@@ -1052,9 +1052,6 @@ int main(int argc, char* argv[])
 			}
 
 			if (c == 'q') break;
-			{
-				break;
-			}
 
 			if (c == 'j')
 			{
