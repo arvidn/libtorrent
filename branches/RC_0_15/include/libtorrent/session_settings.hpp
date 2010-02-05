@@ -180,6 +180,7 @@ namespace libtorrent
 			, max_suggest_pieces(10)
 			, drop_skipped_requests(false)
 			, low_prio_disk(true)
+			, local_service_announce_interval(5 * 60)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -652,6 +653,10 @@ namespace libtorrent
 		// to foreground tasks, while bittorrent runs
 		// in the background
 		bool low_prio_disk;
+
+		// number of seconds between local service announces for
+		// torrents. Defaults to 5 minutes
+		int local_service_announce_interval;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

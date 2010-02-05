@@ -3700,6 +3700,8 @@ session_settings
 		bool drop_skipped_requests;
 
 		bool low_prio_disk;
+
+		int local_service_announce_interval;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4145,6 +4147,11 @@ normally take priority in this mode. This is meant to improve the
 overall responsiveness of the system while downloading in the
 background. For high-performance server setups, this might not
 be desirable.
+
+``local_service_announce_interval`` is the time between local
+network announces for a torrent. By default, when local service
+discovery is enabled a torrent announces itself every 5 minutes.
+This interval is specified in seconds.
 
 pe_settings
 ===========
