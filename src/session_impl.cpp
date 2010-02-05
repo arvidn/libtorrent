@@ -507,7 +507,9 @@ namespace aux {
 		PRINT_SIZEOF(address_v6::bytes_type)
 #endif
 		PRINT_SIZEOF(void*)
+#ifndef TORRENT_DISABLE_DHT
 		PRINT_SIZEOF(dht::node_entry)
+#endif
 
 		PRINT_SIZEOF(policy::peer)
 		PRINT_OFFSETOF(policy::peer, connection)
@@ -521,9 +523,11 @@ namespace aux {
 		PRINT_SIZEOF(policy::ipv6_peer)
 #endif
 
+#ifndef TORRENT_DISABLE_DHT
 		PRINT_SIZEOF(dht::find_data_observer)
 		PRINT_SIZEOF(dht::announce_observer)
 		PRINT_SIZEOF(dht::null_observer)
+#endif
 #undef PRINT_OFFSETOF
 #undef PRINT_SIZEOF
 
