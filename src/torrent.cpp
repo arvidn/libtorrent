@@ -216,7 +216,9 @@ namespace libtorrent
 		, m_torrent_file(p.ti ? p.ti : new torrent_info(p.info_hash))
 		, m_storage(0)
 		, m_host_resolver(ses.m_io_service)
-		, m_lsd_announce_timer(ses.m_io_service)
+#ifndef TORRENT_DISABLE_DHT
+		, m_dht_announce_timer(ses.m_io_service)
+#endif
 		, m_tracker_timer(ses.m_io_service)
 #ifndef TORRENT_DISABLE_DHT
 		, m_last_dht_announce(time_now() - minutes(15))
@@ -369,10 +371,9 @@ namespace libtorrent
 		// DHT announces are done on the local service
 		// discovery timer. Trigger it.
 		error_code ec;
-		boost::weak_ptr<torrent> self(shared_from_this());
-		m_lsd_announce_timer.expires_from_now(seconds(1), ec);
-		m_lsd_announce_timer.async_wait(
-			bind(&torrent::on_lsd_announce_disp, self, _1));
+		m_dht_announce_timer.expires_from_now(seconds(1), ec);
+		m_dht_announce_timer.async_wait(
+			bind(&torrent::on_dht_announce, shared_from_this(), _1));
 	}
 #endif
 
@@ -1168,52 +1169,50 @@ namespace libtorrent
 		announce_with_tracker();
 	}
 
-	void torrent::on_lsd_announce_disp(boost::weak_ptr<torrent> p
-		, error_code const& e)
+	void torrent::lsd_announce()
 	{
-		if (e) return;
-		boost::shared_ptr<torrent> t = p.lock();
-		if (!t) return;
-		t->on_lsd_announce();
-	}
-
-	void torrent::on_lsd_announce()
-	{
-		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
-
 		if (m_abort) return;
+		
+		// if the files haven't been checked yet, we're
+		// not ready for peers
+		if (!m_files_checked) return;
 
 		if (m_torrent_file->is_valid() && m_torrent_file->priv())
 			return;
 
 		if (is_paused()) return;
 
-		boost::weak_ptr<torrent> self(shared_from_this());
-
-		error_code ec;
-
-		// announce on local network every 5 minutes
-		m_lsd_announce_timer.expires_from_now(minutes(5), ec);
-		m_lsd_announce_timer.async_wait(
-			bind(&torrent::on_lsd_announce_disp, self, _1));
-
 		// announce with the local discovery service
 		m_ses.announce_lsd(m_torrent_file->info_hash());
-
-#ifndef TORRENT_DISABLE_DHT
-		if (!m_ses.m_dht) return;
-		ptime now = time_now();
-		if (should_announce_dht() && now - m_last_dht_announce > minutes(14))
-		{
-			m_last_dht_announce = now;
-			m_ses.m_dht->announce(m_torrent_file->info_hash()
-				, m_ses.listen_port()
-				, bind(&torrent::on_dht_announce_response_disp, self, _1));
-		}
-#endif
 	}
 
 #ifndef TORRENT_DISABLE_DHT
+
+	void torrent::on_dht_announce(error_code const& e)
+	{
+		if (e) return;
+
+		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+		if (m_abort) return;
+
+		error_code ec;
+		m_dht_announce_timer.expires_from_now(minutes(15), ec);
+		m_dht_announce_timer.async_wait(
+			bind(&torrent::on_dht_announce, shared_from_this(), _1));
+
+		if (m_torrent_file->is_valid() && m_torrent_file->priv())
+			return;
+
+		if (is_paused()) return;
+		if (!m_ses.m_dht) return;
+		if (!should_announce_dht()) return;
+
+		m_last_dht_announce = time_now();
+		boost::weak_ptr<torrent> self(shared_from_this());
+		m_ses.m_dht->announce(m_torrent_file->info_hash()
+			, m_ses.listen_port()
+			, bind(&torrent::on_dht_announce_response_disp, self, _1));
+	}
 
 	void torrent::on_dht_announce_response_disp(boost::weak_ptr<libtorrent::torrent> t
 		, std::vector<tcp::endpoint> const& peers)
@@ -5180,11 +5179,14 @@ namespace libtorrent
 		// or on DHT, we don't need this timer.
 		if (!m_torrent_file->is_valid() || !m_torrent_file->priv())
 		{
+			if (m_ses.m_lsd) lsd_announce();
+
+#ifndef TORRENT_DISABLE_DHT
 			error_code ec;
-			boost::weak_ptr<torrent> self(shared_from_this());
-			m_lsd_announce_timer.expires_from_now(seconds(1), ec);
-			m_lsd_announce_timer.async_wait(
-				bind(&torrent::on_lsd_announce_disp, self, _1));
+			m_dht_announce_timer.expires_from_now(seconds(1), ec);
+			m_dht_announce_timer.async_wait(
+				bind(&torrent::on_dht_announce, shared_from_this(), _1));
+#endif
 		}
 	}
 
@@ -5193,7 +5195,9 @@ namespace libtorrent
 		if (!m_announcing) return;
 
 		error_code ec;
-		m_lsd_announce_timer.cancel(ec);
+#ifndef TORRENT_DISABLE_DHT
+		m_dht_announce_timer.cancel(ec);
+#endif
 		m_tracker_timer.cancel(ec);
 
 		m_announcing = false;

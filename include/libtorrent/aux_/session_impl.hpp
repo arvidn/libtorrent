@@ -203,6 +203,8 @@ namespace libtorrent
 
 			void on_port_map_log(char const* msg, int map_transport);
 
+			void on_lsd_announce(error_code const& e);
+
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
 			void on_port_mapping(int mapping, int port, error_code const& ec
@@ -672,10 +674,20 @@ namespace libtorrent
 			// the timer used to fire the tick
 			deadline_timer m_timer;
 
+			// torrents are announced on the local network in a
+			// round-robin fashion. All torrents are cycled through
+			// within the LSD announce interval (which defaults to
+			// 5 minutes)
+			torrent_map::iterator m_next_lsd_torrent;
+
+			// this announce timer is used
+			// by Local service discovery
+			deadline_timer m_lsd_announce_timer;
+
 			// the index of the torrent that will be offered to
 			// connect to a peer next time on_tick is called.
 			// This implements a round robin.
-			int m_next_connect_torrent;
+			torrent_map::iterator m_next_connect_torrent;
 #ifdef TORRENT_DEBUG
 			void check_invariant() const;
 #endif

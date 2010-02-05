@@ -713,6 +713,10 @@ namespace libtorrent
 
 		bool add_merkle_nodes(std::map<int, sha1_hash> const& n, int piece);
 
+		// this is called once periodically for torrents
+		// that are not private
+		void lsd_announce();
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
@@ -828,10 +832,12 @@ namespace libtorrent
 		// used to resolve the names of web seeds
 		mutable tcp::resolver m_host_resolver;
 		
+#ifndef TORRENT_DISABLE_DHT
 		// this announce timer is used both
 		// by Local service discovery and
 		// by the DHT.
-		deadline_timer m_lsd_announce_timer;
+		deadline_timer m_dht_announce_timer;
+#endif
 
 		// used for tracker announces
 		deadline_timer m_tracker_timer;
@@ -843,18 +849,14 @@ namespace libtorrent
 
 		void on_tracker_announce();
 
-		static void on_lsd_announce_disp(boost::weak_ptr<torrent> p
-			, error_code const& e);
-
-		// this is called once every 5 minutes for torrents
-		// that are not private
-		void on_lsd_announce();
+		void dht_announce();
 
 #ifndef TORRENT_DISABLE_DHT
 		static void on_dht_announce_response_disp(boost::weak_ptr<torrent> t
 			, std::vector<tcp::endpoint> const& peers);
 		void on_dht_announce_response(std::vector<tcp::endpoint> const& peers);
 		bool should_announce_dht() const;
+		void on_dht_announce(error_code const& e);
 
 		// the time when the DHT was last announced of our
 		// presence on this torrent
