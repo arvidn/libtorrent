@@ -1140,6 +1140,8 @@ namespace libtorrent
 		if (j.offset >= 0 && !m_picker->have_piece(j.offset))
 			we_have(j.offset);
 
+		remove_time_critical_piece(j.piece);
+
 		// we're not done checking yet
 		// this handler will be called repeatedly until
 		// we're done, or encounter a failure
