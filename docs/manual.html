@@ -38,7 +38,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.14.8</td></tr>
+<td>0.14.9</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -3096,6 +3096,8 @@ struct session_settings
         int auto_manage_startup;
 
         bool rate_limit_ip_overhead;
+
+        bool drop_skipped_requests;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -3323,6 +3325,14 @@ is so that newly started torrents are not considered inactive until they
 have a fair chance to start downloading.</p>
 <p>If <tt class="docutils literal"><span class="pre">rate_limit_ip_overhead</span></tt> is set to true, the estimated TCP/IP overhead is
 drained from the rate limiters, to avoid exceeding the limits with the total traffic</p>
+<p>If <tt class="docutils literal"><span class="pre">drop_skipped_requests</span></tt> is set to true (it defaults to false), piece
+requests that have been skipped enough times when piece messages
+are received, will be considered lost. Requests are considered skipped
+when the returned piece messages are re-ordered compared to the order
+of the requests. This was an attempt to get out of dead-locks caused by
+BitComet peers silently ignoring some requests. It may cause problems
+at high rates, and high level of reordering in the uploading peer, that's
+why it's disabled by default.</p>
 </div>
 <div class="section" id="pe-settings">
 <h1>pe_settings</h1>
@@ -4937,7 +4947,7 @@ idle in a <tt class="docutils literal"><span class="pre">select()</span></tt> ca
 that will send and receive data on all connections.</li>
 <li>The second thread is the disk I/O thread. All disk read and write operations
 are passed to this thread and messages are passed back to the main thread when
-the operation compeltes. The disk thread also verifies the piece hashes.</li>
+the operation completes. The disk thread also verifies the piece hashes.</li>
 <li>The third and forth threads are spawned by asio on systems that don't support
 non-blocking host name resolution to simulate non-blocking getaddrinfo().</li>
 </ul>
