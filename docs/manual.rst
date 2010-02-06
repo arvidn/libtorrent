@@ -3702,6 +3702,8 @@ session_settings
 		bool low_prio_disk;
 
 		int local_service_announce_interval;
+
+		int udp_tracker_token_expiry;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4152,6 +4154,13 @@ be desirable.
 network announces for a torrent. By default, when local service
 discovery is enabled a torrent announces itself every 5 minutes.
 This interval is specified in seconds.
+
+``udp_tracker_token_expiry`` is the number of seconds libtorrent
+will keep UDP tracker connection tokens around for. This is specified
+to be 60 seconds, and defaults to that. The higher this value is, the
+fewer packets have to be sent to the UDP tracker. In order for higher
+values to work, the tracker needs to be configured to match the
+expiration time for tokens.
 
 pe_settings
 ===========
