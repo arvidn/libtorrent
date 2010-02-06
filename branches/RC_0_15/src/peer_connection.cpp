@@ -3489,6 +3489,7 @@ namespace libtorrent
 		d = now - (std::max)(m_last_unchoke, m_last_incoming_request);
 		if (!m_connecting
 			&& m_requests.empty()
+			&& m_reading_bytes == 0
 			&& !m_choked
 			&& m_peer_interested
 			&& t && t->is_finished()
