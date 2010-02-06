@@ -5591,7 +5591,7 @@ torrent_deleted_alert
 This alert is generated when a request to delete the files of a torrent complete.
 
 The ``info_hash`` is the info-hash of the torrent that was just deleted. Most of
-the time the torrent_handle in the torrent_alert_ will be invalid by the time
+the time the torrent_handle in the ``torrent_alert`` will be invalid by the time
 this alert arrives, since the torrent is being deleted. The ``info_hash`` member
 is hence the main way of identifying which torrent just completed the delete.
 
