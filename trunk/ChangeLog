@@ -101,6 +101,7 @@
 	* support disk I/O priority settings
 	* added info_hash to torrent_deleted_alert
 	* improved LSD performance and made the interval configurable
+	* improved UDP tracker support by caching connect tokens
 
 release 0.14.9
 

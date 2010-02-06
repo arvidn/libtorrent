@@ -285,7 +285,13 @@ namespace aux {
 		TORRENT_SETTING(integer, max_suggest_pieces)
 		TORRENT_SETTING(boolean, drop_skipped_requests)
 		TORRENT_SETTING(boolean, low_prio_disk)
-		TORRENT_SETTING(boolean, local_service_announce_interval)
+		TORRENT_SETTING(integer, local_service_announce_interval)
+		TORRENT_SETTING(integer, udp_tracker_token_expiry)
+		TORRENT_SETTING(boolean, volatile_read_cache)
+		TORRENT_SETTING(boolean, guided_read_cache)
+		TORRENT_SETTING(integer, default_cache_min_age)
+		TORRENT_SETTING(integer, num_optimistic_unchoke_slots)
+		TORRENT_SETTING(boolean, no_atime_storage)
 	};
 
 #undef TORRENT_SETTING

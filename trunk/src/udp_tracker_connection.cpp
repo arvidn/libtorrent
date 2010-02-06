@@ -59,6 +59,9 @@ using boost::bind;
 namespace libtorrent
 {
 
+	std::map<address, udp_tracker_connection::connection_cache_entry>
+		udp_tracker_connection::m_connection_cache;
+
 	udp_tracker_connection::udp_tracker_connection(
 		io_service& ios
 		, connection_queue& cc
@@ -72,7 +75,6 @@ namespace libtorrent
 		, m_name_lookup(ios)
 		, m_socket(ios, boost::bind(&udp_tracker_connection::on_receive, self(), _1, _2, _3, _4), cc)
 		, m_transaction_id(0)
-		, m_connection_id(0)
 		, m_ses(ses)
 		, m_attempts(0)
 		, m_state(action_error)
@@ -185,16 +187,32 @@ namespace libtorrent
 
 		if (cb) cb->m_tracker_address = tcp::endpoint(m_target.address(), m_target.port());
 
-		if (bind_interface() != address_v4::any())
+		error_code ec;
+		m_socket.bind(udp::endpoint(bind_interface(), 0), ec);
+		if (ec)
 		{
-			error_code ec;
-			m_socket.bind(udp::endpoint(bind_interface(), 0), ec);
-			if (ec)
+			fail(-1, ec.message().c_str());
+			return;
+		}
+
+		std::map<address, connection_cache_entry>::iterator cc
+			= m_connection_cache.find(m_target.address());
+		if (cc != m_connection_cache.end())
+		{
+			// we found a cached entry! Now, we can only
+			// use if if it hasn't expired
+			if (time_now() < cc->second.expires)
 			{
-				fail(-1, ec.message().c_str());
+				if (tracker_req().kind == tracker_request::announce_request)
+					send_udp_announce();
+				else if (tracker_req().kind == tracker_request::scrape_request)
+					send_udp_scrape();
 				return;
 			}
+			// if it expired, remove it from the cache
+			m_connection_cache.erase(cc);
 		}
+
 		send_udp_connect();
 	}
 
@@ -277,8 +295,8 @@ namespace libtorrent
 		if (cb)
 		{
 			char msg[200];
-			snprintf(msg, 200, "*** UDP_TRACKER_RESPONSE [ cid: %x%x ]"
-				, int(m_connection_id >> 32), int(m_connection_id & 0xffffffff));
+			snprintf(msg, 200, "*** UDP_TRACKER_RESPONSE [ tid: %x%x ]"
+				, int(transaction >> 32), int(transaction & 0xffffffff));
 			cb->debug_log(msg);
 		}
 #endif
@@ -309,7 +327,10 @@ namespace libtorrent
 		// reset transaction
 		m_transaction_id = 0;
 		m_attempts = 0;
-		m_connection_id = detail::read_int64(buf);
+		boost::uint64_t connection_id = detail::read_int64(buf);
+		connection_cache_entry& cce = m_connection_cache[m_target.address()];
+		cce.connection_id = connection_id;
+		cce.expires = time_now() + seconds(m_ses.m_settings.udp_tracker_token_expiry);
 
 		if (tracker_req().kind == tracker_request::announce_request)
 			send_udp_announce();
@@ -363,10 +384,16 @@ namespace libtorrent
 
 		if (!m_socket.is_open()) return; // the operation was aborted
 
+		std::map<address, connection_cache_entry>::iterator i
+			= m_connection_cache.find(m_target.address());
+		// this isn't really supposed to happen
+		TORRENT_ASSERT(i != m_connection_cache.end());
+		if (i == m_connection_cache.end()) return;
+
 		char buf[8 + 4 + 4 + 20];
 		char* out = buf;
 
-		detail::write_int64(m_connection_id, out); // connection_id
+		detail::write_int64(i->second.connection_id, out); // connection_id
 		detail::write_int32(action_scrape, out); // action (scrape)
 		detail::write_int32(m_transaction_id, out); // transaction_id
 		// info_hash
@@ -389,8 +416,6 @@ namespace libtorrent
 	void udp_tracker_connection::on_announce_response(char const* buf, int size)
 	{
 		if (size < 20) return;
-
-		restart_read_timeout();
 
 		buf += 8; // skip header
 		restart_read_timeout();
@@ -517,7 +542,13 @@ namespace libtorrent
 		const bool stats = req.send_stats;
 		session_settings const& settings = m_ses.settings();
 
-		detail::write_int64(m_connection_id, out); // connection_id
+		std::map<address, connection_cache_entry>::iterator i
+			= m_connection_cache.find(m_target.address());
+		// this isn't really supposed to happen
+		TORRENT_ASSERT(i != m_connection_cache.end());
+		if (i == m_connection_cache.end()) return;
+
+		detail::write_int64(i->second.connection_id, out); // connection_id
 		detail::write_int32(action_announce, out); // action (announce)
 		detail::write_int32(m_transaction_id, out); // transaction_id
 		std::copy(req.info_hash.begin(), req.info_hash.end(), out); // info_hash
