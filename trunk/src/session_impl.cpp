@@ -1070,6 +1070,13 @@ namespace aux {
 			m_disk_thread.add_job(j);
 		}
 
+		if (m_allowed_upload_slots <= m_settings.num_optimistic_unchoke_slots / 2)
+		{
+			if (m_alerts.should_post<performance_alert>())
+				m_alerts.post_alert(performance_alert(torrent_handle()
+					, performance_alert::too_many_optimistic_unchoke_slots));
+		}
+
 		if (!s.auto_upload_slots) m_allowed_upload_slots = m_max_uploads;
 		// replace all occurances of '\n' with ' '.
 		std::string::iterator i = m_settings.user_agent.begin();
@@ -3210,6 +3217,12 @@ namespace aux {
 		if (m_max_uploads == limit) return;
 		m_max_uploads = limit;
 		m_allowed_upload_slots = limit;
+		if (m_allowed_upload_slots <= m_settings.num_optimistic_unchoke_slots / 2)
+		{
+			if (m_alerts.should_post<performance_alert>())
+				m_alerts.post_alert(performance_alert(torrent_handle()
+					, performance_alert::too_many_optimistic_unchoke_slots));
+		}
 	}
 
 	void session_impl::set_max_connections(int limit)
