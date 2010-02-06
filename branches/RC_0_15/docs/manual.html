@@ -226,73 +226,74 @@
 <li><a class="reference internal" href="#block-downloading-alert" id="id179">block_downloading_alert</a></li>
 <li><a class="reference internal" href="#unwanted-block-alert" id="id180">unwanted_block_alert</a></li>
 <li><a class="reference internal" href="#torrent-delete-failed-alert" id="id181">torrent_delete_failed_alert</a></li>
-<li><a class="reference internal" href="#torrent-finished-alert" id="id182">torrent_finished_alert</a></li>
-<li><a class="reference internal" href="#performance-alert" id="id183">performance_alert</a></li>
-<li><a class="reference internal" href="#state-changed-alert" id="id184">state_changed_alert</a></li>
-<li><a class="reference internal" href="#metadata-failed-alert" id="id185">metadata_failed_alert</a></li>
-<li><a class="reference internal" href="#metadata-received-alert" id="id186">metadata_received_alert</a></li>
-<li><a class="reference internal" href="#fastresume-rejected-alert" id="id187">fastresume_rejected_alert</a></li>
-<li><a class="reference internal" href="#peer-blocked-alert" id="id188">peer_blocked_alert</a></li>
-<li><a class="reference internal" href="#storage-moved-alert" id="id189">storage_moved_alert</a></li>
-<li><a class="reference internal" href="#storage-moved-failed-alert" id="id190">storage_moved_failed_alert</a></li>
-<li><a class="reference internal" href="#torrent-paused-alert" id="id191">torrent_paused_alert</a></li>
-<li><a class="reference internal" href="#torrent-resumed-alert" id="id192">torrent_resumed_alert</a></li>
-<li><a class="reference internal" href="#save-resume-data-alert" id="id193">save_resume_data_alert</a></li>
-<li><a class="reference internal" href="#save-resume-data-failed-alert" id="id194">save_resume_data_failed_alert</a></li>
-<li><a class="reference internal" href="#stats-alert" id="id195">stats_alert</a></li>
-<li><a class="reference internal" href="#cache-flushed-alert" id="id196">cache_flushed_alert</a></li>
-<li><a class="reference internal" href="#dht-announce-alert" id="id197">dht_announce_alert</a></li>
-<li><a class="reference internal" href="#dht-get-peers-alert" id="id198">dht_get_peers_alert</a></li>
-<li><a class="reference internal" href="#dispatcher" id="id199">dispatcher</a></li>
+<li><a class="reference internal" href="#torrent-deleted-alert" id="id182">torrent_deleted_alert</a></li>
+<li><a class="reference internal" href="#torrent-finished-alert" id="id183">torrent_finished_alert</a></li>
+<li><a class="reference internal" href="#performance-alert" id="id184">performance_alert</a></li>
+<li><a class="reference internal" href="#state-changed-alert" id="id185">state_changed_alert</a></li>
+<li><a class="reference internal" href="#metadata-failed-alert" id="id186">metadata_failed_alert</a></li>
+<li><a class="reference internal" href="#metadata-received-alert" id="id187">metadata_received_alert</a></li>
+<li><a class="reference internal" href="#fastresume-rejected-alert" id="id188">fastresume_rejected_alert</a></li>
+<li><a class="reference internal" href="#peer-blocked-alert" id="id189">peer_blocked_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-alert" id="id190">storage_moved_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-failed-alert" id="id191">storage_moved_failed_alert</a></li>
+<li><a class="reference internal" href="#torrent-paused-alert" id="id192">torrent_paused_alert</a></li>
+<li><a class="reference internal" href="#torrent-resumed-alert" id="id193">torrent_resumed_alert</a></li>
+<li><a class="reference internal" href="#save-resume-data-alert" id="id194">save_resume_data_alert</a></li>
+<li><a class="reference internal" href="#save-resume-data-failed-alert" id="id195">save_resume_data_failed_alert</a></li>
+<li><a class="reference internal" href="#stats-alert" id="id196">stats_alert</a></li>
+<li><a class="reference internal" href="#cache-flushed-alert" id="id197">cache_flushed_alert</a></li>
+<li><a class="reference internal" href="#dht-announce-alert" id="id198">dht_announce_alert</a></li>
+<li><a class="reference internal" href="#dht-get-peers-alert" id="id199">dht_get_peers_alert</a></li>
+<li><a class="reference internal" href="#dispatcher" id="id200">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#exceptions" id="id200">exceptions</a><ul>
-<li><a class="reference internal" href="#libtorrent-exception" id="id201">libtorrent_exception</a></li>
+<li><a class="reference internal" href="#exceptions" id="id201">exceptions</a><ul>
+<li><a class="reference internal" href="#libtorrent-exception" id="id202">libtorrent_exception</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#error-code" id="id202">error_code</a><ul>
-<li><a class="reference internal" href="#translating-error-codes" id="id203">translating error codes</a></li>
+<li><a class="reference internal" href="#error-code" id="id203">error_code</a><ul>
+<li><a class="reference internal" href="#translating-error-codes" id="id204">translating error codes</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#storage-interface" id="id204">storage_interface</a><ul>
-<li><a class="reference internal" href="#initialize" id="id205">initialize()</a></li>
-<li><a class="reference internal" href="#has-any-file" id="id206">has_any_file()</a></li>
-<li><a class="reference internal" href="#readv-writev" id="id207">readv() writev()</a></li>
-<li><a class="reference internal" href="#sparse-end" id="id208">sparse_end()</a></li>
-<li><a class="reference internal" href="#id12" id="id209">move_storage()</a></li>
-<li><a class="reference internal" href="#verify-resume-data" id="id210">verify_resume_data()</a></li>
-<li><a class="reference internal" href="#write-resume-data" id="id211">write_resume_data()</a></li>
-<li><a class="reference internal" href="#move-slot" id="id212">move_slot()</a></li>
-<li><a class="reference internal" href="#swap-slots" id="id213">swap_slots()</a></li>
-<li><a class="reference internal" href="#swap-slots3" id="id214">swap_slots3()</a></li>
-<li><a class="reference internal" href="#id13" id="id215">rename_file()</a></li>
-<li><a class="reference internal" href="#release-files" id="id216">release_files()</a></li>
-<li><a class="reference internal" href="#delete-files" id="id217">delete_files()</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id205">storage_interface</a><ul>
+<li><a class="reference internal" href="#initialize" id="id206">initialize()</a></li>
+<li><a class="reference internal" href="#has-any-file" id="id207">has_any_file()</a></li>
+<li><a class="reference internal" href="#readv-writev" id="id208">readv() writev()</a></li>
+<li><a class="reference internal" href="#sparse-end" id="id209">sparse_end()</a></li>
+<li><a class="reference internal" href="#id12" id="id210">move_storage()</a></li>
+<li><a class="reference internal" href="#verify-resume-data" id="id211">verify_resume_data()</a></li>
+<li><a class="reference internal" href="#write-resume-data" id="id212">write_resume_data()</a></li>
+<li><a class="reference internal" href="#move-slot" id="id213">move_slot()</a></li>
+<li><a class="reference internal" href="#swap-slots" id="id214">swap_slots()</a></li>
+<li><a class="reference internal" href="#swap-slots3" id="id215">swap_slots3()</a></li>
+<li><a class="reference internal" href="#id13" id="id216">rename_file()</a></li>
+<li><a class="reference internal" href="#release-files" id="id217">release_files()</a></li>
+<li><a class="reference internal" href="#delete-files" id="id218">delete_files()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#magnet-links" id="id218">magnet links</a></li>
-<li><a class="reference internal" href="#queuing" id="id219">queuing</a><ul>
-<li><a class="reference internal" href="#downloading" id="id220">downloading</a></li>
-<li><a class="reference internal" href="#seeding" id="id221">seeding</a></li>
+<li><a class="reference internal" href="#magnet-links" id="id219">magnet links</a></li>
+<li><a class="reference internal" href="#queuing" id="id220">queuing</a><ul>
+<li><a class="reference internal" href="#downloading" id="id221">downloading</a></li>
+<li><a class="reference internal" href="#seeding" id="id222">seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#fast-resume" id="id222">fast resume</a><ul>
-<li><a class="reference internal" href="#file-format" id="id223">file format</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id223">fast resume</a><ul>
+<li><a class="reference internal" href="#file-format" id="id224">file format</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#threads" id="id224">threads</a></li>
-<li><a class="reference internal" href="#storage-allocation" id="id225">storage allocation</a><ul>
-<li><a class="reference internal" href="#sparse-allocation" id="id226">sparse allocation</a></li>
-<li><a class="reference internal" href="#full-allocation" id="id227">full allocation</a></li>
-<li><a class="reference internal" href="#compact-allocation" id="id228">compact allocation</a></li>
+<li><a class="reference internal" href="#threads" id="id225">threads</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id226">storage allocation</a><ul>
+<li><a class="reference internal" href="#sparse-allocation" id="id227">sparse allocation</a></li>
+<li><a class="reference internal" href="#full-allocation" id="id228">full allocation</a></li>
+<li><a class="reference internal" href="#compact-allocation" id="id229">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#extensions" id="id229">extensions</a><ul>
-<li><a class="reference internal" href="#metadata-from-peers" id="id230">metadata from peers</a></li>
-<li><a class="reference internal" href="#http-seeding" id="id231">HTTP seeding</a></li>
+<li><a class="reference internal" href="#extensions" id="id230">extensions</a><ul>
+<li><a class="reference internal" href="#metadata-from-peers" id="id231">metadata from peers</a></li>
+<li><a class="reference internal" href="#http-seeding" id="id232">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#filename-checks" id="id232">filename checks</a></li>
+<li><a class="reference internal" href="#filename-checks" id="id233">filename checks</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -342,7 +343,7 @@ mode of your torrents. By default, torrents are auto-managed, which means
 libtorrent will pause them, unpause them, scrape them and take them out
 of upload-mode automatically.</p>
 <p>Whenever a torrent encounters a fatal error, it will be stopped, and the
-<tt class="docutils literal"><span class="pre">session_status::error</span></tt> will describe the error that caused it. If a torrent
+<tt class="docutils literal"><span class="pre">torrent_status::error</span></tt> will describe the error that caused it. If a torrent
 is auto managed, it is scraped periodically and paused or resumed based on
 the number of downloaders per seed. This will effectively seed torrents that
 are in the greatest need of seeds.</p>
@@ -738,7 +739,8 @@ the tracker that we've stopped participating in the swarm. The optional second a
 <tt class="docutils literal"><span class="pre">options</span></tt> can be used to delete all the files downloaded by this torrent. To do this, pass
 in the value <tt class="docutils literal"><span class="pre">session::delete_files</span></tt>. The removal of the torrent is asyncronous, there is
 no guarantee that adding the same torrent immediately after it was removed will not throw
-a <a class="reference internal" href="#libtorrent-exception">libtorrent_exception</a> exception.</p>
+a <a class="reference internal" href="#libtorrent-exception">libtorrent_exception</a> exception. Once the torrent is deleted, a <a class="reference internal" href="#torrent-deleted-alert">torrent_deleted_alert</a>
+is posted.</p>
 </div>
 <div class="section" id="find-torrent-get-torrents">
 <h2>find_torrent() get_torrents()</h2>
@@ -3696,6 +3698,14 @@ struct session_settings
         bool disable_hash_check;
 
         int max_suggest_pieces;
+
+        bool drop_skipped_requests;
+
+        bool low_prio_disk;
+
+        int local_service_announce_interval;
+
+        int udp_tracker_token_expiry;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -4040,6 +4050,31 @@ bittorrent clients.</p>
 <p><tt class="docutils literal"><span class="pre">max_suggest_pieces</span></tt> is the max number of suggested piece indices received
 from a peer that's remembered. If a peer floods suggest messages, this limit
 prevents libtorrent from using too much RAM. It defaults to 10.</p>
+<p>If <tt class="docutils literal"><span class="pre">drop_skipped_requests</span></tt> is set to true (it defaults to false), piece
+requests that have been skipped enough times when piece messages
+are received, will be considered lost. Requests are considered skipped
+when the returned piece messages are re-ordered compared to the order
+of the requests. This was an attempt to get out of dead-locks caused by
+BitComet peers silently ignoring some requests. It may cause problems
+at high rates, and high level of reordering in the uploading peer, that's
+why it's disabled by default.</p>
+<p><tt class="docutils literal"><span class="pre">low_prio_disk</span></tt> determines if the disk I/O should use a normal
+or low priority policy. This defaults to true, which means that
+it's low priority by default. Other processes doing disk I/O will
+normally take priority in this mode. This is meant to improve the
+overall responsiveness of the system while downloading in the
+background. For high-performance server setups, this might not
+be desirable.</p>
+<p><tt class="docutils literal"><span class="pre">local_service_announce_interval</span></tt> is the time between local
+network announces for a torrent. By default, when local service
+discovery is enabled a torrent announces itself every 5 minutes.
+This interval is specified in seconds.</p>
+<p><tt class="docutils literal"><span class="pre">udp_tracker_token_expiry</span></tt> is the number of seconds libtorrent
+will keep UDP tracker connection tokens around for. This is specified
+to be 60 seconds, and defaults to that. The higher this value is, the
+fewer packets have to be sent to the UDP tracker. In order for higher
+values to work, the tracker needs to be configured to match the
+expiration time for tokens.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">
@@ -5218,6 +5253,23 @@ struct torrent_delete_failed_alert: torrent_alert
 {
         // ...
         error_code error;
+};
+</pre>
+</div>
+<div class="section" id="torrent-deleted-alert">
+<h2>torrent_deleted_alert</h2>
+<p>This alert is generated when a request to delete the files of a torrent complete.</p>
+<p>The <tt class="docutils literal"><span class="pre">info_hash</span></tt> is the info-hash of the torrent that was just deleted. Most of
+the time the torrent_handle in the <tt class="docutils literal"><span class="pre">torrent_alert</span></tt> will be invalid by the time
+this alert arrives, since the torrent is being deleted. The <tt class="docutils literal"><span class="pre">info_hash</span></tt> member
+is hence the main way of identifying which torrent just completed the delete.</p>
+<p>This alert is posted in the <tt class="docutils literal"><span class="pre">storage_notification</span></tt> category, and that bit
+needs to be set in the alert mask.</p>
+<pre class="literal-block">
+struct torrent_deleted_alert: torrent_alert
+{
+        // ...
+        sha1_hash info_hash;
 };
 </pre>
 </div>
@@ -6754,7 +6806,7 @@ idle in a <tt class="docutils literal"><span class="pre">select()</span></tt> ca
 that will send and receive data on all connections.</li>
 <li>The second thread is the disk I/O thread. All disk read and write operations
 are passed to this thread and messages are passed back to the main thread when
-the operation compeltes. The disk thread also verifies the piece hashes.</li>
+the operation completes. The disk thread also verifies the piece hashes.</li>
 <li>The third and forth threads are spawned by asio on systems that don't support
 non-blocking host name resolution to simulate non-blocking getaddrinfo().</li>
 </ul>
