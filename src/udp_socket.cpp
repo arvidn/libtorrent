@@ -94,6 +94,9 @@ udp_socket::~udp_socket()
 void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec)
 {
 	CHECK_MAGIC;
+
+	TORRENT_ASSERT(is_open());
+
 	// if the sockets are closed, the udp_socket is closing too
 	if (!is_open()) return;
 

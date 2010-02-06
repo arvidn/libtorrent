@@ -187,6 +187,7 @@ namespace libtorrent
 			, drop_skipped_requests(false)
 			, low_prio_disk(true)
 			, local_service_announce_interval(5 * 60)
+			, udp_tracker_token_expiry(60)
 			, volatile_read_cache(false)
 			, guided_read_cache(true)
 			, default_cache_min_age(1)
@@ -693,6 +694,11 @@ namespace libtorrent
 		// number of seconds between local service announces for
 		// torrents. Defaults to 5 minutes
 		int local_service_announce_interval;
+
+		// the number of seconds a connection ID received
+		// from a UDP tracker is valid for. This is specified
+		// as 60 seconds
+		int udp_tracker_token_expiry;
 
 		// if this is set to true, any block read from the
 		// disk cache will be dropped from the cache immediately

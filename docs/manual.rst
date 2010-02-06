@@ -3722,6 +3722,8 @@ session_settings
 
 		bool low_prio_disk;
 		int local_service_announce_interval;
+
+		int udp_tracker_token_expiry;
 		bool volatile_read_cache;
 		bool guided_read_cache;
 		bool default_min_cache_age;
@@ -4218,6 +4220,13 @@ may be greater if ``guided_read_cache`` is enabled. Having a lower
 bound on the time a cache line stays in the cache is an attempt
 to avoid swapping the same pieces in and out of the cache in case
 there is a shortage of spare cache space.
+
+``udp_tracker_token_expiry`` is the number of seconds libtorrent
+will keep UDP tracker connection tokens around for. This is specified
+to be 60 seconds, and defaults to that. The higher this value is, the
+fewer packets have to be sent to the UDP tracker. In order for higher
+values to work, the tracker needs to be configured to match the
+expiration time for tokens.
 
 pe_settings
 ===========
