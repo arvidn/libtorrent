@@ -1066,7 +1066,7 @@ namespace aux {
 			&& m_auto_manage_time_scaler > 2)
 			m_auto_manage_time_scaler = 2;
 		m_settings = s;
- 		if (m_settings.connection_speed <= 0) m_settings.connection_speed = 200;
+ 		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
  
 		if (update_disk_io_thread)
 		{
@@ -1467,7 +1467,12 @@ namespace aux {
 
 		if (reject)
 		{
-			// TODO: post alert
+			if (m_alerts.should_post<peer_disconnected_alert>())
+			{
+				m_alerts.post_alert(
+					peer_disconnected_alert(torrent_handle(), endp, peer_id()
+						, error_code(errors::too_many_connections, get_libtorrent_category())));
+			}
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "number of connections limit exceeded (conns: "
 				<< num_connections() << ", limit: " << max_connections()
@@ -1976,13 +1981,14 @@ namespace aux {
 		// this loop will "hand out" max(connection_speed
 		// , half_open.free_slots()) to the torrents, in a
 		// round robin fashion, so that every torrent is
-		// equallt likely to connect to a peer
+		// equally likely to connect to a peer
 
 		int free_slots = m_half_open.free_slots();
 		if (!m_torrents.empty()
 			&& free_slots > -m_half_open.limit()
 			&& num_connections() < m_max_connections
-			&& !m_abort)
+			&& !m_abort
+			&& m_settings.connection_speed > 0)
 		{
 			// this is the maximum number of connections we will
 			// attempt this tick
