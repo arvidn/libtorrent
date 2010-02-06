@@ -1229,11 +1229,19 @@ namespace libtorrent
 			buffer_offset += to_copy;
 			if (m_settings.volatile_read_cache)
 			{
-				free_buffer(p.blocks[block].buf);
-				p.blocks[block].buf = 0;
-				--p.num_blocks;
-				--m_cache_stats.cache_size;
-				--m_cache_stats.read_cache_size;
+				// if volatile read cache is set, the assumption is
+				// that no other peer is likely to request the same
+				// piece. Therefore, for each request out of the cache
+				// we clear the block that was requested and any blocks
+				// the peer skipped
+				for (int i = block; i >= 0 && p.blocks[i].buf; --i)
+				{
+					free_buffer(p.blocks[i].buf);
+					p.blocks[i].buf = 0;
+					--p.num_blocks;
+					--m_cache_stats.cache_size;
+					--m_cache_stats.read_cache_size;
+				}
 			}
 			++block;
 		}
