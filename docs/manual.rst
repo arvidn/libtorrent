@@ -5625,7 +5625,8 @@ upload or download rate performance.
 			outstanding_request_limit_reached,
 			upload_limit_too_low,
 			download_limit_too_low,
-			send_buffer_watermark_too_low
+			send_buffer_watermark_too_low,
+			too_many_optimistic_unchoke_slots
 		};
 
 		performance_warning_t warning_code;

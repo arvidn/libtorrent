@@ -112,7 +112,8 @@ namespace libtorrent {
 			"max outstanding piece requests reached",
 			"upload limit too low (download rate will suffer)",
 			"download limit too low (upload rate will suffer)",
-			"send buffer watermark too low (upload rate will suffer)"
+			"send buffer watermark too low (upload rate will suffer)",
+			"too many optimistic unchoke slots"
 		};
 
 		return torrent_alert::message() + ": performance warning: "
