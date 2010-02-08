@@ -172,38 +172,50 @@ namespace libtorrent
 
 		void sent_syn(bool ipv6)
 		{
+#ifndef TORRENT_DISABLE_FULL_STATS
 			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
+#endif
 		}
 
 		void received_synack(bool ipv6)
 		{
+#ifndef TORRENT_DISABLE_FULL_STATS
 			// we received SYN-ACK and also sent ACK back
 			m_stat[download_ip_protocol].add(ipv6 ? 60 : 40);
 			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
+#endif
 		}
 
 		void received_dht_bytes(int bytes)
 		{
+#ifndef TORRENT_DISABLE_FULL_STATS
 			TORRENT_ASSERT(bytes >= 0);
 			m_stat[download_dht_protocol].add(bytes);
+#endif
 		}
 
 		void sent_dht_bytes(int bytes)
 		{
+#ifndef TORRENT_DISABLE_FULL_STATS
 			TORRENT_ASSERT(bytes >= 0);
 			m_stat[upload_dht_protocol].add(bytes);
+#endif
 		}
 
 		void received_tracker_bytes(int bytes)
 		{
+#ifndef TORRENT_DISABLE_FULL_STATS
 			TORRENT_ASSERT(bytes >= 0);
 			m_stat[download_tracker_protocol].add(bytes);
+#endif
 		}
 
 		void sent_tracker_bytes(int bytes)
 		{
+#ifndef TORRENT_DISABLE_FULL_STATS
 			TORRENT_ASSERT(bytes >= 0);
 			m_stat[upload_tracker_protocol].add(bytes);
+#endif
 		}
 
 		void received_bytes(int bytes_payload, int bytes_protocol)
@@ -228,6 +240,7 @@ namespace libtorrent
 		// account for the overhead caused by it
 		void trancieve_ip_packet(int bytes_transferred, bool ipv6)
 		{
+#ifndef TORRENT_DISABLE_FULL_STATS
 			// one TCP/IP packet header for the packet
 			// sent or received, and one for the ACK
 			// The IPv4 header is 20 bytes
@@ -238,14 +251,24 @@ namespace libtorrent
 			const int overhead = (std::max)(1, (bytes_transferred + packet_size - 1) / packet_size) * header;
 			m_stat[download_ip_protocol].add(overhead);
 			m_stat[upload_ip_protocol].add(overhead);
+#endif
 		}
 
+#ifndef TORRENT_DISABLE_FULL_STATS
 		int upload_ip_overhead() const { return m_stat[upload_ip_protocol].counter(); }
 		int download_ip_overhead() const { return m_stat[download_ip_protocol].counter(); }
 		int upload_dht() const { return m_stat[upload_dht_protocol].counter(); }
 		int download_dht() const { return m_stat[download_dht_protocol].counter(); }
 		int download_tracker() const { return m_stat[download_tracker_protocol].counter(); }
 		int upload_tracker() const { return m_stat[upload_tracker_protocol].counter(); }
+#else
+		int upload_ip_overhead() const { return 0; }
+		int download_ip_overhead() const { return 0; }
+		int upload_dht() const { return 0; }
+		int download_dht() const { return 0; }
+		int download_tracker() const { return 0; }
+		int upload_tracker() const { return 0; }
+#endif
 
 		void set_window(int w)
 		{
@@ -264,8 +287,11 @@ namespace libtorrent
 		{
 			return int((m_stat[upload_payload].rate_sum()
 				+ m_stat[upload_protocol].rate_sum()
+#ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[upload_ip_protocol].rate_sum()
-				+ m_stat[upload_dht_protocol].rate_sum())
+				+ m_stat[upload_dht_protocol].rate_sum()
+#endif
+				)
 				/ m_stat[0].window());
 		}
 
@@ -273,8 +299,11 @@ namespace libtorrent
 		{
 			return int((m_stat[download_payload].rate_sum()
 				+ m_stat[download_protocol].rate_sum()
+#ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[download_ip_protocol].rate_sum()
-				+ m_stat[download_dht_protocol].rate_sum())
+				+ m_stat[download_dht_protocol].rate_sum()
+#endif
+				)
 				/ m_stat[0].window());
 		}
 
@@ -282,18 +311,24 @@ namespace libtorrent
 		{
 			return m_stat[upload_payload].total()
 				+ m_stat[upload_protocol].total()
+#ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[upload_ip_protocol].total()
 				+ m_stat[upload_dht_protocol].total()
-				+ m_stat[upload_tracker_protocol].total();
+				+ m_stat[upload_tracker_protocol].total()
+#endif
+				;
 		}
 
 		size_type total_download() const
 		{
 			return m_stat[download_payload].total()
 				+ m_stat[download_protocol].total()
+#ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[download_ip_protocol].total()
 				+ m_stat[download_dht_protocol].total()
-				+ m_stat[download_tracker_protocol].total();
+				+ m_stat[download_tracker_protocol].total()
+#endif
+				;
 		}
 
 		int upload_payload_rate() const
@@ -339,14 +374,16 @@ namespace libtorrent
 		{
 			upload_payload,
 			upload_protocol,
+			download_payload,
+			download_protocol,
+#ifndef TORRENT_DISABLE_FULL_STATS
 			upload_ip_protocol,
 			upload_dht_protocol,
 			upload_tracker_protocol,
-			download_payload,
-			download_protocol,
 			download_ip_protocol,
 			download_dht_protocol,
 			download_tracker_protocol,
+#endif
 			num_channels
 		};
 

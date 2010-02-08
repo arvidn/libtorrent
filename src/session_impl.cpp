@@ -2987,6 +2987,7 @@ namespace aux {
 		s.payload_upload_rate = m_stat.transfer_rate(stat::upload_payload);
 		s.total_payload_upload = m_stat.total_transfer(stat::upload_payload);
 
+#ifndef TORRENT_DISABLE_FULL_STATS
 		// IP-overhead
 		s.ip_overhead_download_rate = m_stat.transfer_rate(stat::download_ip_protocol);
 		s.total_ip_overhead_download = m_stat.total_transfer(stat::download_ip_protocol);
@@ -3004,6 +3005,25 @@ namespace aux {
 		s.total_tracker_download = m_stat.total_transfer(stat::download_tracker_protocol);
 		s.tracker_upload_rate = m_stat.transfer_rate(stat::upload_tracker_protocol);
 		s.total_tracker_upload = m_stat.total_transfer(stat::upload_tracker_protocol);
+#else
+		// IP-overhead
+		s.ip_overhead_download_rate = 0;
+		s.total_ip_overhead_download = 0;
+		s.ip_overhead_upload_rate = 0;
+		s.total_ip_overhead_upload = 0;
+
+		// DHT protocol
+		s.dht_download_rate = 0;
+		s.total_dht_download = 0;
+		s.dht_upload_rate = 0;
+		s.total_dht_upload = 0;
+
+		// tracker
+		s.tracker_download_rate = 0;
+		s.total_tracker_download = 0;
+		s.tracker_upload_rate = 0;
+		s.total_tracker_upload = 0;
+#endif
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
