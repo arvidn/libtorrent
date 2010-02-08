@@ -470,10 +470,10 @@ void routing_table::node_failed(node_id const& id)
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(table) << " NODE FAILED"
 			" id: " << id <<
-			" ip: " << i->ep() <<
-			" fails: " << i->fail_count() <<
-			" pinged: " << i->pinged() <<
-			" up-time: " << total_seconds(time_now() - i->first_seen);
+			" ip: " << j->ep() <<
+			" fails: " << j->fail_count() <<
+			" pinged: " << j->pinged() <<
+			" up-time: " << total_seconds(time_now() - j->first_seen);
 #endif
 
 		// if this node has failed too many times, or if this node
