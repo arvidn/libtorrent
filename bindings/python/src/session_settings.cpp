@@ -109,7 +109,7 @@ void bind_session_settings()
         .def_readwrite("local_service_announce_interval", &session_settings::local_service_announce_interval)
         .def_readwrite("udp_tracker_token_expiry", &session_settings::udp_tracker_token_expiry)
         .def_readwrite("volatile_read_cache", &session_settings::volatile_read_cache)
-        .def_readwrite("guided_read_cache", &guided_read_cache)
+        .def_readwrite("guided_read_cache", &session_settings::guided_read_cache)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")
