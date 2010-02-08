@@ -354,6 +354,12 @@ Build features:
 |                          |   API. Generates build errors when deprecated      |
 |                          |   functions are used.                              |
 +--------------------------+----------------------------------------------------+
+| ``full-stats``           | * ``on`` - default, collects stats for IP overhead |
+|                          |   and DHT and trackers. This uses a little bit     |
+|                          |   extra memory for each peer and torrent.          |
+|                          | * ``off`` - only collects the standard stats for   |
+|                          |   upload and download rate.                        |
++--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api
 
