@@ -502,7 +502,13 @@ namespace aux {
 #define PRINT_SIZEOF(x) (*m_logger) << "sizeof(" #x "): " << sizeof(x) << "\n";
 #define PRINT_OFFSETOF(x, y) (*m_logger) << "  offsetof(" #x "," #y "): " << offsetof(x, y) << "\n";
 
-		PRINT_SIZEOF(torrent)
+		PRINT_SIZEOF(request_callback)
+		PRINT_SIZEOF(stat)
+		PRINT_SIZEOF(bandwidth_channel)
+		PRINT_SIZEOF(policy)
+		stat_channel::print_size(*m_logger);
+		torrent::print_size(*m_logger);
+
 		PRINT_SIZEOF(peer_connection)
 		PRINT_SIZEOF(bt_peer_connection)
 		PRINT_SIZEOF(address)

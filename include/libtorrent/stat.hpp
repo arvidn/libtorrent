@@ -43,6 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#include "libtorrent/debug.hpp" // for logger
+#endif
+
 namespace libtorrent
 {
 	class TORRENT_EXPORT stat_channel
@@ -50,6 +54,25 @@ namespace libtorrent
 	friend class invariant_access;
 	public:
 		enum { history = 10 };
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+
+#define PRINT_SIZEOF(x) l << "sizeof(" #x "): " << sizeof(x) << "\n";
+#define PRINT_OFFSETOF(x, y) l << "  offsetof(" #x "," #y "): " << offsetof(x, y) << "\n";
+
+		static void print_size(logger& l)
+		{
+			PRINT_SIZEOF(stat_channel)
+			PRINT_OFFSETOF(stat_channel, m_rate_history)
+			PRINT_OFFSETOF(stat_channel, m_window)
+			PRINT_OFFSETOF(stat_channel, m_counter)
+			PRINT_OFFSETOF(stat_channel, m_total_counter)
+			PRINT_OFFSETOF(stat_channel, m_rate_sum)
+		}
+#undef PRINT_SIZEOF
+#undef PRINT_OFFSETOF
+
+#endif
 
 		stat_channel()
 			: m_window(3)
