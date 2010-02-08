@@ -75,7 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	struct logger;
 #endif
 
@@ -726,6 +726,10 @@ namespace libtorrent
 		// this is called once periodically for torrents
 		// that are not private
 		void lsd_announce();
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		static void print_size(logger& l);
+#endif
 
 	private:
 
