@@ -49,8 +49,11 @@ void bind_session_settings()
         .def_readwrite("free_torrent_hashes", &session_settings::free_torrent_hashes)
         .def_readwrite("upnp_ignore_nonrouters", &session_settings::upnp_ignore_nonrouters)
         .def_readwrite("send_buffer_watermark", &session_settings::send_buffer_watermark)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readwrite("auto_upload_slots", &session_settings::auto_upload_slots)
         .def_readwrite("auto_upload_slots_rate_based", &session_settings::auto_upload_slots_rate_based)
+#endif
+        .def_readwrite("choking_algorithm", &session_settings::choking_algorithm)
         .def_readwrite("use_parole_mode", &session_settings::use_parole_mode)
         .def_readwrite("cache_size", &session_settings::cache_size)
         .def_readwrite("cache_buffer_chunk_size", &session_settings::cache_buffer_chunk_size)
@@ -124,6 +127,13 @@ void bind_session_settings()
     enum_<session_settings::disk_cache_algo_t>("disk_cache_algo_t")
         .value("lru", session_settings::lru)
         .value("largest_contiguous", session_settings::largest_contiguous)
+    ;
+
+    enum_<session_settings::disk_cache_algo_t>("choking_algorithm_t")
+        .value("fixed_slots_choker", session_settings::fixed_slots_choker)
+        .value("auto_expand_choker", session_settings::auto_expand_choker)
+        .value("rate_based_choker", session_settings::rate_based_choker)
+        .value("bittyrant_choker", session_settings::bittyrant_choker)
     ;
 
     enum_<session_settings::io_buffer_mode_t>("io_buffer_mode_t")

@@ -342,7 +342,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	out += "country ";
 #endif
-	if (print_peer_rate) out += "peer-rate ";
+	if (print_peer_rate) out += "peer-rate est.rec.rate ";
 	out += "client \n";
 
 	char str[500];
@@ -462,7 +462,11 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #endif
 		if (print_peer_rate)
 		{
-			snprintf(str, sizeof(str), " %s", add_suffix(i->remote_dl_rate, "/s").c_str());
+			bool unchoked = (i->flags & peer_info::choked) == 0;
+
+			snprintf(str, sizeof(str), " %s %s %s"
+				, add_suffix(i->remote_dl_rate, "/s").c_str()
+				, unchoked ? add_suffix(i->estimated_reciprocation_rate, "/s").c_str() : "      ");
 			out += str;
 		}
 		out += " ";
@@ -771,7 +775,7 @@ int main(int argc, char* argv[])
 	session_settings settings;
 
 	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
-	settings.auto_upload_slots_rate_based = true;
+	settings.choking_algorithm = session_settings::auto_expand_choker;
 	//settings.announce_to_all_trackers = true;
 	settings.optimize_hashing_for_speed = false;
 	settings.disk_cache_algorithm = session_settings::largest_contiguous;

@@ -85,10 +85,10 @@ namespace libtorrent
 		, m_last_request(time_now())
 		, m_last_incoming_request(min_time())
 		, m_last_unchoke(time_now())
+		, m_last_unchoked(time_now())
 		, m_last_receive(time_now())
 		, m_last_sent(time_now())
 		, m_requested(min_time())
-		, m_timeout_extend(0)
 		, m_remote_dl_update(time_now())
 		, m_connect(time_now())
 		, m_became_uninterested(time_now())
@@ -101,6 +101,7 @@ namespace libtorrent
 		, m_remote(endp)
 		, m_torrent(tor)
 		, m_receiving_block(-1, -1)
+		, m_timeout_extend(0)
 		, m_outstanding_bytes(0)
 		, m_queued_time_critical(0)
 		, m_num_pieces(0)
@@ -153,6 +154,8 @@ namespace libtorrent
 		, m_received_in_piece(0)
 #endif
 	{
+		m_est_reciprocation_rate = m_ses.m_settings.default_est_reciprocation_rate;
+
 #if TORRENT_USE_I2P
 		if (peerinfo && peerinfo->is_i2p_addr)
 		{
@@ -216,10 +219,10 @@ namespace libtorrent
 		, m_last_request(time_now())
 		, m_last_incoming_request(min_time())
 		, m_last_unchoke(time_now())
+		, m_last_unchoked(time_now())
 		, m_last_receive(time_now())
 		, m_last_sent(time_now())
 		, m_requested(min_time())
-		, m_timeout_extend(0)
 		, m_remote_dl_update(time_now())
 		, m_connect(time_now())
 		, m_became_uninterested(time_now())
@@ -231,6 +234,7 @@ namespace libtorrent
 		, m_socket(s)
 		, m_remote(endp)
 		, m_receiving_block(-1, -1)
+		, m_timeout_extend(0)
 		, m_outstanding_bytes(0)
 		, m_queued_time_critical(0)
 		, m_num_pieces(0)
@@ -283,6 +287,8 @@ namespace libtorrent
 		, m_received_in_piece(0)
 #endif
 	{
+		m_est_reciprocation_rate = m_ses.m_settings.default_est_reciprocation_rate;
+
 #if TORRENT_USE_I2P
 		if (peerinfo && peerinfo->is_i2p_addr)
 		{
@@ -340,6 +346,62 @@ namespace libtorrent
 	}
 #endif
 
+	void peer_connection::increase_est_reciprocation_rate()
+	{
+		m_est_reciprocation_rate += m_est_reciprocation_rate
+			* m_ses.m_settings.increase_est_reciprocation_rate / 100;
+	}
+
+	void peer_connection::decrease_est_reciprocation_rate()
+	{
+		m_est_reciprocation_rate -= m_est_reciprocation_rate
+			* m_ses.m_settings.decrease_est_reciprocation_rate / 100;
+	}
+
+	bool peer_connection::bittyrant_unchoke_compare(
+		boost::intrusive_ptr<peer_connection const> const& p) const
+	{
+		TORRENT_ASSERT(p);
+		peer_connection const& rhs = *p;
+
+		size_type d1, d2, u1, u2;
+
+		// first compare how many bytes they've sent us
+		d1 = m_statistics.total_payload_download() - m_downloaded_at_last_unchoke;
+		d2 = rhs.m_statistics.total_payload_download() - rhs.m_downloaded_at_last_unchoke;
+		// divided by the number of bytes we've sent them
+		u1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
+		u2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
+
+		boost::shared_ptr<torrent> t1 = m_torrent.lock();
+		TORRENT_ASSERT(t1);
+		boost::shared_ptr<torrent> t2 = rhs.associated_torrent().lock();
+		TORRENT_ASSERT(t2);
+
+		// take torrent priority into account
+		d1 *= 1 + t1->priority();
+		d2 *= 1 + t2->priority();
+
+		d1 = d1 * 1000 / (std::max)(size_type(1), u1);
+		d2 = d2 * 1000 / (std::max)(size_type(1), u2);
+		if (d1 > d2) return true;
+		if (d1 < d2) return false;
+
+		// in order to not switch back and forth too often,
+		// unchoked peers must be at least one piece ahead
+		// of a choked peer to be sorted at a lower unchoke-priority
+		int pieces = m_ses.settings().seeding_piece_quota;
+		bool c1_done = is_choked() || u1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
+		bool c2_done = rhs.is_choked() || u2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
+
+		if (!c1_done && c2_done) return true;
+		if (c1_done && !c2_done) return false;
+		
+		// if both peers are still in their send quota or not in their send quota
+		// prioritize the one that has waited the longest to be unchoked
+		return m_last_unchoke < rhs.m_last_unchoke;
+	}
+
 	bool peer_connection::unchoke_compare(boost::intrusive_ptr<peer_connection const> const& p) const
 	{
 		TORRENT_ASSERT(p);
@@ -351,6 +413,16 @@ namespace libtorrent
 		// first compare how many bytes they've sent us
 		c1 = m_statistics.total_payload_download() - m_downloaded_at_last_unchoke;
 		c2 = rhs.m_statistics.total_payload_download() - rhs.m_downloaded_at_last_unchoke;
+
+		boost::shared_ptr<torrent> t1 = m_torrent.lock();
+		TORRENT_ASSERT(t1);
+		boost::shared_ptr<torrent> t2 = rhs.associated_torrent().lock();
+		TORRENT_ASSERT(t2);
+
+		// take torrent priority into account
+		c1 *= 1 + t1->priority();
+		c2 *= 1 + t2->priority();
+
 		if (c1 > c2) return true;
 		if (c1 < c2) return false;
 
@@ -361,10 +433,6 @@ namespace libtorrent
 		// in order to not switch back and forth too often,
 		// unchoked peers must be at least one piece ahead
 		// of a choked peer to be sorted at a lower unchoke-priority
-		boost::shared_ptr<torrent> t1 = m_torrent.lock();
-		TORRENT_ASSERT(t1);
-		boost::shared_ptr<torrent> t2 = rhs.associated_torrent().lock();
-		TORRENT_ASSERT(t2);
 		int pieces = m_ses.settings().seeding_piece_quota;
 		bool c1_done = is_choked() || c1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
 		bool c2_done = rhs.is_choked() || c2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
@@ -382,9 +450,18 @@ namespace libtorrent
 		size_type c1;
 		size_type c2;
 
+		boost::shared_ptr<torrent> t1 = m_torrent.lock();
+		TORRENT_ASSERT(t1);
+		boost::shared_ptr<torrent> t2 = p->associated_torrent().lock();
+		TORRENT_ASSERT(t2);
+
 		c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
 		c2 = p->m_statistics.total_payload_upload() - p->m_uploaded_at_last_unchoke;
 		
+		// take torrent priority into account
+		c1 *= 1 + t1->priority();
+		c2 *= 1 + t2->priority();
+
 		return c1 > c2;
 	}
 
@@ -1280,6 +1357,7 @@ namespace libtorrent
 		(*m_logger) << time_now_string() << " <== UNCHOKE\n";
 #endif
 		m_peer_choked = false;
+		m_last_unchoked = time_now();
 		if (is_disconnecting()) return;
 
 		if (is_interesting())
@@ -3343,6 +3421,11 @@ namespace libtorrent
 #endif
 			p.progress_ppm = p.pieces.count() * 1000000 / p.pieces.size();
 		}
+
+		p.estimated_reciprocation_rate = m_est_reciprocation_rate;
+		int upload_capacity = m_ses.upload_rate_limit();
+		if (upload_capacity == 0)
+			upload_capacity = (std::max)(20000, m_ses.m_peak_up_rate + 10000);
 	}
 
 	// allocates a disk buffer of size 'disk_buffer_size' and replaces the
@@ -4014,10 +4097,31 @@ namespace libtorrent
 		, bandwidth_channel* bwc4)
 	{
 		shared_ptr<torrent> t = m_torrent.lock();
-		int priority = 1 + is_interesting() * 2 + m_requests_in_buffer.size();
-
-		if (priority > 255) priority = 255;
-		priority += t->priority() << 8;
+		int priority;
+		if (m_ses.m_settings.choking_algorithm == session_settings::bittyrant_choker
+			&& !t->is_upload_only())
+		{
+			// when we use the bittyrant choker, the priority of a peer
+			// is decided based on the estimated reciprocation rate and
+			// the share it represents of the total upload rate capacity
+			// the torrent priority is taken into account when unchoking peers
+			int upload_capacity = m_ses.upload_rate_limit();
+			if (upload_capacity == 0)
+			{
+				// we don't know at what rate we can upload. If we have a
+				// measurement of the peak, use that + 10kB/s, otherwise
+				// assume 20 kB/s
+				upload_capacity = (std::max)(20000, m_ses.m_peak_up_rate + 10000);
+			}
+			priority = (boost::uint64_t(m_est_reciprocation_rate) << 10) / upload_capacity;
+		}
+		else
+		{
+			priority = 1 + is_interesting() * 2 + m_requests_in_buffer.size();
+			if (priority > 255) priority = 255;
+			priority += t->priority() << 8;
+		}
+		TORRENT_ASSERT(priority < 0xffff);
 
 		// peers that we are not interested in are non-prioritized
 		m_channel_state[upload_channel] = peer_info::bw_limit;

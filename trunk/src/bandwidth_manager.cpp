@@ -180,8 +180,8 @@ namespace libtorrent
 			{
 				bandwidth_channel* bwc = i->channel[j];
 				if (bwc->tmp == 0) channels.push_back(bwc);
+				TORRENT_ASSERT(INT_MAX - bwc->tmp > i->priority);
 				bwc->tmp += i->priority;
-				TORRENT_ASSERT(i->priority > 0);
 			}
 		}
 

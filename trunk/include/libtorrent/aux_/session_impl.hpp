@@ -643,6 +643,9 @@ namespace libtorrent
 			// statistics gathered from all torrents.
 			stat m_stat;
 
+			int m_peak_up_rate;
+			int m_peak_down_rate;
+
 			// is false by default and set to true when
 			// the first incoming connection is established
 			// this is used to know if the client is behind

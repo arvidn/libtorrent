@@ -17,10 +17,10 @@ void test_swarm()
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49010, 50000), "0.0.0.0", 0);
 	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50010, 51000), "0.0.0.0", 0);
 
-	ses1.set_severity_level(alert::debug);
-	ses2.set_severity_level(alert::debug);
-	ses3.set_severity_level(alert::debug);
-	
+	ses1.set_alert_mask(alert::all_categories);
+	ses2.set_alert_mask(alert::all_categories);
+	ses3.set_alert_mask(alert::all_categories);
+
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
@@ -35,8 +35,7 @@ void test_swarm()
 	session_settings settings;
 	settings.allow_multiple_connections_per_ip = true;
 	settings.ignore_limits_on_local_network = false;
-	settings.auto_upload_slots = true;
-	settings.auto_upload_slots_rate_based = false;
+	settings.choking_algorithm = session_settings::auto_expand_choker;
 	ses1.set_settings(settings);
 	ses2.set_settings(settings);
 	ses3.set_settings(settings);
