@@ -2621,7 +2621,9 @@ namespace libtorrent
 				}
 				else
 				{
-					time_duration diff = dl_time - m_average_piece_time;
+					time_duration diff = dl_time > m_average_piece_time
+						? dl_time - m_average_piece_time
+						: m_average_piece_time - dl_time;
 					if (m_piece_time_deviation == seconds(0)) m_piece_time_deviation = diff;
 					else m_piece_time_deviation = (m_piece_time_deviation * 6 + diff * 4) / 10;
 
