@@ -214,6 +214,8 @@ namespace libtorrent
 		// the peers progress
 		float progress; // [0, 1]
 		int progress_ppm; // [0, 1000000]
+
+		int estimated_reciprocation_rate;
 	};
 
 	struct TORRENT_EXPORT peer_list_entry

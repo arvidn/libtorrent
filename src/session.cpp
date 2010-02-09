@@ -204,7 +204,7 @@ namespace libtorrent
 		set.active_limit = 2000;
 		set.active_seeds = 2000;
 
-		set.auto_upload_slots = false;
+		set.choking_algorithm = session_settings::fixed_slots_choker;
 
 		// in order to be able to deliver very high
 		// upload rates, this should be able to cover

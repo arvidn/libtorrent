@@ -385,6 +385,8 @@ namespace libtorrent
 
 		int desired_queue_size() const { return m_desired_queue_size; }
 
+		bool peer_connection::bittyrant_unchoke_compare(
+			boost::intrusive_ptr<peer_connection const> const& p) const;
 		// compares this connection against the given connection
 		// for which one is more eligible for an unchoke.
 		// returns true if this is more eligible
@@ -398,6 +400,10 @@ namespace libtorrent
 		// if this peer connection is useless (neither party is
 		// interested in the other), disconnect it
 		void disconnect_if_redundant();
+
+		void increase_est_reciprocation_rate();
+		void decrease_est_reciprocation_rate();
+		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<logger> m_logger;
@@ -692,6 +698,10 @@ namespace libtorrent
 		// the time when we unchoked this peer
 		ptime m_last_unchoke;
 
+		// if we're unchoked by this peer, this
+		// was the time
+		ptime m_last_unchoked;
+
 		// timeouts
 		ptime m_last_receive;
 		ptime m_last_sent;
@@ -701,11 +711,6 @@ namespace libtorrent
 		// for each entry that is popped from the
 		// download queue. Used for request timeout
 		ptime m_requested;
-
-		// if the timeout is extended for the outstanding
-		// requests, this is the number of seconds it was
-		// extended.
-		int m_timeout_extend;
 
 		// a timestamp when the remote download rate
 		// was last updated
@@ -803,6 +808,11 @@ namespace libtorrent
 		// the block we're currently receiving. Or
 		// (-1, -1) if we're not receiving one
 		piece_block m_receiving_block;
+
+		// if the timeout is extended for the outstanding
+		// requests, this is the number of seconds it was
+		// extended.
+		int m_timeout_extend;
 
 		// the number of bytes that the other
 		// end has to send us in order to respond
@@ -904,6 +914,12 @@ namespace libtorrent
 		// max transfer rates seen on this peer
 		int m_download_rate_peak;
 		int m_upload_rate_peak;
+
+		// when using the BitTyrant choker, this is our
+		// estimated reciprocation rate. i.e. the rate
+		// we need to send to this peer for it to unchoke
+		// us
+		int m_est_reciprocation_rate;
 
 		// estimated round trip time to this peer
 		// based on the time from when async_connect

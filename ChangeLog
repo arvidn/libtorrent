@@ -13,6 +13,7 @@
 	* optimized disk cache to work with large caches
 	* support variable number of optimistic unchoke slots and to dynamically
 	  adjust based on the total number of unchoke slots
+	* support for BitTyrant choker algorithm
 
 0.15 release
 

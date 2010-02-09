@@ -123,8 +123,12 @@ namespace libtorrent
 			, free_torrent_hashes(true)
 			, upnp_ignore_nonrouters(false)
  			, send_buffer_watermark(100 * 1024)
+#ifndef TORRENT_NO_DEPRECATE
+			// deprecated in 0.16
 			, auto_upload_slots(true)
 			, auto_upload_slots_rate_based(true)
+#endif
+			, choking_algorithm(rate_based_choker)
 			, use_parole_mode(true)
 			, cache_size(1024)
 			, cache_buffer_chunk_size(16)
@@ -193,6 +197,9 @@ namespace libtorrent
 			, default_cache_min_age(1)
 			, num_optimistic_unchoke_slots(0)
 			, no_atime_storage(true)
+			, default_est_reciprocation_rate(16000)
+			, increase_est_reciprocation_rate(20)
+			, decrease_est_reciprocation_rate(3)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -397,20 +404,22 @@ namespace libtorrent
  		// the upload rate is low, this is the upper limit.
  		int send_buffer_watermark;
 
-		// if auto_upload_slots is true, and a global upload
-		// limit is set and the upload rate is less than 90%
-		// of the upload limit, on new slot is opened up. If
-		// the upload rate is >= upload limit for an extended
-		// period of time, one upload slot is closed. The
-		// upload slots are never automatically decreased below
-		// the manual settings, through max_uploads.
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.16
 		bool auto_upload_slots;
-
-		// this only affects the auto upload slots mechanism.
-		// if auto_upload_slots is false, this field is not
-		// considered.
 		bool auto_upload_slots_rate_based;
+#endif
 
+		enum choking_algorithm_t
+		{
+			fixed_slots_choker,
+			auto_expand_choker,
+			rate_based_choker,
+			bittyrant_choker
+		};
+
+		int choking_algorithm;
+		
 		// if set to true, peers that participate in a failing
 		// piece is put in parole mode. i.e. They will only
 		// download whole pieces until they either fail or pass.
@@ -725,6 +734,24 @@ namespace libtorrent
 		// if set to true, files won't have their atime updated
 		// on disk reads. This works on linux
 		bool no_atime_storage;
+
+		// === BitTyrant unchoker settings ==
+
+		// when using BitTyrant choker, this is the default
+		// assumed reciprocation rate. This is where each peer starts
+		int default_est_reciprocation_rate;
+
+		// this is the increase of the estimated reciprocation rate
+		// in percent. We increase by this amount once every unchoke
+		// interval that we are choked by the other peer and we have
+		// unchoked them
+		int increase_est_reciprocation_rate;
+
+		// each unchoke interval that we stay unchoked by the other
+		// peer, and we have unchoked this peer as well, we decrease
+		// our estimate of the reciprocation rate, since we might have
+		// over-estimated it
+		int decrease_est_reciprocation_rate;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

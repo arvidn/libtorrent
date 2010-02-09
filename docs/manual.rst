@@ -547,26 +547,37 @@ quite unthrottled.
 A rate limit of 0 means infinite.
 
 
-set_max_uploads() set_max_connections() max_uploads() max_connections()
------------------------------------------------------------------------
+set_max_uploads() max_uploads()
+-------------------------------
 
 	::
 
 		void set_max_uploads(int limit);
-		void set_max_connections(int limit);
 		int max_uploads() const;
+
+``set_max_uploads`` sets a global limit on the number of unchoked peers (uploads).
+The number of uploads is at least one per torrent.
+
+``max_uploads()`` returns the current settings.
+
+The number of unchoke slots may be ignored depending on what
+``session_settings::choking_algorithm`` is set to.
+
+
+set_max_connections() max_connections()
+---------------------------------------
+
+	::
+
+		void set_max_connections(int limit);
 		int max_connections() const;
 
-These functions will set a global limit on the number of unchoked peers (uploads)
-and the number of connections opened. The number of connections is set to a hard
-minimum of at least two connections per torrent, so if you set a too low
-connections limit, and open too many torrents, the limit will not be met. The
-number of uploads is at least one per torrent.
+``set_max_connections`` sets a global limit on the number of connections
+opened. The number of connections is set to a hard minimum of at least two per
+torrent, so if you set a too low connections limit, and open too many torrents,
+the limit will not be met.
 
-``max_uploads()`` and ``max_connections()`` returns the current settings.
-
-The number of unchoke slots may be ignored. In order to make this setting
-take effect, disable ``session_settings::auto_upload_slots_rate_based``.
+``max_connections()`` returns the current settings.
 
 
 num_uploads() num_connections()
@@ -2640,6 +2651,9 @@ consume, even if there's is more quota. Other peers will still be weighed in whe
 bandwidth is being distributed. With other words, bandwidth is not distributed strictly
 in order of priority, but the priority is used as a weight.
 
+Torrents with higher priority are also more likely to have its peers unchoked, to
+distribute more upload capacity to them.
+
 use_interface()
 ---------------
 
@@ -2663,25 +2677,34 @@ info_hash()
 ``info_hash()`` returns the info-hash for the torrent.
 
 
-set_max_uploads() max_uploads() set_max_connections() max_connections()
------------------------------------------------------------------------
+set_max_uploads() max_uploads()
+-------------------------------
 
 	::
 
 		void set_max_uploads(int max_uploads) const;
 		int max_uploads() const;
-		void set_max_connections(int max_connections) const;
-		int max_connections() const;
 
 ``set_max_uploads()`` sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.
+
+``max_uploads()`` returns the current settings.
+
+
+set_max_connections() max_connections()
+---------------------------------------
+
+	::
+
+		void set_max_connections(int max_connections) const;
+		int max_connections() const;
 
 ``set_max_connections()`` sets the maximum number of connection this torrent will open. If all
 connections are used up, incoming connections may be refused or poor connections may be closed.
 This must be at least 2. The default is unlimited number of connections. If -1 is given to the
 function, it means unlimited.
 
-``max_uploads()`` and ``max_connections()`` returns the current settings.
+``max_connections()`` returns the current settings.
 
 
 save_resume_data()
@@ -3648,8 +3671,22 @@ session_settings
 		bool free_torrent_hashes;
 		bool upnp_ignore_nonrouters;
 		int send_buffer_watermark;
+
+	#ifndef TORRENT_NO_DEPRECATE
 		bool auto_upload_slots;
 		bool auto_upload_slots_rate_based;
+	#endif
+
+		enum choking_algorithm_t
+		{
+			fixed_slots_choker,
+			auto_expand_choker,
+			rate_based_choker,
+			bittyrant_choker
+		};
+
+		int choking_algorithm;
+		
 		bool use_parole_mode;
 		int cache_size;
 		int cache_buffer_chunk_size;
@@ -3927,6 +3964,34 @@ When ``auto_upload_slots_rate_based`` is set, and ``auto_upload_slots`` is set,
 the max upload slots setting is used as a minimum number of unchoked slots.
 This algorithm is designed to prevent the peer from spreading its upload
 capacity too thin, but still open more slots in order to utilize the full capacity.
+
+``choking_algorithm`` specifies which algorithm to use to determine which peers
+to unchoke. This setting replaces the deprecated settings ``auto_upload_slots``
+and ``auto_upload_slots_rate_based``.
+
+The options for choking algorithms are:
+
+* ``fixed_slots_choker`` is the traditional choker with a fixed number of unchoke
+  slots (as specified by ``session::set_max_uploads()``).
+
+* ``auto_expand_choker`` opens at least the number of slots as specified by
+  ``session::set_max_uploads()`` but opens up more slots if the upload capacity
+  is not saturated. This unchoker will work just like the ``fixed_slot_choker``
+  if there's no global upload rate limit set.
+
+* ``rate_based_choker`` opens up unchoke slots based on the upload rate
+  achieved to peers. The more slots that are opened, the marginal upload
+  rate required to open up another slot increases.
+
+* ``bittyrant_choker`` attempts to optimize download rate by finding the
+  reciprocation rate of each peer individually and prefers peers that gives
+  the highest *return on investment*. It still allocates all upload capacity,
+  but shuffles it around to the best peers first. For this choker to be
+  efficient, you need to set a global upload rate limit
+  (``session::set_upload_rate_limit()``). For more information about this
+  choker, see the paper_.
+
+.. _paper: http://bittyrant.cs.washington.edu/#papers
 
 ``use_parole_mode`` specifies if parole mode should be used. Parole mode means
 that peers that participate in pieces that fail the hash check are put in a mode
