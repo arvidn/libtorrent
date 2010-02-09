@@ -5324,6 +5324,7 @@ namespace libtorrent
 
 		time_duration since_last_tick = milliseconds(tick_interval_ms);
 		if (is_seed()) m_seeding_time += since_last_tick;
+		if (is_finished()) m_finished_time += since_last_tick;
 		m_active_time += since_last_tick;
 
 		// ---- TIME CRITICAL PIECES ----
