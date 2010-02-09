@@ -385,7 +385,7 @@ namespace libtorrent
 
 		int desired_queue_size() const { return m_desired_queue_size; }
 
-		bool peer_connection::bittyrant_unchoke_compare(
+		bool bittyrant_unchoke_compare(
 			boost::intrusive_ptr<peer_connection const> const& p) const;
 		// compares this connection against the given connection
 		// for which one is more eligible for an unchoke.
