@@ -200,6 +200,7 @@ namespace libtorrent
 			, default_est_reciprocation_rate(16000)
 			, increase_est_reciprocation_rate(20)
 			, decrease_est_reciprocation_rate(3)
+			, incoming_starts_queued_torrents(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -752,6 +753,10 @@ namespace libtorrent
 		// our estimate of the reciprocation rate, since we might have
 		// over-estimated it
 		int decrease_est_reciprocation_rate;
+
+		// if set to true, an incoming connection to a torrent that's
+		// paused and auto-managed will make the torrent start.
+		bool incoming_starts_queued_torrents;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

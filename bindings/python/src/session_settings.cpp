@@ -113,6 +113,7 @@ void bind_session_settings()
         .def_readwrite("udp_tracker_token_expiry", &session_settings::udp_tracker_token_expiry)
         .def_readwrite("volatile_read_cache", &session_settings::volatile_read_cache)
         .def_readwrite("guided_read_cache", &session_settings::guided_read_cache)
+        .def_readwrite("incoming_starts_queued_torrents", &session_settings::incoming_starts_queued_torrents)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")
@@ -129,7 +130,7 @@ void bind_session_settings()
         .value("largest_contiguous", session_settings::largest_contiguous)
     ;
 
-    enum_<session_settings::disk_cache_algo_t>("choking_algorithm_t")
+    enum_<session_settings::choking_algorithm_t>("choking_algorithm_t")
         .value("fixed_slots_choker", session_settings::fixed_slots_choker)
         .value("auto_expand_choker", session_settings::auto_expand_choker)
         .value("rate_based_choker", session_settings::rate_based_choker)

@@ -1071,10 +1071,15 @@ namespace libtorrent
 			return;
 		}
 
-		if (t->is_paused())
+		if (t->is_paused() && (!t->is_auto_managed()
+			|| !m_ses.m_settings.incoming_starts_queued_torrents
+			|| t->has_error()))
 		{
 			// paused torrents will not accept
-			// incoming connections
+			// incoming connections unless they are auto managed
+			// and inconing_starts_queued_torrents is true
+			// torrents that have errors should always reject
+			// incoming peers
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << " rejected connection to paused torrent\n";
 #endif
@@ -1097,6 +1102,13 @@ namespace libtorrent
 #endif // TORRENT_USE_I2P
 
 		TORRENT_ASSERT(m_torrent.expired());
+
+		if (t->is_paused())
+		{
+			TORRENT_ASSERT(m_ses.m_settings.incoming_starts_queued_torrents);
+			t->resume();
+		}
+
 		// check to make sure we don't have another connection with the same
 		// info_hash and peer_id. If we do. close this connection.
 		t->attach_peer(this);

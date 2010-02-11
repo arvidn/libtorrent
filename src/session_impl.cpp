@@ -1524,22 +1524,30 @@ namespace aux {
 		  	return;
 		}
 
-		bool has_active_torrent = false;
-		for (torrent_map::iterator i = m_torrents.begin()
+		// if we don't have any active torrents, there's no
+		// point in accepting this connection. If, however,
+		// the setting to start up queued torrents when they
+		// get an incoming connection is enabled, we cannot
+		// perform this check.
+		if (!m_settings.incoming_starts_queued_torrents)
+		{
+			bool has_active_torrent = false;
+			for (torrent_map::iterator i = m_torrents.begin()
 				, end(m_torrents.end()); i != end; ++i)
-		{
-			if (!i->second->is_paused())
 			{
-				has_active_torrent = true;
-				break;
+				if (!i->second->is_paused())
+				{
+					has_active_torrent = true;
+					break;
+				}
 			}
-		}
-		if (!has_active_torrent)
-		{
+			if (!has_active_torrent)
+			{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_logger) << " There are no _active_ torrents, disconnect\n";
+				(*m_logger) << " There are no _active_ torrents, disconnect\n";
 #endif
-		  	return;
+			  	return;
+			}
 		}
 
 		setup_socket_buffers(*s);
