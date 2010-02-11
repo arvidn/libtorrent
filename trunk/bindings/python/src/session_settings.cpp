@@ -113,6 +113,12 @@ void bind_session_settings()
         .def_readwrite("udp_tracker_token_expiry", &session_settings::udp_tracker_token_expiry)
         .def_readwrite("volatile_read_cache", &session_settings::volatile_read_cache)
         .def_readwrite("guided_read_cache", &session_settings::guided_read_cache)
+        .def_readwrite("default_cache_min_age", &session_settings::default_cache_min_age)
+        .def_readwrite("num_optimistic_unchoke_slots", &session_settings::num_optimistic_unchoke_slots)
+        .def_readwrite("no_atime_storage", &session_settings::no_atime_storage)
+        .def_readwrite("default_est_reciprocation_rate", &session_settings::default_est_reciprocation_rate)
+        .def_readwrite("increase_est_reciprocation_rate", &session_settings::increase_est_reciprocation_rate)
+        .def_readwrite("decrease_est_reciprocation_rate", &session_settings::decrease_est_reciprocation_rate)
         .def_readwrite("incoming_starts_queued_torrents", &session_settings::incoming_starts_queued_torrents)
     ;
 

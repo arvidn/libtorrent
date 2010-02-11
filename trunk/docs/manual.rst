@@ -3765,6 +3765,11 @@ session_settings
 		bool guided_read_cache;
 		bool default_min_cache_age;
 
+		int num_optimistic_unchoke_slots;
+		bool no_atime_storage;
+		int default_est_reciprocation_rate;
+		int increase_est_reciprocation_rate;
+		int decrease_est_reciprocation_rate;
 		bool incoming_starts_queued_torrents;
 	};
 
@@ -4270,6 +4275,13 @@ network announces for a torrent. By default, when local service
 discovery is enabled a torrent announces itself every 5 minutes.
 This interval is specified in seconds.
 
+``udp_tracker_token_expiry`` is the number of seconds libtorrent
+will keep UDP tracker connection tokens around for. This is specified
+to be 60 seconds, and defaults to that. The higher this value is, the
+fewer packets have to be sent to the UDP tracker. In order for higher
+values to work, the tracker needs to be configured to match the
+expiration time for tokens.
+
 ``volatile_read_cache``, if this is set to true, read cache blocks
 that are hit by peer read requests are removed from the disk cache
 to free up more space. This is useful if you don't expect the disk
@@ -4289,12 +4301,32 @@ bound on the time a cache line stays in the cache is an attempt
 to avoid swapping the same pieces in and out of the cache in case
 there is a shortage of spare cache space.
 
-``udp_tracker_token_expiry`` is the number of seconds libtorrent
-will keep UDP tracker connection tokens around for. This is specified
-to be 60 seconds, and defaults to that. The higher this value is, the
-fewer packets have to be sent to the UDP tracker. In order for higher
-values to work, the tracker needs to be configured to match the
-expiration time for tokens.
+``num_optimistic_unchoke_slots`` is the number of optimistic unchoke
+slots to use. It defaults to 0, which means automatic. Having a higher
+number of optimistic unchoke slots mean you will find the good peers
+faster but with the trade-off to use up more bandwidth. When this is
+set to 0, libtorrent opens up 20% of your allowed upload slots as
+optimistic unchoke slots.
+
+``no_atime_storage`` this is a linux-only option and passes in the
+``O_NOATIME`` to ``open()`` when opening files. This may lead to
+some disk performance improvements.
+
+``default_est_reciprocation_rate`` is the assumed reciprocation rate
+from peers when using the BitTyrant choker. This defaults to 14 kiB/s.
+If set too high, you will over-estimate your peers and be more altruistic
+while finding the true reciprocation rate, if it's set too low, you'll
+be too stingy and waste finding the true reciprocation rate.
+
+``increase_est_reciprocation_rate`` specifies how many percent the
+extimated reciprocation rate should be increased by each unchoke
+interval a peer is still choking us back. This defaults to 20%.
+This only applies to the BitTyrant choker.
+
+``decrease_est_reciprocation_rate`` specifies how many percent the
+estimated reciprocation rate should be decreased by each unchoke
+interval a peer unchokes us. This default to 3%.
+This only applies to the BitTyrant choker.
 
 ``incoming_starts_queued_torrents`` defaults to false. If a torrent
 has been paused by the auto managed feature in libtorrent, i.e.
