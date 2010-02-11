@@ -3764,6 +3764,8 @@ session_settings
 		bool volatile_read_cache;
 		bool guided_read_cache;
 		bool default_min_cache_age;
+
+		bool incoming_starts_queued_torrents;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4293,6 +4295,16 @@ to be 60 seconds, and defaults to that. The higher this value is, the
 fewer packets have to be sent to the UDP tracker. In order for higher
 values to work, the tracker needs to be configured to match the
 expiration time for tokens.
+
+``incoming_starts_queued_torrents`` defaults to false. If a torrent
+has been paused by the auto managed feature in libtorrent, i.e.
+the torrent is paused and auto managed, this feature affects whether
+or not it is automatically started on an incoming connection. The
+main reason to queue torrents, is not to make them unavailable, but
+to save on the overhead of announcing to the trackers, the DHT and to
+avoid spreading one's unchoke slots too thin. If a peer managed to
+find us, even though we're no in the torrent anymore, this setting
+can make us start the torrent and serve it.
 
 pe_settings
 ===========
