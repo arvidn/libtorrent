@@ -966,11 +966,11 @@ namespace libtorrent
 				for (int k = 0, end(tier->list_size()); k < end; ++k)
 				{
 					announce_entry e(tier->list_string_value_at(k));
+					e.trim();
 					if (e.url.empty()) continue;
 					e.tier = j;
 					e.fail_limit = 0;
 					e.source = announce_entry::source_torrent;
-					e.trim();
 #if TORRENT_USE_I2P
 					if (is_i2p_url(e.url)) m_i2p = true;
 #endif
