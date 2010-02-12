@@ -118,7 +118,10 @@ namespace libtorrent
 	}
 
 	web_peer_connection::~web_peer_connection()
-	{}
+	{
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		if (t) t->disconnect_web_seed(m_url, web_seed_entry::url_seed);
+	}
 	
 	boost::optional<piece_block_progress>
 	web_peer_connection::downloading_piece_progress() const

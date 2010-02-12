@@ -218,8 +218,6 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_storage)
 		PRINT_OFFSETOF(torrent, m_connections)
 		PRINT_OFFSETOF(torrent, m_web_seeds)
-		PRINT_OFFSETOF(torrent, m_web_seeds_next_retry)
-		PRINT_OFFSETOF(torrent, m_resolving_web_seeds)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		PRINT_OFFSETOF(torrent, m_extensions)
 #endif
@@ -3144,12 +3142,15 @@ namespace libtorrent
 		m_connections.erase(i);
 	}
 
-	void torrent::connect_to_url_seed(web_seed_entry const& web)
+	void torrent::connect_to_url_seed(std::list<web_seed_entry>::iterator web)
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(!web->resolving);
+		if (web->resolving) return;
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		(*m_ses.m_logger) << time_now_string() << " resolving web seed: " << web.url << "\n";
+		(*m_ses.m_logger) << time_now_string() << " resolving web seed: " << web->url << "\n";
 #endif
 
 		std::string protocol;
@@ -3159,7 +3160,7 @@ namespace libtorrent
 		std::string path;
 		error_code ec;
 		boost::tie(protocol, auth, hostname, port, path)
-			= parse_url_components(web.url, ec);
+			= parse_url_components(web->url, ec);
 
 		if (ec)
 		{
@@ -3180,7 +3181,7 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, errors::unsupported_url_protocol));
+					url_seed_alert(get_handle(), web->url, errors::unsupported_url_protocol));
 			}
 			// never try it again
 			m_web_seeds.erase(web);
@@ -3192,7 +3193,7 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, errors::invalid_hostname));
+					url_seed_alert(get_handle(), web->url, errors::invalid_hostname));
 			}
 			// never try it again
 			m_web_seeds.erase(web);
@@ -3204,14 +3205,19 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, errors::invalid_port));
+					url_seed_alert(get_handle(), web->url, errors::invalid_port));
 			}
 			// never try it again
 			m_web_seeds.erase(web);
 			return;
 		}
 
-		m_resolving_web_seeds.insert(web);
+		if (web->endpoint.port() != 0)
+		{
+			// TODO: we have already resolved this URL, just connect
+		}
+
+		web->resolving = true;
 		proxy_settings const& ps = m_ses.web_seed_proxy();
 		if (ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
@@ -3228,7 +3234,7 @@ namespace libtorrent
 				if (m_ses.m_alerts.should_post<url_seed_alert>())
 				{
 					m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, errors::port_blocked));
+					url_seed_alert(get_handle(), web->url, errors::port_blocked));
 				}
 				// never try it again
 				m_web_seeds.erase(web);
@@ -3240,18 +3246,17 @@ namespace libtorrent
 				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web
 					, tcp::endpoint()));
 		}
-
 	}
 
 	void torrent::on_proxy_name_lookup(error_code const& e, tcp::resolver::iterator host
-		, web_seed_entry web)
+		, std::list<web_seed_entry>::iterator web)
 	{
 		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		(*m_ses.m_logger) << time_now_string() << " completed resolve proxy hostname for: " << web.url << "\n";
+		(*m_ses.m_logger) << time_now_string() << " completed resolve proxy hostname for: " << web->url << "\n";
 		if (e)
 			*m_ses.m_logger << time_now_string() << " on_proxy_name_lookup: " << e.message() << "\n";
 #endif
@@ -3263,7 +3268,7 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, e));
+					url_seed_alert(get_handle(), web->url, e));
 			}
 
 			// the name lookup failed for the http host. Don't try
@@ -3281,14 +3286,14 @@ namespace libtorrent
 		int port;
 		error_code ec;
 		boost::tie(ignore, ignore, hostname, port, ignore)
-			= parse_url_components(web.url, ec);
+			= parse_url_components(web->url, ec);
 
 		if (ec)
 		{
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
 				m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web.url, ec));
+					url_seed_alert(get_handle(), web->url, ec));
 			}
 			m_web_seeds.erase(web);
 			return;
@@ -3307,44 +3312,32 @@ namespace libtorrent
 	}
 
 	void torrent::on_name_lookup(error_code const& e, tcp::resolver::iterator host
-		, web_seed_entry web, tcp::endpoint proxy)
+		, std::list<web_seed_entry>::iterator web, tcp::endpoint proxy)
 	{
 		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		(*m_ses.m_logger) << time_now_string() << " completed resolve: " << web.url << "\n";
+		(*m_ses.m_logger) << time_now_string() << " completed resolve: " << web->url << "\n";
 #endif
+		web->resolving = false;
 
 		if (m_abort) return;
-
-		std::set<web_seed_entry>::iterator i = m_resolving_web_seeds.find(web);
-		if (i != m_resolving_web_seeds.end()) m_resolving_web_seeds.erase(i);
-
-		if (is_paused())
-		{
-			m_web_seeds.insert(web);
-			return;
-		}
 
 		if (e || host == tcp::resolver::iterator())
 		{
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
-			{
-				m_ses.m_alerts.post_alert(url_seed_alert(get_handle(), web.url, e));
-			}
+				m_ses.m_alerts.post_alert(url_seed_alert(get_handle(), web->url, e));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << web.url
+			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << web->url
 				<< " " << e.message() << "\n";
 #endif
 
 			// unavailable, retry in 30 minutes
-			retry_web_seed(web.url, web.type, 60 * 30);
+			web->retry = time_now() + minutes(30);
 			return;
 		}
-
-		if (m_ses.is_aborted()) return;
 
 		tcp::endpoint a(host->endpoint());
 
@@ -3355,6 +3348,11 @@ namespace libtorrent
 			return;
 		}
 		
+		web->endpoint = a;
+
+		if (is_paused()) return;
+		if (m_ses.is_aborted()) return;
+
 		boost::shared_ptr<socket_type> s(new (std::nothrow) socket_type(m_ses.m_io_service));
 		if (!s) return;
 	
@@ -3371,18 +3369,18 @@ namespace libtorrent
 		}
 
 		boost::intrusive_ptr<peer_connection> c;
-		if (web.type == web_seed_entry::url_seed)
+		if (web->type == web_seed_entry::url_seed)
 		{
 			c = new (std::nothrow) web_peer_connection(
-				m_ses, shared_from_this(), s, a, web.url, 0);
+				m_ses, shared_from_this(), s, a, web->url, 0);
 		}
-		else if (web.type == web_seed_entry::http_seed)
+		else if (web->type == web_seed_entry::http_seed)
 		{
 			c = new (std::nothrow) http_seed_connection(
-				m_ses, shared_from_this(), s, a, web.url, 0);
+				m_ses, shared_from_this(), s, a, web->url, 0);
 		}
 		if (!c) return;
-			
+
 #ifdef TORRENT_DEBUG
 		c->m_in_constructor = false;
 #endif
@@ -3404,6 +3402,9 @@ namespace libtorrent
 			// add the newly connected peer to this torrent's peer list
 			m_connections.insert(boost::get_pointer(c));
 			m_ses.m_connections.insert(c);
+
+			web->connection = c.get();
+
 			c->start();
 
 			m_ses.m_half_open.enqueue(
@@ -3817,19 +3818,14 @@ namespace libtorrent
 		if (!m_web_seeds.empty())
 		{
 			entry::list_type& url_list = ret["url-list"].list();
-			for (std::set<web_seed_entry>::const_iterator i = m_web_seeds.begin()
-				, end(m_web_seeds.end()); i != end; ++i)
-			{
-				if (i->type != web_seed_entry::url_seed) continue;
-				url_list.push_back(i->url);
-			}
-
 			entry::list_type& httpseed_list = ret["httpseeds"].list();
-			for (std::set<web_seed_entry>::const_iterator i = m_web_seeds.begin()
+			for (std::list<web_seed_entry>::const_iterator i = m_web_seeds.begin()
 				, end(m_web_seeds.end()); i != end; ++i)
 			{
-				if (i->type != web_seed_entry::http_seed) continue;
-				httpseed_list.push_back(i->url);
+				if (i->type == web_seed_entry::url_seed)
+					url_list.push_back(i->url);
+				else if (i->type == web_seed_entry::http_seed)
+					httpseed_list.push_back(i->url);
 			}
 		}
 
@@ -5506,57 +5502,21 @@ namespace libtorrent
 
 		// ---- WEB SEEDS ----
 
-		// re-insert urls that are to be retried into the m_web_seeds
-		typedef std::map<web_seed_entry, ptime>::iterator iter_t;
-		for (iter_t i = m_web_seeds_next_retry.begin(); i != m_web_seeds_next_retry.end();)
-		{
-			iter_t erase_element = i++;
-			if (erase_element->second <= now)
-			{
-				m_web_seeds.insert(erase_element->first);
-				m_web_seeds_next_retry.erase(erase_element);
-			}
-		}
-
 		// if we have everything we want we don't need to connect to any web-seed
 		if (!is_finished() && !m_web_seeds.empty() && m_files_checked)
 		{
 			// keep trying web-seeds if there are any
 			// first find out which web seeds we are connected to
-			std::set<web_seed_entry> web_seeds;
-			for (peer_iterator i = m_connections.begin();
-				i != m_connections.end(); ++i)
+			for (std::list<web_seed_entry>::iterator i = m_web_seeds.begin();
+				i != m_web_seeds.end();)
 			{
-				switch ((*i)->type())
-				{
-					case peer_connection::url_seed_connection:
-					{
-						web_peer_connection* p = static_cast<web_peer_connection*>(*i);
-						web_seeds.insert(web_seed_entry(p->url(), web_seed_entry::url_seed));
-						break;
-					}
-					case peer_connection::http_seed_connection:
-					{
-						http_seed_connection* p = static_cast<http_seed_connection*>(*i);
-						web_seeds.insert(web_seed_entry(p->url(), web_seed_entry::http_seed));
-						break;
-					}
-				}
+				std::list<web_seed_entry>::iterator w = i++;
+				if (w->connection) continue;
+				if (w->retry > time_now()) continue;
+				if (w->resolving) continue;
+
+				connect_to_url_seed(w);
 			}
-
-			for (std::set<web_seed_entry>::iterator i = m_resolving_web_seeds.begin()
-				, end(m_resolving_web_seeds.end()); i != end; ++i)
-				web_seeds.insert(web_seeds.begin(), *i);
-
-			// from the list of available web seeds, subtract the ones we are
-			// already connected to.
-			std::vector<web_seed_entry> not_connected_web_seeds;
-			std::set_difference(m_web_seeds.begin(), m_web_seeds.end(), web_seeds.begin()
-				, web_seeds.end(), std::back_inserter(not_connected_web_seeds));
-
-			// connect to all of those that we aren't connected to
-			std::for_each(not_connected_web_seeds.begin(), not_connected_web_seeds.end()
-				, bind(&torrent::connect_to_url_seed, this, _1));
 		}
 		
 		for (peer_iterator i = m_connections.begin();
@@ -5821,7 +5781,7 @@ namespace libtorrent
 	std::set<std::string> torrent::web_seeds(web_seed_entry::type_t type) const
 	{
 		std::set<std::string> ret;
-		for (std::set<web_seed_entry>::const_iterator i = m_web_seeds.begin()
+		for (std::list<web_seed_entry>::const_iterator i = m_web_seeds.begin()
 			, end(m_web_seeds.end()); i != end; ++i)
 		{
 			if (i->type != type) continue;
@@ -5832,8 +5792,12 @@ namespace libtorrent
 
 	void torrent::retry_web_seed(std::string const& url, web_seed_entry::type_t type, int retry)
 	{
+		std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
+			, (boost::bind(&web_seed_entry::url, _1) == url)
+				&& (boost::bind(&web_seed_entry::type, _1) == type));
+
 		if (retry == 0) retry = m_ses.settings().urlseed_wait_retry;
-		m_web_seeds_next_retry[web_seed_entry(url, type)] = time_now() + seconds(retry);
+		if (i != m_web_seeds.end()) i->retry = time_now() + seconds(retry);
 	}
 
 	bool torrent::try_connect_peer()
