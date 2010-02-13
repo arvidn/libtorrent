@@ -6,6 +6,8 @@ release 0.14.9
 	* don't crash when trying to create torrents with 0 files
 	* fixed big_number __init__ in python bindings
 	* fixed optimistic unchoke timer
+	* fixed bug where torrents with incorrectly formatted web seed URLs would be
+	  connected multiple times
 
 release 0.14.8
 
