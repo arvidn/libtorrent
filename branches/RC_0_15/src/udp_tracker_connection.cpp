@@ -295,8 +295,8 @@ namespace libtorrent
 		if (cb)
 		{
 			char msg[200];
-			snprintf(msg, 200, "*** UDP_TRACKER_RESPONSE [ tid: %x%x ]"
-				, int(transaction >> 32), int(transaction & 0xffffffff));
+			snprintf(msg, 200, "*** UDP_TRACKER_RESPONSE [ tid: %x ]"
+				, int(transaction));
 			cb->debug_log(msg);
 		}
 #endif

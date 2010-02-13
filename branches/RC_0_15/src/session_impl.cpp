@@ -1015,6 +1015,16 @@ namespace aux {
 			|| m_settings.low_prio_disk != s.low_prio_disk)
 			update_disk_io_thread = true;
 
+		if (m_settings.local_service_announce_interval != s.local_service_announce_interval)
+		{
+			error_code ec;
+			int delay = (std::max)(s.local_service_announce_interval
+				/ (std::max)(int(m_torrents.size()), 1), 1);
+			m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
+			m_lsd_announce_timer.async_wait(
+				bind(&session_impl::on_lsd_announce, this, _1));
+		}
+
 		// if queuing settings were changed, recalculate
 		// queued torrents sooner
 		if ((m_settings.active_downloads != s.active_downloads
@@ -2002,6 +2012,7 @@ namespace aux {
 		if (e) return;
 
 		session_impl::mutex_t::scoped_lock l(m_mutex);
+		if (m_abort) return;
 
 		// announce on local network every 5 minutes
 		int delay = (std::max)(m_settings.local_service_announce_interval
@@ -2011,7 +2022,8 @@ namespace aux {
 		m_lsd_announce_timer.async_wait(
 			bind(&session_impl::on_lsd_announce, this, _1));
 
-		if (m_next_lsd_torrent == m_torrents.end()) return;
+		if (m_next_lsd_torrent == m_torrents.end())
+			m_next_lsd_torrent = m_torrents.begin();
 		m_next_lsd_torrent->second->lsd_announce();
 		++m_next_lsd_torrent;
 		if (m_next_lsd_torrent == m_torrents.end())
