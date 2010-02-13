@@ -464,7 +464,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		{
 			bool unchoked = (i->flags & peer_info::choked) == 0;
 
-			snprintf(str, sizeof(str), " %s %s %s"
+			snprintf(str, sizeof(str), " %s %s"
 				, add_suffix(i->remote_dl_rate, "/s").c_str()
 				, unchoked ? add_suffix(i->estimated_reciprocation_rate, "/s").c_str() : "      ");
 			out += str;
