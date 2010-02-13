@@ -64,6 +64,7 @@ namespace libtorrent
 		, policy::peer* peerinfo)
 		: peer_connection(ses, t, s, remote, peerinfo)
 		, m_url(url)
+		, m_original_url(url)
 		, m_first_request(true)
 		, m_range_pos(0)
 		, m_block_pos(0)
