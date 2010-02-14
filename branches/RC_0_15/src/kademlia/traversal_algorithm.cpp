@@ -188,6 +188,10 @@ void traversal_algorithm::add_requests()
 
 void traversal_algorithm::add_router_entries()
 {
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(traversal) << " using router nodes to initiate traversal algorithm. "
+		<< std::distance(m_node.m_table.router_begin(), m_node.m_table.router_end()) << " routers";
+#endif
 	for (routing_table::router_iterator i = m_node.m_table.router_begin()
 		, end(m_node.m_table.router_end()); i != end; ++i)
 	{

@@ -393,6 +393,7 @@ namespace aux {
 #endif
 		, m_files(40)
 		, m_io_service()
+		, m_host_resolver(m_io_service)
 		, m_alerts(m_io_service)
 		, m_disk_thread(m_io_service, boost::bind(&session_impl::on_disk_queue, this), m_files)
 		, m_half_open(m_io_service)
@@ -2914,12 +2915,11 @@ namespace aux {
 			m_dht_socket.bind(m_dht_settings.service_port);
 		}
 
-		for (std::list<std::pair<std::string, int> >::iterator i = m_dht_router_nodes.begin()
+		for (std::list<udp::endpoint>::iterator i = m_dht_router_nodes.begin()
 			, end(m_dht_router_nodes.end()); i != end; ++i)
 		{
 			m_dht->add_router_node(*i);
 		}
-		std::list<std::pair<std::string, int> >().swap(m_dht_router_nodes);
 
 		m_dht->start(startup_state);
 
@@ -3030,11 +3030,23 @@ namespace aux {
 
 	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
 	{
-		// router nodes should be added before the DHT is started (and bootstrapped)
-		if (m_dht) m_dht->add_router_node(node);
-		else m_dht_router_nodes.push_back(node);
+		char port[7];
+		snprintf(port, sizeof(port), "%d", node.second);
+		tcp::resolver::query q(node.first, port);
+		m_host_resolver.async_resolve(q,
+			bind(&session_impl::on_dht_router_name_lookup, this, _1, _2));
 	}
 
+	void session_impl::on_dht_router_name_lookup(error_code const& e
+		, tcp::resolver::iterator host)
+	{
+		if (e || host == tcp::resolver::iterator()) return;
+		session_impl::mutex_t::scoped_lock l(m_mutex);
+		// router nodes should be added before the DHT is started (and bootstrapped)
+		udp::endpoint ep(host->endpoint().address(), host->endpoint().port());
+		if (m_dht) m_dht->add_router_node(ep);
+		m_dht_router_nodes.push_back(ep);
+	}
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION

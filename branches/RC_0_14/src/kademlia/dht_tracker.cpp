@@ -778,23 +778,10 @@ namespace libtorrent { namespace dht
 		TORRENT_ASSERT(false);
 	};
 
-	void dht_tracker::add_router_node(std::pair<std::string, int> const& node)
+	void dht_tracker::add_router_node(udp::endpoint const& node)
 	{
-		udp::resolver::query q(node.first, lexical_cast<std::string>(node.second));
-		m_host_resolver.async_resolve(q,
-			bind(&dht_tracker::on_router_name_lookup, self(), _1, _2));
+		m_dht.add_router_node(node);
 	}
-
-	void dht_tracker::on_router_name_lookup(error_code const& e
-		, udp::resolver::iterator host) try
-	{
-		if (e || host == udp::resolver::iterator()) return;
-		m_dht.add_router_node(host->endpoint());
-	}
-	catch (std::exception&)
-	{
-		TORRENT_ASSERT(false);
-	};
 
 	void dht_tracker::on_bootstrap()
 	{}
