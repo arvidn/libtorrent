@@ -171,12 +171,14 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 
 #if TORRENT_USE_WPATH
+#define CreateFile_ CreateFileW
 		std::wstring file_path(safe_convert(path.external_file_string()));
 #else
+#define CreateFile_ CreateFileA
 		std::string file_path = utf8_native(path.external_file_string());
 #endif
 
-		m_file_handle = CreateFile(
+		m_file_handle = CreateFile_(
 			file_path.c_str()
 			, mode.m_mask
 			, FILE_SHARE_READ

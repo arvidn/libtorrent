@@ -246,7 +246,7 @@ namespace libtorrent
 				++in; // 'e' 
 				ret = entry(entry::int_t);
 				char* end_pointer;
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
 				ret.integer() = _strtoi64(val.c_str(), &end_pointer, 10);
 #else
 				ret.integer() = strtoll(val.c_str(), &end_pointer, 10);
