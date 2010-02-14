@@ -97,6 +97,7 @@ release 0.14.9
 	* fixed bug where torrents with incorrectly formatted web seed URLs would be
 	  connected multiple times
 	* fixed MinGW support
+	* fixed DHT bootstrapping issue
 
 release 0.14.8
 
