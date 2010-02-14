@@ -185,7 +185,7 @@ node_impl::node_impl(libtorrent::aux::session_impl& ses
 	, node_id nid
 	, void* userdata)
 	: m_settings(settings)
-	, m_id(nid == (node_id::min)()? nid : generate_id())
+	, m_id(nid == (node_id::min)() ? generate_id() : nid)
 	, m_table(m_id, 8, settings)
 	, m_rpc(m_id, m_table, f, userdata)
 	, m_last_tracker_tick(time_now())
