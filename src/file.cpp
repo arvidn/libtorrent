@@ -1504,6 +1504,11 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 		// according to MSDN, clearing the sparse flag of a file only
 		// works on windows vista and later
+#ifdef TORRENT_MINGW
+typedef struct _FILE_SET_SPARSE_BUFFER {
+	    BOOLEAN SetSparse;
+} FILE_SET_SPARSE_BUFFER, *PFILE_SET_SPARSE_BUFFER;
+#endif
 		DWORD temp;
 		FILE_SET_SPARSE_BUFFER b;
 		b.SetSparse = FALSE;
@@ -1536,6 +1541,13 @@ namespace libtorrent
 	size_type file::sparse_end(size_type start) const
 	{
 #ifdef TORRENT_WINDOWS
+#ifdef TORRENT_MINGW
+typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
+	LARGE_INTEGER FileOffset;
+	LARGE_INTEGER Length;
+} FILE_ALLOCATED_RANGE_BUFFER, *PFILE_ALLOCATED_RANGE_BUFFER;
+#define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
+#endif
 		FILE_ALLOCATED_RANGE_BUFFER buffer;
 		DWORD bytes_returned = 0;
 		FILE_ALLOCATED_RANGE_BUFFER in;
