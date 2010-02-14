@@ -207,7 +207,7 @@ namespace libtorrent
 	void trim_path_element(std::string& path_element)
 	{
 		const int max_path_len = TORRENT_MAX_PATH;
-		if (path_element.size() > max_path_len)
+		if (int(path_element.size()) > max_path_len)
 		{
 			// truncate filenames that are too long. But keep extensions!
 			std::string ext = extension(path_element);

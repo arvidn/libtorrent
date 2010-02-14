@@ -453,9 +453,12 @@ namespace aux {
 		, m_external_udp_port(0)
 		, m_dht_socket(m_io_service, bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, m_half_open)
+		, m_dht_announce_timer(m_io_service)
 #endif
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
+		, m_host_resolver(m_io_service)
+		, m_tick_residual(0)
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, m_logpath(logpath)
 #endif
@@ -466,6 +469,9 @@ namespace aux {
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 	{
+#ifndef TORRENT_DISABLE_DHT
+		m_next_dht_torrent = m_torrents.begin();
+#endif
 		m_next_lsd_torrent = m_torrents.begin();
 		m_next_connect_torrent = m_torrents.begin();
 
@@ -507,6 +513,7 @@ namespace aux {
 #define PRINT_SIZEOF(x) (*m_logger) << "sizeof(" #x "): " << sizeof(x) << "\n";
 #define PRINT_OFFSETOF(x, y) (*m_logger) << "  offsetof(" #x "," #y "): " << offsetof(x, y) << "\n";
 
+		PRINT_SIZEOF(union_endpoint)
 		PRINT_SIZEOF(request_callback)
 		PRINT_SIZEOF(stat)
 		PRINT_SIZEOF(bandwidth_channel)
@@ -620,6 +627,14 @@ namespace aux {
 		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
 		m_lsd_announce_timer.async_wait(
 			bind(&session_impl::on_lsd_announce, this, _1));
+
+#ifndef TORRENT_DISABLE_DHT
+		delay = (std::max)(m_settings.dht_announce_interval
+			/ (std::max)(int(m_torrents.size()), 1), 1);
+		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
+		m_dht_announce_timer.async_wait(
+			bind(&session_impl::on_dht_announce, this, _1));
+#endif
 
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
@@ -929,6 +944,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht) m_dht->stop();
 		m_dht_socket.close();
+		m_dht_announce_timer.cancel(ec);
 #endif
 		m_timer.cancel(ec);
 		m_lsd_announce_timer.cancel(ec);
@@ -1085,6 +1101,18 @@ namespace aux {
 			// trigger recalculation of the unchoked peers
 			m_unchoke_time_scaler = 0;
 		}
+
+#ifndef TORRENT_DISABLE_DHT
+		if (m_settings.dht_announce_interval != s.dht_announce_interval)
+		{
+			error_code ec;
+			int delay = (std::max)(s.dht_announce_interval
+				/ (std::max)(int(m_torrents.size()), 1), 1);
+			m_dht_announce_timer.expires_from_now(seconds(delay), ec);
+			m_dht_announce_timer.async_wait(
+				bind(&session_impl::on_dht_announce, this, _1));
+		}
+#endif
 
 		if (m_settings.local_service_announce_interval != s.local_service_announce_interval)
 		{
@@ -1745,6 +1773,7 @@ namespace aux {
 
 		int tick_interval_ms = total_milliseconds(now - m_last_second_tick);
 		m_last_second_tick = now;
+		m_tick_residual += tick_interval_ms - 1000;
 
 		int session_time = total_seconds(now - m_created);
 		if (session_time > 65000)
@@ -1884,7 +1913,8 @@ namespace aux {
 			{
 				++num_paused_auto_managed;
 				if (least_recently_scraped == m_torrents.end()
-					|| least_recently_scraped->second->last_scrape() > t.last_scrape())
+					|| least_recently_scraped->second->seconds_since_last_scrape()
+						< t.seconds_since_last_scrape())
 				{
 					least_recently_scraped = i;
 				}
@@ -2191,8 +2221,35 @@ namespace aux {
 			}
 		}
 
+		while (m_tick_residual >= 1000) m_tick_residual -= 1000;
 //		m_peer_pool.release_memory();
 	}
+
+#ifndef TORRENT_DISABLE_DHT
+
+	void session_impl::on_dht_announce(error_code const& e)
+	{
+		if (e) return;
+
+		mutex::scoped_lock l(m_mutex);
+		if (m_abort) return;
+
+		// announce to DHT every 15 minutes
+		int delay = (std::max)(m_settings.dht_announce_interval
+			/ (std::max)(int(m_torrents.size()), 1), 1);
+		error_code ec;
+		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
+		m_dht_announce_timer.async_wait(
+			bind(&session_impl::on_dht_announce, this, _1));
+
+		if (m_next_dht_torrent == m_torrents.end())
+			m_next_dht_torrent = m_torrents.begin();
+		m_next_dht_torrent->second->dht_announce();
+		++m_next_dht_torrent;
+		if (m_next_dht_torrent == m_torrents.end())
+			m_next_dht_torrent = m_torrents.begin();
+  	}
+#endif
 
 	void session_impl::on_lsd_announce(error_code const& e)
 	{
@@ -2896,6 +2953,10 @@ namespace aux {
 #ifdef TORRENT_DEBUG
 			sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
+#ifndef TORRENT_DISABLE_DHT
+			if (i == m_next_dht_torrent)
+				++m_next_dht_torrent;
+#endif
 			if (i == m_next_lsd_torrent)
 				++m_next_lsd_torrent;
 			if (i == m_next_connect_torrent)
@@ -2904,6 +2965,10 @@ namespace aux {
 			t.set_queue_position(-1);
 			m_torrents.erase(i);
 
+#ifndef TORRENT_DISABLE_DHT
+			if (m_next_dht_torrent == m_torrents.end())
+				m_next_dht_torrent = m_torrents.begin();
+#endif
 			if (m_next_lsd_torrent == m_torrents.end())
 				m_next_lsd_torrent = m_torrents.begin();
 			if (m_next_connect_torrent == m_torrents.end())
@@ -3195,7 +3260,7 @@ namespace aux {
 		for (torrent_map::const_iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
-			i->second->force_dht_announce();
+			i->second->dht_announce();
 		}
 	}
 

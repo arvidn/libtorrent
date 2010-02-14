@@ -1335,7 +1335,7 @@ namespace libtorrent
 				return;
 		}
 
-		if (m_suggested_pieces.size() > m_ses.m_settings.max_suggest_pieces)
+		if (int(m_suggested_pieces.size()) > m_ses.m_settings.max_suggest_pieces)
 			m_suggested_pieces.erase(m_suggested_pieces.begin());
 
 		m_suggested_pieces.push_back(index);
@@ -3520,7 +3520,7 @@ namespace libtorrent
 			boost::shared_ptr<torrent> t = m_torrent.lock();
 			assert(t);
 
-			for (int i = 0; i < m_have_piece.size(); ++i)
+			for (int i = 0; i < int(m_have_piece.size()); ++i)
 			{
 				if (m_have_piece[i] || !t->have_piece(i)) continue;
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -4546,7 +4546,7 @@ namespace libtorrent
 			(*m_logger) << "read " << bytes_transferred << " bytes\n";
 #endif
 			// correct the dl quota usage, if not all of the buffer was actually read
-			TORRENT_ASSERT(bytes_transferred <= m_quota[download_channel]);
+			TORRENT_ASSERT(int(bytes_transferred) <= m_quota[download_channel]);
 			m_quota[download_channel] -= bytes_transferred;
 
 			if (m_disconnecting)
@@ -4576,7 +4576,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
 			size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
 				m_statistics.last_protocol_downloaded() - cur_protocol_dl;
-			TORRENT_ASSERT(stats_diff == bytes_transferred);
+			TORRENT_ASSERT(stats_diff == int(bytes_transferred));
 #endif
 
 			TORRENT_ASSERT(m_packet_size > 0);
@@ -4860,7 +4860,7 @@ namespace libtorrent
 		
 		m_channel_state[upload_channel] = peer_info::bw_idle;
 
-		TORRENT_ASSERT(bytes_transferred <= m_quota[upload_channel]);
+		TORRENT_ASSERT(int(bytes_transferred) <= m_quota[upload_channel]);
 		m_quota[upload_channel] -= bytes_transferred;
 
 		m_statistics.trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
@@ -4894,7 +4894,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_statistics.last_protocol_uploaded() - cur_protocol_ul >= 0);
 		size_type stats_diff = m_statistics.last_payload_uploaded() - cur_payload_ul
 			+ m_statistics.last_protocol_uploaded() - cur_protocol_ul;
-		TORRENT_ASSERT(stats_diff == bytes_transferred);
+		TORRENT_ASSERT(stats_diff == int(bytes_transferred));
 #endif
 
 		fill_send_buffer();

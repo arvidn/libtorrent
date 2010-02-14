@@ -53,7 +53,7 @@ namespace libtorrent
 	{
 	friend class invariant_access;
 	public:
-		enum { history = 10 };
+		enum { history = 5 };
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 

@@ -203,7 +203,7 @@ namespace libtorrent
 			lazy_dict_entry* tmp = new (std::nothrow) lazy_dict_entry[capacity];
 			if (tmp == 0) return 0;
 			std::memcpy(tmp, m_data.dict, sizeof(lazy_dict_entry) * m_size);
-			for (int i = 0; i < m_size; ++i) m_data.dict[i].val.release();
+			for (int i = 0; i < int(m_size); ++i) m_data.dict[i].val.release();
 			delete[] m_data.dict;
 			m_data.dict = tmp;
 			m_capacity = capacity;
@@ -262,7 +262,7 @@ namespace libtorrent
 	std::pair<std::string, lazy_entry const*> lazy_entry::dict_at(int i) const
 	{
 		TORRENT_ASSERT(m_type == dict_t);
-		TORRENT_ASSERT(i < m_size);
+		TORRENT_ASSERT(i < int(m_size));
 		lazy_dict_entry const& e = m_data.dict[i];
 		return std::make_pair(std::string(e.name, e.val.m_begin - e.name), &e.val);
 	}
@@ -319,7 +319,7 @@ namespace libtorrent
 	lazy_entry* lazy_entry::dict_find(char const* name)
 	{
 		TORRENT_ASSERT(m_type == dict_t);
-		for (int i = 0; i < m_size; ++i)
+		for (int i = 0; i < int(m_size); ++i)
 		{
 			lazy_dict_entry& e = m_data.dict[i];
 			if (string_equal(name, e.name, e.val.m_begin - e.name))
@@ -345,7 +345,7 @@ namespace libtorrent
 			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity];
 			if (tmp == 0) return 0;
 			std::memcpy(tmp, m_data.list, sizeof(lazy_entry) * m_size);
-			for (int i = 0; i < m_size; ++i) m_data.list[i].release();
+			for (int i = 0; i < int(m_size); ++i) m_data.list[i].release();
 			delete[] m_data.list;
 			m_data.list = tmp;
 			m_capacity = capacity;

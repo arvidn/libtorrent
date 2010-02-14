@@ -3759,6 +3759,7 @@ session_settings
 
 		bool low_prio_disk;
 		int local_service_announce_interval;
+		int dht_announce_interval;
 
 		int udp_tracker_token_expiry;
 		bool volatile_read_cache;
@@ -4274,6 +4275,10 @@ be desirable.
 network announces for a torrent. By default, when local service
 discovery is enabled a torrent announces itself every 5 minutes.
 This interval is specified in seconds.
+
+``dht_announce_interval`` is the number of seconds between announcing
+torrents to the distributed hash table (DHT). This is specified to
+be 15 minutes which is its default.
 
 ``udp_tracker_token_expiry`` is the number of seconds libtorrent
 will keep UDP tracker connection tokens around for. This is specified
