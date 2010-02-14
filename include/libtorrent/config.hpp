@@ -128,6 +128,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_LINUX
 #elif defined __MINGW32__
 #define TORRENT_MINGW
+#define TORRENT_WINDOWS
 #elif defined WIN32
 #define TORRENT_WINDOWS
 #elif defined sun || defined __sun 
@@ -143,9 +144,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_WRITEV 1
 #define TORRENT_USE_IOSTREAM 1
 
+#if defined TORRENT_BSD || defined TORRENT_LINUX || defined TORRENT_SOLARIS
+#define TORRENT_USE_RLIMIT 1
+#else
+#define TORRENT_USE_RLIMIT 0
+#endif
+
 // should wpath or path be used?
 #if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \
-	&& BOOST_VERSION >= 103400 && !defined __APPLE__
+	&& BOOST_VERSION >= 103400 && !defined __APPLE__ && !defined TORRENT_MINGW
 #define TORRENT_USE_WPATH 1
 #else
 #define TORRENT_USE_WPATH 0
@@ -166,7 +173,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif // MAXPATH
 #endif // NAME_MAX
 
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
 
 #pragma warning(disable:4251) // class X needs to have dll-interface to be used by clients of class Y
 
@@ -194,7 +201,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #if !TORRENT_USE_WPATH && defined TORRENT_LINUX
-// libiconv presnce, not implemented yet
+// libiconv presence, not implemented yet
 #define TORRENT_USE_LOCALE_FILENAMES 1
 #else
 #define TORRENT_USE_LOCALE_FILENAMES 0

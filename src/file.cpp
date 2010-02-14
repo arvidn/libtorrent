@@ -179,8 +179,10 @@ namespace libtorrent
 		};
 
 #if TORRENT_USE_WPATH
+#define CreateFile_ CreateFileW
 		m_path = convert_to_wstring(path.external_file_string());
 #else
+#define CreateFile_ CreateFileA
 		m_path = convert_to_native(path.external_file_string());
 #endif
 
@@ -188,7 +190,7 @@ namespace libtorrent
 		open_mode_t const& m = mode_array[mode & mode_mask];
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
 
-		m_file_handle = CreateFile(m_path.c_str(), m.rw_mode, m.share_mode, 0
+		m_file_handle = CreateFile_(m_path.c_str(), m.rw_mode, m.share_mode, 0
 			, m.create_mode, m.flags | (a ? a : FILE_ATTRIBUTE_NORMAL), 0);
 
 		if (m_file_handle == INVALID_HANDLE_VALUE)
