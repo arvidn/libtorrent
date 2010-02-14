@@ -259,12 +259,22 @@ void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 {
 	boost::intrusive_ptr<dht::refresh> r(new dht::refresh(*this, m_id, f));
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	int count = 0;
+#endif
+
 	for (std::vector<udp::endpoint>::const_iterator i = nodes.begin()
 		, end(nodes.end()); i != end; ++i)
 	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		++count;
+#endif
 		r->add_entry(node_id(0), *i, traversal_algorithm::result::initial);
 	}
 	
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(node) << "bootstrapping with " << count << " nodes";
+#endif
 	r->start();
 }
 /*

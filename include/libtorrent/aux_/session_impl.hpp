@@ -198,6 +198,8 @@ namespace libtorrent
 			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
 
 			void on_dht_announce(error_code const& e);
+			void on_dht_router_name_lookup(error_code const& e
+				, tcp::resolver::iterator host);
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -695,7 +697,7 @@ namespace libtorrent
 
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased
-			std::list<std::pair<std::string, int> > m_dht_router_nodes;
+			std::list<udp::endpoint> m_dht_router_nodes;
 
 			void on_receive_udp(error_code const& e
 				, udp::endpoint const& ep, char const* buf, int len);
