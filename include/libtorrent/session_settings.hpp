@@ -191,6 +191,7 @@ namespace libtorrent
 			, drop_skipped_requests(false)
 			, low_prio_disk(true)
 			, local_service_announce_interval(5 * 60)
+			, dht_announce_interval(15 * 60)
 			, udp_tracker_token_expiry(60)
 			, volatile_read_cache(false)
 			, guided_read_cache(true)
@@ -704,6 +705,10 @@ namespace libtorrent
 		// number of seconds between local service announces for
 		// torrents. Defaults to 5 minutes
 		int local_service_announce_interval;
+
+		// number of seconds between DHT announces for
+		// torrents. Defaults to 15 minutes
+		int dht_announce_interval;
 
 		// the number of seconds a connection ID received
 		// from a UDP tracker is valid for. This is specified

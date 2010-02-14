@@ -75,7 +75,7 @@ namespace libtorrent
 			none_t, dict_t, list_t, string_t, int_t
 		};
 
-		lazy_entry() : m_type(none_t), m_begin(0), m_end(0)
+		lazy_entry() : m_begin(0), m_end(0), m_type(none_t)
 		{ m_data.start = 0; }
 
 		entry_type_t type() const { return m_type; }
@@ -179,7 +179,7 @@ namespace libtorrent
 		lazy_entry* list_at(int i)
 		{
 			TORRENT_ASSERT(m_type == list_t);
-			TORRENT_ASSERT(i < m_size);
+			TORRENT_ASSERT(i < int(m_size));
 			return &m_data.list[i];
 		}
 		lazy_entry const* list_at(int i) const
@@ -192,7 +192,7 @@ namespace libtorrent
 		int list_size() const
 		{
 			TORRENT_ASSERT(m_type == list_t);
-			return m_size;
+			return int(m_size);
 		}
 
 		// end points one byte passed last byte
@@ -223,17 +223,20 @@ namespace libtorrent
 		void swap(lazy_entry& e)
 		{
 			using std::swap;
-			swap(m_type, e.m_type);
+			entry_type_t tmp1 = e.m_type;
+			e.m_type = m_type;
+			m_type = tmp1;
+			boost::uint32_t tmp2 = e.m_capacity;
+			e.m_capacity = m_capacity;
+			m_capacity = tmp2;
 			swap(m_data.start, e.m_data.start);
 			swap(m_size, e.m_size);
-			swap(m_capacity, e.m_capacity);
 			swap(m_begin, e.m_begin);
 			swap(m_end, e.m_end);
 		}
 
 	private:
 
-		entry_type_t m_type;
 		union data_t
 		{
 			lazy_dict_entry* dict;
@@ -241,12 +244,14 @@ namespace libtorrent
 			char const* start;
 		} m_data;
 
-		int m_size; // if list or dictionary, the number of items
-		int m_capacity; // if list or dictionary, allocated number of items
 		// used for dictionaries and lists to record the range
 		// in the original buffer they are based on
 		char const* m_begin;
 		char const* m_end;
+
+		boost::uint32_t m_size; // if list or dictionary, the number of items
+		boost::uint32_t m_capacity:29; // if list or dictionary, allocated number of items
+		entry_type_t m_type:3;
 
 		// non-copyable
 		lazy_entry(lazy_entry const&);

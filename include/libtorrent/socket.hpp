@@ -96,7 +96,7 @@ namespace libtorrent
 
 	namespace asio = boost::asio;
 #endif
-	
+
 #if TORRENT_USE_IPV6
 	struct v6only
 	{

@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/union_endpoint.hpp"
 
 namespace libtorrent
 {
@@ -141,7 +142,7 @@ namespace libtorrent
 			, const std::string& description
 			, int retry_interval) = 0;
 
-		tcp::endpoint m_tracker_address;
+		union_endpoint m_tracker_address;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual void debug_log(const std::string& line) = 0;

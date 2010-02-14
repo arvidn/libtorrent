@@ -289,8 +289,8 @@ namespace libtorrent
 	}
 
 	policy::policy(torrent* t)
-		: m_round_robin(0)
-		, m_torrent(t)
+		: m_torrent(t)
+		, m_round_robin(0)
 		, m_num_connect_candidates(0)
 		, m_num_seeds(0)
 		, m_finished(false)

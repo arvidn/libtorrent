@@ -435,11 +435,11 @@ namespace libtorrent
 
 		peers_t m_peers;
 
+		torrent* m_torrent;
+
 		// since the peer list can grow too large
 		// to scan all of it, start at this iterator
 		int m_round_robin;
-
-		torrent* m_torrent;
 
 		// The number of peers in our peer list
 		// that are connect candidates. i.e. they're
@@ -460,7 +460,7 @@ namespace libtorrent
 		// this state. Every time m_torrent->is_finished()
 		// is different from this state, we need to
 		// recalculate the connect candidates.
-		bool m_finished;
+		bool m_finished:1;
 	};
 
 	inline policy::ipv4_peer::ipv4_peer(

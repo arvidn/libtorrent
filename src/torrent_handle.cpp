@@ -667,7 +667,7 @@ namespace libtorrent
 	void torrent_handle::force_dht_announce() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(force_dht_announce());
+		TORRENT_FORWARD(dht_announce());
 	}
 #endif
 

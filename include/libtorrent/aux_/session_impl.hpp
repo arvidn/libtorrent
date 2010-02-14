@@ -196,6 +196,8 @@ namespace libtorrent
 
 			entry dht_state(mutex::scoped_lock& l) const;
 			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
+
+			void on_dht_announce(error_code const& e);
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -697,6 +699,10 @@ namespace libtorrent
 
 			void on_receive_udp(error_code const& e
 				, udp::endpoint const& ep, char const* buf, int len);
+
+			// this announce timer is used
+			// by the DHT.
+			deadline_timer m_dht_announce_timer;
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -720,9 +726,19 @@ namespace libtorrent
 			// 5 minutes)
 			torrent_map::iterator m_next_lsd_torrent;
 
+#ifndef TORRENT_DISABLE_DHT
+			// torrents are announced on the DHT in a
+			// round-robin fashion. All torrents are cycled through
+			// within the DHT announce interval (which defaults to
+			// 15 minutes)
+			torrent_map::iterator m_next_dht_torrent;
+#endif
+
 			// this announce timer is used
 			// by Local service discovery
 			deadline_timer m_lsd_announce_timer;
+
+			tcp::resolver m_host_resolver;
 
 			// the index of the torrent that will be offered to
 			// connect to a peer next time on_tick is called.
@@ -745,6 +761,17 @@ namespace libtorrent
 			// the number of send buffers that are allocated
 			int m_buffer_allocations;
 #endif
+
+			// each second tick the timer takes a little
+			// bit longer than one second to trigger. The
+			// extra time it took is accumulated into this
+			// counter. Every time it exceeds 1000, torrents
+			// will tick their timers 2 seconds instead of one.
+			// this keeps the timers more accurate over time
+			// as a kind of "leap second" to adjust for the
+			// accumulated error
+			boost::uint16_t m_tick_residual;
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			boost::shared_ptr<logger> create_log(std::string const& name
 				, int instance, bool append = true);
