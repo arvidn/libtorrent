@@ -162,7 +162,7 @@ namespace libtorrent
 
 		boost::filesystem::path TORRENT_EXPORT get_symlink_path(boost::filesystem::path const& p)
 		{
-#if defined TORRENT_WINDOWS && TORRENT_USE_WPATH
+#if defined TORRENT_WINDOWS
 			return "";
 #else
 			std::string path = convert_to_native(p.external_file_string());

@@ -33,7 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UTF8_HPP_INCLUDED
 #define TORRENT_UTF8_HPP_INCLUDED
 
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+#include "libtorrent/config.hpp"
+
+#if !defined BOOST_FILESYSTEM_NARROW_ONLY || defined TORRENT_WINDOWS
 
 #include <string>
 #include <cwchar>
