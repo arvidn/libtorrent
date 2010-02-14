@@ -79,6 +79,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_LINUX
 #elif defined __MINGW32__
 #define TORRENT_MINGW
+#define TORRENT_WINDOWS
 #elif defined WIN32
 #define TORRENT_WINDOWS
 #elif defined sun || defined __sun 
@@ -88,9 +89,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BSD
 #endif
 
+#if defined TORRENT_BSD || defined TORRENT_LINUX || defined TORRENT_SOLARIS
+#define TORRENT_USE_RLIMIT 1
+#else
+#define TORRENT_USE_RLIMIT 0
+#endif
+
 // should wpath or path be used?
 #if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \
-	&& BOOST_VERSION >= 103400 && defined WIN32
+	&& BOOST_VERSION >= 103400 && defined WIN32 && !defined TORRENT_MINGW
 #define TORRENT_USE_WPATH 1
 #else
 #define TORRENT_USE_WPATH 0

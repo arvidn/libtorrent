@@ -35,7 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#if TORRENT_USE_WSTRING
+// on windows we need these functions for
+// convert_to_native and convert_from_native
+#if TORRENT_USE_WSTRING || defined TORRENT_WINDOWS
 
 #include <string>
 #include <cwchar>

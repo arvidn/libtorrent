@@ -129,8 +129,13 @@ POSSIBILITY OF SUCH DAMAGE.
 // ==== LINUX ===
 #elif defined __linux__
 #define TORRENT_LINUX
+
+// ==== MINGW ===
 #elif defined __MINGW32__
 #define TORRENT_MINGW
+#define TORRENT_WINDOWS
+#define TORRENT_USE_ICONV 0
+#define TORRENT_USE_RLIMIT 0
 
 // ==== WINDOWS ===
 #elif defined WIN32
@@ -139,6 +144,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // apple uses utf-8 as its locale, so no conversion
 // is necessary
 #define TORRENT_USE_ICONV 0
+#define TORRENT_USE_RLIMIT 0
 
 // ==== SOLARIS ===
 #elif defined sun || defined __sun 
@@ -192,7 +198,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
 
 // class X needs to have dll-interface to be used by clients of class Y
 #pragma warning(disable:4251)
@@ -246,6 +252,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_DEPRECATED
 #define TORRENT_DEPRECATED
+#endif
+
+#ifndef TORRENT_USE_RLIMIT
+#define TORRENT_USE_RLIMIT 1
 #endif
 
 #ifndef TORRENT_USE_IPV6
@@ -303,7 +313,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #if defined(__MACH__)
 #define TORRENT_USE_ABSOLUTE_TIME 1
-#elif defined(_WIN32)
+#elif defined(_WIN32) || defined TORRENT_MINGW
 #define TORRENT_USE_QUERY_PERFORMANCE_TIMER 1
 #elif defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0
 #define TORRENT_USE_CLOCK_GETTIME 1

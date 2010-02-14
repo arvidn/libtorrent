@@ -1185,6 +1185,10 @@ namespace aux {
 		{
 			s.sock->set_option(v6only(v6_only), ec);
 #ifdef TORRENT_WINDOWS
+
+#ifndef PROTECTION_LEVEL_UNRESTRICTED
+#define PROTECTION_LEVEL_UNRESTRICTED 10
+#endif
 			// enable Teredo on windows
 			s.sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), ec);
 #endif
@@ -3446,7 +3450,7 @@ namespace aux {
 		if (limit <= 0)
 		{
 			limit = (std::numeric_limits<int>::max)();
-#ifndef TORRENT_WINDOWS
+#if TORRENT_USE_RLIMIT
 			rlimit l;
 			if (getrlimit(RLIMIT_NOFILE, &l) == 0
 				&& l.rlim_cur != RLIM_INFINITY)

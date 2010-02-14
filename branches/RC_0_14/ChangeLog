@@ -8,6 +8,7 @@ release 0.14.9
 	* fixed optimistic unchoke timer
 	* fixed bug where torrents with incorrectly formatted web seed URLs would be
 	  connected multiple times
+	* fixed MinGW support
 
 release 0.14.8
 
