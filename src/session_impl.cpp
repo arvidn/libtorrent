@@ -2027,6 +2027,8 @@ namespace aux {
 		m_lsd_announce_timer.async_wait(
 			bind(&session_impl::on_lsd_announce, this, _1));
 
+		if (m_torrents.empty()) return;
+
 		if (m_next_lsd_torrent == m_torrents.end())
 			m_next_lsd_torrent = m_torrents.begin();
 		m_next_lsd_torrent->second->lsd_announce();
