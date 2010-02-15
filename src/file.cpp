@@ -938,7 +938,7 @@ namespace libtorrent
 				ec = error_code(ret, get_posix_category());
 				return false;
 			}
-#else
+#elif TORRENT_HAS_FALLOCATE
 			int ret = posix_fallocate(m_fd, 0, s);
 			if (ret != 0)
 			{
