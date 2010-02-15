@@ -83,7 +83,7 @@ namespace libtorrent
 	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
 	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
 
-#if defined TORRENT_WINDOWS && defined UNICODE
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 	TORRENT_EXPORT std::wstring convert_to_wstring(std::string const& s);
 	TORRENT_EXPORT std::string convert_from_wstring(std::wstring const& s);
 #endif

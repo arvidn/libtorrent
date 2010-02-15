@@ -125,7 +125,7 @@ namespace libtorrent
 	{
 		ec.clear();
 
-#if defined UNICODE && defined TORRENT_WINDOWS
+#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
 		std::wstring f = convert_to_wstring(inf);
 #else
 		std::string f = convert_to_native(inf);
@@ -133,7 +133,7 @@ namespace libtorrent
 
 #ifdef TORRENT_WINDOWS
 		struct _stati64 ret;
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
 		if (_wstati64(f.c_str(), &ret) < 0)
 #else
 		if (_stati64(f.c_str(), &ret) < 0)
@@ -162,7 +162,7 @@ namespace libtorrent
 	{
 		ec.clear();
 
-#if defined UNICODE && defined TORRENT_WINDOWS
+#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
 		std::wstring f1 = convert_to_wstring(inf);
 		std::wstring f2 = convert_to_wstring(newf);
 		if (_wrename(f1.c_str(), f2.c_str()) < 0)
@@ -193,14 +193,16 @@ namespace libtorrent
 	{
 		ec.clear();
 
-#if defined TORRENT_WINDOWS && defined UNICODE
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+#define CreateDirectory_ CreateDirectoryW
 		std::wstring n = convert_to_wstring(f);
 #else
+#define CreateDirectory_ CreateDirectoryA
 		std::string n = convert_to_native(f);
 #endif
 
 #ifdef TORRENT_WINDOWS
-		if (CreateDirectory(n.c_str(), 0) == 0
+		if (CreateDirectory_(n.c_str(), 0) == 0
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
 			ec.assign(GetLastError(), boost::system::get_system_category());
 #else
@@ -224,16 +226,18 @@ namespace libtorrent
 	void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 	{
 		ec.clear();
-#if defined UNICODE && defined TORRENT_WINDOWS
+#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
+#define CopyFile_ CopyFileW
 		std::wstring f1 = convert_to_wstring(inf);
 		std::wstring f2 = convert_to_wstring(newf);
 #else
+#define CopyFile_ CopyFileA
 		std::string f1 = convert_to_native(inf);
 		std::string f2 = convert_to_native(newf);
 #endif
 
 #ifdef TORRENT_WINDOWS
-		if (CopyFile(f1.c_str(), f2.c_str(), false) == 0)
+		if (CopyFile_(f1.c_str(), f2.c_str(), false) == 0)
 			ec.assign(GetLastError(), boost::system::get_system_category());
 #elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		// this only works on 10.5
@@ -446,18 +450,18 @@ namespace libtorrent
 	std::string current_working_directory()
 	{
 #ifdef TORRENT_WINDOWS
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
 		wchar_t cwd[TORRENT_MAX_PATH];
 		_wgetcwd(cwd, sizeof(cwd) / sizeof(wchar_t));
 #else
 		char cwd[TORRENT_MAX_PATH];
 		_getcwd(cwd, sizeof(cwd));
-#endif // UNICODE
+#endif // TORRENT_USE_WSTRING
 #else
 		char cwd[TORRENT_MAX_PATH];
 		if (getcwd(cwd, sizeof(cwd)) == 0) return "/";
 #endif
-#if defined TORRENT_WINDOWS && defined UNICODE
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 		return convert_from_wstring(cwd);
 #else
 		return convert_from_native(cwd);
@@ -495,16 +499,20 @@ namespace libtorrent
 			pruned = inf.substr(0, inf.size() - 1);
 		else
 			pruned = inf;
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
+#define DeleteFile_ DeleteFileW
+#define RemoveDirectory_ RemoveDirectoryW
 		std::wstring f = convert_to_wstring(pruned);
 #else
+#define DeleteFile_ DeleteFileA
+#define RemoveDirectory_ RemoveDirectoryA
 		std::string f = convert_to_native(pruned);
 #endif
-		if (DeleteFile(f.c_str()) == 0)
+		if (DeleteFile_(f.c_str()) == 0)
 		{
 			if (GetLastError() == ERROR_ACCESS_DENIED)
 			{
-				if (RemoveDirectory(f.c_str()) != 0)
+				if (RemoveDirectory_(f.c_str()) != 0)
 					return;
 			}
 			ec.assign(GetLastError(), boost::system::get_system_category());
@@ -578,12 +586,14 @@ namespace libtorrent
 		std::string f = path;
 		if (!f.empty() && (f[f.size()-1] != '/' || f[f.size()-1] != '\\')) f += "\\*";
 		else f += "*";
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
+#define FindFirstFile_ FindFirstFileW
 		std::wstring p = convert_to_wstring(f);
 #else
+#define FindFirstFile_ FindFirstFileA
 		std::string p = convert_to_native(f);
 #endif
-		m_handle = FindFirstFile(p.c_str(), &m_fd);
+		m_handle = FindFirstFile_(p.c_str(), &m_fd);
 		if (m_handle == INVALID_HANDLE_VALUE)
 		{
 			ec.assign(GetLastError(), boost::system::get_system_category());
@@ -623,7 +633,7 @@ namespace libtorrent
 	std::string directory::file() const
 	{
 #ifdef TORRENT_WINDOWS
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
 		return convert_from_wstring(m_fd.cFileName);
 #else
 		return convert_from_native(m_fd.cFileName);
@@ -637,7 +647,12 @@ namespace libtorrent
 	{
 		ec.clear();
 #ifdef TORRENT_WINDOWS
-		if (FindNextFile(m_handle, &m_fd) == 0)
+#if TORRENT_USE_WSTRING
+#define FindNextFile_ FindNextFileW
+#else
+#define FindNextFile_ FindNextFileA
+#endif
+		if (FindNextFile_(m_handle, &m_fd) == 0)
 		{
 			m_done = true;
 			int err = GetLastError();
@@ -724,9 +739,11 @@ namespace libtorrent
 			FILE_ATTRIBUTE_HIDDEN, // hidden + executable
 		};
 
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
+#define CreateFile_ CreateFileW
 		m_path = convert_to_wstring(path);
 #else
+#define CreateFile_ CreateFileA
 		m_path = convert_to_native(path);
 #endif
 
@@ -734,7 +751,7 @@ namespace libtorrent
 		open_mode_t const& m = mode_array[mode & mode_mask];
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
 
-		m_file_handle = CreateFile(m_path.c_str(), m.rw_mode, m.share_mode, 0
+		m_file_handle = CreateFile_(m_path.c_str(), m.rw_mode, m.share_mode, 0
 			, m.create_mode, m.flags | (a ? a : FILE_ATTRIBUTE_NORMAL), 0);
 
 		if (m_file_handle == INVALID_HANDLE_VALUE)
@@ -849,12 +866,14 @@ namespace libtorrent
 			DWORD bytes_per_sector;
 			DWORD free_clusters;
 			DWORD total_clusters;
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
+#define GetDiskFreeSpace_ GetDiskFreeSpaceW
 			wchar_t backslash = L'\\';
 #else
+#define GetDiskFreeSpace_ GetDiskFreeSpaceA
 			char backslash = '\\';
 #endif
-			if (GetDiskFreeSpace(m_path.substr(0, m_path.find_first_of(backslash)+1).c_str()
+			if (GetDiskFreeSpace_(m_path.substr(0, m_path.find_first_of(backslash)+1).c_str()
 				, &sectors_per_cluster, &bytes_per_sector
 				, &free_clusters, &total_clusters))
 			{
@@ -1246,7 +1265,7 @@ namespace libtorrent
 
 		if (file_size > 0)
 		{
-			HANDLE f = CreateFile(m_path.c_str(), GENERIC_WRITE
+			HANDLE f = CreateFile_(m_path.c_str(), GENERIC_WRITE
 			, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING
 			, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, 0);
 

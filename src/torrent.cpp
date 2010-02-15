@@ -2610,7 +2610,7 @@ namespace libtorrent
 				}
 				else
 				{
-					int diff = abs(dl_time - m_average_piece_time);
+					int diff = abs(int(dl_time - m_average_piece_time));
 					if (m_piece_time_deviation == 0) m_piece_time_deviation = diff;
 					else m_piece_time_deviation = (m_piece_time_deviation * 6 + diff * 4) / 10;
 

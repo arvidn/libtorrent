@@ -147,7 +147,11 @@ namespace libtorrent
 	private:
 #ifdef TORRENT_WINDOWS
 		HANDLE m_handle;
-		WIN32_FIND_DATA m_fd;
+#if TORRENT_USE_WSTRING
+		WIN32_FIND_DATAW m_fd;
+#else
+		WIN32_FIND_DATAA m_fd;
+#endif
 #else
 		DIR* m_handle;
 		// the dirent struct contains a zero-sized
@@ -252,11 +256,11 @@ namespace libtorrent
 
 #ifdef TORRENT_WINDOWS
 		HANDLE m_file_handle;
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
 		std::wstring m_path;
 #else
 		std::string m_path;
-#endif // UNICODE
+#endif // TORRENT_USE_WSTRING
 #else // TORRENT_WINDOWS
 		int m_fd;
 #endif // TORRENT_WINDOWS

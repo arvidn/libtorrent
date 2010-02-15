@@ -61,13 +61,13 @@ namespace libtorrent
 		{
 #ifdef TORRENT_WINDOWS
 
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
 			std::wstring path = convert_to_wstring(p);
 			DWORD attr = GetFileAttributesW(path.c_str());
 #else
 			std::string path = convert_to_native(p);
 			DWORD attr = GetFileAttributesA(path.c_str());
-#endif // UNICODE
+#endif // TORRENT_USE_WSTRING
 			if (attr & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
 			return 0;
 #else
