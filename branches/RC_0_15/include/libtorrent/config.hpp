@@ -124,13 +124,16 @@ POSSIBILITY OF SUCH DAMAGE.
 	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__ \
 	|| defined __FreeBSD_kernel__
 #define TORRENT_BSD
+#define TORRENT_HAS_FALLOCATE 0
 #elif defined __linux__
 #define TORRENT_LINUX
 #elif defined __MINGW32__
 #define TORRENT_MINGW
 #define TORRENT_WINDOWS
+#define TORRENT_HAS_FALLOCATE 0
 #elif defined WIN32
 #define TORRENT_WINDOWS
+#define TORRENT_HAS_FALLOCATE 0
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
 #else
@@ -148,6 +151,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_RLIMIT 1
 #else
 #define TORRENT_USE_RLIMIT 0
+#endif
+
+#ifndef TORRENT_HAS_FALLOCATE
+#define TORRENT_HAS_FALLOCATE 1
 #endif
 
 // should wpath or path be used?
