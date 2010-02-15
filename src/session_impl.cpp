@@ -2246,9 +2246,7 @@ namespace aux {
 
 	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
 	{
-		char port[7];
-		snprintf(port, sizeof(port), "%d", node.second);
-		tcp::resolver::query q(node.first, port);
+		tcp::resolver::query q(node.first, boost::lexical_cast<std::string>(node.second));
 		m_host_resolver.async_resolve(q,
 			bind(&session_impl::on_dht_router_name_lookup, this, _1, _2));
 	}
