@@ -125,6 +125,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined __APPLE__
 #define TORRENT_USE_ICONV 0
 #endif
+#define TORRENT_HAS_FALLOCATE 0
 
 // ==== LINUX ===
 #elif defined __linux__
@@ -145,6 +146,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // is necessary
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_RLIMIT 0
+#define TORRENT_HAS_FALLOCATE 0
 
 // ==== SOLARIS ===
 #elif defined sun || defined __sun 
