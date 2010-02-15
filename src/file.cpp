@@ -295,11 +295,13 @@ namespace libtorrent
 			DWORD free_clusters;
 			DWORD total_clusters;
 #if TORRENT_USE_WPATH
+#define GetDiskFreeSpace_ GetDiskFreeSpaceW
 			wchar_t backslash = L'\\';
 #else
+#define GetDiskFreeSpace_ GetDiskFreeSpaceA
 			char backslash = '\\';
 #endif
-			if (GetDiskFreeSpace(m_path.substr(0, m_path.find_first_of(backslash)+1).c_str()
+			if (GetDiskFreeSpace_(m_path.substr(0, m_path.find_first_of(backslash)+1).c_str()
 				, &sectors_per_cluster, &bytes_per_sector
 				, &free_clusters, &total_clusters))
 			{
@@ -691,7 +693,12 @@ namespace libtorrent
 
 		if (file_size > 0)
 		{
-			HANDLE f = CreateFile(m_path.c_str(), GENERIC_WRITE
+#if TORRENT_USE_WPATH
+#define CreateFile_ CreateFileW
+#else
+#define CreateFile_ CreateFileA
+#endif
+			HANDLE f = CreateFile_(m_path.c_str(), GENERIC_WRITE
 			, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING
 			, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, 0);
 
