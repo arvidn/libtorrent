@@ -3292,6 +3292,7 @@ namespace libtorrent
 	void torrent::resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const
 	{
 		if (m_resolving_country
+			|| is_local(p->remote().address())
 			|| p->has_country()
 			|| p->is_connecting()
 			|| p->is_queued()
