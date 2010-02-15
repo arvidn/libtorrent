@@ -547,7 +547,7 @@ namespace libtorrent
 		return true;
 	}
 
-#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING && defined UNICODE
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 	std::wstring convert_to_wstring(std::string const& s)
 	{
 		std::wstring ret;
