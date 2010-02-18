@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -134,8 +135,9 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece(): finished(0), writing(0), requested(0) {}
+			downloading_piece(): last_request(min_time()), finished(0), writing(0), requested(0) {}
 			piece_state_t state;
+			ptime last_request;
 
 			// the index of the piece
 			int index;
@@ -272,6 +274,7 @@ namespace libtorrent
 		void mark_as_finished(piece_block block, void* peer);
 		void write_failed(piece_block block);
 		int num_peers(piece_block block) const;
+		ptime last_request(int piece) const;
 
 		// returns information about the given piece
 		void piece_info(int index, piece_picker::downloading_piece& st) const;
