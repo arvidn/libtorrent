@@ -1139,6 +1139,7 @@ namespace libtorrent
 		clear_error();
 
 		disconnect_all(errors::stopping_torrent);
+		stop_announcing();
 
 		m_owning_storage->async_release_files();
 		if (!m_picker) m_picker.reset(new piece_picker());
@@ -1377,6 +1378,7 @@ namespace libtorrent
 		{
 			announce_entry& ae = m_trackers[i];
 			if (settings().announce_to_all_tiers
+				&& !settings().announce_to_all_trackers
 				&& sent_announce
 				&& ae.tier <= tier
 				&& tier != INT_MAX)
@@ -1402,7 +1404,7 @@ namespace libtorrent
 			if (req.event == tracker_request::none)
 			{
 				if (!ae.start_sent) req.event = tracker_request::started;
-				if (!ae.complete_sent && is_seed()) req.event = tracker_request::completed;
+				else if (!ae.complete_sent && is_seed()) req.event = tracker_request::completed;
 			}
 
 			if (!is_any(bind_interface)) req.bind_ip = bind_interface;
@@ -3008,7 +3010,6 @@ namespace libtorrent
 				break;
 			}
 		}
-	
 	}
 
 	void torrent::add_tracker(announce_entry const& url)
