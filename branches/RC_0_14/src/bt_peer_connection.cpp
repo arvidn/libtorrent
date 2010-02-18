@@ -1138,12 +1138,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (!m_supports_dht_port)
-		{
-			disconnect("got 'dht_port' message from peer that doesn't support it", 2);
-			return;
-		}
-
 		TORRENT_ASSERT(received > 0);
 		if (packet_size() != 3)
 		{
