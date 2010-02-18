@@ -117,6 +117,7 @@ release 0.14.9
 	  connected multiple times
 	* fixed MinGW support
 	* fixed DHT bootstrapping issue
+	* fixed UDP over SOCKS5 issue
 
 release 0.14.8
 
