@@ -2114,7 +2114,6 @@ namespace libtorrent
 			// the other end dropped the request.
 			if (m_ses.m_settings.drop_skipped_requests
 				&& qe.skipped > m_desired_queue_size)
-			if (qe.skipped > m_desired_queue_size)
 			{
 				if (m_ses.m_alerts.should_post<request_dropped_alert>())
 					m_ses.m_alerts.post_alert(request_dropped_alert(t->get_handle()
