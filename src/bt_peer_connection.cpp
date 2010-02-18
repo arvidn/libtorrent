@@ -1290,11 +1290,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(received > 0);
 		m_statistics.received_bytes(0, received);
-		if (!m_supports_dht_port)
-		{
-			disconnect(errors::invalid_dht_port, 2);
-			return;
-		}
 		if (packet_size() != 3)
 		{
 			disconnect(errors::invalid_dht_port, 2);
@@ -1308,6 +1303,15 @@ namespace libtorrent
 		int listen_port = detail::read_uint16(ptr);
 		
 		incoming_dht_port(listen_port);
+
+		if (!m_supports_dht_port)
+		{
+			m_supports_dht_port = true;
+#ifndef TORRENT_DISABLE_DHT
+			if (m_supports_dht_port && m_ses.m_dht)
+				write_dht_port(m_ses.get_dht_settings().service_port);
+#endif
+		}
 	}
 
 	void bt_peer_connection::on_suggest_piece(int received)
