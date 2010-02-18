@@ -717,6 +717,7 @@ namespace libtorrent
 			return;
 
 		disconnect_all();
+		stop_announcing();
 
 		m_owning_storage->async_release_files();
 		if (!m_picker) m_picker.reset(new piece_picker());
@@ -2983,7 +2984,6 @@ namespace libtorrent
 			pi.piece_index = i->index;
 			queue.push_back(pi);
 		}
-	
 	}
 	
 	bool torrent::connect_to_peer(policy::peer* peerinfo)
