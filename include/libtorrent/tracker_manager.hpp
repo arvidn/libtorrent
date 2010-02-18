@@ -102,6 +102,7 @@ namespace libtorrent
 		size_type downloaded;
 		size_type uploaded;
 		size_type left;
+		size_type corrupt;
 		unsigned short listen_port;
 		event_t event;
 		std::string url;

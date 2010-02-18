@@ -943,10 +943,15 @@ namespace libtorrent
 		tracker_request req;
 		req.info_hash = m_torrent_file->info_hash();
 		req.pid = m_ses.get_peer_id();
-		req.downloaded = m_stat.total_payload_download();
+		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
 		req.uploaded = m_stat.total_payload_upload();
+		req.corrupt = m_total_failed_bytes;
 		req.left = bytes_left();
 		if (req.left == -1) req.left = 16*1024;
+
+		// exclude redundant bytes
+		req.downloaded -= m_total_redundant_bytes;
+
 		req.event = e;
 		error_code ec;
 		tcp::endpoint ep;
@@ -4233,9 +4238,15 @@ namespace libtorrent
 		{
 			// tell the tracker that we're back
 			m_start_sent = false;
-			m_stat.clear();
-			announce_with_tracker();
 		}
+
+		// reset the stats, since from the tracker's
+		// point of view, this is a new session
+		m_total_failed_bytes = 0;
+		m_total_redundant_bytes = 0;
+		m_stat.clear();
+
+		announce_with_tracker();
 
 		// private torrents are never announced on LSD
 		// or on DHT, we don't need this timer.
