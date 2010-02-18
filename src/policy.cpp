@@ -268,7 +268,13 @@ namespace libtorrent
 			num_requests--;
 		}
 
-		if (busy_pieces.empty() || num_requests <= 0)
+		// if we don't have any potential busy blocks to request
+		// or if we have picked as many blocks as we should
+		// or if we already have outstanding requests, don't
+		// pick a busy piece
+		if (busy_pieces.empty()
+			|| num_requests <= 0
+			|| dq.size() + rq.size() > 0)
 		{
 			return;
 		}
@@ -289,6 +295,15 @@ namespace libtorrent
 #endif
 		TORRENT_ASSERT(p.is_requested(*i));
 		TORRENT_ASSERT(p.num_peers(*i) > 0);
+
+		ptime last_request = p.last_request(i->piece_index);
+		ptime now = time_now();
+
+		// don't re-request from a piece more often than once every 20 seconds
+		// TODO: make configurable
+		if (now - last_request < seconds(20))
+			return;
+
 		c.add_request(*i, peer_connection::req_busy);
 	}
 
