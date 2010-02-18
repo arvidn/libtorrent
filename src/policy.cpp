@@ -318,6 +318,14 @@ namespace libtorrent
 			return;
 		}
 
+		// if the number of pieces we have + the number of pieces
+		// we're requesting from is less than the number of pieces
+		// in the torrent, there are still some unrequested pieces
+		// and we're not strictly speaking in end-game mode yet
+		if (p.num_have() + p.get_download_queue().size()
+				< t.torrent_file().num_pieces())
+			return;
+
 		// if all blocks has the same number of peers on them
 		// we want to pick a random block
 		std::random_shuffle(busy_pieces.begin(), busy_pieces.end());
@@ -340,7 +348,7 @@ namespace libtorrent
 
 		// don't re-request from a piece more often than once every 20 seconds
 		// TODO: make configurable
-		if (now - last_request < seconds(20))
+		if (now - last_request < seconds(5))
 			return;
 
 		c.add_request(*i);
