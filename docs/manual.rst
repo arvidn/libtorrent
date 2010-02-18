@@ -3704,6 +3704,8 @@ session_settings
 		int local_service_announce_interval;
 
 		int udp_tracker_token_expiry;
+
+		bool report_true_downloaded;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4162,6 +4164,10 @@ to be 60 seconds, and defaults to that. The higher this value is, the
 fewer packets have to be sent to the UDP tracker. In order for higher
 values to work, the tracker needs to be configured to match the
 expiration time for tokens.
+
+When ``report_true_downloaded`` is true, the ``&downloaded=`` argument
+sent to trackers will include redundant downloaded bytes. It defaults
+to ``false``, which means redundant bytes are not reported to the tracker.
 
 pe_settings
 ===========
