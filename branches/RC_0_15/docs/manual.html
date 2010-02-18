@@ -3706,6 +3706,9 @@ struct session_settings
         int local_service_announce_interval;
 
         int udp_tracker_token_expiry;
+
+        bool report_true_downloaded;
+        bool strict_end_game_mode;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -3790,8 +3793,9 @@ connection may delay the connection of other peers considerably.</p>
 <p><tt class="docutils literal"><span class="pre">ignore_limits_on_local_network</span></tt>, if set to true, upload, download and
 unchoke limits are ignored for peers on the local network.</p>
 <p><tt class="docutils literal"><span class="pre">connection_speed</span></tt> is the number of connection attempts that
-are made per second. If a number &lt;= 0 is specified, it will default to
-200 connections per second.</p>
+are made per second. If a number &lt; 0 is specified, it will default to
+200 connections per second. If 0 is specified, it means don't make
+outgoing connections at all.</p>
 <p><tt class="docutils literal"><span class="pre">send_redundant_have</span></tt> controls if have messages will be sent
 to peers that already have the piece. This is typically not necessary,
 but it might be necessary for collecting statistics in some cases.
@@ -4075,6 +4079,17 @@ to be 60 seconds, and defaults to that. The higher this value is, the
 fewer packets have to be sent to the UDP tracker. In order for higher
 values to work, the tracker needs to be configured to match the
 expiration time for tokens.</p>
+<p>When <tt class="docutils literal"><span class="pre">report_true_downloaded</span></tt> is true, the <tt class="docutils literal"><span class="pre">&amp;downloaded=</span></tt> argument
+sent to trackers will include redundant downloaded bytes. It defaults
+to <tt class="docutils literal"><span class="pre">false</span></tt>, which means redundant bytes are not reported to the tracker.</p>
+<p><tt class="docutils literal"><span class="pre">strict_end_game_mode</span></tt> defaults to true, and controls when a block
+may be requested twice. If this is <tt class="docutils literal"><span class="pre">true</span></tt>, a block may only be requested
+twice when there's ay least one request to every piece that's left to
+download in the torrent. This may slow down progress on some pieces
+sometimes, but it may also avoid downloading a lot of redundant bytes.
+If this is <tt class="docutils literal"><span class="pre">false</span></tt>, libtorrent attempts to use each peer connection
+to its max, by always requesting something, even if it means requesting
+something that has been requested from another peer already.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">
