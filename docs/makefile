@@ -8,6 +8,7 @@ TARGETS = index \
 	manual \
 	building \
 	features \
+	contributing\
 	examples \
 	extension_protocol \
 	make_torrent \
