@@ -108,6 +108,7 @@ void bind_session_settings()
         .def_readwrite("local_service_announce_interval", &session_settings::local_service_announce_interval)
         .def_readwrite("udp_tracker_token_expiry", &session_settings::udp_tracker_token_expiry)
         .def_readwrite("report_true_downoaded", &session_settings::report_true_downloaded)
+        .def_readwrite("strict_end_game_mode", &session_settings::strict_end_game_mode)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")
