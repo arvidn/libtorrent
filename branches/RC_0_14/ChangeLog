@@ -11,6 +11,7 @@ release 0.14.9
 	* fixed MinGW support
 	* fixed DHT bootstrapping issue
 	* fixed UDP over SOCKS5 issue
+	* added support for "corrupt" tracker announce
 
 release 0.14.8
 

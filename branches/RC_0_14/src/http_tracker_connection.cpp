@@ -137,6 +137,9 @@ namespace libtorrent
 			url += "&left=";
 			url += to_string(tracker_req().left).elems;
 
+			url += "&corrupt=";
+			url += to_string(tracker_req().corrupt).elems;
+
 			if (tracker_req().event != tracker_request::none)
 			{
 				const char* event_string[] = {"completed", "started", "stopped"};

@@ -121,6 +121,7 @@ void bind_session_settings()
         .def_readwrite("increase_est_reciprocation_rate", &session_settings::increase_est_reciprocation_rate)
         .def_readwrite("decrease_est_reciprocation_rate", &session_settings::decrease_est_reciprocation_rate)
         .def_readwrite("incoming_starts_queued_torrents", &session_settings::incoming_starts_queued_torrents)
+        .def_readwrite("report_true_downoaded", &session_settings::report_true_downloaded)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")

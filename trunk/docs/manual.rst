@@ -3772,6 +3772,7 @@ session_settings
 		int increase_est_reciprocation_rate;
 		int decrease_est_reciprocation_rate;
 		bool incoming_starts_queued_torrents;
+		bool report_true_downloaded;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4342,6 +4343,10 @@ to save on the overhead of announcing to the trackers, the DHT and to
 avoid spreading one's unchoke slots too thin. If a peer managed to
 find us, even though we're no in the torrent anymore, this setting
 can make us start the torrent and serve it.
+
+When ``report_true_downloaded`` is true, the ``&downloaded=`` argument
+sent to trackers will include redundant downloaded bytes. It defaults
+to ``false``, which means redundant bytes are not reported to the tracker.
 
 pe_settings
 ===========

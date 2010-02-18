@@ -107,6 +107,7 @@ void bind_session_settings()
         .def_readwrite("low_prio_disk", &session_settings::low_prio_disk)
         .def_readwrite("local_service_announce_interval", &session_settings::local_service_announce_interval)
         .def_readwrite("udp_tracker_token_expiry", &session_settings::udp_tracker_token_expiry)
+        .def_readwrite("report_true_downoaded", &session_settings::report_true_downloaded)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")

@@ -182,6 +182,7 @@ namespace libtorrent
 			, low_prio_disk(true)
 			, local_service_announce_interval(5 * 60)
 			, udp_tracker_token_expiry(60)
+			, report_true_downloaded(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -663,6 +664,12 @@ namespace libtorrent
 		// from a UDP tracker is valid for. This is specified
 		// as 60 seconds
 		int udp_tracker_token_expiry;
+
+		// when set to true, the downloaded counter sent to trackers
+		// will include the actual number of payload bytes donwnloaded
+		// including redundant bytes. If set to false, it will not include
+		// any redundany bytes
+		bool report_true_downloaded;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
