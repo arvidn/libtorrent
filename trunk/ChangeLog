@@ -119,6 +119,7 @@ release 0.14.9
 	* fixed DHT bootstrapping issue
 	* fixed UDP over SOCKS5 issue
 	* added support for "corrupt" tracker announce
+	* made end-game mode less aggressive
 
 release 0.14.8
 

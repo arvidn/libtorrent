@@ -1978,6 +1978,7 @@ namespace libtorrent
 			info.peer = peer;
 			info.num_peers = 1;
 			++dp.requested;
+			dp.last_request = time_now();
 		}
 		else
 		{
@@ -2002,6 +2003,7 @@ namespace libtorrent
 			}
 			++info.num_peers;
 			if (i->state == none) i->state = state;
+			i->last_request = time_now();
 		}
 		return true;
 	}
@@ -2024,6 +2026,23 @@ namespace libtorrent
 		return info.num_peers;
 	}
 	
+	ptime piece_picker::last_request(int piece) const
+	{
+		TORRENT_ASSERT(piece >= 0);
+		TORRENT_ASSERT(piece < (int)m_piece_map.size());
+
+		piece_pos const& p = m_piece_map[piece];
+		if (!p.downloading) return min_time();
+
+		std::vector<downloading_piece>::const_iterator i
+			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(piece));
+		TORRENT_ASSERT(i != m_downloads.end());
+		// just to play it safe
+		if (i == m_downloads.end()) return min_time();
+
+		return i->last_request;
+	}
+
 	void piece_picker::get_availability(std::vector<int>& avail) const
 	{
 		TORRENT_ASSERT(m_seeds >= 0);
