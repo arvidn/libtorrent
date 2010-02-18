@@ -359,7 +359,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			std::stringstream ret;
-			ret << torrent_alert::message() << " received DHT peers: "
+			ret << tracker_alert::message() << " received DHT peers: "
 				<< num_peers;
 			return ret.str();
 		}

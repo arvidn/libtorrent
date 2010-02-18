@@ -316,7 +316,7 @@ namespace libtorrent
 		{
 			char ret[400];
 			snprintf(ret, sizeof(ret), "%s (%d) %s (%d)"
-				, torrent_alert::message().c_str(), status_code
+				, tracker_alert::message().c_str(), status_code
 				, msg.c_str(), times_in_row);
 			return ret;
 		}
@@ -369,7 +369,7 @@ namespace libtorrent
 		{
 			char ret[400];
 			snprintf(ret, sizeof(ret), "%s scrape reply: %u %u"
-				, torrent_alert::message().c_str(), incomplete, complete);
+				, tracker_alert::message().c_str(), incomplete, complete);
 			return ret;
 		}
 	};
@@ -421,7 +421,7 @@ namespace libtorrent
 		{
 			char ret[400];
 			snprintf(ret, sizeof(ret), "%s received peers: %u"
-				, torrent_alert::message().c_str(), num_peers);
+				, tracker_alert::message().c_str(), num_peers);
 			return ret;
 		}
 	};
@@ -443,7 +443,7 @@ namespace libtorrent
 		{
 			char ret[400];
 			snprintf(ret, sizeof(ret), "%s received DHT peers: %u"
-				, torrent_alert::message().c_str(), num_peers);
+				, tracker_alert::message().c_str(), num_peers);
 			return ret;
 		}
 	};
