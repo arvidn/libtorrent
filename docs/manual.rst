@@ -3773,6 +3773,7 @@ session_settings
 		int decrease_est_reciprocation_rate;
 		bool incoming_starts_queued_torrents;
 		bool report_true_downloaded;
+		bool strict_end_game_mode;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4347,6 +4348,15 @@ can make us start the torrent and serve it.
 When ``report_true_downloaded`` is true, the ``&downloaded=`` argument
 sent to trackers will include redundant downloaded bytes. It defaults
 to ``false``, which means redundant bytes are not reported to the tracker.
+
+``strict_end_game_mode`` defaults to true, and controls when a block
+may be requested twice. If this is ``true``, a block may only be requested
+twice when there's ay least one request to every piece that's left to
+download in the torrent. This may slow down progress on some pieces
+sometimes, but it may also avoid downloading a lot of redundant bytes.
+If this is ``false``, libtorrent attempts to use each peer connection
+to its max, by always requesting something, even if it means requesting
+something that has been requested from another peer already.
 
 pe_settings
 ===========
