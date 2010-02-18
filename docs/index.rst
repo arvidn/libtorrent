@@ -4,6 +4,7 @@
 
 * download_
 * features_
+* contributing_
 * `building libtorrent`_
 * examples_
 * `api documentation`_
@@ -49,6 +50,7 @@ libtorrent
 
 .. _download: http://code.google.com/p/libtorrent/downloads/list
 .. _features: features.html
+.. _contributing: contributing.html
 .. _`building libtorrent`: building.html
 .. _examples: examples.html
 .. _`api documentation`: manual.html
