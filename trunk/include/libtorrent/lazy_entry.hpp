@@ -78,7 +78,7 @@ namespace libtorrent
 		lazy_entry() : m_begin(0), m_end(0), m_type(none_t)
 		{ m_data.start = 0; }
 
-		entry_type_t type() const { return m_type; }
+		entry_type_t type() const { return (entry_type_t)m_type; }
 
 		// start points to the first decimal digit
 		// length is the number of digits
@@ -223,12 +223,12 @@ namespace libtorrent
 		void swap(lazy_entry& e)
 		{
 			using std::swap;
-			entry_type_t tmp1 = e.m_type;
+			boost::uint32_t tmp = e.m_type;
 			e.m_type = m_type;
-			m_type = tmp1;
-			boost::uint32_t tmp2 = e.m_capacity;
+			m_type = tmp;
+			tmp = e.m_capacity;
 			e.m_capacity = m_capacity;
-			m_capacity = tmp2;
+			m_capacity = tmp;
 			swap(m_data.start, e.m_data.start);
 			swap(m_size, e.m_size);
 			swap(m_begin, e.m_begin);
@@ -251,7 +251,7 @@ namespace libtorrent
 
 		boost::uint32_t m_size; // if list or dictionary, the number of items
 		boost::uint32_t m_capacity:29; // if list or dictionary, allocated number of items
-		entry_type_t m_type:3;
+		unsigned int m_type:3;
 
 		// non-copyable
 		lazy_entry(lazy_entry const&);
