@@ -124,6 +124,7 @@ namespace libtorrent
 		};
 
 		static std::map<address, connection_cache_entry> m_connection_cache;
+		static mutex m_cache_mutex;
 
 		action_t m_state;
 	};

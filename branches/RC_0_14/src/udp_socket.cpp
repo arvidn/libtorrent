@@ -55,6 +55,7 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 	, m_connection_ticket(-1)
 	, m_cc(cc)
 	, m_resolver(ios)
+	, m_queue_packets(false)
 	, m_tunnel_packets(false)
 	, m_abort(false)
 {
@@ -97,6 +98,15 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_cod
 		// send udp packets through SOCKS5 server
 		wrap(ep, p, len, ec);
 		return;	
+	}
+
+	if (m_queue_packets)
+	{
+		m_queue.push_back(queued_packet());
+		queued_packet& qp = m_queue.back();
+		qp.ep = ep;
+		qp.buf.insert(qp.buf.begin(), p, p + len);
+		return;
 	}
 
 	if (ep.address().is_v4() && m_ipv4_sock.is_open())
@@ -409,6 +419,7 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 	if (ps.type == proxy_settings::socks5
 		|| ps.type == proxy_settings::socks5_pw)
 	{
+		m_queue_packets = true;
 		// connect to socks5 server and open up the UDP tunnel
 		tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
 		m_resolver.async_resolve(q, boost::bind(
@@ -510,7 +521,7 @@ void udp_socket::handshake2(error_code const& e)
 
 	if (method == 0)
 	{
-		socks_forward_udp();
+		socks_forward_udp(l);
 	}
 	else if (method == 2)
 	{
@@ -566,15 +577,13 @@ void udp_socket::handshake4(error_code const& e)
 	if (version != 1) return;
 	if (status != 0) return;
 
-	socks_forward_udp();
+	socks_forward_udp(l);
 }
 
-void udp_socket::socks_forward_udp()
+void udp_socket::socks_forward_udp(mutex_t::scoped_lock& l)
 {
 	CHECK_MAGIC;
 	using namespace libtorrent::detail;
-
-	mutex_t::scoped_lock l(m_mutex);	
 
 	// send SOCKS5 UDP command
 	char* p = &m_tmp_buf[0];
@@ -630,5 +639,15 @@ void udp_socket::connect2(error_code const& e)
 	}
 	
 	m_tunnel_packets = true;
+	m_queue_packets = false;
+
+	// forward all packets that were put in the queue
+	while (!m_queue.empty())
+	{
+		queued_packet const& p = m_queue.front();
+		error_code ec;
+		udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec);
+		m_queue.pop_front();
+	}
 }
 

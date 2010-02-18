@@ -62,6 +62,8 @@ namespace libtorrent
 	std::map<address, udp_tracker_connection::connection_cache_entry>
 		udp_tracker_connection::m_connection_cache;
 
+	boost::mutex udp_tracker_connection::m_cache_mutex;
+
 	udp_tracker_connection::udp_tracker_connection(
 		io_service& ios
 		, connection_queue& cc
@@ -195,6 +197,7 @@ namespace libtorrent
 			return;
 		}
 
+		boost::mutex::scoped_lock l(m_cache_mutex);
 		std::map<address, connection_cache_entry>::iterator cc
 			= m_connection_cache.find(m_target.address());
 		if (cc != m_connection_cache.end())
@@ -212,6 +215,7 @@ namespace libtorrent
 			// if it expired, remove it from the cache
 			m_connection_cache.erase(cc);
 		}
+		l.unlock();
 
 		send_udp_connect();
 	}
@@ -328,6 +332,8 @@ namespace libtorrent
 		m_transaction_id = 0;
 		m_attempts = 0;
 		boost::uint64_t connection_id = detail::read_int64(buf);
+
+		boost::mutex::scoped_lock l(m_cache_mutex);
 		connection_cache_entry& cce = m_connection_cache[m_target.address()];
 		cce.connection_id = connection_id;
 		cce.expires = time_now() + seconds(m_ses.m_settings.udp_tracker_token_expiry);

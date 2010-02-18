@@ -75,9 +75,19 @@ namespace libtorrent
 
 		bool is_closed() const { return m_abort; }
 
+	protected:
+
+		struct queued_packet
+		{
+			udp::endpoint ep;
+			buffer buf;
+		};
+
 	private:
 
 		callback_t m_callback;
+
+		typedef boost::mutex mutex_t;
 
 		void on_read(udp::socket* sock, error_code const& e, std::size_t bytes_transferred);
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
@@ -88,14 +98,13 @@ namespace libtorrent
 		void handshake2(error_code const& e);
 		void handshake3(error_code const& e);
 		void handshake4(error_code const& e);
-		void socks_forward_udp();
+		void socks_forward_udp(mutex_t::scoped_lock& l);
 		void connect1(error_code const& e);
 		void connect2(error_code const& e);
 
 		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
 
-		typedef boost::mutex mutex_t;
 		mutable mutex_t m_mutex;
 
 		udp::socket m_ipv4_sock;
@@ -117,9 +126,14 @@ namespace libtorrent
 		connection_queue& m_cc;
 		tcp::resolver m_resolver;
 		char m_tmp_buf[100];
+		bool m_queue_packets;
 		bool m_tunnel_packets;
 		bool m_abort;
 		udp::endpoint m_proxy_addr;
+		// while we're connecting to the proxy
+		// we have to queue the packets, we'll flush
+		// them once we're connected
+		std::list<queued_packet> m_queue;
 #ifdef TORRENT_DEBUG
 		bool m_started;
 		int m_magic;
@@ -135,11 +149,6 @@ namespace libtorrent
 		void close();
 
 	private:
-		struct queued_packet
-		{
-			udp::endpoint ep;
-			buffer buf;
-		};
 		void on_tick(error_code const& e);
 
 		deadline_timer m_timer;

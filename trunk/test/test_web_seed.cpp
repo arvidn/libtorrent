@@ -62,7 +62,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
-	std::cerr << "  ==== TESTING " << test_name[proxy] << " proxy ====" << std::endl;
+	fprintf(stderr, "\n\n  ==== TESTING %s proxy ====\n\n\n", test_name[proxy]);
 	
 	if (proxy)
 	{
