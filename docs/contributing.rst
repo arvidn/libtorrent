@@ -23,6 +23,10 @@ enumerated on this page, please contact arvid@rasterbar.com or the `mailing list
 	sub-optimal behavior is certain scenarios and finding ways to reproduce those. Please
 	report any issue to the bug tracker at `google code`_.
 
+	New features that need testing are streaming (``set_piece_deadline()``), the different
+	choking algorithms (especially the new BitTyrant choker), the disk cache options (such
+	as ``explicit_cache``).
+
 .. _`google code`: http://code.google.com/p/libtorrent/issues/entry
 
 2. Documentation
@@ -35,4 +39,7 @@ enumerated on this page, please contact arvid@rasterbar.com or the `mailing list
 	Contributing code for new features or bug-fixes is highly welcome. If you're interested
 	in adding a feature but not sure where to start, please contact the `mailing list`_ or
 	``#libtorrent`` @ ``irc.freenode.net``.
+
+	New features might be better support for integrating with other services, new choking
+	algorithms, seeding policies, ports to new platforms etc.
 
