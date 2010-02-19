@@ -3263,7 +3263,6 @@ namespace libtorrent
 			peer_connection* p = *i;
 			if (p->connected_time() > cut_off) continue;
 			++ret;
-			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 			p->disconnect("optimistic disconnect");
 		}
 		return ret;
