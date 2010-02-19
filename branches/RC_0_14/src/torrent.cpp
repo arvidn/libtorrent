@@ -3263,7 +3263,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		int ret = 0;
-		// buils a list of all connected peers and sort it by 'disconnectability'.
+		// builds a list of all connected peers and sort it by 'disconnectability'.
 		std::vector<peer_connection*> peers(m_connections.size());
 		std::copy(m_connections.begin(), m_connections.end(), peers.begin());
 		std::sort(peers.begin(), peers.end(), boost::bind(&compare_disconnect_peer, _1, _2));
