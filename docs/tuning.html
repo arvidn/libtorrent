@@ -53,23 +53,24 @@
 <li><a class="reference internal" href="#send-buffer-watermark" id="id7">send buffer watermark</a></li>
 <li><a class="reference internal" href="#optimize-hashing-for-memory-usage" id="id8">optimize hashing for memory usage</a></li>
 <li><a class="reference internal" href="#reduce-executable-size" id="id9">reduce executable size</a></li>
+<li><a class="reference internal" href="#reduce-statistics" id="id10">reduce statistics</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#play-nice-with-the-disk" id="id10">play nice with the disk</a></li>
-<li><a class="reference internal" href="#high-performance-seeding" id="id11">high performance seeding</a><ul>
-<li><a class="reference internal" href="#file-pool" id="id12">file pool</a></li>
-<li><a class="reference internal" href="#disk-cache" id="id13">disk cache</a></li>
-<li><a class="reference internal" href="#send-buffer-low-watermark" id="id14">send buffer low watermark</a></li>
-<li><a class="reference internal" href="#peers" id="id15">peers</a></li>
-<li><a class="reference internal" href="#torrent-limits" id="id16">torrent limits</a></li>
+<li><a class="reference internal" href="#play-nice-with-the-disk" id="id11">play nice with the disk</a></li>
+<li><a class="reference internal" href="#high-performance-seeding" id="id12">high performance seeding</a><ul>
+<li><a class="reference internal" href="#file-pool" id="id13">file pool</a></li>
+<li><a class="reference internal" href="#disk-cache" id="id14">disk cache</a></li>
+<li><a class="reference internal" href="#send-buffer-low-watermark" id="id15">send buffer low watermark</a></li>
+<li><a class="reference internal" href="#peers" id="id16">peers</a></li>
+<li><a class="reference internal" href="#torrent-limits" id="id17">torrent limits</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#benchmarking" id="id17">benchmarking</a><ul>
-<li><a class="reference internal" href="#disk-metrics" id="id18">disk metrics</a></li>
-<li><a class="reference internal" href="#session-stats" id="id19">session stats</a></li>
+<li><a class="reference internal" href="#benchmarking" id="id18">benchmarking</a><ul>
+<li><a class="reference internal" href="#disk-metrics" id="id19">disk metrics</a></li>
+<li><a class="reference internal" href="#session-stats" id="id20">session stats</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#contributions" id="id20">contributions</a></li>
+<li><a class="reference internal" href="#contributions" id="id21">contributions</a></li>
 </ul>
 </div>
 <div class="section" id="tuning-libtorrent">
@@ -202,6 +203,14 @@ of C++ exceptions. By disabling exceptions (-fno-exceptions on GCC), you can
 reduce the executable size with up to 45%. In order to build without exception
 support, you need to patch parts of boost.</p>
 <p>Also make sure to optimize for size when compiling.</p>
+</div>
+<div class="section" id="reduce-statistics">
+<h2>reduce statistics</h2>
+<p>You can save some memory for each connection and each torrent by reducing the
+number of separate rates kept track of by libtorrent. If you build with <tt class="docutils literal"><span class="pre">full-stats=off</span></tt>
+(or <tt class="docutils literal"><span class="pre">-DTORRENT_DISABLE_FULL_STATS</span></tt>) you will save a few hundred bytes for each
+connection and torrent. It might make a difference if you have a very large number
+of peers or torrents.</p>
 </div>
 </div>
 <div class="section" id="play-nice-with-the-disk">
