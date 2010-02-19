@@ -232,7 +232,7 @@ namespace libtorrent
 				else if (bits > m_size)
 				{
 					unsigned char* tmp = (unsigned char*)std::malloc(bytes);
-					std::memcpy(tmp, m_bytes, (std::min)(int(m_size + 7)/ 8, bytes));
+					std::memcpy(tmp, m_bytes, (std::min)((m_size + 7)/ 8, bytes));
 					m_bytes = tmp;
 					m_own = true;
 				}
@@ -246,8 +246,6 @@ namespace libtorrent
 			clear_trailing_bits();
 		}
 
-		void free() { dealloc(); m_size = 0; }
-
 	private:
 
 		void clear_trailing_bits()
@@ -258,8 +256,8 @@ namespace libtorrent
 
 		void dealloc() { if (m_own) std::free(m_bytes); m_bytes = 0; }
 		unsigned char* m_bytes;
-		int m_size:31; // in bits
-		bool m_own:1;
+		int m_size; // in bits
+		bool m_own;
 	};
 
 }

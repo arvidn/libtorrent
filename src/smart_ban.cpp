@@ -49,20 +49,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <cstdio>
 
+#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
+#include "libtorrent/alert_types.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/peer_connection.hpp"
-#include "libtorrent/peer_info.hpp"
 
-namespace libtorrent {
-
-	struct torrent;
-
-namespace
+namespace libtorrent { namespace
 {
 
 	struct smart_ban_plugin : torrent_plugin, boost::enable_shared_from_this<smart_ban_plugin>
@@ -144,7 +142,7 @@ namespace
 				if (*i != 0)
 				{
 					m_torrent.filesystem().async_read(r, bind(&smart_ban_plugin::on_read_failed_block
-						, shared_from_this(), pb, ((policy::peer*)*i)->address(), _1, _2));
+						, shared_from_this(), pb, ((policy::peer*)*i)->addr, _1, _2));
 				}
 
 				r.start += 16*1024;
@@ -167,7 +165,7 @@ namespace
 
 		void on_read_failed_block(piece_block b, address a, int ret, disk_io_job const& j)
 		{
-			mutex::scoped_lock l(m_torrent.session().m_mutex);
+			aux::session_impl::mutex_t::scoped_lock l(m_torrent.session().m_mutex);
 			
 			disk_buffer_holder buffer(m_torrent.session(), j.buffer);
 
@@ -184,7 +182,7 @@ namespace
 			// there is no peer with this address anymore
 			if (range.first == range.second) return;
 
-			policy::peer* p = (*range.first);
+			policy::peer* p = &range.first->second;
 			block_entry e = {p, crc.final()};
 
 			std::map<piece_block, block_entry>::iterator i = m_block_crc.lower_bound(b);
@@ -198,10 +196,6 @@ namespace
 					// from the first time it sent it
 					// at least one of them must be bad
 
-					// verify that this is not a dangling pointer
-					// if the pointer is in the policy's list, it
-					// still live, if it's not, it has been removed
-					// and we can't use this pointer
 					if (!m_torrent.get_policy().has_peer(p)) return;
 
 #ifdef TORRENT_LOGGING
@@ -219,16 +213,15 @@ namespace
 						<< " | crc2: " << e.crc
 						<< " | ip: " << p->ip() << " ]\n";
 #endif
-					m_torrent.get_policy().ban_peer(p);
-					if (p->connection) p->connection->disconnect(
-						errors::peer_banned);
+					p->banned = true;
+					if (p->connection) p->connection->disconnect("banning peer for sending bad data");
 				}
 				// we already have this exact entry in the map
 				// we don't have to insert it
 				return;
 			}
 			
-			m_block_crc.insert(i, std::pair<const piece_block, block_entry>(b, e));
+			m_block_crc.insert(i, std::make_pair(b, e));
 
 #ifdef TORRENT_LOGGING
 			char const* client = "-";
@@ -248,7 +241,7 @@ namespace
 		
 		void on_read_ok_block(std::pair<piece_block, block_entry> b, int ret, disk_io_job const& j)
 		{
-			mutex::scoped_lock l(m_torrent.session().m_mutex);
+			aux::session_impl::mutex_t::scoped_lock l(m_torrent.session().m_mutex);
 
 			disk_buffer_holder buffer(m_torrent.session(), j.buffer);
 
@@ -282,9 +275,8 @@ namespace
 				<< " | bad_crc: " << b.second.crc
 				<< " | ip: " << p->ip() << " ]\n";
 #endif
-			m_torrent.get_policy().ban_peer(p);
-			if (p->connection) p->connection->disconnect(
-				errors::peer_banned);
+			p->banned = true;
+			if (p->connection) p->connection->disconnect("banning peer for sending bad data");
 		}
 		
 		torrent& m_torrent;

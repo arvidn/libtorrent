@@ -34,60 +34,58 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DEBUG_HPP_INCLUDED
 
 #include <string>
-#include "libtorrent/config.hpp"
-#include "libtorrent/file.hpp"
-
-#if TORRENT_USE_IOSTREAM
 #include <fstream>
 #include <iostream>
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
 #endif
+
+#include <boost/lexical_cast.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/convenience.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 
 namespace libtorrent
 {
 	// DEBUG API
 	
+	namespace fs = boost::filesystem;
+
 	struct logger
 	{
-		logger(std::string const& logpath, std::string const& filename
-			, int instance, bool append = true)
+		logger(fs::path const& logpath, fs::path const& filename, int instance, bool append = true)
 		{
-#if TORRENT_USE_IOSTREAM
-
 #ifndef BOOST_NO_EXCEPTIONS
 			try
 			{
 #endif
-				char log_name[256];
-				snprintf(log_name, sizeof(log_name), "libtorrent_logs%d", instance);
-				std::string dir(complete(combine_path(logpath, log_name)));
-				error_code ec;
-				if (!exists(dir)) create_directories(dir, ec);
-				m_file.open(combine_path(dir, filename).c_str()
-					, std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
+				fs::path dir(fs::complete(logpath / ("libtorrent_logs" + boost::lexical_cast<std::string>(instance))));
+				if (!fs::exists(dir)) fs::create_directories(dir);
+				m_file.open((dir / filename).string().c_str(), std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
 				*this << "\n\n\n*** starting log ***\n";
 #ifndef BOOST_NO_EXCEPTIONS
 			}
 			catch (std::exception& e)
 			{
-				std::cerr << "failed to create log '" << filename << "': " << e.what() << std::endl;
+				std::cerr << "failed to create log '" << filename.string() << "': " << e.what() << std::endl;
 			}
-#endif
 #endif
 		}
 
 		template <class T>
 		logger& operator<<(T const& v)
 		{
-#if TORRENT_USE_IOSTREAM
 			m_file << v;
 			m_file.flush();
-#endif
 			return *this;
 		}
 
-#if TORRENT_USE_IOSTREAM
 		std::ofstream m_file;
-#endif
 	};
 
 }

@@ -34,15 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UDP_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/io_service.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/buffer.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/session_settings.hpp"
 
 #include <vector>
-#include <boost/function/function4.hpp>
+#include <boost/function.hpp>
+#include <boost/thread/mutex.hpp>
 
 namespace libtorrent
 {
@@ -57,14 +54,7 @@ namespace libtorrent
 		udp_socket(io_service& ios, callback_t const& c, connection_queue& cc);
 		~udp_socket();
 
-		bool is_open() const
-		{
-			return m_ipv4_sock.is_open()
-#if TORRENT_USE_IPV6
-				|| m_ipv6_sock.is_open()
-#endif
-				;
-		}
+		bool is_open() const { return m_ipv4_sock.is_open() || m_ipv6_sock.is_open(); }
 		io_service& get_io_service() { return m_ipv4_sock.get_io_service(); }
 
 		void send(udp::endpoint const& ep, char const* p, int len, error_code& ec);
@@ -75,8 +65,6 @@ namespace libtorrent
 
 		void set_proxy_settings(proxy_settings const& ps);
 		proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
-
-		bool is_closed() const { return m_abort; }
 
 	protected:
 
@@ -90,6 +78,8 @@ namespace libtorrent
 
 		callback_t m_callback;
 
+		typedef boost::mutex mutex_t;
+
 		void on_read(udp::socket* sock, error_code const& e, std::size_t bytes_transferred);
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
 		void on_timeout();
@@ -99,25 +89,21 @@ namespace libtorrent
 		void handshake2(error_code const& e);
 		void handshake3(error_code const& e);
 		void handshake4(error_code const& e);
-		void socks_forward_udp(mutex::scoped_lock& l);
+		void socks_forward_udp(mutex_t::scoped_lock& l);
 		void connect1(error_code const& e);
 		void connect2(error_code const& e);
 
 		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
 
-		mutable mutex m_mutex;
+		mutable mutex_t m_mutex;
 
 		udp::socket m_ipv4_sock;
-		udp::endpoint m_v4_ep;
-		char m_v4_buf[1600];
-
-#if TORRENT_USE_IPV6
 		udp::socket m_ipv6_sock;
+		udp::endpoint m_v4_ep;
 		udp::endpoint m_v6_ep;
+		char m_v4_buf[1600];
 		char m_v6_buf[1600];
-#endif
-
 		int m_bind_port;
 		char m_outstanding;
 
@@ -139,25 +125,6 @@ namespace libtorrent
 		bool m_started;
 		int m_magic;
 #endif
-	};
-
-	struct rate_limited_udp_socket : public udp_socket
-	{
-		rate_limited_udp_socket(io_service& ios, callback_t const& c, connection_queue& cc);
-		void set_rate_limit(int limit) { m_rate_limit = limit; }
-		bool can_send() const { return int(m_queue.size()) >= m_queue_size_limit; }
-		bool send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags = 0);
-		void close();
-
-	private:
-		void on_tick(error_code const& e);
-
-		deadline_timer m_timer;
-		int m_queue_size_limit;
-		int m_rate_limit;
-		int m_quota;
-		ptime m_last_tick;
-		std::list<queued_packet> m_queue;
 	};
 }
 

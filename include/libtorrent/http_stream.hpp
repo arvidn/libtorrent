@@ -33,9 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_STREAM_HPP_INCLUDED
 #define TORRENT_HTTP_STREAM_HPP_INCLUDED
 
-#include <boost/function/function1.hpp>
 #include "libtorrent/proxy_base.hpp"
-#include <boost/bind.hpp>
 
 namespace libtorrent {
 
@@ -71,10 +69,11 @@ public:
 		// 4. read CONNECT response
 
 		// to avoid unnecessary copying of the handler,
-		// store it in a shared_ptr
+		// store it in a shaed_ptr
 		boost::shared_ptr<handler_type> h(new handler_type(handler));
 
-		tcp::resolver::query q(m_hostname, to_string(m_port).elems);
+		tcp::resolver::query q(m_hostname
+			, boost::lexical_cast<std::string>(m_port));
 		m_resolver.async_resolve(q, boost::bind(
 			&http_stream::name_lookup, this, _1, _2, h));
 	}

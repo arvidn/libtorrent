@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/http_stream.hpp"
 #include "libtorrent/escape_string.hpp" // for base64encode
-#include "libtorrent/socket_io.hpp"
 
 namespace libtorrent
 {
@@ -75,7 +74,7 @@ namespace libtorrent
 
 		// send CONNECT
 		std::back_insert_iterator<std::vector<char> > p(m_buffer);
-		write_string("CONNECT " + print_endpoint(m_remote_endpoint)
+		write_string("CONNECT " + boost::lexical_cast<std::string>(m_remote_endpoint)
 			+ " HTTP/1.0\r\n", p);
 		if (!m_user.empty())
 		{

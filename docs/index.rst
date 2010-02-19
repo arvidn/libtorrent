@@ -10,7 +10,6 @@
 * `api documentation`_
 * `create torrents`_
 * `running tests`_
-* `tuning`_
 * screenshot_
 * `mailing list`_ (archive_)
 * `who's using libtorrent?`_
@@ -57,7 +56,6 @@ libtorrent
 .. _`api documentation`: manual.html
 .. _`create torrents`: make_torrent.html
 .. _`running tests`: running_tests.html
-.. _`tuning`: tuning.html
 .. _screenshot: client_test.png
 .. _`extensions protocol`: extension_protocol.html
 .. _`plugin interface`: libtorrent_plugins.html
@@ -77,11 +75,10 @@ libtorrent
 
 .. _`Introduction, slides`: bittorrent.pdf
 
-libtorrent is a feature complete C++ bittorrent implementation focusing
-on efficiency and scalability. It runs on embedded devices as well as
-desktops. It boasts a well documented library interface that is easy to
-use. It comes with a `simple bittorrent client`__ demonstrating the use of
-the library.
+libtorrent is a C++ library that aims to be a good alternative to all the
+other bittorrent implementations around. It is a
+library and not a full featured client, although it comes with a working
+`example client`__.
 
 __ client_test.html
 
@@ -121,45 +118,22 @@ __ http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 
 You can usually find me as hydri in ``#libtorrent`` on ``irc.freenode.net``.
 
-license
-=======
-
-libtorrent is released under the BSD-license_.
-
-.. _BSD-license: http://www.opensource.org/licenses/bsd-license.php
-
-This means that you can use the library in your project without having to
-release its source code. The only requirement is that you give credit
-to the author of the library by including the libtorrent license in your
-software or documentation.
-
-It is however greatly appreciated if additional features are contributed
-back to the open source project. Patches can be emailed to the mailing
-list or posted to the `bug tracker`_.
-
-.. _`bug tracker`: http://code.rasterbar.com/libtorrent/newticket
 
 Acknowledgements
 ================
 
-Written by Arvid Norberg. Copyright |copy| 2003-2009
+Written by Arvid Norberg. Copyright (c) 2003-2006
 
 Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
 
 Thanks to Reimond Retz for bugfixes, suggestions and testing
 
-Thanks to `Umeå University`__ for providing development and test hardware.
-
-__ http://www.cs.umu.se
-
 Project is hosted by sourceforge.
 
 |sf_logo|__
 
-__ http://sourceforge.net
-
 .. |sf_logo| image:: http://sourceforge.net/sflogo.php?group_id=7994
-.. |copy| unicode:: 0xA9 .. copyright sign
+__ http://sourceforge.net
 
 .. raw:: html
 
