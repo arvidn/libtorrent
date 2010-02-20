@@ -248,6 +248,9 @@ private:
 	typedef boost::array<ptime, 160> table_activity_t;
 	table_activity_t m_bucket_activity;
 	node_id m_id; // our own node id
+
+	// the last time need_bootstrap() returned true
+	mutable ptime m_last_bootstrap;
 	
 	// this is a set of all the endpoints that have
 	// been identified as router nodes. They will

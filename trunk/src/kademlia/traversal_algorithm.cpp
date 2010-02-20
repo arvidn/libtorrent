@@ -251,6 +251,8 @@ void traversal_algorithm::add_router_entries()
 
 void traversal_algorithm::init()
 {
+	// update the last activity of this bucket
+	m_node.m_table.touch_bucket(m_target);
 	m_branch_factor = m_node.branch_factor();
 	m_node.add_traversal_algorithm(this);
 }
