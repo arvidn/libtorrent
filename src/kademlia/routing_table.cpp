@@ -60,6 +60,7 @@ routing_table::routing_table(node_id const& id, int bucket_size
 	: m_bucket_size(bucket_size)
 	, m_settings(settings)
 	, m_id(id)
+	, m_last_bootstrap(min_time())
 {
 }
 
@@ -157,12 +158,12 @@ void routing_table::print_state(std::ostream& os) const
 }
 
 #endif
-/*
-void routing_table::touch_bucket(int bucket)
+
+void routing_table::touch_bucket(node_id const& target)
 {
-	m_bucket_activity[bucket] = time_now();
+	table_t::iterator i = find_bucket(target);
+	i->last_active = time_now();
 }
-*/
 
 bool routing_table::need_refresh(node_id& target) const
 {
@@ -172,7 +173,7 @@ bool routing_table::need_refresh(node_id& target) const
 		, boost::bind(&routing_table_node::last_active, _1)
 			< boost::bind(&routing_table_node::last_active, _2));
 
-	if (i->last_active > time_now() - minutes(15)) return false;
+	if (time_now() - i->last_active < minutes(15)) return false;
 
 	// generate a random node_id within the given bucket
 	target = generate_id();
@@ -196,18 +197,6 @@ bool routing_table::need_refresh(node_id& target) const
 	TORRENT_ASSERT(distance_exp(m_id, target) == 160 - num_bits);
 	return true;
 }
-/*
-ptime routing_table::next_refresh(int bucket)
-{
-	TORRENT_ASSERT(bucket < 160);
-	TORRENT_ASSERT(bucket >= 0);
-	// lower than or equal to since a refresh of bucket 0 will
-	// effectively refresh the lowest active bucket as well
-	if (bucket < m_lowest_active_bucket && bucket > 0)
-		return time_now() + minutes(15);
-	return m_bucket_activity[bucket] + minutes(15);
-}
-*/
 
 void routing_table::replacement_cache(bucket_t& nodes) const
 {
@@ -517,6 +506,9 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint ep)
 
 bool routing_table::need_bootstrap() const
 {
+	ptime now = time_now();
+	if (now - m_last_bootstrap < seconds(30)) return false;
+
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
 	{
@@ -526,6 +518,7 @@ bool routing_table::need_bootstrap() const
 			if (j->confirmed()) return false;
 		}
 	}
+	m_last_bootstrap = now;
 	return true;
 }
 

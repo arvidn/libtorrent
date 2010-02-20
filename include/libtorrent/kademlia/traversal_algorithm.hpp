@@ -141,7 +141,7 @@ struct traversal_algorithm : boost::noncopyable
 		, m_timeouts(0)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << "] new traversal process";
+		TORRENT_LOG(traversal) << " [" << this << "] new traversal process. Target: " << target;
 #endif
 	}
 

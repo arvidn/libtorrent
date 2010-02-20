@@ -158,6 +158,8 @@ public:
 	void print_state(std::ostream& os) const;
 #endif
 
+	void touch_bucket(node_id const& target);
+
 private:
 
 	typedef std::list<routing_table_node> table_t;
@@ -178,6 +180,9 @@ private:
 	table_t m_buckets;
 
 	node_id m_id; // our own node id
+
+	// the last time need_bootstrap() returned true
+	mutable ptime m_last_bootstrap;
 	
 	// this is a set of all the endpoints that have
 	// been identified as router nodes. They will
