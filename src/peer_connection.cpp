@@ -103,6 +103,7 @@ namespace libtorrent
 		, m_receiving_block(-1, -1)
 		, m_timeout_extend(0)
 		, m_outstanding_bytes(0)
+		, m_extension_outstanding_bytes(0)
 		, m_queued_time_critical(0)
 		, m_num_pieces(0)
 		, m_timeout(m_ses.settings().peer_timeout)
@@ -236,6 +237,7 @@ namespace libtorrent
 		, m_receiving_block(-1, -1)
 		, m_timeout_extend(0)
 		, m_outstanding_bytes(0)
+		, m_extension_outstanding_bytes(0)
 		, m_queued_time_critical(0)
 		, m_num_pieces(0)
 		, m_timeout(m_ses.settings().peer_timeout)
@@ -4170,8 +4172,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 		m_channel_state[download_channel] = peer_info::bw_limit;
 		m_ses.m_download_rate.request_bandwidth(self()
-			, m_outstanding_bytes + 30, priority
-			, bwc1, bwc2, bwc3, bwc4);
+			, (std::max)(m_outstanding_bytes, m_extension_outstanding_bytes) + 30
+			, priority , bwc1, bwc2, bwc3, bwc4);
 	}
 
 	void peer_connection::setup_send()
@@ -4525,6 +4527,9 @@ namespace libtorrent
 		m_channel_state[download_channel] = peer_info::bw_idle;
 
 		int bytes_in_loop = bytes_transferred;
+
+		if (m_extension_outstanding_bytes > 0)
+			m_extension_outstanding_bytes -= (std::min)(m_extension_outstanding_bytes, int(bytes_transferred));
 
 		if (error)
 		{
