@@ -99,7 +99,7 @@ namespace libtorrent
 		void on_receive(error_code const& error
 			, std::size_t bytes_transferred);
 			
-		std::string const& url() const { return m_url; }
+		std::string const& url() const { return m_original_url; }
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
 		virtual bool in_handshake() const;
@@ -146,6 +146,7 @@ namespace libtorrent
 		int m_port;
 		std::string m_path;
 		std::string m_url;
+		std::string m_original_url;
 			
 		// the first request will contain a little bit more data
 		// than subsequent ones, things that aren't critical are left
