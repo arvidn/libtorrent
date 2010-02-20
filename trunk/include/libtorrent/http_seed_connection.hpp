@@ -144,7 +144,10 @@ namespace libtorrent
 		std::string m_host;
 		int m_port;
 		std::string m_path;
-		std::string m_url;
+
+		// this is const since it's used as a key in the web seed list in the torrent
+		// if it's changed referencing back into that list will fail
+		const std::string m_url;
 			
 		// the first request will contain a little bit more data
 		// than subsequent ones, things that aren't critical are left

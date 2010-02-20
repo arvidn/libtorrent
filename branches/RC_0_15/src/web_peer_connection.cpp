@@ -390,9 +390,9 @@ namespace libtorrent
 					if (m_parser.status_code() == 503)
 					{
 						// temporarily unavailable, retry later
-						t->retry_web_seed(m_url, web_seed_entry::url_seed);
+						t->retry_web_seed(m_original_url, web_seed_entry::url_seed);
 					}
-					t->remove_web_seed(m_url, web_seed_entry::url_seed);
+					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 					std::string error_msg = to_string(m_parser.status_code()).elems
 						+ (" " + m_parser.message());
 					if (m_ses.m_alerts.should_post<url_seed_alert>())
@@ -436,7 +436,7 @@ namespace libtorrent
 					if (location.empty())
 					{
 						// we should not try this server again.
-						t->remove_web_seed(m_url, web_seed_entry::url_seed);
+						t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 						disconnect(errors::missing_location, 2);
 						return;
 					}
@@ -458,14 +458,14 @@ namespace libtorrent
 						size_t i = location.rfind(path);
 						if (i == std::string::npos)
 						{
-							t->remove_web_seed(m_url, web_seed_entry::url_seed);
+							t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 							disconnect(errors::invalid_redirection, 2);
 							return;
 						}
 						location.resize(i);
 					}
 					t->add_web_seed(location, web_seed_entry::url_seed);
-					t->remove_web_seed(m_url, web_seed_entry::url_seed);
+					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 					disconnect(errors::redirecting, 2);
 					return;
 				}
@@ -499,7 +499,7 @@ namespace libtorrent
 				{
 					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
-					t->remove_web_seed(m_url, web_seed_entry::url_seed);
+					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 					disconnect(errors::invalid_range);
 					return;
 				}
@@ -514,7 +514,7 @@ namespace libtorrent
 				{
 					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
-					t->remove_web_seed(m_url, web_seed_entry::url_seed);
+					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 					disconnect(errors::no_content_length, 2);
 					return;
 				}
