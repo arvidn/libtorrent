@@ -59,6 +59,7 @@ routing_table::routing_table(node_id const& id, int bucket_size
 	: m_bucket_size(bucket_size)
 	, m_settings(settings)
 	, m_id(id)
+	, m_last_bootstrap(min_time())
 	, m_lowest_active_bucket(160)
 {
 	// distribute the refresh times for the buckets in an
@@ -414,10 +415,14 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint addr)
 
 bool routing_table::need_bootstrap() const
 {
+	ptime now = time_now();
+	if (now - m_last_bootstrap < seconds(30)) return false;
+
 	for (const_iterator i = begin(); i != end(); ++i)
 	{
 		if (i->confirmed()) return false;
 	}
+	m_last_bootstrap = now;
 	return true;
 }
 
