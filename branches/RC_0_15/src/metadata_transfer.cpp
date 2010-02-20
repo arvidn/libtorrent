@@ -207,6 +207,8 @@ namespace libtorrent { namespace
 				metadata();
 		}
 
+		int metadata_size() const { return m_metadata_size; }
+
 	private:
 		torrent& m_torrent;
 
@@ -284,6 +286,8 @@ namespace libtorrent { namespace
 			(*m_pc.m_logger) << time_now_string()
 				<< " ==> METADATA_REQUEST  [ start: " << start << " | size: " << size << " ]\n";
 #endif
+
+			m_pc.extension_expect_bytes(m_tp.metadata_size() == 0 ? 2048 : m_tp.metadata_size() * size / 255);
 
 			buffer::interval i = m_pc.allocate_send_buffer(9);
 
