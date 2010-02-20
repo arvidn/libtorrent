@@ -324,6 +324,7 @@ namespace libtorrent { namespace
 					if (!m_torrent.valid_metadata())
 					{
 						write_metadata_packet(2, piece);
+						m_pc.extension_expect_bytes(0x4000);
 						return true;
 					}
 					// TODO: put the request on the queue in some cases
