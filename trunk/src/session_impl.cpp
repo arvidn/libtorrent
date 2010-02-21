@@ -295,6 +295,12 @@ namespace aux {
 		TORRENT_SETTING(integer, default_cache_min_age)
 		TORRENT_SETTING(integer, num_optimistic_unchoke_slots)
 		TORRENT_SETTING(boolean, no_atime_storage)
+		TORRENT_SETTING(integer, default_est_reciprocation_rate)
+		TORRENT_SETTING(integer, increase_est_reciprocation_rate)
+		TORRENT_SETTING(integer, decrease_est_reciprocation_rate)
+		TORRENT_SETTING(boolean, incoming_starts_queued_torrents)
+		TORRENT_SETTING(boolean, report_true_downloaded)
+		TORRENT_SETTING(boolean, strict_end_game_mode)
 	};
 
 #undef TORRENT_SETTING
