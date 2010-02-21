@@ -287,8 +287,6 @@ namespace libtorrent { namespace
 				<< " ==> METADATA_REQUEST  [ start: " << start << " | size: " << size << " ]\n";
 #endif
 
-			m_pc.extension_expect_bytes(m_tp.metadata_size() == 0 ? 2048 : m_tp.metadata_size() * size / 255);
-
 			buffer::interval i = m_pc.allocate_send_buffer(9);
 
 			detail::write_uint32(1 + 1 + 3, i.begin);
