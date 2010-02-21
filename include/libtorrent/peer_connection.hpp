@@ -183,12 +183,6 @@ namespace libtorrent
 		policy::peer* peer_info_struct() const
 		{ return m_peer_info; }
 
-		// used by extensions to advertise that they expect to
-		// receive a number of bytes, this will make the peer
-		// connection request more download quota from the download
-		// rate limiter
-		void extension_expect_bytes(int n) { m_extension_outstanding_bytes += n; }
-
 		enum peer_speed_t { slow = 1, medium, fast };
 		peer_speed_t peer_speed();
 
