@@ -1652,14 +1652,14 @@ namespace libtorrent
 					}
 					jl.unlock();
 
-					mutex_t::scoped_lock l(m_piece_mutex);
+					mutex::scoped_lock l(m_piece_mutex);
 
 					for (cache_t::iterator i = m_read_pieces.begin();
 						i != m_read_pieces.end();)
 					{
 						if (i->storage == j.storage)
 						{
-							free_piece(*i, l);
+							free_piece(const_cast<cached_piece_entry&>(*i), l);
 							i = m_read_pieces.erase(i);
 						}
 						else
