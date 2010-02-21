@@ -64,6 +64,7 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 #ifdef TORRENT_DEBUG
 	m_magic = 0x1337;
 	m_started = false;
+	m_outstanding_when_aborted = -1;
 #endif
 }
 
@@ -203,7 +204,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		++m_outstanding;
 #ifdef TORRENT_DEBUG
-	m_started = true;
+		m_started = true;
 #endif
 		return;
 	}
@@ -353,6 +354,9 @@ void udp_socket::close()
 	m_socks5_sock.close(ec);
 	m_resolver.cancel();
 	m_abort = true;
+#ifdef TORRENT_DEBUG
+	m_outstanding_when_aborted = m_outstanding;
+#endif
 	if (m_connection_ticket >= 0)
 	{
 		m_cc.done(m_connection_ticket);
@@ -373,6 +377,9 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	CHECK_MAGIC;
 	mutex_t::scoped_lock l(m_mutex);	
 
+	TORRENT_ASSERT(m_abort == false);
+	if (m_abort) return;
+
 	if (m_ipv4_sock.is_open()) m_ipv4_sock.close(ec);
 #if TORRENT_USE_IPV6
 	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
@@ -386,6 +393,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		if (ec) return;
 		m_ipv4_sock.async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
 			, m_v4_ep, boost::bind(&udp_socket::on_read, this, &m_ipv4_sock, _1, _2));
+		++m_outstanding;
 	}
 #if TORRENT_USE_IPV6
 	else
@@ -396,9 +404,9 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		if (ec) return;
 		m_ipv6_sock.async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
 			, m_v6_ep, boost::bind(&udp_socket::on_read, this, &m_ipv6_sock, _1, _2));
+		++m_outstanding;
 	}
 #endif
-	++m_outstanding;
 #ifdef TORRENT_DEBUG
 	m_started = true;
 #endif
@@ -409,6 +417,9 @@ void udp_socket::bind(int port)
 {
 	CHECK_MAGIC;
 	mutex_t::scoped_lock l(m_mutex);	
+
+	TORRENT_ASSERT(m_abort == false);
+	if (m_abort) return;
 
 	error_code ec;
 

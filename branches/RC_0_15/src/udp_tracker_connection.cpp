@@ -81,6 +81,7 @@ namespace libtorrent
 		, m_attempts(0)
 		, m_state(action_error)
 	{
+		TORRENT_ASSERT(refcount() == 1);
 		m_socket.set_proxy_settings(proxy);
 	}
 

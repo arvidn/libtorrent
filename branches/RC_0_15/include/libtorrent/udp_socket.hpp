@@ -137,6 +137,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		bool m_started;
 		int m_magic;
+		int m_outstanding_when_aborted;
 #endif
 	};
 
