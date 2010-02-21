@@ -1,3 +1,4 @@
+	* fixed issue with disk read cache not being cleared when removing torrents
 
 release 0.14.9
 

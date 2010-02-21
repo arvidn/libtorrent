@@ -855,6 +855,31 @@ namespace libtorrent
 						}
 						++i;
 					}
+					jl.unlock();
+
+					mutex_t::scoped_lock l(m_piece_mutex);
+
+					for (cache_t::iterator i = m_read_pieces.begin();
+						i != m_read_pieces.end();)
+					{
+						if (i->storage == j.storage)
+						{
+							free_piece(*i, l);
+							i = m_read_pieces.erase(i);
+						}
+						else
+						{
+							++i;
+						}
+					}
+					l.unlock();
+
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+					{
+						mutex_t::scoped_lock l(m_pool_mutex);
+						m_pool.release_memory();
+					}
+#endif
 					break;
 				}
 				case disk_io_job::abort_thread:
