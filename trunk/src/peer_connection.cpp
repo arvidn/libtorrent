@@ -4172,7 +4172,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 		m_channel_state[download_channel] = peer_info::bw_limit;
 		m_ses.m_download_rate.request_bandwidth(self()
-			, (std::max)(m_outstanding_bytes, m_extension_outstanding_bytes) + 30
+			, (std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
 			, priority , bwc1, bwc2, bwc3, bwc4);
 	}
 
