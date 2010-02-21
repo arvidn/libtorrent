@@ -451,6 +451,15 @@ namespace libtorrent
 			return;
 		}
 
+		if (upload_only())
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string()
+				<< " *** SKIPPING ALLOWED SET BECAUSE PEER IS UPLOAD ONLY\n";
+#endif
+			return;
+		}
+
 		int num_allowed_pieces = m_ses.settings().allowed_fast_set_size;
 		if (num_allowed_pieces == 0) return;
 
@@ -463,9 +472,13 @@ namespace libtorrent
 			// an allowed fast message for every single piece
 			for (int i = 0; i < num_pieces; ++i)
 			{
+				// there's no point in offering fast pieces
+				// that the peer already has
+				if (has_piece(i)) continue;
+
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string()
-				<< " ==> ALLOWED_FAST [ " << i << " ]\n";
+				(*m_logger) << time_now_string()
+					<< " ==> ALLOWED_FAST [ " << i << " ]\n";
 #endif
 				write_allow_fast(i);
 				TORRENT_ASSERT(std::find(m_accept_fast.begin()
