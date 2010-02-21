@@ -275,6 +275,8 @@ namespace aux {
 		TORRENT_SETTING(boolean, low_prio_disk)
 		TORRENT_SETTING(integer, local_service_announce_interval)
 		TORRENT_SETTING(integer, udp_tracker_token_expiry)
+		TORRENT_SETTING(boolean, report_true_downloaded)
+		TORRENT_SETTING(boolean, strict_end_game_mode)
 	};
 
 #undef TORRENT_SETTING
