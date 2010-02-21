@@ -59,6 +59,7 @@ namespace libtorrent
 			: handle(h)
 		{}
 		
+		const static int alert_type = 1;
 		virtual std::string message() const;
 
 		torrent_handle handle;
@@ -73,6 +74,7 @@ namespace libtorrent
 			, pid(pid_)
 		{}
 
+		const static int alert_type = 2;
 		const static int static_category = alert::peer_notification;
 		virtual int category() const { return static_category; }
 		virtual std::string message() const;
@@ -89,6 +91,7 @@ namespace libtorrent
 			, url(url_)
 		{}
 
+		const static int alert_type = 3;
 		const static int static_category = alert::tracker_notification;
 		virtual int category() const { return static_category; }
 		virtual std::string message() const;
