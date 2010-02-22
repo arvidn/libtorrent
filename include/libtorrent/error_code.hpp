@@ -139,7 +139,7 @@ namespace libtorrent
 			duplicate_peer_id,
 			torrent_removed,
 			packet_too_large,
-			reserved82,
+			torrent_invalid_piece_size,
 			http_error,
 			missing_location,
 			invalid_redirection,
