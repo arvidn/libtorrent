@@ -472,6 +472,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_seeds >= 0);
 		const float num_pieces = static_cast<float>(m_piece_map.size());
 
+		if (num_pieces == 0) return 1.0f;
 		int min_availability = piece_pos::max_peer_count;
 		// find the lowest availability count
 		// count the number of pieces that have that availability

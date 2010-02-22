@@ -720,6 +720,15 @@ namespace libtorrent
 		{
 			set_error(errors::too_many_pieces_in_torrent, "");
 			pause();
+			return;
+		}
+
+		if (m_torrent_file->piece_length() % block_size() != 0)
+		{
+			// TODO: try to adjust the block size
+			set_error(errors::torrent_invalid_piece_size, "");
+			pause();
+			return;
 		}
 
 		// the shared_from_this() will create an intentional
@@ -4633,11 +4642,11 @@ namespace libtorrent
 
 		if (valid_metadata())
 		{
-			TORRENT_ASSERT(m_abort || !m_picker || m_picker->num_pieces() == m_torrent_file->num_pieces());
+			TORRENT_ASSERT(m_abort || m_error || !m_picker || m_picker->num_pieces() == m_torrent_file->num_pieces());
 		}
 		else
 		{
-			TORRENT_ASSERT(m_abort || !m_picker || m_picker->num_pieces() == 0);
+			TORRENT_ASSERT(m_abort || m_error || !m_picker || m_picker->num_pieces() == 0);
 		}
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -4694,7 +4703,7 @@ namespace libtorrent
 			}
 		}
 			
-		if (valid_metadata())
+		if (m_files_checked && valid_metadata())
 		{
 			TORRENT_ASSERT(m_block_size > 0);
 			TORRENT_ASSERT((m_torrent_file->piece_length() & (m_block_size-1)) == 0);
@@ -4874,6 +4883,8 @@ namespace libtorrent
 			m_ses.m_auto_manage_time_scaler = 2;
 		m_error = error_code();
 		m_error_file.clear();
+		// if the error happened during initialization, try again now
+		if (!m_storage) init();
 		if (!checking_files && should_check_files())
 			queue_torrent_check();
 	}
