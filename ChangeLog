@@ -87,6 +87,7 @@
 	* improved LSD performance and made the interval configurable
 	* improved UDP tracker support by caching connect tokens
 	* fast piece optimization
+	* fixed error handling with torrents with invalid piece sizes
 	* fixed issue with disk read cache not being cleared when removing torrents
 
 release 0.14.9
