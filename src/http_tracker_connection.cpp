@@ -108,7 +108,7 @@ namespace libtorrent
 			if (pos == std::string::npos)
 			{
 				m_ios.post(boost::bind(&http_tracker_connection::fail_disp, self()
-					, -1, "scrape is not available on url: '" + tracker_req().url +"'"));
+					, error_code(errors::scrape_not_available)));
 				return;
 			}
 			url.replace(pos, 8, "scrape");
@@ -247,7 +247,7 @@ namespace libtorrent
 		}
 
 		if (endpoints.empty())
-			fail(-1, "blocked by IP filter");
+			fail(error_code(errors::banned_by_ip_filter));
 	}
 
 	void http_tracker_connection::on_connect(http_connection& c)
@@ -267,25 +267,25 @@ namespace libtorrent
 
 		if (ec && ec != asio::error::eof)
 		{
-			fail(-1, ec.message().c_str());
+			fail(ec);
 			return;
 		}
 		
 		if (!parser.header_finished())
 		{
-			fail(-1, "premature end of file");
+			fail(asio::error::eof);
 			return;
 		}
 
 		if (parser.status_code() != 200)
 		{
-			fail(parser.status_code(), parser.message().c_str());
+			fail(error_code(errors::http_error), parser.status_code(), parser.message().c_str());
 			return;
 		}
 	
 		if (ec && ec != asio::error::eof)
 		{
-			fail(parser.status_code(), ec.message().c_str());
+			fail(ec, parser.status_code());
 			return;
 		}
 		
@@ -301,19 +301,7 @@ namespace libtorrent
 		}
 		else
 		{
-			std::string error_str("invalid encoding of tracker response: \"");
-			for (char const* i = data, *end(data + size); i != end; ++i)
-			{
-				if (*i >= ' ' && *i <= '~') error_str += *i;
-				else
-				{
-					char val[30];
-					snprintf(val, sizeof(val), "0x%02x ", *i);
-					error_str += val;
-				}
-			}
-			error_str += "\"";
-			fail(parser.status_code(), error_str.c_str());
+			fail(error_code(errors::invalid_bencoding), parser.status_code());
 		}
 		close();
 	}
@@ -323,7 +311,7 @@ namespace libtorrent
 		// extract peer id (if any)
 		if (info.type() != lazy_entry::dict_t)
 		{
-			fail(-1, "invalid response from tracker (invalid peer entry)");
+			fail(error_code(errors::invalid_peer_dict));
 			return false;
 		}
 		lazy_entry const* i = info.dict_find_string("peer id");
@@ -341,7 +329,7 @@ namespace libtorrent
 		i = info.dict_find_string("ip");
 		if (i == 0)
 		{
-			fail(-1, "invalid response from tracker");
+			fail(error_code(errors::invalid_tracker_response));
 			return false;
 		}
 		ret.ip = i->string_value();
@@ -350,7 +338,7 @@ namespace libtorrent
 		i = info.dict_find_int("port");
 		if (i == 0)
 		{
-			fail(-1, "invalid response from tracker");
+			fail(error_code(errors::invalid_tracker_response));
 			return false;
 		}
 		ret.port = (unsigned short)i->int_value();
@@ -370,7 +358,8 @@ namespace libtorrent
 		lazy_entry const* failure = e.dict_find_string("failure reason");
 		if (failure)
 		{
-			fail(status_code, failure->string_value().c_str(), interval, min_interval);
+			fail(error_code(errors::tracker_failure), status_code
+				, failure->string_value().c_str(), interval, min_interval);
 			return;
 		}
 
@@ -387,7 +376,7 @@ namespace libtorrent
 			lazy_entry const* files = e.dict_find_dict("files");
 			if (files == 0)
 			{
-				fail(-1, "invalid or missing 'files' entry in scrape response"
+				fail(error_code(errors::invalid_files_entry), -1, ""
 					, interval, min_interval);
 				return;
 			}
@@ -395,7 +384,7 @@ namespace libtorrent
 			lazy_entry const* scrape_data = files->dict_find_dict(ih.c_str());
 			if (scrape_data == 0)
 			{
-				fail(-1, "missing or invalid info-hash entry in scrape response"
+				fail(error_code(errors::invalid_hash_entry), -1, ""
 					, interval, min_interval);
 				return;
 			}
@@ -469,7 +458,7 @@ namespace libtorrent
 
 		if (peers_ent == 0 && ipv6_peers == 0)
 		{
-			fail(-1, "missing 'peers' and 'peers6' entry in tracker response"
+			fail(error_code(errors::invalid_peers_entry), -1, ""
 				, interval, min_interval);
 			return;
 		}

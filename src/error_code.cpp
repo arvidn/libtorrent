@@ -213,6 +213,26 @@ namespace libtorrent
 			"",
 // i2p errors
 			"no i2p router is set up",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+// tracker errors
+			"scrape not available on tracker",
+			"invalid tracker response",
+			"invalid peer dictionary entry",
+			"tracker sent a failure message",
+			"missing or invalid 'files' entry",
+			"missing or invalid 'hash' entry",
+			"missing or invalid 'peers' and 'peers6' entry",
+			"udp tracker response packet has invalid size",
+			"invalid transaction id in udp tracker response",
+			"invalid action field in udp tracker response",
 		};
 		if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
 			return "Unknown error";

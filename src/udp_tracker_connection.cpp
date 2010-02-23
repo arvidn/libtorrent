@@ -97,7 +97,7 @@ namespace libtorrent
 
 		if (ec)
 		{
-			fail(-1, ec.message().c_str());
+			fail(ec);
 			return;
 		}
 		
@@ -123,7 +123,7 @@ namespace libtorrent
 		if (error == asio::error::operation_aborted) return;
 		if (error || i == udp::resolver::iterator())
 		{
-			fail(-1, error.message().c_str());
+			fail(error);
 			return;
 		}
 
@@ -152,7 +152,7 @@ namespace libtorrent
 
 		if (m_endpoints.empty())
 		{
-			fail(-1, "blocked by IP filter");
+			fail(error_code(errors::banned_by_ip_filter));
 			return;
 		}
 		
@@ -194,7 +194,7 @@ namespace libtorrent
 		m_socket.bind(udp::endpoint(bind_interface(), 0), ec);
 		if (ec)
 		{
-			fail(-1, ec.message().c_str());
+			fail(ec);
 			return;
 		}
 
@@ -231,7 +231,7 @@ namespace libtorrent
 #endif
 		m_socket.close();
 		m_name_lookup.cancel();
-		fail_timeout();
+		fail(error_code(errors::timed_out));
 	}
 
 	void udp_tracker_connection::close()
@@ -254,7 +254,7 @@ namespace libtorrent
 		if (m_target != ep) return;
 		
 		received_bytes(size + 28); // assuming UDP/IP header
-		if (e) fail(-1, e.message().c_str());
+		if (e) fail(e);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
@@ -289,7 +289,7 @@ namespace libtorrent
 
 		if (action == action_error)
 		{
-			fail(-1, std::string(ptr, size - 8).c_str());
+			fail(error_code(errors::tracker_failure), -1, std::string(ptr, size - 8).c_str());
 			return;
 		}
 
@@ -379,7 +379,7 @@ namespace libtorrent
 		++m_attempts;
 		if (ec)
 		{
-			fail(-1, ec.message().c_str());
+			fail(ec);
 			return;
 		}
 	}
@@ -415,7 +415,7 @@ namespace libtorrent
 		++m_attempts;
 		if (ec)
 		{
-			fail(-1, ec.message().c_str());
+			fail(ec);
 			return;
 		}
 	}
@@ -433,7 +433,7 @@ namespace libtorrent
 		int num_peers = (size - 20) / 6;
 		if ((size - 20) % 6 != 0)
 		{
-			fail(-1, "invalid udp tracker response length");
+			fail(error_code(errors::invalid_tracker_response_length));
 			return;
 		}
 
@@ -495,25 +495,25 @@ namespace libtorrent
 
 		if (transaction != m_transaction_id)
 		{
-			fail(-1, "incorrect transaction id");
+			fail(error_code(errors::invalid_tracker_transaction_id));
 			return;
 		}
 
 		if (action == action_error)
 		{
-			fail(-1, std::string(buf, size - 8).c_str());
+			fail(error_code(errors::tracker_failure), -1, std::string(buf, size - 8).c_str());
 			return;
 		}
 
 		if (action != action_scrape)
 		{
-			fail(-1, "invalid action in announce response");
+			fail(error_code(errors::invalid_tracker_action));
 			return;
 		}
 
 		if (size < 20)
 		{
-			fail(-1, "got a message with size < 20");
+			fail(error_code(errors::invalid_tracker_response_length));
 			return;
 		}
 
@@ -602,7 +602,7 @@ namespace libtorrent
 		++m_attempts;
 		if (ec)
 		{
-			fail(-1, ec.message().c_str());
+			fail(ec);
 			return;
 		}
 	}

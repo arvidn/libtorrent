@@ -6404,6 +6404,31 @@ I2P errors:
 160    no_i2p_router                             The URL specified an i2p address, but no i2p router is configured
 ====== ========================================= =================================================================
 
+tracker errors:
+
+====== ========================================= =================================================================
+170    scrape_not_available                      The tracker URL doesn't support transforming it into a scrape
+                                                 URL. i.e. it doesn't contain "announce.
+------ ----------------------------------------- -----------------------------------------------------------------
+171    invalid_tracker_response                  invalid tracker response
+------ ----------------------------------------- -----------------------------------------------------------------
+172    invalid_peer_dict                         invalid peer dictionary entry. Not a dictionary
+------ ----------------------------------------- -----------------------------------------------------------------
+173    tracker_failure                           tracker sent a failure message
+------ ----------------------------------------- -----------------------------------------------------------------
+174    invalid_files_entry                       missing or invalid 'files' entry
+------ ----------------------------------------- -----------------------------------------------------------------
+175    invalid_hash_entry                        missing or invalid 'hash' entry
+------ ----------------------------------------- -----------------------------------------------------------------
+176    invalid_peers_entry                       missing or invalid 'peers' and 'peers6' entry
+------ ----------------------------------------- -----------------------------------------------------------------
+177    invalid_tracker_response_length           udp tracker response packet has invalid size
+------ ----------------------------------------- -----------------------------------------------------------------
+178    invalid_tracker_transaction_id            invalid transaction id in udp tracker response
+------ ----------------------------------------- -----------------------------------------------------------------
+179    invalid_tracker_action                    invalid action field in udp tracker response
+====== ========================================= =================================================================
+
 The names of these error codes are declared in then ``libtorrent::errors`` namespace.
 
 There is also another error category, ``libtorrent::upnp_category``, defining errors
