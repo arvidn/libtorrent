@@ -224,6 +224,27 @@ namespace libtorrent
 			reserved159,
 // i2p errors
 			no_i2p_router, // 160
+			reserved161,
+			reserved162,
+			reserved163,
+			reserved164,
+			reserved165,
+			reserved166,
+			reserved167,
+			reserved168,
+			reserved169,
+
+// tracker errors
+			scrape_not_available, // 170
+			invalid_tracker_response,
+			invalid_peer_dict,
+			tracker_failure,
+			invalid_files_entry,
+			invalid_hash_entry,
+			invalid_peers_entry,
+			invalid_tracker_response_length,
+			invalid_tracker_transaction_id,
+			invalid_tracker_action,
 
 			error_code_max
 		};

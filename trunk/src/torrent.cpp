@@ -6257,49 +6257,11 @@ namespace libtorrent
 		return ret;
 	}
 
-	void torrent::tracker_request_timed_out(
-		tracker_request const& r)
-	{
-		mutex::scoped_lock l(m_ses.m_mutex);
-
-		INVARIANT_CHECK;
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		debug_log("*** tracker timed out");
-#endif
-
-		if (r.kind == tracker_request::announce_request)
-		{
-			announce_entry* ae = find_tracker(r);
-			if (ae)
-			{
-				ae->failed();
-				int tracker_index = ae - &m_trackers[0];
-				deprioritize_tracker(tracker_index);
-			}
-			if (m_ses.m_alerts.should_post<tracker_error_alert>())
-			{
-				m_ses.m_alerts.post_alert(tracker_error_alert(get_handle()
-					, ae?ae->fails:0, 0, r.url
-					, errors::timed_out));
-			}
-		}
-		else if (r.kind == tracker_request::scrape_request)
-		{
-			if (m_ses.m_alerts.should_post<scrape_failed_alert>())
-			{
-				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle()
-					, r.url, errors::timed_out));
-			}
-		}
-		update_tracker_timer();
-	}
-
 	// TODO: with some response codes, we should just consider
 	// the tracker as a failure and not retry
 	// it anymore
 	void torrent::tracker_request_error(tracker_request const& r
-		, int response_code, const std::string& str
+		, int response_code, error_code const& ec, const std::string& msg
 		, int retry_interval)
 	{
 		mutex::scoped_lock l(m_ses.m_mutex);
@@ -6307,7 +6269,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		debug_log(std::string("*** tracker error: ") + str);
+		debug_log("*** tracker error: " + ec.message() + " " + msg);
 #endif
 		if (r.kind == tracker_request::announce_request)
 		{
@@ -6321,14 +6283,14 @@ namespace libtorrent
 			if (m_ses.m_alerts.should_post<tracker_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(tracker_error_alert(get_handle()
-					, ae?ae->fails:0, response_code, r.url, str));
+					, ae?ae->fails:0, response_code, r.url, ec, msg));
 			}
 		}
 		else if (r.kind == tracker_request::scrape_request)
 		{
 			if (m_ses.m_alerts.should_post<scrape_failed_alert>())
 			{
-				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), r.url, str));
+				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), r.url, ec));
 			}
 		}
 		update_tracker_timer();

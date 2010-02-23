@@ -241,24 +241,13 @@ namespace libtorrent
 			, int times
 			, int status
 			, std::string const& url_
-			, error_code const& e)
+			, error_code const& e
+			, std::string const& m)
 			: tracker_alert(h, url_)
 			, times_in_row(times)
 			, status_code(status)
-			, msg(e.message())
-		{
-			TORRENT_ASSERT(!url.empty());
-		}
-
-		tracker_error_alert(torrent_handle const& h
-			, int times
-			, int status
-			, std::string const& url_
-			, std::string const& msg_)
-			: tracker_alert(h, url_)
-			, times_in_row(times)
-			, status_code(status)
-			, msg(msg_)
+			, error(e)
+			, msg(msg)
 		{
 			TORRENT_ASSERT(!url.empty());
 		}
@@ -270,6 +259,7 @@ namespace libtorrent
 
 		int times_in_row;
 		int status_code;
+		error_code error;
 		std::string msg;
 	};
 

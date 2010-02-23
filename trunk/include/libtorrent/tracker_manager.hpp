@@ -135,12 +135,11 @@ namespace libtorrent
 			, int complete
 			, int incomplete
 			, address const& external_ip) = 0;
-		virtual void tracker_request_timed_out(
-			tracker_request const& req) = 0;
 		virtual void tracker_request_error(
 			tracker_request const& req
 			, int response_code
-			, const std::string& description
+			, error_code const& ec
+			, const std::string& msg
 			, int retry_interval) = 0;
 
 		union_endpoint m_tracker_address;
@@ -201,9 +200,9 @@ namespace libtorrent
 
 		tracker_request const& tracker_req() const { return m_req; }
 
-		void fail_disp(int code, std::string const& msg) { fail(code, msg.c_str()); }
-		void fail(int code, char const* msg, int interval = 0, int min_interval = 0);
-		void fail_timeout();
+		void fail_disp(error_code ec) { fail(ec); }
+		void fail(error_code const& ec, int code = -1, char const* msg = ""
+			, int interval = 0, int min_interval = 0);
 		virtual void start() = 0;
 		virtual void close();
 		address const& bind_interface() const { return m_req.bind_ip; }
