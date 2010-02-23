@@ -650,7 +650,7 @@ namespace libtorrent
 		return m_torrent_file->add_merkle_nodes(nodes, piece);
 	}
 
-	peer_request torrent::to_req(piece_block const& p)
+	peer_request torrent::to_req(piece_block const& p) const
 	{
 		int block_offset = p.block_index * m_block_size;
 		int block_size = (std::min)(torrent_file().piece_size(
@@ -723,14 +723,6 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_torrent_file->piece_length() % block_size() != 0)
-		{
-			// TODO: try to adjust the block size
-			set_error(errors::torrent_invalid_piece_size, "");
-			pause();
-			return;
-		}
-
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
 		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
@@ -740,8 +732,10 @@ namespace libtorrent
 
 		if (has_picker())
 		{
-			m_picker->init((std::max)(m_torrent_file->piece_length() / m_block_size, 1)
-				, int((m_torrent_file->total_size()+m_block_size-1)/m_block_size));
+			int blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
+			int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
+				+ block_size() - 1) / block_size();
+			m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
 		}
 
 		std::vector<std::string> const& url_seeds = m_torrent_file->url_seeds();
@@ -1058,8 +1052,11 @@ namespace libtorrent
 		m_owning_storage->async_release_files();
 		if (!m_picker) m_picker.reset(new piece_picker());
 		std::fill(m_file_progress.begin(), m_file_progress.end(), 0);
-		m_picker->init(m_torrent_file->piece_length() / m_block_size
-			, int((m_torrent_file->total_size()+m_block_size-1)/m_block_size));
+
+		int blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
+		int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
+			+ block_size() - 1) / block_size();
+		m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
 		// assume that we don't have anything
 		TORRENT_ASSERT(m_picker->num_have() == 0);
 		m_files_checked = false;
@@ -1841,11 +1838,8 @@ namespace libtorrent
 			}
 #ifdef TORRENT_DEBUG
 			TORRENT_ASSERT(p->bytes_downloaded <= p->full_block_bytes);
-			if (p->piece_index == last_piece_index
-					&& p->block_index == m_torrent_file->piece_size(last_piece) / block_size())
-				TORRENT_ASSERT(p->full_block_bytes == m_torrent_file->piece_size(last_piece) % block_size());
-			else
-				TORRENT_ASSERT(p->full_block_bytes == block_size());
+			TORRENT_ASSERT(p->full_block_bytes == to_req(piece_block(
+				p->piece_index, p->block_index)).length);
 #endif
 		}
 		for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
@@ -4706,7 +4700,6 @@ namespace libtorrent
 		if (m_files_checked && valid_metadata())
 		{
 			TORRENT_ASSERT(m_block_size > 0);
-			TORRENT_ASSERT((m_torrent_file->piece_length() & (m_block_size-1)) == 0);
 		}
 //		if (is_seed()) TORRENT_ASSERT(m_picker.get() == 0);
 
