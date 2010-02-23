@@ -1,4 +1,4 @@
-	* fixed error handling with torrents with invalid piece sizes
+	* added support for torrents with odd piece sizes
 	* fixed issue with disk read cache not being cleared when removing torrents
 
 release 0.14.9

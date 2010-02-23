@@ -834,19 +834,10 @@ namespace libtorrent
 		torrent_info const& ti = t->torrent_file();
 
 		return p.piece >= 0
-			&& p.piece < t->torrent_file().num_pieces()
-			&& p.length > 0
+			&& p.piece < ti.num_pieces()
 			&& p.start >= 0
-			&& (p.length == t->block_size()
-				|| (p.length < t->block_size()
-					&& p.piece == ti.num_pieces()-1
-					&& p.start + p.length == ti.piece_size(p.piece))
-				|| (m_request_large_blocks
-					&& p.length <= ti.piece_length() * (m_prefer_whole_pieces == 0 ?
-					1 : m_prefer_whole_pieces)))
-			&& p.piece * size_type(ti.piece_length()) + p.start + p.length
-				<= ti.total_size()
-			&& (p.start % t->block_size() == 0);
+			&& p.start < ti.piece_length()
+			&& t->to_req(piece_block(p.piece, p.start / t->block_size())) == p;
 	}
 
 	void peer_connection::attach_to_torrent(sha1_hash const& ih)
@@ -1640,7 +1631,7 @@ namespace libtorrent
 			if (!t->is_seed())
 			{
 				const int blocks_per_piece = static_cast<int>(
-					t->torrent_file().piece_length() / t->block_size());
+					(t->torrent_file().piece_length() + t->block_size() - 1) / t->block_size());
 
 				std::vector<piece_picker::downloading_piece> const& dl_queue
 					= t->picker().get_download_queue();
@@ -1761,9 +1752,7 @@ namespace libtorrent
 
 		std::vector<piece_block> finished_blocks;
 		piece_block block_finished(p.piece, p.start / t->block_size());
-		TORRENT_ASSERT(p.start % t->block_size() == 0);
-		TORRENT_ASSERT(p.length == t->block_size()
-			|| p.length == t->torrent_file().total_size() % t->block_size());
+		TORRENT_ASSERT(verify_piece(p));
 
 		std::deque<pending_block>::iterator b
 			= std::find_if(

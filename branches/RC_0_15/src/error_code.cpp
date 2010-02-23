@@ -130,7 +130,7 @@ namespace libtorrent
 			"duplicate peer-id",
 			"torrent removed",
 			"packet too large",
-			"invalid piece size in torrent file",
+			"",
 			"HTTP error",
 			"missing location header",
 			"invalid redirection",

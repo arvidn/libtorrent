@@ -186,7 +186,7 @@ namespace libtorrent
 		int reverse_cursor() const { return m_reverse_cursor; }
 
 		// sets all pieces to dont-have
-		void init(int blocks_per_piece, int total_num_blocks);
+		void init(int blocks_per_piece, int blocks_in_last_piece, int total_num_pieces);
 		int num_pieces() const { return int(m_piece_map.size()); }
 
 		bool have_piece(int index) const

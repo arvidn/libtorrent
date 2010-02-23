@@ -75,18 +75,17 @@ namespace libtorrent
 #endif
 	}
 
-	void piece_picker::init(int blocks_per_piece, int total_num_blocks)
+	void piece_picker::init(int blocks_per_piece, int blocks_in_last_piece, int total_num_pieces)
 	{
 		TORRENT_ASSERT(blocks_per_piece > 0);
-		TORRENT_ASSERT(total_num_blocks >= 0);
+		TORRENT_ASSERT(total_num_pieces > 0);
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "piece_picker::init()" << std::endl;
 #endif
 		// allocate the piece_map to cover all pieces
 		// and make them invalid (as if we don't have a single piece)
-		m_piece_map.resize((total_num_blocks + blocks_per_piece-1) / blocks_per_piece
-			, piece_pos(0, 0));
+		m_piece_map.resize(total_num_pieces, piece_pos(0, 0));
 		m_reverse_cursor = int(m_piece_map.size());
 		m_cursor = 0;
 
@@ -117,7 +116,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_piece_map.size() < piece_pos::we_have_index);
 		
 		m_blocks_per_piece = blocks_per_piece;
-		m_blocks_in_last_piece = total_num_blocks % blocks_per_piece;
+		m_blocks_in_last_piece = blocks_in_last_piece;
 		if (m_blocks_in_last_piece == 0) m_blocks_in_last_piece = blocks_per_piece;
 
 		TORRENT_ASSERT(m_blocks_in_last_piece <= m_blocks_per_piece);

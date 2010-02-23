@@ -6072,8 +6072,7 @@ code   symbol                                    description
 ------ ----------------------------------------- -----------------------------------------------------------------
 81     packet_too_large                          The packet size exceeded the upper sanity check-limit
 ------ ----------------------------------------- -----------------------------------------------------------------
-82     torrent_invalid_piece_size                The .torrent file has an invalid piece size. It needs to be an
-                                                 even 16 kiB multiple
+82     reserved
 ------ ----------------------------------------- -----------------------------------------------------------------
 83     http_error                                The web server responded with an error
 ------ ----------------------------------------- -----------------------------------------------------------------
