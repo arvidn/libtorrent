@@ -492,7 +492,7 @@ namespace libtorrent
 		}
 
 		int block_size() const { TORRENT_ASSERT(m_block_size > 0); return m_block_size; }
-		peer_request to_req(piece_block const& p);
+		peer_request to_req(piece_block const& p) const;
 
 		void disconnect_all();
 		int disconnect_peers(int num);
