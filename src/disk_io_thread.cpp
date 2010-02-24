@@ -1637,7 +1637,6 @@ namespace libtorrent
 						}
 						++i;
 					}
-					jl.unlock();
 					// now clear all the read jobs
 					for (read_jobs_t::iterator i = sorted_read_jobs.begin();
 						i != sorted_read_jobs.end();)
