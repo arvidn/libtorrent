@@ -58,6 +58,7 @@ libtorrent_rasterbar_la_SOURCES = \
   pe_crypto.cpp                   \
   peer_connection.cpp             \
   piece_picker.cpp                \
+  packet_buffer.cpp               \
   policy.cpp                      \
   session.cpp                     \
   session_impl.cpp                \
