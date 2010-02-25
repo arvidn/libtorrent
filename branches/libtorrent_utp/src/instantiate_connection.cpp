@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/utp_socket_manager.hpp"
 #include <boost/shared_ptr.hpp>
 #include <stdexcept>
 
@@ -42,9 +43,15 @@ namespace libtorrent
 {
 
 	bool instantiate_connection(io_service& ios
-		, proxy_settings const& ps, socket_type& s)
+		, proxy_settings const& ps, utp_socket_manager* sm
+		, socket_type& s)
 	{
-		if (ps.type == proxy_settings::none)
+		if (sm)
+		{
+			s.instantiate<utp_stream>(ios);
+			s.get<utp_stream>()->set_manager(sm);
+		}
+		else if (ps.type == proxy_settings::none)
 		{
 			s.instantiate<stream_socket>(ios);
 		}

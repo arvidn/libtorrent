@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socks5_stream.hpp"
 #include "libtorrent/http_stream.hpp"
 #include "libtorrent/i2p_stream.hpp"
+#include "libtorrent/utp_stream.hpp"
 #include "libtorrent/variant_stream.hpp"
 
 namespace libtorrent
@@ -44,6 +45,7 @@ namespace libtorrent
 		stream_socket
 		, socks5_stream
 		, http_stream
+		, utp_stream
 #if TORRENT_USE_I2P
 		, i2p_stream
 #endif

@@ -51,9 +51,13 @@ namespace libtorrent
 		~utp_socket_manager();
 
 		// return false if this is not a uTP packet
-		bool incoming_packet(char const* p, int size);
+		bool incoming_packet(char const* p, int size, udp::endpoint const& ep);
 
 		void tick();
+
+		tcp::endpoint local_endpoint() const;
+
+		void send_packet(udp::endpoint const& ep, char const* p, int len);
 
 		// internal, used by utp_stream
 		void remove_socket(boost::uint16_t id);
@@ -65,8 +69,6 @@ namespace libtorrent
 		// replace with a hash-map
 		typedef std::map<boost::uint16_t, utp_socket_impl*> socket_map_t;
 		socket_map_t m_utp_sockets;
-
-		void add_socket(boost::uint16_t id, utp_socket_impl* s);
 	};
 }
 

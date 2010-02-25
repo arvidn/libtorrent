@@ -44,136 +44,239 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct utp_socket_manager;
 
-	template <class T> struct big_endian_int
+	namespace aux {
+
+	template <class Mutable_Buffers>
+	inline std::size_t copy_to_buffers(char const* linear, std::size_t size
+		, Mutable_Buffers const& buffers)
 	{
-		big_endian_int& operator=(T v)
+		std::size_t copied = 0;
+		for (typename Mutable_Buffers::const_iterator i = buffers.begin();
+			i != buffers.end(); ++i)
 		{
-			char* p = m_storage;
-			detail::write_impl(v, p);
-			return *this;
+			using asio::buffer_cast;
+			using asio::buffer_size;
+			int to_copy = (std::min)(buffer_size(*i), size - copied);
+			if (to_copy == 0) break;
+			std::memcpy(buffer_cast<char*>(*i), linear + copied, to_copy);
+			copied += to_copy;
 		}
-		operator T() const
-		{
-			const char* p = m_storage;
-			return detail::read_impl(p, detail::type<T>());
-		}
-	private:
-		char m_storage[sizeof(T)];
-	};
+		return copied;
+	}
 
-	typedef big_endian_int<boost::uint64_t> be_uint64;
-	typedef big_endian_int<boost::uint32_t> be_uint32;
-	typedef big_endian_int<boost::uint16_t> be_uint16;
-	typedef big_endian_int<boost::int64_t> be_int64;
-	typedef big_endian_int<boost::int32_t> be_int32;
-	typedef big_endian_int<boost::int16_t> be_int16;
-
-	// this is used to keep the minimum difference in
-	// timestamps.
-	struct delay_history
+	template <class Const_Buffers>
+	inline std::size_t copy_from_buffers(char* linear, std::size_t size
+		, Const_Buffers const& buffers, std::size_t skip = 0)
 	{
-		void add_sample(boost::uint32_t v);
-		void minimum() const;
-		void tick();
-	};
+		std::size_t copied = 0;
+		for (typename Const_Buffers::const_iterator i = buffers.begin();
+			i != buffers.end(); ++i)
+		{
+			using asio::buffer_cast;
+			using asio::buffer_size;
+			if (skip > 0 && skip >= buffer_size(*i))
+			{
+				skip -= buffer_size(*i);
+				continue;
+			}
+			int to_copy = (std::min)(buffer_size(*i) - skip, size - copied);
+			if (to_copy == 0) break;
+			std::memcpy(linear + copied, buffer_cast<char const*>(*i) + skip, to_copy);
+			copied += to_copy;
+			skip = 0;
+		}
+		return copied;
+	}
 
-/*
-	uTP header from BEP 29
+	template <class Const_Buffers>
+	inline std::size_t buffers_size(Const_Buffers const& buffers)
+	{
+		std::size_t ret = 0;
+		for (typename Const_Buffers::const_iterator i = buffers.begin();
+			i != buffers.end(); ++i)
+			ret += buffer_size(*i);
+		return ret;
+	}
 
-   0       4       8               16              24              32
-   +-------+-------+---------------+---------------+---------------+
-   | ver   | type  | extension     | connection_id                 |
-   +-------+-------+---------------+---------------+---------------+
-   | timestamp_microseconds                                        |
-   +---------------+---------------+---------------+---------------+
-   | timestamp_difference_microseconds                             |
-   +---------------+---------------+---------------+---------------+
-   | wnd_size                                                      |
-   +---------------+---------------+---------------+---------------+
-   | seq_nr                        | ack_nr                        |
-   +---------------+---------------+---------------+---------------+
+} // namespace aux
 
-*/
+struct utp_socket_impl;
 
-enum type { ST_DATA = 0, ST_FIN, ST_STATE, ST_RESET, ST_SYN };
-
-struct utp_header
-{
-	unsigned char ver:4;
-	unsigned char type:4;
-	unsigned char extension;
-	be_uint16 connection_id;
-	be_uint32 timestamp_microseconds;
-	be_uint32 timestamp_difference_microseconds;
-	be_uint32 wnd_size;
-	be_uint16 seq_nr;
-	be_uint16 ack_nr;
-};
-
-// since the uTP socket state may be needed after the
-// utp_stream is closed, it's kept in a separate struct
-// whose lifetime is not tied to the lifetime of utp_stream
-
-struct utp_socket_impl
-{
-	utp_socket_impl()
-		: m_sm(0)
-		, m_send_id(0)
-		, m_recv_id(0)
-		, m_state(UTP_STATE_NONE)
-	{}
-
-	void tick();
-	bool incoming_packet(char const* buf, int size);
-
-	utp_socket_manager* m_sm;
-
-	// the send and receive buffers
-	// maps packet sequence numbers
-	packet_buffer m_inbuf;
-	packet_buffer m_outbuf;
-
-	boost::uint16_t m_send_id;
-	boost::uint16_t m_recv_id;
-	boost::uint16_t m_ack_nr;
-	boost::uint16_t m_seq_nr;
-	enum state_t {
-		UTP_STATE_NONE,
-		UTP_STATE_SYN_SENT,
-		UTP_STATE_CONNECTED,
-		UTP_STATE_FIN_SENT
-	};
-	unsigned char m_state;
-};
-
-class utp_stream : public proxy_base
+class utp_stream
 {
 public:
 
-	explicit utp_stream(io_service& ios)
-		: proxy_base(ios)
-	{}
+	typedef stream_socket::lowest_layer_type lowest_layer_type;
+	typedef stream_socket::endpoint_type endpoint_type;
+	typedef stream_socket::protocol_type protocol_type;
+
+	explicit utp_stream(asio::io_service& io_service);
+
+	// used for incoming connections
+	void assign(utp_socket_impl* s);
+	void set_manager(utp_socket_manager* sm);
 
 	typedef boost::function<void(error_code const&)> handler_type;
+
+#ifndef BOOST_NO_EXCEPTIONS
+	template <class IO_Control_Command>
+	void io_control(IO_Control_Command& ioc) {}
+#endif
+
+	template <class IO_Control_Command>
+	void io_control(IO_Control_Command& ioc, error_code& ec) {}
+
+#ifndef BOOST_NO_EXCEPTIONS
+	void bind(endpoint_type const& endpoint) {}
+#endif
+
+	void bind(endpoint_type const& endpoint, error_code& ec) {}
+
+#ifndef BOOST_NO_EXCEPTIONS
+	template <class SettableSocketOption>
+	void set_option(SettableSocketOption const& opt) {}
+#endif
+
+	template <class SettableSocketOption>
+	error_code set_option(SettableSocketOption const& opt, error_code& ec) { return ec; }
+
+	void close();
+	void close(error_code const& ec) { close(); }
+	bool is_open() const { return m_open; }
+
+	endpoint_type local_endpoint() const;
+
+	endpoint_type local_endpoint(error_code const& ec) const
+	{ return local_endpoint(); }
+
+	endpoint_type remote_endpoint() const;
+
+	endpoint_type remote_endpoint(error_code const& ec) const
+	{ return remote_endpoint(); }
+
+	asio::io_service& io_service()
+	{ return m_io_service; }
 
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
 	{
-		// store handler
-		async_connect_impl();
+		if (!endpoint.address().is_v4())
+		{
+			error_code ec = asio::error::operation_not_supported;
+			handler(ec);
+			return;
+		}
+		m_connect_handler = handler;
+		do_async_connect(endpoint);
 	}
 	
-	void bind(endpoint_type const& ep, error_code& ec);
-	void bind(udp::endpoint const& ep, error_code& ec);
-	
-	~utp_stream();
-	
-private:
-	
-	void async_connect_impl();
+	template <class Mutable_Buffers, class Handler>
+	void async_read_some(Mutable_Buffers const& buffer, Handler const& handler)
+	{
+		assert(!m_read_handler);
+		if (!m_receive_buffer.empty())
+		{
+			std::size_t copied = aux::copy_to_buffers(&m_receive_buffer[0]
+				, m_receive_buffer.size(), buffer);
+			assert(copied > 0);
+			if (copied == m_receive_buffer.size())
+				m_receive_buffer.clear();
+			else
+				m_receive_buffer.erase(m_receive_buffer.begin()
+					, m_receive_buffer.begin() + copied);
 
+			m_io_service.post(boost::bind<void>(handler, error_code(), copied));
+			return;
+		}
+
+		// we don't have any data in the read buffer
+		// wait until some data arrives
+		m_read_handler = handler;
+		m_read_buffer.clear();
+		std::copy(buffer.begin(), buffer.end(), std::back_inserter(m_read_buffer));
+	}
+
+	template <class Protocol>
+	void open(Protocol const& p, error_code& ec)
+	{ m_open = true; }
+
+	template <class Protocol>
+	void open(Protocol const& p)
+	{ m_open = true; }
+
+	template <class Mutable_Buffers>
+	std::size_t read_some(Mutable_Buffers const& buffers, error_code& ec)
+	{
+		if (m_receive_buffer.empty())
+		{
+			ec = asio::error::would_block;
+			return -1;
+		}
+		std::size_t copied = aux::copy_to_buffers(&m_receive_buffer[0]
+			, m_receive_buffer.size(), buffers);
+		if (copied == m_receive_buffer.size())
+			m_receive_buffer.clear();
+		else
+			m_receive_buffer.erase(m_receive_buffer.begin()
+				, m_receive_buffer.begin() + copied);
+		if (copied == 0)
+		{
+			ec = asio::error::would_block;
+			return -1;
+		}
+		else
+		{
+			ec = error_code();
+			return copied;
+		}
+	}
+
+	template <class Const_Buffers, class Handler>
+	void async_write_some(Const_Buffers const& buffers, Handler const& handler)
+	{
+		if (m_state == closed)
+		{
+			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
+			return;
+		}
+
+		assert(!m_write_handler);
+
+		std::size_t to_write = aux::buffers_size(buffers);
+		assert(to_write > 0);
+
+		m_bytes_written = 0;
+
+		m_write_buffer.clear();
+		std::copy(buffers.begin(), buffers.end(), std::back_inserter(m_write_buffer));
+
+		if (m_state == writable)
+		{
+			bool writable = UTP_Write(m_socket, to_write);
+			if (!writable) m_state = connected;
+			if (m_bytes_written > 0)
+			{
+				m_io_service.post(boost::bind<void>(handler, error_code(), m_bytes_written));
+				return;
+			}
+		}
+
+		// currenty no support for multiple concurrent write operations
+		assert(!m_write_handler);
+
+		m_write_handler = handler;
+		// just wait for the socket to become writable
+	}
+
+//private:
+
+	void cancel_handlers(error_code const&);
+
+	asio::io_service& m_io_service;
 	utp_socket_impl* m_impl;
+	bool m_open;
 };
 
 }

@@ -231,12 +231,12 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			if (is_i2p)
 			{
 				ret = instantiate_connection(m_resolver.get_io_service(), i2p_conn->proxy()
-					, s->next_layer());
+					, 0, s->next_layer());
 			}
 			else
 #endif
 			{
-				ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, s->next_layer());
+				ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, 0, s->next_layer());
 			}
 
 			TORRENT_ASSERT(ret);
@@ -249,7 +249,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			if (is_i2p)
 			{
 				ret = instantiate_connection(m_resolver.get_io_service(), i2p_conn->proxy()
-					,  *m_sock.get<socket_type>());
+					, 0, *m_sock.get<socket_type>());
 				TORRENT_ASSERT(m_sock.get<socket_type>());
 				TORRENT_ASSERT(m_sock.get<socket_type>()->get<i2p_stream>());
 			}
@@ -257,12 +257,12 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #endif
 			{
 				ret = instantiate_connection(m_resolver.get_io_service()
-					, m_proxy, *m_sock.get<socket_type>());
+					, m_proxy, 0, *m_sock.get<socket_type>());
 			}
 			TORRENT_ASSERT(ret);
 		}
 #else
-		bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, m_sock);
+		bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, 0, m_sock);
 		TORRENT_ASSERT(ret);
 #endif
 		if (m_bind_addr != address_v4::any())

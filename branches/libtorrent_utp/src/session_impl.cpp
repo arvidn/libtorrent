@@ -211,7 +211,7 @@ namespace aux {
 #endif
 		, m_dht_socket(m_io_service, bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, m_half_open)
-		, m_utp_sockets(m_dht_socket
+		, m_utp_socket_manager(m_udp_socket
 			, boost::bind(&session_impl::incoming_connection, this, _1))
 		, m_timer(m_io_service)
 		, m_next_connect_torrent(0)
@@ -556,7 +556,7 @@ namespace aux {
 		if (m_natpmp) m_natpmp->close();
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht) m_dht->stop();
-		m_dht_socket.close();
+		m_udp_socket.close();
 #endif
 		m_timer.cancel(ec);
 
@@ -905,7 +905,7 @@ namespace aux {
 
 		m_socks_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
 		bool ret = instantiate_connection(m_io_service, m_peer_proxy
-			, *m_socks_listen_socket);
+			,0 , *m_socks_listen_socket);
 		TORRENT_ASSERT(ret);
 
 		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
@@ -928,7 +928,7 @@ namespace aux {
 
 		m_i2p_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
 		bool ret = instantiate_connection(m_io_service, m_i2p_conn.proxy()
-			, *m_i2p_listen_socket);
+			, 0, *m_i2p_listen_socket);
 		TORRENT_ASSERT(ret);
 
 		i2p_stream& s = *m_i2p_listen_socket->get<i2p_stream>();
@@ -976,9 +976,10 @@ namespace aux {
 		{
 			// this is probably a dht message
 			m_dht->on_receive(ep, buf, len);
+			return;
 		}
 
-		m_utp_sockets.incoming_packet(buf, len);
+		m_utp_socket_manager.incoming_packet(buf, len, ep);
 	}
 
 #endif
@@ -2359,7 +2360,7 @@ namespace aux {
 			if (m_dht_same_port)
 				m_dht_settings.service_port = new_interface.port();
 			// the listen interface changed, rebind the dht listen socket as well
-			m_dht_socket.bind(m_dht_settings.service_port);
+			m_udp_socket.bind(m_dht_settings.service_port);
 
 			maybe_update_udp_mapping(0, m_dht_settings.service_port, m_dht_settings.service_port);
 			maybe_update_udp_mapping(1, m_dht_settings.service_port, m_dht_settings.service_port);
@@ -2556,10 +2557,10 @@ namespace aux {
 		m_external_udp_port = m_dht_settings.service_port;
 		maybe_update_udp_mapping(0, m_dht_settings.service_port, m_dht_settings.service_port);
 		maybe_update_udp_mapping(1, m_dht_settings.service_port, m_dht_settings.service_port);
-		m_dht = new dht::dht_tracker(*this, m_dht_socket, m_dht_settings, &startup_state);
-		if (!m_dht_socket.is_open() || m_dht_socket.local_port() != m_dht_settings.service_port)
+		m_dht = new dht::dht_tracker(*this, m_udp_socket, m_dht_settings, &startup_state);
+		if (!m_udp_socket.is_open() || m_udp_socket.local_port() != m_dht_settings.service_port)
 		{
-			m_dht_socket.bind(m_dht_settings.service_port);
+			m_udp_socket.bind(m_dht_settings.service_port);
 		}
 
 		for (std::list<std::pair<std::string, int> >::iterator i = m_dht_router_nodes.begin()
@@ -2638,7 +2639,7 @@ namespace aux {
 			&& settings.service_port != m_dht_settings.service_port
 			&& m_dht)
 		{
-			m_dht_socket.bind(settings.service_port);
+			m_udp_socket.bind(settings.service_port);
 
 			maybe_update_udp_mapping(0, settings.service_port, settings.service_port);
 			maybe_update_udp_mapping(1, settings.service_port, settings.service_port);

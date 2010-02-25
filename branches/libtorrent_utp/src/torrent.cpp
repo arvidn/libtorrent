@@ -3180,7 +3180,7 @@ namespace libtorrent
 		boost::shared_ptr<socket_type> s(new (std::nothrow) socket_type(m_ses.m_io_service));
 		if (!s) return;
 	
-		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.web_seed_proxy(), *s);
+		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.web_seed_proxy(), 0, *s);
 		(void)ret;
 		TORRENT_ASSERT(ret);
 
@@ -3919,7 +3919,7 @@ namespace libtorrent
 		bool i2p = peerinfo->is_i2p_addr;
 		if (i2p)
 		{
-			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.i2p_proxy(), *s);
+			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.i2p_proxy(), 0, *s);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 			s->get<i2p_stream>()->set_destination(static_cast<policy::i2p_peer*>(peerinfo)->destination);
@@ -3929,7 +3929,8 @@ namespace libtorrent
 		else
 #endif
 		{
-			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy(), *s);
+			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy()
+				, &m_ses.m_utp_socket_manager, *s);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 		}

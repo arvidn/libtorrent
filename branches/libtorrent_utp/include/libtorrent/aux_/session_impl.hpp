@@ -295,7 +295,7 @@ namespace libtorrent
 			void set_dht_proxy(proxy_settings const& s)
 			{
 				m_dht_proxy = s;
-				m_dht_socket.set_proxy_settings(s);
+				m_udp_socket.set_proxy_settings(s);
 			}
 			proxy_settings const& dht_proxy() const
 			{ return m_dht_proxy; }
@@ -672,9 +672,9 @@ namespace libtorrent
 				, udp::endpoint const& ep, char const* buf, int len);
 #endif
 
-			rate_limited_udp_socket m_dht_socket;
-
 			utp_socket_manager m_utp_sockets;
+
+			rate_limited_udp_socket m_udp_socket;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			pe_settings m_pe_settings;

@@ -53,13 +53,31 @@ namespace libtorrent
 	void utp_socket_manager::tick()
 	{
 		for (socket_map_t::iterator i = m_utp_sockets.begin()
-			, end(m_utp_sockets.end()); i != end; ++i)
+			, end(m_utp_sockets.end()); i != end;)
 		{
+			if (i->second->should_delete())
+			{
+				delete i->second;
+				i = m_utp_sockets.erase(i);
+				continue;
+			}
 			i->second->tick();
+			++i;
 		}
 	}
 
-	bool utp_socket_manager::incoming_packet(char const* p, int size)
+	void utp_socket_manager::send_packet(udp::endpoint const& ep, char const* p, int len)
+	{
+		error_code ec;
+		m_sock.send(ep, p, len, ec);
+	}
+
+	tcp::endpoint utp_socket_manager::local_endpoint() const
+	{
+		return m_sock.local_endpoint();
+	}
+
+	bool utp_socket_manager::incoming_packet(char const* p, int size, udp::endpoint const& ep)
 	{
 		if (size < sizeof(utp_header)) return false;
 
@@ -78,13 +96,16 @@ namespace libtorrent
 		{
 			boost::uint16_t id = rand();
 			utp_socket_impl* c = new utp_socket_impl;
+			if (c == 0) return false;
 
 			TORRENT_ASSERT(m_utp_sockets.find(id) == m_utp_sockets.end());
 			i = m_utp_sockets.insert(i, std::make_pair(id, c));
+			// TODO: we need an empty utp_stream here to fill in
 //			m_cb(c);
 		}
 
-		if (i != m_utp_sockets.end())
+		// only accept a packet if it's from the right source
+		if (i != m_utp_sockets.end() && ep == i->second->remote_endpoint())
 			return i->second->incoming_packet(p, size);
 
 		return false;
@@ -96,10 +117,6 @@ namespace libtorrent
 		if (i == m_utp_sockets.end()) return;
 		delete i->second;
 		m_utp_sockets.erase(i);
-	}
-
-	void utp_socket_manager::add_socket(boost::uint16_t id, utp_socket_impl* s)
-	{
 	}
 }
 

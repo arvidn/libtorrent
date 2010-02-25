@@ -39,9 +39,11 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct proxy_settings;
+	struct utp_socket_manager;
 
 	bool instantiate_connection(io_service& ios
-		, proxy_settings const& ps, socket_type& s);
+		, proxy_settings const& ps, utp_socket_manager* sm
+		, socket_type& s);
 }
 
 #endif
