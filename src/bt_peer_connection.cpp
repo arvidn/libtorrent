@@ -1732,7 +1732,11 @@ namespace libtorrent
 		int num_lazy_pieces = 0;
 		int lazy_piece = 0;
 
-		if (t->is_seed() && m_ses.settings().lazy_bitfields && !m_encrypted)
+		if (t->is_seed() && m_ses.settings().lazy_bitfields
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			&& !m_encrypted
+#endif
+			)
 		{
 			num_lazy_pieces = (std::min)(50, num_pieces / 10);
 			if (num_lazy_pieces < 1) num_lazy_pieces = 1;
@@ -1849,7 +1853,11 @@ namespace libtorrent
 
 		// if we're using lazy bitfields or if we're super seeding, don't say
 		// we're upload only, since it might make peers disconnect
-		if (t->is_upload_only() && (!m_ses.settings().lazy_bitfields || m_encrypted))
+		if (t->is_upload_only() && (!m_ses.settings().lazy_bitfields
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			|| m_encrypted
+#endif
+			))
 			handshake["upload_only"] = 1;
 
 		tcp::endpoint ep = m_ses.get_ipv6_interface();
