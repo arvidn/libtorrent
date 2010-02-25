@@ -1514,7 +1514,11 @@ namespace libtorrent
 		int num_lazy_pieces = 0;
 		int lazy_piece = 0;
 
-		if (t->is_seed() && m_ses.settings().lazy_bitfields && !m_encrypted)
+		if (t->is_seed() && m_ses.settings().lazy_bitfields
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			&& !m_encrypted
+#endif
+			)
 		{
 			num_lazy_pieces = (std::min)(50, num_pieces / 10);
 			if (num_lazy_pieces < 1) num_lazy_pieces = 1;
@@ -1626,7 +1630,11 @@ namespace libtorrent
 		handshake["reqq"] = m_ses.settings().max_allowed_in_request_queue;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		if (t->is_finished() && (!m_ses.settings().lazy_bitfields || m_encrypted))
+		if (t->is_finished() && (!m_ses.settings().lazy_bitfields
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			|| m_encrypted
+#endif
+			))
 			handshake["upload_only"] = 1;
 
 		tcp::endpoint ep = m_ses.get_ipv6_interface();
