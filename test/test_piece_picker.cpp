@@ -69,7 +69,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 	assert(int(strlen(have_str)) == num_pieces);
 
 	boost::shared_ptr<piece_picker> p(new piece_picker);
-	p->init(blocks_per_piece, num_pieces * blocks_per_piece);
+	p->init(blocks_per_piece, blocks_per_piece, num_pieces);
 
 	for (int i = 0; i < num_pieces; ++i)
 	{
@@ -429,7 +429,7 @@ int test_main()
 	TEST_CHECK(p->num_have_filtered() == 1);
 	TEST_CHECK(p->num_have() == 1);
 
-	p->init(blocks_per_piece, blocks_per_piece * 7);
+	p->init(blocks_per_piece, blocks_per_piece, blocks_per_piece * 7);
 	TEST_CHECK(p->piece_priority(0) == 0);
 	TEST_CHECK(p->num_filtered() == 1);
 	TEST_CHECK(p->num_have_filtered() == 0);
