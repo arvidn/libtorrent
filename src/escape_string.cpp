@@ -442,7 +442,7 @@ namespace libtorrent
 	}
 
 	boost::optional<std::string> url_has_argument(
-		std::string const& url, std::string argument)
+		std::string const& url, std::string argument, int* out_pos)
 	{
 		size_t i = url.find('?');
 		if (i == std::string::npos) return boost::optional<std::string>();
@@ -453,12 +453,14 @@ namespace libtorrent
 		if (url.compare(i, argument.size(), argument) == 0)
 		{
 			size_t pos = i + argument.size();
+			if (out_pos) *out_pos = pos;
 			return url.substr(pos, url.find('&', pos) - pos);
 		}
 		argument.insert(0, "&");
 		i = url.find(argument, i);
 		if (i == std::string::npos) return boost::optional<std::string>();
 		size_t pos = i + argument.size();
+		if (out_pos) *out_pos = pos;
 		return url.substr(pos, url.find('&', pos) - pos);
 	}
 

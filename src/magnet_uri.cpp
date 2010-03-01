@@ -146,7 +146,8 @@ namespace libtorrent
 		error_code e;
 		boost::optional<std::string> display_name = url_has_argument(uri, "dn");
 		if (display_name) name = unescape_string(display_name->c_str(), e);
-		boost::optional<std::string> tracker_string = url_has_argument(uri, "tr");
+		int pos = std::string::npos;
+		boost::optional<std::string> tracker_string = url_has_argument(uri, "tr", &pos);
 		if (tracker_string) tracker = unescape_string(tracker_string->c_str(), e);
 	
 		boost::optional<std::string> btih = url_has_argument(uri, "xt");
@@ -169,7 +170,20 @@ namespace libtorrent
 		if (!tracker.empty()) p.tracker_url = tracker.c_str();
 		p.info_hash = info_hash;
 		if (!name.empty()) p.name = name.c_str();
-		return ses.add_torrent(p, ec);
+		torrent_handle ret = ses.add_torrent(p, ec);
+
+		int tier = 1;
+		// there might be more trackers in the url
+		while (pos != std::string::npos)
+		{
+			pos = uri.find("&tr=", pos);
+			if (pos == std::string::npos) break;
+			pos += 4;
+			announce_entry ae(uri.substr(pos, uri.find('&', pos) - pos));
+			ae.tier = tier++;
+			ret.add_tracker(ae);
+		}
+		return ret;
 	}
 }
 
