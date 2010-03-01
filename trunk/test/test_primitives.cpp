@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/buffer.hpp"
@@ -419,7 +420,37 @@ int test_main()
 */
 	entry session_state;
 	s->save_state(session_state);
-	
+
+	// test magnet link parsing
+	add_torrent_params p;
+	p.save_path = ".";
+	error_code ec;
+	const char* magnet_uri = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&tr=http://1&tr=http://2&tr=http://3&dn=foo";
+	torrent_handle t = add_magnet_uri(*s, magnet_uri, p, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+
+	std::vector<announce_entry> trackers = t.trackers();
+	TEST_EQUAL(trackers.size(), 3);
+	if (trackers.size() > 0)
+	{
+		TEST_EQUAL(trackers[0].url, "http://1");
+		fprintf(stderr, "1: %s\n", trackers[0].url.c_str());
+	}
+	if (trackers.size() > 1)
+	{
+		TEST_EQUAL(trackers[1].url, "http://2");
+		fprintf(stderr, "2: %s\n", trackers[1].url.c_str());
+	}
+	if (trackers.size() > 2)
+	{
+		TEST_EQUAL(trackers[2].url, "http://3");
+		fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
+	}
+
+	TEST_EQUAL(to_hex(t.info_hash().to_string()), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+
 	delete s;
 	s = new session(fingerprint("LT",0,0,0,0), 0);
 
