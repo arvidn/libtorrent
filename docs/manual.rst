@@ -3694,7 +3694,16 @@ session_settings
 		bool use_read_cache;
 		bool explicit_read_cache;
 		int explicit_cache_interval;
-		bool disk_io_no_buffer;
+
+		enum io_buffer_mode_t
+		{
+			enable_os_cache = 0,
+			disable_os_cache_for_aligned_files = 1,
+			disable_os_cache = 2
+		};
+		int disk_io_write_mode;
+		int disk_io_read_mode;
+
 		std::pair<int, int> outgoing_ports;
 		char peer_tos;
 
@@ -4041,14 +4050,26 @@ There is an affinity to pick pieces that are already in the cache, so that
 subsequent refreshes only swaps in pieces that are rarer than whatever is in
 the cache at the time.
 
-``disk_io_no_buffer`` defaults to true. When set to true, files are preferred
-to be opened in unbuffered mode. This helps the operating system from growing
-its file cache indefinitely. Currently only files whose offset in the torrent
-is page aligned are opened in unbuffered mode. A page is typically 4096 bytes
-and since blocks in bittorrent are 16kB, any file that is aligned to a block
-or piece will get the benefit of be opened in unbuffered mode. It is therefore
-recommended to make the largest file in a torrent the first file (with offset 0)
-or use pad files to align all files to piece boundries.
+``disk_io_write_mode`` and ``disk_io_read_mode`` determines how files are
+opened when they're in read only mode versus read and write mode. The options
+are:
+
+	* enable_os_cache
+		This is the default and files are opened normally, with the OS caching
+		reads and writes.
+	* disable_os_cache_for_aligned_files
+		This will open files in unbuffered mode for files where every read and
+		write would be sector aligned. Using aligned disk offsets is a requirement
+		on some operating systems.
+	* disable_os_cache
+		This opens all files in unbuffered mode (if allowed by the operating system).
+		Linux and Windows, for instance, require disk offsets to be sector aligned,
+		and in those cases, this option is the same as ``disable_os_caches_for_aligned_files``.
+
+One reason to disable caching is that it may help the operating system from growing
+its file cache indefinitely. Since some OSes only allow aligned files to be opened
+in unbuffered mode, It is recommended to make the largest file in a torrent the first
+file (with offset 0) or use pad files to align all files to piece boundries.
 
 ``outgoing_ports``, if set to something other than (0, 0) is a range of ports
 used to bind outgoing sockets to. This may be useful for users whose router
