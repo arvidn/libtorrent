@@ -143,6 +143,12 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb) cb->debug_log("*** UDP_TRACKER [ name lookup successful ]");
 #endif
+		if (cancelled())
+		{
+			fail(-1, "aborted");
+			return;
+		}
+
 		restart_read_timeout();
 		
 		// look for an address that has the same kind as the one
