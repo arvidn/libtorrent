@@ -472,6 +472,13 @@ namespace libtorrent
 			return;
 		}
 
+		if (m_torrent_file->num_pieces() == 0)
+		{
+			set_error("torrent size is 0");
+			pause();
+			return;
+		}
+
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
 		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
