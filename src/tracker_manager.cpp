@@ -144,7 +144,7 @@ namespace libtorrent
 		, char const* msg, int interval, int min_interval)
 	{
 		boost::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->tracker_request_error(m_req, code, ec, msg
+		if (cb) cb->tracker_request_error(m_req, code, ec, msg ? msg : ""
 			, interval == 0 ? min_interval : interval);
 		close();
 	}
