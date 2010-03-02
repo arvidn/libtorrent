@@ -133,7 +133,7 @@ namespace libtorrent
 #endif
 		if (cancelled())
 		{
-			fail(-1, "aborted");
+			fail(error_code(errors::torrent_aborted));
 			return;
 		}
 
