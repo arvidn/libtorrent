@@ -113,7 +113,6 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 				ps->username + ":" + ps->password).c_str());
 		hostname = ps->hostname;
 		port = ps->port;
-		ps = 0;
 	}
 	else
 	{
@@ -184,24 +183,37 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		error_code ec;
 		m_sock.close(ec);
 
+		// in this case, the upper layer is assumed to have taken
+		// care of the proxying already. Don't instantiate the socket
+		// with this proxy
+		if ((ps->type == proxy_settings::http
+			|| ps->type == proxy_settings::http_pw)
+			&& !ssl)
+		{
+			ps = 0;
+		}
+		proxy_settings null_proxy;
+
 #ifdef TORRENT_USE_OPENSSL
 		if (m_ssl)
 		{
 			m_sock.instantiate<ssl_stream<socket_type> >(m_resolver.get_io_service());
 			ssl_stream<socket_type>* s = m_sock.get<ssl_stream<socket_type> >();
 			TORRENT_ASSERT(s);
-			bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, s->next_layer());
+			bool ret = instantiate_connection(m_resolver.get_io_service()
+				, ps ? *ps : null_proxy, s->next_layer());
 			TORRENT_ASSERT(ret);
 		}
 		else
 		{
 			m_sock.instantiate<socket_type>(m_resolver.get_io_service());
 			bool ret = instantiate_connection(m_resolver.get_io_service()
-				, m_proxy, *m_sock.get<socket_type>());
+				, ps ? *ps : null_proxy, *m_sock.get<socket_type>());
 			TORRENT_ASSERT(ret);
 		}
 #else
-		bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, m_sock);
+		bool ret = instantiate_connection(m_resolver.get_io_service()
+			, ps ? *ps : null_proxy, m_sock);
 		TORRENT_ASSERT(ret);
 #endif
 		if (m_bind_addr != address_v4::any())
