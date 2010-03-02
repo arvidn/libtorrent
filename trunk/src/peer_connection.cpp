@@ -3104,7 +3104,8 @@ namespace libtorrent
 				}
 			}
 
-			TORRENT_ASSERT(verify_piece(r));
+			// the verification will fail for coalesced blocks
+			TORRENT_ASSERT(verify_piece(r) || m_request_large_blocks);
 			
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			bool handled = false;
