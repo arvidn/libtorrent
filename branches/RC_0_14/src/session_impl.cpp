@@ -1961,7 +1961,9 @@ namespace aux {
 			if (m_dht_same_port)
 				m_dht_settings.service_port = new_interface.port();
 			// the listen interface changed, rebind the dht listen socket as well
-			m_dht_socket.bind(m_dht_settings.service_port);
+			error_code ec;
+			m_dht_socket.bind(udp::endpoint(m_listen_interface.address()
+				, m_dht_settings.service_port), ec);
 			if (m_natpmp.get())
 			{
 				if (m_udp_mapping[0] != -1) m_natpmp->delete_mapping(m_udp_mapping[0]);
@@ -2150,7 +2152,8 @@ namespace aux {
 		m_dht = new dht::dht_tracker(m_dht_socket, m_dht_settings, &startup_state);
 		if (!m_dht_socket.is_open() || m_dht_socket.local_port() != m_dht_settings.service_port)
 		{
-			m_dht_socket.bind(m_dht_settings.service_port);
+			error_code ec;
+			m_dht_socket.bind(udp::endpoint(m_listen_interface.address(), m_dht_settings.service_port), ec);
 		}
 #endif
 
@@ -2192,7 +2195,8 @@ namespace aux {
 			&& settings.service_port != m_dht_settings.service_port
 			&& m_dht)
 		{
-			m_dht_socket.bind(settings.service_port);
+			error_code ec;
+			m_dht_socket.bind(udp::endpoint(m_listen_interface.address(), settings.service_port), ec);
 
 			if (m_natpmp.get())
 			{
