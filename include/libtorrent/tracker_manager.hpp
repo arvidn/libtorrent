@@ -153,6 +153,7 @@ namespace libtorrent
 		void set_timeout(int completion_timeout, int read_timeout);
 		void restart_read_timeout();
 		void cancel();
+		bool cancelled() const { return m_abort; }
 
 		virtual void on_timeout() = 0;
 		virtual ~timeout_handler() {}
