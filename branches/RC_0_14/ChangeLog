@@ -3,6 +3,7 @@
 	* added support for torrents with odd piece sizes
 	* fixed issue with disk read cache not being cleared when removing torrents
 	* made the DHT socket bind to the same interface as the session
+	* fixed issue where an http proxy would not be used on redirects
 
 release 0.14.9
 
