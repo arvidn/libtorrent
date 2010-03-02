@@ -247,7 +247,7 @@ namespace libtorrent
 			, times_in_row(times)
 			, status_code(status)
 			, error(e)
-			, msg(msg)
+			, msg(m)
 		{
 			TORRENT_ASSERT(!url.empty());
 		}
