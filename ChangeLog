@@ -16,6 +16,7 @@
 	* support for BitTyrant choker algorithm
 	* support for automatically start torrents when they receive an
 	  incoming connection
+	* added more detailed instrumentation of the disk I/O thread
 
 0.15 release
 

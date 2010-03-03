@@ -820,6 +820,9 @@ Returns status of the disk cache for this session.
 			int cache_size;
 			int read_cache_size;
 			int total_used_buffers;
+			int average_queue_time;
+			int average_read_time;
+			int job_queue_length;
 		};
 
 ``blocks_written`` is the total number of 16 KiB blocks written to disk
@@ -848,6 +851,14 @@ This includes both read and write cache.
 ``total_used_buffers`` is the total number of buffers currently in use.
 This includes the read/write disk cache as well as send and receive buffers
 used in peer connections.
+
+``average_queue_time`` is the number of microseconds an average disk I/O job
+has to wait in the job queue before it get processed.
+
+``average_read_time`` is the number of microseconds a read job takes to
+wait in the queue and complete, in microseconds.
+
+``job_queue_length`` is the number of jobs in the job queue.
 
 get_cache_info()
 ----------------

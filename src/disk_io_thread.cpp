@@ -362,7 +362,14 @@ namespace libtorrent
 		mutex::scoped_lock l(m_piece_mutex);
 		m_cache_stats.total_used_buffers = in_use();
 		m_cache_stats.queued_bytes = m_queue_buffer_size;
-		return m_cache_stats;
+
+		cache_status ret = m_cache_stats;
+
+		ret.average_queue_time = m_queue_time.mean();
+		ret.average_read_time = m_read_time.mean();
+		ret.job_queue_length = m_jobs.size();
+
+		return ret;
 	}
 
 	// aborts read operations
@@ -1315,6 +1322,7 @@ namespace libtorrent
 	{
 		m_jobs.push_back(j);
 		m_jobs.back().callback.swap(const_cast<boost::function<void(int, disk_io_job const&)>&>(f));
+		m_jobs.back().start_time = time_now_hires();
 
 		if (j.action == disk_io_job::write)
 			m_queue_buffer_size += j.buffer_size;
@@ -1590,6 +1598,9 @@ namespace libtorrent
 
 			if (j.storage && j.storage->get_storage_impl()->m_settings == 0)
 				j.storage->get_storage_impl()->m_settings = &m_settings;
+
+			ptime now = time_now_hires();
+			m_queue_time.add_sample(total_microseconds(now - j.start_time));
 
 			switch (j.action)
 			{
@@ -2216,6 +2227,8 @@ namespace libtorrent
 					&& j.buffer != 0)
 					rename_buffer(j.buffer, "posted send buffer");
 #endif
+				ptime now = time_now_hires();
+				m_read_time.add_sample(total_microseconds(now - j.start_time));
 				post_callback(j.callback, j, ret);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (std::exception&)
