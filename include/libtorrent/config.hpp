@@ -151,6 +151,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // ==== SOLARIS ===
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
+#define TORRENT_COMPLETE_TYPES_REQUIRED 1
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -254,6 +255,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_DEPRECATED
 #define TORRENT_DEPRECATED
+#endif
+
+#ifndef TORRENT_COMPLETE_TYPES_REQUIRED
+#define TORRENT_COMPLETE_TYPES_REQUIRED 0
 #endif
 
 #ifndef TORRENT_USE_RLIMIT

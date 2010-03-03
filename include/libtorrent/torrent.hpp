@@ -74,6 +74,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/union_endpoint.hpp"
 
+#if TORRENT_COMPLETE_TYPES_REQUIRED
+#include "libtorrent/peer_connection.hpp"
+#endif
+
 namespace libtorrent
 {
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
