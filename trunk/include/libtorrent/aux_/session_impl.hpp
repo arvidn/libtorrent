@@ -87,6 +87,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #endif
 
+#if TORRENT_COMPLETE_TYPES_REQUIRED
+#include "libtorrent/peer_connection.hpp"
+#endif
+
 namespace libtorrent
 {
 

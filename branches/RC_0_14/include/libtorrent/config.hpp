@@ -84,6 +84,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_WINDOWS
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
+#define TORRENT_COMPLETE_TYPES_REQUIRED 1
 #else
 #warning unknown OS, assuming BSD
 #define TORRENT_BSD
