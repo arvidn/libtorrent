@@ -380,6 +380,11 @@ namespace libtorrent
 			}
 			if (should_cancel_on_abort(*i))
 			{
+				if (i->action == disk_io_job::write)
+				{
+					TORRENT_ASSERT(m_queue_buffer_size >= i->buffer_size);
+					m_queue_buffer_size -= i->buffer_size;
+				}
 				post_callback(i->callback, *i, -3);
 				m_jobs.erase(i++);
 				continue;
@@ -1463,6 +1468,12 @@ namespace libtorrent
 				// and use it later
 				j = m_jobs.front();
 				m_jobs.pop_front();
+				if (j.action == disk_io_job::write)
+				{
+					TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
+					m_queue_buffer_size -= j.buffer_size;
+				}
+
 				jl.unlock();
 
 				bool defer = false;
@@ -1543,12 +1554,6 @@ namespace libtorrent
 			// released.
 			disk_buffer_holder holder(*this
 				, operation_has_buffer(j) ? j.buffer : 0);
-
-			if (j.action == disk_io_job::write)
-			{
-				TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
-				m_queue_buffer_size -= j.buffer_size;
-			}
 
 			bool post = false;
 			if (m_queue_buffer_size + j.buffer_size >= m_settings.max_queued_disk_bytes
@@ -1631,6 +1636,11 @@ namespace libtorrent
 						}
 						if (should_cancel_on_abort(*i))
 						{
+							if (i->action == disk_io_job::write)
+							{
+								TORRENT_ASSERT(m_queue_buffer_size >= i->buffer_size);
+								m_queue_buffer_size -= i->buffer_size;
+							}
 							post_callback(i->callback, *i, -3);
 							m_jobs.erase(i++);
 							continue;
@@ -1683,6 +1693,11 @@ namespace libtorrent
 					{
 						if (should_cancel_on_abort(*i))
 						{
+							if (i->action == disk_io_job::write)
+							{
+								TORRENT_ASSERT(m_queue_buffer_size >= i->buffer_size);
+								m_queue_buffer_size -= i->buffer_size;
+							}
 							post_callback(i->callback, *i, -3);
 							m_jobs.erase(i++);
 							continue;
