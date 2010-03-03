@@ -1287,10 +1287,7 @@ namespace libtorrent
 		m_jobs.push_back(j);
 		m_jobs.back().callback = f;
 		if (j.action == disk_io_job::write)
-		{
-			TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
 			m_queue_buffer_size += j.buffer_size;
-		}
 		m_signal.notify_all();
 	}
 
