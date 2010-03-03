@@ -4136,6 +4136,11 @@ namespace libtorrent
 		c->m_in_constructor = false;
 #endif
 
+		if (settings().default_peer_upload_rate)
+			c->set_upload_limit(settings().default_peer_upload_rate);
+		if (settings().default_peer_download_rate)
+			c->set_download_limit(settings().default_peer_download_rate);
+
  		c->add_stat(peerinfo->prev_amount_download, peerinfo->prev_amount_upload);
  		peerinfo->prev_amount_download = 0;
  		peerinfo->prev_amount_upload = 0;

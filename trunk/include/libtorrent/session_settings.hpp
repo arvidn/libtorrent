@@ -204,6 +204,8 @@ namespace libtorrent
 			, incoming_starts_queued_torrents(false)
 			, report_true_downloaded(false)
 			, strict_end_game_mode(true)
+			, default_peer_upload_rate(0)
+			, default_peer_download_rate(0)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -774,6 +776,10 @@ namespace libtorrent
 		// if set to true, libtorrent won't request a piece multiple times
 		// until every piece is requested
 		bool strict_end_game_mode;
+
+		// each peer will have these limits set on it
+		int default_peer_upload_rate;
+		int default_peer_download_rate;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

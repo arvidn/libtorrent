@@ -301,6 +301,8 @@ namespace aux {
 		TORRENT_SETTING(boolean, incoming_starts_queued_torrents)
 		TORRENT_SETTING(boolean, report_true_downloaded)
 		TORRENT_SETTING(boolean, strict_end_game_mode)
+		TORRENT_SETTING(integer, default_peer_upload_rate)
+		TORRENT_SETTING(integer, default_peer_download_rate)
 	};
 
 #undef TORRENT_SETTING
@@ -1610,6 +1612,10 @@ namespace aux {
 		{
 			m_connections.insert(c);
 			c->start();
+			if (m_settings.default_peer_upload_rate)
+				c->set_upload_limit(m_settings.default_peer_upload_rate);
+			if (m_settings.default_peer_download_rate)
+				c->set_download_limit(m_settings.default_peer_download_rate);
 		}
 	}
 
