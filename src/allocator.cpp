@@ -43,6 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h> // _SC_PAGESIZE
 #endif
 
+#if TORRENT_USE_MEMALIGN || TORRENT_USE_POSIX_MEMALIGN
+#include <malloc.h> // memalign
+#endif
 
 namespace libtorrent
 {
