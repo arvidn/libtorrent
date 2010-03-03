@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/io_service.hpp"
+#include "libtorrent/sliding_average.hpp"
 
 #include <boost/function/function0.hpp>
 #include <boost/function/function2.hpp>
@@ -140,6 +141,10 @@ namespace libtorrent
 
 		// this is called when operation completes
 		boost::function<void(int, disk_io_job const&)> callback;
+
+		// the time when this job was issued. This is used to
+		// keep track of disk I/O congestion
+		ptime start_time;
 	};
 
 	// returns true if the fundamental operation
@@ -189,6 +194,11 @@ namespace libtorrent
 		// the total number of blocks that are currently in use
 		// this includes send and receive buffers
 		mutable int total_used_buffers;
+
+		// times in microseconds
+		int average_queue_time;
+		int average_read_time;
+		int job_queue_length;
 	};
 	
 	struct TORRENT_EXPORT disk_buffer_pool : boost::noncopyable
@@ -407,6 +417,12 @@ namespace libtorrent
 		// and the write cache. This is not supposed to
 		// exceed m_cache_size
 		cache_status m_cache_stats;
+
+		// keeps average queue time for disk jobs (in microseconds)
+		sliding_average m_queue_time;
+
+		// average read time for cache misses (in microseconds)
+		sliding_average m_read_time;
 
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
