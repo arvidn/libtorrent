@@ -186,7 +186,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		// in this case, the upper layer is assumed to have taken
 		// care of the proxying already. Don't instantiate the socket
 		// with this proxy
-		if ((ps->type == proxy_settings::http
+		if (ps && (ps->type == proxy_settings::http
 			|| ps->type == proxy_settings::http_pw)
 			&& !ssl)
 		{
