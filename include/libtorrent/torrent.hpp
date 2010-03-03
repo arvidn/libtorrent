@@ -72,6 +72,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/bitfield.hpp"
 
+#if TORRENT_COMPLETE_TYPES_REQUIRED
+#include "libtorrent/peer_connection.hpp"
+#endif
+
 namespace libtorrent
 {
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
