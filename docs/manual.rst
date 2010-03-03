@@ -3783,6 +3783,9 @@ session_settings
 		bool incoming_starts_queued_torrents;
 		bool report_true_downloaded;
 		bool strict_end_game_mode;
+
+		int default_peer_upload_rate;
+		int default_peer_download_rate;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4378,6 +4381,13 @@ sometimes, but it may also avoid downloading a lot of redundant bytes.
 If this is ``false``, libtorrent attempts to use each peer connection
 to its max, by always requesting something, even if it means requesting
 something that has been requested from another peer already.
+
+``default_peer_upload_rate`` and ``default_peer_download_rate`` specifies
+the default upload and download rate limits for peers, respectively. These
+default to 0, which means unlimited. These settings affect the rate limits
+set on new peer connections (not existing ones). The peer rate limits can
+be changed individually later using
+`set_peer_upload_limit() set_peer_download_limit()`_.
 
 pe_settings
 ===========
