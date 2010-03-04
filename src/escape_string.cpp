@@ -579,11 +579,15 @@ namespace libtorrent
 		size_t insize = s.size();
 		size_t outsize = insize * 4;
 		ret.resize(outsize);
-		char const* in = &s[0];
+		char const* in = s.c_str();
 		char* out = &ret[0];
 		size_t retval = iconv(iconv_handle, (char**)&in, &insize,
 			&out, &outsize);
 		if (retval == (size_t)-1) return s;
+		// if this string has an invalid utf-8 sequence in it, don't touch it
+		if (insize != 0) return s;
+		// not sure why this would happen, but it seems to be possible
+		if (outsize > s.size() * 4) return s;
 		ret.resize(outsize);
 		return ret;
 	}
