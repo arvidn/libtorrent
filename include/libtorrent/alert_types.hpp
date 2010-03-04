@@ -192,12 +192,12 @@ namespace libtorrent
 			download_limit_too_low,
 			send_buffer_watermark_too_low,
 			too_many_optimistic_unchoke_slots,
-			bittyrant_with_no_uplimit
+			bittyrant_with_no_uplimit,
 
 
 
 
-
+			num_warnings
 		};
 
 		performance_alert(torrent_handle const& h
