@@ -1868,6 +1868,12 @@ namespace libtorrent
 							break;
 						}
 						++m_cache_stats.blocks_read;
+						hit = false;
+					}
+					if (!hit)
+					{
+						ptime now = time_now_hires();
+						m_read_time.add_sample(total_microseconds(now - j.start_time));
 					}
 					TORRENT_ASSERT(j.buffer == read_holder.get());
 					read_holder.release();
@@ -2227,8 +2233,6 @@ namespace libtorrent
 					&& j.buffer != 0)
 					rename_buffer(j.buffer, "posted send buffer");
 #endif
-				ptime now = time_now_hires();
-				m_read_time.add_sample(total_microseconds(now - j.start_time));
 				post_callback(j.callback, j, ret);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (std::exception&)

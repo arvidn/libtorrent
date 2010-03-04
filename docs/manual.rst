@@ -856,7 +856,8 @@ used in peer connections.
 has to wait in the job queue before it get processed.
 
 ``average_read_time`` is the number of microseconds a read job takes to
-wait in the queue and complete, in microseconds.
+wait in the queue and complete, in microseconds. This only includes
+cache misses. 
 
 ``job_queue_length`` is the number of jobs in the job queue.
 
