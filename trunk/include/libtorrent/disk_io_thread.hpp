@@ -166,6 +166,9 @@ namespace libtorrent
 			, cache_size(0)
 			, read_cache_size(0)
 			, total_used_buffers(0)
+			, average_queue_time(0)
+			, average_read_time(0)
+			, job_queue_length(0)
 		{}
 
 		// the number of 16kB blocks written
