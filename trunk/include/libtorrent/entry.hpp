@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct lazy_entry;
 
 	struct TORRENT_EXPORT type_error: std::runtime_error
 	{
@@ -119,6 +120,7 @@ namespace libtorrent
 
 		bool operator==(entry const& e) const;
 		
+		void operator=(lazy_entry const&);
 		void operator=(entry const&);
 		void operator=(dictionary_type const&);
 		void operator=(string_type const&);

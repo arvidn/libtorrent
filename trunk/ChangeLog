@@ -20,6 +20,9 @@
 
 0.15 release
 
+	* introduced a session state save mechanism. load_state() and save_state().
+	  this saves all session settings and state (except torrents)
+	* deprecated dht_state functions and merged it with the session state
 	* added support for multiple trackers in magnet links
 	* added support for explicitly flushing the disk cache
 	* added torrent priority to affect bandwidth allocation for its peers
