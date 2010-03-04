@@ -185,9 +185,6 @@ The ``session`` class has the following synopsis::
 		bool load_country_db(wchar_t const* file);
 		int as_for_ip(address const& adr);
 
-		void load_state(entry const& ses_state);
-		entry state() const;
-
 		void set_ip_filter(ip_filter const& f);
 		ip_filter const& get_ip_filter() const;
 
@@ -635,18 +632,6 @@ The ``wchar_t`` overloads are for wide character paths.
 
 .. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
 .. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
-		
-load_state() state()
---------------------
-
-	::
-	
-		void load_state(entry const& ses_state);
-		entry state() const;
-
-These functions loads and save session state. Currently, the only state
-that's stored is peak download rates for ASes. This map is used to
-determine which order to connect to peers.
 		
 set_ip_filter()
 ---------------

@@ -316,7 +316,7 @@ namespace libtorrent
 	void session::save_state(entry& e) const
 	{
 		mutex::scoped_lock l(m_impl->m_mutex);
-		m_impl->save_state(e);
+		m_impl->save_state(e, l);
 	}
 
 	void session::load_state(lazy_entry const& e)
@@ -367,17 +367,25 @@ namespace libtorrent
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_DISABLE_GEO_IP
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::load_state(entry const& ses_state)
 	{
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), ses_state);
+		lazy_entry e;
+		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
 		mutex::scoped_lock l(m_impl->m_mutex);
-		m_impl->load_state(ses_state);
+		m_impl->load_state(e);
 	}
 
 	entry session::state() const
 	{
+		entry ret;
 		mutex::scoped_lock l(m_impl->m_mutex);
-		return m_impl->state();
+		m_impl->save_state(ret, l);
+		return ret;
 	}
+#endif
 
 	void session::set_ip_filter(ip_filter const& f)
 	{
@@ -582,10 +590,11 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 
-	void session::start_dht(entry const& startup_state)
+	void session::start_dht()
 	{
 		mutex::scoped_lock l(m_impl->m_mutex);
-		m_impl->start_dht(startup_state);
+		// the state is loaded in load_state()
+		m_impl->start_dht();
 	}
 
 	void session::stop_dht()
@@ -600,11 +609,19 @@ namespace libtorrent
 		m_impl->set_dht_settings(settings);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
+	void session::start_dht(entry const& startup_state)
+	{
+		mutex::scoped_lock l(m_impl->m_mutex);
+		m_impl->start_dht(startup_state);
+	}
+
 	entry session::dht_state() const
 	{
 		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->dht_state(l);
 	}
+#endif
 	
 	void session::add_dht_node(std::pair<std::string, int> const& node)
 	{

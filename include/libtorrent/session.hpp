@@ -244,10 +244,17 @@ namespace libtorrent
 			, std::vector<cached_piece_info>& ret) const;
 
 #ifndef TORRENT_DISABLE_DHT
-		void start_dht(entry const& startup_state = entry());
+		void start_dht();
 		void stop_dht();
 		void set_dht_settings(dht_settings const& settings);
-		entry dht_state() const;
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.15
+		// use save_state and load_state instead
+		TORRENT_DEPRECATED_PREFIX
+		entry dht_state() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void start_dht(entry const& startup_state) TORRENT_DEPRECATED;
+#endif
 		void add_dht_node(std::pair<std::string, int> const& node);
 		void add_dht_router(std::pair<std::string, int> const& node);
 		bool is_dht_running() const;
@@ -272,8 +279,14 @@ namespace libtorrent
 #endif
 #endif
 
-		void load_state(entry const& ses_state);
-		entry state() const;
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.15
+		// use load_state and save_state instead
+		TORRENT_DEPRECATED_PREFIX
+		void load_state(entry const& ses_state) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		entry state() const TORRENT_DEPRECATED;
+#endif
 
 		void set_ip_filter(ip_filter const& f);
 		ip_filter const& get_ip_filter() const;

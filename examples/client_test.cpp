@@ -803,7 +803,9 @@ int main(int argc, char* argv[])
 	std::vector<char> in;
 	if (load_file(".ses_state", in) == 0)
 	{
-		ses.load_state(bdecode(in.begin(), in.end()));
+		lazy_entry e;
+		if (lazy_bdecode(&in[0], &in[0] + in.size(), e) == 0)
+			ses.load_state(e);
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -816,14 +818,7 @@ int main(int argc, char* argv[])
 	ses.add_dht_router(std::make_pair(
 			std::string("router.bitcomet.com"), 6881));
 
-	if (load_file(".dht_state", in) == 0)
-	{
-		ses.start_dht(bdecode(in.begin(), in.end()));
-	}
-	else
-	{
-		ses.start_dht();
-	}
+	ses.start_dht();
 #endif
 
 	ses.start_lsd();
@@ -1604,7 +1599,7 @@ int main(int argc, char* argv[])
 		if (a == 0)
 		{
 			printf(" aborting with %d outstanding "
-				"torrents to save resume data for", num_resume_data);
+				"torrents to save resume data for\n", num_resume_data);
 			break;
 		}
 
@@ -1632,22 +1627,15 @@ int main(int argc, char* argv[])
 		save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
 	}
 	printf("saving session state\n");
-	{	
-		entry session_state = ses.state();
+	{
+		entry session_state;
+		ses.save_state(session_state);
 
 		std::vector<char> out;
 		bencode(std::back_inserter(out), session_state);
 		save_file(".ses_state", out);
 	}
 
-#ifndef TORRENT_DISABLE_DHT
-	printf("saving DHT state\n");
-	entry dht_state = ses.dht_state();
-
-	std::vector<char> out;
-	bencode(std::back_inserter(out), dht_state);
-	save_file(".dht_state", out);
-#endif
 	printf("closing session");
 
 	return 0;
