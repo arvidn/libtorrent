@@ -397,10 +397,10 @@ namespace libtorrent
 		TORRENT_FORWARD(file_progress(progress, flags));
 	}
 
-	torrent_status torrent_handle::status() const
+	torrent_status torrent_handle::status(boost::uint32_t flags) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(status(), torrent_status());
+		TORRENT_FORWARD_RETURN(status(flags), torrent_status());
 	}
 
 	void torrent_handle::set_sequential_download(bool sd) const
