@@ -739,10 +739,10 @@ namespace aux {
 			for (int i = 0; i < settings->dict_size(); ++i)
 			{
 				std::pair<std::string, lazy_entry const*> item = settings->dict_at(i);
-				int as_num = atoi(item.firstc_str());
-				if (item.second.type() != lazy_entry::int_t || item.second.int_value() == 0) continue;
+				int as_num = atoi(item.first.c_str());
+				if (item.second->type() != lazy_entry::int_t || item.second->int_value() == 0) continue;
 				int& peak = m_as_peak[as_num];
-				if (peak < item.second.integer()) peak = item.second.integer();
+				if (peak < item.second->int_value()) peak = item.second->int_value();
 			}
 		}
 #endif
