@@ -239,7 +239,7 @@ namespace libtorrent
 		void add_stats(stat const& s);
 		size_type bytes_left() const;
 		int block_bytes_wanted(piece_block const& p) const;
-		void bytes_done(torrent_status& st) const;
+		void bytes_done(torrent_status& st, bool accurate) const;
 		size_type quantized_bytes_done() const;
 
 		void ip_filter_updated() { m_policy.ip_filter_updated(); }
@@ -297,7 +297,7 @@ namespace libtorrent
 		void set_piece_deadline(int piece, int t, int flags);
 		void update_piece_priorities();
 
-		torrent_status status() const;
+		torrent_status status(boost::uint32_t flags) const;
 
 		void file_progress(std::vector<size_type>& fp, int flags = 0) const;
 

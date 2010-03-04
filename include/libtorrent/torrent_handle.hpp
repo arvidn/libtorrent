@@ -390,7 +390,15 @@ namespace libtorrent
 
 		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
-		torrent_status status() const;
+
+		enum status_flags_t
+		{
+			query_distributed_copies = 1,
+			query_accurate_download_counters = 2
+		};
+		// the flags specify which fields are calculated. By default everything
+		// is included, you may save CPU by not querying fields you don't need
+		torrent_status status(boost::uint32_t flags = 0xffffffff) const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
 		enum deadline_flags { alert_when_available = 1 };

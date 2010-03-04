@@ -1806,7 +1806,7 @@ namespace libtorrent
 	}
 
 	// fills in total_wanted, total_wanted_done and total_done
-	void torrent::bytes_done(torrent_status& st) const
+	void torrent::bytes_done(torrent_status& st, bool accurate) const
 	{
 		INVARIANT_CHECK;
 
@@ -1897,6 +1897,9 @@ namespace libtorrent
 		TORRENT_ASSERT(st.total_wanted_done <= m_torrent_file->total_size() - m_padding);
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
+
+		// this is expensive, we might not want to do it all the time
+		if (!accurate) return;
 
 		const std::vector<piece_picker::downloading_piece>& dl_queue
 			= m_picker->get_download_queue();
@@ -6086,7 +6089,7 @@ namespace libtorrent
 		m_state = s;
 	}
 
-	torrent_status torrent::status() const
+	torrent_status torrent::status(boost::uint32_t flags) const
 	{
 		INVARIANT_CHECK;
 
@@ -6124,7 +6127,7 @@ namespace libtorrent
 		st.num_complete = m_complete;
 		st.num_incomplete = m_incomplete;
 		st.paused = m_paused;
-		bytes_done(st);
+		bytes_done(st, flags & torrent_handle::query_accurate_download_counters);
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 
@@ -6168,8 +6171,11 @@ namespace libtorrent
 		{
 			std::vector<announce_entry>::const_iterator i;
 			for (i = m_trackers.begin(); i != m_trackers.end(); ++i)
-				if (i->updating) break;
-			if (i != m_trackers.end()) st.current_tracker = i->url;
+			{
+				if (!i->updating) continue;
+				st.current_tracker = i->url;
+				break;
+			}
 		}
 
 		st.num_uploads = m_num_uploads;
@@ -6224,7 +6230,7 @@ namespace libtorrent
 		}
 		st.num_pieces = num_have();
 		st.num_seeds = num_seeds();
-		if (m_picker.get())
+		if ((flags & torrent_handle::query_distributed_copies) && m_picker.get())
 		{
 			boost::tie(st.distributed_full_copies, st.distributed_fraction) =
 				m_picker->distributed_copies();
