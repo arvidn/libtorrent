@@ -193,10 +193,13 @@ namespace libtorrent
 			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht_settings const& s);
 			dht_settings const& get_dht_settings() const { return m_dht_settings; }
-			void start_dht(entry const& startup_state);
+			void start_dht();
 			void stop_dht();
+			void start_dht(entry const& startup_state);
 
+#ifndef TORRENT_NO_DEPRECATE
 			entry dht_state(session_impl::mutex_t::scoped_lock& l) const;
+#endif
 			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
 			void on_dht_router_name_lookup(error_code const& e
 				, tcp::resolver::iterator host);
@@ -284,7 +287,7 @@ namespace libtorrent
 
 			void announce_lsd(sha1_hash const& ih);
 
-			void save_state(entry& e) const;
+			void save_state(entry& e, session_impl::mutex_t::scoped_lock& l) const;
 			void load_state(lazy_entry const& e);
 
 			void set_peer_proxy(proxy_settings const& s)
@@ -562,6 +565,9 @@ namespace libtorrent
 			proxy_settings m_dht_proxy;
 #endif
 
+#ifndef TORRENT_DISABLE_DHT	
+			entry m_dht_state;
+#endif
 			// set to true when the session object
 			// is being destructed and the thread
 			// should exit

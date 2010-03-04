@@ -590,7 +590,7 @@ namespace aux {
 		m_thread.reset(new boost::thread(boost::ref(*this)));
 	}
 
-	void session_impl::save_state(entry& e) const
+	void session_impl::save_state(entry& e, session_impl::mutex_t::scoped_lock& l) const
 	{
 		save_struct(e["settings"], &m_settings, session_settings_map
 			, sizeof(session_settings_map)/sizeof(session_settings_map[0]));
@@ -599,6 +599,17 @@ namespace aux {
 			, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
 		save_struct(e["dht proxy"], &dht_proxy(), proxy_settings_map
 			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+
+		if (m_dht)
+		{
+			boost::condition cond;
+			entry& state = e["dht state"];
+			bool done = false;
+			m_io_service.post(boost::bind(&session_impl::on_dht_state_callback
+				, this, boost::ref(cond), boost::ref(state), boost::ref(done)));
+			while (!done) cond.wait(l);
+		}
+
 #endif
 #if TORRENT_USE_I2P
 		save_struct(e["i2p"], &i2p_proxy(), proxy_settings_map
@@ -615,12 +626,27 @@ namespace aux {
 			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
 		save_struct(e["tracker proxy"], &tracker_proxy(), proxy_settings_map
 			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+
+#ifndef TORRENT_DISABLE_GEO_IP
+		entry::dictionary_type& as_map = e["AS map"].dict();
+		char buf[10];
+		for (std::map<int, int>::const_iterator i = m_as_peak.begin()
+			, end(m_as_peak.end()); i != end; ++i)
+		{
+			if (i->second == 0) continue;
+			sprintf(buf, "%05d", i->first);
+			as_map[buf] = i->second;
+		}
+#endif
+
 	}
 	
 	void session_impl::load_state(lazy_entry const& e)
 	{
 		lazy_entry const* settings;
 	  
+		if (e.type() != lazy_entry::dict_t) return;
+
 		settings = e.dict_find_dict("settings");
 		if (settings)
 		{
@@ -648,6 +674,13 @@ namespace aux {
 				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
 			set_dht_proxy(s);
 		}
+
+		settings = e.dict_find_dict("dht state");
+		if (settings)
+		{
+			m_dht_state = *settings;
+		}
+
 #endif
 
 #if TORRENT_USE_I2P
@@ -698,6 +731,21 @@ namespace aux {
 				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
 			set_tracker_proxy(s);
 		}
+
+#ifndef TORRENT_DISABLE_GEO_IP
+		settings  = e.dict_find_dict("AS map");
+		if (settings)
+		{
+			for (int i = 0; i < settings->dict_size(); ++i)
+			{
+				std::pair<std::string, lazy_entry const*> item = settings->dict_at(i);
+				int as_num = atoi(item.firstc_str());
+				if (item.second.type() != lazy_entry::int_t || item.second.int_value() == 0) continue;
+				int& peak = m_as_peak[as_num];
+				if (peak < item.second.integer()) peak = item.second.integer();
+			}
+		}
+#endif
 	}
 
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -785,43 +833,6 @@ namespace aux {
 	}
 
 #endif
-
-	void session_impl::load_state(entry const& ses_state)
-	{
-		if (ses_state.type() != entry::dictionary_t) return;
-#ifndef TORRENT_DISABLE_GEO_IP
-		entry const* as_map = ses_state.find_key("AS map");
-		if (as_map && as_map->type() == entry::dictionary_t)
-		{
-			entry::dictionary_type const& as_peak = as_map->dict();
-			for (entry::dictionary_type::const_iterator i = as_peak.begin()
-				, end(as_peak.end()); i != end; ++i)
-			{
-				int as_num = atoi(i->first.c_str());
-				if (i->second.type() != entry::int_t || i->second.integer() == 0) continue;
-				int& peak = m_as_peak[as_num];
-				if (peak < i->second.integer()) peak = i->second.integer();
-			}
-		}
-#endif
-	}
-
-	entry session_impl::state() const
-	{
-		entry ret;
-#ifndef TORRENT_DISABLE_GEO_IP
-		entry::dictionary_type& as_map = ret["AS map"].dict();
-		char buf[10];
-		for (std::map<int, int>::const_iterator i = m_as_peak.begin()
-			, end(m_as_peak.end()); i != end; ++i)
-		{
-			if (i->second == 0) continue;
-			sprintf(buf, "%05d", i->first);
-			as_map[buf] = i->second;
-		}
-#endif
-		return ret;
-	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void session_impl::add_extension(
@@ -2893,6 +2904,9 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_DHT
 
+	void session_impl::start_dht()
+	{ start_dht(m_dht_state); }
+
 	void session_impl::start_dht(entry const& startup_state)
 	{
 		INVARIANT_CHECK;
@@ -3017,6 +3031,7 @@ namespace aux {
 		c.notify_all();
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	entry session_impl::dht_state(session_impl::mutex_t::scoped_lock& l) const
 	{
 		boost::condition cond;
@@ -3028,6 +3043,7 @@ namespace aux {
 		while (!done) cond.wait(l);
 		return e;
 	}
+#endif
 
 	void session_impl::add_dht_node(std::pair<std::string, int> const& node)
 	{
