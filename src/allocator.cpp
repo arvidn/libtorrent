@@ -69,9 +69,9 @@ namespace libtorrent
 #if TORRENT_USE_POSIX_MEMALIGN
 		void* ret;
 		if (posix_memalign(&ret, page_size(), bytes) != 0) ret = 0;
-		return ret;
+		return reinterpret_cast<char*>(ret);
 #elif TORRENT_USE_MEMALIGN
-		return memalign(page_size(), bytes);
+		return reinterpret_cast<char*>(memalign(page_size(), bytes));
 #elif defined TORRENT_WINDOWS
 		return reinterpret_cast<char*>(VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
 #else
