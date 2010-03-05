@@ -1014,7 +1014,9 @@ int test_main()
 	entry torrent;
 	torrent["info"] = info;
 
-	torrent_info ti(torrent);
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), torrent);
+	torrent_info ti(&buf[0], buf.size(), ec);
 	std::cerr << ti.name() << std::endl;
 	TEST_CHECK(ti.name() == "test1");
 
@@ -1024,7 +1026,9 @@ int test_main()
 	info["name.utf-8"] = "/test1/test2/test3";
 #endif
 	torrent["info"] = info;
-	torrent_info ti2(torrent);
+	buf.clear();
+	bencode(std::back_inserter(buf), torrent);
+	torrent_info ti2(&buf[0], buf.size(), ec);
 	std::cerr << ti2.name() << std::endl;
 #ifdef TORRENT_WINDOWS
 	TEST_CHECK(ti2.name() == "test1\\test2\\test3");
@@ -1034,7 +1038,9 @@ int test_main()
 
 	info["name.utf-8"] = "test2/../test3/.././../../test4";
 	torrent["info"] = info;
-	torrent_info ti3(torrent);
+	buf.clear();
+	bencode(std::back_inserter(buf), torrent);
+	torrent_info ti3(&buf[0], buf.size(), ec);
 	std::cerr << ti3.name() << std::endl;
 #ifdef TORRENT_WINDOWS
 	TEST_CHECK(ti3.name() == "test2\\test3\\test4");

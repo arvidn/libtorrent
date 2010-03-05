@@ -530,11 +530,14 @@ void test_remove(path const& test_path, bool unbuffered)
 	fs.add_file("temp_storage/_folder3/subfolder/test5.tmp", 8);
 	libtorrent::create_torrent t(fs, 4, -1, 0);
 
-	char buf[4] = {0, 0, 0, 0};
-	sha1_hash h = hasher(buf, 4).final();
+	char buf_[4] = {0, 0, 0, 0};
+	sha1_hash h = hasher(buf_, 4).final();
 	for (int i = 0; i < 6; ++i) t.set_hash(i, h);
 	
-	boost::intrusive_ptr<torrent_info> info(new torrent_info(t.generate()));
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	error_code ec;
+	boost::intrusive_ptr<torrent_info> info(new torrent_info(&buf[0], buf.size(), ec));
 
 	session_settings set;
 	set.disk_io_write_mode = set.disk_io_read_mode
@@ -612,7 +615,10 @@ void test_check_files(path const& test_path
 	f.write(piece2, sizeof(piece2));
 	f.close();
 
-	info = new torrent_info(t.generate());
+	std::vector<char> buf;
+	error_code ec;
+	bencode(std::back_inserter(buf), t.generate());
+	info = new torrent_info(&buf[0], buf.size(), ec);
 
 	file_pool fp;
 	libtorrent::asio::io_service ios;
@@ -622,7 +628,6 @@ void test_check_files(path const& test_path
 		, test_path, fp, io, default_storage_constructor, storage_mode);
 	boost::mutex lock;
 
-	error_code ec;
 	bool done = false;
 	lazy_entry frd;
 	pm->async_check_fastresume(&frd, boost::bind(&on_check_resume_data, _1, _2, &done));
@@ -672,7 +677,10 @@ void run_test(path const& test_path, bool unbuffered)
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
 	
-	info = new torrent_info(t.generate());
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	error_code ec;
+	info = new torrent_info(&buf[0], buf.size(), ec);
 	std::cerr << "=== test 1 ===" << std::endl;
 
 	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
@@ -705,7 +713,10 @@ void run_test(path const& test_path, bool unbuffered)
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
 
-	info = new torrent_info(t.generate());
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	error_code ec;
+	info = new torrent_info(&buf[0], buf.size(), ec);
 
 	std::cerr << "=== test 3 ===" << std::endl;
 
@@ -754,9 +765,11 @@ void test_fastresume(path const& test_path)
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
 
-		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
-			, test_path / "tmp1", entry()
-			, storage_mode_compact);
+		add_torrent_params p;
+		p.ti = boost::intrusive_ptr<torrent_info>(new torrent_info(*t));
+		p.save_path = test_path / "tmp1";
+		p.storage_mode = storage_mode_compact;
+		torrent_handle h = ses.add_torrent(p);
 
 		for (int i = 0; i < 10; ++i)
 		{
@@ -781,8 +794,12 @@ void test_fastresume(path const& test_path)
 	{
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
-		torrent_handle h = ses.add_torrent(t, test_path / "tmp1", resume
-			, storage_mode_compact);
+		add_torrent_params p;
+		p.save_path = test_path / "tmp1";
+		p.ti = t;
+		p.resume = &resume;
+		p.storage_mode = storage_mode_compact;
+		torrent_handle h = ses.add_torrent(p);
 	
 		std::auto_ptr<alert> a = ses.pop_alert();
 		ptime end = time_now() + seconds(20);
@@ -823,9 +840,11 @@ void test_rename_file_in_fastresume(path const& test_path)
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
 
-		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
-			, test_path / "tmp2", entry()
-			, storage_mode_compact);
+		add_torrent_params p;
+		p.save_path = test_path / "tmp2";
+		p.ti = boost::intrusive_ptr<torrent_info>(new torrent_info(*t));
+		p.storage_mode = storage_mode_compact;
+		torrent_handle h = ses.add_torrent(p);
 
 		h.rename_file(0, "testing_renamed_files");
 		std::cout << "renaming file" << std::endl;
@@ -854,8 +873,12 @@ void test_rename_file_in_fastresume(path const& test_path)
 	{
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
-		torrent_handle h = ses.add_torrent(t, test_path / "tmp2", resume
-			, storage_mode_compact);
+		add_torrent_params p;
+		p.save_path = test_path / "tmp2";
+		p.ti = t;
+		p.resume = &resume;
+		p.storage_mode = storage_mode_compact;
+		torrent_handle h = ses.add_torrent(p);
 	
 		for (int i = 0; i < 5; ++i)
 		{
