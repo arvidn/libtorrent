@@ -20,9 +20,9 @@ void test_swarm()
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49010, 50000), "0.0.0.0", 0);
 	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50010, 51000), "0.0.0.0", 0);
 
-	ses1.set_severity_level(alert::debug);
-	ses2.set_severity_level(alert::debug);
-	ses3.set_severity_level(alert::debug);
+	ses1.set_alert_mask(alert::all_categories);
+	ses2.set_alert_mask(alert::all_categories);
+	ses3.set_alert_mask(alert::all_categories);
 	
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
