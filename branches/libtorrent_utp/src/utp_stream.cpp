@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/utp_stream.hpp"
+#include "libtorrent/sliding_average.hpp"
 
 namespace libtorrent {
 
@@ -58,15 +59,6 @@ namespace libtorrent {
 	typedef big_endian_int<boost::int32_t> be_int32;
 	typedef big_endian_int<boost::int16_t> be_int16;
 
-	// this is used to keep the minimum difference in
-	// timestamps.
-	struct delay_history
-	{
-		void add_sample(boost::uint32_t v);
-		void minimum() const;
-		void tick();
-	};
-
 /*
 	uTP header from BEP 29
 
@@ -89,8 +81,13 @@ enum type { ST_DATA = 0, ST_FIN, ST_STATE, ST_RESET, ST_SYN, NUM_TYPES };
 
 enum
 {
-	ACK_MASK = 0xffff
+	ACK_MASK = 0xffff,
+	TIME_MASK = 0xffffffff,
+
+	// the number of packets that'll fit in the reorder buffer
+	max_packets_reorder = 256,
 };
+
 struct utp_header
 {
 	unsigned char ver:4;
@@ -110,16 +107,86 @@ struct utp_header
 // considered smaller
 bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs, boost::uint32_t mask)
 {
-   // distance walking from lhs to rhs, downwards
-   boost::uint32_t dist_down = (lhs - rhs) & mask;
-   // distance walking from lhs to rhs, upwards
-   boost::uint32_t dist_up = (rhs - lhs) & mask;
- 
-   // if the distance walking up is shorter, lhs
-   // is less than rhs. If the distance walking down
-   // is shorter, then rhs is less than lhs
-   return dist_up < dist_down;
+	// distance walking from lhs to rhs, downwards
+	boost::uint32_t dist_down = (lhs - rhs) & mask;
+	// distance walking from lhs to rhs, upwards
+	boost::uint32_t dist_up = (rhs - lhs) & mask;
+
+	// if the distance walking up is shorter, lhs
+	// is less than rhs. If the distance walking down
+	// is shorter, then rhs is less than lhs
+	return dist_up < dist_down;
 }
+
+// timestamp history keeps a history of the lowest timestamps we've
+// seen in the last 20 minutes
+struct timestamp_history
+{
+	enum { history_size = 20 };
+
+	timestamp_history() : m_index(0), m_base(0), m_initialized(false) {}
+
+	// add a sample to the timestamp history. If step is true, it's been
+	// a minute since the last step
+	boost::uint32_t add_sample(boost::uint32_t sample, bool step)
+	{
+		if (!m_initialized)
+		{
+			for (int i = 0; i < history_size; ++i)
+				m_history[i] = sample;
+			m_base = sample;
+		}
+
+		// if sample is less than base, update the base
+		// and update the history entry (because it will
+		// be less than that too)
+		if (compare_less_wrap(sample, m_base, TIME_MASK))
+		{
+			m_base = sample;
+			m_history[m_index] = sample;
+		}
+		// if sample is less than our history entry, update it
+		else if (compare_less_wrap(sample, m_history[m_index], TIME_MASK))
+		{
+			m_history[m_index] = sample;
+		}
+
+		boost::uint32_t ret = sample - m_base;
+
+		if (step)
+		{
+			m_index = (m_index + 1) % history_size;
+
+			m_history[m_index] = sample;
+			// update m_base
+			m_base = sample;
+			for (int i = 0; i < history_size; ++i)
+			{
+				if (compare_less_wrap(m_history[i], m_base, TIME_MASK))
+					m_base = m_history[i];
+			}
+		}
+		return ret;
+	}
+
+	boost::uint32_t base() const { return m_base; }
+
+private:
+
+	// this is a circular buffer
+	boost::uint32_t m_history[history_size];
+
+	// and this is the index we're currently at
+	// in the circular buffer
+	int m_index;
+
+	// this is the lowest sample seen in the
+	// last 'history_size' minutes
+	boost::uint32_t m_base;
+
+	bool m_initialized;
+
+};
 
 // since the uTP socket state may be needed after the
 // utp_stream is closed, it's kept in a separate struct
@@ -129,9 +196,25 @@ struct utp_socket_impl
 {
 	utp_socket_impl()
 		: m_sm(0)
+		, m_last_history_step(time_now())
 		, m_send_id(0)
 		, m_recv_id(0)
+		, m_last_history_step(min_time())
+		, m_ack_nr(0)
+		, m_seq_nr(0)
+		, m_fast_resend_seq_nr(0)
 		, m_state(UTP_STATE_NONE)
+		, m_userdata(0)
+		, m_receive_buffer_size(0)
+		, m_reply_micro(0)
+		, m_cwnd(1500)
+		, m_adv_wnd(1500)
+		, m_timeout(time_now() + seconds(3))
+		, m_acked_seq_nr(0)
+		, m_bytes_in_flight(0)
+		, m_mtu(1500 - 20 - 8 - 8)
+		, m_buffered_incoming_bytes(0)
+		, m_duplicate_acks(0)
 	{}
 
 	void tick();
@@ -141,6 +224,8 @@ struct utp_socket_impl
 
 	utp_socket_manager* m_sm;
 
+	sliding_average m_rtt;
+
 	address m_remote_address;
 	boost::uint16_t m_port;
 
@@ -149,38 +234,139 @@ struct utp_socket_impl
 	packet_buffer m_inbuf;
 	packet_buffer m_outbuf;
 
+	ptime m_last_history_step;
+	timestamp_history m_delay_hist;
+
 	boost::uint16_t m_send_id;
 	boost::uint16_t m_recv_id;
+
+	// this is the ack we're sending back. We have
+	// received all packets up to this sequence number
 	boost::uint16_t m_ack_nr;
+
+	// the sequence number of the next packet
+	// we'll send
 	boost::uint16_t m_seq_nr;
+
+	// each packet gets one chance of "fast resend". i.e.
+	// if we have multiple duplicate acks, we may send a
+	// packet immediately, if m_fast_resend_seq_nr is set
+	// to that packet's sequence number
+	boost::uint16_t m_fast_resend_seq_nr;
+
 	enum state_t {
+		// not yet connected
 		UTP_STATE_NONE,
+		// sent a syn packet, not received any acks
 		UTP_STATE_SYN_SENT,
+		// syn-ack received and in normal operation
+		// of sending and receiving data
 		UTP_STATE_CONNECTED,
-		UTP_STATE_FIN_SENT,
+		// fin sent, but all packets up to the fin packet
+		// have not yet been acked
+//		UTP_STATE_FIN_SENT,
+
+		// the socket has been gracefully disconnected
+		// and is waiting for the client to make a
+		// socket call so that we can communicate this
+		// fact and actually delete all the state
+		UTP_STATE_CLOSE_WAIT,
+
+		// same as UTP_STATE_CLOSE_WAIT but the connection
+		// was reset. We're waiting to be able to communicate
+		// the connection reset message back to the client
+		// before we delete the socket state
+		UTP_STATE_RESET_WAIT,
+
+		// there are no more references to this socket
+		// and we can delete it
 		UTP_STATE_DELETE
 	};
+
+	// the state the socket is in
 	unsigned char m_state;
 
-	libtorrent::buffer m_receive_buffer;
-	boost::function<void(error_code const&)> m_connect_handler;
-	boost::function<void(error_code const&, std::size_t)> m_read_handler;
-	boost::function<void(error_code const&, std::size_t)> m_write_handler;
-	std::size_t m_bytes_written;
-	std::vector<asio::const_buffer> m_write_buffer;
-	std::vector<asio::mutable_buffer> m_read_buffer;
+	// userdata pointer passed along
+	// with any callback
+	void* m_useradata;
+
+	struct iovec_t
+	{
+		iovec_t(void* b, size_t l): buf(b), len(l) {}
+		void* buf;
+		size_t len;
+	};
+
+	// if there's currently am async read or write
+	// operation in progress, these buffers are initialized
+	// and used, otherwise any bytes received are stuck in
+	// m_receive_buffer until another read is made
+	std::vector<iovec_t> m_write_buffer;
+	// the sum of the lengths of all iovec in m_write_buffer
+	int m_write_buffer_size;
+	// the number of bytes already written to packets
+	// from m_write_buffer
+	int m_written;
+	std::vector<iovec_t> m_read_buffer;
+	
+	// packets we've received without a read operation
+	// active. Store them here until the client triggers
+	// an async_read_some
+	std::vector<packet*> m_receive_buffer;
+	int m_receive_buffer_size;
+
+	utp_stream::handler_t m_read_handler;
+	utp_stream::handler_t m_write_handler;
+
+	//#error connect callback function
 
 	// the timestamp diff in the last packet received
 	// this is what we'll send back
 	boost::uint32_t m_reply_micro;
-	// the max number of bytes in-flight
+
+	// the max number of bytes in-flight. This is a fixed point
+	// value, to get the true number of bytes, shift right 16 bits
 	boost::uint32_t m_cwnd;
+
+	// this is the advertized receive window the other end sent
+	// we'll never have more un-acked bytes in flight
+	// if this ever gets set to zero, we'll try one packet every
+	// second until the window opens up again
+	boost::uint32_t m_adv_wnd;
+
+	// the time when the last packet we sent times out. Including re-sends.
+	// if we ever end up not having sent anything in one second (
+	// or one mean rtt + 2 average deviations, whichever is greater)
+	// we set our cwnd to 1 MSS. This condition can happen either because
+	// a packet has timed out and needs to be resent or because our
+	// cwnd is set to less than one MSS during congestion control.
+	// it can also happen if the other end sends an advertized window
+	// size less than one MSS.
+	ptime m_timeout;
 
 	// this is the sequence number of the packet that
 	// everything has been ACKed up to. Everything we've
 	// sent up to this point has been received by the other
 	// end.
 	boost::uint16_t m_acked_seq_nr;
+
+	// the number of un-acked bytes we have sent
+	int m_bytes_in_flight;
+
+	// the max number of bytes we can send in a packet
+	// including the header
+	boost::uint32_t m_mtu;
+
+	// the number of bytes we have buffered in m_inbuf
+	int m_buffered_incoming_bytes;
+
+	// this is a counter of how many times the current m_acked_seq_nr
+	// has been ACKed. If it's ACKed more than 3 times, we assume the
+	// packet with the next sequence number has been lost, and we trigger
+	// a re-send. Ovbiously an ACK only counts as a duplicate as long as
+	// we have outstanding packets following it.
+	boost::uint8_t m_duplicate_acks;
+	// #error implement nagle
 };
 
 utp_stream::~utp_stream()
@@ -201,6 +387,71 @@ void utp_stream::set_manager(utp_socket_manager* sm)
 	m_impl->m_sm = sm;
 }
 
+int utp_stream::read_buffer_size() const
+{
+	TORRENT_ASSERT(m_impl);
+	return m_impl->m_receive_buffer_size;
+}
+
+void utp_stream::on_read(void* self, size_t bytes_transferred, error_code const$ ec, bool kill)
+{
+	utp_stream* s = (utp_stream*)self;
+	s->m_io_service.post(boost::bind<void>(s->m_read_handler, ec, bytes_transferred));
+	s->m_read_handler.clear();
+	s->m_read_buffer.clear();
+	if (kill) s->m_impl = 0;
+}
+
+void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const$ ec, bool kill)
+{
+	utp_stream* s = (utp_stream*)self;
+	s->m_io_service.post(boost::bind<void>(s->m_write_handler, ec, bytes_transferred));
+	s->m_write_handler.clear();
+	s->m_write_buffer.clear();
+	if (kill) s->m_impl = 0;
+}
+
+void utp_stream::on_connect(void* self, error_code const$ ec, bool kill)
+{
+	utp_stream* s = (utp_stream*)self;
+	s->m_io_service.post(boost::bind<void>(s->m_connect_handler, ec));
+	s->m_connect_handler.clear();
+	if (kill) s->m_impl = 0;
+}
+
+void utp_stream::add_read_buffer(void* buf, size_t len)
+{
+	TORRENT_ASSERT(m_impl);
+	m_impl->m_read_buffer.push_back(utp_socket_impl::iovec_t(buf, len));
+}
+
+void utp_stream::add_write_buffer(void const* buf, size_t len)
+{
+	TORRENT_ASSERT(m_impl);
+	m_impl->m_write_buffer.push_back(utp_socket_impl::iovec_t((void*)buf, len));
+	m_impl->m_write_buffer_size += len;
+}
+
+void utp_stream::set_read_handler(handler_t h)
+{
+	m_impl->m_read_handler = h;
+
+	if (m_impl->m_receive_buffer_size)
+	{
+		// #error copy from m_receive_buffer into m_read_buffer
+	}
+}
+
+void utp_stream::set_write_handler(handler_t h)
+{
+	m_impl->m_write_handler = h;
+	m_impl->m_written = 0;
+	// try to write
+	while (m_impl->send_pkt(false));
+}
+
+// =========== utp_socket_impl ============
+
 void utp_socket_impl::send_reset(utp_header* ph)
 {
 	utp_header h;
@@ -216,6 +467,232 @@ void utp_socket_impl::send_reset(utp_header* ph)
 	m_sm->send_packet(remote_endpoint(), &h, sizeof(h));
 }
 
+// used for out-of-order incoming packets
+// as well as sent packets that are waiting to be ACKed
+struct packet
+{
+	ptime send_time; // the last time this packet was sent
+	boost::uint16_t size;
+	boost::uint8_t num_transmissions;
+	
+	char buf[];
+};
+
+int utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes, ptime const& now)
+{
+	TORRENT_ASSERT(size > 0);
+	// this is the sequence number the current bit represents
+	int ack_nr = m_acked_seq_nr + 2;
+	// for each byte
+	for (char const* end = ptr + size; ptr != end; ++ptr)
+	{
+		unsigned char bitfield = unsigned(*ptr);
+		unsigned char mask = 1;
+		// for each bit
+		for (int i = 0; i < 8; ++i)
+		{
+			if (mask & bitfield)
+			{
+				// this bit was set, ack_nr was received
+				packet* p = (packet*)m_outbuf.remove(ack_nr);
+				if (!p) continue;
+				acked_bytes += p->size;
+				ack_packet(p, now);
+				// each ACKed packet counts as a duplicate ack
+				++m_duplicate_acks;
+			}
+
+			mask <<= 1;
+			ack_nr = (ack_nr + 1) & ACK_MASK;
+
+			// we haven't sent packets past this point.
+			// if there are any more bits set, we have to
+			// ignore them anyway
+			if (ack_nr == seq_nr) return;
+		}
+	}
+}
+
+// copies data from the write buffer into the packet
+// pointed to by ptr
+void utp_socket_impl::write_payload(char* ptr, int size)
+{
+	TORRENT_ASSERT(!m_write_buffer.empty());
+	TORRENT_ASSERT(m_write_buffer - m_written >= size);
+	std::vector<iovec_t>::iterator i = m_write_buffer.begin();
+
+	size_t pos = 0;
+	while (m_written >= pos + i->len)
+	{
+		pos += i->len;
+		++i;
+		TORRENT_ASSERT(i != m_write_buffer.end());
+	}
+
+	while (size > 0)
+	{
+		// i points to the iovec we'll start copying from
+		int to_copy = (std::min)(size, i->len);
+		memcpy(ptr, static_cast<char const*>(i->buf) + m_written - pos, to_copy);
+		size -= to_copy;
+		m_written += to_copy;
+		pos += i->len;
+		++i;
+	}
+}
+
+// sends a packet, pulls data from the write buffer (if there's any)
+// if ack is true, we need to send a packet regardless of if there's
+// any data. Returns true if we could send more data (i.e. call
+// send_pkt() again)
+bool utp_socket_impl::send_pkt(bool ack)
+{
+	TORRENT_ASSERT(type >= 0 && type < NUM_TYPES);
+
+	bool ret = false;
+
+	int sack = 0;
+	if (m_inbuf.size())
+	{
+		// #error find out how big the SACK bitfield needs to be
+		sack = 4;
+	}
+
+	int packet_size = sizeof(utp_header) + (sack ? sack + 2 : 0);
+	int payload_size = m_write_buffer_size - m_written;
+	if (m_mtu - packet_size < payload_size)
+	{
+		payload_size = m_mtu - packet_size;
+		ret = true; // there's more data to send
+	}
+	payload_size = (std::min)(m_mtu - packet_size, payload_size);
+
+	// if we have one MMS worth of data, make sure it fits in our
+	// congestion window and the advertized receive window from
+	// the other end.
+	if (payload_size > (std::min)(m_cwnd, m_adv_wnd) - m_bytes_in_flight)
+	{
+		// this means there's not enough room in the send window for
+		// another packet. We have to hold off sending this data.
+		// we still need to send an ACK though
+		payload_size = 0;
+
+		// there's no more space in the cwnd, no need to
+		// try to send more right now
+		ret = false;
+	}
+
+	// if we don't have any data to send, or can't send any data
+	// and we don't have any data to ack, don't send a packet
+	if (payload_size == 0 && !ack) return false;
+
+	packet_size += payload_size;
+
+	packet* p;
+	// we only need a heap allocation if we have payload and
+	// need to keep the packet around (in the outbuf)
+	if (payload_size) p = (packet*)malloc(packet_size);
+	else p = (packet*)TORRENT_ALLOCA(char, packet_size);
+
+	p->size = packet_size - sizeof(utp_header);
+	p->num_transmissions = 1;
+	char* ptr = p->buf;
+	utp_header* h = (utp_header*)ptr;
+	ptr += sizeof(utp_header);
+
+	h->ver = 1;
+	h->type = payload_size ? ST_DATA : ST_STATE;
+	h->extension = sack ? 1 : 0;
+	h->connection_id = m_send_id;
+	h->timestamp_difference_microseconds = m_reply_micro;
+	h->wnd_size = m_in_buf_size - m_buffered_incoming_bytes - m_receive_buffer_size;
+	// seq_nr is ignored for ST_STATE packets, so it doesn't
+	// matter that we say this is a sequence number we haven't
+	// actually sent yet
+	h->seq_nr = m_seq_nr;
+	h->ack_nr = m_ack_nr;
+
+	if (sack)
+	{
+		*ptr++ = 0; // end of extension chain
+		*ptr++ = sack; // bytes for SACK bitfield
+		write_sack(p->buf, sack);
+	}
+
+	write_payload(ptr, payload_size);
+
+	// fill in the timestamp as late as possible
+	ptime now = time_now_hires();
+	p->send_time = now;
+	h->timestamp_microseconds = total_microseconds(now - min_time());
+
+	m_sm->send_packet(remote_endpoint(), &h, sizeof(h));
+
+	// if we have payload, we need to save the packet until it's acked
+	// and progress m_seq_nr
+	if (payload_size)
+	{
+		TORRENT_ASSERT(m_outbuf.at(m_seq_nr));
+		m_outpuf.insert(m_seq_nr);
+		m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
+	}
+
+	return ret;
+}
+
+// size is in bytes
+void utp_socket_impl::write_sack(char* buf, int size) const
+{
+	TORRENT_ASSERT(m_inbuf.size());
+	int ack_nr = (m_ack_nr + 2) & ACK_MASK;
+	char* end = buf + size;
+
+	for (; buf != end; ++buf)
+	{
+		*buf = 0;
+		int mask = 1;
+		for (int i = 0; i < 8; ++i)
+		{
+			if (m_inbuf.at(ack_nr)) *buf |= mask;
+			mask <<= 1;
+			ack_nr = (ack_nr + 1) & ACK_MASK;
+		}
+	}
+}
+
+void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time)
+{
+	TORRENT_ASSERT(p);
+	m_bytes_in_flight -= p->size;
+	m_rtt.add_sample(total_milliseconds(receive_time - p->send_time));
+	free(p);
+}
+
+void utp_socket_impl::incoming(char const* buf, int size, packet* p)
+{
+	if (m_read_handler)
+	{
+		if (p) buf = p->buf;
+
+		// copy into m_read_buffer
+		// and maybe trigger the callback
+#error
+
+		free(p);
+		return;
+	}
+
+	if (!p)
+	{
+		TORRENT_ASSERT(buf);
+		p = (packet*)malloc(sizeof(packet) + size);
+		p->size = size;
+		memcpy(p->buf, buf, size);
+	}
+	m_receive_buffer.push_back(p);
+	m_receive_buffer_size += p->size;
+}
+
 bool utp_socket_impl::incoming_packet(char const* buf, int size)
 {
 	ptime receive_time = time_now_hires();
@@ -227,7 +704,9 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size)
 	if (ph->type >= NUM_TYPES) return false;
 
 	// this is the difference between their send time and our receive time
-	m_reply_micro = total_microseconds(receive_time - min_time()) - ph->timestamp_microseconds;
+	// 0 means no sample yet
+	if (ph->timestamp_microseconds != 0)
+		m_reply_micro = total_microseconds(receive_time - min_time()) - ph->timestamp_microseconds;
 
 	if (ph->type == ST_RESET)
 	{
@@ -237,16 +716,65 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size)
 	}
 
 	// is this ACK valid? If the other end is ACKing
-	// a packet that hasn't been sent yet, respond with
-	// a reset
+	// a packet that hasn't been sent yet
+	// just ignore it. A 3rd party could easily inject a packet
+	// like this in a stream, don't sever it because of it.
 	// since m_seq_nr is the sequence number of the next packet
 	// we'll send (and m_seq_nr-1 was the last packet we sent),
 	// if the ACK we got is greater than the last packet we sent
 	// something is wrong. Reset.
 	if (compare_less_wrap((m_seq_nr - 1) & ACK_MASK, ph->ack_nr, ACK_MASK))
 	{
-		send_reset(ph);
 		return true;
+	}
+
+	// check to make sure the sequence number of this packet
+	// is reasonable. If it's a data packet and we've already
+	// received it, ignore it. This is either a stray old packet
+	// that finally made it here (after having been re-sent) or
+	// an attempt to interfere with the connection from a 3rd party
+	// in both cases, we can safely ignore the timestamp and ACK
+	// information in this packet
+	if (ph->type == ST_DATA && compare_less_wrap(ph->seq_nr, m_ack_nr, ACK_MASK))
+	{
+		// we've already received this packet
+		return true;
+	}
+
+	if (compare_less_wrap((m_ack_nr + max_packets_reorder) & ACK_MASK, ph->seq_nr, ACK_MASK))
+	{
+		// this is too far out to fit in our reorder buffer. Drop it
+		// This is either an attack to try to break the connection
+		// or a seariously damaged connection that lost a lot of
+		// packages. Neither is very likely, and it should be OK
+		// to drop the timestamp information.
+		return true;
+	}
+
+	bool step = false;
+	if (receive_time - m_last_history_step > minutes(1))
+	{
+		step = true;
+		m_last_history_step = receive_time;
+	}
+
+	boost::uint32_t sample = ph->timestamp_difference_microseconds;
+	boost::uint32_t delay = 0;
+	if (sample != 0)
+		delay = m_delay_hist.add_sample(sample, step);
+
+	int acked_bytes = 0;
+
+	int prev_bytes_in_flight = m_bytes_in_flight;
+
+	m_adv_wnd = ph->wnd_size;
+
+	// if we get an ack for the same sequence number as
+	// was last ACKed, and we have outstanding packets,
+	// it counts as a duplicate ack
+	if (ph->ack_nr == m_acked_seq_nr && m_outbuf.size())
+	{
+		++m_duplicate_acks;
 	}
 
 	// has this packet already been ACKed?
@@ -256,13 +784,76 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size)
 	// sequence number
 	if (compare_less_wrap(m_acked_seq_nr, ph->ack_nr, ACK_MASK))
 	{
-#error remove packets from send buffer	
+		for (; m_acked_seq_nr != m_seq_nr
+			; m_acked_seq_nr = (m_acked_seq_nr + 1) & ACK_MASK)
+		{
+			packet* p = (packet*)m_outbuf.remove(m_acked_seq_nr);
+			if (!p) continue;
+			acked_bytes += p->size;
+			ack_packet(p, receive_time);
+		}
+		m_duplicate_acks = 0;
+		m_fast_resend_seq_nr = (m_acked_seq_nr + 1) & ACK_MASK;
 	}
+
+	// look for extended headers
+	char const* ptr = buf;
+	ptr += sizeof(utp_header);
+
+	unsigned int extension = ph->ext;
+	while (extension)
+	{
+		// invalid packet. It says it has an extension header
+		// but the packet is too short
+		if (ptr - buf + 2 > size) return true;
+		extension = unsigned(*ptr++);
+		unsigned int len = unsigned(*ptr++);
+		if (ptr - buf + len > size) return true;
+		switch(extension)
+		{
+			case 1: // selective ACKs
+				parse_sack(ptr, len, &acked_bytes, receive_time);
+				break;
+		}
+		ptr += len;
+	}
+
+	if (m_duplicate_acks > 3
+		&& ((m_acked_seq_nr + 1) & ACK_MASK) == m_fast_resend_seq_nr)
+	{
+		// LOSS
+
+		// resend the lost packet
+		packet* p = m_outbuf.at(m_fast_resend_seq_nr);
+		TORRENT_ASSERT(p);
+		// don't fast-resend this again
+		m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
+		if (p)
+		{
+			++p->num_transmissions;
+			p->send_time = time_now_hires();
+			utp_header* h = (utp_header*)p->buf;
+			// update packet header
+			h->timestamp_microsecond = total_microseconds(p->send_time - min_time());
+			h->timestamp_difference_microsecond = m_reply_micro;
+			m_sm->send_packet(remote_endpoint(), p->buf, p->size);
+		}
+		// cut window size in 2
+		m_cwnd = (std::max)(m_cwnd / 2, m_mtu);
+
+		// the window size could go below one MMS here, if it does,
+		// we'll get a timeout in about one second
+	}
+
+	// ptr points to the payload of the packet
+	// size is the packet size, payload is the
+	// number of payload bytes are in this packet
+	int payload_size = size - (ptr - buf);
 
 	switch (m_state)
 	{
 		case UTP_STATE_NONE:
-		case UTP_STATE_DELETE::
+		case UTP_STATE_DELETE:
 		default:
 		{
 			// respond with a reset
@@ -276,18 +867,70 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size)
 
 			// #error notify client that we're connected!
 			m_state = UTP_STATE_CONNECTED;
-			return;
+			// fall through
 		}
 		case UTP_STATE_CONNECTED:
 		{
-			do_ledbat();
-			return;
+			// the lowest seen RTT can be used to clamp the delay
+			// within reasonable bounds. The one-way delay is never
+			// higher than the round-trip time
+
+			// #error if (delay > min_rtt * 1000) delay = min_rtt * 1000;
+
+			if (sample && acked_bytes && prev_bytes_in_flight)
+				do_ledbat(acked_bytes, delay, prev_bytes_in_flight);
+
+			if (ph->type == ST_DATA)
+			{
+				if (ph->seq_nr == (m_ack_nr + 1) ACK_MASK)
+				{
+					// we received a packet in order1
+					incoming(ptr, payload_size, 0);
+					m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
+	
+					packet* p = m_inbuf.remove(m_ack_nr);
+					while (p)
+					{
+						m_buffered_incoming_bytes -= p->size;
+						incoming(0, p->size, p);
+						m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
+						p = m_inbuf.remove(m_ack_nr);
+					}
+				}
+				else
+				{
+					// this packet was received out of order. Stick it in the
+					// reorder buffer until it can be delivered in order
+
+					// do we already have this packet? If so, just ignore it
+					if (m_inbuf.at(ph->seq_nr)) return true;
+
+					packet* p = malloc(sizeof(packet) + payload_size);
+					p->size = payload_size;
+					p->transmissions = 0;
+					memcpy(p->buf, ptr, payload_size);
+					m_inbuf.insert(p)
+						m_buffered_incoming_bytes += p->size;
+				}
+			}
+
+			// the parameter to send_pkt tells it if we're acking data
+			// If we are, we'll send an ACK regardless of if we have any
+			// space left in our send window or not. If we just got an ACK
+			// (i.e. ST_STATE) we're not ACKing anything.
+			if (send_pkt(ph->type == ST_DATA))
+			{
+				// try to send more data as long as we can
+				while (send_pkt(false));
+			}
+
+			return true;
 		}
 		case UTP_STATE_FIN_SENT:
 		{
 			// wait for a graceful close of the connection
 			if (ph->type == ST_FIN)
-				m_state = UTP_STATE_DELETE;
+				m_state = UTP_STATE_CLOSE_WAIT;
 			return true;
 		}
 	}
@@ -295,16 +938,102 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size)
 	return false;
 }
 
-void utp_stream::bind(endpoint_type const& ep, error_code& ec)
+void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_flight)
 {
+	// this is the target buffering delay we're aiming for, in microseconds.
+	// i.e. 50 ms
+	const boost::uint32_t target = 50000;
+
+	// the portion of the in-flight bytes that were acked. This is used to make
+	// the gain factor be scaled by the rtt. The formula is applied once per
+	// rtt, or on every ACK skaled by the number of ACKs per rtt
+	TORRENT_ASSERT(in_flight > 0);
+	TORRENT_ASSERT(acked_bytes > 0);
+
+	// all of these are fixed points with 32 bits fraction portion
+	boost::int64_t window_factor = (acked_bytes << 32) / in_flight;
+	boost::int64_t target_factor = ((target - delay) << 32) / target;
+	boost::int64_t scaled_gain = window_factor * target_factor * (max_cwnd_increase_per_rtt << 32);
+
+#error don't allow scaled_gain to be > 0 if we haven't 'bumped up' against the cwnd size within 2 RTTs
+
+	// turn scaled_gain back to 16 bits fixed point, same as m_cwnd.
+	scaled_gain >>= 16;
+
+	// if scaled_gain + m_cwnd <= 0, set m_cwnd to 0
+	if (-scaled_gain >= m_cwnd)
+	{
+		m_cwnd = 0;
+	}
+	else
+	{
+		m_cwnd += scaled_gain;
+		TORRENT_ASSERT(m_cwnd > 0);
+	}
 }
 
-void utp_stream::bind(udp::endpoint const& ep, error_code& ec)
+void utp_stream::bind(endpoint_type const& ep, error_code& ec) { }
+void utp_stream::bind(udp::endpoint const& ep, error_code& ec) { }
+
+// returns the number of milliseconds a packet would have before
+// it would time-out if it was sent right now. Takes the RTT estimate
+// into account
+int utp_socket_impl::packet_timeout() const
 {
+	// SYN packets have a bit longer timeout, since we don't
+	// have an RTT estimate yet, make a conservative guess
+	if (m_state = UTP_STATE_NONE) return 3000;
+	int timeout = (std::max)(1000, m_rtt.mean() + avg_deviation() * 2);
+	return timeout;
 }
 
-void utp_socket_impl::tick()
+void utp_socket_impl::tick(ptime const& now)
 {
+	bool window_opened = false;
+
+	if (now > m_timeout)
+	{
+		// TIMEOUT!
+		// set cwnd to 1 MSS
+
+		// the window went from less than one MSS to one MSS
+		// we can now sent messages again, the send window was opened
+		if (m_cwnd < m_mtu) window_opened = true;
+
+		m_cwnd = m_mtu;
+		m_timeout = now + milliseconds(packet_timeout());
+	
+		// if we have a packet that needs re-sending, resend it
+		packet* p = m_outbuf.at((m_acket_seq_nr + 1) & ACK_MASK);
+		if (p)
+		{
+			if (p->num_transmissions > 3)
+			{
+				// the connection is dead
+				// #error let the client know!
+				m_state = UTP_STATE_DELETE;
+				return;
+			}
+			// the packet timed out, resend it
+			++p->num_transmissions;
+			p->send_time = time_now_hires();
+			utp_header* h = (utp_header*)p->buf;
+			// update packet header
+			h->timestamp_microsecond = total_microseconds(p->send_time - min_time());
+			h->timestamp_difference_microsecond = m_reply_micro;
+			m_sm->send_packet(remote_endpoint(), p->buf, p->size);
+		}
+	}
+
+	switch (m_state)
+	{
+		case UTP_STATE_NONE:
+		case UTP_STATE_DELETE:
+			return;
+		case UTP_SYN_SENT:
+
+			break;
+	}
 }
 
 }

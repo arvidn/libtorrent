@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/packet_buffer.hpp"
+#include "libtorrent/error_code.hpp"
 
 #define CCONTROL_TARGET 100
 
@@ -118,8 +119,6 @@ public:
 	void assign(utp_socket_impl* s);
 	void set_manager(utp_socket_manager* sm);
 
-	typedef boost::function<void(error_code const&)> handler_type;
-
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class IO_Control_Command>
 	void io_control(IO_Control_Command& ioc) {}
@@ -146,6 +145,20 @@ public:
 	void close(error_code const& ec) { close(); }
 	bool is_open() const { return m_open; }
 
+	int read_buffer_size() const;
+	static void on_read(void* self, size_t bytes_transferred, error_code const& ec, bool kill);
+	static void on_write(void* self, size_t bytes_transferred, error_code const& ec, bool kill);
+	static void on_connect(void* self, error_code const& ec, bool kill);
+
+	typedef void(*handler_t)(size_t, error_code const&, bool);
+
+	void add_read_buffer(void* buf, size_t len);
+	void set_read_handler(handler_t h);
+	void add_write_buffer(void const* buf, size_t len);
+	void set_write_handler(handler_t h);
+	
+	void do_connect(tcp::endpoint const& ep, void(*h)(error_code const&));
+
 	endpoint_type local_endpoint() const;
 
 	endpoint_type local_endpoint(error_code const& ec) const
@@ -165,38 +178,43 @@ public:
 		if (!endpoint.address().is_v4())
 		{
 			error_code ec = asio::error::operation_not_supported;
+			// #error post!
 			handler(ec);
 			return;
 		}
+
 		m_connect_handler = handler;
-		do_async_connect(endpoint);
+		do_connect(endpoint, &utp_stream::on_connect);
 	}
 	
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffer, Handler const& handler)
 	{
-		assert(!m_read_handler);
-		if (!m_receive_buffer.empty())
+		if (m_impl == 0)
 		{
-			std::size_t copied = aux::copy_to_buffers(&m_receive_buffer[0]
-				, m_receive_buffer.size(), buffer);
-			assert(copied > 0);
-			if (copied == m_receive_buffer.size())
-				m_receive_buffer.clear();
-			else
-				m_receive_buffer.erase(m_receive_buffer.begin()
-					, m_receive_buffer.begin() + copied);
-
-			m_io_service.post(boost::bind<void>(handler, error_code(), copied));
+			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
 			return;
 		}
 
-		// we don't have any data in the read buffer
-		// wait until some data arrives
+		TORRENT_ASSERT(!m_read_handler);
+		if (m_read_handler)
+		{
+			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
+			return;
+		}
+		for (typename Mutable_Buffers::const_iterator i = buffer.begin()
+			, end(buffer.end()); i != end; ++i)
+		{
+			using asio::buffer_cast;
+			using asio::buffer_size;
+			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
+		}
 		m_read_handler = handler;
-		m_read_buffer.clear();
-		std::copy(buffer.begin(), buffer.end(), std::back_inserter(m_read_buffer));
+		set_read_handler(&utp_stream::on_read);
 	}
+
+	void do_async_connect(endpoint_type const& ep
+		, boost::function<void(error_code const&)> const& handler);
 
 	template <class Protocol>
 	void open(Protocol const& p, error_code& ec)
@@ -209,70 +227,49 @@ public:
 	template <class Mutable_Buffers>
 	std::size_t read_some(Mutable_Buffers const& buffers, error_code& ec)
 	{
-		if (m_receive_buffer.empty())
+		if (read_buffer_size() == 0)
 		{
 			ec = asio::error::would_block;
 			return -1;
 		}
-		std::size_t copied = aux::copy_to_buffers(&m_receive_buffer[0]
-			, m_receive_buffer.size(), buffers);
-		if (copied == m_receive_buffer.size())
-			m_receive_buffer.clear();
-		else
-			m_receive_buffer.erase(m_receive_buffer.begin()
-				, m_receive_buffer.begin() + copied);
-		if (copied == 0)
-		{
-			ec = asio::error::would_block;
-			return -1;
-		}
-		else
-		{
-			ec = error_code();
-			return copied;
-		}
+//#error implement
+		ec = asio::error::would_block;
+		return -1;
 	}
 
 	template <class Const_Buffers, class Handler>
 	void async_write_some(Const_Buffers const& buffers, Handler const& handler)
 	{
-		if (m_state == closed)
+		if (m_impl == 0)
 		{
 			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
 			return;
 		}
 
-		assert(!m_write_handler);
-
-		std::size_t to_write = aux::buffers_size(buffers);
-		assert(to_write > 0);
-
-		m_bytes_written = 0;
-
-		m_write_buffer.clear();
-		std::copy(buffers.begin(), buffers.end(), std::back_inserter(m_write_buffer));
-
-		if (m_state == writable)
+		TORRENT_ASSERT(!m_write_handler);
+		if (m_write_handler)
 		{
-			bool writable = UTP_Write(m_socket, to_write);
-			if (!writable) m_state = connected;
-			if (m_bytes_written > 0)
-			{
-				m_io_service.post(boost::bind<void>(handler, error_code(), m_bytes_written));
-				return;
-			}
+			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
+			return;
 		}
-
-		// currenty no support for multiple concurrent write operations
-		assert(!m_write_handler);
-
+		for (typename Const_Buffers::const_iterator i = buffers.begin()
+			, end(buffers.end()); i != end; ++i)
+		{
+			using asio::buffer_cast;
+			using asio::buffer_size;
+			add_write_buffer((void*)buffer_cast<void const*>(*i), buffer_size(*i));
+		}
 		m_write_handler = handler;
-		// just wait for the socket to become writable
+		set_write_handler(&utp_stream::on_write);
 	}
 
 //private:
 
 	void cancel_handlers(error_code const&);
+
+	boost::function<void(error_code const&)> m_connect_handler;
+	boost::function<void(error_code const&, std::size_t)> m_read_handler;
+	boost::function<void(error_code const&, std::size_t)> m_write_handler;
 
 	asio::io_service& m_io_service;
 	utp_socket_impl* m_impl;
