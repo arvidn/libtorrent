@@ -555,11 +555,14 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	fs.add_file("temp_storage/_folder3/subfolder/test5.tmp", 8);
 	libtorrent::create_torrent t(fs, 4, -1, 0);
 
-	char buf[4] = {0, 0, 0, 0};
-	sha1_hash h = hasher(buf, 4).final();
+	char buf_[4] = {0, 0, 0, 0};
+	sha1_hash h = hasher(buf_, 4).final();
 	for (int i = 0; i < 6; ++i) t.set_hash(i, h);
 	
-	boost::intrusive_ptr<torrent_info> info(new torrent_info(t.generate()));
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	error_code ec;
+	boost::intrusive_ptr<torrent_info> info(new torrent_info(&buf[0], buf.size(), ec));
 
 	session_settings set;
 	set.disk_io_write_mode = set.disk_io_read_mode
@@ -642,7 +645,10 @@ void test_check_files(std::string const& test_path
 	f.write(piece2, sizeof(piece2));
 	f.close();
 
-	info = new torrent_info(t.generate());
+	std::vector<char> buf;
+	error_code ec;
+	bencode(std::back_inserter(buf), t.generate());
+	info = new torrent_info(&buf[0], buf.size(), ec);
 
 	file_pool fp;
 	libtorrent::asio::io_service ios;
@@ -705,7 +711,10 @@ void run_test(std::string const& test_path, bool unbuffered)
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
 	
-	info = new torrent_info(t.generate());
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	error_code ec;
+	info = new torrent_info(&buf[0], buf.size(), ec);
 	std::cerr << "=== test 1 ===" << std::endl;
 
 	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
@@ -736,7 +745,10 @@ void run_test(std::string const& test_path, bool unbuffered)
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
 
-	info = new torrent_info(t.generate());
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	error_code ec;
+	info = new torrent_info(&buf[0], buf.size(), ec);
 
 	std::cerr << "=== test 3 ===" << std::endl;
 

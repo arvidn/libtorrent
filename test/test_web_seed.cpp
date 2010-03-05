@@ -180,7 +180,10 @@ int test_main()
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "./tmp1_web_seed", ec);
-	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(t.generate()));
+	std::vector<char> buf;
+	error_code ec;
+	bencode(std::back_inserter(buf), t.generate());
+	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(&buf[0], buf.size(), ec));
 
 	for (int i = 0; i < 6; ++i)
 		test_transfer(torrent_file, i, port);
