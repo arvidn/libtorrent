@@ -561,7 +561,6 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	error_code ec;
 	boost::intrusive_ptr<torrent_info> info(new torrent_info(&buf[0], buf.size(), ec));
 
 	session_settings set;
@@ -646,7 +645,6 @@ void test_check_files(std::string const& test_path
 	f.close();
 
 	std::vector<char> buf;
-	error_code ec;
 	bencode(std::back_inserter(buf), t.generate());
 	info = new torrent_info(&buf[0], buf.size(), ec);
 
@@ -713,7 +711,6 @@ void run_test(std::string const& test_path, bool unbuffered)
 	
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	error_code ec;
 	info = new torrent_info(&buf[0], buf.size(), ec);
 	std::cerr << "=== test 1 ===" << std::endl;
 
@@ -747,7 +744,6 @@ void run_test(std::string const& test_path, bool unbuffered)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	error_code ec;
 	info = new torrent_info(&buf[0], buf.size(), ec);
 
 	std::cerr << "=== test 3 ===" << std::endl;
