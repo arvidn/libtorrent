@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 import os, sys, time
 
 # usage: memory.log memory_index.log
