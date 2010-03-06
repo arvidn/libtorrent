@@ -302,6 +302,8 @@ struct utp_socket_impl
 	// and used, otherwise any bytes received are stuck in
 	// m_receive_buffer until another read is made
 	std::vector<iovec_t> m_write_buffer;
+	int m_read;
+
 	// the sum of the lengths of all iovec in m_write_buffer
 	int m_write_buffer_size;
 	// the number of bytes already written to packets
@@ -436,10 +438,41 @@ void utp_stream::set_read_handler(handler_t h)
 {
 	m_impl->m_read_handler = h;
 
+	// so, the client wants to read. If we already
+	// have some data in the read buffer, move it into the
+	// client's buffer right away
 	if (m_impl->m_receive_buffer_size)
 	{
-		// #error copy from m_receive_buffer into m_read_buffer
+		std::vector<iovec_t>::iterator target = m_read_buffer.begin();
+
+		int pop_packets = 0;
+		for (std::vector<packet*>::iterator i = m_receive_buffer.begin()
+			, end(m_receive_buffer.end()); i != end; ++i)
+		{
+			if (target == m_read_buffer.end()) break;
+			packet* p = *i;
+			int to_copy = (std::min)(p->size - p->header_size, target.len);
+			memcpy(target.buf, p->buf + p->header_size, to_copy);
+			m_read += to_copy;
+			target.buf = ((char*)target.buf) + to_copy;
+			target.len -= to_copy;
+			m_receive_buffer_size -= to_copy;
+			p->header_size += to_copy;
+			if (target.len == 0) target = m_read_buffer.erase(target);
+			if (p->header_size != p->size) break;
+			free(p);
+			++pop_packets;
+		}
+		// remove the packets from the receive_buffer that we already copied over
+		// and freed
+		m_receive_buffer.erase(m_receive_buffer.begin(), m_receive_buffer.begin() + pop_packets);
+		// we exited either because we ran out of bytes to copy
+		// or because we ran out of space to copy the bytes to
+		TORRENT_ASSERT(m_receive_buffer_size == 0 || m_read_buffer.empty());
 	}
+
+	// ok, now, did we fill the read buffer enough to call back to the client?
+#error
 }
 
 void utp_stream::set_write_handler(handler_t h)
@@ -474,6 +507,7 @@ struct packet
 	ptime send_time; // the last time this packet was sent
 	boost::uint16_t size;
 	boost::uint8_t num_transmissions;
+	boost::uint8_t header_size;
 	
 	char buf[];
 };
@@ -687,6 +721,7 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p)
 		TORRENT_ASSERT(buf);
 		p = (packet*)malloc(sizeof(packet) + size);
 		p->size = size;
+		p->header_size = 0;
 		memcpy(p->buf, buf, size);
 	}
 	m_receive_buffer.push_back(p);
@@ -892,6 +927,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size)
 					while (p)
 					{
 						m_buffered_incoming_bytes -= p->size;
+						p->header_size = size - payload_size;
 						incoming(0, p->size, p);
 						m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
 						p = m_inbuf.remove(m_ack_nr);
@@ -909,8 +945,8 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size)
 					p->size = payload_size;
 					p->transmissions = 0;
 					memcpy(p->buf, ptr, payload_size);
-					m_inbuf.insert(p)
-						m_buffered_incoming_bytes += p->size;
+					m_inbuf.insert(p);
+					m_buffered_incoming_bytes += p->size;
 				}
 			}
 
