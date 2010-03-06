@@ -72,7 +72,7 @@ namespace libtorrent
 	TORRENT_EXPORT std::string base32decode(std::string const& s);
 
 	TORRENT_EXPORT std::string url_has_argument(
-		std::string const& url, std::string argument, int* out_pos = 0);
+		std::string const& url, std::string argument, std::string::size_type* out_pos = 0);
 
 	// replaces \ with /
 	TORRENT_EXPORT void convert_path_to_posix(std::string& path);

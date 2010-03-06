@@ -473,7 +473,7 @@ namespace libtorrent
 	}
 
 	std::string url_has_argument(
-		std::string const& url, std::string argument, int* out_pos)
+		std::string const& url, std::string argument, std::string::size_type* out_pos)
 	{
 		size_t i = url.find('?');
 		if (i == std::string::npos) return std::string();
