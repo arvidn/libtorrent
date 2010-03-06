@@ -1448,13 +1448,32 @@ namespace libtorrent
 
 #ifdef TORRENT_WINDOWS
 		LARGE_INTEGER offs;
-		offs.QuadPart = s;
-		if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+		LARGE_INTEGER cur_size;
+		if (GetFileSizeEx(m_file_handle, cur_size) == FALSE)
 		{
 			ec.assign(GetLastError(), get_system_category());
 			return false;
 		}
+		offs.QuadPart = s;
+		// only set the file size if it's not already at
+		// the right size. We don't want to update the
+		// modification time if we don't have to
+		if (cur_size.QuadPart != s)
+		{
+			if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+			{
+				ec.assign(GetLastError(), get_system_category());
+				return false;
+			}
+			if (::SetEndOfFile(m_file_handle) == FALSE)
+			{
+				ec.assign(GetLastError(), get_system_category());
+				return false;
+			}
+		}
 #if _WIN32_WINNT >= 0x501
+		// TODO: again, only allocate the space if the file
+		// is not fully allocated
 		if ((m_open_mode & sparse) == 0)
 		{
 			// if the user has permissions, avoid filling
@@ -1463,11 +1482,6 @@ namespace libtorrent
 			SetFileValidData(m_file_handle, offs.QuadPart);
 		}
 #endif
-		if (::SetEndOfFile(m_file_handle) == FALSE)
-		{
-			ec.assign(GetLastError(), get_system_category());
-			return false;
-		}
 #else
 		struct stat st;
 		if (fstat(m_fd, &st) != 0)
