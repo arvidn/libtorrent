@@ -313,10 +313,10 @@ namespace libtorrent
 			m_impl->abort();
 	}
 
-	void session::save_state(entry& e) const
+	void session::save_state(entry& e, boost::uint32_t flags) const
 	{
 		mutex::scoped_lock l(m_impl->m_mutex);
-		m_impl->save_state(e, l);
+		m_impl->save_state(e, flags, l);
 	}
 
 	void session::load_state(lazy_entry const& e)
@@ -382,7 +382,7 @@ namespace libtorrent
 	{
 		entry ret;
 		mutex::scoped_lock l(m_impl->m_mutex);
-		m_impl->save_state(ret, l);
+		m_impl->save_state(ret, 0xffffffff, l);
 		return ret;
 	}
 #endif

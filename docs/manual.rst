@@ -117,8 +117,22 @@ The ``session`` class has the following synopsis::
 				| add_default_plugins
 			, int alert_mask = alert::error_notification);
 
+		enum save_state_flags_t
+		{
+			save_settings = 0x001,
+			save_dht_settings = 0x002,
+			save_dht_proxy = 0x004,
+			save_dht_state = 0x008,
+			save_i2p_proxy = 0x010,
+			save_encryption_settings = 0x020,
+			save_peer_proxy = 0x040,
+			save_web_proxy = 0x080,
+			save_tracker_proxy = 0x100,
+			save_as_map = 0x200,
+		};
+
 		void load_state(lazy_entry const& e);
-		void save_state(entry& e) const;
+		void save_state(entry& e, boost::uint32_t flags) const;
 
 		torrent_handle add_torrent(
 			add_torrent_params const& params);
@@ -278,7 +292,7 @@ load_state() save_state()
 	::
 
 		void load_state(lazy_entry const& e);
-		void save_state(entry& e) const;
+		void save_state(entry& e, boost::uint32_t flags) const;
 
 loads and saves all session settings, including dht_settings, encryption settings and proxy
 settings. ``save_state`` writes all keys to the ``entry`` that's passed in, which needs to
@@ -286,6 +300,24 @@ either not be initialized, or initialized as a dictionary.
 
 ``load_state`` expects a ``lazy_entry`` which can be built from a bencoded buffer with
 ``lazy_bdecode``.
+
+The ``flags`` arguments passed in to ``save_state`` can be used to filter which parts
+of the session state to save. By default, all state is saved (except for the individual
+torrents). These are the possible flags. A flag that's set, means those settings are saved::
+
+	enum save_state_flags_t
+	{
+		save_settings = 0x001,
+		save_dht_settings = 0x002,
+		save_dht_proxy = 0x004,
+		save_dht_state = 0x008,
+		save_i2p_proxy = 0x010,
+		save_encryption_settings = 0x020,
+		save_peer_proxy = 0x040,
+		save_web_proxy = 0x080,
+		save_tracker_proxy = 0x100,
+		save_as_map = 0x200,
+	};
 
 
 pause() resume() is_paused()
