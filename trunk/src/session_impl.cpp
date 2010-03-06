@@ -647,17 +647,26 @@ namespace aux {
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
 
-	void session_impl::save_state(entry& e, mutex::scoped_lock& l) const
+	void session_impl::save_state(entry& e, boost::uint32_t flags, mutex::scoped_lock& l) const
 	{
-		save_struct(e["settings"], &m_settings, session_settings_map
-			, sizeof(session_settings_map)/sizeof(session_settings_map[0]));
+		if (flags & session::save_settings)
+		{
+			save_struct(e["settings"], &m_settings, session_settings_map
+				, sizeof(session_settings_map)/sizeof(session_settings_map[0]));
+		}
 #ifndef TORRENT_DISABLE_DHT
-		save_struct(e["dht"], &m_dht_settings, dht_settings_map
-			, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
-		save_struct(e["dht proxy"], &m_dht_proxy, proxy_settings_map
-			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+		if (flags & session::save_dht_settings)
+		{
+			save_struct(e["dht"], &m_dht_settings, dht_settings_map
+				, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
+		}
+		if (flags & session::save_dht_proxy)
+		{
+			save_struct(e["dht proxy"], &m_dht_proxy, proxy_settings_map
+				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+		}
 
-		if (m_dht)
+		if (m_dht && (flags & session::save_dht_state))
 		{
 			condition cond;
 			entry& state = e["dht state"];
@@ -669,30 +678,48 @@ namespace aux {
 
 #endif
 #if TORRENT_USE_I2P
-		save_struct(e["i2p"], &i2p_proxy(), proxy_settings_map
-			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+		if (flags & session::save_i2p_proxy)
+		{
+			save_struct(e["i2p"], &i2p_proxy(), proxy_settings_map
+				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+		}
 #endif
 #ifndef TORRENT_DISABLE_ENCRYPTION
-		save_struct(e["encryption"], &m_pe_settings, pe_settings_map
-			, sizeof(pe_settings_map)/sizeof(pe_settings_map[0]));
+		if (flags & session::save_encryption_settings)
+		{
+			save_struct(e["encryption"], &m_pe_settings, pe_settings_map
+				, sizeof(pe_settings_map)/sizeof(pe_settings_map[0]));
+		}
 #endif
 
-		save_struct(e["peer proxy"], &m_peer_proxy, proxy_settings_map
-			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-		save_struct(e["web proxy"], &m_web_seed_proxy, proxy_settings_map
-			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-		save_struct(e["tracker proxy"], &m_tracker_proxy, proxy_settings_map
-			, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+		if (flags & session::save_peer_proxy)
+		{
+			save_struct(e["peer proxy"], &m_peer_proxy, proxy_settings_map
+				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+		}
+		if (flags & session::save_web_proxy)
+		{
+			save_struct(e["web proxy"], &m_web_seed_proxy, proxy_settings_map
+				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+		}
+		if (flags & session::save_tracker_proxy)
+		{
+			save_struct(e["tracker proxy"], &m_tracker_proxy, proxy_settings_map
+				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+		}
 
 #ifndef TORRENT_DISABLE_GEO_IP
-		entry::dictionary_type& as_map = e["AS map"].dict();
-		char buf[10];
-		for (std::map<int, int>::const_iterator i = m_as_peak.begin()
-			, end(m_as_peak.end()); i != end; ++i)
+		if (flags & session::save_as_map)
 		{
-			if (i->second == 0) continue;
-			sprintf(buf, "%05d", i->first);
-			as_map[buf] = i->second;
+			entry::dictionary_type& as_map = e["AS map"].dict();
+			char buf[10];
+			for (std::map<int, int>::const_iterator i = m_as_peak.begin()
+				, end(m_as_peak.end()); i != end; ++i)
+			{
+				if (i->second == 0) continue;
+					sprintf(buf, "%05d", i->first);
+				as_map[buf] = i->second;
+			}
 		}
 #endif
 

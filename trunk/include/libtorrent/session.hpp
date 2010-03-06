@@ -176,7 +176,20 @@ namespace libtorrent
 			
 		~session();
 
-		void save_state(entry& e) const;
+		enum save_state_flags_t
+		{
+			save_settings = 0x001,
+			save_dht_settings = 0x002,
+			save_dht_proxy = 0x004,
+			save_dht_state = 0x008,
+			save_i2p_proxy = 0x010,
+			save_encryption_settings = 0x020,
+			save_peer_proxy = 0x040,
+			save_web_proxy = 0x080,
+			save_tracker_proxy = 0x100,
+			save_as_map = 0x200,
+		};
+		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
 		void load_state(lazy_entry const& e);
 
 		// returns a list of all torrents in this session
