@@ -287,7 +287,7 @@ namespace libtorrent
 
 			void announce_lsd(sha1_hash const& ih);
 
-			void save_state(entry& e, session_impl::mutex_t::scoped_lock& l) const;
+			void save_state(entry& e, boost::uint32_t flags, session_impl::mutex_t::scoped_lock& l) const;
 			void load_state(lazy_entry const& e);
 
 			void set_peer_proxy(proxy_settings const& s)
