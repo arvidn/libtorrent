@@ -797,7 +797,9 @@ void test_fastresume(path const& test_path)
 		add_torrent_params p;
 		p.save_path = test_path / "tmp1";
 		p.ti = t;
-		p.resume = &resume;
+		std::vector<char> resume_buf;
+		bencode(std::back_inserter(resume_buf), resume);
+		p.resume_data = &resume_buf;
 		p.storage_mode = storage_mode_compact;
 		torrent_handle h = ses.add_torrent(p);
 	
@@ -876,7 +878,9 @@ void test_rename_file_in_fastresume(path const& test_path)
 		add_torrent_params p;
 		p.save_path = test_path / "tmp2";
 		p.ti = t;
-		p.resume = &resume;
+		std::vector<char> resume_buf;
+		bencode(std::back_inserter(resume_buf), resume);
+		p.resume_data = &resume_buf;
 		p.storage_mode = storage_mode_compact;
 		torrent_handle h = ses.add_torrent(p);
 	
