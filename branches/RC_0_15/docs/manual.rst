@@ -4140,7 +4140,7 @@ background tasks that doesn't matter if they take a bit longer, as long
 as they leave disk I/O time for other processes.
 
 ``disk_cache_algorithm`` tells the disk I/O thread which cache flush
-algorithm to use. The default (and original) algorithm is LRU. This
+algorithm to use. The default algorithm is largest_contiguous. This
 flushes the entire piece, in the write cache, that was least recently
 written to. This is specified by the ``session_settings::lru`` enum
 value. ``session_settings::largest_contiguous`` will flush the largest
