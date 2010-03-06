@@ -86,11 +86,11 @@ namespace libtorrent
 		size_type rate_sum() const { return m_rate_sum; }
 		size_type total() const { return m_total_counter; }
 
-		void offset(size_type counter)
+		void offset(size_type c)
 		{
-			TORRENT_ASSERT(counter >= 0);
+			TORRENT_ASSERT(c >= 0);
 			TORRENT_ASSERT(m_total_counter >= 0);
-			m_total_counter += counter;
+			m_total_counter += c;
 			TORRENT_ASSERT(m_total_counter >= 0);
 		}
 

@@ -422,10 +422,10 @@ namespace libtorrent
 	};
 
 	inline policy::ipv4_peer::ipv4_peer(
-		tcp::endpoint const& ip, bool connectable, int src
+		tcp::endpoint const& ep, bool c, int src
 	)
-	  : peer(ip.port(), connectable, src)
-	  , addr(ip.address().to_v4())
+	  : peer(ep.port(), c, src)
+	  , addr(ep.address().to_v4())
 	{
 		is_v6_addr = false;
 	}
@@ -437,10 +437,10 @@ namespace libtorrent
 	}
 
 	inline policy::ipv6_peer::ipv6_peer(
-		tcp::endpoint const& ip, bool connectable, int src
+		tcp::endpoint const& ep, bool c, int src
 	)
-	  : peer(ip.port(), connectable, src)
-	  , addr(ip.address().to_v6().to_bytes())
+	  : peer(ep.port(), c, src)
+	  , addr(ep.address().to_v6().to_bytes())
 	{
 		is_v6_addr = true;
 	}

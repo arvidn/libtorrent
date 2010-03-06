@@ -425,15 +425,15 @@ namespace libtorrent
 
 				// prio 4,5,6 halves the availability of a piece
 				int availability = peer_count;
-				int priority = piece_priority;
+				int p = piece_priority;
 				if (piece_priority >= priority_levels / 2)
 				{
 					availability /= 2;
-					priority -= (priority_levels - 2) / 2;
+					p -= (priority_levels - 2) / 2;
 				}
 
 				if (downloading) return availability * prio_factor;
-				return availability * prio_factor + (priority_levels / 2) - priority;
+				return availability * prio_factor + (priority_levels / 2) - p;
 			}
 
 			bool operator!=(piece_pos p) const

@@ -497,9 +497,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT peer_ban_alert: peer_alert
 	{
-		peer_ban_alert(torrent_handle h, tcp::endpoint const& ip
-			, peer_id const& pid)
-			: peer_alert(h, ip, pid)
+		peer_ban_alert(torrent_handle h, tcp::endpoint const& ep
+			, peer_id const& peer_id)
+			: peer_alert(h, ep, peer_id)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
@@ -514,9 +514,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT peer_unsnubbed_alert: peer_alert
 	{
-		peer_unsnubbed_alert(torrent_handle h, tcp::endpoint const& ip
-			, peer_id const& pid)
-			: peer_alert(h, ip, pid)
+		peer_unsnubbed_alert(torrent_handle h, tcp::endpoint const& ep
+			, peer_id const& peer_id)
+			: peer_alert(h, ep, peer_id)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
@@ -530,9 +530,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT peer_snubbed_alert: peer_alert
 	{
-		peer_snubbed_alert(torrent_handle h, tcp::endpoint const& ip
-			, peer_id const& pid)
-			: peer_alert(h, ip, pid)
+		peer_snubbed_alert(torrent_handle h, tcp::endpoint const& ep
+			, peer_id const& peer_id)
+			: peer_alert(h, ep, peer_id)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
@@ -546,9 +546,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT peer_error_alert: peer_alert
 	{
-		peer_error_alert(torrent_handle const& h, tcp::endpoint const& ip
-			, peer_id const& pid, error_code const& e)
-			: peer_alert(h, ip, pid)
+		peer_error_alert(torrent_handle const& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, error_code const& e)
+			: peer_alert(h, ep, peer_id)
 			, error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
@@ -576,9 +576,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT peer_connect_alert: peer_alert
 	{
-		peer_connect_alert(torrent_handle h, tcp::endpoint const& ip
-			, peer_id const& pid)
-			: peer_alert(h, ip, pid)
+		peer_connect_alert(torrent_handle h, tcp::endpoint const& ep
+			, peer_id const& peer_id)
+			: peer_alert(h, ep, peer_id)
 		{}
 
 		virtual std::auto_ptr<alert> clone() const
@@ -594,9 +594,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT peer_disconnected_alert: peer_alert
 	{
-		peer_disconnected_alert(torrent_handle const& h, tcp::endpoint const& ip
-			, peer_id const& pid, error_code const& e)
-			: peer_alert(h, ip, pid)
+		peer_disconnected_alert(torrent_handle const& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, error_code const& e)
+			: peer_alert(h, ep, peer_id)
 			, error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
@@ -623,9 +623,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT invalid_request_alert: peer_alert
 	{
-		invalid_request_alert(torrent_handle const& h, tcp::endpoint const& ip
-			, peer_id const& pid, peer_request const& r)
-			: peer_alert(h, ip, pid)
+		invalid_request_alert(torrent_handle const& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, peer_request const& r)
+			: peer_alert(h, ep, peer_id)
 			, request(r)
 		{}
 
@@ -688,9 +688,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT request_dropped_alert: peer_alert
 	{
-		request_dropped_alert(const torrent_handle& h, tcp::endpoint const& ip
-			, peer_id const& pid, int block_num, int piece_num)
-			: peer_alert(h, ip, pid)
+		request_dropped_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, int block_num, int piece_num)
+			: peer_alert(h, ep, peer_id)
 			, block_index(block_num)
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
@@ -715,9 +715,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT block_timeout_alert: peer_alert
 	{
-		block_timeout_alert(const torrent_handle& h, tcp::endpoint const& ip
-			, peer_id const& pid, int block_num, int piece_num)
-			: peer_alert(h, ip, pid)
+		block_timeout_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, int block_num, int piece_num)
+			: peer_alert(h, ep, peer_id)
 			, block_index(block_num)
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
@@ -742,9 +742,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT block_finished_alert: peer_alert
 	{
-		block_finished_alert(const torrent_handle& h, tcp::endpoint const& ip
-			, peer_id const& pid, int block_num, int piece_num)
-			: peer_alert(h, ip, pid)
+		block_finished_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, int block_num, int piece_num)
+			: peer_alert(h, ep, peer_id)
 			, block_index(block_num)
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
@@ -768,9 +768,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT block_downloading_alert: peer_alert
 	{
-		block_downloading_alert(const torrent_handle& h, tcp::endpoint const& ip
-			, peer_id const& pid, char const* speedmsg, int block_num, int piece_num)
-			: peer_alert(h, ip, pid)
+		block_downloading_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, char const* speedmsg, int block_num, int piece_num)
+			: peer_alert(h, ep, peer_id)
 			, peer_speedmsg(speedmsg)
 			, block_index(block_num)
 			, piece_index(piece_num)
@@ -796,9 +796,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT unwanted_block_alert: peer_alert
 	{
-		unwanted_block_alert(const torrent_handle& h, tcp::endpoint const& ip
-			, peer_id const& pid, int block_num, int piece_num)
-			: peer_alert(h, ip, pid)
+		unwanted_block_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, int block_num, int piece_num)
+			: peer_alert(h, ep, peer_id)
 			, block_index(block_num)
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}

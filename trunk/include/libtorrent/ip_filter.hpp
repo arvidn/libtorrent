@@ -241,7 +241,7 @@ namespace detail
 	
 		struct range
 		{
-			range(Addr addr, int access = 0): start(addr), access(access) {}
+			range(Addr addr, int a = 0): start(addr), access(a) {}
 			bool operator<(range const& r) const
 			{ return start < r.start; }
 			bool operator<(Addr const& a) const

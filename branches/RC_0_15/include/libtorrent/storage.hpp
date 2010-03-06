@@ -287,8 +287,8 @@ namespace libtorrent
 
 		fs::path save_path() const;
 
-		bool verify_resume_data(lazy_entry const& rd, error_code& error)
-		{ return m_storage->verify_resume_data(rd, error); }
+		bool verify_resume_data(lazy_entry const& rd, error_code& e)
+		{ return m_storage->verify_resume_data(rd, e); }
 
 		bool is_allocating() const
 		{ return m_state == state_expand_pieces; }
