@@ -882,7 +882,7 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 		LARGE_INTEGER offs;
 		LARGE_INTEGER cur_size;
-		if (GetFileSizeEx(m_file_handle, cur_size) == FALSE)
+		if (GetFileSizeEx(m_file_handle, &cur_size) == FALSE)
 		{
 			ec = error_code(GetLastError(), get_system_category());
 			return false;
