@@ -267,7 +267,7 @@ namespace libtorrent
 		void keep_alive();
 
 		peer_id const& pid() const { return m_peer_id; }
-		void set_pid(const peer_id& pid) { m_peer_id = pid; }
+		void set_pid(const peer_id& peer_id) { m_peer_id = peer_id; }
 		bool has_piece(int i) const;
 
 		std::vector<pending_block> const& download_queue() const;
@@ -1032,10 +1032,10 @@ namespace libtorrent
 		struct allocating_handler
 		{
 			allocating_handler(
-				Handler const& handler, handler_storage<Size>& storage
+				Handler const& h, handler_storage<Size>& s
 			)
-			  : handler(handler)
-			  , storage(storage)
+			  : handler(h)
+			  , storage(s)
 			{}
 
 			template <class A0>

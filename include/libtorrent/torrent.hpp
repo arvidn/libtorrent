@@ -293,8 +293,8 @@ namespace libtorrent
 		void connect_to_url_seed(web_seed_entry const& url);
 		bool connect_to_peer(policy::peer* peerinfo);
 
-		void set_ratio(float ratio)
-		{ TORRENT_ASSERT(ratio >= 0.0f); m_ratio = ratio; }
+		void set_ratio(float r)
+		{ TORRENT_ASSERT(r >= 0.0f); m_ratio = r; }
 
 		float ratio() const
 		{ return m_ratio; }
