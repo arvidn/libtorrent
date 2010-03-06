@@ -160,22 +160,30 @@ namespace
     }
 #endif
 
-    entry save_state(session const& s)
+    entry save_state(session const& s, boost::uint32_t flags)
     {
         entry e;
-        s.save_state(e);
+        s.save_state(e, flags);
         return e;
     }
 
-    void load_state(session& s, entry const& e)
-    {
-        s.load_state(e);
-    }
 } // namespace unnamed
 
 
 void bind_session()
 {
+#ifndef TORRENT_DISABLE_DHT
+    void (session::*start_dht0)() = &session::start_dht;
+#ifndef TORRENT_NO_DEPRECATE
+    void (session::*start_dht1)(entry const&) = &session::start_dht;
+#endif
+#endif
+
+    void (session::*load_state0)(lazy_entry const&) = &session::load_state;
+#ifndef TORRENT_NO_DEPRECATE
+    void (session::*load_state1)(entry const&) = &session::load_state;
+#endif
+
     class_<session_status>("session_status")
         .def_readonly("has_incoming_connections", &session_status::has_incoming_connections)
 
@@ -283,9 +291,14 @@ void bind_session()
             "add_dht_router", &add_dht_router
           , (arg("router"), "port")
         )
-        .def("start_dht", allow_threads(&session::start_dht))
+        .def("start_dht", allow_threads(start_dht0))
+#ifndef TORRENT_NO_DEPRECATE
+        .def("start_dht", allow_threads(start_dht1))
+#endif
         .def("stop_dht", allow_threads(&session::stop_dht))
+#ifndef TORRENT_NO_DEPRECATE
         .def("dht_state", allow_threads(&session::dht_state))
+#endif
         .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
         .def("dht_proxy", allow_threads(&session::dht_proxy), return_value_policy<copy_const_reference>())
 #endif
@@ -295,7 +308,7 @@ void bind_session()
             "add_torrent", &add_torrent_depr
           , (
                 arg("resume_data") = entry(),
-					 arg("storage_mode") = storage_mode_sparse,
+                arg("storage_mode") = storage_mode_sparse,
                 arg("paused") = false
             )
         )
@@ -328,9 +341,10 @@ void bind_session()
         .def("load_asnum_db", &load_asnum_db)
         .def("load_country_db", &load_country_db)
 #endif
-        .def("load_state", &load_state)
-        .def("save_state", &save_state)
+        .def("load_state", load_state0)
+        .def("save_state", &save_state, (arg("entry"), arg("flags") = 0xffffffff))
 #ifndef TORRENT_NO_DEPRECATE
+        .def("load_state", load_state1)
         .def("set_severity_level", allow_threads(&session::set_severity_level))
 #endif
         .def("set_alert_mask", allow_threads(&session::set_alert_mask))
@@ -359,6 +373,19 @@ void bind_session()
         .def("id", allow_threads(&session::id))
         .def("get_cache_status", allow_threads(&session::get_cache_status))
         ;
+
+    enum_<session::save_state_flags_t>("save_state_flags_t")
+        .value("save_settings", session::save_settings)
+        .value("save_dht_settings", session::save_dht_settings)
+        .value("save_dht_proxy", session::save_dht_proxy)
+        .value("save_dht_state", session::save_dht_state)
+        .value("save_i2p_proxy", session::save_i2p_proxy)
+        .value("save_encryption_settings", session:: save_encryption_settings)
+        .value("save_peer_proxy", session::save_peer_proxy)
+        .value("save_web_proxy", session::save_web_proxy)
+        .value("save_tracker_proxy", session::save_tracker_proxy)
+        .value("save_as_map", session::save_as_map)
+    ;
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 }
