@@ -82,9 +82,14 @@ POSSIBILITY OF SUCH DAMAGE.
 static int my_fallocate(int fd, int mode, loff_t offset, loff_t len)
 {
 #ifdef __NR_fallocate
+	// the man page on fallocate differes between versions of linux.
+	// it appears that fallocate in fact sets errno and returns -1
+	// on failure.
 	return syscall(__NR_fallocate, fd, mode, offset, len);
 #else
-	return EOPNOTSUPP;
+	// pretend that the system call doesn't exist
+	errno = ENOSYS;
+	return -1;
 #endif
 }
 
@@ -1464,14 +1469,33 @@ namespace libtorrent
 			return false;
 		}
 #else
-		if (ftruncate(m_fd, s) < 0)
+		struct stat st;
+		if (fstat(m_fd, &st) != 0)
 		{
 			ec.assign(errno, get_posix_category());
 			return false;
 		}
-		if ((m_open_mode & sparse) == 0)
+
+		// only truncate the file if it doesn't already
+		// have the right size. We don't want to update
+		if (st.st_size != s && ftruncate(m_fd, s) < 0)
 		{
-			// if we're not in sparse mode, allocate the storage
+			ec.assign(errno, get_posix_category());
+			return false;
+		}
+
+		// if we're not in sparse mode, allocate the storage
+		// but only if the number of allocated blocks for the file
+		// is less than the file size. Otherwise we would just
+		// update the modification time of the file for no good
+		// reason.
+		if ((m_open_mode & sparse) == 0
+			&& st.st_blocks < (s + st.st_blksize - 1) / st.st_blksize)
+		{
+			// How do we know that the file is already allocated?
+			// if we always try to allocate the space, we'll update
+			// the modification time without actually changing the file
+			// but if we don't do anything if the file size is
 #ifdef F_PREALLOCATE
 			fstore_t f = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, s, 0};
 			if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
@@ -1481,24 +1505,21 @@ namespace libtorrent
 			}
 #elif defined TORRENT_LINUX
 			int ret = my_fallocate(m_fd, 0, 0, s);
-			if (ret == 0 && errno != ENOSYS) return true;
-			if (ret != EOPNOTSUPP) ec.assign(ret, get_posix_category());
-			// if fallocate failed, we have to use posix_fallocate
-			// which can be painfully slow, so only use it if we really
-			// have to
-			struct stat st;
-			if (fstat(m_fd, &st) != 0)
+			// if we return 0, everything went fine
+			// the fallocate call succeeded
+			if (ret == 0) return true;
+			// otherwise, something went wrong. If the error
+			// is ENOSYS, just keep going and do it the old-fashioned
+			// way. If fallocate failed with some other error, it
+			// probably means the user should know about it, error out
+			// and report it.
+			if (errno != ENOSYS)
 			{
-				ec.assign(errno, get_posix_category());
+				ec.assign(ret, get_posix_category());
 				return false;
 			}
-			// if the number of allocated blocks already matches
-			// the size of the file. No need to allocate it
-			if (st.st_blocks >= (s + st.st_blksize - 1) / st.st_blksize)
-			{
-				ec.clear();
-				return true;
-			}
+			// if fallocate failed, we have to use posix_fallocate
+			// which can be painfully slow
 			ret = posix_fallocate(m_fd, 0, s);
 			if (ret != 0)
 			{
