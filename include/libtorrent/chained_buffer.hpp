@@ -95,19 +95,19 @@ namespace libtorrent
 		}
 
 		template <class D>
-		void append_buffer(char* buffer, int size, int used_size, D const& destructor)
+		void append_buffer(char* buffer, int s, int used_size, D const& destructor)
 		{
-			TORRENT_ASSERT(size >= used_size);
+			TORRENT_ASSERT(s >= used_size);
 			buffer_t b;
 			b.buf = buffer;
-			b.size = size;
+			b.size = s;
 			b.start = buffer;
 			b.used_size = used_size;
 			b.free = destructor;
 			m_vec.push_back(b);
 
 			m_bytes += used_size;
-			m_capacity += size;
+			m_capacity += s;
 			TORRENT_ASSERT(m_bytes <= m_capacity);
 		}
 
@@ -123,25 +123,25 @@ namespace libtorrent
 		// tries to copy the given buffer to the end of the
 		// last chained buffer. If there's not enough room
 		// it returns false
-		bool append(char const* buf, int size)
+		bool append(char const* buf, int s)
 		{
-			char* insert = allocate_appendix(size);
+			char* insert = allocate_appendix(s);
 			if (insert == 0) return false;
-			std::memcpy(insert, buf, size);
+			std::memcpy(insert, buf, s);
 			return true;
 		}
 
 		// tries to allocate memory from the end
 		// of the last buffer. If there isn't
 		// enough room, returns 0
-		char* allocate_appendix(int size)
+		char* allocate_appendix(int s)
 		{
 			if (m_vec.empty()) return 0;
 			buffer_t& b = m_vec.back();
 			char* insert = b.start + b.used_size;
-			if (insert + size > b.buf + b.size) return 0;
-			b.used_size += size;
-			m_bytes += size;
+			if (insert + s > b.buf + b.size) return 0;
+			b.used_size += s;
+			m_bytes += s;
 			TORRENT_ASSERT(m_bytes <= m_capacity);
 			return insert;
 		}
