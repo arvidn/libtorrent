@@ -236,6 +236,10 @@ feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
 feature pool-allocators : on off : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
 
+feature piece-allocator : valloc memalign posix_memalign : composite propagated ;
+feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
+feature.compose <piece-allocator>posix_memalign : <define>TORRENT_USE_POSIX_MEMALIGN=1 ;
+
 feature geoip : off static shared : composite propagated link-incompatible ;
 feature.compose <geoip>off : <define>TORRENT_DISABLE_GEO_IP ;
 
