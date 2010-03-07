@@ -77,6 +77,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #  endif
 # endif
 
+#define TORRENT_STRICT_UNIONS 1
 
 // ======= MSVC =========
 
@@ -235,6 +236,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_ICONV 1
 #endif
 
+#ifndef TORRENT_STRICT_UNIONS
+#define TORRENT_STRICT_UNIONS 0
+#endif
+
 #if defined UNICODE && !defined BOOST_NO_STD_WSTRING
 #define TORRENT_USE_WSTRING 1
 #else
@@ -305,6 +310,14 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #if defined _MSC_VER && _MSC_VER <= 1200
 #define for if (false) {} else for
+#endif
+
+// GCC and MSVC allows unions with constructors
+// in unions. SunPRO does not, use struct there
+#if TORRENT_STRICT_UNIONS
+#define TORRENT_NON_POD_UNION struct
+#else
+#define TORRENT_NON_POD_UNION union
 #endif
 
 // determine what timer implementation we can use

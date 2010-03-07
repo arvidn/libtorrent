@@ -520,7 +520,7 @@ namespace libtorrent { namespace dht
 			return;
 		}
 
-		libtorrent::dht::msg m = {e, ep};
+		libtorrent::dht::msg m(e, ep);
 
 		if (e.type() != lazy_entry::dict_t)
 		{

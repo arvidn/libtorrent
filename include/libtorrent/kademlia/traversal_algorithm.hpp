@@ -107,7 +107,7 @@ struct traversal_algorithm : boost::noncopyable
 
 		node_id id;
 
-		union addr_t
+		TORRENT_NON_POD_UNION addr_t
 		{
 			address_v4::bytes_type v4;
 #if TORRENT_USE_IPV6
