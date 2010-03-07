@@ -444,12 +444,18 @@ namespace libtorrent
 		if (rhs.empty()) return lhs;
 
 #ifdef TORRENT_WINDOWS
+#define TORRENT_SEPARATOR "\\"
 		bool need_sep = lhs[lhs.size()-1] != '\\' && lhs[lhs.size()-1] != '/';
-		return lhs + (need_sep?"\\":"") + rhs;
 #else
+#define TORRENT_SEPARATOR "/"
 		bool need_sep = lhs[lhs.size()-1] != '/';
-		return lhs + (need_sep?"/":"") + rhs;
 #endif
+		std::string ret;
+		int target_size = lhs.size() + rhs.size() + 2;
+		ret.resize(target_size);
+		snprintf(&ret[0], target_size, "%s%s%s", lhs.c_str()
+			, (need_sep?TORRENT_SEPARATOR:""), rhs.c_str());
+		return ret;
 	}
 
 	std::string current_working_directory()
