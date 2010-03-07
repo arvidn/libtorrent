@@ -632,7 +632,13 @@ namespace libtorrent
 		ret.resize(outsize);
 		char const* in = s.c_str();
 		char* out = &ret[0];
-		size_t retval = iconv(h, (char**)&in, &insize,
+#ifdef TORRENT_LINUX
+// linux seems to have a weird iconv signature
+#define ICONV_IN_CAST (char**)
+#else
+#define ICONV_IN_CAST
+#endif
+		size_t retval = iconv(h, ICONV_IN_CAST &in, &insize,
 			&out, &outsize);
 		if (retval == (size_t)-1) return s;
 		// if this string has an invalid utf-8 sequence in it, don't touch it

@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <utility>
 #include <numeric>
+#include <algorithm> // count
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"

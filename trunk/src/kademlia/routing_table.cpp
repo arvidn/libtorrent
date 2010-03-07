@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
+#include <iterator> // std::distance()
 #include <algorithm>
 #include <functional>
 #include <numeric>

@@ -158,7 +158,7 @@ namespace libtorrent
 		// array at the end, it will end up referring
 		// to the m_name field
 		struct dirent m_dirent;
-		char m_name[NAME_MAX + 1]; // +1 to make room for null
+		char m_name[TORRENT_MAX_PATH + 1]; // +1 to make room for null
 #endif
 		bool m_done;
 	};

@@ -128,7 +128,7 @@ protected:
 
 	const boost::intrusive_ptr<traversal_algorithm> m_algorithm;
 
-	union addr_t
+	TORRENT_NON_POD_UNION addr_t
 	{
 #if TORRENT_USE_IPV6
 		address_v6::bytes_type v6;

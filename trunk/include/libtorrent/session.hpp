@@ -187,7 +187,7 @@ namespace libtorrent
 			save_peer_proxy = 0x040,
 			save_web_proxy = 0x080,
 			save_tracker_proxy = 0x100,
-			save_as_map = 0x200,
+			save_as_map = 0x200
 		};
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
 		void load_state(lazy_entry const& e);
