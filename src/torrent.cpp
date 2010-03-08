@@ -4948,8 +4948,6 @@ namespace libtorrent
 		int scale = 100;
 		if (!is_seed()) scale = 50;
 
-		if (num == 0) return 0;
-
 		int ret = 0;
 
 		ptime now = time_now();
