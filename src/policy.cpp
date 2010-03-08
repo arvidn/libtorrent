@@ -731,6 +731,7 @@ namespace libtorrent
 				{
 					c.disconnect(errors::self_connection, 1);
 					i->connection->disconnect(errors::self_connection, 1);
+					TORRENT_ASSERT(i->connection == 0);
 					return false;
 				}
 
@@ -740,6 +741,7 @@ namespace libtorrent
 				if (ec2)
 				{
 					i->connection->disconnect(ec2);
+					TORRENT_ASSERT(i->connection == 0);
 				}
 				else if (!i->connection->is_connecting() || c.is_local())
 				{
@@ -754,6 +756,7 @@ namespace libtorrent
 					"connection in favour of this one");
 #endif
 					i->connection->disconnect(errors::duplicate_peer_id);
+					TORRENT_ASSERT(i->connection == 0);
 				}
 			}
 
@@ -835,6 +838,7 @@ namespace libtorrent
 
 		// this cannot be a connect candidate anymore, since i->connection is set
 		TORRENT_ASSERT(!is_connect_candidate(*i, m_finished));
+		TORRENT_ASSERT(has_connection(&c));
 		return true;
 	}
 
@@ -1263,11 +1267,13 @@ namespace libtorrent
 		// if we're not a seed, but we have too many peers
 		// start weeding the ones we only know from resume
 		// data first
-		if (m_torrent->is_seed() || m_peers.size() >= m_torrent->settings().max_peerlist_size * 0.9)
-		{
-			if (p->source == peer_info::resume_data)
-				erase_peer(p);
-		}
+		// at this point it may be tempting to erase peers
+		// from the peer list, but keep in mind that we might
+		// have gotten to this point through new_connection, just
+		// disconnecting an old peer, relying on this policy::peer
+		// to still exist when we get back there, to assign the new
+		// peer connection pointer to it. The peer list must
+		// be left intact.
 	}
 
 	void policy::peer_is_interesting(peer_connection& c)
