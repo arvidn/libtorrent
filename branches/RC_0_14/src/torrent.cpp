@@ -3277,6 +3277,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		if (num == 0) return 0;
+
 		int ret = 0;
 		// builds a list of all connected peers and sort it by 'disconnectability'.
 		std::vector<peer_connection*> peers(m_connections.size());
@@ -3292,7 +3294,12 @@ namespace libtorrent
 			peer_connection* p = *i;
 			if (p->connected_time() > cut_off) continue;
 			++ret;
+			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
+#ifdef TORRENT_DEBUG
+			int num_conns = m_connections.size();
+#endif
 			p->disconnect("optimistic disconnect");
+			TORRENT_ASSERT(m_connections.size() == num_conns - 1);
 		}
 		return ret;
 	}
