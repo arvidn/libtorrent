@@ -200,7 +200,8 @@ is of a run where disk operation re-ordering is turned off and the righ is when 
 turned on. The right one has a relatively smooth sine wave shape whereas the left
 one is more random and involves much longer seeks back and forth over the disk.
 
-True physical disk offset queries are only supported on newer linux kernels and Mac OS X.
+True physical disk offset queries are only supported on newer linux kernels, Mac OS X and
+Windows 2000 and up.
 
 network buffers
 ---------------
