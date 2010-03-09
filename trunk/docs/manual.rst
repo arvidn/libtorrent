@@ -3055,6 +3055,9 @@ It contains the following fields::
 		bool upload_mode;
 
 		int priority;
+
+		time_t added_time;
+		time_t completed_time;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -3276,6 +3279,12 @@ hope that the disk condition (be it disk full or permission errors) has
 been resolved. If the torrent is not auto-managed, you have to explicitly
 take it out of the upload mode by calling `set_upload_mode()`_ on the
 torrent_handle_.
+
+``added_time`` is the posix-time when this torrent was added. i.e. what
+``time(NULL)`` returned at the time.
+
+``completed_time`` is the posix-time when this torrent was finished. If
+the torrent is not yet finished, this is 0.
 
 peer_info
 =========

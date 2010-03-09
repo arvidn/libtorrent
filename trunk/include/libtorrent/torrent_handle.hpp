@@ -124,6 +124,8 @@ namespace libtorrent
 			, seed_mode(false)
 			, upload_mode(false)
 			, priority(0)
+			, added_time(0)
+			, completed_time(0)
 		{}
 
 		enum state_t
@@ -303,6 +305,10 @@ namespace libtorrent
 
 		// the priority of this torrent
 		int priority;
+
+		// the time this torrent was added and completed
+		time_t added_time;
+		time_t completed_time;
 	};
 
 	struct TORRENT_EXPORT block_info

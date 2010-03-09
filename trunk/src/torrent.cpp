@@ -326,6 +326,8 @@ namespace libtorrent
 		, m_piece_time_deviation(0)
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
+		, m_added_time(time(0))
+		, m_completed_time(0)
 		, m_upload_mode_time(0)
 		, m_state(torrent_status::checking_resume_data)
 		, m_storage_mode(p.storage_mode)
@@ -3600,6 +3602,11 @@ namespace libtorrent
 		if (m_seed_mode) m_verified.resize(m_torrent_file->num_pieces(), false);
 		super_seeding(rd.dict_find_int_value("super_seeding", 0));
 
+		m_added_time = rd.dict_find_int_value("added_time", m_added_time);
+		m_completed_time = rd.dict_find_int_value("completed_time", m_completed_time);
+		if (m_completed_time != 0 && m_completed_time < m_added_time)
+			m_completed_time = m_added_time;
+
 		lazy_entry const* file_priority = rd.dict_find_list("file_priority");
 		if (file_priority && file_priority->list_size()
 			== m_torrent_file->num_files())
@@ -3747,6 +3754,9 @@ namespace libtorrent
 
 		ret["seed_mode"] = m_seed_mode;
 		ret["super_seeding"] = m_super_seeding;
+
+		ret["added_time"] = m_added_time;
+		ret["completed_time"] = m_completed_time;
 		
 		const sha1_hash& info_hash = torrent_file().info_hash();
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
@@ -4463,6 +4473,8 @@ namespace libtorrent
 
 		send_upload_only();
 
+		m_completed_time = time(0);
+
 		// disconnect all seeds
 		// TODO: should disconnect all peers that have the pieces we have
 		// not just seeds
@@ -4503,6 +4515,8 @@ namespace libtorrent
 		set_state(torrent_status::downloading);
 		set_queue_position((std::numeric_limits<int>::max)());
 		m_policy.recalculate_connect_candidates();
+
+		m_completed_time = 0;
 
 		send_upload_only();
 	}
@@ -6105,6 +6119,9 @@ namespace libtorrent
 		st.has_incoming = m_has_incoming;
 		if (m_error) st.error = m_error.message() + ": " + m_error_file;
 		st.seed_mode = m_seed_mode;
+
+		st.added_time = m_added_time;
+		st.completed_time - m_completed_time;
 
 		st.last_scrape = m_last_scrape;
 		st.upload_mode = m_upload_mode;
