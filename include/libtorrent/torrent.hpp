@@ -969,6 +969,12 @@ namespace libtorrent
 		boost::uint32_t m_total_failed_bytes;
 		boost::uint32_t m_total_redundant_bytes;
 
+		// the posix time this torrent was added and when
+		// it was completed. If the torrent isn't yet
+		// completed, m_completed_time is 0
+		time_t m_added_time;
+		time_t m_completed_time;
+
 		// ==============================
 		// The following members are specifically
 		// ordered to make the 24 bit members
