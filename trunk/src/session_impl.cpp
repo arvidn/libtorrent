@@ -1553,6 +1553,17 @@ namespace aux {
 				return;
 			}
 #endif
+			if (e == boost::system::errc::too_many_files_open)
+			{
+				// if we failed to accept an incoming connection
+				// because we have too many files open, try again
+				// and lower the number of file descriptors used
+				// elsewere.
+				if (m_max_connections > 10)
+					--m_max_connections;
+				// try again, but still alert the user of the problem
+				async_accept(listener);
+			}
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(ep, e));
 			return;
