@@ -6121,7 +6121,7 @@ namespace libtorrent
 		st.seed_mode = m_seed_mode;
 
 		st.added_time = m_added_time;
-		st.completed_time - m_completed_time;
+		st.completed_time = m_completed_time;
 
 		st.last_scrape = m_last_scrape;
 		st.upload_mode = m_upload_mode;
