@@ -762,10 +762,8 @@ namespace aux {
 		{
 			session_category const& c = all_settings[i];
 			settings = e.dict_find_dict(c.name);
-			if (settings)
-			{
-				load_struct(*settings, reinterpret_cast<char*>(this) + c.offset, c.map, c.num_entries);
-			}
+			if (!settings) continue;
+			load_struct(*settings, reinterpret_cast<char*>(this) + c.offset, c.map, c.num_entries);
 		}
 #ifndef TORRENT_DISABLE_DHT
 		settings = e.dict_find_dict("dht");
@@ -808,6 +806,7 @@ namespace aux {
 			}
 		}
 #endif
+		update_disk_thread_settings();
 	}
 
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -1062,6 +1061,14 @@ namespace aux {
 		return m_ip_filter;
 	}
 
+	void session_impl::update_disk_thread_settings()
+	{
+		disk_io_job j;
+		j.buffer = (char*)&m_settings;
+		j.action = disk_io_job::update_settings;
+		m_disk_thread.add_job(j);
+	}
+
 	void session_impl::set_settings(session_settings const& s)
 	{
 		INVARIANT_CHECK;
@@ -1159,12 +1166,7 @@ namespace aux {
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
  
 		if (update_disk_io_thread)
-		{
-			disk_io_job j;
-			j.buffer = (char*)&m_settings;
-			j.action = disk_io_job::update_settings;
-			m_disk_thread.add_job(j);
-		}
+			update_disk_thread_settings();
 
 		if (m_allowed_upload_slots <= m_settings.num_optimistic_unchoke_slots / 2)
 		{

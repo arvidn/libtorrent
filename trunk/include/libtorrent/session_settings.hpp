@@ -434,7 +434,9 @@ namespace libtorrent
 		bool use_parole_mode;
 
 		// the disk write cache, specified in 16 KiB blocks.
-		// default is 512 (= 8 MB)
+		// default is 1024 (= 16 MiB). -1 means automatic, which
+		// adjusts the cache size depending on the amount
+		// of physical RAM in the machine.
 		int cache_size;
 
 		// this is the number of disk buffer blocks (16 kiB)

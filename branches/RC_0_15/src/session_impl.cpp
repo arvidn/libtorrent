@@ -793,6 +793,7 @@ namespace aux {
 			}
 		}
 #endif
+		update_disk_thread_settings();
 	}
 
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -1043,6 +1044,14 @@ namespace aux {
 		return m_ip_filter;
 	}
 
+	void session_impl::update_disk_thread_settings()
+	{
+		disk_io_job j;
+		j.buffer = (char*)&m_settings;
+		j.action = disk_io_job::update_settings;
+		m_disk_thread.add_job(j);
+	}
+
 	void session_impl::set_settings(session_settings const& s)
 	{
 		INVARIANT_CHECK;
@@ -1097,12 +1106,7 @@ namespace aux {
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
  
 		if (update_disk_io_thread)
-		{
-			disk_io_job j;
-			j.buffer = (char*)&m_settings;
-			j.action = disk_io_job::update_settings;
-			m_disk_thread.add_job(j);
-		}
+			update_disk_thread_settings();
 
 		if (!s.auto_upload_slots) m_allowed_upload_slots = m_max_uploads;
 		// replace all occurances of '\n' with ' '.

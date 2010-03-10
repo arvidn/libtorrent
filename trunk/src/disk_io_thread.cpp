@@ -51,6 +51,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/mman.h>
 #endif
 
+#ifdef TORRENT_BSD
+#include <sys/sysctl.h>
+#endif
+
 namespace libtorrent
 {
 	bool should_cancel_on_abort(disk_io_job const& j);
@@ -288,6 +292,7 @@ namespace libtorrent
 		, m_waiting_to_shutdown(false)
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
+		, m_physical_ram(0)
 		, m_ios(ios)
 		, m_queue_callback(queue_callback)
 		, m_work(io_service::work(m_ios))
@@ -296,6 +301,40 @@ namespace libtorrent
 	{
 #ifdef TORRENT_DISK_STATS
 		m_log.open("disk_io_thread.log", std::ios::trunc);
+#endif
+
+		// figure out how much physical RAM there is in
+		// this machine. This is used for automatically
+		// sizing the disk cache size when it's set to
+		// automatic.
+#ifdef TORRENT_BSD
+		int mib[2] = { CTL_HW, HW_MEMSIZE };
+		size_t len = sizeof(m_physical_ram);
+		if (sysctl(mib, 2, &m_physical_ram, &len, NULL, 0) != 0)
+			m_physical_ram = 0;
+#elif defined TORRENT_WINDOWS
+		MEMORYSTATUSEX ms;
+		if (GlobalMemoryStatusEx(&ms))
+			m_physical_ram = ms.ullTotalPhys;
+		else
+			m_physical_ram = 0;
+#elif defined TORRENT_LINUX
+		m_physical_ram = sysconf(_SC_PHYS_PAGES);
+		m_physical_ram *= sysconf(_SC_PAGESIZE);
+#elif defined TORRENT_AMIGA
+		m_physical_ram = AvailMem(MEMF_PUBLIC);
+#endif
+
+#if TORRENT_USE_RLIMIT
+		if (m_physical_ram > 0)
+		{
+			struct rlimit r;
+			if (getrlimit(RLIMIT_AS, &r) == 0 && r.rlim_cur != RLIM_INFINITY)
+			{
+				if (m_physical_ram > r.rlim_cur)
+					m_physical_ram = r.rlim_cur;
+			}
+		}
 #endif
 	}
 
@@ -1629,6 +1668,17 @@ namespace libtorrent
 					setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
 						, m_settings.low_prio_disk ? IOPOL_THROTTLE : IOPOL_DEFAULT);
 #endif
+					if (m_settings.cache_size == -1)
+					{
+						// the cache size is set to automatic. Make it
+						// depend on the amount of physical RAM
+						// if we don't know how much RAM we have, just set the
+						// cache size to 16 MiB (1024 blocks)
+						if (m_physical_ram == 0)
+							m_settings.cache_size = 1024;
+						else
+							m_settings.cache_size = m_physical_ram / 8 / m_block_size;
+					}
 					break;
 				}
 				case disk_io_job::abort_torrent:
