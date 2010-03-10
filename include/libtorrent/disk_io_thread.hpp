@@ -431,6 +431,9 @@ namespace libtorrent
 		std::ofstream m_log;
 #endif
 
+		// the amount of physical ram in the machine
+		boost::uint64_t m_physical_ram;
+
 		io_service& m_ios;
 
 		boost::function<void()> m_queue_callback;

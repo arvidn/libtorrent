@@ -1,3 +1,4 @@
+	* made the default cache size depend on available physical RAM
 	* added flags to torrent::status() that can filter which values are calculated
 	* support 'explicit read cache' which keeps a specific set of pieces
 	  in the read cache, without implicitly caching other pieces

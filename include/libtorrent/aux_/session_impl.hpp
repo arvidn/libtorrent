@@ -390,6 +390,7 @@ namespace libtorrent
 
 //		private:
 
+			void update_disk_thread_settings();
 			void on_dht_state_callback(condition& c
 				, entry& e, bool& done) const;
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
