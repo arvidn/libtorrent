@@ -343,6 +343,39 @@ namespace aux {
 #undef TORRENT_SETTING
 #endif
 
+	struct session_category
+	{
+		char const* name;
+		bencode_map_entry const* map;
+		int num_entries;
+		int flag;
+		int offset;
+	};
+
+#define lenof(x) sizeof(x)/sizeof(x[0])
+#define TORRENT_CATEGORY(name, flag, member, map) \
+	{ name, map, lenof(map), session:: flag , offsetof(session_impl, member) },
+
+	session_category all_settings[] =
+	{
+		TORRENT_CATEGORY("settings", save_settings, m_settings, session_settings_map)
+#ifndef TORRENT_DISABLE_DHT
+//		TORRENT_CATEGORY("dht", save_dht_settings, m_dht_settings, dht_settings_map)
+		TORRENT_CATEGORY("dht proxy", save_dht_proxy, m_dht_proxy, proxy_settings_map)
+#endif
+#if TORRENT_USE_I2P
+//		TORRENT_CATEGORY("i2p", save_i2p_proxy, m_i2p_proxy, proxy_settings_map)
+#endif
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		TORRENT_CATEGORY("encryption", save_encryption_settings, m_pe_settings, pe_settings_map)
+#endif
+		TORRENT_CATEGORY("peer proxy", save_peer_proxy, m_peer_proxy, proxy_settings_map)
+		TORRENT_CATEGORY("web proxy", save_web_proxy, m_web_seed_proxy, proxy_settings_map)
+		TORRENT_CATEGORY("tracker proxy", save_tracker_proxy, m_tracker_proxy, proxy_settings_map)
+	};
+
+#undef lenof
+
 	void load_struct(lazy_entry const& e, void* s, bencode_map_entry const* m, int num)
 	{
 		for (int i = 0; i < num; ++i)
@@ -661,10 +694,11 @@ namespace aux {
 			e["max_connections"] = max_connections();
 		}
 
-		if (flags & session::save_settings)
+		for (int i = 0; i < sizeof(all_settings)/sizeof(all_settings[0]); ++i)
 		{
-			save_struct(e["settings"], &m_settings, session_settings_map
-				, sizeof(session_settings_map)/sizeof(session_settings_map[0]));
+			session_category const& c = all_settings[i];
+			if ((flags & c.flag) == 0) continue;
+			save_struct(e[c.name], reinterpret_cast<char const*>(this) + c.offset, c.map, c.num_entries);
 		}
 #ifndef TORRENT_DISABLE_DHT
 		if (flags & session::save_dht_settings)
@@ -672,12 +706,8 @@ namespace aux {
 			save_struct(e["dht"], &m_dht_settings, dht_settings_map
 				, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
 		}
-		if (flags & session::save_dht_proxy)
-		{
-			save_struct(e["dht proxy"], &m_dht_proxy, proxy_settings_map
-				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-		}
-
+#endif
+#ifndef TORRENT_DISABLE_DHT
 		if (m_dht && (flags & session::save_dht_state))
 		{
 			condition cond;
@@ -689,6 +719,7 @@ namespace aux {
 		}
 
 #endif
+
 #if TORRENT_USE_I2P
 		if (flags & session::save_i2p_proxy)
 		{
@@ -696,30 +727,6 @@ namespace aux {
 				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
 		}
 #endif
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		if (flags & session::save_encryption_settings)
-		{
-			save_struct(e["encryption"], &m_pe_settings, pe_settings_map
-				, sizeof(pe_settings_map)/sizeof(pe_settings_map[0]));
-		}
-#endif
-
-		if (flags & session::save_peer_proxy)
-		{
-			save_struct(e["peer proxy"], &m_peer_proxy, proxy_settings_map
-				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-		}
-		if (flags & session::save_web_proxy)
-		{
-			save_struct(e["web proxy"], &m_web_seed_proxy, proxy_settings_map
-				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-		}
-		if (flags & session::save_tracker_proxy)
-		{
-			save_struct(e["tracker proxy"], &m_tracker_proxy, proxy_settings_map
-				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-		}
-
 #ifndef TORRENT_DISABLE_GEO_IP
 		if (flags & session::save_as_map)
 		{
@@ -751,15 +758,15 @@ namespace aux {
 		set_max_half_open_connections(e.dict_find_int_value("max_half_open_connections", 0));
 		set_max_connections(e.dict_find_int_value("max_connections", 0));
 
-		settings = e.dict_find_dict("settings");
-		if (settings)
+		for (int i = 0; i < sizeof(all_settings)/sizeof(all_settings[0]); ++i)
 		{
-			session_settings s;
-			load_struct(*settings, &s, session_settings_map
-				, sizeof(session_settings_map)/sizeof(session_settings_map[0]));
-			set_settings(s);
+			session_category const& c = all_settings[i];
+			settings = e.dict_find_dict(c.name);
+			if (settings)
+			{
+				load_struct(*settings, reinterpret_cast<char*>(this) + c.offset, c.map, c.num_entries);
+			}
 		}
-
 #ifndef TORRENT_DISABLE_DHT
 		settings = e.dict_find_dict("dht");
 		if (settings)
@@ -769,16 +776,6 @@ namespace aux {
 				, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
 			set_dht_settings(s);
 		}
-
-		settings = e.dict_find_dict("dht proxy");
-		if (settings)
-		{
-			proxy_settings s;
-			load_struct(*settings, &s, proxy_settings_map
-				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-			set_dht_proxy(s);
-		}
-
 		settings = e.dict_find_dict("dht state");
 		if (settings)
 		{
@@ -797,45 +794,6 @@ namespace aux {
 			set_i2p_proxy(s);
 		}
 #endif
-
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		settings = e.dict_find_dict("encryption");
-		if (settings)
-		{
-			pe_settings s;
-			load_struct(*settings, &s, pe_settings_map
-				, sizeof(pe_settings_map)/sizeof(pe_settings_map[0]));
-			set_pe_settings(s);
-		}
-#endif
-
-		settings = e.dict_find_dict("peer proxy");
-		if (settings)
-		{
-			proxy_settings s;
-			load_struct(*settings, &s, proxy_settings_map
-				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-			set_peer_proxy(s);
-		}
-
-		settings = e.dict_find_dict("web proxy");
-		if (settings)
-		{
-			proxy_settings s;
-			load_struct(*settings, &s, proxy_settings_map
-				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-			set_web_seed_proxy(s);
-		}
-
-		settings = e.dict_find_dict("tracker proxy");
-		if (settings)
-		{
-			proxy_settings s;
-			load_struct(*settings, &s, proxy_settings_map
-				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-			set_tracker_proxy(s);
-		}
-
 #ifndef TORRENT_DISABLE_GEO_IP
 		settings  = e.dict_find_dict("AS map");
 		if (settings)
