@@ -3103,7 +3103,8 @@ The torrent's current task is in the ``state`` member, it will be one of the fol
 +--------------------------+----------------------------------------------------------+
 
 
-When downloading, the progress is ``total_wanted_done`` / ``total_wanted``.
+When downloading, the progress is ``total_wanted_done`` / ``total_wanted``. This takes
+into account files whose priority have been set to 0. They are not considered.
 
 ``paused`` is set to true if the torrent is paused and false otherwise.
 
@@ -3186,10 +3187,10 @@ this does not necessarily has to be downloaded during this session (that's
 
 ``total_wanted_done`` is the number of bytes we have downloaded, only counting the
 pieces that we actually want to download. i.e. excluding any pieces that we have but
-are filtered as not wanted.
+have priority 0 (i.e. not wanted).
 
 ``total_wanted`` is the total number of bytes we want to download. This is also
-excluding pieces that have been filtered.
+excluding pieces whose priorities have been set to 0.
 
 ``num_seeds`` is the number of peers that are seeding that this client is
 currently connected to.
@@ -7150,7 +7151,7 @@ The allocation mode is selected when a torrent is started. It is passed as an
 argument to ``session::add_torrent()`` (see `add_torrent()`_).
 
 The decision to use full allocation or compact allocation typically depends on whether
-any files are filtered and if the filesystem supports sparse files.
+any files have priority 0 and if the filesystem supports sparse files.
 
 sparse allocation
 -----------------
@@ -7196,7 +7197,7 @@ The benefits of this mode are:
  * The fast resume data will be more likely to be usable, regardless of crashes or
    out of date data, since pieces won't move around.
 
- * Can be used with the filter files feature.
+ * Can be used with prioritizing files to 0.
 
 compact allocation
 ------------------
@@ -7210,7 +7211,7 @@ download has all its pieces in the correct place). So, the main drawbacks are:
 
  * Potentially more fragmentation in the filesystem.
 
- * Cannot be used while filtering files.
+ * Cannot be used while having files with priority 0.
 
 The benefits though, are:
 
