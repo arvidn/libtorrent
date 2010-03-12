@@ -3988,11 +3988,14 @@ namespace libtorrent
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
 		
-		int buffer_size_watermark = int(m_statistics.upload_rate()) / 2;
+		int buffer_size_watermark = int(m_statistics.upload_rate())
+			* m_ses.settings().send_buffer_watermark_factor;
 		if (buffer_size_watermark < 512) buffer_size_watermark = 512;
 		else if (buffer_size_watermark > m_ses.settings().send_buffer_watermark)
 		{
 			buffer_size_watermark = m_ses.settings().send_buffer_watermark;
+			// #error only trigger this if we actually run out of send buffer
+			// while we're waiting for the disk
 			if (t->alerts().should_post<performance_alert>())
 			{
 				t->alerts().post_alert(performance_alert(t->get_handle()

@@ -213,6 +213,11 @@ namespace libtorrent
 		// limit should be 5 MB
 		set.send_buffer_watermark = 5 * 1024 * 1024;
 
+		// put 10 seconds worth of data in the send buffer
+		// this gives the disk I/O more heads-up on disk
+		// reads, and can maximize throughput
+		set.send_buffer_watermark_factor = 10;
+
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
 		set.max_failcount = 1;

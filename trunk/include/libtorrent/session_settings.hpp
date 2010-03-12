@@ -123,6 +123,7 @@ namespace libtorrent
 			, free_torrent_hashes(true)
 			, upnp_ignore_nonrouters(false)
  			, send_buffer_watermark(100 * 1024)
+			, send_buffer_watermark_factor(1)
 #ifndef TORRENT_NO_DEPRECATE
 			// deprecated in 0.16
 			, auto_upload_slots(true)
@@ -409,6 +410,14 @@ namespace libtorrent
  		// The actual watermark may be lower than this in case
  		// the upload rate is low, this is the upper limit.
  		int send_buffer_watermark;
+
+		// the current upload rate to a peer is multiplied by
+		// this factor to get the send buffer watermark. This
+		// product is clamped to the send_buffer_watermark
+		// setting to not exceed the max. For high speed
+		// upload, this should be set to a greater value than
+		// 1. The default is 1.
+		int send_buffer_watermark_factor;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.16
