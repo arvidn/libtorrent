@@ -77,7 +77,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #  endif
 # endif
 
-#define TORRENT_STRICT_UNIONS 1
+// SunPRO seems to have an overly-strict
+// definition of POD types and doesn't
+// seem to allow boost::array in unions
+#define TORRENT_BROKEN_UNIONS 1
 
 // ======= MSVC =========
 
@@ -236,8 +239,8 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_ICONV 1
 #endif
 
-#ifndef TORRENT_STRICT_UNIONS
-#define TORRENT_STRICT_UNIONS 0
+#ifndef TORRENT_BROKEN_UNIONS
+#define TORRENT_BROKEN_UNIONS 0
 #endif
 
 #if defined UNICODE && !defined BOOST_NO_STD_WSTRING
@@ -312,12 +315,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define for if (false) {} else for
 #endif
 
-// GCC and MSVC allows unions with constructors
-// in unions. SunPRO does not, use struct there
 #if TORRENT_STRICT_UNIONS
-#define TORRENT_NON_POD_UNION struct
+#define TORRENT_UNION struct
 #else
-#define TORRENT_NON_POD_UNION union
+#define TORRENT_UNION union
 #endif
 
 // determine what timer implementation we can use
