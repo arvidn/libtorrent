@@ -3710,6 +3710,7 @@ session_settings
 		bool free_torrent_hashes;
 		bool upnp_ignore_nonrouters;
 		int send_buffer_watermark;
+		int send_buffer_watermark_factor;
 
 	#ifndef TORRENT_NO_DEPRECATE
 		bool auto_upload_slots;
@@ -4008,11 +4009,17 @@ should ignore any broadcast response from a device whose address is not the
 configured router for this machine. i.e. it's a way to not talk to other
 people's routers by mistake.
 
-``send_buffer_waterbark`` is the upper limit of the send buffer low-watermark.
+``send_buffer_watermark`` is the upper limit of the send buffer low-watermark.
 if the send buffer has fewer bytes than this, we'll read another 16kB block
 onto it. If set too small, upload rate capacity will suffer. If set too high,
 memory will be wasted. The actual watermark may be lower than this in case
 the upload rate is low, this is the upper limit.
+
+``send_buffer_watermark_factor`` is multiplied to the peer's upload rate
+to determine the low-watermark for the peer. This is clamped to not
+exceed the ``send_buffer_watermark`` upper limit. This defaults to 1.
+For high capacity connections, setting this higher can improve upload
+performance and disk throughput.
 
 ``auto_upload_slots`` defaults to true. When true, if there is a global upload
 limit set and the current upload rate is less than 90% of that, another upload
