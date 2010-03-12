@@ -55,6 +55,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/sysctl.h>
 #endif
 
+#if TORRENT_USE_RLIMIT
+#include <sys/resource.h>
+#endif
+
 namespace libtorrent
 {
 	bool should_cancel_on_abort(disk_io_job const& j);
