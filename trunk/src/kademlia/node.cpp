@@ -842,8 +842,8 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			{"token", lazy_entry::string_t, 0, 0},
 		};
 
-		lazy_entry const* msg_keys[4];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 4, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[5];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 5, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
