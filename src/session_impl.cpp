@@ -596,9 +596,9 @@ namespace aux {
 		{
 			// TODO: move these to session_settings
 			e["upload_rate_limit"] = upload_rate_limit();
-			e["download_rate_limit"] = upload_rate_limit();
+			e["download_rate_limit"] = download_rate_limit();
 			e["local_upload_rate_limit"] = local_upload_rate_limit();
-			e["local_download_rate_limit"] = local_upload_rate_limit();
+			e["local_download_rate_limit"] = local_download_rate_limit();
 			e["max_uploads"] = max_uploads();
 			e["max_half_open_connections"] = max_half_open_connections();
 			e["max_connections"] = max_connections();
