@@ -3459,6 +3459,13 @@ namespace aux {
 		abort();
 		TORRENT_ASSERT(m_connections.empty());
 
+#ifndef TORRENT_DISABLE_GEO_IP
+		if (m_asnum_db) GeoIP_delete(m_asnum_db);
+		if (m_country_db) GeoIP_delete(m_country_db);
+		m_asnum_db = 0;
+		m_country_db = 0;
+#endif
+
 		l.unlock();
 		// we need to wait for the disk-io thread to
 		// die first, to make sure it won't post any
@@ -3471,12 +3478,6 @@ namespace aux {
 #endif
 		m_disk_thread.join();
 
-#ifndef TORRENT_DISABLE_GEO_IP
-		if (m_asnum_db) GeoIP_delete(m_asnum_db);
-		if (m_country_db) GeoIP_delete(m_country_db);
-		m_asnum_db = 0;
-		m_country_db = 0;
-#endif
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " waiting for main thread\n";
 #endif
