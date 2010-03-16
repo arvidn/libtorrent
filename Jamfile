@@ -277,8 +277,6 @@ feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRI
 feature character-set : unicode ansi : composite propagated link-incompatible ;
 feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 
-feature zlib : shipped system : composite propagated link-incompatible ;
-
 feature deprecated-functions : on off : composite propagated link-incompatible ;
 feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
 
@@ -338,9 +336,6 @@ lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib <link>shared ;
 
 lib tcmalloc : : <name>tcmalloc <link>shared ;
 
-# libz
-lib zlib-target : : <name>z <link>shared ;
-
 # GeoIP shared library
 lib GeoIP : : <name>GeoIP <link>shared ;
 
@@ -379,6 +374,7 @@ SOURCES =
 	natpmp
 	piece_picker
 	policy
+	puff
 	session
 	session_impl
 	socket_io
@@ -425,32 +421,15 @@ KADEMLIA_SOURCES =
 	traversal_algorithm
 	;
 
-ZLIB_SOURCES = 
-	adler32
-	compress
-	crc32
-	deflate
-	gzio
-	infback
-	inffast
-	inflate
-	inftrees
-	trees
-	uncompr
-	zutil
-	;
-
 local usage-requirements = 
 	<include>./include
 	<include>./include/libtorrent
 	<include>/usr/sfw/include
-	<zlib>shipped:<include>./zlib
 	<variant>release:<define>NDEBUG
 	<variant>debug:<define>TORRENT_DEBUG
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_EXCEPTION_DISABLE
 	<conditional>@linking
-	<zlib>system:<library>zlib-target
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cflags>/Zc:wchar_t
 	<toolset>msvc:<cflags>/Zc:forScope
@@ -489,7 +468,6 @@ lib torrent
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<dht-support>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-	<zlib>shipped:<source>zlib/$(ZLIB_SOURCES).c
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
 	$(usage-requirements)

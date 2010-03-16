@@ -71,6 +71,7 @@ nobase_include_HEADERS = \
   policy.hpp                   \
   proxy_base.hpp               \
   ptime.hpp                    \
+  puff.hpp                     \
   session.hpp                  \
   session_settings.hpp         \
   session_status.hpp           \

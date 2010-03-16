@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 #DISTCHECK_CONFIGURE_FLAGS = --enable-tests
 
-SUBDIRS = include/libtorrent zlib src examples test bindings
+SUBDIRS = include/libtorrent src examples test bindings
 
 DOCS_IMAGES = \
   docs/acquasition.jpg            \
@@ -90,6 +90,7 @@ EXTRA_DIST = \
   Jamfile \
   project-root.jam \
   CMakeLists.txt \
+  LICENSE \
   libtorrent-rasterbar.pc  \
   libtorrent-rasterbar-cmake.pc  \
   $(DOCS_PAGES) \

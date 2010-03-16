@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "zlib.h"
 
 #ifdef TORRENT_USE_GCRYPT
 #include <gcrypt.h>
@@ -64,27 +63,6 @@ TORRENT_EXPORT void SHA1_Final(boost::uint8_t* digest, SHA_CTX* context);
 
 namespace libtorrent
 {
-
-	class adler32_crc
-	{
-	public:
-		adler32_crc(): m_adler(adler32(0, 0, 0)) {}
-
-		void update(const char* data, int len)
-		{
-			TORRENT_ASSERT(data != 0);
-			TORRENT_ASSERT(len > 0);
-			m_adler = adler32(m_adler, (const Bytef*)data, len);
-		}
-		unsigned long final() const { return m_adler; }
-		void reset() { m_adler = adler32(0, 0, 0); }
-
-	private:
-
-		unsigned long m_adler;
-
-	};
-
 	class hasher
 	{
 	public:

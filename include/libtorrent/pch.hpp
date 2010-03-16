@@ -98,7 +98,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <typeinfo>
 #include <utility>
 #include <vector>
-#include <zlib.h>
+#include "libtorrent/puff.h"
 
 #ifdef __OBJC__
 #define Protocol Protocol_
