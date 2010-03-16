@@ -59,6 +59,7 @@ libtorrent_rasterbar_la_SOURCES = \
   peer_connection.cpp             \
   piece_picker.cpp                \
   policy.cpp                      \
+  puff.cpp                        \
   session.cpp                     \
   session_impl.cpp                \
   sha1.cpp                        \
@@ -86,21 +87,14 @@ libtorrent_rasterbar_la_SOURCES = \
 #libtorrent_rasterbar_la_LDFLAGS = $(LDFLAGS) -version-info $(INTERFACE_VERSION_INFO)
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)
 
-#libtorrent_rasterbar_la_LIBADD = @ZLIB@ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LIBS@
+#libtorrent_rasterbar_la_LIBADD =  @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LIBS@
 libtorrent_rasterbar_la_LIBADD = @BOOST_SYSTEM_LIB@ @OPENSSL_LIBS@
 
-#libtorrent_rasterbar_la_LIBADD = @ZLIB@
-
-#AM_CXXFLAGS= -ftemplate-depth-100 -I$(top_srcdir)/include @ZLIBINCL@ @DEBUGFLAGS@ @OPENSSL_INCLUDES@
-#AM_CPPFLAGS = -ftemplate-depth-100 -I$(top_srcdir)/include @ZLIBINCL@ @DEBUGFLAGS@ @OPENSSL_INCLUDES@
+#AM_CXXFLAGS= -ftemplate-depth-100 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
+#AM_CPPFLAGS = -ftemplate-depth-100 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 AM_CPPFLAGS = -ftemplate-depth-100 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 
-#AM_CFLAGS= -I$(top_srcdir)/include @ZLIBINCL@ @DEBUGFLAGS@
+#AM_CFLAGS= -I$(top_srcdir)/include @DEBUGFLAGS@
 #AM_LDFLAGS = $(LDFLAGS) @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
 AM_LDFLAGS = @OPENSSL_LDFLAGS@
-
-if WITH_SHIPPED_ZLIB
-libtorrent_rasterbar_la_LIBADD += $(top_builddir)/zlib/libzlib.la 
-AM_CPPFLAGS += -I$(top_srcdir)/zlib
-endif
 

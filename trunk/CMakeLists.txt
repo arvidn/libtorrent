@@ -32,6 +32,7 @@ set(sources
 	natpmp
 	piece_picker
 	policy
+	puff
 	session
 	session_impl
 	socket_io
@@ -78,22 +79,7 @@ set(kademlia_sources
 	traversal_algorithm
 )
 
-set(zlib_sources
-	adler32
-	compress
-	crc32
-	deflate
-	gzio
-	infback
-	inffast
-	inflate
-	inftrees
-	trees
-	uncompr
-	zutil
-)
-
-set(includes include zlib)
+set(includes include)
 
 option(shared "build libtorrent as a shared library" ON)
 option(tcmalloc "link against google performance tools tcmalloc" OFF)
@@ -136,9 +122,6 @@ endif (verbose-logging)
 foreach(s ${sources})
 	list(APPEND sources2 src/${s})
 endforeach(s)
-foreach(s ${zlib_sources})
-	list(APPEND zlib_sources2 zlib/${s})
-endforeach(s)
 
 if (dht)
 	foreach(s ${kademlia_sources})
@@ -151,9 +134,9 @@ endif (dht)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
 
 if (shared)
-	add_library(torrent-rasterbar SHARED ${sources2} ${zlib_sources2})
+	add_library(torrent-rasterbar SHARED ${sources2})
 else (shared)
-	add_library(torrent-rasterbar STATIC ${sources2} ${zlib_sources2})
+	add_library(torrent-rasterbar STATIC ${sources2})
 endif (shared)
 
 FIND_PACKAGE( Boost 1.34 COMPONENTS filesystem)

@@ -31,8 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/assert.hpp"
-
-#include "zlib.h"
+#include "libtorrent/puff.hpp"
 
 #include <vector>
 #include <string>
@@ -74,7 +73,7 @@ namespace libtorrent
 		int flags = buffer[3];
 
 		// check for reserved flag and make sure it's compressed with the correct metod
-		if (method != Z_DEFLATED || (flags & FRESERVED) != 0) return -1;
+		if (method != 8 || (flags & FRESERVED) != 0) return -1;
 
 		// skip time, xflags, OS code
 		size -= 10;
@@ -142,69 +141,32 @@ namespace libtorrent
 		int header_len = gzip_header(in, size);
 		if (header_len < 0)
 		{
-			error = "invalid gzip header in tracker response";
+			error = "invalid gzip header";
 			return true;
 		}
 
 		// start off with one kilobyte and grow
 		// if needed
-		buffer.resize(1024);
+		buffer.resize(maximum_size);
 
-		// initialize the zlib-stream
-		z_stream str;
+		boost::uint32_t destlen = buffer.size();
+		boost::uint32_t srclen = size - header_len;
+		in += header_len;
+		int ret = puff((unsigned char*)&buffer[0], &destlen, (unsigned char*)in, &srclen);
 
-		// subtract 8 from the end of the buffer since that's CRC32 and input size
-		// and those belong to the gzip file
-		str.avail_in = (int)size - header_len - 8;
-		str.next_in = reinterpret_cast<Bytef*>(const_cast<char*>(in + header_len));
-		str.next_out = reinterpret_cast<Bytef*>(&buffer[0]);
-		str.avail_out = (int)buffer.size();
-		str.zalloc = Z_NULL;
-		str.zfree = Z_NULL;
-		str.opaque = 0;
-		// -15 is really important. It will make inflate() not look for a zlib header
-		// and just deflate the buffer
-		if (inflateInit2(&str, -15) != Z_OK)
+		if (ret == -1)
 		{
-			error = "gzip out of memory";
+			error = "inflated data too big";
 			return true;
 		}
 
-		// inflate and grow inflate_buffer as needed
-		int ret = inflate(&str, Z_SYNC_FLUSH);
-		while (ret == Z_OK)
+		buffer.resize(destlen);
+
+		if (ret != 0)
 		{
-			if (str.avail_out == 0)
-			{
-				if (buffer.size() >= (unsigned)maximum_size)
-				{
-					inflateEnd(&str);
-					error = "response too large";
-					return true;
-				}
-				int new_size = (int)buffer.size() * 2;
-				if (new_size > maximum_size)
-					new_size = maximum_size;
-				int old_size = (int)buffer.size();
-
-				buffer.resize(new_size);
-				str.next_out = reinterpret_cast<Bytef*>(&buffer[old_size]);
-				str.avail_out = new_size - old_size;
-			}
-
-			ret = inflate(&str, Z_SYNC_FLUSH);
-		}
-
-		buffer.resize(buffer.size() - str.avail_out);
-		inflateEnd(&str);
-
-		if (ret != Z_STREAM_END)
-		{
-			error = "gzip error";
+			error = "error while inflating data";
 			return true;
 		}
-
-		// commit the resulting buffer
 		return false;
 	}
 

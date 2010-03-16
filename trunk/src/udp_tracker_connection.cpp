@@ -35,8 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <cctype>
 
-#include "zlib.h"
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
