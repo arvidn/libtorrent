@@ -12,6 +12,6 @@ Name: libtorrent-rasterbar
 Description: Bittorrent library.
 Version: @VERSION@
 Libs: -L${libdir} -ltorrent-rasterbar
-Libs.private: @LIBS@ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LIBS@ @ZLIB@
+Libs.private: @LIBS@ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LIBS@ @ZLIB@ @GEOIP_LIBS@
 Cflags: -I${includedir} -I${includedir}/libtorrent @SSL_CXXFLAGS@ @COMPILETIME_OPTIONS@
 
