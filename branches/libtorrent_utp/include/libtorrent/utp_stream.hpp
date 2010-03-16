@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/proxy_base.hpp"
-#include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/packet_buffer.hpp"
@@ -150,14 +149,14 @@ public:
 	static void on_write(void* self, size_t bytes_transferred, error_code const& ec, bool kill);
 	static void on_connect(void* self, error_code const& ec, bool kill);
 
-	typedef void(*handler_t)(size_t, error_code const&, bool);
+	typedef void(*handler_t)(void*, size_t, error_code const&, bool);
 
 	void add_read_buffer(void* buf, size_t len);
 	void set_read_handler(handler_t h);
 	void add_write_buffer(void const* buf, size_t len);
 	void set_write_handler(handler_t h);
 	
-	void do_connect(tcp::endpoint const& ep, void(*h)(error_code const&));
+	void do_connect(tcp::endpoint const& ep, void(*h)(void*, error_code const&, bool));
 
 	endpoint_type local_endpoint() const;
 
@@ -178,7 +177,7 @@ public:
 		if (!endpoint.address().is_v4())
 		{
 			error_code ec = asio::error::operation_not_supported;
-			// #error post!
+			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
 			handler(ec);
 			return;
 		}

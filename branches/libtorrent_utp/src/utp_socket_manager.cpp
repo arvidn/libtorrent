@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/utp_stream.hpp"
 #include "libtorrent/udp_socket.hpp"
+#include "libtorrent/utp_socket_manager.hpp"
 
 namespace libtorrent
 {

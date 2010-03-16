@@ -672,7 +672,7 @@ namespace libtorrent
 				, udp::endpoint const& ep, char const* buf, int len);
 #endif
 
-			utp_socket_manager m_utp_sockets;
+			utp_socket_manager m_utp_socket_manager;
 
 			rate_limited_udp_socket m_udp_socket;
 

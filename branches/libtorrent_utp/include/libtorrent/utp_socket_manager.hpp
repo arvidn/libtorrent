@@ -42,7 +42,6 @@ namespace libtorrent
 	struct udp_socket;
 	struct utp_stream;
 	struct utp_socket_impl;
-	struct socket_type;
 
 	typedef boost::function<void(boost::shared_ptr<socket_type> const&)> incoming_utp_callback_t;
 

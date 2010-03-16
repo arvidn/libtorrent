@@ -401,6 +401,7 @@ void utp_stream::on_read(void* self, size_t bytes_transferred, error_code const$
 	s->m_io_service.post(boost::bind<void>(s->m_read_handler, ec, bytes_transferred));
 	s->m_read_handler.clear();
 	s->m_read_buffer.clear();
+	s->m_read = 0;
 	if (kill) s->m_impl = 0;
 }
 
@@ -410,6 +411,7 @@ void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const
 	s->m_io_service.post(boost::bind<void>(s->m_write_handler, ec, bytes_transferred));
 	s->m_write_handler.clear();
 	s->m_write_buffer.clear();
+	s->m_written = 0;
 	if (kill) s->m_impl = 0;
 }
 
@@ -471,8 +473,7 @@ void utp_stream::set_read_handler(handler_t h)
 		TORRENT_ASSERT(m_receive_buffer_size == 0 || m_read_buffer.empty());
 	}
 
-	// ok, now, did we fill the read buffer enough to call back to the client?
-#error
+	// #error maybe trigger the receive callback
 }
 
 void utp_stream::set_write_handler(handler_t h)
@@ -704,16 +705,29 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time)
 
 void utp_socket_impl::incoming(char const* buf, int size, packet* p)
 {
-	if (m_read_handler)
+	while (!m_read_buffer.empty())
 	{
-		if (p) buf = p->buf;
+		if (p) buf = p->buf + p->header_size;
+		iovec_t& target = m_read_buffer.front();
 
-		// copy into m_read_buffer
-		// and maybe trigger the callback
-#error
-
-		free(p);
-		return;
+		int to_copy = (std::min)(size, target.len);
+		memcpy(target.buf, buf, to_copy);
+		m_read += to_copy;
+		target.buf = ((char*)target.buf) + to_copy;
+		target.len -= to_copy;
+		m_receive_buffer_size -= to_copy;
+		if (target.len == 0) m_read_buffer.pop_front();;
+		if (p)
+		{
+			p->header_size += to_copy;
+			TORRENT_ASSERT(p->header_size <= p->size);
+			if (p->header_size >= p->size)
+			{
+				free(p);
+			// #error maybe trigger the receive callback
+				return;
+			}
+		}
 	}
 
 	if (!p)
@@ -724,10 +738,12 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p)
 		p->header_size = 0;
 		memcpy(p->buf, buf, size);
 	}
+	// save this packet until the client issues another read
 	m_receive_buffer.push_back(p);
-	m_receive_buffer_size += p->size;
+	m_receive_buffer_size += p->size - p->header_size;
 }
 
+// return false if this is an invalid packet
 bool utp_socket_impl::incoming_packet(char const* buf, int size)
 {
 	ptime receive_time = time_now_hires();
@@ -908,7 +924,8 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size)
 		{
 			// the lowest seen RTT can be used to clamp the delay
 			// within reasonable bounds. The one-way delay is never
-			// higher than the round-trip time
+			// higher than the round-trip time. Times 1000 is to convert
+			// between milliseconds and microseconds
 
 			// #error if (delay > min_rtt * 1000) delay = min_rtt * 1000;
 
@@ -991,7 +1008,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_f
 	boost::int64_t target_factor = ((target - delay) << 32) / target;
 	boost::int64_t scaled_gain = window_factor * target_factor * (max_cwnd_increase_per_rtt << 32);
 
-#error don't allow scaled_gain to be > 0 if we haven't 'bumped up' against the cwnd size within 2 RTTs
+// #error don't allow scaled_gain to be > 0 if we haven't 'bumped up' against the cwnd size within 2 RTTs
 
 	// turn scaled_gain back to 16 bits fixed point, same as m_cwnd.
 	scaled_gain >>= 16;
@@ -1046,7 +1063,7 @@ void utp_socket_impl::tick(ptime const& now)
 			if (p->num_transmissions > 3)
 			{
 				// the connection is dead
-				// #error let the client know!
+				// #error let the client know! trigger all outstanding handlers
 				m_state = UTP_STATE_DELETE;
 				return;
 			}
