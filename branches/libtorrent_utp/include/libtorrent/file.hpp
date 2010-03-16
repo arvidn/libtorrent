@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 #include <string>
-#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -148,14 +147,18 @@ namespace libtorrent
 	private:
 #ifdef TORRENT_WINDOWS
 		HANDLE m_handle;
-		WIN32_FIND_DATA m_fd;
+#if TORRENT_USE_WSTRING
+		WIN32_FIND_DATAW m_fd;
+#else
+		WIN32_FIND_DATAA m_fd;
+#endif
 #else
 		DIR* m_handle;
 		// the dirent struct contains a zero-sized
 		// array at the end, it will end up referring
 		// to the m_name field
 		struct dirent m_dirent;
-		char m_name[NAME_MAX + 1]; // +1 to make room for null
+		char m_name[TORRENT_MAX_PATH + 1]; // +1 to make room for null
 #endif
 		bool m_done;
 	};
@@ -178,6 +181,7 @@ namespace libtorrent
 			no_buffer = 4,
 			mode_mask = rw_mask | no_buffer,
 			sparse = 8,
+			no_atime = 16,
 
 			attribute_hidden = 0x1000,
 			attribute_executable = 0x2000,
@@ -211,6 +215,10 @@ namespace libtorrent
 		void close();
 		bool set_size(size_type size, error_code& ec);
 
+		// called when we're done writing to the file.
+		// On windows this will clear the sparse bit
+		void finalize();
+
 		int open_mode() const { return m_open_mode; }
 
 		// when opened in unbuffered mode, this is the
@@ -238,15 +246,21 @@ namespace libtorrent
 
 		size_type phys_offset(size_type offset);
 
+#ifdef TORRENT_WINDOWS
+		HANDLE native_handle() const { return m_file_handle; }
+#else
+		int native_handle() const { return m_fd; }
+#endif
+
 	private:
 
 #ifdef TORRENT_WINDOWS
 		HANDLE m_file_handle;
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
 		std::wstring m_path;
 #else
 		std::string m_path;
-#endif // UNICODE
+#endif // TORRENT_USE_WSTRING
 #else // TORRENT_WINDOWS
 		int m_fd;
 #endif // TORRENT_WINDOWS

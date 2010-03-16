@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/buffer.hpp"
@@ -43,6 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/packet_buffer.hpp"
+#include "libtorrent/session.hpp"
+#include "libtorrent/bencode.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -51,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/bind.hpp>
+#include <iostream>
 
 #include "test.hpp"
 
@@ -59,7 +63,7 @@ using namespace boost::tuples;
 using boost::bind;
 
 namespace libtorrent {
-	std::string sanitize_path(std::string const& p);
+	TORRENT_EXPORT std::string sanitize_path(std::string const& p);
 }
 
 sha1_hash to_hash(char const* s)
@@ -136,6 +140,16 @@ void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id con
 		carry = sum > 255;
 	}
 }
+
+void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
+{
+	using namespace libtorrent::dht;
+	std::vector<node_entry>* nv = (std::vector<node_entry>*)userdata;
+	nv->push_back(n);
+}
+
+void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
+
 #endif
 
 char upnp_xml[] = 
@@ -359,15 +373,16 @@ struct parse_state
 namespace libtorrent
 {
 	// defined in torrent_info.cpp
-	bool verify_encoding(std::string& target);
+	TORRENT_EXPORT bool verify_encoding(std::string& target, bool path = true);
 }
 
-void find_control_url(int type, char const* string, parse_state& state);
+TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state);
 
 int test_main()
 {
 	using namespace libtorrent;
 	error_code ec;
+	int ret = 0;
 
 	// test packet_buffer
 	{
@@ -417,6 +432,113 @@ int test_main()
 				TEST_EQUAL(pb.size(), 14);
 			}
 		}
+	}
+
+	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
+	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
+	TEST_CHECK(error_code(errors::unsupported_protocol_version).message() == "unsupported protocol version");
+	TEST_CHECK(error_code(errors::no_i2p_router).message() == "no i2p router is set up");
+	TEST_CHECK(error_code(errors::http_parse_error).message() == "Invalid HTTP header");
+	TEST_CHECK(error_code(errors::error_code_max).message() == "Unknown error");
+
+	TEST_CHECK(errors::reserved129 == 129);
+	TEST_CHECK(errors::reserved159 == 159);
+	TEST_CHECK(errors::reserved108 == 108);
+
+	{
+	// test session state load/restore
+	session* s = new session(fingerprint("LT",0,0,0,0), 0);
+
+	session_settings sett;
+	sett.user_agent = "test";
+	sett.tracker_receive_timeout = 1234;
+	sett.file_pool_size = 543;
+	sett.urlseed_wait_retry = 74;
+	sett.file_pool_size = 754;
+	sett.initial_picker_threshold = 351;
+	sett.upnp_ignore_nonrouters = 5326;
+	sett.coalesce_writes = 623;
+	sett.auto_scrape_interval = 753;
+	sett.close_redundant_connections = 245;
+	sett.auto_scrape_interval = 235;
+	sett.auto_scrape_min_interval = 62;
+	s->set_settings(sett);
+/*
+#ifndef TORRENT_DISABLE_DHT
+	dht_settings dht_sett;
+	s->set_dht_settings(dht_sett);
+#endif
+*/
+	entry session_state;
+	s->save_state(session_state);
+
+	// test magnet link parsing
+	add_torrent_params p;
+	p.save_path = ".";
+	error_code ec;
+	const char* magnet_uri = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&tr=http://1&tr=http://2&tr=http://3&dn=foo";
+	torrent_handle t = add_magnet_uri(*s, magnet_uri, p, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+
+	std::vector<announce_entry> trackers = t.trackers();
+	TEST_EQUAL(trackers.size(), 3);
+	if (trackers.size() > 0)
+	{
+		TEST_EQUAL(trackers[0].url, "http://1");
+		fprintf(stderr, "1: %s\n", trackers[0].url.c_str());
+	}
+	if (trackers.size() > 1)
+	{
+		TEST_EQUAL(trackers[1].url, "http://2");
+		fprintf(stderr, "2: %s\n", trackers[1].url.c_str());
+	}
+	if (trackers.size() > 2)
+	{
+		TEST_EQUAL(trackers[2].url, "http://3");
+		fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
+	}
+
+	TEST_EQUAL(to_hex(t.info_hash().to_string()), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+
+	delete s;
+	s = new session(fingerprint("LT",0,0,0,0), 0);
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), session_state);
+	lazy_entry session_state2;
+	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), session_state2);
+	TEST_CHECK(ret == 0);
+
+	printf("session_state\n%s\n", print_entry(session_state2).c_str());
+	s->load_state(session_state2);
+#define CMP_SET(x) TEST_CHECK(s->settings().x == sett.x)
+
+	CMP_SET(user_agent);
+	CMP_SET(tracker_receive_timeout);
+	CMP_SET(file_pool_size);
+	CMP_SET(urlseed_wait_retry);
+	CMP_SET(file_pool_size);
+	CMP_SET(initial_picker_threshold);
+	CMP_SET(upnp_ignore_nonrouters);
+	CMP_SET(coalesce_writes);
+	CMP_SET(auto_scrape_interval);
+	CMP_SET(close_redundant_connections);
+	CMP_SET(auto_scrape_interval);
+	CMP_SET(auto_scrape_min_interval);
+	CMP_SET(max_peerlist_size);
+	CMP_SET(max_paused_peerlist_size);
+	CMP_SET(min_announce_interval);
+	CMP_SET(prioritize_partial_pieces);
+	CMP_SET(auto_manage_startup);
+	CMP_SET(rate_limit_ip_overhead);
+	CMP_SET(announce_to_all_trackers);
+	CMP_SET(announce_to_all_tiers);
+	CMP_SET(prefer_udp_trackers);
+	CMP_SET(strict_super_seeding);
+	CMP_SET(seeding_piece_quota);
+	delete s;
 	}
 
 	// test path functions
@@ -512,7 +634,7 @@ int test_main()
 	char const* tags[10];
 	char tags_str[] = "  this  is\ta test\t string\x01to be split  and it cannot "
 		"extend over the limit of elements \t";
-	int ret = split_string(tags, 10, tags_str);
+	ret = split_string(tags, 10, tags_str);
 
 	TEST_CHECK(ret == 10);
 	TEST_CHECK(strcmp(tags[0], "this") == 0);
@@ -597,6 +719,17 @@ int test_main()
 	char hex[41];
 	to_hex(bin, 20, hex);
 	TEST_CHECK(strcmp(hex, str) == 0);
+
+	// test is_space
+
+	TEST_CHECK(!is_space('C'));
+	TEST_CHECK(!is_space('\b'));
+	TEST_CHECK(!is_space('8'));
+	TEST_CHECK(!is_space('='));
+	TEST_CHECK(is_space(' '));
+	TEST_CHECK(is_space('\t'));
+	TEST_CHECK(is_space('\n'));
+	TEST_CHECK(is_space('\r'));
 
 	// test to_lower
 
@@ -685,14 +818,14 @@ int test_main()
 
 	// url_has_argument
 
-	TEST_CHECK(!url_has_argument("http://127.0.0.1/test", "test"));
-	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24", "bar"));
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24", "foo") == "24");
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "foo") == "24");
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "bar") == "23");
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "bar") == "23");
-	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "a") == "e");
-	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "b"));
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test", "test") == "");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24", "bar") == "");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24", "foo") == "24");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "foo") == "24");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "bar") == "23");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "bar") == "23");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "a") == "e");
+	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "b") == "");
 
 	// escape_string
 	char const* test_string = "!@#$%^&*()-_=+/,. %?";
@@ -911,11 +1044,13 @@ int test_main()
 	TEST_CHECK(is_local(address::from_string("10.1.1.56", ec)));
 	TEST_CHECK(!is_local(address::from_string("14.14.251.63", ec)));
 	TEST_CHECK(is_loopback(address::from_string("127.0.0.1", ec)));
+#if TORRENT_USE_IPV6
 	if (supports_ipv6())
 	{
 		TEST_CHECK(is_loopback(address::from_string("::1", ec)));
 		TEST_CHECK(is_any(address_v6::any()));
 	}
+#endif
 	TEST_CHECK(is_any(address_v4::any()));
 	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
 
@@ -930,7 +1065,9 @@ int test_main()
 	entry torrent;
 	torrent["info"] = info;
 
-	torrent_info ti(torrent);
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), torrent);
+	torrent_info ti(&buf[0], buf.size(), ec);
 	std::cerr << ti.name() << std::endl;
 	TEST_CHECK(ti.name() == "test1");
 
@@ -940,7 +1077,9 @@ int test_main()
 	info["name.utf-8"] = "/test1/test2/test3";
 #endif
 	torrent["info"] = info;
-	torrent_info ti2(torrent);
+	buf.clear();
+	bencode(std::back_inserter(buf), torrent);
+	torrent_info ti2(&buf[0], buf.size(), ec);
 	std::cerr << ti2.name() << std::endl;
 #ifdef TORRENT_WINDOWS
 	TEST_CHECK(ti2.name() == "test1\\test2\\test3");
@@ -950,7 +1089,9 @@ int test_main()
 
 	info["name.utf-8"] = "test2/../test3/.././../../test4";
 	torrent["info"] = info;
-	torrent_info ti3(torrent);
+	buf.clear();
+	bencode(std::back_inserter(buf), torrent);
+	torrent_info ti3(&buf[0], buf.size(), ec);
 	std::cerr << ti3.name() << std::endl;
 #ifdef TORRENT_WINDOWS
 	TEST_CHECK(ti3.name() == "test2\\test3\\test4");
@@ -989,39 +1130,39 @@ int test_main()
 
 	// test kademlia routing table
 	dht_settings s;
-	node_id id = to_hash("6123456789abcdef01232456789abcdef0123456");
+	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 	dht::routing_table table(id, 10, s);
 	table.node_seen(id, udp::endpoint(address_v4::any(), rand()));
 
-	node_id tmp;
-	node_id diff = to_hash("00001f7459456a9453f8719b09547c11d5f34064");
+	node_id tmp = id;
+	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
 	std::vector<node_entry> nodes;
-	for (int i = 0; i < 1000; ++i)
+	for (int i = 0; i < 7000; ++i)
 	{
 		table.node_seen(tmp, udp::endpoint(address_v4::any(), rand()));
 		add_and_replace(tmp, diff);
 	}
+	TEST_EQUAL(table.num_active_buckets(), 11);
 
-	std::copy(table.begin(), table.end(), std::back_inserter(nodes));
+#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
+	table.print_state(std::cerr);
+#endif
+
+	table.for_each_node(node_push_back, nop, &nodes);
 
 	std::cout << "nodes: " << nodes.size() << std::endl;
 
 	std::vector<node_entry> temp;
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, 0, nodes.size() + 1);
+	table.find_node(tmp, temp, 0, nodes.size() * 2);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == nodes.size());
-
-	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, routing_table::include_self, nodes.size() + 1);
-	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == nodes.size() + 1);
+	TEST_EQUAL(temp.size(), nodes.size());
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
 	table.find_node(tmp, temp, 0, 7);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == 7);
+	TEST_EQUAL(temp.size(), 7);
 
 	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
 		, bind(&node_entry::id, _1)
@@ -1041,7 +1182,7 @@ int test_main()
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
 	table.find_node(tmp, temp, 0, 15);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_CHECK(temp.size() == (std::min)(15, int(nodes.size())));
+	TEST_EQUAL(temp.size(), (std::min)(15, int(nodes.size())));
 
 	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
 		, bind(&node_entry::id, _1)

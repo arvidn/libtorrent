@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include <boost/bind.hpp>
 #include <cstdio>
+#include <algorithm>
 
 namespace libtorrent
 {
@@ -45,6 +46,11 @@ namespace libtorrent
 		, m_total_size(0)
 		, m_num_pieces(0)
 	{}
+
+	void file_storage::reserve(int num_files)
+	{
+		m_files.reserve(num_files);
+	}
 
 	int file_storage::piece_size(int index) const
 	{

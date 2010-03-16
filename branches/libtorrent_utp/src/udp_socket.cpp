@@ -60,12 +60,14 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 	, m_connection_ticket(-1)
 	, m_cc(cc)
 	, m_resolver(ios)
+	, m_queue_packets(false)
 	, m_tunnel_packets(false)
 	, m_abort(false)
 {
 #ifdef TORRENT_DEBUG
 	m_magic = 0x1337;
 	m_started = false;
+	m_outstanding_when_aborted = -1;
 #endif
 }
 
@@ -94,6 +96,9 @@ udp_socket::~udp_socket()
 void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec)
 {
 	CHECK_MAGIC;
+
+	TORRENT_ASSERT(is_open());
+
 	// if the sockets are closed, the udp_socket is closing too
 	if (!is_open()) return;
 
@@ -102,6 +107,15 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_cod
 		// send udp packets through SOCKS5 server
 		wrap(ep, p, len, ec);
 		return;	
+	}
+
+	if (m_queue_packets)
+	{
+		m_queue.push_back(queued_packet());
+		queued_packet& qp = m_queue.back();
+		qp.ep = ep;
+		qp.buf.insert(qp.buf.begin(), p, p + len);
+		return;
 	}
 
 #if TORRENT_USE_IPV6
@@ -193,7 +207,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		++m_outstanding;
 #ifdef TORRENT_DEBUG
-	m_started = true;
+		m_started = true;
 #endif
 		return;
 	}
@@ -343,6 +357,9 @@ void udp_socket::close()
 	m_socks5_sock.close(ec);
 	m_resolver.cancel();
 	m_abort = true;
+#ifdef TORRENT_DEBUG
+	m_outstanding_when_aborted = m_outstanding;
+#endif
 	if (m_connection_ticket >= 0)
 	{
 		m_cc.done(m_connection_ticket);
@@ -363,6 +380,9 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	CHECK_MAGIC;
 	mutex::scoped_lock l(m_mutex);	
 
+	TORRENT_ASSERT(m_abort == false);
+	if (m_abort) return;
+
 	if (m_ipv4_sock.is_open()) m_ipv4_sock.close(ec);
 #if TORRENT_USE_IPV6
 	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
@@ -376,6 +396,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		if (ec) return;
 		m_ipv4_sock.async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
 			, m_v4_ep, boost::bind(&udp_socket::on_read, this, &m_ipv4_sock, _1, _2));
+		++m_outstanding;
 	}
 #if TORRENT_USE_IPV6
 	else
@@ -386,9 +407,9 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		if (ec) return;
 		m_ipv6_sock.async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
 			, m_v6_ep, boost::bind(&udp_socket::on_read, this, &m_ipv6_sock, _1, _2));
+		++m_outstanding;
 	}
 #endif
-	++m_outstanding;
 #ifdef TORRENT_DEBUG
 	m_started = true;
 #endif
@@ -399,6 +420,9 @@ void udp_socket::bind(int port)
 {
 	CHECK_MAGIC;
 	mutex::scoped_lock l(m_mutex);	
+
+	TORRENT_ASSERT(m_abort == false);
+	if (m_abort) return;
 
 	error_code ec;
 
@@ -449,6 +473,7 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 	if (ps.type == proxy_settings::socks5
 		|| ps.type == proxy_settings::socks5_pw)
 	{
+		m_queue_packets = true;
 		// connect to socks5 server and open up the UDP tunnel
 		tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
 		m_resolver.async_resolve(q, boost::bind(
@@ -550,7 +575,7 @@ void udp_socket::handshake2(error_code const& e)
 
 	if (method == 0)
 	{
-		socks_forward_udp();
+		socks_forward_udp(l);
 	}
 	else if (method == 2)
 	{
@@ -606,15 +631,13 @@ void udp_socket::handshake4(error_code const& e)
 	if (version != 1) return;
 	if (status != 0) return;
 
-	socks_forward_udp();
+	socks_forward_udp(l);
 }
 
-void udp_socket::socks_forward_udp()
+void udp_socket::socks_forward_udp(mutex::scoped_lock& l)
 {
 	CHECK_MAGIC;
 	using namespace libtorrent::detail;
-
-	mutex::scoped_lock l(m_mutex);	
 
 	// send SOCKS5 UDP command
 	char* p = &m_tmp_buf[0];
@@ -670,6 +693,16 @@ void udp_socket::connect2(error_code const& e)
 	}
 	
 	m_tunnel_packets = true;
+	m_queue_packets = false;
+
+	// forward all packets that were put in the queue
+	while (!m_queue.empty())
+	{
+		queued_packet const& p = m_queue.front();
+		error_code ec;
+		udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec);
+		m_queue.pop_front();
+	}
 }
 
 rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios

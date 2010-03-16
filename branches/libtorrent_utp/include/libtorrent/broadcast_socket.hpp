@@ -34,10 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BROADCAST_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
+#include <boost/function/function3.hpp>
 #include <list>
 
 namespace libtorrent
@@ -52,7 +54,7 @@ namespace libtorrent
 	// determines if the operating system supports IPv6
 	TORRENT_EXPORT bool supports_ipv6();
 
-	int common_bits(unsigned char const* b1
+	TORRENT_EXPORT int common_bits(unsigned char const* b1
 		, unsigned char const* b2, int n);
 
 	TORRENT_EXPORT address guess_local_address(io_service&);
@@ -91,7 +93,7 @@ namespace libtorrent
 			, std::size_t bytes_transferred);
 		void open_unicast_socket(io_service& ios, address const& addr);
 		void open_multicast_socket(io_service& ios, address const& addr
-			, bool loopback);
+			, bool loopback, error_code& ec);
 
 		// these sockets are used to
 		// join the multicast group (on each interface)

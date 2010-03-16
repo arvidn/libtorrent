@@ -328,18 +328,20 @@ sent to and received from UPnP devices.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">openssl</span></tt></td>
+<tr><td><tt class="docutils literal"><span class="pre">encryption</span></tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal"><span class="pre">pe</span></tt> - turns on support for encrypted
-connections. requires openssl (libcrypto)</li>
-<li><tt class="docutils literal"><span class="pre">sha-1</span></tt> - openssl will be used instead of the
-public domain SHA-1 implementation shipped with
-libtorrent. <tt class="docutils literal"><span class="pre">libcrypto.a</span></tt> will be required for
-linking. Encryption support is still turned off.</li>
+<li><tt class="docutils literal"><span class="pre">openssl</span></tt> - links against openssl and
+libcrypto to enable https and encrypted
+bittorrent connections.</li>
+<li><tt class="docutils literal"><span class="pre">gcrypt</span></tt> - links against libgcrypt to enable
+encrypted bittorrent connections.</li>
+<li><tt class="docutils literal"><span class="pre">tommath</span></tt> - uses a shipped version of
+libtommath and a custom rc4 implementation
+(based on libtomcrypt). This is the default
+option.</li>
 <li><tt class="docutils literal"><span class="pre">off</span></tt> - turns off support for encrypted
-connections. openssl is not linked in. The
-shipped public domain SHA-1 implementation is
-used.</li>
+connections. The shipped public domain SHA-1
+implementation is used.</li>
 </ul>
 </td>
 </tr>
@@ -424,6 +426,16 @@ when deprecated functions are used).</li>
 <li><tt class="docutils literal"><span class="pre">off</span></tt> - excludes deprecated functions from the
 API. Generates build errors when deprecated
 functions are used.</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">full-stats</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - default, collects stats for IP overhead
+and DHT and trackers. This uses a little bit
+extra memory for each peer and torrent.</li>
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - only collects the standard stats for
+upload and download rate.</li>
 </ul>
 </td>
 </tr>
@@ -639,16 +651,6 @@ UTF-8 strings in pathnames are converted into
 UTF-16 before they are passed to the file
 operations.</td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">LITTLE_ENDIAN</span></tt></td>
-<td>This will use the little endian version of the
-sha-1 code. If defined on a big-endian system
-the sha-1 hashes will be incorrect and fail.
-If it is not defined and <tt class="docutils literal"><span class="pre">__BIG_ENDIAN__</span></tt>
-isn't defined either (it is defined by Apple's
-GCC) both little-endian and big-endian versions
-will be built and the correct code will be
-chosen at run-time.</td>
-</tr>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_DISABLE_POOL_ALLOCATOR</span></tt></td>
 <td>Disables use of <tt class="docutils literal"><span class="pre">boost::pool&lt;&gt;</span></tt>.</td>
 </tr>
@@ -681,10 +683,13 @@ protocol traffic.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_DISABLE_ENCRYPTION</span></tt></td>
 <td>This will disable any encryption support and
-the openssl dependency that comes with it.
+the dependencies of a crypto library.
 Encryption support is the peer connection
 encrypted supported by clients such as
-uTorrent, Azureus and KTorrent.</td>
+uTorrent, Azureus and KTorrent.
+If this is not defined, either
+<tt class="docutils literal"><span class="pre">TORRENT_USE_OPENSSL</span></tt> or
+<tt class="docutils literal"><span class="pre">TORRENT_USE_GCRYPT</span></tt> must be defined.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">_UNICODE</span></tt></td>
 <td>On windows, this will cause the file IO

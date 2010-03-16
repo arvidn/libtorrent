@@ -30,17 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <iostream>
-#include <fstream>
-#include <iterator>
-#include <iomanip>
-
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/magnet_uri.hpp"
-
 
 int main(int argc, char* argv[])
 {
@@ -48,83 +42,92 @@ int main(int argc, char* argv[])
 
 	if (argc != 2)
 	{
-		std::cerr << "usage: dump_torrent torrent-file\n";
+		fputs("usage: dump_torrent torrent-file\n", stderr);
 		return 1;
 	}
 
 	int size = file_size(argv[1]);
 	if (size > 10 * 1000000)
 	{
-		std::cerr << "file too big (" << size << "), aborting\n";
+		fprintf(stderr, "file too big (%d), aborting\n", size);
 		return 1;
 	}
 	std::vector<char> buf(size);
-	std::ifstream(argv[1], std::ios_base::binary).read(&buf[0], size);
+	int ret = load_file(argv[1], buf);
+	if (ret != 0)
+	{
+		fprintf(stderr, "failed to load file: %d\n", ret);
+		return 1;
+	}
 	lazy_entry e;
-	int ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
+	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
 
 	if (ret != 0)
 	{
-		std::cerr << "invalid bencoding: " << ret << std::endl;
+		fprintf(stderr, "invalid bencoding: %d\n", ret);
 		return 1;
 	}
 
-	std::cout << "\n\n----- raw info -----\n\n";
-	std::cout << print_entry(e) << std::endl;
+	printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
 
 	error_code ec;
 	torrent_info t(e, ec);
 	if (ec)
 	{
-		std::cout << ec.message() << std::endl;
+		fprintf(stderr, "%s\n", ec.message().c_str());
 		return 1;
 	}
 
 	// print info about torrent
-	std::cout << "\n\n----- torrent file info -----\n\n";
-	std::cout << "nodes:\n";
+	printf("\n\n----- torrent file info -----\n\n"
+		"nodes:\n");
+
 	typedef std::vector<std::pair<std::string, int> > node_vec;
 	node_vec const& nodes = t.nodes();
 	for (node_vec::const_iterator i = nodes.begin(), end(nodes.end());
 		i != end; ++i)
 	{
-		std::cout << i->first << ":" << i->second << "\n";
+		printf("%s: %d\n", i->first.c_str(), i->second);
 	}
-	std::cout << "trackers:\n";
+	puts("trackers:\n");
 	for (std::vector<announce_entry>::const_iterator i = t.trackers().begin();
 		i != t.trackers().end(); ++i)
 	{
-		std::cout << i->tier << ": " << i->url << "\n";
+		printf("%2d: %s\n", i->tier, i->url.c_str());
 	}
 
-	std::cout << "number of pieces: " << t.num_pieces() << "\n";
-	std::cout << "piece length: " << t.piece_length() << "\n";
 	char ih[41];
 	to_hex((char const*)&t.info_hash()[0], 20, ih);
-	std::cout << "info hash: " << ih << "\n";
-	std::cout << "comment: " << t.comment() << "\n";
-	std::cout << "created by: " << t.creator() << "\n";
-	std::cout << "magnet link: " << make_magnet_uri(t) << "\n";
-	std::cout << "name: " << t.name() << "\n";
-	std::cout << "files:\n";
+	printf("number of pieces: %d\n"
+		"piece length: %d\n"
+		"info hash: %s\n"
+		"comment: %s\n"
+		"created by: %s\n"
+		"magnet link: %s\n"
+		"name: %s\n"
+		"files:\n"
+		, t.num_pieces()
+		, t.piece_length()
+		, ih
+		, t.comment().c_str()
+		, t.creator().c_str()
+		, make_magnet_uri(t).c_str()
+		, t.name().c_str());
 	int index = 0;
 	for (torrent_info::file_iterator i = t.begin_files();
 		i != t.end_files(); ++i, ++index)
 	{
 		int first = t.map_file(index, 0, 0).piece;
 		int last = t.map_file(index, (std::max)(i->size-1, size_type(0)), 0).piece;
-		std::cout << "  " << std::setw(11) << i->size
-			<< " "
-			<< (i->pad_file?'p':'-')
-			<< (i->executable_attribute?'x':'-')
-			<< (i->hidden_attribute?'h':'-')
-			<< (i->symlink_attribute?'l':'-')
-			<< " "
-			<< "[ " << std::setw(4) << first << ", " << std::setw(4) << last << " ]\t"
-			<< i->path;
-		if (i->symlink_attribute)
-			std::cout << " -> " << i->symlink_path;
-		std::cout << std::endl;
+		printf("  %11"PRId64" %c%c%c%c [ %4d, %4d ] %s %s%s\n"
+			, i->size
+			, (i->pad_file?'p':'-')
+			, (i->executable_attribute?'x':'-')
+			, (i->hidden_attribute?'h':'-')
+			, (i->symlink_attribute?'l':'-')
+			, first, last, i->path.c_str()
+			, i->symlink_attribute ? "-> ": ""
+			, i->symlink_attribute ? i->symlink_path.c_str() : "");
 	}
 
 	return 0;

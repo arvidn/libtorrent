@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006, Arvid Norberg & Daniel Wallin
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,45 +30,58 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_RANDOM_SAMPLE_HPP
-#define TORRENT_RANDOM_SAMPLE_HPP
-
-#include <iterator>
-#include <cstdlib>
-
-#include "libtorrent/config.hpp"
+#ifndef TORRENT_MAX_TYPE
+#define TORRENT_MAX_TYPE
 
 namespace libtorrent
 {
 
-	template<class InIter, class OutIter, class Distance>
-	inline void random_sample_n(InIter start, InIter end
-			, OutIter out, Distance n)
+	template<int v1, int v2>
+	struct max { enum { value = v1>v2?v1:v2 }; };
+
+	template<int v1, int v2, int v3>
+	struct max3
 	{
-		Distance t = 0;
-		Distance m = 0;
-		Distance N = std::distance(start, end);
-
-		TORRENT_ASSERT(N >= n);
-
-		while (m < n)
+		enum
 		{
-			if ((std::rand() / (RAND_MAX + 1.f)) * (N - t) >= n - m)
-			{
-				++start;
-				++t;
-			}
-			else
-			{
-				*out = *start;
-				++out;
-				++start;
-				++t;
-				++m;
-			}
-		}
-	}
+			temp = max<v1,v2>::value,
+			value = max<temp, v3>::value
+		};
+	};
 
+	template<int v1, int v2, int v3, int v4>
+	struct max4
+	{
+		enum
+		{
+			temp1 = max<v1,v2>::value,
+			temp2 = max<v3,v4>::value,
+			value = max<temp1, temp2>::value
+		};
+	};
+
+	template<int v1, int v2, int v3, int v4, int v5>
+	struct max5
+	{
+		enum
+		{
+			temp = max4<v1,v2, v3, v4>::value,
+			value = max<temp, v5>::value
+		};
+	};
+
+	template<int v1, int v2, int v3, int v4, int v5, int v6>
+	struct max6
+	{
+		enum
+		{
+			temp1 = max<v1,v2>::value,
+			temp2 = max<v3,v4>::value,
+			temp3 = max<v5,v6>::value,
+			value = max3<temp1, temp2, temp3>::value
+		};
+	};
 }
 
 #endif
+

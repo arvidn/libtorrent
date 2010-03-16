@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <ctime>
 #include <algorithm>
-#include <vector>
 #include <deque>
 #include <string>
 
@@ -56,25 +55,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/buffer.hpp"
-#include "libtorrent/peer_connection.hpp"
-#include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/storage.hpp"
-#include "libtorrent/stat.hpp"
-#include "libtorrent/alert.hpp"
-#include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/torrent.hpp"
-#include "libtorrent/peer_request.hpp"
-#include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
-// parse_url
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/torrent.hpp"
+#include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/http_parser.hpp"
 
 namespace libtorrent
 {
 	class torrent;
+	struct peer_request;
 
 	namespace detail
 	{
@@ -122,14 +113,14 @@ namespace libtorrent
 		void write_interested() {}
 		void write_not_interested() {}
 		void write_request(peer_request const& r);
-		void write_cancel(peer_request const& r)
-		{ incoming_reject_request(r); }
+		void write_cancel(peer_request const& r) {}
 		void write_have(int index) {}
 		void write_piece(peer_request const& r, disk_buffer_holder& buffer) { TORRENT_ASSERT(false); }
 		void write_keepalive() {}
 		void on_connected();
 		void write_reject_request(peer_request const&) {}
 		void write_allow_fast(int) {}
+		void write_suggest(int piece) {}
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
@@ -153,7 +144,10 @@ namespace libtorrent
 		std::string m_host;
 		int m_port;
 		std::string m_path;
-		std::string m_url;
+
+		// this is const since it's used as a key in the web seed list in the torrent
+		// if it's changed referencing back into that list will fail
+		const std::string m_url;
 			
 		// the first request will contain a little bit more data
 		// than subsequent ones, things that aren't critical are left

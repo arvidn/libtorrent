@@ -34,7 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ERROR_CODE_HPP_INCLUDED
 
 #include <boost/version.hpp>
-#include <boost/shared_ptr.hpp>
+#include "libtorrent/config.hpp"
+
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+// asio assumes that the windows error codes are defined already
+#include <winsock2.h>
+#endif
 
 #if BOOST_VERSION < 103500
 #include <asio/error_code.hpp>
@@ -42,7 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/error_code.hpp>
 #endif
 
-#include "libtorrent/config.hpp"
+#include <string.h> // strdup
+#include <stdlib.h> // free
 
 namespace libtorrent
 {
@@ -133,7 +139,7 @@ namespace libtorrent
 			duplicate_peer_id,
 			torrent_removed,
 			packet_too_large,
-			http_parse_error,
+			reserved,
 			http_error,
 			missing_location,
 			invalid_redirection,
@@ -159,16 +165,33 @@ namespace libtorrent
 			pex_message_too_large,
 			invalid_pex_message,
 			invalid_lt_tracker_message,
+			reserved108,
+			reserved109,
+			reserved110,
+			reserved111,
+			reserved112,
+			reserved113,
+			reserved114,
+			reserved115,
+			reserved116,
+			reserved117,
+			reserved118,
+			reserved119,
 
 // natpmp errors
-			unsupported_protocol_version,
+			unsupported_protocol_version, // 120
 			natpmp_not_authorized,
 			network_failure,
 			no_resources,
 			unsupported_opcode,
+			reserved125,
+			reserved126,
+			reserved127,
+			reserved128,
+			reserved129,
 
 // fastresume errors
-			missing_file_sizes,
+			missing_file_sizes, // 130
 			no_files_in_resume_data,
 			missing_pieces,
 			mismatching_number_of_files,
@@ -181,27 +204,80 @@ namespace libtorrent
 			invalid_slot_list,
 			invalid_piece_index,
 			pieces_need_reorder,
-			reserved1,
-			reserved2,
-			reserved3,
-			reserved4,
-			reserved5,
-			reserved6,
-			reserved7,
-			reserved8,
+			reserved143,
+			reserved144,
+			reserved145,
+			reserved146,
+			reserved147,
+			reserved148,
+			reserved149,
+// HTTP errors
+			http_parse_error, // 150
+			http_missing_location,
+			http_failed_decompress,
+			reserved153,
+			reserved154,
+			reserved155,
+			reserved156,
+			reserved157,
+			reserved158,
+			reserved159,
+// i2p errors
+			no_i2p_router, // 160
+			reserved161,
+			reserved162,
+			reserved163,
+			reserved164,
+			reserved165,
+			reserved166,
+			reserved167,
+			reserved168,
+			reserved169,
 
-			no_i2p_router,
+// tracker errors
+			scrape_not_available, // 170
+			invalid_tracker_response,
+			invalid_peer_dict,
+			tracker_failure,
+			invalid_files_entry,
+			invalid_hash_entry,
+			invalid_peers_entry,
+			invalid_tracker_response_length,
+			invalid_tracker_transaction_id,
+			invalid_tracker_action,
 
 			error_code_max
 		};
 	}
+}
+
+#if BOOST_VERSION >= 103500
+
+namespace boost { namespace system {
+
+	template<> struct is_error_code_enum<libtorrent::errors::error_code_enum>
+	{ static const bool value = true; };
+
+	template<> struct is_error_condition_enum<libtorrent::errors::error_code_enum>
+	{ static const bool value = true; };
+} }
+
+#endif
+
+namespace libtorrent
+{
 
 #if BOOST_VERSION < 103500
 	typedef asio::error_code error_code;
 	inline asio::error::error_category get_posix_category() { return asio::error::system_category; }
 	inline asio::error::error_category get_system_category() { return asio::error::system_category; }
 
-	extern TORRENT_EXPORT asio::error::error_category libtorrent_category;
+	boost::system::error_category const& get_libtorrent_category()
+	{
+		static ::asio::error::error_category libtorrent_category(20);
+		return libtorrent_category;
+	}
+
 #else
 
 	struct TORRENT_EXPORT libtorrent_error_category : boost::system::error_category
@@ -212,7 +288,19 @@ namespace libtorrent
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
-	extern TORRENT_EXPORT libtorrent_error_category libtorrent_category;
+	inline boost::system::error_category& get_libtorrent_category()
+	{
+		static libtorrent_error_category libtorrent_category;
+		return libtorrent_category;
+	}
+
+	namespace errors
+	{
+		inline boost::system::error_code make_error_code(error_code_enum e)
+		{
+			return boost::system::error_code(e, get_libtorrent_category());
+		}
+	}
 
 	using boost::system::error_code;
 	inline boost::system::error_category const& get_system_category()
@@ -222,23 +310,28 @@ namespace libtorrent
 	{ return boost::system::get_posix_category(); }
 #else
 	{ return boost::system::get_generic_category(); }
-#endif
-#endif
+#endif // BOOST_VERSION < 103600
+#endif // BOOST_VERSION < 103500
 
 #ifndef BOOST_NO_EXCEPTIONS
 	struct TORRENT_EXPORT libtorrent_exception: std::exception
 	{
-		libtorrent_exception(error_code const& s): m_error(s) {}
+		libtorrent_exception(error_code const& s): m_error(s), m_msg(0) {}
 		virtual const char* what() const throw()
 		{
-			if (!m_msg) m_msg.reset(new std::string(m_error.message()));
-			return m_msg->c_str();
+			if (!m_msg)
+			{
+				std::string msg = m_error.message();
+				m_msg = strdup(msg.c_str());
+			}
+
+			return m_msg;
 		}
-		virtual ~libtorrent_exception() throw() {}
+		virtual ~libtorrent_exception() throw() { free(m_msg); }
 		error_code error() const { return m_error; }
 	private:
 		error_code m_error;
-		mutable boost::shared_ptr<std::string> m_msg;
+		mutable char* m_msg;
 	};
 #endif
 }

@@ -35,10 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/time.hpp"
 #include <boost/tuple/tuple.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include <iostream>
 
 void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode = false, bool time_critical = false)
 {
@@ -98,9 +100,9 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 
 	if (time_critical)
 	{
-		tor2.set_piece_deadline(2, seconds(0));
-		tor2.set_piece_deadline(5, seconds(1));
-		tor2.set_piece_deadline(8, seconds(2));
+		tor2.set_piece_deadline(2, 0);
+		tor2.set_piece_deadline(5, 1000);
+		tor2.set_piece_deadline(8, 2000);
 	}
 
 	float sum_dl_rate2 = 0.f;

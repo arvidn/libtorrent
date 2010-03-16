@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/error_code.hpp"
 
+#include <boost/bind.hpp>
+
 #define CCONTROL_TARGET 100
 
 namespace libtorrent

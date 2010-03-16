@@ -120,8 +120,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	void throw_invalid_handle()
 	{
-		throw libtorrent_exception(error_code(
-			errors::invalid_torrent_handle, libtorrent_category));
+		throw libtorrent_exception(errors::invalid_torrent_handle);
 	}
 #endif
 
@@ -293,6 +292,12 @@ namespace libtorrent
 		TORRENT_FORWARD(set_upload_mode(b));
 	}
 
+	void torrent_handle::flush_cache() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(flush_cache());
+	}
+
 	void torrent_handle::save_resume_data() const
 	{
 		INVARIANT_CHECK;
@@ -389,10 +394,10 @@ namespace libtorrent
 		TORRENT_FORWARD(file_progress(progress, flags));
 	}
 
-	torrent_status torrent_handle::status() const
+	torrent_status torrent_handle::status(boost::uint32_t flags) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(status(), torrent_status());
+		TORRENT_FORWARD_RETURN(status(flags), torrent_status());
 	}
 
 	void torrent_handle::set_sequential_download(bool sd) const
@@ -662,7 +667,7 @@ namespace libtorrent
 	void torrent_handle::force_dht_announce() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(force_dht_announce());
+		TORRENT_FORWARD(dht_announce());
 	}
 #endif
 
@@ -732,7 +737,7 @@ namespace libtorrent
 		TORRENT_FORWARD(get_download_queue(queue));
 	}
 
-	void torrent_handle::set_piece_deadline(int index, time_duration deadline, int flags) const
+	void torrent_handle::set_piece_deadline(int index, int deadline, int flags) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD(set_piece_deadline(index, deadline, flags));

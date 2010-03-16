@@ -37,8 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/find_data.hpp>
 
-#include <boost/function.hpp>
-
 namespace libtorrent { namespace dht
 {
 

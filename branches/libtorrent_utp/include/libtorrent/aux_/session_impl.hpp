@@ -67,7 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session_status.hpp"
-#include "libtorrent/session.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
@@ -81,11 +81,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp" // for alert_manager
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
-#include "libtorrent/peer_connection.hpp" // for intrusive_ptr_release
+#include "libtorrent/address.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
 
 #ifdef TORRENT_STATS
 #include <fstream>
+#endif
+
+#if TORRENT_COMPLETE_TYPES_REQUIRED
+#include "libtorrent/peer_connection.hpp"
 #endif
 
 namespace libtorrent
@@ -101,7 +105,7 @@ namespace libtorrent
 	namespace dht
 	{
 		struct dht_tracker;
-	};
+	}
 
 	namespace aux
 	{
@@ -111,9 +115,16 @@ namespace libtorrent
 		struct tracker_logger;
 #endif
 
+		// used to initialize the g_current_time before
+		// anything else
+		struct initialize_timer
+		{
+			initialize_timer();
+		};
+
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
-		struct session_impl: boost::noncopyable
+		struct session_impl: boost::noncopyable, initialize_timer
 		{
 
 			// the size of each allocation that is chained in the send buffer
@@ -185,11 +196,18 @@ namespace libtorrent
 			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht_settings const& s);
 			dht_settings const& get_dht_settings() const { return m_dht_settings; }
-			void start_dht(entry const& startup_state);
+			void start_dht();
 			void stop_dht();
+			void start_dht(entry const& startup_state);
 
+#ifndef TORRENT_NO_DEPRECATE
 			entry dht_state(mutex::scoped_lock& l) const;
+#endif
 			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
+
+			void on_dht_announce(error_code const& e);
+			void on_dht_router_name_lookup(error_code const& e
+				, tcp::resolver::iterator host);
 #endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -198,6 +216,8 @@ namespace libtorrent
 #endif
 
 			void on_port_map_log(char const* msg, int map_transport);
+
+			void on_lsd_announce(error_code const& e);
 
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
@@ -226,8 +246,8 @@ namespace libtorrent
 
 			std::vector<torrent_handle> get_torrents();
 			
-			void check_torrent(boost::shared_ptr<torrent> const& t);
-			void done_checking(boost::shared_ptr<torrent> const& t);
+			void queue_check_torrent(boost::shared_ptr<torrent> const& t);
+			void dequeue_check_torrent(boost::shared_ptr<torrent> const& t);
 
 			void set_alert_mask(int m);
 			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
@@ -271,6 +291,9 @@ namespace libtorrent
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
 
 			void announce_lsd(sha1_hash const& ih);
+
+			void save_state(entry& e, boost::uint32_t flags, mutex::scoped_lock& l) const;
+			void load_state(lazy_entry const& e);
 
 			void set_peer_proxy(proxy_settings const& s)
 			{
@@ -368,6 +391,7 @@ namespace libtorrent
 
 //		private:
 
+			void update_disk_thread_settings();
 			void on_dht_state_callback(condition& c
 				, entry& e, bool& done) const;
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
@@ -487,6 +511,8 @@ namespace libtorrent
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
 			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
+
+			// this has all torrents that wants to be checked in it
 			check_queue_t m_queued_for_checking;
 
 			// this maps sockets to their peer_connection
@@ -569,6 +595,9 @@ namespace libtorrent
 			proxy_settings m_dht_proxy;
 #endif
 
+#ifndef TORRENT_DISABLE_DHT	
+			entry m_dht_state;
+#endif
 			// set to true when the session object
 			// is being destructed and the thread
 			// should exit
@@ -618,8 +647,20 @@ namespace libtorrent
 			// torrents.
 			int m_auto_scrape_time_scaler;
 
+			// the index of the torrent that we'll
+			// refresh the next time
+			int m_next_explicit_cache_torrent;
+
+			// this is a counter of the number of seconds until
+			// the next time the read cache is rotated, if we're
+			// using an explicit read read cache.
+			int m_cache_rotation_timer;
+
 			// statistics gathered from all torrents.
 			stat m_stat;
+
+			int m_peak_up_rate;
+			int m_peak_down_rate;
 
 			// is false by default and set to true when
 			// the first incoming connection is established
@@ -635,7 +676,7 @@ namespace libtorrent
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots(int congested_torrents
 				, int uncongested_torrents);
-			void recalculate_optimistic_unchoke_slot();
+			void recalculate_optimistic_unchoke_slots();
 
 			ptime m_created;
 			int session_time() const { return total_seconds(time_now() - m_created); }
@@ -666,10 +707,14 @@ namespace libtorrent
 
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased
-			std::list<std::pair<std::string, int> > m_dht_router_nodes;
+			std::list<udp::endpoint> m_dht_router_nodes;
 
 			void on_receive_udp(error_code const& e
 				, udp::endpoint const& ep, char const* buf, int len);
+
+			// this announce timer is used
+			// by the DHT.
+			deadline_timer m_dht_announce_timer;
 #endif
 
 			utp_socket_manager m_utp_socket_manager;
@@ -691,17 +736,39 @@ namespace libtorrent
 			// the timer used to fire the tick
 			deadline_timer m_timer;
 
+			// torrents are announced on the local network in a
+			// round-robin fashion. All torrents are cycled through
+			// within the LSD announce interval (which defaults to
+			// 5 minutes)
+			torrent_map::iterator m_next_lsd_torrent;
+
+#ifndef TORRENT_DISABLE_DHT
+			// torrents are announced on the DHT in a
+			// round-robin fashion. All torrents are cycled through
+			// within the DHT announce interval (which defaults to
+			// 15 minutes)
+			torrent_map::iterator m_next_dht_torrent;
+#endif
+
+			// this announce timer is used
+			// by Local service discovery
+			deadline_timer m_lsd_announce_timer;
+
+			tcp::resolver m_host_resolver;
+
 			// the index of the torrent that will be offered to
 			// connect to a peer next time on_tick is called.
 			// This implements a round robin.
-			int m_next_connect_torrent;
+			torrent_map::iterator m_next_connect_torrent;
 #ifdef TORRENT_DEBUG
 			void check_invariant() const;
 #endif
 
-#ifdef TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 			void log_buffer_usage();
+#endif
 
+#if defined TORRENT_STATS
 			// logger used to write bandwidth usage statistics
 			std::ofstream m_stats_logger;
 			int m_second_counter;
@@ -710,6 +777,17 @@ namespace libtorrent
 			// the number of send buffers that are allocated
 			int m_buffer_allocations;
 #endif
+
+			// each second tick the timer takes a little
+			// bit longer than one second to trigger. The
+			// extra time it took is accumulated into this
+			// counter. Every time it exceeds 1000, torrents
+			// will tick their timers 2 seconds instead of one.
+			// this keeps the timers more accurate over time
+			// as a kind of "leap second" to adjust for the
+			// accumulated error
+			boost::uint16_t m_tick_residual;
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			boost::shared_ptr<logger> create_log(std::string const& name
 				, int instance, bool append = true);
@@ -771,6 +849,7 @@ namespace libtorrent
 				, std::list<address> const& ip_list
 				, std::vector<peer_entry>& peers
 				, int interval
+				, int min_interval
 				, int complete
 				, int incomplete
 				, address const& external_ip)
@@ -778,7 +857,7 @@ namespace libtorrent
 				std::string s;
 				s = "TRACKER RESPONSE:\n";
 				char tmp[200];
-				snprintf(tmp, 200, "interval: %d\npeers:\n", interval);
+				snprintf(tmp, 200, "interval: %d\nmin_interval: %d\npeers:\n", interval, min_interval);
 				s += tmp;
 				for (std::vector<peer_entry>::const_iterator i = peers.begin();
 					i != peers.end(); ++i)
@@ -804,7 +883,8 @@ namespace libtorrent
 			void tracker_request_error(
 				tracker_request const&
 				, int response_code
-				, const std::string& str)
+				, const std::string& str
+				, int retry_interval)
 			{
 				char msg[256];
 				snprintf(msg, sizeof(msg), "*** tracker error: %d: %s", response_code, str.c_str());

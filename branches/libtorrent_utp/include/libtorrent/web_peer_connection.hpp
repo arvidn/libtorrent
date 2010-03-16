@@ -39,8 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <string>
 
-#include "libtorrent/debug.hpp"
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -56,20 +54,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/buffer.hpp"
-#include "libtorrent/peer_connection.hpp"
-#include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/storage.hpp"
-#include "libtorrent/stat.hpp"
-#include "libtorrent/alert.hpp"
-#include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/torrent.hpp"
-#include "libtorrent/peer_request.hpp"
-#include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
-// parse_url
-#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/torrent.hpp"
+#include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/http_parser.hpp"
 
 namespace libtorrent
@@ -110,7 +99,7 @@ namespace libtorrent
 		void on_receive(error_code const& error
 			, std::size_t bytes_transferred);
 			
-		std::string const& url() const { return m_url; }
+		std::string const& url() const { return m_original_url; }
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
 		virtual bool in_handshake() const;
@@ -122,14 +111,14 @@ namespace libtorrent
 		void write_interested() {}
 		void write_not_interested() {}
 		void write_request(peer_request const& r);
-		void write_cancel(peer_request const& r)
-		{ incoming_reject_request(r); }
+		void write_cancel(peer_request const& r) {}
 		void write_have(int index) {}
 		void write_piece(peer_request const& r, disk_buffer_holder& buffer) { TORRENT_ASSERT(false); }
 		void write_keepalive() {}
 		void on_connected();
 		void write_reject_request(peer_request const&) {}
 		void write_allow_fast(int) {}
+		void write_suggest(int piece) {}
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
@@ -157,6 +146,7 @@ namespace libtorrent
 		int m_port;
 		std::string m_path;
 		std::string m_url;
+		std::string m_original_url;
 			
 		// the first request will contain a little bit more data
 		// than subsequent ones, things that aren't critical are left

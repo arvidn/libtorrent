@@ -61,13 +61,13 @@ namespace libtorrent
 		{
 #ifdef TORRENT_WINDOWS
 
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
 			std::wstring path = convert_to_wstring(p);
 			DWORD attr = GetFileAttributesW(path.c_str());
 #else
 			std::string path = convert_to_native(p);
 			DWORD attr = GetFileAttributesA(path.c_str());
-#endif // UNICODE
+#endif // TORRENT_USE_WSTRING
 			if (attr & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
 			return 0;
 #else
@@ -115,6 +115,10 @@ namespace libtorrent
 		, m_merkle_torrent(flags & merkle)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
+
+		// return instead of crash in release mode
+		if (fs.num_files() == 0) return;
+
 		if (!m_multifile && has_parent_path(m_files.at(0).path)) m_multifile = true;
 
 		// a piece_size of 0 means automatic
@@ -405,7 +409,7 @@ namespace libtorrent
 
 		using boost::bind;
 		std::sort(m_urls.begin(), m_urls.end()
-			, bind(&announce_entry::second, _1) < bind(&announce_entry::second, _2));
+			, boost::bind(&announce_entry::second, _1) < boost::bind(&announce_entry::second, _2));
 	}
 
 	void create_torrent::set_hash(int index, sha1_hash const& h)

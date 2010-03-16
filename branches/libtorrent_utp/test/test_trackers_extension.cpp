@@ -55,9 +55,10 @@ int test_main()
 	add_torrent_params atp;
 	atp.info_hash = sha1_hash("12345678901234567890");
 	atp.save_path = "./";
-	torrent_handle tor1 = ses1.add_torrent(atp);
+	error_code ec;
+	torrent_handle tor1 = ses1.add_torrent(atp, ec);
 	atp.tracker_url = "http://test.non-existent.com/announce";
-	torrent_handle tor2 = ses2.add_torrent(atp);
+	torrent_handle tor2 = ses2.add_torrent(atp, ec);
 	tor2.connect_peer(tcp::endpoint(address_v4::from_string("127.0.0.1"), ses1.listen_port()));
 
 	for (int i = 0; i < 130; ++i)

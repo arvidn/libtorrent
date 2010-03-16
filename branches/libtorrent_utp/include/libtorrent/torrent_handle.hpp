@@ -40,19 +40,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/assert.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/peer_info.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/time.hpp"
+#include "libtorrent/ptime.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
+#include "libtorrent/address.hpp"
+#include "libtorrent/bitfield.hpp"
+#include "libtorrent/socket.hpp" // tcp::endpoint
 
 namespace libtorrent
 {
@@ -63,6 +66,8 @@ namespace libtorrent
 	}
 
 	struct torrent_plugin;
+	struct peer_info;
+	struct peer_list_entry;
 
 #ifndef BOOST_NO_EXCEPTIONS
 	// for compatibility with 0.14
@@ -119,6 +124,8 @@ namespace libtorrent
 			, seed_mode(false)
 			, upload_mode(false)
 			, priority(0)
+			, added_time(0)
+			, completed_time(0)
 		{}
 
 		enum state_t
@@ -298,6 +305,10 @@ namespace libtorrent
 
 		// the priority of this torrent
 		int priority;
+
+		// the time this torrent was added and completed
+		time_t added_time;
+		time_t completed_time;
 	};
 
 	struct TORRENT_EXPORT block_info
@@ -306,10 +317,12 @@ namespace libtorrent
 		{ none, requested, writing, finished };
 
 	private:
-		union addr_t
+		TORRENT_UNION addr_t
 		{
 			address_v4::bytes_type v4;
+#if TORRENT_USE_IPV6
 			address_v6::bytes_type v6;
+#endif
 		} addr;
 
 		boost::uint16_t port;
@@ -317,19 +330,23 @@ namespace libtorrent
 
 		void set_peer(tcp::endpoint const& ep)
 		{
+#if TORRENT_USE_IPV6
 			is_v6_addr = ep.address().is_v6();
 			if (is_v6_addr)
 				addr.v6 = ep.address().to_v6().to_bytes();
 			else
+#endif
 				addr.v4 = ep.address().to_v4().to_bytes();
 			port = ep.port();
 		}
 
 		tcp::endpoint peer() const
 		{
+#if TORRENT_USE_IPV6
 			if (is_v6_addr)
 				return tcp::endpoint(address_v6(addr.v6), port);
 			else
+#endif
 				return tcp::endpoint(address_v4(addr.v4), port);
 		}
 
@@ -379,11 +396,19 @@ namespace libtorrent
 
 		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
-		torrent_status status() const;
+
+		enum status_flags_t
+		{
+			query_distributed_copies = 1,
+			query_accurate_download_counters = 2
+		};
+		// the flags specify which fields are calculated. By default everything
+		// is included, you may save CPU by not querying fields you don't need
+		torrent_status status(boost::uint32_t flags = 0xffffffff) const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
 		enum deadline_flags { alert_when_available = 1 };
-		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
+		void set_piece_deadline(int index, int deadline, int flags = 0) const;
 
 		void set_priority(int prio) const;
 		
@@ -433,6 +458,7 @@ namespace libtorrent
 		void pause() const;
 		void resume() const;
 		void set_upload_mode(bool b) const;
+		void flush_cache() const;
 
 		void force_recheck() const;
 		void save_resume_data() const;

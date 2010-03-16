@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
 #include "libtorrent/pch.hpp"
+#include "libtorrent/assert.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/error_code.hpp"
 
@@ -58,7 +59,7 @@ namespace libtorrent
 				// this means that another instance of the storage
 				// is using the exact same file.
 #if BOOST_VERSION >= 103500
-				ec = error_code(errors::file_collision, libtorrent_category);
+				ec = errors::file_collision;
 #endif
 				return boost::shared_ptr<file>();
 			}
@@ -67,8 +68,9 @@ namespace libtorrent
 			// if we asked for a file in write mode,
 			// and the cached file is is not opened in
 			// write mode, re-open it
-			if (((e.mode & file::rw_mask) != file::read_write)
+			if ((((e.mode & file::rw_mask) != file::read_write)
 				&& ((m & file::rw_mask) == file::read_write))
+				|| (e.mode & file::no_buffer) != (m & file::no_buffer))
 			{
 				// close the file before we open it with
 				// the new read/write privilages
@@ -79,6 +81,18 @@ namespace libtorrent
 					m_files.erase(i);
 					return boost::shared_ptr<file>();
 				}
+#ifdef TORRENT_WINDOWS
+// file prio is supported on vista and up
+#if _WIN32_WINNT >= 0x0600
+				if (m_low_prio_io)
+				{
+					FILE_IO_PRIORITY_HINT_INFO priorityHint;
+					priorityHint.PriorityHint = IoPriorityHintLow;
+					SetFileInformationByHandle(e.file_ptr->native_handle(),
+						FileIoPriorityHintInfo, &priorityHint, sizeof(PriorityHint));
+				}
+#endif
+#endif
 				TORRENT_ASSERT(e.file_ptr->is_open());
 				e.mode = m;
 			}
@@ -125,10 +139,16 @@ namespace libtorrent
 		if (i != m_files.end()) m_files.erase(i);
 	}
 
+	// closes files belonging to the specified
+	// storage. If 0 is passed, all files are closed
 	void file_pool::release(void* st)
 	{
 		mutex::scoped_lock l(m_mutex);
-		TORRENT_ASSERT(st != 0);
+		if (st == 0)
+		{
+			m_files.clear();
+			return;
+		}
 
 		for (file_set::iterator i = m_files.begin();
 			i != m_files.end();)

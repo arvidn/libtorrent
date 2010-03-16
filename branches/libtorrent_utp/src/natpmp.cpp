@@ -35,17 +35,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
 
-#if BOOST_VERSION < 103500
-#include <asio/ip/host_name.hpp>
-#else
-#include <boost/asio/ip/host_name.hpp>
-#endif
-
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/io_service.hpp"
+
+#if BOOST_VERSION < 103500
+#include <asio/ip/host_name.hpp>
+#else
+#include <boost/asio/ip/host_name.hpp>
+#endif
 
 using boost::bind;
 using namespace libtorrent;
@@ -462,15 +463,17 @@ void natpmp::on_reply(error_code const& e
 
 		m->expires = time_now() + hours(2);
 		l.unlock();
-		m_callback(index, 0, error_code(ev, libtorrent_category));
+		m_callback(index, 0, error_code(ev, get_libtorrent_category()));
 		l.lock();
 	}
 	else if (m->action == mapping_t::action_add)
 	{
 		l.unlock();
-		m_callback(index, m->external_port, error_code(errors::no_error, libtorrent_category));
+		m_callback(index, m->external_port, error_code(errors::no_error, get_libtorrent_category()));
 		l.lock();
 	}
+
+	if (m_abort) return;
 
 	m_currently_mapping = -1;
 	m->action = mapping_t::action_none;
@@ -583,6 +586,7 @@ void natpmp::close_impl(mutex::scoped_lock& l)
 	}
 	error_code ec;
 	m_refresh_timer.cancel(ec);
+	m_currently_mapping = -1;
 	update_mapping(0, l);
 }
 

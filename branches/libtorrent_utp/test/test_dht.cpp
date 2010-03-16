@@ -30,9 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_DISABLE_DHT
+
 #include "libtorrent/session.hpp"
 #include "libtorrent/kademlia/node.hpp" // for verify_message
 #include "libtorrent/bencode.hpp"
+#include <iostream>
 
 #include "test.hpp"
 
@@ -132,4 +135,13 @@ int test_main()
 
 	return 0;
 }
+
+#else
+
+int test_main()
+{
+	return 0;
+}
+
+#endif
 

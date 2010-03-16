@@ -39,16 +39,56 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
 
 	class torrent;
 	class peer_connection;
+
+	// this is compressed as an unsigned floating point value
+	// the top 13 bits are the mantissa and the low
+	// 3 bits is the unsigned exponent. The exponent
+	// has an implicit + 4 as well.
+	// This means that the resolution is no less than 16
+	// The actual rate is: (upload_rate >> 4) << ((upload_rate & 0xf) + 4)
+	// the resolution gets worse the higher the value is
+	// min value is 0, max value is 16775168
+	struct ufloat16
+	{
+		ufloat16() {}
+		ufloat16(int v)
+		{ *this = v; }
+		operator int()
+		{
+			return (m_val >> 3) << ((m_val & 7) + 4);
+		}
+
+		ufloat16& operator=(int v)
+		{
+			if (v > 0x1fff << (7 + 4)) m_val = 0xffff;
+			else if (v <= 0) m_val = 0;
+			else
+			{
+				int exp = 4;
+				v >>= 4;
+				while (v > 0x1fff)
+				{
+					v >>= 1;
+					++exp;
+				}
+				TORRENT_ASSERT(exp <= 7);
+				m_val = (v << 3) || (exp & 7);
+			}
+			return *this;
+		}
+	private:
+		unsigned int m_val;
+	};
 
 	enum
 	{
@@ -118,14 +158,16 @@ namespace libtorrent
 // 18     2     2         last_connected
 // 20     16    1         addr
 // 36     2     2         port
-// 38     1     1         hashfails
-// 39     1     1         failcount, connectable, optimistically_unchoked, seed
-// 40     1     1         fast_reconnects, trust_points
-// 41     1     1         source, pe_support, is_v6_addr
-// 42     1     1         on_parole, banned, added_to_dht
-// 43     1     1         <padding>
-// 44
-		struct peer
+// 38     2     2         upload_rate_limit
+// 40     2     2         download_rate_limit
+// 42     1     1         hashfails
+// 43     1     1         failcount, connectable, optimistically_unchoked, seed
+// 44     1     1         fast_reconnects, trust_points
+// 45     1     1         source, pe_support, is_v6_addr
+// 46     1     1         on_parole, banned, added_to_dht
+// 47     1     1         <padding>
+// 48
+		struct TORRENT_EXPORT peer
 		{
 			peer();
 			peer(boost::uint16_t port, bool connectable, int src);
@@ -185,6 +227,10 @@ namespace libtorrent
 
 			// the port this peer is or was connected on
 			boost::uint16_t port;
+
+			// the upload and download rate limits set for this peer
+			ufloat16 upload_rate_limit;
+			ufloat16 download_rate_limit;
 
 			// the number of times this peer has been
 			// part of a piece that failed the hash check
@@ -267,7 +313,7 @@ namespace libtorrent
 #endif
 		};
 
-		struct ipv4_peer : peer
+		struct TORRENT_EXPORT ipv4_peer : peer
 		{
 			ipv4_peer(tcp::endpoint const& ip, bool connectable, int src);
 			ipv4_peer(libtorrent::address const& a);
@@ -276,7 +322,7 @@ namespace libtorrent
 		};
 
 #if TORRENT_USE_I2P
-		struct i2p_peer : peer
+		struct TORRENT_EXPORT i2p_peer : peer
 		{
 			i2p_peer(char const* destination, bool connectable, int src);
 			i2p_peer(char const* destination);
@@ -287,7 +333,7 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_IPV6
-		struct ipv6_peer : peer
+		struct TORRENT_EXPORT ipv6_peer : peer
 		{
 			ipv6_peer(tcp::endpoint const& ip, bool connectable, int src);
 			ipv6_peer(libtorrent::address const& a);
@@ -389,11 +435,11 @@ namespace libtorrent
 
 		peers_t m_peers;
 
+		torrent* m_torrent;
+
 		// since the peer list can grow too large
 		// to scan all of it, start at this iterator
 		int m_round_robin;
-
-		torrent* m_torrent;
 
 		// The number of peers in our peer list
 		// that are connect candidates. i.e. they're
@@ -414,14 +460,14 @@ namespace libtorrent
 		// this state. Every time m_torrent->is_finished()
 		// is different from this state, we need to
 		// recalculate the connect candidates.
-		bool m_finished;
+		bool m_finished:1;
 	};
 
 	inline policy::ipv4_peer::ipv4_peer(
-		tcp::endpoint const& ip, bool connectable, int src
+		tcp::endpoint const& ep, bool c, int src
 	)
-	  : peer(ip.port(), connectable, src)
-	  , addr(ip.address().to_v4())
+	  : peer(ep.port(), c, src)
+	  , addr(ep.address().to_v4())
 	{
 #if TORRENT_USE_IPV6
 		is_v6_addr = false;
@@ -466,10 +512,10 @@ namespace libtorrent
 
 #if TORRENT_USE_IPV6
 	inline policy::ipv6_peer::ipv6_peer(
-		tcp::endpoint const& ip, bool connectable, int src
+		tcp::endpoint const& ep, bool c, int src
 	)
-	  : peer(ip.port(), connectable, src)
-	  , addr(ip.address().to_v6().to_bytes())
+	  : peer(ep.port(), c, src)
+	  , addr(ep.address().to_v6().to_bytes())
 	{
 		is_v6_addr = true;
 #if TORRENT_USE_I2P

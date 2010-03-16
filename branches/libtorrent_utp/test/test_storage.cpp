@@ -43,6 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include <iostream>
+#include <fstream>
 
 using namespace libtorrent;
 
@@ -194,43 +196,44 @@ storage_interface* create_test_storage(file_storage const& fs
 void nop() {}
 
 int job_counter = 0;
+// the number of elevator turns
+int turns = 0;
+int direction = 0;
+int last_job = 0;
 
-void callback_up(int ret, disk_io_job const& j)
+void callback(int ret, disk_io_job const& j)
 {
-	static int last_job = 0;
-	TEST_CHECK(last_job <= j.piece);
+	if (j.piece > last_job && direction <= 0)
+	{
+		if (direction == -1)
+		{
+			++turns;
+			std::cerr << " === ELEVATOR TURN dir: " << direction << std::endl;
+		}
+		direction = 1;
+	}
+	else if (j.piece < last_job && direction >= 0)
+	{
+		if (direction == 1)
+		{
+			++turns;
+			std::cerr << " === ELEVATOR TURN dir: " << direction << std::endl;
+		}
+		direction = -1;
+	}
 	last_job = j.piece;
 	std::cerr << "completed job #" << j.piece << std::endl;
 	--job_counter;
 }
 
-void callback_down(int ret, disk_io_job const& j)
-{
-	static int last_job = 6000;
-	TEST_CHECK(last_job >= j.piece);
-	last_job = j.piece;
-	std::cerr << "completed job #" << j.piece << std::endl;
-	--job_counter;
-}
-
-void add_job_up(disk_io_thread& dio, int piece, boost::intrusive_ptr<piece_manager>& pm)
+void add_job(disk_io_thread& dio, int piece, boost::intrusive_ptr<piece_manager>& pm)
 {
 	disk_io_job j;
 	j.action = disk_io_job::read;
 	j.storage = pm;
 	j.piece = piece;
 	++job_counter;
-	dio.add_job(j, boost::bind(&callback_up, _1, _2));
-}
-
-void add_job_down(disk_io_thread& dio, int piece, boost::intrusive_ptr<piece_manager>& pm)
-{
-	disk_io_job j;
-	j.action = disk_io_job::read;
-	j.storage = pm;
-	j.piece = piece;
-	++job_counter;
-	dio.add_job(j, boost::bind(&callback_down, _1, _2));
+	dio.add_job(j, boost::bind(&callback, _1, _2));
 }
 
 void run_elevator_test()
@@ -241,20 +244,35 @@ void run_elevator_test()
 
 	{
 		error_code ec;
-		disk_io_thread dio(ios, &nop);
+		disk_io_thread dio(ios, &nop, fp);
 		boost::intrusive_ptr<piece_manager> pm(new piece_manager(boost::shared_ptr<void>(), ti, ""
 			, fp, dio, &create_test_storage, storage_mode_sparse));
 
+		// we must disable the read cache in order to
+		// verify that the elevator algorithm works.
+		// since any read cache hit will circumvent
+		// the elevator order
+		session_settings set;
+		set.use_read_cache = false;
+		disk_io_job j;
+		j.buffer = (char*)&set;
+		j.action = disk_io_job::update_settings;
+		dio.add_job(j);
+
 		// test the elevator going up
-		add_job_up(dio, 0, pm);
+		direction = 1;
+		last_job = 0;
+		add_job(dio, 0, pm); // trigger delay in storage
+		// make sure the job is processed
+		sleep(200);
 
 		boost::uint32_t p = 1234513;
 		for (int i = 0; i < 100; ++i)
 		{
 			p *= 123;
-			int job = (p % 5999) + 1;
+			int job = (p % 5998) + 1;
 			std::cerr << "starting job #" << job << std::endl;
-			add_job_up(dio, job, pm);
+			add_job(dio, job, pm);
 		}
 
 		for (int i = 0; i < 101; ++i)
@@ -263,17 +281,53 @@ void run_elevator_test()
 			if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
 		}
 
+		TEST_CHECK(turns < 2);
 		TEST_EQUAL(job_counter, 0);
+		std::cerr << "number of elevator turns: " << turns << std::endl;
 
 		// test the elevator going down
-		add_job_down(dio, 5999, pm);
+		direction = -1;
+		last_job = 6000;
+		add_job(dio, 5999, pm); // trigger delay in storage
+		// make sure the job is processed
+		sleep(200);
 
 		for (int i = 0; i < 100; ++i)
 		{
 			p *= 123;
-			int job = (p % 5999) + 1;
+			int job = (p % 5998) + 1;
 			std::cerr << "starting job #" << job << std::endl;
-			add_job_down(dio, job, pm);
+			add_job(dio, job, pm);
+		}
+
+		for (int i = 0; i < 101; ++i)
+		{
+			ios.run_one(ec);
+			if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
+		}
+
+		TEST_CHECK(turns < 2);
+		TEST_EQUAL(job_counter, 0);
+		std::cerr << "number of elevator turns: " << turns << std::endl;
+
+		// test disabling disk-reordering
+		set.allow_reordered_disk_operations = false;
+		j.buffer = (char*)&set;
+		j.action = disk_io_job::update_settings;
+		dio.add_job(j);
+
+		turns = 0;
+		direction = 0;
+		add_job(dio, 0, pm); // trigger delay in storage
+		// make sure the job is processed
+		sleep(200);
+
+		for (int i = 0; i < 100; ++i)
+		{
+			p *= 123;
+			int job = (p % 5998) + 1;
+			std::cerr << "starting job #" << job << std::endl;
+			add_job(dio, job, pm);
 		}
 
 		for (int i = 0; i < 101; ++i)
@@ -283,6 +337,10 @@ void run_elevator_test()
 		}
 
 		TEST_EQUAL(job_counter, 0);
+		std::cerr << "number of elevator turns: " << turns << std::endl;
+
+		// this is not guaranteed, but very very likely
+		TEST_CHECK(turns > 20);
 
 		dio.join();
 	}
@@ -366,7 +424,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	{
 	file_pool fp;
 	libtorrent::asio::io_service ios;
-	disk_io_thread io(ios, boost::function<void()>());
+	disk_io_thread io(ios, boost::function<void()>(), fp);
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
 		, test_path, fp, io, default_storage_constructor, storage_mode);
@@ -497,11 +555,13 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	fs.add_file("temp_storage/_folder3/subfolder/test5.tmp", 8);
 	libtorrent::create_torrent t(fs, 4, -1, 0);
 
-	char buf[4] = {0, 0, 0, 0};
-	sha1_hash h = hasher(buf, 4).final();
+	char buf_[4] = {0, 0, 0, 0};
+	sha1_hash h = hasher(buf_, 4).final();
 	for (int i = 0; i < 6; ++i) t.set_hash(i, h);
 	
-	boost::intrusive_ptr<torrent_info> info(new torrent_info(t.generate()));
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	boost::intrusive_ptr<torrent_info> info(new torrent_info(&buf[0], buf.size(), ec));
 
 	session_settings set;
 	set.disk_io_write_mode = set.disk_io_read_mode
@@ -584,11 +644,13 @@ void test_check_files(std::string const& test_path
 	f.write(piece2, sizeof(piece2));
 	f.close();
 
-	info = new torrent_info(t.generate());
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	info = new torrent_info(&buf[0], buf.size(), ec);
 
 	file_pool fp;
 	libtorrent::asio::io_service ios;
-	disk_io_thread io(ios, boost::function<void()>());
+	disk_io_thread io(ios, boost::function<void()>(), fp);
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
 		, test_path, fp, io, default_storage_constructor, storage_mode);
@@ -647,7 +709,9 @@ void run_test(std::string const& test_path, bool unbuffered)
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
 	
-	info = new torrent_info(t.generate());
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	info = new torrent_info(&buf[0], buf.size(), ec);
 	std::cerr << "=== test 1 ===" << std::endl;
 
 	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
@@ -678,7 +742,9 @@ void run_test(std::string const& test_path, bool unbuffered)
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
 
-	info = new torrent_info(t.generate());
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	info = new torrent_info(&buf[0], buf.size(), ec);
 
 	std::cerr << "=== test 3 ===" << std::endl;
 
@@ -732,9 +798,14 @@ void test_fastresume(std::string const& test_path)
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
 
-		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
-			, combine_path(test_path, "tmp1"), entry(), storage_mode_compact);
+		error_code ec;
 
+		add_torrent_params p;
+		p.ti = new torrent_info(*t);
+		p.save_path = combine_path(test_path, "tmp1");
+		p.storage_mode = storage_mode_compact;
+		torrent_handle h = ses.add_torrent(p, ec);
+				
 		for (int i = 0; i < 10; ++i)
 		{
 			print_alerts(ses, "ses");
@@ -758,8 +829,15 @@ void test_fastresume(std::string const& test_path)
 	{
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
-		torrent_handle h = ses.add_torrent(t, combine_path(test_path, "tmp1"), resume
-			, storage_mode_compact);
+
+		add_torrent_params p;
+		p.ti = new torrent_info(*t);
+		p.save_path = combine_path(test_path, "tmp1");
+		p.storage_mode = storage_mode_compact;
+		std::vector<char> resume_buf;
+		bencode(std::back_inserter(resume_buf), resume);
+		p.resume_data = &resume_buf;
+		torrent_handle h = ses.add_torrent(p, ec);
 	
 		std::auto_ptr<alert> a = ses.pop_alert();
 		ptime end = time_now() + seconds(20);
@@ -804,9 +882,12 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
 
-		torrent_handle h = ses.add_torrent(boost::intrusive_ptr<torrent_info>(new torrent_info(*t))
-			, combine_path(test_path, "tmp2"), entry()
-			, storage_mode_compact);
+
+		add_torrent_params p;
+		p.ti = new torrent_info(*t);
+		p.save_path = combine_path(test_path, "tmp2");
+		p.storage_mode = storage_mode_compact;
+		torrent_handle h = ses.add_torrent(p, ec);
 
 		h.rename_file(0, "testing_renamed_files");
 		std::cout << "renaming file" << std::endl;
@@ -835,9 +916,16 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	{
 		session ses(fingerprint("  ", 0,0,0,0), 0);
 		ses.set_alert_mask(alert::all_categories);
-		torrent_handle h = ses.add_torrent(t, combine_path(test_path, "tmp2"), resume
-			, storage_mode_compact);
-	
+
+		add_torrent_params p;
+		p.ti = new torrent_info(*t);
+		p.save_path = combine_path(test_path, "tmp2");
+		p.storage_mode = storage_mode_compact;
+		std::vector<char> resume_buf;
+		bencode(std::back_inserter(resume_buf), resume);
+		p.resume_data = &resume_buf;
+		torrent_handle h = ses.add_torrent(p, ec);
+
 		for (int i = 0; i < 5; ++i)
 		{
 			print_alerts(ses, "ses");

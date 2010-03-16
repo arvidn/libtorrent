@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <set>
 
+#include <libtorrent/config.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
@@ -49,10 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/thread.hpp>
 
 #include <boost/cstdint.hpp>
-#include <boost/optional.hpp>
-#include <boost/iterator/transform_iterator.hpp>
 #include <boost/ref.hpp>
-#include <boost/optional.hpp>
 
 #include "libtorrent/socket.hpp"
 
@@ -70,7 +68,7 @@ namespace libtorrent { namespace dht
 TORRENT_DECLARE_LOG(node);
 #endif
 
-class traversal_algorithm;
+struct traversal_algorithm;
 
 struct key_desc_t
 {
@@ -102,7 +100,7 @@ struct torrent_entry
 
 // this is the entry for a torrent that has been published
 // in the DHT.
-struct search_torrent_entry
+struct TORRENT_EXPORT search_torrent_entry
 {
 	search_torrent_entry(): total_tag_points(0), total_name_points(0) {}
 
@@ -181,11 +179,12 @@ typedef std::map<std::pair<node_id, sha1_hash>, search_torrent_entry> search_tab
 public:
 	node_impl(libtorrent::aux::session_impl& ses
 		, bool (*f)(void*, entry const&, udp::endpoint const&, int)
-		, dht_settings const& settings, boost::optional<node_id> nid
+		, dht_settings const& settings, node_id nid
 		, void* userdata);
 
 	virtual ~node_impl() {}
 
+	void tick();
 	void refresh(node_id const& id, find_data::nodes_callback const& f);
 	void bootstrap(std::vector<udp::endpoint> const& nodes
 		, find_data::nodes_callback const& f);
@@ -202,14 +201,7 @@ public:
 		return ret;
 	}
 
-	void refresh();
-	void refresh_bucket(int bucket);
 	int bucket_size(int bucket);
-
-	typedef routing_table::iterator iterator;
-	
-	iterator begin() const { return m_table.begin(); }
-	iterator end() const { return m_table.end(); }
 
 	node_id const& nid() const { return m_id; }
 
@@ -235,7 +227,6 @@ public:
 	// the returned time is the delay until connection_timeout()
 	// should be called again the next time
 	time_duration connection_timeout();
-	time_duration refresh_timeout();
 
 	// generates a new secret number used to generate write tokens
 	void new_write_key();

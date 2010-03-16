@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.15.0
+:Version: 0.16.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -35,7 +35,7 @@ extensions
 * supports the uTorrent metadata transfer protocol `BEP 9`_ (i.e. magnet links).
 * supports the uTorrent peer exchange protocol (PEX).
 * supports local peer discovery (multicasts for peers on the same local network)
-* multitracker extension support (supports both strict `BEP  12`_ and the
+* multitracker extension support (supports both strict `BEP 12`_ and the
   uTorrent interpretation).
 * tracker scrapes
 * supports lt_trackers extension, to exchange trackers between peers
@@ -200,7 +200,8 @@ is of a run where disk operation re-ordering is turned off and the righ is when 
 turned on. The right one has a relatively smooth sine wave shape whereas the left
 one is more random and involves much longer seeks back and forth over the disk.
 
-True physical disk offset queries are only supported on newer linux kernels and Mac OS X.
+True physical disk offset queries are only supported on newer linux kernels, Mac OS X and
+Windows 2000 and up.
 
 network buffers
 ---------------

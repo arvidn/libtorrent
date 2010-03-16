@@ -36,10 +36,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/time.hpp"
+#include "libtorrent/file.hpp"
 #include <boost/tuple/tuple.hpp>
+#include <boost/bind.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include <fstream>
+#include <iostream>
 
 using namespace libtorrent;
 using boost::tuples::ignore;
@@ -88,7 +93,7 @@ void test_rate()
 			<< std::endl;
 
 		if (tor2.is_seed()) break;
-		test_sleep(1000);
+		test_sleep(100);
 	}
 
 	TEST_CHECK(tor2.is_seed());
@@ -209,8 +214,22 @@ storage_interface* test_storage_constructor(file_storage const& fs
 	return new test_storage(fs, path, fp);
 }
 
-void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
+int tracker_responses = 0;
+
+bool on_alert(alert* a)
 {
+	if (alert_cast<tracker_reply_alert>(a))
+		++tracker_responses;
+	return false;
+}
+
+void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowed_fast = false)
+{
+
+	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
+
+	fprintf(stderr, "\n\n  ==== TESTING %s proxy ====\n\n\n", test_name[proxy_type]);
+	
 	// in case the previous run was terminated
 	error_code ec;
 	remove_all("./tmp1_transfer", ec);
@@ -221,13 +240,36 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0);
 
+	int proxy_port = (rand() % 30000) + 10000;
+	if (proxy_type)
+	{
+		start_proxy(proxy_port, proxy_type);
+		proxy_settings ps;
+		ps.hostname = "127.0.0.1";
+		ps.port = proxy_port;
+		ps.username = "testuser";
+		ps.password = "testpass";
+		ps.type = (proxy_settings::proxy_type)proxy_type;
+		ses1.set_tracker_proxy(ps);
+		ses2.set_tracker_proxy(ps);
+	}
+
+	session_settings sett;
+
 	if (test_allowed_fast)
 	{
-		session_settings sett;
 		sett.allowed_fast_set_size = 2000;
 		ses1.set_max_uploads(0);
-		ses1.set_settings(sett);
 	}
+
+	sett.min_reconnect_time = 1;
+	sett.announce_to_all_trackers = true;
+	sett.announce_to_all_tiers = true;
+	// make sure we announce to both http and udp trackers
+	sett.prefer_udp_trackers = false;
+
+	ses1.set_settings(sett);
+	ses2.set_settings(sett);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -242,19 +284,24 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 
 	create_directory("./tmp1_transfer", ec);
 	std::ofstream file("./tmp1_transfer/temporary");
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024);
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
 	file.close();
+
+	int udp_tracker_port = start_tracker();
+	int tracker_port = start_web_server();
+
+	char tracker_url[200];
+	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", tracker_port);
+	t->add_tracker(tracker_url);
+
+	snprintf(tracker_url, sizeof(tracker_url), "udp://127.0.0.1:%d/announce", udp_tracker_port);
+	t->add_tracker(tracker_url);
 
 	add_torrent_params addp(&test_storage_constructor);
 
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 8 * 1024, &t, false, test_disk_full?&addp:0);
-
-	session_settings settings = ses1.settings();
-	settings.min_reconnect_time = 1;
-	ses1.set_settings(settings);
-	ses2.set_settings(settings);
 
 	// set half of the pieces to priority 0
 	int num_pieces = tor2.get_torrent_info().num_pieces();
@@ -269,16 +316,18 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	ses1.set_alert_dispatch(&print_alert);
 
-	ses2.set_download_rate_limit(tor2.get_torrent_info().piece_length() / 2);
+	ses2.set_download_rate_limit(tor2.get_torrent_info().piece_length() * 5);
 
 	// also test to move the storage of the downloader and the uploader
 	// to make sure it can handle switching paths
 	bool test_move_storage = false;
 
-	for (int i = 0; i < 30; ++i)
+	tracker_responses = 0;
+
+	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(ses1, "ses1");
-		print_alerts(ses2, "ses2");
+		print_alerts(ses1, "ses1", true, true, true, on_alert);
+		print_alerts(ses2, "ses2", true, true, true, on_alert);
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
@@ -319,8 +368,11 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| (test_disk_full && !st2.error.empty()));
 
-		test_sleep(1000);
+		test_sleep(100);
 	}
+
+	// 1 announce per tracker to start
+	TEST_EQUAL(tracker_responses, 2);
 
 	TEST_CHECK(!tor2.is_seed());
 	TEST_CHECK(tor2.is_finished());
@@ -330,9 +382,9 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 	std::cerr << "force recheck" << std::endl;
 	tor2.force_recheck();
 	
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 50; ++i)
 	{
-		test_sleep(1000);
+		test_sleep(100);
 		print_alerts(ses2, "ses2");
 		torrent_status st2 = tor2.status();
 		std::cerr << "\033[0m" << int(st2.progress * 100) << "% " << std::endl;
@@ -348,7 +400,7 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 		torrent_status st2 = tor2.status();
 		std::cerr << "\033[0m" << int(st2.progress * 100) << "% " << std::endl;
 		TEST_CHECK(st2.state == torrent_status::finished);
-		test_sleep(1000);
+		test_sleep(100);
 	}
 
 	tor2.pause();
@@ -357,9 +409,14 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 	{
 		std::auto_ptr<alert> holder = ses2.pop_alert();
 		std::cerr << "ses2: " << a->message() << std::endl;
-		if (dynamic_cast<torrent_paused_alert const*>(a)) break;	
+		if (alert_cast<torrent_paused_alert>(a)) break;	
 		a = ses2.wait_for_alert(seconds(10));
 	}
+
+	std::vector<announce_entry> tr = tor2.trackers();
+	tr.push_back(announce_entry("http://test.com/announce"));
+	tor2.replace_trackers(tr);
+	tr.clear();
 
 	tor2.save_resume_data();
 
@@ -369,10 +426,10 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 	{
 		std::auto_ptr<alert> holder = ses2.pop_alert();
 		std::cerr << "ses2: " << a->message() << std::endl;
-		if (dynamic_cast<save_resume_data_alert const*>(a))
+		if (alert_cast<save_resume_data_alert>(a))
 		{
 			bencode(std::back_inserter(resume_data)
-				, *dynamic_cast<save_resume_data_alert const*>(a)->resume_data);
+				, *alert_cast<save_resume_data_alert>(a)->resume_data);
 			break;
 		}
 		a = ses2.wait_for_alert(seconds(10));
@@ -384,20 +441,24 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 
 	std::cerr << "removed" << std::endl;
 
-	test_sleep(1000);
+	test_sleep(100);
 
 	std::cout << "re-adding" << std::endl;
 	add_torrent_params p;
 	p.ti = t;
 	p.save_path = "./tmp2_transfer_moved";
 	p.resume_data = &resume_data;
-	tor2 = ses2.add_torrent(p);
+	tor2 = ses2.add_torrent(p, ec);
 	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
 	tor2.prioritize_pieces(priorities);
 	std::cout << "resetting priorities" << std::endl;
 	tor2.resume();
 
-	test_sleep(1000);
+	tr = tor2.trackers();
+	TEST_CHECK(std::find_if(tr.begin(), tr.end()
+		, boost::bind(&announce_entry::url, _1) == "http://test.com/announce") != tr.end());
+
+	test_sleep(100);
 
 	for (int i = 0; i < 5; ++i)
 	{
@@ -410,7 +471,7 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 		TEST_CHECK(st1.state == torrent_status::seeding);
 		TEST_CHECK(st2.state == torrent_status::finished);
 
-		test_sleep(1000);
+		test_sleep(100);
 	}
 
 	TEST_CHECK(!tor2.is_seed());
@@ -445,10 +506,14 @@ void test_transfer(bool test_disk_full = false, bool test_allowed_fast = false)
 		TEST_CHECK(st1.state == torrent_status::seeding);
 		TEST_CHECK(st2.state == torrent_status::downloading);
 
-		test_sleep(1000);
+		test_sleep(100);
 	}
 
 	TEST_CHECK(tor2.is_seed());
+
+	stop_tracker();
+	stop_web_server();
+	if (proxy_type) stop_proxy(proxy_port);
 }
 
 int test_main()
@@ -460,13 +525,15 @@ int test_main()
 	test_rate();
 #endif
 
-	test_transfer();
+	// test with all kinds of proxies
+	for (int i = 0; i < 6; ++i)
+		test_transfer(i);
 	
 	// test with a (simulated) full disk
-	test_transfer(true);
+	test_transfer(0, true);
 	
 	// test allowed fast
-	test_transfer(false, true);
+	test_transfer(0, false, true);
 	
 	error_code ec;
 	remove_all("./tmp1_transfer", ec);

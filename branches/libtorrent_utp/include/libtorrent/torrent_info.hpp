@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
-//#include <iosfwd>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -43,18 +42,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/optional.hpp>
 #include <boost/shared_array.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/lazy_entry.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
-#include "libtorrent/config.hpp"
-#include "libtorrent/time.hpp"
+#include "libtorrent/ptime.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_storage.hpp"
@@ -62,7 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	namespace pt = boost::posix_time;
-	namespace gr = boost::gregorian;
 
 	enum
 	{
@@ -90,8 +88,14 @@ namespace libtorrent
 
 		std::string url;
 
+		int next_announce_in() const;
+		int min_announce_in() const;
+
 		// the time of next tracker announce
 		ptime next_announce;
+
+		// no announces before this time
+		ptime min_announce;
 
 		boost::uint8_t tier;
 		// the number of times this tracker can fail
@@ -132,34 +136,23 @@ namespace libtorrent
 		{
 			start_sent = false;
 			next_announce = min_time();
+			min_announce = min_time();
 		}
 
-		void failed()
-		{
-			++fails;
-			int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails) * tracker_retry_delay_min
-				, int(tracker_retry_delay_max));
-			next_announce = time_now() + seconds(delay);
-			updating = false;
-		}
+		void failed(int retry_interval = 0);
 
 		bool can_announce(ptime now) const
 		{
 			return now >= next_announce
+				&& now >= min_announce
 				&& (fails < fail_limit || fail_limit == 0)
 				&& !updating;
 		}
 
 		bool is_working() const
-		{
-			return fails == 0;
-		}
+		{ return fails == 0; }
 
-		void trim()
-		{
-			while (!url.empty() && is_space(url[0]))
-				url.erase(url.begin());
-		}
+		void trim();
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -181,6 +174,7 @@ namespace libtorrent
 #endif // TORRENT_USE_WSTRING
 #endif
 
+		torrent_info(torrent_info const& t);
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(lazy_entry const& torrent_file, error_code& ec);
 		torrent_info(char const* buffer, int size, error_code& ec);
@@ -207,6 +201,8 @@ namespace libtorrent
 			m_files.rename_file(index, new_filename);
 		}
 #endif // TORRENT_USE_WSTRING
+
+		void remap_files(file_storage const& f);
 
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
@@ -327,6 +323,9 @@ namespace libtorrent
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
 	private:
+
+		// not assignable
+		torrent_info const& operator=(torrent_info const&);
 
 		void copy_on_write();
 		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec);

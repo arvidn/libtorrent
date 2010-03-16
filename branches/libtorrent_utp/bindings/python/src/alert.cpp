@@ -173,7 +173,9 @@ void bind_alert()
 
     class_<torrent_deleted_alert, bases<torrent_alert>, noncopyable>(
         "torrent_deleted_alert", no_init
-    );
+    )
+        .def_readonly("info_hash", &torrent_deleted_alert::info_hash)
+    ;
 
     class_<torrent_paused_alert, bases<torrent_alert>, noncopyable>(
         "torrent_paused_alert", no_init
@@ -194,7 +196,9 @@ void bind_alert()
         "file_error_alert", no_init
     )
         .def_readonly("file", &file_error_alert::file)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &file_error_alert::msg)
+#endif
         ;
 
     class_<metadata_failed_alert, bases<torrent_alert>, noncopyable>(
@@ -223,7 +227,9 @@ void bind_alert()
     )
         .def_readonly("mapping", &portmap_error_alert::mapping)
         .def_readonly("type", &portmap_error_alert::type)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &portmap_error_alert::msg)
+#endif
         ;
 
     class_<portmap_alert, bases<alert>, noncopyable>(
@@ -238,13 +244,17 @@ void bind_alert()
         "portmap_log_alert", no_init
     )
         .def_readonly("type", &portmap_log_alert::type)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &portmap_log_alert::msg)
+#endif
         ;
 
     class_<fastresume_rejected_alert, bases<torrent_alert>, noncopyable>(
         "fastresume_rejected_alert", no_init
     )
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &fastresume_rejected_alert::msg)
+#endif
         ;
 
     class_<peer_blocked_alert, bases<alert>, noncopyable>(
@@ -299,20 +309,20 @@ void bind_alert()
 
     class_<torrent_resumed_alert, bases<torrent_alert>, noncopyable>(
         "torrent_resumed_alert", no_init
-	);
+    );
 
-	class_<state_changed_alert, bases<torrent_alert>, noncopyable>(
-	    "state_changed_alert", no_init
-	)
-	    .def_readonly("state", &state_changed_alert::state)
-	    .def_readonly("prev_state", &state_changed_alert::prev_state)
-	    ;
+    class_<state_changed_alert, bases<torrent_alert>, noncopyable>(
+        "state_changed_alert", no_init
+    )
+        .def_readonly("state", &state_changed_alert::state)
+        .def_readonly("prev_state", &state_changed_alert::prev_state)
+        ;
 
-	class_<dht_reply_alert, bases<tracker_alert>, noncopyable>(
-	    "dht_reply_alert", no_init
-	)
-	    .def_readonly("num_peers", &dht_reply_alert::num_peers)
-	    ;
+    class_<dht_reply_alert, bases<tracker_alert>, noncopyable>(
+        "dht_reply_alert", no_init
+    )
+        .def_readonly("num_peers", &dht_reply_alert::num_peers)
+        ;
 
     class_<dht_announce_alert, bases<alert>, noncopyable>(
         "dht_announce_alert", no_init
@@ -328,13 +338,13 @@ void bind_alert()
         .def_readonly("info_hash", &dht_get_peers_alert::info_hash)
     ;
 
-	class_<peer_unsnubbed_alert, bases<peer_alert>, noncopyable>(
-	    "peer_unsnubbed_alert", no_init
-	);
+    class_<peer_unsnubbed_alert, bases<peer_alert>, noncopyable>(
+        "peer_unsnubbed_alert", no_init
+    );
 
-	class_<peer_snubbed_alert, bases<peer_alert>, noncopyable>(
-	    "peer_snubbed_alert", no_init
-	);
+    class_<peer_snubbed_alert, bases<peer_alert>, noncopyable>(
+        "peer_snubbed_alert", no_init
+    );
 
     class_<peer_connect_alert, bases<peer_alert>, noncopyable>(
         "peer_connect_alert", no_init
@@ -343,7 +353,9 @@ void bind_alert()
     class_<peer_disconnected_alert, bases<peer_alert>, noncopyable>(
         "peer_disconnected_alert", no_init
     )
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &peer_disconnected_alert::msg)
+#endif
         ;
 
     class_<request_dropped_alert, bases<peer_alert>, noncopyable>(
@@ -370,13 +382,17 @@ void bind_alert()
     class_<torrent_delete_failed_alert, bases<torrent_alert>, noncopyable>(
         "torrent_delete_failed_alert", no_init
     )
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &torrent_delete_failed_alert::msg)
+#endif
         ;
 
     class_<save_resume_data_failed_alert, bases<torrent_alert>, noncopyable>(
         "save_resume_data_failed_alert", no_init
     )
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &save_resume_data_failed_alert::msg)
+#endif
         ;
 
     class_<performance_alert, bases<torrent_alert>, noncopyable>(
@@ -392,5 +408,24 @@ void bind_alert()
     ;
 
 
+    class_<stats_alert, bases<torrent_alert>, noncopyable>(
+        "stats_alert", no_init
+    )
+        .def_readonly("transferred", &stats_alert::transferred)
+        .def_readonly("interval", &stats_alert::interval)
+        ;
+
+    enum_<stats_alert::stats_channel>("stats_channel")
+        .value("upload_payload", stats_alert::upload_payload)
+        .value("upload_protocol", stats_alert::upload_protocol)
+        .value("upload_ip_protocol", stats_alert::upload_ip_protocol)
+        .value("upload_dht_protocol", stats_alert::upload_dht_protocol)
+        .value("upload_tracker_protocol", stats_alert::upload_tracker_protocol)
+        .value("download_payload", stats_alert::download_payload)
+        .value("download_protocol", stats_alert::download_protocol)
+        .value("download_ip_protocol", stats_alert::download_ip_protocol)
+        .value("download_dht_protocol", stats_alert::download_dht_protocol)
+        .value("download_tracker_protocol", stats_alert::download_tracker_protocol)
+    ;
 
 }

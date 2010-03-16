@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <ctime>
-#include <iterator>
 #include <algorithm>
 #include <set>
 #include <cctype>
@@ -88,14 +87,6 @@ namespace libtorrent
 {
 
 	TORRENT_EXPORT void TORRENT_LINK_TEST_NAME() {}
-
-	std::string log_time()
-	{
-		static const ptime start = time_now_hires();
-		char ret[200];
-		std::sprintf(ret, "%d", total_milliseconds(time_now() - start));
-		return ret;
-	}
 
 	// this function returns a session_settings object
 	// which will optimize libtorrent for minimum memory
@@ -178,14 +169,26 @@ namespace libtorrent
 		// the same NAT
 		set.allow_multiple_connections_per_ip = true;
 
-		// use 512 MB of cache
-		set.cache_size = 32768;
+		// use 1 GB of cache
+		set.cache_size = 32768 * 2;
 		set.use_read_cache = true;
 		set.cache_buffer_chunk_size = 128;
 		set.read_cache_line_size = 512;
 		set.write_cache_line_size = 512;
+		set.low_prio_disk = false;
 		// one hour expiration
 		set.cache_expiry = 60 * 60;
+
+		// flush write cache based on largest contiguous block
+		set.disk_cache_algorithm = session_settings::largest_contiguous;
+
+		// explicitly cache rare pieces
+		set.explicit_read_cache = true;
+		// prevent fast pieces to interfere with suggested pieces
+		// since we unchoke everyone, we don't need fast pieces anyway
+		set.allowed_fast_set_size = 0;
+		// suggest pieces in the read cache for higher cache hit rate
+		set.suggest_mode = session_settings::suggest_read_cache;
 
 		set.close_redundant_connections = true;
 
@@ -201,7 +204,7 @@ namespace libtorrent
 		set.active_limit = 2000;
 		set.active_seeds = 2000;
 
-		set.auto_upload_slots = false;
+		set.choking_algorithm = session_settings::fixed_slots_choker;
 
 		// in order to be able to deliver very high
 		// upload rates, this should be able to cover
@@ -209,6 +212,11 @@ namespace libtorrent
 		// of 500 ms, and a send rate of 10 MB/s, the upper
 		// limit should be 5 MB
 		set.send_buffer_watermark = 5 * 1024 * 1024;
+
+		// put 10 seconds worth of data in the send buffer
+		// this gives the disk I/O more heads-up on disk
+		// reads, and can maximize throughput
+		set.send_buffer_watermark_factor = 10;
 
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
@@ -310,6 +318,18 @@ namespace libtorrent
 			m_impl->abort();
 	}
 
+	void session::save_state(entry& e, boost::uint32_t flags) const
+	{
+		mutex::scoped_lock l(m_impl->m_mutex);
+		m_impl->save_state(e, flags, l);
+	}
+
+	void session::load_state(lazy_entry const& e)
+	{
+		mutex::scoped_lock l(m_impl->m_mutex);
+		m_impl->load_state(e);
+	}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{
@@ -352,17 +372,25 @@ namespace libtorrent
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_DISABLE_GEO_IP
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::load_state(entry const& ses_state)
 	{
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), ses_state);
+		lazy_entry e;
+		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
 		mutex::scoped_lock l(m_impl->m_mutex);
-		m_impl->load_state(ses_state);
+		m_impl->load_state(e);
 	}
 
 	entry session::state() const
 	{
+		entry ret;
 		mutex::scoped_lock l(m_impl->m_mutex);
-		return m_impl->state();
+		m_impl->save_state(ret, 0xffffffff, l);
+		return ret;
 	}
+#endif
 
 	void session::set_ip_filter(ip_filter const& f)
 	{
@@ -567,10 +595,11 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 
-	void session::start_dht(entry const& startup_state)
+	void session::start_dht()
 	{
 		mutex::scoped_lock l(m_impl->m_mutex);
-		m_impl->start_dht(startup_state);
+		// the state is loaded in load_state()
+		m_impl->start_dht();
 	}
 
 	void session::stop_dht()
@@ -585,11 +614,19 @@ namespace libtorrent
 		m_impl->set_dht_settings(settings);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
+	void session::start_dht(entry const& startup_state)
+	{
+		mutex::scoped_lock l(m_impl->m_mutex);
+		m_impl->start_dht(startup_state);
+	}
+
 	entry session::dht_state() const
 	{
 		mutex::scoped_lock l(m_impl->m_mutex);
 		return m_impl->dht_state(l);
 	}
+#endif
 	
 	void session::add_dht_node(std::pair<std::string, int> const& node)
 	{

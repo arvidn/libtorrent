@@ -3,7 +3,7 @@ libtorrent API Documentation
 ============================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.15.0
+:Version: 0.16.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -18,6 +18,7 @@ the ``session``, it contains the main loop that serves all torrents.
 The basic usage is as follows:
 
 * construct a session
+* load session state from settings file (see `load_state() save_state()`_)
 * start extensions (see `add_extension()`_).
 * start DHT, LSD, UPnP, NAT-PMP etc (see `start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()`_
   `start_lsd() stop_lsd()`_, `start_upnp() stop_upnp()`_ and `start_natpmp() stop_natpmp()`_)
@@ -30,6 +31,7 @@ The basic usage is as follows:
 
 * save resume data for all torrent_handles (optional, see
   `save_resume_data()`_)
+* save session state (see `load_state() save_state()`_)
 * destruct session object
 
 Each class and function is described in this manual.
@@ -51,7 +53,7 @@ libtorrent will pause them, unpause them, scrape them and take them out
 of upload-mode automatically.
 
 Whenever a torrent encounters a fatal error, it will be stopped, and the
-``session_status::error`` will describe the error that caused it. If a torrent
+``torrent_status::error`` will describe the error that caused it. If a torrent
 is auto managed, it is scraped periodically and paused or resumed based on
 the number of downloaders per seed. This will effectively seed torrents that
 are in the greatest need of seeds.
@@ -114,6 +116,23 @@ The ``session`` class has the following synopsis::
 			, int flags = start_default_features 
 				| add_default_plugins
 			, int alert_mask = alert::error_notification);
+
+		enum save_state_flags_t
+		{
+			save_settings = 0x001,
+			save_dht_settings = 0x002,
+			save_dht_proxy = 0x004,
+			save_dht_state = 0x008,
+			save_i2p_proxy = 0x010,
+			save_encryption_settings = 0x020,
+			save_peer_proxy = 0x040,
+			save_web_proxy = 0x080,
+			save_tracker_proxy = 0x100,
+			save_as_map = 0x200,
+		};
+
+		void load_state(lazy_entry const& e);
+		void save_state(entry& e, boost::uint32_t flags) const;
 
 		torrent_handle add_torrent(
 			add_torrent_params const& params);
@@ -179,9 +198,6 @@ The ``session`` class has the following synopsis::
 		bool load_country_db(char const* file);
 		bool load_country_db(wchar_t const* file);
 		int as_for_ip(address const& adr);
-
-		void load_state(entry const& ses_state);
-		entry state() const;
 
 		void set_ip_filter(ip_filter const& f);
 		ip_filter const& get_ip_filter() const;
@@ -269,6 +285,40 @@ If some trackers are down, they will time out. All this before the destructor of
 returns. So, it's advised that any kind of interface (such as windows) are closed before
 destructing the session object. Because it can take a few second for it to finish. The
 timeout can be set with ``set_settings()``.
+
+load_state() save_state()
+-------------------------
+
+	::
+
+		void load_state(lazy_entry const& e);
+		void save_state(entry& e, boost::uint32_t flags) const;
+
+loads and saves all session settings, including dht_settings, encryption settings and proxy
+settings. ``save_state`` writes all keys to the ``entry`` that's passed in, which needs to
+either not be initialized, or initialized as a dictionary.
+
+``load_state`` expects a ``lazy_entry`` which can be built from a bencoded buffer with
+``lazy_bdecode``.
+
+The ``flags`` arguments passed in to ``save_state`` can be used to filter which parts
+of the session state to save. By default, all state is saved (except for the individual
+torrents). These are the possible flags. A flag that's set, means those settings are saved::
+
+	enum save_state_flags_t
+	{
+		save_settings = 0x001,
+		save_dht_settings = 0x002,
+		save_dht_proxy = 0x004,
+		save_dht_state = 0x008,
+		save_i2p_proxy = 0x010,
+		save_encryption_settings = 0x020,
+		save_peer_proxy = 0x040,
+		save_web_proxy = 0x080,
+		save_tracker_proxy = 0x100,
+		save_as_map = 0x200,
+	};
+
 
 pause() resume() is_paused()
 ----------------------------
@@ -462,7 +512,8 @@ the tracker that we've stopped participating in the swarm. The optional second a
 ``options`` can be used to delete all the files downloaded by this torrent. To do this, pass
 in the value ``session::delete_files``. The removal of the torrent is asyncronous, there is
 no guarantee that adding the same torrent immediately after it was removed will not throw
-a libtorrent_exception_ exception.
+a libtorrent_exception_ exception. Once the torrent is deleted, a torrent_deleted_alert_
+is posted.
 
 find_torrent() get_torrents()
 -----------------------------
@@ -525,26 +576,37 @@ quite unthrottled.
 A rate limit of 0 means infinite.
 
 
-set_max_uploads() set_max_connections() max_uploads() max_connections()
------------------------------------------------------------------------
+set_max_uploads() max_uploads()
+-------------------------------
 
 	::
 
 		void set_max_uploads(int limit);
-		void set_max_connections(int limit);
 		int max_uploads() const;
+
+``set_max_uploads`` sets a global limit on the number of unchoked peers (uploads).
+The number of uploads is at least one per torrent.
+
+``max_uploads()`` returns the current settings.
+
+The number of unchoke slots may be ignored depending on what
+``session_settings::choking_algorithm`` is set to.
+
+
+set_max_connections() max_connections()
+---------------------------------------
+
+	::
+
+		void set_max_connections(int limit);
 		int max_connections() const;
 
-These functions will set a global limit on the number of unchoked peers (uploads)
-and the number of connections opened. The number of connections is set to a hard
-minimum of at least two connections per torrent, so if you set a too low
-connections limit, and open too many torrents, the limit will not be met. The
-number of uploads is at least one per torrent.
+``set_max_connections`` sets a global limit on the number of connections
+opened. The number of connections is set to a hard minimum of at least two per
+torrent, so if you set a too low connections limit, and open too many torrents,
+the limit will not be met.
 
-``max_uploads()`` and ``max_connections()`` returns the current settings.
-
-The number of unchoke slots may be ignored. In order to make this setting
-take effect, disable ``session_settings::auto_upload_slots_rate_based``.
+``max_connections()`` returns the current settings.
 
 
 num_uploads() num_connections()
@@ -602,18 +664,6 @@ The ``wchar_t`` overloads are for wide character paths.
 
 .. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
 .. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
-		
-load_state() state()
---------------------
-
-	::
-	
-		void load_state(entry const& ses_state);
-		entry state() const;
-
-These functions loads and save session state. Currently, the only state
-that's stored is peak download rates for ASes. This map is used to
-determine which order to connect to peers.
 		
 set_ip_filter()
 ---------------
@@ -698,7 +748,7 @@ struct has the following members::
 		int unchoke_counter;
 
 		int dht_nodes;
-		int dht_cache_nodes;
+		int dht_node_cache;
 		int dht_torrents;
 		int dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
@@ -750,11 +800,11 @@ seconds until the next optimistic unchoke change and the start of the next
 unchoke interval. These numbers may be reset prematurely if a peer that is
 unchoked disconnects or becomes notinterested.
 
-``dht_nodes``, ``dht_cache_nodes`` and ``dht_torrents`` are only available when
+``dht_nodes``, ``dht_node_cache`` and ``dht_torrents`` are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
 the DHT is running, ``dht_nodes`` is set to the number of nodes in the routing
 table. This number only includes *active* nodes, not cache nodes. The
-``dht_cache_nodes`` is set to the number of nodes in the node cache. These nodes
+``dht_node_cache`` is set to the number of nodes in the node cache. These nodes
 are used to replace the regular nodes in the routing table in case any of them
 becomes unresponsive.
 
@@ -787,6 +837,9 @@ Returns status of the disk cache for this session.
 			int cache_size;
 			int read_cache_size;
 			int total_used_buffers;
+			int average_queue_time;
+			int average_read_time;
+			int job_queue_length;
 		};
 
 ``blocks_written`` is the total number of 16 KiB blocks written to disk
@@ -815,6 +868,15 @@ This includes both read and write cache.
 ``total_used_buffers`` is the total number of buffers currently in use.
 This includes the read/write disk cache as well as send and receive buffers
 used in peer connections.
+
+``average_queue_time`` is the number of microseconds an average disk I/O job
+has to wait in the job queue before it get processed.
+
+``average_read_time`` is the number of microseconds a read job takes to
+wait in the queue and complete, in microseconds. This only includes
+cache misses. 
+
+``job_queue_length`` is the number of jobs in the job queue.
 
 get_cache_info()
 ----------------
@@ -862,7 +924,7 @@ is_listening() listen_port() listen_on()
 
 ``is_listening()`` will tell you whether or not the session has successfully
 opened a listening port. If it hasn't, this function will return false, and
-then you can use ``listen_on()`` to make another try.
+then you can use ``listen_on()`` to make another attempt.
 
 ``listen_port()`` returns the port we ended up listening on. Since you just pass
 a port-range to the constructor and to ``listen_on()``, to know which port it
@@ -876,10 +938,16 @@ the range and so on. The interface parameter can be left as 0, in that case the
 os will decide which interface to listen on, otherwise it should be the ip-address
 of the interface you want the listener socket bound to. ``listen_on()`` returns true
 if it managed to open the socket, and false if it failed. If it fails, it will also
-generate an appropriate alert (listen_failed_alert_).
+generate an appropriate alert (listen_failed_alert_). If all ports in the specified
+range fails to be opened for listening, libtorrent will try to use port 0 (which
+tells the operating system to pick a port that's free). If that still fails you
+may see a listen_failed_alert_ with port 0 even if you didn't ask to listen on it.
 
 The interface parameter can also be a hostname that will resolve to the device you
-want to listen on.
+want to listen on. If you don't specify an interface, libtorrent may attempt to
+listen on multiple interfaces (typically 0.0.0.0 and ::). This means that if your
+IPv6 interface doesn't work, you may still see a listen_failed_alert_, even though
+the IPv4 port succeeded.
 
 If you're also starting the DHT, it is a good idea to do that after you've called
 ``listen_on()``, since the default listen port for the DHT is the same as the tcp
@@ -1408,6 +1476,8 @@ The ``torrent_info`` has the following synopsis::
 		file_storage const& files() const;
 		file_storage const& orig_files() const;
 
+		void remap_files(file_storage const& f);
+
 		void rename_file(int index, std::string const& new_filename);
 		void rename_file(int index, std::wstring const& new_filename);
 
@@ -1527,6 +1597,19 @@ names. Filename may be chaged using ``torrent_info::rename_file()``.
 
 For more information on the ``file_storage`` object, see the separate document on how
 to create torrents.
+
+remap_files()
+-------------
+
+	::
+
+		void remap_files(file_storage const& f);
+
+Remaps the file storage to a new file layout. This can be used to, for instance,
+download all data in a torrent to a single file, or to a number of fixed size
+sector aligned files, regardless of the number and sizes of the files in the torrent.
+
+The new specified ``file_storage`` must have the exact same size as the current one.
 
 rename_file()
 -------------
@@ -1698,6 +1781,10 @@ ones with lower tier will always be tried before the one with higher tier number
 	{
 		announce_entry(std::string const& url);
 		std::string url;
+
+		int next_announce_in() const;
+		int min_announce_in() const;
+
 		boost::uint8_t tier;
 		boost::uint8_t fail_limit;
 		boost::uint8_t fails;
@@ -1716,6 +1803,10 @@ ones with lower tier will always be tried before the one with higher tier number
 		bool start_sent:1;
 		bool complete_sent:1;
 	};
+
+``next_announce_in()`` returns the number of seconds to the next announce on
+this tracker. ``min_announce_in()`` returns the number of seconds until we are
+allowed to force another tracker update with this tracker.
 
 ``fail_limit`` is the max number of failures to announce to this tracker in
 a row, before this tracker is not used anymore.
@@ -1916,12 +2007,15 @@ Its declaration looks like this::
 		void clear_error() const;
 		void set_upload_mode(bool m) const;
 
+		void flush_cache() const;
+
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
 
 		enum deadline_flags { alert_when_available = 1 };
-		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
+		void set_piece_deadline(int index, int deadline, int flags = 0) const;
 
+		void piece_availability(std::vector<int>& avail) const;
 		void piece_priority(int index, int priority) const;
 		int piece_priority(int index) const;
 		void prioritize_pieces(std::vector<int> const& pieces) const;
@@ -1976,7 +2070,7 @@ set_piece_deadline()
 	::
 
 		enum deadline_flags { alert_when_available = 1 };
-		void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
+		void set_piece_deadline(int index, int deadline, int flags = 0) const;
 
 This function sets or resets the deadline associated with a specific piece
 index (``index``). libtorrent will attempt to download this entire piece before
@@ -1993,8 +2087,24 @@ If the piece is already downloaded when this call is made, nothing happens, unle
 the ``alert_when_available`` flag is set, in which case it will do the same thing
 as calling `read_piece()`_ for ``index``.
 
-In the python binding for this function, the ``deadline`` is the number of milliseconds
-as an integer.
+``deadline`` is the number of milliseconds until this piece should be completed.
+
+
+piece_availability()
+--------------------
+
+	::
+
+		void piece_availability(std::vector<int>& avail) const;
+
+Fills the specified ``std::vector<int>`` with the availability for each
+piece in this torrent. libtorrent does not keep track of availability for
+seeds, so if the torrent is seeding the availability for all pieces is
+reported as 0.
+
+The piece availability is the number of peers that we are connected that has
+advertized having a particular piece. This is the information that libtorrent
+uses in order to prefer picking rare pieces.
 
 
 piece_priority() prioritize_pieces() piece_priorities()
@@ -2065,6 +2175,10 @@ The priority values are the same as for ``piece_priority``.
 Whenever a file priority is changed, all other piece priorities are reset
 to match the file priorities. In order to maintain sepcial priorities for
 particular pieces, ``piece_priority`` has to be called again for those pieces.
+
+You cannot set the file priorities on a torrent that does not yet
+have metadata or a torrent that is a seed. ``file_priority(int, int)`` and
+``prioritize_files()`` are both no-ops for such torrents.
 
 file_progress()
 ---------------
@@ -2338,6 +2452,21 @@ is not running because the session is paused, this still returns false. To know 
 torrent is active or not, you need to inspect both ``torrent_handle::is_paused()``
 and ``session::is_paused()``.
 
+flush_cache()
+-------------
+
+	::
+
+		void flush_cache() const;
+
+Instructs libtorrent to flush all the disk caches for this torrent and close all
+file handles. This is done asynchronously and you will be notified that it's complete
+through cache_flushed_alert_.
+
+Note that by the time you get the alert, libtorrent may have cached more data for the
+torrent, but you are guaranteed that whatever cached data libtorrent had by the time
+you called ``torrent_handle::flush_cache()`` has been written to disk.
+
 force_recheck()
 ---------------
 
@@ -2467,6 +2596,10 @@ replace it. If you want an immediate effect, you have to call
 If it is, it doesn't do anything. If it's not in the current set of trackers,
 it will insert it in the tier specified in the announce_entry.
 
+The updated set of trackers will be saved in the resume data, and when a torrent
+is started with resume data, the trackers from the resume data will replace the
+original ones.
+
 
 add_url_seed() remove_url_seed() url_seeds()
 --------------------------------------------
@@ -2547,6 +2680,9 @@ consume, even if there's is more quota. Other peers will still be weighed in whe
 bandwidth is being distributed. With other words, bandwidth is not distributed strictly
 in order of priority, but the priority is used as a weight.
 
+Torrents with higher priority are also more likely to have its peers unchoked, to
+distribute more upload capacity to them.
+
 use_interface()
 ---------------
 
@@ -2570,25 +2706,34 @@ info_hash()
 ``info_hash()`` returns the info-hash for the torrent.
 
 
-set_max_uploads() max_uploads() set_max_connections() max_connections()
------------------------------------------------------------------------
+set_max_uploads() max_uploads()
+-------------------------------
 
 	::
 
 		void set_max_uploads(int max_uploads) const;
 		int max_uploads() const;
-		void set_max_connections(int max_connections) const;
-		int max_connections() const;
 
 ``set_max_uploads()`` sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.
+
+``max_uploads()`` returns the current settings.
+
+
+set_max_connections() max_connections()
+---------------------------------------
+
+	::
+
+		void set_max_connections(int max_connections) const;
+		int max_connections() const;
 
 ``set_max_connections()`` sets the maximum number of connection this torrent will open. If all
 connections are used up, incoming connections may be refused or poor connections may be closed.
 This must be at least 2. The default is unlimited number of connections. If -1 is given to the
 function, it means unlimited.
 
-``max_uploads()`` and ``max_connections()`` returns the current settings.
+``max_connections()`` returns the current settings.
 
 
 save_resume_data()
@@ -2910,6 +3055,9 @@ It contains the following fields::
 		bool upload_mode;
 
 		int priority;
+
+		time_t added_time;
+		time_t completed_time;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -2955,7 +3103,8 @@ The torrent's current task is in the ``state`` member, it will be one of the fol
 +--------------------------+----------------------------------------------------------+
 
 
-When downloading, the progress is ``total_wanted_done`` / ``total_wanted``.
+When downloading, the progress is ``total_wanted_done`` / ``total_wanted``. This takes
+into account files whose priority have been set to 0. They are not considered.
 
 ``paused`` is set to true if the torrent is paused and false otherwise.
 
@@ -3038,10 +3187,10 @@ this does not necessarily has to be downloaded during this session (that's
 
 ``total_wanted_done`` is the number of bytes we have downloaded, only counting the
 pieces that we actually want to download. i.e. excluding any pieces that we have but
-are filtered as not wanted.
+have priority 0 (i.e. not wanted).
 
 ``total_wanted`` is the total number of bytes we want to download. This is also
-excluding pieces that have been filtered.
+excluding pieces whose priorities have been set to 0.
 
 ``num_seeds`` is the number of peers that are seeding that this client is
 currently connected to.
@@ -3078,7 +3227,7 @@ larger if the pieces are larger.
 
 ``num_connections`` is the number of peer connections this torrent has, including
 half-open connections that hasn't completed the bittorrent handshake yet. This is
-always <= ``num_peers``.
+always >= ``num_peers``.
 
 ``uploads_limit`` is the set limit of upload slots (unchoked peers) for this torrent.
 
@@ -3131,6 +3280,12 @@ hope that the disk condition (be it disk full or permission errors) has
 been resolved. If the torrent is not auto-managed, you have to explicitly
 take it out of the upload mode by calling `set_upload_mode()`_ on the
 torrent_handle_.
+
+``added_time`` is the posix-time when this torrent was added. i.e. what
+``time(NULL)`` returned at the time.
+
+``completed_time`` is the posix-time when this torrent was finished. If
+the torrent is not yet finished, this is 0.
 
 peer_info
 =========
@@ -3542,24 +3697,53 @@ session_settings
 		int inactivity_timeout;
 		int unchoke_interval;
 		int optimistic_unchoke_interval;
-		address announce_ip;
+		std::string announce_ip;
 		int num_want;
 		int initial_picker_threshold;
 		int allowed_fast_set_size;
+
+		enum { no_piece_suggestions = 0, suggest_read_cache = 1 };
+		int suggest_mode;
 		int max_queued_disk_bytes;
 		int handshake_timeout;
 		bool use_dht_as_fallback;
 		bool free_torrent_hashes;
 		bool upnp_ignore_nonrouters;
 		int send_buffer_watermark;
+		int send_buffer_watermark_factor;
+
+	#ifndef TORRENT_NO_DEPRECATE
 		bool auto_upload_slots;
 		bool auto_upload_slots_rate_based;
+	#endif
+
+		enum choking_algorithm_t
+		{
+			fixed_slots_choker,
+			auto_expand_choker,
+			rate_based_choker,
+			bittyrant_choker
+		};
+
+		int choking_algorithm;
+		
 		bool use_parole_mode;
 		int cache_size;
 		int cache_buffer_chunk_size;
 		int cache_expiry;
 		bool use_read_cache;
-		bool disk_io_no_buffer;
+		bool explicit_read_cache;
+		int explicit_cache_interval;
+
+		enum io_buffer_mode_t
+		{
+			enable_os_cache = 0,
+			disable_os_cache_for_aligned_files = 1,
+			disable_os_cache = 2
+		};
+		int disk_io_write_mode;
+		int disk_io_read_mode;
+
 		std::pair<int, int> outgoing_ports;
 		char peer_tos;
 
@@ -3619,6 +3803,29 @@ session_settings
 		bool disable_hash_check;
 
 		int max_suggest_pieces;
+
+		bool drop_skipped_requests;
+
+		bool low_prio_disk;
+		int local_service_announce_interval;
+		int dht_announce_interval;
+
+		int udp_tracker_token_expiry;
+		bool volatile_read_cache;
+		bool guided_read_cache;
+		bool default_min_cache_age;
+
+		int num_optimistic_unchoke_slots;
+		bool no_atime_storage;
+		int default_est_reciprocation_rate;
+		int increase_est_reciprocation_rate;
+		int decrease_est_reciprocation_rate;
+		bool incoming_starts_queued_torrents;
+		bool report_true_downloaded;
+		bool strict_end_game_mode;
+
+		int default_peer_upload_rate;
+		int default_peer_download_rate;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3722,8 +3929,9 @@ connection may delay the connection of other peers considerably.
 unchoke limits are ignored for peers on the local network.
 
 ``connection_speed`` is the number of connection attempts that
-are made per second. If a number <= 0 is specified, it will default to
-200 connections per second.
+are made per second. If a number < 0 is specified, it will default to
+200 connections per second. If 0 is specified, it means don't make
+outgoing connections at all.
 
 ``send_redundant_have`` controls if have messages will be sent
 to peers that already have the piece. This is typically not necessary,
@@ -3749,7 +3957,7 @@ each *optimistic* unchoke. On this timer, the currently optimistically
 unchoked peer will change.
 
 ``announce_ip`` is the ip address passed along to trackers as the ``&ip=`` parameter.
-If left as the default (default constructed), that parameter is ommited.
+If left as the default (an empty string), that parameter is omitted.
 
 ``num_want`` is the number of peers we want from each tracker request. It defines
 what is sent as the ``&num_want=`` parameter to the tracker.
@@ -3761,6 +3969,15 @@ in rarest first order.
 
 ``allowed_fast_set_size`` is the number of pieces we allow peers to download
 from us without being unchoked.
+
+``suggest_mode`` controls whether or not libtorrent will send out suggest
+messages to create a bias of its peers to request certain pieces. The modes
+are:
+
+* ``no_piece_suggestsions`` which is the default and will not send out suggest
+  messages.
+* ``suggest_read_cache`` which will send out suggest messages for the most
+  recent pieces that are in the read cache.
 
 ``max_queued_disk_bytes`` is the number maximum number of bytes, to be
 written to disk, that can wait in the disk I/O thread queue. This queue
@@ -3792,11 +4009,17 @@ should ignore any broadcast response from a device whose address is not the
 configured router for this machine. i.e. it's a way to not talk to other
 people's routers by mistake.
 
-``send_buffer_waterbark`` is the upper limit of the send buffer low-watermark.
+``send_buffer_watermark`` is the upper limit of the send buffer low-watermark.
 if the send buffer has fewer bytes than this, we'll read another 16kB block
 onto it. If set too small, upload rate capacity will suffer. If set too high,
 memory will be wasted. The actual watermark may be lower than this in case
 the upload rate is low, this is the upper limit.
+
+``send_buffer_watermark_factor`` is multiplied to the peer's upload rate
+to determine the low-watermark for the peer. This is clamped to not
+exceed the ``send_buffer_watermark`` upper limit. This defaults to 1.
+For high capacity connections, setting this higher can improve upload
+performance and disk throughput.
 
 ``auto_upload_slots`` defaults to true. When true, if there is a global upload
 limit set and the current upload rate is less than 90% of that, another upload
@@ -3810,6 +4033,34 @@ the max upload slots setting is used as a minimum number of unchoked slots.
 This algorithm is designed to prevent the peer from spreading its upload
 capacity too thin, but still open more slots in order to utilize the full capacity.
 
+``choking_algorithm`` specifies which algorithm to use to determine which peers
+to unchoke. This setting replaces the deprecated settings ``auto_upload_slots``
+and ``auto_upload_slots_rate_based``.
+
+The options for choking algorithms are:
+
+* ``fixed_slots_choker`` is the traditional choker with a fixed number of unchoke
+  slots (as specified by ``session::set_max_uploads()``).
+
+* ``auto_expand_choker`` opens at least the number of slots as specified by
+  ``session::set_max_uploads()`` but opens up more slots if the upload capacity
+  is not saturated. This unchoker will work just like the ``fixed_slot_choker``
+  if there's no global upload rate limit set.
+
+* ``rate_based_choker`` opens up unchoke slots based on the upload rate
+  achieved to peers. The more slots that are opened, the marginal upload
+  rate required to open up another slot increases.
+
+* ``bittyrant_choker`` attempts to optimize download rate by finding the
+  reciprocation rate of each peer individually and prefers peers that gives
+  the highest *return on investment*. It still allocates all upload capacity,
+  but shuffles it around to the best peers first. For this choker to be
+  efficient, you need to set a global upload rate limit
+  (``session::set_upload_rate_limit()``). For more information about this
+  choker, see the paper_.
+
+.. _paper: http://bittyrant.cs.washington.edu/#papers
+
 ``use_parole_mode`` specifies if parole mode should be used. Parole mode means
 that peers that participate in pieces that fail the hash check are put in a mode
 where they are only allowed to download whole pieces. If the whole piece a peer
@@ -3817,10 +4068,12 @@ in parole mode fails the hash check, it is banned. If a peer participates in a
 piece that passes the hash check, it is taken out of parole mode.
 
 ``cache_size`` is the disk write and read  cache. It is specified in units of
-16 KiB blocks. It defaults to 1024 (= 16 MB). Buffers that are part of a peer's
-send or receive buffer also count against this limit. Send and receive buffers
-will never be denied to be allocated, but they will cause the actual cached blocks
-to be flushed or evicted.
+16 KiB blocks. Buffers that are part of a peer's send or receive buffer also
+count against this limit. Send and receive buffers will never be denied to be
+allocated, but they will cause the actual cached blocks to be flushed or evicted.
+If this is set to -1, the cache size is automatically set to the amount
+of physical RAM available in the machine divided by 8. If the amount of physical
+RAM cannot be determined, it's set to 1024 (= 16 MiB).
 
 Disk buffers are allocated using a pool allocator, the number of blocks that
 are allocated at a time when the pool needs to grow can be specified in
@@ -3833,14 +4086,41 @@ in the write cache, to when it's forcefully flushed to disk. Default is 60 secon
 ``use_read_cache``, is set to true (default), the disk cache is also used to
 cache pieces read from disk. Blocks for writing pieces takes presedence.
 
-``disk_io_no_buffer`` defaults to true. When set to true, files are preferred
-to be opened in unbuffered mode. This helps the operating system from growing
-its file cache indefinitely. Currently only files whose offset in the torrent
-is page aligned are opened in unbuffered mode. A page is typically 4096 bytes
-and since blocks in bittorrent are 16kB, any file that is aligned to a block
-or piece will get the benefit of be opened in unbuffered mode. It is therefore
-recommended to make the largest file in a torrent the first file (with offset 0)
-or use pad files to align all files to piece boundries.
+``explicit_read_cache`` defaults to 0. If set to something greater than 0, the
+disk read cache will not be evicted by cache misses and will explicitly be
+controlled based on the rarity of pieces. Rare pieces are more likely to be
+cached. This would typically be used together with ``suggest_mode`` set to
+``suggest_read_cache``. The value is the number of pieces to keep in the read
+cache. If the actual read cache can't fit as many, it will essentially be clamped.
+
+``explicit_cache_interval`` is the number of seconds in between each refresh of
+a part of the explicit read cache. Torrents take turns in refreshing and this
+is the time in between each torrent refresh. Refreshing a torrent's explicit
+read cache means scanning all pieces and picking a random set of the rarest ones.
+There is an affinity to pick pieces that are already in the cache, so that
+subsequent refreshes only swaps in pieces that are rarer than whatever is in
+the cache at the time.
+
+``disk_io_write_mode`` and ``disk_io_read_mode`` determines how files are
+opened when they're in read only mode versus read and write mode. The options
+are:
+
+	* enable_os_cache
+		This is the default and files are opened normally, with the OS caching
+		reads and writes.
+	* disable_os_cache_for_aligned_files
+		This will open files in unbuffered mode for files where every read and
+		write would be sector aligned. Using aligned disk offsets is a requirement
+		on some operating systems.
+	* disable_os_cache
+		This opens all files in unbuffered mode (if allowed by the operating system).
+		Linux and Windows, for instance, require disk offsets to be sector aligned,
+		and in those cases, this option is the same as ``disable_os_caches_for_aligned_files``.
+
+One reason to disable caching is that it may help the operating system from growing
+its file cache indefinitely. Since some OSes only allow aligned files to be opened
+in unbuffered mode, It is recommended to make the largest file in a torrent the first
+file (with offset 0) or use pad files to align all files to piece boundries.
 
 ``outgoing_ports``, if set to something other than (0, 0) is a range of ports
 used to bind outgoing sockets to. This may be useful for users whose router
@@ -4013,7 +4293,7 @@ background tasks that doesn't matter if they take a bit longer, as long
 as they leave disk I/O time for other processes.
 
 ``disk_cache_algorithm`` tells the disk I/O thread which cache flush
-algorithm to use. The default (and original) algorithm is LRU. This
+algorithm to use. The default algorithm is largest_contiguous. This
 flushes the entire piece, in the write cache, that was least recently
 written to. This is specified by the ``session_settings::lru`` enum
 value. ``session_settings::largest_contiguous`` will flush the largest
@@ -4047,6 +4327,115 @@ bittorrent clients.
 ``max_suggest_pieces`` is the max number of suggested piece indices received
 from a peer that's remembered. If a peer floods suggest messages, this limit
 prevents libtorrent from using too much RAM. It defaults to 10.
+
+If ``drop_skipped_requests`` is set to true (it defaults to false), piece
+requests that have been skipped enough times when piece messages
+are received, will be considered lost. Requests are considered skipped
+when the returned piece messages are re-ordered compared to the order
+of the requests. This was an attempt to get out of dead-locks caused by
+BitComet peers silently ignoring some requests. It may cause problems
+at high rates, and high level of reordering in the uploading peer, that's
+why it's disabled by default.
+
+``low_prio_disk`` determines if the disk I/O should use a normal
+or low priority policy. This defaults to true, which means that
+it's low priority by default. Other processes doing disk I/O will
+normally take priority in this mode. This is meant to improve the
+overall responsiveness of the system while downloading in the
+background. For high-performance server setups, this might not
+be desirable.
+
+``local_service_announce_interval`` is the time between local
+network announces for a torrent. By default, when local service
+discovery is enabled a torrent announces itself every 5 minutes.
+This interval is specified in seconds.
+
+``dht_announce_interval`` is the number of seconds between announcing
+torrents to the distributed hash table (DHT). This is specified to
+be 15 minutes which is its default.
+
+``udp_tracker_token_expiry`` is the number of seconds libtorrent
+will keep UDP tracker connection tokens around for. This is specified
+to be 60 seconds, and defaults to that. The higher this value is, the
+fewer packets have to be sent to the UDP tracker. In order for higher
+values to work, the tracker needs to be configured to match the
+expiration time for tokens.
+
+``volatile_read_cache``, if this is set to true, read cache blocks
+that are hit by peer read requests are removed from the disk cache
+to free up more space. This is useful if you don't expect the disk
+cache to create any cache hits from other peers than the one who
+triggered the cache line to be read into the cache in the first place.
+
+``guided_read_cache`` enables the disk cache to adjust the size
+of a cache line generated by peers to depend on the upload rate
+you are sending to that peer. The intention is to optimize the RAM
+usage of the cache, to read ahead further for peers that you're
+sending faster to.
+
+``default_min_cache_age`` is the minimum number of seconds any read
+cache line is kept in the cache. This defaults to one second but
+may be greater if ``guided_read_cache`` is enabled. Having a lower
+bound on the time a cache line stays in the cache is an attempt
+to avoid swapping the same pieces in and out of the cache in case
+there is a shortage of spare cache space.
+
+``num_optimistic_unchoke_slots`` is the number of optimistic unchoke
+slots to use. It defaults to 0, which means automatic. Having a higher
+number of optimistic unchoke slots mean you will find the good peers
+faster but with the trade-off to use up more bandwidth. When this is
+set to 0, libtorrent opens up 20% of your allowed upload slots as
+optimistic unchoke slots.
+
+``no_atime_storage`` this is a linux-only option and passes in the
+``O_NOATIME`` to ``open()`` when opening files. This may lead to
+some disk performance improvements.
+
+``default_est_reciprocation_rate`` is the assumed reciprocation rate
+from peers when using the BitTyrant choker. This defaults to 14 kiB/s.
+If set too high, you will over-estimate your peers and be more altruistic
+while finding the true reciprocation rate, if it's set too low, you'll
+be too stingy and waste finding the true reciprocation rate.
+
+``increase_est_reciprocation_rate`` specifies how many percent the
+extimated reciprocation rate should be increased by each unchoke
+interval a peer is still choking us back. This defaults to 20%.
+This only applies to the BitTyrant choker.
+
+``decrease_est_reciprocation_rate`` specifies how many percent the
+estimated reciprocation rate should be decreased by each unchoke
+interval a peer unchokes us. This default to 3%.
+This only applies to the BitTyrant choker.
+
+``incoming_starts_queued_torrents`` defaults to false. If a torrent
+has been paused by the auto managed feature in libtorrent, i.e.
+the torrent is paused and auto managed, this feature affects whether
+or not it is automatically started on an incoming connection. The
+main reason to queue torrents, is not to make them unavailable, but
+to save on the overhead of announcing to the trackers, the DHT and to
+avoid spreading one's unchoke slots too thin. If a peer managed to
+find us, even though we're no in the torrent anymore, this setting
+can make us start the torrent and serve it.
+
+When ``report_true_downloaded`` is true, the ``&downloaded=`` argument
+sent to trackers will include redundant downloaded bytes. It defaults
+to ``false``, which means redundant bytes are not reported to the tracker.
+
+``strict_end_game_mode`` defaults to true, and controls when a block
+may be requested twice. If this is ``true``, a block may only be requested
+twice when there's ay least one request to every piece that's left to
+download in the torrent. This may slow down progress on some pieces
+sometimes, but it may also avoid downloading a lot of redundant bytes.
+If this is ``false``, libtorrent attempts to use each peer connection
+to its max, by always requesting something, even if it means requesting
+something that has been requested from another peer already.
+
+``default_peer_upload_rate`` and ``default_peer_download_rate`` specifies
+the default upload and download rate limits for peers, respectively. These
+default to 0, which means unlimited. These settings affect the rate limits
+set on new peer connections (not existing ones). The peer rate limits can
+be changed individually later using
+`set_peer_upload_limit() set_peer_download_limit()`_.
 
 pe_settings
 ===========
@@ -4680,6 +5069,11 @@ is a bitmask with the following bits:
 | ``performance_warning``        | Alerts when some limit is reached that might limit the download     |
 |                                | or upload rate.                                                     |
 +--------------------------------+---------------------------------------------------------------------+
+| ``stats_notification``         | If you enable these alerts, you will receive a ``stats_alert``      |
+|                                | approximately once every second, for every active torrent.          |
+|                                | These alerts contain all statistics counters for the interval since |
+|                                | the lasts stats alert.                                              |
++--------------------------------+---------------------------------------------------------------------+
 | ``all_categories``             | The full bitmask, representing all available categories.            |
 +--------------------------------+---------------------------------------------------------------------+
 
@@ -4833,6 +5227,11 @@ This alert is generated when none of the ports, given in the port range, to
 session_ can be opened for listening. The ``endpoint`` member is the
 interface and port that failed, ``error`` is the error code describing
 the failure.
+
+libtorrent may sometimes try to listen on port 0, if all other ports failed.
+Port 0 asks the operating system to pick a port that's free). If that fails
+you may see a listen_failed_alert_ with port 0 even if you didn't ask to
+listen on it.
 
 ::
 
@@ -5395,6 +5794,27 @@ The ``error_code`` tells you why it failed.
 		error_code error;
 	};
 
+torrent_deleted_alert
+---------------------
+
+This alert is generated when a request to delete the files of a torrent complete.
+
+The ``info_hash`` is the info-hash of the torrent that was just deleted. Most of
+the time the torrent_handle in the ``torrent_alert`` will be invalid by the time
+this alert arrives, since the torrent is being deleted. The ``info_hash`` member
+is hence the main way of identifying which torrent just completed the delete.
+
+This alert is posted in the ``storage_notification`` category, and that bit
+needs to be set in the alert mask.
+
+::
+
+	struct torrent_deleted_alert: torrent_alert
+	{
+		// ...
+		sha1_hash info_hash;
+	};
+
 torrent_finished_alert
 ----------------------
 
@@ -5423,7 +5843,8 @@ upload or download rate performance.
 			outstanding_request_limit_reached,
 			upload_limit_too_low,
 			download_limit_too_low,
-			send_buffer_watermark_too_low
+			send_buffer_watermark_too_low,
+			too_many_optimistic_unchoke_slots
 		};
 
 		performance_warning_t warning_code;
@@ -5576,6 +5997,59 @@ generating the resume data. ``error`` describes what went wrong.
 	{
 		// ...
 		error_code error;
+	};
+
+stats_alert
+-----------
+
+This alert is posted approximately once every second, and it contains
+byte counters of most statistics that's tracked for torrents. Each active
+torrent posts these alerts regularly.
+
+::
+
+	struct stats_alert: torrent_alert
+	{
+		// ...
+		enum stats_channel
+		{
+			upload_payload,
+			upload_protocol,
+			upload_ip_protocol,
+			upload_dht_protocol,
+			upload_tracker_protocol,
+			download_payload,
+			download_protocol,
+			download_ip_protocol,
+			download_dht_protocol,
+			download_tracker_protocol,
+			num_channels
+		};
+
+		int transferred[num_channels];
+		int interval;
+	};
+
+``transferred`` this is an array of samples. The enum describes what each
+sample is a measurement of. All of these are raw, and not smoothing is performed.
+
+``interval`` the number of milliseconds during which these stats
+were collected. This is typically just above 1000, but if CPU is
+limited, it may be higher than that.
+
+
+cache_flushed_alert
+-------------------
+
+This alert is posted when the disk cache has been flushed for a specific torrent
+as a result of a call to `flush_cache()`_. This alert belongs to the
+``storage_notification`` category, which must be enabled to let this alert through.
+
+::
+
+	struct flush_cached_alert: torrent_alert
+	{
+		// ...
 	};
 
 dht_announce_alert
@@ -5880,7 +6354,7 @@ code   symbol                                    description
 ------ ----------------------------------------- -----------------------------------------------------------------
 81     packet_too_large                          The packet size exceeded the upper sanity check-limit
 ------ ----------------------------------------- -----------------------------------------------------------------
-82     http_parse_error                          Failed to parse HTTP response
+82     reserved
 ------ ----------------------------------------- -----------------------------------------------------------------
 83     http_error                                The web server responded with an error
 ------ ----------------------------------------- -----------------------------------------------------------------
@@ -5941,15 +6415,15 @@ NAT-PMP errors:
 ====== ========================================= =================================================================
 code   symbol                                    description
 ====== ========================================= =================================================================
-108    unsupported_protocol_version              The NAT-PMP router responded with an unsupported protocol version
+120    unsupported_protocol_version              The NAT-PMP router responded with an unsupported protocol version
 ------ ----------------------------------------- -----------------------------------------------------------------
-109    natpmp_not_authorized                     You are not authorized to map ports on this NAT-PMP router
+121    natpmp_not_authorized                     You are not authorized to map ports on this NAT-PMP router
 ------ ----------------------------------------- -----------------------------------------------------------------
-110    network_failure                           The NAT-PMP router failed because of a network failure
+122    network_failure                           The NAT-PMP router failed because of a network failure
 ------ ----------------------------------------- -----------------------------------------------------------------
-111    no_resources                              The NAT-PMP router failed because of lack of resources
+123    no_resources                              The NAT-PMP router failed because of lack of resources
 ------ ----------------------------------------- -----------------------------------------------------------------
-112    unsupported_opcode                        The NAT-PMP router failed because an unsupported opcode was sent
+124    unsupported_opcode                        The NAT-PMP router failed because an unsupported opcode was sent
 ====== ========================================= =================================================================
 
 fastresume data errors:
@@ -5957,38 +6431,81 @@ fastresume data errors:
 ====== ========================================= =================================================================
 code   symbol                                    description
 ====== ========================================= =================================================================
-113    missing_file_sizes                        The resume data file is missing the 'file sizes' entry
+130    missing_file_sizes                        The resume data file is missing the 'file sizes' entry
 ------ ----------------------------------------- -----------------------------------------------------------------
-114    no_files_in_resume_data                   The resume data file 'file sizes' entry is empty
+131    no_files_in_resume_data                   The resume data file 'file sizes' entry is empty
 ------ ----------------------------------------- -----------------------------------------------------------------
-115    missing_pieces                            The resume data file is missing the 'pieces' and 'slots' entry
+132    missing_pieces                            The resume data file is missing the 'pieces' and 'slots' entry
 ------ ----------------------------------------- -----------------------------------------------------------------
-116    mismatching_number_of_files               The number of files in the resume data does not match the number
+133    mismatching_number_of_files               The number of files in the resume data does not match the number
                                                  of files in the torrent
 ------ ----------------------------------------- -----------------------------------------------------------------
-117    mismatching_files_size                    One of the files on disk has a different size than in the fast
+134    mismatching_files_size                    One of the files on disk has a different size than in the fast
                                                  resume file
 ------ ----------------------------------------- -----------------------------------------------------------------
-118    mismatching_file_timestamp                One of the files on disk has a different timestamp than in the
+135    mismatching_file_timestamp                One of the files on disk has a different timestamp than in the
                                                  fast resume file
 ------ ----------------------------------------- -----------------------------------------------------------------
-119    not_a_dictionary                          The resume data file is not a dictionary
+136    not_a_dictionary                          The resume data file is not a dictionary
 ------ ----------------------------------------- -----------------------------------------------------------------
-120    invalid_blocks_per_piece                  The 'blocks per piece' entry is invalid in the resume data file
+137    invalid_blocks_per_piece                  The 'blocks per piece' entry is invalid in the resume data file
 ------ ----------------------------------------- -----------------------------------------------------------------
-121    missing_slots                             The resume file is missing the 'slots' entry, which is required
+138    missing_slots                             The resume file is missing the 'slots' entry, which is required
                                                  for torrents with compact allocation
 ------ ----------------------------------------- -----------------------------------------------------------------
-122    too_many_slots                            The resume file contains more slots than the torrent
+139    too_many_slots                            The resume file contains more slots than the torrent
 ------ ----------------------------------------- -----------------------------------------------------------------
-123    invalid_slot_list                         The 'slot' entry is invalid in the resume data
+140    invalid_slot_list                         The 'slot' entry is invalid in the resume data
 ------ ----------------------------------------- -----------------------------------------------------------------
-124    invalid_piece_index                       One index in the 'slot' list is invalid
+141    invalid_piece_index                       One index in the 'slot' list is invalid
 ------ ----------------------------------------- -----------------------------------------------------------------
-125    pieces_need_reorder                       The pieces on disk needs to be re-ordered for the specified
+142    pieces_need_reorder                       The pieces on disk needs to be re-ordered for the specified
                                                  allocation mode. This happens if you specify sparse allocation
                                                  and the files on disk are using compact storage. The pieces needs
                                                  to be moved to their right position
+====== ========================================= =================================================================
+
+HTTP errors:
+
+====== ========================================= =================================================================
+150    http_parse_error                          The HTTP header was not correctly formatted
+------ ----------------------------------------- -----------------------------------------------------------------
+151    http_missing_location                     The HTTP response was in the 300-399 range but lacked a location
+                                                 header
+------ ----------------------------------------- -----------------------------------------------------------------
+152    http_failed_decompress                    The HTTP response was encoded with gzip or deflate but
+                                                 decompressing it failed
+====== ========================================= =================================================================
+
+I2P errors:
+
+====== ========================================= =================================================================
+160    no_i2p_router                             The URL specified an i2p address, but no i2p router is configured
+====== ========================================= =================================================================
+
+tracker errors:
+
+====== ========================================= =================================================================
+170    scrape_not_available                      The tracker URL doesn't support transforming it into a scrape
+                                                 URL. i.e. it doesn't contain "announce.
+------ ----------------------------------------- -----------------------------------------------------------------
+171    invalid_tracker_response                  invalid tracker response
+------ ----------------------------------------- -----------------------------------------------------------------
+172    invalid_peer_dict                         invalid peer dictionary entry. Not a dictionary
+------ ----------------------------------------- -----------------------------------------------------------------
+173    tracker_failure                           tracker sent a failure message
+------ ----------------------------------------- -----------------------------------------------------------------
+174    invalid_files_entry                       missing or invalid 'files' entry
+------ ----------------------------------------- -----------------------------------------------------------------
+175    invalid_hash_entry                        missing or invalid 'hash' entry
+------ ----------------------------------------- -----------------------------------------------------------------
+176    invalid_peers_entry                       missing or invalid 'peers' and 'peers6' entry
+------ ----------------------------------------- -----------------------------------------------------------------
+177    invalid_tracker_response_length           udp tracker response packet has invalid size
+------ ----------------------------------------- -----------------------------------------------------------------
+178    invalid_tracker_transaction_id            invalid transaction id in udp tracker response
+------ ----------------------------------------- -----------------------------------------------------------------
+179    invalid_tracker_action                    invalid action field in udp tracker response
 ====== ========================================= =================================================================
 
 The names of these error codes are declared in then ``libtorrent::errors`` namespace.
@@ -6119,6 +6636,7 @@ The interface looks like this::
 		virtual bool rename_file(int file, std::string const& new_name) = 0;
 		virtual bool release_files() = 0;
 		virtual bool delete_files() = 0;
+		virtual void finalize_file(int index) {}
 		virtual ~storage_interface() {}
 
 		// non virtual functions
@@ -6344,6 +6862,21 @@ following members::
 		void release_memory();
 	};
 
+finalize_file()
+---------------
+
+	::
+
+		virtual void finalize_file(int index);
+
+This function is called each time a file is completely downloaded. The
+storage implementation can perform last operations on a file. The file will
+not be opened for writing after this.
+
+``index`` is the index of the file that completed.
+
+On windows the default storage implementation clears the sparse file flag
+on the specified file.
 
 magnet links
 ============
@@ -6598,7 +7131,7 @@ libtorrent starts 2 or 3 threads.
 
  * The second thread is the disk I/O thread. All disk read and write operations
    are passed to this thread and messages are passed back to the main thread when
-   the operation compeltes. The disk thread also verifies the piece hashes.
+   the operation completes. The disk thread also verifies the piece hashes.
 
  * The third and forth threads are spawned by asio on systems that don't support
    non-blocking host name resolution to simulate non-blocking getaddrinfo().
@@ -6625,7 +7158,7 @@ The allocation mode is selected when a torrent is started. It is passed as an
 argument to ``session::add_torrent()`` (see `add_torrent()`_).
 
 The decision to use full allocation or compact allocation typically depends on whether
-any files are filtered and if the filesystem supports sparse files.
+any files have priority 0 and if the filesystem supports sparse files.
 
 sparse allocation
 -----------------
@@ -6671,7 +7204,7 @@ The benefits of this mode are:
  * The fast resume data will be more likely to be usable, regardless of crashes or
    out of date data, since pieces won't move around.
 
- * Can be used with the filter files feature.
+ * Can be used with prioritizing files to 0.
 
 compact allocation
 ------------------
@@ -6685,7 +7218,7 @@ download has all its pieces in the correct place). So, the main drawbacks are:
 
  * Potentially more fragmentation in the filesystem.
 
- * Cannot be used while filtering files.
+ * Cannot be used while having files with priority 0.
 
 The benefits though, are:
 

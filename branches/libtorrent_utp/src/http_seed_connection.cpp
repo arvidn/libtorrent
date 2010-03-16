@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <limits>
+#include <boost/limits.hpp>
 #include <boost/bind.hpp>
 
 #include "libtorrent/http_seed_connection.hpp"
@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/parse_url.hpp"
+#include "libtorrent/peer_info.hpp"
 
 using boost::bind;
 using boost::shared_ptr;
@@ -113,7 +114,10 @@ namespace libtorrent
 	}
 
 	http_seed_connection::~http_seed_connection()
-	{}
+	{
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		if (t) t->disconnect_web_seed(m_url, web_seed_entry::http_seed);
+	}
 	
 	boost::optional<piece_block_progress>
 	http_seed_connection::downloading_piece_progress() const
@@ -208,8 +212,8 @@ namespace libtorrent
 			request += "&ranges=";
 			request += to_string(r.start).elems;
 			request += "-";
-			// TODO: are ranges inclusive?
-			request += to_string(r.start + r.length).elems;
+			// ranges are inclusive, just like HTTP
+			request += to_string(r.start + r.length - 1).elems;
 		}
 
 		request += " HTTP/1.1\r\n";
@@ -277,7 +281,7 @@ namespace libtorrent
 			TORRENT_ASSERT(!m_requests.empty());
 			if (m_requests.empty())
 			{
-				disconnect(error_code(errors::http_error, libtorrent_category), 2);
+				disconnect(errors::http_error, 2);
 				return;
 			}
 
@@ -296,7 +300,7 @@ namespace libtorrent
 
 				if (error)
 				{
-					disconnect(error_code(errors::http_parse_error, libtorrent_category), 2);
+					disconnect(errors::http_parse_error, 2);
 					return;
 				}
 
@@ -326,7 +330,7 @@ namespace libtorrent
 						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
 							, error_msg));
 					}
-					disconnect(error_code(errors::http_error, libtorrent_category), 1);
+					disconnect(errors::http_error, 1);
 					return;
 				}
 				if (!m_parser.header_finished())
@@ -350,14 +354,14 @@ namespace libtorrent
 					{
 						// we should not try this server again.
 						t->remove_web_seed(m_url, web_seed_entry::http_seed);
-						disconnect(error_code(errors::missing_location, libtorrent_category), 2);
+						disconnect(errors::missing_location, 2);
 						return;
 					}
 					
 					// add the redirected url and remove the current one
 					t->add_web_seed(location, web_seed_entry::http_seed);
 					t->remove_web_seed(m_url, web_seed_entry::http_seed);
-					disconnect(error_code(errors::redirecting, libtorrent_category), 2);
+					disconnect(errors::redirecting, 2);
 					return;
 				}
 
@@ -376,7 +380,7 @@ namespace libtorrent
 				{
 					// we should not try this server again.
 					t->remove_web_seed(m_url, web_seed_entry::http_seed);
-					disconnect(error_code(errors::no_content_length, libtorrent_category), 2);
+					disconnect(errors::no_content_length, 2);
 					return;
 				}
 				if (payload > m_response_left) payload = m_response_left;
@@ -412,7 +416,7 @@ namespace libtorrent
 				// temporarily unavailable, retry later
 				t->retry_web_seed(m_url, web_seed_entry::http_seed, retry_time);
 				t->remove_web_seed(m_url, web_seed_entry::http_seed);
-				disconnect(error_code(errors::http_error, libtorrent_category), 1);
+				disconnect(errors::http_error, 1);
 				return;
 			}
 

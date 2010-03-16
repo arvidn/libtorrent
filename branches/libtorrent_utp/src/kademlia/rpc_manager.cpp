@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/hasher.hpp>
+#include <libtorrent/time.hpp>
 
 #include <fstream>
 
@@ -256,7 +257,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 	{
 		TORRENT_ASSERT(*i);
 		observer_ptr const& o = *i;
-		if (o->target_ep() != ep) continue;
+		if (o->target_ep() != ep) { ++i; continue; }
 		observer_ptr ptr = *i;
 		m_transactions.erase(i++);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -270,7 +271,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 // defined in node.cpp
 void incoming_error(entry& e, char const* msg);
 
-bool rpc_manager::incoming(msg const& m)
+bool rpc_manager::incoming(msg const& m, node_id* id)
 {
 	INVARIANT_CHECK;
 
@@ -341,7 +342,11 @@ bool rpc_manager::incoming(msg const& m)
 		<< tid << " from " << m.addr;
 #endif
 	o->reply(m);
-	return m_table.node_seen(node_id(node_id_ent->string_ptr()), m.addr);
+	*id = node_id(node_id_ent->string_ptr());
+
+	// we found an observer for this reply, hence the node is not spoofing
+	// add it to the routing table
+	return m_table.node_seen(*id, m.addr);
 }
 
 time_duration rpc_manager::tick()

@@ -33,7 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_CONNECTION
 #define TORRENT_HTTP_CONNECTION
 
-#include <boost/function.hpp>
+#include <boost/function/function1.hpp>
+#include <boost/function/function2.hpp>
+#include <boost/function/function5.hpp>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -72,7 +74,7 @@ typedef boost::function<void(http_connection&, std::list<tcp::endpoint>&)> http_
 
 // when bottled, the last two arguments to the handler
 // will always be 0
-struct http_connection : boost::enable_shared_from_this<http_connection>, boost::noncopyable
+struct TORRENT_EXPORT http_connection : boost::enable_shared_from_this<http_connection>, boost::noncopyable
 {
 	http_connection(io_service& ios, connection_queue& cc
 		, http_handler const& handler, bool bottled = true

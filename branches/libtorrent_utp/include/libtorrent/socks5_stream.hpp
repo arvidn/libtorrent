@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKS5_STREAM_HPP_INCLUDED
 #define TORRENT_SOCKS5_STREAM_HPP_INCLUDED
 
+#include <boost/function/function1.hpp>
+#include <boost/bind.hpp>
 #include "libtorrent/proxy_base.hpp"
 
 namespace libtorrent {

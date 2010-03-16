@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UDP_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/io_service.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/buffer.hpp"
@@ -41,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 
 #include <vector>
-#include <boost/function.hpp>
+#include <boost/function/function4.hpp>
 
 namespace libtorrent
 {
@@ -82,6 +83,14 @@ namespace libtorrent
 			return tcp::endpoint(ep.address(), ep.port());
 		}
 
+	protected:
+
+		struct queued_packet
+		{
+			udp::endpoint ep;
+			buffer buf;
+		};
+
 	private:
 
 		callback_t m_callback;
@@ -95,7 +104,7 @@ namespace libtorrent
 		void handshake2(error_code const& e);
 		void handshake3(error_code const& e);
 		void handshake4(error_code const& e);
-		void socks_forward_udp();
+		void socks_forward_udp(mutex::scoped_lock& l);
 		void connect1(error_code const& e);
 		void connect2(error_code const& e);
 
@@ -123,12 +132,18 @@ namespace libtorrent
 		connection_queue& m_cc;
 		tcp::resolver m_resolver;
 		char m_tmp_buf[100];
+		bool m_queue_packets;
 		bool m_tunnel_packets;
 		bool m_abort;
 		udp::endpoint m_proxy_addr;
+		// while we're connecting to the proxy
+		// we have to queue the packets, we'll flush
+		// them once we're connected
+		std::list<queued_packet> m_queue;
 #ifdef TORRENT_DEBUG
 		bool m_started;
 		int m_magic;
+		int m_outstanding_when_aborted;
 #endif
 	};
 
@@ -141,11 +156,6 @@ namespace libtorrent
 		void close();
 
 	private:
-		struct queued_packet
-		{
-			udp::endpoint ep;
-			buffer buf;
-		};
 		void on_tick(error_code const& e);
 
 		deadline_timer m_timer;

@@ -32,11 +32,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/thread.hpp"
 #include <boost/tuple/tuple.hpp>
+#include <iostream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -51,7 +53,8 @@ void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type fil
 	add_torrent_params p;
 	p.ti = info;
 	p.save_path = ".";
-	torrent_handle h = ses.add_torrent(p);
+	error_code ec;
+	torrent_handle h = ses.add_torrent(p, ec);
 
 	test_sleep(500);
 	torrent_status st = h.status();
@@ -150,7 +153,8 @@ int test_main()
 		std::vector<char> tmp;
 		std::back_insert_iterator<std::vector<char> > out(tmp);
 		bencode(out, t.generate());
-		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size()));
+		error_code ec;
+		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size(), ec));
 		TEST_CHECK(info->num_pieces() > 0);
 
 		test_running_torrent(info, file_size);
@@ -166,7 +170,8 @@ int test_main()
 		std::vector<char> tmp;
 		std::back_insert_iterator<std::vector<char> > out(tmp);
 		bencode(out, t.generate());
-		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size()));
+		error_code ec;
+		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size(), ec));
 		test_running_torrent(info, 0);
 	}
 

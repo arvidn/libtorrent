@@ -36,11 +36,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/identify_client.hpp"
-#include "libtorrent/socket_io.hpp"
+#include "libtorrent/address.hpp"
+#include "libtorrent/stat.hpp"
+
+// lines reserved for future includes
+// the type-ids of the alert types
+// are derived from the line on which
+// they are declared
+
+
+
+
 
 namespace libtorrent
 {
@@ -50,17 +59,8 @@ namespace libtorrent
 			: handle(h)
 		{}
 		
-		virtual std::string message() const
-		{
-			if (!handle.is_valid()) return " - ";
-			if (handle.name().empty())
-			{
-				char msg[41];
-				to_hex((char const*)&handle.info_hash()[0], 20, msg);
-				return msg;
-			}
-			return handle.name();
-		}
+		const static int alert_type = 1;
+		virtual std::string message() const;
 
 		torrent_handle handle;
 	};
@@ -74,14 +74,10 @@ namespace libtorrent
 			, pid(pid_)
 		{}
 
+		const static int alert_type = 2;
 		const static int static_category = alert::peer_notification;
 		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			error_code ec;
-			return torrent_alert::message() + " peer (" + ip.address().to_string(ec)
-				+ ", " + identify_client(pid) + ")";
-		}
+		virtual std::string message() const;
 
 		tcp::endpoint ip;
 		peer_id pid;
@@ -95,12 +91,10 @@ namespace libtorrent
 			, url(url_)
 		{}
 
+		const static int alert_type = 3;
 		const static int static_category = alert::tracker_notification;
 		virtual int category() const { return static_category; }
-		virtual std::string message() const
-		{
-			return torrent_alert::message() + " (" + url + ")";
-		}
+		virtual std::string message() const;
 
 		std::string url;
 	};
@@ -126,13 +120,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(read_piece_alert);
 
 		const static int static_category = alert::storage_notification;
-		virtual std::string message() const
-		{
-			char msg[200];
-			snprintf(msg, sizeof(msg), "%s: piece %s %u", torrent_alert::message().c_str()
-				, buffer ? "successful" : "failed", piece);
-			return msg;
-		}
+		virtual std::string message() const;
 
 		boost::shared_array<char> buffer;
 		int piece;
@@ -150,13 +138,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(file_completed_alert);
 
 		const static int static_category = alert::progress_notification;
-		virtual std::string message() const
-		{
-			char msg[200 + TORRENT_MAX_PATH];
-			snprintf(msg, sizeof(msg), "%s: file %d finished downloading"
-				, torrent_alert::message().c_str(), index);
-			return msg;
-		}
+		virtual std::string message() const;
 
 		int index;
 	};
@@ -174,13 +156,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(file_renamed_alert);
 
 		const static int static_category = alert::storage_notification;
-		virtual std::string message() const
-		{
-			char msg[200 + TORRENT_MAX_PATH * 2];
-			snprintf(msg, sizeof(msg), "%s: file %d renamed to %s", torrent_alert::message().c_str()
-				, index, name.c_str());
-			return msg;
-		}
+		virtual std::string message() const;
 
 		std::string name;
 		int index;
@@ -200,13 +176,7 @@ namespace libtorrent
 
 		const static int static_category = alert::storage_notification;
 
-		virtual std::string message() const
-		{
-			char ret[200 + TORRENT_MAX_PATH * 2];
-			snprintf(ret, sizeof(ret), "%s: failed to rename file %d: %s"
-				, torrent_alert::message().c_str(), index, error.message().c_str());
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int index;
 		error_code error;
@@ -220,7 +190,14 @@ namespace libtorrent
 			outstanding_request_limit_reached,
 			upload_limit_too_low,
 			download_limit_too_low,
-			send_buffer_watermark_too_low
+			send_buffer_watermark_too_low,
+			too_many_optimistic_unchoke_slots,
+			bittyrant_with_no_uplimit,
+
+
+
+
+			num_warnings
 		};
 
 		performance_alert(torrent_handle const& h
@@ -233,20 +210,7 @@ namespace libtorrent
 
 		const static int static_category = alert::performance_warning;
 
-		virtual std::string message() const
-		{
-			static char const* warning_str[] =
-			{
-				"max outstanding disk writes reached",
-				"max outstanding piece requests reached",
-				"upload limit too low (download rate will suffer)",
-				"download limit too low (upload rate will suffer)",
-				"send buffer watermark too low (upload rate will suffer)"
-			};
-
-			return torrent_alert::message() + ": performance warning: "
-				+ warning_str[warning_code];
-		}
+		virtual std::string message() const;
 
 		performance_warning_t warning_code;
 	};
@@ -265,16 +229,7 @@ namespace libtorrent
 
 		const static int static_category = alert::status_notification;
 
-		virtual std::string message() const
-		{
-			static char const* state_str[] =
-				{"checking (q)", "checking", "dl metadata"
-				, "downloading", "finished", "seeding", "allocating"
-				, "checking (r)"};
-
-			return torrent_alert::message() + ": state changed to: "
-				+ state_str[state];
-		}
+		virtual std::string message() const;
 
 		torrent_status::state_t state;
 		torrent_status::state_t prev_state;
@@ -286,24 +241,13 @@ namespace libtorrent
 			, int times
 			, int status
 			, std::string const& url_
-			, error_code const& e)
+			, error_code const& e
+			, std::string const& m)
 			: tracker_alert(h, url_)
 			, times_in_row(times)
 			, status_code(status)
-			, msg(e.message())
-		{
-			TORRENT_ASSERT(!url.empty());
-		}
-
-		tracker_error_alert(torrent_handle const& h
-			, int times
-			, int status
-			, std::string const& url_
-			, std::string const& msg_)
-			: tracker_alert(h, url_)
-			, times_in_row(times)
-			, status_code(status)
-			, msg(msg_)
+			, error(e)
+			, msg(m)
 		{
 			TORRENT_ASSERT(!url.empty());
 		}
@@ -311,17 +255,11 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(tracker_error_alert);
 
 		const static int static_category = alert::tracker_notification | alert::error_notification;
-		virtual std::string message() const
-		{
-			char ret[400];
-			snprintf(ret, sizeof(ret), "%s (%d) %s (%d)"
-				, torrent_alert::message().c_str(), status_code
-				, msg.c_str(), times_in_row);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int times_in_row;
 		int status_code;
+		error_code error;
 		std::string msg;
 	};
 
@@ -337,10 +275,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(tracker_warning_alert);
 
 		const static int static_category = alert::tracker_notification | alert::error_notification;
-		virtual std::string message() const
-		{
-			return tracker_alert::message() + " warning: " + msg;
-		}
+		virtual std::string message() const;
 
 		std::string msg;
 	};
@@ -358,13 +293,7 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT(scrape_reply_alert);
 
-		virtual std::string message() const
-		{
-			char ret[400];
-			snprintf(ret, sizeof(ret), "%s scrape reply: %u %u"
-				, torrent_alert::message().c_str(), incomplete, complete);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int incomplete;
 		int complete;
@@ -389,8 +318,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(scrape_failed_alert);
 
 		const static int static_category = alert::tracker_notification | alert::error_notification;
-		virtual std::string message() const
-		{ return tracker_alert::message() + " scrape failed: " + msg; }
+		virtual std::string message() const;
 
 		std::string msg;
 	};
@@ -406,13 +334,7 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT(tracker_reply_alert);
 
-		virtual std::string message() const
-		{
-			char ret[400];
-			snprintf(ret, sizeof(ret), "%s received peers: %u"
-				, torrent_alert::message().c_str(), num_peers);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int num_peers;
 	};
@@ -427,13 +349,7 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT(dht_reply_alert);
 
-		virtual std::string message() const
-		{
-			char ret[400];
-			snprintf(ret, sizeof(ret), "%s received DHT peers: %u"
-				, torrent_alert::message().c_str(), num_peers);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int num_peers;
 	};
@@ -448,11 +364,7 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT(tracker_announce_alert);
 
-		virtual std::string message() const
-		{
-			const static char* event_str[] = {"none", "completed", "started", "stopped"};
-			return tracker_alert::message() + " sending announce (" + event_str[event] + ")";
-		}
+		virtual std::string message() const;
 
 		int event;
 	};
@@ -469,61 +381,52 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(hash_failed_alert);
 
 		const static int static_category = alert::status_notification;
-		virtual std::string message() const
-		{
-			char ret[400];
-			snprintf(ret, sizeof(ret), "%s hash for piece %u failed"
-				, torrent_alert::message().c_str(), piece_index);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int piece_index;
 	};
 
 	struct TORRENT_EXPORT peer_ban_alert: peer_alert
 	{
-		peer_ban_alert(torrent_handle h, tcp::endpoint const& ip
-			, peer_id const& pid)
-			: peer_alert(h, ip, pid)
+		peer_ban_alert(torrent_handle h, tcp::endpoint const& ep
+			, peer_id const& peer_id)
+			: peer_alert(h, ep, peer_id)
 		{}
 
 		TORRENT_DEFINE_ALERT(peer_ban_alert);
 
-		virtual std::string message() const
-		{ return peer_alert::message() + " banned peer"; }
+		virtual std::string message() const;
 	};
 
 	struct TORRENT_EXPORT peer_unsnubbed_alert: peer_alert
 	{
-		peer_unsnubbed_alert(torrent_handle h, tcp::endpoint const& ip
-			, peer_id const& pid)
-			: peer_alert(h, ip, pid)
+		peer_unsnubbed_alert(torrent_handle h, tcp::endpoint const& ep
+			, peer_id const& peer_id)
+			: peer_alert(h, ep, peer_id)
 		{}
 
 		TORRENT_DEFINE_ALERT(peer_unsnubbed_alert);
 
-		virtual std::string message() const
-		{ return peer_alert::message() + " peer unsnubbed"; }
+		virtual std::string message() const;
 	};
 
 	struct TORRENT_EXPORT peer_snubbed_alert: peer_alert
 	{
-		peer_snubbed_alert(torrent_handle h, tcp::endpoint const& ip
-			, peer_id const& pid)
-			: peer_alert(h, ip, pid)
+		peer_snubbed_alert(torrent_handle h, tcp::endpoint const& ep
+			, peer_id const& peer_id)
+			: peer_alert(h, ep, peer_id)
 		{}
 
 		TORRENT_DEFINE_ALERT(peer_snubbed_alert);
 
-		virtual std::string message() const
-		{ return peer_alert::message() + " peer snubbed"; }
+		virtual std::string message() const;
 	};
 
 	struct TORRENT_EXPORT peer_error_alert: peer_alert
 	{
-		peer_error_alert(torrent_handle const& h, tcp::endpoint const& ip
-			, peer_id const& pid, error_code const& e)
-			: peer_alert(h, ip, pid)
+		peer_error_alert(torrent_handle const& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, error_code const& e)
+			: peer_alert(h, ep, peer_id)
 			, error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
@@ -536,7 +439,6 @@ namespace libtorrent
 		const static int static_category = alert::peer_notification;
 		virtual std::string message() const
 		{
-			error_code ec;
 			return peer_alert::message() + " peer error: " + error.message();
 		}
 
@@ -549,9 +451,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT peer_connect_alert: peer_alert
 	{
-		peer_connect_alert(torrent_handle h, tcp::endpoint const& ip
-			, peer_id const& pid)
-			: peer_alert(h, ip, pid)
+		peer_connect_alert(torrent_handle h, tcp::endpoint const& ep
+			, peer_id const& peer_id)
+			: peer_alert(h, ep, peer_id)
 		{}
 
 		TORRENT_DEFINE_ALERT(peer_connect_alert);
@@ -563,9 +465,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT peer_disconnected_alert: peer_alert
 	{
-		peer_disconnected_alert(torrent_handle const& h, tcp::endpoint const& ip
-			, peer_id const& pid, error_code const& e)
-			: peer_alert(h, ip, pid)
+		peer_disconnected_alert(torrent_handle const& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, error_code const& e)
+			: peer_alert(h, ep, peer_id)
 			, error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
@@ -588,21 +490,15 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT invalid_request_alert: peer_alert
 	{
-		invalid_request_alert(torrent_handle const& h, tcp::endpoint const& ip
-			, peer_id const& pid, peer_request const& r)
-			: peer_alert(h, ip, pid)
+		invalid_request_alert(torrent_handle const& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, peer_request const& r)
+			: peer_alert(h, ep, peer_id)
 			, request(r)
 		{}
 
 		TORRENT_DEFINE_ALERT(invalid_request_alert);
 
-		virtual std::string message() const
-		{
-			char ret[200];
-			snprintf(ret, sizeof(ret), "%s peer sent an invalid piece request (piece: %u start: %u len: %u)"
-				, torrent_alert::message().c_str(), request.piece, request.start, request.length);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		peer_request request;
 	};
@@ -633,22 +529,16 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(piece_finished_alert);
 
 		const static int static_category = alert::progress_notification;
-		virtual std::string message() const
-		{
-			char ret[200];
-			snprintf(ret, sizeof(ret), "%s piece: %u finished downloading"
-				, torrent_alert::message().c_str(), piece_index);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int piece_index;
 	};
 
 	struct TORRENT_EXPORT request_dropped_alert: peer_alert
 	{
-		request_dropped_alert(const torrent_handle& h, tcp::endpoint const& ip
-			, peer_id const& pid, int block_num, int piece_num)
-			: peer_alert(h, ip, pid)
+		request_dropped_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, int block_num, int piece_num)
+			: peer_alert(h, ep, peer_id)
 			, block_index(block_num)
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
@@ -657,13 +547,7 @@ namespace libtorrent
 
 		const static int static_category = alert::progress_notification
 			| alert::peer_notification;
-		virtual std::string message() const
-		{
-			char ret[200];
-			snprintf(ret, sizeof(ret), "%s peer dropped block ( piece: %u block: %u)"
-				, torrent_alert::message().c_str(), piece_index, block_index);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int block_index;
 		int piece_index;
@@ -671,9 +555,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT block_timeout_alert: peer_alert
 	{
-		block_timeout_alert(const torrent_handle& h, tcp::endpoint const& ip
-			, peer_id const& pid, int block_num, int piece_num)
-			: peer_alert(h, ip, pid)
+		block_timeout_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, int block_num, int piece_num)
+			: peer_alert(h, ep, peer_id)
 			, block_index(block_num)
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
@@ -682,13 +566,7 @@ namespace libtorrent
 
 		const static int static_category = alert::progress_notification
 			| alert::peer_notification;
-		virtual std::string message() const
-		{
-			char ret[200];
-			snprintf(ret, sizeof(ret), "%s peer timed out request ( piece: %u block: %u)"
-				, torrent_alert::message().c_str(), piece_index, block_index);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int block_index;
 		int piece_index;
@@ -696,9 +574,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT block_finished_alert: peer_alert
 	{
-		block_finished_alert(const torrent_handle& h, tcp::endpoint const& ip
-			, peer_id const& pid, int block_num, int piece_num)
-			: peer_alert(h, ip, pid)
+		block_finished_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, int block_num, int piece_num)
+			: peer_alert(h, ep, peer_id)
 			, block_index(block_num)
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
@@ -706,13 +584,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(block_finished_alert);
 
 		const static int static_category = alert::progress_notification;
-		virtual std::string message() const
-		{
-			char ret[200];
-			snprintf(ret, sizeof(ret), "%s block finished downloading (piece: %u block: %u)"
-				, torrent_alert::message().c_str(), piece_index, block_index);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int block_index;
 		int piece_index;
@@ -720,9 +592,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT block_downloading_alert: peer_alert
 	{
-		block_downloading_alert(const torrent_handle& h, tcp::endpoint const& ip
-			, peer_id const& pid, char const* speedmsg, int block_num, int piece_num)
-			: peer_alert(h, ip, pid)
+		block_downloading_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, char const* speedmsg, int block_num, int piece_num)
+			: peer_alert(h, ep, peer_id)
 			, peer_speedmsg(speedmsg)
 			, block_index(block_num)
 			, piece_index(piece_num)
@@ -731,13 +603,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(block_downloading_alert);
 
 		const static int static_category = alert::progress_notification;
-		virtual std::string message() const
-		{
-			char ret[200];
-			snprintf(ret, sizeof(ret), "%s requested block (piece: %u block: %u) %s"
-				, torrent_alert::message().c_str(), piece_index, block_index, peer_speedmsg);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		char const* peer_speedmsg;
 		int block_index;
@@ -746,22 +612,16 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT unwanted_block_alert: peer_alert
 	{
-		unwanted_block_alert(const torrent_handle& h, tcp::endpoint const& ip
-			, peer_id const& pid, int block_num, int piece_num)
-			: peer_alert(h, ip, pid)
+		unwanted_block_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, int block_num, int piece_num)
+			: peer_alert(h, ep, peer_id)
 			, block_index(block_num)
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);}
 
 		TORRENT_DEFINE_ALERT(unwanted_block_alert);
 
-		virtual std::string message() const
-		{
-			char ret[200];
-			snprintf(ret, sizeof(ret), "%s received block not in download queue (piece: %u block: %u)"
-				, torrent_alert::message().c_str(), piece_index, block_index);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int block_index;
 		int piece_index;
@@ -807,15 +667,17 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT torrent_deleted_alert: torrent_alert
 	{
-		torrent_deleted_alert(torrent_handle const& h)
+		torrent_deleted_alert(torrent_handle const& h, sha1_hash const& ih)
 			: torrent_alert(h)
-		{}
+		{ info_hash = ih; }
 	
 		TORRENT_DEFINE_ALERT(torrent_deleted_alert);
 
 		const static int static_category = alert::storage_notification;
 		virtual std::string message() const
 		{ return torrent_alert::message() + " deleted"; }
+
+		sha1_hash info_hash;
 	};
 
 	struct TORRENT_EXPORT torrent_delete_failed_alert: torrent_alert
@@ -1076,13 +938,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(listen_failed_alert);
 
 		const static int static_category = alert::status_notification | alert::error_notification;
-		virtual std::string message() const
-		{
-			char ret[200];
-			snprintf(ret, sizeof(ret), "listening on %s failed: %s"
-				, print_endpoint(endpoint).c_str(), error.message().c_str());
-			return ret;
-		}
+		virtual std::string message() const;
 
 		tcp::endpoint endpoint;
 		error_code error;
@@ -1097,12 +953,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(listen_succeeded_alert);
 
 		const static int static_category = alert::status_notification;
-		virtual std::string message() const
-		{
-			char ret[200];
-			snprintf(ret, sizeof(ret), "successfully listening on %s", print_endpoint(endpoint).c_str());
-			return ret;
-		}
+		virtual std::string message() const;
 
 		tcp::endpoint endpoint;
 	};
@@ -1121,12 +972,7 @@ namespace libtorrent
 
 		const static int static_category = alert::port_mapping_notification
 			| alert::error_notification;
-		virtual std::string message() const
-		{
-			static char const* type_str[] = {"NAT-PMP", "UPnP"};
-			return std::string("could not map port using ") + type_str[map_type]
-				+ ": " + error.message();
-		}
+		virtual std::string message() const;
 
 		int mapping;
 		int map_type;
@@ -1145,14 +991,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(portmap_alert);
 
 		const static int static_category = alert::port_mapping_notification;
-		virtual std::string message() const
-		{
-			static char const* type_str[] = {"NAT-PMP", "UPnP"};
-			char ret[200];
-			snprintf(ret, sizeof(ret), "successfully mapped port using %s. external port: %u"
-				, type_str[map_type], external_port);
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int mapping;
 		int external_port;
@@ -1168,13 +1007,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(portmap_log_alert);
 
 		const static int static_category = alert::port_mapping_notification;
-		virtual std::string message() const
-		{
-			static char const* type_str[] = {"NAT-PMP", "UPnP"};
-			char ret[200];
-			snprintf(ret, sizeof(ret), "%s: %s", type_str[map_type], msg.c_str());
-			return ret;
-		}
+		virtual std::string message() const;
 
 		int map_type;
 		std::string msg;
@@ -1237,16 +1070,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(dht_announce_alert);
 
 		const static int static_category = alert::dht_notification;
-		virtual std::string message() const
-		{
-			error_code ec;
-			char ih_hex[41];
-			to_hex((const char*)&info_hash[0], 20, ih_hex);
-			char msg[200];
-			snprintf(msg, sizeof(msg), "incoming dht announce: %s:%u (%s)"
-				, ip.to_string(ec).c_str(), port, ih_hex);
-			return msg;
-		}
+		virtual std::string message() const;
 
 		address ip;
 		int port;
@@ -1262,16 +1086,49 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(dht_get_peers_alert);
 
 		const static int static_category = alert::dht_notification;
-		virtual std::string message() const
-		{
-			char ih_hex[41];
-			to_hex((const char*)&info_hash[0], 20, ih_hex);
-			char msg[200];
-			snprintf(msg, sizeof(msg), "incoming dht get_peers: %s", ih_hex);
-			return msg;
-		}
+		virtual std::string message() const;
 
 		sha1_hash info_hash;
+	};
+
+	struct TORRENT_EXPORT stats_alert: torrent_alert
+	{
+		stats_alert(torrent_handle const& h, int interval
+			, stat const& s);
+
+		TORRENT_DEFINE_ALERT(stats_alert);
+
+		const static int static_category = alert::stats_notification;
+		virtual std::string message() const;
+
+		enum stats_channel
+		{
+			upload_payload,
+			upload_protocol,
+			download_payload,
+			download_protocol,
+#ifndef TORRENT_DISABLE_FULL_STATS
+			upload_ip_protocol,
+			upload_dht_protocol,
+			upload_tracker_protocol,
+			download_ip_protocol,
+			download_dht_protocol,
+			download_tracker_protocol,
+#endif
+			num_channels
+		};
+
+		int transferred[num_channels];
+		int interval;
+	};
+
+	struct TORRENT_EXPORT cache_flushed_alert: torrent_alert
+	{
+		cache_flushed_alert(torrent_handle const& h);
+
+		TORRENT_DEFINE_ALERT(cache_flushed_alert);
+
+		const static int static_category = alert::storage_notification;
 	};
 }
 

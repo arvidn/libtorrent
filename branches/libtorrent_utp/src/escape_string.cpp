@@ -35,18 +35,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cctype>
 #include <algorithm>
-#include <limits>
+#include <boost/limits.hpp>
 #include <cstring>
 
 #include <boost/optional.hpp>
 #include <boost/array.hpp>
 #include <boost/tuple/tuple.hpp>
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/parse_url.hpp"
 
 #ifdef TORRENT_WINDOWS
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #endif
 
@@ -95,7 +99,8 @@ namespace libtorrent
 
 	bool is_space(char c)
 	{
-		return c == ' ' || c == '\t';
+		const static char* ws = " \t\n\r\f\v";
+		return bool(std::strchr(ws, c));
 	}
 
 	char to_lower(char c)
@@ -163,7 +168,7 @@ namespace libtorrent
 				++i;
 				if (i == s.end())
 				{
-					ec = error_code(errors::invalid_escaped_string, libtorrent_category);
+					ec = errors::invalid_escaped_string;
 					return ret;
 				}
 
@@ -173,14 +178,14 @@ namespace libtorrent
 				else if(*i >= 'a' && *i <= 'f') high = *i + 10 - 'a';
 				else
 				{
-					ec = error_code(errors::invalid_escaped_string, libtorrent_category);
+					ec = errors::invalid_escaped_string;
 					return ret;
 				}
 
 				++i;
 				if (i == s.end())
 				{
-					ec = error_code(errors::invalid_escaped_string, libtorrent_category);
+					ec = errors::invalid_escaped_string;
 					return ret;
 				}
 
@@ -190,7 +195,7 @@ namespace libtorrent
 				else if(*i >= 'a' && *i <= 'f') low = *i + 10 - 'a';
 				else
 				{
-					ec = error_code(errors::invalid_escaped_string, libtorrent_category);
+					ec = errors::invalid_escaped_string;
 					return ret;
 				}
 
@@ -467,11 +472,11 @@ namespace libtorrent
 		return ret;
 	}
 
-	boost::optional<std::string> url_has_argument(
-		std::string const& url, std::string argument)
+	std::string url_has_argument(
+		std::string const& url, std::string argument, std::string::size_type* out_pos)
 	{
 		size_t i = url.find('?');
-		if (i == std::string::npos) return boost::optional<std::string>();
+		if (i == std::string::npos) return std::string();
 		++i;
 
 		argument += '=';
@@ -479,12 +484,14 @@ namespace libtorrent
 		if (url.compare(i, argument.size(), argument) == 0)
 		{
 			size_t pos = i + argument.size();
+			if (out_pos) *out_pos = pos;
 			return url.substr(pos, url.find('&', pos) - pos);
 		}
 		argument.insert(0, "&");
 		i = url.find(argument, i);
-		if (i == std::string::npos) return boost::optional<std::string>();
+		if (i == std::string::npos) return std::string();
 		size_t pos = i + argument.size();
+		if (out_pos) *out_pos = pos;
 		return url.substr(pos, url.find('&', pos) - pos);
 	}
 
@@ -542,7 +549,7 @@ namespace libtorrent
 		return true;
 	}
 
-#if defined TORRENT_WINDOWS && defined UNICODE
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 	std::wstring convert_to_wstring(std::string const& s)
 	{
 		std::wstring ret;
@@ -623,11 +630,21 @@ namespace libtorrent
 		size_t insize = s.size();
 		size_t outsize = insize * 4;
 		ret.resize(outsize);
-		char const* in = &s[0];
+		char const* in = s.c_str();
 		char* out = &ret[0];
-		size_t retval = iconv(h, (char**)&in, &insize,
+#ifdef TORRENT_LINUX
+// linux seems to have a weird iconv signature
+#define ICONV_IN_CAST (char**)
+#else
+#define ICONV_IN_CAST
+#endif
+		size_t retval = iconv(h, ICONV_IN_CAST &in, &insize,
 			&out, &outsize);
 		if (retval == (size_t)-1) return s;
+		// if this string has an invalid utf-8 sequence in it, don't touch it
+		if (insize != 0) return s;
+		// not sure why this would happen, but it seems to be possible
+		if (outsize > s.size() * 4) return s;
 		ret.resize(outsize);
 		return ret;
 	}

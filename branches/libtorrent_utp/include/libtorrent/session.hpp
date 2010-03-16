@@ -54,7 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/alert.hpp"
+#include "libtorrent/alert.hpp" // alert::error_notification
+#include "libtorrent/add_torrent_params.hpp"
 
 #include "libtorrent/storage.hpp"
 #include <boost/preprocessor/cat.hpp>
@@ -150,40 +151,6 @@ namespace libtorrent
 		boost::shared_ptr<aux::session_impl> m_impl;
 	};
 
-	struct add_torrent_params
-	{
-		add_torrent_params(storage_constructor_type sc = default_storage_constructor)
-			: tracker_url(0)
-			, name(0)
-			, resume_data(0)
-			, storage_mode(storage_mode_sparse)
-			, paused(true)
-			, auto_managed(true)
-			, duplicate_is_error(false)
-			, storage(sc)
-			, userdata(0)
-			, seed_mode(false)
-			, override_resume_data(false)
-			, upload_mode(false)
-		{}
-
-		boost::intrusive_ptr<torrent_info> ti;
-		char const* tracker_url;
-		sha1_hash info_hash;
-		char const* name;
-		std::string save_path;
-		std::vector<char>* resume_data;
-		storage_mode_t storage_mode;
-		bool paused;
-		bool auto_managed;
-		bool duplicate_is_error;
-		storage_constructor_type storage;
-		void* userdata;
-		bool seed_mode;
-		bool override_resume_data;
-		bool upload_mode;
-	};
-	
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
 	{
 	public:
@@ -209,6 +176,22 @@ namespace libtorrent
 			
 		~session();
 
+		enum save_state_flags_t
+		{
+			save_settings = 0x001,
+			save_dht_settings = 0x002,
+			save_dht_proxy = 0x004,
+			save_dht_state = 0x008,
+			save_i2p_proxy = 0x010,
+			save_encryption_settings = 0x020,
+			save_peer_proxy = 0x040,
+			save_web_proxy = 0x080,
+			save_tracker_proxy = 0x100,
+			save_as_map = 0x200
+		};
+		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
+		void load_state(lazy_entry const& e);
+
 		// returns a list of all torrents in this session
 		std::vector<torrent_handle> get_torrents() const;
 		
@@ -218,9 +201,12 @@ namespace libtorrent
 		torrent_handle find_torrent(sha1_hash const& info_hash) const;
 
 		// all torrent_handles must be destructed before the session is destructed!
+#ifndef BOOST_NO_EXCEPTIONS
 		torrent_handle add_torrent(add_torrent_params const& params);
+#endif
 		torrent_handle add_torrent(add_torrent_params const& params, error_code& ec);
 		
+#ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.14
 		TORRENT_DEPRECATED_PREFIX
@@ -256,6 +242,7 @@ namespace libtorrent
 			, storage_constructor_type sc = default_storage_constructor
 			, void* userdata = 0) TORRENT_DEPRECATED;
 #endif
+#endif
 
 		session_proxy abort() { return session_proxy(m_impl); }
 
@@ -270,10 +257,17 @@ namespace libtorrent
 			, std::vector<cached_piece_info>& ret) const;
 
 #ifndef TORRENT_DISABLE_DHT
-		void start_dht(entry const& startup_state = entry());
+		void start_dht();
 		void stop_dht();
 		void set_dht_settings(dht_settings const& settings);
-		entry dht_state() const;
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.15
+		// use save_state and load_state instead
+		TORRENT_DEPRECATED_PREFIX
+		entry dht_state() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void start_dht(entry const& startup_state) TORRENT_DEPRECATED;
+#endif
 		void add_dht_node(std::pair<std::string, int> const& node);
 		void add_dht_router(std::pair<std::string, int> const& node);
 		bool is_dht_running() const;
@@ -298,8 +292,14 @@ namespace libtorrent
 #endif
 #endif
 
-		void load_state(entry const& ses_state);
-		entry state() const;
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.15
+		// use load_state and save_state instead
+		TORRENT_DEPRECATED_PREFIX
+		void load_state(entry const& ses_state) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		entry state() const TORRENT_DEPRECATED;
+#endif
 
 		void set_ip_filter(ip_filter const& f);
 		ip_filter const& get_ip_filter() const;

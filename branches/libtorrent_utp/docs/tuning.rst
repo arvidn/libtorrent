@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.15.0
+:Version: 0.16.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -168,6 +168,15 @@ support, you need to patch parts of boost.
 
 Also make sure to optimize for size when compiling.
 
+reduce statistics
+-----------------
+
+You can save some memory for each connection and each torrent by reducing the
+number of separate rates kept track of by libtorrent. If you build with ``full-stats=off``
+(or ``-DTORRENT_DISABLE_FULL_STATS``) you will save a few hundred bytes for each
+connection and torrent. It might make a difference if you have a very large number
+of peers or torrents.
+
 play nice with the disk
 =======================
 
@@ -220,6 +229,44 @@ to true.
 In order to increase the possibility of read cache hits, set the
 ``session_settings::cache_expiry`` to a large number. This won't degrade anything as
 long as the client is only seeding, and not downloading any torrents.
+
+In order to increase the disk cache hit rate, you can enable suggest messages based on
+what's in the read cache. To do this, set ``session_settings::suggest_mode`` to
+``session_settings::suggest_read_cache``. This will send suggest messages to peers
+for the most recently used pieces in the read cache. This is especially useful if you
+also enable explicit read cache, by settings ``session_settings::explicit_read_cache``
+to the number of pieces to keep in the cache. The explicit read cache will make the
+disk read cache stick, and not be evicted by cache misses. The explicit read cache
+will automatically pull in the rarest pieces in the read cache.
+
+Assuming that you seed much more data than you can keep in the cache, to a large
+numbers of peers (so that the read cache wouldn't be useful anyway), this may be a
+good idea.
+
+When peers first connect, libtorrent will send them a number of allow-fast messages,
+which lets the peers download certain pieces even when they are choked, since peers
+are choked by default, this often triggers immediate requests for those pieces. In the
+case of using explicit read cache and suggesting those pieces, allowing fast pieces
+should be disabled, to not systematically trigger requests for pieces that are not cached
+for all peers. You can turn off allow-fast by settings ``session_settings::allowed_fast_set_size``
+to 0.
+
+As an alternative to the explicit cache and suggest messages, there's a *guided cache*
+mode. This means the size of the read cache line that's stored in the cache is determined
+based on the upload rate to the peer that triggered the read operation. The idea being
+that slow peers don't use up a disproportional amount of space in the cache. This
+is enabled through ``session_settings::guided_read_cache``.
+
+In cases where the assumption is that the cache is only used as a read-ahead, and that no
+other peer will ever request the same block while it's still in the cache, the read
+cache can be set to be *volatile*. This means that every block that is requested out of
+the read cache is removed immediately. This saves a significant amount of cache space
+which can be used as read-ahead for other peers. This mode should **never** be combined
+with either ``explicit_read_cache`` or ``suggest_read_cache``, since those uses opposite
+strategies for the read cache. You don't want to on one hand attract peers to request
+the same pieces, and on the other hand assume that they won't request the same pieces
+and drop them when the first peer requests it. To enable volatile read cache, set
+``session_settings::volatile_read_cache`` to true.
 
 send buffer low watermark
 -------------------------

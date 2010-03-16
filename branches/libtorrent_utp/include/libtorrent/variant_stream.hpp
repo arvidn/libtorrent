@@ -56,8 +56,8 @@ namespace aux
   template<class IO_Control_Command>
   struct io_control_visitor_ec: boost::static_visitor<>
   {
-      io_control_visitor_ec(IO_Control_Command& ioc, error_code& ec_)
-          : ioc(ioc), ec(ec_) {}
+      io_control_visitor_ec(IO_Control_Command& io, error_code& e)
+          : ioc(io), ec(e) {}
 
       template <class T>
       void operator()(T* p) const
@@ -76,8 +76,8 @@ namespace aux
   struct io_control_visitor
       : boost::static_visitor<>
   {
-      io_control_visitor(IO_Control_Command& ioc)
-          : ioc(ioc) {}
+      io_control_visitor(IO_Control_Command& io)
+          : ioc(io) {}
 
       template <class T>
       void operator()(T* p) const
@@ -96,9 +96,9 @@ namespace aux
   struct async_connect_visitor
     : boost::static_visitor<>
   {
-      async_connect_visitor(EndpointType const& endpoint, Handler const& handler)
-        : endpoint(endpoint)
-        , handler(handler)
+      async_connect_visitor(EndpointType const& ep, Handler const& h)
+        : endpoint(ep)
+        , handler(h)
       {}
 
       template <class T>
@@ -357,9 +357,9 @@ namespace aux
   struct async_read_some_visitor
     : boost::static_visitor<>
   {
-      async_read_some_visitor(Mutable_Buffers const& buffers, Handler const& handler)
-        : buffers(buffers)
-        , handler(handler)
+      async_read_some_visitor(Mutable_Buffers const& bufs, Handler const& h)
+        : buffers(bufs)
+        , handler(h)
       {}
 
       template <class T>
@@ -381,8 +381,8 @@ namespace aux
   struct read_some_visitor
     : boost::static_visitor<std::size_t>
   {
-      read_some_visitor(Mutable_Buffers const& buffers)
-        : buffers(buffers)
+      read_some_visitor(Mutable_Buffers const& bufs)
+        : buffers(bufs)
       {}
 
       template <class T>
@@ -400,9 +400,9 @@ namespace aux
   struct read_some_visitor_ec
     : boost::static_visitor<std::size_t>
   {
-      read_some_visitor_ec(Mutable_Buffers const& buffers, error_code& ec_)
-        : buffers(buffers)
-        , ec(ec_)
+      read_some_visitor_ec(Mutable_Buffers const& bufs, error_code& e)
+        : buffers(bufs)
+        , ec(e)
       {}
 
       template <class T>
@@ -422,9 +422,9 @@ namespace aux
   struct async_write_some_visitor
     : boost::static_visitor<>
   {
-      async_write_some_visitor(Const_Buffers const& buffers, Handler const& handler)
-        : buffers(buffers)
-        , handler(handler)
+      async_write_some_visitor(Const_Buffers const& bufs, Handler const& h)
+        : buffers(bufs)
+        , handler(h)
       {}
 
       template <class T>

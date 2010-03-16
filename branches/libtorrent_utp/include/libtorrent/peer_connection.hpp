@@ -38,7 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 #include "libtorrent/debug.hpp"
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -46,37 +48,36 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/smart_ptr.hpp>
 #include <boost/weak_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/pool/pool.hpp>
+#include <boost/aligned_storage.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
 #include "libtorrent/buffer.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/storage.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
-#include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/session.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/policy.hpp"
-#include "libtorrent/socket_type.hpp"
+#include "libtorrent/socket_type_fwd.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/chained_buffer.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/bandwidth_socket.hpp"
+#include "libtorrent/socket_type_fwd.hpp"
+#include "libtorrent/error_code.hpp"
 
 #ifdef TORRENT_STATS
 #include "libtorrent/aux_/session_impl.hpp"
@@ -86,6 +87,8 @@ namespace libtorrent
 {
 	class torrent;
 	struct peer_plugin;
+	struct peer_info;
+	struct disk_io_job;
 
 	namespace detail
 	{
@@ -95,7 +98,8 @@ namespace libtorrent
 	struct pending_block
 	{
 		pending_block(piece_block const& b)
-			: skipped(0), not_wanted(false), timed_out(false), block(b) {}
+			: skipped(0), not_wanted(false), timed_out(false)
+			, busy(false), block(b) {}
 
 		// the number of times the request
 		// has been skipped by out of order blocks
@@ -109,6 +113,12 @@ namespace libtorrent
 		// unexpectedly from the peer
 		bool not_wanted:1;
 		bool timed_out:1;
+		
+		// the busy flag is set if the block was
+		// requested from another peer when this
+		// request was queued. We only allow a single
+		// busy request at a time in each peer's queue
+		bool busy:1;
 
 		piece_block block;
 
@@ -262,23 +272,18 @@ namespace libtorrent
 
 		bool is_seed() const;
 
-		void set_upload_only(bool u)
-		{
-			m_upload_only = u;
-			disconnect_if_redundant();
-		}
-
+		void set_upload_only(bool u);
 		bool upload_only() const { return m_upload_only; }
 
 		// will send a keep-alive message to the peer
 		void keep_alive();
 
 		peer_id const& pid() const { return m_peer_id; }
-		void set_pid(const peer_id& pid) { m_peer_id = pid; }
+		void set_pid(const peer_id& peer_id) { m_peer_id = peer_id; }
 		bool has_piece(int i) const;
 
 		std::vector<pending_block> const& download_queue() const;
-		std::vector<piece_block> const& request_queue() const;
+		std::vector<pending_block> const& request_queue() const;
 		std::vector<peer_request> const& upload_queue() const;
 
 		// estimate of how long it will take until we have
@@ -380,6 +385,8 @@ namespace libtorrent
 
 		int desired_queue_size() const { return m_desired_queue_size; }
 
+		bool bittyrant_unchoke_compare(
+			boost::intrusive_ptr<peer_connection const> const& p) const;
 		// compares this connection against the given connection
 		// for which one is more eligible for an unchoke.
 		// returns true if this is more eligible
@@ -393,6 +400,10 @@ namespace libtorrent
 		// if this peer connection is useless (neither party is
 		// interested in the other), disconnect it
 		void disconnect_if_redundant();
+
+		void increase_est_reciprocation_rate();
+		void decrease_est_reciprocation_rate();
+		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<logger> m_logger;
@@ -434,6 +445,7 @@ namespace libtorrent
 		bool send_unchoke();
 		void send_interested();
 		void send_not_interested();
+		void send_suggest(int piece);
 
 		void snub_peer();
 
@@ -443,7 +455,8 @@ namespace libtorrent
 
 		// adds a block to the request queue
 		// returns true if successful, false otherwise
-		bool add_request(piece_block const& b, bool time_critical = false);
+		enum flags_t { req_time_critical = 1, req_busy = 2 };
+		bool add_request(piece_block const& b, int flags = 0);
 
 		// clears the request queue and sends cancels for all messages
 		// in the download queue
@@ -492,14 +505,14 @@ namespace libtorrent
 		virtual buffer::interval allocate_send_buffer(int size);
 		virtual void setup_send();
 
-#if TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 		void log_buffer_usage(char* buffer, int size, char const* label);
 #endif
 
 		template <class Destructor>
 		void append_send_buffer(char* buffer, int size, Destructor const& destructor)
 		{
-#if TORRENT_STATS
+#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 			log_buffer_usage(buffer, size, "queued send buffer");
 #endif
 			m_send_buffer.append_buffer(buffer, size, size, destructor);
@@ -555,6 +568,7 @@ namespace libtorrent
 		virtual void write_have(int index) = 0;
 		virtual void write_keepalive() = 0;
 		virtual void write_piece(peer_request const& r, disk_buffer_holder& buffer) = 0;
+		virtual void write_suggest(int piece) = 0;
 		
 		virtual void write_reject_request(peer_request const& r) = 0;
 		virtual void write_allow_fast(int piece) = 0;
@@ -647,11 +661,12 @@ namespace libtorrent
 		boost::intrusive_ptr<peer_connection> self()
 		{
 			TORRENT_ASSERT(!m_in_constructor);
-			return intrusive_ptr<peer_connection>(this);
+			return boost::intrusive_ptr<peer_connection>(this);
 		}
 
 	private:
 
+		std::pair<int, int> preferred_caching() const;
 		void fill_send_buffer();
 		void on_disk_read_complete(int ret, disk_io_job const& j, peer_request r);
 		void on_disk_write_complete(int ret, disk_io_job const& j
@@ -683,6 +698,10 @@ namespace libtorrent
 		// the time when we unchoked this peer
 		ptime m_last_unchoke;
 
+		// if we're unchoked by this peer, this
+		// was the time
+		ptime m_last_unchoked;
+
 		// timeouts
 		ptime m_last_receive;
 		ptime m_last_sent;
@@ -692,11 +711,6 @@ namespace libtorrent
 		// for each entry that is popped from the
 		// download queue. Used for request timeout
 		ptime m_requested;
-
-		// if the timeout is extended for the outstanding
-		// requests, this is the number of seconds it was
-		// extended.
-		int m_timeout_extend;
 
 		// a timestamp when the remote download rate
 		// was last updated
@@ -769,7 +783,7 @@ namespace libtorrent
 
 		// the blocks we have reserved in the piece
 		// picker and will request from this peer.
-		std::vector<piece_block> m_request_queue;
+		std::vector<pending_block> m_request_queue;
 		
 		// the queue of blocks we have requested
 		// from this peer
@@ -795,11 +809,20 @@ namespace libtorrent
 		// (-1, -1) if we're not receiving one
 		piece_block m_receiving_block;
 
+		// if the timeout is extended for the outstanding
+		// requests, this is the number of seconds it was
+		// extended.
+		int m_timeout_extend;
+
 		// the number of bytes that the other
 		// end has to send us in order to respond
 		// to all outstanding piece requests we
 		// have sent to it
 		int m_outstanding_bytes;
+
+		// the number of outstanding bytes expected
+		// to be received by extensions
+		int m_extension_outstanding_bytes;
 
 		// the number of time critical requests
 		// queued up in the m_request_queue that
@@ -895,6 +918,12 @@ namespace libtorrent
 		// max transfer rates seen on this peer
 		int m_download_rate_peak;
 		int m_upload_rate_peak;
+
+		// when using the BitTyrant choker, this is our
+		// estimated reciprocation rate. i.e. the rate
+		// we need to send to this peer for it to unchoke
+		// us
+		int m_est_reciprocation_rate;
 
 		// estimated round trip time to this peer
 		// based on the time from when async_connect
@@ -1010,6 +1039,9 @@ namespace libtorrent
 		// if this is set to true, the client will not
 		// pick any pieces from this peer
 		bool m_no_download:1;
+
+		// set to true when we've sent the first round of suggests
+		bool m_sent_suggests:1;
 		
 		template <std::size_t Size>
 		struct handler_storage
@@ -1031,10 +1063,10 @@ namespace libtorrent
 		struct allocating_handler
 		{
 			allocating_handler(
-				Handler const& handler, handler_storage<Size>& storage
+				Handler const& h, handler_storage<Size>& s
 			)
-			  : handler(handler)
-			  , storage(storage)
+			  : handler(h)
+			  , storage(s)
 			{}
 
 			template <class A0>

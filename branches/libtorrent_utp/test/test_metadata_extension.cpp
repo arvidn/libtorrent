@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
+#include <iostream>
 
 using boost::tuples::ignore;
 
@@ -63,7 +64,7 @@ void test_transfer(bool clear_files, bool disconnect
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, clear_files, true, true, "_meta");	
 
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 80; ++i)
 	{
 		// make sure this function can be called on
 		// torrents without metadata

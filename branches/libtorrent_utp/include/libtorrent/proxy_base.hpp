@@ -34,18 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PROXY_BASE_HPP_INCLUDED
 
 #include "libtorrent/io.hpp"
+#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/error_code.hpp"
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
-#if BOOST_VERSION < 103500
-#include <asio/read.hpp>
-#include <asio/write.hpp>
-#else
-#include <boost/asio/read.hpp>
-#include <boost/asio/write.hpp>
-#endif
 
 namespace libtorrent {
 
@@ -80,7 +73,13 @@ public:
 		return m_sock.read_some(buffers, ec);
 	}
 
+	std::size_t available(error_code& ec) const
+	{ return m_sock.available(ec); }
+
 #ifndef BOOST_NO_EXCEPTIONS
+	std::size_t available() const
+	{ return m_sock.available(); }
+
 	template <class Mutable_Buffers>
 	std::size_t read_some(Mutable_Buffers const& buffers)
 	{
@@ -166,7 +165,7 @@ public:
 	}
 #endif
 
-	endpoint_type remote_endpoint(error_code& ec) const
+	endpoint_type remote_endpoint(error_code& /*ec*/) const
 	{
 		return m_remote_endpoint;
 	}

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -51,6 +52,7 @@ struct node_entry
 		first_seen = time_now();
 #endif
 	}
+
 	node_entry(udp::endpoint ep)
 		: addr(ep.address())
 		, port(ep.port())

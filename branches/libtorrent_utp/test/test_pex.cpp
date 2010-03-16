@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include <iostream>
 
 void test_pex()
 {

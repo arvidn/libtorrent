@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
-#include <boost/optional.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/detail/atomic_count.hpp>
 
@@ -85,7 +84,7 @@ namespace libtorrent { namespace dht
 
 		void add_node(udp::endpoint node);
 		void add_node(std::pair<std::string, int> const& node);
-		void add_router_node(std::pair<std::string, int> const& node);
+		void add_router_node(udp::endpoint const& node);
 
 		entry state() const;
 

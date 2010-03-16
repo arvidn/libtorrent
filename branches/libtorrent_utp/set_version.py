@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 import os
 import sys
 
@@ -36,6 +37,7 @@ substitute_file('configure.ac')
 substitute_file('docs/manual.rst')
 substitute_file('docs/building.rst')
 substitute_file('docs/features.rst')
+substitute_file('docs/contributing.rst')
 substitute_file('docs/tuning.rst')
 substitute_file('Jamfile')
 

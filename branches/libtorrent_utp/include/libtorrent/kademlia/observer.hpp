@@ -37,7 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/detail/atomic_count.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/cstdint.hpp>
-#include <libtorrent/time.hpp>
+#include <libtorrent/ptime.hpp>
+#include <libtorrent/address.hpp>
 
 namespace libtorrent {
 namespace dht {
@@ -127,7 +128,7 @@ protected:
 
 	const boost::intrusive_ptr<traversal_algorithm> m_algorithm;
 
-	union addr_t
+	TORRENT_UNION addr_t
 	{
 #if TORRENT_USE_IPV6
 		address_v6::bytes_type v6;

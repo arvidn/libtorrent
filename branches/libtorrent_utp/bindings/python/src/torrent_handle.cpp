@@ -5,6 +5,7 @@
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
 #include <libtorrent/torrent_handle.hpp>
+#include <libtorrent/peer_info.hpp>
 #include <boost/lexical_cast.hpp>
 #include "gil.hpp"
 
@@ -160,21 +161,7 @@ void replace_trackers(torrent_handle& h, object trackers)
         if (entry == handle<>())
             break;
 
-        dict d;
-        d = extract<dict>(object(entry));
-
-        std::string url;
-        url = extract<std::string>(d["url"]);
-
-        announce_entry a(url);
-
-        if (d.has_key("tier"))
-            a.tier = extract<int>(d["tier"]);
-
-        if (d.has_key("fail_limit"))
-            a.fail_limit = extract<int>(d["fail_limit"]);
-
-        result.push_back(a);
+        result.push_back(extract<announce_entry const&>(object(entry)));
     }
 
     allow_threading_guard guard;
@@ -274,11 +261,6 @@ void add_piece(torrent_handle& th, int piece, char const *data, int flags)
    th.add_piece(piece, data, flags);
 }
 
-void set_piece_deadline(torrent_handle const& th, int index, int deadline_ms, int flags)
-{
-	th.set_piece_deadline(index, milliseconds(deadline_ms), flags);
-}
-
 void bind_torrent_handle()
 {
     void (torrent_handle::*force_reannounce0)() const = &torrent_handle::force_reannounce;
@@ -342,7 +324,7 @@ void bind_torrent_handle()
 #endif
         .def("add_piece", add_piece)
         .def("read_piece", _(&torrent_handle::read_piece))
-        .def("set_piece_deadline", &set_piece_deadline
+        .def("set_piece_deadline", _(&torrent_handle::set_piece_deadline)
             , (arg("index"), arg("deadline"), arg("flags") = 0))
         .def("piece_availability", &piece_availability)
         .def("piece_priority", _(piece_priority0))

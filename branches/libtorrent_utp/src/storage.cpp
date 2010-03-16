@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <ctime>
-#include <iterator>
 #include <algorithm>
 #include <set>
 #include <functional>
@@ -66,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/alloca.hpp"
+#include "libtorrent/allocator.hpp" // page_size
 
 #include <cstdio>
 
@@ -196,7 +196,7 @@ namespace libtorrent
 	{
 		if ((int)sizes.size() != fs.num_files())
 		{
-			error = error_code(errors::mismatching_number_of_files, libtorrent_category);
+			error = errors::mismatching_number_of_files;
 			return false;
 		}
 		p = complete(p);
@@ -223,7 +223,7 @@ namespace libtorrent
 			if ((compact_mode && size != size_iter->first)
 				|| (!compact_mode && size < size_iter->first))
 			{
-				error = error_code(errors::mismatching_file_size, libtorrent_category);
+				error = errors::mismatching_file_size;
 				return false;
 			}
 			// allow one second 'slack', because of FAT volumes
@@ -232,7 +232,7 @@ namespace libtorrent
 			if ((compact_mode && (time > size_iter->second + 1 || time < size_iter->second - 1)) ||
 				(!compact_mode && (time > size_iter->second + 5 * 60 || time < size_iter->second - 1)))
 			{
-				error = error_code(errors::mismatching_file_timestamp, libtorrent_category);
+				error = errors::mismatching_file_timestamp;
 				return false;
 			}
 		}
@@ -340,22 +340,16 @@ namespace libtorrent
 		storage(file_storage const& fs, file_storage const* mapped, std::string const& path, file_pool& fp)
 			: m_files(fs)
 			, m_pool(fp)
-			, m_page_size(4096)
+			, m_page_size(page_size())
 			, m_allocate_files(false)
 		{
 			if (mapped) m_mapped_files.reset(new file_storage(*mapped));
 
 			TORRENT_ASSERT(m_files.begin() != m_files.end());
 			m_save_path = complete(path);
-#ifdef TORRENT_WINDOWS
-			SYSTEM_INFO si;
-			GetSystemInfo(&si);
-			m_page_size = si.dwPageSize;
-#else
-			m_page_size = sysconf(_SC_PAGESIZE);
-#endif
 		}
 
+		void finalize_file(int file);
 		bool has_any_file();
 		bool rename_file(int index, std::string const& new_filename);
 		bool release_files();
@@ -404,6 +398,9 @@ namespace libtorrent
 
 		boost::scoped_ptr<file_storage> m_mapped_files;
 		file_storage const& m_files;
+
+		// helper function to open a file in the file pool with the right mode
+		boost::shared_ptr<file> open_file(file_entry const& fe, int mode, error_code& ec) const;
 
 		std::vector<boost::uint8_t> m_file_priority;
 		std::string m_save_path;
@@ -547,20 +544,12 @@ namespace libtorrent
 			if (ec || s.file_size > file_iter->size || file_iter->size == 0)
 			{
 				ec.clear();
-				int mode = file::read_write;
-				if (m_settings
-					&& (settings().disk_io_read_mode == session_settings::disable_os_cache
-					|| (settings().disk_io_read_mode == session_settings::disable_os_cache_for_aligned_files
-					&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)))
-					mode |= file::no_buffer;
-				if (!m_allocate_files) mode |= file::sparse;
-				boost::shared_ptr<file> f = m_pool.open_file(this
-					, combine_path(m_save_path, file_iter->path), mode, ec);
-				if (ec) set_error(combine_path(m_save_path, file_iter->path), ec);
+				boost::shared_ptr<file> f = open_file(*file_iter, file::read_write, ec);
+				if (ec) set_error(file_path, ec);
 				else if (f)
 				{
 					f->set_size(file_iter->size, ec);
-					if (ec) set_error(combine_path(m_save_path, file_iter->path), ec);
+					if (ec) set_error(file_path, ec);
 				}
 			}
 
@@ -571,6 +560,18 @@ namespace libtorrent
 		// close files that were opened in write mode
 		m_pool.release(this);
 		return false;
+	}
+
+	void storage::finalize_file(int index)
+	{
+		TORRENT_ASSERT(index >= 0 && index < m_files.num_files());
+		if (index < 0 || index >= m_files.num_files()) return;
+	
+		error_code ec;
+		boost::shared_ptr<file> f = open_file(files().at(index), file::read_write, ec);
+		if (ec || !f) return;
+
+		f->finalize();
 	}
 
 	bool storage::has_any_file()
@@ -646,7 +647,7 @@ namespace libtorrent
 			ret.second = true;
 			while (ret.second && !bp.empty())
 			{
-				std::pair<iter_t, bool> ret = directories.insert(combine_path(m_save_path, bp));
+				ret = directories.insert(combine_path(m_save_path, bp));
 				bp = parent_path(bp);
 			}
 			delete_one_file(p);
@@ -703,19 +704,8 @@ namespace libtorrent
 			TORRENT_ASSERT(file_iter != files().end());
 		}
 	
-		std::string path = combine_path(m_save_path, file_iter->path);
 		error_code ec;
-		int mode = file::read_only;
-
-		boost::shared_ptr<file> file_handle;
-		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
-		if (cache_setting == session_settings::disable_os_cache
-			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
-			&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0))
-			mode |= file::no_buffer;
-		if (!m_allocate_files) mode |= file::sparse;
-
-		file_handle = m_pool.open_file(const_cast<storage*>(this), path, mode, ec);
+		boost::shared_ptr<file> file_handle = open_file(*file_iter, file::read_only, ec);
 		if (!file_handle || ec) return slot;
 
 		size_type data_start = file_handle->sparse_end(file_offset);
@@ -749,7 +739,7 @@ namespace libtorrent
 		lazy_entry const* file_sizes_ent = rd.dict_find_list("file sizes");
 		if (file_sizes_ent == 0)
 		{
-			error = error_code(errors::missing_file_sizes, libtorrent_category);
+			error = errors::missing_file_sizes;
 			return false;
 		}
 		
@@ -767,7 +757,7 @@ namespace libtorrent
 
 		if (file_sizes.empty())
 		{
-			error = error_code(errors::no_files_in_resume_data, libtorrent_category);
+			error = errors::no_files_in_resume_data;
 			return false;
 		}
 		
@@ -803,7 +793,7 @@ namespace libtorrent
 		}
 		else
 		{
-			error = error_code(errors::missing_pieces, libtorrent_category);
+			error = errors::missing_pieces;
 			return false;
 		}
 
@@ -815,7 +805,7 @@ namespace libtorrent
 		{
 			if (files().num_files() != (int)file_sizes.size())
 			{
-				error = error_code(errors::mismatching_number_of_files, libtorrent_category);
+				error = errors::mismatching_number_of_files;
 				return false;
 			}
 
@@ -828,7 +818,7 @@ namespace libtorrent
 			{
 				if (!i->pad_file && i->size != fs->first)
 				{
-					error = error_code(errors::mismatching_file_size, libtorrent_category);
+					error = errors::mismatching_file_size;
 					return false;
 				}
 			}
@@ -1033,7 +1023,7 @@ ret:
 		}
 		return ret;
 #else
-	return readwritev(bufs, slot, offset, num_bufs, op);
+		return readwritev(bufs, slot, offset, num_bufs, op);
 #endif
 	}
 
@@ -1051,13 +1041,10 @@ ret:
 		size_type file_offset = tor_off - file_iter->offset;
 		TORRENT_ASSERT(file_offset >= 0);
 
-		std::string p = combine_path(m_save_path, file_iter->path);
-		error_code ec;
-	
 		// open the file read only to avoid re-opening
 		// it in case it's already opened in read-only mode
-		boost::shared_ptr<file> f = m_pool.open_file(
-			this, p, file::read_only, ec);
+		error_code ec;
+		boost::shared_ptr<file> f = open_file(*file_iter, file::read_only, ec);
 
 		size_type ret = 0;
 		if (f && !ec) ret = f->phys_offset(file_offset);
@@ -1198,20 +1185,11 @@ ret:
 				continue;
 			}
 
-			std::string path = combine_path(m_save_path, file_iter->path);
-
 			error_code ec;
-			int mode = op.mode;
-
-			if (op.cache_setting == session_settings::disable_os_cache
-				|| (op.cache_setting == session_settings::disable_os_cache_for_aligned_files
-				&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0))
-				mode |= file::no_buffer;
-			if (!m_allocate_files) mode |= file::sparse;
-
-			file_handle = m_pool.open_file(this, path, mode, ec);
+			file_handle = open_file(*file_iter, op.mode, ec);
 			if (!file_handle || ec)
 			{
+				std::string path = combine_path(m_save_path, file_iter->path);
 				TORRENT_ASSERT(ec);
 				set_error(path, ec);
 				return -1;
@@ -1315,6 +1293,19 @@ ret:
 	{
 		file::iovec_t b = { (file::iovec_base_t)buf, size };
 		return readv(&b, slot, offset, 1);
+	}
+
+	boost::shared_ptr<file> storage::open_file(file_entry const& fe, int mode, error_code& ec) const
+	{
+		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
+		if (cache_setting == session_settings::disable_os_cache
+			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
+			&& ((fe.offset + fe.file_base) & (m_page_size-1)) == 0))
+			mode |= file::no_buffer;
+		if (!m_allocate_files) mode |= file::sparse;
+		if (m_settings && settings().no_atime_storage) mode |= file::no_atime;
+
+		return m_pool.open_file(const_cast<storage*>(this), combine_path(m_save_path, fe.path), mode, ec);
 	}
 
 	storage_interface* default_storage_constructor(file_storage const& fs
@@ -1433,8 +1424,21 @@ ret:
 		m_storage->m_disk_pool = &m_io_thread;
 	}
 
+	void piece_manager::finalize_file(int index)
+	{ m_storage->finalize_file(index); }
+
 	piece_manager::~piece_manager()
 	{
+	}
+
+	void piece_manager::async_finalize_file(int file)
+	{
+		disk_io_job j;
+		j.storage = this;
+		j.action = disk_io_job::finalize_file;
+		j.piece = file;
+		boost::function<void(int, disk_io_job const&)> empty;
+		m_io_thread.add_job(j, empty);
 	}
 
 	void piece_manager::async_save_resume_data(
@@ -1522,7 +1526,7 @@ ret:
 	void piece_manager::async_read_and_hash(
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler
-		, int priority)
+		, int cache_expiry)
 	{
 		disk_io_job j;
 		j.storage = this;
@@ -1531,7 +1535,7 @@ ret:
 		j.offset = r.start;
 		j.buffer_size = r.length;
 		j.buffer = 0;
-		j.priority = priority;
+		j.cache_min_time = cache_expiry;
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		m_io_thread.add_job(j, handler);
 #ifdef TORRENT_DEBUG
@@ -1542,10 +1546,26 @@ ret:
 #endif
 	}
 
+	void piece_manager::async_cache(int piece
+		, boost::function<void(int, disk_io_job const&)> const& handler
+		, int cache_expiry)
+	{
+		disk_io_job j;
+		j.storage = this;
+		j.action = disk_io_job::cache_piece;
+		j.piece = piece;
+		j.offset = 0;
+		j.buffer_size = 0;
+		j.buffer = 0;
+		j.cache_min_time = cache_expiry;
+		m_io_thread.add_job(j, handler);
+	}
+
 	void piece_manager::async_read(
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler
-		, int priority)
+		, int cache_line_size
+		, int cache_expiry)
 	{
 		disk_io_job j;
 		j.storage = this;
@@ -1554,7 +1574,9 @@ ret:
 		j.offset = r.start;
 		j.buffer_size = r.length;
 		j.buffer = 0;
-		j.priority = priority;
+		j.max_cache_line = cache_line_size;
+		j.cache_min_time = cache_expiry;
+
 		// if a buffer is not specified, only one block can be read
 		// since that is the size of the pool allocator's buffers
 		TORRENT_ASSERT(r.length <= 16 * 1024);
@@ -2003,7 +2025,7 @@ ret:
 
 		if (rd.type() != lazy_entry::dict_t)
 		{
-			error = error_code(errors::not_a_dictionary, libtorrent_category);
+			error = errors::not_a_dictionary;
 			return check_no_fastresume(error);
 		}
 
@@ -2012,7 +2034,7 @@ ret:
 		if (blocks_per_piece != -1
 			&& blocks_per_piece != m_files.piece_length() / block_size)
 		{
-			error = error_code(errors::invalid_blocks_per_piece, libtorrent_category);
+			error = errors::invalid_blocks_per_piece;
 			return check_no_fastresume(error);
 		}
 
@@ -2035,13 +2057,13 @@ ret:
 			lazy_entry const* slots = rd.dict_find_list("slots");
 			if (slots == 0)
 			{
-				error = error_code(errors::missing_slots, libtorrent_category);
+				error = errors::missing_slots;
 				return check_no_fastresume(error);
 			}
 
 			if ((int)slots->list_size() > m_files.num_pieces())
 			{
-				error = error_code(errors::too_many_slots, libtorrent_category);
+				error = errors::too_many_slots;
 				return check_no_fastresume(error);
 			}
 
@@ -2055,14 +2077,14 @@ ret:
 					lazy_entry const* e = slots->list_at(i);
 					if (e->type() != lazy_entry::int_t)
 					{
-						error = error_code(errors::invalid_slot_list, libtorrent_category);
+						error = errors::invalid_slot_list;
 						return check_no_fastresume(error);
 					}
 
 					int index = int(e->int_value());
 					if (index >= num_pieces || index < -2)
 					{
-						error = error_code(errors::invalid_piece_index, libtorrent_category);
+						error = errors::invalid_piece_index;
 						return check_no_fastresume(error);
 					}
 					if (index >= 0)
@@ -2091,14 +2113,14 @@ ret:
 					lazy_entry const* e = slots->list_at(i);
 					if (e->type() != lazy_entry::int_t)
 					{
-						error = error_code(errors::invalid_slot_list, libtorrent_category);
+						error = errors::invalid_slot_list;
 						return check_no_fastresume(error);
 					}
 
 					int index = int(e->int_value());
 					if (index != i && index >= 0)
 					{
-						error = error_code(errors::invalid_piece_index, libtorrent_category);
+						error = errors::invalid_piece_index;
 						return check_no_fastresume(error);
 					}
 				}
@@ -2125,7 +2147,7 @@ ret:
 					// we're resuming a compact allocated storage
 					m_state = state_expand_pieces;
 					m_current_slot = 0;
-					error = error_code(errors::pieces_need_reorder, libtorrent_category);
+					error = errors::pieces_need_reorder;
 					TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
 					return need_full_check;
 				}
@@ -2138,13 +2160,13 @@ ret:
 			lazy_entry const* pieces = rd.dict_find("pieces");
 			if (pieces == 0 || pieces->type() != lazy_entry::string_t)
 			{
-				error = error_code(errors::missing_pieces, libtorrent_category);
+				error = errors::missing_pieces;
 				return check_no_fastresume(error);
 			}
 
 			if ((int)pieces->string_length() != m_files.num_pieces())
 			{
-				error = error_code(errors::too_many_slots, libtorrent_category);
+				error = errors::too_many_slots;
 				return check_no_fastresume(error);
 			}
 
@@ -2722,7 +2744,7 @@ ret:
 
 		if (m_free_slots.empty())
 		{
-			allocate_slots(1);
+			allocate_slots_impl(1, lock);
 			TORRENT_ASSERT(!m_free_slots.empty());
 		}
 
@@ -2743,7 +2765,7 @@ ret:
 			if (*iter == m_files.num_pieces() - 1 && piece_index != *iter)
 			{
 				if (m_free_slots.size() == 1)
-					allocate_slots(1);
+					allocate_slots_impl(1, lock);
 				TORRENT_ASSERT(m_free_slots.size() > 1);
 				// assumes that all allocated slots
 				// are put at the end of the free_slots vector
@@ -2814,9 +2836,9 @@ ret:
 		return slot_index;
 	}
 
-	bool piece_manager::allocate_slots(int num_slots, bool abort_on_disk)
+	bool piece_manager::allocate_slots_impl(int num_slots, mutex::scoped_lock& l
+		, bool abort_on_disk)
 	{
-		mutex::scoped_lock lock(m_mutex);
 		TORRENT_ASSERT(num_slots > 0);
 
 		INVARIANT_CHECK;

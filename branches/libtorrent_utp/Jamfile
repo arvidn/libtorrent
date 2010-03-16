@@ -20,7 +20,7 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-VERSION = 0.15 ;
+VERSION = 0.16.0 ;
 
 # rule for linking the correct libraries depending
 # on features and target-os
@@ -29,8 +29,7 @@ rule linking ( properties * )
 	local result ;
 
 	# openssl libraries, if enabled
-	if <openssl>sha-1 in $(properties)
-		|| <openssl>pe in $(properties)
+	if <encryption>openssl in $(properties)
 	{
 		# exclude gcc from a regular windows build to make mingw
 		# link against the regular unix library name
@@ -55,6 +54,22 @@ rule linking ( properties * )
 		}
 	}
 
+	# gcrypt libraries, if enabled
+	if <encryption>gcrypt in $(properties)
+	{
+		# on mac os x, adding the /opt/local/include path
+		# would include openssl headers incompatible with
+		# the system library. Only add this include path
+		# if we're not using openssl (which we're most
+		# likely not if we're using libgcrypt)
+		result += <library>gcrypt <include>/opt/local/include ;
+	}
+
+	if <encryption>tommath in $(properties)
+	{
+		result += <source>src/mpi.c ;
+	}
+
 	if <geoip>shared in $(properties)
 	{
 		result += <library>GeoIP ;
@@ -72,6 +87,11 @@ rule linking ( properties * )
 			<define>WIN32
 			<define>_WIN32
 		;
+	}
+
+	if <target-os>beos in $(properties)
+	{
+		result += <library>netkit ;
 	}
 
 	if <target-os>solaris in $(properties)
@@ -135,7 +155,7 @@ rule linking ( properties * )
 		# on mac the boost headers are installed in
 		# a directory that isn't automatically accessable
 		result += <include>/opt/local/include/boost-1_35
-			<include>/opt/local/include/boost
+			<include>/opt/local/include
 			;
 	}
 
@@ -161,16 +181,15 @@ rule building ( properties * )
 		result += <source>src/GeoIP.c ;
 	}
 
-	if <openssl>off in $(properties)
+	if <encryption>off in $(properties)
+		|| <encryption>tommath in $(properties)
 	{
 		result += <source>src/sha1.cpp ;
 	}
-	else
+
+	if ! ( <encryption>off in $(properties) )
 	{
-		if <openssl>pe in $(properties)
-		{
-			result += <source>src/pe_crypto.cpp ;
-		}
+		result += <source>src/pe_crypto.cpp ;
 
 		if <target-os>linux in $(properties)
 		{
@@ -198,10 +217,28 @@ rule tag ( name : type  ? : property-set )
 
 feature tcmalloc : no yes : composite propagated link-incompatible ;
 
+feature timer : auto boost absolute performance clock system_time
+	: composite propagated link-incompatible ;
+feature.compose <timer>boost : <define>TORRENT_USE_BOOST_DATE_TIME=1 ;
+feature.compose <timer>absolute : <define>TORRENT_USE_ABSOLUTE_TIME=1 ;
+feature.compose <timer>performance : <define>TORRENT_USE_PERFORMANCE_TIMER=1 ;
+feature.compose <timer>clock : <define>TORRENT_USE_CLOCK_GETTIME=1 ;
+feature.compose <timer>system_time : <define>TORRENT_USE_SYSTEM_TIME=1 ;
+
+feature ipv6 : on off : composite propagated link-incompatible ;
+feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
+
 feature need-librt : no yes : composite propagated link-incompatible ;
+
+feature full-stats : on off : composite propagated link-incompatible ;
+feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
 
 feature pool-allocators : on off : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
+
+feature piece-allocator : valloc memalign posix_memalign : composite propagated ;
+feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
+feature.compose <piece-allocator>posix_memalign : <define>TORRENT_USE_POSIX_MEMALIGN=1 ;
 
 feature geoip : off static shared : composite propagated link-incompatible ;
 feature.compose <geoip>off : <define>TORRENT_DISABLE_GEO_IP ;
@@ -228,18 +265,17 @@ feature dht-support : on off logging : composite propagated link-incompatible ;
 feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
 feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
-feature openssl : pe sha-1 off : composite propagated link-incompatible ;
-feature.compose <openssl>pe : <define>TORRENT_USE_OPENSSL ;
-feature.compose <openssl>sha-1 : <define>TORRENT_USE_OPENSSL <define>TORRENT_DISABLE_ENCRYPTION ;
-feature.compose <openssl>off : <define>TORRENT_DISABLE_ENCRYPTION ;
+feature encryption : tommath off openssl gcrypt : composite propagated link-incompatible ;
+feature.compose <encryption>openssl : <define>TORRENT_USE_OPENSSL ;
+feature.compose <encryption>gcrypt : <define>TORRENT_USE_GCRYPT ;
+feature.compose <encryption>tommath : <define>TORRENT_USE_TOMMATH ;
+feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 
 feature resolve-countries : on off : composite propagated link-incompatible ;
 feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
 
 feature character-set : unicode ansi : composite propagated link-incompatible ;
 feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
-
-feature zlib : shipped system : composite propagated link-incompatible ;
 
 feature deprecated-functions : on off : composite propagated link-incompatible ;
 feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
@@ -273,6 +309,9 @@ lib user32 : : <name>User32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
 
+# required for networking on beos
+lib netkit : : <name>net <search>/boot/system/lib <link>shared ;
+
 local boost-library-search-path =
   <search>/opt/local/lib
   <search>/usr/lib
@@ -285,8 +324,9 @@ lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-sea
 lib boost_system : : <name>boost_system ;
 
 # openssl on linux/bsd/macos etc.
+lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
 lib crypto : : <name>crypto <link>shared ;
-lib ssl : : <name>ssl <link>shared ;
+lib ssl : : <name>ssl <link>shared <use>crypto ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt <link>shared ;
@@ -295,9 +335,6 @@ lib libsocket : : <use>libnsl <name>socket <link>shared <search>/usr/sfw/lib <li
 lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib <link>shared ;
 
 lib tcmalloc : : <name>tcmalloc <link>shared ;
-
-# libz
-lib zlib-target : : <name>z <link>shared ;
 
 # GeoIP shared library
 lib GeoIP : : <name>GeoIP <link>shared ;
@@ -338,15 +375,18 @@ SOURCES =
 	packet_buffer
 	piece_picker
 	policy
+	puff
 	session
 	session_impl
 	socket_io
+	socket_type
 	socks5_stream
 	stat
 	storage
 	torrent
 	torrent_handle
 	torrent_info
+	time
 	tracker_manager
 	http_tracker_connection
 	udp_tracker_connection
@@ -384,32 +424,15 @@ KADEMLIA_SOURCES =
 	traversal_algorithm
 	;
 
-ZLIB_SOURCES = 
-	adler32
-	compress
-	crc32
-	deflate
-	gzio
-	infback
-	inffast
-	inflate
-	inftrees
-	trees
-	uncompr
-	zutil
-	;
-
 local usage-requirements = 
 	<include>./include
 	<include>./include/libtorrent
 	<include>/usr/sfw/include
-	<zlib>shipped:<include>./zlib
 	<variant>release:<define>NDEBUG
 	<variant>debug:<define>TORRENT_DEBUG
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_EXCEPTION_DISABLE
 	<conditional>@linking
-	<zlib>system:<library>zlib-target
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cflags>/Zc:wchar_t
 	<toolset>msvc:<cflags>/Zc:forScope
@@ -421,6 +444,10 @@ local usage-requirements =
 	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
 # disable warning C4503: decorated name length exceeded, name was truncated
 	<toolset>msvc:<cxxflags>/wd4503
+# disable warning C4275: non-dll interface class 'x' used as base for dll-interface struct 'y'
+	<toolset>msvc:<cxxflags>/wd4275
+# disable warning C4251: 'x' needs to have dll-interface to be used by clients of class 'y'
+	<toolset>msvc:<cxxflags>/wd4251
 # disable some warnings for gcc
 	<toolset>gcc:<cflags>-fno-strict-aliasing
 	<toolset>gcc:<cflags>-Wno-missing-braces
@@ -444,7 +471,6 @@ lib torrent
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<dht-support>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-	<zlib>shipped:<source>zlib/$(ZLIB_SOURCES).c
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
 	$(usage-requirements)

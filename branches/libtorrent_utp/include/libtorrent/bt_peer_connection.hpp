@@ -59,10 +59,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/storage.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
-#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
@@ -103,6 +101,8 @@ namespace libtorrent
 			, policy::peer* peerinfo);
 
 		void start();
+
+		enum { upload_only_msg = 2 };
 
 		~bt_peer_connection();
 		
@@ -204,8 +204,8 @@ namespace libtorrent
 		void write_handshake();
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
+		void write_upload_only();
 #endif
-		void write_chat_message(const std::string& msg);
 		void write_metadata(std::pair<int, int> req);
 		void write_metadata_request(std::pair<int, int> req);
 		void write_keepalive();
@@ -218,6 +218,7 @@ namespace libtorrent
 		void write_have_none();
 		void write_reject_request(peer_request const&);
 		void write_allow_fast(int piece);
+		void write_suggest(int piece);
 		
 		void on_connected();
 		void on_metadata();
@@ -354,15 +355,23 @@ private:
 		{ return r.start < 0; }
 		std::vector<range> m_payloads;
 
+		// we have suggested these pieces to the peer
+		// don't suggest it again
+		bitfield m_sent_suggested_pieces;
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		// the message ID for upload only message
+		// 0 if not supported
+		int m_upload_only_id;
+
+		char m_reserved_bits[8];
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
 		// extension protocol
-		bool m_supports_extensions;
-		char m_reserved_bits[8];
+		bool m_supports_extensions:1;
 #endif
-		bool m_supports_dht_port;
-		bool m_supports_fast;
+		bool m_supports_dht_port:1;
+		bool m_supports_fast:1;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		// this is set to true after the encryption method has been

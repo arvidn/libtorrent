@@ -42,16 +42,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/static_assert.hpp>
+#include <boost/cstdint.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -139,8 +140,9 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece(): finished(0), writing(0), requested(0) {}
+			downloading_piece(): last_request(min_time()), finished(0), writing(0), requested(0) {}
 			piece_state_t state;
+			ptime last_request;
 
 			// the index of the piece
 			int index;
@@ -190,7 +192,7 @@ namespace libtorrent
 		int sparse_regions() const { return m_sparse_regions; }
 
 		// sets all pieces to dont-have
-		void init(int blocks_per_piece, int total_num_blocks);
+		void init(int blocks_per_piece, int blocks_in_last_piece, int total_num_pieces);
 		int num_pieces() const { return int(m_piece_map.size()); }
 
 		bool have_piece(int index) const
@@ -278,6 +280,7 @@ namespace libtorrent
 		void mark_as_finished(piece_block block, void* peer);
 		void write_failed(piece_block block);
 		int num_peers(piece_block block) const;
+		ptime last_request(int piece) const;
 
 		// returns information about the given piece
 		void piece_info(int index, piece_picker::downloading_piece& st) const;
@@ -422,15 +425,15 @@ namespace libtorrent
 
 				// prio 4,5,6 halves the availability of a piece
 				int availability = peer_count;
-				int priority = piece_priority;
+				int p = piece_priority;
 				if (piece_priority >= priority_levels / 2)
 				{
 					availability /= 2;
-					priority -= (priority_levels - 2) / 2;
+					p -= (priority_levels - 2) / 2;
 				}
 
 				if (downloading) return availability * prio_factor;
-				return availability * prio_factor + (priority_levels / 2) - priority;
+				return availability * prio_factor + (priority_levels / 2) - p;
 			}
 
 			bool operator!=(piece_pos p) const
@@ -465,9 +468,13 @@ namespace libtorrent
 		downloading_piece& add_download_piece();
 		void erase_download_piece(std::vector<downloading_piece>::iterator i);
 
+		// some compilers (e.g. gcc 2.95, does not inherit access
+		// privileges to nested classes)
+	public:
 		// the number of seeds. These are not added to
 		// the availability counters of the pieces
 		int m_seeds;
+	private:
 
 		// the following vectors are mutable because they sometimes may
 		// be updated lazily, triggered by const functions

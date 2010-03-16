@@ -35,19 +35,58 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_WINDOWS
 #include <Windows.h>
+#elif defined TORRENT_BEOS
+#include <kernel/OS.h>
+#include <stdlib.h> // malloc/free
 #else
-#include <stdlib.h>
+#include <stdlib.h> // valloc/free
+#include <unistd.h> // _SC_PAGESIZE
 #endif
 
+#if TORRENT_USE_MEMALIGN || TORRENT_USE_POSIX_MEMALIGN
+#include <malloc.h> // memalign
+#endif
 
 namespace libtorrent
 {
+	int page_size()
+	{
+		static int s = 0;
+		if (s != 0) return s;
+
+#ifdef TORRENT_WINDOWS
+		SYSTEM_INFO si;
+		GetSystemInfo(&si);
+		s = si.dwPageSize;
+#elif defined TORRENT_BEOS
+		s = B_PAGE_SIZE;
+#else
+		s = sysconf(_SC_PAGESIZE);
+#endif
+		// assume the page size is 4 kiB if we
+		// fail to query it
+		if (s <= 0) s = 4096;
+		return s;
+	}
+
 	char* page_aligned_allocator::malloc(const size_type bytes)
 	{
-#ifdef TORRENT_WINDOWS
-		return reinterpret_cast<char*>(VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
+#if TORRENT_USE_POSIX_MEMALIGN
+		void* ret;
+		if (posix_memalign(&ret, page_size(), bytes) != 0) ret = 0;
+		return (char*)ret;
+#elif TORRENT_USE_MEMALIGN
+		return (char*)memalign(page_size(), bytes);
+#elif defined TORRENT_WINDOWS
+		return (char*)VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+#elif defined TORRENT_BEOS
+		void* ret = 0;
+		area_id id = create_area("", &ret, B_ANY_ADDRESS
+			, (bytes + page_size() - 1) & (page_size()-1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);
+		if (id < B_OK) return 0;
+		return (char*)ret;
 #else
-		return reinterpret_cast<char*>(valloc(bytes));
+		return (char*)valloc(bytes);
 #endif
 	}
 
@@ -55,6 +94,10 @@ namespace libtorrent
 	{
 #ifdef TORRENT_WINDOWS
 		VirtualFree(block, 0, MEM_RELEASE);
+#elif defined TORRENT_BEOS
+		area_id id = area_for(block);
+		if (id < B_OK) return;
+		delete_area(id);
 #else
 		::free(block);
 #endif

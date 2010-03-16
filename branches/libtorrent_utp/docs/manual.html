@@ -44,250 +44,260 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#overview" id="id16">overview</a></li>
-<li><a class="reference internal" href="#things-to-keep-in-mind" id="id17">things to keep in mind</a></li>
-<li><a class="reference internal" href="#network-primitives" id="id18">network primitives</a></li>
-<li><a class="reference internal" href="#session" id="id19">session</a><ul>
-<li><a class="reference internal" href="#id1" id="id20">session()</a></li>
-<li><a class="reference internal" href="#id2" id="id21">~session()</a></li>
-<li><a class="reference internal" href="#pause-resume-is-paused" id="id22">pause() resume() is_paused()</a></li>
-<li><a class="reference internal" href="#abort" id="id23">abort()</a></li>
-<li><a class="reference internal" href="#add-torrent" id="id24">add_torrent()</a></li>
-<li><a class="reference internal" href="#remove-torrent" id="id25">remove_torrent()</a></li>
-<li><a class="reference internal" href="#find-torrent-get-torrents" id="id26">find_torrent() get_torrents()</a></li>
-<li><a class="reference internal" href="#set-upload-rate-limit-set-download-rate-limit-upload-rate-limit-download-rate-limit" id="id27">set_upload_rate_limit() set_download_rate_limit() upload_rate_limit() download_rate_limit()</a></li>
-<li><a class="reference internal" href="#set-local-upload-rate-limit-set-local-download-rate-limit-local-upload-rate-limit-local-download-rate-limit" id="id28">set_local_upload_rate_limit() set_local_download_rate_limit() local_upload_rate_limit() local_download_rate_limit()</a></li>
-<li><a class="reference internal" href="#set-max-uploads-set-max-connections-max-uploads-max-connections" id="id29">set_max_uploads() set_max_connections() max_uploads() max_connections()</a></li>
-<li><a class="reference internal" href="#num-uploads-num-connections" id="id30">num_uploads() num_connections()</a></li>
-<li><a class="reference internal" href="#set-max-half-open-connections-max-half-open-connections" id="id31">set_max_half_open_connections() max_half_open_connections()</a></li>
-<li><a class="reference internal" href="#load-asnum-db-load-country-db-int-as-for-ip" id="id32">load_asnum_db() load_country_db() int as_for_ip()</a></li>
-<li><a class="reference internal" href="#load-state-state" id="id33">load_state() state()</a></li>
-<li><a class="reference internal" href="#set-ip-filter" id="id34">set_ip_filter()</a></li>
-<li><a class="reference internal" href="#get-ip-filter" id="id35">get_ip_filter()</a></li>
-<li><a class="reference internal" href="#status" id="id36">status()</a></li>
-<li><a class="reference internal" href="#get-cache-status" id="id37">get_cache_status()</a></li>
-<li><a class="reference internal" href="#get-cache-info" id="id38">get_cache_info()</a></li>
-<li><a class="reference internal" href="#is-listening-listen-port-listen-on" id="id39">is_listening() listen_port() listen_on()</a></li>
-<li><a class="reference internal" href="#set-alert-mask" id="id40">set_alert_mask()</a></li>
-<li><a class="reference internal" href="#pop-alert-wait-for-alert-set-alert-queue-size-limit" id="id41">pop_alert() wait_for_alert() set_alert_queue_size_limit()</a></li>
-<li><a class="reference internal" href="#add-extension" id="id42">add_extension()</a></li>
-<li><a class="reference internal" href="#set-settings-set-pe-settings" id="id43">set_settings() set_pe_settings()</a></li>
-<li><a class="reference internal" href="#set-peer-proxy-set-web-seed-proxy-set-tracker-proxy-set-dht-proxy" id="id44">set_peer_proxy() set_web_seed_proxy() set_tracker_proxy() set_dht_proxy()</a></li>
-<li><a class="reference internal" href="#peer-proxy-web-seed-proxy-tracker-proxy-dht-proxy" id="id45">peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()</a></li>
-<li><a class="reference internal" href="#set-i2p-proxy-i2p-proxy" id="id46">set_i2p_proxy() i2p_proxy()</a></li>
-<li><a class="reference internal" href="#start-dht-stop-dht-set-dht-settings-dht-state-is-dht-running" id="id47">start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()</a></li>
-<li><a class="reference internal" href="#add-dht-node-add-dht-router" id="id48">add_dht_node() add_dht_router()</a></li>
-<li><a class="reference internal" href="#start-lsd-stop-lsd" id="id49">start_lsd() stop_lsd()</a></li>
-<li><a class="reference internal" href="#start-upnp-stop-upnp" id="id50">start_upnp() stop_upnp()</a></li>
-<li><a class="reference internal" href="#start-natpmp-stop-natpmp" id="id51">start_natpmp() stop_natpmp()</a></li>
+<li><a class="reference internal" href="#overview" id="id18">overview</a></li>
+<li><a class="reference internal" href="#things-to-keep-in-mind" id="id19">things to keep in mind</a></li>
+<li><a class="reference internal" href="#network-primitives" id="id20">network primitives</a></li>
+<li><a class="reference internal" href="#session" id="id21">session</a><ul>
+<li><a class="reference internal" href="#id1" id="id22">session()</a></li>
+<li><a class="reference internal" href="#id2" id="id23">~session()</a></li>
+<li><a class="reference internal" href="#load-state-save-state" id="id24">load_state() save_state()</a></li>
+<li><a class="reference internal" href="#pause-resume-is-paused" id="id25">pause() resume() is_paused()</a></li>
+<li><a class="reference internal" href="#abort" id="id26">abort()</a></li>
+<li><a class="reference internal" href="#add-torrent" id="id27">add_torrent()</a></li>
+<li><a class="reference internal" href="#remove-torrent" id="id28">remove_torrent()</a></li>
+<li><a class="reference internal" href="#find-torrent-get-torrents" id="id29">find_torrent() get_torrents()</a></li>
+<li><a class="reference internal" href="#set-upload-rate-limit-set-download-rate-limit-upload-rate-limit-download-rate-limit" id="id30">set_upload_rate_limit() set_download_rate_limit() upload_rate_limit() download_rate_limit()</a></li>
+<li><a class="reference internal" href="#set-local-upload-rate-limit-set-local-download-rate-limit-local-upload-rate-limit-local-download-rate-limit" id="id31">set_local_upload_rate_limit() set_local_download_rate_limit() local_upload_rate_limit() local_download_rate_limit()</a></li>
+<li><a class="reference internal" href="#set-max-uploads-max-uploads" id="id32">set_max_uploads() max_uploads()</a></li>
+<li><a class="reference internal" href="#set-max-connections-max-connections" id="id33">set_max_connections() max_connections()</a></li>
+<li><a class="reference internal" href="#num-uploads-num-connections" id="id34">num_uploads() num_connections()</a></li>
+<li><a class="reference internal" href="#set-max-half-open-connections-max-half-open-connections" id="id35">set_max_half_open_connections() max_half_open_connections()</a></li>
+<li><a class="reference internal" href="#load-asnum-db-load-country-db-int-as-for-ip" id="id36">load_asnum_db() load_country_db() int as_for_ip()</a></li>
+<li><a class="reference internal" href="#load-state-state" id="id37">load_state() state()</a></li>
+<li><a class="reference internal" href="#set-ip-filter" id="id38">set_ip_filter()</a></li>
+<li><a class="reference internal" href="#get-ip-filter" id="id39">get_ip_filter()</a></li>
+<li><a class="reference internal" href="#status" id="id40">status()</a></li>
+<li><a class="reference internal" href="#get-cache-status" id="id41">get_cache_status()</a></li>
+<li><a class="reference internal" href="#get-cache-info" id="id42">get_cache_info()</a></li>
+<li><a class="reference internal" href="#is-listening-listen-port-listen-on" id="id43">is_listening() listen_port() listen_on()</a></li>
+<li><a class="reference internal" href="#set-alert-mask" id="id44">set_alert_mask()</a></li>
+<li><a class="reference internal" href="#pop-alert-wait-for-alert-set-alert-queue-size-limit" id="id45">pop_alert() wait_for_alert() set_alert_queue_size_limit()</a></li>
+<li><a class="reference internal" href="#add-extension" id="id46">add_extension()</a></li>
+<li><a class="reference internal" href="#set-settings-set-pe-settings" id="id47">set_settings() set_pe_settings()</a></li>
+<li><a class="reference internal" href="#set-peer-proxy-set-web-seed-proxy-set-tracker-proxy-set-dht-proxy" id="id48">set_peer_proxy() set_web_seed_proxy() set_tracker_proxy() set_dht_proxy()</a></li>
+<li><a class="reference internal" href="#peer-proxy-web-seed-proxy-tracker-proxy-dht-proxy" id="id49">peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()</a></li>
+<li><a class="reference internal" href="#set-i2p-proxy-i2p-proxy" id="id50">set_i2p_proxy() i2p_proxy()</a></li>
+<li><a class="reference internal" href="#start-dht-stop-dht-set-dht-settings-dht-state-is-dht-running" id="id51">start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()</a></li>
+<li><a class="reference internal" href="#add-dht-node-add-dht-router" id="id52">add_dht_node() add_dht_router()</a></li>
+<li><a class="reference internal" href="#start-lsd-stop-lsd" id="id53">start_lsd() stop_lsd()</a></li>
+<li><a class="reference internal" href="#start-upnp-stop-upnp" id="id54">start_upnp() stop_upnp()</a></li>
+<li><a class="reference internal" href="#start-natpmp-stop-natpmp" id="id55">start_natpmp() stop_natpmp()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#entry" id="id52">entry</a><ul>
-<li><a class="reference internal" href="#integer-string-list-dict-type" id="id53">integer() string() list() dict() type()</a></li>
-<li><a class="reference internal" href="#operator" id="id54">operator[]</a></li>
-<li><a class="reference internal" href="#find-key" id="id55">find_key()</a></li>
+<li><a class="reference internal" href="#entry" id="id56">entry</a><ul>
+<li><a class="reference internal" href="#integer-string-list-dict-type" id="id57">integer() string() list() dict() type()</a></li>
+<li><a class="reference internal" href="#operator" id="id58">operator[]</a></li>
+<li><a class="reference internal" href="#find-key" id="id59">find_key()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#torrent-info" id="id56">torrent_info</a><ul>
-<li><a class="reference internal" href="#id3" id="id57">torrent_info()</a></li>
-<li><a class="reference internal" href="#add-tracker" id="id58">add_tracker()</a></li>
-<li><a class="reference internal" href="#files-orig-files" id="id59">files() orig_files()</a></li>
-<li><a class="reference internal" href="#rename-file" id="id60">rename_file()</a></li>
-<li><a class="reference internal" href="#begin-files-end-files-rbegin-files-rend-files" id="id61">begin_files() end_files() rbegin_files() rend_files()</a></li>
-<li><a class="reference internal" href="#num-files-file-at" id="id62">num_files() file_at()</a></li>
-<li><a class="reference internal" href="#map-block" id="id63">map_block()</a></li>
-<li><a class="reference internal" href="#map-file" id="id64">map_file()</a></li>
-<li><a class="reference internal" href="#url-seeds-add-url-seed-http-seeds-add-http-seed" id="id65">url_seeds() add_url_seed() http_seeds() add_http_seed()</a></li>
-<li><a class="reference internal" href="#trackers" id="id66">trackers()</a></li>
-<li><a class="reference internal" href="#total-size-piece-length-piece-size-num-pieces" id="id67">total_size() piece_length() piece_size() num_pieces()</a></li>
-<li><a class="reference internal" href="#hash-for-piece-hash-for-piece-ptr-info-hash" id="id68">hash_for_piece() hash_for_piece_ptr() info_hash()</a></li>
-<li><a class="reference internal" href="#name-comment-creation-date-creator" id="id69">name() comment() creation_date() creator()</a></li>
-<li><a class="reference internal" href="#priv" id="id70">priv()</a></li>
-<li><a class="reference internal" href="#nodes" id="id71">nodes()</a></li>
-<li><a class="reference internal" href="#add-node" id="id72">add_node()</a></li>
-<li><a class="reference internal" href="#metadata-metadata-size" id="id73">metadata() metadata_size()</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id60">torrent_info</a><ul>
+<li><a class="reference internal" href="#id3" id="id61">torrent_info()</a></li>
+<li><a class="reference internal" href="#add-tracker" id="id62">add_tracker()</a></li>
+<li><a class="reference internal" href="#files-orig-files" id="id63">files() orig_files()</a></li>
+<li><a class="reference internal" href="#remap-files" id="id64">remap_files()</a></li>
+<li><a class="reference internal" href="#rename-file" id="id65">rename_file()</a></li>
+<li><a class="reference internal" href="#begin-files-end-files-rbegin-files-rend-files" id="id66">begin_files() end_files() rbegin_files() rend_files()</a></li>
+<li><a class="reference internal" href="#num-files-file-at" id="id67">num_files() file_at()</a></li>
+<li><a class="reference internal" href="#map-block" id="id68">map_block()</a></li>
+<li><a class="reference internal" href="#map-file" id="id69">map_file()</a></li>
+<li><a class="reference internal" href="#url-seeds-add-url-seed-http-seeds-add-http-seed" id="id70">url_seeds() add_url_seed() http_seeds() add_http_seed()</a></li>
+<li><a class="reference internal" href="#trackers" id="id71">trackers()</a></li>
+<li><a class="reference internal" href="#total-size-piece-length-piece-size-num-pieces" id="id72">total_size() piece_length() piece_size() num_pieces()</a></li>
+<li><a class="reference internal" href="#hash-for-piece-hash-for-piece-ptr-info-hash" id="id73">hash_for_piece() hash_for_piece_ptr() info_hash()</a></li>
+<li><a class="reference internal" href="#name-comment-creation-date-creator" id="id74">name() comment() creation_date() creator()</a></li>
+<li><a class="reference internal" href="#priv" id="id75">priv()</a></li>
+<li><a class="reference internal" href="#nodes" id="id76">nodes()</a></li>
+<li><a class="reference internal" href="#add-node" id="id77">add_node()</a></li>
+<li><a class="reference internal" href="#metadata-metadata-size" id="id78">metadata() metadata_size()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#torrent-handle" id="id74">torrent_handle</a><ul>
-<li><a class="reference internal" href="#set-piece-deadline" id="id75">set_piece_deadline()</a></li>
-<li><a class="reference internal" href="#piece-priority-prioritize-pieces-piece-priorities" id="id76">piece_priority() prioritize_pieces() piece_priorities()</a></li>
-<li><a class="reference internal" href="#file-priority-prioritize-files-file-priorities" id="id77">file_priority() prioritize_files() file_priorities()</a></li>
-<li><a class="reference internal" href="#file-progress" id="id78">file_progress()</a></li>
-<li><a class="reference internal" href="#save-path" id="id79">save_path()</a></li>
-<li><a class="reference internal" href="#move-storage" id="id80">move_storage()</a></li>
-<li><a class="reference internal" href="#id5" id="id81">rename_file()</a></li>
-<li><a class="reference internal" href="#get-storage-impl" id="id82">get_storage_impl()</a></li>
-<li><a class="reference internal" href="#super-seeding" id="id83">super_seeding()</a></li>
-<li><a class="reference internal" href="#add-piece" id="id84">add_piece()</a></li>
-<li><a class="reference internal" href="#read-piece" id="id85">read_piece()</a></li>
-<li><a class="reference internal" href="#force-reannounce-force-dht-announce" id="id86">force_reannounce() force_dht_announce()</a></li>
-<li><a class="reference internal" href="#scrape-tracker" id="id87">scrape_tracker()</a></li>
-<li><a class="reference internal" href="#connect-peer" id="id88">connect_peer()</a></li>
-<li><a class="reference internal" href="#name" id="id89">name()</a></li>
-<li><a class="reference internal" href="#set-ratio" id="id90">set_ratio()</a></li>
-<li><a class="reference internal" href="#set-upload-limit-set-download-limit-upload-limit-download-limit" id="id91">set_upload_limit() set_download_limit() upload_limit() download_limit()</a></li>
-<li><a class="reference internal" href="#set-sequential-download-is-sequential-download" id="id92">set_sequential_download() is_sequential_download()</a></li>
-<li><a class="reference internal" href="#set-peer-upload-limit-set-peer-download-limit" id="id93">set_peer_upload_limit() set_peer_download_limit()</a></li>
-<li><a class="reference internal" href="#id6" id="id94">pause() resume() is_paused()</a></li>
-<li><a class="reference internal" href="#force-recheck" id="id95">force_recheck()</a></li>
-<li><a class="reference internal" href="#clear-error" id="id96">clear_error()</a></li>
-<li><a class="reference internal" href="#set-upload-mode" id="id97">set_upload_mode()</a></li>
-<li><a class="reference internal" href="#resolve-countries" id="id98">resolve_countries()</a></li>
-<li><a class="reference internal" href="#is-seed" id="id99">is_seed()</a></li>
-<li><a class="reference internal" href="#is-auto-managed-auto-managed" id="id100">is_auto_managed() auto_managed()</a></li>
-<li><a class="reference internal" href="#has-metadata-set-metadata" id="id101">has_metadata() set_metadata()</a></li>
-<li><a class="reference internal" href="#set-tracker-login" id="id102">set_tracker_login()</a></li>
-<li><a class="reference internal" href="#trackers-replace-trackers-add-tracker" id="id103">trackers() replace_trackers() add_tracker()</a></li>
-<li><a class="reference internal" href="#add-url-seed-remove-url-seed-url-seeds" id="id104">add_url_seed() remove_url_seed() url_seeds()</a></li>
-<li><a class="reference internal" href="#add-http-seed-remove-http-seed-http-seeds" id="id105">add_http_seed() remove_http_seed() http_seeds()</a></li>
-<li><a class="reference internal" href="#queue-position-queue-position-up-queue-position-down-queue-position-top-queue-position-bottom" id="id106">queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()</a></li>
-<li><a class="reference internal" href="#set-priority" id="id107">set_priority()</a></li>
-<li><a class="reference internal" href="#use-interface" id="id108">use_interface()</a></li>
-<li><a class="reference internal" href="#info-hash" id="id109">info_hash()</a></li>
-<li><a class="reference internal" href="#set-max-uploads-max-uploads-set-max-connections-max-connections" id="id110">set_max_uploads() max_uploads() set_max_connections() max_connections()</a></li>
-<li><a class="reference internal" href="#save-resume-data" id="id111">save_resume_data()</a></li>
-<li><a class="reference internal" href="#id7" id="id112">status()</a></li>
-<li><a class="reference internal" href="#get-download-queue" id="id113">get_download_queue()</a></li>
-<li><a class="reference internal" href="#get-peer-info" id="id114">get_peer_info()</a></li>
-<li><a class="reference internal" href="#get-torrent-info" id="id115">get_torrent_info()</a></li>
-<li><a class="reference internal" href="#is-valid" id="id116">is_valid()</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id79">torrent_handle</a><ul>
+<li><a class="reference internal" href="#set-piece-deadline" id="id80">set_piece_deadline()</a></li>
+<li><a class="reference internal" href="#piece-availability" id="id81">piece_availability()</a></li>
+<li><a class="reference internal" href="#piece-priority-prioritize-pieces-piece-priorities" id="id82">piece_priority() prioritize_pieces() piece_priorities()</a></li>
+<li><a class="reference internal" href="#file-priority-prioritize-files-file-priorities" id="id83">file_priority() prioritize_files() file_priorities()</a></li>
+<li><a class="reference internal" href="#file-progress" id="id84">file_progress()</a></li>
+<li><a class="reference internal" href="#save-path" id="id85">save_path()</a></li>
+<li><a class="reference internal" href="#move-storage" id="id86">move_storage()</a></li>
+<li><a class="reference internal" href="#id5" id="id87">rename_file()</a></li>
+<li><a class="reference internal" href="#get-storage-impl" id="id88">get_storage_impl()</a></li>
+<li><a class="reference internal" href="#super-seeding" id="id89">super_seeding()</a></li>
+<li><a class="reference internal" href="#add-piece" id="id90">add_piece()</a></li>
+<li><a class="reference internal" href="#read-piece" id="id91">read_piece()</a></li>
+<li><a class="reference internal" href="#force-reannounce-force-dht-announce" id="id92">force_reannounce() force_dht_announce()</a></li>
+<li><a class="reference internal" href="#scrape-tracker" id="id93">scrape_tracker()</a></li>
+<li><a class="reference internal" href="#connect-peer" id="id94">connect_peer()</a></li>
+<li><a class="reference internal" href="#name" id="id95">name()</a></li>
+<li><a class="reference internal" href="#set-ratio" id="id96">set_ratio()</a></li>
+<li><a class="reference internal" href="#set-upload-limit-set-download-limit-upload-limit-download-limit" id="id97">set_upload_limit() set_download_limit() upload_limit() download_limit()</a></li>
+<li><a class="reference internal" href="#set-sequential-download-is-sequential-download" id="id98">set_sequential_download() is_sequential_download()</a></li>
+<li><a class="reference internal" href="#set-peer-upload-limit-set-peer-download-limit" id="id99">set_peer_upload_limit() set_peer_download_limit()</a></li>
+<li><a class="reference internal" href="#id6" id="id100">pause() resume() is_paused()</a></li>
+<li><a class="reference internal" href="#flush-cache" id="id101">flush_cache()</a></li>
+<li><a class="reference internal" href="#force-recheck" id="id102">force_recheck()</a></li>
+<li><a class="reference internal" href="#clear-error" id="id103">clear_error()</a></li>
+<li><a class="reference internal" href="#set-upload-mode" id="id104">set_upload_mode()</a></li>
+<li><a class="reference internal" href="#resolve-countries" id="id105">resolve_countries()</a></li>
+<li><a class="reference internal" href="#is-seed" id="id106">is_seed()</a></li>
+<li><a class="reference internal" href="#is-auto-managed-auto-managed" id="id107">is_auto_managed() auto_managed()</a></li>
+<li><a class="reference internal" href="#has-metadata-set-metadata" id="id108">has_metadata() set_metadata()</a></li>
+<li><a class="reference internal" href="#set-tracker-login" id="id109">set_tracker_login()</a></li>
+<li><a class="reference internal" href="#trackers-replace-trackers-add-tracker" id="id110">trackers() replace_trackers() add_tracker()</a></li>
+<li><a class="reference internal" href="#add-url-seed-remove-url-seed-url-seeds" id="id111">add_url_seed() remove_url_seed() url_seeds()</a></li>
+<li><a class="reference internal" href="#add-http-seed-remove-http-seed-http-seeds" id="id112">add_http_seed() remove_http_seed() http_seeds()</a></li>
+<li><a class="reference internal" href="#queue-position-queue-position-up-queue-position-down-queue-position-top-queue-position-bottom" id="id113">queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()</a></li>
+<li><a class="reference internal" href="#set-priority" id="id114">set_priority()</a></li>
+<li><a class="reference internal" href="#use-interface" id="id115">use_interface()</a></li>
+<li><a class="reference internal" href="#info-hash" id="id116">info_hash()</a></li>
+<li><a class="reference internal" href="#id7" id="id117">set_max_uploads() max_uploads()</a></li>
+<li><a class="reference internal" href="#id8" id="id118">set_max_connections() max_connections()</a></li>
+<li><a class="reference internal" href="#save-resume-data" id="id119">save_resume_data()</a></li>
+<li><a class="reference internal" href="#id9" id="id120">status()</a></li>
+<li><a class="reference internal" href="#get-download-queue" id="id121">get_download_queue()</a></li>
+<li><a class="reference internal" href="#get-peer-info" id="id122">get_peer_info()</a></li>
+<li><a class="reference internal" href="#get-torrent-info" id="id123">get_torrent_info()</a></li>
+<li><a class="reference internal" href="#is-valid" id="id124">is_valid()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#torrent-status" id="id117">torrent_status</a></li>
-<li><a class="reference internal" href="#peer-info" id="id118">peer_info</a></li>
-<li><a class="reference internal" href="#session-customization" id="id119">session customization</a><ul>
-<li><a class="reference internal" href="#presets" id="id120">presets</a></li>
-<li><a class="reference internal" href="#session-settings" id="id121">session_settings</a></li>
+<li><a class="reference internal" href="#torrent-status" id="id125">torrent_status</a></li>
+<li><a class="reference internal" href="#peer-info" id="id126">peer_info</a></li>
+<li><a class="reference internal" href="#session-customization" id="id127">session customization</a><ul>
+<li><a class="reference internal" href="#presets" id="id128">presets</a></li>
+<li><a class="reference internal" href="#session-settings" id="id129">session_settings</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#pe-settings" id="id122">pe_settings</a></li>
-<li><a class="reference internal" href="#proxy-settings" id="id123">proxy_settings</a></li>
-<li><a class="reference internal" href="#ip-filter" id="id124">ip_filter</a><ul>
-<li><a class="reference internal" href="#id10" id="id125">ip_filter()</a></li>
-<li><a class="reference internal" href="#add-rule" id="id126">add_rule()</a></li>
-<li><a class="reference internal" href="#access" id="id127">access()</a></li>
-<li><a class="reference internal" href="#export-filter" id="id128">export_filter()</a></li>
+<li><a class="reference internal" href="#pe-settings" id="id130">pe_settings</a></li>
+<li><a class="reference internal" href="#proxy-settings" id="id131">proxy_settings</a></li>
+<li><a class="reference internal" href="#ip-filter" id="id132">ip_filter</a><ul>
+<li><a class="reference internal" href="#id12" id="id133">ip_filter()</a></li>
+<li><a class="reference internal" href="#add-rule" id="id134">add_rule()</a></li>
+<li><a class="reference internal" href="#access" id="id135">access()</a></li>
+<li><a class="reference internal" href="#export-filter" id="id136">export_filter()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#big-number" id="id129">big_number</a></li>
-<li><a class="reference internal" href="#bitfield" id="id130">bitfield</a></li>
-<li><a class="reference internal" href="#hasher" id="id131">hasher</a></li>
-<li><a class="reference internal" href="#fingerprint" id="id132">fingerprint</a></li>
-<li><a class="reference internal" href="#upnp-and-nat-pmp" id="id133">UPnP and NAT-PMP</a><ul>
-<li><a class="reference internal" href="#add-mapping" id="id134">add_mapping</a></li>
-<li><a class="reference internal" href="#delete-mapping" id="id135">delete_mapping</a></li>
-<li><a class="reference internal" href="#router-model" id="id136">router_model()</a></li>
+<li><a class="reference internal" href="#big-number" id="id137">big_number</a></li>
+<li><a class="reference internal" href="#bitfield" id="id138">bitfield</a></li>
+<li><a class="reference internal" href="#hasher" id="id139">hasher</a></li>
+<li><a class="reference internal" href="#fingerprint" id="id140">fingerprint</a></li>
+<li><a class="reference internal" href="#upnp-and-nat-pmp" id="id141">UPnP and NAT-PMP</a><ul>
+<li><a class="reference internal" href="#add-mapping" id="id142">add_mapping</a></li>
+<li><a class="reference internal" href="#delete-mapping" id="id143">delete_mapping</a></li>
+<li><a class="reference internal" href="#router-model" id="id144">router_model()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#free-functions" id="id137">free functions</a><ul>
-<li><a class="reference internal" href="#identify-client" id="id138">identify_client()</a></li>
-<li><a class="reference internal" href="#client-fingerprint" id="id139">client_fingerprint()</a></li>
-<li><a class="reference internal" href="#bdecode-bencode" id="id140">bdecode() bencode()</a></li>
-<li><a class="reference internal" href="#add-magnet-uri" id="id141">add_magnet_uri()</a></li>
-<li><a class="reference internal" href="#make-magnet-uri" id="id142">make_magnet_uri()</a></li>
+<li><a class="reference internal" href="#free-functions" id="id145">free functions</a><ul>
+<li><a class="reference internal" href="#identify-client" id="id146">identify_client()</a></li>
+<li><a class="reference internal" href="#client-fingerprint" id="id147">client_fingerprint()</a></li>
+<li><a class="reference internal" href="#bdecode-bencode" id="id148">bdecode() bencode()</a></li>
+<li><a class="reference internal" href="#add-magnet-uri" id="id149">add_magnet_uri()</a></li>
+<li><a class="reference internal" href="#make-magnet-uri" id="id150">make_magnet_uri()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#alerts" id="id143">alerts</a><ul>
-<li><a class="reference internal" href="#read-piece-alert" id="id144">read_piece_alert</a></li>
-<li><a class="reference internal" href="#external-ip-alert" id="id145">external_ip_alert</a></li>
-<li><a class="reference internal" href="#listen-failed-alert" id="id146">listen_failed_alert</a></li>
-<li><a class="reference internal" href="#listen-succeeded-alert" id="id147">listen_succeeded_alert</a></li>
-<li><a class="reference internal" href="#portmap-error-alert" id="id148">portmap_error_alert</a></li>
-<li><a class="reference internal" href="#portmap-alert" id="id149">portmap_alert</a></li>
-<li><a class="reference internal" href="#portmap-log-alert" id="id150">portmap_log_alert</a></li>
-<li><a class="reference internal" href="#file-error-alert" id="id151">file_error_alert</a></li>
-<li><a class="reference internal" href="#file-renamed-alert" id="id152">file_renamed_alert</a></li>
-<li><a class="reference internal" href="#file-rename-failed-alert" id="id153">file_rename_failed_alert</a></li>
-<li><a class="reference internal" href="#tracker-announce-alert" id="id154">tracker_announce_alert</a></li>
-<li><a class="reference internal" href="#tracker-error-alert" id="id155">tracker_error_alert</a></li>
-<li><a class="reference internal" href="#tracker-reply-alert" id="id156">tracker_reply_alert</a></li>
-<li><a class="reference internal" href="#dht-reply-alert" id="id157">dht_reply_alert</a></li>
-<li><a class="reference internal" href="#tracker-warning-alert" id="id158">tracker_warning_alert</a></li>
-<li><a class="reference internal" href="#scrape-reply-alert" id="id159">scrape_reply_alert</a></li>
-<li><a class="reference internal" href="#scrape-failed-alert" id="id160">scrape_failed_alert</a></li>
-<li><a class="reference internal" href="#url-seed-alert" id="id161">url_seed_alert</a></li>
-<li><a class="reference internal" href="#hash-failed-alert" id="id162">hash_failed_alert</a></li>
-<li><a class="reference internal" href="#peer-alert" id="id163">peer_alert</a></li>
-<li><a class="reference internal" href="#peer-connect-alert" id="id164">peer_connect_alert</a></li>
-<li><a class="reference internal" href="#peer-ban-alert" id="id165">peer_ban_alert</a></li>
-<li><a class="reference internal" href="#peer-snubbed-alert" id="id166">peer_snubbed_alert</a></li>
-<li><a class="reference internal" href="#peer-unsnubbed-alert" id="id167">peer_unsnubbed_alert</a></li>
-<li><a class="reference internal" href="#peer-error-alert" id="id168">peer_error_alert</a></li>
-<li><a class="reference internal" href="#peer-connected-alert" id="id169">peer_connected_alert</a></li>
-<li><a class="reference internal" href="#peer-disconnected-alert" id="id170">peer_disconnected_alert</a></li>
-<li><a class="reference internal" href="#invalid-request-alert" id="id171">invalid_request_alert</a></li>
-<li><a class="reference internal" href="#request-dropped-alert" id="id172">request_dropped_alert</a></li>
-<li><a class="reference internal" href="#block-timeout-alert" id="id173">block_timeout_alert</a></li>
-<li><a class="reference internal" href="#block-finished-alert" id="id174">block_finished_alert</a></li>
-<li><a class="reference internal" href="#file-completed-alert" id="id175">file_completed_alert</a></li>
-<li><a class="reference internal" href="#block-downloading-alert" id="id176">block_downloading_alert</a></li>
-<li><a class="reference internal" href="#unwanted-block-alert" id="id177">unwanted_block_alert</a></li>
-<li><a class="reference internal" href="#torrent-delete-failed-alert" id="id178">torrent_delete_failed_alert</a></li>
-<li><a class="reference internal" href="#torrent-finished-alert" id="id179">torrent_finished_alert</a></li>
-<li><a class="reference internal" href="#performance-alert" id="id180">performance_alert</a></li>
-<li><a class="reference internal" href="#state-changed-alert" id="id181">state_changed_alert</a></li>
-<li><a class="reference internal" href="#metadata-failed-alert" id="id182">metadata_failed_alert</a></li>
-<li><a class="reference internal" href="#metadata-received-alert" id="id183">metadata_received_alert</a></li>
-<li><a class="reference internal" href="#fastresume-rejected-alert" id="id184">fastresume_rejected_alert</a></li>
-<li><a class="reference internal" href="#peer-blocked-alert" id="id185">peer_blocked_alert</a></li>
-<li><a class="reference internal" href="#storage-moved-alert" id="id186">storage_moved_alert</a></li>
-<li><a class="reference internal" href="#storage-moved-failed-alert" id="id187">storage_moved_failed_alert</a></li>
-<li><a class="reference internal" href="#torrent-paused-alert" id="id188">torrent_paused_alert</a></li>
-<li><a class="reference internal" href="#torrent-resumed-alert" id="id189">torrent_resumed_alert</a></li>
-<li><a class="reference internal" href="#save-resume-data-alert" id="id190">save_resume_data_alert</a></li>
-<li><a class="reference internal" href="#save-resume-data-failed-alert" id="id191">save_resume_data_failed_alert</a></li>
-<li><a class="reference internal" href="#dht-announce-alert" id="id192">dht_announce_alert</a></li>
-<li><a class="reference internal" href="#dht-get-peers-alert" id="id193">dht_get_peers_alert</a></li>
-<li><a class="reference internal" href="#dispatcher" id="id194">dispatcher</a></li>
+<li><a class="reference internal" href="#alerts" id="id151">alerts</a><ul>
+<li><a class="reference internal" href="#read-piece-alert" id="id152">read_piece_alert</a></li>
+<li><a class="reference internal" href="#external-ip-alert" id="id153">external_ip_alert</a></li>
+<li><a class="reference internal" href="#listen-failed-alert" id="id154">listen_failed_alert</a></li>
+<li><a class="reference internal" href="#listen-succeeded-alert" id="id155">listen_succeeded_alert</a></li>
+<li><a class="reference internal" href="#portmap-error-alert" id="id156">portmap_error_alert</a></li>
+<li><a class="reference internal" href="#portmap-alert" id="id157">portmap_alert</a></li>
+<li><a class="reference internal" href="#portmap-log-alert" id="id158">portmap_log_alert</a></li>
+<li><a class="reference internal" href="#file-error-alert" id="id159">file_error_alert</a></li>
+<li><a class="reference internal" href="#file-renamed-alert" id="id160">file_renamed_alert</a></li>
+<li><a class="reference internal" href="#file-rename-failed-alert" id="id161">file_rename_failed_alert</a></li>
+<li><a class="reference internal" href="#tracker-announce-alert" id="id162">tracker_announce_alert</a></li>
+<li><a class="reference internal" href="#tracker-error-alert" id="id163">tracker_error_alert</a></li>
+<li><a class="reference internal" href="#tracker-reply-alert" id="id164">tracker_reply_alert</a></li>
+<li><a class="reference internal" href="#dht-reply-alert" id="id165">dht_reply_alert</a></li>
+<li><a class="reference internal" href="#tracker-warning-alert" id="id166">tracker_warning_alert</a></li>
+<li><a class="reference internal" href="#scrape-reply-alert" id="id167">scrape_reply_alert</a></li>
+<li><a class="reference internal" href="#scrape-failed-alert" id="id168">scrape_failed_alert</a></li>
+<li><a class="reference internal" href="#url-seed-alert" id="id169">url_seed_alert</a></li>
+<li><a class="reference internal" href="#hash-failed-alert" id="id170">hash_failed_alert</a></li>
+<li><a class="reference internal" href="#peer-alert" id="id171">peer_alert</a></li>
+<li><a class="reference internal" href="#peer-connect-alert" id="id172">peer_connect_alert</a></li>
+<li><a class="reference internal" href="#peer-ban-alert" id="id173">peer_ban_alert</a></li>
+<li><a class="reference internal" href="#peer-snubbed-alert" id="id174">peer_snubbed_alert</a></li>
+<li><a class="reference internal" href="#peer-unsnubbed-alert" id="id175">peer_unsnubbed_alert</a></li>
+<li><a class="reference internal" href="#peer-error-alert" id="id176">peer_error_alert</a></li>
+<li><a class="reference internal" href="#peer-connected-alert" id="id177">peer_connected_alert</a></li>
+<li><a class="reference internal" href="#peer-disconnected-alert" id="id178">peer_disconnected_alert</a></li>
+<li><a class="reference internal" href="#invalid-request-alert" id="id179">invalid_request_alert</a></li>
+<li><a class="reference internal" href="#request-dropped-alert" id="id180">request_dropped_alert</a></li>
+<li><a class="reference internal" href="#block-timeout-alert" id="id181">block_timeout_alert</a></li>
+<li><a class="reference internal" href="#block-finished-alert" id="id182">block_finished_alert</a></li>
+<li><a class="reference internal" href="#file-completed-alert" id="id183">file_completed_alert</a></li>
+<li><a class="reference internal" href="#block-downloading-alert" id="id184">block_downloading_alert</a></li>
+<li><a class="reference internal" href="#unwanted-block-alert" id="id185">unwanted_block_alert</a></li>
+<li><a class="reference internal" href="#torrent-delete-failed-alert" id="id186">torrent_delete_failed_alert</a></li>
+<li><a class="reference internal" href="#torrent-deleted-alert" id="id187">torrent_deleted_alert</a></li>
+<li><a class="reference internal" href="#torrent-finished-alert" id="id188">torrent_finished_alert</a></li>
+<li><a class="reference internal" href="#performance-alert" id="id189">performance_alert</a></li>
+<li><a class="reference internal" href="#state-changed-alert" id="id190">state_changed_alert</a></li>
+<li><a class="reference internal" href="#metadata-failed-alert" id="id191">metadata_failed_alert</a></li>
+<li><a class="reference internal" href="#metadata-received-alert" id="id192">metadata_received_alert</a></li>
+<li><a class="reference internal" href="#fastresume-rejected-alert" id="id193">fastresume_rejected_alert</a></li>
+<li><a class="reference internal" href="#peer-blocked-alert" id="id194">peer_blocked_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-alert" id="id195">storage_moved_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-failed-alert" id="id196">storage_moved_failed_alert</a></li>
+<li><a class="reference internal" href="#torrent-paused-alert" id="id197">torrent_paused_alert</a></li>
+<li><a class="reference internal" href="#torrent-resumed-alert" id="id198">torrent_resumed_alert</a></li>
+<li><a class="reference internal" href="#save-resume-data-alert" id="id199">save_resume_data_alert</a></li>
+<li><a class="reference internal" href="#save-resume-data-failed-alert" id="id200">save_resume_data_failed_alert</a></li>
+<li><a class="reference internal" href="#stats-alert" id="id201">stats_alert</a></li>
+<li><a class="reference internal" href="#cache-flushed-alert" id="id202">cache_flushed_alert</a></li>
+<li><a class="reference internal" href="#dht-announce-alert" id="id203">dht_announce_alert</a></li>
+<li><a class="reference internal" href="#dht-get-peers-alert" id="id204">dht_get_peers_alert</a></li>
+<li><a class="reference internal" href="#dispatcher" id="id205">dispatcher</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#exceptions" id="id195">exceptions</a><ul>
-<li><a class="reference internal" href="#libtorrent-exception" id="id196">libtorrent_exception</a></li>
+<li><a class="reference internal" href="#exceptions" id="id206">exceptions</a><ul>
+<li><a class="reference internal" href="#libtorrent-exception" id="id207">libtorrent_exception</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#error-code" id="id197">error_code</a><ul>
-<li><a class="reference internal" href="#translating-error-codes" id="id198">translating error codes</a></li>
+<li><a class="reference internal" href="#error-code" id="id208">error_code</a><ul>
+<li><a class="reference internal" href="#translating-error-codes" id="id209">translating error codes</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#storage-interface" id="id199">storage_interface</a><ul>
-<li><a class="reference internal" href="#initialize" id="id200">initialize()</a></li>
-<li><a class="reference internal" href="#has-any-file" id="id201">has_any_file()</a></li>
-<li><a class="reference internal" href="#readv-writev" id="id202">readv() writev()</a></li>
-<li><a class="reference internal" href="#sparse-end" id="id203">sparse_end()</a></li>
-<li><a class="reference internal" href="#id12" id="id204">move_storage()</a></li>
-<li><a class="reference internal" href="#verify-resume-data" id="id205">verify_resume_data()</a></li>
-<li><a class="reference internal" href="#write-resume-data" id="id206">write_resume_data()</a></li>
-<li><a class="reference internal" href="#move-slot" id="id207">move_slot()</a></li>
-<li><a class="reference internal" href="#swap-slots" id="id208">swap_slots()</a></li>
-<li><a class="reference internal" href="#swap-slots3" id="id209">swap_slots3()</a></li>
-<li><a class="reference internal" href="#id13" id="id210">rename_file()</a></li>
-<li><a class="reference internal" href="#release-files" id="id211">release_files()</a></li>
-<li><a class="reference internal" href="#delete-files" id="id212">delete_files()</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id210">storage_interface</a><ul>
+<li><a class="reference internal" href="#initialize" id="id211">initialize()</a></li>
+<li><a class="reference internal" href="#has-any-file" id="id212">has_any_file()</a></li>
+<li><a class="reference internal" href="#readv-writev" id="id213">readv() writev()</a></li>
+<li><a class="reference internal" href="#sparse-end" id="id214">sparse_end()</a></li>
+<li><a class="reference internal" href="#id14" id="id215">move_storage()</a></li>
+<li><a class="reference internal" href="#verify-resume-data" id="id216">verify_resume_data()</a></li>
+<li><a class="reference internal" href="#write-resume-data" id="id217">write_resume_data()</a></li>
+<li><a class="reference internal" href="#move-slot" id="id218">move_slot()</a></li>
+<li><a class="reference internal" href="#swap-slots" id="id219">swap_slots()</a></li>
+<li><a class="reference internal" href="#swap-slots3" id="id220">swap_slots3()</a></li>
+<li><a class="reference internal" href="#id15" id="id221">rename_file()</a></li>
+<li><a class="reference internal" href="#release-files" id="id222">release_files()</a></li>
+<li><a class="reference internal" href="#delete-files" id="id223">delete_files()</a></li>
+<li><a class="reference internal" href="#finalize-file" id="id224">finalize_file()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#magnet-links" id="id213">magnet links</a></li>
-<li><a class="reference internal" href="#queuing" id="id214">queuing</a><ul>
-<li><a class="reference internal" href="#downloading" id="id215">downloading</a></li>
-<li><a class="reference internal" href="#seeding" id="id216">seeding</a></li>
+<li><a class="reference internal" href="#magnet-links" id="id225">magnet links</a></li>
+<li><a class="reference internal" href="#queuing" id="id226">queuing</a><ul>
+<li><a class="reference internal" href="#downloading" id="id227">downloading</a></li>
+<li><a class="reference internal" href="#seeding" id="id228">seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#fast-resume" id="id217">fast resume</a><ul>
-<li><a class="reference internal" href="#file-format" id="id218">file format</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id229">fast resume</a><ul>
+<li><a class="reference internal" href="#file-format" id="id230">file format</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#threads" id="id219">threads</a></li>
-<li><a class="reference internal" href="#storage-allocation" id="id220">storage allocation</a><ul>
-<li><a class="reference internal" href="#sparse-allocation" id="id221">sparse allocation</a></li>
-<li><a class="reference internal" href="#full-allocation" id="id222">full allocation</a></li>
-<li><a class="reference internal" href="#compact-allocation" id="id223">compact allocation</a></li>
+<li><a class="reference internal" href="#threads" id="id231">threads</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id232">storage allocation</a><ul>
+<li><a class="reference internal" href="#sparse-allocation" id="id233">sparse allocation</a></li>
+<li><a class="reference internal" href="#full-allocation" id="id234">full allocation</a></li>
+<li><a class="reference internal" href="#compact-allocation" id="id235">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#extensions" id="id224">extensions</a><ul>
-<li><a class="reference internal" href="#metadata-from-peers" id="id225">metadata from peers</a></li>
-<li><a class="reference internal" href="#http-seeding" id="id226">HTTP seeding</a></li>
+<li><a class="reference internal" href="#extensions" id="id236">extensions</a><ul>
+<li><a class="reference internal" href="#metadata-from-peers" id="id237">metadata from peers</a></li>
+<li><a class="reference internal" href="#http-seeding" id="id238">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#filename-checks" id="id227">filename checks</a></li>
+<li><a class="reference internal" href="#filename-checks" id="id239">filename checks</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -297,6 +307,8 @@ the <tt class="docutils literal"><span class="pre">session</span></tt>, it conta
 <p>The basic usage is as follows:</p>
 <ul>
 <li><p class="first">construct a session</p>
+</li>
+<li><p class="first">load session state from settings file (see <a class="reference internal" href="#load-state-save-state">load_state() save_state()</a>)</p>
 </li>
 <li><p class="first">start extensions (see <a class="reference internal" href="#add-extension">add_extension()</a>).</p>
 </li>
@@ -317,6 +329,8 @@ the <tt class="docutils literal"><span class="pre">session</span></tt>, it conta
 <li><p class="first">save resume data for all torrent_handles (optional, see
 <a class="reference internal" href="#save-resume-data">save_resume_data()</a>)</p>
 </li>
+<li><p class="first">save session state (see <a class="reference internal" href="#load-state-save-state">load_state() save_state()</a>)</p>
+</li>
 <li><p class="first">destruct session object</p>
 </li>
 </ul>
@@ -333,7 +347,7 @@ mode of your torrents. By default, torrents are auto-managed, which means
 libtorrent will pause them, unpause them, scrape them and take them out
 of upload-mode automatically.</p>
 <p>Whenever a torrent encounters a fatal error, it will be stopped, and the
-<tt class="docutils literal"><span class="pre">session_status::error</span></tt> will describe the error that caused it. If a torrent
+<tt class="docutils literal"><span class="pre">torrent_status::error</span></tt> will describe the error that caused it. If a torrent
 is auto managed, it is scraped periodically and paused or resumed based on
 the number of downloaders per seed. This will effectively seed torrents that
 are in the greatest need of seeds.</p>
@@ -388,6 +402,9 @@ class session: public boost::noncopyable
                 , int flags = start_default_features
                         | add_default_plugins
                 , int alert_mask = alert::error_notification);
+
+        void load_state(lazy_entry const&amp; e);
+        void save_state(entry&amp; e) const;
 
         torrent_handle add_torrent(
                 add_torrent_params const&amp; params);
@@ -539,6 +556,20 @@ If some trackers are down, they will time out. All this before the destructor of
 returns. So, it's advised that any kind of interface (such as windows) are closed before
 destructing the session object. Because it can take a few second for it to finish. The
 timeout can be set with <tt class="docutils literal"><span class="pre">set_settings()</span></tt>.</p>
+</div>
+<div class="section" id="load-state-save-state">
+<h2>load_state() save_state()</h2>
+<blockquote>
+<pre class="literal-block">
+void load_state(lazy_entry const&amp; e);
+void save_state(entry&amp; e) const;
+</pre>
+</blockquote>
+<p>loads and saves all session settings, including dht_settings, encryption settings and proxy
+settings. <tt class="docutils literal"><span class="pre">save_state</span></tt> writes all keys to the <tt class="docutils literal"><span class="pre">entry</span></tt> that's passed in, which needs to
+either not be initialized, or initialized as a dictionary.</p>
+<p><tt class="docutils literal"><span class="pre">load_state</span></tt> expects a <tt class="docutils literal"><span class="pre">lazy_entry</span></tt> which can be built from a bencoded buffer with
+<tt class="docutils literal"><span class="pre">lazy_bdecode</span></tt>.</p>
 </div>
 <div class="section" id="pause-resume-is-paused">
 <h2>pause() resume() is_paused()</h2>
@@ -712,7 +743,8 @@ the tracker that we've stopped participating in the swarm. The optional second a
 <tt class="docutils literal"><span class="pre">options</span></tt> can be used to delete all the files downloaded by this torrent. To do this, pass
 in the value <tt class="docutils literal"><span class="pre">session::delete_files</span></tt>. The removal of the torrent is asyncronous, there is
 no guarantee that adding the same torrent immediately after it was removed will not throw
-a <a class="reference internal" href="#libtorrent-exception">libtorrent_exception</a> exception.</p>
+a <a class="reference internal" href="#libtorrent-exception">libtorrent_exception</a> exception. Once the torrent is deleted, a <a class="reference internal" href="#torrent-deleted-alert">torrent_deleted_alert</a>
+is posted.</p>
 </div>
 <div class="section" id="find-torrent-get-torrents">
 <h2>find_torrent() get_torrents()</h2>
@@ -767,24 +799,33 @@ but can be useful in case you want to treat local peers preferentially, but not
 quite unthrottled.</p>
 <p>A rate limit of 0 means infinite.</p>
 </div>
-<div class="section" id="set-max-uploads-set-max-connections-max-uploads-max-connections">
-<h2>set_max_uploads() set_max_connections() max_uploads() max_connections()</h2>
+<div class="section" id="set-max-uploads-max-uploads">
+<h2>set_max_uploads() max_uploads()</h2>
 <blockquote>
 <pre class="literal-block">
 void set_max_uploads(int limit);
-void set_max_connections(int limit);
 int max_uploads() const;
+</pre>
+</blockquote>
+<p><tt class="docutils literal"><span class="pre">set_max_uploads</span></tt> sets a global limit on the number of unchoked peers (uploads).
+The number of uploads is at least one per torrent.</p>
+<p><tt class="docutils literal"><span class="pre">max_uploads()</span></tt> returns the current settings.</p>
+<p>The number of unchoke slots may be ignored depending on what
+<tt class="docutils literal"><span class="pre">session_settings::choking_algorithm</span></tt> is set to.</p>
+</div>
+<div class="section" id="set-max-connections-max-connections">
+<h2>set_max_connections() max_connections()</h2>
+<blockquote>
+<pre class="literal-block">
+void set_max_connections(int limit);
 int max_connections() const;
 </pre>
 </blockquote>
-<p>These functions will set a global limit on the number of unchoked peers (uploads)
-and the number of connections opened. The number of connections is set to a hard
-minimum of at least two connections per torrent, so if you set a too low
-connections limit, and open too many torrents, the limit will not be met. The
-number of uploads is at least one per torrent.</p>
-<p><tt class="docutils literal"><span class="pre">max_uploads()</span></tt> and <tt class="docutils literal"><span class="pre">max_connections()</span></tt> returns the current settings.</p>
-<p>The number of unchoke slots may be ignored. In order to make this setting
-take effect, disable <tt class="docutils literal"><span class="pre">session_settings::auto_upload_slots_rate_based</span></tt>.</p>
+<p><tt class="docutils literal"><span class="pre">set_max_connections</span></tt> sets a global limit on the number of connections
+opened. The number of connections is set to a hard minimum of at least two per
+torrent, so if you set a too low connections limit, and open too many torrents,
+the limit will not be met.</p>
+<p><tt class="docutils literal"><span class="pre">max_connections()</span></tt> returns the current settings.</p>
 </div>
 <div class="section" id="num-uploads-num-connections">
 <h2>num_uploads() num_connections()</h2>
@@ -930,7 +971,7 @@ struct session_status
         int unchoke_counter;
 
         int dht_nodes;
-        int dht_cache_nodes;
+        int dht_node_cache;
         int dht_torrents;
         int dht_global_nodes;
         std::vector&lt;dht_lookup&gt; active_requests;
@@ -970,11 +1011,11 @@ be assigned a torrent yet.</p>
 seconds until the next optimistic unchoke change and the start of the next
 unchoke interval. These numbers may be reset prematurely if a peer that is
 unchoked disconnects or becomes notinterested.</p>
-<p><tt class="docutils literal"><span class="pre">dht_nodes</span></tt>, <tt class="docutils literal"><span class="pre">dht_cache_nodes</span></tt> and <tt class="docutils literal"><span class="pre">dht_torrents</span></tt> are only available when
+<p><tt class="docutils literal"><span class="pre">dht_nodes</span></tt>, <tt class="docutils literal"><span class="pre">dht_node_cache</span></tt> and <tt class="docutils literal"><span class="pre">dht_torrents</span></tt> are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
 the DHT is running, <tt class="docutils literal"><span class="pre">dht_nodes</span></tt> is set to the number of nodes in the routing
 table. This number only includes <em>active</em> nodes, not cache nodes. The
-<tt class="docutils literal"><span class="pre">dht_cache_nodes</span></tt> is set to the number of nodes in the node cache. These nodes
+<tt class="docutils literal"><span class="pre">dht_node_cache</span></tt> is set to the number of nodes in the node cache. These nodes
 are used to replace the regular nodes in the routing table in case any of them
 becomes unresponsive.</p>
 <p><tt class="docutils literal"><span class="pre">dht_torrents</span></tt> are the number of torrents tracked by the DHT at the moment.</p>
@@ -1067,7 +1108,7 @@ bool listen_on(
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">is_listening()</span></tt> will tell you whether or not the session has successfully
 opened a listening port. If it hasn't, this function will return false, and
-then you can use <tt class="docutils literal"><span class="pre">listen_on()</span></tt> to make another try.</p>
+then you can use <tt class="docutils literal"><span class="pre">listen_on()</span></tt> to make another attempt.</p>
 <p><tt class="docutils literal"><span class="pre">listen_port()</span></tt> returns the port we ended up listening on. Since you just pass
 a port-range to the constructor and to <tt class="docutils literal"><span class="pre">listen_on()</span></tt>, to know which port it
 ended up using, you have to ask the session using this function.</p>
@@ -1079,9 +1120,15 @@ the range and so on. The interface parameter can be left as 0, in that case the
 os will decide which interface to listen on, otherwise it should be the ip-address
 of the interface you want the listener socket bound to. <tt class="docutils literal"><span class="pre">listen_on()</span></tt> returns true
 if it managed to open the socket, and false if it failed. If it fails, it will also
-generate an appropriate alert (<a class="reference internal" href="#listen-failed-alert">listen_failed_alert</a>).</p>
+generate an appropriate alert (<a class="reference internal" href="#listen-failed-alert">listen_failed_alert</a>). If all ports in the specified
+range fails to be opened for listening, libtorrent will try to use port 0 (which
+tells the operating system to pick a port that's free). If that still fails you
+may see a <a class="reference internal" href="#listen-failed-alert">listen_failed_alert</a> with port 0 even if you didn't ask to listen on it.</p>
 <p>The interface parameter can also be a hostname that will resolve to the device you
-want to listen on.</p>
+want to listen on. If you don't specify an interface, libtorrent may attempt to
+listen on multiple interfaces (typically 0.0.0.0 and ::). This means that if your
+IPv6 interface doesn't work, you may still see a <a class="reference internal" href="#listen-failed-alert">listen_failed_alert</a>, even though
+the IPv4 port succeeded.</p>
 <p>If you're also starting the DHT, it is a good idea to do that after you've called
 <tt class="docutils literal"><span class="pre">listen_on()</span></tt>, since the default listen port for the DHT is the same as the tcp
 listen socket. If you start the DHT first, it will assume the tcp port is free and
@@ -1556,6 +1603,8 @@ public:
         file_storage const&amp; files() const;
         file_storage const&amp; orig_files() const;
 
+        void remap_files(file_storage const&amp; f);
+
         void rename_file(int index, std::string const&amp; new_filename);
         void rename_file(int index, std::wstring const&amp; new_filename);
 
@@ -1668,6 +1717,18 @@ is used by the web server connection, which needs to request files with the orig
 names. Filename may be chaged using <tt class="docutils literal"><span class="pre">torrent_info::rename_file()</span></tt>.</p>
 <p>For more information on the <tt class="docutils literal"><span class="pre">file_storage</span></tt> object, see the separate document on how
 to create torrents.</p>
+</div>
+<div class="section" id="remap-files">
+<h2>remap_files()</h2>
+<blockquote>
+<pre class="literal-block">
+void remap_files(file_storage const&amp; f);
+</pre>
+</blockquote>
+<p>Remaps the file storage to a new file layout. This can be used to, for instance,
+download all data in a torrent to a single file, or to a number of fixed size
+sector aligned files, regardless of the number and sizes of the files in the torrent.</p>
+<p>The new specified <tt class="docutils literal"><span class="pre">file_storage</span></tt> must have the exact same size as the current one.</p>
 </div>
 <div class="section" id="rename-file">
 <h2>rename_file()</h2>
@@ -1822,6 +1883,10 @@ struct announce_entry
 {
         announce_entry(std::string const&amp; url);
         std::string url;
+
+        int next_announce_in() const;
+        int min_announce_in() const;
+
         boost::uint8_t tier;
         boost::uint8_t fail_limit;
         boost::uint8_t fails;
@@ -1841,6 +1906,9 @@ struct announce_entry
         bool complete_sent:1;
 };
 </pre>
+<p><tt class="docutils literal"><span class="pre">next_announce_in()</span></tt> returns the number of seconds to the next announce on
+this tracker. <tt class="docutils literal"><span class="pre">min_announce_in()</span></tt> returns the number of seconds until we are
+allowed to force another tracker update with this tracker.</p>
 <p><tt class="docutils literal"><span class="pre">fail_limit</span></tt> is the max number of failures to announce to this tracker in
 a row, before this tracker is not used anymore.</p>
 <p><tt class="docutils literal"><span class="pre">fails</span></tt> is the number of times in a row we have failed to announce to this
@@ -2021,12 +2089,15 @@ struct torrent_handle
         void clear_error() const;
         void set_upload_mode(bool m) const;
 
+        void flush_cache() const;
+
         void resolve_countries(bool r);
         bool resolve_countries() const;
 
         enum deadline_flags { alert_when_available = 1 };
-        void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
+        void set_piece_deadline(int index, int deadline, int flags = 0) const;
 
+        void piece_availability(std::vector&lt;int&gt;&amp; avail) const;
         void piece_priority(int index, int priority) const;
         int piece_priority(int index) const;
         void prioritize_pieces(std::vector&lt;int&gt; const&amp; pieces) const;
@@ -2081,7 +2152,7 @@ guarantee that a handle will remain valid between two calls.</p>
 <blockquote>
 <pre class="literal-block">
 enum deadline_flags { alert_when_available = 1 };
-void set_piece_deadline(int index, time_duration deadline, int flags = 0) const;
+void set_piece_deadline(int index, int deadline, int flags = 0) const;
 </pre>
 </blockquote>
 <p>This function sets or resets the deadline associated with a specific piece
@@ -2096,8 +2167,22 @@ piece has been downloaded, by passing <tt class="docutils literal"><span class="
 <p>If the piece is already downloaded when this call is made, nothing happens, unless
 the <tt class="docutils literal"><span class="pre">alert_when_available</span></tt> flag is set, in which case it will do the same thing
 as calling <a class="reference internal" href="#read-piece">read_piece()</a> for <tt class="docutils literal"><span class="pre">index</span></tt>.</p>
-<p>In the python binding for this function, the <tt class="docutils literal"><span class="pre">deadline</span></tt> is the number of milliseconds
-as an integer.</p>
+<p><tt class="docutils literal"><span class="pre">deadline</span></tt> is the number of milliseconds until this piece should be completed.</p>
+</div>
+<div class="section" id="piece-availability">
+<h2>piece_availability()</h2>
+<blockquote>
+<pre class="literal-block">
+void piece_availability(std::vector&lt;int&gt;&amp; avail) const;
+</pre>
+</blockquote>
+<p>Fills the specified <tt class="docutils literal"><span class="pre">std::vector&lt;int&gt;</span></tt> with the availability for each
+piece in this torrent. libtorrent does not keep track of availability for
+seeds, so if the torrent is seeding the availability for all pieces is
+reported as 0.</p>
+<p>The piece availability is the number of peers that we are connected that has
+advertized having a particular piece. This is the information that libtorrent
+uses in order to prefer picking rare pieces.</p>
 </div>
 <div class="section" id="piece-priority-prioritize-pieces-piece-priorities">
 <h2>piece_priority() prioritize_pieces() piece_priorities()</h2>
@@ -2160,6 +2245,9 @@ sets the priorities of all the pieces in the torrent based on the vector.</p>
 <p>Whenever a file priority is changed, all other piece priorities are reset
 to match the file priorities. In order to maintain sepcial priorities for
 particular pieces, <tt class="docutils literal"><span class="pre">piece_priority</span></tt> has to be called again for those pieces.</p>
+<p>You cannot set the file priorities on a torrent that does not yet
+have metadata or a torrent that is a seed. <tt class="docutils literal"><span class="pre">file_priority(int,</span> <span class="pre">int)</span></tt> and
+<tt class="docutils literal"><span class="pre">prioritize_files()</span></tt> are both no-ops for such torrents.</p>
 </div>
 <div class="section" id="file-progress">
 <h2>file_progress()</h2>
@@ -2413,6 +2501,20 @@ is not running because the session is paused, this still returns false. To know 
 torrent is active or not, you need to inspect both <tt class="docutils literal"><span class="pre">torrent_handle::is_paused()</span></tt>
 and <tt class="docutils literal"><span class="pre">session::is_paused()</span></tt>.</p>
 </div>
+<div class="section" id="flush-cache">
+<h2>flush_cache()</h2>
+<blockquote>
+<pre class="literal-block">
+void flush_cache() const;
+</pre>
+</blockquote>
+<p>Instructs libtorrent to flush all the disk caches for this torrent and close all
+file handles. This is done asynchronously and you will be notified that it's complete
+through <a class="reference internal" href="#cache-flushed-alert">cache_flushed_alert</a>.</p>
+<p>Note that by the time you get the alert, libtorrent may have cached more data for the
+torrent, but you are guaranteed that whatever cached data libtorrent had by the time
+you called <tt class="docutils literal"><span class="pre">torrent_handle::flush_cache()</span></tt> has been written to disk.</p>
+</div>
 <div class="section" id="force-recheck">
 <h2>force_recheck()</h2>
 <blockquote>
@@ -2533,6 +2635,9 @@ replace it. If you want an immediate effect, you have to call
 <p><tt class="docutils literal"><span class="pre">add_tracker()</span></tt> will look if the specified tracker is already in the set.
 If it is, it doesn't do anything. If it's not in the current set of trackers,
 it will insert it in the tier specified in the announce_entry.</p>
+<p>The updated set of trackers will be saved in the resume data, and when a torrent
+is started with resume data, the trackers from the resume data will replace the
+original ones.</p>
 </div>
 <div class="section" id="add-url-seed-remove-url-seed-url-seeds">
 <h2>add_url_seed() remove_url_seed() url_seeds()</h2>
@@ -2604,6 +2709,8 @@ A high number gives more bandwidth. The priority must be within the range [0, 25
 consume, even if there's is more quota. Other peers will still be weighed in when
 bandwidth is being distributed. With other words, bandwidth is not distributed strictly
 in order of priority, but the priority is used as a weight.</p>
+<p>Torrents with higher priority are also more likely to have its peers unchoked, to
+distribute more upload capacity to them.</p>
 </div>
 <div class="section" id="use-interface">
 <h2>use_interface()</h2>
@@ -2626,23 +2733,31 @@ sha1_hash info_hash() const;
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">info_hash()</span></tt> returns the info-hash for the torrent.</p>
 </div>
-<div class="section" id="set-max-uploads-max-uploads-set-max-connections-max-connections">
-<h2>set_max_uploads() max_uploads() set_max_connections() max_connections()</h2>
+<div class="section" id="id7">
+<h2>set_max_uploads() max_uploads()</h2>
 <blockquote>
 <pre class="literal-block">
 void set_max_uploads(int max_uploads) const;
 int max_uploads() const;
-void set_max_connections(int max_connections) const;
-int max_connections() const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">set_max_uploads()</span></tt> sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.</p>
+<p><tt class="docutils literal"><span class="pre">max_uploads()</span></tt> returns the current settings.</p>
+</div>
+<div class="section" id="id8">
+<h2>set_max_connections() max_connections()</h2>
+<blockquote>
+<pre class="literal-block">
+void set_max_connections(int max_connections) const;
+int max_connections() const;
+</pre>
+</blockquote>
 <p><tt class="docutils literal"><span class="pre">set_max_connections()</span></tt> sets the maximum number of connection this torrent will open. If all
 connections are used up, incoming connections may be refused or poor connections may be closed.
 This must be at least 2. The default is unlimited number of connections. If -1 is given to the
 function, it means unlimited.</p>
-<p><tt class="docutils literal"><span class="pre">max_uploads()</span></tt> and <tt class="docutils literal"><span class="pre">max_connections()</span></tt> returns the current settings.</p>
+<p><tt class="docutils literal"><span class="pre">max_connections()</span></tt> returns the current settings.</p>
 </div>
 <div class="section" id="save-resume-data">
 <h2>save_resume_data()</h2>
@@ -2716,14 +2831,14 @@ while (num_resume_data &gt; 0)
 
         std::auto_ptr&lt;alert&gt; holder = ses.pop_alert();
 
-        if (dynamic_cast&lt;save_resume_data_failed_alert const*&gt;(a))
+        if (alert_cast&lt;save_resume_data_failed_alert&gt;(a))
         {
                 process_alert(a);
                 --num_resume_data;
                 continue;
         }
 
-        save_resume_data_alert const* rd = dynamic_cast&lt;save_resume_data_alert const*&gt;(a);
+        save_resume_data_alert const* rd = alert_cast&lt;save_resume_data_alert&gt;(a);
         if (rd == 0)
         {
                 process_alert(a);
@@ -2739,7 +2854,7 @@ while (num_resume_data &gt; 0)
 }
 </pre>
 </div>
-<div class="section" id="id7">
+<div class="section" id="id9">
 <h2>status()</h2>
 <blockquote>
 <pre class="literal-block">
@@ -3104,7 +3219,7 @@ larger if the pieces are larger.</p>
 <p><tt class="docutils literal"><span class="pre">num_uploads</span></tt> is the number of unchoked peers in this torrent.</p>
 <p><tt class="docutils literal"><span class="pre">num_connections</span></tt> is the number of peer connections this torrent has, including
 half-open connections that hasn't completed the bittorrent handshake yet. This is
-always &lt;= <tt class="docutils literal"><span class="pre">num_peers</span></tt>.</p>
+always &gt;= <tt class="docutils literal"><span class="pre">num_peers</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">uploads_limit</span></tt> is the set limit of upload slots (unchoked peers) for this torrent.</p>
 <p><tt class="docutils literal"><span class="pre">connections_limit</span></tt> is the set limit of number of connections for this torrent.</p>
 <p><tt class="docutils literal"><span class="pre">storage_mode</span></tt> is one of <tt class="docutils literal"><span class="pre">storage_mode_allocate</span></tt>, <tt class="docutils literal"><span class="pre">storage_mode_sparse</span></tt> or
@@ -3541,23 +3656,42 @@ struct session_settings
         int inactivity_timeout;
         int unchoke_interval;
         int optimistic_unchoke_interval;
-        address announce_ip;
+        std::string announce_ip;
         int num_want;
         int initial_picker_threshold;
         int allowed_fast_set_size;
+
+        enum { no_piece_suggestions = 0, suggest_read_cache = 1 };
+        int suggest_mode;
         int max_queued_disk_bytes;
         int handshake_timeout;
         bool use_dht_as_fallback;
         bool free_torrent_hashes;
         bool upnp_ignore_nonrouters;
         int send_buffer_watermark;
+
+#ifndef TORRENT_NO_DEPRECATE
         bool auto_upload_slots;
         bool auto_upload_slots_rate_based;
+#endif
+
+        enum choking_algorithm_t
+        {
+                fixed_slots_choker,
+                auto_expand_choker,
+                rate_based_choker,
+                bittyrant_choker
+        };
+
+        int choking_algorithm;
+
         bool use_parole_mode;
         int cache_size;
         int cache_buffer_chunk_size;
         int cache_expiry;
         bool use_read_cache;
+        bool explicit_read_cache;
+        int explicit_cache_interval;
         bool disk_io_no_buffer;
         std::pair&lt;int, int&gt; outgoing_ports;
         char peer_tos;
@@ -3618,6 +3752,26 @@ struct session_settings
         bool disable_hash_check;
 
         int max_suggest_pieces;
+
+        bool drop_skipped_requests;
+
+        bool low_prio_disk;
+        int local_service_announce_interval;
+        int dht_announce_interval;
+
+        int udp_tracker_token_expiry;
+        bool volatile_read_cache;
+        bool guided_read_cache;
+        bool default_min_cache_age;
+
+        int num_optimistic_unchoke_slots;
+        bool no_atime_storage;
+        int default_est_reciprocation_rate;
+        int increase_est_reciprocation_rate;
+        int decrease_est_reciprocation_rate;
+        bool incoming_starts_queued_torrents;
+        bool report_true_downloaded;
+        bool strict_end_game_mode;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -3702,8 +3856,9 @@ connection may delay the connection of other peers considerably.</p>
 <p><tt class="docutils literal"><span class="pre">ignore_limits_on_local_network</span></tt>, if set to true, upload, download and
 unchoke limits are ignored for peers on the local network.</p>
 <p><tt class="docutils literal"><span class="pre">connection_speed</span></tt> is the number of connection attempts that
-are made per second. If a number &lt;= 0 is specified, it will default to
-200 connections per second.</p>
+are made per second. If a number &lt; 0 is specified, it will default to
+200 connections per second. If 0 is specified, it means don't make
+outgoing connections at all.</p>
 <p><tt class="docutils literal"><span class="pre">send_redundant_have</span></tt> controls if have messages will be sent
 to peers that already have the piece. This is typically not necessary,
 but it might be necessary for collecting statistics in some cases.
@@ -3723,7 +3878,7 @@ longer than what it takes for TCP to ramp up to it's max rate.</p>
 each <em>optimistic</em> unchoke. On this timer, the currently optimistically
 unchoked peer will change.</p>
 <p><tt class="docutils literal"><span class="pre">announce_ip</span></tt> is the ip address passed along to trackers as the <tt class="docutils literal"><span class="pre">&amp;ip=</span></tt> parameter.
-If left as the default (default constructed), that parameter is ommited.</p>
+If left as the default (an empty string), that parameter is omitted.</p>
 <p><tt class="docutils literal"><span class="pre">num_want</span></tt> is the number of peers we want from each tracker request. It defines
 what is sent as the <tt class="docutils literal"><span class="pre">&amp;num_want=</span></tt> parameter to the tracker.</p>
 <p><tt class="docutils literal"><span class="pre">initial_picker_threshold</span></tt> specifies the number of pieces we need before we
@@ -3732,6 +3887,15 @@ pieces in any torrent are picked at random, the following pieces are picked
 in rarest first order.</p>
 <p><tt class="docutils literal"><span class="pre">allowed_fast_set_size</span></tt> is the number of pieces we allow peers to download
 from us without being unchoked.</p>
+<p><tt class="docutils literal"><span class="pre">suggest_mode</span></tt> controls whether or not libtorrent will send out suggest
+messages to create a bias of its peers to request certain pieces. The modes
+are:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">no_piece_suggestsions</span></tt> which is the default and will not send out suggest
+messages.</li>
+<li><tt class="docutils literal"><span class="pre">suggest_read_cache</span></tt> which will send out suggest messages for the most
+recent pieces that are in the read cache.</li>
+</ul>
 <p><tt class="docutils literal"><span class="pre">max_queued_disk_bytes</span></tt> is the number maximum number of bytes, to be
 written to disk, that can wait in the disk I/O thread queue. This queue
 is only for waiting for the disk I/O thread to receive the job and either
@@ -3772,6 +3936,28 @@ current number of upload slots, see <tt class="docutils literal"><span class="pr
 the max upload slots setting is used as a minimum number of unchoked slots.
 This algorithm is designed to prevent the peer from spreading its upload
 capacity too thin, but still open more slots in order to utilize the full capacity.</p>
+<p><tt class="docutils literal"><span class="pre">choking_algorithm</span></tt> specifies which algorithm to use to determine which peers
+to unchoke. This setting replaces the deprecated settings <tt class="docutils literal"><span class="pre">auto_upload_slots</span></tt>
+and <tt class="docutils literal"><span class="pre">auto_upload_slots_rate_based</span></tt>.</p>
+<p>The options for choking algorithms are:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">fixed_slots_choker</span></tt> is the traditional choker with a fixed number of unchoke
+slots (as specified by <tt class="docutils literal"><span class="pre">session::set_max_uploads()</span></tt>).</li>
+<li><tt class="docutils literal"><span class="pre">auto_expand_choker</span></tt> opens at least the number of slots as specified by
+<tt class="docutils literal"><span class="pre">session::set_max_uploads()</span></tt> but opens up more slots if the upload capacity
+is not saturated. This unchoker will work just like the <tt class="docutils literal"><span class="pre">fixed_slot_choker</span></tt>
+if there's no global upload rate limit set.</li>
+<li><tt class="docutils literal"><span class="pre">rate_based_choker</span></tt> opens up unchoke slots based on the upload rate
+achieved to peers. The more slots that are opened, the marginal upload
+rate required to open up another slot increases.</li>
+<li><tt class="docutils literal"><span class="pre">bittyrant_choker</span></tt> attempts to optimize download rate by finding the
+reciprocation rate of each peer individually and prefers peers that gives
+the highest <em>return on investment</em>. It still allocates all upload capacity,
+but shuffles it around to the best peers first. For this choker to be
+efficient, you need to set a global upload rate limit
+(<tt class="docutils literal"><span class="pre">session::set_upload_rate_limit()</span></tt>). For more information about this
+choker, see the <a class="reference external" href="http://bittyrant.cs.washington.edu/#papers">paper</a>.</li>
+</ul>
 <p><tt class="docutils literal"><span class="pre">use_parole_mode</span></tt> specifies if parole mode should be used. Parole mode means
 that peers that participate in pieces that fail the hash check are put in a mode
 where they are only allowed to download whole pieces. If the whole piece a peer
@@ -3790,6 +3976,19 @@ saves memory at the expense of more heap allocations. It must be at least 1.</p>
 in the write cache, to when it's forcefully flushed to disk. Default is 60 second.</p>
 <p><tt class="docutils literal"><span class="pre">use_read_cache</span></tt>, is set to true (default), the disk cache is also used to
 cache pieces read from disk. Blocks for writing pieces takes presedence.</p>
+<p><tt class="docutils literal"><span class="pre">explicit_read_cache</span></tt> defaults to 0. If set to something greater than 0, the
+disk read cache will not be evicted by cache misses and will explicitly be
+controlled based on the rarity of pieces. Rare pieces are more likely to be
+cached. This would typically be used together with <tt class="docutils literal"><span class="pre">suggest_mode</span></tt> set to
+<tt class="docutils literal"><span class="pre">suggest_read_cache</span></tt>. The value is the number of pieces to keep in the read
+cache. If the actual read cache can't fit as many, it will essentially be clamped.</p>
+<p><tt class="docutils literal"><span class="pre">explicit_cache_interval</span></tt> is the number of seconds in between each refresh of
+a part of the explicit read cache. Torrents take turns in refreshing and this
+is the time in between each torrent refresh. Refreshing a torrent's explicit
+read cache means scanning all pieces and picking a random set of the rarest ones.
+There is an affinity to pick pieces that are already in the cache, so that
+subsequent refreshes only swaps in pieces that are rarer than whatever is in
+the cache at the time.</p>
 <p><tt class="docutils literal"><span class="pre">disk_io_no_buffer</span></tt> defaults to true. When set to true, files are preferred
 to be opened in unbuffered mode. This helps the operating system from growing
 its file cache indefinitely. Currently only files whose offset in the torrent
@@ -3962,6 +4161,92 @@ bittorrent clients.</p>
 <p><tt class="docutils literal"><span class="pre">max_suggest_pieces</span></tt> is the max number of suggested piece indices received
 from a peer that's remembered. If a peer floods suggest messages, this limit
 prevents libtorrent from using too much RAM. It defaults to 10.</p>
+<p>If <tt class="docutils literal"><span class="pre">drop_skipped_requests</span></tt> is set to true (it defaults to false), piece
+requests that have been skipped enough times when piece messages
+are received, will be considered lost. Requests are considered skipped
+when the returned piece messages are re-ordered compared to the order
+of the requests. This was an attempt to get out of dead-locks caused by
+BitComet peers silently ignoring some requests. It may cause problems
+at high rates, and high level of reordering in the uploading peer, that's
+why it's disabled by default.</p>
+<p><tt class="docutils literal"><span class="pre">low_prio_disk</span></tt> determines if the disk I/O should use a normal
+or low priority policy. This defaults to true, which means that
+it's low priority by default. Other processes doing disk I/O will
+normally take priority in this mode. This is meant to improve the
+overall responsiveness of the system while downloading in the
+background. For high-performance server setups, this might not
+be desirable.</p>
+<p><tt class="docutils literal"><span class="pre">local_service_announce_interval</span></tt> is the time between local
+network announces for a torrent. By default, when local service
+discovery is enabled a torrent announces itself every 5 minutes.
+This interval is specified in seconds.</p>
+<p><tt class="docutils literal"><span class="pre">dht_announce_interval</span></tt> is the number of seconds between announcing
+torrents to the distributed hash table (DHT). This is specified to
+be 15 minutes which is its default.</p>
+<p><tt class="docutils literal"><span class="pre">udp_tracker_token_expiry</span></tt> is the number of seconds libtorrent
+will keep UDP tracker connection tokens around for. This is specified
+to be 60 seconds, and defaults to that. The higher this value is, the
+fewer packets have to be sent to the UDP tracker. In order for higher
+values to work, the tracker needs to be configured to match the
+expiration time for tokens.</p>
+<p><tt class="docutils literal"><span class="pre">volatile_read_cache</span></tt>, if this is set to true, read cache blocks
+that are hit by peer read requests are removed from the disk cache
+to free up more space. This is useful if you don't expect the disk
+cache to create any cache hits from other peers than the one who
+triggered the cache line to be read into the cache in the first place.</p>
+<p><tt class="docutils literal"><span class="pre">guided_read_cache</span></tt> enables the disk cache to adjust the size
+of a cache line generated by peers to depend on the upload rate
+you are sending to that peer. The intention is to optimize the RAM
+usage of the cache, to read ahead further for peers that you're
+sending faster to.</p>
+<p><tt class="docutils literal"><span class="pre">default_min_cache_age</span></tt> is the minimum number of seconds any read
+cache line is kept in the cache. This defaults to one second but
+may be greater if <tt class="docutils literal"><span class="pre">guided_read_cache</span></tt> is enabled. Having a lower
+bound on the time a cache line stays in the cache is an attempt
+to avoid swapping the same pieces in and out of the cache in case
+there is a shortage of spare cache space.</p>
+<p><tt class="docutils literal"><span class="pre">num_optimistic_unchoke_slots</span></tt> is the number of optimistic unchoke
+slots to use. It defaults to 0, which means automatic. Having a higher
+number of optimistic unchoke slots mean you will find the good peers
+faster but with the trade-off to use up more bandwidth. When this is
+set to 0, libtorrent opens up 20% of your allowed upload slots as
+optimistic unchoke slots.</p>
+<p><tt class="docutils literal"><span class="pre">no_atime_storage</span></tt> this is a linux-only option and passes in the
+<tt class="docutils literal"><span class="pre">O_NOATIME</span></tt> to <tt class="docutils literal"><span class="pre">open()</span></tt> when opening files. This may lead to
+some disk performance improvements.</p>
+<p><tt class="docutils literal"><span class="pre">default_est_reciprocation_rate</span></tt> is the assumed reciprocation rate
+from peers when using the BitTyrant choker. This defaults to 14 kiB/s.
+If set too high, you will over-estimate your peers and be more altruistic
+while finding the true reciprocation rate, if it's set too low, you'll
+be too stingy and waste finding the true reciprocation rate.</p>
+<p><tt class="docutils literal"><span class="pre">increase_est_reciprocation_rate</span></tt> specifies how many percent the
+extimated reciprocation rate should be increased by each unchoke
+interval a peer is still choking us back. This defaults to 20%.
+This only applies to the BitTyrant choker.</p>
+<p><tt class="docutils literal"><span class="pre">decrease_est_reciprocation_rate</span></tt> specifies how many percent the
+estimated reciprocation rate should be decreased by each unchoke
+interval a peer unchokes us. This default to 3%.
+This only applies to the BitTyrant choker.</p>
+<p><tt class="docutils literal"><span class="pre">incoming_starts_queued_torrents</span></tt> defaults to false. If a torrent
+has been paused by the auto managed feature in libtorrent, i.e.
+the torrent is paused and auto managed, this feature affects whether
+or not it is automatically started on an incoming connection. The
+main reason to queue torrents, is not to make them unavailable, but
+to save on the overhead of announcing to the trackers, the DHT and to
+avoid spreading one's unchoke slots too thin. If a peer managed to
+find us, even though we're no in the torrent anymore, this setting
+can make us start the torrent and serve it.</p>
+<p>When <tt class="docutils literal"><span class="pre">report_true_downloaded</span></tt> is true, the <tt class="docutils literal"><span class="pre">&amp;downloaded=</span></tt> argument
+sent to trackers will include redundant downloaded bytes. It defaults
+to <tt class="docutils literal"><span class="pre">false</span></tt>, which means redundant bytes are not reported to the tracker.</p>
+<p><tt class="docutils literal"><span class="pre">strict_end_game_mode</span></tt> defaults to true, and controls when a block
+may be requested twice. If this is <tt class="docutils literal"><span class="pre">true</span></tt>, a block may only be requested
+twice when there's ay least one request to every piece that's left to
+download in the torrent. This may slow down progress on some pieces
+sometimes, but it may also avoid downloading a lot of redundant bytes.
+If this is <tt class="docutils literal"><span class="pre">false</span></tt>, libtorrent attempts to use each peer connection
+to its max, by always requesting something, even if it means requesting
+something that has been requested from another peer already.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">
@@ -4110,7 +4395,7 @@ public:
 };
 </pre>
 </blockquote>
-<div class="section" id="id10">
+<div class="section" id="id12">
 <h2>ip_filter()</h2>
 <blockquote>
 <pre class="literal-block">
@@ -4558,6 +4843,12 @@ pieces are completed.</td>
 <td>Alerts when some limit is reached that might limit the download
 or upload rate.</td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">stats_notification</span></tt></td>
+<td>If you enable these alerts, you will receive a <tt class="docutils literal"><span class="pre">stats_alert</span></tt>
+approximately once every second, for every active torrent.
+These alerts contain all statistics counters for the interval since
+the lasts stats alert.</td>
+</tr>
 <tr><td><tt class="docutils literal"><span class="pre">all_categories</span></tt></td>
 <td>The full bitmask, representing all available categories.</td>
 </tr>
@@ -4566,9 +4857,14 @@ or upload rate.</td>
 <p>Every alert belongs to one or more category. There is a small cost involved in posting alerts. Only
 alerts that belong to an enabled category are posted. Setting the alert bitmask to 0 will disable
 all alerts</p>
-<p>When you get an alert, you can use <tt class="docutils literal"><span class="pre">typeid()</span></tt> or <tt class="docutils literal"><span class="pre">dynamic_cast&lt;&gt;</span></tt> to get more detailed
-information on exactly which type it is. i.e. what kind of error it is. You can also use a
-<a class="reference internal" href="#dispatcher">dispatcher</a> mechanism that's available in libtorrent.</p>
+<p>When you get an alert, you can use <tt class="docutils literal"><span class="pre">alert_cast&lt;&gt;</span></tt> to attempt to cast the pointer to a
+more specific alert type, to be queried for more information about the alert. <tt class="docutils literal"><span class="pre">alert_cast</span></tt>
+has the followinf signature:</p>
+<pre class="literal-block">
+template &lt;T&gt; T* alert_cast(alert* a);
+template &lt;T&gt; T const* alert_cast(alert const* a);
+</pre>
+<p>You can also use a <a class="reference internal" href="#dispatcher">dispatcher</a> mechanism that's available in libtorrent.</p>
 <p>All alert types are defined in the <tt class="docutils literal"><span class="pre">&lt;libtorrent/alert_types.hpp&gt;</span></tt> header file.</p>
 <p>The <tt class="docutils literal"><span class="pre">alert</span></tt> class is the base class that specific messages are derived from. This
 is its synopsis:</p>
@@ -4691,6 +4987,10 @@ struct external_ip_alert: alert
 <a class="reference internal" href="#session">session</a> can be opened for listening. The <tt class="docutils literal"><span class="pre">endpoint</span></tt> member is the
 interface and port that failed, <tt class="docutils literal"><span class="pre">error</span></tt> is the error code describing
 the failure.</p>
+<p>libtorrent may sometimes try to listen on port 0, if all other ports failed.
+Port 0 asks the operating system to pick a port that's free). If that fails
+you may see a <a class="reference internal" href="#listen-failed-alert">listen_failed_alert</a> with port 0 even if you didn't ask to
+listen on it.</p>
 <pre class="literal-block">
 struct listen_failed_alert: alert
 {
@@ -5150,6 +5450,23 @@ struct torrent_delete_failed_alert: torrent_alert
 };
 </pre>
 </div>
+<div class="section" id="torrent-deleted-alert">
+<h2>torrent_deleted_alert</h2>
+<p>This alert is generated when a request to delete the files of a torrent complete.</p>
+<p>The <tt class="docutils literal"><span class="pre">info_hash</span></tt> is the info-hash of the torrent that was just deleted. Most of
+the time the torrent_handle in the <tt class="docutils literal"><span class="pre">torrent_alert</span></tt> will be invalid by the time
+this alert arrives, since the torrent is being deleted. The <tt class="docutils literal"><span class="pre">info_hash</span></tt> member
+is hence the main way of identifying which torrent just completed the delete.</p>
+<p>This alert is posted in the <tt class="docutils literal"><span class="pre">storage_notification</span></tt> category, and that bit
+needs to be set in the alert mask.</p>
+<pre class="literal-block">
+struct torrent_deleted_alert: torrent_alert
+{
+        // ...
+        sha1_hash info_hash;
+};
+</pre>
+</div>
 <div class="section" id="torrent-finished-alert">
 <h2>torrent_finished_alert</h2>
 <p>This alert is generated when a torrent switches from being a downloader to a seed.
@@ -5172,7 +5489,8 @@ struct performance_alert: torrent_alert
                 outstanding_request_limit_reached,
                 upload_limit_too_low,
                 download_limit_too_low,
-                send_buffer_watermark_too_low
+                send_buffer_watermark_too_low,
+                too_many_optimistic_unchoke_slots
         };
 
         performance_warning_t warning_code;
@@ -5294,6 +5612,52 @@ struct save_resume_data_failed_alert: torrent_alert
 {
         // ...
         error_code error;
+};
+</pre>
+</div>
+<div class="section" id="stats-alert">
+<h2>stats_alert</h2>
+<p>This alert is posted approximately once every second, and it contains
+byte counters of most statistics that's tracked for torrents. Each active
+torrent posts these alerts regularly.</p>
+<pre class="literal-block">
+struct stats_alert: torrent_alert
+{
+        // ...
+        enum stats_channel
+        {
+                upload_payload,
+                upload_protocol,
+                upload_ip_protocol,
+                upload_dht_protocol,
+                upload_tracker_protocol,
+                download_payload,
+                download_protocol,
+                download_ip_protocol,
+                download_dht_protocol,
+                download_tracker_protocol,
+                num_channels
+        };
+
+        int transferred[num_channels];
+        int interval;
+};
+</pre>
+<p><tt class="docutils literal"><span class="pre">transferred</span></tt> this is an array of samples. The enum describes what each
+sample is a measurement of. All of these are raw, and not smoothing is performed.</p>
+<p><tt class="docutils literal"><span class="pre">interval</span></tt> the number of milliseconds during which these stats
+were collected. This is typically just above 1000, but if CPU is
+limited, it may be higher than that.</p>
+</div>
+<div class="section" id="cache-flushed-alert">
+<h2>cache_flushed_alert</h2>
+<p>This alert is posted when the disk cache has been flushed for a specific torrent
+as a result of a call to <a class="reference internal" href="#flush-cache">flush_cache()</a>. This alert belongs to the
+<tt class="docutils literal"><span class="pre">storage_notification</span></tt> category, which must be enabled to let this alert through.</p>
+<pre class="literal-block">
+struct flush_cached_alert: torrent_alert
+{
+        // ...
 };
 </pre>
 </div>
@@ -5761,8 +6125,8 @@ connections, and this is a regular connection</td>
 <td>The packet size exceeded the upper sanity check-limit</td>
 </tr>
 <tr><td>82</td>
-<td>http_parse_error</td>
-<td>Failed to parse HTTP response</td>
+<td>reserved</td>
+<td>&nbsp;</td>
 </tr>
 <tr><td>83</td>
 <td>http_error</td>
@@ -5883,23 +6247,23 @@ potentially better peer</td>
 </tr>
 </thead>
 <tbody valign="top">
-<tr><td>108</td>
+<tr><td>120</td>
 <td>unsupported_protocol_version</td>
 <td>The NAT-PMP router responded with an unsupported protocol version</td>
 </tr>
-<tr><td>109</td>
+<tr><td>121</td>
 <td>natpmp_not_authorized</td>
 <td>You are not authorized to map ports on this NAT-PMP router</td>
 </tr>
-<tr><td>110</td>
+<tr><td>122</td>
 <td>network_failure</td>
 <td>The NAT-PMP router failed because of a network failure</td>
 </tr>
-<tr><td>111</td>
+<tr><td>123</td>
 <td>no_resources</td>
 <td>The NAT-PMP router failed because of lack of resources</td>
 </tr>
-<tr><td>112</td>
+<tr><td>124</td>
 <td>unsupported_opcode</td>
 <td>The NAT-PMP router failed because an unsupported opcode was sent</td>
 </tr>
@@ -5919,64 +6283,102 @@ potentially better peer</td>
 </tr>
 </thead>
 <tbody valign="top">
-<tr><td>113</td>
+<tr><td>130</td>
 <td>missing_file_sizes</td>
 <td>The resume data file is missing the 'file sizes' entry</td>
 </tr>
-<tr><td>114</td>
+<tr><td>131</td>
 <td>no_files_in_resume_data</td>
 <td>The resume data file 'file sizes' entry is empty</td>
 </tr>
-<tr><td>115</td>
+<tr><td>132</td>
 <td>missing_pieces</td>
 <td>The resume data file is missing the 'pieces' and 'slots' entry</td>
 </tr>
-<tr><td>116</td>
+<tr><td>133</td>
 <td>mismatching_number_of_files</td>
 <td>The number of files in the resume data does not match the number
 of files in the torrent</td>
 </tr>
-<tr><td>117</td>
+<tr><td>134</td>
 <td>mismatching_files_size</td>
 <td>One of the files on disk has a different size than in the fast
 resume file</td>
 </tr>
-<tr><td>118</td>
+<tr><td>135</td>
 <td>mismatching_file_timestamp</td>
 <td>One of the files on disk has a different timestamp than in the
 fast resume file</td>
 </tr>
-<tr><td>119</td>
+<tr><td>136</td>
 <td>not_a_dictionary</td>
 <td>The resume data file is not a dictionary</td>
 </tr>
-<tr><td>120</td>
+<tr><td>137</td>
 <td>invalid_blocks_per_piece</td>
 <td>The 'blocks per piece' entry is invalid in the resume data file</td>
 </tr>
-<tr><td>121</td>
+<tr><td>138</td>
 <td>missing_slots</td>
 <td>The resume file is missing the 'slots' entry, which is required
 for torrents with compact allocation</td>
 </tr>
-<tr><td>122</td>
+<tr><td>139</td>
 <td>too_many_slots</td>
 <td>The resume file contains more slots than the torrent</td>
 </tr>
-<tr><td>123</td>
+<tr><td>140</td>
 <td>invalid_slot_list</td>
 <td>The 'slot' entry is invalid in the resume data</td>
 </tr>
-<tr><td>124</td>
+<tr><td>141</td>
 <td>invalid_piece_index</td>
 <td>One index in the 'slot' list is invalid</td>
 </tr>
-<tr><td>125</td>
+<tr><td>142</td>
 <td>pieces_need_reorder</td>
 <td>The pieces on disk needs to be re-ordered for the specified
 allocation mode. This happens if you specify sparse allocation
 and the files on disk are using compact storage. The pieces needs
 to be moved to their right position</td>
+</tr>
+</tbody>
+</table>
+<p>HTTP errors:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="5%" />
+<col width="37%" />
+<col width="58%" />
+</colgroup>
+<tbody valign="top">
+<tr><td>150</td>
+<td>http_parse_error</td>
+<td>The HTTP header was not correctly formatted</td>
+</tr>
+<tr><td>151</td>
+<td>http_missing_location</td>
+<td>The HTTP response was in the 300-399 range but lacked a location
+header</td>
+</tr>
+<tr><td>152</td>
+<td>http_failed_decompress</td>
+<td>The HTTP response was encoded with gzip or deflate but
+decompressing it failed</td>
+</tr>
+</tbody>
+</table>
+<p>I2P errors:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="5%" />
+<col width="37%" />
+<col width="58%" />
+</colgroup>
+<tbody valign="top">
+<tr><td>160</td>
+<td>no_i2p_router</td>
+<td>The URL specified an i2p address, but no i2p router is configured</td>
 </tr>
 </tbody>
 </table>
@@ -6132,6 +6534,7 @@ struct storage_interface
         virtual bool rename_file(int file, std::string const&amp; new_name) = 0;
         virtual bool release_files() = 0;
         virtual bool delete_files() = 0;
+        virtual void finalize_file(int index) {}
         virtual ~storage_interface() {}
 
         // non virtual functions
@@ -6207,7 +6610,7 @@ int sparse_end(int start) const;
 region). The purpose of this is to skip parts of files that can be known to contain
 zeros when checking files.</p>
 </div>
-<div class="section" id="id12">
+<div class="section" id="id14">
 <h2>move_storage()</h2>
 <blockquote>
 <pre class="literal-block">
@@ -6284,7 +6687,7 @@ should be moved to <tt class="docutils literal"><span class="pre">slot1</span></
 <p>This is only used in compact mode.</p>
 <p>Returning <tt class="docutils literal"><span class="pre">true</span></tt> indicates an error occurred.</p>
 </div>
-<div class="section" id="id13">
+<div class="section" id="id15">
 <h2>rename_file()</h2>
 <blockquote>
 <pre class="literal-block">
@@ -6331,6 +6734,20 @@ struct disk_buffer_pool : boost::noncopyable
         void release_memory();
 };
 </pre>
+</div>
+<div class="section" id="finalize-file">
+<h2>finalize_file()</h2>
+<blockquote>
+<pre class="literal-block">
+virtual void finalize_file(int index);
+</pre>
+</blockquote>
+<p>This function is called each time a file is completely downloaded. The
+storage implementation can perform last operations on a file. The file will
+not be opened for writing after this.</p>
+<p><tt class="docutils literal"><span class="pre">index</span></tt> is the index of the file that completed.</p>
+<p>On windows the default storage implementation clears the sparse file flag
+on the specified file.</p>
 </div>
 </div>
 <div class="section" id="magnet-links">
@@ -6613,7 +7030,7 @@ idle in a <tt class="docutils literal"><span class="pre">select()</span></tt> ca
 that will send and receive data on all connections.</li>
 <li>The second thread is the disk I/O thread. All disk read and write operations
 are passed to this thread and messages are passed back to the main thread when
-the operation compeltes. The disk thread also verifies the piece hashes.</li>
+the operation completes. The disk thread also verifies the piece hashes.</li>
 <li>The third and forth threads are spawned by asio on systems that don't support
 non-blocking host name resolution to simulate non-blocking getaddrinfo().</li>
 </ul>

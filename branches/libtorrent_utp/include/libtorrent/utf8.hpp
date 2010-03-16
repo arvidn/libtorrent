@@ -33,7 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UTF8_HPP_INCLUDED
 #define TORRENT_UTF8_HPP_INCLUDED
 
-#if !defined BOOST_NO_STD_WSTRING
+#include "libtorrent/config.hpp"
+
+// on windows we need these functions for
+// convert_to_native and convert_from_native
+#if TORRENT_USE_WSTRING || defined TORRENT_WINDOWS
 
 #include <string>
 #include <cwchar>

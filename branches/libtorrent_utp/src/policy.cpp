@@ -54,15 +54,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/peer_info.hpp"
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/bt_peer_connection.hpp"
 #endif
-
-namespace libtorrent
-{
-	class peer_connection;
-}
 
 using boost::bind;
 
@@ -85,9 +81,17 @@ namespace
 #ifdef TORRENT_DEBUG
 	struct match_peer_connection
 	{
-		match_peer_connection(peer_connection const& c)
-			: m_conn(c)
-		{}
+		match_peer_connection(peer_connection const& c) : m_conn(c) {}
+
+		bool operator()(policy::peer const* p) const
+		{ return p->connection == &m_conn; }
+
+		peer_connection const& m_conn;
+	};
+
+	struct match_peer_connection_or_endpoint
+	{
+		match_peer_connection_or_endpoint(peer_connection const& c) : m_conn(c) {}
 
 		bool operator()(policy::peer const* p) const
 		{
@@ -225,7 +229,7 @@ namespace libtorrent
 			<< " picked: " << interesting_pieces.size() << " ]\n";
 #endif
 		std::vector<pending_block> const& dq = c.download_queue();
-		std::vector<piece_block> const& rq = c.request_queue();
+		std::vector<pending_block> const& rq = c.request_queue();
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
@@ -236,7 +240,7 @@ namespace libtorrent
 				if (num_requests <= 0) break;
 				// don't request pieces we already have in our request queue
 				if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
-					|| std::find(rq.begin(), rq.end(), *i) != rq.end())
+					|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
 					continue;
 	
 				TORRENT_ASSERT(p.num_peers(*i) > 0);
@@ -248,22 +252,37 @@ namespace libtorrent
 
 			// don't request pieces we already have in our request queue
 			if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
-				|| std::find(rq.begin(), rq.end(), *i) != rq.end())
+				|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
 				continue;
 
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
 			// and return
-			if (!c.add_request(*i)) continue;
+			if (!c.add_request(*i, 0)) continue;
 			TORRENT_ASSERT(p.num_peers(*i) == 1);
 			TORRENT_ASSERT(p.is_requested(*i));
 			num_requests--;
 		}
 
-		if (busy_pieces.empty() || num_requests <= 0)
+		// if we don't have any potential busy blocks to request
+		// or if we have picked as many blocks as we should
+		// or if we already have outstanding requests, don't
+		// pick a busy piece
+		if (busy_pieces.empty()
+			|| num_requests <= 0
+			|| dq.size() + rq.size() > 0)
 		{
 			return;
 		}
+
+		// if the number of pieces we have + the number of pieces
+		// we're requesting from is less than the number of pieces
+		// in the torrent, there are still some unrequested pieces
+		// and we're not strictly speaking in end-game mode yet
+		if (t.settings().strict_end_game_mode
+			&& p.num_have() + p.get_download_queue().size()
+				< t.torrent_file().num_pieces())
+			return;
 
 		// if all blocks has the same number of peers on them
 		// we want to pick a random block
@@ -281,12 +300,21 @@ namespace libtorrent
 #endif
 		TORRENT_ASSERT(p.is_requested(*i));
 		TORRENT_ASSERT(p.num_peers(*i) > 0);
-		c.add_request(*i);
+
+		ptime last_request = p.last_request(i->piece_index);
+		ptime now = time_now();
+
+		// don't re-request from a piece more often than once every 20 seconds
+		// TODO: make configurable
+		if (now - last_request < seconds(5))
+			return;
+
+		c.add_request(*i, peer_connection::req_busy);
 	}
 
 	policy::policy(torrent* t)
-		: m_round_robin(0)
-		, m_torrent(t)
+		: m_torrent(t)
+		, m_round_robin(0)
 		, m_num_connect_candidates(0)
 		, m_num_seeds(0)
 		, m_finished(false)
@@ -311,7 +339,7 @@ namespace libtorrent
 		
 			if ((*i)->connection)
 			{
-				(*i)->connection->disconnect(error_code(errors::banned_by_ip_filter, libtorrent_category));
+				(*i)->connection->disconnect(errors::banned_by_ip_filter);
 				if (ses.m_alerts.should_post<peer_blocked_alert>())
 					ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
 				TORRENT_ASSERT((*i)->connection == 0
@@ -637,7 +665,7 @@ namespace libtorrent
 			&& ses.num_connections() >= ses.max_connections()
 			&& c.remote().address() != m_torrent->current_tracker().address())
 		{
-			c.disconnect(error_code(errors::too_many_connections, libtorrent_category));
+			c.disconnect(errors::too_many_connections);
 			return false;
 		}
 
@@ -676,7 +704,7 @@ namespace libtorrent
 
 			if (i->banned)
 			{
-				c.disconnect(error_code(errors::peer_banned, libtorrent_category));
+				c.disconnect(errors::peer_banned);
 				return false;
 			}
 
@@ -701,8 +729,9 @@ namespace libtorrent
 
 				if (self_connection)
 				{
-					c.disconnect(error_code(errors::self_connection, libtorrent_category), 1);
-					i->connection->disconnect(error_code(errors::self_connection, libtorrent_category), 1);
+					c.disconnect(errors::self_connection, 1);
+					i->connection->disconnect(errors::self_connection, 1);
+					TORRENT_ASSERT(i->connection == 0);
 					return false;
 				}
 
@@ -712,10 +741,11 @@ namespace libtorrent
 				if (ec2)
 				{
 					i->connection->disconnect(ec2);
+					TORRENT_ASSERT(i->connection == 0);
 				}
 				else if (!i->connection->is_connecting() || c.is_local())
 				{
-					c.disconnect(error_code(errors::duplicate_peer_id, libtorrent_category));
+					c.disconnect(errors::duplicate_peer_id);
 					return false;
 				}
 				else
@@ -725,7 +755,8 @@ namespace libtorrent
 					" is connecting and this connection is incoming. closing existing "
 					"connection in favour of this one");
 #endif
-					i->connection->disconnect(error_code(errors::duplicate_peer_id, libtorrent_category));
+					i->connection->disconnect(errors::duplicate_peer_id);
+					TORRENT_ASSERT(i->connection == 0);
 				}
 			}
 
@@ -745,7 +776,7 @@ namespace libtorrent
 
 			if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
 			{
-				c.disconnect(error_code(errors::too_many_connections, libtorrent_category));
+				c.disconnect(errors::too_many_connections);
 				return false;
 			}
 
@@ -790,6 +821,14 @@ namespace libtorrent
 		c.set_peer_info(i);
 		TORRENT_ASSERT(i->connection == 0);
 		c.add_stat(i->prev_amount_download, i->prev_amount_upload);
+
+		// restore transfer rate limits
+		int rate_limit;
+		rate_limit = i->upload_rate_limit;
+		if (rate_limit) c.set_upload_limit(rate_limit);
+		rate_limit = i->download_rate_limit;
+		if (rate_limit) c.set_download_limit(rate_limit);
+
 		i->prev_amount_download = 0;
 		i->prev_amount_upload = 0;
 		i->connection = &c;
@@ -799,6 +838,7 @@ namespace libtorrent
 
 		// this cannot be a connect candidate anymore, since i->connection is set
 		TORRENT_ASSERT(!is_connect_candidate(*i, m_finished));
+		TORRENT_ASSERT(has_connection(&c));
 		return true;
 	}
 
@@ -829,7 +869,7 @@ namespace libtorrent
 					pp.source |= src;
 					if (!was_conn_cand && is_connect_candidate(pp, m_finished))
 						++m_num_connect_candidates;
-					p->connection->disconnect(error_code(errors::duplicate_peer_id, libtorrent_category));
+					p->connection->disconnect(errors::duplicate_peer_id);
 					erase_peer(p);
 					return false;
 				}
@@ -1199,6 +1239,11 @@ namespace libtorrent
 		TORRENT_ASSERT(p->connection == &c);
 		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
 
+		// save transfer rate limits
+		int rate_limit;
+		p->upload_rate_limit = c.upload_limit();
+		p->download_rate_limit = c.download_limit();
+
 		p->connection = 0;
 		p->optimistically_unchoked = false;
 
@@ -1222,11 +1267,13 @@ namespace libtorrent
 		// if we're not a seed, but we have too many peers
 		// start weeding the ones we only know from resume
 		// data first
-		if (m_torrent->is_seed() || m_peers.size() >= m_torrent->settings().max_peerlist_size * 0.9)
-		{
-			if (p->source == peer_info::resume_data)
-				erase_peer(p);
-		}
+		// at this point it may be tempting to erase peers
+		// from the peer list, but keep in mind that we might
+		// have gotten to this point through new_connection, just
+		// disconnecting an old peer, relying on this policy::peer
+		// to still exist when we get back there, to assign the new
+		// peer connection pointer to it. The peer list must
+		// be left intact.
 	}
 
 	void policy::peer_is_interesting(peer_connection& c)
@@ -1273,7 +1320,7 @@ namespace libtorrent
 		return std::find_if(
 			m_peers.begin()
 			, m_peers.end()
-			, match_peer_connection(*c)) != m_peers.end();
+			, match_peer_connection_or_endpoint(*c)) != m_peers.end();
 	}
 
 	void policy::check_invariant() const
@@ -1371,7 +1418,7 @@ namespace libtorrent
 				if (p == 0) continue;
 				if (p->connection == 0) continue;
 				TORRENT_ASSERT(std::find_if(m_peers.begin(), m_peers.end()
-					, match_peer_connection(*p->connection)) != m_peers.end());
+					, match_peer_connection_or_endpoint(*p->connection)) != m_peers.end());
 			}
 		}
 #endif // TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -1407,6 +1454,8 @@ namespace libtorrent
 		, last_optimistically_unchoked(0)
 		, last_connected(0)
 		, port(port)
+		, upload_rate_limit(0)
+		, download_rate_limit(0)
 		, hashfails(0)
 		, failcount(0)
 		, connectable(conn)

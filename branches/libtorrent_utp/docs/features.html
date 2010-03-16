@@ -53,14 +53,15 @@
 </li>
 <li><a class="reference internal" href="#highlighted-features" id="id7">highlighted features</a><ul>
 <li><a class="reference internal" href="#disk-caching" id="id8">disk caching</a></li>
-<li><a class="reference internal" href="#network-buffers" id="id9">network buffers</a></li>
-<li><a class="reference internal" href="#piece-picker" id="id10">piece picker</a></li>
-<li><a class="reference internal" href="#merkle-hash-tree-torrents" id="id11">merkle hash tree torrents</a></li>
-<li><a class="reference internal" href="#customizable-file-storage" id="id12">customizable file storage</a></li>
-<li><a class="reference internal" href="#easy-to-use-api" id="id13">easy to use API</a></li>
+<li><a class="reference internal" href="#high-performance-disk-subsystem" id="id9">high performance disk subsystem</a></li>
+<li><a class="reference internal" href="#network-buffers" id="id10">network buffers</a></li>
+<li><a class="reference internal" href="#piece-picker" id="id11">piece picker</a></li>
+<li><a class="reference internal" href="#merkle-hash-tree-torrents" id="id12">merkle hash tree torrents</a></li>
+<li><a class="reference internal" href="#customizable-file-storage" id="id13">customizable file storage</a></li>
+<li><a class="reference internal" href="#easy-to-use-api" id="id14">easy to use API</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#portability" id="id14">portability</a></li>
+<li><a class="reference internal" href="#portability" id="id15">portability</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -86,7 +87,7 @@ some <a class="reference external" href="dht_extensions.html">DHT extensions</a>
 <li>supports the uTorrent metadata transfer protocol <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a> (i.e. magnet links).</li>
 <li>supports the uTorrent peer exchange protocol (PEX).</li>
 <li>supports local peer discovery (multicasts for peers on the same local network)</li>
-<li>multitracker extension support (supports both strict <a class="reference external" href="http://bittorrent.org/beps/bep_0012.html">BEP  12</a> and the
+<li>multitracker extension support (supports both strict <a class="reference external" href="http://bittorrent.org/beps/bep_0012.html">BEP 12</a> and the
 uTorrent interpretation).</li>
 <li>tracker scrapes</li>
 <li>supports lt_trackers extension, to exchange trackers between peers</li>
@@ -133,9 +134,6 @@ download speed is high enough from that particular peer.</li>
 <li>supports gzipped tracker-responses</li>
 <li>can limit the upload and download bandwidth usage and the maximum number of
 unchoked peers</li>
-<li>implements fair trade. User settable trade-ratio, must at least be 1:1,
-but one can choose to trade 1 for 2 or any other ratio that isn't unfair
-to the other party.</li>
 <li>possibility to limit the number of connections.</li>
 <li>delays have messages if there's no other outgoing traffic to the peer, and
 doesn't send have messages to peers that already has the piece. This saves
@@ -143,8 +141,12 @@ bandwidth.</li>
 <li>selective downloading. The ability to select which parts of a torrent you
 want to download.</li>
 <li>ip filter to disallow ip addresses and ip ranges from connecting and
-being connected</li>
+being connected.</li>
 <li>NAT-PMP and UPnP support (automatic port mapping on routers that supports it)</li>
+<li>implements automatic upload slots, to optimize download rate without spreading
+upload capacity too thin. The number of upload slots is adjusted based on the
+peers' download capacity to work even for connections that are orders of
+magnitude faster than others.</li>
 </ul>
 </div>
 </div>
@@ -193,6 +195,25 @@ better with piece sizes.</p>
 <p>The graph to the right shows the same download but with the new optimized disk cache
 algorithm. It clearly shows an increased utilization, which means higher read hit rates
 or smaller caches with maintained hit rate.</p>
+</div>
+<div class="section" id="high-performance-disk-subsystem">
+<h2>high performance disk subsystem</h2>
+<p>In some circumstances, the disk cache may not suffice to provide maximum performance.
+One such example is high performance seeding, to a large number of peers, over a fast
+up-link. In such a case, the amount of RAM may simply not be enough to cache disk
+reads. When there's not enough RAM to cache disk reads, the disk throughput  would
+typically degrade to perform as poorly as with no cache at all, with the majority
+of the time spent waiting for the disk head to seek.</p>
+<p>To solve this problem, libtorrent sorts read requests by their physical offset on the
+disk. They are processed by having the disk read head sweep back and forth over the drive.</p>
+<p>This makes libtorrent very suitable for large scale, high-throughput seeding.</p>
+<img alt="disk_access_no_elevator.png" src="disk_access_no_elevator.png" style="width: 49%;" />
+<img alt="disk_access_elevator.png" src="disk_access_elevator.png" style="width: 49%;" />
+<p>These plots illustrates the physical disk offset for reads over time. The left plot
+is of a run where disk operation re-ordering is turned off and the righ is when it's
+turned on. The right one has a relatively smooth sine wave shape whereas the left
+one is more random and involves much longer seeks back and forth over the disk.</p>
+<p>True physical disk offset queries are only supported on newer linux kernels and Mac OS X.</p>
 </div>
 <div class="section" id="network-buffers">
 <h2>network buffers</h2>

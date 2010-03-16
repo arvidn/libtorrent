@@ -38,9 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "zlib.h"
 
-#ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_USE_GCRYPT
+#include <gcrypt.h>
+#elif defined TORRENT_USE_OPENSSL
 extern "C"
 {
 #include <openssl/sha.h>
@@ -62,60 +63,92 @@ TORRENT_EXPORT void SHA1_Final(boost::uint8_t* digest, SHA_CTX* context);
 
 namespace libtorrent
 {
-
-	class adler32_crc
-	{
-	public:
-		adler32_crc(): m_adler(adler32(0, 0, 0)) {}
-
-		void update(const char* data, int len)
-		{
-			TORRENT_ASSERT(data != 0);
-			TORRENT_ASSERT(len > 0);
-			m_adler = adler32(m_adler, (const Bytef*)data, len);
-		}
-		unsigned long final() const { return m_adler; }
-		void reset() { m_adler = adler32(0, 0, 0); }
-
-	private:
-
-		unsigned long m_adler;
-
-	};
-
 	class hasher
 	{
 	public:
 
-		hasher() { SHA1_Init(&m_context); }
+		hasher()
+		{
+#ifdef TORRENT_USE_GCRYPT
+			gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
+#else
+			SHA1_Init(&m_context);
+#endif
+		}
 		hasher(const char* data, int len)
 		{
-			SHA1_Init(&m_context);
 			TORRENT_ASSERT(data != 0);
 			TORRENT_ASSERT(len > 0);
+#ifdef TORRENT_USE_GCRYPT
+			gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
+			gcry_md_write(m_context, data, len);
+#else
+			SHA1_Init(&m_context);
 			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
+#endif
 		}
-		void update(std::string const& data) { update(&data[0], data.size()); }
+
+#ifdef TORRENT_USE_GCRYPT
+		hasher(hasher const& h)
+		{
+			gcry_md_copy(&m_context, h.m_context);
+		}
+
+		hasher& operator=(hasher const& h)
+		{
+			gcry_md_close(m_context);
+			gcry_md_copy(&m_context, h.m_context);
+			return *this;
+		}
+#endif
+
+		void update(std::string const& data) { update(data.c_str(), data.size()); }
 		void update(const char* data, int len)
 		{
 			TORRENT_ASSERT(data != 0);
 			TORRENT_ASSERT(len > 0);
+#ifdef TORRENT_USE_GCRYPT
+			gcry_md_write(m_context, data, len);
+#else
 			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
+#endif
 		}
 
 		sha1_hash final()
 		{
 			sha1_hash digest;
+#ifdef TORRENT_USE_GCRYPT
+			gcry_md_final(m_context);
+			digest.assign((const char*)gcry_md_read(m_context, 0));
+#else
 			SHA1_Final(digest.begin(), &m_context);
+#endif
 			return digest;
 		}
 
-		void reset() { SHA1_Init(&m_context); }
+		void reset()
+		{
+#ifdef TORRENT_USE_GCRYPT
+			gcry_md_reset(m_context);
+#else
+			SHA1_Init(&m_context);
+#endif
+		}
+
+#ifdef TORRENT_USE_GCRYPT
+		~hasher()
+		{
+			gcry_md_close(m_context);
+		}
+#endif
 
 	private:
 
+#ifdef TORRENT_USE_GCRYPT
+		gcry_md_hd_t m_context;
+#else
 		SHA_CTX m_context;
-
+#endif
 	};
 }
 

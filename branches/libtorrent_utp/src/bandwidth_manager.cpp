@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bandwidth_manager.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -56,7 +57,6 @@ namespace libtorrent
 		m_abort = true;
 		m_queue.clear();
 		m_queued_bytes = 0;
-		error_code ec;
 	}
 
 #ifdef TORRENT_DEBUG
@@ -180,8 +180,8 @@ namespace libtorrent
 			{
 				bandwidth_channel* bwc = i->channel[j];
 				if (bwc->tmp == 0) channels.push_back(bwc);
+				TORRENT_ASSERT(INT_MAX - bwc->tmp > i->priority);
 				bwc->tmp += i->priority;
-				TORRENT_ASSERT(i->priority > 0);
 			}
 		}
 

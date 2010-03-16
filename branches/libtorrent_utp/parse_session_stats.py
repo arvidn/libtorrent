@@ -1,4 +1,4 @@
-#!/bin/python
+#! /usr/bin/env python
 # Copyright Arvid Norberg 2008. Use, modification and distribution is
 # subject to the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -25,7 +25,8 @@ def gen_report(name, lines):
 	print >>out, 'set ylabel "number"'
 	print >>out, 'set y2label "Rate (B/s)"'
 	print >>out, 'set y2range [0:*]'
-	print >>out, 'set y2tics 10000'
+	print >>out, 'set y2tics auto'
+	print >>out, "set tics nomirror"
 	print >>out, "set style data lines"
 	print >>out, "set key box"
 	print >>out, 'plot',

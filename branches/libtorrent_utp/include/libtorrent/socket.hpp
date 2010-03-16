@@ -45,18 +45,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #define Protocol Protocol_
 #endif
 
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+// asio assumes that the windows error codes are defined already
+#include <winsock2.h>
+#endif
+
 #include <boost/version.hpp>
 
 #if BOOST_VERSION < 103500
 #include <asio/ip/tcp.hpp>
 #include <asio/ip/udp.hpp>
-#include <asio/io_service.hpp>
 #include <asio/write.hpp>
 #include <asio/read.hpp>
 #else
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/udp.hpp>
-#include <boost/asio/io_service.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/read.hpp>
 #endif
@@ -79,12 +82,8 @@ namespace libtorrent
 	using ::asio::async_read;
 
 	typedef ::asio::ip::tcp::socket stream_socket;
-	typedef ::asio::ip::address address;
-	typedef ::asio::ip::address_v4 address_v4;
-	typedef ::asio::ip::address_v6 address_v6;
 	typedef ::asio::ip::udp::socket datagram_socket;
 	typedef ::asio::ip::tcp::acceptor socket_acceptor;
-	typedef ::asio::io_service io_service;
 #else
 	using boost::asio::ip::tcp;
 	using boost::asio::ip::udp;
@@ -92,16 +91,12 @@ namespace libtorrent
 	using boost::asio::async_read;
 
 	typedef boost::asio::ip::tcp::socket stream_socket;
-	typedef boost::asio::ip::address address;
-	typedef boost::asio::ip::address_v4 address_v4;
-	typedef boost::asio::ip::address_v6 address_v6;
 	typedef boost::asio::ip::udp::socket datagram_socket;
 	typedef boost::asio::ip::tcp::acceptor socket_acceptor;
-	typedef boost::asio::io_service io_service;
 
 	namespace asio = boost::asio;
 #endif
-	
+
 #if TORRENT_USE_IPV6
 	struct v6only
 	{

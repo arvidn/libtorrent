@@ -79,7 +79,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 #endif
 		)
 	{
-		error_code ec(errors::unsupported_url_protocol, libtorrent_category);
+		error_code ec(errors::unsupported_url_protocol);
 		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
 			, this, ec, (char*)0, 0));
 		return;
@@ -117,7 +117,6 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 				ps->username + ":" + ps->password).c_str());
 		hostname = ps->hostname;
 		port = ps->port;
-		ps = 0;
 	}
 	else
 	{
@@ -215,10 +214,21 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		if (is_i2p && i2p_conn->proxy().type != proxy_settings::i2p_proxy)
 		{
 			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
-				, this, error_code(errors::no_i2p_router, libtorrent_category), (char*)0, 0));
+				, this, error_code(errors::no_i2p_router, get_libtorrent_category()), (char*)0, 0));
 			return;
 		}
 #endif
+
+		// in this case, the upper layer is assumed to have taken
+		// care of the proxying already. Don't instantiate the socket
+		// with this proxy
+		if (ps && (ps->type == proxy_settings::http
+			|| ps->type == proxy_settings::http_pw)
+			&& !ssl)
+		{
+			ps = 0;
+		}
+		proxy_settings null_proxy;
 
 #ifdef TORRENT_USE_OPENSSL
 		if (m_ssl)
@@ -236,7 +246,8 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			else
 #endif
 			{
-				ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, 0, s->next_layer());
+				ret = instantiate_connection(m_resolver.get_io_service()
+					, ps ? *ps : null_proxy, 0, s->next_layer());
 			}
 
 			TORRENT_ASSERT(ret);
@@ -257,12 +268,13 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #endif
 			{
 				ret = instantiate_connection(m_resolver.get_io_service()
-					, m_proxy, 0, *m_sock.get<socket_type>());
+					, ps ? *ps : null_proxy, 0, *m_sock.get<socket_type>());
 			}
 			TORRENT_ASSERT(ret);
 		}
 #else
-		bool ret = instantiate_connection(m_resolver.get_io_service(), m_proxy, 0, m_sock);
+		bool ret = instantiate_connection(m_resolver.get_io_service()
+			, ps ? *ps : null_proxy, 0, m_sock);
 		TORRENT_ASSERT(ret);
 #endif
 		if (m_bind_addr != address_v4::any())
@@ -484,12 +496,12 @@ void http_connection::callback(error_code const& e, char const* data, int size)
 	if (m_bottled && m_parser.header_finished())
 	{
 		std::string const& encoding = m_parser.header("content-encoding");
-		if (encoding == "gzip" || encoding == "x-gzip")
+		if ((encoding == "gzip" || encoding == "x-gzip") && size > 0 && data)
 		{
 			std::string error;
 			if (inflate_gzip(data, size, buf, max_bottled_buffer, error))
 			{
-				if (m_handler) m_handler(asio::error::fault, m_parser, data, size, *this);
+				if (m_handler) m_handler(errors::http_failed_decompress, m_parser, data, size, *this);
 				close();
 				return;
 			}
@@ -584,7 +596,7 @@ void http_connection::on_read(error_code const& e
 		if (error)
 		{
 			// HTTP parse error
-			error_code ec = asio::error::fault;
+			error_code ec = errors::http_parse_error;
 			callback(ec, 0, 0);
 			return;
 		}
@@ -601,7 +613,7 @@ void http_connection::on_read(error_code const& e
 				if (location.empty())
 				{
 					// missing location header
-					callback(asio::error::fault);
+					callback(error_code(errors::http_missing_location));
 					close();
 					return;
 				}
@@ -622,14 +634,11 @@ void http_connection::on_read(error_code const& e
 					std::string url = m_url;
 					// remove the leaf filename
 					std::size_t i = url.find_last_of('/');
-					if (i == std::string::npos)
-					{
+					if (i != std::string::npos)
+						url.resize(i);
+					if ((url.empty() || url[url.size()-1] != '/')
+						&& (location.empty() || location[0] != '/'))
 						url += '/';
-					}
-					else
-					{
-						url.resize(i + 1);
-					}
 					url += location;
 
 					get(url, m_timeout, m_priority, &m_proxy, m_redirects - 1);

@@ -37,12 +37,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #define Protocol Protocol_
 #endif
 
+#if __GNUC__ < 3
+// in GCC 2.95 templates seems to have all symbols
+// resolved as they are parsed, so the time_traits
+// template actually needs the definitions it uses,
+// even though it's never instantiated
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#else
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#endif
+
 #if BOOST_VERSION < 103500
 #include <asio/basic_deadline_timer.hpp>
-#include <asio/time_traits.hpp>
 #else
 #include <boost/asio/basic_deadline_timer.hpp>
-#include <boost/asio/time_traits.hpp>
 #endif
 
 #ifdef __OBJC__ 

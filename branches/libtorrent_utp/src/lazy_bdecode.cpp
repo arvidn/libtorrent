@@ -40,17 +40,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace
 {
-	const float lazy_entry_grow_factor = 1.5f;
+	const int lazy_entry_grow_factor = 150; // percent
 	const int lazy_entry_dict_init = 5;
 	const int lazy_entry_list_init = 5;
 }
 
 namespace libtorrent
 {
-	int fail_bdecode(lazy_entry& ret)
+	int fail_bdecode(lazy_entry& ret, int return_value = -1)
 	{
-		ret = lazy_entry();
-		return -1;
+		ret.clear();
+		return return_value;
 	}
 
 	// fills in 'val' with what the string between start and the
@@ -110,10 +110,11 @@ namespace libtorrent
 					start = parse_int(start, end, ':', len);
 					if (start == 0 || start + len + 3 > end || *start != ':') return fail_bdecode(ret);
 					++start;
-					if (start == end) fail_bdecode(ret);
+					if (start == end) return fail_bdecode(ret);
 					lazy_entry* ent = top->dict_append(start);
+					if (ent == 0) return fail_bdecode(ret, -2);
 					start += len;
-					if (start >= end) fail_bdecode(ret);
+					if (start >= end) return fail_bdecode(ret);
 					stack.push_back(ent);
 					t = *start;
 					++start;
@@ -128,6 +129,7 @@ namespace libtorrent
 						continue;
 					}
 					lazy_entry* ent = top->list_append();
+					if (ent == 0) return fail_bdecode(ret, -2);
 					stack.push_back(ent);
 					break;
 				}
@@ -191,26 +193,26 @@ namespace libtorrent
 		if (m_capacity == 0)
 		{
 			int capacity = lazy_entry_dict_init;
-			m_data.dict = new (std::nothrow) std::pair<char const*, lazy_entry>[capacity];
+			m_data.dict = new (std::nothrow) lazy_dict_entry[capacity];
 			if (m_data.dict == 0) return 0;
 			m_capacity = capacity;
 		}
 		else if (m_size == m_capacity)
 		{
-			int capacity = m_capacity * lazy_entry_grow_factor;
-			std::pair<char const*, lazy_entry>* tmp = new (std::nothrow) std::pair<char const*, lazy_entry>[capacity];
+			int capacity = m_capacity * lazy_entry_grow_factor / 100;
+			lazy_dict_entry* tmp = new (std::nothrow) lazy_dict_entry[capacity];
 			if (tmp == 0) return 0;
-			std::memcpy(tmp, m_data.dict, sizeof(std::pair<char const*, lazy_entry>) * m_size);
-			for (int i = 0; i < m_size; ++i) m_data.dict[i].second.release();
+			std::memcpy(tmp, m_data.dict, sizeof(lazy_dict_entry) * m_size);
+			for (int i = 0; i < int(m_size); ++i) m_data.dict[i].val.release();
 			delete[] m_data.dict;
 			m_data.dict = tmp;
 			m_capacity = capacity;
 		}
 
 		TORRENT_ASSERT(m_size < m_capacity);
-		std::pair<char const*, lazy_entry>& ret = m_data.dict[m_size++];
-		ret.first = name;
-		return &ret.second;
+		lazy_dict_entry& ret = m_data.dict[m_size++];
+		ret.name = name;
+		return &ret.val;
 	}
 
 	namespace
@@ -257,6 +259,14 @@ namespace libtorrent
 		}
 	}
 
+	std::pair<std::string, lazy_entry const*> lazy_entry::dict_at(int i) const
+	{
+		TORRENT_ASSERT(m_type == dict_t);
+		TORRENT_ASSERT(i < int(m_size));
+		lazy_dict_entry const& e = m_data.dict[i];
+		return std::make_pair(std::string(e.name, e.val.m_begin - e.name), &e.val);
+	}
+
 	std::string lazy_entry::dict_find_string_value(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
@@ -264,10 +274,24 @@ namespace libtorrent
 		return e->string_value();
 	}
 
+	pascal_string lazy_entry::dict_find_pstr(char const* name) const
+	{
+		lazy_entry const* e = dict_find(name);
+		if (e == 0 || e->type() != lazy_entry::string_t) return pascal_string(0, 0);
+		return e->string_pstr();
+	}
+
 	lazy_entry const* lazy_entry::dict_find_string(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
 		if (e == 0 || e->type() != lazy_entry::string_t) return 0;
+		return e;
+	}
+
+	lazy_entry const* lazy_entry::dict_find_int(char const* name) const
+	{
+		lazy_entry const* e = dict_find(name);
+		if (e == 0 || e->type() != lazy_entry::int_t) return 0;
 		return e;
 	}
 
@@ -295,11 +319,11 @@ namespace libtorrent
 	lazy_entry* lazy_entry::dict_find(char const* name)
 	{
 		TORRENT_ASSERT(m_type == dict_t);
-		for (int i = 0; i < m_size; ++i)
+		for (int i = 0; i < int(m_size); ++i)
 		{
-			std::pair<char const*, lazy_entry> const& e = m_data.dict[i];
-			if (string_equal(name, e.first, e.second.m_begin - e.first))
-				return &m_data.dict[i].second;
+			lazy_dict_entry& e = m_data.dict[i];
+			if (string_equal(name, e.name, e.val.m_begin - e.name))
+				return &e.val;
 		}
 		return 0;
 	}
@@ -317,11 +341,11 @@ namespace libtorrent
 		}
 		else if (m_size == m_capacity)
 		{
-			int capacity = m_capacity * lazy_entry_grow_factor;
+			int capacity = m_capacity * lazy_entry_grow_factor / 100;
 			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity];
 			if (tmp == 0) return 0;
 			std::memcpy(tmp, m_data.list, sizeof(lazy_entry) * m_size);
-			for (int i = 0; i < m_size; ++i) m_data.list[i].release();
+			for (int i = 0; i < int(m_size); ++i) m_data.list[i].release();
 			delete[] m_data.list;
 			m_data.list = tmp;
 			m_capacity = capacity;
@@ -336,6 +360,13 @@ namespace libtorrent
 		lazy_entry const* e = list_at(i);
 		if (e == 0 || e->type() != lazy_entry::string_t) return std::string();
 		return e->string_value();
+	}
+
+	pascal_string lazy_entry::list_pstr_at(int i) const
+	{
+		lazy_entry const* e = list_at(i);
+		if (e == 0 || e->type() != lazy_entry::string_t) return pascal_string(0, 0);
+		return e->string_pstr();
 	}
 
 	size_type lazy_entry::list_int_value_at(int i, size_type default_val) const
@@ -372,8 +403,14 @@ namespace libtorrent
 	}
 #endif // TORRENT_USE_IOSTREAM
 
-	std::string print_entry(lazy_entry const& e, bool single_line)
+	std::string print_entry(lazy_entry const& e, bool single_line, int indent)
 	{
+		char indent_str[200];
+		memset(indent_str, ' ', 200);
+		indent_str[0] = ',';
+		indent_str[1] = '\n';
+		indent_str[199] = 0;
+		if (indent < 197 && indent >= 0) indent_str[indent+2] = 0;
 		std::string ret;
 		switch (e.type())
 		{
@@ -423,13 +460,13 @@ namespace libtorrent
 						&& e.list_size() < 5))
 					|| single_line;
 
-				if (!one_liner) ret += "\n";
+				if (!one_liner) ret += indent_str + 1;
 				for (int i = 0; i < e.list_size(); ++i)
 				{
 					if (i == 0 && one_liner) ret += " ";
-					ret += print_entry(*e.list_at(i), single_line);
-					if (i < e.list_size() - 1) ret += (one_liner?", ":",\n");
-					else ret += (one_liner?" ":"\n");
+					ret += print_entry(*e.list_at(i), single_line, indent + 2);
+					if (i < e.list_size() - 1) ret += (one_liner?", ":indent_str);
+					else ret += (one_liner?" ":indent_str+1);
 				}
 				ret += "]";
 				return ret;
@@ -445,7 +482,7 @@ namespace libtorrent
 					&& e.dict_size() < 5)
 					|| single_line;
 
-				if (!one_liner) ret += "\n";
+				if (!one_liner) ret += indent_str+1;
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
 					if (i == 0 && one_liner) ret += " ";
@@ -453,9 +490,9 @@ namespace libtorrent
 					ret += "'";
 					ret += ent.first;
 					ret += "': ";
-					ret += print_entry(*ent.second, single_line);
-					if (i < e.dict_size() - 1) ret += (one_liner?", ":",\n");
-					else ret += (one_liner?" ":"\n");
+					ret += print_entry(*ent.second, single_line, indent + 2);
+					if (i < e.dict_size() - 1) ret += (one_liner?", ":indent_str);
+					else ret += (one_liner?" ":indent_str+1);
 				}
 				ret += "}";
 				return ret;

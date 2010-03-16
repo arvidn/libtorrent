@@ -55,17 +55,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined __GNUC__
 
-# define TORRENT_DEPRECATED __attribute__ ((deprecated))
+# if __GNUC__ >= 3
+#  define TORRENT_DEPRECATED __attribute__ ((deprecated))
+# endif
 
 // GCC pre 4.0 did not have support for the visibility attribute
 # if __GNUC__ >= 4
 #  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
 #   define TORRENT_EXPORT __attribute__ ((visibility("default")))
-#  else
-#   define TORRENT_EXPORT
 #  endif
-# else
-#  define TORRENT_EXPORT
 # endif
 
 
@@ -76,13 +74,13 @@ POSSIBILITY OF SUCH DAMAGE.
 # if __SUNPRO_CC >= 0x550
 #  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
 #   define TORRENT_EXPORT __global
-#  else
-#   define TORRENT_EXPORT
 #  endif
-# else
-#  define TORRENT_EXPORT
 # endif
 
+// SunPRO seems to have an overly-strict
+// definition of POD types and doesn't
+// seem to allow boost::array in unions
+#define TORRENT_BROKEN_UNIONS 1
 
 // ======= MSVC =========
 
@@ -95,60 +93,88 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_EXPORT __declspec(dllexport)
 # elif defined(TORRENT_LINKING_SHARED)
 #  define TORRENT_EXPORT __declspec(dllimport)
-# else
-#  define TORRENT_EXPORT
 # endif
 
 #define TORRENT_DEPRECATED_PREFIX __declspec(deprecated)
 
-
-
-// ======= GENERIC COMPILER =========
-
-#else
-# define TORRENT_EXPORT
 #endif
 
 
+// ======= PLATFORMS =========
 
-#ifndef TORRENT_DEPRECATED_PREFIX
-#define TORRENT_DEPRECATED_PREFIX
-#endif
-
-#ifndef TORRENT_DEPRECATED
-#define TORRENT_DEPRECATED
-#endif
 
 // set up defines for target environments
-#if (defined __APPLE__ && defined __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
+// ==== AMIGA ===
+#if defined __AMIGA__ || defined __amigaos__ || defined __AROS__
+#define TORRENT_AMIGA
+#define TORRENT_USE_MLOCK 0
+#define TORRENT_USE_WRITEV 0
+#define TORRENT_USE_READV 0
+#define TORRENT_USE_IPV6 0
+#define TORRENT_USE_BOOST_THREAD 0
+#define TORRENT_USE_IOSTREAM 0
+// set this to 1 to disable all floating point operations
+// (disables some float-dependent APIs)
+#define TORRENT_NO_FPU 1
+#define TORRENT_USE_I2P 0
+#define TORRENT_USE_ICONV 0
+
+// ==== Darwin/BSD ===
+#elif (defined __APPLE__ && defined __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
 	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__ \
 	|| defined __FreeBSD_kernel__
 #define TORRENT_BSD
+// we don't need iconv on mac, because
+// the locale is always utf-8
+#if defined __APPLE__
+#define TORRENT_USE_ICONV 0
+#endif
+#define TORRENT_HAS_FALLOCATE 0
+
+// ==== LINUX ===
 #elif defined __linux__
 #define TORRENT_LINUX
+
+// ==== MINGW ===
 #elif defined __MINGW32__
 #define TORRENT_MINGW
+#define TORRENT_WINDOWS
+#define TORRENT_USE_ICONV 0
+#define TORRENT_USE_RLIMIT 0
+
+// ==== WINDOWS ===
 #elif defined WIN32
 #define TORRENT_WINDOWS
+// windows has its own functions to convert
+// apple uses utf-8 as its locale, so no conversion
+// is necessary
+#define TORRENT_USE_ICONV 0
+#define TORRENT_USE_RLIMIT 0
+#define TORRENT_HAS_FALLOCATE 0
+
+// ==== SOLARIS ===
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
+#define TORRENT_COMPLETE_TYPES_REQUIRED 1
+
+// ==== BEOS ===
+#elif defined __BEOS__ || defined __HAIKU__
+#define TORRENT_BEOS
+#include <storage/StorageDefs.h> // B_PATH_NAME_LENGTH
+#define TORRENT_HAS_FALLOCATE 0
+#define TORRENT_USE_MLOCK 0
+#define TORRENT_USE_ICONV 0
+#if __GNUCC__ == 2
+# if defined(TORRENT_BUILDING_SHARED)
+#  define TORRENT_EXPORT __declspec(dllexport)
+# elif defined(TORRENT_LINKING_SHARED)
+#  define TORRENT_EXPORT __declspec(dllimport)
+# endif
+#endif
 #else
 #warning unknown OS, assuming BSD
 #define TORRENT_BSD
 #endif
-
-#define TORRENT_USE_IPV6 1
-#define TORRENT_USE_MLOCK 1
-#define TORRENT_USE_READV 1
-#define TORRENT_USE_WRITEV 1
-#define TORRENT_USE_IOSTREAM 1
-
-#define TORRENT_USE_I2P 1
-
-// set this to 1 to disable all floating point operations
-// (disables some float-dependent APIs)
-#define TORRENT_NO_FPU 0
-
 
 // on windows, NAME_MAX refers to Unicode characters
 // on linux it refers to bytes (utf-8 encoded)
@@ -157,6 +183,10 @@ POSSIBILITY OF SUCH DAMAGE.
 // windows
 #if defined FILENAME_MAX
 #define TORRENT_MAX_PATH FILENAME_MAX
+
+// beos
+#elif defined B_PATH_NAME_LENGTH
+#define TORRENT_MAX_PATH B_PATH_NAME_LENGTH
 
 // solaris
 #elif defined MAXPATH
@@ -175,10 +205,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
 
 // class X needs to have dll-interface to be used by clients of class Y
 #pragma warning(disable:4251)
+// '_vsnprintf': This function or variable may be unsafe
+#pragma warning(disable:4996)
 
 #include <stdarg.h>
 
@@ -197,25 +229,79 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #include <limits.h>
 #endif
 
-#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) && !defined (TORRENT_UPNP_LOGGING)
+#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) \
+	&& !defined (TORRENT_UPNP_LOGGING) && TORRENT_USE_IOSTREAM
 #define TORRENT_UPNP_LOGGING
 #endif
 
-// windows has its own functions to convert
-// apple uses utf-8 as its locale, so no conversion
-// is necessary
-#if !defined TORRENT_WINDOWS && !defined __APPLE__
 // libiconv presence, not implemented yet
+#ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 1
-#else
-#define TORRENT_ISE_ICONV 0
 #endif
 
-#if defined UNICODE
+#ifndef TORRENT_BROKEN_UNIONS
+#define TORRENT_BROKEN_UNIONS 0
+#endif
+
+#if defined UNICODE && !defined BOOST_NO_STD_WSTRING
 #define TORRENT_USE_WSTRING 1
 #else
 #define TORRENT_USE_WSTRING 0
-#endif // TORRENT_WINDOWS
+#endif // UNICODE
+
+#ifndef TORRENT_HAS_FALLOCATE
+#define TORRENT_HAS_FALLOCATE 1
+#endif
+
+#ifndef TORRENT_EXPORT
+# define TORRENT_EXPORT
+#endif
+
+#ifndef TORRENT_DEPRECATED_PREFIX
+#define TORRENT_DEPRECATED_PREFIX
+#endif
+
+#ifndef TORRENT_DEPRECATED
+#define TORRENT_DEPRECATED
+#endif
+
+#ifndef TORRENT_COMPLETE_TYPES_REQUIRED
+#define TORRENT_COMPLETE_TYPES_REQUIRED 0
+#endif
+
+#ifndef TORRENT_USE_RLIMIT
+#define TORRENT_USE_RLIMIT 1
+#endif
+
+#ifndef TORRENT_USE_IPV6
+#define TORRENT_USE_IPV6 1
+#endif
+
+#ifndef TORRENT_USE_MLOCK
+#define TORRENT_USE_MLOCK 1
+#endif
+
+#ifndef TORRENT_USE_WRITEV
+#define TORRENT_USE_WRITEV 1
+#endif
+
+#ifndef TORRENT_USE_READV
+#define TORRENT_USE_READV 1
+#endif
+
+#ifndef TORRENT_NO_FPU
+#define TORRENT_NO_FPU 0
+#endif
+
+#if !defined TORRENT_USE_IOSTREAM && !defined BOOST_NO_IOSTREAM
+#define TORRENT_USE_IOSTREAM 1
+#else
+#define TORRENT_USE_IOSTREAM 0
+#endif
+
+#ifndef TORRENT_USE_I2P
+#define TORRENT_USE_I2P 1
+#endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
 # define TORRENT_READ_HANDLER_MAX_SIZE 256
@@ -229,16 +315,37 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define for if (false) {} else for
 #endif
 
+#if TORRENT_STRICT_UNIONS
+#define TORRENT_UNION struct
+#else
+#define TORRENT_UNION union
+#endif
+
 // determine what timer implementation we can use
+// if one is already defined, don't pick one
+// autmatically. This lets the user control this
+// from the Jamfile
+#if !defined TORRENT_USE_ABSOLUTE_TIME \
+	&& !defined TORRENT_USE_QUERY_PERFORMANCE_TIMER \
+	&& !defined TORRENT_USE_CLOCK_GETTIME \
+	&& !defined TORRENT_USE_BOOST_DATE_TIME \
+	&& !defined TORRENT_USE_ECLOCK \
+	&& !defined TORRENT_USE_SYSTEM_TIME
 
 #if defined(__MACH__)
 #define TORRENT_USE_ABSOLUTE_TIME 1
-#elif defined(_WIN32)
+#elif defined(_WIN32) || defined TORRENT_MINGW
 #define TORRENT_USE_QUERY_PERFORMANCE_TIMER 1
 #elif defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0
 #define TORRENT_USE_CLOCK_GETTIME 1
+#elif defined(TORRENT_AMIGA)
+#define TORRENT_USE_ECLOCK 1
+#elif defined(TORRENT_BEOS)
+#define TORRENT_USE_SYSTEM_TIME 1
 #else
 #define TORRENT_USE_BOOST_DATE_TIME 1
+#endif
+
 #endif
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED

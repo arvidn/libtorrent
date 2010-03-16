@@ -50,7 +50,8 @@ bool print_alerts(libtorrent::session& ses, char const* name
 
 void test_sleep(int millisec);
 
-boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0, int piece_size = 16 * 1024, int num_pieces = 13);
+boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
+	, int piece_size = 16 * 1024, int num_pieces = 13, bool add_tracker = true);
 
 boost::tuple<libtorrent::torrent_handle
 	, libtorrent::torrent_handle
@@ -61,10 +62,13 @@ setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 	, boost::intrusive_ptr<libtorrent::torrent_info>* torrent = 0, bool super_seeding = false
 	, libtorrent::add_torrent_params const* p = 0);
 
-void start_web_server(int port, bool ssl = false);
-void stop_web_server(int port);
+int start_web_server(bool ssl = false);
+void stop_web_server();
 void start_proxy(int port, int type);
 void stop_proxy(int port);
+
+void stop_tracker();
+int start_tracker();
 
 #endif
 

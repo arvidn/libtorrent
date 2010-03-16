@@ -295,7 +295,7 @@ namespace libtorrent { namespace
 
 			if (length > 17 * 1024)
 			{
-				m_pc.disconnect(error_code(errors::invalid_metadata_message, libtorrent_category), 2);
+				m_pc.disconnect(errors::invalid_metadata_message, 2);
 				return true;
 			}
 
@@ -305,7 +305,7 @@ namespace libtorrent { namespace
 			entry msg = bdecode(body.begin, body.end, len);
 			if (msg.type() == entry::undefined_t)
 			{
-				m_pc.disconnect(error_code(errors::invalid_metadata_message, libtorrent_category), 2);
+				m_pc.disconnect(errors::invalid_metadata_message, 2);
 				return true;
 			}
 
@@ -355,9 +355,8 @@ namespace libtorrent { namespace
 				}
 				break;
 			default:
-				{
-					m_pc.disconnect(error_code(errors::invalid_metadata_message, libtorrent_category), 2);
-				}
+				// unknown message, ignore
+				break;
 			}
 			return true;
 		}

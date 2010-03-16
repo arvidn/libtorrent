@@ -33,7 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include "libtorrent/alert.hpp"
-#include <boost/function.hpp>
+#include "libtorrent/alert_types.hpp"
+#include "libtorrent/io_service.hpp"
+#include "libtorrent/socket_io.hpp"
+#include "libtorrent/time.hpp"
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/escape_string.hpp"
 #include <boost/bind.hpp>
 
 namespace libtorrent {
@@ -41,6 +46,284 @@ namespace libtorrent {
 	alert::alert() : m_timestamp(time_now()) {}
 	alert::~alert() {}
 	ptime alert::timestamp() const { return m_timestamp; }
+
+
+	std::string torrent_alert::message() const
+	{
+		if (!handle.is_valid()) return " - ";
+		if (handle.name().empty())
+		{
+			char msg[41];
+			to_hex((char const*)&handle.info_hash()[0], 20, msg);
+			return msg;
+		}
+		return handle.name();
+	}
+
+	std::string peer_alert::message() const
+	{
+		error_code ec;
+		return torrent_alert::message() + " peer (" + ip.address().to_string(ec)
+			+ ", " + identify_client(pid) + ")";
+	}
+
+	std::string tracker_alert::message() const
+	{
+		return torrent_alert::message() + " (" + url + ")";
+	}
+
+	std::string read_piece_alert::message() const
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "%s: piece %s %u", torrent_alert::message().c_str()
+			, buffer ? "successful" : "failed", piece);
+		return msg;
+	}
+
+	std::string file_completed_alert::message() const
+	{
+		char msg[200 + TORRENT_MAX_PATH];
+		snprintf(msg, sizeof(msg), "%s: file %d finished downloading"
+			, torrent_alert::message().c_str(), index);
+		return msg;
+	}
+
+	std::string file_renamed_alert::message() const
+	{
+		char msg[200 + TORRENT_MAX_PATH * 2];
+		snprintf(msg, sizeof(msg), "%s: file %d renamed to %s", torrent_alert::message().c_str()
+			, index, name.c_str());
+		return msg;
+	}
+
+	std::string file_rename_failed_alert::message() const
+	{
+		char ret[200 + TORRENT_MAX_PATH * 2];
+		snprintf(ret, sizeof(ret), "%s: failed to rename file %d: %s"
+			, torrent_alert::message().c_str(), index, error.message().c_str());
+		return ret;
+	}
+
+	std::string performance_alert::message() const
+	{
+		static char const* warning_str[] =
+		{
+			"max outstanding disk writes reached",
+			"max outstanding piece requests reached",
+			"upload limit too low (download rate will suffer)",
+			"download limit too low (upload rate will suffer)",
+			"send buffer watermark too low (upload rate will suffer)",
+			"too many optimistic unchoke slots",
+			"using bittyrant unchoker with no upload rate limit set"
+		};
+
+		return torrent_alert::message() + ": performance warning: "
+			+ warning_str[warning_code];
+	}
+
+	std::string state_changed_alert::message() const
+	{
+		static char const* state_str[] =
+			{"checking (q)", "checking", "dl metadata"
+			, "downloading", "finished", "seeding", "allocating"
+			, "checking (r)"};
+
+		return torrent_alert::message() + ": state changed to: "
+			+ state_str[state];
+	}
+
+	std::string tracker_error_alert::message() const
+	{
+		char ret[400];
+		snprintf(ret, sizeof(ret), "%s (%d) %s (%d)"
+			, tracker_alert::message().c_str(), status_code
+			, msg.c_str(), times_in_row);
+		return ret;
+	}
+
+	std::string tracker_warning_alert::message() const
+	{
+		return tracker_alert::message() + " warning: " + msg;
+	}
+
+	std::string scrape_reply_alert::message() const
+	{
+		char ret[400];
+		snprintf(ret, sizeof(ret), "%s scrape reply: %u %u"
+			, tracker_alert::message().c_str(), incomplete, complete);
+		return ret;
+	}
+
+	std::string scrape_failed_alert::message() const
+	{
+		return tracker_alert::message() + " scrape failed: " + msg;
+	}
+
+	std::string tracker_reply_alert::message() const
+	{
+		char ret[400];
+		snprintf(ret, sizeof(ret), "%s received peers: %u"
+			, tracker_alert::message().c_str(), num_peers);
+		return ret;
+	}
+
+	std::string dht_reply_alert::message() const
+	{
+		char ret[400];
+		snprintf(ret, sizeof(ret), "%s received DHT peers: %u"
+			, tracker_alert::message().c_str(), num_peers);
+		return ret;
+	}
+
+	std::string tracker_announce_alert::message() const
+	{
+		const static char* event_str[] = {"none", "completed", "started", "stopped"};
+		return tracker_alert::message() + " sending announce (" + event_str[event] + ")";
+	}
+
+	std::string hash_failed_alert::message() const
+	{
+		char ret[400];
+		snprintf(ret, sizeof(ret), "%s hash for piece %u failed"
+			, torrent_alert::message().c_str(), piece_index);
+		return ret;
+	}
+
+	std::string peer_ban_alert::message() const
+	{
+		return peer_alert::message() + " banned peer";
+	}
+
+	std::string peer_unsnubbed_alert::message() const
+	{
+		return peer_alert::message() + " peer unsnubbed";
+	}
+
+	std::string peer_snubbed_alert::message() const
+	{
+		return peer_alert::message() + " peer snubbed";
+	}
+
+
+
+	std::string invalid_request_alert::message() const
+	{
+		char ret[200];
+		snprintf(ret, sizeof(ret), "%s peer sent an invalid piece request (piece: %u start: %u len: %u)"
+			, torrent_alert::message().c_str(), request.piece, request.start, request.length);
+		return ret;
+	}
+
+
+	std::string piece_finished_alert::message() const
+	{
+		char ret[200];
+		snprintf(ret, sizeof(ret), "%s piece: %u finished downloading"
+			, torrent_alert::message().c_str(), piece_index);
+		return ret;
+	}
+
+
+	std::string request_dropped_alert::message() const
+	{
+		char ret[200];
+		snprintf(ret, sizeof(ret), "%s peer dropped block ( piece: %u block: %u)"
+			, torrent_alert::message().c_str(), piece_index, block_index);
+		return ret;
+	}
+
+	std::string block_timeout_alert::message() const
+	{
+		char ret[200];
+		snprintf(ret, sizeof(ret), "%s peer timed out request ( piece: %u block: %u)"
+			, torrent_alert::message().c_str(), piece_index, block_index);
+		return ret;
+	}
+
+	std::string block_finished_alert::message() const
+	{
+		char ret[200];
+		snprintf(ret, sizeof(ret), "%s block finished downloading (piece: %u block: %u)"
+			, torrent_alert::message().c_str(), piece_index, block_index);
+		return ret;
+	}
+
+	std::string block_downloading_alert::message() const
+	{
+		char ret[200];
+		snprintf(ret, sizeof(ret), "%s requested block (piece: %u block: %u) %s"
+			, torrent_alert::message().c_str(), piece_index, block_index, peer_speedmsg);
+		return ret;
+	}
+
+	std::string unwanted_block_alert::message() const
+	{
+		char ret[200];
+		snprintf(ret, sizeof(ret), "%s received block not in download queue (piece: %u block: %u)"
+			, torrent_alert::message().c_str(), piece_index, block_index);
+		return ret;
+	}
+
+	std::string listen_failed_alert::message() const
+	{
+		char ret[200];
+		snprintf(ret, sizeof(ret), "listening on %s failed: %s"
+			, print_endpoint(endpoint).c_str(), error.message().c_str());
+		return ret;
+	}
+
+	std::string listen_succeeded_alert::message() const
+	{
+		char ret[200];
+		snprintf(ret, sizeof(ret), "successfully listening on %s", print_endpoint(endpoint).c_str());
+		return ret;
+	}
+
+	std::string portmap_error_alert::message() const
+	{
+		static char const* type_str[] = {"NAT-PMP", "UPnP"};
+		return std::string("could not map port using ") + type_str[map_type]
+			+ ": " + error.message();
+	}
+
+	std::string portmap_alert::message() const
+	{
+		static char const* type_str[] = {"NAT-PMP", "UPnP"};
+		char ret[200];
+		snprintf(ret, sizeof(ret), "successfully mapped port using %s. external port: %u"
+			, type_str[map_type], external_port);
+		return ret;
+	}
+
+	std::string portmap_log_alert::message() const
+	{
+		static char const* type_str[] = {"NAT-PMP", "UPnP"};
+		char ret[600];
+		snprintf(ret, sizeof(ret), "%s: %s", type_str[map_type], msg.c_str());
+		return ret;
+	}
+
+	std::string dht_announce_alert::message() const
+	{
+		error_code ec;
+		char ih_hex[41];
+		to_hex((const char*)&info_hash[0], 20, ih_hex);
+		char msg[200];
+		snprintf(msg, sizeof(msg), "incoming dht announce: %s:%u (%s)"
+			, ip.to_string(ec).c_str(), port, ih_hex);
+		return msg;
+	}
+
+	std::string dht_get_peers_alert::message() const
+	{
+		char ih_hex[41];
+		to_hex((const char*)&info_hash[0], 20, ih_hex);
+		char msg[200];
+		snprintf(msg, sizeof(msg), "incoming dht get_peers: %s", ih_hex);
+		return msg;
+	}
+
+
 
 	alert_manager::alert_manager(io_service& ios)
 		: m_alert_mask(alert::error_notification)
@@ -151,6 +434,36 @@ namespace libtorrent {
 		std::swap(m_queue_size_limit, queue_size_limit_);
 		return queue_size_limit_;
 	}
+
+	stats_alert::stats_alert(torrent_handle const& h, int in
+		, stat const& s)
+		: torrent_alert(h)
+		, interval(in)
+	{
+		for (int i = 0; i < num_channels; ++i)
+			transferred[i] = s[i].counter();
+	}
+
+	std::string stats_alert::message() const
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "%s: [%d] %d %d %d %d %d %d %d %d %d %d"
+			, torrent_alert::message().c_str()
+			, interval
+			, transferred[0]
+			, transferred[1]
+			, transferred[2]
+			, transferred[3]
+			, transferred[4]
+			, transferred[5]
+			, transferred[6]
+			, transferred[7]
+			, transferred[8]
+			, transferred[9]);
+		return msg;
+	}
+
+	cache_flushed_alert::cache_flushed_alert(torrent_handle const& h): torrent_alert(h) {}
 
 } // namespace libtorrent
 

@@ -41,9 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/function.hpp>
+#include <boost/function/function2.hpp>
 #include <boost/limits.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 
 #ifdef _MSC_VER
@@ -60,26 +61,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/storage_defs.hpp"
 
 namespace libtorrent
 {
-	namespace aux
-	{
-		struct piece_checker_data;
-	}
-
 	class session;
 	struct file_pool;
 	struct disk_io_job;
 	struct disk_buffer_pool;
 
-	enum storage_mode_t
-	{
-		storage_mode_allocate = 0,
-		storage_mode_sparse,
-		storage_mode_compact
-	};
-	
 	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		file_storage const& t
 		, std::string const& p);
@@ -168,6 +158,8 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual bool delete_files() = 0;
 
+		virtual void finalize_file(int file) {}
+
 		disk_buffer_pool* disk_pool() { return m_disk_pool; }
 		session_settings const& settings() const { return *m_settings; }
 
@@ -179,7 +171,7 @@ namespace libtorrent
 
 		error_code const& error() const { return m_error; }
 		std::string const& error_file() const { return m_error_file; }
-		void clear_error() { m_error = error_code(); m_error_file.clear(); }
+		void clear_error() { m_error = error_code(); m_error_file.resize(0); }
 
 		mutable error_code m_error;
 		mutable std::string m_error_file;
@@ -189,15 +181,6 @@ namespace libtorrent
 		disk_buffer_pool* m_disk_pool;
 		session_settings* m_settings;
 	};
-
-	typedef storage_interface* (*storage_constructor_type)(
-		file_storage const&, file_storage const*, std::string const&, file_pool&);
-
-	TORRENT_EXPORT storage_interface* default_storage_constructor(
-		file_storage const&, file_storage const* mapped, std::string const&, file_pool&);
-
-	TORRENT_EXPORT storage_interface* disabled_storage_constructor(
-		file_storage const&, file_storage const* mapped, std::string const&, file_pool&);
 
 	struct disk_io_thread;
 
@@ -223,6 +206,8 @@ namespace libtorrent
 		boost::intrusive_ptr<torrent_info const> info() const { return m_info; }
 		void write_resume_data(entry& rd) const;
 
+		void async_finalize_file(int file);
+
 		void async_check_fastresume(lazy_entry const* resume_data
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 		
@@ -236,12 +221,17 @@ namespace libtorrent
 		void async_read(
 			peer_request const& r
 			, boost::function<void(int, disk_io_job const&)> const& handler
-			, int priority = 0);
+			, int cache_line_size = 0
+			, int cache_expiry = 0);
 
 		void async_read_and_hash(
 			peer_request const& r
 			, boost::function<void(int, disk_io_job const&)> const& handler
-			, int priority = 0);
+			, int cache_expiry = 0);
+
+		void async_cache(int piece
+			, boost::function<void(int, disk_io_job const&)> const& handler
+			, int cache_expiry = 0);
 
 		void async_write(
 			peer_request const& r
@@ -285,8 +275,8 @@ namespace libtorrent
 
 		std::string save_path() const;
 
-		bool verify_resume_data(lazy_entry const& rd, error_code& error)
-		{ return m_storage->verify_resume_data(rd, error); }
+		bool verify_resume_data(lazy_entry const& rd, error_code& e)
+		{ return m_storage->verify_resume_data(rd, e); }
 
 		bool is_allocating() const
 		{ return m_state == state_expand_pieces; }
@@ -322,7 +312,7 @@ namespace libtorrent
 		std::string name() const { return m_info->name(); }
 #endif
 
-		bool allocate_slots(int num_slots, bool abort_on_disk = false);
+		bool allocate_slots_impl(int num_slots, mutex::scoped_lock& l, bool abort_on_disk = false);
 
 		// updates the ph.h hasher object with the data at the given slot
 		// and optionally a 'small hash' as well, the hash for
@@ -343,6 +333,8 @@ namespace libtorrent
 			, int num_bufs);
 
 		size_type physical_offset(int piece_index, int offset);
+
+		void finalize_file(int index);
 
 		// returns the number of pieces left in the
 		// file currently being checked

@@ -52,15 +52,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/session_settings.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/peer.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
+#include "libtorrent/peer_id.hpp"
+#include "libtorrent/peer.hpp" // peer_entry
+#include "libtorrent/session_settings.hpp" // proxy_settings
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
+#include "libtorrent/size_type.hpp"
+#include "libtorrent/union_endpoint.hpp"
 
 namespace libtorrent
 {
@@ -102,6 +104,7 @@ namespace libtorrent
 		size_type downloaded;
 		size_type uploaded;
 		size_type left;
+		size_type corrupt;
 		unsigned short listen_port;
 		event_t event;
 		std::string url;
@@ -120,25 +123,26 @@ namespace libtorrent
 		virtual ~request_callback() {}
 		virtual void tracker_warning(tracker_request const& req
 			, std::string const& msg) = 0;
-		virtual void tracker_scrape_response(tracker_request const& req
-			, int complete, int incomplete, int downloads) {}
+		virtual void tracker_scrape_response(tracker_request const& /*req*/
+			, int /*complete*/, int /*incomplete*/, int /*downloads*/) {}
 		virtual void tracker_response(
 			tracker_request const& req
 			, address const& tracker_ip
 			, std::list<address> const& ip_list
 			, std::vector<peer_entry>& peers
 			, int interval
+			, int min_interval
 			, int complete
 			, int incomplete
 			, address const& external_ip) = 0;
-		virtual void tracker_request_timed_out(
-			tracker_request const& req) = 0;
 		virtual void tracker_request_error(
 			tracker_request const& req
 			, int response_code
-			, const std::string& description) = 0;
+			, error_code const& ec
+			, const std::string& msg
+			, int retry_interval) = 0;
 
-		tcp::endpoint m_tracker_address;
+		union_endpoint m_tracker_address;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual void debug_log(const std::string& line) = 0;
@@ -156,6 +160,7 @@ namespace libtorrent
 		void set_timeout(int completion_timeout, int read_timeout);
 		void restart_read_timeout();
 		void cancel();
+		bool cancelled() const { return m_abort; }
 
 		virtual void on_timeout() = 0;
 		virtual ~timeout_handler() {}
@@ -196,9 +201,9 @@ namespace libtorrent
 
 		tracker_request const& tracker_req() const { return m_req; }
 
-		void fail_disp(int code, std::string const& msg) { fail(code, msg.c_str()); }
-		void fail(int code, char const* msg);
-		void fail_timeout();
+		void fail_disp(error_code ec) { fail(ec); }
+		void fail(error_code const& ec, int code = -1, char const* msg = ""
+			, int interval = 0, int min_interval = 0);
 		virtual void start() = 0;
 		virtual void close();
 		address const& bind_interface() const { return m_req.bind_ip; }

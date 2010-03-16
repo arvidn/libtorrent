@@ -68,7 +68,7 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_retry_count(0)
 	, m_io_service(ios)
 	, m_socket(ios, udp::endpoint(address_v4::from_string("239.255.255.250", ec), 1900)
-		, bind(&upnp::on_reply, self(), _1, _2, _3), false)
+		, bind(&upnp::on_reply, self(), _1, _2, _3))
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
 	, m_disabled(false)
@@ -262,7 +262,7 @@ void upnp::resend_request(error_code const& e)
 
 	if (m_devices.empty())
 	{
-		disable(error_code(errors::no_router, libtorrent_category), l);
+		disable(errors::no_router, l);
 		return;
 	}
 	
@@ -787,7 +787,7 @@ struct parse_state
 	}
 };
 
-void find_control_url(int type, char const* string, parse_state& state)
+TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state)
 {
 	if (type == xml_start_tag)
 	{
@@ -1169,7 +1169,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		return_error(mapping, s.error_code, l);
 	}
 
-	char msg[200];
+	char msg[500];
 	snprintf(msg, sizeof(msg), "map response: %s"
 		, std::string(p.get_body().begin, p.get_body().end).c_str());
 	log(msg, l);

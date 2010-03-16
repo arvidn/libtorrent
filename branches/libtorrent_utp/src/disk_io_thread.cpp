@@ -40,18 +40,31 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/error.hpp"
+#include "libtorrent/file_pool.hpp"
 #include <boost/scoped_array.hpp>
+#include <boost/bind.hpp>
 
-#ifdef TORRENT_DISK_STATS
 #include "libtorrent/time.hpp"
-#endif
 
 #if TORRENT_USE_MLOCK && !defined TORRENT_WINDOWS
 #include <sys/mman.h>
 #endif
 
+#ifdef TORRENT_BSD
+#include <sys/sysctl.h>
+#endif
+
+#if TORRENT_USE_RLIMIT
+#include <sys/resource.h>
+#endif
+
 namespace libtorrent
 {
+	bool should_cancel_on_abort(disk_io_job const& j);
+	bool is_read_operation(disk_io_job const& j);
+	bool operation_has_buffer(disk_io_job const& j);
+
 	disk_buffer_pool::disk_buffer_pool(int block_size)
 		: m_block_size(block_size)
 		, m_in_use(0)
@@ -274,21 +287,58 @@ namespace libtorrent
 // ------- disk_io_thread ------
 
 
-	disk_io_thread::disk_io_thread(asio::io_service& ios
+	disk_io_thread::disk_io_thread(io_service& ios
 		, boost::function<void()> const& queue_callback
+		, file_pool& fp
 		, int block_size)
 		: disk_buffer_pool(block_size)
 		, m_abort(false)
 		, m_waiting_to_shutdown(false)
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
+		, m_physical_ram(0)
 		, m_ios(ios)
 		, m_queue_callback(queue_callback)
 		, m_work(io_service::work(m_ios))
+		, m_file_pool(fp)
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
 #ifdef TORRENT_DISK_STATS
 		m_log.open("disk_io_thread.log", std::ios::trunc);
+#endif
+
+		// figure out how much physical RAM there is in
+		// this machine. This is used for automatically
+		// sizing the disk cache size when it's set to
+		// automatic.
+#ifdef TORRENT_BSD
+		int mib[2] = { CTL_HW, HW_MEMSIZE };
+		size_t len = sizeof(m_physical_ram);
+		if (sysctl(mib, 2, &m_physical_ram, &len, NULL, 0) != 0)
+			m_physical_ram = 0;
+#elif defined TORRENT_WINDOWS
+		MEMORYSTATUSEX ms;
+		if (GlobalMemoryStatusEx(&ms))
+			m_physical_ram = ms.ullTotalPhys;
+		else
+			m_physical_ram = 0;
+#elif defined TORRENT_LINUX
+		m_physical_ram = sysconf(_SC_PHYS_PAGES);
+		m_physical_ram *= sysconf(_SC_PAGESIZE);
+#elif defined TORRENT_AMIGA
+		m_physical_ram = AvailMem(MEMF_PUBLIC);
+#endif
+
+#if TORRENT_USE_RLIMIT
+		if (m_physical_ram > 0)
+		{
+			struct rlimit r;
+			if (getrlimit(RLIMIT_AS, &r) == 0 && r.rlim_cur != RLIM_INFINITY)
+			{
+				if (m_physical_ram > r.rlim_cur)
+					m_physical_ram = r.rlim_cur;
+			}
+		}
 #endif
 	}
 
@@ -325,7 +375,7 @@ namespace libtorrent
 			if (ti.info_hash() != ih) continue;
 			cached_piece_info info;
 			info.piece = i->piece;
-			info.last_use = i->last_use;
+			info.last_use = i->expire;
 			info.kind = cached_piece_info::write_cache;
 			int blocks_in_piece = (ti.piece_size(i->piece) + (m_block_size) - 1) / m_block_size;
 			info.blocks.resize(blocks_in_piece);
@@ -340,7 +390,7 @@ namespace libtorrent
 			if (ti.info_hash() != ih) continue;
 			cached_piece_info info;
 			info.piece = i->piece;
-			info.last_use = i->last_use;
+			info.last_use = i->expire;
 			info.kind = cached_piece_info::read_cache;
 			int blocks_in_piece = (ti.piece_size(i->piece) + (m_block_size) - 1) / m_block_size;
 			info.blocks.resize(blocks_in_piece);
@@ -355,7 +405,14 @@ namespace libtorrent
 		mutex::scoped_lock l(m_piece_mutex);
 		m_cache_stats.total_used_buffers = in_use();
 		m_cache_stats.queued_bytes = m_queue_buffer_size;
-		return m_cache_stats;
+
+		cache_status ret = m_cache_stats;
+
+		ret.average_queue_time = m_queue_time.mean();
+		ret.average_read_time = m_read_time.mean();
+		ret.job_queue_length = m_jobs.size();
+
+		return ret;
 	}
 
 	// aborts read operations
@@ -371,15 +428,14 @@ namespace libtorrent
 				++i;
 				continue;
 			}
-			if (i->action == disk_io_job::read)
+			if (should_cancel_on_abort(*i))
 			{
-				post_callback(i->callback, *i, -1);
-				m_jobs.erase(i++);
-				continue;
-			}
-			if (i->action == disk_io_job::check_files)
-			{
-				post_callback(i->callback, *i, piece_manager::disk_check_aborted);
+				if (i->action == disk_io_job::write)
+				{
+					TORRENT_ASSERT(m_queue_buffer_size >= i->buffer_size);
+					m_queue_buffer_size -= i->buffer_size;
+				}
+				post_callback(i->callback, *i, -3);
 				m_jobs.erase(i++);
 				continue;
 			}
@@ -391,44 +447,26 @@ namespace libtorrent
 		add_job(j, l);
 	}
 
-	bool range_overlap(int start1, int length1, int start2, int length2)
+	struct update_last_use
 	{
-		return (start1 <= start2 && start1 + length1 > start2)
-			|| (start2 <= start1 && start2 + length2 > start1);
-	}
-	
-	namespace
-	{
-		// The semantic of this operator is:
-		// should lhs come before rhs in the job queue
-		bool operator<(disk_io_job const& lhs, disk_io_job const& rhs)
+		update_last_use(int exp): expire(exp) {}
+		void operator()(disk_io_thread::cached_piece_entry& p)
 		{
-			// NOTE: comparison inverted to make higher priority
-			// skip _in_front_of_ lower priority
-			if (lhs.priority > rhs.priority) return true;
-			if (lhs.priority < rhs.priority) return false;
-
-			if (lhs.storage.get() < rhs.storage.get()) return true;
-			if (lhs.storage.get() > rhs.storage.get()) return false;
-			if (lhs.piece < rhs.piece) return true;
-			if (lhs.piece > rhs.piece) return false;
-			if (lhs.offset < rhs.offset) return true;
-//			if (lhs.offset > rhs.offset) return false;
-			return false;
+			TORRENT_ASSERT(p.storage);
+			p.expire = time_now() + seconds(expire);
 		}
-	}
+		int expire;
+	};
 
-	disk_io_thread::cache_t::iterator disk_io_thread::find_cached_piece(
+	disk_io_thread::cache_piece_index_t::iterator disk_io_thread::find_cached_piece(
 		disk_io_thread::cache_t& cache
 		, disk_io_job const& j, mutex::scoped_lock& l)
 	{
-		for (cache_t::iterator i = cache.begin()
-			, end(cache.end()); i != end; ++i)
-		{
-			if (i->storage != j.storage || i->piece != j.piece) continue;
-			return i;
-		}
-		return cache.end();
+		cache_piece_index_t& idx = cache.get<0>();
+		cache_piece_index_t::iterator i
+			= idx.find(std::pair<void*, int>(j.storage.get(), j.piece));
+		TORRENT_ASSERT(i == idx.end() || (i->storage == j.storage && i->piece == j.piece));
+		return i;
 	}
 	
 	void disk_io_thread::flush_expired_pieces()
@@ -439,30 +477,25 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 		// flush write cache
-		for (;;)
+		cache_lru_index_t& widx = m_pieces.get<1>();
+		cache_lru_index_t::iterator i = widx.begin();
+		time_duration cut_off = seconds(m_settings.cache_expiry);
+		while (i != widx.end() && now - i->expire > cut_off)
 		{
-			cache_t::iterator i = std::min_element(
-				m_pieces.begin(), m_pieces.end()
-				, bind(&cached_piece_entry::last_use, _1)
-				< bind(&cached_piece_entry::last_use, _2));
-			if (i == m_pieces.end()) break;
-			int age = total_seconds(now - i->last_use);
-			if (age < m_settings.cache_expiry) break;
-			flush_and_remove(i, l);
+			TORRENT_ASSERT(i->storage);
+			flush_range(const_cast<cached_piece_entry&>(*i), 0, INT_MAX, l);
+			widx.erase(i++);
 		}
 
+		if (m_settings.explicit_read_cache) return;
+
 		// flush read cache
-		for (;;)
+		cache_lru_index_t& ridx = m_read_pieces.get<1>();
+		i = ridx.begin();
+		while (i != ridx.end() && now - i->expire > cut_off)
 		{
-			cache_t::iterator i = std::min_element(
-				m_read_pieces.begin(), m_read_pieces.end()
-				, bind(&cached_piece_entry::last_use, _1)
-				< bind(&cached_piece_entry::last_use, _2));
-			if (i == m_read_pieces.end()) break;
-			int age = total_seconds(now - i->last_use);
-			if (age < m_settings.cache_expiry) break;
-			free_piece(*i, l);
-			m_read_pieces.erase(i);
+			free_piece(const_cast<cached_piece_entry&>(*i), l);
+			ridx.erase(i++);
 		}
 	}
 
@@ -488,61 +521,67 @@ namespace libtorrent
 
 	// returns the number of blocks that were freed
 	int disk_io_thread::clear_oldest_read_piece(
-		int num_blocks
-		, cache_t::iterator ignore
-		, mutex::scoped_lock& l)
+		int num_blocks, int ignore, mutex::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
 
-		cache_t::iterator i = std::min_element(
-			m_read_pieces.begin(), m_read_pieces.end()
-			, bind(&cached_piece_entry::last_use, _1)
-			< bind(&cached_piece_entry::last_use, _2));
-		if (i != m_read_pieces.end() && i != ignore)
-		{
-			// don't replace an entry that is less than one second old
-			if (time_now() - i->last_use < seconds(1)) return 0;
-			int blocks = 0;
-			if (num_blocks >= i->num_blocks)
-			{
-				blocks = free_piece(*i, l);
-			}
-			else
-			{
-				// delete blocks from the start and from the end
-				// until num_blocks have been freed
-				int end = (i->storage->info()->piece_size(i->piece) + m_block_size - 1) / m_block_size - 1;
-				int start = 0;
+		cache_lru_index_t& idx = m_read_pieces.get<1>();
+		if (idx.empty()) return 0;
 
-				while (num_blocks)
+		cache_lru_index_t::iterator i = idx.begin();
+		if (i->piece == ignore)
+		{
+			++i;
+			if (i == idx.end()) return 0;
+		}
+
+		// don't replace an entry that is is too young
+		if (time_now() > i->expire) return 0;
+		int blocks = 0;
+		if (num_blocks >= i->num_blocks)
+		{
+			blocks = free_piece(const_cast<cached_piece_entry&>(*i), l);
+		}
+		else
+		{
+			// delete blocks from the start and from the end
+			// until num_blocks have been freed
+			int end = (i->storage->info()->piece_size(i->piece) + m_block_size - 1) / m_block_size - 1;
+			int start = 0;
+
+			while (num_blocks)
+			{
+				// if we have a volatile read cache, only clear
+				// from the end, since we're already clearing
+				// from the start as blocks are read
+				if (!m_settings.volatile_read_cache)
 				{
 					while (i->blocks[start].buf == 0 && start <= end) ++start;
 					if (start > end) break;
 					free_buffer(i->blocks[start].buf);
 					i->blocks[start].buf = 0;
 					++blocks;
-					--i->num_blocks;
+					--const_cast<cached_piece_entry&>(*i).num_blocks;
 					--m_cache_stats.cache_size;
 					--m_cache_stats.read_cache_size;
 					--num_blocks;
 					if (!num_blocks) break;
-
-					while (i->blocks[end].buf == 0 && start <= end) --end;
-					if (start > end) break;
-					free_buffer(i->blocks[end].buf);
-					i->blocks[end].buf = 0;
-					++blocks;
-					--i->num_blocks;
-					--m_cache_stats.cache_size;
-					--m_cache_stats.read_cache_size;
-					--num_blocks;
 				}
-			
+
+				while (i->blocks[end].buf == 0 && start <= end) --end;
+				if (start > end) break;
+				free_buffer(i->blocks[end].buf);
+				i->blocks[end].buf = 0;
+				++blocks;
+				--const_cast<cached_piece_entry&>(*i).num_blocks;
+				--m_cache_stats.cache_size;
+				--m_cache_stats.read_cache_size;
+				--num_blocks;
 			}
-			if (i->num_blocks == 0) m_read_pieces.erase(i);
-			return blocks;
+		
 		}
-		return 0;
+		if (i->num_blocks == 0) idx.erase(i);
+		return blocks;
 	}
 
 	int contiguous_blocks(disk_io_thread::cached_piece_entry const& b)
@@ -563,7 +602,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	int disk_io_thread::flush_contiguous_blocks(disk_io_thread::cache_t::iterator e
+	int disk_io_thread::flush_contiguous_blocks(cached_piece_entry& p
 		, mutex::scoped_lock& l, int lower_limit)
 	{
 		// first find the largest range of contiguous  blocks
@@ -571,11 +610,11 @@ namespace libtorrent
 		int current = 0;
 		int pos = 0;
 		int start = 0;
-		int blocks_in_piece = (e->storage->info()->piece_size(e->piece)
+		int blocks_in_piece = (p.storage->info()->piece_size(p.piece)
 			+ m_block_size - 1) / m_block_size;
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
-			if (e->blocks[i].buf) ++current;
+			if (p.blocks[i].buf) ++current;
 			else
 			{
 				if (current > len)
@@ -594,14 +633,13 @@ namespace libtorrent
 		}
 
 		if (len < lower_limit || len <= 0) return 0;
-		len = flush_range(e, pos, pos + len, l);
-		if (e->num_blocks == 0) m_pieces.erase(e);
+		len = flush_range(p, pos, pos + len, l);
 		return len;
 	}
 
 	// flushes 'blocks' blocks from the cache
 	int disk_io_thread::flush_cache_blocks(mutex::scoped_lock& l
-		, int blocks, cache_t::iterator ignore, int options)
+		, int blocks, int ignore, int options)
 	{
 		// first look if there are any read cache entries that can
 		// be cleared
@@ -617,28 +655,29 @@ namespace libtorrent
 
 		if (m_settings.disk_cache_algorithm == session_settings::lru)
 		{
+			cache_lru_index_t& idx = m_pieces.get<1>();
 			while (blocks > 0)
 			{
-				cache_t::iterator i = std::min_element(
-					m_pieces.begin(), m_pieces.end()
-					, bind(&cached_piece_entry::last_use, _1)
-					< bind(&cached_piece_entry::last_use, _2));
-				if (i == m_pieces.end()) return ret;
-				tmp = flush_and_remove(i, l);
+				cache_lru_index_t::iterator i = idx.begin();
+				if (i == idx.end()) return ret;
+				tmp = flush_range(const_cast<cached_piece_entry&>(*i), 0, INT_MAX, l);
+				idx.erase(i);
 				blocks -= tmp;
 				ret += tmp;
 			}
 		}
 		else if (m_settings.disk_cache_algorithm == session_settings::largest_contiguous)
 		{
+			cache_lru_index_t& idx = m_pieces.get<1>();
 			while (blocks > 0)
 			{
-				cache_t::iterator i = std::max_element(
-					m_pieces.begin(), m_pieces.end()
+				cache_lru_index_t::iterator i =
+				std::max_element(idx.begin(), idx.end()
 					, bind(&contiguous_blocks, _1)
 					< bind(&contiguous_blocks, _2));
-				if (i == m_pieces.end()) return ret;
-				tmp = flush_contiguous_blocks(i, l);
+				if (i == idx.end()) return ret;
+				tmp = flush_contiguous_blocks(const_cast<cached_piece_entry&>(*i), l);
+				if (i->num_blocks == 0) idx.erase(i);
 				blocks -= tmp;
 				ret += tmp;
 			}
@@ -646,23 +685,13 @@ namespace libtorrent
 		return ret;
 	}
 
-	int disk_io_thread::flush_and_remove(disk_io_thread::cache_t::iterator e
-		, mutex::scoped_lock& l)
-	{
-		int ret = flush_range(e, 0, INT_MAX, l);
-		m_pieces.erase(e);
-		return ret;
-	}
-
-	int disk_io_thread::flush_range(disk_io_thread::cache_t::iterator e
+	int disk_io_thread::flush_range(cached_piece_entry& p
 		, int start, int end, mutex::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(start < end);
 
-		// TODO: copy *e and unlink it before unlocking
-		cached_piece_entry& p = *e;
 		int piece_size = p.storage->info()->piece_size(p.piece);
 #ifdef TORRENT_DISK_STATS
 		m_log << log_time() << " flushing " << piece_size << std::endl;
@@ -761,11 +790,13 @@ namespace libtorrent
 	// returns -1 on failure
 	int disk_io_thread::cache_block(disk_io_job& j
 		, boost::function<void(int,disk_io_job const&)>& handler
+		, int cache_expire
 		, mutex::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(find_cached_piece(m_pieces, j, l) == m_pieces.end());
 		TORRENT_ASSERT((j.offset & (m_block_size-1)) == 0);
+		TORRENT_ASSERT(j.cache_min_time >= 0);
 		cached_piece_entry p;
 
 		int piece_size = j.storage->info()->piece_size(j.piece);
@@ -780,7 +811,7 @@ namespace libtorrent
 
 		p.piece = j.piece;
 		p.storage = j.storage;
-		p.last_use = time_now();
+		p.expire = time_now() + seconds(j.cache_min_time);
 		p.num_blocks = 1;
 		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!p.blocks) return -1;
@@ -789,7 +820,9 @@ namespace libtorrent
 		p.blocks[block].buf = j.buffer;
 		p.blocks[block].callback.swap(handler);
 		++m_cache_stats.cache_size;
-		m_pieces.push_back(p);
+		cache_lru_index_t& idx = m_pieces.get<1>();
+		TORRENT_ASSERT(p.storage);
+		idx.insert(p);
 		return 0;
 	}
 
@@ -798,136 +831,133 @@ namespace libtorrent
 	int disk_io_thread::read_into_piece(cached_piece_entry& p, int start_block
 		, int options, int num_blocks, mutex::scoped_lock& l)
 	{
+		TORRENT_ASSERT(num_blocks > 0);
 		int piece_size = p.storage->info()->piece_size(p.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
 		int end_block = start_block;
 		int num_read = 0;
+
+		int iov_counter = 0;
+		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, (std::min)(blocks_in_piece - start_block, num_blocks));
+
+		int piece_offset = start_block * m_block_size;
+
+		int ret = 0;
+
+		boost::scoped_array<char> buf;
 		for (int i = start_block; i < blocks_in_piece
-			&& (in_use() < m_settings.cache_size
-				|| (options & ignore_cache_size)); ++i)
+			&& ((options & ignore_cache_size)
+				|| in_use() < m_settings.cache_size); ++i)
 		{
+			int block_size = (std::min)(piece_size - piece_offset, m_block_size);
+			TORRENT_ASSERT(piece_offset <= piece_size);
+
 			// this is a block that is already allocated
-			// stop allocating and don't read more than
-			// what we've allocated now
-			if (p.blocks[i].buf) break;
+			// free it and allocate a new one
+			if (p.blocks[i].buf)
+			{
+				free_buffer(p.blocks[i].buf);
+				--p.num_blocks;
+				--m_cache_stats.cache_size;
+				--m_cache_stats.read_cache_size;
+			}
 			p.blocks[i].buf = allocate_buffer("read cache");
 
 			// the allocation failed, break
-			if (p.blocks[i].buf == 0) break;
+			if (p.blocks[i].buf == 0)
+			{
+				free_piece(p, l);
+				return -1;
+			}
 			++p.num_blocks;
 			++m_cache_stats.cache_size;
 			++m_cache_stats.read_cache_size;
 			++end_block;
 			++num_read;
+			iov[iov_counter].iov_base = p.blocks[i].buf;
+			iov[iov_counter].iov_len = block_size;
+			++iov_counter;
+			piece_offset += m_block_size;
 			if (num_read >= num_blocks) break;
 		}
 
-		if (end_block == start_block) return -2;
+		if (end_block == start_block)
+		{
+			// something failed. Free all buffers
+			// we just allocated
+			free_piece(p, l);
+			return -2;
+		}
+
+		TORRENT_ASSERT(iov_counter <= (std::min)(blocks_in_piece - start_block, num_blocks));
 
 		// the buffer_size is the size of the buffer we need to read
 		// all these blocks.
 		const int buffer_size = (std::min)((end_block - start_block) * m_block_size
 			, piece_size - start_block * m_block_size);
+		TORRENT_ASSERT(buffer_size > 0);
 		TORRENT_ASSERT(buffer_size <= piece_size);
 		TORRENT_ASSERT(buffer_size + start_block * m_block_size <= piece_size);
-		boost::scoped_array<char> buf;
-		file::iovec_t* iov = 0;
-		int iov_counter = 0;
-		if (m_settings.coalesce_reads) buf.reset(new (std::nothrow) char[buffer_size]);
-		if (!buf) iov = TORRENT_ALLOCA(file::iovec_t, end_block - start_block);
 
-		int ret = 0;
+		if (m_settings.coalesce_reads)
+			buf.reset(new (std::nothrow) char[buffer_size]);
+
 		if (buf)
 		{
 			l.unlock();
 			file::iovec_t b = { buf.get(), buffer_size };
 			ret = p.storage->read_impl(&b, p.piece, start_block * m_block_size, 1);
 			l.lock();
-			if (p.storage->error()) return -1;
+			++m_cache_stats.reads;
+			if (p.storage->error())
+			{
+				free_piece(p, l);
+				return -1;
+			}
+
 			if (ret != buffer_size)
 			{
 				// this means the file wasn't big enough for this read
 				p.storage->get_storage_impl()->set_error(""
-					, error_code(errors::file_too_short, libtorrent_category));
+					, errors::file_too_short);
+				free_piece(p, l);
 				return -1;
 			}
-			++m_cache_stats.reads;
-		}
 		
-		int piece_offset = start_block * m_block_size;
-		int offset = 0;
-		for (int i = start_block; i < end_block; ++i)
-		{
-			int block_size = (std::min)(piece_size - piece_offset, m_block_size);
-			if (p.blocks[i].buf == 0) break;
-			TORRENT_ASSERT(offset <= buffer_size);
-			TORRENT_ASSERT(piece_offset <= piece_size);
-			TORRENT_ASSERT(offset + block_size <= buffer_size);
-			if (buf)
+			int offset = 0;
+			for (int i = 0; i < iov_counter; ++i)
 			{
-				std::memcpy(p.blocks[i].buf, buf.get() + offset, block_size);
+				TORRENT_ASSERT(iov[i].iov_base);
+				TORRENT_ASSERT(iov[i].iov_len > 0);
+				TORRENT_ASSERT(offset + iov[i].iov_len <= buffer_size);
+				std::memcpy(iov[i].iov_base, buf.get() + offset, iov[i].iov_len);
+				offset += iov[i].iov_len;
 			}
-			else
-			{
-				iov[iov_counter].iov_base = p.blocks[i].buf;
-				iov[iov_counter].iov_len = block_size;
-				++iov_counter;
-			}
-			offset += m_block_size;
-			piece_offset += m_block_size;
 		}
-
-		if (iov)
+		else
 		{
 			l.unlock();
 			ret = p.storage->read_impl(iov, p.piece, start_block * m_block_size, iov_counter);
 			l.lock();
-			if (p.storage->error()) return -1;
+			++m_cache_stats.reads;
+			if (p.storage->error())
+			{
+				free_piece(p, l);
+				return -1;
+			}
+
 			if (ret != buffer_size)
 			{
 				// this means the file wasn't big enough for this read
 				p.storage->get_storage_impl()->set_error(""
-					, error_code(errors::file_too_short, libtorrent_category));
+					, errors::file_too_short);
+				free_piece(p, l);
 				return -1;
 			}
-			++m_cache_stats.reads;
 		}
 
-		TORRENT_ASSERT(ret <= buffer_size);
-		TORRENT_ASSERT(ret == buffer_size || p.storage->error());
-		return (ret != buffer_size) ? -1 : ret;
-	}
-	
-	// returns -1 on read error, -2 on out of memory error or the number of bytes read
-	// this function ignores the cache size limit, it will read the entire
-	// piece regardless of the offset in j
-	// this is used for seed-mode, where we need to read the entire piece to calculate
-	// the hash
-	int disk_io_thread::cache_read_piece(disk_io_job const& j, mutex::scoped_lock& l)
-	{
-		INVARIANT_CHECK;
-
-		int piece_size = j.storage->info()->piece_size(j.piece);
-		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
-
-		if (in_use() + blocks_in_piece > m_settings.cache_size)
-			flush_cache_blocks(l, in_use() + blocks_in_piece - m_settings.cache_size, m_read_pieces.end());
-
-		cached_piece_entry p;
-		p.piece = j.piece;
-		p.storage = j.storage;
-		p.last_use = time_now();
-		p.num_blocks = 0;
-		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
-		if (!p.blocks) return -1;
-		int ret = read_into_piece(p, 0, ignore_cache_size, INT_MAX, l);
-		
-		if (ret < 0)
-			free_piece(p, l);
-		else
-			m_read_pieces.push_back(p);
-
+		TORRENT_ASSERT(ret == buffer_size);
 		return ret;
 	}
 
@@ -936,6 +966,13 @@ namespace libtorrent
 	int disk_io_thread::cache_read_block(disk_io_job const& j, mutex::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(j.cache_min_time >= 0);
+
+		// this function will create a new cached_piece_entry
+		// and requires that it doesn't already exist
+		cache_piece_index_t& idx = m_read_pieces.get<0>();
+		TORRENT_ASSERT(find_cached_piece(m_read_pieces, j, l) == idx.end());
 
 		int piece_size = j.storage->info()->piece_size(j.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
@@ -946,25 +983,27 @@ namespace libtorrent
 		blocks_to_read = (std::min)(blocks_to_read, (std::max)((m_settings.cache_size
 			+ m_cache_stats.read_cache_size - in_use())/2, 3));
 		blocks_to_read = (std::min)(blocks_to_read, m_settings.read_cache_line_size);
+		if (j.max_cache_line > 0) blocks_to_read = (std::min)(blocks_to_read, j.max_cache_line);
 
 		if (in_use() + blocks_to_read > m_settings.cache_size)
-			if (flush_cache_blocks(l, in_use() + blocks_to_read - m_settings.cache_size
-				, m_read_pieces.end(), dont_flush_write_blocks) == 0)
+		{
+			int clear = in_use() + blocks_to_read - m_settings.cache_size;
+			if (flush_cache_blocks(l, clear, j.piece, dont_flush_write_blocks) < clear)
 				return -2;
+		}
 
 		cached_piece_entry p;
 		p.piece = j.piece;
 		p.storage = j.storage;
-		p.last_use = time_now();
+		p.expire = time_now() + seconds(j.cache_min_time);
 		p.num_blocks = 0;
 		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!p.blocks) return -1;
+
 		int ret = read_into_piece(p, start_block, 0, blocks_to_read, l);
-		
-		if (ret < 0)
-			free_piece(p, l);
-		else
-			m_read_pieces.push_back(p);
+
+		TORRENT_ASSERT(p.storage);
+		if (ret >= 0) idx.insert(p);
 
 		return ret;
 	}
@@ -973,13 +1012,14 @@ namespace libtorrent
 	void disk_io_thread::check_invariant() const
 	{
 		int cached_write_blocks = 0;
-		for (cache_t::const_iterator i = m_pieces.begin()
-			, end(m_pieces.end()); i != end; ++i)
+		cache_piece_index_t const& idx = m_pieces.get<0>();
+		for (cache_piece_index_t::const_iterator i = idx.begin()
+			, end(idx.end()); i != end; ++i)
 		{
 			cached_piece_entry const& p = *i;
 			TORRENT_ASSERT(p.blocks);
 			
-			if (!p.storage) continue;
+			TORRENT_ASSERT(p.storage);
 			int piece_size = p.storage->info()->piece_size(p.piece);
 			int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 			int blocks = 0;
@@ -1021,8 +1061,8 @@ namespace libtorrent
 			cached_read_blocks += blocks;
 		}
 
-		TORRENT_ASSERT(cached_read_blocks + cached_write_blocks == m_cache_stats.cache_size);
 		TORRENT_ASSERT(cached_read_blocks == m_cache_stats.read_cache_size);
+		TORRENT_ASSERT(cached_read_blocks + cached_write_blocks == m_cache_stats.cache_size);
 
 #ifdef TORRENT_DISK_STATS
 		int read_allocs = m_categories.find(std::string("read cache"))->second;
@@ -1037,37 +1077,84 @@ namespace libtorrent
 	}
 #endif
 
+	// reads the full piece specified by j into the read cache
+	// returns the iterator to it and whether or not it already
+	// was in the cache (hit).
+	int disk_io_thread::cache_piece(disk_io_job const& j, cache_piece_index_t::iterator& p
+		, bool& hit, int options, mutex::scoped_lock& l)
+	{
+		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(j.cache_min_time >= 0);
+
+		cache_piece_index_t& idx = m_read_pieces.get<0>();
+		p = find_cached_piece(m_read_pieces, j, l);
+
+		hit = true;
+		int ret = 0;
+
+		int piece_size = j.storage->info()->piece_size(j.piece);
+		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+
+		if (p != m_read_pieces.end() && p->num_blocks != blocks_in_piece)
+		{
+			INVARIANT_CHECK;
+			// we have the piece in the cache, but not all of the blocks
+			ret = read_into_piece(const_cast<cached_piece_entry&>(*p), 0
+				, options, blocks_in_piece, l);
+			hit = false;
+			if (ret < 0) return ret;
+			idx.modify(p, update_last_use(j.cache_min_time));
+		}
+		else if (p == m_read_pieces.end())
+		{
+			INVARIANT_CHECK;
+			// if the piece cannot be found in the cache,
+			// read the whole piece starting at the block
+			// we got a request for.
+
+			cached_piece_entry pe;
+			pe.piece = j.piece;
+			pe.storage = j.storage;
+			pe.expire = time_now() + seconds(j.cache_min_time);
+			pe.num_blocks = 0;
+			pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
+			if (!pe.blocks) return -1;
+			ret = read_into_piece(pe, 0, options, INT_MAX, l);
+
+			hit = false;
+			if (ret < 0) return ret;
+			TORRENT_ASSERT(pe.storage);
+			p = idx.insert(pe).first;
+		}
+		else
+		{
+			idx.modify(p, update_last_use(j.cache_min_time));
+		}
+		TORRENT_ASSERT(!m_read_pieces.empty());
+		TORRENT_ASSERT(p->piece == j.piece);
+		TORRENT_ASSERT(p->storage == j.storage);
+		return ret;
+	}
+
+	// cache the entire piece and hash it
 	int disk_io_thread::read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h)
 	{
 		TORRENT_ASSERT(j.buffer);
 
+		TORRENT_ASSERT(j.cache_min_time >= 0);
+
 		mutex::scoped_lock l(m_piece_mutex);
 	
-		cache_t::iterator p
-			= find_cached_piece(m_read_pieces, j, l);
-
-		bool hit = true;
-		int ret = 0;
-
-		// if the piece cannot be found in the cache,
-		// read the whole piece starting at the block
-		// we got a request for.
-		if (p == m_read_pieces.end())
-		{
-			ret = cache_read_piece(j, l);
-			hit = false;
-			if (ret < 0) return ret;
-			p = m_read_pieces.end();
-			--p;
-			TORRENT_ASSERT(!m_read_pieces.empty());
-			TORRENT_ASSERT(p->piece == j.piece);
-			TORRENT_ASSERT(p->storage == j.storage);
-		}
-
-		hasher ctx;
+		cache_piece_index_t::iterator p;
+		bool hit;
+		int ret = cache_piece(j, p, hit, ignore_cache_size, l);
+		if (ret < 0) return ret;
 
 		int piece_size = j.storage->info()->piece_size(j.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+
+		hasher ctx;
 
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
@@ -1077,21 +1164,28 @@ namespace libtorrent
 		}
 		h = ctx.final();
 
-		ret = copy_from_piece(p, hit, j, l);
+		ret = copy_from_piece(const_cast<cached_piece_entry&>(*p), hit, j, l);
 		TORRENT_ASSERT(ret > 0);
 		if (ret < 0) return ret;
+		cache_piece_index_t& idx = m_read_pieces.get<0>();
+		if (p->num_blocks == 0) idx.erase(p);
+		else idx.modify(p, update_last_use(j.cache_min_time));
 
 		// if read cache is disabled or we exceeded the
 		// limit, remove this piece from the cache
+		// also, if the piece wasn't in the cache when
+		// the function was called, and we're using an
+		// explicit read cache, remove it again
 		if (in_use() >= m_settings.cache_size
-			|| !m_settings.use_read_cache)
+			|| !m_settings.use_read_cache
+			|| (m_settings.explicit_read_cache && !hit))
 		{
 			TORRENT_ASSERT(!m_read_pieces.empty());
 			TORRENT_ASSERT(p->piece == j.piece);
 			TORRENT_ASSERT(p->storage == j.storage);
 			if (p != m_read_pieces.end())
 			{
-				free_piece(*p, l);
+				free_piece(const_cast<cached_piece_entry&>(*p), l);
 				m_read_pieces.erase(p);
 			}
 		}
@@ -1102,7 +1196,31 @@ namespace libtorrent
 		return ret;
 	}
 
-	int disk_io_thread::copy_from_piece(cache_t::iterator p, bool& hit
+	// this doesn't modify the read cache, it only
+	// checks to see if the given read request can
+	// be fully satisfied from the given cached piece
+	// this is similar to copy_from_piece() but it
+	// doesn't do anything but determining if it's a
+	// cache hit or not
+	bool disk_io_thread::is_cache_hit(cached_piece_entry& p
+		, disk_io_job const& j, mutex::scoped_lock& l)
+	{
+		int block = j.offset / m_block_size;
+		int block_offset = j.offset & (m_block_size-1);
+		int size = j.buffer_size;
+		int min_blocks_to_read = block_offset > 0 ? 2 : 1;
+		TORRENT_ASSERT(size <= m_block_size);
+		int start_block = block;
+		// if we have to read more than one block, and
+		// the first block is there, make sure we test
+		// for the second block
+		if (p.blocks[start_block].buf != 0 && min_blocks_to_read > 1)
+			++start_block;
+
+		return p.blocks[start_block].buf != 0;
+	}
+
+	int disk_io_thread::copy_from_piece(cached_piece_entry& p, bool& hit
 		, disk_io_job const& j, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(j.buffer);
@@ -1115,84 +1233,119 @@ namespace libtorrent
 		int min_blocks_to_read = block_offset > 0 ? 2 : 1;
 		TORRENT_ASSERT(size <= m_block_size);
 		int start_block = block;
-		if (p->blocks[start_block].buf != 0 && min_blocks_to_read > 1)
+		if (p.blocks[start_block].buf != 0 && min_blocks_to_read > 1)
 			++start_block;
 		// if block_offset > 0, we need to read two blocks, and then
 		// copy parts of both, because it's not aligned to the block
 		// boundaries
-		if (p->blocks[start_block].buf == 0)
+		if (p.blocks[start_block].buf == 0)
 		{
+			// if we use an explicit read cache, pretend there's no
+			// space to force hitting disk without caching anything
+			if (m_settings.explicit_read_cache) return -2;
+
 			int piece_size = j.storage->info()->piece_size(j.piece);
 			int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 			int end_block = start_block;
-			while (end_block < blocks_in_piece && p->blocks[end_block].buf == 0) ++end_block;
+			while (end_block < blocks_in_piece && p.blocks[end_block].buf == 0) ++end_block;
 
 			int blocks_to_read = end_block - block;
 			blocks_to_read = (std::min)(blocks_to_read, (std::max)((m_settings.cache_size
 				+ m_cache_stats.read_cache_size - in_use())/2, 3));
 			blocks_to_read = (std::min)(blocks_to_read, m_settings.read_cache_line_size);
 			blocks_to_read = (std::max)(blocks_to_read, min_blocks_to_read);
+			if (j.max_cache_line > 0) blocks_to_read = (std::min)(blocks_to_read, j.max_cache_line);
+			
+			// if we don't have enough space for the new piece, try flushing something else
 			if (in_use() + blocks_to_read > m_settings.cache_size)
-				if (flush_cache_blocks(l, in_use() + blocks_to_read - m_settings.cache_size
-					, p, dont_flush_write_blocks) == 0)
+			{
+				int clear = in_use() + blocks_to_read - m_settings.cache_size;
+				if (flush_cache_blocks(l, clear, p.piece, dont_flush_write_blocks) < clear)
 					return -2;
+			}
 
-			int ret = read_into_piece(*p, block, 0, blocks_to_read, l);
+			int ret = read_into_piece(p, block, 0, blocks_to_read, l);
 			hit = false;
 			if (ret < 0) return ret;
 			if (ret < size + block_offset) return -2;
-			TORRENT_ASSERT(p->blocks[block].buf);
+			TORRENT_ASSERT(p.blocks[block].buf);
 		}
 
-		p->last_use = time_now();
 		while (size > 0)
 		{
-			TORRENT_ASSERT(p->blocks[block].buf);
+			TORRENT_ASSERT(p.blocks[block].buf);
 			int to_copy = (std::min)(m_block_size
 					- block_offset, size);
 			std::memcpy(j.buffer + buffer_offset
-					, p->blocks[block].buf + block_offset
-					, to_copy);
+				, p.blocks[block].buf + block_offset
+				, to_copy);
 			size -= to_copy;
 			block_offset = 0;
 			buffer_offset += to_copy;
+			if (m_settings.volatile_read_cache)
+			{
+				// if volatile read cache is set, the assumption is
+				// that no other peer is likely to request the same
+				// piece. Therefore, for each request out of the cache
+				// we clear the block that was requested and any blocks
+				// the peer skipped
+				for (int i = block; i >= 0 && p.blocks[i].buf; --i)
+				{
+					free_buffer(p.blocks[i].buf);
+					p.blocks[i].buf = 0;
+					--p.num_blocks;
+					--m_cache_stats.cache_size;
+					--m_cache_stats.read_cache_size;
+				}
+			}
 			++block;
 		}
 		return j.buffer_size;
 	}
 
-	int disk_io_thread::try_read_from_cache(disk_io_job const& j)
+	int disk_io_thread::try_read_from_cache(disk_io_job const& j, bool& hit)
 	{
 		TORRENT_ASSERT(j.buffer);
+		TORRENT_ASSERT(j.cache_min_time >= 0);
 
 		mutex::scoped_lock l(m_piece_mutex);
 		if (!m_settings.use_read_cache) return -2;
 
-		cache_t::iterator p
+		cache_piece_index_t& idx = m_read_pieces.get<0>();
+		cache_piece_index_t::iterator p
 			= find_cached_piece(m_read_pieces, j, l);
 
-		bool hit = true;
+		hit = true;
 		int ret = 0;
 
 		// if the piece cannot be found in the cache,
 		// read the whole piece starting at the block
 		// we got a request for.
-		if (p == m_read_pieces.end())
+		if (p == idx.end())
 		{
+			// if we use an explicit read cache and we
+			// couldn't find the block in the cache,
+			// pretend that there's not enough space
+			// to cache it, to force the read operation
+			// go go straight to disk
+			if (m_settings.explicit_read_cache) return -2;
+
 			ret = cache_read_block(j, l);
 			hit = false;
 			if (ret < 0) return ret;
-			p = m_read_pieces.end();
-			--p;
+
+			p = find_cached_piece(m_read_pieces, j, l);
 			TORRENT_ASSERT(!m_read_pieces.empty());
 			TORRENT_ASSERT(p->piece == j.piece);
 			TORRENT_ASSERT(p->storage == j.storage);
 		}
 
-		if (p == m_read_pieces.end()) return ret;
+		TORRENT_ASSERT(p != idx.end());
 
-		ret = copy_from_piece(p, hit, j, l);
+		ret = copy_from_piece(const_cast<cached_piece_entry&>(*p), hit, j, l);
 		if (ret < 0) return ret;
+		if (p->num_blocks == 0) idx.erase(p);
+		else idx.modify(p, update_last_use(j.cache_min_time));
 
 		ret = j.buffer_size;
 		++m_cache_stats.blocks_read;
@@ -1212,6 +1365,7 @@ namespace libtorrent
 	{
 		m_jobs.push_back(j);
 		m_jobs.back().callback.swap(const_cast<boost::function<void(int, disk_io_job const&)>&>(f));
+		m_jobs.back().start_time = time_now_hires();
 
 		if (j.action == disk_io_job::write)
 			m_queue_buffer_size += j.buffer_size;
@@ -1222,7 +1376,6 @@ namespace libtorrent
 		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
 		TORRENT_ASSERT(!m_abort);
-		TORRENT_ASSERT(!j.callback);
 		TORRENT_ASSERT(j.storage
 			|| j.action == disk_io_job::abort_thread
 			|| j.action == disk_io_job::update_settings);
@@ -1256,39 +1409,41 @@ namespace libtorrent
 	{
 		if (!handler) return;
 
-		m_ios.post(bind(handler, ret, j));
+		m_ios.post(boost::bind(handler, ret, j));
 	}
 
 	enum action_flags_t
 	{
 		read_operation = 1
-		, fence_operation = 2
-		, buffer_operation = 4
+		, buffer_operation = 2
+		, cancel_on_abort = 4
 	};
 
 	static const boost::uint8_t action_flags[] =
 	{
-		read_operation + buffer_operation // read
+		read_operation + buffer_operation + cancel_on_abort // read
 		, buffer_operation // write
 		, 0 // hash
-		, fence_operation // move_storage
-		, fence_operation // release_files
-		, fence_operation // delete_files
-		, fence_operation // check_fastresume
-		, read_operation // check_files
-		, fence_operation // save_resume_data
-		, fence_operation // rename_file
-		, fence_operation // abort_thread
-		, fence_operation // clear_read_cache
-		, fence_operation // abort_torrent
-		, 0 // update_settings
-		, read_operation // read_and_hash
+		, 0 // move_storage
+		, 0 // release_files
+		, 0 // delete_files
+		, 0 // check_fastresume
+		, read_operation + cancel_on_abort // check_files
+		, 0 // save_resume_data
+		, 0 // rename_file
+		, 0 // abort_thread
+		, 0 // clear_read_cache
+		, 0 // abort_torrent
+		, cancel_on_abort // update_settings
+		, read_operation + cancel_on_abort // read_and_hash
+		, read_operation + cancel_on_abort // cache_piece
+		, 0 // finalize_file
 	};
 
-	bool is_fence_operation(disk_io_job const& j)
+	bool should_cancel_on_abort(disk_io_job const& j)
 	{
 		TORRENT_ASSERT(j.action >= 0 && j.action < sizeof(action_flags));
-		return action_flags[j.action] & fence_operation;
+		return action_flags[j.action] & cancel_on_abort;
 	}
 
 	bool is_read_operation(disk_io_job const& j)
@@ -1305,8 +1460,12 @@ namespace libtorrent
 
 	void disk_io_thread::thread_fun()
 	{
-		size_type elevator_position = 0;
+		// 1 = forward in list, -1 = backwards in list
 		int elevator_direction = 1;
+
+		typedef std::multimap<size_type, disk_io_job> read_jobs_t;
+		read_jobs_t sorted_read_jobs;
+		read_jobs_t::iterator elevator_job_pos = sorted_read_jobs.begin();
 
 		for (;;)
 		{
@@ -1315,7 +1474,7 @@ namespace libtorrent
 #endif
 			mutex::scoped_lock jl(m_queue_mutex);
 
-			while (m_jobs.empty() && !m_abort)
+			while (m_jobs.empty() && sorted_read_jobs.empty() && !m_abort)
 			{
 				// if there hasn't been an event in one second
 				// see if we should flush the cache
@@ -1331,12 +1490,16 @@ namespace libtorrent
 
 				mutex::scoped_lock l(m_piece_mutex);
 				// flush all disk caches
-				for (cache_t::iterator i = m_pieces.begin()
-					, end(m_pieces.end()); i != end; ++i)
-					flush_range(i, 0, INT_MAX, l);
-				for (cache_t::iterator i = m_read_pieces.begin()
-					, end(m_read_pieces.end()); i != end; ++i)
-					free_piece(*i, l);
+				cache_piece_index_t& widx = m_pieces.get<0>();
+				for (cache_piece_index_t::iterator i = widx.begin()
+					, end(widx.end()); i != end; ++i)
+					flush_range(const_cast<cached_piece_entry&>(*i), 0, INT_MAX, l);
+
+				cache_piece_index_t& idx = m_read_pieces.get<0>();
+				for (cache_piece_index_t::iterator i = idx.begin()
+					, end(idx.end()); i != end; ++i)
+					free_piece(const_cast<cached_piece_entry&>(*i), l);
+
 				m_pieces.clear();
 				m_read_pieces.clear();
 				// release the io_service to allow the run() call to return
@@ -1345,93 +1508,103 @@ namespace libtorrent
 				return;
 			}
 
-			std::list<disk_io_job>::iterator selected_job = m_jobs.begin();
+			disk_io_job j;
 
-			if (m_settings.allow_reordered_disk_operations
-				&& is_read_operation(*selected_job))
+			if (!m_jobs.empty())
 			{
-				// Before reading the current block, read any
-				// blocks between the read head and the queued
-				// block, elevator style
-
-				std::list<disk_io_job>::iterator best_job, i;
-				size_type score, best_score = (size_type) -1;
-
-				for (;;)
+				// we have a job in the job queue. If it's
+				// a read operation and we are allowed to
+				// reorder jobs, sort it into the read job
+				// list and continue, otherwise just pop it
+				// and use it later
+				j = m_jobs.front();
+				m_jobs.pop_front();
+				if (j.action == disk_io_job::write)
 				{
-					for (i = m_jobs.begin(); i != m_jobs.end(); ++i)
-					{
-						// ignore fence_operations
-						if (is_fence_operation(*i))
-							continue;
-
-						// always prioritize all disk-I/O jobs
-						// that are not read operations
-						if (!is_read_operation(*i))
-						{
-							best_job = i;
-							best_score = 0;
-							break;
-						}
-
-						// we only need to query for physical offset
-						// for read operations, since those are
-						// the only ones we re-order
-						if (i->phys_offset == -1)
-							i->phys_offset = i->storage->physical_offset(i->piece, i->offset);
-
-						if (elevator_direction > 0)
-						{
-							score = i->phys_offset - elevator_position;
-							if (i->phys_offset >= elevator_position
-								&& (score < best_score
-									|| best_score == (size_type)-1))
-							{
-								best_score = score;
-								best_job = i;
-							}
-						}
-						else
-						{
-							score = elevator_position - i->phys_offset;
-							if (i->phys_offset <= elevator_position
-								&& (score < best_score
-									|| best_score == (size_type)-1))
-							{
-								best_score = score;
-								best_job = i;
-							}
-						}
-					}
-
-					if (best_score != (size_type) -1)
-						break;
-
-					elevator_direction = -elevator_direction;
+					TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
+					m_queue_buffer_size -= j.buffer_size;
 				}
 
-				selected_job = best_job;
-				// only update the elevator position for read jobs
-				if (is_read_operation(*selected_job))
-					elevator_position = selected_job->phys_offset;
+				jl.unlock();
+
+				bool defer = false;
+
+				if (is_read_operation(j))
+				{
+					defer = true;
+
+					// at this point the operation we're looking
+					// at is a read operation. If this read operation
+					// can be fully satisfied by the read cache, handle
+					// it immediately
+					if (m_settings.use_read_cache)
+					{
+#ifdef TORRENT_DISK_STATS
+						m_log << log_time() << " check_cache_hit" << std::endl;
+#endif
+						// unfortunately we need to lock the cache
+						// if the cache querying function would be
+						// made asyncronous, this would not be
+						// necessary anymore
+						mutex::scoped_lock l(m_piece_mutex);
+						cache_piece_index_t::iterator p
+							= find_cached_piece(m_read_pieces, j, l);
+				
+						cache_piece_index_t& idx = m_read_pieces.get<0>();
+						// if it's a cache hit, process the job immediately
+						if (p != idx.end() && is_cache_hit(const_cast<cached_piece_entry&>(*p), j, l))
+							defer = false;
+					}
+				}
+
+				TORRENT_ASSERT(j.offset >= 0);
+				if (m_settings.allow_reordered_disk_operations && defer)
+				{
+#ifdef TORRENT_DISK_STATS
+					m_log << log_time() << " sorting_job" << std::endl;
+#endif
+					size_type phys_off = j.storage->physical_offset(j.piece, j.offset);
+					sorted_read_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
+					continue;
+				}
+			}
+			else
+			{
+				// the job queue is empty, pick the next read job
+				// from the sorted job list. So we don't need the
+				// job queue lock anymore
+				jl.unlock();
+
+				TORRENT_ASSERT(!sorted_read_jobs.empty());
+
+				// if we've reached the end, change the elevator direction
+				if (elevator_job_pos == sorted_read_jobs.end() && elevator_direction == 1)
+				{
+					elevator_direction = -1;
+					--elevator_job_pos;
+				}
+
+				j = elevator_job_pos->second;
+				read_jobs_t::iterator to_erase = elevator_job_pos;
+
+				// if we've reached the begining of the sorted list,
+				// change the elvator direction
+				if (elevator_job_pos == sorted_read_jobs.begin() && elevator_direction == -1)
+					elevator_direction = 1;
+
+				// move the elevator before erasing the job we're processing
+				// to keep the iterator valid
+				if (elevator_direction > 0) ++elevator_job_pos;
+				else --elevator_job_pos;
+
+				sorted_read_jobs.erase(to_erase);
 			}
 
 			// if there's a buffer in this job, it will be freed
 			// when this holder is destructed, unless it has been
 			// released.
 			disk_buffer_holder holder(*this
-				, operation_has_buffer(*selected_job) ? selected_job->buffer : 0);
-
-			boost::function<void(int, disk_io_job const&)> handler;
-			handler.swap(selected_job->callback);
-
-			disk_io_job j = *selected_job;
-			m_jobs.erase(selected_job);
-			if (j.action == disk_io_job::write)
-			{
-				TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
-				m_queue_buffer_size -= j.buffer_size;
-			}
+				, operation_has_buffer(j) ? j.buffer : 0);
 
 			bool post = false;
 			if (m_queue_buffer_size + j.buffer_size >= m_settings.max_queued_disk_bytes
@@ -1444,7 +1617,6 @@ namespace libtorrent
 				// can trigger all the connections waiting for this event
 				post = true;
 			}
-			jl.unlock();
 
 			if (post) m_ios.post(m_queue_callback);
 
@@ -1458,12 +1630,20 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 			ptime start = time_now();
 #endif
+
+			if (j.cache_min_time < 0)
+				j.cache_min_time = j.cache_min_time == 0 ? m_settings.default_cache_min_age
+					: (std::max)(m_settings.default_cache_min_age, j.cache_min_time);
+
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
 
 			if (j.storage && j.storage->get_storage_impl()->m_settings == 0)
 				j.storage->get_storage_impl()->m_settings = &m_settings;
+
+			ptime now = time_now_hires();
+			m_queue_time.add_sample(total_microseconds(now - j.start_time));
 
 			switch (j.action)
 			{
@@ -1477,7 +1657,32 @@ namespace libtorrent
 					TORRENT_ASSERT(s.cache_size >= 0);
 					TORRENT_ASSERT(s.cache_expiry > 0);
 
+#if defined TORRENT_WINDOWS
+					if (m_settings.low_prio_disk != s.low_prio_disk)
+					{
+						m_file_pool.set_low_prio_io(s.low_prio_disk);
+						// we need to close all files, since the prio
+						// only takes affect when files are opened
+						m_file_pool.release(0);
+					}
+#endif
 					m_settings = s;
+					m_file_pool.resize(m_settings.file_pool_size);
+#if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
+					setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
+						, m_settings.low_prio_disk ? IOPOL_THROTTLE : IOPOL_DEFAULT);
+#endif
+					if (m_settings.cache_size == -1)
+					{
+						// the cache size is set to automatic. Make it
+						// depend on the amount of physical RAM
+						// if we don't know how much RAM we have, just set the
+						// cache size to 16 MiB (1024 blocks)
+						if (m_physical_ram == 0)
+							m_settings.cache_size = 1024;
+						else
+							m_settings.cache_size = m_physical_ram / 8 / m_block_size;
+					}
 					break;
 				}
 				case disk_io_job::abort_torrent:
@@ -1494,14 +1699,50 @@ namespace libtorrent
 							++i;
 							continue;
 						}
-						if (i->action == disk_io_job::check_files)
+						if (should_cancel_on_abort(*i))
 						{
-							post_callback(i->callback, *i, piece_manager::disk_check_aborted);
+							if (i->action == disk_io_job::write)
+							{
+								TORRENT_ASSERT(m_queue_buffer_size >= i->buffer_size);
+								m_queue_buffer_size -= i->buffer_size;
+							}
+							post_callback(i->callback, *i, -3);
 							m_jobs.erase(i++);
 							continue;
 						}
 						++i;
 					}
+					// now clear all the read jobs
+					for (read_jobs_t::iterator i = sorted_read_jobs.begin();
+						i != sorted_read_jobs.end();)
+					{
+						if (i->second.storage != j.storage)
+						{
+							++i;
+							continue;
+						}
+						post_callback(i->second.callback, i->second, -3);
+						sorted_read_jobs.erase(i++);
+					}
+					jl.unlock();
+
+					mutex::scoped_lock l(m_piece_mutex);
+
+					for (cache_t::iterator i = m_read_pieces.begin();
+						i != m_read_pieces.end();)
+					{
+						if (i->storage == j.storage)
+						{
+							free_piece(const_cast<cached_piece_entry&>(*i), l);
+							i = m_read_pieces.erase(i);
+						}
+						else
+						{
+							++i;
+						}
+					}
+					l.unlock();
+					release_memory();
 					break;
 				}
 				case disk_io_job::abort_thread:
@@ -1509,24 +1750,37 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 					m_log << log_time() << " abort_thread " << std::endl;
 #endif
+					// clear all read jobs
 					mutex::scoped_lock jl(m_queue_mutex);
 
 					for (std::list<disk_io_job>::iterator i = m_jobs.begin();
 						i != m_jobs.end();)
 					{
-						if (i->action == disk_io_job::read)
+						if (should_cancel_on_abort(*i))
 						{
-							post_callback(i->callback, *i, -1);
-							m_jobs.erase(i++);
-							continue;
-						}
-						if (i->action == disk_io_job::check_files)
-						{
-							post_callback(i->callback, *i, piece_manager::disk_check_aborted);
+							if (i->action == disk_io_job::write)
+							{
+								TORRENT_ASSERT(m_queue_buffer_size >= i->buffer_size);
+								m_queue_buffer_size -= i->buffer_size;
+							}
+							post_callback(i->callback, *i, -3);
 							m_jobs.erase(i++);
 							continue;
 						}
 						++i;
+					}
+					jl.unlock();
+
+					for (read_jobs_t::iterator i = sorted_read_jobs.begin();
+						i != sorted_read_jobs.end();)
+					{
+						if (i->second.storage != j.storage)
+						{
+							++i;
+							continue;
+						}
+						post_callback(i->second.callback, i->second, -3);
+						sorted_read_jobs.erase(i++);
 					}
 
 					m_abort = true;
@@ -1551,7 +1805,7 @@ namespace libtorrent
 						j.error = error_code(boost::system::errc::not_enough_memory
 							, get_posix_category());
 #else
-						j.error = asio::error::no_memory;
+						j.error = error::no_memory;
 #endif
 						j.str.clear();
 						break;
@@ -1578,7 +1832,7 @@ namespace libtorrent
 					if (ret == -3)
 					{
 						j.storage->mark_failed(j.piece);
-						j.error = error_code(errors::failed_hash_check, libtorrent_category);
+						j.error = errors::failed_hash_check;
 						j.str.clear();
 						j.buffer = 0;
 						break;
@@ -1591,6 +1845,14 @@ namespace libtorrent
 #endif
 					break;
 				}
+				case disk_io_job::finalize_file:
+				{
+#ifdef TORRENT_DISK_STATS
+					m_log << log_time() << " finalize_file " << j.piece << std::endl;
+#endif
+					j.storage->finalize_file(j.piece);
+					break;
+				}
 				case disk_io_job::read:
 				{
 					if (test_error(j))
@@ -1599,7 +1861,7 @@ namespace libtorrent
 						break;
 					}
 #ifdef TORRENT_DISK_STATS
-					m_log << log_time() << " read " << j.buffer_size << std::endl;
+					m_log << log_time();
 #endif
 					INVARIANT_CHECK;
 					TORRENT_ASSERT(j.buffer == 0);
@@ -1607,6 +1869,9 @@ namespace libtorrent
 					TORRENT_ASSERT(j.buffer_size <= m_block_size);
 					if (j.buffer == 0)
 					{
+#ifdef TORRENT_DISK_STATS
+						m_log << " read 0" << std::endl;
+#endif
 						ret = -1;
 #if BOOST_VERSION == 103500
 						j.error = error_code(boost::system::posix_error::not_enough_memory
@@ -1615,7 +1880,7 @@ namespace libtorrent
 						j.error = error_code(boost::system::errc::not_enough_memory
 							, get_posix_category());
 #else
-						j.error = asio::error::no_memory;
+						j.error = error::no_memory;
 #endif
 						j.str.clear();
 						break;
@@ -1623,8 +1888,12 @@ namespace libtorrent
 
 					disk_buffer_holder read_holder(*this, j.buffer);
 
-					ret = try_read_from_cache(j);
+					bool hit;
+					ret = try_read_from_cache(j, hit);
 
+#ifdef TORRENT_DISK_STATS
+					m_log << (hit?" read-cache-hit ":" read ") << j.buffer_size << std::endl;
+#endif
 					// -2 means there's no space in the read cache
 					// or that the read cache is disabled
 					if (ret == -1)
@@ -1646,13 +1915,19 @@ namespace libtorrent
 						{
 							// this means the file wasn't big enough for this read
 							j.buffer = 0;
-							j.error = error_code(errors::file_too_short, libtorrent_category);
+							j.error = errors::file_too_short;
 							j.error_file.clear();
 							j.str.clear();
 							ret = -1;
 							break;
 						}
 						++m_cache_stats.blocks_read;
+						hit = false;
+					}
+					if (!hit)
+					{
+						ptime now = time_now_hires();
+						m_read_time.add_sample(total_microseconds(now - j.start_time));
 					}
 					TORRENT_ASSERT(j.buffer == read_holder.get());
 					read_holder.release();
@@ -1669,40 +1944,47 @@ namespace libtorrent
 					mutex::scoped_lock l(m_piece_mutex);
 					INVARIANT_CHECK;
 
-					if (in_use() >= m_settings.cache_size)
-						flush_cache_blocks(l, in_use() - m_settings.cache_size + 1, m_read_pieces.end());
+					TORRENT_ASSERT(j.cache_min_time >= 0);
 
-					cache_t::iterator p
-						= find_cached_piece(m_pieces, j, l);
+					if (in_use() >= m_settings.cache_size)
+						flush_cache_blocks(l, in_use() - m_settings.cache_size + 1);
+
+					cache_piece_index_t& idx = m_pieces.get<0>();
+					cache_piece_index_t::iterator p = find_cached_piece(m_pieces, j, l);
 					int block = j.offset / m_block_size;
 					TORRENT_ASSERT(j.buffer);
 					TORRENT_ASSERT(j.buffer_size <= m_block_size);
-					if (p != m_pieces.end())
+					if (p != idx.end())
 					{
 						TORRENT_ASSERT(p->blocks[block].buf == 0);
 						if (p->blocks[block].buf)
 						{
 							free_buffer(p->blocks[block].buf);
-							--p->num_blocks;
+							--m_cache_stats.cache_size;
+							--const_cast<cached_piece_entry&>(*p).num_blocks;
 						}
 						p->blocks[block].buf = j.buffer;
-						p->blocks[block].callback.swap(handler);
+						p->blocks[block].callback.swap(j.callback);
 #ifdef TORRENT_DISK_STATS
 						rename_buffer(j.buffer, "write cache");
 #endif
 						++m_cache_stats.cache_size;
-						++p->num_blocks;
-						p->last_use = time_now();
+						++const_cast<cached_piece_entry&>(*p).num_blocks;
+						idx.modify(p, update_last_use(j.cache_min_time));
 						// we might just have created a contiguous range
 						// that meets the requirement to be flushed. try it
-						flush_contiguous_blocks(p, l, m_settings.write_cache_line_size);
+						flush_contiguous_blocks(const_cast<cached_piece_entry&>(*p)
+							, l, m_settings.write_cache_line_size);
+						if (p->num_blocks == 0) idx.erase(p);
 					}
 					else
 					{
-						if (cache_block(j, handler, l) < 0)
+						if (cache_block(j, j.callback, j.cache_min_time, l) < 0)
 						{
+							l.unlock();
 							file::iovec_t iov = {j.buffer, j.buffer_size};
 							ret = j.storage->write_impl(&iov, j.piece, j.offset, 1);
+							l.lock();
 							if (ret < 0)
 							{
 								test_error(j);
@@ -1717,8 +1999,31 @@ namespace libtorrent
 					holder.release();
 
 					if (in_use() > m_settings.cache_size)
-						flush_cache_blocks(l, in_use() - m_settings.cache_size, m_read_pieces.end());
+						flush_cache_blocks(l, in_use() - m_settings.cache_size);
 
+					break;
+				}
+				case disk_io_job::cache_piece:
+				{
+					mutex::scoped_lock l(m_piece_mutex);
+
+					if (test_error(j))
+					{
+						ret = -1;
+						break;
+					}
+#ifdef TORRENT_DISK_STATS
+					m_log << log_time() << " cache " << j.piece << std::endl;
+#endif
+					INVARIANT_CHECK;
+					TORRENT_ASSERT(j.buffer == 0);
+
+					cache_piece_index_t::iterator p;
+					bool hit;
+					ret = cache_piece(j, p, hit, 0, l);
+					if (ret == -2) ret = -1;
+
+					if (ret < 0) test_error(j);
 					break;
 				}
 				case disk_io_job::hash:
@@ -1729,11 +2034,13 @@ namespace libtorrent
 					mutex::scoped_lock l(m_piece_mutex);
 					INVARIANT_CHECK;
 
-					cache_t::iterator i
-						= find_cached_piece(m_pieces, j, l);
-					if (i != m_pieces.end())
+					cache_piece_index_t& idx = m_pieces.get<0>();
+					cache_piece_index_t::iterator i = find_cached_piece(m_pieces, j, l);
+					if (i != idx.end())
 					{
-						flush_and_remove(i, l);
+						TORRENT_ASSERT(i->storage);
+						int ret = flush_range(const_cast<cached_piece_entry&>(*i), 0, INT_MAX, l);
+						idx.erase(i);
 						if (test_error(j))
 						{
 							ret = -1;
@@ -1788,7 +2095,7 @@ namespace libtorrent
 					{
 						if (i->storage == j.storage)
 						{
-							flush_range(i, 0, INT_MAX, l);
+							flush_range(const_cast<cached_piece_entry&>(*i), 0, INT_MAX, l);
 							i = m_pieces.erase(i);
 						}
 						else
@@ -1818,7 +2125,7 @@ namespace libtorrent
 					{
 						if (i->storage == j.storage)
 						{
-							free_piece(*i, l);
+							free_piece(const_cast<cached_piece_entry&>(*i), l);
 							i = m_read_pieces.erase(i);
 						}
 						else
@@ -1841,22 +2148,23 @@ namespace libtorrent
 					mutex::scoped_lock l(m_piece_mutex);
 					INVARIANT_CHECK;
 
-					cache_t::iterator i = std::remove_if(
-						m_pieces.begin(), m_pieces.end(), bind(&cached_piece_entry::storage, _1) == j.storage);
+					cache_piece_index_t& idx = m_pieces.get<0>();
+					cache_piece_index_t::iterator start = idx.lower_bound(std::pair<void*, int>(j.storage.get(), 0));
+					cache_piece_index_t::iterator end = idx.upper_bound(std::pair<void*, int>(j.storage.get(), INT_MAX));
 
-					for (cache_t::iterator k = i; k != m_pieces.end(); ++k)
+					for (cache_piece_index_t::iterator i = start; i != end; ++i)
 					{
-						torrent_info const& ti = *k->storage->info();
-						int blocks_in_piece = (ti.piece_size(k->piece) + m_block_size - 1) / m_block_size;
+						torrent_info const& ti = *i->storage->info();
+						int blocks_in_piece = (ti.piece_size(i->piece) + m_block_size - 1) / m_block_size;
 						for (int j = 0; j < blocks_in_piece; ++j)
 						{
-							if (k->blocks[j].buf == 0) continue;
-							free_buffer(k->blocks[j].buf);
-							k->blocks[j].buf = 0;
+							if (i->blocks[j].buf == 0) continue;
+							free_buffer(i->blocks[j].buf);
+							i->blocks[j].buf = 0;
 							--m_cache_stats.cache_size;
 						}
 					}
-					m_pieces.erase(i, m_pieces.end());
+					idx.erase(start, end);
 					l.unlock();
 					release_memory();
 
@@ -1905,9 +2213,9 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 						try {
 #endif
-							TORRENT_ASSERT(handler);
-							if (handler && ret == piece_manager::need_full_check)
-								post_callback(handler, j, ret);
+							TORRENT_ASSERT(j.callback);
+							if (j.callback && ret == piece_manager::need_full_check)
+								post_callback(j.callback, j, ret);
 #ifndef BOOST_NO_EXCEPTIONS
 						} catch (std::exception&) {}
 #endif
@@ -1923,7 +2231,10 @@ namespace libtorrent
 					// if the check is not done, add it at the end of the job queue
 					if (ret == piece_manager::need_full_check)
 					{
-						add_job(j, handler);
+						// offset needs to be reset to 0 so that the disk
+						// job sorting can be done correctly
+						j.offset = 0;
+						add_job(j, j.callback);
 						continue;
 					}
 					break;
@@ -1964,7 +2275,7 @@ namespace libtorrent
 			}
 #endif
 
-//			if (!handler) std::cerr << "DISK THREAD: no callback specified" << std::endl;
+//			if (!j.callback) std::cerr << "DISK THREAD: no callback specified" << std::endl;
 //			else std::cerr << "DISK THREAD: invoking callback" << std::endl;
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
@@ -1976,7 +2287,7 @@ namespace libtorrent
 					&& j.buffer != 0)
 					rename_buffer(j.buffer, "posted send buffer");
 #endif
-				post_callback(handler, j, ret);
+				post_callback(j.callback, j, ret);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (std::exception&)
 			{

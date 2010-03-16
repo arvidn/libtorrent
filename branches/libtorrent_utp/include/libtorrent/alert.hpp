@@ -36,13 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <queue>
 #include <string>
-#include <typeinfo>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
 
-#include <boost/function.hpp>
+#include <boost/function/function1.hpp>
 
 #include <boost/preprocessor/repetition/enum_params_with_a_default.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
@@ -53,11 +52,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/time.hpp"
+#include "libtorrent/ptime.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/thread.hpp"
-#include "libtorrent/socket.hpp" // for io_service
+#include "libtorrent/io_service_fwd.hpp"
 
 #ifndef TORRENT_MAX_ALERT_TYPES
 #define TORRENT_MAX_ALERT_TYPES 15
@@ -87,6 +86,7 @@ namespace libtorrent {
 			ip_block_notification = 0x100,
 			performance_warning = 0x200,
 			dht_notification = 0x400,
+			stats_notification = 0x800,
 
 			all_categories = 0xffffffff
 		};

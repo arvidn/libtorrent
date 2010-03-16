@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/logging.hpp>
+#include <libtorrent/address.hpp>
 
 #include <boost/noncopyable.hpp>
 #include <boost/intrusive_ptr.hpp>
@@ -79,12 +80,14 @@ struct traversal_algorithm : boost::noncopyable
 		result(node_id const& id, udp::endpoint ep, unsigned char f = 0) 
 			: id(id), flags(f)
 		{
+#if TORRENT_USE_IPV6
 			if (ep.address().is_v6())
 			{
 				flags |= ipv6_address;
 				addr.v6 = ep.address().to_v6().to_bytes();
 			}
 			else
+#endif
 			{
 				flags &= ~ipv6_address;
 				addr.v4 = ep.address().to_v4().to_bytes();
@@ -94,18 +97,22 @@ struct traversal_algorithm : boost::noncopyable
 
 		udp::endpoint endpoint() const
 		{
+#if TORRENT_USE_IPV6
 			if (flags & ipv6_address)
 				return udp::endpoint(address_v6(addr.v6), port);
 			else
+#endif
 				return udp::endpoint(address_v4(addr.v4), port);
 		}
 
 		node_id id;
 
-		union addr_t
+		TORRENT_UNION addr_t
 		{
 			address_v4::bytes_type v4;
+#if TORRENT_USE_IPV6
 			address_v6::bytes_type v6;
+#endif
 		} addr;
 
 		boost::uint16_t port;
@@ -134,7 +141,7 @@ struct traversal_algorithm : boost::noncopyable
 		, m_timeouts(0)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << "] new traversal process";
+		TORRENT_LOG(traversal) << " [" << this << "] new traversal process. Target: " << target;
 #endif
 	}
 

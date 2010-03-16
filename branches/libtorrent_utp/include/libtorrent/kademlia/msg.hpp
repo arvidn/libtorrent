@@ -100,6 +100,7 @@ typedef std::vector<tcp::endpoint> peers_t;
 
 struct msg
 {
+	msg(lazy_entry const& m, udp::endpoint const& ep): message(m), addr(ep) {}
 	// the message
 	lazy_entry const& message;
 

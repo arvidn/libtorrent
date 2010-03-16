@@ -114,9 +114,17 @@ namespace libtorrent
 		std::list<udp::endpoint> m_endpoints;
 
 		int m_transaction_id;
-		boost::int64_t m_connection_id;
 		aux::session_impl const& m_ses;
 		int m_attempts;
+
+		struct connection_cache_entry
+		{
+			boost::int64_t connection_id;
+			ptime expires;
+		};
+
+		static std::map<address, connection_cache_entry> m_connection_cache;
+		static mutex m_cache_mutex;
 
 		action_t m_state;
 	};

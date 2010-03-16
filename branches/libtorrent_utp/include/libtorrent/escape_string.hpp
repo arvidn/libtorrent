@@ -34,8 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ESCAPE_STRING_HPP_INCLUDED
 
 #include <string>
-#include <limits>
-#include <boost/optional.hpp>
+#include <boost/limits.hpp>
 #include <boost/array.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/size_type.hpp"
@@ -43,27 +42,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	boost::array<char, 3 + std::numeric_limits<size_type>::digits10> TORRENT_EXPORT to_string(size_type n);
-	bool TORRENT_EXPORT is_alpha(char c);
-	bool TORRENT_EXPORT is_digit(char c);
-	bool TORRENT_EXPORT is_print(char c);
-	bool TORRENT_EXPORT is_space(char c);
-	char TORRENT_EXPORT to_lower(char c);
+	TORRENT_EXPORT boost::array<char, 3 + std::numeric_limits<size_type>::digits10> to_string(size_type n);
+	TORRENT_EXPORT bool is_alpha(char c);
+	TORRENT_EXPORT bool is_digit(char c);
+	TORRENT_EXPORT bool is_print(char c);
+	TORRENT_EXPORT bool is_space(char c);
+	TORRENT_EXPORT char to_lower(char c);
 
-	int TORRENT_EXPORT split_string(char const** tags, int buf_size, char* in);
-	bool TORRENT_EXPORT string_begins_no_case(char const* s1, char const* s2);
-	bool TORRENT_EXPORT string_equal_no_case(char const* s1, char const* s2);
+	TORRENT_EXPORT int split_string(char const** tags, int buf_size, char* in);
+	TORRENT_EXPORT bool string_begins_no_case(char const* s1, char const* s2);
+	TORRENT_EXPORT bool string_equal_no_case(char const* s1, char const* s2);
 
-	std::string TORRENT_EXPORT unescape_string(std::string const& s, error_code& ec);
+	TORRENT_EXPORT std::string unescape_string(std::string const& s, error_code& ec);
 	// replaces all disallowed URL characters by their %-encoding
-	std::string TORRENT_EXPORT escape_string(const char* str, int len);
+	TORRENT_EXPORT std::string escape_string(const char* str, int len);
 	// same as escape_string but does not encode '/'
-	std::string TORRENT_EXPORT escape_path(const char* str, int len);
+	TORRENT_EXPORT std::string escape_path(const char* str, int len);
 	// if the url does not appear to be encoded, and it contains illegal url characters
 	// it will be encoded
-	std::string TORRENT_EXPORT maybe_url_encode(std::string const& url);
+	TORRENT_EXPORT std::string maybe_url_encode(std::string const& url);
 
-	bool TORRENT_EXPORT need_encoding(char const* str, int len);
+	TORRENT_EXPORT bool need_encoding(char const* str, int len);
 
 	// encodes a string using the base64 scheme
 	TORRENT_EXPORT std::string base64encode(std::string const& s);
@@ -72,8 +71,8 @@ namespace libtorrent
 	TORRENT_EXPORT std::string base32encode(std::string const& s);
 	TORRENT_EXPORT std::string base32decode(std::string const& s);
 
-	TORRENT_EXPORT boost::optional<std::string> url_has_argument(
-		std::string const& url, std::string argument);
+	TORRENT_EXPORT std::string url_has_argument(
+		std::string const& url, std::string argument, std::string::size_type* out_pos = 0);
 
 	// replaces \ with /
 	TORRENT_EXPORT void convert_path_to_posix(std::string& path);
@@ -84,7 +83,7 @@ namespace libtorrent
 	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
 	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
 
-#if defined TORRENT_WINDOWS && defined UNICODE
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 	TORRENT_EXPORT std::wstring convert_to_wstring(std::string const& s);
 	TORRENT_EXPORT std::string convert_from_wstring(std::wstring const& s);
 #endif

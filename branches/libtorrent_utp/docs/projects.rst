@@ -23,6 +23,21 @@ project listed here, let me_ know.
 
 .. container:: entry
 
+	.. image:: tonidoplug.png
+		:align: right
+		:target: Tonidoplug_
+
+	**tonidoplug**
+
+	Tonidoplug_ is a tiny, low-power, low-cost home server and
+	NAS device powered by Tonido software that allows you to access
+	your apps, files, music and media from anywhere.
+
+	.. _Tonidoplug: http://www.tonidoplug.com/
+
+
+.. container:: entry
+
 	.. image:: qbittorrent_thumb.jpg
 		:align: right
 		:target: qBittorrent_
@@ -372,7 +387,7 @@ hrktorrent_ hrktorrent is a light console torrent client written in C++.
 
 **DelCo**
 
-DelCo_ is a research project at tempere university of technology, finland.
+DelCo_ is a research project at Tampere university of technology, finland.
 
 **FireANT**
 
@@ -382,7 +397,7 @@ for Windows and Mac OSX.
 .. _FireANT: http://antisnottv.net/
 
 .. _FDM: http://www.freedownloadmanager.org/
-.. _LeechCraft: http://deviant-soft.ws/tiki-index.php?page=LeechCraft
+.. _LeechCraft: http://leechcraft.org/
 .. _FatRat: http://fatrat.dolezel.info
 .. _BitRocket: http://www.bitrocket.org/
 .. _BitsCast: http://www.bitscast.com/software/

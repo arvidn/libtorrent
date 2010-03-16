@@ -90,6 +90,8 @@ namespace libtorrent
 			attribute_symlink = 8
 		};
 
+		void reserve(int num_files);
+
 		void add_file(file_entry const& e);
 		void add_file(std::string const& p, size_type size, int flags = 0
 			, std::time_t mtime = 0, std::string const& s_p = "");

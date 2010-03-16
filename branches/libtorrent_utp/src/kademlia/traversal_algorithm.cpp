@@ -109,9 +109,9 @@ void traversal_algorithm::finished(udp::endpoint const& ep)
 	std::vector<result>::iterator i = std::find_if(
 		m_results.begin()
 		, m_results.end()
-		, bind(
+		, boost::bind(
 			std::equal_to<udp::endpoint>()
-			, bind(&result::endpoint, _1)
+			, boost::bind(&result::endpoint, _1)
 			, ep
 		)
 	);
@@ -147,9 +147,9 @@ void traversal_algorithm::failed(udp::endpoint const& ep, int flags)
 	std::vector<result>::iterator i = std::find_if(
 		m_results.begin()
 		, m_results.end()
-		, bind(
+		, boost::bind(
 			std::equal_to<udp::endpoint>()
-			, bind(&result::endpoint, _1)
+			, boost::bind(&result::endpoint, _1)
 			, ep
 		)
 	);
@@ -238,6 +238,10 @@ void traversal_algorithm::add_requests()
 
 void traversal_algorithm::add_router_entries()
 {
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(traversal) << " using router nodes to initiate traversal algorithm. "
+		<< std::distance(m_node.m_table.router_begin(), m_node.m_table.router_end()) << " routers";
+#endif
 	for (routing_table::router_iterator i = m_node.m_table.router_begin()
 		, end(m_node.m_table.router_end()); i != end; ++i)
 	{
@@ -247,6 +251,8 @@ void traversal_algorithm::add_router_entries()
 
 void traversal_algorithm::init()
 {
+	// update the last activity of this bucket
+	m_node.m_table.touch_bucket(m_target);
 	m_branch_factor = m_node.branch_factor();
 	m_node.add_traversal_algorithm(this);
 }

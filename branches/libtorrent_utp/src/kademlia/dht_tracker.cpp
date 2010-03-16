@@ -32,13 +32,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 #include <fstream>
+#endif
+
 #include <set>
 #include <numeric>
-#include <stdexcept>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
-#include <boost/optional.hpp>
 
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
@@ -180,21 +181,21 @@ namespace libtorrent { namespace dht
 	TORRENT_DEFINE_LOG(dht_tracker)
 #endif
 
-	boost::optional<node_id> extract_node_id(lazy_entry const* e)
+	node_id extract_node_id(lazy_entry const* e)
 	{
-		if (e == 0 || e->type() != lazy_entry::dict_t) return boost::optional<node_id>();
+		if (e == 0 || e->type() != lazy_entry::dict_t) return (node_id::min)();
 		lazy_entry const* nid = e->dict_find_string("node-id");
-		if (nid == 0 || nid->string_length() != 20) return boost::optional<node_id>();
-		return boost::optional<node_id>(node_id(nid->string_ptr()));
+		if (nid == 0 || nid->string_length() != 20) return (node_id::min)();
+		return node_id(node_id(nid->string_ptr()));
 	}
 
-	boost::optional<node_id> extract_node_id(entry const* e)
+	node_id extract_node_id(entry const* e)
 	{
-		if (e == 0 || e->type() != entry::dictionary_t) return boost::optional<node_id>();
+		if (e == 0 || e->type() != entry::dictionary_t) return (node_id::min)();
 		entry const* nid = e->find_key("node-id");
 		if (nid == 0 || nid->type() != entry::string_t || nid->string().length() != 20)
-			return boost::optional<node_id>();
-		return boost::optional<node_id>(node_id(nid->string().c_str()));
+			return (node_id::min)();
+		return node_id(node_id(nid->string().c_str()));
 	}
 
 	bool send_callback(void* userdata, entry const& e, udp::endpoint const& addr, int flags)
@@ -276,7 +277,7 @@ namespace libtorrent { namespace dht
 
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(bind(&dht_tracker::refresh_timeout, self(), _1));
-		m_dht.bootstrap(initial_nodes, bind(&dht_tracker::on_bootstrap, self(), _1));
+		m_dht.bootstrap(initial_nodes, boost::bind(&dht_tracker::on_bootstrap, self(), _1));
 	}
 
 	void dht_tracker::stop()
@@ -321,9 +322,9 @@ namespace libtorrent { namespace dht
 		mutex_t::scoped_lock l(m_mutex);
 		if (e || m_abort) return;
 
-		time_duration d = m_dht.refresh_timeout();
+		m_dht.tick();
 		error_code ec;
-		m_refresh_timer.expires_from_now(d, ec);
+		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(
 			bind(&dht_tracker::refresh_timeout, self(), _1));
 	}
@@ -519,7 +520,7 @@ namespace libtorrent { namespace dht
 			return;
 		}
 
-		libtorrent::dht::msg m = {e, ep};
+		libtorrent::dht::msg m(e, ep);
 
 		if (e.type() != lazy_entry::dict_t)
 		{
@@ -541,20 +542,22 @@ namespace libtorrent { namespace dht
 		m_dht.incoming(m);
 	}
 
+	void add_node_fun(void* userdata, node_entry const& e)
+	{
+		entry* n = (entry*)userdata;
+		std::string node;
+		std::back_insert_iterator<std::string> out(node);
+		write_endpoint(e.ep(), out);
+		n->list().push_back(entry(node));
+	}
+	
 	entry dht_tracker::state() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		entry ret(entry::dictionary_t);
 		{
 			entry nodes(entry::list_t);
-			for (node_impl::iterator i(m_dht.begin())
-				, end(m_dht.end()); i != end; ++i)
-			{
-				std::string node;
-				std::back_insert_iterator<std::string> out(node);
-				write_endpoint(udp::endpoint(i->addr, i->port), out);
-				nodes.list().push_back(entry(node));
-			}
+			m_dht.m_table.for_each_node(&add_node_fun, &add_node_fun, &nodes);
 			bucket_t cache;
 			m_dht.replacement_cache(cache);
 			for (bucket_t::iterator i(cache.begin())
@@ -569,9 +572,7 @@ namespace libtorrent { namespace dht
 				ret["nodes"] = nodes;
 		}
 
-		char node_id[41];
-		to_hex((char*)&m_dht.nid()[0], 20, node_id);
-		ret["node-id"] = node_id;
+		ret["node-id"] = m_dht.nid().to_string();
 		return ret;
 	}
 
@@ -598,21 +599,10 @@ namespace libtorrent { namespace dht
 		add_node(host->endpoint());
 	}
 
-	void dht_tracker::add_router_node(std::pair<std::string, int> const& node)
+	void dht_tracker::add_router_node(udp::endpoint const& node)
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		char port[7];
-		snprintf(port, sizeof(port), "%d", node.second);
-		udp::resolver::query q(node.first, port);
-		m_host_resolver.async_resolve(q,
-			bind(&dht_tracker::on_router_name_lookup, self(), _1, _2));
-	}
-
-	void dht_tracker::on_router_name_lookup(error_code const& e
-		, udp::resolver::iterator host)
-	{
-		if (e || host == udp::resolver::iterator()) return;
-		m_dht.add_router_node(host->endpoint());
+		m_dht.add_router_node(node);
 	}
 
 	void dht_tracker::on_bootstrap(std::vector<std::pair<node_entry, std::string> > const&)

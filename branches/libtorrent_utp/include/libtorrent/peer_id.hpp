@@ -40,9 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/escape_string.hpp"
 
 #if TORRENT_USE_IOSTREAM
+#include "libtorrent/escape_string.hpp" // to_hex, from_hex
 #include <iostream>
 #include <iomanip>
 #endif
@@ -91,14 +91,14 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(s.size() >= 20);
 			int sl = int(s.size()) < size ? int(s.size()) : size;
-			std::memcpy(m_number, &s[0], sl);
+			std::memcpy(m_number, s.c_str(), sl);
 		}
 
 		void assign(std::string const& s)
 		{
 			TORRENT_ASSERT(s.size() >= 20);
 			int sl = int(s.size()) < size ? int(s.size()) : size;
-			std::memcpy(m_number, &s[0], sl);
+			std::memcpy(m_number, s.c_str(), sl);
 		}
 
 		void assign(char const* str)

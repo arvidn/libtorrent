@@ -5,6 +5,7 @@ GEOIP_H = GeoIP.h
 endif
 
 nobase_include_HEADERS = \
+  add_torrent_params.hpp       \
   alert.hpp                    \
   alert_types.hpp              \
   alloca.hpp                   \
@@ -30,6 +31,7 @@ nobase_include_HEADERS = \
   disk_io_thread.hpp           \
   entry.hpp                    \
   enum_net.hpp                 \
+  error.hpp                    \
   error_code.hpp               \
   escape_string.hpp            \
   extensions.hpp               \
@@ -54,6 +56,7 @@ nobase_include_HEADERS = \
   lazy_entry.hpp               \
   lsd.hpp                      \
   magnet_uri.hpp               \
+  max.hpp                      \
   natpmp.hpp                   \
   parse_url.hpp                \
   pch.hpp                      \
@@ -67,7 +70,8 @@ nobase_include_HEADERS = \
   piece_picker.hpp             \
   policy.hpp                   \
   proxy_base.hpp               \
-  random_sample.hpp            \
+  ptime.hpp                    \
+  puff.hpp                     \
   session.hpp                  \
   session_settings.hpp         \
   session_status.hpp           \
@@ -87,6 +91,7 @@ nobase_include_HEADERS = \
   tracker_manager.hpp          \
   udp_socket.hpp               \
   udp_tracker_connection.hpp   \
+  union_endpoint.hpp           \
   upnp.hpp                     \
   utp_socket_manager.hpp       \
   utp_stream.hpp               \

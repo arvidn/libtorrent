@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <utility>
 #include <numeric>
+#include <algorithm> // count
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
@@ -207,6 +208,8 @@ namespace libtorrent { namespace
 				metadata();
 		}
 
+		int metadata_size() const { return m_metadata_size; }
+
 	private:
 		torrent& m_torrent;
 
@@ -367,7 +370,7 @@ namespace libtorrent { namespace
 
 			if (length > 500 * 1024)
 			{
-				m_pc.disconnect(error_code(errors::metadata_too_large, libtorrent_category), 2);
+				m_pc.disconnect(errors::metadata_too_large, 2);
 				return true;
 			}
 
@@ -392,7 +395,7 @@ namespace libtorrent { namespace
 					if (length != 3)
 					{
 						// invalid metadata request
-						m_pc.disconnect(error_code(errors::invalid_metadata_request, libtorrent_category), 2);
+						m_pc.disconnect(errors::invalid_metadata_request, 2);
 						return true;
 					}
 
@@ -417,22 +420,22 @@ namespace libtorrent { namespace
 
 					if (total_size > 500 * 1024)
 					{
-						m_pc.disconnect(error_code(errors::metadata_too_large, libtorrent_category), 2);
+						m_pc.disconnect(errors::metadata_too_large, 2);
 						return true;
 					}
 					if (total_size <= 0)
 					{
-						m_pc.disconnect(error_code(errors::invalid_metadata_size, libtorrent_category), 2);
+						m_pc.disconnect(errors::invalid_metadata_size, 2);
 						return true;
 					}
 					if (offset > total_size || offset < 0)
 					{
-						m_pc.disconnect(error_code(errors::invalid_metadata_offset, libtorrent_category), 2);
+						m_pc.disconnect(errors::invalid_metadata_offset, 2);
 						return true;
 					}
 					if (offset + data_size > total_size)
 					{
-						m_pc.disconnect(error_code(errors::invalid_metadata_message, libtorrent_category), 2);
+						m_pc.disconnect(errors::invalid_metadata_message, 2);
 						return true;
 					}
 
@@ -460,7 +463,7 @@ namespace libtorrent { namespace
 				break;
 			default:
 				{
-					m_pc.disconnect(error_code(errors::invalid_metadata_message, libtorrent_category), 2);
+					m_pc.disconnect(errors::invalid_metadata_message, 2);
 				}
 			}
 			return true;

@@ -12,11 +12,10 @@ rm -f src/Makefile src/Makefile.in
 rm -f include/libtorrent/Makefile include/libtorrent/Makefile.in
 rm -f examples/Makefile examples/Makefile.in
 rm -f test/Makefile test/Makefile.in
-rm -f zlib/Makefile zlib/Makefile.in
 rm -f bindings/Makefile bindings/Makefile.in
 rm -f bindings/python/Makefile bindings/python/Makefile.in
 chmod a-x docs/*.rst docs/*.htm* src/*.cpp include/libtorrent/*.hpp
 
 ./autotool.sh
-./configure --enable-python-binding --with-zlib=shipped --enable-examples=yes --enable-tests=yes --with-boost-system=mt --with-boost-python=mt --with-boost-thread=mt --with-boost-filesystem=mt
-make -j 8 dist check
+./configure --enable-python-binding --enable-examples=yes --enable-tests=yes --with-boost-system=mt --with-boost-python=mt 
+make V=1 -j8 dist check

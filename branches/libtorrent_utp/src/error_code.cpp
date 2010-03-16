@@ -130,7 +130,7 @@ namespace libtorrent
 			"duplicate peer-id",
 			"torrent removed",
 			"packet too large",
-			"failed to parse HTTP response",
+			"",
 			"HTTP error",
 			"missing location header",
 			"invalid redirection",
@@ -156,12 +156,29 @@ namespace libtorrent
 			"pex message too large",
 			"invalid pex message",
 			"invalid lt_tracker message",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
 // natpmp errors
 			"unsupported protocol version",
 			"not authorized to create port map (enable NAT-PMP on your router)",
 			"network failure",
 			"out of resources",
 			"unsupported opcode",
+			"",
+			"",
+			"",
+			"",
+			"",
 // fastresume errors
 			"missing or invalid 'file sizes' entry",
 			"no files in resume data",
@@ -183,19 +200,44 @@ namespace libtorrent
 			"",
 			"",
 			"",
+// HTTP errors
+			"Invalid HTTP header",
+			"missing Location header in HTTP redirect",
+			"failed to decompress HTTP response",
 			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+// i2p errors
 			"no i2p router is set up",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+// tracker errors
+			"scrape not available on tracker",
+			"invalid tracker response",
+			"invalid peer dictionary entry",
+			"tracker sent a failure message",
+			"missing or invalid 'files' entry",
+			"missing or invalid 'hash' entry",
+			"missing or invalid 'peers' and 'peers6' entry",
+			"udp tracker response packet has invalid size",
+			"invalid transaction id in udp tracker response",
+			"invalid action field in udp tracker response",
 		};
 		if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
 			return "Unknown error";
 		return msgs[ev];
 	}
-
-	TORRENT_EXPORT libtorrent_error_category libtorrent_category;
-
-#else
-
-	TORRENT_EXPORT ::asio::error::error_category libtorrent_category(20);
 
 #endif
 

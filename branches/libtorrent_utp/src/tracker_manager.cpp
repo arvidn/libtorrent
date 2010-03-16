@@ -40,13 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/torrent.hpp"
-#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
-using namespace libtorrent;
 using boost::tuples::make_tuple;
 using boost::tuples::tuple;
 using boost::bind;
@@ -145,10 +140,12 @@ namespace libtorrent
 		return m_requester.lock();
 	}
 
-	void tracker_connection::fail(int code, char const* msg)
+	void tracker_connection::fail(error_code const& ec, int code
+		, char const* msg, int interval, int min_interval)
 	{
 		boost::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->tracker_request_error(m_req, code, msg);
+		if (cb) cb->tracker_request_error(m_req, code, ec, msg
+			, interval == 0 ? min_interval : interval);
 		close();
 	}
 
@@ -162,13 +159,6 @@ namespace libtorrent
 		m_man.received_bytes(bytes);
 	}
 
-	void tracker_connection::fail_timeout()
-	{
-		boost::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->tracker_request_timed_out(m_req);
-		close();
-	}
-	
 	void tracker_connection::close()
 	{
 		cancel();
@@ -250,8 +240,9 @@ namespace libtorrent
 		{
 			// we need to post the error to avoid deadlock
 			if (boost::shared_ptr<request_callback> r = c.lock())
-				ios.post(boost::bind(&request_callback::tracker_request_error, r, req, -1
-					, "unknown protocol in tracker url: " + req.url));
+				ios.post(boost::bind(&request_callback::tracker_request_error, r, req
+					, -1, error_code(errors::unsupported_url_protocol)
+					, "", 0));
 			return;
 		}
 

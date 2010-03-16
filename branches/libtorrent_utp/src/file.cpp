@@ -37,14 +37,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
+#include "libtorrent/allocator.hpp" // page_size
 #include "libtorrent/escape_string.hpp" // for string conversion
 
 #include <boost/scoped_ptr.hpp>
+#include <boost/static_assert.hpp>
 
 #ifdef TORRENT_WINDOWS
 // windows part
 
 #include "libtorrent/utf8.hpp"
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #include <winioctl.h>
 #include <direct.h> // for _getcwd, _mkdir
@@ -66,9 +72,26 @@ POSSIBILITY OF SUCH DAMAGE.
 // linux specifics
 
 #include <sys/ioctl.h>
-#ifdef FS_IOC_FIEMAP
+#ifdef HAVE_LINUX_FIEMAP_H
 #include <linux/fiemap.h>
 #endif
+
+#include <asm/unistd.h> // For __NR_fallocate
+
+// circumvent the lack of support in glibc
+static int my_fallocate(int fd, int mode, loff_t offset, loff_t len)
+{
+#ifdef __NR_fallocate
+	// the man page on fallocate differes between versions of linux.
+	// it appears that fallocate in fact sets errno and returns -1
+	// on failure.
+	return syscall(__NR_fallocate, fd, mode, offset, len);
+#else
+	// pretend that the system call doesn't exist
+	errno = ENOSYS;
+	return -1;
+#endif
+}
 
 #elif defined __APPLE__ && defined __MACH__
 // mac specifics
@@ -77,7 +100,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-#include <boost/static_assert.hpp>
 // make sure the _FILE_OFFSET_BITS define worked
 // on this platform. It's supposed to make file
 // related functions support 64-bit offsets.
@@ -108,7 +130,7 @@ namespace libtorrent
 	{
 		ec.clear();
 
-#if defined UNICODE && defined TORRENT_WINDOWS
+#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
 		std::wstring f = convert_to_wstring(inf);
 #else
 		std::string f = convert_to_native(inf);
@@ -116,7 +138,7 @@ namespace libtorrent
 
 #ifdef TORRENT_WINDOWS
 		struct _stati64 ret;
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
 		if (_wstati64(f.c_str(), &ret) < 0)
 #else
 		if (_stati64(f.c_str(), &ret) < 0)
@@ -145,7 +167,7 @@ namespace libtorrent
 	{
 		ec.clear();
 
-#if defined UNICODE && defined TORRENT_WINDOWS
+#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
 		std::wstring f1 = convert_to_wstring(inf);
 		std::wstring f2 = convert_to_wstring(newf);
 		if (_wrename(f1.c_str(), f2.c_str()) < 0)
@@ -176,14 +198,16 @@ namespace libtorrent
 	{
 		ec.clear();
 
-#if defined TORRENT_WINDOWS && defined UNICODE
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+#define CreateDirectory_ CreateDirectoryW
 		std::wstring n = convert_to_wstring(f);
 #else
+#define CreateDirectory_ CreateDirectoryA
 		std::string n = convert_to_native(f);
 #endif
 
 #ifdef TORRENT_WINDOWS
-		if (CreateDirectory(n.c_str(), 0) == 0
+		if (CreateDirectory_(n.c_str(), 0) == 0
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
 			ec.assign(GetLastError(), boost::system::get_system_category());
 #else
@@ -207,16 +231,18 @@ namespace libtorrent
 	void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 	{
 		ec.clear();
-#if defined UNICODE && defined TORRENT_WINDOWS
+#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
+#define CopyFile_ CopyFileW
 		std::wstring f1 = convert_to_wstring(inf);
 		std::wstring f2 = convert_to_wstring(newf);
 #else
+#define CopyFile_ CopyFileA
 		std::string f1 = convert_to_native(inf);
 		std::string f2 = convert_to_native(newf);
 #endif
 
 #ifdef TORRENT_WINDOWS
-		if (CopyFile(f1.c_str(), f2.c_str(), false) == 0)
+		if (CopyFile_(f1.c_str(), f2.c_str(), false) == 0)
 			ec.assign(GetLastError(), boost::system::get_system_category());
 #elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		// this only works on 10.5
@@ -418,29 +444,36 @@ namespace libtorrent
 		if (rhs.empty()) return lhs;
 
 #ifdef TORRENT_WINDOWS
+#define TORRENT_SEPARATOR "\\"
 		bool need_sep = lhs[lhs.size()-1] != '\\' && lhs[lhs.size()-1] != '/';
-		return lhs + (need_sep?"\\":"") + rhs;
 #else
+#define TORRENT_SEPARATOR "/"
 		bool need_sep = lhs[lhs.size()-1] != '/';
-		return lhs + (need_sep?"/":"") + rhs;
 #endif
+		std::string ret;
+		int target_size = lhs.size() + rhs.size() + 2;
+		ret.resize(target_size);
+		target_size = snprintf(&ret[0], target_size, "%s%s%s", lhs.c_str()
+			, (need_sep?TORRENT_SEPARATOR:""), rhs.c_str());
+		ret.resize(target_size);
+		return ret;
 	}
 
 	std::string current_working_directory()
 	{
 #ifdef TORRENT_WINDOWS
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
 		wchar_t cwd[TORRENT_MAX_PATH];
 		_wgetcwd(cwd, sizeof(cwd) / sizeof(wchar_t));
 #else
 		char cwd[TORRENT_MAX_PATH];
 		_getcwd(cwd, sizeof(cwd));
-#endif // UNICODE
+#endif // TORRENT_USE_WSTRING
 #else
 		char cwd[TORRENT_MAX_PATH];
 		if (getcwd(cwd, sizeof(cwd)) == 0) return "/";
 #endif
-#if defined TORRENT_WINDOWS && defined UNICODE
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 		return convert_from_wstring(cwd);
 #else
 		return convert_from_native(cwd);
@@ -470,16 +503,28 @@ namespace libtorrent
 		ec.clear();
 
 #ifdef TORRENT_WINDOWS
-#ifdef UNICODE
-		std::wstring f = convert_to_wstring(inf);
+		// windows does not allow trailing / or \ in
+		// the path when removing files
+		std::string pruned;
+		if (inf[inf.size() - 1] == '/'
+			|| inf[inf.size() - 1] == '\\')
+			pruned = inf.substr(0, inf.size() - 1);
+		else
+			pruned = inf;
+#if TORRENT_USE_WSTRING
+#define DeleteFile_ DeleteFileW
+#define RemoveDirectory_ RemoveDirectoryW
+		std::wstring f = convert_to_wstring(pruned);
 #else
-		std::string f = convert_to_native(inf);
+#define DeleteFile_ DeleteFileA
+#define RemoveDirectory_ RemoveDirectoryA
+		std::string f = convert_to_native(pruned);
 #endif
-		if (DeleteFile(f.c_str()) == 0)
+		if (DeleteFile_(f.c_str()) == 0)
 		{
 			if (GetLastError() == ERROR_ACCESS_DENIED)
 			{
-				if (RemoveDirectory(f.c_str()) != 0)
+				if (RemoveDirectory_(f.c_str()) != 0)
 					return;
 			}
 			ec.assign(GetLastError(), boost::system::get_system_category());
@@ -553,12 +598,14 @@ namespace libtorrent
 		std::string f = path;
 		if (!f.empty() && (f[f.size()-1] != '/' || f[f.size()-1] != '\\')) f += "\\*";
 		else f += "*";
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
+#define FindFirstFile_ FindFirstFileW
 		std::wstring p = convert_to_wstring(f);
 #else
+#define FindFirstFile_ FindFirstFileA
 		std::string p = convert_to_native(f);
 #endif
-		m_handle = FindFirstFile(p.c_str(), &m_fd);
+		m_handle = FindFirstFile_(p.c_str(), &m_fd);
 		if (m_handle == INVALID_HANDLE_VALUE)
 		{
 			ec.assign(GetLastError(), boost::system::get_system_category());
@@ -598,7 +645,7 @@ namespace libtorrent
 	std::string directory::file() const
 	{
 #ifdef TORRENT_WINDOWS
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
 		return convert_from_wstring(m_fd.cFileName);
 #else
 		return convert_from_native(m_fd.cFileName);
@@ -612,7 +659,12 @@ namespace libtorrent
 	{
 		ec.clear();
 #ifdef TORRENT_WINDOWS
-		if (FindNextFile(m_handle, &m_fd) == 0)
+#if TORRENT_USE_WSTRING
+#define FindNextFile_ FindNextFileW
+#else
+#define FindNextFile_ FindNextFileA
+#endif
+		if (FindNextFile_(m_handle, &m_fd) == 0)
 		{
 			m_done = true;
 			int err = GetLastError();
@@ -699,9 +751,11 @@ namespace libtorrent
 			FILE_ATTRIBUTE_HIDDEN, // hidden + executable
 		};
 
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
+#define CreateFile_ CreateFileW
 		m_path = convert_to_wstring(path);
 #else
+#define CreateFile_ CreateFileA
 		m_path = convert_to_native(path);
 #endif
 
@@ -709,7 +763,7 @@ namespace libtorrent
 		open_mode_t const& m = mode_array[mode & mode_mask];
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
 
-		m_file_handle = CreateFile(m_path.c_str(), m.rw_mode, m.share_mode, 0
+		m_file_handle = CreateFile_(m_path.c_str(), m.rw_mode, m.share_mode, 0
 			, m.create_mode, m.flags | (a ? a : FILE_ATTRIBUTE_NORMAL), 0);
 
 		if (m_file_handle == INVALID_HANDLE_VALUE)
@@ -719,7 +773,8 @@ namespace libtorrent
 		}
 
 		// try to make the file sparse if supported
-		if (mode & file::sparse)
+		// only set this flag if the file is opened for writing
+		if ((mode & file::sparse) && (mode & rw_mask) != read_only)
 		{
 			DWORD temp;
 			::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, 0, 0
@@ -743,8 +798,17 @@ namespace libtorrent
 		static const int no_buffer_flag[] = {0, 0};
 #endif
 
+#ifdef O_NOATIME
+		static const int no_atime_flag[] = {0, O_NOATIME};
+#endif
+
  		m_fd = ::open(convert_to_native(path).c_str()
- 			, mode_array[mode & rw_mask] | no_buffer_flag[(mode & no_buffer) >> 2], permissions);
+ 			, mode_array[mode & rw_mask]
+			| no_buffer_flag[(mode & no_buffer) >> 2]
+#ifdef O_NOATIME
+			| no_atime_flag[(mode & no_atime) >> 4]
+#endif
+			, permissions);
 
 #ifdef TORRENT_LINUX
 		// workaround for linux bug
@@ -814,12 +878,14 @@ namespace libtorrent
 			DWORD bytes_per_sector;
 			DWORD free_clusters;
 			DWORD total_clusters;
-#ifdef UNICODE
+#if TORRENT_USE_WSTRING
+#define GetDiskFreeSpace_ GetDiskFreeSpaceW
 			wchar_t backslash = L'\\';
 #else
+#define GetDiskFreeSpace_ GetDiskFreeSpaceA
 			char backslash = '\\';
 #endif
-			if (GetDiskFreeSpace(m_path.substr(0, m_path.find_first_of(backslash)+1).c_str()
+			if (GetDiskFreeSpace_(m_path.substr(0, m_path.find_first_of(backslash)+1).c_str()
 				, &sectors_per_cluster, &bytes_per_sector
 				, &free_clusters, &total_clusters))
 			{
@@ -889,13 +955,7 @@ namespace libtorrent
 	{
 		if (m_page_size != 0) return;
 
-#ifdef TORRENT_WINDOWS
-		SYSTEM_INFO si;
-		GetSystemInfo(&si);
-		m_page_size = si.dwPageSize;
-#else
-		m_page_size = sysconf(_SC_PAGESIZE);
-#endif
+		m_page_size = page_size();
 	}
 
 #endif
@@ -1217,7 +1277,7 @@ namespace libtorrent
 
 		if (file_size > 0)
 		{
-			HANDLE f = CreateFile(m_path.c_str(), GENERIC_WRITE
+			HANDLE f = CreateFile_(m_path.c_str(), GENERIC_WRITE
 			, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING
 			, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, 0);
 
@@ -1395,13 +1455,32 @@ namespace libtorrent
 
 #ifdef TORRENT_WINDOWS
 		LARGE_INTEGER offs;
-		offs.QuadPart = s;
-		if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+		LARGE_INTEGER cur_size;
+		if (GetFileSizeEx(m_file_handle, &cur_size) == FALSE)
 		{
 			ec.assign(GetLastError(), get_system_category());
 			return false;
 		}
+		offs.QuadPart = s;
+		// only set the file size if it's not already at
+		// the right size. We don't want to update the
+		// modification time if we don't have to
+		if (cur_size.QuadPart != s)
+		{
+			if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+			{
+				ec.assign(GetLastError(), get_system_category());
+				return false;
+			}
+			if (::SetEndOfFile(m_file_handle) == FALSE)
+			{
+				ec.assign(GetLastError(), get_system_category());
+				return false;
+			}
+		}
 #if _WIN32_WINNT >= 0x501
+		// TODO: again, only allocate the space if the file
+		// is not fully allocated
 		if ((m_open_mode & sparse) == 0)
 		{
 			// if the user has permissions, avoid filling
@@ -1410,20 +1489,34 @@ namespace libtorrent
 			SetFileValidData(m_file_handle, offs.QuadPart);
 		}
 #endif
-		if (::SetEndOfFile(m_file_handle) == FALSE)
-		{
-			ec.assign(GetLastError(), get_system_category());
-			return false;
-		}
 #else
-		if (ftruncate(m_fd, s) < 0)
+		struct stat st;
+		if (fstat(m_fd, &st) != 0)
 		{
 			ec.assign(errno, get_posix_category());
 			return false;
 		}
-		if ((m_open_mode & sparse) == 0)
+
+		// only truncate the file if it doesn't already
+		// have the right size. We don't want to update
+		if (st.st_size != s && ftruncate(m_fd, s) < 0)
 		{
-			// if we're not in sparse mode, allocate the storage
+			ec.assign(errno, get_posix_category());
+			return false;
+		}
+
+		// if we're not in sparse mode, allocate the storage
+		// but only if the number of allocated blocks for the file
+		// is less than the file size. Otherwise we would just
+		// update the modification time of the file for no good
+		// reason.
+		if ((m_open_mode & sparse) == 0
+			&& st.st_blocks < (s + st.st_blksize - 1) / st.st_blksize)
+		{
+			// How do we know that the file is already allocated?
+			// if we always try to allocate the space, we'll update
+			// the modification time without actually changing the file
+			// but if we don't do anything if the file size is
 #ifdef F_PREALLOCATE
 			fstore_t f = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, s, 0};
 			if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
@@ -1431,7 +1524,30 @@ namespace libtorrent
 				ec.assign(errno, get_posix_category());
 				return false;
 			}
-#else
+#elif defined TORRENT_LINUX
+			int ret = my_fallocate(m_fd, 0, 0, s);
+			// if we return 0, everything went fine
+			// the fallocate call succeeded
+			if (ret == 0) return true;
+			// otherwise, something went wrong. If the error
+			// is ENOSYS, just keep going and do it the old-fashioned
+			// way. If fallocate failed with some other error, it
+			// probably means the user should know about it, error out
+			// and report it.
+			if (errno != ENOSYS)
+			{
+				ec.assign(ret, get_posix_category());
+				return false;
+			}
+			// if fallocate failed, we have to use posix_fallocate
+			// which can be painfully slow
+			ret = posix_fallocate(m_fd, 0, s);
+			if (ret != 0)
+			{
+				ec.assign(ret, get_posix_category());
+				return false;
+			}
+#elif TORRENT_HAS_FALLOCATE
 			int ret = posix_fallocate(m_fd, 0, s);
 			if (ret != 0)
 			{
@@ -1442,6 +1558,24 @@ namespace libtorrent
 		}
 #endif
 		return true;
+	}
+
+	void file::finalize()
+	{
+#ifdef TORRENT_WINDOWS
+		// according to MSDN, clearing the sparse flag of a file only
+		// works on windows vista and later
+#ifdef TORRENT_MINGW
+typedef struct _FILE_SET_SPARSE_BUFFER {
+	    BOOLEAN SetSparse;
+} FILE_SET_SPARSE_BUFFER, *PFILE_SET_SPARSE_BUFFER;
+#endif
+		DWORD temp;
+		FILE_SET_SPARSE_BUFFER b;
+		b.SetSparse = FALSE;
+		::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, &b, sizeof(b)
+			, 0, 0, &temp, 0);
+#endif
 	}
 
 	size_type file::get_size(error_code& ec) const
@@ -1468,6 +1602,13 @@ namespace libtorrent
 	size_type file::sparse_end(size_type start) const
 	{
 #ifdef TORRENT_WINDOWS
+#ifdef TORRENT_MINGW
+typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
+	LARGE_INTEGER FileOffset;
+	LARGE_INTEGER Length;
+} FILE_ALLOCATED_RANGE_BUFFER, *PFILE_ALLOCATED_RANGE_BUFFER;
+#define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
+#endif
 		FILE_ALLOCATED_RANGE_BUFFER buffer;
 		DWORD bytes_returned = 0;
 		FILE_ALLOCATED_RANGE_BUFFER in;

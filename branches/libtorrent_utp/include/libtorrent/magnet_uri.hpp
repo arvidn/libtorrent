@@ -36,11 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/session.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 
 namespace libtorrent
 {
 	struct torrent_handle;
+	struct session;
 
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_info const& info);

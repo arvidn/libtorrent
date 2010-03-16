@@ -1,11 +1,33 @@
+	* dropped zlib as a dependency and builds using puff.c instead
+	* made the default cache size depend on available physical RAM
+	* added flags to torrent::status() that can filter which values are calculated
+	* support 'explicit read cache' which keeps a specific set of pieces
+	  in the read cache, without implicitly caching other pieces
+	* support sending suggest messages based on what's in the read cache
+	* clear sparse flag on files that complete on windows
+	* support retry-after header for web seeds
 	* replaced boost.filesystem with custom functions
 	* replaced dependency on boost.thread by asio's internal thread primitives
 	* added support for i2p torrents
 	* cleaned up usage of MAX_PATH and related macros
 	* made it possible to build libtorrent without RTTI support
+	* added support to build with libgcrypt and a shipped version of libtommath
+	* optimized DHT routing table memory usage
+	* optimized disk cache to work with large caches
+	* support variable number of optimistic unchoke slots and to dynamically
+	  adjust based on the total number of unchoke slots
+	* support for BitTyrant choker algorithm
+	* support for automatically start torrents when they receive an
+	  incoming connection
+	* added more detailed instrumentation of the disk I/O thread
 
 0.15 release
 
+	* introduced a session state save mechanism. load_state() and save_state().
+	  this saves all session settings and state (except torrents)
+	* deprecated dht_state functions and merged it with the session state
+	* added support for multiple trackers in magnet links
+	* added support for explicitly flushing the disk cache
 	* added torrent priority to affect bandwidth allocation for its peers
 	* reduced the number of floating point operations (to better support
 	  systems without FPU)
@@ -78,6 +100,52 @@
 	* automatically caps files and connections by default to rlimit
 	* added session::is_dht_running() function
 	* added torrent_handle::force_dht_announce()
+	* added torrent_info::remap_files()
+	* support min_interval tracker extension
+	* added session saving and loading functions
+	* added support for min-interval in tracker responses
+	* only keeps one outstanding duplicate request per peer
+	  reduces waste download, specifically when streaming
+	* added support for storing per-peer rate limits across reconnects
+	* improved fallocate support
+	* fixed magnet link issue when using resume data
+	* support disk I/O priority settings
+	* added info_hash to torrent_deleted_alert
+	* improved LSD performance and made the interval configurable
+	* improved UDP tracker support by caching connect tokens
+	* fast piece optimization
+	* fixed udp tracker race condition
+	* added support for torrents with odd piece sizes
+	* fixed issue with disk read cache not being cleared when removing torrents
+	* made the DHT socket bind to the same interface as the session
+	* fixed issue where an http proxy would not be used on redirects
+	* Solaris build fixes
+
+release 0.14.9
+
+	* disabled feature to drop requests after having been skipped too many times
+	* fixed range request bug for files larger than 2 GB in web seeds
+	* don't crash when trying to create torrents with 0 files
+	* fixed big_number __init__ in python bindings
+	* fixed optimistic unchoke timer
+	* fixed bug where torrents with incorrectly formatted web seed URLs would be
+	  connected multiple times
+	* fixed MinGW support
+	* fixed DHT bootstrapping issue
+	* fixed UDP over SOCKS5 issue
+	* added support for "corrupt" tracker announce
+	* made end-game mode less aggressive
+
+release 0.14.8
+
+	* ignore unkown metadata messages
+	* fixed typo that would sometimes prevent queued torrents to be checked
+	* fixed bug in auto-manager where active_downloads and active_seeds would
+	  sometimes be used incorrectly
+	* force_recheck() no longer crashes on torrents with no metadata
+	* fixed broadcast socket regression from 0.14.7
+	* fixed hang in NATPMP when shut down while waiting for a response
+	* fixed some more error handling in bdecode
 
 release 0.14.7
 
@@ -102,6 +170,10 @@ release 0.14.7
 	* back-ported some fixes for building with no exceptions
 	* fixed create_torrent when passing in a path ending with /
 	* fixed move_storage when source doesn't exist
+	* fixed DHT state save bug for node-id
+	* fixed typo in python binding session_status struct
+	* broadcast sockets now join every network interface (used for UPnP and
+	  local peer discovery)
 
 release 0.14.6
 

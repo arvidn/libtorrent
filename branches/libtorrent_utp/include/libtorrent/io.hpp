@@ -139,7 +139,7 @@ namespace libtorrent
 
 		inline void write_string(std::string const& str, char*& start)
 		{
-			std::memcpy((void*)start, &str[0], str.size());
+			std::memcpy((void*)start, str.c_str(), str.size());
 			start += str.size();
 		}
 
