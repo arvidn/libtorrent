@@ -1012,6 +1012,8 @@ namespace aux {
 
 		if (m_abort) return;
 
+		if (e == asio::error::operation_aborted) return;
+
 		if (e)
 		{
 #if defined TORRENT_LOGGING
