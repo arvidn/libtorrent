@@ -41,12 +41,71 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 
 #include <boost/bind.hpp>
+#include <boost/function/function1.hpp>
+#include <boost/function/function2.hpp>
 
 #define CCONTROL_TARGET 100
 
 namespace libtorrent
 {
 	struct utp_socket_manager;
+
+	template <class T> struct big_endian_int
+	{
+		big_endian_int& operator=(T v)
+		{
+			char* p = m_storage;
+			detail::write_impl(v, p);
+			return *this;
+		}
+		operator T() const
+		{
+			const char* p = m_storage;
+			return detail::read_impl(p, detail::type<T>());
+		}
+	private:
+		char m_storage[sizeof(T)];
+	};
+
+	typedef big_endian_int<boost::uint64_t> be_uint64;
+	typedef big_endian_int<boost::uint32_t> be_uint32;
+	typedef big_endian_int<boost::uint16_t> be_uint16;
+	typedef big_endian_int<boost::int64_t> be_int64;
+	typedef big_endian_int<boost::int32_t> be_int32;
+	typedef big_endian_int<boost::int16_t> be_int16;
+
+/*
+	uTP header from BEP 29
+
+	0       4       8               16              24              32
+	+-------+-------+---------------+---------------+---------------+
+	| ver   | type  | extension     | connection_id                 |
+	+-------+-------+---------------+---------------+---------------+
+	| timestamp_microseconds                                        |
+	+---------------+---------------+---------------+---------------+
+	| timestamp_difference_microseconds                             |
+	+---------------+---------------+---------------+---------------+
+	| wnd_size                                                      |
+	+---------------+---------------+---------------+---------------+
+	| seq_nr                        | ack_nr                        |
+	+---------------+---------------+---------------+---------------+
+
+*/
+
+	enum type { ST_DATA = 0, ST_FIN, ST_STATE, ST_RESET, ST_SYN, NUM_TYPES };
+
+	struct utp_header
+	{
+		unsigned char ver:4;
+		unsigned char type:4;
+		unsigned char extension;
+		be_uint16 connection_id;
+		be_uint32 timestamp_microseconds;
+		be_uint32 timestamp_difference_microseconds;
+		be_uint32 wnd_size;
+		be_uint16 seq_nr;
+		be_uint16 ack_nr;
+	};
 
 	namespace aux {
 
@@ -106,6 +165,13 @@ namespace libtorrent
 
 struct utp_socket_impl;
 
+utp_socket_impl* construct_utp_impl(boost::uint16_t id);
+void delete_utp_impl(utp_socket_impl* s);
+bool should_delete(utp_socket_impl* s);
+void tick_utp_impl(utp_socket_impl* s, ptime const& now);
+bool utp_incoming_packet(utp_socket_impl* s, char const* p, int size);
+udp::endpoint utp_remote_endpoint(utp_socket_impl* s);
+
 class utp_stream
 {
 public:
@@ -115,6 +181,7 @@ public:
 	typedef stream_socket::protocol_type protocol_type;
 
 	explicit utp_stream(asio::io_service& io_service);
+	~utp_stream();
 
 	// used for incoming connections
 	void assign(utp_socket_impl* s);
@@ -268,9 +335,9 @@ public:
 
 	void cancel_handlers(error_code const&);
 
-	boost::function<void(error_code const&)> m_connect_handler;
-	boost::function<void(error_code const&, std::size_t)> m_read_handler;
-	boost::function<void(error_code const&, std::size_t)> m_write_handler;
+	boost::function1<void, error_code const&> m_connect_handler;
+	boost::function2<void, error_code const&, std::size_t> m_read_handler;
+	boost::function2<void, error_code const&, std::size_t> m_write_handler;
 
 	asio::io_service& m_io_service;
 	utp_socket_impl* m_impl;

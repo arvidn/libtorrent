@@ -47,22 +47,23 @@ namespace libtorrent
 		for (socket_map_t::iterator i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end; ++i)
 		{
-			delete i->second;
+			delete_utp_impl( i->second);
 		}
 	}
 
 	void utp_socket_manager::tick()
 	{
+		ptime now = time_now_hires();
 		for (socket_map_t::iterator i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end;)
 		{
-			if (i->second->should_delete())
+			if (should_delete(i->second))
 			{
-				delete i->second;
-				i = m_utp_sockets.erase(i);
+				delete_utp_impl(i->second);
+				m_utp_sockets.erase(i++);
 				continue;
 			}
-			i->second->tick();
+			tick_utp_impl(i->second, now);
 			++i;
 		}
 	}
@@ -96,7 +97,7 @@ namespace libtorrent
 		if (i == m_utp_sockets.end() && ph->type == ST_SYN)
 		{
 			boost::uint16_t id = rand();
-			utp_socket_impl* c = new utp_socket_impl;
+			utp_socket_impl* c = construct_utp_impl(id);
 			if (c == 0) return false;
 
 			TORRENT_ASSERT(m_utp_sockets.find(id) == m_utp_sockets.end());
@@ -106,8 +107,8 @@ namespace libtorrent
 		}
 
 		// only accept a packet if it's from the right source
-		if (i != m_utp_sockets.end() && ep == i->second->remote_endpoint())
-			return i->second->incoming_packet(p, size);
+		if (i != m_utp_sockets.end() && ep == utp_remote_endpoint(i->second))
+			return utp_incoming_packet(i->second, p, size);
 
 		return false;
 	}
@@ -116,7 +117,7 @@ namespace libtorrent
 	{
 		socket_map_t::iterator i = m_utp_sockets.find(id);
 		if (i == m_utp_sockets.end()) return;
-		delete i->second;
+		delete_utp_impl(i->second);
 		m_utp_sockets.erase(i);
 	}
 }
