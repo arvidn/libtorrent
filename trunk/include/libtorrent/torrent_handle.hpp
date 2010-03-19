@@ -126,6 +126,7 @@ namespace libtorrent
 			, priority(0)
 			, added_time(0)
 			, completed_time(0)
+			, last_seen_complete(0)
 		{}
 
 		enum state_t
@@ -309,6 +310,7 @@ namespace libtorrent
 		// the time this torrent was added and completed
 		time_t added_time;
 		time_t completed_time;
+		time_t last_seen_complete;
 	};
 
 	struct TORRENT_EXPORT block_info
@@ -400,8 +402,10 @@ namespace libtorrent
 		enum status_flags_t
 		{
 			query_distributed_copies = 1,
-			query_accurate_download_counters = 2
+			query_accurate_download_counters = 2,
+			query_last_seen_complete = 4
 		};
+
 		// the flags specify which fields are calculated. By default everything
 		// is included, you may save CPU by not querying fields you don't need
 		torrent_status status(boost::uint32_t flags = 0xffffffff) const;

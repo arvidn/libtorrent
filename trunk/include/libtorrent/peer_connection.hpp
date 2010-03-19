@@ -543,6 +543,9 @@ namespace libtorrent
 		bool piece_failed;
 #endif
 
+		time_t last_seen_complete() const { return m_last_seen_complete; }
+		void set_last_seen_complete(int ago) { m_last_seen_complete = time(0) - ago; }
+
 		// upload and download channel state
 		// enum from peer_info::bw_state
 		char m_channel_state[2];
@@ -808,6 +811,10 @@ namespace libtorrent
 		// the block we're currently receiving. Or
 		// (-1, -1) if we're not receiving one
 		piece_block m_receiving_block;
+
+		// the time when this peer last saw a complete copy
+		// of this torrent
+		time_t m_last_seen_complete;
 
 		// if the timeout is extended for the outstanding
 		// requests, this is the number of seconds it was

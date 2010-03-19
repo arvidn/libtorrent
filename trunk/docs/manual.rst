@@ -1943,7 +1943,14 @@ Its declaration looks like this::
 	{
 		torrent_handle();
 
-		torrent_status status();
+		enum status_flags_t
+		{
+			query_distributed_copies = 1,
+			query_accurate_download_counters = 2,
+			query_last_seen_complete = 4
+		};
+
+		torrent_status status(boost::uint32_t flags = 0xffffffff);
 		void file_progress(std::vector<size_type>& fp, int flags = 0);
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
@@ -2837,11 +2844,24 @@ status()
 
 	::
 
-		torrent_status status() const;
+		torrent_status status(boost::uint32_t flags = 0xffffffff) const;
 
 ``status()`` will return a structure with information about the status of this
 torrent. If the torrent_handle_ is invalid, it will throw libtorrent_exception_ exception.
-See torrent_status_.
+See torrent_status_. The ``flags`` argument filters what information is returned
+in the torrent_status. Some information in there is relatively expensive to calculate, and
+if you're not interested in it (and see performance issues), you can filter them out.
+
+By default everything is included. The flags you can use to decide what to *include* are:
+
+* ``query_distributed_copies``
+	calculates ``distributed_copies``, ``distributed_full_copies`` and ``distributed_fraction``.
+
+* ``query_accurate_download_counters``
+	includes partial downloaded blocks in ``total_done`` and ``total_wanted_done``.
+
+* ``query_last_seen_complete``
+	includes ``last_seen_complete``.
 
 
 get_download_queue()
@@ -3058,6 +3078,7 @@ It contains the following fields::
 
 		time_t added_time;
 		time_t completed_time;
+		time_t last_seen_complete;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -3286,6 +3307,9 @@ torrent_handle_.
 
 ``completed_time`` is the posix-time when this torrent was finished. If
 the torrent is not yet finished, this is 0.
+
+``last_seen_complete`` is the time when we, or one of our peers, last
+saw a complete copy of this torrent.
 
 peer_info
 =========
