@@ -242,6 +242,9 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_piece_time_deviation)
 		PRINT_OFFSETOF(torrent, m_total_failed_bytes)
 		PRINT_OFFSETOF(torrent, m_total_redundant_bytes)
+		PRINT_OFFSETOF(torrent, m_added_time)
+		PRINT_OFFSETOF(torrent, m_completed_time)
+		PRINT_OFFSETOF(torrent, m_last_seen_complete)
 //		PRINT_OFFSETOF(torrent, m_upload_mode_time:24)
 //		PRINT_OFFSETOF(torrent, m_state:3)
 //		PRINT_OFFSETOF(torrent, m_storage_mode:2)
@@ -328,6 +331,7 @@ namespace libtorrent
 		, m_total_redundant_bytes(0)
 		, m_added_time(time(0))
 		, m_completed_time(0)
+		, m_last_seen_complete(0)
 		, m_upload_mode_time(0)
 		, m_state(torrent_status::checking_resume_data)
 		, m_storage_mode(p.storage_mode)
@@ -3592,6 +3596,7 @@ namespace libtorrent
 		m_active_time = rd.dict_find_int_value("active_time");
 		m_finished_time = rd.dict_find_int_value("finished_time");
 		m_seeding_time = rd.dict_find_int_value("seeding_time");
+		m_last_seen_complete = rd.dict_find_int_value("last_seen_complete");
 		m_complete = rd.dict_find_int_value("num_seeds", -1);
 		m_incomplete = rd.dict_find_int_value("num_downloaders", -1);
 		set_upload_limit(rd.dict_find_int_value("upload_rate_limit", -1));
@@ -3739,6 +3744,7 @@ namespace libtorrent
 		ret["active_time"] = m_active_time;
 		ret["finished_time"] = m_finished_time;
 		ret["seeding_time"] = m_seeding_time;
+		ret["last_seen_complete"] = m_last_seen_complete;
 
 		int seeds = 0;
 		int downloaders = 0;
@@ -6268,6 +6274,21 @@ namespace libtorrent
 			st.distributed_full_copies = -1;
 			st.distributed_fraction = -1;
 			st.distributed_copies = -1.f;
+		}
+
+		if (flags & torrent_handle::query_last_seen_complete)
+		{
+			time_t last = last_seen_complete();
+			for (std::set<peer_connection*>::iterator i = m_connections.begin()
+				, end(m_connections.end()); i != i; ++i)
+			{
+				last = (std::max)(last, (*i)->last_seen_complete());
+			}
+			st.last_seen_complete = last;
+		}
+		else
+		{
+			st.last_seen_complete = 0;
 		}
 		return st;
 	}

@@ -1536,6 +1536,9 @@ namespace libtorrent
 		}
 		// there should be a version too
 		// but where do we put that info?
+
+		int last_seen_complete = root.dict_find_int_value("complete_ago", -1);
+		if (last_seen_complete >= 0) set_last_seen_complete(last_seen_complete);
 		
 		std::string client_info = root.dict_find_string_value("v");
 		if (!client_info.empty()) m_client_version = client_info;
@@ -1877,6 +1880,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 		m["upload_only"] = upload_only_msg;
+		int complete_ago = -1;
+		if (t->last_seen_complete() > 0) complete_ago = t->time_since_complete();
+		handshake["complete_ago"] = complete_ago;
 
 		// if we're using lazy bitfields or if we're super seeding, don't say
 		// we're upload only, since it might make peers disconnect

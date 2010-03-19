@@ -101,6 +101,7 @@ namespace libtorrent
 		, m_remote(endp)
 		, m_torrent(tor)
 		, m_receiving_block(-1, -1)
+		, m_last_seen_complete(0)
 		, m_timeout_extend(0)
 		, m_outstanding_bytes(0)
 		, m_extension_outstanding_bytes(0)
@@ -235,6 +236,7 @@ namespace libtorrent
 		, m_socket(s)
 		, m_remote(endp)
 		, m_receiving_block(-1, -1)
+		, m_last_seen_complete(0)
 		, m_timeout_extend(0)
 		, m_outstanding_bytes(0)
 		, m_extension_outstanding_bytes(0)
@@ -1632,6 +1634,7 @@ namespace libtorrent
 		// decrement the piece count without first incrementing it
 		if (is_seed())
 		{
+			t->seen_complete();
 			t->get_policy().set_seed(m_peer_info, true);
 			m_upload_only = true;
 			disconnect_if_redundant();
@@ -4656,6 +4659,12 @@ namespace libtorrent
 			bytes_in_loop += bytes_transferred;
 		}
 		while (bytes_transferred > 0);
+
+		if (is_seed())
+		{
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			if (t) t->seen_complete();
+		}
 
 		m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 		setup_receive();	
