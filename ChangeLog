@@ -121,6 +121,7 @@
 	* made the DHT socket bind to the same interface as the session
 	* fixed issue where an http proxy would not be used on redirects
 	* Solaris build fixes
+	* disabled buggy disconnect_peers feature
 
 release 0.14.9
 
