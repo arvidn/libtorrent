@@ -217,7 +217,12 @@ The ``create_torrent`` class has the following synopsis::
 
 	struct create_torrent
 	{
-		enum { optimize = 1, merkle = 2, modification_time = 4 };
+		enum {
+			optimize = 1
+			, merkle = 2
+			, modification_time = 4
+			, symlink = 8
+		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
@@ -244,7 +249,12 @@ create_torrent()
 
 	::
 
-		enum { optimize = 1, merkle = 2, modification_time = 4 };
+		enum {
+			optimize = 1
+			, merkle = 2
+			, modification_time = 4
+			, symlink = 8
+		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
@@ -285,6 +295,13 @@ modification_time
 	yield the same info-hash. If the files have different modification times,
 	with this option enabled, you would get different info-hashes for the
 	files.
+
+symlink
+	If this flag is defined, files that are symlinks get a symlink attribute
+	set on them. The file data will still be the same, the symlink will always
+	be followed when opening the file, but the file list will include the path
+	of the symlink so that the original directory structure can be reproduced
+	on the downloading side.
 
 generate()
 ----------

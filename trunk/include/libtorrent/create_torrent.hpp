@@ -66,7 +66,12 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT create_torrent
 	{
-		enum { optimize = 1, merkle = 2, modification_time = 4 };
+		enum {
+			optimize = 1
+			, merkle = 2
+			, modification_time = 4
+			, symlinks = 8
+		};
 
 		create_torrent(file_storage& fs, int piece_size = 0
 			, int pad_file_limit = -1, int flags = optimize);
@@ -143,6 +148,11 @@ namespace libtorrent
 		// if set, include the 'mtime' modification time in the
 		// torrent file
 		bool m_include_mtime:1;
+
+		// if set, symbolic links are declared as such in
+		// the torrent file. The full data of the pointed-to
+		// file is still included
+		bool m_include_symlinks:1;
 	};
 
 	namespace detail
