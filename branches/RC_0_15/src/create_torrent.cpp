@@ -192,6 +192,7 @@ namespace libtorrent
 		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
 		, m_merkle_torrent(flags & merkle)
+		, m_include_mtime(flags & modification_time)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
 
@@ -361,7 +362,10 @@ namespace libtorrent
 
 		if (!m_multifile)
 		{
-			info["mtime"] = m_files.at(0).mtime;
+			if (m_include_mtime)
+			{
+				info["mtime"] = m_files.at(0).mtime;
+			}
 			info["length"] = m_files.at(0).size;
 			if (m_files.at(0).pad_file || m_files.at(0).hidden_attribute || m_files.at(0).executable_attribute || m_files.at(0).symlink_attribute)
 			{
@@ -393,7 +397,10 @@ namespace libtorrent
 				{
 					files.list().push_back(entry());
 					entry& file_e = files.list().back();
-					file_e["mtime"] = i->mtime; 
+					if (m_include_mtime)
+					{
+						file_e["mtime"] = i->mtime; 
+					}
 					file_e["length"] = i->size;
 					entry& path_e = file_e["path"];
 
