@@ -32,10 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef LIBTORRENT_BUFFER_HPP
 #define LIBTORRENT_BUFFER_HPP
 
+#include <memory>
 #include <cstring>
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
-#include <cstdlib> // malloc/free/realloc
 
 namespace libtorrent {
 
@@ -49,9 +49,9 @@ public:
 		  , end(0)
 		{}
 
-	   interval(char* b, char* e)
-		  : begin(b)
-		  , end(e)
+	   interval(char* begin, char* end)
+		  : begin(begin)
+		  , end(end)
 		{}
 
 		char operator[](int index) const
@@ -68,14 +68,9 @@ public:
 
 	struct const_interval
 	{
-	   const_interval(interval const& i)
-		  : begin(i.begin)
-		  , end(i.end)
-		{}
-
-	   const_interval(char const* b, char const* e)
-		  : begin(b)
-		  , end(e)
+	   const_interval(char const* begin, char const* end)
+		  : begin(begin)
+		  , end(end)
 		{}
 
 		char operator[](int index) const
@@ -116,7 +111,6 @@ public:
 
 	buffer& operator=(buffer const& b)
 	{
-		if (&b == this) return *this;
 		resize(b.size());
 		std::memcpy(m_begin, b.begin(), b.size());
 		return *this;
@@ -124,7 +118,7 @@ public:
 
 	~buffer()
 	{
-		std::free(m_begin);
+		::operator delete (m_begin);
 	}
 
 	buffer::interval data() { return interval(m_begin, m_end); }
@@ -151,18 +145,18 @@ public:
 		std::memcpy(m_begin + p, first, last - first);
 	}
 
-	void erase(char* b, char* e)
+	void erase(char* begin, char* end)
 	{
-		TORRENT_ASSERT(e <= m_end);
-		TORRENT_ASSERT(b >= m_begin);
-		TORRENT_ASSERT(b <= e);
-	 	if (e == m_end)
+		TORRENT_ASSERT(end <= m_end);
+		TORRENT_ASSERT(begin >= m_begin);
+		TORRENT_ASSERT(begin <= end);
+	 	if (end == m_end)
 		{
-			resize(b - m_begin);
+			resize(begin - m_begin);
 			return;
 		}
-		std::memmove(b, e, m_end - e);
-		m_end = b + (m_end - e);
+		std::memmove(begin, end, m_end - end);
+		m_end = begin + (m_end - end);
 	 }
 
 	void clear() { m_end = m_begin; }
@@ -173,9 +167,12 @@ public:
 		if (n <= capacity()) return;
 		TORRENT_ASSERT(n > 0);
 
+		char* buf = (char*)::operator new(n);
 		std::size_t s = size();
-		m_begin = (char*)std::realloc(m_begin, n);
-		m_end = m_begin + s;
+		std::memcpy(buf, m_begin, s);
+		::operator delete (m_begin);
+		m_begin = buf;
+		m_end = buf + s;
 		m_last = m_begin + n;
 	}
 

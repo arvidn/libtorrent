@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
  */
 
 
+#include <iosfwd>
 #include <map>
 #include <list>
 #include <string>
@@ -67,21 +68,40 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/max.hpp"
-
-#if TORRENT_USE_IOSTREAM
-#include <iosfwd>
-#endif
 
 namespace libtorrent
 {
-	struct lazy_entry;
 
 	struct TORRENT_EXPORT type_error: std::runtime_error
 	{
 		type_error(const char* error): std::runtime_error(error) {}
 	};
+
+	namespace detail
+	{
+		template<int v1, int v2>
+		struct max2 { enum { value = v1>v2?v1:v2 }; };
+
+		template<int v1, int v2, int v3>
+		struct max3
+		{
+			enum
+			{
+				temp = max2<v1,v2>::value,
+				value = temp>v3?temp:v3
+			};
+		};
+
+		template<int v1, int v2, int v3, int v4>
+		struct max4
+		{
+			enum
+			{
+				temp = max3<v1,v2, v3>::value,
+				value = temp>v4?temp:v4
+			};
+		};
+	}
 
 	class entry;
 
@@ -120,7 +140,6 @@ namespace libtorrent
 
 		bool operator==(entry const& e) const;
 		
-		void operator=(lazy_entry const&);
 		void operator=(entry const&);
 		void operator=(dictionary_type const&);
 		void operator=(string_type const&);
@@ -151,9 +170,7 @@ namespace libtorrent
 		entry* find_key(std::string const& key);
 		entry const* find_key(std::string const& key) const;
 		
-#if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
 		void print(std::ostream& os, int indent = 0) const;
-#endif
 
 	protected:
 
@@ -172,7 +189,7 @@ namespace libtorrent
 		union
 		{
 			char data[
-				max4<sizeof(std::list<char>)
+				detail::max4<sizeof(std::list<char>)
 				, sizeof(std::map<std::string, char>)
 				, sizeof(string_type)
 				, sizeof(integer_type)>::value];
@@ -181,7 +198,7 @@ namespace libtorrent
 #else
 		union
 		{
-			char data[max4<sizeof(list_type)
+			char data[detail::max4<sizeof(list_type)
 				, sizeof(dictionary_type)
 				, sizeof(string_type)
 				, sizeof(integer_type)>::value];
@@ -201,21 +218,11 @@ namespace libtorrent
 #endif
 	};
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 	inline std::ostream& operator<<(std::ostream& os, const entry& e)
 	{
 		e.print(os, 0);
 		return os;
 	}
-#endif
-
-#ifndef BOOST_NO_EXCEPTIONS
-	inline void throw_type_error()
-	{
-		throw libtorrent_exception(error_code(errors::invalid_entry_type
-			, get_libtorrent_category()));
-	}
-#endif
 
 	inline entry::data_type entry::type() const
 	{
@@ -237,7 +244,7 @@ namespace libtorrent
 	{
 		if (m_type == undefined_t) construct(int_t);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != int_t) throw_type_error();
+		if (m_type != int_t) throw type_error("invalid type requested from entry");
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -248,7 +255,7 @@ namespace libtorrent
 	inline entry::integer_type const& entry::integer() const
 	{
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != int_t) throw_type_error();
+		if (m_type != int_t) throw type_error("invalid type requested from entry");
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -260,7 +267,7 @@ namespace libtorrent
 	{
 		if (m_type == undefined_t) construct(string_t);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != string_t) throw_type_error();
+		if (m_type != string_t) throw type_error("invalid type requested from entry");
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -271,7 +278,7 @@ namespace libtorrent
 	inline entry::string_type const& entry::string() const
 	{
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != string_t) throw_type_error();
+		if (m_type != string_t) throw type_error("invalid type requested from entry");
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -283,7 +290,7 @@ namespace libtorrent
 	{
 		if (m_type == undefined_t) construct(list_t);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != list_t) throw_type_error();
+		if (m_type != list_t) throw type_error("invalid type requested from entry");
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -294,7 +301,7 @@ namespace libtorrent
 	inline entry::list_type const& entry::list() const
 	{
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != list_t) throw_type_error();
+		if (m_type != list_t) throw type_error("invalid type requested from entry");
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -306,7 +313,7 @@ namespace libtorrent
 	{
 		if (m_type == undefined_t) construct(dictionary_t);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != dictionary_t) throw_type_error();
+		if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -317,7 +324,7 @@ namespace libtorrent
 	inline entry::dictionary_type const& entry::dict() const
 	{
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != dictionary_t) throw_type_error();
+		if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif

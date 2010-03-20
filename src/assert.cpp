@@ -36,15 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <AvailabilityMacros.h>
 #endif
 
+#ifdef __GNUC__
+
+#include <cxxabi.h>
 #include <string>
 #include <cstring>
 #include <stdlib.h>
-
-// uClibc++ doesn't have cxxabi.h
-#if defined __GNUC__ && __GNUC__ >= 3 \
-	&& !defined __UCLIBCXX_MAJOR__
-
-#include <cxxabi.h>
 
 std::string demangle(char const* name)
 {
@@ -84,8 +81,6 @@ std::string demangle(char const* name)
 	return ret;
 }
 
-#else
-std::string demangle(char const* name) { return name; }
 #endif
 
 #include <stdlib.h>

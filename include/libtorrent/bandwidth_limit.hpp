@@ -30,8 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
-#define TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
+#ifndef TORRENT_BANDWIDTH_LIMIT_HPP_INCLUDED
+#define TORRENT_BANDWIDTH_LIMIT_HPP_INCLUDED
 
 #include <boost/integer_traits.hpp>
 
@@ -40,41 +40,78 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 // member of peer_connection
-struct TORRENT_EXPORT bandwidth_channel
+struct bandwidth_limit
 {
 	static const int inf = boost::integer_traits<int>::const_max;
 
-	bandwidth_channel();
+	bandwidth_limit()
+		: m_quota_left(0)
+		, m_local_limit(inf)
+		, m_current_rate(0)
+	{}
 
-	// 0 means infinite
-	void throttle(int limit);
-	int throttle() const { return m_limit; }
+	void throttle(int limit)
+	{
+		TORRENT_ASSERT(limit > 0);
+		m_local_limit = limit;
+	}
+	
+	int throttle() const
+	{
+		return m_local_limit;
+	}
 
-	int quota_left() const;
-	void update_quota(int dt_milliseconds);
+	void assign(int amount)
+	{
+		TORRENT_ASSERT(amount >= 0);
+		m_current_rate += amount;
+		m_quota_left += amount;
+	}
 
-	// this is used when connections disconnect with
-	// some quota left. It's returned to its bandwidth
-	// channels.
-	void return_quota(int amount);
-	void use_quota(int amount);
+	void use_quota(int amount)
+	{
+		TORRENT_ASSERT(amount <= m_quota_left);
+		m_quota_left -= amount;
+	}
 
-	// used as temporary storage while distributing
-	// bandwidth
-	int tmp;
+	int quota_left() const
+	{
+		return (std::max)(m_quota_left, 0);
+	}
 
-	// this is the number of bytes to distribute this round
-	int distribute_quota;
+	void expire(int amount)
+	{
+		TORRENT_ASSERT(amount >= 0);
+		m_current_rate -= amount;
+	}
+
+	int max_assignable() const
+	{
+		if (m_local_limit == inf) return inf;
+		if (m_local_limit <= m_current_rate) return 0;
+		return m_local_limit - m_current_rate;
+	}
 
 private:
 
 	// this is the amount of bandwidth we have
-	// been assigned without using yet.
+	// been assigned without using yet. i.e.
+	// the bandwidth that we use up every time
+	// we receive or send a message. Once this
+	// hits zero, we need to request more
+	// bandwidth from the torrent which
+	// in turn will request bandwidth from
+	// the bandwidth manager
 	int m_quota_left;
 
-	// the limit is the number of bytes
-	// per second we are allowed to use.
-	int m_limit;
+	// the local limit is the number of bytes
+	// per window size we are allowed to use.
+	int m_local_limit;
+
+	// the current rate is the number of
+	// bytes we have been assigned within
+	// the window size.
+	int m_current_rate;
 };
 
 }

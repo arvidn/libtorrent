@@ -15,27 +15,19 @@ TARGETS = index \
 	dht_extensions \
 	libtorrent_plugins \
 	python_binding \
-	projects \
-	running_tests \
-	tuning
+	projects
 
-FIGURES = read_disk_buffers write_disk_buffers
+html: $(TARGETS:=.html)
 
-html: $(TARGETS:=.html) $(FIGURES:=.png)
-
-pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
+pdf: $(TARGETS:=.pdf)
 
 all: html
 
 %.pdf:%.rst
-	rst2pdf $? -o $@ --stylesheets stylesheet
+	rst2pdf $? -o $@
 
 %.html:%.rst
 	rst2html.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
-	cp $@ $(WEB_PATH)/$@
-
-%.eps:%.dot
-	dot -Teps $? >$@
 	cp $@ $(WEB_PATH)/$@
 
 clean:

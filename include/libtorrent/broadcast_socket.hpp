@@ -34,12 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BROADCAST_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/error_code.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/function/function3.hpp>
+#include <boost/function.hpp>
 #include <list>
 
 namespace libtorrent
@@ -54,7 +51,7 @@ namespace libtorrent
 	// determines if the operating system supports IPv6
 	TORRENT_EXPORT bool supports_ipv6();
 
-	TORRENT_EXPORT int common_bits(unsigned char const* b1
+	int common_bits(unsigned char const* b1
 		, unsigned char const* b2, int n);
 
 	TORRENT_EXPORT address guess_local_address(io_service&);
@@ -71,7 +68,6 @@ namespace libtorrent
 
 		void send(char const* buffer, int size, error_code& ec);
 		void close();
-		int num_send_sockets() const { return m_unicast_sockets.size(); }
 
 	private:
 

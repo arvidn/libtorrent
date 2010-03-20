@@ -32,13 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/time.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/create_torrent.hpp"
-#include "libtorrent/alert_types.hpp"
-#include "libtorrent/thread.hpp"
+#include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <iostream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -47,14 +44,12 @@ using namespace libtorrent;
 
 void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type file_size)
 {
-	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140), "0.0.0.0", 0);
-	ses.set_alert_mask(alert::storage_notification);
+	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140));
 
 	add_torrent_params p;
 	p.ti = info;
 	p.save_path = ".";
-	error_code ec;
-	torrent_handle h = ses.add_torrent(p, ec);
+	torrent_handle h = ses.add_torrent(p);
 
 	test_sleep(500);
 	torrent_status st = h.status();
@@ -86,51 +81,11 @@ void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type fil
 	TEST_CHECK(st.total_wanted == file_size);
 	std::cout << "total_wanted_done: " << st.total_wanted_done << " : 0" << std::endl;
 	TEST_CHECK(st.total_wanted_done == 0);
-
-	if (info->num_pieces() > 0)
-	{
-		h.piece_priority(0, 1);
-		st = h.status();
-		TEST_CHECK(st.pieces[0] == false);
-		std::vector<char> piece(info->piece_length());
-		for (int i = 0; i < int(piece.size()); ++i)
-			piece[i] = (i % 26) + 'A';
-		h.add_piece(0, &piece[0]);
-		test_sleep(10000);
-		st = h.status();
-		TEST_CHECK(st.pieces[0] == true);
-
-		std::cout << "reading piece 0" << std::endl;
-		h.read_piece(0);
-		alert const* a = ses.wait_for_alert(seconds(10));
-		bool passed = false;
-		while (a)
-		{
-			std::auto_ptr<alert> al = ses.pop_alert();
-			assert(al.get());
-			std::cout << "  " << al->message() << std::endl;
-			if (read_piece_alert* rpa = dynamic_cast<read_piece_alert*>(al.get()))
-			{
-				std::cout << "SUCCEEDED!" << std::endl;
-				passed = true;
-				TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), piece.size()) == 0);
-				TEST_CHECK(rpa->size == info->piece_size(0));
-				TEST_CHECK(rpa->piece == 0);
-				break;
-			}
-			a = ses.wait_for_alert(seconds(10));
-			TEST_CHECK(a);
-		}
-		TEST_CHECK(passed);
-	}
 }
 
 int test_main()
 {
 	{
-		remove("test_torrent_dir2/tmp1");
-		remove("test_torrent_dir2/tmp2");
-		remove("test_torrent_dir2/tmp3");
 		file_storage fs;
 		size_type file_size = 1 * 1024 * 1024 * 1024;
 		fs.add_file("test_torrent_dir2/tmp1", file_size);
@@ -146,16 +101,13 @@ int test_main()
 		// calculate the hash for all pieces
 		sha1_hash ph = hasher(&piece[0], piece.size()).final();
 		int num = t.num_pieces();
-		TEST_CHECK(t.num_pieces() > 0);
 		for (int i = 0; i < num; ++i)
 			t.set_hash(i, ph);
 
 		std::vector<char> tmp;
 		std::back_insert_iterator<std::vector<char> > out(tmp);
 		bencode(out, t.generate());
-		error_code ec;
-		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size(), ec));
-		TEST_CHECK(info->num_pieces() > 0);
+		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size()));
 
 		test_running_torrent(info, file_size);
 	}
@@ -170,8 +122,7 @@ int test_main()
 		std::vector<char> tmp;
 		std::back_insert_iterator<std::vector<char> > out(tmp);
 		bencode(out, t.generate());
-		error_code ec;
-		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size(), ec));
+		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size()));
 		test_running_torrent(info, 0);
 	}
 
