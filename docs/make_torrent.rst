@@ -217,7 +217,7 @@ The ``create_torrent`` class has the following synopsis::
 
 	struct create_torrent
 	{
-		enum { optimize = 1, merkle = 2 };
+		enum { optimize = 1, merkle = 2, modification_time = 4 };
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
@@ -244,7 +244,7 @@ create_torrent()
 
 	::
 
-		enum { optimize = 1, merkle = 2 };
+		enum { optimize = 1, merkle = 2, modification_time = 4 };
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
@@ -277,6 +277,14 @@ merkle
 	The benefit is that the resulting torrent file will be much smaller and
 	not grow with more pieces. When this option is specified, it is
 	recommended to have a fairly small piece size, say 64 kiB.
+
+modification_time
+	This will include the file modification time as part of the torrent.
+	This is not enabled by default, as it might cause problems when you
+	create a torrent from separate files with the same content, hoping to
+	yield the same info-hash. If the files have different modification times,
+	with this option enabled, you would get different info-hashes for the
+	files.
 
 generate()
 ----------
