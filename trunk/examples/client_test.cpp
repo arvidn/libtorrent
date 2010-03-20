@@ -1081,6 +1081,16 @@ int main(int argc, char* argv[])
 				if (h.is_valid()) h.set_sequential_download(!h.is_sequential_download());
 			}
 
+			if (c == 'R')
+			{
+				// save resume data for all torrents
+				for (handles_t::iterator i = handles.begin()
+					, end(handles.end()); i != end; ++i)
+				{
+					i->second.save_resume_data();
+				}
+			}
+
 			if (c == 'o')
 			{
 				torrent_handle h = get_active_torrent(handles);
@@ -1181,7 +1191,7 @@ int main(int argc, char* argv[])
 			"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
 			"[j] force recheck [space] toggle session pause [c] clear error [v] scrape [g] show DHT\n"
 			"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
-			"[5] toggle peer rate [6] toggle failures [7] toggle send buffers\n";
+			"[5] toggle peer rate [6] toggle failures [7] toggle send buffers [R] save resume data\n";
 
 		char str[500];
 		int torrent_index = 0;

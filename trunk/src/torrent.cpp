@@ -3922,10 +3922,16 @@ namespace libtorrent
 			{
 #if TORRENT_USE_IPV6
 				if (addr.is_v6())
-					write_endpoint(tcp::endpoint(addr, p->port), banned_peers6);
+				{
+					write_address(addr, banned_peers6);
+					write_uint16(p->port, banned_peers6);
+				}
 				else
 #endif
-					write_endpoint(tcp::endpoint(addr, p->port), banned_peers);
+				{
+					write_address(addr, banned_peers);
+					write_uint16(p->port, banned_peers);
+				}
 				continue;
 			}
 
@@ -3943,10 +3949,16 @@ namespace libtorrent
 
 #if TORRENT_USE_IPV6
 			if (addr.is_v6())
-				write_endpoint(tcp::endpoint(addr, p->port), peers6);
+			{
+				write_address(addr, peers6);
+				write_uint16(p->port, peers6);
+			}
 			else
 #endif
-				write_endpoint(tcp::endpoint(addr, p->port), peers);
+			{
+				write_address(addr, peers);
+				write_uint16(p->port, peers);
+			}
 		}
 
 		ret["upload_rate_limit"] = upload_limit();
