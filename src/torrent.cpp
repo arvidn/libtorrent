@@ -5916,6 +5916,7 @@ namespace libtorrent
 
 		st.announce_interval = boost::posix_time::seconds(0);
 
+		st.current_tracker.clear();
 		if (m_last_working_tracker >= 0)
 		{
 			TORRENT_ASSERT(m_last_working_tracker < int(m_trackers.size()));
