@@ -134,8 +134,8 @@ namespace libtorrent
 			, share_ratio_limit(2.f)
 			, seed_time_ratio_limit(7.f)
 			, seed_time_limit(24 * 60 * 60) // 24 hours
-			, peer_turnover(1 / 50.f)
-			, peer_turnover_cutoff(1.f)
+			, peer_turnover(1 / 100.f)
+			, peer_turnover_cutoff(1.1f) // disable until the crash is resolved
 			, close_redundant_connections(true)
 			, auto_scrape_interval(1800)
 			, auto_scrape_min_interval(300)
