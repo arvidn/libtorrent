@@ -204,7 +204,7 @@ namespace
 					// and we can't use this pointer
 					if (!m_torrent.get_policy().has_peer(p)) return;
 
-#ifdef TORRENT_LOGGING
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 					char const* client = "-";
 					peer_info info;
 					if (p->connection)
@@ -215,8 +215,8 @@ namespace
 					(*m_torrent.session().m_logger) << time_now_string() << " BANNING PEER [ p: " << b.piece_index
 						<< " | b: " << b.block_index
 						<< " | c: " << client
-						<< " | hash1: " << i->second.hash
-						<< " | hash2: " << e.hash
+						<< " | hash1: " << i->second.digest
+						<< " | hash2: " << e.digest
 						<< " | ip: " << p->ip() << " ]\n";
 #endif
 					m_torrent.get_policy().ban_peer(p);

@@ -877,14 +877,13 @@ namespace libtorrent
 				debug_log("*** tracker timed out");
 			}
 
-			void tracker_request_error(
-				tracker_request const&
-				, int response_code
-				, const std::string& str
+			void tracker_request_error(tracker_request const& r
+				, int response_code, error_code const& ec, const std::string& str
 				, int retry_interval)
 			{
 				char msg[256];
-				snprintf(msg, sizeof(msg), "*** tracker error: %d: %s", response_code, str.c_str());
+				snprintf(msg, sizeof(msg), "*** tracker error: %d: %s %s"
+					, response_code, ec.message().c_str(), str.c_str());
 				debug_log(msg);
 			}
 			
