@@ -1,3 +1,4 @@
+	* made the send_buffer_watermark performance warning more meaningful
 	* supports complete_ago extension
 	* dropped zlib as a dependency and builds using puff.c instead
 	* made the default cache size depend on available physical RAM
