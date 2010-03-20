@@ -114,6 +114,7 @@ namespace libtorrent
 		, m_private(false)
 		, m_merkle_torrent(flags & merkle)
 		, m_include_mtime(flags & modification_time)
+		, m_include_symlinks(flags & symlinks)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
 
@@ -166,6 +167,8 @@ namespace libtorrent
 		, m_multifile(ti.num_files() > 1)
 		, m_private(ti.priv())
 		, m_merkle_torrent(ti.is_merkle_torrent())
+		, m_include_mtime(false)
+		, m_include_symlinks(false)
 	{
 		TORRENT_ASSERT(ti.is_valid());
 		if (ti.creation_date()) m_creation_date = *ti.creation_date();
@@ -279,10 +282,7 @@ namespace libtorrent
 
 		if (!m_multifile)
 		{
-			if (m_include_mtime)
-			{
-				info["mtime"] = m_files.at(0).mtime;
-			}
+			if (m_include_mtime) info["mtime"] = m_files.at(0).mtime;
 			info["length"] = m_files.at(0).size;
 			if (m_files.at(0).pad_file
 				|| m_files.at(0).hidden_attribute
@@ -293,9 +293,9 @@ namespace libtorrent
 				if (m_files.at(0).pad_file) attr += 'p';
 				if (m_files.at(0).hidden_attribute) attr += 'h';
 				if (m_files.at(0).executable_attribute) attr += 'x';
-				if (m_files.at(0).symlink_attribute) attr += 'l';
+				if (m_include_symlinks && m_files.at(0).symlink_attribute) attr += 'l';
 			}
-			if (m_files.at(0).symlink_attribute)
+			if (m_include_symlinks && m_files.at(0).symlink_attribute)
 			{
 				entry& sympath_e = info["symlink path"];
 				
@@ -315,10 +315,7 @@ namespace libtorrent
 				{
 					files.list().push_back(entry());
 					entry& file_e = files.list().back();
-					if (m_include_mtime)
-					{
-						file_e["mtime"] = i->mtime; 
-					}
+					if (m_include_mtime) file_e["mtime"] = i->mtime; 
 					file_e["length"] = i->size;
 					entry& path_e = file_e["path"];
 
@@ -340,9 +337,9 @@ namespace libtorrent
 						if (i->pad_file) attr += 'p';
 						if (i->hidden_attribute) attr += 'h';
 						if (i->executable_attribute) attr += 'x';
-						if (i->symlink_attribute) attr += 'l';
+						if (m_include_symlinks && i->symlink_attribute) attr += 'l';
 					}
-					if (i->symlink_attribute)
+					if (m_include_symlinks && i->symlink_attribute)
 					{
 						entry& sympath_e = file_e["symlink path"];
 
