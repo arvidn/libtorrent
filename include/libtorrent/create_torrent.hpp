@@ -66,7 +66,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT create_torrent
 	{
-		enum { optimize = 1, merkle = 2 };
+		enum { optimize = 1, merkle = 2, modification_time = 4 };
 
 		create_torrent(file_storage& fs, int piece_size = 0
 			, int pad_file_limit = -1, int flags = optimize);
@@ -139,6 +139,10 @@ namespace libtorrent
 
 		// if set to one, a merkle torrent will be generated
 		bool m_merkle_torrent:1;
+
+		// if set, include the 'mtime' modification time in the
+		// torrent file
+		bool m_include_mtime:1;
 	};
 
 	namespace detail
