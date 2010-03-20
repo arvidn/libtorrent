@@ -904,15 +904,21 @@ namespace libtorrent
 				return false;
 			}
 		}
-#if _WIN32_WINNT >= 0x501
-		// TODO: again, only allocate the space if the file
-		// is not fully allocated
+#if _WIN32_WINNT >= 0x501		
 		if ((m_open_mode & sparse) == 0)
 		{
-			// if the user has permissions, avoid filling
-			// the file with zeroes, but just fill it with
-			// garbage instead
-			SetFileValidData(m_file_handle, offs.QuadPart);
+			// only allocate the space if the file
+			// is not fully allocated
+			offs.LowPart = GetCompressedFileSize(m_path.c_str(), &offs.HighPart);
+			ec.assign(GetLastError(), get_system_category());
+			if (ec) return false;
+			if (offs.QuadPart != s)
+			{
+				// if the user has permissions, avoid filling
+				// the file with zeroes, but just fill it with
+				// garbage instead
+				SetFileValidData(m_file_handle, offs.QuadPart);
+			}
 		}
 #endif
 		if (::SetEndOfFile(m_file_handle) == FALSE)
