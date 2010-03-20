@@ -116,6 +116,9 @@
 	* improved LSD performance and made the interval configurable
 	* improved UDP tracker support by caching connect tokens
 	* fast piece optimization
+
+release 0.14.10
+
 	* fixed udp tracker race condition
 	* added support for torrents with odd piece sizes
 	* fixed issue with disk read cache not being cleared when removing torrents

@@ -1,3 +1,5 @@
+release 0.14.10
+
 	* fixed udp tracker race condition
 	* fixed error handling with torrents with invalid piece sizes
 	* added support for torrents with odd piece sizes
