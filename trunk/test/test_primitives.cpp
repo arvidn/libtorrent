@@ -543,6 +543,7 @@ int test_main()
 #endif
 
 #ifdef TORRENT_WINDOWS
+	TEST_EQUAL(is_complete("c:\\"), true);
 	TEST_EQUAL(is_complete("c:\\foo\\bar"), true);
 	TEST_EQUAL(is_complete("\\\\foo\\bar"), true);
 	TEST_EQUAL(is_complete("foo/bar"), false);
