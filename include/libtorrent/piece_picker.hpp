@@ -42,13 +42,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/static_assert.hpp>
-#include <boost/cstdint.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/socket.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
@@ -468,13 +468,9 @@ namespace libtorrent
 		downloading_piece& add_download_piece();
 		void erase_download_piece(std::vector<downloading_piece>::iterator i);
 
-		// some compilers (e.g. gcc 2.95, does not inherit access
-		// privileges to nested classes)
-	public:
 		// the number of seeds. These are not added to
 		// the availability counters of the pieces
 		int m_seeds;
-	private:
 
 		// the following vectors are mutable because they sometimes may
 		// be updated lazily, triggered by const functions

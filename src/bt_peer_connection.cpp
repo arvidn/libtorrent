@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <boost/limits.hpp>
+#include <limits>
 #include <boost/bind.hpp>
 
 #include "libtorrent/bt_peer_connection.hpp"
@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/escape_string.hpp"
-#include "libtorrent/peer_info.hpp"
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 #include "libtorrent/pe_crypto.hpp"
@@ -335,30 +334,6 @@ namespace libtorrent
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
 		char msg[] = {0,0,0,5, msg_allowed_fast, 0, 0, 0, 0};
-		char* ptr = msg + 5;
-		detail::write_int32(piece, ptr);
-		send_buffer(msg, sizeof(msg));
-	}
-
-	void bt_peer_connection::write_suggest(int piece)
-	{
-		INVARIANT_CHECK;
-
-		if (!m_supports_fast) return;
-
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
-		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
-
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
-
-		if (m_sent_suggested_pieces.empty())
-			m_sent_suggested_pieces.resize(t->torrent_file().num_pieces(), false);
-
-		if (m_sent_suggested_pieces[piece]) return;
-		m_sent_suggested_pieces.set_bit(piece);
-
-		char msg[] = {0,0,0,5, msg_suggest_piece, 0, 0, 0, 0};
 		char* ptr = msg + 5;
 		detail::write_int32(piece, ptr);
 		send_buffer(msg, sizeof(msg));
@@ -1536,9 +1511,6 @@ namespace libtorrent
 		}
 		// there should be a version too
 		// but where do we put that info?
-
-		int last_seen_complete = root.dict_find_int_value("complete_ago", -1);
-		if (last_seen_complete >= 0) set_last_seen_complete(last_seen_complete);
 		
 		std::string client_info = root.dict_find_string_value("v");
 		if (!client_info.empty()) m_client_version = client_info;
@@ -1559,7 +1531,6 @@ namespace libtorrent
 				std::copy(myip.begin(), myip.end(), bytes.begin());
 				m_ses.set_external_address(address_v4(bytes));
 			}
-#if TORRENT_USE_IPV6
 			else if (myip.size() == address_v6::bytes_type::static_size)
 			{
 				address_v6::bytes_type bytes;
@@ -1570,7 +1541,6 @@ namespace libtorrent
 				else
 					m_ses.set_external_address(ipv6_address);
 			}
-#endif
 		}
 
 		// if we're finished and this peer is uploading only
@@ -1880,9 +1850,6 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 		m["upload_only"] = upload_only_msg;
-		int complete_ago = -1;
-		if (t->last_seen_complete() > 0) complete_ago = t->time_since_complete();
-		handshake["complete_ago"] = complete_ago;
 
 		// if we're using lazy bitfields or if we're super seeding, don't say
 		// we're upload only, since it might make peers disconnect
@@ -3081,17 +3048,6 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	void bt_peer_connection::check_invariant() const
 	{
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-
-		if (!m_disconnect_started && m_initialized)
-		{
-			// none of this matters if we're disconnecting anyway
-			if (t->is_finished())
-				TORRENT_ASSERT(!is_interesting());
-			if (is_seed())
-				TORRENT_ASSERT(upload_only());
-		}
-
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		TORRENT_ASSERT( (bool(m_state != read_pe_dhkey) || m_dh_key_exchange.get())
 				|| !is_local());

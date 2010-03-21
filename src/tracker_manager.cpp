@@ -40,8 +40,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
+#include "libtorrent/entry.hpp"
+#include "libtorrent/bencode.hpp"
+#include "libtorrent/torrent.hpp"
+#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
+using namespace libtorrent;
 using boost::tuples::make_tuple;
 using boost::tuples::tuple;
 using boost::bind;
@@ -140,11 +145,10 @@ namespace libtorrent
 		return m_requester.lock();
 	}
 
-	void tracker_connection::fail(error_code const& ec, int code
-		, char const* msg, int interval, int min_interval)
+	void tracker_connection::fail(int code, char const* msg, int interval, int min_interval)
 	{
 		boost::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->tracker_request_error(m_req, code, ec, msg
+		if (cb) cb->tracker_request_error(m_req, code, msg
 			, interval == 0 ? min_interval : interval);
 		close();
 	}
@@ -159,6 +163,13 @@ namespace libtorrent
 		m_man.received_bytes(bytes);
 	}
 
+	void tracker_connection::fail_timeout()
+	{
+		boost::shared_ptr<request_callback> cb = requester();
+		if (cb) cb->tracker_request_timed_out(m_req);
+		close();
+	}
+	
 	void tracker_connection::close()
 	{
 		cancel();
@@ -173,13 +184,13 @@ namespace libtorrent
 
 	void tracker_manager::sent_bytes(int bytes)
 	{
-//		mutex::scoped_lock l(m_ses.m_mutex);
+//		aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		m_ses.m_stat.sent_tracker_bytes(bytes);
 	}
 
 	void tracker_manager::received_bytes(int bytes)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		aux::session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 		m_ses.m_stat.received_tracker_bytes(bytes);
 	}
 
@@ -224,11 +235,7 @@ namespace libtorrent
 		{
 			con = new http_tracker_connection(
 				ios, cc, *this, req, c
-				, m_ses, m_proxy, auth
-#if TORRENT_USE_I2P
-				, &m_ses.m_i2p_conn
-#endif
-				);
+				, m_ses, m_proxy, auth);
 		}
 		else if (protocol == "udp")
 		{
@@ -240,9 +247,8 @@ namespace libtorrent
 		{
 			// we need to post the error to avoid deadlock
 			if (boost::shared_ptr<request_callback> r = c.lock())
-				ios.post(boost::bind(&request_callback::tracker_request_error, r, req
-					, -1, error_code(errors::unsupported_url_protocol)
-					, "", 0));
+				ios.post(boost::bind(&request_callback::tracker_request_error, r, req, -1
+					, "unknown protocol in tracker url: " + req.url, 0));
 			return;
 		}
 
@@ -260,30 +266,34 @@ namespace libtorrent
 		mutex_t::scoped_lock l(m_mutex);
 
 		m_abort = true;
-		tracker_connections_t close_connections;
+		tracker_connections_t keep_connections;
 
-		for (tracker_connections_t::iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
+		while (!m_connections.empty())
 		{
-			intrusive_ptr<tracker_connection> c = *i;
+			boost::intrusive_ptr<tracker_connection>& c = m_connections.back();
+			if (!c)
+			{
+				m_connections.pop_back();
+				continue;
+			}
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
+			{
+				keep_connections.push_back(c);
+				m_connections.pop_back();
 				continue;
-
-			close_connections.push_back(c);
+			}
+			// close will remove the entry from m_connections
+			// so no need to pop
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			boost::shared_ptr<request_callback> rc = c->requester();
 			if (rc) rc->debug_log("aborting: " + req.url);
 #endif
+			c->close();
 		}
-		l.unlock();
 
-		for (tracker_connections_t::iterator i = close_connections.begin()
-			, end(close_connections.end()); i != end; ++i)
-		{
-			(*i)->close();
-		}
+		std::swap(m_connections, keep_connections);
 	}
 	
 	bool tracker_manager::empty() const

@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <boost/limits.hpp>
+#include <limits>
 #include <boost/bind.hpp>
 #include <stdlib.h>
 
@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/parse_url.hpp"
-#include "libtorrent/peer_info.hpp"
 
 using boost::bind;
 using boost::shared_ptr;
@@ -119,10 +118,7 @@ namespace libtorrent
 	}
 
 	web_peer_connection::~web_peer_connection()
-	{
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		if (t) t->disconnect_web_seed(m_original_url, web_seed_entry::url_seed);
-	}
+	{}
 	
 	boost::optional<piece_block_progress>
 	web_peer_connection::downloading_piece_progress() const
@@ -265,19 +261,13 @@ namespace libtorrent
 				if (using_proxy)
 				{
 					request += m_url;
-					std::string path = info.orig_files().at(f.file_index).path;
-#ifdef TORRENT_WINDOWS
-					convert_path_to_posix(path);
-#endif
+					std::string path = info.orig_files().at(f.file_index).path.string();
 					request += escape_path(path.c_str(), path.length());
 				}
 				else
 				{
 					std::string path = m_path;
-					path += info.orig_files().at(f.file_index).path;
-#ifdef TORRENT_WINDOWS
-					convert_path_to_posix(path);
-#endif
+					path += info.orig_files().at(f.file_index).path.string();
 					request += escape_path(path.c_str(), path.length());
 				}
 				request += " HTTP/1.1\r\n";
@@ -391,6 +381,29 @@ namespace libtorrent
 					break;
 				}
 
+				// if the status code is not one of the accepted ones, abort
+				if (m_parser.status_code() != 206 // partial content
+					&& m_parser.status_code() != 200 // OK
+					&& !(m_parser.status_code() >= 300 // redirect
+						&& m_parser.status_code() < 400))
+				{
+					if (m_parser.status_code() == 503)
+					{
+						// temporarily unavailable, retry later
+						t->retry_web_seed(m_original_url, web_seed_entry::url_seed);
+					}
+					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
+					std::string error_msg = to_string(m_parser.status_code()).elems
+						+ (" " + m_parser.message());
+					if (m_ses.m_alerts.should_post<url_seed_alert>())
+					{
+						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
+							, error_msg));
+					}
+					m_statistics.received_bytes(0, bytes_transferred);
+					disconnect(errors::http_error, 1);
+					return;
+				}
 				if (!m_parser.header_finished())
 				{
 					TORRENT_ASSERT(payload == 0);
@@ -413,30 +426,6 @@ namespace libtorrent
 					, end(headers.end()); i != end; ++i)
 					(*m_logger) << "   " << i->first << ": " << i->second << "\n";
 #endif
-				// if the status code is not one of the accepted ones, abort
-				if (m_parser.status_code() != 206 // partial content
-					&& m_parser.status_code() != 200 // OK
-					&& !(m_parser.status_code() >= 300 // redirect
-						&& m_parser.status_code() < 400))
-				{
-					if (m_parser.status_code() == 503)
-					{
-						std::string retry_after = m_parser.header("retry-after");
-						// temporarily unavailable, retry later
-						t->retry_web_seed(m_original_url, web_seed_entry::url_seed, atoi(retry_after.c_str()));
-					}
-					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
-					std::string error_msg = to_string(m_parser.status_code()).elems
-						+ (" " + m_parser.message());
-					if (m_ses.m_alerts.should_post<url_seed_alert>())
-					{
-						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
-							, error_msg));
-					}
-					m_statistics.received_bytes(0, bytes_transferred);
-					disconnect(errors::http_error, 1);
-					return;
-				}
 				if (m_parser.status_code() >= 300 && m_parser.status_code() < 400)
 				{
 					// this means we got a redirection request
@@ -464,10 +453,7 @@ namespace libtorrent
 						int file_index = m_file_requests.front();
 
 						torrent_info const& info = t->torrent_file();
-						std::string path = info.orig_files().at(file_index).path;
-#ifdef TORRENT_WINDOWS
-						convert_path_to_posix(path);
-#endif
+						std::string path = info.orig_files().at(file_index).path.string();
 						path = escape_path(path.c_str(), path.length());
 						size_t i = location.rfind(path);
 						if (i == std::string::npos)

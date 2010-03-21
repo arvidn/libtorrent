@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
+#include <boost/filesystem/convenience.hpp>
 #include <boost/optional.hpp>
 #include <boost/bind.hpp>
 
@@ -78,19 +79,19 @@ using libtorrent::aux::session_impl;
 #define TORRENT_FORWARD(call) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
-	mutex::scoped_lock l(t->session().m_mutex); \
+	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
 	t->call
 	
 #define TORRENT_FORWARD_RETURN(call, def) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return def; \
-	mutex::scoped_lock l(t->session().m_mutex); \
+	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
 	return t->call
 
 #define TORRENT_FORWARD_RETURN2(call, def) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return def; \
-	mutex::scoped_lock l(t->session().m_mutex); \
+	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
 	t->call
 
 #else
@@ -98,25 +99,27 @@ using libtorrent::aux::session_impl;
 #define TORRENT_FORWARD(call) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) throw_invalid_handle(); \
-	mutex::scoped_lock l(t->session().m_mutex); \
+	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
 	t->call
 	
 #define TORRENT_FORWARD_RETURN(call, def) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) throw_invalid_handle(); \
-	mutex::scoped_lock l(t->session().m_mutex); \
+	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
 	return t->call
 
 #define TORRENT_FORWARD_RETURN2(call, def) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) throw_invalid_handle(); \
-	mutex::scoped_lock l(t->session().m_mutex); \
+	session_impl::mutex_t::scoped_lock l(t->session().m_mutex); \
 	t->call
 
 #endif
 
 namespace libtorrent
 {
+	namespace fs = boost::filesystem;
+
 #ifndef BOOST_NO_EXCEPTIONS
 	void throw_invalid_handle()
 	{
@@ -211,35 +214,35 @@ namespace libtorrent
 	}
 
 	void torrent_handle::move_storage(
-		std::string const& save_path) const
+		fs::path const& save_path) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD(move_storage(save_path));
 	}
 
-#if TORRENT_USE_WSTRING
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
 	void torrent_handle::move_storage(
-		std::wstring const& save_path) const
+		fs::wpath const& save_path) const
 	{
 		INVARIANT_CHECK;
 		std::string utf8;
-		wchar_utf8(save_path, utf8);
+		wchar_utf8(save_path.string(), utf8);
 		TORRENT_FORWARD(move_storage(utf8));
 	}
 
-	void torrent_handle::rename_file(int index, std::wstring const& new_name) const
+	void torrent_handle::rename_file(int index, fs::wpath const& new_name) const
 	{
 		INVARIANT_CHECK;
 		std::string utf8;
-		wchar_utf8(new_name, utf8);
+		wchar_utf8(new_name.string(), utf8);
 		TORRENT_FORWARD(rename_file(index, utf8));
 	}
-#endif // TORRENT_USE_WSTRING
+#endif
 
-	void torrent_handle::rename_file(int index, std::string const& new_name) const
+	void torrent_handle::rename_file(int index, fs::path const& new_name) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(rename_file(index, new_name));
+		TORRENT_FORWARD(rename_file(index, new_name.string()));
 	}
 
 	void torrent_handle::add_extension(
@@ -394,10 +397,10 @@ namespace libtorrent
 		TORRENT_FORWARD(file_progress(progress, flags));
 	}
 
-	torrent_status torrent_handle::status(boost::uint32_t flags) const
+	torrent_status torrent_handle::status() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(status(flags), torrent_status());
+		TORRENT_FORWARD_RETURN(status(), torrent_status());
 	}
 
 	void torrent_handle::set_sequential_download(bool sd) const
@@ -603,7 +606,7 @@ namespace libtorrent
 #else
 			throw_invalid_handle();
 #endif
-		mutex::scoped_lock l(t->session().m_mutex);
+		session_impl::mutex_t::scoped_lock l(t->session().m_mutex);
 		if (!t->valid_metadata())
 #ifdef BOOST_NO_EXCEPTIONS
 			return empty;
@@ -632,10 +635,10 @@ namespace libtorrent
 	}
 #endif
 
-	std::string torrent_handle::save_path() const
+	fs::path torrent_handle::save_path() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(save_path(), std::string());
+		TORRENT_FORWARD_RETURN(save_path(), fs::path());
 	}
 
 	void torrent_handle::connect_peer(tcp::endpoint const& adr, int source) const
@@ -649,7 +652,7 @@ namespace libtorrent
 #else
 			throw_invalid_handle();
 #endif
-		mutex::scoped_lock l(t->session().m_mutex);
+		session_impl::mutex_t::scoped_lock l(t->session().m_mutex);
 		
 		peer_id id;
 		std::fill(id.begin(), id.end(), 0);
@@ -667,7 +670,7 @@ namespace libtorrent
 	void torrent_handle::force_dht_announce() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(dht_announce());
+		TORRENT_FORWARD(force_dht_announce());
 	}
 #endif
 

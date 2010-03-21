@@ -44,8 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/msg.hpp>
 
 #include <boost/optional.hpp>
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
+#include <boost/function.hpp>
 
 namespace libtorrent { namespace dht
 {
@@ -57,14 +56,13 @@ class node_impl;
 
 // -------- find data -----------
 
-//TODO: rename this to find_peers
 class find_data : public traversal_algorithm
 {
 public:
 	typedef boost::function<void(std::vector<tcp::endpoint> const&)> data_callback;
-	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&, bool)> nodes_callback;
+	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
 
-	void got_peers(std::vector<tcp::endpoint> const& peers);
+	void got_data(msg const* m);
 	void got_write_token(node_id const& n, std::string const& write_token)
 	{ m_write_tokens[n] = write_token; }
 
@@ -73,32 +71,46 @@ public:
 		, nodes_callback const& ncallback);
 
 	virtual char const* name() const { return "get_peers"; }
-
 	node_id const target() const { return m_target; }
 
-protected:
+private:
 
 	void done();
-	virtual bool invoke(udp::endpoint addr);
-
-private:
+	void invoke(node_id const& id, udp::endpoint addr);
 
 	data_callback m_data_callback;
 	nodes_callback m_nodes_callback;
 	std::map<node_id, std::string> m_write_tokens;
 	node_id const m_target;
-	bool m_done:1;
-	bool m_got_peers:1;
+	bool m_done;
 };
 
 class find_data_observer : public observer
 {
 public:
 	find_data_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm)
-		: observer(algorithm)
+		boost::intrusive_ptr<find_data> const& algorithm
+		, node_id self)
+		: observer(algorithm->allocator())
+		, m_algorithm(algorithm)
+		, m_self(self)
 	{}
+	~find_data_observer();
+
+	void send(msg& m)
+	{
+		m.reply = false;
+		m.message_id = messages::get_peers;
+		m.info_hash = m_algorithm->target();
+	}
+
+	void timeout();
 	void reply(msg const&);
+	void abort() { m_algorithm = 0; }
+
+private:
+	boost::intrusive_ptr<find_data> m_algorithm;
+	node_id const m_self;
 };
 
 } } // namespace libtorrent::dht

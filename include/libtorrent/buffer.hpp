@@ -32,10 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef LIBTORRENT_BUFFER_HPP
 #define LIBTORRENT_BUFFER_HPP
 
+#include <memory>
 #include <cstring>
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
-#include <cstdlib> // malloc/free/realloc
 
 namespace libtorrent {
 

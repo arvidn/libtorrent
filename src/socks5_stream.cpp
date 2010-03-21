@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socks5_stream.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/socket_io.hpp"
 
 namespace libtorrent
 {

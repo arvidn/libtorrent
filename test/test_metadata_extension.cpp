@@ -32,15 +32,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/thread.hpp"
+#include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
-#include <iostream>
 
+using boost::filesystem::remove_all;
 using boost::tuples::ignore;
 
 void test_transfer(bool clear_files, bool disconnect
@@ -102,15 +104,16 @@ void test_transfer(bool clear_files, bool disconnect
 	TEST_CHECK(tor2.is_seed());
 	if (tor2.is_seed()) std::cerr << "done\n";
 
-	error_code ec;
-	remove_all("./tmp1_meta", ec);
-	remove_all("./tmp2_meta", ec);
-	remove_all("./tmp3_meta", ec);
+	using boost::filesystem::remove_all;
+	remove_all("./tmp1_meta");
+	remove_all("./tmp2_meta");
+	remove_all("./tmp3_meta");
 }
 
 int test_main()
 {
 	using namespace libtorrent;
+	using namespace boost::filesystem;
 
 	// test to disconnect one client prematurely
 	test_transfer(true, true, &create_metadata_plugin);
@@ -126,9 +129,8 @@ int test_main()
 	// test where both have data (to trigger the file check)
 	test_transfer(false, false, &create_ut_metadata_plugin);
 
-	error_code ec;
-	remove_all("./tmp1", ec);
-	remove_all("./tmp2", ec);
+	remove_all("./tmp1");
+	remove_all("./tmp2");
 
 	return 0;
 }

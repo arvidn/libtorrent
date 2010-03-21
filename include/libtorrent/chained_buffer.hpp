@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 #define TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 
-#include <boost/function/function1.hpp>
+#include <boost/function.hpp>
 #include <boost/version.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/buffer.hpp>

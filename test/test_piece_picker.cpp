@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <set>
-#include <iostream>
 
 #include "test.hpp"
 

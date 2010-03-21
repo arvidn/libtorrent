@@ -34,15 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UDP_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/io_service.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/buffer.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/deadline_timer.hpp"
 
 #include <vector>
-#include <boost/function/function4.hpp>
+#include <boost/function.hpp>
+#include <boost/thread/mutex.hpp>
 
 namespace libtorrent
 {
@@ -90,6 +87,8 @@ namespace libtorrent
 
 		callback_t m_callback;
 
+		typedef boost::mutex mutex_t;
+
 		void on_read(udp::socket* sock, error_code const& e, std::size_t bytes_transferred);
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
 		void on_timeout();
@@ -99,14 +98,14 @@ namespace libtorrent
 		void handshake2(error_code const& e);
 		void handshake3(error_code const& e);
 		void handshake4(error_code const& e);
-		void socks_forward_udp(mutex::scoped_lock& l);
+		void socks_forward_udp(mutex_t::scoped_lock& l);
 		void connect1(error_code const& e);
 		void connect2(error_code const& e);
 
 		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
 
-		mutable mutex m_mutex;
+		mutable mutex_t m_mutex;
 
 		udp::socket m_ipv4_sock;
 		udp::endpoint m_v4_ep;

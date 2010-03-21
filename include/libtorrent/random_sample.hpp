@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,59 +30,45 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/bandwidth_limit.hpp"
-#include <algorithm>
+#ifndef TORRENT_RANDOM_SAMPLE_HPP
+#define TORRENT_RANDOM_SAMPLE_HPP
+
+#include <iterator>
+#include <cstdlib>
+
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
-	bandwidth_channel::bandwidth_channel()
-		: m_quota_left(0)
-		, m_limit(0)
-	{}
 
-	// 0 means infinite
-	void bandwidth_channel::throttle(int limit)
+	template<class InIter, class OutIter, class Distance>
+	inline void random_sample_n(InIter start, InIter end
+			, OutIter out, Distance n)
 	{
-		TORRENT_ASSERT(limit >= 0);
-		// if the throttle is more than this, we might overflow
-		TORRENT_ASSERT(limit < INT_MAX / 31);
-		m_limit = limit;
-	}
-	
-	int bandwidth_channel::quota_left() const
-	{
-		if (m_limit == 0) return inf;
-		return (std::max)(m_quota_left, 0);
-	}
+		Distance t = 0;
+		Distance m = 0;
+		Distance N = std::distance(start, end);
 
-	void bandwidth_channel::update_quota(int dt_milliseconds)
-	{
-		if (m_limit == 0) return;
-		m_quota_left += (m_limit * dt_milliseconds + 500) / 1000;
-		if (m_quota_left > m_limit * 3) m_quota_left = m_limit * 3;
-		distribute_quota = (std::max)(m_quota_left, 0);
-//		fprintf(stderr, "%p: [%d]: + %d limit: %d\n", this
-//			, dt_milliseconds, (m_limit * dt_milliseconds + 500) / 1000, m_limit);
-	}
+		TORRENT_ASSERT(N >= n);
 
-	// this is used when connections disconnect with
-	// some quota left. It's returned to its bandwidth
-	// channels.
-	void bandwidth_channel::return_quota(int amount)
-	{
-		TORRENT_ASSERT(amount >= 0);
-		if (m_limit == 0) return;
-		TORRENT_ASSERT(m_quota_left <= m_quota_left + amount);
-		m_quota_left += amount;
-	}
-
-	void bandwidth_channel::use_quota(int amount)
-	{
-		TORRENT_ASSERT(amount >= 0);
-		TORRENT_ASSERT(m_limit >= 0);
-		if (m_limit == 0) return;
-		m_quota_left -= amount;
+		while (m < n)
+		{
+			if ((std::rand() / (RAND_MAX + 1.f)) * (N - t) >= n - m)
+			{
+				++start;
+				++t;
+			}
+			else
+			{
+				*out = *start;
+				++out;
+				++start;
+				++t;
+				++m;
+			}
+		}
 	}
 
 }
 
+#endif

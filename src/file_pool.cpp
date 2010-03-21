@@ -33,21 +33,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
 #include "libtorrent/pch.hpp"
-#include "libtorrent/assert.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
-	boost::shared_ptr<file> file_pool::open_file(void* st, std::string const& p
+	boost::shared_ptr<file> file_pool::open_file(void* st, fs::path const& p
 		, int m, error_code& ec)
 	{
 		TORRENT_ASSERT(st != 0);
-		TORRENT_ASSERT(is_complete(p));
+		TORRENT_ASSERT(p.is_complete());
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
-		mutex::scoped_lock l(m_mutex);
-		file_set::iterator i = m_files.find(p);
+		boost::mutex::scoped_lock l(m_mutex);
+		file_set::iterator i = m_files.find(p.string());
 		if (i != m_files.end())
 		{
 			lru_file_entry& e = i->second;
@@ -68,6 +67,7 @@ namespace libtorrent
 			// if we asked for a file in write mode,
 			// and the cached file is is not opened in
 			// write mode, re-open it
+
 			if ((((e.mode & file::rw_mask) != file::read_write)
 				&& ((m & file::rw_mask) == file::read_write))
 				|| (e.mode & file::no_buffer) != (m & file::no_buffer))
@@ -117,7 +117,7 @@ namespace libtorrent
 			return boost::shared_ptr<file>();
 		e.mode = m;
 		e.key = st;
-		m_files.insert(std::make_pair(p, e));
+		m_files.insert(std::make_pair(p.string(), e));
 		TORRENT_ASSERT(e.file_ptr->is_open());
 		return e.file_ptr;
 	}
@@ -131,11 +131,11 @@ namespace libtorrent
 		m_files.erase(i);
 	}
 
-	void file_pool::release(std::string const& p)
+	void file_pool::release(fs::path const& p)
 	{
-		mutex::scoped_lock l(m_mutex);
+		boost::mutex::scoped_lock l(m_mutex);
 
-		file_set::iterator i = m_files.find(p);
+		file_set::iterator i = m_files.find(p.string());
 		if (i != m_files.end()) m_files.erase(i);
 	}
 
@@ -143,7 +143,7 @@ namespace libtorrent
 	// storage. If 0 is passed, all files are closed
 	void file_pool::release(void* st)
 	{
-		mutex::scoped_lock l(m_mutex);
+		boost::mutex::scoped_lock l(m_mutex);
 		if (st == 0)
 		{
 			m_files.clear();
@@ -164,7 +164,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(size > 0);
 		if (size == m_size) return;
-		mutex::scoped_lock l(m_mutex);
+		boost::mutex::scoped_lock l(m_mutex);
 		m_size = size;
 		if (int(m_files.size()) <= m_size) return;
 

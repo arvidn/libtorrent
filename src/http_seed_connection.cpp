@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <boost/limits.hpp>
+#include <limits>
 #include <boost/bind.hpp>
 
 #include "libtorrent/http_seed_connection.hpp"
@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/parse_url.hpp"
-#include "libtorrent/peer_info.hpp"
 
 using boost::bind;
 using boost::shared_ptr;
@@ -114,10 +113,7 @@ namespace libtorrent
 	}
 
 	http_seed_connection::~http_seed_connection()
-	{
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		if (t) t->disconnect_web_seed(m_url, web_seed_entry::http_seed);
-	}
+	{}
 	
 	boost::optional<piece_block_progress>
 	http_seed_connection::downloading_piece_progress() const

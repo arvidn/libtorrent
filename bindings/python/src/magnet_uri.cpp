@@ -29,7 +29,7 @@ namespace {
             name = extract<std::string>(params["name"]);
             p.name = name.c_str();
         }
-        p.save_path = extract<std::string>(params["save_path"]);
+        p.save_path = fs::path(extract<std::string>(params["save_path"]));
 
         std::vector<char> resume_buf;
         if (params.has_key("resume_data"))

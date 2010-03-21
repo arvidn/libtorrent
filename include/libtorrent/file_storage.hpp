@@ -37,12 +37,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <ctime>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
+#include <boost/filesystem/path.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
 
 namespace libtorrent
 {
+	namespace fs = boost::filesystem;
+
 	struct TORRENT_EXPORT file_entry
 	{
 		file_entry(): offset(0), size(0), file_base(0)
@@ -51,7 +63,7 @@ namespace libtorrent
 			, symlink_attribute(false)
 		{}
 
-		std::string path;
+		fs::path path;
 		size_type offset; // the offset of this file inside the torrent
 		size_type size; // the size of this file
 		// the offset in the file where the storage starts.
@@ -63,7 +75,7 @@ namespace libtorrent
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
 		bool symlink_attribute:1;
-		std::string symlink_path;
+		fs::path symlink_path;
 	};
 
 	struct TORRENT_EXPORT file_slice
@@ -90,16 +102,12 @@ namespace libtorrent
 			attribute_symlink = 8
 		};
 
-		void reserve(int num_files);
-
 		void add_file(file_entry const& e);
-		void add_file(std::string const& p, size_type size, int flags = 0
-			, std::time_t mtime = 0, std::string const& s_p = "");
+		void add_file(fs::path const& p, size_type size, int flags = 0, std::time_t mtime = 0, fs::path const& s_p = "");
 		void rename_file(int index, std::string const& new_filename);
 
-#if TORRENT_USE_WSTRING
-		void add_file(std::wstring const& p, size_type size, int flags = 0
-			, std::time_t mtime = 0, std::string const& s_p = "");
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+		void add_file(fs::wpath const& p, size_type size, int flags = 0, std::time_t mtime = 0, fs::path const& s_p = "");
 		void rename_file(int index, std::wstring const& new_filename);
 		void set_name(std::wstring const& n);
 #endif

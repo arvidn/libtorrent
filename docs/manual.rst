@@ -3,7 +3,7 @@ libtorrent API Documentation
 ============================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.16.0
+:Version: 0.15.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -20,7 +20,7 @@ The basic usage is as follows:
 * construct a session
 * load session state from settings file (see `load_state() save_state()`_)
 * start extensions (see `add_extension()`_).
-* start DHT, LSD, UPnP, NAT-PMP etc (see `start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()`_
+* start DHT, LSD, UPnP, NAT-PMP etc (see `start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()`_)
   `start_lsd() stop_lsd()`_, `start_upnp() stop_upnp()`_ and `start_natpmp() stop_natpmp()`_)
 * parse .torrent-files and add them to the session (see `bdecode() bencode()`_ and `add_torrent()`_)
 * main loop (see session_)
@@ -576,37 +576,26 @@ quite unthrottled.
 A rate limit of 0 means infinite.
 
 
-set_max_uploads() max_uploads()
--------------------------------
+set_max_uploads() set_max_connections() max_uploads() max_connections()
+-----------------------------------------------------------------------
 
 	::
 
 		void set_max_uploads(int limit);
-		int max_uploads() const;
-
-``set_max_uploads`` sets a global limit on the number of unchoked peers (uploads).
-The number of uploads is at least one per torrent.
-
-``max_uploads()`` returns the current settings.
-
-The number of unchoke slots may be ignored depending on what
-``session_settings::choking_algorithm`` is set to.
-
-
-set_max_connections() max_connections()
----------------------------------------
-
-	::
-
 		void set_max_connections(int limit);
+		int max_uploads() const;
 		int max_connections() const;
 
-``set_max_connections`` sets a global limit on the number of connections
-opened. The number of connections is set to a hard minimum of at least two per
-torrent, so if you set a too low connections limit, and open too many torrents,
-the limit will not be met.
+These functions will set a global limit on the number of unchoked peers (uploads)
+and the number of connections opened. The number of connections is set to a hard
+minimum of at least two connections per torrent, so if you set a too low
+connections limit, and open too many torrents, the limit will not be met. The
+number of uploads is at least one per torrent.
 
-``max_connections()`` returns the current settings.
+``max_uploads()`` and ``max_connections()`` returns the current settings.
+
+The number of unchoke slots may be ignored. In order to make this setting
+take effect, disable ``session_settings::auto_upload_slots_rate_based``.
 
 
 num_uploads() num_connections()
@@ -837,9 +826,6 @@ Returns status of the disk cache for this session.
 			int cache_size;
 			int read_cache_size;
 			int total_used_buffers;
-			int average_queue_time;
-			int average_read_time;
-			int job_queue_length;
 		};
 
 ``blocks_written`` is the total number of 16 KiB blocks written to disk
@@ -868,15 +854,6 @@ This includes both read and write cache.
 ``total_used_buffers`` is the total number of buffers currently in use.
 This includes the read/write disk cache as well as send and receive buffers
 used in peer connections.
-
-``average_queue_time`` is the number of microseconds an average disk I/O job
-has to wait in the job queue before it get processed.
-
-``average_read_time`` is the number of microseconds a read job takes to
-wait in the queue and complete, in microseconds. This only includes
-cache misses. 
-
-``job_queue_length`` is the number of jobs in the job queue.
 
 get_cache_info()
 ----------------
@@ -1114,23 +1091,6 @@ peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()
 These functions returns references to their respective current settings.
 
 The ``dht_proxy`` is not available when DHT is disabled.
-
-
-set_i2p_proxy() i2p_proxy()
----------------------------
-
-	::
-
-		void set_i2p_proxy(proxy_settings const&);
-		proxy_settings const& i2p_proxy();
-
-``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistant
-connection to it. The only used fields in the proxy settings structs
-are ``hostname`` and ``port``.
-
-``i2p_proxy`` returns the current i2p proxy in use.
-
-.. _i2p: http://www.i2p2.de
 
 
 start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()
@@ -1943,14 +1903,7 @@ Its declaration looks like this::
 	{
 		torrent_handle();
 
-		enum status_flags_t
-		{
-			query_distributed_copies = 1,
-			query_accurate_download_counters = 2,
-			query_last_seen_complete = 4
-		};
-
-		torrent_status status(boost::uint32_t flags = 0xffffffff);
+		torrent_status status();
 		void file_progress(std::vector<size_type>& fp, int flags = 0);
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
@@ -2597,7 +2550,8 @@ which this tracker is tried. If you want libtorrent to use another list of
 trackers for this torrent, you can use ``replace_trackers()`` which takes
 a list of the same form as the one returned from ``trackers()`` and will
 replace it. If you want an immediate effect, you have to call
-`force_reannounce() force_dht_announce()`_. See `trackers()`_ for the definition of ``announce_entry``.
+`force_reannounce() force_dht_announce()`_. See `trackers()`_ for
+the definition of ``announce_entry``.
 
 ``add_tracker()`` will look if the specified tracker is already in the set.
 If it is, it doesn't do anything. If it's not in the current set of trackers,
@@ -2680,15 +2634,12 @@ A high number gives more bandwidth. The priority must be within the range [0, 25
 
 The default priority is 0, which is the lowest priority.
 
-To query the priority of a torrent, use the ``torrent_handle::status()`` call.
+To query the priority of a torrent, use the ``status()`` call.
 
 Torrents with higher priority will not nececcarily get as much bandwidth as they can
 consume, even if there's is more quota. Other peers will still be weighed in when
 bandwidth is being distributed. With other words, bandwidth is not distributed strictly
 in order of priority, but the priority is used as a weight.
-
-Torrents with higher priority are also more likely to have its peers unchoked, to
-distribute more upload capacity to them.
 
 use_interface()
 ---------------
@@ -2713,34 +2664,25 @@ info_hash()
 ``info_hash()`` returns the info-hash for the torrent.
 
 
-set_max_uploads() max_uploads()
--------------------------------
+set_max_uploads() max_uploads() set_max_connections() max_connections()
+-----------------------------------------------------------------------
 
 	::
 
 		void set_max_uploads(int max_uploads) const;
 		int max_uploads() const;
+		void set_max_connections(int max_connections) const;
+		int max_connections() const;
 
 ``set_max_uploads()`` sets the maximum number of peers that's unchoked at the same time on this
 torrent. If you set this to -1, there will be no limit.
-
-``max_uploads()`` returns the current settings.
-
-
-set_max_connections() max_connections()
----------------------------------------
-
-	::
-
-		void set_max_connections(int max_connections) const;
-		int max_connections() const;
 
 ``set_max_connections()`` sets the maximum number of connection this torrent will open. If all
 connections are used up, incoming connections may be refused or poor connections may be closed.
 This must be at least 2. The default is unlimited number of connections. If -1 is given to the
 function, it means unlimited.
 
-``max_connections()`` returns the current settings.
+``max_uploads()`` and ``max_connections()`` returns the current settings.
 
 
 save_resume_data()
@@ -2844,24 +2786,11 @@ status()
 
 	::
 
-		torrent_status status(boost::uint32_t flags = 0xffffffff) const;
+		torrent_status status() const;
 
 ``status()`` will return a structure with information about the status of this
 torrent. If the torrent_handle_ is invalid, it will throw libtorrent_exception_ exception.
-See torrent_status_. The ``flags`` argument filters what information is returned
-in the torrent_status. Some information in there is relatively expensive to calculate, and
-if you're not interested in it (and see performance issues), you can filter them out.
-
-By default everything is included. The flags you can use to decide what to *include* are:
-
-* ``query_distributed_copies``
-	calculates ``distributed_copies``, ``distributed_full_copies`` and ``distributed_fraction``.
-
-* ``query_accurate_download_counters``
-	includes partial downloaded blocks in ``total_done`` and ``total_wanted_done``.
-
-* ``query_last_seen_complete``
-	includes ``last_seen_complete``.
+See torrent_status_.
 
 
 get_download_queue()
@@ -3075,10 +3004,6 @@ It contains the following fields::
 		bool upload_mode;
 
 		int priority;
-
-		time_t added_time;
-		time_t completed_time;
-		time_t last_seen_complete;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -3301,15 +3226,6 @@ hope that the disk condition (be it disk full or permission errors) has
 been resolved. If the torrent is not auto-managed, you have to explicitly
 take it out of the upload mode by calling `set_upload_mode()`_ on the
 torrent_handle_.
-
-``added_time`` is the posix-time when this torrent was added. i.e. what
-``time(NULL)`` returned at the time.
-
-``completed_time`` is the posix-time when this torrent was finished. If
-the torrent is not yet finished, this is 0.
-
-``last_seen_complete`` is the time when we, or one of our peers, last
-saw a complete copy of this torrent.
 
 peer_info
 =========
@@ -3721,43 +3637,23 @@ session_settings
 		int inactivity_timeout;
 		int unchoke_interval;
 		int optimistic_unchoke_interval;
-		std::string announce_ip;
+		address announce_ip;
 		int num_want;
 		int initial_picker_threshold;
 		int allowed_fast_set_size;
-
-		enum { no_piece_suggestions = 0, suggest_read_cache = 1 };
-		int suggest_mode;
 		int max_queued_disk_bytes;
 		int handshake_timeout;
 		bool use_dht_as_fallback;
 		bool free_torrent_hashes;
 		bool upnp_ignore_nonrouters;
 		int send_buffer_watermark;
-		int send_buffer_watermark_factor;
-
-	#ifndef TORRENT_NO_DEPRECATE
 		bool auto_upload_slots;
 		bool auto_upload_slots_rate_based;
-	#endif
-
-		enum choking_algorithm_t
-		{
-			fixed_slots_choker,
-			auto_expand_choker,
-			rate_based_choker,
-			bittyrant_choker
-		};
-
-		int choking_algorithm;
-		
 		bool use_parole_mode;
 		int cache_size;
 		int cache_buffer_chunk_size;
 		int cache_expiry;
 		bool use_read_cache;
-		bool explicit_read_cache;
-		int explicit_cache_interval;
 
 		enum io_buffer_mode_t
 		{
@@ -3831,25 +3727,13 @@ session_settings
 		bool drop_skipped_requests;
 
 		bool low_prio_disk;
+
 		int local_service_announce_interval;
-		int dht_announce_interval;
 
 		int udp_tracker_token_expiry;
-		bool volatile_read_cache;
-		bool guided_read_cache;
-		bool default_min_cache_age;
 
-		int num_optimistic_unchoke_slots;
-		bool no_atime_storage;
-		int default_est_reciprocation_rate;
-		int increase_est_reciprocation_rate;
-		int decrease_est_reciprocation_rate;
-		bool incoming_starts_queued_torrents;
 		bool report_true_downloaded;
 		bool strict_end_game_mode;
-
-		int default_peer_upload_rate;
-		int default_peer_download_rate;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -3981,7 +3865,7 @@ each *optimistic* unchoke. On this timer, the currently optimistically
 unchoked peer will change.
 
 ``announce_ip`` is the ip address passed along to trackers as the ``&ip=`` parameter.
-If left as the default (an empty string), that parameter is omitted.
+If left as the default (default constructed), that parameter is ommited.
 
 ``num_want`` is the number of peers we want from each tracker request. It defines
 what is sent as the ``&num_want=`` parameter to the tracker.
@@ -3993,15 +3877,6 @@ in rarest first order.
 
 ``allowed_fast_set_size`` is the number of pieces we allow peers to download
 from us without being unchoked.
-
-``suggest_mode`` controls whether or not libtorrent will send out suggest
-messages to create a bias of its peers to request certain pieces. The modes
-are:
-
-* ``no_piece_suggestsions`` which is the default and will not send out suggest
-  messages.
-* ``suggest_read_cache`` which will send out suggest messages for the most
-  recent pieces that are in the read cache.
 
 ``max_queued_disk_bytes`` is the number maximum number of bytes, to be
 written to disk, that can wait in the disk I/O thread queue. This queue
@@ -4033,17 +3908,11 @@ should ignore any broadcast response from a device whose address is not the
 configured router for this machine. i.e. it's a way to not talk to other
 people's routers by mistake.
 
-``send_buffer_watermark`` is the upper limit of the send buffer low-watermark.
+``send_buffer_waterbark`` is the upper limit of the send buffer low-watermark.
 if the send buffer has fewer bytes than this, we'll read another 16kB block
 onto it. If set too small, upload rate capacity will suffer. If set too high,
 memory will be wasted. The actual watermark may be lower than this in case
 the upload rate is low, this is the upper limit.
-
-``send_buffer_watermark_factor`` is multiplied to the peer's upload rate
-to determine the low-watermark for the peer. This is clamped to not
-exceed the ``send_buffer_watermark`` upper limit. This defaults to 1.
-For high capacity connections, setting this higher can improve upload
-performance and disk throughput.
 
 ``auto_upload_slots`` defaults to true. When true, if there is a global upload
 limit set and the current upload rate is less than 90% of that, another upload
@@ -4057,34 +3926,6 @@ the max upload slots setting is used as a minimum number of unchoked slots.
 This algorithm is designed to prevent the peer from spreading its upload
 capacity too thin, but still open more slots in order to utilize the full capacity.
 
-``choking_algorithm`` specifies which algorithm to use to determine which peers
-to unchoke. This setting replaces the deprecated settings ``auto_upload_slots``
-and ``auto_upload_slots_rate_based``.
-
-The options for choking algorithms are:
-
-* ``fixed_slots_choker`` is the traditional choker with a fixed number of unchoke
-  slots (as specified by ``session::set_max_uploads()``).
-
-* ``auto_expand_choker`` opens at least the number of slots as specified by
-  ``session::set_max_uploads()`` but opens up more slots if the upload capacity
-  is not saturated. This unchoker will work just like the ``fixed_slot_choker``
-  if there's no global upload rate limit set.
-
-* ``rate_based_choker`` opens up unchoke slots based on the upload rate
-  achieved to peers. The more slots that are opened, the marginal upload
-  rate required to open up another slot increases.
-
-* ``bittyrant_choker`` attempts to optimize download rate by finding the
-  reciprocation rate of each peer individually and prefers peers that gives
-  the highest *return on investment*. It still allocates all upload capacity,
-  but shuffles it around to the best peers first. For this choker to be
-  efficient, you need to set a global upload rate limit
-  (``session::set_upload_rate_limit()``). For more information about this
-  choker, see the paper_.
-
-.. _paper: http://bittyrant.cs.washington.edu/#papers
-
 ``use_parole_mode`` specifies if parole mode should be used. Parole mode means
 that peers that participate in pieces that fail the hash check are put in a mode
 where they are only allowed to download whole pieces. If the whole piece a peer
@@ -4092,12 +3933,10 @@ in parole mode fails the hash check, it is banned. If a peer participates in a
 piece that passes the hash check, it is taken out of parole mode.
 
 ``cache_size`` is the disk write and read  cache. It is specified in units of
-16 KiB blocks. Buffers that are part of a peer's send or receive buffer also
-count against this limit. Send and receive buffers will never be denied to be
-allocated, but they will cause the actual cached blocks to be flushed or evicted.
-If this is set to -1, the cache size is automatically set to the amount
-of physical RAM available in the machine divided by 8. If the amount of physical
-RAM cannot be determined, it's set to 1024 (= 16 MiB).
+16 KiB blocks. It defaults to 1024 (= 16 MB). Buffers that are part of a peer's
+send or receive buffer also count against this limit. Send and receive buffers
+will never be denied to be allocated, but they will cause the actual cached blocks
+to be flushed or evicted.
 
 Disk buffers are allocated using a pool allocator, the number of blocks that
 are allocated at a time when the pool needs to grow can be specified in
@@ -4109,21 +3948,6 @@ in the write cache, to when it's forcefully flushed to disk. Default is 60 secon
 
 ``use_read_cache``, is set to true (default), the disk cache is also used to
 cache pieces read from disk. Blocks for writing pieces takes presedence.
-
-``explicit_read_cache`` defaults to 0. If set to something greater than 0, the
-disk read cache will not be evicted by cache misses and will explicitly be
-controlled based on the rarity of pieces. Rare pieces are more likely to be
-cached. This would typically be used together with ``suggest_mode`` set to
-``suggest_read_cache``. The value is the number of pieces to keep in the read
-cache. If the actual read cache can't fit as many, it will essentially be clamped.
-
-``explicit_cache_interval`` is the number of seconds in between each refresh of
-a part of the explicit read cache. Torrents take turns in refreshing and this
-is the time in between each torrent refresh. Refreshing a torrent's explicit
-read cache means scanning all pieces and picking a random set of the rarest ones.
-There is an affinity to pick pieces that are already in the cache, so that
-subsequent refreshes only swaps in pieces that are rarer than whatever is in
-the cache at the time.
 
 ``disk_io_write_mode`` and ``disk_io_read_mode`` determines how files are
 opened when they're in read only mode versus read and write mode. The options
@@ -4374,72 +4198,12 @@ network announces for a torrent. By default, when local service
 discovery is enabled a torrent announces itself every 5 minutes.
 This interval is specified in seconds.
 
-``dht_announce_interval`` is the number of seconds between announcing
-torrents to the distributed hash table (DHT). This is specified to
-be 15 minutes which is its default.
-
 ``udp_tracker_token_expiry`` is the number of seconds libtorrent
 will keep UDP tracker connection tokens around for. This is specified
 to be 60 seconds, and defaults to that. The higher this value is, the
 fewer packets have to be sent to the UDP tracker. In order for higher
 values to work, the tracker needs to be configured to match the
 expiration time for tokens.
-
-``volatile_read_cache``, if this is set to true, read cache blocks
-that are hit by peer read requests are removed from the disk cache
-to free up more space. This is useful if you don't expect the disk
-cache to create any cache hits from other peers than the one who
-triggered the cache line to be read into the cache in the first place.
-
-``guided_read_cache`` enables the disk cache to adjust the size
-of a cache line generated by peers to depend on the upload rate
-you are sending to that peer. The intention is to optimize the RAM
-usage of the cache, to read ahead further for peers that you're
-sending faster to.
-
-``default_min_cache_age`` is the minimum number of seconds any read
-cache line is kept in the cache. This defaults to one second but
-may be greater if ``guided_read_cache`` is enabled. Having a lower
-bound on the time a cache line stays in the cache is an attempt
-to avoid swapping the same pieces in and out of the cache in case
-there is a shortage of spare cache space.
-
-``num_optimistic_unchoke_slots`` is the number of optimistic unchoke
-slots to use. It defaults to 0, which means automatic. Having a higher
-number of optimistic unchoke slots mean you will find the good peers
-faster but with the trade-off to use up more bandwidth. When this is
-set to 0, libtorrent opens up 20% of your allowed upload slots as
-optimistic unchoke slots.
-
-``no_atime_storage`` this is a linux-only option and passes in the
-``O_NOATIME`` to ``open()`` when opening files. This may lead to
-some disk performance improvements.
-
-``default_est_reciprocation_rate`` is the assumed reciprocation rate
-from peers when using the BitTyrant choker. This defaults to 14 kiB/s.
-If set too high, you will over-estimate your peers and be more altruistic
-while finding the true reciprocation rate, if it's set too low, you'll
-be too stingy and waste finding the true reciprocation rate.
-
-``increase_est_reciprocation_rate`` specifies how many percent the
-extimated reciprocation rate should be increased by each unchoke
-interval a peer is still choking us back. This defaults to 20%.
-This only applies to the BitTyrant choker.
-
-``decrease_est_reciprocation_rate`` specifies how many percent the
-estimated reciprocation rate should be decreased by each unchoke
-interval a peer unchokes us. This default to 3%.
-This only applies to the BitTyrant choker.
-
-``incoming_starts_queued_torrents`` defaults to false. If a torrent
-has been paused by the auto managed feature in libtorrent, i.e.
-the torrent is paused and auto managed, this feature affects whether
-or not it is automatically started on an incoming connection. The
-main reason to queue torrents, is not to make them unavailable, but
-to save on the overhead of announcing to the trackers, the DHT and to
-avoid spreading one's unchoke slots too thin. If a peer managed to
-find us, even though we're no in the torrent anymore, this setting
-can make us start the torrent and serve it.
 
 When ``report_true_downloaded`` is true, the ``&downloaded=`` argument
 sent to trackers will include redundant downloaded bytes. It defaults
@@ -4453,13 +4217,6 @@ sometimes, but it may also avoid downloading a lot of redundant bytes.
 If this is ``false``, libtorrent attempts to use each peer connection
 to its max, by always requesting something, even if it means requesting
 something that has been requested from another peer already.
-
-``default_peer_upload_rate`` and ``default_peer_download_rate`` specifies
-the default upload and download rate limits for peers, respectively. These
-default to 0, which means unlimited. These settings affect the rate limits
-set on new peer connections (not existing ones). The peer rate limits can
-be changed individually later using
-`set_peer_upload_limit() set_peer_download_limit()`_.
 
 pe_settings
 ===========
@@ -5146,34 +4903,11 @@ is its synopsis:
 
 		virtual ~alert();
 
-		virtual int type() const = 0;
 		virtual std::string message() const = 0;
 		virtual char const* what() const = 0;
 		virtual int category() const = 0;
 		virtual std::auto_ptr<alert> clone() const = 0;
 	};
-
-``type()`` returns an integer that is unique to this alert type. It can be
-compared against a specific alert by querying a static constant called ``alert_type``
-in the alert. It can be used to determine the run-time type of an alert* in
-order to cast to that alert type and access specific members.
-
-e.g::
-
-	std::auto_ptr<alert> a = ses.pop_alert();
-	switch (a->type())
-	{
-		case read_piece_alert::alert_type:
-		{
-			read_piece_alert* p = (read_piece_alert*)a.get();
-			// use p
-			break;
-		}
-		case file_renamed_alert::alert_type:
-		{
-			// etc...
-		}
-	}
 
 ``what()`` returns a string literal describing the type of the alert. It does
 not include any information that might be bundled with the alert.
@@ -5295,7 +5029,7 @@ mappings.
 ``mapping`` refers to the mapping index of the port map that failed, i.e.
 the index returned from add_mapping_.
 
-``map_type`` is 0 for NAT-PMP and 1 for UPnP.
+``type`` is 0 for NAT-PMP and 1 for UPnP.
 
 ``error`` tells you what failed.
 ::
@@ -5330,7 +5064,7 @@ the index returned from add_mapping_.
 		// ...
 		int mapping;
 		int external_port;
-		int map_type;
+		int type;
 	};
 
 portmap_log_alert
@@ -5346,7 +5080,7 @@ for debugging the UPnP or NAT-PMP implementation.
 	struct portmap_log_alert: alert
 	{
 		//...
-		int map_type;
+		int type;
 		std::string msg;
 	};
 
@@ -5867,8 +5601,7 @@ upload or download rate performance.
 			outstanding_request_limit_reached,
 			upload_limit_too_low,
 			download_limit_too_low,
-			send_buffer_watermark_too_low,
-			too_many_optimistic_unchoke_slots
+			send_buffer_watermark_too_low
 		};
 
 		performance_warning_t warning_code;
@@ -5938,7 +5671,7 @@ address that was blocked.
 
 ::
 
-	struct peer_blocked_alert: torrent_alert
+	struct peer_blocked_alert: alert
 	{
 		// ...
 		address ip;
@@ -6501,37 +6234,6 @@ HTTP errors:
                                                  decompressing it failed
 ====== ========================================= =================================================================
 
-I2P errors:
-
-====== ========================================= =================================================================
-160    no_i2p_router                             The URL specified an i2p address, but no i2p router is configured
-====== ========================================= =================================================================
-
-tracker errors:
-
-====== ========================================= =================================================================
-170    scrape_not_available                      The tracker URL doesn't support transforming it into a scrape
-                                                 URL. i.e. it doesn't contain "announce.
------- ----------------------------------------- -----------------------------------------------------------------
-171    invalid_tracker_response                  invalid tracker response
------- ----------------------------------------- -----------------------------------------------------------------
-172    invalid_peer_dict                         invalid peer dictionary entry. Not a dictionary
------- ----------------------------------------- -----------------------------------------------------------------
-173    tracker_failure                           tracker sent a failure message
------- ----------------------------------------- -----------------------------------------------------------------
-174    invalid_files_entry                       missing or invalid 'files' entry
------- ----------------------------------------- -----------------------------------------------------------------
-175    invalid_hash_entry                        missing or invalid 'hash' entry
------- ----------------------------------------- -----------------------------------------------------------------
-176    invalid_peers_entry                       missing or invalid 'peers' and 'peers6' entry
------- ----------------------------------------- -----------------------------------------------------------------
-177    invalid_tracker_response_length           udp tracker response packet has invalid size
------- ----------------------------------------- -----------------------------------------------------------------
-178    invalid_tracker_transaction_id            invalid transaction id in udp tracker response
------- ----------------------------------------- -----------------------------------------------------------------
-179    invalid_tracker_action                    invalid action field in udp tracker response
-====== ========================================= =================================================================
-
 The names of these error codes are declared in then ``libtorrent::errors`` namespace.
 
 There is also another error category, ``libtorrent::upnp_category``, defining errors
@@ -6660,7 +6362,6 @@ The interface looks like this::
 		virtual bool rename_file(int file, std::string const& new_name) = 0;
 		virtual bool release_files() = 0;
 		virtual bool delete_files() = 0;
-		virtual void finalize_file(int index) {}
 		virtual ~storage_interface() {}
 
 		// non virtual functions
@@ -6886,21 +6587,6 @@ following members::
 		void release_memory();
 	};
 
-finalize_file()
----------------
-
-	::
-
-		virtual void finalize_file(int index);
-
-This function is called each time a file is completely downloaded. The
-storage implementation can perform last operations on a file. The file will
-not be opened for writing after this.
-
-``index`` is the index of the file that completed.
-
-On windows the default storage implementation clears the sparse file flag
-on the specified file.
 
 magnet links
 ============

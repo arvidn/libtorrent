@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include <cstring>
 #include <boost/bind.hpp>
-#include <iostream>
 
 using namespace libtorrent;
 
@@ -162,16 +161,16 @@ void test_reject_fast()
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
 	sha1_hash ih = t->info_hash();
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
-	error_code ec;
 	add_torrent_params p;
-	p.ti = t;
 	p.save_path = "./tmp1_fast";
-	ses1.add_torrent(p, ec);
+	p.ti = t;
+	ses1.add_torrent(p);
 
 	test_sleep(2000);
 
 	io_service ios;
 	stream_socket s(ios);
+	error_code ec;
 	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()), ec);
 
 	char recv_buffer[1000];
@@ -223,15 +222,15 @@ void test_respect_suggest()
 	sha1_hash ih = t->info_hash();
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
 
-	error_code ec;
 	add_torrent_params p;
-	p.ti = t;
 	p.save_path = "./tmp1_fast";
-	ses1.add_torrent(p, ec);
+	p.ti = t;
+	ses1.add_torrent(p);
 
 	test_sleep(2000);
 
 	io_service ios;
+	error_code ec;
 	stream_socket s(ios);
 	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()), ec);
 

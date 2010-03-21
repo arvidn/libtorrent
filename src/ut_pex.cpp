@@ -48,8 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/socket_io.hpp"
-#include "libtorrent/peer_info.hpp"
 
 #include "libtorrent/extensions/ut_pex.hpp"
 
@@ -137,10 +135,8 @@ namespace libtorrent { namespace
 					if (num_added >= max_peer_entries) break;
 
 					// only send proper bittorrent peers
-					if (peer->type() != peer_connection::bittorrent_connection)
-						continue;
-
-					bt_peer_connection* p = static_cast<bt_peer_connection*>(peer);
+					bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(peer);
+					if (!p) continue;
 
 					// no supported flags to set yet
 					// 0x01 - peer supports encryption
@@ -372,10 +368,8 @@ namespace libtorrent { namespace
 				if (num_added >= max_peer_entries) break;
 
 				// only send proper bittorrent peers
-				if (peer->type() != peer_connection::bittorrent_connection)
-					continue;
-
-				bt_peer_connection* p = static_cast<bt_peer_connection*>(peer);
+				bt_peer_connection* p = dynamic_cast<bt_peer_connection*>(peer);
+				if (!p) continue;
 
 				// no supported flags to set yet
 				// 0x01 - peer supports encryption
@@ -430,10 +424,8 @@ namespace libtorrent { namespace
 
 	boost::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection* pc)
 	{
-		if (pc->type() != peer_connection::bittorrent_connection)
-			return boost::shared_ptr<peer_plugin>();
-
-		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc);
+		bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(pc);
+		if (!c) return boost::shared_ptr<peer_plugin>();
 		return boost::shared_ptr<peer_plugin>(new ut_pex_peer_plugin(m_torrent
 			, *pc, *this));
 	}
@@ -444,8 +436,7 @@ namespace libtorrent
 
 	boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent* t, void*)
 	{
-		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
-			&& !t->settings().allow_i2p_mixed))
+		if (t->torrent_file().priv())
 		{
 			return boost::shared_ptr<torrent_plugin>();
 		}

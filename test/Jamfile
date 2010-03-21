@@ -25,7 +25,6 @@ test-suite libtorrent :
 	[ run test_primitives.cpp ]
 	[ run test_ip_filter.cpp ]
 	[ run test_hasher.cpp ]
-	[ run test_dht.cpp ]
 	[ run test_storage.cpp ]
 	[ run test_upnp.cpp ]
 

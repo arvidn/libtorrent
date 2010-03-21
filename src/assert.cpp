@@ -41,8 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 
 // uClibc++ doesn't have cxxabi.h
-#if defined __GNUC__ && __GNUC__ >= 3 \
-	&& !defined __UCLIBCXX_MAJOR__
+#if defined __GNUC__ && !defined __UCLIBCXX_MAJOR__
 
 #include <cxxabi.h>
 

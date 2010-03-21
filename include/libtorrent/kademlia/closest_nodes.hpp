@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,58 +30,75 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_MAX_TYPE
-#define TORRENT_MAX_TYPE
+#ifndef CLOSEST_NODES_050323_HPP
+#define CLOSEST_NODES_050323_HPP
 
-namespace libtorrent
+#include <vector>
+
+#include <libtorrent/kademlia/traversal_algorithm.hpp>
+#include <libtorrent/kademlia/node_id.hpp>
+#include <libtorrent/kademlia/routing_table.hpp>
+#include <libtorrent/kademlia/observer.hpp>
+#include <libtorrent/kademlia/msg.hpp>
+
+#include <boost/function.hpp>
+
+namespace libtorrent { namespace dht
 {
 
-	template<int v1, int v2>
-	struct max { enum { value = v1>v2?v1:v2 }; };
+class rpc_manager;
 
-	template<int v1, int v2, int v3>
-	struct max3
+// -------- closest nodes -----------
+
+class closest_nodes : public traversal_algorithm
+{
+public:
+	typedef boost::function<
+		void(std::vector<node_entry> const&)
+	> done_callback;
+
+	closest_nodes(
+		node_impl& node
+		, node_id target
+		, done_callback const& callback
+	);
+
+	virtual char const* name() const { return "closest nodes"; }
+
+private:
+	void done();
+	void invoke(node_id const& id, udp::endpoint addr);
+	
+	done_callback m_done_callback;
+};
+
+class closest_nodes_observer : public observer
+{
+public:
+	closest_nodes_observer(
+		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		, node_id self)
+		: observer(algorithm->allocator())
+		, m_algorithm(algorithm)
+		, m_self(self)
+	{}
+	~closest_nodes_observer();
+
+	void send(msg& p)
 	{
-		enum
-		{
-			temp = max<v1,v2>::value,
-			value = max<temp, v3>::value
-		};
-	};
+		p.info_hash = m_algorithm->target();
+	}
 
-	template<int v1, int v2, int v3, int v4>
-	struct max4
-	{
-		enum
-		{
-			temp1 = max<v1,v2>::value,
-			temp2 = max<v3,v4>::value,
-			value = max<temp1, temp2>::value
-		};
-	};
+	void timeout();
+	void reply(msg const&);
+	void abort() { m_algorithm = 0; }
 
-	template<int v1, int v2, int v3, int v4, int v5>
-	struct max5
-	{
-		enum
-		{
-			temp = max4<v1,v2, v3, v4>::value,
-			value = max<temp, v5>::value
-		};
-	};
+private:
+	boost::intrusive_ptr<traversal_algorithm> m_algorithm;
+	node_id const m_self;
+};
 
-	template<int v1, int v2, int v3, int v4, int v5, int v6>
-	struct max6
-	{
-		enum
-		{
-			temp1 = max<v1,v2>::value,
-			temp2 = max<v3,v4>::value,
-			temp3 = max<v5,v6>::value,
-			value = max3<temp1, temp2, temp3>::value
-		};
-	};
-}
+} } // namespace libtorrent::dht
 
-#endif
+#endif // CLOSEST_NODES_050323_HPP
 

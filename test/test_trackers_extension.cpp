@@ -32,8 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/thread.hpp"
+#include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -41,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/extensions/lt_trackers.hpp"
 
+using boost::filesystem::remove_all;
 using boost::tuples::ignore;
 
 int test_main()
@@ -55,10 +58,9 @@ int test_main()
 	add_torrent_params atp;
 	atp.info_hash = sha1_hash("12345678901234567890");
 	atp.save_path = "./";
-	error_code ec;
-	torrent_handle tor1 = ses1.add_torrent(atp, ec);
+	torrent_handle tor1 = ses1.add_torrent(atp);
 	atp.tracker_url = "http://test.non-existent.com/announce";
-	torrent_handle tor2 = ses2.add_torrent(atp, ec);
+	torrent_handle tor2 = ses2.add_torrent(atp);
 	tor2.connect_peer(tcp::endpoint(address_v4::from_string("127.0.0.1"), ses1.listen_port()));
 
 	for (int i = 0; i < 130; ++i)

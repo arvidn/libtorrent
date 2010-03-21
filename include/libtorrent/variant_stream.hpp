@@ -27,10 +27,6 @@
 #include <boost/asio/io_service.hpp>
 #endif
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/assert.hpp"
-
 # define NETWORK_VARIANT_STREAM_LIMIT 5
 
 namespace libtorrent {
