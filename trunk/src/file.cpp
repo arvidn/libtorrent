@@ -828,7 +828,17 @@ namespace libtorrent
 			return false;
 		}
 
+#ifdef DIRECTIO_ON
+		// for solaris
+		if (mode & no_buffer)
+		{
+			int yes = 1;
+			directio(m_fd, DIRECTIO_ON);
+		}
+#endif
+
 #ifdef F_NOCACHE
+		// for BSD/Mac
 		if (mode & no_buffer)
 		{
 			int yes = 1;
