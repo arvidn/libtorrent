@@ -218,7 +218,8 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_extensions)
 		PRINT_OFFSETOF(torrent, m_tracker_timer)
 		PRINT_OFFSETOF(torrent, m_stat)
-		PRINT_OFFSETOF(torrent, m_ses)
+// some compilers don't like using offsetof on references it seems
+//		PRINT_OFFSETOF(torrent, m_ses)
 		PRINT_OFFSETOF(torrent, m_file_priority)
 		PRINT_OFFSETOF(torrent, m_file_progress)
 		PRINT_OFFSETOF(torrent, m_picker)
