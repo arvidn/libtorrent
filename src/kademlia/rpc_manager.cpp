@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/time.hpp>
+#include <time.h> // time()
 
 #include <fstream>
 
