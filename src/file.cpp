@@ -575,7 +575,7 @@ namespace libtorrent
 		int i = 0;
 		// match the xx:\ or xx:/ form
 		while (f[i] && is_alpha(f[i])) ++i;
-		if (i < int(f.size()-2) && f[i] == ':' && (f[i+1] == '\\' || f[i+1] == '/'))
+		if (i < int(f.size()-1) && f[i] == ':' && (f[i+1] == '\\' || f[i+1] == '/'))
 			return true;
 
 		// match the \\ form
