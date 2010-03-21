@@ -363,9 +363,9 @@ namespace libtorrent
 		, m_max_connections(~0)
 		, m_padding(0)
 		, m_sequence_number(seq)
-		, m_complete(~1)
+		, m_complete(0xffffff)
 		, m_priority(0)
-		, m_incomplete(~1)
+		, m_incomplete(0xffffff)
 		, m_progress_ppm(0)
 		, m_abort(false)
 		, m_paused(p.paused)
@@ -3597,8 +3597,8 @@ namespace libtorrent
 		m_finished_time = rd.dict_find_int_value("finished_time");
 		m_seeding_time = rd.dict_find_int_value("seeding_time");
 		m_last_seen_complete = rd.dict_find_int_value("last_seen_complete");
-		m_complete = rd.dict_find_int_value("num_seeds", -1);
-		m_incomplete = rd.dict_find_int_value("num_downloaders", -1);
+		m_complete = rd.dict_find_int_value("num_seeds", 0xffffff);
+		m_incomplete = rd.dict_find_int_value("num_downloaders", 0xffffff);
 		set_upload_limit(rd.dict_find_int_value("upload_rate_limit", -1));
 		set_download_limit(rd.dict_find_int_value("download_rate_limit", -1));
 		set_max_connections(rd.dict_find_int_value("max_connections", -1));
@@ -6164,8 +6164,8 @@ namespace libtorrent
 
 		st.storage_mode = (storage_mode_t)m_storage_mode;
 
-		st.num_complete = m_complete;
-		st.num_incomplete = m_incomplete;
+		st.num_complete = (m_complete == 0xffffff) ? -1 : m_complete;
+		st.num_incomplete = (m_incomplete == 0xffffff) ? -1 : m_incomplete;
 		st.paused = m_paused;
 		bytes_done(st, flags & torrent_handle::query_accurate_download_counters);
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
