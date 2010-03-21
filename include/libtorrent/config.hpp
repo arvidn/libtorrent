@@ -315,7 +315,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define for if (false) {} else for
 #endif
 
-#if TORRENT_STRICT_UNIONS
+#if TORRENT_BROKEN_UNIONS
 #define TORRENT_UNION struct
 #else
 #define TORRENT_UNION union
