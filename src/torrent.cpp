@@ -1295,7 +1295,6 @@ namespace libtorrent
 		// not ready for peers
 		if (!m_files_checked) return;
 
-		TORRENT_ASSERT(!m_torrent_file->priv());
 		if (m_torrent_file->is_valid()
 			&& (m_torrent_file->priv()
 				|| (torrent_file().is_i2p()
