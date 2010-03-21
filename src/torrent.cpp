@@ -2120,12 +2120,15 @@ namespace libtorrent
 
 			if (m_file_progress[file_index] >= m_torrent_file->files().at(file_index).size)
 			{
-				filesystem().async_finalize_file(file_index);
-				if (m_ses.m_alerts.should_post<piece_finished_alert>())
+				if (!m_torrent_file->files().at(file_index).pad_file)
 				{
-					// this file just completed, post alert
-					m_ses.m_alerts.post_alert(file_completed_alert(get_handle()
-						, file_index));
+					filesystem().async_finalize_file(file_index);
+					if (m_ses.m_alerts.should_post<piece_finished_alert>())
+					{
+						// this file just completed, post alert
+						m_ses.m_alerts.post_alert(file_completed_alert(get_handle()
+							, file_index));
+					}
 				}
 			}
 			size -= add;
