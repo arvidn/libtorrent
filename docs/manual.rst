@@ -1542,7 +1542,7 @@ files() orig_files()
 
 	::
 
-		file_storage const& file() const;
+		file_storage const& files() const;
 		file_storage const& orig_files() const;
 
 The ``file_storage`` object contains the information on how to map the pieces to
@@ -1582,6 +1582,10 @@ rename_file()
 Renames a the file with the specified index to the new name. The new filename is
 reflected by the ``file_storage`` returned by ``files()`` but not by the one
 returned by ``orig_files()``.
+
+If you want to rename the base name of the torrent (for a multifile torrent), you
+can copy the ``file_storage`` (see `files() orig_files()`_), change the name, and
+then use `remap_files()`_.
 
 
 begin_files() end_files() rbegin_files() rend_files()
