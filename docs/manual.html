@@ -1728,7 +1728,7 @@ which the trackers are to be tried. For more information see <a class="reference
 <h2>files() orig_files()</h2>
 <blockquote>
 <pre class="literal-block">
-file_storage const&amp; file() const;
+file_storage const&amp; files() const;
 file_storage const&amp; orig_files() const;
 </pre>
 </blockquote>
@@ -1766,6 +1766,9 @@ void rename_file(int index, std::wstring const&amp; new_filename);
 <p>Renames a the file with the specified index to the new name. The new filename is
 reflected by the <tt class="docutils literal"><span class="pre">file_storage</span></tt> returned by <tt class="docutils literal"><span class="pre">files()</span></tt> but not by the one
 returned by <tt class="docutils literal"><span class="pre">orig_files()</span></tt>.</p>
+<p>If you want to rename the base name of the torrent (for a multifile torrent), you
+can copy the <tt class="docutils literal"><span class="pre">file_storage</span></tt> (see <a class="reference internal" href="#files-orig-files">files() orig_files()</a>), change the name, and
+then use <a class="reference internal" href="#remap-files">remap_files()</a>.</p>
 </div>
 <div class="section" id="begin-files-end-files-rbegin-files-rend-files">
 <h2>begin_files() end_files() rbegin_files() rend_files()</h2>
