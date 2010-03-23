@@ -96,13 +96,15 @@ namespace libtorrent
 		// create a new utp_stream
 		if (i == m_utp_sockets.end() && ph->type == ST_SYN)
 		{
+			// #error we need an empty utp_stream here to fill in
+			utp_stream* str = 0;
+
 			boost::uint16_t id = rand();
-			utp_socket_impl* c = construct_utp_impl(id);
+			utp_socket_impl* c = construct_utp_impl(str, id);
 			if (c == 0) return false;
 
 			TORRENT_ASSERT(m_utp_sockets.find(id) == m_utp_sockets.end());
 			i = m_utp_sockets.insert(i, std::make_pair(id, c));
-			// TODO: we need an empty utp_stream here to fill in
 //			m_cb(c);
 		}
 

@@ -165,7 +165,7 @@ namespace libtorrent
 
 struct utp_socket_impl;
 
-utp_socket_impl* construct_utp_impl(boost::uint16_t id);
+utp_socket_impl* construct_utp_impl(void* userdata, boost::uint16_t id);
 void delete_utp_impl(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);
 void tick_utp_impl(utp_socket_impl* s, ptime const& now);
@@ -199,7 +199,7 @@ public:
 	void bind(endpoint_type const& endpoint) {}
 #endif
 
-	void bind(endpoint_type const& endpoint, error_code& ec) {}
+	void bind(endpoint_type const& endpoint, error_code& ec);
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class SettableSocketOption>
@@ -219,13 +219,14 @@ public:
 	static void on_connect(void* self, error_code const& ec, bool kill);
 
 	typedef void(*handler_t)(void*, size_t, error_code const&, bool);
+	typedef void(*connect_handler_t)(void*, error_code const&, bool);
 
 	void add_read_buffer(void* buf, size_t len);
 	void set_read_handler(handler_t h);
 	void add_write_buffer(void const* buf, size_t len);
 	void set_write_handler(handler_t h);
 	
-	void do_connect(tcp::endpoint const& ep, void(*h)(void*, error_code const&, bool));
+	void do_connect(tcp::endpoint const& ep, connect_handler_t h);
 
 	endpoint_type local_endpoint() const;
 
