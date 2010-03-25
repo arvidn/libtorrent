@@ -336,9 +336,6 @@ namespace libtorrent
 #endif
 #endif
 
-			void load_state(entry const& ses_state);
-			entry state() const;
-
 			void start_lsd();
 			void start_natpmp(natpmp* n);
 			void start_upnp(upnp* u);

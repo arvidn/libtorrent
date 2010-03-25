@@ -936,6 +936,8 @@ called, the udp port will be rebound to the new port, if it was configured to us
 the same port as the tcp socket, and if the listen_on call failed to bind to the
 same port that the udp uses.
 
+If you want the OS to pick a port for you, pass in 0 as both first and second.
+
 The reason why it's a good idea to run the DHT and the bittorrent socket on the same
 port is because that is an assumption that may be used to increase performance. One
 way to accelerate the connecting of peers on windows may be to first ping all peers
