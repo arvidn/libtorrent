@@ -76,6 +76,10 @@ void print_usage()
 		"            than bytes will be piece-aligned\n"
 		"-s bytes    specifies a piece size for the torrent\n"
 		"            This has to be a multiple of 16 kiB\n"
+		"-o file     specifies the output filename of the torrent file\n"
+		"            If this is not specified, the torrent file is\n"
+		"            printed to the standard out, except on windows\n"
+		"            where the filename defaults to a.torrent\n"
 		, stderr);
 }
 
@@ -101,6 +105,13 @@ int main(int argc, char* argv[])
 		int pad_file_limit = -1;
 		int piece_size = 0;
 		int flags = 0;
+
+		std::string outfile;
+#ifdef TORRENT_WINDOWS
+		// don't ever write binary data to the console on windows
+		// it will just be interpreted as text and corrupted
+		outfile = "a.torrent";
+#endif
 
 		for (int i = 2; i < argc; ++i)
 		{
@@ -131,6 +142,10 @@ int main(int argc, char* argv[])
 					break;
 				case 'm':
 					flags |= create_torrent::merkle;
+					break;
+				case 'o':
+					++i;
+					outfile = argv[i];
 					break;
 				default:
 					print_usage();
@@ -173,7 +188,13 @@ int main(int argc, char* argv[])
 		// create the torrent and print it to stdout
 		std::vector<char> torrent;
 		bencode(back_inserter(torrent), t.generate());
-		fwrite(&torrent[0], 1, torrent.size(), stdout);
+		FILE* output = stdout;
+		if (!outfile.empty())
+			output = fopen(outfile.c_str(), "wb+");
+		fwrite(&torrent[0], 1, torrent.size(), output);
+
+		if (output != stdout)
+			fclose(output);
 
 #ifndef BOOST_NO_EXCEPTIONS
 	}
