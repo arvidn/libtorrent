@@ -207,6 +207,7 @@ namespace libtorrent
 			, strict_end_game_mode(true)
 			, default_peer_upload_rate(0)
 			, default_peer_download_rate(0)
+			, broadcast_lsd(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -791,6 +792,12 @@ namespace libtorrent
 		// each peer will have these limits set on it
 		int default_peer_upload_rate;
 		int default_peer_download_rate;
+
+		// if this is true, the broadcast socket will not only use IP multicast
+		// but also send the messages on the broadcast address. This is false by
+		// default in order to avoid flooding networks for no good reason. If
+		// a network is known not to support multicast, this can be enabled
+		bool broadcast_lsd;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

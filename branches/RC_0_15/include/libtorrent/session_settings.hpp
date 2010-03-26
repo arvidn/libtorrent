@@ -184,6 +184,7 @@ namespace libtorrent
 			, udp_tracker_token_expiry(60)
 			, report_true_downloaded(false)
 			, strict_end_game_mode(true)
+			, broadcast_lsd(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -677,6 +678,12 @@ namespace libtorrent
 		// if set to true, libtorrent won't request a piece multiple times
 		// until every piece is requested
 		bool strict_end_game_mode;
+
+		// if this is true, the broadcast socket will not only use IP multicast
+		// but also send the messages on the broadcast address. This is false by
+		// default in order to avoid flooding networks for no good reason. If
+		// a network is known not to support multicast, this can be enabled
+		bool broadcast_lsd;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
