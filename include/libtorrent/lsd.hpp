@@ -65,6 +65,8 @@ public:
 	void announce(sha1_hash const& ih, int listen_port);
 	void close();
 
+	void use_broadcast(bool b);
+
 private:
 
 	void resend_announce(error_code const& e, std::string msg);

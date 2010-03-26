@@ -3740,6 +3740,7 @@ session_settings
 
 		bool report_true_downloaded;
 		bool strict_end_game_mode;
+		bool broadcast_lsd;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4223,6 +4224,11 @@ sometimes, but it may also avoid downloading a lot of redundant bytes.
 If this is ``false``, libtorrent attempts to use each peer connection
 to its max, by always requesting something, even if it means requesting
 something that has been requested from another peer already.
+
+if ``broadcast_lsd`` is set to true, the local peer discovery
+(or Local Service Discovery) will not only use IP multicast, but also
+broadcast its messages. This can be useful when running on networks
+that don't support multicast. It's off by default since it's inefficient.
 
 pe_settings
 ===========
