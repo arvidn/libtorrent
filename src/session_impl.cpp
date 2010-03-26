@@ -806,6 +806,12 @@ namespace aux {
 			}
 		}
 #endif
+
+ 		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
+
+		if (m_settings.broadcast_lsd && m_lsd)
+			m_lsd->use_broadcast(true);
+
 		update_disk_thread_settings();
 	}
 
@@ -1164,6 +1170,8 @@ namespace aux {
 			m_auto_manage_time_scaler = 2;
 		m_settings = s;
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
+		if (m_settings.broadcast_lsd && m_lsd)
+			m_lsd->use_broadcast(true);
  
 		if (update_disk_io_thread)
 			update_disk_thread_settings();
@@ -3630,6 +3638,8 @@ namespace aux {
 		m_lsd = new lsd(m_io_service
 			, m_listen_interface.address()
 			, bind(&session_impl::on_lsd_peer, this, _1, _2));
+		if (m_settings.broadcast_lsd)
+			m_lsd->use_broadcast(true);
 	}
 	
 	void session_impl::start_natpmp(natpmp* n)

@@ -3856,6 +3856,7 @@ session_settings
 
 		int default_peer_upload_rate;
 		int default_peer_download_rate;
+		bool broadcast_lsd;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4466,6 +4467,11 @@ default to 0, which means unlimited. These settings affect the rate limits
 set on new peer connections (not existing ones). The peer rate limits can
 be changed individually later using
 `set_peer_upload_limit() set_peer_download_limit()`_.
+
+if ``broadcast_lsd`` is set to true, the local peer discovery
+(or Local Service Discovery) will not only use IP multicast, but also
+broadcast its messages. This can be useful when running on networks
+that don't support multicast. It's off by default since it's inefficient.
 
 pe_settings
 ===========
