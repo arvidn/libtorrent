@@ -291,6 +291,13 @@ namespace libtorrent
 			}
 		}
 
+		lazy_entry const* fh = dict.dict_find_string("sha1");
+		if (fh && fh->string_length() == 20)
+		{
+			target.filehash.reset(new sha1_hash);
+			std::memcpy(&(*target.filehash)[0], fh->string_ptr(), 20);
+		}
+
 		lazy_entry const* s_p = dict.dict_find("symlink path");
 		if (s_p != 0 && s_p->type() == lazy_entry::list_t)
 		{
@@ -339,7 +346,7 @@ namespace libtorrent
 			int cnt = 0;
 			std::set<std::string, string_less_no_case> files;
 
-			// as long as we this file already exists
+			// as long as this file already exists
 			// increase the counter
 			while (!files.insert(e.path).second)
 			{
@@ -793,6 +800,13 @@ namespace libtorrent
 					e.symlink_path = combine_path(e.symlink_path, path_element);
 				}
 			}
+			lazy_entry const* fh = info.dict_find_string("sha1");
+			if (fh && fh->string_length() == 20)
+			{
+				e.filehash.reset(new sha1_hash);
+				std::memcpy(&(*e.filehash)[0], fh->string_ptr(), 20);
+			}
+
 			// bitcomet pad file
 			if (e.path.find("_____padding_file_") != std::string::npos)
 				e.pad_file = true;

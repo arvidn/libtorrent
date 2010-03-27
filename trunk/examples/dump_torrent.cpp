@@ -119,13 +119,15 @@ int main(int argc, char* argv[])
 	{
 		int first = t.map_file(index, 0, 0).piece;
 		int last = t.map_file(index, (std::max)(i->size-1, size_type(0)), 0).piece;
-		printf("  %11"PRId64" %c%c%c%c [ %4d, %4d ] %s %s%s\n"
+		printf("  %11"PRId64" %c%c%c%c [ %4d, %4d ] %s %s %s%s\n"
 			, i->size
 			, (i->pad_file?'p':'-')
 			, (i->executable_attribute?'x':'-')
 			, (i->hidden_attribute?'h':'-')
 			, (i->symlink_attribute?'l':'-')
-			, first, last, i->path.c_str()
+			, first, last
+			, i->filehash ? to_hex(i->filehash->to_string()).c_str() : ""
+			, i->path.c_str()
 			, i->symlink_attribute ? "-> ": ""
 			, i->symlink_attribute ? i->symlink_path.c_str() : "");
 	}

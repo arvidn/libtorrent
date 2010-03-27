@@ -71,6 +71,7 @@ namespace libtorrent
 			, merkle = 2
 			, modification_time = 4
 			, symlinks = 8
+			, calculate_file_hashes = 16
 		};
 
 		create_torrent(file_storage& fs, int piece_size = 0
@@ -83,6 +84,7 @@ namespace libtorrent
 		void set_comment(char const* str);
 		void set_creator(char const* str);
 		void set_hash(int index, sha1_hash const& h);
+		void set_file_hash(int index, sha1_hash const& h);
 		void add_url_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
@@ -92,6 +94,8 @@ namespace libtorrent
 		int piece_length() const { return m_files.piece_length(); }
 		int piece_size(int i) const { return m_files.piece_size(i); }
 		bool priv() const { return m_private; }
+
+		bool should_add_file_hashes() const { return m_calculate_file_hashes; }
 
 	private:
 
@@ -108,6 +112,8 @@ namespace libtorrent
 		std::vector<std::string> m_url_seeds;
 
 		std::vector<sha1_hash> m_piece_hash;
+
+		std::vector<sha1_hash> m_filehashes;
 
 		// dht nodes to add to the routing table/bootstrap from
 		typedef std::vector<std::pair<std::string, int> > nodes_t;
@@ -153,6 +159,11 @@ namespace libtorrent
 		// the torrent file. The full data of the pointed-to
 		// file is still included
 		bool m_include_symlinks:1;
+
+		// this is only used by set_piece_hashes(). It will
+		// calculate sha1 hashes for each file and add it
+		// to the file list
+		bool m_calculate_file_hashes:1;
 	};
 
 	namespace detail
@@ -234,6 +245,11 @@ namespace libtorrent
 		boost::scoped_ptr<storage_interface> st(
 			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, p, fp));
 
+		// if we're calculating file hashes as well, use this hasher
+		hasher filehash;
+		int file_idx = 0;
+		size_type left_in_file = t.files().at(0).size;
+
 		// calculate the hash for all pieces
 		int num = t.num_pieces();
 		piece_holder buf(t.piece_length());
@@ -247,6 +263,29 @@ namespace libtorrent
 				ec = st->error();
 				return;
 			}
+			
+			if (t.should_add_file_hashes())
+			{
+				int left_in_piece = t.piece_size(i);
+				// the number of bytes from this file we just read
+				while (left_in_piece > 0)
+				{
+					int to_hash_for_file = (std::min)(size_type(left_in_piece), left_in_file);
+					filehash.update(buf.bytes(), to_hash_for_file);
+					left_in_file -= to_hash_for_file;
+					left_in_piece -= to_hash_for_file;
+					if (left_in_file == 0)
+					{
+						if (!t.files().at(file_idx).pad_file)
+							t.set_file_hash(file_idx, filehash.final());
+						filehash.reset();
+						file_idx++;
+						if (file_idx >= t.files().num_files()) break;
+						left_in_file = t.files().at(file_idx).size;
+					}
+				}
+			}
+
 			hasher h(buf.bytes(), t.piece_size(i));
 			t.set_hash(i, h.final());
 			f(i);

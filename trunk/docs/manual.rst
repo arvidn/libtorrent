@@ -1653,9 +1653,12 @@ iterators with the type ``file_entry``.
 		size_type offset;
 		size_type size;
 		size_type file_base;
+		std::string symlink_path;
+		boost::shared_ptr<sha1_hash> filehash;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
+		bool symlink_attribute:1;
 	};
 
 The ``path`` is the full (relative) path of each file. i.e. if it is a multi-file
@@ -1678,6 +1681,16 @@ They are just there to make sure the next file is aligned to a particular byte o
 or piece boundry. These files should typically be hidden from an end user. They are
 not written to disk.
 
+``hidden_attribute`` is true if the file was marked as hidden (on windows).
+
+``executable_attribute`` is true if the file was marked as executable (posix)
+
+``symlink_attribute`` is true if the file was a symlink. If this is the case
+the ``symlink_path`` specifies the original location where the data for this file
+was found.
+
+``filehash`` is a pointer that is set in case the torrent file included a sha1 hash
+for this file. This may be use to look up more sources for this file on other networks.
 
 num_files() file_at()
 ---------------------
