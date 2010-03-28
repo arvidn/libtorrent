@@ -62,3 +62,5 @@ python-extension libtorrent
     <conditional>@libtorrent_linking
   ;
 
+install stage_module : libtorrent : <location>. ;
+
