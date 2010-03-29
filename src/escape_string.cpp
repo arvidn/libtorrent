@@ -188,10 +188,10 @@ namespace libtorrent
 		// % should be ok
 		"%+"
 		// reserved
-		";?:@=&/"
+		";?:@=&,$/"
 		// unreserved (special characters) ' excluded,
 		// since some buggy trackers fail with those
-		"$-_.!~*(),"
+		"-_!.~*()"
 		// unreserved (alphanumerics)
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 		"0123456789";
@@ -226,12 +226,12 @@ namespace libtorrent
 	
 	std::string escape_string(const char* str, int len)
 	{
-		return escape_string_impl(str, len, 9);
+		return escape_string_impl(str, len, 11);
 	}
 
 	std::string escape_path(const char* str, int len)
 	{
-		return escape_string_impl(str, len, 8);
+		return escape_string_impl(str, len, 10);
 	}
 
 	bool need_encoding(char const* str, int len)

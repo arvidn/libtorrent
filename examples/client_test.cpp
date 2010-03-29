@@ -562,6 +562,11 @@ void add_torrent(libtorrent::session& ses
 	p.duplicate_is_error = false;
 	p.auto_managed = true;
 	torrent_handle h = ses.add_torrent(p, ec);
+	if (ec)
+	{
+		fprintf(stderr, "failed to add torrent: %s\n", ec.message().c_str());
+		return;
+	}
 
 	handles.insert(std::pair<const std::string, torrent_handle>(
 		monitored_dir?std::string(torrent):std::string(), h));
@@ -839,7 +844,7 @@ int main(int argc, char* argv[])
 			// interpret this as a torrent
 
 			// first see if this is a torrentless download
-			if (std::strstr("magnet:", argv[i]) == argv[i])
+			if (std::strstr(argv[i], "magnet:") == argv[i])
 			{
 				add_torrent_params p;
 				p.save_path = save_path;
@@ -883,7 +888,7 @@ int main(int argc, char* argv[])
 				torrent_handle h = ses.add_torrent(p, ec);
 				if (ec)
 				{
-					fprintf(stderr, "%s\n", ec.message().c_str());
+					fprintf(stderr, "failed to add torrent: %s\n", ec.message().c_str());
 					continue;
 				}
 
