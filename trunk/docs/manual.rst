@@ -3792,6 +3792,8 @@ session_settings
 
 		int active_downloads;
 		int active_seeds;
+		int active_dht_limit;
+		int active_tracker_limit;
 		int active_limit;
 		bool auto_manage_prefer_seeds;
 		bool dont_count_slow_torrents;
@@ -4204,6 +4206,21 @@ that don't transfer anything block the active slots.
 
 ``active_limit`` is a hard limit on the number of active torrents. This applies even to
 slow torrents.
+
+``active_dht_limit`` is the max number of torrents to announce to the DHT. By default
+this is set to 88, which is no more than one DHT announce every 10 seconds.
+
+``active_tracker_limit`` is the max number of torrents to announce to their trackers.
+By default this is 360, which is no more than one announce every 5 seconds.
+
+``active_lsd_limit`` is the max number of torrents to announce to the local network
+over the local service discovery protocol. By default this is 80, which is no more
+than one announce every 5 seconds (assuming the default announce interval of 5 minutes).
+
+You can have more torrents *active*, even though they are not announced to the DHT,
+lsd or their tracker. If some peer knows about you for any reason and tries to connect,
+it will still be accepted, unless the torrent is paused, which means it won't accept
+any connections.
 
 ``auto_manage_interval`` is the number of seconds between the torrent queue
 is updated, and rotated.

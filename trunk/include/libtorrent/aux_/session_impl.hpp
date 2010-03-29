@@ -667,8 +667,9 @@ namespace libtorrent
 			void on_disk_queue();
 			void on_tick(error_code const& e);
 
-			int auto_manage_torrents(std::vector<torrent*>& list
-				, int hard_limit, int type_limit);
+			void auto_manage_torrents(std::vector<torrent*>& list
+				, int& dht_limit, int& tracker_limit, int& lsd_limit
+				, int& hard_limit, int type_limit);
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots(int congested_torrents
 				, int uncongested_torrents);

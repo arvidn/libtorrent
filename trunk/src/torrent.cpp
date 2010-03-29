@@ -280,7 +280,10 @@ namespace libtorrent
 //		PRINT_OFFSETOF(torrent, m_incomplete:24)
 //		PRINT_OFFSETOF(torrent, m_progress_ppm:20)
 //		PRINT_OFFSETOF(torrent, m_abort:1)
-//		PRINT_OFFSETOF(torrent, m_paused:1)
+//		PRINT_OFFSETOF(torrent, m_announce_to_dht:1)
+//		PRINT_OFFSETOF(torrent, m_announce_to_trackers:1)
+//		PRINT_OFFSETOF(torrent, m_announce_to_lsd:1)
+//		PRINT_OFFSETOF(torrent, m_allow_peers:1)
 //		PRINT_OFFSETOF(torrent, m_upload_mode:1)
 //		PRINT_OFFSETOF(torrent, m_auto_managed:1)
 		PRINT_OFFSETOF(torrent, m_num_verified)
@@ -368,7 +371,10 @@ namespace libtorrent
 		, m_incomplete(0xffffff)
 		, m_progress_ppm(0)
 		, m_abort(false)
-		, m_paused(p.paused)
+		, m_announce_to_dht(!p.paused)
+		, m_announce_to_trackers(!p.paused)
+		, m_announce_to_lsd(!p.paused)
+		, m_allow_peers(!p.paused)
 		, m_upload_mode(p.upload_mode)
 		, m_auto_managed(p.auto_managed)
 		, m_num_verified(0)
@@ -454,6 +460,7 @@ namespace libtorrent
 
 		if (!m_ses.m_dht) return false;
 		if (m_torrent_file->is_valid() && !m_files_checked) return false;
+		if (!m_announce_to_dht) return false;
 
 		// don't announce private torrents
 		if (m_torrent_file->is_valid() && m_torrent_file->priv()) return false;
@@ -1295,6 +1302,8 @@ namespace libtorrent
 		// not ready for peers
 		if (!m_files_checked) return;
 
+		if (!m_announce_to_lsd) return;
+
 		if (m_torrent_file->is_valid()
 			&& (m_torrent_file->priv()
 				|| (torrent_file().is_i2p()
@@ -1311,12 +1320,10 @@ namespace libtorrent
 
 	void torrent::dht_announce()
 	{
-		if (m_torrent_file->is_valid() && m_torrent_file->priv())
-			return;
-
-		if (is_paused()) return;
 		if (!m_ses.m_dht) return;
 		if (!should_announce_dht()) return;
+
+		TORRENT_ASSERT(m_allow_peers);
 
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_ses.m_dht->announce(m_torrent_file->info_hash()
@@ -1360,6 +1367,12 @@ namespace libtorrent
 		if (m_trackers.empty()) return;
 
 		if (m_abort) e = tracker_request::stopped;
+
+		// if we're not announcing to trackers, only allow
+		// stopping
+		if (e != tracker_request::stopped && !m_announce_to_trackers) return;
+
+		TORRENT_ASSERT(m_allow_peers || e == tracker_request::stopped);
 
 		tracker_request req;
 		req.info_hash = m_torrent_file->info_hash();
@@ -3644,7 +3657,19 @@ namespace libtorrent
 		if (!m_override_resume_data)
 		{
 			int paused_ = rd.dict_find_int_value("paused", -1);
-			if (paused_ != -1) m_paused = paused_;
+			if (paused_ != -1)
+			{
+				m_allow_peers = !paused_;
+				m_announce_to_dht = !paused_;
+				m_announce_to_trackers = !paused_;
+				m_announce_to_lsd = !paused_;
+			}
+			int dht_ = rd.dict_find_int_value("announce_to_dht", -1);
+			if (dht_ != -1) m_announce_to_dht = dht_;
+			int lsd_ = rd.dict_find_int_value("announce_to_lsd", -1);
+			if (lsd_ != -1) m_announce_to_lsd = lsd_;
+			int track_ = rd.dict_find_int_value("announce_to_trackers", -1);
+			if (track_ != -1) m_announce_to_trackers = track_;
 		}
 
 		lazy_entry const* trackers = rd.dict_find_list("trackers");
@@ -3968,7 +3993,10 @@ namespace libtorrent
 		ret["download_rate_limit"] = download_limit();
 		ret["max_connections"] = max_connections();
 		ret["max_uploads"] = max_uploads();
-		ret["paused"] = m_paused;
+		ret["paused"] = !m_allow_peers;
+		ret["announce_to_dht"] = m_announce_to_dht;
+		ret["announce_to_trackers"] = m_announce_to_trackers;
+		ret["announce_to_lsd"] = m_announce_to_lsd;
 		ret["auto_managed"] = m_auto_managed;
 
 		// write piece priorities
@@ -4369,7 +4397,7 @@ namespace libtorrent
 
 	void torrent::disconnect_all(error_code const& ec)
 	{
-// doesn't work with the m_paused -> m_num_peers == 0 condition
+// doesn't work with the !m_allow_peers -> m_num_peers == 0 condition
 //		INVARIANT_CHECK;
 
 		while (!m_connections.empty())
@@ -5216,9 +5244,10 @@ namespace libtorrent
 	
 	bool torrent::should_check_files() const
 	{
+		// #error should m_allow_peers really affect checking?
 		return (m_state == torrent_status::checking_files
 			|| m_state == torrent_status::queued_for_checking)
-			&& (!m_paused || m_auto_managed)
+			&& (!m_allow_peers || m_auto_managed)
 			&& !has_error()
 			&& !m_abort;
 	}
@@ -5237,16 +5266,19 @@ namespace libtorrent
 
 	bool torrent::is_paused() const
 	{
-		return m_paused || m_ses.is_paused();
+		return !m_allow_peers || m_ses.is_paused();
 	}
 
 	void torrent::pause()
 	{
 		INVARIANT_CHECK;
 
-		if (m_paused) return;
+		if (!m_allow_peers) return;
 		bool checking_files = should_check_files();
-		m_paused = true;
+		m_allow_peers = false;
+		m_announce_to_dht = false;
+		m_announce_to_trackers = false;
+		m_announce_to_lsd = false;
 		if (!m_ses.is_paused())
 			do_pause();
 		if (checking_files && !should_check_files())
@@ -5307,9 +5339,18 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (!m_paused) return;
+		if (m_allow_peers
+			&& m_announce_to_dht
+			&& m_announce_to_trackers
+			&& m_announce_to_lsd) return;
 		bool checking_files = should_check_files();
-		m_paused = false;
+		m_allow_peers = true;
+		if (!m_auto_managed)
+		{
+			m_announce_to_dht = true;
+			m_announce_to_trackers = true;
+			m_announce_to_lsd = true;
+		}
 		do_resume();
 		if (!checking_files && should_check_files())
 			queue_torrent_check();
@@ -6169,7 +6210,7 @@ namespace libtorrent
 
 		st.num_complete = (m_complete == 0xffffff) ? -1 : m_complete;
 		st.num_incomplete = (m_incomplete == 0xffffff) ? -1 : m_incomplete;
-		st.paused = m_paused;
+		st.paused = !m_allow_peers;
 		bytes_done(st, flags & torrent_handle::query_accurate_download_counters);
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
