@@ -246,6 +246,9 @@ namespace aux {
 		TORRENT_SETTING(character, peer_tos)
 		TORRENT_SETTING(integer, active_downloads)
 		TORRENT_SETTING(integer, active_seeds)
+		TORRENT_SETTING(integer, active_dht_limit)
+		TORRENT_SETTING(integer, active_tracker_limit)
+		TORRENT_SETTING(integer, active_lsd_limit)
 		TORRENT_SETTING(integer, active_limit)
 		TORRENT_SETTING(boolean, auto_manage_prefer_seeds)
 		TORRENT_SETTING(boolean, dont_count_slow_torrents)
@@ -1622,7 +1625,7 @@ namespace aux {
 			for (torrent_map::iterator i = m_torrents.begin()
 				, end(m_torrents.end()); i != end; ++i)
 			{
-				if (!i->second->is_paused())
+				if (i->second->allows_peers())
 				{
 					has_active_torrent = true;
 					break;
@@ -2351,8 +2354,9 @@ namespace aux {
 		}
 	}
 	
-	int session_impl::auto_manage_torrents(std::vector<torrent*>& list
-		, int hard_limit, int type_limit)
+	void session_impl::auto_manage_torrents(std::vector<torrent*>& list
+		, int& dht_limit, int& tracker_limit, int& lsd_limit
+		, int& hard_limit, int type_limit)
 	{
 		for (std::vector<torrent*>::iterator i = list.begin()
 			, end(list.end()); i != end; ++i)
@@ -2369,6 +2373,10 @@ namespace aux {
 			{
 				--hard_limit;
 				--type_limit;
+				--dht_limit;
+				--tracker_limit;
+				t->set_announce_to_dht(dht_limit >= 0);
+				t->set_announce_to_trackers(tracker_limit >= 0);
 				if (t->is_paused()) t->resume();
 			}
 			else
@@ -2376,7 +2384,6 @@ namespace aux {
 				if (!t->is_paused()) t->pause();
 			}
 		}
-		return hard_limit;
 	}
 
 	void session_impl::recalculate_auto_managed_torrents()
@@ -2391,6 +2398,9 @@ namespace aux {
 		// of each kind we're allowed to have active
 		int num_downloaders = settings().active_downloads;
 		int num_seeds = settings().active_seeds;
+		int dht_limit = settings().active_dht_limit;
+		int tracker_limit = settings().active_tracker_limit;
+		int lsd_limit = settings().active_lsd_limit;
 		int hard_limit = settings().active_limit;
 
 		if (num_downloaders == -1)
@@ -2448,13 +2458,17 @@ namespace aux {
 
 		if (settings().auto_manage_prefer_seeds)
 		{
-			hard_limit = auto_manage_torrents(seeds, hard_limit, num_seeds);
-			hard_limit = auto_manage_torrents(downloaders, hard_limit, num_downloaders);
+			auto_manage_torrents(seeds, dht_limit, tracker_limit, lsd_limit
+				, hard_limit, num_seeds);
+			auto_manage_torrents(downloaders, dht_limit, tracker_limit, lsd_limit
+				, hard_limit, num_downloaders);
 		}
 		else
 		{
-			hard_limit = auto_manage_torrents(downloaders, hard_limit, num_downloaders);
-			hard_limit = auto_manage_torrents(seeds, hard_limit, num_seeds);
+			auto_manage_torrents(downloaders, dht_limit, tracker_limit, lsd_limit
+				, hard_limit, num_downloaders);
+			auto_manage_torrents(seeds, dht_limit, tracker_limit, lsd_limit
+				, hard_limit, num_seeds);
 		}
             
 	}
