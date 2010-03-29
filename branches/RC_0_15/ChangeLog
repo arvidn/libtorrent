@@ -1,3 +1,5 @@
+	* fixed bug in url encoder where $ would not be encoded
+
 0.15 release
 
 	* introduced a session state save mechanism. load_state() and save_state().

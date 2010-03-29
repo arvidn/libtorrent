@@ -136,7 +136,7 @@ namespace libtorrent
 		int piece_size(int index) const;
 
 		void set_name(std::string const& n) { m_name = n; }
-		const std::string& name() const { TORRENT_ASSERT(m_piece_length > 0); return m_name; }
+		const std::string& name() const { return m_name; }
 
 		void swap(file_storage& ti)
 		{
