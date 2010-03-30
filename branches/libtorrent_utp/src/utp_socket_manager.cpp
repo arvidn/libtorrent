@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_stream.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
+#include "libtorrent/instantiate_connection.hpp"
 
 namespace libtorrent
 {
@@ -96,16 +97,20 @@ namespace libtorrent
 		// create a new utp_stream
 		if (i == m_utp_sockets.end() && ph->type == ST_SYN)
 		{
-			// #error we need an empty utp_stream here to fill in
-			utp_stream* str = 0;
+			boost::shared_ptr<socket_type> c(new (std::nothrow) socket_type(m_sock.get_io_service()));
+			if (!c) return false;
+			instantiate_connection(m_sock.get_io_service(), proxy_settings(), this, *c);
+			utp_stream* str = c->get<utp_stream>();
+			TORRENT_ASSERT(str);
 
 			boost::uint16_t id = rand();
-			utp_socket_impl* c = construct_utp_impl(str, id);
-			if (c == 0) return false;
+			utp_socket_impl* impl = construct_utp_impl(str, id, ep);
+			if (impl == 0) return false;
 
 			TORRENT_ASSERT(m_utp_sockets.find(id) == m_utp_sockets.end());
-			i = m_utp_sockets.insert(i, std::make_pair(id, c));
-//			m_cb(c);
+			i = m_utp_sockets.insert(i, std::make_pair(id, impl));
+			str->assign(impl);
+			m_cb(c);
 		}
 
 		// only accept a packet if it's from the right source

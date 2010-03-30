@@ -53,6 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 			get<socks5_stream>()->x; break; \
 		case socket_type_int_impl<http_stream>::value: \
 			get<http_stream>()->x; break; \
+		case socket_type_int_impl<utp_stream>::value: \
+			get<utp_stream>()->x; break; \
 		case socket_type_int_impl<i2p_stream>::value: \
 			get<i2p_stream>()->x; break; \
 		default: TORRENT_ASSERT(false); \
@@ -66,6 +68,8 @@ POSSIBILITY OF SUCH DAMAGE.
 			return get<socks5_stream>()->x; \
 		case socket_type_int_impl<http_stream>::value: \
 			return get<http_stream>()->x; \
+		case socket_type_int_impl<utp_stream>::value: \
+			return get<utp_stream>()->x; \
 		case socket_type_int_impl<i2p_stream>::value: \
 			return get<i2p_stream>()->x; \
 		default: TORRENT_ASSERT(false); return def; \
@@ -81,6 +85,8 @@ POSSIBILITY OF SUCH DAMAGE.
 			get<socks5_stream>()->x; break; \
 		case socket_type_int_impl<http_stream>::value: \
 			get<http_stream>()->x; break; \
+		case socket_type_int_impl<utp_stream>::value: \
+			get<utp_stream>()->x; break; \
 		default: TORRENT_ASSERT(false); \
 	}
 
@@ -92,6 +98,8 @@ POSSIBILITY OF SUCH DAMAGE.
 			return get<socks5_stream>()->x; \
 		case socket_type_int_impl<http_stream>::value: \
 			return get<http_stream>()->x; \
+		case socket_type_int_impl<utp_stream>::value: \
+			return get<utp_stream>()->x; \
 		default: TORRENT_ASSERT(false); return def; \
 	}
 
@@ -224,9 +232,13 @@ namespace libtorrent
 		io_service& m_io_service;
 		int m_type;
 #if TORRENT_USE_I2P
-		enum { storage_size = max5<sizeof(stream_socket), sizeof(socks5_stream), sizeof(http_stream), sizeof(i2p_stream), sizeof(utp_stream)>::value };
+		enum { storage_size = max5<sizeof(stream_socket)
+			, sizeof(socks5_stream), sizeof(http_stream)
+			, sizeof(i2p_stream), sizeof(utp_stream)>::value };
 #else
-		enum { storage_size = max4<sizeof(stream_socket), sizeof(socks5_stream), sizeof(http_stream), sizeof(utp_stream)>::value };
+		enum { storage_size = max4<sizeof(stream_socket)
+			, sizeof(socks5_stream), sizeof(http_stream)
+			, sizeof(utp_stream)>::value };
 #endif
 		size_type m_data[(storage_size + sizeof(size_type) - 1) / sizeof(size_type)];
 	};

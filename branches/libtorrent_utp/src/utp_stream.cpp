@@ -152,8 +152,10 @@ private:
 
 struct utp_socket_impl
 {
-	utp_socket_impl(void* userdata, boost::uint16_t id)
+	utp_socket_impl(void* userdata, boost::uint16_t id, udp::endpoint const& ep)
 		: m_sm(0)
+		, m_remote_address(ep.address())
+		, m_port(ep.port())
 		, m_last_history_step(time_now())
 		, m_send_id(id + 1)
 		, m_recv_id(id)
@@ -349,9 +351,10 @@ struct utp_socket_impl
 	int m_in_buf_size;
 };
 
-utp_socket_impl* construct_utp_impl(void* userdata, boost::uint16_t id)
+utp_socket_impl* construct_utp_impl(void* userdata, boost::uint16_t id
+	, udp::endpoint const& ep)
 {
-	return new utp_socket_impl(userdata, id);
+	return new utp_socket_impl(userdata, id, ep);
 }
 
 void delete_utp_impl(utp_socket_impl* s)
@@ -507,6 +510,8 @@ void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler
 void utp_socket_impl::destroy()
 {
 	// #error our end is closing. Send fin and wait for everything to be acked
+
+	m_state = UTP_STATE_CLOSE_WAIT;
 }
 
 void utp_socket_impl::send_reset(utp_header* ph)

@@ -165,7 +165,8 @@ namespace libtorrent
 
 struct utp_socket_impl;
 
-utp_socket_impl* construct_utp_impl(void* userdata, boost::uint16_t id);
+utp_socket_impl* construct_utp_impl(void* userdata, boost::uint16_t id
+	, udp::endpoint const& ep);
 void delete_utp_impl(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);
 void tick_utp_impl(utp_socket_impl* s, ptime const& now);
@@ -182,6 +183,8 @@ public:
 
 	explicit utp_stream(asio::io_service& io_service);
 	~utp_stream();
+
+	lowest_layer_type& lowest_layer();
 
 	// used for incoming connections
 	void assign(utp_socket_impl* s);
@@ -237,6 +240,9 @@ public:
 
 	endpoint_type remote_endpoint(error_code const& ec) const
 	{ return remote_endpoint(); }
+
+	std::size_t available() const;
+	std::size_t available(error_code& ec) const;
 
 	asio::io_service& io_service()
 	{ return m_io_service; }
