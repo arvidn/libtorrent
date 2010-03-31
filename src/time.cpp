@@ -54,7 +54,7 @@ namespace libtorrent
 		ptime g_current_time;
 	}
 
-	ptime const& TORRENT_EXPORT time_now() { return aux::g_current_time; }
+	TORRENT_EXPORT ptime const& time_now() { return aux::g_current_time; }
 
 	char const* time_now_string()
 	{
