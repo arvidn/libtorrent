@@ -487,7 +487,7 @@ namespace aux {
 		// version.
 		boost::uint32_t windows_version
 			= ((osv.dwMajorVersion & 0xff) << 16)
-			| ((osv.dwMinorVersion & 0xff) << 8);
+			| ((osv.dwMinorVersion & 0xff) << 8)
 			| (osv.wServicePackMajor & 0xff);
 
 		// this is the format of windows_version
