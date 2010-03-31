@@ -1,3 +1,4 @@
+	* properly detect windows version to initialize half-open connection limit
 	* fixed bug in url encoder where $ would not be encoded
 
 0.15 release
