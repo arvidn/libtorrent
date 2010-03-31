@@ -5335,6 +5335,30 @@ namespace libtorrent
 		stop_announcing();
 	}
 
+	void torrent::set_allow_peers(bool b)
+	{
+		if (m_allow_peers == b) return;
+
+		bool checking_files = should_check_files();
+
+		m_allow_peers = b;
+
+		if (!b)
+		{
+			m_announce_to_dht = false;
+			m_announce_to_trackers = false;
+			m_announce_to_lsd = false;
+			do_pause();
+		}
+		else
+		{
+			do_resume();
+		}
+
+		if (!checking_files && should_check_files())
+			queue_torrent_check();
+	}
+
 	void torrent::resume()
 	{
 		INVARIANT_CHECK;
@@ -5345,12 +5369,9 @@ namespace libtorrent
 			&& m_announce_to_lsd) return;
 		bool checking_files = should_check_files();
 		m_allow_peers = true;
-		if (!m_auto_managed)
-		{
-			m_announce_to_dht = true;
-			m_announce_to_trackers = true;
-			m_announce_to_lsd = true;
-		}
+		m_announce_to_dht = true;
+		m_announce_to_trackers = true;
+		m_announce_to_lsd = true;
 		do_resume();
 		if (!checking_files && should_check_files())
 			queue_torrent_check();

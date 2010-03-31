@@ -2377,11 +2377,11 @@ namespace aux {
 				--tracker_limit;
 				t->set_announce_to_dht(dht_limit >= 0);
 				t->set_announce_to_trackers(tracker_limit >= 0);
-				if (t->is_paused()) t->resume();
+				t->set_allow_peers(true);
 			}
 			else
 			{
-				if (!t->is_paused()) t->pause();
+				t->set_allow_peers(false);
 			}
 		}
 	}

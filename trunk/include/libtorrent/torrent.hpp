@@ -252,6 +252,7 @@ namespace libtorrent
 		void flush_cache();
 		void pause();
 		void resume();
+		void set_allow_peers(bool b);
 		void set_announce_to_dht(bool b) { m_announce_to_dht = b; }
 		void set_announce_to_trackers(bool b) { m_announce_to_trackers = b; }
 		void set_announce_to_lsd(bool b) { m_announce_to_lsd = b; }
