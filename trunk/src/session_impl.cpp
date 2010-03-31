@@ -531,16 +531,73 @@ namespace aux {
 #ifdef WIN32
 		// windows XP has a limit on the number of
 		// simultaneous half-open TCP connections
-		DWORD windows_version = ::GetVersion();
-		if ((windows_version & 0xff) >= 6)
+		// here's a table:
+
+		// windows version       half-open connections limit
+		// --------------------- ---------------------------
+		// XP sp1 and earlier    infinite
+		// earlier than vista    8
+		// vista sp1 and earlier 5
+		// vista sp2 and later   infinite
+
+		// windows release                     version number
+		// ----------------------------------- --------------
+		// Windows 7                           6.1
+		// Windows Server 2008 R2              6.1
+		// Windows Server 2008                 6.0
+		// Windows Vista                       6.0
+		// Windows Server 2003 R2              5.2
+		// Windows Home Server                 5.2
+		// Windows Server 2003                 5.2
+		// Windows XP Professional x64 Edition 5.2
+		// Windows XP                          5.1
+		// Windows 2000                        5.0
+
+ 		OSVERSIONINFOEX osv;
+		memset(&osv, 0, sizeof(osv));
+		osv.dwOSVersionInfoSize = sizeof(osv);
+		GetVersionEx((OSVERSIONINFO*)&osv);
+
+		// the low two bytes of windows_version is the actual
+		// version.
+		boost::uint32_t windows_version
+			= ((osv.dwMajorVersion & 0xff) << 16)
+			| ((osv.dwMinorVersion & 0xff) << 8);
+			| (osv.wServicePackMajor & 0xff);
+
+		// this is the format of windows_version
+		// xx xx xx
+		// |  |  |
+		// |  |  + service pack version
+		// |  + minor version
+		// + major version
+
+		// the least significant byte is the major version
+		// and the most significant one is the minor version
+		if (windows_version >= 0x060100)
+		{
+			// windows 7 and up doesn't have a half-open limit
+			m_half_open.limit(0);
+		}
+		else if (windows_version >= 0x060002)
+		{
+			// on vista SP 2 and up, there's no limit
+			m_half_open.limit(0);
+		}
+		else if (windows_version >= 0x060000)
 		{
 			// on vista the limit is 5 (in home edition)
 			m_half_open.limit(4);
 		}
+		else if (windows_version >= 0x050102)
+		{
+			// on XP SP2 the limit is 10	
+			m_half_open.limit(9);
+		}
 		else
 		{
-			// on XP SP2 it's 10	
-			m_half_open.limit(8);
+			// before XP SP2, there was no limit
+			m_half_open.limit(0);
 		}
 #endif
 
