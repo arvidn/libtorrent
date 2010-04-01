@@ -183,7 +183,8 @@ struct utp_socket_impl
 	void tick(ptime const& now);
 	bool incoming_packet(char const* buf, int size);
 	bool should_delete() const { return m_state == UTP_STATE_DELETE; }
-	udp::endpoint remote_endpoint() const { return udp::endpoint(m_remote_address, m_port); }
+	tcp::endpoint remote_endpoint() const { return tcp::endpoint(m_remote_address, m_port); }
+	std::size_t available() const;
 	void destroy();
 
 	bool send_pkt(bool ack);
@@ -379,9 +380,42 @@ bool utp_incoming_packet(utp_socket_impl* s, char const* p, int size)
 
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s)
 {
-	return s->remote_endpoint();
+	return udp::endpoint(s->m_remote_address, s->m_port);
 }
 
+utp_stream::utp_stream(asio::io_service& io_service)
+	: m_io_service(io_service)
+	, m_impl(0)
+	, m_open(false)
+{
+}
+
+void utp_stream::close()
+{
+	if (!m_impl) return;
+	m_impl->destroy();
+}
+
+std::size_t utp_stream::available() const
+{
+	return m_impl->available();
+}
+
+utp_stream::endpoint_type utp_stream::remote_endpoint() const
+{
+	return m_impl->remote_endpoint();
+}
+
+utp_stream::endpoint_type utp_stream::local_endpoint() const
+{
+	return m_impl->m_sm->local_endpoint();
+}
+/*
+lowest_layer_type& utp_stream::lowest_layer()
+{
+	return *this;
+}
+*/
 utp_stream::~utp_stream()
 {
 	if (m_impl) m_impl->destroy();
@@ -526,7 +560,12 @@ void utp_socket_impl::send_reset(utp_header* ph)
 	h.seq_nr = rand();
 	h.ack_nr = ph->seq_nr;
 	h.timestamp_microseconds = total_microseconds(time_now_hires() - min_time());
-	m_sm->send_packet(remote_endpoint(), (char const*)&h, sizeof(h));
+	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)&h, sizeof(h));
+}
+
+std::size_t utp_socket_impl::available() const
+{
+	return m_receive_buffer_size;
 }
 
 void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes, ptime const& now)
@@ -675,7 +714,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 	p->send_time = now;
 	h->timestamp_microseconds = total_microseconds(now - min_time());
 
-	m_sm->send_packet(remote_endpoint(), (char const*)&h, sizeof(h));
+	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)&h, sizeof(h));
 
 	// if we have payload, we need to save the packet until it's acked
 	// and progress m_seq_nr
@@ -944,7 +983,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size)
 			// update packet header
 			h->timestamp_microseconds = total_microseconds(p->send_time - min_time());
 			h->timestamp_difference_microseconds = m_reply_micro;
-			m_sm->send_packet(remote_endpoint(), p->buf, p->size);
+			m_sm->send_packet(udp::endpoint(m_remote_address, m_port), p->buf, p->size);
 		}
 		// cut window size in 2
 		m_cwnd = (std::max)(m_cwnd / 2, m_mtu);
@@ -1131,7 +1170,7 @@ void utp_socket_impl::tick(ptime const& now)
 			// update packet header
 			h->timestamp_microseconds = total_microseconds(p->send_time - min_time());
 			h->timestamp_difference_microseconds = m_reply_micro;
-			m_sm->send_packet(remote_endpoint(), (char const*)p->buf, p->size);
+			m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)p->buf, p->size);
 		}
 	}
 

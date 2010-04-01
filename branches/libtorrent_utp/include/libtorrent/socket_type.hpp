@@ -136,14 +136,12 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT socket_type
 	{
-		typedef stream_socket::lowest_layer_type lowest_layer_type;
 		typedef stream_socket::endpoint_type endpoint_type;
 		typedef stream_socket::protocol_type protocol_type;
 	
 		explicit socket_type(io_service& ios): m_io_service(ios), m_type(0) {}
 		~socket_type();
 
-		lowest_layer_type& lowest_layer();
 		io_service& get_io_service() const;
 		bool is_open() const;
 

@@ -177,14 +177,11 @@ class utp_stream
 {
 public:
 
-	typedef stream_socket::lowest_layer_type lowest_layer_type;
 	typedef stream_socket::endpoint_type endpoint_type;
 	typedef stream_socket::protocol_type protocol_type;
 
 	explicit utp_stream(asio::io_service& io_service);
 	~utp_stream();
-
-	lowest_layer_type& lowest_layer();
 
 	// used for incoming connections
 	void assign(utp_socket_impl* s);
@@ -242,7 +239,7 @@ public:
 	{ return remote_endpoint(); }
 
 	std::size_t available() const;
-	std::size_t available(error_code& ec) const;
+	std::size_t available(error_code& ec) const { return available(); }
 
 	asio::io_service& io_service()
 	{ return m_io_service; }
