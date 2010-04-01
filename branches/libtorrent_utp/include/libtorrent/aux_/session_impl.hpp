@@ -355,9 +355,6 @@ namespace libtorrent
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_DISABLE_GEO_IP
 
-			void load_state(entry const& ses_state);
-			entry state() const;
-
 			void start_lsd();
 			void start_natpmp(natpmp* n);
 			void start_upnp(upnp* u);
@@ -671,8 +668,9 @@ namespace libtorrent
 			void on_disk_queue();
 			void on_tick(error_code const& e);
 
-			int auto_manage_torrents(std::vector<torrent*>& list
-				, int hard_limit, int type_limit);
+			void auto_manage_torrents(std::vector<torrent*>& list
+				, int& dht_limit, int& tracker_limit, int& lsd_limit
+				, int& hard_limit, int type_limit);
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots(int congested_torrents
 				, int uncongested_torrents);
@@ -880,14 +878,13 @@ namespace libtorrent
 				debug_log("*** tracker timed out");
 			}
 
-			void tracker_request_error(
-				tracker_request const&
-				, int response_code
-				, const std::string& str
+			void tracker_request_error(tracker_request const& r
+				, int response_code, error_code const& ec, const std::string& str
 				, int retry_interval)
 			{
 				char msg[256];
-				snprintf(msg, sizeof(msg), "*** tracker error: %d: %s", response_code, str.c_str());
+				snprintf(msg, sizeof(msg), "*** tracker error: %d: %s %s"
+					, response_code, ec.message().c_str(), str.c_str());
 				debug_log(msg);
 			}
 			

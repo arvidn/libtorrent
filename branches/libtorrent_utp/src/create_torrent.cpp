@@ -113,6 +113,9 @@ namespace libtorrent
 		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
 		, m_merkle_torrent(flags & merkle)
+		, m_include_mtime(flags & modification_time)
+		, m_include_symlinks(flags & symlinks)
+		, m_calculate_file_hashes(flags & calculate_file_hashes)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
 
@@ -165,6 +168,8 @@ namespace libtorrent
 		, m_multifile(ti.num_files() > 1)
 		, m_private(ti.priv())
 		, m_merkle_torrent(ti.is_merkle_torrent())
+		, m_include_mtime(false)
+		, m_include_symlinks(false)
 	{
 		TORRENT_ASSERT(ti.is_valid());
 		if (ti.creation_date()) m_creation_date = *ti.creation_date();
@@ -278,7 +283,7 @@ namespace libtorrent
 
 		if (!m_multifile)
 		{
-			info["mtime"] = m_files.at(0).mtime;
+			if (m_include_mtime) info["mtime"] = m_files.at(0).mtime;
 			info["length"] = m_files.at(0).size;
 			if (m_files.at(0).pad_file
 				|| m_files.at(0).hidden_attribute
@@ -289,15 +294,19 @@ namespace libtorrent
 				if (m_files.at(0).pad_file) attr += 'p';
 				if (m_files.at(0).hidden_attribute) attr += 'h';
 				if (m_files.at(0).executable_attribute) attr += 'x';
-				if (m_files.at(0).symlink_attribute) attr += 'l';
+				if (m_include_symlinks && m_files.at(0).symlink_attribute) attr += 'l';
 			}
-			if (m_files.at(0).symlink_attribute)
+			if (m_include_symlinks && m_files.at(0).symlink_attribute)
 			{
 				entry& sympath_e = info["symlink path"];
 				
 				std::string split = split_path(m_files.at(0).symlink_path);
 				for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
 					sympath_e.list().push_back(entry(e));
+			}
+			if (!m_filehashes.empty())
+			{
+				info["sha1"] = m_filehashes[0].to_string();
 			}
 		}
 		else
@@ -311,7 +320,7 @@ namespace libtorrent
 				{
 					files.list().push_back(entry());
 					entry& file_e = files.list().back();
-					file_e["mtime"] = i->mtime; 
+					if (m_include_mtime) file_e["mtime"] = i->mtime; 
 					file_e["length"] = i->size;
 					entry& path_e = file_e["path"];
 
@@ -333,15 +342,20 @@ namespace libtorrent
 						if (i->pad_file) attr += 'p';
 						if (i->hidden_attribute) attr += 'h';
 						if (i->executable_attribute) attr += 'x';
-						if (i->symlink_attribute) attr += 'l';
+						if (m_include_symlinks && i->symlink_attribute) attr += 'l';
 					}
-					if (i->symlink_attribute)
+					if (m_include_symlinks && i->symlink_attribute)
 					{
 						entry& sympath_e = file_e["symlink path"];
 
 						std::string split = split_path(i->symlink_path);
 						for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
 							sympath_e.list().push_back(entry(e));
+					}
+					int file_index = i - m_files.begin();
+					if (!m_filehashes.empty() && m_filehashes[file_index] != sha1_hash())
+					{
+						file_e["sha1"] = m_filehashes[file_index].to_string();
 					}
 				}
 			}
@@ -417,6 +431,14 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < (int)m_piece_hash.size());
 		m_piece_hash[index] = h;
+	}
+
+	void create_torrent::set_file_hash(int index, sha1_hash const& h)
+	{
+		TORRENT_ASSERT(index >= 0);
+		TORRENT_ASSERT(index < (int)m_files.num_files());
+		if (m_filehashes.empty()) m_filehashes.resize(m_files.num_files());
+		m_filehashes[index] = h;
 	}
 
 	void create_torrent::add_node(std::pair<std::string, int> const& node)

@@ -246,6 +246,9 @@ namespace aux {
 		TORRENT_SETTING(character, peer_tos)
 		TORRENT_SETTING(integer, active_downloads)
 		TORRENT_SETTING(integer, active_seeds)
+		TORRENT_SETTING(integer, active_dht_limit)
+		TORRENT_SETTING(integer, active_tracker_limit)
+		TORRENT_SETTING(integer, active_lsd_limit)
 		TORRENT_SETTING(integer, active_limit)
 		TORRENT_SETTING(boolean, auto_manage_prefer_seeds)
 		TORRENT_SETTING(boolean, dont_count_slow_torrents)
@@ -530,16 +533,73 @@ namespace aux {
 #ifdef WIN32
 		// windows XP has a limit on the number of
 		// simultaneous half-open TCP connections
-		DWORD windows_version = ::GetVersion();
-		if ((windows_version & 0xff) >= 6)
+		// here's a table:
+
+		// windows version       half-open connections limit
+		// --------------------- ---------------------------
+		// XP sp1 and earlier    infinite
+		// earlier than vista    8
+		// vista sp1 and earlier 5
+		// vista sp2 and later   infinite
+
+		// windows release                     version number
+		// ----------------------------------- --------------
+		// Windows 7                           6.1
+		// Windows Server 2008 R2              6.1
+		// Windows Server 2008                 6.0
+		// Windows Vista                       6.0
+		// Windows Server 2003 R2              5.2
+		// Windows Home Server                 5.2
+		// Windows Server 2003                 5.2
+		// Windows XP Professional x64 Edition 5.2
+		// Windows XP                          5.1
+		// Windows 2000                        5.0
+
+ 		OSVERSIONINFOEX osv;
+		memset(&osv, 0, sizeof(osv));
+		osv.dwOSVersionInfoSize = sizeof(osv);
+		GetVersionEx((OSVERSIONINFO*)&osv);
+
+		// the low two bytes of windows_version is the actual
+		// version.
+		boost::uint32_t windows_version
+			= ((osv.dwMajorVersion & 0xff) << 16)
+			| ((osv.dwMinorVersion & 0xff) << 8)
+			| (osv.wServicePackMajor & 0xff);
+
+		// this is the format of windows_version
+		// xx xx xx
+		// |  |  |
+		// |  |  + service pack version
+		// |  + minor version
+		// + major version
+
+		// the least significant byte is the major version
+		// and the most significant one is the minor version
+		if (windows_version >= 0x060100)
+		{
+			// windows 7 and up doesn't have a half-open limit
+			m_half_open.limit(0);
+		}
+		else if (windows_version >= 0x060002)
+		{
+			// on vista SP 2 and up, there's no limit
+			m_half_open.limit(0);
+		}
+		else if (windows_version >= 0x060000)
 		{
 			// on vista the limit is 5 (in home edition)
 			m_half_open.limit(4);
 		}
+		else if (windows_version >= 0x050102)
+		{
+			// on XP SP2 the limit is 10	
+			m_half_open.limit(9);
+		}
 		else
 		{
-			// on XP SP2 it's 10	
-			m_half_open.limit(8);
+			// before XP SP2, there was no limit
+			m_half_open.limit(0);
 		}
 #endif
 
@@ -808,6 +868,12 @@ namespace aux {
 			}
 		}
 #endif
+
+ 		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
+
+		if (m_settings.broadcast_lsd && m_lsd)
+			m_lsd->use_broadcast(true);
+
 		update_disk_thread_settings();
 	}
 
@@ -1166,6 +1232,8 @@ namespace aux {
 			m_auto_manage_time_scaler = 2;
 		m_settings = s;
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
+		if (m_settings.broadcast_lsd && m_lsd)
+			m_lsd->use_broadcast(true);
  
 		if (update_disk_io_thread)
 			update_disk_thread_settings();
@@ -1619,7 +1687,7 @@ namespace aux {
 			for (torrent_map::iterator i = m_torrents.begin()
 				, end(m_torrents.end()); i != end; ++i)
 			{
-				if (!i->second->is_paused())
+				if (i->second->allows_peers())
 				{
 					has_active_torrent = true;
 					break;
@@ -1799,6 +1867,8 @@ namespace aux {
 //		INVARIANT_CHECK;
 
 		if (m_abort) return;
+
+		if (e == asio::error::operation_aborted) return;
 
 		if (e)
 		{
@@ -2346,8 +2416,9 @@ namespace aux {
 		}
 	}
 	
-	int session_impl::auto_manage_torrents(std::vector<torrent*>& list
-		, int hard_limit, int type_limit)
+	void session_impl::auto_manage_torrents(std::vector<torrent*>& list
+		, int& dht_limit, int& tracker_limit, int& lsd_limit
+		, int& hard_limit, int type_limit)
 	{
 		for (std::vector<torrent*>::iterator i = list.begin()
 			, end(list.end()); i != end; ++i)
@@ -2364,14 +2435,17 @@ namespace aux {
 			{
 				--hard_limit;
 				--type_limit;
-				if (t->is_paused()) t->resume();
+				--dht_limit;
+				--tracker_limit;
+				t->set_announce_to_dht(dht_limit >= 0);
+				t->set_announce_to_trackers(tracker_limit >= 0);
+				t->set_allow_peers(true);
 			}
 			else
 			{
-				if (!t->is_paused()) t->pause();
+				t->set_allow_peers(false);
 			}
 		}
-		return hard_limit;
 	}
 
 	void session_impl::recalculate_auto_managed_torrents()
@@ -2386,6 +2460,9 @@ namespace aux {
 		// of each kind we're allowed to have active
 		int num_downloaders = settings().active_downloads;
 		int num_seeds = settings().active_seeds;
+		int dht_limit = settings().active_dht_limit;
+		int tracker_limit = settings().active_tracker_limit;
+		int lsd_limit = settings().active_lsd_limit;
 		int hard_limit = settings().active_limit;
 
 		if (num_downloaders == -1)
@@ -2443,13 +2520,17 @@ namespace aux {
 
 		if (settings().auto_manage_prefer_seeds)
 		{
-			hard_limit = auto_manage_torrents(seeds, hard_limit, num_seeds);
-			hard_limit = auto_manage_torrents(downloaders, hard_limit, num_downloaders);
+			auto_manage_torrents(seeds, dht_limit, tracker_limit, lsd_limit
+				, hard_limit, num_seeds);
+			auto_manage_torrents(downloaders, dht_limit, tracker_limit, lsd_limit
+				, hard_limit, num_downloaders);
 		}
 		else
 		{
-			hard_limit = auto_manage_torrents(downloaders, hard_limit, num_downloaders);
-			hard_limit = auto_manage_torrents(seeds, hard_limit, num_seeds);
+			auto_manage_torrents(downloaders, dht_limit, tracker_limit, lsd_limit
+				, hard_limit, num_downloaders);
+			auto_manage_torrents(seeds, dht_limit, tracker_limit, lsd_limit
+				, hard_limit, num_seeds);
 		}
             
 	}
@@ -3633,6 +3714,8 @@ namespace aux {
 		m_lsd = new lsd(m_io_service
 			, m_listen_interface.address()
 			, bind(&session_impl::on_lsd_peer, this, _1, _2));
+		if (m_settings.broadcast_lsd)
+			m_lsd->use_broadcast(true);
 	}
 	
 	void session_impl::start_natpmp(natpmp* n)

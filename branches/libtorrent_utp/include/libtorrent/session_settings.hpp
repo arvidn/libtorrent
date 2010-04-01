@@ -145,6 +145,9 @@ namespace libtorrent
 			, peer_tos(0)
 			, active_downloads(8)
 			, active_seeds(5)
+			, active_dht_limit(88) // don't announce more than once every 40 seconds
+			, active_tracker_limit(360) // don't announce to trackers more than once every 5 seconds
+			, active_lsd_limit(60) // don't announce to local network more than once every 5 seconds
 			, active_limit(15)
 			, auto_manage_prefer_seeds(false)
 			, dont_count_slow_torrents(true)
@@ -152,8 +155,8 @@ namespace libtorrent
 			, share_ratio_limit(2.f)
 			, seed_time_ratio_limit(7.f)
 			, seed_time_limit(24 * 60 * 60) // 24 hours
-			, peer_turnover(1 / 50.f)
-			, peer_turnover_cutoff(1.f)
+			, peer_turnover(1 / 100.f)
+			, peer_turnover_cutoff(1.1f) // disable until the crash is resolved
 			, close_redundant_connections(true)
 			, auto_scrape_interval(1800)
 			, auto_scrape_min_interval(300)
@@ -207,6 +210,7 @@ namespace libtorrent
 			, strict_end_game_mode(true)
 			, default_peer_upload_rate(0)
 			, default_peer_download_rate(0)
+			, broadcast_lsd(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -501,8 +505,17 @@ namespace libtorrent
 		// they are subject to. If there are too many torrents
 		// some of the auto managed ones will be paused until
 		// some slots free up.
+		// active_dht_limit and active_tracker_limit limits the
+		// number of torrents that will be active on the DHT
+		// versus the tracker. If the active limit is set higher
+		// than these numbers, some torrents will be "active" in
+		// the sense that they will accept incoming connections,
+		// but not announce on the DHT or the tracker
 		int active_downloads;
 		int active_seeds;
+		int active_dht_limit;
+		int active_tracker_limit;
+		int active_lsd_limit;
 		int active_limit;
 
 		// prefer seeding torrents when determining which torrents to give 
@@ -791,6 +804,12 @@ namespace libtorrent
 		// each peer will have these limits set on it
 		int default_peer_upload_rate;
 		int default_peer_download_rate;
+
+		// if this is true, the broadcast socket will not only use IP multicast
+		// but also send the messages on the broadcast address. This is false by
+		// default in order to avoid flooding networks for no good reason. If
+		// a network is known not to support multicast, this can be enabled
+		bool broadcast_lsd;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

@@ -213,3 +213,8 @@ void lsd::close()
 	m_callback.clear();
 }
 
+void lsd::use_broadcast(bool b)
+{
+	m_socket.enable_ip_broadcast(b);
+}
+

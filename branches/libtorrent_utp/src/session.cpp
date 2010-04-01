@@ -202,6 +202,8 @@ namespace libtorrent
 		set.inactivity_timeout = 20;
 
 		set.active_limit = 2000;
+		set.active_tracker_limit = 2000;
+		set.active_dht_limit = 600;
 		set.active_seeds = 2000;
 
 		set.choking_algorithm = session_settings::fixed_slots_choker;

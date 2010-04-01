@@ -5,6 +5,7 @@ GEOIP_H = GeoIP.h
 endif
 
 nobase_include_HEADERS = \
+  address.hpp                  \
   add_torrent_params.hpp       \
   alert.hpp                    \
   alert_types.hpp              \
@@ -52,6 +53,8 @@ nobase_include_HEADERS = \
   intrusive_ptr_base.hpp       \
   invariant_check.hpp          \
   io.hpp                       \
+  io_service.hpp               \
+  io_service_fwd.hpp           \
   ip_filter.hpp                \
   lazy_entry.hpp               \
   lsd.hpp                      \
@@ -79,10 +82,12 @@ nobase_include_HEADERS = \
   socket.hpp                   \
   socket_io.hpp                \
   socket_type.hpp              \
+  socket_type_fwd.hpp          \
   socks5_stream.hpp            \
   ssl_stream.hpp               \
   stat.hpp                     \
   storage.hpp                  \
+  storage_defs.hpp             \
   thread.hpp                   \
   time.hpp                     \
   torrent_handle.hpp           \

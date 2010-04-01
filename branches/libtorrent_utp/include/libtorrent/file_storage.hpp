@@ -36,10 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 #include <ctime>
+#include <boost/shared_ptr.hpp>
 
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
+#include "libtorrent/peer_id.hpp"
 
 namespace libtorrent
 {
@@ -59,11 +61,12 @@ namespace libtorrent
 		// compressed into a single file, such as a so-called part file.
 		size_type file_base;
 		std::time_t mtime;
+		std::string symlink_path;
+		boost::shared_ptr<sha1_hash> filehash;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
 		bool symlink_attribute:1;
-		std::string symlink_path;
 	};
 
 	struct TORRENT_EXPORT file_slice
@@ -133,7 +136,7 @@ namespace libtorrent
 		int piece_size(int index) const;
 
 		void set_name(std::string const& n) { m_name = n; }
-		const std::string& name() const { TORRENT_ASSERT(m_piece_length > 0); return m_name; }
+		const std::string& name() const { return m_name; }
 
 		void swap(file_storage& ti)
 		{

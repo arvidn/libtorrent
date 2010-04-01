@@ -252,13 +252,18 @@ namespace libtorrent
 		void flush_cache();
 		void pause();
 		void resume();
+		void set_allow_peers(bool b);
+		void set_announce_to_dht(bool b) { m_announce_to_dht = b; }
+		void set_announce_to_trackers(bool b) { m_announce_to_trackers = b; }
+		void set_announce_to_lsd(bool b) { m_announce_to_lsd = b; }
 
 		ptime started() const { return m_started; }
 		void do_pause();
 		void do_resume();
 
 		bool is_paused() const;
-		bool is_torrent_paused() const { return m_paused; }
+		bool allows_peers() const { return m_allow_peers; }
+		bool is_torrent_paused() const { return !m_allow_peers; }
 		void force_recheck();
 		void save_resume_data();
 
@@ -671,6 +676,10 @@ namespace libtorrent
 		void write_resume_data(entry& rd) const;
 		void read_resume_data(lazy_entry const& rd);
 
+		void seen_complete() { m_last_seen_complete = time(0); }
+		int time_since_complete() const { return time(0) - m_last_seen_complete; }
+		time_t last_seen_complete() const { return m_last_seen_complete; }
+
 		// LOGGING
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual void debug_log(const std::string& line);
@@ -974,6 +983,7 @@ namespace libtorrent
 		// completed, m_completed_time is 0
 		time_t m_added_time;
 		time_t m_completed_time;
+		time_t m_last_seen_complete;
 
 		// ==============================
 		// The following members are specifically
@@ -1142,8 +1152,20 @@ namespace libtorrent
 		// been aborted.
 		bool m_abort:1;
 
-		// is true if this torrent has been paused
-		bool m_paused:1;
+		// true when the torrent should announce to
+		// the DHT
+		bool m_announce_to_dht:1;
+
+		// true when this torrent should anncounce to
+		// trackers
+		bool m_announce_to_trackers:1;
+
+		// true when this torrent should anncounce to
+		// the local network
+		bool m_announce_to_lsd:1;
+
+		// is true if this torrent has allows having peers
+		bool m_allow_peers:1;
 
 		// set to true when this torrent may not download anything
 		bool m_upload_mode:1;

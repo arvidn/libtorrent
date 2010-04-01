@@ -101,6 +101,7 @@ namespace libtorrent
 		, m_remote(endp)
 		, m_torrent(tor)
 		, m_receiving_block(-1, -1)
+		, m_last_seen_complete(0)
 		, m_timeout_extend(0)
 		, m_outstanding_bytes(0)
 		, m_extension_outstanding_bytes(0)
@@ -235,6 +236,7 @@ namespace libtorrent
 		, m_socket(s)
 		, m_remote(endp)
 		, m_receiving_block(-1, -1)
+		, m_last_seen_complete(0)
 		, m_timeout_extend(0)
 		, m_outstanding_bytes(0)
 		, m_extension_outstanding_bytes(0)
@@ -1077,9 +1079,9 @@ namespace libtorrent
 			return;
 		}
 
-		if (t->is_paused() && (!t->is_auto_managed()
-			|| !m_ses.m_settings.incoming_starts_queued_torrents
-			|| t->has_error()))
+		if ((!t->allows_peers() && (!t->is_auto_managed()
+				|| !m_ses.m_settings.incoming_starts_queued_torrents))
+			|| t->has_error())
 		{
 			// paused torrents will not accept
 			// incoming connections unless they are auto managed
@@ -1632,6 +1634,7 @@ namespace libtorrent
 		// decrement the piece count without first incrementing it
 		if (is_seed())
 		{
+			t->seen_complete();
 			t->get_policy().set_seed(m_peer_info, true);
 			m_upload_only = true;
 			disconnect_if_redundant();
@@ -3994,13 +3997,6 @@ namespace libtorrent
 		else if (buffer_size_watermark > m_ses.settings().send_buffer_watermark)
 		{
 			buffer_size_watermark = m_ses.settings().send_buffer_watermark;
-			// #error only trigger this if we actually run out of send buffer
-			// while we're waiting for the disk
-			if (t->alerts().should_post<performance_alert>())
-			{
-				t->alerts().post_alert(performance_alert(t->get_handle()
-					, performance_alert::send_buffer_watermark_too_low));
-			}
 		}
 
 		while (!m_requests.empty()
@@ -4243,11 +4239,11 @@ namespace libtorrent
 			return;
 		}
 
+		int quota_left = m_quota[upload_channel];
 		// send the actual buffer
 		if (!m_send_buffer.empty())
 		{
 			int amount_to_send = m_send_buffer.size();
-			int quota_left = m_quota[upload_channel];
 			if (amount_to_send > quota_left)
 				amount_to_send = quota_left;
 
@@ -4262,6 +4258,28 @@ namespace libtorrent
 					&peer_connection::on_send_data, self(), _1, _2)));
 
 			m_channel_state[upload_channel] = peer_info::bw_network;
+		}
+		else if (m_reading_bytes > 0
+			&& quota_left > 0
+			&& !m_connecting
+			&& !m_requests.empty()
+			&& m_reading_bytes > m_ses.settings().send_buffer_watermark - 0x4000)
+		{
+			// we're stalled on the disk. We want to write and we can write
+			// but our send buffer is empty, waiting to be refilled from the disk
+			// this either means the disk is slower than the network connection
+			// or that our send buffer watermark is too small, because we can
+			// send it all before the disk gets back to us. That's why we only
+			// trigger this if we've also filled the allowed send buffer. The
+			// first request would not fill it all the way up because of the
+			// upload rate being virtually 0. If m_requests is empty, it doesn't
+			// matter anyway, because we don't have any more requests from the
+			// peer to hang on to the disk
+			if (t->alerts().should_post<performance_alert>())
+			{
+				t->alerts().post_alert(performance_alert(t->get_handle()
+					, performance_alert::send_buffer_watermark_too_low));
+			}
 		}
 	}
 
@@ -4656,6 +4674,12 @@ namespace libtorrent
 			bytes_in_loop += bytes_transferred;
 		}
 		while (bytes_transferred > 0);
+
+		if (is_seed())
+		{
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			if (t) t->seen_complete();
+		}
 
 		m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 		setup_receive();	

@@ -594,6 +594,7 @@ int test_main()
 #endif
 
 #ifdef TORRENT_WINDOWS
+	TEST_EQUAL(is_complete("c:\\"), true);
 	TEST_EQUAL(is_complete("c:\\foo\\bar"), true);
 	TEST_EQUAL(is_complete("\\\\foo\\bar"), true);
 	TEST_EQUAL(is_complete("foo/bar"), false);
@@ -829,12 +830,15 @@ int test_main()
 
 	// escape_string
 	char const* test_string = "!@#$%^&*()-_=+/,. %?";
-	TEST_CHECK(escape_string(test_string, strlen(test_string))
-		== "!%40%23$%25%5e%26*()-_%3d%2b%2f,.%20%25%3f");
+	TEST_EQUAL(escape_string(test_string, strlen(test_string))
+		, "!%40%23%24%25%5e%26*()-_%3d%2b%2f%2c.%20%25%3f");
 
 	// escape_path
-	TEST_CHECK(escape_path(test_string, strlen(test_string))
-		== "!%40%23$%25%5e%26*()-_%3d%2b/,.%20%25%3f");
+	TEST_EQUAL(escape_path(test_string, strlen(test_string))
+		, "!%40%23%24%25%5e%26*()-_%3d%2b/%2c.%20%25%3f");
+
+	TEST_CHECK(unescape_string(escape_path(test_string, strlen(test_string)), ec) == test_string);
+	TEST_CHECK(!ec);
 
 	// need_encoding
 	char const* test_string2 = "!@$&()-_/,.%?";

@@ -1,3 +1,8 @@
+	* support more fine-grained torrent states between which peer sources it
+	  announces to
+	* supports calculating sha1 file-hashes when creating torrents
+	* made the send_buffer_watermark performance warning more meaningful
+	* supports complete_ago extension
 	* dropped zlib as a dependency and builds using puff.c instead
 	* made the default cache size depend on available physical RAM
 	* added flags to torrent::status() that can filter which values are calculated
@@ -20,6 +25,9 @@
 	* support for automatically start torrents when they receive an
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
+
+	* properly detect windows version to initialize half-open connection limit
+	* fixed bug in url encoder where $ would not be encoded
 
 0.15 release
 
@@ -114,12 +122,16 @@
 	* improved LSD performance and made the interval configurable
 	* improved UDP tracker support by caching connect tokens
 	* fast piece optimization
+
+release 0.14.10
+
 	* fixed udp tracker race condition
 	* added support for torrents with odd piece sizes
 	* fixed issue with disk read cache not being cleared when removing torrents
 	* made the DHT socket bind to the same interface as the session
 	* fixed issue where an http proxy would not be used on redirects
 	* Solaris build fixes
+	* disabled buggy disconnect_peers feature
 
 release 0.14.9
 

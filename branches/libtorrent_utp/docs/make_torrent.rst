@@ -217,7 +217,13 @@ The ``create_torrent`` class has the following synopsis::
 
 	struct create_torrent
 	{
-		enum { optimize = 1, merkle = 2 };
+		enum {
+			optimize = 1
+			, merkle = 2
+			, modification_time = 4
+			, symlink = 8
+			, calculate_file_hashes = 16
+		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
@@ -228,6 +234,7 @@ The ``create_torrent`` class has the following synopsis::
 		void set_comment(char const* str);
 		void set_creator(char const* str);
 		void set_hash(int index, sha1_hash const& h);
+		void set_file_hash(int index, sha1_hash const& h);
 		void add_url_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
@@ -244,7 +251,13 @@ create_torrent()
 
 	::
 
-		enum { optimize = 1, merkle = 2 };
+		enum {
+			optimize = 1
+			, merkle = 2
+			, modification_time = 4
+			, symlink = 8
+			, calculate_file_hashes = 16
+		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
@@ -277,6 +290,27 @@ merkle
 	The benefit is that the resulting torrent file will be much smaller and
 	not grow with more pieces. When this option is specified, it is
 	recommended to have a fairly small piece size, say 64 kiB.
+
+modification_time
+	This will include the file modification time as part of the torrent.
+	This is not enabled by default, as it might cause problems when you
+	create a torrent from separate files with the same content, hoping to
+	yield the same info-hash. If the files have different modification times,
+	with this option enabled, you would get different info-hashes for the
+	files.
+
+symlink
+	If this flag is defined, files that are symlinks get a symlink attribute
+	set on them. The file data will still be the same, the symlink will always
+	be followed when opening the file, but the file list will include the path
+	of the symlink so that the original directory structure can be reproduced
+	on the downloading side.
+
+calculate_file_hashes
+	If this is set, the `set_piece_hashes()`_ function will, as it calculates
+	the piece hashes, also calculate the file hashes and add those associated
+	with each file. Note that unless you use the `set_piece_hashes()`_ function,
+	this flag will have no effect.
 
 generate()
 ----------
@@ -340,6 +374,17 @@ This sets the SHA-1 hash for the specified piece (``index``). You are required
 to set the hash for every piece in the torrent before generating it. If you have
 the files on disk, you can use the high level convenience function to do this.
 See `set_piece_hashes()`_.
+
+set_file_hash()
+---------------
+
+	::
+
+		void set_file_hash(int index, sha1_hash const& h);
+
+This sets the sha1 hash for this file. This hash will end up under the key ``sha1``
+associated with this file (for multi-file torrents) or in the root info dictionary
+for single-file torrents.
 
 add_url_seed()
 --------------

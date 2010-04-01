@@ -959,6 +959,8 @@ called, the udp port will be rebound to the new port, if it was configured to us
 the same port as the tcp socket, and if the listen_on call failed to bind to the
 same port that the udp uses.
 
+If you want the OS to pick a port for you, pass in 0 as both first and second.
+
 The reason why it's a good idea to run the DHT and the bittorrent socket on the same
 port is because that is an assumption that may be used to increase performance. One
 way to accelerate the connecting of peers on windows may be to first ping all peers
@@ -1582,7 +1584,7 @@ files() orig_files()
 
 	::
 
-		file_storage const& file() const;
+		file_storage const& files() const;
 		file_storage const& orig_files() const;
 
 The ``file_storage`` object contains the information on how to map the pieces to
@@ -1623,6 +1625,10 @@ Renames a the file with the specified index to the new name. The new filename is
 reflected by the ``file_storage`` returned by ``files()`` but not by the one
 returned by ``orig_files()``.
 
+If you want to rename the base name of the torrent (for a multifile torrent), you
+can copy the ``file_storage`` (see `files() orig_files()`_), change the name, and
+then use `remap_files()`_.
+
 
 begin_files() end_files() rbegin_files() rend_files()
 -----------------------------------------------------
@@ -1647,9 +1653,12 @@ iterators with the type ``file_entry``.
 		size_type offset;
 		size_type size;
 		size_type file_base;
+		std::string symlink_path;
+		boost::shared_ptr<sha1_hash> filehash;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
+		bool symlink_attribute:1;
 	};
 
 The ``path`` is the full (relative) path of each file. i.e. if it is a multi-file
@@ -1672,6 +1681,16 @@ They are just there to make sure the next file is aligned to a particular byte o
 or piece boundry. These files should typically be hidden from an end user. They are
 not written to disk.
 
+``hidden_attribute`` is true if the file was marked as hidden (on windows).
+
+``executable_attribute`` is true if the file was marked as executable (posix)
+
+``symlink_attribute`` is true if the file was a symlink. If this is the case
+the ``symlink_path`` specifies the original location where the data for this file
+was found.
+
+``filehash`` is a pointer that is set in case the torrent file included a sha1 hash
+for this file. This may be use to look up more sources for this file on other networks.
 
 num_files() file_at()
 ---------------------
@@ -1943,7 +1962,14 @@ Its declaration looks like this::
 	{
 		torrent_handle();
 
-		torrent_status status();
+		enum status_flags_t
+		{
+			query_distributed_copies = 1,
+			query_accurate_download_counters = 2,
+			query_last_seen_complete = 4
+		};
+
+		torrent_status status(boost::uint32_t flags = 0xffffffff);
 		void file_progress(std::vector<size_type>& fp, int flags = 0);
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
@@ -2837,11 +2863,24 @@ status()
 
 	::
 
-		torrent_status status() const;
+		torrent_status status(boost::uint32_t flags = 0xffffffff) const;
 
 ``status()`` will return a structure with information about the status of this
 torrent. If the torrent_handle_ is invalid, it will throw libtorrent_exception_ exception.
-See torrent_status_.
+See torrent_status_. The ``flags`` argument filters what information is returned
+in the torrent_status. Some information in there is relatively expensive to calculate, and
+if you're not interested in it (and see performance issues), you can filter them out.
+
+By default everything is included. The flags you can use to decide what to *include* are:
+
+* ``query_distributed_copies``
+	calculates ``distributed_copies``, ``distributed_full_copies`` and ``distributed_fraction``.
+
+* ``query_accurate_download_counters``
+	includes partial downloaded blocks in ``total_done`` and ``total_wanted_done``.
+
+* ``query_last_seen_complete``
+	includes ``last_seen_complete``.
 
 
 get_download_queue()
@@ -3058,6 +3097,7 @@ It contains the following fields::
 
 		time_t added_time;
 		time_t completed_time;
+		time_t last_seen_complete;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -3286,6 +3326,9 @@ torrent_handle_.
 
 ``completed_time`` is the posix-time when this torrent was finished. If
 the torrent is not yet finished, this is 0.
+
+``last_seen_complete`` is the time when we, or one of our peers, last
+saw a complete copy of this torrent.
 
 peer_info
 =========
@@ -3749,6 +3792,8 @@ session_settings
 
 		int active_downloads;
 		int active_seeds;
+		int active_dht_limit;
+		int active_tracker_limit;
 		int active_limit;
 		bool auto_manage_prefer_seeds;
 		bool dont_count_slow_torrents;
@@ -3826,6 +3871,7 @@ session_settings
 
 		int default_peer_upload_rate;
 		int default_peer_download_rate;
+		bool broadcast_lsd;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4161,6 +4207,21 @@ that don't transfer anything block the active slots.
 ``active_limit`` is a hard limit on the number of active torrents. This applies even to
 slow torrents.
 
+``active_dht_limit`` is the max number of torrents to announce to the DHT. By default
+this is set to 88, which is no more than one DHT announce every 10 seconds.
+
+``active_tracker_limit`` is the max number of torrents to announce to their trackers.
+By default this is 360, which is no more than one announce every 5 seconds.
+
+``active_lsd_limit`` is the max number of torrents to announce to the local network
+over the local service discovery protocol. By default this is 80, which is no more
+than one announce every 5 seconds (assuming the default announce interval of 5 minutes).
+
+You can have more torrents *active*, even though they are not announced to the DHT,
+lsd or their tracker. If some peer knows about you for any reason and tries to connect,
+it will still be accepted, unless the torrent is paused, which means it won't accept
+any connections.
+
 ``auto_manage_interval`` is the number of seconds between the torrent queue
 is updated, and rotated.
 
@@ -4436,6 +4497,11 @@ default to 0, which means unlimited. These settings affect the rate limits
 set on new peer connections (not existing ones). The peer rate limits can
 be changed individually later using
 `set_peer_upload_limit() set_peer_download_limit()`_.
+
+if ``broadcast_lsd`` is set to true, the local peer discovery
+(or Local Service Discovery) will not only use IP multicast, but also
+broadcast its messages. This can be useful when running on networks
+that don't support multicast. It's off by default since it's inefficient.
 
 pe_settings
 ===========

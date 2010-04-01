@@ -559,6 +559,11 @@ void add_torrent(libtorrent::session& ses
 	p.duplicate_is_error = false;
 	p.auto_managed = true;
 	torrent_handle h = ses.add_torrent(p, ec);
+	if (ec)
+	{
+		fprintf(stderr, "failed to add torrent: %s\n", ec.message().c_str());
+		return;
+	}
 
 	handles.insert(std::pair<const std::string, torrent_handle>(
 		monitored_dir?std::string(torrent):std::string(), h));
@@ -839,7 +844,7 @@ int main(int argc, char* argv[])
 			// interpret this as a torrent
 
 			// first see if this is a torrentless download
-			if (std::strstr("magnet:", argv[i]) == argv[i])
+			if (std::strstr(argv[i], "magnet:") == argv[i])
 			{
 				add_torrent_params p;
 				p.save_path = save_path;
@@ -883,7 +888,7 @@ int main(int argc, char* argv[])
 				torrent_handle h = ses.add_torrent(p, ec);
 				if (ec)
 				{
-					fprintf(stderr, "%s\n", ec.message().c_str());
+					fprintf(stderr, "failed to add torrent: %s\n", ec.message().c_str());
 					continue;
 				}
 
@@ -1081,6 +1086,16 @@ int main(int argc, char* argv[])
 				if (h.is_valid()) h.set_sequential_download(!h.is_sequential_download());
 			}
 
+			if (c == 'R')
+			{
+				// save resume data for all torrents
+				for (handles_t::iterator i = handles.begin()
+					, end(handles.end()); i != end; ++i)
+				{
+					i->second.save_resume_data();
+				}
+			}
+
 			if (c == 'o')
 			{
 				torrent_handle h = get_active_torrent(handles);
@@ -1181,7 +1196,7 @@ int main(int argc, char* argv[])
 			"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
 			"[j] force recheck [space] toggle session pause [c] clear error [v] scrape [g] show DHT\n"
 			"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
-			"[5] toggle peer rate [6] toggle failures [7] toggle send buffers\n";
+			"[5] toggle peer rate [6] toggle failures [7] toggle send buffers [R] save resume data\n";
 
 		char str[500];
 		int torrent_index = 0;

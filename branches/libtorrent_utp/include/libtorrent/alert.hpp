@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/repetition/enum.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
+#include <boost/preprocessor/repetition/enum_shifted_binary_params.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -172,7 +173,7 @@ namespace libtorrent {
 		void handle_alert_dispatch(
 			const std::auto_ptr<alert>& alert_, const Handler& handler
 			, const std::type_info& typeid_
-			, BOOST_PP_ENUM_BINARY_PARAMS(TORRENT_MAX_ALERT_TYPES, T, *p))
+			, T0*, BOOST_PP_ENUM_SHIFTED_BINARY_PARAMS(TORRENT_MAX_ALERT_TYPES, T, *p))
 		{
 			if (typeid_ == typeid(T0))
 				handler(*static_cast<T0*>(alert_.get()));
@@ -184,9 +185,9 @@ namespace libtorrent {
 
 		template<class Handler>
 		void handle_alert_dispatch(
-			const std::auto_ptr<alert>& alert_
-			, const Handler& handler
-			, const std::type_info& typeid_
+			const std::auto_ptr<alert>&
+			, const Handler&
+			, const std::type_info&
 			, BOOST_PP_ENUM_PARAMS(TORRENT_MAX_ALERT_TYPES, void_* BOOST_PP_INTERCEPT))
 		{
 			throw unhandled_alert();

@@ -575,7 +575,7 @@ namespace libtorrent
 		int i = 0;
 		// match the xx:\ or xx:/ form
 		while (f[i] && is_alpha(f[i])) ++i;
-		if (i < int(f.size()-2) && f[i] == ':' && (f[i+1] == '\\' || f[i+1] == '/'))
+		if (i < int(f.size()-1) && f[i] == ':' && (f[i+1] == '\\' || f[i+1] == '/'))
 			return true;
 
 		// match the \\ form
@@ -828,7 +828,17 @@ namespace libtorrent
 			return false;
 		}
 
+#ifdef DIRECTIO_ON
+		// for solaris
+		if (mode & no_buffer)
+		{
+			int yes = 1;
+			directio(m_fd, DIRECTIO_ON);
+		}
+#endif
+
 #ifdef F_NOCACHE
+		// for BSD/Mac
 		if (mode & no_buffer)
 		{
 			int yes = 1;
@@ -1478,15 +1488,21 @@ namespace libtorrent
 				return false;
 			}
 		}
-#if _WIN32_WINNT >= 0x501
-		// TODO: again, only allocate the space if the file
-		// is not fully allocated
+#if _WIN32_WINNT >= 0x501		
 		if ((m_open_mode & sparse) == 0)
 		{
-			// if the user has permissions, avoid filling
-			// the file with zeroes, but just fill it with
-			// garbage instead
-			SetFileValidData(m_file_handle, offs.QuadPart);
+			// only allocate the space if the file
+			// is not fully allocated
+			offs.LowPart = GetCompressedFileSize(m_path.c_str(), &offs.HighPart);
+			ec.assign(GetLastError(), get_system_category());
+			if (ec) return false;
+			if (offs.QuadPart != s)
+			{
+				// if the user has permissions, avoid filling
+				// the file with zeroes, but just fill it with
+				// garbage instead
+				SetFileValidData(m_file_handle, offs.QuadPart);
+			}
 		}
 #endif
 #else

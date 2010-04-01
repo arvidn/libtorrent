@@ -396,7 +396,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 		return;
 	}
 	char* ptr = buffer;
-	boost::uint64_t connection_id = detail::read_uint64(ptr);
+	detail::read_uint64(ptr);
 	boost::uint32_t action = detail::read_uint32(ptr);
 	boost::uint32_t transaction_id = detail::read_uint32(ptr);
 
