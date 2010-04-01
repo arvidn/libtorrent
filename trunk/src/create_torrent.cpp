@@ -170,6 +170,7 @@ namespace libtorrent
 		, m_merkle_torrent(ti.is_merkle_torrent())
 		, m_include_mtime(false)
 		, m_include_symlinks(false)
+		, m_calculate_file_hashes(false)
 	{
 		TORRENT_ASSERT(ti.is_valid());
 		if (ti.creation_date()) m_creation_date = *ti.creation_date();

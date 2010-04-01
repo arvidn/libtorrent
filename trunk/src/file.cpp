@@ -126,7 +126,8 @@ BOOST_STATIC_ASSERT((libtorrent::file::no_buffer & libtorrent::file::attribute_m
 
 namespace libtorrent
 {
-	void stat_file(std::string const& inf, file_status* s, error_code& ec)
+	void stat_file(std::string const& inf, file_status* s
+		, error_code& ec, int flags)
 	{
 		ec.clear();
 
@@ -149,7 +150,12 @@ namespace libtorrent
 		}
 #else
 		struct stat ret;
-		if (::stat(f.c_str(), &ret) < 0)
+		int retval;
+		if (flags & dont_follow_links)
+			retval = ::lstat(f.c_str(), &ret);
+		else
+			retval = ::stat(f.c_str(), &ret);
+		if (retval < 0)
 		{
 			ec.assign(errno, boost::system::get_generic_category());
 			return;

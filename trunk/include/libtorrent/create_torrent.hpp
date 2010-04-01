@@ -180,22 +180,32 @@ namespace libtorrent
 
 		template <class Pred>
 		void add_files_impl(file_storage& fs, std::string const& p
-			, std::string const& l, Pred pred)
+			, std::string const& l, Pred pred, boost::uint32_t flags)
 		{
 			std::string f = combine_path(p, l);
 			if (!pred(f)) return;
 			error_code ec;
 			file_status s;
-			stat_file(f, &s, ec);
+			stat_file(f, &s, ec, (flags & create_torrent::symlinks) ? dont_follow_links : 0);
 			if (ec) return;
 
-			if (s.mode & file_status::directory)
+			// recurse into directories
+			bool recurse = s.mode & file_status::directory;
+
+			// if the file is not a link or we're following links, and it's a directory
+			// only then should we recurse
+#ifndef TORRENT_WINDOWS
+			if ((s.mode & file_status::link) && (flags & create_torrent::symlinks))
+				recurse = false;
+#endif
+
+			if (recurse)
 			{
 				for (directory i(f, ec); !i.done(); i.next(ec))
 				{
 					std::string leaf = i.file();
 					if (ignore_subdir(leaf)) continue;
-					add_files_impl(fs, p, combine_path(l, leaf), pred);
+					add_files_impl(fs, p, combine_path(l, leaf), pred, flags);
 				}
 			}
 			else
@@ -204,7 +214,8 @@ namespace libtorrent
 				int file_flags = get_file_attributes(f);
 
 				// mask all bits to check if the file is a symlink
-				if (file_flags & file_storage::attribute_symlink) 
+				if ((file_flags & file_storage::attribute_symlink)
+					&& (flags & create_torrent::symlinks)) 
 				{
 					std::string sym_path = get_symlink_path(f);
 					fs.add_file(l, 0, file_flags, s.mtime, sym_path);
@@ -218,14 +229,15 @@ namespace libtorrent
 	}
 
 	template <class Pred>
-	void add_files(file_storage& fs, std::string const& file, Pred p)
+	void add_files(file_storage& fs, std::string const& file, Pred p, boost::uint32_t flags = 0)
 	{
-		detail::add_files_impl(fs, parent_path(complete(file)), filename(file), p);
+		detail::add_files_impl(fs, parent_path(complete(file)), filename(file), p, flags);
 	}
 
-	inline void add_files(file_storage& fs, std::string const& file)
+	inline void add_files(file_storage& fs, std::string const& file, boost::uint32_t flags = 0)
 	{
-		detail::add_files_impl(fs, parent_path(complete(file)), filename(file), detail::default_pred);
+		detail::add_files_impl(fs, parent_path(complete(file)), filename(file)
+			, detail::default_pred, flags);
 	}
 	
 	struct piece_holder
@@ -318,18 +330,20 @@ namespace libtorrent
 	// wstring versions
 
 	template <class Pred>
-	void add_files(file_storage& fs, std::wstring const& wfile, Pred p)
+	void add_files(file_storage& fs, std::wstring const& wfile, Pred p, boost::uint32_t flags = 0)
 	{
 		std::string utf8;
 		wchar_utf8(wfile, utf8);
-		detail::add_files_impl(fs, parent_path(complete(utf8)), filename(utf8), p);
+		detail::add_files_impl(fs, parent_path(complete(utf8))
+			, filename(utf8), p, flags);
 	}
 
-	inline void add_files(file_storage& fs, std::wstring const& wfile)
+	inline void add_files(file_storage& fs, std::wstring const& wfile, boost::uint32_t flags = 0)
 	{
 		std::string utf8;
 		wchar_utf8(wfile, utf8);
-		detail::add_files_impl(fs, parent_path(complete(utf8)), filename(utf8), detail::default_pred);
+		detail::add_files_impl(fs, parent_path(complete(utf8))
+			, filename(utf8), detail::default_pred, flags);
 	}
 	
 	template <class Fun>

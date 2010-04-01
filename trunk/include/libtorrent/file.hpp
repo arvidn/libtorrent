@@ -104,8 +104,9 @@ namespace libtorrent
 		int mode;
 	};
 
+	enum stat_flags_t { dont_follow_links = 1 };
 	TORRENT_EXPORT void stat_file(std::string const& f, file_status* s
-		, error_code& ec);
+		, error_code& ec, int flags = 0);
 	TORRENT_EXPORT void rename(std::string const& f
 		, std::string const& newf, error_code& ec);
 	TORRENT_EXPORT void create_directories(std::string const& f

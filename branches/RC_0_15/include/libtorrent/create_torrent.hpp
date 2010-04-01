@@ -191,13 +191,20 @@ namespace libtorrent
 
 		template <class Pred, class Str, class PathTraits>
 		void add_files_impl(file_storage& fs, boost::filesystem::basic_path<Str, PathTraits> const& p
-			, boost::filesystem::basic_path<Str, PathTraits> const& l, Pred pred)
+			, boost::filesystem::basic_path<Str, PathTraits> const& l, Pred pred, boost::uint32_t flags)
 		{
 			using boost::filesystem::basic_path;
 			using boost::filesystem::basic_directory_iterator;
 			basic_path<Str, PathTraits> f(p / l);
 			if (!pred(f)) return;
-			if (is_directory(f))
+
+			bool recurse = is_directory(f);
+			// if the file is not a link or we're following links, and it's a directory
+			// only then should we recurse
+			if ((is_symlink(f)) && (flags & create_torrent::symlinks))
+				recurse = false;
+
+			if (recurse)
 			{
 				for (basic_directory_iterator<basic_path<Str, PathTraits> > i(f), end; i != end; ++i)
 				{
@@ -207,7 +214,7 @@ namespace libtorrent
 					Str const& leaf = i->path().filename();
 #endif
 					if (ignore_subdir(leaf)) continue;
-					add_files_impl(fs, p, l / leaf, pred);
+					add_files_impl(fs, p, l / leaf, pred, flags);
 				}
 			}
 			else
@@ -231,29 +238,33 @@ namespace libtorrent
 	// path versions
 
 	template <class Pred>
-	void add_files(file_storage& fs, boost::filesystem::path const& file, Pred p)
+	void add_files(file_storage& fs, boost::filesystem::path const& file, Pred p
+		, boost::uint32_t flags = 0)
 	{
 		using boost::filesystem::path;
 		boost::filesystem::path f = file;
 #if BOOST_VERSION < 103600
 		if (f.leaf() == ".") f = f.branch_path();
-		detail::add_files_impl(fs, complete(f).branch_path(), path(f.leaf()), p);
+		detail::add_files_impl(fs, complete(f).branch_path(), path(f.leaf()), p, flags);
 #else
 		if (f.filename() == ".") f = f.parent_path();
-		detail::add_files_impl(fs, complete(f).parent_path(), path(f.filename()), p);
+		detail::add_files_impl(fs, complete(f).parent_path(), path(f.filename()), p, flags);
 #endif
 	}
 
-	inline void add_files(file_storage& fs, boost::filesystem::path const& file)
+	inline void add_files(file_storage& fs, boost::filesystem::path const& file
+		, boost::uint32_t flags = 0)
 	{
 		using boost::filesystem::path;
 		boost::filesystem::path f = file;
 #if BOOST_VERSION < 103600
 		if (f.leaf() == ".") f = f.branch_path();
-		detail::add_files_impl(fs, complete(f).branch_path(), path(f.leaf()), detail::default_pred);
+		detail::add_files_impl(fs, complete(f).branch_path(), path(f.leaf())
+			, detail::default_pred, flags);
 #else
 		if (f.filename() == ".") f = f.parent_path();
-		detail::add_files_impl(fs, complete(f).parent_path(), path(f.filename()), detail::default_pred);
+		detail::add_files_impl(fs, complete(f).parent_path(), path(f.filename())
+			, detail::default_pred, flags);
 #endif
 	}
 	
@@ -319,29 +330,33 @@ namespace libtorrent
 	// wpath versions
 
 	template <class Pred>
-	void add_files(file_storage& fs, boost::filesystem::wpath const& file, Pred p)
+	void add_files(file_storage& fs, boost::filesystem::wpath const& file, Pred p
+		, boost::uint32_t flags = 0)
 	{
 		using boost::filesystem::wpath;
 		wpath f = file;
 #if BOOST_VERSION < 103600
 		if (f.leaf() == L".") f = f.branch_path();
-		detail::add_files_impl(fs, complete(f).branch_path(), wpath(f.leaf()), p);
+		detail::add_files_impl(fs, complete(f).branch_path(), wpath(f.leaf()), p, flags);
 #else
 		if (f.filename() == L".") f = f.parent_path();
-		detail::add_files_impl(fs, complete(f).parent_path(), wpath(f.filename()), p);
+		detail::add_files_impl(fs, complete(f).parent_path(), wpath(f.filename()), p, flags);
 #endif
 	}
 
-	inline void add_files(file_storage& fs, boost::filesystem::wpath const& file)
+	inline void add_files(file_storage& fs, boost::filesystem::wpath const& file
+		, boost::uint32_t flags = 0)
 	{
 		using boost::filesystem::wpath;
 		wpath f = file;
 #if BOOST_VERSION < 103600
 		if (f.leaf() == L".") f = f.branch_path();
-		detail::add_files_impl(fs, complete(f).branch_path(), wpath(f.leaf()), detail::wdefault_pred);
+		detail::add_files_impl(fs, complete(f).branch_path(), wpath(f.leaf()), detail::wdefault_pred
+			, flags);
 #else
 		if (f.filename() == L".") f = f.parent_path();
-		detail::add_files_impl(fs, complete(f).parent_path(), wpath(f.filename()), detail::wdefault_pred);
+		detail::add_files_impl(fs, complete(f).parent_path(), wpath(f.filename())
+			, detail::wdefault_pred, flags);
 #endif
 	}
 	
