@@ -43,7 +43,7 @@ void bind_create_torrent()
 #endif
 
     void (*set_piece_hashes0)(create_torrent&, std::string const&) = &set_piece_hashes;
-    void (*add_files0)(file_storage&, std::string const&) = add_files;
+    void (*add_files0)(file_storage&, std::string const&, boost::uint32_t) = add_files;
 
     class_<file_storage>("file_storage")
         .def("is_valid", &file_storage::is_valid)
