@@ -26,6 +26,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed strict aliasing warning on gcc
 	* fixed inconsistency when creating torrents with symlinks
 	* properly detect windows version to initialize half-open connection limit
 	* fixed bug in url encoder where $ would not be encoded

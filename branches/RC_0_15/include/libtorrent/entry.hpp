@@ -194,24 +194,19 @@ namespace libtorrent
 		// workaround for msvc-bug.
 		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
 		// and sizeof(list<char>) == sizeof(list<entry>)
-		union
-		{
-			char data[
-				detail::max4<sizeof(std::list<char>)
-				, sizeof(std::map<std::string, char>)
-				, sizeof(string_type)
-				, sizeof(integer_type)>::value];
-			integer_type dummy_aligner;
-		};
+		integer_type data[
+			(detail::max4<sizeof(std::list<char>)
+			, sizeof(std::map<std::string, char>)
+			, sizeof(string_type)
+			, sizeof(integer_type)>::value + sizeof(integer_type) - 1)
+				/ sizeof(integer_type)];
 #else
-		union
-		{
-			char data[detail::max4<sizeof(list_type)
-				, sizeof(dictionary_type)
-				, sizeof(string_type)
-				, sizeof(integer_type)>::value];
-			integer_type dummy_aligner;
-		};
+		integer_type data[
+			(detail::max4<sizeof(list_type)
+			, sizeof(dictionary_type)
+			, sizeof(string_type)
+			, sizeof(integer_type)>::value + sizeof(integer_type) - 1)
+				/ sizeof(integer_type)];
 #endif
 
 #ifdef TORRENT_DEBUG
