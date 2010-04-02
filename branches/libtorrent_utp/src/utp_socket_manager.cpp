@@ -127,5 +127,14 @@ namespace libtorrent
 		delete_utp_impl(i->second);
 		m_utp_sockets.erase(i);
 	}
+
+	utp_socket_impl* utp_socket_manager::new_utp_socket(utp_stream* str)
+	{
+		boost::uint16_t id = rand();
+		utp_socket_impl* impl = construct_utp_impl(str, id, udp::endpoint());
+		TORRENT_ASSERT(m_utp_sockets.find(id) == m_utp_sockets.end());
+		m_utp_sockets.insert(std::make_pair(id, impl));
+		return impl;
+	}
 }
 

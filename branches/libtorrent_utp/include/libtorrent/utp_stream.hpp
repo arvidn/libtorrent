@@ -230,13 +230,16 @@ public:
 
 	endpoint_type local_endpoint() const;
 
-	endpoint_type local_endpoint(error_code const& ec) const
+	endpoint_type local_endpoint(error_code& ec) const
 	{ return local_endpoint(); }
 
-	endpoint_type remote_endpoint() const;
+	endpoint_type remote_endpoint() const
+	{
+		error_code ec;
+		return remote_endpoint(ec);
+	}
 
-	endpoint_type remote_endpoint(error_code const& ec) const
-	{ return remote_endpoint(); }
+	endpoint_type remote_endpoint(error_code& ec) const;
 
 	std::size_t available() const;
 	std::size_t available(error_code& ec) const { return available(); }

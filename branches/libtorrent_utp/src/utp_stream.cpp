@@ -183,7 +183,12 @@ struct utp_socket_impl
 	void tick(ptime const& now);
 	bool incoming_packet(char const* buf, int size);
 	bool should_delete() const { return m_state == UTP_STATE_DELETE; }
-	tcp::endpoint remote_endpoint() const { return tcp::endpoint(m_remote_address, m_port); }
+	tcp::endpoint remote_endpoint(error_code& ec) const
+	{
+		if (m_state != UTP_STATE_NONE)
+			ec = asio::error::not_connected;
+		return tcp::endpoint(m_remote_address, m_port);
+	}
 	std::size_t available() const;
 	void destroy();
 
@@ -401,21 +406,16 @@ std::size_t utp_stream::available() const
 	return m_impl->available();
 }
 
-utp_stream::endpoint_type utp_stream::remote_endpoint() const
+utp_stream::endpoint_type utp_stream::remote_endpoint(error_code& ec) const
 {
-	return m_impl->remote_endpoint();
+	return m_impl->remote_endpoint(ec);
 }
 
 utp_stream::endpoint_type utp_stream::local_endpoint() const
 {
 	return m_impl->m_sm->local_endpoint();
 }
-/*
-lowest_layer_type& utp_stream::lowest_layer()
-{
-	return *this;
-}
-*/
+
 utp_stream::~utp_stream()
 {
 	if (m_impl) m_impl->destroy();
@@ -430,8 +430,8 @@ void utp_stream::assign(utp_socket_impl* s)
 
 void utp_stream::set_manager(utp_socket_manager* sm)
 {
-	TORRENT_ASSERT(m_impl);
-	m_impl->m_sm = sm;
+	TORRENT_ASSERT(m_impl == 0);
+	m_impl = sm->new_utp_socket(this);
 }
 
 int utp_stream::read_buffer_size() const
@@ -532,6 +532,8 @@ void utp_stream::set_write_handler(handler_t h)
 void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler_t h)
 {
 	TORRENT_ASSERT(m_impl->m_connect_handler == 0);
+	m_impl->m_remote_address = ep.address();
+	m_impl->m_port = ep.port();
 	m_impl->m_connect_handler = h;
 
 	if (m_impl->test_socket_state()) return;

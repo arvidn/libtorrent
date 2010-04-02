@@ -62,6 +62,8 @@ namespace libtorrent
 		// internal, used by utp_stream
 		void remove_socket(boost::uint16_t id);
 
+		utp_socket_impl* new_utp_socket(utp_stream* str);
+
 	private:
 		udp_socket& m_sock;
 		incoming_utp_callback_t m_cb;
