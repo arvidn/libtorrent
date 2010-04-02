@@ -191,6 +191,7 @@ struct utp_socket_impl
 	}
 	std::size_t available() const;
 	void destroy();
+	void send_syn();
 
 	bool send_pkt(bool ack);
 	void send_reset(utp_header* ph);
@@ -408,6 +409,7 @@ std::size_t utp_stream::available() const
 
 utp_stream::endpoint_type utp_stream::remote_endpoint(error_code& ec) const
 {
+	if (!m_open) ec = asio::error::not_connected;
 	return m_impl->remote_endpoint(ec);
 }
 
@@ -529,16 +531,15 @@ void utp_stream::set_write_handler(handler_t h)
 	while (m_impl->send_pkt(false));
 }
 
-void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler_t h)
+void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler_t handler)
 {
 	TORRENT_ASSERT(m_impl->m_connect_handler == 0);
 	m_impl->m_remote_address = ep.address();
 	m_impl->m_port = ep.port();
-	m_impl->m_connect_handler = h;
+	m_impl->m_connect_handler = handler;
 
 	if (m_impl->test_socket_state()) return;
-
-	// #error send SYN
+	m_impl->send_syn();
 }
 
 // =========== utp_socket_impl ============
@@ -548,6 +549,29 @@ void utp_socket_impl::destroy()
 	// #error our end is closing. Send fin and wait for everything to be acked
 
 	m_state = UTP_STATE_CLOSE_WAIT;
+}
+
+void utp_socket_impl::send_syn()
+{
+	packet* p = (packet*)malloc(sizeof(packet) + sizeof(utp_header));
+	p->size = sizeof(utp_header);
+	p->header_size = sizeof(utp_header);
+	p->num_transmissions = 1;
+	utp_header* h = (utp_header*)p->buf;
+	h->ver = 1;
+	h->type = ST_SYN;
+	h->extension = 0;
+	h->connection_id = m_send_id;
+	h->timestamp_difference_microseconds = m_reply_micro;
+	h->wnd_size = 0;
+	h->seq_nr = rand();
+	h->ack_nr = 0;
+
+	ptime now = time_now_hires();
+	p->send_time = now;
+	h->timestamp_microseconds = total_microseconds(now - min_time());
+	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)h, sizeof(utp_header));
+	m_outbuf.insert((m_ack_nr + 1) & ACK_MASK, p);
 }
 
 void utp_socket_impl::send_reset(utp_header* ph)
@@ -681,8 +705,8 @@ bool utp_socket_impl::send_pkt(bool ack)
 	packet* p;
 	// we only need a heap allocation if we have payload and
 	// need to keep the packet around (in the outbuf)
-	if (payload_size) p = (packet*)malloc(packet_size);
-	else p = (packet*)TORRENT_ALLOCA(char, packet_size);
+	if (payload_size) p = (packet*)malloc(sizeof(packet) + packet_size);
+	else p = (packet*)TORRENT_ALLOCA(char, sizeof(packet) + packet_size);
 
 	p->size = packet_size - sizeof(utp_header);
 	p->num_transmissions = 1;
