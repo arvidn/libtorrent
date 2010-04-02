@@ -222,7 +222,8 @@ namespace libtorrent
 				int file_flags = get_file_attributes(f);
 				std::time_t mtime = get_file_mtime(f);
 				//Masking all bits to check if the file is a symlink
-				if(file_flags & file_storage::attribute_symlink) 
+				if ((file_flags & file_storage::attribute_symlink)
+					&& (flags & create_torrent::symlinks))
 				{
 					fs::path sym_path = get_symlink_path(f);
 					fs.add_file(l, 0 ,file_flags, mtime, sym_path);
