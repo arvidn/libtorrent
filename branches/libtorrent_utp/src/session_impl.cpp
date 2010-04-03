@@ -1034,7 +1034,6 @@ namespace aux {
 		if (m_natpmp) m_natpmp->close();
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht) m_dht->stop();
-		m_udp_socket.close();
 		m_dht_announce_timer.cancel(ec);
 #endif
 		m_timer.cancel(ec);
@@ -1103,6 +1102,10 @@ namespace aux {
 
 		m_download_rate.close();
 		m_upload_rate.close();
+
+		// #error closing the udp socket here means that
+		// the uTP connections cannot be closed gracefully
+		m_udp_socket.close();
 	}
 
 	void session_impl::set_port_filter(port_filter const& f)
@@ -3155,8 +3158,9 @@ namespace aux {
 
 		bool new_listen_address = m_listen_interface.address() != new_interface.address();
 
-#ifndef TORRENT_DISABLE_DHT
-		if ((new_listen_address || m_dht_same_port) && m_dht)
+		if (new_listen_address
+			|| m_dht_same_port
+			|| !m_udp_socket.is_open())
 		{
 			if (m_dht_same_port)
 				m_dht_settings.service_port = new_interface.port();
@@ -3167,7 +3171,6 @@ namespace aux {
 			maybe_update_udp_mapping(0, m_dht_settings.service_port, m_dht_settings.service_port);
 			maybe_update_udp_mapping(1, m_dht_settings.service_port, m_dht_settings.service_port);
 		}
-#endif
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
@@ -3461,8 +3464,7 @@ namespace aux {
 		else
 			m_dht_same_port = true;
 		if (!m_dht_same_port
-			&& settings.service_port != m_dht_settings.service_port
-			&& m_dht)
+			&& settings.service_port != m_dht_settings.service_port)
 		{
 			error_code ec;
 			m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), settings.service_port), ec);

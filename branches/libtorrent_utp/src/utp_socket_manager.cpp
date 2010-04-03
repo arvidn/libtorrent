@@ -69,9 +69,14 @@ namespace libtorrent
 		}
 	}
 
-	void utp_socket_manager::send_packet(udp::endpoint const& ep, char const* p, int len)
+	void utp_socket_manager::send_packet(udp::endpoint const& ep, char const* p
+		, int len, error_code& ec)
 	{
-		error_code ec;
+		if (!m_sock.is_open())
+		{
+			ec = asio::error::operation_aborted;
+			return;
+		}
 		m_sock.send(ep, p, len, ec);
 	}
 

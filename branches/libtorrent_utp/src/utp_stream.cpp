@@ -181,6 +181,8 @@ struct utp_socket_impl
 		, m_in_buf_size(100 * 1024 * 1024)
 	{}
 
+	~utp_socket_impl();
+
 	void init(udp::endpoint const& ep, boost::uint16_t id, void* userdata
 		, utp_socket_manager* sm)
 	{
@@ -234,6 +236,12 @@ struct utp_socket_impl
 	ptime m_last_history_step;
 	timestamp_history m_delay_hist;
 
+	// this is the error on this socket. If m_state is
+	// set to UTP_STATE_ERROR_WAIT, this error should be
+	// forwarded to the client as soon as we have a new
+	// async operation initiated
+	error_code m_error;
+
 	boost::uint16_t m_send_id;
 	boost::uint16_t m_recv_id;
 
@@ -261,19 +269,18 @@ struct utp_socket_impl
 		UTP_STATE_CONNECTED,
 		// fin sent, but all packets up to the fin packet
 		// have not yet been acked
-//		UTP_STATE_FIN_SENT,
+		UTP_STATE_FIN_SENT,
 
 		// the socket has been gracefully disconnected
 		// and is waiting for the client to make a
 		// socket call so that we can communicate this
-		// fact and actually delete all the state
-		UTP_STATE_CLOSE_WAIT,
-
-		// same as UTP_STATE_CLOSE_WAIT but the connection
-		// was reset. We're waiting to be able to communicate
-		// the connection reset message back to the client
-		// before we delete the socket state
-		UTP_STATE_RESET_WAIT,
+		// fact and actually delete all the state, or
+		// there is an error on this socket and we're
+		// waiting to communicate this to the client in
+		// a callback. The error in either case is stored
+		// in m_error. If the socket has gracefully shut
+		// down, the error is error::eof.
+		UTP_STATE_ERROR_WAIT,
 
 		// there are no more references to this socket
 		// and we can delete it
@@ -559,11 +566,25 @@ void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler
 
 // =========== utp_socket_impl ============
 
+utp_socket_impl::~utp_socket_impl()
+{
+	// #error go through circular buffers and receive buffer and free all packet
+}
+
 void utp_socket_impl::destroy()
 {
-	// #error our end is closing. Send fin and wait for everything to be acked
+	if (m_state == UTP_STATE_ERROR_WAIT
+		|| m_state == UTP_STATE_NONE
+		|| m_state == UTP_STATE_SYN_SENT)
+	{
+		m_state = UTP_STATE_DELETE;
+		return;
+	}
 
-	m_state = UTP_STATE_CLOSE_WAIT;
+	// #error our end is closing. Send fin and wait for everything to be acked
+	// #error send FIN
+
+	m_state = UTP_STATE_FIN_SENT;
 }
 
 void utp_socket_impl::send_syn()
@@ -587,7 +608,17 @@ void utp_socket_impl::send_syn()
 	ptime now = time_now_hires();
 	p->send_time = now;
 	h->timestamp_microseconds = total_microseconds(now - min_time());
-	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)h, sizeof(utp_header));
+
+	TORRENT_ASSERT(!m_error);
+	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)h
+		, sizeof(utp_header), m_error);
+	if (m_error)
+	{
+		free(p);
+		m_state = UTP_STATE_ERROR_WAIT;
+		test_socket_state();
+		return;
+	}
 
 	TORRENT_ASSERT(m_outbuf.at(m_seq_nr));
 	m_outbuf.insert(m_seq_nr, p);
@@ -607,7 +638,10 @@ void utp_socket_impl::send_reset(utp_header* ph)
 	h.seq_nr = rand();
 	h.ack_nr = ph->seq_nr;
 	h.timestamp_microseconds = total_microseconds(time_now_hires() - min_time());
-	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)&h, sizeof(h));
+
+	// ignore errors here
+	error_code ec;
+	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)&h, sizeof(h), ec);
 }
 
 std::size_t utp_socket_impl::available() const
@@ -761,7 +795,14 @@ bool utp_socket_impl::send_pkt(bool ack)
 	p->send_time = now;
 	h->timestamp_microseconds = total_microseconds(now - min_time());
 
-	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)&h, sizeof(h));
+	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
+		, (char const*)&h, sizeof(h), m_error);
+
+	if (m_error)
+	{
+		m_state = UTP_STATE_ERROR_WAIT;
+		test_socket_state();
+	}
 
 	// if we have payload, we need to save the packet until it's acked
 	// and progress m_seq_nr
@@ -861,17 +902,9 @@ bool utp_socket_impl::test_socket_state()
 	// if the socket is in a state where it's dead, just waiting to
 	// tell the client that it's closed. Do that and transition into
 	// the deleted state, where it will be deleted
-	if (m_state == UTP_STATE_RESET_WAIT)
+	if (m_state == UTP_STATE_ERROR_WAIT)
 	{
-		if (cancel_handlers(asio::error::connection_reset, true))
-		{
-			m_state = UTP_STATE_DELETE;
-			return true;
-		}
-	}
-	else if (m_state == UTP_STATE_CLOSE_WAIT && m_write_buffer_size == 0)
-	{
-		if (cancel_handlers(asio::error::eof, true))
+		if (cancel_handlers(m_error, true))
 		{
 			m_state = UTP_STATE_DELETE;
 			return true;
@@ -905,14 +938,9 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 	if (ph->type == ST_RESET)
 	{
-		if (cancel_handlers(asio::error::connection_reset, true))
-		{
-			m_state = UTP_STATE_DELETE;
-		}
-		else 
-		{
-			m_state = UTP_STATE_RESET_WAIT;
-		}
+		m_error = asio::error::connection_reset;
+		m_state = UTP_STATE_ERROR_WAIT;
+		test_socket_state();
 		return true;
 	}
 
@@ -1037,7 +1065,14 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// update packet header
 			h->timestamp_microseconds = total_microseconds(p->send_time - min_time());
 			h->timestamp_difference_microseconds = m_reply_micro;
-			m_sm->send_packet(udp::endpoint(m_remote_address, m_port), p->buf, p->size);
+			m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
+				, p->buf, p->size, m_error);
+			if (m_error)
+			{
+				m_state = UTP_STATE_ERROR_WAIT;
+				test_socket_state();
+				return true;
+			}
 		}
 		// cut window size in 2
 		m_cwnd = (std::max)(m_cwnd / 2, m_mtu);
@@ -1214,7 +1249,9 @@ void utp_socket_impl::tick(ptime const& now)
 			{
 				// the connection is dead
 				// #error let the client know! trigger all outstanding handlers
-				m_state = UTP_STATE_DELETE;
+				m_error = asio::error::timed_out;
+				m_state = UTP_STATE_ERROR_WAIT;
+				test_socket_state();
 				return;
 			}
 			// the packet timed out, resend it
@@ -1224,7 +1261,14 @@ void utp_socket_impl::tick(ptime const& now)
 			// update packet header
 			h->timestamp_microseconds = total_microseconds(p->send_time - min_time());
 			h->timestamp_difference_microseconds = m_reply_micro;
-			m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)p->buf, p->size);
+			m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
+				, (char const*)p->buf, p->size, m_error);
+			if (m_error)
+			{
+				m_state = UTP_STATE_ERROR_WAIT;
+				test_socket_state();
+				return;
+			}
 		}
 	}
 
@@ -1233,7 +1277,7 @@ void utp_socket_impl::tick(ptime const& now)
 		case UTP_STATE_NONE:
 		case UTP_STATE_DELETE:
 			return;
-//		case UTP_SYN_SENT:
+//		case UTP_STATE_SYN_SENT:
 //
 //			break;
 	}

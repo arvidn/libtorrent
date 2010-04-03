@@ -57,7 +57,8 @@ namespace libtorrent
 
 		tcp::endpoint local_endpoint() const;
 
-		void send_packet(udp::endpoint const& ep, char const* p, int len);
+		void send_packet(udp::endpoint const& ep, char const* p, int len
+			, error_code& ec);
 
 		// internal, used by utp_stream
 		void remove_socket(boost::uint16_t id);
