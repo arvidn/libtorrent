@@ -49,7 +49,7 @@ namespace libtorrent
 		if (sm)
 		{
 			s.instantiate<utp_stream>(ios);
-			s.get<utp_stream>()->set_manager(sm);
+			s.get<utp_stream>()->set_impl(sm->new_utp_socket(s.get<utp_stream>()));
 		}
 		else if (ps.type == proxy_settings::none)
 		{

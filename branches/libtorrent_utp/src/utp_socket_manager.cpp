@@ -102,20 +102,15 @@ namespace libtorrent
 			instantiate_connection(m_sock.get_io_service(), proxy_settings(), this, *c);
 			utp_stream* str = c->get<utp_stream>();
 			TORRENT_ASSERT(str);
-
-			boost::uint16_t id = rand();
-			utp_socket_impl* impl = construct_utp_impl(str, id, ep);
-			if (impl == 0) return false;
-
-			TORRENT_ASSERT(m_utp_sockets.find(id) == m_utp_sockets.end());
-			i = m_utp_sockets.insert(i, std::make_pair(id, impl));
-			str->assign(impl);
+			bool ret = utp_incoming_packet(str->get_impl(), p, size, ep);
+			if (!ret) return false;
 			m_cb(c);
+			return true;
 		}
 
 		// only accept a packet if it's from the right source
 		if (i != m_utp_sockets.end() && ep == utp_remote_endpoint(i->second))
-			return utp_incoming_packet(i->second, p, size);
+			return utp_incoming_packet(i->second, p, size, ep);
 
 		return false;
 	}
@@ -131,7 +126,7 @@ namespace libtorrent
 	utp_socket_impl* utp_socket_manager::new_utp_socket(utp_stream* str)
 	{
 		boost::uint16_t id = rand();
-		utp_socket_impl* impl = construct_utp_impl(str, id, udp::endpoint());
+		utp_socket_impl* impl = construct_utp_impl(id, str, this);
 		TORRENT_ASSERT(m_utp_sockets.find(id) == m_utp_sockets.end());
 		m_utp_sockets.insert(std::make_pair(id, impl));
 		return impl;

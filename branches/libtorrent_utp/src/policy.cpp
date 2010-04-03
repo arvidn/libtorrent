@@ -1315,7 +1315,13 @@ namespace libtorrent
 
 		TORRENT_ASSERT(c);
 		error_code ec;
-		TORRENT_ASSERT(c->remote() == c->get_socket()->remote_endpoint(ec) || ec);
+		if (c->remote() != c->get_socket()->remote_endpoint(ec) && !ec)
+		{
+			fprintf(stderr, "c->remote: %s\nc->get_socket()->remote_endpoint: %s\n"
+				, print_endpoint(c->remote()).c_str()
+				, print_endpoint(c->get_socket()->remote_endpoint(ec)).c_str());
+			TORRENT_ASSERT(false);
+		}
 
 		return std::find_if(
 			m_peers.begin()

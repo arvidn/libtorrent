@@ -165,12 +165,13 @@ namespace libtorrent
 
 struct utp_socket_impl;
 
-utp_socket_impl* construct_utp_impl(void* userdata, boost::uint16_t id
-	, udp::endpoint const& ep);
+utp_socket_impl* construct_utp_impl(boost::uint16_t id, void* userdata
+	, utp_socket_manager* sm);
 void delete_utp_impl(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);
 void tick_utp_impl(utp_socket_impl* s, ptime const& now);
-bool utp_incoming_packet(utp_socket_impl* s, char const* p, int size);
+bool utp_incoming_packet(utp_socket_impl* s, char const* p, int size
+	, udp::endpoint const& ep);
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s);
 
 class utp_stream
@@ -184,8 +185,8 @@ public:
 	~utp_stream();
 
 	// used for incoming connections
-	void assign(utp_socket_impl* s);
-	void set_manager(utp_socket_manager* sm);
+	void set_impl(utp_socket_impl* s);
+	utp_socket_impl* get_impl();
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class IO_Control_Command>
@@ -255,6 +256,12 @@ public:
 			error_code ec = asio::error::operation_not_supported;
 			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
 			handler(ec);
+			return;
+		}
+
+		if (m_impl == 0)
+		{
+			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
 			return;
 		}
 

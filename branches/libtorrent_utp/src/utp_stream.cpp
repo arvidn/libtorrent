@@ -152,10 +152,11 @@ private:
 
 struct utp_socket_impl
 {
-	utp_socket_impl(void* userdata, boost::uint16_t id, udp::endpoint const& ep)
-		: m_sm(0)
-		, m_remote_address(ep.address())
-		, m_port(ep.port())
+	utp_socket_impl(boost::uint16_t id, void* userdata
+		, utp_socket_manager* sm)
+		: m_sm(sm)
+		, m_remote_address()
+		, m_port(0)
 		, m_last_history_step(time_now())
 		, m_send_id(id + 1)
 		, m_recv_id(id)
@@ -167,7 +168,7 @@ struct utp_socket_impl
 		, m_read_handler(0)
 		, m_write_handler(0)
 		, m_connect_handler(0)
-		, m_userdata(0)
+		, m_userdata(userdata)
 		, m_reply_micro(0)
 		, m_cwnd(1500)
 		, m_adv_wnd(1500)
@@ -180,13 +181,26 @@ struct utp_socket_impl
 		, m_in_buf_size(100 * 1024 * 1024)
 	{}
 
+	void init(udp::endpoint const& ep, boost::uint16_t id, void* userdata
+		, utp_socket_manager* sm)
+	{
+		m_remote_address = ep.address();
+		m_port = ep.port();
+		m_send_id = id + 1;
+		m_recv_id = id;
+		m_userdata = userdata;
+		m_sm = sm;
+	}
+
 	void tick(ptime const& now);
-	bool incoming_packet(char const* buf, int size);
+	bool incoming_packet(char const* buf, int size, udp::endpoint const& ep);
 	bool should_delete() const { return m_state == UTP_STATE_DELETE; }
 	tcp::endpoint remote_endpoint(error_code& ec) const
 	{
-		if (m_state != UTP_STATE_NONE)
+		if (m_state == UTP_STATE_NONE)
 			ec = asio::error::not_connected;
+		else
+			TORRENT_ASSERT(m_remote_address != address_v4::any());
 		return tcp::endpoint(m_remote_address, m_port);
 	}
 	std::size_t available() const;
@@ -358,10 +372,10 @@ struct utp_socket_impl
 	int m_in_buf_size;
 };
 
-utp_socket_impl* construct_utp_impl(void* userdata, boost::uint16_t id
-	, udp::endpoint const& ep)
+utp_socket_impl* construct_utp_impl(boost::uint16_t id, void* userdata
+	, utp_socket_manager* sm)
 {
-	return new utp_socket_impl(userdata, id, ep);
+	return new utp_socket_impl(id, userdata, sm);
 }
 
 void delete_utp_impl(utp_socket_impl* s)
@@ -379,9 +393,9 @@ void tick_utp_impl(utp_socket_impl* s, ptime const& now)
 	s->tick(now);
 }
 
-bool utp_incoming_packet(utp_socket_impl* s, char const* p, int size)
+bool utp_incoming_packet(utp_socket_impl* s, char const* p, int size, udp::endpoint const& ep)
 {
-	return s->incoming_packet(p, size);
+	return s->incoming_packet(p, size, ep);
 }
 
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s)
@@ -394,6 +408,11 @@ utp_stream::utp_stream(asio::io_service& io_service)
 	, m_impl(0)
 	, m_open(false)
 {
+}
+
+utp_socket_impl* utp_stream::get_impl()
+{
+	return m_impl;
 }
 
 void utp_stream::close()
@@ -424,16 +443,12 @@ utp_stream::~utp_stream()
 	m_impl = 0;
 }
 
-void utp_stream::assign(utp_socket_impl* s)
+void utp_stream::set_impl(utp_socket_impl* impl)
 {
 	TORRENT_ASSERT(m_impl == 0);
-	m_impl = s;
-}
-
-void utp_stream::set_manager(utp_socket_manager* sm)
-{
-	TORRENT_ASSERT(m_impl == 0);
-	m_impl = sm->new_utp_socket(this);
+	TORRENT_ASSERT(!m_open);
+	m_impl = impl;
+	m_open = true;
 }
 
 int utp_stream::read_buffer_size() const
@@ -564,14 +579,20 @@ void utp_socket_impl::send_syn()
 	h->connection_id = m_send_id;
 	h->timestamp_difference_microseconds = m_reply_micro;
 	h->wnd_size = 0;
-	h->seq_nr = rand();
+	m_seq_nr = rand();
+	m_ack_nr = (m_seq_nr - 1) & ACK_MASK;
+	h->seq_nr = m_seq_nr;
 	h->ack_nr = 0;
 
 	ptime now = time_now_hires();
 	p->send_time = now;
 	h->timestamp_microseconds = total_microseconds(now - min_time());
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)h, sizeof(utp_header));
-	m_outbuf.insert((m_ack_nr + 1) & ACK_MASK, p);
+
+	TORRENT_ASSERT(m_outbuf.at(m_seq_nr));
+	m_outbuf.insert(m_seq_nr, p);
+	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
+	m_state = UTP_STATE_SYN_SENT;
 }
 
 void utp_socket_impl::send_reset(utp_header* ph)
@@ -860,9 +881,16 @@ bool utp_socket_impl::test_socket_state()
 }
 
 // return false if this is an invalid packet
-bool utp_socket_impl::incoming_packet(char const* buf, int size)
+bool utp_socket_impl::incoming_packet(char const* buf, int size
+	, udp::endpoint const& ep)
 {
 	ptime receive_time = time_now_hires();
+
+	if (m_state == UTP_STATE_NONE)
+	{
+		m_remote_address = ep.address();
+		m_port = ep.port();
+	}
 
 	utp_header* ph = (utp_header*)buf;
 

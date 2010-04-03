@@ -491,6 +491,7 @@ namespace libtorrent
 				return;
 			}
 			m_remote = m_socket->remote_endpoint(ec);
+			TORRENT_ASSERT(m_remote.address() != address_v4::any());
 			if (ec)
 			{
 				disconnect(ec);

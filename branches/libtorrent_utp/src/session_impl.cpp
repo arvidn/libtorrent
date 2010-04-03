@@ -1621,6 +1621,8 @@ namespace aux {
 			return;
 		}
 
+		TORRENT_ASSERT(endp.address() != address_v4::any());
+
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " <== INCOMING CONNECTION " << endp << "\n";
 #endif
