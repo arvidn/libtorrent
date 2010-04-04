@@ -41,6 +41,7 @@ namespace libtorrent
 	utp_socket_manager::utp_socket_manager(udp_socket& s, incoming_utp_callback_t cb)
 		: m_sock(s)
 		, m_cb(cb)
+		, m_new_connection(-1)
 	{}
 
 	utp_socket_manager::~utp_socket_manager()
@@ -102,6 +103,8 @@ namespace libtorrent
 		// create a new utp_stream
 		if (i == m_utp_sockets.end() && ph->type == ST_SYN)
 		{
+			// create the new socket with this ID
+			m_new_connection = id;
 			boost::shared_ptr<socket_type> c(new (std::nothrow) socket_type(m_sock.get_io_service()));
 			if (!c) return false;
 			instantiate_connection(m_sock.get_io_service(), proxy_settings(), this, *c);
@@ -110,6 +113,8 @@ namespace libtorrent
 			bool ret = utp_incoming_packet(str->get_impl(), p, size, ep);
 			if (!ret) return false;
 			m_cb(c);
+			// the connection most likely changed its connection ID here
+			// we need to move it to the correct ID
 			return true;
 		}
 
@@ -130,7 +135,16 @@ namespace libtorrent
 
 	utp_socket_impl* utp_socket_manager::new_utp_socket(utp_stream* str)
 	{
-		boost::uint16_t id = rand();
+		boost::uint16_t id = 0;
+		if (m_new_connection != -1)
+		{
+			id = m_new_connection;
+			m_new_connection = -1;
+		}
+		else
+		{
+			id = rand();
+		}
 		utp_socket_impl* impl = construct_utp_impl(id, str, this);
 		TORRENT_ASSERT(m_utp_sockets.find(id) == m_utp_sockets.end());
 		m_utp_sockets.insert(std::make_pair(id, impl));

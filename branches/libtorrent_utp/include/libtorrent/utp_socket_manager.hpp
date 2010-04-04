@@ -72,6 +72,8 @@ namespace libtorrent
 		// replace with a hash-map
 		typedef std::map<boost::uint16_t, utp_socket_impl*> socket_map_t;
 		socket_map_t m_utp_sockets;
+
+		int m_new_connection;
 	};
 }
 

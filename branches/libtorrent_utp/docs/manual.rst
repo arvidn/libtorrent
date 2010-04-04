@@ -1182,7 +1182,6 @@ struct has the following members::
 	{
 		int max_peers_reply;
 		int search_branching;
-		int service_port;
 		int max_fail_count;
 	};
 
@@ -1193,19 +1192,18 @@ response to a ``get_peers`` message from another node.
 send when announcing and refreshing the routing table. This parameter is
 called alpha in the kademlia paper.
 
-``service_port`` is the udp port the node will listen to. This will default
-to 0, which means the udp listen port will be the same as the tcp listen
-port. This is in general a good idea, since some NAT implementations
-reserves the udp port for any mapped tcp port, and vice versa. NAT-PMP
-guarantees this for example.
-
 ``max_fail_count`` is the maximum number of failed tries to contact a node
 before it is removed from the routing table. If there are known working nodes
 that are ready to replace a failing node, it will be replaced immediately,
 this limit is only used to clear out nodes that don't have any node that can
 replace them.
 
-``is_dht_running`` returns true if the DHT support has been started and false
+The ``dht_settings`` struct used to contain a ``service_port`` member to control
+which port the DHT would listen on and send messages from. This field is deprecated
+and ignored. libtorrent always tries to open the UDP socket on the same port
+as the TCP socket.
+
+``is_dht_running()`` returns true if the DHT support has been started and false
 otherwise.
 
 

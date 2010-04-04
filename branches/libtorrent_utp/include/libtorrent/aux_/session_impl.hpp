@@ -693,16 +693,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 			boost::intrusive_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
-			// if this is set to true, the dht listen port
-			// will be set to the same as the tcp listen port
-			// and will be synchronlized with it as it changes
-			// it defaults to true
-			bool m_dht_same_port;
 			
-			// see m_external_listen_port. This is the same
-			// but for the udp port used by the DHT.
-			int m_external_udp_port;
-
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased
 			std::list<udp::endpoint> m_dht_router_nodes;
@@ -715,9 +706,13 @@ namespace libtorrent
 			deadline_timer m_dht_announce_timer;
 #endif
 
-			utp_socket_manager m_utp_socket_manager;
+			// see m_external_listen_port. This is the same
+			// but for the udp port used by the DHT.
+			int m_external_udp_port;
 
 			rate_limited_udp_socket m_udp_socket;
+
+			utp_socket_manager m_utp_socket_manager;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			pe_settings m_pe_settings;

@@ -327,7 +327,9 @@ namespace aux {
 	{
 		TORRENT_SETTING(integer, max_peers_reply)
 		TORRENT_SETTING(integer, search_branching)
+#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_SETTING(integer, service_port)
+#endif
 		TORRENT_SETTING(integer, max_fail_count)
 		TORRENT_SETTING(integer, max_torrent_search_reply)
 	};
@@ -493,10 +495,9 @@ namespace aux {
 		, m_last_second_tick(m_created)
 		, m_last_choke(m_created)
 #ifndef TORRENT_DISABLE_DHT
-		, m_dht_same_port(true)
-		, m_external_udp_port(0)
 		, m_dht_announce_timer(m_io_service)
 #endif
+		, m_external_udp_port(0)
 		, m_udp_socket(m_io_service, bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, m_half_open)
 		, m_utp_socket_manager(m_udp_socket
@@ -1420,6 +1421,20 @@ namespace aux {
 				else
 					m_ipv4_interface = m_listen_interface;
 			}
+
+		}
+
+		error_code ec;
+		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
+		if (ec)
+		{
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(m_listen_interface, ec));
+		}
+		else
+		{
+			maybe_update_udp_mapping(0, m_listen_interface.port(), m_listen_interface.port());
+			maybe_update_udp_mapping(1, m_listen_interface.port(), m_listen_interface.port());
 		}
 
 		open_new_incoming_socks_connection();
@@ -3156,22 +3171,6 @@ namespace aux {
 
 		open_listen_port();
 
-		bool new_listen_address = m_listen_interface.address() != new_interface.address();
-
-		if (new_listen_address
-			|| m_dht_same_port
-			|| !m_udp_socket.is_open())
-		{
-			if (m_dht_same_port)
-				m_dht_settings.service_port = new_interface.port();
-			// the listen interface changed, rebind the dht listen socket as well
-			error_code ec;
-			m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_dht_settings.service_port), ec);
-
-			maybe_update_udp_mapping(0, m_dht_settings.service_port, m_dht_settings.service_port);
-			maybe_update_udp_mapping(1, m_dht_settings.service_port, m_dht_settings.service_port);
-		}
-
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
@@ -3232,17 +3231,14 @@ namespace aux {
 		mutex::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
 
-#ifndef TORRENT_DISABLE_DHT
 		if (mapping == m_udp_mapping[map_transport] && port != 0)
 		{
 			m_external_udp_port = port;
-			m_dht_settings.service_port = port;
 			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.post_alert(portmap_alert(mapping, port
 					, map_transport));
 			return;
 		}
-#endif
 
 		if (mapping == m_tcp_mapping[map_transport] && port != 0)
 		{
@@ -3373,24 +3369,7 @@ namespace aux {
 			m_dht->stop();
 			m_dht = 0;
 		}
-		if (m_dht_settings.service_port == 0
-			|| m_dht_same_port)
-		{
-			m_dht_same_port = true;
-			if (m_listen_interface.port() > 0)
-				m_dht_settings.service_port = m_listen_interface.port();
-			else
-				m_dht_settings.service_port = 45000 + (rand() % 10000);
-		}
-		m_external_udp_port = m_dht_settings.service_port;
-		maybe_update_udp_mapping(0, m_dht_settings.service_port, m_dht_settings.service_port);
-		maybe_update_udp_mapping(1, m_dht_settings.service_port, m_dht_settings.service_port);
 		m_dht = new dht::dht_tracker(*this, m_udp_socket, m_dht_settings, &startup_state);
-		if (!m_udp_socket.is_open() || m_udp_socket.local_port() != m_dht_settings.service_port)
-		{
-			error_code ec;
-			m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_dht_settings.service_port), ec);
-		}
 
 		for (std::list<udp::endpoint>::iterator i = m_dht_router_nodes.begin()
 			, end(m_dht_router_nodes.end()); i != end; ++i)
@@ -3456,26 +3435,7 @@ namespace aux {
 
 	void session_impl::set_dht_settings(dht_settings const& settings)
 	{
-		// only change the dht listen port in case the settings
-		// contains a vaiid port, and if it is different from
-		// the current setting
-		if (settings.service_port != 0)
-			m_dht_same_port = false;
-		else
-			m_dht_same_port = true;
-		if (!m_dht_same_port
-			&& settings.service_port != m_dht_settings.service_port)
-		{
-			error_code ec;
-			m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), settings.service_port), ec);
-
-			maybe_update_udp_mapping(0, settings.service_port, settings.service_port);
-			maybe_update_udp_mapping(1, settings.service_port, settings.service_port);
-			m_external_udp_port = settings.service_port;
-		}
 		m_dht_settings = settings;
-		if (m_dht_same_port)
-			m_dht_settings.service_port = m_listen_interface.port();
 	}
 
 	void session_impl::on_dht_state_callback(condition& c
@@ -3733,12 +3693,11 @@ namespace aux {
 			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
 				, m_listen_interface.port(), m_listen_interface.port());
 		}
-#ifndef TORRENT_DISABLE_DHT
-		if (m_dht)
+		if (m_udp_socket.is_open())
+		{
 			m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::udp
-				, m_dht_settings.service_port 
-				, m_dht_settings.service_port);
-#endif
+				, m_listen_interface.port(), m_listen_interface.port());
+		}
 	}
 
 	void session_impl::start_upnp(upnp* u)
@@ -3753,12 +3712,11 @@ namespace aux {
 			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
 				, m_listen_interface.port(), m_listen_interface.port());
 		}
-#ifndef TORRENT_DISABLE_DHT
-		if (m_dht)
+		if (m_udp_socket.is_open())
+		{
 			m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
-				, m_dht_settings.service_port 
-				, m_dht_settings.service_port);
-#endif
+				, m_listen_interface.port(), m_listen_interface.port());
+		}
 	}
 
 	void session_impl::stop_lsd()
