@@ -108,10 +108,15 @@ namespace libtorrent
 	void* packet_buffer::remove(int i)
 	{
 		TORRENT_ASSERT(i >= 0 && i <= packet_mask);
-		TORRENT_ASSERT(m_array);
-		TORRENT_ASSERT((unsigned(i - m_cursor) & packet_mask) <= m_mask);
+//		TORRENT_ASSERT((unsigned(i - m_cursor) & packet_mask) <= m_mask);
 
 		if ((unsigned(i - m_cursor) & packet_mask) > m_mask) return 0;
+
+		if (!m_array)
+		{
+			TORRENT_ASSERT((unsigned(i - m_cursor) & packet_mask) == 0);
+			return 0;	
+		}
 		
 		void* ret = m_array[i & m_mask];
 		TORRENT_ASSERT(ret);

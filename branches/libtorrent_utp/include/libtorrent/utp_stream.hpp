@@ -107,65 +107,10 @@ namespace libtorrent
 		be_uint16 ack_nr;
 	};
 
-	namespace aux {
-
-	template <class Mutable_Buffers>
-	inline std::size_t copy_to_buffers(char const* linear, std::size_t size
-		, Mutable_Buffers const& buffers)
-	{
-		std::size_t copied = 0;
-		for (typename Mutable_Buffers::const_iterator i = buffers.begin();
-			i != buffers.end(); ++i)
-		{
-			using asio::buffer_cast;
-			using asio::buffer_size;
-			int to_copy = (std::min)(buffer_size(*i), size - copied);
-			if (to_copy == 0) break;
-			std::memcpy(buffer_cast<char*>(*i), linear + copied, to_copy);
-			copied += to_copy;
-		}
-		return copied;
-	}
-
-	template <class Const_Buffers>
-	inline std::size_t copy_from_buffers(char* linear, std::size_t size
-		, Const_Buffers const& buffers, std::size_t skip = 0)
-	{
-		std::size_t copied = 0;
-		for (typename Const_Buffers::const_iterator i = buffers.begin();
-			i != buffers.end(); ++i)
-		{
-			using asio::buffer_cast;
-			using asio::buffer_size;
-			if (skip > 0 && skip >= buffer_size(*i))
-			{
-				skip -= buffer_size(*i);
-				continue;
-			}
-			int to_copy = (std::min)(buffer_size(*i) - skip, size - copied);
-			if (to_copy == 0) break;
-			std::memcpy(linear + copied, buffer_cast<char const*>(*i) + skip, to_copy);
-			copied += to_copy;
-			skip = 0;
-		}
-		return copied;
-	}
-
-	template <class Const_Buffers>
-	inline std::size_t buffers_size(Const_Buffers const& buffers)
-	{
-		std::size_t ret = 0;
-		for (typename Const_Buffers::const_iterator i = buffers.begin();
-			i != buffers.end(); ++i)
-			ret += buffer_size(*i);
-		return ret;
-	}
-
-} // namespace aux
-
 struct utp_socket_impl;
 
-utp_socket_impl* construct_utp_impl(boost::uint16_t id, void* userdata
+utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
+	, boost::uint16_t send_id, void* userdata
 	, utp_socket_manager* sm);
 void delete_utp_impl(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);

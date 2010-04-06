@@ -34,6 +34,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/instantiate_connection.hpp"
+#include "libtorrent/socket_io.hpp"
+
+#if TORRENT_UTP_LOG
+
+extern void utp_log(char const* fmt, ...);
+
+#define UTP_LOG utp_log
+#define UTP_LOGV utp_log
+
+#else
+
+#define UTP_LOG if (false) printf
+#define UTP_LOGV if (false) printf
+
+#endif
 
 namespace libtorrent
 {
@@ -88,16 +103,24 @@ namespace libtorrent
 
 	bool utp_socket_manager::incoming_packet(char const* p, int size, udp::endpoint const& ep)
 	{
+		UTP_LOGV("incoming packet size:%d\n", size);
+
 		if (size < sizeof(utp_header)) return false;
 
 		utp_header const* ph = (utp_header*)p;
 
+		UTP_LOGV("incoming packet version:%d\n", int(ph->ver));
+
 		if (ph->ver != 1) return false;
+		
+		// #error cache the last socket used to test against before doing the lookup
 
 		// parse out connection ID and look for existing
 		// connections. If found, forward to the utp_stream.
 		boost::uint16_t id = ph->connection_id;
 		socket_map_t::iterator i = m_utp_sockets.find(id);
+
+		UTP_LOGV("incoming packet id:%d source:%s\n", id, print_endpoint(ep).c_str());
 
 		// if not found, see if it's a SYN packet, if it is,
 		// create a new utp_stream
@@ -105,6 +128,9 @@ namespace libtorrent
 		{
 			// create the new socket with this ID
 			m_new_connection = id;
+
+			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
+
 			boost::shared_ptr<socket_type> c(new (std::nothrow) socket_type(m_sock.get_io_service()));
 			if (!c) return false;
 			instantiate_connection(m_sock.get_io_service(), proxy_settings(), this, *c);
@@ -120,7 +146,14 @@ namespace libtorrent
 
 		// only accept a packet if it's from the right source
 		if (i != m_utp_sockets.end() && ep == utp_remote_endpoint(i->second))
+		{
+			UTP_LOGV("found connection!\n");
 			return utp_incoming_packet(i->second, p, size, ep);
+		}
+		else
+		{
+			UTP_LOGV("ignoring packet\n");
+		}
 
 		return false;
 	}
@@ -135,19 +168,22 @@ namespace libtorrent
 
 	utp_socket_impl* utp_socket_manager::new_utp_socket(utp_stream* str)
 	{
-		boost::uint16_t id = 0;
+		boost::uint16_t send_id = 0;
+		boost::uint16_t recv_id = 0;
 		if (m_new_connection != -1)
 		{
-			id = m_new_connection;
+			send_id = m_new_connection;
+			recv_id = m_new_connection + 1;
 			m_new_connection = -1;
 		}
 		else
 		{
-			id = rand();
+			send_id = rand();
+			recv_id = send_id - 1;
 		}
-		utp_socket_impl* impl = construct_utp_impl(id, str, this);
-		TORRENT_ASSERT(m_utp_sockets.find(id) == m_utp_sockets.end());
-		m_utp_sockets.insert(std::make_pair(id, impl));
+		utp_socket_impl* impl = construct_utp_impl(recv_id, send_id, str, this);
+		TORRENT_ASSERT(m_utp_sockets.find(recv_id) == m_utp_sockets.end());
+		m_utp_sockets.insert(std::make_pair(recv_id, impl));
 		return impl;
 	}
 }

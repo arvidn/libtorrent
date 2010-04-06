@@ -4184,6 +4184,9 @@ namespace libtorrent
 		else
 #endif
 		{
+			// #error this is where we determine if we open a regular TCP connection
+			// or a uTP connection. If the m_utp_socket_manager pointer is not passed in
+			// we'll instantiate a TCP connection
 			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy()
 				, &m_ses.m_utp_socket_manager, *s);
 			(void)ret;

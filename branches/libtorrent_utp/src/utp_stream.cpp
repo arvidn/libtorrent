@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_UTP_LOG
 #include <stdarg.h>
+#include "libtorrent/socket_io.hpp"
 #endif
 
 namespace libtorrent {
@@ -46,6 +47,7 @@ namespace libtorrent {
 #if TORRENT_UTP_LOG
 
 char const* packet_type_names[] = { "ST_DATA", "ST_FIN", "ST_STATE", "ST_RESET", "ST_SYN" };
+char const* socket_state_names[] = { "NONE", "SYN_SENT", "CONNECTED", "FIN_SENT", "ERROR", "DELETE" };
 
 static struct utp_logger
 {
@@ -74,8 +76,10 @@ void utp_log(char const* fmt, ...)
 #define UTP_LOGV utp_log
 
 #else
+
 #define UTP_LOG if (false) printf
 #define UTP_LOGV if (false) printf
+
 #endif
 
 enum
@@ -198,28 +202,31 @@ private:
 
 struct utp_socket_impl
 {
-	utp_socket_impl(boost::uint16_t id, void* userdata
-		, utp_socket_manager* sm)
+	utp_socket_impl(boost::uint16_t recv_id, boost::uint16_t send_id
+		, void* userdata, utp_socket_manager* sm)
 		: m_sm(sm)
 		, m_remote_address()
 		, m_port(0)
 		, m_last_history_step(time_now())
-		, m_send_id(id)
-		, m_recv_id(id + 1)
+		, m_send_id(send_id)
+		, m_recv_id(recv_id)
 		, m_ack_nr(0)
 		, m_seq_nr(0)
+		, m_acked_seq_nr(0)
 		, m_fast_resend_seq_nr(0)
 		, m_state(UTP_STATE_NONE)
+		, m_userdata(userdata)
+		, m_read(0)
+		, m_write_buffer_size(0)
+		, m_written(0)
 		, m_receive_buffer_size(0)
 		, m_read_handler(0)
 		, m_write_handler(0)
 		, m_connect_handler(0)
-		, m_userdata(userdata)
 		, m_reply_micro(0)
 		, m_cwnd(1500)
 		, m_adv_wnd(1500)
 		, m_timeout(time_now() + seconds(3))
-		, m_acked_seq_nr(0)
 		, m_bytes_in_flight(0)
 		, m_mtu(1500 - 20 - 8 - 8)
 		, m_buffered_incoming_bytes(0)
@@ -345,7 +352,7 @@ struct utp_socket_impl
 
 	// userdata pointer passed along
 	// with any callback
-	void* m_useradata;
+	void* m_userdata;
 
 	struct iovec_t
 	{
@@ -377,9 +384,6 @@ struct utp_socket_impl
 	utp_stream::handler_t m_read_handler;
 	utp_stream::handler_t m_write_handler;
 	utp_stream::connect_handler_t m_connect_handler;
-
-	// userdata for handlers
-	void* m_userdata;
 
 	// the timestamp diff in the last packet received
 	// this is what we'll send back
@@ -426,10 +430,11 @@ struct utp_socket_impl
 	int m_in_buf_size;
 };
 
-utp_socket_impl* construct_utp_impl(boost::uint16_t id, void* userdata
+utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
+	, boost::uint16_t send_id, void* userdata
 	, utp_socket_manager* sm)
 {
-	return new utp_socket_impl(id, userdata, sm);
+	return new utp_socket_impl(recv_id, send_id, userdata, sm);
 }
 
 void delete_utp_impl(utp_socket_impl* s)
@@ -544,8 +549,29 @@ void utp_stream::add_read_buffer(void* buf, size_t len)
 void utp_stream::add_write_buffer(void const* buf, size_t len)
 {
 	TORRENT_ASSERT(m_impl);
+
+#ifndef NDEBUG
+	int write_buffer_size = 0;
+	for (std::vector<utp_socket_impl::iovec_t>::iterator i = m_impl->m_write_buffer.begin()
+		, end(m_impl->m_write_buffer.end()); i != end; ++i)
+	{
+		write_buffer_size += i->len;
+	}
+	TORRENT_ASSERT(m_impl->m_write_buffer_size == write_buffer_size);
+#endif
+
 	m_impl->m_write_buffer.push_back(utp_socket_impl::iovec_t((void*)buf, len));
 	m_impl->m_write_buffer_size += len;
+
+#ifndef NDEBUG
+	write_buffer_size = 0;
+	for (std::vector<utp_socket_impl::iovec_t>::iterator i = m_impl->m_write_buffer.begin()
+		, end(m_impl->m_write_buffer.end()); i != end; ++i)
+	{
+		write_buffer_size += i->len;
+	}
+	TORRENT_ASSERT(m_impl->m_write_buffer_size == write_buffer_size);
+#endif
 }
 
 void utp_stream::set_read_handler(handler_t h)
@@ -620,6 +646,10 @@ utp_socket_impl::~utp_socket_impl()
 
 void utp_socket_impl::destroy()
 {
+	UTP_LOGV("[%08u] 0x%08x: destroy state:%s\n"
+		, int(total_microseconds(time_now() - min_time())), this
+		, socket_state_names[m_state]);
+
 	if (m_state == UTP_STATE_ERROR_WAIT
 		|| m_state == UTP_STATE_NONE
 		|| m_state == UTP_STATE_SYN_SENT)
@@ -662,9 +692,10 @@ void utp_socket_impl::send_syn()
 	p->send_time = now;
 	h->timestamp_microseconds = total_microseconds(now - min_time());
 
-	UTP_LOGV("[%08u] 0x%08x: send_syn seq_nr:%d id:%d\n"
+	UTP_LOGV("[%08u] 0x%08x: send_syn seq_nr:%d id:%d target:%s\n"
 		, int(total_microseconds(now - min_time()))
-		, this, int(m_seq_nr), int(m_recv_id));
+		, this, int(m_seq_nr), int(m_recv_id)
+		, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str());
 
 	TORRENT_ASSERT(!m_error);
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)h
@@ -761,30 +792,50 @@ void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes, pt
 // pointed to by ptr
 void utp_socket_impl::write_payload(char* ptr, int size)
 {
+#ifndef NDEBUG
+	int write_buffer_size = 0;
+	for (std::vector<iovec_t>::iterator i = m_write_buffer.begin()
+		, end(m_write_buffer.end()); i != end; ++i)
+	{
+		write_buffer_size += i->len;
+	}
+	TORRENT_ASSERT(m_write_buffer_size == write_buffer_size);
+#endif
 	TORRENT_ASSERT(!m_write_buffer.empty() || size == 0);
-	TORRENT_ASSERT(m_write_buffer.size() - m_written >= size);
+	TORRENT_ASSERT(m_write_buffer_size >= size);
 	std::vector<iovec_t>::iterator i = m_write_buffer.begin();
 
 	if (size == 0) return;
 
-	size_t pos = 0;
-	while (m_written >= pos + i->len)
-	{
-		pos += i->len;
-		++i;
-		TORRENT_ASSERT(i != m_write_buffer.end());
-	}
-
+	int buffers_to_clear = 0;
 	while (size > 0)
 	{
 		// i points to the iovec we'll start copying from
 		int to_copy = (std::min)(size, int(i->len));
-		memcpy(ptr, static_cast<char const*>(i->buf) + m_written - pos, to_copy);
+		memcpy(ptr, static_cast<char const*>(i->buf), to_copy);
 		size -= to_copy;
 		m_written += to_copy;
-		pos += i->len;
+		i->len -= to_copy;
+		TORRENT_ASSERT(m_write_buffer_size >= to_copy);
+		m_write_buffer_size -= to_copy;
+		((char const*&)i->buf) += to_copy;
+		if (i->len == 0) ++buffers_to_clear;
 		++i;
 	}
+
+	if (buffers_to_clear)
+		m_write_buffer.erase(m_write_buffer.begin()
+			, m_write_buffer.begin() + buffers_to_clear);
+
+#ifndef NDEBUG
+	write_buffer_size = 0;
+	for (std::vector<iovec_t>::iterator i = m_write_buffer.begin()
+		, end(m_write_buffer.end()); i != end; ++i)
+	{
+		write_buffer_size += i->len;
+	}
+	TORRENT_ASSERT(m_write_buffer_size == write_buffer_size);
+#endif
 }
 
 // sends a packet, pulls data from the write buffer (if there's any)
@@ -803,7 +854,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 	}
 
 	int packet_size = sizeof(utp_header) + (sack ? sack + 2 : 0);
-	int payload_size = m_write_buffer_size - m_written;
+	int payload_size = m_write_buffer_size;
 	if (m_mtu - packet_size < payload_size)
 	{
 		payload_size = m_mtu - packet_size;
@@ -838,7 +889,8 @@ bool utp_socket_impl::send_pkt(bool ack)
 	if (payload_size) p = (packet*)malloc(sizeof(packet) + packet_size);
 	else p = (packet*)TORRENT_ALLOCA(char, sizeof(packet) + packet_size);
 
-	p->size = packet_size - sizeof(utp_header);
+	p->size = packet_size;
+	p->header_size = packet_size - payload_size;
 	p->num_transmissions = 1;
 	char* ptr = p->buf;
 	utp_header* h = (utp_header*)ptr;
@@ -853,7 +905,17 @@ bool utp_socket_impl::send_pkt(bool ack)
 	// seq_nr is ignored for ST_STATE packets, so it doesn't
 	// matter that we say this is a sequence number we haven't
 	// actually sent yet
-	h->seq_nr = m_seq_nr;
+	if (payload_size)
+	{
+		h->seq_nr = m_seq_nr;
+	}
+	else
+	{
+		// if we're not sending any data, use the same
+		// sequence number as last time
+		h->seq_nr = (m_seq_nr - 1) & ACK_MASK;
+	}
+
 	h->ack_nr = m_ack_nr;
 
 	if (sack)
@@ -870,13 +932,16 @@ bool utp_socket_impl::send_pkt(bool ack)
 	p->send_time = now;
 	h->timestamp_microseconds = total_microseconds(now - min_time());
 
-	UTP_LOGV("[%08u] 0x%08x: sending packet seq_nr:%d ack_nr:%d type:%s id:%d\n"
+	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
+		, (char const*)h, packet_size, m_error);
+
+	UTP_LOGV("[%08u] 0x%08x: sending packet seq_nr:%d ack_nr:%d type:%s "
+		"id:%d target:%s size:%d error:%s\n"
 		, int(total_microseconds(now - min_time()))
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
-		, m_send_id);
-
-	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
-		, (char const*)&h, sizeof(h), m_error);
+		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
+		, packet_size
+		, m_error.message().c_str());
 
 	if (m_error)
 	{
@@ -984,6 +1049,10 @@ bool utp_socket_impl::test_socket_state()
 	// the deleted state, where it will be deleted
 	if (m_state == UTP_STATE_ERROR_WAIT)
 	{
+		UTP_LOGV("[%08u] 0x%08x: error:%s\n"
+			, int(total_microseconds(time_now() - min_time()))
+			, this, m_error.message().c_str());
+
 		if (cancel_handlers(m_error, true))
 		{
 			m_state = UTP_STATE_DELETE;
@@ -1091,7 +1160,9 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	// an attempt to interfere with the connection from a 3rd party
 	// in both cases, we can safely ignore the timestamp and ACK
 	// information in this packet
-	if (ph->type == ST_DATA && compare_less_wrap(ph->seq_nr, m_ack_nr, ACK_MASK))
+	if (m_state != UTP_STATE_SYN_SENT
+		&& ph->type == ST_DATA
+		&& compare_less_wrap(ph->seq_nr, m_ack_nr, ACK_MASK))
 	{
 		// we've already received this packet
 		UTP_LOGV("[%08u] 0x%08x: incoming packet seq_nr:%d our ack_nr:%d\n"
@@ -1101,6 +1172,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	}
 
 	if (m_state != UTP_STATE_NONE
+		&& m_state != UTP_STATE_SYN_SENT
 		&& compare_less_wrap((m_ack_nr + max_packets_reorder) & ACK_MASK, ph->seq_nr, ACK_MASK))
 	{
 		// this is too far out to fit in our reorder buffer. Drop it
@@ -1140,7 +1212,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	// sequence number
 	if (compare_less_wrap(m_acked_seq_nr, ph->ack_nr, ACK_MASK))
 	{
-		for (; m_acked_seq_nr != m_seq_nr
+		for (; m_acked_seq_nr != (m_seq_nr - 1) & ACK_MASK
 			; m_acked_seq_nr = (m_acked_seq_nr + 1) & ACK_MASK)
 		{
 			packet* p = (packet*)m_outbuf.remove(m_acked_seq_nr);
@@ -1215,10 +1287,11 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	const int payload_size = size - header_size;
 
 	UTP_LOGV("[%08u] 0x%08x: incoming packet seq_nr:%d ack_nr:%d type:%s id:%d "
-			"our ack_nr:%d our seq_nr:%d our acked_seq_nr:%d\n"
+			"our ack_nr:%d our seq_nr:%d our acked_seq_nr:%d our state:%s\n"
 		, int(total_microseconds(receive_time - min_time()))
 		, this, int(ph->seq_nr), int(ph->ack_nr), packet_type_names[ph->type]
-		, int(ph->connection_id), m_ack_nr, m_seq_nr, m_acked_seq_nr);
+		, int(ph->connection_id), m_ack_nr, m_seq_nr, m_acked_seq_nr
+		, socket_state_names[m_state]);
 
 	switch (m_state)
 	{
@@ -1253,6 +1326,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				return true;
 
 			m_state = UTP_STATE_CONNECTED;
+			m_ack_nr = ph->seq_nr;
 
 			// notify the client that the socket connected
 			if (m_connect_handler) m_connect_handler(m_userdata, m_error, false);
