@@ -36,9 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/socket_io.hpp"
 
-#if TORRENT_UTP_LOG
+#define TORRENT_UTP_LOG 1
 
+#if TORRENT_UTP_LOG
+namespace libtorrent {
 extern void utp_log(char const* fmt, ...);
+}
 
 #define UTP_LOG utp_log
 #define UTP_LOGV utp_log

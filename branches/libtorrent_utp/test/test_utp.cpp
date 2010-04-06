@@ -56,8 +56,8 @@ void test_transfer()
 	remove_all("./tmp1_utp", ec);
 	remove_all("./tmp2_utp", ec);
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49030), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50030), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48885, 49930), "0.0.0.0", 0);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49885, 50930), "0.0.0.0", 0);
 
 	session_settings sett;
 
@@ -88,7 +88,7 @@ void test_transfer()
 
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_transfer", 8 * 1024, &t, false);
+		, true, false, true, "_utp", 8 * 1024, &t, false);
 
 	for (int i = 0; i < 50; ++i)
 	{
