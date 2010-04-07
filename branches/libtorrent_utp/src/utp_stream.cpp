@@ -1004,12 +1004,11 @@ bool utp_socket_impl::send_pkt(bool ack)
 		, (char const*)h, packet_size, m_error);
 
 	UTP_LOGV("[%08u] %08p: sending packet seq_nr:%d ack_nr:%d type:%s "
-		"id:%d target:%s size:%d error:%s\n"
+		"id:%d target:%s size:%d error:%s send_buffer_size:%d\n"
 		, int(total_microseconds(now - min_time()))
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-		, packet_size
-		, m_error.message().c_str());
+		, packet_size, m_error.message().c_str(), m_write_buffer_size);
 
 	if (m_error)
 	{
@@ -1610,7 +1609,7 @@ int utp_socket_impl::packet_timeout() const
 
 void utp_socket_impl::tick(ptime const& now)
 {
-	UTP_LOGV("[%08u] %08p: tick:%d\n"
+	UTP_LOGV("[%08u] %08p: tick:%s\n"
 		, int(total_microseconds(time_now() - min_time())), this
 		, socket_state_names[m_state]);
 	bool window_opened = false;

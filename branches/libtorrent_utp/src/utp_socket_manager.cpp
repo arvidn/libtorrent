@@ -105,13 +105,13 @@ namespace libtorrent
 
 	bool utp_socket_manager::incoming_packet(char const* p, int size, udp::endpoint const& ep)
 	{
-		UTP_LOGV("incoming packet size:%d\n", size);
+//		UTP_LOGV("incoming packet size:%d\n", size);
 
 		if (size < sizeof(utp_header)) return false;
 
 		utp_header const* ph = (utp_header*)p;
 
-		UTP_LOGV("incoming packet version:%d\n", int(ph->ver));
+//		UTP_LOGV("incoming packet version:%d\n", int(ph->ver));
 
 		if (ph->ver != 1) return false;
 		
@@ -122,7 +122,7 @@ namespace libtorrent
 		boost::uint16_t id = ph->connection_id;
 		socket_map_t::iterator i = m_utp_sockets.find(id);
 
-		UTP_LOGV("incoming packet id:%d source:%s\n", id, print_endpoint(ep).c_str());
+//		UTP_LOGV("incoming packet id:%d source:%s\n", id, print_endpoint(ep).c_str());
 
 		// if not found, see if it's a SYN packet, if it is,
 		// create a new utp_stream
@@ -131,7 +131,7 @@ namespace libtorrent
 			// create the new socket with this ID
 			m_new_connection = id;
 
-			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
+//			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
 
 			boost::shared_ptr<socket_type> c(new (std::nothrow) socket_type(m_sock.get_io_service()));
 			if (!c) return false;
@@ -149,12 +149,12 @@ namespace libtorrent
 		// only accept a packet if it's from the right source
 		if (i != m_utp_sockets.end() && ep == utp_remote_endpoint(i->second))
 		{
-			UTP_LOGV("found connection!\n");
+//			UTP_LOGV("found connection!\n");
 			return utp_incoming_packet(i->second, p, size, ep);
 		}
 		else
 		{
-			UTP_LOGV("ignoring packet\n");
+//			UTP_LOGV("ignoring packet\n");
 		}
 
 		return false;
