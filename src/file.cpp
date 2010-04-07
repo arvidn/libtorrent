@@ -921,11 +921,6 @@ namespace libtorrent
 			}
 		}
 #endif
-		if (::SetEndOfFile(m_file_handle) == FALSE)
-		{
-			ec = error_code(GetLastError(), get_system_category());
-			return false;
-		}
 #else
 		struct stat st;
 		if (fstat(m_fd, &st) != 0)
