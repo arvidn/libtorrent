@@ -53,7 +53,7 @@ namespace libtorrent
 		// return false if this is not a uTP packet
 		bool incoming_packet(char const* p, int size, udp::endpoint const& ep);
 
-		void tick();
+		void tick(ptime now);
 
 		tcp::endpoint local_endpoint() const;
 

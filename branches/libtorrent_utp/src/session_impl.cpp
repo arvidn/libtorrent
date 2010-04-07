@@ -1369,6 +1369,16 @@ namespace aux {
 
 			if (s.sock)
 			{
+				// if we're configured to listen on port 0 (i.e. let the
+				// OS decide), update the listen_interface member with the
+				// actual port we ended up listening on, so that the other
+				// sockets can be bound to the same one
+				if (m_listen_interface.port() == 0)
+				{
+					error_code ec;
+					m_listen_interface.port(s.sock->local_endpoint(ec).port());
+				}
+
 				m_listen_sockets.push_back(s);
 				async_accept(s.sock);
 			}
@@ -1424,10 +1434,6 @@ namespace aux {
 
 		}
 
-		// #error if the listen port is 0, we need to make sure the UDP socket
-		// and the TCP socket are both listening on the same one. Whichever is bound
-		// first should get to decide, and the second socket should just be bound to
-		// whatever the first one was bound to
 		error_code ec;
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
 		if (ec)
@@ -1964,6 +1970,8 @@ namespace aux {
 				}
 			}
 		}
+
+		m_utp_socket_manager.tick(now);
 
 #ifdef TORRENT_STATS
 		++m_second_counter;

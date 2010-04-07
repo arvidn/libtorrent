@@ -72,8 +72,8 @@ void test_transfer()
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
-	pes.out_enc_policy = pe_settings::forced;
-	pes.in_enc_policy = pe_settings::forced;
+	pes.out_enc_policy = pe_settings::disabled;
+	pes.in_enc_policy = pe_settings::disabled;
 	ses1.set_pe_settings(pes);
 	ses2.set_pe_settings(pes);
 #endif

@@ -71,9 +71,8 @@ namespace libtorrent
 		}
 	}
 
-	void utp_socket_manager::tick()
+	void utp_socket_manager::tick(ptime now)
 	{
-		ptime now = time_now_hires();
 		for (socket_map_t::iterator i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end;)
 		{
