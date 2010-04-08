@@ -119,6 +119,9 @@ void test_transfer()
 
 		test_sleep(100);
 	}
+
+	TEST_CHECK(tor1.is_finished());
+	TEST_CHECK(tor2.is_finished());
 }
 
 int test_main()

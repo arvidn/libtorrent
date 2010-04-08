@@ -254,11 +254,18 @@ public:
 	template <class Mutable_Buffers>
 	std::size_t read_some(Mutable_Buffers const& buffers, error_code& ec)
 	{
+		if (m_impl == 0)
+		{
+			ec = asio::error::not_connected;
+			return -1;
+		}
+
 		if (read_buffer_size() == 0)
 		{
 			ec = asio::error::would_block;
 			return -1;
 		}
+
 //#error implement
 		ec = asio::error::would_block;
 		return -1;
