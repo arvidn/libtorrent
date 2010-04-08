@@ -978,6 +978,8 @@ namespace libtorrent
 #if TORRENT_HAS_FALLOCATE
 			// if fallocate failed, we have to use posix_fallocate
 			// which can be painfully slow
+			// if you get a compile error here, you might want to
+			// define TORRENT_HAS_FALLOCATE to 0.
 			ret = posix_fallocate(m_fd, 0, s);
 			if (ret != 0)
 			{
