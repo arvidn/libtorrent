@@ -50,6 +50,14 @@ namespace libtorrent
 {
 	struct utp_socket_manager;
 
+	// the point of the bif_endian_int is two-fold
+	// one purpuse is to not have any alignment requirements
+	// so that any byffer received from the network can be cast
+	// to it and read as an integer of various sizes without
+	// triggering a bus error. The other purpose is to convert
+	// from network byte order to host byte order when read and
+	// written, to offer a convenient interface to both interpreting
+	// and writing network packets
 	template <class T> struct big_endian_int
 	{
 		big_endian_int& operator=(T v)
@@ -119,6 +127,16 @@ bool utp_incoming_packet(utp_socket_impl* s, char const* p, int size
 	, udp::endpoint const& ep);
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s);
 
+// this is the user-level stream interface to utp sockets.
+// the reason why it's split up in a utp_stream class and
+// an implementation class is because the socket state has
+// to be able to out-live the user level socket. For instance
+// when sending data on a stream and then closing it, the
+// state holding the send buffer has to be kept around until
+// it has been flushed, which may be longer than the client
+// will keep the utp_stream object around for.
+// for more details, see utp_socket_impl, which is analogous
+// to the kernel state for a socket. It's defined in utp_stream.cpp
 class utp_stream
 {
 public:
@@ -266,7 +284,8 @@ public:
 			return -1;
 		}
 
-//#error implement
+//#error implement synchronous read_some (reuse the buffer copying functions)
+
 		ec = asio::error::would_block;
 		return -1;
 	}

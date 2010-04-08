@@ -200,6 +200,50 @@ private:
 // utp_stream is closed, it's kept in a separate struct
 // whose lifetime is not tied to the lifetime of utp_stream
 
+// the utp socket is closely modelled after the asio async
+// operations and handler model. For writing to the socket,
+// the client provides a list of buffers (for gather/writev
+// style of I/O) and whenever the socket can write another
+// packet to the stream, it picks up data from these buffers.
+// When all of the data has been written, or enough time has
+// passed since we first started writing, the write handler
+// is called and the write buffer is reset. This means that
+// we're not writing anything at all while waiting for the
+// client to re-issue a write request.
+
+// reading is a little bit more complicated, since we must
+// be able to receive data even when the user doesn't have
+// an outstanding read operation on the socket. When the user
+// does however, we want to receive data directly into the
+// user's buffer instead of first copying it into our receive
+// buffer. This is why the receive case is more complicated.
+// There are two receive buffers. One provided by the user,
+// which when present is always used. The other one is used
+// when the user doesn't have an outstanding read request,
+// and hence hasn't provided any buffer space to receive into.
+
+// the user provided read buffer is called "m_read_buffer" and
+// its size is "m_read_buffer_size". The buffer we spill over
+// into when the user provided buffer is full or when there
+// is none, is "m_receive_buffer" and "m_receive_buffer_size"
+// respectively.
+
+// in order to know when to trigger the read and write handlers
+// there are two counters, m_read and m_written, which count
+// the number of bytes we've stuffed into the user provided
+// read buffer or written to the stream from the write buffer.
+// These are used to trigger the handlers if we're written a
+// large number of bytes. It's also triggered if we're filled
+// the whole read buffer, or written the entire write buffer.
+// The last way the handlers can be triggered is if we're read
+// or written some, and enough time has elapsed since then.
+
+// when we receive data into m_receive_buffer (i.e. the buffer
+// used when there's no user provided one) is stored as a
+// number of heap allocated packets. This is just because it's
+// simple to reuse the data structured and it provides all the
+// functionality needed for this buffer.
+
 struct utp_socket_impl
 {
 	utp_socket_impl(boost::uint16_t recv_id, boost::uint16_t send_id
@@ -213,6 +257,8 @@ struct utp_socket_impl
 		, m_ack_nr(0)
 		, m_seq_nr(0)
 		, m_acked_seq_nr(0)
+		, m_eof_seq_nr(0)
+		, m_eof(false)
 		, m_fast_resend_seq_nr(0)
 		, m_state(UTP_STATE_NONE)
 		, m_userdata(userdata)
@@ -262,6 +308,7 @@ struct utp_socket_impl
 	std::size_t available() const;
 	void destroy();
 	void send_syn();
+	void send_fin();
 
 	bool send_pkt(bool ack);
 	void send_reset(utp_header* ph);
@@ -316,6 +363,16 @@ struct utp_socket_impl
 	// end.
 	boost::uint16_t m_acked_seq_nr;
 
+	// this is the sequence number of the FIN packet
+	// we've received. This sequence number is only
+	// valid if m_eof is true. We should not accept
+	// any packets beyond this sequence number from the
+	// other end
+	boost::uint16_t m_eof_seq_nr;
+
+	// this is set to true when we receive a fin
+	bool m_eof;
+
 	// each packet gets one chance of "fast resend". i.e.
 	// if we have multiple duplicate acks, we may send a
 	// packet immediately, if m_fast_resend_seq_nr is set
@@ -354,9 +411,22 @@ struct utp_socket_impl
 	unsigned char m_state;
 
 	// userdata pointer passed along
-	// with any callback
+	// with any callback. This is initialized to 0
+	// then set to point to the utp_stream when
+	// hooked up, and then reset to 0 once the utp_stream
+	// detaches. This is used to know whether or not
+	// the socket impl is still attached to a utp_stream
+	// object. When it isn't, we'll never be able to
+	// signal anything back to the client, and in case
+	// of errors, we just have to delete ourselves
+	// i.e. transition to the UTP_STATE_DELETED state
 	void* m_userdata;
 
+	// This is a platform-independent replacement
+	// for the regular iovec type in posix. Since
+	// it's not used in any system call, we might as
+	// well define our own type instead of wrapping
+	// the system's type.
 	struct iovec_t
 	{
 		iovec_t(void* b, size_t l): buf(b), len(l) {}
@@ -368,23 +438,44 @@ struct utp_socket_impl
 	// operation in progress, these buffers are initialized
 	// and used, otherwise any bytes received are stuck in
 	// m_receive_buffer until another read is made
+	// as we flush from the write buffer, individual iovecs
+	// are updated to only refer to unflushed portions of the
+	// buffers. Buffers that empty are erased from the vector.
 	std::vector<iovec_t> m_write_buffer;
+
+	// the number of bytes read into the user provided
+	// buffer. If this grows too big, we'll trigger the
+	// read handler.
 	int m_read;
 
 	// the sum of the lengths of all iovec in m_write_buffer
 	int m_write_buffer_size;
+
 	// the number of bytes already written to packets
 	// from m_write_buffer
 	int m_written;
+
+	// the user provided read buffer. If this has a size greater
+	// than 0, we'll always prefer using it over putting received
+	// data in the m_receive_buffer. As data is stored in the
+	// read buffer, the iovec_t elements are adjusted to only
+	// refer to the unwritten portions of the buffers, and the
+	// ones that fill up are erased from the vector
 	std::vector<iovec_t> m_read_buffer;
 	
 	// packets we've received without a read operation
 	// active. Store them here until the client triggers
 	// an async_read_some
 	std::vector<packet*> m_receive_buffer;
+
+	// the sum of all packets stored in m_receive_buffer
 	int m_receive_buffer_size;
+	
+	// the sum of all buffers in m_read_buffer
 	int m_read_buffer_size;
 
+	// these are the callbacks made into the utp_stream object
+	// on read/write/connect events
 	utp_stream::handler_t m_read_handler;
 	utp_stream::handler_t m_write_handler;
 	utp_stream::connect_handler_t m_connect_handler;
@@ -560,6 +651,9 @@ void utp_stream::add_read_buffer(void* buf, size_t len)
 	m_impl->m_read_buffer_size += len;
 }
 
+// this is the wrapper to add a user provided write buffer to the
+// utp_socket_impl. It makes sure the m_write_buffer_size is kept
+// up to date
 void utp_stream::add_write_buffer(void const* buf, size_t len)
 {
 	TORRENT_ASSERT(m_impl);
@@ -588,6 +682,11 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 #endif
 }
 
+// this is called when all user provided read buffers have been added
+// and it's time to execute the async operation. The first thing we
+// do is to copy any data stored in m_receive_buffer into the user
+// provided buffer. This might be enough to in turn trigger the read
+// handler immediately.
 void utp_stream::set_read_handler(handler_t h)
 {
 	m_impl->m_read_handler = h;
@@ -632,12 +731,16 @@ void utp_stream::set_read_handler(handler_t h)
 	m_impl->maybe_trigger_receive_callback(time_now());
 }
 
+// this is called when all user provided write buffers have been
+// added. Start trying to send packets with the payload immediately.
 void utp_stream::set_write_handler(handler_t h)
 {
 	m_impl->m_write_handler = h;
 	m_impl->m_written = 0;
 	if (m_impl->test_socket_state()) return;
-	// try to write
+	// try to write. send_pkt returns false if there's
+	// no more payload to send or if the congestion window
+	// is full and we can't send more packets right now
 	while (m_impl->send_pkt(false));
 }
 
@@ -702,6 +805,13 @@ void utp_socket_impl::destroy()
 		, int(total_microseconds(time_now() - min_time())), this
 		, socket_state_names[m_state]);
 
+	if (m_userdata == 0) return;
+
+	m_error = asio::error::operation_aborted;
+	cancel_handlers(m_error, true);
+
+	m_userdata = 0;
+
 	if (m_state == UTP_STATE_ERROR_WAIT
 		|| m_state == UTP_STATE_NONE
 		|| m_state == UTP_STATE_SYN_SENT)
@@ -713,13 +823,12 @@ void utp_socket_impl::destroy()
 		return;
 	}
 
-	// #error our end is closing. Send fin and wait for everything to be acked
-	// #error send FIN
+	// you should never close a socket with an outstanding write!
+	TORRENT_ASSERT(!m_write_handler);
 
-	m_state = UTP_STATE_FIN_SENT;
-	UTP_LOGV("[%08u] %08p: state:%s\n"
-		, int(total_microseconds(time_now() - min_time())), this
-		, socket_state_names[m_state]);
+	send_fin();
+
+	// #error our end is closing. Wait for everything to be acked
 }
 
 void utp_socket_impl::send_syn()
@@ -770,6 +879,59 @@ void utp_socket_impl::send_syn()
 	m_outbuf.insert(m_seq_nr, p);
 	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 	m_state = UTP_STATE_SYN_SENT;
+	UTP_LOGV("[%08u] %08p: state:%s\n"
+		, int(total_microseconds(time_now() - min_time())), this
+		, socket_state_names[m_state]);
+}
+
+void utp_socket_impl::send_fin()
+{
+	bool ret = false;
+
+	// we need a heap allocated packet in order to stick it
+	// in the send buffer, so that we can resend it
+	packet* p = (packet*)malloc(sizeof(packet) + sizeof(utp_header));
+
+	p->size = sizeof(utp_header);
+	p->header_size = sizeof(utp_header);
+	p->num_transmissions = 1;
+	utp_header* h = (utp_header*)p->buf;
+
+	h->ver = 1;
+	h->type = ST_FIN;
+	h->extension = 0;
+	h->connection_id = m_send_id;
+	h->timestamp_difference_microseconds = m_reply_micro;
+	h->wnd_size = m_in_buf_size - m_buffered_incoming_bytes - m_receive_buffer_size;
+	h->seq_nr = m_seq_nr;
+	h->ack_nr = m_ack_nr;
+
+	ptime now = time_now_hires();
+	p->send_time = now;
+	h->timestamp_microseconds = total_microseconds(now - min_time());
+
+	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
+		, (char const*)h, sizeof(utp_header), m_error);
+
+	UTP_LOGV("[%08u] %08p: sending FIN seq_nr:%d ack_nr:%d type:%s "
+		"id:%d target:%s size:%d error:%s send_buffer_size:%d\n"
+		, int(total_microseconds(now - min_time()))
+		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
+		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
+		, sizeof(utp_header), m_error.message().c_str(), m_write_buffer_size);
+
+	if (m_error)
+	{
+		m_state = UTP_STATE_ERROR_WAIT;
+		test_socket_state();
+	}
+
+	TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
+	m_outbuf.insert(m_seq_nr, p);
+	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
+
+	m_state = UTP_STATE_FIN_SENT;
+
 	UTP_LOGV("[%08u] %08p: state:%s\n"
 		, int(total_microseconds(time_now() - min_time())), this
 		, socket_state_names[m_state]);
@@ -912,6 +1074,8 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 // send_pkt() again)
 bool utp_socket_impl::send_pkt(bool ack)
 {
+	TORRENT_ASSERT(m_state != UTP_STATE_FIN_SENT);
+
 	bool ret = false;
 
 	int sack = 0;
@@ -1156,7 +1320,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 	if (ph->ver != 1)
 	{
-		UTP_LOGV("[%08u] %08p: incoming packet ver:%d\n"
+		UTP_LOGV("[%08u] %08p: incoming packet ver:%d (ignored)\n"
 			, int(total_microseconds(receive_time - min_time()))
 			, this, int(ph->ver));
 		return false;
@@ -1165,7 +1329,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	// SYN packets have special (reverse) connection ids
 	if (ph->type != ST_SYN && ph->connection_id != m_recv_id)
 	{
-		UTP_LOGV("[%08u] %08p: incoming packet id:%d expected:%d\n"
+		UTP_LOGV("[%08u] %08p: incoming packet id:%d expected:%d (ignored)\n"
 			, int(total_microseconds(receive_time - min_time()))
 			, this, int(ph->connection_id), int(m_recv_id));
 		return false;
@@ -1173,7 +1337,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 	if (ph->type >= NUM_TYPES)
 	{
-		UTP_LOGV("[%08u] %08p: incoming packet type:%d\n"
+		UTP_LOGV("[%08u] %08p: incoming packet type:%d (ignored)\n"
 			, int(total_microseconds(receive_time - min_time()))
 			, this, int(ph->type));
 		return false;
@@ -1187,7 +1351,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 	if (m_state != UTP_STATE_NONE && ph->type == ST_SYN)
 	{
-		UTP_LOGV("[%08u] %08p: incoming packet type:ST_SYN\n"
+		UTP_LOGV("[%08u] %08p: incoming packet type:ST_SYN (ignored)\n"
 			, int(total_microseconds(receive_time - min_time())), this);
 		return true;
 	}
@@ -1231,7 +1395,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	if (m_state != UTP_STATE_NONE
 		&& compare_less_wrap((m_seq_nr - 1) & ACK_MASK, ph->ack_nr, ACK_MASK))
 	{
-		UTP_LOGV("[%08u] %08p: incoming packet ack_nr:%d our seq_nr:%d\n"
+		UTP_LOGV("[%08u] %08p: incoming packet ack_nr:%d our seq_nr:%d (ignored)\n"
 			, int(total_microseconds(receive_time - min_time()))
 			, this, int(ph->ack_nr), m_seq_nr);
 		return true;
@@ -1249,10 +1413,20 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		&& compare_less_wrap(ph->seq_nr, m_ack_nr, ACK_MASK))
 	{
 		// we've already received this packet
-		UTP_LOGV("[%08u] %08p: incoming packet seq_nr:%d our ack_nr:%d\n"
+		UTP_LOGV("[%08u] %08p: incoming packet seq_nr:%d our ack_nr:%d (ignored)\n"
 			, int(total_microseconds(receive_time - min_time()))
 			, this, int(ph->seq_nr), m_ack_nr);
 		return true;
+	}
+
+	// if the socket is closing, always ignore any packet
+	// with a higher sequence number than the FIN sequence number
+	if (m_eof && compare_less_wrap(m_eof_seq_nr, ph->seq_nr, ACK_MASK))
+	{
+		UTP_LOGV("[%08u] %08p: incoming packet seq_nr:%d eof_seq_nr:%d (ignored)\n"
+			, int(total_microseconds(receive_time - min_time()))
+			, this, int(ph->seq_nr), m_eof_seq_nr);
+	
 	}
 
 	if (m_state != UTP_STATE_NONE
@@ -1382,6 +1556,21 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		, int(ph->connection_id), payload_size, m_ack_nr, m_seq_nr, m_acked_seq_nr
 		, socket_state_names[m_state]);
 
+	if (ph->type == ST_FIN)
+	{
+		if (m_eof)
+		{
+			UTP_LOGV("[%08u] %08p: duplicate FIN packet (ignoring)\n"
+				, int(total_microseconds(receive_time - min_time()))
+				, this);
+			return true;
+		}
+		m_eof = true;
+		m_eof_seq_nr = ph->seq_nr;
+
+		// #error we should respond with a fin once we have received everything up to m_eof_seq_nr
+	}
+
 	switch (m_state)
 	{
 		case UTP_STATE_NONE:
@@ -1404,13 +1593,6 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				send_pkt(true);
 				return true;
 			}
-		}
-		case UTP_STATE_DELETE:
-		default:
-		{
-			// respond with a reset
-			send_reset(ph);
-			return true;
 		}
 		case UTP_STATE_SYN_SENT:
 		{
@@ -1541,8 +1723,9 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// the parameter to send_pkt tells it if we're acking data
 			// If we are, we'll send an ACK regardless of if we have any
 			// space left in our send window or not. If we just got an ACK
-			// (i.e. ST_STATE) we're not ACKing anything.
-			if (send_pkt(ph->type == ST_DATA))
+			// (i.e. ST_STATE) we're not ACKing anything. If we just
+			// received a FIN packet, we need to ack that as well
+			if (send_pkt(ph->type == ST_DATA || ph->type == ST_FIN))
 			{
 				// try to send more data as long as we can
 				while (send_pkt(false));
@@ -1550,13 +1733,21 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 			return true;
 		}
-//		case UTP_STATE_FIN_SENT:
-//		{
-//			// wait for a graceful close of the connection
-//			if (ph->type == ST_FIN)
-//				m_state = UTP_STATE_CLOSE_WAIT;
-//			return true;
-//		}
+		case UTP_STATE_FIN_SENT:
+		{
+			// #error if m_eof is true, and we have received everything
+			// up until m_eof_seq_nr and our FIN packet has been acked
+			// set m_error to asio::error::eof and transition to state
+			// UTP_STATE_ERROR_WAIT
+			return true;
+		}
+		case UTP_STATE_DELETE:
+		default:
+		{
+			// respond with a reset
+			send_reset(ph);
+			return true;
+		}
 	}
 
 	return false;

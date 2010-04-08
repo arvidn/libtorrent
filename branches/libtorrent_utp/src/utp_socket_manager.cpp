@@ -157,6 +157,8 @@ namespace libtorrent
 //			UTP_LOGV("ignoring packet\n");
 		}
 
+		// #error send reset
+
 		return false;
 	}
 
