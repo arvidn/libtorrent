@@ -1510,7 +1510,7 @@ namespace libtorrent
 				SetFileValidData(m_file_handle, offs.QuadPart);
 			}
 		}
-#endif
+#endif // _WIN32_WINNT >= 0x501
 #else
 		struct stat st;
 		if (fstat(m_fd, &st) != 0)
@@ -1546,7 +1546,9 @@ namespace libtorrent
 				ec.assign(errno, get_posix_category());
 				return false;
 			}
-#elif defined TORRENT_LINUX
+#endif // F_PREALLOCATE
+
+#if defined TORRENT_LINUX
 			int ret = my_fallocate(m_fd, 0, 0, s);
 			// if we return 0, everything went fine
 			// the fallocate call succeeded
@@ -1561,6 +1563,9 @@ namespace libtorrent
 				ec.assign(ret, get_posix_category());
 				return false;
 			}
+#endif // TORRENT_LINUX
+
+#if TORRENT_HAS_FALLOCATE
 			// if fallocate failed, we have to use posix_fallocate
 			// which can be painfully slow
 			ret = posix_fallocate(m_fd, 0, s);
@@ -1569,16 +1574,9 @@ namespace libtorrent
 				ec.assign(ret, get_posix_category());
 				return false;
 			}
-#elif TORRENT_HAS_FALLOCATE
-			int ret = posix_fallocate(m_fd, 0, s);
-			if (ret != 0)
-			{
-				ec.assign(ret, get_posix_category());
-				return false;
-			}
-#endif
+#endif // TORRENT_HAS_FALLOCATE
 		}
-#endif
+#endif // TORRENT_WINDOWS
 		return true;
 	}
 
