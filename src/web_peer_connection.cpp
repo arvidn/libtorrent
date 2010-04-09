@@ -118,9 +118,11 @@ namespace libtorrent
 		peer_connection::start();
 	}
 
-	web_peer_connection::~web_peer_connection()
+	void web_peer_connection::disconnect(error_code const& ec, int error)
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		TORRENT_ASSERT(t);
+		peer_connection::disconnect(ec, error);
 		if (t) t->disconnect_web_seed(m_original_url, web_seed_entry::url_seed);
 	}
 	
