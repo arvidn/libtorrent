@@ -329,7 +329,7 @@ namespace libtorrent
 
 		void on_timeout();
 		// this will cause this peer_connection to be disconnected.
-		void disconnect(error_code const& ec, int error = 0);
+		virtual void disconnect(error_code const& ec, int error = 0);
 		bool is_disconnecting() const { return m_disconnecting; }
 
 		// this is called when the connection attempt has succeeded
