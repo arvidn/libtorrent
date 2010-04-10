@@ -318,6 +318,7 @@ namespace libtorrent
 			m_physical_ram = 0;
 #elif defined TORRENT_WINDOWS
 		MEMORYSTATUSEX ms;
+		ms.dwLength = sizeof(MEMORYSTATUSEX);
 		if (GlobalMemoryStatusEx(&ms))
 			m_physical_ram = ms.ullTotalPhys;
 		else
@@ -1583,7 +1584,9 @@ namespace libtorrent
 					elevator_direction = -1;
 					--elevator_job_pos;
 				}
+				TORRENT_ASSERT(!sorted_read_jobs.empty());
 
+				TORRENT_ASSERT(elevator_job_pos != sorted_read_jobs.end());
 				j = elevator_job_pos->second;
 				read_jobs_t::iterator to_erase = elevator_job_pos;
 
