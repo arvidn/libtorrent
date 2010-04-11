@@ -306,6 +306,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, strict_end_game_mode)
 		TORRENT_SETTING(integer, default_peer_upload_rate)
 		TORRENT_SETTING(integer, default_peer_download_rate)
+		TORRENT_SETTING(boolean, ignore_resume_timestamps)
 	};
 
 #undef TORRENT_SETTING

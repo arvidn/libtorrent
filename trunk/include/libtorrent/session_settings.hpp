@@ -211,6 +211,7 @@ namespace libtorrent
 			, default_peer_upload_rate(0)
 			, default_peer_download_rate(0)
 			, broadcast_lsd(false)
+			, ignore_resume_timestamps(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -810,6 +811,12 @@ namespace libtorrent
 		// default in order to avoid flooding networks for no good reason. If
 		// a network is known not to support multicast, this can be enabled
 		bool broadcast_lsd;
+
+		// when set to true, the file modification time is ignored when loading
+		// resume data. The resume data includes the expected timestamp of each
+		// file and is typically compared to make sure the files haven't changed
+		// since the last session
+		bool ignore_resume_timestamps;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
