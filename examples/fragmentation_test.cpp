@@ -41,10 +41,25 @@ using namespace libtorrent;
 
 int main(int argc, char const* argv[])
 {
-	if (argc != 3)
+	if (argc != 3 && argc != 2)
 	{
-		fprintf(stderr, "Usage: fragmentation_test torrent-file file-storage-path\n");
+		fprintf(stderr, "Usage: fragmentation_test torrent-file file-storage-path\n"
+			"       fragmentation_test file\n\n");
 		return 1;
+	}
+
+	if (argc == 2)
+	{
+		error_code ec;
+		file f(argv[1], file::read_only, ec);
+		if (ec)
+		{
+			fprintf(stderr, "Error opening file %s: %s\n", argv[1], ec.message().c_str());
+			return 1;
+		}
+		size_type off = f.phys_offset(0);
+		printf("physical offset of file %s: %" PRId64 "\n", argv[1], off);
+		return 0;
 	}
 
 	error_code ec;
