@@ -46,48 +46,52 @@ namespace libtorrent
 {
 	// DEBUG API
 	
+#if TORRENT_USE_IOSTREAM
+	// all log streams share a single file descriptor
+	// and re-opens the file for each log line
+	static std::ofstream log_file;
+	static std::string open_filename;
+#endif
+
 	struct logger
 	{
 		logger(std::string const& logpath, std::string const& filename
-			, int instance, bool append = true)
+			, int instance, bool append)
 		{
-#if TORRENT_USE_IOSTREAM
-
-#ifndef BOOST_NO_EXCEPTIONS
-			try
-			{
-#endif
-				char log_name[256];
-				snprintf(log_name, sizeof(log_name), "libtorrent_logs%d", instance);
-				std::string dir(complete(combine_path(logpath, log_name)));
-				error_code ec;
-				if (!exists(dir)) create_directories(dir, ec);
-				m_file.open(combine_path(dir, filename).c_str()
-					, std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
-				*this << "\n\n\n*** starting log ***\n";
-#ifndef BOOST_NO_EXCEPTIONS
-			}
-			catch (std::exception& e)
-			{
-				std::cerr << "failed to create log '" << filename << "': " << e.what() << std::endl;
-			}
-#endif
-#endif
+			char log_name[512];
+			snprintf(log_name, sizeof(log_name), "libtorrent_logs%d", instance);
+			std::string dir(complete(combine_path(logpath, log_name)));
+			error_code ec;
+			if (!exists(dir)) create_directories(dir, ec);
+			m_filename = combine_path(dir, filename);
+			m_append = append;
+			*this << "\n\n\n*** starting log ***\n";
 		}
+
+#if TORRENT_USE_IOSTREAM
+		void open()
+		{
+			if (open_filename == m_filename) return;
+			log_file.close();
+			log_file.open(m_filename.c_str(), m_append ? std::ios_base::app : std::ios_base::out);
+			open_filename = m_filename;
+			if (!log_file.good())
+				fprintf(stderr, "Failed to open logfile %s: %s\n", m_filename.c_str(), strerror(errno));
+		}
+#endif
 
 		template <class T>
 		logger& operator<<(T const& v)
 		{
 #if TORRENT_USE_IOSTREAM
-			m_file << v;
-			m_file.flush();
+			open();
+			log_file << v;
 #endif
 			return *this;
 		}
 
-#if TORRENT_USE_IOSTREAM
-		std::ofstream m_file;
-#endif
+		std::string m_filename;
+		bool m_append;
 	};
 
 }
