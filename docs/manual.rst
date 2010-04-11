@@ -3872,6 +3872,7 @@ session_settings
 		int default_peer_upload_rate;
 		int default_peer_download_rate;
 		bool broadcast_lsd;
+		bool ignore_resume_timestamps;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4502,6 +4503,15 @@ if ``broadcast_lsd`` is set to true, the local peer discovery
 (or Local Service Discovery) will not only use IP multicast, but also
 broadcast its messages. This can be useful when running on networks
 that don't support multicast. It's off by default since it's inefficient.
+
+``ignore_resume_timestamps`` determines if the storage, when loading
+resume data files, should verify that the file modification time
+with the timestamps in the resume data. This defaults to false, which
+means timestamps are taken into account, and resume data is less likely
+to accepted (torrents are more likely to be fully checked when loaded).
+It might be useful to set this to true if your network is faster than your
+disk, and it would be faster to redownload potentially missed pieces than
+to go through the whole storage to look for them.
 
 pe_settings
 ===========

@@ -1,3 +1,4 @@
+	* added setting to ignore file modification time when loading resume files
 	* support more fine-grained torrent states between which peer sources it
 	  announces to
 	* supports calculating sha1 file-hashes when creating torrents
