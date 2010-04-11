@@ -1,3 +1,4 @@
+	* fixed FIEMAP support on linux
 	* fixed strict aliasing warning on gcc
 	* fixed inconsistency when creating torrents with symlinks
 	* properly detect windows version to initialize half-open connection limit

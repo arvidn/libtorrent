@@ -62,7 +62,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_LINUX
 #include <sys/ioctl.h>
 #ifdef HAVE_LINUX_FIEMAP_H
-#include <linux/fiemap.h>
+#include <linux/fiemap.h> // FIEMAP_*
+#include <linux/fs.h>  // FS_IOC_FIEMAP
 #endif
 
 #include <asm/unistd.h> // For __NR_fallocate
@@ -804,7 +805,7 @@ namespace libtorrent
 
 	size_type file::phys_offset(size_type offset)
 	{
-#ifdef FS_IOC_FIEMAP
+#ifdef FIEMAP_EXTENT_UNKNOWN
 		// for documentation of this feature
 		// http://lwn.net/Articles/297696/
 		struct
