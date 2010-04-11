@@ -230,6 +230,9 @@ feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
 
 feature need-librt : no yes : composite propagated link-incompatible ;
 
+feature fiemap : off on : composite propagated ;
+feature.compose <fiemap>on : <define>HAVE_LINUX_FIEMAP_H ;
+
 feature full-stats : on off : composite propagated link-incompatible ;
 feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
 
