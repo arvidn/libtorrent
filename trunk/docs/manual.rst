@@ -1979,6 +1979,7 @@ Its declaration looks like this::
 		std::string name() const;
 
 		void save_resume_data() const;
+		bool need_save_resume_data() const;
 		void force_reannounce() const;
 		void force_dht_announce() const;
 		void force_reannounce(boost::posix_time::time_duration) const;
@@ -2857,6 +2858,17 @@ Example code to pause and save resume data for all torrents and wait for the ale
 	}
 	
 
+need_save_resume_data()
+-----------------------
+
+	::
+
+		bool need_save_resume_data() const;
+
+This function returns true if any whole chunk has been downloaded since the
+torrent was first loaded or since the last time the resume data was saved. When
+saving resume data periodically, it makes sense to skip any torrent which hasn't
+downloaded anything since the last time.
 
 status()
 --------
