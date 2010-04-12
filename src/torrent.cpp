@@ -354,6 +354,7 @@ namespace libtorrent
 		, m_resolving_country(false)
 		, m_resolve_countries(false)
 #endif
+		, m_need_save_resume_data(false)
 		, m_seeding_time(0)
 		, m_time_scaler(0)
 		, m_max_uploads(~0)
@@ -713,7 +714,7 @@ namespace libtorrent
 		mutex::scoped_lock l(m_ses.m_mutex);
 
 		INVARIANT_CHECK;
-	
+
 		if (is_seed()) return;
 
 		if (m_abort)
@@ -734,6 +735,8 @@ namespace libtorrent
 		// this can happen if the same block is passed in through
 		// add_piece() multiple times
 		if (picker().is_finished(block_finished)) return;
+
+		m_need_save_resume_data = true;
 
 		picker().mark_as_finished(block_finished, 0);
 
@@ -2557,6 +2560,7 @@ namespace libtorrent
 		}
 		else
 		{
+			m_need_save_resume_data = false;
 			write_resume_data(*j.resume_data);
 			alerts().post_alert(save_resume_data_alert(j.resume_data
 				, get_handle()));
@@ -5226,6 +5230,8 @@ namespace libtorrent
 				, errors::destructing_torrent));
 			return;
 		}
+
+		m_need_save_resume_data = false;
 
 		TORRENT_ASSERT(m_storage);
 		if (m_state == torrent_status::queued_for_checking

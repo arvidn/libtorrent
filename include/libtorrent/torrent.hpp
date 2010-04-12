@@ -266,6 +266,7 @@ namespace libtorrent
 		bool is_torrent_paused() const { return !m_allow_peers; }
 		void force_recheck();
 		void save_resume_data();
+		bool need_save_resume_data() const { return m_need_save_resume_data; }
 
 		bool is_auto_managed() const { return m_auto_managed; }
 		void auto_managed(bool a);
@@ -1070,8 +1071,10 @@ namespace libtorrent
 #else
 		unsigned int m_dummy_padding_bits_to_align:2;
 #endif
-		// TODO: Add new bools here!
-		unsigned int m_dummy_padding_bit_to_alignt:1;
+
+		// set to false when saving resume data. Set to true
+		// whenever something is downloaded
+		bool m_need_save_resume_data:1;
 
 		// total time we've been available as a seed on this torrent
 		// does not count when the torrent is stopped or paused

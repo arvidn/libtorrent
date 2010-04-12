@@ -304,6 +304,12 @@ namespace libtorrent
 		TORRENT_FORWARD(save_resume_data());
 	}
 
+	bool torrent_handle::need_save_resume_data() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD_RETURN(need_save_resume_data(), false);
+	}
+
 	void torrent_handle::force_recheck() const
 	{
 		INVARIANT_CHECK;
