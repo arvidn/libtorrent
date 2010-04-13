@@ -212,6 +212,7 @@ namespace libtorrent
 			, default_peer_download_rate(0)
 			, broadcast_lsd(false)
 			, ignore_resume_timestamps(false)
+			, anonymous_mode(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -817,6 +818,12 @@ namespace libtorrent
 		// file and is typically compared to make sure the files haven't changed
 		// since the last session
 		bool ignore_resume_timestamps;
+
+		// when this is true, libtorrent will take actions to make sure any
+		// privacy sensitive information is leaked out from the client. This
+		// mode is assumed to be combined with using a proxy for all your
+		// traffic. With this option, your true IP address will not be exposed
+		bool anonymous_mode;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

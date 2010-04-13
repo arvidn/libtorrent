@@ -1869,8 +1869,12 @@ namespace libtorrent
 		// only send the port in case we bade the connection
 		// on incoming connections the other end already knows
 		// our listen port
-		if (is_local()) handshake["p"] = m_ses.listen_port();
-		handshake["v"] = m_ses.settings().user_agent;
+		if (!m_ses.m_settings.anonymous_mode)
+		{
+			if (is_local()) handshake["p"] = m_ses.listen_port();
+			handshake["v"] = m_ses.settings().user_agent;
+		}
+
 		std::string remote_address;
 		std::back_insert_iterator<std::string> out(remote_address);
 		detail::write_address(remote().address(), out);
@@ -1893,13 +1897,16 @@ namespace libtorrent
 			))
 			handshake["upload_only"] = 1;
 
-		tcp::endpoint ep = m_ses.get_ipv6_interface();
-		if (!is_any(ep.address()))
+		if (!m_ses.m_settings.anonymous_mode)
 		{
-			std::string ipv6_address;
-			std::back_insert_iterator<std::string> out(ipv6_address);
-			detail::write_address(ep.address(), out);
-			handshake["ipv6"] = ipv6_address;
+			tcp::endpoint ep = m_ses.get_ipv6_interface();
+			if (!is_any(ep.address()))
+			{
+				std::string ipv6_address;
+				std::back_insert_iterator<std::string> out(ipv6_address);
+				detail::write_address(ep.address(), out);
+				handshake["ipv6"] = ipv6_address;
+			}
 		}
 
 		// loop backwards, to make the first extension be the last

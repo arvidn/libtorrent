@@ -1392,11 +1392,14 @@ namespace libtorrent
 
 		req.event = e;
 		error_code ec;
-		tcp::endpoint ep;
-		ep = m_ses.get_ipv6_interface();
-		if (ep != tcp::endpoint()) req.ipv6 = ep.address().to_string(ec);
-		ep = m_ses.get_ipv4_interface();
-		if (ep != tcp::endpoint()) req.ipv4 = ep.address().to_string(ec);
+		if (!m_ses.m_settings.anonymous_mode)
+		{
+			tcp::endpoint ep;
+			ep = m_ses.get_ipv6_interface();
+			if (ep != tcp::endpoint()) req.ipv6 = ep.address().to_string(ec);
+			ep = m_ses.get_ipv4_interface();
+			if (ep != tcp::endpoint()) req.ipv4 = ep.address().to_string(ec);
+		}
 
 		// if we are aborting. we don't want any new peers
 		req.num_want = (req.event == tracker_request::stopped)
@@ -1451,6 +1454,40 @@ namespace libtorrent
 			if (!is_any(bind_interface)) req.bind_ip = bind_interface;
 			else req.bind_ip = m_ses.m_listen_interface.address();
 
+			if (settings().anonymous_mode)
+			{
+				// in anonymous_mode we don't talk directly to trackers
+				// only if there is a proxy
+				std::string protocol = req.url.substr(0, req.url.find(':'));
+				int proxy_type = m_ses.m_tracker_proxy.type;
+	
+				if ((protocol == "http" || protocol == "https")
+					&& proxy_type == proxy_settings::none)
+				{
+				
+					if (m_ses.m_alerts.should_post<anonymous_mode_alert>())
+					{
+						m_ses.m_alerts.post_alert(
+							anonymous_mode_alert(get_handle()
+								, anonymous_mode_alert::tracker_not_anonymous, req.url));
+					}
+					continue;
+				}
+
+				if (protocol == "udp"
+					|| (proxy_type != proxy_settings::socks5
+					&& proxy_type != proxy_settings::socks5_pw
+					&& proxy_type != proxy_settings::i2p_proxy))
+				{
+					if (m_ses.m_alerts.should_post<anonymous_mode_alert>())
+					{
+						m_ses.m_alerts.post_alert(
+							anonymous_mode_alert(get_handle()
+								, anonymous_mode_alert::tracker_not_anonymous, req.url));
+					}
+					continue;
+				}
+			}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			(*m_ses.m_logger) << time_now_string() << " ==> TACKER REQUEST " << req.url
 				<< " event=" << (req.event==tracker_request::stopped?"stopped"

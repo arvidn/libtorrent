@@ -3885,6 +3885,7 @@ session_settings
 		int default_peer_download_rate;
 		bool broadcast_lsd;
 		bool ignore_resume_timestamps;
+		bool anonymous_mode;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4524,6 +4525,18 @@ to accepted (torrents are more likely to be fully checked when loaded).
 It might be useful to set this to true if your network is faster than your
 disk, and it would be faster to redownload potentially missed pieces than
 to go through the whole storage to look for them.
+
+``anonymous_mode`` defaults to false. When set to true, the client tries
+to hide its identity to a certain degree. The peer-ID will no longer
+include the client's fingerprint. The user-agent will be reset to an
+empty string. Trackers will only be used if they are using a proxy
+server. The listen sockets are closed, and incoming connections will
+only be accepted through a SOCKS5 or I2P proxy (if a peer proxy is set up and
+is run on the same machine as the tracker proxy). Since no incoming connections
+are accepted, NAT-PMP, UPnP, DHT and local peer discovery are all turned off
+when this setting is enabled.
+
+If you're using I2P, it might make sense to enable anonymous mode as well.
 
 pe_settings
 ===========
@@ -5176,7 +5189,7 @@ has the followinf signature::
 	template <T> T* alert_cast(alert* a);
 	template <T> T const* alert_cast(alert const* a);
 
-You can also use a dispatcher_ mechanism that's available in libtorrent.
+You can also use a `alert dispatcher`_ mechanism that's available in libtorrent.
 
 All alert types are defined in the ``<libtorrent/alert_types.hpp>`` header file.
 
@@ -6170,8 +6183,35 @@ It belongs to the ``dht_notification`` category.
 		sha1_hash info_hash;
 	};
 
-dispatcher
-----------
+anonymous_mode_alert
+--------------------
+
+This alert is posted when a bittorrent feature is blocked because of the
+anonymous mode. For instance, if the tracker proxy is not set up, no
+trackers will be used, because trackers can only be used through proxies
+when in anonymous mode.
+
+::
+
+	struct anonymous_mode_alert: tracker_alert
+	{
+		// ...
+		enum kind_t
+		{
+			tracker_not_anonymous = 1
+		};
+		int kind;
+		std::string str;
+	};
+
+``kind`` specifies what error this is, it's one of:
+
+``tracker_not_anonymous`` means that there's no proxy set up for tracker
+communication and the tracker will not be contacted. The tracker which
+this failed for is specified in the ``str`` member.
+
+alert dispatcher
+================
 
 The ``handle_alert`` class is defined in ``<libtorrent/alert.hpp>``.
 

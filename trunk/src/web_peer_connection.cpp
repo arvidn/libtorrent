@@ -224,7 +224,7 @@ namespace libtorrent
 			request += " HTTP/1.1\r\n";
 			request += "Host: ";
 			request += m_host;
-			if (m_first_request)
+			if (m_first_request && !m_ses.settings().user_agent.empty())
 			{
 				request += "\r\nUser-Agent: ";
 				request += m_ses.settings().user_agent;
@@ -285,7 +285,7 @@ namespace libtorrent
 				request += " HTTP/1.1\r\n";
 				request += "Host: ";
 				request += m_host;
-				if (m_first_request)
+				if (m_first_request && !m_ses.settings().user_agent.empty())
 				{
 					request += "\r\nUser-Agent: ";
 					request += m_ses.settings().user_agent;
