@@ -97,6 +97,14 @@ namespace libtorrent
 		// no announces before this time
 		ptime min_announce;
 
+		// if this tracker failed the last time it was contacted
+		// this error code specifies what error occurred
+		error_code last_error;
+
+		// if this tracker has returned an error or warning message
+		// that message is stored here
+		std::string message;
+
 		boost::uint8_t tier;
 		// the number of times this tracker can fail
 		// in a row before it's removed. 0 means unlimited
