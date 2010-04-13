@@ -570,6 +570,7 @@ namespace libtorrent
 			// when as a socks proxy is used for peers, also
 			// listen for incoming connections on a socks connection
 			boost::shared_ptr<socket_type> m_socks_listen_socket;
+			boost::uint16_t m_socks_listen_port;
 
 			void open_new_incoming_socks_connection();
 

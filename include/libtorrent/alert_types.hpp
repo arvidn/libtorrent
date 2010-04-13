@@ -1130,6 +1130,30 @@ namespace libtorrent
 
 		const static int static_category = alert::storage_notification;
 	};
+
+	struct TORRENT_EXPORT anonymous_mode_alert: torrent_alert
+	{
+		anonymous_mode_alert(torrent_handle const& h
+			, int kind_, std::string const& str_)
+			: torrent_alert(h)
+			, kind(kind_)
+			, str(str_)
+		{}
+
+		TORRENT_DEFINE_ALERT(anonymous_mode_alert);
+
+		const static int static_category = alert::error_notification;
+		virtual std::string message() const;
+
+		enum kind_t
+		{
+			tracker_not_anonymous = 0
+		};
+
+		int kind;
+		std::string str;
+	};
+
 }
 
 

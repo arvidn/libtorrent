@@ -246,57 +246,58 @@
 <li><a class="reference internal" href="#cache-flushed-alert" id="id201">cache_flushed_alert</a></li>
 <li><a class="reference internal" href="#dht-announce-alert" id="id202">dht_announce_alert</a></li>
 <li><a class="reference internal" href="#dht-get-peers-alert" id="id203">dht_get_peers_alert</a></li>
-<li><a class="reference internal" href="#dispatcher" id="id204">dispatcher</a></li>
+<li><a class="reference internal" href="#anonymous-mode-alert" id="id204">anonymous_mode_alert</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#exceptions" id="id205">exceptions</a><ul>
-<li><a class="reference internal" href="#libtorrent-exception" id="id206">libtorrent_exception</a></li>
+<li><a class="reference internal" href="#alert-dispatcher" id="id205">alert dispatcher</a></li>
+<li><a class="reference internal" href="#exceptions" id="id206">exceptions</a><ul>
+<li><a class="reference internal" href="#libtorrent-exception" id="id207">libtorrent_exception</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#error-code" id="id207">error_code</a><ul>
-<li><a class="reference internal" href="#translating-error-codes" id="id208">translating error codes</a></li>
+<li><a class="reference internal" href="#error-code" id="id208">error_code</a><ul>
+<li><a class="reference internal" href="#translating-error-codes" id="id209">translating error codes</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#storage-interface" id="id209">storage_interface</a><ul>
-<li><a class="reference internal" href="#initialize" id="id210">initialize()</a></li>
-<li><a class="reference internal" href="#has-any-file" id="id211">has_any_file()</a></li>
-<li><a class="reference internal" href="#readv-writev" id="id212">readv() writev()</a></li>
-<li><a class="reference internal" href="#sparse-end" id="id213">sparse_end()</a></li>
-<li><a class="reference internal" href="#id14" id="id214">move_storage()</a></li>
-<li><a class="reference internal" href="#verify-resume-data" id="id215">verify_resume_data()</a></li>
-<li><a class="reference internal" href="#write-resume-data" id="id216">write_resume_data()</a></li>
-<li><a class="reference internal" href="#move-slot" id="id217">move_slot()</a></li>
-<li><a class="reference internal" href="#swap-slots" id="id218">swap_slots()</a></li>
-<li><a class="reference internal" href="#swap-slots3" id="id219">swap_slots3()</a></li>
-<li><a class="reference internal" href="#id15" id="id220">rename_file()</a></li>
-<li><a class="reference internal" href="#release-files" id="id221">release_files()</a></li>
-<li><a class="reference internal" href="#delete-files" id="id222">delete_files()</a></li>
-<li><a class="reference internal" href="#finalize-file" id="id223">finalize_file()</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id210">storage_interface</a><ul>
+<li><a class="reference internal" href="#initialize" id="id211">initialize()</a></li>
+<li><a class="reference internal" href="#has-any-file" id="id212">has_any_file()</a></li>
+<li><a class="reference internal" href="#readv-writev" id="id213">readv() writev()</a></li>
+<li><a class="reference internal" href="#sparse-end" id="id214">sparse_end()</a></li>
+<li><a class="reference internal" href="#id14" id="id215">move_storage()</a></li>
+<li><a class="reference internal" href="#verify-resume-data" id="id216">verify_resume_data()</a></li>
+<li><a class="reference internal" href="#write-resume-data" id="id217">write_resume_data()</a></li>
+<li><a class="reference internal" href="#move-slot" id="id218">move_slot()</a></li>
+<li><a class="reference internal" href="#swap-slots" id="id219">swap_slots()</a></li>
+<li><a class="reference internal" href="#swap-slots3" id="id220">swap_slots3()</a></li>
+<li><a class="reference internal" href="#id15" id="id221">rename_file()</a></li>
+<li><a class="reference internal" href="#release-files" id="id222">release_files()</a></li>
+<li><a class="reference internal" href="#delete-files" id="id223">delete_files()</a></li>
+<li><a class="reference internal" href="#finalize-file" id="id224">finalize_file()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#magnet-links" id="id224">magnet links</a></li>
-<li><a class="reference internal" href="#queuing" id="id225">queuing</a><ul>
-<li><a class="reference internal" href="#downloading" id="id226">downloading</a></li>
-<li><a class="reference internal" href="#seeding" id="id227">seeding</a></li>
+<li><a class="reference internal" href="#magnet-links" id="id225">magnet links</a></li>
+<li><a class="reference internal" href="#queuing" id="id226">queuing</a><ul>
+<li><a class="reference internal" href="#downloading" id="id227">downloading</a></li>
+<li><a class="reference internal" href="#seeding" id="id228">seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#fast-resume" id="id228">fast resume</a><ul>
-<li><a class="reference internal" href="#file-format" id="id229">file format</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id229">fast resume</a><ul>
+<li><a class="reference internal" href="#file-format" id="id230">file format</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#threads" id="id230">threads</a></li>
-<li><a class="reference internal" href="#storage-allocation" id="id231">storage allocation</a><ul>
-<li><a class="reference internal" href="#sparse-allocation" id="id232">sparse allocation</a></li>
-<li><a class="reference internal" href="#full-allocation" id="id233">full allocation</a></li>
-<li><a class="reference internal" href="#compact-allocation" id="id234">compact allocation</a></li>
+<li><a class="reference internal" href="#threads" id="id231">threads</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id232">storage allocation</a><ul>
+<li><a class="reference internal" href="#sparse-allocation" id="id233">sparse allocation</a></li>
+<li><a class="reference internal" href="#full-allocation" id="id234">full allocation</a></li>
+<li><a class="reference internal" href="#compact-allocation" id="id235">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#extensions" id="id235">extensions</a><ul>
-<li><a class="reference internal" href="#metadata-from-peers" id="id236">metadata from peers</a></li>
-<li><a class="reference internal" href="#http-seeding" id="id237">HTTP seeding</a></li>
+<li><a class="reference internal" href="#extensions" id="id236">extensions</a><ul>
+<li><a class="reference internal" href="#metadata-from-peers" id="id237">metadata from peers</a></li>
+<li><a class="reference internal" href="#http-seeding" id="id238">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#filename-checks" id="id238">filename checks</a></li>
+<li><a class="reference internal" href="#filename-checks" id="id239">filename checks</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -1163,6 +1164,7 @@ socket listening on different ports. If the DHT is active when <tt class="docuti
 called, the udp port will be rebound to the new port, if it was configured to use
 the same port as the tcp socket, and if the listen_on call failed to bind to the
 same port that the udp uses.</p>
+<p>If you want the OS to pick a port for you, pass in 0 as both first and second.</p>
 <p>The reason why it's a good idea to run the DHT and the bittorrent socket on the same
 port is because that is an assumption that may be used to increase performance. One
 way to accelerate the connecting of peers on windows may be to first ping all peers
@@ -1791,9 +1793,12 @@ struct file_entry
         size_type offset;
         size_type size;
         size_type file_base;
+        std::string symlink_path;
+        boost::shared_ptr&lt;sha1_hash&gt; filehash;
         bool pad_file:1;
         bool hidden_attribute:1;
         bool executable_attribute:1;
+        bool symlink_attribute:1;
 };
 </pre>
 <p>The <tt class="docutils literal"><span class="pre">path</span></tt> is the full (relative) path of each file. i.e. if it is a multi-file
@@ -1812,6 +1817,13 @@ file.</p>
 They are just there to make sure the next file is aligned to a particular byte offset
 or piece boundry. These files should typically be hidden from an end user. They are
 not written to disk.</p>
+<p><tt class="docutils literal"><span class="pre">hidden_attribute</span></tt> is true if the file was marked as hidden (on windows).</p>
+<p><tt class="docutils literal"><span class="pre">executable_attribute</span></tt> is true if the file was marked as executable (posix)</p>
+<p><tt class="docutils literal"><span class="pre">symlink_attribute</span></tt> is true if the file was a symlink. If this is the case
+the <tt class="docutils literal"><span class="pre">symlink_path</span></tt> specifies the original location where the data for this file
+was found.</p>
+<p><tt class="docutils literal"><span class="pre">filehash</span></tt> is a pointer that is set in case the torrent file included a sha1 hash
+for this file. This may be use to look up more sources for this file on other networks.</p>
 </div>
 <div class="section" id="num-files-file-at">
 <h2>num_files() file_at()</h2>
@@ -3777,6 +3789,8 @@ struct session_settings
 
         int active_downloads;
         int active_seeds;
+        int active_dht_limit;
+        int active_tracker_limit;
         int active_limit;
         bool auto_manage_prefer_seeds;
         bool dont_count_slow_torrents;
@@ -3854,6 +3868,9 @@ struct session_settings
 
         int default_peer_upload_rate;
         int default_peer_download_rate;
+        bool broadcast_lsd;
+        bool ignore_resume_timestamps;
+        bool anonymous_mode;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -4142,6 +4159,17 @@ to make it more likely to utilize all available bandwidth, and avoid having torr
 that don't transfer anything block the active slots.</p>
 <p><tt class="docutils literal"><span class="pre">active_limit</span></tt> is a hard limit on the number of active torrents. This applies even to
 slow torrents.</p>
+<p><tt class="docutils literal"><span class="pre">active_dht_limit</span></tt> is the max number of torrents to announce to the DHT. By default
+this is set to 88, which is no more than one DHT announce every 10 seconds.</p>
+<p><tt class="docutils literal"><span class="pre">active_tracker_limit</span></tt> is the max number of torrents to announce to their trackers.
+By default this is 360, which is no more than one announce every 5 seconds.</p>
+<p><tt class="docutils literal"><span class="pre">active_lsd_limit</span></tt> is the max number of torrents to announce to the local network
+over the local service discovery protocol. By default this is 80, which is no more
+than one announce every 5 seconds (assuming the default announce interval of 5 minutes).</p>
+<p>You can have more torrents <em>active</em>, even though they are not announced to the DHT,
+lsd or their tracker. If some peer knows about you for any reason and tries to connect,
+it will still be accepted, unless the torrent is paused, which means it won't accept
+any connections.</p>
 <p><tt class="docutils literal"><span class="pre">auto_manage_interval</span></tt> is the number of seconds between the torrent queue
 is updated, and rotated.</p>
 <p><tt class="docutils literal"><span class="pre">share_ratio_limit</span></tt> is the upload / download ratio limit for considering a
@@ -4368,6 +4396,28 @@ default to 0, which means unlimited. These settings affect the rate limits
 set on new peer connections (not existing ones). The peer rate limits can
 be changed individually later using
 <a class="reference internal" href="#set-peer-upload-limit-set-peer-download-limit">set_peer_upload_limit() set_peer_download_limit()</a>.</p>
+<p>if <tt class="docutils literal"><span class="pre">broadcast_lsd</span></tt> is set to true, the local peer discovery
+(or Local Service Discovery) will not only use IP multicast, but also
+broadcast its messages. This can be useful when running on networks
+that don't support multicast. It's off by default since it's inefficient.</p>
+<p><tt class="docutils literal"><span class="pre">ignore_resume_timestamps</span></tt> determines if the storage, when loading
+resume data files, should verify that the file modification time
+with the timestamps in the resume data. This defaults to false, which
+means timestamps are taken into account, and resume data is less likely
+to accepted (torrents are more likely to be fully checked when loaded).
+It might be useful to set this to true if your network is faster than your
+disk, and it would be faster to redownload potentially missed pieces than
+to go through the whole storage to look for them.</p>
+<p><tt class="docutils literal"><span class="pre">anonymous_mode</span></tt> defaults to false. When set to true, the client tries
+to hide its identity to a certain degree. The peer-ID will no longer
+include the client's fingerprint. The user-agent will be reset to an
+empty string. Trackers will only be used if they are using a proxy
+server. The listen sockets are closed, and incoming connections will
+only be accepted through a SOCKS5 or I2P proxy (if a peer proxy is set up and
+is run on the same machine as the tracker proxy). Since no incoming connections
+are accepted, NAT-PMP, UPnP, DHT and local peer discovery are all turned off
+when this setting is enabled.</p>
+<p>If you're using I2P, it might make sense to enable anonymous mode as well.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">
@@ -4985,7 +5035,7 @@ has the followinf signature:</p>
 template &lt;T&gt; T* alert_cast(alert* a);
 template &lt;T&gt; T const* alert_cast(alert const* a);
 </pre>
-<p>You can also use a <a class="reference internal" href="#dispatcher">dispatcher</a> mechanism that's available in libtorrent.</p>
+<p>You can also use a <a class="reference internal" href="#alert-dispatcher">alert dispatcher</a> mechanism that's available in libtorrent.</p>
 <p>All alert types are defined in the <tt class="docutils literal"><span class="pre">&lt;libtorrent/alert_types.hpp&gt;</span></tt> header file.</p>
 <p>The <tt class="docutils literal"><span class="pre">alert</span></tt> class is the base class that specific messages are derived from. This
 is its synopsis:</p>
@@ -5808,8 +5858,32 @@ struct dht_get_peers_alert: alert
 };
 </pre>
 </div>
-<div class="section" id="dispatcher">
-<h2>dispatcher</h2>
+<div class="section" id="anonymous-mode-alert">
+<h2>anonymous_mode_alert</h2>
+<p>This alert is posted when a bittorrent feature is blocked because of the
+anonymous mode. For instance, if the tracker proxy is not set up, no
+trackers will be used, because trackers can only be used through proxies
+when in anonymous mode.</p>
+<pre class="literal-block">
+struct anonymous_mode_alert: tracker_alert
+{
+        // ...
+        enum kind_t
+        {
+                tracker_not_anonymous = 1
+        };
+        int kind;
+        std::string str;
+};
+</pre>
+<p><tt class="docutils literal"><span class="pre">kind</span></tt> specifies what error this is, it's one of:</p>
+<p><tt class="docutils literal"><span class="pre">tracker_not_anonymous</span></tt> means that there's no proxy set up for tracker
+communication and the tracker will not be contacted. The tracker which
+this failed for is specified in the <tt class="docutils literal"><span class="pre">str</span></tt> member.</p>
+</div>
+</div>
+<div class="section" id="alert-dispatcher">
+<h1>alert dispatcher</h1>
 <p>The <tt class="docutils literal"><span class="pre">handle_alert</span></tt> class is defined in <tt class="docutils literal"><span class="pre">&lt;libtorrent/alert.hpp&gt;</span></tt>.</p>
 <p>Examples usage:</p>
 <pre class="literal-block">
@@ -5852,7 +5926,6 @@ while (a.get())
 parameters to select between more types. If the number of types are more than
 15, you can define <tt class="docutils literal"><span class="pre">TORRENT_MAX_ALERT_TYPES</span></tt> to a greater number before
 including <tt class="docutils literal"><span class="pre">&lt;libtorrent/alert.hpp&gt;</span></tt>.</p>
-</div>
 </div>
 <div class="section" id="exceptions">
 <h1>exceptions</h1>
