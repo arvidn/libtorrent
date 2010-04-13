@@ -262,7 +262,7 @@ namespace libtorrent
 //		PRINT_OFFSETOF(torrent, m_override_resume_data:1)
 //		PRINT_OFFSETOF(torrent, m_resolving_country:1)
 //		PRINT_OFFSETOF(torrent, m_resolve_countries:1)
-//		PRINT_OFFSETOF(torrent, m_dummy_padding_bit_to_align:1)
+//		PRINT_OFFSETOF(torrent, m_need_save_resume_data:1)
 //		PRINT_OFFSETOF(torrent, m_seeding_time:24)
 		PRINT_OFFSETOF(torrent, m_time_scaler)
 //		PRINT_OFFSETOF(torrent, m_max_uploads:24)
@@ -354,7 +354,7 @@ namespace libtorrent
 		, m_resolving_country(false)
 		, m_resolve_countries(false)
 #endif
-		, m_need_save_resume_data(false)
+		, m_need_save_resume_data(true)
 		, m_seeding_time(0)
 		, m_time_scaler(0)
 		, m_max_uploads(~0)
