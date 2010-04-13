@@ -6459,6 +6459,8 @@ namespace libtorrent
 			if (ae)
 			{
 				ae->failed(retry_interval);
+				ae->last_error = ec;
+				ae->message = msg;
 				int tracker_index = ae - &m_trackers[0];
 				deprioritize_tracker(tracker_index);
 			}

@@ -1428,11 +1428,13 @@ int main(int argc, char* argv[])
 				for (std::vector<announce_entry>::iterator i = tr.begin()
 					, end(tr.end()); i != end; ++i)
 				{
-					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d %s %s\n"
+					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d %s %s \"%s\" %s\n"
 						, i->tier, i->url.c_str(), i->fails, i->verified?"OK ":"-  "
 						, i->updating?"updating"
 							:!i->verified?""
-							:to_string(total_seconds(i->next_announce - now), 8).c_str());
+							:to_string(total_seconds(i->next_announce - now), 8).c_str()
+						, i->last_error ? i->last_error.message().c_str() : ""
+						, i->message.c_str());
 					out += str;
 				}
 			}
