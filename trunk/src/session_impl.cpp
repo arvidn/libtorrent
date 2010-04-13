@@ -3194,7 +3194,7 @@ namespace aux {
 		// if peer connections are set up to be received over a socks
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
-		if (m_socks_listen_socket->is_open()
+		if (m_socks_listen_socket && m_socks_listen_socket->is_open()
 			&& m_peer_proxy.hostname == m_tracker_proxy.hostname)
 			return m_socks_listen_port;
 
