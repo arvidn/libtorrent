@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DEBUG_HPP_INCLUDED
 #define TORRENT_DEBUG_HPP_INCLUDED
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+
 #include <string>
 #include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp"
@@ -47,16 +49,17 @@ namespace libtorrent
 {
 	// DEBUG API
 	
-#if TORRENT_USE_IOSTREAM
-	// all log streams share a single file descriptor
-	// and re-opens the file for each log line
-	static std::ofstream log_file;
-	static std::string open_filename;
-	static mutex file_mutex;
-#endif
-
 	struct logger
 	{
+#if TORRENT_USE_IOSTREAM
+		// all log streams share a single file descriptor
+		// and re-opens the file for each log line
+		// these members are defined in session_impl.cpp
+		static std::ofstream log_file;
+		static std::string open_filename;
+		static mutex file_mutex;
+#endif
+
 		logger(std::string const& logpath, std::string const& filename
 			, int instance, bool append)
 		{
@@ -102,5 +105,6 @@ namespace libtorrent
 
 }
 
+#endif // TORRENT_VERBOSE_LOGGING || TORRENT_LOGGING || TORRENT_ERROR_LOGGING
 #endif // TORRENT_DEBUG_HPP_INCLUDED
 
