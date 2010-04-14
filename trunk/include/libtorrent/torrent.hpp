@@ -350,11 +350,10 @@ namespace libtorrent
 		void add_web_seed(std::string const& url, web_seed_entry::type_t type)
 		{ m_web_seeds.push_back(web_seed_entry(url, type)); }
 	
-		void disconnect_web_seed(std::string const& url, web_seed_entry::type_t type)
+		void disconnect_web_seed(peer_connection* p)
 		{
 			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-				, (boost::bind(&web_seed_entry::url, _1)
-					== url && boost::bind(&web_seed_entry::type, _1) == type));
+				, (boost::bind(&web_seed_entry::connection, _1) == p));
 			TORRENT_ASSERT(i != m_web_seeds.end());
 			if (i == m_web_seeds.end()) return;
 			TORRENT_ASSERT(i->connection);
@@ -369,7 +368,16 @@ namespace libtorrent
 			if (i != m_web_seeds.end()) m_web_seeds.erase(i);
 		}
 
-		void retry_web_seed(std::string const& url, web_seed_entry::type_t type, int retry = 0);
+		void retry_web_seed(peer_connection* p, int retry = 0);
+
+		void remove_web_seed(peer_connection* p)
+		{
+			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
+				, (boost::bind(&web_seed_entry::connection, _1) == p));
+			TORRENT_ASSERT(i != m_web_seeds.end());
+			if (i == m_web_seeds.end()) return;
+			m_web_seeds.erase(i);
+		}
 
 		std::list<web_seed_entry> web_seeds() const
 		{ return m_web_seeds; }

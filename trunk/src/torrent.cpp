@@ -5964,14 +5964,15 @@ namespace libtorrent
 		return ret;
 	}
 
-	void torrent::retry_web_seed(std::string const& url, web_seed_entry::type_t type, int retry)
+	void torrent::retry_web_seed(peer_connection* p, int retry)
 	{
 		std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-			, (boost::bind(&web_seed_entry::url, _1) == url)
-				&& (boost::bind(&web_seed_entry::type, _1) == type));
+			, (boost::bind(&web_seed_entry::connection, _1) == p));
 
+		TORRENT_ASSERT(i != m_web_seeds.end());
+		if (i == m_web_seeds.end()) return;
 		if (retry == 0) retry = m_ses.settings().urlseed_wait_retry;
-		if (i != m_web_seeds.end()) i->retry = time_now() + seconds(retry);
+		i->retry = time_now() + seconds(retry);
 	}
 
 	bool torrent::try_connect_peer()

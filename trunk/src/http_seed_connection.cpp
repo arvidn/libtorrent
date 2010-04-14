@@ -116,9 +116,8 @@ namespace libtorrent
 	void http_seed_connection::disconnect(error_code const& ec, int error)
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
 		peer_connection::disconnect(ec, error);
-		if (t) t->disconnect_web_seed(m_url, web_seed_entry::http_seed);
+		if (t) t->disconnect_web_seed(this);
 	}
 	
 	boost::optional<piece_block_progress>
@@ -324,7 +323,7 @@ namespace libtorrent
 					&& !(m_parser.status_code() >= 300 // redirect
 						&& m_parser.status_code() < 400))
 				{
-					t->remove_web_seed(m_url, web_seed_entry::http_seed);
+					t->remove_web_seed(this);
 					std::string error_msg = to_string(m_parser.status_code()).elems
 						+ (" " + m_parser.message());
 					if (m_ses.m_alerts.should_post<url_seed_alert>())
@@ -355,14 +354,14 @@ namespace libtorrent
 					if (location.empty())
 					{
 						// we should not try this server again.
-						t->remove_web_seed(m_url, web_seed_entry::http_seed);
+						t->remove_web_seed(this);
 						disconnect(errors::missing_location, 2);
 						return;
 					}
 					
 					// add the redirected url and remove the current one
 					t->add_web_seed(location, web_seed_entry::http_seed);
-					t->remove_web_seed(m_url, web_seed_entry::http_seed);
+					t->remove_web_seed(this);
 					disconnect(errors::redirecting, 2);
 					return;
 				}
@@ -381,7 +380,7 @@ namespace libtorrent
 				if (m_response_left == -1)
 				{
 					// we should not try this server again.
-					t->remove_web_seed(m_url, web_seed_entry::http_seed);
+					t->remove_web_seed(this);
 					disconnect(errors::no_content_length, 2);
 					return;
 				}
@@ -416,8 +415,7 @@ namespace libtorrent
 #endif
 
 				// temporarily unavailable, retry later
-				t->retry_web_seed(m_url, web_seed_entry::http_seed, retry_time);
-				t->remove_web_seed(m_url, web_seed_entry::http_seed);
+				t->retry_web_seed(this, retry_time);
 				disconnect(errors::http_error, 1);
 				return;
 			}
