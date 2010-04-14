@@ -1464,7 +1464,11 @@ namespace libtorrent
 					m_log << log_time() << " sorting_job" << std::endl;
 #endif
 					size_type phys_off = j.storage->physical_offset(j.piece, j.offset);
+					bool update_pos = sorted_read_jobs.empty();
 					sorted_read_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
+					// if sorted_read_jobs used to be empty,
+					// we need to update the elevator position
+					if (update_pos) elevator_job_pos = sorted_read_jobs.begin();
 					continue;
 				}
 			}
@@ -1497,6 +1501,7 @@ namespace libtorrent
 				if (elevator_direction > 0) ++elevator_job_pos;
 				else --elevator_job_pos;
 
+				TORRENT_ASSERT(to_erase != elevator_job_pos);
 				sorted_read_jobs.erase(to_erase);
 			}
 
