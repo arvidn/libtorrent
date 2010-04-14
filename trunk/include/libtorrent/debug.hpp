@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/thread.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <fstream>
@@ -51,6 +52,7 @@ namespace libtorrent
 	// and re-opens the file for each log line
 	static std::ofstream log_file;
 	static std::string open_filename;
+	static mutex file_mutex;
 #endif
 
 	struct logger
@@ -64,7 +66,7 @@ namespace libtorrent
 			error_code ec;
 			if (!exists(dir)) create_directories(dir, ec);
 			m_filename = combine_path(dir, filename);
-			m_append = append;
+			m_truncate = !append;
 			*this << "\n\n\n*** starting log ***\n";
 		}
 
@@ -73,8 +75,10 @@ namespace libtorrent
 		{
 			if (open_filename == m_filename) return;
 			log_file.close();
-			log_file.open(m_filename.c_str(), m_append ? std::ios_base::app : std::ios_base::out);
+			log_file.clear();
+			log_file.open(m_filename.c_str(), m_truncate ? std::ios_base::trunc : std::ios_base::app);
 			open_filename = m_filename;
+			m_truncate = false;
 			if (!log_file.good())
 				fprintf(stderr, "Failed to open logfile %s: %s\n", m_filename.c_str(), strerror(errno));
 		}
@@ -84,14 +88,16 @@ namespace libtorrent
 		logger& operator<<(T const& v)
 		{
 #if TORRENT_USE_IOSTREAM
+			mutex::scoped_lock l(file_mutex);
 			open();
 			log_file << v;
+			log_file.flush();
 #endif
 			return *this;
 		}
 
 		std::string m_filename;
-		bool m_append;
+		bool m_truncate;
 	};
 
 }
