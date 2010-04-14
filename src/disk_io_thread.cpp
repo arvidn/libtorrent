@@ -1608,6 +1608,7 @@ namespace libtorrent
 							continue;
 						}
 						post_callback(i->second.callback, i->second, -3);
+						if (elevator_job_pos == i) ++elevator_job_pos;
 						sorted_read_jobs.erase(i++);
 					}
 					jl.unlock();
@@ -1666,6 +1667,7 @@ namespace libtorrent
 							continue;
 						}
 						post_callback(i->second.callback, i->second, -3);
+						if (elevator_job_pos == i) ++elevator_job_pos;
 						sorted_read_jobs.erase(i++);
   					}
 					m_abort = true;
