@@ -50,18 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-// for logging the size of DHT structures
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-#ifndef TORRENT_DISABLE_DHT
-
-#include <libtorrent/kademlia/find_data.hpp>
-#include <libtorrent/kademlia/refresh.hpp>
-#include <libtorrent/kademlia/node.hpp>
-#include <libtorrent/kademlia/observer.hpp>
-
-#endif
-#endif
-
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/tracker_manager.hpp"
@@ -90,6 +78,28 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_WINDOWS
 #include <sys/resource.h>
+#endif
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+
+// for logging the size of DHT structures
+#ifndef TORRENT_DISABLE_DHT
+#include <libtorrent/kademlia/find_data.hpp>
+#include <libtorrent/kademlia/refresh.hpp>
+#include <libtorrent/kademlia/node.hpp>
+#include <libtorrent/kademlia/observer.hpp>
+#endif // TORRENT_DISABLE_DHT
+
+#include "libtorrent/debug.hpp"
+
+#if TORRENT_USE_IOSTREAM
+namespace libtorrent {
+std::ofstream logger::log_file;
+std::string logger::open_filename;
+mutex logger::file_mutex;
+}
+#endif // TORRENT_USE_IOSTREAM
+
 #endif
 
 #ifdef TORRENT_USE_GCRYPT

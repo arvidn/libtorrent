@@ -191,7 +191,7 @@ namespace libtorrent
 		error_code ec;
 		m_logger = m_ses.create_log(m_remote.address().to_string(ec) + "_"
 			+ to_string(m_remote.port()).elems, m_ses.listen_port());
-		(*m_logger) << "*** OUTGOING CONNECTION\n";
+		(*m_logger) << time_now_string() << " *** OUTGOING CONNECTION\n";
 #endif
 #ifdef TORRENT_DEBUG
 		piece_failed = false;
@@ -327,7 +327,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
 		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
 			+ to_string(remote().port()).elems, m_ses.listen_port());
-		(*m_logger) << "*** INCOMING CONNECTION\n";
+		(*m_logger) << time_now_string() << " *** INCOMING CONNECTION\n";
 #endif
 		
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -744,7 +744,7 @@ namespace libtorrent
 		if (m_num_pieces == int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << " *** THIS IS A SEED ***\n";
+			(*m_logger) << time_now_string() << " *** THIS IS A SEED ***\n";
 #endif
 			// if this is a web seed. we don't have a peer_info struct
 			t->get_policy().set_seed(m_peer_info, true);
@@ -1057,7 +1057,7 @@ namespace libtorrent
 		if (t && t->is_aborted())
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << " *** the torrent has been aborted\n";
+			(*m_logger) << time_now_string() << " *** the torrent has been aborted\n";
 #endif
 			t.reset();
 		}
@@ -1066,7 +1066,8 @@ namespace libtorrent
 		{
 			// we couldn't find the torrent!
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << " *** couldn't find a torrent with the given info_hash: " << ih << "\n";
+			(*m_logger) << time_now_string()
+				<< " *** couldn't find a torrent with the given info_hash: " << ih << "\n";
 			(*m_logger) << " torrents:\n";
 			session_impl::torrent_map const& torrents = m_ses.m_torrents;
 			for (session_impl::torrent_map::const_iterator i = torrents.begin()
@@ -1089,7 +1090,7 @@ namespace libtorrent
 			// torrents that have errors should always reject
 			// incoming peers
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << " rejected connection to paused torrent\n";
+			(*m_logger) << time_now_string() << " rejected connection to paused torrent\n";
 #endif
 			disconnect(errors::torrent_paused, 2);
 			return;
@@ -1102,7 +1103,7 @@ namespace libtorrent
 			// the torrent is an i2p torrent, the peer is a regular peer
 			// and we don't allow mixed mode. Disconnect the peer.
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << " rejected regular connection to i2p torrent\n";
+			(*m_logger) << time_now_string() << " rejected regular connection to i2p torrent\n";
 #endif
 			disconnect(errors::peer_banned, 2);
 			return;
@@ -1726,7 +1727,7 @@ namespace libtorrent
 		if (num_pieces == int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << " *** THIS IS A SEED ***\n";
+			(*m_logger) << time_now_string() << " *** THIS IS A SEED ***\n";
 #endif
 			// if this is a web seed. we don't have a peer_info struct
 			t->get_policy().set_seed(m_peer_info, true);
@@ -2059,7 +2060,7 @@ namespace libtorrent
 						, m_peer_id, b.block_index, b.piece_index));
 				}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-				(*m_logger) << " *** The block we just got was not in the "
+				(*m_logger) << "          *** The block we just got was not in the "
 					"request queue ***\n";
 #endif
 			}
@@ -2226,7 +2227,7 @@ namespace libtorrent
 					, m_peer_id, block_finished.block_index, block_finished.piece_index));
 			}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << " *** The block we just got was not in the "
+			(*m_logger) << "        *** The block we just got was not in the "
 				"request queue ***\n";
 #endif
 #ifdef TORRENT_DEBUG
@@ -4571,7 +4572,7 @@ namespace libtorrent
 		do
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "read " << bytes_transferred << " bytes\n";
+			(*m_logger) << time_now_string() << " <<< read " << bytes_transferred << " bytes\n";
 #endif
 			// correct the dl quota usage, if not all of the buffer was actually read
 			TORRENT_ASSERT(int(bytes_transferred) <= m_quota[download_channel]);
@@ -4900,7 +4901,7 @@ namespace libtorrent
 		m_statistics.trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << "wrote " << bytes_transferred << " bytes\n";
+		(*m_logger) << time_now_string() << " >>> wrote " << bytes_transferred << " bytes\n";
 #endif
 
 		if (error)
