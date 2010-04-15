@@ -5290,7 +5290,7 @@ namespace libtorrent
 		// #error should m_allow_peers really affect checking?
 		return (m_state == torrent_status::checking_files
 			|| m_state == torrent_status::queued_for_checking)
-			&& (!m_allow_peers || m_auto_managed)
+			&& (m_allow_peers || m_auto_managed)
 			&& !has_error()
 			&& !m_abort;
 	}
