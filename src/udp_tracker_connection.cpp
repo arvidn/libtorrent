@@ -97,7 +97,9 @@ namespace libtorrent
 
 		if (ec)
 		{
-			fail(-1, ec.message().c_str());
+			// never call fail() when the session mutex is locked!
+			m_socket.get_io_service().post(boost::bind(
+				&tracker_connection::fail_disp, self(), -1, ec.message()));
 			return;
 		}
 		
