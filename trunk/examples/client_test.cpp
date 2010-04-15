@@ -632,7 +632,7 @@ void scan_dir(std::string const& dir_path
 		h.pause();
 		// the alert handler for save_resume_data_alert
 		// will save it to disk
-		h.save_resume_data();
+		if (h.need_save_resume_data()) h.save_resume_data();
 
 		handles.erase(i++);
 	}
@@ -1092,7 +1092,8 @@ int main(int argc, char* argv[])
 				for (handles_t::iterator i = handles.begin()
 					, end(handles.end()); i != end; ++i)
 				{
-					i->second.save_resume_data();
+					if (i->second.need_save_resume_data())
+						i->second.save_resume_data();
 				}
 			}
 
@@ -1132,7 +1133,7 @@ int main(int argc, char* argv[])
 					}
 					// the alert handler for save_resume_data_alert
 					// will save it to disk
-					h.save_resume_data();
+					if (h.need_save_resume_data()) h.save_resume_data();
 				}
 			}
 
@@ -1275,7 +1276,7 @@ int main(int argc, char* argv[])
 			if (s.state != torrent_status::queued_for_checking && s.state != torrent_status::checking_files)
 			{
 				snprintf(str, sizeof(str), "%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
-					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x%s\n"
+					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
 					, (paused && !auto_managed)?"paused":(paused && auto_managed)?"queued":state_str[s.state]
 					, esc("32"), add_suffix(s.total_download).c_str(), term
 					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
@@ -1284,7 +1285,7 @@ int main(int argc, char* argv[])
 					, s.up_bandwidth_queue, s.down_bandwidth_queue
 					, esc("32"), add_suffix(s.all_time_download).c_str(), term
 					, esc("31"), add_suffix(s.all_time_upload).c_str(), term
-					, s.seed_rank, esc("0"));
+					, s.seed_rank, h.need_save_resume_data()?'S':' ', esc("0"));
 				out += str;
 
 				if (torrent_index != active_torrent && s.state == torrent_status::seeding) continue;
