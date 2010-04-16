@@ -422,10 +422,10 @@ namespace libtorrent
 		cache_status m_cache_stats;
 
 		// keeps average queue time for disk jobs (in microseconds)
-		sliding_average m_queue_time;
+		sliding_average<512> m_queue_time;
 
 		// average read time for cache misses (in microseconds)
-		sliding_average m_read_time;
+		sliding_average<512> m_read_time;
 
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
