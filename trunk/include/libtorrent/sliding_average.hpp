@@ -35,6 +35,7 @@ namespace libtorrent
 // a sliding average accumulator. Add samples to it and it
 // keeps track of a sliding mean value and an average deviation
 // from that average.
+template <int history_size>
 struct sliding_average
 {
 	sliding_average(): m_mean(-1), m_average_deviation(-1) {}
@@ -48,14 +49,15 @@ struct sliding_average
 		}
 		int deviation = abs(m_mean - s);
 
-		m_mean = m_mean - m_mean / 16 + s / 16;
+		m_mean = m_mean - m_mean / history_size + s / history_size;
 
 		if (m_average_deviation == -1)
 		{
 			m_average_deviation = deviation;
 			return;
 		}
-		m_average_deviation = m_average_deviation - m_average_deviation / 16 + deviation / 16;
+		m_average_deviation = m_average_deviation - m_average_deviation
+			/ history_size + deviation / history_size;
 	}
 
 	int mean() const { return m_mean != -1 ? m_mean : 0; }
