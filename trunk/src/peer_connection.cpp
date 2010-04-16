@@ -4181,7 +4181,8 @@ namespace libtorrent
 
 	void peer_connection::setup_send()
 	{
-		if (m_channel_state[upload_channel] != peer_info::bw_idle) return;
+		if (m_channel_state[upload_channel] != peer_info::bw_idle
+			&& m_channel_state[upload_channel] != peer_info::bw_disk) return;
 		
 		shared_ptr<torrent> t = m_torrent.lock();
 
@@ -4261,25 +4262,29 @@ namespace libtorrent
 			m_channel_state[upload_channel] = peer_info::bw_network;
 		}
 		else if (m_reading_bytes > 0
-			&& quota_left > 0
-			&& !m_connecting
-			&& !m_requests.empty()
-			&& m_reading_bytes > m_ses.settings().send_buffer_watermark - 0x4000)
+			&& quota_left > 0)
 		{
-			// we're stalled on the disk. We want to write and we can write
-			// but our send buffer is empty, waiting to be refilled from the disk
-			// this either means the disk is slower than the network connection
-			// or that our send buffer watermark is too small, because we can
-			// send it all before the disk gets back to us. That's why we only
-			// trigger this if we've also filled the allowed send buffer. The
-			// first request would not fill it all the way up because of the
-			// upload rate being virtually 0. If m_requests is empty, it doesn't
-			// matter anyway, because we don't have any more requests from the
-			// peer to hang on to the disk
-			if (t->alerts().should_post<performance_alert>())
+			m_channel_state[upload_channel] = peer_info::bw_disk;
+
+			if (!m_connecting
+				&& !m_requests.empty()
+				&& m_reading_bytes > m_ses.settings().send_buffer_watermark - 0x4000)
 			{
-				t->alerts().post_alert(performance_alert(t->get_handle()
-					, performance_alert::send_buffer_watermark_too_low));
+				// we're stalled on the disk. We want to write and we can write
+				// but our send buffer is empty, waiting to be refilled from the disk
+				// this either means the disk is slower than the network connection
+				// or that our send buffer watermark is too small, because we can
+				// send it all before the disk gets back to us. That's why we only
+				// trigger this if we've also filled the allowed send buffer. The
+				// first request would not fill it all the way up because of the
+				// upload rate being virtually 0. If m_requests is empty, it doesn't
+				// matter anyway, because we don't have any more requests from the
+				// peer to hang on to the disk
+				if (t->alerts().should_post<performance_alert>())
+				{
+					t->alerts().post_alert(performance_alert(t->get_handle()
+						, performance_alert::send_buffer_watermark_too_low));
+				}
 			}
 		}
 	}
