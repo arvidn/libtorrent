@@ -182,10 +182,12 @@ namespace
 		, {"O",  "Osprey Permaseed"}
 		, {"PD",  "Pando"}
 		, {"Q", "BTQueue"}
+		, {"QD", "QQDownload"}
 		, {"QT", "Qt 4"}
 		, {"R",  "Tribler"}
 		, {"S",  "Shadow"}
 		, {"SB", "Swiftbit"}
+		, {"SD", "Xunlei"}
 		, {"SN", "ShareNet"}
 		, {"SS", "SwarmScope"}
 		, {"ST", "SymTorrent"}
@@ -199,6 +201,7 @@ namespace
 		, {"U",  "UPnP"}
 		, {"UL", "uLeecher"}
 		, {"UT", "uTorrent"}
+		, {"VG", "Vagaa"}
 		, {"XL", "Xunlei"}
 		, {"XT", "XanTorrent"}
 		, {"XX", "Xtorrent"}
