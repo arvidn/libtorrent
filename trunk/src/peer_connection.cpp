@@ -4214,54 +4214,10 @@ namespace libtorrent
 			return;
 		}
 
-		if (!can_write())
-		{
-#ifdef TORRENT_VERBOSE_LOGGING
-			if (m_send_buffer.empty())
-			{
-				(*m_logger) << time_now_string() << " *** SEND BUFFER DEPLETED ["
-					" quota: " << m_quota[upload_channel] <<
-					" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
-					" buf: " << m_send_buffer.size() <<
-					" connecting: " << (m_connecting?"yes":"no") <<
-					" disconnecting: " << (m_disconnecting?"yes":"no") <<
-					" ]\n";
-			}
-			else
-			{
-				(*m_logger) << time_now_string() << " *** CANNOT WRITE ["
-					" quota: " << m_quota[upload_channel] <<
-					" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
-					" buf: " << m_send_buffer.size() <<
-					" connecting: " << (m_connecting?"yes":"no") <<
-					" disconnecting: " << (m_disconnecting?"yes":"no") <<
-					" ]\n";
-			}
-#endif
-			return;
-		}
-
 		int quota_left = m_quota[upload_channel];
-		// send the actual buffer
-		if (!m_send_buffer.empty())
-		{
-			int amount_to_send = m_send_buffer.size();
-			if (amount_to_send > quota_left)
-				amount_to_send = quota_left;
 
-			TORRENT_ASSERT(amount_to_send > 0);
-
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** ASYNC_WRITE [ bytes: " << amount_to_send << " ]\n";
-#endif
-			std::list<asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
-			m_socket->async_write_some(
-				vec, make_write_handler(bind(
-					&peer_connection::on_send_data, self(), _1, _2)));
-
-			m_channel_state[upload_channel] = peer_info::bw_network;
-		}
-		else if (m_reading_bytes > 0
+		if (m_send_buffer.empty()
+			&& m_reading_bytes > 0
 			&& quota_left > 0)
 		{
 			m_channel_state[upload_channel] = peer_info::bw_disk;
@@ -4287,6 +4243,52 @@ namespace libtorrent
 				}
 			}
 		}
+
+		if (!can_write())
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			if (m_send_buffer.empty())
+			{
+				(*m_logger) << time_now_string() << " *** SEND BUFFER DEPLETED ["
+					" quota: " << m_quota[upload_channel] <<
+					" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
+					" buf: " << m_send_buffer.size() <<
+					" connecting: " << (m_connecting?"yes":"no") <<
+					" disconnecting: " << (m_disconnecting?"yes":"no") <<
+					" pending_disk: " << m_reading_bytes <<
+					" ]\n";
+			}
+			else
+			{
+				(*m_logger) << time_now_string() << " *** CANNOT WRITE ["
+					" quota: " << m_quota[upload_channel] <<
+					" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
+					" buf: " << m_send_buffer.size() <<
+					" connecting: " << (m_connecting?"yes":"no") <<
+					" disconnecting: " << (m_disconnecting?"yes":"no") <<
+					" pending_disk: " << m_reading_bytes <<
+					" ]\n";
+			}
+#endif
+			return;
+		}
+
+		// send the actual buffer
+		int amount_to_send = m_send_buffer.size();
+		if (amount_to_send > quota_left)
+			amount_to_send = quota_left;
+
+		TORRENT_ASSERT(amount_to_send > 0);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " *** ASYNC_WRITE [ bytes: " << amount_to_send << " ]\n";
+#endif
+		std::list<asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
+		m_socket->async_write_some(
+			vec, make_write_handler(bind(
+				&peer_connection::on_send_data, self(), _1, _2)));
+
+		m_channel_state[upload_channel] = peer_info::bw_network;
 	}
 
 	void peer_connection::setup_receive()
