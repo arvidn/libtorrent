@@ -192,6 +192,7 @@ rule building ( properties * )
 		result += <source>src/pe_crypto.cpp ;
 
 		if <target-os>linux in $(properties)
+			&& <encryption>openssl in $(properties)
 		{
 			# linker library on linux, required when using openssl
 			result += <source>/usr/lib/libdl.so ;
