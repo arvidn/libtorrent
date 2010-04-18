@@ -690,10 +690,12 @@ namespace libtorrent
 	}
 
 	file::file()
+#if !TORRENT_USE_AIO
 #ifdef TORRENT_WINDOWS
 		: m_file_handle(INVALID_HANDLE_VALUE)
 #else
-		: m_fd(-1)
+		: m_file_handle(-1)
+#endif
 #endif
 		, m_open_mode(0)
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
@@ -702,10 +704,12 @@ namespace libtorrent
 	{}
 
 	file::file(std::string const& path, int mode, error_code& ec)
+#if !TORRENT_USE_AIO
 #ifdef TORRENT_WINDOWS
 		: m_file_handle(INVALID_HANDLE_VALUE)
 #else
-		: m_fd(-1)
+		: m_file_handle(-1)
+#endif
 #endif
 		, m_open_mode(0)
 	{
@@ -770,21 +774,28 @@ namespace libtorrent
 		open_mode_t const& m = mode_array[mode & mode_mask];
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
 
-		m_file_handle = CreateFile_(m_path.c_str(), m.rw_mode, m.share_mode, 0
+		handle_type handle = CreateFile_(m_path.c_str(), m.rw_mode, m.share_mode, 0
 			, m.create_mode, m.flags | (a ? a : FILE_ATTRIBUTE_NORMAL), 0);
 
-		if (m_file_handle == INVALID_HANDLE_VALUE)
+		if (handle == INVALID_HANDLE_VALUE)
 		{
 			ec.assign(GetLastError(), get_system_category());
 			return false;
 		}
+
+#if TORRENT_USE_AIO
+		m_aio_handle.assign(handle, ec);
+		if (ec) return false;
+#else
+		m_file_handle = handle;
+#endif
 
 		// try to make the file sparse if supported
 		// only set this flag if the file is opened for writing
 		if ((mode & file::sparse) && (mode & rw_mask) != read_only)
 		{
 			DWORD temp;
-			::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, 0, 0
+			::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, 0, 0
 				, 0, 0, &temp, 0);
 		}
 #else // TORRENT_WINDOWS
@@ -809,7 +820,7 @@ namespace libtorrent
 		static const int no_atime_flag[] = {0, O_NOATIME};
 #endif
 
- 		m_fd = ::open(convert_to_native(path).c_str()
+ 		handle_type handle = ::open(convert_to_native(path).c_str()
  			, mode_array[mode & rw_mask]
 			| no_buffer_flag[(mode & no_buffer) >> 2]
 #ifdef O_NOATIME
@@ -820,27 +831,34 @@ namespace libtorrent
 #ifdef TORRENT_LINUX
 		// workaround for linux bug
 		// https://bugs.launchpad.net/ubuntu/+source/linux/+bug/269946
-		if (m_fd == -1 && (mode & no_buffer) && errno == EINVAL)
+		if (handle == -1 && (mode & no_buffer) && errno == EINVAL)
 		{
 			mode &= ~no_buffer;
-			m_fd = ::open(path.c_str()
+			handle = ::open(path.c_str()
 				, mode & (rw_mask | no_buffer), permissions);
 		}
 
 #endif
-		if (m_fd == -1)
+		if (handle == -1)
 		{
 			ec.assign(errno, get_posix_category());
 			TORRENT_ASSERT(ec);
 			return false;
 		}
 
+#if TORRENT_USE_AIO
+		m_aio_handle.assign(handle, ec);
+		if (ec) return false;
+#else
+		m_file_handle = handle;
+#endif
+
 #ifdef DIRECTIO_ON
 		// for solaris
 		if (mode & no_buffer)
 		{
 			int yes = 1;
-			directio(m_fd, DIRECTIO_ON);
+			directio(native_handle(), DIRECTIO_ON);
 		}
 #endif
 
@@ -849,32 +867,33 @@ namespace libtorrent
 		if (mode & no_buffer)
 		{
 			int yes = 1;
-			fcntl(m_fd, F_NOCACHE, &yes);
+			fcntl(native_handle(), F_NOCACHE, &yes);
 		}
 #endif
 
 #ifdef POSIX_FADV_RANDOM
 		// disable read-ahead
-		posix_fadvise(m_fd, 0, 0, POSIX_FADV_RANDOM);
+		posix_fadvise(native_handle(), 0, 0, POSIX_FADV_RANDOM);
 #endif
 
 #endif
 		m_open_mode = mode;
 
-#if TORRENT_USE_AIO
-		m_aio_handle.assign(native_handle(), ec);
-		if (ec) return false;
-#endif
 		TORRENT_ASSERT(is_open());
 		return true;
 	}
 
 	bool file::is_open() const
 	{
+#if TORRENT_USE_AIO
+		return m_aio_handle.is_open();
+#else
+
 #ifdef TORRENT_WINDOWS
 		return m_file_handle != INVALID_HANDLE_VALUE;
 #else
-		return m_fd != -1;
+		return m_file_handle != -1;
+#endif
 #endif
 	}
 
@@ -886,7 +905,7 @@ namespace libtorrent
 		if (m_sector_size == 0)
 		{
 			struct statvfs fs;
-			if (fstatvfs(m_fd, &fs) == 0)
+			if (fstatvfs(native_handle(), &fs) == 0)
 				m_sector_size = fs.f_bsize;
 			else
 				m_sector_size = 4096;
@@ -952,16 +971,23 @@ namespace libtorrent
 		m_sector_size = 0;
 #endif
 
+		if (!is_open()) return;
+
+#if TORRENT_USE_AIO
+		m_aio_handle.close();
+#else
+
 #ifdef TORRENT_WINDOWS
-		if (m_file_handle == INVALID_HANDLE_VALUE) return;
 		CloseHandle(m_file_handle);
 		m_file_handle = INVALID_HANDLE_VALUE;
 		m_path.clear();
 #else
-		if (m_fd == -1) return;
-		::close(m_fd);
-		m_fd = -1;
+		if (m_file_handle == -1) return;
+		::close(m_file_handle);
+		m_file_handle = -1;
 #endif
+#endif // TORRENT_USE_AIO
+
 		m_open_mode = 0;
 	}
 
@@ -1065,7 +1091,7 @@ namespace libtorrent
 
 			LARGE_INTEGER offs;
 			offs.QuadPart = file_offset;
-			if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				return -1;
@@ -1074,7 +1100,7 @@ namespace libtorrent
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
 				DWORD intermediate = 0;
-				if (ReadFile(m_file_handle, (char*)i->iov_base
+				if (ReadFile(native_handle(), (char*)i->iov_base
 					, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 				{
 					ec.assign(GetLastError(), get_system_category());
@@ -1112,7 +1138,7 @@ namespace libtorrent
 
 		ret += size;
 		size = num_pages * m_page_size;
-		if (ReadFileScatter(m_file_handle, segment_array, size, 0, &ol) == 0)
+		if (ReadFileScatter(native_handle(), segment_array, size, 0, &ol) == 0)
 		{
 			DWORD last_error = GetLastError();
 			if (last_error != ERROR_IO_PENDING)
@@ -1121,7 +1147,7 @@ namespace libtorrent
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
-			if (GetOverlappedResult(m_file_handle, &ol, &ret, true) == 0)
+			if (GetOverlappedResult(native_handle(), &ol, &ret, true) == 0)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
@@ -1133,7 +1159,7 @@ namespace libtorrent
 
 #else // TORRENT_WINDOWS
 
-		size_type ret = lseek(m_fd, file_offset, SEEK_SET);
+		size_type ret = lseek(native_handle(), file_offset, SEEK_SET);
 		if (ret < 0)
 		{
 			ec.assign(errno, get_posix_category());
@@ -1154,7 +1180,7 @@ namespace libtorrent
 		if (aligned)
 #endif // TORRENT_LINUX
 		{
-			ret = ::readv(m_fd, bufs, num_bufs);
+			ret = ::readv(native_handle(), bufs, num_bufs);
 			if (ret < 0)
 			{
 				ec.assign(errno, get_posix_category());
@@ -1167,7 +1193,7 @@ namespace libtorrent
 		memcpy(temp_bufs, bufs, sizeof(file::iovec_t) * num_bufs);
 		iovec_t& last = temp_bufs[num_bufs-1];
 		last.iov_len = (last.iov_len & ~(size_alignment()-1)) + m_page_size;
-		ret = ::readv(m_fd, temp_bufs, num_bufs);
+		ret = ::readv(native_handle(), temp_bufs, num_bufs);
 		if (ret < 0)
 		{
 			ec.assign(errno, get_posix_category());
@@ -1181,7 +1207,7 @@ namespace libtorrent
 		ret = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
-			int tmp = read(m_fd, i->iov_base, i->iov_len);
+			int tmp = read(native_handle(), i->iov_base, i->iov_len);
 			if (tmp < 0)
 			{
 				ec.assign(errno, get_posix_category());
@@ -1248,7 +1274,7 @@ namespace libtorrent
 
 			LARGE_INTEGER offs;
 			offs.QuadPart = file_offset;
-			if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				return -1;
@@ -1257,7 +1283,7 @@ namespace libtorrent
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
 				DWORD intermediate = 0;
-				if (WriteFile(m_file_handle, (char const*)i->iov_base
+				if (WriteFile(native_handle(), (char const*)i->iov_base
 					, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 				{
 					ec.assign(GetLastError(), get_system_category());
@@ -1310,7 +1336,7 @@ namespace libtorrent
 			size = num_pages * m_page_size;
 		}
 
-		if (WriteFileGather(m_file_handle, segment_array, size, 0, &ol) == 0)
+		if (WriteFileGather(native_handle(), segment_array, size, 0, &ol) == 0)
 		{
 			if (GetLastError() != ERROR_IO_PENDING)
 			{
@@ -1319,7 +1345,7 @@ namespace libtorrent
 				return -1;
 			}
 			DWORD tmp;
-			if (GetOverlappedResult(m_file_handle, &ol, &tmp, true) == 0)
+			if (GetOverlappedResult(native_handle(), &ol, &tmp, true) == 0)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
@@ -1360,7 +1386,7 @@ namespace libtorrent
 
 		return ret;
 #else
-		size_type ret = lseek(m_fd, file_offset, SEEK_SET);
+		size_type ret = lseek(native_handle(), file_offset, SEEK_SET);
 		if (ret < 0)
 		{
 			ec.assign(errno, get_posix_category());
@@ -1382,7 +1408,7 @@ namespace libtorrent
 		if (aligned)
 #endif
 		{
-			ret = ::writev(m_fd, bufs, num_bufs);
+			ret = ::writev(native_handle(), bufs, num_bufs);
 			if (ret < 0)
 			{
 				ec.assign(errno, get_posix_category());
@@ -1395,13 +1421,13 @@ namespace libtorrent
 		memcpy(temp_bufs, bufs, sizeof(file::iovec_t) * num_bufs);
 		iovec_t& last = temp_bufs[num_bufs-1];
 		last.iov_len = (last.iov_len & ~(size_alignment()-1)) + size_alignment();
-		ret = ::writev(m_fd, temp_bufs, num_bufs);
+		ret = ::writev(native_handle(), temp_bufs, num_bufs);
 		if (ret < 0)
 		{
 			ec.assign(errno, get_posix_category());
 			return -1;
 		}
-		if (ftruncate(m_fd, file_offset + size) < 0)
+		if (ftruncate(native_handle(), file_offset + size) < 0)
 		{
 			ec.assign(errno, get_posix_category());
 			return -1;
@@ -1414,7 +1440,7 @@ namespace libtorrent
 		ret = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
-			int tmp = write(m_fd, i->iov_base, i->iov_len);
+			int tmp = write(native_handle(), i->iov_base, i->iov_len);
 			if (tmp < 0)
 			{
 				ec.assign(errno, get_posix_category());
@@ -1448,7 +1474,7 @@ namespace libtorrent
 		fm.fiemap.fm_flags = FIEMAP_FLAG_SYNC;
 		fm.fiemap.fm_extent_count = 1;
 
-		if (ioctl(m_fd, FS_IOC_FIEMAP, &fm) == -1)
+		if (ioctl(native_handle(), FS_IOC_FIEMAP, &fm) == -1)
 			return 0;
 
 		if (fm.fiemap.fm_extents[0].fe_flags & FIEMAP_EXTENT_UNKNOWN)
@@ -1465,9 +1491,9 @@ namespace libtorrent
 		// http://developer.apple.com/mac/library/documentation/Darwin/Reference/ManPages/man2/fcntl.2.html
 
 		log2phys l;
-		size_type ret = lseek(m_fd, offset, SEEK_SET);
+		size_type ret = lseek(native_handle(), offset, SEEK_SET);
 		if (ret < 0) return 0;
-		if (fcntl(m_fd, F_LOG2PHYS, &l) == -1) return 0;
+		if (fcntl(native_handle(), F_LOG2PHYS, &l) == -1) return 0;
 		return l.l2p_devoffset;
 #elif defined TORRENT_WINDOWS
 		// for documentation of this feature
@@ -1481,7 +1507,7 @@ namespace libtorrent
 		in.StartingVcn.QuadPart = offset / m_cluster_size;
 		int cluster_offset = int(in.StartingVcn.QuadPart % m_cluster_size);
 
-		if (DeviceIoControl(m_file_handle, FSCTL_GET_RETRIEVAL_POINTERS, &in
+		if (DeviceIoControl(native_handle(), FSCTL_GET_RETRIEVAL_POINTERS, &in
 			, sizeof(in), &out, sizeof(out), &out_bytes, 0) == 0)
 		{
 			DWORD error = GetLastError();
@@ -1510,7 +1536,7 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 		LARGE_INTEGER offs;
 		LARGE_INTEGER cur_size;
-		if (GetFileSizeEx(m_file_handle, &cur_size) == FALSE)
+		if (GetFileSizeEx(native_handle(), &cur_size) == FALSE)
 		{
 			ec.assign(GetLastError(), get_system_category());
 			return false;
@@ -1521,12 +1547,12 @@ namespace libtorrent
 		// modification time if we don't have to
 		if (cur_size.QuadPart != s)
 		{
-			if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				return false;
 			}
-			if (::SetEndOfFile(m_file_handle) == FALSE)
+			if (::SetEndOfFile(native_handle()) == FALSE)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				return false;
@@ -1547,13 +1573,13 @@ namespace libtorrent
 				// if the user has permissions, avoid filling
 				// the file with zeroes, but just fill it with
 				// garbage instead
-				SetFileValidData(m_file_handle, offs.QuadPart);
+				SetFileValidData(native_handle(), offs.QuadPart);
 			}
 		}
 #endif // _WIN32_WINNT >= 0x501
 #else
 		struct stat st;
-		if (fstat(m_fd, &st) != 0)
+		if (fstat(native_handle(), &st) != 0)
 		{
 			ec.assign(errno, get_posix_category());
 			return false;
@@ -1561,7 +1587,7 @@ namespace libtorrent
 
 		// only truncate the file if it doesn't already
 		// have the right size. We don't want to update
-		if (st.st_size != s && ftruncate(m_fd, s) < 0)
+		if (st.st_size != s && ftruncate(native_handle(), s) < 0)
 		{
 			ec.assign(errno, get_posix_category());
 			return false;
@@ -1581,7 +1607,7 @@ namespace libtorrent
 			// but if we don't do anything if the file size is
 #ifdef F_PREALLOCATE
 			fstore_t f = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, s, 0};
-			if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
+			if (fcntl(native_handle(), F_PREALLOCATE, &f) < 0)
 			{
 				ec.assign(errno, get_posix_category());
 				return false;
@@ -1589,7 +1615,7 @@ namespace libtorrent
 #endif // F_PREALLOCATE
 
 #if defined TORRENT_LINUX
-			int ret = my_fallocate(m_fd, 0, 0, s);
+			int ret = my_fallocate(native_handle(), 0, 0, s);
 			// if we return 0, everything went fine
 			// the fallocate call succeeded
 			if (ret == 0) return true;
@@ -1610,7 +1636,7 @@ namespace libtorrent
 			// which can be painfully slow
 			// if you get a compile error here, you might want to
 			// define TORRENT_HAS_FALLOCATE to 0.
-			ret = posix_fallocate(m_fd, 0, s);
+			ret = posix_fallocate(native_handle(), 0, s);
 			if (ret != 0)
 			{
 				ec.assign(ret, get_posix_category());
@@ -1635,7 +1661,7 @@ typedef struct _FILE_SET_SPARSE_BUFFER {
 		DWORD temp;
 		FILE_SET_SPARSE_BUFFER b;
 		b.SetSparse = FALSE;
-		::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, &b, sizeof(b)
+		::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, &b, sizeof(b)
 			, 0, 0, &temp, 0);
 #endif
 	}
@@ -1644,7 +1670,7 @@ typedef struct _FILE_SET_SPARSE_BUFFER {
 	{
 #ifdef TORRENT_WINDOWS
 		LARGE_INTEGER file_size;
-		if (!GetFileSizeEx(m_file_handle, &file_size))
+		if (!GetFileSizeEx(native_handle(), &file_size))
 		{
 			ec.assign(GetLastError(), get_system_category());
 			return -1;
@@ -1652,7 +1678,7 @@ typedef struct _FILE_SET_SPARSE_BUFFER {
 		return file_size.QuadPart;
 #else
 		struct stat fs;
-		if (fstat(m_fd, &fs) != 0)
+		if (fstat(native_handle(), &fs) != 0)
 		{
 			ec.assign(errno, get_posix_category());
 			return -1;
@@ -1679,7 +1705,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		if (ec) return start;
 		in.FileOffset.QuadPart = start;
 		in.Length.QuadPart = file_size - start;
-		if (!DeviceIoControl(m_file_handle, FSCTL_QUERY_ALLOCATED_RANGES
+		if (!DeviceIoControl(native_handle(), FSCTL_QUERY_ALLOCATED_RANGES
 			, &in, sizeof(FILE_ALLOCATED_RANGE_BUFFER)
 			, &buffer, sizeof(FILE_ALLOCATED_RANGE_BUFFER), &bytes_returned, 0))
 		{
@@ -1701,7 +1727,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		
 #elif defined SEEK_DATA
 		// this is supported on solaris
-		size_type ret = lseek(m_fd, start, SEEK_DATA);
+		size_type ret = lseek(native_handle(), start, SEEK_DATA);
 		if (ret < 0) return start;
 #else
 		return start;

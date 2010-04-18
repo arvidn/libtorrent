@@ -79,6 +79,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <dirent.h> // for DIR
 #endif
 
+namespace libtorrent
+{
 #if TORRENT_USE_AIO
 #ifdef TORRENT_WINDOWS
 	typedef boost::asio::windows::basic_random_access_handle aio_handle;
@@ -89,8 +91,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-namespace libtorrent
-{
+#ifdef TORRENT_WINDOWS
+	typedef HANDLE handle_type;
+#else
+	typedef int handle_type;
+#endif
+
 	struct file_status
 	{
 		size_type file_size;
@@ -266,23 +272,24 @@ namespace libtorrent
 
 		size_type phys_offset(size_type offset);
 
-#ifdef TORRENT_WINDOWS
-		HANDLE native_handle() const { return m_file_handle; }
+#if TORRENT_USE_AIO
+		handle_type native_handle() const { return m_aio_handle.native_handle(); }
 #else
-		int native_handle() const { return m_fd; }
+		handle_type native_handle() const { return m_file_handle; }
 #endif
 
 	private:
 
-#ifdef TORRENT_WINDOWS
-		HANDLE m_file_handle;
-#if TORRENT_USE_WSTRING
-		std::wstring m_path;
+#if TORRENT_USE_AIO
+		aio_handle m_aio_handle;
 #else
+		handle_type m_file_handle;
+#endif
+
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+		std::wstring m_path;
+#elif defined TORRENT_WINDOWS
 		std::string m_path;
-#endif // TORRENT_USE_WSTRING
-#else // TORRENT_WINDOWS
-		int m_fd;
 #endif // TORRENT_WINDOWS
 
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX || defined TORRENT_DEBUG
@@ -297,9 +304,6 @@ namespace libtorrent
 		mutable int m_cluster_size;
 #endif
 
-#if TORRENT_USE_AIO
-		aio_handle m_aio_handle;
-#endif
 	};
 
 }
