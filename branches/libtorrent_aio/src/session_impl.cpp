@@ -1867,6 +1867,8 @@ namespace aux {
 		// we still have head-room in the disk queue, all peers should be readable
 		if (m_settings.max_queued_disk_bytes > m_writing_bytes) return;
 
+		m_writing_bytes = outstanding_writes;
+
 		// in this case, m_writing_bytes > max_queued and outstanding_writes
 		// is less than max_queued. We just went from being congested to not be.
 		// trigger all peers to continue reading
