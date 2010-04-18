@@ -197,14 +197,14 @@ struct test_storage : storage_interface
 	virtual void write_resume_data(entry& rd, error_code& ec) const
 	{ m_lower_layer->write_resume_data(rd, ec); }
 
-	virtual bool move_slot(int src_slot, int dst_slot, error_code& ec)
-	{ return m_lower_layer->move_slot(src_slot, dst_slot, ec); }
+	virtual void move_slot(int src_slot, int dst_slot, error_code& ec)
+	{ m_lower_layer->move_slot(src_slot, dst_slot, ec); }
 
-	virtual bool swap_slots(int slot1, int slot2, error_code& ec)
-	{ return m_lower_layer->swap_slots(slot1, slot2, ec); }
+	virtual void swap_slots(int slot1, int slot2, error_code& ec)
+	{ m_lower_layer->swap_slots(slot1, slot2, ec); }
 
-	virtual bool swap_slots3(int slot1, int slot2, int slot3, error_code& ec)
-	{ return m_lower_layer->swap_slots3(slot1, slot2, slot3, ec); }
+	virtual void swap_slots3(int slot1, int slot2, int slot3, error_code& ec)
+	{ m_lower_layer->swap_slots3(slot1, slot2, slot3, ec); }
 
 	virtual void release_files(error_code& ec) { return m_lower_layer->release_files(ec); }
 

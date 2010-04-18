@@ -396,9 +396,9 @@ namespace libtorrent
 		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec);
 		int writev(file::iovec_t const* buf, int slot, int offset, int num_bufs, error_code& ec);
 		size_type physical_offset(int slot, int offset);
-		bool move_slot(int src_slot, int dst_slot, error_code& ec);
-		bool swap_slots(int slot1, int slot2, error_code& ec);
-		bool swap_slots3(int slot1, int slot2, int slot3, error_code& ec);
+		void move_slot(int src_slot, int dst_slot, error_code& ec);
+		void swap_slots(int slot1, int slot2, error_code& ec);
+		void swap_slots3(int slot1, int slot2, int slot3, error_code& ec);
 		bool verify_resume_data(lazy_entry const& rd, error_code& error);
 		void write_resume_data(entry& rd, error_code& ec) const;
 
@@ -858,7 +858,6 @@ namespace libtorrent
 
 		m_pool.release(this);
 
-		bool ret = true;
 		std::set<std::string> to_move;
 		file_storage const& f = files();
 
@@ -940,9 +939,8 @@ namespace libtorrent
 		bufs[num_bufs].iov_len = (std::min)(disk_pool()->block_size(), size)
 	
 
-	bool storage::move_slot(int src_slot, int dst_slot, error_code& ec)
+	void storage::move_slot(int src_slot, int dst_slot, error_code& ec)
 	{
-		bool r = true;
 		int piece_size = m_files.piece_size(dst_slot);
 
 		TORRENT_ALLOCATE_BLOCKS(bufs, num_blocks, piece_size);
@@ -950,16 +948,12 @@ namespace libtorrent
 		readv(bufs, src_slot, 0, num_blocks, ec); if (ec) goto ret;
 		writev(bufs, dst_slot, 0, num_blocks, ec); if (ec) goto ret;
 
-		r = false;
 ret:
 		TORRENT_FREE_BLOCKS(bufs, num_blocks)
-		return r;
 	}
 
-	bool storage::swap_slots(int slot1, int slot2, error_code& ec)
+	void storage::swap_slots(int slot1, int slot2, error_code& ec)
 	{
-		bool r = true;
-
 		// the size of the target slot is the size of the piece
 		int piece1_size = m_files.piece_size(slot2);
 		int piece2_size = m_files.piece_size(slot1);
@@ -972,17 +966,13 @@ ret:
 		writev(bufs1, slot2, 0, num_blocks1, ec); if (ec) goto ret;
 		writev(bufs2, slot1, 0, num_blocks2, ec); if (ec) goto ret;
 
-		r = false;
 ret:
 		TORRENT_FREE_BLOCKS(bufs1, num_blocks1)
 		TORRENT_FREE_BLOCKS(bufs2, num_blocks2)
-		return r;
 	}
 
-	bool storage::swap_slots3(int slot1, int slot2, int slot3, error_code& ec)
+	void storage::swap_slots3(int slot1, int slot2, int slot3, error_code& ec)
 	{
-		bool r = true;
-
 		// the size of the target slot is the size of the piece
 		int piece_size = m_files.piece_length();
 		int piece1_size = m_files.piece_size(slot2);
@@ -1006,7 +996,6 @@ ret:
 ret:
 		TORRENT_FREE_BLOCKS(bufs1, num_blocks1)
 		TORRENT_FREE_BLOCKS(bufs2, num_blocks2)
-		return r;
 	}
 
 	int storage::writev(file::iovec_t const* bufs, int slot, int offset
@@ -1377,9 +1366,9 @@ ret:
 #endif
 			return ret;
 		}
-		bool move_slot(int src_slot, int dst_slot, error_code& ec) { return false; }
-		bool swap_slots(int slot1, int slot2, error_code& ec) { return false; }
-		bool swap_slots3(int slot1, int slot2, int slot3, error_code& ec) { return false; }
+		void move_slot(int src_slot, int dst_slot, error_code& ec) {}
+		void swap_slots(int slot1, int slot2, error_code& ec) {}
+		void swap_slots3(int slot1, int slot2, int slot3, error_code& ec) {}
 		bool verify_resume_data(lazy_entry const& rd, error_code& error) { return false; }
 		void write_resume_data(entry& rd, error_code& ec) const {}
 
@@ -2654,15 +2643,14 @@ ret:
 				}
 			}
 
-			bool ret = false;
 			m_last_piece = piece_index;
 			error_code ec;
 			if (other_piece >= 0)
-				ret |= m_storage->swap_slots(other_slot, m_current_slot, ec);
+				m_storage->swap_slots(other_slot, m_current_slot, ec);
 			else
-				ret |= m_storage->move_slot(m_current_slot, other_slot, ec);
+				m_storage->move_slot(m_current_slot, other_slot, ec);
 
-			if (ret) return skip_file();
+			if (ec) return skip_file();
 
 			TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 				|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
@@ -2684,20 +2672,19 @@ ret:
 				&& m_storage_mode == storage_mode_compact)
 				m_free_slots.push_back(other_slot);
 
-			bool ret = false;
 			error_code ec;
 			if (piece_index >= 0)
 			{
 				m_piece_to_slot[piece_index] = other_slot;
-				ret |= m_storage->swap_slots(other_slot, m_current_slot, ec);
+				m_storage->swap_slots(other_slot, m_current_slot, ec);
 			}
 			else
 			{
-				ret |= m_storage->move_slot(other_slot, m_current_slot, ec);
+				m_storage->move_slot(other_slot, m_current_slot, ec);
 
 			}
 			m_last_piece = other_piece;
-			if (ret) return skip_file();
+			if (ec) return skip_file();
 
 			TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 				|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
@@ -2771,21 +2758,20 @@ ret:
 					}
 				}
 
-				bool ret = false;
 				error_code ec;
 				if (piece1 >= 0)
 				{
 					m_piece_to_slot[piece1] = slot2;
-					ret |= m_storage->swap_slots3(m_current_slot, slot1, slot2, ec);
+					m_storage->swap_slots3(m_current_slot, slot1, slot2, ec);
 				}
 				else
 				{
-					ret |= m_storage->move_slot(m_current_slot, slot1, ec);
-					ret |= m_storage->move_slot(slot2, m_current_slot, ec);
+					m_storage->move_slot(m_current_slot, slot1, ec);
+					m_storage->move_slot(slot2, m_current_slot, ec);
 				}
 
 				m_last_piece = piece_index;
-				if (ret) return skip_file();
+				if (ec) return skip_file();
 
 				TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 					|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);

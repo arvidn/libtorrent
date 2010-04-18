@@ -6760,30 +6760,38 @@ The interface looks like this::
 
 	struct storage_interface
 	{
-		virtual bool initialize(bool allocate_files) = 0;
-		virtual bool has_any_file() = 0;
-		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
-		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
+		virtual void initialize(bool allocate_files, error_code& ec) = 0;
+		virtual bool has_any_file(error_code& ec) = 0;
 		virtual int sparse_end(int start) const;
-		virtual bool move_storage(fs::path save_path) = 0;
+		virtual void move_storage(std::string const& save_path, error_code& ec) = 0;
 		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
-		virtual bool write_resume_data(entry& rd) const = 0;
-		virtual bool move_slot(int src_slot, int dst_slot) = 0;
-		virtual bool swap_slots(int slot1, int slot2) = 0;
-		virtual bool swap_slots3(int slot1, int slot2, int slot3) = 0;
-		virtual bool rename_file(int file, std::string const& new_name) = 0;
-		virtual bool release_files() = 0;
-		virtual bool delete_files() = 0;
-		virtual void finalize_file(int index) {}
+		virtual bool write_resume_data(entry& rd, error_code& ec) const = 0;
+		virtual void move_slot(int src_slot, int dst_slot, error_code& ec) = 0;
+		virtual void swap_slots(int slot1, int slot2, error_code& ec) = 0;
+		virtual void swap_slots3(int slot1, int slot2, int slot3, error_code& ec) = 0;
+		virtual void rename_file(int file, std::string const& new_name, error_code& ec) = 0;
+		virtual void release_files(error_code& ec) = 0;
+		virtual void delete_files(error_code& ec) = 0;
+		virtual void finalize_file(int index, error_code& ec) {}
 		virtual ~storage_interface() {}
+
+		virtual int readv(file::iovec_t const* bufs, int slot, int offset
+			, int num_bufs, error_code& ec) = 0;
+		virtual int writev(file::iovec_t const* bufs, int slot, int offset
+			, int num_bufs, error_code& ec) = 0;
+
+	#if TORRENT_USE_AIO
+
+		virtual void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(error_code const&, size_t)> const& handler);
+		virtual void async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(error_code const&, size_t)> const& handler);
+
+	#endif
 
 		// non virtual functions
 
 		disk_buffer_pool* disk_pool();
-		void set_error(boost::filesystem::path const& file, error_code const& ec) const;
-		error_code const& error() const;
-		std::string const& error_file() const;
-		void clear_error();
 	};
 
 
@@ -6792,32 +6800,36 @@ initialize()
 
 	::
 
-		bool initialize(bool allocate_files) = 0;
+		virtual void initialize(bool allocate_files, error_code& ec) = 0;
 
 This function is called when the storage is to be initialized. The default storage
 will create directories and empty files at this point. If ``allocate_files`` is true,
 it will also ``ftruncate`` all files to their target size.
 
-Returning ``true`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 has_any_file()
 --------------
 
 	::
 
-		virtual bool has_any_file() = 0;
+		virtual bool has_any_file(error_code& ec) = 0;
 
 This function is called when first checking (or re-checking) the storage for a torrent.
 It should return true if any of the files that is used in this storage exists on disk.
 If so, the storage will be checked for existing pieces before starting the download.
+
+If an error occurs, ``error_code`` should be set to reflect it.
 
 readv() writev()
 ----------------
 
 	::
 
-		int readv(file::iovec_t const* buf, int slot, int offset, int num_bufs) = 0;
-		int write(const char* buf, int slot, int offset, int size) = 0;
+		virtual int readv(file::iovec_t const* bufs, int slot, int offset
+			, int num_bufs, error_code& ec) = 0;
+		virtual int writev(file::iovec_t const* bufs, int slot, int offset
+			, int num_bufs, error_code& ec) = 0;
 
 These functions should read or write the data in or to the given ``slot`` at the given ``offset``.
 It should read or write ``num_bufs`` buffers sequentially, where the size of each buffer
@@ -6830,7 +6842,7 @@ is specified in the buffer array ``bufs``. The file::iovec_t type has the follow
 	};
 
 The return value is the number of bytes actually read or written, or -1 on failure. If
-it returns -1, the error code is expected to be set to
+it returns -1, the ``error_code`` must be set to reflect the appropriate error that occurred.
 
 Every buffer in ``bufs`` can be assumed to be page aligned and be of a page aligned size,
 except for the last buffer of the torrent. The allocated buffer can be assumed to fit a
@@ -6859,7 +6871,7 @@ move_storage()
 
 	::
 
-		bool move_storage(fs::path save_path) = 0;
+		void move_storage(fs::path save_path, error_code& ec) = 0;
 
 This function should move all the files belonging to the storage to the new save_path.
 The default storage moves the single file or the directory of the torrent.
@@ -6867,7 +6879,7 @@ The default storage moves the single file or the directory of the torrent.
 Before moving the files, any open file handles may have to be closed, like
 ``release_files()``.
 
-Returning ``false`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 
 verify_resume_data()
@@ -6883,7 +6895,7 @@ not, set ``error`` to a description of what mismatched and return false.
 
 The default storage may compare file sizes and time stamps of the files.
 
-Returning ``false`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 
 write_resume_data()
@@ -6891,7 +6903,7 @@ write_resume_data()
 
 	::
 
-		bool write_resume_data(entry& rd) const = 0;
+		bool write_resume_data(entry& rd, error_code& ec) const = 0;
 
 This function should fill in resume data, the current state of the
 storage, in ``rd``. The default storage adds file timestamps and
@@ -6899,13 +6911,15 @@ sizes.
 
 Returning ``true`` indicates an error occurred.
 
+If an error occurs, ``error_code`` should be set to reflect it.
+
 
 move_slot()
 -----------
 
 	::
 
-		bool move_slot(int src_slot, int dst_slot) = 0;
+		void move_slot(int src_slot, int dst_slot, error_code& ec) = 0;
 
 This function should copy or move the data in slot ``src_slot`` to
 the slot ``dst_slot``. This is only used in compact mode.
@@ -6913,7 +6927,7 @@ the slot ``dst_slot``. This is only used in compact mode.
 If the storage caches slots, this could be implemented more
 efficient than reading and writing the data.
 
-Returning ``true`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 
 swap_slots()
@@ -6921,7 +6935,7 @@ swap_slots()
 
 	::
 
-		bool swap_slots(int slot1, int slot2) = 0;
+		void swap_slots(int slot1, int slot2, error_code& ec) = 0;
 
 This function should swap the data in ``slot1`` and ``slot2``. The default
 storage uses a scratch buffer to read the data into, then moving the other
@@ -6929,7 +6943,7 @@ slot and finally writing back the temporary slot's data
 
 This is only used in compact mode.
 
-Returning ``true`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 
 swap_slots3()
@@ -6937,7 +6951,7 @@ swap_slots3()
 
 	::
 
-		bool swap_slots3(int slot1, int slot2, int slot3) = 0;
+		void swap_slots3(int slot1, int slot2, int slot3, error_code& ec) = 0;
 
 This function should do a 3-way swap, or shift of the slots. ``slot1``
 should move to ``slot2``, which should be moved to ``slot3`` which in turn
@@ -6945,7 +6959,7 @@ should be moved to ``slot1``.
 
 This is only used in compact mode.
 
-Returning ``true`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 
 rename_file()
@@ -6953,24 +6967,24 @@ rename_file()
 
 	::
 
-		bool rename_file(int file, std::string const& new_name) = 0;
+		void rename_file(int file, std::string const& new_name, error_code& ec) = 0;
 
-Rename file with index ``file`` to the thame ``new_name``. If there is an error,
-``true`` should be returned.
+Rename file with index ``file`` to the thame ``new_name``.
 
+If an error occurs, ``error_code`` should be set to reflect it.
 
 release_files()
 ---------------
 
 	::
 
-		bool release_files() = 0;
+		void release_files(error_code& ec) = 0;
 
 This function should release all the file handles that it keeps open to files
 belonging to this storage. The default implementation just calls
 ``file_pool::release_files(this)``.
 
-Returning ``true`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 
 delete_files()
@@ -6978,11 +6992,11 @@ delete_files()
 
 	::
 
-		bool delete_files() = 0;
+		void delete_files(error_code& ec) = 0;
 
 This function should delete all files and directories belonging to this storage.
 
-Returning ``true`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 The ``disk_buffer_pool`` is used to allocate and free disk buffers. It has the
 following members::
@@ -7005,7 +7019,7 @@ finalize_file()
 
 	::
 
-		virtual void finalize_file(int index);
+		virtual void finalize_file(int index, error_code& ec);
 
 This function is called each time a file is completely downloaded. The
 storage implementation can perform last operations on a file. The file will
@@ -7015,6 +7029,8 @@ not be opened for writing after this.
 
 On windows the default storage implementation clears the sparse file flag
 on the specified file.
+
+If an error occurs, ``error_code`` should be set to reflect it.
 
 magnet links
 ============

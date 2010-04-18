@@ -166,22 +166,12 @@ struct test_storage : storage_interface
 	{ return false; }
 
 	virtual void write_resume_data(entry& rd, error_code& ec) const {}
-
-	virtual bool move_slot(int src_slot, int dst_slot, error_code& ec)
-	{ return false; }
-
-	virtual bool swap_slots(int slot1, int slot2, error_code& ec)
-	{ return false; }
-
-	virtual bool swap_slots3(int slot1, int slot2, int slot3, error_code& ec)
-	{ return false; }
-
+	virtual void move_slot(int src_slot, int dst_slot, error_code& ec) {}
+	virtual void swap_slots(int slot1, int slot2, error_code& ec) {}
+	virtual void swap_slots3(int slot1, int slot2, int slot3, error_code& ec) {}
 	virtual void release_files(error_code& ec) {}
-
 	virtual void rename_file(int index, std::string const& new_filename, error_code& ec) {}
-
 	virtual void delete_files(error_code& ec) {}
-
 	virtual ~test_storage() {}
 };
 
