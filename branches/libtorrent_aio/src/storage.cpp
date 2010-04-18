@@ -388,7 +388,7 @@ namespace libtorrent
 		void rename_file(int index, std::string const& new_filename, error_code& ec);
 		void release_files(error_code& ec);
 		void delete_files(error_code& ec);
-		bool initialize(bool allocate_files, error_code& ec);
+		void initialize(bool allocate_files, error_code& ec);
 		void move_storage(std::string const& save_path, error_code& ec);
 		int read(char* buf, int slot, int offset, int size, error_code& ec);
 		int write(char const* buf, int slot, int offset, int size, error_code& ec);
@@ -531,7 +531,7 @@ namespace libtorrent
 		return num_read;
 	}
 
-	bool storage::initialize(bool allocate_files, error_code& ec)
+	void storage::initialize(bool allocate_files, error_code& ec)
 	{
 		m_allocate_files = allocate_files;
 		// first, create all missing directories
@@ -583,7 +583,6 @@ namespace libtorrent
 		std::vector<boost::uint8_t>().swap(m_file_priority);
 		// close files that were opened in write mode
 		m_pool.release(this);
-		return false;
 	}
 
 	void storage::finalize_file(int index, error_code& ec)
@@ -1329,7 +1328,7 @@ ret:
 		void rename_file(int index, std::string const& new_filename, error_code& ec) {}
 		void release_files(error_code& ec) {}
 		void delete_files(error_code& ec) {}
-		bool initialize(bool allocate_files, error_code& ec) { return false; }
+		void initialize(bool allocate_files, error_code& ec) {}
 		void move_storage(std::string const& save_path, error_code& ec) {}
 		int read(char* buf, int slot, int offset, int size, error_code& ec) { return size; }
 		int write(char const* buf, int slot, int offset, int size, error_code& ec) { return size; }
@@ -2062,9 +2061,14 @@ ret:
 
 	int piece_manager::check_no_fastresume(error_code& error)
 	{
-		bool has_files = m_storage->has_any_file(error);
+		error_code ec;
+		bool has_files = m_storage->has_any_file(ec);
 
-		if (error) return fatal_disk_error; 
+		if (ec)
+		{
+			error = ec;
+			return fatal_disk_error; 
+		}
 
 		if (has_files)
 		{
@@ -2100,8 +2104,13 @@ ret:
 	
 	int piece_manager::check_init_storage(error_code& error)
 	{
-		if (m_storage->initialize(m_storage_mode == storage_mode_allocate, error))
+		error_code ec;
+		m_storage->initialize(m_storage_mode == storage_mode_allocate, ec);
+		if (ec)
+		{
+			error = ec;
 			return fatal_disk_error;
+		}
 		m_state = state_finished;
 		m_scratch_buffer.reset();
 		m_scratch_buffer2.reset();

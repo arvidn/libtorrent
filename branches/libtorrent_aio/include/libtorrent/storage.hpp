@@ -112,7 +112,7 @@ namespace libtorrent
 		// allocate_files is true if allocation mode
 		// is set to full and sparse files are supported
 		// false return value indicates an error
-		virtual bool initialize(bool allocate_files, error_code& ec) = 0;
+		virtual void initialize(bool allocate_files, error_code& ec) = 0;
 
 #if TORRENT_USE_AIO
 		virtual void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs

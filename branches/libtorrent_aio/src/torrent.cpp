@@ -674,7 +674,7 @@ namespace libtorrent
 		int piece_size = m_torrent_file->piece_size(piece);
 		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
-		// avoid crash trying to access the picker when there is nont
+		// avoid crash trying to access the picker when there is none
 		if (is_seed()) return;
 
 		peer_request p;
@@ -2105,6 +2105,11 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(valid_metadata());
+
+		// if we're a seed we don't have a picker
+		// and we also don't have to do anything because
+		// we already have this piece
+		if (is_seed()) return;
 
 		// even though the piece passed the hash-check
 		// it might still have failed being written to disk

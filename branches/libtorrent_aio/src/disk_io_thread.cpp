@@ -385,7 +385,7 @@ namespace libtorrent
 		// is the fence up for this storage?
 		if (j.storage && j.storage->has_fence())
 		{
-			fprintf(stderr, "perform_async_job: blocked\n");
+			fprintf(stderr, "   perform_async_job: blocked\n");
 			// Yes it is! We're not allowed
 			// to issue this job. Queue it up
 			m_blocked_jobs.push_back(j);
@@ -395,7 +395,7 @@ namespace libtorrent
 		// call disk function
 		int ret = (this->*(job_functions[j.action]))(j);
 
-		fprintf(stderr, "return: %d\n", ret);
+		fprintf(stderr, "   return: %d error: %s\n", ret, j.error ? j.error.message().c_str() : "");
 
 		if (ret != defer_handler && j.callback)
 			m_ios.post(boost::bind(j.callback, ret, j));
@@ -405,7 +405,7 @@ namespace libtorrent
 		// files, etc.), we may have to uncork the jobs that was blocked by it.
 		if (ret != defer_handler && (j.flags & disk_io_job::need_uncork))
 		{
-			fprintf(stderr, "uncorking\n");
+			fprintf(stderr, "   uncorking\n");
 			std::list<disk_io_job> jobs;
 			m_blocked_jobs.swap(jobs);
 			// we should only uncork if the storage doesn't

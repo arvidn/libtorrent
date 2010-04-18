@@ -126,7 +126,7 @@ struct test_storage : storage_interface
 {
 	test_storage() {}
 
-	virtual bool initialize(bool allocate_files, error_code& ec) { return true; }
+	virtual void initialize(bool allocate_files, error_code& ec) {}
 	virtual bool has_any_file(error_code& ec) { return true; }
 
 	int write(

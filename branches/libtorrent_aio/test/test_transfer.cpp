@@ -122,8 +122,8 @@ struct test_storage : storage_interface
 		, m_limit(16 * 1024 * 2)
 	{}
 
-	virtual bool initialize(bool allocate_files, error_code& ec)
-	{ return m_lower_layer->initialize(allocate_files, ec); }
+	virtual void initialize(bool allocate_files, error_code& ec)
+	{ m_lower_layer->initialize(allocate_files, ec); }
 
 	virtual bool has_any_file(error_code& ec)
 	{ return m_lower_layer->has_any_file(ec); }
