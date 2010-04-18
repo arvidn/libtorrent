@@ -861,6 +861,10 @@ namespace libtorrent
 #endif
 		m_open_mode = mode;
 
+#if TORRENT_USE_AIO
+		m_aio_handle.assign(native_handle(), ec);
+		if (ec) return false;
+#endif
 		TORRENT_ASSERT(is_open());
 		return true;
 	}
@@ -975,6 +979,39 @@ namespace libtorrent
 		m_page_size = page_size();
 	}
 
+#endif
+
+#if TORRENT_USE_AIO
+	void file::async_writev(aio_service& ios, size_type offset
+		, iovec_t const* bufs, int num_bufs
+		, boost::function<void(error_code const&, size_t)> const& handler)
+	{
+		TORRENT_ASSERT((m_open_mode & rw_mask) == write_only || (m_open_mode & rw_mask) == read_write);
+		TORRENT_ASSERT(bufs);
+		TORRENT_ASSERT(num_bufs > 0);
+		TORRENT_ASSERT(is_open());
+		std::vector<asio::const_buffer> iovec(num_bufs);
+		for (int i = 0; i < num_bufs; ++i) iovec[i] = asio::const_buffer(
+			bufs[i].iov_base, bufs[i].iov_len);
+
+		m_aio_handle.async_write_some_at(offset, iovec, handler);
+	}
+
+	void file::async_readv(aio_service& ios, size_type offset
+		, iovec_t const* bufs, int num_bufs
+		, boost::function<void(error_code const&, size_t)> const& handler)
+	{
+		TORRENT_ASSERT((m_open_mode & rw_mask) == read_only || (m_open_mode & rw_mask) == read_write);
+		TORRENT_ASSERT(bufs);
+		TORRENT_ASSERT(num_bufs > 0);
+		TORRENT_ASSERT(is_open());
+
+		std::vector<asio::mutable_buffer> iovec(num_bufs);
+		for (int i = 0; i < num_bufs; ++i) iovec[i] = asio::mutable_buffer(
+			bufs[i].iov_base, bufs[i].iov_len);
+
+		m_aio_handle.async_read_some_at(offset, iovec, handler);
+	}
 #endif
 
 	size_type file::readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec)

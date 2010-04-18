@@ -100,16 +100,16 @@ boost::shared_ptr<piece_picker> setup_picker(
 			TEST_CHECK(!p->is_finished(piece_block(i, j)));
 			if ((blocks & (1 << j)) == 0) continue;
 			++counter;
-			bool ret = p->mark_as_downloading(piece_block(i, j), 0, piece_picker::slow);
+			bool ret = p->mark_as_downloading(piece_block(i, j), (void*)1, piece_picker::slow);
 			TEST_CHECK(ret == true);
 			TEST_CHECK(p->is_requested(piece_block(i, j)) == bool(blocks & (1 << j)));
-			p->mark_as_writing(piece_block(i, j), 0);
+			p->mark_as_writing(piece_block(i, j), (void*)1);
 			TEST_CHECK(!p->is_finished(piece_block(i, j)));
 			// trying to mark a block as requested after it has been completed
 			// should fail (return false)
-			ret = p->mark_as_downloading(piece_block(i, j), 0, piece_picker::slow);
+			ret = p->mark_as_downloading(piece_block(i, j), (void*)1, piece_picker::slow);
 			TEST_CHECK(ret == false);
-			p->mark_as_finished(piece_block(i, j), 0);
+			p->mark_as_finished(piece_block(i, j), (void*)1);
 
 			TEST_CHECK(p->is_downloaded(piece_block(i, j)) == bool(blocks & (1 << j)));
 			TEST_CHECK(p->is_finished(piece_block(i, j)) == bool(blocks & (1 << j)));
@@ -812,9 +812,9 @@ int test_main()
 	print_title("test unverified blocks");
 	p = setup_picker("1111111", "       ", "", "0300700");
 	TEST_CHECK(p->unverified_blocks() == 2 + 3);
-	TEST_CHECK(p->get_downloader(piece_block(4, 0)) == 0);
-	TEST_CHECK(p->get_downloader(piece_block(4, 1)) == 0);
-	TEST_CHECK(p->get_downloader(piece_block(4, 2)) == 0);
+	TEST_CHECK(p->get_downloader(piece_block(4, 0)) == (void*)1);
+	TEST_CHECK(p->get_downloader(piece_block(4, 1)) == (void*)1);
+	TEST_CHECK(p->get_downloader(piece_block(4, 2)) == (void*)1);
 	TEST_CHECK(p->get_downloader(piece_block(4, 3)) == 0);
 	p->mark_as_downloading(piece_block(4, 3), &peer_struct, piece_picker::fast);
 	TEST_CHECK(p->get_downloader(piece_block(4, 3)) == &peer_struct);

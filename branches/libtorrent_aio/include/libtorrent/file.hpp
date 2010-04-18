@@ -79,6 +79,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <dirent.h> // for DIR
 #endif
 
+#if TORRENT_USE_AIO
+#ifdef TORRENT_WINDOWS
+	typedef boost::asio::windows::basic_random_access_handle aio_handle;
+	typedef boost::asio::windows::random_access_handle_service aio_service;
+#else
+	typedef boost::asio::posix::basic_random_access_handle aio_handle;
+	typedef boost::asio::posix::random_access_handle_service aio_service;
+#endif
+#endif
+
 namespace libtorrent
 {
 	struct file_status
@@ -239,6 +249,15 @@ namespace libtorrent
 		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 
+#if TORRENT_USE_AIO
+		void async_writev(aio_service& ios, size_type offset
+			, iovec_t const* bufs, int num_bufs
+			, boost::function<void(error_code const&, size_t)> const& handler);
+		void async_readv(aio_service& ios, size_type offset
+			, iovec_t const* bufs, int num_bufs
+			, boost::function<void(error_code const&, size_t)> const& handler);
+#endif
+
 		size_type get_size(error_code& ec) const;
 
 		// return the offset of the first byte that
@@ -276,6 +295,10 @@ namespace libtorrent
 #endif
 #if defined TORRENT_WINDOWS
 		mutable int m_cluster_size;
+#endif
+
+#if TORRENT_USE_AIO
+		aio_handle m_aio_handle;
 #endif
 	};
 

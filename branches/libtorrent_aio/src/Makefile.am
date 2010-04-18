@@ -24,11 +24,13 @@ libtorrent_rasterbar_la_SOURCES = \
   bandwidth_manager.cpp           \
   bandwidth_queue_entry.cpp       \
   broadcast_socket.cpp            \
+  block_cache.cpp                 \
   bt_peer_connection.cpp          \
   connection_queue.cpp            \
   ConvertUTF.cpp                  \
   create_torrent.cpp              \
   disk_buffer_holder.cpp          \
+  disk_buffer_pool.cpp            \
   disk_io_thread.cpp              \
   entry.cpp                       \
   enum_net.cpp                    \

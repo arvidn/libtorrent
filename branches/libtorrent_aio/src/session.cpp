@@ -586,7 +586,9 @@ namespace libtorrent
 		, std::vector<cached_piece_info>& ret) const
 	{
 		mutex::scoped_lock l(m_impl->m_mutex);
-		m_impl->m_disk_thread.get_cache_info(ih, ret);
+		boost::shared_ptr<torrent> t = m_impl->find_torrent(ih).lock();
+		if (!t) return;
+		m_impl->m_disk_thread.get_cache_info(&t->filesystem(), ret);
 	}
 
 	cache_status session::get_cache_status() const

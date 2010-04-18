@@ -385,6 +385,14 @@ namespace libtorrent
 			void set_external_address(address const& ip);
 			address const& external_address() const { return m_external_address; }
 
+			void add_pending_write_bytes(int num)
+			{
+				TORRENT_ASSERT(num >= 0);
+				m_writing_bytes += num;
+			}
+
+			int pending_write_bytes() const { return m_writing_bytes; }
+
 //		private:
 
 			void update_disk_thread_settings();
@@ -450,14 +458,6 @@ namespace libtorrent
 			boost::pool<> m_send_buffers;
 #endif
 			mutex m_send_buffer_mutex;
-
-			// the file pool that all storages in this session's
-			// torrents uses. It sets a limit on the number of
-			// open files by this session.
-			// file pool must be destructed after the torrents
-			// since they will still have references to it
-			// when they are destructed.
-			file_pool m_files;
 
 			// this is where all active sockets are stored.
 			// the selector can sleep while there's no activity on
@@ -665,7 +665,7 @@ namespace libtorrent
 			// NAT or not.
 			bool m_incoming_connection;
 			
-			void on_disk_queue();
+			void check_disk_queue(int outstanding_writes);
 			void on_tick(error_code const& e);
 
 			void auto_manage_torrents(std::vector<torrent*>& list
@@ -825,6 +825,14 @@ namespace libtorrent
 			// total redundant and failed bytes
 			size_type m_total_failed_bytes;
 			size_type m_total_redundant_bytes;
+			
+			// the number of bytes we have sent to the disk I/O
+			// thread for writing. Every time we hear back from
+			// the disk I/O thread with a completed write job, this
+			// is updated to the number of bytes the disk I/O thread
+			// is actually waiting for to be written (as opposed to
+			// bytes just hanging out in the cache)
+			int m_writing_bytes;
 
 			// the main working thread
 			boost::scoped_ptr<thread> m_thread;

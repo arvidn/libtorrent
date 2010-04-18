@@ -469,10 +469,9 @@ namespace aux {
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_send_buffers(send_buffer_size)
 #endif
-		, m_files(40)
 		, m_io_service()
 		, m_alerts(m_io_service)
-		, m_disk_thread(m_io_service, boost::bind(&session_impl::on_disk_queue, this), m_files)
+		, m_disk_thread(m_io_service)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
@@ -525,6 +524,7 @@ namespace aux {
 #endif
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
+		, m_writing_bytes(0)
 	{
 #ifndef TORRENT_DISABLE_DHT
 		m_next_dht_torrent = m_torrents.begin();
@@ -682,8 +682,8 @@ namespace aux {
 		m_buffer_allocations = 0;
 #endif
 
-#if defined TORRENT_BSD || defined TORRENT_LINUX
-		// ---- auto-cap open files ----
+#if TORRENT_USE_RLIMIT
+		// ---- auto-cap max connections ----
 
 		struct rlimit rl;
 		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
@@ -691,21 +691,19 @@ namespace aux {
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << time_now_string() << " max number of open files: " << rl.rlim_cur << "\n";
 #endif
-
 			// deduct some margin for epoll/kqueue, log files,
 			// futexes, shared objects etc.
 			rl.rlim_cur -= 20;
 
-			// 80% of the available file descriptors should go
+			// 80% of the available file descriptors should go to connections
 			m_max_connections = (std::min)(m_max_connections, int(rl.rlim_cur * 8 / 10));
-			// 20% goes towards regular files
-			m_files.resize((std::min)(m_files.size_limit(), int(rl.rlim_cur * 2 / 10)));
+			// 20% goes towards regular files (see disk_io_thread)
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << time_now_string() << "   max connections: " << m_max_connections << "\n";
-			(*m_logger) << time_now_string() << "   max files: " << m_files.size_limit() << "\n";
+			(*m_logger) << time_now_string() << "   max files: " << int(rl.rlim_cur * 2 / 10) << "\n";
 #endif
 		}
-#endif // TORRENT_BSD || TORRENT_LINUX
+#endif // TORRENT_USE_RLIMIT
 
 
 		// ---- generate a peer id ----
@@ -1170,7 +1168,8 @@ namespace aux {
 			|| m_settings.file_pool_size != s.file_pool_size
 			|| m_settings.volatile_read_cache != s.volatile_read_cache
 			|| m_settings.no_atime_storage!= s.no_atime_storage
-			|| m_settings.low_prio_disk != s.low_prio_disk)
+			|| m_settings.low_prio_disk != s.low_prio_disk
+			|| m_settings.max_async_disk_jobs != s.max_async_disk_jobs)
 			update_disk_io_thread = true;
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -1224,6 +1223,9 @@ namespace aux {
 				bind(&session_impl::on_lsd_announce, this, _1));
 		}
 
+		if (m_settings.max_queued_disk_bytes > 0
+			&& s.max_queued_disk_bytes == 0)
+			check_disk_queue(0);
 		// if queuing settings were changed, recalculate
 		// queued torrents sooner
 		if ((m_settings.active_downloads != s.active_downloads
@@ -1850,15 +1852,24 @@ namespace aux {
 		return port;
 	}
 
-	// this function is called from the disk-io thread
-	// when the disk queue is low enough to post new
-	// write jobs to it. It will go through all peer
-	// connections that are blocked on the disk and
-	// wake them up
-	void session_impl::on_disk_queue()
+	// this function is called every time a write operation completes
+	// from the main thread. outstanding_writes is the number of bytes
+	// pending to be written in the disk thread.d
+	void session_impl::check_disk_queue(int outstanding_writes)
 	{
-		mutex::scoped_lock l(m_mutex);
-		
+		// if we don't limit disk writes just return
+		if (m_settings.max_queued_disk_bytes == 0) return;
+
+		// the disk I/O thread is congested still, don't start resume reading
+		// from any of the blocked peers yet
+		if (m_settings.max_queued_disk_bytes < outstanding_writes) return;
+
+		// we still have head-room in the disk queue, all peers should be readable
+		if (m_settings.max_queued_disk_bytes > m_writing_bytes) return;
+
+		// in this case, m_writing_bytes > max_queued and outstanding_writes
+		// is less than max_queued. We just went from being congested to not be.
+		// trigger all peers to continue reading
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{

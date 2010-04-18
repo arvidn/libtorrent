@@ -632,7 +632,8 @@ namespace libtorrent
 
 		entry ret(entry::dictionary_t);
 		TORRENT_FORWARD_RETURN2(write_resume_data(ret), ret);
-		t->filesystem().write_resume_data(ret);
+		error_code ec;
+		t->filesystem().write_resume_data(ret, ec);
 
 		return ret;
 	}

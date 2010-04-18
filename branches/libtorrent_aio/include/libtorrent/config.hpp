@@ -265,6 +265,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_DEPRECATED
 #endif
 
+#ifndef TORRENT_USE_AIO
+#define TORRENT_USE_AIO 0
+#endif
+
 #ifndef TORRENT_COMPLETE_TYPES_REQUIRED
 #define TORRENT_COMPLETE_TYPES_REQUIRED 0
 #endif

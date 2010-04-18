@@ -844,7 +844,7 @@ namespace libtorrent
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
 		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
-			, m_save_path, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor
+			, m_save_path, m_ses.m_disk_thread, m_storage_constructor
 			, (storage_mode_t)m_storage_mode);
 		m_storage = m_owning_storage.get();
 
@@ -5775,7 +5775,7 @@ namespace libtorrent
 		// the beginning of the pieces list, and more likely
 		// to be included in this round of cache pieces
 		std::vector<cached_piece_info> ret;
-		m_ses.m_disk_thread.get_cache_info(info_hash(), ret);
+		m_ses.m_disk_thread.get_cache_info(m_storage, ret);
 		// remove write cache entries
 		ret.erase(std::remove_if(ret.begin(), ret.end()
 			, boost::bind(&cached_piece_info::kind, _1) == cached_piece_info::write_cache)
@@ -5821,7 +5821,7 @@ namespace libtorrent
 		}
 
 		std::vector<cached_piece_info> ret;
-		m_ses.m_disk_thread.get_cache_info(info_hash(), ret);
+		m_ses.m_disk_thread.get_cache_info(m_storage, ret);
 		ptime now = time_now();
 
 		// remove write cache entries

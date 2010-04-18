@@ -269,12 +269,8 @@ namespace libtorrent
 		{
 			// read hits the disk and will block. Progress should
 			// be updated in between reads
-			st->read(buf.bytes(), i, 0, t.piece_size(i));
-			if (st->error())
-			{
-				ec = st->error();
-				return;
-			}
+			st->read(buf.bytes(), i, 0, t.piece_size(i), ec);
+			if (ec) return;
 			
 			if (t.should_add_file_hashes())
 			{
@@ -363,12 +359,8 @@ namespace libtorrent
 		{
 			// read hits the disk and will block. Progress should
 			// be updated in between reads
-			st->read(&buf[0], i, 0, t.piece_size(i));
-			if (st->error())
-			{
-				ec = st->error();
-				return;
-			}
+			st->read(&buf[0], i, 0, t.piece_size(i), ec);
+			if (ec) return;
 			hasher h(&buf[0], t.piece_size(i));
 			t.set_hash(i, h.final());
 			f(i);

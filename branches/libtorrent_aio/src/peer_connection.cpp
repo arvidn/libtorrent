@@ -2329,10 +2329,11 @@ namespace libtorrent
 		fs.async_write(p, data, bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
+		m_ses.add_pending_write_bytes(p.length);
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		m_download_queue.erase(b);
 
-		if (t->filesystem().queued_bytes() >= m_ses.settings().max_queued_disk_bytes
+		if (m_ses.pending_write_bytes() >= m_ses.settings().max_queued_disk_bytes
 			&& m_ses.settings().max_queued_disk_bytes
 			&& t->alerts().should_post<performance_alert>())
 		{
@@ -2354,6 +2355,8 @@ namespace libtorrent
 
 		// did we request this block from any other peers?
 		bool multi = picker.num_peers(block_finished) > 1;
+		fprintf(stderr, "peer_connection mark_as_writing peer: %p piece: %d block: %d\n"
+			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_writing(block_finished, peer_info_struct());
 
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
@@ -2366,19 +2369,6 @@ namespace libtorrent
 	&& defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		t->check_invariant();
 #endif
-
-		// did we just finish the piece?
-		// this means all blocks are either written
-		// to disk or are in the disk write cache
-		if (picker.is_piece_finished(p.piece))
-		{
-#ifdef TORRENT_DEBUG
-			check_postcondition post_checker2_(t, false);
-#endif
-			t->async_verify_piece(p.piece, bind(&torrent::piece_finished, t
-				, p.piece, _1));
-		}
-
 		request_a_block(*t, *this);
 		send_block_requests();
 	}
@@ -2392,6 +2382,7 @@ namespace libtorrent
 
 		m_outstanding_writing_bytes -= p.length;
 		TORRENT_ASSERT(m_outstanding_writing_bytes >= 0);
+		m_ses.check_disk_queue(j.outstanding_writes);
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 //		(*m_ses.m_logger) << time_now_string() << " *** DISK_WRITE_COMPLETE [ p: "
@@ -2423,6 +2414,8 @@ namespace libtorrent
 		TORRENT_ASSERT(p.piece == j.piece);
 		TORRENT_ASSERT(p.start == j.offset);
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
+		fprintf(stderr, "peer_connection mark_as_finished peer: %p piece: %d block: %d\n"
+			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_finished(block_finished, peer_info_struct());
 		if (t->alerts().should_post<block_finished_alert>())
 		{
@@ -2431,6 +2424,15 @@ namespace libtorrent
 		}
 
 		if (t->is_aborted()) return;
+
+		// did we just finish the piece?
+		// this means all blocks are either written
+		// to disk or are in the disk write cache
+		if (picker.is_piece_finished(p.piece))
+		{
+			t->async_verify_piece(p.piece, bind(&torrent::piece_finished, t
+				, p.piece, _1));
+		}
 	}
 
 	// -----------------------------
@@ -4712,7 +4714,7 @@ namespace libtorrent
 
 		bool disk = m_ses.settings().max_queued_disk_bytes == 0
 			|| !t || t->get_storage() == 0
-			|| t->filesystem().queued_bytes() < m_ses.settings().max_queued_disk_bytes;
+			|| m_ses.pending_write_bytes() < m_ses.settings().max_queued_disk_bytes;
 
 		if (!disk)
 		{

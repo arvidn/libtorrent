@@ -213,6 +213,11 @@ namespace libtorrent
 			, broadcast_lsd(false)
 			, ignore_resume_timestamps(false)
 			, anonymous_mode(false)
+#if TORRENT_USE_AIO
+			, max_async_disk_jobs(100)
+#else
+			, max_async_disk_jobs(1)
+#endif
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -824,6 +829,9 @@ namespace libtorrent
 		// mode is assumed to be combined with using a proxy for all your
 		// traffic. With this option, your true IP address will not be exposed
 		bool anonymous_mode;
+
+		// the max number of concurrent async jobs passed to the OS
+		int max_async_disk_jobs;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

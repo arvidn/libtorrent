@@ -122,90 +122,103 @@ struct test_storage : storage_interface
 		, m_limit(16 * 1024 * 2)
 	{}
 
-	virtual bool initialize(bool allocate_files)
-	{ return m_lower_layer->initialize(allocate_files); }
+	virtual bool initialize(bool allocate_files, error_code& ec)
+	{ return m_lower_layer->initialize(allocate_files, ec); }
 
-	virtual bool has_any_file()
-	{ return m_lower_layer->has_any_file(); }
+	virtual bool has_any_file(error_code& ec)
+	{ return m_lower_layer->has_any_file(ec); }
 
-	virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
-	{ return m_lower_layer->readv(bufs, slot, offset, num_bufs); }
+	virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec)
+	{ return m_lower_layer->readv(bufs, slot, offset, num_bufs, ec); }
 
-	virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
+	void set_limit(int lim)
 	{
-		int ret = m_lower_layer->writev(bufs, slot, offset, num_bufs);
-		if (ret > 0) m_written += ret;
+		mutex::scoped_lock l(m_mutex);
+		m_limit = lim;
+	}
+
+	virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec)
+	{
+		mutex::scoped_lock l(m_mutex);
 		if (m_written > m_limit)
 		{
+			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
 #if BOOST_VERSION == 103500
-			set_error("", error_code(boost::system::posix_error::no_space_on_device, get_posix_category()));
+			ec = error_code(boost::system::posix_error::no_space_on_device, get_posix_category());
 #elif BOOST_VERSION > 103500
-			set_error("", error_code(boost::system::errc::no_space_on_device, get_posix_category()));
+			ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
 #else
-			set_error("", error_code(ENOSPC, get_posix_category()));
+			ec = error_code(ENOSPC, get_posix_category());
 #endif
 			return -1;
 		}
+
+		int ret = m_lower_layer->writev(bufs, slot, offset, num_bufs, ec);
+		if (ret > 0) m_written += ret;
 		return ret;
 	}
 
 	virtual size_type physical_offset(int piece_index, int offset)
 	{ return m_lower_layer->physical_offset(piece_index, offset); }
 
-	virtual int read(char* buf, int slot, int offset, int size)
-	{ return m_lower_layer->read(buf, slot, offset, size); }
+	virtual int read(char* buf, int slot, int offset, int size, error_code& ec)
+	{ return m_lower_layer->read(buf, slot, offset, size, ec); }
 
-	virtual int write(const char* buf, int slot, int offset, int size)
+	virtual int write(const char* buf, int slot, int offset, int size, error_code& ec)
 	{
-		int ret = m_lower_layer->write(buf, slot, offset, size);
-		if (ret > 0) m_written += ret;
-		if (m_written > m_limit)
+		mutex::scoped_lock l(m_mutex);
+		if (m_written >= m_limit)
 		{
+			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
 #if BOOST_VERSION == 103500
-			set_error("", error_code(boost::system::posix_error::no_space_on_device, get_posix_category()));
+			ec = error_code(boost::system::posix_error::no_space_on_device, get_posix_category());
 #elif BOOST_VERSION > 103500
-			set_error("", error_code(boost::system::errc::no_space_on_device, get_posix_category()));
+			ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
 #else
-			set_error("", error_code(ENOSPC, get_posix_category()));
+			ec = error_code(ENOSPC, get_posix_category());
 #endif
 			return -1;
 		}
+
+		int ret = m_lower_layer->write(buf, slot, offset, size, ec);
+		if (ret > 0) m_written += ret;
 		return ret;
 	}
 
 	virtual int sparse_end(int start) const
 	{ return m_lower_layer->sparse_end(start); }
 
-	virtual bool move_storage(std::string const& save_path)
-	{ return m_lower_layer->move_storage(save_path); }
+	virtual void move_storage(std::string const& save_path, error_code& ec)
+	{ m_lower_layer->move_storage(save_path, ec); }
 
 	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
 	{ return m_lower_layer->verify_resume_data(rd, error); }
 
-	virtual bool write_resume_data(entry& rd) const
-	{ return m_lower_layer->write_resume_data(rd); }
+	virtual void write_resume_data(entry& rd, error_code& ec) const
+	{ m_lower_layer->write_resume_data(rd, ec); }
 
-	virtual bool move_slot(int src_slot, int dst_slot)
-	{ return m_lower_layer->move_slot(src_slot, dst_slot); }
+	virtual bool move_slot(int src_slot, int dst_slot, error_code& ec)
+	{ return m_lower_layer->move_slot(src_slot, dst_slot, ec); }
 
-	virtual bool swap_slots(int slot1, int slot2)
-	{ return m_lower_layer->swap_slots(slot1, slot2); }
+	virtual bool swap_slots(int slot1, int slot2, error_code& ec)
+	{ return m_lower_layer->swap_slots(slot1, slot2, ec); }
 
-	virtual bool swap_slots3(int slot1, int slot2, int slot3)
-	{ return m_lower_layer->swap_slots3(slot1, slot2, slot3); }
+	virtual bool swap_slots3(int slot1, int slot2, int slot3, error_code& ec)
+	{ return m_lower_layer->swap_slots3(slot1, slot2, slot3, ec); }
 
-	virtual bool release_files() { return m_lower_layer->release_files(); }
+	virtual void release_files(error_code& ec) { return m_lower_layer->release_files(ec); }
 
-	virtual bool rename_file(int index, std::string const& new_filename)
-	{ return m_lower_layer->rename_file(index, new_filename); }
+	virtual void rename_file(int index, std::string const& new_filename, error_code& ec)
+	{ m_lower_layer->rename_file(index, new_filename, ec); }
 
-	virtual bool delete_files() { return m_lower_layer->delete_files(); }
+	virtual void delete_files(error_code& ec) { m_lower_layer->delete_files(ec); }
 
 	virtual ~test_storage() {}
 
 	boost::scoped_ptr<storage_interface> m_lower_layer;
 	int m_written;
 	int m_limit;
+	mutex m_mutex;
 };
 
 storage_interface* test_storage_constructor(file_storage const& fs
@@ -323,6 +336,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	bool test_move_storage = false;
 
 	tracker_responses = 0;
+	int upload_mode_timer = 0;
 
 	for (int i = 0; i < 50; ++i)
 	{
@@ -353,11 +367,21 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			std::cerr << "moving storage" << std::endl;
 		}
 
-		if (test_disk_full && st2.upload_mode)
+		// wait 10 loops before we restart the torrent. This lets
+		// us catch all events that failed (and would put the torrent
+		// back into upload mode) before we restart it.
+		if (test_disk_full && st2.upload_mode && ++upload_mode_timer > 10)
 		{
 			test_disk_full = false;
-			((test_storage*)tor2.get_storage_impl())->m_limit = 16 * 1024 * 1024;
+			std::cerr << "lifting write limit in storage" << std::endl;
+			((test_storage*)tor2.get_storage_impl())->set_limit(16 * 1024 * 1024);
 			tor2.set_upload_mode(false);
+			// at this point we probably disconnected the seed
+			// so we need to reconnect as well
+			fprintf(stderr, "reconnecting peer\n");
+			error_code ec;
+			tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+				, ses1.listen_port()));
 			continue;
 		}
 
