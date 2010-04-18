@@ -910,7 +910,9 @@ namespace libtorrent
 		{
 			// only allocate the space if the file
 			// is not fully allocated
-			offs.LowPart = GetCompressedFileSize(m_path.c_str(), &offs.HighPart);
+			DWORD high_dword = 0;
+			offs.LowPart = GetCompressedFileSize(m_path.c_str(), &high_dword);
+			offs.HighPart = high_dword;
 			ec.assign(GetLastError(), get_system_category());
 			if (ec) return false;
 			if (offs.QuadPart != s)
