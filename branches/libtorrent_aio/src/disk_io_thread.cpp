@@ -492,7 +492,6 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 					m_log << " read 0" << std::endl;
 #endif
-					free_buffer(j.buffer);
 					j.buffer = 0;
 					j.error = error::no_memory;
 					j.str.clear();
@@ -913,14 +912,6 @@ namespace libtorrent
 		fprintf(stderr, "do_read_and_hash\n");
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j.buffer == 0);
-		j.buffer = allocate_buffer("send buffer");
-		TORRENT_ASSERT(j.buffer_size <= m_block_size);
-		if (j.buffer == 0)
-		{
-			j.error = error::no_memory;
-			j.str.clear();
-			return disk_operation_failed;
-		}
 
 		// read the entire piece and verify the piece hash
 		// since we need to check the hash, this function
@@ -929,8 +920,7 @@ namespace libtorrent
 		block_cache::iterator p = m_disk_cache.allocate_piece(j);
 		if (p == m_disk_cache.end())
 		{
-			free_buffer(j.buffer);
-			j.buffer = 0;
+			TORRENT_ASSERT(j.buffer == 0);
 			j.error = error::no_memory;
 			j.str.clear();
 			return disk_operation_failed;
@@ -951,8 +941,7 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 			m_log << " read 0" << std::endl;
 #endif
-			free_buffer(j.buffer);
-			j.buffer = 0;
+			TORRENT_ASSERT(j.buffer == 0);
 			j.error = error::no_memory;
 			j.str.clear();
 			return disk_operation_failed;
@@ -962,6 +951,14 @@ namespace libtorrent
 		// in the cache
 
 		ret = m_disk_cache.try_read(j);
+		if (ret == -2)
+		{
+			// allocation failed
+			TORRENT_ASSERT(j.buffer == 0);
+			j.error = error::no_memory;
+			j.str.clear();
+			return disk_operation_failed;
+		}
 		TORRENT_ASSERT(ret == j.buffer_size);
 
 		if (!m_settings.disable_hash_checks)
@@ -1016,6 +1013,7 @@ namespace libtorrent
 		}
 		else if (ret == -1)
 		{
+			TORRENT_ASSERT(j.buffer == 0);
 			free_buffer(j.buffer);
 			j.buffer = 0;
 			j.error = error::no_memory;
@@ -1065,8 +1063,7 @@ namespace libtorrent
 
 		if (j.error)
 		{
-			free_buffer(j.buffer);
-			j.buffer = 0;
+			TORRENT_ASSERT(j.buffer == 0);
 			j.error_file.clear();
 			j.str.clear();
 			ret = -1;
