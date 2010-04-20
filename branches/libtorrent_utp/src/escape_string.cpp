@@ -645,7 +645,7 @@ namespace libtorrent
 		if (insize != 0) return s;
 		// not sure why this would happen, but it seems to be possible
 		if (outsize > s.size() * 4) return s;
-		ret.resize(outsize);
+		ret.resize(ret.size() - outsize);
 		return ret;
 	}
 
