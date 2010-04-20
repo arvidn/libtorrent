@@ -67,7 +67,8 @@ namespace libtorrent
 
 		struct cached_block_entry
 		{
-			cached_block_entry(): buf(0), refcount(0), dirty(false), pending(false) {}
+			cached_block_entry(): buf(0), refcount(0), dirty(false)
+				, pending(false), uninitialized(false) {}
 
 			char* buf;
 
@@ -77,18 +78,28 @@ namespace libtorrent
 			// all references are gone and refcount reaches 0. The buf
 			// pointer in this struct doesn't count as a reference and
 			// is always the last to be cleared
-			boost::uint32_t refcount:30;
+			boost::uint32_t refcount:29;
 
 			// if this is true, this block needs to be written to
 			// disk before it's freed. Typically all blocks in a piece
 			// would either be dirty (write coalesce cache) or not dirty
-			// (read-ahead cache).
+			// (read-ahead cache). Once blocks are written to disk, the
+			// dirty flag is cleared and effectively turns the block
+			// into a read cache block
 			bool dirty:1;
 
-			// pending means that this buffer has not yet
-			// been filled in with valid date. There's an
-			// outstanding read job for this
+			// pending means that this buffer has not yet been filled in
+			// with valid data. There's an outstanding read job for this.
+			// If the dirty flag is set, it means there's an outstanding
+			// write job to write this block.
 			bool pending:1;
+
+			// this is used for freshly allocated read buffers. For read
+			// operations, the disk-I/O thread will look for this flag
+			// when issueing read jobs.
+			// it is not valid for this flag to be set for blocks where
+			// the dirty flag is set.
+			bool uninitialized:1;
 		};
 
 		struct cached_piece_entry
@@ -176,7 +187,7 @@ namespace libtorrent
 
 		// returns the number of bytes read on success (cache hit)
 		// -1 on cache miss
-		int try_read(disk_io_job const& j);
+		int try_read(disk_io_job& j);
 
 		// either returns the piece in the cache, or allocates
 		// a new empty piece and returns it.
@@ -195,7 +206,7 @@ namespace libtorrent
 		// it's less than the requested, it means the cache is
 		// full and there's no space left
 		int allocate_pending(iterator p
-			, int start, int end, disk_io_job const& j);
+			, int start, int end, disk_io_job const& j, int prio = 0);
 
 		// clear the pending flags of the specified block range.
 		// these blocks must be completely filled with valid
@@ -221,12 +232,14 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 		
+		bool try_evict_blocks(int num, int prio);
+
 	private:
 
 		// returns number of bytes read on success, -1 on cache miss
 		// (just because the piece is in the cache, doesn't mean all
 		// the blocks are there)
-		int copy_from_piece(iterator p, disk_io_job const& j);
+		int copy_from_piece(iterator p, disk_io_job& j);
 
 		void free_piece(iterator i);
 

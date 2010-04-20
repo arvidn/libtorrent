@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/error.hpp"
+#include "libtorrent/disk_io_thread.hpp" // disk_operation_failed
 
 namespace libtorrent {
 
@@ -76,9 +77,12 @@ block_cache::block_cache(disk_buffer_pool& p)
 	, m_buffer_pool(p)
 {}
 
-int block_cache::try_read(disk_io_job const& j)
+// returns:
+// -1: not in cache
+// -2: no memory
+int block_cache::try_read(disk_io_job& j)
 {
-	TORRENT_ASSERT(j.buffer);
+	TORRENT_ASSERT(j.buffer == 0);
 	TORRENT_ASSERT(j.cache_min_time >= 0);
 
 	cache_piece_index_t& idx = m_pieces.get<0>();
@@ -178,6 +182,7 @@ void block_cache::mark_for_deletion(iterator p)
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
 		if (pe->blocks[i].buf == 0 || pe->blocks[i].refcount > 0) continue;
+		TORRENT_ASSERT(pe->blocks[i].buf != 0);
 		m_buffer_pool.free_buffer(pe->blocks[i].buf);
 		pe->blocks[i].buf = 0;
 		TORRENT_ASSERT(pe->num_blocks > 0);
@@ -194,8 +199,27 @@ void block_cache::mark_for_deletion(iterator p)
 	pe->marked_for_deletion = true;
 }
 
+bool block_cache::try_evict_blocks(int num, int prio)
+{
+	// #error this can probably not be implemented in the block cache itself since we can't flush write blocks. I
+	return true;
+}
+
+// the priority controls which other blocks these new blocks
+// are allowed to evict from the cache.
+// 0 = regular read job
+// 1 = write jobs
+// 2 = required read jobs (like for read and hash)
+
+// returns the number of blocks in the given range that are pending
+// if this is > 0, it's safe to append the disk_io_job to the piece
+// and it will be invoked once the pending blocks complete
+// negative return values indicate different errors
+// -1 = out of memory
+// -2 = out of cache space
+
 int block_cache::allocate_pending(block_cache::iterator p
-	, int begin, int end, disk_io_job const& j)
+	, int begin, int end, disk_io_job const& j, int prio)
 {
 	TORRENT_ASSERT(begin >= 0);
 	TORRENT_ASSERT(end <= p->blocks_in_piece);
@@ -207,25 +231,53 @@ int block_cache::allocate_pending(block_cache::iterator p
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
-//#error make room for end - begin more blocks in the cache
+	int blocks_to_allocate = end - begin;
+	if (m_cache_size + blocks_to_allocate > m_max_size)
+	{
+		if (!try_evict_blocks(m_cache_size + blocks_to_allocate - m_max_size, prio))
+		{
+			// we couldn't evict enough blocks to make room for this piece
+			// we cannot return -1 here, since that means we're out of
+			// memory. We're just out of cache space. -2 will tell the caller
+			// to read the piece directly instead of going through the cache
+			return -2;
+		}
+	}
 
 	for (int i = begin; i < end; ++i)
 	{
-		++pe->blocks[i].refcount;
-		++pe->refcount;
 		if (pe->blocks[i].buf) continue;
 		if (pe->blocks[i].pending) continue;
 		pe->blocks[i].buf = m_buffer_pool.allocate_buffer("pending read");
 		if (pe->blocks[i].buf == 0)
 		{
-//#error roll-back the allocated blocks from this call
+			for (int j = begin; j < end; ++j)
+			{
+				cached_block_entry& bl = pe->blocks[j];
+				if (!bl.uninitialized) continue;
+				TORRENT_ASSERT(bl.buf != 0);
+				m_buffer_pool.free_buffer(bl.buf);
+				bl.buf = 0;
+				bl.uninitialized = false;
+				--m_read_cache_size;
+				--m_cache_size;
+				--bl.refcount;
+				--pe->refcount;
+			}
 			return -1;
 		}
+		// this signals the disk_io_thread that this buffer should
+		// be read in io_range()
+		pe->blocks[i].uninitialized = true;
+		++m_read_cache_size;
+		++m_cache_size;
+		++pe->blocks[i].refcount;
+		++pe->refcount;
 		++ret;
 	}
 	
 	TORRENT_ASSERT(j.piece == pe->piece);
-	pe->jobs.push_back(j);
+	if (ret > 0) pe->jobs.push_back(j);
 
 	return ret;
 }
@@ -275,6 +327,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				TORRENT_ASSERT(m_read_cache_size > 0);
 				--m_read_cache_size;
 			}
+			TORRENT_ASSERT(bl.buf != 0);
 			m_buffer_pool.free_buffer(bl.buf);
 			bl.buf = 0;
 			bl.pending = false;
@@ -354,18 +407,24 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				|| i->action == disk_io_job::read_and_hash)
 			{
 				ret = copy_from_piece(p, *i);
-				TORRENT_ASSERT(ret >= 0);
 				if (ret == -1)
 				{
+					TORRENT_ASSERT(false);
 					// this job is waiting for some other
 					// blocks from this piece, we have to
-					// leave it in here
+					// leave it in here. It's not clear if this
+					// would ever happen and in that case why
 					++i;
 					continue;
 				}
+				else if (ret == -2)
+				{
+					ret = disk_io_thread::disk_operation_failed;
+					i->error = error::no_memory;
+				}
 			}
 
-			if (i->action == disk_io_job::read_and_hash
+			if (ret >=i->action == disk_io_job::read_and_hash
 				&& !i->storage->get_storage_impl()->settings().disable_hash_checks)
 			{
 				// #error do this in a hasher thread!
@@ -546,9 +605,13 @@ void disk_io_thread::check_invariant() const
 }
 #endif
 
-int block_cache::copy_from_piece(iterator p, disk_io_job const& j)
+// returns
+// -1: block not in caceh
+// -2: out of memory
+
+int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 {
-	TORRENT_ASSERT(j.buffer);
+	TORRENT_ASSERT(j.buffer == 0);
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
@@ -570,6 +633,8 @@ int block_cache::copy_from_piece(iterator p, disk_io_job const& j)
 	if (pe->blocks[start_block].buf == 0
 		|| pe->blocks[start_block].pending) return -1;
 
+	j.buffer = m_buffer_pool.allocate_buffer("send buffer");
+	if (j.buffer == 0) return -2;
 	while (size > 0)
 	{
 		TORRENT_ASSERT(pe->blocks[block].buf);
