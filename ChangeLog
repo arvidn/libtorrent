@@ -28,6 +28,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed potential issue where a piece could be checked twice
 	* fixed build issue on windows related to GetCompressedSize()
 	* fixed deadlock when starting torrents with certain invalid tracker URLs
 	* fixed iterator bug in disk I/O thread
