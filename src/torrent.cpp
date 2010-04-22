@@ -576,6 +576,8 @@ namespace libtorrent
 		// avoid crash trying to access the picker when there is nont
 		if (is_seed()) return;
 
+		if (picker().have_piece(piece)) return;
+
 		peer_request p;
 		p.piece = piece;
 		p.start = 0;
@@ -636,13 +638,6 @@ namespace libtorrent
 		if (picker().is_finished(block_finished)) return;
 
 		picker().mark_as_finished(block_finished, 0);
-
-		// did we just finish the piece?
-		if (picker().is_piece_finished(p.piece))
-		{
-			async_verify_piece(p.piece, bind(&torrent::piece_finished, shared_from_this()
-				, p.piece, _1));
-		}
 	}
 
 	bool torrent::add_merkle_nodes(std::map<int, sha1_hash> const& nodes, int piece)
@@ -1915,6 +1910,8 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(valid_metadata());
+
+		TORRENT_ASSERT(!m_picker->have_piece(index));
 
 		// even though the piece passed the hash-check
 		// it might still have failed being written to disk
