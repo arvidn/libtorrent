@@ -291,7 +291,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
-	fprintf(stderr, "block_cache mark_as_done error: %s\n", ec.message().c_str());
+	fprintf(stderr, "%p block_cache mark_as_done error: %s\n", &m_buffer_pool, ec.message().c_str());
 
 	if (ec)
 	{
@@ -377,7 +377,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		TORRENT_ASSERT(i->piece == p->piece);
 		i->error = ec;
 		i->outstanding_writes = queue_buffer_size;
-		int ret;
+		int ret = i->buffer_size;
 		if (!ec)
 		{
 			// if the job overlaps any blocks that are still pending,
@@ -389,8 +389,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			TORRENT_ASSERT(first_block <= last_block);
 			if (pe->blocks[first_block].pending || pe->blocks[last_block].pending)
 			{
-				fprintf(stderr, "block_cache mark_done leaving job (overlap) "
-					"piece: %d start: %d end: %d\n", pe->piece, begin, end);
+				fprintf(stderr, "%p block_cache mark_done leaving job (overlap) "
+					"piece: %d start: %d end: %d\n", &m_buffer_pool, pe->piece, begin, end);
 				++i;
 				continue;
 			}
@@ -422,6 +422,10 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 					ret = disk_io_thread::disk_operation_failed;
 					i->error = error::no_memory;
 				}
+				else
+				{
+					ret = i->buffer_size;
+				}
 			}
 
 			if (ret >=i->action == disk_io_job::read_and_hash
@@ -447,15 +451,15 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			// this job is waiting for just return the failure
 			ret = -1;
 		}
-		fprintf(stderr, "block_cache mark_done post job "
-			"piece: %d piece: %d offset: %d\n", pe->piece, i->piece, i->offset);
+		fprintf(stderr, "%p block_cache mark_done post job "
+			"piece: %d piece: %d offset: %d\n", &m_buffer_pool, pe->piece, i->piece, i->offset);
 		if (i->callback) ios.post(boost::bind(i->callback, ret, *i));
 		i = pe->jobs.erase(i);
 	}
 
 	if (pe->jobs.empty() && pe->storage->has_fence())
 	{
-		fprintf(stderr, "piece out of jobs. Count total jobs\n");
+		fprintf(stderr, "%p piece out of jobs. Count total jobs\n", &m_buffer_pool);
 		// this piece doesn't have any outstanding jobs anymore
 		// and we have a fence on the storage. Are all outstanding
 		// jobs complete for this storage?
@@ -470,7 +474,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 		if (!has_jobs)
 		{
-			fprintf(stderr, "no more jobs. lower fence\n");
+			fprintf(stderr, "%p no more jobs. lower fence\n", &m_buffer_pool);
 			// yes, all outstanding jobs are done, lower the fence
 			pe->storage->lower_fence();
 		}

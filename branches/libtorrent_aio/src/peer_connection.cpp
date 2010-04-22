@@ -4979,7 +4979,6 @@ namespace libtorrent
 			int block_size = t->block_size();
 			piece_block last_block(ti.num_pieces()-1
 				, (ti.piece_size(ti.num_pieces()-1) + block_size - 1) / block_size);
-			int last_block_size = t->torrent_file().piece_size(ti.num_pieces()-1) - last_block.block_index * block_size;
 			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
 				, end(m_download_queue.end()); i != end; ++i)
 			{

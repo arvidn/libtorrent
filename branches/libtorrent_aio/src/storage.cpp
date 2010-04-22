@@ -286,11 +286,9 @@ namespace libtorrent
 	void storage_interface::async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
 		, boost::function<void(error_code const&, size_t)> const& handler)
 	{
-		fprintf(stderr, "async_readv\n");
 		error_code ec;
 		size_t ret = readv(bufs, slot, offset, num_bufs, ec);
 		TORRENT_ASSERT(m_disk_io_service);
-		fprintf(stderr, "async_readv: posting\n");
 		m_disk_io_service->post(boost::bind(handler, ec, ret));
 	}
 
