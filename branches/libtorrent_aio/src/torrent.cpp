@@ -677,6 +677,8 @@ namespace libtorrent
 		// avoid crash trying to access the picker when there is none
 		if (is_seed()) return;
 
+		if (picker().have_piece(piece)) return;
+
 		peer_request p;
 		p.piece = piece;
 		p.start = 0;
@@ -739,13 +741,6 @@ namespace libtorrent
 		m_need_save_resume_data = true;
 
 		picker().mark_as_finished(block_finished, 0);
-
-		// did we just finish the piece?
-		if (picker().is_piece_finished(p.piece))
-		{
-			async_verify_piece(p.piece, bind(&torrent::piece_finished, shared_from_this()
-				, p.piece, _1));
-		}
 	}
 	
 	void torrent::on_disk_cache_complete(int ret, disk_io_job const& j)
@@ -2105,6 +2100,8 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(valid_metadata());
+
+		TORRENT_ASSERT(!m_picker->have_piece(index));
 
 		// if we're a seed we don't have a picker
 		// and we also don't have to do anything because

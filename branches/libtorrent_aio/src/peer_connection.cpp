@@ -2353,6 +2353,7 @@ namespace libtorrent
 			m_timeout_extend = 0;
 		}
 
+		bool was_finished = picker.is_piece_finished(p.piece);
 		// did we request this block from any other peers?
 		bool multi = picker.num_peers(block_finished) > 1;
 		fprintf(stderr, "peer_connection mark_as_writing peer: %p piece: %d block: %d\n"
@@ -2369,6 +2370,19 @@ namespace libtorrent
 	&& defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		t->check_invariant();
 #endif
+
+		// did we just finish the piece?
+		// this means all blocks are either written
+		// to disk or are in the disk write cache
+		if (picker.is_piece_finished(p.piece) && !was_finished)
+		{
+#ifdef TORRENT_DEBUG
+			check_postcondition post_checker2_(t, false);
+#endif
+			t->async_verify_piece(p.piece, bind(&torrent::piece_finished, t
+				, p.piece, _1));
+		}
+
 		request_a_block(*t, *this);
 		send_block_requests();
 	}
