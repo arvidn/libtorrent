@@ -1467,6 +1467,8 @@ namespace libtorrent
 		typedef std::multimap<size_type, disk_io_job> read_jobs_t;
 		read_jobs_t sorted_read_jobs;
 		read_jobs_t::iterator elevator_job_pos = sorted_read_jobs.begin();
+		size_type last_elevator_pos = 0;
+		bool need_update_elevator_pos = false;
 
 		for (;;)
 		{
@@ -1565,11 +1567,8 @@ namespace libtorrent
 					m_log << log_time() << " sorting_job" << std::endl;
 #endif
 					size_type phys_off = j.storage->physical_offset(j.piece, j.offset);
-					bool update_pos = sorted_read_jobs.empty();
+					need_update_elevator_pos = need_update_elevator_pos || sorted_read_jobs.empty();
 					sorted_read_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
-					// if sorted_read_jobs used to be empty,
-					// we need to update the elevator position
-					if (update_pos) elevator_job_pos = sorted_read_jobs.begin();
 					continue;
 				}
 			}
@@ -1581,6 +1580,14 @@ namespace libtorrent
 				jl.unlock();
 
 				TORRENT_ASSERT(!sorted_read_jobs.empty());
+
+				// if sorted_read_jobs used to be empty,
+				// we need to update the elevator position
+				if (need_update_elevator_pos)
+				{
+					elevator_job_pos = sorted_read_jobs.lower_bound(last_elevator_pos);
+					need_update_elevator_pos = false;
+				}
 
 				// if we've reached the end, change the elevator direction
 				if (elevator_job_pos == sorted_read_jobs.end() && elevator_direction == 1)
@@ -1605,6 +1612,7 @@ namespace libtorrent
 				else --elevator_job_pos;
 
 				TORRENT_ASSERT(to_erase != elevator_job_pos);
+				last_elevator_pos = to_erase->first;
 				sorted_read_jobs.erase(to_erase);
 			}
 
