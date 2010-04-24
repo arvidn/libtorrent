@@ -2203,8 +2203,6 @@ namespace libtorrent
 
 		piece_pos& p = m_piece_map[block.piece_index];
 
-		TORRENT_ASSERT(!p.have());
-
 		if (p.downloading == 0)
 		{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS

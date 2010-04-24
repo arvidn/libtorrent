@@ -428,7 +428,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				}
 			}
 
-			if (ret >=i->action == disk_io_job::read_and_hash
+			if (ret >= 0
+				&& i->action == disk_io_job::read_and_hash
 				&& !i->storage->get_storage_impl()->settings().disable_hash_checks)
 			{
 				// #error do this in a hasher thread!
@@ -444,6 +445,25 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				ret = (i->storage->info()->hash_for_piece(i->piece) == h)?0:-2;
 				if (ret == -2) i->storage->mark_failed(i->piece);
 			}
+			else if (ret >= 0
+				&& i->action == disk_io_job::hash)
+			{
+				// #error
+//				if (m_settings.disable_hash_checks)
+//					return 0;
+
+				// #error replace this with an asynchronous call which uses a worker thread
+				// to do the hashing. This would make better use of parallel systems
+				sha1_hash h = i->storage->hash_for_piece_impl(i->piece, i->error);
+				if (i->error)
+				{
+					i->storage->mark_failed(i->piece);
+					ret = -1;
+				}
+
+				ret = (i->storage->info()->hash_for_piece(i->piece) == h)?0:-2;
+				if (ret == -2) i->storage->mark_failed(i->piece);
+			}
 		}
 		else
 		{
@@ -451,8 +471,9 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			// this job is waiting for just return the failure
 			ret = -1;
 		}
+		TORRENT_ASSERT(i->piece == pe->piece);
 		fprintf(stderr, "%p block_cache mark_done post job "
-			"piece: %d piece: %d offset: %d\n", &m_buffer_pool, pe->piece, i->piece, i->offset);
+			"piece: %d offset: %d\n", &m_buffer_pool, i->piece, i->offset);
 		if (i->callback) ios.post(boost::bind(i->callback, ret, *i));
 		i = pe->jobs.erase(i);
 	}

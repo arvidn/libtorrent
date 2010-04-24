@@ -715,6 +715,9 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_ses.m_mutex);
 
+		fprintf(stderr, "torrent::on_disk_write_complete ret:%d piece:%d block:%d\n"
+			, ret, j.piece, j.offset/0x4000);
+
 		INVARIANT_CHECK;
 
 		if (is_seed()) return;
@@ -2156,6 +2159,7 @@ namespace libtorrent
 		// update m_file_progress
 		TORRENT_ASSERT(m_picker);
 		TORRENT_ASSERT(!have_piece(index));
+		TORRENT_ASSERT(!m_picker->have_piece(index));
 
 		const int piece_size = m_torrent_file->piece_length();
 		size_type off = size_type(index) * piece_size;
@@ -2198,8 +2202,21 @@ namespace libtorrent
 	{
 //		INVARIANT_CHECK;
 
+		fprintf(stderr, "torrent::piece_passed piece:%d\n", index);
+
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
+#ifdef TORRENT_DEBUG
+		// make sure all blocks were successfully written before we
+		// declare the piece has "we have".
+		piece_picker::downloading_piece dp;
+		m_picker->piece_info(index, dp);
+		int blocks_in_piece = m_picker->blocks_in_piece(index);
+		TORRENT_ASSERT(dp.finished == blocks_in_piece);
+		TORRENT_ASSERT(dp.writing == 0);
+		TORRENT_ASSERT(dp.requested == 0);
+		TORRENT_ASSERT(dp.index == index);
+#endif
 
 		if (m_ses.m_alerts.should_post<piece_finished_alert>())
 		{
@@ -6003,6 +6020,7 @@ namespace libtorrent
 		TORRENT_ASSERT(piece_index >= 0);
 		TORRENT_ASSERT(piece_index < m_torrent_file->num_pieces());
 		TORRENT_ASSERT(piece_index < (int)m_picker->num_pieces());
+		TORRENT_ASSERT(!m_picker || !m_picker->have_piece(piece_index));
 #ifdef TORRENT_DEBUG
 		if (m_picker)
 		{

@@ -604,33 +604,38 @@ namespace libtorrent
 
 		block_cache::iterator p = m_disk_cache.find_piece(j);
 
-		// you cannot ask for the hash of a piece before it's completely
-		// written
-		TORRENT_ASSERT(p->num_dirty == 0);
-
 		// flush the write jobs for this piece
 		if (p != m_disk_cache.end() && p->num_dirty > 0)
 		{
 			// issue write commands
 			io_range(p, 0, INT_MAX, op_write);
+			block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+			pe->jobs.push_back(j);
+			return defer_handler;
 		}
-
-		if (m_settings.disable_hash_checks)
-			return 0;
-
-		// #error replace this with an asynchronous call which uses a worker thread
-		// to do the hashing. This would make better use of parallel systems
-		sha1_hash h = j.storage->hash_for_piece_impl(j.piece, j.error);
-		if (j.error)
+		else
 		{
-			j.storage->mark_failed(j.piece);
-			return disk_operation_failed;
+			// #error merge this piece of code with what's in block_cache. The best way
+			// to do this is probably to make the block cache call some function back
+			// into the disk_io_thread for completed jobs and let the job take the same
+			// path again but finish the second time instead of issuing async jobs
+			if (m_settings.disable_hash_checks)
+				return 0;
+
+			// #error replace this with an asynchronous call which uses a worker thread
+			// to do the hashing. This would make better use of parallel systems
+			sha1_hash h = j.storage->hash_for_piece_impl(j.piece, j.error);
+			if (j.error)
+			{
+				j.storage->mark_failed(j.piece);
+				return disk_operation_failed;
+			}
+
+			int ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
+			if (ret == -2) j.storage->mark_failed(j.piece);
+
+			return ret;
 		}
-
-		int ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
-		if (ret == -2) j.storage->mark_failed(j.piece);
-
-		return ret;
 	}
 
 	int disk_io_thread::do_move_storage(disk_io_job& j)

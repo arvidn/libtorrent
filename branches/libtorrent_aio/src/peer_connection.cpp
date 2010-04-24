@@ -2438,15 +2438,6 @@ namespace libtorrent
 		}
 
 		if (t->is_aborted()) return;
-
-		// did we just finish the piece?
-		// this means all blocks are either written
-		// to disk or are in the disk write cache
-		if (picker.is_piece_finished(p.piece))
-		{
-			t->async_verify_piece(p.piece, bind(&torrent::piece_finished, t
-				, p.piece, _1));
-		}
 	}
 
 	// -----------------------------
