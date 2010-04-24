@@ -126,10 +126,11 @@ int bufs_size(file::iovec_t const* bufs, int num_bufs);
 // simulate a very slow first read
 struct test_storage : storage_interface
 {
-	test_storage() {}
+	test_storage(): m_started(false), m_ready(false) {}
 
 	virtual bool initialize(bool allocate_files) { return true; }
 	virtual bool has_any_file() { return true; }
+
 
 	int write(
 		const char* buf
@@ -148,8 +149,16 @@ struct test_storage : storage_interface
 	{
 		if (slot == 0 || slot == 5999)
 		{
-			boost::thread::sleep(boost::get_system_time()
-				+ boost::posix_time::seconds(2));
+			boost::mutex::scoped_lock l(m_mutex);
+			std::cerr << "--- starting job " << slot << " waiting for main thread ---\n" << std::endl;
+			m_ready = true;
+			m_ready_condition.notify_all();
+
+			while (!m_started)
+				m_condition.wait(l);
+
+			m_ready = false;
+			m_started = false;
 			std::cerr << "--- starting ---\n" << std::endl;
 		}
 		return size;
@@ -187,6 +196,28 @@ struct test_storage : storage_interface
 	virtual bool delete_files() { return false; }
 
 	virtual ~test_storage() {}
+
+	void wait_for_ready()
+	{
+		boost::mutex::scoped_lock l(m_mutex);
+		while (!m_ready)
+			m_ready_condition.wait(l);
+	}
+
+	void start()
+	{
+		boost::mutex::scoped_lock l(m_mutex);
+		m_started = true;
+		m_condition.notify_all();
+	}
+
+private:
+	boost::condition_variable m_ready_condition;
+	boost::condition_variable m_condition;
+	boost::mutex m_mutex;
+	bool m_started;
+	bool m_ready;
+
 };
 
 storage_interface* create_test_storage(file_storage const& fs
@@ -261,12 +292,12 @@ void run_elevator_test()
 		dio.add_job(j);
 
 		// test the elevator going up
+		turns = 0;
 		direction = 1;
 		last_job = 0;
 		add_job(dio, 0, pm); // trigger delay in storage
 		// make sure the job is processed
-		boost::thread::sleep(boost::get_system_time()
-			+ boost::posix_time::milliseconds(200));
+		((test_storage*)pm->get_storage_impl())->wait_for_ready();
 
 		boost::uint32_t p = 1234513;
 		for (int i = 0; i < 100; ++i)
@@ -277,20 +308,22 @@ void run_elevator_test()
 			add_job(dio, job, pm);
 		}
 
+		((test_storage*)pm->get_storage_impl())->start();
+
 		for (int i = 0; i < 101; ++i)
 			ios.run_one();
 
-		TEST_CHECK(turns < 2);
+		TEST_CHECK(turns == 0);
 		TEST_CHECK(job_counter == 0);
 		std::cerr << "number of elevator turns: " << turns << std::endl;
 
 		// test the elevator going down
+		turns = 0;
 		direction = -1;
 		last_job = 6000;
 		add_job(dio, 5999, pm); // trigger delay in storage
 		// make sure the job is processed
-		boost::thread::sleep(boost::get_system_time()
-			+ boost::posix_time::milliseconds(200));
+		((test_storage*)pm->get_storage_impl())->wait_for_ready();
 
 		for (int i = 0; i < 100; ++i)
 		{
@@ -300,10 +333,12 @@ void run_elevator_test()
 			add_job(dio, job, pm);
 		}
 
+		((test_storage*)pm->get_storage_impl())->start();
+
 		for (int i = 0; i < 101; ++i)
 			ios.run_one();
 
-		TEST_CHECK(turns < 2);
+		TEST_CHECK(turns == 0);
 		TEST_CHECK(job_counter == 0);
 		std::cerr << "number of elevator turns: " << turns << std::endl;
 
@@ -317,8 +352,7 @@ void run_elevator_test()
 		direction = 0;
 		add_job(dio, 0, pm); // trigger delay in storage
 		// make sure the job is processed
-		boost::thread::sleep(boost::get_system_time()
-			+ boost::posix_time::milliseconds(200));
+		((test_storage*)pm->get_storage_impl())->wait_for_ready();
 
 		for (int i = 0; i < 100; ++i)
 		{
@@ -327,6 +361,8 @@ void run_elevator_test()
 			std::cerr << "starting job #" << job << std::endl;
 			add_job(dio, job, pm);
 		}
+
+		((test_storage*)pm->get_storage_impl())->start();
 
 		for (int i = 0; i < 101; ++i)
 			ios.run_one();
