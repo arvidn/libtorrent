@@ -431,13 +431,19 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 	tor2.pause();
 	alert const* a = ses2.wait_for_alert(seconds(10));
+	bool got_paused_alert = false;
 	while (a)
 	{
 		std::auto_ptr<alert> holder = ses2.pop_alert();
 		std::cerr << "ses2: " << a->message() << std::endl;
-		if (alert_cast<torrent_paused_alert>(a)) break;	
+		if (alert_cast<torrent_paused_alert>(a))
+		{
+			got_paused_alert = true;
+			break;	
+		}
 		a = ses2.wait_for_alert(seconds(10));
 	}
+	TEST_CHECK(got_paused_alert);	
 
 	std::vector<announce_entry> tr = tor2.trackers();
 	tr.push_back(announce_entry("http://test.com/announce"));
@@ -460,6 +466,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		}
 		a = ses2.wait_for_alert(seconds(10));
 	}
+	TEST_CHECK(resume_data.size());	
 
 	std::cerr << "saved resume data" << std::endl;
 
