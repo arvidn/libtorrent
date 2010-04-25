@@ -81,7 +81,8 @@ namespace libtorrent
 		enum flags_t
 		{
 			volatile_read = 1,
-			need_uncork = 2
+			need_uncork = 2,
+			cache_hit = 4
 		};
 
 		action_t action;

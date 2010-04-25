@@ -202,7 +202,7 @@ namespace libtorrent
 		void on_read_one_buffer(error_code const& ec, size_t bytes_transferred
 			, disk_io_job j);
 
-		void try_flush(block_cache::iterator p);
+		int try_flush(block_cache::iterator p);
 
 		bool m_abort;
 
@@ -234,7 +234,12 @@ namespace libtorrent
 		std::ofstream m_log;
 #endif
 
+		// the total number of outstanding jobs. This is used to
+		// limit the number of jobs issued in parallel. It also creates
+		// an opportunity to sort the jobs by physical offset before
+		// issued to the AIO subsystem
 		int m_outstanding_jobs;
+
 		typedef std::multimap<size_type, disk_io_job> deferred_jobs_t;
 		deferred_jobs_t m_deferred_jobs;
 		deferred_jobs_t::iterator m_elevator_job_pos;

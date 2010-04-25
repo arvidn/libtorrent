@@ -2326,10 +2326,18 @@ namespace libtorrent
 			}
 		}
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string()
+			<< " *** FILE ASYNC WRITE ["
+			" piece: " << p.piece <<
+			" | s: " << p.start <<
+			" | l: " << p.length <<
+			" ]\n";
+#endif
 		fs.async_write(p, data, bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
-		m_ses.add_pending_write_bytes(p.length);
+//		m_ses.add_pending_write_bytes(p.length);
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		m_download_queue.erase(b);
 
@@ -2398,9 +2406,15 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_writing_bytes >= 0);
 		m_ses.check_disk_queue(j.outstanding_writes);
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-//		(*m_ses.m_logger) << time_now_string() << " *** DISK_WRITE_COMPLETE [ p: "
-//			<< p.piece << " o: " << p.start << " ]\n";
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string()
+			<< " *** FILE ASYNC WRITE COMPLETE ["
+				" ret: " << ret <<
+				" | piece: " << p.piece <<
+				" | s: " << p.start <<
+				" | l: " << p.length <<
+				" | e: " << j.error.message() <<
+				" ]\n";
 #endif
 		// in case the outstanding bytes just dropped down
 		// to allow to receive more data
@@ -4023,11 +4037,27 @@ namespace libtorrent
 
 			if (!t->seed_mode() || t->verified_piece(r.piece))
 			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << time_now_string()
+					<< " *** FILE ASYNC READ ["
+					" piece: " << r.piece <<
+					" | s: " << r.start <<
+					" | l: " << r.length <<
+					" ]\n";
+#endif
 				t->filesystem().async_read(r, bind(&peer_connection::on_disk_read_complete
 					, self(), _1, _2, r), cache.first, cache.second);
 			}
 			else
 			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << time_now_string()
+					<< " *** FILE ASYNC READ_AND_HASH ["
+					" piece: " << r.piece <<
+					" | s: " << r.start <<
+					" | l: " << r.length <<
+					" ]\n";
+#endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				t->filesystem().async_read_and_hash(r, bind(&peer_connection::on_disk_read_complete
@@ -4045,6 +4075,18 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_ses.m_mutex);
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string()
+			<< " *** FILE ASYNC READ COMPLETE ["
+			" ret: " << ret <<
+			" | piece: " << r.piece <<
+			" | s: " << r.start <<
+			" | l: " << r.length <<
+			" | b: " << (void*)j.buffer <<
+			" | c: " << (j.flags & disk_io_job::cache_hit ? "cache hit" : "cache miss") <<
+			" | e: " << j.error.message() <<
+			" ]\n";
+#endif
 		m_reading_bytes -= r.length;
 
 		disk_buffer_holder buffer(m_ses, j.buffer);
@@ -4340,7 +4382,7 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " *** CANNOT READ ["
 				" quota: " << m_quota[download_channel] <<
 				" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
-				" queue-size: " << ((t && t->get_storage())?t->filesystem().queued_bytes():0) <<
+				" queue-size: " << m_ses.pending_write_bytes() <<
 				" queue-limit: " << m_ses.settings().max_queued_disk_bytes <<
 				" disconnecting: " << (m_disconnecting?"yes":"no") <<
 				" ]\n";

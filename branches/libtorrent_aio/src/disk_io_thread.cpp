@@ -161,11 +161,12 @@ namespace libtorrent
 		add_job(j);
 	}
 
-	void disk_io_thread::try_flush(block_cache::iterator p)
+	int disk_io_thread::try_flush(block_cache::iterator p)
 	{
 		int start_of_run = 0;
 		int i = 0;
 		const int limit = (std::min)(m_settings.write_cache_line_size, int(p->blocks_in_piece));
+		int ret = 0;
 
 		for (; i < p->blocks_in_piece; ++i)
 		{
@@ -179,16 +180,17 @@ namespace libtorrent
 			}
 
 			// we should flush start_of_run - i.
-			io_range(p, start_of_run, i, op_write);
+			ret += io_range(p, start_of_run, i, op_write);
 			start_of_run = i + 1;
 		}
 
 		if (i - start_of_run >= limit)
 		{
 			// we should flush start_of_run - i.
-			io_range(p, start_of_run, i, op_write);
+			ret += io_range(p, start_of_run, i, op_write);
 			start_of_run = i + 1;
 		}
+		return ret;
 	}
 
 	int disk_io_thread::io_range(block_cache::iterator p, int start, int end, int readwrite)
@@ -239,12 +241,12 @@ namespace libtorrent
 				int range_start = i - (buffer_size + m_block_size - 1) / m_block_size;
 				if (readwrite == op_write)
 				{
+					m_queue_buffer_size += to_write;
 					p->storage->write_async_impl(iov, p->piece, to_write, iov_counter
 						, boost::bind(&disk_io_thread::on_disk_write, this, p
 							, range_start, i, to_write, _1));
 					m_write_blocks += i - range_start;
 					++m_write_calls;
-					m_queue_buffer_size += to_write;
 				}
 				else
 				{
@@ -423,8 +425,12 @@ namespace libtorrent
 		fprintf(stderr, "%p   return: %d error: %s\n"
 			, this, ret, j.error ? j.error.message().c_str() : "");
 
+		j.outstanding_writes = m_queue_buffer_size;
 		if (ret != defer_handler && j.callback)
+		{
+			fprintf(stderr, "%p   posting callback j.buffer: %p\n", this, j.buffer);
 			m_ios.post(boost::bind(j.callback, ret, j));
+		}
 
 		// if this job actually completed (as opposed to deferred the handler)
 		// and it's a job that raises the fence (like move storage, release
@@ -462,6 +468,7 @@ namespace libtorrent
 			if (ret >= 0)
 			{
 				fprintf(stderr, "%p do_read: cache hit\n", this);
+				j.flags |= disk_io_job::cache_hit;
 #ifdef TORRENT_DISK_STATS
 				m_log << " read-cache-hit " << j.buffer_size << std::endl;
 #endif
@@ -485,46 +492,49 @@ namespace libtorrent
 				return defer_handler;
 			}
 
-			// cache the piece
-			block_cache::iterator p = m_disk_cache.allocate_piece(j);
-			if (p != m_disk_cache.end())
+			// cache the piece, unless we're using an explicit cache
+			if (!m_settings.explicit_read_cache)
 			{
-				int start_block = j.offset / m_block_size;
-				int end_block = (std::min)(int(p->blocks_in_piece)
-					, start_block + m_settings.read_cache_line_size);
-				// this will also add the job to the pending job list in this piece
-				// unless it fails and returns -1
-				int ret = m_disk_cache.allocate_pending(p, start_block, end_block, j);
-				fprintf(stderr, "%p do_read: allocate_pending ret=%d start_block=%d end_block=%d\n"
-					, this, ret, start_block, end_block);
-
-				if (ret > 0)
+				block_cache::iterator p = m_disk_cache.allocate_piece(j);
+				if (p != m_disk_cache.end())
 				{
-					// some blocks were allocated
-					io_range(p, start_block, end_block, op_read);
+					int start_block = j.offset / m_block_size;
+					int end_block = (std::min)(int(p->blocks_in_piece)
+							, start_block + m_settings.read_cache_line_size);
+					// this will also add the job to the pending job list in this piece
+					// unless it fails and returns -1
+					int ret = m_disk_cache.allocate_pending(p, start_block, end_block, j);
+					fprintf(stderr, "%p do_read: allocate_pending ret=%d start_block=%d end_block=%d\n"
+							, this, ret, start_block, end_block);
 
-					fprintf(stderr, "%p do_read: cache miss\n", this);
-#ifdef TORRENT_DISK_STATS
-					m_log << " read " << j.buffer_size << std::endl;
-#endif
-					return defer_handler;
-				}
-				else if (ret == -1)
-				{
-					// allocation failed
-#ifdef TORRENT_DISK_STATS
-					m_log << " read 0" << std::endl;
-#endif
-					j.buffer = 0;
-					j.error = error::no_memory;
-					j.str.clear();
-					return disk_operation_failed;
-				}
+					if (ret > 0)
+					{
+						// some blocks were allocated
+						io_range(p, start_block, end_block, op_read);
 
-				// we get here if allocate_pending failed with
-				// an error other than -1. This happens for instance
-				// if the cache is full. Then fall through and issue the
-				// read circumventing the cache
+						fprintf(stderr, "%p do_read: cache miss\n", this);
+#ifdef TORRENT_DISK_STATS
+						m_log << " read " << j.buffer_size << std::endl;
+#endif
+						return defer_handler;
+					}
+					else if (ret == -1)
+					{
+						// allocation failed
+#ifdef TORRENT_DISK_STATS
+						m_log << " read 0" << std::endl;
+#endif
+						j.buffer = 0;
+						j.error = error::no_memory;
+						j.str.clear();
+						return disk_operation_failed;
+					}
+
+					// we get here if allocate_pending failed with
+					// an error other than -1. This happens for instance
+					// if the cache is full. Then fall through and issue the
+					// read circumventing the cache
+				}
 			}
 		}
 
@@ -543,6 +553,13 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 		m_log << " read " << j.buffer_size << std::endl;
 #endif
+
+		j.buffer = allocate_buffer("send buffer");
+		if (j.buffer == 0)
+		{
+			j.error = error::no_memory;
+			return disk_operation_failed;
+		}
 
 		fprintf(stderr, "%p do_read: async\n", this);
 		++m_outstanding_jobs;
@@ -590,6 +607,7 @@ namespace libtorrent
 		}
 
 		file::iovec_t b = { j.buffer, j.buffer_size };
+		m_queue_buffer_size += j.buffer_size;
 		j.storage->write_async_impl(&b, j.piece, j.offset, 1
 			, boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, _2, j));
 		return defer_handler;
@@ -988,33 +1006,33 @@ namespace libtorrent
 			return disk_operation_failed;
 		}
 		TORRENT_ASSERT(ret == j.buffer_size);
+		j.flags |= disk_io_job::cache_hit;
 
-		if (!m_settings.disable_hash_checks)
-		{
-			// #error do this in a hasher thread!
-			hasher sha1;
-			int size = j.storage->info()->piece_size(p->piece);
-			for (int i = 0; i < p->blocks_in_piece; ++i)
-			{
-				TORRENT_ASSERT(size > 0);
-				sha1.update(p->blocks[i].buf, (std::min)(m_block_size, size));
-				size -= m_block_size;
-			}
-			sha1_hash h = sha1.final();
-			ret = (j.storage->info()->hash_for_piece(j.piece) == h)?ret:-3;
-
-			if (ret == -3)
-			{
-				j.storage->mark_failed(j.piece);
-				j.error = errors::failed_hash_check;
-				j.str.clear();
-				free_buffer(j.buffer);
-				j.buffer = 0;
-			}
-		}
 #if TORRENT_DISK_STATS
 		rename_buffer(j.buffer, "released send buffer");
 #endif
+		if (m_settings.disable_hash_checks) return ret;
+
+		// #error do this in a hasher thread!
+		hasher sha1;
+		int size = j.storage->info()->piece_size(p->piece);
+		for (int i = 0; i < p->blocks_in_piece; ++i)
+		{
+			TORRENT_ASSERT(size > 0);
+			sha1.update(p->blocks[i].buf, (std::min)(m_block_size, size));
+			size -= m_block_size;
+		}
+		sha1_hash h = sha1.final();
+		ret = (j.storage->info()->hash_for_piece(j.piece) == h)?ret:-3;
+
+		if (ret == -3)
+		{
+			j.storage->mark_failed(j.piece);
+			j.error = errors::failed_hash_check;
+			j.str.clear();
+			free_buffer(j.buffer);
+			j.buffer = 0;
+		}
 		return ret;
 	}
 
@@ -1063,6 +1081,9 @@ namespace libtorrent
 	{
 		int ret = j.buffer_size;
 		TORRENT_ASSERT(ec || bytes_transferred == j.buffer_size);
+
+		TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
+		m_queue_buffer_size -= j.buffer_size;
 
 		if (ec)
 		{

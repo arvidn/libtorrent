@@ -263,9 +263,11 @@ int block_cache::allocate_pending(block_cache::iterator p
 				--m_cache_size;
 				--bl.refcount;
 				--pe->refcount;
+				--pe->num_blocks;
 			}
 			return -1;
 		}
+		++pe->num_blocks;
 		// this signals the disk_io_thread that this buffer should
 		// be read in io_range()
 		pe->blocks[i].uninitialized = true;
@@ -398,6 +400,9 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			if (i->action == disk_io_job::read_and_hash
 				&& p->num_blocks != p->blocks_in_piece)
 			{
+				fprintf(stderr, "%p block_cache mark_done leaving job (read_and_hash) "
+					"piece: %d num_blocks: %d blocks_in_piece: %d\n"
+					, &m_buffer_pool, pe->piece, p->num_blocks, p->blocks_in_piece);
 				// this job is waiting for some all blocks to be read
 				++i;
 				continue;
@@ -442,16 +447,13 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 					size -= block_size;
 				}
 				sha1_hash h = sha1.final();
-				ret = (i->storage->info()->hash_for_piece(i->piece) == h)?0:-2;
-				if (ret == -2) i->storage->mark_failed(i->piece);
+				ret = (i->storage->info()->hash_for_piece(i->piece) == h)?ret:-3;
+				if (ret == -3) i->storage->mark_failed(i->piece);
 			}
 			else if (ret >= 0
-				&& i->action == disk_io_job::hash)
+				&& i->action == disk_io_job::hash
+				&& !i->storage->get_storage_impl()->settings().disable_hash_checks)
 			{
-				// #error
-//				if (m_settings.disable_hash_checks)
-//					return 0;
-
 				// #error replace this with an asynchronous call which uses a worker thread
 				// to do the hashing. This would make better use of parallel systems
 				sha1_hash h = i->storage->hash_for_piece_impl(i->piece, i->error);
@@ -460,9 +462,11 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 					i->storage->mark_failed(i->piece);
 					ret = -1;
 				}
-
-				ret = (i->storage->info()->hash_for_piece(i->piece) == h)?0:-2;
-				if (ret == -2) i->storage->mark_failed(i->piece);
+				else
+				{
+					ret = (i->storage->info()->hash_for_piece(i->piece) == h)?0:-2;
+					if (ret == -2) i->storage->mark_failed(i->piece);
+				}
 			}
 		}
 		else

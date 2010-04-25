@@ -1865,9 +1865,13 @@ namespace aux {
 		if (m_settings.max_queued_disk_bytes < outstanding_writes) return;
 
 		// we still have head-room in the disk queue, all peers should be readable
-		if (m_settings.max_queued_disk_bytes > m_writing_bytes) return;
+		bool was_blocked = m_settings.max_queued_disk_bytes <= m_writing_bytes;
 
 		m_writing_bytes = outstanding_writes;
+
+		// if we weren't blocked before, or if we're blocked now, no need to
+		// tell all peers to start to read again
+		if (!was_blocked || m_settings.max_queued_disk_bytes <= m_writing_bytes) return;
 
 		// in this case, m_writing_bytes > max_queued and outstanding_writes
 		// is less than max_queued. We just went from being congested to not be.

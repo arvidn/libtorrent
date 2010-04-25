@@ -384,13 +384,13 @@ namespace libtorrent
 
 			void set_external_address(address const& ip);
 			address const& external_address() const { return m_external_address; }
-
+/*
 			void add_pending_write_bytes(int num)
 			{
 				TORRENT_ASSERT(num >= 0);
 				m_writing_bytes += num;
 			}
-
+*/
 			int pending_write_bytes() const { return m_writing_bytes; }
 
 //		private:
