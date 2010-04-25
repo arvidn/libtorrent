@@ -241,6 +241,10 @@ void run_elevator_test()
 		// the elevator order
 		session_settings set;
 		set.use_read_cache = false;
+		// if we don't limit this to 1, the order the
+		// jobs will complete is undefined since they are
+		// all issued asynchronously
+		set.max_async_disk_jobs = 1;
 		disk_io_job j;
 		j.buffer = (char*)&set;
 		j.action = disk_io_job::update_settings;
@@ -939,8 +943,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 int test_main()
 {
 
-// #error temp
-//	run_elevator_test();
+	run_elevator_test();
 
 	// initialize test pieces
 	for (char* p = piece0, *end(piece0 + piece_size); p < end; ++p)
