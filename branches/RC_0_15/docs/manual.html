@@ -1141,6 +1141,7 @@ socket listening on different ports. If the DHT is active when <tt class="docuti
 called, the udp port will be rebound to the new port, if it was configured to use
 the same port as the tcp socket, and if the listen_on call failed to bind to the
 same port that the udp uses.</p>
+<p>If you want the OS to pick a port for you, pass in 0 as both first and second.</p>
 <p>The reason why it's a good idea to run the DHT and the bittorrent socket on the same
 port is because that is an assumption that may be used to increase performance. One
 way to accelerate the connecting of peers on windows may be to first ping all peers
@@ -3738,6 +3739,7 @@ struct session_settings
 
         bool report_true_downloaded;
         bool strict_end_game_mode;
+        bool broadcast_lsd;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">user_agent</span></tt> this is the client identification to the tracker.
@@ -4145,6 +4147,10 @@ sometimes, but it may also avoid downloading a lot of redundant bytes.
 If this is <tt class="docutils literal"><span class="pre">false</span></tt>, libtorrent attempts to use each peer connection
 to its max, by always requesting something, even if it means requesting
 something that has been requested from another peer already.</p>
+<p>if <tt class="docutils literal"><span class="pre">broadcast_lsd</span></tt> is set to true, the local peer discovery
+(or Local Service Discovery) will not only use IP multicast, but also
+broadcast its messages. This can be useful when running on networks
+that don't support multicast. It's off by default since it's inefficient.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">
