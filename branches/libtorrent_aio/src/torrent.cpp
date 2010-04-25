@@ -615,7 +615,12 @@ namespace libtorrent
 		if (alerts().should_post<file_error_alert>())
 			alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.error));
 
-		if (j.action == disk_io_job::write)
+		// #error adding hash here is a bit of a hack. Since there's no way
+		// of telling if it was a write or read operation that actually failed
+		// when the hash-job fails. In order to preventing pausing the torrent
+		// when it was a write operation, assume it's a write
+		if (j.action == disk_io_job::write
+			|| j.action == disk_io_job::hash)
 		{
 			// if we failed to write, stop downloading and just
 			// keep seeding.
