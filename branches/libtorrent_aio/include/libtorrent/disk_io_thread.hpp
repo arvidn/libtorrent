@@ -177,6 +177,8 @@ namespace libtorrent
 		
 	private:
 
+		void maybe_issue_deferred_job();
+		bool maybe_defer(disk_io_job const& j);
 		void perform_async_job(disk_io_job j);
 
 		void uncork_jobs();
@@ -240,10 +242,32 @@ namespace libtorrent
 		// issued to the AIO subsystem
 		int m_outstanding_jobs;
 
+		// once we have reached our max number of outstanding jobs,
+		// they start getting queued up in this list, sorted by their
+		// physical offset on disk
 		typedef std::multimap<size_type, disk_io_job> deferred_jobs_t;
 		deferred_jobs_t m_deferred_jobs;
+
+		// the iterator of the current position in the deferred jobs
+		// list.
 		deferred_jobs_t::iterator m_elevator_job_pos;
+
+		// this is set to true when the job pos iterator is
+		// invalid. This happens every time the deferred jobs
+		// list gets emptied
+		bool m_invalid_elevator_pos;
+
+		// the direction of the elevator. -1 means down and
+		// 1 means up
 		int m_elevator_direction;
+
+		// the physical offset of the last job consumed out
+		// of the deferred jobs list
+		size_type m_last_phys_off;
+
+		// the number of elevator turns (only counts while
+		// the disk I/O thread is loaded enough to start
+		// sorting jobs)
 		size_type m_elevator_turns;
 
 		// the amount of physical ram in the machine

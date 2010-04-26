@@ -75,7 +75,10 @@ namespace libtorrent
 		, m_write_blocks(0)
 		, m_read_blocks(0)
 		, m_outstanding_jobs(0)
+		, m_elevator_job_pos(m_deferred_jobs.begin())
+		, m_invalid_elevator_pos(false)
 		, m_elevator_direction(1)
+		, m_last_phys_off(0)
 		, m_physical_ram(0)
 		, m_ios(ios)
 		, m_work(io_service::work(m_ios))
@@ -252,6 +255,7 @@ namespace libtorrent
 				{
 					fprintf(stderr, "%p io_range: piece=%d start_block=%d end_block=%d\n"
 						, this, p->piece, range_start, i);
+					++m_outstanding_jobs;
 					p->storage->read_async_impl(iov, p->piece, range_start * m_block_size, iov_counter
 						, boost::bind(&disk_io_thread::on_disk_read, this, p
 							, range_start, i, _1));
@@ -298,6 +302,10 @@ namespace libtorrent
 	{
 		fprintf(stderr, "%p on_disk_read piece: %d start: %d end: %d\n", this, p->piece, begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, ec);
+
+		TORRENT_ASSERT(m_outstanding_jobs > 0);
+		--m_outstanding_jobs;
+		maybe_issue_deferred_job();
 	}
 
 	// returns the number of outstanding jobs on the pieces. If this is 0
@@ -452,6 +460,27 @@ namespace libtorrent
 		}
 	}
 
+	bool disk_io_thread::maybe_defer(disk_io_job const& j)
+	{
+		if (m_outstanding_jobs < m_settings.max_async_disk_jobs) return false;
+
+		fprintf(stderr, "%p too many async jobs, queueing\n", this);
+		// postpone this job. Insert it sorted based on
+		// physical offset of the read location
+		if (m_deferred_jobs.empty()) m_invalid_elevator_pos = true;
+		if (m_settings.allow_reordered_disk_operations)
+		{
+			size_type phys_off = j.storage->physical_offset(j.piece, j.offset);
+			m_deferred_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
+		}
+		else
+		{
+			m_deferred_jobs.insert(m_deferred_jobs.end()
+					, std::pair<size_type, disk_io_job>(++m_last_phys_off, j));
+		}
+		return true;
+	}
+
 	int disk_io_thread::do_read(disk_io_job& j)
 	{
 #ifdef TORRENT_DISK_STATS
@@ -480,17 +509,7 @@ namespace libtorrent
 				return disk_operation_failed;
 			}
 
-			// #error factor this out
-			if (m_outstanding_jobs >= m_settings.max_async_disk_jobs)
-			{
-				// postpone this job. Insert it sorted based on
-				// physical offset of the read location
-				size_type phys_off = j.storage->physical_offset(j.piece, j.offset);
-				bool update_elevator = m_deferred_jobs.empty();
-				m_deferred_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
-				if (update_elevator) m_elevator_job_pos = m_deferred_jobs.begin();
-				return defer_handler;
-			}
+			if (maybe_defer(j)) return defer_handler;
 
 			// cache the piece, unless we're using an explicit cache
 			if (!m_settings.explicit_read_cache)
@@ -538,17 +557,7 @@ namespace libtorrent
 			}
 		}
 
-		// #error factor this out
-		if (m_outstanding_jobs >= m_settings.max_async_disk_jobs)
-		{
-			// postpone this job. Insert it sorted based on
-			// physical offset of the read location
-			size_type phys_off = j.storage->physical_offset(j.piece, j.offset);
-			bool update_elevator = m_deferred_jobs.empty();
-			m_deferred_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
-			if (update_elevator) m_elevator_job_pos = m_deferred_jobs.begin();
-			return defer_handler;
-		}
+		if (maybe_defer(j)) return defer_handler;
 
 #ifdef TORRENT_DISK_STATS
 		m_log << " read " << j.buffer_size << std::endl;
@@ -571,17 +580,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_write(disk_io_job& j)
 	{
-		// #error factor this out
-		if (m_outstanding_jobs >= m_settings.max_async_disk_jobs)
-		{
-			// postpone this job. Insert it sorted based on
-			// physical offset of the write location
-			size_type phys_off = j.storage->physical_offset(j.piece, j.offset);
-			bool update_elevator = m_deferred_jobs.empty();
-			m_deferred_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
-			if (update_elevator) m_elevator_job_pos = m_deferred_jobs.begin();
-			return defer_handler;
-		}
+		if (maybe_defer(j)) return defer_handler;
 
 #ifdef TORRENT_DISK_STATS
 		m_log << log_time() << " write " << j.buffer_size << std::endl;
@@ -940,17 +939,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_read_and_hash(disk_io_job& j)
 	{
-		// #error factor this out
-		if (m_outstanding_jobs >= m_settings.max_async_disk_jobs)
-		{
-			// postpone this job. Insert it sorted based on
-			// physical offset of the read location
-			size_type phys_off = j.storage->physical_offset(j.piece, j.offset);
-			bool update_elevator = m_deferred_jobs.empty();
-			m_deferred_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
-			if (update_elevator) m_elevator_job_pos = m_deferred_jobs.begin();
-			return defer_handler;
-		}
+		if (maybe_defer(j)) return defer_handler;
 
 #ifdef TORRENT_DISK_STATS
 		m_log << log_time() << " read_and_hash " << j.buffer_size << std::endl;
@@ -1103,6 +1092,7 @@ namespace libtorrent
 	void disk_io_thread::on_read_one_buffer(error_code const& ec, size_t bytes_transferred
 		, disk_io_job j)
 	{
+		TORRENT_ASSERT(m_outstanding_jobs > 0);
 		--m_outstanding_jobs;
 		fprintf(stderr, "%p on_read_one_buffer %s\n", this, ec.message().c_str());
 		int ret = j.buffer_size;
@@ -1122,37 +1112,51 @@ namespace libtorrent
 		if (j.callback)
 			m_ios.post(boost::bind(j.callback, ret, j));
 
-		if (m_outstanding_jobs < m_settings.max_async_disk_jobs
-			&& !m_deferred_jobs.empty())
+		maybe_issue_deferred_job();
+	}
+
+	void disk_io_thread::maybe_issue_deferred_job()
+	{
+		if (m_outstanding_jobs >= m_settings.max_async_disk_jobs
+			|| m_deferred_jobs.empty()) return;
+
+		if (m_invalid_elevator_pos)
 		{
-			if (m_elevator_job_pos == m_deferred_jobs.end() && m_elevator_direction == 1)
-			{
-				m_elevator_direction = -1;
-				++m_elevator_turns;
-				--m_elevator_job_pos;
-			}
-			// issue a new job
-			disk_io_job j = m_elevator_job_pos->second;
-			deferred_jobs_t::iterator to_erase = m_elevator_job_pos;
-
-			// if we've reached the begining of the sorted list,
-			// change the elvator direction
-			if (m_elevator_job_pos == m_deferred_jobs.begin() && m_elevator_direction == -1)
-			{
-				m_elevator_direction = 1;
-				++m_elevator_turns;
-			}
-
-			// move the elevator before erasing the job we're processing
-			// to keep the iterator valid
-			if (m_elevator_direction > 0) ++m_elevator_job_pos;
-			else --m_elevator_job_pos;
-
-			TORRENT_ASSERT(to_erase != m_elevator_job_pos);
-			m_deferred_jobs.erase(to_erase);
-			
-			perform_async_job(j);
+			if (m_settings.allow_reordered_disk_operations)
+				m_elevator_job_pos = m_deferred_jobs.lower_bound(m_last_phys_off);
+			else
+				m_elevator_job_pos = m_deferred_jobs.begin();
+			m_invalid_elevator_pos = false;
 		}
+
+		if (m_elevator_job_pos == m_deferred_jobs.end() && m_elevator_direction == 1)
+		{
+			m_elevator_direction = -1;
+			++m_elevator_turns;
+			--m_elevator_job_pos;
+		}
+		// issue a new job
+		disk_io_job j = m_elevator_job_pos->second;
+		m_last_phys_off = m_elevator_job_pos->first;
+		deferred_jobs_t::iterator to_erase = m_elevator_job_pos;
+
+		// if we've reached the begining of the sorted list,
+		// change the elvator direction
+		if (m_elevator_job_pos == m_deferred_jobs.begin() && m_elevator_direction == -1)
+		{
+			m_elevator_direction = 1;
+			++m_elevator_turns;
+		}
+
+		// move the elevator before erasing the job we're processing
+		// to keep the iterator valid
+		if (m_elevator_direction > 0) ++m_elevator_job_pos;
+		else --m_elevator_job_pos;
+
+		TORRENT_ASSERT(to_erase != m_elevator_job_pos);
+		m_deferred_jobs.erase(to_erase);
+		
+		perform_async_job(j);
 	}
 
 	void disk_io_thread::get_cache_info_impl(void* st
