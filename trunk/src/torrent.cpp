@@ -5477,14 +5477,14 @@ namespace libtorrent
 			if (i->is_working()) { tier = i->tier; found_working = false; }
 			if (i->fails >= i->fail_limit && i->fail_limit != 0) continue;
 			if (i->updating) { found_working = true; continue; }
-			if (i->is_working())
-			{
-				ptime next_tracker_announce = (std::max)(i->next_announce, i->min_announce);
-				if (!i->updating && next_tracker_announce < next_announce) next_announce = next_tracker_announce;
-				found_working = true;
-				if (!settings().announce_to_all_trackers
-					&& !settings().announce_to_all_tiers) break;
-			}
+			ptime next_tracker_announce = (std::max)(i->next_announce, i->min_announce);
+			if (!i->updating
+				&& next_tracker_announce < next_announce
+				&& (!found_working || i->is_working()))
+				next_announce = next_tracker_announce;
+			if (i->is_working()) found_working = true;
+			if (!settings().announce_to_all_trackers
+				&& !settings().announce_to_all_tiers) break;
 		}
 		if (next_announce == max_time()) return;
 
