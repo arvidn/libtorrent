@@ -1,3 +1,4 @@
+	* fixed bug where trackers wouldn't be retried if they failed
 	* slight performance fix in disk elevator algorithm
 	* fixed potential issue where a piece could be checked twice
 	* fixed build issue on windows related to GetCompressedSize()

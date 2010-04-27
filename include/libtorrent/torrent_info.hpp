@@ -153,6 +153,13 @@ namespace libtorrent
 			updating = false;
 		}
 
+		bool will_announce(ptime now) const
+		{
+			return now <= next_announce
+				&& (fails < fail_limit || fail_limit == 0)
+				&& !updating;
+		}
+
 		bool can_announce(ptime now) const
 		{
 			return now >= next_announce
