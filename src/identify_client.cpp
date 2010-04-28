@@ -150,6 +150,7 @@ namespace
 		{"A",  "ABC"}
 		, {"AG",  "Ares"}
 		, {"AR", "Arctic Torrent"}
+		, {"AT", "Artemis"}
 		, {"AV", "Avicora"}
 		, {"AX", "BitPump"}
 		, {"AZ", "Azureus"}
@@ -158,33 +159,49 @@ namespace
 		, {"BC", "BitComet"}
 		, {"BF", "Bitflu"}
 		, {"BG", "BTG"}
+		, {"BL", "BitBlinder"}
+		, {"BP", "BitTorrent Pro"}
 		, {"BR", "BitRocket"}
 		, {"BS", "BTSlave"}
+		, {"BW", "BitWombat"}
 		, {"BX", "BittorrentX"}
 		, {"CD", "Enhanced CTorrent"}
 		, {"CT", "CTorrent"}
 		, {"DE", "Deluge"}
+		, {"DP", "Propagate Data Client"}
 		, {"EB", "EBit"}
 		, {"ES", "electric sheep"}
+		, {"FC", "FileCroc"}
+		, {"FT", "FoxTorrent"}
+		, {"GS", "GSTorrent"}
+		, {"HK", "Hekate"}
 		, {"HL", "Halite"}
 		, {"HN", "Hydranode"}
+		, {"KG", "KGet"}
 		, {"KT", "KTorrent"}
 		, {"LC", "LeechCraft"}
+		, {"LH", "LH-ABC"}
 		, {"LK", "Linkage"}
 		, {"LP", "lphant"}
 		, {"LT", "libtorrent"}
+		, {"LW", "Limewire"}
 		, {"M",  "Mainline"}
 		, {"ML", "MLDonkey"}
 		, {"MO", "Mono Torrent"}
 		, {"MP", "MooPolice"}
 		, {"MR", "Miro"}
 		, {"MT", "Moonlight Torrent"}
+		, {"NX", "Net Transport"}
 		, {"O",  "Osprey Permaseed"}
+		, {"OS",  "OneSwarm"}
+		, {"OT",  "OmegaTorrent"}
 		, {"PD",  "Pando"}
 		, {"Q", "BTQueue"}
 		, {"QD", "QQDownload"}
 		, {"QT", "Qt 4"}
 		, {"R",  "Tribler"}
+		, {"RT",  "Retriever"}
+		, {"RZ",  "RezTorrent"}
 		, {"S",  "Shadow"}
 		, {"SB", "Swiftbit"}
 		, {"SD", "Xunlei"}
@@ -200,9 +217,13 @@ namespace
 		, {"TT", "TuoTu"}
 		, {"U",  "UPnP"}
 		, {"UL", "uLeecher"}
+		, {"UM", "uTorrent Mac"}
 		, {"UT", "uTorrent"}
 		, {"VG", "Vagaa"}
+		, {"WT", "BitLet"}
+		, {"WY", "FireTorrent"}
 		, {"XL", "Xunlei"}
+		, {"XS", "XSwifter"}
 		, {"XT", "XanTorrent"}
 		, {"XX", "Xtorrent"}
 		, {"ZT", "ZipTorrent"}
