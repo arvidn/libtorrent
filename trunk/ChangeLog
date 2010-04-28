@@ -28,6 +28,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* recognizes more clients in identify_client()
 	* fixed bug where trackers wouldn't be retried if they failed
 	* slight performance fix in disk elevator algorithm
 	* fixed potential issue where a piece could be checked twice
