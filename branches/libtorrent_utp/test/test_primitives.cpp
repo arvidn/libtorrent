@@ -443,7 +443,7 @@ int test_main()
 
 	TEST_CHECK(errors::reserved129 == 129);
 	TEST_CHECK(errors::reserved159 == 159);
-	TEST_CHECK(errors::reserved108 == 108);
+	TEST_CHECK(errors::reserved109 == 109);
 
 	{
 	// test session state load/restore

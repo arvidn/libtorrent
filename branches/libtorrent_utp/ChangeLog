@@ -1,3 +1,4 @@
+	* resistance towards certain flood attacks
 	* support more fine-grained torrent states between which peer sources it
 	  announces to
 	* supports calculating sha1 file-hashes when creating torrents

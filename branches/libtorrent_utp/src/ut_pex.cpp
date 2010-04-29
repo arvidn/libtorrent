@@ -220,6 +220,7 @@ namespace libtorrent { namespace
 			, m_1_minute(55)
 			, m_message_index(0)
 			, m_first_time(true)
+			, m_last_pex(min_time())
 		{}
 
 		virtual void add_handshake(entry& h)
@@ -251,8 +252,19 @@ namespace libtorrent { namespace
 				m_pc.disconnect(errors::pex_message_too_large, 2);
 				return true;
 			}
+ 
+			ptime now = time_now();
+			if (m_last_pex - now < seconds(10))
+			{
+				// this client appears to be trying to flood us
+				// with pex messages. Don't allow that.
+				m_pc.disconnect(errors::too_frequent_pex);
+				return true;
+			}
 
 			if (body.left() < length) return true;
+
+			m_last_pex = now;
 
 			lazy_entry pex_msg;
 			int ret = lazy_bdecode(body.begin, body.end, pex_msg);
@@ -262,7 +274,23 @@ namespace libtorrent { namespace
 				return true;
 			}
 
-			lazy_entry const* p = pex_msg.dict_find("added");
+			lazy_entry const* p = pex_msg.dict_find("dropped");
+
+			if (p != 0 && p->type() == lazy_entry::string_t)
+			{
+				int num_peers = p->string_length() / 6;
+				char const* in = p->string_ptr();
+
+				for (int i = 0; i < num_peers; ++i)
+				{
+					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
+					peers4_t::value_type v(adr.address().to_v4().to_bytes(), adr.port());
+					peers4_t::iterator i = std::lower_bound(m_peers.begin(), m_peers.end(), v);
+					if (*i == v) m_peers.erase(i);
+				} 
+			}
+
+			p = pex_msg.dict_find("added");
 			lazy_entry const* pf = pex_msg.dict_find("added.f");
 
 			if (p != 0
@@ -281,14 +309,39 @@ namespace libtorrent { namespace
 				{
 					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
 					char flags = *fin++;
+
+					if (m_peers.size() >= m_torrent.settings().max_pex_peers) break;
+
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
+
+					peers4_t::value_type v(adr.address().to_v4().to_bytes(), adr.port());
+					peers4_t::iterator i = std::lower_bound(m_peers.begin(), m_peers.end(), v);
+					// do we already know about this peer?
+					if (*i == v) continue;
+					m_peers.insert(i, v);
 					p.add_peer(adr, pid, peer_info::pex, flags);
 				} 
 			}
 
 #if TORRENT_USE_IPV6
-			lazy_entry const* p6 = pex_msg.dict_find("added6");
+
+			lazy_entry const* p6 = pex_msg.dict_find("dropped6");
+			if (p6 != 0 && p6->type() == lazy_entry::string_t)
+			{
+				int num_peers = p6->string_length() / 18;
+				char const* in = p6->string_ptr();
+
+				for (int i = 0; i < num_peers; ++i)
+				{
+					tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
+					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
+					peers6_t::iterator i = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
+					if (*i == v) m_peers6.erase(i);
+				} 
+			}
+
+			p6 = pex_msg.dict_find("added6");
 			lazy_entry const* p6f = pex_msg.dict_find("added6.f");
 			if (p6 != 0
 				&& p6f != 0
@@ -308,6 +361,13 @@ namespace libtorrent { namespace
 					char flags = *fin++;
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
+					if (m_peers6.size() >= m_torrent.settings().max_pex_peers) break;
+
+					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
+					peers6_t::iterator i = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
+					// do we already know about this peer?
+					if (*i == v) continue;
+					m_peers6.insert(i, v);
 					p.add_peer(adr, pid, peer_info::pex, flags);
 				} 
 			}
@@ -430,6 +490,21 @@ namespace libtorrent { namespace
 		torrent& m_torrent;
 		peer_connection& m_pc;
 		ut_pex_plugin& m_tp;
+		// stores all peers this this peer is connected to. These lists
+		// are updated with each pex message and are limited in size
+		// to protect against malicious clients. These lists are also
+		// used for looking up which peer a peer that supports holepunch
+		// came from.
+		// these are vectors to save memory and keep the items close
+		// together for performance. Inserting and removing is relatively
+		// cheap since the lists' size is limited
+		typedef std::vector<std::pair<address_v4::bytes_type, boost::uint16_t> > peers4_t;
+		typedef std::vector<std::pair<address_v6::bytes_type, boost::uint16_t> > peers6_t;
+		peers4_t m_peers;
+		peers6_t m_peers6;
+		// the last pex message we received
+		ptime m_last_pex;
+
 		int m_1_minute;
 		int m_message_index;
 

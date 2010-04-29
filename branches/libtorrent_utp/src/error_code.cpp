@@ -156,7 +156,7 @@ namespace libtorrent
 			"pex message too large",
 			"invalid pex message",
 			"invalid lt_tracker message",
-			"",
+			"pex messages sent too frequent (possible attack)",
 			"",
 			"",
 			"",

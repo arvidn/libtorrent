@@ -6472,6 +6472,9 @@ code   symbol                                    description
 106    invalid_pex_message                       The peer sent an invalid peer exchange message
 ------ ----------------------------------------- -----------------------------------------------------------------
 107    invalid_lt_tracker_message                The peer sent an invalid tracker exchange message
+------ ----------------------------------------- -----------------------------------------------------------------
+108    too_frequent_pex                          The peer sent an pex messages too often. This is a possible
+                                                 attempt of and attack
 ====== ========================================= =================================================================
 
 NAT-PMP errors:
