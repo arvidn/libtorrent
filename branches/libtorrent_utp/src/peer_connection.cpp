@@ -4828,12 +4828,25 @@ namespace libtorrent
 			(*m_ses.m_logger) << time_now_string() << " CONNECTION FAILED: " << m_remote.address().to_string(ec)
 				<< ": " << e.message() << "\n";
 #endif
+
+			// a connection attempt using uTP just failed
+			// mark this peer as not supporting uTP
+			// we'll never try it again
+			if (m_socket->get<utp_stream>() && m_peer_info && m_peer_info->supports_utp)
+			{
+				m_peer_info->supports_utp = false;
+				fast_reconnect(true);
+			}
+
 			disconnect(e, 1);
 			return;
 		}
 
 		if (m_disconnecting) return;
 		m_last_receive = time_now();
+
+		if (m_socket->get<utp_stream>() && m_peer_info)
+			m_peer_info->confirmed_supports_utp = true;
 
 		// this means the connection just succeeded
 

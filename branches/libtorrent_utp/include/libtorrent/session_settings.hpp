@@ -211,6 +211,7 @@ namespace libtorrent
 			, default_peer_upload_rate(0)
 			, default_peer_download_rate(0)
 			, broadcast_lsd(false)
+			, enable_outgoing_utp(true)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -810,6 +811,9 @@ namespace libtorrent
 		// default in order to avoid flooding networks for no good reason. If
 		// a network is known not to support multicast, this can be enabled
 		bool broadcast_lsd;
+
+		// when set to true, libtorrent will try to make outgoing utp connections
+		bool enable_outgoing_utp;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

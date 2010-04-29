@@ -164,7 +164,8 @@ namespace libtorrent
 // 43     1     1         failcount, connectable, optimistically_unchoked, seed
 // 44     1     1         fast_reconnects, trust_points
 // 45     1     1         source, pe_support, is_v6_addr
-// 46     1     1         on_parole, banned, added_to_dht
+// 46     1     1         on_parole, banned, added_to_dht, supports_utp,
+//                        supports_holepunch
 // 47     1     1         <padding>
 // 48
 		struct TORRENT_EXPORT peer
@@ -311,6 +312,11 @@ namespace libtorrent
 			// pinged by the DHT
 			bool added_to_dht:1;
 #endif
+			// we think this peer supports uTP
+			bool supports_utp:1;
+			// we have been connected via uTP at least once
+			bool confirmed_supports_utp:1;
+			bool supports_holepunch:1;
 		};
 
 		struct TORRENT_EXPORT ipv4_peer : peer

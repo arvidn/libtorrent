@@ -976,6 +976,10 @@ namespace libtorrent
 			p->seed = true;
 			++m_num_seeds;
 		}
+		if (flags & 0x04)
+			p->supports_utp = true;
+		if (flags & 0x08)
+			p->supports_holepunch = true;
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		int as = m_torrent->session().as_for_ip(p->address());
@@ -1016,6 +1020,10 @@ namespace libtorrent
 			if (!p->seed) ++m_num_seeds;
 			p->seed = true;
 		}
+		if (flags & 0x04)
+			p->supports_utp = true;
+		if (flags & 0x08)
+			p->supports_holepunch = true;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (p->connection)
@@ -1484,6 +1492,9 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 		, added_to_dht(false)
 #endif
+		, supports_utp(true) // assume peers support utp
+		, confirmed_supports_utp(false)
+		, supports_holepunch(false)
 	{
 		TORRENT_ASSERT((src & 0xff) == src);
 	}

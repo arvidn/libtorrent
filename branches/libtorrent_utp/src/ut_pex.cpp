@@ -145,10 +145,22 @@ namespace libtorrent { namespace
 					// no supported flags to set yet
 					// 0x01 - peer supports encryption
 					// 0x02 - peer is a seed
+					// 0x04 - supports uTP. This is only a positive flags
+					//        passing 0 doesn't mean the peer doesn't
+					//        support uTP
+					// 0x08 - supports holepunching protocol. If this
+					//        flag is received from a peer, it can be
+					//        used as a rendezvous point in case direct
+					//        connections to the peer fail
 					int flags = p->is_seed() ? 2 : 0;
 #ifndef TORRENT_DISABLE_ENCRYPTION
 					flags |= p->supports_encryption() ? 1 : 0;
 #endif
+					flags |= p->get_socket()->get<utp_stream>() ? 4 :  0;
+
+					// #error find out if ut_holepunch is supported by this peer
+					// and in case it is, set bit 0x08
+
 					// i->first was added since the last time
 					if (remote.address().is_v4())
 					{
