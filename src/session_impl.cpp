@@ -149,7 +149,6 @@ namespace
 
 using boost::shared_ptr;
 using boost::weak_ptr;
-using boost::bind;
 using libtorrent::aux::session_impl;
 
 #ifdef BOOST_NO_EXCEPTIONS
@@ -508,7 +507,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
-		, m_dht_socket(m_io_service, bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
+		, m_dht_socket(m_io_service, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, m_half_open)
 		, m_dht_announce_timer(m_io_service)
 #endif
@@ -724,20 +723,20 @@ namespace aux {
 		url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
 
 		m_timer.expires_from_now(milliseconds(100), ec);
-		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
+		m_timer.async_wait(boost::bind(&session_impl::on_tick, this, _1));
 
 		int delay = (std::max)(m_settings.local_service_announce_interval
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
 		m_lsd_announce_timer.async_wait(
-			bind(&session_impl::on_lsd_announce, this, _1));
+			boost::bind(&session_impl::on_lsd_announce, this, _1));
 
 #ifndef TORRENT_DISABLE_DHT
 		delay = (std::max)(m_settings.dht_announce_interval
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
 		m_dht_announce_timer.async_wait(
-			bind(&session_impl::on_dht_announce, this, _1));
+			boost::bind(&session_impl::on_dht_announce, this, _1));
 #endif
 
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
@@ -1210,7 +1209,7 @@ namespace aux {
 				/ (std::max)(int(m_torrents.size()), 1), 1);
 			m_dht_announce_timer.expires_from_now(seconds(delay), ec);
 			m_dht_announce_timer.async_wait(
-				bind(&session_impl::on_dht_announce, this, _1));
+				boost::bind(&session_impl::on_dht_announce, this, _1));
 		}
 #endif
 
@@ -1221,7 +1220,7 @@ namespace aux {
 				/ (std::max)(int(m_torrents.size()), 1), 1);
 			m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
 			m_lsd_announce_timer.async_wait(
-				bind(&session_impl::on_lsd_announce, this, _1));
+				boost::bind(&session_impl::on_lsd_announce, this, _1));
 		}
 
 		// if queuing settings were changed, recalculate

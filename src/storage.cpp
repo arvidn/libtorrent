@@ -99,8 +99,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/escape_string.hpp"
 
-using boost::bind;
-
 #if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG && TORRENT_USE_IOSTREAM
 namespace
 {

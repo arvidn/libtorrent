@@ -75,7 +75,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::shared_ptr;
 using boost::weak_ptr;
-using boost::bind;
 using libtorrent::aux::session_impl;
 
 #ifdef TORRENT_MEMDEBUG
@@ -911,9 +910,9 @@ namespace libtorrent
 		l.unlock();
 		natpmp* n = new (std::nothrow) natpmp(m_impl->m_io_service
 			, m_impl->m_listen_interface.address()
-			, bind(&session_impl::on_port_mapping
+			, boost::bind(&session_impl::on_port_mapping
 				, m_impl.get(), _1, _2, _3, 0)
-			, bind(&session_impl::on_port_map_log
+			, boost::bind(&session_impl::on_port_map_log
 				, m_impl.get(), _1, 0));
 		l.lock();
 
@@ -936,9 +935,9 @@ namespace libtorrent
 			, m_impl->m_half_open
 			, m_impl->m_listen_interface.address()
 			, m_impl->m_settings.user_agent
-			, bind(&session_impl::on_port_mapping
+			, boost::bind(&session_impl::on_port_mapping
 				, m_impl.get(), _1, _2, _3, 1)
-			, bind(&session_impl::on_port_map_log
+			, boost::bind(&session_impl::on_port_map_log
 				, m_impl.get(), _1, 1)
 			, m_impl->m_settings.upnp_ignore_nonrouters);
 		l.lock();

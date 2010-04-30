@@ -86,7 +86,6 @@ using namespace libtorrent;
 using boost::tuples::tuple;
 using boost::tuples::get;
 using boost::tuples::make_tuple;
-using boost::bind;
 using libtorrent::aux::session_impl;
 
 namespace
@@ -523,7 +522,7 @@ namespace libtorrent
 		for (int i = 0; i < blocks_in_piece; ++i, r.start += block_size())
 		{
 			r.length = (std::min)(piece_size - r.start, block_size());
-			filesystem().async_read(r, bind(&torrent::on_disk_read_complete
+			filesystem().async_read(r, boost::bind(&torrent::on_disk_read_complete
 				, shared_from_this(), _1, _2, r, rp));
 			++rp->blocks_left;
 		}
@@ -699,13 +698,13 @@ namespace libtorrent
 			}
 			disk_buffer_holder holder(m_ses, buffer);
 			std::memcpy(buffer, data + p.start, p.length);
-			filesystem().async_write(p, holder, bind(&torrent::on_disk_write_complete
+			filesystem().async_write(p, holder, boost::bind(&torrent::on_disk_write_complete
 				, shared_from_this(), _1, _2, p));
 			piece_block block(piece, i);
 			picker().mark_as_downloading(block, 0, piece_picker::fast);
 			picker().mark_as_writing(block, 0);
 		}
-		async_verify_piece(piece, bind(&torrent::piece_finished
+		async_verify_piece(piece, boost::bind(&torrent::piece_finished
 			, shared_from_this(), piece, _1));
 		picker().dec_refcount(piece);
 	}
@@ -930,7 +929,7 @@ namespace libtorrent
 		}
 
 		m_storage->async_check_fastresume(&m_resume_entry
-			, bind(&torrent::on_resume_data_checked
+			, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1, _2));
 	}
 
@@ -1110,7 +1109,7 @@ namespace libtorrent
 								{
 									m_picker->mark_as_finished(piece_block(piece, bit), 0);
 									if (m_picker->is_piece_finished(piece))
-										async_verify_piece(piece, bind(&torrent::piece_finished
+										async_verify_piece(piece, boost::bind(&torrent::piece_finished
 											, shared_from_this(), piece, _1));
 								}
 							}
@@ -1184,7 +1183,7 @@ namespace libtorrent
 		std::vector<char>().swap(m_resume_data);
 		lazy_entry().swap(m_resume_entry);
 		m_storage->async_check_fastresume(&m_resume_entry
-			, bind(&torrent::on_force_recheck
+			, boost::bind(&torrent::on_force_recheck
 			, shared_from_this(), _1, _2));
 	}
 
@@ -1215,7 +1214,7 @@ namespace libtorrent
 		TORRENT_ASSERT(should_check_files());
 		set_state(torrent_status::checking_files);
 
-		m_storage->async_check_files(bind(
+		m_storage->async_check_files(boost::bind(
 			&torrent::on_piece_checked
 			, shared_from_this(), _1, _2));
 	}
@@ -1326,7 +1325,7 @@ namespace libtorrent
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_ses.m_dht->announce(m_torrent_file->info_hash()
 			, m_ses.listen_port()
-			, bind(&torrent::on_dht_announce_response_disp, self, _1));
+			, boost::bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 
 	void torrent::on_dht_announce_response_disp(boost::weak_ptr<libtorrent::torrent> t
@@ -1350,7 +1349,7 @@ namespace libtorrent
 		if (torrent_file().priv() || (torrent_file().is_i2p()
 			&& !settings().allow_i2p_mixed)) return;
 
-		std::for_each(peers.begin(), peers.end(), bind(
+		std::for_each(peers.begin(), peers.end(), boost::bind(
 			&policy::add_peer, boost::ref(m_policy), _1, peer_id(0)
 			, peer_info::dht, 0));
 	}
@@ -1651,7 +1650,7 @@ namespace libtorrent
 					// to do the name lookup
 					/*
 					m_ses.m_i2p_conn.async_name_lookup(i->ip.c_str()
-						, bind(&torrent::on_i2p_resolve
+						, boost::bind(&torrent::on_i2p_resolve
 						, shared_from_this(), _1, _2));
 					*/
 					// it seems like you're not supposed to do a name lookup
@@ -1665,7 +1664,7 @@ namespace libtorrent
 				{
 					tcp::resolver::query q(i->ip, to_string(i->port).elems);
 					m_ses.m_host_resolver.async_resolve(q,
-						bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid));
+						boost::bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid));
 				}
 			}
 			else
@@ -2921,7 +2920,7 @@ namespace libtorrent
 			// come here several times with the same start_piece, end_piece
 			std::for_each(pieces.begin() + start_piece
 				, pieces.begin() + last_piece + 1
-				, bind(&set_if_greater, _1, m_file_priority[i]));
+				, boost::bind(&set_if_greater, _1, m_file_priority[i]));
 		}
 		prioritize_pieces(pieces);
 	}

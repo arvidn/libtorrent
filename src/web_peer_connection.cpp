@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
-using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
 
