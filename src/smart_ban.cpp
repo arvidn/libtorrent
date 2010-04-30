@@ -141,7 +141,7 @@ namespace libtorrent { namespace
 			{
 				if (*i != 0)
 				{
-					m_torrent.filesystem().async_read(r, bind(&smart_ban_plugin::on_read_failed_block
+					m_torrent.filesystem().async_read(r, boost::bind(&smart_ban_plugin::on_read_failed_block
 						, shared_from_this(), pb, ((policy::peer*)*i)->address(), _1, _2));
 				}
 

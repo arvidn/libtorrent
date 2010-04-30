@@ -56,7 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #endif
 
-using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
 

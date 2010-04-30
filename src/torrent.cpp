@@ -88,7 +88,6 @@ using namespace libtorrent;
 using boost::tuples::tuple;
 using boost::tuples::get;
 using boost::tuples::make_tuple;
-using boost::bind;
 using libtorrent::aux::session_impl;
 
 namespace
@@ -598,13 +597,13 @@ namespace libtorrent
 			}
 			disk_buffer_holder holder(m_ses, buffer);
 			std::memcpy(buffer, data + p.start, p.length);
-			filesystem().async_write(p, holder, bind(&torrent::on_disk_write_complete
+			filesystem().async_write(p, holder, boost::bind(&torrent::on_disk_write_complete
 				, shared_from_this(), _1, _2, p));
 			piece_block block(piece, i);
 			picker().mark_as_downloading(block, 0, piece_picker::fast);
 			picker().mark_as_writing(block, 0);
 		}
-		async_verify_piece(piece, bind(&torrent::piece_finished
+		async_verify_piece(piece, boost::bind(&torrent::piece_finished
 			, shared_from_this(), piece, _1));
 		picker().dec_refcount(piece);
 	}
@@ -818,7 +817,7 @@ namespace libtorrent
 		}
 
 		m_storage->async_check_fastresume(&m_resume_entry
-			, bind(&torrent::on_resume_data_checked
+			, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1, _2));
 	}
 
@@ -998,7 +997,7 @@ namespace libtorrent
 								{
 									m_picker->mark_as_finished(piece_block(piece, bit), 0);
 									if (m_picker->is_piece_finished(piece))
-										async_verify_piece(piece, bind(&torrent::piece_finished
+										async_verify_piece(piece, boost::bind(&torrent::piece_finished
 											, shared_from_this(), piece, _1));
 								}
 							}
@@ -1072,7 +1071,7 @@ namespace libtorrent
 		std::vector<char>().swap(m_resume_data);
 		lazy_entry().swap(m_resume_entry);
 		m_storage->async_check_fastresume(&m_resume_entry
-			, bind(&torrent::on_force_recheck
+			, boost::bind(&torrent::on_force_recheck
 			, shared_from_this(), _1, _2));
 	}
 
@@ -1103,7 +1102,7 @@ namespace libtorrent
 		TORRENT_ASSERT(should_check_files());
 		set_state(torrent_status::checking_files);
 
-		m_storage->async_check_files(bind(
+		m_storage->async_check_files(boost::bind(
 			&torrent::on_piece_checked
 			, shared_from_this(), _1, _2));
 	}
@@ -1222,7 +1221,7 @@ namespace libtorrent
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_ses.m_dht->announce(m_torrent_file->info_hash()
 			, m_ses.listen_port()
-			, bind(&torrent::on_dht_announce_response_disp, self, _1));
+			, boost::bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 
 	void torrent::on_dht_announce_response_disp(boost::weak_ptr<libtorrent::torrent> t
@@ -2728,7 +2727,7 @@ namespace libtorrent
 			// come here several times with the same start_piece, end_piece
 			std::for_each(pieces.begin() + start_piece
 				, pieces.begin() + last_piece + 1
-				, bind(&set_if_greater, _1, m_file_priority[i]));
+				, boost::bind(&set_if_greater, _1, m_file_priority[i]));
 		}
 		prioritize_pieces(pieces);
 	}

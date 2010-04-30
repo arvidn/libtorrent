@@ -53,7 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/enum_net.hpp"
 
-using boost::bind;
 using namespace libtorrent;
 
 natpmp::natpmp(io_service& ios, address const& listen_interface
@@ -112,7 +111,7 @@ void natpmp::rebind(address const& listen_interface)
 	}
 
 	m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
-		, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
+		, m_remote, boost::bind(&natpmp::on_reply, self(), _1, _2));
 
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
@@ -333,7 +332,7 @@ void natpmp::send_map_request(int i, mutex_t::scoped_lock& l)
 		// linear back-off instead of exponential
 		++m_retry_count;
 		m_send_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
-		m_send_timer.async_wait(bind(&natpmp::resend_request, self(), i, _1));
+		m_send_timer.async_wait(boost::bind(&natpmp::resend_request, self(), i, _1));
 	}
 }
 
@@ -372,7 +371,7 @@ void natpmp::on_reply(error_code const& e
 	}
 
 	m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
-		, m_remote, bind(&natpmp::on_reply, self(), _1, _2));
+		, m_remote, boost::bind(&natpmp::on_reply, self(), _1, _2));
 
 	// simulate packet loss
 /*
@@ -538,7 +537,7 @@ void natpmp::update_expiration_timer()
 		error_code ec;
 		if (m_next_refresh >= 0) m_refresh_timer.cancel(ec);
 		m_refresh_timer.expires_from_now(min_expire - now, ec);
-		m_refresh_timer.async_wait(bind(&natpmp::mapping_expired, self(), _1, min_index));
+		m_refresh_timer.async_wait(boost::bind(&natpmp::mapping_expired, self(), _1, min_index));
 		m_next_refresh = min_index;
 	}
 }

@@ -132,8 +132,6 @@ traversal_algorithm::traversal_algorithm(
 	, m_responses(0)
 	, m_timeouts(0)
 {
-	using boost::bind;
-
 	for (InIt i = start; i != end; ++i)
 	{
 		add_entry(i->id, udp::endpoint(i->addr, i->port), result::initial);

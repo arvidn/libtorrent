@@ -35,13 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <iomanip>
 #include <ctime>
-#include <boost/bind.hpp>
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
-
-using boost::bind;
 
 namespace libtorrent { namespace dht
 {

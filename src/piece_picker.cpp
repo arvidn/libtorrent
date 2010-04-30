@@ -136,7 +136,7 @@ namespace libtorrent
 		{
 			std::vector<downloading_piece>::const_iterator piece = std::find_if(
 				m_downloads.begin(), m_downloads.end()
-				, bind(&downloading_piece::index, _1) == index);
+				, boost::bind(&downloading_piece::index, _1) == index);
 			TORRENT_ASSERT(piece != m_downloads.end());
 			st = *piece;
 			st.info = 0;
@@ -186,7 +186,7 @@ namespace libtorrent
 	{
 		std::vector<downloading_piece>::iterator other = std::find_if(
 			m_downloads.begin(), m_downloads.end()
-			, bind(&downloading_piece::info, _1)
+			, boost::bind(&downloading_piece::info, _1)
 			== &m_block_info[(m_downloads.size() - 1) * m_blocks_per_piece]);
 		TORRENT_ASSERT(other != m_downloads.end());
 

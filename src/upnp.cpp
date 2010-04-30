@@ -53,7 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/thread/mutex.hpp>
 #include <cstdlib>
 
-using boost::bind;
 using namespace libtorrent;
 
 static error_code ec;
@@ -68,7 +67,7 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_retry_count(0)
 	, m_io_service(ios)
 	, m_socket(ios, udp::endpoint(address_v4::from_string("239.255.255.250", ec), 1900)
-		, bind(&upnp::on_reply, self(), _1, _2, _3))
+		, boost::bind(&upnp::on_reply, self(), _1, _2, _3))
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
 	, m_disabled(false)
@@ -147,7 +146,7 @@ void upnp::discover_device_impl(mutex_t::scoped_lock& l)
 
 	++m_retry_count;
 	m_broadcast_timer.expires_from_now(seconds(2 * m_retry_count), ec);
-	m_broadcast_timer.async_wait(bind(&upnp::resend_request
+	m_broadcast_timer.async_wait(boost::bind(&upnp::resend_request
 		, self(), _1));
 
 	log("broadcasting search for rootdevice", l);
@@ -284,7 +283,7 @@ void upnp::resend_request(error_code const& e)
 				log(msg, l);
 				if (d.upnp_connection) d.upnp_connection->close();
 				d.upnp_connection.reset(new http_connection(m_io_service
-					, m_cc, bind(&upnp::on_upnp_xml, self(), _1, _2
+					, m_cc, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d), _5)));
 				d.upnp_connection->get(d.url, seconds(30), 1);
 #ifndef BOOST_NO_EXCEPTIONS
@@ -371,7 +370,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	{
 		std::vector<ip_route> routes = enum_routes(m_io_service, ec);
 		if (std::find_if(routes.begin(), routes.end()
-			, bind(&ip_route::gateway, _1) == from.address()) == routes.end())
+			, boost::bind(&ip_route::gateway, _1) == from.address()) == routes.end())
 		{
 			// this upnp device is filtered because it's not in the
 			// list of configured routers
@@ -546,7 +545,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 					if (d.upnp_connection) d.upnp_connection->close();
 					d.upnp_connection.reset(new http_connection(m_io_service
-						, m_cc, bind(&upnp::on_upnp_xml, self(), _1, _2
+						, m_cc, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
 						, boost::ref(d), _5)));
 					d.upnp_connection->get(d.url, seconds(30), 1);
 #ifndef BOOST_NO_EXCEPTIONS
@@ -693,9 +692,9 @@ void upnp::update_map(rootdevice& d, int i, mutex_t::scoped_lock& l)
 
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
-			, m_cc, bind(&upnp::on_upnp_map_response, self(), _1, _2
+			, m_cc, boost::bind(&upnp::on_upnp_map_response, self(), _1, _2
 			, boost::ref(d), i, _5), true
-			, bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
+			, boost::bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
 
 		d.upnp_connection->start(d.hostname, to_string(d.port).elems
 			, seconds(10), 1);
@@ -704,9 +703,9 @@ void upnp::update_map(rootdevice& d, int i, mutex_t::scoped_lock& l)
 	{
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
-			, m_cc, bind(&upnp::on_upnp_unmap_response, self(), _1, _2
+			, m_cc, boost::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
 			, boost::ref(d), i, _5), true
-			, bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
+			, boost::bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
 		d.upnp_connection->start(d.hostname, to_string(d.port).elems
 			, seconds(10), 1);
 	}
@@ -878,7 +877,7 @@ void upnp::on_upnp_xml(error_code const& e
 	parse_state s;
 	s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
-		, bind(&find_control_url, _1, _2, boost::ref(s)));
+		, boost::bind(&find_control_url, _1, _2, boost::ref(s)));
 	if (!s.control_url.empty())
 	{
 		d.service_namespace = s.service_type;
@@ -890,7 +889,7 @@ void upnp::on_upnp_xml(error_code const& e
 		// a PPP connection
 		s.reset("urn:schemas-upnp-org:service:WANPPPConnection:1");
 		xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
-			, bind(&find_control_url, _1, _2, boost::ref(s)));
+			, boost::bind(&find_control_url, _1, _2, boost::ref(s)));
 		if (!s.control_url.empty())
 		{
 			d.service_namespace = s.service_type;
@@ -1041,7 +1040,7 @@ std::string upnp_error_category::message(int ev) const
 	error_code_t* end = error_codes + num_errors;
 	error_code_t tmp = {ev, 0};
 	error_code_t* e = std::lower_bound(error_codes, end, tmp
-		, bind(&error_code_t::code, _1) < bind(&error_code_t::code, _2));
+		, boost::bind(&error_code_t::code, _1) < boost::bind(&error_code_t::code, _2));
 	if (e != end && e->code == ev)
 	{
 		return e->msg;
@@ -1119,7 +1118,7 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	error_code_parse_state s;
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
-		, bind(&find_error_code, _1, _2, boost::ref(s)));
+		, boost::bind(&find_error_code, _1, _2, boost::ref(s)));
 
 	if (s.error_code != -1)
 	{
@@ -1189,7 +1188,7 @@ void upnp::on_upnp_map_response(error_code const& e
 			{
 				error_code ec;
 				m_refresh_timer.expires_at(m.expires, ec);
-				m_refresh_timer.async_wait(bind(&upnp::on_expire, self(), _1));
+				m_refresh_timer.async_wait(boost::bind(&upnp::on_expire, self(), _1));
 			}
 		}
 		else
@@ -1208,7 +1207,7 @@ void upnp::return_error(int mapping, int code, mutex_t::scoped_lock& l)
 	error_code_t* end = error_codes + num_errors;
 	error_code_t tmp = {code, 0};
 	error_code_t* e = std::lower_bound(error_codes, end, tmp
-		, bind(&error_code_t::code, _1) < bind(&error_code_t::code, _2));
+		, boost::bind(&error_code_t::code, _1) < boost::bind(&error_code_t::code, _2));
 	std::string error_string = "UPnP mapping error ";
 	error_string += to_string(code).elems;
 	if (e != end && e->code == code)
@@ -1299,7 +1298,7 @@ void upnp::on_expire(error_code const& e)
 	{
 		error_code ec;
 		m_refresh_timer.expires_at(next_expire, ec);
-		m_refresh_timer.async_wait(bind(&upnp::on_expire, self(), _1));
+		m_refresh_timer.async_wait(boost::bind(&upnp::on_expire, self(), _1));
 	}
 }
 

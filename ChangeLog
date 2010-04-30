@@ -1,3 +1,4 @@
+	* fixed vs 2010 build
 	* recognizes more clients in identify_client()
 	* fixed bug where trackers wouldn't be retried if they failed
 	* slight performance fix in disk elevator algorithm

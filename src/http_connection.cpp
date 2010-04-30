@@ -42,8 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <algorithm>
 
-using boost::bind;
-
 namespace libtorrent {
 
 enum { max_bottled_buffer = 1024 * 1024 };
@@ -151,7 +149,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	m_timeout = timeout;
 	error_code ec;
 	m_timer.expires_from_now(m_timeout, ec);
-	m_timer.async_wait(bind(&http_connection::on_timeout
+	m_timer.async_wait(boost::bind(&http_connection::on_timeout
 		, boost::weak_ptr<http_connection>(shared_from_this()), _1));
 	m_called = false;
 	m_parser.reset();
@@ -174,7 +172,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		&& m_ssl == ssl && m_bind_addr == bind_addr)
 	{
 		async_write(m_sock, asio::buffer(sendbuffer)
-			, bind(&http_connection::on_write, shared_from_this(), _1));
+			, boost::bind(&http_connection::on_write, shared_from_this(), _1));
 	}
 	else
 	{
@@ -230,7 +228,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		}
 
 		tcp::resolver::query query(hostname, port);
-		m_resolver.async_resolve(query, bind(&http_connection::on_resolve
+		m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
 			, shared_from_this(), _1, _2));
 		m_hostname = hostname;
 		m_port = port;
@@ -273,7 +271,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 			error_code ec;
 			c->m_sock.close(ec);
 			c->m_timer.expires_at(c->m_last_receive + c->m_timeout, ec);
-			c->m_timer.async_wait(bind(&http_connection::on_timeout, p, _1));
+			c->m_timer.async_wait(boost::bind(&http_connection::on_timeout, p, _1));
 		}
 		else
 		{
@@ -286,7 +284,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	if (!c->m_sock.is_open()) return;
 	error_code ec;
 	c->m_timer.expires_at(c->m_last_receive + c->m_timeout, ec);
-	c->m_timer.async_wait(bind(&http_connection::on_timeout, p, _1));
+	c->m_timer.async_wait(boost::bind(&http_connection::on_timeout, p, _1));
 }
 
 void http_connection::close()
@@ -347,8 +345,8 @@ void http_connection::queue_connect()
 	tcp::endpoint target = m_endpoints.front();
 	m_endpoints.pop_front();
 
-	m_cc.enqueue(bind(&http_connection::connect, shared_from_this(), _1, target)
-		, bind(&http_connection::on_connect_timeout, shared_from_this())
+	m_cc.enqueue(boost::bind(&http_connection::connect, shared_from_this(), _1, target)
+		, boost::bind(&http_connection::on_connect_timeout, shared_from_this())
 		, m_timeout, m_priority);
 }
 
@@ -372,7 +370,7 @@ void http_connection::on_connect(error_code const& e)
 	{ 
 		if (m_connect_handler) m_connect_handler(*this);
 		async_write(m_sock, asio::buffer(sendbuffer)
-			, bind(&http_connection::on_write, shared_from_this(), _1));
+			, boost::bind(&http_connection::on_write, shared_from_this(), _1));
 	}
 	else if (!m_endpoints.empty() && !m_abort)
 	{
@@ -442,8 +440,8 @@ void http_connection::on_write(error_code const& e)
 	}
 	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
-		, bind(&http_connection::on_read
-		, shared_from_this(), _1, _2));
+		, boost::bind(&http_connection::on_read
+			, shared_from_this(), _1, _2));
 }
 
 void http_connection::on_read(error_code const& e
@@ -594,8 +592,8 @@ void http_connection::on_read(error_code const& e
 	}
 	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
-		, bind(&http_connection::on_read
-		, me, _1, _2));
+		, boost::bind(&http_connection::on_read
+			, me, _1, _2));
 }
 
 void http_connection::on_assign_bandwidth(error_code const& e)
@@ -622,13 +620,13 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 
 	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
-		, bind(&http_connection::on_read
-		, shared_from_this(), _1, _2));
+		, boost::bind(&http_connection::on_read
+			, shared_from_this(), _1, _2));
 
 	error_code ec;
 	m_limiter_timer_active = true;
 	m_limiter_timer.expires_from_now(milliseconds(250), ec);
-	m_limiter_timer.async_wait(bind(&http_connection::on_assign_bandwidth
+	m_limiter_timer.async_wait(boost::bind(&http_connection::on_assign_bandwidth
 		, shared_from_this(), _1));
 }
 
@@ -641,7 +639,7 @@ void http_connection::rate_limit(int limit)
 		error_code ec;
 		m_limiter_timer_active = true;
 		m_limiter_timer.expires_from_now(milliseconds(250), ec);
-		m_limiter_timer.async_wait(bind(&http_connection::on_assign_bandwidth
+		m_limiter_timer.async_wait(boost::bind(&http_connection::on_assign_bandwidth
 			, shared_from_this(), _1));
 	}
 	m_rate_limit = limit;
