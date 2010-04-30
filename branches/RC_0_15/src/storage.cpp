@@ -104,7 +104,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 
 namespace fs = boost::filesystem;
-using boost::bind;
 
 #if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG && TORRENT_USE_IOSTREAM
 namespace

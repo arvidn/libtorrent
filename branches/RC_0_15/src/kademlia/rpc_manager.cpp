@@ -55,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 using boost::shared_ptr;
-using boost::bind;
 
 namespace libtorrent { namespace dht
 {
@@ -346,7 +345,7 @@ time_duration rpc_manager::tick()
 #endif
 	}
 	
-	std::for_each(timeouts.begin(), timeouts.end(), bind(&observer::timeout, _1));
+	std::for_each(timeouts.begin(), timeouts.end(), boost::bind(&observer::timeout, _1));
 	timeouts.clear();
 	
 	// clear the aborted transactions, will likely

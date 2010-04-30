@@ -54,8 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/escape_string.hpp"
 
-using boost::bind;
-
 namespace libtorrent
 {
 

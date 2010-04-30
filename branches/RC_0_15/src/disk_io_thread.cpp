@@ -449,8 +449,8 @@ namespace libtorrent
 		{
 			cache_t::iterator i = std::min_element(
 				m_pieces.begin(), m_pieces.end()
-				, bind(&cached_piece_entry::last_use, _1)
-				< bind(&cached_piece_entry::last_use, _2));
+				, boost::bind(&cached_piece_entry::last_use, _1)
+				< boost::bind(&cached_piece_entry::last_use, _2));
 			if (i == m_pieces.end()) break;
 			int age = total_seconds(now - i->last_use);
 			if (age < m_settings.cache_expiry) break;
@@ -462,8 +462,8 @@ namespace libtorrent
 		{
 			cache_t::iterator i = std::min_element(
 				m_read_pieces.begin(), m_read_pieces.end()
-				, bind(&cached_piece_entry::last_use, _1)
-				< bind(&cached_piece_entry::last_use, _2));
+				, boost::bind(&cached_piece_entry::last_use, _1)
+				< boost::bind(&cached_piece_entry::last_use, _2));
 			if (i == m_read_pieces.end()) break;
 			int age = total_seconds(now - i->last_use);
 			if (age < m_settings.cache_expiry) break;
@@ -502,8 +502,8 @@ namespace libtorrent
 
 		cache_t::iterator i = std::min_element(
 			m_read_pieces.begin(), m_read_pieces.end()
-			, bind(&cached_piece_entry::last_use, _1)
-			< bind(&cached_piece_entry::last_use, _2));
+			, boost::bind(&cached_piece_entry::last_use, _1)
+			< boost::bind(&cached_piece_entry::last_use, _2));
 		if (i != m_read_pieces.end() && i != ignore)
 		{
 			// don't replace an entry that is less than one second old
@@ -627,8 +627,8 @@ namespace libtorrent
 			{
 				cache_t::iterator i = std::min_element(
 					m_pieces.begin(), m_pieces.end()
-					, bind(&cached_piece_entry::last_use, _1)
-					< bind(&cached_piece_entry::last_use, _2));
+					, boost::bind(&cached_piece_entry::last_use, _1)
+					< boost::bind(&cached_piece_entry::last_use, _2));
 				if (i == m_pieces.end()) return ret;
 				tmp = flush_and_remove(i, l);
 				blocks -= tmp;
@@ -641,8 +641,8 @@ namespace libtorrent
 			{
 				cache_t::iterator i = std::max_element(
 					m_pieces.begin(), m_pieces.end()
-					, bind(&contiguous_blocks, _1)
-					< bind(&contiguous_blocks, _2));
+					, boost::bind(&contiguous_blocks, _1)
+					< boost::bind(&contiguous_blocks, _2));
 				if (i == m_pieces.end()) return ret;
 				tmp = flush_contiguous_blocks(i, l);
 				blocks -= tmp;
@@ -1994,7 +1994,7 @@ namespace libtorrent
 					INVARIANT_CHECK;
 
 					cache_t::iterator i = std::remove_if(
-						m_pieces.begin(), m_pieces.end(), bind(&cached_piece_entry::storage, _1) == j.storage);
+						m_pieces.begin(), m_pieces.end(), boost::bind(&cached_piece_entry::storage, _1) == j.storage);
 
 					for (cache_t::iterator k = i; k != m_pieces.end(); ++k)
 					{

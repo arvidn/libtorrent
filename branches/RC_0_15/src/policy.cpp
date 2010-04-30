@@ -64,8 +64,6 @@ namespace libtorrent
 	class peer_connection;
 }
 
-using boost::bind;
-
 namespace
 {
 	using namespace libtorrent;

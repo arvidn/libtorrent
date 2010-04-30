@@ -60,7 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 //#define TORRENT_CORRUPT_DATA
 
-using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
 
@@ -1230,7 +1229,7 @@ namespace libtorrent
 
 		std::vector<pending_block>::iterator i = std::find_if(
 			m_download_queue.begin(), m_download_queue.end()
-			, bind(match_request, boost::cref(r), bind(&pending_block::block, _1)
+			, boost::bind(match_request, boost::cref(r), boost::bind(&pending_block::block, _1)
 			, t->block_size()));
 	
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -2326,7 +2325,7 @@ namespace libtorrent
 			}
 		}
 
-		fs.async_write(p, data, bind(&peer_connection::on_disk_write_complete
+		fs.async_write(p, data, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
@@ -2376,7 +2375,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 			check_postcondition post_checker2_(t, false);
 #endif
-			t->async_verify_piece(p.piece, bind(&torrent::piece_finished, t
+			t->async_verify_piece(p.piece, boost::bind(&torrent::piece_finished, t
 				, p.piece, _1));
 		}
 
@@ -4017,14 +4016,14 @@ namespace libtorrent
 
 			if (!t->seed_mode() || t->verified_piece(r.piece))
 			{
-				t->filesystem().async_read(r, bind(&peer_connection::on_disk_read_complete
+				t->filesystem().async_read(r, boost::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, _2, r), cache.first, cache.second);
 			}
 			else
 			{
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
-				t->filesystem().async_read_and_hash(r, bind(&peer_connection::on_disk_read_complete
+				t->filesystem().async_read_and_hash(r, boost::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, _2, r), cache.second);
 				t->verified(r.piece);
 			}
@@ -4286,7 +4285,7 @@ namespace libtorrent
 #endif
 		std::list<asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
 		m_socket->async_write_some(
-			vec, make_write_handler(bind(
+			vec, make_write_handler(boost::bind(
 				&peer_connection::on_send_data, self(), _1, _2)));
 
 		m_channel_state[upload_channel] = peer_info::bw_network;
@@ -4375,7 +4374,7 @@ namespace libtorrent
 			m_socket->async_read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
 				, max_receive)
 				, make_read_handler(
-					bind(&peer_connection::on_receive_data, self(), _1, _2)
+					boost::bind(&peer_connection::on_receive_data, self(), _1, _2)
 				));
 		}
 		else if (m_recv_pos >= regular_buffer_size)
@@ -4386,7 +4385,7 @@ namespace libtorrent
 			m_socket->async_read_some(asio::buffer(m_disk_recv_buffer.get() + m_recv_pos - regular_buffer_size
 				, max_receive)
 				, make_read_handler(
-					bind(&peer_connection::on_receive_data, self(), _1, _2)
+					boost::bind(&peer_connection::on_receive_data, self(), _1, _2)
 				));
 		}
 		else
@@ -4404,7 +4403,7 @@ namespace libtorrent
 				, max_receive - regular_buffer_size + m_recv_pos);
 			m_socket->async_read_some(
 				vec, make_read_handler(
-					bind(&peer_connection::on_receive_data, self(), _1, _2)));
+					boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 		}
 		m_channel_state[download_channel] = peer_info::bw_network;
 	}
@@ -4487,7 +4486,7 @@ namespace libtorrent
 		TORRENT_ASSERT(buffer.second >= size);
 		std::memcpy(buffer.first, buf, size);
 		m_send_buffer.append_buffer(buffer.first, buffer.second, size
-			, bind(&session_impl::free_buffer, boost::ref(m_ses), _1, buffer.second));
+			, boost::bind(&session_impl::free_buffer, boost::ref(m_ses), _1, buffer.second));
 #if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 		m_ses.m_buffer_usage_logger << log_time() << " send_buffer_alloc: " << size << std::endl;
 		m_ses.log_buffer_usage();
@@ -4511,7 +4510,7 @@ namespace libtorrent
 			}
 			TORRENT_ASSERT(buffer.second >= size);
 			m_send_buffer.append_buffer(buffer.first, buffer.second, size
-				, bind(&session_impl::free_buffer, boost::ref(m_ses), _1, buffer.second));
+				, boost::bind(&session_impl::free_buffer, boost::ref(m_ses), _1, buffer.second));
 			buffer::interval ret(buffer.first, buffer.first + size);
 #if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 			m_ses.m_buffer_usage_logger << log_time() << " allocate_buffer_alloc: " << size << std::endl;
@@ -4803,7 +4802,7 @@ namespace libtorrent
 			return;
 		}
 		m_socket->async_connect(m_remote
-			, bind(&peer_connection::on_connection_complete, self(), _1));
+			, boost::bind(&peer_connection::on_connection_complete, self(), _1));
 		m_connect = time_now();
 		m_statistics.sent_syn(m_remote.address().is_v6());
 

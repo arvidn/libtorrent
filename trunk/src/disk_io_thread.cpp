@@ -674,8 +674,8 @@ namespace libtorrent
 			{
 				cache_lru_index_t::iterator i =
 				std::max_element(idx.begin(), idx.end()
-					, bind(&contiguous_blocks, _1)
-					< bind(&contiguous_blocks, _2));
+					, boost::bind(&contiguous_blocks, _1)
+					< boost::bind(&contiguous_blocks, _2));
 				if (i == idx.end()) return ret;
 				tmp = flush_contiguous_blocks(const_cast<cached_piece_entry&>(*i), l);
 				if (i->num_blocks == 0) idx.erase(i);

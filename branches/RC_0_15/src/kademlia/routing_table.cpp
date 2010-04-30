@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/session_settings.hpp"
 
-using boost::bind;
 using boost::uint8_t;
 
 namespace libtorrent { namespace dht
@@ -474,7 +473,7 @@ void routing_table::find_node(node_id const& target
 	{
 		copy_if_n(b.begin(), b.end(), std::back_inserter(l)
 			, (std::min)(size_t(count), b.size())
-			, bind(&node_entry::confirmed, _1));
+			, boost::bind(&node_entry::confirmed, _1));
 	}
 	TORRENT_ASSERT((int)l.size() <= count);
 
@@ -542,7 +541,7 @@ void routing_table::find_node(node_id const& target
 		else
 		{
 			copy_if_n(b.begin(), b.end(), std::back_inserter(l)
-				, to_copy, bind(&node_entry::confirmed, _1));
+				, to_copy, boost::bind(&node_entry::confirmed, _1));
 		}
 		TORRENT_ASSERT((int)l.size() <= count);
 		if (int(l.size()) == count)

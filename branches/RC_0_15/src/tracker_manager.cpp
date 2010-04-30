@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using boost::tuples::make_tuple;
 using boost::tuples::tuple;
-using boost::bind;
 
 namespace
 {
@@ -84,7 +83,7 @@ namespace libtorrent
 			m_read_timeout, (std::min)(m_completion_timeout, m_read_timeout));
 		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
-		m_timeout.async_wait(bind(
+		m_timeout.async_wait(boost::bind(
 			&timeout_handler::timeout_callback, self(), _1));
 	}
 
@@ -126,7 +125,7 @@ namespace libtorrent
 		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(
-			bind(&timeout_handler::timeout_callback, self(), _1));
+			boost::bind(&timeout_handler::timeout_callback, self(), _1));
 	}
 
 	tracker_connection::tracker_connection(

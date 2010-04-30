@@ -52,8 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/closest_nodes.hpp"
 #include "libtorrent/kademlia/find_data.hpp"
 
-using boost::bind;
-
 namespace libtorrent { namespace dht
 {
 
@@ -99,7 +97,7 @@ node_impl::node_impl(libtorrent::aux::session_impl& ses
 	: m_settings(settings)
 	, m_id(nid ? *nid : generate_id())
 	, m_table(m_id, 8, settings)
-	, m_rpc(bind(&node_impl::incoming_request, this, _1)
+	, m_rpc(boost::bind(&node_impl::incoming_request, this, _1)
 		, m_id, m_table, f)
 	, m_last_tracker_tick(time_now())
 	, m_ses(ses)
@@ -192,7 +190,7 @@ void node_impl::refresh()
 	start.reserve(m_table.size().get<0>());
 	std::copy(m_table.begin(), m_table.end(), std::back_inserter(start));
 
-	new dht::refresh(*this, m_id, start.begin(), start.end(), bind(&nop));
+	new dht::refresh(*this, m_id, start.begin(), start.end(), boost::bind(&nop));
 }
 
 int node_impl::bucket_size(int bucket)
@@ -238,7 +236,7 @@ void node_impl::refresh_bucket(int bucket)
 	start.reserve(m_table.bucket_size());
 	m_table.find_node(target, start, routing_table::include_failed);
 
-	new dht::refresh(*this, target, start.begin(), start.end(), bind(&nop));
+	new dht::refresh(*this, target, start.begin(), start.end(), boost::bind(&nop));
 	m_table.touch_bucket(bucket);
 }
 

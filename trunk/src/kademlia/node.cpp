@@ -49,8 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/refresh.hpp"
 #include "libtorrent/kademlia/find_data.hpp"
 
-using boost::bind;
-
 namespace libtorrent { namespace dht
 {
 

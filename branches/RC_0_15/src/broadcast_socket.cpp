@@ -266,7 +266,7 @@ namespace libtorrent
 		m_sockets.push_back(socket_entry(s));
 		socket_entry& se = m_sockets.back();
 		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
-			, se.remote, bind(&broadcast_socket::on_receive, this, &se, _1, _2));
+			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 	}
 
 	void broadcast_socket::open_unicast_socket(io_service& ios, address const& addr
@@ -282,7 +282,7 @@ namespace libtorrent
 		m_unicast_sockets.push_back(socket_entry(s, mask));
 		socket_entry& se = m_unicast_sockets.back();
 		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
-			, se.remote, bind(&broadcast_socket::on_receive, this, &se, _1, _2));
+			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 	}
 
 	void broadcast_socket::send(char const* buffer, int size, error_code& ec)
@@ -340,13 +340,13 @@ namespace libtorrent
 		m_on_receive(s->remote, s->buffer, bytes_transferred);
 		if (!s->socket) return;
 		s->socket->async_receive_from(asio::buffer(s->buffer, sizeof(s->buffer))
-			, s->remote, bind(&broadcast_socket::on_receive, this, s, _1, _2));
+			, s->remote, boost::bind(&broadcast_socket::on_receive, this, s, _1, _2));
 	}
 
 	void broadcast_socket::close()
 	{
-		std::for_each(m_sockets.begin(), m_sockets.end(), bind(&socket_entry::close, _1));
-		std::for_each(m_unicast_sockets.begin(), m_unicast_sockets.end(), bind(&socket_entry::close, _1));
+		std::for_each(m_sockets.begin(), m_sockets.end(), boost::bind(&socket_entry::close, _1));
+		std::for_each(m_unicast_sockets.begin(), m_unicast_sockets.end(), boost::bind(&socket_entry::close, _1));
 
 		m_on_receive.clear();
 	}

@@ -43,8 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 
-using boost::bind;
-
 namespace libtorrent { namespace dht
 {
 

@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/parse_url.hpp"
 
-using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
 
