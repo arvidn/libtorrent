@@ -575,7 +575,9 @@ namespace libtorrent
 		// avoid crash trying to access the picker when there is nont
 		if (is_seed()) return;
 
-		if (picker().have_piece(piece)) return;
+		if (picker().have_piece(piece)
+			&& (flags & torrent::overwrite_existing) == 0)
+			return;
 
 		peer_request p;
 		p.piece = piece;
