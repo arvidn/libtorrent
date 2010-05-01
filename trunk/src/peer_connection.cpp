@@ -1179,7 +1179,8 @@ namespace libtorrent
 		(*m_logger) << time_now_string() << " <== CHOKE\n";
 #endif
 		m_peer_choked = true;
-		
+
+		// clear the requests that haven't been sent yet
 		if (peer_info_struct() == 0 || !peer_info_struct()->on_parole)
 		{
 			// if the peer is not in parole mode, clear the queued
@@ -1196,6 +1197,7 @@ namespace libtorrent
 			m_request_queue.clear();
 			m_queued_time_critical = 0;
 		}
+
 	}
 
 	bool match_request(peer_request const& r, piece_block const& b, int block_size)
@@ -2276,13 +2278,13 @@ namespace libtorrent
 				if (!qe.timed_out && !qe.not_wanted)
 					picker.abort_download(qe.block);
 
+				TORRENT_ASSERT(m_outstanding_bytes >= t->to_req(qe.block).length);
+				m_outstanding_bytes -= t->to_req(qe.block).length;
+				if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 				TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
 				m_download_queue.erase(m_download_queue.begin() + i);
 				--i;
 				--block_index;
-				TORRENT_ASSERT(m_outstanding_bytes >= t->block_size());
-				m_outstanding_bytes -= t->block_size();
-				if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 				TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
 				check_invariant();
@@ -3229,6 +3231,8 @@ namespace libtorrent
 				{
 					pending_block& qe = m_download_queue.back();
 					if (!qe.timed_out && !qe.not_wanted) picker.abort_download(qe.block);
+					m_outstanding_bytes -= t->to_req(qe.block).length;
+					if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 					m_download_queue.pop_back();
 				}
 				while (!m_request_queue.empty())
@@ -3239,6 +3243,9 @@ namespace libtorrent
 			}
 			m_queued_time_critical = 0;
 
+#if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+			check_invariant();
+#endif
 			t->remove_peer(this);
 			m_torrent.reset();
 		}
@@ -4945,6 +4952,8 @@ namespace libtorrent
 	}
 
 #ifdef TORRENT_DEBUG
+	struct peer_count_t { int num_peers; int num_peers_with_timeouts; };
+
 	void peer_connection::check_invariant() const
 	{
 		TORRENT_ASSERT(m_queued_time_critical <= m_request_queue.size());
@@ -5061,7 +5070,7 @@ namespace libtorrent
 
 		if (t->has_picker())
 		{
-			std::map<piece_block, int> num_requests;
+			std::map<piece_block, peer_count_t> num_requests;
 			for (torrent::const_peer_iterator i = t->begin(); i != t->end(); ++i)
 			{
 				// make sure this peer is not a dangling pointer
@@ -5071,16 +5080,23 @@ namespace libtorrent
 				peer_connection const& p = *(*i);
 				for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
 					, end(p.request_queue().end()); i != end; ++i)
-					++num_requests[i->block];
+				{
+					++num_requests[i->block].num_peers;
+					++num_requests[i->block].num_peers_with_timeouts;
+				}
 				for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
 					, end(p.download_queue().end()); i != end; ++i)
-					if (!i->not_wanted && !i->timed_out) ++num_requests[i->block];
+				{
+					if (!i->not_wanted && !i->timed_out) ++num_requests[i->block].num_peers;
+					++num_requests[i->block].num_peers_with_timeouts;
+				}
 			}
-			for (std::map<piece_block, int>::iterator i = num_requests.begin()
+			for (std::map<piece_block, peer_count_t>::iterator i = num_requests.begin()
 				, end(num_requests.end()); i != end; ++i)
 			{
 				piece_block b = i->first;
-				int count = i->second;
+				int count = i->second.num_peers;
+				int count_with_timeouts = i->second.num_peers_with_timeouts;
 				int picker_count = t->picker().num_peers(b);
 				if (!t->picker().is_downloaded(b))
 					TORRENT_ASSERT(picker_count == count);
