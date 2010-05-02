@@ -442,7 +442,7 @@ namespace libtorrent
 	}
 
 	boost::optional<std::string> url_has_argument(
-		std::string const& url, std::string argument, int* out_pos)
+		std::string const& url, std::string argument, size_t* out_pos)
 	{
 		size_t i = url.find('?');
 		if (i == std::string::npos) return boost::optional<std::string>();

@@ -70,7 +70,7 @@ namespace libtorrent
 	TORRENT_EXPORT std::string base32decode(std::string const& s);
 
 	TORRENT_EXPORT boost::optional<std::string> url_has_argument(
-		std::string const& url, std::string argument, int* out_pos = 0);
+		std::string const& url, std::string argument, size_t* out_pos = 0);
 
 	TORRENT_EXPORT std::string read_until(char const*& str, char delim, char const* end);
 	TORRENT_EXPORT std::string to_hex(std::string const& s);

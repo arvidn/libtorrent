@@ -146,7 +146,7 @@ namespace libtorrent
 		error_code e;
 		boost::optional<std::string> display_name = url_has_argument(uri, "dn");
 		if (display_name) name = unescape_string(display_name->c_str(), e);
-		int pos = std::string::npos;
+		size_t pos = std::string::npos;
 		boost::optional<std::string> tracker_string = url_has_argument(uri, "tr", &pos);
 		if (tracker_string) tracker = unescape_string(tracker_string->c_str(), e);
 	
