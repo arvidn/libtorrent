@@ -38,6 +38,23 @@ project listed here, let me_ know.
 
 .. container:: entry
 
+	.. image:: folx.png
+		:align: right
+		:target: folx_
+
+	**Folx**
+
+	folx_ has a friendly and easy interface will help you take
+	the most of your downloads. Just click the link in your browser
+	and Folx will start downloading for you. This download manager
+	is not overloaded with tons of unnecessary features and can do
+	everything you need in a very simple way.
+
+	.. _folx: http://www.mac-downloader.com/
+
+
+.. container:: entry
+
 	.. image:: qbittorrent_thumb.jpg
 		:align: right
 		:target: qBittorrent_
