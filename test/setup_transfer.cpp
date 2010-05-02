@@ -364,7 +364,7 @@ int start_tracker()
 	stop_tracker();
 
 	{
-		mutex::scoped_lock l(tracker_lock);
+		libtorrent::mutex::scoped_lock l(tracker_lock);
 		tracker_initialized.clear(l);
 	}
 
@@ -373,7 +373,7 @@ int start_tracker()
 	tracker_server.reset(new libtorrent::thread(boost::bind(&udp_tracker_thread, &port)));
 
 	{
-		mutex::scoped_lock l(tracker_lock);
+		libtorrent::mutex::scoped_lock l(tracker_lock);
 		tracker_initialized.wait(l);
 	}
 	test_sleep(100);
@@ -438,7 +438,7 @@ void udp_tracker_thread(int* port)
 	if (ec)
 	{
 		fprintf(stderr, "Error opening listen UDP socket: %s\n", ec.message().c_str());
-		mutex::scoped_lock l(tracker_lock);
+		libtorrent::mutex::scoped_lock l(tracker_lock);
 		tracker_initialized.signal(l);
 		return;
 	}
@@ -446,7 +446,7 @@ void udp_tracker_thread(int* port)
 	if (ec)
 	{
 		fprintf(stderr, "Error binding UDP socket to port 0: %s\n", ec.message().c_str());
-		mutex::scoped_lock l(tracker_lock);
+		libtorrent::mutex::scoped_lock l(tracker_lock);
 		tracker_initialized.signal(l);
 		return;
 	}
@@ -457,7 +457,7 @@ void udp_tracker_thread(int* port)
 	fprintf(stderr, "UDP tracker initialized on port %d\n", *port);
 
 	{
-		mutex::scoped_lock l(tracker_lock);
+		libtorrent::mutex::scoped_lock l(tracker_lock);
 		tracker_initialized.signal(l);
 	}
 
@@ -477,7 +477,7 @@ void udp_tracker_thread(int* port)
 		if (ec)
 		{
 			fprintf(stderr, "Error receiving on UDP socket: %s\n", ec.message().c_str());
-			mutex::scoped_lock l(tracker_lock);
+			libtorrent::mutex::scoped_lock l(tracker_lock);
 			tracker_initialized.signal(l);
 			return;
 		}
@@ -508,7 +508,7 @@ int start_web_server(bool ssl)
 	stop_web_server();
 
 	{
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.clear(l);
 	}
 
@@ -517,7 +517,7 @@ int start_web_server(bool ssl)
 	web_server.reset(new libtorrent::thread(boost::bind(&web_server_thread, &port, ssl)));
 
 	{
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.wait(l);
 	}
 
@@ -571,7 +571,7 @@ void web_server_thread(int* port, bool ssl)
 	if (ec)
 	{
 		fprintf(stderr, "Error opening listen socket: %s\n", ec.message().c_str());
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.signal(l);
 		return;
 	}
@@ -579,7 +579,7 @@ void web_server_thread(int* port, bool ssl)
 	if (ec)
 	{
 		fprintf(stderr, "Error setting listen socket to reuse addr: %s\n", ec.message().c_str());
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.signal(l);
 		return;
 	}
@@ -587,7 +587,7 @@ void web_server_thread(int* port, bool ssl)
 	if (ec)
 	{
 		fprintf(stderr, "Error binding listen socket to port 0: %s\n", ec.message().c_str());
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.signal(l);
 		return;
 	}
@@ -596,7 +596,7 @@ void web_server_thread(int* port, bool ssl)
 	if (ec)
 	{
 		fprintf(stderr, "Error listening on socket: %s\n", ec.message().c_str());
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.signal(l);
 		return;
 	}
@@ -606,7 +606,7 @@ void web_server_thread(int* port, bool ssl)
 	fprintf(stderr, "web server initialized on port %d\n", *port);
 
 	{
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.signal(l);
 	}
 

@@ -148,7 +148,7 @@ struct test_storage : storage_interface
 	{
 		if (slot == 0 || slot == 5999)
 		{
-			mutex::scoped_lock l(m_mutex);
+			libtorrent::mutex::scoped_lock l(m_mutex);
 			std::cerr << "--- starting job " << slot << " waiting for main thread ---\n" << std::endl;
 			m_ready = true;
 			m_ready_condition.signal(l);
@@ -200,14 +200,14 @@ struct test_storage : storage_interface
 
 	void wait_for_ready()
 	{
-		mutex::scoped_lock l(m_mutex);
+		libtorrent::mutex::scoped_lock l(m_mutex);
 		while (!m_ready)
 			m_ready_condition.wait(l);
 	}
 
 	void start()
 	{
-		mutex::scoped_lock l(m_mutex);
+		libtorrent::mutex::scoped_lock l(m_mutex);
 		m_started = true;
 		m_condition.signal(l);
 	}
@@ -215,7 +215,7 @@ struct test_storage : storage_interface
 private:
 	condition m_ready_condition;
 	condition m_condition;
-	mutex m_mutex;
+	libtorrent::mutex m_mutex;
 	bool m_started;
 	bool m_ready;
 
@@ -470,7 +470,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
 		, test_path, fp, io, default_storage_constructor, storage_mode);
-	mutex lock;
+	libtorrent::mutex lock;
 
 	error_code ec;
 	bool done = false;
@@ -696,7 +696,7 @@ void test_check_files(std::string const& test_path
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
 		, test_path, fp, io, default_storage_constructor, storage_mode);
-	mutex lock;
+	libtorrent::mutex lock;
 
 	bool done = false;
 	lazy_entry frd;
