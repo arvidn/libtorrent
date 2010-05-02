@@ -59,7 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 using namespace boost::tuples;
-using boost::bind;
 
 namespace libtorrent {
 	TORRENT_EXPORT std::string sanitize_path(std::string const& p);
@@ -935,7 +934,7 @@ int test_main()
 	char xml1[] = "<a>foo<b/>bar</a>";
 	std::string out1;
 
-	xml_parse(xml1, xml1 + sizeof(xml1) - 1, bind(&parser_callback
+	xml_parse(xml1, xml1 + sizeof(xml1) - 1, boost::bind(&parser_callback
 		, boost::ref(out1), _1, _2, _3));
 	std::cerr << out1 << std::endl;
 	TEST_CHECK(out1 == "BaSfooEbSbarFa");
@@ -943,7 +942,7 @@ int test_main()
 	char xml2[] = "<?xml version = \"1.0\"?><c x=\"1\" \t y=\"3\"/><d foo='bar'></d boo='foo'><!--comment-->";
 	std::string out2;
 
-	xml_parse(xml2, xml2 + sizeof(xml2) - 1, bind(&parser_callback
+	xml_parse(xml2, xml2 + sizeof(xml2) - 1, boost::bind(&parser_callback
 		, boost::ref(out2), _1, _2, _3));
 	std::cerr << out2 << std::endl;
 	TEST_CHECK(out2 == "DxmlAversionV1.0EcAxV1AyV3BdAfooVbarFdAbooVfooCcomment");
@@ -951,7 +950,7 @@ int test_main()
 	char xml3[] = "<a f=1>foo</a f='b>";
 	std::string out3;
 
-	xml_parse(xml3, xml3 + sizeof(xml3) - 1, bind(&parser_callback
+	xml_parse(xml3, xml3 + sizeof(xml3) - 1, boost::bind(&parser_callback
 		, boost::ref(out3), _1, _2, _3));
 	std::cerr << out3 << std::endl;
 	TEST_CHECK(out3 == "BaPunquoted attribute valueSfooFaPmissing end quote on attribute");
@@ -959,7 +958,7 @@ int test_main()
 	char xml4[] = "<a  f>foo</a  v  >";
 	std::string out4;
 
-	xml_parse(xml4, xml4 + sizeof(xml4) - 1, bind(&parser_callback
+	xml_parse(xml4, xml4 + sizeof(xml4) - 1, boost::bind(&parser_callback
 		, boost::ref(out4), _1, _2, _3));
 	std::cerr << out4 << std::endl;
 	TEST_CHECK(out4 == "BaPgarbage inside element bracketsSfooFaPgarbage inside element brackets");
@@ -969,7 +968,7 @@ int test_main()
 	parse_state xml_s;
 	xml_s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
 	xml_parse((char*)upnp_xml, (char*)upnp_xml + sizeof(upnp_xml)
-		, bind(&find_control_url, _1, _2, boost::ref(xml_s)));
+		, boost::bind(&find_control_url, _1, _2, boost::ref(xml_s)));
 
 	std::cerr << "namespace " << xml_s.service_type << std::endl;
 	std::cerr << "url_base: " << xml_s.url_base << std::endl;
@@ -981,7 +980,7 @@ int test_main()
 
 	xml_s.reset("urn:schemas-upnp-org:service:WANPPPConnection:1");
 	xml_parse((char*)upnp_xml2, (char*)upnp_xml2 + sizeof(upnp_xml2)
-		, bind(&find_control_url, _1, _2, boost::ref(xml_s)));
+		, boost::bind(&find_control_url, _1, _2, boost::ref(xml_s)));
 
 	std::cerr << "namespace " << xml_s.service_type << std::endl;
 	std::cerr << "url_base: " << xml_s.url_base << std::endl;
@@ -1117,16 +1116,16 @@ int test_main()
 	std::cout << "returned: " << temp.size() << std::endl;
 	TEST_EQUAL(temp.size(), 7);
 
-	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
-		, bind(&node_entry::id, _1)
-		, bind(&node_entry::id, _2), tmp));
+	std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
+		, boost::bind(&node_entry::id, _1)
+		, boost::bind(&node_entry::id, _2), tmp));
 
 	int hits = 0;
 	for (std::vector<node_entry>::iterator i = temp.begin()
 		, end(temp.end()); i != end; ++i)
 	{
 		int hit = std::find_if(nodes.begin(), nodes.end()
-			, bind(&node_entry::id, _1) == i->id) - nodes.begin();
+			, boost::bind(&node_entry::id, _1) == i->id) - nodes.begin();
 //		std::cerr << hit << std::endl;
 		if (hit < int(temp.size())) ++hits;
 	}
@@ -1137,16 +1136,16 @@ int test_main()
 	std::cout << "returned: " << temp.size() << std::endl;
 	TEST_EQUAL(temp.size(), (std::min)(15, int(nodes.size())));
 
-	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
-		, bind(&node_entry::id, _1)
-		, bind(&node_entry::id, _2), tmp));
+	std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
+		, boost::bind(&node_entry::id, _1)
+		, boost::bind(&node_entry::id, _2), tmp));
 
 	hits = 0;
 	for (std::vector<node_entry>::iterator i = temp.begin()
 		, end(temp.end()); i != end; ++i)
 	{
 		int hit = std::find_if(nodes.begin(), nodes.end()
-			, bind(&node_entry::id, _1) == i->id) - nodes.begin();
+			, boost::bind(&node_entry::id, _1) == i->id) - nodes.begin();
 //		std::cerr << hit << std::endl;
 		if (hit < int(temp.size())) ++hits;
 	}

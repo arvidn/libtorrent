@@ -183,7 +183,7 @@ void test_reject_fast()
 	allowed_fast.push_back(3);
 
 	std::for_each(allowed_fast.begin(), allowed_fast.end()
-		, bind(&send_allow_fast, boost::ref(s), _1));
+		, boost::bind(&send_allow_fast, boost::ref(s), _1));
 
 	while (!allowed_fast.empty())
 	{
@@ -244,7 +244,7 @@ void test_respect_suggest()
 	suggested.push_back(3);
 
 	std::for_each(suggested.begin(), suggested.end()
-		, bind(&send_suggest_piece, boost::ref(s), _1));
+		, boost::bind(&send_suggest_piece, boost::ref(s), _1));
 
 	send_unchoke(s);
 
