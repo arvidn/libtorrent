@@ -22,10 +22,6 @@ The build systems supported "out of the box" in libtorrent are boost-build v2
 following these instructions, you can usually get help in the ``#libtorrent``
 IRC channel on ``irc.freenode.net``.
 
-Community contributed build tutorials can be found on the wiki_.
-
-.. _wiki: http://code.rasterbar.com/libtorrent/wiki/Building
-
 .. warning::
 
 	A common mistake when building and linking against libtorrent is
@@ -499,22 +495,9 @@ invariant checks), you have to rerun the configure script and rebuild, like this
 building with other build systems
 ---------------------------------
   
-If you're making your own project file, note that there are two versions of
-the file abstraction. There's one ``file_win.cpp`` which relies on windows
-file API that supports files larger than 2 Gigabytes. This does not work in
-vc6 for some reason, possibly because it may require windows NT and above.
-The other file, ``file.cpp`` is the default implementation that simply relies
-on the standard low level io routines (``read()``, ``write()``, ``open()``
-etc.), this implementation doesn't do anything special to support unicode
-filenames, so if your target is Windows 2000 and up, you may want to use
-``file_win.cpp`` which supports unicode filenames.
-
 If you're building in MS Visual Studio, you may have to set the compiler
 options "force conformance in for loop scope", "treat wchar_t as built-in
-type" and "Enable Run-Time Type Info" to Yes. For a detailed description
-on how to build libtorrent with VS, see `the wiki`_.
-
-.. _`the wiki`: http://code.rasterbar.com/libtorrent/wiki/Building
+type" and "Enable Run-Time Type Info" to Yes.
 
 build configurations
 --------------------
