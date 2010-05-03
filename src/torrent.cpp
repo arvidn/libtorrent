@@ -1287,7 +1287,7 @@ namespace libtorrent
 		req.listen_port = m_ses.listen_port();
 		req.key = m_ses.m_key;
 
-		ptime now = time_now();
+		ptime now = time_now_hires();
 
 		// the tier is kept as INT_MAX until we find the first
 		// tracker that works, then it's set to that tracker's
@@ -1362,7 +1362,7 @@ namespace libtorrent
 				&& !m_settings.announce_to_all_tiers)
 				break;
 		}
-		update_tracker_timer();
+		update_tracker_timer(now);
 	}
 
 	void torrent::scrape_tracker()
@@ -1450,7 +1450,7 @@ namespace libtorrent
 			int tracker_index = ae - &m_trackers[0];
 			m_last_working_tracker = prioritize_tracker(tracker_index);
 		}
-		update_tracker_timer();
+		update_tracker_timer(now);
 
 		if (complete >= 0) m_complete = complete;
 		if (incomplete >= 0) m_incomplete = incomplete;
@@ -1560,7 +1560,7 @@ namespace libtorrent
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
 			i->next_announce = (std::max)(now, i->min_announce);
-		update_tracker_timer();
+		update_tracker_timer(now);
 	}
 
 	void torrent::force_tracker_request(ptime t)
@@ -1569,7 +1569,7 @@ namespace libtorrent
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
 			i->next_announce = (std::max)(t, i->min_announce);
-		update_tracker_timer();
+		update_tracker_timer(time_now());
 	}
 
 	void torrent::set_tracker_login(
@@ -3524,6 +3524,7 @@ namespace libtorrent
 						, boost::bind(&announce_entry::url, _1) == e.url) != m_trackers.end())
 						continue;
 					e.tier = tier;
+					e.fail_limit = 0;
 					m_trackers.push_back(e);
 				}
 				++tier;
@@ -5158,7 +5159,7 @@ namespace libtorrent
 		start_announcing();
 	}
 
-	void torrent::update_tracker_timer()
+	void torrent::update_tracker_timer(ptime now)
 	{
 		if (!m_announcing) return;
 
@@ -5189,7 +5190,9 @@ namespace libtorrent
 			if (!m_settings.announce_to_all_trackers
 				&& !m_settings.announce_to_all_tiers) break;
 		}
-		if (next_announce == max_time()) return;
+
+		if (next_announce == max_time()
+			|| next_announce <= now) return;
 
 		// since we don't know if we have to re-issue the async_wait or not
 		// always do it
@@ -6073,7 +6076,7 @@ namespace libtorrent
 					, r.url, errors::timed_out));
 			}
 		}
-		update_tracker_timer();
+		update_tracker_timer(time_now());
 	}
 
 	// TODO: with some response codes, we should just consider
@@ -6112,7 +6115,7 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), r.url, str));
 			}
 		}
-		update_tracker_timer();
+		update_tracker_timer(time_now());
 	}
 
 
