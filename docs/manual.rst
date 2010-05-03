@@ -3896,6 +3896,7 @@ session_settings
 		bool broadcast_lsd;
 		bool ignore_resume_timestamps;
 		bool anonymous_mode;
+		int tick_interval;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4547,6 +4548,12 @@ are accepted, NAT-PMP, UPnP, DHT and local peer discovery are all turned off
 when this setting is enabled.
 
 If you're using I2P, it might make sense to enable anonymous mode as well.
+
+``tick_interval`` specifies the number of milliseconds between internal
+ticks. This is the frequency with which bandwidth quota is distributed to
+peers. It should not be more than one second (i.e. 1000 ms). Setting this
+to a low value (around 100) means higher resolution bandwidth quota distribution,
+setting it to a higher value saves CPU cycles.
 
 pe_settings
 ===========

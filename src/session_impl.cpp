@@ -318,6 +318,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, broadcast_lsd)
 		TORRENT_SETTING(boolean, ignore_resume_timestamps)
 		TORRENT_SETTING(boolean, anonymous_mode)
+		TORRENT_SETTING(integer, tick_interval)
 	};
 
 #undef TORRENT_SETTING
@@ -722,7 +723,7 @@ namespace aux {
 
 		url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
 
-		m_timer.expires_from_now(milliseconds(100), ec);
+		m_timer.expires_from_now(milliseconds(m_settings.tick_interval), ec);
 		m_timer.async_wait(boost::bind(&session_impl::on_tick, this, _1));
 
 		int delay = (std::max)(m_settings.local_service_announce_interval
@@ -1903,7 +1904,7 @@ namespace aux {
 		}
 
 		error_code ec;
-		m_timer.expires_at(now + milliseconds(100), ec);
+		m_timer.expires_at(now + milliseconds(m_settings.tick_interval), ec);
 		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
 
 		m_download_rate.update_quotas(now - m_last_tick);

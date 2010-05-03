@@ -213,6 +213,7 @@ namespace libtorrent
 			, broadcast_lsd(false)
 			, ignore_resume_timestamps(false)
 			, anonymous_mode(false)
+			, tick_interval(100)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -824,6 +825,10 @@ namespace libtorrent
 		// mode is assumed to be combined with using a proxy for all your
 		// traffic. With this option, your true IP address will not be exposed
 		bool anonymous_mode;
+
+		// the number of milliseconds between internal ticks. Should be no
+		// more than one second (i.e. 1000).
+		int tick_interval;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
