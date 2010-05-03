@@ -91,6 +91,7 @@ namespace libtorrent
 	struct tracker_request;
 	struct add_torrent_params;
 	struct storage_interface;
+	struct bt_peer_connection;
 
 	namespace aux
 	{
@@ -168,6 +169,15 @@ namespace libtorrent
 		// this is called when the torrent has metadata.
 		// it will initialize the storage and the piece-picker
 		void init();
+
+		// find the peer that introduced us to the given endpoint. This is
+		// used when trying to holepunch. We need the introducer so that we
+		// can send a rendezvous connect message
+		bt_peer_connection* find_introducer(tcp::endpoint const& ep) const;
+
+		// if we're connected to a peer at ep, return its peer connection
+		// only count BitTorrent peers
+		bt_peer_connection* find_peer(tcp::endpoint const& ep) const;
 
 		void on_resume_data_checked(int ret, disk_io_job const& j);
 		void on_force_recheck(int ret, disk_io_job const& j);

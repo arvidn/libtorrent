@@ -90,6 +90,8 @@ namespace libtorrent
 	{
 		virtual ~peer_plugin() {}
 
+		virtual char const* type() const { return ""; }
+
 		// can add entries to the extension handshake
 		// this is not called for web seeds
 		virtual void add_handshake(entry&) {}

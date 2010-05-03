@@ -86,9 +86,11 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class torrent;
-	struct peer_plugin;
 	struct peer_info;
 	struct disk_io_job;
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	struct peer_plugin;
+#endif
 
 	namespace detail
 	{
@@ -202,6 +204,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<peer_plugin>);
+		peer_plugin const* find_plugin(char const* type);
 #endif
 
 		// this function is called once the torrent associated

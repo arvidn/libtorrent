@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/socket_io.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
@@ -1429,6 +1430,136 @@ namespace libtorrent
 	}
 
 	// -----------------------------
+	// -------- RENDEZVOUS ---------
+	// -----------------------------
+
+	void bt_peer_connection::on_holepunch()
+	{
+		INVARIANT_CHECK;
+
+		if (!packet_finished()) return;
+
+		// we con't accept holepunch messages from peers
+		// that don't support the holepunch extension
+		// because we wouldn't be able to respond
+		if (m_holepunch_id == 0) return;
+
+		buffer::const_interval recv_buffer = receive_buffer();
+		TORRENT_ASSERT(*recv_buffer.begin == msg_extended);
+		++recv_buffer.begin;
+		TORRENT_ASSERT(*recv_buffer.begin == holepunch_msg);
+		++recv_buffer.begin;
+
+		const char* ptr = recv_buffer.begin;
+
+		// ignore invalid messages
+		if (recv_buffer.left() < 4) return;
+
+		int msg_type = detail::read_uint8(ptr);
+		int addr_type = detail::read_uint8(ptr);
+
+		tcp::endpoint ep;
+
+		if (addr_type == 0)
+		{
+			if (recv_buffer.left() < 4 + 4 + 2) return;
+			// IPv4 address
+			ep = detail::read_v4_endpoint<tcp::endpoint>(ptr);
+		}
+#if TORRENT_USE_IPV6
+		else if (addr_type == 1)
+		{
+			// IPv6 address
+			if (recv_buffer.left() < 4 + 18 + 2) return;
+			ep = detail::read_v6_endpoint<tcp::endpoint>(ptr);
+		}
+#endif
+		else
+		{
+			return; // unknown address type
+		}
+
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		if (t) return;
+
+		switch (msg_type)
+		{
+			case hp_rendezvous: // rendezvous
+			{
+				// this peer is asking us to introduce it to
+				// the peer at 'ep'. We need to find which of
+				// our connections points to that endpoint
+				bt_peer_connection* p = t->find_peer(ep);
+				if (p == 0)
+				{
+					// we're not connected to this peer
+					write_holepunch_msg(hp_failed, ep, hp_not_connected);
+					break;
+				}
+				if (!p->supports_holepunch())
+				{
+					write_holepunch_msg(hp_failed, ep, hp_no_support);
+					break;
+				}
+				if (p == this)
+				{
+					write_holepunch_msg(hp_failed, ep, hp_no_self);
+					break;
+				}
+
+				write_holepunch_msg(hp_connect, p->remote(), 0);
+				p->write_holepunch_msg(hp_connect, ep, 0);
+			} break;
+			case hp_connect:
+			{
+				// add or find the peer with this endpoint
+				policy::peer* p = t->get_policy().add_peer(ep, peer_id(0), peer_info::pex, 0);
+				if (p == 0 || p->connection)
+				{
+					// we either couldn't add this peer, or it's
+					// already connected. Just ignore the connect message
+					break;
+				}
+				// to make sure we use the uTP protocol
+				p->supports_utp = true;
+				// #error make sure we make this a connection candidate
+				// in case it has too many failures for instance
+				t->connect_to_peer(p);
+				// #error somehow mark this connection to be in holepunch mode
+				// so that it will retry faster and stick to uTP while it's
+				// retrying
+			} break;
+			case hp_failed:
+			{
+				// #error deal with this
+			} break;
+		}
+	}
+
+	void bt_peer_connection::write_holepunch_msg(int type, tcp::endpoint const& ep, int error)
+	{
+		char buf[30];
+		char* ptr = buf + 6;
+		detail::write_uint8(type, ptr);
+		if (ep.address().is_v4()) detail::write_uint8(0, ptr);
+		else detail::write_uint8(1, ptr);
+		detail::write_endpoint(ep, ptr);
+
+		if (type == hp_failed)
+		{
+			detail::write_uint32(error, ptr);
+		}
+
+		// write the packet length and type
+		char* hdr = buf;
+		detail::write_uint32(ptr - buf - 6, hdr);
+		detail::write_uint8(msg_extended, hdr);
+		detail::write_uint8(m_holepunch_id, hdr);
+
+		send_buffer(buf, ptr - buf);
+	}
+
+	// -----------------------------
 	// --------- EXTENDED ----------
 	// -----------------------------
 
@@ -1468,6 +1599,13 @@ namespace libtorrent
 		{
 			if (!packet_finished()) return;
 			set_upload_only(detail::read_uint8(recv_buffer.begin));
+			return;
+		}
+
+		if (extended_id == holepunch_msg)
+		{
+			if (!packet_finished()) return;
+			on_holepunch();
 			return;
 		}
 
@@ -1524,7 +1662,10 @@ namespace libtorrent
 
 		// upload_only
 		if (lazy_entry const* m = root.dict_find_dict("m"))
+		{
 			m_upload_only_id = m->dict_find_int_value("upload_only", 0);
+			m_holepunch_id = m->dict_find_int_value("ut_holepunch", 0);
+		}
 
 		// there is supposed to be a remote listen port
 		int listen_port = root.dict_find_int_value("p");
@@ -1880,6 +2021,8 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 		m["upload_only"] = upload_only_msg;
+		m["ut_holepunch"] = holepunch_msg;
+
 		int complete_ago = -1;
 		if (t->last_seen_complete() > 0) complete_ago = t->time_since_complete();
 		handshake["complete_ago"] = complete_ago;

@@ -544,6 +544,18 @@ namespace libtorrent
 	{
 		m_extensions.push_back(ext);
 	}
+
+	peer_plugin const* peer_connection::find_plugin(char const* type)
+	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if (strcmp((*i)->type(), type) == 0) return (*i).get();
+		}
+#endif
+		return 0;
+	}
 #endif
 
 	void peer_connection::send_allowed_set()

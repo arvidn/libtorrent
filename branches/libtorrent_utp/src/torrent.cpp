@@ -936,6 +936,35 @@ namespace libtorrent
 			, shared_from_this(), _1, _2));
 	}
 
+	bt_peer_connection* torrent::find_introducer(tcp::endpoint const& ep) const
+	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (const_peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
+		{
+			if ((*i)->type() != peer_connection::bittorrent_connection) continue;
+			bt_peer_connection* p = (bt_peer_connection*)(*i);
+			if (!p->supports_holepunch()) continue;
+			peer_plugin const* pp = p->find_plugin("ut_pex");
+			if (!pp) continue;
+			// defined in ut_pex.cpp
+			extern bool was_introduced_by(peer_plugin const*, tcp::endpoint const&);
+			if (was_introduced_by(pp, ep)) return (bt_peer_connection*)p;
+		}
+#endif
+		return 0;
+	}
+
+	bt_peer_connection* torrent::find_peer(tcp::endpoint const& ep) const
+	{
+		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
+		{
+			peer_connection* p = *i;
+			if (p->type() != peer_connection::bittorrent_connection) continue;
+			if (p->remote() == ep) return (bt_peer_connection*)p;
+		}
+		return 0;
+	}
+
 	void torrent::on_resume_data_checked(int ret, disk_io_job const& j)
 	{
 		mutex::scoped_lock l(m_ses.m_mutex);
