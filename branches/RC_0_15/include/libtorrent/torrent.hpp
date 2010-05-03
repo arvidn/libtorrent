@@ -847,7 +847,7 @@ namespace libtorrent
 		// used for tracker announces
 		deadline_timer m_tracker_timer;
 
-		void update_tracker_timer();
+		void update_tracker_timer(ptime now);
 
 		static void on_tracker_announce_disp(boost::weak_ptr<torrent> p
 			, error_code const& e);
