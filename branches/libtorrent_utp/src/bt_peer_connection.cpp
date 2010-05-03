@@ -1538,7 +1538,7 @@ namespace libtorrent
 
 	void bt_peer_connection::write_holepunch_msg(int type, tcp::endpoint const& ep, int error)
 	{
-		char buf[30];
+		char buf[35];
 		char* ptr = buf + 6;
 		detail::write_uint8(type, ptr);
 		if (ep.address().is_v4()) detail::write_uint8(0, ptr);
@@ -1555,6 +1555,8 @@ namespace libtorrent
 		detail::write_uint32(ptr - buf - 6, hdr);
 		detail::write_uint8(msg_extended, hdr);
 		detail::write_uint8(m_holepunch_id, hdr);
+
+		TORRENT_ASSERT(ptr <= buf + sizeof(buf));
 
 		send_buffer(buf, ptr - buf);
 	}
