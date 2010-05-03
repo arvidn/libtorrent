@@ -768,6 +768,7 @@ int main(int argc, char* argv[])
 			"  -A <num pieces>       allowed pieces set size\n"
 			"  -R <num blocks>       number of blocks per read cache line\n"
 			"  -O                    Disallow disk job reordering\n"
+			"  -H                    Don't start DHT\n"
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -787,6 +788,7 @@ int main(int argc, char* argv[])
 	settings.volatile_read_cache = true;
 
 	int refresh_delay = 1;
+	bool start_dht = true;
 
 	std::deque<std::string> events;
 
@@ -812,19 +814,6 @@ int main(int argc, char* argv[])
 		if (lazy_bdecode(&in[0], &in[0] + in.size(), e) == 0)
 			ses.load_state(e);
 	}
-
-#ifndef TORRENT_DISABLE_DHT
-	settings.use_dht_as_fallback = false;
-
-	ses.add_dht_router(std::make_pair(
-			std::string("router.bittorrent.com"), 6881));
-	ses.add_dht_router(std::make_pair(
-			std::string("router.utorrent.com"), 6881));
-	ses.add_dht_router(std::make_pair(
-			std::string("router.bitcomet.com"), 6881));
-
-	ses.start_dht();
-#endif
 
 	ses.start_lsd();
 	ses.start_upnp();
@@ -938,6 +927,7 @@ int main(int argc, char* argv[])
 			case 'w': settings.urlseed_wait_retry = atoi(arg); break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
+			case 'H': start_dht = false; --i; break;
 			case 'x':
 				{
 					/*
@@ -995,6 +985,22 @@ int main(int argc, char* argv[])
 
 	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
 		, bind_to_interface.c_str());
+
+	if (start_dht)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		settings.use_dht_as_fallback = false;
+
+		ses.add_dht_router(std::make_pair(
+			std::string("router.bittorrent.com"), 6881));
+		ses.add_dht_router(std::make_pair(
+			std::string("router.utorrent.com"), 6881));
+		ses.add_dht_router(std::make_pair(
+			std::string("router.bitcomet.com"), 6881));
+
+		ses.start_dht();
+	}
+#endif
 
 	ses.set_settings(settings);
 
