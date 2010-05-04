@@ -83,14 +83,14 @@ void test_transfer()
 
 	create_directory("./tmp1_utp", ec);
 	std::ofstream file("./tmp1_utp/temporary");
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 10, false);
 	file.close();
 
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_utp", 8 * 1024, &t, false);
 
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 100; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true);
 		print_alerts(ses2, "ses2", true, true, true);
@@ -117,7 +117,7 @@ void test_transfer()
 			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading);
 
-		test_sleep(100);
+		test_sleep(500);
 	}
 
 	TEST_CHECK(tor1.is_finished());
