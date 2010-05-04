@@ -68,9 +68,9 @@ namespace libtorrent
 	private:
 		udp_socket& m_sock;
 		incoming_utp_callback_t m_cb;
-		
+
 		// replace with a hash-map
-		typedef std::map<boost::uint16_t, utp_socket_impl*> socket_map_t;
+		typedef std::multimap<boost::uint16_t, utp_socket_impl*> socket_map_t;
 		socket_map_t m_utp_sockets;
 
 		int m_new_connection;

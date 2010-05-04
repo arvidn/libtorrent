@@ -122,11 +122,20 @@ namespace libtorrent
 		boost::uint16_t id = ph->connection_id;
 		socket_map_t::iterator i = m_utp_sockets.find(id);
 
+        std::pair<socket_map_t::iterator, socket_map_t::iterator> r =
+            m_utp_sockets.equal_range(id);
+
+        for (; r.first != r.second; ++r.first)
+        {
+            if (ep == utp_remote_endpoint(r.first->second))
+                return utp_incoming_packet(r.first->second, p, size, ep);
+        }
+
 //		UTP_LOGV("incoming packet id:%d source:%s\n", id, print_endpoint(ep).c_str());
 
 		// if not found, see if it's a SYN packet, if it is,
 		// create a new utp_stream
-		if (i == m_utp_sockets.end() && ph->type == ST_SYN)
+		if (ph->type == ST_SYN)
 		{
 			// create the new socket with this ID
 			m_new_connection = id;
@@ -144,17 +153,6 @@ namespace libtorrent
 			// the connection most likely changed its connection ID here
 			// we need to move it to the correct ID
 			return true;
-		}
-
-		// only accept a packet if it's from the right source
-		if (i != m_utp_sockets.end() && ep == utp_remote_endpoint(i->second))
-		{
-//			UTP_LOGV("found connection!\n");
-			return utp_incoming_packet(i->second, p, size, ep);
-		}
-		else
-		{
-//			UTP_LOGV("ignoring packet\n");
 		}
 
 		// #error send reset
@@ -186,7 +184,6 @@ namespace libtorrent
 			recv_id = send_id - 1;
 		}
 		utp_socket_impl* impl = construct_utp_impl(recv_id, send_id, str, this);
-		TORRENT_ASSERT(m_utp_sockets.find(recv_id) == m_utp_sockets.end());
 		m_utp_sockets.insert(std::make_pair(recv_id, impl));
 		return impl;
 	}
