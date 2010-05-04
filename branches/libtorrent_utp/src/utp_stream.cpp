@@ -1847,6 +1847,17 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				while (send_pkt(false));
 			}
 
+            // Everything up to the FIN has been receieved, respond with a FIN
+            // from our side.
+            if (m_eof && m_ack_nr == (m_eof_seq_nr - 1) & ACK_MASK)
+            {
+                UTP_LOGV("[%08u] %08p: incoming stream consumed\n"
+                  , int(total_microseconds(time_now() - min_time())), this);
+
+                // This transitions to the UTP_STATE_FIN_SENT state.
+                send_fin();
+            }
+
 			return true;
 		}
 		case UTP_STATE_FIN_SENT:
