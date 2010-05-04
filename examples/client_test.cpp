@@ -1405,8 +1405,8 @@ int main(int argc, char* argv[])
 				for (std::vector<announce_entry>::iterator i = tr.begin()
 					, end(tr.end()); i != end; ++i)
 				{
-					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d %s %s\n"
-						, i->tier, i->url.c_str(), i->fails, i->verified?"OK ":"-  "
+					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s\n"
+						, i->tier, i->url.c_str(), i->fails, i->fail_limit, i->verified?"OK ":"-  "
 						, i->updating?"updating"
 							:!i->will_announce(now)?""
 							:to_string(total_seconds(i->next_announce - now), 8).c_str());
