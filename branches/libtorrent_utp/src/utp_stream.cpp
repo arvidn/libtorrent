@@ -1487,10 +1487,12 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	// sequence number
 	if (compare_less_wrap(m_acked_seq_nr, ph->ack_nr, ACK_MASK))
 	{
-		m_acked_seq_nr = ph->ack_nr;
-		for (int ack_nr = m_acked_seq_nr; ack_nr != (m_acked_seq_nr + 1) & ACK_MASK
-			; ack_nr = (ack_nr + 1) & ACK_MASK)
-		{
+        int const next_ack_nr = ph->ack_nr;
+
+        for (int ack_nr = (m_acked_seq_nr + 1) & ACK_MASK
+             ; ack_nr != (next_ack_nr + 1) & ACK_MASK
+             ; ack_nr = (ack_nr + 1) & ACK_MASK)
+        {
 			packet* p = (packet*)m_outbuf.remove(ack_nr);
 			if (!p) continue;
 			acked_bytes += p->size - p->header_size;
@@ -1498,7 +1500,10 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				, int(total_microseconds(time_now() - min_time())), this
 				, ack_nr, p->size - p->header_size);
 			ack_packet(p, receive_time);
-		}
+        }
+
+		m_acked_seq_nr = next_ack_nr;
+
 		m_duplicate_acks = 0;
 		if (compare_less_wrap(m_fast_resend_seq_nr, (m_acked_seq_nr + 1) & ACK_MASK, ACK_MASK))
 			m_fast_resend_seq_nr = (m_acked_seq_nr + 1) & ACK_MASK;
