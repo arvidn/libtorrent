@@ -592,7 +592,11 @@ std::size_t utp_stream::available() const
 
 utp_stream::endpoint_type utp_stream::remote_endpoint(error_code& ec) const
 {
-	if (!m_open) ec = asio::error::not_connected;
+	if (!m_impl)
+    {
+        ec = asio::error::not_connected;
+        return endpoint_type();
+    }
 	return m_impl->remote_endpoint(ec);
 }
 
