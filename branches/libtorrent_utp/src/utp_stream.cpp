@@ -326,6 +326,8 @@ struct utp_socket_impl
     bool consume_incoming_data(
         utp_header const* ph, char const* ptr, int payload_size);
 
+    void check_receive_buffers() const;
+
 	utp_socket_manager* m_sm;
 
 	sliding_average m_rtt;
@@ -720,6 +722,8 @@ void utp_stream::set_read_handler(handler_t h)
             break;
         }
 
+        m_impl->check_receive_buffers();
+
 		packet* p = *i;
 		int to_copy = (std::min)(p->size - p->header_size, int(target->len));
         TORRENT_ASSERT(to_copy >= 0);
@@ -732,6 +736,8 @@ void utp_stream::set_read_handler(handler_t h)
 		m_impl->m_read_buffer_size -= to_copy;
 		p->header_size += to_copy;
 		if (target->len == 0) target = m_impl->m_read_buffer.erase(target);
+
+        m_impl->check_receive_buffers();
 
         TORRENT_ASSERT(m_impl->m_receive_buffer_size >= 0);
 
@@ -1316,6 +1322,8 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p)
 	// save this packet until the client issues another read
 	m_receive_buffer.push_back(p);
 	m_receive_buffer_size += p->size - p->header_size;
+
+    check_receive_buffers();
 }
 
 bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
@@ -1949,6 +1957,20 @@ void utp_socket_impl::tick(ptime const& now)
 //
 //			break;
 	}
+}
+
+void utp_socket_impl::check_receive_buffers() const
+{
+    std::size_t size = 0;
+
+    for (std::vector<packet*>::const_iterator i = m_receive_buffer.begin()
+      , end(m_receive_buffer.end()); i != end; ++i)
+    {
+        if (packet const* p = *i)
+            size += p->size - p->header_size;
+    }
+
+    TORRENT_ASSERT(size == m_receive_buffer_size);
 }
 
 }
