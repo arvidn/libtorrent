@@ -323,6 +323,8 @@ struct utp_socket_impl
 	void maybe_trigger_receive_callback(ptime now);
 	void maybe_trigger_send_callback(ptime now);
 	bool cancel_handlers(error_code const& ec, bool kill);
+    bool consume_incoming_data(
+        utp_header const* ph, char const* ptr, int payload_size);
 
 	utp_socket_manager* m_sm;
 
@@ -1303,6 +1305,72 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 	return ret;
 }
 
+bool utp_socket_impl::consume_incoming_data(
+    utp_header const* ph, char const* ptr, int payload_size)
+{
+    if (ph->type == ST_DATA)
+    {
+        if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK))
+        {
+            TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
+
+            // we received a packet in order1
+            incoming(ptr, payload_size, 0);
+            m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
+
+            // If this packet was previously in the reorder buffer
+            // it would have been acked when m_ack_nr-1 was acked.
+            TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
+
+            UTP_LOGV("[%08u] %08p: remove inbuf: %d (%d)\n"
+              , int(total_microseconds(time_now() - min_time())), this
+              , m_ack_nr, m_inbuf.size());
+
+            for (;;)
+            {
+                int const next_ack_nr = (m_ack_nr + 1) & ACK_MASK;
+
+                packet* p = (packet*)m_inbuf.remove(next_ack_nr);
+
+                if (!p)
+                    break;
+
+                m_buffered_incoming_bytes -= p->size - p->header_size;
+                incoming(0, p->size - p->header_size, p);
+
+                m_ack_nr = next_ack_nr;
+
+                UTP_LOGV("[%08u] %08p: reordered remove inbuf: %d (%d)\n"
+                  , int(total_microseconds(time_now() - min_time())), this
+                  , m_ack_nr, m_inbuf.size());
+            }
+        }
+        else
+        {
+            // this packet was received out of order. Stick it in the
+            // reorder buffer until it can be delivered in order
+
+            // do we already have this packet? If so, just ignore it
+            if (m_inbuf.at(ph->seq_nr)) return true;
+
+            // we don't need to save the packet header, just the payload
+            packet* p = (packet*)malloc(sizeof(packet) + payload_size);
+            p->size = payload_size;
+            p->header_size = 0;
+            p->num_transmissions = 0;
+            memcpy(p->buf, ptr, payload_size);
+            m_inbuf.insert(ph->seq_nr, p);
+            m_buffered_incoming_bytes += p->size;
+
+            UTP_LOGV("[%08u] %08p: insert inbuf: %d (%d)\n"
+              , int(total_microseconds(time_now() - min_time())), this
+              , int(ph->seq_nr), m_inbuf.size());
+        }
+    }
+
+    return false;
+}
+
 // returns true of the socket was closed
 bool utp_socket_impl::test_socket_state()
 {
@@ -1704,43 +1772,8 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			if (sample && acked_bytes && prev_bytes_in_flight)
 				do_ledbat(acked_bytes, delay, prev_bytes_in_flight);
 
-			if (ph->type == ST_DATA)
-			{
-				if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK))
-				{
-					TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
-
-					// we received a packet in order1
-					incoming(ptr, payload_size, 0);
-					m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
-	
-					packet* p = (packet*)m_inbuf.remove(m_ack_nr);
-					while (p)
-					{
-						m_buffered_incoming_bytes -= p->size - p->header_size;
-						incoming(0, p->size - p->header_size, p);
-						m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
-						p = (packet*)m_inbuf.remove(m_ack_nr);
-					}
-				}
-				else
-				{
-					// this packet was received out of order. Stick it in the
-					// reorder buffer until it can be delivered in order
-
-					// do we already have this packet? If so, just ignore it
-					if (m_inbuf.at(ph->seq_nr)) return true;
-
-					// we don't need to save the packet header, just the payload
-					packet* p = (packet*)malloc(sizeof(packet) + payload_size);
-					p->size = payload_size;
-					p->header_size = 0;
-					p->num_transmissions = 0;
-					memcpy(p->buf, ptr, payload_size);
-					m_inbuf.insert(ph->seq_nr, p);
-					m_buffered_incoming_bytes += p->size;
-				}
-			}
+            if (consume_incoming_data(ph, ptr, payload_size))
+                return true;
 
 			// the parameter to send_pkt tells it if we're acking data
 			// If we are, we'll send an ACK regardless of if we have any
