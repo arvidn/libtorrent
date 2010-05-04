@@ -1057,6 +1057,7 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 		size -= to_copy;
 		if (m_written == 0) m_write_timeout = now + milliseconds(100);
 		m_written += to_copy;
+        ptr += to_copy;
 		i->len -= to_copy;
 		TORRENT_ASSERT(m_write_buffer_size >= to_copy);
 		m_write_buffer_size -= to_copy;
