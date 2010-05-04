@@ -119,7 +119,6 @@ namespace libtorrent
 		}
 		
 		void* ret = m_array[i & m_mask];
-		TORRENT_ASSERT(ret);
 		if (ret) --m_num_elements;
 		m_array[i & m_mask] = 0;
 		// if we removed the cursor element, increment it
