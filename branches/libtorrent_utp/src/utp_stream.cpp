@@ -710,11 +710,19 @@ void utp_stream::set_read_handler(handler_t h)
 
 	int pop_packets = 0;
 	for (std::vector<packet*>::iterator i = m_impl->m_receive_buffer.begin()
-		, end(m_impl->m_receive_buffer.end()); i != end; ++i)
+		, end(m_impl->m_receive_buffer.end()); i != end;)
 	{
-		if (target == m_impl->m_read_buffer.end()) break;
+		if (target == m_impl->m_read_buffer.end()) 
+        {
+            UTP_LOGV("  No more target buffers: %d bytes left in buffer\n"
+                , m_impl->m_receive_buffer_size);
+            TORRENT_ASSERT(m_impl->m_read_buffer.empty());
+            break;
+        }
+
 		packet* p = *i;
 		int to_copy = (std::min)(p->size - p->header_size, int(target->len));
+        TORRENT_ASSERT(to_copy >= 0);
 		memcpy(target->buf, p->buf + p->header_size, to_copy);
 		m_impl->m_read += to_copy;
 		target->buf = ((char*)target->buf) + to_copy;
@@ -724,9 +732,24 @@ void utp_stream::set_read_handler(handler_t h)
 		m_impl->m_read_buffer_size -= to_copy;
 		p->header_size += to_copy;
 		if (target->len == 0) target = m_impl->m_read_buffer.erase(target);
-		if (p->header_size != p->size) break;
-		free(p);
-		++pop_packets;
+
+        TORRENT_ASSERT(m_impl->m_receive_buffer_size >= 0);
+
+        // Consumed entire packet
+        if (p->header_size == p->size)
+        {
+            free(p);
+            ++pop_packets;
+            *i = 0;
+            ++i;
+        }
+
+        if (m_impl->m_receive_buffer_size == 0)
+        {
+            UTP_LOGV("  Didn't fill entire target: %d bytes left in buffer\n"
+              , m_impl->m_receive_buffer_size);
+            break;
+        }
 	}
 	// remove the packets from the receive_buffer that we already copied over
 	// and freed
