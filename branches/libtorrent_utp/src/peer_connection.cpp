@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/bt_peer_connection.hpp"
 
 #ifdef TORRENT_DEBUG
 #include <set>
@@ -4843,11 +4844,20 @@ namespace libtorrent
 
 			// a connection attempt using uTP just failed
 			// mark this peer as not supporting uTP
-			// we'll never try it again
+			// we'll never try it again (unless we're trying holepunch)
 			if (m_socket->get<utp_stream>() && m_peer_info && m_peer_info->supports_utp)
 			{
 				m_peer_info->supports_utp = false;
 				fast_reconnect(true);
+			}
+
+			if (!m_socket->get<utp_stream>() && m_peer_info && m_peer_info->supports_holepunch)
+			{
+				boost::shared_ptr<torrent> t = m_torrent.lock();
+				// see if we can try a holepunch
+				bt_peer_connection* p = t->find_introducer(remote());
+				if (p)
+					p->write_holepunch_msg(bt_peer_connection::hp_rendezvous, remote(), 0);
 			}
 
 			disconnect(e, 1);
