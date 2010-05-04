@@ -649,6 +649,9 @@ void utp_stream::add_read_buffer(void* buf, size_t len)
 	TORRENT_ASSERT(m_impl);
 	m_impl->m_read_buffer.push_back(utp_socket_impl::iovec_t(buf, len));
 	m_impl->m_read_buffer_size += len;
+
+    UTP_LOGV("[%08u] %08p: add_read_buffer %d bytes\n"
+        , int(total_microseconds(time_now() - min_time())), this, len);
 }
 
 // this is the wrapper to add a user provided write buffer to the
@@ -692,6 +695,10 @@ void utp_stream::set_read_handler(handler_t h)
 	m_impl->m_read_handler = h;
 	if (m_impl->test_socket_state()) return;
 
+    UTP_LOGV("[%08u] %08p: new read handler. %d bytes in buffer\n"
+        , int(total_microseconds(time_now() - min_time())), this
+        , m_impl->m_receive_buffer_size);
+
 	// so, the client wants to read. If we already
 	// have some data in the read buffer, move it into the
 	// client's buffer right away
@@ -728,6 +735,10 @@ void utp_stream::set_read_handler(handler_t h)
 	TORRENT_ASSERT(m_impl->m_receive_buffer_size == 0
 		|| m_impl->m_read_buffer.empty());
 
+    UTP_LOGV("[%08u] %08p: %d packets moved from buffer to user space\n"
+        , int(total_microseconds(time_now() - min_time())), this
+        , pop_packets);
+
 	m_impl->maybe_trigger_receive_callback(time_now());
 }
 
@@ -759,6 +770,8 @@ void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler
 
 utp_socket_impl::~utp_socket_impl()
 {
+    UTP_LOGV("[%08u] %08p: destroying utp socket state\n"
+			, int(total_microseconds(time_now() - min_time())), this);
 	// #error go through circular buffers and receive buffer and free all packet
 }
 
