@@ -1866,6 +1866,91 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// up until m_eof_seq_nr and our FIN packet has been acked
 			// set m_error to asio::error::eof and transition to state
 			// UTP_STATE_ERROR_WAIT
+
+            // There are two ways we can end up in this state:
+            //
+            // 1. If the socket has been explicitly closed on our
+            //    side, in which case m_eof is false.
+            //
+            // 2. If we received a FIN from the remote side, in which
+            //    case m_eof is true. If this is the case, we don't
+            //    come here until everything up to the FIN has been
+            //    received.
+            //
+            //
+            //
+
+            // At this point m_seq_nr - 1 is the FIN sequence number.
+
+            // We can receive both ST_DATA and ST_STATE here, because after
+            // we have closed our end of the socket, the remote end might
+            // have data in the pipeline. We don't really care about the
+            // data, but we do have to ack it. Or rather, we have to ack
+            // the FIN that will come after the data.
+
+            // Case 1:
+            // ---------------------------------------------------------------
+            //
+            // If we are here because the local endpoint was closed, we need
+            // to first wait for all of our messages to be acked:
+            //
+            //   if (m_acked_seq_nr == (m_seq_nr - 1) & ACK_MASK)
+            //
+            // `m_seq_nr - 1` is the ST_FIN message that we sent.
+            //
+            //                     ----------------------
+            //
+            // After that has happened we need to wait for the remote side
+            // to send its ST_FIN message. When we receive that we send an
+            // ST_STATE back to ack, and wait for a sufficient period.
+            // During this wait we keep acking incoming ST_FIN's. This is
+            // all handled at the top of this function.
+            //
+            // Note that the user handlers are all cancelled when the initial
+            // close() call happens, so nothing will happen on the user side
+            // after that.
+
+
+
+            // Case 2:
+            // ---------------------------------------------------------------
+            //
+            // If we are here because we received a ST_FIN message, and then
+            // sent our own ST_FIN to ack that, we need to wait for our ST_FIN
+            // to be acked:
+            //
+            //   if (m_acked_seq_nr == (m_seq_nr - 1) & ACK_MASK)
+            //
+            // `m_seq_nr - 1` is the ST_FIN message that we sent.
+            //
+            // After that has happened we know the remote side has all our
+            // data, and we can gracefully shut down.
+
+            if (consume_incoming_data(ph, ptr, payload_size))
+                return true;
+
+            if (m_acked_seq_nr == (m_seq_nr - 1) & ACK_MASK)
+            {
+                // When this happens we know that the remote side has
+                // received all of our packets.
+
+                UTP_LOGV("[%08u] %08p: FIN acked\n"
+                    , int(total_microseconds(time_now() - min_time())), this);
+
+                if (!m_userdata)
+                {
+                     UTP_LOGV("[%08u] %08p: close initiated here, "
+                              "wait for remote FIN\n"
+                        , int(total_microseconds(time_now() - min_time())), this);
+                }
+                else
+                {
+                    m_error = asio::error::eof;
+                    m_state = UTP_STATE_ERROR_WAIT;
+                    test_socket_state();
+                }
+            }
+
 			return true;
 		}
 		case UTP_STATE_DELETE:
