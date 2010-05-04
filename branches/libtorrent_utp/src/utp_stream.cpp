@@ -1074,7 +1074,10 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 // send_pkt() again)
 bool utp_socket_impl::send_pkt(bool ack)
 {
-	TORRENT_ASSERT(m_state != UTP_STATE_FIN_SENT);
+    // This assert is bad because we call this function to ack
+    // received FIN when we're in UTP_STATE_FIN_SENT.
+    //
+	// TORRENT_ASSERT(m_state != UTP_STATE_FIN_SENT);
 
 	bool ret = false;
 
