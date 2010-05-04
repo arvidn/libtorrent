@@ -1400,9 +1400,18 @@ namespace libtorrent
 				for (cache_t::iterator i = m_pieces.begin()
 					, end(m_pieces.end()); i != end; ++i)
 					flush_range(i, 0, INT_MAX, l);
+
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+				// since we're aborting the thread, we don't actually
+				// need to free all the blocks individually. We can just
+				// clear the piece list and the memory will be freed when we
+				// destruct the m_pool. If we're not using a pool, we actually
+				// have to free everything individually though
 				for (cache_t::iterator i = m_read_pieces.begin()
 					, end(m_read_pieces.end()); i != end; ++i)
 					free_piece(*i, l);
+#endif
+
 				m_pieces.clear();
 				m_read_pieces.clear();
 				// release the io_service to allow the run() call to return
