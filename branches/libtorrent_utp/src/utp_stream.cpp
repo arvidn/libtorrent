@@ -1427,7 +1427,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	// information in this packet
 	if (m_state != UTP_STATE_SYN_SENT
 		&& ph->type == ST_DATA
-		&& compare_less_wrap(ph->seq_nr, m_ack_nr, ACK_MASK))
+		&& !compare_less_wrap(m_ack_nr, ph->seq_nr, ACK_MASK))
 	{
 		// we've already received this packet
 		UTP_LOGV("[%08u] %08p: incoming packet seq_nr:%d our ack_nr:%d (ignored)\n"
