@@ -1681,6 +1681,34 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 	if (ph->type == ST_FIN)
 	{
+        // We ignore duplicate FIN packets, but we still need to ACK them.
+        if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK)
+          || ph->seq_nr == m_ack_nr)
+        {
+            UTP_LOGV("[%08u] %08p: FIN received in order\n"
+                , int(total_microseconds(receive_time - min_time()))
+                , this);
+
+            // The FIN arrived in order, nothing else is in the
+            // reorder buffer.
+
+            TORRENT_ASSERT(m_inbuf.size() == 0);
+            m_ack_nr = ph->seq_nr;
+
+            // Transition to UTP_STATE_FIN_SENT. The sent FIN is also an ack
+            // to the FIN we received. Once we're in UTP_STATE_FIN_SENT we
+            // just need to wait for our FIN to be acked.
+
+            if (m_state == UTP_STATE_FIN_SENT)
+            {
+                send_pkt(true);
+            }
+            else
+            {
+                send_fin();
+            }
+        }
+
 		if (m_eof)
 		{
 			UTP_LOGV("[%08u] %08p: duplicate FIN packet (ignoring)\n"
