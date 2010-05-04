@@ -121,7 +121,7 @@ struct packet
 	ptime send_time; // the last time this packet was sent
 	boost::uint16_t size;
 	boost::uint8_t num_transmissions;
-	boost::uint8_t header_size;
+	boost::uint16_t header_size;
 	
 	char buf[];
 };
