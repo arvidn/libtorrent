@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/alloca.hpp"
+#include "libtorrent/timestamp_history.hpp"
 
 #define TORRENT_UTP_LOG 1
 
@@ -85,7 +86,6 @@ void utp_log(char const* fmt, ...)
 enum
 {
 	ACK_MASK = 0xffff,
-	TIME_MASK = 0xffffffff,
 
 	// the number of packets that'll fit in the reorder buffer
 	max_packets_reorder = 512,
@@ -124,76 +124,6 @@ struct packet
 	boost::uint16_t header_size;
 	
 	char buf[];
-};
-
-// timestamp history keeps a history of the lowest timestamps we've
-// seen in the last 20 minutes
-struct timestamp_history
-{
-	enum { history_size = 20 };
-
-	timestamp_history() : m_index(0), m_base(0), m_initialized(false) {}
-
-	// add a sample to the timestamp history. If step is true, it's been
-	// a minute since the last step
-	boost::uint32_t add_sample(boost::uint32_t sample, bool step)
-	{
-		if (!m_initialized)
-		{
-			for (int i = 0; i < history_size; ++i)
-				m_history[i] = sample;
-			m_base = sample;
-		}
-
-		// if sample is less than base, update the base
-		// and update the history entry (because it will
-		// be less than that too)
-		if (compare_less_wrap(sample, m_base, TIME_MASK))
-		{
-			m_base = sample;
-			m_history[m_index] = sample;
-		}
-		// if sample is less than our history entry, update it
-		else if (compare_less_wrap(sample, m_history[m_index], TIME_MASK))
-		{
-			m_history[m_index] = sample;
-		}
-
-		boost::uint32_t ret = sample - m_base;
-
-		if (step)
-		{
-			m_index = (m_index + 1) % history_size;
-
-			m_history[m_index] = sample;
-			// update m_base
-			m_base = sample;
-			for (int i = 0; i < history_size; ++i)
-			{
-				if (compare_less_wrap(m_history[i], m_base, TIME_MASK))
-					m_base = m_history[i];
-			}
-		}
-		return ret;
-	}
-
-	boost::uint32_t base() const { return m_base; }
-
-private:
-
-	// this is a circular buffer
-	boost::uint32_t m_history[history_size];
-
-	// and this is the index we're currently at
-	// in the circular buffer
-	int m_index;
-
-	// this is the lowest sample seen in the
-	// last 'history_size' minutes
-	boost::uint32_t m_base;
-
-	bool m_initialized;
-
 };
 
 // since the uTP socket state may be needed after the

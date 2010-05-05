@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/timestamp_history.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -383,6 +384,23 @@ int test_main()
 	using namespace libtorrent;
 	error_code ec;
 	int ret = 0;
+
+	// test timestamp_history
+	{
+		timestamp_history h;
+		TEST_EQUAL(h.add_sample(0x32, false), 0);
+		TEST_EQUAL(h.base(), 0x32);
+		TEST_EQUAL(h.add_sample(0x33, false), 0x1);
+		TEST_EQUAL(h.base(), 0x32);
+		TEST_EQUAL(h.add_sample(0x3433, false), 0x3401);
+		TEST_EQUAL(h.base(), 0x32);
+		TEST_EQUAL(h.add_sample(0x30, false), 0);
+		TEST_EQUAL(h.base(), 0x30);
+
+		// test that wrapping of the timestamp is properly handled
+		h.add_sample(0xfffffff3, false);
+		TEST_EQUAL(h.base(), 0xfffffff3);
+	}
 
 	// test packet_buffer
 	{

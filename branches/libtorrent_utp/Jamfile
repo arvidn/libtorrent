@@ -391,6 +391,7 @@ SOURCES =
 	http_tracker_connection
 	udp_tracker_connection
 	sha1
+	timestamp_history
 	udp_socket
 	upnp
 	utp_socket_manager

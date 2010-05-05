@@ -74,6 +74,7 @@ libtorrent_rasterbar_la_SOURCES = \
   torrent_handle.cpp              \
   torrent_info.cpp                \
   time.cpp                        \
+  timestamp_history.cpp           \
   tracker_manager.cpp             \
   udp_socket.cpp                  \
   udp_tracker_connection.cpp      \

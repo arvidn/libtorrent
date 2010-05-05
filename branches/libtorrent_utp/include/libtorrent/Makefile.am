@@ -90,6 +90,7 @@ nobase_include_HEADERS = \
   storage_defs.hpp             \
   thread.hpp                   \
   time.hpp                     \
+  timestamp_history.hpp        \
   torrent_handle.hpp           \
   torrent.hpp                  \
   torrent_info.hpp             \
