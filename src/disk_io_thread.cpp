@@ -1498,7 +1498,7 @@ namespace libtorrent
 				}
 
 				// if we've reached the end, change the elevator direction
-				if (elevator_job_pos == sorted_read_jobs.end() && elevator_direction == 1)
+				if (elevator_job_pos == sorted_read_jobs.end())
 				{
 					elevator_direction = -1;
 					--elevator_job_pos;
@@ -1509,7 +1509,7 @@ namespace libtorrent
 
 				// if we've reached the begining of the sorted list,
 				// change the elvator direction
-				if (elevator_job_pos == sorted_read_jobs.begin() && elevator_direction == -1)
+				if (elevator_job_pos == sorted_read_jobs.begin())
 					elevator_direction = 1;
 
 				// move the elevator before erasing the job we're processing
