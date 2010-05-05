@@ -28,6 +28,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed bug in the disk thread that could get triggered under heavy load
 	* fixed bug in add_piece() that would trigger asserts
 	* fixed vs 2010 build
 	* recognizes more clients in identify_client()
