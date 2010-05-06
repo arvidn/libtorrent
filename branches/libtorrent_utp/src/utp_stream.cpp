@@ -181,7 +181,7 @@ struct utp_socket_impl
 		: m_sm(sm)
 		, m_remote_address()
 		, m_port(0)
-		, m_last_history_step(time_now())
+		, m_last_history_step(time_now_hires())
 		, m_send_id(send_id)
 		, m_recv_id(recv_id)
 		, m_ack_nr(0)
@@ -201,9 +201,9 @@ struct utp_socket_impl
 		, m_write_handler(0)
 		, m_connect_handler(0)
 		, m_reply_micro(0)
-		, m_cwnd(1500)
+		, m_cwnd(1500 << 16)
 		, m_adv_wnd(1500)
-		, m_timeout(time_now() + seconds(3))
+		, m_timeout(time_now_hires() + seconds(3))
 		, m_bytes_in_flight(0)
 		, m_mtu(1500 - 20 - 8 - 8)
 		, m_buffered_incoming_bytes(0)
@@ -560,7 +560,7 @@ void utp_stream::on_read(void* self, size_t bytes_transferred, error_code const&
 	utp_stream* s = (utp_stream*)self;
 
 	UTP_LOGV("[%08u] %08p: calling read handler read:%d ec:%s kill:%d\n"
-		, int(total_microseconds(time_now() - min_time())), s->m_impl
+		, int(total_microseconds(time_now_hires() - min_time())), s->m_impl
 		, bytes_transferred, ec.message().c_str(), kill);
 
 	TORRENT_ASSERT(s->m_read_handler);
@@ -574,7 +574,7 @@ void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const
 	utp_stream* s = (utp_stream*)self;
 
 	UTP_LOGV("[%08u] %08p: calling write handler written:%d ec:%s kill:%d\n"
-		, int(total_microseconds(time_now() - min_time())), s->m_impl
+		, int(total_microseconds(time_now_hires() - min_time())), s->m_impl
 		, bytes_transferred, ec.message().c_str(), kill);
 
 	TORRENT_ASSERT(s->m_write_handler);
@@ -588,7 +588,7 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 	utp_stream* s = (utp_stream*)self;
 
 	UTP_LOGV("[%08u] %08p: calling connect handler ec:%s kill:%d\n"
-		, int(total_microseconds(time_now() - min_time())), s->m_impl, ec.message().c_str(), kill);
+		, int(total_microseconds(time_now_hires() - min_time())), s->m_impl, ec.message().c_str(), kill);
 
 	TORRENT_ASSERT(s->m_connect_handler);
 	s->m_io_service.post(boost::bind<void>(s->m_connect_handler, ec));
@@ -603,7 +603,7 @@ void utp_stream::add_read_buffer(void* buf, size_t len)
 	m_impl->m_read_buffer_size += len;
 
     UTP_LOGV("[%08u] %08p: add_read_buffer %d bytes\n"
-        , int(total_microseconds(time_now() - min_time())), m_impl, len);
+        , int(total_microseconds(time_now_hires() - min_time())), m_impl, len);
 }
 
 // this is the wrapper to add a user provided write buffer to the
@@ -637,7 +637,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 #endif
 
     UTP_LOGV("[%08u] %08p: add_write_buffer %d bytes\n"
-        , int(total_microseconds(time_now() - min_time())), m_impl, len);
+        , int(total_microseconds(time_now_hires() - min_time())), m_impl, len);
 }
 
 // this is called when all user provided read buffers have been added
@@ -651,7 +651,7 @@ void utp_stream::set_read_handler(handler_t h)
 	if (m_impl->test_socket_state()) return;
 
     UTP_LOGV("[%08u] %08p: new read handler. %d bytes in buffer\n"
-        , int(total_microseconds(time_now() - min_time())), m_impl
+        , int(total_microseconds(time_now_hires() - min_time())), m_impl
         , m_impl->m_receive_buffer_size);
 
 	// so, the client wants to read. If we already
@@ -718,10 +718,10 @@ void utp_stream::set_read_handler(handler_t h)
 		|| m_impl->m_read_buffer.empty());
 
     UTP_LOGV("[%08u] %08p: %d packets moved from buffer to user space\n"
-        , int(total_microseconds(time_now() - min_time())), m_impl
+        , int(total_microseconds(time_now_hires() - min_time())), m_impl
         , pop_packets);
 
-	m_impl->maybe_trigger_receive_callback(time_now());
+	m_impl->maybe_trigger_receive_callback(time_now_hires());
 }
 
 // this is called when all user provided write buffers have been
@@ -729,7 +729,7 @@ void utp_stream::set_read_handler(handler_t h)
 void utp_stream::set_write_handler(handler_t h)
 {
     UTP_LOGV("[%08u] %08p: new write handler. %d bytes to write\n"
-        , int(total_microseconds(time_now() - min_time())), m_impl
+        , int(total_microseconds(time_now_hires() - min_time())), m_impl
         , m_impl->m_write_buffer_size);
 
 	m_impl->m_write_handler = h;
@@ -757,7 +757,7 @@ void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler
 utp_socket_impl::~utp_socket_impl()
 {
     UTP_LOGV("[%08u] %08p: destroying utp socket state\n"
-			, int(total_microseconds(time_now() - min_time())), this);
+			, int(total_microseconds(time_now_hires() - min_time())), this);
 	// #error go through circular buffers and receive buffer and free all packet
 }
 
@@ -769,7 +769,7 @@ void utp_socket_impl::maybe_trigger_receive_callback(ptime now)
 	if (m_read > 10000 || m_read_buffer_size == 0 || now >= m_read_timeout)
 	{
 		UTP_LOGV("[%08u] %08p: calling read handler read:%d\n"
-			, int(total_microseconds(time_now() - min_time())), this
+			, int(total_microseconds(time_now_hires() - min_time())), this
 			, m_read);
 		m_read_handler(m_userdata, m_read, m_error, false);
 		m_read_handler = 0;
@@ -787,7 +787,7 @@ void utp_socket_impl::maybe_trigger_send_callback(ptime now)
 	if (m_written > 10000 || m_write_buffer_size == 0 || now >= m_write_timeout)
 	{
 		UTP_LOGV("[%08u] %08p: calling write handler written:%d\n"
-			, int(total_microseconds(time_now() - min_time())), this
+			, int(total_microseconds(time_now_hires() - min_time())), this
 			, m_written);
 
 		m_write_handler(m_userdata, m_written, m_error, false);
@@ -801,7 +801,7 @@ void utp_socket_impl::maybe_trigger_send_callback(ptime now)
 void utp_socket_impl::destroy()
 {
 	UTP_LOGV("[%08u] %08p: destroy state:%s\n"
-		, int(total_microseconds(time_now() - min_time())), this
+		, int(total_microseconds(time_now_hires() - min_time())), this
 		, socket_state_names[m_state]);
 
 	if (m_userdata == 0) return;
@@ -819,7 +819,7 @@ void utp_socket_impl::destroy()
 	{
 		m_state = UTP_STATE_DELETE;
 		UTP_LOGV("[%08u] %08p: state:%s\n"
-			, int(total_microseconds(time_now() - min_time())), this
+			, int(total_microseconds(time_now_hires() - min_time())), this
 			, socket_state_names[m_state]);
 		return;
 	}
@@ -881,7 +881,7 @@ void utp_socket_impl::send_syn()
 	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 	m_state = UTP_STATE_SYN_SENT;
 	UTP_LOGV("[%08u] %08p: state:%s\n"
-		, int(total_microseconds(time_now() - min_time())), this
+		, int(total_microseconds(time_now_hires() - min_time())), this
 		, socket_state_names[m_state]);
 }
 
@@ -934,7 +934,7 @@ void utp_socket_impl::send_fin()
 	m_state = UTP_STATE_FIN_SENT;
 
 	UTP_LOGV("[%08u] %08p: state:%s\n"
-		, int(total_microseconds(time_now() - min_time())), this
+		, int(total_microseconds(time_now_hires() - min_time())), this
 		, socket_state_names[m_state]);
 }
 
@@ -992,7 +992,7 @@ void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes, pt
 				if (!p) continue;
 				acked_bytes += p->size - p->header_size;
 				UTP_LOGV("[%08u] %08p: acked packet %d (%d bytes)\n"
-					, int(total_microseconds(time_now() - min_time())), this
+					, int(total_microseconds(time_now_hires() - min_time())), this
 					, ack_nr, p->size - p->header_size);
 				ack_packet(p, now);
 				// each ACKed packet counts as a duplicate ack
@@ -1034,7 +1034,7 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 
 	if (size == 0) return;
 
-	ptime now = time_now();
+	ptime now = time_now_hires();
 
 	int buffers_to_clear = 0;
 	while (size > 0)
@@ -1047,7 +1047,7 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 		{
 			m_write_timeout = now + milliseconds(100);
 			UTP_LOGV("[%08u] %08p: setting write timeout to 100 ms from now\n"
-				, int(total_microseconds(time_now() - min_time())), this);
+				, int(total_microseconds(time_now_hires() - min_time())), this);
 		}
 		m_written += to_copy;
         ptr += to_copy;
@@ -1107,7 +1107,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 	// if we have one MSS worth of data, make sure it fits in our
 	// congestion window and the advertized receive window from
 	// the other end.
-	if (payload_size > (std::min)(int(m_cwnd), int(m_adv_wnd)) - m_bytes_in_flight)
+	if (payload_size > (std::min)(int(m_cwnd >> 16), int(m_adv_wnd)) - m_bytes_in_flight)
 	{
 		// this means there's not enough room in the send window for
 		// another packet. We have to hold off sending this data.
@@ -1121,7 +1121,18 @@ bool utp_socket_impl::send_pkt(bool ack)
 
 	// if we don't have any data to send, or can't send any data
 	// and we don't have any data to ack, don't send a packet
-	if (payload_size == 0 && !ack) return false;
+	if (payload_size == 0 && !ack)
+	{
+		UTP_LOGV("[%08u] %08p: skipping send seq_nr:%d ack_nr:%d "
+			"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
+			"ret:%d adv_wnd:%d in-flight:%d mtu:%d\n"
+			, int(total_microseconds(time_now_hires() - min_time()))
+			, this, int(m_seq_nr), int(m_ack_nr)
+			, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
+			, packet_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
+			, ret, m_adv_wnd, m_bytes_in_flight, m_mtu);
+		return false;
+	}
 
 	packet_size += payload_size;
 
@@ -1178,11 +1189,13 @@ bool utp_socket_impl::send_pkt(bool ack)
 		, (char const*)h, packet_size, m_error);
 
 	UTP_LOGV("[%08u] %08p: sending packet seq_nr:%d ack_nr:%d type:%s "
-		"id:%d target:%s size:%d error:%s send_buffer_size:%d\n"
+		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
+		"ret:%d adv_wnd:%d in-flight:%d mtu:%d\n"
 		, int(total_microseconds(now - min_time()))
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-		, packet_size, m_error.message().c_str(), m_write_buffer_size);
+		, packet_size, m_error.message().c_str(), m_write_buffer_size, m_cwnd >> 16
+		, ret, m_adv_wnd, m_bytes_in_flight, m_mtu);
 
 	if (m_error)
 	{
@@ -1246,9 +1259,9 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p)
 		memcpy(target->buf, buf, to_copy);
 		if (m_read == 0)
 		{
-			m_read_timeout = time_now() + milliseconds(100);
+			m_read_timeout = time_now_hires() + milliseconds(100);
 			UTP_LOGV("[%08u] %08p: setting read timeout to 100 ms from now\n"
-				, int(total_microseconds(time_now() - min_time())), this);
+				, int(total_microseconds(time_now_hires() - min_time())), this);
 		}
 		m_read += to_copy;
 		target->buf = ((char*)target->buf) + to_copy;
@@ -1268,7 +1281,7 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p)
 		{
 			TORRENT_ASSERT(p == 0 || p->header_size == p->size);
 			free(p);
-			maybe_trigger_receive_callback(time_now());
+			maybe_trigger_receive_callback(time_now_hires());
 			return;
 		}
 	}
@@ -1283,7 +1296,7 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p)
 		p->header_size = 0;
 		memcpy(p->buf, buf, size);
 	}
-	if (m_receive_buffer_size == 0) m_read_timeout = time_now() + milliseconds(100);
+	if (m_receive_buffer_size == 0) m_read_timeout = time_now_hires() + milliseconds(100);
 	// save this packet until the client issues another read
 	m_receive_buffer.push_back(p);
 	m_receive_buffer_size += p->size - p->header_size;
@@ -1321,7 +1334,7 @@ bool utp_socket_impl::consume_incoming_data(
             TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
 
             UTP_LOGV("[%08u] %08p: remove inbuf: %d (%d)\n"
-              , int(total_microseconds(time_now() - min_time())), this
+              , int(total_microseconds(time_now_hires() - min_time())), this
               , m_ack_nr, m_inbuf.size());
 
             for (;;)
@@ -1339,7 +1352,7 @@ bool utp_socket_impl::consume_incoming_data(
                 m_ack_nr = next_ack_nr;
 
                 UTP_LOGV("[%08u] %08p: reordered remove inbuf: %d (%d)\n"
-                  , int(total_microseconds(time_now() - min_time())), this
+                  , int(total_microseconds(time_now_hires() - min_time())), this
                   , m_ack_nr, m_inbuf.size());
             }
         }
@@ -1361,7 +1374,7 @@ bool utp_socket_impl::consume_incoming_data(
             m_buffered_incoming_bytes += p->size;
 
             UTP_LOGV("[%08u] %08p: insert inbuf: %d (%d)\n"
-              , int(total_microseconds(time_now() - min_time())), this
+              , int(total_microseconds(time_now_hires() - min_time())), this
               , int(ph->seq_nr), m_inbuf.size());
         }
     }
@@ -1378,14 +1391,14 @@ bool utp_socket_impl::test_socket_state()
 	if (m_state == UTP_STATE_ERROR_WAIT)
 	{
 		UTP_LOGV("[%08u] %08p: state:%s error:%s\n"
-			, int(total_microseconds(time_now() - min_time()))
+			, int(total_microseconds(time_now_hires() - min_time()))
 			, this, socket_state_names[m_state], m_error.message().c_str());
 
 		if (cancel_handlers(m_error, true))
 		{
 			m_state = UTP_STATE_DELETE;
 			UTP_LOGV("[%08u] %08p: state:%s\n"
-				, int(total_microseconds(time_now() - min_time())), this
+				, int(total_microseconds(time_now_hires() - min_time())), this
 				, socket_state_names[m_state]);
 			return true;
 		}
@@ -1563,7 +1576,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			if (!p) continue;
 			acked_bytes += p->size - p->header_size;
 			UTP_LOGV("[%08u] %08p: acked packet %d (%d bytes)\n"
-				, int(total_microseconds(time_now() - min_time())), this
+				, int(total_microseconds(time_now_hires() - min_time())), this
 				, ack_nr, p->size - p->header_size);
 			ack_packet(p, receive_time);
         }
@@ -1625,7 +1638,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			}
 		}
 		// cut window size in 2
-		m_cwnd = (std::max)(m_cwnd / 2, m_mtu);
+		m_cwnd = (std::max)(m_cwnd / 2, m_mtu << 16);
 
 		// the window size could go below one MMS here, if it does,
 		// we'll get a timeout in about one second
@@ -1726,7 +1739,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			if (m_connect_handler)
 			{
 				UTP_LOGV("[%08u] %08p: calling connect handler\n"
-					, int(total_microseconds(time_now() - min_time())), this);
+					, int(total_microseconds(time_now_hires() - min_time())), this);
 				m_connect_handler(m_userdata, m_error, false);
 			}
 			m_connect_handler = 0;
@@ -1773,7 +1786,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				, int(delay / 1000)
 				, int(their_delay / 1000)
 				, int(target_delay - delay) / 1000
-				, int(m_cwnd)
+				, int(m_cwnd >> 16)
 				, 0
 				, m_delay_hist.base()
 				, (delay + their_delay) / 1000
@@ -1782,7 +1795,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				, m_bytes_in_flight
 				, 0.f // float(scaled_gain)
 				, m_rtt.mean()
-				, int(m_cwnd * 1000 / (m_rtt.mean()?m_rtt.mean():50))
+				, int(m_cwnd * 1000 / (m_rtt.mean()?m_rtt.mean():50)) >> 16
 				, 0
 				, m_adv_wnd
 				, packet_timeout()
@@ -1817,7 +1830,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
             if (m_eof && m_ack_nr == (m_eof_seq_nr - 1) & ACK_MASK)
             {
                 UTP_LOGV("[%08u] %08p: incoming stream consumed\n"
-                  , int(total_microseconds(time_now() - min_time())), this);
+                  , int(total_microseconds(time_now_hires() - min_time())), this);
 
                 // This transitions to the UTP_STATE_FIN_SENT state.
                 send_fin();
@@ -1900,13 +1913,13 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
                 // received all of our packets.
 
                 UTP_LOGV("[%08u] %08p: FIN acked\n"
-                    , int(total_microseconds(time_now() - min_time())), this);
+                    , int(total_microseconds(time_now_hires() - min_time())), this);
 
                 if (!m_userdata)
                 {
                      UTP_LOGV("[%08u] %08p: close initiated here, "
                               "wait for remote FIN\n"
-                        , int(total_microseconds(time_now() - min_time())), this);
+                        , int(total_microseconds(time_now_hires() - min_time())), this);
                 }
                 else
                 {
@@ -1939,15 +1952,18 @@ void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_f
 	TORRENT_ASSERT(acked_bytes > 0);
 
 	// all of these are fixed points with 32 bits fraction portion
-	boost::int64_t window_factor = (boost::int64_t(acked_bytes) << 32) / in_flight;
-	boost::int64_t target_factor = (boost::int64_t(target_delay - delay) << 32) / target_delay;
-	boost::int64_t scaled_gain = window_factor * target_factor
-		* (boost::uint64_t(max_cwnd_increase_per_rtt) << 32);
+	boost::int64_t window_factor = (boost::int64_t(acked_bytes) << 16) / in_flight;
+	boost::int64_t target_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
+	boost::int64_t scaled_gain = (window_factor * target_factor) >> 16;
+	scaled_gain *= boost::int64_t(max_cwnd_increase_per_rtt);
 
 // #error don't allow scaled_gain to be > 0 if we haven't 'bumped up' against the cwnd size within 2 RTTs
 
-	// turn scaled_gain back to 16 bits fixed point, same as m_cwnd.
-	scaled_gain >>= 16;
+	UTP_LOGV("[%08u] %08p: do_ledbat delay:%u off_target: %d window_factor:%d target_factor:%d "
+		"scaled_gain:%d cwnd:%d\n"
+		, int(total_microseconds(time_now_hires() - min_time()))
+		, this, delay, target_delay - delay, int(window_factor >> 32), int(target_factor >> 32)
+		, int(scaled_gain >> 16), int(m_cwnd >> 16));
 
 	// if scaled_gain + m_cwnd <= 0, set m_cwnd to 0
 	if (-scaled_gain >= m_cwnd)
@@ -1978,7 +1994,7 @@ int utp_socket_impl::packet_timeout() const
 void utp_socket_impl::tick(ptime const& now)
 {
 	UTP_LOGV("[%08u] %08p: tick:%s r: %d (%s) w: %d (%s)\n"
-		, int(total_microseconds(time_now() - min_time())), this
+		, int(total_microseconds(time_now_hires() - min_time())), this
 		, socket_state_names[m_state], m_read, m_read_handler ? "handler" : "no handler"
 		, m_written, m_write_handler ? "handler" : "no handler");
 	bool window_opened = false;
@@ -1998,11 +2014,15 @@ void utp_socket_impl::tick(ptime const& now)
 
 		// the window went from less than one MSS to one MSS
 		// we can now sent messages again, the send window was opened
-		if (m_cwnd < m_mtu) window_opened = true;
+		if ((m_cwnd >> 16) < m_mtu) window_opened = true;
 
-		m_cwnd = m_mtu;
+		m_cwnd = m_mtu << 16;
 		m_timeout = now + milliseconds(packet_timeout());
 	
+		UTP_LOGV("[%08u] %08p: timeout resetting cwnd:%d\n"
+			, int(total_microseconds(time_now_hires() - min_time())), this
+			, m_cwnd >> 16);
+
 		// if we have a packet that needs re-sending, resend it
 		packet* p = (packet*)m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK);
 		if (p)
