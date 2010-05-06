@@ -272,11 +272,6 @@ Build features:
 |                          |   to ``asserts.log`` in the current working        |
 |                          |   directory, but won't abort the process.          |
 +--------------------------+----------------------------------------------------+
-| ``zlib``                 | * ``system`` - links against the zlib supplied     |
-|                          |   with your operating system.                      |
-|                          | * ``shipped`` - links against the zlib bundled     |
-|                          |   with the libtorrent package.                     |
-+--------------------------+----------------------------------------------------+
 | ``geoip``                | * ``off`` - geo ip lookups disabled                |
 |                          | * ``static`` - MaxMind_ geo ip lookup code linked  |
 |                          |   in statically. Note that this code is under      |
