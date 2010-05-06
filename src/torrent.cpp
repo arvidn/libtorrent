@@ -2200,7 +2200,7 @@ namespace libtorrent
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 #ifdef TORRENT_DEBUG
 		// make sure all blocks were successfully written before we
-		// declare the piece has "we have".
+		// declare the piece as "we have".
 		piece_picker::downloading_piece dp;
 		m_picker->piece_info(index, dp);
 		int blocks_in_piece = m_picker->blocks_in_piece(index);
