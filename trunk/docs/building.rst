@@ -266,6 +266,12 @@ Build features:
 |                          |   requires you to link against librt.a. This is    |
 |                          |   typically the case on x86 64 bit systems.        |
 +--------------------------+----------------------------------------------------+
+| ``asserts``              | * ``on`` - asserts are on if in debug mode         |
+|                          | * ``off`` - asserts are disabled                   |
+|                          | * ``production`` - assertion failures are logged   |
+|                          |   to ``asserts.log`` in the current working        |
+|                          |   directory, but won't abort the process.          |
++--------------------------+----------------------------------------------------+
 | ``zlib``                 | * ``system`` - links against the zlib supplied     |
 |                          |   with your operating system.                      |
 |                          | * ``shipped`` - links against the zlib bundled     |

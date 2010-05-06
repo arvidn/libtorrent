@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#if !defined TORRENT_DEBUG
+#if !defined TORRENT_DEBUG || TORRENT_NO_ASSERTS
 #define TORRENT_ASSERT(a) do {} while(false)
 #else
 

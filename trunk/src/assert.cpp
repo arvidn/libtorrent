@@ -97,30 +97,37 @@ std::string demangle(char const* name) { return name; }
 #if (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
 #include <execinfo.h>
 
-void print_backtrace(char const* label)
+void print_backtrace(FILE* out, char const* label)
 {
 	void* stack[50];
 	int size = backtrace(stack, 50);
 	char** symbols = backtrace_symbols(stack, size);
 
-	fprintf(stderr, "%s\n", label);
+	fprintf(out, "%s\n", label);
 	for (int i = 1; i < size; ++i)
 	{
-		fprintf(stderr, "%d: %s\n", i, demangle(symbols[i]).c_str());
+		fprintf(out, "%d: %s\n", i, demangle(symbols[i]).c_str());
 	}
 
 	free(symbols);
 }
 #else
 
-void print_backtrace(char const* label) {}
+void print_backtrace(FILE* out, char const* label) {}
 
 #endif
 
 void assert_fail(char const* expr, int line, char const* file, char const* function)
 {
 
-	fprintf(stderr, "assertion failed. Please file a bugreport at "
+#if TORRENT_PRODUCTION_ASSERTS
+	FILE* out = fopen("asserts.log", "a+");
+	if (out == 0) out = stderr;
+#else
+	FILE* out = stderr;
+#endif
+
+	fprintf(out, "assertion failed. Please file a bugreport at "
 		"http://code.rasterbar.com/libtorrent/newticket\n"
 		"Please include the following information:\n\n"
 		"version: " LIBTORRENT_VERSION "\n"
@@ -130,12 +137,17 @@ void assert_fail(char const* expr, int line, char const* file, char const* funct
 		"function: %s\n"
 		"expression: %s\n", LIBTORRENT_REVISION, file, line, function, expr);
 
-	print_backtrace("stack:");
+	print_backtrace(out, "stack:");
 
+	// if production asserts are defined, don't abort, just print the error
+#if TORRENT_PRODUCTION_ASSERTS
+	if (out != stderr) fclose(out);
+#else
  	// send SIGINT to the current process
  	// to break into the debugger
  	raise(SIGINT);
  	abort();
+#endif
 }
 
 #else
