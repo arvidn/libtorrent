@@ -100,7 +100,7 @@ namespace libtorrent
 		if (m_array == 0) return 0;
 
 		// if the index is outside of the array, return 0
-		if (unsigned(i - m_cursor) & packet_mask > m_mask) return 0;
+		if ((unsigned(i - m_cursor) & packet_mask) > m_mask) return 0;
 
 		return m_array[i & m_mask];
 	}

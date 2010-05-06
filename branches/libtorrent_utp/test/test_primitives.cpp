@@ -410,6 +410,7 @@ int test_main()
 		TEST_EQUAL(pb.size(), 0);
 
 		pb.insert(123, (void*)123);
+		TEST_EQUAL(pb.at(123 + 16), 0);
 		
 		TEST_CHECK(pb.at(123) == (void*)123);
 		TEST_CHECK(pb.capacity() > 0);
