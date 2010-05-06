@@ -305,6 +305,7 @@ public:
 			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
 			return;
 		}
+
 		for (typename Const_Buffers::const_iterator i = buffers.begin()
 			, end(buffers.end()); i != end; ++i)
 		{

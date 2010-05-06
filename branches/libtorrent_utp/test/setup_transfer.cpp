@@ -279,9 +279,11 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (p) param = *p;
 	param.ti = clone_ptr(t);
 	param.save_path = "./tmp1" + suffix;
+	param.seed_mode = true;
 	error_code ec;
 	torrent_handle tor1 = ses1->add_torrent(param, ec);
 	tor1.super_seeding(super_seeding);
+	param.seed_mode = false;
 	TEST_CHECK(!ses1->get_torrents().empty());
 	torrent_handle tor2;
 	torrent_handle tor3;

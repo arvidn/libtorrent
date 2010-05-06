@@ -558,6 +558,11 @@ int utp_stream::read_buffer_size() const
 void utp_stream::on_read(void* self, size_t bytes_transferred, error_code const& ec, bool kill)
 {
 	utp_stream* s = (utp_stream*)self;
+
+	UTP_LOGV("[%08u] %08p: calling read handler read:%d ec:%s kill:%d\n"
+		, int(total_microseconds(time_now() - min_time())), s->m_impl
+		, bytes_transferred, ec.message().c_str(), kill);
+
 	TORRENT_ASSERT(s->m_read_handler);
 	s->m_io_service.post(boost::bind<void>(s->m_read_handler, ec, bytes_transferred));
 	s->m_read_handler.clear();
@@ -567,6 +572,11 @@ void utp_stream::on_read(void* self, size_t bytes_transferred, error_code const&
 void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const& ec, bool kill)
 {
 	utp_stream* s = (utp_stream*)self;
+
+	UTP_LOGV("[%08u] %08p: calling write handler written:%d ec:%s kill:%d\n"
+		, int(total_microseconds(time_now() - min_time())), s->m_impl
+		, bytes_transferred, ec.message().c_str(), kill);
+
 	TORRENT_ASSERT(s->m_write_handler);
 	s->m_io_service.post(boost::bind<void>(s->m_write_handler, ec, bytes_transferred));
 	s->m_write_handler.clear();
@@ -576,6 +586,10 @@ void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const
 void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 {
 	utp_stream* s = (utp_stream*)self;
+
+	UTP_LOGV("[%08u] %08p: calling connect handler ec:%s kill:%d\n"
+		, int(total_microseconds(time_now() - min_time())), s->m_impl, ec.message().c_str(), kill);
+
 	TORRENT_ASSERT(s->m_connect_handler);
 	s->m_io_service.post(boost::bind<void>(s->m_connect_handler, ec));
 	s->m_connect_handler.clear();
@@ -589,7 +603,7 @@ void utp_stream::add_read_buffer(void* buf, size_t len)
 	m_impl->m_read_buffer_size += len;
 
     UTP_LOGV("[%08u] %08p: add_read_buffer %d bytes\n"
-        , int(total_microseconds(time_now() - min_time())), this, len);
+        , int(total_microseconds(time_now() - min_time())), m_impl, len);
 }
 
 // this is the wrapper to add a user provided write buffer to the
@@ -621,6 +635,9 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 	}
 	TORRENT_ASSERT(m_impl->m_write_buffer_size == write_buffer_size);
 #endif
+
+    UTP_LOGV("[%08u] %08p: add_write_buffer %d bytes\n"
+        , int(total_microseconds(time_now() - min_time())), m_impl, len);
 }
 
 // this is called when all user provided read buffers have been added
@@ -634,7 +651,7 @@ void utp_stream::set_read_handler(handler_t h)
 	if (m_impl->test_socket_state()) return;
 
     UTP_LOGV("[%08u] %08p: new read handler. %d bytes in buffer\n"
-        , int(total_microseconds(time_now() - min_time())), this
+        , int(total_microseconds(time_now() - min_time())), m_impl
         , m_impl->m_receive_buffer_size);
 
 	// so, the client wants to read. If we already
@@ -701,7 +718,7 @@ void utp_stream::set_read_handler(handler_t h)
 		|| m_impl->m_read_buffer.empty());
 
     UTP_LOGV("[%08u] %08p: %d packets moved from buffer to user space\n"
-        , int(total_microseconds(time_now() - min_time())), this
+        , int(total_microseconds(time_now() - min_time())), m_impl
         , pop_packets);
 
 	m_impl->maybe_trigger_receive_callback(time_now());
@@ -711,6 +728,10 @@ void utp_stream::set_read_handler(handler_t h)
 // added. Start trying to send packets with the payload immediately.
 void utp_stream::set_write_handler(handler_t h)
 {
+    UTP_LOGV("[%08u] %08p: new write handler. %d bytes to write\n"
+        , int(total_microseconds(time_now() - min_time())), m_impl
+        , m_impl->m_write_buffer_size);
+
 	m_impl->m_write_handler = h;
 	m_impl->m_written = 0;
 	if (m_impl->test_socket_state()) return;
@@ -1022,7 +1043,12 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 		int to_copy = (std::min)(size, int(i->len));
 		memcpy(ptr, static_cast<char const*>(i->buf), to_copy);
 		size -= to_copy;
-		if (m_written == 0) m_write_timeout = now + milliseconds(100);
+		if (m_written == 0)
+		{
+			m_write_timeout = now + milliseconds(100);
+			UTP_LOGV("[%08u] %08p: setting write timeout to 100 ms from now\n"
+				, int(total_microseconds(time_now() - min_time())), this);
+		}
 		m_written += to_copy;
         ptr += to_copy;
 		i->len -= to_copy;
@@ -1218,7 +1244,12 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p)
 
 		int to_copy = (std::min)(size, int(target->len));
 		memcpy(target->buf, buf, to_copy);
-		if (m_read == 0) m_read_timeout = time_now() + milliseconds(100);
+		if (m_read == 0)
+		{
+			m_read_timeout = time_now() + milliseconds(100);
+			UTP_LOGV("[%08u] %08p: setting read timeout to 100 ms from now\n"
+				, int(total_microseconds(time_now() - min_time())), this);
+		}
 		m_read += to_copy;
 		target->buf = ((char*)target->buf) + to_copy;
 		target->len -= to_copy;
@@ -1946,9 +1977,10 @@ int utp_socket_impl::packet_timeout() const
 
 void utp_socket_impl::tick(ptime const& now)
 {
-	UTP_LOGV("[%08u] %08p: tick:%s\n"
+	UTP_LOGV("[%08u] %08p: tick:%s r: %d (%s) w: %d (%s)\n"
 		, int(total_microseconds(time_now() - min_time())), this
-		, socket_state_names[m_state]);
+		, socket_state_names[m_state], m_read, m_read_handler ? "handler" : "no handler"
+		, m_written, m_write_handler ? "handler" : "no handler");
 	bool window_opened = false;
 
 	// don't hang on to received data for too long, and don't

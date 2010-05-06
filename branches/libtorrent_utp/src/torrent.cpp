@@ -4219,8 +4219,13 @@ namespace libtorrent
 			utp_socket_manager* sm = 0;
 
 			if (m_ses.m_settings.enable_outgoing_utp
-				&& (peerinfo->supports_utp || peerinfo->confirmed_supports_utp))
+				&& (!m_ses.m_settings.enable_outgoing_tcp
+					|| peerinfo->supports_utp
+					|| peerinfo->confirmed_supports_utp))
 				sm = &m_ses.m_utp_socket_manager;
+
+			// don't make a TCP connection if it's disabled
+			if (sm == 0 && !m_ses.m_settings.enable_outgoing_utp) return false;
 
 			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy()
 				, sm, *s);

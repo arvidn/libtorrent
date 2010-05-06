@@ -212,6 +212,7 @@ namespace libtorrent
 			, default_peer_download_rate(0)
 			, broadcast_lsd(false)
 			, enable_outgoing_utp(true)
+			, enable_outgoing_tcp(true)
 			, max_pex_peers(200)
 		{}
 
@@ -815,6 +816,9 @@ namespace libtorrent
 
 		// when set to true, libtorrent will try to make outgoing utp connections
 		bool enable_outgoing_utp;
+
+		// when set to false, no outgoing TCP connections will be made
+		bool enable_outgoing_tcp;
 
 		// the max number of peers we accept from pex messages from a single peer.
 		// this limits the number of concurrent peers any of our peers claims to

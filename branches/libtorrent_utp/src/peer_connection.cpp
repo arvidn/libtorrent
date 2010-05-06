@@ -193,6 +193,7 @@ namespace libtorrent
 		m_logger = m_ses.create_log(m_remote.address().to_string(ec) + "_"
 			+ to_string(m_remote.port()).elems, m_ses.listen_port());
 		(*m_logger) << "*** OUTGOING CONNECTION\n";
+		if (m_socket->get<utp_stream>()) (*m_logger) << "uTP connection\n";
 #endif
 #ifdef TORRENT_DEBUG
 		piece_failed = false;
@@ -329,6 +330,7 @@ namespace libtorrent
 		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
 			+ to_string(remote().port()).elems, m_ses.listen_port());
 		(*m_logger) << "*** INCOMING CONNECTION\n";
+		if (m_socket->get<utp_stream>()) (*m_logger) << "uTP connection\n";
 #endif
 		
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -4557,6 +4559,12 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " *** ON_RECEIVE_DATA ["
+				" bytes: " << bytes_transferred <<
+				" error: " << error.message() <<
+				" ]\n";
+#endif
 		// keep ourselves alive in until this function exits in
 		// case we disconnect
 		boost::intrusive_ptr<peer_connection> me(self());
@@ -4909,6 +4917,13 @@ namespace libtorrent
 		, std::size_t bytes_transferred)
 	{
 		mutex::scoped_lock l(m_ses.m_mutex);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " *** ON_SEND_DATA ["
+				" bytes: " << bytes_transferred <<
+				" error: " << error.message() <<
+				" ]\n";
+#endif
 
 		INVARIANT_CHECK;
 
