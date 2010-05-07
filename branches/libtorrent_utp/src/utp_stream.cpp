@@ -1325,7 +1325,7 @@ bool utp_socket_impl::consume_incoming_data(
         {
             TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
 
-            // we received a packet in order1
+            // we received a packet in order
             incoming(ptr, payload_size, 0);
             m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
 
@@ -1373,9 +1373,9 @@ bool utp_socket_impl::consume_incoming_data(
             m_inbuf.insert(ph->seq_nr, p);
             m_buffered_incoming_bytes += p->size;
 
-            UTP_LOGV("[%08u] %08p: insert inbuf: %d (%d)\n"
+            UTP_LOGV("[%08u] %08p: out of order. insert inbuf: %d (%d) m_ack_nr: %d\n"
               , int(total_microseconds(time_now_hires() - min_time())), this
-              , int(ph->seq_nr), m_inbuf.size());
+              , int(ph->seq_nr), m_inbuf.size(), m_ack_nr);
         }
     }
 
