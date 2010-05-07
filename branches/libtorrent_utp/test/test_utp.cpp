@@ -91,7 +91,7 @@ void test_transfer()
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_utp", 8 * 1024, &t, false);
 
-	for (int i = 0; i < 30; ++i)
+	for (int i = 0; i < 300; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true);
 		print_alerts(ses2, "ses2", true, true, true);

@@ -1540,6 +1540,9 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		return true;
 	}
 
+	// this is a valid incoming packet, update the timeout timer
+	m_timeout = time_now() + milliseconds(packet_timeout());
+
 	const boost::uint32_t sample = ph->timestamp_difference_microseconds;
 	boost::uint32_t delay = 0;
 	if (sample != 0)
