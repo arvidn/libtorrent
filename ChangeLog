@@ -1,3 +1,5 @@
+	* fixed bug in udp tracker scrape response parsing
+
 release 0.14.10
 
 	* fixed udp tracker race condition
