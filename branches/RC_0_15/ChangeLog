@@ -1,3 +1,4 @@
+	* fixed bug in udp tracker scrape response parsing
 	* fixed bug in the disk thread that could get triggered under heavy load
 	* fixed bug in add_piece() that would trigger asserts
 	* fixed vs 2010 build
