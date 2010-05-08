@@ -1458,6 +1458,11 @@ bool utp_socket_impl::consume_incoming_data(
             // this packet was received out of order. Stick it in the
             // reorder buffer until it can be delivered in order
 
+				// have we already received this packet and passed it on
+				// to the client?
+				if (!compare_less_wrap(m_ack_nr, ph->seq_nr, ACK_MASK))
+					return true;
+
             // do we already have this packet? If so, just ignore it
             if (m_inbuf.at(ph->seq_nr)) return true;
 
@@ -1562,7 +1567,8 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	boost::uint32_t their_delay = 0;
 	if (ph->timestamp_microseconds != 0)
 	{
-		m_reply_micro = total_microseconds(receive_time - min_time()) - ph->timestamp_microseconds;
+		m_reply_micro = boost::uint32_t(total_microseconds(receive_time - min_time()))
+			- ph->timestamp_microseconds;
 		their_delay = m_their_delay_hist.add_sample(m_reply_micro, step);
 	}
 
