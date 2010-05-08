@@ -1226,6 +1226,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 		*ptr++ = 0; // end of extension chain
 		*ptr++ = sack; // bytes for SACK bitfield
 		write_sack(ptr, sack);
+		ptr += sack;
 	}
 
 	write_payload(ptr, payload_size);
