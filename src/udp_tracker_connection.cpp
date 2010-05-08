@@ -493,8 +493,6 @@ namespace libtorrent
 
 	void udp_tracker_connection::on_scrape_response(char const* buf, int size)
 	{
-		buf += 8; // skip header
-
 		restart_read_timeout();
 		int action = detail::read_int32(buf);
 		int transaction = detail::read_int32(buf);
