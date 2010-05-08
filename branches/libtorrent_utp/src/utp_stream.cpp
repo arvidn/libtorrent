@@ -118,11 +118,26 @@ bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs, boost::uint32_t
 // as well as sent packets that are waiting to be ACKed
 struct packet
 {
-	ptime send_time; // the last time this packet was sent
+	// the last time this packet was sent
+	ptime send_time;
+
+	// the size of the buffer 'buf' pointst to
 	boost::uint16_t size;
-	boost::uint8_t num_transmissions;
+
+	// the number of times this packet has been sent
+	boost::uint8_t num_transmissions:7;
+
+	// true if we need to send this packet again. All
+	// outstanding packets are marked as needing to be
+	// resent on timeouts
+	bool need_resend:1;
+
+	// this is the offset to the payload inside the buffer
+	// this is also used as a cursor to describe where the
+	// next payload that hasn't been consumed yet starts
 	boost::uint16_t header_size;
 	
+	// the actual packet buffer
 	char buf[];
 };
 
@@ -243,6 +258,7 @@ struct utp_socket_impl
 	void send_fin();
 
 	bool send_pkt(bool ack);
+	bool resend_packet(packet* p);
 	void send_reset(utp_header* ph);
 	void parse_sack(char const* ptr, int size, int* acked_bytes, ptime const& now);
 	void write_payload(char* ptr, int size);
@@ -848,6 +864,7 @@ void utp_socket_impl::send_syn()
 	p->size = sizeof(utp_header);
 	p->header_size = sizeof(utp_header);
 	p->num_transmissions = 1;
+	p->need_resend = false;
 	utp_header* h = (utp_header*)p->buf;
 	h->ver = 1;
 	h->type = ST_SYN;
@@ -902,6 +919,7 @@ void utp_socket_impl::send_fin()
 	p->size = sizeof(utp_header);
 	p->header_size = sizeof(utp_header);
 	p->num_transmissions = 1;
+	p->need_resend = false;
 	utp_header* h = (utp_header*)p->buf;
 
 	h->ver = 1;
@@ -1092,6 +1110,24 @@ bool utp_socket_impl::send_pkt(bool ack)
     //
 	// TORRENT_ASSERT(m_state != UTP_STATE_FIN_SENT);
 
+	// first see if we need to resend any packets
+
+	for (int i = (m_acked_seq_nr + 1) & ACK_MASK; i != m_seq_nr; i = (i + 1) & ACK_MASK)
+	{
+		packet* p = (packet*)m_outbuf.at(i);
+		if (!p) continue;
+		if (!p->need_resend) continue;
+		if (!resend_packet(p))
+		{
+			// we couldn't resend the packet. It probably doesn't
+			// fit in our cwnd. If ack is set, we need to continue
+			// to send our ack anyway, if we don't have to send an
+			// ack, we might as well return
+			if (!ack) return false;
+			break;
+		}
+	}
+
 	bool ret = false;
 
 	int sack = 0;
@@ -1158,6 +1194,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 	p->size = packet_size;
 	p->header_size = packet_size - payload_size;
 	p->num_transmissions = 1;
+	p->need_resend = false;
 	char* ptr = p->buf;
 	utp_header* h = (utp_header*)ptr;
 	ptr += sizeof(utp_header);
@@ -1249,6 +1286,46 @@ void utp_socket_impl::write_sack(char* buf, int size) const
 			ack_nr = (ack_nr + 1) & ACK_MASK;
 		}
 	}
+}
+
+bool utp_socket_impl::resend_packet(packet* p)
+{
+	TORRENT_ASSERT(p->need_resend);
+
+	// we can only resend the packet if there's
+	// enough space in our congestion window
+	int window_size_left = (std::min)(int(m_cwnd >> 16), int(m_adv_wnd)) - m_bytes_in_flight;
+	if (p->size - p->header_size > window_size_left) return false;
+
+	++p->num_transmissions;
+	p->need_resend = false;
+	utp_header* h = (utp_header*)p->buf;
+	// update packet header
+	h->timestamp_difference_microseconds = m_reply_micro;
+	p->send_time = time_now_hires();
+	h->timestamp_microseconds = total_microseconds(p->send_time - min_time());
+
+	UTP_LOGV("[%08u] %08p: re-sending packet seq_nr:%d ack_nr:%d type:%s "
+		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
+		"adv_wnd:%d in-flight:%d mtu:%d\n"
+		, int(total_microseconds(time_now_hires() - min_time()))
+		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
+		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
+		, p->size, m_error.message().c_str(), m_write_buffer_size, m_cwnd >> 16
+		, m_adv_wnd, m_bytes_in_flight, m_mtu);
+
+	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
+		, (char const*)p->buf, p->size, m_error);
+
+	if (m_error)
+	{
+		m_state = UTP_STATE_ERROR_WAIT;
+		test_socket_state();
+		return false;
+	}
+
+	m_bytes_in_flight += p->size - p->header_size;
+	return true;
 }
 
 void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time)
@@ -1388,6 +1465,7 @@ bool utp_socket_impl::consume_incoming_data(
             p->size = payload_size;
             p->header_size = 0;
             p->num_transmissions = 0;
+            p->need_resend = false;
             memcpy(p->buf, ptr, payload_size);
             m_inbuf.insert(ph->seq_nr, p);
             m_buffered_incoming_bytes += p->size;
@@ -1669,11 +1747,12 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		if (p)
 		{
 			++p->num_transmissions;
-			p->send_time = time_now_hires();
+			p->need_resend = false;
 			utp_header* h = (utp_header*)p->buf;
+			h->timestamp_difference_microseconds = m_reply_micro;
+			p->send_time = time_now_hires();
 			// update packet header
 			h->timestamp_microseconds = total_microseconds(p->send_time - min_time());
-			h->timestamp_difference_microseconds = m_reply_micro;
 
 			UTP_LOGV("[%08u] %08p: re-sending packet seq_nr:%d ack_nr:%d type:%s "
 				"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
@@ -2006,22 +2085,46 @@ void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_f
 	// rtt, or on every ACK skaled by the number of ACKs per rtt
 	TORRENT_ASSERT(in_flight > 0);
 	TORRENT_ASSERT(acked_bytes > 0);
-
+/*
 	// all of these are fixed points with 16 bits fraction portion
 	boost::int64_t window_factor = (boost::int64_t(acked_bytes) << 16) / in_flight;
-	boost::int64_t target_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
-	boost::int64_t scaled_gain = window_factor * target_factor;
+	boost::int64_t delay_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
+	boost::int64_t scaled_gain = window_factor * delay_factor;
 	scaled_gain *= boost::int64_t(max_cwnd_increase_per_rtt);
 	scaled_gain >>= 16;
+
+	UTP_LOGV("[%08u] %08p: do_ledbat delay:%u off_target: %d window_factor:%f target_factor:%f "
+		"scaled_gain:%f cwnd:%d\n"
+		, int(total_microseconds(time_now_hires() - min_time()))
+		, this, delay, target_delay - delay, window_factor / float(1 << 16)
+		, delay_factor / float(1 << 16)
+		, scaled_gain / float(1 << 16), int(m_cwnd >> 16));
+
+	// if scaled_gain + m_cwnd <= 0, set m_cwnd to 0
+	if (-scaled_gain >= m_cwnd)
+	{
+		m_cwnd = 0;
+	}
+	else
+	{
+		m_cwnd += scaled_gain;
+		TORRENT_ASSERT(m_cwnd > 0);
+	}
+*/
+	float window_factor = acked_bytes / float(in_flight);
+	float delay_factor = int(target_delay - delay) / float(target_delay);
+	float scaled_gain = window_factor * delay_factor * max_cwnd_increase_per_rtt;
 
 // #error don't allow scaled_gain to be > 0 if we haven't 'bumped up' against the cwnd size within 2 RTTs
 
 	UTP_LOGV("[%08u] %08p: do_ledbat delay:%u off_target: %d window_factor:%f target_factor:%f "
 		"scaled_gain:%f cwnd:%d\n"
 		, int(total_microseconds(time_now_hires() - min_time()))
-		, this, delay, target_delay - delay, window_factor / float(1 << 16)
-		, target_factor / float(1 << 16)
-		, scaled_gain / float(1 << 16), int(m_cwnd >> 16));
+		, this, delay, target_delay - delay, window_factor
+		, delay_factor
+		, scaled_gain, int(m_cwnd >> 16));
+
+	scaled_gain *= (1 << 16);
 
 	// if scaled_gain + m_cwnd <= 0, set m_cwnd to 0
 	if (-scaled_gain >= m_cwnd)
@@ -2081,6 +2184,14 @@ void utp_socket_impl::tick(ptime const& now)
 			, int(total_microseconds(time_now_hires() - min_time())), this
 			, m_cwnd >> 16);
 
+		for (int i = (m_acked_seq_nr + 1) & ACK_MASK; i != m_seq_nr; i = (i + 1) & ACK_MASK)
+		{
+			packet* p = (packet*)m_outbuf.at(i);
+			if (!p) continue;
+			p->need_resend = true;
+			m_bytes_in_flight -= p->size - p->header_size;
+		}
+
 		// if we have a packet that needs re-sending, resend it
 		packet* p = (packet*)m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK);
 		if (p)
@@ -2098,26 +2209,7 @@ void utp_socket_impl::tick(ptime const& now)
 				return;
 			}
 			// the packet timed out, resend it
-			++p->num_transmissions;
-			utp_header* h = (utp_header*)p->buf;
-			TORRENT_ASSERT(h->seq_nr == (m_acked_seq_nr + 1) & ACK_MASK);
-			// update packet header
-			p->send_time = time_now_hires();
-			h->timestamp_microseconds = total_microseconds(p->send_time - min_time());
-			h->timestamp_difference_microseconds = m_reply_micro;
-
-			UTP_LOGV("[%08u] %08p: re-sending packet seq_nr:%d ack_nr:%d type:%s "
-				"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
-				"adv_wnd:%d in-flight:%d mtu:%d\n"
-				, int(total_microseconds(time_now_hires() - min_time()))
-				, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
-				, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-				, p->size, m_error.message().c_str(), m_write_buffer_size, m_cwnd >> 16
-				, m_adv_wnd, m_bytes_in_flight, m_mtu);
-
-			m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
-				, (char const*)p->buf, p->size, m_error);
-
+			resend_packet(p);
 			if (m_error)
 			{
 				m_state = UTP_STATE_ERROR_WAIT;
