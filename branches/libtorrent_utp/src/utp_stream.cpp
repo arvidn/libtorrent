@@ -2224,6 +2224,10 @@ void utp_socket_impl::tick(ptime const& now)
 				return;
 			}
 		}
+		else
+		{
+			send_pkt(false);
+		}
 	}
 
 	switch (m_state)
