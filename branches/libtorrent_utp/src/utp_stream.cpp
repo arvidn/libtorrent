@@ -2238,6 +2238,7 @@ void utp_socket_impl::tick(ptime const& now)
 		{
 			packet* p = (packet*)m_outbuf.at(i);
 			if (!p) continue;
+			if (p->need_resend) continue;
 			p->need_resend = true;
 			TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
 			m_bytes_in_flight -= p->size - p->header_size;
