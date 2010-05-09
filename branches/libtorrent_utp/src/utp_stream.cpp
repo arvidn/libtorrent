@@ -1647,7 +1647,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		// or a seariously damaged connection that lost a lot of
 		// packages. Neither is very likely, and it should be OK
 		// to drop the timestamp information.
-		UTP_LOGV("[%08u] %08p: incoming packet seq_nr:%d our ack_nr:%d\n"
+		UTP_LOGV("[%08u] %08p: incoming packet seq_nr:%d our ack_nr:%d (ignored)\n"
 			, int(total_microseconds(receive_time - min_time()))
 			, this, int(ph->seq_nr), m_ack_nr);
 		return true;
@@ -1750,6 +1750,10 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	{
 		// LOSS
 
+		UTP_LOGV("[%08u] %08p: Packet %d lost.\n"
+			, int(total_microseconds(time_now_hires() - min_time()))
+			, this, m_fast_resend_seq_nr);
+
 		// resend the lost packet
 		packet* p = (packet*)m_outbuf.at(m_fast_resend_seq_nr);
 		TORRENT_ASSERT(p);
@@ -1765,7 +1769,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// update packet header
 			h->timestamp_microseconds = total_microseconds(p->send_time - min_time());
 
-			UTP_LOGV("[%08u] %08p: re-sending packet seq_nr:%d ack_nr:%d type:%s "
+			UTP_LOGV("[%08u] %08p: fast re-sending packet seq_nr:%d ack_nr:%d type:%s "
 				"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
 				"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
 				, int(total_microseconds(time_now_hires() - min_time()))

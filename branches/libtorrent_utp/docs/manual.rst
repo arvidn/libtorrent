@@ -3870,6 +3870,12 @@ session_settings
 		int default_peer_upload_rate;
 		int default_peer_download_rate;
 		bool broadcast_lsd;
+
+		bool enable_outgoing_utp;
+		bool enable_incoming_utp;
+		bool enable_outgoing_tcp;
+		bool enable_incoming_tcp;
+		int max_pex_peers;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4500,6 +4506,12 @@ if ``broadcast_lsd`` is set to true, the local peer discovery
 (or Local Service Discovery) will not only use IP multicast, but also
 broadcast its messages. This can be useful when running on networks
 that don't support multicast. It's off by default since it's inefficient.
+
+``enable_outgoing_utp``, ``enable_incoming_utp``, ``enable_outgoing_tcp``,
+``enable_incoming_tcp`` all determines if libtorrent should attempt to make
+outgoing connections of the specific type, or allow incoming connection. By
+default all of them are enabled.
+
 
 pe_settings
 ===========

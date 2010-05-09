@@ -1667,6 +1667,28 @@ namespace aux {
 		(*m_logger) << time_now_string() << " <== INCOMING CONNECTION " << endp << "\n";
 #endif
 
+		if (!m_settings.enable_incoming_utp
+			&& s->get<utp_stream>())
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_logger) << "    rejected uTP connection\n";
+#endif
+			if (m_alerts.should_post<peer_blocked_alert>())
+				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
+			return;
+		}
+
+		if (!m_settings.enable_incoming_tcp
+			&& s->get<stream_socket>())
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_logger) << "    rejected TCP connection\n";
+#endif
+			if (m_alerts.should_post<peer_blocked_alert>())
+				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
+			return;
+		}
+
 		// local addresses do not count, since it's likely
 		// coming from our own client through local service discovery
 		// and it does not reflect whether or not a router is open
