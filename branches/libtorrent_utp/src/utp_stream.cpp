@@ -997,7 +997,7 @@ void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes, pt
 	int ack_nr = (m_acked_seq_nr + 2) & ACK_MASK;
 
 	UTP_LOGV("[%08u] %08p: got SACK ack_nr:%d "
-		, int(total_microseconds(time_now_hires() - min_time())), this
+		, int(total_microseconds(now - min_time())), this
 		, ack_nr);
 
 	// for each byte
@@ -1016,7 +1016,7 @@ void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes, pt
 				if (!p) continue;
 				acked_bytes += p->size - p->header_size;
 				UTP_LOGV("[%08u] %08p: acked packet %d (%d bytes)\n"
-					, int(total_microseconds(time_now_hires() - min_time())), this
+					, int(total_microseconds(now - min_time())), this
 					, ack_nr, p->size - p->header_size);
 				ack_packet(p, now);
 				// each ACKed packet counts as a duplicate ack
@@ -1238,12 +1238,13 @@ bool utp_socket_impl::send_pkt(bool ack)
 
 	UTP_LOGV("[%08u] %08p: sending packet seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
-		"ret:%d adv_wnd:%d in-flight:%d mtu:%d\n"
+		"ret:%d adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
 		, int(total_microseconds(now - min_time()))
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 		, packet_size, m_error.message().c_str(), m_write_buffer_size, m_cwnd >> 16
-		, ret, m_adv_wnd, m_bytes_in_flight, m_mtu);
+		, ret, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
+		, boost::uint32_t(h->timestamp_difference_microseconds));
 
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
 		, (char const*)h, packet_size, m_error);
@@ -1308,12 +1309,13 @@ bool utp_socket_impl::resend_packet(packet* p)
 
 	UTP_LOGV("[%08u] %08p: re-sending packet seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
-		"adv_wnd:%d in-flight:%d mtu:%d\n"
+		"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
 		, int(total_microseconds(time_now_hires() - min_time()))
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 		, p->size, m_error.message().c_str(), m_write_buffer_size, m_cwnd >> 16
-		, m_adv_wnd, m_bytes_in_flight, m_mtu);
+		, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
+		, boost::uint32_t(h->timestamp_difference_microseconds));
 
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
 		, (char const*)p->buf, p->size, m_error);
@@ -1570,6 +1572,8 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		m_reply_micro = boost::uint32_t(total_microseconds(receive_time - min_time()))
 			- ph->timestamp_microseconds;
 		their_delay = m_their_delay_hist.add_sample(m_reply_micro, step);
+		UTP_LOGV("[%08u] %08p: incoming packet reply_micro:%u\n"
+			, int(total_microseconds(receive_time - min_time())), this, m_reply_micro);
 	}
 
 	if (ph->type == ST_RESET)
@@ -1694,7 +1698,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			if (!p) continue;
 			acked_bytes += p->size - p->header_size;
 			UTP_LOGV("[%08u] %08p: acked packet %d (%d bytes)\n"
-				, int(total_microseconds(time_now_hires() - min_time())), this
+				, int(total_microseconds(receive_time - min_time())), this
 				, ack_nr, p->size - p->header_size);
 			ack_packet(p, receive_time);
         }
@@ -1763,12 +1767,13 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 			UTP_LOGV("[%08u] %08p: re-sending packet seq_nr:%d ack_nr:%d type:%s "
 				"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
-				"adv_wnd:%d in-flight:%d mtu:%d\n"
+				"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
 				, int(total_microseconds(time_now_hires() - min_time()))
 				, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
 				, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 				, p->size, m_error.message().c_str(), m_write_buffer_size, m_cwnd >> 16
-				, m_adv_wnd, m_bytes_in_flight, m_mtu);
+				, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
+				, boost::uint32_t(h->timestamp_difference_microseconds));
 
 			m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
 				, p->buf, p->size, m_error);
@@ -1923,9 +1928,11 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				"their_actual_delay:%u "
 				"seq_nr:%u "
 				"acked_seq_nr:%u "
+				"time_diff:%u "
+				"reply_micro:%u "
 				"\n"
 				, int(total_microseconds(receive_time - min_time())), this
-				, int(sample)
+				, sample
 				, int(delay / 1000)
 				, int(their_delay / 1000)
 				, int(target_delay - delay) / 1000
@@ -1947,9 +1954,12 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				, m_seq_nr - m_acked_seq_nr
 				, m_mtu
 				, m_their_delay_hist.base()
-				, m_their_delay_hist.base() + their_delay
+				, boost::uint32_t(ph->timestamp_microseconds)
 				, m_seq_nr
-				, m_acked_seq_nr);
+				, m_acked_seq_nr
+				, boost::uint32_t(ph->timestamp_difference_microseconds)
+				, m_reply_micro
+				);
 
 			if (sample && acked_bytes && prev_bytes_in_flight)
 				do_ledbat(acked_bytes, delay, prev_bytes_in_flight);
