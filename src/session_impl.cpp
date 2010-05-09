@@ -526,6 +526,13 @@ namespace aux {
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 	{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		m_logger = create_log("main_session", listen_port(), false);
+		(*m_logger) << time_now_string() << "\n";
+#endif
+
+		open_listen_port();
+
 #ifndef TORRENT_DISABLE_DHT
 		m_next_dht_torrent = m_torrents.begin();
 #endif
@@ -620,10 +627,8 @@ namespace aux {
 #ifdef TORRENT_UPNP_LOGGING
 		m_upnp_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		m_logger = create_log("main_session", listen_port(), false);
-		(*m_logger) << time_now_string() << "\n";
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #define PRINT_SIZEOF(x) (*m_logger) << "sizeof(" #x "): " << sizeof(x) << "\n";
 #define PRINT_OFFSETOF(x, y) (*m_logger) << "  offsetof(" #x "," #y "): " << offsetof(x, y) << "\n";
 
@@ -2877,12 +2882,6 @@ namespace aux {
 	{
 		eh_initializer();
 
-		if (m_listen_interface.port() != 0)
-		{
-			mutex::scoped_lock l(m_mutex);
-			open_listen_port();
-		}
-
 		do
 		{
 			error_code ec;
@@ -3397,6 +3396,9 @@ namespace aux {
 	void session_impl::start_dht(entry const& startup_state)
 	{
 		INVARIANT_CHECK;
+
+		if (m_listen_interface.port() != 0)
+			open_listen_port();
 
 		if (m_dht)
 		{
