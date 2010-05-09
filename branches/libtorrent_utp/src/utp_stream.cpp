@@ -1264,6 +1264,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 		TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
 		m_outbuf.insert(m_seq_nr, p);
 		m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
+		TORRENT_ASSERT(payload_size >= 0);
 		m_bytes_in_flight += payload_size;
 	}
 
@@ -1327,6 +1328,7 @@ bool utp_socket_impl::resend_packet(packet* p)
 		return false;
 	}
 
+	TORRENT_ASSERT(p->size - p->header_size >= 0);
 	m_bytes_in_flight += p->size - p->header_size;
 	return true;
 }
@@ -1334,7 +1336,11 @@ bool utp_socket_impl::resend_packet(packet* p)
 void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time)
 {
 	TORRENT_ASSERT(p);
-	m_bytes_in_flight -= p->size - p->header_size;
+	if (!p->need_resend)
+	{
+		TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
+		m_bytes_in_flight -= p->size - p->header_size;
+	}
 	m_rtt.add_sample(total_milliseconds(receive_time - p->send_time));
 	free(p);
 }
@@ -1415,73 +1421,77 @@ bool utp_socket_impl::consume_incoming_data(
     utp_header const* ph, char const* ptr, int payload_size
 	, ptime now)
 {
-    if (ph->type == ST_DATA)
+    if (ph->type != ST_DATA) return false;
+
+    if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK))
     {
-        if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK))
+        TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
+
+        // we received a packet in order
+        incoming(ptr, payload_size, 0);
+        m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
+
+        // If this packet was previously in the reorder buffer
+        // it would have been acked when m_ack_nr-1 was acked.
+        TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
+
+        UTP_LOGV("[%08u] %08p: remove inbuf: %d (%d)\n"
+          , int(total_microseconds(time_now_hires() - min_time())), this
+          , m_ack_nr, m_inbuf.size());
+
+        for (;;)
         {
-            TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
+            int const next_ack_nr = (m_ack_nr + 1) & ACK_MASK;
 
-            // we received a packet in order
-            incoming(ptr, payload_size, 0);
-            m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
+            packet* p = (packet*)m_inbuf.remove(next_ack_nr);
 
-            // If this packet was previously in the reorder buffer
-            // it would have been acked when m_ack_nr-1 was acked.
-            TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
+            if (!p)
+                break;
 
-            UTP_LOGV("[%08u] %08p: remove inbuf: %d (%d)\n"
+            m_buffered_incoming_bytes -= p->size - p->header_size;
+            incoming(0, p->size - p->header_size, p);
+
+            m_ack_nr = next_ack_nr;
+
+            UTP_LOGV("[%08u] %08p: reordered remove inbuf: %d (%d)\n"
               , int(total_microseconds(time_now_hires() - min_time())), this
               , m_ack_nr, m_inbuf.size());
-
-            for (;;)
-            {
-                int const next_ack_nr = (m_ack_nr + 1) & ACK_MASK;
-
-                packet* p = (packet*)m_inbuf.remove(next_ack_nr);
-
-                if (!p)
-                    break;
-
-                m_buffered_incoming_bytes -= p->size - p->header_size;
-                incoming(0, p->size - p->header_size, p);
-
-                m_ack_nr = next_ack_nr;
-
-                UTP_LOGV("[%08u] %08p: reordered remove inbuf: %d (%d)\n"
-                  , int(total_microseconds(time_now_hires() - min_time())), this
-                  , m_ack_nr, m_inbuf.size());
-            }
-
-				// should we trigger the read handler?
-				maybe_trigger_receive_callback(now);
         }
-        else
-        {
-            // this packet was received out of order. Stick it in the
-            // reorder buffer until it can be delivered in order
 
-				// have we already received this packet and passed it on
-				// to the client?
-				if (!compare_less_wrap(m_ack_nr, ph->seq_nr, ACK_MASK))
-					return true;
+		// should we trigger the read handler?
+		maybe_trigger_receive_callback(now);
+    }
+    else
+    {
+        // this packet was received out of order. Stick it in the
+        // reorder buffer until it can be delivered in order
 
-            // do we already have this packet? If so, just ignore it
-            if (m_inbuf.at(ph->seq_nr)) return true;
+		// have we already received this packet and passed it on
+		// to the client?
+		if (!compare_less_wrap(m_ack_nr, ph->seq_nr, ACK_MASK))
+		{
+			UTP_LOGV("[%08u] %08p: already received seq_nr: %d\n"
+					, int(total_microseconds(time_now_hires() - min_time())), this
+					, int(ph->seq_nr));
+			return true;
+		}
 
-            // we don't need to save the packet header, just the payload
-            packet* p = (packet*)malloc(sizeof(packet) + payload_size);
-            p->size = payload_size;
-            p->header_size = 0;
-            p->num_transmissions = 0;
-            p->need_resend = false;
-            memcpy(p->buf, ptr, payload_size);
-            m_inbuf.insert(ph->seq_nr, p);
-            m_buffered_incoming_bytes += p->size;
+        // do we already have this packet? If so, just ignore it
+        if (m_inbuf.at(ph->seq_nr)) return true;
 
-            UTP_LOGV("[%08u] %08p: out of order. insert inbuf: %d (%d) m_ack_nr: %d\n"
-              , int(total_microseconds(time_now_hires() - min_time())), this
-              , int(ph->seq_nr), m_inbuf.size(), m_ack_nr);
-        }
+        // we don't need to save the packet header, just the payload
+        packet* p = (packet*)malloc(sizeof(packet) + payload_size);
+        p->size = payload_size;
+        p->header_size = 0;
+        p->num_transmissions = 0;
+        p->need_resend = false;
+        memcpy(p->buf, ptr, payload_size);
+        m_inbuf.insert(ph->seq_nr, p);
+        m_buffered_incoming_bytes += p->size;
+
+        UTP_LOGV("[%08u] %08p: out of order. insert inbuf: %d (%d) m_ack_nr: %d\n"
+          , int(total_microseconds(time_now_hires() - min_time())), this
+          , int(ph->seq_nr), m_inbuf.size(), m_ack_nr);
     }
 
     return false;
@@ -1669,6 +1679,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 	int acked_bytes = 0;
 
+	TORRENT_ASSERT(m_bytes_in_flight >= 0);
 	int prev_bytes_in_flight = m_bytes_in_flight;
 
 	m_adv_wnd = ph->wnd_size;
@@ -1872,8 +1883,22 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				TORRENT_ASSERT(m_recv_id == (m_send_id + 1) & 0xffff);
 
 				send_pkt(true);
+
+				// there is one oddity with the uTorrent implementation
+				// where the SYN and SYN_ACK messages uses the same sequence
+				// numbers as the following data packets. This means in theory,
+				// if A sends SYN (seq=1), DATA (seq=1) and B responds with
+				// ACK (ack=1), there's no way for A to know if the ack was
+				// for the SYN packet or the data packet. In practice there is
+				// no data on the wire until the connection is established.
+				// to adjust for this, immediately after ACKin, lower the
+				// last acked sequence number so that we will let the next
+				// data packet through and can ack that again
+				m_acked_seq_nr = (m_acked_seq_nr - 1) & ACK_MASK;
+				m_ack_nr = (m_ack_nr - 1) & ACK_MASK;
 				return true;
 			}
+			break;
 		}
 		case UTP_STATE_SYN_SENT:
 		{
@@ -1886,6 +1911,11 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				, int(total_microseconds(receive_time - min_time())), this
 				, socket_state_names[m_state]);
 			m_ack_nr = ph->seq_nr;
+
+			// this is part of the hack to support the slighly odd
+			// sequence numbers uTorrent uses for connection establishment packets
+			send_pkt(true);
+			m_ack_nr = (m_ack_nr - 1) & ACK_MASK;
 
 			// notify the client that the socket connected
 			if (m_connect_handler)
@@ -1962,8 +1992,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				, m_seq_nr
 				, m_acked_seq_nr
 				, boost::uint32_t(ph->timestamp_difference_microseconds)
-				, m_reply_micro
-				);
+				, m_reply_micro);
 
 			if (sample && acked_bytes && prev_bytes_in_flight)
 				do_ledbat(acked_bytes, delay, prev_bytes_in_flight);
@@ -1975,7 +2004,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// space left in our send window or not. If we just got an ACK
 			// (i.e. ST_STATE) we're not ACKing anything. If we just
 			// received a FIN packet, we need to ack that as well
-			if (send_pkt(ph->type == ST_DATA || ph->type == ST_FIN))
+			if (send_pkt(ph->type == ST_DATA || ph->type == ST_FIN || ph->type == ST_SYN))
 			{
 				// try to send more data as long as we can
 				while (send_pkt(false));
@@ -2210,6 +2239,7 @@ void utp_socket_impl::tick(ptime const& now)
 			packet* p = (packet*)m_outbuf.at(i);
 			if (!p) continue;
 			p->need_resend = true;
+			TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
 			m_bytes_in_flight -= p->size - p->header_size;
 		}
 
