@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/timestamp_history.hpp"
 
 #define TORRENT_UTP_LOG 1
+#define TORRENT_UT_SEQ 1
 
 #if TORRENT_UTP_LOG
 #include <stdarg.h>
@@ -901,7 +902,9 @@ void utp_socket_impl::send_syn()
 
 	TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
 	m_outbuf.insert(m_seq_nr, p);
+
 	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
+
 	m_state = UTP_STATE_SYN_SENT;
 	UTP_LOGV("[%08u] %08p: state:%s\n"
 		, int(total_microseconds(time_now_hires() - min_time())), this
@@ -951,8 +954,19 @@ void utp_socket_impl::send_fin()
 		test_socket_state();
 	}
 
+#if !TORRENT_UT_SEQ
+	// if the other end closed the connection immediately
+	// our FIN packet will end up having the same sequence
+	// number as the SYN, so this assert is invalid
 	TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
-	m_outbuf.insert(m_seq_nr, p);
+#endif
+
+	packet* old = (packet*)m_outbuf.insert(m_seq_nr, p);
+	if (old)
+	{
+		if (!old->need_resend) m_bytes_in_flight -= old->size - old->header_size;
+		free(old);
+	}
 	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 
 	m_state = UTP_STATE_FIN_SENT;
@@ -1261,8 +1275,18 @@ bool utp_socket_impl::send_pkt(bool ack)
 	// and progress m_seq_nr
 	if (payload_size)
 	{
+#if !TORRENT_UT_SEQ
+		// if the other end closed the connection immediately
+		// our FIN packet will end up having the same sequence
+		// number as the SYN, so this assert is invalid
 		TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
-		m_outbuf.insert(m_seq_nr, p);
+#endif
+		packet* old = (packet*)m_outbuf.insert(m_seq_nr, p);
+		if (old)
+		{
+			if (!old->need_resend) m_bytes_in_flight -= old->size - old->header_size;
+			free(old);
+		}
 		m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 		TORRENT_ASSERT(payload_size >= 0);
 		m_bytes_in_flight += payload_size;
@@ -1606,8 +1630,13 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	// something is wrong.
 	// If our state is state_none, this packet must be a syn packet
 	// and the ack_nr should be ignored
+	boost::uint16_t cmp_seq_nr = (m_seq_nr - 1) & ACK_MASK;
+#if TORRENT_UT_SEQ
+	if (m_state == UTP_STATE_SYN_SENT && ph->type == ST_STATE)
+		cmp_seq_nr = m_seq_nr;
+#endif
 	if (m_state != UTP_STATE_NONE
-		&& compare_less_wrap((m_seq_nr - 1) & ACK_MASK, ph->ack_nr, ACK_MASK))
+		&& compare_less_wrap(cmp_seq_nr, ph->ack_nr, ACK_MASK))
 	{
 		UTP_LOGV("[%08u] %08p: incoming packet ack_nr:%d our seq_nr:%d (ignored)\n"
 			, int(total_microseconds(receive_time - min_time()))
@@ -1884,6 +1913,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 				send_pkt(true);
 
+#if TORRENT_UT_SEQ
 				// there is one oddity with the uTorrent implementation
 				// where the SYN and SYN_ACK messages uses the same sequence
 				// numbers as the following data packets. This means in theory,
@@ -1896,6 +1926,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				// data packet through and can ack that again
 				m_acked_seq_nr = (m_acked_seq_nr - 1) & ACK_MASK;
 				m_ack_nr = (m_ack_nr - 1) & ACK_MASK;
+#endif
 				return true;
 			}
 			break;
@@ -1904,18 +1935,25 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		{
 			// just wait for an ack to our SYN, ignore everything else
 			if (ph->ack_nr != (m_seq_nr - 1) & ACK_MASK)
+			{
+				UTP_LOGV("[%08u] %08p: incorrect ack_nr (%d) waiting for %d\n"
+					, int(total_microseconds(time_now_hires() - min_time())), this
+					, int(ph->ack_nr), (m_seq_nr - 1) & ACK_MASK);
 				return true;
+			}
+
+#if TORRENT_UT_SEQ
+			// this is part of the hack to support the slighly odd
+			// sequence numbers uTorrent uses for connection establishment packets
+			m_seq_nr = (m_seq_nr - 1) & ACK_MASK;
+			m_acked_seq_nr = (m_acked_seq_nr - 1) & ACK_MASK;
+#endif
 
 			m_state = UTP_STATE_CONNECTED;
 			UTP_LOGV("[%08u] %08p: state:%s\n"
 				, int(total_microseconds(receive_time - min_time())), this
 				, socket_state_names[m_state]);
 			m_ack_nr = ph->seq_nr;
-
-			// this is part of the hack to support the slighly odd
-			// sequence numbers uTorrent uses for connection establishment packets
-			send_pkt(true);
-			m_ack_nr = (m_ack_nr - 1) & ACK_MASK;
 
 			// notify the client that the socket connected
 			if (m_connect_handler)
@@ -2234,7 +2272,17 @@ void utp_socket_impl::tick(ptime const& now)
 			, int(total_microseconds(time_now_hires() - min_time())), this
 			, m_cwnd >> 16);
 
-		for (int i = (m_acked_seq_nr + 1) & ACK_MASK; i != m_seq_nr; i = (i + 1) & ACK_MASK)
+		// we need to go one passed m_seq_nr to cover the case
+		// where we just sent a SYN packet and then adjusted for
+		// the uTorrent sequence number reuse
+		for (
+#if TORRENT_UT_SEQ
+			int i = m_acked_seq_nr & ACK_MASK;
+#else
+			int i = (m_acked_seq_nr + 1) & ACK_MASK;
+#endif
+			i != m_seq_nr;
+			i = (i + 1) & ACK_MASK)
 		{
 			packet* p = (packet*)m_outbuf.at(i);
 			if (!p) continue;
@@ -2243,6 +2291,8 @@ void utp_socket_impl::tick(ptime const& now)
 			TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
 			m_bytes_in_flight -= p->size - p->header_size;
 		}
+
+		TORRENT_ASSERT(m_bytes_in_flight == 0);
 
 		// if we have a packet that needs re-sending, resend it
 		packet* p = (packet*)m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK);
