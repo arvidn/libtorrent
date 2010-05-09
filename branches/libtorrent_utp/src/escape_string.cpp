@@ -103,6 +103,19 @@ namespace libtorrent
 		return bool(std::strchr(ws, c));
 	}
 
+	// generate a url-safe random string
+	void url_random(char* begin, char* end)
+	{
+		// http-accepted characters:
+		// excluding ', since some buggy trackers don't support that
+		static char const printable[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+			"abcdefghijklmnopqrstuvwxyz-_.!~*()";
+
+		// the random number
+		while (begin != end)
+			*begin++ = printable[rand() % (sizeof(printable)-1)];
+	}
+
 	char to_lower(char c)
 	{
 		return (c >= 'A' && c <= 'Z') ? c - 'A' + 'a' : c;

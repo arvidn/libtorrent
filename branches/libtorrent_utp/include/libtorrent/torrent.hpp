@@ -276,6 +276,7 @@ namespace libtorrent
 		bool is_torrent_paused() const { return !m_allow_peers; }
 		void force_recheck();
 		void save_resume_data();
+		bool need_save_resume_data() const { return m_need_save_resume_data; }
 
 		bool is_auto_managed() const { return m_auto_managed; }
 		void auto_managed(bool a);
@@ -359,11 +360,10 @@ namespace libtorrent
 		void add_web_seed(std::string const& url, web_seed_entry::type_t type)
 		{ m_web_seeds.push_back(web_seed_entry(url, type)); }
 	
-		void disconnect_web_seed(std::string const& url, web_seed_entry::type_t type)
+		void disconnect_web_seed(peer_connection* p)
 		{
 			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-				, (boost::bind(&web_seed_entry::url, _1)
-					== url && boost::bind(&web_seed_entry::type, _1) == type));
+				, (boost::bind(&web_seed_entry::connection, _1) == p));
 			TORRENT_ASSERT(i != m_web_seeds.end());
 			if (i == m_web_seeds.end()) return;
 			TORRENT_ASSERT(i->connection);
@@ -378,7 +378,16 @@ namespace libtorrent
 			if (i != m_web_seeds.end()) m_web_seeds.erase(i);
 		}
 
-		void retry_web_seed(std::string const& url, web_seed_entry::type_t type, int retry = 0);
+		void retry_web_seed(peer_connection* p, int retry = 0);
+
+		void remove_web_seed(peer_connection* p)
+		{
+			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
+				, (boost::bind(&web_seed_entry::connection, _1) == p));
+			TORRENT_ASSERT(i != m_web_seeds.end());
+			if (i == m_web_seeds.end()) return;
+			m_web_seeds.erase(i);
+		}
 
 		std::list<web_seed_entry> web_seeds() const
 		{ return m_web_seeds; }
@@ -810,7 +819,7 @@ namespace libtorrent
 
 		void parse_response(const entry& e, std::vector<peer_entry>& peer_list);
 
-		void update_tracker_timer();
+		void update_tracker_timer(ptime now);
 
 		static void on_tracker_announce_disp(boost::weak_ptr<torrent> p
 			, error_code const& e);
@@ -1080,8 +1089,10 @@ namespace libtorrent
 #else
 		unsigned int m_dummy_padding_bits_to_align:2;
 #endif
-		// TODO: Add new bools here!
-		unsigned int m_dummy_padding_bit_to_alignt:1;
+
+		// set to false when saving resume data. Set to true
+		// whenever something is downloaded
+		bool m_need_save_resume_data:1;
 
 		// total time we've been available as a seed on this torrent
 		// does not count when the torrent is stopped or paused

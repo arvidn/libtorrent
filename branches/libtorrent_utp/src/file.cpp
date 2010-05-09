@@ -73,7 +73,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <sys/ioctl.h>
 #ifdef HAVE_LINUX_FIEMAP_H
-#include <linux/fiemap.h>
+#include <linux/fiemap.h> // FIEMAP_*
+#include <linux/fs.h>  // FS_IOC_FIEMAP
 #endif
 
 #include <asm/unistd.h> // For __NR_fallocate
@@ -126,7 +127,8 @@ BOOST_STATIC_ASSERT((libtorrent::file::no_buffer & libtorrent::file::attribute_m
 
 namespace libtorrent
 {
-	void stat_file(std::string const& inf, file_status* s, error_code& ec)
+	void stat_file(std::string const& inf, file_status* s
+		, error_code& ec, int flags)
 	{
 		ec.clear();
 
@@ -149,7 +151,12 @@ namespace libtorrent
 		}
 #else
 		struct stat ret;
-		if (::stat(f.c_str(), &ret) < 0)
+		int retval;
+		if (flags & dont_follow_links)
+			retval = ::lstat(f.c_str(), &ret);
+		else
+			retval = ::stat(f.c_str(), &ret);
+		if (retval < 0)
 		{
 			ec.assign(errno, boost::system::get_generic_category());
 			return;
@@ -1388,7 +1395,7 @@ namespace libtorrent
 
 	size_type file::phys_offset(size_type offset)
 	{
-#ifdef FS_IOC_FIEMAP
+#ifdef FIEMAP_EXTENT_UNKNOWN
 		// for documentation of this feature
 		// http://lwn.net/Articles/297696/
 		struct
@@ -1493,7 +1500,9 @@ namespace libtorrent
 		{
 			// only allocate the space if the file
 			// is not fully allocated
-			offs.LowPart = GetCompressedFileSize(m_path.c_str(), &offs.HighPart);
+			DWORD high_dword = 0;
+			offs.LowPart = GetCompressedFileSize(m_path.c_str(), &high_dword);
+			offs.HighPart = high_dword;
 			ec.assign(GetLastError(), get_system_category());
 			if (ec) return false;
 			if (offs.QuadPart != s)
@@ -1504,7 +1513,7 @@ namespace libtorrent
 				SetFileValidData(m_file_handle, offs.QuadPart);
 			}
 		}
-#endif
+#endif // _WIN32_WINNT >= 0x501
 #else
 		struct stat st;
 		if (fstat(m_fd, &st) != 0)
@@ -1540,8 +1549,11 @@ namespace libtorrent
 				ec.assign(errno, get_posix_category());
 				return false;
 			}
-#elif defined TORRENT_LINUX
-			int ret = my_fallocate(m_fd, 0, 0, s);
+#endif // F_PREALLOCATE
+
+			int ret;
+#if defined TORRENT_LINUX
+			ret = my_fallocate(m_fd, 0, 0, s);
 			// if we return 0, everything went fine
 			// the fallocate call succeeded
 			if (ret == 0) return true;
@@ -1555,24 +1567,22 @@ namespace libtorrent
 				ec.assign(ret, get_posix_category());
 				return false;
 			}
+#endif // TORRENT_LINUX
+
+#if TORRENT_HAS_FALLOCATE
 			// if fallocate failed, we have to use posix_fallocate
 			// which can be painfully slow
+			// if you get a compile error here, you might want to
+			// define TORRENT_HAS_FALLOCATE to 0.
 			ret = posix_fallocate(m_fd, 0, s);
 			if (ret != 0)
 			{
 				ec.assign(ret, get_posix_category());
 				return false;
 			}
-#elif TORRENT_HAS_FALLOCATE
-			int ret = posix_fallocate(m_fd, 0, s);
-			if (ret != 0)
-			{
-				ec.assign(ret, get_posix_category());
-				return false;
-			}
-#endif
+#endif // TORRENT_HAS_FALLOCATE
 		}
-#endif
+#endif // TORRENT_WINDOWS
 		return true;
 	}
 

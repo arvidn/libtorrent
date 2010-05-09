@@ -40,8 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 
-using boost::bind;
-
 namespace libtorrent { namespace dht
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -61,10 +59,10 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		m_results.begin()
 		, m_results.end()
 		, entry
-		, bind(
+		, boost::bind(
 			compare_ref
-			, bind(&result::id, _1)
-			, bind(&result::id, _2)
+			, boost::bind(&result::id, _1)
+			, boost::bind(&result::id, _2)
 			, m_target
 		)
 	);
@@ -72,7 +70,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	if (i == m_results.end() || i->id != id)
 	{
 		TORRENT_ASSERT(std::find_if(m_results.begin(), m_results.end()
-			, bind(&result::id, _1) == id) == m_results.end());
+			, boost::bind(&result::id, _1) == id) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "[" << this << "] adding result: " << id << " " << addr;
 #endif

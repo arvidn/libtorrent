@@ -1802,6 +1802,10 @@ ones with lower tier will always be tried before the one with higher tier number
 		int next_announce_in() const;
 		int min_announce_in() const;
 
+		error_code last_error;
+
+		std::string message;
+
 		boost::uint8_t tier;
 		boost::uint8_t fail_limit;
 		boost::uint8_t fails;
@@ -1824,6 +1828,12 @@ ones with lower tier will always be tried before the one with higher tier number
 ``next_announce_in()`` returns the number of seconds to the next announce on
 this tracker. ``min_announce_in()`` returns the number of seconds until we are
 allowed to force another tracker update with this tracker.
+
+If the last time this tracker was contacted failed, ``last_error`` is the error
+code describing what error occurred.
+
+If the last time this tracker was contacted, the tracker returned a warning
+or error message, ``message`` contains that message.
 
 ``fail_limit`` is the max number of failures to announce to this tracker in
 a row, before this tracker is not used anymore.
@@ -1977,6 +1987,7 @@ Its declaration looks like this::
 		std::string name() const;
 
 		void save_resume_data() const;
+		bool need_save_resume_data() const;
 		void force_reannounce() const;
 		void force_dht_announce() const;
 		void force_reannounce(boost::posix_time::time_duration) const;
@@ -2855,6 +2866,17 @@ Example code to pause and save resume data for all torrents and wait for the ale
 	}
 	
 
+need_save_resume_data()
+-----------------------
+
+	::
+
+		bool need_save_resume_data() const;
+
+This function returns true if any whole chunk has been downloaded since the
+torrent was first loaded or since the last time the resume data was saved. When
+saving resume data periodically, it makes sense to skip any torrent which hasn't
+downloaded anything since the last time.
 
 status()
 --------
@@ -3876,6 +3898,9 @@ session_settings
 		bool enable_outgoing_tcp;
 		bool enable_incoming_tcp;
 		int max_pex_peers;
+		bool ignore_resume_timestamps;
+		bool anonymous_mode;
+		int tick_interval;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4511,6 +4536,33 @@ that don't support multicast. It's off by default since it's inefficient.
 ``enable_incoming_tcp`` all determines if libtorrent should attempt to make
 outgoing connections of the specific type, or allow incoming connection. By
 default all of them are enabled.
+
+``ignore_resume_timestamps`` determines if the storage, when loading
+resume data files, should verify that the file modification time
+with the timestamps in the resume data. This defaults to false, which
+means timestamps are taken into account, and resume data is less likely
+to accepted (torrents are more likely to be fully checked when loaded).
+It might be useful to set this to true if your network is faster than your
+disk, and it would be faster to redownload potentially missed pieces than
+to go through the whole storage to look for them.
+
+``anonymous_mode`` defaults to false. When set to true, the client tries
+to hide its identity to a certain degree. The peer-ID will no longer
+include the client's fingerprint. The user-agent will be reset to an
+empty string. Trackers will only be used if they are using a proxy
+server. The listen sockets are closed, and incoming connections will
+only be accepted through a SOCKS5 or I2P proxy (if a peer proxy is set up and
+is run on the same machine as the tracker proxy). Since no incoming connections
+are accepted, NAT-PMP, UPnP, DHT and local peer discovery are all turned off
+when this setting is enabled.
+
+If you're using I2P, it might make sense to enable anonymous mode as well.
+
+``tick_interval`` specifies the number of milliseconds between internal
+ticks. This is the frequency with which bandwidth quota is distributed to
+peers. It should not be more than one second (i.e. 1000 ms). Setting this
+to a low value (around 100) means higher resolution bandwidth quota distribution,
+setting it to a higher value saves CPU cycles.
 
 
 pe_settings
@@ -5164,7 +5216,7 @@ has the followinf signature::
 	template <T> T* alert_cast(alert* a);
 	template <T> T const* alert_cast(alert const* a);
 
-You can also use a dispatcher_ mechanism that's available in libtorrent.
+You can also use a `alert dispatcher`_ mechanism that's available in libtorrent.
 
 All alert types are defined in the ``<libtorrent/alert_types.hpp>`` header file.
 
@@ -6158,8 +6210,35 @@ It belongs to the ``dht_notification`` category.
 		sha1_hash info_hash;
 	};
 
-dispatcher
-----------
+anonymous_mode_alert
+--------------------
+
+This alert is posted when a bittorrent feature is blocked because of the
+anonymous mode. For instance, if the tracker proxy is not set up, no
+trackers will be used, because trackers can only be used through proxies
+when in anonymous mode.
+
+::
+
+	struct anonymous_mode_alert: tracker_alert
+	{
+		// ...
+		enum kind_t
+		{
+			tracker_not_anonymous = 1
+		};
+		int kind;
+		std::string str;
+	};
+
+``kind`` specifies what error this is, it's one of:
+
+``tracker_not_anonymous`` means that there's no proxy set up for tracker
+communication and the tracker will not be contacted. The tracker which
+this failed for is specified in the ``str`` member.
+
+alert dispatcher
+================
 
 The ``handle_alert`` class is defined in ``<libtorrent/alert.hpp>``.
 

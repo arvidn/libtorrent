@@ -99,8 +99,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/escape_string.hpp"
 
-using boost::bind;
-
 #if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG && TORRENT_USE_IOSTREAM
 namespace
 {
@@ -187,11 +185,17 @@ namespace libtorrent
 	// resume data. This is because full allocation will not move
 	// pieces, so any older version of the resume data will
 	// still be a correct subset of the actual data on disk.
+	enum flags_t
+	{
+		compact_mode = 1,
+		ignore_timestamps = 2
+	};
+
 	bool match_filesizes(
 		file_storage const& fs
 		, std::string p
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
-		, bool compact_mode
+		, int flags
 		, error_code& error)
 	{
 		if ((int)sizes.size() != fs.num_files())
@@ -220,17 +224,20 @@ namespace libtorrent
 				time = s.mtime;
 			}
 
-			if ((compact_mode && size != size_iter->first)
-				|| (!compact_mode && size < size_iter->first))
+			if (((flags & compact_mode) && size != size_iter->first)
+				|| (!(flags & compact_mode) && size < size_iter->first))
 			{
 				error = errors::mismatching_file_size;
 				return false;
 			}
+
+			if (flags & ignore_timestamps) continue;
+
 			// allow one second 'slack', because of FAT volumes
 			// in sparse mode, allow the files to be more recent
 			// than the resume data, but only by 5 minutes
-			if ((compact_mode && (time > size_iter->second + 1 || time < size_iter->second - 1)) ||
-				(!compact_mode && (time > size_iter->second + 5 * 60 || time < size_iter->second - 1)))
+			if (((flags & compact_mode) && (time > size_iter->second + 1 || time < size_iter->second - 1)) ||
+				(!(flags & compact_mode) && (time > size_iter->second + 5 * 60 || time < size_iter->second - 1)))
 			{
 				error = errors::mismatching_file_timestamp;
 				return false;
@@ -823,8 +830,10 @@ namespace libtorrent
 				}
 			}
 		}
-		return match_filesizes(files(), m_save_path, file_sizes
-			, !full_allocation_mode, error);
+		int flags = (full_allocation_mode ? 0 : compact_mode)
+			| (settings().ignore_resume_timestamps ? ignore_timestamps : 0);
+
+		return match_filesizes(files(), m_save_path, file_sizes, flags, error);
 
 	}
 

@@ -33,9 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DEBUG_HPP_INCLUDED
 #define TORRENT_DEBUG_HPP_INCLUDED
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+
 #include <string>
 #include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/thread.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <fstream>
@@ -48,49 +51,60 @@ namespace libtorrent
 	
 	struct logger
 	{
-		logger(std::string const& logpath, std::string const& filename
-			, int instance, bool append = true)
-		{
 #if TORRENT_USE_IOSTREAM
+		// all log streams share a single file descriptor
+		// and re-opens the file for each log line
+		// these members are defined in session_impl.cpp
+		static std::ofstream log_file;
+		static std::string open_filename;
+		static mutex file_mutex;
+#endif
 
-#ifndef BOOST_NO_EXCEPTIONS
-			try
-			{
-#endif
-				char log_name[256];
-				snprintf(log_name, sizeof(log_name), "libtorrent_logs%d", instance);
-				std::string dir(complete(combine_path(logpath, log_name)));
-				error_code ec;
-				if (!exists(dir)) create_directories(dir, ec);
-				m_file.open(combine_path(dir, filename).c_str()
-					, std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
-				*this << "\n\n\n*** starting log ***\n";
-#ifndef BOOST_NO_EXCEPTIONS
-			}
-			catch (std::exception& e)
-			{
-				std::cerr << "failed to create log '" << filename << "': " << e.what() << std::endl;
-			}
-#endif
-#endif
+		logger(std::string const& logpath, std::string const& filename
+			, int instance, bool append)
+		{
+			char log_name[512];
+			snprintf(log_name, sizeof(log_name), "libtorrent_logs%d", instance);
+			std::string dir(complete(combine_path(logpath, log_name)));
+			error_code ec;
+			if (!exists(dir)) create_directories(dir, ec);
+			m_filename = combine_path(dir, filename);
+			m_truncate = !append;
+			*this << "\n\n\n*** starting log ***\n";
 		}
+
+#if TORRENT_USE_IOSTREAM
+		void open()
+		{
+			if (open_filename == m_filename) return;
+			log_file.close();
+			log_file.clear();
+			log_file.open(m_filename.c_str(), m_truncate ? std::ios_base::trunc : std::ios_base::app);
+			open_filename = m_filename;
+			m_truncate = false;
+			if (!log_file.good())
+				fprintf(stderr, "Failed to open logfile %s: %s\n", m_filename.c_str(), strerror(errno));
+		}
+#endif
 
 		template <class T>
 		logger& operator<<(T const& v)
 		{
 #if TORRENT_USE_IOSTREAM
-			m_file << v;
-			m_file.flush();
+			mutex::scoped_lock l(file_mutex);
+			open();
+			log_file << v;
+			log_file.flush();
 #endif
 			return *this;
 		}
 
-#if TORRENT_USE_IOSTREAM
-		std::ofstream m_file;
-#endif
+		std::string m_filename;
+		bool m_truncate;
 	};
 
 }
 
+#endif // TORRENT_VERBOSE_LOGGING || TORRENT_LOGGING || TORRENT_ERROR_LOGGING
 #endif // TORRENT_DEBUG_HPP_INCLUDED
 

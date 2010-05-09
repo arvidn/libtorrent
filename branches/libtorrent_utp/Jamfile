@@ -192,6 +192,7 @@ rule building ( properties * )
 		result += <source>src/pe_crypto.cpp ;
 
 		if <target-os>linux in $(properties)
+			&& <encryption>openssl in $(properties)
 		{
 			# linker library on linux, required when using openssl
 			result += <source>/usr/lib/libdl.so ;
@@ -230,8 +231,15 @@ feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
 
 feature need-librt : no yes : composite propagated link-incompatible ;
 
+feature fiemap : off on : composite propagated ;
+feature.compose <fiemap>on : <define>HAVE_LINUX_FIEMAP_H ;
+
 feature full-stats : on off : composite propagated link-incompatible ;
 feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
+
+feature asserts : on off production : composite propagated ;
+feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 ;
+feature.compose <asserts>off : <define>TORRENT_NO_ASSERTS=1 ;
 
 feature pool-allocators : on off : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;

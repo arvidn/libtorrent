@@ -58,12 +58,16 @@ add_files
 	::
 	
 		template <class Pred>
-		void add_files(file_storage& fs, boost::filesystem::path const& path, Pred p);
+		void add_files(file_storage& fs, boost::filesystem::path const& path, Pred p
+			, boost::uint32_t flags = 0);
 		template <class Pred>
-		void add_files(file_storage& fs, boost::filesystem::wpath const& path, Pred p);
+		void add_files(file_storage& fs, boost::filesystem::wpath const& path, Pred p
+			, boost::uint32_t flags = 0);
 
-		void add_files(file_storage& fs, boost::filesystem::path const& path);
-		void add_files(file_storage& fs, boost::filesystem::wpath const& path);
+		void add_files(file_storage& fs, boost::filesystem::path const& path
+			, boost::uint32_t flags = 0);
+		void add_files(file_storage& fs, boost::filesystem::wpath const& path
+			, boost::uint32_t flags = 0);
 
 Adds the file specified by ``path`` to the ``file_storage`` object. In case ``path``
 refers to a diretory, files will be added recursively from the directory.
@@ -83,6 +87,9 @@ directory. If no predicate is specified, all files are added, and all directorie
 are traveresed.
 
 The ".." directory is never traversed.
+
+The ``flags`` argument should be the same as the flags passed to the `create_torrent`_
+constructor.
 
 set_piece_hashes()
 ==================
@@ -224,7 +231,8 @@ The ``create_torrent`` class has the following synopsis::
 			, symlink = 8
 			, calculate_file_hashes = 16
 		};
-		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
+		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
+			, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
 		entry generate() const;
@@ -258,7 +266,8 @@ create_torrent()
 			, symlink = 8
 			, calculate_file_hashes = 16
 		};
-		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
+		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
+			, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
 The ``piece_size`` is the size of each piece in bytes. It must
@@ -300,11 +309,10 @@ modification_time
 	files.
 
 symlink
-	If this flag is defined, files that are symlinks get a symlink attribute
-	set on them. The file data will still be the same, the symlink will always
-	be followed when opening the file, but the file list will include the path
-	of the symlink so that the original directory structure can be reproduced
-	on the downloading side.
+	If this flag is set, files that are symlinks get a symlink attribute
+	set on them and their data will not be included in the torrent. This
+	is useful if you need to reconstruct a file hierarchy which contains
+	symlinks.
 
 calculate_file_hashes
 	If this is set, the `set_piece_hashes()`_ function will, as it calculates

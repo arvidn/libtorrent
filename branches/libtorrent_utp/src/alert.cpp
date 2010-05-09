@@ -465,5 +465,17 @@ namespace libtorrent {
 
 	cache_flushed_alert::cache_flushed_alert(torrent_handle const& h): torrent_alert(h) {}
 
+	std::string anonymous_mode_alert::message() const
+	{
+		char msg[200];
+		char const* msgs[] = {
+			"tracker is not anonymous, set a proxy"
+		};
+		snprintf(msg, sizeof(msg), "%s: %s: %s"
+			, torrent_alert::message().c_str()
+			, msgs[kind], str.c_str());
+		return msg;
+	}
+
 } // namespace libtorrent
 

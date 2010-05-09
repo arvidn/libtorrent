@@ -73,8 +73,12 @@ void test_rate()
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 0, &t);
 
-	ses1.set_alert_mask(alert::all_categories & ~(alert::performance_warning));
-	ses2.set_alert_mask(alert::all_categories & ~(alert::performance_warning));
+	ses1.set_alert_mask(alert::all_categories
+		& ~alert::progress_notification
+		& ~alert::stats_notification);
+	ses2.set_alert_mask(alert::all_categories
+		& ~alert::progress_notification
+		& ~alert::stats_notification);
 
 	ptime start = time_now();
 
@@ -312,8 +316,12 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
 	std::cerr << std::endl;
 
-	ses1.set_alert_mask(alert::all_categories & ~alert::progress_notification);
-	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
+	ses1.set_alert_mask(alert::all_categories
+		& ~alert::progress_notification
+		& ~alert::stats_notification);
+	ses2.set_alert_mask(alert::all_categories
+		& ~alert::progress_notification
+		& ~alert::stats_notification);
 	ses1.set_alert_dispatch(&print_alert);
 
 	ses2.set_download_rate_limit(tor2.get_torrent_info().piece_length() * 5);
@@ -405,13 +413,19 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 	tor2.pause();
 	alert const* a = ses2.wait_for_alert(seconds(10));
+	bool got_paused_alert = false;
 	while (a)
 	{
 		std::auto_ptr<alert> holder = ses2.pop_alert();
 		std::cerr << "ses2: " << a->message() << std::endl;
-		if (alert_cast<torrent_paused_alert>(a)) break;	
+		if (alert_cast<torrent_paused_alert>(a))
+		{
+			got_paused_alert = true;
+			break;	
+		}
 		a = ses2.wait_for_alert(seconds(10));
 	}
+	TEST_CHECK(got_paused_alert);	
 
 	std::vector<announce_entry> tr = tor2.trackers();
 	tr.push_back(announce_entry("http://test.com/announce"));
@@ -434,6 +448,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		}
 		a = ses2.wait_for_alert(seconds(10));
 	}
+	TEST_CHECK(resume_data.size());	
 
 	std::cerr << "saved resume data" << std::endl;
 
@@ -449,7 +464,9 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	p.save_path = "./tmp2_transfer_moved";
 	p.resume_data = &resume_data;
 	tor2 = ses2.add_torrent(p, ec);
-	ses2.set_alert_mask(alert::all_categories & ~alert::progress_notification);
+	ses2.set_alert_mask(alert::all_categories
+		& ~alert::progress_notification
+		& ~alert::stats_notification);
 	tor2.prioritize_pieces(priorities);
 	std::cout << "resetting priorities" << std::endl;
 	tor2.resume();

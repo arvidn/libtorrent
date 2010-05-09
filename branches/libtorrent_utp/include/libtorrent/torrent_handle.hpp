@@ -466,6 +466,7 @@ namespace libtorrent
 
 		void force_recheck() const;
 		void save_resume_data() const;
+		bool need_save_resume_data() const;
 
 		bool is_auto_managed() const;
 		void auto_managed(bool m) const;

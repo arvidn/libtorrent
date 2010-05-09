@@ -318,6 +318,7 @@ namespace libtorrent
 			m_physical_ram = 0;
 #elif defined TORRENT_WINDOWS
 		MEMORYSTATUSEX ms;
+		ms.dwLength = sizeof(MEMORYSTATUSEX);
 		if (GlobalMemoryStatusEx(&ms))
 			m_physical_ram = ms.ullTotalPhys;
 		else
@@ -673,8 +674,8 @@ namespace libtorrent
 			{
 				cache_lru_index_t::iterator i =
 				std::max_element(idx.begin(), idx.end()
-					, bind(&contiguous_blocks, _1)
-					< bind(&contiguous_blocks, _2));
+					, boost::bind(&contiguous_blocks, _1)
+					< boost::bind(&contiguous_blocks, _2));
 				if (i == idx.end()) return ret;
 				tmp = flush_contiguous_blocks(const_cast<cached_piece_entry&>(*i), l);
 				if (i->num_blocks == 0) idx.erase(i);
@@ -1466,6 +1467,8 @@ namespace libtorrent
 		typedef std::multimap<size_type, disk_io_job> read_jobs_t;
 		read_jobs_t sorted_read_jobs;
 		read_jobs_t::iterator elevator_job_pos = sorted_read_jobs.begin();
+		size_type last_elevator_pos = 0;
+		bool need_update_elevator_pos = false;
 
 		for (;;)
 		{
@@ -1495,10 +1498,17 @@ namespace libtorrent
 					, end(widx.end()); i != end; ++i)
 					flush_range(const_cast<cached_piece_entry&>(*i), 0, INT_MAX, l);
 
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+				// since we're aborting the thread, we don't actually
+				// need to free all the blocks individually. We can just
+				// clear the piece list and the memory will be freed when we
+				// destruct the m_pool. If we're not using a pool, we actually
+				// have to free everything individually though
 				cache_piece_index_t& idx = m_read_pieces.get<0>();
 				for (cache_piece_index_t::iterator i = idx.begin()
 					, end(idx.end()); i != end; ++i)
 					free_piece(const_cast<cached_piece_entry&>(*i), l);
+#endif
 
 				m_pieces.clear();
 				m_read_pieces.clear();
@@ -1564,6 +1574,7 @@ namespace libtorrent
 					m_log << log_time() << " sorting_job" << std::endl;
 #endif
 					size_type phys_off = j.storage->physical_offset(j.piece, j.offset);
+					need_update_elevator_pos = need_update_elevator_pos || sorted_read_jobs.empty();
 					sorted_read_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
 					continue;
 				}
@@ -1577,19 +1588,29 @@ namespace libtorrent
 
 				TORRENT_ASSERT(!sorted_read_jobs.empty());
 
+				// if sorted_read_jobs used to be empty,
+				// we need to update the elevator position
+				if (need_update_elevator_pos)
+				{
+					elevator_job_pos = sorted_read_jobs.lower_bound(last_elevator_pos);
+					need_update_elevator_pos = false;
+				}
+
 				// if we've reached the end, change the elevator direction
-				if (elevator_job_pos == sorted_read_jobs.end() && elevator_direction == 1)
+				if (elevator_job_pos == sorted_read_jobs.end())
 				{
 					elevator_direction = -1;
 					--elevator_job_pos;
 				}
+				TORRENT_ASSERT(!sorted_read_jobs.empty());
 
+				TORRENT_ASSERT(elevator_job_pos != sorted_read_jobs.end());
 				j = elevator_job_pos->second;
 				read_jobs_t::iterator to_erase = elevator_job_pos;
 
 				// if we've reached the begining of the sorted list,
 				// change the elvator direction
-				if (elevator_job_pos == sorted_read_jobs.begin() && elevator_direction == -1)
+				if (elevator_job_pos == sorted_read_jobs.begin())
 					elevator_direction = 1;
 
 				// move the elevator before erasing the job we're processing
@@ -1597,6 +1618,8 @@ namespace libtorrent
 				if (elevator_direction > 0) ++elevator_job_pos;
 				else --elevator_job_pos;
 
+				TORRENT_ASSERT(to_erase != elevator_job_pos);
+				last_elevator_pos = to_erase->first;
 				sorted_read_jobs.erase(to_erase);
 			}
 
@@ -1722,6 +1745,7 @@ namespace libtorrent
 							continue;
 						}
 						post_callback(i->second.callback, i->second, -3);
+						if (elevator_job_pos == i) ++elevator_job_pos;
 						sorted_read_jobs.erase(i++);
 					}
 					jl.unlock();
@@ -1780,6 +1804,7 @@ namespace libtorrent
 							continue;
 						}
 						post_callback(i->second.callback, i->second, -3);
+						if (elevator_job_pos == i) ++elevator_job_pos;
 						sorted_read_jobs.erase(i++);
 					}
 

@@ -216,6 +216,9 @@ namespace libtorrent
 			, enable_outgoing_tcp(true)
 			, enable_incoming_tcp(true)
 			, max_pex_peers(200)
+			, ignore_resume_timestamps(false)
+			, anonymous_mode(false)
+			, tick_interval(100)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -833,6 +836,22 @@ namespace libtorrent
 		// be connected to. If they clain to be connected to more than this, we'll
 		// ignore any peer that exceeds this limit
 		int max_pex_peers;
+
+		// when set to true, the file modification time is ignored when loading
+		// resume data. The resume data includes the expected timestamp of each
+		// file and is typically compared to make sure the files haven't changed
+		// since the last session
+		bool ignore_resume_timestamps;
+
+		// when this is true, libtorrent will take actions to make sure any
+		// privacy sensitive information is leaked out from the client. This
+		// mode is assumed to be combined with using a proxy for all your
+		// traffic. With this option, your true IP address will not be exposed
+		bool anonymous_mode;
+
+		// the number of milliseconds between internal ticks. Should be no
+		// more than one second (i.e. 1000).
+		int tick_interval;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

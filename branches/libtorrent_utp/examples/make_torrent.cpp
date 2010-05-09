@@ -77,6 +77,8 @@ void print_usage()
 		"            than bytes will be piece-aligned\n"
 		"-s bytes    specifies a piece size for the torrent\n"
 		"            This has to be a multiple of 16 kiB\n"
+		"-l          Don't follow symlinks, instead encode them as\n"
+		"            links in the torrent file\n"
 		"-o file     specifies the output filename of the torrent file\n"
 		"            If this is not specified, the torrent file is\n"
 		"            printed to the standard out, except on windows\n"
@@ -150,6 +152,9 @@ int main(int argc, char* argv[])
 				case 'f':
 					flags |= create_torrent::calculate_file_hashes;
 					break;
+				case 'l':
+					flags |= create_torrent::symlinks;
+					break;
 				default:
 					print_usage();
 					return 1;
@@ -160,7 +165,7 @@ int main(int argc, char* argv[])
 		file_pool fp;
 		std::string full_path = libtorrent::complete(argv[1]);
 
-		add_files(fs, full_path, file_filter);
+		add_files(fs, full_path, file_filter, flags);
 		if (fs.num_files() == 0)
 		{
 			fputs("no files specified.\n", stderr);

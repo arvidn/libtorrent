@@ -53,6 +53,8 @@ namespace libtorrent
 	TORRENT_EXPORT bool string_begins_no_case(char const* s1, char const* s2);
 	TORRENT_EXPORT bool string_equal_no_case(char const* s1, char const* s2);
 
+	TORRENT_EXPORT void url_random(char* begin, char* end);
+
 	TORRENT_EXPORT std::string unescape_string(std::string const& s, error_code& ec);
 	// replaces all disallowed URL characters by their %-encoding
 	TORRENT_EXPORT std::string escape_string(const char* str, int len);

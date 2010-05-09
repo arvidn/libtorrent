@@ -38,6 +38,23 @@ project listed here, let me_ know.
 
 .. container:: entry
 
+	.. image:: folx.png
+		:align: right
+		:target: folx_
+
+	**Folx**
+
+	folx_ has a friendly and easy interface will help you take
+	the most of your downloads. Just click the link in your browser
+	and Folx will start downloading for you. This download manager
+	is not overloaded with tons of unnecessary features and can do
+	everything you need in a very simple way.
+
+	.. _folx: http://www.mac-downloader.com/
+
+
+.. container:: entry
+
 	.. image:: qbittorrent_thumb.jpg
 		:align: right
 		:target: qBittorrent_
@@ -162,6 +179,41 @@ project listed here, let me_ know.
 	FDM_ is a powerful, easy-to-use and absolutely free download accelerator and
 	manager. Moreover, FDM is 100% safe, open-source software distributed under
 	GPL License.
+
+
+
+.. container:: entry
+
+	.. image:: zyxel.png
+		:align: right
+		:target: ZyXEL_
+
+	**ZyXEL NSA-220**
+
+	ZyXEL_ NSA220 makes it easy to store, protect and share files between users
+	on your home network. The built-in DLNA server works with many set top boxes
+	to allow you to play back music, watch video files, or view photos on your
+	home theater system, while the built in download manager can automatically
+	download video and audio podcasts as well as allow you to download bittorrent
+	files without needing to leave your computer on.
+
+	.. _ZyXEL: http://us.zyxel.com/Products/details.aspx?PC1IndexFlag=20050125090459&CategoryGroupNo=758BFE64-3A95-463C-9E1E-3D30E3B58D9C
+
+
+
+.. container:: entry
+
+	.. image:: t2e.jpg
+		:align: right
+		:target: Torrent2Exe_
+
+	**Torrent2Exe**
+
+	Torrent2Exe_ Torrent2exe is a small BitTorrent client. Its basic idea is to
+	let users download a custom-built EXE program with the torrent file
+	integrated into it.
+
+	.. _Torrent2Exe: http://torrent2exe.com
 
 
 

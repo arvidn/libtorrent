@@ -223,8 +223,6 @@ namespace libtorrent { namespace dht
 		, m_received_bytes(0)
 		, m_refs(0)
 	{
-		using boost::bind;
-
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		m_counter = 0;
 		std::fill_n(m_replies_bytes_sent, 5, 0);
@@ -269,14 +267,14 @@ namespace libtorrent { namespace dht
 
 		error_code ec;
 		m_timer.expires_from_now(seconds(1), ec);
-		m_timer.async_wait(bind(&dht_tracker::tick, self(), _1));
+		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
 
 		m_connection_timer.expires_from_now(seconds(10), ec);
 		m_connection_timer.async_wait(
-			bind(&dht_tracker::connection_timeout, self(), _1));
+			boost::bind(&dht_tracker::connection_timeout, self(), _1));
 
 		m_refresh_timer.expires_from_now(seconds(5), ec);
-		m_refresh_timer.async_wait(bind(&dht_tracker::refresh_timeout, self(), _1));
+		m_refresh_timer.async_wait(boost::bind(&dht_tracker::refresh_timeout, self(), _1));
 		m_dht.bootstrap(initial_nodes, boost::bind(&dht_tracker::on_bootstrap, self(), _1));
 	}
 
@@ -314,7 +312,7 @@ namespace libtorrent { namespace dht
 		time_duration d = m_dht.connection_timeout();
 		error_code ec;
 		m_connection_timer.expires_from_now(d, ec);
-		m_connection_timer.async_wait(bind(&dht_tracker::connection_timeout, self(), _1));
+		m_connection_timer.async_wait(boost::bind(&dht_tracker::connection_timeout, self(), _1));
 	}
 
 	void dht_tracker::refresh_timeout(error_code const& e)
@@ -326,7 +324,7 @@ namespace libtorrent { namespace dht
 		error_code ec;
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(
-			bind(&dht_tracker::refresh_timeout, self(), _1));
+			boost::bind(&dht_tracker::refresh_timeout, self(), _1));
 	}
 
 	void dht_tracker::tick(error_code const& e)
@@ -336,7 +334,7 @@ namespace libtorrent { namespace dht
 
 		error_code ec;
 		m_timer.expires_from_now(minutes(tick_period), ec);
-		m_timer.async_wait(bind(&dht_tracker::tick, self(), _1));
+		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
 
 		ptime now = time_now();
 		if (now - m_last_new_key > minutes(key_refresh))
@@ -589,7 +587,7 @@ namespace libtorrent { namespace dht
 		snprintf(port, sizeof(port), "%d", node.second);
 		udp::resolver::query q(node.first, port);
 		m_host_resolver.async_resolve(q,
-			bind(&dht_tracker::on_name_lookup, self(), _1, _2));
+			boost::bind(&dht_tracker::on_name_lookup, self(), _1, _2));
 	}
 
 	void dht_tracker::on_name_lookup(error_code const& e

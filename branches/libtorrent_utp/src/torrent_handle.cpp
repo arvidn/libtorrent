@@ -70,7 +70,6 @@ namespace std
 };
 #endif
 
-using boost::bind;
 using libtorrent::aux::session_impl;
 
 #ifdef BOOST_NO_EXCEPTIONS
@@ -302,6 +301,12 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_FORWARD(save_resume_data());
+	}
+
+	bool torrent_handle::need_save_resume_data() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD_RETURN(need_save_resume_data(), false);
 	}
 
 	void torrent_handle::force_recheck() const

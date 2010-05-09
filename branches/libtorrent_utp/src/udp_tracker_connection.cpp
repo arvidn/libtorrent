@@ -52,8 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/escape_string.hpp"
 
-using boost::bind;
-
 namespace libtorrent
 {
 
@@ -95,7 +93,9 @@ namespace libtorrent
 
 		if (ec)
 		{
-			fail(ec);
+			// never call fail() when the session mutex is locked!
+			m_socket.get_io_service().post(boost::bind(
+				&tracker_connection::fail_disp, self(), ec));
 			return;
 		}
 		
@@ -491,8 +491,6 @@ namespace libtorrent
 
 	void udp_tracker_connection::on_scrape_response(char const* buf, int size)
 	{
-		buf += 8; // skip header
-
 		restart_read_timeout();
 		int action = detail::read_int32(buf);
 		int transaction = detail::read_int32(buf);

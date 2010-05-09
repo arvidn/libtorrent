@@ -57,10 +57,11 @@
 <li><a class="reference internal" href="#set-comment" id="id13">set_comment()</a></li>
 <li><a class="reference internal" href="#set-creator" id="id14">set_creator()</a></li>
 <li><a class="reference internal" href="#set-hash" id="id15">set_hash()</a></li>
-<li><a class="reference internal" href="#add-url-seed" id="id16">add_url_seed()</a></li>
-<li><a class="reference internal" href="#add-node" id="id17">add_node()</a></li>
-<li><a class="reference internal" href="#add-tracker" id="id18">add_tracker()</a></li>
-<li><a class="reference internal" href="#set-priv-priv" id="id19">set_priv() priv()</a></li>
+<li><a class="reference internal" href="#set-file-hash" id="id16">set_file_hash()</a></li>
+<li><a class="reference internal" href="#add-url-seed" id="id17">add_url_seed()</a></li>
+<li><a class="reference internal" href="#add-node" id="id18">add_node()</a></li>
+<li><a class="reference internal" href="#add-tracker" id="id19">add_tracker()</a></li>
+<li><a class="reference internal" href="#set-priv-priv" id="id20">set_priv() priv()</a></li>
 </ul>
 </li>
 </ul>
@@ -110,12 +111,16 @@ bencode(std::ostream_iterator&lt;char&gt;(out), t.generate());
 <blockquote>
 <pre class="literal-block">
 template &lt;class Pred&gt;
-void add_files(file_storage&amp; fs, boost::filesystem::path const&amp; path, Pred p);
+void add_files(file_storage&amp; fs, boost::filesystem::path const&amp; path, Pred p
+        , boost::uint32_t flags = 0);
 template &lt;class Pred&gt;
-void add_files(file_storage&amp; fs, boost::filesystem::wpath const&amp; path, Pred p);
+void add_files(file_storage&amp; fs, boost::filesystem::wpath const&amp; path, Pred p
+        , boost::uint32_t flags = 0);
 
-void add_files(file_storage&amp; fs, boost::filesystem::path const&amp; path);
-void add_files(file_storage&amp; fs, boost::filesystem::wpath const&amp; path);
+void add_files(file_storage&amp; fs, boost::filesystem::path const&amp; path
+        , boost::uint32_t flags = 0);
+void add_files(file_storage&amp; fs, boost::filesystem::wpath const&amp; path
+        , boost::uint32_t flags = 0);
 </pre>
 </blockquote>
 <p>Adds the file specified by <tt class="docutils literal"><span class="pre">path</span></tt> to the <tt class="docutils literal"><span class="pre">file_storage</span></tt> object. In case <tt class="docutils literal"><span class="pre">path</span></tt>
@@ -134,6 +139,8 @@ bool Pred(boost::filesystem::wpath const&amp; p);
 directory. If no predicate is specified, all files are added, and all directories
 are traveresed.</p>
 <p>The &quot;..&quot; directory is never traversed.</p>
+<p>The <tt class="docutils literal"><span class="pre">flags</span></tt> argument should be the same as the flags passed to the <a class="reference internal" href="#create-torrent">create_torrent</a>
+constructor.</p>
 </div>
 <div class="section" id="set-piece-hashes">
 <h1>set_piece_hashes()</h1>
@@ -269,8 +276,10 @@ struct create_torrent
                 , merkle = 2
                 , modification_time = 4
                 , symlink = 8
+                , calculate_file_hashes = 16
         };
-        create_torrent(file_storage&amp; fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
+        create_torrent(file_storage&amp; fs, int piece_size = 0, int pad_size_limit = -1
+                , int flags = optimize);
         create_torrent(torrent_info const&amp; ti);
 
         entry generate() const;
@@ -280,6 +289,7 @@ struct create_torrent
         void set_comment(char const* str);
         void set_creator(char const* str);
         void set_hash(int index, sha1_hash const&amp; h);
+        void set_file_hash(int index, sha1_hash const&amp; h);
         void add_url_seed(std::string const&amp; url);
         void add_node(std::pair&lt;std::string, int&gt; const&amp; node);
         void add_tracker(std::string const&amp; url, int tier = 0);
@@ -300,8 +310,10 @@ enum {
         , merkle = 2
         , modification_time = 4
         , symlink = 8
+        , calculate_file_hashes = 16
 };
-create_torrent(file_storage&amp; fs, int piece_size = 0, int pad_size_limit = -1, int flags = optimize);
+create_torrent(file_storage&amp; fs, int piece_size = 0, int pad_size_limit = -1
+        , int flags = optimize);
 create_torrent(torrent_info const&amp; ti);
 </pre>
 </blockquote>
@@ -338,11 +350,15 @@ yield the same info-hash. If the files have different modification times,
 with this option enabled, you would get different info-hashes for the
 files.</dd>
 <dt>symlink</dt>
-<dd>If this flag is defined, files that are symlinks get a symlink attribute
-set on them. The file data will still be the same, the symlink will always
-be followed when opening the file, but the file list will include the path
-of the symlink so that the original directory structure can be reproduced
-on the downloading side.</dd>
+<dd>If this flag is set, files that are symlinks get a symlink attribute
+set on them and their data will not be included in the torrent. This
+is useful if you need to reconstruct a file hierarchy which contains
+symlinks.</dd>
+<dt>calculate_file_hashes</dt>
+<dd>If this is set, the <a class="reference internal" href="#set-piece-hashes">set_piece_hashes()</a> function will, as it calculates
+the piece hashes, also calculate the file hashes and add those associated
+with each file. Note that unless you use the <a class="reference internal" href="#set-piece-hashes">set_piece_hashes()</a> function,
+this flag will have no effect.</dd>
 </dl>
 </div>
 <div class="section" id="generate">
@@ -405,6 +421,17 @@ void set_hash(int index, sha1_hash const&amp; h);
 to set the hash for every piece in the torrent before generating it. If you have
 the files on disk, you can use the high level convenience function to do this.
 See <a class="reference internal" href="#set-piece-hashes">set_piece_hashes()</a>.</p>
+</div>
+<div class="section" id="set-file-hash">
+<h2>set_file_hash()</h2>
+<blockquote>
+<pre class="literal-block">
+void set_file_hash(int index, sha1_hash const&amp; h);
+</pre>
+</blockquote>
+<p>This sets the sha1 hash for this file. This hash will end up under the key <tt class="docutils literal"><span class="pre">sha1</span></tt>
+associated with this file (for multi-file torrents) or in the root info dictionary
+for single-file torrents.</p>
 </div>
 <div class="section" id="add-url-seed">
 <h2>add_url_seed()</h2>

@@ -88,8 +88,6 @@ namespace libtorrent
 			, policy::peer* peerinfo);
 		void start();
 
-		~web_peer_connection();
-
 		virtual int type() const { return peer_connection::url_seed_connection; }
 
 		// called from the main loop when this connection has any
@@ -103,6 +101,7 @@ namespace libtorrent
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
 		virtual bool in_handshake() const;
+		virtual void disconnect(error_code const& ec, int error = 0);
 
 		// the following functions appends messages
 		// to the send buffer

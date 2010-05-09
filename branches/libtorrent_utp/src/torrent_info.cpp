@@ -1115,9 +1115,8 @@ namespace libtorrent
 		e.source = announce_entry::source_client;
 		m_urls.push_back(e);
 
-		using boost::bind;
-		std::sort(m_urls.begin(), m_urls.end(), bind(&announce_entry::tier, _1)
-			< bind(&announce_entry::tier, _2));
+		std::sort(m_urls.begin(), m_urls.end(), boost::bind(&announce_entry::tier, _1)
+			< boost::bind(&announce_entry::tier, _2));
 	}
 
 #if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM

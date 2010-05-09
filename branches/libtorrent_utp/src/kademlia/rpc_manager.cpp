@@ -56,7 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 using boost::shared_ptr;
-using boost::bind;
 
 namespace libtorrent { namespace dht
 {
@@ -389,7 +388,7 @@ time_duration rpc_manager::tick()
 		timeouts.push_back(o);
 	}
 	
-	std::for_each(timeouts.begin(), timeouts.end(), bind(&observer::timeout, _1));
+	std::for_each(timeouts.begin(), timeouts.end(), boost::bind(&observer::timeout, _1));
 	timeouts.clear();
 
 	for (transactions_t::iterator i = m_transactions.begin();
@@ -414,7 +413,7 @@ time_duration rpc_manager::tick()
 		timeouts.push_back(o);
 	}
 
-	std::for_each(timeouts.begin(), timeouts.end(), bind(&observer::short_timeout, _1));
+	std::for_each(timeouts.begin(), timeouts.end(), boost::bind(&observer::short_timeout, _1));
 	
 	return ret;
 }

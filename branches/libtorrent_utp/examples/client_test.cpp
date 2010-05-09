@@ -632,7 +632,7 @@ void scan_dir(std::string const& dir_path
 		h.pause();
 		// the alert handler for save_resume_data_alert
 		// will save it to disk
-		h.save_resume_data();
+		if (h.need_save_resume_data()) h.save_resume_data();
 
 		handles.erase(i++);
 	}
@@ -768,6 +768,7 @@ int main(int argc, char* argv[])
 			"  -A <num pieces>       allowed pieces set size\n"
 			"  -R <num blocks>       number of blocks per read cache line\n"
 			"  -O                    Disallow disk job reordering\n"
+			"  -H                    Don't start DHT\n"
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -779,6 +780,10 @@ int main(int argc, char* argv[])
 	using namespace libtorrent;
 	session_settings settings;
 
+	// #error temporary
+	settings.enable_outgoing_tcp = false;
+	settings.enable_incoming_tcp = false;
+
 	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
 	settings.choking_algorithm = session_settings::auto_expand_choker;
 	//settings.announce_to_all_trackers = true;
@@ -787,6 +792,7 @@ int main(int argc, char* argv[])
 	settings.volatile_read_cache = true;
 
 	int refresh_delay = 1;
+	bool start_dht = true;
 
 	std::deque<std::string> events;
 
@@ -812,19 +818,6 @@ int main(int argc, char* argv[])
 		if (lazy_bdecode(&in[0], &in[0] + in.size(), e) == 0)
 			ses.load_state(e);
 	}
-
-#ifndef TORRENT_DISABLE_DHT
-	settings.use_dht_as_fallback = false;
-
-	ses.add_dht_router(std::make_pair(
-			std::string("router.bittorrent.com"), 6881));
-	ses.add_dht_router(std::make_pair(
-			std::string("router.utorrent.com"), 6881));
-	ses.add_dht_router(std::make_pair(
-			std::string("router.bitcomet.com"), 6881));
-
-	ses.start_dht();
-#endif
 
 	ses.start_lsd();
 	ses.start_upnp();
@@ -938,6 +931,7 @@ int main(int argc, char* argv[])
 			case 'w': settings.urlseed_wait_retry = atoi(arg); break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
+			case 'H': start_dht = false; --i; break;
 			case 'x':
 				{
 					/*
@@ -995,6 +989,22 @@ int main(int argc, char* argv[])
 
 	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
 		, bind_to_interface.c_str());
+
+	if (start_dht)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		settings.use_dht_as_fallback = false;
+
+		ses.add_dht_router(std::make_pair(
+			std::string("router.bittorrent.com"), 6881));
+		ses.add_dht_router(std::make_pair(
+			std::string("router.utorrent.com"), 6881));
+		ses.add_dht_router(std::make_pair(
+			std::string("router.bitcomet.com"), 6881));
+
+		ses.start_dht();
+	}
+#endif
 
 	ses.set_settings(settings);
 
@@ -1092,7 +1102,8 @@ int main(int argc, char* argv[])
 				for (handles_t::iterator i = handles.begin()
 					, end(handles.end()); i != end; ++i)
 				{
-					i->second.save_resume_data();
+					if (i->second.need_save_resume_data())
+						i->second.save_resume_data();
 				}
 			}
 
@@ -1132,7 +1143,7 @@ int main(int argc, char* argv[])
 					}
 					// the alert handler for save_resume_data_alert
 					// will save it to disk
-					h.save_resume_data();
+					if (h.need_save_resume_data()) h.save_resume_data();
 				}
 			}
 
@@ -1275,7 +1286,7 @@ int main(int argc, char* argv[])
 			if (s.state != torrent_status::queued_for_checking && s.state != torrent_status::checking_files)
 			{
 				snprintf(str, sizeof(str), "%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
-					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x%s\n"
+					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
 					, (paused && !auto_managed)?"paused":(paused && auto_managed)?"queued":state_str[s.state]
 					, esc("32"), add_suffix(s.total_download).c_str(), term
 					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
@@ -1284,7 +1295,7 @@ int main(int argc, char* argv[])
 					, s.up_bandwidth_queue, s.down_bandwidth_queue
 					, esc("32"), add_suffix(s.all_time_download).c_str(), term
 					, esc("31"), add_suffix(s.all_time_upload).c_str(), term
-					, s.seed_rank, esc("0"));
+					, s.seed_rank, h.need_save_resume_data()?'S':' ', esc("0"));
 				out += str;
 
 				if (torrent_index != active_torrent && s.state == torrent_status::seeding) continue;
@@ -1428,11 +1439,13 @@ int main(int argc, char* argv[])
 				for (std::vector<announce_entry>::iterator i = tr.begin()
 					, end(tr.end()); i != end; ++i)
 				{
-					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d %s %s\n"
-						, i->tier, i->url.c_str(), i->fails, i->verified?"OK ":"-  "
+					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s \"%s\" %s\n"
+						, i->tier, i->url.c_str(), i->fails, i->fail_limit, i->verified?"OK ":"-  "
 						, i->updating?"updating"
-							:!i->verified?""
-							:to_string(total_seconds(i->next_announce - now), 8).c_str());
+							:!i->will_announce(now)?""
+							:to_string(total_seconds(i->next_announce - now), 8).c_str()
+						, i->last_error ? i->last_error.message().c_str() : ""
+						, i->message.c_str());
 					out += str;
 				}
 			}

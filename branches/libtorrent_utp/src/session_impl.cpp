@@ -50,18 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-// for logging the size of DHT structures
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-#ifndef TORRENT_DISABLE_DHT
-
-#include <libtorrent/kademlia/find_data.hpp>
-#include <libtorrent/kademlia/refresh.hpp>
-#include <libtorrent/kademlia/node.hpp>
-#include <libtorrent/kademlia/observer.hpp>
-
-#endif
-#endif
-
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/tracker_manager.hpp"
@@ -90,6 +78,28 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_WINDOWS
 #include <sys/resource.h>
+#endif
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+
+// for logging the size of DHT structures
+#ifndef TORRENT_DISABLE_DHT
+#include <libtorrent/kademlia/find_data.hpp>
+#include <libtorrent/kademlia/refresh.hpp>
+#include <libtorrent/kademlia/node.hpp>
+#include <libtorrent/kademlia/observer.hpp>
+#endif // TORRENT_DISABLE_DHT
+
+#include "libtorrent/debug.hpp"
+
+#if TORRENT_USE_IOSTREAM
+namespace libtorrent {
+std::ofstream logger::log_file;
+std::string logger::open_filename;
+mutex logger::file_mutex;
+}
+#endif // TORRENT_USE_IOSTREAM
+
 #endif
 
 #ifdef TORRENT_USE_GCRYPT
@@ -139,7 +149,6 @@ namespace
 
 using boost::shared_ptr;
 using boost::weak_ptr;
-using boost::bind;
 using libtorrent::aux::session_impl;
 
 #ifdef BOOST_NO_EXCEPTIONS
@@ -306,6 +315,10 @@ namespace aux {
 		TORRENT_SETTING(boolean, strict_end_game_mode)
 		TORRENT_SETTING(integer, default_peer_upload_rate)
 		TORRENT_SETTING(integer, default_peer_download_rate)
+		TORRENT_SETTING(boolean, broadcast_lsd)
+		TORRENT_SETTING(boolean, ignore_resume_timestamps)
+		TORRENT_SETTING(boolean, anonymous_mode)
+		TORRENT_SETTING(integer, tick_interval)
 	};
 
 #undef TORRENT_SETTING
@@ -498,7 +511,7 @@ namespace aux {
 		, m_dht_announce_timer(m_io_service)
 #endif
 		, m_external_udp_port(0)
-		, m_udp_socket(m_io_service, bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
+		, m_udp_socket(m_io_service, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, m_half_open)
 		, m_utp_socket_manager(m_udp_socket
 			, boost::bind(&session_impl::incoming_connection, this, _1))
@@ -516,6 +529,13 @@ namespace aux {
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 	{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		m_logger = create_log("main_session", listen_port(), false);
+		(*m_logger) << time_now_string() << "\n";
+#endif
+
+		open_listen_port();
+
 #ifndef TORRENT_DISABLE_DHT
 		m_next_dht_torrent = m_torrents.begin();
 #endif
@@ -610,10 +630,8 @@ namespace aux {
 #ifdef TORRENT_UPNP_LOGGING
 		m_upnp_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		m_logger = create_log("main_session", listen_port(), false);
-		(*m_logger) << time_now_string() << "\n";
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #define PRINT_SIZEOF(x) (*m_logger) << "sizeof(" #x "): " << sizeof(x) << "\n";
 #define PRINT_OFFSETOF(x, y) (*m_logger) << "  offsetof(" #x "," #y "): " << offsetof(x, y) << "\n";
 
@@ -711,33 +729,23 @@ namespace aux {
 			, print.begin() + print.length()
 			, m_peer_id.begin());
 
-		// http-accepted characters:
-		// excluding ', since some buggy trackers don't support that
-		static char const printable[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-			"abcdefghijklmnopqrstuvwxyz-_.!~*()";
+		url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
 
-		// the random number
-		for (unsigned char* i = m_peer_id.begin() + print.length();
-			i != m_peer_id.end(); ++i)
-		{
-			*i = printable[rand() % (sizeof(printable)-1)];
-		}
-
-		m_timer.expires_from_now(milliseconds(100), ec);
-		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
+		m_timer.expires_from_now(milliseconds(m_settings.tick_interval), ec);
+		m_timer.async_wait(boost::bind(&session_impl::on_tick, this, _1));
 
 		int delay = (std::max)(m_settings.local_service_announce_interval
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
 		m_lsd_announce_timer.async_wait(
-			bind(&session_impl::on_lsd_announce, this, _1));
+			boost::bind(&session_impl::on_lsd_announce, this, _1));
 
 #ifndef TORRENT_DISABLE_DHT
 		delay = (std::max)(m_settings.dht_announce_interval
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
 		m_dht_announce_timer.async_wait(
-			bind(&session_impl::on_dht_announce, this, _1));
+			boost::bind(&session_impl::on_dht_announce, this, _1));
 #endif
 
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
@@ -1213,7 +1221,7 @@ namespace aux {
 				/ (std::max)(int(m_torrents.size()), 1), 1);
 			m_dht_announce_timer.expires_from_now(seconds(delay), ec);
 			m_dht_announce_timer.async_wait(
-				bind(&session_impl::on_dht_announce, this, _1));
+				boost::bind(&session_impl::on_dht_announce, this, _1));
 		}
 #endif
 
@@ -1224,7 +1232,7 @@ namespace aux {
 				/ (std::max)(int(m_torrents.size()), 1), 1);
 			m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
 			m_lsd_announce_timer.async_wait(
-				bind(&session_impl::on_lsd_announce, this, _1));
+				boost::bind(&session_impl::on_lsd_announce, this, _1));
 		}
 
 		// if queuing settings were changed, recalculate
@@ -1234,7 +1242,31 @@ namespace aux {
 			|| m_settings.active_limit != s.active_limit)
 			&& m_auto_manage_time_scaler > 2)
 			m_auto_manage_time_scaler = 2;
+
+		// if anonymous mode was enabled, clear out the peer ID
+		bool anonymous = (m_settings.anonymous_mode != s.anonymous_mode && s.anonymous_mode);
+
 		m_settings = s;
+
+		// enable anonymous mode. We don't want to accept any incoming
+		// connections, except through a proxy.
+		if (anonymous)
+		{
+			m_settings.user_agent.clear();
+			url_random((char*)&m_peer_id[0], (char*)&m_peer_id[0] + 20);
+			stop_lsd();
+			stop_upnp();
+			stop_natpmp();
+#ifndef TORRENT_DISABLE_DHT
+			stop_dht();
+#endif
+			// close the listen sockets
+			error_code ec;
+			for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
+				, end(m_listen_sockets.end()); i != end; ++i)
+				i->sock->close(ec);
+			m_listen_sockets.clear();
+		}
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
 		if (m_settings.broadcast_lsd && m_lsd)
 			m_lsd->use_broadcast(true);
@@ -1500,7 +1532,9 @@ namespace aux {
 
 		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
 		s.set_command(2); // 2 means BIND (as opposed to CONNECT)
-		s.async_connect(tcp::endpoint(address_v4::any(), m_listen_interface.port())
+		m_socks_listen_port = m_listen_interface.port();
+		if (m_socks_listen_port == 0) m_socks_listen_port = 2000 + rand() % 60000;
+		s.async_connect(tcp::endpoint(address_v4::any(), m_socks_listen_port)
 			, boost::bind(&session_impl::on_socks_accept, this, m_socks_listen_socket, _1));
 	}
 
@@ -1944,7 +1978,7 @@ namespace aux {
 		}
 
 		error_code ec;
-		m_timer.expires_at(now + milliseconds(100), ec);
+		m_timer.expires_at(now + milliseconds(m_settings.tick_interval), ec);
 		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
 
 		m_download_rate.update_quotas(now - m_last_tick);
@@ -2919,12 +2953,6 @@ namespace aux {
 	{
 		eh_initializer();
 
-		if (m_listen_interface.port() != 0)
-		{
-			mutex::scoped_lock l(m_mutex);
-			open_listen_port();
-		}
-
 		do
 		{
 			error_code ec;
@@ -3227,6 +3255,17 @@ namespace aux {
 
 	unsigned short session_impl::listen_port() const
 	{
+		// if peer connections are set up to be received over a socks
+		// proxy, and it's the same one as we're using for the tracker
+		// just tell the tracker the socks5 port we're listening on
+		if (m_socks_listen_socket && m_socks_listen_socket->is_open()
+			&& m_peer_proxy.hostname == m_tracker_proxy.hostname)
+			return m_socks_listen_port;
+
+		// if not, don't tell the tracker anything if we're in anonymous
+		// mode. We don't want to leak our listen port since it can
+		// potentially identify us if it is leaked elsewere
+		if (m_settings.anonymous_mode) return 0;
 		if (m_listen_sockets.empty()) return 0;
 		return m_listen_sockets.front().external_port;
 	}
@@ -3409,6 +3448,9 @@ namespace aux {
 	void session_impl::start_dht(entry const& startup_state)
 	{
 		INVARIANT_CHECK;
+
+		if (m_listen_interface.port() != 0)
+			open_listen_port();
 
 		if (m_dht)
 		{

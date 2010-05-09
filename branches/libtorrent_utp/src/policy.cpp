@@ -60,8 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bt_peer_connection.hpp"
 #endif
 
-using boost::bind;
-
 namespace
 {
 	using namespace libtorrent;
@@ -304,7 +302,7 @@ namespace libtorrent
 		ptime last_request = p.last_request(i->piece_index);
 		ptime now = time_now();
 
-		// don't re-request from a piece more often than once every 20 seconds
+		// don't re-request from a piece more often than once every 5 seconds
 		// TODO: make configurable
 		if (now - last_request < seconds(5))
 			return;

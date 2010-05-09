@@ -170,6 +170,7 @@ namespace libtorrent
 		, m_merkle_torrent(ti.is_merkle_torrent())
 		, m_include_mtime(false)
 		, m_include_symlinks(false)
+		, m_calculate_file_hashes(false)
 	{
 		TORRENT_ASSERT(ti.is_valid());
 		if (ti.creation_date()) m_creation_date = *ti.creation_date();
@@ -421,7 +422,6 @@ namespace libtorrent
 	{
 		m_urls.push_back(announce_entry(url, tier));
 
-		using boost::bind;
 		std::sort(m_urls.begin(), m_urls.end()
 			, boost::bind(&announce_entry::second, _1) < boost::bind(&announce_entry::second, _2));
 	}

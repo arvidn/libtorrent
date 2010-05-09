@@ -279,7 +279,7 @@ struct utp_socket_impl
 
 	utp_socket_manager* m_sm;
 
-	sliding_average m_rtt;
+	sliding_average<16> m_rtt;
 
 	address m_remote_address;
 	boost::uint16_t m_port;

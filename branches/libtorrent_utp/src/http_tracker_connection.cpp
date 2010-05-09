@@ -61,7 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 
 using namespace libtorrent;
-using boost::bind;
 
 namespace libtorrent
 {
@@ -205,7 +204,8 @@ namespace libtorrent
 			:settings.tracker_completion_timeout;
 
 		m_tracker_connection->get(url, seconds(timeout)
-			, 1, &m_ps, 5, settings.user_agent, bind_interface()
+			, 1, &m_ps, 5, settings.anonymous_mode ? "" : settings.user_agent
+			, bind_interface()
 #if TORRENT_USE_I2P
 			, m_i2p_conn
 #endif
@@ -252,7 +252,7 @@ namespace libtorrent
 
 	void http_tracker_connection::on_connect(http_connection& c)
 	{
-    	error_code ec;
+		error_code ec;
 		tcp::endpoint ep = c.socket().remote_endpoint(ec);
 		m_tracker_ip = ep.address();
 		boost::shared_ptr<request_callback> cb = requester();

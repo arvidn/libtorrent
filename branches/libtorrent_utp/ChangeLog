@@ -1,4 +1,6 @@
 	* resistance towards certain flood attacks
+	* added feature to ask a torrent if it needs to save its resume data or not
+	* added setting to ignore file modification time when loading resume files
 	* support more fine-grained torrent states between which peer sources it
 	  announces to
 	* supports calculating sha1 file-hashes when creating torrents
@@ -27,6 +29,20 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed bug in udp tracker scrape response parsing
+	* fixed bug in the disk thread that could get triggered under heavy load
+	* fixed bug in add_piece() that would trigger asserts
+	* fixed vs 2010 build
+	* recognizes more clients in identify_client()
+	* fixed bug where trackers wouldn't be retried if they failed
+	* slight performance fix in disk elevator algorithm
+	* fixed potential issue where a piece could be checked twice
+	* fixed build issue on windows related to GetCompressedSize()
+	* fixed deadlock when starting torrents with certain invalid tracker URLs
+	* fixed iterator bug in disk I/O thread
+	* fixed FIEMAP support on linux
+	* fixed strict aliasing warning on gcc
+	* fixed inconsistency when creating torrents with symlinks
 	* properly detect windows version to initialize half-open connection limit
 	* fixed bug in url encoder where $ would not be encoded
 

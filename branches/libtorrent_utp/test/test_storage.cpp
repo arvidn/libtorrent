@@ -125,10 +125,11 @@ int bufs_size(file::iovec_t const* bufs, int num_bufs);
 // simulate a very slow first read
 struct test_storage : storage_interface
 {
-	test_storage() {}
+	test_storage(): m_started(false), m_ready(false) {}
 
 	virtual bool initialize(bool allocate_files) { return true; }
 	virtual bool has_any_file() { return true; }
+
 
 	int write(
 		const char* buf
@@ -147,7 +148,18 @@ struct test_storage : storage_interface
 	{
 		if (slot == 0 || slot == 5999)
 		{
-			sleep(2000);
+			libtorrent::mutex::scoped_lock l(m_mutex);
+			std::cerr << "--- starting job " << slot << " waiting for main thread ---\n" << std::endl;
+			m_ready = true;
+			m_ready_condition.signal(l);
+
+			while (!m_started)
+				m_condition.wait(l);
+
+			m_condition.clear(l);
+			m_ready_condition.clear(l);
+			m_ready = false;
+			m_started = false;
 			std::cerr << "--- starting ---\n" << std::endl;
 		}
 		return size;
@@ -185,6 +197,28 @@ struct test_storage : storage_interface
 	virtual bool delete_files() { return false; }
 
 	virtual ~test_storage() {}
+
+	void wait_for_ready()
+	{
+		libtorrent::mutex::scoped_lock l(m_mutex);
+		while (!m_ready)
+			m_ready_condition.wait(l);
+	}
+
+	void start()
+	{
+		libtorrent::mutex::scoped_lock l(m_mutex);
+		m_started = true;
+		m_condition.signal(l);
+	}
+
+private:
+	condition m_ready_condition;
+	condition m_condition;
+	libtorrent::mutex m_mutex;
+	bool m_started;
+	bool m_ready;
+
 };
 
 storage_interface* create_test_storage(file_storage const& fs
@@ -260,11 +294,12 @@ void run_elevator_test()
 		dio.add_job(j);
 
 		// test the elevator going up
+		turns = 0;
 		direction = 1;
 		last_job = 0;
 		add_job(dio, 0, pm); // trigger delay in storage
 		// make sure the job is processed
-		sleep(200);
+		((test_storage*)pm->get_storage_impl())->wait_for_ready();
 
 		boost::uint32_t p = 1234513;
 		for (int i = 0; i < 100; ++i)
@@ -275,22 +310,25 @@ void run_elevator_test()
 			add_job(dio, job, pm);
 		}
 
+		((test_storage*)pm->get_storage_impl())->start();
+
 		for (int i = 0; i < 101; ++i)
 		{
 			ios.run_one(ec);
 			if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
 		}
 
-		TEST_CHECK(turns < 2);
+		TEST_CHECK(turns == 0);
 		TEST_EQUAL(job_counter, 0);
 		std::cerr << "number of elevator turns: " << turns << std::endl;
 
 		// test the elevator going down
+		turns = 0;
 		direction = -1;
 		last_job = 6000;
 		add_job(dio, 5999, pm); // trigger delay in storage
 		// make sure the job is processed
-		sleep(200);
+		((test_storage*)pm->get_storage_impl())->wait_for_ready();
 
 		for (int i = 0; i < 100; ++i)
 		{
@@ -300,13 +338,15 @@ void run_elevator_test()
 			add_job(dio, job, pm);
 		}
 
+		((test_storage*)pm->get_storage_impl())->start();
+
 		for (int i = 0; i < 101; ++i)
 		{
 			ios.run_one(ec);
 			if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
 		}
 
-		TEST_CHECK(turns < 2);
+		TEST_CHECK(turns == 0);
 		TEST_EQUAL(job_counter, 0);
 		std::cerr << "number of elevator turns: " << turns << std::endl;
 
@@ -320,7 +360,7 @@ void run_elevator_test()
 		direction = 0;
 		add_job(dio, 0, pm); // trigger delay in storage
 		// make sure the job is processed
-		sleep(200);
+		((test_storage*)pm->get_storage_impl())->wait_for_ready();
 
 		for (int i = 0; i < 100; ++i)
 		{
@@ -329,6 +369,8 @@ void run_elevator_test()
 			std::cerr << "starting job #" << job << std::endl;
 			add_job(dio, job, pm);
 		}
+
+		((test_storage*)pm->get_storage_impl())->start();
 
 		for (int i = 0; i < 101; ++i)
 		{
@@ -428,7 +470,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
 		, test_path, fp, io, default_storage_constructor, storage_mode);
-	mutex lock;
+	libtorrent::mutex lock;
 
 	error_code ec;
 	bool done = false;
@@ -484,7 +526,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	// test move_storage with two files in the root directory
 	TEST_CHECK(exists(combine_path(test_path, "temp_storage")));
 	pm->async_move_storage(combine_path(test_path, "temp_storage2")
-		, bind(on_move_storage, _1, _2, combine_path(test_path, "temp_storage2")));
+		, boost::bind(on_move_storage, _1, _2, combine_path(test_path, "temp_storage2")));
 
 	test_sleep(2000);
 	ios.reset();
@@ -498,7 +540,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	}
 	TEST_CHECK(exists(combine_path(test_path, "temp_storage2/part0")));	
 
-	pm->async_move_storage(test_path, bind(on_move_storage, _1, _2, test_path));
+	pm->async_move_storage(test_path, boost::bind(on_move_storage, _1, _2, test_path));
 
 	test_sleep(2000);
 	ios.reset();
@@ -512,11 +554,11 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	r.piece = 0;
 	r.start = 0;
 	r.length = block_size;
-	pm->async_read(r, bind(&on_read_piece, _1, _2, piece0, block_size));
+	pm->async_read(r, boost::bind(&on_read_piece, _1, _2, piece0, block_size));
 	r.piece = 1;
-	pm->async_read(r, bind(&on_read_piece, _1, _2, piece1, block_size));
+	pm->async_read(r, boost::bind(&on_read_piece, _1, _2, piece1, block_size));
 	r.piece = 2;
-	pm->async_read(r, bind(&on_read_piece, _1, _2, piece2, block_size));
+	pm->async_read(r, boost::bind(&on_read_piece, _1, _2, piece2, block_size));
 	pm->async_release_files(none);
 
 	pm->async_rename_file(0, "temp_storage/test1.tmp", none);
@@ -654,7 +696,7 @@ void test_check_files(std::string const& test_path
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
 		, test_path, fp, io, default_storage_constructor, storage_mode);
-	mutex lock;
+	libtorrent::mutex lock;
 
 	bool done = false;
 	lazy_entry frd;
@@ -670,7 +712,7 @@ void test_check_files(std::string const& test_path
 	bool pieces[4] = {false, false, false, false};
 	done = false;
 
-	pm->async_check_files(bind(&check_files_fill_array, _1, _2, pieces, &done));
+	pm->async_check_files(boost::bind(&check_files_fill_array, _1, _2, pieces, &done));
 	while (!done)
 	{
 		ios.reset();
@@ -974,10 +1016,10 @@ int test_main()
 		}
 	}
 
-	std::for_each(test_paths.begin(), test_paths.end(), bind(&test_fastresume, _1));
-	std::for_each(test_paths.begin(), test_paths.end(), bind(&test_rename_file_in_fastresume, _1));
-	std::for_each(test_paths.begin(), test_paths.end(), bind(&run_test, _1, true));
-	std::for_each(test_paths.begin(), test_paths.end(), bind(&run_test, _1, false));
+	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&test_fastresume, _1));
+	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&test_rename_file_in_fastresume, _1));
+	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, true));
+	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, false));
 
 	return 0;
 }

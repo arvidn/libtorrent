@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
-using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
 
@@ -65,7 +64,6 @@ namespace libtorrent
 		, policy::peer* peerinfo)
 		: peer_connection(ses, t, s, remote, peerinfo)
 		, m_url(url)
-		, m_original_url(url)
 		, m_first_request(true)
 		, m_range_pos(0)
 		, m_block_pos(0)
@@ -118,10 +116,11 @@ namespace libtorrent
 		peer_connection::start();
 	}
 
-	web_peer_connection::~web_peer_connection()
+	void web_peer_connection::disconnect(error_code const& ec, int error)
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		if (t) t->disconnect_web_seed(m_original_url, web_seed_entry::url_seed);
+		peer_connection::disconnect(ec, error);
+		if (t) t->disconnect_web_seed(this);
 	}
 	
 	boost::optional<piece_block_progress>
@@ -222,7 +221,7 @@ namespace libtorrent
 			request += " HTTP/1.1\r\n";
 			request += "Host: ";
 			request += m_host;
-			if (m_first_request)
+			if (m_first_request && !m_ses.settings().user_agent.empty())
 			{
 				request += "\r\nUser-Agent: ";
 				request += m_ses.settings().user_agent;
@@ -283,7 +282,7 @@ namespace libtorrent
 				request += " HTTP/1.1\r\n";
 				request += "Host: ";
 				request += m_host;
-				if (m_first_request)
+				if (m_first_request && !m_ses.settings().user_agent.empty())
 				{
 					request += "\r\nUser-Agent: ";
 					request += m_ses.settings().user_agent;
@@ -423,9 +422,8 @@ namespace libtorrent
 					{
 						std::string retry_after = m_parser.header("retry-after");
 						// temporarily unavailable, retry later
-						t->retry_web_seed(m_original_url, web_seed_entry::url_seed, atoi(retry_after.c_str()));
+						t->retry_web_seed(this, atoi(retry_after.c_str()));
 					}
-					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 					std::string error_msg = to_string(m_parser.status_code()).elems
 						+ (" " + m_parser.message());
 					if (m_ses.m_alerts.should_post<url_seed_alert>())
@@ -447,7 +445,7 @@ namespace libtorrent
 					if (location.empty())
 					{
 						// we should not try this server again.
-						t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
+						t->remove_web_seed(this);
 						disconnect(errors::missing_location, 2);
 						return;
 					}
@@ -472,14 +470,14 @@ namespace libtorrent
 						size_t i = location.rfind(path);
 						if (i == std::string::npos)
 						{
-							t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
+							t->remove_web_seed(this);
 							disconnect(errors::invalid_redirection, 2);
 							return;
 						}
 						location.resize(i);
 					}
 					t->add_web_seed(location, web_seed_entry::url_seed);
-					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
+					t->remove_web_seed(this);
 					disconnect(errors::redirecting, 2);
 					return;
 				}
@@ -513,7 +511,7 @@ namespace libtorrent
 				{
 					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
-					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
+					t->remove_web_seed(this);
 					disconnect(errors::invalid_range);
 					return;
 				}
@@ -528,7 +526,7 @@ namespace libtorrent
 				{
 					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
-					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
+					t->remove_web_seed(this);
 					disconnect(errors::no_content_length, 2);
 					return;
 				}
