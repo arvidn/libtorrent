@@ -1111,9 +1111,12 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_torrent.expired());
 
-		if (t->is_paused())
+		if (t->is_paused()
+			&& m_ses.m_settings.incoming_starts_queued_torrents
+			&& !m_ses.paused()
+			&& !t->is_aborted()
+			&& !m_ses.is_aborted())
 		{
-			TORRENT_ASSERT(m_ses.m_settings.incoming_starts_queued_torrents);
 			t->resume();
 		}
 
