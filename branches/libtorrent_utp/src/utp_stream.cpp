@@ -1222,17 +1222,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 	// seq_nr is ignored for ST_STATE packets, so it doesn't
 	// matter that we say this is a sequence number we haven't
 	// actually sent yet
-	if (payload_size)
-	{
-		h->seq_nr = m_seq_nr;
-	}
-	else
-	{
-		// if we're not sending any data, use the same
-		// sequence number as last time
-		h->seq_nr = (m_seq_nr - 1) & ACK_MASK;
-	}
-
+	h->seq_nr = m_seq_nr;
 	h->ack_nr = m_ack_nr;
 
 	if (sack)
@@ -1863,7 +1853,8 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
             // reorder buffer.
 
             TORRENT_ASSERT(m_inbuf.size() == 0);
-            m_ack_nr = ph->seq_nr;
+				if (ph->type == ST_DATA)
+					m_ack_nr = ph->seq_nr;
 
             // Transition to UTP_STATE_FIN_SENT. The sent FIN is also an ack
             // to the FIN we received. Once we're in UTP_STATE_FIN_SENT we
@@ -1904,7 +1895,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				UTP_LOGV("[%08u] %08p: state:%s\n"
 					, int(total_microseconds(receive_time - min_time())), this
 					, socket_state_names[m_state]);
-				m_ack_nr = ph->seq_nr;
+				m_ack_nr = (ph->seq_nr - 1) & ACK_MASK;
 				m_seq_nr = rand();
 				m_acked_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 
@@ -1913,20 +1904,6 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 				send_pkt(true);
 
-#if TORRENT_UT_SEQ
-				// there is one oddity with the uTorrent implementation
-				// where the SYN and SYN_ACK messages uses the same sequence
-				// numbers as the following data packets. This means in theory,
-				// if A sends SYN (seq=1), DATA (seq=1) and B responds with
-				// ACK (ack=1), there's no way for A to know if the ack was
-				// for the SYN packet or the data packet. In practice there is
-				// no data on the wire until the connection is established.
-				// to adjust for this, immediately after ACKin, lower the
-				// last acked sequence number so that we will let the next
-				// data packet through and can ack that again
-				m_acked_seq_nr = (m_acked_seq_nr - 1) & ACK_MASK;
-				m_ack_nr = (m_ack_nr - 1) & ACK_MASK;
-#endif
 				return true;
 			}
 			break;
@@ -1942,18 +1919,18 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				return true;
 			}
 
-#if TORRENT_UT_SEQ
-			// this is part of the hack to support the slighly odd
-			// sequence numbers uTorrent uses for connection establishment packets
-			m_seq_nr = (m_seq_nr - 1) & ACK_MASK;
-			m_acked_seq_nr = (m_acked_seq_nr - 1) & ACK_MASK;
-#endif
-
 			m_state = UTP_STATE_CONNECTED;
 			UTP_LOGV("[%08u] %08p: state:%s\n"
 				, int(total_microseconds(receive_time - min_time())), this
 				, socket_state_names[m_state]);
-			m_ack_nr = ph->seq_nr;
+
+			// only progress our ack_nr on ST_DATA messages
+			// since our m_ack_nr is uninitialized at this point
+			// we still need to set it to something regardless
+			if (ph->type == ST_DATA)
+				m_ack_nr = ph->seq_nr;
+			else
+				m_ack_nr = (ph->seq_nr - 1) & ACK_MASK;
 
 			// notify the client that the socket connected
 			if (m_connect_handler)
