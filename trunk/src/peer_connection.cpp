@@ -1113,7 +1113,7 @@ namespace libtorrent
 
 		if (t->is_paused()
 			&& m_ses.m_settings.incoming_starts_queued_torrents
-			&& !m_ses.paused()
+			&& !m_ses.is_paused()
 			&& !t->is_aborted()
 			&& !m_ses.is_aborted())
 		{
