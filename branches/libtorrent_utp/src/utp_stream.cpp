@@ -1006,7 +1006,8 @@ std::size_t utp_socket_impl::available() const
 
 void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes, ptime const& now)
 {
-	TORRENT_ASSERT(size > 0);
+	if (size == 0) return;
+
 	// this is the sequence number the current bit represents
 	int ack_nr = (m_acked_seq_nr + 2) & ACK_MASK;
 
@@ -1756,7 +1757,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				, int(total_microseconds(time_now_hires() - min_time())), this);
 			return true;
 		}
-		extension = unsigned(*ptr++);
+		int next_extension = unsigned(*ptr++);
 		unsigned int len = unsigned(*ptr++);
 		if (ptr - buf + len > size)
 		{
@@ -1772,6 +1773,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				break;
 		}
 		ptr += len;
+		extension = next_extension;
 	}
 
 	if (m_duplicate_acks > 3
