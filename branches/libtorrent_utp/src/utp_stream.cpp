@@ -1314,6 +1314,9 @@ bool utp_socket_impl::resend_packet(packet* p)
 	int window_size_left = (std::min)(int(m_cwnd >> 16), int(m_adv_wnd)) - m_bytes_in_flight;
 	if (p->size - p->header_size > window_size_left) return false;
 
+	TORRENT_ASSERT(p->size - p->header_size >= 0);
+	if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;
+
 	++p->num_transmissions;
 	p->need_resend = false;
 	utp_header* h = (utp_header*)p->buf;
@@ -1342,8 +1345,6 @@ bool utp_socket_impl::resend_packet(packet* p)
 		return false;
 	}
 
-	TORRENT_ASSERT(p->size - p->header_size >= 0);
-	m_bytes_in_flight += p->size - p->header_size;
 	return true;
 }
 
@@ -1792,6 +1793,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		if (p)
 		{
 			++p->num_transmissions;
+			if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;
 			p->need_resend = false;
 			utp_header* h = (utp_header*)p->buf;
 			h->timestamp_difference_microseconds = m_reply_micro;
@@ -1977,7 +1979,6 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				"their_actual_delay:%u "
 				"seq_nr:%u "
 				"acked_seq_nr:%u "
-				"time_diff:%u "
 				"reply_micro:%u "
 				"\n"
 				, int(total_microseconds(receive_time - min_time())), this
@@ -2003,10 +2004,9 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				, m_seq_nr - m_acked_seq_nr
 				, m_mtu
 				, m_their_delay_hist.base()
-				, boost::uint32_t(ph->timestamp_microseconds)
+				, boost::uint32_t(ph->timestamp_difference_microseconds)
 				, m_seq_nr
 				, m_acked_seq_nr
-				, boost::uint32_t(ph->timestamp_difference_microseconds)
 				, m_reply_micro);
 
 			if (sample && acked_bytes && prev_bytes_in_flight)
