@@ -1722,7 +1722,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
         int const next_ack_nr = ph->ack_nr;
 
         for (int ack_nr = (m_acked_seq_nr + 1) & ACK_MASK
-             ; ack_nr != (next_ack_nr + 1) & ACK_MASK
+             ; ack_nr != ((next_ack_nr + 1) & ACK_MASK)
              ; ack_nr = (ack_nr + 1) & ACK_MASK)
         {
 			packet* p = (packet*)m_outbuf.remove(ack_nr);
@@ -1739,8 +1739,6 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		m_duplicate_acks = 0;
 		if (compare_less_wrap(m_fast_resend_seq_nr, (m_acked_seq_nr + 1) & ACK_MASK, ACK_MASK))
 			m_fast_resend_seq_nr = (m_acked_seq_nr + 1) & ACK_MASK;
-
-		maybe_trigger_send_callback(receive_time);
 	}
 
 	// look for extended headers
@@ -1854,7 +1852,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
             // The FIN arrived in order, nothing else is in the
             // reorder buffer.
 
-            TORRENT_ASSERT(m_inbuf.size() == 0);
+//          TORRENT_ASSERT(m_inbuf.size() == 0);
 				if (ph->type == ST_DATA)
 					m_ack_nr = ph->seq_nr;
 
@@ -1894,10 +1892,14 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				// if we're in state_none, the only thing
 				// we accept are SYN packets.
 				m_state = UTP_STATE_CONNECTED;
+
+				m_remote_address = ep.address();
+				m_port = ep.port();
+
 				UTP_LOGV("[%08u] %08p: state:%s\n"
 					, int(total_microseconds(receive_time - min_time())), this
 					, socket_state_names[m_state]);
-				m_ack_nr = (ph->seq_nr - 1) & ACK_MASK;
+				m_ack_nr = ph->seq_nr;
 				m_seq_nr = rand();
 				m_acked_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 
@@ -1908,12 +1910,19 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 				return true;
 			}
+			else
+			{
+				UTP_LOGV("[%08u] %08p: type:%s state:%s (ignored)\n"
+					, int(total_microseconds(receive_time - min_time())), this
+					, packet_type_names[ph->type], socket_state_names[m_state]);
+				return true;
+			}
 			break;
 		}
 		case UTP_STATE_SYN_SENT:
 		{
 			// just wait for an ack to our SYN, ignore everything else
-			if (ph->ack_nr != (m_seq_nr - 1) & ACK_MASK)
+			if (ph->ack_nr != ((m_seq_nr - 1) & ACK_MASK))
 			{
 				UTP_LOGV("[%08u] %08p: incorrect ack_nr (%d) waiting for %d\n"
 					, int(total_microseconds(time_now_hires() - min_time())), this
@@ -2030,7 +2039,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
             // Everything up to the FIN has been receieved, respond with a FIN
             // from our side.
-            if (m_eof && m_ack_nr == (m_eof_seq_nr - 1) & ACK_MASK)
+            if (m_eof && m_ack_nr == ((m_eof_seq_nr - 1) & ACK_MASK))
             {
                 UTP_LOGV("[%08u] %08p: incoming stream consumed\n"
                   , int(total_microseconds(time_now_hires() - min_time())), this);
@@ -2075,7 +2084,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
             // If we are here because the local endpoint was closed, we need
             // to first wait for all of our messages to be acked:
             //
-            //   if (m_acked_seq_nr == (m_seq_nr - 1) & ACK_MASK)
+            //   if (m_acked_seq_nr == ((m_seq_nr - 1) & ACK_MASK))
             //
             // `m_seq_nr - 1` is the ST_FIN message that we sent.
             //
@@ -2100,7 +2109,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
             // sent our own ST_FIN to ack that, we need to wait for our ST_FIN
             // to be acked:
             //
-            //   if (m_acked_seq_nr == (m_seq_nr - 1) & ACK_MASK)
+            //   if (m_acked_seq_nr == ((m_seq_nr - 1) & ACK_MASK))
             //
             // `m_seq_nr - 1` is the ST_FIN message that we sent.
             //
@@ -2110,7 +2119,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
             if (consume_incoming_data(ph, ptr, payload_size, receive_time))
                 return true;
 
-            if (m_acked_seq_nr == (m_seq_nr - 1) & ACK_MASK)
+            if (m_acked_seq_nr == ((m_seq_nr - 1) & ACK_MASK))
             {
                 // When this happens we know that the remote side has
                 // received all of our packets.
@@ -2255,13 +2264,8 @@ void utp_socket_impl::tick(ptime const& now)
 		// we need to go one passed m_seq_nr to cover the case
 		// where we just sent a SYN packet and then adjusted for
 		// the uTorrent sequence number reuse
-		for (
-#if TORRENT_UT_SEQ
-			int i = m_acked_seq_nr & ACK_MASK;
-#else
-			int i = (m_acked_seq_nr + 1) & ACK_MASK;
-#endif
-			i != m_seq_nr;
+		for (int i = m_acked_seq_nr & ACK_MASK;
+			i != ((m_seq_nr + 1) & ACK_MASK);
 			i = (i + 1) & ACK_MASK)
 		{
 			packet* p = (packet*)m_outbuf.at(i);
