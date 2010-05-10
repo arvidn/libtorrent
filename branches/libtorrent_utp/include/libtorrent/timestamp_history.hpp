@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TIMESTAMP_HISTORY_HPP
 
 #include "boost/cstdint.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent {
 
@@ -43,12 +44,12 @@ struct timestamp_history
 {
 	enum { history_size = 20 };
 
-	timestamp_history() : m_index(0), m_base(0), m_initialized(false) {}
+	timestamp_history() : m_index(0), m_initialized(false), m_base(0) {}
 
 	// add a sample to the timestamp history. If step is true, it's been
 	// a minute since the last step
 	boost::uint32_t add_sample(boost::uint32_t sample, bool step);
-	boost::uint32_t base() const { return m_base; }
+	boost::uint32_t base() const { TORRENT_ASSERT(m_initialized); return m_base; }
 
 private:
 
@@ -57,13 +58,13 @@ private:
 
 	// and this is the index we're currently at
 	// in the circular buffer
-	int m_index;
+	boost::uint16_t m_index;
+
+	bool m_initialized:1;
 
 	// this is the lowest sample seen in the
 	// last 'history_size' minutes
 	boost::uint32_t m_base;
-
-	bool m_initialized;
 
 };
 

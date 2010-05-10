@@ -1953,61 +1953,64 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 			// #error if (delay > min_rtt * 1000) delay = min_rtt * 1000;
 
-			UTP_LOG("[%08u] %08p: "
-				"actual_delay:%u "
-				"our_delay:%u "
-				"their_delay:%u "
-				"off_target:%d "
-				"max_window:%d "
-				"upload_rate:%d "
-				"delay_base:%u "
-				"delay_sum:%d "
-				"target_delay:%d "
-				"acked_bytes:%d "
-				"cur_window:%d "
-				"scaled_gain:%f "
-				"rtt:%u "
-				"rate:%d "
-				"quota:%d "
-				"wnduser:%u "
-				"rto:%d "
-				"timeout:%d "
-				"get_microseconds:%u "
-				"cur_window_packets:%d "
-				"packet_size:%d "
-				"their_delay_base:%u "
-				"their_actual_delay:%u "
-				"seq_nr:%u "
-				"acked_seq_nr:%u "
-				"reply_micro:%u "
-				"\n"
-				, int(total_microseconds(receive_time - min_time())), this
-				, sample
-				, int(delay / 1000)
-				, int(their_delay / 1000)
-				, int(target_delay - delay) / 1000
-				, int(m_cwnd >> 16)
-				, 0
-				, m_delay_hist.base()
-				, (delay + their_delay) / 1000
-				, target_delay / 1000
-				, acked_bytes
-				, m_bytes_in_flight
-				, 0.f // float(scaled_gain)
-				, m_rtt.mean()
-				, int(m_cwnd * 1000 / (m_rtt.mean()?m_rtt.mean():50)) >> 16
-				, 0
-				, m_adv_wnd
-				, packet_timeout()
-				, int(total_milliseconds(m_timeout - receive_time))
-				, int(total_microseconds(receive_time - min_time()))
-				, m_seq_nr - m_acked_seq_nr
-				, m_mtu
-				, m_their_delay_hist.base()
-				, boost::uint32_t(ph->timestamp_difference_microseconds)
-				, m_seq_nr
-				, m_acked_seq_nr
-				, m_reply_micro);
+			if (sample && acked_bytes && prev_bytes_in_flight)
+			{
+				UTP_LOG("[%08u] %08p: "
+					"actual_delay:%u "
+					"our_delay:%u "
+					"their_delay:%u "
+					"off_target:%d "
+					"max_window:%d "
+					"upload_rate:%d "
+					"delay_base:%u "
+					"delay_sum:%d "
+					"target_delay:%d "
+					"acked_bytes:%d "
+					"cur_window:%d "
+					"scaled_gain:%f "
+					"rtt:%u "
+					"rate:%d "
+					"quota:%d "
+					"wnduser:%u "
+					"rto:%d "
+					"timeout:%d "
+					"get_microseconds:%u "
+					"cur_window_packets:%d "
+					"packet_size:%d "
+					"their_delay_base:%u "
+					"their_actual_delay:%u "
+					"seq_nr:%u "
+					"acked_seq_nr:%u "
+					"reply_micro:%u "
+					"\n"
+					, int(total_microseconds(receive_time - min_time())), this
+					, sample
+					, int(delay / 1000)
+					, int(their_delay / 1000)
+					, int(target_delay - delay) / 1000
+					, int(m_cwnd >> 16)
+					, 0
+					, m_delay_hist.base()
+					, (delay + their_delay) / 1000
+					, target_delay / 1000
+					, acked_bytes
+					, m_bytes_in_flight
+					, 0.f // float(scaled_gain)
+					, m_rtt.mean()
+					, int(m_cwnd * 1000 / (m_rtt.mean()?m_rtt.mean():50)) >> 16
+					, 0
+					, m_adv_wnd
+					, packet_timeout()
+					, int(total_milliseconds(m_timeout - receive_time))
+					, int(total_microseconds(receive_time - min_time()))
+					, m_seq_nr - m_acked_seq_nr
+					, m_mtu
+					, m_their_delay_hist.base()
+					, boost::uint32_t(ph->timestamp_difference_microseconds)
+					, m_seq_nr
+					, m_acked_seq_nr
+					, m_reply_micro);
+			}
 
 			if (sample && acked_bytes && prev_bytes_in_flight)
 				do_ledbat(acked_bytes, delay, prev_bytes_in_flight);
