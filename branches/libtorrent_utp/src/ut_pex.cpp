@@ -256,7 +256,7 @@ namespace libtorrent { namespace
 			}
  
 			ptime now = time_now();
-			if (m_last_pex - now < seconds(10))
+			if (now - m_last_pex < seconds(10))
 			{
 				// this client appears to be trying to flood us
 				// with pex messages. Don't allow that.
