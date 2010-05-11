@@ -44,11 +44,12 @@ project listed here, let me_ know.
 
 	**Folx**
 
-	folx_ has a friendly and easy interface will help you take
-	the most of your downloads. Just click the link in your browser
-	and Folx will start downloading for you. This download manager
-	is not overloaded with tons of unnecessary features and can do
-	everything you need in a very simple way.
+	Folx_ is a torrent client and download manager for Mac OS X.
+	The Free version of Folx has all the basic functionality of the torrent 
+	client, which allows users to download and create torrent files.
+	Folx PRO (available for a small fee) features the possibility to search 
+	for torrent files just from Folx interface. So there is no need to 
+	browse through multiple torrent trackers searching for particular file.
 
 	.. _folx: http://www.mac-downloader.com/
 
