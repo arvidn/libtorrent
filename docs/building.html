@@ -298,12 +298,13 @@ typically the case on x86 64 bit systems.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">zlib</span></tt></td>
+<tr><td><tt class="docutils literal"><span class="pre">asserts</span></tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal"><span class="pre">system</span></tt> - links against the zlib supplied
-with your operating system.</li>
-<li><tt class="docutils literal"><span class="pre">shipped</span></tt> - links against the zlib bundled
-with the libtorrent package.</li>
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - asserts are on if in debug mode</li>
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - asserts are disabled</li>
+<li><tt class="docutils literal"><span class="pre">production</span></tt> - assertion failures are logged
+to <tt class="docutils literal"><span class="pre">asserts.log</span></tt> in the current working
+directory, but won't abort the process.</li>
 </ul>
 </td>
 </tr>
