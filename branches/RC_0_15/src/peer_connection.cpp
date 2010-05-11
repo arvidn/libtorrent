@@ -4839,6 +4839,7 @@ namespace libtorrent
 				int picker_count = t->picker().num_peers(b);
 				if (!t->picker().is_downloaded(b))
 					TORRENT_ASSERT(picker_count == count);
+#error when this assert fails, picker_count equals count_with_timeouts, but count is less
 			}
 		}
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
