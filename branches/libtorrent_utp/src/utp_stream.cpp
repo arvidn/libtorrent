@@ -1959,13 +1959,25 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		{
 			// the lowest seen RTT can be used to clamp the delay
 			// within reasonable bounds. The one-way delay is never
-			// higher than the round-trip time. Times 1000 is to convert
-			// between milliseconds and microseconds
+			// higher than the round-trip time.
 
-			// #error if (delay > min_rtt * 1000) delay = min_rtt * 1000;
+			// #error if (delay > min_rtt) delay = min_rtt;
 
+#if TORRENT_UTP_LOG
 			if (sample && acked_bytes && prev_bytes_in_flight)
 			{
+				char their_delay_base[20];
+				if (m_their_delay_hist.initialized())
+					snprintf(their_delay_base, sizeof(their_delay_base), "%u", m_their_delay_hist.base());
+				else
+					strcpy(their_delay_base, "-");
+
+				char our_delay_base[20];
+				if (m_delay_hist.initialized())
+					snprintf(our_delay_base, sizeof(our_delay_base), "%u", m_delay_hist.base());
+				else
+					strcpy(our_delay_base, "-");
+
 				UTP_LOG("[%08u] %08p: "
 					"actual_delay:%u "
 					"our_delay:%u "
@@ -1973,7 +1985,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					"off_target:%d "
 					"max_window:%d "
 					"upload_rate:%d "
-					"delay_base:%u "
+					"delay_base:%s "
 					"delay_sum:%d "
 					"target_delay:%d "
 					"acked_bytes:%d "
@@ -1988,7 +2000,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					"get_microseconds:%u "
 					"cur_window_packets:%d "
 					"packet_size:%d "
-					"their_delay_base:%u "
+					"their_delay_base:%s "
 					"their_actual_delay:%u "
 					"seq_nr:%u "
 					"acked_seq_nr:%u "
@@ -2001,7 +2013,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, int(target_delay - delay) / 1000
 					, int(m_cwnd >> 16)
 					, 0
-					, m_delay_hist.base()
+					, our_delay_base
 					, (delay + their_delay) / 1000
 					, target_delay / 1000
 					, acked_bytes
@@ -2016,12 +2028,13 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, int(total_microseconds(receive_time - min_time()))
 					, m_seq_nr - m_acked_seq_nr
 					, m_mtu
-					, m_their_delay_hist.base()
+					, their_delay_base
 					, boost::uint32_t(ph->timestamp_difference_microseconds)
 					, m_seq_nr
 					, m_acked_seq_nr
 					, m_reply_micro);
 			}
+#endif
 
 			if (sample && acked_bytes && prev_bytes_in_flight)
 				do_ledbat(acked_bytes, delay, prev_bytes_in_flight);
