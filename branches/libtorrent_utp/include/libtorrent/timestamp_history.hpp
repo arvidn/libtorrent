@@ -45,6 +45,7 @@ struct timestamp_history
 	enum { history_size = 20 };
 
 	timestamp_history() : m_index(0), m_initialized(false), m_base(0) {}
+	bool initialized() const { return m_initialized; }
 
 	// add a sample to the timestamp history. If step is true, it's been
 	// a minute since the last step
