@@ -171,10 +171,30 @@ namespace libtorrent
 	}
 #endif
 
+	void disk_buffer_pool::free_multiple_buffers(char** bufvec, int numbufs)
+	{
+		char** end = bufvec + numbufs;
+		// sort the pointers in order to maximize cache hits
+		std::sort(bufvec, end);
+
+		mutex::scoped_lock l(m_pool_mutex);
+		for (; bufvec != end; ++bufvec)
+		{
+			char* buf = *bufvec;
+			TORRENT_ASSERT(buf);
+			free_buffer_impl(buf, l);;
+		}
+	}
+
 	void disk_buffer_pool::free_buffer(char* buf)
 	{
-		TORRENT_ASSERT(buf);
 		mutex::scoped_lock l(m_pool_mutex);
+		free_buffer_impl(buf, l);
+	}
+
+	void disk_buffer_pool::free_buffer_impl(char* buf, mutex::scoped_lock& l)
+	{
+		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(is_disk_buffer(buf, l));
 #if defined TORRENT_DISK_STATS || defined TORRENT_STATS
@@ -491,12 +511,31 @@ namespace libtorrent
 		if (m_settings.explicit_read_cache) return;
 
 		// flush read cache
+		std::vector<char*> bufs;
 		cache_lru_index_t& ridx = m_read_pieces.get<1>();
 		i = ridx.begin();
 		while (i != ridx.end() && now - i->expire > cut_off)
 		{
-			free_piece(const_cast<cached_piece_entry&>(*i), l);
+			drain_piece_bufs(const_cast<cached_piece_entry&>(*i), bufs, l);
 			ridx.erase(i++);
+		}
+		if (!bufs.empty()) free_multiple_buffers(&bufs[0], bufs.size());
+	}
+
+	void disk_io_thread::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
+		, mutex::scoped_lock& l)
+	{
+		int piece_size = p.storage->info()->piece_size(p.piece);
+		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+
+		for (int i = 0; i < blocks_in_piece; ++i)
+		{
+			if (p.blocks[i].buf == 0) continue;
+			buf.push_back(p.blocks[i].buf);
+			p.blocks[i].buf = 0;
+			--p.num_blocks;
+			--m_cache_stats.cache_size;
+			--m_cache_stats.read_cache_size;
 		}
 	}
 
@@ -1752,12 +1791,15 @@ namespace libtorrent
 
 					mutex::scoped_lock l(m_piece_mutex);
 
+					// build a vector of all the buffers we need to free
+					// and free them all in one go
+					std::vector<char*> buffers;
 					for (cache_t::iterator i = m_read_pieces.begin();
 						i != m_read_pieces.end();)
 					{
 						if (i->storage == j.storage)
 						{
-							free_piece(const_cast<cached_piece_entry&>(*i), l);
+							drain_piece_bufs(const_cast<cached_piece_entry&>(*i), buffers, l);
 							i = m_read_pieces.erase(i);
 						}
 						else
@@ -1766,6 +1808,7 @@ namespace libtorrent
 						}
 					}
 					l.unlock();
+					if (!buffers.empty()) free_multiple_buffers(&buffers[0], buffers.size());
 					release_memory();
 					break;
 				}

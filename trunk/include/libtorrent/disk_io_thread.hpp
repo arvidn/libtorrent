@@ -219,6 +219,7 @@ namespace libtorrent
 
 		char* allocate_buffer(char const* category);
 		void free_buffer(char* buf);
+		void free_multiple_buffers(char** bufvec, int numbufs);
 
 		char* allocate_buffers(int blocks, char const* category);
 		void free_buffers(char* buf, int blocks);
@@ -239,6 +240,8 @@ namespace libtorrent
 		int in_use() const { return m_in_use; }
 
 	protected:
+
+		void free_buffer_impl(char* buf, mutex::scoped_lock& l);
 
 		// number of bytes per block. The BitTorrent
 		// protocol defines the block size to 16 KiB.
@@ -392,6 +395,8 @@ namespace libtorrent
 			, int options, int num_blocks, mutex::scoped_lock& l);
 		int cache_read_block(disk_io_job const& j, mutex::scoped_lock& l);
 		int free_piece(cached_piece_entry& p, mutex::scoped_lock& l);
+		void drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
+			, mutex::scoped_lock& l);
 		int try_read_from_cache(disk_io_job const& j, bool& hit);
 		int read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h);
 		int cache_piece(disk_io_job const& j, cache_piece_index_t::iterator& p

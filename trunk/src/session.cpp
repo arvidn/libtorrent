@@ -177,6 +177,9 @@ namespace libtorrent
 		set.low_prio_disk = false;
 		// one hour expiration
 		set.cache_expiry = 60 * 60;
+		// this is expensive and could add significant
+		// delays when freeing a large number of buffers
+		set.lock_disk_cache = false;
 
 		// flush write cache based on largest contiguous block
 		set.disk_cache_algorithm = session_settings::largest_contiguous;
