@@ -1834,12 +1834,12 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	const int header_size = ptr - buf;
 	const int payload_size = size - header_size;
 
-	UTP_LOGV("[%08u] %08p: incoming packet seq_nr:%d ack_nr:%d type:%s id:%d size:%d "
+	UTP_LOGV("[%08u] %08p: incoming packet seq_nr:%d ack_nr:%d type:%s id:%d size:%d timestampdiff:%u timestamp:%u"
 			"our ack_nr:%d our seq_nr:%d our acked_seq_nr:%d our state:%s\n"
 		, int(total_microseconds(receive_time - min_time()))
 		, this, int(ph->seq_nr), int(ph->ack_nr), packet_type_names[ph->type]
-		, int(ph->connection_id), payload_size, m_ack_nr, m_seq_nr, m_acked_seq_nr
-		, socket_state_names[m_state]);
+		, int(ph->connection_id), payload_size, boost::uint32_t(ph->timestamp_difference_microseconds)
+		, boost::uint32_t(ph->timestamp_microseconds), m_ack_nr, m_seq_nr, m_acked_seq_nr, socket_state_names[m_state]);
 
 	if (ph->type == ST_FIN)
 	{
