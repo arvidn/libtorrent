@@ -3964,7 +3964,7 @@ namespace libtorrent
 		if (!m_download_queue.empty() || !m_request_queue.empty())
 			m_timeout_extend += m_ses.settings().request_timeout;
 
-		if (r != piece_block(-1, -1))
+		if (r != piece_block::invalid)
 			picker.abort_download(r);
 
 		send_block_requests();
