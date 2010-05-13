@@ -63,13 +63,18 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT piece_block
 	{
+		const static piece_block invalid;
+
 		piece_block() {}
-		piece_block(int p_index, int b_index)
+		piece_block(boost::uint32_t p_index, boost::uint16_t b_index)
 			: piece_index(p_index)
 			, block_index(b_index)
-		{}
-		int piece_index;
-		int block_index;
+		{
+			TORRENT_ASSERT(p_index < (1 << 18));
+			TORRENT_ASSERT(b_index < (1 << 14));
+		}
+		boost::uint32_t piece_index:18;
+		boost::uint32_t block_index:14;
 
 		bool operator<(piece_block const& b) const
 		{
