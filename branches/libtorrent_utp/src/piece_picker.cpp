@@ -55,6 +55,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	const piece_block piece_block::invalid(0x3FFFF, 0x3FFF);
+
 	piece_picker::piece_picker()
 		: m_seeds(0)
 		, m_priority_boundries(1, int(m_pieces.size()))

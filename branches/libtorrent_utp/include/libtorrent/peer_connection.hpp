@@ -100,12 +100,14 @@ namespace libtorrent
 	struct pending_block
 	{
 		pending_block(piece_block const& b)
-			: skipped(0), not_wanted(false), timed_out(false)
-			, busy(false), block(b) {}
+			: block(b), skipped(0), not_wanted(false)
+			, timed_out(false), busy(false) {}
+
+		piece_block block;
 
 		// the number of times the request
 		// has been skipped by out of order blocks
-		boost::uint16_t skipped;
+		boost::uint16_t skipped:13;
 
 		// if any of these are set to true, this block
 		// is not allocated
@@ -121,8 +123,6 @@ namespace libtorrent
 		// request was queued. We only allow a single
 		// busy request at a time in each peer's queue
 		bool busy:1;
-
-		piece_block block;
 
 		bool operator==(pending_block const& b)
 		{

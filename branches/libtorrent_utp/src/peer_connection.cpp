@@ -100,7 +100,7 @@ namespace libtorrent
 		, m_socket(s)
 		, m_remote(endp)
 		, m_torrent(tor)
-		, m_receiving_block(-1, -1)
+		, m_receiving_block(piece_block::invalid)
 		, m_last_seen_complete(0)
 		, m_timeout_extend(0)
 		, m_outstanding_bytes(0)
@@ -236,7 +236,7 @@ namespace libtorrent
 		, m_disk_recv_buffer(ses, 0)
 		, m_socket(s)
 		, m_remote(endp)
-		, m_receiving_block(-1, -1)
+		, m_receiving_block(piece_block::invalid)
 		, m_last_seen_complete(0)
 		, m_timeout_extend(0)
 		, m_outstanding_bytes(0)
@@ -2072,6 +2072,7 @@ namespace libtorrent
 				break;
 			}
 
+			m_download_queue.insert(m_download_queue.begin(), b);
 			if (!in_req_queue)
 			{
 				if (t->alerts().should_post<unwanted_block_alert>())
@@ -2083,9 +2084,9 @@ namespace libtorrent
 				(*m_logger) << "          *** The block we just got was not in the "
 					"request queue ***\n";
 #endif
+				TORRENT_ASSERT(m_download_queue.front().block == b);
+				m_download_queue.front().not_wanted = true;
 			}
-			m_download_queue.insert(m_download_queue.begin(), b);
-			if (!in_req_queue) m_download_queue.front().not_wanted = true;
 			m_outstanding_bytes += r.length;
 		}
 	}
@@ -3054,6 +3055,23 @@ namespace libtorrent
 		{
 			pending_block block = m_request_queue.front();
 
+			m_request_queue.erase(m_request_queue.begin());
+			if (m_queued_time_critical) --m_queued_time_critical;
+
+			// if we're a seed, we don't have a piece picker
+			// so we don't have to worry about invariants getting
+			// out of sync with it
+			if (t->is_seed()) continue;
+
+			// this can happen if a block times out, is re-requested and
+			// then arrives "unexpectedly"
+			if (t->picker().is_finished(block.block)
+				|| t->picker().is_downloaded(block.block))
+			{
+				t->picker().abort_download(block.block);
+				continue;
+			}
+
 			int block_offset = block.block.block_index * t->block_size();
 			int block_size = (std::min)(t->torrent_file().piece_size(
 				block.block.piece_index) - block_offset, t->block_size());
@@ -3065,21 +3083,13 @@ namespace libtorrent
 			r.start = block_offset;
 			r.length = block_size;
 
-			m_request_queue.erase(m_request_queue.begin());
-			if (m_queued_time_critical) --m_queued_time_critical;
-			if (t->is_seed()) continue;
-			// this can happen if a block times out, is re-requested and
-			// then arrives "unexpectedly"
-			if (t->picker().is_finished(block.block)
-				|| t->picker().is_downloaded(block.block))
-				continue;
-
 			TORRENT_ASSERT(verify_piece(t->to_req(block.block)));
 			m_download_queue.push_back(block);
 			m_outstanding_bytes += block_size;
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
 			check_invariant();
 #endif
+
 /*
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << time_now_string()
@@ -3929,7 +3939,7 @@ namespace libtorrent
 		request_a_block(*t, *this);
 		m_desired_queue_size = 1;
 
-		piece_block r(-1, -1);
+		piece_block r(piece_block::invalid);
 		// time out the last request in the queue
 		if (prev_request_queue > 0)
 		{
@@ -5006,7 +5016,7 @@ namespace libtorrent
 	}
 
 #ifdef TORRENT_DEBUG
-	struct peer_count_t { int num_peers; int num_peers_with_timeouts; };
+	struct peer_count_t { int num_peers; int num_peers_with_timeouts; int num_peers_with_nowant; };
 
 	void peer_connection::check_invariant() const
 	{
@@ -5137,12 +5147,14 @@ namespace libtorrent
 				{
 					++num_requests[i->block].num_peers;
 					++num_requests[i->block].num_peers_with_timeouts;
+					++num_requests[i->block].num_peers_with_nowant;
 				}
 				for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
 					, end(p.download_queue().end()); i != end; ++i)
 				{
 					if (!i->not_wanted && !i->timed_out) ++num_requests[i->block].num_peers;
-					++num_requests[i->block].num_peers_with_timeouts;
+					if (i->timed_out) ++num_requests[i->block].num_peers_with_timeouts;
+					if (i->not_wanted) ++num_requests[i->block].num_peers_with_nowant;
 				}
 			}
 			for (std::map<piece_block, peer_count_t>::iterator i = num_requests.begin()
@@ -5151,6 +5163,7 @@ namespace libtorrent
 				piece_block b = i->first;
 				int count = i->second.num_peers;
 				int count_with_timeouts = i->second.num_peers_with_timeouts;
+				int count_with_nowant = i->second.num_peers_with_nowant;
 				int picker_count = t->picker().num_peers(b);
 				if (!t->picker().is_downloaded(b))
 					TORRENT_ASSERT(picker_count == count);
