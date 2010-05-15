@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct udp_socket;
-	struct utp_stream;
+	class udp_socket;
+	class utp_stream;
 	struct utp_socket_impl;
 
 	typedef boost::function<void(boost::shared_ptr<socket_type> const&)> incoming_utp_callback_t;

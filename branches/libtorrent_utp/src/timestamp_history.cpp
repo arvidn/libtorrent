@@ -39,6 +39,9 @@ enum
 {
 	TIME_MASK = 0xffffffff
 };
+// defined in utp_stream.cpp
+bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs
+	, boost::uint32_t mask);
 
 boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 {
@@ -49,10 +52,6 @@ boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 		m_base = sample;
 		m_initialized = true;
 	}
-
-	// defined in utp_stream.cpp
-	extern bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs
-		, boost::uint32_t mask);
 
 	// if sample is less than base, update the base
 	// and update the history entry (because it will

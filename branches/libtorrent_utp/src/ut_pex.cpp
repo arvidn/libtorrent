@@ -287,8 +287,8 @@ namespace libtorrent { namespace
 				{
 					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
 					peers4_t::value_type v(adr.address().to_v4().to_bytes(), adr.port());
-					peers4_t::iterator i = std::lower_bound(m_peers.begin(), m_peers.end(), v);
-					if (i != m_peers.end() && *i == v) m_peers.erase(i);
+					peers4_t::iterator j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
+					if (j != m_peers.end() && *j == v) m_peers.erase(j);
 				} 
 			}
 
@@ -318,10 +318,10 @@ namespace libtorrent { namespace
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
 
 					peers4_t::value_type v(adr.address().to_v4().to_bytes(), adr.port());
-					peers4_t::iterator i = std::lower_bound(m_peers.begin(), m_peers.end(), v);
+					peers4_t::iterator j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
 					// do we already know about this peer?
-					if (i != m_peers.end() && *i == v) continue;
-					m_peers.insert(i, v);
+					if (j != m_peers.end() && *j == v) continue;
+					m_peers.insert(j, v);
 					p.add_peer(adr, pid, peer_info::pex, flags);
 				} 
 			}
@@ -338,8 +338,8 @@ namespace libtorrent { namespace
 				{
 					tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
 					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
-					peers6_t::iterator i = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
-					if (i != m_peers6.end() && *i == v) m_peers6.erase(i);
+					peers6_t::iterator j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
+					if (j != m_peers6.end() && *j == v) m_peers6.erase(j);
 				} 
 			}
 
@@ -366,10 +366,10 @@ namespace libtorrent { namespace
 					if (m_peers6.size() >= m_torrent.settings().max_pex_peers) break;
 
 					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
-					peers6_t::iterator i = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
+					peers6_t::iterator j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
 					// do we already know about this peer?
-					if (i != m_peers6.end() && *i == v) continue;
-					m_peers6.insert(i, v);
+					if (j != m_peers6.end() && *j == v) continue;
+					m_peers6.insert(j, v);
 					p.add_peer(adr, pid, peer_info::pex, flags);
 				} 
 			}

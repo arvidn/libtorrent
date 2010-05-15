@@ -308,6 +308,9 @@ namespace libtorrent
 		return ret;
 	}
 
+	// defined in ut_pex.cpp
+	bool was_introduced_by(peer_plugin const*, tcp::endpoint const&);
+
 	torrent::torrent(
 		session_impl& ses
 		, tcp::endpoint const& net_interface
@@ -945,8 +948,6 @@ namespace libtorrent
 			if (!p->supports_holepunch()) continue;
 			peer_plugin const* pp = p->find_plugin("ut_pex");
 			if (!pp) continue;
-			// defined in ut_pex.cpp
-			extern bool was_introduced_by(peer_plugin const*, tcp::endpoint const&);
 			if (was_introduced_by(pp, ep)) return (bt_peer_connection*)p;
 		}
 #endif
@@ -955,7 +956,7 @@ namespace libtorrent
 
 	bt_peer_connection* torrent::find_peer(tcp::endpoint const& ep) const
 	{
-		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
+		for (const_peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 		{
 			peer_connection* p = *i;
 			if (p->type() != peer_connection::bittorrent_connection) continue;

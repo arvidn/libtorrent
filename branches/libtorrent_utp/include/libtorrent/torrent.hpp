@@ -696,7 +696,7 @@ namespace libtorrent
 		void read_resume_data(lazy_entry const& rd);
 
 		void seen_complete() { m_last_seen_complete = time(0); }
-		int time_since_complete() const { return time(0) - m_last_seen_complete; }
+		time_t time_since_complete() const { return time(0) - m_last_seen_complete; }
 		time_t last_seen_complete() const { return m_last_seen_complete; }
 
 		// LOGGING
