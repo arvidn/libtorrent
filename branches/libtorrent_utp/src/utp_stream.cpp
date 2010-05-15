@@ -1692,7 +1692,10 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		, int(total_microseconds(receive_time - min_time()))
 		, this, packet_timeout());
 
-	const boost::uint32_t sample = ph->timestamp_difference_microseconds;
+	// the test for INT_MAX here is a work-around for a bug in uTorrent where
+	// it's sometimes sent as INT_MAX when it is in fact uninitialized
+	const boost::uint32_t sample = ph->timestamp_difference_microseconds == INT_MAX
+		? 0 : ph->timestamp_difference_microseconds;
 
 	boost::uint32_t delay = 0;
 	if (sample != 0)
