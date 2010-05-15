@@ -51,6 +51,7 @@ struct timestamp_history
 	// a minute since the last step
 	boost::uint32_t add_sample(boost::uint32_t sample, bool step);
 	boost::uint32_t base() const { TORRENT_ASSERT(m_initialized); return m_base; }
+	void adjust_base(int change) { m_base += change; }
 
 private:
 

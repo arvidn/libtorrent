@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/timestamp_history.hpp"
+#include <boost/cstdint.hpp>
 
 #define TORRENT_UTP_LOG 1
 #define TORRENT_UT_SEQ 1
@@ -90,7 +91,7 @@ enum
 
 	// the number of packets that'll fit in the reorder buffer
 	max_packets_reorder = 512,
-	max_cwnd_increase_per_rtt = 3000,
+	max_cwnd_increase_per_rtt = 500,
 
 	// this is the target buffering delay we're aiming for, in microseconds.
 	// i.e. 50 ms
@@ -220,6 +221,7 @@ struct utp_socket_impl
 		, m_cwnd(1500 << 16)
 		, m_adv_wnd(1500)
 		, m_timeout(time_now_hires() + seconds(3))
+		, m_last_cwnd_hit(min_time())
 		, m_bytes_in_flight(0)
 		, m_mtu(1500 - 20 - 8 - 8)
 		, m_buffered_incoming_bytes(0)
@@ -261,12 +263,13 @@ struct utp_socket_impl
 	bool send_pkt(bool ack);
 	bool resend_packet(packet* p);
 	void send_reset(utp_header* ph);
-	void parse_sack(char const* ptr, int size, int* acked_bytes, ptime const& now);
+	void parse_sack(char const* ptr, int size, int* acked_bytes
+		, ptime const now, boost::uint32_t& min_rtt);
 	void write_payload(char* ptr, int size);
-	void ack_packet(packet* p, ptime const& receive_time);
+	void ack_packet(packet* p, ptime const& receive_time, boost::uint32_t& min_rtt);
 	void write_sack(char* buf, int size) const;
 	void incoming(char const* buf, int size, packet* p);
-	void do_ledbat(int acked_bytes, boost::uint32_t delay, int in_flight);
+	void do_ledbat(int acked_bytes, boost::uint32_t delay, int in_flight, ptime const now);
 	int packet_timeout() const;
 	bool test_socket_state();
 	void maybe_trigger_receive_callback(ptime now);
@@ -462,6 +465,12 @@ struct utp_socket_impl
 	// it can also happen if the other end sends an advertized window
 	// size less than one MSS.
 	ptime m_timeout;
+	
+	// the last time we wanted to send more data, but couldn't because
+	// it would bring the number of outstanding bytes above the cwnd.
+	// this is used to restrict increasing the cwnd size when we're
+	// not sending fast enough to need it bigger
+	ptime m_last_cwnd_hit;
 
 	// the number of un-acked bytes we have sent
 	int m_bytes_in_flight;
@@ -780,8 +789,23 @@ void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler
 utp_socket_impl::~utp_socket_impl()
 {
     UTP_LOGV("[%08u] %08p: destroying utp socket state\n"
-			, int(total_microseconds(time_now_hires() - min_time())), this);
-	// #error go through circular buffers and receive buffer and free all packet
+		, int(total_microseconds(time_now_hires() - min_time())), this);
+
+	// free any buffers we're holding
+	for (boost::uint16_t i = m_inbuf.cursor(), end((m_inbuf.cursor()
+		+ m_inbuf.capacity()) & ACK_MASK);
+		i != end; i = (i + 1) & ACK_MASK)
+	{
+		void* p = m_inbuf.remove(i);
+		free(p);
+	}
+	for (boost::uint16_t i = m_outbuf.cursor(), end((m_outbuf.cursor()
+		+ m_outbuf.capacity()) & ACK_MASK);
+		i != end; i = (i + 1) & ACK_MASK)
+	{
+		void* p = m_outbuf.remove(i);
+		free(p);
+	}
 }
 
 void utp_socket_impl::maybe_trigger_receive_callback(ptime now)
@@ -1004,7 +1028,8 @@ std::size_t utp_socket_impl::available() const
 	return m_receive_buffer_size;
 }
 
-void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes, ptime const& now)
+void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes
+	, ptime const now, boost::uint32_t& min_rtt)
 {
 	if (size == 0) return;
 
@@ -1033,7 +1058,7 @@ void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes, pt
 				UTP_LOGV("[%08u] %08p: acked packet %d (%d bytes)\n"
 					, int(total_microseconds(now - min_time())), this
 					, ack_nr, p->size - p->header_size);
-				ack_packet(p, now);
+				ack_packet(p, now, min_rtt);
 				// each ACKed packet counts as a duplicate ack
 				++m_duplicate_acks;
 			}
@@ -1171,6 +1196,9 @@ bool utp_socket_impl::send_pkt(bool ack)
 		// another packet. We have to hold off sending this data.
 		// we still need to send an ACK though
 		payload_size = 0;
+
+		// we're restrained by the window size
+		m_last_cwnd_hit = time_now_hires();
 
 		// there's no more space in the cwnd, no need to
 		// try to send more right now
@@ -1313,7 +1341,11 @@ bool utp_socket_impl::resend_packet(packet* p)
 	// we can only resend the packet if there's
 	// enough space in our congestion window
 	int window_size_left = (std::min)(int(m_cwnd >> 16), int(m_adv_wnd)) - m_bytes_in_flight;
-	if (p->size - p->header_size > window_size_left) return false;
+	if (p->size - p->header_size > window_size_left)
+	{
+		m_last_cwnd_hit = time_now_hires();
+		return false;
+	}
 
 	TORRENT_ASSERT(p->size - p->header_size >= 0);
 	if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;
@@ -1349,7 +1381,7 @@ bool utp_socket_impl::resend_packet(packet* p)
 	return true;
 }
 
-void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time)
+void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time, boost::uint32_t& min_rtt)
 {
 	TORRENT_ASSERT(p);
 	if (!p->need_resend)
@@ -1357,7 +1389,17 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time)
 		TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
 		m_bytes_in_flight -= p->size - p->header_size;
 	}
-	m_rtt.add_sample(total_milliseconds(receive_time - p->send_time));
+	boost::uint32_t rtt = total_microseconds(receive_time - p->send_time);
+	if (receive_time < p->send_time)
+	{
+		// this means our clock is not monotonic. Just assume the RTT was 100 ms
+		rtt = 100000;
+
+		// the clock for this plaform is not monotonic!
+		TORRENT_ASSERT(false);
+	}
+	m_rtt.add_sample(rtt / 1000);
+	if (rtt < min_rtt) min_rtt = rtt;
 	free(p);
 }
 
@@ -1597,9 +1639,21 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	{
 		m_reply_micro = boost::uint32_t(total_microseconds(receive_time - min_time()))
 			- ph->timestamp_microseconds;
+		boost::uint32_t prev_base = m_their_delay_hist.initialized() ? m_their_delay_hist.base() : 0;
 		their_delay = m_their_delay_hist.add_sample(m_reply_micro, step);
-		UTP_LOGV("[%08u] %08p: incoming packet reply_micro:%u\n"
-			, int(total_microseconds(receive_time - min_time())), this, m_reply_micro);
+		int base_change = m_their_delay_hist.base() - prev_base;
+
+		if (prev_base && base_change < 0 && base_change > -10000)
+		{
+			// their base delay went down. This is caused by clock drift. To compensate,
+			// adjust our base delay upwards
+			// don't adjust more than 10 ms. If the change is that big, something is probably wrong
+			m_delay_hist.adjust_base(-base_change);
+		}
+
+		UTP_LOGV("[%08u] %08p: incoming packet reply_micro:%u base_change:%d\n"
+			, int(total_microseconds(receive_time - min_time())), this, m_reply_micro
+			, base_change);
 	}
 
 	if (ph->type == ST_RESET)
@@ -1716,6 +1770,8 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		++m_duplicate_acks;
 	}
 
+	boost::uint32_t min_rtt = UINT_MAX;
+
 	// has this packet already been ACKed?
 	// if the ACK we just got is less than the max ACKed
 	// sequence number, it doesn't tell us anything.
@@ -1735,7 +1791,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			UTP_LOGV("[%08u] %08p: acked packet %d (%d bytes)\n"
 				, int(total_microseconds(receive_time - min_time())), this
 				, ack_nr, p->size - p->header_size);
-			ack_packet(p, receive_time);
+			ack_packet(p, receive_time, min_rtt);
         }
 
 		m_acked_seq_nr = next_ack_nr;
@@ -1772,7 +1828,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		switch(extension)
 		{
 			case 1: // selective ACKs
-				parse_sack(ptr, len, &acked_bytes, receive_time);
+				parse_sack(ptr, len, &acked_bytes, receive_time, min_rtt);
 				break;
 		}
 		ptr += len;
@@ -1964,7 +2020,9 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// within reasonable bounds. The one-way delay is never
 			// higher than the round-trip time.
 
-			// #error if (delay > min_rtt) delay = min_rtt;
+			// it's impossible for delay to be more than the RTT, so make
+			// sure to clamp it as a sanity check
+			if (delay > min_rtt) delay = min_rtt;
 
 #if TORRENT_UTP_LOG
 			if (sample && acked_bytes && prev_bytes_in_flight)
@@ -2040,7 +2098,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 #endif
 
 			if (sample && acked_bytes && prev_bytes_in_flight)
-				do_ledbat(acked_bytes, delay, prev_bytes_in_flight);
+				do_ledbat(acked_bytes, delay, prev_bytes_in_flight, receive_time);
 
             consume_incoming_data(ph, ptr, payload_size, receive_time);
 
@@ -2173,7 +2231,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	return false;
 }
 
-void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_flight)
+void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_flight, ptime const now)
 {
 	// the portion of the in-flight bytes that were acked. This is used to make
 	// the gain factor be scaled by the rtt. The formula is applied once per
@@ -2187,6 +2245,14 @@ void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_f
 	boost::int64_t scaled_gain = window_factor * delay_factor;
 	scaled_gain *= boost::int64_t(max_cwnd_increase_per_rtt);
 	scaled_gain >>= 16;
+
+	if (scaled_gain > 0 && m_last_cwnd_hit + seconds(1) < now)
+	{
+		// we haven't bumped into the cwnd limit size in the last second
+		// this probably means we have a send rate limit, so we shouldn't make
+		// the cwnd size any larger
+		scaled_gain = 0;
+	}
 
 	UTP_LOGV("[%08u] %08p: do_ledbat delay:%u off_target: %d window_factor:%f target_factor:%f "
 		"scaled_gain:%f cwnd:%d\n"
@@ -2210,7 +2276,13 @@ void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_f
 	float delay_factor = int(target_delay - delay) / float(target_delay);
 	float scaled_gain = window_factor * delay_factor * max_cwnd_increase_per_rtt;
 
-// #error don't allow scaled_gain to be > 0 if we haven't 'bumped up' against the cwnd size within 2 RTTs
+	if (scaled_gain > 0 && m_last_cwnd_hit + seconds(1) < now)
+	{
+		// we haven't bumped into the cwnd limit size in the last second
+		// this probably means we have a send rate limit, so we shouldn't make
+		// the cwnd size any larger
+		scaled_gain = 0;
+	}
 
 	UTP_LOGV("[%08u] %08p: do_ledbat delay:%u off_target: %d window_factor:%f target_factor:%f "
 		"scaled_gain:%f cwnd:%d\n"
