@@ -395,7 +395,7 @@ namespace libtorrent
 			, int options, int num_blocks, mutex::scoped_lock& l);
 		int cache_read_block(disk_io_job const& j, mutex::scoped_lock& l);
 		int free_piece(cached_piece_entry& p, mutex::scoped_lock& l);
-		void drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
+		int drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
 			, mutex::scoped_lock& l);
 		int try_read_from_cache(disk_io_job const& j, bool& hit);
 		int read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h);
