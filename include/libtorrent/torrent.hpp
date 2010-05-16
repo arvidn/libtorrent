@@ -354,7 +354,9 @@ namespace libtorrent
 		{
 			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
 				, (boost::bind(&web_seed_entry::connection, _1) == p));
-			TORRENT_ASSERT(i != m_web_seeds.end());
+			// this happens if the web server responded with a redirect
+			// or with something incorrect, so that we removed the web seed
+			// immediately, before we disconnected
 			if (i == m_web_seeds.end()) return;
 			TORRENT_ASSERT(i->connection);
 			i->connection = 0;
