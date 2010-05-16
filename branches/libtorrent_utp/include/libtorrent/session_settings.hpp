@@ -219,6 +219,8 @@ namespace libtorrent
 			, ignore_resume_timestamps(false)
 			, anonymous_mode(false)
 			, tick_interval(100)
+			, utp_target_delay(50) // milliseconds
+			, utp_gain_factor(500) // bytes per rtt
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -852,6 +854,13 @@ namespace libtorrent
 		// the number of milliseconds between internal ticks. Should be no
 		// more than one second (i.e. 1000).
 		int tick_interval;
+
+		// target delay, milliseconds
+		int utp_target_delay;
+
+		// max number of bytes to increase cwnd per rtt in uTP
+		// congestion controller
+		int utp_gain_factor;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

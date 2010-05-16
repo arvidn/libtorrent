@@ -319,6 +319,8 @@ namespace aux {
 		TORRENT_SETTING(boolean, ignore_resume_timestamps)
 		TORRENT_SETTING(boolean, anonymous_mode)
 		TORRENT_SETTING(integer, tick_interval)
+		TORRENT_SETTING(integer, utp_target_delay)
+		TORRENT_SETTING(integer, utp_gain_factor)
 	};
 
 #undef TORRENT_SETTING
@@ -1245,6 +1247,12 @@ namespace aux {
 
 		// if anonymous mode was enabled, clear out the peer ID
 		bool anonymous = (m_settings.anonymous_mode != s.anonymous_mode && s.anonymous_mode);
+
+		if (s.utp_target_delay != s.utp_target_delay && s.utp_target_delay > 10)
+			m_utp_socket_manager.set_target_delay(s.utp_target_delay);
+
+		if (s.utp_gain_factor != s.utp_gain_factor && s.utp_gain_factor > 0)
+			m_utp_socket_manager.set_gain_factor(s.utp_gain_factor);
 
 		m_settings = s;
 

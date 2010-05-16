@@ -91,11 +91,10 @@ enum
 
 	// the number of packets that'll fit in the reorder buffer
 	max_packets_reorder = 512,
-	max_cwnd_increase_per_rtt = 500,
-
+	
 	// this is the target buffering delay we're aiming for, in microseconds.
 	// i.e. 50 ms
-	target_delay = 50000
+//	target_delay = 50000
 
 };
 
@@ -2071,12 +2070,12 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, sample
 					, int(delay / 1000)
 					, int(their_delay / 1000)
-					, int(target_delay - delay) / 1000
+					, int(m_sm->target_delay() - delay) / 1000
 					, int(m_cwnd >> 16)
 					, 0
 					, our_delay_base
 					, (delay + their_delay) / 1000
-					, target_delay / 1000
+					, m_sm->target_delay() / 1000
 					, acked_bytes
 					, m_bytes_in_flight
 					, 0.f // float(scaled_gain)
@@ -2238,12 +2237,14 @@ void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_f
 	// rtt, or on every ACK skaled by the number of ACKs per rtt
 	TORRENT_ASSERT(in_flight > 0);
 	TORRENT_ASSERT(acked_bytes > 0);
+
+	int target_delay = m_sm->target_delay();
 /*
 	// all of these are fixed points with 16 bits fraction portion
 	boost::int64_t window_factor = (boost::int64_t(acked_bytes) << 16) / in_flight;
 	boost::int64_t delay_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
 	boost::int64_t scaled_gain = window_factor * delay_factor;
-	scaled_gain *= boost::int64_t(max_cwnd_increase_per_rtt);
+	scaled_gain *= boost::int64_t(m_sm->gain_factor());
 	scaled_gain >>= 16;
 
 	if (scaled_gain > 0 && m_last_cwnd_hit + seconds(1) < now)
@@ -2274,7 +2275,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_f
 */
 	float window_factor = acked_bytes / float(in_flight);
 	float delay_factor = int(target_delay - delay) / float(target_delay);
-	float scaled_gain = window_factor * delay_factor * max_cwnd_increase_per_rtt;
+	float scaled_gain = window_factor * delay_factor * m_sm->gain_factor();
 
 	if (scaled_gain > 0 && m_last_cwnd_hit + seconds(1) < now)
 	{

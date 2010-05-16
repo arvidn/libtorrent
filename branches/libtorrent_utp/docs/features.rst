@@ -75,6 +75,8 @@ disk management
 network
 -------
 
+* uTP supports (BEP29_). One-way delay based congestion controlled transport
+  protocol on top of UDP.
 * adjusts the length of the request queue depending on download rate.
 * serves multiple torrents on a single port and in a single thread
 * piece picking on block-level (as opposed to piece-level).
@@ -112,6 +114,7 @@ network
 .. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
 .. _`BEP 24`: http://bittorrent.org/beps/bep_0024.html
 .. _`BEP 27`: http://bittorrent.org/beps/bep_0027.html
+.. _`BEP 29`: http://bittorrent.org/beps/bep_0029.html
 .. _`extension protocol`: extension_protocol.html
 
 highlighted features

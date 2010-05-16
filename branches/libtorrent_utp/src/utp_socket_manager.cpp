@@ -60,6 +60,8 @@ namespace libtorrent
 		: m_sock(s)
 		, m_cb(cb)
 		, m_new_connection(-1)
+		, m_gain(500)
+		, m_target_delay(50000) // 50 ms
 	{}
 
 	utp_socket_manager::~utp_socket_manager()

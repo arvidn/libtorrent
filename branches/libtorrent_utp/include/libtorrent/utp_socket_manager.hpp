@@ -64,6 +64,20 @@ namespace libtorrent
 		void remove_socket(boost::uint16_t id);
 
 		utp_socket_impl* new_utp_socket(utp_stream* str);
+		int gain_factor() const { return m_gain; }
+		int target_delay() const { return m_target_delay; }
+
+		void set_gain_factor(int gain)
+		{
+			TORRENT_ASSERT(gain > 0);
+			m_gain = gain;
+		}
+
+		void set_target_delay(int target)
+		{
+			TORRENT_ASSERT(target >= 10);
+			m_target_delay = target * 1000;
+		}
 
 	private:
 		udp_socket& m_sock;
@@ -74,6 +88,12 @@ namespace libtorrent
 		socket_map_t m_utp_sockets;
 
 		int m_new_connection;
+
+		// max increase of cwnd per RTT
+		int m_gain;
+
+		// target delay in microseconds
+		int m_target_delay;
 	};
 }
 
