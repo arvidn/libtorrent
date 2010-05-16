@@ -3018,6 +3018,9 @@ namespace libtorrent
 			|| !m_peer_interested)
 			return;
 	
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " ==> SUGGEST [ " << piece << " ]\n";
+#endif
 		write_suggest(piece);
 	}
 
