@@ -301,6 +301,7 @@ namespace libtorrent
 				// in case we just set a socks proxy, we might have to
 				// open the socks incoming connection
 				if (!m_socks_listen_socket) open_new_incoming_socks_connection();
+				m_udp_socket.set_proxy_settings(m_peer_proxy);
 			}
 			void set_web_seed_proxy(proxy_settings const& s)
 			{ m_web_seed_proxy = s; }

@@ -258,7 +258,7 @@ namespace libtorrent
 		write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
 		if (m_supports_dht_port && m_ses.m_dht)
-			write_dht_port(m_ses.get_dht_settings().service_port);
+			write_dht_port(m_ses.m_external_udp_port);
 #endif
 	}
 
@@ -1334,7 +1334,7 @@ namespace libtorrent
 			m_supports_dht_port = true;
 #ifndef TORRENT_DISABLE_DHT
 			if (m_supports_dht_port && m_ses.m_dht)
-				write_dht_port(m_ses.get_dht_settings().service_port);
+				write_dht_port(m_ses.m_external_udp_port);
 #endif
 		}
 	}
@@ -3071,7 +3071,7 @@ namespace libtorrent
 				write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
 				if (m_supports_dht_port && m_ses.m_dht)
-					write_dht_port(m_ses.get_dht_settings().service_port);
+					write_dht_port(m_ses.m_external_udp_port);
 #endif
 			}
 

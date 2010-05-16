@@ -1117,6 +1117,7 @@ namespace aux {
 		// #error closing the udp socket here means that
 		// the uTP connections cannot be closed gracefully
 		m_udp_socket.close();
+		m_external_udp_port = 0;
 	}
 
 	void session_impl::set_port_filter(port_filter const& f)
@@ -1489,6 +1490,7 @@ namespace aux {
 		}
 		else
 		{
+			m_external_udp_port = m_udp_socket.local_port();
 			maybe_update_udp_mapping(0, m_listen_interface.port(), m_listen_interface.port());
 			maybe_update_udp_mapping(1, m_listen_interface.port(), m_listen_interface.port());
 		}
