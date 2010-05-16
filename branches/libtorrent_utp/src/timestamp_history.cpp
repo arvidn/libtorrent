@@ -85,5 +85,15 @@ boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 	return ret;
 }
 
+void timestamp_history::adjust_base(int change)
+{
+	m_base += change;
+	// make sure this adjustment sticks by updating all history slots
+	for (int i = 0; i < history_size; ++i)
+	{
+		if (compare_less_wrap(m_history[i], m_base, TIME_MASK))
+			m_history[i] = m_base;
+	}
+}
 
 }
