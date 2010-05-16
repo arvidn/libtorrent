@@ -4574,7 +4574,7 @@ bottleneck. It cannot be too low, since the noise in the measurements would caus
 it to send too slow. The default is 50 milliseconds.
 
 ``utp_gain_factor`` is the number of bytes the uTP congestion window can increase
-at the most in one RTT. This defaults to 500 bytes. If this is set too high,
+at the most in one RTT. This defaults to 300 bytes. If this is set too high,
 the congestion controller reacts too hard to noise and will not be stable, if it's
 set too low, it will react slow to congestion and not back off as fast.
 

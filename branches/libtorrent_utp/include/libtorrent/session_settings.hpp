@@ -220,7 +220,7 @@ namespace libtorrent
 			, anonymous_mode(false)
 			, tick_interval(100)
 			, utp_target_delay(50) // milliseconds
-			, utp_gain_factor(500) // bytes per rtt
+			, utp_gain_factor(300) // bytes per rtt
 		{}
 
 		// this is the user agent that will be sent to the tracker

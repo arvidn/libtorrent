@@ -60,7 +60,7 @@ namespace libtorrent
 		: m_sock(s)
 		, m_cb(cb)
 		, m_new_connection(-1)
-		, m_gain(500)
+		, m_gain(300)
 		, m_target_delay(50000) // 50 ms
 	{}
 
