@@ -117,11 +117,15 @@ void print_backtrace(FILE* out, char const* label) {}
 
 #endif
 
+#if TORRENT_PRODUCTION_ASSERTS
+char const* libtorrent_assert_log = "asserts.log";
+#endif
+
 void assert_fail(char const* expr, int line, char const* file, char const* function)
 {
 
 #if TORRENT_PRODUCTION_ASSERTS
-	FILE* out = fopen("asserts.log", "a+");
+	FILE* out = fopen(libtorrent_assert_log, "a+");
 	if (out == 0) out = stderr;
 #else
 	FILE* out = stderr;
