@@ -6115,6 +6115,8 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), r.url, str));
 			}
 		}
+		// announce to the next working tracker
+		announce_with_tracker();
 		update_tracker_timer(time_now());
 	}
 
