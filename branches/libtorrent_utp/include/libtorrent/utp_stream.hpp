@@ -189,6 +189,7 @@ public:
 	void set_read_handler(handler_t h);
 	void add_write_buffer(void const* buf, size_t len);
 	void set_write_handler(handler_t h);
+	size_t read_some();
 	
 	void do_connect(tcp::endpoint const& ep, connect_handler_t h);
 
@@ -233,7 +234,7 @@ public:
 	}
 	
 	template <class Mutable_Buffers, class Handler>
-	void async_read_some(Mutable_Buffers const& buffer, Handler const& handler)
+	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
 	{
 		if (m_impl == 0)
 		{
@@ -247,8 +248,8 @@ public:
 			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
 			return;
 		}
-		for (typename Mutable_Buffers::const_iterator i = buffer.begin()
-			, end(buffer.end()); i != end; ++i)
+		for (typename Mutable_Buffers::const_iterator i = buffers.begin()
+			, end(buffers.end()); i != end; ++i)
 		{
 			using asio::buffer_cast;
 			using asio::buffer_size;
@@ -284,10 +285,14 @@ public:
 			return -1;
 		}
 
-//#error implement synchronous read_some (reuse the buffer copying functions)
-
-		ec = asio::error::would_block;
-		return -1;
+		for (typename Mutable_Buffers::const_iterator i = buffers.begin()
+			, end(buffers.end()); i != end; ++i)
+		{
+			using asio::buffer_cast;
+			using asio::buffer_size;
+			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
+		}
+		return read_some();
 	}
 
 	template <class Const_Buffers, class Handler>

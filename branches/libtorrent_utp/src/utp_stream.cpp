@@ -702,9 +702,18 @@ void utp_stream::set_read_handler(handler_t h)
 	// so, the client wants to read. If we already
 	// have some data in the read buffer, move it into the
 	// client's buffer right away
-	if (m_impl->m_receive_buffer_size == 0) return;
+
+	m_impl->m_read += read_some();
+	m_impl->maybe_trigger_receive_callback(time_now_hires());
+}
+
+size_t utp_stream::read_some()
+{
+	if (m_impl->m_receive_buffer_size == 0) return 0;
 
 	std::vector<utp_socket_impl::iovec_t>::iterator target = m_impl->m_read_buffer.begin();
+
+	size_t ret = 0;
 
 	int pop_packets = 0;
 	for (std::vector<packet*>::iterator i = m_impl->m_receive_buffer.begin()
@@ -724,7 +733,7 @@ void utp_stream::set_read_handler(handler_t h)
 		int to_copy = (std::min)(p->size - p->header_size, int(target->len));
         TORRENT_ASSERT(to_copy >= 0);
 		memcpy(target->buf, p->buf + p->header_size, to_copy);
-		m_impl->m_read += to_copy;
+		ret += to_copy;
 		target->buf = ((char*)target->buf) + to_copy;
 		target->len -= to_copy;
 		m_impl->m_receive_buffer_size -= to_copy;
@@ -766,7 +775,7 @@ void utp_stream::set_read_handler(handler_t h)
         , int(total_microseconds(time_now_hires() - min_time())), m_impl
         , pop_packets);
 
-	m_impl->maybe_trigger_receive_callback(time_now_hires());
+	 return ret;
 }
 
 // this is called when all user provided write buffers have been
