@@ -31,6 +31,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed issue where trackers wouldn't tried immediately when the previous one failed
 	* fixed synchronization issue between download queue and piece picker
 	* fixed bug in udp tracker scrape response parsing
 	* fixed bug in the disk thread that could get triggered under heavy load
