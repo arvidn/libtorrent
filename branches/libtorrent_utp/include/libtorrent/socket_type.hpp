@@ -138,12 +138,15 @@ namespace libtorrent
 	{
 		typedef stream_socket::endpoint_type endpoint_type;
 		typedef stream_socket::protocol_type protocol_type;
+		typedef socket_type lowest_layer_type;
 	
 		explicit socket_type(io_service& ios): m_io_service(ios), m_type(0) {}
 		~socket_type();
 
 		io_service& get_io_service() const;
 		bool is_open() const;
+
+		lowest_layer_type& lowest_layer() { return *this; }
 
 
 #ifndef BOOST_NO_EXCEPTIONS
