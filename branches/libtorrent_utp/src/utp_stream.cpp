@@ -198,6 +198,7 @@ struct utp_socket_impl
 		, m_remote_address()
 		, m_port(0)
 		, m_last_history_step(time_now_hires())
+		, m_delay_sample_idx(0)
 		, m_send_id(send_id)
 		, m_recv_id(recv_id)
 		, m_ack_nr(0)
@@ -228,7 +229,10 @@ struct utp_socket_impl
 		, m_in_buf_size(100 * 1024 * 1024)
 		, m_in_packets(0)
 		, m_out_packets(0)
-	{}
+	{
+		for (int i = 0; i != num_delay_hist; ++i)
+			m_delay_sample_hist[i] = UINT_MAX;
+	}
 
 	~utp_socket_impl();
 
@@ -294,6 +298,16 @@ struct utp_socket_impl
 	ptime m_last_history_step;
 	timestamp_history m_delay_hist;
 	timestamp_history m_their_delay_hist;
+
+	// this holds the 3 last delay measurements,
+	// these are the actual corrected delay measurements.
+	// the lowest of the 3 last ones is used in the congestion
+	// controller. This is to not completely close the cwnd
+	// by a single outlier.
+	boost::uint32_t m_delay_sample_hist[3];
+	enum { num_delay_hist = 3 };
+	// this is the cursor into m_delay_sample_hist
+	int m_delay_sample_idx;
 
 	// this is the error on this socket. If m_state is
 	// set to UTP_STATE_ERROR_WAIT, this error should be
@@ -1042,12 +1056,15 @@ void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes
 		unsigned char bitfield = unsigned(*b);
 		unsigned char mask = 1;
 		// for each bit
-		for (int i = 0; i < 8; ++i) bitmask += (mask & bitfield) ? "1" : "0";
-		mask <<= 1;
+		for (int i = 0; i < 8; ++i)
+		{
+			bitmask += (mask & bitfield) ? "1" : "0";
+			mask <<= 1;
+		}
 	}
-	UTP_LOGV("[%08u] %08p: got SACK ack_nr:%d %s\n"
+	UTP_LOGV("[%08u] %08p: got SACK first:%d %s our_seq_nr:%u\n"
 		, int(total_microseconds(now - min_time())), this
-		, ack_nr, bitmask.c_str());
+		, ack_nr, bitmask.c_str(), m_seq_nr);
 #endif
 
 
@@ -1059,7 +1076,6 @@ void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes
 		// for each bit
 		for (int i = 0; i < 8; ++i)
 		{
-			UTP_LOGV("%d", mask & bitfield ? 1 : 0);
 			if (mask & bitfield)
 			{
 				// this bit was set, ack_nr was received
@@ -1761,7 +1777,11 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 	boost::uint32_t delay = 0;
 	if (sample != 0)
+	{
 		delay = m_delay_hist.add_sample(sample, step);
+		m_delay_sample_hist[m_delay_sample_idx++] = delay;
+		if (m_delay_sample_idx >= num_delay_hist) m_delay_sample_idx = 0;
+	}
 
 	int acked_bytes = 0;
 
@@ -2104,6 +2124,9 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, m_reply_micro);
 			}
 #endif
+
+			// only use the minimum from the last 3 delay measurements
+			delay = *std::min_element(m_delay_sample_hist, m_delay_sample_hist + num_delay_hist);
 
 			if (sample && acked_bytes && prev_bytes_in_flight)
 				do_ledbat(acked_bytes, delay, prev_bytes_in_flight, receive_time);
