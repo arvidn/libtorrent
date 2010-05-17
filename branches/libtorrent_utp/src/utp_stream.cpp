@@ -703,13 +703,21 @@ void utp_stream::set_read_handler(handler_t h)
 	// have some data in the read buffer, move it into the
 	// client's buffer right away
 
-	m_impl->m_read += read_some();
+	m_impl->m_read += read_some(false);
 	m_impl->maybe_trigger_receive_callback(time_now_hires());
 }
 
-size_t utp_stream::read_some()
+size_t utp_stream::read_some(bool clear_buffers)
 {
-	if (m_impl->m_receive_buffer_size == 0) return 0;
+	if (m_impl->m_receive_buffer_size == 0)
+	{
+		if (clear_buffers)
+		{
+			m_impl->m_read_buffer_size = 0;
+			m_impl->m_read_buffer.clear();
+		}
+		return 0;
+	}
 
 	std::vector<utp_socket_impl::iovec_t>::iterator target = m_impl->m_read_buffer.begin();
 
@@ -720,14 +728,14 @@ size_t utp_stream::read_some()
 		, end(m_impl->m_receive_buffer.end()); i != end;)
 	{
 		if (target == m_impl->m_read_buffer.end()) 
-        {
-            UTP_LOGV("  No more target buffers: %d bytes left in buffer\n"
-                , m_impl->m_receive_buffer_size);
-            TORRENT_ASSERT(m_impl->m_read_buffer.empty());
-            break;
-        }
+		{
+			UTP_LOGV("  No more target buffers: %d bytes left in buffer\n"
+				, m_impl->m_receive_buffer_size);
+			TORRENT_ASSERT(m_impl->m_read_buffer.empty());
+			break;
+		}
 
-        m_impl->check_receive_buffers();
+		m_impl->check_receive_buffers();
 
 		packet* p = *i;
 		int to_copy = (std::min)(p->size - p->header_size, int(target->len));
@@ -735,6 +743,7 @@ size_t utp_stream::read_some()
 		memcpy(target->buf, p->buf + p->header_size, to_copy);
 		ret += to_copy;
 		target->buf = ((char*)target->buf) + to_copy;
+		TORRENT_ASSERT(target->len >= to_copy);
 		target->len -= to_copy;
 		m_impl->m_receive_buffer_size -= to_copy;
 		TORRENT_ASSERT(m_impl->m_read_buffer_size >= to_copy);
@@ -775,6 +784,12 @@ size_t utp_stream::read_some()
         , int(total_microseconds(time_now_hires() - min_time())), m_impl
         , pop_packets);
 
+	 if (clear_buffers)
+	 {
+		 m_impl->m_read_buffer_size = 0;
+		 m_impl->m_read_buffer.clear();
+	 }
+	 TORRENT_ASSERT(ret > 0);
 	 return ret;
 }
 
@@ -1930,7 +1945,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	const int header_size = ptr - buf;
 	const int payload_size = size - header_size;
 
-	UTP_LOGV("[%08u] %08p: incoming packet seq_nr:%d ack_nr:%d type:%s id:%d size:%d timestampdiff:%u timestamp:%u"
+	UTP_LOGV("[%08u] %08p: incoming packet seq_nr:%d ack_nr:%d type:%s id:%d size:%d timestampdiff:%u timestamp:%u "
 			"our ack_nr:%d our seq_nr:%d our acked_seq_nr:%d our state:%s\n"
 		, int(total_microseconds(receive_time - min_time()))
 		, this, int(ph->seq_nr), int(ph->ack_nr), packet_type_names[ph->type]

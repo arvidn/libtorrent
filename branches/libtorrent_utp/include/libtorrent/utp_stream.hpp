@@ -189,7 +189,7 @@ public:
 	void set_read_handler(handler_t h);
 	void add_write_buffer(void const* buf, size_t len);
 	void set_write_handler(handler_t h);
-	size_t read_some();
+	size_t read_some(bool clear_buffers);
 	
 	void do_connect(tcp::endpoint const& ep, connect_handler_t h);
 
@@ -273,6 +273,7 @@ public:
 	template <class Mutable_Buffers>
 	std::size_t read_some(Mutable_Buffers const& buffers, error_code& ec)
 	{
+		TORRENT_ASSERT(!m_read_handler);
 		if (m_impl == 0)
 		{
 			ec = asio::error::not_connected;
@@ -292,7 +293,7 @@ public:
 			using asio::buffer_size;
 			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
 		}
-		return read_some();
+		return read_some(true);
 	}
 
 	template <class Const_Buffers, class Handler>
