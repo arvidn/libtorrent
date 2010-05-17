@@ -1035,9 +1035,21 @@ void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes
 	// this is the sequence number the current bit represents
 	int ack_nr = (m_acked_seq_nr + 2) & ACK_MASK;
 
-	UTP_LOGV("[%08u] %08p: got SACK ack_nr:%d "
+#if TORRENT_UTP_LOG
+	std::string bitmask;
+	for (char const* b = ptr, *end = ptr + size; b != end; ++b)
+	{
+		unsigned char bitfield = unsigned(*b);
+		unsigned char mask = 1;
+		// for each bit
+		for (int i = 0; i < 8; ++i) bitmask += (mask & bitfield) ? "1" : "0";
+		mask <<= 1;
+	}
+	UTP_LOGV("[%08u] %08p: got SACK ack_nr:%d %s\n"
 		, int(total_microseconds(now - min_time())), this
-		, ack_nr);
+		, ack_nr, bitmask.c_str());
+#endif
+
 
 	// for each byte
 	for (char const* end = ptr + size; ptr != end; ++ptr)
@@ -1070,14 +1082,9 @@ void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes
 			// we haven't sent packets past this point.
 			// if there are any more bits set, we have to
 			// ignore them anyway
-			if (ack_nr == m_seq_nr)
-			{
-				UTP_LOGV("\n");
-				return;
-			}
+			if (ack_nr == m_seq_nr) return;
 		}
 	}
-	UTP_LOGV("\n");
 }
 
 // copies data from the write buffer into the packet
