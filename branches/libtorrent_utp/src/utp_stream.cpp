@@ -1052,14 +1052,16 @@ void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes
 			{
 				// this bit was set, ack_nr was received
 				packet* p = (packet*)m_outbuf.remove(ack_nr);
-				if (!p) continue;
-				acked_bytes += p->size - p->header_size;
-				UTP_LOGV("[%08u] %08p: acked packet %d (%d bytes)\n"
-					, int(total_microseconds(now - min_time())), this
-					, ack_nr, p->size - p->header_size);
-				ack_packet(p, now, min_rtt);
-				// each ACKed packet counts as a duplicate ack
-				++m_duplicate_acks;
+				if (p)
+				{
+					acked_bytes += p->size - p->header_size;
+					UTP_LOGV("[%08u] %08p: acked packet %d (%d bytes)\n"
+						, int(total_microseconds(now - min_time())), this
+						, ack_nr, p->size - p->header_size);
+					ack_packet(p, now, min_rtt);
+					// each ACKed packet counts as a duplicate ack
+					++m_duplicate_acks;
+				}
 			}
 
 			mask <<= 1;
