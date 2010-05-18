@@ -69,7 +69,7 @@ namespace libtorrent
 		for (socket_map_t::iterator i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end; ++i)
 		{
-			delete_utp_impl( i->second);
+			delete_utp_impl(i->second);
 		}
 	}
 
@@ -81,6 +81,7 @@ namespace libtorrent
 			if (should_delete(i->second))
 			{
 				delete_utp_impl(i->second);
+				if (m_last_socket == i->second) m_last_socket = 0;
 				m_utp_sockets.erase(i++);
 				continue;
 			}
@@ -117,21 +118,31 @@ namespace libtorrent
 
 		if (ph->ver != 1) return false;
 		
-		// #error cache the last socket used to test against before doing the lookup
-
 		// parse out connection ID and look for existing
 		// connections. If found, forward to the utp_stream.
 		boost::uint16_t id = ph->connection_id;
+
+		// first test to see if it's the same socket as last time
+		// in most cases it is
+		if (m_last_socket
+			&& id == utp_receive_id(m_last_socket)
+			&& ep == utp_remote_endpoint(m_last_socket))
+		{
+			return utp_incoming_packet(m_last_socket, p, size, ep);
+		}
+
 		socket_map_t::iterator i = m_utp_sockets.find(id);
 
         std::pair<socket_map_t::iterator, socket_map_t::iterator> r =
             m_utp_sockets.equal_range(id);
 
-        for (; r.first != r.second; ++r.first)
-        {
-            if (ep == utp_remote_endpoint(r.first->second))
-                return utp_incoming_packet(r.first->second, p, size, ep);
-        }
+		for (; r.first != r.second; ++r.first)
+		{
+			if (ep != utp_remote_endpoint(r.first->second)) continue;
+			bool ret = utp_incoming_packet(r.first->second, p, size, ep);
+			if (ret) m_last_socket = r.first->second;
+			return ret;
+		}
 
 //		UTP_LOGV("incoming packet id:%d source:%s\n", id, print_endpoint(ep).c_str());
 
@@ -167,6 +178,7 @@ namespace libtorrent
 		socket_map_t::iterator i = m_utp_sockets.find(id);
 		if (i == m_utp_sockets.end()) return;
 		delete_utp_impl(i->second);
+		if (m_last_socket == i->second) m_last_socket = 0;
 		m_utp_sockets.erase(i);
 	}
 

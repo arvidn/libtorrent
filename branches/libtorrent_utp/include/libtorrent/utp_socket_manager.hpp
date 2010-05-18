@@ -87,6 +87,9 @@ namespace libtorrent
 		typedef std::multimap<boost::uint16_t, utp_socket_impl*> socket_map_t;
 		socket_map_t m_utp_sockets;
 
+		// the last socket we received a packet on
+		utp_socket_impl* m_last_socket;
+
 		int m_new_connection;
 
 		// max increase of cwnd per RTT

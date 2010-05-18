@@ -542,6 +542,11 @@ udp::endpoint utp_remote_endpoint(utp_socket_impl* s)
 	return udp::endpoint(s->m_remote_address, s->m_port);
 }
 
+boost::uint16_t utp_receive_id(utp_socket_impl* s)
+{
+	return s->m_recv_id;
+}
+
 utp_stream::utp_stream(asio::io_service& io_service)
 	: m_io_service(io_service)
 	, m_impl(0)
