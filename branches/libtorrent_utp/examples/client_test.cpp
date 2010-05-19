@@ -769,6 +769,7 @@ int main(int argc, char* argv[])
 			"  -R <num blocks>       number of blocks per read cache line\n"
 			"  -O                    Disallow disk job reordering\n"
 			"  -H                    Don't start DHT\n"
+			"  -N                    Don't map ports with NAT-PMP and UPnP\n"
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -820,8 +821,8 @@ int main(int argc, char* argv[])
 	}
 
 	ses.start_lsd();
-	ses.start_upnp();
-	ses.start_natpmp();
+
+	bool started_nat_forwarding = false;
 
 #ifndef TORRENT_DISABLE_GEO_IP
 	ses.load_asnum_db("GeoIPASNum.dat");
@@ -835,6 +836,12 @@ int main(int argc, char* argv[])
 		if (argv[i][0] != '-')
 		{
 			// interpret this as a torrent
+			if (!started_nat_forwarding)
+			{
+				ses.start_upnp();
+				ses.start_natpmp();
+				started_nat_forwarding = true;
+			}
 
 			// first see if this is a torrentless download
 			if (std::strstr(argv[i], "magnet:") == argv[i])
@@ -983,6 +990,7 @@ int main(int argc, char* argv[])
 			case 'A': settings.allowed_fast_set_size = atoi(arg); break;
 			case 'R': settings.read_cache_line_size = atoi(arg); break;
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
+			case 'N': started_nat_forwarding = true; --i; break;
 		}
 		++i; // skip the argument
 	}
@@ -1005,6 +1013,13 @@ int main(int argc, char* argv[])
 		ses.start_dht();
 	}
 #endif
+
+	if (!started_nat_forwarding)
+	{
+		ses.start_upnp();
+		ses.start_natpmp();
+		started_nat_forwarding = true;
+	}
 
 	ses.set_settings(settings);
 

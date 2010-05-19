@@ -1438,7 +1438,7 @@ namespace libtorrent
 
 		if (!packet_finished()) return;
 
-		// we con't accept holepunch messages from peers
+		// we can't accept holepunch messages from peers
 		// that don't support the holepunch extension
 		// because we wouldn't be able to respond
 		if (m_holepunch_id == 0) return;
@@ -1477,6 +1477,16 @@ namespace libtorrent
 		{
 			return; // unknown address type
 		}
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		error_code ec;
+		static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
+		(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:"
+			<< (msg_type >= 0 && msg_type < 3 ? hp_msg_name[msg_type] : "unknown message type")
+			<< " from:" << remote().address().to_string(ec)
+			<< " to:" << ep.address().to_string(ec)
+			<< " ]\n";
+#endif
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		if (t) return;
@@ -1524,9 +1534,11 @@ namespace libtorrent
 				// #error make sure we make this a connection candidate
 				// in case it has too many failures for instance
 				t->connect_to_peer(p);
-				// #error somehow mark this connection to be in holepunch mode
+				// mark this connection to be in holepunch mode
 				// so that it will retry faster and stick to uTP while it's
 				// retrying
+				if (p->connection)
+					p->connection->set_holepunch_mode();
 			} break;
 			case hp_failed:
 			{
@@ -1544,6 +1556,14 @@ namespace libtorrent
 		else detail::write_uint8(1, ptr);
 		detail::write_endpoint(ep, ptr);
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		error_code ec;
+		static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
+		(*m_logger) << time_now_string() << " ==> HOLEPUNCH [ msg:"
+			<< (type >= 0 && type < 3 ? hp_msg_name[type] : "unknown message type")
+			<< " to:" << ep.address().to_string(ec)
+			<< " ]\n";
+#endif
 		if (type == hp_failed)
 		{
 			detail::write_uint32(error, ptr);

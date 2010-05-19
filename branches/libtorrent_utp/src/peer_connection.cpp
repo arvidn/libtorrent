@@ -149,6 +149,7 @@ namespace libtorrent
 		, m_bitfield_received(false)
 		, m_no_download(false)
 		, m_sent_suggests(false)
+		, m_holepunch_mode(false)
 #ifdef TORRENT_DEBUG
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -4881,13 +4882,22 @@ namespace libtorrent
 			// a connection attempt using uTP just failed
 			// mark this peer as not supporting uTP
 			// we'll never try it again (unless we're trying holepunch)
-			if (m_socket->get<utp_stream>() && m_peer_info && m_peer_info->supports_utp)
+			if (m_socket->get<utp_stream>()
+				&& m_peer_info
+				&& m_peer_info->supports_utp
+				&& !m_holepunch_mode)
 			{
 				m_peer_info->supports_utp = false;
 				fast_reconnect(true);
 			}
 
-			if (!m_socket->get<utp_stream>() && m_peer_info && m_peer_info->supports_holepunch)
+			if (m_holepunch_mode)
+				fast_reconnect(true);
+
+			if ((!m_socket->get<utp_stream>() || !m_ses.m_settings.enable_outgoing_tcp)
+				&& m_peer_info
+				&& m_peer_info->supports_holepunch
+				&& !m_holepunch_mode)
 			{
 				boost::shared_ptr<torrent> t = m_torrent.lock();
 				// see if we can try a holepunch
@@ -4904,7 +4914,10 @@ namespace libtorrent
 		m_last_receive = time_now();
 
 		if (m_socket->get<utp_stream>() && m_peer_info)
+		{
 			m_peer_info->confirmed_supports_utp = true;
+			m_peer_info->supports_utp = false;
+		}
 
 		// this means the connection just succeeded
 

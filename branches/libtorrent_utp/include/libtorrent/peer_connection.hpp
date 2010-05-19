@@ -278,6 +278,14 @@ namespace libtorrent
 		void set_upload_only(bool u);
 		bool upload_only() const { return m_upload_only; }
 
+		void set_holepunch_mode()
+		{
+			m_holepunch_mode = true;
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << "*** HOLEPUNCH MODE ***\n";
+#endif
+		}
+
 		// will send a keep-alive message to the peer
 		void keep_alive();
 
@@ -1052,6 +1060,9 @@ namespace libtorrent
 
 		// set to true when we've sent the first round of suggests
 		bool m_sent_suggests:1;
+
+		// set to true while we're trying to holepunch
+		bool m_holepunch_mode:1;
 		
 		template <std::size_t Size>
 		struct handler_storage

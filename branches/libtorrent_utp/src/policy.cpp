@@ -108,7 +108,7 @@ namespace libtorrent
 {
 	// returns the rank of a peer's source. We have an affinity
 	// to connecting to peers with higher rank. This is to avoid
-	// problems when out peer list is diluted by stale peers from
+	// problems when our peer list is diluted by stale peers from
 	// the resume data for instance
 	int source_rank(int source_bitmask)
 	{

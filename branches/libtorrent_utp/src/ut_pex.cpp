@@ -266,6 +266,8 @@ namespace libtorrent { namespace
 
 			if (body.left() < length) return true;
 
+// #error log this message to the peer log (with peers and flags)
+
 			m_last_pex = now;
 
 			lazy_entry pex_msg;
