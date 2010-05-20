@@ -157,9 +157,7 @@ namespace libtorrent { namespace
 					flags |= p->supports_encryption() ? 1 : 0;
 #endif
 					flags |= p->get_socket()->get<utp_stream>() ? 4 :  0;
-
-					// #error find out if ut_holepunch is supported by this peer
-					// and in case it is, set bit 0x08
+					flags |= p->supports_holepunch() ? 8 : 0;
 
 					// i->first was added since the last time
 					if (remote.address().is_v4())
@@ -266,8 +264,6 @@ namespace libtorrent { namespace
 
 			if (body.left() < length) return true;
 
-// #error log this message to the peer log (with peers and flags)
-
 			m_last_pex = now;
 
 			lazy_entry pex_msg;
@@ -278,9 +274,13 @@ namespace libtorrent { namespace
 				return true;
 			}
 
-			lazy_entry const* p = pex_msg.dict_find("dropped");
+			lazy_entry const* p = pex_msg.dict_find_string("dropped");
 
-			if (p != 0 && p->type() == lazy_entry::string_t)
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_pc.m_logger) << time_now_string() << " <== PEX ["
+				" dropped:" << (p?p->string_length():0);
+#endif
+			if (p)
 			{
 				int num_peers = p->string_length() / 6;
 				char const* in = p->string_ptr();
@@ -294,13 +294,14 @@ namespace libtorrent { namespace
 				} 
 			}
 
-			p = pex_msg.dict_find("added");
-			lazy_entry const* pf = pex_msg.dict_find("added.f");
+			p = pex_msg.dict_find_string("added");
+			lazy_entry const* pf = pex_msg.dict_find_string("added.f");
 
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_pc.m_logger) << " added:" << (p?p->string_length():0) << " ]\n";
+#endif
 			if (p != 0
 				&& pf != 0
-				&& p->type() == lazy_entry::string_t
-				&& pf->type() == lazy_entry::string_t
 				&& pf->string_length() == p->string_length() / 6)
 			{
 				int num_peers = pf->string_length();

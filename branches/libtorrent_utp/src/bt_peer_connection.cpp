@@ -1619,7 +1619,11 @@ namespace libtorrent
 		if (extended_id == upload_only_msg)
 		{
 			if (!packet_finished()) return;
-			set_upload_only(detail::read_uint8(recv_buffer.begin));
+			bool ul = detail::read_uint8(recv_buffer.begin);
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " <== UPLOAD_ONLY [ " << (ul?"true":"false") << " ]\n";
+#endif
+			set_upload_only(ul);
 			return;
 		}
 
@@ -1629,6 +1633,13 @@ namespace libtorrent
 			on_holepunch();
 			return;
 		}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		if (packet_finished())
+			(*m_logger) << time_now_string() << " <== EXTENSION MESSAGE ["
+				" msg:" << extended_id <<
+				" size:" << packet_size() << " ]\n";
+#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
