@@ -4621,6 +4621,7 @@ namespace libtorrent
 		int max_receive = 0;
 		do
 		{
+			TORRENT_ASSERT(m_recv_pos + bytes_transferred <= m_packet_size);
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << time_now_string() << " <<< read " << bytes_transferred << " bytes\n";
 #endif
@@ -4668,6 +4669,9 @@ namespace libtorrent
 			}
 
 			if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
+
+			// this assumes that m_packet_size >= m_recv_pos
+			TORRENT_ASSERT(m_packet_size >= m_recv_pos);
 			max_receive = m_packet_size - m_recv_pos;
 			if (m_soft_packet_size && max_receive > m_soft_packet_size - m_recv_pos)
 				max_receive = m_soft_packet_size - m_recv_pos;

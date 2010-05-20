@@ -649,6 +649,7 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 void utp_stream::add_read_buffer(void* buf, size_t len)
 {
 	TORRENT_ASSERT(m_impl);
+	TORRENT_ASSERT(len < INT_MAX);
 	m_impl->m_read_buffer.push_back(utp_socket_impl::iovec_t(buf, len));
 	m_impl->m_read_buffer_size += len;
 
