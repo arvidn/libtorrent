@@ -277,14 +277,17 @@ public:
 		if (m_impl == 0)
 		{
 			ec = asio::error::not_connected;
-			return -1;
+			return 0;
 		}
 
 		if (read_buffer_size() == 0)
 		{
 			ec = asio::error::would_block;
-			return -1;
+			return 0;
 		}
+#ifndef NDEBUG
+		int buf_size = 0;
+#endif
 
 		for (typename Mutable_Buffers::const_iterator i = buffers.begin()
 			, end(buffers.end()); i != end; ++i)
@@ -292,8 +295,13 @@ public:
 			using asio::buffer_cast;
 			using asio::buffer_size;
 			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
+#ifndef NDEBUG
+			buf_size += buffer_size(*i);
+#endif
 		}
-		return read_some(true);
+		std::size_t ret = read_some(true);
+		TORRENT_ASSERT(ret <= buf_size);
+		return ret;
 	}
 
 	template <class Const_Buffers, class Handler>
