@@ -1475,18 +1475,17 @@ namespace libtorrent
 #endif
 		else
 		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			error_code ec;
+			static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
+			(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:"
+				<< (msg_type >= 0 && msg_type < 3 ? hp_msg_name[msg_type] : "unknown message type")
+				<< " from:" << remote().address().to_string(ec)
+				<< " to: unknown address type ]\n";
+#endif
+
 			return; // unknown address type
 		}
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		error_code ec;
-		static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
-		(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:"
-			<< (msg_type >= 0 && msg_type < 3 ? hp_msg_name[msg_type] : "unknown message type")
-			<< " from:" << remote().address().to_string(ec)
-			<< " to:" << ep.address().to_string(ec)
-			<< " ]\n";
-#endif
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		if (t) return;
@@ -1495,6 +1494,11 @@ namespace libtorrent
 		{
 			case hp_rendezvous: // rendezvous
 			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+				error_code ec;
+				(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:rendezvous"
+					<< " to:" << ep.address().to_string(ec) << " ]\n";
+#endif
 				// this peer is asking us to introduce it to
 				// the peer at 'ep'. We need to find which of
 				// our connections points to that endpoint
@@ -1525,6 +1529,11 @@ namespace libtorrent
 				policy::peer* p = t->get_policy().add_peer(ep, peer_id(0), peer_info::pex, 0);
 				if (p == 0 || p->connection)
 				{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+					error_code ec;
+					(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:connect"
+						<< " to:" << ep.address().to_string(ec) << " error:failed to add peer ]\n";
+#endif
 					// we either couldn't add this peer, or it's
 					// already connected. Just ignore the connect message
 					break;
@@ -1539,11 +1548,31 @@ namespace libtorrent
 				// retrying
 				if (p->connection)
 					p->connection->set_holepunch_mode();
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+					error_code ec;
+					(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:connect"
+						<< " to:" << ep.address().to_string(ec) << " ]\n";
+#endif
 			} break;
 			case hp_failed:
 			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+				error_code ec;
+				(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:failed ]\n";
+// #error log error message
+#endif
 				// #error deal with this
 			} break;
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			default:
+			{
+				error_code ec;
+				static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
+				(*m_logger) << time_now_string() << " <== HOLEPUNCH ["
+					" msg:unknown message type (" << msg_type << ")"
+					<< " to:" << ep.address().to_string(ec) << " ]\n";
+			}
+#endif
 		}
 	}
 
