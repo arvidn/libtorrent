@@ -1556,12 +1556,16 @@ namespace libtorrent
 			} break;
 			case hp_failed:
 			{
+				boost::uint32_t error = detail::read_uint32(ptr);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 				error_code ec;
-				(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:failed ]\n";
-// #error log error message
+				char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
+				(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:failed"
+					" error:" << error <<
+					" msg:" << ((error >= 0 && error < 4)?err_msg[error]:"unknown message id") <<
+					" ]\n";
 #endif
-				// #error deal with this
+				// #error deal with holepunch errors
 			} break;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			default:
