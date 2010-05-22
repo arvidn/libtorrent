@@ -27,6 +27,11 @@ namespace
     {
         set_piece_hashes(c, p, boost::bind(call_python_object, cb, _1));
     }
+
+    void add_node(create_torrent& ct, std::string const& addr, int port)
+    {
+        ct.add_node(std::make_pair(addr, port));
+    }
 }
 
 void bind_create_torrent()
@@ -64,7 +69,7 @@ void bind_create_torrent()
         .def("set_creator", &create_torrent::set_creator)
         .def("set_hash", &set_hash)
         .def("add_url_seed", &create_torrent::add_url_seed)
-        .def("add_node", &create_torrent::add_node)
+        .def("add_node", &add_node)
         .def("add_tracker", &create_torrent::add_tracker)
         .def("set_priv", &create_torrent::set_priv)
         .def("num_pieces", &create_torrent::num_pieces)
