@@ -95,6 +95,8 @@ a list of entries.
 * torrent_handle::get_download_queue
 * torrent_handle::piece_availability
 
+``create_torrent::add_node()`` takes two arguments, one string and one integer,
+instead of a pair. The string is the address and the integer is the port.
 
 .. _`main library reference`: manual.html
 
