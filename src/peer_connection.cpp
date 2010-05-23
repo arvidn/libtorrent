@@ -4369,6 +4369,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_packet_size > 0);
 		int max_receive = m_packet_size - m_recv_pos;
+		TORRENT_ASSERT(max_receive >= 0);
+
 		if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
 		if (m_soft_packet_size && max_receive > m_soft_packet_size - m_recv_pos)
 			max_receive = m_soft_packet_size - m_recv_pos;
@@ -4637,6 +4639,7 @@ namespace libtorrent
 				m_statistics.last_protocol_downloaded() - cur_protocol_dl;
 			TORRENT_ASSERT(stats_diff == int(bytes_transferred));
 #endif
+			if (m_disconnecting) return;
 
 			TORRENT_ASSERT(m_packet_size > 0);
 
@@ -4649,6 +4652,7 @@ namespace libtorrent
 
 			if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
 			max_receive = m_packet_size - m_recv_pos;
+			TORRENT_ASSERT(max_receive >= 0);
 			if (m_soft_packet_size && max_receive > m_soft_packet_size - m_recv_pos)
 				max_receive = m_soft_packet_size - m_recv_pos;
 			int quota_left = m_quota[download_channel];
