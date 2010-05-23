@@ -6116,7 +6116,7 @@ namespace libtorrent
 			}
 		}
 		// announce to the next working tracker
-		announce_with_tracker();
+		if (!m_abort) announce_with_tracker();
 		update_tracker_timer(time_now());
 	}
 
