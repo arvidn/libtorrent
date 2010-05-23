@@ -266,10 +266,11 @@ struct utp_socket_impl
 	bool send_pkt(bool ack);
 	bool resend_packet(packet* p);
 	void send_reset(utp_header* ph);
-	void parse_sack(char const* ptr, int size, int* acked_bytes
+	void parse_sack(boost::uint16_t packet_ack, char const* ptr, int size, int* acked_bytes
 		, ptime const now, boost::uint32_t& min_rtt);
 	void write_payload(char* ptr, int size);
-	void ack_packet(packet* p, ptime const& receive_time, boost::uint32_t& min_rtt);
+	void ack_packet(packet* p, ptime const& receive_time
+		, boost::uint32_t& min_rtt, boost::uint16_t seq_nr);
 	void write_sack(char* buf, int size) const;
 	void incoming(char const* buf, int size, packet* p);
 	void do_ledbat(int acked_bytes, boost::uint32_t delay, int in_flight, ptime const now);
@@ -1071,13 +1072,13 @@ std::size_t utp_socket_impl::available() const
 	return m_receive_buffer_size;
 }
 
-void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes
-	, ptime const now, boost::uint32_t& min_rtt)
+void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, char const* ptr
+	, int size, int* acked_bytes, ptime const now, boost::uint32_t& min_rtt)
 {
 	if (size == 0) return;
 
 	// this is the sequence number the current bit represents
-	int ack_nr = (m_acked_seq_nr + 2) & ACK_MASK;
+	int ack_nr = (packet_ack + 2) & ACK_MASK;
 
 #if TORRENT_UTP_LOG
 	std::string bitmask;
@@ -1116,9 +1117,9 @@ void utp_socket_impl::parse_sack(char const* ptr, int size, int* acked_bytes
 					UTP_LOGV("[%08u] %08p: acked packet %d (%d bytes)\n"
 						, int(total_microseconds(now - min_time())), this
 						, ack_nr, p->size - p->header_size);
-					ack_packet(p, now, min_rtt);
 					// each ACKed packet counts as a duplicate ack
 					++m_duplicate_acks;
+					ack_packet(p, now, min_rtt, ack_nr);
 				}
 			}
 
@@ -1220,6 +1221,10 @@ bool utp_socket_impl::send_pkt(bool ack)
 			if (!ack) return false;
 			break;
 		}
+
+		// don't fast-resend this packet
+		if (m_fast_resend_seq_nr == i)
+			m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 	}
 
 	bool ret = false;
@@ -1435,7 +1440,8 @@ bool utp_socket_impl::resend_packet(packet* p)
 	return true;
 }
 
-void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time, boost::uint32_t& min_rtt)
+void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
+	, boost::uint32_t& min_rtt, boost::uint16_t seq_nr)
 {
 	TORRENT_ASSERT(p);
 	if (!p->need_resend)
@@ -1443,6 +1449,17 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time, boost::ui
 		TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
 		m_bytes_in_flight -= p->size - p->header_size;
 	}
+
+	// increment the acked sequence number counter
+	if (m_acked_seq_nr == seq_nr)
+	{
+		m_acked_seq_nr = (m_acked_seq_nr + 1) & ACK_MASK;
+		m_duplicate_acks = 0;
+	}
+	// increment the fast resend sequence number
+	if (m_fast_resend_seq_nr == seq_nr)
+		m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
+
 	boost::uint32_t rtt = total_microseconds(receive_time - p->send_time);
 	if (receive_time < p->send_time)
 	{
@@ -1849,7 +1866,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			UTP_LOGV("[%08u] %08p: acked packet %d (%d bytes)\n"
 				, int(total_microseconds(receive_time - min_time())), this
 				, ack_nr, p->size - p->header_size);
-			ack_packet(p, receive_time, min_rtt);
+			ack_packet(p, receive_time, min_rtt, ack_nr);
         }
 
 		m_acked_seq_nr = next_ack_nr;
@@ -1886,7 +1903,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		switch(extension)
 		{
 			case 1: // selective ACKs
-				parse_sack(ptr, len, &acked_bytes, receive_time, min_rtt);
+				parse_sack(ph->ack_nr, ptr, len, &acked_bytes, receive_time, min_rtt);
 				break;
 		}
 		ptr += len;
@@ -2447,6 +2464,11 @@ void utp_socket_impl::tick(ptime const& now)
 				test_socket_state();
 				return;
 			}
+	
+			// don't fast-resend this packet
+			if (m_fast_resend_seq_nr == (m_acked_seq_nr + 1) & ACK_MASK)
+				m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
+
 			// the packet timed out, resend it
 			resend_packet(p);
 			if (m_error)
