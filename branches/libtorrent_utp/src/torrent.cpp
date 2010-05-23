@@ -742,8 +742,6 @@ namespace libtorrent
 		// add_piece() multiple times
 		if (picker().is_finished(block_finished)) return;
 
-		m_need_save_resume_data = true;
-
 		picker().mark_as_finished(block_finished, 0);
 	}
 	
@@ -2245,6 +2243,8 @@ namespace libtorrent
 			m_ses.m_alerts.post_alert(piece_finished_alert(get_handle()
 				, index));
 		}
+
+		m_need_save_resume_data = true;
 
 		remove_time_critical_piece(index, true);
 
@@ -6538,6 +6538,8 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), r.url, ec));
 			}
 		}
+		// announce to the next working tracker
+		announce_with_tracker();
 		update_tracker_timer(time_now());
 	}
 

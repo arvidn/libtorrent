@@ -1,4 +1,6 @@
 	* resistance towards certain flood attacks
+	* added feature to make asserts log to a file instead of breaking the process
+	  (production asserts)
 	* optimized disk I/O cache clearing
 	* added feature to ask a torrent if it needs to save its resume data or not
 	* added setting to ignore file modification time when loading resume files
@@ -30,6 +32,8 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed add_node python binding
+	* fixed issue where trackers wouldn't tried immediately when the previous one failed
 	* fixed synchronization issue between download queue and piece picker
 	* fixed bug in udp tracker scrape response parsing
 	* fixed bug in the disk thread that could get triggered under heavy load
