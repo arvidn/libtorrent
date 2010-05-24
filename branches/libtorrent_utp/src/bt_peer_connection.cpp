@@ -1488,7 +1488,7 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		if (t) return;
+		if (!t) return;
 
 		switch (msg_type)
 		{
