@@ -60,9 +60,11 @@ namespace libtorrent
 			}
 			else if (a.is_v6())
 			{
-				address_v6::bytes_type bytes
-					= a.to_v6().to_bytes();
-				std::copy(bytes.begin(), bytes.end(), out);
+				typedef address_v6::bytes_type bytes_t;
+				bytes_t bytes = a.to_v6().to_bytes();
+				for (bytes_t::iterator i = bytes.begin()
+					, end(bytes.end()); i != end; ++i)
+					write_uint8(*i, out);
 			}
 #endif
 		}
