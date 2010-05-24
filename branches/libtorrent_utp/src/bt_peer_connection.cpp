@@ -1452,7 +1452,7 @@ namespace libtorrent
 		const char* ptr = recv_buffer.begin;
 
 		// ignore invalid messages
-		if (recv_buffer.left() < 4) return;
+		if (recv_buffer.left() < 2) return;
 
 		int msg_type = detail::read_uint8(ptr);
 		int addr_type = detail::read_uint8(ptr);
@@ -1461,7 +1461,7 @@ namespace libtorrent
 
 		if (addr_type == 0)
 		{
-			if (recv_buffer.left() < 4 + 4 + 2) return;
+			if (recv_buffer.left() < 2 + 4 + 2) return;
 			// IPv4 address
 			ep = detail::read_v4_endpoint<tcp::endpoint>(ptr);
 		}
@@ -1469,7 +1469,7 @@ namespace libtorrent
 		else if (addr_type == 1)
 		{
 			// IPv6 address
-			if (recv_buffer.left() < 4 + 18 + 2) return;
+			if (recv_buffer.left() < 2 + 18 + 2) return;
 			ep = detail::read_v6_endpoint<tcp::endpoint>(ptr);
 		}
 #endif
