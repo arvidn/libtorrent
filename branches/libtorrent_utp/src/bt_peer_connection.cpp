@@ -1604,7 +1604,7 @@ namespace libtorrent
 
 		// write the packet length and type
 		char* hdr = buf;
-		detail::write_uint32(ptr - buf - 6, hdr);
+		detail::write_uint32(ptr - buf - 4, hdr);
 		detail::write_uint8(msg_extended, hdr);
 		detail::write_uint8(m_holepunch_id, hdr);
 

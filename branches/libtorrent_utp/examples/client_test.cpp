@@ -369,7 +369,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #endif
 
 		snprintf(str, sizeof(str)
-			, "%s%s (%s|%s) %s%s (%s|%s) %s%3d (%3d) %3d %c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c%c "
+			, "%s%s (%s|%s) %s%s (%s|%s) %s%3d (%3d) %3d %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c%c "
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
 			, add_suffix(i->total_download).c_str(), add_suffix(i->download_rate_peak, "/s").c_str()
 			, esc("31"), add_suffix(i->up_speed, "/s").c_str(), add_suffix(i->total_upload).c_str()
@@ -400,6 +400,8 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #else
 			, '.'
 #endif
+			, (i->flags & peer_info::holepunched)?'h':'.'
+
 			, (i->source & peer_info::tracker)?'T':'_'
 			, (i->source & peer_info::pex)?'P':'_'
 			, (i->source & peer_info::dht)?'D':'_'

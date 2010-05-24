@@ -286,6 +286,7 @@ namespace libtorrent
 		, m_bitfield_received(false)
 		, m_no_download(false)
 		, m_sent_suggests(false)
+		, m_holepunch_mode(false)
 #ifdef TORRENT_DEBUG
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -3436,6 +3437,7 @@ namespace libtorrent
 		p.flags |= is_seed() ? peer_info::seed : 0;
 		p.flags |= m_snubbed ? peer_info::snubbed : 0;
 		p.flags |= m_upload_only ? peer_info::upload_only : 0;
+		p.flags |= m_holepunch_mode ? peer_info::holepunched : 0;
 		if (peer_info_struct())
 		{
 			policy::peer* pi = peer_info_struct();

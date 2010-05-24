@@ -3373,6 +3373,7 @@ It contains the following fields::
 			optimistic_unchoke = 0x800,
 			snubbed = 0x1000,
 			upload_only = 0x2000,
+			holepunched = 0x4000,
 			rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
 		};
@@ -3518,6 +3519,11 @@ any combination of the enums above. The following table describes each flag:
 |                         | or implicitly (by becoming a seed) told us that it    |
 |                         | will not downloading anything more, regardless of     |
 |                         | which pieces we have.                                 |
++-------------------------+-------------------------------------------------------+
+| ``holepunched``         | This flag is set if the peer was in holepunch mode    |
+|                         | when the connection succeeded. This typically only    |
+|                         | happens if both peers are behind a NAT and the peers  |
+|                         | connect via the NAT holepunch mechanism.              |
 +-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html
