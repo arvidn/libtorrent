@@ -850,6 +850,12 @@ utp_socket_impl::~utp_socket_impl()
 		void* p = m_outbuf.remove(i);
 		free(p);
 	}
+
+    for (std::vector<packet*>::iterator i = m_receive_buffer.begin(),
+         end = m_receive_buffer.end(); i != end; ++i)
+    {
+        free(*i);
+    }
 }
 
 void utp_socket_impl::maybe_trigger_receive_callback(ptime now)
