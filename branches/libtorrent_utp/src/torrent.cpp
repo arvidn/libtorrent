@@ -4221,7 +4221,7 @@ namespace libtorrent
 	
 	}
 	
-	bool torrent::connect_to_peer(policy::peer* peerinfo)
+	bool torrent::connect_to_peer(policy::peer* peerinfo, bool ignore_limit)
 	{
 		INVARIANT_CHECK;
 
@@ -4245,8 +4245,8 @@ namespace libtorrent
 #endif
 #endif
 
-		TORRENT_ASSERT(want_more_peers());
-		TORRENT_ASSERT(m_ses.num_connections() < m_ses.max_connections());
+		TORRENT_ASSERT(want_more_peers() || ignore_limit);
+		TORRENT_ASSERT(m_ses.num_connections() < m_ses.max_connections() || ignore_limit);
 
 		tcp::endpoint a(peerinfo->ip());
 		TORRENT_ASSERT((m_ses.m_ip_filter.access(peerinfo->address()) & ip_filter::blocked) == 0);

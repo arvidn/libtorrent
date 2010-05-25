@@ -1538,11 +1538,22 @@ namespace libtorrent
 					// already connected. Just ignore the connect message
 					break;
 				}
+				if (p->banned)
+				{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+					error_code ec;
+					(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:connect"
+						<< " to:" << ep.address().to_string(ec) << " error:peer banned ]\n";
+#endif
+					// this peer is banned, don't connect to it
+					break;
+				
+				}
 				// to make sure we use the uTP protocol
 				p->supports_utp = true;
 				// #error make sure we make this a connection candidate
 				// in case it has too many failures for instance
-				t->connect_to_peer(p);
+				t->connect_to_peer(p, true);
 				// mark this connection to be in holepunch mode
 				// so that it will retry faster and stick to uTP while it's
 				// retrying

@@ -321,7 +321,7 @@ namespace libtorrent
 		tcp::endpoint get_interface() const { return m_net_interface; }
 		
 		void connect_to_url_seed(std::list<web_seed_entry>::iterator url);
-		bool connect_to_peer(policy::peer* peerinfo);
+		bool connect_to_peer(policy::peer* peerinfo, bool ignore_limit = false);
 
 		void set_ratio(float r)
 		{ TORRENT_ASSERT(r >= 0.0f); m_ratio = r; }
