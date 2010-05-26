@@ -1603,9 +1603,11 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		error_code ec;
 		static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
+		static const char* hp_error_string[] = {"", "no such peer", "not connected", "no support", "no self"};
 		(*m_logger) << time_now_string() << " ==> HOLEPUNCH [ msg:"
 			<< (type >= 0 && type < 3 ? hp_msg_name[type] : "unknown message type")
 			<< " to:" << ep.address().to_string(ec)
+			<< " error:" << hp_error_string[error]
 			<< " ]\n";
 #endif
 		if (type == hp_failed)
