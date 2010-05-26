@@ -2495,7 +2495,7 @@ void utp_socket_impl::tick(ptime const& now)
 			}
 	
 			// don't fast-resend this packet
-			if (m_fast_resend_seq_nr == (m_acked_seq_nr + 1) & ACK_MASK)
+			if (m_fast_resend_seq_nr == ((m_acked_seq_nr + 1) & ACK_MASK))
 				m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 
 			// the packet timed out, resend it
