@@ -229,6 +229,7 @@ struct utp_socket_impl
 		, m_in_buf_size(100 * 1024 * 1024)
 		, m_in_packets(0)
 		, m_out_packets(0)
+        , m_attached(true)
 	{
 		for (int i = 0; i != num_delay_hist; ++i)
 			m_delay_sample_hist[i] = UINT_MAX;
@@ -249,7 +250,7 @@ struct utp_socket_impl
 
 	void tick(ptime const& now);
 	bool incoming_packet(char const* buf, int size, udp::endpoint const& ep);
-	bool should_delete() const { return m_state == UTP_STATE_DELETE; }
+	bool should_delete() const { return m_state == UTP_STATE_DELETE && !m_attached; }
 	tcp::endpoint remote_endpoint(error_code& ec) const
 	{
 		if (m_state == UTP_STATE_NONE)
@@ -260,6 +261,7 @@ struct utp_socket_impl
 	}
 	std::size_t available() const;
 	void destroy();
+    void detach();
 	void send_syn();
 	void send_fin();
 
@@ -509,6 +511,9 @@ struct utp_socket_impl
 	// counters
 	int m_in_packets;
 	int m_out_packets;
+
+    // is this socket state attached to a user space socket?
+    bool m_attached;
 };
 
 utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
@@ -516,6 +521,11 @@ utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
 	, utp_socket_manager* sm)
 {
 	return new utp_socket_impl(recv_id, send_id, userdata, sm);
+}
+
+void detach_utp_impl(utp_socket_impl* s)
+{
+    s->detach();
 }
 
 void delete_utp_impl(utp_socket_impl* s)
@@ -588,7 +598,12 @@ utp_stream::endpoint_type utp_stream::local_endpoint() const
 
 utp_stream::~utp_stream()
 {
-	if (m_impl) m_impl->destroy();
+	if (m_impl)
+    {
+        m_impl->destroy();
+        detach_utp_impl(m_impl);
+    }
+
 	m_impl = 0;
 }
 
@@ -927,6 +942,11 @@ void utp_socket_impl::destroy()
 	send_fin();
 
 	// #error our end is closing. Wait for everything to be acked
+}
+
+void utp_socket_impl::detach()
+{
+    m_attached = false;
 }
 
 void utp_socket_impl::send_syn()
