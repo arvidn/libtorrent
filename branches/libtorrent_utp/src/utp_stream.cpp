@@ -925,6 +925,9 @@ void utp_socket_impl::destroy()
     m_read_buffer.clear();
     m_read_buffer_size = 0;
 
+    m_write_buffer.clear();
+    m_write_buffer_size = 0;
+
 	if (m_state == UTP_STATE_ERROR_WAIT
 		|| m_state == UTP_STATE_NONE
 		|| m_state == UTP_STATE_SYN_SENT)
