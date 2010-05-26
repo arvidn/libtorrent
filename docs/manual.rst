@@ -432,12 +432,9 @@ storage_mode_sparse
 	will be used. This is the recommended, and default mode.
 
 storage_mode_allocate
-	Same as ``storage_mode_sparse`` except that files will be ftruncated on
-	startup (SetEndOfFile() on windows). For filesystem that supports sparse
-	files, this is in all practical aspects identical to sparse mode. For
-	filesystems that don't, it will allocate the data for the files. The mac
-	filesystem HFS+ doesn't support sparse files, it will allocate the files
-	with zeroes.
+	All pieces will be written to their final position, all files will be
+	allocated in full when the torrent is first started. This is done with
+	``fallocate()`` and similar calls. This mode minimizes fragmentation.
 
 storage_mode_compact
 	The storage will grow as more pieces are downloaded, and pieces
