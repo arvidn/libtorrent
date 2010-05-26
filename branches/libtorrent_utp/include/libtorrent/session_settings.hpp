@@ -221,6 +221,8 @@ namespace libtorrent
 			, tick_interval(100)
 			, utp_target_delay(50) // milliseconds
 			, utp_gain_factor(300) // bytes per rtt
+			, mixed_mode_algorithm(peer_proportional)
+			, rate_limit_utp(false)
 		{}
 
 		// this is the user agent that will be sent to the tracker
@@ -861,6 +863,24 @@ namespace libtorrent
 		// max number of bytes to increase cwnd per rtt in uTP
 		// congestion controller
 		int utp_gain_factor;
+
+		enum bandwidth_mixed_algo_t
+		{
+			// disables the mixed mode bandwidth balancing
+			prefer_tcp = 0,
+
+			// does not throttle uTP, throttles TCP to the same proportion
+			// of throughput as there are TCP connections
+			peer_proportional = 1
+
+		};
+		// the algorithm to use to balance bandwidth between tcp
+		// connections and uTP connections
+		int mixed_mode_algorithm;
+
+		// set to true if uTP connections should be rate limited
+		// defaults to false
+		bool rate_limit_utp;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

@@ -390,8 +390,9 @@ namespace libtorrent
 		if (is_queued()) p.flags |= peer_info::queued;
 
 		p.client = m_client_version;
-		p.connection_type = peer_info::standard_bittorrent;
-
+		p.connection_type = get_socket()->get<utp_stream>()
+			? peer_info::bittorrent_utp
+			: peer_info::standard_bittorrent;
 	}
 	
 	bool bt_peer_connection::in_handshake() const

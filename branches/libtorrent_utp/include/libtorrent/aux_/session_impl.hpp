@@ -504,6 +504,15 @@ namespace libtorrent
 			bandwidth_channel m_local_download_channel;
 			bandwidth_channel m_local_upload_channel;
 
+			// all tcp peer connections are subject to these
+			// bandwidth limits. Local peers are excempted
+			// from this limit. The purpose is to be able to
+			// throttle TCP that passes over the internet
+			// bottleneck (i.e. modem) to avoid starving out
+			// uTP connections.
+			bandwidth_channel m_tcp_download_channel;
+			bandwidth_channel m_tcp_upload_channel;
+
 			bandwidth_channel* m_bandwidth_channel[2];
 
 			tracker_manager m_tracker_manager;

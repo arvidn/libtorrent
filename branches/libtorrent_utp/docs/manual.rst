@@ -3663,8 +3663,19 @@ that may give away something about which software is running in the other end.
 In the case of a web seed, the server type and version will be a part of this
 string.
 
-``connection_type`` can currently be one of ``standard_bittorrent`` or
-``web_seed``. These are currently the only implemented protocols.
+``connection_type`` can currently be one of:
+
++---------------------------------------+-------------------------------------------------------+
+| type                                  | meaning                                               |
++=======================================+=======================================================+
+| ``peer_info::standard_bittorrent``    | Regular bittorrent connection over TCP                |
++---------------------------------------+-------------------------------------------------------+
+| ``peer_info::bittorrent_utp``         | Bittorrent connection over uTP                        |
++---------------------------------------+-------------------------------------------------------+
+| ``peer_info::web_sesed``              | HTTP connection using the `BEP 19`_ protocol          |
++---------------------------------------+-------------------------------------------------------+
+| ``peer_info::http_seed``              | HTTP connection using the `BEP 17`_ protocol          |
++---------------------------------------+-------------------------------------------------------+
 
 ``remote_dl_rate`` is an estimate of the rate this peer is downloading at, in
 bytes per second.
@@ -3910,6 +3921,15 @@ session_settings
 
 		int utp_target_delay;
 		int utp_gain_factor;
+
+		enum bandwidth_mixed_algo_t
+		{
+			prefer_tcp = 0,
+			peer_proportional = 1
+
+		};
+		int mixed_mode_algorithm;
+		bool rate_limit_utp;
 	};
 
 ``user_agent`` this is the client identification to the tracker.
@@ -4583,6 +4603,19 @@ it to send too slow. The default is 50 milliseconds.
 at the most in one RTT. This defaults to 300 bytes. If this is set too high,
 the congestion controller reacts too hard to noise and will not be stable, if it's
 set too low, it will react slow to congestion and not back off as fast.
+
+The ``mixed_mode_algorithm`` determines how to treat TCP connections when there are
+uTP connections. Since uTP is designed to yield to TCP, there's an inherent problem
+when using swarms that have both TCP and uTP connections. If nothing is done, uTP
+connections would often be starved out for bandwidth by the TCP connections. This mode
+is ``prefer_tcp``. The ``peer_proportional`` mode simply looks at the current throughput
+and rate limits all TCP connections to their proportional share based on how many of
+the connections are TCP. This works best if uTP connections are not rate limited by
+the global rate limiter (which they aren't by default).
+
+``rate_limit_utp`` determines if uTP connections should be throttled by the global rate
+limiter or not. By default they are not, since uTP manages its own rate.
+
 
 pe_settings
 ===========

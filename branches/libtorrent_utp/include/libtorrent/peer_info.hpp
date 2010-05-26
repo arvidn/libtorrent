@@ -187,7 +187,8 @@ namespace libtorrent
 		{
 			standard_bittorrent = 0,
 			web_seed = 1,
-			http_seed = 2
+			http_seed = 2,
+			bittorrent_utp = 3
 		};
 		int connection_type;
 		

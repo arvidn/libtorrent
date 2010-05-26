@@ -329,7 +329,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	if (print_ip) out += "IP                           ";
+	if (print_ip) out += "IP                              ";
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out += "AS                                         ";
 #endif
@@ -354,8 +354,8 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 
 		if (print_ip)
 		{
-			error_code ec;
-			snprintf(str, sizeof(str), "%-22s:%-5d ", i->ip.address().to_string(ec).c_str(), i->ip.port());
+			snprintf(str, sizeof(str), "%-30s ", (print_endpoint(i->ip) +
+				(i->connection_type == peer_info::bittorrent_utp ? " [uTP]" : "")).c_str());
 			out += str;
 		}
 
@@ -782,10 +782,6 @@ int main(int argc, char* argv[])
 
 	using namespace libtorrent;
 	session_settings settings;
-
-	// #error temporary
-	settings.enable_outgoing_tcp = false;
-	settings.enable_incoming_tcp = false;
 
 	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
 	settings.choking_algorithm = session_settings::auto_expand_choker;

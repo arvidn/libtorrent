@@ -2039,6 +2039,44 @@ namespace aux {
 
 		m_utp_socket_manager.tick(now);
 
+		switch (m_settings.mixed_mode_algorithm)
+		{
+			case session_settings::prefer_tcp:
+				m_tcp_upload_channel.throttle(0);
+				m_tcp_download_channel.throttle(0);
+				break;
+			case session_settings::peer_proportional:
+				{
+					int num_tcp_peers = 0;
+					int num_peers = 0;
+					for (connection_map::iterator i = m_connections.begin()
+						, end(m_connections.end());i != end; ++i)
+					{
+						peer_connection& p = *(*i);
+						if (p.in_handshake()) continue;
+						if (!p.get_socket()->get<utp_stream>()) ++num_tcp_peers;
+						++num_peers;
+					}
+
+					if (num_peers == 0)
+					{
+						m_tcp_upload_channel.throttle(0);
+						m_tcp_download_channel.throttle(0);
+					}
+					else if (num_tcp_peers == 0)
+					{
+						m_tcp_upload_channel.throttle(m_stat.upload_rate() / num_peers);
+						m_tcp_download_channel.throttle(m_stat.download_rate() / num_peers);
+					}
+					else
+					{
+						m_tcp_upload_channel.throttle(m_stat.upload_rate() * num_tcp_peers / num_peers);
+						m_tcp_download_channel.throttle(m_stat.download_rate() * num_tcp_peers / num_peers);
+					}
+				}
+				break;
+		}
+
 #ifdef TORRENT_STATS
 		++m_second_counter;
 		int downloading_torrents = 0;
