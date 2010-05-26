@@ -1520,8 +1520,8 @@ namespace libtorrent
 					break;
 				}
 
-				write_holepunch_msg(hp_connect, p->remote(), 0);
-				p->write_holepunch_msg(hp_connect, ep, 0);
+				write_holepunch_msg(hp_connect, ep, 0);
+				p->write_holepunch_msg(hp_connect, remote(), 0);
 			} break;
 			case hp_connect:
 			{
