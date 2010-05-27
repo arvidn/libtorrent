@@ -4908,6 +4908,8 @@ namespace libtorrent
 			{
 				m_peer_info->supports_utp = false;
 				fast_reconnect(true);
+				disconnect(e, 0);
+				return;
 			}
 
 			if (m_holepunch_mode)
