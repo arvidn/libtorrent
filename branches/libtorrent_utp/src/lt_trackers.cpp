@@ -156,7 +156,7 @@ namespace libtorrent { namespace
 		virtual void add_handshake(entry& h)
 		{
 			entry& messages = h["m"];
-			messages["lt_tex"] = 14;
+			messages["lt_tex"] = 16;
 			h["tr"] = m_tp.list_hash().to_string();
 		}
 

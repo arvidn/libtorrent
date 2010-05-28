@@ -2139,6 +2139,19 @@ namespace libtorrent
 			(*i)->add_handshake(handshake);
 		}
 
+#ifndef NDEBUG
+		// make sure there are not conflicting extensions
+		std::set<int> ext;
+		for (entry::dictionary_type::const_iterator i = m.begin()
+			, end(m.end()); i != end; ++i)
+		{
+			if (i->second.type() != entry::int_t) continue;
+			int val = i->second.integer();
+			TORRENT_ASSERT(ext.find(val) == ext.end());
+			ext.insert(val);
+		}
+#endif
+
 		std::vector<char> msg;
 		bencode(std::back_inserter(msg), handshake);
 
