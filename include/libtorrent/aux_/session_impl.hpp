@@ -300,6 +300,7 @@ namespace libtorrent
 				// in case we just set a socks proxy, we might have to
 				// open the socks incoming connection
 				if (!m_socks_listen_socket) open_new_incoming_socks_connection();
+				m_udp_socket.set_proxy_settings(m_peer_proxy);
 			}
 			void set_web_seed_proxy(proxy_settings const& s)
 			{ m_web_seed_proxy = s; }
@@ -317,7 +318,7 @@ namespace libtorrent
 			void set_dht_proxy(proxy_settings const& s)
 			{
 				m_dht_proxy = s;
-				m_dht_socket.set_proxy_settings(s);
+				m_udp_socket.set_proxy_settings(s);
 			}
 			proxy_settings const& dht_proxy() const
 			{ return m_dht_proxy; }
@@ -693,18 +694,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 			boost::intrusive_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
-			// if this is set to true, the dht listen port
-			// will be set to the same as the tcp listen port
-			// and will be synchronlized with it as it changes
-			// it defaults to true
-			bool m_dht_same_port;
 			
-			// see m_external_listen_port. This is the same
-			// but for the udp port used by the DHT.
-			int m_external_udp_port;
-
-			rate_limited_udp_socket m_dht_socket;
-
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased
 			std::list<udp::endpoint> m_dht_router_nodes;
@@ -716,6 +706,12 @@ namespace libtorrent
 			// by the DHT.
 			deadline_timer m_dht_announce_timer;
 #endif
+
+			// see m_external_listen_port. This is the same
+			// but for the udp port used by the DHT.
+			int m_external_udp_port;
+
+			rate_limited_udp_socket m_udp_socket;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			pe_settings m_pe_settings;
