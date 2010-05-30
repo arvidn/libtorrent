@@ -209,6 +209,8 @@ namespace libtorrent
 		address const& bind_interface() const { return m_req.bind_ip; }
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
+		virtual bool on_receive(error_code const& ec, udp::endpoint const& ep
+			, char const* buf, int size) { return false; }
 
 	protected:
 		boost::weak_ptr<request_callback> m_requester;
@@ -242,6 +244,8 @@ namespace libtorrent
 
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
+
+		bool incoming_udp(error_code const& e, udp::endpoint const& ep, char const* buf, int size);
 		
 	private:
 

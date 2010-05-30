@@ -252,6 +252,17 @@ namespace libtorrent
 		con->start();
 	}
 
+	bool tracker_manager::incoming_udp(error_code const& e
+		, udp::endpoint const& ep, char const* buf, int size)
+	{
+		for (tracker_connections_t::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			if ((*i)->on_receive(e, ep, buf, size)) return true;
+		}
+		return false;
+	}
+
 	void tracker_manager::abort_all_requests(bool all)
 	{
 		// removes all connections from m_connections

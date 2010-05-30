@@ -1605,7 +1605,11 @@ namespace aux {
 			if (e == asio::error::connection_refused
 				|| e == asio::error::connection_reset
 				|| e == asio::error::connection_aborted)
+			{
 				m_dht->on_unreachable(ep);
+				if (m_tracker_manager.incoming_udp(e, ep, buf, len))
+					m_stat.received_tracker_bytes(len + 28);
+			}
 
 			if (m_alerts.should_post<udp_error_alert>())
 				m_alerts.post_alert(udp_error_alert(ep, e));
@@ -1618,8 +1622,13 @@ namespace aux {
 			m_dht->on_receive(ep, buf, len);
 			return;
 		}
+		
+		if (m_utp_socket_manager.incoming_packet(buf, len, ep))
+			return;
 
-		m_utp_socket_manager.incoming_packet(buf, len, ep);
+		// maybe it's a udp tracker response
+		if (m_tracker_manager.incoming_udp(e, ep, buf, len))
+			m_stat.received_tracker_bytes(len + 28);
 	}
 
 #endif

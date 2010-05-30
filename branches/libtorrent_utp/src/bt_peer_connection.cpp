@@ -1583,7 +1583,6 @@ namespace libtorrent
 			default:
 			{
 				error_code ec;
-				static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
 				(*m_logger) << time_now_string() << " <== HOLEPUNCH ["
 					" msg:unknown message type (" << msg_type << ")"
 					<< " to:" << ep.address().to_string(ec) << " ]\n";
@@ -2170,9 +2169,9 @@ namespace libtorrent
 		TORRENT_ASSERT(i.begin == i.end);
 
 #if defined TORRENT_VERBOSE_LOGGING && TORRENT_USE_IOSTREAM
-		std::stringstream ext;
-		handshake.print(ext);
-		(*m_logger) << time_now_string() << " ==> EXTENDED HANDSHAKE: \n" << ext.str();
+		std::stringstream handshake_str;
+		handshake.print(handshake_str);
+		(*m_logger) << time_now_string() << " ==> EXTENDED HANDSHAKE: \n" << handshake_str.str();
 #endif
 
 		setup_send();
