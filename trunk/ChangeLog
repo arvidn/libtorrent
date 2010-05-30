@@ -1,3 +1,4 @@
+	* moved UDP trackers over to use a single socket
 	* added feature to make asserts log to a file instead of breaking the process
 	  (production asserts)
 	* optimized disk I/O cache clearing
