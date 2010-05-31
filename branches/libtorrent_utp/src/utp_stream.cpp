@@ -979,7 +979,7 @@ void utp_socket_impl::send_syn()
 
 	ptime now = time_now_hires();
 	p->send_time = now;
-	h->timestamp_microseconds = total_microseconds(now - min_time());
+	h->timestamp_microseconds = boost::uint32_t(total_microseconds(now - min_time()));
 
 	UTP_LOGV("[%08u] %08p: send_syn seq_nr:%d id:%d target:%s\n"
 		, int(total_microseconds(now - min_time()))
@@ -1033,7 +1033,7 @@ void utp_socket_impl::send_fin()
 
 	ptime now = time_now_hires();
 	p->send_time = now;
-	h->timestamp_microseconds = total_microseconds(now - min_time());
+	h->timestamp_microseconds = boost::uint32_t(total_microseconds(now - min_time()));
 
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
 		, (char const*)h, sizeof(utp_header), m_error);
@@ -1085,7 +1085,7 @@ void utp_socket_impl::send_reset(utp_header* ph)
 	h.seq_nr = rand();
 	h.ack_nr = ph->seq_nr;
 	ptime now = time_now_hires();
-	h.timestamp_microseconds = total_microseconds(now - min_time());
+	h.timestamp_microseconds = boost::uint32_t(total_microseconds(now - min_time()));
 
 	UTP_LOGV("[%08u] %08p: send_reset seq_nr:%d id:%d ack_nr:%d\n"
 		, int(total_microseconds(now - min_time()))
@@ -1355,7 +1355,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 	// fill in the timestamp as late as possible
 	ptime now = time_now_hires();
 	p->send_time = now;
-	h->timestamp_microseconds = total_microseconds(now - min_time());
+	h->timestamp_microseconds = boost::uint32_t(total_microseconds(now - min_time()));
 
 	UTP_LOGV("[%08u] %08p: sending packet seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
@@ -1444,7 +1444,7 @@ bool utp_socket_impl::resend_packet(packet* p)
 	// update packet header
 	h->timestamp_difference_microseconds = m_reply_micro;
 	p->send_time = time_now_hires();
-	h->timestamp_microseconds = total_microseconds(p->send_time - min_time());
+	h->timestamp_microseconds = boost::uint32_t(total_microseconds(p->send_time - min_time()));
 
 	UTP_LOGV("[%08u] %08p: re-sending packet seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
@@ -1489,7 +1489,7 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
 	if (m_fast_resend_seq_nr == seq_nr)
 		m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 
-	boost::uint32_t rtt = total_microseconds(receive_time - p->send_time);
+	boost::uint32_t rtt = boost::uint32_t(total_microseconds(receive_time - p->send_time));
 	if (receive_time < p->send_time)
 	{
 		// this means our clock is not monotonic. Just assume the RTT was 100 ms
