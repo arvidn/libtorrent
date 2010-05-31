@@ -3205,6 +3205,12 @@ namespace libtorrent
 			<< ": " << e.message() << "\n";
 #endif
 
+		if (m_connection_ticket != -1)
+		{
+			m_ses.m_half_open.done(m_connection_ticket);
+			m_connecting = false;
+		}
+
 		// a connection attempt using uTP just failed
 		// mark this peer as not supporting uTP
 		// we'll never try it again (unless we're trying holepunch)
@@ -4932,15 +4938,15 @@ namespace libtorrent
 		
 		if (m_disconnecting) return;
 
-		m_connecting = false;
-		m_ses.m_half_open.done(m_connection_ticket);
-
 		error_code ec;
 		if (e)
 		{
 			connect_failed(e);
 			return;
 		}
+
+		m_connecting = false;
+		m_ses.m_half_open.done(m_connection_ticket);
 
 		if (m_disconnecting) return;
 		m_last_receive = time_now();
