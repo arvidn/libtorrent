@@ -1148,6 +1148,9 @@ int main(int argc, char* argv[])
 			winsize size;
 			ioctl(STDOUT_FILENO, TIOCGWINSZ, (char*)&size);
 			terminal_width = size.ws_col;
+
+			if (terminal_width < 64)
+				terminal_width = 64;
 		}
 #endif
 
