@@ -194,6 +194,7 @@ namespace libtorrent
 			+ to_string(m_remote.port()).elems, m_ses.listen_port());
 		(*m_logger) << time_now_string() << " *** OUTGOING CONNECTION\n";
 		if (m_socket->get<utp_stream>()) (*m_logger) << "uTP connection\n";
+		else (*m_logger) << "TCP connection\n";
 #endif
 #ifdef TORRENT_DEBUG
 		piece_failed = false;
@@ -332,6 +333,7 @@ namespace libtorrent
 			+ to_string(remote().port()).elems, m_ses.listen_port());
 		(*m_logger) << time_now_string() << " *** INCOMING CONNECTION\n";
 		if (m_socket->get<utp_stream>()) (*m_logger) << "uTP connection\n";
+		else (*m_logger) << "TCP connection\n";
 #endif
 		
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -3189,12 +3191,55 @@ namespace libtorrent
 		mutex::scoped_lock l(m_ses.m_mutex);
 
 		TORRENT_ASSERT(m_connecting);
+		connect_failed(errors::timed_out);
+	}
+	
+	void peer_connection::connect_failed(error_code const& e)
+	{
+		TORRENT_ASSERT(m_connecting);
+		TORRENT_ASSERT(e);
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		error_code ec;
-		(*m_ses.m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << m_remote.address().to_string(ec)
-			<< "\n";
+		(*m_ses.m_logger) << time_now_string() << " CONNECTION FAILED: " << m_remote.address().to_string(ec)
+			<< ": " << e.message() << "\n";
 #endif
-		disconnect(errors::timed_out, 1);
+
+		// a connection attempt using uTP just failed
+		// mark this peer as not supporting uTP
+		// we'll never try it again (unless we're trying holepunch)
+		if (m_socket->get<utp_stream>()
+			&& m_peer_info
+			&& m_peer_info->supports_utp
+			&& !m_holepunch_mode)
+		{
+			m_peer_info->supports_utp = false;
+			// reconnect immediately using TCP
+			policy::peer* pi = peer_info_struct();
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			fast_reconnect(true);
+			disconnect(e, 0);
+			if (t && pi) t->connect_to_peer(pi, true);
+			return;
+		}
+
+		if (m_holepunch_mode)
+			fast_reconnect(true);
+
+		if ((!m_socket->get<utp_stream>() || !m_ses.m_settings.enable_outgoing_tcp)
+			&& m_peer_info
+			&& m_peer_info->supports_holepunch
+			&& !m_holepunch_mode)
+		{
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			// see if we can try a holepunch
+			bt_peer_connection* p = t->find_introducer(remote());
+			if (p)
+				p->write_holepunch_msg(bt_peer_connection::hp_rendezvous, remote(), 0);
+		}
+
+		disconnect(e, 1);
+		return;
 	}
 
 	// the error argument defaults to 0, which means deliberate disconnect
@@ -4893,41 +4938,7 @@ namespace libtorrent
 		error_code ec;
 		if (e)
 		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_ses.m_logger) << time_now_string() << " CONNECTION FAILED: " << m_remote.address().to_string(ec)
-				<< ": " << e.message() << "\n";
-#endif
-
-			// a connection attempt using uTP just failed
-			// mark this peer as not supporting uTP
-			// we'll never try it again (unless we're trying holepunch)
-			if (m_socket->get<utp_stream>()
-				&& m_peer_info
-				&& m_peer_info->supports_utp
-				&& !m_holepunch_mode)
-			{
-				m_peer_info->supports_utp = false;
-				fast_reconnect(true);
-				disconnect(e, 0);
-				return;
-			}
-
-			if (m_holepunch_mode)
-				fast_reconnect(true);
-
-			if ((!m_socket->get<utp_stream>() || !m_ses.m_settings.enable_outgoing_tcp)
-				&& m_peer_info
-				&& m_peer_info->supports_holepunch
-				&& !m_holepunch_mode)
-			{
-				boost::shared_ptr<torrent> t = m_torrent.lock();
-				// see if we can try a holepunch
-				bt_peer_connection* p = t->find_introducer(remote());
-				if (p)
-					p->write_holepunch_msg(bt_peer_connection::hp_rendezvous, remote(), 0);
-			}
-
-			disconnect(e, 1);
+			connect_failed(e);
 			return;
 		}
 
