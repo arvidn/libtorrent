@@ -772,6 +772,7 @@ int main(int argc, char* argv[])
 			"  -O                    Disallow disk job reordering\n"
 			"  -H                    Don't start DHT\n"
 			"  -N                    Don't map ports with NAT-PMP and UPnP\n"
+			"  -M                    Disable TCP/uTP bandwidth balancing\n"
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -989,6 +990,7 @@ int main(int argc, char* argv[])
 			case 'R': settings.read_cache_line_size = atoi(arg); break;
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
 			case 'N': started_nat_forwarding = true; --i; break;
+			case 'M': settings.mixed_mode_algorithm = session_settings::prefer_tcp; --i; break;
 		}
 		++i; // skip the argument
 	}

@@ -2072,15 +2072,16 @@ namespace aux {
 						m_tcp_upload_channel.throttle(0);
 						m_tcp_download_channel.throttle(0);
 					}
-					else if (num_tcp_peers == 0)
-					{
-						m_tcp_upload_channel.throttle(m_stat.upload_rate() / num_peers);
-						m_tcp_download_channel.throttle(m_stat.download_rate() / num_peers);
-					}
 					else
 					{
-						m_tcp_upload_channel.throttle(m_stat.upload_rate() * num_tcp_peers / num_peers);
-						m_tcp_download_channel.throttle(m_stat.download_rate() * num_tcp_peers / num_peers);
+						if (num_tcp_peers == 0) num_tcp_peers = 1;
+						int upload_rate = (std::max)(m_stat.upload_rate(), 5000);
+						int download_rate = (std::max)(m_stat.download_rate(), 5000);
+						if (m_upload_channel.throttle()) upload_rate = m_upload_channel.throttle();
+						if (m_download_channel.throttle()) download_rate = m_download_channel.throttle();
+						
+						m_tcp_upload_channel.throttle(upload_rate * num_tcp_peers / num_peers);
+						m_tcp_download_channel.throttle(download_rate * num_tcp_peers / num_peers);
 					}
 				}
 				break;
