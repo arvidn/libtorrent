@@ -532,8 +532,6 @@ namespace aux {
 		(*m_logger) << time_now_string() << "\n";
 #endif
 
-		open_listen_port();
-
 #ifndef TORRENT_DISABLE_DHT
 		m_next_dht_torrent = m_torrents.begin();
 #endif
@@ -745,6 +743,8 @@ namespace aux {
 		m_dht_announce_timer.async_wait(
 			boost::bind(&session_impl::on_dht_announce, this, _1));
 #endif
+
+		open_listen_port();
 
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
