@@ -275,7 +275,7 @@ struct utp_socket_impl
 		, boost::uint32_t& min_rtt, boost::uint16_t seq_nr);
 	void write_sack(char* buf, int size) const;
 	void incoming(char const* buf, int size, packet* p);
-	void do_ledbat(int acked_bytes, boost::uint32_t delay, int in_flight, ptime const now);
+	void do_ledbat(int acked_bytes, int delay, int in_flight, ptime const now);
 	int packet_timeout() const;
 	bool test_socket_state();
 	void maybe_trigger_receive_callback(ptime now);
@@ -464,7 +464,9 @@ struct utp_socket_impl
 
 	// the max number of bytes in-flight. This is a fixed point
 	// value, to get the true number of bytes, shift right 16 bits
-	boost::uint32_t m_cwnd;
+    // the value is always >= 0, but the calculations performed on
+    // it in do_ledbat() is signed.
+	boost::int64_t m_cwnd;
 
 	// this is the advertized receive window the other end sent
 	// we'll never have more un-acked bytes in flight
@@ -2007,7 +2009,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			}
 		}
 		// cut window size in 2
-		m_cwnd = (std::max)(m_cwnd / 2, m_mtu << 16);
+        m_cwnd = (std::max)(m_cwnd / 2, boost::int64_t(m_mtu << 16));
 
 		// the window size could go below one MMS here, if it does,
 		// we'll get a timeout in about one second
@@ -2370,7 +2372,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	return false;
 }
 
-void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_flight, ptime const now)
+void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime const now)
 {
 	// the portion of the in-flight bytes that were acked. This is used to make
 	// the gain factor be scaled by the rtt. The formula is applied once per
@@ -2379,7 +2381,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_f
 	TORRENT_ASSERT(acked_bytes > 0);
 
 	int target_delay = m_sm->target_delay();
-/*
+
 	// all of these are fixed points with 16 bits fraction portion
 	boost::int64_t window_factor = (boost::int64_t(acked_bytes) << 16) / in_flight;
 	boost::int64_t delay_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
@@ -2395,44 +2397,12 @@ void utp_socket_impl::do_ledbat(int acked_bytes, boost::uint32_t delay, int in_f
 		scaled_gain = 0;
 	}
 
-	UTP_LOGV("[%08u] %8p: do_ledbat delay:%u off_target: %d window_factor:%f target_factor:%f "
+	UTP_LOGV("[%08u] %8p: do_ledbat delay:%d off_target: %d window_factor:%f target_factor:%f "
 		"scaled_gain:%f cwnd:%d\n"
 		, int(total_microseconds(time_now_hires() - min_time()))
 		, this, delay, target_delay - delay, window_factor / float(1 << 16)
 		, delay_factor / float(1 << 16)
 		, scaled_gain / float(1 << 16), int(m_cwnd >> 16));
-
-	// if scaled_gain + m_cwnd <= 0, set m_cwnd to 0
-	if (-scaled_gain >= m_cwnd)
-	{
-		m_cwnd = 0;
-	}
-	else
-	{
-		m_cwnd += scaled_gain;
-		TORRENT_ASSERT(m_cwnd > 0);
-	}
-*/
-	float window_factor = acked_bytes / float(in_flight);
-	float delay_factor = int(target_delay - delay) / float(target_delay);
-	float scaled_gain = window_factor * delay_factor * m_sm->gain_factor();
-
-	if (scaled_gain > 0 && m_last_cwnd_hit + seconds(1) < now)
-	{
-		// we haven't bumped into the cwnd limit size in the last second
-		// this probably means we have a send rate limit, so we shouldn't make
-		// the cwnd size any larger
-		scaled_gain = 0;
-	}
-
-	UTP_LOGV("[%08u] %8p: do_ledbat delay:%u off_target: %d window_factor:%f target_factor:%f "
-		"scaled_gain:%f cwnd:%d\n"
-		, int(total_microseconds(time_now_hires() - min_time()))
-		, this, delay, target_delay - delay, window_factor
-		, delay_factor
-		, scaled_gain, int(m_cwnd >> 16));
-
-	scaled_gain *= (1 << 16);
 
 	// if scaled_gain + m_cwnd <= 0, set m_cwnd to 0
 	if (-scaled_gain >= m_cwnd)
