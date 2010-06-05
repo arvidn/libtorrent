@@ -2179,13 +2179,13 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 				UTP_LOG("[%08u] %8p: "
 					"actual_delay:%u "
-					"our_delay:%u "
-					"their_delay:%u "
-					"off_target:%d "
+					"our_delay:%f "
+					"their_delay:%f "
+					"off_target:%f "
 					"max_window:%d "
 					"upload_rate:%d "
 					"delay_base:%s "
-					"delay_sum:%d "
+					"delay_sum:%f "
 					"target_delay:%d "
 					"acked_bytes:%d "
 					"cur_window:%d "
@@ -2207,13 +2207,13 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					"\n"
 					, int(total_microseconds(receive_time - min_time())), this
 					, sample
-					, int(delay / 1000)
-					, int(their_delay / 1000)
-					, int(m_sm->target_delay() - delay) / 1000
+					, float(delay / 1000.f)
+					, float(their_delay / 1000.f)
+					, float(m_sm->target_delay() - delay) / 1000.f
 					, int(m_cwnd >> 16)
 					, 0
 					, our_delay_base
-					, (delay + their_delay) / 1000
+					, float(delay + their_delay) / 1000.f
 					, m_sm->target_delay() / 1000
 					, acked_bytes
 					, m_bytes_in_flight
