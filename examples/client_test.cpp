@@ -837,36 +837,14 @@ int main(int argc, char* argv[])
 
 	// load the torrents given on the commandline
 
+	std::vector<add_torrent_params> magnet_links;
+	std::vector<std::string> torrents;
+
 	for (int i = 1; i < argc; ++i)
 	{
 		if (argv[i][0] != '-')
 		{
 			// interpret this as a torrent
-
-			// first see if this is a torrentless download
-			if (std::strstr(argv[i], "magnet:") == argv[i])
-			{
-				add_torrent_params p;
-				p.save_path = save_path;
-				p.storage_mode = (storage_mode_t)allocation_mode;
-				printf("adding MANGET link: %s\n", argv[i]);
-				error_code ec;
-				torrent_handle h = add_magnet_uri(ses, argv[i], p, ec);
-				if (ec)
-				{
-					fprintf(stderr, "%s\n", ec.message().c_str());
-					continue;
-				}
-
-				handles.insert(std::pair<const std::string, torrent_handle>(std::string(), h));
-
-				h.set_max_connections(max_connections_per_torrent);
-				h.set_max_uploads(-1);
-				h.set_ratio(preferred_ratio);
-				h.set_upload_limit(torrent_upload_limit);
-				h.set_download_limit(torrent_download_limit);
-				continue;
-			}
 
 			// match it against the <hash>@<tracker> format
 			if (strlen(argv[i]) > 45
@@ -884,28 +862,11 @@ int main(int argc, char* argv[])
 				p.paused = true;
 				p.duplicate_is_error = false;
 				p.auto_managed = true;
-				error_code ec;
-				torrent_handle h = ses.add_torrent(p, ec);
-				if (ec)
-				{
-					fprintf(stderr, "failed to add torrent: %s\n", ec.message().c_str());
-					continue;
-				}
-
-				handles.insert(std::pair<const std::string, torrent_handle>(std::string(), h));
-
-				h.set_max_connections(max_connections_per_torrent);
-				h.set_max_uploads(-1);
-				h.set_ratio(preferred_ratio);
-				h.set_upload_limit(torrent_upload_limit);
-				h.set_download_limit(torrent_download_limit);
+				magnet_links.push_back(p);
 				continue;
 			}
 
-			// if it's a torrent file, open it as usual
-			add_torrent(ses, handles, argv[i], preferred_ratio
-				, allocation_mode, save_path, false
-				, torrent_upload_limit, torrent_download_limit);
+			torrents.push_back(argv[i]);
 			continue;
 		}
 
@@ -986,6 +947,60 @@ int main(int argc, char* argv[])
 		, bind_to_interface.c_str());
 
 	ses.set_settings(settings);
+
+	for (std::vector<add_torrent_params>::iterator i = magnet_links.begin()
+		, end(magnet_links.end()); i != end; ++i)
+	{
+		error_code ec;
+		torrent_handle h = ses.add_torrent(*i, ec);
+		if (ec)
+		{
+			fprintf(stderr, "failed to add torrent: %s\n", ec.message().c_str());
+			continue;
+		}
+
+		handles.insert(std::pair<const std::string, torrent_handle>(std::string(), h));
+
+		h.set_max_connections(max_connections_per_torrent);
+		h.set_max_uploads(-1);
+		h.set_ratio(preferred_ratio);
+		h.set_upload_limit(torrent_upload_limit);
+		h.set_download_limit(torrent_download_limit);
+	}
+
+	for (std::vector<std::string>::iterator i = torrents.begin()
+		, end(torrents.end()); i != end; ++i)
+	{
+		// first see if this is a torrentless download
+		if (std::strstr(i->c_str(), "magnet:") == i->c_str())
+		{
+			add_torrent_params p;
+			p.save_path = save_path;
+			p.storage_mode = (storage_mode_t)allocation_mode;
+			printf("adding MANGET link: %s\n", i->c_str());
+			error_code ec;
+			torrent_handle h = add_magnet_uri(ses, i->c_str(), p, ec);
+			if (ec)
+			{
+				fprintf(stderr, "%s\n", ec.message().c_str());
+				continue;
+			}
+
+			handles.insert(std::pair<const std::string, torrent_handle>(std::string(), h));
+
+			h.set_max_connections(max_connections_per_torrent);
+			h.set_max_uploads(-1);
+			h.set_ratio(preferred_ratio);
+			h.set_upload_limit(torrent_upload_limit);
+			h.set_download_limit(torrent_download_limit);
+			continue;
+		}
+
+		// if it's a torrent file, open it as usual
+		add_torrent(ses, handles, i->c_str(), preferred_ratio
+			, allocation_mode, save_path, false
+			, torrent_upload_limit, torrent_download_limit);
+	}
 
 	// main loop
 	std::vector<peer_info> peers;
