@@ -1,3 +1,5 @@
+	* added build warning when building with UNICODE but the standard library
+	  doesn't provide std::wstring
 	* fixed add_node python binding
 	* fixed issue where trackers wouldn't tried immediately when the previous one failed
 	* fixed synchronization issue between download queue and piece picker
