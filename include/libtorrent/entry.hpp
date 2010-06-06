@@ -163,28 +163,16 @@ namespace libtorrent
 
 	private:
 
+#ifndef TORRENT_DEBUG
 		data_type m_type;
-
-#if (defined(_MSC_VER) && _MSC_VER < 1310) || TORRENT_COMPLETE_TYPES_REQUIRED
-		// workaround for msvc-bug.
-		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
-		// and sizeof(list<char>) == sizeof(list<entry>)
-		integer_type data[
-			(max4<sizeof(std::list<char>)
-			, sizeof(std::map<std::string, char>)
-			, sizeof(string_type)
-			, sizeof(integer_type)>::value + sizeof(integer_type) - 1)
-				/ sizeof(integer_type)];
 #else
-		integer_type data[
-			(max4<sizeof(list_type)
-			, sizeof(dictionary_type)
-			, sizeof(string_type)
-			, sizeof(integer_type)>::value + sizeof(integer_type) - 1)
-				/ sizeof(integer_type)];
-#endif
+		// the bitfield is used so that the m_type_queried
+		// field still fits, so that the ABI is the same for
+		// debug builds and release builds. It appears to be
+		// very hard to match debug builds with debug versions
+		// of libtorrent
+		data_type m_type:31;
 
-#ifdef TORRENT_DEBUG
 	public:
 		// in debug mode this is set to false by bdecode
 		// to indicate that the program has not yet queried
@@ -192,8 +180,30 @@ namespace libtorrent
 		// that it has a certain type. This is asserted in
 		// the accessor functions. This does not apply if
 		// exceptions are used.
-		mutable bool m_type_queried;
+		mutable bool m_type_queried:1;
+	protected:
+#endif // TORRENT_DEBUG
+
+#if (defined(_MSC_VER) && _MSC_VER < 1310) || TORRENT_COMPLETE_TYPES_REQUIRED
+		// workaround for msvc-bug.
+		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
+		// and sizeof(list<char>) == sizeof(list<entry>)
+		enum { union_size
+			= max4<sizeof(std::list<char>)
+			, sizeof(std::map<std::string, char>)
+			, sizeof(string_type)
+			, sizeof(integer_type)>::value
+		};
+#else
+		enum { union_size
+			= max4<sizeof(list_type)
+			, sizeof(dictionary_type)
+			, sizeof(string_type)
+			, sizeof(integer_type)>::value
+		};
 #endif
+		integer_type m_data[(union_size + sizeof(integer_type) - 1)
+			/ sizeof(integer_type)];
 	};
 
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
@@ -211,114 +221,6 @@ namespace libtorrent
 			, get_libtorrent_category()));
 	}
 #endif
-
-	inline entry::data_type entry::type() const
-	{
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
-		return m_type;
-	}
-
-	inline entry::~entry() { destruct(); }
-
-	inline void entry::operator=(const entry& e)
-	{
-		destruct();
-		copy(e);
-	}
-
-	inline entry::integer_type& entry::integer()
-	{
-		if (m_type == undefined_t) construct(int_t);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != int_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == int_t);
-		return *reinterpret_cast<integer_type*>(data);
-	}
-
-	inline entry::integer_type const& entry::integer() const
-	{
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != int_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == int_t);
-		return *reinterpret_cast<const integer_type*>(data);
-	}
-
-	inline entry::string_type& entry::string()
-	{
-		if (m_type == undefined_t) construct(string_t);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != string_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == string_t);
-		return *reinterpret_cast<string_type*>(data);
-	}
-
-	inline entry::string_type const& entry::string() const
-	{
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != string_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == string_t);
-		return *reinterpret_cast<const string_type*>(data);
-	}
-
-	inline entry::list_type& entry::list()
-	{
-		if (m_type == undefined_t) construct(list_t);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != list_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == list_t);
-		return *reinterpret_cast<list_type*>(data);
-	}
-
-	inline entry::list_type const& entry::list() const
-	{
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != list_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == list_t);
-		return *reinterpret_cast<const list_type*>(data);
-	}
-
-	inline entry::dictionary_type& entry::dict()
-	{
-		if (m_type == undefined_t) construct(dictionary_t);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != dictionary_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == dictionary_t);
-		return *reinterpret_cast<dictionary_type*>(data);
-	}
-
-	inline entry::dictionary_type const& entry::dict() const
-	{
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != dictionary_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == dictionary_t);
-		return *reinterpret_cast<const dictionary_type*>(data);
-	}
 
 }
 
