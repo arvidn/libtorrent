@@ -60,6 +60,7 @@ using boost::lexical_cast;
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/ip_filter.hpp"
 
 namespace
 {
@@ -85,7 +86,8 @@ namespace libtorrent
 		, address bind_infc
 		, boost::weak_ptr<request_callback> c
 		, session_settings const& stn
-		, proxy_settings const& proxy)
+		, proxy_settings const& proxy
+		, ip_filter const* ipf)
 		: tracker_connection(man, req, ios, bind_infc, c)
 		, m_man(man)
 		, m_name_lookup(ios)
@@ -95,6 +97,7 @@ namespace libtorrent
 		, m_settings(stn)
 		, m_attempts(0)
 		, m_state(action_error)
+		, m_ip_filter(ipf)
 	{
 		m_socket.set_proxy_settings(proxy);
 	}
@@ -174,6 +177,15 @@ namespace libtorrent
 		else
 		{
 			target_address = *target;
+		}
+
+		if (m_ip_filter)
+		{
+			if (m_ip_filter->access(target_address.address()) & ip_filter::blocked)
+			{
+				fail(-1, "blocked by IP filter");
+				return;
+			}
 		}
 		
 		if (cb) cb->m_tracker_address = tcp::endpoint(target_address.address(), target_address.port());

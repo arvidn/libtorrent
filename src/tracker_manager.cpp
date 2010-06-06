@@ -186,7 +186,8 @@ namespace libtorrent
 		, tracker_request req
 		, std::string const& auth
 		, address bind_infc
-		, boost::weak_ptr<request_callback> c)
+		, boost::weak_ptr<request_callback> c
+		, ip_filter const* ipf)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(req.num_want >= 0);
@@ -209,13 +210,13 @@ namespace libtorrent
 		{
 			con = new http_tracker_connection(
 				ios, cc, *this, req, bind_infc, c
-				, m_settings, m_proxy, auth);
+				, m_settings, m_proxy, auth, ipf);
 		}
 		else if (protocol == "udp")
 		{
 			con = new udp_tracker_connection(
 				ios, cc, *this, req, bind_infc
-				, c, m_settings, m_proxy);
+				, c, m_settings, m_proxy, ipf);
 		}
 		else
 		{

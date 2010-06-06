@@ -1,3 +1,4 @@
+	* back-ported IP filter support for trackers
 	* fixed add_node python binding
 	* fixed bug in udp tracker scrape response parsing
 

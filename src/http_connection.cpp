@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/connection_queue.hpp"
+#include "libtorrent/ip_filter.hpp"
 
 #include <boost/bind.hpp>
 #include <string>
@@ -313,6 +314,30 @@ void http_connection::on_resolve(error_code const& e
 		, boost::bind(&address::is_v4, boost::bind(&tcp::endpoint::address, _1)) == m_bind_addr.is_v4());
 #endif
 
+	if (m_ip_filter)
+	{
+		for (std::list<tcp::endpoint>::iterator i = m_endpoints.begin();
+			i != m_endpoints.end();)
+		{
+			if ((m_ip_filter->access(i->address()) & ip_filter::blocked) == 0)
+			{
+				++i;
+				continue;
+			}
+
+			i = m_endpoints.erase(i);
+		}
+	}
+
+	if (m_endpoints.empty())
+	{
+		// just say fault when the IP is banned
+		error_code e = asio::error::fault;
+		boost::shared_ptr<http_connection> me(shared_from_this());
+		callback(e);
+		close();
+		return;
+	}
 	queue_connect();
 }
 

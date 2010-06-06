@@ -955,7 +955,7 @@ int main(int ac, char* av[])
 				int len = in.gcount();
 				if (len <= 0) continue;
 				if (line[0] == '#') continue;
-				int a, b, c, d;
+				unsigned int a, b, c, d;
 				char dummy;
 				std::stringstream ln(line);
 				ln >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
