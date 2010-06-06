@@ -891,32 +891,22 @@ int main(int argc, char* argv[])
 			case 'H': start_dht = false; --i; break;
 			case 'x':
 				{
-					/*
-					std::ifstream in(arg);
-					ip_filter filter;
-					while (in.good())
+					FILE* filter = fopen(arg, "r");
+					if (filter)
 					{
-						char line[300];
-						in.getline(line, 300);
-						int len = in.gcount();
-						if (len <= 0) continue;
-						if (line[0] == '#') continue;
-						int a, b, c, d;
-						char dummy;
-						std::stringstream ln(line);
-						ln >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
-						address_v4 start((a << 24) + (b << 16) + (c << 8) + d);
-						ln >> a >> dummy >> b >> dummy >> c >> dummy >> d;
-						address_v4 last((a << 24) + (b << 16) + (c << 8) + d);
-						int flags;
-						ln >> flags;
-						if (flags <= 127) flags = ip_filter::blocked;
-						else flags = 0;
-						if (ln.fail()) break;
-						filter.add_rule(start, last, flags);
+						ip_filter fil;
+						unsigned int a,b,c,d,e,f,g,h, flags;
+						while (fscanf(filter, "%u.%u.%u.%u - %u.%u.%u.%u %u\n", &a, &b, &c, &d, &e, &f, &g, &h, &flags) == 9)
+						{
+							address_v4 start((a << 24) + (b << 16) + (c << 8) + d);
+							address_v4 last((e << 24) + (f << 16) + (g << 8) + h);
+							if (flags <= 127) flags = ip_filter::blocked;
+							else flags = 0;
+							fil.add_rule(start, last, flags);
+						}
+						ses.set_ip_filter(fil);
+						fclose(filter);
 					}
-					ses.set_ip_filter(filter);
-					*/
 				}
 				break;
 			case 'c': ses.set_max_connections(atoi(arg)); break;

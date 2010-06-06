@@ -147,7 +147,12 @@ namespace libtorrent
 			i != m_endpoints.end();)
 		{
 			if (m_ses.m_ip_filter.access(i->address()) == ip_filter::blocked) 
+			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+				if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: " + print_address(i->address()) + " ]");
+#endif
 				i = m_endpoints.erase(i);
+			}
 			else
 				++i;
 		}
