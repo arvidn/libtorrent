@@ -4292,7 +4292,7 @@ namespace libtorrent
 				// bandwidth. So, we simply request bandwidth
 				// from the bandwidth manager
 				request_upload_bandwidth(
-					(!m_ses.m_settings.rate_limit_utp || !utp) ? &m_ses.m_upload_channel : 0
+					(m_ses.m_settings.rate_limit_utp || !utp) ? &m_ses.m_upload_channel : 0
 					, &t->m_bandwidth_channel[upload_channel]
 					, &m_bandwidth_channel[upload_channel]
 					, !utp ? &m_ses.m_tcp_upload_channel : 0);
@@ -4408,7 +4408,7 @@ namespace libtorrent
 				// receive, but no bandwidth quota. So, we simply
 				// request bandwidth from the bandwidth manager
 				request_download_bandwidth(
-					(!m_ses.m_settings.rate_limit_utp || !utp) ? &m_ses.m_download_channel : 0
+					(m_ses.m_settings.rate_limit_utp || !utp) ? &m_ses.m_download_channel : 0
 					, &t->m_bandwidth_channel[download_channel]
 					, &m_bandwidth_channel[download_channel]
 					, !utp ? &m_ses.m_tcp_download_channel : 0);
