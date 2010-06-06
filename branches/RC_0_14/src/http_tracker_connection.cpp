@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/ip_filter.hpp"
 
 using namespace libtorrent;
 using boost::bind;
@@ -76,7 +77,8 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> c
 		, session_settings const& stn
 		, proxy_settings const& ps
-		, std::string const& auth)
+		, std::string const& auth
+		, ip_filter const* ipf)
 		: tracker_connection(man, req, ios, bind_infc, c)
 		, m_man(man)
 		, m_settings(stn)
@@ -84,6 +86,7 @@ namespace libtorrent
 		, m_ps(ps)
 		, m_cc(cc)
 		, m_ios(ios)
+		, m_ip_filter(ipf)
 	{}
 
 	void http_tracker_connection::start()
@@ -185,7 +188,8 @@ namespace libtorrent
 		}
 
 		m_tracker_connection.reset(new http_connection(m_ios, m_cc
-			, boost::bind(&http_tracker_connection::on_response, self(), _1, _2, _3, _4)));
+			, boost::bind(&http_tracker_connection::on_response, self(), _1, _2, _3, _4)
+			, true, http_connect_handler(), m_ip_filter));
 
 		int timeout = tracker_req().event==tracker_request::stopped
 			?m_settings.stop_tracker_timeout

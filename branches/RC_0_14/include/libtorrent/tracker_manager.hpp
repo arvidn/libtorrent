@@ -70,6 +70,7 @@ namespace libtorrent
 	class tracker_manager;
 	struct timeout_handler;
 	struct tracker_connection;
+	struct ip_filter;
 
 	// returns -1 if gzip header is invalid or the header size in bytes
 	TORRENT_EXPORT int gzip_header(const char* buf, int size);
@@ -225,7 +226,8 @@ namespace libtorrent
 			, std::string const& auth
 			, address bind_infc
 			, boost::weak_ptr<request_callback> c
-				= boost::weak_ptr<request_callback>());
+				= boost::weak_ptr<request_callback>()
+			, ip_filter const* ipf = 0);
 		void abort_all_requests();
 
 		void remove_request(tracker_connection const*);

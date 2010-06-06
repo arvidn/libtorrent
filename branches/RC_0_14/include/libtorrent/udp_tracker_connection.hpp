@@ -59,6 +59,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	class ip_filter;
+
 	class TORRENT_EXPORT udp_tracker_connection: public tracker_connection
 	{
 	friend class tracker_manager;
@@ -72,7 +74,8 @@ namespace libtorrent
 			, address bind_infc
 			, boost::weak_ptr<request_callback> c
 			, session_settings const& stn
-			, proxy_settings const& ps);
+			, proxy_settings const& ps
+			, ip_filter const* ipf);
 
 		void start();
 		void close();
@@ -117,6 +120,8 @@ namespace libtorrent
 		int m_attempts;
 
 		action_t m_state;
+
+		ip_filter const* m_ip_filter;
 	};
 
 }

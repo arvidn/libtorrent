@@ -57,6 +57,7 @@ namespace libtorrent
 	class http_parser;
 	class connection_queue;
 	struct session_settings;
+	class ip_filter;
 
 	class TORRENT_EXPORT http_tracker_connection
 		: public tracker_connection
@@ -73,7 +74,8 @@ namespace libtorrent
 			, boost::weak_ptr<request_callback> c
 			, session_settings const& stn
 			, proxy_settings const& ps
-			, std::string const& password = "");
+			, std::string const& password = ""
+			, ip_filter const* ipf = 0);
 
 		void start();
 		void close();
@@ -98,6 +100,7 @@ namespace libtorrent
 		proxy_settings const& m_ps;
 		connection_queue& m_cc;
 		io_service& m_ios;
+		ip_filter const* m_ip_filter;
 	};
 
 }

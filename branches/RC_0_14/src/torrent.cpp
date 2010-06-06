@@ -987,13 +987,13 @@ namespace libtorrent
 		{
 			boost::shared_ptr<aux::tracker_logger> tl(new aux::tracker_logger(m_ses));
 			m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
-				, tracker_login(), m_ses.m_listen_interface.address(), tl);
+				, tracker_login(), m_ses.m_listen_interface.address(), tl, &m_ses.m_ip_filter);
 		}
 		else
 #endif
 		m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
 			, tracker_login(), m_ses.m_listen_interface.address()
-			, m_abort?boost::shared_ptr<torrent>():shared_from_this());
+			, m_abort?boost::shared_ptr<torrent>():shared_from_this(), &m_ses.m_ip_filter);
 
 		if (m_ses.m_alerts.should_post<tracker_announce_alert>())
 		{
@@ -1014,7 +1014,8 @@ namespace libtorrent
 		req.kind = tracker_request::scrape_request;
 		req.url = m_trackers[m_currently_trying_tracker].url;
 		m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
-			, tracker_login(), m_ses.m_listen_interface.address(), shared_from_this());
+			, tracker_login(), m_ses.m_listen_interface.address(), shared_from_this()
+			, &m_ses.m_ip_filter);
 
 		m_last_scrape = time_now();
 	}

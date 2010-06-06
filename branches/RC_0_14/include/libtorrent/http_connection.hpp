@@ -59,6 +59,7 @@ namespace libtorrent
 
 struct http_connection;
 class connection_queue;
+class ip_filter;
 	
 typedef boost::function<void(error_code const&
 	, http_parser const&, char const* data, int size, http_connection&)> http_handler;
@@ -73,7 +74,8 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 {
 	http_connection(io_service& ios, connection_queue& cc
 		, http_handler const& handler, bool bottled = true
-		, http_connect_handler const& ch = http_connect_handler())
+		, http_connect_handler const& ch = http_connect_handler()
+		, ip_filter const* ipf = 0)
 		: m_sock(ios)
 		, m_read_pos(0)
 		, m_resolver(ios)
@@ -93,6 +95,7 @@ struct http_connection : boost::enable_shared_from_this<http_connection>, boost:
 		, m_ssl(false)
 		, m_priority(0)
 		, m_abort(false)
+		, m_ip_filter(ipf)
 	{
 		TORRENT_ASSERT(!m_handler.empty());
 	}
@@ -202,6 +205,8 @@ private:
 	int m_priority;
 
 	bool m_abort;
+
+	ip_filter const* m_ip_filter;
 };
 
 }
