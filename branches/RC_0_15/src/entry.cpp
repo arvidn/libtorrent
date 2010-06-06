@@ -142,6 +142,114 @@ namespace libtorrent
 	}
 #endif
 
+	entry::data_type entry::type() const
+	{
+#ifdef TORRENT_DEBUG
+		m_type_queried = true;
+#endif
+		return m_type;
+	}
+
+	entry::~entry() { destruct(); }
+
+	void entry::operator=(const entry& e)
+	{
+		destruct();
+		copy(e);
+	}
+
+	entry::integer_type& entry::integer()
+	{
+		if (m_type == undefined_t) construct(int_t);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != int_t) throw_type_error();
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == int_t);
+		return *reinterpret_cast<integer_type*>(data);
+	}
+
+	entry::integer_type const& entry::integer() const
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != int_t) throw_type_error();
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == int_t);
+		return *reinterpret_cast<const integer_type*>(data);
+	}
+
+	entry::string_type& entry::string()
+	{
+		if (m_type == undefined_t) construct(string_t);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != string_t) throw_type_error();
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == string_t);
+		return *reinterpret_cast<string_type*>(data);
+	}
+
+	entry::string_type const& entry::string() const
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != string_t) throw_type_error();
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == string_t);
+		return *reinterpret_cast<const string_type*>(data);
+	}
+
+	entry::list_type& entry::list()
+	{
+		if (m_type == undefined_t) construct(list_t);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != list_t) throw_type_error();
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == list_t);
+		return *reinterpret_cast<list_type*>(data);
+	}
+
+	entry::list_type const& entry::list() const
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != list_t) throw_type_error();
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == list_t);
+		return *reinterpret_cast<const list_type*>(data);
+	}
+
+	entry::dictionary_type& entry::dict()
+	{
+		if (m_type == undefined_t) construct(dictionary_t);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != dictionary_t) throw_type_error();
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == dictionary_t);
+		return *reinterpret_cast<dictionary_type*>(data);
+	}
+
+	entry::dictionary_type const& entry::dict() const
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != dictionary_t) throw_type_error();
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == dictionary_t);
+		return *reinterpret_cast<const dictionary_type*>(data);
+	}
+
 	entry::entry()
 		: m_type(undefined_t)
 	{
