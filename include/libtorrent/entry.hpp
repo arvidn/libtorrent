@@ -202,7 +202,7 @@ namespace libtorrent
 			, sizeof(integer_type)>::value
 		};
 #endif
-		integer_type m_data[(union_size + sizeof(integer_type) - 1)
+		integer_type data[(union_size + sizeof(integer_type) - 1)
 			/ sizeof(integer_type)];
 	};
 
