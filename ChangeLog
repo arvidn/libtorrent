@@ -1,3 +1,4 @@
+	* fixed bug in bdecoder when decoding invalid messages
 	* added build warning when building with UNICODE but the standard library
 	  doesn't provide std::wstring
 	* fixed add_node python binding
