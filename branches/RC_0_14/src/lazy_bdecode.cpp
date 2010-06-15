@@ -104,6 +104,7 @@ namespace libtorrent
 						stack.pop_back();
 						continue;
 					}
+					if (!is_digit(t)) return fail_bdecode(ret);
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);
 					if (start == 0 || start + len + 3 > end || *start != ':') return fail_bdecode(ret);
