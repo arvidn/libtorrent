@@ -161,7 +161,7 @@ namespace libtorrent
 #endif
 			void main_thread();
 
-			void open_listen_port();
+			void open_listen_port(bool reuse_address);
 
 			// if we are listening on an IPv6 interface
 			// this will return one of the IPv6 addresses on this
@@ -236,7 +236,8 @@ namespace libtorrent
 
 			bool listen_on(
 				std::pair<int, int> const& port_range
-				, const char* net_interface = 0);
+				, const char* net_interface = 0
+				, int flags = 0);
 			bool is_listening() const;
 
 			torrent_handle add_torrent(add_torrent_params const&, error_code& ec);
@@ -580,7 +581,8 @@ namespace libtorrent
 			boost::shared_ptr<socket_type> m_i2p_listen_socket;
 #endif
 
-			listen_socket_t setup_listener(tcp::endpoint ep, int retries, bool v6_only = false);
+			listen_socket_t setup_listener(tcp::endpoint ep, int retries
+				, bool v6_only, bool reuse_address);
 
 			// the settings for the client
 			session_settings m_settings;

@@ -1,3 +1,4 @@
+	* made the reuse-address flag configurable on the listen socket
 	* moved UDP trackers over to use a single socket
 	* added feature to make asserts log to a file instead of breaking the process
 	  (production asserts)
@@ -32,6 +33,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* removed the reuse-address flag on the listen socket
 	* fixed bug where local peer discovery and DHT wouldn't be announced to without trackers
 	* fixed bug in bdecoder when decoding invalid messages
 	* added build warning when building with UNICODE but the standard library
