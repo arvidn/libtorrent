@@ -1197,7 +1197,6 @@ namespace aux {
 		listen_socket_t s;
 		s.sock.reset(new socket_acceptor(m_io_service));
 		s.sock->open(ep.protocol(), ec);
-		s.sock->set_option(socket_acceptor::reuse_address(true), ec);
 #if TORRENT_USE_IPV6
 		if (ep.protocol() == tcp::v6())
 		{
