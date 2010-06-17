@@ -744,7 +744,8 @@ namespace aux {
 			boost::bind(&session_impl::on_dht_announce, this, _1));
 #endif
 
-		open_listen_port();
+		// no reuse_address
+		open_listen_port(false);
 
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
@@ -1304,13 +1305,14 @@ namespace aux {
 	}
 
 	session_impl::listen_socket_t session_impl::setup_listener(tcp::endpoint ep
-		, int retries, bool v6_only)
+		, int retries, bool v6_only, bool reuse_address)
 	{
 		error_code ec;
 		listen_socket_t s;
 		s.sock.reset(new socket_acceptor(m_io_service));
 		s.sock->open(ep.protocol(), ec);
-		s.sock->set_option(socket_acceptor::reuse_address(true), ec);
+		if (reuse_address)
+			s.sock->set_option(socket_acceptor::reuse_address(true), ec);
 #if TORRENT_USE_IPV6
 		if (ep.protocol() == tcp::v6())
 		{
@@ -1380,7 +1382,7 @@ namespace aux {
 		return s;
 	}
 	
-	void session_impl::open_listen_port()
+	void session_impl::open_listen_port(bool reuse_address)
 	{
 		// close the open listen sockets
 		m_listen_sockets.clear();
@@ -1396,7 +1398,7 @@ namespace aux {
 		
 			listen_socket_t s = setup_listener(
 				tcp::endpoint(address_v4::any(), m_listen_interface.port())
-				, m_listen_port_retries);
+				, m_listen_port_retries, false, reuse_address);
 
 			if (s.sock)
 			{
@@ -1420,7 +1422,7 @@ namespace aux {
 			{
 				s = setup_listener(
 					tcp::endpoint(address_v6::any(), m_listen_interface.port())
-					, m_listen_port_retries, true);
+					, m_listen_port_retries, true, reuse_address);
 
 				if (s.sock)
 				{
@@ -1450,7 +1452,7 @@ namespace aux {
 			// binds to the given interface
 
 			listen_socket_t s = setup_listener(
-				m_listen_interface, m_listen_port_retries);
+				m_listen_interface, m_listen_port_retries, false, reuse_address);
 
 			if (s.sock)
 			{
@@ -3193,7 +3195,7 @@ namespace aux {
 
 	bool session_impl::listen_on(
 		std::pair<int, int> const& port_range
-		, const char* net_interface)
+		, const char* net_interface, int flags)
 	{
 		INVARIANT_CHECK;
 
@@ -3223,7 +3225,7 @@ namespace aux {
 
 		m_listen_interface = new_interface;
 
-		open_listen_port();
+		open_listen_port(flags & session::listen_reuse_address);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
@@ -3430,7 +3432,7 @@ namespace aux {
 		INVARIANT_CHECK;
 
 		if (m_listen_interface.port() != 0)
-			open_listen_port();
+			open_listen_port(false);
 
 		if (m_dht)
 		{

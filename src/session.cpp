@@ -548,10 +548,10 @@ namespace libtorrent
 
 	bool session::listen_on(
 		std::pair<int, int> const& port_range
-		, const char* net_interface)
+		, const char* net_interface, int flags)
 	{
 		mutex::scoped_lock l(m_impl->m_mutex);
-		return m_impl->listen_on(port_range, net_interface);
+		return m_impl->listen_on(port_range, net_interface, flags);
 	}
 
 	unsigned short session::listen_port() const
