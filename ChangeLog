@@ -1,3 +1,4 @@
+	* fixed bug in metadata extensions combined with encryption
 	* fixed bug in bdecoder when decoding invalid messages
 	* back-ported IP filter support for trackers
 	* fixed add_node python binding

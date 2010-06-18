@@ -633,14 +633,30 @@ namespace libtorrent
 #endif
 	}
 
+	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size)
+	{
+		// if we're encrypting this buffer, we need to make a copy
+		// since we'll mutate it
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		if (m_encrypted && m_rc4_encrypted)
+		{
+			send_buffer(buffer, size);
+		}
+		else
+#endif
+		{
+			append_const_send_buffer(buffer, size);
+		}
+	}
+
 	void bt_peer_connection::send_buffer(char const* buf, int size, int flags)
 	{
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(size > 0);
 		
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		encrypt_pending_buffer();
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted && m_rc4_encrypted)
 		{
 			TORRENT_ASSERT(send_buffer_size() == m_encrypted_bytes);
