@@ -163,6 +163,7 @@ namespace libtorrent
 			i != m_queue.end(); ++i)
 		{
 			if (i->connecting) ++num_connecting;
+			else TORRENT_ASSERT(i->expires == max_time());
 		}
 		TORRENT_ASSERT(num_connecting == m_num_connecting);
 	}
@@ -200,7 +201,7 @@ namespace libtorrent
 		while (i != m_queue.end())
 		{
 			TORRENT_ASSERT(i->connecting == false);
-			ptime expire = time_now() + i->timeout;
+			ptime expire = time_now_hires() + i->timeout;
 			if (m_num_connecting == 0)
 			{
 				error_code ec;
@@ -264,7 +265,7 @@ namespace libtorrent
 		if (e) return;
 
 		ptime next_expire = max_time();
-		ptime now = time_now();
+		ptime now = time_now_hires() + milliseconds(100);
 		std::list<entry> timed_out;
 		for (std::list<entry>::iterator i = m_queue.begin();
 			!m_queue.empty() && i != m_queue.end();)

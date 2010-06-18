@@ -33,6 +33,8 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* refactored socket reading code to not use async. operations unnecessarily
+	* some timer optimizations
 	* removed the reuse-address flag on the listen socket
 	* fixed bug where local peer discovery and DHT wouldn't be announced to without trackers
 	* fixed bug in bdecoder when decoding invalid messages
