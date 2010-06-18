@@ -66,8 +66,6 @@ namespace libtorrent { namespace
 		return (numerator + denominator - 1) / denominator;
 	}
 
-	void nop(char*) {}
-
 	struct ut_metadata_plugin : torrent_plugin
 	{
 		ut_metadata_plugin(torrent& t)
@@ -306,8 +304,8 @@ namespace libtorrent { namespace
 			io::write_uint8(m_message_index, header);
 
 			m_pc.send_buffer(msg, len + 6);
-			if (metadata_piece_size) m_pc.append_send_buffer(
-				(char*)metadata, metadata_piece_size, &nop);
+			if (metadata_piece_size) m_pc.append_const_send_buffer(
+				metadata, metadata_piece_size);
 		}
 
 		virtual bool on_extended(int length

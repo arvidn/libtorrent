@@ -33,6 +33,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed bug in metadata extensions combined with encryption
 	* refactored socket reading code to not use async. operations unnecessarily
 	* some timer optimizations
 	* removed the reuse-address flag on the listen socket

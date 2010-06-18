@@ -447,6 +447,8 @@ namespace libtorrent
 #endif
 		}
 
+		virtual void append_const_send_buffer(char const* buffer, int size);
+
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void set_country(char const* c)
 		{
