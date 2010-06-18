@@ -110,9 +110,9 @@ namespace libtorrent
 		time_duration completion_timeout = now - m_start_time;
 		
 		if (m_read_timeout
-			< total_seconds(receive_timeout)
+			<= total_seconds(receive_timeout)
 			|| m_completion_timeout
-			< total_seconds(completion_timeout))
+			<= total_seconds(completion_timeout))
 		{
 			on_timeout();
 			return;

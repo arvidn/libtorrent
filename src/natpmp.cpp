@@ -482,15 +482,15 @@ void natpmp::on_reply(error_code const& e
 	m_currently_mapping = -1;
 	m->action = mapping_t::action_none;
 	m_send_timer.cancel(ec);
-	update_expiration_timer();
+	update_expiration_timer(l);
 	try_next_mapping(index, l);
 }
 
-void natpmp::update_expiration_timer()
+void natpmp::update_expiration_timer(boost::mutex::scoped_lock& l)
 {
 	if (m_abort) return;
 
-	ptime now = time_now();
+	ptime now = time_now() + milliseconds(100);
 /*
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	m_log << time_now_string() << "update_expiration_timer " << std::endl;
@@ -514,10 +514,20 @@ void natpmp::update_expiration_timer()
 	{
 		if (i->protocol == none
 			|| i->action != mapping_t::action_none) continue;
-		if (i->expires < min_expire)
+		int index = i - m_mappings.begin();
+		if (i->expires < now)
+		{
+			char msg[200];
+			snprintf(msg, sizeof(msg), "mapping %u expired", index);
+			log(msg, l);
+			i->action = mapping_t::action_add;
+			if (m_next_refresh == index) m_next_refresh = -1;
+			update_mapping(index, l);
+		}
+		else if (i->expires < min_expire)
 		{
 			min_expire = i->expires;
-			min_index = i - m_mappings.begin();
+			min_index = index;
 		}
 	}
 
