@@ -4535,6 +4535,17 @@ namespace libtorrent
 		m_packet_size = packet_size;
 	}
 
+	void nop(char*) {}
+
+	void peer_connection::append_const_send_buffer(char const* buffer, int size)
+	{
+		m_send_buffer.append_buffer((char*)buffer, size, size, &nop);
+#ifdef TORRENT_STATS
+		m_ses.m_buffer_usage_logger << log_time() << " append_const_send_buffer: " << size << std::endl;
+		m_ses.log_buffer_usage();
+#endif
+	}
+
 	void peer_connection::send_buffer(char const* buf, int size, int flags)
 	{
 		if (flags == message_type_request)
