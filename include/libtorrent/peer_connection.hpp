@@ -560,6 +560,9 @@ namespace libtorrent
 
 	protected:
 
+		enum sync_t { read_async, read_sync };
+		size_t try_read(sync_t s, error_code& ec);
+
 		virtual void get_specific_peer_info(peer_info& p) const = 0;
 
 		virtual void write_choke() = 0;
@@ -636,6 +639,8 @@ namespace libtorrent
 		void on_send_data(error_code const& error
 			, std::size_t bytes_transferred);
 		void on_receive_data(error_code const& error
+			, std::size_t bytes_transferred);
+		void on_receive_data_nolock(error_code const& error
 			, std::size_t bytes_transferred);
 
 		// this is the limit on the number of outstanding requests
