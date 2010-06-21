@@ -2282,6 +2282,9 @@ namespace libtorrent
 					{
 						ptime now = time_now_hires();
 						TORRENT_ASSERT(now >= m_last_file_check);
+						// this happens sometimes on windows for some reason
+						if (now < m_last_file_check) now = m_last_file_check;
+
 #if BOOST_VERSION > 103600
 						if (now - m_last_file_check < milliseconds(m_settings.file_checks_delay_per_block))
 						{
