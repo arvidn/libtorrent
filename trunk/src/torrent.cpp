@@ -2173,7 +2173,9 @@ namespace libtorrent
 			{
 				if (!m_torrent_file->files().at(file_index).pad_file)
 				{
-					filesystem().async_finalize_file(file_index);
+					if (m_owning_storage.get())
+						m_storage->async_finalize_file(file_index);
+
 					if (m_ses.m_alerts.should_post<piece_finished_alert>())
 					{
 						// this file just completed, post alert

@@ -1,3 +1,5 @@
+	* fixed bug in web_peer_connection which could cause a hang when downloading
+	  from web servers
 	* fixed bug in metadata extensions combined with encryption
 	* refactored socket reading code to not use async. operations unnecessarily
 	* some timer optimizations

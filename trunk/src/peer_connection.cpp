@@ -5022,7 +5022,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 		if (t && t->valid_metadata() && !m_disconnecting)
 		{
-			boost::optional<piece_block_progress> p = t?downloading_piece_progress():boost::optional<piece_block_progress>();
 			torrent_info const& ti = t->torrent_file();
 			// if the piece is fully downloaded, we might have popped it from the
 			// download queue already
@@ -5038,10 +5037,11 @@ namespace libtorrent
 				TORRENT_ASSERT(i->block.piece_index <= last_block.piece_index);
 				TORRENT_ASSERT(i->block.piece_index < last_block.piece_index
 					|| i->block.block_index <= last_block.block_index);
-				if (p && i->block == piece_block(p->piece_index, p->block_index))
+				if (m_received_in_piece && i == m_download_queue.begin())
 				{
 					in_download_queue = true;
-					outstanding_bytes += p->full_block_bytes - m_received_in_piece;
+					TORRENT_ASSERT(t->to_req(i->block).length >= m_received_in_piece);
+					outstanding_bytes += t->to_req(i->block).length - m_received_in_piece;
 				}
 				else
 				{
