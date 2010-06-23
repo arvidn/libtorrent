@@ -119,6 +119,15 @@ namespace libtorrent
 	web_peer_connection::~web_peer_connection()
 	{}
 	
+	void web_peer_connection::disconnect(error_code const& ec, int error)
+	{
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		if (t && m_block_pos)
+			t->add_redundant_bytes(m_block_pos);
+
+		peer_connection::disconnect(ec, error);
+	}
+
 	boost::optional<piece_block_progress>
 	web_peer_connection::downloading_piece_progress() const
 	{
@@ -364,9 +373,6 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 					(*m_logger) << "*** " << std::string(recv_buffer.begin, recv_buffer.end) << "\n";
 #endif
-					if (t && m_block_pos)
-						t->add_redundant_bytes(m_block_pos);
-
 					disconnect(errors::http_parse_error, 2);
 					return;
 				}
@@ -403,9 +409,6 @@ namespace libtorrent
 							, error_msg));
 					}
 					m_statistics.received_bytes(0, bytes_transferred);
-					if (m_block_pos)
-						t->add_redundant_bytes(m_block_pos);
-
 					disconnect(errors::http_error, 1);
 					return;
 				}
@@ -440,9 +443,6 @@ namespace libtorrent
 
 					if (location.empty())
 					{
-						if (m_block_pos)
-							t->add_redundant_bytes(m_block_pos);
-
 						// we should not try this server again.
 						t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 						disconnect(errors::missing_location, 2);
@@ -466,18 +466,12 @@ namespace libtorrent
 						size_t i = location.rfind(path);
 						if (i == std::string::npos)
 						{
-							if (m_block_pos)
-								t->add_redundant_bytes(m_block_pos);
-
 							t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 							disconnect(errors::invalid_redirection, 2);
 							return;
 						}
 						location.resize(i);
 					}
-					if (m_block_pos)
-						t->add_redundant_bytes(m_block_pos);
-
 					t->add_web_seed(location, web_seed_entry::url_seed);
 					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 					disconnect(errors::redirecting, 2);
@@ -512,9 +506,6 @@ namespace libtorrent
 				if (range_start < 0 || range_end < range_start)
 				{
 					m_statistics.received_bytes(0, bytes_transferred);
-					if (m_block_pos)
-						t->add_redundant_bytes(m_block_pos);
-
 					// we should not try this server again.
 					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 					disconnect(errors::invalid_range);
@@ -530,9 +521,6 @@ namespace libtorrent
 				if (range_end == -1)
 				{
 					m_statistics.received_bytes(0, bytes_transferred);
-					if (m_block_pos)
-						t->add_redundant_bytes(m_block_pos);
-
 					// we should not try this server again.
 					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 					disconnect(errors::no_content_length, 2);
@@ -543,9 +531,6 @@ namespace libtorrent
 			if (m_requests.empty() || m_file_requests.empty())
 			{
 				m_statistics.received_bytes(0, bytes_transferred);
-				if (m_block_pos)
-					t->add_redundant_bytes(m_block_pos);
-
 				disconnect(errors::http_error, 2);
 				return;
 			}
@@ -603,9 +588,6 @@ namespace libtorrent
 				incoming_piece_fragment((std::min)(payload_transferred
 					, front_request.length - m_block_pos));
 				m_statistics.received_bytes(0, bytes_transferred);
-				if (m_block_pos)
-					t->add_redundant_bytes(m_block_pos);
-
 				// this means the end of the incoming request ends _before_ the
 				// first expected byte (fs + m_piece.size())
 				disconnect(errors::invalid_range, 2);
