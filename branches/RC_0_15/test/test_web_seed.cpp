@@ -117,10 +117,12 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 
 		if (th.is_seed()/* && ss.download_rate == 0.f*/)
 		{
-			TEST_CHECK(th.status().total_payload_download == total_size);
+			torrent_status st = th.status();
+			TEST_CHECK(st.total_payload_download - st.total_redundant_bytes == total_size);
 			// we need to sleep here a bit to let the session sync with the torrent stats
 			test_sleep(1000);
-			TEST_CHECK(ses.status().total_payload_download == total_size);
+			TEST_CHECK(ses.status().total_payload_download - ses.status().total_redundant_bytes
+				== total_size);
 			break;
 		}
 		test_sleep(500);

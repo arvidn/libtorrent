@@ -107,6 +107,8 @@ namespace libtorrent
 			, std::size_t bytes_transferred);
 		void on_receive(error_code const& error
 			, std::size_t bytes_transferred);
+
+		virtual void disconnect(error_code const& ec, int error = 0);
 			
 		std::string const& url() const { return m_original_url; }
 		
