@@ -644,7 +644,7 @@ namespace libtorrent
 		else
 #endif
 		{
-			append_const_send_buffer(buffer, size);
+			peer_connection::append_const_send_buffer(buffer, size);
 		}
 	}
 
