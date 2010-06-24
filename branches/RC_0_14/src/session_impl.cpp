@@ -1656,11 +1656,11 @@ namespace aux {
 			if (m_listen_interface.port() != 0) open_listen_port();
 		}
 
-		do
+		bool stop_loop = false;
+		while (!stop_loop)
 		{
 			error_code ec;
 			m_io_service.run(ec);
-			TORRENT_ASSERT(m_abort == true);
 			if (ec)
 			{
 #ifdef TORRENT_DEBUG
@@ -1670,8 +1670,10 @@ namespace aux {
 				TORRENT_ASSERT(false);
 			}
 			m_io_service.reset();
+
+			mutex_t::scoped_lock l(m_mutex);
+			stop_loop = m_abort;
 		}
-		while (!m_abort);
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " locking mutex\n";
