@@ -601,7 +601,7 @@ namespace libtorrent
 			// set to true when the session object
 			// is being destructed and the thread
 			// should exit
-			volatile bool m_abort;
+			bool m_abort;
 
 			// is true if the session is paused
 			bool m_paused;
