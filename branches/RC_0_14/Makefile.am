@@ -28,7 +28,6 @@ docs/bitslug_thumb.png \
 docs/bitrocket_thumb.png \
 docs/btg_thumb.jpg \
 docs/bitfox.png \
-docs/acquasition.jpg \
 docs/im_thumb.jpg \
 docs/Linkage.png \
 docs/deluge.png \
