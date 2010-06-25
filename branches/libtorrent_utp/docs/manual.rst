@@ -207,9 +207,12 @@ The ``session`` class has the following synopsis::
 
 		bool is_listening() const;
 		unsigned short listen_port() const;
+
+		enum { listen_reuse_address = 1 };
 		bool listen_on(
 			std::pair<int, int> const& port_range
-			, char const* interface = 0);
+			, char const* interface = 0
+			, int flags = 0);
 
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
@@ -917,7 +920,8 @@ is_listening() listen_port() listen_on()
 		unsigned short listen_port() const;
 		bool listen_on(
 			std::pair<int, int> const& port_range
-			, char const* interface = 0);
+			, char const* interface = 0
+			, int flags = 0);
 
 ``is_listening()`` will tell you whether or not the session has successfully
 opened a listening port. If it hasn't, this function will return false, and
@@ -945,6 +949,11 @@ want to listen on. If you don't specify an interface, libtorrent may attempt to
 listen on multiple interfaces (typically 0.0.0.0 and ::). This means that if your
 IPv6 interface doesn't work, you may still see a listen_failed_alert_, even though
 the IPv4 port succeeded.
+
+The ``flags`` parameter can either be 0 or ``session::listen_reuse_address``, which
+will set the reuse address socket option on the listen socket(s). By default, the
+listen socket does not use reuse address. If you're running a service that needs
+to run on a specific port no matter if it's in use, set this flag.
 
 If you're also starting the DHT, it is a good idea to do that after you've called
 ``listen_on()``, since the default listen port for the DHT is the same as the tcp

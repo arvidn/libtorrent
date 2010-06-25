@@ -536,8 +536,6 @@ namespace aux {
 		(*m_logger) << time_now_string() << "\n";
 #endif
 
-		open_listen_port();
-
 #ifndef TORRENT_DISABLE_DHT
 		m_next_dht_torrent = m_torrents.begin();
 #endif
@@ -749,6 +747,9 @@ namespace aux {
 		m_dht_announce_timer.async_wait(
 			boost::bind(&session_impl::on_dht_announce, this, _1));
 #endif
+
+		// no reuse_address
+		open_listen_port(false);
 
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
@@ -1184,6 +1185,7 @@ namespace aux {
 			|| m_settings.file_pool_size != s.file_pool_size
 			|| m_settings.volatile_read_cache != s.volatile_read_cache
 			|| m_settings.no_atime_storage!= s.no_atime_storage
+			|| m_settings.ignore_resume_timestamps != s.ignore_resume_timestamps
 			|| m_settings.low_prio_disk != s.low_prio_disk)
 			update_disk_io_thread = true;
 
@@ -1314,13 +1316,14 @@ namespace aux {
 	}
 
 	session_impl::listen_socket_t session_impl::setup_listener(tcp::endpoint ep
-		, int retries, bool v6_only)
+		, int retries, bool v6_only, bool reuse_address)
 	{
 		error_code ec;
 		listen_socket_t s;
 		s.sock.reset(new socket_acceptor(m_io_service));
 		s.sock->open(ep.protocol(), ec);
-		s.sock->set_option(socket_acceptor::reuse_address(true), ec);
+		if (reuse_address)
+			s.sock->set_option(socket_acceptor::reuse_address(true), ec);
 #if TORRENT_USE_IPV6
 		if (ep.protocol() == tcp::v6())
 		{
@@ -1390,7 +1393,7 @@ namespace aux {
 		return s;
 	}
 	
-	void session_impl::open_listen_port()
+	void session_impl::open_listen_port(bool reuse_address)
 	{
 		// close the open listen sockets
 		m_listen_sockets.clear();
@@ -1406,7 +1409,7 @@ namespace aux {
 		
 			listen_socket_t s = setup_listener(
 				tcp::endpoint(address_v4::any(), m_listen_interface.port())
-				, m_listen_port_retries);
+				, m_listen_port_retries, false, reuse_address);
 
 			if (s.sock)
 			{
@@ -1430,7 +1433,7 @@ namespace aux {
 			{
 				s = setup_listener(
 					tcp::endpoint(address_v6::any(), m_listen_interface.port())
-					, m_listen_port_retries, true);
+					, m_listen_port_retries, true, reuse_address);
 
 				if (s.sock)
 				{
@@ -1460,7 +1463,7 @@ namespace aux {
 			// binds to the given interface
 
 			listen_socket_t s = setup_listener(
-				m_listen_interface, m_listen_port_retries);
+				m_listen_interface, m_listen_port_retries, false, reuse_address);
 
 			if (s.sock)
 			{
@@ -1649,6 +1652,8 @@ namespace aux {
 		if (!listener) return;
 		
 		if (e == asio::error::operation_aborted) return;
+
+		mutex::scoped_lock l(m_mutex);
 
 		if (m_abort) return;
 
@@ -2850,10 +2855,14 @@ namespace aux {
 			{
 				if (prev != end)
 				{
+					boost::shared_ptr<torrent> t1 = (*prev)->associated_torrent().lock();
+					TORRENT_ASSERT(t1);
+					boost::shared_ptr<torrent> t2 = (*i)->associated_torrent().lock();
+					TORRENT_ASSERT(t2);
 					TORRENT_ASSERT((*prev)->uploaded_since_unchoke() * 1000
-						/ total_milliseconds(unchoke_interval)
+						/ total_milliseconds(unchoke_interval) * t1->priority()
 						>= (*i)->uploaded_since_unchoke() * 1000
-						/ total_milliseconds(unchoke_interval));
+						/ total_milliseconds(unchoke_interval) * t2->priority());
 				}
 				prev = i;
 			}
@@ -3011,11 +3020,11 @@ namespace aux {
 	{
 		eh_initializer();
 
-		do
+		bool stop_loop = false;
+		while (!stop_loop)
 		{
 			error_code ec;
 			m_io_service.run(ec);
-			TORRENT_ASSERT(m_abort == true);
 			if (ec)
 			{
 #ifdef TORRENT_DEBUG
@@ -3025,8 +3034,10 @@ namespace aux {
 				TORRENT_ASSERT(false);
 			}
 			m_io_service.reset();
+
+			mutex::scoped_lock l(m_mutex);
+			stop_loop = m_abort;
 		}
-		while (!m_abort);
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " locking mutex\n";
@@ -3271,7 +3282,7 @@ namespace aux {
 
 	bool session_impl::listen_on(
 		std::pair<int, int> const& port_range
-		, const char* net_interface)
+		, const char* net_interface, int flags)
 	{
 		INVARIANT_CHECK;
 
@@ -3301,7 +3312,7 @@ namespace aux {
 
 		m_listen_interface = new_interface;
 
-		open_listen_port();
+		open_listen_port(flags & session::listen_reuse_address);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
@@ -3508,7 +3519,7 @@ namespace aux {
 		INVARIANT_CHECK;
 
 		if (m_listen_interface.port() != 0)
-			open_listen_port();
+			open_listen_port(false);
 
 		if (m_dht)
 		{

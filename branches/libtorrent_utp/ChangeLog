@@ -1,4 +1,5 @@
 	* resistance towards certain flood attacks
+	* made the reuse-address flag configurable on the listen socket
 	* moved UDP trackers over to use a single socket
 	* added feature to make asserts log to a file instead of breaking the process
 	  (production asserts)
@@ -33,6 +34,17 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed race condition around m_abort in session_impl
+	* fixed bug in web_peer_connection which could cause a hang when downloading
+	  from web servers
+	* fixed bug in metadata extensions combined with encryption
+	* refactored socket reading code to not use async. operations unnecessarily
+	* some timer optimizations
+	* removed the reuse-address flag on the listen socket
+	* fixed bug where local peer discovery and DHT wouldn't be announced to without trackers
+	* fixed bug in bdecoder when decoding invalid messages
+	* added build warning when building with UNICODE but the standard library
+	  doesn't provide std::wstring
 	* fixed add_node python binding
 	* fixed issue where trackers wouldn't tried immediately when the previous one failed
 	* fixed synchronization issue between download queue and piece picker

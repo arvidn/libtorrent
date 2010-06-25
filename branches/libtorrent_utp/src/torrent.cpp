@@ -452,7 +452,7 @@ namespace libtorrent
 		else
 		{
 			set_state(torrent_status::downloading_metadata);
-			if (!m_trackers.empty()) start_announcing();
+			start_announcing();
 		}
 	}
 
@@ -2203,7 +2203,9 @@ namespace libtorrent
 			{
 				if (!m_torrent_file->files().at(file_index).pad_file)
 				{
-					filesystem().async_finalize_file(file_index);
+					if (m_owning_storage.get())
+						m_storage->async_finalize_file(file_index);
+
 					if (m_ses.m_alerts.should_post<piece_finished_alert>())
 					{
 						// this file just completed, post alert
@@ -3108,8 +3110,7 @@ namespace libtorrent
 		if (settings().prefer_udp_trackers)
 			prioritize_udp_trackers();
 
-		if (!m_trackers.empty()) start_announcing();
-		else stop_announcing();
+		if (!m_trackers.empty()) announce_with_tracker();
 	}
 
 	void torrent::prioritize_udp_trackers()
@@ -3158,7 +3159,7 @@ namespace libtorrent
 		if (k - m_trackers.begin() < m_last_working_tracker) ++m_last_working_tracker;
 		k = m_trackers.insert(k, url);
 		if (k->source == 0) k->source = announce_entry::source_client;
-		if (!m_trackers.empty()) start_announcing();
+		if (!m_trackers.empty()) announce_with_tracker();
 	}
 
 	bool torrent::choke_peer(peer_connection& c)

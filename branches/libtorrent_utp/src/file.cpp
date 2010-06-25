@@ -125,6 +125,12 @@ BOOST_STATIC_ASSERT((libtorrent::file::rw_mask & libtorrent::file::attribute_mas
 BOOST_STATIC_ASSERT((libtorrent::file::no_buffer & libtorrent::file::attribute_mask) == 0);
 #endif
 
+#ifdef TORRENT_WINDOWS
+#if defined UNICODE && !TORRENT_USE_WSTRING
+#warning wide character support not available. Files will be saved using narrow string names
+#endif
+#endif // TORRENT_WINDOWS
+
 namespace libtorrent
 {
 	void stat_file(std::string const& inf, file_status* s

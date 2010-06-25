@@ -532,6 +532,8 @@ namespace libtorrent
 			m_send_buffer.append_buffer(buffer, size, size, destructor);
 		}
 
+		virtual void append_const_send_buffer(char const* buffer, int size);
+
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void set_country(char const* c)
 		{
@@ -573,6 +575,9 @@ namespace libtorrent
 		void setup_receive();
 
 	protected:
+
+		enum sync_t { read_async, read_sync };
+		size_t try_read(sync_t s, error_code& ec);
 
 		virtual void get_specific_peer_info(peer_info& p) const = 0;
 
@@ -650,6 +655,8 @@ namespace libtorrent
 		void on_send_data(error_code const& error
 			, std::size_t bytes_transferred);
 		void on_receive_data(error_code const& error
+			, std::size_t bytes_transferred);
+		void on_receive_data_nolock(error_code const& error
 			, std::size_t bytes_transferred);
 
 		// this is the limit on the number of outstanding requests

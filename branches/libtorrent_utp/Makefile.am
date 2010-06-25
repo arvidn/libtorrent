@@ -5,7 +5,6 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = include/libtorrent src examples test bindings
 
 DOCS_IMAGES = \
-  docs/acquasition.jpg            \
   docs/arctic_thumb.png           \
   docs/bitbuddy_thumb.jpg         \
   docs/bitfox.png                 \
