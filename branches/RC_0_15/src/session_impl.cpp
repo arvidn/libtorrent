@@ -1686,7 +1686,7 @@ namespace aux {
 		for (connection_map::iterator i = m_connections.begin();
 			i != m_connections.end();)
 		{
-			peer_connection* p = *i;
+			boost::intrusive_ptr<peer_connection> p = *i;
 			++i;
 			if (p->m_channel_state[peer_connection::download_channel]
 				!= peer_info::bw_disk) continue;
