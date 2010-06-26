@@ -250,7 +250,7 @@ struct utp_socket_impl
 
 	void tick(ptime const& now);
 	bool incoming_packet(char const* buf, int size, udp::endpoint const& ep);
-	bool should_delete() const { return m_state == UTP_STATE_DELETE && !m_attached; }
+	bool should_delete() const;
 	tcp::endpoint remote_endpoint(error_code& ec) const
 	{
 		if (m_state == UTP_STATE_NONE)
@@ -601,10 +601,12 @@ utp_stream::endpoint_type utp_stream::local_endpoint() const
 utp_stream::~utp_stream()
 {
 	if (m_impl)
-    {
-        m_impl->destroy();
-        detach_utp_impl(m_impl);
-    }
+	{
+		UTP_LOGV("[%08u] %8p: utp_stream destructed\n"
+			, int(total_microseconds(time_now_hires() - min_time())), m_impl);
+		m_impl->destroy();
+		detach_utp_impl(m_impl);
+	}
 
 	m_impl = 0;
 }
@@ -634,7 +636,11 @@ void utp_stream::on_read(void* self, size_t bytes_transferred, error_code const&
 	TORRENT_ASSERT(s->m_read_handler);
 	s->m_io_service.post(boost::bind<void>(s->m_read_handler, ec, bytes_transferred));
 	s->m_read_handler.clear();
-	if (kill) s->m_impl = 0;
+	if (kill && s->m_impl)
+	{
+		detach_utp_impl(s->m_impl);
+		s->m_impl = 0;
+	}
 }
 
 void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const& ec, bool kill)
@@ -648,7 +654,11 @@ void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const
 	TORRENT_ASSERT(s->m_write_handler);
 	s->m_io_service.post(boost::bind<void>(s->m_write_handler, ec, bytes_transferred));
 	s->m_write_handler.clear();
-	if (kill) s->m_impl = 0;
+	if (kill && s->m_impl)
+	{
+		detach_utp_impl(s->m_impl);
+		s->m_impl = 0;
+	}
 }
 
 void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
@@ -661,7 +671,11 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 	TORRENT_ASSERT(s->m_connect_handler);
 	s->m_io_service.post(boost::bind<void>(s->m_connect_handler, ec));
 	s->m_connect_handler.clear();
-	if (kill) s->m_impl = 0;
+	if (kill && s->m_impl)
+	{
+		detach_utp_impl(s->m_impl);
+		s->m_impl = 0;
+	}
 }
 
 void utp_stream::add_read_buffer(void* buf, size_t len)
@@ -849,6 +863,8 @@ void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler
 
 utp_socket_impl::~utp_socket_impl()
 {
+	TORRENT_ASSERT(!m_attached);
+
     UTP_LOGV("[%08u] %8p: destroying utp socket state\n"
 		, int(total_microseconds(time_now_hires() - min_time())), this);
 
@@ -873,6 +889,19 @@ utp_socket_impl::~utp_socket_impl()
     {
         free(*i);
     }
+}
+
+bool utp_socket_impl::should_delete() const
+{
+	bool ret =  m_state == UTP_STATE_DELETE && !m_attached;
+
+	if (ret)
+	{
+		UTP_LOGV("[%08u] %8p: should_delete() = true\n"
+			, int(total_microseconds(time_now_hires() - min_time())), this);
+	}
+
+	return ret;
 }
 
 void utp_socket_impl::maybe_trigger_receive_callback(ptime now)
@@ -955,6 +984,8 @@ void utp_socket_impl::destroy()
 
 void utp_socket_impl::detach()
 {
+	UTP_LOGV("[%08u] %8p: detach()\n"
+		, int(total_microseconds(time_now_hires() - min_time())), this);
     m_attached = false;
 }
 
