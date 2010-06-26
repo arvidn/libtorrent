@@ -1398,7 +1398,9 @@ namespace aux {
 			if (e == asio::error::connection_refused
 				|| e == asio::error::connection_reset
 				|| e == asio::error::connection_aborted)
-				m_dht->on_unreachable(ep);
+			{
+				if (m_dht) m_dht->on_unreachable(ep);
+			}
 
 			if (m_alerts.should_post<udp_error_alert>())
 				m_alerts.post_alert(udp_error_alert(ep, e));
@@ -1681,13 +1683,17 @@ namespace aux {
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 		
-		for (connection_map::iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
+		for (connection_map::iterator i = m_connections.begin();
+			i != m_connections.end();)
 		{
-			if ((*i)->m_channel_state[peer_connection::download_channel]
+			peer_connection* p = *i;
+			++i;
+			if (p->m_channel_state[peer_connection::download_channel]
 				!= peer_info::bw_disk) continue;
 
-			(*i)->setup_receive();
+			// setup_receive() may disconnect the connection
+			// and clear it out from the m_connections list
+			p->setup_receive();
 		}
 	}
 
