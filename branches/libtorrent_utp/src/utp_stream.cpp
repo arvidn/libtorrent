@@ -363,6 +363,11 @@ struct utp_socket_impl
 		// have not yet been acked
 		UTP_STATE_FIN_SENT,
 
+		// ====== states beyond this point =====
+		// === are considered closing states ===
+		// === and will cause the socket to ====
+		// ============ be deleted =============
+
 		// the socket has been gracefully disconnected
 		// and is waiting for the client to make a
 		// socket call so that we can communicate this
@@ -893,7 +898,13 @@ utp_socket_impl::~utp_socket_impl()
 
 bool utp_socket_impl::should_delete() const
 {
-	bool ret =  m_state == UTP_STATE_DELETE && !m_attached;
+	// if the socket state is not attached anymore we're free
+	// to delete it from the client's point of view. The other
+	// endpoint however might still need to be told that we're
+	// closing the socket. Only delete the state if we're not
+	// attached and we're in a state where the other end doesn't
+	// expect the socket to still be alive
+	bool ret = m_state >= UTP_STATE_ERROR_WAIT && !m_attached;
 
 	if (ret)
 	{
