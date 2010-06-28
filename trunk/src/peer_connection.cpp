@@ -615,7 +615,7 @@ namespace libtorrent
 #endif
 		x.append((char*)&t->torrent_file().info_hash()[0], 20);
 
-		sha1_hash hash = hasher(&x[0], x.size()).final();
+		sha1_hash hash = hasher(x.c_str(), x.size()).final();
 		for (;;)
 		{
 			char* p = (char*)&hash[0];
