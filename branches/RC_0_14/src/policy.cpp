@@ -412,6 +412,7 @@ namespace libtorrent
 			--m_num_connect_candidates;
 		}
 		if (m_round_robin == i) ++m_round_robin;
+		if (m_round_robin == m_peers.end()) m_round_robin = m_peers.begin();
 
 		m_peers.erase(i);
 	}

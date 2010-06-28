@@ -1,3 +1,4 @@
+	* fixed rare crash when purging the peer list
 	* fixed race condition around m_abort in session_impl
 	* fixed bug in metadata extensions combined with encryption
 	* fixed bug in bdecoder when decoding invalid messages
