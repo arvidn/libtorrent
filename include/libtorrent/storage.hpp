@@ -34,18 +34,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STORAGE_HPP_INCLUDE
 
 #include <vector>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <bitset>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
 
-#include <boost/function/function2.hpp>
+#include <boost/function.hpp>
 #include <boost/limits.hpp>
+#include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/scoped_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
+#include <boost/filesystem/path.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -60,23 +60,35 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/storage_defs.hpp"
 
 namespace libtorrent
 {
+	namespace aux
+	{
+		struct piece_checker_data;
+	}
+
+	namespace fs = boost::filesystem;
+
 	class session;
 	struct file_pool;
 	struct disk_io_job;
 	struct disk_buffer_pool;
 
+	enum storage_mode_t
+	{
+		storage_mode_allocate = 0,
+		storage_mode_sparse,
+		storage_mode_compact
+	};
+	
 	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		file_storage const& t
-		, std::string const& p);
+		, fs::path p);
 
 	TORRENT_EXPORT bool match_filesizes(
 		file_storage const& t
-		, std::string const& p
+		, fs::path p
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
 		, bool compact_mode
 		, std::string* error = 0);
@@ -127,7 +139,7 @@ namespace libtorrent
 		virtual int sparse_end(int start) const { return start; }
 
 		// non-zero return value indicates an error
-		virtual bool move_storage(std::string const& save_path) = 0;
+		virtual bool move_storage(fs::path save_path) = 0;
 
 		// verify storage dependent fast resume entries
 		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
@@ -158,20 +170,18 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual bool delete_files() = 0;
 
-		virtual void finalize_file(int file) {}
-
 		disk_buffer_pool* disk_pool() { return m_disk_pool; }
 		session_settings const& settings() const { return *m_settings; }
 
-		void set_error(std::string const& file, error_code const& ec) const
+		void set_error(boost::filesystem::path const& file, error_code const& ec) const
 		{
-			m_error_file = file;
+			m_error_file = file.string();
 			m_error = ec;
 		}
 
 		error_code const& error() const { return m_error; }
 		std::string const& error_file() const { return m_error_file; }
-		void clear_error() { m_error = error_code(); m_error_file.resize(0); }
+		void clear_error() { m_error = error_code(); m_error_file.clear(); }
 
 		mutable error_code m_error;
 		mutable std::string m_error_file;
@@ -181,6 +191,15 @@ namespace libtorrent
 		disk_buffer_pool* m_disk_pool;
 		session_settings* m_settings;
 	};
+
+	typedef storage_interface* (*storage_constructor_type)(
+		file_storage const&, file_storage const*, fs::path const&, file_pool&);
+
+	TORRENT_EXPORT storage_interface* default_storage_constructor(
+		file_storage const&, file_storage const* mapped, fs::path const&, file_pool&);
+
+	TORRENT_EXPORT storage_interface* disabled_storage_constructor(
+		file_storage const&, file_storage const* mapped, fs::path const&, file_pool&);
 
 	struct disk_io_thread;
 
@@ -195,7 +214,7 @@ namespace libtorrent
 		piece_manager(
 			boost::shared_ptr<void> const& torrent
 			, boost::intrusive_ptr<torrent_info const> info
-			, std::string const& path
+			, fs::path const& path
 			, file_pool& fp
 			, disk_io_thread& io
 			, storage_constructor_type sc
@@ -205,8 +224,6 @@ namespace libtorrent
 
 		boost::intrusive_ptr<torrent_info const> info() const { return m_info; }
 		void write_resume_data(entry& rd) const;
-
-		void async_finalize_file(int file);
 
 		void async_check_fastresume(lazy_entry const* resume_data
 			, boost::function<void(int, disk_io_job const&)> const& handler);
@@ -221,17 +238,12 @@ namespace libtorrent
 		void async_read(
 			peer_request const& r
 			, boost::function<void(int, disk_io_job const&)> const& handler
-			, int cache_line_size = 0
-			, int cache_expiry = 0);
+			, int priority = 0);
 
 		void async_read_and_hash(
 			peer_request const& r
 			, boost::function<void(int, disk_io_job const&)> const& handler
-			, int cache_expiry = 0);
-
-		void async_cache(int piece
-			, boost::function<void(int, disk_io_job const&)> const& handler
-			, int cache_expiry = 0);
+			, int priority = 0);
 
 		void async_write(
 			peer_request const& r
@@ -254,7 +266,7 @@ namespace libtorrent
 			boost::function<void(int, disk_io_job const&)> const& handler
 			= boost::function<void(int, disk_io_job const&)>());
 
-		void async_move_storage(std::string const& p
+		void async_move_storage(fs::path const& p
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 
 		void async_save_resume_data(
@@ -273,7 +285,7 @@ namespace libtorrent
 
 	private:
 
-		std::string save_path() const;
+		fs::path save_path() const;
 
 		bool verify_resume_data(lazy_entry const& rd, error_code& e)
 		{ return m_storage->verify_resume_data(rd, e); }
@@ -312,7 +324,7 @@ namespace libtorrent
 		std::string name() const { return m_info->name(); }
 #endif
 
-		bool allocate_slots_impl(int num_slots, mutex::scoped_lock& l, bool abort_on_disk = false);
+		bool allocate_slots(int num_slots, bool abort_on_disk = false);
 
 		// updates the ph.h hasher object with the data at the given slot
 		// and optionally a 'small hash' as well, the hash for
@@ -334,8 +346,6 @@ namespace libtorrent
 
 		size_type physical_offset(int piece_index, int offset);
 
-		void finalize_file(int index);
-
 		// returns the number of pieces left in the
 		// file currently being checked
 		int skip_file() const;
@@ -354,7 +364,7 @@ namespace libtorrent
 		int rename_file_impl(int index, std::string const& new_filename)
 		{ return m_storage->rename_file(index, new_filename); }
 
-		int move_storage_impl(std::string const& save_path);
+		int move_storage_impl(fs::path const& save_path);
 
 		int allocate_slot_for_piece(int piece_index);
 #ifdef TORRENT_DEBUG
@@ -394,9 +404,9 @@ namespace libtorrent
 		// it can either be 'unassigned' or 'unallocated'
 		std::vector<int> m_slot_to_piece;
 
-		std::string m_save_path;
+		fs::path m_save_path;
 
-		mutable mutex m_mutex;
+		mutable boost::recursive_mutex m_mutex;
 
 		enum {
 			// the default initial state

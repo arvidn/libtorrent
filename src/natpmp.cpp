@@ -35,18 +35,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
 
-#include "libtorrent/natpmp.hpp"
-#include "libtorrent/io.hpp"
-#include "libtorrent/assert.hpp"
-#include "libtorrent/enum_net.hpp"
-#include "libtorrent/socket_io.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/config.hpp"
+
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+// asio assumes that the windows error codes are defined already
+#include <winsock2.h>
+#endif
 
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #else
 #include <boost/asio/ip/host_name.hpp>
 #endif
+
+#include "libtorrent/natpmp.hpp"
+#include "libtorrent/io.hpp"
+#include "libtorrent/assert.hpp"
+#include "libtorrent/enum_net.hpp"
 
 using namespace libtorrent;
 
@@ -68,7 +73,7 @@ natpmp::natpmp(io_service& ios, address const& listen_interface
 
 void natpmp::rebind(address const& listen_interface)
 {
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	error_code ec;
 	address gateway = get_default_gateway(m_socket.get_io_service(), ec);
@@ -121,7 +126,7 @@ void natpmp::rebind(address const& listen_interface)
 
 bool natpmp::get_mapping(int index, int& local_port, int& external_port, int& protocol) const
 {
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(index < int(m_mappings.size()) && index >= 0);
 	if (index >= int(m_mappings.size()) || index < 0) return false;
@@ -133,14 +138,14 @@ bool natpmp::get_mapping(int index, int& local_port, int& external_port, int& pr
 	return true;
 }
 
-void natpmp::log(char const* msg, mutex::scoped_lock& l)
+void natpmp::log(char const* msg, mutex_t::scoped_lock& l)
 {
 	l.unlock();
 	m_log_callback(msg);
 	l.lock();
 }
 
-void natpmp::disable(error_code const& ec, mutex::scoped_lock& l)
+void natpmp::disable(error_code const& ec, mutex_t::scoped_lock& l)
 {
 	m_disabled = true;
 
@@ -159,7 +164,7 @@ void natpmp::disable(error_code const& ec, mutex::scoped_lock& l)
 
 void natpmp::delete_mapping(int index)
 {
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(index < int(m_mappings.size()) && index >= 0);
 	if (index >= int(m_mappings.size()) || index < 0) return;
@@ -179,7 +184,7 @@ void natpmp::delete_mapping(int index)
 
 int natpmp::add_mapping(protocol_type p, int external_port, int local_port)
 {
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	if (m_disabled) return -1;
 
@@ -201,7 +206,7 @@ int natpmp::add_mapping(protocol_type p, int external_port, int local_port)
 	return mapping_index;
 }
 
-void natpmp::try_next_mapping(int i, mutex::scoped_lock& l)
+void natpmp::try_next_mapping(int i, mutex_t::scoped_lock& l)
 {
 /*
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
@@ -250,7 +255,7 @@ void natpmp::try_next_mapping(int i, mutex::scoped_lock& l)
 	update_mapping(m - m_mappings.begin(), l);
 }
 
-void natpmp::update_mapping(int i, mutex::scoped_lock& l)
+void natpmp::update_mapping(int i, mutex_t::scoped_lock& l)
 {
 	if (i == m_mappings.size())
 	{
@@ -283,7 +288,7 @@ void natpmp::update_mapping(int i, mutex::scoped_lock& l)
 	}
 }
 
-void natpmp::send_map_request(int i, mutex::scoped_lock& l)
+void natpmp::send_map_request(int i, mutex_t::scoped_lock& l)
 {
 	using namespace libtorrent::detail;
 
@@ -334,7 +339,7 @@ void natpmp::send_map_request(int i, mutex::scoped_lock& l)
 void natpmp::resend_request(int i, error_code const& e)
 {
 	if (e) return;
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 	if (m_currently_mapping != i) return;
 
 	// if we're shutting down, don't retry, just move on
@@ -354,7 +359,7 @@ void natpmp::resend_request(int i, error_code const& e)
 void natpmp::on_reply(error_code const& e
 	, std::size_t bytes_transferred)
 {
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	using namespace libtorrent::detail;
 	if (e)
@@ -481,7 +486,7 @@ void natpmp::on_reply(error_code const& e
 	try_next_mapping(index, l);
 }
 
-void natpmp::update_expiration_timer(mutex::scoped_lock& l)
+void natpmp::update_expiration_timer(boost::mutex::scoped_lock& l)
 {
 	if (m_abort) return;
 
@@ -550,7 +555,7 @@ void natpmp::update_expiration_timer(mutex::scoped_lock& l)
 void natpmp::mapping_expired(error_code const& e, int i)
 {
 	if (e) return;
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 	char msg[200];
 	snprintf(msg, sizeof(msg), "mapping %u expired", i);
 	log(msg, l);
@@ -561,11 +566,11 @@ void natpmp::mapping_expired(error_code const& e, int i)
 
 void natpmp::close()
 {
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 	close_impl(l);
 }
 
-void natpmp::close_impl(mutex::scoped_lock& l)
+void natpmp::close_impl(mutex_t::scoped_lock& l)
 {
 	m_abort = true;
 	log("closing", l);

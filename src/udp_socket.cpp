@@ -30,12 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/escape_string.hpp"
-#include "libtorrent/socket_io.hpp"
 #include <stdlib.h>
 #include <boost/bind.hpp>
 #include <boost/array.hpp>
@@ -131,7 +128,7 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_cod
 void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_transferred)
 {
 	TORRENT_ASSERT(m_magic == 0x1337);
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	TORRENT_ASSERT(m_outstanding > 0);
 	--m_outstanding;
@@ -346,7 +343,7 @@ void udp_socket::unwrap(error_code const& e, char const* buf, int size)
 
 void udp_socket::close()
 {
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 	TORRENT_ASSERT(m_magic == 0x1337);
 
 	error_code ec;
@@ -378,7 +375,7 @@ void udp_socket::close()
 void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 {
 	CHECK_MAGIC;
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	TORRENT_ASSERT(m_abort == false);
 	if (m_abort) return;
@@ -419,7 +416,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 void udp_socket::bind(int port)
 {
 	CHECK_MAGIC;
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	TORRENT_ASSERT(m_abort == false);
 	if (m_abort) return;
@@ -462,7 +459,7 @@ void udp_socket::bind(int port)
 void udp_socket::set_proxy_settings(proxy_settings const& ps)
 {
 	CHECK_MAGIC;
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	error_code ec;
 	m_socks5_sock.close(ec);
@@ -486,7 +483,7 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	if (e) return;
 	CHECK_MAGIC;
 
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	m_proxy_addr.address(i->endpoint().address());
 	m_proxy_addr.port(i->endpoint().port());
@@ -498,7 +495,7 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 void udp_socket::on_timeout()
 {
 	CHECK_MAGIC;
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	error_code ec;
 	m_socks5_sock.close(ec);
@@ -508,7 +505,7 @@ void udp_socket::on_timeout()
 void udp_socket::on_connect(int ticket)
 {
 	CHECK_MAGIC;
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	m_connection_ticket = ticket;
 	error_code ec;
@@ -521,7 +518,7 @@ void udp_socket::on_connected(error_code const& e)
 {
 	CHECK_MAGIC;
 
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 	m_cc.done(m_connection_ticket);
 	m_connection_ticket = -1;
 	if (e) return;
@@ -552,7 +549,7 @@ void udp_socket::handshake1(error_code const& e)
 	CHECK_MAGIC;
 	if (e) return;
 
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 2)
 		, boost::bind(&udp_socket::handshake2, this, _1));
@@ -565,7 +562,7 @@ void udp_socket::handshake2(error_code const& e)
 
 	using namespace libtorrent::detail;
 
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	char* p = &m_tmp_buf[0];
 	int version = read_uint8(p);
@@ -609,7 +606,7 @@ void udp_socket::handshake3(error_code const& e)
 	CHECK_MAGIC;
 	if (e) return;
 
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 2)
 		, boost::bind(&udp_socket::handshake4, this, _1));
@@ -620,7 +617,7 @@ void udp_socket::handshake4(error_code const& e)
 	CHECK_MAGIC;
 	if (e) return;
 
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	using namespace libtorrent::detail;
 
@@ -634,7 +631,7 @@ void udp_socket::handshake4(error_code const& e)
 	socks_forward_udp(l);
 }
 
-void udp_socket::socks_forward_udp(mutex::scoped_lock& l)
+void udp_socket::socks_forward_udp(mutex_t::scoped_lock& l)
 {
 	CHECK_MAGIC;
 	using namespace libtorrent::detail;
@@ -657,7 +654,7 @@ void udp_socket::connect1(error_code const& e)
 	CHECK_MAGIC;
 	if (e) return;
 
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 10)
 		, boost::bind(&udp_socket::connect2, this, _1));
@@ -668,7 +665,7 @@ void udp_socket::connect2(error_code const& e)
 	CHECK_MAGIC;
 	if (e) return;
 
-	mutex::scoped_lock l(m_mutex);	
+	mutex_t::scoped_lock l(m_mutex);	
 
 	using namespace libtorrent::detail;
 

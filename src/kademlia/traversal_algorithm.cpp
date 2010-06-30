@@ -48,6 +48,8 @@ TORRENT_DEFINE_LOG(traversal)
 
 void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
 {
+	if (m_failed.find(addr) != m_failed.end()) return;
+
 	result entry(id, addr, flags);
 	if (entry.id.is_all_zeros())
 	{
@@ -72,19 +74,10 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		TORRENT_ASSERT(std::find_if(m_results.begin(), m_results.end()
 			, boost::bind(&result::id, _1) == id) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << "] adding result: " << id << " " << addr;
+		TORRENT_LOG(traversal) << "adding result: " << id << " " << addr;
 #endif
 		m_results.insert(i, entry);
 	}
-}
-
-void traversal_algorithm::start()
-{
-	// in case the routing table is empty, use the
-	// router nodes in the table
-	if (m_results.empty()) add_router_entries();
-	init();
-	add_requests();
 }
 
 boost::pool<>& traversal_algorithm::allocator() const
@@ -96,39 +89,15 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	if (id.is_all_zeros())
-		TORRENT_LOG(traversal) << time_now_string() << "[" << this << "] WARNING: "
-			"node returned a list which included a node with id 0";
+	TORRENT_LOG(traversal) << time_now_string() << " WARNING: node returned a list which included a node with id 0";
 #endif
 	add_entry(id, addr, 0);
 }
 
-void traversal_algorithm::finished(udp::endpoint const& ep)
+void traversal_algorithm::finished(node_id const& id)
 {
-	std::vector<result>::iterator i = std::find_if(
-		m_results.begin()
-		, m_results.end()
-		, boost::bind(
-			std::equal_to<udp::endpoint>()
-			, boost::bind(&result::endpoint, _1)
-			, ep
-		)
-	);
-
-	TORRENT_ASSERT(i != m_results.end());
-
-	if (i != m_results.end())
-	{
-		// if this flag is set, it means we increased the
-		// branch factor for it, and we should restore it
-		if (i->flags & result::short_timeout)
-			--m_branch_factor;
-	}
-
-	i->flags |= result::alive;
-
 	++m_responses;
 	--m_invoke_count;
-	TORRENT_ASSERT(m_invoke_count >= 0);
 	add_requests();
 	if (m_invoke_count == 0) done();
 }
@@ -136,19 +105,18 @@ void traversal_algorithm::finished(udp::endpoint const& ep)
 // prevent request means that the total number of requests has
 // overflown. This query failed because it was the oldest one.
 // So, if this is true, don't make another request
-void traversal_algorithm::failed(udp::endpoint const& ep, int flags)
+void traversal_algorithm::failed(node_id const& id, bool prevent_request)
 {
-	TORRENT_ASSERT(m_invoke_count >= 0);
+	--m_invoke_count;
 
-	if (m_results.empty()) return;
-
+	TORRENT_ASSERT(!id.is_all_zeros());
 	std::vector<result>::iterator i = std::find_if(
 		m_results.begin()
 		, m_results.end()
 		, boost::bind(
-			std::equal_to<udp::endpoint>()
-			, boost::bind(&result::endpoint, _1)
-			, ep
+			std::equal_to<node_id>()
+			, boost::bind(&result::id, _1)
+			, id
 		)
 	);
 
@@ -157,41 +125,18 @@ void traversal_algorithm::failed(udp::endpoint const& ep, int flags)
 	if (i != m_results.end())
 	{
 		TORRENT_ASSERT(i->flags & result::queried);
-		if (flags & short_timeout)
-		{
-			// short timeout means that it has been more than
-			// two seconds since we sent the request, and that
-			// we'll most likely not get a response. But, in case
-			// we do get a late response, keep the handler
-			// around for some more, but open up the slot
-			// by increasing the branch factor
-			if ((i->flags & result::short_timeout) == 0)
-				++m_branch_factor;
-			i->flags |= result::short_timeout;
-		}
-		else
-		{
-			i->flags |= result::failed;
+		m_failed.insert(i->addr);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(traversal) << " [" << this << "] failed: "
-				<< i->id << " " << i->endpoint();
+		TORRENT_LOG(traversal) << "failed: " << i->id << " " << i->addr;
 #endif
-			// if this flag is set, it means we increased the
-			// branch factor for it, and we should restore it
-			if (i->flags & result::short_timeout)
-				--m_branch_factor;
-
-			// don't tell the routing table about
-			// node ids that we just generated ourself
-			if ((i->flags & result::no_id) == 0)
-				m_node.m_table.node_failed(i->id);
-			++m_timeouts;
-			--m_invoke_count;
-			TORRENT_ASSERT(m_invoke_count >= 0);
-		}
+		// don't tell the routing table about
+		// node ids that we just generated ourself
+		if ((i->flags & result::no_id) == 0)
+			m_node.m_table.node_failed(id);
+		m_results.erase(i);
+		++m_timeouts;
 	}
-
-	if (flags & prevent_request)
+	if (prevent_request)
 	{
 		--m_branch_factor;
 		if (m_branch_factor <= 0) m_branch_factor = 1;
@@ -210,27 +155,32 @@ namespace
 
 void traversal_algorithm::add_requests()
 {
-	int results_target = m_node.m_table.bucket_size();
-
-	// Find the first node that hasn't already been queried.
-	for (std::vector<result>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end
-		&& results_target > 0 && m_invoke_count < m_branch_factor; ++i)
+	while (m_invoke_count < m_branch_factor)
 	{
-		if (i->flags & result::alive) --results_target;
-		if (i->flags & result::queried) continue;
-
+		// Find the first node that hasn't already been queried.
+		// TODO: Better heuristic
+		std::vector<result>::iterator i = std::find_if(
+			m_results.begin()
+			, last_iterator()
+			, boost::bind(
+				&bitwise_nand
+				, boost::bind(&result::flags, _1)
+				, (unsigned char)result::queried
+			)
+		);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << "] nodes left: "
-			<< (m_results.end() - i);
+		TORRENT_LOG(traversal) << "nodes left (" << this << "): " << (last_iterator() - i);
 #endif
 
-		if (invoke(i->endpoint()))
+		if (i == last_iterator()) break;
+
+		try
 		{
-			TORRENT_ASSERT(m_invoke_count >= 0);
+			invoke(i->id, i->addr);
 			++m_invoke_count;
 			i->flags |= result::queried;
 		}
+		catch (std::exception& e) {}
 	}
 }
 
@@ -249,8 +199,6 @@ void traversal_algorithm::add_router_entries()
 
 void traversal_algorithm::init()
 {
-	// update the last activity of this bucket
-	m_node.m_table.touch_bucket(m_target);
 	m_branch_factor = m_node.branch_factor();
 	m_node.add_traversal_algorithm(this);
 }
@@ -267,13 +215,13 @@ void traversal_algorithm::status(dht_lookup& l)
 	l.outstanding_requests = m_invoke_count;
 	l.branch_factor = m_branch_factor;
 	l.type = name();
-	l.nodes_left = 0;
-	for (std::vector<result>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end; ++i)
-	{
-		if (i->flags & result::queried) continue;
-		++l.nodes_left;
-	}
+}
+
+std::vector<traversal_algorithm::result>::iterator traversal_algorithm::last_iterator()
+{
+	int max_results = m_node.m_table.bucket_size();
+	return (int)m_results.size() >= max_results ?
+		m_results.begin() + max_results : m_results.end();
 }
 
 } } // namespace libtorrent::dht

@@ -59,8 +59,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/storage.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
@@ -111,8 +113,6 @@ namespace libtorrent
 		{ return m_encrypted; }
 #endif
 
-		virtual int type() const { return peer_connection::bittorrent_connection; }
-
 		enum message_type
 		{
 	// standard messages
@@ -153,6 +153,18 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		bool support_extensions() const { return m_supports_extensions; }
+
+		template <class T>
+		T* supports_extension() const
+		{
+			for (extension_list_t::const_iterator i = m_extensions.begin()
+				, end(m_extensions.end()); i != end; ++i)
+			{
+				T* ret = dynamic_cast<T*>(i->get());
+				if (ret) return ret;
+			}
+			return 0;
+		}
 #endif
 
 		// the message handlers are called
@@ -218,7 +230,6 @@ namespace libtorrent
 		void write_have_none();
 		void write_reject_request(peer_request const&);
 		void write_allow_fast(int piece);
-		void write_suggest(int piece);
 		
 		void on_connected();
 		void on_metadata();
@@ -355,10 +366,6 @@ private:
 		static bool range_below_zero(const range& r)
 		{ return r.start < 0; }
 		std::vector<range> m_payloads;
-
-		// we have suggested these pieces to the peer
-		// don't suggest it again
-		bitfield m_sent_suggested_pieces;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for upload only message

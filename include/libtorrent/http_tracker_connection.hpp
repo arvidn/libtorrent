@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/i2p_stream.hpp"
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
@@ -75,11 +75,7 @@ namespace libtorrent
 			, boost::weak_ptr<request_callback> c
 			, aux::session_impl const& ses
 			, proxy_settings const& ps
-			, std::string const& password = ""
-#if TORRENT_USE_I2P
-			, i2p_connection* i2p_conn = 0
-#endif
-			);
+			, std::string const& password = "");
 
 		void start();
 		void close();
@@ -106,9 +102,6 @@ namespace libtorrent
 		proxy_settings const& m_ps;
 		connection_queue& m_cc;
 		io_service& m_ios;
-#if TORRENT_USE_I2P
-		i2p_connection* m_i2p_conn;
-#endif
 	};
 
 }

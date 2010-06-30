@@ -46,6 +46,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/detail/atomic_count.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/exception.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/function.hpp>
 #include <boost/integer_traits.hpp>
 #include <boost/intrusive_ptr.hpp>
@@ -98,7 +103,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <typeinfo>
 #include <utility>
 #include <vector>
-#include "libtorrent/puff.h"
+#include <zlib.h>
 
 #ifdef __OBJC__
 #define Protocol Protocol_

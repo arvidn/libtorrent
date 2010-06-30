@@ -33,16 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_NATPMP_HPP
 #define TORRENT_NATPMP_HPP
 
-#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
-#include "libtorrent/deadline_timer.hpp"
 
-#include <boost/function/function1.hpp>
-#include <boost/function/function3.hpp>
+#include <boost/function.hpp>
+#include <boost/thread/mutex.hpp>
 
 namespace libtorrent
 {
@@ -73,18 +68,20 @@ public:
 
 private:
 	
-	void update_mapping(int i, mutex::scoped_lock& l);
-	void send_map_request(int i, mutex::scoped_lock& l);
+	typedef boost::mutex mutex_t;
+
+	void update_mapping(int i, mutex_t::scoped_lock& l);
+	void send_map_request(int i, mutex_t::scoped_lock& l);
 	void resend_request(int i, error_code const& e);
 	void on_reply(error_code const& e
 		, std::size_t bytes_transferred);
-	void try_next_mapping(int i, mutex::scoped_lock& l);
-	void update_expiration_timer(mutex::scoped_lock& l);
+	void try_next_mapping(int i, mutex_t::scoped_lock& l);
+	void update_expiration_timer(boost::mutex::scoped_lock& l);
 	void mapping_expired(error_code const& e, int i);
-	void close_impl(mutex::scoped_lock& l);
+	void close_impl(mutex_t::scoped_lock& l);
 
-	void log(char const* msg, mutex::scoped_lock& l);
-	void disable(error_code const& ec, mutex::scoped_lock& l);
+	void log(char const* msg, mutex_t::scoped_lock& l);
+	void disable(error_code const& ec, mutex_t::scoped_lock& l);
 
 	struct mapping_t
 	{
@@ -159,7 +156,7 @@ private:
 
 	bool m_abort;
 
-	mutable mutex m_mutex;
+	mutable mutex_t m_mutex;
 };
 
 }

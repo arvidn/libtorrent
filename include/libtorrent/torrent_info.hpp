@@ -35,25 +35,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
+//#include <iosfwd>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
 
 #include <boost/optional.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/shared_array.hpp>
-#include <boost/date_time/posix_time/ptime.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/config.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_storage.hpp"
@@ -61,6 +63,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	namespace pt = boost::posix_time;
+	namespace gr = boost::gregorian;
+	namespace fs = boost::filesystem;
 
 	enum
 	{
@@ -96,14 +100,6 @@ namespace libtorrent
 
 		// no announces before this time
 		ptime min_announce;
-
-		// if this tracker failed the last time it was contacted
-		// this error code specifies what error occurred
-		error_code last_error;
-
-		// if this tracker has returned an error or warning message
-		// that message is stored here
-		std::string message;
 
 		boost::uint8_t tier;
 		// the number of times this tracker can fail
@@ -147,7 +143,15 @@ namespace libtorrent
 			min_announce = min_time();
 		}
 
-		void failed(int retry_interval = 0);
+		void failed(int retry_interval = 0)
+		{
+			++fails;
+			int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails)
+				* tracker_retry_delay_min, int(tracker_retry_delay_max));
+			delay = (std::max)(delay, retry_interval);
+			next_announce = time_now() + seconds(delay);
+			updating = false;
+		}
 
 		bool will_announce(ptime now) const
 		{
@@ -165,9 +169,15 @@ namespace libtorrent
 		}
 
 		bool is_working() const
-		{ return fails == 0; }
+		{
+			return fails == 0;
+		}
 
-		void trim();
+		void trim()
+		{
+			while (!url.empty() && is_space(url[0]))
+				url.erase(url.begin());
+		}
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -175,28 +185,28 @@ namespace libtorrent
 	typedef libtorrent_exception invalid_torrent_file;
 #endif
 
-	int TORRENT_EXPORT load_file(std::string const& filename, std::vector<char>& v);
+	int TORRENT_EXPORT load_file(fs::path const& filename, std::vector<char>& v);
 
 	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{
 	public:
+		torrent_info(torrent_info const& t);
 #ifndef BOOST_NO_EXCEPTIONS
 		torrent_info(lazy_entry const& torrent_file);
 		torrent_info(char const* buffer, int size);
-		torrent_info(std::string const& filename);
-#if TORRENT_USE_WSTRING
-		torrent_info(std::wstring const& filename);
-#endif // TORRENT_USE_WSTRING
+		torrent_info(fs::path const& filename);
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+		torrent_info(fs::wpath const& filename);
+#endif
 #endif
 
-		torrent_info(torrent_info const& t);
 		torrent_info(sha1_hash const& info_hash);
 		torrent_info(lazy_entry const& torrent_file, error_code& ec);
 		torrent_info(char const* buffer, int size, error_code& ec);
-		torrent_info(std::string const& filename, error_code& ec);
-#if TORRENT_USE_WSTRING
-		torrent_info(std::wstring const& filename, error_code& ec);
-#endif // TORRENT_USE_WSTRING
+		torrent_info(fs::path const& filename, error_code& ec);
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+		torrent_info(fs::wpath const& filename, error_code& ec);
+#endif
 
 		~torrent_info();
 
@@ -209,13 +219,13 @@ namespace libtorrent
 			m_files.rename_file(index, new_filename);
 		}
 
-#if TORRENT_USE_WSTRING
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
 		void rename_file(int index, std::wstring const& new_filename)
 		{
 			copy_on_write();
 			m_files.rename_file(index, new_filename);
 		}
-#endif // TORRENT_USE_WSTRING
+#endif
 
 		void remap_files(file_storage const& f);
 
@@ -268,8 +278,6 @@ namespace libtorrent
 		bool is_valid() const { return m_files.is_valid(); }
 
 		bool priv() const { return m_private; }
-
-		bool is_i2p() const { return m_i2p; }
 
 		int piece_size(int index) const { return m_files.piece_size(index); }
 
@@ -384,12 +392,6 @@ namespace libtorrent
 		// this is true if the torrent is private. i.e., is should not
 		// be announced on the dht
 		bool m_private;
-
-		// this is true if one of the trackers has an .i2p top
-		// domain in its hostname. This means the DHT and LSD
-		// features are disabled for this torrent (unless the
-		// settings allows mixing i2p peers with regular peers)
-		bool m_i2p;
 
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to

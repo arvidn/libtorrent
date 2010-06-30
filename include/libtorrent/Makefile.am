@@ -5,8 +5,6 @@ GEOIP_H = GeoIP.h
 endif
 
 nobase_include_HEADERS = \
-  address.hpp                  \
-  add_torrent_params.hpp       \
   alert.hpp                    \
   alert_types.hpp              \
   alloca.hpp                   \
@@ -14,7 +12,6 @@ nobase_include_HEADERS = \
   assert.hpp                   \
   bandwidth_limit.hpp          \
   bandwidth_manager.hpp        \
-  bandwidth_socket.hpp         \
   bandwidth_queue_entry.hpp    \
   bencode.hpp                  \
   bitfield.hpp                 \
@@ -26,13 +23,11 @@ nobase_include_HEADERS = \
   connection_queue.hpp         \
   ConvertUTF.h                 \
   create_torrent.hpp           \
-  deadline_timer.hpp           \
   debug.hpp                    \
   disk_buffer_holder.hpp       \
   disk_io_thread.hpp           \
   entry.hpp                    \
   enum_net.hpp                 \
-  error.hpp                    \
   error_code.hpp               \
   escape_string.hpp            \
   extensions.hpp               \
@@ -47,19 +42,15 @@ nobase_include_HEADERS = \
   http_seed_connection.hpp     \
   http_stream.hpp              \
   http_tracker_connection.hpp  \
-  i2p_stream.hpp               \
   identify_client.hpp          \
   instantiate_connection.hpp   \
   intrusive_ptr_base.hpp       \
   invariant_check.hpp          \
   io.hpp                       \
-  io_service.hpp               \
-  io_service_fwd.hpp           \
   ip_filter.hpp                \
   lazy_entry.hpp               \
   lsd.hpp                      \
   magnet_uri.hpp               \
-  max.hpp                      \
   natpmp.hpp                   \
   parse_url.hpp                \
   pch.hpp                      \
@@ -73,22 +64,17 @@ nobase_include_HEADERS = \
   piece_picker.hpp             \
   policy.hpp                   \
   proxy_base.hpp               \
-  ptime.hpp                    \
-  puff.hpp                     \
+  random_sample.hpp            \
   session.hpp                  \
   session_settings.hpp         \
   session_status.hpp           \
   size_type.hpp                \
   socket.hpp                   \
-  socket_io.hpp                \
   socket_type.hpp              \
-  socket_type_fwd.hpp          \
   socks5_stream.hpp            \
   ssl_stream.hpp               \
   stat.hpp                     \
   storage.hpp                  \
-  storage_defs.hpp             \
-  thread.hpp                   \
   time.hpp                     \
   torrent_handle.hpp           \
   torrent.hpp                  \
@@ -96,7 +82,6 @@ nobase_include_HEADERS = \
   tracker_manager.hpp          \
   udp_socket.hpp               \
   udp_tracker_connection.hpp   \
-  union_endpoint.hpp           \
   upnp.hpp                     \
   utf8.hpp                     \
   variant_stream.hpp           \
@@ -104,8 +89,8 @@ nobase_include_HEADERS = \
   web_peer_connection.hpp      \
   xml_parse.hpp                \
   \
-  $(GEOIP_H) \
-  \
+	$(GEOIP_H) \
+	\
   aux_/session_impl.hpp        \
   \
   extensions/logger.hpp             \
@@ -115,12 +100,13 @@ nobase_include_HEADERS = \
   extensions/ut_metadata.hpp        \
   extensions/ut_pex.hpp             \
   \
+  kademlia/closest_nodes.hpp        \
   kademlia/dht_tracker.hpp          \
   kademlia/find_data.hpp            \
   kademlia/logging.hpp              \
   kademlia/msg.hpp                  \
-  kademlia/node.hpp                 \
   kademlia/node_entry.hpp           \
+  kademlia/node.hpp                 \
   kademlia/node_id.hpp              \
   kademlia/observer.hpp             \
   kademlia/refresh.hpp              \

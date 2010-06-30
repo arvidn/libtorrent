@@ -2,6 +2,7 @@ lib_LTLIBRARIES = libtorrent-rasterbar.la
 
 if ENABLE_DHT
 KADEMLIA_SOURCES = \
+  kademlia/closest_nodes.cpp    \
   kademlia/dht_tracker.cpp      \
   kademlia/find_data.cpp        \
   kademlia/node.cpp             \
@@ -20,9 +21,6 @@ libtorrent_rasterbar_la_SOURCES = \
   alert.cpp                       \
   allocator.cpp                   \
   assert.cpp                      \
-  bandwidth_limit.cpp             \
-  bandwidth_manager.cpp           \
-  bandwidth_queue_entry.cpp       \
   broadcast_socket.cpp            \
   bt_peer_connection.cpp          \
   connection_queue.cpp            \
@@ -43,7 +41,6 @@ libtorrent_rasterbar_la_SOURCES = \
   http_seed_connection.cpp        \
   http_stream.cpp                 \
   http_tracker_connection.cpp     \
-  i2p_stream.cpp                  \
   identify_client.cpp             \
   instantiate_connection.cpp      \
   ip_filter.cpp                   \
@@ -59,20 +56,16 @@ libtorrent_rasterbar_la_SOURCES = \
   peer_connection.cpp             \
   piece_picker.cpp                \
   policy.cpp                      \
-  puff.cpp                        \
   session.cpp                     \
   session_impl.cpp                \
   sha1.cpp                        \
   smart_ban.cpp                   \
-  socket_io.cpp                   \
-  socket_type.cpp                 \
   socks5_stream.cpp               \
   stat.cpp                        \
   storage.cpp                     \
   torrent.cpp                     \
   torrent_handle.cpp              \
   torrent_info.cpp                \
-  time.cpp                        \
   tracker_manager.cpp             \
   udp_socket.cpp                  \
   udp_tracker_connection.cpp      \
@@ -87,14 +80,21 @@ libtorrent_rasterbar_la_SOURCES = \
 #libtorrent_rasterbar_la_LDFLAGS = $(LDFLAGS) -version-info $(INTERFACE_VERSION_INFO)
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)
 
-#libtorrent_rasterbar_la_LIBADD =  @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LIBS@
-libtorrent_rasterbar_la_LIBADD = @BOOST_SYSTEM_LIB@ @OPENSSL_LIBS@
+#libtorrent_rasterbar_la_LIBADD = @ZLIB@ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LIBS@
+libtorrent_rasterbar_la_LIBADD = @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LIBS@
 
-#AM_CXXFLAGS= -ftemplate-depth-100 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
-#AM_CPPFLAGS = -ftemplate-depth-100 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
+#libtorrent_rasterbar_la_LIBADD = @ZLIB@
+
+#AM_CXXFLAGS= -ftemplate-depth-100 -I$(top_srcdir)/include @ZLIBINCL@ @DEBUGFLAGS@ @OPENSSL_INCLUDES@
+#AM_CPPFLAGS = -ftemplate-depth-100 -I$(top_srcdir)/include @ZLIBINCL@ @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 AM_CPPFLAGS = -ftemplate-depth-100 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 
-#AM_CFLAGS= -I$(top_srcdir)/include @DEBUGFLAGS@
+#AM_CFLAGS= -I$(top_srcdir)/include @ZLIBINCL@ @DEBUGFLAGS@
 #AM_LDFLAGS = $(LDFLAGS) @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
 AM_LDFLAGS = @OPENSSL_LDFLAGS@
+
+if WITH_SHIPPED_ZLIB
+libtorrent_rasterbar_la_LIBADD += $(top_builddir)/zlib/libzlib.la 
+AM_CPPFLAGS += -I$(top_srcdir)/zlib
+endif
 

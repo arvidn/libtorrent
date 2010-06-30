@@ -32,15 +32,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 
-#include <boost/bind.hpp>
-
-#include "libtorrent/socket.hpp"
-#include "libtorrent/enum_net.hpp"
-#include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/assert.hpp"
-
 #ifndef NDEBUG
 //#include "libtorrent/socket_io.hpp"
+#endif
+
+#include "libtorrent/config.hpp"
+
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+// asio assumes that the windows error codes are defined already
+#include <winsock2.h>
 #endif
 
 #if BOOST_VERSION < 103500
@@ -50,6 +50,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
 #endif
+
+#include <boost/bind.hpp>
+
+#include "libtorrent/socket.hpp"
+#include "libtorrent/enum_net.hpp"
+#include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {

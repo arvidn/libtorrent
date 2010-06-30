@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <boost/limits.hpp>
+#include <limits>
 #include <boost/bind.hpp>
 
 #include "libtorrent/bt_peer_connection.hpp"
@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/escape_string.hpp"
-#include "libtorrent/peer_info.hpp"
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 #include "libtorrent/pe_crypto.hpp"
@@ -115,7 +114,7 @@ namespace libtorrent
 #endif
 	{
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << "*** bt_peer_connection\n";
+		(*m_logger) << "*** bt_peer_connection\n";
 #endif
 
 #ifdef TORRENT_DEBUG
@@ -334,30 +333,6 @@ namespace libtorrent
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
 		char msg[] = {0,0,0,5, msg_allowed_fast, 0, 0, 0, 0};
-		char* ptr = msg + 5;
-		detail::write_int32(piece, ptr);
-		send_buffer(msg, sizeof(msg));
-	}
-
-	void bt_peer_connection::write_suggest(int piece)
-	{
-		INVARIANT_CHECK;
-
-		if (!m_supports_fast) return;
-
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
-		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
-
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
-
-		if (m_sent_suggested_pieces.empty())
-			m_sent_suggested_pieces.resize(t->torrent_file().num_pieces(), false);
-
-		if (m_sent_suggested_pieces[piece]) return;
-		m_sent_suggested_pieces.set_bit(piece);
-
-		char msg[] = {0,0,0,5, msg_suggest_piece, 0, 0, 0, 0};
 		char* ptr = msg + 5;
 		detail::write_int32(piece, ptr);
 		send_buffer(msg, sizeof(msg));
@@ -1514,13 +1489,13 @@ namespace libtorrent
 		if (root.type() != lazy_entry::dict_t)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " invalid extended handshake\n";
+			(*m_logger) << "invalid extended handshake\n";
 #endif
 			return;
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " <== EXTENDED HANDSHAKE: \n" << root;
+		(*m_logger) << "<== EXTENDED HANDSHAKE: \n" << root;
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1551,9 +1526,6 @@ namespace libtorrent
 		}
 		// there should be a version too
 		// but where do we put that info?
-
-		int last_seen_complete = root.dict_find_int_value("complete_ago", -1);
-		if (last_seen_complete >= 0) set_last_seen_complete(last_seen_complete);
 		
 		std::string client_info = root.dict_find_string_value("v");
 		if (!client_info.empty()) m_client_version = client_info;
@@ -1574,7 +1546,6 @@ namespace libtorrent
 				std::copy(myip.begin(), myip.end(), bytes.begin());
 				m_ses.set_external_address(address_v4(bytes));
 			}
-#if TORRENT_USE_IPV6
 			else if (myip.size() == address_v6::bytes_type::static_size)
 			{
 				address_v6::bytes_type bytes;
@@ -1585,7 +1556,6 @@ namespace libtorrent
 				else
 					m_ses.set_external_address(ipv6_address);
 			}
-#endif
 		}
 
 		// if we're finished and this peer is uploading only
@@ -1630,7 +1600,7 @@ namespace libtorrent
 			m_statistics.received_bytes(0, received);
 			// What's going on here?!
 			// break in debug builds to allow investigation
-//			TORRENT_ASSERT(false);
+			TORRENT_ASSERT(false);
 			disconnect(errors::invalid_message);
 			return packet_finished();
 		}
@@ -1884,12 +1854,8 @@ namespace libtorrent
 		// only send the port in case we bade the connection
 		// on incoming connections the other end already knows
 		// our listen port
-		if (!m_ses.m_settings.anonymous_mode)
-		{
-			if (is_local()) handshake["p"] = m_ses.listen_port();
-			handshake["v"] = m_ses.settings().user_agent;
-		}
-
+		if (is_local()) handshake["p"] = m_ses.listen_port();
+		handshake["v"] = m_ses.settings().user_agent;
 		std::string remote_address;
 		std::back_insert_iterator<std::string> out(remote_address);
 		detail::write_address(remote().address(), out);
@@ -1899,9 +1865,6 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 		m["upload_only"] = upload_only_msg;
-		int complete_ago = -1;
-		if (t->last_seen_complete() > 0) complete_ago = t->time_since_complete();
-		handshake["complete_ago"] = complete_ago;
 
 		// if we're using lazy bitfields or if we're super seeding, don't say
 		// we're upload only, since it might make peers disconnect
@@ -1912,16 +1875,13 @@ namespace libtorrent
 			))
 			handshake["upload_only"] = 1;
 
-		if (!m_ses.m_settings.anonymous_mode)
+		tcp::endpoint ep = m_ses.get_ipv6_interface();
+		if (!is_any(ep.address()))
 		{
-			tcp::endpoint ep = m_ses.get_ipv6_interface();
-			if (!is_any(ep.address()))
-			{
-				std::string ipv6_address;
-				std::back_insert_iterator<std::string> out(ipv6_address);
-				detail::write_address(ep.address(), out);
-				handshake["ipv6"] = ipv6_address;
-			}
+			std::string ipv6_address;
+			std::back_insert_iterator<std::string> out(ipv6_address);
+			detail::write_address(ep.address(), out);
+			handshake["ipv6"] = ipv6_address;
 		}
 
 		// loop backwards, to make the first extension be the last
@@ -1952,7 +1912,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING && TORRENT_USE_IOSTREAM
 		std::stringstream ext;
 		handshake.print(ext);
-		(*m_logger) << time_now_string() << " ==> EXTENDED HANDSHAKE: \n" << ext.str();
+		(*m_logger) << "==> EXTENDED HANDSHAKE: \n" << ext.str();
 #endif
 
 		setup_send();
@@ -2159,7 +2119,7 @@ namespace libtorrent
 			}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " received DH key\n";
+			(*m_logger) << " received DH key\n";
 #endif
 						
 			// PadA/B can be a max of 512 bytes, and 20 bytes more for
@@ -2260,7 +2220,7 @@ namespace libtorrent
 			{
 				std::size_t bytes_processed = syncoffset + 20;
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string << " sync point (hash) found at offset " 
+				(*m_logger) << " sync point (hash) found at offset " 
 					<< m_sync_bytes_read + bytes_processed - 20 << "\n";
 #endif
 				m_state = read_pe_skey_vc;
@@ -2311,7 +2271,7 @@ namespace libtorrent
 
 					init_pe_RC4_handler(m_dh_key_exchange->get_secret(), ti.info_hash());
 #ifdef TORRENT_VERBOSE_LOGGING
-					(*m_logger) << time_now_string() << " stream key found, torrent located.\n";
+					(*m_logger) << " stream key found, torrent located.\n";
 #endif
 					break;
 				}
@@ -2336,7 +2296,7 @@ namespace libtorrent
 			}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " verification constant found\n";
+			(*m_logger) << " verification constant found\n";
 #endif
 			m_state = read_pe_cryptofield;
 			reset_recv_buffer(4 + 2);
@@ -2400,7 +2360,7 @@ namespace libtorrent
 			{
 				std::size_t bytes_processed = syncoffset + 8;
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string() << " sync point (verification constant) found at offset " 
+				(*m_logger) << " sync point (verification constant) found at offset " 
 							<< m_sync_bytes_read + bytes_processed - 8 << "\n";
 #endif
 				int transferred_used = bytes_processed - recv_buffer.left() + bytes_transferred;
@@ -2436,9 +2396,9 @@ namespace libtorrent
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			if (!is_local())
-				(*m_logger) << time_now_string() << " crypto provide : [ ";
+				(*m_logger) << " crypto provide : [ ";
 			else
-				(*m_logger) << time_now_string() << " crypto select : [ ";
+				(*m_logger) << " crypto select : [ ";
 
 			if (crypto_field & 0x01)
 				(*m_logger) << "plaintext ";
@@ -2573,7 +2533,7 @@ namespace libtorrent
 				}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string() << " len(IA) : " << len_ia << "\n";
+				(*m_logger) << " len(IA) : " << len_ia << "\n";
 #endif
 				if (len_ia == 0)
 				{
@@ -2609,14 +2569,14 @@ namespace libtorrent
 			m_RC4_handler->decrypt(wr_buf.begin, packet_size());
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " decrypted ia : " << packet_size() << " bytes\n";
+			(*m_logger) << " decrypted ia : " << packet_size() << " bytes\n";
 #endif
 
 			if (!m_rc4_encrypted)
 			{
 				m_RC4_handler.reset();
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string() << " destroyed rc4 keys\n";
+				(*m_logger) << " destroyed rc4 keys\n";
 #endif
 			}
 
@@ -2640,14 +2600,14 @@ namespace libtorrent
 				wr_buf.begin += packet_size();
 				m_RC4_handler->decrypt(wr_buf.begin, wr_buf.left());
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string() << " decrypted remaining " << wr_buf.left() << " bytes\n";
+				(*m_logger) << " decrypted remaining " << wr_buf.left() << " bytes\n";
 #endif
 			}
 			else // !m_rc4_encrypted
 			{
 				m_RC4_handler.reset();
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string() << " destroyed rc4 keys\n";
+				(*m_logger) << " destroyed rc4 keys\n";
 #endif
 			}
 
@@ -2696,7 +2656,7 @@ namespace libtorrent
 				if (!m_encrypted && !is_local())
 				{
 #ifdef TORRENT_VERBOSE_LOGGING
- 					(*m_logger) << time_now_string() << " attempting encrypted connection\n";
+ 					(*m_logger) << " attempting encrypted connection\n";
 #endif
  					m_state = read_pe_dhkey;
 					cut_receive_buffer(0, dh_key_len);
@@ -2723,7 +2683,7 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " BitTorrent protocol\n";
+			(*m_logger) << " BitTorrent protocol\n";
 #endif
 
 			m_state = read_info_hash;
@@ -2752,11 +2712,11 @@ namespace libtorrent
 			}
 			(*m_logger) << "\n";
 			if (recv_buffer[7] & 0x01)
-				(*m_logger) << "    supports DHT port message\n";
+				(*m_logger) << "supports DHT port message\n";
 			if (recv_buffer[7] & 0x04)
-				(*m_logger) << "    supports FAST extensions\n";
+				(*m_logger) << "supports FAST extensions\n";
 			if (recv_buffer[5] & 0x10)
-				(*m_logger) << "    supports extensions protocol\n";
+				(*m_logger) << "supports extensions protocol\n";
 #endif
 
 #ifndef DISABLE_EXTENSIONS
@@ -2790,14 +2750,14 @@ namespace libtorrent
 					, (const char*)t->torrent_file().info_hash().begin()))
 				{
 #ifdef TORRENT_VERBOSE_LOGGING
-					(*m_logger) << time_now_string() << " received invalid info_hash\n";
+					(*m_logger) << " received invalid info_hash\n";
 #endif
 					disconnect(errors::invalid_info_hash, 2);
 					return;
 				}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string() << " info_hash received\n";
+				(*m_logger) << " info_hash received\n";
 #endif
 			}
 
@@ -3103,17 +3063,6 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	void bt_peer_connection::check_invariant() const
 	{
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-
-		if (!m_disconnect_started && m_initialized)
-		{
-			// none of this matters if we're disconnecting anyway
-			if (t->is_finished())
-				TORRENT_ASSERT(!is_interesting());
-			if (is_seed())
-				TORRENT_ASSERT(upload_only());
-		}
-
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		TORRENT_ASSERT( (bool(m_state != read_pe_dhkey) || m_dh_key_exchange.get())
 				|| !is_local());

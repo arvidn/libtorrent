@@ -1,11 +1,11 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-# $Id$
+# $Id: configure.ac 3872 2009-09-18 18:47:57Z cristiangreco $
 
 AC_PREREQ([2.63])
 
-AC_INIT([libtorrent-rasterbar],[0.16.0],[arvid@cs.umu.se],
+AC_INIT([libtorrent-rasterbar],[0.15.1],[arvid@cs.umu.se],
         [libtorrent-rasterbar],[http://www.libtorrent.org])
 AC_CONFIG_SRCDIR([src/torrent.cpp])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -108,6 +108,14 @@ AX_BOOST_BASE([1.36])
 AX_BOOST_SYSTEM()
 AS_IF([test -z "$BOOST_SYSTEM_LIB"],
       [AC_MSG_ERROR(Boost.System library not found. Try using --with-boost-system=lib)])
+
+AX_BOOST_FILESYSTEM()
+AS_IF([test -z "$BOOST_FILESYSTEM_LIB"],
+      [AC_MSG_ERROR(Boost.Filesystem library not found. Try using --with-boost-filesystem=lib)])
+
+AX_BOOST_THREAD()
+AS_IF([test -z "$BOOST_THREAD_LIB"],
+      [AC_MSG_ERROR(Boost.Thread library not found. Try using --with-boost-thread=lib)])
 
 CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
 LDFLAGS="$BOOST_LDFLAGS $LDFLAGS"
@@ -296,6 +304,15 @@ AC_ARG_ENABLE(
     [build python bindings [default=no]])],
   [[ARG_ENABLE_PYTHON_BINDING=$enableval]],
   [[ARG_ENABLE_PYTHON_BINDING=no]]
+)
+
+AC_ARG_WITH(
+  [zlib],
+  [AS_HELP_STRING(
+    [--without-zlib],
+    [disable linking against system zlib [default=system]])],
+  [[ARG_WITH_ZLIB=$withval]],
+  [[ARG_WITH_ZLIB=yes]]
 )
 
 AC_ARG_WITH(
@@ -530,6 +547,27 @@ AS_CASE(["$ARG_ENABLE_PYTHON_BINDING"],
 AS_ECHO
 AS_ECHO "Checking for external libraries:"
 
+AC_MSG_CHECKING([whether to link against system zlib])
+AS_CASE(["$ARG_WITH_ZLIB"],
+  ["yes"|"system"], [
+      AC_MSG_RESULT([yes])
+      AC_CHECK_HEADER([zlib.h], [
+        AC_CHECK_LIB([z], [main], [],
+          [AC_MSG_ERROR([zlib library not found. Try using --without-zlib to link against the shipped copy.])])],
+          [AC_MSG_ERROR([zlib header not found. Try using --without-zlib to link against the shipped copy.])])
+   ],
+  ["no"|"shipped"], [
+      AC_MSG_RESULT([no])
+      AC_MSG_NOTICE([zlib: linking against shipped zlib.])
+      #AC_SUBST([ZLIB], ["\$(top_builddir)/zlib/libzlib.la"])
+      #AC_SUBST([ZLIBINCL], ["-I\$(top_srcdir)/zlib"])
+      #AC_MSG_NOTICE([zlib= $ZLIB zlibincl= $ZLIBINCL])
+      ARG_WITH_ZLIB="no"
+   ],
+  [AC_MSG_RESULT([$ARG_WITH_ZLIB])
+   AC_MSG_ERROR([Unknown option "$ARG_WITH_ZLIB". Use either "yes" or "no".])]
+)
+
 AC_MSG_CHECKING([for FIEMAP support])
 AC_CHECK_HEADERS([linux/fiemap.h])
 
@@ -578,6 +616,7 @@ AM_CONDITIONAL([ENABLE_EXAMPLES], [test "x$ARG_ENABLE_EXAMPLES" = "xyes"])
 AM_CONDITIONAL([ENABLE_TESTS], [test "x$ARG_ENABLE_TESTS" = "xyes"])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDING], [test "x$ARG_ENABLE_PYTHON_BINDING" = "xyes"])
 
+AM_CONDITIONAL([WITH_SHIPPED_ZLIB], [test "x$ARG_WITH_ZLIB" = "xno" ])
 AM_CONDITIONAL([WITH_SHIPPED_GEOIP], [test "x$ARG_WITH_LIBGEOIP" = "xno" ])
 
 
@@ -627,6 +666,7 @@ AC_CONFIG_FILES(
   [include/libtorrent/Makefile]
   [examples/Makefile]
   [test/Makefile]
+  [zlib/Makefile]
   [bindings/Makefile]
   [bindings/python/Makefile]
   [bindings/python/setup.py]
@@ -695,6 +735,8 @@ Boost libraries:
   CPPFlags:             ${BOOST_CPPFLAGS}
   LDFlags:              ${BOOST_LDFLAGS}
   boost.system:         ${BOOST_SYSTEM_LIB}
+  boost.filesystem:     ${BOOST_FILESYSTEM_LIB}
+  boost.thread:         ${BOOST_THREAD_LIB}
 END
 
 AS_IF([test "x$ARG_ENABLE_PYTHON_BINDING" = "xyes"], [
@@ -725,6 +767,7 @@ END
 cat >> config.report << END
 
 External libraries:
+  system zlib:          ${ARG_WITH_ZLIB:-yes}
   system libgeoip:      ${ARG_WITH_LIBGEOIP:-no}
 END
 

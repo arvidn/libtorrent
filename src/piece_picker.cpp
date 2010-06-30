@@ -55,8 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	const piece_block piece_block::invalid(0x3FFFF, 0x3FFF);
-
 	piece_picker::piece_picker()
 		: m_seeds(0)
 		, m_priority_boundries(1, int(m_pieces.size()))
@@ -1613,19 +1611,20 @@ namespace libtorrent
 					, piece_block(i->index, j));
 				if (k != interesting_blocks.end()) continue;
 				
-				fprintf(stderr, "interesting blocks:\n");
+				std::cerr << "interesting blocks:" << std::endl;
 				for (k = interesting_blocks.begin(); k != interesting_blocks.end(); ++k)
-					fprintf(stderr, "(%d, %d)", k->piece_index, k->block_index);
-				fprintf(stderr, "\nnum_blocks: %d\n", num_blocks);
+					std::cerr << "(" << k->piece_index << ", " << k->block_index << ") ";
+				std::cerr << std::endl;
+				std::cerr << "num_blocks: " << num_blocks << std::endl;
 				
 				for (std::vector<downloading_piece>::const_iterator l = m_downloads.begin()
 					, end(m_downloads.end()); l != end; ++l)
 				{
-					fprintf(stderr, "%d : ", l->index);
+					std::cerr << l->index << " : ";
 					int num_blocks_in_piece = blocks_in_piece(l->index);
 					for (int m = 0; m < num_blocks_in_piece; ++m)
-						fprintf(stderr, "%d", l->info[m].state);
-					fprintf(stderr, "\n");
+						std::cerr << l->info[m].state;
+					std::cerr << std::endl;
 				}
 
 				TORRENT_ASSERT(false);
@@ -2061,7 +2060,7 @@ namespace libtorrent
 		block_info const& info = i->info[block.block_index];
 		return info.num_peers;
 	}
-
+	
 	ptime piece_picker::last_request(int piece) const
 	{
 		TORRENT_ASSERT(piece >= 0);

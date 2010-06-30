@@ -33,12 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/thread.hpp"
+#include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
-#include <iostream>
+
+using boost::filesystem::remove_all;
 
 void test_lsd()
 {
@@ -87,18 +89,18 @@ void test_lsd()
 int test_main()
 {
 	using namespace libtorrent;
+	using namespace boost::filesystem;
 
 	// in case the previous run was terminated
-	error_code ec;
-	remove_all("./tmp1_lsd", ec);
-	remove_all("./tmp2_lsd", ec);
-	remove_all("./tmp3_lsd", ec);
+	try { remove_all("./tmp1_lsd"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_lsd"); } catch (std::exception&) {}
+	try { remove_all("./tmp3_lsd"); } catch (std::exception&) {}
 
 	test_lsd();
 	
-	remove_all("./tmp1_lsd", ec);
-	remove_all("./tmp2_lsd", ec);
-	remove_all("./tmp3_lsd", ec);
+	remove_all("./tmp1_lsd");
+	remove_all("./tmp2_lsd");
+	remove_all("./tmp3_lsd");
 
 	return 0;
 }
