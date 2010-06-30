@@ -128,6 +128,7 @@ bool utp_incoming_packet(utp_socket_impl* s, char const* p, int size
 	, udp::endpoint const& ep);
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s);
 boost::uint16_t utp_receive_id(utp_socket_impl* s);
+int utp_socket_state(utp_socket_impl const* s);
 
 // this is the user-level stream interface to utp sockets.
 // the reason why it's split up in a utp_stream class and

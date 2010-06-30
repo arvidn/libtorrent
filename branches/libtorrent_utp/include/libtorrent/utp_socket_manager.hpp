@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/session_status.hpp"
 
 namespace libtorrent
 {
@@ -49,6 +50,8 @@ namespace libtorrent
 	{
 		utp_socket_manager(udp_socket& s, incoming_utp_callback_t cb);
 		~utp_socket_manager();
+
+		void get_status(utp_status& s) const;
 
 		// return false if this is not a uTP packet
 		bool incoming_packet(char const* p, int size, udp::endpoint const& ep);

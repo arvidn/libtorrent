@@ -125,6 +125,11 @@ struct packet
 	// the size of the buffer 'buf' pointst to
 	boost::uint16_t size;
 
+	// this is the offset to the payload inside the buffer
+	// this is also used as a cursor to describe where the
+	// next payload that hasn't been consumed yet starts
+	boost::uint16_t header_size;
+	
 	// the number of times this packet has been sent
 	boost::uint8_t num_transmissions:7;
 
@@ -133,11 +138,6 @@ struct packet
 	// resent on timeouts
 	bool need_resend:1;
 
-	// this is the offset to the payload inside the buffer
-	// this is also used as a cursor to describe where the
-	// next payload that hasn't been consumed yet starts
-	boost::uint16_t header_size;
-	
 	// the actual packet buffer
 	char buf[];
 };
@@ -229,7 +229,8 @@ struct utp_socket_impl
 		, m_in_buf_size(100 * 1024 * 1024)
 		, m_in_packets(0)
 		, m_out_packets(0)
-        , m_attached(true)
+		, m_attached(true)
+		, m_num_timeouts(0)
 	{
 		for (int i = 0; i != num_delay_hist; ++i)
 			m_delay_sample_hist[i] = UINT_MAX;
@@ -360,7 +361,8 @@ struct utp_socket_impl
 		// of sending and receiving data
 		UTP_STATE_CONNECTED,
 		// fin sent, but all packets up to the fin packet
-		// have not yet been acked
+		// have not yet been acked. We might still be waiting
+		// for a FIN from the other end
 		UTP_STATE_FIN_SENT,
 
 		// ====== states beyond this point =====
@@ -519,8 +521,12 @@ struct utp_socket_impl
 	int m_in_packets;
 	int m_out_packets;
 
-    // is this socket state attached to a user space socket?
-    bool m_attached;
+	// is this socket state attached to a user space socket?
+	bool m_attached;
+
+	// the number of packet timeouts we've seen in a row
+	// this affects the packet timeout time
+	int m_num_timeouts;
 };
 
 utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
@@ -563,6 +569,11 @@ udp::endpoint utp_remote_endpoint(utp_socket_impl* s)
 boost::uint16_t utp_receive_id(utp_socket_impl* s)
 {
 	return s->m_recv_id;
+}
+
+int utp_socket_state(utp_socket_impl const* s)
+{
+	return s->m_state;
 }
 
 utp_stream::utp_stream(asio::io_service& io_service)
@@ -904,7 +915,8 @@ bool utp_socket_impl::should_delete() const
 	// closing the socket. Only delete the state if we're not
 	// attached and we're in a state where the other end doesn't
 	// expect the socket to still be alive
-	bool ret = m_state >= UTP_STATE_ERROR_WAIT && !m_attached;
+	bool ret = (m_state >= UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_NONE)
+		&& !m_attached;
 
 	if (ret)
 	{
@@ -988,7 +1000,8 @@ void utp_socket_impl::destroy()
 	// you should never close a socket with an outstanding write!
 	TORRENT_ASSERT(!m_write_handler);
 
-	send_fin();
+	if (m_state == UTP_STATE_CONNECTED)
+		send_fin();
 
 	// #error our end is closing. Wait for everything to be acked
 }
@@ -1062,6 +1075,8 @@ void utp_socket_impl::send_syn()
 
 void utp_socket_impl::send_fin()
 {
+	TORRENT_ASSERT(m_state != UTP_STATE_FIN_SENT);
+
 	// we need a heap allocated packet in order to stick it
 	// in the send buffer, so that we can resend it
 	packet* p = (packet*)malloc(sizeof(packet) + sizeof(utp_header));
@@ -1493,6 +1508,8 @@ bool utp_socket_impl::resend_packet(packet* p)
 		return false;
 	}
 
+	TORRENT_ASSERT(p->num_transmissions < 5);
+
 	TORRENT_ASSERT(p->size - p->header_size >= 0);
 	if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;
 
@@ -1558,6 +1575,7 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
 		// the clock for this plaform is not monotonic!
 		TORRENT_ASSERT(false);
 	}
+
 	m_rtt.add_sample(rtt / 1000);
 	if (rtt < min_rtt) min_rtt = rtt;
 	free(p);
@@ -1905,6 +1923,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	++m_in_packets;
 
 	// this is a valid incoming packet, update the timeout timer
+	m_num_timeouts = 0;
 	m_timeout = receive_time + milliseconds(packet_timeout());
 	UTP_LOGV("[%08u] %8p: updating timeout to: now + %d\n"
 		, int(total_microseconds(receive_time - min_time()))
@@ -2019,6 +2038,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 		if (p)
 		{
+			TORRENT_ASSERT(p->num_transmissions < 5);
 			++p->num_transmissions;
 			if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;
 			p->need_resend = false;
@@ -2385,7 +2405,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
                 UTP_LOGV("[%08u] %8p: FIN acked\n"
                     , int(total_microseconds(time_now_hires() - min_time())), this);
-
+/*
                 if (!m_userdata)
                 {
                      UTP_LOGV("[%08u] %8p: close initiated here, "
@@ -2394,10 +2414,13 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
                 }
                 else
                 {
+*/
+                     UTP_LOGV("[%08u] %8p: closing socket\n"
+                        , int(total_microseconds(time_now_hires() - min_time())), this);
                     m_error = asio::error::eof;
                     m_state = UTP_STATE_ERROR_WAIT;
                     test_socket_state();
-                }
+//                }
             }
 
 			return true;
@@ -2469,6 +2492,7 @@ int utp_socket_impl::packet_timeout() const
 	// have an RTT estimate yet, make a conservative guess
 	if (m_state == UTP_STATE_NONE) return 3000;
 	int timeout = (std::max)(1000, m_rtt.mean() + m_rtt.avg_deviation() * 2);
+	if (m_num_timeouts > 0) timeout += (1 << (m_num_timeouts - 1)) * 1000;
 	return timeout;
 }
 
@@ -2500,6 +2524,7 @@ void utp_socket_impl::tick(ptime const& now)
 		if ((m_cwnd >> 16) < m_mtu) window_opened = true;
 
 		m_cwnd = m_mtu << 16;
+		++m_num_timeouts;
 		m_timeout = now + milliseconds(packet_timeout());
 	
 		UTP_LOGV("[%08u] %8p: timeout resetting cwnd:%d\n"
@@ -2527,10 +2552,10 @@ void utp_socket_impl::tick(ptime const& now)
 		packet* p = (packet*)m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK);
 		if (p)
 		{
-			if (p->num_transmissions > 10)
+			if (p->num_transmissions > 4)
 			{
 #if TORRENT_UTP_LOG
-				UTP_LOGV("[%08u] %8p: 11 failed sends in a row. Socket timed out. state:%s\n"
+				UTP_LOGV("[%08u] %8p: 5 failed sends in a row. Socket timed out. state:%s\n"
 					, int(total_microseconds(now - min_time())), this
 					, socket_state_names[m_state]);
 #endif
@@ -2555,7 +2580,7 @@ void utp_socket_impl::tick(ptime const& now)
 				return;
 			}
 		}
-		else
+		else if (m_state < UTP_STATE_FIN_SENT)
 		{
 			send_pkt(false);
 		}

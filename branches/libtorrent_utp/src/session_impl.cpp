@@ -3510,6 +3510,8 @@ namespace aux {
 		}
 #endif
 
+		m_utp_socket_manager.get_status(s.utp_stats);
+
 		return s;
 	}
 

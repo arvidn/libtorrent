@@ -708,6 +708,15 @@ struct has the following members::
 		int branch_factor;
 	};
 
+	struct utp_status
+	{
+		int num_idle;
+		int num_syn_sent;
+		int num_connected;
+		int num_fin_sent;
+		int num_close_wait;
+	};
+
 	struct session_status
 	{
 		bool has_incoming_connections;
@@ -752,6 +761,8 @@ struct has the following members::
 		int dht_torrents;
 		int dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
+
+		utp_status utp_stats;
 	};
 
 ``has_incoming_connections`` is false as long as no incoming connections have been
@@ -815,6 +826,7 @@ network.
 
 ``active_requests`` is a vector of the currently running DHT lookups.
 
+``utp_stats`` contains statistics on the uTP sockets.
 
 get_cache_status()
 ------------------

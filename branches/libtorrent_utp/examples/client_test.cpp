@@ -160,6 +160,7 @@ bool print_file_progress = false;
 bool show_pad_files = false;
 bool show_dht_status = false;
 bool sequential_download = false;
+bool print_utp_stats = false;
 
 bool print_ip = true;
 bool print_as = false;
@@ -1182,6 +1183,7 @@ int main(int argc, char* argv[])
 			if (c == 'h') show_pad_files = !show_pad_files;
 			if (c == 'a') print_piece_bar = !print_piece_bar;
 			if (c == 'g') show_dht_status = !show_dht_status;
+			if (c == 'u') print_utp_stats = !print_utp_stats;
 			// toggle columns
 			if (c == '1') print_ip = !print_ip;
 			if (c == '2') print_as = !print_as;
@@ -1438,6 +1440,15 @@ int main(int argc, char* argv[])
 			}
 		}
 #endif
+
+		if (print_utp_stats)
+		{
+			snprintf(str, sizeof(str), "uTP idle: %d syn: %d est: %d fin: %d wait: %d\n"
+				, sess_stat.utp_stats.num_idle, sess_stat.utp_stats.num_syn_sent
+				, sess_stat.utp_stats.num_connected, sess_stat.utp_stats.num_fin_sent
+				, sess_stat.utp_stats.num_close_wait);
+			out += str;
+		}
 
 		if (active_handle.is_valid())
 		{

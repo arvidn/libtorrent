@@ -74,6 +74,30 @@ namespace libtorrent
 		}
 	}
 
+	void utp_socket_manager::get_status(utp_status& s) const
+	{
+		s.num_idle = 0;
+		s.num_syn_sent = 0;
+		s.num_connected = 0;
+		s.num_fin_sent = 0;
+		s.num_close_wait = 0;
+
+		for (socket_map_t::const_iterator i = m_utp_sockets.begin()
+			, end(m_utp_sockets.end()); i != end; ++i)
+		{
+			int state = utp_socket_state(i->second);
+			switch (state)
+			{
+				case 0: ++s.num_idle; break;
+				case 1: ++s.num_syn_sent; break;
+				case 2: ++s.num_connected; break;
+				case 3: ++s.num_fin_sent; break;
+				case 4: ++s.num_close_wait; break;
+				case 5: ++s.num_close_wait; break;
+			}
+		}
+	}
+
 	void utp_socket_manager::tick(ptime now)
 	{
 		for (socket_map_t::iterator i = m_utp_sockets.begin()

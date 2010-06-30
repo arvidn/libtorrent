@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/size_type.hpp"
+#include <vector>
 
 namespace libtorrent
 {
@@ -52,6 +53,15 @@ namespace libtorrent
 	};
 
 #endif
+
+	struct utp_status
+	{
+		int num_idle;
+		int num_syn_sent;
+		int num_connected;
+		int num_fin_sent;
+		int num_close_wait;
+	};
 
 	struct TORRENT_EXPORT session_status
 	{
@@ -105,6 +115,8 @@ namespace libtorrent
 		size_type dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
 #endif
+
+		utp_status utp_stats;
 	};
 
 }
