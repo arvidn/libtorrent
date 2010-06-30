@@ -382,6 +382,7 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(m_num_connect_candidates < m_peers.size());
 		if (m_round_robin > i - m_peers.begin()) --m_round_robin;
+		if (m_round_robin >= m_peers.size()) m_round_robin = 0;
 
 #if TORRENT_USE_IPV6
 		if ((*i)->is_v6_addr)
@@ -538,7 +539,7 @@ namespace libtorrent
 			external_ip = address_v4(bytes);
 		}
 
-		if (m_round_robin == m_peers.size()) m_round_robin = 0;
+		if (m_round_robin >= m_peers.size()) m_round_robin = 0;
 
 #ifndef TORRENT_DISABLE_DHT
 		bool pinged = false;
@@ -551,7 +552,7 @@ namespace libtorrent
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
 		{
-			if (m_round_robin == int(m_peers.size())) m_round_robin = 0;
+			if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
 			peer& pe = *m_peers[m_round_robin];
 			int current = m_round_robin;
@@ -778,7 +779,6 @@ namespace libtorrent
 				return false;
 			}
 
-			if (m_round_robin > iter - m_peers.begin()) ++m_round_robin;
 #if TORRENT_USE_IPV6
 			bool is_v6 = c.remote().address().is_v6();
 #endif
@@ -803,6 +803,8 @@ namespace libtorrent
 				new (p) ipv4_peer(c.remote(), false, 0);
 
 			iter = m_peers.insert(iter, p);
+
+			if (m_round_robin >= iter - m_peers.begin()) ++m_round_robin;
 
 			i = *iter;
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -962,9 +964,9 @@ namespace libtorrent
 				, p->address(), peer_address_compare());
 		}
 
-		if (m_round_robin > iter - m_peers.begin()) ++m_round_robin;
-
 		iter = m_peers.insert(iter, p);
+
+		if (m_round_robin >= iter - m_peers.begin()) ++m_round_robin;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		if (flags & 0x01) p->pe_support = true;

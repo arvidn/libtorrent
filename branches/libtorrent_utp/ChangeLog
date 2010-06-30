@@ -34,6 +34,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed rare crash when purging the peer list
 	* fixed race condition around m_abort in session_impl
 	* fixed bug in web_peer_connection which could cause a hang when downloading
 	  from web servers
