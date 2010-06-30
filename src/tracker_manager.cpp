@@ -255,10 +255,13 @@ namespace libtorrent
 	bool tracker_manager::incoming_udp(error_code const& e
 		, udp::endpoint const& ep, char const* buf, int size)
 	{
-		for (tracker_connections_t::iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
+		for (tracker_connections_t::iterator i = m_connections.begin();
+			i != m_connections.end();)
 		{
-			if ((*i)->on_receive(e, ep, buf, size)) return true;
+			boost::intrusive_ptr<tracker_connection> p = *i;
+			++i;
+			// on_receive() may remove the tracker connection from the list
+			if (p->on_receive(e, ep, buf, size)) return true;
 		}
 		return false;
 	}
