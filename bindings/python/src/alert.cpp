@@ -198,8 +198,9 @@ void bind_alert()
     class_<portmap_error_alert, bases<alert>, noncopyable>(
         "portmap_error_alert", no_init)
         .def_readonly("mapping", &portmap_error_alert::mapping)
-        .def_readonly("type", &portmap_error_alert::type)
+        .def_readonly("map_type", &portmap_error_alert::map_type)
 #ifndef TORRENT_NO_DEPRECATE
+        .def_readonly("type", &portmap_error_alert::map_type)
         .def_readonly("msg", &portmap_error_alert::msg)
 #endif
         ;
@@ -208,13 +209,17 @@ void bind_alert()
         "portmap_alert", no_init)
         .def_readonly("mapping", &portmap_alert::mapping)
         .def_readonly("external_port", &portmap_alert::external_port)
-        .def_readonly("type", &portmap_alert::type)
+#ifndef TORRENT_NO_DEPRECATE
+        .def_readonly("type", &portmap_alert::map_type)
+#endif
+        .def_readonly("map_type", &portmap_alert::map_type)
         ;
 
     class_<portmap_log_alert, bases<alert>, noncopyable>(
         "portmap_log_alert", no_init)
-        .def_readonly("type", &portmap_log_alert::type)
+        .def_readonly("map_type", &portmap_log_alert::map_type)
 #ifndef TORRENT_NO_DEPRECATE
+        .def_readonly("type", &portmap_log_alert::map_type)
         .def_readonly("msg", &portmap_log_alert::msg)
 #endif
         ;
