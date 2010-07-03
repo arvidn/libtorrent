@@ -164,8 +164,9 @@ public:
 	}
 #endif
 
-	endpoint_type remote_endpoint(error_code& /*ec*/) const
+	endpoint_type remote_endpoint(error_code& ec) const
 	{
+		if (!m_sock.is_open()) ec = asio::error::not_connected;
 		return m_remote_endpoint;
 	}
 

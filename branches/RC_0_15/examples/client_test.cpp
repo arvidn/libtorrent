@@ -772,6 +772,7 @@ int main(int argc, char* argv[])
 			"  -A <num pieces>       allowed pieces set size\n"
 			"  -R <num blocks>       number of blocks per read cache line\n"
 			"  -O                    Disallow disk job reordering\n"
+			"  -P <host:port>        Use the specified SOCKS5 proxy\n"
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -929,6 +930,31 @@ int main(int argc, char* argv[])
 			case 'A': settings.allowed_fast_set_size = atoi(arg); break;
 			case 'R': settings.read_cache_line_size = atoi(arg); break;
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
+			case 'P':
+				{
+					char* port = strchr(arg, ':');
+					if (port == 0)
+					{
+						fprintf(stderr, "invalid proxy hostname, no port found\n");
+						break;
+					}
+					*port++ = 0;
+					proxy_settings ps;
+					ps.hostname = arg;
+					ps.port = atoi(port);
+					if (ps.port == 0) {
+						fprintf(stderr, "invalid proxy port\n");
+						break;
+					}
+					ps.type = proxy_settings::socks5;
+					ses.set_peer_proxy(ps);
+					ses.set_web_seed_proxy(ps);
+					ses.set_tracker_proxy(ps);
+#ifndef TORRENT_DISABLE_DHT
+					ses.set_dht_proxy(ps);
+#endif
+				}
+				break;
 		}
 		++i; // skip the argument
 	}
