@@ -744,7 +744,7 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 	if (e) return;
 	if (is_closed()) return;
 	error_code ec;
-	ptime now = time_now();
+	ptime now = time_now_hires();
 	m_timer.expires_at(now + seconds(1), ec);
 	m_timer.async_wait(boost::bind(&rate_limited_udp_socket::on_tick, this, _1));
 
