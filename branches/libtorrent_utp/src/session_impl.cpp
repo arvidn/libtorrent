@@ -515,7 +515,7 @@ namespace aux {
 		, m_external_udp_port(0)
 		, m_udp_socket(m_io_service, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, m_half_open)
-		, m_utp_socket_manager(m_udp_socket
+		, m_utp_socket_manager(m_settings, m_udp_socket
 			, boost::bind(&session_impl::incoming_connection, this, _1))
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
@@ -1250,12 +1250,6 @@ namespace aux {
 
 		// if anonymous mode was enabled, clear out the peer ID
 		bool anonymous = (m_settings.anonymous_mode != s.anonymous_mode && s.anonymous_mode);
-
-		if (s.utp_target_delay != s.utp_target_delay && s.utp_target_delay > 10)
-			m_utp_socket_manager.set_target_delay(s.utp_target_delay);
-
-		if (s.utp_gain_factor != s.utp_gain_factor && s.utp_gain_factor > 0)
-			m_utp_socket_manager.set_gain_factor(s.utp_gain_factor);
 
 		m_settings = s;
 

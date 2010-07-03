@@ -48,7 +48,7 @@ namespace libtorrent
 
 	struct utp_socket_manager
 	{
-		utp_socket_manager(udp_socket& s, incoming_utp_callback_t cb);
+		utp_socket_manager(session_settings const& sett, udp_socket& s, incoming_utp_callback_t cb);
 		~utp_socket_manager();
 
 		void get_status(utp_status& s) const;
@@ -67,20 +67,11 @@ namespace libtorrent
 		void remove_socket(boost::uint16_t id);
 
 		utp_socket_impl* new_utp_socket(utp_stream* str);
-		int gain_factor() const { return m_gain; }
-		int target_delay() const { return m_target_delay; }
-
-		void set_gain_factor(int gain)
-		{
-			TORRENT_ASSERT(gain > 0);
-			m_gain = gain;
-		}
-
-		void set_target_delay(int target)
-		{
-			TORRENT_ASSERT(target >= 10);
-			m_target_delay = target * 1000;
-		}
+		int gain_factor() const { return m_sett.utp_gain_factor; }
+		int target_delay() const { return m_sett.utp_target_delay * 1000; }
+		int syn_resends() const { return m_sett.utp_syn_resends; }
+		int num_resends() const { return m_sett.utp_num_resends; }
+		int connect_timeout() const { return m_sett.utp_connect_timeout; }
 
 	private:
 		udp_socket& m_sock;
@@ -95,11 +86,7 @@ namespace libtorrent
 
 		int m_new_connection;
 
-		// max increase of cwnd per RTT
-		int m_gain;
-
-		// target delay in microseconds
-		int m_target_delay;
+		session_settings const& m_sett;
 	};
 }
 

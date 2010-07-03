@@ -220,7 +220,7 @@ struct utp_socket_impl
 		, m_reply_micro(0)
 		, m_cwnd(1500 << 16)
 		, m_adv_wnd(1500)
-		, m_timeout(time_now_hires() + seconds(3))
+		, m_timeout(time_now_hires() + milliseconds(m_sm->connect_timeout()))
 		, m_last_cwnd_hit(min_time())
 		, m_bytes_in_flight(0)
 		, m_mtu(1500 - 20 - 8 - 8)
@@ -1212,9 +1212,6 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, char const* ptr
 				if (p)
 				{
 					acked_bytes += p->size - p->header_size;
-					UTP_LOGV("[%08u] %8p: acked packet %d (%d bytes)\n"
-						, int(total_microseconds(now - min_time())), this
-						, ack_nr, p->size - p->header_size);
 					// each ACKed packet counts as a duplicate ack
 					++m_duplicate_acks;
 					ack_packet(p, now, min_rtt, ack_nr);
@@ -1508,7 +1505,7 @@ bool utp_socket_impl::resend_packet(packet* p)
 		return false;
 	}
 
-	TORRENT_ASSERT(p->num_transmissions < 5);
+	TORRENT_ASSERT(p->num_transmissions < m_sm->num_resends());
 
 	TORRENT_ASSERT(p->size - p->header_size >= 0);
 	if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;
@@ -1575,6 +1572,10 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
 		// the clock for this plaform is not monotonic!
 		TORRENT_ASSERT(false);
 	}
+
+	UTP_LOGV("[%08u] %8p: acked packet %d (%d bytes) (rtt:%u)\n"
+		, int(total_microseconds(time_now_hires() - min_time())), this
+		, seq_nr, p->size - p->header_size, rtt / 1000);
 
 	m_rtt.add_sample(rtt / 1000);
 	if (rtt < min_rtt) min_rtt = rtt;
@@ -1975,9 +1976,6 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			packet* p = (packet*)m_outbuf.remove(ack_nr);
 			if (!p) continue;
 			acked_bytes += p->size - p->header_size;
-			UTP_LOGV("[%08u] %8p: acked packet %d (%d bytes)\n"
-				, int(total_microseconds(receive_time - min_time())), this
-				, ack_nr, p->size - p->header_size);
 			ack_packet(p, receive_time, min_rtt, ack_nr);
         }
 
@@ -2038,7 +2036,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 		if (p)
 		{
-			TORRENT_ASSERT(p->num_transmissions < 5);
+			TORRENT_ASSERT(p->num_transmissions < m_sm->num_resends());
 			++p->num_transmissions;
 			if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;
 			p->need_resend = false;
@@ -2524,7 +2522,7 @@ void utp_socket_impl::tick(ptime const& now)
 		if ((m_cwnd >> 16) < m_mtu) window_opened = true;
 
 		m_cwnd = m_mtu << 16;
-		++m_num_timeouts;
+		if (m_outbuf.size()) ++m_num_timeouts;
 		m_timeout = now + milliseconds(packet_timeout());
 	
 		UTP_LOGV("[%08u] %8p: timeout resetting cwnd:%d\n"
@@ -2552,12 +2550,13 @@ void utp_socket_impl::tick(ptime const& now)
 		packet* p = (packet*)m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK);
 		if (p)
 		{
-			if (p->num_transmissions > 4)
+			if (p->num_transmissions > m_sm->num_resends()
+				|| (m_state == UTP_STATE_SYN_SENT && p->num_transmissions > m_sm->syn_resends()))
 			{
 #if TORRENT_UTP_LOG
-				UTP_LOGV("[%08u] %8p: 5 failed sends in a row. Socket timed out. state:%s\n"
+				UTP_LOGV("[%08u] %8p: %d failed sends in a row. Socket timed out. state:%s\n"
 					, int(total_microseconds(now - min_time())), this
-					, socket_state_names[m_state]);
+					, p->num_transmissions, socket_state_names[m_state]);
 #endif
 
 				// the connection is dead

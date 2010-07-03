@@ -221,6 +221,9 @@ namespace libtorrent
 			, tick_interval(100)
 			, utp_target_delay(50) // milliseconds
 			, utp_gain_factor(300) // bytes per rtt
+			, utp_syn_resends(2)
+			, utp_num_resends(6)
+			, utp_connect_timeout(3000) // milliseconds
 			, mixed_mode_algorithm(peer_proportional)
 			, rate_limit_utp(false)
 		{}
@@ -863,6 +866,15 @@ namespace libtorrent
 		// max number of bytes to increase cwnd per rtt in uTP
 		// congestion controller
 		int utp_gain_factor;
+
+		// the number SYN packets are sent before giving up
+		int utp_syn_resends;
+
+		// the number of times to send a packet before giving up
+		int utp_num_resends;
+
+		// initial timeout for uTP SYN packets
+		int utp_connect_timeout;
 
 		enum bandwidth_mixed_algo_t
 		{

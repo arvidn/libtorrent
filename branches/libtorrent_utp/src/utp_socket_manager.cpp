@@ -56,13 +56,13 @@ extern void utp_log(char const* fmt, ...);
 namespace libtorrent
 {
 
-	utp_socket_manager::utp_socket_manager(udp_socket& s, incoming_utp_callback_t cb)
+	utp_socket_manager::utp_socket_manager(session_settings const& sett, udp_socket& s
+		, incoming_utp_callback_t cb)
 		: m_sock(s)
 		, m_cb(cb)
 		, m_last_socket(0)
 		, m_new_connection(-1)
-		, m_gain(300)
-		, m_target_delay(50000) // 50 ms
+		, m_sett(sett)
 	{}
 
 	utp_socket_manager::~utp_socket_manager()

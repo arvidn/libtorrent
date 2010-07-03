@@ -3939,6 +3939,9 @@ session_settings
 
 		int utp_target_delay;
 		int utp_gain_factor;
+		int utp_syn_resends;
+		int utp_num_resends;
+		int utp_connect_timeout;
 
 		enum bandwidth_mixed_algo_t
 		{
@@ -4621,6 +4624,15 @@ it to send too slow. The default is 50 milliseconds.
 at the most in one RTT. This defaults to 300 bytes. If this is set too high,
 the congestion controller reacts too hard to noise and will not be stable, if it's
 set too low, it will react slow to congestion and not back off as fast.
+
+``utp_syn_resends`` is the number of SYN packets that are sent (and timed out) before
+giving up and closing the socket.
+
+``utp_num_resends`` is the number of times a packet is sent (and lossed or timed out)
+before giving up and closing the connection.
+
+``utp_connect_timeout`` is the number of milliseconds of timeout for the initial SYN
+packet for uTP connections. For each timed out packet (in a row), the timeout is doubled.
 
 The ``mixed_mode_algorithm`` determines how to treat TCP connections when there are
 uTP connections. Since uTP is designed to yield to TCP, there's an inherent problem
