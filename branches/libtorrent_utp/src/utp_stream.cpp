@@ -1505,7 +1505,7 @@ bool utp_socket_impl::resend_packet(packet* p)
 		return false;
 	}
 
-	TORRENT_ASSERT(p->num_transmissions < m_sm->num_resends());
+	TORRENT_ASSERT(p->num_transmissions <= m_sm->num_resends());
 
 	TORRENT_ASSERT(p->size - p->header_size >= 0);
 	if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;
@@ -2036,7 +2036,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 		if (p)
 		{
-			TORRENT_ASSERT(p->num_transmissions < m_sm->num_resends());
+			TORRENT_ASSERT(p->num_transmissions <= m_sm->num_resends());
 			++p->num_transmissions;
 			if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;
 			p->need_resend = false;
