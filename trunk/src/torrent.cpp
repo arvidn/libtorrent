@@ -379,6 +379,8 @@ namespace libtorrent
 		, m_auto_managed(p.auto_managed)
 		, m_num_verified(0)
 		, m_last_scrape(0)
+		, m_last_download(0)
+		, m_last_upload(0)
 	{
 		if (m_seed_mode)
 			m_verified.resize(m_torrent_file->num_pieces(), false);
@@ -2308,6 +2310,8 @@ namespace libtorrent
 			// if we just became a seed, picker is now invalid, since it
 			// is deallocated by the torrent once it starts seeding
 		}
+
+		m_last_download = 0;
 	}
 
 	void torrent::piece_failed(int index)
@@ -5681,6 +5685,8 @@ namespace libtorrent
 		if (m_upload_mode) m_upload_mode_time += seconds_since_last_tick;
 		m_last_scrape += seconds_since_last_tick;
 		m_active_time += seconds_since_last_tick;
+		m_last_download += seconds_since_last_tick;
+		m_last_upload += seconds_since_last_tick;
 
 		// ---- TIME CRITICAL PIECES ----
 
@@ -6283,9 +6289,12 @@ namespace libtorrent
 		st.all_time_upload = m_total_uploaded;
 		st.all_time_download = m_total_downloaded;
 
+		// activity time
 		st.active_time = m_active_time;
 		st.active_time = m_active_time;
 		st.seeding_time = m_seeding_time;
+		st.time_since_upload = m_last_upload;
+		st.time_since_download = m_last_download;
 
 		st.storage_mode = (storage_mode_t)m_storage_mode;
 
