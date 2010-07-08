@@ -3098,6 +3098,13 @@ namespace libtorrent
 
 		TORRENT_ASSERT(amount_payload <= (int)bytes_transferred);
 		m_statistics.sent_bytes(amount_payload, bytes_transferred - amount_payload);
+		
+		if (amount_payload > 0)
+		{
+			boost::shared_ptr<torrent> t = associated_torrent().lock();
+			TORRENT_ASSERT(t);
+			if (t) t->update_last_upload();
+		}
 	}
 
 #ifdef TORRENT_DEBUG

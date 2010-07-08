@@ -127,6 +127,8 @@ namespace libtorrent
 			, added_time(0)
 			, completed_time(0)
 			, last_seen_complete(0)
+			, time_since_upload(0)
+			, time_since_download(0)
 		{}
 
 		enum state_t
@@ -311,6 +313,10 @@ namespace libtorrent
 		time_t added_time;
 		time_t completed_time;
 		time_t last_seen_complete;
+
+		// number of seconds since last upload or download activity
+		int time_since_upload;
+		int time_since_download;
 	};
 
 	struct TORRENT_EXPORT block_info

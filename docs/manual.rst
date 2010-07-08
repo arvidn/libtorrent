@@ -3126,6 +3126,9 @@ It contains the following fields::
 		time_t added_time;
 		time_t completed_time;
 		time_t last_seen_complete;
+
+		int time_since_upload;
+		int time_since_download;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -3357,6 +3360,10 @@ the torrent is not yet finished, this is 0.
 
 ``last_seen_complete`` is the time when we, or one of our peers, last
 saw a complete copy of this torrent.
+
+``time_since_upload`` and ``time_since_download`` are the number of
+seconds since any peer last uploaded from this torrent and the last
+time a downloaded piece passed the hash check, respectively.
 
 peer_info
 =========

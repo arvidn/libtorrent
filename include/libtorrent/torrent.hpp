@@ -782,6 +782,8 @@ namespace libtorrent
 		static void print_size(logger& l);
 #endif
 
+		void update_last_upload() { m_last_upload = 0; }
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
@@ -1196,6 +1198,14 @@ namespace libtorrent
 		// the number of seconds since the last scrape request to
 		// one of the trackers in this torrent
 		boost::uint16_t m_last_scrape;
+
+		// the number of seconds since the last piece passed for
+		// this torrent
+		boost::uint16_t m_last_download;
+
+		// the number of seconds since the last byte was uploaded
+		// from this torrent
+		boost::uint16_t m_last_upload;
 	};
 }
 
