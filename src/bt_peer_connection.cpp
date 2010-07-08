@@ -1479,13 +1479,6 @@ namespace libtorrent
 			return;
 		}
 
-		if (extended_id == upload_only_msg)
-		{
-			if (!packet_finished()) return;
-			set_upload_only(detail::read_uint8(recv_buffer.begin));
-			return;
-		}
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -1495,6 +1488,13 @@ namespace libtorrent
 				return;
 		}
 #endif
+
+		if (extended_id == upload_only_msg)
+		{
+			if (!packet_finished()) return;
+			set_upload_only(detail::read_uint8(recv_buffer.begin));
+			return;
+		}
 
 		disconnect(errors::invalid_message, 2);
 		return;
