@@ -223,7 +223,7 @@ struct utp_socket_impl
 		, m_timeout(time_now_hires() + milliseconds(m_sm->connect_timeout()))
 		, m_last_cwnd_hit(min_time())
 		, m_bytes_in_flight(0)
-		, m_mtu(1500 - 20 - 8 - 8)
+		, m_mtu(1500 - 20 - 8 - 8 - 24 - 36)
 		, m_buffered_incoming_bytes(0)
 		, m_duplicate_acks(0)
 		, m_in_buf_size(100 * 1024 * 1024)
