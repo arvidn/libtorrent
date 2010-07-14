@@ -2392,7 +2392,7 @@ namespace libtorrent
 	void peer_connection::on_disk_write_complete(int ret, disk_io_job const& j
 		, peer_request p, boost::shared_ptr<torrent> t)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
 
@@ -3168,7 +3168,7 @@ namespace libtorrent
 
 	void peer_connection::on_timeout()
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		TORRENT_ASSERT(m_connecting);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -4061,7 +4061,7 @@ namespace libtorrent
 
 	void peer_connection::on_disk_read_complete(int ret, disk_io_job const& j, peer_request r)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		m_reading_bytes -= r.length;
 
@@ -4379,7 +4379,7 @@ namespace libtorrent
 		else
 		{
 			m_channel_state[download_channel] = peer_info::bw_network;
-			on_receive_data_nolock(ec, bytes_transferred);
+			on_receive_data(ec, bytes_transferred);
 		}
 	}
 
@@ -4636,14 +4636,7 @@ namespace libtorrent
 	void peer_connection::on_receive_data(const error_code& error
 		, std::size_t bytes_transferred)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
-		on_receive_data_nolock(error, bytes_transferred);
-	}
-
-	void peer_connection::on_receive_data_nolock(const error_code& error
-		, std::size_t bytes_transferred)
-	{
-
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		// keep ourselves alive in until this function exits in
@@ -4777,7 +4770,7 @@ namespace libtorrent
 
 	void peer_connection::on_connect(int ticket)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 #ifdef TORRENT_DEBUG
 		// in case we disconnect here, we need to
 		// keep the connection alive until the
@@ -4869,7 +4862,7 @@ namespace libtorrent
 	{
 		ptime completed = time_now();
 
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
 
@@ -4932,7 +4925,7 @@ namespace libtorrent
 	void peer_connection::on_send_data(error_code const& error
 		, std::size_t bytes_transferred)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
 

@@ -112,9 +112,9 @@ void test_rate()
 
 }
 
-void print_alert(alert const& a)
+void print_alert(std::auto_ptr<alert>)
 {
-	std::cout << "ses1 (alert dispatch function): " << a.message() << std::endl;
+	std::cout << "ses1 (alert dispatch function): "/* << a.message() */ << std::endl;
 }
 
 // simulate a full disk

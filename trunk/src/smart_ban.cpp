@@ -167,7 +167,7 @@ namespace
 
 		void on_read_failed_block(piece_block b, address a, int ret, disk_io_job const& j)
 		{
-			mutex::scoped_lock l(m_torrent.session().m_mutex);
+			TORRENT_ASSERT(m_torrent.session().is_network_thread());
 			
 			disk_buffer_holder buffer(m_torrent.session(), j.buffer);
 
@@ -248,7 +248,7 @@ namespace
 		
 		void on_read_ok_block(std::pair<piece_block, block_entry> b, int ret, disk_io_job const& j)
 		{
-			mutex::scoped_lock l(m_torrent.session().m_mutex);
+			TORRENT_ASSERT(m_torrent.session().is_network_thread());
 
 			disk_buffer_holder buffer(m_torrent.session(), j.buffer);
 

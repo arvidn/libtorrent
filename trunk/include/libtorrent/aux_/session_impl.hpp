@@ -177,9 +177,18 @@ namespace libtorrent
 
 			void incoming_connection(boost::shared_ptr<socket_type> const& s);
 		
-			// must be locked to access the data
-			// in this struct
-			mutable mutex m_mutex;
+#ifdef TORRENT_DEBUG
+#if defined BOOST_HAS_PTHREADS
+			pthread_t m_network_thread;
+#endif
+			bool is_network_thread() const
+			{
+#if defined BOOST_HAS_PTHREADS
+				return m_network_thread == pthread_self();
+#endif
+				return true;
+			}
+#endif
 
 			boost::weak_ptr<torrent> find_torrent(const sha1_hash& info_hash);
 			peer_id const& get_peer_id() const { return m_peer_id; }
@@ -190,7 +199,7 @@ namespace libtorrent
 			session_settings const& settings() const { return m_settings; }
 
 #ifndef TORRENT_DISABLE_DHT	
-			void add_dht_node(std::pair<std::string, int> const& node);
+			void add_dht_node_name(std::pair<std::string, int> const& node);
 			void add_dht_node(udp::endpoint n);
 			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht_settings const& s);
@@ -200,7 +209,7 @@ namespace libtorrent
 			void start_dht(entry const& startup_state);
 
 #ifndef TORRENT_NO_DEPRECATE
-			entry dht_state(mutex::scoped_lock& l) const;
+			entry dht_state() const;
 #endif
 			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
 
@@ -252,7 +261,7 @@ namespace libtorrent
 			void set_alert_mask(int m);
 			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 			std::auto_ptr<alert> pop_alert();
-			void set_alert_dispatch(boost::function<void(alert const&)> const&);
+			void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const&);
 
 			alert const* wait_for_alert(time_duration max_wait);
 
@@ -292,8 +301,8 @@ namespace libtorrent
 
 			void announce_lsd(sha1_hash const& ih);
 
-			void save_state(entry& e, boost::uint32_t flags, mutex::scoped_lock& l) const;
-			void load_state(lazy_entry const& e);
+			void save_state(entry* e, boost::uint32_t flags) const;
+			void load_state(lazy_entry const* e);
 
 			void set_peer_proxy(proxy_settings const& s)
 			{
@@ -323,6 +332,7 @@ namespace libtorrent
 			}
 			proxy_settings const& dht_proxy() const
 			{ return m_dht_proxy; }
+			bool is_dht_running() const { return m_dht; }
 #endif
 
 #if TORRENT_USE_I2P
@@ -343,22 +353,22 @@ namespace libtorrent
 			std::string as_name_for_ip(address const& a);
 			int as_for_ip(address const& a);
 			std::pair<const int, int>* lookup_as(int as);
-			bool load_asnum_db(char const* file);
+			void load_asnum_db(std::string file);
 			bool has_asnum_db() const { return m_asnum_db; }
 
-			bool load_country_db(char const* file);
+			void load_country_db(std::string file);
 			bool has_country_db() const { return m_country_db; }
 			char const* country_for_ip(address const& a);
 
 #if TORRENT_USE_WSTRING
-			bool load_asnum_db(wchar_t const* file);
-			bool load_country_db(wchar_t const* file);
+			void load_asnum_db(std::wstring file);
+			void load_country_db(std::wstring file);
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_DISABLE_GEO_IP
 
 			void start_lsd();
-			void start_natpmp(natpmp* n);
-			void start_upnp(upnp* u);
+			natpmp* start_natpmp();
+			upnp* start_upnp();
 
 			void stop_lsd();
 			void stop_natpmp();
@@ -387,11 +397,14 @@ namespace libtorrent
 			void set_external_address(address const& ip);
 			address const& external_address() const { return m_external_address; }
 
+			// used when posting synchronous function
+			// calls to session_impl and torrent objects
+			mutable libtorrent::mutex mut;
+			mutable libtorrent::condition cond;
+
 //		private:
 
 			void update_disk_thread_settings();
-			void on_dht_state_callback(condition& c
-				, entry& e, bool& done) const;
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);
 
@@ -794,6 +807,7 @@ namespace libtorrent
 			std::string m_logpath;
 		public:
 			boost::shared_ptr<logger> m_logger;
+
 		private:
 
 #endif

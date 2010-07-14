@@ -1,3 +1,4 @@
+	* removed the session mutex for improved performance
 	* added upload and download activity timer stats for torrents
 	* made the reuse-address flag configurable on the listen socket
 	* moved UDP trackers over to use a single socket

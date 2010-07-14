@@ -368,7 +368,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_abort == true);
 	}
 
-	void disk_io_thread::join()
+	void disk_io_thread::abort()
 	{
 		mutex::scoped_lock l(m_queue_mutex);
 		disk_io_job j;
@@ -376,10 +376,12 @@ namespace libtorrent
 		j.action = disk_io_job::abort_thread;
 		m_jobs.insert(m_jobs.begin(), j);
 		m_signal.signal(l);
-		l.unlock();
+	}
 
+	void disk_io_thread::join()
+	{
 		m_disk_io_thread.join();
-		l.lock();
+		mutex::scoped_lock l(m_queue_mutex);
 		TORRENT_ASSERT(m_abort == true);
 		m_jobs.clear();
 	}
