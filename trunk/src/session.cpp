@@ -442,12 +442,12 @@ namespace libtorrent
 #if TORRENT_USE_WSTRING
 	void session::load_asnum_db(wchar_t const* file)
 	{
-		TORRENT_ASYNC_CALL1(load_asnum_db, std::wstring(file));
+		TORRENT_ASYNC_CALL1(load_asnum_dbw, std::wstring(file));
 	}
 
 	void session::load_country_db(wchar_t const* file)
 	{
-		TORRENT_ASYNC_CALL1(load_country_db, std::wstring(file));
+		TORRENT_ASYNC_CALL1(load_country_dbw, std::wstring(file));
 	}
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_DISABLE_GEO_IP
