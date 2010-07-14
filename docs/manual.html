@@ -480,23 +480,26 @@ class session: public boost::noncopyable
         int num_uploads() const;
         int num_connections() const;
 
-        bool load_asnum_db(char const* file);
-        bool load_asnum_db(wchar_t const* file);
-        bool load_country_db(char const* file);
-        bool load_country_db(wchar_t const* file);
+        void load_asnum_db(char const* file);
+        void load_asnum_db(wchar_t const* file);
+        void load_country_db(char const* file);
+        void load_country_db(wchar_t const* file);
         int as_for_ip(address const&amp; adr);
 
         void set_ip_filter(ip_filter const&amp; f);
-        ip_filter const&amp; get_ip_filter() const;
+        ip_filter get_ip_filter() const;
 
         session_status status() const;
         cache_status get_cache_status() const;
 
         bool is_listening() const;
         unsigned short listen_port() const;
+
+        enum { listen_reuse_address = 1 };
         bool listen_on(
                 std::pair&lt;int, int&gt; const&amp; port_range
-                , char const* interface = 0);
+                , char const* interface = 0
+                , int flags = 0);
 
         std::auto_ptr&lt;alert&gt; pop_alert();
         alert const* wait_for_alert(time_duration max_wait);
@@ -706,12 +709,9 @@ There are 3 different modes:</p>
 <dd>All pieces will be written to the place where they belong and sparse files
 will be used. This is the recommended, and default mode.</dd>
 <dt>storage_mode_allocate</dt>
-<dd>Same as <tt class="docutils literal"><span class="pre">storage_mode_sparse</span></tt> except that files will be ftruncated on
-startup (SetEndOfFile() on windows). For filesystem that supports sparse
-files, this is in all practical aspects identical to sparse mode. For
-filesystems that don't, it will allocate the data for the files. The mac
-filesystem HFS+ doesn't support sparse files, it will allocate the files
-with zeroes.</dd>
+<dd>All pieces will be written to their final position, all files will be
+allocated in full when the torrent is first started. This is done with
+<tt class="docutils literal"><span class="pre">fallocate()</span></tt> and similar calls. This mode minimizes fragmentation.</dd>
 <dt>storage_mode_compact</dt>
 <dd>The storage will grow as more pieces are downloaded, and pieces
 are rearranged to finally be in their correct places once the entire torrent has been
@@ -892,10 +892,10 @@ to 8 on windows.</p>
 <h2>load_asnum_db() load_country_db() int as_for_ip()</h2>
 <blockquote>
 <pre class="literal-block">
-bool load_asnum_db(char const* file);
-bool load_asnum_db(wchar_t const* file);
-bool load_country_db(char const* file);
-bool load_country_db(wchar_t const* file);
+void load_asnum_db(char const* file);
+void load_asnum_db(wchar_t const* file);
+void load_country_db(char const* file);
+void load_country_db(wchar_t const* file);
 int as_for_ip(address const&amp; adr);
 </pre>
 </blockquote>
@@ -925,7 +925,7 @@ generated.</p>
 <blockquote>
 <dl class="docutils">
 <dt>::</dt>
-<dd>ip_filter const&amp; get_ip_filter() const;</dd>
+<dd>ip_filter get_ip_filter() const;</dd>
 </dl>
 </blockquote>
 <p>Returns the ip_filter currently in the session. See <a class="reference internal" href="#ip-filter">ip_filter</a>.</p>
@@ -1130,7 +1130,8 @@ bool is_listening() const;
 unsigned short listen_port() const;
 bool listen_on(
         std::pair&lt;int, int&gt; const&amp; port_range
-        , char const* interface = 0);
+        , char const* interface = 0
+        , int flags = 0);
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">is_listening()</span></tt> will tell you whether or not the session has successfully
@@ -1156,6 +1157,10 @@ want to listen on. If you don't specify an interface, libtorrent may attempt to
 listen on multiple interfaces (typically 0.0.0.0 and ::). This means that if your
 IPv6 interface doesn't work, you may still see a <a class="reference internal" href="#listen-failed-alert">listen_failed_alert</a>, even though
 the IPv4 port succeeded.</p>
+<p>The <tt class="docutils literal"><span class="pre">flags</span></tt> parameter can either be 0 or <tt class="docutils literal"><span class="pre">session::listen_reuse_address</span></tt>, which
+will set the reuse address socket option on the listen socket(s). By default, the
+listen socket does not use reuse address. If you're running a service that needs
+to run on a specific port no matter if it's in use, set this flag.</p>
 <p>If you're also starting the DHT, it is a good idea to do that after you've called
 <tt class="docutils literal"><span class="pre">listen_on()</span></tt>, since the default listen port for the DHT is the same as the tcp
 listen socket. If you start the DHT first, it will assume the tcp port is free and
@@ -1298,10 +1303,10 @@ it only has any effect if the proxy supports UDP.</p>
 <h2>peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()</h2>
 <blockquote>
 <pre class="literal-block">
-proxy_settings const&amp; peer_proxy() const;
-proxy_settings const&amp; web_seed_proxy() const;
-proxy_settings const&amp; tracker_proxy() const;
-proxy_settings const&amp; dht_proxy() const;
+proxy_settings peer_proxy() const;
+proxy_settings web_seed_proxy() const;
+proxy_settings tracker_proxy() const;
+proxy_settings dht_proxy() const;
 </pre>
 </blockquote>
 <p>These functions returns references to their respective current settings.</p>

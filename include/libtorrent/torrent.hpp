@@ -172,8 +172,7 @@ namespace libtorrent
 		void on_resume_data_checked(int ret, disk_io_job const& j);
 		void on_force_recheck(int ret, disk_io_job const& j);
 		void on_piece_checked(int ret, disk_io_job const& j);
-		void files_checked_lock();
-		void files_checked(mutex::scoped_lock const&);
+		void files_checked();
 		void start_checking();
 
 		void start_announcing();
@@ -228,6 +227,8 @@ namespace libtorrent
 		bool is_sequential_download() const
 		{ return m_sequential_download; }
 	
+		void queue_up();
+		void queue_down();
 		void set_queue_position(int p);
 		int queue_position() const { return m_sequence_number; }
 
@@ -307,7 +308,7 @@ namespace libtorrent
 
 		void file_progress(std::vector<size_type>& fp, int flags = 0) const;
 
-		void use_interface(const char* net_interface);
+		void use_interface(std::string net_interface);
 		tcp::endpoint get_interface() const { return m_net_interface; }
 		
 		void connect_to_url_seed(std::list<web_seed_entry>::iterator url);
@@ -408,6 +409,7 @@ namespace libtorrent
 		bool want_more_peers() const;
 		bool try_connect_peer();
 		void give_connect_points(int points);
+		void add_peer(tcp::endpoint const& adr, int source);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }

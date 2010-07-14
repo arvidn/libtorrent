@@ -275,7 +275,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		void set_pe_settings(pe_settings const& settings);
-		pe_settings const& get_pe_settings() const;
+		pe_settings get_pe_settings() const;
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -284,11 +284,11 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		int as_for_ip(address const& addr);
-		bool load_asnum_db(char const* file);
-		bool load_country_db(char const* file);
+		void load_asnum_db(char const* file);
+		void load_country_db(char const* file);
 #if TORRENT_USE_WSTRING
-		bool load_country_db(wchar_t const* file);
-		bool load_asnum_db(wchar_t const* file);
+		void load_country_db(wchar_t const* file);
+		void load_asnum_db(wchar_t const* file);
 #endif
 #endif
 
@@ -302,7 +302,7 @@ namespace libtorrent
 #endif
 
 		void set_ip_filter(ip_filter const& f);
-		ip_filter const& get_ip_filter() const;
+		ip_filter get_ip_filter() const;
 		
 		void set_port_filter(port_filter const& f);
 		void set_peer_id(peer_id const& pid);
@@ -354,24 +354,24 @@ namespace libtorrent
 		void remove_torrent(const torrent_handle& h, int options = none);
 
 		void set_settings(session_settings const& s);
-		session_settings const& settings();
+		session_settings settings();
 
 		void set_peer_proxy(proxy_settings const& s);
 		void set_web_seed_proxy(proxy_settings const& s);
 		void set_tracker_proxy(proxy_settings const& s);
 
-		proxy_settings const& peer_proxy() const;
-		proxy_settings const& web_seed_proxy() const;
-		proxy_settings const& tracker_proxy() const;
+		proxy_settings peer_proxy() const;
+		proxy_settings web_seed_proxy() const;
+		proxy_settings tracker_proxy() const;
 
 #ifndef TORRENT_DISABLE_DHT
 		void set_dht_proxy(proxy_settings const& s);
-		proxy_settings const& dht_proxy() const;
+		proxy_settings dht_proxy() const;
 #endif
 
 #if TORRENT_USE_I2P
 		void set_i2p_proxy(proxy_settings const& s);
-		proxy_settings const& i2p_proxy() const;
+		proxy_settings i2p_proxy() const;
 #endif
 
 		int upload_rate_limit() const;
@@ -400,7 +400,7 @@ namespace libtorrent
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 		alert const* wait_for_alert(time_duration max_wait);
-		void set_alert_dispatch(boost::function<void(alert const&)> const& fun);
+		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
 
 		connection_queue& get_connection_queue();
 

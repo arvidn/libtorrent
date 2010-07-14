@@ -384,6 +384,7 @@ void run_elevator_test()
 		// this is not guaranteed, but very very likely
 		TEST_CHECK(turns > 20);
 
+		dio.abort();
 		dio.join();
 	}
 }
@@ -574,6 +575,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	ios.poll(ec);
 	if (ec) std::cerr << "poll: " << ec.message() << std::endl;
 
+	io.abort();
 	io.join();
 	remove_all(combine_path(test_path, "temp_storage2"), ec);
 	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
@@ -723,6 +725,7 @@ void test_check_files(std::string const& test_path
 	TEST_EQUAL(pieces[1], false);
 	TEST_EQUAL(pieces[2], false);
 	TEST_EQUAL(pieces[3], true);
+	io.abort();
 	io.join();
 }
 

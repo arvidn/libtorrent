@@ -193,14 +193,14 @@ The ``session`` class has the following synopsis::
 		int num_uploads() const;
 		int num_connections() const;
 
-		bool load_asnum_db(char const* file);
-		bool load_asnum_db(wchar_t const* file);
-		bool load_country_db(char const* file);
-		bool load_country_db(wchar_t const* file);
+		void load_asnum_db(char const* file);
+		void load_asnum_db(wchar_t const* file);
+		void load_country_db(char const* file);
+		void load_country_db(wchar_t const* file);
 		int as_for_ip(address const& adr);
 
 		void set_ip_filter(ip_filter const& f);
-		ip_filter const& get_ip_filter() const;
+		ip_filter get_ip_filter() const;
 
 		session_status status() const;
 		cache_status get_cache_status() const;
@@ -647,10 +647,10 @@ load_asnum_db() load_country_db() int as_for_ip()
 
 	::
 
-		bool load_asnum_db(char const* file);
-		bool load_asnum_db(wchar_t const* file);
-		bool load_country_db(char const* file);
-		bool load_country_db(wchar_t const* file);
+		void load_asnum_db(char const* file);
+		void load_asnum_db(wchar_t const* file);
+		void load_country_db(char const* file);
+		void load_country_db(wchar_t const* file);
 		int as_for_ip(address const& adr);
 
 These functions are not available if ``TORRENT_DISABLE_GEO_IP`` is defined. They
@@ -684,7 +684,7 @@ get_ip_filter()
 ---------------
 
 	::
-		ip_filter const& get_ip_filter() const;
+		ip_filter get_ip_filter() const;
 		
 Returns the ip_filter currently in the session. See ip_filter_.
 
@@ -1114,10 +1114,10 @@ peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()
 
 	::
 
-		proxy_settings const& peer_proxy() const;
-		proxy_settings const& web_seed_proxy() const;
-		proxy_settings const& tracker_proxy() const;
-		proxy_settings const& dht_proxy() const;
+		proxy_settings peer_proxy() const;
+		proxy_settings web_seed_proxy() const;
+		proxy_settings tracker_proxy() const;
+		proxy_settings dht_proxy() const;
 
 These functions returns references to their respective current settings.
 

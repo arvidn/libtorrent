@@ -642,8 +642,6 @@ namespace libtorrent
 			, std::size_t bytes_transferred);
 		void on_receive_data(error_code const& error
 			, std::size_t bytes_transferred);
-		void on_receive_data_nolock(error_code const& error
-			, std::size_t bytes_transferred);
 
 		// this is the limit on the number of outstanding requests
 		// we have to this peer. This is initialized to the settings
