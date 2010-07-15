@@ -382,6 +382,9 @@ namespace libtorrent
 		, m_last_download(0)
 		, m_last_upload(0)
 	{
+		if (p.file_priorities)
+			m_file_priority = *p.file_priorities;
+
 		if (m_seed_mode)
 			m_verified.resize(m_torrent_file->num_pieces(), false);
 
@@ -841,7 +844,7 @@ namespace libtorrent
 		// cycle of ownership, se the hpp file for description.
 		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
 			, m_save_path, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor
-			, (storage_mode_t)m_storage_mode);
+			, (storage_mode_t)m_storage_mode, m_file_priority);
 		m_storage = m_owning_storage.get();
 
 		if (has_picker())

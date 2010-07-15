@@ -222,7 +222,8 @@ private:
 };
 
 storage_interface* create_test_storage(file_storage const& fs
-	, file_storage const* mapped, std::string const& path, file_pool& fp)
+	, file_storage const* mapped, std::string const& path, file_pool& fp
+	, std::vector<boost::uint8_t> const&)
 {
 	return new test_storage;
 }
@@ -280,7 +281,7 @@ void run_elevator_test()
 		error_code ec;
 		disk_io_thread dio(ios, &nop, fp);
 		boost::intrusive_ptr<piece_manager> pm(new piece_manager(boost::shared_ptr<void>(), ti, ""
-			, fp, dio, &create_test_storage, storage_mode_sparse));
+			, fp, dio, &create_test_storage, storage_mode_sparse, std::vector<boost::uint8_t>()));
 
 		// we must disable the read cache in order to
 		// verify that the elevator algorithm works.
@@ -418,7 +419,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	file_pool fp;
 	disk_buffer_pool dp(16 * 1024);
 	boost::scoped_ptr<storage_interface> s(
-		default_storage_constructor(fs, 0, test_path, fp));
+		default_storage_constructor(fs, 0, test_path, fp, std::vector<boost::uint8_t>()));
 	s->m_settings = &set;
 	s->m_disk_pool = &dp;
 
@@ -470,7 +471,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	disk_io_thread io(ios, boost::function<void()>(), fp);
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
-		, test_path, fp, io, default_storage_constructor, storage_mode);
+		, test_path, fp, io, default_storage_constructor, storage_mode, std::vector<boost::uint8_t>());
 	libtorrent::mutex lock;
 
 	error_code ec;
@@ -615,7 +616,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	file_pool fp;
 	disk_buffer_pool dp(16 * 1024);
 	boost::scoped_ptr<storage_interface> s(
-		default_storage_constructor(fs, 0, test_path, fp));
+		default_storage_constructor(fs, 0, test_path, fp, std::vector<boost::uint8_t>()));
 	s->m_settings = &set;
 	s->m_disk_pool = &dp;
 
@@ -697,7 +698,7 @@ void test_check_files(std::string const& test_path
 	disk_io_thread io(ios, boost::function<void()>(), fp);
 	boost::shared_ptr<int> dummy(new int);
 	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
-		, test_path, fp, io, default_storage_constructor, storage_mode);
+		, test_path, fp, io, default_storage_constructor, storage_mode, std::vector<boost::uint8_t>());
 	libtorrent::mutex lock;
 
 	bool done = false;
