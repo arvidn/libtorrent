@@ -1109,9 +1109,9 @@ namespace libtorrent
 			friend void* asio_handler_allocate(
 			    std::size_t size, allocating_handler<Handler, Size>* ctx)
 			{
-				assert(size <= Size);
+				TORRENT_ASSERT(size <= Size);
 #ifdef TORRENT_DEBUG
-				assert(!ctx->storage.used);
+				TORRENT_ASSERT(!ctx->storage.used);
 				ctx->storage.used = true;
 #endif
 				return &ctx->storage.bytes;
