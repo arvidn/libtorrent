@@ -477,5 +477,13 @@ namespace libtorrent {
 		return msg;
 	}
 
+	std::string lsd_peer_alert::message() const
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "%s: received peer from local service discovery"
+			, peer_alert::message().c_str());
+		return msg;
+	}
+
 } // namespace libtorrent
 

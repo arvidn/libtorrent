@@ -5875,6 +5875,20 @@ This alert is generated when a block request receives a response.
 	};
 
 
+lsd_peer_alert
+--------------
+
+This alert is generated when we receive a local service discovery message from a peer
+for a torrent we're currently participating in.
+
+::
+
+	struct lsd_peer_alert: peer_alert
+	{
+		// ...
+	};
+
+
 file_completed_alert
 --------------------
 

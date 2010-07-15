@@ -3300,6 +3300,8 @@ namespace aux {
 			<< ": added peer from local discovery: " << peer << "\n";
 #endif
 		t->get_policy().add_peer(peer, peer_id(0), peer_info::lsd, 0);
+		if (m_alerts.should_post<lsd_peer_alert>())
+			m_alerts.post_alert(lsd_peer_alert(t->get_handle(), peer));
 	}
 
 	void session_impl::on_port_map_log(
