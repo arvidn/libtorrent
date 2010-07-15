@@ -36,6 +36,8 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fix force-reannounce and tracker retry issue
+
 0.15.1 release
 
 	* fixed rare crash when purging the peer list
