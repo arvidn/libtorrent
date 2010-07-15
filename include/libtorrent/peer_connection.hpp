@@ -245,6 +245,9 @@ namespace libtorrent
 		bool no_download() const { return m_no_download; }
 		void no_download(bool b) { m_no_download = b; }
 
+		bool ignore_stats() const { return m_ignore_stats; }
+		void ignore_stats(bool b) { m_ignore_stats = b; }
+
 		void set_priority(int p)
 		{
 			TORRENT_ASSERT(p > 0);
@@ -1054,6 +1057,10 @@ namespace libtorrent
 
 		// set to true when we've sent the first round of suggests
 		bool m_sent_suggests:1;
+
+		// when this is set, the transfer stats for this connection
+		// is not included in the torrent or session stats
+		bool m_ignore_stats:1;
 		
 		template <std::size_t Size>
 		struct handler_storage

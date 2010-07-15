@@ -216,6 +216,7 @@ namespace libtorrent
 			, ignore_resume_timestamps(false)
 			, anonymous_mode(false)
 			, tick_interval(100)
+			, report_web_seed_downloads(true)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -834,6 +835,10 @@ namespace libtorrent
 		// the number of milliseconds between internal ticks. Should be no
 		// more than one second (i.e. 1000).
 		int tick_interval;
+
+		// specifies whether downloads from web seeds is reported to the
+		// tracker or not. Defaults to on
+		bool report_web_seed_downloads;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

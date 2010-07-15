@@ -1253,6 +1253,19 @@ namespace aux {
 		// if anonymous mode was enabled, clear out the peer ID
 		bool anonymous = (m_settings.anonymous_mode != s.anonymous_mode && s.anonymous_mode);
 
+		if (m_settings.report_web_seed_downloads != s.report_web_seed_downloads)
+		{
+			// if this flag changed, update all web seed connections
+			for (connection_map::iterator i = m_connections.begin()
+				, end(m_connections.end()); i != end; ++i)
+			{
+				int type = (*i)->type();
+				if (type == peer_connection::url_seed_connection
+					|| type == peer_connection::http_seed_connection)
+					(*i)->ignore_stats(!s.report_web_seed_downloads);
+			}
+		}
+
 		m_settings = s;
 
 		// enable anonymous mode. We don't want to accept any incoming

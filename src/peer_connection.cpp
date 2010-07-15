@@ -148,6 +148,7 @@ namespace libtorrent
 		, m_bitfield_received(false)
 		, m_no_download(false)
 		, m_sent_suggests(false)
+		, m_ignore_stats(false)
 #ifdef TORRENT_DEBUG
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -283,6 +284,7 @@ namespace libtorrent
 		, m_bitfield_received(false)
 		, m_no_download(false)
 		, m_sent_suggests(false)
+		, m_ignore_stats(false)
 #ifdef TORRENT_DEBUG
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -3237,7 +3239,7 @@ namespace libtorrent
 		if (t)
 		{
 			// make sure we keep all the stats!
-			t->add_stats(statistics());
+			if (!m_ignore_stats) t->add_stats(statistics());
 
 			if (t->has_picker())
 			{
