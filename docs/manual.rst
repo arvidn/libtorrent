@@ -369,12 +369,14 @@ add_torrent()
 	::
 
 		typedef storage_interface* (&storage_constructor_type)(
-			file_storage const&, file_storage const*, fs::path const&, file_pool&);
+			file_storage const&, file_storage const*, fs::path const&, file_pool&
+			, std::vector<boost::uint8_t> const&);
 
 		struct add_torrent_params
 		{
 			add_torrent_params(storage_constructor_type s);
 
+			int version;
 			boost::intrusive_ptr<torrent_info> ti;
 			char const* tracker_url;
 			sha1_hash info_hash;
@@ -390,6 +392,7 @@ add_torrent()
 			bool seed_mode;
 			bool override_resume_data;
 			bool upload_mode;
+			std::vector<boost::uint8_t> const* file_priorities;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -499,6 +502,12 @@ which means it will not make any piece requests. This state is typically entered
 on disk I/O errors, and if the torrent is also auto managed, it will be taken out
 of this state periodically. This mode can be used to avoid race conditions when
 adjusting priorities of pieces before allowing the torrent to start downloading.
+
+``file_priorities`` can be set to control the initial file priorities when adding
+a torrent. The semantics are the same as for ``torrent_handle::prioritize_files()``.
+
+``version`` is filled in by the constructor and should be left untouched. It
+is used for forward binary compatibility.
 
 remove_torrent()
 ----------------
@@ -3749,6 +3758,7 @@ session_settings
 	struct session_settings
 	{
 		session_settings();
+		int version;
 		std::string user_agent;
 		int tracker_completion_timeout;
 		int tracker_receive_timeout;
@@ -3911,6 +3921,9 @@ session_settings
 		bool anonymous_mode;
 		int tick_interval;
 	};
+
+``version`` is automatically set to the libtorrent version you're using
+in order to be forward binary compatible. This field should not be changed.
 
 ``user_agent`` this is the client identification to the tracker.
 The recommended format of this string is:

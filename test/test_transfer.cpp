@@ -121,7 +121,7 @@ void print_alert(std::auto_ptr<alert>)
 struct test_storage : storage_interface
 {
 	test_storage(file_storage const& fs, std::string const& p, file_pool& fp)
-		: m_lower_layer(default_storage_constructor(fs, 0, p, fp))
+		: m_lower_layer(default_storage_constructor(fs, 0, p, fp, std::vector<boost::uint8_t>()))
   		, m_written(0)
 		, m_limit(16 * 1024 * 2)
 	{}
@@ -213,7 +213,7 @@ struct test_storage : storage_interface
 };
 
 storage_interface* test_storage_constructor(file_storage const& fs
-	, file_storage const*, std::string const& path, file_pool& fp)
+	, file_storage const*, std::string const& path, file_pool& fp, std::vector<boost::uint8_t> const&)
 {
 	return new test_storage(fs, path, fp);
 }

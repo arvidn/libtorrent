@@ -344,11 +344,13 @@ namespace libtorrent
 	class storage : public storage_interface, boost::noncopyable
 	{
 	public:
-		storage(file_storage const& fs, file_storage const* mapped, std::string const& path, file_pool& fp)
+		storage(file_storage const& fs, file_storage const* mapped, std::string const& path
+			, file_pool& fp, std::vector<boost::uint8_t> const& file_prio)
 			: m_files(fs)
 			, m_pool(fp)
 			, m_page_size(page_size())
 			, m_allocate_files(false)
+			, m_file_priority(file_prio)
 		{
 			if (mapped) m_mapped_files.reset(new file_storage(*mapped));
 
@@ -1318,9 +1320,10 @@ ret:
 	}
 
 	storage_interface* default_storage_constructor(file_storage const& fs
-		, file_storage const* mapped, std::string const& path, file_pool& fp)
+		, file_storage const* mapped, std::string const& path, file_pool& fp
+		, std::vector<boost::uint8_t> const& file_prio)
 	{
-		return new storage(fs, mapped, path, fp);
+		return new storage(fs, mapped, path, fp, file_prio);
 	}
 
 	// this storage implementation does not write anything to disk
@@ -1398,7 +1401,8 @@ ret:
 	};
 
 	storage_interface* disabled_storage_constructor(file_storage const& fs
-		, file_storage const* mapped, std::string const& path, file_pool& fp)
+		, file_storage const* mapped, std::string const& path, file_pool& fp
+		, std::vector<boost::uint8_t> const&)
 	{
 		return new disabled_storage(fs.piece_length());
 	}
@@ -1412,11 +1416,12 @@ ret:
 		, file_pool& fp
 		, disk_io_thread& io
 		, storage_constructor_type sc
-		, storage_mode_t sm)
+		, storage_mode_t sm
+		, std::vector<boost::uint8_t> const& file_prio)
 		: m_info(info)
 		, m_files(m_info->files())
 		, m_storage(sc(m_info->orig_files(), &m_info->files() != &m_info->orig_files()
-			? &m_info->files() : 0, save_path, fp))
+			? &m_info->files() : 0, save_path, fp, file_prio))
 		, m_storage_mode(sm)
 		, m_save_path(complete(save_path))
 		, m_state(state_none)

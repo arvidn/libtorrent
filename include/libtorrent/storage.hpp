@@ -199,7 +199,8 @@ namespace libtorrent
 			, file_pool& fp
 			, disk_io_thread& io
 			, storage_constructor_type sc
-			, storage_mode_t sm);
+			, storage_mode_t sm
+			, std::vector<boost::uint8_t> const& file_prio);
 
 		~piece_manager();
 

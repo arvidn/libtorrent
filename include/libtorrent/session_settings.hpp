@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/version.hpp"
 
 namespace libtorrent
 {
@@ -84,7 +85,8 @@ namespace libtorrent
 	{
 		session_settings(std::string const& user_agent_ = "libtorrent/"
 			LIBTORRENT_VERSION)
-			: user_agent(user_agent_)
+			: version(LIBTORRENT_VERSION_NUM)
+			, user_agent(user_agent_)
 			, tracker_completion_timeout(60)
 			, tracker_receive_timeout(40)
 			, stop_tracker_timeout(5)
@@ -215,6 +217,9 @@ namespace libtorrent
 			, anonymous_mode(false)
 			, tick_interval(100)
 		{}
+
+		// libtorrent version. Used for forward binary compatibility
+		int version;
 
 		// this is the user agent that will be sent to the tracker
 		// when doing requests. It is used to identify the client.
