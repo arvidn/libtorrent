@@ -1556,7 +1556,7 @@ namespace libtorrent
 	void torrent::force_tracker_request()
 	{
 		if (is_paused()) return;
-		ptime now = time_now();
+		ptime now = time_now_hires();
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
 			i->next_announce = (std::max)(now, i->min_announce);
@@ -1569,7 +1569,7 @@ namespace libtorrent
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
 			i->next_announce = (std::max)(t, i->min_announce);
-		update_tracker_timer(time_now());
+		update_tracker_timer(time_now_hires());
 	}
 
 	void torrent::set_tracker_login(
@@ -5190,18 +5190,25 @@ namespace libtorrent
 				&& !m_settings.announce_to_all_tiers) break;
 		}
 
-		if (next_announce == max_time()
-			|| next_announce <= now) return;
+		if (next_announce == max_time()) return;
+
+		m_waiting_tracker = true;
+		error_code ec;
+		boost::weak_ptr<torrent> self(shared_from_this());
+
+		if (next_announce <= now)
+		{
+			// no need to post this via asio, just call directly
+			on_tracker_announce_disp(self, ec);
+			return;
+		}
 
 		// since we don't know if we have to re-issue the async_wait or not
 		// always do it
 //		if (m_tracker_timer.expires_at() <= next_announce) return;
 
-		error_code ec;
-		boost::weak_ptr<torrent> self(shared_from_this());
 		m_tracker_timer.expires_at(next_announce, ec);
 		m_tracker_timer.async_wait(boost::bind(&torrent::on_tracker_announce_disp, self, _1));
-		m_waiting_tracker = true;
 	}
 
 	void torrent::start_announcing()

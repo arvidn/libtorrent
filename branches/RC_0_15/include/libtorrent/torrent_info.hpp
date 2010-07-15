@@ -79,6 +79,8 @@ namespace libtorrent
 	{
 		announce_entry(std::string const& u)
 			: url(u)
+			, next_announce(min_time())
+			, min_announce(min_time())
 			, tier(0)
 			, fail_limit(3)
 			, fails(0)
