@@ -5770,7 +5770,10 @@ namespace libtorrent
 		{
 			peer_connection* p = *i;
 			++i;
-			m_stat += p->statistics();
+
+			if (!p->ignore_stats())
+				m_stat += p->statistics();
+
 			// updates the peer connection's ul/dl bandwidth
 			// resource requests
 #ifndef BOOST_NO_EXCEPTIONS

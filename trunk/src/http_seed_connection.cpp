@@ -69,6 +69,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		if (!ses.settings().report_web_seed_downloads)
+			ignore_stats(true);
+
 		// we want large blocks as well, so
 		// we can request more bytes at once
 		request_large_blocks(true);
