@@ -2605,7 +2605,8 @@ ret:
 			if (m_storage->error()
 #ifdef TORRENT_WINDOWS
 				&& m_storage->error() != error_code(ERROR_FILE_NOT_FOUND, get_system_category())
-				&& m_storage->error() != error_code(ERROR_HANDLE_EOF, get_system_category()))
+				&& m_storage->error() != error_code(ERROR_HANDLE_EOF, get_system_category())
+				&& m_storage->error() != error_code(ERROR_INVALID_HANDLE, get_system_category()))
 #else
 				&& m_storage->error() != error_code(ENOENT, get_posix_category()))
 #endif
