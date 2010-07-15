@@ -1,3 +1,4 @@
+	* added alert for incoming local service discovery messages
 	* added option to set file priorities when adding torrents
 	* removed the session mutex for improved performance
 	* added upload and download activity timer stats for torrents
