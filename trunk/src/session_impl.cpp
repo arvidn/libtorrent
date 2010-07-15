@@ -3783,6 +3783,7 @@ namespace aux {
 			m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::udp
 				, m_listen_interface.port(), m_listen_interface.port());
 		}
+		return n;
 	}
 
 	upnp* session_impl::start_upnp()
@@ -3817,6 +3818,7 @@ namespace aux {
 			m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
 				, m_listen_interface.port(), m_listen_interface.port());
 		}
+		return u;
 	}
 
 	void session_impl::stop_lsd()
