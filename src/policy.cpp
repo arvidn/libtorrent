@@ -371,6 +371,7 @@ namespace libtorrent
 	void policy::erase_peer(iterator i)
 	{
 		INVARIANT_CHECK;
+		TORRENT_ASSERT(i != m_peers.end());
 
 		if (m_torrent->has_picker())
 			m_torrent->picker().clear_peer(*i);
@@ -386,18 +387,30 @@ namespace libtorrent
 
 #if TORRENT_USE_IPV6
 		if ((*i)->is_v6_addr)
+		{
+			TORRENT_ASSERT(m_torrent->session().m_ipv6_peer_pool.is_from(
+				static_cast<ipv6_peer*>(*i)));
 			m_torrent->session().m_ipv6_peer_pool.destroy(
 				static_cast<ipv6_peer*>(*i));
+		}
 		else
 #endif
 #if TORRENT_USE_I2P
 		if ((*i)->is_i2p_addr)
+		{
+			TORRENT_ASSERT(m_torrent->session().m_i2p_peer_pool.is_from(
+				static_cast<i2p_peer*>(*i)));
 			m_torrent->session().m_i2p_peer_pool.destroy(
 				static_cast<i2p_peer*>(*i));
+		}
 		else
 #endif
+		{
+			TORRENT_ASSERT(m_torrent->session().m_ipv4_peer_pool.is_from(
+				static_cast<ipv4_peer*>(*i)));
 			m_torrent->session().m_ipv4_peer_pool.destroy(
 				static_cast<ipv4_peer*>(*i));
+		}
 		m_peers.erase(i);
 	}
 
@@ -421,8 +434,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		int max_peerlist_size = m_torrent->is_paused()
-			?m_torrent->settings().max_paused_peerlist_size
-			:m_torrent->settings().max_peerlist_size;
+			? m_torrent->settings().max_paused_peerlist_size
+			: m_torrent->settings().max_peerlist_size;
 
 		if (max_peerlist_size == 0 || m_peers.empty()) return;
 
@@ -451,6 +464,7 @@ namespace libtorrent
 					if (should_erase_immediately(pe))
 					{
 						if (erase_candidate > current) --erase_candidate;
+						TORRENT_ASSERT(current >= 0 && current < m_peers.size());
 						erase_peer(m_peers.begin() + current);
 					}
 					else
@@ -464,7 +478,10 @@ namespace libtorrent
 		}
 		
 		if (erase_candidate > -1)
+		{
+			TORRENT_ASSERT(erase_candidate >= 0 && erase_candidate < m_peers.size());
 			erase_peer(m_peers.begin() + erase_candidate);
+		}
 	}
 
 	void policy::ban_peer(policy::peer* p)
