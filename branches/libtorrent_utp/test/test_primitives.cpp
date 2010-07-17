@@ -440,7 +440,7 @@ int test_main()
 		{
 			int index = (i + 0xfff0) & 0xffff;
 			pb.insert(index, (void*)(index + 1));
-			fprintf(stderr, "insert: %u (mask: %x)\n", index, pb.capacity() - 1);
+			fprintf(stderr, "insert: %u (mask: %x)\n", index, int(pb.capacity() - 1));
 			TEST_EQUAL(pb.capacity(), 512);
 			if (i >= 14)
 			{

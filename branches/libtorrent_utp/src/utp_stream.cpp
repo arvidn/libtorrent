@@ -283,10 +283,10 @@ struct utp_socket_impl
 	void maybe_trigger_receive_callback(ptime now);
 	void maybe_trigger_send_callback(ptime now);
 	bool cancel_handlers(error_code const& ec, bool kill);
-    bool consume_incoming_data(
-        utp_header const* ph, char const* ptr, int payload_size, ptime now);
+	bool consume_incoming_data(
+		utp_header const* ph, char const* ptr, int payload_size, ptime now);
 
-    void check_receive_buffers() const;
+	void check_receive_buffers() const;
 
 	utp_socket_manager* m_sm;
 
@@ -472,8 +472,8 @@ struct utp_socket_impl
 
 	// the max number of bytes in-flight. This is a fixed point
 	// value, to get the true number of bytes, shift right 16 bits
-    // the value is always >= 0, but the calculations performed on
-    // it in do_ledbat() is signed.
+	// the value is always >= 0, but the calculations performed on
+	// it in do_ledbat() is signed.
 	boost::int64_t m_cwnd;
 
 	// this is the advertized receive window the other end sent
@@ -544,7 +544,7 @@ utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
 
 void detach_utp_impl(utp_socket_impl* s)
 {
-    s->detach();
+	s->detach();
 }
 
 void delete_utp_impl(utp_socket_impl* s)
@@ -608,10 +608,10 @@ std::size_t utp_stream::available() const
 utp_stream::endpoint_type utp_stream::remote_endpoint(error_code& ec) const
 {
 	if (!m_impl)
-    {
-        ec = asio::error::not_connected;
-        return endpoint_type();
-    }
+	{
+		ec = asio::error::not_connected;
+		return endpoint_type();
+	}
 	return m_impl->remote_endpoint(ec);
 }
 
@@ -707,8 +707,8 @@ void utp_stream::add_read_buffer(void* buf, size_t len)
 	m_impl->m_read_buffer.push_back(utp_socket_impl::iovec_t(buf, len));
 	m_impl->m_read_buffer_size += len;
 
-    UTP_LOGV("[%08u] %8p: add_read_buffer %d bytes\n"
-        , int(total_microseconds(time_now_hires() - min_time())), m_impl, int(len));
+	UTP_LOGV("[%08u] %8p: add_read_buffer %d bytes\n"
+		, int(total_microseconds(time_now_hires() - min_time())), m_impl, int(len));
 }
 
 // this is the wrapper to add a user provided write buffer to the
@@ -741,8 +741,8 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 	TORRENT_ASSERT(m_impl->m_write_buffer_size == write_buffer_size);
 #endif
 
-    UTP_LOGV("[%08u] %8p: add_write_buffer %d bytes\n"
-        , int(total_microseconds(time_now_hires() - min_time())), m_impl, int(len));
+	UTP_LOGV("[%08u] %8p: add_write_buffer %d bytes\n"
+		, int(total_microseconds(time_now_hires() - min_time())), m_impl, int(len));
 }
 
 // this is called when all user provided read buffers have been added
@@ -755,9 +755,9 @@ void utp_stream::set_read_handler(handler_t h)
 	m_impl->m_read_handler = h;
 	if (m_impl->test_socket_state()) return;
 
-    UTP_LOGV("[%08u] %8p: new read handler. %d bytes in buffer\n"
-        , int(total_microseconds(time_now_hires() - min_time())), m_impl
-        , m_impl->m_receive_buffer_size);
+	UTP_LOGV("[%08u] %8p: new read handler. %d bytes in buffer\n"
+		, int(total_microseconds(time_now_hires() - min_time())), m_impl
+		, m_impl->m_receive_buffer_size);
 
 	// so, the client wants to read. If we already
 	// have some data in the read buffer, move it into the
@@ -799,7 +799,7 @@ size_t utp_stream::read_some(bool clear_buffers)
 
 		packet* p = *i;
 		int to_copy = (std::min)(p->size - p->header_size, int(target->len));
-        TORRENT_ASSERT(to_copy >= 0);
+		TORRENT_ASSERT(to_copy >= 0);
 		memcpy(target->buf, p->buf + p->header_size, to_copy);
 		ret += to_copy;
 		target->buf = ((char*)target->buf) + to_copy;
@@ -811,25 +811,25 @@ size_t utp_stream::read_some(bool clear_buffers)
 		p->header_size += to_copy;
 		if (target->len == 0) target = m_impl->m_read_buffer.erase(target);
 
-        m_impl->check_receive_buffers();
+		m_impl->check_receive_buffers();
 
-        TORRENT_ASSERT(m_impl->m_receive_buffer_size >= 0);
+		TORRENT_ASSERT(m_impl->m_receive_buffer_size >= 0);
 
-        // Consumed entire packet
-        if (p->header_size == p->size)
-        {
-            free(p);
-            ++pop_packets;
-            *i = 0;
-            ++i;
-        }
+		// Consumed entire packet
+		if (p->header_size == p->size)
+		{
+			free(p);
+			++pop_packets;
+			*i = 0;
+			++i;
+		}
 
-        if (m_impl->m_receive_buffer_size == 0)
-        {
-            UTP_LOGV("  Didn't fill entire target: %d bytes left in buffer\n"
-              , m_impl->m_receive_buffer_size);
-            break;
-        }
+		if (m_impl->m_receive_buffer_size == 0)
+		{
+			UTP_LOGV("  Didn't fill entire target: %d bytes left in buffer\n"
+				, m_impl->m_receive_buffer_size);
+			break;
+		}
 	}
 	// remove the packets from the receive_buffer that we already copied over
 	// and freed
@@ -840,26 +840,26 @@ size_t utp_stream::read_some(bool clear_buffers)
 	TORRENT_ASSERT(m_impl->m_receive_buffer_size == 0
 		|| m_impl->m_read_buffer.empty());
 
-    UTP_LOGV("[%08u] %8p: %d packets moved from buffer to user space\n"
-        , int(total_microseconds(time_now_hires() - min_time())), m_impl
-        , pop_packets);
+	UTP_LOGV("[%08u] %8p: %d packets moved from buffer to user space\n"
+		, int(total_microseconds(time_now_hires() - min_time())), m_impl
+		, pop_packets);
 
-	 if (clear_buffers)
-	 {
+	if (clear_buffers)
+	{
 		 m_impl->m_read_buffer_size = 0;
 		 m_impl->m_read_buffer.clear();
-	 }
-	 TORRENT_ASSERT(ret > 0);
-	 return ret;
+	}
+	TORRENT_ASSERT(ret > 0);
+	return ret;
 }
 
 // this is called when all user provided write buffers have been
 // added. Start trying to send packets with the payload immediately.
 void utp_stream::set_write_handler(handler_t h)
 {
-    UTP_LOGV("[%08u] %8p: new write handler. %d bytes to write\n"
-        , int(total_microseconds(time_now_hires() - min_time())), m_impl
-        , m_impl->m_write_buffer_size);
+	UTP_LOGV("[%08u] %8p: new write handler. %d bytes to write\n"
+		, int(total_microseconds(time_now_hires() - min_time())), m_impl
+		, m_impl->m_write_buffer_size);
 
 	m_impl->m_write_handler = h;
 	m_impl->m_written = 0;
@@ -887,7 +887,7 @@ utp_socket_impl::~utp_socket_impl()
 {
 	TORRENT_ASSERT(!m_attached);
 
-    UTP_LOGV("[%08u] %8p: destroying utp socket state\n"
+	UTP_LOGV("[%08u] %8p: destroying utp socket state\n"
 		, int(total_microseconds(time_now_hires() - min_time())), this);
 
 	// free any buffers we're holding
@@ -906,11 +906,11 @@ utp_socket_impl::~utp_socket_impl()
 		free(p);
 	}
 
-    for (std::vector<packet*>::iterator i = m_receive_buffer.begin(),
-         end = m_receive_buffer.end(); i != end; ++i)
-    {
-        free(*i);
-    }
+	for (std::vector<packet*>::iterator i = m_receive_buffer.begin()
+		, end = m_receive_buffer.end(); i != end; ++i)
+	{
+		free(*i);
+	}
 }
 
 bool utp_socket_impl::should_delete() const
@@ -984,11 +984,11 @@ void utp_socket_impl::destroy()
 	cancel_handlers(m_error, true);
 
 	m_userdata = 0;
-    m_read_buffer.clear();
-    m_read_buffer_size = 0;
+	m_read_buffer.clear();
+	m_read_buffer_size = 0;
 
-    m_write_buffer.clear();
-    m_write_buffer_size = 0;
+	m_write_buffer.clear();
+	m_write_buffer_size = 0;
 
 	if (m_state == UTP_STATE_ERROR_WAIT
 		|| m_state == UTP_STATE_NONE
@@ -1016,7 +1016,7 @@ void utp_socket_impl::detach()
 {
 	UTP_LOGV("[%08u] %8p: detach()\n"
 		, int(total_microseconds(time_now_hires() - min_time())), this);
-    m_attached = false;
+	m_attached = false;
 }
 
 void utp_socket_impl::send_syn()
@@ -1270,7 +1270,7 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 				, int(total_microseconds(time_now_hires() - min_time())), this);
 		}
 		m_written += to_copy;
-        ptr += to_copy;
+		ptr += to_copy;
 		i->len -= to_copy;
 		TORRENT_ASSERT(m_write_buffer_size >= to_copy);
 		m_write_buffer_size -= to_copy;
@@ -1301,9 +1301,9 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 // send_pkt() again)
 bool utp_socket_impl::send_pkt(bool ack)
 {
-    // This assert is bad because we call this function to ack
-    // received FIN when we're in UTP_STATE_FIN_SENT.
-    //
+	// This assert is bad because we call this function to ack
+	// received FIN when we're in UTP_STATE_FIN_SENT.
+	//
 	// TORRENT_ASSERT(m_state != UTP_STATE_FIN_SENT);
 
 	// first see if we need to resend any packets
@@ -1367,7 +1367,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 		UTP_LOGV("[%08u] %8p: no space in window send_buffer_size:%d cwnd:%d "
 			"ret:%d adv_wnd:%d in-flight:%d mtu:%d\n"
 			, int(total_microseconds(time_now_hires() - min_time()))
-			, this, m_write_buffer_size, m_cwnd >> 16
+			, this, m_write_buffer_size, int(m_cwnd >> 16)
 			, ret, m_adv_wnd, m_bytes_in_flight, m_mtu);
 	}
 
@@ -1383,7 +1383,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 			, this, int(m_seq_nr), int(m_ack_nr)
 			, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 			, packet_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
-			, ret, m_adv_wnd, m_bytes_in_flight, m_mtu);
+			, int(ret), m_adv_wnd, m_bytes_in_flight, m_mtu);
 #endif
 		return false;
 	}
@@ -1650,7 +1650,7 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p)
 	m_receive_buffer.push_back(p);
 	m_receive_buffer_size += p->size - p->header_size;
 
-    check_receive_buffers();
+	check_receive_buffers();
 }
 
 bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
@@ -1666,53 +1666,53 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 }
 
 bool utp_socket_impl::consume_incoming_data(
-    utp_header const* ph, char const* ptr, int payload_size
+	utp_header const* ph, char const* ptr, int payload_size
 	, ptime now)
 {
-    if (ph->type != ST_DATA) return false;
+	if (ph->type != ST_DATA) return false;
 
-    if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK))
-    {
-        TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
+	if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK))
+	{
+		TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
 
-        // we received a packet in order
-        incoming(ptr, payload_size, 0);
-        m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
+		// we received a packet in order
+		incoming(ptr, payload_size, 0);
+		m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
 
-        // If this packet was previously in the reorder buffer
-        // it would have been acked when m_ack_nr-1 was acked.
-        TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
+		// If this packet was previously in the reorder buffer
+		// it would have been acked when m_ack_nr-1 was acked.
+		TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
 
-        UTP_LOGV("[%08u] %8p: remove inbuf: %d (%d)\n"
-          , int(total_microseconds(time_now_hires() - min_time())), this
-          , m_ack_nr, int(m_inbuf.size()));
+		UTP_LOGV("[%08u] %8p: remove inbuf: %d (%d)\n"
+			, int(total_microseconds(time_now_hires() - min_time())), this
+			, m_ack_nr, int(m_inbuf.size()));
 
-        for (;;)
-        {
-            int const next_ack_nr = (m_ack_nr + 1) & ACK_MASK;
+		for (;;)
+		{
+			int const next_ack_nr = (m_ack_nr + 1) & ACK_MASK;
 
-            packet* p = (packet*)m_inbuf.remove(next_ack_nr);
+			packet* p = (packet*)m_inbuf.remove(next_ack_nr);
 
-            if (!p)
-                break;
+			if (!p)
+				break;
 
-            m_buffered_incoming_bytes -= p->size - p->header_size;
-            incoming(0, p->size - p->header_size, p);
+			m_buffered_incoming_bytes -= p->size - p->header_size;
+			incoming(0, p->size - p->header_size, p);
 
-            m_ack_nr = next_ack_nr;
+			m_ack_nr = next_ack_nr;
 
-            UTP_LOGV("[%08u] %8p: reordered remove inbuf: %d (%d)\n"
-              , int(total_microseconds(time_now_hires() - min_time())), this
-              , m_ack_nr, int(m_inbuf.size()));
-        }
+			UTP_LOGV("[%08u] %8p: reordered remove inbuf: %d (%d)\n"
+				, int(total_microseconds(time_now_hires() - min_time())), this
+				, m_ack_nr, int(m_inbuf.size()));
+		}
 
 		// should we trigger the read handler?
 		maybe_trigger_receive_callback(now);
-    }
-    else
-    {
-        // this packet was received out of order. Stick it in the
-        // reorder buffer until it can be delivered in order
+	}
+	else
+	{
+		// this packet was received out of order. Stick it in the
+		// reorder buffer until it can be delivered in order
 
 		// have we already received this packet and passed it on
 		// to the client?
@@ -1724,25 +1724,25 @@ bool utp_socket_impl::consume_incoming_data(
 			return true;
 		}
 
-        // do we already have this packet? If so, just ignore it
-        if (m_inbuf.at(ph->seq_nr)) return true;
+		// do we already have this packet? If so, just ignore it
+		if (m_inbuf.at(ph->seq_nr)) return true;
 
-        // we don't need to save the packet header, just the payload
-        packet* p = (packet*)malloc(sizeof(packet) + payload_size);
-        p->size = payload_size;
-        p->header_size = 0;
-        p->num_transmissions = 0;
-        p->need_resend = false;
-        memcpy(p->buf, ptr, payload_size);
-        m_inbuf.insert(ph->seq_nr, p);
-        m_buffered_incoming_bytes += p->size;
+		// we don't need to save the packet header, just the payload
+		packet* p = (packet*)malloc(sizeof(packet) + payload_size);
+		p->size = payload_size;
+		p->header_size = 0;
+		p->num_transmissions = 0;
+		p->need_resend = false;
+		memcpy(p->buf, ptr, payload_size);
+		m_inbuf.insert(ph->seq_nr, p);
+		m_buffered_incoming_bytes += p->size;
 
-        UTP_LOGV("[%08u] %8p: out of order. insert inbuf: %d (%d) m_ack_nr: %d\n"
-          , int(total_microseconds(time_now_hires() - min_time())), this
-          , int(ph->seq_nr), int(m_inbuf.size()), m_ack_nr);
-    }
+		UTP_LOGV("[%08u] %8p: out of order. insert inbuf: %d (%d) m_ack_nr: %d\n"
+			, int(total_microseconds(time_now_hires() - min_time())), this
+			, int(ph->seq_nr), int(m_inbuf.size()), m_ack_nr);
+	}
 
-    return false;
+	return false;
 }
 
 // returns true of the socket was closed
@@ -1978,17 +1978,17 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	// sequence number
 	if (compare_less_wrap(m_acked_seq_nr, ph->ack_nr, ACK_MASK))
 	{
-        int const next_ack_nr = ph->ack_nr;
+		int const next_ack_nr = ph->ack_nr;
 
-        for (int ack_nr = (m_acked_seq_nr + 1) & ACK_MASK
-             ; ack_nr != ((next_ack_nr + 1) & ACK_MASK)
-             ; ack_nr = (ack_nr + 1) & ACK_MASK)
-        {
+		for (int ack_nr = (m_acked_seq_nr + 1) & ACK_MASK;
+			ack_nr != ((next_ack_nr + 1) & ACK_MASK);
+			ack_nr = (ack_nr + 1) & ACK_MASK)
+		{
 			packet* p = (packet*)m_outbuf.remove(ack_nr);
 			if (!p) continue;
 			acked_bytes += p->size - p->header_size;
 			ack_packet(p, receive_time, min_rtt, ack_nr);
-        }
+		}
 
 		m_acked_seq_nr = next_ack_nr;
 
@@ -2080,7 +2080,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			}
 		}
 		// cut window size in 2
-        m_cwnd = (std::max)(m_cwnd / 2, boost::int64_t(m_mtu << 16));
+		m_cwnd = (std::max)(m_cwnd / 2, boost::int64_t(m_mtu << 16));
 
 		// the window size could go below one MMS here, if it does,
 		// we'll get a timeout in about one second
@@ -2103,34 +2103,34 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 	if (ph->type == ST_FIN)
 	{
-        // We ignore duplicate FIN packets, but we still need to ACK them.
-        if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK)
-          || ph->seq_nr == m_ack_nr)
-        {
-            UTP_LOGV("[%08u] %8p: FIN received in order\n"
-                , int(total_microseconds(receive_time - min_time()))
-                , this);
+		// We ignore duplicate FIN packets, but we still need to ACK them.
+		if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK)
+			|| ph->seq_nr == m_ack_nr)
+		{
+			UTP_LOGV("[%08u] %8p: FIN received in order\n"
+				, int(total_microseconds(receive_time - min_time()))
+				, this);
 
-            // The FIN arrived in order, nothing else is in the
-            // reorder buffer.
+			// The FIN arrived in order, nothing else is in the
+			// reorder buffer.
 
-//          TORRENT_ASSERT(m_inbuf.size() == 0);
-				if (ph->type == ST_DATA)
-					m_ack_nr = ph->seq_nr;
+//			TORRENT_ASSERT(m_inbuf.size() == 0);
+			if (ph->type == ST_DATA)
+				m_ack_nr = ph->seq_nr;
 
-            // Transition to UTP_STATE_FIN_SENT. The sent FIN is also an ack
-            // to the FIN we received. Once we're in UTP_STATE_FIN_SENT we
-            // just need to wait for our FIN to be acked.
+			// Transition to UTP_STATE_FIN_SENT. The sent FIN is also an ack
+			// to the FIN we received. Once we're in UTP_STATE_FIN_SENT we
+			// just need to wait for our FIN to be acked.
 
-            if (m_state == UTP_STATE_FIN_SENT)
-            {
-                send_pkt(true);
-            }
-            else
-            {
-                send_fin();
-            }
-        }
+			if (m_state == UTP_STATE_FIN_SENT)
+			{
+				send_pkt(true);
+			}
+			else
+			{
+				send_fin();
+			}
+		}
 
 		if (m_eof)
 		{
@@ -2312,7 +2312,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			if (sample && acked_bytes && prev_bytes_in_flight)
 				do_ledbat(acked_bytes, delay, prev_bytes_in_flight, receive_time);
 
-            consume_incoming_data(ph, ptr, payload_size, receive_time);
+			consume_incoming_data(ph, ptr, payload_size, receive_time);
 
 			// the parameter to send_pkt tells it if we're acking data
 			// If we are, we'll send an ACK regardless of if we have any
@@ -2339,16 +2339,16 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				while (send_pkt(false));
 			}
 
-            // Everything up to the FIN has been receieved, respond with a FIN
-            // from our side.
-            if (m_eof && m_ack_nr == ((m_eof_seq_nr - 1) & ACK_MASK))
-            {
-                UTP_LOGV("[%08u] %8p: incoming stream consumed\n"
-                  , int(total_microseconds(time_now_hires() - min_time())), this);
+			// Everything up to the FIN has been receieved, respond with a FIN
+			// from our side.
+			if (m_eof && m_ack_nr == ((m_eof_seq_nr - 1) & ACK_MASK))
+			{
+				UTP_LOGV("[%08u] %8p: incoming stream consumed\n"
+					, int(total_microseconds(time_now_hires() - min_time())), this);
 
-                // This transitions to the UTP_STATE_FIN_SENT state.
-                send_fin();
-            }
+				// This transitions to the UTP_STATE_FIN_SENT state.
+				send_fin();
+			}
 
 			return true;
 		}
@@ -2359,92 +2359,90 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// set m_error to asio::error::eof and transition to state
 			// UTP_STATE_ERROR_WAIT
 
-            // There are two ways we can end up in this state:
-            //
-            // 1. If the socket has been explicitly closed on our
-            //    side, in which case m_eof is false.
-            //
-            // 2. If we received a FIN from the remote side, in which
-            //    case m_eof is true. If this is the case, we don't
-            //    come here until everything up to the FIN has been
-            //    received.
-            //
-            //
-            //
+			// There are two ways we can end up in this state:
+			//
+			// 1. If the socket has been explicitly closed on our
+			//    side, in which case m_eof is false.
+			//
+			// 2. If we received a FIN from the remote side, in which
+			//    case m_eof is true. If this is the case, we don't
+			//    come here until everything up to the FIN has been
+			//    received.
+			//
+			//
+			//
 
-            // At this point m_seq_nr - 1 is the FIN sequence number.
+			// At this point m_seq_nr - 1 is the FIN sequence number.
 
-            // We can receive both ST_DATA and ST_STATE here, because after
-            // we have closed our end of the socket, the remote end might
-            // have data in the pipeline. We don't really care about the
-            // data, but we do have to ack it. Or rather, we have to ack
-            // the FIN that will come after the data.
+			// We can receive both ST_DATA and ST_STATE here, because after
+			// we have closed our end of the socket, the remote end might
+			// have data in the pipeline. We don't really care about the
+			// data, but we do have to ack it. Or rather, we have to ack
+			// the FIN that will come after the data.
 
-            // Case 1:
-            // ---------------------------------------------------------------
-            //
-            // If we are here because the local endpoint was closed, we need
-            // to first wait for all of our messages to be acked:
-            //
-            //   if (m_acked_seq_nr == ((m_seq_nr - 1) & ACK_MASK))
-            //
-            // `m_seq_nr - 1` is the ST_FIN message that we sent.
-            //
-            //                     ----------------------
-            //
-            // After that has happened we need to wait for the remote side
-            // to send its ST_FIN message. When we receive that we send an
-            // ST_STATE back to ack, and wait for a sufficient period.
-            // During this wait we keep acking incoming ST_FIN's. This is
-            // all handled at the top of this function.
-            //
-            // Note that the user handlers are all cancelled when the initial
-            // close() call happens, so nothing will happen on the user side
-            // after that.
+			// Case 1:
+			// ---------------------------------------------------------------
+			//
+			// If we are here because the local endpoint was closed, we need
+			// to first wait for all of our messages to be acked:
+			//
+			//   if (m_acked_seq_nr == ((m_seq_nr - 1) & ACK_MASK))
+			//
+			// `m_seq_nr - 1` is the ST_FIN message that we sent.
+			//
+			//                     ----------------------
+			//
+			// After that has happened we need to wait for the remote side
+			// to send its ST_FIN message. When we receive that we send an
+			// ST_STATE back to ack, and wait for a sufficient period.
+			// During this wait we keep acking incoming ST_FIN's. This is
+			// all handled at the top of this function.
+			//
+			// Note that the user handlers are all cancelled when the initial
+			// close() call happens, so nothing will happen on the user side
+			// after that.
 
+			// Case 2:
+			// ---------------------------------------------------------------
+			//
+			// If we are here because we received a ST_FIN message, and then
+			// sent our own ST_FIN to ack that, we need to wait for our ST_FIN
+			// to be acked:
+			//
+			//   if (m_acked_seq_nr == ((m_seq_nr - 1) & ACK_MASK))
+			//
+			// `m_seq_nr - 1` is the ST_FIN message that we sent.
+			//
+			// After that has happened we know the remote side has all our
+			// data, and we can gracefully shut down.
 
+			if (consume_incoming_data(ph, ptr, payload_size, receive_time))
+				return true;
 
-            // Case 2:
-            // ---------------------------------------------------------------
-            //
-            // If we are here because we received a ST_FIN message, and then
-            // sent our own ST_FIN to ack that, we need to wait for our ST_FIN
-            // to be acked:
-            //
-            //   if (m_acked_seq_nr == ((m_seq_nr - 1) & ACK_MASK))
-            //
-            // `m_seq_nr - 1` is the ST_FIN message that we sent.
-            //
-            // After that has happened we know the remote side has all our
-            // data, and we can gracefully shut down.
+			if (m_acked_seq_nr == ((m_seq_nr - 1) & ACK_MASK))
+			{
+				// When this happens we know that the remote side has
+				// received all of our packets.
 
-            if (consume_incoming_data(ph, ptr, payload_size, receive_time))
-                return true;
-
-            if (m_acked_seq_nr == ((m_seq_nr - 1) & ACK_MASK))
-            {
-                // When this happens we know that the remote side has
-                // received all of our packets.
-
-                UTP_LOGV("[%08u] %8p: FIN acked\n"
-                    , int(total_microseconds(time_now_hires() - min_time())), this);
+				UTP_LOGV("[%08u] %8p: FIN acked\n"
+					, int(total_microseconds(time_now_hires() - min_time())), this);
 /*
-                if (!m_userdata)
-                {
-                     UTP_LOGV("[%08u] %8p: close initiated here, "
-                              "wait for remote FIN\n"
-                        , int(total_microseconds(time_now_hires() - min_time())), this);
-                }
-                else
-                {
+				if (!m_userdata)
+				{
+					UTP_LOGV("[%08u] %8p: close initiated here, "
+					"wait for remote FIN\n"
+					, int(total_microseconds(time_now_hires() - min_time())), this);
+				}
+				else
+				{
 */
-                     UTP_LOGV("[%08u] %8p: closing socket\n"
-                        , int(total_microseconds(time_now_hires() - min_time())), this);
-                    m_error = asio::error::eof;
-                    m_state = UTP_STATE_ERROR_WAIT;
-                    test_socket_state();
-//                }
-            }
+				UTP_LOGV("[%08u] %8p: closing socket\n"
+						, int(total_microseconds(time_now_hires() - min_time())), this);
+				m_error = asio::error::eof;
+				m_state = UTP_STATE_ERROR_WAIT;
+				test_socket_state();
+//				}
+			}
 
 			return true;
 		}
@@ -2552,7 +2550,7 @@ void utp_socket_impl::tick(ptime const& now)
 	
 		UTP_LOGV("[%08u] %8p: timeout resetting cwnd:%d\n"
 			, int(total_microseconds(time_now_hires() - min_time())), this
-			, m_cwnd >> 16);
+			, int(m_cwnd >> 16));
 
 		// we need to go one passed m_seq_nr to cover the case
 		// where we just sent a SYN packet and then adjusted for
@@ -2631,16 +2629,17 @@ void utp_socket_impl::tick(ptime const& now)
 
 void utp_socket_impl::check_receive_buffers() const
 {
-    std::size_t size = 0;
+	std::size_t size = 0;
 
-    for (std::vector<packet*>::const_iterator i = m_receive_buffer.begin()
-      , end(m_receive_buffer.end()); i != end; ++i)
-    {
-        if (packet const* p = *i)
-            size += p->size - p->header_size;
-    }
+	for (std::vector<packet*>::const_iterator i = m_receive_buffer.begin()
+		, end(m_receive_buffer.end()); i != end; ++i)
+	{
+		if (packet const* p = *i)
+			size += p->size - p->header_size;
+	}
 
-    TORRENT_ASSERT(size == m_receive_buffer_size);
+	TORRENT_ASSERT(size == m_receive_buffer_size);
 }
 
 }
+
