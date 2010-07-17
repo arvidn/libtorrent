@@ -231,6 +231,7 @@ struct utp_socket_impl
 		, m_out_packets(0)
 		, m_attached(true)
 		, m_num_timeouts(0)
+		, m_ack_timer(time_now() + minutes(10))
 	{
 		for (int i = 0; i != num_delay_hist; ++i)
 			m_delay_sample_hist[i] = UINT_MAX;
@@ -527,6 +528,11 @@ struct utp_socket_impl
 	// the number of packet timeouts we've seen in a row
 	// this affects the packet timeout time
 	int m_num_timeouts;
+
+	// the next time we need to send an ACK the latest
+	// updated every time we send an ACK and every time we
+	// put off sending an ACK for a received packet
+	ptime m_ack_timer;
 };
 
 utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
@@ -1448,6 +1454,11 @@ bool utp_socket_impl::send_pkt(bool ack)
 		test_socket_state();
 	}
 
+	// we just sent a packet. this means we just ACKed the last received
+	// packet as well. So, we can now reset the delayed ack timer to
+	// not trigger for a long time
+	m_ack_timer = now + minutes(10);
+
 	// if we have payload, we need to save the packet until it's acked
 	// and progress m_seq_nr
 	if (payload_size)
@@ -2308,7 +2319,21 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// space left in our send window or not. If we just got an ACK
 			// (i.e. ST_STATE) we're not ACKing anything. If we just
 			// received a FIN packet, we need to ack that as well
-			if (send_pkt(ph->type == ST_DATA || ph->type == ST_FIN || ph->type == ST_SYN))
+			bool has_ack = ph->type == ST_DATA || ph->type == ST_FIN || ph->type == ST_SYN;
+			int delayed_ack = m_sm->delayed_ack();
+			if (has_ack && delayed_ack && m_ack_timer > receive_time)
+			{
+				// we have data to ACK, and delayed ACKs are enabled.
+				// update the ACK timer and clear the flag, to pretend
+				// like we don't have anything to ACK
+				m_ack_timer = (std::min)(m_ack_timer, receive_time + milliseconds(delayed_ack));
+				has_ack = false;
+				UTP_LOGV("[%08u] %8p: delaying ack. timer triggers in %d milliseconds\n"
+					, int(total_microseconds(time_now_hires() - min_time())), this
+					, int(total_milliseconds(m_ack_timer - time_now_hires())));
+			}
+
+			if (send_pkt(has_ack))
 			{
 				// try to send more data as long as we can
 				while (send_pkt(false));
@@ -2583,6 +2608,14 @@ void utp_socket_impl::tick(ptime const& now)
 		{
 			send_pkt(false);
 		}
+	}
+
+	if (now > m_ack_timer)
+	{
+		UTP_LOGV("[%08u] %8p: ack timer expired, sending ACK\n"
+			, int(total_microseconds(time_now_hires() - min_time())), this);
+		// we need to send an ACK now!
+		send_pkt(true);
 	}
 
 	switch (m_state)

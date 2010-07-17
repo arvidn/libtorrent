@@ -3942,6 +3942,7 @@ session_settings
 		int utp_syn_resends;
 		int utp_num_resends;
 		int utp_connect_timeout;
+		int utp_delayed_ack;
 
 		enum bandwidth_mixed_algo_t
 		{
@@ -4633,6 +4634,12 @@ before giving up and closing the connection.
 
 ``utp_connect_timeout`` is the number of milliseconds of timeout for the initial SYN
 packet for uTP connections. For each timed out packet (in a row), the timeout is doubled.
+
+``utp_delayed_ack`` is the number of milliseconds to delay ACKs the most. Delaying ACKs
+significantly helps reducing the amount of protocol overhead in the reverse direction
+from downloads. It defaults to 100 milliseconds. If set to 0, delayed ACKs are disabled
+and every incoming payload packet is ACKed. The granularity of this timer is capped by
+the tick interval (as specified by ``tick_interval``).
 
 The ``mixed_mode_algorithm`` determines how to treat TCP connections when there are
 uTP connections. Since uTP is designed to yield to TCP, there's an inherent problem

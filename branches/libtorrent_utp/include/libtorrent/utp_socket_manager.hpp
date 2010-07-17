@@ -72,6 +72,7 @@ namespace libtorrent
 		int syn_resends() const { return m_sett.utp_syn_resends; }
 		int num_resends() const { return m_sett.utp_num_resends; }
 		int connect_timeout() const { return m_sett.utp_connect_timeout; }
+		int delayed_ack() const { return m_sett.utp_delayed_ack; }
 
 	private:
 		udp_socket& m_sock;

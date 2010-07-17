@@ -224,6 +224,7 @@ namespace libtorrent
 			, utp_syn_resends(2)
 			, utp_num_resends(6)
 			, utp_connect_timeout(3000) // milliseconds
+			, utp_delayed_ack(100) // milliseconds
 			, mixed_mode_algorithm(peer_proportional)
 			, rate_limit_utp(false)
 		{}
@@ -875,6 +876,9 @@ namespace libtorrent
 
 		// initial timeout for uTP SYN packets
 		int utp_connect_timeout;
+
+		// number of milliseconds of delaying ACKing packets the most
+		int utp_delayed_ack;
 
 		enum bandwidth_mixed_algo_t
 		{
