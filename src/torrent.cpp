@@ -383,7 +383,7 @@ namespace libtorrent
 		, m_last_upload(0)
 		, m_interface_index(0)
 	{
-		m_net_interfaces.push_back(net_interface);
+		m_net_interfaces.push_back(tcp::endpoint(net_interface.address(), 0));
 
 		if (p.file_priorities)
 			m_file_priority = *p.file_priorities;
