@@ -3702,6 +3702,10 @@ namespace libtorrent
 		if (m_seed_mode) m_verified.resize(m_torrent_file->num_pieces(), false);
 		super_seeding(rd.dict_find_int_value("super_seeding", 0));
 
+		m_last_scrape = rd.dict_find_int_value("last_scrape", 0);
+		m_last_download = rd.dict_find_int_value("last_download", 0);
+		m_last_upload = rd.dict_find_int_value("last_upload", 0);
+
 		m_added_time = rd.dict_find_int_value("added_time", m_added_time);
 		m_completed_time = rd.dict_find_int_value("completed_time", m_completed_time);
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
@@ -3871,6 +3875,10 @@ namespace libtorrent
 
 		ret["added_time"] = m_added_time;
 		ret["completed_time"] = m_completed_time;
+
+		ret["last_scrape"] = m_last_scrape;
+		ret["last_download"] = m_last_download;
+		ret["last_upload"] = m_last_upload;
 		
 		const sha1_hash& info_hash = torrent_file().info_hash();
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
