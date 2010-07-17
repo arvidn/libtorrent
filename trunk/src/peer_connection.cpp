@@ -3471,6 +3471,9 @@ namespace libtorrent
 		int upload_capacity = m_ses.upload_rate_limit();
 		if (upload_capacity == 0)
 			upload_capacity = (std::max)(20000, m_ses.m_peak_up_rate + 10000);
+
+		error_code ec;
+		p.local_endpoint = get_socket()->local_endpoint(ec);
 	}
 
 	// allocates a disk buffer of size 'disk_buffer_size' and replaces the

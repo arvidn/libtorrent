@@ -309,7 +309,7 @@ namespace libtorrent
 		void file_progress(std::vector<size_type>& fp, int flags = 0) const;
 
 		void use_interface(std::string net_interface);
-		tcp::endpoint get_interface() const { return m_net_interface; }
+		tcp::endpoint get_interface() const;
 		
 		void connect_to_url_seed(std::list<web_seed_entry>::iterator url);
 		bool connect_to_peer(policy::peer* peerinfo);
@@ -939,9 +939,10 @@ namespace libtorrent
 		std::string m_username;
 		std::string m_password;
 
-		// the network interface all outgoing connections
-		// are opened through
-		union_endpoint m_net_interface;
+		// the network interfaces outgoing connections
+		// are opened through. If there is more then one,
+		// they are used in a round-robin fasion
+		std::vector<union_endpoint> m_net_interfaces;
 
 		std::string m_save_path;
 
@@ -1208,6 +1209,9 @@ namespace libtorrent
 		// the number of seconds since the last byte was uploaded
 		// from this torrent
 		boost::uint16_t m_last_upload;
+
+		// round-robin index into m_interfaces
+		mutable boost::uint8_t m_interface_index;
 	};
 }
 
