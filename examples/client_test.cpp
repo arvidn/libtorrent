@@ -329,7 +329,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	if (print_ip) out += "IP                           ";
+	if (print_ip) out += "IP                                           ";
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out += "AS                                         ";
 #endif
@@ -355,7 +355,8 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		if (print_ip)
 		{
 			error_code ec;
-			snprintf(str, sizeof(str), "%-22s:%-5d ", i->ip.address().to_string(ec).c_str(), i->ip.port());
+			snprintf(str, sizeof(str), "%-22s %22s ", print_endpoint(i->ip).c_str()
+				, print_endpoint(i->local_endpoint).c_str());
 			out += str;
 		}
 
@@ -511,6 +512,7 @@ int torrent_upload_limit = 0;
 int torrent_download_limit = 0;
 std::string monitor_dir;
 std::string bind_to_interface = "";
+std::string outgoing_interface = "";
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
 
@@ -573,6 +575,7 @@ void add_torrent(libtorrent::session& ses
 	h.set_ratio(preferred_ratio);
 	h.set_upload_limit(torrent_upload_limit);
 	h.set_download_limit(torrent_download_limit);
+	h.use_interface(outgoing_interface.c_str());
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	h.resolve_countries(true);
 #endif
@@ -752,6 +755,8 @@ int main(int argc, char* argv[])
 			"  -m <path>             sets the .torrent monitor directory\n"
 			"  -b <IP>               sets IP of the interface to bind the\n"
 			"                        listen socket to\n"
+			"  -I <IP>               sets the IP of the interface to bind\n"
+			"                        outgoing peer connections to\n"
 			"  -w <seconds>          sets the retry time for failed web seeds\n"
 			"  -t <seconds>          sets the scan interval of the monitor dir\n"
 			"  -x <file>             loads an emule IP-filter file\n"
@@ -956,6 +961,7 @@ int main(int argc, char* argv[])
 #endif
 				}
 				break;
+			case 'I': outgoing_interface = arg; break;
 		}
 		++i; // skip the argument
 	}
@@ -999,6 +1005,7 @@ int main(int argc, char* argv[])
 		h.set_ratio(preferred_ratio);
 		h.set_upload_limit(torrent_upload_limit);
 		h.set_download_limit(torrent_download_limit);
+		h.use_interface(outgoing_interface.c_str());
 	}
 
 	for (std::vector<std::string>::iterator i = torrents.begin()
@@ -1026,6 +1033,7 @@ int main(int argc, char* argv[])
 			h.set_ratio(preferred_ratio);
 			h.set_upload_limit(torrent_upload_limit);
 			h.set_download_limit(torrent_download_limit);
+			h.use_interface(outgoing_interface.c_str());
 			continue;
 		}
 

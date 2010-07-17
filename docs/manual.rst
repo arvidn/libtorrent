@@ -2744,8 +2744,10 @@ use_interface()
 
 ``use_interface()`` sets the network interface this torrent will use when it opens outgoing
 connections. By default, it uses the same interface as the session_ uses to listen on. The
-parameter must be a string containing an ip-address (either an IPv4 or IPv6 address). If
-the string does not conform to this format and exception is thrown.
+parameter must be a string containing one or more, comma separated, ip-address (either an
+IPv4 or IPv6 address). When specifying multiple interfaces, the torrent will round-robin
+which interface to use for each outgoing conneciton. This is useful for clients that are
+multi-homed.
 
 
 info_hash()
@@ -3485,6 +3487,8 @@ It contains the following fields::
 
 		float progress;
 		int progress_ppm;
+
+		tcp::endpoint local_endpoint;
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -3709,6 +3713,11 @@ floating point operations are diabled, instead use ``progress_ppm``.
 
 ``progress_ppm`` indicates the download progress of the peer in the range [0, 1000000]
 (parts per million).
+
+``local_endpoint`` is the IP and port pair the socket is bound to locally. i.e. the IP
+address of the interface it's going out over. This may be useful for multi-homed
+clients with multiple interfaces to the internet.
+
 
 session customization
 =====================

@@ -77,6 +77,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/enum_net.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <iostream>
@@ -226,7 +227,7 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_time_critical_pieces)
 		PRINT_OFFSETOF(torrent, m_username)
 		PRINT_OFFSETOF(torrent, m_password)
-		PRINT_OFFSETOF(torrent, m_net_interface)
+		PRINT_OFFSETOF(torrent, m_net_interfaces)
 		PRINT_OFFSETOF(torrent, m_save_path)
 		PRINT_OFFSETOF(torrent, m_verified)
 		PRINT_OFFSETOF(torrent, m_error)
@@ -323,7 +324,6 @@ namespace libtorrent
 		, m_tracker_timer(ses.m_io_service)
 		, m_ses(ses)
 		, m_trackers(m_torrent_file->trackers())
-		, m_net_interface(tcp::endpoint(net_interface.address(), 0))
 		, m_save_path(complete(p.save_path))
 		, m_storage_constructor(p.storage)
 		, m_ratio(0.f)
@@ -381,7 +381,10 @@ namespace libtorrent
 		, m_last_scrape(0)
 		, m_last_download(0)
 		, m_last_upload(0)
+		, m_interface_index(0)
 	{
+		m_net_interfaces.push_back(net_interface);
+
 		if (p.file_priorities)
 			m_file_priority = *p.file_priorities;
 
@@ -1269,14 +1272,30 @@ namespace libtorrent
 		files_checked();
 	}
 
-	void torrent::use_interface(std::string net_interface)
+	void torrent::use_interface(std::string net_interfaces)
 	{
 		INVARIANT_CHECK;
+		m_net_interfaces.clear();
 
-		error_code ec;
-		address a(address::from_string(net_interface.c_str(), ec));
-		if (ec) return;
-		m_net_interface = tcp::endpoint(a, 0);
+		char* str = &net_interfaces[0];
+
+		while (str)
+		{
+			char* space = strchr(str, ',');
+			if (space) *space++ = 0;
+			error_code ec;
+			address a(address::from_string(str, ec));
+			str = space;
+			if (ec) continue;
+			m_net_interfaces.push_back(tcp::endpoint(a, 0));
+		}
+	}
+
+	tcp::endpoint torrent::get_interface() const
+	{
+		if (m_net_interfaces.empty()) return tcp::endpoint(address_v4(), 0);
+		if (m_interface_index >= m_net_interfaces.size()) m_interface_index = 0;
+		return m_net_interfaces[m_interface_index++];
 	}
 
 	void torrent::on_tracker_announce_disp(boost::weak_ptr<torrent> p
