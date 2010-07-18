@@ -350,16 +350,14 @@ void udp_socket::close()
 	TORRENT_ASSERT(m_magic == 0x1337);
 
 	error_code ec;
-	m_ipv4_sock.close(ec);
+	m_ipv4_sock.cancel(ec);
 #if TORRENT_USE_IPV6
-	m_ipv6_sock.close(ec);
+	m_ipv6_sock.cancel(ec);
 #endif
-	m_socks5_sock.close(ec);
+	m_socks5_sock.cancel(ec);
 	m_resolver.cancel();
 	m_abort = true;
-#ifdef TORRENT_DEBUG
-	m_outstanding_when_aborted = m_outstanding;
-#endif
+
 	if (m_connection_ticket >= 0)
 	{
 		m_cc.done(m_connection_ticket);
@@ -470,6 +468,8 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 	
 	m_proxy_settings = ps;
 
+	if (m_abort) return;
+
 	if (ps.type == proxy_settings::socks5
 		|| ps.type == proxy_settings::socks5_pw)
 	{
@@ -509,6 +509,8 @@ void udp_socket::on_connect(int ticket)
 {
 	CHECK_MAGIC;
 	mutex::scoped_lock l(m_mutex);	
+
+	if (m_abort) return;
 
 	m_connection_ticket = ticket;
 	error_code ec;
