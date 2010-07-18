@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
 
 #ifdef TORRENT_WINDOWS
 #include <Windows.h>
@@ -42,6 +43,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_MEMALIGN || TORRENT_USE_POSIX_MEMALIGN
 #include <malloc.h> // memalign
+#endif
+
+#ifdef TORRENT_DEBUG_BUFFERS
+#include <sys/mman.h>
+#include "libtorrent/size_type.hpp"
+
+struct alloc_header
+{
+	libtorrent::size_type size;
+	int magic;
+};
+
 #endif
 
 namespace libtorrent
@@ -66,6 +79,21 @@ namespace libtorrent
 
 	char* page_aligned_allocator::malloc(const size_type bytes)
 	{
+#ifdef TORRENT_DEBUG_BUFFERS
+		int page = page_size();
+		char* ret = (char*)valloc(bytes + 2 * page);
+		// make the two surrounding pages non-readable and -writable
+		TORRENT_ASSERT((bytes & (page-1)) == 0);
+		alloc_header* h = (alloc_header*)ret;
+		h->size = bytes;
+		h->magic = 0x1337;
+		mprotect(ret, page, PROT_READ);
+		mprotect(ret + page + bytes, page, PROT_READ);
+//		fprintf(stderr, "malloc: %p head: %p tail: %p size: %d\n", ret + page, ret, ret + page + bytes, int(bytes));
+
+		return ret + page;
+#endif
+
 #if TORRENT_USE_POSIX_MEMALIGN
 		void* ret;
 		if (posix_memalign(&ret, page_size(), bytes) != 0) ret = 0;
@@ -81,6 +109,22 @@ namespace libtorrent
 
 	void page_aligned_allocator::free(char* const block)
 	{
+
+#ifdef TORRENT_DEBUG_BUFFERS
+		int page = page_size();
+		// make the two surrounding pages non-readable and -writable
+		mprotect(block - page, page, PROT_READ | PROT_WRITE);
+		alloc_header* h = (alloc_header*)(block - page);
+		TORRENT_ASSERT((h->size & (page-1)) == 0);
+		TORRENT_ASSERT(h->magic == 0x1337);
+		mprotect(block + h->size, page, PROT_READ | PROT_WRITE);
+//		fprintf(stderr, "free: %p head: %p tail: %p size: %d\n", block, block - page, block + h->size, int(h->size));
+		h->magic = 0;
+
+		::free(block - page);
+		return;
+#endif
+
 #ifdef TORRENT_WINDOWS
 		VirtualFree(block, 0, MEM_RELEASE);
 #else

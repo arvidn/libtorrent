@@ -773,6 +773,7 @@ int main(int argc, char* argv[])
 			"  -R <num blocks>       number of blocks per read cache line\n"
 			"  -O                    Disallow disk job reordering\n"
 			"  -P <host:port>        Use the specified SOCKS5 proxy\n"
+			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -930,6 +931,7 @@ int main(int argc, char* argv[])
 			case 'A': settings.allowed_fast_set_size = atoi(arg); break;
 			case 'R': settings.read_cache_line_size = atoi(arg); break;
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
+			case 'W': settings.max_peerlist_size = atoi(arg); break;
 			case 'P':
 				{
 					char* port = strchr(arg, ':');
