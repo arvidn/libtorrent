@@ -389,6 +389,11 @@ namespace libtorrent
 		if (m_round_robin > i - m_peers.begin()) --m_round_robin;
 		if (m_round_robin >= m_peers.size()) m_round_robin = 0;
 
+#ifdef TORRENT_DEBUG
+		TORRENT_ASSERT((*i)->in_use);
+		(*i)->in_use = false;
+#endif
+
 #if TORRENT_USE_IPV6
 		if ((*i)->is_v6_addr)
 		{
@@ -405,6 +410,7 @@ namespace libtorrent
 			m_torrent->session().m_ipv4_peer_pool.destroy(
 				static_cast<ipv4_peer*>(*i));
 		}
+
 		m_peers.erase(i);
 	}
 
@@ -459,6 +465,7 @@ namespace libtorrent
 					{
 						if (erase_candidate > current) --erase_candidate;
 						TORRENT_ASSERT(current >= 0 && current < m_peers.size());
+						--round_robin;
 						erase_peer(m_peers.begin() + current);
 					}
 					else
@@ -595,6 +602,7 @@ namespace libtorrent
 					{
 						if (erase_candidate > current) --erase_candidate;
 						if (candidate > current) --candidate;
+						--m_round_robin;
 						erase_peer(m_peers.begin() + current);
 					}
 					else
@@ -799,6 +807,9 @@ namespace libtorrent
 #endif
 				(peer*)m_torrent->session().m_ipv4_peer_pool.malloc();
 			if (p == 0) return false;
+
+//			TORRENT_ASSERT(p->in_use == false);
+
 #if TORRENT_USE_IPV6
 			if (is_v6)
 				m_torrent->session().m_ipv6_peer_pool.set_next_size(500);
@@ -812,6 +823,10 @@ namespace libtorrent
 			else
 #endif
 				new (p) ipv4_peer(c.remote(), false, 0);
+
+#ifdef TORRENT_DEBUG
+			p->in_use = true;
+#endif
 
 			iter = m_peers.insert(iter, p);
 
@@ -1038,6 +1053,10 @@ namespace libtorrent
 			else
 #endif
 				new (p) ipv4_peer(remote, true, src);
+
+#ifdef TORRENT_DEBUG
+			p->in_use = true;
+#endif
 
 			iter = m_peers.insert(iter, p);
 
