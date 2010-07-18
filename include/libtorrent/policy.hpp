@@ -311,6 +311,9 @@ namespace libtorrent
 			// pinged by the DHT
 			bool added_to_dht:1;
 #endif
+#ifdef TORRENT_DEBUG
+			bool in_use:1;
+#endif
 		};
 
 		struct TORRENT_EXPORT ipv4_peer : peer

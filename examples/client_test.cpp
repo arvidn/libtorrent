@@ -775,6 +775,7 @@ int main(int argc, char* argv[])
 			"  -O                    Disallow disk job reordering\n"
 			"  -P <host:port>        Use the specified SOCKS5 proxy\n"
 			"  -H                    Don't start DHT\n"
+			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -895,6 +896,7 @@ int main(int argc, char* argv[])
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
 			case 'H': start_dht = false; --i; break;
+			case 'W': settings.max_peerlist_size = atoi(arg); break;
 			case 'x':
 				{
 					FILE* filter = fopen(arg, "r");
