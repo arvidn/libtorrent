@@ -783,6 +783,8 @@ namespace libtorrent
 		void on_lsd_announce();
 
 #ifndef TORRENT_DISABLE_DHT
+		static void on_dht_announce_post(boost::weak_ptr<libtorrent::torrent> t
+			, std::vector<tcp::endpoint> const& peers);
 		static void on_dht_announce_response_disp(boost::weak_ptr<torrent> t
 			, std::vector<tcp::endpoint> const& peers);
 		void on_dht_announce_response(std::vector<tcp::endpoint> const& peers);
