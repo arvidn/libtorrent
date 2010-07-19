@@ -249,9 +249,9 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::start(entry const& bootstrap)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		std::vector<udp::endpoint> initial_nodes;
 
-		mutex_t::scoped_lock l(m_mutex);
 		if (bootstrap.type() == entry::dictionary_t)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
@@ -280,7 +280,7 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::stop()
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_abort = true;
 		error_code ec;
 		m_timer.cancel(ec);
@@ -291,13 +291,13 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::dht_status(session_status& s)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_dht.status(s);
 	}
 
 	void dht_tracker::network_stats(int& sent, int& received)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		sent = m_sent_bytes;
 		received = m_received_bytes;
 		m_sent_bytes = 0;
@@ -306,7 +306,7 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::connection_timeout(error_code const& e)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (e || m_abort) return;
 
 		time_duration d = m_dht.connection_timeout();
@@ -317,7 +317,7 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::refresh_timeout(error_code const& e)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (e || m_abort) return;
 
 		m_dht.tick();
@@ -329,7 +329,7 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::tick(error_code const& e)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (e || m_abort) return;
 
 		error_code ec;
@@ -432,14 +432,14 @@ namespace libtorrent { namespace dht
 	void dht_tracker::announce(sha1_hash const& ih, int listen_port
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_dht.announce(ih, listen_port, f);
 	}
 
 
 	void dht_tracker::on_unreachable(udp::endpoint const& ep)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_dht.unreachable(ep);
 	}
 
@@ -447,7 +447,7 @@ namespace libtorrent { namespace dht
 	// used by the library
 	void dht_tracker::on_receive(udp::endpoint const& ep, char const* buf, int bytes_transferred)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		// account for IP and UDP overhead
 		m_received_bytes += bytes_transferred + (ep.address().is_v6() ? 48 : 28);
 
@@ -551,7 +551,7 @@ namespace libtorrent { namespace dht
 	
 	entry dht_tracker::state() const
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		entry ret(entry::dictionary_t);
 		{
 			entry nodes(entry::list_t);
@@ -576,13 +576,13 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::add_node(udp::endpoint node)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_dht.add_node(node);
 	}
 
 	void dht_tracker::add_node(std::pair<std::string, int> const& node)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		char port[7];
 		snprintf(port, sizeof(port), "%d", node.second);
 		udp::resolver::query q(node.first, port);
@@ -593,13 +593,14 @@ namespace libtorrent { namespace dht
 	void dht_tracker::on_name_lookup(error_code const& e
 		, udp::resolver::iterator host)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (e || host == udp::resolver::iterator()) return;
 		add_node(host->endpoint());
 	}
 
 	void dht_tracker::add_router_node(udp::endpoint const& node)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_dht.add_router_node(node);
 	}
 
@@ -608,6 +609,7 @@ namespace libtorrent { namespace dht
 
 	bool dht_tracker::send_packet(libtorrent::entry const& e, udp::endpoint const& addr, int send_flags)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		using libtorrent::bencode;
 		using libtorrent::entry;
 
