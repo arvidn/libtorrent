@@ -1223,7 +1223,15 @@ namespace libtorrent
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_ses.m_dht->announce(m_torrent_file->info_hash()
 			, m_ses.listen_port()
-			, boost::bind(&torrent::on_dht_announce_response_disp, self, _1));
+			, boost::bind(&torrent::on_dht_announce_post, self, _1));
+	}
+
+	void torrent::on_dht_announce_post(boost::weak_ptr<libtorrent::torrent> t
+		, std::vector<tcp::endpoint> const& peers)
+	{
+		boost::shared_ptr<libtorrent::torrent> tor = t.lock();
+		if (!tor) return;
+		tor->session().m_io_service.post(boost::bind(&torrent::on_dht_announce_response_disp, t, peers));
 	}
 
 	void torrent::on_dht_announce_response_disp(boost::weak_ptr<libtorrent::torrent> t
