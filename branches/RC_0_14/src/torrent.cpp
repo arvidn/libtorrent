@@ -904,12 +904,20 @@ namespace libtorrent
 			m_last_dht_announce = now;
 			m_ses.m_dht->announce(m_torrent_file->info_hash()
 				, m_ses.m_listen_sockets.front().external_port
-				, bind(&torrent::on_dht_announce_response_disp, self, _1));
+				, boost::bind(&torrent::on_dht_announce_post, self, _1));
 		}
 #endif
 	}
 
 #ifndef TORRENT_DISABLE_DHT
+
+	void torrent::on_dht_announce_post(boost::weak_ptr<libtorrent::torrent> t
+		, std::vector<tcp::endpoint> const& peers)
+	{
+		boost::shared_ptr<libtorrent::torrent> tor = t.lock();
+		if (!tor) return;
+		tor->session().m_io_service.post(boost::bind(&torrent::on_dht_announce_response_disp, t, peers));
+	}
 
 	void torrent::on_dht_announce_response_disp(boost::weak_ptr<libtorrent::torrent> t
 		, std::vector<tcp::endpoint> const& peers)
