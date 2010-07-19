@@ -1231,6 +1231,7 @@ namespace libtorrent
 	{
 		boost::shared_ptr<libtorrent::torrent> tor = t.lock();
 		if (!tor) return;
+		session_impl::mutex_t::scoped_lock l(tor->session().m_mutex);
 		tor->on_dht_announce_response(peers);
 	}
 

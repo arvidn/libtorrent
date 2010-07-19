@@ -1,3 +1,4 @@
+	* fixed race condition in peer-list with DHT
 	* fix force-reannounce and tracker retry issue
 
 0.15.1 release
