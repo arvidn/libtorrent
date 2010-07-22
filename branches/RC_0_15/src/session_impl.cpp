@@ -1421,7 +1421,7 @@ namespace aux {
 		shared_ptr<socket_type> c(new socket_type(m_io_service));
 		c->instantiate<stream_socket>(m_io_service);
 		listener->async_accept(*c->get<stream_socket>()
-			, bind(&session_impl::on_accept_connection, this, c
+			, boost::bind(&session_impl::on_accept_connection, this, c
 			, boost::weak_ptr<socket_acceptor>(listener), _1));
 	}
 
@@ -1623,10 +1623,10 @@ namespace aux {
 
 		if (!p->is_choked() && !p->ignore_unchoke_slots()) --m_num_unchoked;
 //		connection_map::iterator i = std::lower_bound(m_connections.begin(), m_connections.end()
-//			, p, bind(&boost::intrusive_ptr<peer_connection>::get, _1) < p);
+//			, p, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) < p);
 //		if (i->get() != p) i == m_connections.end();
 		connection_map::iterator i = std::find_if(m_connections.begin(), m_connections.end()
-			, bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p);
+			, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p);
 		if (i != m_connections.end()) m_connections.erase(i);
 	}
 
@@ -2280,11 +2280,11 @@ namespace aux {
 		if (!handled_by_extension)
 		{
 			std::sort(downloaders.begin(), downloaders.end()
-				, bind(&torrent::sequence_number, _1) < bind(&torrent::sequence_number, _2));
+				, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
 
 			std::sort(seeds.begin(), seeds.end()
-				, bind(&torrent::seed_rank, _1, boost::ref(m_settings))
-				> bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
+				, boost::bind(&torrent::seed_rank, _1, boost::ref(m_settings))
+				> boost::bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
 		}
 
 		if (settings().auto_manage_prefer_seeds)
@@ -2429,7 +2429,7 @@ namespace aux {
 		{
 			m_allowed_upload_slots = 0;
 			std::sort(peers.begin(), peers.end()
-				, bind(&peer_connection::upload_rate_compare, _1, _2));
+				, boost::bind(&peer_connection::upload_rate_compare, _1, _2));
 
 #ifdef TORRENT_DEBUG
 			for (std::vector<peer_connection*>::const_iterator i = peers.begin()
@@ -2476,7 +2476,7 @@ namespace aux {
 		// the download rate will be 0, and the peers we have sent the least to should
 		// be unchoked
 		std::sort(peers.begin(), peers.end()
-			, bind(&peer_connection::unchoke_compare, _1, _2));
+			, boost::bind(&peer_connection::unchoke_compare, _1, _2));
 
 		// auto unchoke
 		int upload_limit = m_bandwidth_channel[peer_connection::upload_channel]->throttle();
@@ -3187,7 +3187,7 @@ namespace aux {
 		snprintf(port, sizeof(port), "%d", node.second);
 		tcp::resolver::query q(node.first, port);
 		m_host_resolver.async_resolve(q,
-			bind(&session_impl::on_dht_router_name_lookup, this, _1, _2));
+			boost::bind(&session_impl::on_dht_router_name_lookup, this, _1, _2));
 	}
 
 	void session_impl::on_dht_router_name_lookup(error_code const& e
@@ -3386,7 +3386,7 @@ namespace aux {
 
 		m_lsd = new lsd(m_io_service
 			, m_listen_interface.address()
-			, bind(&session_impl::on_lsd_peer, this, _1, _2));
+			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2));
 		if (m_settings.broadcast_lsd)
 			m_lsd->use_broadcast(true);
 	}

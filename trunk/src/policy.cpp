@@ -289,7 +289,7 @@ namespace libtorrent
 		// find the block with the fewest requests to it
 		std::vector<piece_block>::iterator i = std::min_element(
 			busy_pieces.begin(), busy_pieces.end()
-			, bind(&piece_picker::num_peers, boost::cref(p), _1) <
+			, boost::bind(&piece_picker::num_peers, boost::cref(p), _1) <
 			bind(&piece_picker::num_peers, boost::cref(p), _2));
 #ifdef TORRENT_DEBUG
 		piece_picker::downloading_piece st;

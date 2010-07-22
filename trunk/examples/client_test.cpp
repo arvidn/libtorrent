@@ -320,7 +320,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 {
 	using namespace libtorrent;
 	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin()
-		, peers.end(), bind(&peer_info::ip, _1) == addr);
+		, peers.end(), boost::bind(&peer_info::ip, _1) == addr);
 	if (i == peers.end()) return -1;
 
 	return i - peers.begin();
@@ -716,7 +716,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			bencode(std::back_inserter(out), *p->resume_data);
 			save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
 			if (std::find_if(handles.begin(), handles.end()
-				, bind(&handles_t::value_type::second, _1) == h) == handles.end())
+				, boost::bind(&handles_t::value_type::second, _1) == h) == handles.end())
 				ses.remove_torrent(h);
 		}
 	}
@@ -724,7 +724,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	{
 		torrent_handle h = p->handle;
 		if (std::find_if(handles.begin(), handles.end()
-			, bind(&handles_t::value_type::second, _1) == h) == handles.end())
+			, boost::bind(&handles_t::value_type::second, _1) == h) == handles.end())
 			ses.remove_torrent(h);
 	}
 }
@@ -940,7 +940,7 @@ int main(int argc, char* argv[])
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
 			case 'P':
 				{
-					char* port = strchr(arg, ':');
+					char* port = (char*) strchr(arg, ':');
 					if (port == 0)
 					{
 						fprintf(stderr, "invalid proxy hostname, no port found\n");
@@ -1495,8 +1495,8 @@ int main(int argc, char* argv[])
 			{
 
 				h.get_download_queue(queue);
-				std::sort(queue.begin(), queue.end(), bind(&partial_piece_info::piece_index, _1)
-					< bind(&partial_piece_info::piece_index, _2));
+				std::sort(queue.begin(), queue.end(), boost::bind(&partial_piece_info::piece_index, _1)
+					< boost::bind(&partial_piece_info::piece_index, _2));
 
 				std::vector<cached_piece_info> pieces;
 				ses.get_cache_info(h.info_hash(), pieces);
@@ -1506,7 +1506,7 @@ int main(int argc, char* argv[])
 				{
 					cached_piece_info* cp = 0;
 					std::vector<cached_piece_info>::iterator cpi = std::find_if(pieces.begin(), pieces.end()
-						, bind(&cached_piece_info::piece, _1) == i->piece_index);
+						, boost::bind(&cached_piece_info::piece, _1) == i->piece_index);
 					if (cpi != pieces.end()) cp = &*cpi;
 
 					snprintf(str, sizeof(str), "%5d: [", i->piece_index);
