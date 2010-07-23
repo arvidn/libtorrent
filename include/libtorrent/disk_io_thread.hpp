@@ -433,6 +433,9 @@ namespace libtorrent
 		// average read time for cache misses (in microseconds)
 		sliding_average<512> m_read_time;
 
+		typedef std::multimap<size_type, disk_io_job> read_jobs_t;
+		read_jobs_t m_sorted_read_jobs;
+
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
 #endif
