@@ -57,6 +57,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/resource.h>
 #endif
 
+#define DEBUG_STORAGE 0
+
+#define DLOG if (DEBUG_STORAGE) fprintf
+
 namespace libtorrent
 {
 
@@ -204,7 +208,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		fprintf(stderr, "%p io_range: readwrite=%d\n", this, readwrite);
+		DLOG(stderr, "%p io_range: readwrite=%d\n", this, readwrite);
 		TORRENT_ASSERT(p != m_disk_cache.end());
 		TORRENT_ASSERT(start >= 0);
 		TORRENT_ASSERT(start < end);
@@ -239,7 +243,7 @@ namespace libtorrent
 				|| (!p->blocks[i].dirty && readwrite == op_write)
 				|| (!p->blocks[i].uninitialized && readwrite == op_read))
 			{
-				fprintf(stderr, "%p io_range: skipping block=%d end: %d buf=%p pending=%d dirty=%d\n"
+				DLOG(stderr, "%p io_range: skipping block=%d end: %d buf=%p pending=%d dirty=%d\n"
 					, this, i, end, p->blocks[i].buf, p->blocks[i].pending, p->blocks[i].dirty);
 				if (buffer_size == 0) continue;
 
@@ -257,7 +261,7 @@ namespace libtorrent
 				}
 				else
 				{
-					fprintf(stderr, "%p io_range: piece=%d start_block=%d end_block=%d\n"
+					DLOG(stderr, "%p io_range: piece=%d start_block=%d end_block=%d\n"
 						, this, p->piece, range_start, i);
 					++m_outstanding_jobs;
 					p->storage->read_async_impl(iov, p->piece, range_start * m_block_size, iov_counter
@@ -281,7 +285,7 @@ namespace libtorrent
 #endif
 			TORRENT_ASSERT(p->blocks[i].pending == false);
 			p->blocks[i].uninitialized = false;
-			fprintf(stderr, "%p marking as pending piece: %d block: %d\n", this, p->piece, i);
+			DLOG(stderr, "%p marking as pending piece: %d block: %d\n", this, p->piece, i);
 			p->blocks[i].pending = true;
 			++p->blocks[i].refcount;
 			++const_cast<block_cache::cached_piece_entry&>(*p).refcount;
@@ -297,14 +301,14 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_queue_buffer_size >= to_write);
 		m_queue_buffer_size -= to_write;
-		fprintf(stderr, "%p on_disk_write piece: %d start: %d end: %d\n", this, p->piece, begin, end);
+		DLOG(stderr, "%p on_disk_write piece: %d start: %d end: %d\n", this, p->piece, begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, ec);
 	}
 
 	void disk_io_thread::on_disk_read(block_cache::iterator p, int begin
 		, int end, error_code const& ec)
 	{
-		fprintf(stderr, "%p on_disk_read piece: %d start: %d end: %d\n", this, p->piece, begin, end);
+		DLOG(stderr, "%p on_disk_read piece: %d start: %d end: %d\n", this, p->piece, begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, ec);
 
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
@@ -411,7 +415,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(!m_abort);
 
-		fprintf(stderr, "%p perform_async_job job: %s piece: %d offset: %d\n"
+		DLOG(stderr, "%p perform_async_job job: %s piece: %d offset: %d\n"
 			, this, job_action_name[j.action], j.piece, j.offset);
 		if (j.storage && j.storage->get_storage_impl()->m_settings == 0)
 			j.storage->get_storage_impl()->m_settings = &m_settings;
@@ -424,7 +428,7 @@ namespace libtorrent
 		// is the fence up for this storage?
 		if (j.storage && j.storage->has_fence())
 		{
-			fprintf(stderr, "%p   perform_async_job: blocked\n", this);
+			DLOG(stderr, "%p   perform_async_job: blocked\n", this);
 			// Yes it is! We're not allowed
 			// to issue this job. Queue it up
 			m_blocked_jobs.push_back(j);
@@ -434,13 +438,13 @@ namespace libtorrent
 		// call disk function
 		int ret = (this->*(job_functions[j.action]))(j);
 
-		fprintf(stderr, "%p   return: %d error: %s\n"
+		DLOG(stderr, "%p   return: %d error: %s\n"
 			, this, ret, j.error ? j.error.message().c_str() : "");
 
 		j.outstanding_writes = m_queue_buffer_size;
 		if (ret != defer_handler && j.callback)
 		{
-			fprintf(stderr, "%p   posting callback j.buffer: %p\n", this, j.buffer);
+			DLOG(stderr, "%p   posting callback j.buffer: %p\n", this, j.buffer);
 			m_ios.post(boost::bind(j.callback, ret, j));
 		}
 
@@ -449,7 +453,7 @@ namespace libtorrent
 		// files, etc.), we may have to uncork the jobs that was blocked by it.
 		if (ret != defer_handler && (j.flags & disk_io_job::need_uncork))
 		{
-			fprintf(stderr, "%p   uncorking\n", this);
+			DLOG(stderr, "%p   uncorking\n", this);
 			std::list<disk_io_job> jobs;
 			m_blocked_jobs.swap(jobs);
 			// we should only uncork if the storage doesn't
@@ -468,7 +472,7 @@ namespace libtorrent
 	{
 		if (m_outstanding_jobs < m_settings.max_async_disk_jobs) return false;
 
-		fprintf(stderr, "%p too many async jobs, queueing\n", this);
+		DLOG(stderr, "%p too many async jobs, queueing\n", this);
 		// postpone this job. Insert it sorted based on
 		// physical offset of the read location
 		if (m_deferred_jobs.empty()) m_invalid_elevator_pos = true;
@@ -490,7 +494,7 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 		m_log << log_time();
 #endif
-		fprintf(stderr, "%p do_read\n", this);
+		DLOG(stderr, "%p do_read\n", this);
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(j.buffer_size <= m_block_size);
@@ -500,7 +504,7 @@ namespace libtorrent
 			int ret = m_disk_cache.try_read(j);
 			if (ret >= 0)
 			{
-				fprintf(stderr, "%p do_read: cache hit\n", this);
+				DLOG(stderr, "%p do_read: cache hit\n", this);
 				j.flags |= disk_io_job::cache_hit;
 #ifdef TORRENT_DISK_STATS
 				m_log << " read-cache-hit " << j.buffer_size << std::endl;
@@ -527,7 +531,7 @@ namespace libtorrent
 					// this will also add the job to the pending job list in this piece
 					// unless it fails and returns -1
 					int ret = m_disk_cache.allocate_pending(p, start_block, end_block, j);
-					fprintf(stderr, "%p do_read: allocate_pending ret=%d start_block=%d end_block=%d\n"
+					DLOG(stderr, "%p do_read: allocate_pending ret=%d start_block=%d end_block=%d\n"
 							, this, ret, start_block, end_block);
 
 					if (ret > 0)
@@ -535,7 +539,7 @@ namespace libtorrent
 						// some blocks were allocated
 						io_range(p, start_block, end_block, op_read);
 
-						fprintf(stderr, "%p do_read: cache miss\n", this);
+						DLOG(stderr, "%p do_read: cache miss\n", this);
 #ifdef TORRENT_DISK_STATS
 						m_log << " read " << j.buffer_size << std::endl;
 #endif
@@ -574,7 +578,7 @@ namespace libtorrent
 			return disk_operation_failed;
 		}
 
-		fprintf(stderr, "%p do_read: async\n", this);
+		DLOG(stderr, "%p do_read: async\n", this);
 		++m_outstanding_jobs;
 		file::iovec_t b = { j.buffer, j.buffer_size };
 		j.storage->read_async_impl(&b, j.piece, j.offset, 1
@@ -689,7 +693,7 @@ namespace libtorrent
 
 		// raise the fence to block new async. operations
 		j.flags |= disk_io_job::need_uncork;
-		fprintf(stderr, "%p raising fence\n", this);
+		DLOG(stderr, "%p raising fence\n", this);
 		j.storage->raise_fence(boost::bind(&disk_io_thread::perform_async_job, this, j));
 		return defer_handler;
 	}
@@ -792,7 +796,7 @@ namespace libtorrent
 
 		// raise the fence to block new
 		j.flags |= disk_io_job::need_uncork;
-		fprintf(stderr, "%p raising fence\n", this);
+		DLOG(stderr, "%p raising fence\n", this);
 		j.storage->raise_fence(boost::bind(&disk_io_thread::perform_async_job, this, j));
 		return defer_handler;
 	}
@@ -948,7 +952,7 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 		m_log << log_time() << " read_and_hash " << j.buffer_size << std::endl;
 #endif
-		fprintf(stderr, "%p do_read_and_hash\n", this);
+		DLOG(stderr, "%p do_read_and_hash\n", this);
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j.buffer == 0);
 
@@ -966,7 +970,7 @@ namespace libtorrent
 		}
 
 		int ret = m_disk_cache.allocate_pending(p, 0, p->blocks_in_piece, j, 2);
-		fprintf(stderr, "%p do_read_and_hash: allocate_pending ret=%d\n", this, ret);
+		DLOG(stderr, "%p do_read_and_hash: allocate_pending ret=%d\n", this, ret);
 
 		if (ret > 0)
 		{
@@ -1098,7 +1102,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
 		--m_outstanding_jobs;
-		fprintf(stderr, "%p on_read_one_buffer %s\n", this, ec.message().c_str());
+		DLOG(stderr, "%p on_read_one_buffer %s\n", this, ec.message().c_str());
 		int ret = j.buffer_size;
 		j.error = ec;
 		if (!ec && bytes_transferred != j.buffer_size)
@@ -1254,7 +1258,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 			if (ec)
 			{
-				fprintf(stderr, "%p DISK I/O THREAD: %s\n", this, ec.message().c_str());
+				DLOG(stderr, "%p DISK I/O THREAD: %s\n", this, ec.message().c_str());
 				std::string err = ec.message();
 				TORRENT_ASSERT(false);
 			}
