@@ -400,6 +400,20 @@ namespace libtorrent
 		bool verify_resume_data(lazy_entry const& rd, error_code& error);
 		void write_resume_data(entry& rd, error_code& ec) const;
 
+#if TORRENT_USE_AIO
+		void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(error_code const&, size_t)> const& handler)
+		{
+		
+		}
+
+		void async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(error_code const&, size_t)> const& handler)
+		{
+		
+		}
+#endif // TORRENT_USE_AIO
+
 		// this identifies a read or write operation
 		// so that storage::readwrite() knows what to
 		// do when it's actually touching the file
@@ -1365,6 +1379,27 @@ ret:
 #endif
 			return ret;
 		}
+
+#if TORRENT_USE_AIO
+		void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(error_code const&, size_t)> const& handler)
+		{
+			error_code ec;
+			int ret = bufs_size(bufs, num_bufs);
+			TORRENT_ASSERT(m_disk_io_service);
+			m_disk_io_service->post(boost::bind(handler, ec, ret));
+		}
+
+		void async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(error_code const&, size_t)> const& handler)
+		{
+			error_code ec;
+			int ret = bufs_size(bufs, num_bufs);
+			TORRENT_ASSERT(m_disk_io_service);
+			m_disk_io_service->post(boost::bind(handler, ec, ret));
+		}
+#endif // TORRENT_USE_AIO
+
 		void move_slot(int src_slot, int dst_slot, error_code& ec) {}
 		void swap_slots(int slot1, int slot2, error_code& ec) {}
 		void swap_slots3(int slot1, int slot2, int slot3, error_code& ec) {}

@@ -79,15 +79,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <dirent.h> // for DIR
 #endif
 
+#if TORRENT_USE_AIO
+#ifdef TORRENT_WINDOWS
+#include <boost/asio/windows/random_access_handle.hpp>
+#else
+#include <boost/asio/posix/random_access_descriptor.hpp>
+#endif // TORRENT_WINDOWS
+#endif
+
 namespace libtorrent
 {
 #if TORRENT_USE_AIO
 #ifdef TORRENT_WINDOWS
-	typedef boost::asio::windows::basic_random_access_handle aio_handle;
+	typedef boost::asio::windows::random_access_handle aio_handle;
 	typedef boost::asio::windows::random_access_handle_service aio_service;
 #else
-	typedef boost::asio::posix::basic_random_access_handle aio_handle;
-	typedef boost::asio::posix::random_access_handle_service aio_service;
+	typedef boost::asio::posix::random_access_descriptor aio_handle;
+	typedef boost::asio::posix::random_access_descriptor_service aio_service;
 #endif
 #endif
 
@@ -273,7 +281,7 @@ namespace libtorrent
 		size_type phys_offset(size_type offset);
 
 #if TORRENT_USE_AIO
-		handle_type native_handle() const { return m_aio_handle.native_handle(); }
+		handle_type native_handle() const { return m_aio_handle.native(); }
 #else
 		handle_type native_handle() const { return m_file_handle; }
 #endif
@@ -281,7 +289,9 @@ namespace libtorrent
 	private:
 
 #if TORRENT_USE_AIO
-		aio_handle m_aio_handle;
+		// this is mutable because asking for the native
+		// handle is not const
+		mutable aio_handle m_aio_handle;
 #else
 		handle_type m_file_handle;
 #endif

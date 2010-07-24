@@ -266,7 +266,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #ifndef TORRENT_USE_AIO
-#define TORRENT_USE_AIO 0
+#define TORRENT_USE_AIO 1
 #endif
 
 #ifndef TORRENT_COMPLETE_TYPES_REQUIRED

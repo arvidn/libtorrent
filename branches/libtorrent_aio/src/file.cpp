@@ -694,14 +694,15 @@ namespace libtorrent
 		if (dummy == 0) m_done = true;
 #endif
 	}
+#ifndef INVALID_HANDLE_VALUE
+#define INVALID_HANDLE_VALUE -1
+#endif
 
 	file::file()
 #if !TORRENT_USE_AIO
-#ifdef TORRENT_WINDOWS
 		: m_file_handle(INVALID_HANDLE_VALUE)
 #else
-		: m_file_handle(-1)
-#endif
+		: m_aio_handle()
 #endif
 		, m_open_mode(0)
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
@@ -711,13 +712,14 @@ namespace libtorrent
 
 	file::file(std::string const& path, int mode, error_code& ec)
 #if !TORRENT_USE_AIO
-#ifdef TORRENT_WINDOWS
 		: m_file_handle(INVALID_HANDLE_VALUE)
 #else
-		: m_file_handle(-1)
-#endif
+		: m_aio_handle()
 #endif
 		, m_open_mode(0)
+#if defined TORRENT_WINDOWS || defined TORRENT_LINUX
+		, m_sector_size(0)
+#endif
 	{
 		open(path, mode, ec);
 	}
@@ -980,7 +982,8 @@ namespace libtorrent
 		if (!is_open()) return;
 
 #if TORRENT_USE_AIO
-		m_aio_handle.close();
+		error_code ec;
+		m_aio_handle.close(ec);
 #else
 
 #ifdef TORRENT_WINDOWS
@@ -1022,8 +1025,8 @@ namespace libtorrent
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
-		std::vector<asio::const_buffer> iovec(num_bufs);
-		for (int i = 0; i < num_bufs; ++i) iovec[i] = asio::const_buffer(
+		std::vector<boost::asio::const_buffer> iovec(num_bufs);
+		for (int i = 0; i < num_bufs; ++i) iovec[i] = boost::asio::const_buffer(
 			bufs[i].iov_base, bufs[i].iov_len);
 
 		m_aio_handle.async_write_some_at(offset, iovec, handler);
@@ -1038,8 +1041,8 @@ namespace libtorrent
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
 
-		std::vector<asio::mutable_buffer> iovec(num_bufs);
-		for (int i = 0; i < num_bufs; ++i) iovec[i] = asio::mutable_buffer(
+		std::vector<boost::asio::mutable_buffer> iovec(num_bufs);
+		for (int i = 0; i < num_bufs; ++i) iovec[i] = boost::asio::mutable_buffer(
 			bufs[i].iov_base, bufs[i].iov_len);
 
 		m_aio_handle.async_read_some_at(offset, iovec, handler);
@@ -1697,13 +1700,15 @@ typedef struct _FILE_SET_SPARSE_BUFFER {
 	size_type file::sparse_end(size_type start) const
 	{
 #ifdef TORRENT_WINDOWS
+
 #ifdef TORRENT_MINGW
 typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	LARGE_INTEGER FileOffset;
 	LARGE_INTEGER Length;
 } FILE_ALLOCATED_RANGE_BUFFER, *PFILE_ALLOCATED_RANGE_BUFFER;
 #define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
-#endif
+#endif // TORRENT_MINGW
+
 		FILE_ALLOCATED_RANGE_BUFFER buffer;
 		DWORD bytes_returned = 0;
 		FILE_ALLOCATED_RANGE_BUFFER in;

@@ -166,6 +166,24 @@ struct test_storage : storage_interface
 		return size;
 	}
 
+	void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+		, boost::function<void(error_code const&, size_t)> const& handler)
+	{
+		error_code ec;
+		int ret = bufs_size(bufs, num_bufs);
+		TORRENT_ASSERT(m_disk_io_service);
+		m_disk_io_service->post(boost::bind(handler, ec, ret));
+	}
+
+	void async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+		, boost::function<void(error_code const&, size_t)> const& handler)
+	{
+		error_code ec;
+		int ret = bufs_size(bufs, num_bufs);
+		TORRENT_ASSERT(m_disk_io_service);
+		m_disk_io_service->post(boost::bind(handler, ec, ret));
+	}
+
 	size_type physical_offset(int slot, int offset)
 	{ return slot * 16 * 1024 + offset; }
 
