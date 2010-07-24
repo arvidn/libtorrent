@@ -1,3 +1,6 @@
+
+	* fixed bug on windows when verifying resume data for a torrent where
+	  one of its directories had been removed
 	* fixed race condition in peer-list with DHT
 	* fixed rare crash when purging the peer list
 	* fixed race condition around m_abort in session_impl
