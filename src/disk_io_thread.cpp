@@ -59,6 +59,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/resource.h>
 #endif
 
+#ifdef TORRENT_LINUX
+#include <linux/unistd.h>
+#endif
+
 namespace libtorrent
 {
 	bool should_cancel_on_abort(disk_io_job const& j);
@@ -1751,6 +1755,8 @@ namespace libtorrent
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 					setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
 						, m_settings.low_prio_disk ? IOPOL_THROTTLE : IOPOL_DEFAULT);
+#elif defined IOPRIO_WHO_PROCESS
+					syscall(ioprio_set, IOPRIO_WHO_PROCESS, getpid());
 #endif
 					if (m_settings.cache_size == -1)
 					{
