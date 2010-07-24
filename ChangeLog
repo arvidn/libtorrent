@@ -39,6 +39,8 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed bug on windows when verifying resume data for a torrent where
+	  one of its directories had been removed
 	* fixed race condition in peer-list with DHT
 	* fix force-reannounce and tracker retry issue
 
