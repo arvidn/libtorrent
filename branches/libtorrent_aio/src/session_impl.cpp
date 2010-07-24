@@ -149,7 +149,6 @@ namespace
 
 using boost::shared_ptr;
 using boost::weak_ptr;
-using boost::bind;
 using libtorrent::aux::session_impl;
 
 #ifdef BOOST_NO_EXCEPTIONS
@@ -319,6 +318,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, broadcast_lsd)
 		TORRENT_SETTING(boolean, ignore_resume_timestamps)
 		TORRENT_SETTING(boolean, anonymous_mode)
+		TORRENT_SETTING(integer, tick_interval)
 	};
 
 #undef TORRENT_SETTING
@@ -340,7 +340,9 @@ namespace aux {
 	{
 		TORRENT_SETTING(integer, max_peers_reply)
 		TORRENT_SETTING(integer, search_branching)
+#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_SETTING(integer, service_port)
+#endif
 		TORRENT_SETTING(integer, max_fail_count)
 		TORRENT_SETTING(integer, max_torrent_search_reply)
 	};
@@ -505,12 +507,11 @@ namespace aux {
 		, m_last_second_tick(m_created)
 		, m_last_choke(m_created)
 #ifndef TORRENT_DISABLE_DHT
-		, m_dht_same_port(true)
-		, m_external_udp_port(0)
-		, m_dht_socket(m_io_service, bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
-			, m_half_open)
 		, m_dht_announce_timer(m_io_service)
 #endif
+		, m_external_udp_port(0)
+		, m_udp_socket(m_io_service, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
+			, m_half_open)
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
 		, m_host_resolver(m_io_service)
@@ -526,6 +527,11 @@ namespace aux {
 		, m_total_redundant_bytes(0)
 		, m_writing_bytes(0)
 	{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		m_logger = create_log("main_session", listen_port(), false);
+		(*m_logger) << time_now_string() << "\n";
+#endif
+
 #ifndef TORRENT_DISABLE_DHT
 		m_next_dht_torrent = m_torrents.begin();
 #endif
@@ -620,10 +626,8 @@ namespace aux {
 #ifdef TORRENT_UPNP_LOGGING
 		m_upnp_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		m_logger = create_log("main_session", listen_port(), false);
-		(*m_logger) << time_now_string() << "\n";
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #define PRINT_SIZEOF(x) (*m_logger) << "sizeof(" #x "): " << sizeof(x) << "\n";
 #define PRINT_OFFSETOF(x, y) (*m_logger) << "  offsetof(" #x "," #y "): " << offsetof(x, y) << "\n";
 
@@ -721,28 +725,33 @@ namespace aux {
 
 		url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
 
-		m_timer.expires_from_now(milliseconds(100), ec);
-		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
+		m_timer.expires_from_now(milliseconds(m_settings.tick_interval), ec);
+		m_timer.async_wait(boost::bind(&session_impl::on_tick, this, _1));
 
 		int delay = (std::max)(m_settings.local_service_announce_interval
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
 		m_lsd_announce_timer.async_wait(
-			bind(&session_impl::on_lsd_announce, this, _1));
+			boost::bind(&session_impl::on_lsd_announce, this, _1));
 
 #ifndef TORRENT_DISABLE_DHT
 		delay = (std::max)(m_settings.dht_announce_interval
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
 		m_dht_announce_timer.async_wait(
-			bind(&session_impl::on_dht_announce, this, _1));
+			boost::bind(&session_impl::on_dht_announce, this, _1));
 #endif
+
+		// no reuse_address
+		open_listen_port(false);
 
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
 
-	void session_impl::save_state(entry& e, boost::uint32_t flags, mutex::scoped_lock& l) const
+	void session_impl::save_state(entry* eptr, boost::uint32_t flags) const
 	{
+		entry& e = *eptr;
+
 		if (flags & session::save_settings)
 		{
 			// TODO: move these to session_settings
@@ -771,12 +780,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht && (flags & session::save_dht_state))
 		{
-			condition cond;
-			entry& state = e["dht state"];
-			bool done = false;
-			m_io_service.post(boost::bind(&session_impl::on_dht_state_callback
-				, this, boost::ref(cond), boost::ref(state), boost::ref(done)));
-			while (!done) cond.wait(l);
+			e["dht state"] = m_dht->state();
 		}
 
 #endif
@@ -805,29 +809,29 @@ namespace aux {
 
 	}
 	
-	void session_impl::load_state(lazy_entry const& e)
+	void session_impl::load_state(lazy_entry const* e)
 	{
 		lazy_entry const* settings;
 	  
-		if (e.type() != lazy_entry::dict_t) return;
+		if (e->type() != lazy_entry::dict_t) return;
 
-		set_upload_rate_limit(e.dict_find_int_value("upload_rate_limit", 0));
-		set_download_rate_limit(e.dict_find_int_value("download_rate_limit", 0));
-		set_local_upload_rate_limit(e.dict_find_int_value("local_upload_rate_limit", 0));
-		set_local_download_rate_limit(e.dict_find_int_value("local_download_rate_limit", 0));
-		set_max_uploads(e.dict_find_int_value("max_uploads", 0));
-		set_max_half_open_connections(e.dict_find_int_value("max_half_open_connections", 0));
-		set_max_connections(e.dict_find_int_value("max_connections", 0));
+		set_upload_rate_limit(e->dict_find_int_value("upload_rate_limit", 0));
+		set_download_rate_limit(e->dict_find_int_value("download_rate_limit", 0));
+		set_local_upload_rate_limit(e->dict_find_int_value("local_upload_rate_limit", 0));
+		set_local_download_rate_limit(e->dict_find_int_value("local_download_rate_limit", 0));
+		set_max_uploads(e->dict_find_int_value("max_uploads", 0));
+		set_max_half_open_connections(e->dict_find_int_value("max_half_open_connections", 0));
+		set_max_connections(e->dict_find_int_value("max_connections", 0));
 
 		for (int i = 0; i < sizeof(all_settings)/sizeof(all_settings[0]); ++i)
 		{
 			session_category const& c = all_settings[i];
-			settings = e.dict_find_dict(c.name);
+			settings = e->dict_find_dict(c.name);
 			if (!settings) continue;
 			load_struct(*settings, reinterpret_cast<char*>(this) + c.offset, c.map, c.num_entries);
 		}
 #ifndef TORRENT_DISABLE_DHT
-		settings = e.dict_find_dict("dht");
+		settings = e->dict_find_dict("dht");
 		if (settings)
 		{
 			dht_settings s;
@@ -835,7 +839,7 @@ namespace aux {
 				, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
 			set_dht_settings(s);
 		}
-		settings = e.dict_find_dict("dht state");
+		settings = e->dict_find_dict("dht state");
 		if (settings)
 		{
 			m_dht_state = *settings;
@@ -844,7 +848,7 @@ namespace aux {
 #endif
 
 #if TORRENT_USE_I2P
-		settings = e.dict_find_dict("i2p");
+		settings = e->dict_find_dict("i2p");
 		if (settings)
 		{
 			proxy_settings s;
@@ -854,7 +858,7 @@ namespace aux {
 		}
 #endif
 #ifndef TORRENT_DISABLE_GEO_IP
-		settings  = e.dict_find_dict("AS map");
+		settings  = e->dict_find_dict("AS map");
 		if (settings)
 		{
 			for (int i = 0; i < settings->dict_size(); ++i)
@@ -926,38 +930,38 @@ namespace aux {
 		return &(*i);
 	}
 
-	bool session_impl::load_asnum_db(char const* file)
+	void session_impl::load_asnum_db(std::string file)
 	{
 		if (m_asnum_db) GeoIP_delete(m_asnum_db);
-		m_asnum_db = GeoIP_open(file, GEOIP_STANDARD);
-		return m_asnum_db;
+		m_asnum_db = GeoIP_open(file.c_str(), GEOIP_STANDARD);
+//		return m_asnum_db;
 	}
 
 #if TORRENT_USE_WSTRING
-	bool session_impl::load_asnum_db(wchar_t const* file)
+	void session_impl::load_asnum_dbw(std::wstring file)
 	{
 		if (m_asnum_db) GeoIP_delete(m_asnum_db);
 		std::string utf8;
 		wchar_utf8(file, utf8);
 		m_asnum_db = GeoIP_open(utf8.c_str(), GEOIP_STANDARD);
-		return m_asnum_db;
+//		return m_asnum_db;
 	}
 
-	bool session_impl::load_country_db(wchar_t const* file)
+	void session_impl::load_country_dbw(std::wstring file)
 	{
 		if (m_country_db) GeoIP_delete(m_country_db);
 		std::string utf8;
 		wchar_utf8(file, utf8);
 		m_country_db = GeoIP_open(utf8.c_str(), GEOIP_STANDARD);
-		return m_country_db;
+//		return m_country_db;
 	}
 #endif // TORRENT_USE_WSTRING
 
-	bool session_impl::load_country_db(char const* file)
+	void session_impl::load_country_db(std::string file)
 	{
 		if (m_country_db) GeoIP_delete(m_country_db);
-		m_country_db = GeoIP_open(file, GEOIP_STANDARD);
-		return m_country_db;
+		m_country_db = GeoIP_open(file.c_str(), GEOIP_STANDARD);
+//		return m_country_db;
 	}
 
 #endif // TORRENT_DISABLE_GEO_IP
@@ -1033,7 +1037,6 @@ namespace aux {
 		if (m_natpmp) m_natpmp->close();
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht) m_dht->stop();
-		m_dht_socket.close();
 		m_dht_announce_timer.cancel(ec);
 #endif
 		m_timer.cancel(ec);
@@ -1102,6 +1105,20 @@ namespace aux {
 
 		m_download_rate.close();
 		m_upload_rate.close();
+
+		// #error closing the udp socket here means that
+		// the uTP connections cannot be closed gracefully
+		m_udp_socket.close();
+		m_external_udp_port = 0;
+
+#ifndef TORRENT_DISABLE_GEO_IP
+		if (m_asnum_db) GeoIP_delete(m_asnum_db);
+		if (m_country_db) GeoIP_delete(m_country_db);
+		m_asnum_db = 0;
+		m_country_db = 0;
+#endif
+
+		m_disk_thread.abort();
 	}
 
 	void session_impl::set_port_filter(port_filter const& f)
@@ -1168,6 +1185,7 @@ namespace aux {
 			|| m_settings.file_pool_size != s.file_pool_size
 			|| m_settings.volatile_read_cache != s.volatile_read_cache
 			|| m_settings.no_atime_storage!= s.no_atime_storage
+			|| m_settings.ignore_resume_timestamps != s.ignore_resume_timestamps
 			|| m_settings.low_prio_disk != s.low_prio_disk
 			|| m_settings.max_async_disk_jobs != s.max_async_disk_jobs)
 			update_disk_io_thread = true;
@@ -1209,7 +1227,7 @@ namespace aux {
 				/ (std::max)(int(m_torrents.size()), 1), 1);
 			m_dht_announce_timer.expires_from_now(seconds(delay), ec);
 			m_dht_announce_timer.async_wait(
-				bind(&session_impl::on_dht_announce, this, _1));
+				boost::bind(&session_impl::on_dht_announce, this, _1));
 		}
 #endif
 
@@ -1220,7 +1238,7 @@ namespace aux {
 				/ (std::max)(int(m_torrents.size()), 1), 1);
 			m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
 			m_lsd_announce_timer.async_wait(
-				bind(&session_impl::on_lsd_announce, this, _1));
+				boost::bind(&session_impl::on_lsd_announce, this, _1));
 		}
 
 		if (m_settings.max_queued_disk_bytes > 0
@@ -1236,6 +1254,19 @@ namespace aux {
 
 		// if anonymous mode was enabled, clear out the peer ID
 		bool anonymous = (m_settings.anonymous_mode != s.anonymous_mode && s.anonymous_mode);
+
+		if (m_settings.report_web_seed_downloads != s.report_web_seed_downloads)
+		{
+			// if this flag changed, update all web seed connections
+			for (connection_map::iterator i = m_connections.begin()
+				, end(m_connections.end()); i != end; ++i)
+			{
+				int type = (*i)->type();
+				if (type == peer_connection::url_seed_connection
+					|| type == peer_connection::http_seed_connection)
+					(*i)->ignore_stats(!s.report_web_seed_downloads);
+			}
+		}
 
 		m_settings = s;
 
@@ -1296,13 +1327,14 @@ namespace aux {
 	}
 
 	session_impl::listen_socket_t session_impl::setup_listener(tcp::endpoint ep
-		, int retries, bool v6_only)
+		, int retries, bool v6_only, bool reuse_address)
 	{
 		error_code ec;
 		listen_socket_t s;
 		s.sock.reset(new socket_acceptor(m_io_service));
 		s.sock->open(ep.protocol(), ec);
-		s.sock->set_option(socket_acceptor::reuse_address(true), ec);
+		if (reuse_address)
+			s.sock->set_option(socket_acceptor::reuse_address(true), ec);
 #if TORRENT_USE_IPV6
 		if (ep.protocol() == tcp::v6())
 		{
@@ -1339,7 +1371,7 @@ namespace aux {
 			// not even that worked, give up
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(ep, ec));
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			char msg[200];
 			snprintf(msg, 200, "cannot bind to interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
@@ -1353,7 +1385,7 @@ namespace aux {
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(ep, ec));
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			char msg[200];
 			snprintf(msg, 200, "cannot listen on interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
@@ -1365,14 +1397,14 @@ namespace aux {
 		if (m_alerts.should_post<listen_succeeded_alert>())
 			m_alerts.post_alert(listen_succeeded_alert(ep));
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_logger) << "listening on: " << ep
 			<< " external port: " << s.external_port << "\n";
 #endif
 		return s;
 	}
 	
-	void session_impl::open_listen_port()
+	void session_impl::open_listen_port(bool reuse_address)
 	{
 		// close the open listen sockets
 		m_listen_sockets.clear();
@@ -1388,10 +1420,20 @@ namespace aux {
 		
 			listen_socket_t s = setup_listener(
 				tcp::endpoint(address_v4::any(), m_listen_interface.port())
-				, m_listen_port_retries);
+				, m_listen_port_retries, false, reuse_address);
 
 			if (s.sock)
 			{
+				// if we're configured to listen on port 0 (i.e. let the
+				// OS decide), update the listen_interface member with the
+				// actual port we ended up listening on, so that the other
+				// sockets can be bound to the same one
+				if (m_listen_interface.port() == 0)
+				{
+					error_code ec;
+					m_listen_interface.port(s.sock->local_endpoint(ec).port());
+				}
+
 				m_listen_sockets.push_back(s);
 				async_accept(s.sock);
 			}
@@ -1402,7 +1444,7 @@ namespace aux {
 			{
 				s = setup_listener(
 					tcp::endpoint(address_v6::any(), m_listen_interface.port())
-					, m_listen_port_retries, true);
+					, m_listen_port_retries, true, reuse_address);
 
 				if (s.sock)
 				{
@@ -1432,7 +1474,7 @@ namespace aux {
 			// binds to the given interface
 
 			listen_socket_t s = setup_listener(
-				m_listen_interface, m_listen_port_retries);
+				m_listen_interface, m_listen_port_retries, false, reuse_address);
 
 			if (s.sock)
 			{
@@ -1444,6 +1486,27 @@ namespace aux {
 				else
 					m_ipv4_interface = m_listen_interface;
 			}
+
+		}
+
+		error_code ec;
+		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
+		if (ec)
+		{
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(m_listen_interface, ec));
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			char msg[200];
+			snprintf(msg, sizeof(msg), "cannot bind to UDP interface \"%s\": %s"
+				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
+			(*m_logger) << msg << "\n";
+#endif
+		}
+		else
+		{
+			m_external_udp_port = m_udp_socket.local_port();
+			maybe_update_udp_mapping(0, m_listen_interface.port(), m_listen_interface.port());
+			maybe_update_udp_mapping(1, m_listen_interface.port(), m_listen_interface.port());
 		}
 
 		open_new_incoming_socks_connection();
@@ -1533,6 +1596,12 @@ namespace aux {
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(tcp::endpoint(
 					address_v4::any(), m_listen_interface.port()), e));
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			char msg[200];
+			snprintf(msg, sizeof(msg), "cannot bind to port %d: %s"
+				, m_listen_interface.port(), e.message().c_str());
+			(*m_logger) << msg << "\n";
+#endif
 			return;
 		}
 		open_new_incoming_i2p_connection();
@@ -1550,17 +1619,26 @@ namespace aux {
 			if (e == asio::error::connection_refused
 				|| e == asio::error::connection_reset
 				|| e == asio::error::connection_aborted)
-				m_dht->on_unreachable(ep);
+			{
+				if (m_dht) m_dht->on_unreachable(ep);
+				if (m_tracker_manager.incoming_udp(e, ep, buf, len))
+					m_stat.received_tracker_bytes(len + 28);
+			}
 
 			if (m_alerts.should_post<udp_error_alert>())
 				m_alerts.post_alert(udp_error_alert(ep, e));
 			return;
 		}
 
-		if (len > 20 && *buf == 'd' && m_dht)
+		if (len > 20 && *buf == 'd' && buf[len-1] == 'e' && m_dht)
 		{
 			// this is probably a dht message
 			m_dht->on_receive(ep, buf, len);
+		}
+		// maybe it's a udp tracker response
+		else if (m_tracker_manager.incoming_udp(e, ep, buf, len))
+		{
+			m_stat.received_tracker_bytes(len + 28);
 		}
 	}
 
@@ -1571,13 +1649,14 @@ namespace aux {
 		shared_ptr<socket_type> c(new socket_type(m_io_service));
 		c->instantiate<stream_socket>(m_io_service);
 		listener->async_accept(*c->get<stream_socket>()
-			, bind(&session_impl::on_accept_connection, this, c
+			, boost::bind(&session_impl::on_accept_connection, this, c
 			, boost::weak_ptr<socket_acceptor>(listener), _1));
 	}
 
 	void session_impl::on_accept_connection(shared_ptr<socket_type> const& s
 		, weak_ptr<socket_acceptor> listen_socket, error_code const& e)
 	{
+		TORRENT_ASSERT(is_network_thread());
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
 		if (!listener) return;
 		
@@ -1801,10 +1880,10 @@ namespace aux {
 
 		if (!p->is_choked() && !p->ignore_unchoke_slots()) --m_num_unchoked;
 //		connection_map::iterator i = std::lower_bound(m_connections.begin(), m_connections.end()
-//			, p, bind(&boost::intrusive_ptr<peer_connection>::get, _1) < p);
+//			, p, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) < p);
 //		if (i->get() != p) i == m_connections.end();
 		connection_map::iterator i = std::find_if(m_connections.begin(), m_connections.end()
-			, bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p);
+			, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p);
 		if (i != m_connections.end()) m_connections.erase(i);
 	}
 
@@ -1857,6 +1936,7 @@ namespace aux {
 	// pending to be written in the disk thread.d
 	void session_impl::check_disk_queue(int outstanding_writes)
 	{
+		TORRENT_ASSERT(is_network_thread());
 		// if we don't limit disk writes just return
 		if (m_settings.max_queued_disk_bytes == 0) return;
 
@@ -1876,13 +1956,18 @@ namespace aux {
 		// in this case, m_writing_bytes > max_queued and outstanding_writes
 		// is less than max_queued. We just went from being congested to not be.
 		// trigger all peers to continue reading
-		for (connection_map::iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
+
+		for (connection_map::iterator i = m_connections.begin();
+			i != m_connections.end();)
 		{
-			if ((*i)->m_channel_state[peer_connection::download_channel]
+			boost::intrusive_ptr<peer_connection> p = *i;
+			++i;
+			if (p->m_channel_state[peer_connection::download_channel]
 				!= peer_info::bw_disk) continue;
 
-			(*i)->setup_receive();
+			// setup_receive() may disconnect the connection
+			// and clear it out from the m_connections list
+			p->setup_receive();
 		}
 	}
 
@@ -1900,7 +1985,7 @@ namespace aux {
 
 	void session_impl::on_tick(error_code const& e)
 	{
-		mutex::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(is_network_thread());
 
 		ptime now = time_now_hires();
 		aux::g_current_time = now;
@@ -1921,7 +2006,7 @@ namespace aux {
 		}
 
 		error_code ec;
-		m_timer.expires_at(now + milliseconds(100), ec);
+		m_timer.expires_at(now + milliseconds(m_settings.tick_interval), ec);
 		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
 
 		m_download_rate.update_quotas(now - m_last_tick);
@@ -2390,9 +2475,9 @@ namespace aux {
 
 	void session_impl::on_dht_announce(error_code const& e)
 	{
+		TORRENT_ASSERT(is_network_thread());
 		if (e) return;
 
-		mutex::scoped_lock l(m_mutex);
 		if (m_abort) return;
 
 		// announce to DHT every 15 minutes
@@ -2416,9 +2501,9 @@ namespace aux {
 
 	void session_impl::on_lsd_announce(error_code const& e)
 	{
+		TORRENT_ASSERT(is_network_thread());
 		if (e) return;
 
-		mutex::scoped_lock l(m_mutex);
 		if (m_abort) return;
 
 		// announce on local network every 5 minutes
@@ -2552,11 +2637,11 @@ namespace aux {
 		if (!handled_by_extension)
 		{
 			std::sort(downloaders.begin(), downloaders.end()
-				, bind(&torrent::sequence_number, _1) < bind(&torrent::sequence_number, _2));
+				, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
 
 			std::sort(seeds.begin(), seeds.end()
-				, bind(&torrent::seed_rank, _1, boost::ref(m_settings))
-				> bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
+				, boost::bind(&torrent::seed_rank, _1, boost::ref(m_settings))
+				> boost::bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
 		}
 
 		if (settings().auto_manage_prefer_seeds)
@@ -2725,7 +2810,7 @@ namespace aux {
 		{
 			m_allowed_upload_slots = 0;
 			std::sort(peers.begin(), peers.end()
-				, bind(&peer_connection::upload_rate_compare, _1, _2));
+				, boost::bind(&peer_connection::upload_rate_compare, _1, _2));
 
 #ifdef TORRENT_DEBUG
 			for (std::vector<peer_connection*>::const_iterator i = peers.begin()
@@ -2733,10 +2818,14 @@ namespace aux {
 			{
 				if (prev != end)
 				{
+					boost::shared_ptr<torrent> t1 = (*prev)->associated_torrent().lock();
+					TORRENT_ASSERT(t1);
+					boost::shared_ptr<torrent> t2 = (*i)->associated_torrent().lock();
+					TORRENT_ASSERT(t2);
 					TORRENT_ASSERT((*prev)->uploaded_since_unchoke() * 1000
-						/ total_milliseconds(unchoke_interval)
+						* (1 + t1->priority()) / total_milliseconds(unchoke_interval)
 						>= (*i)->uploaded_since_unchoke() * 1000
-						/ total_milliseconds(unchoke_interval));
+						* (1 + t2->priority()) / total_milliseconds(unchoke_interval));
 				}
 				prev = i;
 			}
@@ -2768,7 +2857,7 @@ namespace aux {
 			// if we're using the bittyrant choker, sort peers by their return
 			// on investment. i.e. download rate / upload rate
 			std::sort(peers.begin(), peers.end()
-				, bind(&peer_connection::bittyrant_unchoke_compare, _1, _2));
+				, boost::bind(&peer_connection::bittyrant_unchoke_compare, _1, _2));
 		}
 		else
 		{
@@ -2777,7 +2866,7 @@ namespace aux {
 			// the download rate will be 0, and the peers we have sent the least to should
 			// be unchoked
 			std::sort(peers.begin(), peers.end()
-				, bind(&peer_connection::unchoke_compare, _1, _2));
+				, boost::bind(&peer_connection::unchoke_compare, _1, _2));
 		}
 
 		// auto unchoke
@@ -2892,19 +2981,19 @@ namespace aux {
 
 	void session_impl::main_thread()
 	{
+#ifdef TORRENT_DEBUG
+#if defined BOOST_HAS_PTHREADS
+		m_network_thread = pthread_self();
+#endif
+#endif
+		TORRENT_ASSERT(is_network_thread());
 		eh_initializer();
 
-		if (m_listen_interface.port() != 0)
-		{
-			mutex::scoped_lock l(m_mutex);
-			open_listen_port();
-		}
-
-		do
+		bool stop_loop = false;
+		while (!stop_loop)
 		{
 			error_code ec;
 			m_io_service.run(ec);
-			TORRENT_ASSERT(m_abort == true);
 			if (ec)
 			{
 #ifdef TORRENT_DEBUG
@@ -2914,14 +3003,14 @@ namespace aux {
 				TORRENT_ASSERT(false);
 			}
 			m_io_service.reset();
+
+			stop_loop = m_abort;
 		}
-		while (!m_abort);
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " locking mutex\n";
 #endif
 
-		mutex::scoped_lock l(m_mutex);
 /*
 #ifdef TORRENT_DEBUG
 		for (torrent_map::iterator i = m_torrents.begin();
@@ -2945,6 +3034,8 @@ namespace aux {
 	// session is locked!
 	boost::weak_ptr<torrent> session_impl::find_torrent(sha1_hash const& info_hash)
 	{
+		TORRENT_ASSERT(is_network_thread());
+
 		std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
 			= m_torrents.find(info_hash);
 #ifdef TORRENT_DEBUG
@@ -3160,7 +3251,7 @@ namespace aux {
 
 	bool session_impl::listen_on(
 		std::pair<int, int> const& port_range
-		, const char* net_interface)
+		, const char* net_interface, int flags)
 	{
 		INVARIANT_CHECK;
 
@@ -3190,23 +3281,7 @@ namespace aux {
 
 		m_listen_interface = new_interface;
 
-		open_listen_port();
-
-		bool new_listen_address = m_listen_interface.address() != new_interface.address();
-
-#ifndef TORRENT_DISABLE_DHT
-		if ((new_listen_address || m_dht_same_port) && m_dht)
-		{
-			if (m_dht_same_port)
-				m_dht_settings.service_port = new_interface.port();
-			// the listen interface changed, rebind the dht listen socket as well
-			error_code ec;
-			m_dht_socket.bind(udp::endpoint(m_listen_interface.address(), m_dht_settings.service_port), ec);
-
-			maybe_update_udp_mapping(0, m_dht_settings.service_port, m_dht_settings.service_port);
-			maybe_update_udp_mapping(1, m_dht_settings.service_port, m_dht_settings.service_port);
-		}
-#endif
+		open_listen_port(flags & session::listen_reuse_address);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
@@ -3242,7 +3317,7 @@ namespace aux {
 
 	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
 	{
-		mutex::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(is_network_thread());
 
 		INVARIANT_CHECK;
 
@@ -3257,6 +3332,8 @@ namespace aux {
 			<< ": added peer from local discovery: " << peer << "\n";
 #endif
 		t->get_policy().add_peer(peer, peer_id(0), peer_info::lsd, 0);
+		if (m_alerts.should_post<lsd_peer_alert>())
+			m_alerts.post_alert(lsd_peer_alert(t->get_handle(), peer));
 	}
 
 	void session_impl::on_port_map_log(
@@ -3276,20 +3353,18 @@ namespace aux {
 	void session_impl::on_port_mapping(int mapping, int port
 		, error_code const& ec, int map_transport)
 	{
-		mutex::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(is_network_thread());
+
 		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
 
-#ifndef TORRENT_DISABLE_DHT
 		if (mapping == m_udp_mapping[map_transport] && port != 0)
 		{
 			m_external_udp_port = port;
-			m_dht_settings.service_port = port;
 			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.post_alert(portmap_alert(mapping, port
 					, map_transport));
 			return;
 		}
-#endif
 
 		if (mapping == m_tcp_mapping[map_transport] && port != 0)
 		{
@@ -3415,29 +3490,15 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 
+		if (m_listen_interface.port() != 0)
+			open_listen_port(false);
+
 		if (m_dht)
 		{
 			m_dht->stop();
 			m_dht = 0;
 		}
-		if (m_dht_settings.service_port == 0
-			|| m_dht_same_port)
-		{
-			m_dht_same_port = true;
-			if (m_listen_interface.port() > 0)
-				m_dht_settings.service_port = m_listen_interface.port();
-			else
-				m_dht_settings.service_port = 45000 + (rand() % 10000);
-		}
-		m_external_udp_port = m_dht_settings.service_port;
-		maybe_update_udp_mapping(0, m_dht_settings.service_port, m_dht_settings.service_port);
-		maybe_update_udp_mapping(1, m_dht_settings.service_port, m_dht_settings.service_port);
-		m_dht = new dht::dht_tracker(*this, m_dht_socket, m_dht_settings, &startup_state);
-		if (!m_dht_socket.is_open() || m_dht_socket.local_port() != m_dht_settings.service_port)
-		{
-			error_code ec;
-			m_dht_socket.bind(udp::endpoint(m_listen_interface.address(), m_dht_settings.service_port), ec);
-		}
+		m_dht = new dht::dht_tracker(*this, m_udp_socket, m_dht_settings, &startup_state);
 
 		for (std::list<udp::endpoint>::iterator i = m_dht_router_nodes.begin()
 			, end(m_dht_router_nodes.end()); i != end; ++i)
@@ -3503,53 +3564,18 @@ namespace aux {
 
 	void session_impl::set_dht_settings(dht_settings const& settings)
 	{
-		// only change the dht listen port in case the settings
-		// contains a vaiid port, and if it is different from
-		// the current setting
-		if (settings.service_port != 0)
-			m_dht_same_port = false;
-		else
-			m_dht_same_port = true;
-		if (!m_dht_same_port
-			&& settings.service_port != m_dht_settings.service_port
-			&& m_dht)
-		{
-			error_code ec;
-			m_dht_socket.bind(udp::endpoint(m_listen_interface.address(), settings.service_port), ec);
-
-			maybe_update_udp_mapping(0, settings.service_port, settings.service_port);
-			maybe_update_udp_mapping(1, settings.service_port, settings.service_port);
-			m_external_udp_port = settings.service_port;
-		}
 		m_dht_settings = settings;
-		if (m_dht_same_port)
-			m_dht_settings.service_port = m_listen_interface.port();
-	}
-
-	void session_impl::on_dht_state_callback(condition& c
-		, entry& e, bool& done) const
-	{
-		mutex::scoped_lock l(m_mutex);
-		if (m_dht) e = m_dht->state();
-		done = true;
-		c.signal(l);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	entry session_impl::dht_state(mutex::scoped_lock& l) const
+	entry session_impl::dht_state() const
 	{
-		condition cond;
 		if (!m_dht) return entry();
-		entry e;
-		bool done = false;
-		m_io_service.post(boost::bind(&session_impl::on_dht_state_callback
-			, this, boost::ref(cond), boost::ref(e), boost::ref(done)));
-		while (!done) cond.wait(l);
-		return e;
+		return m_dht->state();
 	}
 #endif
 
-	void session_impl::add_dht_node(std::pair<std::string, int> const& node)
+	void session_impl::add_dht_node_name(std::pair<std::string, int> const& node)
 	{
 		TORRENT_ASSERT(m_dht);
 		m_dht->add_node(node);
@@ -3561,7 +3587,7 @@ namespace aux {
 		snprintf(port, sizeof(port), "%d", node.second);
 		tcp::resolver::query q(node.first, port);
 		m_host_resolver.async_resolve(q,
-			bind(&session_impl::on_dht_router_name_lookup, this, _1, _2));
+			boost::bind(&session_impl::on_dht_router_name_lookup, this, _1, _2));
 	}
 
 	void session_impl::on_dht_router_name_lookup(error_code const& e
@@ -3589,22 +3615,15 @@ namespace aux {
 
 	session_impl::~session_impl()
 	{
-		mutex::scoped_lock l(m_mutex);
+#if defined BOOST_HAS_PTHREADS
+		TORRENT_ASSERT(!is_network_thread());
+#endif
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << "\n\n *** shutting down session *** \n\n";
 #endif
-		abort();
-		TORRENT_ASSERT(m_connections.empty());
+		m_io_service.post(boost::bind(&session_impl::abort, this));
 
-#ifndef TORRENT_DISABLE_GEO_IP
-		if (m_asnum_db) GeoIP_delete(m_asnum_db);
-		if (m_country_db) GeoIP_delete(m_country_db);
-		m_asnum_db = 0;
-		m_country_db = 0;
-#endif
-
-		l.unlock();
 		// we need to wait for the disk-io thread to
 		// die first, to make sure it won't post any
 		// more messages to the io_service containing references
@@ -3707,7 +3726,7 @@ namespace aux {
 		m_upload_channel.throttle(bytes_per_second);
 	}
 
-	void session_impl::set_alert_dispatch(boost::function<void(alert const&)> const& fun)
+	void session_impl::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
 		m_alerts.set_dispatch_function(fun);
 	}
@@ -3717,9 +3736,7 @@ namespace aux {
 // too expensive
 //		INVARIANT_CHECK;
 
-		if (m_alerts.pending())
-			return m_alerts.get();
-		return std::auto_ptr<alert>(0);
+		return m_alerts.get();
 	}
 	
 	alert const* session_impl::wait_for_alert(time_duration max_wait)
@@ -3765,14 +3782,26 @@ namespace aux {
 
 		m_lsd = new lsd(m_io_service
 			, m_listen_interface.address()
-			, bind(&session_impl::on_lsd_peer, this, _1, _2));
+			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2));
 		if (m_settings.broadcast_lsd)
 			m_lsd->use_broadcast(true);
 	}
 	
-	void session_impl::start_natpmp(natpmp* n)
+	natpmp* session_impl::start_natpmp()
 	{
 		INVARIANT_CHECK;
+
+		if (m_natpmp) return m_natpmp.get();
+
+		// the natpmp constructor may fail and call the callbacks
+		// into the session_impl.
+		natpmp* n = new (std::nothrow) natpmp(m_io_service
+			, m_listen_interface.address()
+			, boost::bind(&session_impl::on_port_mapping
+				, this, _1, _2, _3, 0)
+			, boost::bind(&session_impl::on_port_map_log
+				, this, _1, 0));
+		if (n == 0) return 0;
 
 		m_natpmp = n;
 
@@ -3781,17 +3810,32 @@ namespace aux {
 			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
 				, m_listen_interface.port(), m_listen_interface.port());
 		}
-#ifndef TORRENT_DISABLE_DHT
-		if (m_dht)
+		if (m_udp_socket.is_open())
+		{
 			m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::udp
-				, m_dht_settings.service_port 
-				, m_dht_settings.service_port);
-#endif
+				, m_listen_interface.port(), m_listen_interface.port());
+		}
+		return n;
 	}
 
-	void session_impl::start_upnp(upnp* u)
+	upnp* session_impl::start_upnp()
 	{
 		INVARIANT_CHECK;
+
+		if (m_upnp) return m_upnp.get();
+
+		// the upnp constructor may fail and call the callbacks
+		upnp* u = new (std::nothrow) upnp(m_io_service
+			, m_half_open
+			, m_listen_interface.address()
+			, m_settings.user_agent
+			, boost::bind(&session_impl::on_port_mapping
+				, this, _1, _2, _3, 1)
+			, boost::bind(&session_impl::on_port_map_log
+				, this, _1, 1)
+			, m_settings.upnp_ignore_nonrouters);
+
+		if (u == 0) return 0;
 
 		m_upnp = u;
 
@@ -3801,12 +3845,12 @@ namespace aux {
 			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
 				, m_listen_interface.port(), m_listen_interface.port());
 		}
-#ifndef TORRENT_DISABLE_DHT
-		if (m_dht)
+		if (m_udp_socket.is_open())
+		{
 			m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
-				, m_dht_settings.service_port 
-				, m_dht_settings.service_port);
-#endif
+				, m_listen_interface.port(), m_listen_interface.port());
+		}
+		return u;
 	}
 
 	void session_impl::stop_lsd()

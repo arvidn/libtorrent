@@ -546,11 +546,14 @@ void block_cache::free_piece(iterator p)
 {
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 	TORRENT_ASSERT(pe->refcount == 0);
+	// build a vector of all the buffers we need to free
+	// and free them all in one go
+	std::vector<char*> buffers;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
 		TORRENT_ASSERT(pe->blocks[i].pending == false);
 		TORRENT_ASSERT(pe->blocks[i].refcount == 0);
-		m_buffer_pool.free_buffer(pe->blocks[i].buf);
+		buffers.push_back(pe->blocks[i].buf);
 		pe->blocks[i].buf = 0;
 		TORRENT_ASSERT(pe->num_blocks > 0);
 		--pe->num_blocks;
@@ -563,7 +566,28 @@ void block_cache::free_piece(iterator p)
 		}
 		else --pe->num_dirty;
 	}
+	if (!buffers.empty()) m_buffer_pool.free_multiple_buffers(&buffers[0], buffers.size());
 }
+
+int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf)
+{
+	int piece_size = p.storage->info()->piece_size(p.piece);
+	int blocks_in_piece = (piece_size + block_size - 1) / block_size;
+	int ret = 0;
+
+	for (int i = 0; i < blocks_in_piece; ++i)
+	{
+		if (p.blocks[i].buf == 0) continue;
+		buf.push_back(p.blocks[i].buf);
+		++ret;
+		p.blocks[i].buf = 0;
+		--p.num_blocks;
+		--m_cache_size;
+		--m_read_cache_size;
+	}
+	return ret;
+}
+
 //#ifdef TORRENT_DEBUG
 #if 0
 void disk_io_thread::check_invariant() const
@@ -682,11 +706,14 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 			// piece. Therefore, for each request out of the cache
 			// we clear the block that was requested and any blocks
 			// the peer skipped
+			// build a vector of all the buffers we need to free
+			// and free them all in one go
+			std::vector<char*> buffers;
 			for (int i = block; i >= 0 && pe->blocks[i].buf; --i)
 			{
 				if (pe->blocks[i].refcount == 0)
 				{
-					m_buffer_pool.free_buffer(pe->blocks[i].buf);
+					buffers.push_back(pe->blocks[i].buf);
 					pe->blocks[i].buf = 0;
 					TORRENT_ASSERT(pe->num_blocks > 0);
 					--pe->num_blocks;
@@ -696,6 +723,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 					--m_read_cache_size;
 				}
 			}
+			if (!buffers.empty()) m_buffer_pool.free_multiple_buffers(&buffers[0], buffers.size());
 		}
 		++block;
 	}

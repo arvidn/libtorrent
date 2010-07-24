@@ -79,7 +79,7 @@ private:
 	void on_reply(error_code const& e
 		, std::size_t bytes_transferred);
 	void try_next_mapping(int i, mutex::scoped_lock& l);
-	void update_expiration_timer();
+	void update_expiration_timer(mutex::scoped_lock& l);
 	void mapping_expired(error_code const& e, int i);
 	void close_impl(mutex::scoped_lock& l);
 

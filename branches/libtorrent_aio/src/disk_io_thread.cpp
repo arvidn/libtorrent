@@ -146,11 +146,15 @@ namespace libtorrent
 		TORRENT_ASSERT(m_abort == true);
 	}
 
-	void disk_io_thread::join()
+	void disk_io_thread::abort()
 	{
 		disk_io_job j;
 		j.action = disk_io_job::abort_thread;
 		add_job(j);
+	}
+
+	void disk_io_thread::join()
+	{
 		m_disk_io_thread.join();
 		TORRENT_ASSERT(m_abort == true);
 	}

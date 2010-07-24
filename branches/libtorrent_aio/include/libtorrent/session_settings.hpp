@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/version.hpp"
 
 namespace libtorrent
 {
@@ -84,7 +85,8 @@ namespace libtorrent
 	{
 		session_settings(std::string const& user_agent_ = "libtorrent/"
 			LIBTORRENT_VERSION)
-			: user_agent(user_agent_)
+			: version(LIBTORRENT_VERSION_NUM)
+			, user_agent(user_agent_)
 			, tracker_completion_timeout(60)
 			, tracker_receive_timeout(40)
 			, stop_tracker_timeout(5)
@@ -218,7 +220,12 @@ namespace libtorrent
 #else
 			, max_async_disk_jobs(1)
 #endif
+			, tick_interval(100)
+			, report_web_seed_downloads(true)
 		{}
+
+		// libtorrent version. Used for forward binary compatibility
+		int version;
 
 		// this is the user agent that will be sent to the tracker
 		// when doing requests. It is used to identify the client.
@@ -832,6 +839,14 @@ namespace libtorrent
 
 		// the max number of concurrent async jobs passed to the OS
 		int max_async_disk_jobs;
+
+		// the number of milliseconds between internal ticks. Should be no
+		// more than one second (i.e. 1000).
+		int tick_interval;
+
+		// specifies whether downloads from web seeds is reported to the
+		// tracker or not. Defaults to on
+		bool report_web_seed_downloads;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

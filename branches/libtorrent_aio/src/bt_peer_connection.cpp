@@ -57,7 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #endif
 
-using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
 
@@ -658,14 +657,30 @@ namespace libtorrent
 #endif
 	}
 
+	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size)
+	{
+		// if we're encrypting this buffer, we need to make a copy
+		// since we'll mutate it
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		if (m_encrypted && m_rc4_encrypted)
+		{
+			send_buffer(buffer, size);
+		}
+		else
+#endif
+		{
+			peer_connection::append_const_send_buffer(buffer, size);
+		}
+	}
+
 	void bt_peer_connection::send_buffer(char const* buf, int size, int flags)
 	{
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(size > 0);
 		
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		encrypt_pending_buffer();
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted && m_rc4_encrypted)
 		{
 			TORRENT_ASSERT(send_buffer_size() == m_encrypted_bytes);
@@ -1464,13 +1479,6 @@ namespace libtorrent
 			return;
 		}
 
-		if (extended_id == upload_only_msg)
-		{
-			if (!packet_finished()) return;
-			set_upload_only(detail::read_uint8(recv_buffer.begin));
-			return;
-		}
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -1480,6 +1488,13 @@ namespace libtorrent
 				return;
 		}
 #endif
+
+		if (extended_id == upload_only_msg)
+		{
+			if (!packet_finished()) return;
+			set_upload_only(detail::read_uint8(recv_buffer.begin));
+			return;
+		}
 
 		disconnect(errors::invalid_message, 2);
 		return;
@@ -3083,6 +3098,13 @@ namespace libtorrent
 
 		TORRENT_ASSERT(amount_payload <= (int)bytes_transferred);
 		m_statistics.sent_bytes(amount_payload, bytes_transferred - amount_payload);
+		
+		if (amount_payload > 0)
+		{
+			boost::shared_ptr<torrent> t = associated_torrent().lock();
+			TORRENT_ASSERT(t);
+			if (t) t->update_last_upload();
+		}
 	}
 
 #ifdef TORRENT_DEBUG

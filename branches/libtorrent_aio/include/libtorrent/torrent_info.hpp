@@ -75,6 +75,8 @@ namespace libtorrent
 	{
 		announce_entry(std::string const& u)
 			: url(u)
+			, next_announce(min_time())
+			, min_announce(min_time())
 			, tier(0)
 			, fail_limit(3)
 			, fails(0)
@@ -148,6 +150,13 @@ namespace libtorrent
 		}
 
 		void failed(int retry_interval = 0);
+
+		bool will_announce(ptime now) const
+		{
+			return now <= next_announce
+				&& (fails < fail_limit || fail_limit == 0)
+				&& !updating;
+		}
 
 		bool can_announce(ptime now) const
 		{

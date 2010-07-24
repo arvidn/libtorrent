@@ -98,12 +98,14 @@ namespace libtorrent
 	struct pending_block
 	{
 		pending_block(piece_block const& b)
-			: skipped(0), not_wanted(false), timed_out(false)
-			, busy(false), block(b) {}
+			: block(b), skipped(0), not_wanted(false)
+			, timed_out(false), busy(false) {}
+
+		piece_block block;
 
 		// the number of times the request
 		// has been skipped by out of order blocks
-		boost::uint16_t skipped;
+		boost::uint16_t skipped:13;
 
 		// if any of these are set to true, this block
 		// is not allocated
@@ -119,8 +121,6 @@ namespace libtorrent
 		// request was queued. We only allow a single
 		// busy request at a time in each peer's queue
 		bool busy:1;
-
-		piece_block block;
 
 		bool operator==(pending_block const& b)
 		{
@@ -244,6 +244,9 @@ namespace libtorrent
 
 		bool no_download() const { return m_no_download; }
 		void no_download(bool b) { m_no_download = b; }
+
+		bool ignore_stats() const { return m_ignore_stats; }
+		void ignore_stats(bool b) { m_ignore_stats = b; }
 
 		void set_priority(int p)
 		{
@@ -518,6 +521,8 @@ namespace libtorrent
 			m_send_buffer.append_buffer(buffer, size, size, destructor);
 		}
 
+		virtual void append_const_send_buffer(char const* buffer, int size);
+
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void set_country(char const* c)
 		{
@@ -559,6 +564,9 @@ namespace libtorrent
 		void setup_receive();
 
 	protected:
+
+		enum sync_t { read_async, read_sync };
+		size_t try_read(sync_t s, error_code& ec);
 
 		virtual void get_specific_peer_info(peer_info& p) const = 0;
 
@@ -1049,6 +1057,10 @@ namespace libtorrent
 
 		// set to true when we've sent the first round of suggests
 		bool m_sent_suggests:1;
+
+		// when this is set, the transfer stats for this connection
+		// is not included in the torrent or session stats
+		bool m_ignore_stats:1;
 		
 		template <std::size_t Size>
 		struct handler_storage
@@ -1097,9 +1109,9 @@ namespace libtorrent
 			friend void* asio_handler_allocate(
 			    std::size_t size, allocating_handler<Handler, Size>* ctx)
 			{
-				assert(size <= Size);
+				TORRENT_ASSERT(size <= Size);
 #ifdef TORRENT_DEBUG
-				assert(!ctx->storage.used);
+				TORRENT_ASSERT(!ctx->storage.used);
 				ctx->storage.used = true;
 #endif
 				return &ctx->storage.bytes;

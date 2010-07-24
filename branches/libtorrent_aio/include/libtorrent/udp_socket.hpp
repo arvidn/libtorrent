@@ -77,6 +77,12 @@ namespace libtorrent
 		proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
 
 		bool is_closed() const { return m_abort; }
+		tcp::endpoint local_endpoint() const
+		{
+			error_code ec;
+			udp::endpoint ep = m_ipv4_sock.local_endpoint(ec);
+			return tcp::endpoint(ep.address(), ep.port());
+		}
 
 	protected:
 

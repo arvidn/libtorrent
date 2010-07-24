@@ -126,6 +126,7 @@ namespace libtorrent
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
+		void abort();
 		void join();
 
 		// aborts read operations

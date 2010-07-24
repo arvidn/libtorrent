@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/utf8.hpp"
+#include "libtorrent/thread.hpp"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 namespace std
@@ -70,53 +71,126 @@ namespace std
 };
 #endif
 
-using boost::bind;
 using libtorrent::aux::session_impl;
-
-#ifdef BOOST_NO_EXCEPTIONS
-
-#define TORRENT_FORWARD(call) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) return; \
-	mutex::scoped_lock l(t->session().m_mutex); \
-	t->call
-	
-#define TORRENT_FORWARD_RETURN(call, def) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) return def; \
-	mutex::scoped_lock l(t->session().m_mutex); \
-	return t->call
-
-#define TORRENT_FORWARD_RETURN2(call, def) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) return def; \
-	mutex::scoped_lock l(t->session().m_mutex); \
-	t->call
-
-#else
-
-#define TORRENT_FORWARD(call) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) throw_invalid_handle(); \
-	mutex::scoped_lock l(t->session().m_mutex); \
-	t->call
-	
-#define TORRENT_FORWARD_RETURN(call, def) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) throw_invalid_handle(); \
-	mutex::scoped_lock l(t->session().m_mutex); \
-	return t->call
-
-#define TORRENT_FORWARD_RETURN2(call, def) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) throw_invalid_handle(); \
-	mutex::scoped_lock l(t->session().m_mutex); \
-	t->call
-
-#endif
 
 namespace libtorrent
 {
+
+	template <class R>
+	void fun_ret(R* ret, bool* done, condition* e, mutex* m, boost::function<R(void)> f)
+	{
+		*ret = f();
+		mutex::scoped_lock l(*m);
+		*done = true;
+		e->signal(l);
+	}
+
+	// defined in session.cpp
+	void fun_wrap(bool* done, condition* e, mutex* m, boost::function<void(void)> f);
+
+#define TORRENT_ASYNC_CALL(x) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return; \
+	session_impl& ses = t->session(); \
+	ses.m_io_service.post(boost::bind(&torrent:: x, t))
+
+#define TORRENT_ASYNC_CALL1(x, a1) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return; \
+	session_impl& ses = t->session(); \
+	ses.m_io_service.post(boost::bind(&torrent:: x, t, a1))
+
+#define TORRENT_ASYNC_CALL2(x, a1, a2) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return; \
+	session_impl& ses = t->session(); \
+	ses.m_io_service.post(boost::bind(&torrent:: x, t, a1, a2))
+
+#define TORRENT_ASYNC_CALL3(x, a1, a2, a3) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return; \
+	session_impl& ses = t->session(); \
+	ses.m_io_service.post(boost::bind(&torrent:: x, t, a1, a2, a3))
+
+#define TORRENT_SYNC_CALL(x) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return; \
+	bool done = false; \
+	session_impl& ses = t->session(); \
+	mutex::scoped_lock l(ses.mut); \
+	ses.cond.clear(l); \
+	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t)))); \
+	do { ses.cond.wait(l); } while(!done)
+
+#define TORRENT_SYNC_CALL1(x, a1) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (t) { \
+	bool done = false; \
+	session_impl& ses = t->session(); \
+	mutex::scoped_lock l(ses.mut); \
+	ses.cond.clear(l); \
+	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1)))); \
+	t.reset(); \
+	do { ses.cond.wait(l); } while(!done); }
+
+#define TORRENT_SYNC_CALL2(x, a1, a2) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (t) { \
+	bool done = false; \
+	session_impl& ses = t->session(); \
+	mutex::scoped_lock l(ses.mut); \
+	ses.cond.clear(l); \
+	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1, a2)))); \
+	t.reset(); \
+	do { ses.cond.wait(l); } while(!done); }
+
+#define TORRENT_SYNC_CALL3(x, a1, a2, a3) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (t) { \
+	bool done = false; \
+	session_impl& ses = t->session(); \
+	mutex::scoped_lock l(ses.mut); \
+	ses.cond.clear(l); \
+	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1, a2, a3)))); \
+	t.reset(); \
+	do { ses.cond.wait(l); } while(!done); }
+
+#define TORRENT_SYNC_CALL_RET(type, def, x) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return def; \
+	bool done = false; \
+	session_impl& ses = t->session(); \
+	type r; \
+	mutex::scoped_lock l(ses.mut); \
+	ses.cond.clear(l); \
+	ses.m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t)))); \
+	t.reset(); \
+	do { ses.cond.wait(l); } while(!done)
+
+#define TORRENT_SYNC_CALL_RET1(type, def, x, a1) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return def; \
+	bool done = false; \
+	session_impl& ses = t->session(); \
+	type r; \
+	mutex::scoped_lock l(ses.mut); \
+	ses.cond.clear(l); \
+	ses.m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1)))); \
+	t.reset(); \
+	do { ses.cond.wait(l); } while(!done)
+
+#define TORRENT_SYNC_CALL_RET2(type, def, x, a1, a2) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return def; \
+	bool done = false; \
+	session_impl& ses = t->session(); \
+	type r; \
+	mutex::scoped_lock l(ses.mut); \
+	ses.cond.clear(l); \
+	ses.m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1, a2)))); \
+	t.reset(); \
+	do { ses.cond.wait(l); } while(!done)
+
 #ifndef BOOST_NO_EXCEPTIONS
 	void throw_invalid_handle()
 	{
@@ -135,86 +209,91 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		const static sha1_hash empty;
-		TORRENT_FORWARD_RETURN(torrent_file().info_hash(), empty);
+		TORRENT_SYNC_CALL_RET(sha1_hash, empty, info_hash);
+		return r;
 	}
 
 	int torrent_handle::max_uploads() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(max_uploads(), 0);
+		TORRENT_SYNC_CALL_RET(int, 0, max_uploads);
+		return r;
 	}
 
 	void torrent_handle::set_max_uploads(int max_uploads) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(max_uploads >= 2 || max_uploads == -1);
-		TORRENT_FORWARD(set_max_uploads(max_uploads));
+		TORRENT_ASYNC_CALL1(set_max_uploads, max_uploads);
 	}
 
 	void torrent_handle::use_interface(const char* net_interface) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(use_interface(net_interface));
+		TORRENT_ASYNC_CALL1(use_interface, std::string(net_interface));
 	}
 
 	int torrent_handle::max_connections() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(max_connections(), 0);
+		TORRENT_SYNC_CALL_RET(int, 0, max_connections);
+		return r;
 	}
 
 	void torrent_handle::set_max_connections(int max_connections) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(max_connections >= 2 || max_connections == -1);
-		TORRENT_FORWARD(set_max_connections(max_connections));
+		TORRENT_ASYNC_CALL1(set_max_connections, max_connections);
 	}
 
 	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(limit >= -1);
-		TORRENT_FORWARD(set_peer_upload_limit(ip, limit));
+		TORRENT_ASYNC_CALL2(set_peer_upload_limit, ip, limit);
 	}
 
 	void torrent_handle::set_peer_download_limit(tcp::endpoint ip, int limit) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(limit >= -1);
-		TORRENT_FORWARD(set_peer_download_limit(ip, limit));
+		TORRENT_ASYNC_CALL2(set_peer_download_limit, ip, limit);
 	}
 
 	void torrent_handle::set_upload_limit(int limit) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(limit >= -1);
-		TORRENT_FORWARD(set_upload_limit(limit));
+		TORRENT_ASYNC_CALL1(set_upload_limit, limit);
 	}
 
 	int torrent_handle::upload_limit() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(upload_limit(), 0);
+		TORRENT_SYNC_CALL_RET(int, 0, upload_limit);
+		return r;
 	}
 
 	void torrent_handle::set_download_limit(int limit) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(limit >= -1);
-		TORRENT_FORWARD(set_download_limit(limit));
+		TORRENT_ASYNC_CALL1(set_download_limit, limit);
 	}
 
 	int torrent_handle::download_limit() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(download_limit(), 0);
+		TORRENT_SYNC_CALL_RET(int, 0, download_limit);
+		return r;
 	}
 
 	void torrent_handle::move_storage(
 		std::string const& save_path) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(move_storage(save_path));
+		TORRENT_ASYNC_CALL1(move_storage, save_path);
 	}
 
 #if TORRENT_USE_WSTRING
@@ -224,7 +303,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		std::string utf8;
 		wchar_utf8(save_path, utf8);
-		TORRENT_FORWARD(move_storage(utf8));
+		TORRENT_ASYNC_CALL1(move_storage, utf8);
 	}
 
 	void torrent_handle::rename_file(int index, std::wstring const& new_name) const
@@ -232,14 +311,14 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		std::string utf8;
 		wchar_utf8(new_name, utf8);
-		TORRENT_FORWARD(rename_file(index, utf8));
+		TORRENT_ASYNC_CALL2(rename_file, index, utf8);
 	}
 #endif // TORRENT_USE_WSTRING
 
 	void torrent_handle::rename_file(int index, std::string const& new_name) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(rename_file(index, new_name));
+		TORRENT_ASYNC_CALL2(rename_file, index, new_name);
 	}
 
 	void torrent_handle::add_extension(
@@ -247,141 +326,148 @@ namespace libtorrent
 		, void* userdata)
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(add_extension(ext, userdata));
+		TORRENT_ASYNC_CALL2(add_extension, ext, userdata);
 	}
 
 	bool torrent_handle::has_metadata() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(valid_metadata(), false);
+		TORRENT_SYNC_CALL_RET(bool, false, valid_metadata);
+		return r;
 	}
 
 	bool torrent_handle::set_metadata(char const* metadata, int size) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(set_metadata(metadata, size), false);
+		TORRENT_SYNC_CALL_RET2(bool, false, set_metadata, metadata, size);
+		return r;
 	}
 
 	bool torrent_handle::is_seed() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(is_seed(), false);
+		TORRENT_SYNC_CALL_RET(bool, false, is_seed);
+		return r;
 	}
 
 	bool torrent_handle::is_finished() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(is_finished(), false);
+		TORRENT_SYNC_CALL_RET(bool, false, is_finished);
+		return r;
 	}
 
 	bool torrent_handle::is_paused() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(is_torrent_paused(), false);
+		TORRENT_SYNC_CALL_RET(bool, false, is_torrent_paused);
+		return r;
 	}
 
 	void torrent_handle::pause() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(pause());
+		TORRENT_ASYNC_CALL(pause);
 	}
 
 	void torrent_handle::set_upload_mode(bool b) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_upload_mode(b));
+		TORRENT_ASYNC_CALL1(set_upload_mode, b);
 	}
 
 	void torrent_handle::flush_cache() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(flush_cache());
+		TORRENT_ASYNC_CALL(flush_cache);
 	}
 
 	void torrent_handle::save_resume_data() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(save_resume_data());
+		TORRENT_ASYNC_CALL(save_resume_data);
 	}
 
 	bool torrent_handle::need_save_resume_data() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(need_save_resume_data(), false);
+		TORRENT_SYNC_CALL_RET(bool, false, need_save_resume_data);
+		return r;
 	}
 
 	void torrent_handle::force_recheck() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(force_recheck());
+		TORRENT_ASYNC_CALL(force_recheck);
 	}
 
 	void torrent_handle::resume() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(resume());
+		TORRENT_ASYNC_CALL(resume);
 	}
 
 	bool torrent_handle::is_auto_managed() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(is_auto_managed(), true);
+		TORRENT_SYNC_CALL_RET(bool, false, is_auto_managed);
+		return r;
 	}
 
 	void torrent_handle::auto_managed(bool m) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(auto_managed(m));
+		TORRENT_ASYNC_CALL1(auto_managed, m);
 	}
 
 	void torrent_handle::set_priority(int p) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_priority(p));
+		TORRENT_ASYNC_CALL1(set_priority, p);
 	}
 
 	int torrent_handle::queue_position() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(queue_position(), -1);
+		TORRENT_SYNC_CALL_RET(int, -1, queue_position);
+		return r;
 	}
 
 	void torrent_handle::queue_position_up() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_queue_position(t->queue_position() == 0
-			? t->queue_position() : t->queue_position() - 1));
+		TORRENT_ASYNC_CALL(queue_down);
 	}
 
 	void torrent_handle::queue_position_down() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_queue_position(t->queue_position() + 1));
+		TORRENT_ASYNC_CALL(queue_up);
 	}
 
 	void torrent_handle::queue_position_top() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_queue_position(0));
+		TORRENT_ASYNC_CALL1(set_queue_position, 0);
 	}
 
 	void torrent_handle::queue_position_bottom() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_queue_position((std::numeric_limits<int>::max)()));
+		TORRENT_ASYNC_CALL1(set_queue_position, INT_MAX);
 	}
 
 	void torrent_handle::clear_error() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(clear_error());
+		TORRENT_ASYNC_CALL(clear_error);
 	}
 
 	void torrent_handle::set_tracker_login(std::string const& name
 		, std::string const& password) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_tracker_login(name, password));
+		TORRENT_ASYNC_CALL2(set_tracker_login, name, password);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -389,7 +475,7 @@ namespace libtorrent
 	void torrent_handle::file_progress(std::vector<float>& progress) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(file_progress(progress));
+		TORRENT_SYNC_CALL1(file_progress, boost::ref(progress));
 	}
 #endif
 #endif
@@ -397,88 +483,93 @@ namespace libtorrent
 	void torrent_handle::file_progress(std::vector<size_type>& progress, int flags) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(file_progress(progress, flags));
+		TORRENT_SYNC_CALL2(file_progress, boost::ref(progress), flags);
 	}
 
 	torrent_status torrent_handle::status(boost::uint32_t flags) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(status(flags), torrent_status());
+		TORRENT_SYNC_CALL_RET1(torrent_status, torrent_status(), status, flags);
+		return r;
 	}
 
 	void torrent_handle::set_sequential_download(bool sd) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_sequential_download(sd));
+		TORRENT_ASYNC_CALL1(set_sequential_download, sd);
 	}
 
 	bool torrent_handle::is_sequential_download() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(is_sequential_download(), false);
+		TORRENT_SYNC_CALL_RET(bool, false, is_sequential_download);
+		return r;
 	}
 
 	std::string torrent_handle::name() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(name(), "");
+		TORRENT_SYNC_CALL_RET(std::string, "", name);
+		return r;
 	}
 
 	void torrent_handle::piece_availability(std::vector<int>& avail) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(piece_availability(avail));
+		TORRENT_SYNC_CALL1(piece_availability, boost::ref(avail));
 	}
 
 	void torrent_handle::piece_priority(int index, int priority) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_piece_priority(index, priority));
+		TORRENT_ASYNC_CALL2(set_piece_priority, index, priority);
 	}
 
 	int torrent_handle::piece_priority(int index) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(piece_priority(index), 0);
+		TORRENT_SYNC_CALL_RET1(int, 0, piece_priority, index);
+		return r;
 	}
 
 	void torrent_handle::prioritize_pieces(std::vector<int> const& pieces) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(prioritize_pieces(pieces));
+		TORRENT_ASYNC_CALL1(prioritize_pieces, pieces);
 	}
 
 	std::vector<int> torrent_handle::piece_priorities() const
 	{
 		INVARIANT_CHECK;
 		std::vector<int> ret;
-		TORRENT_FORWARD_RETURN2(piece_priorities(ret), ret);
+		TORRENT_SYNC_CALL1(piece_priorities, boost::ref(ret));
 		return ret;
 	}
 
 	void torrent_handle::file_priority(int index, int priority) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_file_priority(index, priority));
+		TORRENT_ASYNC_CALL2(set_file_priority, index, priority);
 	}
 
 	int torrent_handle::file_priority(int index) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(file_priority(index), 0);
+		TORRENT_SYNC_CALL_RET1(int, 0, file_priority, index);
+		return r;
 	}
 
 	void torrent_handle::prioritize_files(std::vector<int> const& files) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(prioritize_files(files));
+		TORRENT_ASYNC_CALL1(prioritize_files, files);
 	}
 
 	std::vector<int> torrent_handle::file_priorities() const
 	{
 		INVARIANT_CHECK;
 		std::vector<int> ret;
-		TORRENT_FORWARD_RETURN2(file_priorities(ret), ret);
+		TORRENT_SYNC_CALL1(file_priorities, ret);
 		return ret;
 	}
 
@@ -488,33 +579,34 @@ namespace libtorrent
 	void torrent_handle::filter_piece(int index, bool filter) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(filter_piece(index, filter));
+		TORRENT_ASYNC_CALL2(filter_piece, index, filter);
 	}
 
 	void torrent_handle::filter_pieces(std::vector<bool> const& pieces) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(filter_pieces(pieces));
+		TORRENT_ASYNC_CALL1(filter_pieces, pieces);
 	}
 
 	bool torrent_handle::is_piece_filtered(int index) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(is_piece_filtered(index), false);
+		TORRENT_SYNC_CALL_RET1(bool, false, is_piece_filtered, index);
+		return r;
 	}
 
 	std::vector<bool> torrent_handle::filtered_pieces() const
 	{
 		INVARIANT_CHECK;
 		std::vector<bool> ret;
-		TORRENT_FORWARD_RETURN2(filtered_pieces(ret), ret);
+		TORRENT_SYNC_CALL1(filtered_pieces, ret);
 		return ret;
 	}
 
 	void torrent_handle::filter_files(std::vector<bool> const& files) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(filter_files(files));
+		TORRENT_ASYNC_CALL1(filter_files, files);
 	}
 
 // ============ end deprecation ===============
@@ -524,76 +616,80 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		const static std::vector<announce_entry> empty;
-		TORRENT_FORWARD_RETURN(trackers(), empty);
+		TORRENT_SYNC_CALL_RET(std::vector<announce_entry>, empty, trackers);
+		return r;
 	}
 
 	void torrent_handle::add_url_seed(std::string const& url) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(add_web_seed(url, web_seed_entry::url_seed));
+		TORRENT_ASYNC_CALL2(add_web_seed, url, web_seed_entry::url_seed);
 	}
 
 	void torrent_handle::remove_url_seed(std::string const& url) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(remove_web_seed(url, web_seed_entry::url_seed));
+		TORRENT_ASYNC_CALL2(remove_web_seed, url, web_seed_entry::url_seed);
 	}
 
 	std::set<std::string> torrent_handle::url_seeds() const
 	{
 		INVARIANT_CHECK;
 		const static std::set<std::string> empty;
-		TORRENT_FORWARD_RETURN(web_seeds(web_seed_entry::url_seed), empty);
+		TORRENT_SYNC_CALL_RET1(std::set<std::string>, empty, web_seeds, web_seed_entry::url_seed);
+		return r;
 	}
 
 	void torrent_handle::add_http_seed(std::string const& url) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(add_web_seed(url, web_seed_entry::http_seed));
+		TORRENT_ASYNC_CALL2(add_web_seed, url, web_seed_entry::http_seed);
 	}
 
 	void torrent_handle::remove_http_seed(std::string const& url) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(remove_web_seed(url, web_seed_entry::http_seed));
+		TORRENT_ASYNC_CALL2(remove_web_seed, url, web_seed_entry::http_seed);
 	}
 
 	std::set<std::string> torrent_handle::http_seeds() const
 	{
 		INVARIANT_CHECK;
 		const static std::set<std::string> empty;
-		TORRENT_FORWARD_RETURN(web_seeds(web_seed_entry::http_seed), empty);
+		TORRENT_SYNC_CALL_RET1(std::set<std::string>, empty, web_seeds, web_seed_entry::http_seed);
+		return r;
 	}
 
 	void torrent_handle::replace_trackers(
 		std::vector<announce_entry> const& urls) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(replace_trackers(urls));
+		TORRENT_ASYNC_CALL1(replace_trackers, urls);
 	}
 
 	void torrent_handle::add_tracker(announce_entry const& url) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(add_tracker(url));
+		TORRENT_ASYNC_CALL1(add_tracker, url);
 	}
 
 	void torrent_handle::add_piece(int piece, char const* data, int flags) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(add_piece(piece, data, flags));
+		TORRENT_SYNC_CALL3(add_piece, piece, data, flags);
 	}
 
 	void torrent_handle::read_piece(int piece) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(read_piece(piece));
+		TORRENT_ASYNC_CALL1(read_piece, piece);
 	}
 
 	storage_interface* torrent_handle::get_storage_impl() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(get_storage(), 0);
+		TORRENT_SYNC_CALL_RET(storage_interface*, 0, get_storage);
+		return r;
 	}
 
 	torrent_info const& torrent_handle::get_torrent_info() const
@@ -609,7 +705,7 @@ namespace libtorrent
 #else
 			throw_invalid_handle();
 #endif
-		mutex::scoped_lock l(t->session().m_mutex);
+//		mutex::scoped_lock l(t->session().m_mutex);
 		if (!t->valid_metadata())
 #ifdef BOOST_NO_EXCEPTIONS
 			return empty;
@@ -631,9 +727,19 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		entry ret(entry::dictionary_t);
-		TORRENT_FORWARD_RETURN2(write_resume_data(ret), ret);
-		error_code ec;
-		t->filesystem().write_resume_data(ret, ec);
+		TORRENT_SYNC_CALL1(write_resume_data, boost::ref(ret));
+		if (t)
+		{
+			bool done = false;
+			session_impl& ses = t->session();
+			mutex::scoped_lock l(ses.mut);
+			ses.cond.clear(l);
+			error_code ec;
+			ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond
+				, &ses.mut, boost::function<void(void)>(boost::bind(
+					&piece_manager::write_resume_data, &t->filesystem(), boost::ref(ret), boost::ref(ec)))));
+			do { ses.cond.wait(l); } while(!done);
+		}
 
 		return ret;
 	}
@@ -642,64 +748,54 @@ namespace libtorrent
 	std::string torrent_handle::save_path() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(save_path(), std::string());
+		TORRENT_SYNC_CALL_RET(std::string, "", save_path);
+		return r;
 	}
 
 	void torrent_handle::connect_peer(tcp::endpoint const& adr, int source) const
 	{
 		INVARIANT_CHECK;
-
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t)
-#ifdef BOOST_NO_EXCEPTIONS
-			return;
-#else
-			throw_invalid_handle();
-#endif
-		mutex::scoped_lock l(t->session().m_mutex);
-		
-		peer_id id;
-		std::fill(id.begin(), id.end(), 0);
-		t->get_policy().add_peer(adr, id, source, 0);
+		TORRENT_ASYNC_CALL2(add_peer, adr, source);
 	}
 
 	void torrent_handle::force_reannounce(
 		boost::posix_time::time_duration duration) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(force_tracker_request(time_now() + seconds(duration.total_seconds())));
+		TORRENT_ASYNC_CALL1(force_tracker_request, time_now() + seconds(duration.total_seconds()));
 	}
 
 #ifndef TORRENT_DISABLE_DHT
 	void torrent_handle::force_dht_announce() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(dht_announce());
+		TORRENT_ASYNC_CALL(dht_announce);
 	}
 #endif
 
 	void torrent_handle::force_reannounce() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(force_tracker_request());
+		TORRENT_ASYNC_CALL1(force_tracker_request, time_now());
 	}
 
 	void torrent_handle::scrape_tracker() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(scrape_tracker());
+		TORRENT_ASYNC_CALL(scrape_tracker);
 	}
 
 	bool torrent_handle::super_seeding() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(super_seeding(), false);
+		TORRENT_SYNC_CALL_RET(bool, false, super_seeding);
+		return r;
 	}
 
 	void torrent_handle::super_seeding(bool on) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(super_seeding(on));
+		TORRENT_ASYNC_CALL1(super_seeding, on);
 	}
 
 	void torrent_handle::set_ratio(float ratio) const
@@ -709,45 +805,46 @@ namespace libtorrent
 		TORRENT_ASSERT(ratio >= 0.f);
 		if (ratio < 1.f && ratio > 0.f)
 			ratio = 1.f;
-		TORRENT_FORWARD(set_ratio(ratio));
+		TORRENT_ASYNC_CALL1(set_ratio, ratio);
 	}
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	void torrent_handle::resolve_countries(bool r)
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(resolve_countries(r));
+		TORRENT_ASYNC_CALL1(resolve_countries, r);
 	}
 
 	bool torrent_handle::resolve_countries() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD_RETURN(resolving_countries(), false);
+		TORRENT_SYNC_CALL_RET(bool, false, resolving_countries);
+		return r;
 	}
 #endif
 
 	void torrent_handle::get_full_peer_list(std::vector<peer_list_entry>& v) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(get_full_peer_list(v));
+		TORRENT_SYNC_CALL1(get_full_peer_list, boost::ref(v));
 	}
 
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(get_peer_info(v));
+		TORRENT_SYNC_CALL1(get_peer_info, boost::ref(v));
 	}
 
 	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(get_download_queue(queue));
+		TORRENT_SYNC_CALL1(get_download_queue, boost::ref(queue));
 	}
 
 	void torrent_handle::set_piece_deadline(int index, int deadline, int flags) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_FORWARD(set_piece_deadline(index, deadline, flags));
+		TORRENT_ASYNC_CALL3(set_piece_deadline, index, deadline, flags);
 	}
 
 }

@@ -364,7 +364,7 @@ int start_tracker()
 	stop_tracker();
 
 	{
-		mutex::scoped_lock l(tracker_lock);
+		libtorrent::mutex::scoped_lock l(tracker_lock);
 		tracker_initialized.clear(l);
 	}
 
@@ -373,7 +373,7 @@ int start_tracker()
 	tracker_server.reset(new libtorrent::thread(boost::bind(&udp_tracker_thread, &port)));
 
 	{
-		mutex::scoped_lock l(tracker_lock);
+		libtorrent::mutex::scoped_lock l(tracker_lock);
 		tracker_initialized.wait(l);
 	}
 	test_sleep(100);
@@ -438,7 +438,7 @@ void udp_tracker_thread(int* port)
 	if (ec)
 	{
 		fprintf(stderr, "Error opening listen UDP socket: %s\n", ec.message().c_str());
-		mutex::scoped_lock l(tracker_lock);
+		libtorrent::mutex::scoped_lock l(tracker_lock);
 		tracker_initialized.signal(l);
 		return;
 	}
@@ -446,7 +446,7 @@ void udp_tracker_thread(int* port)
 	if (ec)
 	{
 		fprintf(stderr, "Error binding UDP socket to port 0: %s\n", ec.message().c_str());
-		mutex::scoped_lock l(tracker_lock);
+		libtorrent::mutex::scoped_lock l(tracker_lock);
 		tracker_initialized.signal(l);
 		return;
 	}
@@ -457,7 +457,7 @@ void udp_tracker_thread(int* port)
 	fprintf(stderr, "UDP tracker initialized on port %d\n", *port);
 
 	{
-		mutex::scoped_lock l(tracker_lock);
+		libtorrent::mutex::scoped_lock l(tracker_lock);
 		tracker_initialized.signal(l);
 	}
 
@@ -477,7 +477,7 @@ void udp_tracker_thread(int* port)
 		if (ec)
 		{
 			fprintf(stderr, "Error receiving on UDP socket: %s\n", ec.message().c_str());
-			mutex::scoped_lock l(tracker_lock);
+			libtorrent::mutex::scoped_lock l(tracker_lock);
 			tracker_initialized.signal(l);
 			return;
 		}
@@ -508,7 +508,7 @@ int start_web_server(bool ssl)
 	stop_web_server();
 
 	{
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.clear(l);
 	}
 
@@ -517,7 +517,7 @@ int start_web_server(bool ssl)
 	web_server.reset(new libtorrent::thread(boost::bind(&web_server_thread, &port, ssl)));
 
 	{
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.wait(l);
 	}
 
@@ -571,7 +571,7 @@ void web_server_thread(int* port, bool ssl)
 	if (ec)
 	{
 		fprintf(stderr, "Error opening listen socket: %s\n", ec.message().c_str());
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.signal(l);
 		return;
 	}
@@ -579,7 +579,7 @@ void web_server_thread(int* port, bool ssl)
 	if (ec)
 	{
 		fprintf(stderr, "Error setting listen socket to reuse addr: %s\n", ec.message().c_str());
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.signal(l);
 		return;
 	}
@@ -587,7 +587,7 @@ void web_server_thread(int* port, bool ssl)
 	if (ec)
 	{
 		fprintf(stderr, "Error binding listen socket to port 0: %s\n", ec.message().c_str());
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.signal(l);
 		return;
 	}
@@ -596,7 +596,7 @@ void web_server_thread(int* port, bool ssl)
 	if (ec)
 	{
 		fprintf(stderr, "Error listening on socket: %s\n", ec.message().c_str());
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.signal(l);
 		return;
 	}
@@ -606,32 +606,40 @@ void web_server_thread(int* port, bool ssl)
 	fprintf(stderr, "web server initialized on port %d\n", *port);
 
 	{
-		mutex::scoped_lock l(web_lock);
+		libtorrent::mutex::scoped_lock l(web_lock);
 		web_initialized.signal(l);
 	}
 
 	char buf[10000];
 	int len = 0;
 	int offset = 0;
+	bool connection_close = false;
 	stream_socket s(ios);
 
 	for (;;)
 	{
-		s.close(ec);
-
-		len = 0;
-		offset = 0;
-		accept_done = false;
-		acceptor.async_accept(s, &on_accept);
-		ios.reset();
-		ios.run_one();
-		if (!accept_done)
+		if (connection_close)
 		{
-			fprintf(stderr, "accept failed\n");
-			return;
+			s.close(ec);
+			connection_close = false;
 		}
 
-		if (!s.is_open()) continue;
+		if (!s.is_open())
+		{
+			len = 0;
+			offset = 0;
+
+			accept_done = false;
+			acceptor.async_accept(s, &on_accept);
+			ios.reset();
+			ios.run_one();
+			if (!accept_done)
+			{
+				fprintf(stderr, "accept failed\n");
+				return;
+			}
+			if (!s.is_open()) continue;
+		}
 
 		http_parser p;
 		bool failed = false;
@@ -663,9 +671,9 @@ void web_server_thread(int* port, bool ssl)
 					break;
 				}
 				len += received;
-	
-	
+		
 				p.incoming(buffer::const_interval(buf + offset, buf + len), error);
+
 				TEST_CHECK(error == false);
 				if (error)
 				{
@@ -674,11 +682,27 @@ void web_server_thread(int* port, bool ssl)
 					break;
 				}
 			}
+
+			std::string connection = p.header("connection");
+			std::string via = p.header("via");
+
+			// The delegate proxy doesn't say connection close, but it expects it to be closed
+			// the Via: header is an indicator of delegate making the request
+			if (connection == "close" || !via.empty())
+			{
+				connection_close = true;
+			}
+
 //			fprintf(stderr, "%s", std::string(buf + offset, p.body_start()).c_str());
 
-			if (failed) break;
+			if (failed)
+			{
+				s.close(ec);
+				break;
+			}
 
 			offset += p.body_start() + p.content_length();
+//			fprintf(stderr, "offset: %d len: %d\n", offset, len);
 
 			if (p.method() != "get" && p.method() != "post")
 			{
@@ -770,6 +794,9 @@ void web_server_thread(int* port, bool ssl)
 					write(s, boost::asio::buffer(&file_buf[0], file_buf.size()), boost::asio::transfer_all(), ec);
 			}
 //			fprintf(stderr, "%d bytes left in receive buffer. offset: %d\n", len - offset, offset);
+			memmove(buf, buf + offset, len - offset);
+			len -= offset;
+			offset = 0;
 		} while (offset < len);
 	}
 	fprintf(stderr, "exiting web server thread\n");

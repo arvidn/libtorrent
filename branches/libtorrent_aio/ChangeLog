@@ -1,3 +1,14 @@
+	* improved support for multi-homed clients
+	* added feature to not count downloaded bytes from web seeds in stats
+	* added alert for incoming local service discovery messages
+	* added option to set file priorities when adding torrents
+	* removed the session mutex for improved performance
+	* added upload and download activity timer stats for torrents
+	* made the reuse-address flag configurable on the listen socket
+	* moved UDP trackers over to use a single socket
+	* added feature to make asserts log to a file instead of breaking the process
+	  (production asserts)
+	* optimized disk I/O cache clearing
 	* added feature to ask a torrent if it needs to save its resume data or not
 	* added setting to ignore file modification time when loading resume files
 	* support more fine-grained torrent states between which peer sources it
@@ -28,6 +39,32 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed race condition in peer-list with DHT
+	* fix force-reannounce and tracker retry issue
+
+0.15.1 release
+
+	* fixed rare crash when purging the peer list
+	* fixed race condition around m_abort in session_impl
+	* fixed bug in web_peer_connection which could cause a hang when downloading
+	  from web servers
+	* fixed bug in metadata extensions combined with encryption
+	* refactored socket reading code to not use async. operations unnecessarily
+	* some timer optimizations
+	* removed the reuse-address flag on the listen socket
+	* fixed bug where local peer discovery and DHT wouldn't be announced to without trackers
+	* fixed bug in bdecoder when decoding invalid messages
+	* added build warning when building with UNICODE but the standard library
+	  doesn't provide std::wstring
+	* fixed add_node python binding
+	* fixed issue where trackers wouldn't tried immediately when the previous one failed
+	* fixed synchronization issue between download queue and piece picker
+	* fixed bug in udp tracker scrape response parsing
+	* fixed bug in the disk thread that could get triggered under heavy load
+	* fixed bug in add_piece() that would trigger asserts
+	* fixed vs 2010 build
+	* recognizes more clients in identify_client()
+	* fixed bug where trackers wouldn't be retried if they failed
 	* slight performance fix in disk elevator algorithm
 	* fixed potential issue where a piece could be checked twice
 	* fixed build issue on windows related to GetCompressedSize()

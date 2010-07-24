@@ -255,7 +255,8 @@ namespace libtorrent
 	{
 		file_pool fp;
 		boost::scoped_ptr<storage_interface> st(
-			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, p, fp));
+			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, p, fp
+			, std::vector<boost::uint8_t>()));
 
 		// if we're calculating file hashes as well, use this hasher
 		hasher filehash;
@@ -350,7 +351,8 @@ namespace libtorrent
 		std::string utf8;
 		wchar_utf8(p, utf8);
 		boost::scoped_ptr<storage_interface> st(
-			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, utf8, fp));
+			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, utf8, fp
+			, std::vector<boost::uint8_t>()));
 
 		// calculate the hash for all pieces
 		int num = t.num_pieces();

@@ -72,7 +72,7 @@ namespace libtorrent
 			, tracker_manager& man
 			, tracker_request const& req
 			, boost::weak_ptr<request_callback> c
-			, aux::session_impl const& ses
+			, aux::session_impl& ses
 			, proxy_settings const& ps);
 
 		void start();
@@ -91,14 +91,14 @@ namespace libtorrent
 		boost::intrusive_ptr<udp_tracker_connection> self()
 		{ return boost::intrusive_ptr<udp_tracker_connection>(this); }
 
-		void name_lookup(error_code const& error, udp::resolver::iterator i);
+		void name_lookup(error_code const& error, tcp::resolver::iterator i);
 		void timeout(error_code const& error);
 
-		void on_receive(error_code const& e, udp::endpoint const& ep
+		bool on_receive(error_code const& e, udp::endpoint const& ep
 			, char const* buf, int size);
-		void on_connect_response(char const* buf, int size);
-		void on_announce_response(char const* buf, int size);
-		void on_scrape_response(char const* buf, int size);
+		bool on_connect_response(char const* buf, int size);
+		bool on_announce_response(char const* buf, int size);
+		bool on_scrape_response(char const* buf, int size);
 
 		void send_udp_connect();
 		void send_udp_announce();
@@ -108,13 +108,14 @@ namespace libtorrent
 
 		tracker_manager& m_man;
 
-		udp::resolver m_name_lookup;
-		udp_socket m_socket;
+//		udp::resolver m_name_lookup;
+//		udp_socket m_socket;
+		bool m_abort;
 		udp::endpoint m_target;
-		std::list<udp::endpoint> m_endpoints;
+		std::list<tcp::endpoint> m_endpoints;
 
 		int m_transaction_id;
-		aux::session_impl const& m_ses;
+		aux::session_impl& m_ses;
 		int m_attempts;
 
 		struct connection_cache_entry

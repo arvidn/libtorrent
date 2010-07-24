@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::tuples::make_tuple;
 using boost::tuples::tuple;
-using boost::bind;
 
 namespace
 {
@@ -79,7 +78,7 @@ namespace libtorrent
 			m_read_timeout, (std::min)(m_completion_timeout, m_read_timeout));
 		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
-		m_timeout.async_wait(bind(
+		m_timeout.async_wait(boost::bind(
 			&timeout_handler::timeout_callback, self(), _1));
 	}
 
@@ -106,9 +105,9 @@ namespace libtorrent
 		time_duration completion_timeout = now - m_start_time;
 		
 		if (m_read_timeout
-			< total_seconds(receive_timeout)
+			<= total_seconds(receive_timeout)
 			|| m_completion_timeout
-			< total_seconds(completion_timeout))
+			<= total_seconds(completion_timeout))
 		{
 			on_timeout();
 			return;
@@ -121,7 +120,7 @@ namespace libtorrent
 		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(
-			bind(&timeout_handler::timeout_callback, self(), _1));
+			boost::bind(&timeout_handler::timeout_callback, self(), _1));
 	}
 
 	tracker_connection::tracker_connection(
@@ -173,13 +172,13 @@ namespace libtorrent
 
 	void tracker_manager::sent_bytes(int bytes)
 	{
-//		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_ses.m_stat.sent_tracker_bytes(bytes);
 	}
 
 	void tracker_manager::received_bytes(int bytes)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_ses.m_stat.received_tracker_bytes(bytes);
 	}
 
@@ -251,6 +250,20 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = con->requester();
 		if (cb) cb->m_manager = this;
 		con->start();
+	}
+
+	bool tracker_manager::incoming_udp(error_code const& e
+		, udp::endpoint const& ep, char const* buf, int size)
+	{
+		for (tracker_connections_t::iterator i = m_connections.begin();
+			i != m_connections.end();)
+		{
+			boost::intrusive_ptr<tracker_connection> p = *i;
+			++i;
+			// on_receive() may remove the tracker connection from the list
+			if (p->on_receive(e, ep, buf, size)) return true;
+		}
+		return false;
 	}
 
 	void tracker_manager::abort_all_requests(bool all)

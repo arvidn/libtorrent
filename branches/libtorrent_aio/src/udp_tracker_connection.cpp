@@ -52,8 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/escape_string.hpp"
 
-using boost::bind;
-
 namespace libtorrent
 {
 
@@ -68,19 +66,16 @@ namespace libtorrent
 		, tracker_manager& man
 		, tracker_request const& req
 		, boost::weak_ptr<request_callback> c
-		, aux::session_impl const& ses
+		, aux::session_impl& ses
 		, proxy_settings const& proxy)
 		: tracker_connection(man, req, ios, c)
 		, m_man(man)
-		, m_name_lookup(ios)
-		, m_socket(ios, boost::bind(&udp_tracker_connection::on_receive, self(), _1, _2, _3, _4), cc)
+		, m_abort(false)
 		, m_transaction_id(0)
 		, m_ses(ses)
 		, m_attempts(0)
 		, m_state(action_error)
 	{
-		TORRENT_ASSERT(refcount() == 1);
-		m_socket.set_proxy_settings(proxy);
 	}
 
 	void udp_tracker_connection::start()
@@ -96,15 +91,15 @@ namespace libtorrent
 		if (ec)
 		{
 			// never call fail() when the session mutex is locked!
-			m_socket.get_io_service().post(boost::bind(
+			m_ses.m_io_service.post(boost::bind(
 				&tracker_connection::fail_disp, self(), ec));
 			return;
 		}
 		
 		session_settings const& settings = m_ses.settings();
 
-		udp::resolver::query q(hostname, to_string(port).elems);
-		m_name_lookup.async_resolve(q
+		tcp::resolver::query q(hostname, to_string(port).elems);
+		m_ses.m_host_resolver.async_resolve(q
 			, boost::bind(
 			&udp_tracker_connection::name_lookup, self(), _1, _2));
 		set_timeout(tracker_req().event == tracker_request::stopped
@@ -118,10 +113,11 @@ namespace libtorrent
 	}
 
 	void udp_tracker_connection::name_lookup(error_code const& error
-		, udp::resolver::iterator i)
+		, tcp::resolver::iterator i)
 	{
+		if (m_abort) return;
 		if (error == asio::error::operation_aborted) return;
-		if (error || i == udp::resolver::iterator())
+		if (error || i == tcp::resolver::iterator())
 		{
 			fail(error);
 			return;
@@ -143,15 +139,20 @@ namespace libtorrent
 		// we're listening on. To make sure the tracker get our
 		// correct listening address.
 
-		std::transform(i, udp::resolver::iterator(), std::back_inserter(m_endpoints)
-			, boost::bind(&udp::resolver::iterator::value_type::endpoint, _1));
+		std::transform(i, tcp::resolver::iterator(), std::back_inserter(m_endpoints)
+			, boost::bind(&tcp::resolver::iterator::value_type::endpoint, _1));
 
 		// remove endpoints that are filtered by the IP filter
-		for (std::list<udp::endpoint>::iterator i = m_endpoints.begin();
+		for (std::list<tcp::endpoint>::iterator i = m_endpoints.begin();
 			i != m_endpoints.end();)
 		{
 			if (m_ses.m_ip_filter.access(i->address()) == ip_filter::blocked) 
+			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+				if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: " + print_address(i->address()) + " ]");
+#endif
 				i = m_endpoints.erase(i);
+			}
 			else
 				++i;
 		}
@@ -162,8 +163,8 @@ namespace libtorrent
 			return;
 		}
 		
-		std::list<udp::endpoint>::iterator iter = m_endpoints.begin();
-		m_target = *iter;
+		std::list<tcp::endpoint>::iterator iter = m_endpoints.begin();
+		m_target = udp::endpoint(iter->address(), iter->port());
 
 		if (bind_interface() != address_v4::any())
 		{
@@ -190,19 +191,11 @@ namespace libtorrent
 			}
 			else
 			{
-				m_target = *iter;
+				m_target = udp::endpoint(iter->address(), iter->port());
 			}
 		}
 
 		if (cb) cb->m_tracker_address = tcp::endpoint(m_target.address(), m_target.port());
-
-		error_code ec;
-		m_socket.bind(udp::endpoint(bind_interface(), 0), ec);
-		if (ec)
-		{
-			fail(ec);
-			return;
-		}
 
 		mutex::scoped_lock l(m_cache_mutex);
 		std::map<address, connection_cache_entry>::iterator cc
@@ -235,31 +228,27 @@ namespace libtorrent
 		snprintf(msg, 200, "*** UDP_TRACKER [ timed out url: %s ]", tracker_req().url.c_str());
 		if (cb) cb->debug_log(msg);
 #endif
-		m_socket.close();
-		m_name_lookup.cancel();
+		m_abort = true;
 		fail(error_code(errors::timed_out));
 	}
 
 	void udp_tracker_connection::close()
 	{
 		error_code ec;
-		m_socket.close();
-		m_name_lookup.cancel();
 		tracker_connection::close();
 	}
 
-	void udp_tracker_connection::on_receive(error_code const& e
+	bool udp_tracker_connection::on_receive(error_code const& e
 		, udp::endpoint const& ep, char const* buf, int size)
 	{
 		// ignore resposes before we've sent any requests
-		if (m_state == action_error) return;
+		if (m_state == action_error) return false;
 
-		if (!m_socket.is_open()) return; // the operation was aborted
+		if (m_abort) return false;
 
 		// ignore packet not sent from the tracker
-		if (m_target != ep) return;
+		if (m_target != ep) return false;
 		
-		received_bytes(size + 28); // assuming UDP/IP header
 		if (e) fail(e);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
@@ -273,7 +262,7 @@ namespace libtorrent
 #endif
 
 		// ignore packets smaller than 8 bytes
-		if (size < 8) return;
+		if (size < 8) return false;
 
 		restart_read_timeout();
 
@@ -291,16 +280,16 @@ namespace libtorrent
 #endif
 
 		// ignore packets with incorrect transaction id
-		if (m_transaction_id != transaction) return;
+		if (m_transaction_id != transaction) return false;
 
 		if (action == action_error)
 		{
 			fail(error_code(errors::tracker_failure), -1, std::string(ptr, size - 8).c_str());
-			return;
+			return true;
 		}
 
 		// ignore packets that's not a response to our message
-		if (action != m_state) return;
+		if (action != m_state) return false;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb)
@@ -315,22 +304,20 @@ namespace libtorrent
 		switch (m_state)
 		{
 			case action_connect:
-				on_connect_response(buf, size);
-				break;
+				return on_connect_response(buf, size);
 			case action_announce:
-				on_announce_response(buf, size);
-				break;
+				return on_announce_response(buf, size);
 			case action_scrape:
-				on_scrape_response(buf, size);
-				break;
+				return on_scrape_response(buf, size);
 			default: break;
 		}
+		return false;
 	}
 	
-	void udp_tracker_connection::on_connect_response(char const* buf, int size)
+	bool udp_tracker_connection::on_connect_response(char const* buf, int size)
 	{
 		// ignore packets smaller than 16 bytes
-		if (size < 16) return;
+		if (size < 16) return false;
 
 		restart_read_timeout();
 		buf += 8; // skip header
@@ -349,6 +336,7 @@ namespace libtorrent
 			send_udp_announce();
 		else if (tracker_req().kind == tracker_request::scrape_request)
 			send_udp_scrape();
+		return true;
 	}
 
 	void udp_tracker_connection::send_udp_connect()
@@ -364,7 +352,7 @@ namespace libtorrent
 			cb->debug_log(msg);
 		}
 #endif
-		if (!m_socket.is_open()) return; // the operation was aborted
+		if (m_abort) return;
 
 		char buf[16];
 		char* ptr = buf;
@@ -379,7 +367,7 @@ namespace libtorrent
 		TORRENT_ASSERT(ptr - buf == sizeof(buf));
 
 		error_code ec;
-		m_socket.send(m_target, buf, 16, ec);
+		m_ses.m_udp_socket.send(m_target, buf, 16, ec);
 		m_state = action_connect;
 		sent_bytes(16 + 28); // assuming UDP/IP header
 		++m_attempts;
@@ -395,7 +383,7 @@ namespace libtorrent
 		if (m_transaction_id == 0)
 			m_transaction_id = std::rand() ^ (std::rand() << 16);
 
-		if (!m_socket.is_open()) return; // the operation was aborted
+		if (m_abort) return;
 
 		std::map<address, connection_cache_entry>::iterator i
 			= m_connection_cache.find(m_target.address());
@@ -415,7 +403,7 @@ namespace libtorrent
 		TORRENT_ASSERT(out - buf == sizeof(buf));
 
 		error_code ec;
-		m_socket.send(m_target, buf, sizeof(buf), ec);
+		m_ses.m_udp_socket.send(m_target, buf, sizeof(buf), ec);
 		m_state = action_scrape;
 		sent_bytes(sizeof(buf) + 28); // assuming UDP/IP header
 		++m_attempts;
@@ -426,9 +414,9 @@ namespace libtorrent
 		}
 	}
 
-	void udp_tracker_connection::on_announce_response(char const* buf, int size)
+	bool udp_tracker_connection::on_announce_response(char const* buf, int size)
 	{
-		if (size < 20) return;
+		if (size < 20) return false;
 
 		buf += 8; // skip header
 		restart_read_timeout();
@@ -440,7 +428,7 @@ namespace libtorrent
 		if ((size - 20) % 6 != 0)
 		{
 			fail(error_code(errors::invalid_tracker_response_length));
-			return;
+			return false;
 		}
 
 		boost::shared_ptr<request_callback> cb = requester();
@@ -457,7 +445,7 @@ namespace libtorrent
 		if (!cb)
 		{
 			m_man.remove_request(this);
-			return;
+			return true;
 		}
 
 		std::vector<peer_entry> peer_list;
@@ -478,7 +466,7 @@ namespace libtorrent
 		}
 
 		std::list<address> ip_list;
-		for (std::list<udp::endpoint>::const_iterator i = m_endpoints.begin()
+		for (std::list<tcp::endpoint>::const_iterator i = m_endpoints.begin()
 			, end(m_endpoints.end()); i != end; ++i)
 		{
 			ip_list.push_back(i->address());
@@ -489,12 +477,11 @@ namespace libtorrent
 
 		m_man.remove_request(this);
 		close();
+		return true;
 	}
 
-	void udp_tracker_connection::on_scrape_response(char const* buf, int size)
+	bool udp_tracker_connection::on_scrape_response(char const* buf, int size)
 	{
-		buf += 8; // skip header
-
 		restart_read_timeout();
 		int action = detail::read_int32(buf);
 		int transaction = detail::read_int32(buf);
@@ -502,25 +489,25 @@ namespace libtorrent
 		if (transaction != m_transaction_id)
 		{
 			fail(error_code(errors::invalid_tracker_transaction_id));
-			return;
+			return false;
 		}
 
 		if (action == action_error)
 		{
 			fail(error_code(errors::tracker_failure), -1, std::string(buf, size - 8).c_str());
-			return;
+			return true;
 		}
 
 		if (action != action_scrape)
 		{
 			fail(error_code(errors::invalid_tracker_action));
-			return;
+			return true;
 		}
 
 		if (size < 20)
 		{
 			fail(error_code(errors::invalid_tracker_response_length));
-			return;
+			return true;
 		}
 
 		int complete = detail::read_int32(buf);
@@ -531,7 +518,7 @@ namespace libtorrent
 		if (!cb)
 		{
 			close();
-			return;
+			return true;
 		}
 		
 		cb->tracker_scrape_response(tracker_req()
@@ -539,6 +526,7 @@ namespace libtorrent
 
 		m_man.remove_request(this);
 		close();
+		return true;
 	}
 
 	void udp_tracker_connection::send_udp_announce()
@@ -546,7 +534,7 @@ namespace libtorrent
 		if (m_transaction_id == 0)
 			m_transaction_id = std::rand() ^ (std::rand() << 16);
 
-		if (!m_socket.is_open()) return; // the operation was aborted
+		if (m_abort) return;
 
 		char buf[8 + 4 + 4 + 20 + 20 + 8 + 8 + 8 + 4 + 4 + 4 + 4 + 2 + 2];
 		char* out = buf;
@@ -602,7 +590,7 @@ namespace libtorrent
 #endif
 
 		error_code ec;
-		m_socket.send(m_target, buf, sizeof(buf), ec);
+		m_ses.m_udp_socket.send(m_target, buf, sizeof(buf), ec);
 		m_state = action_announce;
 		sent_bytes(sizeof(buf) + 28); // assuming UDP/IP header
 		++m_attempts;

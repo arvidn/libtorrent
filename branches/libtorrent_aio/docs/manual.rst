@@ -193,23 +193,26 @@ The ``session`` class has the following synopsis::
 		int num_uploads() const;
 		int num_connections() const;
 
-		bool load_asnum_db(char const* file);
-		bool load_asnum_db(wchar_t const* file);
-		bool load_country_db(char const* file);
-		bool load_country_db(wchar_t const* file);
+		void load_asnum_db(char const* file);
+		void load_asnum_db(wchar_t const* file);
+		void load_country_db(char const* file);
+		void load_country_db(wchar_t const* file);
 		int as_for_ip(address const& adr);
 
 		void set_ip_filter(ip_filter const& f);
-		ip_filter const& get_ip_filter() const;
+		ip_filter get_ip_filter() const;
 
 		session_status status() const;
 		cache_status get_cache_status() const;
 
 		bool is_listening() const;
 		unsigned short listen_port() const;
+
+		enum { listen_reuse_address = 1 };
 		bool listen_on(
 			std::pair<int, int> const& port_range
-			, char const* interface = 0);
+			, char const* interface = 0
+			, int flags = 0);
 
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
@@ -366,12 +369,14 @@ add_torrent()
 	::
 
 		typedef storage_interface* (&storage_constructor_type)(
-			file_storage const&, file_storage const*, fs::path const&, file_pool&);
+			file_storage const&, file_storage const*, fs::path const&, file_pool&
+			, std::vector<boost::uint8_t> const&);
 
 		struct add_torrent_params
 		{
 			add_torrent_params(storage_constructor_type s);
 
+			int version;
 			boost::intrusive_ptr<torrent_info> ti;
 			char const* tracker_url;
 			sha1_hash info_hash;
@@ -387,6 +392,7 @@ add_torrent()
 			bool seed_mode;
 			bool override_resume_data;
 			bool upload_mode;
+			std::vector<boost::uint8_t> const* file_priorities;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -432,12 +438,9 @@ storage_mode_sparse
 	will be used. This is the recommended, and default mode.
 
 storage_mode_allocate
-	Same as ``storage_mode_sparse`` except that files will be ftruncated on
-	startup (SetEndOfFile() on windows). For filesystem that supports sparse
-	files, this is in all practical aspects identical to sparse mode. For
-	filesystems that don't, it will allocate the data for the files. The mac
-	filesystem HFS+ doesn't support sparse files, it will allocate the files
-	with zeroes.
+	All pieces will be written to their final position, all files will be
+	allocated in full when the torrent is first started. This is done with
+	``fallocate()`` and similar calls. This mode minimizes fragmentation.
 
 storage_mode_compact
 	The storage will grow as more pieces are downloaded, and pieces
@@ -499,6 +502,12 @@ which means it will not make any piece requests. This state is typically entered
 on disk I/O errors, and if the torrent is also auto managed, it will be taken out
 of this state periodically. This mode can be used to avoid race conditions when
 adjusting priorities of pieces before allowing the torrent to start downloading.
+
+``file_priorities`` can be set to control the initial file priorities when adding
+a torrent. The semantics are the same as for ``torrent_handle::prioritize_files()``.
+
+``version`` is filled in by the constructor and should be left untouched. It
+is used for forward binary compatibility.
 
 remove_torrent()
 ----------------
@@ -647,10 +656,10 @@ load_asnum_db() load_country_db() int as_for_ip()
 
 	::
 
-		bool load_asnum_db(char const* file);
-		bool load_asnum_db(wchar_t const* file);
-		bool load_country_db(char const* file);
-		bool load_country_db(wchar_t const* file);
+		void load_asnum_db(char const* file);
+		void load_asnum_db(wchar_t const* file);
+		void load_country_db(char const* file);
+		void load_country_db(wchar_t const* file);
 		int as_for_ip(address const& adr);
 
 These functions are not available if ``TORRENT_DISABLE_GEO_IP`` is defined. They
@@ -684,7 +693,7 @@ get_ip_filter()
 ---------------
 
 	::
-		ip_filter const& get_ip_filter() const;
+		ip_filter get_ip_filter() const;
 		
 Returns the ip_filter currently in the session. See ip_filter_.
 
@@ -920,7 +929,8 @@ is_listening() listen_port() listen_on()
 		unsigned short listen_port() const;
 		bool listen_on(
 			std::pair<int, int> const& port_range
-			, char const* interface = 0);
+			, char const* interface = 0
+			, int flags = 0);
 
 ``is_listening()`` will tell you whether or not the session has successfully
 opened a listening port. If it hasn't, this function will return false, and
@@ -948,6 +958,11 @@ want to listen on. If you don't specify an interface, libtorrent may attempt to
 listen on multiple interfaces (typically 0.0.0.0 and ::). This means that if your
 IPv6 interface doesn't work, you may still see a listen_failed_alert_, even though
 the IPv4 port succeeded.
+
+The ``flags`` parameter can either be 0 or ``session::listen_reuse_address``, which
+will set the reuse address socket option on the listen socket(s). By default, the
+listen socket does not use reuse address. If you're running a service that needs
+to run on a specific port no matter if it's in use, set this flag.
 
 If you're also starting the DHT, it is a good idea to do that after you've called
 ``listen_on()``, since the default listen port for the DHT is the same as the tcp
@@ -1108,10 +1123,10 @@ peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()
 
 	::
 
-		proxy_settings const& peer_proxy() const;
-		proxy_settings const& web_seed_proxy() const;
-		proxy_settings const& tracker_proxy() const;
-		proxy_settings const& dht_proxy() const;
+		proxy_settings peer_proxy() const;
+		proxy_settings web_seed_proxy() const;
+		proxy_settings tracker_proxy() const;
+		proxy_settings dht_proxy() const;
 
 These functions returns references to their respective current settings.
 
@@ -2729,8 +2744,10 @@ use_interface()
 
 ``use_interface()`` sets the network interface this torrent will use when it opens outgoing
 connections. By default, it uses the same interface as the session_ uses to listen on. The
-parameter must be a string containing an ip-address (either an IPv4 or IPv6 address). If
-the string does not conform to this format and exception is thrown.
+parameter must be a string containing one or more, comma separated, ip-address (either an
+IPv4 or IPv6 address). When specifying multiple interfaces, the torrent will round-robin
+which interface to use for each outgoing conneciton. This is useful for clients that are
+multi-homed.
 
 
 info_hash()
@@ -3120,6 +3137,9 @@ It contains the following fields::
 		time_t added_time;
 		time_t completed_time;
 		time_t last_seen_complete;
+
+		int time_since_upload;
+		int time_since_download;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -3352,6 +3372,10 @@ the torrent is not yet finished, this is 0.
 ``last_seen_complete`` is the time when we, or one of our peers, last
 saw a complete copy of this torrent.
 
+``time_since_upload`` and ``time_since_download`` are the number of
+seconds since any peer last uploaded from this torrent and the last
+time a downloaded piece passed the hash check, respectively.
+
 peer_info
 =========
 
@@ -3463,6 +3487,8 @@ It contains the following fields::
 
 		float progress;
 		int progress_ppm;
+
+		tcp::endpoint local_endpoint;
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -3688,6 +3714,11 @@ floating point operations are diabled, instead use ``progress_ppm``.
 ``progress_ppm`` indicates the download progress of the peer in the range [0, 1000000]
 (parts per million).
 
+``local_endpoint`` is the IP and port pair the socket is bound to locally. i.e. the IP
+address of the interface it's going out over. This may be useful for multi-homed
+clients with multiple interfaces to the internet.
+
+
 session customization
 =====================
 
@@ -3736,6 +3767,7 @@ session_settings
 	struct session_settings
 	{
 		session_settings();
+		int version;
 		std::string user_agent;
 		int tracker_completion_timeout;
 		int tracker_receive_timeout;
@@ -3896,7 +3928,11 @@ session_settings
 		bool broadcast_lsd;
 		bool ignore_resume_timestamps;
 		bool anonymous_mode;
+		int tick_interval;
 	};
+
+``version`` is automatically set to the libtorrent version you're using
+in order to be forward binary compatible. This field should not be changed.
 
 ``user_agent`` this is the client identification to the tracker.
 The recommended format of this string is:
@@ -4547,6 +4583,12 @@ are accepted, NAT-PMP, UPnP, DHT and local peer discovery are all turned off
 when this setting is enabled.
 
 If you're using I2P, it might make sense to enable anonymous mode as well.
+
+``tick_interval`` specifies the number of milliseconds between internal
+ticks. This is the frequency with which bandwidth quota is distributed to
+peers. It should not be more than one second (i.e. 1000 ms). Setting this
+to a low value (around 100) means higher resolution bandwidth quota distribution,
+setting it to a higher value saves CPU cycles.
 
 pe_settings
 ===========
@@ -5839,6 +5881,20 @@ This alert is generated when a block request receives a response.
 		// ...
 		int block_index;
 		int piece_index;
+	};
+
+
+lsd_peer_alert
+--------------
+
+This alert is generated when we receive a local service discovery message from a peer
+for a torrent we're currently participating in.
+
+::
+
+	struct lsd_peer_alert: peer_alert
+	{
+		// ...
 	};
 
 

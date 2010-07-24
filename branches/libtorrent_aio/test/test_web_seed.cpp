@@ -92,7 +92,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 
 	cache_status cs;
 
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 30; ++i)
 	{
 		torrent_status s = th.status();
 		session_status ss = ses.status();
@@ -118,10 +118,12 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 
 		if (th.is_seed()/* && ss.download_rate == 0.f*/)
 		{
-			TEST_CHECK(th.status().total_payload_download == total_size);
+			torrent_status st = th.status();
+			TEST_EQUAL(st.total_payload_download - st.total_redundant_bytes, total_size);
 			// we need to sleep here a bit to let the session sync with the torrent stats
 			test_sleep(1000);
-			TEST_CHECK(ses.status().total_payload_download == total_size);
+			TEST_EQUAL(ses.status().total_payload_download - ses.status().total_redundant_bytes
+				, total_size);
 			break;
 		}
 		test_sleep(500);
@@ -135,6 +137,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 		<< " session_rate_sum: " << ses_rate_sum
 		<< " session total download: " << ses.status().total_payload_download
 		<< " torrent total download: " << th.status().total_payload_download
+		<< " redundant: " << th.status().total_redundant_bytes
 		<< std::endl;
 
 	// the rates for each second should sum up to the total, with a 10% error margin
@@ -156,24 +159,41 @@ int test_main()
 	error_code ec;
 	create_directories("./tmp1_web_seed/test_torrent_dir", ec);
 
+	int file_sizes[] =
+	{ 5, 16 - 5, 16, 17, 10, 30, 30, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+		,1,1,1,1,1,1,13,65,34,75,2,3,4,5,23,9,43,4,43,6, 4};
+
 	char random_data[300000];
 	std::srand(10);
-//	memset(random_data, 1, sizeof(random_data));
-	std::generate(random_data, random_data + sizeof(random_data), &std::rand);
-	std::ofstream("./tmp1_web_seed/test_torrent_dir/test1").write(random_data, 35);
-	std::ofstream("./tmp1_web_seed/test_torrent_dir/test2").write(random_data, 16536 - 35);
-	std::ofstream("./tmp1_web_seed/test_torrent_dir/test3").write(random_data, 16536);
-	std::ofstream("./tmp1_web_seed/test_torrent_dir/test4").write(random_data, 17);
-	std::ofstream("./tmp1_web_seed/test_torrent_dir/test5").write(random_data, 16536);
-	std::ofstream("./tmp1_web_seed/test_torrent_dir/test6").write(random_data, 300000);
-	std::ofstream("./tmp1_web_seed/test_torrent_dir/test7").write(random_data, 300000);
+	for (int i = 0; i != sizeof(file_sizes)/sizeof(file_sizes[0]); ++i)
+	{
+		std::generate(random_data, random_data + sizeof(random_data), &std::rand);
+		char filename[200];
+		snprintf(filename, sizeof(filename), "./tmp1_web_seed/test_torrent_dir/test%d", i);
+		error_code ec;
+		file out(filename, file::write_only, ec);
+		TEST_CHECK(!ec);
+		if (ec)
+		{
+			fprintf(stderr, "ERROR opening file '%s': %s\n", filename, ec.message().c_str());
+			return 1;
+		}
+		file::iovec_t b = { random_data, file_sizes[i]};
+		out.writev(0, &b, 1, ec);
+		TEST_CHECK(!ec);
+		if (ec)
+		{
+			fprintf(stderr, "ERROR writing file '%s': %s\n", filename, ec.message().c_str());
+			return 1;
+		}
+	}
 
 	file_storage fs;
 	add_files(fs, "./tmp1_web_seed/test_torrent_dir");
 
 	int port = start_web_server();
 
-	libtorrent::create_torrent t(fs, 16 * 1024);
+	libtorrent::create_torrent t(fs, 16);
 	char tmp[512];
 	snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/tmp1_web_seed", port);
 	t.add_url_seed(tmp);

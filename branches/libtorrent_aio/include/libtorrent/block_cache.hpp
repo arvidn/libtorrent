@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/intrusive_ptr.hpp>
 #include <boost/shared_array.hpp>
 #include <list>
+#include <vector>
 
 #include "libtorrent/ptime.hpp"
 #include "libtorrent/error_code.hpp"
@@ -242,6 +243,7 @@ namespace libtorrent
 		int copy_from_piece(iterator p, disk_io_job& j);
 
 		void free_piece(iterator i);
+		int drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf);
 
 		// block container
 		cache_t m_pieces;

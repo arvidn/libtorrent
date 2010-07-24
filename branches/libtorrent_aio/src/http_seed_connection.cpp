@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
-using boost::bind;
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
 
@@ -69,6 +68,9 @@ namespace libtorrent
 		, m_body_start(0)
 	{
 		INVARIANT_CHECK;
+
+		if (!ses.settings().report_web_seed_downloads)
+			ignore_stats(true);
 
 		// we want large blocks as well, so
 		// we can request more bytes at once

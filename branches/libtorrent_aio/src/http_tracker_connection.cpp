@@ -61,7 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 
 using namespace libtorrent;
-using boost::bind;
 
 namespace libtorrent
 {
@@ -247,6 +246,13 @@ namespace libtorrent
 				++i;
 		}
 
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		boost::shared_ptr<request_callback> cb = requester();
+		if (cb)
+		{
+			cb->debug_log("*** TRACKER_FILTER");
+		}
+#endif
 		if (endpoints.empty())
 			fail(error_code(errors::banned_by_ip_filter));
 	}

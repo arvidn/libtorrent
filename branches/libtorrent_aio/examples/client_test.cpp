@@ -320,7 +320,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 {
 	using namespace libtorrent;
 	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin()
-		, peers.end(), bind(&peer_info::ip, _1) == addr);
+		, peers.end(), boost::bind(&peer_info::ip, _1) == addr);
 	if (i == peers.end()) return -1;
 
 	return i - peers.begin();
@@ -329,7 +329,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	if (print_ip) out += "IP                           ";
+	if (print_ip) out += "IP                                           ";
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out += "AS                                         ";
 #endif
@@ -355,7 +355,8 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		if (print_ip)
 		{
 			error_code ec;
-			snprintf(str, sizeof(str), "%-22s:%-5d ", i->ip.address().to_string(ec).c_str(), i->ip.port());
+			snprintf(str, sizeof(str), "%-22s %22s ", print_endpoint(i->ip).c_str()
+				, print_endpoint(i->local_endpoint).c_str());
 			out += str;
 		}
 
@@ -511,6 +512,7 @@ int torrent_upload_limit = 0;
 int torrent_download_limit = 0;
 std::string monitor_dir;
 std::string bind_to_interface = "";
+std::string outgoing_interface = "";
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
 
@@ -573,6 +575,7 @@ void add_torrent(libtorrent::session& ses
 	h.set_ratio(preferred_ratio);
 	h.set_upload_limit(torrent_upload_limit);
 	h.set_download_limit(torrent_download_limit);
+	h.use_interface(outgoing_interface.c_str());
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	h.resolve_countries(true);
 #endif
@@ -713,7 +716,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			bencode(std::back_inserter(out), *p->resume_data);
 			save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
 			if (std::find_if(handles.begin(), handles.end()
-				, bind(&handles_t::value_type::second, _1) == h) == handles.end())
+				, boost::bind(&handles_t::value_type::second, _1) == h) == handles.end())
 				ses.remove_torrent(h);
 		}
 	}
@@ -721,7 +724,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	{
 		torrent_handle h = p->handle;
 		if (std::find_if(handles.begin(), handles.end()
-			, bind(&handles_t::value_type::second, _1) == h) == handles.end())
+			, boost::bind(&handles_t::value_type::second, _1) == h) == handles.end())
 			ses.remove_torrent(h);
 	}
 }
@@ -752,6 +755,8 @@ int main(int argc, char* argv[])
 			"  -m <path>             sets the .torrent monitor directory\n"
 			"  -b <IP>               sets IP of the interface to bind the\n"
 			"                        listen socket to\n"
+			"  -I <IP>               sets the IP of the interface to bind\n"
+			"                        outgoing peer connections to\n"
 			"  -w <seconds>          sets the retry time for failed web seeds\n"
 			"  -t <seconds>          sets the scan interval of the monitor dir\n"
 			"  -x <file>             loads an emule IP-filter file\n"
@@ -768,6 +773,9 @@ int main(int argc, char* argv[])
 			"  -A <num pieces>       allowed pieces set size\n"
 			"  -R <num blocks>       number of blocks per read cache line\n"
 			"  -O                    Disallow disk job reordering\n"
+			"  -P <host:port>        Use the specified SOCKS5 proxy\n"
+			"  -H                    Don't start DHT\n"
+			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -787,6 +795,7 @@ int main(int argc, char* argv[])
 	settings.volatile_read_cache = true;
 
 	int refresh_delay = 1;
+	bool start_dht = true;
 
 	std::deque<std::string> events;
 
@@ -813,19 +822,6 @@ int main(int argc, char* argv[])
 			ses.load_state(e);
 	}
 
-#ifndef TORRENT_DISABLE_DHT
-	settings.use_dht_as_fallback = false;
-
-	ses.add_dht_router(std::make_pair(
-			std::string("router.bittorrent.com"), 6881));
-	ses.add_dht_router(std::make_pair(
-			std::string("router.utorrent.com"), 6881));
-	ses.add_dht_router(std::make_pair(
-			std::string("router.bitcomet.com"), 6881));
-
-	ses.start_dht();
-#endif
-
 	ses.start_lsd();
 	ses.start_upnp();
 	ses.start_natpmp();
@@ -837,36 +833,14 @@ int main(int argc, char* argv[])
 
 	// load the torrents given on the commandline
 
+	std::vector<add_torrent_params> magnet_links;
+	std::vector<std::string> torrents;
+
 	for (int i = 1; i < argc; ++i)
 	{
 		if (argv[i][0] != '-')
 		{
 			// interpret this as a torrent
-
-			// first see if this is a torrentless download
-			if (std::strstr(argv[i], "magnet:") == argv[i])
-			{
-				add_torrent_params p;
-				p.save_path = save_path;
-				p.storage_mode = (storage_mode_t)allocation_mode;
-				printf("adding MANGET link: %s\n", argv[i]);
-				error_code ec;
-				torrent_handle h = add_magnet_uri(ses, argv[i], p, ec);
-				if (ec)
-				{
-					fprintf(stderr, "%s\n", ec.message().c_str());
-					continue;
-				}
-
-				handles.insert(std::pair<const std::string, torrent_handle>(std::string(), h));
-
-				h.set_max_connections(max_connections_per_torrent);
-				h.set_max_uploads(-1);
-				h.set_ratio(preferred_ratio);
-				h.set_upload_limit(torrent_upload_limit);
-				h.set_download_limit(torrent_download_limit);
-				continue;
-			}
 
 			// match it against the <hash>@<tracker> format
 			if (strlen(argv[i]) > 45
@@ -884,28 +858,11 @@ int main(int argc, char* argv[])
 				p.paused = true;
 				p.duplicate_is_error = false;
 				p.auto_managed = true;
-				error_code ec;
-				torrent_handle h = ses.add_torrent(p, ec);
-				if (ec)
-				{
-					fprintf(stderr, "failed to add torrent: %s\n", ec.message().c_str());
-					continue;
-				}
-
-				handles.insert(std::pair<const std::string, torrent_handle>(std::string(), h));
-
-				h.set_max_connections(max_connections_per_torrent);
-				h.set_max_uploads(-1);
-				h.set_ratio(preferred_ratio);
-				h.set_upload_limit(torrent_upload_limit);
-				h.set_download_limit(torrent_download_limit);
+				magnet_links.push_back(p);
 				continue;
 			}
 
-			// if it's a torrent file, open it as usual
-			add_torrent(ses, handles, argv[i], preferred_ratio
-				, allocation_mode, save_path, false
-				, torrent_upload_limit, torrent_download_limit);
+			torrents.push_back(argv[i]);
 			continue;
 		}
 
@@ -938,34 +895,26 @@ int main(int argc, char* argv[])
 			case 'w': settings.urlseed_wait_retry = atoi(arg); break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
+			case 'H': start_dht = false; --i; break;
+			case 'W': settings.max_peerlist_size = atoi(arg); break;
 			case 'x':
 				{
-					/*
-					std::ifstream in(arg);
-					ip_filter filter;
-					while (in.good())
+					FILE* filter = fopen(arg, "r");
+					if (filter)
 					{
-						char line[300];
-						in.getline(line, 300);
-						int len = in.gcount();
-						if (len <= 0) continue;
-						if (line[0] == '#') continue;
-						int a, b, c, d;
-						char dummy;
-						std::stringstream ln(line);
-						ln >> a >> dummy >> b >> dummy >> c >> dummy >> d >> dummy;
-						address_v4 start((a << 24) + (b << 16) + (c << 8) + d);
-						ln >> a >> dummy >> b >> dummy >> c >> dummy >> d;
-						address_v4 last((a << 24) + (b << 16) + (c << 8) + d);
-						int flags;
-						ln >> flags;
-						if (flags <= 127) flags = ip_filter::blocked;
-						else flags = 0;
-						if (ln.fail()) break;
-						filter.add_rule(start, last, flags);
+						ip_filter fil;
+						unsigned int a,b,c,d,e,f,g,h, flags;
+						while (fscanf(filter, "%u.%u.%u.%u - %u.%u.%u.%u %u\n", &a, &b, &c, &d, &e, &f, &g, &h, &flags) == 9)
+						{
+							address_v4 start((a << 24) + (b << 16) + (c << 8) + d);
+							address_v4 last((e << 24) + (f << 16) + (g << 8) + h);
+							if (flags <= 127) flags = ip_filter::blocked;
+							else flags = 0;
+							fil.add_rule(start, last, flags);
+						}
+						ses.set_ip_filter(fil);
+						fclose(filter);
 					}
-					ses.set_ip_filter(filter);
-					*/
 				}
 				break;
 			case 'c': ses.set_max_connections(atoi(arg)); break;
@@ -989,6 +938,32 @@ int main(int argc, char* argv[])
 			case 'A': settings.allowed_fast_set_size = atoi(arg); break;
 			case 'R': settings.read_cache_line_size = atoi(arg); break;
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
+			case 'P':
+				{
+					char* port = (char*) strchr(arg, ':');
+					if (port == 0)
+					{
+						fprintf(stderr, "invalid proxy hostname, no port found\n");
+						break;
+					}
+					*port++ = 0;
+					proxy_settings ps;
+					ps.hostname = arg;
+					ps.port = atoi(port);
+					if (ps.port == 0) {
+						fprintf(stderr, "invalid proxy port\n");
+						break;
+					}
+					ps.type = proxy_settings::socks5;
+					ses.set_peer_proxy(ps);
+					ses.set_web_seed_proxy(ps);
+					ses.set_tracker_proxy(ps);
+#ifndef TORRENT_DISABLE_DHT
+					ses.set_dht_proxy(ps);
+#endif
+				}
+				break;
+			case 'I': outgoing_interface = arg; break;
 		}
 		++i; // skip the argument
 	}
@@ -996,7 +971,79 @@ int main(int argc, char* argv[])
 	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
 		, bind_to_interface.c_str());
 
+	if (start_dht)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		settings.use_dht_as_fallback = false;
+
+		ses.add_dht_router(std::make_pair(
+			std::string("router.bittorrent.com"), 6881));
+		ses.add_dht_router(std::make_pair(
+			std::string("router.utorrent.com"), 6881));
+		ses.add_dht_router(std::make_pair(
+			std::string("router.bitcomet.com"), 6881));
+
+		ses.start_dht();
+	}
+#endif
+
 	ses.set_settings(settings);
+
+	for (std::vector<add_torrent_params>::iterator i = magnet_links.begin()
+		, end(magnet_links.end()); i != end; ++i)
+	{
+		error_code ec;
+		torrent_handle h = ses.add_torrent(*i, ec);
+		if (ec)
+		{
+			fprintf(stderr, "failed to add torrent: %s\n", ec.message().c_str());
+			continue;
+		}
+
+		handles.insert(std::pair<const std::string, torrent_handle>(std::string(), h));
+
+		h.set_max_connections(max_connections_per_torrent);
+		h.set_max_uploads(-1);
+		h.set_ratio(preferred_ratio);
+		h.set_upload_limit(torrent_upload_limit);
+		h.set_download_limit(torrent_download_limit);
+		h.use_interface(outgoing_interface.c_str());
+	}
+
+	for (std::vector<std::string>::iterator i = torrents.begin()
+		, end(torrents.end()); i != end; ++i)
+	{
+		// first see if this is a torrentless download
+		if (std::strstr(i->c_str(), "magnet:") == i->c_str())
+		{
+			add_torrent_params p;
+			p.save_path = save_path;
+			p.storage_mode = (storage_mode_t)allocation_mode;
+			printf("adding MANGET link: %s\n", i->c_str());
+			error_code ec;
+			torrent_handle h = add_magnet_uri(ses, i->c_str(), p, ec);
+			if (ec)
+			{
+				fprintf(stderr, "%s\n", ec.message().c_str());
+				continue;
+			}
+
+			handles.insert(std::pair<const std::string, torrent_handle>(std::string(), h));
+
+			h.set_max_connections(max_connections_per_torrent);
+			h.set_max_uploads(-1);
+			h.set_ratio(preferred_ratio);
+			h.set_upload_limit(torrent_upload_limit);
+			h.set_download_limit(torrent_download_limit);
+			h.use_interface(outgoing_interface.c_str());
+			continue;
+		}
+
+		// if it's a torrent file, open it as usual
+		add_torrent(ses, handles, i->c_str(), preferred_ratio
+			, allocation_mode, save_path, false
+			, torrent_upload_limit, torrent_download_limit);
+	}
 
 	// main loop
 	std::vector<peer_info> peers;
@@ -1170,6 +1217,9 @@ int main(int argc, char* argv[])
 			winsize size;
 			ioctl(STDOUT_FILENO, TIOCGWINSZ, (char*)&size);
 			terminal_width = size.ws_col;
+
+			if (terminal_width < 64)
+				terminal_width = 64;
 		}
 #endif
 
@@ -1429,11 +1479,12 @@ int main(int argc, char* argv[])
 				for (std::vector<announce_entry>::iterator i = tr.begin()
 					, end(tr.end()); i != end; ++i)
 				{
-					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d %s %s \"%s\" %s\n"
-						, i->tier, i->url.c_str(), i->fails, i->verified?"OK ":"-  "
+					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\n"
+						, i->tier, i->url.c_str(), i->fails, i->fail_limit, i->verified?"OK ":"-  "
 						, i->updating?"updating"
-							:!i->verified?""
+							:!i->will_announce(now)?""
 							:to_string(total_seconds(i->next_announce - now), 8).c_str()
+						, i->min_announce > now ? total_seconds(i->min_announce - now) : 0
 						, i->last_error ? i->last_error.message().c_str() : ""
 						, i->message.c_str());
 					out += str;
@@ -1444,8 +1495,8 @@ int main(int argc, char* argv[])
 			{
 
 				h.get_download_queue(queue);
-				std::sort(queue.begin(), queue.end(), bind(&partial_piece_info::piece_index, _1)
-					< bind(&partial_piece_info::piece_index, _2));
+				std::sort(queue.begin(), queue.end(), boost::bind(&partial_piece_info::piece_index, _1)
+					< boost::bind(&partial_piece_info::piece_index, _2));
 
 				std::vector<cached_piece_info> pieces;
 				ses.get_cache_info(h.info_hash(), pieces);
@@ -1455,7 +1506,7 @@ int main(int argc, char* argv[])
 				{
 					cached_piece_info* cp = 0;
 					std::vector<cached_piece_info>::iterator cpi = std::find_if(pieces.begin(), pieces.end()
-						, bind(&cached_piece_info::piece, _1) == i->piece_index);
+						, boost::bind(&cached_piece_info::piece, _1) == i->piece_index);
 					if (cpi != pieces.end()) cp = &*cpi;
 
 					snprintf(str, sizeof(str), "%5d: [", i->piece_index);

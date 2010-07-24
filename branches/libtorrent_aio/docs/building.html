@@ -63,7 +63,6 @@ You'll find instructions on how to do this <a class="reference external" href="h
 (BBv2) and autotools (for unix-like systems). If you still can't build after
 following these instructions, you can usually get help in the <tt class="docutils literal"><span class="pre">#libtorrent</span></tt>
 IRC channel on <tt class="docutils literal"><span class="pre">irc.freenode.net</span></tt>.</p>
-<p>Community contributed build tutorials can be found on the <a class="reference external" href="http://code.rasterbar.com/libtorrent/wiki/Building">wiki</a>.</p>
 <div class="warning">
 <p class="first admonition-title">Warning</p>
 <p>A common mistake when building and linking against libtorrent is
@@ -299,12 +298,13 @@ typically the case on x86 64 bit systems.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">zlib</span></tt></td>
+<tr><td><tt class="docutils literal"><span class="pre">asserts</span></tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal"><span class="pre">system</span></tt> - links against the zlib supplied
-with your operating system.</li>
-<li><tt class="docutils literal"><span class="pre">shipped</span></tt> - links against the zlib bundled
-with the libtorrent package.</li>
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - asserts are on if in debug mode</li>
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - asserts are disabled</li>
+<li><tt class="docutils literal"><span class="pre">production</span></tt> - assertion failures are logged
+to <tt class="docutils literal"><span class="pre">asserts.log</span></tt> in the current working
+directory, but won't abort the process.</li>
 </ul>
 </td>
 </tr>
@@ -565,19 +565,9 @@ make
 </div>
 <div class="section" id="building-with-other-build-systems">
 <h2>building with other build systems</h2>
-<p>If you're making your own project file, note that there are two versions of
-the file abstraction. There's one <tt class="docutils literal"><span class="pre">file_win.cpp</span></tt> which relies on windows
-file API that supports files larger than 2 Gigabytes. This does not work in
-vc6 for some reason, possibly because it may require windows NT and above.
-The other file, <tt class="docutils literal"><span class="pre">file.cpp</span></tt> is the default implementation that simply relies
-on the standard low level io routines (<tt class="docutils literal"><span class="pre">read()</span></tt>, <tt class="docutils literal"><span class="pre">write()</span></tt>, <tt class="docutils literal"><span class="pre">open()</span></tt>
-etc.), this implementation doesn't do anything special to support unicode
-filenames, so if your target is Windows 2000 and up, you may want to use
-<tt class="docutils literal"><span class="pre">file_win.cpp</span></tt> which supports unicode filenames.</p>
 <p>If you're building in MS Visual Studio, you may have to set the compiler
 options &quot;force conformance in for loop scope&quot;, &quot;treat wchar_t as built-in
-type&quot; and &quot;Enable Run-Time Type Info&quot; to Yes. For a detailed description
-on how to build libtorrent with VS, see <a class="reference external" href="http://code.rasterbar.com/libtorrent/wiki/Building">the wiki</a>.</p>
+type&quot; and &quot;Enable Run-Time Type Info&quot; to Yes.</p>
 </div>
 <div class="section" id="build-configurations">
 <h2>build configurations</h2>

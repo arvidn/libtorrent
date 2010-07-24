@@ -172,8 +172,7 @@ namespace libtorrent
 		void on_resume_data_checked(int ret, disk_io_job const& j);
 		void on_force_recheck(int ret, disk_io_job const& j);
 		void on_piece_checked(int ret, disk_io_job const& j);
-		void files_checked_lock();
-		void files_checked(mutex::scoped_lock const&);
+		void files_checked();
 		void start_checking();
 
 		void start_announcing();
@@ -228,6 +227,8 @@ namespace libtorrent
 		bool is_sequential_download() const
 		{ return m_sequential_download; }
 	
+		void queue_up();
+		void queue_down();
 		void set_queue_position(int p);
 		int queue_position() const { return m_sequence_number; }
 
@@ -307,8 +308,8 @@ namespace libtorrent
 
 		void file_progress(std::vector<size_type>& fp, int flags = 0) const;
 
-		void use_interface(const char* net_interface);
-		tcp::endpoint get_interface() const { return m_net_interface; }
+		void use_interface(std::string net_interface);
+		tcp::endpoint get_interface() const;
 		
 		void connect_to_url_seed(std::list<web_seed_entry>::iterator url);
 		bool connect_to_peer(policy::peer* peerinfo);
@@ -354,7 +355,9 @@ namespace libtorrent
 		{
 			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
 				, (boost::bind(&web_seed_entry::connection, _1) == p));
-			TORRENT_ASSERT(i != m_web_seeds.end());
+			// this happens if the web server responded with a redirect
+			// or with something incorrect, so that we removed the web seed
+			// immediately, before we disconnected
 			if (i == m_web_seeds.end()) return;
 			TORRENT_ASSERT(i->connection);
 			i->connection = 0;
@@ -406,6 +409,7 @@ namespace libtorrent
 		bool want_more_peers() const;
 		bool try_connect_peer();
 		void give_connect_points(int points);
+		void add_peer(tcp::endpoint const& adr, int source);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
@@ -780,6 +784,8 @@ namespace libtorrent
 		static void print_size(logger& l);
 #endif
 
+		void update_last_upload() { m_last_upload = 0; }
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
@@ -809,7 +815,7 @@ namespace libtorrent
 
 		void parse_response(const entry& e, std::vector<peer_entry>& peer_list);
 
-		void update_tracker_timer();
+		void update_tracker_timer(ptime now);
 
 		static void on_tracker_announce_disp(boost::weak_ptr<torrent> p
 			, error_code const& e);
@@ -933,9 +939,10 @@ namespace libtorrent
 		std::string m_username;
 		std::string m_password;
 
-		// the network interface all outgoing connections
-		// are opened through
-		union_endpoint m_net_interface;
+		// the network interfaces outgoing connections
+		// are opened through. If there is more then one,
+		// they are used in a round-robin fasion
+		std::vector<union_endpoint> m_net_interfaces;
 
 		std::string m_save_path;
 
@@ -1194,6 +1201,17 @@ namespace libtorrent
 		// the number of seconds since the last scrape request to
 		// one of the trackers in this torrent
 		boost::uint16_t m_last_scrape;
+
+		// the number of seconds since the last piece passed for
+		// this torrent
+		boost::uint16_t m_last_download;
+
+		// the number of seconds since the last byte was uploaded
+		// from this torrent
+		boost::uint16_t m_last_upload;
+
+		// round-robin index into m_interfaces
+		mutable boost::uint8_t m_interface_index;
 	};
 }
 

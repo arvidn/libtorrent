@@ -77,6 +77,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/enum_net.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <iostream>
@@ -86,7 +87,6 @@ using namespace libtorrent;
 using boost::tuples::tuple;
 using boost::tuples::get;
 using boost::tuples::make_tuple;
-using boost::bind;
 using libtorrent::aux::session_impl;
 
 namespace
@@ -227,7 +227,7 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_time_critical_pieces)
 		PRINT_OFFSETOF(torrent, m_username)
 		PRINT_OFFSETOF(torrent, m_password)
-		PRINT_OFFSETOF(torrent, m_net_interface)
+		PRINT_OFFSETOF(torrent, m_net_interfaces)
 		PRINT_OFFSETOF(torrent, m_save_path)
 		PRINT_OFFSETOF(torrent, m_verified)
 		PRINT_OFFSETOF(torrent, m_error)
@@ -324,7 +324,6 @@ namespace libtorrent
 		, m_tracker_timer(ses.m_io_service)
 		, m_ses(ses)
 		, m_trackers(m_torrent_file->trackers())
-		, m_net_interface(tcp::endpoint(net_interface.address(), 0))
 		, m_save_path(complete(p.save_path))
 		, m_storage_constructor(p.storage)
 		, m_ratio(0.f)
@@ -380,7 +379,15 @@ namespace libtorrent
 		, m_auto_managed(p.auto_managed)
 		, m_num_verified(0)
 		, m_last_scrape(0)
+		, m_last_download(0)
+		, m_last_upload(0)
+		, m_interface_index(0)
 	{
+		m_net_interfaces.push_back(tcp::endpoint(net_interface.address(), 0));
+
+		if (p.file_priorities)
+			m_file_priority = *p.file_priorities;
+
 		if (m_seed_mode)
 			m_verified.resize(m_torrent_file->num_pieces(), false);
 
@@ -450,7 +457,7 @@ namespace libtorrent
 		else
 		{
 			set_state(torrent_status::downloading_metadata);
-			if (!m_trackers.empty()) start_announcing();
+			start_announcing();
 		}
 	}
 
@@ -523,7 +530,7 @@ namespace libtorrent
 		for (int i = 0; i < blocks_in_piece; ++i, r.start += block_size())
 		{
 			r.length = (std::min)(piece_size - r.start, block_size());
-			filesystem().async_read(r, bind(&torrent::on_disk_read_complete
+			filesystem().async_read(r, boost::bind(&torrent::on_disk_read_complete
 				, shared_from_this(), _1, _2, r, rp));
 			++rp->blocks_left;
 		}
@@ -640,7 +647,7 @@ namespace libtorrent
 
 	void torrent::on_disk_read_complete(int ret, disk_io_job const& j, peer_request r, read_piece_struct* rp)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		disk_buffer_holder buffer(m_ses, j.buffer);
 
@@ -682,7 +689,9 @@ namespace libtorrent
 		// avoid crash trying to access the picker when there is none
 		if (is_seed()) return;
 
-		if (picker().have_piece(piece)) return;
+		if (picker().have_piece(piece)
+			&& (flags & torrent::overwrite_existing) == 0)
+			return;
 
 		peer_request p;
 		p.piece = piece;
@@ -704,13 +713,13 @@ namespace libtorrent
 			}
 			disk_buffer_holder holder(m_ses, buffer);
 			std::memcpy(buffer, data + p.start, p.length);
-			filesystem().async_write(p, holder, bind(&torrent::on_disk_write_complete
+			filesystem().async_write(p, holder, boost::bind(&torrent::on_disk_write_complete
 				, shared_from_this(), _1, _2, p));
 			piece_block block(piece, i);
 			picker().mark_as_downloading(block, 0, piece_picker::fast);
 			picker().mark_as_writing(block, 0);
 		}
-		async_verify_piece(piece, bind(&torrent::piece_finished
+		async_verify_piece(piece, boost::bind(&torrent::piece_finished
 			, shared_from_this(), piece, _1));
 		picker().dec_refcount(piece);
 	}
@@ -718,7 +727,7 @@ namespace libtorrent
 	void torrent::on_disk_write_complete(int ret, disk_io_job const& j
 		, peer_request p)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		fprintf(stderr, "torrent::on_disk_write_complete ret:%d piece:%d block:%d\n"
 			, ret, j.piece, j.offset/0x4000);
@@ -745,8 +754,6 @@ namespace libtorrent
 		// this can happen if the same block is passed in through
 		// add_piece() multiple times
 		if (picker().is_finished(block_finished)) return;
-
-		m_need_save_resume_data = true;
 
 		picker().mark_as_finished(block_finished, 0);
 	}
@@ -848,7 +855,7 @@ namespace libtorrent
 		// cycle of ownership, se the hpp file for description.
 		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
 			, m_save_path, m_ses.m_disk_thread, m_storage_constructor
-			, (storage_mode_t)m_storage_mode);
+			, (storage_mode_t)m_storage_mode, m_file_priority);
 		m_storage = m_owning_storage.get();
 
 		if (has_picker())
@@ -871,7 +878,7 @@ namespace libtorrent
 
 		if (m_seed_mode)
 		{
-			m_ses.m_io_service.post(boost::bind(&torrent::files_checked_lock, shared_from_this()));
+			m_ses.m_io_service.post(boost::bind(&torrent::files_checked, shared_from_this()));
 			std::vector<char>().swap(m_resume_data);
 			lazy_entry().swap(m_resume_entry);
 			return;
@@ -938,13 +945,13 @@ namespace libtorrent
 		}
 
 		m_storage->async_check_fastresume(&m_resume_entry
-			, bind(&torrent::on_resume_data_checked
+			, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1, _2));
 	}
 
 	void torrent::on_resume_data_checked(int ret, disk_io_job const& j)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		if (ret == piece_manager::fatal_disk_error)
 		{
@@ -1118,7 +1125,7 @@ namespace libtorrent
 								{
 									m_picker->mark_as_finished(piece_block(piece, bit), 0);
 									if (m_picker->is_piece_finished(piece))
-										async_verify_piece(piece, bind(&torrent::piece_finished
+										async_verify_piece(piece, boost::bind(&torrent::piece_finished
 											, shared_from_this(), piece, _1));
 								}
 							}
@@ -1127,7 +1134,7 @@ namespace libtorrent
 				}
 			}
 
-			files_checked(l);
+			files_checked();
 		}
 		else
 		{
@@ -1192,13 +1199,13 @@ namespace libtorrent
 		std::vector<char>().swap(m_resume_data);
 		lazy_entry().swap(m_resume_entry);
 		m_storage->async_check_fastresume(&m_resume_entry
-			, bind(&torrent::on_force_recheck
+			, boost::bind(&torrent::on_force_recheck
 			, shared_from_this(), _1, _2));
 	}
 
 	void torrent::on_force_recheck(int ret, disk_io_job const& j)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		if (ret == piece_manager::fatal_disk_error)
 		{
@@ -1208,7 +1215,7 @@ namespace libtorrent
 		if (ret == 0)
 		{
 			// if there are no files, just start
-			files_checked(l);
+			files_checked();
 		}
 		else
 		{
@@ -1223,14 +1230,14 @@ namespace libtorrent
 		TORRENT_ASSERT(should_check_files());
 		set_state(torrent_status::checking_files);
 
-		m_storage->async_check_files(bind(
+		m_storage->async_check_files(boost::bind(
 			&torrent::on_piece_checked
 			, shared_from_this(), _1, _2));
 	}
 	
 	void torrent::on_piece_checked(int ret, disk_io_job const& j)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		if (ret == piece_manager::disk_check_aborted)
@@ -1270,17 +1277,33 @@ namespace libtorrent
 		if (ret == piece_manager::need_full_check) return;
 
 		dequeue_torrent_check();
-		files_checked(l);
+		files_checked();
 	}
 
-	void torrent::use_interface(const char* net_interface)
+	void torrent::use_interface(std::string net_interfaces)
 	{
 		INVARIANT_CHECK;
+		m_net_interfaces.clear();
 
-		error_code ec;
-		address a(address::from_string(net_interface, ec));
-		if (ec) return;
-		m_net_interface = tcp::endpoint(a, 0);
+		char* str = &net_interfaces[0];
+
+		while (str)
+		{
+			char* space = strchr(str, ',');
+			if (space) *space++ = 0;
+			error_code ec;
+			address a(address::from_string(str, ec));
+			str = space;
+			if (ec) continue;
+			m_net_interfaces.push_back(tcp::endpoint(a, 0));
+		}
+	}
+
+	tcp::endpoint torrent::get_interface() const
+	{
+		if (m_net_interfaces.empty()) return tcp::endpoint(address_v4(), 0);
+		if (m_interface_index >= m_net_interfaces.size()) m_interface_index = 0;
+		return m_net_interfaces[m_interface_index++];
 	}
 
 	void torrent::on_tracker_announce_disp(boost::weak_ptr<torrent> p
@@ -1294,7 +1317,7 @@ namespace libtorrent
 
 	void torrent::on_tracker_announce()
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_waiting_tracker = false;	
 		if (m_abort) return;
 		announce_with_tracker();
@@ -1334,7 +1357,7 @@ namespace libtorrent
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_ses.m_dht->announce(m_torrent_file->info_hash()
 			, m_ses.listen_port()
-			, bind(&torrent::on_dht_announce_response_disp, self, _1));
+			, boost::bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 
 	void torrent::on_dht_announce_response_disp(boost::weak_ptr<libtorrent::torrent> t
@@ -1358,7 +1381,7 @@ namespace libtorrent
 		if (torrent_file().priv() || (torrent_file().is_i2p()
 			&& !settings().allow_i2p_mixed)) return;
 
-		std::for_each(peers.begin(), peers.end(), bind(
+		std::for_each(peers.begin(), peers.end(), boost::bind(
 			&policy::add_peer, boost::ref(m_policy), _1, peer_id(0)
 			, peer_info::dht, 0));
 	}
@@ -1411,7 +1434,7 @@ namespace libtorrent
 		req.listen_port = m_ses.listen_port();
 		req.key = m_ses.m_key;
 
-		ptime now = time_now();
+		ptime now = time_now_hires();
 
 		// the tier is kept as INT_MAX until we find the first
 		// tracker that works, then it's set to that tracker's
@@ -1467,7 +1490,7 @@ namespace libtorrent
 				if ((protocol == "http" || protocol == "https")
 					&& proxy_type == proxy_settings::none)
 				{
-				
+					ae.next_announce = now + minutes(10);
 					if (m_ses.m_alerts.should_post<anonymous_mode_alert>())
 					{
 						m_ses.m_alerts.post_alert(
@@ -1482,6 +1505,7 @@ namespace libtorrent
 					&& proxy_type != proxy_settings::socks5_pw
 					&& proxy_type != proxy_settings::i2p_proxy))
 				{
+					ae.next_announce = now + minutes(10);
 					if (m_ses.m_alerts.should_post<anonymous_mode_alert>())
 					{
 						m_ses.m_alerts.post_alert(
@@ -1507,6 +1531,8 @@ namespace libtorrent
 				m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
 					, tracker_login() , m_abort?boost::shared_ptr<torrent>():shared_from_this());
 			ae.updating = true;
+			ae.next_announce = now + seconds(20);
+			ae.min_announce = now + seconds(10);
 
 			if (m_ses.m_alerts.should_post<tracker_announce_alert>())
 			{
@@ -1520,7 +1546,7 @@ namespace libtorrent
 				&& !settings().announce_to_all_tiers)
 				break;
 		}
-		update_tracker_timer();
+		update_tracker_timer(now);
 	}
 
 	void torrent::scrape_tracker()
@@ -1543,7 +1569,7 @@ namespace libtorrent
 
 	void torrent::tracker_warning(tracker_request const& req, std::string const& msg)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
 
@@ -1554,7 +1580,7 @@ namespace libtorrent
  	void torrent::tracker_scrape_response(tracker_request const& req
  		, int complete, int incomplete, int downloaded)
  	{
- 		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
  
  		INVARIANT_CHECK;
 		TORRENT_ASSERT(req.kind == tracker_request::scrape_request);
@@ -1580,7 +1606,7 @@ namespace libtorrent
 		, int incomplete
 		, address const& external_ip)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(r.kind == tracker_request::announce_request);
@@ -1608,7 +1634,7 @@ namespace libtorrent
 			int tracker_index = ae - &m_trackers[0];
 			m_last_working_tracker = prioritize_tracker(tracker_index);
 		}
-		update_tracker_timer();
+		update_tracker_timer(now);
 
 		if (complete >= 0) m_complete = complete;
 		if (incomplete >= 0) m_incomplete = incomplete;
@@ -1659,7 +1685,7 @@ namespace libtorrent
 					// to do the name lookup
 					/*
 					m_ses.m_i2p_conn.async_name_lookup(i->ip.c_str()
-						, bind(&torrent::on_i2p_resolve
+						, boost::bind(&torrent::on_i2p_resolve
 						, shared_from_this(), _1, _2));
 					*/
 					// it seems like you're not supposed to do a name lookup
@@ -1673,7 +1699,7 @@ namespace libtorrent
 				{
 					tcp::resolver::query q(i->ip, to_string(i->port).elems);
 					m_ses.m_host_resolver.async_resolve(q,
-						bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid));
+						boost::bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid));
 				}
 			}
 			else
@@ -1734,12 +1760,7 @@ namespace libtorrent
 
 	void torrent::force_tracker_request()
 	{
-		if (is_paused()) return;
-		ptime now = time_now();
-		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
-			, end(m_trackers.end()); i != end; ++i)
-			i->next_announce = (std::max)(now, i->min_announce);
-		update_tracker_timer();
+		force_tracker_request(time_now_hires());
 	}
 
 	void torrent::force_tracker_request(ptime t)
@@ -1747,8 +1768,8 @@ namespace libtorrent
 		if (is_paused()) return;
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
-			i->next_announce = (std::max)(t, i->min_announce);
-		update_tracker_timer();
+			i->next_announce = (std::max)(t, i->min_announce) + seconds(1);
+		update_tracker_timer(time_now_hires());
 	}
 
 	void torrent::set_tracker_login(
@@ -1762,7 +1783,7 @@ namespace libtorrent
 #if TORRENT_USE_I2P
 	void torrent::on_i2p_resolve(error_code const& ec, char const* dest)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
 
@@ -1779,7 +1800,7 @@ namespace libtorrent
 	void torrent::on_peer_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, peer_id pid)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
 
@@ -2186,7 +2207,9 @@ namespace libtorrent
 			{
 				if (!m_torrent_file->files().at(file_index).pad_file)
 				{
-					filesystem().async_finalize_file(file_index);
+					if (m_owning_storage.get())
+						m_storage->async_finalize_file(file_index);
+
 					if (m_ses.m_alerts.should_post<piece_finished_alert>())
 					{
 						// this file just completed, post alert
@@ -2213,7 +2236,7 @@ namespace libtorrent
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 #ifdef TORRENT_DEBUG
 		// make sure all blocks were successfully written before we
-		// declare the piece has "we have".
+		// declare the piece as "we have".
 		piece_picker::downloading_piece dp;
 		m_picker->piece_info(index, dp);
 		int blocks_in_piece = m_picker->blocks_in_piece(index);
@@ -2228,6 +2251,8 @@ namespace libtorrent
 			m_ses.m_alerts.post_alert(piece_finished_alert(get_handle()
 				, index));
 		}
+
+		m_need_save_resume_data = true;
 
 		remove_time_critical_piece(index, true);
 
@@ -2319,6 +2344,8 @@ namespace libtorrent
 			// if we just became a seed, picker is now invalid, since it
 			// is deallocated by the torrent once it starts seeding
 		}
+
+		m_last_download = 0;
 	}
 
 	void torrent::piece_failed(int index)
@@ -2579,7 +2606,7 @@ namespace libtorrent
 
 	void torrent::on_files_deleted(int ret, disk_io_job const& j)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		if (ret != 0)
 		{
@@ -2596,7 +2623,7 @@ namespace libtorrent
 	void torrent::on_files_released(int ret, disk_io_job const& j)
 	{
 /*
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		if (alerts().should_post<torrent_paused_alert>())
 		{
@@ -2613,7 +2640,7 @@ namespace libtorrent
 
 	void torrent::on_save_resume_data(int ret, disk_io_job const& j)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		if (!j.resume_data)
 		{
@@ -2630,7 +2657,7 @@ namespace libtorrent
 
 	void torrent::on_file_renamed(int ret, disk_io_job const& j)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		
 		if (ret == 0)
 		{
@@ -2648,7 +2675,7 @@ namespace libtorrent
 
 	void torrent::on_torrent_paused(int ret, disk_io_job const& j)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		if (alerts().should_post<torrent_paused_alert>())
 			alerts().post_alert(torrent_paused_alert(get_handle()));
@@ -2936,7 +2963,7 @@ namespace libtorrent
 			// come here several times with the same start_piece, end_piece
 			std::for_each(pieces.begin() + start_piece
 				, pieces.begin() + last_piece + 1
-				, bind(&set_if_greater, _1, m_file_priority[i]));
+				, boost::bind(&set_if_greater, _1, m_file_priority[i]));
 		}
 		prioritize_pieces(pieces);
 	}
@@ -3091,8 +3118,7 @@ namespace libtorrent
 		if (settings().prefer_udp_trackers)
 			prioritize_udp_trackers();
 
-		if (!m_trackers.empty()) start_announcing();
-		else stop_announcing();
+		if (!m_trackers.empty()) announce_with_tracker();
 	}
 
 	void torrent::prioritize_udp_trackers()
@@ -3141,7 +3167,7 @@ namespace libtorrent
 		if (k - m_trackers.begin() < m_last_working_tracker) ++m_last_working_tracker;
 		k = m_trackers.insert(k, url);
 		if (k->source == 0) k->source = announce_entry::source_client;
-		if (!m_trackers.empty()) start_announcing();
+		if (!m_trackers.empty()) announce_with_tracker();
 	}
 
 	bool torrent::choke_peer(peer_connection& c)
@@ -3330,7 +3356,7 @@ namespace libtorrent
 			// use proxy
 			tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
 			m_ses.m_host_resolver.async_resolve(q,
-				bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, web));
+				boost::bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, web));
 		}
 		else
 		{
@@ -3348,7 +3374,7 @@ namespace libtorrent
 
 			tcp::resolver::query q(hostname, to_string(port).elems);
 			m_ses.m_host_resolver.async_resolve(q,
-				bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web
+				boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web
 					, tcp::endpoint()));
 		}
 	}
@@ -3356,7 +3382,7 @@ namespace libtorrent
 	void torrent::on_proxy_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, std::list<web_seed_entry>::iterator web)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
 
@@ -3413,13 +3439,13 @@ namespace libtorrent
 
 		tcp::resolver::query q(hostname, to_string(port).elems);
 		m_ses.m_host_resolver.async_resolve(q,
-			bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web, a));
+			boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web, a));
 	}
 
 	void torrent::on_name_lookup(error_code const& e, tcp::resolver::iterator host
 		, std::list<web_seed_entry>::iterator web, tcp::endpoint proxy)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
 
@@ -3513,8 +3539,8 @@ namespace libtorrent
 			c->start();
 
 			m_ses.m_half_open.enqueue(
-				bind(&peer_connection::on_connect, c, _1)
-				, bind(&peer_connection::on_timeout, c)
+				boost::bind(&peer_connection::on_connect, c, _1)
+				, boost::bind(&peer_connection::on_timeout, c)
 				, seconds(settings().peer_connect_timeout));
 #ifndef BOOST_NO_EXCEPTIONS
 		}
@@ -3557,7 +3583,7 @@ namespace libtorrent
 		}
 		m_resolving_country = true;
 		m_ses.m_host_resolver.async_resolve(q,
-			bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p));
+			boost::bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p));
 	}
 
 	namespace
@@ -3572,7 +3598,7 @@ namespace libtorrent
 	void torrent::on_country_lookup(error_code const& error, tcp::resolver::iterator i
 		, intrusive_ptr<peer_connection> p) const
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
 		
@@ -3653,7 +3679,7 @@ namespace libtorrent
 			country_entry tmp = {country, ""};
 			country_entry const* i =
 				std::lower_bound(country_map, country_map + size, tmp
-					, bind(&country_entry::code, _1) < bind(&country_entry::code, _2));
+					, boost::bind(&country_entry::code, _1) < boost::bind(&country_entry::code, _2));
 			if (i == country_map + size
 				|| i->code != country)
 			{
@@ -3687,6 +3713,10 @@ namespace libtorrent
 		m_seed_mode = rd.dict_find_int_value("seed_mode", 0) && m_torrent_file->is_valid();
 		if (m_seed_mode) m_verified.resize(m_torrent_file->num_pieces(), false);
 		super_seeding(rd.dict_find_int_value("super_seeding", 0));
+
+		m_last_scrape = rd.dict_find_int_value("last_scrape", 0);
+		m_last_download = rd.dict_find_int_value("last_download", 0);
+		m_last_upload = rd.dict_find_int_value("last_upload", 0);
 
 		m_added_time = rd.dict_find_int_value("added_time", m_added_time);
 		m_completed_time = rd.dict_find_int_value("completed_time", m_completed_time);
@@ -3754,6 +3784,7 @@ namespace libtorrent
 						, boost::bind(&announce_entry::url, _1) == e.url) != m_trackers.end())
 						continue;
 					e.tier = tier;
+					e.fail_limit = 0;
 					m_trackers.push_back(e);
 				}
 				++tier;
@@ -3856,6 +3887,10 @@ namespace libtorrent
 
 		ret["added_time"] = m_added_time;
 		ret["completed_time"] = m_completed_time;
+
+		ret["last_scrape"] = m_last_scrape;
+		ret["last_download"] = m_last_download;
+		ret["last_upload"] = m_last_upload;
 		
 		const sha1_hash& info_hash = torrent_file().info_hash();
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
@@ -4214,7 +4249,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		// this asserts that we don't have duplicates in the policy's peer list
 		peer_iterator i_ = std::find_if(m_connections.begin(), m_connections.end()
-			, bind(&peer_connection::remote, _1) == peerinfo->ip());
+			, boost::bind(&peer_connection::remote, _1) == peerinfo->ip());
 #if TORRENT_USE_I2P
 		TORRENT_ASSERT(i_ == m_connections.end()
 			|| (*i_)->type() != peer_connection::bittorrent_connection
@@ -4301,8 +4336,8 @@ namespace libtorrent
 		{
 #endif
 			m_ses.m_half_open.enqueue(
-				bind(&peer_connection::on_connect, c, _1)
-				, bind(&peer_connection::on_timeout, c)
+				boost::bind(&peer_connection::on_connect, c, _1)
+				, boost::bind(&peer_connection::on_timeout, c)
 				, seconds(timeout));
 #ifndef BOOST_NO_EXCEPTIONS
 		}
@@ -4607,7 +4642,7 @@ namespace libtorrent
 			}
 		}
 		std::for_each(seeds.begin(), seeds.end()
-			, bind(&peer_connection::disconnect, _1, errors::torrent_finished, 0));
+			, boost::bind(&peer_connection::disconnect, _1, errors::torrent_finished, 0));
 
 		if (m_abort) return;
 
@@ -4616,7 +4651,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_storage);
 		// we need to keep the object alive during this operation
 		m_storage->async_release_files(
-			bind(&torrent::on_files_released, shared_from_this(), _1, _2));
+			boost::bind(&torrent::on_files_released, shared_from_this(), _1, _2));
 	}
 
 	// this is called when we were finished, but some files were
@@ -4695,14 +4730,9 @@ namespace libtorrent
 		return index;
 	}
 
-	void torrent::files_checked_lock()
+	void torrent::files_checked()
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
-		files_checked(l);
-	}
-
-	void torrent::files_checked(mutex::scoped_lock const& l)
-	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 
 		if (m_abort) return;
@@ -4800,18 +4830,19 @@ namespace libtorrent
 		if (!m_owning_storage.get()) return false;
 
 		m_owning_storage->async_rename_file(index, name
-			, bind(&torrent::on_file_renamed, shared_from_this(), _1, _2));
+			, boost::bind(&torrent::on_file_renamed, shared_from_this(), _1, _2));
 		return true;
 	}
 
 	void torrent::move_storage(std::string const& save_path)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		if (m_owning_storage.get())
 		{
 			m_owning_storage->async_move_storage(save_path
-				, bind(&torrent::on_storage_moved, shared_from_this(), _1, _2));
+				, boost::bind(&torrent::on_storage_moved, shared_from_this(), _1, _2));
 		}
 		else
 		{
@@ -4825,7 +4856,7 @@ namespace libtorrent
 
 	void torrent::on_storage_moved(int ret, disk_io_job const& j)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		if (ret == 0)
 		{
@@ -4854,17 +4885,20 @@ namespace libtorrent
 
 	torrent_handle torrent::get_handle()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		return torrent_handle(shared_from_this());
 	}
 
 	session_settings const& torrent::settings() const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		return m_ses.settings();
 	}
 
 #ifdef TORRENT_DEBUG
 	void torrent::check_invariant() const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (is_paused()) TORRENT_ASSERT(num_peers() == 0);
 
 		if (!should_check_files())
@@ -5012,10 +5046,25 @@ namespace libtorrent
 #endif
 
 	void torrent::set_sequential_download(bool sd)
-	{ m_sequential_download = sd; }
+	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
+		m_sequential_download = sd;
+	}
+
+	void torrent::queue_up()
+	{
+		set_queue_position(queue_position() == 0
+			? queue_position() : queue_position() - 1);
+	}
+
+	void torrent::queue_down()
+	{
+		set_queue_position(queue_position() + 1);
+	}
 
 	void torrent::set_queue_position(int p)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT((p == -1) == is_finished()
 			|| (!m_auto_managed && p == -1)
 			|| (m_abort && p == -1));
@@ -5087,6 +5136,7 @@ namespace libtorrent
 
 	void torrent::set_max_uploads(int limit)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_max_uploads = limit;
@@ -5094,6 +5144,7 @@ namespace libtorrent
 
 	void torrent::set_max_connections(int limit)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_max_connections = limit;
@@ -5101,24 +5152,27 @@ namespace libtorrent
 
 	void torrent::set_peer_upload_limit(tcp::endpoint ip, int limit)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
-			, bind(&peer_connection::remote, _1) == ip);
+			, boost::bind(&peer_connection::remote, _1) == ip);
 		if (i == m_connections.end()) return;
 		(*i)->set_upload_limit(limit);
 	}
 
 	void torrent::set_peer_download_limit(tcp::endpoint ip, int limit)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
-			, bind(&peer_connection::remote, _1) == ip);
+			, boost::bind(&peer_connection::remote, _1) == ip);
 		if (i == m_connections.end()) return;
 		(*i)->set_download_limit(limit);
 	}
 
 	void torrent::set_upload_limit(int limit)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = 0;
 		m_bandwidth_channel[peer_connection::upload_channel].throttle(limit);
@@ -5126,6 +5180,7 @@ namespace libtorrent
 
 	int torrent::upload_limit() const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		int limit = m_bandwidth_channel[peer_connection::upload_channel].throttle();
 		if (limit == (std::numeric_limits<int>::max)()) limit = -1;
 		return limit;
@@ -5133,6 +5188,7 @@ namespace libtorrent
 
 	void torrent::set_download_limit(int limit)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = 0;
 		m_bandwidth_channel[peer_connection::download_channel].throttle(limit);
@@ -5140,6 +5196,7 @@ namespace libtorrent
 
 	int torrent::download_limit() const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		int limit = m_bandwidth_channel[peer_connection::download_channel].throttle();
 		if (limit == (std::numeric_limits<int>::max)()) limit = -1;
 		return limit;
@@ -5147,6 +5204,7 @@ namespace libtorrent
 
 	void torrent::delete_files()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 #if defined TORRENT_VERBOSE_LOGGING
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
@@ -5162,12 +5220,13 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_storage);
 			m_storage->async_delete_files(
-				bind(&torrent::on_files_deleted, shared_from_this(), _1, _2));
+				boost::bind(&torrent::on_files_deleted, shared_from_this(), _1, _2));
 		}
 	}
 
 	void torrent::clear_error()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!m_error) return;
 		bool checking_files = should_check_files();
 		if (m_ses.m_auto_manage_time_scaler > 2)
@@ -5182,6 +5241,7 @@ namespace libtorrent
 
 	void torrent::set_error(error_code const& ec, std::string const& error_file)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		bool checking_files = should_check_files();
 		m_error = ec;
 		m_error_file = error_file;
@@ -5196,6 +5256,7 @@ namespace libtorrent
 
 	void torrent::auto_managed(bool a)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		if (m_auto_managed == a) return;
@@ -5221,6 +5282,7 @@ namespace libtorrent
 	// the higher seed rank, the more important to seed
 	int torrent::seed_rank(session_settings const& s) const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		enum flags
 		{
 			seed_ratio_not_met = 0x400000,
@@ -5283,6 +5345,7 @@ namespace libtorrent
 	// this is an async operation triggered by the client	
 	void torrent::save_resume_data()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 	
 		if (!m_owning_storage.get())
@@ -5306,11 +5369,12 @@ namespace libtorrent
 			return;
 		}
 		m_storage->async_save_resume_data(
-			bind(&torrent::on_save_resume_data, shared_from_this(), _1, _2));
+			boost::bind(&torrent::on_save_resume_data, shared_from_this(), _1, _2));
 	}
 	
 	bool torrent::should_check_files() const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		// #error should m_allow_peers really affect checking?
 		return (m_state == torrent_status::checking_files
 			|| m_state == torrent_status::queued_for_checking)
@@ -5321,23 +5385,27 @@ namespace libtorrent
 
 	void torrent::flush_cache()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_storage->async_release_files(
-			bind(&torrent::on_cache_flushed, shared_from_this(), _1, _2));
+			boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, _2));
 	}
 
 	void torrent::on_cache_flushed(int ret, disk_io_job const& j)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (alerts().should_post<cache_flushed_alert>())
 			alerts().post_alert(cache_flushed_alert(get_handle()));
 	}
 
 	bool torrent::is_paused() const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		return !m_allow_peers || m_ses.is_paused();
 	}
 
 	void torrent::pause()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		if (!m_allow_peers) return;
@@ -5359,6 +5427,7 @@ namespace libtorrent
 
 	void torrent::do_pause()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!is_paused()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -5389,7 +5458,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_storage);
 			m_storage->async_release_files(
-				bind(&torrent::on_torrent_paused, shared_from_this(), _1, _2));
+				boost::bind(&torrent::on_torrent_paused, shared_from_this(), _1, _2));
 			m_storage->async_clear_read_cache();
 		}
 		else
@@ -5404,6 +5473,7 @@ namespace libtorrent
 
 	void torrent::set_allow_peers(bool b)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (m_allow_peers == b) return;
 
 		bool checking_files = should_check_files();
@@ -5428,6 +5498,7 @@ namespace libtorrent
 
 	void torrent::resume()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		if (m_allow_peers
@@ -5446,6 +5517,7 @@ namespace libtorrent
 
 	void torrent::do_resume()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (is_paused()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -5470,8 +5542,9 @@ namespace libtorrent
 		start_announcing();
 	}
 
-	void torrent::update_tracker_timer()
+	void torrent::update_tracker_timer(ptime now)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!m_announcing) return;
 
 		ptime next_announce = max_time();
@@ -5492,30 +5565,33 @@ namespace libtorrent
 			if (i->is_working()) { tier = i->tier; found_working = false; }
 			if (i->fails >= i->fail_limit && i->fail_limit != 0) continue;
 			if (i->updating) { found_working = true; continue; }
-			if (i->is_working())
-			{
-				ptime next_tracker_announce = (std::max)(i->next_announce, i->min_announce);
-				if (!i->updating && next_tracker_announce < next_announce) next_announce = next_tracker_announce;
-				found_working = true;
-				if (!settings().announce_to_all_trackers
-					&& !settings().announce_to_all_tiers) break;
-			}
+			ptime next_tracker_announce = (std::max)(i->next_announce, i->min_announce);
+			if (!i->updating
+				&& next_tracker_announce < next_announce
+				&& (!found_working || i->is_working()))
+				next_announce = next_tracker_announce;
+			if (i->is_working()) found_working = true;
+			if (!settings().announce_to_all_trackers
+				&& !settings().announce_to_all_tiers) break;
 		}
-		if (next_announce == max_time()) return;
+
+		if (next_announce <= now) return;
+
+		m_waiting_tracker = true;
+		error_code ec;
+		boost::weak_ptr<torrent> self(shared_from_this());
 
 		// since we don't know if we have to re-issue the async_wait or not
 		// always do it
 //		if (m_tracker_timer.expires_at() <= next_announce) return;
 
-		error_code ec;
-		boost::weak_ptr<torrent> self(shared_from_this());
 		m_tracker_timer.expires_at(next_announce, ec);
-		m_tracker_timer.async_wait(bind(&torrent::on_tracker_announce_disp, self, _1));
-		m_waiting_tracker = true;
+		m_tracker_timer.async_wait(boost::bind(&torrent::on_tracker_announce_disp, self, _1));
 	}
 
 	void torrent::start_announcing()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (is_paused()) return;
 		// if we don't have metadata, we need to announce
 		// before checking files, to get peers to
@@ -5529,7 +5605,7 @@ namespace libtorrent
 		{
 			// tell the tracker that we're back
 			std::for_each(m_trackers.begin(), m_trackers.end()
-				, bind(&announce_entry::reset, _1));
+				, boost::bind(&announce_entry::reset, _1));
 		}
 
 		// reset the stats, since from the tracker's
@@ -5557,6 +5633,7 @@ namespace libtorrent
 
 	void torrent::stop_announcing()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!m_announcing) return;
 
 		error_code ec;
@@ -5576,6 +5653,7 @@ namespace libtorrent
 
 	void torrent::second_tick(stat& accumulator, int tick_interval_ms)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		ptime now = time_now();
@@ -5690,6 +5768,8 @@ namespace libtorrent
 		if (m_upload_mode) m_upload_mode_time += seconds_since_last_tick;
 		m_last_scrape += seconds_since_last_tick;
 		m_active_time += seconds_since_last_tick;
+		m_last_download += seconds_since_last_tick;
+		m_last_upload += seconds_since_last_tick;
 
 		// ---- TIME CRITICAL PIECES ----
 
@@ -5722,7 +5802,10 @@ namespace libtorrent
 		{
 			peer_connection* p = *i;
 			++i;
-			m_stat += p->statistics();
+
+			if (!p->ignore_stats())
+				m_stat += p->statistics();
+
 			// updates the peer connection's ul/dl bandwidth
 			// resource requests
 #ifndef BOOST_NO_EXCEPTIONS
@@ -5752,6 +5835,7 @@ namespace libtorrent
 
 	void torrent::refresh_explicit_cache(int cache_size)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!ready_for_connections()) return;
 		// rotate the cached pieces
 
@@ -5831,13 +5915,14 @@ namespace libtorrent
 
 			for (std::vector<int>::iterator i = avail_vec.begin()
 				, end(avail_vec.end()); i != end; ++i)
-				filesystem().async_cache(*i, bind(&torrent::on_disk_cache_complete
+				filesystem().async_cache(*i, boost::bind(&torrent::on_disk_cache_complete
 					, shared_from_this(), _1, _2));
 		}
 	}
 
 	void torrent::get_suggested_pieces(std::vector<int>& s) const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (settings().suggest_mode == session_settings::no_piece_suggestions)
 		{
 			s.clear();
@@ -5872,6 +5957,7 @@ namespace libtorrent
 
 	void torrent::add_stats(stat const& s)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		// these stats are propagated to the session
 		// stats the next time second_tick is called
 		m_stat += s;
@@ -5879,6 +5965,7 @@ namespace libtorrent
 
 	void torrent::request_time_critical_pieces()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		// build a list of peers and sort it by download_queue_time
 		std::vector<peer_connection*> peers;
 		peers.reserve(m_connections.size());
@@ -5978,6 +6065,7 @@ namespace libtorrent
 
 	std::set<std::string> torrent::web_seeds(web_seed_entry::type_t type) const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		std::set<std::string> ret;
 		for (std::list<web_seed_entry>::const_iterator i = m_web_seeds.begin()
 			, end(m_web_seeds.end()); i != end; ++i)
@@ -5990,6 +6078,7 @@ namespace libtorrent
 
 	void torrent::retry_web_seed(peer_connection* p, int retry)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
 			, (boost::bind(&web_seed_entry::connection, _1) == p));
 
@@ -6001,6 +6090,7 @@ namespace libtorrent
 
 	bool torrent::try_connect_peer()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(want_more_peers());
 		if (m_deficit_counter < 100) return false;
 		m_deficit_counter -= 100;
@@ -6010,14 +6100,23 @@ namespace libtorrent
 
 	void torrent::give_connect_points(int points)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(points <= 100);
 		TORRENT_ASSERT(points > 0);
 		TORRENT_ASSERT(want_more_peers());
 		m_deficit_counter += points;
 	}
 
+	void torrent::add_peer(tcp::endpoint const& adr, int source)
+	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
+		peer_id id(0);
+		m_policy.add_peer(adr, id, source, 0);
+	}
+
 	void torrent::async_verify_piece(int piece_index, boost::function<void(int)> const& f)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 //		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(m_storage);
@@ -6037,7 +6136,7 @@ namespace libtorrent
 		}
 #endif
 
-		m_storage->async_hash(piece_index, bind(&torrent::on_piece_verified
+		m_storage->async_hash(piece_index, boost::bind(&torrent::on_piece_verified
 			, shared_from_this(), _1, _2, f));
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		check_invariant();
@@ -6047,7 +6146,7 @@ namespace libtorrent
 	void torrent::on_piece_verified(int ret, disk_io_job const& j
 		, boost::function<void(int)> f)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		// return value:
 		// 0: success, piece passed hash check
@@ -6067,7 +6166,7 @@ namespace libtorrent
 	{
 		std::vector<announce_entry>::iterator i = std::find_if(
 			m_trackers.begin(), m_trackers.end()
-			, bind(&announce_entry::url, _1) == r.url);
+			, boost::bind(&announce_entry::url, _1) == r.url);
 		if (i == m_trackers.end()) return 0;
 		return &*i;
 	}
@@ -6292,9 +6391,12 @@ namespace libtorrent
 		st.all_time_upload = m_total_uploaded;
 		st.all_time_download = m_total_downloaded;
 
+		// activity time
 		st.active_time = m_active_time;
 		st.active_time = m_active_time;
 		st.seeding_time = m_seeding_time;
+		st.time_since_upload = m_last_upload;
+		st.time_since_download = m_last_download;
 
 		st.storage_mode = (storage_mode_t)m_storage_mode;
 
@@ -6472,7 +6574,7 @@ namespace libtorrent
 		, int response_code, error_code const& ec, const std::string& msg
 		, int retry_interval)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
 
@@ -6503,7 +6605,9 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), r.url, ec));
 			}
 		}
-		update_tracker_timer();
+		// announce to the next working tracker
+		if (!m_abort) announce_with_tracker();
+		update_tracker_timer(time_now());
 	}
 
 

@@ -60,6 +60,7 @@ namespace libtorrent
 
 		char* allocate_buffer(char const* category);
 		void free_buffer(char* buf);
+		void free_multiple_buffers(char** bufvec, int numbufs);
 
 		char* allocate_buffers(int blocks, char const* category);
 		void free_buffers(char* buf, int blocks);
@@ -80,6 +81,8 @@ namespace libtorrent
 		int in_use() const { return m_in_use; }
 
 	protected:
+
+		void free_buffer_impl(char* buf, mutex::scoped_lock& l);
 
 		// number of bytes per block. The BitTorrent
 		// protocol defines the block size to 16 KiB.
