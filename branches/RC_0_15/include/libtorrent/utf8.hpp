@@ -48,15 +48,15 @@ namespace libtorrent
 	{
 		// allocate space for worst-case
 		wide.resize(utf8.size());
-		wchar_t const* dst_start = &wide[0];
-		char const* src_start = &utf8[0];
+		wchar_t const* dst_start = wide.c_str();
+		char const* src_start = utf8.c_str();
 		ConversionResult ret;
 		if (sizeof(wchar_t) == sizeof(UTF32))
 		{
 			ret = ConvertUTF8toUTF32((const UTF8**)&src_start, (const UTF8*)src_start
 				+ utf8.size(), (UTF32**)&dst_start, (UTF32*)dst_start + wide.size()
 				, lenientConversion);
-			wide.resize(dst_start - &wide[0]);
+			wide.resize(dst_start - wide.c_str());
 			return ret;
 		}
 		else if (sizeof(wchar_t) == sizeof(UTF16))
@@ -64,7 +64,7 @@ namespace libtorrent
 			ret = ConvertUTF8toUTF16((const UTF8**)&src_start, (const UTF8*)src_start
 				+ utf8.size(), (UTF16**)&dst_start, (UTF16*)dst_start + wide.size()
 				, lenientConversion);
-			wide.resize(dst_start - &wide[0]);
+			wide.resize(dst_start - wide.c_str());
 			return ret;
 		}
 		else
@@ -77,8 +77,9 @@ namespace libtorrent
 	{
 		// allocate space for worst-case
 		utf8.resize(wide.size() * 6);
+		if (wide.empty()) return 0;
 		char* dst_start = &utf8[0];
-		wchar_t const* src_start = &wide[0];
+		wchar_t const* src_start = wide.c_str();
 		ConversionResult ret;
 		if (sizeof(wchar_t) == sizeof(UTF32))
 		{
