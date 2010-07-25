@@ -101,6 +101,7 @@ namespace libtorrent
 		void socks_forward_udp(mutex_t::scoped_lock& l);
 		void connect1(error_code const& e);
 		void connect2(error_code const& e);
+		void hung_up(error_code const& e);
 
 		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);

@@ -773,6 +773,8 @@ int main(int argc, char* argv[])
 			"  -R <num blocks>       number of blocks per read cache line\n"
 			"  -O                    Disallow disk job reordering\n"
 			"  -P <host:port>        Use the specified SOCKS5 proxy\n"
+			"  -L <user:passwd>      Use the specified username and password for the\n"
+			"                        proxy specified by -P\n"
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  "
 			"\n\n"
@@ -784,13 +786,14 @@ int main(int argc, char* argv[])
 
 	using namespace libtorrent;
 	session_settings settings;
-	proxy_settings ps;
 
 	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
 	settings.auto_upload_slots_rate_based = true;
 	//settings.announce_to_all_trackers = true;
 	settings.optimize_hashing_for_speed = false;
 	settings.disk_cache_algorithm = session_settings::largest_contiguous;
+
+	proxy_settings ps;
 
 	int refresh_delay = 1;
 
@@ -941,25 +944,40 @@ int main(int argc, char* argv[])
 						break;
 					}
 					*port++ = 0;
-					proxy_settings ps;
 					ps.hostname = arg;
 					ps.port = atoi(port);
 					if (ps.port == 0) {
 						fprintf(stderr, "invalid proxy port\n");
 						break;
 					}
-					ps.type = proxy_settings::socks5;
-					ses.set_peer_proxy(ps);
-					ses.set_web_seed_proxy(ps);
-					ses.set_tracker_proxy(ps);
-#ifndef TORRENT_DISABLE_DHT
-					ses.set_dht_proxy(ps);
-#endif
+					if (ps.type == proxy_settings::none)
+						ps.type = proxy_settings::socks5;
+				}
+				break;
+			case 'L':
+				{
+					char* pw = (char*) strchr(arg, ':');
+					if (pw == 0)
+					{
+						fprintf(stderr, "invalid proxy username and password specified\n");
+						break;
+					}
+					*pw++ = 0;
+					ps.username = arg;
+					ps.password = pw;
+					ps.type = proxy_settings::socks5_pw;
 				}
 				break;
 		}
 		++i; // skip the argument
 	}
+
+	ses.set_peer_proxy(ps);
+	ses.set_web_seed_proxy(ps);
+	ses.set_tracker_proxy(ps);
+#ifndef TORRENT_DISABLE_DHT
+	ses.set_dht_proxy(ps);
+#endif
 
 	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
 		, bind_to_interface.c_str());
