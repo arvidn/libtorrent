@@ -646,7 +646,7 @@ void udp_socket::socks_forward_udp(mutex::scoped_lock& l)
 	write_uint8(5, p); // SOCKS VERSION 5
 	write_uint8(3, p); // UDP ASSOCIATE command
 	write_uint8(0, p); // reserved
-	write_uint8(0, p); // ATYP IPv4
+	write_uint8(1, p); // ATYP IPv4
 	write_uint32(0, p); // IP any
 	write_uint16(m_bind_port, p);
 
@@ -705,6 +705,22 @@ void udp_socket::connect2(error_code const& e)
 		udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec);
 		m_queue.pop_front();
 	}
+
+	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 10)
+		, boost::bind(&udp_socket::hung_up, this, _1));
+}
+
+void udp_socket::hung_up(error_code const& e)
+{
+	CHECK_MAGIC;
+	mutex::scoped_lock l(m_mutex);
+
+	if (e == asio::error::operation_aborted || m_abort) return;
+
+	l.unlock();
+
+	// the socks connection was closed, re-open it
+	set_proxy_settings(m_proxy_settings);
 }
 
 rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
