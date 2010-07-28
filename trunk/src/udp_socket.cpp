@@ -772,9 +772,10 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 
 	if (m_queue.empty()) return;
 
-	while (!m_queue.empty() && int(m_queue.front().buf.size()) >= m_quota)
+	while (!m_queue.empty() && int(m_queue.front().buf.size()) <= m_quota)
 	{
 		queued_packet const& p = m_queue.front();
+		TORRENT_ASSERT(m_quota >= p.buf.size());
 		m_quota -= p.buf.size();
 		error_code ec;
 		udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec);
