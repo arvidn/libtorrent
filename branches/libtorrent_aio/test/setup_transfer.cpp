@@ -621,8 +621,10 @@ void web_server_thread(int* port, bool ssl)
 		if (connection_close)
 		{
 			s.close(ec);
+         TORRENT_ASSERT(!s.is_open());
 			connection_close = false;
 		}
+      ec.clear();
 
 		if (!s.is_open())
 		{
@@ -661,12 +663,20 @@ void web_server_thread(int* port, bool ssl)
 
 			while (!p.finished())
 			{
+				if (ec)
+				{
+					fprintf(stderr, "?: %s\n", ec.message().c_str());
+               libtorrent::sleep(500);
+					failed = true;
+					break;
+				}
 				size_t received = s.read_some(boost::asio::buffer(&buf[len]
 					, sizeof(buf) - len), ec);
 
 				if (ec || received <= 0)
 				{
 					fprintf(stderr, "read failed: %s received: %d\n", ec.message().c_str(), int(received));
+               libtorrent::sleep(500);
 					failed = true;
 					break;
 				}
@@ -698,6 +708,7 @@ void web_server_thread(int* port, bool ssl)
 			if (failed)
 			{
 				s.close(ec);
+            TORRENT_ASSERT(!s.is_open());
 				break;
 			}
 

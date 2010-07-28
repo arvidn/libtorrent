@@ -80,6 +80,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if TORRENT_USE_AIO
+#include <boost/function.hpp>
+#include <boost/scoped_ptr.hpp>
 #ifdef TORRENT_WINDOWS
 #include <boost/asio/windows/random_access_handle.hpp>
 #else
@@ -92,11 +94,10 @@ namespace libtorrent
 #if TORRENT_USE_AIO
 #ifdef TORRENT_WINDOWS
 	typedef boost::asio::windows::random_access_handle aio_handle;
-	typedef boost::asio::windows::random_access_handle_service aio_service;
 #else
 	typedef boost::asio::posix::random_access_descriptor aio_handle;
-	typedef boost::asio::posix::random_access_descriptor_service aio_service;
 #endif
+	typedef boost::asio::io_service aio_service;
 #endif
 
 #ifdef TORRENT_WINDOWS
@@ -280,21 +281,15 @@ namespace libtorrent
 
 		size_type phys_offset(size_type offset);
 
-#if TORRENT_USE_AIO
-		handle_type native_handle() const { return m_aio_handle.native(); }
-#else
 		handle_type native_handle() const { return m_file_handle; }
-#endif
 
 	private:
 
 #if TORRENT_USE_AIO
-		// this is mutable because asking for the native
-		// handle is not const
-		mutable aio_handle m_aio_handle;
-#else
-		handle_type m_file_handle;
+		// this is not constructed until we first do an async operation
+		boost::scoped_ptr<aio_handle> m_aio_handle;
 #endif
+		handle_type m_file_handle;
 
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 		std::wstring m_path;

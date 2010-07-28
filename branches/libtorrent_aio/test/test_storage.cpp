@@ -119,7 +119,10 @@ void print_error(int ret, error_code const& ec)
 		<< std::endl;
 }
 
-int bufs_size(file::iovec_t const* bufs, int num_bufs);
+namespace libtorrent
+{
+	int bufs_size(file::iovec_t const* bufs, int num_bufs);
+}
 
 // simulate a very slow first read
 struct test_storage : storage_interface

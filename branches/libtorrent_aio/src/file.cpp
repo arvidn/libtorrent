@@ -699,11 +699,7 @@ namespace libtorrent
 #endif
 
 	file::file()
-#if !TORRENT_USE_AIO
 		: m_file_handle(INVALID_HANDLE_VALUE)
-#else
-		: m_aio_handle()
-#endif
 		, m_open_mode(0)
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
 		, m_sector_size(0)
@@ -711,11 +707,7 @@ namespace libtorrent
 	{}
 
 	file::file(std::string const& path, int mode, error_code& ec)
-#if !TORRENT_USE_AIO
 		: m_file_handle(INVALID_HANDLE_VALUE)
-#else
-		: m_aio_handle()
-#endif
 		, m_open_mode(0)
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
 		, m_sector_size(0)
@@ -791,12 +783,7 @@ namespace libtorrent
 			return false;
 		}
 
-#if TORRENT_USE_AIO
-		m_aio_handle.assign(handle, ec);
-		if (ec) return false;
-#else
 		m_file_handle = handle;
-#endif
 
 		// try to make the file sparse if supported
 		// only set this flag if the file is opened for writing
@@ -854,12 +841,7 @@ namespace libtorrent
 			return false;
 		}
 
-#if TORRENT_USE_AIO
-		m_aio_handle.assign(handle, ec);
-		if (ec) return false;
-#else
 		m_file_handle = handle;
-#endif
 
 #ifdef DIRECTIO_ON
 		// for solaris
@@ -893,16 +875,7 @@ namespace libtorrent
 
 	bool file::is_open() const
 	{
-#if TORRENT_USE_AIO
-		return m_aio_handle.is_open();
-#else
-
-#ifdef TORRENT_WINDOWS
 		return m_file_handle != INVALID_HANDLE_VALUE;
-#else
-		return m_file_handle != -1;
-#endif
-#endif
 	}
 
 	int file::pos_alignment() const
@@ -982,20 +955,24 @@ namespace libtorrent
 		if (!is_open()) return;
 
 #if TORRENT_USE_AIO
-		error_code ec;
-		m_aio_handle.close(ec);
-#else
-
-#ifdef TORRENT_WINDOWS
-		CloseHandle(m_file_handle);
-		m_file_handle = INVALID_HANDLE_VALUE;
-		m_path.clear();
-#else
-		if (m_file_handle == -1) return;
-		::close(m_file_handle);
-		m_file_handle = -1;
+		if (m_aio_handle)
+		{
+			error_code ec;
+			m_aio_handle->close(ec);
+		}
+		else
 #endif
-#endif // TORRENT_USE_AIO
+		{
+#ifdef TORRENT_WINDOWS
+			CloseHandle(m_file_handle);
+			m_path.clear();
+#else
+			if (m_file_handle != INVALID_HANDLE_VALUE)
+				::close(m_file_handle);
+#endif
+		}
+
+		m_file_handle = INVALID_HANDLE_VALUE;
 
 		m_open_mode = 0;
 	}
@@ -1025,11 +1002,16 @@ namespace libtorrent
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
+
+		if (!m_aio_handle)
+			m_aio_handle.reset(new aio_handle(ios, m_file_handle));
+
+		// TODO: wrap the iovec buffer instead of copying it
 		std::vector<boost::asio::const_buffer> iovec(num_bufs);
 		for (int i = 0; i < num_bufs; ++i) iovec[i] = boost::asio::const_buffer(
 			bufs[i].iov_base, bufs[i].iov_len);
 
-		m_aio_handle.async_write_some_at(offset, iovec, handler);
+		m_aio_handle->async_write_some_at(offset, iovec, handler);
 	}
 
 	void file::async_readv(aio_service& ios, size_type offset
@@ -1041,13 +1023,17 @@ namespace libtorrent
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
 
+		if (!m_aio_handle)
+			m_aio_handle.reset(new aio_handle(ios, m_file_handle));
+
+		// TODO: wrap the iovec buffer instead of copying it
 		std::vector<boost::asio::mutable_buffer> iovec(num_bufs);
 		for (int i = 0; i < num_bufs; ++i) iovec[i] = boost::asio::mutable_buffer(
 			bufs[i].iov_base, bufs[i].iov_len);
 
-		m_aio_handle.async_read_some_at(offset, iovec, handler);
+		m_aio_handle->async_read_some_at(offset, iovec, handler);
 	}
-#endif
+#endif // TORRENT_USE_AIO
 
 	size_type file::readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec)
 	{

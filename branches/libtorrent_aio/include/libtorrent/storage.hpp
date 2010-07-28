@@ -68,7 +68,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	// #error temp, to pretend we have this on MacOS
 	typedef boost::asio::io_service random_access_handle_service;
 
 	class session;
@@ -86,6 +85,8 @@ namespace libtorrent
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
 		, bool compact_mode
 		, std::string* error = 0);
+
+	TORRENT_EXPORT int bufs_size(file::iovec_t const* bufs, int num_bufs);
 
 	struct TORRENT_EXPORT file_allocation_failed: std::exception
 	{
@@ -114,17 +115,10 @@ namespace libtorrent
 		// false return value indicates an error
 		virtual void initialize(bool allocate_files, error_code& ec) = 0;
 
-#if TORRENT_USE_AIO
-		virtual void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler) = 0;
-		virtual void async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler) = 0;
-#else
 		virtual void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
 			, boost::function<void(error_code const&, size_t)> const& handler);
 		virtual void async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
 			, boost::function<void(error_code const&, size_t)> const& handler);
-#endif
 
 		virtual bool has_any_file(error_code& ec) = 0;
 
@@ -358,7 +352,7 @@ namespace libtorrent
 		// file currently being checked
 		int skip_file() const;
 		// -1=error 0=ok >0=skip this many pieces
-		int check_one_piece(int& have_piece);
+		int check_one_piece(int& have_piece, error_code& ec);
 		int identify_data(
 			sha1_hash const& large_hash
 			, sha1_hash const& small_hash

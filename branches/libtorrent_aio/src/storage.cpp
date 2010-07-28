@@ -280,7 +280,6 @@ namespace libtorrent
 	// for backwards compatibility, implement the default async_readv and
 	// async_writev in terms of readv and writev. Obviously they won't be
 	// async, but at least it will work no worse than the non-aio version
-#if !TORRENT_USE_AIO
 	void storage_interface::async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
 		, boost::function<void(error_code const&, size_t)> const& handler)
 	{
@@ -298,7 +297,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_disk_io_service);
 		m_disk_io_service->post(boost::bind(handler, ec, ret));
 	}
-#endif
 
 	int copy_bufs(file::iovec_t const* bufs, int bytes, file::iovec_t* target)
 	{
@@ -335,7 +333,7 @@ namespace libtorrent
 		}
 	}
 
-	int bufs_size(file::iovec_t const* bufs, int num_bufs)
+	TORRENT_EXPORT int bufs_size(file::iovec_t const* bufs, int num_bufs)
 	{
 		int size = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
@@ -362,6 +360,30 @@ namespace libtorrent
 			if (size >= bytes) return count;
 		}
 	}
+#endif
+
+#if TORRENT_USE_AIO
+	// this struct is used to hold the handler while
+	// waiting for all async operations to complete
+	struct async_aggregator
+	{
+		async_aggregator() : transferred(0), references(0) {}
+		boost::function<void(error_code const&, size_t)> handler;
+		error_code error;
+		size_t transferred;
+		int references;
+
+		void done(error_code const& ec, size_t bytes_transferred)
+		{
+			if (ec) error = ec;
+			else transferred += bytes_transferred;
+			--references;
+			TORRENT_ASSERT(references >= 0);
+			if (references > 0) return;
+			handler(error, transferred);
+			delete this;
+		}
+	};
 #endif
 
 	class storage : public storage_interface, boost::noncopyable
@@ -402,16 +424,9 @@ namespace libtorrent
 
 #if TORRENT_USE_AIO
 		void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler)
-		{
-		
-		}
-
+			, boost::function<void(error_code const&, size_t)> const& handler);
 		void async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler)
-		{
-		
-		}
+			, boost::function<void(error_code const&, size_t)> const& handler);
 #endif // TORRENT_USE_AIO
 
 		// this identifies a read or write operation
@@ -424,6 +439,12 @@ namespace libtorrent
 			size_type (storage::*unaligned_op)(boost::shared_ptr<file> const& f
 				, size_type file_offset, file::iovec_t const* bufs, int num_bufs
 				, error_code& ec);
+#if TORRENT_USE_AIO
+			void (file::*async_op)(aio_service& ios, size_type offset
+				, file::iovec_t const* bufs, int num_bufs
+				, boost::function<void(error_code const&, size_t)> const& handler);
+			async_aggregator* handler;
+#endif
 			int cache_setting;
 			int mode;
 		};
@@ -1022,6 +1043,9 @@ ret:
 		}
 #endif
 		fileop op = { &file::writev, &storage::write_unaligned
+#if TORRENT_USE_AIO
+			, 0, 0
+#endif
 			, m_settings ? settings().disk_io_write_mode : 0, file::read_write };
 #ifdef TORRENT_DISK_STATS
 		int ret = readwritev(bufs, slot, offset, num_bufs, op, ec);
@@ -1079,6 +1103,9 @@ ret:
 		}
 #endif
 		fileop op = { &file::readv, &storage::read_unaligned
+#if TORRENT_USE_AIO
+			, 0, 0
+#endif
 			, m_settings ? settings().disk_io_read_mode : 0, file::read_only };
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		boost::thread::sleep(boost::get_system_time()
@@ -1096,6 +1123,44 @@ ret:
 		return readwritev(bufs, slot, offset, num_bufs, op, ec);
 #endif
 	}
+
+#if TORRENT_USE_AIO
+	void storage::async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+		, boost::function<void(error_code const&, size_t)> const& handler)
+	{
+		async_aggregator* a = new async_aggregator;
+		a->handler = handler;
+
+		fileop op = { &file::readv, &storage::read_unaligned, &file::async_readv
+			, a, m_settings ? settings().disk_io_read_mode : 0, file::read_only };
+		error_code ec;
+		readwritev(bufs, slot, offset, num_bufs, op, ec);
+		if (a->references == 0)
+		{
+			delete a;
+//			m_disk_io_service->post(boost::bind(handler, ec, 0));
+			handler(ec, 0);
+		}
+	}
+
+	void storage::async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+		, boost::function<void(error_code const&, size_t)> const& handler)
+	{
+		async_aggregator* a = new async_aggregator;
+		a->handler = handler;
+
+		fileop op = { &file::writev, &storage::write_unaligned, &file::async_writev
+			, a, m_settings ? settings().disk_io_write_mode : 0, file::read_write };
+		error_code ec;
+		readwritev(bufs, slot, offset, num_bufs, op, ec);
+		if (a->references == 0)
+		{
+			delete a;
+//			m_disk_io_service->post(boost::bind(handler, ec, 0));
+			handler(ec, 0);
+		}
+	}
+#endif // TORRENT_USE_AIO
 
 	// much of what needs to be done when reading and writing 
 	// is buffer management and piece to file mapping. Most
@@ -1204,7 +1269,28 @@ ret:
 			// read is unaligned, we need to fall back on a slow
 			// special read that reads aligned buffers and copies
 			// it into the one supplied
-			if ((file_handle->open_mode() & file::no_buffer)
+			if (op.async_op)
+			{
+				TORRENT_ASSERT(op.handler);
+				// posix AIO can't combine async. file operations with iovec buffers
+				// we need to issue one operation per buffer
+#ifdef TORRENT_WINDOWS
+				const file::iovec_t* i = tmp_bufs;
+				const int j = num_tmp_bufs;
+				const size_type off = file_iter->file_base + file_offset;
+#else
+				const int j = 1;
+				size_type off = file_iter->file_base + file_offset;
+				for (file::iovec_t* i = tmp_bufs; i != tmp_bufs + num_tmp_bufs
+					; off += i->iov_len, ++i)
+#endif
+				{
+					++op.handler->references;
+					((*file_handle).*op.async_op)(*m_disk_io_service, off
+						, i, j, boost::bind(&async_aggregator::done, op.handler, _1, _2));
+				}
+			}
+			else if ((file_handle->open_mode() & file::no_buffer)
 				&& (((file_iter->file_base + file_offset) & (file_handle->pos_alignment()-1)) != 0
 				|| (uintptr_t(tmp_bufs->iov_base) & (file_handle->buf_alignment()-1)) != 0))
 			{
@@ -2468,7 +2554,7 @@ ret:
 
 		TORRENT_ASSERT(m_state == state_full_check);
 
-		int skip = check_one_piece(have_piece);
+		int skip = check_one_piece(have_piece, error);
 		TORRENT_ASSERT(m_current_slot <= m_files.num_pieces());
 
 		if (skip == -1)
@@ -2562,7 +2648,7 @@ ret:
 	}
 
 	// -1 = error, 0 = ok, >0 = skip this many pieces
-	int piece_manager::check_one_piece(int& have_piece)
+	int piece_manager::check_one_piece(int& have_piece, error_code& ec)
 	{
 		// ------------------------
 		//    DO THE FULL CHECK
@@ -2585,7 +2671,6 @@ ret:
 		int small_piece_size = m_files.piece_size(m_files.num_pieces() - 1);
 		bool read_short = true;
 		sha1_hash small_hash;
-		error_code ec;
 		if (piece_size == small_piece_size)
 		{
 			num_read = hash_for_slot(m_current_slot, ph, piece_size, ec);
