@@ -96,6 +96,27 @@ public:
 		m_password = password;
 	}
 
+	void set_dst_name(std::string const& host)
+	{
+		m_dst_name = host;
+		if (m_dst_name.size() > 255)
+			m_dst_name.resize(255);
+	}
+
+	void close(error_code& ec)
+	{
+		m_hostname.clear();
+		m_dst_name.clear();
+		proxy_base::close(ec);
+	}
+
+	void close()
+	{
+		m_hostname.clear();
+		m_dst_name.clear();
+		proxy_base::close();
+	}
+
 	typedef boost::function<void(error_code const&)> handler_type;
 
 //#error fix error messages to use custom error_code category
@@ -112,7 +133,7 @@ public:
 		//   3.1 send SOCKS5 authentication method message
 		//   3.2 read SOCKS5 authentication response
 		//   3.3 send username+password
-		// 4 send SOCKS command message
+		// 4. send SOCKS command message
 
 		// to avoid unnecessary copying of the handler,
 		// store it in a shaed_ptr
@@ -142,6 +163,7 @@ private:
 	// proxy authentication
 	std::string m_user;
 	std::string m_password;
+	std::string m_dst_name;
 	int m_version;
 	int m_command;
 	// set to one when we're waiting for the

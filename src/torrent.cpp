@@ -1729,7 +1729,7 @@ namespace libtorrent
 				, tracker_ips.end(), boost::bind(&address::is_v4, _1) != tracker_ip.is_v4());
 			if (i != tracker_ips.end())
 			{
-				// the tracker did resolve to a different type if address, so announce
+				// the tracker did resolve to a different type of address, so announce
 				// to that as well
 
 				// tell the tracker to bind to the opposite protocol type
@@ -3333,6 +3333,18 @@ namespace libtorrent
 			// TODO: we have already resolved this URL, just connect
 		}
 
+		if (m_ses.m_port_filter.access(port) & port_filter::blocked)
+		{
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
+			{
+				m_ses.m_alerts.post_alert(
+				url_seed_alert(get_handle(), web->url, errors::port_blocked));
+			}
+			// never try it again
+			m_web_seeds.erase(web);
+			return;
+		}
+
 		web->resolving = true;
 		proxy_settings const& ps = m_ses.web_seed_proxy();
 		if (ps.type == proxy_settings::http
@@ -3343,20 +3355,14 @@ namespace libtorrent
 			m_ses.m_host_resolver.async_resolve(q,
 				boost::bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, web));
 		}
+		else if (ps.proxy_hostnames
+			&& (ps.type == proxy_settings::socks5
+				|| ps.type == proxy_settings::socks5_pw))
+		{
+			connect_web_seed(web, tcp::endpoint(address(), port));
+		}
 		else
 		{
-			if (m_ses.m_port_filter.access(port) & port_filter::blocked)
-			{
-				if (m_ses.m_alerts.should_post<url_seed_alert>())
-				{
-					m_ses.m_alerts.post_alert(
-					url_seed_alert(get_handle(), web->url, errors::port_blocked));
-				}
-				// never try it again
-				m_web_seeds.erase(web);
-				return;
-			}
-
 			tcp::resolver::query q(hostname, to_string(port).elems);
 			m_ses.m_host_resolver.async_resolve(q,
 				boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web
@@ -3456,7 +3462,11 @@ namespace libtorrent
 		}
 
 		tcp::endpoint a(host->endpoint());
+		connect_web_seed(web, a);
+	}
 
+	void torrent::connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint const& a)
+	{
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
 			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
@@ -3476,12 +3486,29 @@ namespace libtorrent
 		(void)ret;
 		TORRENT_ASSERT(ret);
 
-		if (m_ses.web_seed_proxy().type == proxy_settings::http
-			|| m_ses.web_seed_proxy().type == proxy_settings::http_pw)
+		proxy_settings const& ps = m_ses.web_seed_proxy();
+		if (ps.type == proxy_settings::http
+			|| ps.type == proxy_settings::http_pw)
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
 			s->get<http_stream>()->set_no_connect(true);
+		}
+
+		if (ps.proxy_hostnames
+			&& (ps.type == proxy_settings::socks5
+				|| ps.type == proxy_settings::socks5_pw))
+		{
+			// we're using a socks proxy and we're resolving
+			// hostnames through it
+			TORRENT_ASSERT(s->get<socks5_stream>());
+
+			using boost::tuples::ignore;
+			std::string hostname;
+			error_code ec;
+			boost::tie(ignore, ignore, hostname, ignore, ignore)
+				= parse_url_components(web->url, ec);
+			s->get<socks5_stream>()->set_dst_name(hostname);
 		}
 
 		boost::intrusive_ptr<peer_connection> c;

@@ -79,6 +79,9 @@ namespace libtorrent
 			return;
 		}
 
+		m_sock.open(i->endpoint().protocol());
+		// TOOD: we could bind the socket here, since we know what the
+		// target endpoint is of the proxy
 		m_sock.async_connect(i->endpoint(), boost::bind(
 			&socks5_stream::connected, this, _1, h));
 	}
@@ -259,14 +262,27 @@ namespace libtorrent
 		if (m_version == 5)
 		{
 			// send SOCKS5 connect command
-			m_buffer.resize(6 + (m_remote_endpoint.address().is_v4()?4:16));
+			m_buffer.resize(6 + (!m_dst_name.empty()
+				?m_dst_name.size() + 1
+				:(m_remote_endpoint.address().is_v4()?4:16)));
 			char* p = &m_buffer[0];
 			write_uint8(5, p); // SOCKS VERSION 5
 			write_uint8(m_command, p); // CONNECT/BIND command
 			write_uint8(0, p); // reserved
-			write_uint8(m_remote_endpoint.address().is_v4()?1:4, p); // address type
-			write_endpoint(m_remote_endpoint, p);
-			TORRENT_ASSERT(p - &m_buffer[0] == int(m_buffer.size()));
+			if (!m_dst_name.empty())
+			{
+				write_uint8(3, p); // address type
+				TORRENT_ASSERT(m_dst_name.size() <= 255);
+				write_uint8(m_dst_name.size(), p);
+				std::copy(m_dst_name.begin(), m_dst_name.end(), p);
+				p += m_dst_name.size();
+			}
+			else
+			{
+				write_uint8(m_remote_endpoint.address().is_v4()?1:4, p); // address type
+				write_address(m_remote_endpoint.address(), p);
+			}
+			write_uint16(m_remote_endpoint.port(), p);
 		}
 		else if (m_version == 4)
 		{

@@ -122,25 +122,35 @@ public:
 #ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& endpoint)
 	{
-		m_sock.bind(endpoint);
+//		m_sock.bind(endpoint);
 	}
 #endif
 
 	void bind(endpoint_type const& endpoint, error_code& ec)
 	{
-		m_sock.bind(endpoint, ec);
+		// the reason why we ignore binds here is because we don't
+		// (necessarily) yet know what address family the proxy
+		// will resolve to, and binding to the wrong one would
+		// break our connection attempt later. The caller here
+		// doesn't necessarily know that we're proxying, so this
+		// bind address is based on the final endpoint, not the
+		// proxy.
+		// TODO: it would be nice to remember the bind port and bind once we know where the proxy is
+//		m_sock.bind(endpoint, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void open(protocol_type const& p)
 	{
-		m_sock.open(p);
+//		m_sock.open(p);
 	}
 #endif
 
 	void open(protocol_type const& p, error_code& ec)
 	{
-		m_sock.open(p, ec);
+		// we need to ignore this for the same reason as stated
+		// for ignoring bind()
+//		m_sock.open(p, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -154,6 +164,7 @@ public:
 
 	void close(error_code& ec)
 	{
+		m_remote_endpoint = endpoint_type();
 		m_sock.close(ec);
 		m_resolver.cancel();
 	}

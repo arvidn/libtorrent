@@ -160,6 +160,8 @@ private:
 
 	std::vector<char> m_recvbuffer;
 #ifdef TORRENT_USE_OPENSSL
+	// TODO: for proxies to work correctly over SSL, the
+	// ssl_stream needs to be wrapped inside the socket_type
 	variant_stream<socket_type, ssl_stream<socket_type> > m_sock;
 #else
 	socket_type m_sock;
