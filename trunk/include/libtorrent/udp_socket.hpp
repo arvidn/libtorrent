@@ -53,8 +53,10 @@ namespace libtorrent
 	public:
 		typedef boost::function<void(error_code const& ec
 			, udp::endpoint const&, char const* buf, int size)> callback_t;
+		typedef boost::function<void(error_code const& ec
+			, char const*, char const* buf, int size)> callback2_t;
 
-		udp_socket(io_service& ios, callback_t const& c, connection_queue& cc);
+		udp_socket(io_service& ios, callback_t const& c, callback2_t const& c2, connection_queue& cc);
 		~udp_socket();
 
 		bool is_open() const
@@ -66,6 +68,9 @@ namespace libtorrent
 				;
 		}
 		io_service& get_io_service() { return m_ipv4_sock.get_io_service(); }
+
+		// this is only valid when using a socks5 proxy
+		void send_hostname(char const* hostname, int port, char const* p, int len, error_code& ec);
 
 		void send(udp::endpoint const& ep, char const* p, int len, error_code& ec);
 		void bind(udp::endpoint const& ep, error_code& ec);
@@ -89,12 +94,18 @@ namespace libtorrent
 		struct queued_packet
 		{
 			udp::endpoint ep;
+			char* hostname;
 			buffer buf;
 		};
 
 	private:
 
+		// callback for regular incoming packets
 		callback_t m_callback;
+
+		// callback for proxied incoming packets with a domain
+		// name as source
+		callback2_t m_callback2;
 
 		void on_read(udp::socket* sock, error_code const& e, std::size_t bytes_transferred);
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
@@ -111,6 +122,7 @@ namespace libtorrent
 		void hung_up(error_code const& e);
 
 		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
+		void wrap(char const* hostname, int port, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
 
 		mutable mutex m_mutex;
@@ -133,7 +145,7 @@ namespace libtorrent
 		proxy_settings m_proxy_settings;
 		connection_queue& m_cc;
 		tcp::resolver m_resolver;
-		char m_tmp_buf[100];
+		char m_tmp_buf[270];
 		bool m_queue_packets;
 		bool m_tunnel_packets;
 		bool m_abort;
@@ -151,7 +163,7 @@ namespace libtorrent
 
 	struct rate_limited_udp_socket : public udp_socket
 	{
-		rate_limited_udp_socket(io_service& ios, callback_t const& c, connection_queue& cc);
+		rate_limited_udp_socket(io_service& ios, callback_t const& c, callback2_t const& c2, connection_queue& cc);
 		void set_rate_limit(int limit) { m_rate_limit = limit; }
 		bool can_send() const { return int(m_queue.size()) >= m_queue_size_limit; }
 		bool send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags = 0);

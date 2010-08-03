@@ -3174,9 +3174,11 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_connecting);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		error_code ec;
-		(*m_ses.m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << m_remote.address().to_string(ec)
+		(*m_ses.m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << print_endpoint(m_remote)
 			<< "\n";
+#endif
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_logger) << time_now_string() << " CONNECTION TIMED OUT: " << print_endpoint(m_remote) << "\n";
 #endif
 		disconnect(errors::timed_out, 1);
 	}
@@ -4786,8 +4788,7 @@ namespace libtorrent
 
 		error_code ec;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_ses.m_logger) << time_now_string() << " CONNECTING: " << m_remote.address().to_string(ec)
-			<< ":" << m_remote.port() << "\n";
+		(*m_ses.m_logger) << time_now_string() << " ON_CONNECT: " << print_endpoint(m_remote) << "\n";
 #endif
 
 		m_connection_ticket = ticket;
@@ -4802,17 +4803,10 @@ namespace libtorrent
 			return;
 		}
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_logger) << time_now_string() << " OPEN " << (m_remote.address().is_v4()?"IPv4":"IPv6") << "\n";
+#endif
 		m_socket->open(m_remote.protocol(), ec);
-		if (ec)
-		{
-			disconnect(ec);
-			return;
-		}
-
-		// set the socket to non-blocking, so that we can
-		// read the entire buffer on each read event we get
-		tcp::socket::non_blocking_io ioc(true);
-		m_socket->io_control(ioc, ec);
 		if (ec)
 		{
 			disconnect(ec);
@@ -4824,12 +4818,18 @@ namespace libtorrent
 		std::pair<int, int> const& out_ports = m_ses.settings().outgoing_ports;
 		if (out_ports.first > 0 && out_ports.second >= out_ports.first)
 		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_logger) << time_now_string() << " SET REUSE ADDRESS\n";
+#endif
 			m_socket->set_option(socket_acceptor::reuse_address(true), ec);
-			if (ec)
-			{
-				disconnect(ec);
-				return;
-			}
+			// ignore errors because the underlying socket may not
+			// be opened yet. This happens when we're routing through
+			// a proxy. In that case, we don't yet know the address of
+			// the proxy server, and more importantly, we don't know
+			// the address family of its address. This means we can't
+			// open the socket yet. The socks abstraction layer defers
+			// opening it.
+			ec.clear();
 			bind_interface.port(m_ses.next_port());
 		}
 
@@ -4845,12 +4845,21 @@ namespace libtorrent
 				bind_interface.address(address_v4::any());
 		}
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_logger) << time_now_string() << " BIND: " << print_endpoint(bind_interface) << "\n";
+#endif
 		m_socket->bind(bind_interface, ec);
 		if (ec)
 		{
 			disconnect(ec);
 			return;
 		}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_ses.m_logger) << time_now_string() << " ASYNC_CONNECT: " << print_endpoint(m_remote) << "\n";
+#endif
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_logger) << time_now_string() << " ASYNC_CONNECT: " << print_endpoint(m_remote) << "\n";
+#endif
 		m_socket->async_connect(m_remote
 			, boost::bind(&peer_connection::on_connection_complete, self(), _1));
 		m_connect = time_now();
@@ -4882,7 +4891,11 @@ namespace libtorrent
 		if (e)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_ses.m_logger) << time_now_string() << " CONNECTION FAILED: " << m_remote.address().to_string(ec)
+			(*m_ses.m_logger) << time_now_string() << " CONNECTION FAILED: " << print_endpoint(m_remote)
+				<< ": " << e.message() << "\n";
+#endif
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_logger) << time_now_string() << " CONNECTION FAILED: " << print_endpoint(m_remote)
 				<< ": " << e.message() << "\n";
 #endif
 			disconnect(e, 1);
@@ -4898,9 +4911,22 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_socket);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		(*m_ses.m_logger) << time_now_string() << " COMPLETED: " << m_remote.address().to_string(ec)
+		(*m_ses.m_logger) << time_now_string() << " COMPLETED: " << print_endpoint(m_remote)
 			<< " rtt = " << m_rtt << "\n";
 #endif
+
+		// set the socket to non-blocking, so that we can
+		// read the entire buffer on each read event we get
+		tcp::socket::non_blocking_io ioc(true);
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_logger) << time_now_string() << " SET NON-BLOCKING\n";
+#endif
+		m_socket->io_control(ioc, ec);
+		if (ec)
+		{
+			disconnect(ec);
+			return;
+		}
 
 		if (m_remote == m_socket->local_endpoint(ec))
 		{

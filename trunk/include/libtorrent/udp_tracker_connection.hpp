@@ -93,8 +93,11 @@ namespace libtorrent
 
 		void name_lookup(error_code const& error, tcp::resolver::iterator i);
 		void timeout(error_code const& error);
+		void start_announce();
 
 		bool on_receive(error_code const& e, udp::endpoint const& ep
+			, char const* buf, int size);
+		bool on_receive_hostname(error_code const& e, char const* hostname
 			, char const* buf, int size);
 		bool on_connect_response(char const* buf, int size);
 		bool on_announce_response(char const* buf, int size);
@@ -108,9 +111,8 @@ namespace libtorrent
 
 		tracker_manager& m_man;
 
-//		udp::resolver m_name_lookup;
-//		udp_socket m_socket;
 		bool m_abort;
+		std::string m_hostname;
 		udp::endpoint m_target;
 		std::list<tcp::endpoint> m_endpoints;
 
@@ -128,6 +130,8 @@ namespace libtorrent
 		static mutex m_cache_mutex;
 
 		action_t m_state;
+
+		proxy_settings m_proxy;
 	};
 
 }

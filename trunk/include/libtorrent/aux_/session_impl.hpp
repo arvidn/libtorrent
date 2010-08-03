@@ -717,6 +717,9 @@ namespace libtorrent
 			void on_receive_udp(error_code const& e
 				, udp::endpoint const& ep, char const* buf, int len);
 
+			void on_receive_udp_hostname(error_code const& e
+				, char const* hostname, char const* buf, int len);
+
 			// this announce timer is used
 			// by the DHT.
 			deadline_timer m_dht_announce_timer;

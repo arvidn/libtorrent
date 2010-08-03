@@ -96,7 +96,7 @@ namespace libtorrent
 		// according to the settings.
 		set_timeout(ses.settings().urlseed_timeout);
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << "*** web_peer_connection\n";
+		(*m_logger) << "*** web_peer_connection " << url << "\n";
 #endif
 
 		std::string protocol;
