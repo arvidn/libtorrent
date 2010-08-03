@@ -1,3 +1,4 @@
+	* restored default fail_limit to unlimited on all trackers
 	* fixed rate limit bug for DHT
 	* fixed SOCKS5 bug for routing UDP packets
 	* fixed bug on windows when verifying resume data for a torrent where
