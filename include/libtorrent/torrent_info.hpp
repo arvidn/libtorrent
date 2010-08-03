@@ -82,7 +82,7 @@ namespace libtorrent
 			, next_announce(min_time())
 			, min_announce(min_time())
 			, tier(0)
-			, fail_limit(3)
+			, fail_limit(0)
 			, fails(0)
 			, source(0)
 			, verified(false)
