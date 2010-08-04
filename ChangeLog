@@ -1,4 +1,5 @@
 
+	* updated compiler to msvc 2008 for python binding
 	* fixed SOCKS5 bug for routing UDP packets
 	* fixed bug on windows when verifying resume data for a torrent where
 	  one of its directories had been removed
