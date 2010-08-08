@@ -277,27 +277,6 @@ namespace libtorrent
 		return ret;
 	}
 
-	// for backwards compatibility, implement the default async_readv and
-	// async_writev in terms of readv and writev. Obviously they won't be
-	// async, but at least it will work no worse than the non-aio version
-	void storage_interface::async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-		, boost::function<void(error_code const&, size_t)> const& handler)
-	{
-		error_code ec;
-		size_t ret = readv(bufs, slot, offset, num_bufs, ec);
-		TORRENT_ASSERT(m_disk_io_service);
-		m_disk_io_service->post(boost::bind(handler, ec, ret));
-	}
-
-	void storage_interface::async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-		, boost::function<void(error_code const&, size_t)> const& handler)
-	{
-		error_code ec;
-		size_t ret = writev(bufs, slot, offset, num_bufs, ec);
-		TORRENT_ASSERT(m_disk_io_service);
-		m_disk_io_service->post(boost::bind(handler, ec, ret));
-	}
-
 	int copy_bufs(file::iovec_t const* bufs, int bytes, file::iovec_t* target)
 	{
 		int size = 0;
@@ -362,30 +341,6 @@ namespace libtorrent
 	}
 #endif
 
-#if TORRENT_USE_AIO
-	// this struct is used to hold the handler while
-	// waiting for all async operations to complete
-	struct async_aggregator
-	{
-		async_aggregator() : transferred(0), references(0) {}
-		boost::function<void(error_code const&, size_t)> handler;
-		error_code error;
-		size_t transferred;
-		int references;
-
-		void done(error_code const& ec, size_t bytes_transferred)
-		{
-			if (ec) error = ec;
-			else transferred += bytes_transferred;
-			--references;
-			TORRENT_ASSERT(references >= 0);
-			if (references > 0) return;
-			handler(error, transferred);
-			delete this;
-		}
-	};
-#endif
-
 	class storage : public storage_interface, boost::noncopyable
 	{
 	public:
@@ -422,36 +377,41 @@ namespace libtorrent
 		bool verify_resume_data(lazy_entry const& rd, error_code& error);
 		void write_resume_data(entry& rd, error_code& ec) const;
 
-#if TORRENT_USE_AIO
-		void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+		file::aiocb_t* async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
 			, boost::function<void(error_code const&, size_t)> const& handler);
-		void async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+		file::aiocb_t* async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
 			, boost::function<void(error_code const&, size_t)> const& handler);
-#endif // TORRENT_USE_AIO
 
 		// this identifies a read or write operation
 		// so that storage::readwrite() knows what to
 		// do when it's actually touching the file
 		struct fileop
 		{
+			// this is the function to be called on the file object, for
+			// regular, aligned, operations
 			size_type (file::*regular_op)(size_type file_offset
 				, file::iovec_t const* bufs, int num_bufs, error_code& ec);
+			// this is the function to be called on the file object, for
+			// unaligned operations
 			size_type (storage::*unaligned_op)(boost::shared_ptr<file> const& f
 				, size_type file_offset, file::iovec_t const* bufs, int num_bufs
 				, error_code& ec);
-#if TORRENT_USE_AIO
-			void (file::*async_op)(aio_service& ios, size_type offset
-				, file::iovec_t const* bufs, int num_bufs
-				, boost::function<void(error_code const&, size_t)> const& handler);
-			async_aggregator* handler;
-#endif
+			// this is the function to be called on the file object, for
+			// async operations
+			file::aiocb_t* (file::*async_op)(size_type offset
+				, file::iovec_t const* bufs, int num_bufs);
+			// for async operations, this is the handler that will be added
+			// to every aiocb_t in the returned chain
+			async_handler* handler;
+			// for async operations, this is the returned aiocb_t chain
+			file::aiocb_t* ret;
 			int cache_setting;
 			int mode;
 		};
 
 		void delete_one_file(std::string const& p, error_code& ec);
 		int readwritev(file::iovec_t const* bufs, int slot, int offset
-			, int num_bufs, fileop const&, error_code& ec);
+			, int num_bufs, fileop& op, error_code& ec);
 
 		~storage()
 		{ m_pool.release(this); }
@@ -1043,9 +1003,7 @@ ret:
 		}
 #endif
 		fileop op = { &file::writev, &storage::write_unaligned
-#if TORRENT_USE_AIO
-			, 0, 0
-#endif
+			, 0, 0, 0
 			, m_settings ? settings().disk_io_write_mode : 0, file::read_write };
 #ifdef TORRENT_DISK_STATS
 		int ret = readwritev(bufs, slot, offset, num_bufs, op, ec);
@@ -1103,9 +1061,7 @@ ret:
 		}
 #endif
 		fileop op = { &file::readv, &storage::read_unaligned
-#if TORRENT_USE_AIO
-			, 0, 0
-#endif
+			, 0, 0, 0
 			, m_settings ? settings().disk_io_read_mode : 0, file::read_only };
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		boost::thread::sleep(boost::get_system_time()
@@ -1124,43 +1080,41 @@ ret:
 #endif
 	}
 
-#if TORRENT_USE_AIO
-	void storage::async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+	file::aiocb_t* storage::async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
 		, boost::function<void(error_code const&, size_t)> const& handler)
 	{
-		async_aggregator* a = new async_aggregator;
+		async_handler* a = new async_handler;
 		a->handler = handler;
 
 		fileop op = { &file::readv, &storage::read_unaligned, &file::async_readv
-			, a, m_settings ? settings().disk_io_read_mode : 0, file::read_only };
+			, a, 0, m_settings ? settings().disk_io_read_mode : 0, file::read_only };
 		error_code ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
 		if (a->references == 0)
 		{
 			delete a;
-//			m_disk_io_service->post(boost::bind(handler, ec, 0));
 			handler(ec, 0);
 		}
+		return op.ret;
 	}
 
-	void storage::async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+	file::aiocb_t* storage::async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
 		, boost::function<void(error_code const&, size_t)> const& handler)
 	{
-		async_aggregator* a = new async_aggregator;
+		async_handler* a = new async_handler;
 		a->handler = handler;
 
 		fileop op = { &file::writev, &storage::write_unaligned, &file::async_writev
-			, a, m_settings ? settings().disk_io_write_mode : 0, file::read_write };
+			, a, 0, m_settings ? settings().disk_io_write_mode : 0, file::read_write };
 		error_code ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
 		if (a->references == 0)
 		{
 			delete a;
-//			m_disk_io_service->post(boost::bind(handler, ec, 0));
 			handler(ec, 0);
 		}
+		return op.ret;
 	}
-#endif // TORRENT_USE_AIO
 
 	// much of what needs to be done when reading and writing 
 	// is buffer management and piece to file mapping. Most
@@ -1168,7 +1122,7 @@ ret:
 	// is a template, and the fileop decides what to do with the
 	// file and the buffers.
 	int storage::readwritev(file::iovec_t const* bufs, int slot, int offset
-		, int num_bufs, fileop const& op, error_code& ec)
+		, int num_bufs, fileop& op, error_code& ec)
 	{
 		TORRENT_ASSERT(bufs != 0);
 		TORRENT_ASSERT(slot >= 0);
@@ -1176,6 +1130,9 @@ ret:
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(offset < m_files.piece_size(slot));
 		TORRENT_ASSERT(num_bufs > 0);
+
+		// this is the end of the chain where we add more aiocb_t entries
+		file::aiocb_t** last = &op.ret;
 
 		int size = bufs_size(bufs, num_bufs);
 		TORRENT_ASSERT(size > 0);
@@ -1272,22 +1229,17 @@ ret:
 			if (op.async_op)
 			{
 				TORRENT_ASSERT(op.handler);
-				// posix AIO can't combine async. file operations with iovec buffers
-				// we need to issue one operation per buffer
-#ifdef TORRENT_WINDOWS
-				const file::iovec_t* i = tmp_bufs;
-				const int j = num_tmp_bufs;
-				const size_type off = file_iter->file_base + file_offset;
-#else
-				const int j = 1;
-				size_type off = file_iter->file_base + file_offset;
-				for (file::iovec_t* i = tmp_bufs; i != tmp_bufs + num_tmp_bufs
-					; off += i->iov_len, ++i)
-#endif
+				file::aiocb_t* aio = ((*file_handle).*op.async_op)(file_iter->file_base + file_offset
+					, tmp_bufs, num_tmp_bufs);
+				// add this to the chain
+				*last = aio;
+				while (aio)
 				{
+					bytes_transferred += aio->nbytes();
+					aio->handler = op.handler;
 					++op.handler->references;
-					((*file_handle).*op.async_op)(*m_disk_io_service, off
-						, i, j, boost::bind(&async_aggregator::done, op.handler, _1, _2));
+					last = &aio->next;
+					aio = aio->next;
 				}
 			}
 			else if ((file_handle->open_mode() & file::no_buffer)
@@ -1466,25 +1418,30 @@ ret:
 			return ret;
 		}
 
-#if TORRENT_USE_AIO
-		void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+		file::aiocb_t* async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
 			, boost::function<void(error_code const&, size_t)> const& handler)
 		{
+			// #error figure this out
+/*
 			error_code ec;
 			int ret = bufs_size(bufs, num_bufs);
 			TORRENT_ASSERT(m_disk_io_service);
 			m_disk_io_service->post(boost::bind(handler, ec, ret));
+*/
+			return 0;
 		}
 
-		void async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+		file::aiocb_t* async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
 			, boost::function<void(error_code const&, size_t)> const& handler)
 		{
-			error_code ec;
+			// #error figure this out
+/*			error_code ec;
 			int ret = bufs_size(bufs, num_bufs);
 			TORRENT_ASSERT(m_disk_io_service);
 			m_disk_io_service->post(boost::bind(handler, ec, ret));
+*/
+			return 0;
 		}
-#endif // TORRENT_USE_AIO
 
 		void move_slot(int src_slot, int dst_slot, error_code& ec) {}
 		void swap_slots(int slot1, int slot2, error_code& ec) {}
@@ -1530,7 +1487,7 @@ ret:
 		, m_torrent(torrent)
 	{
 		m_storage->m_disk_pool = &m_io_thread;
-		m_storage->m_disk_io_service = &m_io_thread.get_disk_io_service();
+//		m_storage->m_disk_io_service = &m_io_thread.get_disk_io_service();
 	}
 
 	void piece_manager::finalize_file(int index, error_code& ec)
@@ -1821,7 +1778,7 @@ ret:
 		m_free_slots.push_back(slot_index);
 	}
 
-	void piece_manager::read_async_impl(
+	file::aiocb_t* piece_manager::read_async_impl(
 		file::iovec_t* bufs
 		, int piece_index
 		, int offset
@@ -1833,10 +1790,10 @@ ret:
 		TORRENT_ASSERT(num_bufs > 0);
 		m_last_piece = piece_index;
 		int slot = slot_for(piece_index);
-		m_storage->async_readv(bufs, slot, offset, num_bufs, handler);
+		return m_storage->async_readv(bufs, slot, offset, num_bufs, handler);
 	}
 
-	void piece_manager::write_async_impl(
+	file::aiocb_t* piece_manager::write_async_impl(
 		file::iovec_t* bufs
 		, int piece_index
 		, int offset
@@ -1854,8 +1811,9 @@ ret:
 		std::copy(bufs, bufs + num_bufs, iov);
 		m_last_piece = piece_index;
 		int slot = allocate_slot_for_piece(piece_index);
-		m_storage->async_writev(bufs, slot, offset, num_bufs, handler);
+		file::aiocb_t* ret = m_storage->async_writev(bufs, slot, offset, num_bufs, handler);
 
+		// #error post this to a separate thread to do hashing
 		if (offset == 0)
 		{
 			partial_hash& ph = m_piece_hasher[piece_index];
@@ -1931,125 +1889,9 @@ ret:
 			}
 #endif
 		}
-	}
-/*
-	int piece_manager::read_impl(
-		file::iovec_t* bufs
-		, int piece_index
-		, int offset
-		, int num_bufs)
-	{
-// #error implement coalesce reads if TORRENT_USE_READV is 0
-		TORRENT_ASSERT(bufs);
-		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(num_bufs > 0);
-		m_last_piece = piece_index;
-		int slot = slot_for(piece_index);
-		return m_storage->readv(bufs, slot, offset, num_bufs);
-	}
-
-	int piece_manager::write_impl(
-		file::iovec_t* bufs
-	  , int piece_index
-	  , int offset
-	  , int num_bufs)
-	{
-// #error implement coalesce writes if TORRENT_USE_WRITEV is 0
-		TORRENT_ASSERT(bufs);
-		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(num_bufs > 0);
-		TORRENT_ASSERT(piece_index >= 0 && piece_index < m_files.num_pieces());
-
-		int size = bufs_size(bufs, num_bufs);
-
-		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, num_bufs);
-		std::copy(bufs, bufs + num_bufs, iov);
-		m_last_piece = piece_index;
-		int slot = allocate_slot_for_piece(piece_index);
-		int ret = m_storage->writev(bufs, slot, offset, num_bufs);
-		// only save the partial hash if the write succeeds
-		if (ret != size) return ret;
-
-#if defined TORRENT_PARTIAL_HASH_LOG && TORRENT_USE_IOSTREAM
-		std::ofstream out("partial_hash.log", std::ios::app);
-#endif
-
-		if (offset == 0)
-		{
-			partial_hash& ph = m_piece_hasher[piece_index];
-			TORRENT_ASSERT(ph.offset == 0);
-			ph.offset = size;
-
-			for (file::iovec_t* i = iov, *end(iov + num_bufs); i < end; ++i)
-				ph.h.update((char const*)i->iov_base, i->iov_len);
-
-#if defined TORRENT_PARTIAL_HASH_LOG && TORRENT_USE_IOSTREAM
-			out << time_now_string() << " NEW ["
-				" s: " << this
-				<< " p: " << piece_index
-				<< " off: " << offset
-				<< " size: " << size
-				<< " entries: " << m_piece_hasher.size()
-				<< " ]" << std::endl;
-#endif
-		}
-		else
-		{
-			std::map<int, partial_hash>::iterator i = m_piece_hasher.find(piece_index);
-			if (i != m_piece_hasher.end())
-			{
-#ifdef TORRENT_DEBUG
-				TORRENT_ASSERT(i->second.offset > 0);
-				int hash_offset = i->second.offset;
-				TORRENT_ASSERT(offset >= hash_offset);
-#endif
-				if (offset == i->second.offset)
-				{
-#ifdef TORRENT_PARTIAL_HASH_LOG
-					out << time_now_string() << " UPDATING ["
-						" s: " << this
-						<< " p: " << piece_index
-						<< " off: " << offset
-						<< " size: " << size
-						<< " entries: " << m_piece_hasher.size()
-						<< " ]" << std::endl;
-#endif
-					for (file::iovec_t* b = iov, *end(iov + num_bufs); b < end; ++b)
-					{
-						i->second.h.update((char const*)b->iov_base, b->iov_len);
-						i->second.offset += b->iov_len;
-					}
-				}
-#ifdef TORRENT_PARTIAL_HASH_LOG
-				else
-				{
-					out << time_now_string() << " SKIPPING (out of order) ["
-						" s: " << this
-						<< " p: " << piece_index
-						<< " off: " << offset
-						<< " size: " << size
-						<< " entries: " << m_piece_hasher.size()
-						<< " ]" << std::endl;
-				}
-#endif
-			}
-#ifdef TORRENT_PARTIAL_HASH_LOG
-			else
-			{
-				out << time_now_string() << " SKIPPING (no entry) ["
-					" s: " << this
-					<< " p: " << piece_index
-					<< " off: " << offset
-					<< " size: " << size
-					<< " entries: " << m_piece_hasher.size()
-					<< " ]" << std::endl;
-			}
-#endif
-		}
-		
 		return ret;
 	}
-*/
+
 	size_type piece_manager::physical_offset(
 		int piece_index
 		, int offset)
@@ -2695,6 +2537,7 @@ ret:
 			{
 				return -1;
 			}
+			ec.clear();
 			// if the file is incomplete, skip the rest of it
 			return skip_file();
 		}

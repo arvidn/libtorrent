@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
 
 #ifdef TORRENT_WINDOWS
@@ -79,27 +80,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <dirent.h> // for DIR
 #endif
 
-#if TORRENT_USE_AIO
 #include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
-#ifdef TORRENT_WINDOWS
-#include <boost/asio/windows/random_access_handle.hpp>
-#else
-#include <boost/asio/posix/random_access_descriptor.hpp>
-#endif // TORRENT_WINDOWS
+
+#if TORRENT_USE_AIO
+#include <aio.h>
 #endif
 
 namespace libtorrent
 {
-#if TORRENT_USE_AIO
-#ifdef TORRENT_WINDOWS
-	typedef boost::asio::windows::random_access_handle aio_handle;
-#else
-	typedef boost::asio::posix::random_access_descriptor aio_handle;
-#endif
-	typedef boost::asio::io_service aio_service;
-#endif
-
 #ifdef TORRENT_WINDOWS
 	typedef HANDLE handle_type;
 #else
@@ -189,6 +177,28 @@ namespace libtorrent
 		bool m_done;
 	};
 
+	// this struct is used to hold the handler while
+	// waiting for all async operations to complete
+	struct async_handler
+	{
+		async_handler() : transferred(0), references(0) {}
+		boost::function<void(error_code const&, size_t)> handler;
+		error_code error;
+		size_t transferred;
+		int references;
+
+		void done(error_code const& ec, size_t bytes_transferred)
+		{
+			if (ec) error = ec;
+			else transferred += bytes_transferred;
+			--references;
+			TORRENT_ASSERT(references >= 0);
+			if (references > 0) return;
+			handler(error, transferred);
+			delete this;
+		}
+	};
+
 	class TORRENT_EXPORT file: public boost::noncopyable
 	{
 	public:
@@ -222,6 +232,63 @@ namespace libtorrent
 		};
 #else
 		typedef iovec iovec_t;
+#endif
+
+		// aiocb_t is a very thin wrapper around
+		// posix AIOs aiocb and window's OVERLAPPED
+		// structure. There's also a platform independent
+		// version that doesn't use aynch. I/O
+#if TORRENT_USE_AIO
+		struct aiocb_t
+		{
+			aiocb_t* next;
+			async_handler* handler;
+			aiocb cb;
+			size_t nbytes() const { return cb.aio_nbytes; }
+		};
+
+		enum
+		{
+			read_op = LIO_READ,
+			write_op = LIO_WRITE
+		};
+#elif TORRENT_USE_OVERLAPPED
+		struct aiocb_t
+		{
+			aiocb_t* next;
+			async_handler* handler;
+			size_t nbytes;
+			int op;
+			OVERLAPPED ov;
+			size_t nbytes() const { return nbytes; }
+		};
+
+		enum
+		{
+			read_op = 1,
+			write_op = 2
+		};
+#else
+		// if there is no aio support on this platform
+		// fall back to an operation that's sortable
+		// by physical disk offset
+		struct aiocb_t
+		{
+			aiocb_t* next;
+			async_handler* handler;
+			int op;
+			size_type offset;
+			size_type nbytes;
+			void* buf;
+			file* file_ptr;
+			size_t nbytes() const { return nbytes; }
+		}
+
+		enum
+		{
+			read_op = 1,
+			write_op = 2
+		};
 #endif
 
 		// use a typedef for the type of iovec_t::iov_base
@@ -264,14 +331,9 @@ namespace libtorrent
 		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 
-#if TORRENT_USE_AIO
-		void async_writev(aio_service& ios, size_type offset
-			, iovec_t const* bufs, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler);
-		void async_readv(aio_service& ios, size_type offset
-			, iovec_t const* bufs, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler);
-#endif
+		// returns a chain of aiocb_t structures
+		aiocb_t* async_writev(size_type offset, iovec_t const* bufs, int num_bufs);
+		aiocb_t* async_readv(size_type offset, iovec_t const* bufs, int num_bufs);
 
 		size_type get_size(error_code& ec) const;
 
@@ -285,10 +347,9 @@ namespace libtorrent
 
 	private:
 
-#if TORRENT_USE_AIO
-		// this is not constructed until we first do an async operation
-		boost::scoped_ptr<aio_handle> m_aio_handle;
-#endif
+		aiocb_t* file::async_io(size_type offset
+			, iovec_t const* bufs, int num_bufs, int op);
+
 		handle_type m_file_handle;
 
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
@@ -310,6 +371,11 @@ namespace libtorrent
 #endif
 
 	};
+
+	// returns two chains, one with jobs that were issued and
+	// one with jobs that couldn't be issued
+	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios);
+	file::aiocb_t* reap_aios(file::aiocb_t* aios);
 
 }
 

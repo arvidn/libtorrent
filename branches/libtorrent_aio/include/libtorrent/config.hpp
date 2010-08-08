@@ -128,12 +128,19 @@ POSSIBILITY OF SUCH DAMAGE.
 // the locale is always utf-8
 #if defined __APPLE__
 #define TORRENT_USE_ICONV 0
+#define TORRENT_USE_MACH_SEMAPHORE 1
+#else
+#define TORRENT_USE_POSIX_SEMAPHORE 1
 #endif
 #define TORRENT_HAS_FALLOCATE 0
+#define TORRENT_USE_AIO 1
+#define TORRENT_AIO_SIGNAL SIGIO
 
 // ==== LINUX ===
 #elif defined __linux__
 #define TORRENT_LINUX
+#define TORRENT_USE_AIO 1
+#define TORRENT_AIO_SIGNAL SIGIO
 
 // ==== MINGW ===
 #elif defined __MINGW32__
@@ -141,6 +148,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_WINDOWS
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_RLIMIT 0
+#define TORRENT_USE_AIO 0
 
 // ==== WINDOWS ===
 #elif defined WIN32
@@ -151,11 +159,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_HAS_FALLOCATE 0
+#define TORRENT_USE_OVERLAPPED 1
 
 // ==== SOLARIS ===
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
 #define TORRENT_COMPLETE_TYPES_REQUIRED 1
+#define TORRENT_USE_AIO 1
+#define TORRENT_AIO_SIGNAL SIGIO
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -265,8 +276,24 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_DEPRECATED
 #endif
 
+#ifndef TORRENT_USE_MACH_SEMAPHORE
+#define TORRENT_USE_MACH_SEMAPHORE 0
+#endif
+
+#ifndef TORRENT_USE_POSIX_SEMAPHORE
+#define TORRENT_USE_POSIX_SEMAPHORE 0
+#endif
+
 #ifndef TORRENT_USE_AIO
 #define TORRENT_USE_AIO 1
+#endif
+
+#ifndef TORRENT_AIO_SIGNAL
+#define TORRENT_AIO_SIGNAL SIGUSR1
+#endif
+
+#ifndef TORRENT_USE_OVERLAPPED
+#define TORRENT_USE_OVERLAPPED 0
 #endif
 
 #ifndef TORRENT_COMPLETE_TYPES_REQUIRED

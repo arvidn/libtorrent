@@ -58,6 +58,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/disk_io_job.hpp"
 
+#include <boost/intrusive_ptr.hpp> // atomic_count
+
 namespace libtorrent
 {
 	struct cached_piece_info
@@ -133,8 +135,6 @@ namespace libtorrent
 		void stop(boost::intrusive_ptr<piece_manager> s);
 		void add_job(disk_io_job const& j);
 
-		random_access_handle_service& get_disk_io_service() { return m_disk_io_service; }
-
 		void get_cache_info_impl(void*, std::vector<cached_piece_info>*, condition*, mutex*);
 		void get_cache_info(void* st, std::vector<cached_piece_info>& ret) const;
 
@@ -178,8 +178,6 @@ namespace libtorrent
 		
 	private:
 
-		void maybe_issue_deferred_job();
-		bool maybe_defer(disk_io_job const& j);
 		void perform_async_job(disk_io_job j);
 
 		void uncork_jobs();
@@ -233,8 +231,20 @@ namespace libtorrent
 		boost::uint64_t m_write_blocks;
 		boost::uint64_t m_read_blocks;
 
+		// these are async I/O operations that have been issued
+		// and we are waiting to complete
+		file::aiocb_t* m_in_progress;
+
+		// these are async operations that we've accumulated
+		// during this round and will be issued
+		file::aiocb_t* m_to_issue;
+
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
+#endif
+
+#if TORRENT_USE_AIO
+		static void signal_handler(int signal, siginfo_t* si, void*);
 #endif
 
 		// the total number of outstanding jobs. This is used to
@@ -246,30 +256,25 @@ namespace libtorrent
 		// once we have reached our max number of outstanding jobs,
 		// they start getting queued up in this list, sorted by their
 		// physical offset on disk
-		typedef std::multimap<size_type, disk_io_job> deferred_jobs_t;
-		deferred_jobs_t m_deferred_jobs;
+//		typedef std::multimap<size_type, disk_io_job> deferred_jobs_t;
+//		deferred_jobs_t m_deferred_jobs;
 
 		// the iterator of the current position in the deferred jobs
 		// list.
-		deferred_jobs_t::iterator m_elevator_job_pos;
+//		deferred_jobs_t::iterator m_elevator_job_pos;
 
 		// this is set to true when the job pos iterator is
 		// invalid. This happens every time the deferred jobs
 		// list gets emptied
-		bool m_invalid_elevator_pos;
+//		bool m_invalid_elevator_pos;
 
 		// the direction of the elevator. -1 means down and
 		// 1 means up
-		int m_elevator_direction;
+//		int m_elevator_direction;
 
 		// the physical offset of the last job consumed out
 		// of the deferred jobs list
-		size_type m_last_phys_off;
-
-		// the number of elevator turns (only counts while
-		// the disk I/O thread is loaded enough to start
-		// sorting jobs)
-		size_type m_elevator_turns;
+//		size_type m_last_phys_off;
 
 		// the amount of physical ram in the machine
 		boost::uint64_t m_physical_ram;
@@ -297,11 +302,17 @@ namespace libtorrent
 		// exist anymore, and crash. This prevents that.
 		boost::optional<io_service::work> m_work;
 
-		mutable random_access_handle_service m_disk_io_service;
+		std::list<disk_io_job> m_queued_jobs;
 
-		// used to keep the io_service alive until we
-		// terminate the thread
-		boost::optional<io_service::work> m_self_work;
+		// mutex to protect the m_queued_jobs list
+		mutex m_job_mutex;
+
+		// used to wake up the thread
+		semaphore m_job_sem;
+
+		// incremented in signal handler
+		// for each job that's completed
+		mutable boost::detail::atomic_count m_completed_aios;
 
 		// thread for performing blocking disk io operations
 		thread m_disk_io_thread;

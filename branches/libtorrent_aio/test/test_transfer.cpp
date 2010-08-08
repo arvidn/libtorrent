@@ -215,6 +215,26 @@ struct test_storage : storage_interface
 
 	virtual void delete_files(error_code& ec) { m_lower_layer->delete_files(ec); }
 
+	file::aiocb_t* read_async_impl(
+		file::iovec_t* bufs
+		, int piece_index
+		, int offset
+		, int num_bufs
+		, boost::function<void(error_code const&, size_t)> const& handler)
+	{
+		return m_lower_layer->read_async_impl(bufs, piece_index, offset, num_bufs, handler);
+	}
+
+	file::aiocb_t* write_async_impl(
+		file::iovec_t* bufs
+		, int piece_index
+		, int offset
+		, int num_bufs
+		, boost::function<void(error_code const&, size_t)> const& handler)
+	{
+		return m_lower_layer->write_async_impl(bufs, piece_index, offset, num_bufs, handler);
+	}
+
 	virtual ~test_storage() {}
 
 	boost::scoped_ptr<storage_interface> m_lower_layer;

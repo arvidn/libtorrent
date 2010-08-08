@@ -48,6 +48,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <kernel/OS.h>
 #endif
 
+#if TORRENT_USE_POSIX_SEMAPHORE
+#include <semaphore.h>      // sem_*
+#endif
+
+#if TORRENT_USE_MACH_SEMAPHORE
+#include <mach/semaphore.h> // semaphore_signal, semaphore_wait
+#include <mach/task.h>      // semaphore_create, semaphore_destroy
+#include <mach/mach_init.h> // current_task
+#endif
+
 namespace libtorrent
 {
 	typedef boost::asio::detail::thread thread;
@@ -64,6 +74,26 @@ namespace libtorrent
 		usleep(milliseconds * 1000);
 #endif
 	}
+
+#if TORRENT_USE_POSIX_SEMAPHORE
+	struct semaphore
+	{
+		semaphore() { sem_init(&m_sem, 0, 0); }
+		~semaphore() { sem_destroy(&m_sem); }
+		void signal() { sem_post(&m_sem); }
+		void wait() { sem_wait(&m_sem); }
+		sem_t m_sem;
+	};
+#elif TORRENT_USE_MACH_SEMAPHORE
+	struct semaphore
+	{
+		semaphore() { semaphore_create(current_task(), &m_sem, SYNC_POLICY_FIFO, 0); }
+		~semaphore() { semaphore_destroy(current_task(), m_sem); }
+		void signal() { semaphore_signal(m_sem); }
+		void wait() { semaphore_wait(m_sem); }
+		semaphore_t m_sem;
+	};
+#endif
 }
 
 #endif

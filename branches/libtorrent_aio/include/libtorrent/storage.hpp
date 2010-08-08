@@ -64,12 +64,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/storage_defs.hpp"
 
-#include <boost/asio/io_service.hpp>
-
 namespace libtorrent
 {
-	typedef boost::asio::io_service random_access_handle_service;
-
 	class session;
 	struct file_pool;
 	struct disk_io_job;
@@ -115,10 +111,10 @@ namespace libtorrent
 		// false return value indicates an error
 		virtual void initialize(bool allocate_files, error_code& ec) = 0;
 
-		virtual void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler);
-		virtual void async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler);
+		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(error_code const&, size_t)> const& handler) = 0;
+		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(error_code const&, size_t)> const& handler) = 0;
 
 		virtual bool has_any_file(error_code& ec) = 0;
 
@@ -177,7 +173,7 @@ namespace libtorrent
 
 		virtual ~storage_interface() {}
 
-		random_access_handle_service* m_disk_io_service;
+//		random_access_handle_service* m_disk_io_service;
 		disk_buffer_pool* m_disk_pool;
 		session_settings* m_settings;
 	};
@@ -277,8 +273,8 @@ namespace libtorrent
 		{
 			// return values from check_fastresume and check_files
 			no_error = 0,
-			need_full_check = -1,
-			fatal_disk_error = -2,
+			fatal_disk_error = -1,
+			need_full_check = -2,
 			disk_check_aborted = -3
 		};
 
@@ -330,14 +326,14 @@ namespace libtorrent
 		int hash_for_slot(int slot, partial_hash& h, int piece_size, error_code& ec
 			, int small_piece_size = 0, sha1_hash* small_hash = 0);
 
-		void read_async_impl(
+		file::aiocb_t* read_async_impl(
 			file::iovec_t* bufs
 			, int piece_index
 			, int offset
 			, int num_bufs
 			, boost::function<void(error_code const&, size_t)> const& handler);
 
-		void write_async_impl(
+		file::aiocb_t* write_async_impl(
 			file::iovec_t* bufs
 			, int piece_index
 			, int offset

@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include <boost/scoped_array.hpp>
 #include <boost/bind.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #include "libtorrent/time.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
@@ -64,6 +65,25 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// free function to prepend a chain of aios to a list
+	void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios)
+	{
+		if (aios == 0) return;
+		file::aiocb_t* last = aios;
+		while (last->next) last = last->next;
+		last->next = list;
+		list = aios;
+	}
+
+#if TORRENT_USE_AIO
+	// global pointer to the disk_io_thread
+	// so it can be accessed from within the signal handler
+	// TODO: could this be a TLS pointer? That would make it
+	// less intrusive when running multiple instances of
+	// libtorrent
+	disk_io_thread* g_disk_io_thread = 0;
+#endif
+
 // ------- disk_io_thread ------
 
 	disk_io_thread::disk_io_thread(io_service& ios
@@ -78,17 +98,23 @@ namespace libtorrent
 		, m_read_calls(0)
 		, m_write_blocks(0)
 		, m_read_blocks(0)
+		, m_in_progress(0)
+		, m_to_issue(0)
 		, m_outstanding_jobs(0)
-		, m_elevator_job_pos(m_deferred_jobs.begin())
-		, m_invalid_elevator_pos(false)
-		, m_elevator_direction(1)
-		, m_last_phys_off(0)
+//		, m_elevator_job_pos(m_deferred_jobs.begin())
+//		, m_invalid_elevator_pos(false)
+//		, m_elevator_direction(1)
+//		, m_last_phys_off(0)
 		, m_physical_ram(0)
 		, m_ios(ios)
 		, m_work(io_service::work(m_ios))
-		, m_self_work(io_service::work(m_disk_io_service))
+		, m_completed_aios(0)
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
+#if TORRENT_USE_AIO
+		g_disk_io_thread = this;
+#endif
+
 #ifdef TORRENT_DISK_STATS
 		m_log.open("disk_io_thread.log", std::ios::trunc);
 #endif
@@ -147,6 +173,18 @@ namespace libtorrent
 
 	disk_io_thread::~disk_io_thread()
 	{
+		DLOG(stderr, "destructing disk_io_thread [%p]\n", this);
+#if TORRENT_USE_AIO
+		sigset_t mask;
+		sigemptyset(&mask);
+		sigaddset(&mask, TORRENT_AIO_SIGNAL);
+
+		if (pthread_sigmask(SIG_BLOCK, &mask, 0) == -1)
+		{
+			TORRENT_ASSERT(false);
+		}
+#endif
+
 		TORRENT_ASSERT(m_abort == true);
 	}
 
@@ -159,6 +197,7 @@ namespace libtorrent
 
 	void disk_io_thread::join()
 	{
+		DLOG(stderr, "waiting for disk_io_thread [%p]\n", this);
 		m_disk_io_thread.join();
 		TORRENT_ASSERT(m_abort == true);
 	}
@@ -208,7 +247,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		DLOG(stderr, "%p io_range: readwrite=%d\n", this, readwrite);
+		DLOG(stderr, "[%p] io_range: readwrite=%d\n", this, readwrite);
 		TORRENT_ASSERT(p != m_disk_cache.end());
 		TORRENT_ASSERT(start >= 0);
 		TORRENT_ASSERT(start < end);
@@ -243,7 +282,7 @@ namespace libtorrent
 				|| (!p->blocks[i].dirty && readwrite == op_write)
 				|| (!p->blocks[i].uninitialized && readwrite == op_read))
 			{
-				DLOG(stderr, "%p io_range: skipping block=%d end: %d buf=%p pending=%d dirty=%d\n"
+				DLOG(stderr, "[%p] io_range: skipping block=%d end: %d buf=%p pending=%d dirty=%d\n"
 					, this, i, end, p->blocks[i].buf, p->blocks[i].pending, p->blocks[i].dirty);
 				if (buffer_size == 0) continue;
 
@@ -253,22 +292,30 @@ namespace libtorrent
 				if (readwrite == op_write)
 				{
 					m_queue_buffer_size += to_write;
-					p->storage->write_async_impl(iov, p->piece, to_write, iov_counter
+					file::aiocb_t* aios = p->storage->write_async_impl(iov
+						, p->piece, to_write, iov_counter
 						, boost::bind(&disk_io_thread::on_disk_write, this, p
 							, range_start, i, to_write, _1));
 					m_write_blocks += i - range_start;
 					++m_write_calls;
+					DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"
+						, aios, m_to_issue);
+					prepend_aios(m_to_issue,aios);
 				}
 				else
 				{
-					DLOG(stderr, "%p io_range: piece=%d start_block=%d end_block=%d\n"
+					DLOG(stderr, "[%p] io_range: piece=%d start_block=%d end_block=%d\n"
 						, this, p->piece, range_start, i);
 					++m_outstanding_jobs;
-					p->storage->read_async_impl(iov, p->piece, range_start * m_block_size, iov_counter
+					file::aiocb_t* aios = p->storage->read_async_impl(iov, p->piece
+						, range_start * m_block_size, iov_counter
 						, boost::bind(&disk_io_thread::on_disk_read, this, p
 							, range_start, i, _1));
 					m_read_blocks += i - range_start;
 					++m_read_calls;
+					DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
+						, aios, m_to_issue);
+					prepend_aios(m_to_issue,aios);
 				}
 				iov_counter = 0;
 				buffer_size = 0;
@@ -285,7 +332,7 @@ namespace libtorrent
 #endif
 			TORRENT_ASSERT(p->blocks[i].pending == false);
 			p->blocks[i].uninitialized = false;
-			DLOG(stderr, "%p marking as pending piece: %d block: %d\n", this, p->piece, i);
+			DLOG(stderr, "[%p] marking as pending piece: %d block: %d\n", this, p->piece, i);
 			p->blocks[i].pending = true;
 			++p->blocks[i].refcount;
 			++const_cast<block_cache::cached_piece_entry&>(*p).refcount;
@@ -301,19 +348,18 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_queue_buffer_size >= to_write);
 		m_queue_buffer_size -= to_write;
-		DLOG(stderr, "%p on_disk_write piece: %d start: %d end: %d\n", this, p->piece, begin, end);
+		DLOG(stderr, "[%p] on_disk_write piece: %d start: %d end: %d\n", this, p->piece, begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, ec);
 	}
 
 	void disk_io_thread::on_disk_read(block_cache::iterator p, int begin
 		, int end, error_code const& ec)
 	{
-		DLOG(stderr, "%p on_disk_read piece: %d start: %d end: %d\n", this, p->piece, begin, end);
+		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n", this, p->piece, begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, ec);
 
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
 		--m_outstanding_jobs;
-		maybe_issue_deferred_job();
 	}
 
 	// returns the number of outstanding jobs on the pieces. If this is 0
@@ -348,7 +394,7 @@ namespace libtorrent
 			else if (flags & flush_write_cache && p->num_dirty > 0)
 			{
 				// issue write commands
-				ret += io_range(p, 0, INT_MAX, op_write);
+				io_range(p, 0, INT_MAX, op_write);
 
 				// if we're also flushing the read cache, this piece
 				// should be removed as soon as all write jobs finishes
@@ -358,6 +404,12 @@ namespace libtorrent
 			// why we don't have the 'i' iterator referencing it at this point
 			if (flags & (flush_read_cache | flush_delete_cache))
 				m_disk_cache.mark_for_deletion(p);
+
+			// we need to count read jobs as well
+			// because we can't close files with
+			// any outstanding jobs
+			ret += p->jobs.size();
+
 		}
 		return ret;
 	}
@@ -413,22 +465,17 @@ namespace libtorrent
 
 	void disk_io_thread::perform_async_job(disk_io_job j)
 	{
-		TORRENT_ASSERT(!m_abort);
-
-		DLOG(stderr, "%p perform_async_job job: %s piece: %d offset: %d\n"
+		DLOG(stderr, "[%p] perform_async_job job: %s piece: %d offset: %d\n"
 			, this, job_action_name[j.action], j.piece, j.offset);
 		if (j.storage && j.storage->get_storage_impl()->m_settings == 0)
 			j.storage->get_storage_impl()->m_settings = &m_settings;
-
-		// no more jobs should be posted after abort!
-		TORRENT_ASSERT(!m_abort);
 
 		TORRENT_ASSERT(j.action >= 0 && j.action < sizeof(job_functions)/sizeof(job_functions[0]));
 
 		// is the fence up for this storage?
 		if (j.storage && j.storage->has_fence())
 		{
-			DLOG(stderr, "%p   perform_async_job: blocked\n", this);
+			DLOG(stderr, "[%p]   perform_async_job: blocked\n", this);
 			// Yes it is! We're not allowed
 			// to issue this job. Queue it up
 			m_blocked_jobs.push_back(j);
@@ -438,22 +485,22 @@ namespace libtorrent
 		// call disk function
 		int ret = (this->*(job_functions[j.action]))(j);
 
-		DLOG(stderr, "%p   return: %d error: %s\n"
+		DLOG(stderr, "[%p]   return: %d error: %s\n"
 			, this, ret, j.error ? j.error.message().c_str() : "");
 
 		j.outstanding_writes = m_queue_buffer_size;
 		if (ret != defer_handler && j.callback)
 		{
-			DLOG(stderr, "%p   posting callback j.buffer: %p\n", this, j.buffer);
+			DLOG(stderr, "[%p]   posting callback j.buffer: %p\n", this, j.buffer);
 			m_ios.post(boost::bind(j.callback, ret, j));
 		}
 
 		// if this job actually completed (as opposed to deferred the handler)
 		// and it's a job that raises the fence (like move storage, release
-		// files, etc.), we may have to uncork the jobs that was blocked by it.
+		// files, etc.), we may have to uncork the jobs that were blocked by it.
 		if (ret != defer_handler && (j.flags & disk_io_job::need_uncork))
 		{
-			DLOG(stderr, "%p   uncorking\n", this);
+			DLOG(stderr, "[%p]   uncorking\n", this);
 			std::list<disk_io_job> jobs;
 			m_blocked_jobs.swap(jobs);
 			// we should only uncork if the storage doesn't
@@ -468,33 +515,12 @@ namespace libtorrent
 		}
 	}
 
-	bool disk_io_thread::maybe_defer(disk_io_job const& j)
-	{
-		if (m_outstanding_jobs < m_settings.max_async_disk_jobs) return false;
-
-		DLOG(stderr, "%p too many async jobs, queueing\n", this);
-		// postpone this job. Insert it sorted based on
-		// physical offset of the read location
-		if (m_deferred_jobs.empty()) m_invalid_elevator_pos = true;
-		if (m_settings.allow_reordered_disk_operations)
-		{
-			size_type phys_off = j.storage->physical_offset(j.piece, j.offset);
-			m_deferred_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
-		}
-		else
-		{
-			m_deferred_jobs.insert(m_deferred_jobs.end()
-					, std::pair<size_type, disk_io_job>(++m_last_phys_off, j));
-		}
-		return true;
-	}
-
 	int disk_io_thread::do_read(disk_io_job& j)
 	{
 #ifdef TORRENT_DISK_STATS
 		m_log << log_time();
 #endif
-		DLOG(stderr, "%p do_read\n", this);
+		DLOG(stderr, "[%p] do_read\n", this);
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(j.buffer_size <= m_block_size);
@@ -504,7 +530,7 @@ namespace libtorrent
 			int ret = m_disk_cache.try_read(j);
 			if (ret >= 0)
 			{
-				DLOG(stderr, "%p do_read: cache hit\n", this);
+				DLOG(stderr, "[%p] do_read: cache hit\n", this);
 				j.flags |= disk_io_job::cache_hit;
 #ifdef TORRENT_DISK_STATS
 				m_log << " read-cache-hit " << j.buffer_size << std::endl;
@@ -516,8 +542,6 @@ namespace libtorrent
 				j.error = error::no_memory;
 				return disk_operation_failed;
 			}
-
-			if (maybe_defer(j)) return defer_handler;
 
 			// cache the piece, unless we're using an explicit cache
 			if (!m_settings.explicit_read_cache)
@@ -531,7 +555,7 @@ namespace libtorrent
 					// this will also add the job to the pending job list in this piece
 					// unless it fails and returns -1
 					int ret = m_disk_cache.allocate_pending(p, start_block, end_block, j);
-					DLOG(stderr, "%p do_read: allocate_pending ret=%d start_block=%d end_block=%d\n"
+					DLOG(stderr, "[%p] do_read: allocate_pending ret=%d start_block=%d end_block=%d\n"
 							, this, ret, start_block, end_block);
 
 					if (ret > 0)
@@ -539,7 +563,7 @@ namespace libtorrent
 						// some blocks were allocated
 						io_range(p, start_block, end_block, op_read);
 
-						DLOG(stderr, "%p do_read: cache miss\n", this);
+						DLOG(stderr, "[%p] do_read: cache miss\n", this);
 #ifdef TORRENT_DISK_STATS
 						m_log << " read " << j.buffer_size << std::endl;
 #endif
@@ -565,8 +589,6 @@ namespace libtorrent
 			}
 		}
 
-		if (maybe_defer(j)) return defer_handler;
-
 #ifdef TORRENT_DISK_STATS
 		m_log << " read " << j.buffer_size << std::endl;
 #endif
@@ -578,18 +600,19 @@ namespace libtorrent
 			return disk_operation_failed;
 		}
 
-		DLOG(stderr, "%p do_read: async\n", this);
+		DLOG(stderr, "[%p] do_read: async\n", this);
 		++m_outstanding_jobs;
 		file::iovec_t b = { j.buffer, j.buffer_size };
-		j.storage->read_async_impl(&b, j.piece, j.offset, 1
+		file::aiocb_t* aios = j.storage->read_async_impl(&b, j.piece, j.offset, 1
 			, boost::bind(&disk_io_thread::on_read_one_buffer, this, _1, _2, j));
+		DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
+			, aios, m_to_issue);
+		prepend_aios(m_to_issue,aios);
 		return defer_handler;
 	}
 
 	int disk_io_thread::do_write(disk_io_job& j)
 	{
-		if (maybe_defer(j)) return defer_handler;
-
 #ifdef TORRENT_DISK_STATS
 		m_log << log_time() << " write " << j.buffer_size << std::endl;
 #endif
@@ -615,8 +638,11 @@ namespace libtorrent
 
 		file::iovec_t b = { j.buffer, j.buffer_size };
 		m_queue_buffer_size += j.buffer_size;
-		j.storage->write_async_impl(&b, j.piece, j.offset, 1
+		file::aiocb_t* aios = j.storage->write_async_impl(&b, j.piece, j.offset, 1
 			, boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, _2, j));
+		DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"
+			, aios, m_to_issue);
+		prepend_aios(m_to_issue,aios);
 		return defer_handler;
 	}
 
@@ -693,7 +719,7 @@ namespace libtorrent
 
 		// raise the fence to block new async. operations
 		j.flags |= disk_io_job::need_uncork;
-		DLOG(stderr, "%p raising fence\n", this);
+		DLOG(stderr, "[%p] raising fence ret: %d\n", this, ret);
 		j.storage->raise_fence(boost::bind(&disk_io_thread::perform_async_job, this, j));
 		return defer_handler;
 	}
@@ -707,6 +733,11 @@ namespace libtorrent
 		// since we're deleting the files, we can abort
 		// all outstanding requests. Just close the handles
 		// and delete the files
+		// #error closing the files with outstanding requests
+		// to them may cause lio_listio() to fail and we'll never
+		// clean up the aiocb_t chain. It's a lot safer to
+		// fence and wait for all operations to complete
+		// before calling delete_files_imopl
 		j.storage->delete_files_impl(j.error);
 		return j.error ? disk_operation_failed : 0;
 	}
@@ -752,6 +783,8 @@ namespace libtorrent
 
 			// #error it would be nice to check files with async operations too
 			ret = j.storage->check_files(j.piece, j.offset, j.error);
+			DLOG(stderr, "check_files() ret=%d j.piece=%d j.offset=%d j.error=%s\n"
+				, ret, j.piece, j.offset, j.error.message().c_str());
 
 			if (j.error) return disk_operation_failed;
 
@@ -796,7 +829,7 @@ namespace libtorrent
 
 		// raise the fence to block new
 		j.flags |= disk_io_job::need_uncork;
-		DLOG(stderr, "%p raising fence\n", this);
+		DLOG(stderr, "[%p] raising fence\n", this);
 		j.storage->raise_fence(boost::bind(&disk_io_thread::perform_async_job, this, j));
 		return defer_handler;
 	}
@@ -819,19 +852,18 @@ namespace libtorrent
 		// and clear all read jobs
 		flush_cache(j, flush_read_cache | flush_write_cache);
 		m_abort = true;
-		// make it possible for m_disk_io_service.run() to return
 
 		// we're aborting. Cancel all jobs that are blocked or
 		// have been deferred as well
 		while (!m_blocked_jobs.empty())
 		{
 			disk_io_job& j = m_blocked_jobs.back();
-			TORRENT_ASSERT(!j.storage->has_fence());
+//			TORRENT_ASSERT(!j.storage->has_fence());
 			j.error = error::operation_aborted;
 			m_ios.post(boost::bind(j.callback, -1, j));
 			m_blocked_jobs.pop_back();
 		}
-
+/*
 		for (deferred_jobs_t::iterator i = m_deferred_jobs.begin();
 			i != m_deferred_jobs.end();)
 		{
@@ -842,11 +874,11 @@ namespace libtorrent
 			if (m_elevator_job_pos == i) ++m_elevator_job_pos;
 			m_deferred_jobs.erase(i++);
 		}
-
+*/
 		// #error, if there is a storage that has a fence up
 		// it's going to get left hanging here.
 
-		m_self_work.reset();
+//		m_self_work.reset();
 		return 0;
 	}
 
@@ -885,7 +917,7 @@ namespace libtorrent
 			m_ios.post(boost::bind(j.callback, -1, j));
 			i = m_blocked_jobs.erase(i);
 		}
-
+/*
 		for (deferred_jobs_t::iterator i = m_deferred_jobs.begin();
 			i != m_deferred_jobs.end();)
 		{
@@ -901,7 +933,7 @@ namespace libtorrent
 			if (m_elevator_job_pos == i) ++m_elevator_job_pos;
 			m_deferred_jobs.erase(i++);
 		}
-
+*/
 		release_memory();
 		return 0;
 	}
@@ -947,12 +979,10 @@ namespace libtorrent
 
 	int disk_io_thread::do_read_and_hash(disk_io_job& j)
 	{
-		if (maybe_defer(j)) return defer_handler;
-
 #ifdef TORRENT_DISK_STATS
 		m_log << log_time() << " read_and_hash " << j.buffer_size << std::endl;
 #endif
-		DLOG(stderr, "%p do_read_and_hash\n", this);
+		DLOG(stderr, "[%p] do_read_and_hash\n", this);
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j.buffer == 0);
 
@@ -970,7 +1000,7 @@ namespace libtorrent
 		}
 
 		int ret = m_disk_cache.allocate_pending(p, 0, p->blocks_in_piece, j, 2);
-		DLOG(stderr, "%p do_read_and_hash: allocate_pending ret=%d\n", this, ret);
+		DLOG(stderr, "[%p] do_read_and_hash: allocate_pending ret=%d\n", this, ret);
 
 		if (ret > 0)
 		{
@@ -1102,7 +1132,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
 		--m_outstanding_jobs;
-		DLOG(stderr, "%p on_read_one_buffer %s\n", this, ec.message().c_str());
+		DLOG(stderr, "[%p] on_read_one_buffer %s\n", this, ec.message().c_str());
 		int ret = j.buffer_size;
 		j.error = ec;
 		if (!ec && bytes_transferred != j.buffer_size)
@@ -1119,52 +1149,6 @@ namespace libtorrent
 		++m_read_blocks;
 		if (j.callback)
 			m_ios.post(boost::bind(j.callback, ret, j));
-
-		maybe_issue_deferred_job();
-	}
-
-	void disk_io_thread::maybe_issue_deferred_job()
-	{
-		if (m_outstanding_jobs >= m_settings.max_async_disk_jobs
-			|| m_deferred_jobs.empty()) return;
-
-		if (m_invalid_elevator_pos)
-		{
-			if (m_settings.allow_reordered_disk_operations)
-				m_elevator_job_pos = m_deferred_jobs.lower_bound(m_last_phys_off);
-			else
-				m_elevator_job_pos = m_deferred_jobs.begin();
-			m_invalid_elevator_pos = false;
-		}
-
-		if (m_elevator_job_pos == m_deferred_jobs.end() && m_elevator_direction == 1)
-		{
-			m_elevator_direction = -1;
-			++m_elevator_turns;
-			--m_elevator_job_pos;
-		}
-		// issue a new job
-		disk_io_job j = m_elevator_job_pos->second;
-		m_last_phys_off = m_elevator_job_pos->first;
-		deferred_jobs_t::iterator to_erase = m_elevator_job_pos;
-
-		// if we've reached the begining of the sorted list,
-		// change the elvator direction
-		if (m_elevator_job_pos == m_deferred_jobs.begin() && m_elevator_direction == -1)
-		{
-			m_elevator_direction = 1;
-			++m_elevator_turns;
-		}
-
-		// move the elevator before erasing the job we're processing
-		// to keep the iterator valid
-		if (m_elevator_direction > 0) ++m_elevator_job_pos;
-		else --m_elevator_job_pos;
-
-		TORRENT_ASSERT(to_erase != m_elevator_job_pos);
-		m_deferred_jobs.erase(to_erase);
-		
-		perform_async_job(j);
 	}
 
 	void disk_io_thread::get_cache_info_impl(void* st
@@ -1193,12 +1177,15 @@ namespace libtorrent
 	// This is always called from an outside thread!
 	void disk_io_thread::get_cache_info(void* st, std::vector<cached_piece_info>& ret) const
 	{
+/*
+	// #error implement as a regular disk io job
 		mutex m;
 		condition e;
 		m_disk_io_service.post(boost::bind(&disk_io_thread::get_cache_info_impl
 			, const_cast<disk_io_thread*>(this), st, &ret, &e, &m));
 		mutex::scoped_lock l(m);
 		e.wait(l);
+*/
 	}
 
 	void disk_io_thread::status_impl(cache_status* ret, condition* e, mutex* m)
@@ -1213,7 +1200,7 @@ namespace libtorrent
 
 		ret->average_queue_time = m_queue_time.mean();
 		ret->average_read_time = m_read_time.mean();
-		ret->job_queue_length = m_blocked_jobs.size() + m_deferred_jobs.size();
+		ret->job_queue_length = m_blocked_jobs.size();
 		ret->blocks_written = m_write_blocks;
 		ret->blocks_read = m_read_blocks;
 		ret->writes = m_write_calls;
@@ -1230,13 +1217,16 @@ namespace libtorrent
 	// This is always called from an outside thread!
 	cache_status disk_io_thread::status() const
 	{
+		cache_status st;
+/*
+		// #error implement as a regular disk io job
 		mutex m;
 		condition e;
-		cache_status st;
 		m_disk_io_service.post(boost::bind(&disk_io_thread::status_impl
 			, const_cast<disk_io_thread*>(this), &st, &e, &m));
 		mutex::scoped_lock l(m);
 		e.wait(l);
+*/
 		return st;
 	}
 
@@ -1246,31 +1236,127 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_abort);
 		// post a message to make sure perform_async_job always
 		// is run in the disk thread
-		m_disk_io_service.post(boost::bind(&disk_io_thread::perform_async_job, this, j));
+		mutex::scoped_lock l (m_job_mutex);
+		m_queued_jobs.push_back(j);
+		// wake up the disk thread to issue this new job
+		m_job_sem.signal();
 	}
+
+#if TORRENT_USE_AIO
+
+	void disk_io_thread::signal_handler(int signal, siginfo_t* si, void*)
+	{
+		if (signal != TORRENT_AIO_SIGNAL) return;
+		if (g_disk_io_thread == 0) return;
+
+		++g_disk_io_thread->m_completed_aios;
+		// wake up the disk thread to
+		// make it handle these completed jobs
+		g_disk_io_thread->m_job_sem.signal();
+	}
+#endif
 
 	void disk_io_thread::thread_fun()
 	{
+
+#if TORRENT_USE_AIO
+		// if we have posix aio, assume we have pthreads as well
+		sigset_t mask;
+		sigemptyset(&mask);
+		sigaddset(&mask, TORRENT_AIO_SIGNAL);
+
+		if (pthread_sigmask(SIG_UNBLOCK, &mask, 0) == -1)
+		{
+			TORRENT_ASSERT(false);
+		}
+
+		struct sigaction sa;
+
+		sa.sa_flags = SA_SIGINFO | SA_RESTART;
+		sa.sa_sigaction = &disk_io_thread::signal_handler;
+		sigemptyset(&sa.sa_mask);
+
+		if (sigaction(TORRENT_AIO_SIGNAL, &sa, 0) == -1)
+		{
+			TORRENT_ASSERT(false);
+		}
+		int last_completed_aios = 0;
+#endif
+
 		do
 		{
-			error_code ec;
-			m_disk_io_service.run(ec);
-#ifdef TORRENT_DEBUG
-			if (ec)
+			DLOG(stderr, "sem_wait() [%p]\n", this);
+			m_job_sem.wait();
+			DLOG(stderr, "sem_wait() returned [%p]\n", this);
+
+			// more jobs might complete as we go through
+			// the list. In which case m_completed_aios
+			// would have incremented again. It's incremented
+			// in the aio signal handler
+			int complete_aios = m_completed_aios;
+			DLOG(stderr, "m_completed_aios %d last_completed_aios: %d\n", complete_aios, last_completed_aios);
+			while (complete_aios != last_completed_aios)
 			{
-				DLOG(stderr, "%p DISK I/O THREAD: %s\n", this, ec.message().c_str());
-				std::string err = ec.message();
-				TORRENT_ASSERT(false);
+				// this needs to be atomic for the signal handler
+				last_completed_aios = complete_aios;
+				// go through all outstanding disk operations
+				// and potentially dispatch ones that are complete
+				DLOG(stderr, "reap in progress aios (%p)\n", m_in_progress);
+				m_in_progress = reap_aios(m_in_progress);
+				DLOG(stderr, "new in progress aios (%p)\n", m_in_progress);
+				complete_aios = m_completed_aios;
 			}
-#endif
-			m_disk_io_service.reset();
-		} while (!m_abort);
+
+			// keep the mutex locked for as short as possible
+			// while we swap out all the jobs in the queue
+			// we can then go through the queue without having
+			// to block the mutex
+			std::list<disk_io_job> jobs;
+			mutex::scoped_lock l(m_job_mutex);
+			jobs.swap(m_queued_jobs);
+			l.unlock();
+
+			// go through list of newly submitted jobs
+			// and perform the appropriate action
+			while (!jobs.empty())
+			{
+				perform_async_job(jobs.front());
+				jobs.pop_front();
+			}
+
+// #error add a setting to determine whether or not to sort jobs before issuing them
+
+			// tell the kernel about the async disk I/O jobs we want to perform
+
+			// if we're on a system that doesn't do async. I/O, we should only perform
+			// one at a time in case new jobs are issued that should take priority (such
+			// as asking for stats)
+			if (m_to_issue)
+			{
+				file::aiocb_t* to_issue = m_to_issue;
+				m_to_issue = 0;
+				DLOG(stderr, "issue aios (%p)\n", to_issue);
+				file::aiocb_t* pending;
+				boost::tie(pending, to_issue) = issue_aios(to_issue);
+				prepend_aios(m_to_issue, to_issue);
+				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
+				prepend_aios(m_in_progress, pending);
+			}
+
+			// now, we may have received the abort thread
+			// message, and m_abort may have been set to
+			// true, but we still need to wait for the outstanding
+			// jobs, that's why we'll keep looping while m_in_progress
+			// is has jobs in it as well
+		
+		} while (!m_abort || m_in_progress);
 
 // #error assert there are no outstanding jobs in the cache
 
 		// release the io_service to allow the run() call to return
 		// we do this once we stop posting new callbacks to it.
 		m_work.reset();
+		DLOG(stderr, "exiting disk thread [%p]\n", this);
 	}
 
 #ifdef TORRENT_DEBUG
