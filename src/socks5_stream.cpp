@@ -79,7 +79,15 @@ namespace libtorrent
 			return;
 		}
 
-		m_sock.open(i->endpoint().protocol());
+		error_code ec;
+		m_sock.open(i->endpoint().protocol(), ec);
+		if (ec)
+		{
+			(*h)(ec);
+			close(ec);
+			return;
+		}
+
 		// TOOD: we could bind the socket here, since we know what the
 		// target endpoint is of the proxy
 		m_sock.async_connect(i->endpoint(), boost::bind(
