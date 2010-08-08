@@ -353,7 +353,7 @@ void stop_web_server()
 {
 	if (web_server && web_ios)
 	{
-		web_ios->stop();
+		web_ios->post(boost::bind(&io_service::stop, web_ios));
 		web_server->join();
 		web_server.reset();
 		web_ios = 0;
