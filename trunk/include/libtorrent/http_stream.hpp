@@ -68,11 +68,13 @@ public:
 		proxy_base::close(ec);
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
 	void close()
 	{
 		m_dst_name.clear();
 		proxy_base::close();
 	}
+#endif
 
 	typedef boost::function<void(error_code const&)> handler_type;
 
