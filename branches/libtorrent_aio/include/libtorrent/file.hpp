@@ -347,7 +347,7 @@ namespace libtorrent
 
 	private:
 
-		aiocb_t* file::async_io(size_type offset
+		aiocb_t* async_io(size_type offset
 			, iovec_t const* bufs, int num_bufs, int op);
 
 		handle_type m_file_handle;
