@@ -1116,7 +1116,7 @@ namespace libtorrent
 		cache_status* ret = (cache_status*)j.buffer;
 
 		// #error add these stats
-//		ret->total_used_buffers = m_disk_cache.size();
+		ret->total_used_buffers = in_use();
 //		ret->current_async_jobs = m_outstanding_jobs;
 //		ret->elevator_turns= m_elevator_turns;
 		ret->queued_bytes = m_queue_buffer_size;
@@ -1129,10 +1129,7 @@ namespace libtorrent
 		ret->writes = m_write_calls;
 		ret->reads = m_read_calls;
 
-		// #error complete these stats
-		ret->blocks_read_hit = 0;
-		ret->cache_size = 0;
-		ret->read_cache_size = 0;
+		m_disk_cache.get_stats(ret);
 
 		time_t now_time_t = time(0);
 		ptime now = time_now();

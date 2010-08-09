@@ -603,6 +603,13 @@ int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
 	return ret;
 }
 
+void block_cache::get_stats(cache_status* ret)
+{
+	ret->blocks_read_hit = m_blocks_read_hit;
+	ret->cache_size = m_cache_size;
+	ret->read_cache_size = m_read_cache_size;
+}
+
 //#ifdef TORRENT_DEBUG
 #if 0
 void disk_io_thread::check_invariant() const

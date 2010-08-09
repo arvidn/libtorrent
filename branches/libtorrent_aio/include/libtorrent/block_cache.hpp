@@ -53,6 +53,7 @@ namespace libtorrent
 	struct disk_io_job;
 	struct piece_manager;
 	struct disk_buffer_pool;
+	struct cache_status;
 
 	using boost::multi_index::multi_index_container;
 	using boost::multi_index::ordered_non_unique;
@@ -234,6 +235,8 @@ namespace libtorrent
 #endif
 		
 		bool try_evict_blocks(int num, int prio);
+
+		void get_stats(cache_status* ret);
 
 	private:
 
