@@ -40,6 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error.hpp"
 #include "libtorrent/disk_io_thread.hpp" // disk_operation_failed
 
+#define DEBUG_CACHE 0
+
+#define DLOG if (DEBUG_CACHE) fprintf
+
 namespace libtorrent {
 
 const int block_size = 16 * 1024;
@@ -293,7 +297,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
-	fprintf(stderr, "%p block_cache mark_as_done error: %s\n", &m_buffer_pool, ec.message().c_str());
+	DLOG(stderr, "%p block_cache mark_as_done error: %s\n", &m_buffer_pool, ec.message().c_str());
 
 	if (ec)
 	{
@@ -391,7 +395,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			TORRENT_ASSERT(first_block <= last_block);
 			if (pe->blocks[first_block].pending || pe->blocks[last_block].pending)
 			{
-				fprintf(stderr, "%p block_cache mark_done leaving job (overlap) "
+				DLOG(stderr, "%p block_cache mark_done leaving job (overlap) "
 					"piece: %d start: %d end: %d\n", &m_buffer_pool, pe->piece, begin, end);
 				++i;
 				continue;
@@ -400,10 +404,21 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			if (i->action == disk_io_job::read_and_hash
 				&& p->num_blocks != p->blocks_in_piece)
 			{
-				fprintf(stderr, "%p block_cache mark_done leaving job (read_and_hash) "
+				DLOG(stderr, "%p block_cache mark_done leaving job (read_and_hash) "
 					"piece: %d num_blocks: %d blocks_in_piece: %d\n"
 					, &m_buffer_pool, pe->piece, p->num_blocks, p->blocks_in_piece);
 				// this job is waiting for some all blocks to be read
+				++i;
+				continue;
+			}
+
+			if (i->action == disk_io_job::hash
+				&& p->num_dirty > 0)
+			{
+				DLOG(stderr, "%p block_cache mark_done leaving job (hash) "
+					"piece: %d num_dirty: %d\n"
+					, &m_buffer_pool, pe->piece, p->num_dirty);
+				// this job is waiting for some all blocks to be written
 				++i;
 				continue;
 			}
@@ -476,7 +491,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			ret = -1;
 		}
 		TORRENT_ASSERT(i->piece == pe->piece);
-		fprintf(stderr, "%p block_cache mark_done post job "
+		DLOG(stderr, "%p block_cache mark_done post job "
 			"piece: %d offset: %d\n", &m_buffer_pool, i->piece, i->offset);
 		if (i->callback) ios.post(boost::bind(i->callback, ret, *i));
 		i = pe->jobs.erase(i);
@@ -484,7 +499,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 	if (pe->jobs.empty() && pe->storage->has_fence())
 	{
-		fprintf(stderr, "%p piece out of jobs. Count total jobs\n", &m_buffer_pool);
+		DLOG(stderr, "%p piece out of jobs. Count total jobs\n", &m_buffer_pool);
 		// this piece doesn't have any outstanding jobs anymore
 		// and we have a fence on the storage. Are all outstanding
 		// jobs complete for this storage?
@@ -499,7 +514,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 		if (!has_jobs)
 		{
-			fprintf(stderr, "%p no more jobs. lower fence\n", &m_buffer_pool);
+			DLOG(stderr, "%p no more jobs. lower fence\n", &m_buffer_pool);
 			// yes, all outstanding jobs are done, lower the fence
 			pe->storage->lower_fence();
 		}

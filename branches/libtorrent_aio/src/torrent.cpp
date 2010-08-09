@@ -732,8 +732,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
-		fprintf(stderr, "torrent::on_disk_write_complete ret:%d piece:%d block:%d\n"
-			, ret, j.piece, j.offset/0x4000);
+//		fprintf(stderr, "torrent::on_disk_write_complete ret:%d piece:%d block:%d\n"
+//			, ret, j.piece, j.offset/0x4000);
 
 		INVARIANT_CHECK;
 
@@ -2233,7 +2233,7 @@ namespace libtorrent
 	{
 //		INVARIANT_CHECK;
 
-		fprintf(stderr, "torrent::piece_passed piece:%d\n", index);
+//		fprintf(stderr, "torrent::piece_passed piece:%d\n", index);
 
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
@@ -5842,6 +5842,14 @@ namespace libtorrent
 		if (!ready_for_connections()) return;
 		// rotate the cached pieces
 
+		filesystem().async_get_cache_info(new cache_status
+			, boost::bind(&torrent::refresh_explicit_cache_impl, shared_from_this(), _1, _2, cache_size));
+	}
+
+	void torrent::refresh_explicit_cache_impl(int ret, disk_io_job const& j, int cache_size)
+	{
+		cache_status* status = (cache_status*)j.buffer;
+
 		// add blocks_per_piece / 2 in order to round to closest whole piece
 		int blocks_per_piece = m_torrent_file->piece_length() / block_size();
 		int num_cache_pieces = (cache_size + blocks_per_piece / 2) / blocks_per_piece;
@@ -5881,18 +5889,17 @@ namespace libtorrent
 			else pieces[i].first = avail_vec[i];
 		}
 
+		// remove write cache entries
+		status->pieces.erase(std::remove_if(status->pieces.begin(), status->pieces.end()
+			, boost::bind(&cached_piece_info::kind, _1) == cached_piece_info::write_cache)
+			, status->pieces.end());
+
 		// decrease the availability of the pieces that are
 		// already in the read cache, to move them closer to
 		// the beginning of the pieces list, and more likely
 		// to be included in this round of cache pieces
-		std::vector<cached_piece_info> ret;
-		m_ses.m_disk_thread.get_cache_info(m_storage, ret);
-		// remove write cache entries
-		ret.erase(std::remove_if(ret.begin(), ret.end()
-			, boost::bind(&cached_piece_info::kind, _1) == cached_piece_info::write_cache)
-			, ret.end());
-		for (std::vector<cached_piece_info>::iterator i = ret.begin()
-			, end(ret.end()); i != end; ++i)
+		for (std::vector<cached_piece_info>::iterator i = status->pieces.begin()
+			, end(status->pieces.end()); i != end; ++i)
 		{
 			--pieces[i->piece].first;
 		}
@@ -5921,6 +5928,8 @@ namespace libtorrent
 				filesystem().async_cache(*i, boost::bind(&torrent::on_disk_cache_complete
 					, shared_from_this(), _1, _2));
 		}
+
+		delete status;
 	}
 
 	void torrent::get_suggested_pieces(std::vector<int>& s) const
@@ -5932,29 +5941,35 @@ namespace libtorrent
 			return;
 		}
 
-		std::vector<cached_piece_info> ret;
-		m_ses.m_disk_thread.get_cache_info(m_storage, ret);
+		cache_status ret;
+
+		bool done = false;
+		mutex::scoped_lock l(m_ses.mut);
+		m_ses.cond.clear(l);
+		m_ses.get_cache_info(m_torrent_file->info_hash(), &ret, &done, &m_ses.cond, &m_ses.mut);
+		do { m_ses.cond.wait(l); m_ses.cond.clear(l); } while(!done);
+
 		ptime now = time_now();
 
 		// remove write cache entries
-		ret.erase(std::remove_if(ret.begin(), ret.end()
+		ret.pieces.erase(std::remove_if(ret.pieces.begin(), ret.pieces.end()
 			, boost::bind(&cached_piece_info::kind, _1) == cached_piece_info::write_cache)
-			, ret.end());
+			, ret.pieces.end());
 
 		// sort by how new the cached entry is, new pieces first
-		std::sort(ret.begin(), ret.end()
+		std::sort(ret.pieces.begin(), ret.pieces.end()
 			, boost::bind(&cached_piece_info::last_use, _1)
 			< boost::bind(&cached_piece_info::last_use, _2));
 
 		// cut off the oldest pieces that we don't want to suggest
 		// if we have an explicit cache, it's much more likely to
 		// stick around, so we should suggest all pieces
-		int num_pieces_to_suggest = int(ret.size());
+		int num_pieces_to_suggest = int(ret.pieces.size());
 		if (!settings().explicit_read_cache)
-			num_pieces_to_suggest = (std::max)(1, int(ret.size() / 2));
-		ret.resize(num_pieces_to_suggest);
+			num_pieces_to_suggest = (std::max)(1, int(ret.pieces.size() / 2));
+		ret.pieces.resize(num_pieces_to_suggest);
 
-		std::transform(ret.begin(), ret.end(), std::back_inserter(s)
+		std::transform(ret.pieces.begin(), ret.pieces.end(), std::back_inserter(s)
 			, boost::bind(&cached_piece_info::piece, _1));
 	}
 

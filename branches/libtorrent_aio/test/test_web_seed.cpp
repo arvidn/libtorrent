@@ -99,7 +99,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 		rate_sum += s.download_payload_rate;
 		ses_rate_sum += ss.payload_download_rate;
 
-		cs = ses.get_cache_status();
+		sha1_hash ih(0);
+		ses.get_cache_info(ih, &cs);
 		if (cs.blocks_read < 1) cs.blocks_read = 1;
 		if (cs.blocks_written < 1) cs.blocks_written = 1;
 

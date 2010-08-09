@@ -1397,7 +1397,13 @@ int main(int argc, char* argv[])
 			active_handle = h;
 		}
 
-		cache_status cs = ses.get_cache_status();
+		sha1_hash ih(0);
+		if (active_handle.is_valid())
+			ih = active_handle.info_hash();
+
+		cache_status cs;
+		ses.get_cache_info(ih, &cs);
+
 		if (cs.blocks_read < 1) cs.blocks_read = 1;
 		if (cs.blocks_written < 1) cs.blocks_written = 1;
 
@@ -1498,16 +1504,13 @@ int main(int argc, char* argv[])
 				std::sort(queue.begin(), queue.end(), boost::bind(&partial_piece_info::piece_index, _1)
 					< boost::bind(&partial_piece_info::piece_index, _2));
 
-				std::vector<cached_piece_info> pieces;
-				ses.get_cache_info(h.info_hash(), pieces);
-
 				for (std::vector<partial_piece_info>::iterator i = queue.begin();
 					i != queue.end(); ++i)
 				{
 					cached_piece_info* cp = 0;
-					std::vector<cached_piece_info>::iterator cpi = std::find_if(pieces.begin(), pieces.end()
+					std::vector<cached_piece_info>::iterator cpi = std::find_if(cs.pieces.begin(), cs.pieces.end()
 						, boost::bind(&cached_piece_info::piece, _1) == i->piece_index);
-					if (cpi != pieces.end()) cp = &*cpi;
+					if (cpi != cs.pieces.end()) cp = &*cpi;
 
 					snprintf(str, sizeof(str), "%5d: [", i->piece_index);
 					out += str;
@@ -1521,8 +1524,7 @@ int main(int argc, char* argv[])
 						char const* color = "";
 
 #ifdef ANSI_TERMINAL_COLORS
-						if (cp && cp->blocks[j]) color = esc("36;7");
-						else if (i->blocks[j].bytes_progress > 0
+						if (i->blocks[j].bytes_progress > 0
 							&& i->blocks[j].state == block_info::requested)
 						{
 							if (i->blocks[j].num_peers > 1) color = esc("1;7");
@@ -1530,6 +1532,7 @@ int main(int argc, char* argv[])
 							chr = '0' + (i->blocks[j].bytes_progress / float(i->blocks[j].block_size) * 10);
 						}
 						else if (i->blocks[j].state == block_info::finished) color = esc("32;7");
+						else if (cp && cp->blocks[j]) color = esc("36;7");
 						else if (i->blocks[j].state == block_info::writing) color = esc("35;7");
 						else if (i->blocks[j].state == block_info::requested) color = esc("0");
 						else { color = esc("0"); chr = ' '; }
@@ -1559,8 +1562,8 @@ int main(int argc, char* argv[])
 					out += "\n";
 				}
 
-				for (std::vector<cached_piece_info>::iterator i = pieces.begin()
-					, end(pieces.end()); i != end; ++i)
+				for (std::vector<cached_piece_info>::iterator i = cs.pieces.begin()
+					, end(cs.pieces.end()); i != end; ++i)
 				{
 					if (i->kind != cached_piece_info::read_cache) continue;
 					snprintf(str, sizeof(str), "%5d: [", i->piece);

@@ -203,7 +203,6 @@ The ``session`` class has the following synopsis::
 		ip_filter get_ip_filter() const;
 
 		session_status status() const;
-		cache_status get_cache_status() const;
 
 		bool is_listening() const;
 		unsigned short listen_port() const;
@@ -825,19 +824,41 @@ network.
 ``active_requests`` is a vector of the currently running DHT lookups.
 
 
-get_cache_status()
-------------------
+get_cache_info()
+----------------
 
 	::
 
-		cache_status get_cache_status() const;
+		void get_cache_info(sha1_hash const& ih, cache_status* ret) const;
 
-Returns status of the disk cache for this session.
+Fills in the cache_status struct with information about the given info-hash (``ih``).
+
+	::
+
+		struct cached_piece_info
+		{
+			int piece;
+			std::vector<bool> blocks;
+			ptime last_use;
+			enum kind_t { read_cache = 0, write_cache = 1 };
+			kind_t kind;
+		};
+
+``piece`` is the piece index for this cache entry.
+
+``blocks`` has one entry for each block in this piece. ``true`` represents
+the data for that block being in the disk cache and ``false`` means it's not.
+
+``last_use`` is the time when a block was last written to this piece. The older
+a piece is, the more likely it is to be flushed to disk.
+		
+``kind`` specifies if this piece is part of the read cache or the write cache.
 
 	::
 
 		struct cache_status
 		{
+			std::vector<cached_piece_info> pieces;
 			size_type blocks_written;
 			size_type writes;
 			size_type blocks_read;
@@ -887,38 +908,6 @@ cache misses.
 
 ``job_queue_length`` is the number of jobs in the job queue.
 
-get_cache_info()
-----------------
-
-	::
-
-		void get_cache_info(sha1_hash const& ih
-			, std::vector<cached_piece_info>& ret) const;
-
-``get_cache_info()`` fills out the supplied vector with information for
-each piece that is currently in the disk cache for the torrent with the
-specified info-hash (``ih``).
-
-	::
-
-		struct cached_piece_info
-		{
-			int piece;
-			std::vector<bool> blocks;
-			ptime last_use;
-			enum kind_t { read_cache = 0, write_cache = 1 };
-			kind_t kind;
-		};
-
-``piece`` is the piece index for this cache entry.
-
-``blocks`` has one entry for each block in this piece. ``true`` represents
-the data for that block being in the disk cache and ``false`` means it's not.
-
-``last_use`` is the time when a block was last written to this piece. The older
-a piece is, the more likely it is to be flushed to disk.
-		
-``kind`` specifies if this piece is part of the read cache or the write cache.
 
 is_listening() listen_port() listen_on()
 ----------------------------------------

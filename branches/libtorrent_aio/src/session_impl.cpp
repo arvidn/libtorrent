@@ -1121,6 +1121,26 @@ namespace aux {
 		m_disk_thread.abort();
 	}
 
+	void get_cache_info_done(int ret, disk_io_job const& j, mutex* m, condition* e, bool* done)
+	{
+		mutex::scoped_lock l(*m);
+		*done = true;
+		e->signal(l);
+	}
+
+	void session_impl::get_cache_info(sha1_hash const& ih, cache_status* ret, bool* done, condition* e, mutex* m)
+	{
+		piece_manager* st = 0;
+		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
+		if (t) st = &t->filesystem();
+		disk_io_job j;
+		j.storage = st;
+		j.action = disk_io_job::get_cache_info;
+		j.buffer = (char*)ret;
+		j.callback = boost::bind(&get_cache_info_done, _1, _2, m, e, done);
+		m_disk_thread.add_job(j);
+	}
+
 	void session_impl::set_port_filter(port_filter const& f)
 	{
 		m_port_filter = f;

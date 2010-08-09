@@ -213,6 +213,7 @@ namespace libtorrent
 
 	int disk_io_thread::try_flush(block_cache::iterator p)
 	{
+		DLOG(stderr, "[%p] try_flush: %d\n", this, p->piece);
 		int start_of_run = 0;
 		int i = 0;
 		const int limit = (std::min)(m_settings.write_cache_line_size, int(p->blocks_in_piece));
@@ -220,7 +221,7 @@ namespace libtorrent
 
 		for (; i < p->blocks_in_piece; ++i)
 		{
-			if (p->blocks[i].dirty) continue;
+			if (p->blocks[i].dirty && !p->blocks[i].pending) continue;
 
 			if (start_of_run == i
 				|| i - start_of_run < limit)
@@ -247,7 +248,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		DLOG(stderr, "[%p] io_range: readwrite=%d\n", this, readwrite);
+		DLOG(stderr, "[%p] io_range: readwrite=%d piece=%d [%d, %d)\n", this, readwrite, p->piece, start, end);
 		TORRENT_ASSERT(p != m_disk_cache.end());
 		TORRENT_ASSERT(start >= 0);
 		TORRENT_ASSERT(start < end);
@@ -291,6 +292,8 @@ namespace libtorrent
 				int range_start = i - (buffer_size + m_block_size - 1) / m_block_size;
 				if (readwrite == op_write)
 				{
+					DLOG(stderr, "[%p] io_range: write piece=%d start_block=%d end_block=%d\n"
+						, this, p->piece, range_start, i);
 					m_queue_buffer_size += to_write;
 					file::aiocb_t* aios = p->storage->write_async_impl(iov
 						, p->piece, to_write, iov_counter
@@ -304,7 +307,7 @@ namespace libtorrent
 				}
 				else
 				{
-					DLOG(stderr, "[%p] io_range: piece=%d start_block=%d end_block=%d\n"
+					DLOG(stderr, "[%p] io_range: read piece=%d start_block=%d end_block=%d\n"
 						, this, p->piece, range_start, i);
 					++m_outstanding_jobs;
 					file::aiocb_t* aios = p->storage->read_async_impl(iov, p->piece
@@ -439,7 +442,8 @@ namespace libtorrent
 		&disk_io_thread::do_update_settings,
 		&disk_io_thread::do_read_and_hash,
 		&disk_io_thread::do_cache_piece,
-		&disk_io_thread::do_finalize_file
+		&disk_io_thread::do_finalize_file,
+		&disk_io_thread::do_get_cache_info,
 	};
 
 	static const char* job_action_name[] =
@@ -460,7 +464,8 @@ namespace libtorrent
 		"update_settings",
 		"read_and_hash",
 		"cache_piece",
-		"finalize_file"
+		"finalize_file",
+		"get_cache_info"
 	};
 
 	void disk_io_thread::perform_async_job(disk_io_job j)
@@ -1103,94 +1108,12 @@ namespace libtorrent
 		return j.error ? disk_operation_failed : 0;
 	}
 
-	void disk_io_thread::on_write_one_buffer(error_code const& ec, size_t bytes_transferred
-		, disk_io_job j)
+	int disk_io_thread::do_get_cache_info(disk_io_job& j)
 	{
-		int ret = j.buffer_size;
-		TORRENT_ASSERT(ec || bytes_transferred == j.buffer_size);
-
-		TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
-		m_queue_buffer_size -= j.buffer_size;
-
-		if (ec)
-		{
-			free_buffer(j.buffer);
-			j.buffer = 0;
-			j.error = ec;
-			j.error_file.clear();
-			j.str.clear();
-			ret = -1;
-		}
-
-		++m_write_blocks;
-		if (j.callback)
-			m_ios.post(boost::bind(j.callback, ret, j));
-	}
-
-	void disk_io_thread::on_read_one_buffer(error_code const& ec, size_t bytes_transferred
-		, disk_io_job j)
-	{
-		TORRENT_ASSERT(m_outstanding_jobs > 0);
-		--m_outstanding_jobs;
-		DLOG(stderr, "[%p] on_read_one_buffer %s\n", this, ec.message().c_str());
-		int ret = j.buffer_size;
-		j.error = ec;
-		if (!ec && bytes_transferred != j.buffer_size)
-			j.error = errors::file_too_short;
-
-		if (j.error)
-		{
-			TORRENT_ASSERT(j.buffer == 0);
-			j.error_file.clear();
-			j.str.clear();
-			ret = -1;
-		}
-
-		++m_read_blocks;
-		if (j.callback)
-			m_ios.post(boost::bind(j.callback, ret, j));
-	}
-
-	void disk_io_thread::get_cache_info_impl(void* st
-		, std::vector<cached_piece_info>* ret, condition* e, mutex* m)
-	{
-		mutex::scoped_lock l(*m);
-
 		std::pair<block_cache::iterator, block_cache::iterator> range
-			= m_disk_cache.pieces_for_storage(st);
+			= m_disk_cache.pieces_for_storage(j.storage.get());
 
-		for (block_cache::iterator i = range.first; i != range.second; ++i)
-		{
-			ret->push_back(cached_piece_info());
-			cached_piece_info& info = ret->back();
-			info.piece = i->piece;
-//			info.last_use = seconds(i->expire);
-			info.kind = i->num_dirty ? cached_piece_info::write_cache : cached_piece_info::read_cache;
-			int blocks_in_piece = i->blocks_in_piece;
-			info.blocks.resize(blocks_in_piece);
-			for (int b = 0; b < blocks_in_piece; ++b)
-				if (i->blocks[b].buf) info.blocks[b] = true;
-		}
-		e->signal(l);
-	}
-
-	// This is always called from an outside thread!
-	void disk_io_thread::get_cache_info(void* st, std::vector<cached_piece_info>& ret) const
-	{
-/*
-	// #error implement as a regular disk io job
-		mutex m;
-		condition e;
-		m_disk_io_service.post(boost::bind(&disk_io_thread::get_cache_info_impl
-			, const_cast<disk_io_thread*>(this), st, &ret, &e, &m));
-		mutex::scoped_lock l(m);
-		e.wait(l);
-*/
-	}
-
-	void disk_io_thread::status_impl(cache_status* ret, condition* e, mutex* m)
-	{
-		mutex::scoped_lock l(*m);
+		cache_status* ret = (cache_status*)j.buffer;
 
 		// #error add these stats
 //		ret->total_used_buffers = m_disk_cache.size();
@@ -1211,23 +1134,71 @@ namespace libtorrent
 		ret->cache_size = 0;
 		ret->read_cache_size = 0;
 
-		e->signal(l);
+		time_t now_time_t = time(0);
+		ptime now = time_now();
+
+		for (block_cache::iterator i = range.first; i != range.second; ++i)
+		{
+			ret->pieces.push_back(cached_piece_info());
+			cached_piece_info& info = ret->pieces.back();
+			info.piece = i->piece;
+			info.last_use = now + seconds(now_time_t - i->expire);
+			info.kind = i->num_dirty ? cached_piece_info::write_cache : cached_piece_info::read_cache;
+			int blocks_in_piece = i->blocks_in_piece;
+			info.blocks.resize(blocks_in_piece);
+			for (int b = 0; b < blocks_in_piece; ++b)
+				info.blocks[b] = i->blocks[b].buf != 0;
+		}
+		return 0;
 	}
 
-	// This is always called from an outside thread!
-	cache_status disk_io_thread::status() const
+	void disk_io_thread::on_write_one_buffer(error_code const& ec, size_t bytes_transferred
+		, disk_io_job j)
 	{
-		cache_status st;
-/*
-		// #error implement as a regular disk io job
-		mutex m;
-		condition e;
-		m_disk_io_service.post(boost::bind(&disk_io_thread::status_impl
-			, const_cast<disk_io_thread*>(this), &st, &e, &m));
-		mutex::scoped_lock l(m);
-		e.wait(l);
-*/
-		return st;
+		int ret = j.buffer_size;
+		TORRENT_ASSERT(ec || bytes_transferred == j.buffer_size);
+
+		TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
+		m_queue_buffer_size -= j.buffer_size;
+
+		DLOG(stderr, "[%p] on_write_one_buffer piece=%d offset=%d error=%s\n", this, j.piece, j.offset, ec.message().c_str());
+		if (ec)
+		{
+			free_buffer(j.buffer);
+			j.buffer = 0;
+			j.error = ec;
+			j.error_file.clear();
+			j.str.clear();
+			ret = -1;
+		}
+
+		++m_write_blocks;
+		if (j.callback)
+			m_ios.post(boost::bind(j.callback, ret, j));
+	}
+
+	void disk_io_thread::on_read_one_buffer(error_code const& ec, size_t bytes_transferred
+		, disk_io_job j)
+	{
+		TORRENT_ASSERT(m_outstanding_jobs > 0);
+		--m_outstanding_jobs;
+		DLOG(stderr, "[%p] on_read_one_buffer piece=%d offset=%d error=%s\n", this, j.piece, j.offset, ec.message().c_str());
+		int ret = j.buffer_size;
+		j.error = ec;
+		if (!ec && bytes_transferred != j.buffer_size)
+			j.error = errors::file_too_short;
+
+		if (j.error)
+		{
+			TORRENT_ASSERT(j.buffer == 0);
+			j.error_file.clear();
+			j.str.clear();
+			ret = -1;
+		}
+
+		++m_read_blocks;
+		if (j.callback)
+			m_ios.post(boost::bind(j.callback, ret, j));
 	}
 
 	// This is sometimes called from an outside thread!
@@ -1341,6 +1312,8 @@ namespace libtorrent
 				prepend_aios(m_to_issue, to_issue);
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
 				prepend_aios(m_in_progress, pending);
+
+// #error issue performance warning whenever we hit the upper bound of outstanding AIO requests
 			}
 
 			// now, we may have received the abort thread

@@ -100,6 +100,7 @@ namespace libtorrent
 	struct fingerprint;
 	class torrent;
 	class alert;
+	struct cache_info;
 
 	namespace dht
 	{
@@ -264,6 +265,8 @@ namespace libtorrent
 			void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const&);
 
 			alert const* wait_for_alert(time_duration max_wait);
+
+			void get_cache_info(sha1_hash const& ih, cache_status* ret, bool* done, condition* e, mutex* m);
 
 			int upload_rate_limit() const;
 			int download_rate_limit() const;

@@ -87,6 +87,8 @@ namespace libtorrent
 			, job_queue_length(0)
 		{}
 
+		std::vector<cached_piece_info> pieces;
+
 		// the number of 16kB blocks written
 		size_type blocks_written;
 		// the number of write operations used
@@ -135,12 +137,6 @@ namespace libtorrent
 		void stop(boost::intrusive_ptr<piece_manager> s);
 		void add_job(disk_io_job const& j);
 
-		void get_cache_info_impl(void*, std::vector<cached_piece_info>*, condition*, mutex*);
-		void get_cache_info(void* st, std::vector<cached_piece_info>& ret) const;
-
-		void status_impl(cache_status* ret, condition*, mutex*);
-		cache_status status() const;
-
 		void thread_fun();
 
 		file_pool& files() { return m_file_pool; }
@@ -171,6 +167,7 @@ namespace libtorrent
 		int do_read_and_hash(disk_io_job& j);
 		int do_cache_piece(disk_io_job& j);
 		int do_finalize_file(disk_io_job& j);
+		int do_get_cache_info(disk_io_job& j);
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;

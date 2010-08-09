@@ -70,6 +70,7 @@ namespace libtorrent
 	struct file_pool;
 	struct disk_io_job;
 	struct disk_buffer_pool;
+	struct cache_status;
 
 	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		file_storage const& t
@@ -218,6 +219,9 @@ namespace libtorrent
 		void write_resume_data(entry& rd, error_code& ec) const;
 
 		void async_finalize_file(int file);
+
+		void async_get_cache_info(cache_status* ret
+			, boost::function<void(int, disk_io_job const&)> const& handler);
 
 		void async_check_fastresume(lazy_entry const* resume_data
 			, boost::function<void(int, disk_io_job const&)> const& handler);

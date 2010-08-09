@@ -2371,8 +2371,8 @@ namespace libtorrent
 		bool was_finished = picker.is_piece_finished(p.piece);
 		// did we request this block from any other peers?
 		bool multi = picker.num_peers(block_finished) > 1;
-		fprintf(stderr, "peer_connection mark_as_writing peer: %p piece: %d block: %d\n"
-			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
+//		fprintf(stderr, "peer_connection mark_as_writing peer: %p piece: %d block: %d\n"
+//			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_writing(block_finished, peer_info_struct());
 
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
@@ -2449,9 +2449,24 @@ namespace libtorrent
 		TORRENT_ASSERT(p.piece == j.piece);
 		TORRENT_ASSERT(p.start == j.offset);
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
-		fprintf(stderr, "peer_connection mark_as_finished peer: %p piece: %d block: %d\n"
-			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
+//		fprintf(stderr, "peer_connection mark_as_finished peer: %p piece: %d block: %d\n"
+//			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_finished(block_finished, peer_info_struct());
+		TORRENT_ASSERT(picker.is_finished(block_finished));
+#ifndef NDBEUG
+
+		const std::vector<piece_picker::downloading_piece>& q
+			= picker.get_download_queue();
+
+		for (std::vector<piece_picker::downloading_piece>::const_iterator
+			i = q.begin(), end(q.end()); i != end; ++i)
+		{
+			if (i->index != block_finished.piece_index) continue;
+			piece_picker::downloading_piece const& p = *i;
+			TORRENT_ASSERT(p.info[block_finished.block_index].state == piece_picker::block_info::state_finished);
+		}
+
+#endif
 		if (t->alerts().should_post<block_finished_alert>())
 		{
 			t->alerts().post_alert(block_finished_alert(t->get_handle(), 

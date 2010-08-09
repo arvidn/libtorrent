@@ -800,6 +800,8 @@ namespace libtorrent
 		void on_piece_verified(int ret, disk_io_job const& j
 			, boost::function<void(int)> f);
 	
+		void refresh_explicit_cache_impl(int ret, disk_io_job const& j, int cache_size);
+
 		int prioritize_tracker(int tracker_index);
 		int deprioritize_tracker(int tracker_index);
 

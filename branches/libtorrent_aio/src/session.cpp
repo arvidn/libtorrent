@@ -262,21 +262,21 @@ namespace libtorrent
 	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get())))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
 
 #define TORRENT_SYNC_CALL1(x, a1) \
 	bool done = false; \
 	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
 
 #define TORRENT_SYNC_CALL2(x, a1, a2) \
 	bool done = false; \
 	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
 
 #define TORRENT_SYNC_CALL_RET(type, x) \
 	bool done = false; \
@@ -284,7 +284,7 @@ namespace libtorrent
 	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get())))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
 
 #define TORRENT_SYNC_CALL_RET1(type, x, a1) \
 	bool done = false; \
@@ -292,7 +292,7 @@ namespace libtorrent
 	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
 
 #define TORRENT_SYNC_CALL_RET2(type, x, a1, a2) \
 	bool done = false; \
@@ -300,7 +300,7 @@ namespace libtorrent
 	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
 
 #define TORRENT_SYNC_CALL_RET3(type, x, a1, a2, a3) \
 	bool done = false; \
@@ -308,7 +308,7 @@ namespace libtorrent
 	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
 
 	session::session(
 		fingerprint const& id
@@ -649,16 +649,13 @@ namespace libtorrent
 	}
 
 	void session::get_cache_info(sha1_hash const& ih
-		, std::vector<cached_piece_info>& ret) const
+		, cache_status* ret) const
 	{
-		boost::shared_ptr<torrent> t = m_impl->find_torrent(ih).lock();
-		if (!t) return;
-		m_impl->m_disk_thread.get_cache_info(&t->filesystem(), ret);
-	}
-
-	cache_status session::get_cache_status() const
-	{
-		return m_impl->m_disk_thread.status();
+		bool done = false;
+		mutex::scoped_lock l(m_impl->mut);
+		m_impl->cond.clear(l);
+		m_impl->m_io_service.post(boost::bind(&session_impl::get_cache_info, m_impl.get(), ih, ret, &done, &m_impl->cond, &m_impl->mut));
+		do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done);
 	}
 
 #ifndef TORRENT_DISABLE_DHT

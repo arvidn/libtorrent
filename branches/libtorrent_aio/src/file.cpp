@@ -43,6 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/scoped_ptr.hpp>
 #include <boost/static_assert.hpp>
 
+#define DEBUG_AIO 0
+
+#define DLOG if (DEBUG_AIO) fprintf
+
 #ifdef TORRENT_WINDOWS
 // windows part
 
@@ -1769,8 +1773,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			}
 
 			size_t ret = aio_return(&a->cb);
-//			fprintf(stderr, "aio_return(%p) = %d\n", &a->cb, int(ret));
-//			if (ret == -1) fprintf(stderr, " error: %s\n", strerror(errno));
+			DLOG(stderr, "aio_return(%p) = %d\n", &a->cb, int(ret));
+			if (ret == -1) DLOG(stderr, " error: %s\n", strerror(errno));
 			a->handler->done(error_code(e, boost::system::get_posix_category()), ret);
 			// TODO: use a pool allocator for these
 			delete a;
@@ -1805,7 +1809,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		sigevent sig;
 		memset(&sig, 0, sizeof(sig));
 		sig.sigev_notify = SIGEV_SIGNAL;
-		sig.sigev_signo = SIGIO;
+		sig.sigev_signo = TORRENT_AIO_SIGNAL;
 
 		// this is the first aio in the array
 		// we're currently submitting
@@ -1823,10 +1827,44 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			if (i == array_size || aios == 0)
 			{
 				int ret = lio_listio(LIO_NOWAIT, array, i, &sig);
-//				fprintf(stderr, "lio_listio(%d) = %d\n", i, ret);
-//				if (ret == -1) fprintf(stderr, "  error: %s\n", strerror(errno));
+				DLOG(stderr, "lio_listio(%d) = %d\n", i, ret);
+				if (ret == -1) DLOG(stderr, "  error: %s\n", strerror(errno));
 				if (ret == -1)
 				{
+					// we need to iterate over all aiocb's to know which
+					// ones were actually started
+					file::aiocb_t** prev_link = 0;
+					for (file::aiocb_t* j = list_start; j != aios; j = j->next)
+					{
+						ret = aio_error(&j->cb);
+						DLOG(stderr, "aio_error(%p) = %s\n", &j->cb, strerror(ret));
+						if (ret == -1) DLOG(stderr, "  error: %s\n", strerror(errno));
+						if (ret != -1)
+						{
+							// yes, this one was actually added. unlink it from
+							// the chain and stick it in the return chain
+
+							// unlink
+							if (prev_link) *prev_link = j->next;
+
+							// if this is the first element in the remaining
+							// list, push the start link out one step
+							if (j == list_start) list_start = j->next;
+
+							// link in to return list
+							*ret_last = j;
+							ret_last = &j->next;
+						}
+						else
+						{
+							// nope, this was not added
+							if (prev_link) *prev_link = j;
+
+							// update the last entry in the remaining list
+							prev_link = &j->next;
+						}
+					}
+					if (prev_link) *prev_link = aios;
 					*ret_last = 0;
 					i = 0;
 					break;
