@@ -218,18 +218,22 @@ int block_cache::try_evict_blocks(int num, int prio)
 
 	// iterate over all blocks in order of last being used (oldest first) and as
 	// long as we still have blocks to evict
-	for (cache_lru_index_t::iterator i = idx.begin(); i != idx.end() && num > 0; ++i)
+	for (cache_lru_index_t::iterator i = idx.begin(); i != idx.end() && num > 0;)
 	{
 		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*i);
 		// all blocks in this piece are dirty
-		if (pe->num_dirty == pe->num_blocks) continue;
+		if (pe->num_dirty == pe->num_blocks)
+		{
+			++i;
+			continue;
+		}
 
 		// go through the blocks and evict the ones
 		// that are not dirty and not referenced
 		for (int j = 0; j < pe->blocks_in_piece && num > 0; ++j)
 		{
 			cached_block_entry& b = pe->blocks[j];
-			if (b.refcount > 0 || b.dirty || b.uninitialized || b.pending) continue;
+			if (b.buf == 0 || b.refcount > 0 || b.dirty || b.uninitialized || b.pending) continue;
 			
 			to_free.push_back(b.buf);
 			b.buf = 0;
@@ -238,6 +242,9 @@ int block_cache::try_evict_blocks(int num, int prio)
 			--m_cache_size;
 			--num;
 		}
+
+		if (pe->num_blocks == 0) idx.erase(i++);
+		else ++i;
 	}
 
 	if (to_free.empty()) return num;
