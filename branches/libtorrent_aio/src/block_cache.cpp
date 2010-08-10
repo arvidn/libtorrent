@@ -73,7 +73,8 @@ block_cache::cached_piece_entry::cached_piece_entry()
 {}
 
 block_cache::block_cache(disk_buffer_pool& p)
-	: m_cache_size(0)
+	: m_max_size(0)
+	, m_cache_size(0)
 	, m_read_cache_size(0)
 	, m_write_cache_size(0)
 	, m_blocks_read(0)
@@ -135,6 +136,9 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
 	iterator p = allocate_piece(j);
 	int block = j.offset / block_size;
 	TORRENT_ASSERT((j.offset % block_size) == 0);
+
+	if (m_cache_size + 1 > m_max_size)
+		try_evict_blocks(m_cache_size + 1 - m_max_size, 1);
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 	TORRENT_ASSERT(block < pe->blocks_in_piece);
@@ -203,10 +207,43 @@ void block_cache::mark_for_deletion(iterator p)
 	pe->marked_for_deletion = true;
 }
 
-bool block_cache::try_evict_blocks(int num, int prio)
+int block_cache::try_evict_blocks(int num, int prio)
 {
-	// #error this can probably not be implemented in the block cache itself since we can't flush write blocks. I
-	return true;
+	if (num <= 0) return 0;
+
+	cache_lru_index_t& idx = m_pieces.get<1>();
+
+	std::vector<char*> to_free;
+	to_free.reserve(num);
+
+	// iterate over all blocks in order of last being used (oldest first) and as
+	// long as we still have blocks to evict
+	for (cache_lru_index_t::iterator i = idx.begin(); i != idx.end() && num > 0; ++i)
+	{
+		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*i);
+		// all blocks in this piece are dirty
+		if (pe->num_dirty == pe->num_blocks) continue;
+
+		// go through the blocks and evict the ones
+		// that are not dirty and not referenced
+		for (int j = 0; j < pe->blocks_in_piece && num > 0; ++j)
+		{
+			cached_block_entry& b = pe->blocks[j];
+			if (b.refcount > 0 || b.dirty || b.uninitialized || b.pending) continue;
+			
+			to_free.push_back(b.buf);
+			b.buf = 0;
+			--pe->num_blocks;
+			--m_read_cache_size;
+			--m_cache_size;
+			--num;
+		}
+	}
+
+	if (to_free.empty()) return num;
+
+	m_buffer_pool.free_multiple_buffers(&to_free[0], to_free.size());
+	return num;
 }
 
 // the priority controls which other blocks these new blocks
@@ -238,7 +275,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 	int blocks_to_allocate = end - begin;
 	if (m_cache_size + blocks_to_allocate > m_max_size)
 	{
-		if (!try_evict_blocks(m_cache_size + blocks_to_allocate - m_max_size, prio))
+		if (try_evict_blocks(m_cache_size + blocks_to_allocate - m_max_size, prio) > 0)
 		{
 			// we couldn't evict enough blocks to make room for this piece
 			// we cannot return -1 here, since that means we're out of
@@ -260,6 +297,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 				cached_block_entry& bl = pe->blocks[j];
 				if (!bl.uninitialized) continue;
 				TORRENT_ASSERT(bl.buf != 0);
+				//#error use free_multiple_buffers here
 				m_buffer_pool.free_buffer(bl.buf);
 				bl.buf = 0;
 				bl.uninitialized = false;
@@ -603,7 +641,7 @@ int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
 	return ret;
 }
 
-void block_cache::get_stats(cache_status* ret)
+void block_cache::get_stats(cache_status* ret) const
 {
 	ret->blocks_read_hit = m_blocks_read_hit;
 	ret->cache_size = m_cache_size;

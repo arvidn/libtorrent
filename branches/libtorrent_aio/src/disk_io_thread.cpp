@@ -979,6 +979,11 @@ namespace libtorrent
 			else
 				m_settings.cache_size = m_physical_ram / 8 / m_block_size;
 		}
+
+		m_disk_cache.set_max_size(m_settings.cache_size);
+		if (m_disk_cache.size() > m_settings.cache_size)
+			m_disk_cache.try_evict_blocks(m_disk_cache.size() - m_settings.cache_size, 0);
+
 		return 0;
 	}
 
@@ -1139,7 +1144,7 @@ namespace libtorrent
 			ret->pieces.push_back(cached_piece_info());
 			cached_piece_info& info = ret->pieces.back();
 			info.piece = i->piece;
-			info.last_use = now + seconds(now_time_t - i->expire);
+			info.last_use = now - seconds(now_time_t - i->expire);
 			info.kind = i->num_dirty ? cached_piece_info::write_cache : cached_piece_info::read_cache;
 			int blocks_in_piece = i->blocks_in_piece;
 			info.blocks.resize(blocks_in_piece);
@@ -1226,6 +1231,7 @@ namespace libtorrent
 
 	void disk_io_thread::thread_fun()
 	{
+		m_disk_cache.set_max_size(m_settings.cache_size);
 
 #if TORRENT_USE_AIO
 		// if we have posix aio, assume we have pthreads as well

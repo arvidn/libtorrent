@@ -234,9 +234,17 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 		
-		bool try_evict_blocks(int num, int prio);
+		// try to remove num number of read cache blocks from the cache
+		// pick the least recently used ones first
+		// return the number of blocks that was requested to be evicted
+		// that couldn't be
+		int try_evict_blocks(int num, int prio);
 
-		void get_stats(cache_status* ret);
+		void get_stats(cache_status* ret) const;
+
+		boost::uint32_t size() const { return m_cache_size; }
+
+		void set_max_size(int s) { m_max_size = s; }
 
 	private:
 
