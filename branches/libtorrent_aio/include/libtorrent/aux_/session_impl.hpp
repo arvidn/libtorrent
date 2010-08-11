@@ -810,6 +810,7 @@ namespace libtorrent
 			std::string m_logpath;
 		public:
 			boost::shared_ptr<logger> m_logger;
+			FILE* m_request_logger;
 
 		private:
 

@@ -530,6 +530,8 @@ namespace aux {
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
+
+		m_request_logger = fopen("requests.log", "w+");
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
@@ -3641,6 +3643,7 @@ namespace aux {
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << "\n\n *** shutting down session *** \n\n";
+		fclose(m_request_logger);
 #endif
 		m_io_service.post(boost::bind(&session_impl::abort, this));
 

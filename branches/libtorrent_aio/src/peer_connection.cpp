@@ -58,6 +58,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #endif
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#include "libtorrent/escape_string.hpp"
+#endif
+
 //#define TORRENT_CORRUPT_DATA
 
 using boost::shared_ptr;
@@ -1954,6 +1958,17 @@ namespace libtorrent
 			}
 			else
 			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+				static ptime start = time_now_hires();
+				// time-ms info-hash peer-id piece-index piece-offset size upload-rate-bytes-per-second
+				char ih[5];
+				to_hex((char const*)&t->info_hash()[0], 4, ih);
+				char pid[5];
+				to_hex((char const*)&m_peer_id[7], 4, ih);
+				fprintf(m_ses.m_request_logger, "%d\t%s\t%s\t%d\t%d\t%d\t%d\n"
+					, total_milliseconds(time_now_hires() - start), ih, pid
+					, r.piece, r.start, r.length, m_statistics.upload_rate());
+#endif
 				m_choke_rejects = 0;
 				m_requests.push_back(r);
 				m_last_incoming_request = time_now();
