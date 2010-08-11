@@ -125,6 +125,7 @@ block_cache::iterator block_cache::allocate_piece(disk_io_job const& j)
 		pe.expire = time(0) + j.cache_min_time;
 		pe.blocks_in_piece = blocks_in_piece;
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
+		TORRENT_ASSERT(pe.blocks);
 		if (!pe.blocks) return idx.end();
 		p = idx.insert(pe).first;
 	}
@@ -134,11 +135,14 @@ block_cache::iterator block_cache::allocate_piece(disk_io_job const& j)
 block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
 {
 	iterator p = allocate_piece(j);
+	TORRENT_ASSERT(p != end());
+	if (p == end()) return p;
+
 	int block = j.offset / block_size;
 	TORRENT_ASSERT((j.offset % block_size) == 0);
 
 	if (m_cache_size + 1 > m_max_size)
-		try_evict_blocks(m_cache_size + 1 - m_max_size, 1);
+		try_evict_blocks(m_cache_size + 1 - m_max_size, 1, p);
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 	TORRENT_ASSERT(block < pe->blocks_in_piece);
@@ -146,6 +150,7 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
 	TORRENT_ASSERT(pe->blocks[block].dirty == false);
 	TORRENT_ASSERT(pe->blocks[block].buf == 0);
 	TORRENT_ASSERT(j.piece == pe->piece);
+	TORRENT_ASSERT(!pe->marked_for_deletion);
 
 	pe->blocks[block].buf = j.buffer;
 
@@ -207,7 +212,7 @@ void block_cache::mark_for_deletion(iterator p)
 	pe->marked_for_deletion = true;
 }
 
-int block_cache::try_evict_blocks(int num, int prio)
+int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 {
 	if (num <= 0) return 0;
 
@@ -220,6 +225,12 @@ int block_cache::try_evict_blocks(int num, int prio)
 	// long as we still have blocks to evict
 	for (cache_lru_index_t::iterator i = idx.begin(); i != idx.end() && num > 0;)
 	{
+		if (ignore != end() && i->storage == ignore->storage && i->piece == ignore->piece)
+		{
+			++i;
+			continue;
+		}
+
 		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*i);
 		// all blocks in this piece are dirty
 		if (pe->num_dirty == pe->num_blocks)
@@ -282,7 +293,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 	int blocks_to_allocate = end - begin;
 	if (m_cache_size + blocks_to_allocate > m_max_size)
 	{
-		if (try_evict_blocks(m_cache_size + blocks_to_allocate - m_max_size, prio) > 0)
+		if (try_evict_blocks(m_cache_size + blocks_to_allocate - m_max_size, prio, p) > 0)
 		{
 			// we couldn't evict enough blocks to make room for this piece
 			// we cannot return -1 here, since that means we're out of
@@ -291,6 +302,8 @@ int block_cache::allocate_pending(block_cache::iterator p
 			return -2;
 		}
 	}
+
+	TORRENT_ASSERT(!pe->marked_for_deletion);
 
 	for (int i = begin; i < end; ++i)
 	{

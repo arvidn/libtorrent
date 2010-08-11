@@ -238,7 +238,7 @@ namespace libtorrent
 		// pick the least recently used ones first
 		// return the number of blocks that was requested to be evicted
 		// that couldn't be
-		int try_evict_blocks(int num, int prio);
+		int try_evict_blocks(int num, int prio, iterator ignore);
 
 		void get_stats(cache_status* ret) const;
 

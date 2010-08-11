@@ -639,7 +639,10 @@ namespace libtorrent
 				// is flushed to disk
 				return defer_handler;
 			}
+			TORRENT_ASSERT(false);
 		}
+
+		TORRENT_ASSERT(false);
 
 		file::iovec_t b = { j.buffer, j.buffer_size };
 		m_queue_buffer_size += j.buffer_size;
@@ -982,7 +985,7 @@ namespace libtorrent
 
 		m_disk_cache.set_max_size(m_settings.cache_size);
 		if (m_disk_cache.size() > m_settings.cache_size)
-			m_disk_cache.try_evict_blocks(m_disk_cache.size() - m_settings.cache_size, 0);
+			m_disk_cache.try_evict_blocks(m_disk_cache.size() - m_settings.cache_size, 0, m_disk_cache.end());
 
 		return 0;
 	}
