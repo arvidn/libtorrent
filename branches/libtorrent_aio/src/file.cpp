@@ -1799,7 +1799,23 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios)
 	{
 #if TORRENT_USE_AIO
-		const int array_size = AIO_LISTIO_MAX < 100 ? AIO_LISTIO_MAX : 100;
+		int sc = sysconf(_SC_AIO_LISTIO_MAX);
+		if (sc == -1 && errno == 0)
+		{
+			// unlimited
+			sc = INT_MAX;
+		}
+		else if (sc == -1)
+		{
+			// something wrong, fall back to constant
+#ifdef AIO_LISTIO_MAX
+			sc = AIO_LISTIO_MAX;
+#else
+			// we are guaranteed that we can at least issue 2 requests
+			sc = 2;
+#endif
+		}
+		const int array_size = sc < 100 ? sc : 100;
 		aiocb** array = TORRENT_ALLOCA(aiocb*, array_size);
 		if (array == 0)
 		{
