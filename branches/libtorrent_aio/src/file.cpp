@@ -1815,6 +1815,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			sc = 2;
 #endif
 		}
+#ifdef AIO_LISTIO_MAX
+		sc = (std::min)(AIO_LISTIO_MAX, sc);
+#endif
 		const int array_size = sc < 100 ? sc : 100;
 		aiocb** array = TORRENT_ALLOCA(aiocb*, array_size);
 		if (array == 0)
