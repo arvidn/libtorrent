@@ -211,12 +211,12 @@ namespace libtorrent
 		add_job(j);
 	}
 
-	int disk_io_thread::try_flush(block_cache::iterator p)
+	int disk_io_thread::try_flush(block_cache::iterator p, int limit)
 	{
 		DLOG(stderr, "[%p] try_flush: %d\n", this, p->piece);
 		int start_of_run = 0;
 		int i = 0;
-		const int limit = (std::min)(m_settings.write_cache_line_size, int(p->blocks_in_piece));
+		limit = (std::min)(limit, int(p->blocks_in_piece));
 		int ret = 0;
 
 		for (; i < p->blocks_in_piece; ++i)
@@ -424,6 +424,23 @@ namespace libtorrent
 
 	void disk_io_thread::uncork_jobs()
 	{
+	}
+
+	void disk_io_thread::try_flush_write_blocks(int num)
+	{
+		DLOG(stderr, "[%p] try_flush_write_blocks: %d\n", this, num);
+
+		std::pair<block_cache::lru_iterator, block_cache::lru_iterator> range
+			= m_disk_cache.all_lru_pieces();
+
+		// flush write cache in LRU order
+		for (block_cache::lru_iterator p = range.first;
+			p != range.second && num > 0; ++p)
+		{
+			if (p->num_dirty == 0) continue;
+
+			try_flush(m_disk_cache.map_iterator(p), 1);
+		}
 	}
 
 	typedef int (disk_io_thread::*disk_io_fun_t)(disk_io_job& j);
@@ -640,17 +657,27 @@ namespace libtorrent
 			if (p != m_disk_cache.end())
 			{
 				// flushes the piece to disk in case
-				// if satisfies the condition for a write
+				// it satisfies the condition for a write
 				// piece to be flushed
-				try_flush(p);
+				try_flush(p, m_settings.write_cache_line_size);
+
+				// if we have more blocks in the cache than allowed by
+				// the cache size limit, flush some dirty blocks
+				if (m_settings.cache_size <= m_disk_cache.size())
+				{
+					try_flush_write_blocks(m_settings.cache_size - m_disk_cache.size());
+				}
+
 				// the handler will be called when the block
 				// is flushed to disk
 				return defer_handler;
 			}
+
+			// #error this is a serious error, we should return ENOMEM
 			TORRENT_ASSERT(false);
 		}
 
-		TORRENT_ASSERT(false);
+		// #error this won't work with the hash operation, since it can't synchronize with when the blocks are written
 
 		file::iovec_t b = { j.buffer, j.buffer_size };
 		m_queue_buffer_size += j.buffer_size;

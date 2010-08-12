@@ -173,6 +173,7 @@ namespace libtorrent
 	public:
 
 		typedef cache_piece_index_t::iterator iterator;
+		typedef cache_lru_index_t::iterator lru_iterator;
 
 		// returns the range of all pieces that belongs to the
 		// given storage
@@ -181,6 +182,14 @@ namespace libtorrent
 		// returns a range of all pieces. This migh be a very
 		// long list, use carefully
 		std::pair<iterator, iterator> all_pieces();
+
+		// returns a range of all pieces, in LRU order
+		std::pair<lru_iterator, lru_iterator> all_lru_pieces();
+
+		iterator map_iterator(lru_iterator it)
+		{
+			return m_pieces.project<0>(it);
+		}
 
 		// mark this piece for deletion. If there are no outstanding
 		// requests to this piece, it's removed immediately, and the

@@ -177,6 +177,12 @@ std::pair<block_cache::iterator, block_cache::iterator> block_cache::all_pieces(
 	return std::make_pair(idx.begin(), idx.end());
 }
 
+std::pair<block_cache::lru_iterator, block_cache::lru_iterator> block_cache::all_lru_pieces()
+{
+	cache_lru_index_t& idx = m_pieces.get<1>();
+	return std::make_pair(idx.begin(), idx.end());
+}
+
 std::pair<block_cache::iterator, block_cache::iterator> block_cache::pieces_for_storage(void* st)
 {
 	cache_piece_index_t& idx = m_pieces.get<0>();

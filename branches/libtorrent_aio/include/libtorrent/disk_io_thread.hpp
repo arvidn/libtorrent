@@ -200,7 +200,8 @@ namespace libtorrent
 		void on_read_one_buffer(error_code const& ec, size_t bytes_transferred
 			, disk_io_job j);
 
-		int try_flush(block_cache::iterator p);
+		int try_flush(block_cache::iterator p, int limit);
+		void try_flush_write_blocks(int num);
 
 		bool m_abort;
 
