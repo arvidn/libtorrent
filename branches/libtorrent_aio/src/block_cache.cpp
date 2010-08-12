@@ -198,12 +198,14 @@ void block_cache::mark_for_deletion(iterator p)
 		idx.erase(p);
 		return;
 	}
+
+	std::vector<char*> to_delete;
+	to_delete.reserve(pe->blocks_in_piece);
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
 		if (pe->blocks[i].buf == 0 || pe->blocks[i].refcount > 0) continue;
 		TORRENT_ASSERT(pe->blocks[i].buf != 0);
-		// #error use free_multiple_buffers here
-		m_buffer_pool.free_buffer(pe->blocks[i].buf);
+		to_delete.push_back(pe->blocks[i].buf);
 		pe->blocks[i].buf = 0;
 		TORRENT_ASSERT(pe->num_blocks > 0);
 		--pe->num_blocks;
@@ -216,6 +218,7 @@ void block_cache::mark_for_deletion(iterator p)
 		}
 		else --pe->num_dirty;
 	}
+	if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
 	pe->marked_for_deletion = true;
 }
 
@@ -328,13 +331,14 @@ int block_cache::allocate_pending(block_cache::iterator p
 		pe->blocks[i].buf = m_buffer_pool.allocate_buffer("pending read");
 		if (pe->blocks[i].buf == 0)
 		{
+			std::vector<char*> to_delete;
+			to_delete.reserve(end - begin);
 			for (int j = begin; j < end; ++j)
 			{
 				cached_block_entry& bl = pe->blocks[j];
 				if (!bl.uninitialized) continue;
 				TORRENT_ASSERT(bl.buf != 0);
-				//#error use free_multiple_buffers here
-				m_buffer_pool.free_buffer(bl.buf);
+				to_delete.push_back(bl.buf);
 				bl.buf = 0;
 				bl.uninitialized = false;
 				TORRENT_ASSERT(m_read_cache_size > 0);
@@ -354,6 +358,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 				cache_piece_index_t& idx = m_pieces.get<0>();
 				idx.erase(p);
 			}
+			if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
 			return -1;
 		}
 		++pe->num_blocks;
@@ -388,6 +393,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 	DLOG(stderr, "%p block_cache mark_as_done error: %s\n", &m_buffer_pool, ec.message().c_str());
 
+	std::vector<char*> to_delete;
+	to_delete.reserve(pe->blocks_in_piece);
 	if (ec)
 	{
 		// fail all jobs for this piece with this error
@@ -424,8 +431,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				--m_read_cache_size;
 			}
 			TORRENT_ASSERT(bl.buf != 0);
-			// #error use free_multiple_buffers here
-			m_buffer_pool.free_buffer(bl.buf);
+			to_delete.push_back(bl.buf);
 			bl.buf = 0;
 			bl.pending = false;
 			TORRENT_ASSERT(pe->num_blocks > 0);
@@ -582,6 +588,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			// this job is waiting for just return the failure
 			ret = -1;
 		}
+
+		if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
 		TORRENT_ASSERT(i->piece == pe->piece);
 		DLOG(stderr, "%p block_cache mark_done post job "
 			"piece: %d offset: %d\n", &m_buffer_pool, i->piece, i->offset);
