@@ -577,6 +577,7 @@ namespace libtorrent
 					else if (ret == -1)
 					{
 						// allocation failed
+						m_disk_cache.mark_for_deletion(p);
 #ifdef TORRENT_DISK_STATS
 						m_log << " read 0" << std::endl;
 #endif
@@ -590,6 +591,8 @@ namespace libtorrent
 					// an error other than -1. This happens for instance
 					// if the cache is full. Then fall through and issue the
 					// read circumventing the cache
+
+					m_disk_cache.mark_for_deletion(p);
 				}
 			}
 		}

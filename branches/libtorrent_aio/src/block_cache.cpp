@@ -196,6 +196,7 @@ void block_cache::mark_for_deletion(iterator p)
 	{
 		if (pe->blocks[i].buf == 0 || pe->blocks[i].refcount > 0) continue;
 		TORRENT_ASSERT(pe->blocks[i].buf != 0);
+		// #error use free_multiple_buffers here
 		m_buffer_pool.free_buffer(pe->blocks[i].buf);
 		pe->blocks[i].buf = 0;
 		TORRENT_ASSERT(pe->num_blocks > 0);
@@ -216,6 +217,8 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 {
 	if (num <= 0) return 0;
 
+	DLOG(stderr, "[%p] try_evict_blocks: %d\n", &m_buffer_pool, num);
+
 	cache_lru_index_t& idx = m_pieces.get<1>();
 
 	std::vector<char*> to_free;
@@ -232,6 +235,13 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 		}
 
 		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*i);
+
+		if (pe->num_blocks == 0)
+		{
+			idx.erase(i++);
+			continue;
+		}
+
 		// all blocks in this piece are dirty
 		if (pe->num_dirty == pe->num_blocks)
 		{
@@ -259,6 +269,8 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 	}
 
 	if (to_free.empty()) return num;
+
+	DLOG(stderr, "[%p]    removed %d blocks\n", &m_buffer_pool, int(to_free.size()));
 
 	m_buffer_pool.free_multiple_buffers(&to_free[0], to_free.size());
 	return num;
@@ -326,6 +338,11 @@ int block_cache::allocate_pending(block_cache::iterator p
 				--bl.refcount;
 				--pe->refcount;
 				--pe->num_blocks;
+			}
+			if (p->num_blocks == 0)
+			{
+				cache_piece_index_t& idx = m_pieces.get<0>();
+				idx.erase(p);
 			}
 			return -1;
 		}
@@ -768,6 +785,11 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 
 	j.buffer = m_buffer_pool.allocate_buffer("send buffer");
 	if (j.buffer == 0) return -2;
+
+	// build a vector of all the buffers we need to free
+	// and free them all in one go
+	std::vector<char*> buffers;
+
 	while (size > 0)
 	{
 		TORRENT_ASSERT(pe->blocks[block].buf);
@@ -779,6 +801,9 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 		size -= to_copy;
 		block_offset = 0;
 		buffer_offset += to_copy;
+		// #error this breaks if there are multiple requests to the same block
+		// the first request will go through, but the second one will read a NULL pointer
+/*
 		if (j.flags & disk_io_job::volatile_read)
 		{
 			// if volatile read cache is set, the assumption is
@@ -786,27 +811,24 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 			// piece. Therefore, for each request out of the cache
 			// we clear the block that was requested and any blocks
 			// the peer skipped
-			// build a vector of all the buffers we need to free
-			// and free them all in one go
-			std::vector<char*> buffers;
 			for (int i = block; i >= 0 && pe->blocks[i].buf; --i)
 			{
-				if (pe->blocks[i].refcount == 0)
-				{
-					buffers.push_back(pe->blocks[i].buf);
-					pe->blocks[i].buf = 0;
-					TORRENT_ASSERT(pe->num_blocks > 0);
-					--pe->num_blocks;
-					TORRENT_ASSERT(m_cache_size > 0);
-					--m_cache_size;
-					TORRENT_ASSERT(m_read_cache_size > 0);
-					--m_read_cache_size;
-				}
+				if (pe->blocks[i].refcount > 0) continue;
+
+				buffers.push_back(pe->blocks[i].buf);
+				pe->blocks[i].buf = 0;
+				TORRENT_ASSERT(pe->num_blocks > 0);
+				--pe->num_blocks;
+				TORRENT_ASSERT(m_cache_size > 0);
+				--m_cache_size;
+				TORRENT_ASSERT(m_read_cache_size > 0);
+				--m_read_cache_size;
 			}
-			if (!buffers.empty()) m_buffer_pool.free_multiple_buffers(&buffers[0], buffers.size());
 		}
+*/
 		++block;
 	}
+	if (!buffers.empty()) m_buffer_pool.free_multiple_buffers(&buffers[0], buffers.size());
 	return j.buffer_size;
 }
 
