@@ -335,10 +335,15 @@ namespace libtorrent
 #endif
 			TORRENT_ASSERT(p->blocks[i].pending == false);
 			p->blocks[i].uninitialized = false;
-			DLOG(stderr, "[%p] marking as pending piece: %d block: %d\n", this, p->piece, i);
-			p->blocks[i].pending = true;
-			++p->blocks[i].refcount;
-			++const_cast<block_cache::cached_piece_entry&>(*p).refcount;
+			TORRENT_ASSERT(!p->blocks[i].pending);
+			if (!p->blocks[i].pending)
+			{
+				p->blocks[i].pending = true;
+				TORRENT_ASSERT(p->blocks[i].refcount == 0);
+				++p->blocks[i].refcount;
+				TORRENT_ASSERT(p->blocks[i].refcount == 1);
+				++const_cast<block_cache::cached_piece_entry&>(*p).refcount;
+			}
 			++iov_counter;
 			++ret;
 			buffer_size += block_size;
@@ -1027,6 +1032,7 @@ namespace libtorrent
 		else if (ret == -1)
 		{
 			// allocation failed
+			m_disk_cache.mark_for_deletion(p);
 #ifdef TORRENT_DISK_STATS
 			m_log << " read 0" << std::endl;
 #endif
@@ -1034,6 +1040,11 @@ namespace libtorrent
 			j.error = error::no_memory;
 			j.str.clear();
 			return disk_operation_failed;
+		}
+		else if (ret < -1)
+		{
+			m_disk_cache.mark_for_deletion(p);
+			//#error handle the case where there wasn't enough cache space
 		}
 
 		// we get here if all the blocks we want are already

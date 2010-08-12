@@ -315,8 +315,6 @@ int block_cache::allocate_pending(block_cache::iterator p
 		}
 	}
 
-	TORRENT_ASSERT(!pe->marked_for_deletion);
-
 	for (int i = begin; i < end; ++i)
 	{
 		if (pe->blocks[i].buf) continue;
@@ -333,10 +331,16 @@ int block_cache::allocate_pending(block_cache::iterator p
 				m_buffer_pool.free_buffer(bl.buf);
 				bl.buf = 0;
 				bl.uninitialized = false;
+				TORRENT_ASSERT(m_read_cache_size > 0);
 				--m_read_cache_size;
+				TORRENT_ASSERT(m_cache_size > 0);
 				--m_cache_size;
+				TORRENT_ASSERT(bl.refcount == 1);
+				TORRENT_ASSERT(bl.refcount > 0);
 				--bl.refcount;
+				TORRENT_ASSERT(pe->refcount > 0);
 				--pe->refcount;
+				TORRENT_ASSERT(pe->num_blocks > 0);
 				--pe->num_blocks;
 			}
 			if (p->num_blocks == 0)
@@ -352,13 +356,17 @@ int block_cache::allocate_pending(block_cache::iterator p
 		pe->blocks[i].uninitialized = true;
 		++m_read_cache_size;
 		++m_cache_size;
-		++pe->blocks[i].refcount;
-		++pe->refcount;
 		++ret;
 	}
 	
 	TORRENT_ASSERT(j.piece == pe->piece);
-	if (ret > 0) pe->jobs.push_back(j);
+	if (ret > 0)
+	{
+		// in case this was marked for deletion
+		// don't do that anymore
+		pe->marked_for_deletion = false;
+		pe->jobs.push_back(j);
+	}
 
 	return ret;
 }
@@ -382,6 +390,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		for (int i = begin; i < end; ++i)
 		{
 			cached_block_entry& bl = pe->blocks[i];
+			TORRENT_ASSERT(bl.refcount == 1);
 			TORRENT_ASSERT(bl.refcount > 0);
 			--bl.refcount;
 			TORRENT_ASSERT(pe->refcount > 0);
@@ -409,6 +418,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				--m_read_cache_size;
 			}
 			TORRENT_ASSERT(bl.buf != 0);
+			// #error use free_multiple_buffers here
 			m_buffer_pool.free_buffer(bl.buf);
 			bl.buf = 0;
 			bl.pending = false;
@@ -422,6 +432,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 	{
 		for (int i = begin; i < end; ++i)
 		{
+			TORRENT_ASSERT(pe->blocks[i].refcount == 1);
 			TORRENT_ASSERT(pe->blocks[i].refcount > 0);
 			--pe->blocks[i].refcount;
 			TORRENT_ASSERT(pe->refcount > 0);
@@ -641,6 +652,7 @@ void block_cache::free_piece(iterator p)
 	std::vector<char*> buffers;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
+		if (pe->blocks[i].buf == 0) continue;
 		TORRENT_ASSERT(pe->blocks[i].pending == false);
 		TORRENT_ASSERT(pe->blocks[i].refcount == 0);
 		buffers.push_back(pe->blocks[i].buf);
