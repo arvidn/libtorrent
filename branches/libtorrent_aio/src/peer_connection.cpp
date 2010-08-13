@@ -5115,7 +5115,9 @@ namespace libtorrent
 				if (m_received_in_piece && i == m_download_queue.begin())
 				{
 					in_download_queue = true;
-					TORRENT_ASSERT(t->to_req(i->block).length >= m_received_in_piece);
+					// this assert is not correct since block may have different sizes
+					// and may not be returned in the order they were requested
+//					TORRENT_ASSERT(t->to_req(i->block).length >= m_received_in_piece);
 					outstanding_bytes += t->to_req(i->block).length - m_received_in_piece;
 				}
 				else
