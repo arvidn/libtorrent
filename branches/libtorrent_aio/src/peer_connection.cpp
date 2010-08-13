@@ -1964,7 +1964,7 @@ namespace libtorrent
 				char ih[5];
 				to_hex((char const*)&t->info_hash()[0], 4, ih);
 				char pid[5];
-				to_hex((char const*)&m_peer_id[7], 4, pid);
+				to_hex((char const*)&m_peer_id[10], 4, pid);
 				fprintf(m_ses.m_request_logger, "%d\t%s\t%s\t%d\t%d\t%d\t%d\n"
 					, total_milliseconds(time_now_hires() - start), ih, pid
 					, r.piece, r.start, r.length, m_statistics.upload_rate());
