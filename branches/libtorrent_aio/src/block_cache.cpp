@@ -162,6 +162,9 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
 	pe->jobs.push_back(j);
 	pe->jobs.back().buffer = 0;
 	pe->expire = (std::max)(pe->expire, time(0) + j.cache_min_time);
+
+	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
+	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 	return p;
 }
 
@@ -220,6 +223,9 @@ void block_cache::mark_for_deletion(iterator p)
 	}
 	if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
 	pe->marked_for_deletion = true;
+
+	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
+	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 }
 
 int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
@@ -282,6 +288,10 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 	DLOG(stderr, "[%p]    removed %d blocks\n", &m_buffer_pool, int(to_free.size()));
 
 	m_buffer_pool.free_multiple_buffers(&to_free[0], to_free.size());
+
+	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
+	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
+
 	return num;
 }
 
@@ -359,6 +369,10 @@ int block_cache::allocate_pending(block_cache::iterator p
 				idx.erase(p);
 			}
 			if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
+
+			TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
+			TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
+
 			return -1;
 		}
 		++pe->num_blocks;
@@ -378,6 +392,9 @@ int block_cache::allocate_pending(block_cache::iterator p
 		pe->marked_for_deletion = false;
 		pe->jobs.push_back(j);
 	}
+
+	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
+	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 
 	return ret;
 }
@@ -626,6 +643,9 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		free_piece(p);
 		idx.erase(p);
 	}
+
+	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
+	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 }
 
 void block_cache::abort_dirty(iterator p, io_service& ios)
@@ -653,6 +673,9 @@ void block_cache::abort_dirty(iterator p, io_service& ios)
 		if (i->callback) ios.post(boost::bind(i->callback, -1, *i));
 		i = pe->jobs.erase(i);
 	}
+
+	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
+	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 }
 
 // frees all buffers associated with this piece. May only
@@ -683,6 +706,9 @@ void block_cache::free_piece(iterator p)
 		else --pe->num_dirty;
 	}
 	if (!buffers.empty()) m_buffer_pool.free_multiple_buffers(&buffers[0], buffers.size());
+
+	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
+	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 }
 
 int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf)
@@ -701,6 +727,8 @@ int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
 		--m_cache_size;
 		--m_read_cache_size;
 	}
+	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
+	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 	return ret;
 }
 
