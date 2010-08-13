@@ -193,7 +193,7 @@ namespace libtorrent
 			send_buffer_watermark_too_low,
 			too_many_optimistic_unchoke_slots,
 			bittyrant_with_no_uplimit,
-
+			aio_limit_reached,
 
 
 

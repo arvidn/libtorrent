@@ -473,7 +473,7 @@ namespace aux {
 #endif
 		, m_io_service()
 		, m_alerts(m_io_service)
-		, m_disk_thread(m_io_service)
+		, m_disk_thread(m_io_service, boost::bind(&session_impl::disk_performance_warning, this, _1))
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
@@ -1907,6 +1907,13 @@ namespace aux {
 		connection_map::iterator i = std::find_if(m_connections.begin(), m_connections.end()
 			, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p);
 		if (i != m_connections.end()) m_connections.erase(i);
+	}
+
+	void session_impl::disk_performance_warning(alert* a)
+	{
+		if (m_alerts.should_post<performance_alert>())
+			m_alerts.post_alert(*a);
+		delete a;
 	}
 
 	void session_impl::set_peer_id(peer_id const& id)

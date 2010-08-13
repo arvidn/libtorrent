@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/disk_io_job.hpp"
+#include "libtorrent/alert_types.hpp"
 
 #ifdef TORRENT_BSD
 #include <sys/sysctl.h>
@@ -87,6 +88,7 @@ namespace libtorrent
 // ------- disk_io_thread ------
 
 	disk_io_thread::disk_io_thread(io_service& ios
+		, boost::function<void(alert*)> const& post_alert
 		, int block_size)
 		: disk_buffer_pool(block_size)
 		, m_abort(false)
@@ -109,6 +111,7 @@ namespace libtorrent
 		, m_ios(ios)
 		, m_work(io_service::work(m_ios))
 		, m_completed_aios(0)
+		, m_post_alert(post_alert)
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
 #if TORRENT_USE_AIO
@@ -1360,7 +1363,16 @@ namespace libtorrent
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
 				prepend_aios(m_in_progress, pending);
 
-// #error issue performance warning whenever we hit the upper bound of outstanding AIO requests
+#if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
+				if (to_issue)
+				{
+					// there were some jobs that couldn't be posted
+					// the the kernel. This limits the performance of
+					// the disk throughput, issue a performance warning
+					m_ios.post(boost::bind(m_post_alert, new performance_alert(
+						torrent_handle(), performance_alert::aio_limit_reached)));
+				}
+#endif
 			}
 
 			// now, we may have received the abort thread

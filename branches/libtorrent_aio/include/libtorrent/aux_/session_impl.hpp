@@ -415,6 +415,8 @@ namespace libtorrent
 
 //		private:
 
+			void disk_performance_warning(alert* a);
+
 			void update_disk_thread_settings();
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);

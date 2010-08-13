@@ -1799,6 +1799,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios)
 	{
 #if TORRENT_USE_AIO
+		// figure out how many requests we can issue at a time
 		int sc = sysconf(_SC_AIO_LISTIO_MAX);
 		if (sc == -1 && errno == 0)
 		{
@@ -1816,6 +1817,11 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #endif
 		}
 #ifdef AIO_LISTIO_MAX
+		// apparently Mac OS will fail if we pass in more
+		// than the constant, and the sysconf() returns
+		// the current limit of outstanding requests (which
+		// seems to contradict the documentation for the sysconf
+		// variable).
 		sc = (std::min)(AIO_LISTIO_MAX, sc);
 #endif
 		const int array_size = sc < 100 ? sc : 100;

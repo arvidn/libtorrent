@@ -62,6 +62,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	class alert;
+
 	struct cached_piece_info
 	{
 		int piece;
@@ -127,6 +129,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT disk_io_thread : disk_buffer_pool
 	{
 		disk_io_thread(io_service& ios
+			, boost::function<void(alert*)> const& post_alert
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
@@ -311,6 +314,10 @@ namespace libtorrent
 		// incremented in signal handler
 		// for each job that's completed
 		mutable boost::detail::atomic_count m_completed_aios;
+
+		// function to be posted to the network thread to post
+		// an alert (used for performance warnings)
+		boost::function<void(alert*)> m_post_alert;
 
 		// thread for performing blocking disk io operations
 		thread m_disk_io_thread;
