@@ -411,15 +411,16 @@ namespace libtorrent
 				// should be removed as soon as all write jobs finishes
 				// otherwise it will turn into a read piece
 			}
-			// mark_for_deletion may erase the piece from the cache, that's
-			// why we don't have the 'i' iterator referencing it at this point
-			if (flags & (flush_read_cache | flush_delete_cache))
-				m_disk_cache.mark_for_deletion(p);
 
 			// we need to count read jobs as well
 			// because we can't close files with
 			// any outstanding jobs
 			ret += p->jobs.size();
+
+			// mark_for_deletion may erase the piece from the cache, that's
+			// why we don't have the 'i' iterator referencing it at this point
+			if (flags & (flush_read_cache | flush_delete_cache))
+				m_disk_cache.mark_for_deletion(p);
 
 		}
 		return ret;

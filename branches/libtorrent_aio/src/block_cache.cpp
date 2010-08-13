@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/disk_io_thread.hpp" // disk_operation_failed
+#include "libtorrent/invariant_check.hpp"
 
 #define DEBUG_CACHE 0
 
@@ -87,6 +88,8 @@ block_cache::block_cache(disk_buffer_pool& p)
 // -2: no memory
 int block_cache::try_read(disk_io_job& j)
 {
+	INVARIANT_CHECK;
+
 	TORRENT_ASSERT(j.buffer == 0);
 	TORRENT_ASSERT(j.cache_min_time >= 0);
 
@@ -112,6 +115,8 @@ int block_cache::try_read(disk_io_job& j)
 
 block_cache::iterator block_cache::allocate_piece(disk_io_job const& j)
 {
+	INVARIANT_CHECK;
+
 	cache_piece_index_t& idx = m_pieces.get<0>();
 	cache_piece_index_t::iterator p = find_piece(j);
 	if (p == idx.end())
@@ -134,6 +139,8 @@ block_cache::iterator block_cache::allocate_piece(disk_io_job const& j)
 
 block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
 {
+	INVARIANT_CHECK;
+
 	iterator p = allocate_piece(j);
 	TORRENT_ASSERT(p != end());
 	if (p == end()) return p;
@@ -194,13 +201,9 @@ std::pair<block_cache::iterator, block_cache::iterator> block_cache::pieces_for_
 
 void block_cache::mark_for_deletion(iterator p)
 {
+	INVARIANT_CHECK;
+
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
-	if (pe->refcount == 0)
-	{
-		cache_piece_index_t& idx = m_pieces.get<0>();
-		idx.erase(p);
-		return;
-	}
 
 	std::vector<char*> to_delete;
 	to_delete.reserve(pe->blocks_in_piece);
@@ -224,12 +227,21 @@ void block_cache::mark_for_deletion(iterator p)
 	if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
 	pe->marked_for_deletion = true;
 
+	if (pe->refcount == 0)
+	{
+		cache_piece_index_t& idx = m_pieces.get<0>();
+		idx.erase(p);
+		return;
+	}
+
 	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
 	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 }
 
 int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 {
+	INVARIANT_CHECK;
+
 	if (num <= 0) return 0;
 
 	DLOG(stderr, "[%p] try_evict_blocks: %d\n", &m_buffer_pool, num);
@@ -311,6 +323,8 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 int block_cache::allocate_pending(block_cache::iterator p
 	, int begin, int end, disk_io_job const& j, int prio)
 {
+	INVARIANT_CHECK;
+
 	TORRENT_ASSERT(begin >= 0);
 	TORRENT_ASSERT(end <= p->blocks_in_piece);
 	TORRENT_ASSERT(begin < end);
@@ -402,6 +416,8 @@ int block_cache::allocate_pending(block_cache::iterator p
 void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 	, io_service& ios, int queue_buffer_size, error_code const& ec)
 {
+	INVARIANT_CHECK;
+
 	TORRENT_ASSERT(begin >= 0);
 	TORRENT_ASSERT(end <= p->blocks_in_piece);
 	TORRENT_ASSERT(begin < end);
@@ -650,6 +666,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 void block_cache::abort_dirty(iterator p, io_service& ios)
 {
+	INVARIANT_CHECK;
+
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
@@ -682,6 +700,8 @@ void block_cache::abort_dirty(iterator p, io_service& ios)
 // be called for pieces with a refcount of 0
 void block_cache::free_piece(iterator p)
 {
+	INVARIANT_CHECK;
+
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 	TORRENT_ASSERT(pe->refcount == 0);
 	// build a vector of all the buffers we need to free
@@ -739,11 +759,11 @@ void block_cache::get_stats(cache_status* ret) const
 	ret->read_cache_size = m_read_cache_size;
 }
 
-//#ifdef TORRENT_DEBUG
-#if 0
-void disk_io_thread::check_invariant() const
+#ifdef TORRENT_DEBUG
+void block_cache::check_invariant() const
 {
 	int cached_write_blocks = 0;
+	int cached_read_blocks = 0;
 	cache_piece_index_t const& idx = m_pieces.get<0>();
 	for (cache_piece_index_t::const_iterator i = idx.begin()
 		, end(idx.end()); i != end; ++i)
@@ -753,8 +773,10 @@ void disk_io_thread::check_invariant() const
 		
 		TORRENT_ASSERT(p.storage);
 		int piece_size = p.storage->info()->piece_size(p.piece);
-		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
-		int blocks = 0;
+		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
+		int num_blocks = 0;
+		int num_dirty = 0;
+		int num_pending = 0;
 		for (int k = 0; k < blocks_in_piece; ++k)
 		{
 			if (p.blocks[k].buf)
@@ -762,39 +784,30 @@ void disk_io_thread::check_invariant() const
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 				TORRENT_ASSERT(is_disk_buffer(p.blocks[k].buf));
 #endif
-				++blocks;
+				++num_blocks;
+				if (p.blocks[k].dirty)
+				{
+					++num_dirty;
+					++cached_write_blocks;
+				}
+				else
+				{
+					++cached_read_blocks;
+				}
+				if (p.blocks[k].pending) ++num_pending;
 			}
-		}
-//			TORRENT_ASSERT(blocks == p.num_blocks);
-		cached_write_blocks += blocks;
-	}
-
-	int cached_read_blocks = 0;
-	for (cache_t::const_iterator i = m_read_pieces.begin()
-		, end(m_read_pieces.end()); i != end; ++i)
-	{
-		cached_piece_entry const& p = *i;
-		TORRENT_ASSERT(p.blocks);
-		
-		int piece_size = p.storage->info()->piece_size(p.piece);
-		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
-		int blocks = 0;
-		for (int k = 0; k < blocks_in_piece; ++k)
-		{
-			if (p.blocks[k].buf)
+			else
 			{
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-				TORRENT_ASSERT(is_disk_buffer(p.blocks[k].buf));
-#endif
-				++blocks;
+				TORRENT_ASSERT(!p.blocks[k].dirty);
+				TORRENT_ASSERT(!p.blocks[k].pending);
 			}
 		}
-//		TORRENT_ASSERT(blocks == p.num_blocks);
-		cached_read_blocks += blocks;
+		TORRENT_ASSERT(num_blocks == p.num_blocks);
+		TORRENT_ASSERT(num_dirty == p.num_dirty);
+		TORRENT_ASSERT(num_pending <= p.refcount);
 	}
-
-	TORRENT_ASSERT(cached_read_blocks == m_cache_stats.read_cache_size);
-	TORRENT_ASSERT(cached_read_blocks + cached_write_blocks == m_cache_stats.cache_size);
+	TORRENT_ASSERT(m_read_cache_size == cached_read_blocks);
+	TORRENT_ASSERT(m_cache_size == cached_read_blocks + cached_write_blocks);
 
 #ifdef TORRENT_DISK_STATS
 	int read_allocs = m_categories.find(std::string("read cache"))->second;
@@ -802,10 +815,6 @@ void disk_io_thread::check_invariant() const
 	TORRENT_ASSERT(cached_read_blocks == read_allocs);
 	TORRENT_ASSERT(cached_write_blocks == write_allocs);
 #endif
-
-	// when writing, there may be a one block difference, right before an old piece
-	// is flushed
-	TORRENT_ASSERT(m_cache_stats.cache_size <= m_settings.cache_size + 1);
 }
 #endif
 
@@ -815,6 +824,8 @@ void disk_io_thread::check_invariant() const
 
 int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 {
+	INVARIANT_CHECK;
+
 	TORRENT_ASSERT(j.buffer == 0);
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
