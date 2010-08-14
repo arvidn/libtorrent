@@ -782,7 +782,7 @@ void block_cache::check_invariant() const
 			if (p.blocks[k].buf)
 			{
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-				TORRENT_ASSERT(is_disk_buffer(p.blocks[k].buf));
+				TORRENT_ASSERT(m_buffer_pool.is_disk_buffer(p.blocks[k].buf));
 #endif
 				++num_blocks;
 				if (p.blocks[k].dirty)
