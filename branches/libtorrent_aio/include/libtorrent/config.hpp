@@ -285,7 +285,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #ifndef TORRENT_USE_AIO
-#define TORRENT_USE_AIO 1
+#define TORRENT_USE_AIO 0
 #endif
 
 #ifndef TORRENT_AIO_SIGNAL

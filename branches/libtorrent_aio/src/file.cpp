@@ -1010,17 +1010,20 @@ namespace libtorrent
 		}
 #elif TORRENT_USE_OVERLAPPED
 
+#error implement windows support
+
 #else
 		for (int i = 0; i < num_bufs; ++i)
 		{
-			// TODO: use a pool for these allocations
+			// #error use a pool for these allocations
 			aiocb_t* aio = new aiocb_t;
 			memset(aio, 0, sizeof(aiocb_t));
-			aio->file_tr = this;
+			aio->file_ptr = this;
 			aio->buf = bufs[i].iov_base;
-			aio->nbytes = bufs[i].iov_len;
+			aio->size = bufs[i].iov_len;
 			aio->offset = offset;
 			aio->op = op;
+			aio->phys_offset = phys_offset(offset);
 
 			offset += bufs[i].iov_len;
 			*prev = aio;
@@ -1038,7 +1041,7 @@ namespace libtorrent
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
 		
-		return async_io(offset, bufs, num_bufs, LIO_WRITE);
+		return async_io(offset, bufs, num_bufs, write_op);
 	}
 
 	file::aiocb_t* file::async_readv(size_type offset
@@ -1049,7 +1052,7 @@ namespace libtorrent
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
 
-		return async_io(offset, bufs, num_bufs, LIO_READ);
+		return async_io(offset, bufs, num_bufs, read_op);
 	}
 
 	size_type file::readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec)
@@ -1923,22 +1926,24 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		error_code ec;
 		int ret;
-		while(aios)
+		// #error merge adjacent operations into a vector call
+		if (aios)
 		{
-			file::iovec_t b = {aios->buf, aios->nbytes};
+			file::iovec_t b = {aios->buf, aios->size};
 			switch (aios->op)
 			{
-				case file::read_op: ret = aios->file_ptr->readv(asio->offset, &b, 1, ec); break;
-				case file::write_op: ret = aios->file_ptr->writev(asio->offset, &b, 1, ec); break;
+				case file::read_op: ret = aios->file_ptr->readv(aios->offset, &b, 1, ec); break;
+				case file::write_op: ret = aios->file_ptr->writev(aios->offset, &b, 1, ec); break;
 				default: TORRENT_ASSERT(false);
 			}
+			sleep(1000);
 			aios->handler->done(ec, ret);
-			aiocb_t* del = aios;
-			aios = asios->next;
-			// TODO: use a pool for these
-			delete aios;
+			file::aiocb_t* del = aios;
+			aios = aios->next;
+			// #error use a pool for these
+			delete del;
 		}
-		return 0;
+		return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);
 #endif	
 	}
 }

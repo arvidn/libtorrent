@@ -66,14 +66,99 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	bool same_sign(int a, int b) { return ((a < 0) == (b < 0)) || (a == 0) || (b == 0); }
+
+	bool between(size_type v, size_type b1, size_type b2)
+	{
+		return (b2 <= b1 && v <= b1 && v >= b2)
+			|| (b2 >= b1 && v >= b1 && v <= b2);
+	}
+
+	bool elevator_ordered(size_type v, size_type next, size_type prev, int elevator)
+	{
+		// if the point is in between prev and next, we should always sort it in
+		// between them, i.e. we're in the right place.
+		if (between(v, prev, next)) return true;
+
+		// if the point is in the elevator direction from prev (and not
+		// in between prev and next) and the next point is not in the
+		// elevator direction, we've found the right spot as well
+		if (same_sign(v - prev, elevator) && !same_sign(next - prev, elevator)) return true;
+
+		// otherwise we need to keep iterating forward looking for the
+		// right insertion point
+		return false;
+	}
+
 	// free function to prepend a chain of aios to a list
-	void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios)
+	// elevator direction determines how the new items are sorted
+	// if it's 0, they are just prepended without any insertion sort
+	// if it's -1, the direction from the first element is going down
+	// towards lower offsets. If the element being inserted is higher,
+	// it's inserted close to the end where the elevator has turned back.
+	// if it's lower it's inserted early, as the offset would pass it.
+	// a positive elevator direction has the same semantics but oposite order
+	void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios, int elevator_direction)
 	{
 		if (aios == 0) return;
-		file::aiocb_t* last = aios;
-		while (last->next) last = last->next;
-		last->next = list;
-		list = aios;
+		if (elevator_direction == 0)
+		{
+			file::aiocb_t* last = aios;
+			while (last->next) last = last->next;
+			last->next = list;
+			list = aios;
+			return;
+		}
+
+		// insert each aio ordered by phys_offset
+		// according to elevator_direction
+		while (aios)
+		{
+			// pop the first element from aios into i
+			file::aiocb_t* i = aios;
+			aios = aios->next;
+			i->next = 0;
+
+			// find the right place in the current list to insert i
+			// since the local elevator direction may change during
+			// this scan, use a local copy
+			// we want the ordering to look something like this:
+			//
+			// \            or like this:      ^
+			//  \         (depending on the   /  \
+			//   \   /     elevator          /    \
+			//    \ /      direction)       /
+			//     V                       /
+			//
+			// the knee is where the elevator direction changes. We never
+			// want to insert an element before the first one, since that
+			// might make the drive head move backwards
+			int elevator = elevator_direction;
+			file::aiocb_t** last = &list;
+			file::aiocb_t* j = list;
+			size_type last_offset = j ? j->phys_offset : 0;
+			// this will keep iterating as long as j->phys_offset < i->phys_offset
+			// for negative elevator dir, and as long as j->phys_offset > i->phys_offset
+			// for positive elevator dir.
+			// never insert in front of the first element (j == list), since
+			// that's the one that determines where the current head is
+			while (j
+				&& (!elevator_ordered(i->phys_offset, j->phys_offset, last_offset, elevator)
+					|| j == list))
+			{
+				if (!same_sign(j->phys_offset - last_offset, elevator))
+				{
+					// the elevator direction changed
+					elevator *= -1;
+				}
+
+				last_offset = j->phys_offset;
+				last = &j->next;
+				j = j->next;
+			}
+			*last = i;
+			i->next = j;
+		}
 	}
 
 #if TORRENT_USE_AIO
@@ -105,8 +190,8 @@ namespace libtorrent
 		, m_outstanding_jobs(0)
 //		, m_elevator_job_pos(m_deferred_jobs.begin())
 //		, m_invalid_elevator_pos(false)
-//		, m_elevator_direction(1)
-//		, m_last_phys_off(0)
+		, m_elevator_direction(1)
+		, m_last_phys_off(0)
 		, m_physical_ram(0)
 		, m_ios(ios)
 		, m_work(io_service::work(m_ios))
@@ -304,9 +389,16 @@ namespace libtorrent
 							, range_start, i, to_write, _1));
 					m_write_blocks += i - range_start;
 					++m_write_calls;
-					DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"
-						, aios, m_to_issue);
-					prepend_aios(m_to_issue,aios);
+					DLOG(stderr, "prepending aios (%p) from write_async_impl to "
+						"m_to_issue (%p) elevator=%d\n"
+						, aios, m_to_issue, m_elevator_direction);
+
+					prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
+						? m_elevator_direction : 0);
+
+					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
+						DLOG(stderr, "  %"PRId64, j->phys_offset);
+					DLOG(stderr, "\n");
 				}
 				else
 				{
@@ -321,7 +413,13 @@ namespace libtorrent
 					++m_read_calls;
 					DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 						, aios, m_to_issue);
-					prepend_aios(m_to_issue,aios);
+
+					prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
+						? m_elevator_direction : 0);
+
+					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
+						DLOG(stderr, "  %"PRId64, j->phys_offset);
+					DLOG(stderr, "\n");
 				}
 				iov_counter = 0;
 				buffer_size = 0;
@@ -641,7 +739,13 @@ namespace libtorrent
 			, boost::bind(&disk_io_thread::on_read_one_buffer, this, _1, _2, j));
 		DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
-		prepend_aios(m_to_issue,aios);
+
+		prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
+			? m_elevator_direction : 0);
+
+		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
+			DLOG(stderr, "  %"PRId64, j->phys_offset);
+		DLOG(stderr, "\n");
 		return defer_handler;
 	}
 
@@ -689,7 +793,13 @@ namespace libtorrent
 			, boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, _2, j));
 		DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
-		prepend_aios(m_to_issue,aios);
+
+		prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
+			? m_elevator_direction : 0);
+
+		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
+			DLOG(stderr, "  %"PRId64, j->phys_offset);
+		DLOG(stderr, "\n");
 		return defer_handler;
 	}
 
@@ -762,7 +872,7 @@ namespace libtorrent
 		}
 
 //#error this fence would only have to block write operations and let read operations through
-//#error maybe not. If blocks are reference conted, even read operation would force cache pieces to linger
+//#error maybe not. If blocks are reference counted, even read operation would force cache pieces to linger
 
 		// raise the fence to block new async. operations
 		j.flags |= disk_io_job::need_uncork;
@@ -776,17 +886,22 @@ namespace libtorrent
 		TORRENT_ASSERT(j.buffer == 0);
 		INVARIANT_CHECK;
 
-		flush_cache(j, flush_delete_cache);
-		// since we're deleting the files, we can abort
-		// all outstanding requests. Just close the handles
-		// and delete the files
-		// #error closing the files with outstanding requests
-		// to them may cause lio_listio() to fail and we'll never
-		// clean up the aiocb_t chain. It's a lot safer to
-		// fence and wait for all operations to complete
-		// before calling delete_files_imopl
-		j.storage->delete_files_impl(j.error);
-		return j.error ? disk_operation_failed : 0;
+		int ret = flush_cache(j, flush_delete_cache);
+		if (ret == 0)
+		{
+			// this means there are no outstanding requests
+			// to this piece. We can go ahead and delete the
+			// files immediately without interfering with
+			// any async operations
+			j.storage->delete_files_impl(j.error);
+			return j.error ? disk_operation_failed : 0;
+		}
+
+		// raise the fence to block new async. operations
+		j.flags |= disk_io_job::need_uncork;
+		DLOG(stderr, "[%p] raising fence ret: %d\n", this, ret);
+		j.storage->raise_fence(boost::bind(&disk_io_thread::perform_async_job, this, j));
+		return defer_handler;
 	}
 
 	int disk_io_thread::do_check_fastresume(disk_io_job& j)
@@ -1302,8 +1417,8 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(false);
 		}
-		int last_completed_aios = 0;
 #endif
+		int last_completed_aios = 0;
 
 		do
 		{
@@ -1355,17 +1470,20 @@ namespace libtorrent
 			// as asking for stats)
 			if (m_to_issue)
 			{
-				file::aiocb_t* to_issue = m_to_issue;
-				m_to_issue = 0;
-				DLOG(stderr, "issue aios (%p)\n", to_issue);
+				if (!same_sign(m_to_issue->phys_offset - m_last_phys_off, m_elevator_direction))
+					m_elevator_direction *= -1;
+
+				m_last_phys_off = m_to_issue->phys_offset;
+
+				DLOG(stderr, "issue aios (%p) phys_offset=%"PRId64" elevator=%d\n"
+					, m_to_issue, m_to_issue->phys_offset, m_elevator_direction);
 				file::aiocb_t* pending;
-				boost::tie(pending, to_issue) = issue_aios(to_issue);
-				prepend_aios(m_to_issue, to_issue);
+				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue);
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
-				prepend_aios(m_in_progress, pending);
+				prepend_aios(m_in_progress, pending, 0);
 
 #if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
-				if (to_issue)
+				if (m_to_issue)
 				{
 					// there were some jobs that couldn't be posted
 					// the the kernel. This limits the performance of

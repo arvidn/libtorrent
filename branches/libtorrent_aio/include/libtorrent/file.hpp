@@ -243,6 +243,7 @@ namespace libtorrent
 		{
 			aiocb_t* next;
 			async_handler* handler;
+			size_type phys_offset;
 			aiocb cb;
 			size_t nbytes() const { return cb.aio_nbytes; }
 		};
@@ -257,6 +258,7 @@ namespace libtorrent
 		{
 			aiocb_t* next;
 			async_handler* handler;
+			size_type phys_offset;
 			size_t nbytes;
 			int op;
 			OVERLAPPED ov;
@@ -276,13 +278,15 @@ namespace libtorrent
 		{
 			aiocb_t* next;
 			async_handler* handler;
+			// used to insert jobs ordered
+			size_type phys_offset;
 			int op;
 			size_type offset;
-			size_type nbytes;
+			size_type size;
 			void* buf;
 			file* file_ptr;
-			size_t nbytes() const { return nbytes; }
-		}
+			size_t nbytes() const { return size; }
+		};
 
 		enum
 		{

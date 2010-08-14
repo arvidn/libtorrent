@@ -271,11 +271,11 @@ namespace libtorrent
 
 		// the direction of the elevator. -1 means down and
 		// 1 means up
-//		int m_elevator_direction;
+		int m_elevator_direction;
 
 		// the physical offset of the last job consumed out
 		// of the deferred jobs list
-//		size_type m_last_phys_off;
+		size_type m_last_phys_off;
 
 		// the amount of physical ram in the machine
 		boost::uint64_t m_physical_ram;
