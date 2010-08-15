@@ -1208,8 +1208,7 @@ namespace aux {
 			|| m_settings.volatile_read_cache != s.volatile_read_cache
 			|| m_settings.no_atime_storage!= s.no_atime_storage
 			|| m_settings.ignore_resume_timestamps != s.ignore_resume_timestamps
-			|| m_settings.low_prio_disk != s.low_prio_disk
-			|| m_settings.max_async_disk_jobs != s.max_async_disk_jobs)
+			|| m_settings.low_prio_disk != s.low_prio_disk)
 			update_disk_io_thread = true;
 
 #ifndef TORRENT_NO_DEPRECATE

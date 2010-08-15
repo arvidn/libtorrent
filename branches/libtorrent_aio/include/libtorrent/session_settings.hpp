@@ -191,7 +191,11 @@ namespace libtorrent
 			, write_cache_line_size(128)
 			, optimistic_disk_retry(10 * 60)
 			, disable_hash_checks(false)
+#if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
+			, allow_reordered_disk_operations(false)
+#else
 			, allow_reordered_disk_operations(true)
+#endif
 			, allow_i2p_mixed(false)
 			, max_suggest_pieces(10)
 			, drop_skipped_requests(false)
@@ -215,11 +219,6 @@ namespace libtorrent
 			, broadcast_lsd(false)
 			, ignore_resume_timestamps(false)
 			, anonymous_mode(false)
-#if TORRENT_USE_AIO
-			, max_async_disk_jobs(100)
-#else
-			, max_async_disk_jobs(1)
-#endif
 			, tick_interval(100)
 			, report_web_seed_downloads(true)
 		{}
@@ -708,14 +707,15 @@ namespace libtorrent
 		// disabled_storage)
 		bool disable_hash_checks;
 
-		// if this is true, disk read operations may
-		// be re-ordered based on their physical disk
-		// read offset. This greatly improves throughput
-		// when uploading to many peers. This assumes
-		// a traditional hard drive with a read head
-		// and spinning platters. If your storage medium
-		// is a solid state drive, this optimization
-		// doesn't give you an benefits
+		// if this is true, disk read operations are
+		// sorted by their physical offset on disk before
+		// issued to the operating system. This is useful
+		// if async I/O is not supported. It defaults to
+		// true if async I/O is not supported and fals
+		// otherwise.
+		// disk I/O operations are likely to be reordered
+		// regardless of this setting when async I/O
+		// is supported by the OS.
 		bool allow_reordered_disk_operations;
 
 		// if this is true, i2p torrents are allowed
