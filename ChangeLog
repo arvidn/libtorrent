@@ -1,3 +1,4 @@
+release 0.14.11
 
 	* updated compiler to msvc 2008 for python binding
 	* fixed SOCKS5 bug for routing UDP packets
