@@ -205,6 +205,7 @@ struct test_storage : storage_interface
 		TORRENT_ASSERT(m_disk_io_service);
 		m_disk_io_service->post(boost::bind(handler, ec, ret));
 */
+		return 0;
 	}
 
 	// #error instead of passing in a boost::function, pass in the async_handler
@@ -219,6 +220,7 @@ struct test_storage : storage_interface
 		TORRENT_ASSERT(m_disk_io_service);
 		m_disk_io_service->post(boost::bind(handler, ec, ret));
 */
+		return 0;
 	}
 
 	size_type physical_offset(int slot, int offset)

@@ -218,6 +218,7 @@ namespace libtorrent
 			mode_mask = rw_mask | no_buffer,
 			sparse = 8,
 			no_atime = 16,
+			overlapped = 32,
 
 			attribute_hidden = 0x1000,
 			attribute_executable = 0x2000,
@@ -256,13 +257,15 @@ namespace libtorrent
 #elif TORRENT_USE_OVERLAPPED
 		struct aiocb_t
 		{
+			OVERLAPPED ov;
 			aiocb_t* next;
 			async_handler* handler;
 			size_type phys_offset;
-			size_t nbytes;
 			int op;
-			OVERLAPPED ov;
-			size_t nbytes() const { return nbytes; }
+			size_t size;
+			void* buf;
+			HANDLE file;
+			size_t nbytes() const { return size; }
 		};
 
 		enum

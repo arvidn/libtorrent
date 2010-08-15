@@ -128,6 +128,10 @@ namespace libtorrent
 	// of disk io jobs
 	struct TORRENT_EXPORT disk_io_thread : disk_buffer_pool
 	{
+#if TORRENT_USE_OVERLAPPED
+		friend void WINAPI signal_handler(DWORD error, DWORD transferred, OVERLAPPED* overlapped);
+#endif
+
 		disk_io_thread(io_service& ios
 			, boost::function<void(alert*)> const& post_alert
 			, int block_size = 16 * 1024);
@@ -253,21 +257,6 @@ namespace libtorrent
 		// an opportunity to sort the jobs by physical offset before
 		// issued to the AIO subsystem
 		int m_outstanding_jobs;
-
-		// once we have reached our max number of outstanding jobs,
-		// they start getting queued up in this list, sorted by their
-		// physical offset on disk
-//		typedef std::multimap<size_type, disk_io_job> deferred_jobs_t;
-//		deferred_jobs_t m_deferred_jobs;
-
-		// the iterator of the current position in the deferred jobs
-		// list.
-//		deferred_jobs_t::iterator m_elevator_job_pos;
-
-		// this is set to true when the job pos iterator is
-		// invalid. This happens every time the deferred jobs
-		// list gets emptied
-//		bool m_invalid_elevator_pos;
 
 		// the direction of the elevator. -1 means down and
 		// 1 means up

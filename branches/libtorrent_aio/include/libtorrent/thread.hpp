@@ -93,6 +93,15 @@ namespace libtorrent
 		void wait() { semaphore_wait(m_sem); }
 		semaphore_t m_sem;
 	};
+#elif defined TORRENT_WINDOWS
+	struct semaphore
+	{
+		semaphore() { m_sem = CreateSemaphore(0, 0, 100, 0); }
+		~semaphore() { CloseHandle(m_sem); }
+		void signal() { ReleaseSemaphore(m_sem, 1, 0); }
+		void wait() { WaitForSingleObject(m_sem, INFINITE); }
+		HANDLE m_sem;
+	};
 #endif
 }
 

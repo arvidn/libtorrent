@@ -707,6 +707,7 @@ void block_cache::free_piece(iterator p)
 	// build a vector of all the buffers we need to free
 	// and free them all in one go
 	std::vector<char*> buffers;
+	buffers.reserve(pe->blocks_in_piece);
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
 		if (pe->blocks[i].buf == 0) continue;
@@ -777,6 +778,7 @@ void block_cache::check_invariant() const
 		int num_blocks = 0;
 		int num_dirty = 0;
 		int num_pending = 0;
+		int num_refcount = 0;
 		for (int k = 0; k < blocks_in_piece; ++k)
 		{
 			if (p.blocks[k].buf)
@@ -800,11 +802,14 @@ void block_cache::check_invariant() const
 			{
 				TORRENT_ASSERT(!p.blocks[k].dirty);
 				TORRENT_ASSERT(!p.blocks[k].pending);
+				TORRENT_ASSERT(p.blocks[k].refcount == 0);
 			}
+			num_refcount += p.blocks[k].refcount;
 		}
 		TORRENT_ASSERT(num_blocks == p.num_blocks);
 		TORRENT_ASSERT(num_dirty == p.num_dirty);
 		TORRENT_ASSERT(num_pending <= p.refcount);
+		TORRENT_ASSERT(num_refcount == p.refcount);
 	}
 	TORRENT_ASSERT(m_read_cache_size == cached_read_blocks);
 	TORRENT_ASSERT(m_cache_size == cached_read_blocks + cached_write_blocks);

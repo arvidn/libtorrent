@@ -167,10 +167,10 @@ namespace libtorrent
 		}
 	}
 
-#if TORRENT_USE_AIO
+#if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
 	// global pointer to the disk_io_thread
 	// so it can be accessed from within the signal handler
-	// TODO: could this be a TLS pointer? That would make it
+	// #error could this be a TLS pointer? That would make it
 	// less intrusive when running multiple instances of
 	// libtorrent
 	disk_io_thread* g_disk_io_thread = 0;
@@ -194,8 +194,6 @@ namespace libtorrent
 		, m_in_progress(0)
 		, m_to_issue(0)
 		, m_outstanding_jobs(0)
-//		, m_elevator_job_pos(m_deferred_jobs.begin())
-//		, m_invalid_elevator_pos(false)
 		, m_elevator_direction(1)
 		, m_last_phys_off(0)
 		, m_physical_ram(0)
@@ -205,7 +203,7 @@ namespace libtorrent
 		, m_post_alert(post_alert)
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
-#if TORRENT_USE_AIO
+#if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
 		g_disk_io_thread = this;
 #endif
 
@@ -1393,6 +1391,21 @@ namespace libtorrent
 		// make it handle these completed jobs
 		g_disk_io_thread->m_job_sem.signal();
 	}
+
+#elif TORRENT_USE_OVERLAPPED
+
+	// #error this could be optimized by calling the callback right away
+	// instead of iterating over all outstanding jobs
+	void WINAPI signal_handler(DWORD error, DWORD transferred, OVERLAPPED* overlapped)
+	{
+		if (g_disk_io_thread == 0) return;
+
+		++g_disk_io_thread->m_completed_aios;
+		// wake up the disk thread to
+		// make it handle these completed jobs
+		g_disk_io_thread->m_job_sem.signal();
+	}
+
 #endif
 
 	void disk_io_thread::thread_fun()

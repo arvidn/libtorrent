@@ -60,6 +60,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/socket_io.hpp" // print_address
+#include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 
 using boost::bind;
 

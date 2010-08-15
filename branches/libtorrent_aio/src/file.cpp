@@ -779,7 +779,9 @@ namespace libtorrent
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
 
 		handle_type handle = CreateFile_(m_path.c_str(), m.rw_mode, m.share_mode, 0
-			, m.create_mode, m.flags | (a ? a : FILE_ATTRIBUTE_NORMAL), 0);
+			, m.create_mode, m.flags
+				| (a ? a : FILE_ATTRIBUTE_NORMAL)
+				| (mode & file::overlapped) ? FILE_FLAG_OVERLAPPED : 0, 0);
 
 		if (handle == INVALID_HANDLE_VALUE)
 		{
@@ -995,7 +997,7 @@ namespace libtorrent
 #if TORRENT_USE_AIO
 		for (int i = 0; i < num_bufs; ++i)
 		{
-			// TODO: use a pool for these allocations
+			// #error use a pool for these allocations
 			aiocb_t* aio = new aiocb_t;
 			memset(aio, 0, sizeof(aiocb_t));
 			aio->cb.aio_fildes = m_file_handle;
@@ -1010,7 +1012,26 @@ namespace libtorrent
 		}
 #elif TORRENT_USE_OVERLAPPED
 
-#error implement windows support
+		for (int i = 0; i < num_bufs; ++i)
+		{
+			// #error use a pool for these allocations
+			aiocb_t* aio = new aiocb_t;
+			memset(aio, 0, sizeof(aiocb_t));
+			aio->ov.Internal = 0;
+			aio->ov.InternalHigh = 0;
+			aio->ov.OffsetHigh = DWORD(offset >> 32);
+			aio->ov.Offset = DWORD(offset & 0xffffffff);
+			aio->ov.hEvent = CreateEvent(0, true, false, 0);
+			aio->size = bufs[i].iov_len;
+			aio->buf = bufs[i].iov_base;
+			aio->phys_offset = phys_offset(offset);
+			aio->op = op;
+			aio->file = native_handle();
+
+			offset += bufs[i].iov_len;
+			*prev = aio;
+			prev = &aio->next;
+		}
 
 #else
 		for (int i = 0; i < num_bufs; ++i)
@@ -1787,9 +1808,44 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		*last = 0;	
 		return ret;
 #elif TORRENT_USE_OVERLAPPED
+		file::aiocb_t* ret = 0;
+		file::aiocb_t** last = &ret;
+		// loop through all aiocb structures, for operations
+		// that are still in progress, add them to a new chain
+		// which is returned. For operations that are complete,
+		// call the handler and delete aiocb entry.
+		while (aios)
+		{
+			file::aiocb_t* a = aios;
+			aios = aios->next;
 
-#error implement
+			BOOL ret = HasOverlappedIoCompleted(&a->ov);
+			if (ret == FALSE)
+			{
+				*last = a;
+				a->next = 0;
+				last = &a->next;
+				continue;
+			}
 
+			DWORD transferred = 0;
+			ret = GetOverlappedResult(a->file, &a->ov, &transferred, TRUE);
+			DLOG(stderr, "GetOverlappedResul(%p) = %d\n", &a->ov, int(ret));
+			int error = ERROR_SUCCESS;
+			if (ret == FALSE)
+			{
+				error = GetLastError();
+				DLOG(stderr, " error: %d\n", error);
+			}
+			a->handler->done(error_code(error, boost::system::get_system_category()), transferred);
+			// #error use a pool allocator for these
+			CloseHandle(a->ov.hEvent);
+			delete a;
+		}
+
+		// terminate the new chain
+		*last = 0;	
+		return ret;
 #else
 		// since we don't have AIO, all operations should have
 		// been performed as they were issued, and no operation
@@ -1920,7 +1976,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 
 		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, list_start);
-#else // TORRENT_USE_LIO_LISTIO
+#else
 
 		// this is the chain of aios that were
 		// successfully submitted
@@ -1973,8 +2029,59 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 #elif TORRENT_USE_OVERLAPPED
 
-#error implement
-		return aios;
+		// this is the chain of aios that were
+		// successfully submitted
+		file::aiocb_t* ret = aios;
+		// this is the pointer to the last
+		// chain link of the ret chain, for
+		// easy appending to it
+		file::aiocb_t** last = &ret;
+
+		extern void WINAPI signal_handler(DWORD, DWORD, OVERLAPPED*);
+
+		while (aios)
+		{
+			int ret;
+			switch (aios->op)
+			{
+				case file::read_op:
+					ret = ReadFileEx(aios->file, aios->buf
+						, aios->size, &aios->ov
+						, &signal_handler);
+					break;
+				case file::write_op:
+					ret = WriteFileEx(aios->file, aios->buf
+						, aios->size, &aios->ov
+						, &signal_handler);
+					break;
+				default: TORRENT_ASSERT(false);
+			}
+			DLOG(stderr, " %sFile() = %d\n", aios->op == file::read_op
+				? "Read" : "Write", ret);
+
+			if (ret == FALSE && GetLastError() != ERROR_IO_PENDING)
+			{
+				DWORD error = GetLastError();
+				DLOG(stderr, "  error = %d\n", error);
+				// report immediately and unlink this job
+				aios->handler->done(error_code(error, boost::system::get_system_category()), -1);
+				*last = aios->next;
+				file::aiocb_t* del = aios;
+				aios = aios->next;
+				// #error use a pool allocator for these
+				delete del;
+				continue;
+			}
+		
+			last = &aios->next;
+			aios = aios->next;
+		}
+
+		// cut the chain in two. One for successfully
+		// submitted jobs, and one with remaining jobs
+		*last = 0;
+
+		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, aios);
 #else
 
 		error_code ec;
