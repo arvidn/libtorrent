@@ -1,3 +1,5 @@
+0.15.2 release
+
 	* updated compiler to msvc 2008 for python binding
 	* restored default fail_limit to unlimited on all trackers
 	* fixed rate limit bug for DHT
