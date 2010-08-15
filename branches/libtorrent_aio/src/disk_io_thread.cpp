@@ -45,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/scoped_array.hpp>
 #include <boost/bind.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <set>
+#include <vector>
 
 #include "libtorrent/time.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
@@ -785,8 +787,11 @@ namespace libtorrent
 				return defer_handler;
 			}
 
-			// #error this is a serious error, we should return ENOMEM
-			TORRENT_ASSERT(false);
+			free_buffer(j.buffer);
+			j.buffer = 0;
+			j.error = error::no_memory;
+			j.str.clear();
+			return disk_operation_failed;
 		}
 
 		// #error this won't work with the hash operation, since it can't synchronize with when the blocks are written
@@ -1019,32 +1024,31 @@ namespace libtorrent
 		flush_cache(j, flush_read_cache | flush_write_cache);
 		m_abort = true;
 
+		std::set<piece_manager*> fences;
+		std::vector<char*> to_free;
+		to_free.reserve(m_blocked_jobs.size());
 		// we're aborting. Cancel all jobs that are blocked or
 		// have been deferred as well
 		while (!m_blocked_jobs.empty())
 		{
 			disk_io_job& j = m_blocked_jobs.back();
-//			TORRENT_ASSERT(!j.storage->has_fence());
+			if (j.buffer) to_free.push_back(j.buffer);
+			j.buffer = 0;
+			if (j.storage->has_fence()) fences.insert(j.storage.get());
 			j.error = error::operation_aborted;
 			m_ios.post(boost::bind(j.callback, -1, j));
 			m_blocked_jobs.pop_back();
 		}
-/*
-		for (deferred_jobs_t::iterator i = m_deferred_jobs.begin();
-			i != m_deferred_jobs.end();)
-		{
-			disk_io_job& j = i->second;
-			TORRENT_ASSERT(!j.storage->has_fence());
-			j.error = error::operation_aborted;
-			m_ios.post(boost::bind(j.callback, -1, j));
-			if (m_elevator_job_pos == i) ++m_elevator_job_pos;
-			m_deferred_jobs.erase(i++);
-		}
-*/
-		// #error, if there is a storage that has a fence up
-		// it's going to get left hanging here.
+		if (!to_free.empty()) free_multiple_buffers(&to_free[0], to_free.size());
 
-//		m_self_work.reset();
+		// if there is a storage that has a fence up
+		// it's going to get left hanging here.
+		// lower all fences
+
+		for (std::set<piece_manager*>::iterator i = fences.begin()
+			, end(fences.end()); i != end; ++i)
+			(*i)->lower_fence();
+
 		return 0;
 	}
 
@@ -1067,6 +1071,8 @@ namespace libtorrent
 		// and clear all read jobs
 		flush_cache(j, flush_read_cache | flush_write_cache);
 
+		std::vector<char*> to_free;
+		to_free.reserve(m_blocked_jobs.size());
 		// we're aborting. Cancel all jobs that are blocked or
 		// have been deferred as well
 		for (std::list<disk_io_job>::iterator i = m_blocked_jobs.begin();
@@ -1079,27 +1085,20 @@ namespace libtorrent
 			}
 
 			disk_io_job& j = *i;
+			if (j.buffer) to_free.push_back(j.buffer);
+			j.buffer = 0;
 			j.error = error::operation_aborted;
 			m_ios.post(boost::bind(j.callback, -1, j));
 			i = m_blocked_jobs.erase(i);
 		}
-/*
-		for (deferred_jobs_t::iterator i = m_deferred_jobs.begin();
-			i != m_deferred_jobs.end();)
-		{
-			if (i->second.storage != j.storage)
-			{
-				++i;
-				continue;
-			}
 
-			disk_io_job& k = i->second;
-			k.error = error::operation_aborted;
-			m_ios.post(boost::bind(k.callback, -1, k));
-			if (m_elevator_job_pos == i) ++m_elevator_job_pos;
-			m_deferred_jobs.erase(i++);
-		}
-*/
+		if (!to_free.empty()) free_multiple_buffers(&to_free[0], to_free.size());
+
+		// the fence function will issue all blocked jobs, but we
+		// just cleared them all from m_blocked_jobs anyway
+		// lowering the fence will at least allow new jobs
+		if (j.storage->has_fence()) j.storage->lower_fence();
+
 		release_memory();
 		return 0;
 	}
@@ -1266,8 +1265,6 @@ namespace libtorrent
 		else if (ret == -1)
 		{
 			TORRENT_ASSERT(j.buffer == 0);
-			free_buffer(j.buffer);
-			j.buffer = 0;
 			j.error = error::no_memory;
 			j.str.clear();
 			return disk_operation_failed;
