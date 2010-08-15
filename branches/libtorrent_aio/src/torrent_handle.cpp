@@ -728,6 +728,7 @@ namespace libtorrent
 
 		entry ret(entry::dictionary_t);
 		TORRENT_SYNC_CALL1(write_resume_data, boost::ref(ret));
+		t = m_torrent.lock();
 		if (t)
 		{
 			bool done = false;
@@ -738,6 +739,7 @@ namespace libtorrent
 			ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond
 				, &ses.mut, boost::function<void(void)>(boost::bind(
 					&piece_manager::write_resume_data, &t->filesystem(), boost::ref(ret), boost::ref(ec)))));
+			t.reset();
 			do { ses.cond.wait(l); } while(!done);
 		}
 

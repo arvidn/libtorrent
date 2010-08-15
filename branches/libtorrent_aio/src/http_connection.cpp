@@ -296,6 +296,16 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		}
 		else
 #endif
+		if (ps && ps->proxy_hostnames
+			&& (ps->type == proxy_settings::socks5
+				|| ps->type == proxy_settings::socks5_pw))
+		{
+			m_hostname = hostname;
+			m_port = port;
+			m_endpoints.push_back(tcp::endpoint(address(), atoi(port.c_str())));
+			queue_connect();
+		}
+		else
 		{
 			tcp::resolver::query query(hostname, port);
 			m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
@@ -452,6 +462,23 @@ void http_connection::queue_connect()
 void http_connection::connect(int ticket, tcp::endpoint target_address)
 {
 	m_connection_ticket = ticket;
+	if (m_proxy.proxy_hostnames
+		&& (m_proxy.type == proxy_settings::socks5
+			|| m_proxy.type == proxy_settings::socks5_pw))
+	{
+		// we're using a socks proxy and we're resolving
+		// hostnames through it
+#ifdef TORRENT_USE_OPENSSL
+		if (!m_ssl)
+		{
+			TORRENT_ASSERT(m_sock.get<socket_type>()->get<socks5_stream>());
+			m_sock.get<socket_type>()->get<socks5_stream>()->set_dst_name(m_hostname);
+		}
+#else
+		TORRENT_ASSERT(m_sock.get<socks5_stream>());
+		m_sock.get<socks5_stream>()->set_dst_name(m_hostname);
+#endif
+	}
 	m_sock.async_connect(target_address, boost::bind(&http_connection::on_connect
 		, shared_from_this(), _1));
 }

@@ -510,7 +510,9 @@ namespace aux {
 		, m_dht_announce_timer(m_io_service)
 #endif
 		, m_external_udp_port(0)
-		, m_udp_socket(m_io_service, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
+		, m_udp_socket(m_io_service
+			, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
+			, boost::bind(&session_impl::on_receive_udp_hostname, this, _1, _2, _3, _4)
 			, m_half_open)
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
@@ -1662,6 +1664,17 @@ namespace aux {
 			m_stat.received_tracker_bytes(len + 28);
 		}
 	}
+
+	void session_impl::on_receive_udp_hostname(error_code const& e
+		, char const* hostname, char const* buf, int len)
+	{
+		// it's probably a udp tracker response
+		if (m_tracker_manager.incoming_udp(e, hostname, buf, len))
+		{
+			m_stat.received_tracker_bytes(len + 28);
+		}
+	}
+
 
 #endif
 	

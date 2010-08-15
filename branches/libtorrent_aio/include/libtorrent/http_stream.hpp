@@ -57,6 +57,25 @@ public:
 		m_password = password;
 	}
 
+	void set_dst_name(std::string const& host)
+	{
+		m_dst_name = host;
+	}
+
+	void close(error_code& ec)
+	{
+		m_dst_name.clear();
+		proxy_base::close(ec);
+	}
+
+#ifndef BOOST_NO_EXCEPTIONS
+	void close()
+	{
+		m_dst_name.clear();
+		proxy_base::close();
+	}
+#endif
+
 	typedef boost::function<void(error_code const&)> handler_type;
 
 	template <class Handler>
@@ -92,6 +111,7 @@ private:
 	// proxy authentication
 	std::string m_user;
 	std::string m_password;
+	std::string m_dst_name;
 
 	// this is true if the connection is HTTP based and
 	// want to talk directly to the proxy

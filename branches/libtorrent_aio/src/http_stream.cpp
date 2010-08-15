@@ -75,8 +75,16 @@ namespace libtorrent
 
 		// send CONNECT
 		std::back_insert_iterator<std::vector<char> > p(m_buffer);
-		write_string("CONNECT " + print_endpoint(m_remote_endpoint)
-			+ " HTTP/1.0\r\n", p);
+		std::string endpoint;
+		if (!m_hostname.empty())
+		{
+			endpoint = m_hostname + ':' + to_string(m_remote_endpoint.port()).elems;
+		}
+		else
+		{
+			endpoint = print_endpoint(m_remote_endpoint);
+		}
+		write_string("CONNECT " + endpoint + " HTTP/1.0\r\n", p);
 		if (!m_user.empty())
 		{
 			write_string("Proxy-Authorization: Basic " + base64encode(

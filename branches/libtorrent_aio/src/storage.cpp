@@ -2539,6 +2539,7 @@ ret:
 		{
 			if (ec
 #ifdef TORRENT_WINDOWS
+				&& ec != error_code(ERROR_PATH_NOT_FOUND, get_system_category())
 				&& ec != error_code(ERROR_FILE_NOT_FOUND, get_system_category())
 				&& ec != error_code(ERROR_HANDLE_EOF, get_system_category())
 				&& ec != error_code(ERROR_INVALID_HANDLE, get_system_category()))

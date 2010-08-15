@@ -122,7 +122,7 @@ void bind_torrent_info()
         .def(init<std::wstring>())
 #endif
 
-        .def("add_tracker", &torrent_info::add_tracker, (arg("url"), arg("tier")=0))
+        .def("add_tracker", &torrent_info::add_tracker, arg("url"))
         .def("add_url_seed", &torrent_info::add_url_seed)
 
         .def("name", &torrent_info::name, copy)

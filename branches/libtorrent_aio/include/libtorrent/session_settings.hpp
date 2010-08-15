@@ -42,7 +42,8 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT proxy_settings
 	{
-		proxy_settings() : port(0), type(none) {}
+		proxy_settings() : port(0), type(none)
+			, proxy_hostnames(true) {}
 
 		std::string hostname;
 		int port;
@@ -78,7 +79,10 @@ namespace libtorrent
 		};
 		
 		proxy_type type;
-	
+
+		// when set to true, hostname are resolved
+		// through the proxy (if supported)
+		bool proxy_hostnames;
 	};
 
 	struct TORRENT_EXPORT session_settings
@@ -105,7 +109,7 @@ namespace libtorrent
 			, allow_multiple_connections_per_ip(false)
 			, max_failcount(3)
 			, min_reconnect_time(60)
-			, peer_connect_timeout(7)
+			, peer_connect_timeout(15)
 			, ignore_limits_on_local_network(true)
 			, connection_speed(10)
 			, send_redundant_have(false)

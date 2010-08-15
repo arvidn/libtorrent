@@ -4668,6 +4668,7 @@ direct certain traffic to a proxy.
 			};
 		
 			proxy_type type;
+			bool proxy_hostnames;
 		};
 
 ``hostname`` is the name or IP of the proxy server. ``port`` is the
@@ -4703,6 +4704,10 @@ options are available:
 .. _`RFC 1928`: http://www.faqs.org/rfcs/rfc1928.html
 .. _`RFC 1929`: http://www.faqs.org/rfcs/rfc1929.html
 .. _CONNECT: draft-luotonen-web-proxy-tunneling-01.txt
+
+``proxy_hostnames`` defaults to true. It means that hostnames should be
+attempted to be resolved through the proxy instead of using the local DNS
+service. This is only supported by SOCKS5 and HTTP.
 
 ip_filter
 =========

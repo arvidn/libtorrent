@@ -47,9 +47,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
+udp_socket::udp_socket(asio::io_service& ios
+	, udp_socket::callback_t const& c
+	, udp_socket::callback2_t const& c2
 	, connection_queue& cc)
 	: m_callback(c)
+	, m_callback2(c2)
 	, m_ipv4_sock(ios)
 #if TORRENT_USE_IPV6
 	, m_ipv6_sock(ios)
@@ -93,6 +96,33 @@ udp_socket::~udp_socket()
 	#define CHECK_MAGIC do {} while (false)
 #endif
 
+void udp_socket::send_hostname(char const* hostname, int port
+	, char const* p, int len, error_code& ec)
+{
+	CHECK_MAGIC;
+
+	TORRENT_ASSERT(is_open());
+
+	// if the sockets are closed, the udp_socket is closing too
+	if (!is_open()) return;
+
+	if (m_tunnel_packets)
+	{
+		// send udp packets through SOCKS5 server
+		wrap(hostname, port, p, len, ec);
+		return;	
+	}
+
+	TORRENT_ASSERT(m_queue_packets);
+	if (!m_queue_packets) return;
+
+	m_queue.push_back(queued_packet());
+	queued_packet& qp = m_queue.back();
+	qp.ep.port(port);
+	qp.hostname = strdup(hostname);
+	qp.buf.insert(qp.buf.begin(), p, p + len);
+}
+
 void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec)
 {
 	CHECK_MAGIC;
@@ -114,6 +144,7 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_cod
 		m_queue.push_back(queued_packet());
 		queued_packet& qp = m_queue.back();
 		qp.ep = ep;
+		qp.hostname = 0;
 		qp.buf.insert(qp.buf.begin(), p, p + len);
 		return;
 	}
@@ -288,8 +319,38 @@ void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, error_cod
 	write_uint16(0, h); // reserved
 	write_uint8(0, h); // fragment
 	write_uint8(ep.address().is_v4()?1:4, h); // atyp
-	write_address(ep.address(), h);
-	write_uint16(ep.port(), h);
+	write_endpoint(ep, h);
+
+	boost::array<asio::const_buffer, 2> iovec;
+	iovec[0] = asio::const_buffer(header, h - header);
+	iovec[1] = asio::const_buffer(p, len);
+
+#if TORRENT_USE_IPV6
+	if (m_proxy_addr.address().is_v4() && m_ipv4_sock.is_open())
+#endif
+		m_ipv4_sock.send_to(iovec, m_proxy_addr, 0, ec);
+#if TORRENT_USE_IPV6
+	else
+		m_ipv6_sock.send_to(iovec, m_proxy_addr, 0, ec);
+#endif
+}
+
+void udp_socket::wrap(char const* hostname, int port, char const* p, int len, error_code& ec)
+{
+	CHECK_MAGIC;
+	using namespace libtorrent::detail;
+
+	char header[270];
+	char* h = header;
+
+	write_uint16(0, h); // reserved
+	write_uint8(0, h); // fragment
+	write_uint8(3, h); // atyp
+	int hostlen = (std::min)(strlen(hostname), size_t(255));
+	write_uint8(hostlen, h); // hostname len
+	memcpy(h, hostname, hostlen);
+	h += hostlen;
+	write_uint16(port, h);
 
 	boost::array<asio::const_buffer, 2> iovec;
 	iovec[0] = asio::const_buffer(header, h - header);
@@ -337,7 +398,11 @@ void udp_socket::unwrap(error_code const& e, char const* buf, int size)
 #endif
 	else
 	{
-		// domain name not supported
+		int len = read_uint8(p);
+		if (len > (buf + size) - p) return;
+		std::string hostname(p, p + len);
+		p += len;
+		m_callback2(e, hostname.c_str(), p, size - (p - buf));
 		return;
 	}
 
@@ -646,9 +711,20 @@ void udp_socket::socks_forward_udp(mutex::scoped_lock& l)
 	write_uint8(5, p); // SOCKS VERSION 5
 	write_uint8(3, p); // UDP ASSOCIATE command
 	write_uint8(0, p); // reserved
-	write_uint8(0, p); // ATYP IPv4
-	write_uint32(0, p); // IP any
-	write_uint16(m_bind_port, p);
+	error_code ec;
+	tcp::endpoint local = m_socks5_sock.local_endpoint(ec);
+	write_uint8(local.address().is_v4() ? 1 : 4, p); // ATYP IPv4
+	detail::write_address(local.address(), p);
+	int port = 0;
+#if TORRENT_USE_IPV6
+	if (local.address().is_v4())
+#endif
+		port = m_ipv4_sock.local_endpoint(ec).port();
+#if TORRENT_USE_IPV6
+	else
+		port = m_ipv6_sock.local_endpoint(ec).port();
+#endif
+	detail::write_uint16(port , p);
 
 	asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
 		, boost::bind(&udp_socket::connect1, this, _1));
@@ -702,14 +778,40 @@ void udp_socket::connect2(error_code const& e)
 	{
 		queued_packet const& p = m_queue.front();
 		error_code ec;
-		udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec);
+		if (p.hostname)
+		{
+			udp_socket::send_hostname(p.hostname, p.ep.port(), &p.buf[0], p.buf.size(), ec);
+			free(p.hostname);
+		}
+		else
+		{
+			udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec);
+		}
 		m_queue.pop_front();
 	}
+
+	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 10)
+		, boost::bind(&udp_socket::hung_up, this, _1));
+}
+
+void udp_socket::hung_up(error_code const& e)
+{
+	CHECK_MAGIC;
+	mutex::scoped_lock l(m_mutex);
+
+	if (e == asio::error::operation_aborted || m_abort) return;
+
+	l.unlock();
+
+	// the socks connection was closed, re-open it
+	set_proxy_settings(m_proxy_settings);
 }
 
 rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
-	, callback_t const& c, connection_queue& cc)
-	: udp_socket(ios, c, cc)
+	, callback_t const& c
+	, callback2_t const& c2
+	, connection_queue& cc)
+	: udp_socket(ios, c, c2, cc)
 	, m_timer(ios)
 	, m_queue_size_limit(200)
 	, m_rate_limit(4000)
@@ -756,9 +858,10 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 
 	if (m_queue.empty()) return;
 
-	while (!m_queue.empty() && int(m_queue.front().buf.size()) >= m_quota)
+	while (!m_queue.empty() && int(m_queue.front().buf.size()) <= m_quota)
 	{
 		queued_packet const& p = m_queue.front();
+		TORRENT_ASSERT(m_quota >= p.buf.size());
 		m_quota -= p.buf.size();
 		error_code ec;
 		udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec);

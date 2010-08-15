@@ -59,6 +59,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/resource.h>
 #endif
 
+#ifdef TORRENT_LINUX
+#include <linux/unistd.h>
+#endif
+
 #define DEBUG_STORAGE 0
 
 #define DLOG if (DEBUG_STORAGE) fprintf
@@ -1124,6 +1128,8 @@ namespace libtorrent
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
 				, m_settings.low_prio_disk ? IOPOL_THROTTLE : IOPOL_DEFAULT);
+#elif defined IOPRIO_WHO_PROCESS
+		syscall(ioprio_set, IOPRIO_WHO_PROCESS, getpid());
 #endif
 		if (m_settings.cache_size == -1)
 		{
@@ -1250,8 +1256,8 @@ namespace libtorrent
 			j.error = errors::no_memory;
 			return disk_operation_failed;
 		}
-
 		int ret = m_disk_cache.allocate_pending(p, 0, p->blocks_in_piece, j);
+
 		if (ret > 0)
 		{
 			io_range(p, 0, INT_MAX, op_read);

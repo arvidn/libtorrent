@@ -333,7 +333,10 @@ namespace libtorrent
 		void resolve_countries(bool r)
 		{ m_resolve_countries = r; }
 
-		bool resolving_countries() const { return m_resolve_countries; }
+		bool resolving_countries() const
+		{
+			return m_resolve_countries && !m_ses.settings().anonymous_mode;
+		}
 #endif
 
 // --------------------------------------------
@@ -603,6 +606,8 @@ namespace libtorrent
 		// lookup for a WEB SEED is completed.
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i
 			, std::list<web_seed_entry>::iterator url, tcp::endpoint proxy);
+
+		void connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint const& a);
 
 		// this is the asio callback that is called when a name
 		// lookup for a proxy for a web seed is completed.

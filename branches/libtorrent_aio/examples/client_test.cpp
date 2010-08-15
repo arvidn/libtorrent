@@ -774,8 +774,11 @@ int main(int argc, char* argv[])
 			"  -R <num blocks>       number of blocks per read cache line\n"
 			"  -O                    Disallow disk job reordering\n"
 			"  -P <host:port>        Use the specified SOCKS5 proxy\n"
+			"  -L <user:passwd>      Use the specified username and password for the\n"
+			"                        proxy specified by -P\n"
 			"  -H                    Don't start DHT\n"
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
+			"  -N                    Do not attempt to use UPnP and NAT-PMP to forward ports\n"
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -794,8 +797,11 @@ int main(int argc, char* argv[])
 	settings.disk_cache_algorithm = session_settings::largest_contiguous;
 	settings.volatile_read_cache = true;
 
+	proxy_settings ps;
+
 	int refresh_delay = 1;
 	bool start_dht = true;
+	bool start_upnp = true;
 
 	std::deque<std::string> events;
 
@@ -821,10 +827,6 @@ int main(int argc, char* argv[])
 		if (lazy_bdecode(&in[0], &in[0] + in.size(), e) == 0)
 			ses.load_state(e);
 	}
-
-	ses.start_lsd();
-	ses.start_upnp();
-	ses.start_natpmp();
 
 #ifndef TORRENT_DISABLE_GEO_IP
 	ses.load_asnum_db("GeoIPASNum.dat");
@@ -940,33 +942,56 @@ int main(int argc, char* argv[])
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
 			case 'P':
 				{
-					char* port = (char*) strchr(arg, ':');
+					char* port = (char*) strrchr(arg, ':');
 					if (port == 0)
 					{
 						fprintf(stderr, "invalid proxy hostname, no port found\n");
 						break;
 					}
 					*port++ = 0;
-					proxy_settings ps;
 					ps.hostname = arg;
 					ps.port = atoi(port);
 					if (ps.port == 0) {
 						fprintf(stderr, "invalid proxy port\n");
 						break;
 					}
-					ps.type = proxy_settings::socks5;
-					ses.set_peer_proxy(ps);
-					ses.set_web_seed_proxy(ps);
-					ses.set_tracker_proxy(ps);
-#ifndef TORRENT_DISABLE_DHT
-					ses.set_dht_proxy(ps);
-#endif
+					if (ps.type == proxy_settings::none)
+						ps.type = proxy_settings::socks5;
+				}
+				break;
+			case 'L':
+				{
+					char* pw = (char*) strchr(arg, ':');
+					if (pw == 0)
+					{
+						fprintf(stderr, "invalid proxy username and password specified\n");
+						break;
+					}
+					*pw++ = 0;
+					ps.username = arg;
+					ps.password = pw;
+					ps.type = proxy_settings::socks5_pw;
 				}
 				break;
 			case 'I': outgoing_interface = arg; break;
+			case 'N': start_upnp = false; --i; break;
 		}
 		++i; // skip the argument
 	}
+
+	ses.start_lsd();
+	if (start_upnp)
+	{
+		ses.start_upnp();
+		ses.start_natpmp();
+	}
+
+	ses.set_peer_proxy(ps);
+	ses.set_web_seed_proxy(ps);
+	ses.set_tracker_proxy(ps);
+#ifndef TORRENT_DISABLE_DHT
+	ses.set_dht_proxy(ps);
+#endif
 
 	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
 		, bind_to_interface.c_str());

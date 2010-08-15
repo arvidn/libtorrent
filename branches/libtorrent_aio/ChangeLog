@@ -1,3 +1,4 @@
+	* improved SOCKS5 support by proxying hostname lookups
 	* improved support for multi-homed clients
 	* added feature to not count downloaded bytes from web seeds in stats
 	* added alert for incoming local service discovery messages
@@ -39,6 +40,12 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* updated compiler to msvc 2008 for python binding
+	* restored default fail_limit to unlimited on all trackers
+	* fixed rate limit bug for DHT
+	* fixed SOCKS5 bug for routing UDP packets
+	* fixed bug on windows when verifying resume data for a torrent where
+	  one of its directories had been removed
 	* fixed race condition in peer-list with DHT
 	* fix force-reannounce and tracker retry issue
 
