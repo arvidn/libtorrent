@@ -1779,7 +1779,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			DLOG(stderr, "aio_return(%p) = %d\n", &a->cb, int(ret));
 			if (ret == -1) DLOG(stderr, " error: %s\n", strerror(errno));
 			a->handler->done(error_code(e, boost::system::get_posix_category()), ret);
-			// TODO: use a pool allocator for these
+			// #error use a pool allocator for these
 			delete a;
 		}
 
@@ -1802,6 +1802,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios)
 	{
 #if TORRENT_USE_AIO
+		// this code uses lio_listio() to save system calls
+#if 0
 		// figure out how many requests we can issue at a time
 		int sc = sysconf(_SC_AIO_LISTIO_MAX);
 		if (sc == -1 && errno == 0)
@@ -1918,6 +1920,57 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 
 		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, list_start);
+#else // TORRENT_USE_LIO_LISTIO
+
+		// this is the chain of aios that were
+		// successfully submitted
+		file::aiocb_t* ret = aios;
+		// this is the pointer to the last
+		// chain link of the ret chain, for
+		// easy appending to it
+		file::aiocb_t** last = &ret;
+
+		while (aios)
+		{
+			memset(&aios->cb.aio_sigevent, 0, sizeof(aios->cb.aio_sigevent));
+			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
+			aios->cb.aio_sigevent.sigev_signo = TORRENT_AIO_SIGNAL;
+			int ret;
+			switch (aios->cb.aio_lio_opcode)
+			{
+				case file::read_op: ret = aio_read(&aios->cb); break;
+				case file::read_write: ret = aio_write(&aios->cb); break;
+				default: TORRENT_ASSERT(false);
+			}
+			DLOG(stderr, " aio_%s() = %d\n", aios->cb.aio_lio_opcode == file::read_op
+				? "read" : "write", ret);
+
+			if (ret == -1)
+			{
+				DLOG(stderr, "  error = %s\n", strerror(errno));
+				if (errno == EAGAIN) break;
+			
+				// report this error immediately and unlink this job
+				aios->handler->done(error_code(errno, boost::system::get_posix_category()), ret);
+				*last = aios->next;
+				file::aiocb_t* del = aios;
+				aios = aios->next;
+				// #error use a pool allocator for these
+				delete del;
+				continue;
+			}
+		
+			last = &aios->next;
+			aios = aios->next;
+		}
+
+		// cut the chain in two. One for successfully
+		// submitted jobs, and one with remaining jobs
+		*last = 0;
+
+		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, aios);
+#endif
+
 #elif TORRENT_USE_OVERLAPPED
 
 #error implement
@@ -1936,7 +1989,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				case file::write_op: ret = aios->file_ptr->writev(aios->offset, &b, 1, ec); break;
 				default: TORRENT_ASSERT(false);
 			}
-			sleep(1000);
 			aios->handler->done(ec, ret);
 			file::aiocb_t* del = aios;
 			aios = aios->next;
