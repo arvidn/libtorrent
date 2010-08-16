@@ -194,7 +194,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 
 	// test move_storage with two files in the root directory
 	TEST_CHECK(exists(test_path / "temp_storage"));
-	pm->async_move_storage(test_path / "temp_storage2", bind(on_move_storage, _1, _2, (test_path / "temp_storage2").string()));
+	pm->async_move_storage(test_path / "temp_storage2", boost::bind(on_move_storage, _1, _2, (test_path / "temp_storage2").string()));
 
 	test_sleep(2000);
 	ios.reset();
@@ -206,7 +206,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 		TEST_CHECK(exists(test_path / "temp_storage2/temp_storage"));
 	}
 	TEST_CHECK(exists(test_path / "temp_storage2/part0"));
-	pm->async_move_storage(test_path, bind(on_move_storage, _1, _2, test_path.string()));
+	pm->async_move_storage(test_path, boost::bind(on_move_storage, _1, _2, test_path.string()));
 
 	test_sleep(2000);
 	ios.reset();
@@ -219,11 +219,11 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	r.piece = 0;
 	r.start = 0;
 	r.length = piece_size;
-	pm->async_read(r, bind(&on_read_piece, _1, _2, piece0, piece_size));
+	pm->async_read(r, boost::bind(&on_read_piece, _1, _2, piece0, piece_size));
 	r.piece = 1;
-	pm->async_read(r, bind(&on_read_piece, _1, _2, piece1, piece_size));
+	pm->async_read(r, boost::bind(&on_read_piece, _1, _2, piece1, piece_size));
 	r.piece = 2;
-	pm->async_read(r, bind(&on_read_piece, _1, _2, piece2, piece_size));
+	pm->async_read(r, boost::bind(&on_read_piece, _1, _2, piece2, piece_size));
 	pm->async_release_files(none);
 
 	pm->async_rename_file(0, "temp_storage/test1.tmp", none);
@@ -344,7 +344,7 @@ void test_check_files(path const& test_path
 	bool pieces[4] = {false, false, false, false};
 	done = false;
 
-	pm->async_check_files(bind(&check_files_fill_array, _1, _2, pieces, &done));
+	pm->async_check_files(boost::bind(&check_files_fill_array, _1, _2, pieces, &done));
 	while (!done)
 	{
 		ios.reset();
@@ -573,7 +573,7 @@ int test_main()
 		}
 	}
 
-	std::for_each(test_paths.begin(), test_paths.end(), bind(&run_test, _1));
+	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1));
 
 	return 0;
 }

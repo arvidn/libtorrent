@@ -176,7 +176,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
-		, m_dht_socket(m_io_service, bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
+		, m_dht_socket(m_io_service, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, m_half_open)
 #endif
 		, m_timer(m_io_service)
@@ -277,7 +277,7 @@ namespace aux {
 
 		m_timer.expires_from_now(seconds(1), ec);
 		m_timer.async_wait(
-			bind(&session_impl::second_tick, this, _1));
+			boost::bind(&session_impl::second_tick, this, _1));
 
 		m_thread.reset(new boost::thread(boost::ref(*this)));
 	}
@@ -805,7 +805,7 @@ namespace aux {
 		shared_ptr<socket_type> c(new socket_type(m_io_service));
 		c->instantiate<stream_socket>(m_io_service);
 		listener->async_accept(*c->get<stream_socket>()
-			, bind(&session_impl::on_incoming_connection, this, c
+			, boost::bind(&session_impl::on_incoming_connection, this, c
 			, boost::weak_ptr<socket_acceptor>(listener), _1));
 	}
 
@@ -963,7 +963,7 @@ namespace aux {
 //			, p, bind(&boost::intrusive_ptr<peer_connection>::get, _1) < p);
 //		if (i->get() != p) i == m_connections.end();
 		connection_map::iterator i = std::find_if(m_connections.begin(), m_connections.end()
-			, bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p);
+			, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p);
 		if (i != m_connections.end()) m_connections.erase(i);
 	}
 
@@ -1029,7 +1029,7 @@ namespace aux {
 		error_code ec;
 		m_timer.expires_from_now(seconds(1), ec);
 		m_timer.async_wait(
-			bind(&session_impl::second_tick, this, _1));
+			boost::bind(&session_impl::second_tick, this, _1));
 
 #ifdef TORRENT_STATS
 		++m_second_counter;
@@ -1413,11 +1413,11 @@ namespace aux {
 		if (!handled_by_extension)
 		{
 			std::sort(downloaders.begin(), downloaders.end()
-				, bind(&torrent::sequence_number, _1) < bind(&torrent::sequence_number, _2));
+				, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
 
 			std::sort(seeds.begin(), seeds.end()
-				, bind(&torrent::seed_rank, _1, boost::ref(m_settings))
-				> bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
+				, boost::bind(&torrent::seed_rank, _1, boost::ref(m_settings))
+				> boost::bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
 		}
 
 		for (std::vector<torrent*>::iterator i = downloaders.begin()
@@ -1506,10 +1506,10 @@ namespace aux {
 		// the download rate will be 0, and the peers we have sent the least to should
 		// be unchoked
 		std::sort(peers.begin(), peers.end()
-			, bind(&peer_connection::unchoke_compare, _1, _2));
+			, boost::bind(&peer_connection::unchoke_compare, _1, _2));
 
 		std::for_each(m_connections.begin(), m_connections.end()
-			, bind(&peer_connection::reset_choke_counters, _1));
+			, boost::bind(&peer_connection::reset_choke_counters, _1));
 
 		// auto unchoke
 		int upload_limit = m_bandwidth_manager[peer_connection::upload_channel]->throttle();
@@ -2256,7 +2256,7 @@ namespace aux {
 	{
 		tcp::resolver::query q(node.first, boost::lexical_cast<std::string>(node.second));
 		m_host_resolver.async_resolve(q,
-			bind(&session_impl::on_dht_router_name_lookup, this, _1, _2));
+			boost::bind(&session_impl::on_dht_router_name_lookup, this, _1, _2));
 	}
 
 	void session_impl::on_dht_router_name_lookup(error_code const& e
@@ -2449,7 +2449,7 @@ namespace aux {
 
 		m_lsd = new lsd(m_io_service
 			, m_listen_interface.address()
-			, bind(&session_impl::on_lsd_peer, this, _1, _2));
+			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2));
 	}
 	
 	natpmp* session_impl::start_natpmp()
@@ -2462,7 +2462,7 @@ namespace aux {
 
 		m_natpmp = new natpmp(m_io_service
 			, m_listen_interface.address()
-			, bind(&session_impl::on_port_mapping
+			, boost::bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, 0));
 
 		if (m_listen_interface.port() > 0)
@@ -2490,7 +2490,7 @@ namespace aux {
 		m_upnp = new upnp(m_io_service, m_half_open
 			, m_listen_interface.address()
 			, m_settings.user_agent
-			, bind(&session_impl::on_port_mapping
+			, boost::bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, 1)
 			, m_settings.upnp_ignore_nonrouters);
 
