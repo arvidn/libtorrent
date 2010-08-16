@@ -1995,7 +1995,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			switch (aios->cb.aio_lio_opcode)
 			{
 				case file::read_op: ret = aio_read(&aios->cb); break;
-				case file::read_write: ret = aio_write(&aios->cb); break;
+				case file::write_op: ret = aio_write(&aios->cb); break;
 				default: TORRENT_ASSERT(false);
 			}
 			DLOG(stderr, " aio_%s() = %d\n", aios->cb.aio_lio_opcode == file::read_op
