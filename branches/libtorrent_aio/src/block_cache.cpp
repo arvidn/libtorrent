@@ -630,6 +630,9 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		i = pe->jobs.erase(i);
 	}
 
+	bool lower_fence = false;
+	boost::intrusive_ptr<piece_manager> storage = pe->storage;
+
 	if (pe->jobs.empty() && pe->storage->has_fence())
 	{
 		DLOG(stderr, "%p piece out of jobs. Count total jobs\n", &m_buffer_pool);
@@ -649,7 +652,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		{
 			DLOG(stderr, "%p no more jobs. lower fence\n", &m_buffer_pool);
 			// yes, all outstanding jobs are done, lower the fence
-			pe->storage->lower_fence();
+			lower_fence = true;
 		}
 	}
 
@@ -659,6 +662,11 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		free_piece(p);
 		idx.erase(p);
 	}
+
+	// lower the fence after we deleted the piece from the cache
+	// to avoid inconsistent states when new jobs are issued
+	if (lower_fence)
+		storage->lower_fence();
 
 	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
 	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
@@ -779,6 +787,7 @@ void block_cache::check_invariant() const
 		int num_dirty = 0;
 		int num_pending = 0;
 		int num_refcount = 0;
+		TORRENT_ASSERT(blocks_in_piece == p.blocks_in_piece);
 		for (int k = 0; k < blocks_in_piece; ++k)
 		{
 			if (p.blocks[k].buf)
