@@ -1,5 +1,6 @@
 release 0.14.11
 
+	* vs 2010 compiler fixes
 	* updated compiler to msvc 2008 for python binding
 	* fixed SOCKS5 bug for routing UDP packets
 	* fixed bug on windows when verifying resume data for a torrent where

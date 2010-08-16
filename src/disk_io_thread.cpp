@@ -243,8 +243,8 @@ namespace libtorrent
 		{
 			cache_t::iterator i = std::min_element(
 				m_pieces.begin(), m_pieces.end()
-				, bind(&cached_piece_entry::last_use, _1)
-				< bind(&cached_piece_entry::last_use, _2));
+				, boost::bind(&cached_piece_entry::last_use, _1)
+				< boost::bind(&cached_piece_entry::last_use, _2));
 			if (i == m_pieces.end()) return;
 			int age = total_seconds(now - i->last_use);
 			if (age < m_cache_expiry) return;
@@ -276,8 +276,8 @@ namespace libtorrent
 
 		cache_t::iterator i = std::min_element(
 			m_read_pieces.begin(), m_read_pieces.end()
-			, bind(&cached_piece_entry::last_use, _1)
-			< bind(&cached_piece_entry::last_use, _2));
+			, boost::bind(&cached_piece_entry::last_use, _1)
+			< boost::bind(&cached_piece_entry::last_use, _2));
 		if (i != m_read_pieces.end() && i != ignore)
 		{
 			// don't replace an entry that is less than one second old
@@ -298,8 +298,8 @@ namespace libtorrent
 
 		cache_t::iterator i = std::min_element(
 			m_pieces.begin(), m_pieces.end()
-			, bind(&cached_piece_entry::last_use, _1)
-			< bind(&cached_piece_entry::last_use, _2));
+			, boost::bind(&cached_piece_entry::last_use, _1)
+			< boost::bind(&cached_piece_entry::last_use, _2));
 		if (i == m_pieces.end()) return;
 		flush_and_remove(i, l);
 	}
@@ -897,7 +897,7 @@ namespace libtorrent
 						}
 						if (i->action == disk_io_job::check_files)
 						{
-							if (i->callback) m_ios.post(bind(i->callback
+							if (i->callback) m_ios.post(boost::bind(i->callback
 								, piece_manager::disk_check_aborted, *i));
 							m_jobs.erase(i++);
 							continue;
@@ -1132,7 +1132,7 @@ namespace libtorrent
 					INVARIANT_CHECK;
 
 					cache_t::iterator i = std::remove_if(
-						m_pieces.begin(), m_pieces.end(), bind(&cached_piece_entry::storage, _1) == j.storage);
+						m_pieces.begin(), m_pieces.end(), boost::bind(&cached_piece_entry::storage, _1) == j.storage);
 
 					for (cache_t::iterator k = i; k != m_pieces.end(); ++k)
 					{
@@ -1183,7 +1183,7 @@ namespace libtorrent
 #endif
 							TORRENT_ASSERT(handler);
 							if (handler && ret == piece_manager::need_full_check)
-								m_ios.post(bind(handler, ret, j));
+								m_ios.post(boost::bind(handler, ret, j));
 #ifndef BOOST_NO_EXCEPTIONS
 						} catch (std::exception&) {}
 #endif

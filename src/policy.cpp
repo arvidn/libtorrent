@@ -333,8 +333,8 @@ namespace libtorrent
 		// find the block with the fewest requests to it
 		std::vector<piece_block>::iterator i = std::min_element(
 			busy_pieces.begin(), busy_pieces.end()
-			, bind(&piece_picker::num_peers, boost::cref(p), _1) <
-			bind(&piece_picker::num_peers, boost::cref(p), _2));
+			, boost::bind(&piece_picker::num_peers, boost::cref(p), _1) <
+			boost::bind(&piece_picker::num_peers, boost::cref(p), _2));
 #ifdef TORRENT_DEBUG
 		piece_picker::downloading_piece st;
 		p.piece_info(i->piece_index, st);
@@ -930,8 +930,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(std::find_if(m_peers.begin(), m_peers.end()
-			, boost::bind<bool>(std::equal_to<peer_connection*>(), bind(&peer::connection
-			, bind(&iterator::value_type::second, _1)), &c)) != m_peers.end());
+			, boost::bind<bool>(std::equal_to<peer_connection*>(), boost::bind(&peer::connection
+			, boost::bind(&iterator::value_type::second, _1)), &c)) != m_peers.end());
 		
 		aux::session_impl& ses = m_torrent->session();
 
