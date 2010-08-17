@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/allocator.hpp" // page_size
 #include "libtorrent/escape_string.hpp" // for string conversion
+#include "libtorrent/aiocb_pool.hpp"
 
 #include <boost/scoped_ptr.hpp>
 #include <boost/static_assert.hpp>
@@ -990,15 +991,15 @@ namespace libtorrent
 #endif
 
 	file::aiocb_t* file::async_io(size_type offset
-		, iovec_t const* bufs, int num_bufs, int op)
+		, iovec_t const* bufs, int num_bufs, int op
+		, aiocb_pool& pool)
 	{
 		aiocb_t* ret = 0;
 		aiocb_t** prev = &ret;
 #if TORRENT_USE_AIO
 		for (int i = 0; i < num_bufs; ++i)
 		{
-			// #error use a pool for these allocations
-			aiocb_t* aio = new aiocb_t;
+			aiocb_t* aio = pool.construct();
 			memset(aio, 0, sizeof(aiocb_t));
 			aio->cb.aio_fildes = m_file_handle;
 			aio->cb.aio_buf = bufs[i].iov_base;
@@ -1014,8 +1015,7 @@ namespace libtorrent
 
 		for (int i = 0; i < num_bufs; ++i)
 		{
-			// #error use a pool for these allocations
-			aiocb_t* aio = new aiocb_t;
+			aiocb_t* aio = pool.construct();
 			memset(aio, 0, sizeof(aiocb_t));
 			aio->ov.Internal = 0;
 			aio->ov.InternalHigh = 0;
@@ -1036,8 +1036,7 @@ namespace libtorrent
 #else
 		for (int i = 0; i < num_bufs; ++i)
 		{
-			// #error use a pool for these allocations
-			aiocb_t* aio = new aiocb_t;
+			aiocb_t* aio = pool.construct();
 			memset(aio, 0, sizeof(aiocb_t));
 			aio->file_ptr = this;
 			aio->buf = bufs[i].iov_base;
@@ -1055,25 +1054,25 @@ namespace libtorrent
 	}
 
 	file::aiocb_t* file::async_writev(size_type offset
-		, iovec_t const* bufs, int num_bufs)
+		, iovec_t const* bufs, int num_bufs, aiocb_pool& pool)
 	{
 		TORRENT_ASSERT((m_open_mode & rw_mask) == write_only || (m_open_mode & rw_mask) == read_write);
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
 		
-		return async_io(offset, bufs, num_bufs, write_op);
+		return async_io(offset, bufs, num_bufs, write_op, pool);
 	}
 
 	file::aiocb_t* file::async_readv(size_type offset
-		, iovec_t const* bufs, int num_bufs)
+		, iovec_t const* bufs, int num_bufs, aiocb_pool& pool)
 	{
 		TORRENT_ASSERT((m_open_mode & rw_mask) == read_only || (m_open_mode & rw_mask) == read_write);
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
 
-		return async_io(offset, bufs, num_bufs, read_op);
+		return async_io(offset, bufs, num_bufs, read_op, pool);
 	}
 
 	size_type file::readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec)
@@ -1773,7 +1772,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #endif
 	}
 
-	file::aiocb_t* reap_aios(file::aiocb_t* aios)
+	file::aiocb_t* reap_aios(file::aiocb_t* aios, aiocb_pool& pool)
 	{
 #if TORRENT_USE_AIO
 		file::aiocb_t* ret = 0;
@@ -1800,8 +1799,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			DLOG(stderr, "aio_return(%p) = %d\n", &a->cb, int(ret));
 			if (ret == -1) DLOG(stderr, " error: %s\n", strerror(errno));
 			a->handler->done(error_code(e, boost::system::get_posix_category()), ret);
-			// #error use a pool allocator for these
-			delete a;
+			pool.destroy(a);
 		}
 
 		// terminate the new chain
@@ -1838,9 +1836,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				DLOG(stderr, " error: %d\n", error);
 			}
 			a->handler->done(error_code(error, boost::system::get_system_category()), transferred);
-			// #error use a pool allocator for these
 			CloseHandle(a->ov.hEvent);
-			delete a;
+			pool.destroy(aio);
 		}
 
 		// terminate the new chain
@@ -1855,7 +1852,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #endif
 	}
 
-	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios)
+	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
+		, aiocb_pool& pool)
 	{
 #if TORRENT_USE_AIO
 		// this code uses lio_listio() to save system calls
@@ -2011,8 +2009,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				*last = aios->next;
 				file::aiocb_t* del = aios;
 				aios = aios->next;
-				// #error use a pool allocator for these
-				delete del;
+				pool.destroy(del);
 				continue;
 			}
 		
@@ -2068,8 +2065,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				*last = aios->next;
 				file::aiocb_t* del = aios;
 				aios = aios->next;
-				// #error use a pool allocator for these
-				delete del;
+				pool.destroy(del);
 				continue;
 			}
 		
@@ -2099,8 +2095,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			aios->handler->done(ec, ret);
 			file::aiocb_t* del = aios;
 			aios = aios->next;
-			// #error use a pool for these
-			delete del;
+			pool.destroy(del);
 		}
 		return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);
 #endif	

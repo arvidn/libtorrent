@@ -71,6 +71,7 @@ namespace libtorrent
 	struct disk_io_job;
 	struct disk_buffer_pool;
 	struct cache_status;
+	struct aiocb_pool;
 
 	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		file_storage const& t
@@ -170,12 +171,15 @@ namespace libtorrent
 		virtual void finalize_file(int file, error_code& ec) {}
 
 		disk_buffer_pool* disk_pool() { return m_disk_pool; }
+		aiocb_pool* aiocbs() { return m_aiocb_pool; }
 		session_settings const& settings() const { return *m_settings; }
 
 		virtual ~storage_interface() {}
 
-//		random_access_handle_service* m_disk_io_service;
+		// initialized in piece_manager::piece_manager
 		disk_buffer_pool* m_disk_pool;
+		aiocb_pool* m_aiocb_pool;
+		// initialized in disk_io_thread::perform_async_job
 		session_settings* m_settings;
 	};
 

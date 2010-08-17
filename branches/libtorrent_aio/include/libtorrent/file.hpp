@@ -94,6 +94,8 @@ namespace libtorrent
 	typedef int handle_type;
 #endif
 
+	struct aiocb_pool;
+
 	struct file_status
 	{
 		size_type file_size;
@@ -339,8 +341,10 @@ namespace libtorrent
 		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 
 		// returns a chain of aiocb_t structures
-		aiocb_t* async_writev(size_type offset, iovec_t const* bufs, int num_bufs);
-		aiocb_t* async_readv(size_type offset, iovec_t const* bufs, int num_bufs);
+		aiocb_t* async_writev(size_type offset, iovec_t const* bufs
+			, int num_bufs, aiocb_pool& pool);
+		aiocb_t* async_readv(size_type offset, iovec_t const* bufs
+			, int num_bufs, aiocb_pool& pool);
 
 		size_type get_size(error_code& ec) const;
 
@@ -355,7 +359,8 @@ namespace libtorrent
 	private:
 
 		aiocb_t* async_io(size_type offset
-			, iovec_t const* bufs, int num_bufs, int op);
+			, iovec_t const* bufs, int num_bufs, int op
+			, aiocb_pool& pool);
 
 		handle_type m_file_handle;
 
@@ -381,8 +386,11 @@ namespace libtorrent
 
 	// returns two chains, one with jobs that were issued and
 	// one with jobs that couldn't be issued
-	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios);
-	file::aiocb_t* reap_aios(file::aiocb_t* aios);
+	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
+		, aiocb_pool& pool);
+
+	file::aiocb_t* reap_aios(file::aiocb_t* aios
+		, aiocb_pool& pool);
 
 }
 

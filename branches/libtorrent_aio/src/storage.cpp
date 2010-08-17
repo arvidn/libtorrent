@@ -399,7 +399,8 @@ namespace libtorrent
 			// this is the function to be called on the file object, for
 			// async operations
 			file::aiocb_t* (file::*async_op)(size_type offset
-				, file::iovec_t const* bufs, int num_bufs);
+				, file::iovec_t const* bufs, int num_bufs
+				, aiocb_pool&);
 			// for async operations, this is the handler that will be added
 			// to every aiocb_t in the returned chain
 			async_handler* handler;
@@ -1230,7 +1231,7 @@ ret:
 			{
 				TORRENT_ASSERT(op.handler);
 				file::aiocb_t* aio = ((*file_handle).*op.async_op)(file_iter->file_base + file_offset
-					, tmp_bufs, num_tmp_bufs);
+					, tmp_bufs, num_tmp_bufs, *aiocbs());
 				// add this to the chain
 				*last = aio;
 				while (aio)
@@ -1490,7 +1491,7 @@ ret:
 		, m_torrent(torrent)
 	{
 		m_storage->m_disk_pool = &m_io_thread;
-//		m_storage->m_disk_io_service = &m_io_thread.get_disk_io_service();
+		m_storage->m_aiocb_pool = m_io_thread.aiocbs();
 	}
 
 	void piece_manager::finalize_file(int index, error_code& ec)

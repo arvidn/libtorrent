@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/block_cache.hpp"
 #include "libtorrent/file_pool.hpp"
+#include "libtorrent/aiocb_pool.hpp"
 
 #include <boost/function/function0.hpp>
 #include <boost/noncopyable.hpp>
@@ -87,6 +88,7 @@ namespace libtorrent
 			, average_queue_time(0)
 			, average_read_time(0)
 			, job_queue_length(0)
+			, num_aiocb(0)
 		{}
 
 		std::vector<cached_piece_info> pieces;
@@ -122,6 +124,10 @@ namespace libtorrent
 		int average_queue_time;
 		int average_read_time;
 		int job_queue_length;
+
+		// the number of aiocb_t structures that are in use
+		// right now
+		int num_aiocb;
 	};
 	
 	// this is a singleton consisting of the thread and a queue
@@ -144,6 +150,7 @@ namespace libtorrent
 		void stop(boost::intrusive_ptr<piece_manager> s);
 		void add_job(disk_io_job const& j);
 
+		aiocb_pool* aiocbs() { return &m_aiocb_pool; }
 		void thread_fun();
 
 		file_pool& files() { return m_file_pool; }
@@ -307,6 +314,10 @@ namespace libtorrent
 		// function to be posted to the network thread to post
 		// an alert (used for performance warnings)
 		boost::function<void(alert*)> m_post_alert;
+
+		// pool used to allocate the aiocb_t elements
+		// used by the async operations on files
+		aiocb_pool m_aiocb_pool;
 
 		// thread for performing blocking disk io operations
 		thread m_disk_io_thread;

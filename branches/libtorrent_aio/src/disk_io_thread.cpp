@@ -131,8 +131,8 @@ namespace libtorrent
 			// we want the ordering to look something like this:
 			//
 			// \            or like this:      ^
-			//  \         (depending on the   /  \
-			//   \   /     elevator          /    \
+			//  \         (depending on the   /  \ 
+			//   \   /     elevator          /    \ 
 			//    \ /      direction)       /
 			//     V                       /
 			//
@@ -1297,6 +1297,7 @@ namespace libtorrent
 		ret->blocks_read = m_read_blocks;
 		ret->writes = m_write_calls;
 		ret->reads = m_read_calls;
+		ret->num_aiocb = m_aiocb_pool.in_use();
 
 		m_disk_cache.get_stats(ret);
 
@@ -1455,7 +1456,7 @@ namespace libtorrent
 				// go through all outstanding disk operations
 				// and potentially dispatch ones that are complete
 				DLOG(stderr, "reap in progress aios (%p)\n", m_in_progress);
-				m_in_progress = reap_aios(m_in_progress);
+				m_in_progress = reap_aios(m_in_progress, m_aiocb_pool);
 				DLOG(stderr, "new in progress aios (%p)\n", m_in_progress);
 				complete_aios = m_completed_aios;
 			}
@@ -1494,7 +1495,7 @@ namespace libtorrent
 				DLOG(stderr, "issue aios (%p) phys_offset=%"PRId64" elevator=%d\n"
 					, m_to_issue, m_to_issue->phys_offset, m_elevator_direction);
 				file::aiocb_t* pending;
-				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue);
+				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue, m_aiocb_pool);
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
 				prepend_aios(m_in_progress, pending, 0);
 
