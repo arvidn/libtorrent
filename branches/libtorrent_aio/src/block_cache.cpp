@@ -483,28 +483,21 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			TORRENT_ASSERT(pe->refcount > 0);
 			--pe->refcount;
 			pe->blocks[i].pending = false;
-			if (pe->blocks[i].dirty)
-			{
-				TORRENT_ASSERT(pe->num_dirty > 0);
-				--pe->num_dirty;
-				pe->blocks[i].dirty = false;
-				TORRENT_ASSERT(m_write_cache_size > 0);
-				--m_write_cache_size;
-				++m_read_cache_size;
-			}
+
 #if TORRENT_DISK_STATS
 			rename_buffer(pe->blocks[i].buf, "read cache");
 #endif
-		}
 
-		for (int i = begin; i < end; ++i)
-		{
 			if (!pe->blocks[i].dirty) continue;
 			// turn this block into a read cache in case
 			// it was a write cache
-			pe->blocks[i].dirty = false;
 			TORRENT_ASSERT(pe->num_dirty > 0);
 			--pe->num_dirty;
+			pe->blocks[i].dirty = false;
+			pe->blocks[i].written = true;
+			TORRENT_ASSERT(m_write_cache_size > 0);
+			--m_write_cache_size;
+			++m_read_cache_size;
 		}
 	}
 
@@ -583,7 +576,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				&& i->action == disk_io_job::read_and_hash
 				&& !i->storage->get_storage_impl()->settings().disable_hash_checks)
 			{
-				// #error do this in a hasher thread!
+				// #error do hashing in a separate thread!
 				hasher sha1;
 				int size = i->storage->info()->piece_size(p->piece);
 				for (int k = 0; k < p->blocks_in_piece; ++k)
@@ -600,8 +593,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				&& i->action == disk_io_job::hash
 				&& !i->storage->get_storage_impl()->settings().disable_hash_checks)
 			{
-				// #error replace this with an asynchronous call which uses a worker thread
-				// to do the hashing. This would make better use of parallel systems
+				// #error do hashing in a separate thread!
 				sha1_hash h = i->storage->hash_for_piece_impl(i->piece, i->error);
 				if (i->error)
 				{
@@ -877,6 +869,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 		std::memcpy(j.buffer + buffer_offset
 			, pe->blocks[block].buf + block_offset
 			, to_copy);
+		++pe->blocks[block].hitcount;
 		size -= to_copy;
 		block_offset = 0;
 		buffer_offset += to_copy;

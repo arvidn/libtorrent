@@ -69,8 +69,8 @@ namespace libtorrent
 
 		struct cached_block_entry
 		{
-			cached_block_entry(): buf(0), refcount(0), dirty(false)
-				, pending(false), uninitialized(false) {}
+			cached_block_entry(): buf(0), refcount(0), written(0), hitcount(0)
+				, dirty(false), pending(false), uninitialized(false) {}
 
 			char* buf;
 
@@ -80,7 +80,14 @@ namespace libtorrent
 			// all references are gone and refcount reaches 0. The buf
 			// pointer in this struct doesn't count as a reference and
 			// is always the last to be cleared
-			boost::uint32_t refcount:29;
+			boost::uint32_t refcount:15;
+
+			// this block has been written to disk
+			bool written:1;
+
+			// the number of times this block has been copied out of
+			// the cache, serving a request.
+			boost::uint32_t hitcount:13;
 
 			// if this is true, this block needs to be written to
 			// disk before it's freed. Typically all blocks in a piece
