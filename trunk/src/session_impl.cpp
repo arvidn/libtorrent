@@ -2557,12 +2557,18 @@ namespace aux {
 				--type_limit;
 				--dht_limit;
 				--tracker_limit;
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
+				t->log_to_all_peers("AUTO MANAGER STARTING TORRENT");
+#endif
 				t->set_announce_to_dht(dht_limit >= 0);
 				t->set_announce_to_trackers(tracker_limit >= 0);
 				t->set_allow_peers(true);
 			}
 			else
 			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
+				t->log_to_all_peers("AUTO MANAGER PAUSING TORRENT");
+#endif
 				t->set_allow_peers(false);
 			}
 		}
