@@ -1774,6 +1774,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	file::aiocb_t* reap_aios(file::aiocb_t* aios, aiocb_pool& pool)
 	{
+		ptime now = time_now_hires();
 #if TORRENT_USE_AIO
 		file::aiocb_t* ret = 0;
 		file::aiocb_t** last = &ret;
@@ -1984,6 +1985,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// easy appending to it
 		file::aiocb_t** last = &ret;
 
+		ptime now = time_now_hires();
+
 		while (aios)
 		{
 			memset(&aios->cb.aio_sigevent, 0, sizeof(aios->cb.aio_sigevent));
@@ -2035,6 +2038,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		file::aiocb_t** last = &ret;
 
 		extern void WINAPI signal_handler(DWORD, DWORD, OVERLAPPED*);
+
+		ptime now = time_now_hires();
 
 		while (aios)
 		{

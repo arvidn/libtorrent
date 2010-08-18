@@ -120,7 +120,7 @@ namespace libtorrent
 		// this is called when operation completes
 		boost::function<void(int, disk_io_job const&)> callback;
 
-		// the time when this job was issued. This is used to
+		// the time when this job was queued. This is used to
 		// keep track of disk I/O congestion
 		ptime start_time;
 

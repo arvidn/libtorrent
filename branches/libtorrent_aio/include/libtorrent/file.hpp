@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/time.hpp"
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -183,11 +184,12 @@ namespace libtorrent
 	// waiting for all async operations to complete
 	struct async_handler
 	{
-		async_handler() : transferred(0), references(0) {}
-		boost::function<void(error_code const&, size_t)> handler;
+		async_handler(ptime now) : transferred(0), references(0), started(now) {}
+		boost::function<void(async_handler*)> handler;
 		error_code error;
 		size_t transferred;
 		int references;
+		ptime started;
 
 		void done(error_code const& ec, size_t bytes_transferred)
 		{
@@ -196,7 +198,7 @@ namespace libtorrent
 			--references;
 			TORRENT_ASSERT(references >= 0);
 			if (references > 0) return;
-			handler(error, transferred);
+			handler(this);
 			delete this;
 		}
 	};

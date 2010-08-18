@@ -84,10 +84,13 @@ namespace libtorrent
 			, reads(0)
 			, cache_size(0)
 			, read_cache_size(0)
+			, elevator_turns(0)
 			, total_used_buffers(0)
 			, average_queue_time(0)
 			, average_read_time(0)
-			, job_queue_length(0)
+			, average_write_time(0)
+			, queued_jobs(0)
+			, pending_jobs(0)
 			, num_aiocb(0)
 		{}
 
@@ -116,6 +119,9 @@ namespace libtorrent
 		// the number of blocks in the cache used for read cache
 		int read_cache_size;
 
+		// the number of times we've changed elevator direction
+		int elevator_turns;
+
 		// the total number of blocks that are currently in use
 		// this includes send and receive buffers
 		mutable int total_used_buffers;
@@ -123,7 +129,14 @@ namespace libtorrent
 		// times in microseconds
 		int average_queue_time;
 		int average_read_time;
-		int job_queue_length;
+		int average_write_time;
+
+		// number of jobs waiting to be issued (m_to_issue)
+		// average over 30 seconds
+		int queued_jobs;
+		// number of jobs waiting to complete (m_pending)
+		// average over 30 seconds
+		int pending_jobs;
 
 		// the number of aiocb_t structures that are in use
 		// right now
@@ -193,9 +206,9 @@ namespace libtorrent
 
 		void uncork_jobs();
 		void on_disk_write(block_cache::iterator p, int begin
-			, int end, int to_write, error_code const& ec);
+			, int end, int to_write, async_handler* handler);
 		void on_disk_read(block_cache::iterator p, int begin
-			, int end, error_code const& ec);
+			, int end, async_handler* handler);
 
 		enum op_t
 		{
@@ -208,11 +221,8 @@ namespace libtorrent
 		enum flush_flags_t { flush_read_cache = 1, flush_write_cache = 2, flush_delete_cache = 4 };
 		int flush_cache(disk_io_job const& j, boost::uint32_t flags);
 
-		void on_write_one_buffer(error_code const& ec, size_t bytes_transferred
-			, disk_io_job j);
-
-		void on_read_one_buffer(error_code const& ec, size_t bytes_transferred
-			, disk_io_job j);
+		void on_write_one_buffer(async_handler* handler, disk_io_job j);
+		void on_read_one_buffer(async_handler* handler, disk_io_job j);
 
 		int try_flush(block_cache::iterator p, int limit);
 		void try_flush_write_blocks(int num);
@@ -236,6 +246,9 @@ namespace libtorrent
 
 		// average read time for cache misses (in microseconds)
 		sliding_average<512> m_read_time;
+
+		// average write time (in microseconds)
+		sliding_average<512> m_write_time;
 
 		// number of write operations issued
 		boost::uint64_t m_write_calls;
@@ -268,6 +281,10 @@ namespace libtorrent
 		// the direction of the elevator. -1 means down and
 		// 1 means up
 		int m_elevator_direction;
+
+		// the number of times we've switched elevator direction
+		// (only useful for non-aio builds with physical disk offset support)
+		boost::uint64_t m_elevator_turns;
 
 		// the physical offset of the last job consumed out
 		// of the deferred jobs list

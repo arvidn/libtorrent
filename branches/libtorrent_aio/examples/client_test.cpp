@@ -170,6 +170,7 @@ bool print_block = false;
 bool print_peer_rate = false;
 bool print_fails = false;
 bool print_send_bufs = true;
+bool print_disk_stats = false;
 
 FILE* g_log_file = 0;
 
@@ -1148,6 +1149,11 @@ int main(int argc, char* argv[])
 				if (h.is_valid()) h.force_recheck();
 			}
 
+			if (c == 'x')
+			{
+				print_disk_stats = !print_disk_stats;
+			}
+
 			if (c == 'r')
 			{
 				torrent_handle h = get_active_torrent(handles);
@@ -1488,6 +1494,21 @@ int main(int argc, char* argv[])
 			}
 		}
 #endif
+		if (print_disk_stats)
+		{
+			snprintf(str, sizeof(str), "Disk stats:\n  timing - queue: %6d ms |"
+				" read: %6d ms | write: %6d ms\n"
+				, cs.average_queue_time / 1000, cs.average_read_time / 1000, cs.average_write_time / 1000);
+			out += str;
+
+			snprintf(str, sizeof(str), "  jobs   - queued: %4d pending: %4d aiocbs: %4d queued-bytes: %5"PRId64" kB\n"
+				, cs.queued_jobs, cs.pending_jobs, cs.num_aiocb, cs.queued_bytes / 1000);
+			out += str;
+
+			snprintf(str, sizeof(str), "  cache  - total: %4d read: %4d write: %4d\n"
+				, cs.cache_size, cs.read_cache_size, cs.cache_size - cs.read_cache_size);
+			out += str;
+		}
 
 		if (active_handle.is_valid())
 		{

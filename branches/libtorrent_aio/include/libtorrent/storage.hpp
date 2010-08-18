@@ -114,9 +114,9 @@ namespace libtorrent
 		virtual void initialize(bool allocate_files, error_code& ec) = 0;
 
 		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler) = 0;
+			, boost::function<void(async_handler*)> const& handler) = 0;
 		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler) = 0;
+			, boost::function<void(async_handler*)> const& handler) = 0;
 
 		virtual bool has_any_file(error_code& ec) = 0;
 
@@ -339,14 +339,14 @@ namespace libtorrent
 			, int piece_index
 			, int offset
 			, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler);
+			, boost::function<void(async_handler*)> const& handler);
 
 		file::aiocb_t* write_async_impl(
 			file::iovec_t* bufs
 			, int piece_index
 			, int offset
 			, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler);
+			, boost::function<void(async_handler*)> const& handler);
 
 		size_type physical_offset(int piece_index, int offset);
 

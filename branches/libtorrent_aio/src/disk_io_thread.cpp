@@ -196,6 +196,7 @@ namespace libtorrent
 		, m_outstanding_jobs(0)
 		, m_elevator_direction(1)
 		, m_last_phys_off(0)
+		, m_elevator_turns(0)
 		, m_physical_ram(0)
 		, m_ios(ios)
 		, m_work(io_service::work(m_ios))
@@ -457,19 +458,25 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::on_disk_write(block_cache::iterator p, int begin
-		, int end, int to_write, error_code const& ec)
+		, int end, int to_write, async_handler* handler)
 	{
+		if (!handler->error)
+			m_write_time.add_sample(total_microseconds(time_now_hires() - handler->started));
+
 		TORRENT_ASSERT(m_queue_buffer_size >= to_write);
 		m_queue_buffer_size -= to_write;
 		DLOG(stderr, "[%p] on_disk_write piece: %d start: %d end: %d\n", this, p->piece, begin, end);
-		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, ec);
+		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, handler->error);
 	}
 
 	void disk_io_thread::on_disk_read(block_cache::iterator p, int begin
-		, int end, error_code const& ec)
+		, int end, async_handler* handler)
 	{
+		if (!handler->error)
+			m_read_time.add_sample(total_microseconds(time_now_hires() - handler->started));
+
 		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n", this, p->piece, begin, end);
-		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, ec);
+		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, handler->error);
 
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
 		--m_outstanding_jobs;
@@ -615,6 +622,8 @@ namespace libtorrent
 			return;
 		}
 
+		m_queue_time.add_sample(total_microseconds(time_now_hires() - j.start_time));
+
 		// call disk function
 		int ret = (this->*(job_functions[j.action]))(j);
 
@@ -740,7 +749,7 @@ namespace libtorrent
 		++m_outstanding_jobs;
 		file::iovec_t b = { j.buffer, j.buffer_size };
 		file::aiocb_t* aios = j.storage->read_async_impl(&b, j.piece, j.offset, 1
-			, boost::bind(&disk_io_thread::on_read_one_buffer, this, _1, _2, j));
+			, boost::bind(&disk_io_thread::on_read_one_buffer, this, _1, j));
 		DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
 
@@ -797,7 +806,7 @@ namespace libtorrent
 		file::iovec_t b = { j.buffer, j.buffer_size };
 		m_queue_buffer_size += j.buffer_size;
 		file::aiocb_t* aios = j.storage->write_async_impl(&b, j.piece, j.offset, 1
-			, boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, _2, j));
+			, boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, j));
 		DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
 
@@ -1277,6 +1286,13 @@ namespace libtorrent
 		return j.error ? disk_operation_failed : 0;
 	}
 
+	int count_aios(file::aiocb_t* a)
+	{
+		int ret = 0;
+		while (a) { ++ret; a = a->next; }
+		return ret;
+	}
+
 	int disk_io_thread::do_get_cache_info(disk_io_job& j)
 	{
 		std::pair<block_cache::iterator, block_cache::iterator> range
@@ -1284,15 +1300,15 @@ namespace libtorrent
 
 		cache_status* ret = (cache_status*)j.buffer;
 
-		// #error add these stats
 		ret->total_used_buffers = in_use();
-//		ret->current_async_jobs = m_outstanding_jobs;
-//		ret->elevator_turns= m_elevator_turns;
+		ret->elevator_turns = m_elevator_turns;
 		ret->queued_bytes = m_queue_buffer_size;
 
 		ret->average_queue_time = m_queue_time.mean();
 		ret->average_read_time = m_read_time.mean();
-		ret->job_queue_length = m_blocked_jobs.size();
+		ret->average_write_time = m_write_time.mean();
+		ret->queued_jobs = m_blocked_jobs.size() + count_aios(m_to_issue);
+		ret->pending_jobs = count_aios(m_in_progress);
 		ret->blocks_written = m_write_blocks;
 		ret->blocks_read = m_read_blocks;
 		ret->writes = m_write_calls;
@@ -1319,24 +1335,28 @@ namespace libtorrent
 		return 0;
 	}
 
-	void disk_io_thread::on_write_one_buffer(error_code const& ec, size_t bytes_transferred
-		, disk_io_job j)
+	void disk_io_thread::on_write_one_buffer(async_handler* handler, disk_io_job j)
 	{
 		int ret = j.buffer_size;
-		TORRENT_ASSERT(ec || bytes_transferred == j.buffer_size);
+		TORRENT_ASSERT(handler->error || handler->transferred == j.buffer_size);
 
 		TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
 		m_queue_buffer_size -= j.buffer_size;
 
-		DLOG(stderr, "[%p] on_write_one_buffer piece=%d offset=%d error=%s\n", this, j.piece, j.offset, ec.message().c_str());
-		if (ec)
+		DLOG(stderr, "[%p] on_write_one_buffer piece=%d offset=%d error=%s\n"
+			, this, j.piece, j.offset, handler->error.message().c_str());
+		if (handler->error)
 		{
 			free_buffer(j.buffer);
 			j.buffer = 0;
-			j.error = ec;
+			j.error = handler->error;
 			j.error_file.clear();
 			j.str.clear();
 			ret = -1;
+		}
+		else
+		{
+			m_write_time.add_sample(total_microseconds(time_now_hires() - handler->started));
 		}
 
 		++m_write_blocks;
@@ -1344,15 +1364,15 @@ namespace libtorrent
 			m_ios.post(boost::bind(j.callback, ret, j));
 	}
 
-	void disk_io_thread::on_read_one_buffer(error_code const& ec, size_t bytes_transferred
-		, disk_io_job j)
+	void disk_io_thread::on_read_one_buffer(async_handler* handler, disk_io_job j)
 	{
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
 		--m_outstanding_jobs;
-		DLOG(stderr, "[%p] on_read_one_buffer piece=%d offset=%d error=%s\n", this, j.piece, j.offset, ec.message().c_str());
+		DLOG(stderr, "[%p] on_read_one_buffer piece=%d offset=%d error=%s\n"
+			, this, j.piece, j.offset, handler->error.message().c_str());
 		int ret = j.buffer_size;
-		j.error = ec;
-		if (!ec && bytes_transferred != j.buffer_size)
+		j.error = handler->error;
+		if (!j.error && handler->transferred != j.buffer_size)
 			j.error = errors::file_too_short;
 
 		if (j.error)
@@ -1361,6 +1381,10 @@ namespace libtorrent
 			j.error_file.clear();
 			j.str.clear();
 			ret = -1;
+		}
+		else
+		{
+			m_read_time.add_sample(total_microseconds(time_now_hires() - handler->started));
 		}
 
 		++m_read_blocks;
@@ -1372,8 +1396,9 @@ namespace libtorrent
 	void disk_io_thread::add_job(disk_io_job const& j)
 	{
 		TORRENT_ASSERT(!m_abort);
-		// post a message to make sure perform_async_job always
-		// is run in the disk thread
+
+		const_cast<disk_io_job&>(j).start_time = time_now_hires();
+
 		mutex::scoped_lock l (m_job_mutex);
 		m_queued_jobs.push_back(j);
 		// wake up the disk thread to issue this new job
@@ -1440,6 +1465,7 @@ namespace libtorrent
 		do
 		{
 			DLOG(stderr, "sem_wait() [%p]\n", this);
+			// #error if we have jobs to issue (m_to_issue) we probably shouldn't go to sleep here (only if we failed to issue a single job last time we tried)
 			m_job_sem.wait();
 			DLOG(stderr, "sem_wait() returned [%p]\n", this);
 
@@ -1488,7 +1514,10 @@ namespace libtorrent
 			if (m_to_issue)
 			{
 				if (!same_sign(m_to_issue->phys_offset - m_last_phys_off, m_elevator_direction))
+				{
 					m_elevator_direction *= -1;
+					++m_elevator_turns;
+				}
 
 				m_last_phys_off = m_to_issue->phys_offset;
 
@@ -1497,7 +1526,14 @@ namespace libtorrent
 				file::aiocb_t* pending;
 				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue, m_aiocb_pool);
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
-				prepend_aios(m_in_progress, pending, 0);
+
+				if (pending)
+				{
+					file::aiocb_t* last = pending;
+					while (last->next) last = last->next;
+					last->next = m_in_progress;
+					m_in_progress = pending;
+				}
 
 #if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
 				if (m_to_issue)

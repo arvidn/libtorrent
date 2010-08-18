@@ -378,9 +378,9 @@ namespace libtorrent
 		void write_resume_data(entry& rd, error_code& ec) const;
 
 		file::aiocb_t* async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler);
+			, boost::function<void(async_handler*)> const& handler);
 		file::aiocb_t* async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler);
+			, boost::function<void(async_handler*)> const& handler);
 
 		// this identifies a read or write operation
 		// so that storage::readwrite() knows what to
@@ -1082,9 +1082,9 @@ ret:
 	}
 
 	file::aiocb_t* storage::async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-		, boost::function<void(error_code const&, size_t)> const& handler)
+		, boost::function<void(async_handler*)> const& handler)
 	{
-		async_handler* a = new async_handler;
+		async_handler* a = new async_handler(time_now_hires());
 		a->handler = handler;
 
 		fileop op = { &file::readv, &storage::read_unaligned, &file::async_readv
@@ -1093,16 +1093,17 @@ ret:
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
 		if (a->references == 0)
 		{
+			a->error = ec;
+			handler(a);
 			delete a;
-			handler(ec, 0);
 		}
 		return op.ret;
 	}
 
 	file::aiocb_t* storage::async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-		, boost::function<void(error_code const&, size_t)> const& handler)
+		, boost::function<void(async_handler*)> const& handler)
 	{
-		async_handler* a = new async_handler;
+		async_handler* a = new async_handler(time_now_hires());
 		a->handler = handler;
 
 		fileop op = { &file::writev, &storage::write_unaligned, &file::async_writev
@@ -1111,8 +1112,9 @@ ret:
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
 		if (a->references == 0)
 		{
+			a->error = ec;
+			handler(a);
 			delete a;
-			handler(ec, 0);
 		}
 		return op.ret;
 	}
@@ -1423,7 +1425,7 @@ ret:
 		}
 
 		file::aiocb_t* async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler)
+			, boost::function<void(async_handler*)> const& handler)
 		{
 			// #error figure this out
 /*
@@ -1436,7 +1438,7 @@ ret:
 		}
 
 		file::aiocb_t* async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler)
+			, boost::function<void(async_handler*)> const& handler)
 		{
 			// #error figure this out
 /*			error_code ec;
@@ -1798,7 +1800,7 @@ ret:
 		, int piece_index
 		, int offset
 		, int num_bufs
-		, boost::function<void(error_code const&, size_t)> const& handler)
+		, boost::function<void(async_handler*)> const& handler)
 	{
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(offset >= 0);
@@ -1813,7 +1815,7 @@ ret:
 		, int piece_index
 		, int offset
 		, int num_bufs
-		, boost::function<void(error_code const&, size_t)> const& handler)
+		, boost::function<void(async_handler*)> const& handler)
 	{
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(offset >= 0);
