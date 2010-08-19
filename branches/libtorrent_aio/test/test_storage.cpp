@@ -197,7 +197,7 @@ struct test_storage : storage_interface
 	}
 
 	file::aiocb_t* async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-		, boost::function<void(error_code const&, size_t)> const& handler)
+		, boost::function<void(async_handler*)> const& handler)
 	{
 /*
 		error_code ec;
@@ -212,7 +212,7 @@ struct test_storage : storage_interface
 	// and if this function doesn't add any references to it, the caller will
 	// invoke the callback
 	file::aiocb_t* async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-		, boost::function<void(error_code const&, size_t)> const& handler)
+		, boost::function<void(async_handler*)> const& handler)
 	{
 /*
 		error_code ec;

@@ -168,12 +168,22 @@ namespace libtorrent
 	}
 
 #if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
-	// global pointer to the disk_io_thread
-	// so it can be accessed from within the signal handler
-	// #error could this be a TLS pointer? That would make it
-	// less intrusive when running multiple instances of
-	// libtorrent
-	disk_io_thread* g_disk_io_thread = 0;
+	// #error do something smarter on windows (and linux, which supports rt-signals)
+
+	// this semaphore is global so that the global signal
+	// handler can access it. The side-effect of this is
+	// that if there are more than one instances of libtorrent
+	// they will all share a single semaphore, and 
+	// all of them will wake up regardless of which one actually
+	// was affected. This seems like a reasonable work-around
+	// since it will most likely only affect unit-tests anyway
+
+	// used to wake up the disk IO thread
+	semaphore g_job_sem;
+
+	// incremented in signal handler
+	// for each job that's completed
+	boost::detail::atomic_count g_completed_aios(0);
 #endif
 
 // ------- disk_io_thread ------
@@ -200,14 +210,9 @@ namespace libtorrent
 		, m_physical_ram(0)
 		, m_ios(ios)
 		, m_work(io_service::work(m_ios))
-		, m_completed_aios(0)
 		, m_post_alert(post_alert)
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
-#if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
-		g_disk_io_thread = this;
-#endif
-
 #ifdef TORRENT_DISK_STATS
 		m_log.open("disk_io_thread.log", std::ios::trunc);
 #endif
@@ -1402,7 +1407,7 @@ namespace libtorrent
 		mutex::scoped_lock l (m_job_mutex);
 		m_queued_jobs.push_back(j);
 		// wake up the disk thread to issue this new job
-		m_job_sem.signal();
+		g_job_sem.signal();
 	}
 
 #if TORRENT_USE_AIO
@@ -1410,12 +1415,11 @@ namespace libtorrent
 	void disk_io_thread::signal_handler(int signal, siginfo_t* si, void*)
 	{
 		if (signal != TORRENT_AIO_SIGNAL) return;
-		if (g_disk_io_thread == 0) return;
 
-		++g_disk_io_thread->m_completed_aios;
+		++g_completed_aios;
 		// wake up the disk thread to
 		// make it handle these completed jobs
-		g_disk_io_thread->m_job_sem.signal();
+		g_job_sem.signal();
 	}
 
 #elif TORRENT_USE_OVERLAPPED
@@ -1424,12 +1428,10 @@ namespace libtorrent
 	// instead of iterating over all outstanding jobs
 	void WINAPI signal_handler(DWORD error, DWORD transferred, OVERLAPPED* overlapped)
 	{
-		if (g_disk_io_thread == 0) return;
-
-		++g_disk_io_thread->m_completed_aios;
+		++g_completed_aios;
 		// wake up the disk thread to
 		// make it handle these completed jobs
-		g_disk_io_thread->m_job_sem.signal();
+		g_job_sem.signal();
 	}
 
 #endif
@@ -1466,14 +1468,14 @@ namespace libtorrent
 		{
 			DLOG(stderr, "sem_wait() [%p]\n", this);
 			// #error if we have jobs to issue (m_to_issue) we probably shouldn't go to sleep here (only if we failed to issue a single job last time we tried)
-			m_job_sem.wait();
+			g_job_sem.wait();
 			DLOG(stderr, "sem_wait() returned [%p]\n", this);
 
 			// more jobs might complete as we go through
 			// the list. In which case m_completed_aios
 			// would have incremented again. It's incremented
 			// in the aio signal handler
-			int complete_aios = m_completed_aios;
+			int complete_aios = g_completed_aios;
 			DLOG(stderr, "m_completed_aios %d last_completed_aios: %d\n", complete_aios, last_completed_aios);
 			while (complete_aios != last_completed_aios)
 			{
@@ -1484,7 +1486,7 @@ namespace libtorrent
 				DLOG(stderr, "reap in progress aios (%p)\n", m_in_progress);
 				m_in_progress = reap_aios(m_in_progress, m_aiocb_pool);
 				DLOG(stderr, "new in progress aios (%p)\n", m_in_progress);
-				complete_aios = m_completed_aios;
+				complete_aios = g_completed_aios;
 			}
 
 			// keep the mutex locked for as short as possible

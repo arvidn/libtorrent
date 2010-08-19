@@ -241,7 +241,6 @@ namespace libtorrent
 		block_cache m_disk_cache;
 
 		// keeps average queue time for disk jobs (in microseconds)
-		// #error both of these sliding windows should be moved to the main thread
 		sliding_average<512> m_queue_time;
 
 		// average read time for cache misses (in microseconds)
@@ -320,13 +319,6 @@ namespace libtorrent
 
 		// mutex to protect the m_queued_jobs list
 		mutex m_job_mutex;
-
-		// used to wake up the thread
-		semaphore m_job_sem;
-
-		// incremented in signal handler
-		// for each job that's completed
-		mutable boost::detail::atomic_count m_completed_aios;
 
 		// function to be posted to the network thread to post
 		// an alert (used for performance warnings)

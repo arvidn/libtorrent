@@ -75,6 +75,7 @@ namespace libtorrent
 #endif
 	}
 
+	// #error these semaphores needs to release all threads that are waiting for the semaphore when signalled
 #if TORRENT_USE_POSIX_SEMAPHORE
 	struct semaphore
 	{
