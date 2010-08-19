@@ -1039,17 +1039,17 @@ namespace libtorrent
 			}
 		}
 
-		if (j.error && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
+		if ((j.error || ret != 0) && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 		{
 			m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), j.error));
 		}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_ses.m_logger) << "fastresume data for "
 			<< torrent_file().name() << " rejected: "
-			<< j.error.message() << "\n";
+			<< j.error.message() << " ret:" << ret << "\n";
 #endif
 
-		if (ret == 0)
+		if (ret == 0 && !j.error)
 		{
 			// there are either no files for this torrent
 			// or the resume_data was accepted
