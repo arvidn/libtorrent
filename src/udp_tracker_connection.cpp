@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/broadcast_socket.hpp" // for is_any
 
 namespace libtorrent
 {
@@ -275,7 +276,10 @@ namespace libtorrent
 		if (m_abort) return false;
 
 		// ignore packet not sent from the tracker
-		if (m_target != ep) return false;
+		// if m_target is inaddr_any, it suggests that we
+		// sent the packet through a proxy only knowing
+		// the hostname, in which case this packet might be for us
+		if (!is_any(m_target.address()) && m_target != ep) return false;
 		
 		if (e) fail(e);
 
