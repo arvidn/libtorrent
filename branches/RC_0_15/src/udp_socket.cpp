@@ -218,10 +218,12 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		try {
 #endif
 
-		if (m_tunnel_packets && m_v4_ep == m_proxy_addr)
+		if (m_tunnel_packets)
 		{
 			l.unlock();
-			unwrap(e, m_v4_buf, bytes_transferred);
+			// if the source IP doesn't match the proxy's, ignore the packet
+			if (m_v4_ep == m_proxy_addr)
+				unwrap(e, m_v4_buf, bytes_transferred);
 		}
 		else
 		{
@@ -246,10 +248,12 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		try {
 #endif
 
-		if (m_tunnel_packets && m_v6_ep == m_proxy_addr)
+		if (m_tunnel_packets)
 		{
 			l.unlock();
-			unwrap(e, m_v6_buf, bytes_transferred);
+			// if the source IP doesn't match the proxy's, ignore the packet
+			if (m_v6_ep == m_proxy_addr)
+				unwrap(e, m_v6_buf, bytes_transferred);
 		}
 		else
 		{
