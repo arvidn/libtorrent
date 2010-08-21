@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/optional.hpp>
 #include <boost/shared_array.hpp>
-#include <boost/date_time/posix_time/ptime.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -57,11 +56,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/copy_ptr.hpp"
 
 namespace libtorrent
 {
-	namespace pt = boost::posix_time;
-
 	enum
 	{
 		// wait 60 seconds before retrying a failed tracker
@@ -80,15 +78,24 @@ namespace libtorrent
 			, tier(0)
 			, fail_limit(0)
 			, fails(0)
+			, updating(false)
 			, source(0)
 			, verified(false)
-			, updating(false)
 			, start_sent(false)
 			, complete_sent(false)
 			, send_stats(true)
 		{}
 
+		// tracker URL as it appeared in the torrent file
 		std::string url;
+
+		// if this tracker has returned an error or warning message
+		// that message is stored here
+		std::string message;
+
+		// if this tracker failed the last time it was contacted
+		// this error code specifies what error occurred
+		error_code last_error;
 
 		int next_announce_in() const;
 		int min_announce_in() const;
@@ -99,21 +106,19 @@ namespace libtorrent
 		// no announces before this time
 		ptime min_announce;
 
-		// if this tracker failed the last time it was contacted
-		// this error code specifies what error occurred
-		error_code last_error;
-
-		// if this tracker has returned an error or warning message
-		// that message is stored here
-		std::string message;
-
+		// the tier this tracker belongs to
 		boost::uint8_t tier;
+
 		// the number of times this tracker can fail
 		// in a row before it's removed. 0 means unlimited
 		boost::uint8_t fail_limit;
 
 		// the number of times in a row this tracker has failed
-		boost::uint8_t fails;
+		boost::uint8_t fails:7;
+
+		// true if we're currently trying to announce with 
+		// this tracker
+		bool updating:1;
 
 		enum tracker_source
 		{
@@ -122,16 +127,13 @@ namespace libtorrent
 			source_magnet_link = 4,
 			source_tex = 8
 		};
+
 		// where did we get this tracker from
-		boost::uint8_t source;
+		boost::uint8_t source:4;
 
 		// is set to true if we have ever received a response from
 		// this tracker
 		bool verified:1;
-
-		// true if we're currently trying to announce with 
-		// this tracker
-		bool updating:1;
 
 		// this is true if event start has been sent to the tracker
 		bool start_sent:1;
@@ -301,7 +303,7 @@ namespace libtorrent
 			}
 		}
 
-		boost::optional<pt::ptime> creation_date() const;
+		boost::optional<time_t> creation_date() const;
 
 		const std::string& creator() const
 		{ return m_created_by; }
@@ -339,7 +341,13 @@ namespace libtorrent
 		std::map<int, sha1_hash> build_merkle_list(int piece) const;
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
+		// if we're logging member offsets, we need access to them
+#if !defined NDEBUG \
+		&& !defined TORRENT_LOGGING \
+		&& !defined TORRENT_VERBOSE_LOGGING \
+		&& !defined TORRENT_ERROR_LOGGING
 	private:
+#endif
 
 		// not assignable
 		torrent_info const& operator=(torrent_info const&);
@@ -352,7 +360,7 @@ namespace libtorrent
 		// if m_files is modified, it is first copied into
 		// m_orig_files so that the original name and
 		// filenames are preserved.
-		boost::shared_ptr<const file_storage> m_orig_files;
+		copy_ptr<const file_storage> m_orig_files;
 
 		// the urls to the trackers
 		std::vector<announce_entry> m_urls;
@@ -360,13 +368,19 @@ namespace libtorrent
 		std::vector<std::string> m_http_seeds;
 		nodes_t m_nodes;
 
-		// the hash that identifies this torrent
-		sha1_hash m_info_hash;
+		// if this is a merkle torrent, this is the merkle
+		// tree. It has space for merkle_num_nodes(merkle_num_leafs(num_pieces))
+		// hashes
+		std::vector<sha1_hash> m_merkle_tree;
 
-		// if a creation date is found in the torrent file
-		// this will be set to that, otherwise it'll be
-		// 1970, Jan 1
-		pt::ptime m_creation_date;
+		// this is a copy of the info section from the torrent.
+		// it use maintained in this flat format in order to
+		// make it available through the metadata extension
+		boost::shared_array<char> m_info_section;
+
+		// this is a pointer into the m_info_section buffer
+		// pointing to the first byte of the first sha-1 hash
+		char const* m_piece_hashes;
 
 		// if a comment is found in the torrent file
 		// this will be set to that comment
@@ -376,44 +390,41 @@ namespace libtorrent
 		// to create the torrent file
 		std::string m_created_by;
 
+		// the info section parsed. points into m_info_section
+		// parsed lazily
+		mutable lazy_entry m_info_dict;
+
+		// if a creation date is found in the torrent file
+		// this will be set to that, otherwise it'll be
+		// 1970, Jan 1
+		time_t m_creation_date;
+
+		// the hash that identifies this torrent
+		sha1_hash m_info_hash;
+
+		// the index to the first leaf. This is where the hash for the
+		// first piece is stored
+		boost::uint32_t m_merkle_first_leaf:24;
+
+		// the number of bytes in m_info_section
+		boost::uint32_t m_info_section_size:24;
+
 		// this is used when creating a torrent. If there's
 		// only one file there are cases where it's impossible
 		// to know if it should be written as a multifile torrent
 		// or not. e.g. test/test  there's one file and one directory
 		// and they have the same name.
-		bool m_multifile;
+		bool m_multifile:1;
 		
 		// this is true if the torrent is private. i.e., is should not
 		// be announced on the dht
-		bool m_private;
+		bool m_private:1;
 
 		// this is true if one of the trackers has an .i2p top
 		// domain in its hostname. This means the DHT and LSD
 		// features are disabled for this torrent (unless the
 		// settings allows mixing i2p peers with regular peers)
-		bool m_i2p;
-
-		// this is a copy of the info section from the torrent.
-		// it use maintained in this flat format in order to
-		// make it available through the metadata extension
-		boost::shared_array<char> m_info_section;
-		int m_info_section_size;
-
-		// this is a pointer into the m_info_section buffer
-		// pointing to the first byte of the first sha-1 hash
-		char const* m_piece_hashes;
-
-		// if this is a merkle torrent, this is the merkle
-		// tree. It has space for merkle_num_nodes(merkle_num_leafs(num_pieces))
-		// hashes
-		std::vector<sha1_hash> m_merkle_tree;
-		// the index to the first leaf. This is where the hash for the
-		// first piece is stored
-		int m_merkle_first_leaf;
-
-		// the info section parsed. points into m_info_section
-		// parsed lazily
-		mutable lazy_entry m_info_dict;
+		bool m_i2p:1;
 	};
 
 }
