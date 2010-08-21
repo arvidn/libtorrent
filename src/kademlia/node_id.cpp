@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <algorithm>
+#include <iomanip>
 #include <ctime>
 
 #include "libtorrent/kademlia/node_id.hpp"

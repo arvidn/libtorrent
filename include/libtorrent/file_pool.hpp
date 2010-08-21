@@ -37,27 +37,29 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
+#include <boost/filesystem/path.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-#include <map>
 #include "libtorrent/file.hpp"
-#include "libtorrent/ptime.hpp"
-#include "libtorrent/thread.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
+	namespace fs = boost::filesystem;
+
 	struct TORRENT_EXPORT file_pool : boost::noncopyable
 	{
 		file_pool(int size = 40): m_size(size), m_low_prio_io(true) {}
 
-		boost::shared_ptr<file> open_file(void* st, std::string const& p
+		boost::shared_ptr<file> open_file(void* st, fs::path const& p
 			, int m, error_code& ec);
 		void release(void* st);
-		void release(std::string const& p);
+		void release(fs::path const& p);
 		void resize(int size);
 		int size_limit() const { return m_size; }
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
@@ -82,7 +84,7 @@ namespace libtorrent
 		typedef std::map<std::string, lru_file_entry> file_set;
 		
 		file_set m_files;
-		mutex m_mutex;
+		boost::mutex m_mutex;
 	};
 }
 

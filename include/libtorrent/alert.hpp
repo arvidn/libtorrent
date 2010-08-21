@@ -34,14 +34,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ALERT_HPP_INCLUDED
 
 #include <memory>
-#include <deque>
+#include <queue>
 #include <string>
+#include <typeinfo>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
 
-#include <boost/function/function1.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
+#include <boost/function.hpp>
 
 #include <boost/preprocessor/repetition/enum_params_with_a_default.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
@@ -53,11 +56,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/socket.hpp" // for io_service
 
 #ifndef TORRENT_MAX_ALERT_TYPES
 #define TORRENT_MAX_ALERT_TYPES 15
@@ -69,10 +71,8 @@ namespace libtorrent {
 	{
 	public:
 
-#ifndef TORRENT_NO_DEPRECATE
 		// only here for backwards compatibility
 		enum severity_t { debug, info, warning, critical, fatal, none };
-#endif
 
 		enum category_t
 		{
@@ -98,7 +98,6 @@ namespace libtorrent {
 		// a timestamp is automatically created in the constructor
 		ptime timestamp() const;
 
-		virtual int type() const = 0;
 		virtual char const* what() const = 0;
 		virtual std::string message() const = 0;
 		virtual int category() const = 0;
@@ -113,6 +112,18 @@ namespace libtorrent {
 	private:
 		ptime m_timestamp;
 	};
+
+	template <class T>
+	T* alert_cast(alert* a)
+	{
+		return dynamic_cast<T*>(a);
+	}
+
+	template <class T>
+	T const* alert_cast(alert const* a)
+	{
+		return dynamic_cast<T const*>(a);
+	}
 
 	class TORRENT_EXPORT alert_manager
 	{
@@ -129,7 +140,7 @@ namespace libtorrent {
 		template <class T>
 		bool should_post() const
 		{
-			mutex::scoped_lock lock(m_mutex);
+			boost::mutex::scoped_lock lock(m_mutex);
 			if (m_alerts.size() >= m_queue_size_limit) return false;
 			return (m_alert_mask & T::static_category) != 0;
 		}
@@ -138,22 +149,22 @@ namespace libtorrent {
 
 		void set_alert_mask(int m)
 		{
-			mutex::scoped_lock lock(m_mutex);
+			boost::mutex::scoped_lock lock(m_mutex);
 			m_alert_mask = m;
 		}
 
 		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
-		void set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const&);
+		void set_dispatch_function(boost::function<void(alert const&)> const&);
 
 	private:
-		std::deque<alert*> m_alerts;
-		mutable mutex m_mutex;
-		condition m_condition;
+		std::queue<alert*> m_alerts;
+		mutable boost::mutex m_mutex;
+		boost::condition m_condition;
 		int m_alert_mask;
 		size_t m_queue_size_limit;
-		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
+		boost::function<void(alert const&)> m_dispatch;
 		io_service& m_ios;
 	};
 
@@ -161,8 +172,6 @@ namespace libtorrent {
 	{
 		unhandled_alert() {}
 	};
-
-#ifndef BOOST_NO_TYPEID
 
 	namespace detail {
 
@@ -211,22 +220,6 @@ namespace libtorrent {
 			#undef ALERT_POINTER_TYPE
 		}
 	};
-
-#endif // BOOST_NO_TYPEID
-
-template <class T>
-T* alert_cast(alert* a)
-{
-	if (a->type() == T::alert_type) return static_cast<T*>(a);
-	return 0;
-}
-
-template <class T>
-T const* alert_cast(alert const* a)
-{
-	if (a->type() == T::alert_type) return static_cast<T const*>(a);
-	return 0;
-}
 
 } // namespace libtorrent
 

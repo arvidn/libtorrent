@@ -229,7 +229,6 @@ The ``create_torrent`` class has the following synopsis::
 			, merkle = 2
 			, modification_time = 4
 			, symlink = 8
-			, calculate_file_hashes = 16
 		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
 			, int flags = optimize);
@@ -242,7 +241,6 @@ The ``create_torrent`` class has the following synopsis::
 		void set_comment(char const* str);
 		void set_creator(char const* str);
 		void set_hash(int index, sha1_hash const& h);
-		void set_file_hash(int index, sha1_hash const& h);
 		void add_url_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
@@ -264,7 +262,6 @@ create_torrent()
 			, merkle = 2
 			, modification_time = 4
 			, symlink = 8
-			, calculate_file_hashes = 16
 		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
 			, int flags = optimize);
@@ -313,12 +310,6 @@ symlink
 	set on them and their data will not be included in the torrent. This
 	is useful if you need to reconstruct a file hierarchy which contains
 	symlinks.
-
-calculate_file_hashes
-	If this is set, the `set_piece_hashes()`_ function will, as it calculates
-	the piece hashes, also calculate the file hashes and add those associated
-	with each file. Note that unless you use the `set_piece_hashes()`_ function,
-	this flag will have no effect.
 
 generate()
 ----------
@@ -382,17 +373,6 @@ This sets the SHA-1 hash for the specified piece (``index``). You are required
 to set the hash for every piece in the torrent before generating it. If you have
 the files on disk, you can use the high level convenience function to do this.
 See `set_piece_hashes()`_.
-
-set_file_hash()
----------------
-
-	::
-
-		void set_file_hash(int index, sha1_hash const& h);
-
-This sets the sha1 hash for this file. This hash will end up under the key ``sha1``
-associated with this file (for multi-file torrents) or in the root info dictionary
-for single-file torrents.
 
 add_url_seed()
 --------------

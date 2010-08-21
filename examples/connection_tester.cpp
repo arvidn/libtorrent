@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,229 +30,77 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/io_service.hpp"
-#include "libtorrent/socket.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/io.hpp"
-#include "libtorrent/torrent_info.hpp"
-#include "libtorrent/thread.hpp"
-#include <cstring>
-#include <boost/bind.hpp>
-#include <iostream>
+#include <stdlib.h>
+#include "libtorrent/entry.hpp"
+#include "libtorrent/bencode.hpp"
+#include "libtorrent/session.hpp"
+#include "libtorrent/storage.hpp"
 
-using namespace libtorrent;
-using namespace libtorrent::detail; // for write_* and read_*
-
-struct peer_conn
+int main(int argc, char* argv[])
 {
-	peer_conn(io_service& ios, int num_pieces, int blocks_pp, tcp::endpoint const& ep
-		, char const* ih)
-		: s(ios)
-		, read_pos(0)
-		, state(handshaking)
-		, pieces(num_pieces)
-		, block(0)
-		, blocks_per_piece(blocks_pp)
-		, info_hash(ih)
-		, outstanding_requests(0)
+	using namespace libtorrent;
+
+	if (argc != 5)
 	{
-		// build a list of all pieces and request them all!
-		for (int i = 0; i < pieces.size(); ++i)
-			pieces[i] = i;
-		std::random_shuffle(pieces.begin(), pieces.end());
-
-		s.async_connect(ep, boost::bind(&peer_conn::on_connect, this, _1));
-	}
-
-	stream_socket s;
-	char buffer[17*1024];
-	int read_pos;
-
-	enum state_t
-	{
-		handshaking,
-		sending_request,
-		receiving_message
-	};
-	int state;
-	std::vector<int> pieces;
-	int block;
-	int blocks_per_piece;
-	char const* info_hash;
-	int outstanding_requests;
-
-	void on_connect(error_code const& ec)
-	{
-		if (ec)
-		{
-			fprintf(stderr, "ERROR CONNECT: %s\n", ec.message().c_str());
-			return;
-		}
-
-		char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\0\0\x04"
-			"                    " // space for info-hash
-			"aaaaaaaaaaaaaaaaaaaa" // peer-id
-			"\0\0\0\x01\x02"; // interested
-		char* h = (char*)malloc(sizeof(handshake));
-		memcpy(h, handshake, sizeof(handshake));
-		std::memcpy(h + 28, info_hash, 20);
-		std::generate(h + 48, h + 68, &rand);
-		boost::asio::async_write(s, libtorrent::asio::buffer(h, sizeof(handshake) - 1)
-			, boost::bind(&peer_conn::on_handshake, this, h, _1, _2));
-	}
-
-	void on_handshake(char* h, error_code const& ec, size_t bytes_transferred)
-	{
-		free(h);
-		if (ec)
-		{
-			fprintf(stderr, "ERROR SEND HANDSHAKE: %s\n", ec.message().c_str());
-			return;
-		}
-
-		// read handshake
-		boost::asio::async_read(s, libtorrent::asio::buffer(buffer, 68)
-			, boost::bind(&peer_conn::on_handshake2, this, _1, _2));
-	}
-
-	void on_handshake2(error_code const& ec, size_t bytes_transferred)
-	{
-		if (ec)
-		{
-			fprintf(stderr, "ERROR READ HANDSHAKE: %s\n", ec.message().c_str());
-			return;
-		}
-
-		work();
-	}
-
-	void write_request()
-	{
-		if (pieces.empty()) return;
-
-		int piece = pieces.back();
-
-		char msg[] = "\0\0\0\xd\x06"
-			"    " // piece
-			"    " // offset
-			"    "; // length
-		char* m = (char*)malloc(sizeof(msg));
-		memcpy(m, msg, sizeof(msg));
-		char* ptr = m + 5;
-		write_uint32(piece, ptr);
-		write_uint32(block * 16 * 1024, ptr);
-		write_uint32(16 * 1024, ptr);
-		error_code ec;
-		boost::asio::async_write(s, libtorrent::asio::buffer(m, sizeof(msg) - 1)
-			, boost::bind(&peer_conn::on_req_sent, this, m, _1, _2));
-	
-		++block;
-		if (block == blocks_per_piece)
-		{
-			block = 0;
-			pieces.pop_back();
-		}
-	}
-
-	void on_req_sent(char* m, error_code const& ec, size_t bytes_transferred)
-	{
-		free(m);
-		if (ec)
-		{
-			fprintf(stderr, "ERROR SEND REQUEST: %s\n", ec.message().c_str());
-			return;
-		}
-
-		++outstanding_requests;
-	
-		work();
-	}
-
-	void work()
-	{
-		if (pieces.empty() && outstanding_requests == 0)
-		{
-			fprintf(stderr, "COMPLETED DOWNLOAD\n");
-			return;
-		}
-
-		// send requests
-		if (outstanding_requests < 20 && !pieces.empty())
-		{
-			write_request();
-			return;
-		}
-
-		// read message
-		boost::asio::async_read(s, asio::buffer(buffer, 4)
-			, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
-	}
-
-	void on_msg_length(error_code const& ec, size_t bytes_transferred)
-	{
-		if (ec)
-		{
-			fprintf(stderr, "ERROR RECEIVE MESSAGE PREFIX: %s\n", ec.message().c_str());
-			return;
-		}
-		char* ptr = buffer;
-		unsigned int length = read_uint32(ptr);
-		if (length > sizeof(buffer))
-		{
-			fprintf(stderr, "ERROR RECEIVE MESSAGE PREFIX: packet too big\n");
-			return;
-		}
-		boost::asio::async_read(s, asio::buffer(buffer, length)
-			, boost::bind(&peer_conn::on_message, this, _1, _2));
-	}
-
-	void on_message(error_code const& ec, size_t bytes_transferred)
-	{
-		if (ec)
-		{
-			fprintf(stderr, "ERROR RECEIVE MESSAGE: %s\n", ec.message().c_str());
-			return;
-		}
-		char* ptr = buffer;
-		int msg = read_uint8(ptr);
-		if (msg == 7) --outstanding_requests;
-
-		work();
-	}
-};
-
-int main(int argc, char const* argv[])
-{
-	if (argc < 5)
-	{
-		fprintf(stderr, "usage: connection_tester number-of-connections destination-ip destination-port torrent-file\n");
+		fputs("usage: ./connection_tester torrent-file IP port num-connections\n"
+			"to stop the client, press return.\n", stderr);
 		return 1;
 	}
-	int num_connections = atoi(argv[1]);
-	address_v4 addr = address_v4::from_string(argv[2]);
-	int port = atoi(argv[3]);
-	tcp::endpoint ep(addr, port);
+
+	tcp::endpoint ip(address::from_string(argv[2]), atoi(argv[3]));
+	int num_connections = atoi(argv[4]);
+
+	std::list<session*> ses_list;
+
+	add_torrent_params p;
+	p.save_path = "./";
 	error_code ec;
-	torrent_info ti(argv[4], ec);
+	p.ti = new torrent_info(argv[1], ec);
+	p.storage = &disabled_storage_constructor;
+
 	if (ec)
 	{
-		fprintf(stderr, "ERROR LOADING .TORRENT: %s\n", ec.message().c_str());
+		fprintf(stderr, "%s\n", ec.message().c_str());
 		return 1;
 	}
-	std::list<peer_conn*> conns;
-	io_service ios;
+
+	fprintf(stderr, "starting %d connections\n", num_connections);
 	for (int i = 0; i < num_connections; ++i)
 	{
-		conns.push_back(new peer_conn(ios, ti.num_pieces(), ti.piece_length() / 16 / 1024
-			, ep, (char const*)&ti.info_hash()[0]));
-		libtorrent::sleep(1);
+		session* s = new session(fingerprint("LT", 0, 0, 0, 0), 0);
+		s->listen_on(std::make_pair(2000 + i*5, 200 + i*5 + 4));
+
+		session_settings set;
+		set.disable_hash_checks = true;
+
+		s->set_settings(set);
+		torrent_handle h = s->add_torrent(p, ec);
+
+		if (ec)
+		{
+			fprintf(stderr, "%s\n", ec.message().c_str());
+			return 1;
+		}
+		h.connect_peer(ip);
+		ses_list.push_back(s);
 	}
 
-	ios.run();
+	// wait for the user to end
+	char a;
+	scanf("%c", &a);
+	fprintf(stderr, "shutting down\n");
+
+	// shut down all sessions in parallel
+	std::list<session_proxy> shutdown;
+	for (std::list<session*>::iterator i = ses_list.begin(),
+		end(ses_list.end()); i != end; ++i)
+		shutdown.push_back((*i)->abort());
+
+	// wait for all session to complete shutdown
+	for (std::list<session*>::iterator i = ses_list.begin(),
+		end(ses_list.end()); i != end; ++i)
+		delete *i;
 
 	return 0;
 }
-
 

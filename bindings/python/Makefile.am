@@ -11,6 +11,7 @@ EXTRA_DIST = \
   src/datetime.cpp          \
   src/entry.cpp             \
   src/extensions.cpp        \
+  src/filesystem.cpp        \
   src/fingerprint.cpp       \
   src/gil.hpp               \
   src/ip_filter.cpp         \

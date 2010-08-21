@@ -33,9 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_CONNECTION
 #define TORRENT_HTTP_CONNECTION
 
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
-#include <boost/function/function5.hpp>
+#include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -45,9 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/http_parser.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_settings.hpp"
@@ -56,8 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ssl_stream.hpp"
 #include "libtorrent/variant_stream.hpp"
 #endif
-
-#include "libtorrent/i2p_stream.hpp"
 
 namespace libtorrent
 {
@@ -113,20 +108,12 @@ struct TORRENT_EXPORT http_connection : boost::enable_shared_from_this<http_conn
 
 	void get(std::string const& url, time_duration timeout = seconds(30)
 		, int prio = 0, proxy_settings const* ps = 0, int handle_redirects = 5
-		, std::string const& user_agent = "", address const& bind_addr = address_v4::any()
-#if TORRENT_USE_I2P
-		, i2p_connection* i2p_conn = 0
-#endif
-		);
+		, std::string const& user_agent = "", address const& bind_addr = address_v4::any());
 
 	void start(std::string const& hostname, std::string const& port
 		, time_duration timeout, int prio = 0, proxy_settings const* ps = 0
 		, bool ssl = false, int handle_redirect = 5
-		, address const& bind_addr = address_v4::any()
-#if TORRENT_USE_I2P
-		, i2p_connection* i2p_conn = 0
-#endif
-		);
+		, address const& bind_addr = address_v4::any());
 
 	void close();
 
@@ -140,10 +127,6 @@ struct TORRENT_EXPORT http_connection : boost::enable_shared_from_this<http_conn
 	
 private:
 
-#if TORRENT_USE_I2P
-	void on_i2p_resolve(error_code const& e
-		, char const* destination);
-#endif
 	void on_resolve(error_code const& e
 		, tcp::resolver::iterator i);
 	void queue_connect();
@@ -160,14 +143,9 @@ private:
 
 	std::vector<char> m_recvbuffer;
 #ifdef TORRENT_USE_OPENSSL
-	// TODO: for proxies to work correctly over SSL, the
-	// ssl_stream needs to be wrapped inside the socket_type
 	variant_stream<socket_type, ssl_stream<socket_type> > m_sock;
 #else
 	socket_type m_sock;
-#endif
-#if TORRENT_USE_I2P
-	i2p_connection* m_i2p_conn;
 #endif
 	int m_read_pos;
 	tcp::resolver m_resolver;

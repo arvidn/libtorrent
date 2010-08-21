@@ -40,25 +40,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/assert.hpp>
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/peer_info.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/bitfield.hpp"
-#include "libtorrent/socket.hpp" // tcp::endpoint
 
 namespace libtorrent
 {
+	namespace fs = boost::filesystem;
+
 	namespace aux
 	{
 		struct session_impl;
@@ -66,8 +65,6 @@ namespace libtorrent
 	}
 
 	struct torrent_plugin;
-	struct peer_info;
-	struct peer_list_entry;
 
 #ifndef BOOST_NO_EXCEPTIONS
 	// for compatibility with 0.14
@@ -124,11 +121,6 @@ namespace libtorrent
 			, seed_mode(false)
 			, upload_mode(false)
 			, priority(0)
-			, added_time(0)
-			, completed_time(0)
-			, last_seen_complete(0)
-			, time_since_upload(0)
-			, time_since_download(0)
 		{}
 
 		enum state_t
@@ -308,15 +300,6 @@ namespace libtorrent
 
 		// the priority of this torrent
 		int priority;
-
-		// the time this torrent was added and completed
-		time_t added_time;
-		time_t completed_time;
-		time_t last_seen_complete;
-
-		// number of seconds since last upload or download activity
-		int time_since_upload;
-		int time_since_download;
 	};
 
 	struct TORRENT_EXPORT block_info
@@ -325,12 +308,15 @@ namespace libtorrent
 		{ none, requested, writing, finished };
 
 	private:
-		TORRENT_UNION addr_t
+#ifdef __SUNPRO_CC
+		// sunpro is strict about POD types in unions
+		struct
+#else
+		union
+#endif
 		{
 			address_v4::bytes_type v4;
-#if TORRENT_USE_IPV6
 			address_v6::bytes_type v6;
-#endif
 		} addr;
 
 		boost::uint16_t port;
@@ -338,23 +324,19 @@ namespace libtorrent
 
 		void set_peer(tcp::endpoint const& ep)
 		{
-#if TORRENT_USE_IPV6
 			is_v6_addr = ep.address().is_v6();
 			if (is_v6_addr)
 				addr.v6 = ep.address().to_v6().to_bytes();
 			else
-#endif
 				addr.v4 = ep.address().to_v4().to_bytes();
 			port = ep.port();
 		}
 
 		tcp::endpoint peer() const
 		{
-#if TORRENT_USE_IPV6
 			if (is_v6_addr)
 				return tcp::endpoint(address_v6(addr.v6), port);
 			else
-#endif
 				return tcp::endpoint(address_v4(addr.v4), port);
 		}
 
@@ -404,17 +386,7 @@ namespace libtorrent
 
 		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
-
-		enum status_flags_t
-		{
-			query_distributed_copies = 1,
-			query_accurate_download_counters = 2,
-			query_last_seen_complete = 4
-		};
-
-		// the flags specify which fields are calculated. By default everything
-		// is included, you may save CPU by not querying fields you don't need
-		torrent_status status(boost::uint32_t flags = 0xffffffff) const;
+		torrent_status status() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 
 		enum deadline_flags { alert_when_available = 1 };
@@ -472,7 +444,6 @@ namespace libtorrent
 
 		void force_recheck() const;
 		void save_resume_data() const;
-		bool need_save_resume_data() const;
 
 		bool is_auto_managed() const;
 		void auto_managed(bool m) const;
@@ -587,7 +558,7 @@ namespace libtorrent
 		// the ratio is uploaded / downloaded. less than 1 is not allowed
 		void set_ratio(float up_down_ratio) const;
 
-		std::string save_path() const;
+		fs::path save_path() const;
 
 		// -1 means unlimited unchokes
 		void set_max_uploads(int max_uploads) const;
@@ -601,12 +572,12 @@ namespace libtorrent
 			, std::string const& password) const;
 
 		// post condition: save_path() == save_path if true is returned
-		void move_storage(std::string const& save_path) const;
-		void rename_file(int index, std::string const& new_name) const;
+		void move_storage(fs::path const& save_path) const;
+		void rename_file(int index, fs::path const& new_name) const;
 
-#if TORRENT_USE_WSTRING
-		void move_storage(std::wstring const& save_path) const;
-		void rename_file(int index, std::wstring const& new_name) const;
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+		void move_storage(fs::wpath const& save_path) const;
+		void rename_file(int index, fs::wpath const& new_name) const;
 #endif
 
 		bool super_seeding() const;

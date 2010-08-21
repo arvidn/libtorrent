@@ -98,7 +98,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
-		, std::string const& save_path
+		, fs::path const& save_path
 		, storage_mode_t storage_mode
 		, bool paused
 		, storage_constructor_type sc
@@ -108,19 +108,19 @@ namespace libtorrent
 		std::string tracker;
 
 		error_code ec;
-		std::string display_name = url_has_argument(uri, "dn");
-		if (!display_name.empty()) name = unescape_string(display_name.c_str(), ec);
-		std::string tracker_string = url_has_argument(uri, "tr");
-		if (!tracker_string.empty()) tracker = unescape_string(tracker_string.c_str(), ec);
+		boost::optional<std::string> display_name = url_has_argument(uri, "dn");
+		if (display_name) name = unescape_string(display_name->c_str(), ec);
+		boost::optional<std::string> tracker_string = url_has_argument(uri, "tr");
+		if (tracker_string) tracker = unescape_string(tracker_string->c_str(), ec);
 	
-		std::string btih = url_has_argument(uri, "xt");
-		if (btih.empty()) return torrent_handle();
+		boost::optional<std::string> btih = url_has_argument(uri, "xt");
+		if (!btih) return torrent_handle();
 
-		if (btih.compare(0, 9, "urn:btih:") != 0) return torrent_handle();
+		if (btih->compare(0, 9, "urn:btih:") != 0) return torrent_handle();
 
 		sha1_hash info_hash;
-		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&info_hash[0]);
-		else info_hash.assign(base32decode(btih.substr(9)));
+		if (btih->size() == 40 + 9) from_hex(&(*btih)[9], 40, (char*)&info_hash[0]);
+		else info_hash.assign(base32decode(btih->substr(9)));
 
 		return ses.add_torrent(tracker.empty() ? 0 : tracker.c_str(), info_hash
 			, name.empty() ? 0 : name.c_str(), save_path, entry()
@@ -144,28 +144,28 @@ namespace libtorrent
 		std::string tracker;
 
 		error_code e;
-		std::string display_name = url_has_argument(uri, "dn");
-		if (!display_name.empty()) name = unescape_string(display_name.c_str(), e);
-		std::string::size_type pos = std::string::npos;
-		std::string tracker_string = url_has_argument(uri, "tr", &pos);
-		if (!tracker_string.empty()) tracker = unescape_string(tracker_string.c_str(), e);
+		boost::optional<std::string> display_name = url_has_argument(uri, "dn");
+		if (display_name) name = unescape_string(display_name->c_str(), e);
+		size_t pos = std::string::npos;
+		boost::optional<std::string> tracker_string = url_has_argument(uri, "tr", &pos);
+		if (tracker_string) tracker = unescape_string(tracker_string->c_str(), e);
 	
-		std::string btih = url_has_argument(uri, "xt");
-		if (btih.empty())
+		boost::optional<std::string> btih = url_has_argument(uri, "xt");
+		if (!btih)
 		{
 			ec = errors::missing_info_hash_in_uri;
 			return torrent_handle();
 		}
 
-		if (btih.compare(0, 9, "urn:btih:") != 0)
+		if (btih->compare(0, 9, "urn:btih:") != 0)
 		{
 			ec = errors::missing_info_hash_in_uri;
 			return torrent_handle();
 		}
 
 		sha1_hash info_hash;
-		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&info_hash[0]);
-		else info_hash.assign(base32decode(btih.substr(9)));
+		if (btih->size() == 40 + 9) from_hex(&(*btih)[9], 40, (char*)&info_hash[0]);
+		else info_hash.assign(base32decode(btih->substr(9)));
 
 		if (!tracker.empty()) p.tracker_url = tracker.c_str();
 		p.info_hash = info_hash;

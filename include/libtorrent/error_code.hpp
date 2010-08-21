@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ERROR_CODE_HPP_INCLUDED
 
 #include <boost/version.hpp>
-#include "libtorrent/config.hpp"
+#include <boost/shared_ptr.hpp>
 
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 // asio assumes that the windows error codes are defined already
@@ -47,8 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/error_code.hpp>
 #endif
 
-#include <string.h> // strdup
-#include <stdlib.h> // free
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
@@ -222,29 +221,6 @@ namespace libtorrent
 			reserved157,
 			reserved158,
 			reserved159,
-// i2p errors
-			no_i2p_router, // 160
-			reserved161,
-			reserved162,
-			reserved163,
-			reserved164,
-			reserved165,
-			reserved166,
-			reserved167,
-			reserved168,
-			reserved169,
-
-// tracker errors
-			scrape_not_available, // 170
-			invalid_tracker_response,
-			invalid_peer_dict,
-			tracker_failure,
-			invalid_files_entry,
-			invalid_hash_entry,
-			invalid_peers_entry,
-			invalid_tracker_response_length,
-			invalid_tracker_transaction_id,
-			invalid_tracker_action,
 
 			error_code_max
 		};
@@ -316,22 +292,17 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	struct TORRENT_EXPORT libtorrent_exception: std::exception
 	{
-		libtorrent_exception(error_code const& s): m_error(s), m_msg(0) {}
+		libtorrent_exception(error_code const& s): m_error(s) {}
 		virtual const char* what() const throw()
 		{
-			if (!m_msg)
-			{
-				std::string msg = m_error.message();
-				m_msg = strdup(msg.c_str());
-			}
-
-			return m_msg;
+			if (!m_msg) m_msg.reset(new std::string(m_error.message()));
+			return m_msg->c_str();
 		}
-		virtual ~libtorrent_exception() throw() { free(m_msg); }
+		virtual ~libtorrent_exception() throw() {}
 		error_code error() const { return m_error; }
 	private:
 		error_code m_error;
-		mutable char* m_msg;
+		mutable boost::shared_ptr<std::string> m_msg;
 	};
 #endif
 }
