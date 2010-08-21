@@ -304,6 +304,9 @@ namespace libtorrent
 			void save_state(entry* e, boost::uint32_t flags) const;
 			void load_state(lazy_entry const* e);
 
+			// TODO: just use a single proxy for everything. That's essentially how
+			// it works behind the scene anyway, with the udp socket being used for
+			// both DHT, uTP peers and udp trackers.
 			void set_peer_proxy(proxy_settings const& s)
 			{
 				m_peer_proxy = s;

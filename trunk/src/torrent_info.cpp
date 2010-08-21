@@ -49,9 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/assert.hpp>
-#include <boost/date_time/posix_time/ptime.hpp>
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
-#include <boost/date_time/time_clock.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -70,8 +67,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_I2P
 #include "libtorrent/parse_url.hpp"
 #endif
-
-namespace gr = boost::gregorian;
 
 namespace libtorrent
 {
@@ -436,17 +431,17 @@ namespace libtorrent
 		, m_url_seeds(t.m_url_seeds)
 		, m_http_seeds(t.m_http_seeds)
 		, m_nodes(t.m_nodes)
-		, m_info_hash(t.m_info_hash)
-		, m_creation_date(t.m_creation_date)
+		, m_merkle_tree(t.m_merkle_tree)
+		, m_piece_hashes(t.m_piece_hashes)
 		, m_comment(t.m_comment)
 		, m_created_by(t.m_created_by)
+		, m_creation_date(t.m_creation_date)
+		, m_info_hash(t.m_info_hash)
+		, m_merkle_first_leaf(t.m_merkle_first_leaf)
+		, m_info_section_size(t.m_info_section_size)
 		, m_multifile(t.m_multifile)
 		, m_private(t.m_private)
 		, m_i2p(t.m_i2p)
-		, m_info_section_size(t.m_info_section_size)
-		, m_piece_hashes(t.m_piece_hashes)
-		, m_merkle_tree(t.m_merkle_tree)
-		, m_merkle_first_leaf(t.m_merkle_first_leaf)
 	{
 		if (m_info_section_size > 0)
 		{
@@ -479,13 +474,13 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(entry const& torrent_file)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		: m_piece_hashes(0)
+		, m_creation_date(0)
+		, m_merkle_first_leaf(0)
+		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
-		, m_info_section_size(0)
-		, m_piece_hashes(0)
-		, m_merkle_first_leaf(0)
 	{
 		std::vector<char> tmp;
 		std::back_insert_iterator<std::vector<char> > out(tmp);
@@ -511,13 +506,13 @@ namespace libtorrent
 
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_info::torrent_info(lazy_entry const& torrent_file)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		: m_piece_hashes(0)
+		, m_creation_date(0)
+		, m_merkle_first_leaf(0)
+		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
-		, m_info_section_size(0)
-		, m_piece_hashes(0)
-		, m_merkle_first_leaf(0)
 	{
 		error_code ec;
 		if (!parse_torrent_file(torrent_file, ec))
@@ -525,13 +520,13 @@ namespace libtorrent
 	}
 
 	torrent_info::torrent_info(char const* buffer, int size)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		: m_piece_hashes(0)
+		, m_creation_date(0)
+		, m_merkle_first_leaf(0)
+		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
-		, m_info_section_size(0)
-		, m_piece_hashes(0)
-		, m_merkle_first_leaf(0)
 	{
 		error_code ec;
 		lazy_entry e;
@@ -543,12 +538,12 @@ namespace libtorrent
 	}
 
 	torrent_info::torrent_info(std::string const& filename)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		: m_piece_hashes(0)
+		, m_creation_date(0)
+		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
-		, m_info_section_size(0)
-		, m_piece_hashes(0)
 	{
 		std::vector<char> buf;
 		int ret = load_file(filename, buf);
@@ -564,13 +559,13 @@ namespace libtorrent
 
 #if TORRENT_USE_WSTRING
 	torrent_info::torrent_info(std::wstring const& filename)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		: m_piece_hashes(0)
+		, m_creation_date(0)
+		, m_merkle_first_leaf(0)
+		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
-		, m_info_section_size(0)
-		, m_piece_hashes(0)
-		, m_merkle_first_leaf(0)
 	{
 		std::vector<char> buf;
 		std::string utf8;
@@ -590,24 +585,24 @@ namespace libtorrent
 #endif
 
 	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		: m_piece_hashes(0)
+		, m_creation_date(0)
+		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
-		, m_info_section_size(0)
-		, m_piece_hashes(0)
 	{
 		parse_torrent_file(torrent_file, ec);
 	}
 
 	torrent_info::torrent_info(char const* buffer, int size, error_code& ec)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		: m_piece_hashes(0)
+		, m_creation_date(0)
+		, m_merkle_first_leaf(0)
+		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
-		, m_info_section_size(0)
-		, m_piece_hashes(0)
-		, m_merkle_first_leaf(0)
 	{
 		lazy_entry e;
 		if (lazy_bdecode(buffer, buffer + size, e) != 0)
@@ -619,12 +614,12 @@ namespace libtorrent
 	}
 
 	torrent_info::torrent_info(std::string const& filename, error_code& ec)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		: m_piece_hashes(0)
+		, m_creation_date(0)
+		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
-		, m_info_section_size(0)
-		, m_piece_hashes(0)
 	{
 		std::vector<char> buf;
 		int ret = load_file(filename, buf);
@@ -641,12 +636,12 @@ namespace libtorrent
 
 #if TORRENT_USE_WSTRING
 	torrent_info::torrent_info(std::wstring const& filename, error_code& ec)
-		: m_creation_date(pt::ptime(pt::not_a_date_time))
+		: m_piece_hashes(0)
+		, m_creation_date(0)
+		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
-		, m_info_section_size(0)
-		, m_piece_hashes(0)
 	{
 		std::vector<char> buf;
 		std::string utf8;
@@ -664,20 +659,18 @@ namespace libtorrent
 	}
 #endif
 
-	typedef boost::date_time::second_clock<pt::ptime> second_clock;
-
 	// constructor used for creating new torrents
 	// will not contain any hashes, comments, creation date
 	// just the necessary to use it with piece manager
 	// used for torrents with no metadata
 	torrent_info::torrent_info(sha1_hash const& info_hash)
-		: m_info_hash(info_hash)
-		, m_creation_date(second_clock::universal_time())
+		: m_piece_hashes(0)
+		, m_creation_date(time(0))
+		, m_info_hash(info_hash)
+		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
-		, m_info_section_size(0)
-		, m_piece_hashes(0)
 	{}
 
 	torrent_info::~torrent_info()
@@ -688,6 +681,11 @@ namespace libtorrent
 		if (m_orig_files) return;
 		m_orig_files.reset(new file_storage(m_files));
 	}
+
+#define SWAP(a, b) \
+	  	tmp = a; \
+		a = b; \
+		b = tmp;
 
 	void torrent_info::swap(torrent_info& ti)
 	{
@@ -701,16 +699,19 @@ namespace libtorrent
 		swap(m_creation_date, ti.m_creation_date);
 		m_comment.swap(ti.m_comment);
 		m_created_by.swap(ti.m_created_by);
-		swap(m_multifile, ti.m_multifile);
-		swap(m_private, ti.m_private);
-		swap(m_i2p, ti.m_i2p);
+		boost::uint32_t tmp;
+		SWAP(m_multifile, ti.m_multifile);
+		SWAP(m_private, ti.m_private);
+		SWAP(m_i2p, ti.m_i2p);
 		swap(m_info_section, ti.m_info_section);
-		swap(m_info_section_size, ti.m_info_section_size);
+		SWAP(m_info_section_size, ti.m_info_section_size);
 		swap(m_piece_hashes, ti.m_piece_hashes);
 		m_info_dict.swap(ti.m_info_dict);
 		swap(m_merkle_tree, ti.m_merkle_tree);
-		swap(m_merkle_first_leaf, ti.m_merkle_first_leaf);
+		SWAP(m_merkle_first_leaf, ti.m_merkle_first_leaf);
 	}
+
+#undef SWAP
 
 	bool torrent_info::parse_info_section(lazy_entry const& info, error_code& ec)
 	{
@@ -1045,8 +1046,7 @@ namespace libtorrent
 		size_type cd = torrent_file.dict_find_int_value("creation date", -1);
 		if (cd >= 0)
 		{
-			m_creation_date = pt::ptime(gr::date(1970, gr::Jan, 1))
-				+ pt::seconds(long(cd));
+			m_creation_date = long(cd);
 		}
 
 		// if there are any url-seeds, extract them
@@ -1098,14 +1098,14 @@ namespace libtorrent
 		return parse_info_section(*info, ec);
 	}
 
-	boost::optional<pt::ptime>
+	boost::optional<time_t>
 	torrent_info::creation_date() const
 	{
-		if (m_creation_date != pt::ptime(gr::date(pt::not_a_date_time)))
+		if (m_creation_date != 0)
 		{
-			return boost::optional<pt::ptime>(m_creation_date);
+			return boost::optional<time_t>(m_creation_date);
 		}
-		return boost::optional<pt::ptime>();
+		return boost::optional<time_t>();
 	}
 
 	void torrent_info::add_tracker(std::string const& url, int tier)
@@ -1132,8 +1132,6 @@ namespace libtorrent
 		}
 		if (!m_comment.empty())
 			os << "comment: " << m_comment << "\n";
-//		if (m_creation_date != pt::ptime(gr::date(pt::not_a_date_time)))
-//			os << "creation date: " << to_simple_string(m_creation_date) << "\n";
 		os << "private: " << (m_private?"yes":"no") << "\n";
 		os << "number of pieces: " << num_pieces() << "\n";
 		os << "piece length: " << piece_length() << "\n";
