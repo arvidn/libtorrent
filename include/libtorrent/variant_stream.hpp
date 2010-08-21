@@ -27,10 +27,6 @@
 #include <boost/asio/io_service.hpp>
 #endif
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/assert.hpp"
-
 # define NETWORK_VARIANT_STREAM_LIMIT 5
 
 namespace libtorrent {
@@ -56,8 +52,8 @@ namespace aux
   template<class IO_Control_Command>
   struct io_control_visitor_ec: boost::static_visitor<>
   {
-      io_control_visitor_ec(IO_Control_Command& io, error_code& e)
-          : ioc(io), ec(e) {}
+      io_control_visitor_ec(IO_Control_Command& ioc, error_code& ec_)
+          : ioc(ioc), ec(ec_) {}
 
       template <class T>
       void operator()(T* p) const
@@ -76,8 +72,8 @@ namespace aux
   struct io_control_visitor
       : boost::static_visitor<>
   {
-      io_control_visitor(IO_Control_Command& io)
-          : ioc(io) {}
+      io_control_visitor(IO_Control_Command& ioc)
+          : ioc(ioc) {}
 
       template <class T>
       void operator()(T* p) const
@@ -96,9 +92,9 @@ namespace aux
   struct async_connect_visitor
     : boost::static_visitor<>
   {
-      async_connect_visitor(EndpointType const& ep, Handler const& h)
-        : endpoint(ep)
-        , handler(h)
+      async_connect_visitor(EndpointType const& endpoint, Handler const& handler)
+        : endpoint(endpoint)
+        , handler(handler)
       {}
 
       template <class T>
@@ -222,7 +218,6 @@ namespace aux
       error_code& ec;
   };
 
-#ifndef BOOST_NO_EXCEPTIONS
   struct close_visitor
     : boost::static_visitor<>
   {
@@ -232,7 +227,6 @@ namespace aux
 
       void operator()(boost::blank) const {}
   };
-#endif
 
 // -------------- remote_endpoint -----------
 
@@ -254,7 +248,6 @@ namespace aux
       error_code& ec;
   };
 
-#ifndef BOOST_NO_EXCEPTIONS
   template <class EndpointType>
   struct remote_endpoint_visitor
     : boost::static_visitor<EndpointType>
@@ -266,11 +259,9 @@ namespace aux
       EndpointType operator()(boost::blank) const
       { return EndpointType(); }
   };
-#endif
 
 // -------------- set_option -----------
 
-#ifndef BOOST_NO_EXCEPTIONS
   template <class SettableSocketOption>
   struct set_option_visitor
     : boost::static_visitor<>
@@ -287,7 +278,6 @@ namespace aux
 
       SettableSocketOption const& opt_;
   };
-#endif
 
   template <class SettableSocketOption>
   struct set_option_visitor_ec
@@ -333,7 +323,6 @@ namespace aux
       error_code& ec;
   };
 
-#ifndef BOOST_NO_EXCEPTIONS
   template <class EndpointType>
   struct local_endpoint_visitor
     : boost::static_visitor<EndpointType>
@@ -349,7 +338,6 @@ namespace aux
           return EndpointType();
       }
   };
-#endif
 
 // -------------- async_read_some -----------
 
@@ -357,9 +345,9 @@ namespace aux
   struct async_read_some_visitor
     : boost::static_visitor<>
   {
-      async_read_some_visitor(Mutable_Buffers const& bufs, Handler const& h)
-        : buffers(bufs)
-        , handler(h)
+      async_read_some_visitor(Mutable_Buffers const& buffers, Handler const& handler)
+        : buffers(buffers)
+        , handler(handler)
       {}
 
       template <class T>
@@ -376,13 +364,12 @@ namespace aux
 
 // -------------- read_some -----------
 
-#ifndef BOOST_NO_EXCEPTIONS
   template <class Mutable_Buffers>
   struct read_some_visitor
     : boost::static_visitor<std::size_t>
   {
-      read_some_visitor(Mutable_Buffers const& bufs)
-        : buffers(bufs)
+      read_some_visitor(Mutable_Buffers const& buffers)
+        : buffers(buffers)
       {}
 
       template <class T>
@@ -394,15 +381,14 @@ namespace aux
 
       Mutable_Buffers const& buffers;
   };
-#endif
 
   template <class Mutable_Buffers>
   struct read_some_visitor_ec
     : boost::static_visitor<std::size_t>
   {
-      read_some_visitor_ec(Mutable_Buffers const& bufs, error_code& e)
-        : buffers(bufs)
-        , ec(e)
+      read_some_visitor_ec(Mutable_Buffers const& buffers, error_code& ec_)
+        : buffers(buffers)
+        , ec(ec_)
       {}
 
       template <class T>
@@ -422,9 +408,9 @@ namespace aux
   struct async_write_some_visitor
     : boost::static_visitor<>
   {
-      async_write_some_visitor(Const_Buffers const& bufs, Handler const& h)
-        : buffers(bufs)
-        , handler(h)
+      async_write_some_visitor(Const_Buffers const& buffers, Handler const& handler)
+        : buffers(buffers)
+        , handler(handler)
       {}
 
       template <class T>
@@ -463,7 +449,6 @@ namespace aux
       error_code& ec;
   };
 
-#ifndef BOOST_NO_EXCEPTIONS
   struct in_avail_visitor
     : boost::static_visitor<std::size_t>
   {
@@ -476,7 +461,6 @@ namespace aux
       void operator()(boost::blank) const
       {}
   };
-#endif
 
 // -------------- io_service -----------
 
@@ -585,7 +569,6 @@ public:
         );
     }
 
-#ifndef BOOST_NO_EXCEPTIONS
     template <class Mutable_Buffers>
     std::size_t read_some(Mutable_Buffers const& buffers)
     {
@@ -595,7 +578,6 @@ public:
           , m_variant
         );
     }
-#endif
 
     template <class Mutable_Buffers, class Handler>
     void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
@@ -626,7 +608,6 @@ public:
         );
     }
 
-#ifndef BOOST_NO_EXCEPTIONS
     template <class IO_Control_Command>
     void io_control(IO_Control_Command& ioc)
     {
@@ -635,7 +616,6 @@ public:
             aux::io_control_visitor<IO_Control_Command>(ioc), m_variant
         );
     }
-#endif
 
     template <class IO_Control_Command>
     void io_control(IO_Control_Command& ioc, error_code& ec)
@@ -647,13 +627,11 @@ public:
         );
     }
 
-#ifndef BOOST_NO_EXCEPTIONS
     void bind(endpoint_type const& endpoint)
     {
         TORRENT_ASSERT(instantiated());
         boost::apply_visitor(aux::bind_visitor<endpoint_type>(endpoint), m_variant);
     }
-#endif
 
     void bind(endpoint_type const& endpoint, error_code& ec)
     {
@@ -663,13 +641,11 @@ public:
         );
     }
 
-#ifndef BOOST_NO_EXCEPTIONS
     void open(protocol_type const& p)
     {
         TORRENT_ASSERT(instantiated());
         boost::apply_visitor(aux::open_visitor<protocol_type>(p), m_variant);
     }
-#endif
 
     void open(protocol_type const& p, error_code& ec)
     {
@@ -684,13 +660,11 @@ public:
         return boost::apply_visitor(aux::is_open_visitor(), m_variant);
     }
 
-#ifndef BOOST_NO_EXCEPTIONS
     void close()
     {
         if (!instantiated()) return;
         boost::apply_visitor(aux::close_visitor(), m_variant);
     }
-#endif
 
     void close(error_code& ec)
     {
@@ -700,13 +674,11 @@ public:
         );
     }
 
-#ifndef BOOST_NO_EXCEPTIONS
     std::size_t in_avail() const
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(aux::in_avail_visitor(), m_variant);
     }
-#endif
 
     std::size_t in_avail(error_code& ec) const
     {
@@ -716,13 +688,11 @@ public:
         );
     }
 
-#ifndef BOOST_NO_EXCEPTIONS
     endpoint_type remote_endpoint() const
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(aux::remote_endpoint_visitor<endpoint_type>(), m_variant);
     }
-#endif
 
     endpoint_type remote_endpoint(error_code& ec) const
     {
@@ -732,7 +702,6 @@ public:
         );
     }
 
-#ifndef BOOST_NO_EXCEPTIONS
     template <class SettableSocketOption>
     void set_option(SettableSocketOption const& opt)
     {
@@ -740,7 +709,6 @@ public:
         boost::apply_visitor(aux::set_option_visitor<SettableSocketOption>(opt)
             , m_variant);
     }
-#endif
 
     template <class SettableSocketOption>
     error_code set_option(SettableSocketOption const& opt, error_code& ec)
@@ -750,13 +718,11 @@ public:
             , m_variant);
     }
 
-#ifndef BOOST_NO_EXCEPTIONS
     endpoint_type local_endpoint() const
     {
         TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(aux::local_endpoint_visitor<endpoint_type>(), m_variant);
     }
-#endif
 
     endpoint_type local_endpoint(error_code& ec) const
     {

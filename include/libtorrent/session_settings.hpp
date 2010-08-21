@@ -35,15 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/version.hpp"
 
 namespace libtorrent
 {
 
 	struct TORRENT_EXPORT proxy_settings
 	{
-		proxy_settings() : port(0), type(none)
-			, proxy_hostnames(true) {}
+		proxy_settings() : port(0), type(none) {}
 
 		std::string hostname;
 		int port;
@@ -73,31 +71,25 @@ namespace libtorrent
 			http,
 			// http proxy with basic authentication
 			// uses username and password
-			http_pw,
-			// route through a i2p SAM proxy
-			i2p_proxy
+			http_pw
 		};
 		
 		proxy_type type;
-
-		// when set to true, hostname are resolved
-		// through the proxy (if supported)
-		bool proxy_hostnames;
+	
 	};
 
 	struct TORRENT_EXPORT session_settings
 	{
 		session_settings(std::string const& user_agent_ = "libtorrent/"
 			LIBTORRENT_VERSION)
-			: version(LIBTORRENT_VERSION_NUM)
-			, user_agent(user_agent_)
+			: user_agent(user_agent_)
 			, tracker_completion_timeout(60)
 			, tracker_receive_timeout(40)
 			, stop_tracker_timeout(5)
 			, tracker_maximum_response_length(1024*1024)
 			, piece_timeout(20)
 			, request_timeout(50)
-			, request_queue_time(3)
+			, request_queue_time(3.f)
 			, max_allowed_in_request_queue(250)
 			, max_out_request_queue(200)
 			, whole_pieces_threshold(20)
@@ -109,53 +101,34 @@ namespace libtorrent
 			, allow_multiple_connections_per_ip(false)
 			, max_failcount(3)
 			, min_reconnect_time(60)
-			, peer_connect_timeout(15)
+			, peer_connect_timeout(7)
 			, ignore_limits_on_local_network(true)
 			, connection_speed(10)
 			, send_redundant_have(false)
 			, lazy_bitfields(true)
 			, inactivity_timeout(600)
 			, unchoke_interval(15)
-			, optimistic_unchoke_interval(30)
+			, optimistic_unchoke_multiplier(4)
 			, num_want(200)
 			, initial_picker_threshold(4)
 			, allowed_fast_set_size(10)
-			, suggest_mode(no_piece_suggestions)
-			, max_queued_disk_bytes(256 * 1024)
+			, max_outstanding_disk_bytes_per_connection(64 * 1024)
 			, handshake_timeout(10)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(false)
 #endif
 			, free_torrent_hashes(true)
 			, upnp_ignore_nonrouters(false)
- 			, send_buffer_watermark(100 * 1024)
-			, send_buffer_watermark_factor(1)
-#ifndef TORRENT_NO_DEPRECATE
-			// deprecated in 0.16
+ 			, send_buffer_watermark(80 * 1024)
 			, auto_upload_slots(true)
-			, auto_upload_slots_rate_based(true)
-#endif
-			, choking_algorithm(rate_based_choker)
 			, use_parole_mode(true)
-			, cache_size(1024)
-			, cache_buffer_chunk_size(16)
+			, cache_size(512)
 			, cache_expiry(60)
-			, use_read_cache(true)
-			, explicit_read_cache(0)
-			, explicit_cache_interval(30)
-			, disk_io_write_mode(0)
-			, disk_io_read_mode(0)
-			, coalesce_reads(false)
-			, coalesce_writes(false)
 			, outgoing_ports(0,0)
 			, peer_tos(0)
 			, active_downloads(8)
 			, active_seeds(5)
-			, active_dht_limit(88) // don't announce more than once every 40 seconds
-			, active_tracker_limit(360) // don't announce to trackers more than once every 5 seconds
-			, active_lsd_limit(60) // don't announce to local network more than once every 5 seconds
 			, active_limit(15)
-			, auto_manage_prefer_seeds(false)
 			, dont_count_slow_torrents(true)
 			, auto_manage_interval(30)
 			, share_ratio_limit(2.f)
@@ -166,65 +139,12 @@ namespace libtorrent
 			, close_redundant_connections(true)
 			, auto_scrape_interval(1800)
 			, auto_scrape_min_interval(300)
-			, max_peerlist_size(4000)
-			, max_paused_peerlist_size(4000)
+			, max_peerlist_size(8000)
 			, min_announce_interval(5 * 60)
 			, prioritize_partial_pieces(false)
 			, auto_manage_startup(120)
 			, rate_limit_ip_overhead(true)
-			, announce_to_all_trackers(false)
-			, announce_to_all_tiers(false)
-			, prefer_udp_trackers(true)
-			, strict_super_seeding(false)
-			, seeding_piece_quota(3)
-#ifdef TORRENT_WINDOWS
-			, max_sparse_regions(30000)
-#else
-			, max_sparse_regions(0)
-#endif
-#ifndef TORRENT_DISABLE_MLOCK
-			, lock_disk_cache(true)
-#endif
-			, max_rejects(50)
-			, recv_socket_buffer_size(0)
-			, send_socket_buffer_size(0)
-			, optimize_hashing_for_speed(true)
-			, file_checks_delay_per_block(0)
-			, disk_cache_algorithm(largest_contiguous)
-			, read_cache_line_size(128)
-			, write_cache_line_size(32)
-			, optimistic_disk_retry(10 * 60)
-			, disable_hash_checks(false)
-			, allow_reordered_disk_operations(true)
-			, allow_i2p_mixed(false)
-			, max_suggest_pieces(10)
-			, drop_skipped_requests(false)
-			, low_prio_disk(true)
-			, local_service_announce_interval(5 * 60)
-			, dht_announce_interval(15 * 60)
-			, udp_tracker_token_expiry(60)
-			, volatile_read_cache(false)
-			, guided_read_cache(true)
-			, default_cache_min_age(1)
-			, num_optimistic_unchoke_slots(0)
-			, no_atime_storage(true)
-			, default_est_reciprocation_rate(16000)
-			, increase_est_reciprocation_rate(20)
-			, decrease_est_reciprocation_rate(3)
-			, incoming_starts_queued_torrents(false)
-			, report_true_downloaded(false)
-			, strict_end_game_mode(true)
-			, default_peer_upload_rate(0)
-			, default_peer_download_rate(0)
-			, broadcast_lsd(false)
-			, ignore_resume_timestamps(false)
-			, anonymous_mode(false)
-			, tick_interval(100)
-			, report_web_seed_downloads(true)
 		{}
-
-		// libtorrent version. Used for forward binary compatibility
-		int version;
 
 		// this is the user agent that will be sent to the tracker
 		// when doing requests. It is used to identify the client.
@@ -263,7 +183,7 @@ namespace libtorrent
 		// of seconds it should take for the other end to send
 		// all the pieces. i.e. the actual number of requests
 		// depends on the download rate and this number.
-		int request_queue_time;
+		float request_queue_time;
 		
 		// the number of outstanding block requests a peer is
 		// allowed to queue up in the client. If a peer sends
@@ -361,13 +281,13 @@ namespace libtorrent
 		// the number of seconds between chokes/unchokes
 		int unchoke_interval;
 
-		// the number of seconds between
+		// the number of unchoke intervals between
 		// optimistic unchokes
-		int optimistic_unchoke_interval;
+		int optimistic_unchoke_multiplier;
 
 		// if this is set, this IP will be reported do the
 		// tracker in the ip= parameter.
-		std::string announce_ip;
+		address announce_ip;
 
 		// the num want sent to trackers
 		int num_want;
@@ -380,23 +300,13 @@ namespace libtorrent
 		// that supports the fast extensions
 		int allowed_fast_set_size;
 
-		// this determines which pieces will be suggested to peers
-		// suggest read cache will make libtorrent suggest pieces
-		// that are fresh in the disk read cache, to potentially
-		// lower disk access and increase the cache hit ratio
-		enum { no_piece_suggestions = 0, suggest_read_cache = 1 };
-		int suggest_mode;
-
 		// the maximum number of bytes a connection may have
 		// pending in the disk write queue before its download
 		// rate is being throttled. This prevents fast downloads
 		// to slow medias to allocate more and more memory
-		// indefinitely. This should be set to at least 16 kB
-		// to not completely disrupt normal downloads. If it's
-		// set to 0, you will be starving the disk thread and
-		// nothing will be written to disk.
-		// this is a per session setting.
-		int max_queued_disk_bytes;
+		// indefinitely. This should be set to at least 32 kB
+		// to not completely disrupt normal downloads.
+		int max_outstanding_disk_bytes_per_connection;
 
 		// the number of seconds to wait for a handshake
 		// response from a peer. If no response is received
@@ -404,7 +314,7 @@ namespace libtorrent
 		int handshake_timeout;
 
 #ifndef TORRENT_DISABLE_DHT
-		// while this is true, the dht will not be used unless the
+		// while this is true, the dht will note be used unless the
 		// tracker is online
 		bool use_dht_as_fallback;
 #endif
@@ -428,30 +338,15 @@ namespace libtorrent
  		// the upload rate is low, this is the upper limit.
  		int send_buffer_watermark;
 
-		// the current upload rate to a peer is multiplied by
-		// this factor to get the send buffer watermark. This
-		// product is clamped to the send_buffer_watermark
-		// setting to not exceed the max. For high speed
-		// upload, this should be set to a greater value than
-		// 1. The default is 1.
-		int send_buffer_watermark_factor;
-
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 0.16
+		// if auto_upload_slots is true, and a global upload
+		// limit is set and the upload rate is less than 90%
+		// of the upload limit, on new slot is opened up. If
+		// the upload rate is >= upload limit for an extended
+		// period of time, one upload slot is closed. The
+		// upload slots are never automatically decreased below
+		// the manual settings, through max_uploads.
 		bool auto_upload_slots;
-		bool auto_upload_slots_rate_based;
-#endif
 
-		enum choking_algorithm_t
-		{
-			fixed_slots_choker,
-			auto_expand_choker,
-			rate_based_choker,
-			bittyrant_choker
-		};
-
-		int choking_algorithm;
-		
 		// if set to true, peers that participate in a failing
 		// piece is put in parole mode. i.e. They will only
 		// download whole pieces until they either fail or pass.
@@ -460,46 +355,13 @@ namespace libtorrent
 		bool use_parole_mode;
 
 		// the disk write cache, specified in 16 KiB blocks.
-		// default is 1024 (= 16 MiB). -1 means automatic, which
-		// adjusts the cache size depending on the amount
-		// of physical RAM in the machine.
+		// default is 512 (= 8 MB)
 		int cache_size;
-
-		// this is the number of disk buffer blocks (16 kiB)
-		// that should be allocated at a time. It must be
-		// at least 1. Lower number saves memory at the expense
-		// of more heap allocations
-		int cache_buffer_chunk_size;
 
 		// the number of seconds a write cache entry sits
 		// idle in the cache before it's forcefully flushed
 		// to disk. Default is 60 seconds.
 		int cache_expiry;
-
-		// when true, the disk I/O thread uses the disk
-		// cache for caching blocks read from disk too
-		bool use_read_cache;
-
-		// don't implicitly cache pieces in the read cache,
-		// only cache pieces that are explicitly asked to be
-		// cached.
-		bool explicit_read_cache;
-
-		// the number of seconds between refreshes of
-		// explicit caches
-		int explicit_cache_interval;
-
-		enum io_buffer_mode_t
-		{
-			enable_os_cache = 0,
-			disable_os_cache_for_aligned_files = 1,
-			disable_os_cache = 2
-		};
-		int disk_io_write_mode;
-		int disk_io_read_mode;
-
-		bool coalesce_reads;
-		bool coalesce_writes;
 
 		// if != (0, 0), this is the range of ports that
 		// outgoing connections will be bound to. This
@@ -518,24 +380,10 @@ namespace libtorrent
 		// they are subject to. If there are too many torrents
 		// some of the auto managed ones will be paused until
 		// some slots free up.
-		// active_dht_limit and active_tracker_limit limits the
-		// number of torrents that will be active on the DHT
-		// versus the tracker. If the active limit is set higher
-		// than these numbers, some torrents will be "active" in
-		// the sense that they will accept incoming connections,
-		// but not announce on the DHT or the tracker
 		int active_downloads;
 		int active_seeds;
-		int active_dht_limit;
-		int active_tracker_limit;
-		int active_lsd_limit;
 		int active_limit;
 
-		// prefer seeding torrents when determining which torrents to give 
-		// active slots to, the default is false which gives preference to
-		// downloading torrents
-		bool auto_manage_prefer_seeds;
-		
 		// if this is true, torrents that don't have any significant
 		// transfers are not counted as active when determining which
 		// auto managed torrents to pause and resume
@@ -563,7 +411,7 @@ namespace libtorrent
 		float peer_turnover;
 
 		// when we are connected to more than
-		// limit * peer_turnover_cutoff peers
+		// limit * peer_turnover_enable peers
 		// disconnect peer_turnover fraction
 		// of the peers
 		float peer_turnover_cutoff;
@@ -587,10 +435,6 @@ namespace libtorrent
 		// about, not necessarily connected to.
 		int max_peerlist_size;
 
-		// when a torrent is paused, this is the max peer
-		// list size that's used
-		int max_paused_peerlist_size;
-
 		// any announce intervals reported from a tracker
 		// that is lower than this, will be clamped to this
 		// value. It's specified in seconds
@@ -612,237 +456,6 @@ namespace libtorrent
 		// drained from the rate limiters, to avoid exceeding
 		// the limits with the total traffic
 		bool rate_limit_ip_overhead;
-
-		// this announces to all trackers within the current
-		// tier. Trackers within a tier are supposed to share
-		// peers, this could be used for trackers that don't,
-		// and require the clients to announce to all of them.
-		bool announce_to_all_trackers;
-
-		// if set to true, multi tracker torrents are treated
-		// the same way uTorrent treats them. It defaults to
-		// false in order to comply with the extension definition.
-		// When this is enabled, one tracker from each tier is
-		// announced
-		bool announce_to_all_tiers;
-
-		// when this is set to true, if there is a tracker entry
-		// with udp:// protocol, it is preferred over the same
-		// tracker over http://.
-		bool prefer_udp_trackers;
-
-		// when set to true, a piece has to have been forwarded
-		// to a third peer before another one is handed out
-		bool strict_super_seeding;
-
-		// the number of pieces to send to each peer when seeding
-		// before rotating to a new peer
-		int seeding_piece_quota;
-
-		// the maximum number of sparse regions before starting
-		// to prioritize pieces close to other pieces (to maintain
-		// the number of sparse regions). This is set to 30000 on
-		// windows because windows vista has a new limit on the
-		// numbers of sparse regions one file may have
-		// if it is set to 0 this behavior is disabled
-		// this is a hack to avoid a terrible bug on windows
-		// don't use unless you have to, it screws with rarest-first
-		// piece selection, and reduces swarm performance
-		int max_sparse_regions;
-
-#ifndef TORRENT_DISABLE_MLOCK
-		// if this is set to true, the memory allocated for the
-		// disk cache will be locked in physical RAM, never to
-		// be swapped out
-		bool lock_disk_cache;
-#endif
-
-		// the number of times to reject requests while being
-		// choked before disconnecting a peer for being malicious
-		int max_rejects;
-
-		// sets the socket send and receive buffer sizes
-		// 0 means OS default
-		int recv_socket_buffer_size;
-		int send_socket_buffer_size;
-
-		// if this is set to false, the hashing will be
-		// optimized for memory usage instead of the
-		// number of read operations
-		bool optimize_hashing_for_speed;
-
-		// if > 0, file checks will have a short
-		// delay between disk operations, to make it 
-		// less intrusive on the system as a whole
-		// blocking the disk. This delay is specified
-		// in milliseconds and the delay will be this
-		// long per 16kiB block
-		// the default of 10 ms/16kiB will limit
-		// the checking rate to 1.6 MiB per second
-		int file_checks_delay_per_block;
-
-		enum disk_cache_algo_t
-		{ lru, largest_contiguous };
-
-		disk_cache_algo_t disk_cache_algorithm;
-
-		// the number of blocks that will be read ahead
-		// when reading a block into the read cache
-		int read_cache_line_size;
-
-		// whenever a contiguous range of this many
-		// blocks is found in the write cache, it
-		// is flushed immediately
-		int write_cache_line_size;
-
-		// this is the number of seconds a disk failure
-		// occurs until libtorrent will re-try.
-		int optimistic_disk_retry;
-
-		// when set to true, all data downloaded from
-		// peers will be assumed to be correct, and not
-		// tested to match the hashes in the torrent
-		// this is only useful for simulation and
-		// testing purposes (typically combined with
-		// disabled_storage)
-		bool disable_hash_checks;
-
-		// if this is true, disk read operations may
-		// be re-ordered based on their physical disk
-		// read offset. This greatly improves throughput
-		// when uploading to many peers. This assumes
-		// a traditional hard drive with a read head
-		// and spinning platters. If your storage medium
-		// is a solid state drive, this optimization
-		// doesn't give you an benefits
-		bool allow_reordered_disk_operations;
-
-		// if this is true, i2p torrents are allowed
-		// to also get peers from other sources than
-		// the tracker, and connect to regular IPs,
-		// not providing any anonymization. This may
-		// be useful if the user is not interested in
-		// the anonymization of i2p, but still wants to
-		// be able to connect to i2p peers.
-		bool allow_i2p_mixed;
-
-		// the max number of pieces that a peer can
-		// suggest to use before we start dropping
-		// previous suggested piece
-		int max_suggest_pieces;
-
-		// if set to true, requests that have have not been
-		// satisfied after the equivalence of the entire
-		// request queue has been received, will be considered lost
-		bool drop_skipped_requests;
-
-		// if this is set to true, the disk I/O will be
-		// run at lower-than-normal priority. This is
-		// intended to make the machine more responsive
-		// to foreground tasks, while bittorrent runs
-		// in the background
-		bool low_prio_disk;
-
-		// number of seconds between local service announces for
-		// torrents. Defaults to 5 minutes
-		int local_service_announce_interval;
-
-		// number of seconds between DHT announces for
-		// torrents. Defaults to 15 minutes
-		int dht_announce_interval;
-
-		// the number of seconds a connection ID received
-		// from a UDP tracker is valid for. This is specified
-		// as 60 seconds
-		int udp_tracker_token_expiry;
-
-		// if this is set to true, any block read from the
-		// disk cache will be dropped from the cache immediately
-		// following. This may be useful if the block is not
-		// expected to be hit again. It would save some memory
-		bool volatile_read_cache;
-
-		// if this is set to true, the size of the cache line
-		// generated by a particular read request depends on the
-		// rate you're sending to that peer. This optimizes the
-		// memory usage of the disk read cache by reading
-		// further ahead for peers that you're uploading at high
-		// rates to
-		bool guided_read_cache;
-
-		// this is the default minimum time any read cache line
-		// is kept in the cache.
-		int default_cache_min_age;
-
-		// the global number of optimistic unchokes
-		// 0 means automatic
-		int num_optimistic_unchoke_slots;
-
-		// if set to true, files won't have their atime updated
-		// on disk reads. This works on linux
-		bool no_atime_storage;
-
-		// === BitTyrant unchoker settings ==
-
-		// when using BitTyrant choker, this is the default
-		// assumed reciprocation rate. This is where each peer starts
-		int default_est_reciprocation_rate;
-
-		// this is the increase of the estimated reciprocation rate
-		// in percent. We increase by this amount once every unchoke
-		// interval that we are choked by the other peer and we have
-		// unchoked them
-		int increase_est_reciprocation_rate;
-
-		// each unchoke interval that we stay unchoked by the other
-		// peer, and we have unchoked this peer as well, we decrease
-		// our estimate of the reciprocation rate, since we might have
-		// over-estimated it
-		int decrease_est_reciprocation_rate;
-
-		// if set to true, an incoming connection to a torrent that's
-		// paused and auto-managed will make the torrent start.
-		bool incoming_starts_queued_torrents;
-
-		// when set to true, the downloaded counter sent to trackers
-		// will include the actual number of payload bytes donwnloaded
-		// including redundant bytes. If set to false, it will not include
-		// any redundany bytes
-		bool report_true_downloaded;
-
-		// if set to true, libtorrent won't request a piece multiple times
-		// until every piece is requested
-		bool strict_end_game_mode;
-
-		// each peer will have these limits set on it
-		int default_peer_upload_rate;
-		int default_peer_download_rate;
-
-		// if this is true, the broadcast socket will not only use IP multicast
-		// but also send the messages on the broadcast address. This is false by
-		// default in order to avoid flooding networks for no good reason. If
-		// a network is known not to support multicast, this can be enabled
-		bool broadcast_lsd;
-
-		// when set to true, the file modification time is ignored when loading
-		// resume data. The resume data includes the expected timestamp of each
-		// file and is typically compared to make sure the files haven't changed
-		// since the last session
-		bool ignore_resume_timestamps;
-
-		// when this is true, libtorrent will take actions to make sure any
-		// privacy sensitive information is leaked out from the client. This
-		// mode is assumed to be combined with using a proxy for all your
-		// traffic. With this option, your true IP address will not be exposed
-		bool anonymous_mode;
-
-		// the number of milliseconds between internal ticks. Should be no
-		// more than one second (i.e. 1000).
-		int tick_interval;
-
-		// specifies whether downloads from web seeds is reported to the
-		// tracker or not. Defaults to on
-		bool report_web_seed_downloads;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
@@ -853,7 +466,6 @@ namespace libtorrent
 			, search_branching(5)
 			, service_port(0)
 			, max_fail_count(20)
-			, max_torrent_search_reply(20)
 		{}
 		
 		// the maximum number of peers to send in a
@@ -871,10 +483,6 @@ namespace libtorrent
 		// the maximum number of times a node can fail
 		// in a row before it is removed from the table.
 		int max_fail_count;
-
-		// the max number of torrents to return in a
-		// torrent search query to the DHT
-		int max_torrent_search_reply;
 	};
 #endif
 

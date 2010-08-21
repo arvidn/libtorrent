@@ -1,10 +1,10 @@
-#! /usr/bin/env python
+#!/usr/bin/python
 
 import sys
 import os
 
-quantize = 100
-max_rtt = 5000
+quantize = 200
+max_rtt = 10000
 
 f = open(sys.argv[1])
 distribution = {}
@@ -15,7 +15,7 @@ for i in range(0, max_rtt, quantize):
 
 for line in f:
 	time = int(line.split('\t')[1])
-	if (time < 0 or time > max_rtt - quantize): continue
+	if (time < 0 or time > max_rtt): continue
 	num_messages += 1
 	time /= quantize
 	time *= quantize

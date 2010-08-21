@@ -69,7 +69,7 @@ namespace
     }
 
     torrent_info construct0(std::string path) {
-        return torrent_info(path);
+        return torrent_info(fs::path(path));
     }
 
     list map_block(torrent_info& ti, int piece, size_type offset, int size)
@@ -83,27 +83,11 @@ namespace
        return result;
     }
 
-    bool get_verified(announce_entry const& ae)
-    { return ae.verified; }
-    bool get_updating(announce_entry const& ae)
-    { return ae.updating; }
-    bool get_start_sent(announce_entry const& ae)
-    { return ae.start_sent; }
-    bool get_complete_sent(announce_entry const& ae)
-    { return ae.complete_sent; }
-    bool get_send_stats(announce_entry const& ae)
-    { return ae.send_stats; }
-
 } // namespace unnamed
 
 void bind_torrent_info()
 {
     return_value_policy<copy_const_reference> copy;
-
-    void (torrent_info::*rename_file0)(int, std::string const&) = &torrent_info::rename_file;
-#if TORRENT_USE_WSTRING
-    void (torrent_info::*rename_file1)(int, std::wstring const&) = &torrent_info::rename_file;
-#endif
 
     class_<file_slice>("file_slice")
         .def_readwrite("file_index", &file_slice::file_index)
@@ -117,12 +101,9 @@ void bind_torrent_info()
 #endif
         .def(init<sha1_hash const&>())
         .def(init<char const*, int>())
-        .def(init<std::string>())
-#if TORRENT_USE_WSTRING
-        .def(init<std::wstring>())
-#endif
+        .def(init<boost::filesystem::path>())
 
-        .def("add_tracker", &torrent_info::add_tracker, arg("url"))
+        .def("add_tracker", &torrent_info::add_tracker, (arg("url"), arg("tier")=0))
         .def("add_url_seed", &torrent_info::add_url_seed)
 
         .def("name", &torrent_info::name, copy)
@@ -141,10 +122,7 @@ void bind_torrent_info()
         .def("file_at", &torrent_info::file_at, return_internal_reference<>())
         .def("file_at_offset", &torrent_info::file_at_offset)
         .def("files", &files, (arg("storage")=false))
-        .def("rename_file", rename_file0)
-#if TORRENT_USE_WSTRING
-        .def("rename_file", rename_file1)
-#endif
+        .def("rename_file", &torrent_info::rename_file)
 
         .def("priv", &torrent_info::priv)
         .def("trackers", range(begin_trackers, end_trackers))
@@ -174,19 +152,5 @@ void bind_torrent_info()
     class_<announce_entry>("announce_entry", init<std::string const&>())
         .def_readwrite("url", &announce_entry::url)
         .def_readwrite("tier", &announce_entry::tier)
-        .add_property("fail_limit", &announce_entry::fail_limit)
-        .add_property("fails", &announce_entry::fails)
-        .add_property("source", &announce_entry::source)
-        .add_property("verified", &get_verified)
-        .add_property("updating", &get_updating)
-        .add_property("start_sent", &get_start_sent)
-        .add_property("complete_sent", &get_complete_sent)
-        .add_property("send_stats", &get_send_stats)
-
-        .def("reset", &announce_entry::reset)
-        .def("failed", &announce_entry::failed, arg("retry_interval") = 0)
-        .def("can_announce", &announce_entry::can_announce)
-        .def("is_working", &announce_entry::is_working)
-        .def("trim", &announce_entry::trim)
         ;
 }

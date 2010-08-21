@@ -9,6 +9,9 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
+lib program-options : : <name>boost_program_options ;
+lib regex : : <name>boost_regex ;
+
 project client_test
    : requirements
 	<threading>multi <library>/torrent//torrent
@@ -16,12 +19,13 @@ project client_test
 	<link>static
    ;  
 
-exe client_test : client_test.cpp ;
+exe client_test : client_test.cpp
+	: <library>/boost/program_options
+	<library>/boost/regex
+	;
 
 exe simple_client : simple_client.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
 exe make_torrent : make_torrent.cpp ;
 exe enum_if : enum_if.cpp ;
-exe connection_tester : connection_tester.cpp ;
-exe fragmentation_test : fragmentation_test.cpp ;
 

@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace aux { struct session_impl; }
+	class ip_filter;
 
 	class TORRENT_EXPORT udp_tracker_connection: public tracker_connection
 	{
@@ -71,9 +71,11 @@ namespace libtorrent
 			, connection_queue& cc
 			, tracker_manager& man
 			, tracker_request const& req
+			, address bind_infc
 			, boost::weak_ptr<request_callback> c
-			, aux::session_impl& ses
-			, proxy_settings const& ps);
+			, session_settings const& stn
+			, proxy_settings const& ps
+			, ip_filter const* ipf);
 
 		void start();
 		void close();
@@ -91,17 +93,14 @@ namespace libtorrent
 		boost::intrusive_ptr<udp_tracker_connection> self()
 		{ return boost::intrusive_ptr<udp_tracker_connection>(this); }
 
-		void name_lookup(error_code const& error, tcp::resolver::iterator i);
+		void name_lookup(error_code const& error, udp::resolver::iterator i);
 		void timeout(error_code const& error);
-		void start_announce();
 
-		bool on_receive(error_code const& e, udp::endpoint const& ep
+		void on_receive(error_code const& e, udp::endpoint const& ep
 			, char const* buf, int size);
-		bool on_receive_hostname(error_code const& e, char const* hostname
-			, char const* buf, int size);
-		bool on_connect_response(char const* buf, int size);
-		bool on_announce_response(char const* buf, int size);
-		bool on_scrape_response(char const* buf, int size);
+		void on_connect_response(char const* buf, int size);
+		void on_announce_response(char const* buf, int size);
+		void on_scrape_response(char const* buf, int size);
 
 		void send_udp_connect();
 		void send_udp_announce();
@@ -111,27 +110,18 @@ namespace libtorrent
 
 		tracker_manager& m_man;
 
-		bool m_abort;
-		std::string m_hostname;
+		udp::resolver m_name_lookup;
+		udp_socket m_socket;
 		udp::endpoint m_target;
-		std::list<tcp::endpoint> m_endpoints;
 
 		int m_transaction_id;
-		aux::session_impl& m_ses;
+		boost::int64_t m_connection_id;
+		session_settings const& m_settings;
 		int m_attempts;
-
-		struct connection_cache_entry
-		{
-			boost::int64_t connection_id;
-			ptime expires;
-		};
-
-		static std::map<address, connection_cache_entry> m_connection_cache;
-		static mutex m_cache_mutex;
 
 		action_t m_state;
 
-		proxy_settings m_proxy;
+		ip_filter const* m_ip_filter;
 	};
 
 }

@@ -33,16 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_NATPMP_HPP
 #define TORRENT_NATPMP_HPP
 
-#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
-#include "libtorrent/deadline_timer.hpp"
 
-#include <boost/function/function1.hpp>
-#include <boost/function/function3.hpp>
+#include <boost/function.hpp>
+#include <boost/thread/mutex.hpp>
+
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#include <fstream>
+#endif
 
 namespace libtorrent
 {
@@ -50,15 +49,12 @@ namespace libtorrent
 // int: port mapping index
 // int: external port
 // std::string: error message
-typedef boost::function<void(int, int, error_code const&)> portmap_callback_t;
-typedef boost::function<void(char const*)> log_callback_t;
+typedef boost::function<void(int, int, std::string const&)> portmap_callback_t;
 
-class TORRENT_EXPORT natpmp : public intrusive_ptr_base<natpmp>
+class natpmp : public intrusive_ptr_base<natpmp>
 {
 public:
-	natpmp(io_service& ios, address const& listen_interface
-		, portmap_callback_t const& cb
-		, log_callback_t const& lcb);
+	natpmp(io_service& ios, address const& listen_interface, portmap_callback_t const& cb);
 
 	void rebind(address const& listen_interface);
 
@@ -67,24 +63,22 @@ public:
 	enum protocol_type { none = 0, udp = 1, tcp = 2 };
 	int add_mapping(protocol_type p, int external_port, int local_port);
 	void delete_mapping(int mapping_index);
-	bool get_mapping(int mapping_index, int& local_port, int& external_port, int& protocol) const;
 
 	void close();
 
 private:
 	
-	void update_mapping(int i, mutex::scoped_lock& l);
-	void send_map_request(int i, mutex::scoped_lock& l);
+	void update_mapping(int i);
+	void send_map_request(int i);
 	void resend_request(int i, error_code const& e);
 	void on_reply(error_code const& e
 		, std::size_t bytes_transferred);
-	void try_next_mapping(int i, mutex::scoped_lock& l);
-	void update_expiration_timer(mutex::scoped_lock& l);
+	void try_next_mapping(int i);
+	void update_expiration_timer();
 	void mapping_expired(error_code const& e, int i);
-	void close_impl(mutex::scoped_lock& l);
+	void close_impl();
 
-	void log(char const* msg, mutex::scoped_lock& l);
-	void disable(error_code const& ec, mutex::scoped_lock& l);
+	void disable(char const* message);
 
 	struct mapping_t
 	{
@@ -94,7 +88,6 @@ private:
 			, local_port(0)
 			, external_port(0)
 			, protocol(none)
-			, map_sent(false)
 		{}
 
 		// indicates that the mapping has changed
@@ -114,13 +107,9 @@ private:
 		int external_port;
 
 		int protocol;
-
-		// set to true when the first map request is sent
-		bool map_sent;
 	};
 
 	portmap_callback_t m_callback;
-	log_callback_t m_log_callback;
 
 	std::vector<mapping_t> m_mappings;
 	
@@ -159,7 +148,12 @@ private:
 
 	bool m_abort;
 
-	mutable mutex m_mutex;
+	typedef boost::mutex mutex_t;
+	mutex_t m_mutex;
+
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	std::ofstream m_log;
+#endif
 };
 
 }

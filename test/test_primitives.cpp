@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/buffer.hpp"
@@ -41,34 +40,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/identify_client.hpp"
-#include "libtorrent/file.hpp"
-#include "libtorrent/session.hpp"
-#include "libtorrent/bencode.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
-#include "libtorrent/kademlia/node.hpp"
 #endif
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/bind.hpp>
-#include <iostream>
 
 #include "test.hpp"
 
 using namespace libtorrent;
 using namespace boost::tuples;
+using boost::bind;
 
 namespace libtorrent {
-	TORRENT_EXPORT std::string sanitize_path(std::string const& p);
-}
-
-sha1_hash to_hash(char const* s)
-{
-	sha1_hash ret;
-	from_hex(s, 40, (char*)&ret[0]);
-	return ret;
+	fs::path sanitize_path(fs::path const& p);
 }
 
 tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
@@ -90,7 +77,7 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 			tie(payload, protocol) = parser.incoming(recv_buf, error);
 			ret.get<0>() += payload;
 			ret.get<1>() += protocol;
-			ret.get<2>() |= error;
+			ret.get<2>() += error;
 //			std::cerr << payload << ", " << protocol << ", " << chunk_size << std::endl;
 			TORRENT_ASSERT(payload + protocol == chunk_size);
 		}
@@ -138,16 +125,6 @@ void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id con
 		carry = sum > 255;
 	}
 }
-
-void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
-{
-	using namespace libtorrent::dht;
-	std::vector<node_entry>* nv = (std::vector<node_entry>*)userdata;
-	nv->push_back(n);
-}
-
-void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
-
 #endif
 
 char upnp_xml[] = 
@@ -371,333 +348,25 @@ struct parse_state
 namespace libtorrent
 {
 	// defined in torrent_info.cpp
-	TORRENT_EXPORT bool verify_encoding(std::string& target, bool path = true);
+	bool verify_encoding(std::string& target, bool path = true);
 }
 
-TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state);
+void find_control_url(int type, char const* string, parse_state& state);
 
 int test_main()
 {
 	using namespace libtorrent;
-	error_code ec;
-	int ret = 0;
 
-	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
-	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
-	TEST_CHECK(error_code(errors::unsupported_protocol_version).message() == "unsupported protocol version");
-	TEST_CHECK(error_code(errors::no_i2p_router).message() == "no i2p router is set up");
-	TEST_CHECK(error_code(errors::http_parse_error).message() == "Invalid HTTP header");
-	TEST_CHECK(error_code(errors::error_code_max).message() == "Unknown error");
-
-	TEST_CHECK(errors::reserved129 == 129);
-	TEST_CHECK(errors::reserved159 == 159);
-	TEST_CHECK(errors::reserved108 == 108);
-
-	{
-	// test session state load/restore
-	session* s = new session(fingerprint("LT",0,0,0,0), 0);
-
-	session_settings sett;
-	sett.user_agent = "test";
-	sett.tracker_receive_timeout = 1234;
-	sett.file_pool_size = 543;
-	sett.urlseed_wait_retry = 74;
-	sett.file_pool_size = 754;
-	sett.initial_picker_threshold = 351;
-	sett.upnp_ignore_nonrouters = 5326;
-	sett.coalesce_writes = 623;
-	sett.auto_scrape_interval = 753;
-	sett.close_redundant_connections = 245;
-	sett.auto_scrape_interval = 235;
-	sett.auto_scrape_min_interval = 62;
-	s->set_settings(sett);
-/*
-#ifndef TORRENT_DISABLE_DHT
-	dht_settings dht_sett;
-	s->set_dht_settings(dht_sett);
-#endif
-*/
-	entry session_state;
-	s->save_state(session_state);
-
-	// test magnet link parsing
-	add_torrent_params p;
-	p.save_path = ".";
-	error_code ec;
-	const char* magnet_uri = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&tr=http://1&tr=http://2&tr=http://3&dn=foo";
-	torrent_handle t = add_magnet_uri(*s, magnet_uri, p, ec);
-	TEST_CHECK(!ec);
-	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
-
-	std::vector<announce_entry> trackers = t.trackers();
-	TEST_EQUAL(trackers.size(), 3);
-	if (trackers.size() > 0)
-	{
-		TEST_EQUAL(trackers[0].url, "http://1");
-		fprintf(stderr, "1: %s\n", trackers[0].url.c_str());
-	}
-	if (trackers.size() > 1)
-	{
-		TEST_EQUAL(trackers[1].url, "http://2");
-		fprintf(stderr, "2: %s\n", trackers[1].url.c_str());
-	}
-	if (trackers.size() > 2)
-	{
-		TEST_EQUAL(trackers[2].url, "http://3");
-		fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
-	}
-
-	TEST_EQUAL(to_hex(t.info_hash().to_string()), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
-
-	delete s;
-	s = new session(fingerprint("LT",0,0,0,0), 0);
-
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), session_state);
-	lazy_entry session_state2;
-	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), session_state2);
-	TEST_CHECK(ret == 0);
-
-	printf("session_state\n%s\n", print_entry(session_state2).c_str());
-	s->load_state(session_state2);
-#define CMP_SET(x) TEST_CHECK(s->settings().x == sett.x)
-
-	CMP_SET(user_agent);
-	CMP_SET(tracker_receive_timeout);
-	CMP_SET(file_pool_size);
-	CMP_SET(urlseed_wait_retry);
-	CMP_SET(file_pool_size);
-	CMP_SET(initial_picker_threshold);
-	CMP_SET(upnp_ignore_nonrouters);
-	CMP_SET(coalesce_writes);
-	CMP_SET(auto_scrape_interval);
-	CMP_SET(close_redundant_connections);
-	CMP_SET(auto_scrape_interval);
-	CMP_SET(auto_scrape_min_interval);
-	CMP_SET(max_peerlist_size);
-	CMP_SET(max_paused_peerlist_size);
-	CMP_SET(min_announce_interval);
-	CMP_SET(prioritize_partial_pieces);
-	CMP_SET(auto_manage_startup);
-	CMP_SET(rate_limit_ip_overhead);
-	CMP_SET(announce_to_all_trackers);
-	CMP_SET(announce_to_all_tiers);
-	CMP_SET(prefer_udp_trackers);
-	CMP_SET(strict_super_seeding);
-	CMP_SET(seeding_piece_quota);
-	delete s;
-	}
-
-	// test path functions
-	TEST_EQUAL(combine_path("test1/", "test2"), "test1/test2");
+	TEST_CHECK(sanitize_path("/a/b/c").string() == "a/b/c");
+	TEST_CHECK(sanitize_path("a/../c").string() == "a/c");
+	TEST_CHECK(sanitize_path("/.././c").string() == "c");
+	TEST_CHECK(sanitize_path("dev:").string() == "");
+	TEST_CHECK(sanitize_path("c:/b").string() == "b");
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(combine_path("test1\\", "test2"), "test1\\test2");
-	TEST_EQUAL(combine_path("test1", "test2"), "test1\\test2");
+	TEST_CHECK(sanitize_path("c:\\.\\c").string() == "c");
 #else
-	TEST_EQUAL(combine_path("test1", "test2"), "test1/test2");
+	TEST_CHECK(sanitize_path("//./c").string() == "c");
 #endif
-
-	TEST_EQUAL(extension("blah"), "");
-	TEST_EQUAL(extension("blah.exe"), ".exe");
-	TEST_EQUAL(extension("blah.foo.bar"), ".bar");
-	TEST_EQUAL(extension("blah.foo."), ".");
-
-	TEST_EQUAL(filename("blah"), "blah");
-	TEST_EQUAL(filename("/blah/foo/bar"), "bar");
-	TEST_EQUAL(filename("/blah/foo/bar/"), "bar");
-	TEST_EQUAL(filename("blah/"), "blah");
-
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(is_root_path("c:\\blah"), false);
-	TEST_EQUAL(is_root_path("c:\\"), true);
-	TEST_EQUAL(is_root_path("\\\\"), true);
-	TEST_EQUAL(is_root_path("\\\\foobar"), false);
-#else
-	TEST_EQUAL(is_root_path("/blah"), false);
-	TEST_EQUAL(is_root_path("/"), true);
-#endif
-
-	// if has_parent_path() returns false
-	// parent_path() should return the empty string
-	TEST_EQUAL(parent_path("blah"), "");
-	TEST_EQUAL(has_parent_path("blah"), false);
-	TEST_EQUAL(parent_path("/blah/foo/bar"), "/blah/foo/");
-	TEST_EQUAL(has_parent_path("/blah/foo/bar"), true);
-	TEST_EQUAL(parent_path("/blah/foo/bar/"), "/blah/foo/");
-	TEST_EQUAL(has_parent_path("/blah/foo/bar/"), true);
-	TEST_EQUAL(parent_path("/a"), "/");
-	TEST_EQUAL(has_parent_path("/a"), true);
-	TEST_EQUAL(parent_path("/"), "");
-	TEST_EQUAL(has_parent_path("/"), false);
-	TEST_EQUAL(parent_path(""), "");
-	TEST_EQUAL(has_parent_path(""), false);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(parent_path("\\\\"), "");
-	TEST_EQUAL(has_parent_path("\\\\"), false);
-	TEST_EQUAL(parent_path("c:\\"), "");
-	TEST_EQUAL(has_parent_path("c:\\"), false);
-	TEST_EQUAL(parent_path("c:\\a"), "c:\\");
-	TEST_EQUAL(has_parent_path("c:\\a"), true);
-#endif
-
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(is_complete("c:\\"), true);
-	TEST_EQUAL(is_complete("c:\\foo\\bar"), true);
-	TEST_EQUAL(is_complete("\\\\foo\\bar"), true);
-	TEST_EQUAL(is_complete("foo/bar"), false);
-	TEST_EQUAL(is_complete("\\\\"), true);
-#else
-	TEST_EQUAL(is_complete("/foo/bar"), true);
-	TEST_EQUAL(is_complete("foo/bar"), false);
-	TEST_EQUAL(is_complete("/"), true);
-	TEST_EQUAL(is_complete(""), false);
-#endif
-
-#ifndef TORRENT_DISABLE_DHT
-	// test search_torrent_entry
-
-	dht::search_torrent_entry ste1;
-	dht::search_torrent_entry ste2;
-	char const* ste1_tags[] = {"tag1", "tag2", "tag3", "tag4"};
-	ste1.publish("ste1", ste1_tags, 4);
-	char const* ste11_tags[] = {"tag2", "tag3"};
-	ste1.publish("ste1", ste11_tags, 2);
-	char const* ste2_tags[] = {"tag1", "tag2", "tag5", "tag6"};
-	ste2.publish("ste2", ste2_tags, 4);
-	char const* ste21_tags[] = {"tag1", "tag5"};
-	ste2.publish("ste2", ste21_tags, 2);
-
-	char const* test_tags1[] = {"tag1", "tag2"};
-	char const* test_tags2[] = {"tag3", "tag2"};
-	int m1 = ste1.match(test_tags1, 2);
-	int m2 = ste2.match(test_tags1, 2);
-	TEST_CHECK(m1 == m2);
-	m1 = ste1.match(test_tags2, 2);
-	m2 = ste2.match(test_tags2, 2);
-	TEST_CHECK(m1 > m2);
-#endif
-
-	// test split_string
-
-	char const* tags[10];
-	char tags_str[] = "  this  is\ta test\t string\x01to be split  and it cannot "
-		"extend over the limit of elements \t";
-	ret = split_string(tags, 10, tags_str);
-
-	TEST_CHECK(ret == 10);
-	TEST_CHECK(strcmp(tags[0], "this") == 0);
-	TEST_CHECK(strcmp(tags[1], "is") == 0);
-	TEST_CHECK(strcmp(tags[2], "a") == 0);
-	TEST_CHECK(strcmp(tags[3], "test") == 0);
-	TEST_CHECK(strcmp(tags[4], "string") == 0);
-	TEST_CHECK(strcmp(tags[5], "to") == 0);
-	TEST_CHECK(strcmp(tags[6], "be") == 0);
-	TEST_CHECK(strcmp(tags[7], "split") == 0);
-	TEST_CHECK(strcmp(tags[8], "and") == 0);
-	TEST_CHECK(strcmp(tags[9], "it") == 0);
-
-	// test snprintf
-
-	char msg[10];
-	snprintf(msg, sizeof(msg), "too %s format string", "long");
-	TEST_CHECK(strcmp(msg, "too long ") == 0);
-
-	// test maybe_url_encode
-
-	TEST_EQUAL(maybe_url_encode("http://test:test@abc.com/abc<>abc"), "http://test:test@abc.com:80/abc%3c%3eabc");
-	TEST_EQUAL(maybe_url_encode("http://abc.com/foo bar"), "http://abc.com:80/foo%20bar");
-	TEST_EQUAL(maybe_url_encode("abc"), "abc");
-	TEST_EQUAL(maybe_url_encode("http://abc.com/abc"), "http://abc.com/abc");
-	
-	// test sanitize_path
-
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize_path("/a/b/c"), "a\\b\\c");
-	TEST_EQUAL(sanitize_path("a/../c"), "a\\c");
-#else
-	TEST_EQUAL(sanitize_path("/a/b/c"), "a/b/c");
-	TEST_EQUAL(sanitize_path("a/../c"), "a/c");
-#endif
-	TEST_EQUAL(sanitize_path("/.././c"), "c");
-	TEST_EQUAL(sanitize_path("dev:"), "");
-	TEST_EQUAL(sanitize_path("c:/b"), "b");
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize_path("c:\\.\\c"), "c");
-	TEST_EQUAL(sanitize_path("\\c"), "c");
-#else
-	TEST_EQUAL(sanitize_path("//./c"), "c");
-#endif
-
-	// make sure the time classes have correct semantics
-
-	TEST_EQUAL(total_milliseconds(milliseconds(100)), 100);
-	TEST_EQUAL(total_milliseconds(milliseconds(1)),  1);
-	TEST_EQUAL(total_milliseconds(seconds(1)), 1000);
-
-
-	if (supports_ipv6())
-	{
-		// make sure the assumption we use in policy's peer list hold
-		std::multimap<address, int> peers;
-		std::multimap<address, int>::iterator i;
-		peers.insert(std::make_pair(address::from_string("::1", ec), 0));
-		peers.insert(std::make_pair(address::from_string("::2", ec), 3));
-		peers.insert(std::make_pair(address::from_string("::3", ec), 5));
-		i = peers.find(address::from_string("::2", ec));
-		TEST_CHECK(i != peers.end());
-		if (i != peers.end())
-		{
-			TEST_CHECK(i->first == address::from_string("::2", ec));
-			TEST_CHECK(i->second == 3);
-		}
-	}
-
-	// test identify_client
-
-	TEST_CHECK(identify_client(peer_id("-AZ1234-............")) == "Azureus 1.2.3.4");
-	TEST_CHECK(identify_client(peer_id("-AZ1230-............")) == "Azureus 1.2.3");
-	TEST_CHECK(identify_client(peer_id("S123--..............")) == "Shadow 1.2.3");
-	TEST_CHECK(identify_client(peer_id("M1-2-3--............")) == "Mainline 1.2.3");
-
-	// test to/from hex conversion
-
-	char const* str = "0123456789012345678901234567890123456789";
-	char bin[20];
-	TEST_CHECK(from_hex(str, 40, bin));
-	char hex[41];
-	to_hex(bin, 20, hex);
-	TEST_CHECK(strcmp(hex, str) == 0);
-
-	// test is_space
-
-	TEST_CHECK(!is_space('C'));
-	TEST_CHECK(!is_space('\b'));
-	TEST_CHECK(!is_space('8'));
-	TEST_CHECK(!is_space('='));
-	TEST_CHECK(is_space(' '));
-	TEST_CHECK(is_space('\t'));
-	TEST_CHECK(is_space('\n'));
-	TEST_CHECK(is_space('\r'));
-
-	// test to_lower
-
-	TEST_CHECK(to_lower('C') == 'c');
-	TEST_CHECK(to_lower('c') == 'c');
-	TEST_CHECK(to_lower('-') == '-');
-	TEST_CHECK(to_lower('&') == '&');
-
-	// test string_equal_no_case
-
-	TEST_CHECK(string_equal_no_case("foobar", "FoobAR"));
-	TEST_CHECK(string_equal_no_case("foobar", "foobar"));
-	TEST_CHECK(!string_equal_no_case("foobar", "foobar "));
-	TEST_CHECK(!string_equal_no_case("foobar", "F00"));
-
-	// test string_begins_no_case
-
-	TEST_CHECK(string_begins_no_case("foobar", "FoobAR --"));
-	TEST_CHECK(!string_begins_no_case("foobar", "F00"));
 
 	// test itoa
 
@@ -708,23 +377,23 @@ int test_main()
 
 	// test url parsing
 
-	TEST_CHECK(parse_url_components("http://foo:bar@host.com:80/path/to/file", ec)
-		== make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file"));
+	TEST_CHECK(parse_url_components("http://foo:bar@host.com:80/path/to/file")
+		== make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file", (char const*)0));
 
-	TEST_CHECK(parse_url_components("http://host.com/path/to/file", ec)
-		== make_tuple("http", "", "host.com", 80, "/path/to/file"));
+	TEST_CHECK(parse_url_components("http://host.com/path/to/file")
+		== make_tuple("http", "", "host.com", 80, "/path/to/file", (char const*)0));
 
-	TEST_CHECK(parse_url_components("ftp://host.com:21/path/to/file", ec)
-		== make_tuple("ftp", "", "host.com", 21, "/path/to/file"));
+	TEST_CHECK(parse_url_components("ftp://host.com:21/path/to/file")
+		== make_tuple("ftp", "", "host.com", 21, "/path/to/file", (char const*)0));
 
-	TEST_CHECK(parse_url_components("http://host.com/path?foo:bar@foo:", ec)
-		== make_tuple("http", "", "host.com", 80, "/path?foo:bar@foo:"));
+	TEST_CHECK(parse_url_components("http://host.com/path?foo:bar@foo:")
+		== make_tuple("http", "", "host.com", 80, "/path?foo:bar@foo:", (char const*)0));
 
-	TEST_CHECK(parse_url_components("http://192.168.0.1/path/to/file", ec)
-		== make_tuple("http", "", "192.168.0.1", 80, "/path/to/file"));
+	TEST_CHECK(parse_url_components("http://192.168.0.1/path/to/file")
+		== make_tuple("http", "", "192.168.0.1", 80, "/path/to/file", (char const*)0));
 
-	TEST_CHECK(parse_url_components("http://[::1]/path/to/file", ec)
-		== make_tuple("http", "", "[::1]", 80, "/path/to/file"));
+	TEST_CHECK(parse_url_components("http://[::1]/path/to/file")
+		== make_tuple("http", "", "[::1]", 80, "/path/to/file", (char const*)0));
 
 	// base64 test vectors from http://www.faqs.org/rfcs/rfc4648.html
 
@@ -767,42 +436,14 @@ int test_main()
 
 	// url_has_argument
 
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test", "test") == "");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24", "bar") == "");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24", "foo") == "24");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "foo") == "24");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "bar") == "23");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "bar") == "23");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "a") == "e");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "b") == "");
-
-	// escape_string
-	char const* test_string = "!@#$%^&*()-_=+/,. %?";
-	TEST_EQUAL(escape_string(test_string, strlen(test_string))
-		, "!%40%23%24%25%5e%26*()-_%3d%2b%2f%2c.%20%25%3f");
-
-	// escape_path
-	TEST_EQUAL(escape_path(test_string, strlen(test_string))
-		, "!%40%23%24%25%5e%26*()-_%3d%2b/%2c.%20%25%3f");
-
-	TEST_CHECK(unescape_string(escape_path(test_string, strlen(test_string)), ec) == test_string);
-	TEST_CHECK(!ec);
-
-	// need_encoding
-	char const* test_string2 = "!@$&()-_/,.%?";
-	TEST_CHECK(need_encoding(test_string, strlen(test_string)) == true);
-	TEST_CHECK(need_encoding(test_string2, strlen(test_string2)) == false);
-	TEST_CHECK(need_encoding("\n", 1) == true);
-
-	// maybe_url_encode
-	TEST_CHECK(maybe_url_encode("http://bla.com/\n") == "http://bla.com:80/%0a");
-	std::cerr << maybe_url_encode("http://bla.com/\n") << std::endl;
-	TEST_CHECK(maybe_url_encode("?&") == "?&");
-
-	// unescape_string
-	TEST_CHECK(unescape_string(escape_string(test_string, strlen(test_string)), ec)
-		== test_string);
-	std::cerr << unescape_string(escape_string(test_string, strlen(test_string)), ec) << std::endl;
+	TEST_CHECK(!url_has_argument("http://127.0.0.1/test", "test"));
+	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24", "bar"));
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24", "foo") == "24");
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "foo") == "24");
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "bar") == "23");
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "bar") == "23");
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "a") == "e");
+	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "b"));
 
 	// verify_encoding
 
@@ -820,9 +461,7 @@ int test_main()
 	// HTTP request parser
 
 	http_parser parser;
-	boost::tuple<int, int, bool> received;
-
-	received = feed_bytes(parser
+	boost::tuple<int, int, bool> received = feed_bytes(parser
 		, "HTTP/1.1 200 OK\r\n"
 		"Content-Length: 4\r\n"
 		"Content-Type: text/plain\r\n"
@@ -895,6 +534,7 @@ int test_main()
 	TEST_CHECK(atoi(parser.header("port").c_str()) == 6881);
 	TEST_CHECK(parser.header("infohash") == "12345678901234567890");
 
+	// requests are assumed to have a content-length of 0
 	TEST_CHECK(parser.finished());
 
 	parser.reset();
@@ -913,28 +553,12 @@ int test_main()
 	TEST_CHECK(received == make_tuple(5, int(strlen(tracker_response) - 5), false));
 	TEST_CHECK(parser.get_body().left() == 5);
 
-	parser.reset();
-
-	// make sure we support content-range responses
-	// and that we're case insensitive
-	char const* web_seed_response =
-		"HTTP/1.1 206 OK\n"
-		"contEnt-rAngE: bYTes 0-4\n"
-		"conTent-TyPe: test/plain\n"
-		"\n"
-		"\ntest";
-
-	received = feed_bytes(parser, web_seed_response);
-
-	TEST_CHECK(received == make_tuple(5, int(strlen(web_seed_response) - 5), false));
-	TEST_CHECK(parser.content_range() == (std::pair<size_type, size_type>(0, 4)));
-	TEST_CHECK(parser.content_length() == 5);
 	// test xml parser
 
 	char xml1[] = "<a>foo<b/>bar</a>";
 	std::string out1;
 
-	xml_parse(xml1, xml1 + sizeof(xml1) - 1, boost::bind(&parser_callback
+	xml_parse(xml1, xml1 + sizeof(xml1) - 1, bind(&parser_callback
 		, boost::ref(out1), _1, _2, _3));
 	std::cerr << out1 << std::endl;
 	TEST_CHECK(out1 == "BaSfooEbSbarFa");
@@ -942,7 +566,7 @@ int test_main()
 	char xml2[] = "<?xml version = \"1.0\"?><c x=\"1\" \t y=\"3\"/><d foo='bar'></d boo='foo'><!--comment-->";
 	std::string out2;
 
-	xml_parse(xml2, xml2 + sizeof(xml2) - 1, boost::bind(&parser_callback
+	xml_parse(xml2, xml2 + sizeof(xml2) - 1, bind(&parser_callback
 		, boost::ref(out2), _1, _2, _3));
 	std::cerr << out2 << std::endl;
 	TEST_CHECK(out2 == "DxmlAversionV1.0EcAxV1AyV3BdAfooVbarFdAbooVfooCcomment");
@@ -950,7 +574,7 @@ int test_main()
 	char xml3[] = "<a f=1>foo</a f='b>";
 	std::string out3;
 
-	xml_parse(xml3, xml3 + sizeof(xml3) - 1, boost::bind(&parser_callback
+	xml_parse(xml3, xml3 + sizeof(xml3) - 1, bind(&parser_callback
 		, boost::ref(out3), _1, _2, _3));
 	std::cerr << out3 << std::endl;
 	TEST_CHECK(out3 == "BaPunquoted attribute valueSfooFaPmissing end quote on attribute");
@@ -958,7 +582,7 @@ int test_main()
 	char xml4[] = "<a  f>foo</a  v  >";
 	std::string out4;
 
-	xml_parse(xml4, xml4 + sizeof(xml4) - 1, boost::bind(&parser_callback
+	xml_parse(xml4, xml4 + sizeof(xml4) - 1, bind(&parser_callback
 		, boost::ref(out4), _1, _2, _3));
 	std::cerr << out4 << std::endl;
 	TEST_CHECK(out4 == "BaPgarbage inside element bracketsSfooFaPgarbage inside element brackets");
@@ -968,7 +592,7 @@ int test_main()
 	parse_state xml_s;
 	xml_s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
 	xml_parse((char*)upnp_xml, (char*)upnp_xml + sizeof(upnp_xml)
-		, boost::bind(&find_control_url, _1, _2, boost::ref(xml_s)));
+		, bind(&find_control_url, _1, _2, boost::ref(xml_s)));
 
 	std::cerr << "namespace " << xml_s.service_type << std::endl;
 	std::cerr << "url_base: " << xml_s.url_base << std::endl;
@@ -980,7 +604,7 @@ int test_main()
 
 	xml_s.reset("urn:schemas-upnp-org:service:WANPPPConnection:1");
 	xml_parse((char*)upnp_xml2, (char*)upnp_xml2 + sizeof(upnp_xml2)
-		, boost::bind(&find_control_url, _1, _2, boost::ref(xml_s)));
+		, bind(&find_control_url, _1, _2, boost::ref(xml_s)));
 
 	std::cerr << "namespace " << xml_s.service_type << std::endl;
 	std::cerr << "url_base: " << xml_s.url_base << std::endl;
@@ -992,17 +616,14 @@ int test_main()
 
 	// test network functions
 
+	error_code ec;
 	TEST_CHECK(is_local(address::from_string("192.168.0.1", ec)));
 	TEST_CHECK(is_local(address::from_string("10.1.1.56", ec)));
 	TEST_CHECK(!is_local(address::from_string("14.14.251.63", ec)));
 	TEST_CHECK(is_loopback(address::from_string("127.0.0.1", ec)));
-#if TORRENT_USE_IPV6
 	if (supports_ipv6())
-	{
 		TEST_CHECK(is_loopback(address::from_string("::1", ec)));
-		TEST_CHECK(is_any(address_v6::any()));
-	}
-#endif
+	TEST_CHECK(is_any(address_v6::any()));
 	TEST_CHECK(is_any(address_v4::any()));
 	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
 
@@ -1017,9 +638,7 @@ int test_main()
 	entry torrent;
 	torrent["info"] = info;
 
-	std::vector<char> buf;
-	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti(&buf[0], buf.size(), ec);
+	torrent_info ti(torrent);
 	std::cerr << ti.name() << std::endl;
 	TEST_CHECK(ti.name() == "test1");
 
@@ -1029,36 +648,24 @@ int test_main()
 	info["name.utf-8"] = "/test1/test2/test3";
 #endif
 	torrent["info"] = info;
-	buf.clear();
-	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti2(&buf[0], buf.size(), ec);
+	torrent_info ti2(torrent);
 	std::cerr << ti2.name() << std::endl;
-#ifdef TORRENT_WINDOWS
-	TEST_CHECK(ti2.name() == "test1\\test2\\test3");
-#else
 	TEST_CHECK(ti2.name() == "test1/test2/test3");
-#endif
 
 	info["name.utf-8"] = "test2/../test3/.././../../test4";
 	torrent["info"] = info;
-	buf.clear();
-	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti3(&buf[0], buf.size(), ec);
+	torrent_info ti3(torrent);
 	std::cerr << ti3.name() << std::endl;
-#ifdef TORRENT_WINDOWS
-	TEST_CHECK(ti3.name() == "test2\\test3\\test4");
-#else
 	TEST_CHECK(ti3.name() == "test2/test3/test4");
-#endif
 
 #ifndef TORRENT_DISABLE_DHT	
 	// test kademlia functions
 
 	using namespace libtorrent::dht;
 
-	for (int i = 0; i < 160; i += 8)
+	for (int i = 0; i < 160; i += 4)
 	{
-		for (int j = 0; j < 160; j += 8)
+		for (int j = 0; j < 160; j += 4)
 		{
 			node_id a(0);
 			a[(159-i) / 8] = 1 << (i & 7);
@@ -1069,7 +676,7 @@ int test_main()
 			TEST_CHECK(dist >= 0 && dist < 160);
 			TEST_CHECK(dist == ((i == j)?0:(std::max)(i, j)));
 
-			for (int k = 0; k < 160; k += 8)
+			for (int k = 0; k < 160; k += 4)
 			{
 				node_id c(0);
 				c[(159-k) / 8] = 1 << (k & 7);
@@ -1082,70 +689,70 @@ int test_main()
 
 	// test kademlia routing table
 	dht_settings s;
-	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
+	node_id id = boost::lexical_cast<sha1_hash>("6123456789abcdef01232456789abcdef0123456");
 	dht::routing_table table(id, 10, s);
 	table.node_seen(id, udp::endpoint(address_v4::any(), rand()));
 
-	node_id tmp = id;
-	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
+	node_id tmp;
+	node_id diff = boost::lexical_cast<sha1_hash>("00000f7459456a9453f8719b09547c11d5f34064");
 	std::vector<node_entry> nodes;
-	for (int i = 0; i < 7000; ++i)
+	for (int i = 0; i < 1000000; ++i)
 	{
 		table.node_seen(tmp, udp::endpoint(address_v4::any(), rand()));
 		add_and_replace(tmp, diff);
 	}
-	TEST_EQUAL(table.num_active_buckets(), 11);
 
-#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
-	table.print_state(std::cerr);
-#endif
-
-	table.for_each_node(node_push_back, nop, &nodes);
+	std::copy(table.begin(), table.end(), std::back_inserter(nodes));
 
 	std::cout << "nodes: " << nodes.size() << std::endl;
 
 	std::vector<node_entry> temp;
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, 0, nodes.size() * 2);
+	table.find_node(tmp, temp, false, nodes.size() + 1);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_EQUAL(temp.size(), nodes.size());
+	TEST_CHECK(temp.size() == nodes.size());
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, 0, 7);
+	table.find_node(tmp, temp, true, nodes.size() + 1);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_EQUAL(temp.size(), 7);
+	TEST_CHECK(temp.size() == nodes.size() + 1);
 
-	std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
-		, boost::bind(&node_entry::id, _1)
-		, boost::bind(&node_entry::id, _2), tmp));
+	std::generate(tmp.begin(), tmp.end(), &std::rand);
+	table.find_node(tmp, temp, false, 7);
+	std::cout << "returned: " << temp.size() << std::endl;
+	TEST_CHECK(temp.size() == 7);
+
+	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
+		, bind(&node_entry::id, _1)
+		, bind(&node_entry::id, _2), tmp));
 
 	int hits = 0;
 	for (std::vector<node_entry>::iterator i = temp.begin()
 		, end(temp.end()); i != end; ++i)
 	{
 		int hit = std::find_if(nodes.begin(), nodes.end()
-			, boost::bind(&node_entry::id, _1) == i->id) - nodes.begin();
+			, bind(&node_entry::id, _1) == i->id) - nodes.begin();
 //		std::cerr << hit << std::endl;
 		if (hit < int(temp.size())) ++hits;
 	}
 	TEST_CHECK(hits > int(temp.size()) / 2);
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, 0, 15);
+	table.find_node(tmp, temp, false, 15);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_EQUAL(temp.size(), (std::min)(15, int(nodes.size())));
+	TEST_CHECK(temp.size() == 15);
 
-	std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
-		, boost::bind(&node_entry::id, _1)
-		, boost::bind(&node_entry::id, _2), tmp));
+	std::sort(nodes.begin(), nodes.end(), bind(&compare_ref
+		, bind(&node_entry::id, _1)
+		, bind(&node_entry::id, _2), tmp));
 
 	hits = 0;
 	for (std::vector<node_entry>::iterator i = temp.begin()
 		, end(temp.end()); i != end; ++i)
 	{
 		int hit = std::find_if(nodes.begin(), nodes.end()
-			, boost::bind(&node_entry::id, _1) == i->id) - nodes.begin();
+			, bind(&node_entry::id, _1) == i->id) - nodes.begin();
 //		std::cerr << hit << std::endl;
 		if (hit < int(temp.size())) ++hits;
 	}
@@ -1165,8 +772,8 @@ int test_main()
 	TEST_CHECK(!(h1 < h2));
 	TEST_CHECK(h1.is_all_zeros());
 
-	h1 = to_hash("0123456789012345678901234567890123456789");
-	h2 = to_hash("0113456789012345678901234567890123456789");
+	h1 = boost::lexical_cast<sha1_hash>("0123456789012345678901234567890123456789");
+	h2 = boost::lexical_cast<sha1_hash>("0113456789012345678901234567890123456789");
 
 	TEST_CHECK(h2 < h1);
 	TEST_CHECK(h2 == h2);
@@ -1174,36 +781,34 @@ int test_main()
 	h2.clear();
 	TEST_CHECK(h2.is_all_zeros());
 	
-	h2 = to_hash("ffffffffff0000000000ffffffffff0000000000");
-	h1 = to_hash("fffff00000fffff00000fffff00000fffff00000");
+	h2 = boost::lexical_cast<sha1_hash>("ffffffffff0000000000ffffffffff0000000000");
+	h1 = boost::lexical_cast<sha1_hash>("fffff00000fffff00000fffff00000fffff00000");
 	h1 &= h2;
-	TEST_CHECK(h1 == to_hash("fffff000000000000000fffff000000000000000"));
+	TEST_CHECK(h1 == boost::lexical_cast<sha1_hash>("fffff000000000000000fffff000000000000000"));
 
-	h2 = to_hash("ffffffffff0000000000ffffffffff0000000000");
-	h1 = to_hash("fffff00000fffff00000fffff00000fffff00000");
+	h2 = boost::lexical_cast<sha1_hash>("ffffffffff0000000000ffffffffff0000000000");
+	h1 = boost::lexical_cast<sha1_hash>("fffff00000fffff00000fffff00000fffff00000");
 	h1 |= h2;
-	TEST_CHECK(h1 == to_hash("fffffffffffffff00000fffffffffffffff00000"));
+	TEST_CHECK(h1 == boost::lexical_cast<sha1_hash>("fffffffffffffff00000fffffffffffffff00000"));
 	
-	h2 = to_hash("0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f");
+	h2 = boost::lexical_cast<sha1_hash>("0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f");
 	h1 ^= h2;
-#if TORRENT_USE_IOSTREAM
 	std::cerr << h1 << std::endl;
-#endif
-	TEST_CHECK(h1 == to_hash("f0f0f0f0f0f0f0ff0f0ff0f0f0f0f0f0f0ff0f0f"));
+	TEST_CHECK(h1 == boost::lexical_cast<sha1_hash>("f0f0f0f0f0f0f0ff0f0ff0f0f0f0f0f0f0ff0f0f"));
 	TEST_CHECK(h1 != h2);
 
 	h2 = sha1_hash("                    ");
-	TEST_CHECK(h2 == to_hash("2020202020202020202020202020202020202020"));
+	TEST_CHECK(h2 == boost::lexical_cast<sha1_hash>("2020202020202020202020202020202020202020"));
 	
 	// CIDR distance test
-	h1 = to_hash("0123456789abcdef01232456789abcdef0123456");
-	h2 = to_hash("0123456789abcdef01232456789abcdef0123456");
+	h1 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
+	h2 = boost::lexical_cast<sha1_hash>("0123456789abcdef01232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 160);
-	h2 = to_hash("0120456789abcdef01232456789abcdef0123456");
+	h2 = boost::lexical_cast<sha1_hash>("0120456789abcdef01232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 14);
-	h2 = to_hash("012f456789abcdef01232456789abcdef0123456");
+	h2 = boost::lexical_cast<sha1_hash>("012f456789abcdef01232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 12);
-	h2 = to_hash("0123456789abcdef11232456789abcdef0123456");
+	h2 = boost::lexical_cast<sha1_hash>("0123456789abcdef11232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 16 * 4 + 3);
 
 

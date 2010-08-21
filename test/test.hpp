@@ -35,10 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 void report_failure(char const* str, char const* file, int line);
 
-#include <boost/config.hpp>
-#include <exception>
-#include <sstream>
-
 #if defined(_MSC_VER)
 #define COUNTER_GUARD(x)
 #else
@@ -55,49 +51,9 @@ void report_failure(char const* str, char const* file, int line);
 #define TEST_REPORT_AUX(x, line, file) \
 	report_failure(x, line, file)
 
-#ifdef BOOST_NO_EXCEPTIONS
 #define TEST_CHECK(x) \
-	if (!(x)) \
-		TEST_REPORT_AUX("TEST_CHECK failed: \"" #x "\"", __FILE__, __LINE__);
-#define TEST_EQUAL(x, y) \
-	if (x != y) { \
-		std::stringstream s; \
-		s << "TEST_EQUAL_ERROR: " << #x << ": " << x << " expected: " << y << std::endl; \
-		TEST_REPORT_AUX(s.str().c_str(), __FILE__, __LINE__); \
-	}
-#else
-#define TEST_CHECK(x) \
-	try \
-	{ \
-		if (!(x)) \
-			TEST_REPORT_AUX("TEST_CHECK failed: \"" #x "\"", __FILE__, __LINE__); \
-	} \
-	catch (std::exception& e) \
-	{ \
-		TEST_ERROR("Exception thrown: " #x " :" + std::string(e.what())); \
-	} \
-	catch (...) \
-	{ \
-		TEST_ERROR("Exception thrown: " #x); \
-	}
-
-#define TEST_EQUAL(x, y) \
-	try { \
-		if (x != y) { \
-			std::stringstream s; \
-			s << "TEST_EQUAL_ERROR: " << #x << ": " << x << " expected: " << y << std::endl; \
-			TEST_REPORT_AUX(s.str().c_str(), __FILE__, __LINE__); \
-		} \
-	} \
-	catch (std::exception& e) \
-	{ \
-		TEST_ERROR("Exception thrown: " #x " :" + std::string(e.what())); \
-	} \
-	catch (...) \
-	{ \
-		TEST_ERROR("Exception thrown: " #x); \
-	}
-#endif
+    if (!(x)) \
+        TEST_REPORT_AUX("TEST_CHECK failed: \"" #x "\"", __FILE__, __LINE__)
 
 #define TEST_ERROR(x) \
 	TEST_REPORT_AUX((std::string("ERROR: \"") + x + "\"").c_str(), __FILE__, __LINE__)

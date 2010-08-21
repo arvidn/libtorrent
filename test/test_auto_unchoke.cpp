@@ -2,25 +2,28 @@
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/thread.hpp"
+#include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <iostream>
+#include <boost/filesystem/operations.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+
+using boost::filesystem::remove_all;
+using boost::filesystem::exists;
 
 void test_swarm()
 {
 	using namespace libtorrent;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48010, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49010, 50000), "0.0.0.0", 0);
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50010, 51000), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48010, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49010, 50000));
+	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50010, 51000));
 
-	ses1.set_alert_mask(alert::all_categories);
-	ses2.set_alert_mask(alert::all_categories);
-	ses3.set_alert_mask(alert::all_categories);
-
+	ses1.set_severity_level(alert::debug);
+	ses2.set_severity_level(alert::debug);
+	ses3.set_severity_level(alert::debug);
+	
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
@@ -35,7 +38,6 @@ void test_swarm()
 	session_settings settings;
 	settings.allow_multiple_connections_per_ip = true;
 	settings.ignore_limits_on_local_network = false;
-	settings.choking_algorithm = session_settings::auto_expand_choker;
 	ses1.set_settings(settings);
 	ses2.set_settings(settings);
 	ses3.set_settings(settings);
@@ -64,7 +66,6 @@ void test_swarm()
 		print_alerts(ses3, "ses3");
 
 		st = ses1.status();
-		std::cerr << st.allowed_upload_slots << " ";
 		if (st.allowed_upload_slots >= 2) break;
 
 		torrent_status st1 = tor1.status();
@@ -87,7 +88,7 @@ void test_swarm()
 		test_sleep(1000);
 	}
 
-	TEST_CHECK(st.allowed_upload_slots >= 2);
+	TEST_CHECK(st.allowed_upload_slots == 2);
 
 	// make sure the files are deleted
 	ses1.remove_torrent(tor1, session::delete_files);
@@ -98,12 +99,12 @@ void test_swarm()
 int test_main()
 {
 	using namespace libtorrent;
+	using namespace boost::filesystem;
 
-	// in case the previous run was t r catch (std::exception&) {}erminated
-	error_code ec;
-	remove_all("./tmp1_unchoke", ec);
-	remove_all("./tmp2_unchoke", ec);
-	remove_all("./tmp3_unchoke", ec);
+	// in case the previous run was terminated
+	try { remove_all("./tmp1_unchoke"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_unchoke"); } catch (std::exception&) {}
+	try { remove_all("./tmp3_unchoke"); } catch (std::exception&) {}
 
 	test_swarm();
 	
@@ -112,9 +113,9 @@ int test_main()
 	TEST_CHECK(!exists("./tmp2_unchoke/temporary"));
 	TEST_CHECK(!exists("./tmp3_unchoke/temporary"));
 
-	remove_all("./tmp1_unchoke", ec);
-	remove_all("./tmp2_unchoke", ec);
-	remove_all("./tmp3_unchoke", ec);
+	remove_all("./tmp1_unchoke");
+	remove_all("./tmp2_unchoke");
+	remove_all("./tmp3_unchoke");
 
 	return 0;
 }

@@ -58,16 +58,9 @@ add_files
 	::
 	
 		template <class Pred>
-		void add_files(file_storage& fs, boost::filesystem::path const& path, Pred p
-			, boost::uint32_t flags = 0);
-		template <class Pred>
-		void add_files(file_storage& fs, boost::filesystem::wpath const& path, Pred p
-			, boost::uint32_t flags = 0);
+		void add_files(file_storage& fs, boost::filesystem::path const& path, Pred p);
 
-		void add_files(file_storage& fs, boost::filesystem::path const& path
-			, boost::uint32_t flags = 0);
-		void add_files(file_storage& fs, boost::filesystem::wpath const& path
-			, boost::uint32_t flags = 0);
+		void add_files(file_storage& fs, boost::filesystem::path const& path);
 
 Adds the file specified by ``path`` to the ``file_storage`` object. In case ``path``
 refers to a diretory, files will be added recursively from the directory.
@@ -78,18 +71,11 @@ which ``p`` returns true are traversed. ``p`` must have the following signature:
 
 	bool Pred(boost::filesystem::path const& p);
 
-and for the wpath version::
-
-	bool Pred(boost::filesystem::wpath const& p);
-
 The path that is passed in to the predicate is the full path of the file or
 directory. If no predicate is specified, all files are added, and all directories
 are traveresed.
 
 The ".." directory is never traversed.
-
-The ``flags`` argument should be the same as the flags passed to the `create_torrent`_
-constructor.
 
 set_piece_hashes()
 ==================
@@ -98,21 +84,13 @@ set_piece_hashes()
 
 		template <class Fun>
 		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f);
+
 		template <class Fun>
-		void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, Fun f);
-		template <class Fun>
-		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f
-			, error_code& ec);
-		template <class Fun>
-		void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, Fun f
-			, error_code& ec);
+		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f, error_code& ec);
 
 		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p);
-		void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p);
-		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p
-			, error_code& ec);
-		void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p
-			, error_code& ec);
+
+		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, error_code& ec);
 
 This function will assume that the files added to the torrent file exists at path
 ``p``, read those files and hash the content and set the hashes in the ``create_torrent``
@@ -137,18 +115,9 @@ file structure. Its synopsis::
 
 		bool is_valid() const;
 
-		enum flags_t
-		{
-			pad_file = 1,
-			attribute_hidden = 2,
-			attribute_executable = 4
-		};
-
 		void add_file(file_entry const& e);
-		void add_file(fs::path const& p, size_type size, int flags = 0);
-		void add_file(fs::wpath const& p, size_type size, int flags = 0);
+		void add_file(fs::path const& p, size_type size);
 		void rename_file(int index, std::string const& new_filename);
-		void rename_file(int index, std::wstring const& new_filename);
 
 		std::vector<file_slice> map_block(int piece, size_type offset
 			, int size) const;
@@ -173,28 +142,10 @@ file structure. Its synopsis::
 		int piece_size(int index) const;
 
 		void set_name(std::string const& n);
-		void set_name(std::wstring const& n);
 		const std::string& name() const;
 
 		void swap(file_storage& ti);
 	}
-
-add_file()
-----------
-
-	::
-
-		void add_file(file_entry const& e);
-		void add_file(fs::path const& p, size_type size, int flags = 0);
-		void add_file(fs::wpath const& p, size_type size, int flags = 0);
-
-Adds a file to the file storage. The ``flags`` argument sets attributes on the file.
-The file attributes is an extension and may not work in all bittorrent clients.
-The possible arreibutes are::
-
-	pad_file
-	attribute_hidden
-	attribute_executable
 
 add_file
 --------
@@ -224,16 +175,8 @@ The ``create_torrent`` class has the following synopsis::
 
 	struct create_torrent
 	{
-		enum {
-			optimize = 1
-			, merkle = 2
-			, modification_time = 4
-			, symlink = 8
-			, calculate_file_hashes = 16
-		};
-		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
-			, int flags = optimize);
-		create_torrent(torrent_info const& ti);
+		create_torrent(file_storage& fs, int piece_size);
+		create_torrent(file_storage& fs);
 
 		entry generate() const;
 
@@ -242,7 +185,6 @@ The ``create_torrent`` class has the following synopsis::
 		void set_comment(char const* str);
 		void set_creator(char const* str);
 		void set_hash(int index, sha1_hash const& h);
-		void set_file_hash(int index, sha1_hash const& h);
 		void add_url_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
@@ -259,66 +201,14 @@ create_torrent()
 
 	::
 
-		enum {
-			optimize = 1
-			, merkle = 2
-			, modification_time = 4
-			, symlink = 8
-			, calculate_file_hashes = 16
-		};
-		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
-			, int flags = optimize);
-		create_torrent(torrent_info const& ti);
+		create_torrent(file_storage& fs, int piece_size);
+		create_torrent(file_storage& fs);
 
 The ``piece_size`` is the size of each piece in bytes. It must
-be a multiple of 16 kiB. If a piece size of 0 is specified, a
-piece_size will be calculated such that the torrent file is roughly 40 kB.
+be a multiple of 16 kiB.
 
-If a ``pad_size_limit`` is specified (other than -1), any file larger than
-the specified number of bytes will be preceeded by a pad file to align it
-with the start of a piece. The pad_file_limit is ignored unless the
-``optimize`` flag is passed.
-
-The overload that takes a ``torrent_info`` object will make a verbatim
-copy of its info dictionary (to preserve the info-hash). The copy of
-the info dictionary will be used by ``generate()``. This means
-that none of the member functions of create_torrent that affects
-the content of the info dictionary (such as ``set_hash()``), will
-have any affect.
-
-The ``flags`` arguments specifies options for the torrent creation. It can
-be any combination of the following flags:
-
-optimize
-	This will insert pad files to align the files to piece boundaries, for
-	optimized disk-I/O.
-
-merkle
-	This will create a merkle hash tree torrent. A merkle torrent cannot
-	be opened in clients that don't specifically support merkle torrents.
-	The benefit is that the resulting torrent file will be much smaller and
-	not grow with more pieces. When this option is specified, it is
-	recommended to have a fairly small piece size, say 64 kiB.
-
-modification_time
-	This will include the file modification time as part of the torrent.
-	This is not enabled by default, as it might cause problems when you
-	create a torrent from separate files with the same content, hoping to
-	yield the same info-hash. If the files have different modification times,
-	with this option enabled, you would get different info-hashes for the
-	files.
-
-symlink
-	If this flag is set, files that are symlinks get a symlink attribute
-	set on them and their data will not be included in the torrent. This
-	is useful if you need to reconstruct a file hierarchy which contains
-	symlinks.
-
-calculate_file_hashes
-	If this is set, the `set_piece_hashes()`_ function will, as it calculates
-	the piece hashes, also calculate the file hashes and add those associated
-	with each file. Note that unless you use the `set_piece_hashes()`_ function,
-	this flag will have no effect.
+The constructor that does not take a piece_size will calculate
+a piece size such that the torrent file is roughly 40 kB.
 
 generate()
 ----------
@@ -382,17 +272,6 @@ This sets the SHA-1 hash for the specified piece (``index``). You are required
 to set the hash for every piece in the torrent before generating it. If you have
 the files on disk, you can use the high level convenience function to do this.
 See `set_piece_hashes()`_.
-
-set_file_hash()
----------------
-
-	::
-
-		void set_file_hash(int index, sha1_hash const& h);
-
-This sets the sha1 hash for this file. This hash will end up under the key ``sha1``
-associated with this file (for multi-file torrents) or in the root info dictionary
-for single-file torrents.
 
 add_url_seed()
 --------------

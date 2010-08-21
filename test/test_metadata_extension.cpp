@@ -32,15 +32,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/thread.hpp"
+#include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
-#include <iostream>
 
+using boost::filesystem::remove_all;
 using boost::tuples::ignore;
 
 void test_transfer(bool clear_files, bool disconnect
@@ -48,8 +50,8 @@ void test_transfer(bool clear_files, bool disconnect
 {
 	using namespace libtorrent;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000));
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000));
 	ses1.add_extension(constructor);
 	ses2.add_extension(constructor);
 	torrent_handle tor1;
@@ -64,7 +66,7 @@ void test_transfer(bool clear_files, bool disconnect
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, clear_files, true, true, "_meta");	
 
-	for (int i = 0; i < 80; ++i)
+	for (int i = 0; i < 50; ++i)
 	{
 		// make sure this function can be called on
 		// torrents without metadata
@@ -102,15 +104,16 @@ void test_transfer(bool clear_files, bool disconnect
 	TEST_CHECK(tor2.is_seed());
 	if (tor2.is_seed()) std::cerr << "done\n";
 
-	error_code ec;
-	remove_all("./tmp1_meta", ec);
-	remove_all("./tmp2_meta", ec);
-	remove_all("./tmp3_meta", ec);
+	using boost::filesystem::remove_all;
+	remove_all("./tmp1_meta");
+	remove_all("./tmp2_meta");
+	remove_all("./tmp3_meta");
 }
 
 int test_main()
 {
 	using namespace libtorrent;
+	using namespace boost::filesystem;
 
 	// test to disconnect one client prematurely
 	test_transfer(true, true, &create_metadata_plugin);
@@ -126,9 +129,8 @@ int test_main()
 	// test where both have data (to trigger the file check)
 	test_transfer(false, false, &create_ut_metadata_plugin);
 
-	error_code ec;
-	remove_all("./tmp1", ec);
-	remove_all("./tmp2", ec);
+	remove_all("./tmp1");
+	remove_all("./tmp2");
 
 	return 0;
 }

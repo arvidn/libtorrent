@@ -32,15 +32,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 
-#include <boost/bind.hpp>
-
-#include "libtorrent/socket.hpp"
-#include "libtorrent/enum_net.hpp"
-#include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/assert.hpp"
-
 #ifndef NDEBUG
 //#include "libtorrent/socket_io.hpp"
+#endif
+
+#include "libtorrent/config.hpp"
+
+#ifdef TORRENT_WINDOWS
+#include <winsock2.h> // for error codes
 #endif
 
 #if BOOST_VERSION < 103500
@@ -51,13 +50,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/multicast.hpp>
 #endif
 
+#include <boost/bind.hpp>
+
+#include "libtorrent/socket.hpp"
+#include "libtorrent/enum_net.hpp"
+#include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/assert.hpp"
+
 namespace libtorrent
 {
 	bool is_local(address const& a)
 	{
-#if TORRENT_USE_IPV6
 		if (a.is_v6()) return a.to_v6().is_link_local();
-#endif
 		address_v4 a4 = a.to_v4();
 		unsigned long ip = a4.to_ulong();
 		return ((ip & 0xff000000) == 0x0a000000 // 10.x.x.x
@@ -68,51 +72,35 @@ namespace libtorrent
 
 	bool is_loopback(address const& addr)
 	{
-#if TORRENT_USE_IPV6
 		if (addr.is_v4())
 			return addr.to_v4() == address_v4::loopback();
 		else
 			return addr.to_v6() == address_v6::loopback();
-#else
-		return addr.to_v4() == address_v4::loopback();
-#endif
 	}
 
 	bool is_multicast(address const& addr)
 	{
-#if TORRENT_USE_IPV6
 		if (addr.is_v4())
 			return addr.to_v4().is_multicast();
 		else
 			return addr.to_v6().is_multicast();
-#else
-		return addr.to_v4().is_multicast();
-#endif
 	}
 
 	bool is_any(address const& addr)
 	{
-#if TORRENT_USE_IPV6
 		if (addr.is_v4())
 			return addr.to_v4() == address_v4::any();
 		else if (addr.to_v6().is_v4_mapped())
 			return (addr.to_v6().to_v4() == address_v4::any());
 		else
 			return addr.to_v6() == address_v6::any();
-#else
-		return addr.to_v4() == address_v4::any();
-#endif
 	}
 
 	bool supports_ipv6()
 	{
-#if TORRENT_USE_IPV6
 		error_code ec;
 		address::from_string("::1", ec);
 		return !ec;
-#else
-		return false;
-#endif
 	}
 
 	address guess_local_address(io_service& ios)
@@ -158,16 +146,13 @@ namespace libtorrent
 	// between the addresses.
 	int cidr_distance(address const& a1, address const& a2)
 	{
-#if TORRENT_USE_IPV6
 		if (a1.is_v4() && a2.is_v4())
 		{
-#endif
 			// both are v4
 			address_v4::bytes_type b1 = a1.to_v4().to_bytes();
 			address_v4::bytes_type b2 = a2.to_v4().to_bytes();
 			return address_v4::bytes_type::static_size * 8
 				- common_bits(b1.c_array(), b2.c_array(), b1.size());
-#if TORRENT_USE_IPV6
 		}
 	
 		address_v6::bytes_type b1;
@@ -178,7 +163,6 @@ namespace libtorrent
 		else b2 = a2.to_v6().to_bytes();
 		return address_v6::bytes_type::static_size * 8
 			- common_bits(b1.c_array(), b2.c_array(), b1.size());
-#endif
 	}
 
 	broadcast_socket::broadcast_socket(io_service& ios
@@ -187,7 +171,6 @@ namespace libtorrent
 		, bool loopback)
 		: m_multicast_endpoint(multicast_endpoint)
 		, m_on_receive(handler)
-		, m_ip_broadcast(false)
 	{
 		TORRENT_ASSERT(is_multicast(m_multicast_endpoint.address()));
 
@@ -196,12 +179,10 @@ namespace libtorrent
 		error_code ec;
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
-#if TORRENT_USE_IPV6
-		if (multicast_endpoint.address().is_v6())
-			open_multicast_socket(ios, address_v6::any(), loopback, ec);
-		else
-#endif
+		if (multicast_endpoint.address().is_v4())
 			open_multicast_socket(ios, address_v4::any(), loopback, ec);
+		else
+			open_multicast_socket(ios, address_v6::any(), loopback, ec);
 		
 		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
 			, end(interfaces.end()); i != end; ++i)
@@ -219,23 +200,7 @@ namespace libtorrent
 //				, print_address(multicast_endpoint.address()).c_str()
 //				, ec.message().c_str());
 #endif
-			open_unicast_socket(ios, i->interface_address
-				, i->netmask.is_v4() ? i->netmask.to_v4() : address_v4());
-		}
-	}
-
-	void broadcast_socket::enable_ip_broadcast(bool e)
-	{
-		if (e == m_ip_broadcast) return;
-		m_ip_broadcast = e;
-
-		asio::socket_base::broadcast option(m_ip_broadcast);
-		error_code ec;
-		for (std::list<socket_entry>::iterator i = m_unicast_sockets.begin()
-			, end(m_unicast_sockets.end()); i != end; ++i)
-		{
-			if (i->socket) continue;
-			i->socket->set_option(option, ec);
+			open_unicast_socket(ios, i->interface_address);
 		}
 	}
 
@@ -245,7 +210,10 @@ namespace libtorrent
 		using namespace asio::ip::multicast;
 
 		boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
-		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
+		if (addr.is_v4())
+			s->open(udp::v4(), ec);
+		else
+			s->open(udp::v6(), ec);
 		if (ec) return;
 		s->set_option(datagram_socket::reuse_address(true), ec);
 		if (ec) return;
@@ -260,11 +228,10 @@ namespace libtorrent
 		m_sockets.push_back(socket_entry(s));
 		socket_entry& se = m_sockets.back();
 		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
-			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
+			, se.remote, bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 	}
 
-	void broadcast_socket::open_unicast_socket(io_service& ios, address const& addr
-		, address_v4 const& mask)
+	void broadcast_socket::open_unicast_socket(io_service& ios, address const& addr)
 	{
 		using namespace asio::ip::multicast;
 		error_code ec;
@@ -273,10 +240,10 @@ namespace libtorrent
 		if (ec) return;
 		s->bind(udp::endpoint(addr, 0), ec);
 		if (ec) return;
-		m_unicast_sockets.push_back(socket_entry(s, mask));
+		m_unicast_sockets.push_back(socket_entry(s));
 		socket_entry& se = m_unicast_sockets.back();
 		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
-			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
+			, se.remote, bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 	}
 
 	void broadcast_socket::send(char const* buffer, int size, error_code& ec)
@@ -307,9 +274,6 @@ namespace libtorrent
 			if (!i->socket) continue;
 			error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
-			if (m_ip_broadcast && i->socket->local_endpoint(e).address().is_v4())
-				i->socket->send_to(asio::buffer(buffer, size)
-					, udp::endpoint(i->broadcast_address(), m_multicast_endpoint.port()), 0, e);
 #ifndef NDEBUG
 //			extern std::string print_address(address const& addr);
 //			extern std::string print_endpoint(udp::endpoint const& ep);
@@ -334,13 +298,13 @@ namespace libtorrent
 		m_on_receive(s->remote, s->buffer, bytes_transferred);
 		if (!s->socket) return;
 		s->socket->async_receive_from(asio::buffer(s->buffer, sizeof(s->buffer))
-			, s->remote, boost::bind(&broadcast_socket::on_receive, this, s, _1, _2));
+			, s->remote, bind(&broadcast_socket::on_receive, this, s, _1, _2));
 	}
 
 	void broadcast_socket::close()
 	{
-		std::for_each(m_sockets.begin(), m_sockets.end(), boost::bind(&socket_entry::close, _1));
-		std::for_each(m_unicast_sockets.begin(), m_unicast_sockets.end(), boost::bind(&socket_entry::close, _1));
+		std::for_each(m_sockets.begin(), m_sockets.end(), bind(&socket_entry::close, _1));
+		std::for_each(m_unicast_sockets.begin(), m_unicast_sockets.end(), bind(&socket_entry::close, _1));
 
 		m_on_receive.clear();
 	}
