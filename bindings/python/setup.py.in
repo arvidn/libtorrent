@@ -41,7 +41,7 @@ if platform.system() == 'Windows':
 	except: pass
 	try: os.mkdir(r'libtorrent')
 	except: pass
-	shutil.copyfile(r'bin\msvc-7.1\release\boost-source\geoip-static\link-static\optimization-space\threading-multi\libtorrent.pyd', r'.\build\lib\libtorrent.pyd')
+	shutil.copyfile(r'bin\msvc-9.0\release\boost-source\geoip-static\link-static\optimization-space\threading-multi\libtorrent.pyd', r'.\build\lib\libtorrent.pyd')
 	setup( name='python-libtorrent',
 		version='@PACKAGE_VERSION@',
 		author = 'Arvid Norberg',
