@@ -113,6 +113,7 @@ void udp_socket::send_hostname(char const* hostname, int port
 		return;	
 	}
 
+	// this function is only supported when we're using a proxy
 	TORRENT_ASSERT(m_queue_packets);
 	if (!m_queue_packets) return;
 
@@ -614,6 +615,7 @@ void udp_socket::on_connected(error_code const& e)
 		write_uint8(0, p); // no authentication
 		write_uint8(2, p); // username/password
 	}
+	TORRENT_ASSERT(p - m_tmp_buf < sizeof(m_tmp_buf));
 	asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
 		, boost::bind(&udp_socket::handshake1, this, _1));
 }
@@ -664,6 +666,7 @@ void udp_socket::handshake2(error_code const& e)
 		write_string(m_proxy_settings.username, p);
 		write_uint8(m_proxy_settings.password.size(), p);
 		write_string(m_proxy_settings.password, p);
+		TORRENT_ASSERT(p - m_tmp_buf < sizeof(m_tmp_buf));
 		asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
 			, boost::bind(&udp_socket::handshake3, this, _1));
 	}
@@ -729,7 +732,7 @@ void udp_socket::socks_forward_udp(mutex::scoped_lock& l)
 		port = m_ipv6_sock.local_endpoint(ec).port();
 #endif
 	detail::write_uint16(port , p);
-
+	TORRENT_ASSERT(p - m_tmp_buf < sizeof(m_tmp_buf));
 	asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
 		, boost::bind(&udp_socket::connect1, this, _1));
 }
