@@ -315,7 +315,10 @@ namespace libtorrent
 			void set_web_seed_proxy(proxy_settings const& s)
 			{ m_web_seed_proxy = s; }
 			void set_tracker_proxy(proxy_settings const& s)
-			{ m_tracker_proxy = s; }
+			{
+				m_udp_socket.set_proxy_settings(s);
+				m_tracker_proxy = s;
+			}
 
 			proxy_settings const& peer_proxy() const
 			{ return m_peer_proxy; }
