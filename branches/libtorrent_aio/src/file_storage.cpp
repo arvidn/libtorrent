@@ -42,9 +42,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	file_storage::file_storage()
-		: m_piece_length(0)
-		, m_total_size(0)
+		: m_total_size(0)
 		, m_num_pieces(0)
+		, m_piece_length(0)
 	{}
 
 	void file_storage::reserve(int num_files)
