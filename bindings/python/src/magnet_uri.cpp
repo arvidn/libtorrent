@@ -44,7 +44,12 @@ namespace {
         p.auto_managed = params["auto_managed"];
         p.duplicate_is_error = params["duplicate_is_error"];
         
+#ifndef BOOST_NO_EXCEPTIONS
         return add_magnet_uri(s, uri, p);
+#else
+		  error_code ec;
+        return add_magnet_uri(s, uri, p, ec);
+#endif
     }
 }
 

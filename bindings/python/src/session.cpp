@@ -58,6 +58,7 @@ namespace
         s.add_extension(invoke_extension_factory(e));
     }
 
+#ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
     torrent_handle add_torrent_depr(session& s, torrent_info const& ti
         , std::string const& save, entry const& resume
@@ -66,6 +67,7 @@ namespace
         allow_threading_guard guard;
         return s.add_torrent(ti, save, resume, storage_mode, paused, default_storage_constructor);
     }
+#endif
 #endif
 
     torrent_handle add_torrent(session& s, dict params)
@@ -112,21 +114,24 @@ namespace
         if (params.has_key("override_resume_data"))
             p.override_resume_data = params["override_resume_data"];
 
+#ifndef BOOST_NO_EXCEPTIONS
         return s.add_torrent(p);
+#else
+        error_code ec;
+        return s.add_torrent(p, ec);
+#endif
     }
 
     void start_natpmp(session& s)
     {
         allow_threading_guard guard;
         s.start_natpmp();
-        return;
     }
 
     void start_upnp(session& s)
     {
         allow_threading_guard guard;
         s.start_upnp();
-        return;
     }
 
     alert const* wait_for_alert(session& s, int ms)
@@ -147,16 +152,16 @@ namespace
     }
 
 #ifndef TORRENT_DISABLE_GEO_IP
-    bool load_asnum_db(session& s, std::string file)
+    void load_asnum_db(session& s, std::string file)
     {
         allow_threading_guard guard;
-        return s.load_asnum_db(file.c_str());
+        s.load_asnum_db(file.c_str());
     }
 
-    bool load_country_db(session& s, std::string file)
+    void load_country_db(session& s, std::string file)
     {
         allow_threading_guard guard;
-        return s.load_country_db(file.c_str());
+        s.load_country_db(file.c_str());
     }
 #endif
 
@@ -303,6 +308,7 @@ void bind_session()
         .def("dht_proxy", allow_threads(&session::dht_proxy), return_value_policy<copy_const_reference>())
 #endif
         .def("add_torrent", &add_torrent)
+#ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
         .def(
             "add_torrent", &add_torrent_depr
@@ -312,6 +318,7 @@ void bind_session()
                 arg("paused") = false
             )
         )
+#endif
 #endif
         .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = session::none
 )
