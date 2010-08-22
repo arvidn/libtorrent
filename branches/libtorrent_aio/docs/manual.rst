@@ -1521,8 +1521,7 @@ The ``torrent_info`` has the following synopsis::
 		std::vector<std::pair<std::string, int> > const& nodes() const;
 		void add_node(std::pair<std::string, int> const& node);
 
-		boost::optional<boost::posix_time::ptime>
-		creation_date() const;
+		boost::optional<time_t> creation_date() const;
 
 		int piece_size(unsigned int index) const;
 		sha1_hash const& hash_for_piece(unsigned int index) const;
@@ -1904,22 +1903,22 @@ name() comment() creation_date() creator()
 
 		std::string const& name() const;
 		std::string const& comment() const;
-		boost::optional<boost::posix_time::ptime> creation_date() const;
+		std::string const& creator() const;
+		boost::optional<time_t> creation_date() const;
 
 ``name()`` returns the name of the torrent.
 
 ``comment()`` returns the comment associated with the torrent. If there's no comment,
-it will return an empty string. ``creation_date()`` returns a `boost::posix_time::ptime`__
-object, representing the time when this torrent file was created. If there's no time stamp
-in the torrent file, this will return a date of January 1:st 1970.
+it will return an empty string. ``creation_date()`` returns the creation date of
+the torrent as time_t (`posix time`_). If there's no time stamp in the torrent file,
+the optional object will be uninitialized.
 
 Both the name and the comment is UTF-8 encoded strings.
 
 ``creator()`` returns the creator string in the torrent. If there is no creator string
 it will return an empty string.
 
-__ http://www.boost.org/doc/html/date_time/posix_time.html#date_time.posix_time.ptime_class
-
+.. _`posix time`: http://www.opengroup.org/onlinepubs/009695399/functions/time.html
 
 priv()
 ------

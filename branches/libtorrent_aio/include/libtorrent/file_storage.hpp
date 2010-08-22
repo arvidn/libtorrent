@@ -36,12 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 #include <ctime>
-#include <boost/shared_ptr.hpp>
 
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/copy_ptr.hpp"
 
 namespace libtorrent
 {
@@ -54,15 +54,15 @@ namespace libtorrent
 		{}
 
 		std::string path;
+		std::string symlink_path;
+		copy_ptr<sha1_hash> filehash;
 		size_type offset; // the offset of this file inside the torrent
 		size_type size; // the size of this file
 		// the offset in the file where the storage starts.
 		// This is always 0 unless parts of the torrent is
 		// compressed into a single file, such as a so-called part file.
 		size_type file_base;
-		std::time_t mtime;
-		std::string symlink_path;
-		boost::shared_ptr<sha1_hash> filehash;
+		time_t mtime;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
@@ -154,17 +154,18 @@ namespace libtorrent
 		void optimize(int pad_file_limit = -1);
 
 	private:
-		int m_piece_length;
-
 		// the list of files that this torrent consists of
 		std::vector<file_entry> m_files;
+
+		std::string m_name;
 
 		// the sum of all filesizes
 		size_type m_total_size;
 
 		// the number of pieces in the torrent
 		int m_num_pieces;
-		std::string m_name;
+
+		int m_piece_length;
 	};
 }
 

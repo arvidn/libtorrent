@@ -35,8 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/escape_string.hpp"
 
-#include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/date_time/gregorian/greg_date.hpp>
 #include <boost/bind.hpp>
 #include <boost/next_prior.hpp>
 
@@ -44,8 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 
 #define MAX_SYMLINK_PATH 200
-
-namespace gr = boost::gregorian;
 
 namespace libtorrent
 {
@@ -109,7 +105,7 @@ namespace libtorrent
 
 	create_torrent::create_torrent(file_storage& fs, int piece_size, int pad_file_limit, int flags)
 		: m_files(fs)
-		, m_creation_date(pt::second_clock::universal_time())
+		, m_creation_date(time(0))
 		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
 		, m_merkle_torrent(flags & merkle)
@@ -164,7 +160,7 @@ namespace libtorrent
 
 	create_torrent::create_torrent(torrent_info const& ti)
 		: m_files(const_cast<file_storage&>(ti.files()))
-		, m_creation_date(pt::second_clock::universal_time())
+		, m_creation_date(time(0))
 		, m_multifile(ti.num_files() > 1)
 		, m_private(ti.priv())
 		, m_merkle_torrent(ti.is_merkle_torrent())
@@ -248,8 +244,7 @@ namespace libtorrent
 		if (!m_comment.empty())
 			dict["comment"] = m_comment;
 
-		dict["creation date"] =
-			(m_creation_date - pt::ptime(gr::date(1970, gr::Jan, 1))).total_seconds();
+		dict["creation date"] = m_creation_date;
 
 		if (!m_created_by.empty())
 			dict["created by"] = m_created_by;

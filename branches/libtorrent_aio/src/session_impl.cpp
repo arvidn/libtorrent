@@ -635,6 +635,30 @@ namespace aux {
 #define PRINT_SIZEOF(x) (*m_logger) << "sizeof(" #x "): " << sizeof(x) << "\n";
 #define PRINT_OFFSETOF(x, y) (*m_logger) << "  offsetof(" #x "," #y "): " << offsetof(x, y) << "\n";
 
+		PRINT_SIZEOF(announce_entry)
+		PRINT_OFFSETOF(announce_entry, url)
+		PRINT_OFFSETOF(announce_entry, message)
+		PRINT_OFFSETOF(announce_entry, last_error)
+		PRINT_OFFSETOF(announce_entry, next_announce)
+		PRINT_OFFSETOF(announce_entry, min_announce)
+		PRINT_OFFSETOF(announce_entry, tier)
+		PRINT_OFFSETOF(announce_entry, fail_limit)
+
+		PRINT_SIZEOF(torrent_info)
+		PRINT_OFFSETOF(torrent_info, m_files)
+		PRINT_OFFSETOF(torrent_info, m_orig_files)
+		PRINT_OFFSETOF(torrent_info, m_url_seeds)
+		PRINT_OFFSETOF(torrent_info, m_http_seeds)
+		PRINT_OFFSETOF(torrent_info, m_nodes)
+		PRINT_OFFSETOF(torrent_info, m_merkle_tree)
+		PRINT_OFFSETOF(torrent_info, m_info_section)
+		PRINT_OFFSETOF(torrent_info, m_piece_hashes)
+		PRINT_OFFSETOF(torrent_info, m_info_dict)
+		PRINT_OFFSETOF(torrent_info, m_creation_date)
+		PRINT_OFFSETOF(torrent_info, m_comment)
+		PRINT_OFFSETOF(torrent_info, m_created_by)
+		PRINT_OFFSETOF(torrent_info, m_info_hash)
+
 		PRINT_SIZEOF(union_endpoint)
 		PRINT_SIZEOF(request_callback)
 		PRINT_SIZEOF(stat)
@@ -2604,12 +2628,18 @@ namespace aux {
 				--type_limit;
 				--dht_limit;
 				--tracker_limit;
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
+				t->log_to_all_peers("AUTO MANAGER STARTING TORRENT");
+#endif
 				t->set_announce_to_dht(dht_limit >= 0);
 				t->set_announce_to_trackers(tracker_limit >= 0);
 				t->set_allow_peers(true);
 			}
 			else
 			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
+				t->log_to_all_peers("AUTO MANAGER PAUSING TORRENT");
+#endif
 				t->set_allow_peers(false);
 			}
 		}

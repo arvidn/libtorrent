@@ -349,6 +349,10 @@ namespace libtorrent
 // --------------------------------------------
 		// PEER MANAGEMENT
 		
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
+		void log_to_all_peers(char const* message);
+#endif
+
 		// add or remove a url that will be attempted for
 		// finding the file(s) in this torrent.
 		void add_web_seed(std::string const& url, web_seed_entry::type_t type)

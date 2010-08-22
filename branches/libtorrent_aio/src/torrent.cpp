@@ -503,12 +503,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_connections.empty());
 		
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
-		{
-			(*(*i)->m_logger) << "*** DESTRUCTING TORRENT\n";
-		}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
+		log_to_all_peers("DESTRUCTING TORRENT");
 #endif
 
 		TORRENT_ASSERT(m_abort);
@@ -1054,17 +1050,17 @@ namespace libtorrent
 			}
 		}
 
-		if (j.error && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
+		if ((j.error || ret != 0) && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 		{
 			m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), j.error));
 		}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_ses.m_logger) << "fastresume data for "
 			<< torrent_file().name() << " rejected: "
-			<< j.error.message() << "\n";
+			<< j.error.message() << " ret:" << ret << "\n";
 #endif
 
-		if (ret == 0)
+		if (ret == 0 && !j.error)
 		{
 			// there are either no files for this torrent
 			// or the resume_data was accepted
@@ -2509,12 +2505,8 @@ namespace libtorrent
 			stop_announcing();
 		}
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
-		{
-			(*(*i)->m_logger) << time_now_string() << " *** ABORTING TORRENT\n";
-		}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
+		log_to_all_peers("ABORTING TORRENT");
 #endif
 
 		// disconnect all peers and close all
@@ -5235,12 +5227,9 @@ namespace libtorrent
 	void torrent::delete_files()
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-#if defined TORRENT_VERBOSE_LOGGING
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
-		{
-			(*(*i)->m_logger) << "*** DELETING FILES IN TORRENT\n";
-		}
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
+		log_to_all_peers("DELETING FILES IN TORRENT");
 #endif
 
 		disconnect_all(errors::torrent_removed);
@@ -5275,6 +5264,16 @@ namespace libtorrent
 		bool checking_files = should_check_files();
 		m_error = ec;
 		m_error_file = error_file;
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
+		if (ec)
+		{
+			char buf[1024];
+			snprintf(buf, sizeof(buf), "TORRENT ERROR: %s: %s", ec.message().c_str(), error_file.c_str());
+			log_to_all_peers(buf);
+		}
+#endif
+
 		if (checking_files && !should_check_files())
 		{
 			// stop checking
@@ -5474,12 +5473,8 @@ namespace libtorrent
 		}
 #endif
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
-		{
-			(*(*i)->m_logger) << "*** PAUSING TORRENT\n";
-		}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
+		log_to_all_peers("PAUSING TORRENT");
 #endif
 
 		// this will make the storage close all
@@ -5500,6 +5495,17 @@ namespace libtorrent
 		disconnect_all(errors::torrent_paused);
 		stop_announcing();
 	}
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
+	void torrent::log_to_all_peers(char const* message)
+	{
+		for (peer_iterator i = m_connections.begin();
+				i != m_connections.end(); ++i)
+		{
+			(*(*i)->m_logger) << time_now_string() << " *** " << message << "\n";
+		}
+	}
+#endif
 
 	void torrent::set_allow_peers(bool b)
 	{
