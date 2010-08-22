@@ -183,7 +183,7 @@ namespace libtorrent
 			, max_sparse_regions(0)
 #endif
 #ifndef TORRENT_DISABLE_MLOCK
-			, lock_disk_cache(true)
+			, lock_disk_cache(false)
 #endif
 			, max_rejects(50)
 			, recv_socket_buffer_size(0)
