@@ -22,11 +22,26 @@ namespace
        obj(i);
     }
 
+#ifndef BOOST_NO_EXCEPTIONS
     void set_piece_hashes_callback(create_torrent& c, std::string const& p
         , boost::python::object cb)
     {
         set_piece_hashes(c, p, boost::bind(call_python_object, cb, _1));
     }
+#else
+    void set_piece_hashes_callback(create_torrent& c, std::string const& p
+        , boost::python::object cb)
+    {
+        error_code ec;
+        set_piece_hashes(c, p, boost::bind(call_python_object, cb, _1), ec);
+    }
+
+    void set_piece_hashes0(create_torrent& c, std::string const & s)
+    {
+        error_code ec;
+        set_piece_hashes(c, s, ec);
+    }
+#endif
 
     void add_node(create_torrent& ct, std::string const& addr, int port)
     {
@@ -47,7 +62,9 @@ void bind_create_torrent()
     void (file_storage::*set_name1)(std::wstring const&) = &file_storage::set_name;
 #endif
 
+#ifndef BOOST_NO_EXCEPTIONS
     void (*set_piece_hashes0)(create_torrent&, std::string const&) = &set_piece_hashes;
+#endif
     void (*add_files0)(file_storage&, std::string const&, boost::uint32_t) = add_files;
 
     class_<file_storage>("file_storage")
