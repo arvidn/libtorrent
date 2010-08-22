@@ -48,14 +48,16 @@ namespace libtorrent
 			m_ptr = p.m_ptr ? new T(*p.m_ptr) : 0;
 			return *this;
 		}
+		T* operator->() { return m_ptr; }
+		T const* operator->() const { return m_ptr; }
 		T& operator*() { return *m_ptr; }
+		T const& operator*() const { return *m_ptr; }
 		void swap(copy_ptr<T>& p)
 		{
 			T* tmp = m_ptr;
 			m_ptr = p.m_ptr;
 			p.m_ptr = tmp;
 		}
-		T const& operator*() const { return *m_ptr; }
 		operator bool() const { return m_ptr; }
 		~copy_ptr() { delete m_ptr; }
 	private:
