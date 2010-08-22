@@ -40,11 +40,12 @@ namespace libtorrent
 {
 	struct aiocb_pool
 	{
-		aiocb_pool(): m_in_use(0) {}
+		aiocb_pool(): m_in_use(0), m_peak_in_use(0) {}
 
 		file::aiocb_t* construct()
 		{
 			++m_in_use;
+			if (m_in_use > m_peak_in_use) m_peak_in_use = m_in_use;
 #ifdef TORRENT_DISABLE_POOL_ALLOCATORS
 			file::aiocb_t* ret = new file::aiocb_t;
 #else
@@ -66,10 +67,12 @@ namespace libtorrent
 		}
 
 		int in_use() const { return m_in_use; }
+		int peak_in_use() const { return m_peak_in_use; }
 
 	private:
 
 		int m_in_use;
+		int m_peak_in_use;
 #ifndef TORRENT_DISABLE_POOL_ALLOCATORS
 		boost::object_pool<file::aiocb_t> m_pool;
 #endif

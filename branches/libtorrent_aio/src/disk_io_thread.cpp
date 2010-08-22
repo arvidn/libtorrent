@@ -809,6 +809,7 @@ namespace libtorrent
 		// #error this won't work with the hash operation, since it can't synchronize with when the blocks are written
 
 		file::iovec_t b = { j.buffer, j.buffer_size };
+
 		m_queue_buffer_size += j.buffer_size;
 		file::aiocb_t* aios = j.storage->write_async_impl(&b, j.piece, j.offset, 1
 			, boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, j));
@@ -1319,6 +1320,7 @@ namespace libtorrent
 		ret->writes = m_write_calls;
 		ret->reads = m_read_calls;
 		ret->num_aiocb = m_aiocb_pool.in_use();
+		ret->peak_aiocb = m_aiocb_pool.peak_in_use();
 
 		m_disk_cache.get_stats(ret);
 
@@ -1505,8 +1507,6 @@ namespace libtorrent
 				perform_async_job(jobs.front());
 				jobs.pop_front();
 			}
-
-// #error add a setting to determine whether or not to sort jobs before issuing them
 
 			// tell the kernel about the async disk I/O jobs we want to perform
 

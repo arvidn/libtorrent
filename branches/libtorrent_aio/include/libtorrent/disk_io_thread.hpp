@@ -141,6 +141,9 @@ namespace libtorrent
 		// the number of aiocb_t structures that are in use
 		// right now
 		int num_aiocb;
+
+		// the peak number of aiocb_t structures in use
+		int peak_aiocb;
 	};
 	
 	// this is a singleton consisting of the thread and a queue
