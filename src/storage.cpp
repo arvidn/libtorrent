@@ -2469,6 +2469,7 @@ ret:
 		}
 
 		TORRENT_ASSERT(m_state == state_full_check);
+		if (m_state == state_finished) return 0;
 
 		int skip = check_one_piece(have_piece);
 		TORRENT_ASSERT(m_current_slot <= m_files.num_pieces());
