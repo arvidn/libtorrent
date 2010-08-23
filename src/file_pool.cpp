@@ -36,18 +36,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/file_storage.hpp" // for file_entry
 
 namespace libtorrent
 {
-	boost::shared_ptr<file> file_pool::open_file(void* st, std::string const& p
-		, int m, error_code& ec)
+	boost::intrusive_ptr<file> file_pool::open_file(void* st, std::string const& p
+		, file_entry const& fe, int m, error_code& ec)
 	{
 		TORRENT_ASSERT(st != 0);
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
 		mutex::scoped_lock l(m_mutex);
-		file_set::iterator i = m_files.find(p);
+		file_set::iterator i = m_files.find(std::make_pair(st, fe.file_index));
 		if (i != m_files.end())
 		{
 			lru_file_entry& e = i->second;
@@ -61,7 +62,7 @@ namespace libtorrent
 #if BOOST_VERSION >= 103500
 				ec = errors::file_collision;
 #endif
-				return boost::shared_ptr<file>();
+				return boost::intrusive_ptr<file>();
 			}
 
 			e.key = st;
@@ -74,12 +75,13 @@ namespace libtorrent
 			{
 				// close the file before we open it with
 				// the new read/write privilages
-				TORRENT_ASSERT(e.file_ptr.unique());
+				TORRENT_ASSERT(e.file_ptr->refcount() == 1);
 				e.file_ptr->close();
-				if (!e.file_ptr->open(p, m, ec))
+				std::string full_path = combine_path(p, fe.path);
+				if (!e.file_ptr->open(full_path, m, ec))
 				{
 					m_files.erase(i);
-					return boost::shared_ptr<file>();
+					return boost::intrusive_ptr<file>();
 				}
 #ifdef TORRENT_WINDOWS
 // file prio is supported on vista and up
@@ -113,11 +115,12 @@ namespace libtorrent
 			ec = error_code(ENOMEM, get_posix_category());
 			return e.file_ptr;
 		}
-		if (!e.file_ptr->open(p, m, ec))
-			return boost::shared_ptr<file>();
+		std::string full_path = combine_path(p, fe.path);
+		if (!e.file_ptr->open(full_path, m, ec))
+			return boost::intrusive_ptr<file>();
 		e.mode = m;
 		e.key = st;
-		m_files.insert(std::make_pair(p, e));
+		m_files.insert(std::make_pair(std::make_pair(st, fe.file_index), e));
 		TORRENT_ASSERT(e.file_ptr->is_open());
 		return e.file_ptr;
 	}
@@ -131,11 +134,10 @@ namespace libtorrent
 		m_files.erase(i);
 	}
 
-	void file_pool::release(std::string const& p)
+	void file_pool::release(void* st, file_entry const& fe)
 	{
 		mutex::scoped_lock l(m_mutex);
-
-		file_set::iterator i = m_files.find(p);
+		file_set::iterator i = m_files.find(std::make_pair(st, fe.file_index));
 		if (i != m_files.end()) m_files.erase(i);
 	}
 
@@ -174,3 +176,4 @@ namespace libtorrent
 	}
 
 }
+
