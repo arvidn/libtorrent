@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/shared_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -50,14 +50,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct file_entry;
+
 	struct TORRENT_EXPORT file_pool : boost::noncopyable
 	{
 		file_pool(int size = 40): m_size(size), m_low_prio_io(true) {}
 
-		boost::shared_ptr<file> open_file(void* st, std::string const& p
-			, int m, error_code& ec);
+		boost::intrusive_ptr<file> open_file(void* st, std::string const& p
+			, file_entry const& fe, int m, error_code& ec);
 		void release(void* st);
-		void release(std::string const& p);
+		void release(void* st, file_entry const& fe);
 		void resize(int size);
 		int size_limit() const { return m_size; }
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
@@ -73,13 +75,15 @@ namespace libtorrent
 		struct lru_file_entry
 		{
 			lru_file_entry(): last_use(time_now()) {}
-			mutable boost::shared_ptr<file> file_ptr;
+			mutable boost::intrusive_ptr<file> file_ptr;
 			void* key;
 			ptime last_use;
 			int mode;
 		};
 
-		typedef std::map<std::string, lru_file_entry> file_set;
+		// maps storage pointer, file index pairs to the
+		// lru entry for the file
+		typedef std::map<std::pair<void*, int>, lru_file_entry> file_set;
 		
 		file_set m_files;
 		mutex m_mutex;

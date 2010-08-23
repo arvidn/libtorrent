@@ -1440,6 +1440,9 @@ namespace libtorrent
 
 	void disk_io_thread::thread_fun()
 	{
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		m_file_pool.set_thread_owner();
+#endif
 		m_disk_cache.set_max_size(m_settings.cache_size);
 
 #if TORRENT_USE_AIO
@@ -1563,6 +1566,10 @@ namespace libtorrent
 		// we do this once we stop posting new callbacks to it.
 		m_work.reset();
 		DLOG(stderr, "exiting disk thread [%p]\n", this);
+
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		m_file_pool.clear_thread_owner();
+#endif
 	}
 
 #ifdef TORRENT_DEBUG

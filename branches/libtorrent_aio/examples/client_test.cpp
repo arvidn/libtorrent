@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // print_address
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/time.hpp"
 
 using boost::bind;
 
@@ -132,16 +133,29 @@ bool sleep_and_input(char* c, int sleep)
 	// sets the terminal to single-character mode
 	// and resets when destructed
 	set_keypress s;
-
+	libtorrent::ptime start = libtorrent::time_now_hires();
+	int ret = 0;
+retry:
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(0, &set);
 	timeval tv = {sleep, 0};
-	if (select(1, &set, 0, 0, &tv) > 0)
+	ret = select(1, &set, 0, 0, &tv);
+	if (ret > 0)
 	{
 		*c = getc(stdin);
 		return true;
 	}
+	if (errno == EINTR)
+	{
+		if (total_milliseconds(libtorrent::time_now_hires() - start) < sleep * 1000)
+			goto retry;
+		return false;
+	}
+
+	if (ret < 0 && errno != 0 && errno != ETIMEDOUT)
+		fprintf(stderr, "select failed: %s\n", strerror(errno));
+
 	libtorrent::sleep(500);
 	return false;
 }

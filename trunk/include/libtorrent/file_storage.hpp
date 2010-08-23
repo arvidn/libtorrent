@@ -45,9 +45,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct file;
+
 	struct TORRENT_EXPORT file_entry
 	{
-		file_entry(): offset(0), size(0), file_base(0)
+		file_entry(): offset(0), size(0), file_base(0), file_index(0)
 			, mtime(0), pad_file(false), hidden_attribute(false)
 			, executable_attribute(false)
 			, symlink_attribute(false)
@@ -56,12 +58,16 @@ namespace libtorrent
 		std::string path;
 		std::string symlink_path;
 		copy_ptr<sha1_hash> filehash;
-		size_type offset; // the offset of this file inside the torrent
-		size_type size; // the size of this file
+		// the offset of this file inside the torrent
+		size_type offset;
+		// the size of this file
+		size_type size;
 		// the offset in the file where the storage starts.
 		// This is always 0 unless parts of the torrent is
 		// compressed into a single file, such as a so-called part file.
 		size_type file_base;
+		// the index of this file, as ordered in the torrent
+		int file_index;
 		time_t mtime;
 		bool pad_file:1;
 		bool hidden_attribute:1;

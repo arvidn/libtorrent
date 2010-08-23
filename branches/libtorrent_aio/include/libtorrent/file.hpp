@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -203,10 +204,8 @@ namespace libtorrent
 		}
 	};
 
-	class TORRENT_EXPORT file: public boost::noncopyable
+	struct TORRENT_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
 	{
-	public:
-
 		enum
 		{
 			// when a file is opened with no_buffer

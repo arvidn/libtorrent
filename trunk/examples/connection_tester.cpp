@@ -52,7 +52,9 @@ struct peer_conn
 		: s(ios)
 		, read_pos(0)
 		, state(handshaking)
-		, pieces(num_pieces)
+		// don't request anything from the last piece
+		// to keep things simple
+		, pieces(num_pieces - 1)
 		, block(0)
 		, blocks_per_piece(blocks_pp)
 		, info_hash(ih)
@@ -248,6 +250,7 @@ int main(int argc, char const* argv[])
 		conns.push_back(new peer_conn(ios, ti.num_pieces(), ti.piece_length() / 16 / 1024
 			, ep, (char const*)&ti.info_hash()[0]));
 		libtorrent::sleep(1);
+		ios.poll_one();
 	}
 
 	ios.run();

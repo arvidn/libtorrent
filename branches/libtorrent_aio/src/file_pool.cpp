@@ -36,18 +36,40 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/file_storage.hpp" // for file_entry
 
 namespace libtorrent
 {
-	boost::shared_ptr<file> file_pool::open_file(void* st, std::string const& p
-		, int m, error_code& ec)
+	file_pool::file_pool(int size)
+		: m_size(size), m_low_prio_io(true)
+	{
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		m_owning_thread = pthread_self();
+#endif
+	}
+
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+	void file_pool::set_thread_owner()
+	{
+		m_owning_thread = pthread_self();
+	}
+	void file_pool::clear_thread_owner()
+	{
+		m_owning_thread = NULL;
+	}
+#endif
+
+	boost::intrusive_ptr<file> file_pool::open_file(void* st, std::string const& p
+		, file_entry const& fe, int m, error_code& ec)
 	{
 		TORRENT_ASSERT(st != 0);
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
-		mutex::scoped_lock l(m_mutex);
-		file_set::iterator i = m_files.find(p);
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		TORRENT_ASSERT(m_owning_thread == NULL || m_owning_thread == pthread_self());
+#endif
+		file_set::iterator i = m_files.find(std::make_pair(st, fe.file_index));
 		if (i != m_files.end())
 		{
 			lru_file_entry& e = i->second;
@@ -61,7 +83,7 @@ namespace libtorrent
 #if BOOST_VERSION >= 103500
 				ec = errors::file_collision;
 #endif
-				return boost::shared_ptr<file>();
+				return boost::intrusive_ptr<file>();
 			}
 
 			e.key = st;
@@ -74,12 +96,13 @@ namespace libtorrent
 			{
 				// close the file before we open it with
 				// the new read/write privilages
-				TORRENT_ASSERT(e.file_ptr.unique());
+				TORRENT_ASSERT(e.file_ptr->refcount() == 1);
 				e.file_ptr->close();
-				if (!e.file_ptr->open(p, m, ec))
+				std::string full_path = combine_path(p, fe.path);
+				if (!e.file_ptr->open(full_path, m, ec))
 				{
 					m_files.erase(i);
-					return boost::shared_ptr<file>();
+					return boost::intrusive_ptr<file>();
 				}
 #ifdef TORRENT_WINDOWS
 // file prio is supported on vista and up
@@ -113,17 +136,21 @@ namespace libtorrent
 			ec = error_code(ENOMEM, get_posix_category());
 			return e.file_ptr;
 		}
-		if (!e.file_ptr->open(p, m, ec))
-			return boost::shared_ptr<file>();
+		std::string full_path = combine_path(p, fe.path);
+		if (!e.file_ptr->open(full_path, m, ec))
+			return boost::intrusive_ptr<file>();
 		e.mode = m;
 		e.key = st;
-		m_files.insert(std::make_pair(p, e));
+		m_files.insert(std::make_pair(std::make_pair(st, fe.file_index), e));
 		TORRENT_ASSERT(e.file_ptr->is_open());
 		return e.file_ptr;
 	}
 
 	void file_pool::remove_oldest()
 	{
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		TORRENT_ASSERT(m_owning_thread == NULL || m_owning_thread == pthread_self());
+#endif
 		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
 			, boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _1))
 				< boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _2)));
@@ -131,11 +158,12 @@ namespace libtorrent
 		m_files.erase(i);
 	}
 
-	void file_pool::release(std::string const& p)
+	void file_pool::release(void* st, file_entry const& fe)
 	{
-		mutex::scoped_lock l(m_mutex);
-
-		file_set::iterator i = m_files.find(p);
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		TORRENT_ASSERT(m_owning_thread == NULL || m_owning_thread == pthread_self());
+#endif
+		file_set::iterator i = m_files.find(std::make_pair(st, fe.file_index));
 		if (i != m_files.end()) m_files.erase(i);
 	}
 
@@ -143,7 +171,9 @@ namespace libtorrent
 	// storage. If 0 is passed, all files are closed
 	void file_pool::release(void* st)
 	{
-		mutex::scoped_lock l(m_mutex);
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		TORRENT_ASSERT(m_owning_thread == NULL || m_owning_thread == pthread_self());
+#endif
 		if (st == 0)
 		{
 			m_files.clear();
@@ -162,9 +192,11 @@ namespace libtorrent
 
 	void file_pool::resize(int size)
 	{
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		TORRENT_ASSERT(m_owning_thread == NULL || m_owning_thread == pthread_self());
+#endif
 		TORRENT_ASSERT(size > 0);
 		if (size == m_size) return;
-		mutex::scoped_lock l(m_mutex);
 		m_size = size;
 		if (int(m_files.size()) <= m_size) return;
 
@@ -174,3 +206,4 @@ namespace libtorrent
 	}
 
 }
+
