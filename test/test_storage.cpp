@@ -522,21 +522,11 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	lazy_entry frd;
 	pm->async_check_fastresume(&frd, boost::bind(&on_check_resume_data, _1, _2, &done));
 	ios.reset();
-	while (!done)
-	{
-		ios.reset();
-		ios.run_one(ec);
-		if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
-	}
+	run_until(ios, done);
 
 	done = false;
 	pm->async_check_files(boost::bind(&on_check_files, _1, _2, &done));
-	while (!done)
-	{
-		ios.reset();
-		ios.run_one(ec);
-		if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
-	}
+	run_until(ios, done);
 
 	done = false;
 	peer_request r;
@@ -544,12 +534,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	r.start = 10;
 	r.length = 16 * 1024;
 	pm->async_read(r, boost::bind(&on_read, _1, _2, &done));
-	while (!done)
-	{
-		ios.reset();
-		ios.run_one(ec);
-		if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
-	}
+	run_until(ios, done);
 
 	// test rename_file
 	remove(combine_path(test_path, "part0"), ec);
@@ -739,12 +724,7 @@ void test_check_files(std::string const& test_path
 	lazy_entry frd;
 	pm->async_check_fastresume(&frd, boost::bind(&on_check_resume_data, _1, _2, &done));
 	ios.reset();
-	while (!done)
-	{
-		ios.reset();
-		ios.run_one(ec);
-		if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
-	}
+	run_until(ios, done);
 
 	bool pieces[4] = {false, false, false, false};
 	done = false;
