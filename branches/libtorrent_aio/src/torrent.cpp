@@ -1050,17 +1050,24 @@ namespace libtorrent
 			}
 		}
 
-		if ((j.error || ret != 0) && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
+		// only report this error if the user actually provided resume data
+		if ((j.error || ret != 0) && !m_resume_data.empty()
+			&& m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 		{
 			m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), j.error));
 		}
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_ses.m_logger) << "fastresume data for "
 			<< torrent_file().name() << " rejected: "
 			<< j.error.message() << " ret:" << ret << "\n";
 #endif
 
-		if (ret == 0 && !j.error)
+		// if ret != 0, it means we need a full check. We don't necessarily need
+		// that when the resume data check fails. For instance, if the resume data
+		// is incorrect, but we don't have any files, we skip the check and initialize
+		// the storage to not have anything.
+		if (ret == 0)
 		{
 			// there are either no files for this torrent
 			// or the resume_data was accepted
