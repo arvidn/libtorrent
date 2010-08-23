@@ -73,7 +73,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy;
-		ses.set_web_seed_proxy(ps);
+		ses.set_proxy(ps);
 	}
 
 	add_torrent_params p;

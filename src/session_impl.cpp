@@ -379,7 +379,7 @@ namespace aux {
 		TORRENT_CATEGORY("settings", save_settings, m_settings, session_settings_map)
 #ifndef TORRENT_DISABLE_DHT
 //		TORRENT_CATEGORY("dht", save_dht_settings, m_dht_settings, dht_settings_map)
-		TORRENT_CATEGORY("dht proxy", save_dht_proxy, m_dht_proxy, proxy_settings_map)
+		TORRENT_CATEGORY("proxy", save_proxy, m_proxy, proxy_settings_map)
 #endif
 #if TORRENT_USE_I2P
 //		TORRENT_CATEGORY("i2p", save_i2p_proxy, m_i2p_proxy, proxy_settings_map)
@@ -387,9 +387,6 @@ namespace aux {
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		TORRENT_CATEGORY("encryption", save_encryption_settings, m_pe_settings, pe_settings_map)
 #endif
-		TORRENT_CATEGORY("peer proxy", save_peer_proxy, m_peer_proxy, proxy_settings_map)
-		TORRENT_CATEGORY("web proxy", save_web_proxy, m_web_seed_proxy, proxy_settings_map)
-		TORRENT_CATEGORY("tracker proxy", save_tracker_proxy, m_tracker_proxy, proxy_settings_map)
 	};
 
 #undef lenof
@@ -482,7 +479,7 @@ namespace aux {
 #else
 		, m_upload_rate(peer_connection::upload_channel)
 #endif
-		, m_tracker_manager(*this, m_tracker_proxy)
+		, m_tracker_manager(*this, m_proxy)
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
@@ -837,6 +834,15 @@ namespace aux {
 
 	}
 	
+	void session_impl::set_proxy(proxy_settings const& s)
+	{
+		m_proxy = s;
+		// in case we just set a socks proxy, we might have to
+		// open the socks incoming connection
+		if (!m_socks_listen_socket) open_new_incoming_socks_connection();
+		m_udp_socket.set_proxy_settings(m_proxy);
+	}
+
 	void session_impl::load_state(lazy_entry const* e)
 	{
 		lazy_entry const* settings;
@@ -1566,15 +1572,15 @@ namespace aux {
 
 	void session_impl::open_new_incoming_socks_connection()
 	{
-		if (m_peer_proxy.type != proxy_settings::socks5
-			&& m_peer_proxy.type != proxy_settings::socks5_pw
-			&& m_peer_proxy.type != proxy_settings::socks4)
+		if (m_proxy.type != proxy_settings::socks5
+			&& m_proxy.type != proxy_settings::socks5_pw
+			&& m_proxy.type != proxy_settings::socks4)
 			return;
 		
 		if (m_socks_listen_socket) return;
 
 		m_socks_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
-		bool ret = instantiate_connection(m_io_service, m_peer_proxy
+		bool ret = instantiate_connection(m_io_service, m_proxy
 			, *m_socks_listen_socket);
 		TORRENT_ASSERT(ret);
 
@@ -3321,7 +3327,7 @@ namespace aux {
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open()
-			&& m_peer_proxy.hostname == m_tracker_proxy.hostname)
+			&& m_proxy.hostname == m_proxy.hostname)
 			return m_socks_listen_port;
 
 		// if not, don't tell the tracker anything if we're in anonymous
