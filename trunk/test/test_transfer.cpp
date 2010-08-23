@@ -254,8 +254,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy_type;
-		ses1.set_tracker_proxy(ps);
-		ses2.set_tracker_proxy(ps);
+		ses1.set_proxy(ps);
+		ses2.set_proxy(ps);
 	}
 
 	session_settings sett;

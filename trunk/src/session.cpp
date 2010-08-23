@@ -738,6 +738,18 @@ namespace libtorrent
 		return r;
 	}
 
+	void session::set_proxy(proxy_settings const& s)
+	{
+		TORRENT_ASYNC_CALL1(set_proxy, s);
+	}
+
+	proxy_settings session::proxy() const
+	{
+		TORRENT_SYNC_CALL_RET(proxy_settings, proxy);
+		return r;
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
 	void session::set_peer_proxy(proxy_settings const& s)
 	{
 		TORRENT_ASYNC_CALL1(set_peer_proxy, s);
@@ -784,6 +796,7 @@ namespace libtorrent
 		return r;
 	}
 #endif
+#endif // TORRENT_NO_DEPRECATE
 
 #if TORRENT_USE_I2P
 	void session::set_i2p_proxy(proxy_settings const& s)

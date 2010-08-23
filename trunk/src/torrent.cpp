@@ -1480,7 +1480,7 @@ namespace libtorrent
 				// in anonymous_mode we don't talk directly to trackers
 				// only if there is a proxy
 				std::string protocol = req.url.substr(0, req.url.find(':'));
-				int proxy_type = m_ses.m_tracker_proxy.type;
+				int proxy_type = m_ses.m_proxy.type;
 	
 				if ((protocol == "http" || protocol == "https")
 					&& proxy_type == proxy_settings::none)
@@ -3345,7 +3345,7 @@ namespace libtorrent
 		}
 
 		web->resolving = true;
-		proxy_settings const& ps = m_ses.web_seed_proxy();
+		proxy_settings const& ps = m_ses.proxy();
 		if (ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
 		{
@@ -3481,11 +3481,11 @@ namespace libtorrent
 		boost::shared_ptr<socket_type> s(new (std::nothrow) socket_type(m_ses.m_io_service));
 		if (!s) return;
 	
-		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.web_seed_proxy(), *s);
+		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s);
 		(void)ret;
 		TORRENT_ASSERT(ret);
 
-		proxy_settings const& ps = m_ses.web_seed_proxy();
+		proxy_settings const& ps = m_ses.proxy();
 		if (ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
 		{
@@ -4295,7 +4295,7 @@ namespace libtorrent
 		else
 #endif
 		{
-			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy(), *s);
+			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 		}

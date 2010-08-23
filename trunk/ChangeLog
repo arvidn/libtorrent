@@ -1,3 +1,4 @@
+	* merged all proxy settings into a single one
 	* improved SOCKS5 support by proxying hostname lookups
 	* improved support for multi-homed clients
 	* added feature to not count downloaded bytes from web seeds in stats
