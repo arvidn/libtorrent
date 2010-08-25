@@ -1197,6 +1197,13 @@ namespace aux {
 		listen_socket_t s;
 		s.sock.reset(new socket_acceptor(m_io_service));
 		s.sock->open(ep.protocol(), ec);
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		if (ec)
+		{
+			(*m_logger) << "failed to open socket: " << print_endpoint(ep)
+				<< ": " << ec.message() << "\n" << "\n";
+		}
+#endif
 #if TORRENT_USE_IPV6
 		if (ep.protocol() == tcp::v6())
 		{
@@ -1214,6 +1221,12 @@ namespace aux {
 		s.sock->bind(ep, ec);
 		while (ec && retries > 0)
 		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			char msg[200];
+			snprintf(msg, 200, "failed to bind to interface \"%s\": %s"
+				, print_endpoint(ep).c_str(), ec.message().c_str());
+			(*m_logger) << msg << "\n";
+#endif
 			ec = error_code();
 			TORRENT_ASSERT(!ec);
 			--retries;

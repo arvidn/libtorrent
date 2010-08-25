@@ -50,16 +50,16 @@ namespace libtorrent
 	{
 		static char const* messages[] =
 		{
-			"no error",
-			"unsupported version",
-			"unsupported authentication method",
-			"unsupported authentication version",
-			"authentication error",
-			"username required",
-			"general failure",
-			"command not supported",
-			"no identd running",
-			"identd could not identify username"
+			"SOCKS no error",
+			"SOCKS unsupported version",
+			"SOCKS unsupported authentication method",
+			"SOCKS unsupported authentication version",
+			"SOCKS authentication error",
+			"SOCKS username required",
+			"SOCKS general failure",
+			"SOCKS command not supported",
+			"SOCKS no identd running",
+			"SOCKS identd could not identify username"
 		};
 
 		if (ev < 0 || ev > socks_error::num_errors) return "unknown error";

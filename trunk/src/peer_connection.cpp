@@ -3228,7 +3228,10 @@ namespace libtorrent
 
 		if (ec)
 		{
-			if (error > 1 && m_ses.m_alerts.should_post<peer_error_alert>())
+			if ((error > 1
+					|| ec.category() == get_libtorrent_category()
+					|| ec.category() == socks_category)
+				&& m_ses.m_alerts.should_post<peer_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(
 					peer_error_alert(handle, remote(), pid(), ec));
