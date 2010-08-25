@@ -335,6 +335,7 @@ namespace libtorrent
 		, m_added_time(time(0))
 		, m_completed_time(0)
 		, m_last_seen_complete(0)
+		, m_last_saved_resume(time(0))
 		, m_upload_mode_time(0)
 		, m_state(torrent_status::checking_resume_data)
 		, m_storage_mode(p.storage_mode)
@@ -2633,6 +2634,7 @@ namespace libtorrent
 		else
 		{
 			m_need_save_resume_data = false;
+			m_last_saved_resume = time(0);
 			write_resume_data(*j.resume_data);
 			alerts().post_alert(save_resume_data_alert(j.resume_data
 				, get_handle()));
@@ -5374,6 +5376,7 @@ namespace libtorrent
 		}
 
 		m_need_save_resume_data = false;
+		m_last_saved_resume = time(0);
 
 		TORRENT_ASSERT(m_storage);
 		if (m_state == torrent_status::queued_for_checking
