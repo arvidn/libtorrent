@@ -267,7 +267,12 @@ namespace libtorrent
 		bool is_torrent_paused() const { return !m_allow_peers; }
 		void force_recheck();
 		void save_resume_data();
-		bool need_save_resume_data() const { return m_need_save_resume_data; }
+		bool need_save_resume_data() const
+		{
+			// save resume data every 15 minutes regardless, just to
+			// keep stats up to date
+			return m_need_save_resume_data || time(0) - m_last_saved_resume > 15 * 60;
+		}
 
 		bool is_auto_managed() const { return m_auto_managed; }
 		void auto_managed(bool a);
@@ -1009,6 +1014,7 @@ namespace libtorrent
 		time_t m_added_time;
 		time_t m_completed_time;
 		time_t m_last_seen_complete;
+		time_t m_last_saved_resume;
 
 		// ==============================
 		// The following members are specifically
