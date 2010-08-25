@@ -90,15 +90,18 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		}
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a.get()) == 0 || allow_failed_fastresume);
 
-		TEST_CHECK(alert_cast<peer_error_alert>(a.get()) == 0
+		peer_error_alert* pea = alert_cast<peer_error_alert>(a.get());
+		TEST_CHECK(pea == 0
 			|| (!handles.empty() && h.is_seed())
-			|| a->message() == "connecting to peer"
-			|| a->message() == "closing connection to ourself"
-			|| a->message() == "duplicate connection"
-			|| a->message() == "duplicate peer-id, connection closed"
-			|| (allow_disconnects && a->message() == "Broken pipe")
-			|| (allow_disconnects && a->message() == "Connection reset by peer")
-			|| (allow_disconnects && a->message() == "End of file."));
+			|| pea->error.message() == "connecting to peer"
+			|| pea->error.message() == "closing connection to ourself"
+			|| pea->error.message() == "duplicate connection"
+			|| pea->error.message() == "duplicate peer-id"
+			|| pea->error.message() == "upload to upload connection"
+			|| pea->error.message() == "stopping torrent"
+			|| (allow_disconnects && pea->error.message() == "Broken pipe")
+			|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
+			|| (allow_disconnects && pea->error.message() == "End of file."));
 		a = ses.pop_alert();
 	}
 	return ret;
