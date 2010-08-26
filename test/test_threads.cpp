@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,46 +30,44 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_THREAD_HPP_INCLUDED
-#define TORRENT_THREAD_HPP_INCLUDED
+#include <boost/bind.hpp>
+#include <list>
+#include "libtorrent/thread.hpp"
+#include "test.hpp"
 
-#include "libtorrent/config.hpp"
+using namespace libtorrent;
 
-#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
-// asio assumes that the windows error codes are defined already
-#include <winsock2.h>
-#endif
-
-#include <boost/asio/detail/thread.hpp>
-#include <boost/asio/detail/mutex.hpp>
-#include <boost/asio/detail/event.hpp>
-
-namespace libtorrent
+void fun(condition* s, mutex* m, int i)
 {
-	typedef boost::asio::detail::thread thread;
-	typedef boost::asio::detail::mutex mutex;
-	typedef boost::asio::detail::event event;
-
-	void sleep(int milliseconds);
-
-	struct condition
-	{
-		condition();
-		~condition();
-		void wait(mutex::scoped_lock& l);
-		void signal_all(mutex::scoped_lock& l);
-	private:
-#ifdef BOOST_HAS_PTHREADS
-		pthread_cond_t m_cond;
-#elif defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
-		HANDLE m_sem;
-		mutex m_mutex;
-		int m_num_waiters;
-#else
-#error not implemented
-#endif
-	};
+	fprintf(stderr, "thread %d waiting\n", i);
+	mutex::scoped_lock l(*m);
+	s->wait(l);
+	fprintf(stderr, "thread %d done\n", i);
 }
 
-#endif
+int test_main()
+{
+	condition cond;
+	mutex m;
+	std::list<thread*> threads;
+	for (int i = 0; i < 20; ++i)
+	{
+		threads.push_back(new thread(boost::bind(&fun, &cond, &m, i)));
+	}
+
+	// make sure all threads are waiting on the condition
+	sleep(10);
+
+	mutex::scoped_lock l(m);
+	cond.signal_all(l);
+	l.unlock();
+
+	for (std::list<thread*>::iterator i = threads.begin(); i != threads.end(); ++i)
+	{
+		(*i)->join();
+		delete *i;
+	}
+
+	return 0;
+}
 

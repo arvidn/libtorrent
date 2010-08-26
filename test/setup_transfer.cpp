@@ -345,7 +345,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 boost::asio::io_service* tracker_ios = 0;
 boost::shared_ptr<libtorrent::thread> tracker_server;
 libtorrent::mutex tracker_lock;
-libtorrent::condition tracker_initialized;
+libtorrent::event tracker_initialized;
 
 bool udp_failed = false;
 
@@ -491,7 +491,7 @@ void udp_tracker_thread(int* port)
 boost::asio::io_service* web_ios = 0;
 boost::shared_ptr<libtorrent::thread> web_server;
 libtorrent::mutex web_lock;
-libtorrent::condition web_initialized;
+libtorrent::event web_initialized;
 
 void stop_web_server()
 {

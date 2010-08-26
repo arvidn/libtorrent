@@ -409,6 +409,7 @@ SOURCES =
 	magnet_uri
 	parse_url
 	ConvertUTF
+	thread
 
 # -- extensions --
 	metadata_transfer
