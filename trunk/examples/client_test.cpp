@@ -1000,12 +1000,7 @@ int main(int argc, char* argv[])
 		ses.start_natpmp();
 	}
 
-	ses.set_peer_proxy(ps);
-	ses.set_web_seed_proxy(ps);
-	ses.set_tracker_proxy(ps);
-#ifndef TORRENT_DISABLE_DHT
-	ses.set_dht_proxy(ps);
-#endif
+	ses.set_proxy(ps);
 
 	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
 		, bind_to_interface.c_str());
