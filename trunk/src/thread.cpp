@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,46 +30,80 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_THREAD_HPP_INCLUDED
-#define TORRENT_THREAD_HPP_INCLUDED
+#include "libtorrent/thread.hpp"
+#include "libtorrent/assert.hpp"
 
-#include "libtorrent/config.hpp"
-
-#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
-// asio assumes that the windows error codes are defined already
-#include <winsock2.h>
+#ifdef TORRENT_BEOS
+#include <kernel/OS.h>
 #endif
-
-#include <boost/asio/detail/thread.hpp>
-#include <boost/asio/detail/mutex.hpp>
-#include <boost/asio/detail/event.hpp>
 
 namespace libtorrent
 {
-	typedef boost::asio::detail::thread thread;
-	typedef boost::asio::detail::mutex mutex;
-	typedef boost::asio::detail::event event;
-
-	void sleep(int milliseconds);
-
-	struct condition
+	void sleep(int milliseconds)
 	{
-		condition();
-		~condition();
-		void wait(mutex::scoped_lock& l);
-		void signal_all(mutex::scoped_lock& l);
-	private:
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+		Sleep(milliseconds);
+#elif defined TORRENT_BEOS
+		snooze_until(system_time() + boost::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
+#else
+		usleep(milliseconds * 1000);
+#endif
+	}
+
 #ifdef BOOST_HAS_PTHREADS
-		pthread_cond_t m_cond;
+
+	condition::condition()
+	{
+		pthread_cond_init(&m_cond, 0);
+	}
+
+	condition::~condition()
+	{
+		pthread_cond_destroy(&m_cond);
+	}
+
+	void condition::wait(mutex::scoped_lock& l)
+	{
+		TORRENT_ASSERT(l.locked());
+		// wow, this is quite a hack
+		pthread_cond_wait(&m_cond, (::pthread_mutex_t*)&l.mutex());
+	}
+
+	void condition::signal_all(mutex::scoped_lock& l)
+	{
+		TORRENT_ASSERT(l.locked());
+		pthread_cond_broadcast(&m_cond);
+	}
 #elif defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
-		HANDLE m_sem;
-		mutex m_mutex;
-		int m_num_waiters;
+	condition::condition()
+		: m_num_waiters(0)
+	{
+		m_sem = CreateSemaphore(0, 0, INT_MAX, 0);
+	}
+
+	condition::~condition()
+	{
+		CloseHandle(m_sem);
+	}
+
+	void condition::wait(mutex::scoped_lock& l)
+	{
+		TORRENT_ASSERT(l.locked());
+		++m_num_waiters;
+		l.unlock();
+		WaitForSingleObject(m_sem, INFINITE);
+		l.lock();
+		--m_num_waiters;
+	}
+
+	void condition::signal_all(mutex::scoped_lock& l)
+	{
+		TORRENT_ASSERT(l.locked());
+		ReleaseSemaphore(m_sem, m_num_waiters, 0);
+	}
 #else
 #error not implemented
 #endif
-	};
-}
 
-#endif
+}
 

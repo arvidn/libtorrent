@@ -406,7 +406,7 @@ namespace libtorrent
 		// this mutex only protects m_jobs, m_queue_buffer_size
 		// and m_abort
 		mutable mutex m_queue_mutex;
-		condition m_signal;
+		event m_signal;
 		bool m_abort;
 		bool m_waiting_to_shutdown;
 		std::list<disk_io_job> m_jobs;
