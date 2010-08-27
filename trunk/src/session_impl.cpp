@@ -1326,7 +1326,7 @@ namespace aux {
 		if (update_disk_io_thread)
 			update_disk_thread_settings();
 
-		if (m_allowed_upload_slots <= m_settings.num_optimistic_unchoke_slots / 2)
+		if (m_settings.num_optimistic_unchoke_slots >= m_allowed_upload_slots / 2)
 		{
 			if (m_alerts.should_post<performance_alert>())
 				m_alerts.post_alert(performance_alert(torrent_handle()
@@ -3697,7 +3697,7 @@ namespace aux {
 		if (m_max_uploads == limit) return;
 		m_max_uploads = limit;
 		m_allowed_upload_slots = limit;
-		if (m_allowed_upload_slots <= m_settings.num_optimistic_unchoke_slots / 2)
+		if (m_settings.num_optimistic_unchoke_slots >= m_allowed_upload_slots / 2)
 		{
 			if (m_alerts.should_post<performance_alert>())
 				m_alerts.post_alert(performance_alert(torrent_handle()
@@ -4063,7 +4063,9 @@ namespace aux {
 		}
 
 		if (m_settings.num_optimistic_unchoke_slots)
+		{
 			TORRENT_ASSERT(num_optimistic <= m_settings.num_optimistic_unchoke_slots);
+		}
 
 		if (m_num_unchoked != unchokes)
 		{

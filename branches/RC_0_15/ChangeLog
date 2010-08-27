@@ -1,3 +1,4 @@
+	* fixed limitation in rate limiter
 	* fixed build error with boost 1.44
 
 0.15.2 release
