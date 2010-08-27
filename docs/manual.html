@@ -62,7 +62,7 @@
 <li><a class="reference internal" href="#set-max-connections-max-connections" id="id32">set_max_connections() max_connections()</a></li>
 <li><a class="reference internal" href="#num-uploads-num-connections" id="id33">num_uploads() num_connections()</a></li>
 <li><a class="reference internal" href="#set-max-half-open-connections-max-half-open-connections" id="id34">set_max_half_open_connections() max_half_open_connections()</a></li>
-<li><a class="reference internal" href="#load-asnum-db-load-country-db-int-as-for-ip" id="id35">load_asnum_db() load_country_db() int as_for_ip()</a></li>
+<li><a class="reference internal" href="#load-asnum-db-load-country-db-as-for-ip" id="id35">load_asnum_db() load_country_db() as_for_ip()</a></li>
 <li><a class="reference internal" href="#set-ip-filter" id="id36">set_ip_filter()</a></li>
 <li><a class="reference internal" href="#get-ip-filter" id="id37">get_ip_filter()</a></li>
 <li><a class="reference internal" href="#status" id="id38">status()</a></li>
@@ -180,8 +180,8 @@
 <li><a class="reference internal" href="#hasher" id="id138">hasher</a></li>
 <li><a class="reference internal" href="#fingerprint" id="id139">fingerprint</a></li>
 <li><a class="reference internal" href="#upnp-and-nat-pmp" id="id140">UPnP and NAT-PMP</a><ul>
-<li><a class="reference internal" href="#add-mapping" id="id141">add_mapping</a></li>
-<li><a class="reference internal" href="#delete-mapping" id="id142">delete_mapping</a></li>
+<li><a class="reference internal" href="#add-mapping" id="id141">add_mapping()</a></li>
+<li><a class="reference internal" href="#delete-mapping" id="id142">delete_mapping()</a></li>
 <li><a class="reference internal" href="#router-model" id="id143">router_model()</a></li>
 </ul>
 </li>
@@ -896,8 +896,8 @@ their turn to get connected.</p>
 <p><tt class="docutils literal"><span class="pre">max_half_open_connections()</span></tt> returns the set limit. This limit defaults
 to 8 on windows.</p>
 </div>
-<div class="section" id="load-asnum-db-load-country-db-int-as-for-ip">
-<h2>load_asnum_db() load_country_db() int as_for_ip()</h2>
+<div class="section" id="load-asnum-db-load-country-db-as-for-ip">
+<h2>load_asnum_db() load_country_db() as_for_ip()</h2>
 <blockquote>
 <pre class="literal-block">
 void load_asnum_db(char const* file);
@@ -931,10 +931,9 @@ generated.</p>
 <div class="section" id="get-ip-filter">
 <h2>get_ip_filter()</h2>
 <blockquote>
-<dl class="docutils">
-<dt>::</dt>
-<dd>ip_filter get_ip_filter() const;</dd>
-</dl>
+<pre class="literal-block">
+ip_filter get_ip_filter() const;
+</pre>
 </blockquote>
 <p>Returns the ip_filter currently in the session. See <a class="reference internal" href="#ip-filter">ip_filter</a>.</p>
 </div>
@@ -4874,7 +4873,7 @@ public:
 <p><tt class="docutils literal"><span class="pre">discover_device()</span></tt>, <tt class="docutils literal"><span class="pre">close()</span></tt> and <tt class="docutils literal"><span class="pre">rebind()</span></tt> are for internal uses and should
 not be called directly by clients.</p>
 <div class="section" id="add-mapping">
-<h2>add_mapping</h2>
+<h2>add_mapping()</h2>
 <blockquote>
 <pre class="literal-block">
 int add_mapping(protocol_type p, int external_port, int local_port);
@@ -4896,14 +4895,14 @@ is -1, which means failure. There will not be any error alert notification for
 mappings that fail with a -1 return value.</p>
 </div>
 <div class="section" id="delete-mapping">
-<h2>delete_mapping</h2>
+<h2>delete_mapping()</h2>
 <blockquote>
 <pre class="literal-block">
 void delete_mapping(int mapping_index);
 </pre>
 </blockquote>
 <p>This function removes a port mapping. <tt class="docutils literal"><span class="pre">mapping_index</span></tt> is the index that refers
-to the mapping you want to remove, which was returned from <a class="reference internal" href="#add-mapping">add_mapping</a>.</p>
+to the mapping you want to remove, which was returned from <a class="reference internal" href="#add-mapping">add_mapping()</a>.</p>
 </div>
 <div class="section" id="router-model">
 <h2>router_model()</h2>
@@ -5254,7 +5253,7 @@ case it appears the client is not running on a NAT:ed network or if it
 appears there is no NAT router that can be remote controlled to add port
 mappings.</p>
 <p><tt class="docutils literal"><span class="pre">mapping</span></tt> refers to the mapping index of the port map that failed, i.e.
-the index returned from <a class="reference internal" href="#add-mapping">add_mapping</a>.</p>
+the index returned from <a class="reference internal" href="#add-mapping">add_mapping()</a>.</p>
 <p><tt class="docutils literal"><span class="pre">map_type</span></tt> is 0 for NAT-PMP and 1 for UPnP.</p>
 <p><tt class="docutils literal"><span class="pre">error</span></tt> tells you what failed.</p>
 <pre class="literal-block">
@@ -5274,7 +5273,7 @@ a port was successfully mapped on it. On a NAT:ed network with a NAT-PMP
 capable router, this is typically generated once when mapping the TCP
 port and, if DHT is enabled, when the UDP port is mapped.</p>
 <p><tt class="docutils literal"><span class="pre">mapping</span></tt> refers to the mapping index of the port map that failed, i.e.
-the index returned from <a class="reference internal" href="#add-mapping">add_mapping</a>.</p>
+the index returned from <a class="reference internal" href="#add-mapping">add_mapping()</a>.</p>
 <p><tt class="docutils literal"><span class="pre">external_port</span></tt> is the external port allocated for the mapping.</p>
 <p><tt class="docutils literal"><span class="pre">type</span></tt> is 0 for NAT-PMP and 1 for UPnP.</p>
 <pre class="literal-block">
