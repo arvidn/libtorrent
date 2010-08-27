@@ -651,8 +651,8 @@ their turn to get connected.
 ``max_half_open_connections()`` returns the set limit. This limit defaults
 to 8 on windows.
 
-load_asnum_db() load_country_db() int as_for_ip()
--------------------------------------------------
+load_asnum_db() load_country_db() as_for_ip()
+---------------------------------------------
 
 	::
 
@@ -693,6 +693,7 @@ get_ip_filter()
 ---------------
 
 	::
+
 		ip_filter get_ip_filter() const;
 		
 Returns the ip_filter currently in the session. See ip_filter_.
@@ -5017,8 +5018,8 @@ for the DHT port (UDP).
 ``discover_device()``, ``close()`` and ``rebind()`` are for internal uses and should
 not be called directly by clients.
 
-add_mapping
------------
+add_mapping()
+-------------
 
 	::
 
@@ -5042,15 +5043,15 @@ portmap_alert_ respectively. If The mapping fails immediately, the return value
 is -1, which means failure. There will not be any error alert notification for
 mappings that fail with a -1 return value.
 
-delete_mapping
---------------
+delete_mapping()
+----------------
 
 	::
 
 		void delete_mapping(int mapping_index);
 
 This function removes a port mapping. ``mapping_index`` is the index that refers
-to the mapping you want to remove, which was returned from add_mapping_.
+to the mapping you want to remove, which was returned from `add_mapping()`_.
 
 router_model()
 --------------
@@ -5426,7 +5427,7 @@ appears there is no NAT router that can be remote controlled to add port
 mappings.
 
 ``mapping`` refers to the mapping index of the port map that failed, i.e.
-the index returned from add_mapping_.
+the index returned from `add_mapping()`_.
 
 ``map_type`` is 0 for NAT-PMP and 1 for UPnP.
 
@@ -5450,7 +5451,7 @@ capable router, this is typically generated once when mapping the TCP
 port and, if DHT is enabled, when the UDP port is mapped.
 
 ``mapping`` refers to the mapping index of the port map that failed, i.e.
-the index returned from add_mapping_.
+the index returned from `add_mapping()`_.
 
 ``external_port`` is the external port allocated for the mapping.
 
