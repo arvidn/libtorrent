@@ -258,8 +258,8 @@ struct test_storage : storage_interface
 	}
 
 private:
-	condition m_ready_condition;
-	condition m_condition;
+	event m_ready_condition;
+	event m_condition;
 	libtorrent::mutex m_mutex;
 	bool m_started;
 	bool m_ready;

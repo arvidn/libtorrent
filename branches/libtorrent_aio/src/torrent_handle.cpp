@@ -82,7 +82,7 @@ namespace libtorrent
 		*ret = f();
 		mutex::scoped_lock l(*m);
 		*done = true;
-		e->signal(l);
+		e->signal_all(l);
 	}
 
 	// defined in session.cpp
@@ -118,7 +118,6 @@ namespace libtorrent
 	bool done = false; \
 	session_impl& ses = t->session(); \
 	mutex::scoped_lock l(ses.mut); \
-	ses.cond.clear(l); \
 	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t)))); \
 	do { ses.cond.wait(l); } while(!done)
 
@@ -128,7 +127,6 @@ namespace libtorrent
 	bool done = false; \
 	session_impl& ses = t->session(); \
 	mutex::scoped_lock l(ses.mut); \
-	ses.cond.clear(l); \
 	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1)))); \
 	t.reset(); \
 	do { ses.cond.wait(l); } while(!done); }
@@ -139,7 +137,6 @@ namespace libtorrent
 	bool done = false; \
 	session_impl& ses = t->session(); \
 	mutex::scoped_lock l(ses.mut); \
-	ses.cond.clear(l); \
 	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1, a2)))); \
 	t.reset(); \
 	do { ses.cond.wait(l); } while(!done); }
@@ -150,7 +147,6 @@ namespace libtorrent
 	bool done = false; \
 	session_impl& ses = t->session(); \
 	mutex::scoped_lock l(ses.mut); \
-	ses.cond.clear(l); \
 	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1, a2, a3)))); \
 	t.reset(); \
 	do { ses.cond.wait(l); } while(!done); }
@@ -162,7 +158,6 @@ namespace libtorrent
 	session_impl& ses = t->session(); \
 	type r; \
 	mutex::scoped_lock l(ses.mut); \
-	ses.cond.clear(l); \
 	ses.m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t)))); \
 	t.reset(); \
 	do { ses.cond.wait(l); } while(!done)
@@ -174,7 +169,6 @@ namespace libtorrent
 	session_impl& ses = t->session(); \
 	type r; \
 	mutex::scoped_lock l(ses.mut); \
-	ses.cond.clear(l); \
 	ses.m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1)))); \
 	t.reset(); \
 	do { ses.cond.wait(l); } while(!done)
@@ -186,7 +180,6 @@ namespace libtorrent
 	session_impl& ses = t->session(); \
 	type r; \
 	mutex::scoped_lock l(ses.mut); \
-	ses.cond.clear(l); \
 	ses.m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1, a2)))); \
 	t.reset(); \
 	do { ses.cond.wait(l); } while(!done)
@@ -734,7 +727,6 @@ namespace libtorrent
 			bool done = false;
 			session_impl& ses = t->session();
 			mutex::scoped_lock l(ses.mut);
-			ses.cond.clear(l);
 			error_code ec;
 			ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond
 				, &ses.mut, boost::function<void(void)>(boost::bind(

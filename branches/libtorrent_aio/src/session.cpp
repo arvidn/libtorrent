@@ -237,7 +237,7 @@ namespace libtorrent
 		*ret = f();
 		mutex::scoped_lock l(*m);
 		*done = true;
-		e->signal(l);
+		e->signal_all(l);
 	}
 
 	void fun_wrap(bool* done, condition* e, mutex* m, boost::function<void(void)> f)
@@ -245,7 +245,7 @@ namespace libtorrent
 		f();
 		mutex::scoped_lock l(*m);
 		*done = true;
-		e->signal(l);
+		e->signal_all(l);
 	}
 
 #define TORRENT_ASYNC_CALL(x) \
@@ -260,55 +260,48 @@ namespace libtorrent
 #define TORRENT_SYNC_CALL(x) \
 	bool done = false; \
 	mutex::scoped_lock l(m_impl->mut); \
-	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get())))); \
-	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
+	do { m_impl->cond.wait(l); } while(!done)
 
 #define TORRENT_SYNC_CALL1(x, a1) \
 	bool done = false; \
 	mutex::scoped_lock l(m_impl->mut); \
-	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1)))); \
-	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
+	do { m_impl->cond.wait(l); } while(!done)
 
 #define TORRENT_SYNC_CALL2(x, a1, a2) \
 	bool done = false; \
 	mutex::scoped_lock l(m_impl->mut); \
-	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2)))); \
-	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
+	do { m_impl->cond.wait(l); } while(!done)
 
 #define TORRENT_SYNC_CALL_RET(type, x) \
 	bool done = false; \
 	type r; \
 	mutex::scoped_lock l(m_impl->mut); \
-	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get())))); \
-	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
+	do { m_impl->cond.wait(l); } while(!done)
 
 #define TORRENT_SYNC_CALL_RET1(type, x, a1) \
 	bool done = false; \
 	type r; \
 	mutex::scoped_lock l(m_impl->mut); \
-	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1)))); \
-	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
+	do { m_impl->cond.wait(l); } while(!done)
 
 #define TORRENT_SYNC_CALL_RET2(type, x, a1, a2) \
 	bool done = false; \
 	type r; \
 	mutex::scoped_lock l(m_impl->mut); \
-	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2)))); \
-	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
+	do { m_impl->cond.wait(l); } while(!done)
 
 #define TORRENT_SYNC_CALL_RET3(type, x, a1, a2, a3) \
 	bool done = false; \
 	type r; \
 	mutex::scoped_lock l(m_impl->mut); \
-	m_impl->cond.clear(l); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
-	do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done)
+	do { m_impl->cond.wait(l); } while(!done)
 
 	session::session(
 		fingerprint const& id
@@ -653,9 +646,8 @@ namespace libtorrent
 	{
 		bool done = false;
 		mutex::scoped_lock l(m_impl->mut);
-		m_impl->cond.clear(l);
 		m_impl->m_io_service.post(boost::bind(&session_impl::get_cache_info, m_impl.get(), ih, ret, &done, &m_impl->cond, &m_impl->mut));
-		do { m_impl->cond.wait(l); m_impl->cond.clear(l); } while(!done);
+		do { m_impl->cond.wait(l); } while(!done);
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -737,6 +729,18 @@ namespace libtorrent
 		return r;
 	}
 
+	void session::set_proxy(proxy_settings const& s)
+	{
+		TORRENT_ASYNC_CALL1(set_proxy, s);
+	}
+
+	proxy_settings session::proxy() const
+	{
+		TORRENT_SYNC_CALL_RET(proxy_settings, proxy);
+		return r;
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
 	void session::set_peer_proxy(proxy_settings const& s)
 	{
 		TORRENT_ASYNC_CALL1(set_peer_proxy, s);
@@ -783,6 +787,7 @@ namespace libtorrent
 		return r;
 	}
 #endif
+#endif // TORRENT_NO_DEPRECATE
 
 #if TORRENT_USE_I2P
 	void session::set_i2p_proxy(proxy_settings const& s)

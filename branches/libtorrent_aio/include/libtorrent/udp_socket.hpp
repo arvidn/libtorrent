@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 
-#include <vector>
+#include <list>
 #include <boost/function/function4.hpp>
 
 namespace libtorrent

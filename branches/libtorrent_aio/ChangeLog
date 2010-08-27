@@ -1,3 +1,4 @@
+	* merged all proxy settings into a single one
 	* improved SOCKS5 support by proxying hostname lookups
 	* improved support for multi-homed clients
 	* added feature to not count downloaded bytes from web seeds in stats
@@ -39,6 +40,9 @@
 	* support for automatically start torrents when they receive an
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
+
+	* fixed limitation in rate limiter
+	* fixed build error with boost 1.44
 
 0.15.2 release
 

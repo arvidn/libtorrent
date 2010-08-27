@@ -796,6 +796,7 @@ int main(int argc, char* argv[])
 			"  -H                    Don't start DHT\n"
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  -N                    Do not attempt to use UPnP and NAT-PMP to forward ports\n"
+			"  -Y                    Rate limit local peers\n"
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -992,6 +993,7 @@ int main(int argc, char* argv[])
 				break;
 			case 'I': outgoing_interface = arg; break;
 			case 'N': start_upnp = false; --i; break;
+			case 'Y': settings.ignore_limits_on_local_network = false; --i; break;
 		}
 		++i; // skip the argument
 	}
@@ -1003,12 +1005,7 @@ int main(int argc, char* argv[])
 		ses.start_natpmp();
 	}
 
-	ses.set_peer_proxy(ps);
-	ses.set_web_seed_proxy(ps);
-	ses.set_tracker_proxy(ps);
-#ifndef TORRENT_DISABLE_DHT
-	ses.set_dht_proxy(ps);
-#endif
+	ses.set_proxy(ps);
 
 	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
 		, bind_to_interface.c_str());

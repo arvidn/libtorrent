@@ -379,7 +379,7 @@ namespace aux {
 		TORRENT_CATEGORY("settings", save_settings, m_settings, session_settings_map)
 #ifndef TORRENT_DISABLE_DHT
 //		TORRENT_CATEGORY("dht", save_dht_settings, m_dht_settings, dht_settings_map)
-		TORRENT_CATEGORY("dht proxy", save_dht_proxy, m_dht_proxy, proxy_settings_map)
+		TORRENT_CATEGORY("proxy", save_proxy, m_proxy, proxy_settings_map)
 #endif
 #if TORRENT_USE_I2P
 //		TORRENT_CATEGORY("i2p", save_i2p_proxy, m_i2p_proxy, proxy_settings_map)
@@ -387,9 +387,6 @@ namespace aux {
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		TORRENT_CATEGORY("encryption", save_encryption_settings, m_pe_settings, pe_settings_map)
 #endif
-		TORRENT_CATEGORY("peer proxy", save_peer_proxy, m_peer_proxy, proxy_settings_map)
-		TORRENT_CATEGORY("web proxy", save_web_proxy, m_web_seed_proxy, proxy_settings_map)
-		TORRENT_CATEGORY("tracker proxy", save_tracker_proxy, m_tracker_proxy, proxy_settings_map)
 	};
 
 #undef lenof
@@ -481,7 +478,7 @@ namespace aux {
 #else
 		, m_upload_rate(peer_connection::upload_channel)
 #endif
-		, m_tracker_manager(*this, m_tracker_proxy)
+		, m_tracker_manager(*this, m_proxy)
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
@@ -837,6 +834,15 @@ namespace aux {
 
 	}
 	
+	void session_impl::set_proxy(proxy_settings const& s)
+	{
+		m_proxy = s;
+		// in case we just set a socks proxy, we might have to
+		// open the socks incoming connection
+		if (!m_socks_listen_socket) open_new_incoming_socks_connection();
+		m_udp_socket.set_proxy_settings(m_proxy);
+	}
+
 	void session_impl::load_state(lazy_entry const* e)
 	{
 		lazy_entry const* settings;
@@ -1153,7 +1159,7 @@ namespace aux {
 	{
 		mutex::scoped_lock l(*m);
 		*done = true;
-		e->signal(l);
+		e->signal_all(l);
 	}
 
 	void session_impl::get_cache_info(sha1_hash const& ih, cache_status* ret, bool* done, condition* e, mutex* m)
@@ -1343,7 +1349,7 @@ namespace aux {
 		if (update_disk_io_thread)
 			update_disk_thread_settings();
 
-		if (m_allowed_upload_slots <= m_settings.num_optimistic_unchoke_slots / 2)
+		if (m_settings.num_optimistic_unchoke_slots >= m_allowed_upload_slots / 2)
 		{
 			if (m_alerts.should_post<performance_alert>())
 				m_alerts.post_alert(performance_alert(torrent_handle()
@@ -1380,6 +1386,13 @@ namespace aux {
 		listen_socket_t s;
 		s.sock.reset(new socket_acceptor(m_io_service));
 		s.sock->open(ep.protocol(), ec);
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		if (ec)
+		{
+			(*m_logger) << "failed to open socket: " << print_endpoint(ep)
+				<< ": " << ec.message() << "\n" << "\n";
+		}
+#endif
 		if (reuse_address)
 			s.sock->set_option(socket_acceptor::reuse_address(true), ec);
 #if TORRENT_USE_IPV6
@@ -1399,6 +1412,12 @@ namespace aux {
 		s.sock->bind(ep, ec);
 		while (ec && retries > 0)
 		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			char msg[200];
+			snprintf(msg, 200, "failed to bind to interface \"%s\": %s"
+				, print_endpoint(ep).c_str(), ec.message().c_str());
+			(*m_logger) << msg << "\n";
+#endif
 			ec = error_code();
 			TORRENT_ASSERT(!ec);
 			--retries;
@@ -1471,15 +1490,11 @@ namespace aux {
 
 			if (s.sock)
 			{
-				// if we're configured to listen on port 0 (i.e. let the
-				// OS decide), update the listen_interface member with the
+				// update the listen_interface member with the
 				// actual port we ended up listening on, so that the other
 				// sockets can be bound to the same one
-				if (m_listen_interface.port() == 0)
-				{
-					error_code ec;
-					m_listen_interface.port(s.sock->local_endpoint(ec).port());
-				}
+				error_code ec;
+				m_listen_interface.port(s.sock->local_endpoint(ec).port());
 
 				m_listen_sockets.push_back(s);
 				async_accept(s.sock);
@@ -1589,15 +1604,15 @@ namespace aux {
 
 	void session_impl::open_new_incoming_socks_connection()
 	{
-		if (m_peer_proxy.type != proxy_settings::socks5
-			&& m_peer_proxy.type != proxy_settings::socks5_pw
-			&& m_peer_proxy.type != proxy_settings::socks4)
+		if (m_proxy.type != proxy_settings::socks5
+			&& m_proxy.type != proxy_settings::socks5_pw
+			&& m_proxy.type != proxy_settings::socks4)
 			return;
 		
 		if (m_socks_listen_socket) return;
 
 		m_socks_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
-		bool ret = instantiate_connection(m_io_service, m_peer_proxy
+		bool ret = instantiate_connection(m_io_service, m_proxy
 			, *m_socks_listen_socket);
 		TORRENT_ASSERT(ret);
 
@@ -3368,7 +3383,7 @@ namespace aux {
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open()
-			&& m_peer_proxy.hostname == m_tracker_proxy.hostname)
+			&& m_proxy.hostname == m_proxy.hostname)
 			return m_socks_listen_port;
 
 		// if not, don't tell the tracker anything if we're in anonymous
@@ -3730,7 +3745,7 @@ namespace aux {
 		if (m_max_uploads == limit) return;
 		m_max_uploads = limit;
 		m_allowed_upload_slots = limit;
-		if (m_allowed_upload_slots <= m_settings.num_optimistic_unchoke_slots / 2)
+		if (m_settings.num_optimistic_unchoke_slots >= m_allowed_upload_slots / 2)
 		{
 			if (m_alerts.should_post<performance_alert>())
 				m_alerts.post_alert(performance_alert(torrent_handle()
@@ -4096,7 +4111,9 @@ namespace aux {
 		}
 
 		if (m_settings.num_optimistic_unchoke_slots)
+		{
 			TORRENT_ASSERT(num_optimistic <= m_settings.num_optimistic_unchoke_slots);
+		}
 
 		if (m_num_unchoked != unchokes)
 		{

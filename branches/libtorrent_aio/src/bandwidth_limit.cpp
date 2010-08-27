@@ -52,7 +52,7 @@ namespace libtorrent
 	int bandwidth_channel::quota_left() const
 	{
 		if (m_limit == 0) return inf;
-		return (std::max)(m_quota_left, 0);
+		return (std::max)(m_quota_left, boost::int64_t(0));
 	}
 
 	void bandwidth_channel::update_quota(int dt_milliseconds)
@@ -60,9 +60,10 @@ namespace libtorrent
 		if (m_limit == 0) return;
 		m_quota_left += (m_limit * dt_milliseconds + 500) / 1000;
 		if (m_quota_left > m_limit * 3) m_quota_left = m_limit * 3;
-		distribute_quota = (std::max)(m_quota_left, 0);
-//		fprintf(stderr, "%p: [%d]: + %d limit: %d\n", this
-//			, dt_milliseconds, (m_limit * dt_milliseconds + 500) / 1000, m_limit);
+		distribute_quota = (std::max)(m_quota_left, boost::int64_t(0));
+//		fprintf(stderr, "%p: [%d]: + %"PRId64" limit: %"PRId64" quota_left: %"PRId64"\n", this
+//			, dt_milliseconds, (m_limit * dt_milliseconds + 500) / 1000, m_limit
+//			, m_quota_left);
 	}
 
 	// this is used when connections disconnect with
@@ -81,6 +82,9 @@ namespace libtorrent
 		TORRENT_ASSERT(amount >= 0);
 		TORRENT_ASSERT(m_limit >= 0);
 		if (m_limit == 0) return;
+
+//		fprintf(stderr, "%p: - %"PRId64" limit: %"PRId64" quota_left: %"PRId64"\n", this
+//			, amount, m_limit, m_quota_left);
 		m_quota_left -= amount;
 	}
 

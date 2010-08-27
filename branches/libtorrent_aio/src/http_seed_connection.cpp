@@ -197,7 +197,7 @@ namespace libtorrent
 			size -= pr.length;
 		}
 
-		proxy_settings const& ps = m_ses.web_seed_proxy();
+		proxy_settings const& ps = m_ses.proxy();
 		bool using_proxy = ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw;
 

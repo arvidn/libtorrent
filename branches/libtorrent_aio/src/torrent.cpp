@@ -335,6 +335,7 @@ namespace libtorrent
 		, m_added_time(time(0))
 		, m_completed_time(0)
 		, m_last_seen_complete(0)
+		, m_last_saved_resume(time(0))
 		, m_upload_mode_time(0)
 		, m_state(torrent_status::checking_resume_data)
 		, m_storage_mode(p.storage_mode)
@@ -1491,7 +1492,7 @@ namespace libtorrent
 				// in anonymous_mode we don't talk directly to trackers
 				// only if there is a proxy
 				std::string protocol = req.url.substr(0, req.url.find(':'));
-				int proxy_type = m_ses.m_tracker_proxy.type;
+				int proxy_type = m_ses.m_proxy.type;
 	
 				if ((protocol == "http" || protocol == "https")
 					&& proxy_type == proxy_settings::none)
@@ -2651,6 +2652,7 @@ namespace libtorrent
 		else
 		{
 			m_need_save_resume_data = false;
+			m_last_saved_resume = time(0);
 			write_resume_data(*j.resume_data);
 			alerts().post_alert(save_resume_data_alert(j.resume_data
 				, get_handle()));
@@ -3363,7 +3365,7 @@ namespace libtorrent
 		}
 
 		web->resolving = true;
-		proxy_settings const& ps = m_ses.web_seed_proxy();
+		proxy_settings const& ps = m_ses.proxy();
 		if (ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
 		{
@@ -3499,11 +3501,11 @@ namespace libtorrent
 		boost::shared_ptr<socket_type> s(new (std::nothrow) socket_type(m_ses.m_io_service));
 		if (!s) return;
 	
-		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.web_seed_proxy(), *s);
+		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s);
 		(void)ret;
 		TORRENT_ASSERT(ret);
 
-		proxy_settings const& ps = m_ses.web_seed_proxy();
+		proxy_settings const& ps = m_ses.proxy();
 		if (ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
 		{
@@ -4313,7 +4315,7 @@ namespace libtorrent
 		else
 #endif
 		{
-			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.peer_proxy(), *s);
+			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 		}
@@ -5392,6 +5394,7 @@ namespace libtorrent
 		}
 
 		m_need_save_resume_data = false;
+		m_last_saved_resume = time(0);
 
 		TORRENT_ASSERT(m_storage);
 		if (m_state == torrent_status::queued_for_checking
@@ -5985,9 +5988,8 @@ namespace libtorrent
 
 		bool done = false;
 		mutex::scoped_lock l(m_ses.mut);
-		m_ses.cond.clear(l);
 		m_ses.get_cache_info(m_torrent_file->info_hash(), &ret, &done, &m_ses.cond, &m_ses.mut);
-		do { m_ses.cond.wait(l); m_ses.cond.clear(l); } while(!done);
+		do { m_ses.cond.wait(l); } while(!done);
 
 		ptime now = time_now();
 

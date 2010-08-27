@@ -307,40 +307,24 @@ namespace libtorrent
 			void save_state(entry* e, boost::uint32_t flags) const;
 			void load_state(lazy_entry const* e);
 
-			// TODO: just use a single proxy for everything. That's essentially how
-			// it works behind the scene anyway, with the udp socket being used for
-			// both DHT, uTP peers and udp trackers.
-			void set_peer_proxy(proxy_settings const& s)
-			{
-				m_peer_proxy = s;
-				// in case we just set a socks proxy, we might have to
-				// open the socks incoming connection
-				if (!m_socks_listen_socket) open_new_incoming_socks_connection();
-				m_udp_socket.set_proxy_settings(m_peer_proxy);
-			}
-			void set_web_seed_proxy(proxy_settings const& s)
-			{ m_web_seed_proxy = s; }
-			void set_tracker_proxy(proxy_settings const& s)
-			{
-				m_udp_socket.set_proxy_settings(s);
-				m_tracker_proxy = s;
-			}
+			void set_proxy(proxy_settings const& s);
+			proxy_settings const& proxy() const { return m_proxy; }
 
-			proxy_settings const& peer_proxy() const
-			{ return m_peer_proxy; }
-			proxy_settings const& web_seed_proxy() const
-			{ return m_web_seed_proxy; }
-			proxy_settings const& tracker_proxy() const
-			{ return m_tracker_proxy; }
+#ifndef TORRENT_NO_DEPRECATE
+			void set_peer_proxy(proxy_settings const& s) { set_proxy(s); }
+			void set_web_seed_proxy(proxy_settings const& s) { set_proxy(s); }
+			void set_tracker_proxy(proxy_settings const& s) { set_proxy(s); }
+			proxy_settings const& peer_proxy() const { return proxy(); }
+			proxy_settings const& web_seed_proxy() const { return proxy(); }
+			proxy_settings const& tracker_proxy() const { return proxy(); }
 
 #ifndef TORRENT_DISABLE_DHT
-			void set_dht_proxy(proxy_settings const& s)
-			{
-				m_dht_proxy = s;
-				m_udp_socket.set_proxy_settings(s);
-			}
-			proxy_settings const& dht_proxy() const
-			{ return m_dht_proxy; }
+			void set_dht_proxy(proxy_settings const& s) { set_proxy(s); }
+			proxy_settings const& dht_proxy() const { return proxy(); }
+#endif
+#endif // TORRENT_NO_DEPRECATE
+
+#ifndef TORRENT_DISABLE_DHT
 			bool is_dht_running() const { return m_dht; }
 #endif
 
@@ -610,14 +594,9 @@ namespace libtorrent
 
 			// the settings for the client
 			session_settings m_settings;
-			// the proxy settings for different
-			// kinds of connections
-			proxy_settings m_peer_proxy;
-			proxy_settings m_web_seed_proxy;
-			proxy_settings m_tracker_proxy;
-#ifndef TORRENT_DISABLE_DHT
-			proxy_settings m_dht_proxy;
-#endif
+
+			// the proxy used for bittorrent
+			proxy_settings m_proxy;
 
 #ifndef TORRENT_DISABLE_DHT	
 			entry m_dht_state;

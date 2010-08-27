@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,55 +30,80 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
-#define TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
-
-#include <boost/integer_traits.hpp>
-#include <boost/cstdint.hpp>
-
+#include "libtorrent/thread.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent {
+#ifdef TORRENT_BEOS
+#include <kernel/OS.h>
+#endif
 
-// member of peer_connection
-struct TORRENT_EXPORT bandwidth_channel
+namespace libtorrent
 {
-	static const int inf = boost::integer_traits<int>::const_max;
+	void sleep(int milliseconds)
+	{
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+		Sleep(milliseconds);
+#elif defined TORRENT_BEOS
+		snooze_until(system_time() + boost::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
+#else
+		usleep(milliseconds * 1000);
+#endif
+	}
 
-	bandwidth_channel();
+#ifdef BOOST_HAS_PTHREADS
 
-	// 0 means infinite
-	void throttle(int limit);
-	int throttle() const { return m_limit; }
+	condition::condition()
+	{
+		pthread_cond_init(&m_cond, 0);
+	}
 
-	int quota_left() const;
-	void update_quota(int dt_milliseconds);
+	condition::~condition()
+	{
+		pthread_cond_destroy(&m_cond);
+	}
 
-	// this is used when connections disconnect with
-	// some quota left. It's returned to its bandwidth
-	// channels.
-	void return_quota(int amount);
-	void use_quota(int amount);
+	void condition::wait(mutex::scoped_lock& l)
+	{
+		TORRENT_ASSERT(l.locked());
+		// wow, this is quite a hack
+		pthread_cond_wait(&m_cond, (::pthread_mutex_t*)&l.mutex());
+	}
 
-	// used as temporary storage while distributing
-	// bandwidth
-	int tmp;
+	void condition::signal_all(mutex::scoped_lock& l)
+	{
+		TORRENT_ASSERT(l.locked());
+		pthread_cond_broadcast(&m_cond);
+	}
+#elif defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+	condition::condition()
+		: m_num_waiters(0)
+	{
+		m_sem = CreateSemaphore(0, 0, INT_MAX, 0);
+	}
 
-	// this is the number of bytes to distribute this round
-	int distribute_quota;
+	condition::~condition()
+	{
+		CloseHandle(m_sem);
+	}
 
-private:
+	void condition::wait(mutex::scoped_lock& l)
+	{
+		TORRENT_ASSERT(l.locked());
+		++m_num_waiters;
+		l.unlock();
+		WaitForSingleObject(m_sem, INFINITE);
+		l.lock();
+		--m_num_waiters;
+	}
 
-	// this is the amount of bandwidth we have
-	// been assigned without using yet.
-	boost::int64_t m_quota_left;
-
-	// the limit is the number of bytes
-	// per second we are allowed to use.
-	boost::int64_t m_limit;
-};
+	void condition::signal_all(mutex::scoped_lock& l)
+	{
+		TORRENT_ASSERT(l.locked());
+		ReleaseSemaphore(m_sem, m_num_waiters, 0);
+	}
+#else
+#error not implemented
+#endif
 
 }
-
-#endif
 

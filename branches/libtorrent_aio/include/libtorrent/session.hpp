@@ -178,16 +178,20 @@ namespace libtorrent
 
 		enum save_state_flags_t
 		{
-			save_settings = 0x001,
+			save_settings =     0x001,
 			save_dht_settings = 0x002,
-			save_dht_proxy = 0x004,
-			save_dht_state = 0x008,
-			save_i2p_proxy = 0x010,
+			save_dht_state =    0x004,
+			save_proxy =        0x008,
+			save_i2p_proxy =    0x010,
 			save_encryption_settings = 0x020,
-			save_peer_proxy = 0x040,
-			save_web_proxy = 0x080,
-			save_tracker_proxy = 0x100,
-			save_as_map = 0x200
+			save_as_map =       0x040,
+
+#ifndef TORRENT_NO_DEPRECATE
+			save_dht_proxy = save_proxy,
+			save_peer_proxy = save_proxy,
+			save_web_proxy = save_proxy,
+			save_tracker_proxy = save_proxy
+#endif
 		};
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
 		void load_state(lazy_entry const& e);
@@ -355,17 +359,31 @@ namespace libtorrent
 		void set_settings(session_settings const& s);
 		session_settings settings();
 
-		void set_peer_proxy(proxy_settings const& s);
-		void set_web_seed_proxy(proxy_settings const& s);
-		void set_tracker_proxy(proxy_settings const& s);
+		void set_proxy(proxy_settings const& s);
+		proxy_settings proxy() const;
 
-		proxy_settings peer_proxy() const;
-		proxy_settings web_seed_proxy() const;
-		proxy_settings tracker_proxy() const;
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.16
+		TORRENT_DEPRECATED_PREFIX
+		void set_peer_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_web_seed_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_tracker_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
+
+		TORRENT_DEPRECATED_PREFIX
+		proxy_settings peer_proxy() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		proxy_settings web_seed_proxy() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		proxy_settings tracker_proxy() const TORRENT_DEPRECATED;
 
 #ifndef TORRENT_DISABLE_DHT
-		void set_dht_proxy(proxy_settings const& s);
-		proxy_settings dht_proxy() const;
+		TORRENT_DEPRECATED_PREFIX
+		void set_dht_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		proxy_settings dht_proxy() const TORRENT_DEPRECATED;
+#endif
 #endif
 
 #if TORRENT_USE_I2P

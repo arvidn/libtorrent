@@ -220,7 +220,7 @@ struct test_storage : storage_interface
 		, int piece_index
 		, int offset
 		, int num_bufs
-		, boost::function<void(error_code const&, size_t)> const& handler)
+		, boost::function<void(async_handler*)> const& handler)
 	{
 		return m_lower_layer->async_readv(bufs, piece_index, offset, num_bufs, handler);
 	}
@@ -230,7 +230,7 @@ struct test_storage : storage_interface
 		, int piece_index
 		, int offset
 		, int num_bufs
-		, boost::function<void(error_code const&, size_t)> const& handler)
+		, boost::function<void(async_handler*)> const& handler)
 	{
 		return m_lower_layer->async_writev(bufs, piece_index, offset, num_bufs, handler);
 	}
@@ -285,8 +285,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy_type;
-		ses1.set_tracker_proxy(ps);
-		ses2.set_tracker_proxy(ps);
+		ses1.set_proxy(ps);
+		ses2.set_proxy(ps);
 	}
 
 	session_settings sett;
@@ -308,8 +308,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
-	pes.out_enc_policy = pe_settings::forced;
-	pes.in_enc_policy = pe_settings::forced;
+	pes.out_enc_policy = pe_settings::disabled;
+	pes.in_enc_policy = pe_settings::disabled;
 	ses1.set_pe_settings(pes);
 	ses2.set_pe_settings(pes);
 #endif
@@ -349,7 +349,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 	ses1.set_alert_mask(mask);
 	ses2.set_alert_mask(mask);
-	ses1.set_alert_dispatch(&print_alert);
+//	ses1.set_alert_dispatch(&print_alert);
 
 	ses2.set_download_rate_limit(tor2.get_torrent_info().piece_length() * 5);
 
@@ -418,7 +418,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	}
 
 	// 1 announce per tracker to start
-	TEST_EQUAL(tracker_responses, 2);
+	TEST_CHECK(tracker_responses >= 2);
 
 	TEST_CHECK(!tor2.is_seed());
 	TEST_CHECK(tor2.is_finished());

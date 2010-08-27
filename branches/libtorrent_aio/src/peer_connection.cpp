@@ -3278,7 +3278,10 @@ namespace libtorrent
 
 		if (ec)
 		{
-			if (error > 1 && m_ses.m_alerts.should_post<peer_error_alert>())
+			if ((error > 1
+					|| ec.category() == get_libtorrent_category()
+					|| ec.category() == socks_category)
+				&& m_ses.m_alerts.should_post<peer_error_alert>())
 			{
 				m_ses.m_alerts.post_alert(
 					peer_error_alert(handle, remote(), pid(), ec));
@@ -4254,7 +4257,9 @@ namespace libtorrent
 		// peers that we are not interested in are non-prioritized
 		m_channel_state[upload_channel] = peer_info::bw_limit;
 		m_ses.m_upload_rate.request_bandwidth(self()
-			, m_send_buffer.size(), priority
+			, (std::max)(m_send_buffer.size(), m_statistics.upload_rate() * 2
+				/ (1000 / m_ses.m_settings.tick_interval))
+			, priority
 			, bwc1, bwc2, bwc3, bwc4);
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ "
@@ -4287,7 +4292,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 		m_channel_state[download_channel] = peer_info::bw_limit;
 		m_ses.m_download_rate.request_bandwidth(self()
-			, (std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
+			, (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
+				, m_statistics.download_rate() * 2
+				/ (1000 / m_ses.m_settings.tick_interval))
 			, priority , bwc1, bwc2, bwc3, bwc4);
 	}
 
