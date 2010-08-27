@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
 
 #include <boost/integer_traits.hpp>
+#include <boost/cstdint.hpp>
 
 #include "libtorrent/assert.hpp"
 
@@ -70,11 +71,11 @@ private:
 
 	// this is the amount of bandwidth we have
 	// been assigned without using yet.
-	int m_quota_left;
+	boost::int64_t m_quota_left;
 
 	// the limit is the number of bytes
 	// per second we are allowed to use.
-	int m_limit;
+	boost::int64_t m_limit;
 };
 
 }
