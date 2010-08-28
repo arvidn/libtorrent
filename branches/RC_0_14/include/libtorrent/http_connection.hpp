@@ -59,7 +59,7 @@ namespace libtorrent
 
 struct http_connection;
 class connection_queue;
-class ip_filter;
+struct ip_filter;
 	
 typedef boost::function<void(error_code const&
 	, http_parser const&, char const* data, int size, http_connection&)> http_handler;

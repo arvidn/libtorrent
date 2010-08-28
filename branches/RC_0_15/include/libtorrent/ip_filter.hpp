@@ -261,10 +261,8 @@ namespace detail
 
 }
 
-class TORRENT_EXPORT ip_filter
+struct TORRENT_EXPORT ip_filter
 {
-public:
-
 	enum access_flags
 	{
 		blocked = 1

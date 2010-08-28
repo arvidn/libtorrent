@@ -57,7 +57,7 @@ namespace libtorrent
 	class http_parser;
 	class connection_queue;
 	struct session_settings;
-	class ip_filter;
+	struct ip_filter;
 
 	class TORRENT_EXPORT http_tracker_connection
 		: public tracker_connection

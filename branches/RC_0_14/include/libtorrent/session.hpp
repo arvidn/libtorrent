@@ -74,7 +74,7 @@ namespace libtorrent
 {
 	struct torrent_plugin;
 	class torrent;
-	class ip_filter;
+	struct ip_filter;
 	class port_filter;
 	class connection_queue;
 	class natpmp;

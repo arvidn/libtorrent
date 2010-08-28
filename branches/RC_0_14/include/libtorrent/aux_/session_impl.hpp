@@ -97,7 +97,7 @@ namespace libtorrent
 	class upnp;
 	class natpmp;
 	class lsd;
-	class fingerprint;
+	struct fingerprint;
 
 	namespace dht
 	{
