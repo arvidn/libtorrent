@@ -43,7 +43,7 @@ for l in f:
 	if 'boost::_bi::bind_t' in fun: continue
 	if 'boost::_bi::list' in fun: continue
 	if 'boost::_mfi::mf' in fun: continue
-#	if '' in fun: continue
+	if 'boost::_bi::storage' in fun: continue
 
 # should only add leaves
 	if fun in fun_samples: fun_samples[fun] += samples
@@ -70,6 +70,12 @@ for l in f:
 	if 'boost::asio::basic_stream_socket' in fun: fold = indentation
 	if 'recvmsg' in fun: fold = indentation
 	if 'sendmsg' in fun: fold = indentation
+	if 'szone_free_definite_size' == fun: fold = indentation
+	if 'snprintf' == fun: fold = indentation
+	if 'usleep' == fun: fold = indentation
+	if 'pthread_mutex_lock' == fun: fold = indentation
+	if 'pthread_mutex_unlock' == fun: fold = indentation
+	if 'std::string::append' in fun: fold = indentation
 	
 list = []
 for k in fun_samples:
