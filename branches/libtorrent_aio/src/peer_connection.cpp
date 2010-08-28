@@ -133,6 +133,7 @@ namespace libtorrent
 		, m_prefer_whole_pieces(0)
 		, m_desired_queue_size(2)
 		, m_choke_rejects(0)
+		, m_read_recurse(0)
 		, m_fast_reconnect(false)
 		, m_active(true)
 		, m_peer_interested(false)
@@ -270,6 +271,7 @@ namespace libtorrent
 		, m_prefer_whole_pieces(0)
 		, m_desired_queue_size(2)
 		, m_choke_rejects(0)
+		, m_read_recurse(0)
 		, m_fast_reconnect(false)
 		, m_active(false)
 		, m_peer_interested(false)
@@ -4410,7 +4412,7 @@ namespace libtorrent
 		m_channel_state[upload_channel] = peer_info::bw_network;
 	}
 
-	void peer_connection::setup_receive()
+	void peer_connection::setup_receive(sync_t sync)
 	{
 		INVARIANT_CHECK;
 
@@ -4462,19 +4464,29 @@ namespace libtorrent
 			// from being at or exceeding the limit down to below the limit
 			return;
 		}
-
 		error_code ec;
-		size_t bytes_transferred = try_read(read_sync, ec);
 
-		if (ec == asio::error::would_block)
+		if (sync == read_sync && m_read_recurse < 10)
 		{
-			try_read(read_async, ec);
+			size_t bytes_transferred = try_read(read_sync, ec);
+
+			if (ec != asio::error::would_block)
+			{
+				++m_read_recurse;
+				m_channel_state[download_channel] = peer_info::bw_network;
+				on_receive_data(ec, bytes_transferred);
+				--m_read_recurse;
+				return;
+			}
 		}
-		else
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		if (m_read_recurse >= 10)
 		{
-			m_channel_state[download_channel] = peer_info::bw_network;
-			on_receive_data(ec, bytes_transferred);
+			(*m_logger) << time_now_string() << " *** reached recursion limit\n";
 		}
+#endif
+		try_read(read_async, ec);
 	}
 
 	size_t peer_connection::try_read(sync_t s, error_code& ec)
@@ -4758,6 +4770,7 @@ namespace libtorrent
 		}
 
 		int max_receive = 0;
+		int num_loops = 0;
 		do
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -4809,6 +4822,8 @@ namespace libtorrent
 
 			if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
 
+			if (num_loops > 20) break;
+
 			error_code ec;
 			bytes_transferred = try_read(read_sync, ec);
 			if (ec && ec != asio::error::would_block)
@@ -4819,6 +4834,7 @@ namespace libtorrent
 			}
 			if (ec == asio::error::would_block) break;
 			bytes_in_loop += bytes_transferred;
+			++num_loops;
 		}
 		while (bytes_transferred > 0);
 
@@ -4829,7 +4845,7 @@ namespace libtorrent
 		}
 
 		m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
-		setup_receive();
+		setup_receive(read_async);
 	}
 
 	bool peer_connection::can_write() const

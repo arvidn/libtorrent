@@ -561,11 +561,11 @@ namespace libtorrent
 		size_type downloaded_since_unchoke() const
 		{ return m_statistics.total_payload_download() - m_downloaded_at_last_unchoke; }
 
-		void setup_receive();
+		enum sync_t { read_async, read_sync };
+		void setup_receive(sync_t sync = read_sync);
 
 	protected:
 
-		enum sync_t { read_async, read_sync };
 		size_t try_read(sync_t s, error_code& ec);
 
 		virtual void get_specific_peer_info(peer_info& p) const = 0;
@@ -965,6 +965,10 @@ namespace libtorrent
 		// choked, and eventuelly disconnect if it keeps
 		// requesting too many pieces while being choked
 		boost::uint8_t m_choke_rejects;
+
+		// counts the number of recursive calls to on_receive_data
+		// used to limit recursion
+		boost::uint8_t m_read_recurse:5;
 
 		// if this is true, the disconnection
 		// timestamp is not updated when the connection
