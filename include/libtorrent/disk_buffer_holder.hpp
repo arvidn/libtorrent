@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	namespace aux { class session_impl; }
-	class disk_io_thread;
+	namespace aux { struct session_impl; }
+	struct disk_io_thread;
 
 	struct TORRENT_EXPORT disk_buffer_holder
 	{

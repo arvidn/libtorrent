@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	class ip_filter;
+	struct ip_filter;
 
 	class TORRENT_EXPORT udp_tracker_connection: public tracker_connection
 	{
