@@ -791,7 +791,10 @@ namespace libtorrent
 				// the cache size limit, flush some dirty blocks
 				if (m_settings.cache_size <= m_disk_cache.size())
 				{
-					try_flush_write_blocks(m_settings.cache_size - m_disk_cache.size());
+					int left = m_disk_cache.size() - m_settings.cache_size;
+					left = m_disk_cache.try_evict_blocks(left, 1, m_disk_cache.end());
+					if (left > 0 && !m_settings.dont_flush_write_cache)
+						try_flush_write_blocks(left);
 				}
 
 				// the handler will be called when the block

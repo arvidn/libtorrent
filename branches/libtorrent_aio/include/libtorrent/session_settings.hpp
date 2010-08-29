@@ -141,6 +141,7 @@ namespace libtorrent
 			, cache_buffer_chunk_size(16)
 			, cache_expiry(60)
 			, use_read_cache(true)
+			, dont_flush_write_cache(false)
 			, explicit_read_cache(0)
 			, explicit_cache_interval(30)
 			, disk_io_write_mode(0)
@@ -483,6 +484,11 @@ namespace libtorrent
 		// when true, the disk I/O thread uses the disk
 		// cache for caching blocks read from disk too
 		bool use_read_cache;
+
+		// this will make the disk cache never flush a write
+		// piece if it would cause is to have to re-read it
+		// once we want to calculate the piece hash
+		bool dont_flush_write_cache;
 
 		// don't implicitly cache pieces in the read cache,
 		// only cache pieces that are explicitly asked to be
