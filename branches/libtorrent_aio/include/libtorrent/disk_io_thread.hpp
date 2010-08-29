@@ -89,9 +89,11 @@ namespace libtorrent
 			, average_queue_time(0)
 			, average_read_time(0)
 			, average_write_time(0)
+			, blocked_jobs(0)
 			, queued_jobs(0)
 			, pending_jobs(0)
 			, num_aiocb(0)
+			, peak_aiocb(0)
 		{}
 
 		std::vector<cached_piece_info> pieces;
@@ -130,6 +132,9 @@ namespace libtorrent
 		int average_queue_time;
 		int average_read_time;
 		int average_write_time;
+
+		// number of jobs blocked because of a fence
+		int blocked_jobs;
 
 		// number of jobs waiting to be issued (m_to_issue)
 		// average over 30 seconds

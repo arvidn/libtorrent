@@ -1313,6 +1313,7 @@ namespace libtorrent
 		ret->average_queue_time = m_queue_time.mean();
 		ret->average_read_time = m_read_time.mean();
 		ret->average_write_time = m_write_time.mean();
+		ret->blocked_jobs = m_blocked_jobs.size();
 		ret->queued_jobs = m_blocked_jobs.size() + count_aios(m_to_issue);
 		ret->pending_jobs = count_aios(m_in_progress);
 		ret->blocks_written = m_write_blocks;
