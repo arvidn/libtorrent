@@ -104,7 +104,7 @@ namespace libtorrent
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		char* ret = page_aligned_allocator::malloc(m_block_size);
 #else
-		char* ret = (char*)m_pool.ordered_malloc();
+		char* ret = (char*)m_pool.malloc();
 		m_pool.set_next_size(m_settings.cache_buffer_chunk_size);
 #endif
 		++m_in_use;
@@ -200,7 +200,7 @@ namespace libtorrent
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		page_aligned_allocator::free(buf);
 #else
-		m_pool.ordered_free(buf);
+		m_pool.free(buf);
 #endif
 		--m_in_use;
 	}
@@ -269,7 +269,7 @@ namespace libtorrent
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		page_aligned_allocator::free(buf);
 #else
-		m_pool.ordered_free(buf, num_blocks);
+		m_pool.free(buf, num_blocks);
 #endif
 		m_in_use -= num_blocks;
 	}

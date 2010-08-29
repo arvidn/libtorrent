@@ -1854,7 +1854,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	}
 
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
-		, aiocb_pool& pool)
+		, aiocb_pool& pool, int& num_issued)
 	{
 #if TORRENT_USE_AIO
 		// this code uses lio_listio() to save system calls
@@ -1926,6 +1926,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 						if (ret == -1) DLOG(stderr, "  error: %s\n", strerror(errno));
 						if (ret != -1)
 						{
+							++num_issued;
 							// yes, this one was actually added. unlink it from
 							// the chain and stick it in the return chain
 
@@ -1957,6 +1958,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				// move the aiocb_t entries over to the ret chain
 				while (list_start != aios)
 				{
+					++num_issued;
 					*ret_last = list_start;
 					ret_last = &list_start->next;
 					list_start = list_start->next;
@@ -2016,6 +2018,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				continue;
 			}
 		
+			++num_issued;
 			last = &aios->next;
 			aios = aios->next;
 		}
@@ -2074,6 +2077,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				continue;
 			}
 		
+			++num_issued;
 			last = &aios->next;
 			aios = aios->next;
 		}
@@ -2101,6 +2105,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			file::aiocb_t* del = aios;
 			aios = aios->next;
 			pool.destroy(del);
+			++num_issued;
 		}
 		return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);
 #endif	

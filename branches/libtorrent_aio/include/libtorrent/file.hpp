@@ -388,7 +388,7 @@ namespace libtorrent
 	// returns two chains, one with jobs that were issued and
 	// one with jobs that couldn't be issued
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
-		, aiocb_pool& pool);
+		, aiocb_pool& pool, int& num_issued);
 
 	file::aiocb_t* reap_aios(file::aiocb_t* aios
 		, aiocb_pool& pool);

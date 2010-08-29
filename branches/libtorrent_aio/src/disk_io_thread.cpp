@@ -1530,7 +1530,8 @@ namespace libtorrent
 				DLOG(stderr, "issue aios (%p) phys_offset=%"PRId64" elevator=%d\n"
 					, m_to_issue, m_to_issue->phys_offset, m_elevator_direction);
 				file::aiocb_t* pending;
-				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue, m_aiocb_pool);
+				int num_issued = 0;
+				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue, m_aiocb_pool, num_issued);
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
 
 				if (pending)
@@ -1551,6 +1552,12 @@ namespace libtorrent
 						torrent_handle(), performance_alert::aio_limit_reached)));
 				}
 #endif
+				if (num_issued == 0)
+				{
+					// we did not issue a single job! avoid spinning
+					// and pegging the CPU
+					sleep(10);
+				}
 			}
 
 			// now, we may have received the abort thread
