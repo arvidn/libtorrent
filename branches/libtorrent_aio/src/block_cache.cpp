@@ -817,7 +817,7 @@ void block_cache::check_invariant() const
 		{
 			if (p.blocks[k].buf)
 			{
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+#if !defined TORRENT_DISABLE_POOL_ALLOCATOR && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 				TORRENT_ASSERT(m_buffer_pool.is_disk_buffer(p.blocks[k].buf));
 #endif
 				++num_blocks;

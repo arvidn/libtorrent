@@ -863,7 +863,8 @@ namespace libtorrent
 
 		// potentially allocate and issue read commands for blocks we don't have, but
 		// need in order to calculate the hash
-		if (p == m_disk_cache.end()) {
+		if (p == m_disk_cache.end())
+		{
 			DLOG(stderr, "[%p] do_hash: allocating a new piece\n", this);
 			// allocate_read_piece will add the job to the piece
 			ret = allocate_read_piece(j, p);
@@ -884,6 +885,7 @@ namespace libtorrent
 			{
 				sha1_hash h = p->hash->h.final();
 				ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
+				if (ret == -2) j.storage->mark_failed(j.piece);
 				return ret;
 			}
 
