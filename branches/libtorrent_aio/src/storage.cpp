@@ -67,6 +67,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/allocator.hpp" // page_size
 
+// #error get rid of this when regular piece checking is async as well
+#include "libtorrent/block_cache.hpp" // for partial_hash
+
 #include <cstdio>
 
 //#define TORRENT_PARTIAL_HASH_LOG
@@ -414,8 +417,7 @@ namespace libtorrent
 		int readwritev(file::iovec_t const* bufs, int slot, int offset
 			, int num_bufs, fileop& op, error_code& ec);
 
-		~storage()
-		{ m_pool.release(this); }
+		~storage() {}
 
 		size_type read_unaligned(boost::intrusive_ptr<file> const& file_handle
 			, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec);
@@ -1720,26 +1722,6 @@ ret:
 		return m_save_path;
 	}
 
-	// #error make this async and potentially post it to another thread!
-	sha1_hash piece_manager::hash_for_piece_impl(int piece, error_code& ec)
-	{
-		partial_hash ph;
-
-		std::map<int, partial_hash>::iterator i = m_piece_hasher.find(piece);
-		if (i != m_piece_hasher.end())
-		{
-			ph = i->second;
-			m_piece_hasher.erase(i);
-		}
-
-		int slot = slot_for(piece);
-		TORRENT_ASSERT(slot != has_no_slot);
-		// #error pass on the error_code reference
-		hash_for_slot(slot, ph, m_files.piece_size(piece), ec);
-		if (ec) return sha1_hash(0);
-		return ph.h.final();
-	}
-
 	void piece_manager::move_storage_impl(std::string const& save_path, error_code& ec)
 	{
 		m_storage->move_storage(save_path, ec);
@@ -1829,83 +1811,6 @@ ret:
 		m_last_piece = piece_index;
 		int slot = allocate_slot_for_piece(piece_index);
 		file::aiocb_t* ret = m_storage->async_writev(bufs, slot, offset, num_bufs, handler);
-
-		// #error post this to a separate thread to do hashing
-		if (offset == 0)
-		{
-			partial_hash& ph = m_piece_hasher[piece_index];
-			// offset might not be 0 in case we've written this
-			// block before, but it failed due to a disk error
-			ph.offset = 0;
-			ph.offset = size;
-			ph.h.reset();
-
-			for (file::iovec_t* i = iov, *end(iov + num_bufs); i < end; ++i)
-				ph.h.update((char const*)i->iov_base, i->iov_len);
-
-#if defined TORRENT_PARTIAL_HASH_LOG && TORRENT_USE_IOSTREAM
-			out << time_now_string() << " NEW ["
-				" s: " << this
-				<< " p: " << piece_index
-				<< " off: " << offset
-				<< " size: " << size
-				<< " entries: " << m_piece_hasher.size()
-				<< " ]" << std::endl;
-#endif
-		}
-		else
-		{
-			std::map<int, partial_hash>::iterator i = m_piece_hasher.find(piece_index);
-			if (i != m_piece_hasher.end())
-			{
-#ifdef TORRENT_DEBUG
-				TORRENT_ASSERT(i->second.offset > 0);
-				int hash_offset = i->second.offset;
-				TORRENT_ASSERT(offset >= hash_offset);
-#endif
-				if (offset == i->second.offset)
-				{
-#ifdef TORRENT_PARTIAL_HASH_LOG
-					out << time_now_string() << " UPDATING ["
-						" s: " << this
-						<< " p: " << piece_index
-						<< " off: " << offset
-						<< " size: " << size
-						<< " entries: " << m_piece_hasher.size()
-						<< " ]" << std::endl;
-#endif
-					for (file::iovec_t* b = iov, *end(iov + num_bufs); b < end; ++b)
-					{
-						i->second.h.update((char const*)b->iov_base, b->iov_len);
-						i->second.offset += b->iov_len;
-					}
-				}
-#ifdef TORRENT_PARTIAL_HASH_LOG
-				else
-				{
-					out << time_now_string() << " SKIPPING (out of order) ["
-						" s: " << this
-						<< " p: " << piece_index
-						<< " off: " << offset
-						<< " size: " << size
-						<< " entries: " << m_piece_hasher.size()
-						<< " ]" << std::endl;
-				}
-#endif
-			}
-#ifdef TORRENT_PARTIAL_HASH_LOG
-			else
-			{
-				out << time_now_string() << " SKIPPING (no entry) ["
-					" s: " << this
-					<< " p: " << piece_index
-					<< " off: " << offset
-					<< " size: " << size
-					<< " entries: " << m_piece_hasher.size()
-					<< " ]" << std::endl;
-			}
-#endif
-		}
 		return ret;
 	}
 

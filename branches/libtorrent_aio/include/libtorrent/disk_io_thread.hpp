@@ -94,6 +94,8 @@ namespace libtorrent
 			, pending_jobs(0)
 			, num_aiocb(0)
 			, peak_aiocb(0)
+			, hash_jobs(0)
+			, hash_hit_jobs(0)
 		{}
 
 		std::vector<cached_piece_info> pieces;
@@ -149,6 +151,13 @@ namespace libtorrent
 
 		// the peak number of aiocb_t structures in use
 		int peak_aiocb;
+
+		// the number of hash jobs that we have completed
+		int hash_jobs;
+
+		// the number of hash job we have completed that did
+		// not require us to read back any blocks from disk
+		int hash_hit_jobs;
 	};
 	
 	// this is a singleton consisting of the thread and a queue
@@ -225,6 +234,8 @@ namespace libtorrent
 		};
 
 		int io_range(block_cache::iterator p, int start, int end, int readwrite);
+
+		int allocate_read_piece(disk_io_job& j, block_cache::iterator& p);
 
 		enum flush_flags_t { flush_read_cache = 1, flush_write_cache = 2, flush_delete_cache = 4 };
 		int flush_cache(disk_io_job const& j, boost::uint32_t flags);

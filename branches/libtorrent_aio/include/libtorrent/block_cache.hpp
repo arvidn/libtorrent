@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ptime.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/hasher.hpp"
 
 namespace libtorrent
 {
@@ -62,6 +63,15 @@ namespace libtorrent
 	using boost::multi_index::member;
 	using boost::multi_index::const_mem_fun;
 	using boost::multi_index::composite_key;
+
+	struct partial_hash
+	{
+		partial_hash(): offset(0) {}
+		// the number of bytes in the piece that has been hashed
+		int offset;
+		// the sha-1 context
+		hasher h;
+	};
 
 	struct block_cache
 	{
@@ -114,35 +124,42 @@ namespace libtorrent
 		struct cached_piece_entry
 		{
 			cached_piece_entry();
+			~cached_piece_entry();
 
-			int piece;
 			// storage this piece belongs to
 			boost::intrusive_ptr<piece_manager> storage;
 
-			void* storage_ptr() const
-			{ return storage.get(); }
+			int get_piece() const { return piece; }
+			void* get_storage() const { return storage.get(); }
 
 			// the last time a block was writting to this piece
 			// plus the minimum amount of time the block is guaranteed
 			// to stay in the cache
 			time_t expire;
 
-			// the sum of all refcounts in all blocks
-			boost::uint16_t refcount;
-			
-			// the number of dirty blocks in this piece
-			boost::uint16_t num_dirty;
+			boost::uint64_t piece:18;
 
+			// the number of dirty blocks in this piece
+			boost::uint64_t num_dirty:11;
+			
 			// the number of blocks in the cache for this piece
-			boost::uint16_t num_blocks;
+			boost::uint64_t num_blocks:11;
 
 			// the total number of blocks in this piece (and the number
 			// of elements in the blocks array)
-			boost::uint16_t blocks_in_piece;
+			boost::uint64_t blocks_in_piece:11;
 
+			// the sum of all refcounts in all blocks
+			boost::uint64_t refcount:12;
+			
 			// if this is true, whenever refcount hits 0, 
 			// this piece should be deleted
 			bool marked_for_deletion:1;
+			
+			// if this is set, we'll be calculating the hash
+			// for this piece. This member stores the interim
+			// state while we're calulcating the hash.
+			partial_hash* hash;
 
 			// the pointers to the block data
 			boost::shared_array<cached_block_entry> blocks;
@@ -164,8 +181,8 @@ namespace libtorrent
 				// first index. Ordered by storage pointer and piece index
 				ordered_unique<
 					composite_key<cached_piece_entry,
-						const_mem_fun<cached_piece_entry, void*, &cached_piece_entry::storage_ptr>,
-						member<cached_piece_entry, int, &cached_piece_entry::piece>
+						const_mem_fun<cached_piece_entry, void*, &cached_piece_entry::get_storage>,
+						const_mem_fun<cached_piece_entry, int, &cached_piece_entry::get_piece>
 					>
 				>
 				// second index. Ordered by expiration time

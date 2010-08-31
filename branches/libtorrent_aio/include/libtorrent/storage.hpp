@@ -64,6 +64,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/storage_defs.hpp"
 
+// #error remove this once file checking is async
+#include "libtorrent/block_cache.hpp"
+
 namespace libtorrent
 {
 	class session;
@@ -92,15 +95,6 @@ namespace libtorrent
 		virtual const char* what() const throw() { return m_msg.c_str(); }
 		virtual ~file_allocation_failed() throw() {}
 		std::string m_msg;
-	};
-
-	struct TORRENT_EXPORT partial_hash
-	{
-		partial_hash(): offset(0) {}
-		// the number of bytes in the piece that has been hashed
-		int offset;
-		// the sha-1 context
-		hasher h;
 	};
 
 	struct TORRENT_EXPORT storage_interface
@@ -456,11 +450,6 @@ namespace libtorrent
 		// isn't needed)
 		std::multimap<sha1_hash, int> m_hash_to_piece;
 	
-		// this map contains partial hashes for downloading
-		// pieces. This is only accessed from within the
-		// disk-io thread.
-		std::map<int, partial_hash> m_piece_hasher;
-
 		disk_io_thread& m_io_thread;
 
 		// the reason for this to be a void pointer

@@ -311,7 +311,7 @@ namespace libtorrent
 
 	int disk_io_thread::try_flush(block_cache::iterator p, int limit)
 	{
-		DLOG(stderr, "[%p] try_flush: %d\n", this, p->piece);
+		DLOG(stderr, "[%p] try_flush: %d\n", this, int(p->piece));
 		int start_of_run = 0;
 		int i = 0;
 		limit = (std::min)(limit, int(p->blocks_in_piece));
@@ -346,7 +346,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		DLOG(stderr, "[%p] io_range: readwrite=%d piece=%d [%d, %d)\n", this, readwrite, p->piece, start, end);
+		DLOG(stderr, "[%p] io_range: readwrite=%d piece=%d [%d, %d)\n"
+			, this, readwrite, int(p->piece), start, end);
 		TORRENT_ASSERT(p != m_disk_cache.end());
 		TORRENT_ASSERT(start >= 0);
 		TORRENT_ASSERT(start < end);
@@ -391,7 +392,7 @@ namespace libtorrent
 				if (readwrite == op_write)
 				{
 					DLOG(stderr, "[%p] io_range: write piece=%d start_block=%d end_block=%d\n"
-						, this, p->piece, range_start, i);
+						, this, int(p->piece), range_start, i);
 					m_queue_buffer_size += to_write;
 					file::aiocb_t* aios = p->storage->write_async_impl(iov
 						, p->piece, to_write, iov_counter
@@ -413,7 +414,7 @@ namespace libtorrent
 				else
 				{
 					DLOG(stderr, "[%p] io_range: read piece=%d start_block=%d end_block=%d\n"
-						, this, p->piece, range_start, i);
+						, this, int(p->piece), range_start, i);
 					++m_outstanding_jobs;
 					file::aiocb_t* aios = p->storage->read_async_impl(iov, p->piece
 						, range_start * m_block_size, iov_counter
@@ -470,7 +471,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_queue_buffer_size >= to_write);
 		m_queue_buffer_size -= to_write;
-		DLOG(stderr, "[%p] on_disk_write piece: %d start: %d end: %d\n", this, p->piece, begin, end);
+		DLOG(stderr, "[%p] on_disk_write piece: %d start: %d end: %d\n"
+			, this, int(p->piece), begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, handler->error);
 	}
 
@@ -480,7 +482,8 @@ namespace libtorrent
 		if (!handler->error)
 			m_read_time.add_sample(total_microseconds(time_now_hires() - handler->started));
 
-		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n", this, p->piece, begin, end);
+		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n"
+			, this, int(p->piece), begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, handler->error);
 
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
@@ -782,6 +785,9 @@ namespace libtorrent
 
 			if (p != m_disk_cache.end())
 			{
+				block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+				if (pe->hash == 0) pe->hash = new partial_hash;
+
 				// flushes the piece to disk in case
 				// it satisfies the condition for a write
 				// piece to be flushed
@@ -837,38 +843,90 @@ namespace libtorrent
 
 		block_cache::iterator p = m_disk_cache.find_piece(j);
 
+		int ret = defer_handler;
+
+		bool job_added = false;
+
 		// flush the write jobs for this piece
 		if (p != m_disk_cache.end() && p->num_dirty > 0)
 		{
+			DLOG(stderr, "[%p] do_hash: flushing %d dirty blocks\n", this, int(p->num_dirty));
 			// issue write commands
 			io_range(p, 0, INT_MAX, op_write);
-			block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
-			pe->jobs.push_back(j);
-			return defer_handler;
+		}
+
+		if (m_settings.disable_hash_checks)
+		{
+			DLOG(stderr, "[%p] do_hash: hash checking turned off, returning\n", this);
+			return 0;
+		}
+
+		// potentially allocate and issue read commands for blocks we don't have, but
+		// need in order to calculate the hash
+		if (p == m_disk_cache.end()) {
+			DLOG(stderr, "[%p] do_hash: allocating a new piece\n", this);
+			// allocate_read_piece will add the job to the piece
+			ret = allocate_read_piece(j, p);
+			// if allocation failed, fail the disk operation
+			if (ret != 0 && ret != defer_handler) return ret;
+			job_added = true;
+			ret = defer_handler;
 		}
 		else
 		{
-			// #error merge this piece of code with what's in block_cache. The best way
-			// to do this is probably to make the block cache call some function back
-			// into the disk_io_thread for completed jobs and let the job take the same
-			// path again but finish the second time instead of issuing async jobs
-			if (m_settings.disable_hash_checks)
-				return 0;
+			// we already had a piece allocated, but we might not have
+			// all the blocks we need in the cache
+			// issue read commands to read those blocks in
+			int start_block = 0;
+			if (p->hash) start_block = p->hash->offset / m_block_size;
 
-			// #error replace this with an asynchronous call which uses a worker thread
-			// to do the hashing. This would make better use of parallel systems
-			sha1_hash h = j.storage->hash_for_piece_impl(j.piece, j.error);
-			if (j.error)
+			if (p->num_dirty == 0 && start_block == p->blocks_in_piece && p->hash)
 			{
-				j.storage->mark_failed(j.piece);
-				return disk_operation_failed;
+				sha1_hash h = p->hash->h.final();
+				ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
+				return ret;
 			}
 
-			int ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
-			if (ret == -2) j.storage->mark_failed(j.piece);
+			DLOG(stderr, "[%p] do_hash: reading missing blocks %d-%d\n", this
+				, start_block, int(p->blocks_in_piece));
 
-			return ret;
+			if (start_block < p->blocks_in_piece)
+			{
+				ret = m_disk_cache.allocate_pending(p, start_block, p->blocks_in_piece, j, 2);
+				DLOG(stderr, "[%p] do_hash: allocate_pending() = %d\n", this, ret);
+				if (ret > 0)
+				{
+					// if allocate_pending succeeds, it adds the job as well
+					job_added = true;
+					// some blocks were allocated
+					io_range(p, 0, p->blocks_in_piece, op_read);
+					ret = defer_handler;
+				}
+				else if (ret == -1)
+				{
+					// allocation failed
+					m_disk_cache.mark_for_deletion(p);
+					TORRENT_ASSERT(j.buffer == 0);
+					j.error = error::no_memory;
+					j.str.clear();
+					return disk_operation_failed;
+				}
+				ret = defer_handler;
+			}
 		}
+
+		block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+		if (!job_added)
+		{
+			DLOG(stderr, "[%p] do_hash: adding job\n", this);
+			pe->jobs.push_back(j);
+		}
+
+		DLOG(stderr, "[%p] do_hash: creating hash object\n", this);
+		// we need the partial hash object
+		if (pe->hash == 0) pe->hash = new partial_hash;
+
+		return defer_handler;
 	}
 
 	int disk_io_thread::do_move_storage(disk_io_job& j)
@@ -1165,20 +1223,13 @@ namespace libtorrent
 		return 0;
 	}
 
-	int disk_io_thread::do_read_and_hash(disk_io_job& j)
+	int disk_io_thread::allocate_read_piece(disk_io_job& j, block_cache::iterator& p)
 	{
-#ifdef TORRENT_DISK_STATS
-		m_log << log_time() << " read_and_hash " << j.buffer_size << std::endl;
-#endif
-		DLOG(stderr, "[%p] do_read_and_hash\n", this);
-		INVARIANT_CHECK;
-		TORRENT_ASSERT(j.buffer == 0);
-
 		// read the entire piece and verify the piece hash
 		// since we need to check the hash, this function
 		// will ignore the cache size limit (at least for
 		// reading and hashing, not for keeping it around)
-		block_cache::iterator p = m_disk_cache.allocate_piece(j);
+		p = m_disk_cache.allocate_piece(j);
 		if (p == m_disk_cache.end())
 		{
 			TORRENT_ASSERT(j.buffer == 0);
@@ -1188,7 +1239,7 @@ namespace libtorrent
 		}
 
 		int ret = m_disk_cache.allocate_pending(p, 0, p->blocks_in_piece, j, 2);
-		DLOG(stderr, "[%p] do_read_and_hash: allocate_pending ret=%d\n", this, ret);
+		DLOG(stderr, "[%p] allocate_read_piece: allocate_pending ret=%d\n", this, ret);
 
 		if (ret > 0)
 		{
@@ -1213,6 +1264,25 @@ namespace libtorrent
 			m_disk_cache.mark_for_deletion(p);
 			//#error handle the case where there wasn't enough cache space
 		}
+		return 0;
+	}
+
+	int disk_io_thread::do_read_and_hash(disk_io_job& j)
+	{
+#ifdef TORRENT_DISK_STATS
+		m_log << log_time() << " read_and_hash " << j.buffer_size << std::endl;
+#endif
+		DLOG(stderr, "[%p] do_read_and_hash\n", this);
+		INVARIANT_CHECK;
+		TORRENT_ASSERT(j.buffer == 0);
+
+		block_cache::iterator p;
+		int ret = allocate_read_piece(j, p);
+
+		block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+		if (pe->hash == 0) pe->hash = new partial_hash;
+
+		if (ret != 0) return ret;
 
 		// we get here if all the blocks we want are already
 		// in the cache
