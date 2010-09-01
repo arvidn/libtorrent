@@ -551,7 +551,11 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				// #error save the actual hash in the ph state as well
 				sha1_hash h = ph.h.final();
 				ret = (i->storage->info()->hash_for_piece(i->piece) == h)?0:-2;
-				if (ret == -2) i->storage->mark_failed(i->piece);
+				if (ret == -2)
+				{
+					i->storage->mark_failed(i->piece);
+					pe->marked_for_deletion = true;
+				}
 
 				TORRENT_ASSERT(i->piece == pe->piece);
 				DLOG(stderr, "%p block_cache mark_done post job (hash)"
@@ -637,7 +641,11 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				}
 				sha1_hash h = sha1.final();
 				ret = (i->storage->info()->hash_for_piece(i->piece) == h)?ret:-3;
-				if (ret == -3) i->storage->mark_failed(i->piece);
+				if (ret == -3)
+				{
+					i->storage->mark_failed(i->piece);
+					pe->marked_for_deletion = true;
+				}
 			}
 		}
 		else

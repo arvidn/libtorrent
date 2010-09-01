@@ -885,7 +885,11 @@ namespace libtorrent
 			{
 				sha1_hash h = p->hash->h.final();
 				ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
-				if (ret == -2) j.storage->mark_failed(j.piece);
+				if (ret == -2)
+				{
+					j.storage->mark_failed(j.piece);
+					m_disk_cache.mark_for_deletion(p);
+				}
 				return ret;
 			}
 
@@ -1321,6 +1325,7 @@ namespace libtorrent
 		if (ret == -3)
 		{
 			j.storage->mark_failed(j.piece);
+			m_disk_cache.mark_for_deletion(p);
 			j.error = errors::failed_hash_check;
 			j.str.clear();
 			free_buffer(j.buffer);
