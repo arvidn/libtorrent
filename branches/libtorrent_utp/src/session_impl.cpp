@@ -2008,6 +2008,8 @@ namespace aux {
 
 		m_last_tick = now;
 
+		m_utp_socket_manager.tick(now);
+
 		// only tick the following once per second
 		if (now - m_last_second_tick < seconds(1)) return;
 
@@ -2048,8 +2050,6 @@ namespace aux {
 				}
 			}
 		}
-
-		m_utp_socket_manager.tick(now);
 
 		switch (m_settings.mixed_mode_algorithm)
 		{

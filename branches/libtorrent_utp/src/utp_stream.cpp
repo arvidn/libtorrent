@@ -1836,6 +1836,9 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		boost::uint32_t prev_base = m_their_delay_hist.initialized() ? m_their_delay_hist.base() : 0;
 		their_delay = m_their_delay_hist.add_sample(m_reply_micro, step);
 		int base_change = m_their_delay_hist.base() - prev_base;
+		UTP_LOGV("[%08u] %8p: their_delay::add_sample:%u prev_base:%u new_base:%u\n"
+			, int(total_microseconds(receive_time - min_time())), this
+			, m_reply_micro, prev_base, m_their_delay_hist.base());
 
 		if (prev_base && base_change < 0 && base_change > -10000)
 		{
@@ -1847,7 +1850,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 		UTP_LOGV("[%08u] %8p: incoming packet reply_micro:%u base_change:%d\n"
 			, int(total_microseconds(receive_time - min_time())), this, m_reply_micro
-			, base_change);
+			, prev_base ? base_change : 0);
 	}
 
 	if (ph->type == ST_RESET)
@@ -2275,12 +2278,13 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					"seq_nr:%u "
 					"acked_seq_nr:%u "
 					"reply_micro:%u "
+					"min_rtt:%u "
 					"\n"
 					, int(total_microseconds(receive_time - min_time())), this
 					, sample
 					, float(delay / 1000.f)
 					, float(their_delay / 1000.f)
-					, float(m_sm->target_delay() - delay) / 1000.f
+					, float(int(m_sm->target_delay() - delay)) / 1000.f
 					, int(m_cwnd >> 16)
 					, 0
 					, our_delay_base
@@ -2299,10 +2303,11 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, m_seq_nr - m_acked_seq_nr
 					, m_mtu
 					, their_delay_base
-					, boost::uint32_t(ph->timestamp_difference_microseconds)
+					, boost::uint32_t(m_reply_micro)
 					, m_seq_nr
 					, m_acked_seq_nr
-					, m_reply_micro);
+					, m_reply_micro
+					, min_rtt / 1000);
 			}
 #endif
 

@@ -231,9 +231,9 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	ses1->set_settings(sess_set);
 	ses2->set_settings(sess_set);
 	if (ses3) ses3->set_settings(sess_set);
-	ses1->set_alert_mask(~alert::progress_notification);
-	ses2->set_alert_mask(~alert::progress_notification);
-	if (ses3) ses3->set_alert_mask(~alert::progress_notification);
+	ses1->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
+	ses2->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
+	if (ses3) ses3->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 
 	std::srand(time(0));
 	peer_id pid;

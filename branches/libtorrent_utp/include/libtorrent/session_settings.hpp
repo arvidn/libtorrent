@@ -220,7 +220,7 @@ namespace libtorrent
 			, anonymous_mode(false)
 			, tick_interval(100)
 			, utp_target_delay(50) // milliseconds
-			, utp_gain_factor(300) // bytes per rtt
+			, utp_gain_factor(3000) // bytes per rtt
 			, utp_syn_resends(2)
 			, utp_num_resends(6)
 			, utp_connect_timeout(3000) // milliseconds
