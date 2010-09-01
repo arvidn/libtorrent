@@ -38,9 +38,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_I2P
 
 #include <list>
+#include <string>
+#include <vector>
 #include <boost/function/function1.hpp>
 #include <boost/function/function2.hpp>
 #include <boost/bind.hpp>
+#include <boost/shared_ptr.hpp>
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/session_settings.hpp"
 
