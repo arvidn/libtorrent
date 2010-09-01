@@ -1325,7 +1325,7 @@ namespace libtorrent
 
 			if (ae.tier > tier && !m_settings.announce_to_all_tiers) break;
 			if (ae.is_working()) { tier = ae.tier; sent_announce = false; }
-			if (!ae.can_announce(now))
+			if (!ae.can_announce(now, is_seed()))
 			{
 				if (ae.is_working())
 				{

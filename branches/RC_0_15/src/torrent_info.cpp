@@ -391,6 +391,18 @@ namespace libtorrent
 	int announce_entry::min_announce_in() const
 	{ return total_seconds(time_now() - min_announce); }
 
+	bool announce_entry::can_announce(ptime now, bool is_seed) const
+	{
+		// if we're a seed and we haven't sent a completed
+		// event, we need to let this announce through
+		if (is_seed && !complete_sent) return true;
+
+		return now >= next_announce
+			&& now >= min_announce
+			&& (fails < fail_limit || fail_limit == 0)
+			&& !updating;
+	}
+
 	torrent_info::torrent_info(torrent_info const& t)
 		: m_files(t.m_files)
 		, m_orig_files(t.m_orig_files)

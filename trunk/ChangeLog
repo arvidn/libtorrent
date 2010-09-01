@@ -41,6 +41,8 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed announce bug where event=completed would not be sent if it violated the
+	  min-announce of the tracker
 	* fixed limitation in rate limiter
 	* fixed build error with boost 1.44
 
