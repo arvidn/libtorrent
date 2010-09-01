@@ -162,13 +162,7 @@ namespace libtorrent
 				&& !updating;
 		}
 
-		bool can_announce(ptime now) const
-		{
-			return now >= next_announce
-				&& now >= min_announce
-				&& (fails < fail_limit || fail_limit == 0)
-				&& !updating;
-		}
+		bool can_announce(ptime now, bool is_seed) const;
 
 		bool is_working() const
 		{
