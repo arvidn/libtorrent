@@ -178,7 +178,11 @@ namespace libtorrent
 		void start_announcing();
 		void stop_announcing();
 
+		void send_share_mode();
 		void send_upload_only();
+
+		void set_share_mode(bool s);
+		bool share_mode() const { return m_share_mode; }
 
 		void set_upload_mode(bool b);
 		bool upload_mode() const { return m_upload_mode; }
@@ -502,6 +506,8 @@ namespace libtorrent
 // --------------------------------------------
 		// PIECE MANAGEMENT
 
+		void recalc_share_mode();
+
 		void update_sparse_piece_prio(int piece, int cursor, int reverse_cursor);
 
 		void get_suggested_pieces(std::vector<int>& s) const;
@@ -525,8 +531,8 @@ namespace libtorrent
 		int num_have() const
 		{
 			return has_picker()
-				?m_picker->num_have()
-				:m_torrent_file->num_pieces();
+				? m_picker->num_have()
+				: m_torrent_file->num_pieces();
 		}
 
 		// when we get a have message, this is called for that piece
@@ -1209,6 +1215,9 @@ namespace libtorrent
 		// a paused state in case there are no available
 		// slots.
 		bool m_auto_managed:1;
+
+		// this is set when the torrent is in share-mode
+		bool m_share_mode:1;
 
 		// m_num_verified = m_verified.count()
 		boost::uint16_t m_num_verified;

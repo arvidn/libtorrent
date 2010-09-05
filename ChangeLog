@@ -1,3 +1,4 @@
+	* added share-mode feature for improving share ratios
 	* merged all proxy settings into a single one
 	* improved SOCKS5 support by proxying hostname lookups
 	* improved support for multi-homed clients

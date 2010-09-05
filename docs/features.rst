@@ -48,6 +48,8 @@ extensions
 * support for IPv6, including `BEP 7`_ and `BEP 24`_.
 * support for merkle hash tree torrents. This makes the size of torrent files
   scale well with the size of the content.
+* share-mode. This is a special mode torrents can be put in to optimize share
+  ratio rather than downloading the torrent.
 
 .. _extensions: manual.html#extensions
 .. _`http seeding`: manual.html#http-seeding
@@ -252,6 +254,17 @@ and hence decreasing the likelihood of slow peers blocking the completion of pie
 
 The piece picker can also be set to download pieces in sequential order.
 
+share mode
+----------
+
+The share mode feature in libtorrent is intended for users who are only interested in
+helping out swarms, not downloading the torrents.
+
+It works by predicting the demand for pieces, and only download pieces if there is enough
+demand. New pieces will only be downloaded once the share ratio has hit a certain target.
+
+This feature is especially useful when combined with RSS, so that a client can be set up
+to provide additional bandwidth to an entire feed.
 
 merkle hash tree torrents
 -------------------------

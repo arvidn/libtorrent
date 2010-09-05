@@ -102,7 +102,7 @@ namespace libtorrent
 
 		void start();
 
-		enum { upload_only_msg = 2 };
+		enum { upload_only_msg = 2, share_mode_msg = 3 };
 
 		~bt_peer_connection();
 		
@@ -205,6 +205,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
 		void write_upload_only();
+		void write_share_mode();
 #endif
 		void write_metadata(std::pair<int, int> req);
 		void write_metadata_request(std::pair<int, int> req);
@@ -364,6 +365,10 @@ private:
 		// the message ID for upload only message
 		// 0 if not supported
 		int m_upload_only_id;
+
+		// the message ID for share mode message
+		// 0 if not supported
+		int m_share_mode_id;
 
 		char m_reserved_bits[8];
 		// this is set to true if the handshake from

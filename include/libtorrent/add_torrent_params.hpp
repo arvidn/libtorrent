@@ -62,6 +62,7 @@ namespace libtorrent
 			, override_resume_data(false)
 			, upload_mode(false)
 			, file_priorities(0)
+			, share_mode(false)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -82,6 +83,7 @@ namespace libtorrent
 		bool override_resume_data;
 		bool upload_mode;
 		std::vector<boost::uint8_t> const* file_priorities;
+		bool share_mode;
 	};
 }
 
