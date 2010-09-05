@@ -76,6 +76,8 @@ for l in f:
 	if 'pthread_mutex_lock' == fun: fold = indentation
 	if 'pthread_mutex_unlock' == fun: fold = indentation
 	if 'std::string::append' in fun: fold = indentation
+	if 'getipnodebyname' == fun: fold = indentation
+	if '__gnu_debug::_Safe_iterator<std::' in fun: fold = indentation
 	
 list = []
 for k in fun_samples:
