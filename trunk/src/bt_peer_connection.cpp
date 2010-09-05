@@ -1590,7 +1590,8 @@ namespace libtorrent
 
 		// if we're finished and this peer is uploading only
 		// disconnect it
-		if (t->is_finished() && upload_only())
+		if (t->is_finished() && upload_only()
+			&& t->settings().close_redundant_connections)
 			disconnect(errors::upload_upload_connection);
 	}
 

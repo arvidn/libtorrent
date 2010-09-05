@@ -3502,6 +3502,7 @@ namespace libtorrent
 			char const* p = piece_priority->string_ptr();
 			for (int i = 0; i < piece_priority->string_length(); ++i)
 				m_picker->set_piece_priority(i, p[i]);
+			m_policy.recalculate_connect_candidates();
 		}
 
 		if (!m_override_resume_data)
