@@ -98,6 +98,7 @@ namespace libtorrent
 		, m_state(read_protocol_identifier)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
+		, m_share_mode_id(0)
 		, m_supports_extensions(false)
 #endif
 		, m_supports_dht_port(false)
@@ -1496,6 +1497,13 @@ namespace libtorrent
 			return;
 		}
 
+		if (extended_id == share_mode_msg)
+		{
+			if (!packet_finished()) return;
+			set_share_mode(detail::read_uint8(recv_buffer.begin));
+			return;
+		}
+
 		disconnect(errors::invalid_message, 2);
 		return;
 	}
@@ -1564,6 +1572,9 @@ namespace libtorrent
 		if (root.dict_find_int_value("upload_only", 0))
 			set_upload_only(true);
 
+		if (root.dict_find_int_value("share_mode", 0))
+			set_share_mode(true);
+
 		std::string myip = root.dict_find_string_value("yourip");
 		if (!myip.empty())
 		{
@@ -1591,7 +1602,8 @@ namespace libtorrent
 		// if we're finished and this peer is uploading only
 		// disconnect it
 		if (t->is_finished() && upload_only()
-			&& t->settings().close_redundant_connections)
+			&& t->settings().close_redundant_connections
+			&& !t->share_mode())
 			disconnect(errors::upload_upload_connection);
 	}
 
@@ -1662,11 +1674,26 @@ namespace libtorrent
 		
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		if (m_upload_only_id == 0) return;
+		if (t->share_mode()) return;
 
 		char msg[7] = {0, 0, 0, 3, msg_extended};
 		char* ptr = msg + 5;
 		detail::write_uint8(m_upload_only_id, ptr);
 		detail::write_uint8(t->is_upload_only(), ptr);
+		send_buffer(msg, sizeof(msg));
+	}
+
+	void bt_peer_connection::write_share_mode()
+	{
+		INVARIANT_CHECK;
+		
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		if (m_share_mode_id == 0) return;
+
+		char msg[7] = {0, 0, 0, 3, msg_extended};
+		char* ptr = msg + 5;
+		detail::write_uint8(m_share_mode_id, ptr);
+		detail::write_uint8(t->share_mode(), ptr);
 		send_buffer(msg, sizeof(msg));
 	}
 #endif
@@ -1900,18 +1927,24 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 		m["upload_only"] = upload_only_msg;
+		m["share_mode"] = share_mode_msg;
 		int complete_ago = -1;
 		if (t->last_seen_complete() > 0) complete_ago = t->time_since_complete();
 		handshake["complete_ago"] = complete_ago;
 
 		// if we're using lazy bitfields or if we're super seeding, don't say
 		// we're upload only, since it might make peers disconnect
-		if (t->is_upload_only() && (!m_ses.settings().lazy_bitfields
+		// don't tell anyone we're upload only when in share mode
+		// we want to stay connected to seeds
+		if (t->is_upload_only() && !t->share_mode() && (!m_ses.settings().lazy_bitfields
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			|| m_encrypted
 #endif
 			))
 			handshake["upload_only"] = 1;
+
+		if (t->share_mode())
+			handshake["share_mode"] = 1;
 
 		if (!m_ses.m_settings.anonymous_mode)
 		{
