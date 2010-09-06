@@ -383,6 +383,7 @@ namespace libtorrent
 		, m_last_scrape(0)
 		, m_last_download(0)
 		, m_last_upload(0)
+		, m_downloaders(0xffffff)
 		, m_interface_index(0)
 	{
 		m_net_interfaces.push_back(tcp::endpoint(net_interface.address(), 0));
@@ -1436,6 +1437,9 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_allow_peers || e == tracker_request::stopped);
 
+		if (e == tracker_request::none && is_finished())
+			e = tracker_request::paused;
+
 		tracker_request req;
 		req.info_hash = m_torrent_file->info_hash();
 		req.pid = m_ses.get_peer_id();
@@ -1611,7 +1615,7 @@ namespace libtorrent
 	}
 	
  	void torrent::tracker_scrape_response(tracker_request const& req
- 		, int complete, int incomplete, int downloaded)
+ 		, int complete, int incomplete, int downloaded, int downloaders)
  	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
  
@@ -1620,6 +1624,7 @@ namespace libtorrent
  
  		if (complete >= 0) m_complete = complete;
  		if (incomplete >= 0) m_incomplete = incomplete;
+ 		if (downloaders >= 0) m_downloaders = downloaders;
  
  		if (m_ses.m_alerts.should_post<scrape_reply_alert>())
  		{
@@ -3758,7 +3763,8 @@ namespace libtorrent
 		m_seeding_time = rd.dict_find_int_value("seeding_time");
 		m_last_seen_complete = rd.dict_find_int_value("last_seen_complete");
 		m_complete = rd.dict_find_int_value("num_seeds", 0xffffff);
-		m_incomplete = rd.dict_find_int_value("num_downloaders", 0xffffff);
+		m_incomplete = rd.dict_find_int_value("num_incomplete", 0xffffff);
+		m_downloaders = rd.dict_find_int_value("num_downloaders", 0xffffff);
 		set_upload_limit(rd.dict_find_int_value("upload_rate_limit", -1));
 		set_download_limit(rd.dict_find_int_value("download_rate_limit", -1));
 		set_max_connections(rd.dict_find_int_value("max_connections", -1));
@@ -3925,15 +3931,9 @@ namespace libtorrent
 		ret["seeding_time"] = m_seeding_time;
 		ret["last_seen_complete"] = m_last_seen_complete;
 
-		int seeds = 0;
-		int downloaders = 0;
-		if (m_complete >= 0) seeds = m_complete;
-		else seeds = m_policy.num_seeds();
-		if (m_incomplete >= 0) downloaders = m_incomplete;
-		else downloaders = m_policy.num_peers() - m_policy.num_seeds();
-
-		ret["num_seeds"] = seeds;
-		ret["num_downloaders"] = downloaders;
+		ret["num_seeds"] = m_complete;
+		ret["num_incomplete"] = m_incomplete;
+		ret["num_downloaders"] = m_downloaders;
 
 		ret["sequential_download"] = m_sequential_download;
 
@@ -5392,10 +5392,11 @@ namespace libtorrent
 		int seeds = 0;
 		int downloaders = 0;
 
-		if (m_complete >= 0) seeds = m_complete;
+		if (m_complete != 0xffffff) seeds = m_complete;
 		else seeds = m_policy.num_seeds();
 
-		if (m_incomplete >= 0) downloaders = m_incomplete;
+		if (m_downloaders != 0xffffff) downloaders = m_downloaders;
+		else if (m_incomplete != 0xffffff) downloaders = m_incomplete;
 		else downloaders = m_policy.num_peers() - m_policy.num_seeds();
 
 		if (seeds == 0)

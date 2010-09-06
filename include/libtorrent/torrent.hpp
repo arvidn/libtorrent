@@ -467,7 +467,7 @@ namespace libtorrent
 		virtual void tracker_warning(tracker_request const& req
 			, std::string const& msg);
 		virtual void tracker_scrape_response(tracker_request const& req
-			, int complete, int incomplete, int downloaded);
+			, int complete, int incomplete, int downloaded, int downloaders);
 
 		// if no password and username is set
 		// this will return an empty string, otherwise
@@ -1233,6 +1233,10 @@ namespace libtorrent
 		// the number of seconds since the last byte was uploaded
 		// from this torrent
 		boost::uint16_t m_last_upload;
+
+		// the scrape data from the tracker response, this
+		// is optional and may be 0xffffff
+		unsigned int m_downloaders:24;
 
 		// round-robin index into m_interfaces
 		mutable boost::uint8_t m_interface_index;

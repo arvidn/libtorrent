@@ -1,3 +1,4 @@
+	* full support for BEP 21 (event=paused)
 	* added share-mode feature for improving share ratios
 	* merged all proxy settings into a single one
 	* improved SOCKS5 support by proxying hostname lookups

@@ -45,6 +45,7 @@ extensions
 * supports the ``compact=1`` tracker parameter.
 * super seeding/initial seeding (`BEP 16`_).
 * private torrents (`BEP 27`_).
+* upload-only extension (`BEP 21`_).
 * support for IPv6, including `BEP 7`_ and `BEP 24`_.
 * support for merkle hash tree torrents. This makes the size of torrent files
   scale well with the size of the content.
@@ -112,6 +113,7 @@ network
 .. _`BEP 16`: http://bittorrent.org/beps/bep_0016.html
 .. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
 .. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
+.. _`BEP 21`: http://bittorrent.org/beps/bep_0021.html
 .. _`BEP 24`: http://bittorrent.org/beps/bep_0024.html
 .. _`BEP 27`: http://bittorrent.org/beps/bep_0027.html
 .. _`extension protocol`: extension_protocol.html
