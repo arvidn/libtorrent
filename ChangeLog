@@ -1,3 +1,7 @@
+release 0.14.12
+
+	* fixed windows build
+
 release 0.14.11
 
 	* vs 2010 compiler fixes
