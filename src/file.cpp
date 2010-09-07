@@ -101,6 +101,8 @@ static int my_fallocate(int fd, int mode, loff_t offset, loff_t len)
 
 #endif
 
+#undef _FILE_OFFSET_BITS
+
 // make sure the _FILE_OFFSET_BITS define worked
 // on this platform. It's supposed to make file
 // related functions support 64-bit offsets.
