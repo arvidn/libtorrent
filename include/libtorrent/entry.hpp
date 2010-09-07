@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
  */
 
 
+#include <iosfwd>
 #include <map>
 #include <list>
 #include <string>
@@ -67,21 +68,40 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/max.hpp"
-
-#if TORRENT_USE_IOSTREAM
-#include <iosfwd>
-#endif
 
 namespace libtorrent
 {
-	struct lazy_entry;
 
 	struct TORRENT_EXPORT type_error: std::runtime_error
 	{
 		type_error(const char* error): std::runtime_error(error) {}
 	};
+
+	namespace detail
+	{
+		template<int v1, int v2>
+		struct max2 { enum { value = v1>v2?v1:v2 }; };
+
+		template<int v1, int v2, int v3>
+		struct max3
+		{
+			enum
+			{
+				temp = max2<v1,v2>::value,
+				value = temp>v3?temp:v3
+			};
+		};
+
+		template<int v1, int v2, int v3, int v4>
+		struct max4
+		{
+			enum
+			{
+				temp = max3<v1,v2, v3>::value,
+				value = temp>v4?temp:v4
+			};
+		};
+	}
 
 	class entry;
 
@@ -120,7 +140,6 @@ namespace libtorrent
 
 		bool operator==(entry const& e) const;
 		
-		void operator=(lazy_entry const&);
 		void operator=(entry const&);
 		void operator=(dictionary_type const&);
 		void operator=(string_type const&);
@@ -151,9 +170,7 @@ namespace libtorrent
 		entry* find_key(std::string const& key);
 		entry const* find_key(std::string const& key) const;
 		
-#if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
 		void print(std::ostream& os, int indent = 0) const;
-#endif
 
 	protected:
 
@@ -163,16 +180,33 @@ namespace libtorrent
 
 	private:
 
-#ifndef TORRENT_DEBUG
 		data_type m_type;
-#else
-		// the bitfield is used so that the m_type_queried
-		// field still fits, so that the ABI is the same for
-		// debug builds and release builds. It appears to be
-		// very hard to match debug builds with debug versions
-		// of libtorrent
-		data_type m_type:31;
 
+#if (defined(_MSC_VER) && _MSC_VER < 1310) || TORRENT_COMPLETE_TYPES_REQUIRED
+		// workaround for msvc-bug.
+		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
+		// and sizeof(list<char>) == sizeof(list<entry>)
+		union
+		{
+			char data[
+				detail::max4<sizeof(std::list<char>)
+				, sizeof(std::map<std::string, char>)
+				, sizeof(string_type)
+				, sizeof(integer_type)>::value];
+			integer_type dummy_aligner;
+		};
+#else
+		union
+		{
+			char data[detail::max4<sizeof(list_type)
+				, sizeof(dictionary_type)
+				, sizeof(string_type)
+				, sizeof(integer_type)>::value];
+			integer_type dummy_aligner;
+		};
+#endif
+
+#ifdef TORRENT_DEBUG
 	public:
 		// in debug mode this is set to false by bdecode
 		// to indicate that the program has not yet queried
@@ -180,47 +214,123 @@ namespace libtorrent
 		// that it has a certain type. This is asserted in
 		// the accessor functions. This does not apply if
 		// exceptions are used.
-		mutable bool m_type_queried:1;
-	protected:
-#endif // TORRENT_DEBUG
-
-#if (defined(_MSC_VER) && _MSC_VER < 1310) || TORRENT_COMPLETE_TYPES_REQUIRED
-		// workaround for msvc-bug.
-		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
-		// and sizeof(list<char>) == sizeof(list<entry>)
-		enum { union_size
-			= max4<sizeof(std::list<char>)
-			, sizeof(std::map<std::string, char>)
-			, sizeof(string_type)
-			, sizeof(integer_type)>::value
-		};
-#else
-		enum { union_size
-			= max4<sizeof(list_type)
-			, sizeof(dictionary_type)
-			, sizeof(string_type)
-			, sizeof(integer_type)>::value
-		};
+		mutable bool m_type_queried;
 #endif
-		integer_type data[(union_size + sizeof(integer_type) - 1)
-			/ sizeof(integer_type)];
 	};
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 	inline std::ostream& operator<<(std::ostream& os, const entry& e)
 	{
 		e.print(os, 0);
 		return os;
 	}
-#endif
 
-#ifndef BOOST_NO_EXCEPTIONS
-	inline void throw_type_error()
+	inline entry::data_type entry::type() const
 	{
-		throw libtorrent_exception(error_code(errors::invalid_entry_type
-			, get_libtorrent_category()));
-	}
+#ifdef TORRENT_DEBUG
+		m_type_queried = true;
 #endif
+		return m_type;
+	}
+
+	inline entry::~entry() { destruct(); }
+
+	inline void entry::operator=(const entry& e)
+	{
+		destruct();
+		copy(e);
+	}
+
+	inline entry::integer_type& entry::integer()
+	{
+		if (m_type == undefined_t) construct(int_t);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != int_t) throw type_error("invalid type requested from entry");
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == int_t);
+		return *reinterpret_cast<integer_type*>(data);
+	}
+
+	inline entry::integer_type const& entry::integer() const
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != int_t) throw type_error("invalid type requested from entry");
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == int_t);
+		return *reinterpret_cast<const integer_type*>(data);
+	}
+
+	inline entry::string_type& entry::string()
+	{
+		if (m_type == undefined_t) construct(string_t);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != string_t) throw type_error("invalid type requested from entry");
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == string_t);
+		return *reinterpret_cast<string_type*>(data);
+	}
+
+	inline entry::string_type const& entry::string() const
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != string_t) throw type_error("invalid type requested from entry");
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == string_t);
+		return *reinterpret_cast<const string_type*>(data);
+	}
+
+	inline entry::list_type& entry::list()
+	{
+		if (m_type == undefined_t) construct(list_t);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != list_t) throw type_error("invalid type requested from entry");
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == list_t);
+		return *reinterpret_cast<list_type*>(data);
+	}
+
+	inline entry::list_type const& entry::list() const
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != list_t) throw type_error("invalid type requested from entry");
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == list_t);
+		return *reinterpret_cast<const list_type*>(data);
+	}
+
+	inline entry::dictionary_type& entry::dict()
+	{
+		if (m_type == undefined_t) construct(dictionary_t);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == dictionary_t);
+		return *reinterpret_cast<dictionary_type*>(data);
+	}
+
+	inline entry::dictionary_type const& entry::dict() const
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != dictionary_t) throw type_error("invalid type requested from entry");
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == dictionary_t);
+		return *reinterpret_cast<const dictionary_type*>(data);
+	}
 
 }
 

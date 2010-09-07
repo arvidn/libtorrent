@@ -2,8 +2,8 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/python.hpp>
 #include <libtorrent/torrent_handle.hpp>
+#include <boost/python.hpp>
 #include <libtorrent/bitfield.hpp>
 
 using namespace boost::python;
@@ -25,7 +25,6 @@ void bind_torrent_status()
         .def_readonly("state", &torrent_status::state)
         .def_readonly("paused", &torrent_status::paused)
         .def_readonly("progress", &torrent_status::progress)
-        .def_readonly("progress_ppm", &torrent_status::progress_ppm)
         .add_property(
             "next_announce"
           , make_getter(
@@ -60,8 +59,6 @@ void bind_torrent_status()
         .def_readonly("total_done", &torrent_status::total_done)
         .def_readonly("total_wanted_done", &torrent_status::total_wanted_done)
         .def_readonly("total_wanted", &torrent_status::total_wanted)
-        .def_readonly("distributed_full_copies", &torrent_status::distributed_full_copies)
-        .def_readonly("distributed_fraction", &torrent_status::distributed_fraction)
         .def_readonly("distributed_copies", &torrent_status::distributed_copies)
         .def_readonly("block_size", &torrent_status::block_size)
         .def_readonly("num_uploads", &torrent_status::num_uploads)
@@ -74,17 +71,10 @@ void bind_torrent_status()
         .def_readonly("all_time_upload", &torrent_status::all_time_upload)
         .def_readonly("all_time_download", &torrent_status::all_time_download)
         .def_readonly("active_time", &torrent_status::active_time)
-        .def_readonly("finished_time", &torrent_status::finished_time)
         .def_readonly("seeding_time", &torrent_status::seeding_time)
         .def_readonly("seed_rank", &torrent_status::seed_rank)
         .def_readonly("last_scrape", &torrent_status::last_scrape)
-        .def_readonly("has_incoming", &torrent_status::has_incoming)
-        .def_readonly("sparse_regions", &torrent_status::sparse_regions)
-        .def_readonly("seed_mode", &torrent_status::seed_mode)
-        .def_readonly("upload_mode", &torrent_status::upload_mode)
-        .def_readonly("share_mode", &torrent_status::share_mode)
         .def_readonly("error", &torrent_status::error)
-        .def_readonly("priority", &torrent_status::priority)
         ;
 
     enum_<torrent_status::state_t>("states")

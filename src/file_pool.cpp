@@ -31,74 +31,60 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <boost/version.hpp>
-#include <boost/bind.hpp>
 #include "libtorrent/pch.hpp"
-#include "libtorrent/assert.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/file_storage.hpp" // for file_entry
+
+#include <iostream>
 
 namespace libtorrent
 {
-	boost::intrusive_ptr<file> file_pool::open_file(void* st, std::string const& p
-		, file_entry const& fe, int m, error_code& ec)
+	using boost::multi_index::nth_index;
+	using boost::multi_index::get;
+
+	boost::shared_ptr<file> file_pool::open_file(void* st, fs::path const& p
+		, file::open_mode m, error_code& ec)
 	{
 		TORRENT_ASSERT(st != 0);
-		TORRENT_ASSERT(is_complete(p));
-		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
-			|| (m & file::rw_mask) == file::read_write);
-		mutex::scoped_lock l(m_mutex);
-		file_set::iterator i = m_files.find(std::make_pair(st, fe.file_index));
-		if (i != m_files.end())
+		TORRENT_ASSERT(p.is_complete());
+		TORRENT_ASSERT(m == file::in || m == (file::in | file::out));
+		boost::mutex::scoped_lock l(m_mutex);
+		typedef nth_index<file_set, 0>::type path_view;
+		path_view& pt = get<0>(m_files);
+		path_view::iterator i = pt.find(p);
+		if (i != pt.end())
 		{
-			lru_file_entry& e = i->second;
+			lru_file_entry e = *i;
 			e.last_use = time_now();
 
-			if (e.key != st && ((e.mode & file::rw_mask) != file::read_only
-				|| (m & file::rw_mask) != file::read_only))
+			if (e.key != st && (e.mode != file::in
+				|| m != file::in))
 			{
 				// this means that another instance of the storage
 				// is using the exact same file.
 #if BOOST_VERSION >= 103500
-				ec = errors::file_collision;
+				ec = error_code(errors::file_collision, libtorrent_category);
 #endif
-				return boost::intrusive_ptr<file>();
+				return boost::shared_ptr<file>();
 			}
 
 			e.key = st;
-			// if we asked for a file in write mode,
-			// and the cached file is is not opened in
-			// write mode, re-open it
-			if ((((e.mode & file::rw_mask) != file::read_write)
-				&& ((m & file::rw_mask) == file::read_write))
-				|| (e.mode & file::no_buffer) != (m & file::no_buffer))
+			if ((e.mode & m) != m)
 			{
 				// close the file before we open it with
 				// the new read/write privilages
-				TORRENT_ASSERT(e.file_ptr->refcount() == 1);
+				i->file_ptr.reset();
+				TORRENT_ASSERT(e.file_ptr.unique());
 				e.file_ptr->close();
-				std::string full_path = combine_path(p, fe.path);
-				if (!e.file_ptr->open(full_path, m, ec))
+				if (!e.file_ptr->open(p, m, ec))
 				{
 					m_files.erase(i);
-					return boost::intrusive_ptr<file>();
+					return boost::shared_ptr<file>();
 				}
-#ifdef TORRENT_WINDOWS
-// file prio is supported on vista and up
-#if _WIN32_WINNT >= 0x0600
-				if (m_low_prio_io)
-				{
-					FILE_IO_PRIORITY_HINT_INFO priorityHint;
-					priorityHint.PriorityHint = IoPriorityHintLow;
-					SetFileInformationByHandle(e.file_ptr->native_handle(),
-						FileIoPriorityHintInfo, &priorityHint, sizeof(PriorityHint));
-				}
-#endif
-#endif
 				TORRENT_ASSERT(e.file_ptr->is_open());
 				e.mode = m;
 			}
-			TORRENT_ASSERT((e.mode & file::no_buffer) == (m & file::no_buffer));
+			pt.replace(i, e);
 			return e.file_ptr;
 		}
 		// the file is not in our cache
@@ -106,7 +92,12 @@ namespace libtorrent
 		{
 			// the file cache is at its maximum size, close
 			// the least recently used (lru) file from it
-			remove_oldest();
+			typedef nth_index<file_set, 1>::type lru_view;
+			lru_view& lt = get<1>(m_files);
+			lru_view::iterator i = lt.begin();
+			// the first entry in this view is the least recently used
+			TORRENT_ASSERT(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
+			lt.erase(i);
 		}
 		lru_file_entry e;
 		e.file_ptr.reset(new (std::nothrow)file);
@@ -115,65 +106,58 @@ namespace libtorrent
 			ec = error_code(ENOMEM, get_posix_category());
 			return e.file_ptr;
 		}
-		std::string full_path = combine_path(p, fe.path);
-		if (!e.file_ptr->open(full_path, m, ec))
-			return boost::intrusive_ptr<file>();
+		if (!e.file_ptr->open(p, m, ec))
+			return boost::shared_ptr<file>();
 		e.mode = m;
 		e.key = st;
-		m_files.insert(std::make_pair(std::make_pair(st, fe.file_index), e));
+		e.file_path = p;
+		pt.insert(e);
 		TORRENT_ASSERT(e.file_ptr->is_open());
 		return e.file_ptr;
 	}
 
-	void file_pool::remove_oldest()
+	void file_pool::release(fs::path const& p)
 	{
-		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
-			, boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _1))
-				< boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _2)));
-		if (i == m_files.end()) return;
-		m_files.erase(i);
+		boost::mutex::scoped_lock l(m_mutex);
+
+		typedef nth_index<file_set, 0>::type path_view;
+		path_view& pt = get<0>(m_files);
+		path_view::iterator i = pt.find(p);
+		if (i != pt.end()) pt.erase(i);
 	}
 
-	void file_pool::release(void* st, file_entry const& fe)
-	{
-		mutex::scoped_lock l(m_mutex);
-		file_set::iterator i = m_files.find(std::make_pair(st, fe.file_index));
-		if (i != m_files.end()) m_files.erase(i);
-	}
-
-	// closes files belonging to the specified
-	// storage. If 0 is passed, all files are closed
 	void file_pool::release(void* st)
 	{
-		mutex::scoped_lock l(m_mutex);
-		if (st == 0)
-		{
-			m_files.clear();
-			return;
-		}
+		boost::mutex::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(st != 0);
+		using boost::tie;
 
-		for (file_set::iterator i = m_files.begin();
-			i != m_files.end();)
-		{
-			if (i->second.key == st)
-				m_files.erase(i++);
-			else
-				++i;
-		}
+		typedef nth_index<file_set, 2>::type key_view;
+		key_view& kt = get<2>(m_files);
+
+		key_view::iterator start, end;
+		tie(start, end) = kt.equal_range(st);
+		kt.erase(start, end);
 	}
 
 	void file_pool::resize(int size)
 	{
 		TORRENT_ASSERT(size > 0);
 		if (size == m_size) return;
-		mutex::scoped_lock l(m_mutex);
+		boost::mutex::scoped_lock l(m_mutex);
 		m_size = size;
 		if (int(m_files.size()) <= m_size) return;
 
 		// close the least recently used files
+		typedef nth_index<file_set, 1>::type lru_view;
+		lru_view& lt = get<1>(m_files);
+		lru_view::iterator i = lt.begin();
 		while (int(m_files.size()) > m_size)
-			remove_oldest();
+		{
+			// the first entry in this view is the least recently used
+			TORRENT_ASSERT(lt.size() == 1 || (i->last_use <= boost::next(i)->last_use));
+			lt.erase(i++);
+		}
 	}
 
 }
-

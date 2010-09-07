@@ -33,56 +33,147 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <libtorrent/kademlia/refresh.hpp>
+#include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
-#include <libtorrent/kademlia/node.hpp>
+#include <libtorrent/kademlia/logging.hpp>
+#include <libtorrent/kademlia/msg.hpp>
 
 #include <libtorrent/io.hpp>
+
+#include <boost/bind.hpp>
+
+using boost::bind;
 
 namespace libtorrent { namespace dht
 {
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_DECLARE_LOG(traversal);
+TORRENT_DEFINE_LOG(refresh)
 #endif
 
-refresh::refresh(
-	node_impl& node
-	, node_id target
-	, done_callback const& callback)
-	: find_data(node, target, find_data::data_callback(), callback)
+refresh_observer::~refresh_observer()
 {
+	if (m_algorithm) m_algorithm->failed(m_self, true);
 }
 
-char const* refresh::name() const
+void refresh_observer::reply(msg const& in)
 {
-	return "refresh";
-}
+	if (!m_algorithm) return;
 
-bool refresh::invoke(udp::endpoint addr)
-{
-	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
-	void* ptr = m_node.m_rpc.allocator().malloc();
-	if (ptr == 0)
+	if (!in.nodes.empty())
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << "] failed to "
-			"allocate memory for observer. aborting!";
-#endif
-		done();
-		return false;
+		for (msg::nodes_t::const_iterator i = in.nodes.begin()
+			, end(in.nodes.end()); i != end; ++i)
+		{
+			m_algorithm->traverse(i->id, i->addr);
+		}
 	}
-	m_node.m_rpc.allocator().set_next_size(10);
-	observer_ptr o(new (ptr) find_data_observer(this));
+	m_algorithm->finished(m_self);
+	m_algorithm = 0;
+}
+
+void refresh_observer::timeout()
+{
+	if (!m_algorithm) return;
+	m_algorithm->failed(m_self);
+	m_algorithm = 0;
+}
+
+ping_observer::~ping_observer()
+{
+	if (m_algorithm) m_algorithm->ping_timeout(m_self, true);
+}
+
+void ping_observer::reply(msg const& m)
+{
+	if (!m_algorithm) return;
+	
+	m_algorithm->ping_reply(m_self);
+	m_algorithm = 0;
+}
+
+void ping_observer::timeout()
+{
+	if (!m_algorithm) return;
+	m_algorithm->ping_timeout(m_self);
+	m_algorithm = 0;
+}
+
+void refresh::invoke(node_id const& nid, udp::endpoint addr)
+{
+	TORRENT_ASSERT(m_rpc.allocation_size() >= sizeof(refresh_observer));
+	observer_ptr o(new (m_rpc.allocator().malloc()) refresh_observer(
+		this, nid, m_target));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
-	entry e;
-	e["y"] = "q";
-	e["q"] = "find_node";
-	entry& a = e["a"];
-	a["target"] = target().to_string();
-	m_node.m_rpc.invoke(e, addr, o);
-	return true;
+
+	m_rpc.invoke(messages::find_node, addr, o);
+}
+
+void refresh::done()
+{
+	m_leftover_nodes_iterator = (int)m_results.size() > m_max_results ?
+		m_results.begin() + m_max_results : m_results.end();
+
+	invoke_pings_or_finish();
+}
+
+void refresh::ping_reply(node_id nid)
+{
+	m_active_pings--;
+	invoke_pings_or_finish();
+}
+
+void refresh::ping_timeout(node_id nid, bool prevent_request)
+{
+	m_active_pings--;
+	invoke_pings_or_finish(prevent_request);
+}
+
+void refresh::invoke_pings_or_finish(bool prevent_request)
+{
+	if (prevent_request)
+	{
+		--m_max_active_pings;
+		if (m_max_active_pings <= 0)
+			m_max_active_pings = 1;
+	}
+	else
+	{
+		while (m_active_pings < m_max_active_pings)
+		{
+			if (m_leftover_nodes_iterator == m_results.end()) break;
+
+			result const& node = *m_leftover_nodes_iterator;
+
+			// Skip initial nodes
+			if (node.flags & result::initial)
+			{
+				++m_leftover_nodes_iterator;
+				continue;
+			}
+
+			try
+			{
+				TORRENT_ASSERT(m_rpc.allocation_size() >= sizeof(ping_observer));
+				observer_ptr o(new (m_rpc.allocator().malloc()) ping_observer(
+					this, node.id));
+#ifdef TORRENT_DEBUG
+				o->m_in_constructor = false;
+#endif
+				m_rpc.invoke(messages::ping, node.addr, o);
+				++m_active_pings;
+				++m_leftover_nodes_iterator;
+			}
+			catch (std::exception& e) {}
+		}
+	}
+
+	if (m_active_pings == 0)
+	{
+		m_done_callback();
+	}
 }
 
 } } // namespace libtorrent::dht

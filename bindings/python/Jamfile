@@ -11,13 +11,12 @@ rule libtorrent_linking ( properties * )
 
     if <toolset>gcc in $(properties)
     {
-        result += <fpic>on ;
+        result += <library>/torrent//torrent/<link>static/<cxxflags>-fPIC/<cflags>-fPIC <cxxflags>-fPIC ;
     }
-
-#    if <toolset>gcc in $(properties) || <toolset>darwin in $(properties)
-#    {
-#        result += <visibility>hidden ;
-#    }
+    else
+    {
+        result += <library>/torrent//torrent/<link>static ;
+    }
 
     # when building peer_plugin.cpp on msvc-7.1 it fails
     # running out of internal heap space. Don't add it
@@ -43,6 +42,7 @@ python-extension libtorrent
     src/session.cpp
     src/entry.cpp
     src/torrent_info.cpp
+    src/filesystem.cpp
     src/torrent_handle.cpp
     src/torrent_status.cpp
     src/session_settings.cpp
@@ -55,12 +55,9 @@ python-extension libtorrent
     src/ip_filter.cpp
     src/magnet_uri.cpp
   : <include>src
-    <library>/torrent//torrent/<link>static
     <boost>system:<library>boost_python
     <boost>source,<boost-link>static:<library>/boost/python//boost_python/<link>static
     <boost>source,<boost-link>shared:<library>/boost/python//boost_python/<link>shared
     <conditional>@libtorrent_linking
   ;
-
-install stage_module : libtorrent : <location>. ;
 

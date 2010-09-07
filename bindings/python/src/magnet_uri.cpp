@@ -2,10 +2,10 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt
 
-#include <boost/python.hpp>
 #include <libtorrent/session.hpp>
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/magnet_uri.hpp>
+#include <boost/python.hpp>
 #include "gil.hpp"
 
 using namespace boost::python;
@@ -29,7 +29,7 @@ namespace {
             name = extract<std::string>(params["name"]);
             p.name = name.c_str();
         }
-        p.save_path = extract<std::string>(params["save_path"]);
+        p.save_path = fs::path(extract<std::string>(params["save_path"]));
 
         std::vector<char> resume_buf;
         if (params.has_key("resume_data"))
@@ -44,12 +44,7 @@ namespace {
         p.auto_managed = params["auto_managed"];
         p.duplicate_is_error = params["duplicate_is_error"];
         
-#ifndef BOOST_NO_EXCEPTIONS
         return add_magnet_uri(s, uri, p);
-#else
-		  error_code ec;
-        return add_magnet_uri(s, uri, p, ec);
-#endif
     }
 }
 

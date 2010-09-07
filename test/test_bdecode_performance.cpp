@@ -13,7 +13,7 @@ int test_main()
 
 	ptime start(time_now());
 
-	for (int i = 0; i < 100000; ++i)
+	for (int i = 0; i < 1000000; ++i)
 	{
 		char b[] = "d1:ai12453e1:b3:aaa1:c3:bbbe";
 		lazy_entry e;
@@ -21,7 +21,7 @@ int test_main()
 	}
 	ptime stop(time_now());
 
-	std::cout << "done in " << total_milliseconds(stop - start) / 100. << " seconds per million message" << std::endl;
+	std::cout << "done in " << total_milliseconds(stop - start) / 1000. << " seconds per million message" << std::endl;
 	return 0;
 }
 

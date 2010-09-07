@@ -30,107 +30,103 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <iostream>
+#include <fstream>
+#include <iterator>
+#include <iomanip>
+
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/magnet_uri.hpp"
+#include <boost/filesystem/operations.hpp>
+
 
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
+	using namespace boost::filesystem;
 
 	if (argc != 2)
 	{
-		fputs("usage: dump_torrent torrent-file\n", stderr);
+		std::cerr << "usage: dump_torrent torrent-file\n";
 		return 1;
 	}
+#if BOOST_VERSION < 103400
+	boost::filesystem::path::default_name_check(boost::filesystem::no_check);
+#endif
 
-	int size = file_size(argv[1]);
-	if (size > 10 * 1000000)
+#ifndef BOOST_NO_EXCEPTIONS
+	try
 	{
-		fprintf(stderr, "file too big (%d), aborting\n", size);
-		return 1;
-	}
-	std::vector<char> buf(size);
-	int ret = load_file(argv[1], buf);
-	if (ret != 0)
-	{
-		fprintf(stderr, "failed to load file: %d\n", ret);
-		return 1;
-	}
-	lazy_entry e;
-	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
+#endif
 
-	if (ret != 0)
-	{
-		fprintf(stderr, "invalid bencoding: %d\n", ret);
-		return 1;
-	}
+		int size = file_size(argv[1]);
+		if (size > 10 * 1000000)
+		{
+			std::cerr << "file too big (" << size << "), aborting\n";
+			return 1;
+		}
+		std::vector<char> buf(size);
+		std::ifstream(argv[1], std::ios_base::binary).read(&buf[0], size);
+		lazy_entry e;
+		int ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
 
-	printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
+		if (ret != 0)
+		{
+			std::cerr << "invalid bencoding: " << ret << std::endl;
+			return 1;
+		}
 
-	error_code ec;
-	torrent_info t(e, ec);
-	if (ec)
-	{
-		fprintf(stderr, "%s\n", ec.message().c_str());
-		return 1;
-	}
+		std::cout << "\n\n----- raw info -----\n\n";
+		std::cout << e << std::endl;
+	
+		torrent_info t(e);
 
-	// print info about torrent
-	printf("\n\n----- torrent file info -----\n\n"
-		"nodes:\n");
+		// print info about torrent
+		std::cout << "\n\n----- torrent file info -----\n\n";
+		std::cout << "nodes:\n";
+		typedef std::vector<std::pair<std::string, int> > node_vec;
+		node_vec const& nodes = t.nodes();
+		for (node_vec::const_iterator i = nodes.begin(), end(nodes.end());
+			i != end; ++i)
+		{
+			std::cout << i->first << ":" << i->second << "\n";
+		}
+		std::cout << "trackers:\n";
+		for (std::vector<announce_entry>::const_iterator i = t.trackers().begin();
+			i != t.trackers().end(); ++i)
+		{
+			std::cout << i->tier << ": " << i->url << "\n";
+		}
 
-	typedef std::vector<std::pair<std::string, int> > node_vec;
-	node_vec const& nodes = t.nodes();
-	for (node_vec::const_iterator i = nodes.begin(), end(nodes.end());
-		i != end; ++i)
-	{
-		printf("%s: %d\n", i->first.c_str(), i->second);
-	}
-	puts("trackers:\n");
-	for (std::vector<announce_entry>::const_iterator i = t.trackers().begin();
-		i != t.trackers().end(); ++i)
-	{
-		printf("%2d: %s\n", i->tier, i->url.c_str());
-	}
+		std::cout << "number of pieces: " << t.num_pieces() << "\n";
+		std::cout << "piece length: " << t.piece_length() << "\n";
+		std::cout << "info hash: " << t.info_hash() << "\n";
+		std::cout << "comment: " << t.comment() << "\n";
+		std::cout << "created by: " << t.creator() << "\n";
+		std::cout << "magnet link: " << make_magnet_uri(t) << "\n";
+		std::cout << "name: " << t.name() << "\n";
+		std::cout << "files:\n";
+		int index = 0;
+		for (torrent_info::file_iterator i = t.begin_files();
+			i != t.end_files(); ++i, ++index)
+		{
+			int first = t.map_file(index, 0, 0).piece;
+			int last = t.map_file(index, (std::max)(i->size - 1, size_type(0)), 1).piece;
+			std::cout << "  " << std::setw(11) << i->size
+				<< " " << i->path.string() << "[ " << first << ", "
+				<< last << " ]\n";
+		}
 
-	char ih[41];
-	to_hex((char const*)&t.info_hash()[0], 20, ih);
-	printf("number of pieces: %d\n"
-		"piece length: %d\n"
-		"info hash: %s\n"
-		"comment: %s\n"
-		"created by: %s\n"
-		"magnet link: %s\n"
-		"name: %s\n"
-		"files:\n"
-		, t.num_pieces()
-		, t.piece_length()
-		, ih
-		, t.comment().c_str()
-		, t.creator().c_str()
-		, make_magnet_uri(t).c_str()
-		, t.name().c_str());
-	int index = 0;
-	for (torrent_info::file_iterator i = t.begin_files();
-		i != t.end_files(); ++i, ++index)
-	{
-		int first = t.map_file(index, 0, 0).piece;
-		int last = t.map_file(index, (std::max)(i->size-1, size_type(0)), 0).piece;
-		printf("  %11"PRId64" %c%c%c%c [ %4d, %4d ] %s %s %s%s\n"
-			, i->size
-			, (i->pad_file?'p':'-')
-			, (i->executable_attribute?'x':'-')
-			, (i->hidden_attribute?'h':'-')
-			, (i->symlink_attribute?'l':'-')
-			, first, last
-			, i->filehash ? to_hex(i->filehash->to_string()).c_str() : ""
-			, i->path.c_str()
-			, i->symlink_attribute ? "-> ": ""
-			, i->symlink_attribute ? i->symlink_path.c_str() : "");
+#ifndef BOOST_NO_EXCEPTIONS
 	}
+	catch (std::exception& e)
+	{
+  		std::cout << e.what() << "\n";
+	}
+#endif
 
 	return 0;
 }

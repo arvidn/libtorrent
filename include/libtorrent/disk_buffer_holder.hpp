@@ -34,38 +34,29 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DISK_BUFFER_HOLDER_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
-#include <algorithm>
 
 namespace libtorrent
 {
 
 	namespace aux { struct session_impl; }
-	struct disk_buffer_pool;
+	struct disk_io_thread;
 
 	struct TORRENT_EXPORT disk_buffer_holder
 	{
 		disk_buffer_holder(aux::session_impl& ses, char* buf);
-		disk_buffer_holder(disk_buffer_pool& disk_pool, char* buf);
-		disk_buffer_holder(disk_buffer_pool& disk_pool, char* buf, int num_blocks);
+		disk_buffer_holder(disk_io_thread& iothread, char* buf);
 		~disk_buffer_holder();
 		char* release();
 		char* get() const { return m_buf; }
-		void reset(char* buf = 0, int num_blocks = 1);
-		void swap(disk_buffer_holder& h)
-		{
-			TORRENT_ASSERT(&h.m_disk_pool == &m_disk_pool);
-			std::swap(h.m_buf, m_buf);
-		}
+		void reset(char* buf = 0);
 
 		typedef char* (disk_buffer_holder::*unspecified_bool_type)();
 		operator unspecified_bool_type() const
 		{ return m_buf == 0? 0: &disk_buffer_holder::release; }
 
 	private:
-		disk_buffer_pool& m_disk_pool;
+		disk_io_thread& m_iothread;
 		char* m_buf;
-		int m_num_blocks;
 	};
 
 }

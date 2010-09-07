@@ -34,13 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#if (!defined TORRENT_DEBUG && !TORRENT_PRODUCTION_ASSERTS) || TORRENT_NO_ASSERTS
+#if !defined TORRENT_DEBUG
 #define TORRENT_ASSERT(a) do {} while(false)
 #else
-
-#if TORRENT_PRODUCTION_ASSERTS
-extern char const* libtorrent_assert_log;
-#endif
 
 #include <string>
 
@@ -48,7 +44,7 @@ extern char const* libtorrent_assert_log;
 std::string demangle(char const* name);
 #endif
 
-#if (defined __linux__ || defined __MACH__) && defined __GNUC__
+#if (defined __linux__ || defined __MACH__) && defined __GNUC__ && defined TORRENT_DEBUG
 
 TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file, char const* function);
 #define TORRENT_ASSERT(x) do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__); } while (false)

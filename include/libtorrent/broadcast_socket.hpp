@@ -34,12 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BROADCAST_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/error_code.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/function/function3.hpp>
+#include <boost/function.hpp>
 #include <list>
 
 namespace libtorrent
@@ -54,7 +51,7 @@ namespace libtorrent
 	// determines if the operating system supports IPv6
 	TORRENT_EXPORT bool supports_ipv6();
 
-	TORRENT_EXPORT int common_bits(unsigned char const* b1
+	int common_bits(unsigned char const* b1
 		, unsigned char const* b2, int n);
 
 	TORRENT_EXPORT address guess_local_address(io_service&);
@@ -71,38 +68,26 @@ namespace libtorrent
 
 		void send(char const* buffer, int size, error_code& ec);
 		void close();
-		int num_send_sockets() const { return m_unicast_sockets.size(); }
-		void enable_ip_broadcast(bool e);
 
 	private:
 
 		struct socket_entry
 		{
-			socket_entry(boost::shared_ptr<datagram_socket> const& s)
-				: socket(s) {}
-			socket_entry(boost::shared_ptr<datagram_socket> const& s
-				, address_v4 const& mask): socket(s), netmask(mask) {}
+			socket_entry(boost::shared_ptr<datagram_socket> const& s): socket(s) {}
 			boost::shared_ptr<datagram_socket> socket;
 			char buffer[1024];
 			udp::endpoint remote;
-			address_v4 netmask;
 			void close()
 			{
 				if (!socket) return;
 				error_code ec;
 				socket->close(ec);
 			}
-			address_v4 broadcast_address() const
-			{
-				error_code ec;
-				return address_v4::broadcast(socket->local_endpoint(ec).address().to_v4(), netmask);
-			}
 		};
 	
 		void on_receive(socket_entry* s, error_code const& ec
 			, std::size_t bytes_transferred);
-		void open_unicast_socket(io_service& ios, address const& addr
-			, address_v4 const& mask);
+		void open_unicast_socket(io_service& ios, address const& addr);
 		void open_multicast_socket(io_service& ios, address const& addr
 			, bool loopback, error_code& ec);
 
@@ -117,11 +102,6 @@ namespace libtorrent
 		std::list<socket_entry> m_unicast_sockets;
 		udp::endpoint m_multicast_endpoint;
 		receive_handler_t m_on_receive;
-
-		// if set, use IP broadcast as well as IP multicast
-		// this is off by default because it's expensive in
-		// terms of bandwidth usage
-		bool m_ip_broadcast;
 		
 	};
 }

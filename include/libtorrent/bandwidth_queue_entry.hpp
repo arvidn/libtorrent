@@ -34,35 +34,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BANDWIDTH_QUEUE_ENTRY_HPP_INCLUDED
 
 #include <boost/intrusive_ptr.hpp>
-#include "libtorrent/bandwidth_limit.hpp"
-#include "libtorrent/bandwidth_socket.hpp"
 
 namespace libtorrent {
 
-struct TORRENT_EXPORT bw_request
+template<class PeerConnection, class Torrent>
+struct bw_queue_entry
 {
-	bw_request(boost::intrusive_ptr<bandwidth_socket> const& pe
-		, int blk, int prio);
-
-	boost::intrusive_ptr<bandwidth_socket> peer;
-	// 1 is normal prio
-	int priority;
-	// the number of bytes assigned to this request so far
-	int assigned;
-	// once assigned reaches this, we dispatch the request function
-	int request_size;
-
-	// the max number of rounds for this request to survive
-	// this ensures that requests gets responses at very low
-	// rate limits, when the requested size would take a long
-	// time to satisfy
-	int ttl;
-
-	// loops over the bandwidth channels and assigns bandwidth
-	// from the most limiting one
-	int assign_bandwidth();
-
-	bandwidth_channel* channel[5];
+	bw_queue_entry(boost::intrusive_ptr<PeerConnection> const& pe
+		, int blk, int prio)
+		: peer(pe), torrent(peer->associated_torrent())
+		, max_block_size(blk), priority(prio) {}
+	boost::intrusive_ptr<PeerConnection> peer;
+	boost::weak_ptr<Torrent> torrent;
+	int max_block_size;
+	int priority; // 0 is low prio
 };
 
 }

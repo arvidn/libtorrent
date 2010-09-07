@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/hasher.hpp"
 #include <boost/lexical_cast.hpp>
-#include "libtorrent/escape_string.hpp" // from_hex
 
 #include "test.hpp"
 
@@ -70,8 +69,7 @@ int test_main()
 		for (int i = 0; i < repeat_count[test]; ++i)
 			h.update(test_array[test], std::strlen(test_array[test]));
 
-		sha1_hash result;
-		from_hex(result_array[test], 40, (char*)&result[0]);
+		sha1_hash result = boost::lexical_cast<sha1_hash>(result_array[test]);
 		TEST_CHECK(result == h.final());
 	}
 

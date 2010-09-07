@@ -35,44 +35,36 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
-#include <ctime>
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
+#include <boost/filesystem/path.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/copy_ptr.hpp"
 
 namespace libtorrent
 {
-	struct file;
+	namespace fs = boost::filesystem;
 
 	struct TORRENT_EXPORT file_entry
 	{
-		file_entry(): offset(0), size(0), file_base(0), file_index(0)
-			, mtime(0), pad_file(false), hidden_attribute(false)
-			, executable_attribute(false)
-			, symlink_attribute(false)
-		{}
+		file_entry(): offset(0), size(0), file_base(0) {}
 
-		std::string path;
-		std::string symlink_path;
-		copy_ptr<sha1_hash> filehash;
-		// the offset of this file inside the torrent
-		size_type offset;
-		// the size of this file
-		size_type size;
+		fs::path path;
+		size_type offset; // the offset of this file inside the torrent
+		size_type size; // the size of this file
 		// the offset in the file where the storage starts.
 		// This is always 0 unless parts of the torrent is
 		// compressed into a single file, such as a so-called part file.
 		size_type file_base;
-		// the index of this file, as ordered in the torrent
-		int file_index;
-		time_t mtime;
-		bool pad_file:1;
-		bool hidden_attribute:1;
-		bool executable_attribute:1;
-		bool symlink_attribute:1;
 	};
 
 	struct TORRENT_EXPORT file_slice
@@ -91,27 +83,9 @@ namespace libtorrent
 
 		bool is_valid() const { return m_piece_length > 0; }
 
-		enum flags_t
-		{
-			pad_file = 1,
-			attribute_hidden = 2,
-			attribute_executable = 4,
-			attribute_symlink = 8
-		};
-
-		void reserve(int num_files);
-
 		void add_file(file_entry const& e);
-		void add_file(std::string const& p, size_type size, int flags = 0
-			, std::time_t mtime = 0, std::string const& s_p = "");
+		void add_file(fs::path const& p, size_type size);
 		void rename_file(int index, std::string const& new_filename);
-
-#if TORRENT_USE_WSTRING
-		void add_file(std::wstring const& p, size_type size, int flags = 0
-			, std::time_t mtime = 0, std::string const& s_p = "");
-		void rename_file(int index, std::wstring const& new_filename);
-		void set_name(std::wstring const& n);
-#endif
 
 		std::vector<file_slice> map_block(int piece, size_type offset
 			, int size) const;
@@ -142,7 +116,7 @@ namespace libtorrent
 		int piece_size(int index) const;
 
 		void set_name(std::string const& n) { m_name = n; }
-		const std::string& name() const { return m_name; }
+		const std::string& name() const { TORRENT_ASSERT(m_piece_length > 0); return m_name; }
 
 		void swap(file_storage& ti)
 		{
@@ -154,24 +128,18 @@ namespace libtorrent
 			swap(ti.m_name, m_name);
 		}
 
-		// if pad_file_limit >= 0, files larger than
-		// that limit will be padded, default is to
-		// not add any padding
-		void optimize(int pad_file_limit = -1);
-
 	private:
+		int m_piece_length;
+
 		// the list of files that this torrent consists of
 		std::vector<file_entry> m_files;
-
-		std::string m_name;
 
 		// the sum of all filesizes
 		size_type m_total_size;
 
 		// the number of pieces in the torrent
 		int m_num_pieces;
-
-		int m_piece_length;
+		std::string m_name;
 	};
 }
 

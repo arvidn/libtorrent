@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <string>
 
+#include "libtorrent/debug.hpp"
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -54,11 +56,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/config.hpp"
+#include "libtorrent/buffer.hpp"
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/socket.hpp"
+#include "libtorrent/peer_id.hpp"
+#include "libtorrent/storage.hpp"
+#include "libtorrent/stat.hpp"
+#include "libtorrent/alert.hpp"
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
+#include "libtorrent/config.hpp"
+// parse_url
+#include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_parser.hpp"
 
 namespace libtorrent
@@ -88,7 +99,7 @@ namespace libtorrent
 			, policy::peer* peerinfo);
 		void start();
 
-		virtual int type() const { return peer_connection::url_seed_connection; }
+		~web_peer_connection();
 
 		// called from the main loop when this connection has any
 		// work to do.
@@ -101,7 +112,6 @@ namespace libtorrent
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
 		virtual bool in_handshake() const;
-		virtual void disconnect(error_code const& ec, int error = 0);
 
 		// the following functions appends messages
 		// to the send buffer
@@ -110,14 +120,14 @@ namespace libtorrent
 		void write_interested() {}
 		void write_not_interested() {}
 		void write_request(peer_request const& r);
-		void write_cancel(peer_request const& r) {}
+		void write_cancel(peer_request const& r)
+		{ incoming_reject_request(r); }
 		void write_have(int index) {}
 		void write_piece(peer_request const& r, disk_buffer_holder& buffer) { TORRENT_ASSERT(false); }
 		void write_keepalive() {}
 		void on_connected();
 		void write_reject_request(peer_request const&) {}
 		void write_allow_fast(int) {}
-		void write_suggest(int piece) {}
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
@@ -145,7 +155,7 @@ namespace libtorrent
 		int m_port;
 		std::string m_path;
 		std::string m_url;
-		std::string m_original_url;
+		const std::string m_original_url;
 			
 		// the first request will contain a little bit more data
 		// than subsequent ones, things that aren't critical are left
@@ -153,8 +163,10 @@ namespace libtorrent
 		bool m_first_request;
 		
 		// this is used for intermediate storage of pieces
-		// that are received in more than one HTTP response
+		// that is received in more than on HTTP responses
 		std::vector<char> m_piece;
+		// the mapping of the data in the m_piece buffer
+		peer_request m_intermediate_piece;
 		
 		// the number of bytes into the receive buffer where
 		// current read cursor is.
@@ -166,9 +178,6 @@ namespace libtorrent
 
 		// position in the current range response
 		int m_range_pos;
-
-		// the position in the current block
-		int m_block_pos;
 	};
 }
 

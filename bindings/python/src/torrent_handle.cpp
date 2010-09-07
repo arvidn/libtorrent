@@ -2,10 +2,9 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include <libtorrent/torrent_handle.hpp>
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
-#include <libtorrent/torrent_handle.hpp>
-#include <libtorrent/peer_info.hpp>
 #include <boost/lexical_cast.hpp>
 #include "gil.hpp"
 
@@ -58,6 +57,18 @@ namespace
           , end(prio.end()); i != end; ++i)
           ret.append(*i);
       return ret;
+  }
+
+  std::vector<announce_entry>::const_iterator begin_trackers(torrent_handle& i)
+  {
+      allow_threading_guard guard;
+      return i.trackers().begin();
+  }
+
+  std::vector<announce_entry>::const_iterator end_trackers(torrent_handle& i)
+  {
+      allow_threading_guard guard;
+      return i.trackers().end();
   }
 
 } // namespace unnamed
@@ -148,7 +159,7 @@ list file_priorities(torrent_handle& handle)
     return ret;
 }
 
-void replace_trackers(torrent_handle& h, object trackers)
+void replace_trackers(torrent_handle& info, object trackers)
 {
     object iter(trackers.attr("__iter__")());
 
@@ -165,28 +176,7 @@ void replace_trackers(torrent_handle& h, object trackers)
     }
 
     allow_threading_guard guard;
-    h.replace_trackers(result);
-}
-
-list trackers(torrent_handle &h)
-{
-    list ret;
-    std::vector<announce_entry> const trackers = h.trackers();
-    for (std::vector<announce_entry>::const_iterator i = trackers.begin(), end(trackers.end()); i != end; ++i)
-    {
-        dict d;
-        d["url"] = i->url;
-        d["tier"] = i->tier;
-        d["fail_limit"] = i->fail_limit;
-        d["fails"] = i->fails;
-        d["source"] = i->source;
-        d["verified"] = i->verified;
-        d["updating"] = i->updating;
-        d["start_sent"] = i->start_sent;
-        d["complete_sent"] = i->complete_sent;
-        ret.append(d);
-    }
-    return ret;
+    info.replace_trackers(result);
 }
 
 list get_download_queue(torrent_handle& handle)
@@ -217,7 +207,7 @@ list get_download_queue(torrent_handle& handle)
             block_info["bytes_progress"] = i->blocks[k].bytes_progress;
             block_info["block_size"] = i->blocks[k].block_size;
             block_info["peer"] = make_tuple(
-                boost::lexical_cast<std::string>(i->blocks[k].peer().address()), i->blocks[k].peer().port());
+                boost::lexical_cast<std::string>(i->blocks[k].peer.address()), i->blocks[k].peer.port());
             block_list.append(block_info);
         }
         partial_piece["blocks"] = block_list;
@@ -256,25 +246,12 @@ void set_peer_download_limit(torrent_handle& th, tuple const& ip, int limit)
     th.set_peer_download_limit(tuple_to_endpoint(ip), limit);
 }
 
-void add_piece(torrent_handle& th, int piece, char const *data, int flags)
-{
-   th.add_piece(piece, data, flags);
-}
-
 void bind_torrent_handle()
 {
     void (torrent_handle::*force_reannounce0)() const = &torrent_handle::force_reannounce;
 
     int (torrent_handle::*piece_priority0)(int) const = &torrent_handle::piece_priority;
     void (torrent_handle::*piece_priority1)(int, int) const = &torrent_handle::piece_priority;
-
-    void (torrent_handle::*move_storage0)(std::string const&) const = &torrent_handle::move_storage;
-    void (torrent_handle::*rename_file0)(int, std::string const&) const = &torrent_handle::rename_file;
-
-#if TORRENT_USE_WSTRING
-    void (torrent_handle::*move_storage1)(std::wstring const&) const = &torrent_handle::move_storage;
-    void (torrent_handle::*rename_file1)(int, std::wstring const&) const = &torrent_handle::rename_file;
-#endif
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
     bool (torrent_handle::*resolve_countries0)() const = &torrent_handle::resolve_countries;
@@ -288,7 +265,7 @@ void bind_torrent_handle()
         .def("status", _(&torrent_handle::status))
         .def("get_download_queue", get_download_queue)
         .def("file_progress", file_progress)
-        .def("trackers", trackers)
+        .def("trackers", range(begin_trackers, end_trackers))
         .def("replace_trackers", replace_trackers)
         .def("add_url_seed", _(&torrent_handle::add_url_seed))
         .def("remove_url_seed", _(&torrent_handle::remove_url_seed))
@@ -302,7 +279,6 @@ void bind_torrent_handle()
         .def("pause", _(&torrent_handle::pause))
         .def("resume", _(&torrent_handle::resume))
         .def("clear_error", _(&torrent_handle::clear_error))
-        .def("set_priority", _(&torrent_handle::set_priority))
 
         .def("is_auto_managed", _(&torrent_handle::is_auto_managed))
         .def("auto_managed", _(&torrent_handle::auto_managed))
@@ -322,52 +298,35 @@ void bind_torrent_handle()
         .def("is_piece_filtered", _(&torrent_handle::is_piece_filtered))
         .def("write_resume_data", _(&torrent_handle::write_resume_data))
 #endif
-        .def("add_piece", add_piece)
-        .def("read_piece", _(&torrent_handle::read_piece))
-        .def("set_piece_deadline", _(&torrent_handle::set_piece_deadline)
-            , (arg("index"), arg("deadline"), arg("flags") = 0))
-        .def("piece_availability", &piece_availability)
+        .def("piece_availability", piece_availability)
         .def("piece_priority", _(piece_priority0))
         .def("piece_priority", _(piece_priority1))
-        .def("prioritize_pieces", &prioritize_pieces)
-        .def("piece_priorities", &piece_priorities)
-        .def("prioritize_files", &prioritize_files)
-        .def("file_priorities", &file_priorities)
+        .def("prioritize_pieces", prioritize_pieces)
+        .def("piece_priorities", piece_priorities)
+        .def("prioritize_files", prioritize_files)
+        .def("file_priorities", file_priorities)
         .def("use_interface", &torrent_handle::use_interface)
         .def("save_resume_data", _(&torrent_handle::save_resume_data))
-        .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
         .def("force_reannounce", _(force_reannounce0))
-        .def("force_reannounce", &force_reannounce)
-        .def("force_dht_announce", _(&torrent_handle::force_dht_announce))
+        .def("force_reannounce", force_reannounce)
         .def("scrape_tracker", _(&torrent_handle::scrape_tracker))
         .def("name", _(&torrent_handle::name))
-        .def("set_upload_mode", _(&torrent_handle::set_upload_mode))
-        .def("set_share_mode", _(&torrent_handle::set_share_mode))
         .def("set_upload_limit", _(&torrent_handle::set_upload_limit))
         .def("upload_limit", _(&torrent_handle::upload_limit))
         .def("set_download_limit", _(&torrent_handle::set_download_limit))
         .def("download_limit", _(&torrent_handle::download_limit))
         .def("set_sequential_download", _(&torrent_handle::set_sequential_download))
-        .def("set_peer_upload_limit", &set_peer_upload_limit)
-        .def("set_peer_download_limit", &set_peer_download_limit)
-        .def("connect_peer", &connect_peer)
+        .def("set_peer_upload_limit", set_peer_upload_limit)
+        .def("set_peer_download_limit", set_peer_download_limit)
+        .def("connect_peer", connect_peer)
         .def("set_ratio", _(&torrent_handle::set_ratio))
         .def("save_path", _(&torrent_handle::save_path))
         .def("set_max_uploads", _(&torrent_handle::set_max_uploads))
         .def("set_max_connections", _(&torrent_handle::set_max_connections))
         .def("set_tracker_login", _(&torrent_handle::set_tracker_login))
-        .def("move_storage", _(move_storage0))
+        .def("move_storage", _(&torrent_handle::move_storage))
         .def("info_hash", _(&torrent_handle::info_hash))
         .def("force_recheck", _(&torrent_handle::force_recheck))
-        .def("rename_file", _(rename_file0))
-#if TORRENT_USE_WSTRING
-        .def("move_storage", _(move_storage1))
-        .def("rename_file", _(rename_file1))
-#endif
+        .def("rename_file", _(&torrent_handle::rename_file))
         ;
-
-    enum_<torrent_handle::deadline_flags>("deadline_flags")
-        .value("alert_when_available", torrent_handle::alert_when_available)
-    ;
-
 }

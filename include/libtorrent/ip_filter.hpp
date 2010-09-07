@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_IP_FILTER_HPP
 
 #include <set>
-#include <vector>
+#include <iostream>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/address.hpp"
+#include "libtorrent/socket.hpp"
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent
@@ -88,14 +88,16 @@ namespace detail
 	Addr plus_one(Addr const& a)
 	{
 		Addr tmp(a);
-		for (int i = tmp.size() - 1; i >= 0; --i)
+		typedef typename Addr::reverse_iterator iter;
+		for (iter i = tmp.rbegin()
+			, end(tmp.rend()); i != end; ++i)
 		{
-			if (tmp[i] < (std::numeric_limits<typename Addr::value_type>::max)())
+			if (*i < (std::numeric_limits<typename iter::value_type>::max)())
 			{
-				tmp[i] += 1;
+				*i += 1;
 				break;
 			}
-			tmp[i] = 0;
+			*i = 0;
 		}
 		return tmp;
 	}
@@ -106,14 +108,16 @@ namespace detail
 	Addr minus_one(Addr const& a)
 	{
 		Addr tmp(a);
-		for (int i = tmp.size() - 1; i >= 0; --i)
+		typedef typename Addr::reverse_iterator iter;
+		for (iter i = tmp.rbegin()
+			, end(tmp.rend()); i != end; ++i)
 		{
-			if (tmp[i] > 0)
+			if (*i > 0)
 			{
-				tmp[i] -= 1;
+				*i -= 1;
 				break;
 			}
-			tmp[i] = (std::numeric_limits<typename Addr::value_type>::max)();
+			*i = (std::numeric_limits<typename iter::value_type>::max)();
 		}
 		return tmp;
 	}
@@ -149,6 +153,9 @@ namespace detail
 
 		void add_rule(Addr first, Addr last, int flags)
 		{
+			using boost::next;
+			using boost::prior;
+
 			TORRENT_ASSERT(!m_access_list.empty());
 			TORRENT_ASSERT(first < last || first == last);
 			
@@ -161,13 +168,13 @@ namespace detail
 			TORRENT_ASSERT(j != i);
 			
 			int first_access = i->access;
-			int last_access = boost::prior(j)->access;
+			int last_access = prior(j)->access;
 
 			if (i->start != first && first_access != flags)
 			{
 				i = m_access_list.insert(i, range(first, flags));
 			}
-			else if (i != m_access_list.begin() && boost::prior(i)->access == flags)
+			else if (i != m_access_list.begin() && prior(i)->access == flags)
 			{
 				--i;
 				first_access = i->access;
@@ -241,7 +248,7 @@ namespace detail
 	
 		struct range
 		{
-			range(Addr addr, int a = 0): start(addr), access(a) {}
+			range(Addr addr, int access = 0): start(addr), access(access) {}
 			bool operator<(range const& r) const
 			{ return start < r.start; }
 			bool operator<(Addr const& a) const
@@ -271,12 +278,8 @@ struct TORRENT_EXPORT ip_filter
 	void add_rule(address first, address last, int flags);
 	int access(address const& addr) const;
 
-#if TORRENT_USE_IPV6
 	typedef boost::tuple<std::vector<ip_range<address_v4> >
 		, std::vector<ip_range<address_v6> > > filter_tuple_t;
-#else
-	typedef std::vector<ip_range<address_v4> > filter_tuple_t;
-#endif
 	
 	filter_tuple_t export_filter() const;
 
@@ -285,9 +288,7 @@ struct TORRENT_EXPORT ip_filter
 private:
 
 	detail::filter_impl<address_v4::bytes_type> m_filter4;
-#if TORRENT_USE_IPV6
 	detail::filter_impl<address_v6::bytes_type> m_filter6;
-#endif
 };
 
 class TORRENT_EXPORT port_filter

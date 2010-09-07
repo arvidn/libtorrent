@@ -1,197 +1,27 @@
-	* full support for BEP 21 (event=paused)
-	* added share-mode feature for improving share ratios
-	* merged all proxy settings into a single one
-	* improved SOCKS5 support by proxying hostname lookups
-	* improved support for multi-homed clients
-	* added feature to not count downloaded bytes from web seeds in stats
-	* added alert for incoming local service discovery messages
-	* added option to set file priorities when adding torrents
-	* removed the session mutex for improved performance
-	* added upload and download activity timer stats for torrents
-	* made the reuse-address flag configurable on the listen socket
-	* moved UDP trackers over to use a single socket
-	* added feature to make asserts log to a file instead of breaking the process
-	  (production asserts)
-	* optimized disk I/O cache clearing
-	* added feature to ask a torrent if it needs to save its resume data or not
-	* added setting to ignore file modification time when loading resume files
-	* support more fine-grained torrent states between which peer sources it
-	  announces to
-	* supports calculating sha1 file-hashes when creating torrents
-	* made the send_buffer_watermark performance warning more meaningful
-	* supports complete_ago extension
-	* dropped zlib as a dependency and builds using puff.c instead
-	* made the default cache size depend on available physical RAM
-	* added flags to torrent::status() that can filter which values are calculated
-	* support 'explicit read cache' which keeps a specific set of pieces
-	  in the read cache, without implicitly caching other pieces
-	* support sending suggest messages based on what's in the read cache
-	* clear sparse flag on files that complete on windows
-	* support retry-after header for web seeds
-	* replaced boost.filesystem with custom functions
-	* replaced dependency on boost.thread by asio's internal thread primitives
-	* added support for i2p torrents
-	* cleaned up usage of MAX_PATH and related macros
-	* made it possible to build libtorrent without RTTI support
-	* added support to build with libgcrypt and a shipped version of libtommath
-	* optimized DHT routing table memory usage
-	* optimized disk cache to work with large caches
-	* support variable number of optimistic unchoke slots and to dynamically
-	  adjust based on the total number of unchoke slots
-	* support for BitTyrant choker algorithm
-	* support for automatically start torrents when they receive an
-	  incoming connection
-	* added more detailed instrumentation of the disk I/O thread
+release 0.14.12
 
-0.15.3 release
+	* fixed windows build
 
-	* fixed announce bug where event=completed would not be sent if it violated the
-	  min-announce of the tracker
-	* fixed limitation in rate limiter
-	* fixed build error with boost 1.44
+release 0.14.11
 
-0.15.2 release
-
+	* vs 2010 compiler fixes
 	* updated compiler to msvc 2008 for python binding
-	* restored default fail_limit to unlimited on all trackers
-	* fixed rate limit bug for DHT
 	* fixed SOCKS5 bug for routing UDP packets
 	* fixed bug on windows when verifying resume data for a torrent where
 	  one of its directories had been removed
 	* fixed race condition in peer-list with DHT
-	* fix force-reannounce and tracker retry issue
-
-0.15.1 release
-
 	* fixed rare crash when purging the peer list
 	* fixed race condition around m_abort in session_impl
-	* fixed bug in web_peer_connection which could cause a hang when downloading
-	  from web servers
 	* fixed bug in metadata extensions combined with encryption
-	* refactored socket reading code to not use async. operations unnecessarily
-	* some timer optimizations
-	* removed the reuse-address flag on the listen socket
-	* fixed bug where local peer discovery and DHT wouldn't be announced to without trackers
 	* fixed bug in bdecoder when decoding invalid messages
-	* added build warning when building with UNICODE but the standard library
-	  doesn't provide std::wstring
+	* back-ported IP filter support for trackers
 	* fixed add_node python binding
-	* fixed issue where trackers wouldn't tried immediately when the previous one failed
-	* fixed synchronization issue between download queue and piece picker
 	* fixed bug in udp tracker scrape response parsing
-	* fixed bug in the disk thread that could get triggered under heavy load
-	* fixed bug in add_piece() that would trigger asserts
-	* fixed vs 2010 build
-	* recognizes more clients in identify_client()
-	* fixed bug where trackers wouldn't be retried if they failed
-	* slight performance fix in disk elevator algorithm
-	* fixed potential issue where a piece could be checked twice
-	* fixed build issue on windows related to GetCompressedSize()
-	* fixed deadlock when starting torrents with certain invalid tracker URLs
-	* fixed iterator bug in disk I/O thread
-	* fixed FIEMAP support on linux
-	* fixed strict aliasing warning on gcc
-	* fixed inconsistency when creating torrents with symlinks
-	* properly detect windows version to initialize half-open connection limit
-	* fixed bug in url encoder where $ would not be encoded
-
-0.15 release
-
-	* introduced a session state save mechanism. load_state() and save_state().
-	  this saves all session settings and state (except torrents)
-	* deprecated dht_state functions and merged it with the session state
-	* added support for multiple trackers in magnet links
-	* added support for explicitly flushing the disk cache
-	* added torrent priority to affect bandwidth allocation for its peers
-	* reduced the number of floating point operations (to better support
-	  systems without FPU)
-	* added new alert when individual files complete
-	* added support for storing symbolic links in .torrent files
-	* added support for uTorrent interpretation of multi-tracker torrents
-	* handle torrents with duplicate filenames
-	* piece timeouts are adjusted to download rate limits
-	* encodes urls in torrent files that needs to be encoded
-	* fixed not passing &supportcrypto=1 when encryption is disabled
-	* introduced an upload mode, which torrents are switched into when
-	  it hits a disk write error, instead of stopping the torrent.
-	  this lets libtorrent keep uploading the parts it has when it
-	  encounters a disk-full error for instance
-	* improved disk error handling and expanded use of error_code in
-	  error reporting. added a bandwidth state, bw_disk, when waiting
-	  for the disk io thread to catch up writing buffers
-	* improved read cache memory efficiency
-	* added another cache flush algorithm to write the largest
-	  contiguous blocks instead of the least recently used
-	* introduced a mechanism to be lighter on the disk when checking torrents
-	* applied temporary memory storage optimization to when checking
-	  a torrent as well
-	* removed hash_for_slot() from storage_interface. It is now implemented
-	  by using the readv() function from the storage implementation
-	* improved IPv6 support by announcing twice when necessary
-	* added feature to set a separate global rate limit for local peers
-	* added preset settings for low memory environments and seed machines
-	  min_memory_usage() and high_performance_seeder()
-	* optimized overall memory usage for DHT nodes and requests, peer
-	  entries and disk buffers
-	* change in API for block_info in partial_piece_info, instead of
-	  accessing 'peer', call 'peer()'
-	* added support for fully automatic unchoker (no need to specify
-	  number of upload slots). This is on by default
-	* added support for changing socket buffer sizes through
-	  session_settings
-	* added support for merkle hash tree torrents (.merkle.torrent)
-	* added 'seed mode', which assumes that all files are complete
-	  and checks hashes lazily, as blocks are requested
-	* added new extension for file attributes (executable and hidden)
-	* added support for unbuffered I/O for aligned files
-	* added workaround for sparse file issue on Windows Vista
-	* added new lt_trackers extension to exchange trackers between
-	  peers
-	* added support for BEP 17 http seeds
-	* added read_piece() to read pieces from torrent storage
-	* added option for udp tracker preference
-	* added super seeding
-	* added add_piece() function to inject data from external sources
-	* add_tracker() function added to torrent_handle
-	* if there is no working tracker, current_tracker is the
-	  tracker that is currently being tried
-	* torrents that are checking can now be paused, which will
-	  pause the checking
-	* introduced another torrent state, checking_resume_data, which
-	  the torrent is in when it's first added, and is comparing
-	  the files on disk with the resume data
-	* DHT bandwidth usage optimizations
-	* rate limited DHT send socket
-	* tracker connections are now also subject to IP filtering
-	* improved optimistic unchoke logic
-	* added monitoring of the DHT lookups
-	* added bandwidth reports for estimated TCP/IP overhead and DHT
-	* includes DHT traffic in the rate limiter
-	* added support for bitcomet padding files
-	* improved support for sparse files on windows
-	* added ability to give seeding torrents preference to active slots
-	* added torrent_status::finished_time
-	* automatically caps files and connections by default to rlimit
-	* added session::is_dht_running() function
-	* added torrent_handle::force_dht_announce()
-	* added torrent_info::remap_files()
-	* support min_interval tracker extension
-	* added session saving and loading functions
-	* added support for min-interval in tracker responses
-	* only keeps one outstanding duplicate request per peer
-	  reduces waste download, specifically when streaming
-	* added support for storing per-peer rate limits across reconnects
-	* improved fallocate support
-	* fixed magnet link issue when using resume data
-	* support disk I/O priority settings
-	* added info_hash to torrent_deleted_alert
-	* improved LSD performance and made the interval configurable
-	* improved UDP tracker support by caching connect tokens
-	* fast piece optimization
 
 release 0.14.10
 
 	* fixed udp tracker race condition
+	* fixed error handling with torrents with invalid piece sizes
 	* added support for torrents with odd piece sizes
 	* fixed issue with disk read cache not being cleared when removing torrents
 	* made the DHT socket bind to the same interface as the session

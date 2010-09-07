@@ -34,39 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socks5_stream.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/socket_io.hpp"
 
 namespace libtorrent
 {
-
-	socks_error_category socks_category;
-
-#if BOOST_VERSION >= 103500
-	const char* socks_error_category::name() const
-	{
-		return "socks error";
-	}
-
-	std::string socks_error_category::message(int ev) const
-	{
-		static char const* messages[] =
-		{
-			"SOCKS no error",
-			"SOCKS unsupported version",
-			"SOCKS unsupported authentication method",
-			"SOCKS unsupported authentication version",
-			"SOCKS authentication error",
-			"SOCKS username required",
-			"SOCKS general failure",
-			"SOCKS command not supported",
-			"SOCKS no identd running",
-			"SOCKS identd could not identify username"
-		};
-
-		if (ev < 0 || ev > socks_error::num_errors) return "unknown error";
-		return messages[ev];
-	}
-#endif
 
 	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h)
@@ -79,17 +49,6 @@ namespace libtorrent
 			return;
 		}
 
-		error_code ec;
-		m_sock.open(i->endpoint().protocol(), ec);
-		if (ec)
-		{
-			(*h)(ec);
-			close(ec);
-			return;
-		}
-
-		// TOOD: we could bind the socket here, since we know what the
-		// target endpoint is of the proxy
 		m_sock.async_connect(i->endpoint(), boost::bind(
 			&socks5_stream::connected, this, _1, h));
 	}
@@ -105,36 +64,23 @@ namespace libtorrent
 		}
 
 		using namespace libtorrent::detail;
-		if (m_version == 5)
+		// send SOCKS5 authentication methods
+		m_buffer.resize(m_user.empty()?3:4);
+		char* p = &m_buffer[0];
+		write_uint8(5, p); // SOCKS VERSION 5
+		if (m_user.empty())
 		{
-			// send SOCKS5 authentication methods
-			m_buffer.resize(m_user.empty()?3:4);
-			char* p = &m_buffer[0];
-			write_uint8(5, p); // SOCKS VERSION 5
-			if (m_user.empty())
-			{
-				write_uint8(1, p); // 1 authentication method (no auth)
-				write_uint8(0, p); // no authentication
-			}
-			else
-			{
-				write_uint8(2, p); // 2 authentication methods
-				write_uint8(0, p); // no authentication
-				write_uint8(2, p); // username/password
-			}
-			async_write(m_sock, asio::buffer(m_buffer)
-				, boost::bind(&socks5_stream::handshake1, this, _1, h));
-		}
-		else if (m_version == 4)
-		{
-			socks_connect(h);
+			write_uint8(1, p); // 1 authentication method (no auth)
+			write_uint8(0, p); // no authentication
 		}
 		else
 		{
-			(*h)(error_code(socks_error::unsupported_version, socks_category));
-			error_code ec;
-			close(ec);
+			write_uint8(2, p); // 2 authentication methods
+			write_uint8(0, p); // no authentication
+			write_uint8(2, p); // username/password
 		}
+		async_write(m_sock, asio::buffer(m_buffer)
+			, boost::bind(&socks5_stream::handshake1, this, _1, h));
 	}
 
 	void socks5_stream::handshake1(error_code const& e, boost::shared_ptr<handler_type> h)
@@ -168,9 +114,9 @@ namespace libtorrent
 		int version = read_uint8(p);
 		int method = read_uint8(p);
 
-		if (version < m_version)
+		if (version < 5)
 		{
-			(*h)(error_code(socks_error::unsupported_version, socks_category));
+			(*h)(asio::error::operation_not_supported);
 			error_code ec;
 			close(ec);
 			return;
@@ -184,7 +130,7 @@ namespace libtorrent
 		{
 			if (m_user.empty())
 			{
-				(*h)(error_code(socks_error::username_required, socks_category));
+				(*h)(asio::error::operation_not_supported);
 				error_code ec;
 				close(ec);
 				return;
@@ -203,7 +149,7 @@ namespace libtorrent
 		}
 		else
 		{
-			(*h)(error_code(socks_error::unsupported_authentication_method, socks_category));
+			(*h)(asio::error::operation_not_supported);
 			error_code ec;
 			close(ec);
 			return;
@@ -245,7 +191,7 @@ namespace libtorrent
 
 		if (version != 1)
 		{
-			(*h)(error_code(socks_error::unsupported_authentication_version, socks_category));
+			(*h)(asio::error::operation_not_supported);
 			error_code ec;
 			close(ec);
 			return;
@@ -253,7 +199,7 @@ namespace libtorrent
 
 		if (status != 0)
 		{
-			(*h)(error_code(socks_error::authentication_error, socks_category));
+			(*h)(asio::error::operation_not_supported);
 			error_code ec;
 			close(ec);
 			return;
@@ -267,50 +213,15 @@ namespace libtorrent
 	{
 		using namespace libtorrent::detail;
 
-		if (m_version == 5)
-		{
-			// send SOCKS5 connect command
-			m_buffer.resize(6 + (!m_dst_name.empty()
-				?m_dst_name.size() + 1
-				:(m_remote_endpoint.address().is_v4()?4:16)));
-			char* p = &m_buffer[0];
-			write_uint8(5, p); // SOCKS VERSION 5
-			write_uint8(m_command, p); // CONNECT/BIND command
-			write_uint8(0, p); // reserved
-			if (!m_dst_name.empty())
-			{
-				write_uint8(3, p); // address type
-				TORRENT_ASSERT(m_dst_name.size() <= 255);
-				write_uint8(m_dst_name.size(), p);
-				std::copy(m_dst_name.begin(), m_dst_name.end(), p);
-				p += m_dst_name.size();
-			}
-			else
-			{
-				write_uint8(m_remote_endpoint.address().is_v4()?1:4, p); // address type
-				write_address(m_remote_endpoint.address(), p);
-			}
-			write_uint16(m_remote_endpoint.port(), p);
-		}
-		else if (m_version == 4)
-		{
-			m_buffer.resize(m_user.size() + 9);
-			char* p = &m_buffer[0];
-			write_uint8(4, p); // SOCKS VERSION 4
-			write_uint8(m_command, p); // CONNECT/BIND command
-			write_uint16(m_remote_endpoint.port(), p);
-			write_uint32(m_remote_endpoint.address().to_v4().to_ulong(), p);
-			std::copy(m_user.begin(), m_user.end(), p);
-			p += m_user.size();
-			write_uint8(0, p); // NULL terminator
-		}
-		else
-		{
-			(*h)(error_code(socks_error::unsupported_version, socks_category));
-			error_code ec;
-			close(ec);
-			return;
-		}
+		// send SOCKS5 connect command
+		m_buffer.resize(6 + (m_remote_endpoint.address().is_v4()?4:16));
+		char* p = &m_buffer[0];
+		write_uint8(5, p); // SOCKS VERSION 5
+		write_uint8(1, p); // CONNECT command
+		write_uint8(0, p); // reserved
+		write_uint8(m_remote_endpoint.address().is_v4()?1:4, p); // address type
+		write_endpoint(m_remote_endpoint, p);
+		TORRENT_ASSERT(p - &m_buffer[0] == int(m_buffer.size()));
 
 		async_write(m_sock, asio::buffer(m_buffer)
 			, boost::bind(&socks5_stream::connect1, this, _1, h));
@@ -326,10 +237,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_version == 5)
-			m_buffer.resize(6 + 4); // assume an IPv4 address
-		else if (m_version == 4)
-			m_buffer.resize(8);
+		m_buffer.resize(6 + 4); // assume an IPv4 address
 		async_read(m_sock, asio::buffer(m_buffer)
 			, boost::bind(&socks5_stream::connect2, this, _1, h));
 	}
@@ -349,133 +257,66 @@ namespace libtorrent
 		// send SOCKS5 connect command
 		char* p = &m_buffer[0];
 		int version = read_uint8(p);
-		int response = read_uint8(p);
-
-		if (m_version == 5)
+		if (version < 5)
 		{
-			if (version < m_version)
-			{
-				(*h)(error_code(socks_error::unsupported_version, socks_category));
-				error_code ec;
-				close(ec);
-				return;
-			}
-			if (response != 0)
-			{
-				error_code e(socks_error::general_failure, socks_category);
-				switch (response)
-				{
-					case 2: e = asio::error::no_permission; break;
-					case 3: e = asio::error::network_unreachable; break;
-					case 4: e = asio::error::host_unreachable; break;
-					case 5: e = asio::error::connection_refused; break;
-					case 6: e = asio::error::timed_out; break;
-					case 7: e = error_code(socks_error::command_not_supported, socks_category); break;
-					case 8: e = asio::error::address_family_not_supported; break;
-				}
-				(*h)(e);
-				error_code ec;
-				close(ec);
-				return;
-			}
-			p += 1; // reserved
-			int atyp = read_uint8(p);
-			// we ignore the proxy IP it was bound to
-			if (atyp == 1)
-			{
-				if (m_command == 2)
-				{
-					if (m_listen == 0)
-					{
-						m_listen = 1;
-						connect1(e, h);
-						return;
-					}
-					m_remote_endpoint.address(read_v4_address(p));
-					m_remote_endpoint.port(read_uint16(p));
-					std::vector<char>().swap(m_buffer);
-					(*h)(e);
-				}
-				else
-				{
-					std::vector<char>().swap(m_buffer);
-					(*h)(e);
-				}
-				return;
-			}
-			int extra_bytes = 0;
-			if (atyp == 4)
-			{
-				extra_bytes = 12;
-			}
-			else if (atyp == 3)
-			{
-				extra_bytes = read_uint8(p) - 3;
-			}
-			else
-			{
-				(*h)(asio::error::address_family_not_supported);
-				error_code ec;
-				close(ec);
-				return;
-			}
-			m_buffer.resize(m_buffer.size() + extra_bytes);
-
-			TORRENT_ASSERT(extra_bytes > 0);
-			async_read(m_sock, asio::buffer(&m_buffer[m_buffer.size() - extra_bytes], extra_bytes)
-				, boost::bind(&socks5_stream::connect3, this, _1, h));
+			(*h)(asio::error::operation_not_supported);
+			error_code ec;
+			close(ec);
+			return;
 		}
-		else if (m_version == 4)
+		int response = read_uint8(p);
+		if (response != 0)
 		{
-			if (version != 0)
-			{
-				(*h)(error_code(socks_error::general_failure, socks_category));
-				error_code ec;
-				close(ec);
-				return;
-			}
-
-			// access granted
-			if (response == 90)
-			{
-				if (m_command == 2)
-				{
-					if (m_listen == 0)
-					{
-						m_listen = 1;
-						connect1(e, h);
-						return;
-					}
-					m_remote_endpoint.address(read_v4_address(p));
-					m_remote_endpoint.port(read_uint16(p));
-					std::vector<char>().swap(m_buffer);
-					(*h)(e);
-				}
-				else
-				{
-					std::vector<char>().swap(m_buffer);
-					(*h)(e);
-				}
-				return;
-			}
-
-			int code = socks_error::general_failure;
+			error_code e = asio::error::fault;
 			switch (response)
 			{
-				case 91: code = socks_error::authentication_error; break;
-				case 92: code = socks_error::no_identd; break;
-				case 93: code = socks_error::identd_error; break;
+				case 1: e = asio::error::fault; break;
+				case 2: e = asio::error::no_permission; break;
+				case 3: e = asio::error::network_unreachable; break;
+				case 4: e = asio::error::host_unreachable; break;
+				case 5: e = asio::error::connection_refused; break;
+				case 6: e = asio::error::timed_out; break;
+				case 7: e = asio::error::operation_not_supported; break;
+				case 8: e = asio::error::address_family_not_supported; break;
 			}
-			error_code e(code, socks_category);
 			(*h)(e);
-			close(e);
+			error_code ec;
+			close(ec);
+			return;
 		}
+		p += 1; // reserved
+		int atyp = read_uint8(p);
+		// we ignore the proxy IP it was bound to
+		if (atyp == 1)
+		{
+			std::vector<char>().swap(m_buffer);
+			(*h)(e);
+			return;
+		}
+		int skip_bytes = 0;
+		if (atyp == 4)
+		{
+			skip_bytes = 12;
+		}
+		else if (atyp == 3)
+		{
+			skip_bytes = read_uint8(p) - 3;
+		}
+		else
+		{
+			(*h)(asio::error::operation_not_supported);
+			error_code ec;
+			close(ec);
+			return;
+		}
+		m_buffer.resize(skip_bytes);
+
+		async_read(m_sock, asio::buffer(m_buffer)
+			, boost::bind(&socks5_stream::connect3, this, _1, h));
 	}
 
 	void socks5_stream::connect3(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
-		using namespace libtorrent::detail;
-
 		if (e)
 		{
 			(*h)(e);
@@ -484,32 +325,6 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_command == 2)
-		{
-			if (m_listen == 0)
-			{
-				m_listen = 1;
-				connect1(e, h);
-				return;
-			}
-
-			char* p = &m_buffer[0];
-			p += 2; // version and response code
-			int atyp = read_uint8(p);
-			TORRENT_ASSERT(atyp == 3 || atyp == 4);
-			if (atyp == 4)
-			{
-				// we don't support resolving the endpoint address
-				// if we receive a domain name, just set the remote
-				// endpoint to INADDR_ANY
-				m_remote_endpoint = tcp::endpoint();
-			}
-			else if (atyp == 3)
-			{
-				m_remote_endpoint.address(read_v4_address(p));
-				m_remote_endpoint.port(read_uint16(p));
-			}
-		}
 		std::vector<char>().swap(m_buffer);
 		(*h)(e);
 	}

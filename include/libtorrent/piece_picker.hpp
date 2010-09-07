@@ -42,13 +42,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/static_assert.hpp>
-#include <boost/cstdint.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/socket.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
@@ -63,18 +63,12 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT piece_block
 	{
-		const static piece_block invalid;
-
-		piece_block() {}
-		piece_block(boost::uint32_t p_index, boost::uint16_t b_index)
+		piece_block(int p_index, int b_index)
 			: piece_index(p_index)
 			, block_index(b_index)
-		{
-			TORRENT_ASSERT(p_index < (1 << 18));
-			TORRENT_ASSERT(b_index < (1 << 14));
-		}
-		boost::uint32_t piece_index:18;
-		boost::uint32_t block_index:14;
+		{}
+		int piece_index;
+		int block_index;
 
 		bool operator<(piece_block const& b) const
 		{
@@ -94,8 +88,6 @@ namespace libtorrent
 	class TORRENT_EXPORT piece_picker
 	{
 	public:
-
-		struct piece_pos;
 
 		enum
 		{
@@ -138,11 +130,7 @@ namespace libtorrent
 			// always pick partial pieces before any other piece
 			prioritize_partials = 8,
 			// pick pieces in sequential order
-			sequential = 16,
-			// have affinity to pieces with the same speed category
-			speed_affinity = 32,
-			// ignore the prefer_whole_pieces parameter
-			ignore_whole_pieces = 64
+			sequential = 16
 		};
 
 		struct downloading_piece
@@ -164,7 +152,7 @@ namespace libtorrent
 			// the number of blocks in the requested state
 			boost::int16_t requested;
 		};
-		
+
 		piece_picker();
 
 		void get_availability(std::vector<int>& avail) const;
@@ -196,7 +184,6 @@ namespace libtorrent
 
 		int cursor() const { return m_cursor; }
 		int reverse_cursor() const { return m_reverse_cursor; }
-		int sparse_regions() const { return m_sparse_regions; }
 
 		// sets all pieces to dont-have
 		void init(int blocks_per_piece, int blocks_in_last_piece, int total_num_pieces);
@@ -283,10 +270,7 @@ namespace libtorrent
 		// marks this piece-block as queued for downloading
 		bool mark_as_downloading(piece_block block, void* peer
 			, piece_state_t s);
-		// returns true if the block was marked as writing,
-		// and false if the block is already finished or writing
-		bool mark_as_writing(piece_block block, void* peer);
-
+		void mark_as_writing(piece_block block, void* peer);
 		void mark_as_finished(piece_block block, void* peer);
 		void write_failed(piece_block block);
 		int num_peers(piece_block block) const;
@@ -294,13 +278,7 @@ namespace libtorrent
 
 		// returns information about the given piece
 		void piece_info(int index, piece_picker::downloading_piece& st) const;
-
-		piece_pos const& piece_stats(int index) const
-		{
-			TORRENT_ASSERT(index >= 0 && index < int(m_piece_map.size()));
-			return m_piece_map[index];
-		}
-
+		
 		// if a piece had a hash-failure, it must be restored and
 		// made available for redownloading
 		void restore_piece(int index);
@@ -340,7 +318,7 @@ namespace libtorrent
 		void verify_pick(std::vector<piece_block> const& picked
 			, bitfield const& bits) const;
 #endif
-#if defined TORRENT_PICKER_LOG
+#if defined TORRENT_PICKER_LOG || defined TORRENT_DEBUG
 		void print_pieces() const;
 #endif
 
@@ -356,7 +334,7 @@ namespace libtorrent
 		int blocks_in_last_piece() const
 		{ return m_blocks_in_last_piece; }
 
-		std::pair<int, int> distributed_copies() const;
+		float distributed_copies() const;
 
 	private:
 
@@ -366,8 +344,6 @@ namespace libtorrent
 		bool is_piece_free(int piece, bitfield const& bitmask) const;
 		std::pair<int, int> expand_piece(int piece, int whole_pieces
 			, bitfield const& have) const;
-
-	public:
 
 		struct piece_pos
 		{
@@ -443,15 +419,15 @@ namespace libtorrent
 
 				// prio 4,5,6 halves the availability of a piece
 				int availability = peer_count;
-				int p = piece_priority;
+				int priority = piece_priority;
 				if (piece_priority >= priority_levels / 2)
 				{
 					availability /= 2;
-					p -= (priority_levels - 2) / 2;
+					priority -= (priority_levels - 2) / 2;
 				}
 
 				if (downloading) return availability * prio_factor;
-				return availability * prio_factor + (priority_levels / 2) - p;
+				return availability * prio_factor + (priority_levels / 2) - priority;
 			}
 
 			bool operator!=(piece_pos p) const
@@ -461,8 +437,6 @@ namespace libtorrent
 			{ return index == p.index && peer_count == p.peer_count; }
 
 		};
-
-	private:
 
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 4);
 
@@ -488,13 +462,9 @@ namespace libtorrent
 		downloading_piece& add_download_piece();
 		void erase_download_piece(std::vector<downloading_piece>::iterator i);
 
-		// some compilers (e.g. gcc 2.95, does not inherit access
-		// privileges to nested classes)
-	public:
 		// the number of seeds. These are not added to
 		// the availability counters of the pieces
 		int m_seeds;
-	private:
 
 		// the following vectors are mutable because they sometimes may
 		// be updated lazily, triggered by const functions
@@ -555,9 +525,6 @@ namespace libtorrent
 		// m_reverse_cursor is the first piece where we also have
 		// all the subsequent pieces
 		int m_reverse_cursor;
-
-		// the number of regions of pieces we don't have.
-		int m_sparse_regions;
 
 		// if this is set to true, it means update_pieces()
 		// has to be called before accessing m_pieces.

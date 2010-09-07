@@ -33,17 +33,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <algorithm>
-#if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
-#include <iomanip>
 #include <iostream>
-#endif
+#include <iomanip>
 #include <boost/bind.hpp>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/escape_string.hpp"
-#include "libtorrent/lazy_entry.hpp"
 
 #if defined(_MSC_VER)
+namespace std
+{
+	using ::isprint;
+}
 #define for if (false) {} else for
 #endif
 
@@ -86,7 +87,8 @@ namespace libtorrent
 		dictionary_type::iterator i = dict().find(key);
 		if (i != dict().end()) return i->second;
 		dictionary_type::iterator ret = dict().insert(
-			std::pair<const std::string, entry>(key, entry())).first;
+			dict().begin()
+			, std::make_pair(key, entry()));
 		return ret->second;
 	}
 
@@ -95,7 +97,8 @@ namespace libtorrent
 		dictionary_type::iterator i = dict().find(key);
 		if (i != dict().end()) return i->second;
 		dictionary_type::iterator ret = dict().insert(
-			std::make_pair(key, entry())).first;
+			dict().begin()
+			, std::make_pair(std::string(key), entry()));
 		return ret->second;
 	}
 
@@ -141,114 +144,6 @@ namespace libtorrent
 		return (*this)[key.c_str()];
 	}
 #endif
-
-	entry::data_type entry::type() const
-	{
-#ifdef TORRENT_DEBUG
-		m_type_queried = true;
-#endif
-		return m_type;
-	}
-
-	entry::~entry() { destruct(); }
-
-	void entry::operator=(const entry& e)
-	{
-		destruct();
-		copy(e);
-	}
-
-	entry::integer_type& entry::integer()
-	{
-		if (m_type == undefined_t) construct(int_t);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != int_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == int_t);
-		return *reinterpret_cast<integer_type*>(data);
-	}
-
-	entry::integer_type const& entry::integer() const
-	{
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != int_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == int_t);
-		return *reinterpret_cast<const integer_type*>(data);
-	}
-
-	entry::string_type& entry::string()
-	{
-		if (m_type == undefined_t) construct(string_t);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != string_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == string_t);
-		return *reinterpret_cast<string_type*>(data);
-	}
-
-	entry::string_type const& entry::string() const
-	{
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != string_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == string_t);
-		return *reinterpret_cast<const string_type*>(data);
-	}
-
-	entry::list_type& entry::list()
-	{
-		if (m_type == undefined_t) construct(list_t);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != list_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == list_t);
-		return *reinterpret_cast<list_type*>(data);
-	}
-
-	entry::list_type const& entry::list() const
-	{
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != list_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == list_t);
-		return *reinterpret_cast<const list_type*>(data);
-	}
-
-	entry::dictionary_type& entry::dict()
-	{
-		if (m_type == undefined_t) construct(dictionary_t);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != dictionary_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == dictionary_t);
-		return *reinterpret_cast<dictionary_type*>(data);
-	}
-
-	entry::dictionary_type const& entry::dict() const
-	{
-#ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != dictionary_t) throw_type_error();
-#elif defined TORRENT_DEBUG
-		TORRENT_ASSERT(m_type_queried);
-#endif
-		TORRENT_ASSERT(m_type == dictionary_t);
-		return *reinterpret_cast<const dictionary_type*>(data);
-	}
 
 	entry::entry()
 		: m_type(undefined_t)
@@ -314,40 +209,6 @@ namespace libtorrent
 #endif
 		new(data) integer_type(v);
 		m_type = int_t;
-	}
-
-	// convert a lazy_entry into an old skool entry
-	void entry::operator=(lazy_entry const& e)
-	{
-		switch (e.type())
-		{
-			case lazy_entry::string_t:
-				this->string() = e.string_value();
-				break;
-			case lazy_entry::int_t:
-				this->integer() = e.int_value();
-				break;
-			case lazy_entry::dict_t:
-			{
-				dictionary_type& d = this->dict();
-				for (int i = 0; i < e.dict_size(); ++i)
-				{
-					std::pair<std::string, lazy_entry const*> elem = e.dict_at(i);
-					d[elem.first] = *elem.second;
-				}
-				break;
-			}
-			case lazy_entry::list_t:
-			{
-				list_type& l = this->list();
-				for (int i = 0; i < e.list_size(); ++i)
-				{
-					l.push_back(entry());
-					l.back() = *e.list_at(i);
-				}
-				break;
-			}
-		}
 	}
 
 	void entry::operator=(dictionary_type const& v)
@@ -492,7 +353,6 @@ namespace libtorrent
 		TORRENT_ASSERT(false);
 	}
 
-#if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
 	void entry::print(std::ostream& os, int indent) const
 	{
 		TORRENT_ASSERT(indent >= 0);
@@ -507,7 +367,7 @@ namespace libtorrent
 				bool binary_string = false;
 				for (std::string::const_iterator i = string().begin(); i != string().end(); ++i)
 				{
-					if (!is_print(static_cast<unsigned char>(*i)))
+					if (!std::isprint(static_cast<unsigned char>(*i)))
 					{
 						binary_string = true;
 						break;
@@ -532,7 +392,7 @@ namespace libtorrent
 					bool binary_string = false;
 					for (std::string::const_iterator k = i->first.begin(); k != i->first.end(); ++k)
 					{
-						if (!is_print(static_cast<unsigned char>(*k)))
+						if (!std::isprint(static_cast<unsigned char>(*k)))
 						{
 							binary_string = true;
 							break;
@@ -555,6 +415,5 @@ namespace libtorrent
 			os << "<uninitialized>\n";
 		}
 	}
-#endif
 }
 

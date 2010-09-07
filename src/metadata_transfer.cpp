@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <utility>
 #include <numeric>
-#include <algorithm> // count
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
@@ -160,7 +159,11 @@ namespace libtorrent { namespace
 
 			if (!have_all) return false;
 
-			if (!m_torrent.set_metadata(&m_metadata[0], m_metadata_size))
+			hasher h;
+			h.update(&m_metadata[0], m_metadata_size);
+			sha1_hash info_hash = h.final();
+
+			if (info_hash != m_torrent.torrent_file().info_hash())
 			{
 				std::fill(
 					m_have_metadata.begin()
@@ -168,6 +171,26 @@ namespace libtorrent { namespace
 					, false);
 				m_metadata_progress = 0;
 				m_metadata_size = 0;
+
+				if (m_torrent.alerts().should_post<metadata_failed_alert>())
+				{
+					m_torrent.alerts().post_alert(metadata_failed_alert(
+						m_torrent.get_handle()));
+				}
+
+				return false;
+			}
+
+			lazy_entry e;
+			lazy_bdecode(m_metadata.get(), m_metadata.get() + m_metadata_size, e);
+			std::string error;
+			if (!m_torrent.set_metadata(e, error))
+			{
+				// this means the metadata is correct, since we
+				// verified it against the info-hash, but we
+				// failed to parse it. Pause the torrent
+				// TODO: Post an alert!
+				m_torrent.pause();
 				return false;
 			}
 
@@ -207,8 +230,6 @@ namespace libtorrent { namespace
 			if (m_torrent.is_seed())
 				metadata();
 		}
-
-		int metadata_size() const { return m_metadata_size; }
 
 	private:
 		torrent& m_torrent;
@@ -312,7 +333,8 @@ namespace libtorrent { namespace
 			// abort if the peer doesn't support the metadata extension
 			if (m_message_index == 0) return;
 
-			if (m_torrent.valid_metadata())
+			// only send metadata if the torrent is non-private
+			if (m_torrent.valid_metadata() && !m_torrent.torrent_file().priv())
 			{
 				std::pair<int, int> offset
 					= req_to_offset(req, (int)m_tp.metadata().left());
@@ -370,7 +392,7 @@ namespace libtorrent { namespace
 
 			if (length > 500 * 1024)
 			{
-				m_pc.disconnect(errors::metadata_too_large, 2);
+				m_pc.disconnect("LT_metadata message larger than 500 kB");
 				return true;
 			}
 
@@ -395,7 +417,7 @@ namespace libtorrent { namespace
 					if (length != 3)
 					{
 						// invalid metadata request
-						m_pc.disconnect(errors::invalid_metadata_request, 2);
+						m_pc.disconnect("invalid metadata request");
 						return true;
 					}
 
@@ -420,22 +442,22 @@ namespace libtorrent { namespace
 
 					if (total_size > 500 * 1024)
 					{
-						m_pc.disconnect(errors::metadata_too_large, 2);
+						m_pc.disconnect("metadata size larger than 500 kB");
 						return true;
 					}
 					if (total_size <= 0)
 					{
-						m_pc.disconnect(errors::invalid_metadata_size, 2);
+						m_pc.disconnect("invalid metadata size");
 						return true;
 					}
 					if (offset > total_size || offset < 0)
 					{
-						m_pc.disconnect(errors::invalid_metadata_offset, 2);
+						m_pc.disconnect("invalid metadata offset");
 						return true;
 					}
 					if (offset + data_size > total_size)
 					{
-						m_pc.disconnect(errors::invalid_metadata_message, 2);
+						m_pc.disconnect("invalid metadata message");
 						return true;
 					}
 
@@ -463,7 +485,9 @@ namespace libtorrent { namespace
 				break;
 			default:
 				{
-					m_pc.disconnect(errors::invalid_metadata_message, 2);
+					std::stringstream msg;
+					msg << "unknown metadata extension message: " << type;
+					m_pc.disconnect(msg.str().c_str());
 				}
 			}
 			return true;
@@ -530,17 +554,32 @@ namespace libtorrent { namespace
 	boost::shared_ptr<peer_plugin> metadata_plugin::new_connection(
 		peer_connection* pc)
 	{
-		if (pc->type() != peer_connection::bittorrent_connection)
-			return boost::shared_ptr<peer_plugin>();
-
-		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc);
+		bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(pc);
+		if (!c) return boost::shared_ptr<peer_plugin>();
 		return boost::shared_ptr<peer_plugin>(new metadata_peer_plugin(m_torrent, *pc, *this));
 	}
 
 	std::pair<int, int> metadata_plugin::metadata_request()
 	{
+		// count the number of peers that supports the
+		// extension and that has metadata
+		int peers = 0;
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (torrent::peer_iterator i = m_torrent.begin()
+			, end(m_torrent.end()); i != end; ++i)
+		{
+			bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(*i);
+			if (c == 0) continue;
+			metadata_peer_plugin* p
+				= c->supports_extension<metadata_peer_plugin>();
+			if (p == 0) continue;
+			if (!p->has_metadata()) continue;
+			++peers;
+		}
+#endif
+
 		// the number of blocks to request
-		int num_blocks = 256 / 4;
+		int num_blocks = 256 / (peers + 1);
 		if (num_blocks < 1) num_blocks = 1;
 		TORRENT_ASSERT(num_blocks <= 128);
 
@@ -579,8 +618,6 @@ namespace libtorrent
 
 	boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent* t, void*)
 	{
-		// don't add this extension if the torrent is private
-		if (t->valid_metadata() && t->torrent_file().priv()) return boost::shared_ptr<torrent_plugin>();
 		return boost::shared_ptr<torrent_plugin>(new metadata_plugin(*t));
 	}
 
