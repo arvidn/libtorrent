@@ -85,6 +85,8 @@ static int my_fallocate(int fd, int mode, loff_t offset, loff_t len)
 
 #endif // TORRENT_LINUX
 
+#undef _FILE_OFFSET_BITS
+
 #include <boost/static_assert.hpp>
 // make sure the _FILE_OFFSET_BITS define worked
 // on this platform. It's supposed to make file

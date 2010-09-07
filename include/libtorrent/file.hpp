@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#undef _FILE_OFFSET_BITS
 #endif
 namespace libtorrent
 {
