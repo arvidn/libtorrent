@@ -42,18 +42,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/identify_client.hpp"
-#include "libtorrent/file.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/bencode.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
-#include "libtorrent/kademlia/node.hpp"
 #endif
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/bind.hpp>
-#include <iostream>
 
 #include "test.hpp"
 
@@ -61,7 +58,7 @@ using namespace libtorrent;
 using namespace boost::tuples;
 
 namespace libtorrent {
-	TORRENT_EXPORT std::string sanitize_path(std::string const& p);
+	TORRENT_EXPORT fs::path sanitize_path(fs::path const& p);
 }
 
 sha1_hash to_hash(char const* s)
@@ -138,16 +135,6 @@ void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id con
 		carry = sum > 255;
 	}
 }
-
-void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
-{
-	using namespace libtorrent::dht;
-	std::vector<node_entry>* nv = (std::vector<node_entry>*)userdata;
-	nv->push_back(n);
-}
-
-void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
-
 #endif
 
 char upnp_xml[] = 
@@ -379,13 +366,12 @@ TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& 
 int test_main()
 {
 	using namespace libtorrent;
-	error_code ec;
+
 	int ret = 0;
 
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
 	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
 	TEST_CHECK(error_code(errors::unsupported_protocol_version).message() == "unsupported protocol version");
-	TEST_CHECK(error_code(errors::no_i2p_router).message() == "no i2p router is set up");
 	TEST_CHECK(error_code(errors::http_parse_error).message() == "Invalid HTTP header");
 	TEST_CHECK(error_code(errors::error_code_max).message() == "Unknown error");
 
@@ -431,24 +417,24 @@ int test_main()
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
 
 	std::vector<announce_entry> trackers = t.trackers();
-	TEST_EQUAL(trackers.size(), 3);
+	TEST_CHECK(trackers.size() == 3);
 	if (trackers.size() > 0)
 	{
-		TEST_EQUAL(trackers[0].url, "http://1");
+		TEST_CHECK(trackers[0].url == "http://1");
 		fprintf(stderr, "1: %s\n", trackers[0].url.c_str());
 	}
 	if (trackers.size() > 1)
 	{
-		TEST_EQUAL(trackers[1].url, "http://2");
+		TEST_CHECK(trackers[1].url == "http://2");
 		fprintf(stderr, "2: %s\n", trackers[1].url.c_str());
 	}
 	if (trackers.size() > 2)
 	{
-		TEST_EQUAL(trackers[2].url, "http://3");
+		TEST_CHECK(trackers[2].url == "http://3");
 		fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
 	}
 
-	TEST_EQUAL(to_hex(t.info_hash().to_string()), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_CHECK(to_hex(t.info_hash().to_string()) == "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 
 	delete s;
 	s = new session(fingerprint("LT",0,0,0,0), 0);
@@ -489,114 +475,6 @@ int test_main()
 	delete s;
 	}
 
-	// test path functions
-	TEST_EQUAL(combine_path("test1/", "test2"), "test1/test2");
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(combine_path("test1\\", "test2"), "test1\\test2");
-	TEST_EQUAL(combine_path("test1", "test2"), "test1\\test2");
-#else
-	TEST_EQUAL(combine_path("test1", "test2"), "test1/test2");
-#endif
-
-	TEST_EQUAL(extension("blah"), "");
-	TEST_EQUAL(extension("blah.exe"), ".exe");
-	TEST_EQUAL(extension("blah.foo.bar"), ".bar");
-	TEST_EQUAL(extension("blah.foo."), ".");
-
-	TEST_EQUAL(filename("blah"), "blah");
-	TEST_EQUAL(filename("/blah/foo/bar"), "bar");
-	TEST_EQUAL(filename("/blah/foo/bar/"), "bar");
-	TEST_EQUAL(filename("blah/"), "blah");
-
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(is_root_path("c:\\blah"), false);
-	TEST_EQUAL(is_root_path("c:\\"), true);
-	TEST_EQUAL(is_root_path("\\\\"), true);
-	TEST_EQUAL(is_root_path("\\\\foobar"), false);
-#else
-	TEST_EQUAL(is_root_path("/blah"), false);
-	TEST_EQUAL(is_root_path("/"), true);
-#endif
-
-	// if has_parent_path() returns false
-	// parent_path() should return the empty string
-	TEST_EQUAL(parent_path("blah"), "");
-	TEST_EQUAL(has_parent_path("blah"), false);
-	TEST_EQUAL(parent_path("/blah/foo/bar"), "/blah/foo/");
-	TEST_EQUAL(has_parent_path("/blah/foo/bar"), true);
-	TEST_EQUAL(parent_path("/blah/foo/bar/"), "/blah/foo/");
-	TEST_EQUAL(has_parent_path("/blah/foo/bar/"), true);
-	TEST_EQUAL(parent_path("/a"), "/");
-	TEST_EQUAL(has_parent_path("/a"), true);
-	TEST_EQUAL(parent_path("/"), "");
-	TEST_EQUAL(has_parent_path("/"), false);
-	TEST_EQUAL(parent_path(""), "");
-	TEST_EQUAL(has_parent_path(""), false);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(parent_path("\\\\"), "");
-	TEST_EQUAL(has_parent_path("\\\\"), false);
-	TEST_EQUAL(parent_path("c:\\"), "");
-	TEST_EQUAL(has_parent_path("c:\\"), false);
-	TEST_EQUAL(parent_path("c:\\a"), "c:\\");
-	TEST_EQUAL(has_parent_path("c:\\a"), true);
-#endif
-
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(is_complete("c:\\"), true);
-	TEST_EQUAL(is_complete("c:\\foo\\bar"), true);
-	TEST_EQUAL(is_complete("\\\\foo\\bar"), true);
-	TEST_EQUAL(is_complete("foo/bar"), false);
-	TEST_EQUAL(is_complete("\\\\"), true);
-#else
-	TEST_EQUAL(is_complete("/foo/bar"), true);
-	TEST_EQUAL(is_complete("foo/bar"), false);
-	TEST_EQUAL(is_complete("/"), true);
-	TEST_EQUAL(is_complete(""), false);
-#endif
-
-#ifndef TORRENT_DISABLE_DHT
-	// test search_torrent_entry
-
-	dht::search_torrent_entry ste1;
-	dht::search_torrent_entry ste2;
-	char const* ste1_tags[] = {"tag1", "tag2", "tag3", "tag4"};
-	ste1.publish("ste1", ste1_tags, 4);
-	char const* ste11_tags[] = {"tag2", "tag3"};
-	ste1.publish("ste1", ste11_tags, 2);
-	char const* ste2_tags[] = {"tag1", "tag2", "tag5", "tag6"};
-	ste2.publish("ste2", ste2_tags, 4);
-	char const* ste21_tags[] = {"tag1", "tag5"};
-	ste2.publish("ste2", ste21_tags, 2);
-
-	char const* test_tags1[] = {"tag1", "tag2"};
-	char const* test_tags2[] = {"tag3", "tag2"};
-	int m1 = ste1.match(test_tags1, 2);
-	int m2 = ste2.match(test_tags1, 2);
-	TEST_CHECK(m1 == m2);
-	m1 = ste1.match(test_tags2, 2);
-	m2 = ste2.match(test_tags2, 2);
-	TEST_CHECK(m1 > m2);
-#endif
-
-	// test split_string
-
-	char const* tags[10];
-	char tags_str[] = "  this  is\ta test\t string\x01to be split  and it cannot "
-		"extend over the limit of elements \t";
-	ret = split_string(tags, 10, tags_str);
-
-	TEST_CHECK(ret == 10);
-	TEST_CHECK(strcmp(tags[0], "this") == 0);
-	TEST_CHECK(strcmp(tags[1], "is") == 0);
-	TEST_CHECK(strcmp(tags[2], "a") == 0);
-	TEST_CHECK(strcmp(tags[3], "test") == 0);
-	TEST_CHECK(strcmp(tags[4], "string") == 0);
-	TEST_CHECK(strcmp(tags[5], "to") == 0);
-	TEST_CHECK(strcmp(tags[6], "be") == 0);
-	TEST_CHECK(strcmp(tags[7], "split") == 0);
-	TEST_CHECK(strcmp(tags[8], "and") == 0);
-	TEST_CHECK(strcmp(tags[9], "it") == 0);
-
 	// test snprintf
 
 	char msg[10];
@@ -605,35 +483,29 @@ int test_main()
 
 	// test maybe_url_encode
 
-	TEST_EQUAL(maybe_url_encode("http://test:test@abc.com/abc<>abc"), "http://test:test@abc.com:80/abc%3c%3eabc");
-	TEST_EQUAL(maybe_url_encode("http://abc.com/foo bar"), "http://abc.com:80/foo%20bar");
-	TEST_EQUAL(maybe_url_encode("abc"), "abc");
-	TEST_EQUAL(maybe_url_encode("http://abc.com/abc"), "http://abc.com/abc");
+	TEST_CHECK(maybe_url_encode("http://test:test@abc.com/abc<>abc") == "http://test:test@abc.com:80/abc%3c%3eabc");
+	TEST_CHECK(maybe_url_encode("http://abc.com/foo bar") == "http://abc.com:80/foo%20bar");
+	TEST_CHECK(maybe_url_encode("abc") == "abc");
+	TEST_CHECK(maybe_url_encode("http://abc.com/abc") == "http://abc.com/abc");
 	
 	// test sanitize_path
 
+	TEST_CHECK(sanitize_path("/a/b/c").string() == "a/b/c");
+	TEST_CHECK(sanitize_path("a/../c").string() == "a/c");
+	TEST_CHECK(sanitize_path("/.././c").string() == "c");
+	TEST_CHECK(sanitize_path("dev:").string() == "");
+	TEST_CHECK(sanitize_path("c:/b").string() == "b");
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize_path("/a/b/c"), "a\\b\\c");
-	TEST_EQUAL(sanitize_path("a/../c"), "a\\c");
+	TEST_CHECK(sanitize_path("c:\\.\\c").string() == "c");
 #else
-	TEST_EQUAL(sanitize_path("/a/b/c"), "a/b/c");
-	TEST_EQUAL(sanitize_path("a/../c"), "a/c");
-#endif
-	TEST_EQUAL(sanitize_path("/.././c"), "c");
-	TEST_EQUAL(sanitize_path("dev:"), "");
-	TEST_EQUAL(sanitize_path("c:/b"), "b");
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize_path("c:\\.\\c"), "c");
-	TEST_EQUAL(sanitize_path("\\c"), "c");
-#else
-	TEST_EQUAL(sanitize_path("//./c"), "c");
+	TEST_CHECK(sanitize_path("//./c").string() == "c");
 #endif
 
 	// make sure the time classes have correct semantics
 
-	TEST_EQUAL(total_milliseconds(milliseconds(100)), 100);
-	TEST_EQUAL(total_milliseconds(milliseconds(1)),  1);
-	TEST_EQUAL(total_milliseconds(seconds(1)), 1000);
+	TEST_CHECK(total_milliseconds(milliseconds(100)) == 100);
+	TEST_CHECK(total_milliseconds(milliseconds(1)) == 1);
+	TEST_CHECK(total_milliseconds(seconds(1)) == 1000);
 
 
 	if (supports_ipv6())
@@ -641,14 +513,14 @@ int test_main()
 		// make sure the assumption we use in policy's peer list hold
 		std::multimap<address, int> peers;
 		std::multimap<address, int>::iterator i;
-		peers.insert(std::make_pair(address::from_string("::1", ec), 0));
-		peers.insert(std::make_pair(address::from_string("::2", ec), 3));
-		peers.insert(std::make_pair(address::from_string("::3", ec), 5));
-		i = peers.find(address::from_string("::2", ec));
+		peers.insert(std::make_pair(address::from_string("::1"), 0));
+		peers.insert(std::make_pair(address::from_string("::2"), 3));
+		peers.insert(std::make_pair(address::from_string("::3"), 5));
+		i = peers.find(address::from_string("::2"));
 		TEST_CHECK(i != peers.end());
 		if (i != peers.end())
 		{
-			TEST_CHECK(i->first == address::from_string("::2", ec));
+			TEST_CHECK(i->first == address::from_string("::2"));
 			TEST_CHECK(i->second == 3);
 		}
 	}
@@ -708,6 +580,7 @@ int test_main()
 
 	// test url parsing
 
+	error_code ec;
 	TEST_CHECK(parse_url_components("http://foo:bar@host.com:80/path/to/file", ec)
 		== make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file"));
 
@@ -767,26 +640,23 @@ int test_main()
 
 	// url_has_argument
 
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test", "test") == "");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24", "bar") == "");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24", "foo") == "24");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "foo") == "24");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "bar") == "23");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "bar") == "23");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "a") == "e");
-	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "b") == "");
+	TEST_CHECK(!url_has_argument("http://127.0.0.1/test", "test"));
+	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24", "bar"));
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24", "foo") == "24");
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "foo") == "24");
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23", "bar") == "23");
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "bar") == "23");
+	TEST_CHECK(*url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "a") == "e");
+	TEST_CHECK(!url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "b"));
 
 	// escape_string
 	char const* test_string = "!@#$%^&*()-_=+/,. %?";
-	TEST_EQUAL(escape_string(test_string, strlen(test_string))
-		, "!%40%23%24%25%5e%26*()-_%3d%2b%2f%2c.%20%25%3f");
+	TEST_CHECK(escape_string(test_string, strlen(test_string))
+		== "!%40%23%24%25%5e%26*()-_%3d%2b%2f%2c.%20%25%3f");
 
 	// escape_path
-	TEST_EQUAL(escape_path(test_string, strlen(test_string))
-		, "!%40%23%24%25%5e%26*()-_%3d%2b/%2c.%20%25%3f");
-
-	TEST_CHECK(unescape_string(escape_path(test_string, strlen(test_string)), ec) == test_string);
-	TEST_CHECK(!ec);
+	TEST_CHECK(escape_path(test_string, strlen(test_string))
+		== "!%40%23%24%25%5e%26*()-_%3d%2b/%2c.%20%25%3f");
 
 	// need_encoding
 	char const* test_string2 = "!@$&()-_/,.%?";
@@ -996,13 +866,11 @@ int test_main()
 	TEST_CHECK(is_local(address::from_string("10.1.1.56", ec)));
 	TEST_CHECK(!is_local(address::from_string("14.14.251.63", ec)));
 	TEST_CHECK(is_loopback(address::from_string("127.0.0.1", ec)));
-#if TORRENT_USE_IPV6
 	if (supports_ipv6())
 	{
 		TEST_CHECK(is_loopback(address::from_string("::1", ec)));
 		TEST_CHECK(is_any(address_v6::any()));
 	}
-#endif
 	TEST_CHECK(is_any(address_v4::any()));
 	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
 
@@ -1033,11 +901,7 @@ int test_main()
 	bencode(std::back_inserter(buf), torrent);
 	torrent_info ti2(&buf[0], buf.size(), ec);
 	std::cerr << ti2.name() << std::endl;
-#ifdef TORRENT_WINDOWS
-	TEST_CHECK(ti2.name() == "test1\\test2\\test3");
-#else
 	TEST_CHECK(ti2.name() == "test1/test2/test3");
-#endif
 
 	info["name.utf-8"] = "test2/../test3/.././../../test4";
 	torrent["info"] = info;
@@ -1045,11 +909,7 @@ int test_main()
 	bencode(std::back_inserter(buf), torrent);
 	torrent_info ti3(&buf[0], buf.size(), ec);
 	std::cerr << ti3.name() << std::endl;
-#ifdef TORRENT_WINDOWS
-	TEST_CHECK(ti3.name() == "test2\\test3\\test4");
-#else
 	TEST_CHECK(ti3.name() == "test2/test3/test4");
-#endif
 
 #ifndef TORRENT_DISABLE_DHT	
 	// test kademlia functions
@@ -1082,39 +942,39 @@ int test_main()
 
 	// test kademlia routing table
 	dht_settings s;
-	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
+	node_id id = to_hash("6123456789abcdef01232456789abcdef0123456");
 	dht::routing_table table(id, 10, s);
 	table.node_seen(id, udp::endpoint(address_v4::any(), rand()));
 
-	node_id tmp = id;
-	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
+	node_id tmp;
+	node_id diff = to_hash("00001f7459456a9453f8719b09547c11d5f34064");
 	std::vector<node_entry> nodes;
-	for (int i = 0; i < 7000; ++i)
+	for (int i = 0; i < 1000; ++i)
 	{
 		table.node_seen(tmp, udp::endpoint(address_v4::any(), rand()));
 		add_and_replace(tmp, diff);
 	}
-	TEST_EQUAL(table.num_active_buckets(), 11);
 
-#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
-	table.print_state(std::cerr);
-#endif
-
-	table.for_each_node(node_push_back, nop, &nodes);
+	std::copy(table.begin(), table.end(), std::back_inserter(nodes));
 
 	std::cout << "nodes: " << nodes.size() << std::endl;
 
 	std::vector<node_entry> temp;
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
-	table.find_node(tmp, temp, 0, nodes.size() * 2);
+	table.find_node(tmp, temp, 0, nodes.size() + 1);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_EQUAL(temp.size(), nodes.size());
+	TEST_CHECK(temp.size() == nodes.size());
+
+	std::generate(tmp.begin(), tmp.end(), &std::rand);
+	table.find_node(tmp, temp, routing_table::include_self, nodes.size() + 1);
+	std::cout << "returned: " << temp.size() << std::endl;
+	TEST_CHECK(temp.size() == nodes.size() + 1);
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
 	table.find_node(tmp, temp, 0, 7);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_EQUAL(temp.size(), 7);
+	TEST_CHECK(temp.size() == 7);
 
 	std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
 		, boost::bind(&node_entry::id, _1)
@@ -1134,7 +994,7 @@ int test_main()
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
 	table.find_node(tmp, temp, 0, 15);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_EQUAL(temp.size(), (std::min)(15, int(nodes.size())));
+	TEST_CHECK(temp.size() == (std::min)(15, int(nodes.size())));
 
 	std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
 		, boost::bind(&node_entry::id, _1)

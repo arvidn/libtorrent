@@ -5,9 +5,6 @@ set(sources
 	alert
 	allocator
 	assert
-	bandwidth_limit
-	bandwidth_manager
-	bandwidth_queue_entry
 	connection_queue
 	create_torrent
 	disk_buffer_holder
@@ -21,7 +18,6 @@ set(sources
 	http_connection
 	http_stream
 	http_parser
-	i2p_stream
 	identify_client
 	ip_filter
 	peer_connection
@@ -32,16 +28,11 @@ set(sources
 	natpmp
 	piece_picker
 	policy
-	puff
 	session
 	session_impl
-	socket_io
-	socket_type  
 	socks5_stream
 	stat
 	storage
-	thread
-	time
 	torrent
 	torrent_handle
 	torrent_info
@@ -70,6 +61,7 @@ set(sources
 
 # -- kademlia --
 set(kademlia_sources
+	closest_nodes
 	dht_tracker
 	node
 	refresh
@@ -80,7 +72,22 @@ set(kademlia_sources
 	traversal_algorithm
 )
 
-set(includes include)
+set(zlib_sources
+	adler32
+	compress
+	crc32
+	deflate
+	gzio
+	infback
+	inffast
+	inflate
+	inftrees
+	trees
+	uncompr
+	zutil
+)
+
+set(includes include zlib)
 
 option(shared "build libtorrent as a shared library" ON)
 option(tcmalloc "link against google performance tools tcmalloc" OFF)
@@ -123,6 +130,9 @@ endif (verbose-logging)
 foreach(s ${sources})
 	list(APPEND sources2 src/${s})
 endforeach(s)
+foreach(s ${zlib_sources})
+	list(APPEND zlib_sources2 zlib/${s})
+endforeach(s)
 
 if (dht)
 	foreach(s ${kademlia_sources})
@@ -135,14 +145,14 @@ endif (dht)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
 
 if (shared)
-	add_library(torrent-rasterbar SHARED ${sources2})
+	add_library(torrent-rasterbar SHARED ${sources2} ${zlib_sources2})
 else (shared)
-	add_library(torrent-rasterbar STATIC ${sources2})
+	add_library(torrent-rasterbar STATIC ${sources2} ${zlib_sources2})
 endif (shared)
 
-FIND_PACKAGE( Boost 1.34 COMPONENTS filesystem)
+FIND_PACKAGE( Boost 1.34 COMPONENTS filesystem thread)
 if (NOT Boost_VERSION LESS 103500)
-	FIND_PACKAGE( Boost 1.35 COMPONENTS filesystem system)
+	FIND_PACKAGE( Boost 1.35 COMPONENTS filesystem thread system)
 endif (NOT Boost_VERSION LESS 103500)
 include_directories(${Boost_INCLUDE_DIR})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
@@ -216,7 +226,7 @@ set_target_properties(torrent-rasterbar PROPERTIES
 	SOVERSION 1
 	VERSION 1)
 
-set (VERSION "0.16.0")
+set (VERSION "0.15.3")
 
 get_property (COMPILETIME_OPTIONS_LIST
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIRECTORY}
@@ -263,7 +273,6 @@ if(build_tests)
 		test_buffer
 		test_storage
 		test_torrent
-		test_dht
 		test_transfer
 		test_piece_picker
 		test_fast_extension

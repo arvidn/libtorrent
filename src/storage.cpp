@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <ctime>
+#include <iterator>
 #include <algorithm>
 #include <set>
 #include <functional>
@@ -41,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/ref.hpp>
 #include <boost/bind.hpp>
 #include <boost/version.hpp>
@@ -72,6 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //#define TORRENT_PARTIAL_HASH_LOG
 
 #if TORRENT_USE_IOSTREAM
+#include <boost/filesystem/fstream.hpp>
 #include <ios>
 #include <iostream>
 #include <iomanip>
@@ -99,6 +103,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/escape_string.hpp"
 
+namespace fs = boost::filesystem;
+
 #if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG && TORRENT_USE_IOSTREAM
 namespace
 {
@@ -115,65 +121,100 @@ namespace
 
 namespace libtorrent
 {
-
-	void recursive_copy(std::string const& old_path, std::string const& new_path, error_code& ec)
+	template <class Path>
+	void recursive_copy(Path const& old_path, Path const& new_path, error_code& ec)
 	{
+		using boost::filesystem::basic_directory_iterator;
+#ifndef BOOST_NO_EXCEPTIONS
+		try {
+#endif
 		TORRENT_ASSERT(!ec);
-		if (is_directory(old_path, ec))
+		if (is_directory(old_path))
 		{
-			create_directory(new_path, ec);
-			if (ec) return;
-			for (directory i(old_path, ec); !i.done(); i.next(ec))
+			create_directory(new_path);
+			for (basic_directory_iterator<Path> i(old_path), end; i != end; ++i)
 			{
-				std::string f = i.file();
-				recursive_copy(f, combine_path(new_path, f), ec);
+#if BOOST_VERSION < 103600
+				recursive_copy(i->path(), new_path / i->path().leaf(), ec);
+#else
+				recursive_copy(i->path(), new_path / i->path().filename(), ec);
+#endif
 				if (ec) return;
 			}
 		}
-		else if (!ec)
+		else
 		{
-			copy_file(old_path, new_path, ec);
+			copy_file(old_path, new_path);
 		}
+#ifndef BOOST_NO_EXCEPTIONS
+		}
+#if BOOST_VERSION >= 103500
+		catch (boost::system::system_error& e)
+		{
+			ec = e.code();
+		}
+#else
+		catch (boost::filesystem::filesystem_error& e)
+		{
+			ec = error_code(e.system_error(), get_system_category());
+		}
+#endif // BOOST_VERSION
+#endif // BOOST_NO_EXCEPTIONS
 	}
 
-	void recursive_remove(std::string const& old_path)
+	template <class Path>
+	void recursive_remove(Path const& old_path)
 	{
-		error_code ec;
-		if (is_directory(old_path, ec))
+		using boost::filesystem::basic_directory_iterator;
+#ifndef BOOST_NO_EXCEPTIONS
+		try {
+#endif
+		if (is_directory(old_path))
 		{
-			for (directory i(old_path, ec); !i.done(); i.next(ec))
-				recursive_remove(combine_path(old_path, i.file()));
-			remove(old_path, ec);
+			for (basic_directory_iterator<Path> i(old_path), end; i != end; ++i)
+				recursive_remove(i->path());
+			remove(old_path);
 		}
 		else
 		{
-			remove(old_path, ec);
+			remove(old_path);
 		}
+#ifndef BOOST_NO_EXCEPTIONS
+		} catch (std::exception& e) {}
+#endif
 	}
-
 	std::vector<std::pair<size_type, std::time_t> > get_filesizes(
-		file_storage const& storage, std::string const& p)
+		file_storage const& s, fs::path p)
 	{
-		std::string save_path = complete(p);
+		p = complete(p);
 		std::vector<std::pair<size_type, std::time_t> > sizes;
-		for (file_storage::iterator i = storage.begin()
-			, end(storage.end()); i != end; ++i)
+		for (file_storage::iterator i = s.begin()
+			, end(s.end());i != end; ++i)
 		{
 			size_type size = 0;
 			std::time_t time = 0;
-
-			if (!i->pad_file)
+			if (i->pad_file)
 			{
-				file_status s;
-				error_code ec;
-				stat_file(combine_path(save_path, i->path), &s, ec);
-
-				if (!ec)
-				{
-					size = s.file_size;
-					time = s.mtime;
-				}
+				sizes.push_back(std::make_pair(i->size, time));
+				continue;
 			}
+#if TORRENT_USE_WPATH
+			fs::wpath f = convert_to_wstring((p / i->path).string());
+#else
+			fs::path f = convert_to_native((p / i->path).string());
+#endif
+			// TODO: optimize
+			if (exists(f))
+#ifndef BOOST_NO_EXCEPTIONS
+			try
+#endif
+			{
+				size = file_size(f);
+				time = last_write_time(f);
+			}
+#ifndef BOOST_NO_EXCEPTIONS
+			catch (std::exception&) {}
+#endif
 			sizes.push_back(std::make_pair(size, time));
 		}
 		return sizes;
@@ -185,17 +226,11 @@ namespace libtorrent
 	// resume data. This is because full allocation will not move
 	// pieces, so any older version of the resume data will
 	// still be a correct subset of the actual data on disk.
-	enum flags_t
-	{
-		compact_mode = 1,
-		ignore_timestamps = 2
-	};
-
 	bool match_filesizes(
 		file_storage const& fs
-		, std::string p
+		, fs::path p
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
-		, int flags
+		, bool compact_mode
 		, error_code& error)
 	{
 		if ((int)sizes.size() != fs.num_files())
@@ -205,39 +240,43 @@ namespace libtorrent
 		}
 		p = complete(p);
 
-		std::vector<std::pair<size_type, std::time_t> >::const_iterator size_iter
+		std::vector<std::pair<size_type, std::time_t> >::const_iterator s
 			= sizes.begin();
 		for (file_storage::iterator i = fs.begin()
-			, end(fs.end());i != end; ++i, ++size_iter)
+			, end(fs.end());i != end; ++i, ++s)
 		{
 			size_type size = 0;
 			std::time_t time = 0;
 			if (i->pad_file) continue;
 
-			file_status s;
-			error_code ec;
-			stat_file(combine_path(p, i->path), &s, ec);
-
-			if (!ec)
+#if TORRENT_USE_WPATH
+			fs::wpath f = convert_to_wstring((p / i->path).string());
+#else
+			fs::path f = convert_to_native((p / i->path).string());
+#endif
+			// TODO: Optimize this! This will result in 3 stat calls per file!
+			if (exists(f))
+#ifndef BOOST_NO_EXCEPTIONS
+			try
+#endif
 			{
-				size = s.file_size;
-				time = s.mtime;
+				size = file_size(f);
+				time = last_write_time(f);
 			}
-
-			if (((flags & compact_mode) && size != size_iter->first)
-				|| (!(flags & compact_mode) && size < size_iter->first))
+#ifndef BOOST_NO_EXCEPTIONS
+			catch (std::exception&) {}
+#endif
+			if ((compact_mode && size != s->first)
+				|| (!compact_mode && size < s->first))
 			{
 				error = errors::mismatching_file_size;
 				return false;
 			}
-
-			if (flags & ignore_timestamps) continue;
-
 			// allow one second 'slack', because of FAT volumes
 			// in sparse mode, allow the files to be more recent
 			// than the resume data, but only by 5 minutes
-			if (((flags & compact_mode) && (time > size_iter->second + 1 || time < size_iter->second - 1)) ||
-				(!(flags & compact_mode) && (time > size_iter->second + 5 * 60 || time < size_iter->second - 1)))
+			if ((compact_mode && (time > s->second + 1 || time < s->second - 1)) ||
+				(!compact_mode && (time > s->second + 5 * 60 || time < s->second - 1)))
 			{
 				error = errors::mismatching_file_timestamp;
 				return false;
@@ -344,27 +383,25 @@ namespace libtorrent
 	class storage : public storage_interface, boost::noncopyable
 	{
 	public:
-		storage(file_storage const& fs, file_storage const* mapped, std::string const& path
-			, file_pool& fp, std::vector<boost::uint8_t> const& file_prio)
+		storage(file_storage const& fs, file_storage const* mapped, fs::path const& path, file_pool& fp)
 			: m_files(fs)
 			, m_pool(fp)
 			, m_page_size(page_size())
 			, m_allocate_files(false)
-			, m_file_priority(file_prio)
 		{
 			if (mapped) m_mapped_files.reset(new file_storage(*mapped));
 
 			TORRENT_ASSERT(m_files.begin() != m_files.end());
-			m_save_path = complete(path);
+			m_save_path = fs::complete(path);
+			TORRENT_ASSERT(m_save_path.is_complete());
 		}
 
-		void finalize_file(int file);
 		bool has_any_file();
 		bool rename_file(int index, std::string const& new_filename);
 		bool release_files();
 		bool delete_files();
 		bool initialize(bool allocate_files);
-		bool move_storage(std::string const& save_path);
+		bool move_storage(fs::path save_path);
 		int read(char* buf, int slot, int offset, int size);
 		int write(char const* buf, int slot, int offset, int size);
 		int sparse_end(int start) const;
@@ -384,7 +421,7 @@ namespace libtorrent
 		{
 			size_type (file::*regular_op)(size_type file_offset
 				, file::iovec_t const* bufs, int num_bufs, error_code& ec);
-			size_type (storage::*unaligned_op)(boost::intrusive_ptr<file> const& f
+			size_type (storage::*unaligned_op)(boost::shared_ptr<file> const& f
 				, size_type file_offset, file::iovec_t const* bufs, int num_bufs
 				, error_code& ec);
 			int cache_setting;
@@ -398,9 +435,9 @@ namespace libtorrent
 		~storage()
 		{ m_pool.release(this); }
 
-		size_type read_unaligned(boost::intrusive_ptr<file> const& file_handle
+		size_type read_unaligned(boost::shared_ptr<file> const& file_handle
 			, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec);
-		size_type write_unaligned(boost::intrusive_ptr<file> const& file_handle
+		size_type write_unaligned(boost::shared_ptr<file> const& file_handle
 			, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec);
 
 		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
@@ -408,11 +445,8 @@ namespace libtorrent
 		boost::scoped_ptr<file_storage> m_mapped_files;
 		file_storage const& m_files;
 
-		// helper function to open a file in the file pool with the right mode
-		boost::intrusive_ptr<file> open_file(file_entry const& fe, int mode, error_code& ec) const;
-
 		std::vector<boost::uint8_t> m_file_priority;
-		std::string m_save_path;
+		fs::path m_save_path;
 		// the file pool is typically stored in
 		// the session, to make all storage
 		// instances use the same pool
@@ -512,19 +546,25 @@ namespace libtorrent
 		m_allocate_files = allocate_files;
 		error_code ec;
 		// first, create all missing directories
-		std::string last_path;
+		fs::path last_path;
 		for (file_storage::iterator file_iter = files().begin(),
 			end_iter = files().end(); file_iter != end_iter; ++file_iter)
 		{
-			std::string file_path = combine_path(m_save_path, file_iter->path);
-			std::string dir = parent_path(file_path);
+			fs::path dir = (m_save_path / file_iter->path).branch_path();
 
 			if (dir != last_path)
 			{
 				last_path = dir;
 
-				if (!is_directory(last_path, ec))
-					create_directories(last_path, ec);
+#if TORRENT_USE_WPATH
+				fs::wpath wp = convert_to_wstring(last_path.string());
+				if (!exists(wp))
+					create_directories(wp);
+#else
+				fs::path p = convert_to_native(last_path.string());
+				if (!exists(p))
+					create_directories(p);
+#endif
 			}
 
 			int file_index = file_iter - files().begin();
@@ -536,51 +576,61 @@ namespace libtorrent
 			// ignore pad files
 			if (file_iter->pad_file) continue;
 
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+
+#if TORRENT_USE_WPATH
+			fs::wpath file_path = convert_to_wstring((m_save_path / file_iter->path).string());
+#else
+			fs::path file_path = convert_to_native((m_save_path / file_iter->path).string());
+#endif
 			// if the file is empty, just create it either way.
 			// if the file already exists, but is larger than what
 			// it's supposed to be, also truncate it
-			if (!allocate_files && file_iter->size > 0) continue;
-
-			file_status s;
-			stat_file(file_path, &s, ec);
-			if (ec && ec != boost::system::errc::no_such_file_or_directory)
+			if (allocate_files
+				|| file_iter->size == 0
+				|| (exists(file_path) && file_size(file_path) > file_iter->size))
 			{
-				set_error(file_path, ec);
-				break;
-			}
-
-			// ec is either ENOENT or the file existed and s is valid
-			if (ec || s.file_size > file_iter->size || file_iter->size == 0)
-			{
-				ec.clear();
-				boost::intrusive_ptr<file> f = open_file(*file_iter, file::read_write, ec);
-				if (ec) set_error(file_path, ec);
+				error_code ec;
+				int mode = file::read_write;
+				if (m_settings
+					&& (settings().disk_io_read_mode == session_settings::disable_os_cache
+					|| (settings().disk_io_read_mode == session_settings::disable_os_cache_for_aligned_files
+					&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)))
+					mode |= file::no_buffer;
+				if (!m_allocate_files) mode |= file::sparse;
+				boost::shared_ptr<file> f = m_pool.open_file(this
+					, m_save_path / file_iter->path, mode, ec);
+				if (ec) set_error(m_save_path / file_iter->path, ec);
 				else if (f)
 				{
 					f->set_size(file_iter->size, ec);
-					if (ec) set_error(file_path, ec);
+					if (ec) set_error(m_save_path / file_iter->path, ec);
 				}
 			}
-
-			if (ec) break;
+#ifndef BOOST_NO_EXCEPTIONS
+			}
+#if BOOST_VERSION >= 103500
+			catch (boost::system::system_error& e)
+			{
+				set_error(m_save_path / file_iter->path, e.code());
+				return true;
+			}
+#else
+			catch (boost::filesystem::filesystem_error& e)
+			{
+				set_error(m_save_path / file_iter->path
+					, error_code(e.system_error(), get_system_category()));
+				return true;
+			}
+#endif // BOOST_VERSION
+#endif // BOOST_NO_EXCEPTIONS
 		}
-
 		std::vector<boost::uint8_t>().swap(m_file_priority);
 		// close files that were opened in write mode
 		m_pool.release(this);
 		return false;
-	}
-
-	void storage::finalize_file(int index)
-	{
-		TORRENT_ASSERT(index >= 0 && index < m_files.num_files());
-		if (index < 0 || index >= m_files.num_files()) return;
-	
-		error_code ec;
-		boost::intrusive_ptr<file> f = open_file(files().at(index), file::read_write, ec);
-		if (ec || !f) return;
-
-		f->finalize();
 	}
 
 	bool storage::has_any_file()
@@ -590,11 +640,34 @@ namespace libtorrent
 
 		for (; i != end; ++i)
 		{
-			error_code ec;
-			file_status s;
-			stat_file(combine_path(m_save_path, i->path), &s, ec);
-			if (ec) continue;
-			if (s.mode & file_status::regular_file && i->size > 0)
+			bool file_exists = false;
+#if TORRENT_USE_WPATH
+			fs::wpath f = convert_to_wstring((m_save_path / i->path).string());
+#else
+			fs::path f = convert_to_native((m_save_path / i->path).string());
+#endif
+#ifndef BOOST_NO_EXCEPTIONS
+			try
+			{
+#endif
+				file_exists = exists(f);
+#ifndef BOOST_NO_EXCEPTIONS
+			}
+#if BOOST_VERSION >= 103500
+			catch (boost::system::system_error& e)
+			{
+				set_error(m_save_path / i->path, e.code());
+				return false;
+			}
+#else
+			catch (boost::filesystem::filesystem_error& e)
+			{
+				set_error(m_save_path / i->path, error_code(e.system_error(), get_system_category()));
+				return false;
+			}
+#endif // BOOST_VERSION
+#endif // BOOST_NO_EXCEPTIONS
+			if (file_exists && i->size > 0)
 				return true;
 		}
 		return false;
@@ -603,24 +676,55 @@ namespace libtorrent
 	bool storage::rename_file(int index, std::string const& new_filename)
 	{
 		if (index < 0 || index >= m_files.num_files()) return true;
-		std::string old_name = combine_path(m_save_path, files().at(index).path);
-		m_pool.release(this, files().at(index));
+		fs::path old_name = m_save_path / files().at(index).path;
+		m_pool.release(old_name);
 
-		error_code ec;
-		rename(old_name, combine_path(m_save_path, new_filename), ec);
-		
-		if (ec && ec != boost::system::errc::no_such_file_or_directory)
+#if TORRENT_USE_WPATH
+		fs::wpath old_path = convert_to_wstring(old_name.string());
+		fs::wpath new_path = convert_to_wstring((m_save_path / new_filename).string());
+#else
+		fs::path const& old_path = convert_to_native(old_name.string());
+		fs::path new_path = convert_to_native((m_save_path / new_filename).string());
+#endif
+
+#ifndef BOOST_NO_EXCEPTIONS
+		try
 		{
-			set_error(old_name, ec);
+#endif
+			// if old path doesn't exist, just rename the file
+			// in our file_storage, so that when it is created
+			// it will get the new name
+			create_directories(new_path.branch_path());
+			if (exists(old_path)) rename(old_path, new_path);
+/*
+			error_code ec;
+			rename(old_path, new_path, ec);
+			if (ec)
+			{
+				set_error(old_path, ec);
+				return;
+			}
+*/
+			if (!m_mapped_files)
+			{ m_mapped_files.reset(new file_storage(m_files)); }
+			m_mapped_files->rename_file(index, new_filename);
+#ifndef BOOST_NO_EXCEPTIONS
+		}
+#if BOOST_VERSION >= 103500
+		catch (boost::system::system_error& e)
+		{
+			set_error(old_name, e.code());
 			return true;
 		}
-
-		// if old path doesn't exist, just rename the file
-		// in our file_storage, so that when it is created
-		// it will get the new name
-		if (!m_mapped_files)
-		{ m_mapped_files.reset(new file_storage(m_files)); }
-		m_mapped_files->rename_file(index, new_filename);
+#else
+		catch (boost::filesystem::filesystem_error& e)
+		{
+			set_error(old_name, error_code(e.system_error()
+				, get_system_category()));
+			return true;
+		}
+#endif // BOOST_VERSION
+#endif
 		return false;
 	}
 
@@ -632,11 +736,33 @@ namespace libtorrent
 
 	void storage::delete_one_file(std::string const& p)
 	{
-		error_code ec;
-		remove(p, ec);
-		
-		if (ec && ec != boost::system::errc::no_such_file_or_directory)
-			set_error(p, ec);
+#if TORRENT_USE_WPATH
+#ifndef BOOST_NO_EXCEPTIONS
+		try
+#endif
+		{ fs::remove(convert_to_wstring(p)); }
+#ifndef BOOST_NO_EXCEPTIONS
+#if BOOST_VERSION >= 103500
+		catch (boost::system::system_error& e)
+		{
+			// no such file or directory is not an error
+			if (e.code() != make_error_code(boost::system::errc::no_such_file_or_directory))
+				set_error(p, e.code());
+		}
+#else
+		catch (boost::filesystem::filesystem_error& e)
+		{
+			set_error(p, error_code(e.system_error(), get_system_category()));
+		}
+#endif // BOOST_VERSION
+#endif // BOOST_NO_EXCEPTIONS
+#else
+		// no such file or directory is not an error
+		if (std::remove(convert_to_native(p).c_str()) != 0 && errno != ENOENT)
+		{
+			set_error(p, error_code(errno, get_posix_category()));
+		}
+#endif
 	}
 
 	bool storage::delete_files()
@@ -650,14 +776,14 @@ namespace libtorrent
 		for (file_storage::iterator i = files().begin()
 			, end(files().end()); i != end; ++i)
 		{
-			std::string p = combine_path(m_save_path, i->path);
-			std::string bp = parent_path(i->path);
+			std::string p = (m_save_path / i->path).string();
+			fs::path bp = i->path.branch_path();
 			std::pair<iter_t, bool> ret;
 			ret.second = true;
 			while (ret.second && !bp.empty())
 			{
-				ret = directories.insert(combine_path(m_save_path, bp));
-				bp = parent_path(bp);
+				ret = directories.insert((m_save_path / bp).string());
+				bp = bp.branch_path();
 			}
 			delete_one_file(p);
 		}
@@ -713,8 +839,19 @@ namespace libtorrent
 			TORRENT_ASSERT(file_iter != files().end());
 		}
 	
+		fs::path path = m_save_path / file_iter->path;
 		error_code ec;
-		boost::intrusive_ptr<file> file_handle = open_file(*file_iter, file::read_only, ec);
+		int mode = file::read_only;
+
+		boost::shared_ptr<file> file_handle;
+		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
+		if (cache_setting == session_settings::disable_os_cache
+			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
+			&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0))
+			mode |= file::no_buffer;
+		if (!m_allocate_files) mode |= file::sparse;
+
+		file_handle = m_pool.open_file(const_cast<storage*>(this), path, mode, ec);
 		if (!file_handle || ec) return slot;
 
 		size_type data_start = file_handle->sparse_end(file_offset);
@@ -832,25 +969,37 @@ namespace libtorrent
 				}
 			}
 		}
-		int flags = (full_allocation_mode ? 0 : compact_mode)
-			| (settings().ignore_resume_timestamps ? ignore_timestamps : 0);
-
-		return match_filesizes(files(), m_save_path, file_sizes, flags, error);
+		return match_filesizes(files(), m_save_path, file_sizes
+			, !full_allocation_mode, error);
 
 	}
 
 	// returns true on success
-	bool storage::move_storage(std::string const& sp)
+	bool storage::move_storage(fs::path save_path)
 	{
-		std::string save_path = complete(sp);
+#if TORRENT_USE_WPATH
+		fs::wpath old_path;
+		fs::wpath new_path;
+#else
+		fs::path old_path;
+		fs::path new_path;
+#endif
 
-		error_code ec;
-		file_status s;
-		stat_file(save_path, &s, ec);
-		if (ec == boost::system::errc::no_such_file_or_directory)
-			create_directories(save_path, ec);
-		else if (ec)
+		save_path = complete(save_path);
+
+#if TORRENT_USE_WPATH
+		fs::wpath wp = convert_to_wstring(save_path.string());
+		if (!exists(wp))
+			create_directory(wp);
+		else if (!is_directory(wp))
 			return false;
+#else
+		fs::path p = convert_to_native(save_path.string());
+		if (!exists(p))
+			create_directory(p);
+		else if (!is_directory(p))
+			return false;
+#endif
 
 		m_pool.release(this);
 
@@ -861,32 +1010,45 @@ namespace libtorrent
 		for (file_storage::iterator i = f.begin()
 			, end(f.end()); i != end; ++i)
 		{
-			std::string split = split_path(i->path);
-			to_move.insert(to_move.begin(), split);
+			to_move.insert(to_move.begin(), *i->path.begin());
 		}
 
 		for (std::set<std::string>::const_iterator i = to_move.begin()
 			, end(to_move.end()); i != end; ++i)
 		{
-			std::string old_path = combine_path(m_save_path, *i);
-			std::string new_path = combine_path(save_path, *i);
+			
+#if TORRENT_USE_WPATH
+			old_path = convert_to_wstring((m_save_path / *i).string());
+			new_path = convert_to_wstring((save_path / *i).string());
+#else
+			old_path = convert_to_native((m_save_path / *i).string());
+			new_path = convert_to_native((save_path / *i).string());
+#endif
 
-			rename(old_path, new_path, ec);
-			if (ec && ec != boost::system::errc::no_such_file_or_directory)
+#ifndef BOOST_NO_EXCEPTIONS
+			try
+			{
+#endif
+
+				if (exists(old_path))
+					rename(old_path, new_path);
+#ifndef BOOST_NO_EXCEPTIONS
+			}
+			catch (std::exception& e)
 			{
 				error_code ec;
 				recursive_copy(old_path, new_path, ec);
 				if (ec)
 				{
-					set_error(old_path, ec);
+					set_error(m_save_path / files().name(), ec);
 					ret = false;
 				}
 				else
 				{
 					recursive_remove(old_path);
 				}
-				break;
 			}
+#endif
 		}
 
 		if (ret) m_save_path = save_path;
@@ -1034,7 +1196,7 @@ ret:
 		}
 		return ret;
 #else
-		return readwritev(bufs, slot, offset, num_bufs, op);
+	return readwritev(bufs, slot, offset, num_bufs, op);
 #endif
 	}
 
@@ -1052,10 +1214,13 @@ ret:
 		size_type file_offset = tor_off - file_iter->offset;
 		TORRENT_ASSERT(file_offset >= 0);
 
+		fs::path p(m_save_path / file_iter->path);
+		error_code ec;
+	
 		// open the file read only to avoid re-opening
 		// it in case it's already opened in read-only mode
-		error_code ec;
-		boost::intrusive_ptr<file> f = open_file(*file_iter, file::read_only, ec);
+		boost::shared_ptr<file> f = m_pool.open_file(
+			this, p, file::read_only, ec);
 
 		size_type ret = 0;
 		if (f && !ec) ret = f->phys_offset(file_offset);
@@ -1143,7 +1308,7 @@ ret:
 		int buf_pos = 0;
 		error_code ec;
 
-		boost::intrusive_ptr<file> file_handle;
+		boost::shared_ptr<file> file_handle;
 		int bytes_left = size;
 		int slot_size = static_cast<int>(m_files.piece_size(slot));
 
@@ -1196,11 +1361,20 @@ ret:
 				continue;
 			}
 
+			fs::path path = m_save_path / file_iter->path;
+
 			error_code ec;
-			file_handle = open_file(*file_iter, op.mode, ec);
+			int mode = op.mode;
+
+			if (op.cache_setting == session_settings::disable_os_cache
+				|| (op.cache_setting == session_settings::disable_os_cache_for_aligned_files
+				&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0))
+				mode |= file::no_buffer;
+			if (!m_allocate_files) mode |= file::sparse;
+
+			file_handle = m_pool.open_file(this, path, mode, ec);
 			if (!file_handle || ec)
 			{
-				std::string path = combine_path(m_save_path, file_iter->path);
 				TORRENT_ASSERT(ec);
 				set_error(path, ec);
 				return -1;
@@ -1230,7 +1404,7 @@ ret:
 
 			if (ec)
 			{
-				set_error(combine_path(m_save_path, file_iter->path), ec);
+				set_error(m_save_path / file_iter->path, ec);
 				return -1;
 			}
 
@@ -1250,7 +1424,7 @@ ret:
 
 	// they read an unaligned buffer from a file that requires aligned access
 
-	size_type storage::read_unaligned(boost::intrusive_ptr<file> const& file_handle
+	size_type storage::read_unaligned(boost::shared_ptr<file> const& file_handle
 		, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec)
 	{
 		const int pos_align = file_handle->pos_alignment()-1;
@@ -1279,7 +1453,7 @@ ret:
 		return size;
 	}
 
-	size_type storage::write_unaligned(boost::intrusive_ptr<file> const& file_handle
+	size_type storage::write_unaligned(boost::shared_ptr<file> const& file_handle
 		, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec)
 	{
 		TORRENT_ASSERT(false); // not implemented
@@ -1306,24 +1480,10 @@ ret:
 		return readv(&b, slot, offset, 1);
 	}
 
-	boost::intrusive_ptr<file> storage::open_file(file_entry const& fe, int mode, error_code& ec) const
-	{
-		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
-		if (cache_setting == session_settings::disable_os_cache
-			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
-			&& ((fe.offset + fe.file_base) & (m_page_size-1)) == 0))
-			mode |= file::no_buffer;
-		if (!m_allocate_files) mode |= file::sparse;
-		if (m_settings && settings().no_atime_storage) mode |= file::no_atime;
-
-		return m_pool.open_file(const_cast<storage*>(this), m_save_path, fe, mode, ec);
-	}
-
 	storage_interface* default_storage_constructor(file_storage const& fs
-		, file_storage const* mapped, std::string const& path, file_pool& fp
-		, std::vector<boost::uint8_t> const& file_prio)
+		, file_storage const* mapped, fs::path const& path, file_pool& fp)
 	{
-		return new storage(fs, mapped, path, fp, file_prio);
+		return new storage(fs, mapped, path, fp);
 	}
 
 	// this storage implementation does not write anything to disk
@@ -1343,7 +1503,7 @@ ret:
 		bool release_files() { return false; }
 		bool delete_files() { return false; }
 		bool initialize(bool allocate_files) { return false; }
-		bool move_storage(std::string const& save_path) { return true; }
+		bool move_storage(fs::path save_path) { return true; }
 		int read(char* buf, int slot, int offset, int size) { return size; }
 		int write(char const* buf, int slot, int offset, int size) { return size; }
 		size_type physical_offset(int slot, int offset) { return 0; }
@@ -1401,8 +1561,7 @@ ret:
 	};
 
 	storage_interface* disabled_storage_constructor(file_storage const& fs
-		, file_storage const* mapped, std::string const& path, file_pool& fp
-		, std::vector<boost::uint8_t> const&)
+		, file_storage const* mapped, fs::path const& path, file_pool& fp)
 	{
 		return new disabled_storage(fs.piece_length());
 	}
@@ -1412,16 +1571,15 @@ ret:
 	piece_manager::piece_manager(
 		boost::shared_ptr<void> const& torrent
 		, boost::intrusive_ptr<torrent_info const> info
-		, std::string const& save_path
+		, fs::path const& save_path
 		, file_pool& fp
 		, disk_io_thread& io
 		, storage_constructor_type sc
-		, storage_mode_t sm
-		, std::vector<boost::uint8_t> const& file_prio)
+		, storage_mode_t sm)
 		: m_info(info)
 		, m_files(m_info->files())
 		, m_storage(sc(m_info->orig_files(), &m_info->files() != &m_info->orig_files()
-			? &m_info->files() : 0, save_path, fp, file_prio))
+			? &m_info->files() : 0, save_path, fp))
 		, m_storage_mode(sm)
 		, m_save_path(complete(save_path))
 		, m_state(state_none)
@@ -1438,21 +1596,8 @@ ret:
 		m_storage->m_disk_pool = &m_io_thread;
 	}
 
-	void piece_manager::finalize_file(int index)
-	{ m_storage->finalize_file(index); }
-
 	piece_manager::~piece_manager()
 	{
-	}
-
-	void piece_manager::async_finalize_file(int file)
-	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::finalize_file;
-		j.piece = file;
-		boost::function<void(int, disk_io_job const&)> empty;
-		m_io_thread.add_job(j, empty);
 	}
 
 	void piece_manager::async_save_resume_data(
@@ -1496,13 +1641,13 @@ ret:
 		m_io_thread.add_job(j, handler);
 	}
 
-	void piece_manager::async_move_storage(std::string const& p
+	void piece_manager::async_move_storage(fs::path const& p
 		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
 		disk_io_job j;
 		j.storage = this;
 		j.action = disk_io_job::move_storage;
-		j.str = p;
+		j.str = p.string();
 		m_io_thread.add_job(j, handler);
 	}
 
@@ -1540,7 +1685,7 @@ ret:
 	void piece_manager::async_read_and_hash(
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler
-		, int cache_expiry)
+		, int priority)
 	{
 		disk_io_job j;
 		j.storage = this;
@@ -1549,37 +1694,21 @@ ret:
 		j.offset = r.start;
 		j.buffer_size = r.length;
 		j.buffer = 0;
-		j.cache_min_time = cache_expiry;
+		j.priority = priority;
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		m_io_thread.add_job(j, handler);
 #ifdef TORRENT_DEBUG
-		mutex::scoped_lock l(m_mutex);
+		boost::recursive_mutex::scoped_lock l(m_mutex);
 		// if this assert is hit, it suggests
 		// that check_files was not successful
 		TORRENT_ASSERT(slot_for(r.piece) >= 0);
 #endif
 	}
 
-	void piece_manager::async_cache(int piece
-		, boost::function<void(int, disk_io_job const&)> const& handler
-		, int cache_expiry)
-	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::cache_piece;
-		j.piece = piece;
-		j.offset = 0;
-		j.buffer_size = 0;
-		j.buffer = 0;
-		j.cache_min_time = cache_expiry;
-		m_io_thread.add_job(j, handler);
-	}
-
 	void piece_manager::async_read(
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler
-		, int cache_line_size
-		, int cache_expiry)
+		, int priority)
 	{
 		disk_io_job j;
 		j.storage = this;
@@ -1588,15 +1717,13 @@ ret:
 		j.offset = r.start;
 		j.buffer_size = r.length;
 		j.buffer = 0;
-		j.max_cache_line = cache_line_size;
-		j.cache_min_time = cache_expiry;
-
+		j.priority = priority;
 		// if a buffer is not specified, only one block can be read
 		// since that is the size of the pool allocator's buffers
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		m_io_thread.add_job(j, handler);
 #ifdef TORRENT_DEBUG
-		mutex::scoped_lock l(m_mutex);
+		boost::recursive_mutex::scoped_lock l(m_mutex);
 		// if this assert is hit, it suggests
 		// that check_files was not successful
 		TORRENT_ASSERT(slot_for(r.piece) >= 0);
@@ -1639,9 +1766,9 @@ ret:
 		m_io_thread.add_job(j, handler);
 	}
 
-	std::string piece_manager::save_path() const
+	fs::path piece_manager::save_path() const
 	{
-		mutex::scoped_lock l(m_mutex);
+		boost::recursive_mutex::scoped_lock l(m_mutex);
 		return m_save_path;
 	}
 
@@ -1663,11 +1790,11 @@ ret:
 		return ph.h.final();
 	}
 
-	int piece_manager::move_storage_impl(std::string const& save_path)
+	int piece_manager::move_storage_impl(fs::path const& save_path)
 	{
 		if (m_storage->move_storage(save_path))
 		{
-			m_save_path = complete(save_path);
+			m_save_path = fs::complete(save_path);
 			return 0;
 		}
 		return -1;
@@ -1675,7 +1802,7 @@ ret:
 
 	void piece_manager::write_resume_data(entry& rd) const
 	{
-		mutex::scoped_lock lock(m_mutex);
+		boost::recursive_mutex::scoped_lock lock(m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -1706,8 +1833,6 @@ ret:
 
 	void piece_manager::mark_failed(int piece_index)
 	{
-		mutex::scoped_lock lock(m_mutex);
-
 		INVARIANT_CHECK;
 
 		if (m_storage_mode != storage_mode_compact) return;
@@ -2026,7 +2151,7 @@ ret:
 	int piece_manager::check_fastresume(
 		lazy_entry const& rd, error_code& error)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		boost::recursive_mutex::scoped_lock lock(m_mutex);
 
 		INVARIANT_CHECK;
 
@@ -2740,7 +2865,7 @@ ret:
 
 	int piece_manager::allocate_slot_for_piece(int piece_index)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		boost::recursive_mutex::scoped_lock lock(m_mutex);
 
 		if (m_storage_mode != storage_mode_compact) return piece_index;
 
@@ -2761,7 +2886,7 @@ ret:
 
 		if (m_free_slots.empty())
 		{
-			allocate_slots_impl(1, lock);
+			allocate_slots(1);
 			TORRENT_ASSERT(!m_free_slots.empty());
 		}
 
@@ -2782,7 +2907,7 @@ ret:
 			if (*iter == m_files.num_pieces() - 1 && piece_index != *iter)
 			{
 				if (m_free_slots.size() == 1)
-					allocate_slots_impl(1, lock);
+					allocate_slots(1);
 				TORRENT_ASSERT(m_free_slots.size() > 1);
 				// assumes that all allocated slots
 				// are put at the end of the free_slots vector
@@ -2853,9 +2978,9 @@ ret:
 		return slot_index;
 	}
 
-	bool piece_manager::allocate_slots_impl(int num_slots, mutex::scoped_lock& l
-		, bool abort_on_disk)
+	bool piece_manager::allocate_slots(int num_slots, bool abort_on_disk)
 	{
+		boost::recursive_mutex::scoped_lock lock(m_mutex);
 		TORRENT_ASSERT(num_slots > 0);
 
 		INVARIANT_CHECK;
@@ -2912,6 +3037,8 @@ ret:
 #ifdef TORRENT_DEBUG
 	void piece_manager::check_invariant() const
 	{
+		boost::recursive_mutex::scoped_lock lock(m_mutex);
+
 		TORRENT_ASSERT(m_current_slot <= m_files.num_pieces());
 		
 		if (m_unallocated_slots.empty()

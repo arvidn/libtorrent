@@ -49,11 +49,7 @@ enum { max_bottled_buffer = 1024 * 1024 };
 
 void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, proxy_settings const* ps, int handle_redirects, std::string const& user_agent
-	, address const& bind_addr
-#if TORRENT_USE_I2P
-	, i2p_connection* i2p_conn
-#endif
-	)
+	, address const& bind_addr)
 {
 	std::string protocol;
 	std::string auth;
@@ -138,20 +134,12 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	sendbuffer.assign(request);
 	m_url = url;
 	start(hostname, to_string(port).elems, timeout, prio
-		, ps, ssl, handle_redirects, bind_addr
-#if TORRENT_USE_I2P
-		, i2p_conn
-#endif
-		);
+		, ps, ssl, handle_redirects, bind_addr);
 }
 
 void http_connection::start(std::string const& hostname, std::string const& port
 	, time_duration timeout, int prio, proxy_settings const* ps, bool ssl, int handle_redirects
-	, address const& bind_addr
-#if TORRENT_USE_I2P
-	, i2p_connection* i2p_conn
-#endif
-	)
+	, address const& bind_addr)
 {
 	TORRENT_ASSERT(prio >= 0 && prio < 2);
 
@@ -193,30 +181,6 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		error_code ec;
 		m_sock.close(ec);
 
-#if TORRENT_USE_I2P
-		bool is_i2p = false;
-		char const* top_domain = strrchr(hostname.c_str(), '.');
-		if (top_domain && strcmp(top_domain, ".i2p") == 0 && i2p_conn)
-		{
-			// this is an i2p name, we need to use the sam connection
-			// to do the name lookup
-			is_i2p = true;
-			m_i2p_conn = i2p_conn;
-			// quadruple the timeout for i2p destinations
-			// because i2p is sloooooow
-			m_timeout *= 4;
-		}
-#endif
-
-#if TORRENT_USE_I2P
-		if (is_i2p && i2p_conn->proxy().type != proxy_settings::i2p_proxy)
-		{
-			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
-				, this, error_code(errors::no_i2p_router, get_libtorrent_category()), (char*)0, 0));
-			return;
-		}
-#endif
-
 		// in this case, the upper layer is assumed to have taken
 		// care of the proxying already. Don't instantiate the socket
 		// with this proxy
@@ -234,40 +198,15 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			m_sock.instantiate<ssl_stream<socket_type> >(m_resolver.get_io_service());
 			ssl_stream<socket_type>* s = m_sock.get<ssl_stream<socket_type> >();
 			TORRENT_ASSERT(s);
-			bool ret = false;
-#if TORRENT_USE_I2P
-			if (is_i2p)
-			{
-				ret = instantiate_connection(m_resolver.get_io_service(), i2p_conn->proxy()
-					, s->next_layer());
-			}
-			else
-#endif
-			{
-				ret = instantiate_connection(m_resolver.get_io_service()
-					, ps ? *ps : null_proxy, s->next_layer());
-			}
-
+			bool ret = instantiate_connection(m_resolver.get_io_service()
+				, ps ? *ps : null_proxy, s->next_layer());
 			TORRENT_ASSERT(ret);
 		}
 		else
 		{
 			m_sock.instantiate<socket_type>(m_resolver.get_io_service());
-			bool ret = false;
-#if TORRENT_USE_I2P
-			if (is_i2p)
-			{
-				ret = instantiate_connection(m_resolver.get_io_service(), i2p_conn->proxy()
-					,  *m_sock.get<socket_type>());
-				TORRENT_ASSERT(m_sock.get<socket_type>());
-				TORRENT_ASSERT(m_sock.get<socket_type>()->get<i2p_stream>());
-			}
-			else
-#endif
-			{
-				ret = instantiate_connection(m_resolver.get_io_service()
-					, ps ? *ps : null_proxy, *m_sock.get<socket_type>());
-			}
+			bool ret = instantiate_connection(m_resolver.get_io_service()
+				, ps ? *ps : null_proxy, *m_sock.get<socket_type>());
 			TORRENT_ASSERT(ret);
 		}
 #else
@@ -288,29 +227,9 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			}
 		}
 
-#if TORRENT_USE_I2P
-		if (is_i2p)
-		{
-			i2p_conn->async_name_lookup(hostname.c_str(), boost::bind(&http_connection::on_i2p_resolve
-				, shared_from_this(), _1, _2));
-		}
-		else
-#endif
-		if (ps && ps->proxy_hostnames
-			&& (ps->type == proxy_settings::socks5
-				|| ps->type == proxy_settings::socks5_pw))
-		{
-			m_hostname = hostname;
-			m_port = port;
-			m_endpoints.push_back(tcp::endpoint(address(), atoi(port.c_str())));
-			queue_connect();
-		}
-		else
-		{
-			tcp::resolver::query query(hostname, port);
-			m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
-				, shared_from_this(), _1, _2));
-		}
+		tcp::resolver::query query(hostname, port);
+		m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
+			, shared_from_this(), _1, _2));
 		m_hostname = hostname;
 		m_port = port;
 	}
@@ -381,34 +300,6 @@ void http_connection::close()
 	m_abort = true;
 }
 
-#if TORRENT_USE_I2P
-void http_connection::on_i2p_resolve(error_code const& e
-	, char const* destination)
-{
-	if (e)
-	{
-		callback(e);
-		close();
-		return;
-	}
-
-#ifdef TORRENT_USE_OPENSSL
-	TORRENT_ASSERT(m_ssl == false);
-	TORRENT_ASSERT(m_sock.get<socket_type>());
-	TORRENT_ASSERT(m_sock.get<socket_type>()->get<i2p_stream>());
-	m_sock.get<socket_type>()->get<i2p_stream>()->set_destination(destination);
-	m_sock.get<socket_type>()->get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
-	m_sock.get<socket_type>()->get<i2p_stream>()->set_session_id(m_i2p_conn->session_id());
-#else
-	m_sock.get<i2p_stream>()->set_destination(destination);
-	m_sock.get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
-	m_sock.get<i2p_stream>()->set_session_id(m_i2p_conn->session_id());
-#endif
-	m_sock.async_connect(tcp::endpoint(), boost::bind(&http_connection::on_connect
-		, shared_from_this(), _1));
-}
-#endif
-
 void http_connection::on_resolve(error_code const& e
 	, tcp::resolver::iterator i)
 {
@@ -462,23 +353,6 @@ void http_connection::queue_connect()
 void http_connection::connect(int ticket, tcp::endpoint target_address)
 {
 	m_connection_ticket = ticket;
-	if (m_proxy.proxy_hostnames
-		&& (m_proxy.type == proxy_settings::socks5
-			|| m_proxy.type == proxy_settings::socks5_pw))
-	{
-		// we're using a socks proxy and we're resolving
-		// hostnames through it
-#ifdef TORRENT_USE_OPENSSL
-		if (!m_ssl)
-		{
-			TORRENT_ASSERT(m_sock.get<socket_type>()->get<socks5_stream>());
-			m_sock.get<socket_type>()->get<socks5_stream>()->set_dst_name(m_hostname);
-		}
-#else
-		TORRENT_ASSERT(m_sock.get<socks5_stream>());
-		m_sock.get<socks5_stream>()->set_dst_name(m_hostname);
-#endif
-	}
 	m_sock.async_connect(target_address, boost::bind(&http_connection::on_connect
 		, shared_from_this(), _1));
 }

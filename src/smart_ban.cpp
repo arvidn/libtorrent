@@ -49,20 +49,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <cstdio>
 
+#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
+#include "libtorrent/alert_types.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/peer_connection.hpp"
-#include "libtorrent/peer_info.hpp"
 
-namespace libtorrent {
-
-	struct torrent;
-
-namespace
+namespace libtorrent { namespace
 {
 
 	struct smart_ban_plugin : torrent_plugin, boost::enable_shared_from_this<smart_ban_plugin>
@@ -77,13 +75,13 @@ namespace
 		{
 #ifdef TORRENT_LOGGING
 			(*m_torrent.session().m_logger) << time_now_string() << " PIECE PASS [ p: " << p
-				<< " | block_hash_size: " << m_block_hashes.size() << " ]\n";
+				<< " | block_crc_size: " << m_block_crc.size() << " ]\n";
 #endif
 			// has this piece failed earlier? If it has, go through the
 			// CRCs from the time it failed and ban the peers that
 			// sent bad blocks
-			std::map<piece_block, block_entry>::iterator i = m_block_hashes.lower_bound(piece_block(p, 0));
-			if (i == m_block_hashes.end() || i->first.piece_index != p) return;
+			std::map<piece_block, block_entry>::iterator i = m_block_crc.lower_bound(piece_block(p, 0));
+			if (i == m_block_crc.end() || i->first.piece_index != p) return;
 
 			int size = m_torrent.torrent_file().piece_size(p);
 			peer_request r = {p, 0, (std::min)(16*1024, size)};
@@ -94,14 +92,14 @@ namespace
 				{
 					m_torrent.filesystem().async_read(r, boost::bind(&smart_ban_plugin::on_read_ok_block
 						, shared_from_this(), *i, _1, _2));
-					m_block_hashes.erase(i++);
+					m_block_crc.erase(i++);
 				}
 				else
 				{
 					TORRENT_ASSERT(i->first.block_index > pb.block_index);
 				}
 
-				if (i == m_block_hashes.end() || i->first.piece_index != p)
+				if (i == m_block_crc.end() || i->first.piece_index != p)
 					break;
 
 				r.start += 16*1024;
@@ -112,13 +110,13 @@ namespace
 
 #ifndef NDEBUG
 			// make sure we actually removed all the entries for piece 'p'
-			i = m_block_hashes.lower_bound(piece_block(p, 0));
-			TORRENT_ASSERT(i == m_block_hashes.end() || i->first.piece_index != p);
+			i = m_block_crc.lower_bound(piece_block(p, 0));
+			TORRENT_ASSERT(i == m_block_crc.end() || i->first.piece_index != p);
 #endif
 
 			if (m_torrent.is_seed())
 			{
-				std::map<piece_block, block_entry>().swap(m_block_hashes);
+				std::map<piece_block, block_entry>().swap(m_block_crc);
 				return;
 			}
 		}
@@ -162,21 +160,21 @@ namespace
 		struct block_entry
 		{
 			policy::peer* peer;
-			sha1_hash digest;
+			unsigned long crc;
 		};
 
 		void on_read_failed_block(piece_block b, address a, int ret, disk_io_job const& j)
 		{
-			TORRENT_ASSERT(m_torrent.session().is_network_thread());
+			aux::session_impl::mutex_t::scoped_lock l(m_torrent.session().m_mutex);
 			
 			disk_buffer_holder buffer(m_torrent.session(), j.buffer);
 
 			// ignore read errors
 			if (ret != j.buffer_size) return;
 
-			hasher h;
-			h.update(j.buffer, j.buffer_size);
-			h.update((char const*)&m_salt, sizeof(m_salt));
+			adler32_crc crc;
+			crc.update(j.buffer, j.buffer_size);
+			crc.update((char const*)&m_salt, sizeof(m_salt));
 
 			std::pair<policy::iterator, policy::iterator> range
 				= m_torrent.get_policy().find_peers(a);
@@ -185,16 +183,16 @@ namespace
 			if (range.first == range.second) return;
 
 			policy::peer* p = (*range.first);
-			block_entry e = {p, h.final()};
+			block_entry e = {p, crc.final()};
 
-			std::map<piece_block, block_entry>::iterator i = m_block_hashes.lower_bound(b);
+			std::map<piece_block, block_entry>::iterator i = m_block_crc.lower_bound(b);
 
-			if (i != m_block_hashes.end() && i->first == b && i->second.peer == p)
+			if (i != m_block_crc.end() && i->first == b && i->second.peer == p)
 			{
 				// this peer has sent us this block before
-				if (i->second.digest != e.digest)
+				if (i->second.crc != e.crc)
 				{
-					// this time the digest of the block is different
+					// this time the crc of the block is different
 					// from the first time it sent it
 					// at least one of them must be bad
 
@@ -204,7 +202,7 @@ namespace
 					// and we can't use this pointer
 					if (!m_torrent.get_policy().has_peer(p)) return;
 
-#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+#ifdef TORRENT_LOGGING
 					char const* client = "-";
 					peer_info info;
 					if (p->connection)
@@ -215,8 +213,8 @@ namespace
 					(*m_torrent.session().m_logger) << time_now_string() << " BANNING PEER [ p: " << b.piece_index
 						<< " | b: " << b.block_index
 						<< " | c: " << client
-						<< " | hash1: " << i->second.digest
-						<< " | hash2: " << e.digest
+						<< " | crc1: " << i->second.crc
+						<< " | crc2: " << e.crc
 						<< " | ip: " << p->ip() << " ]\n";
 #endif
 					m_torrent.get_policy().ban_peer(p);
@@ -228,7 +226,7 @@ namespace
 				return;
 			}
 			
-			m_block_hashes.insert(i, std::pair<const piece_block, block_entry>(b, e));
+			m_block_crc.insert(i, std::pair<const piece_block, block_entry>(b, e));
 
 #ifdef TORRENT_LOGGING
 			char const* client = "-";
@@ -241,26 +239,26 @@ namespace
 			(*m_torrent.session().m_logger) << time_now_string() << " STORE BLOCK CRC [ p: " << b.piece_index
 				<< " | b: " << b.block_index
 				<< " | c: " << client
-				<< " | digest: " << e.digest
+				<< " | crc: " << e.crc
 				<< " | ip: " << p->ip() << " ]\n";
 #endif
 		}
 		
 		void on_read_ok_block(std::pair<piece_block, block_entry> b, int ret, disk_io_job const& j)
 		{
-			TORRENT_ASSERT(m_torrent.session().is_network_thread());
+			aux::session_impl::mutex_t::scoped_lock l(m_torrent.session().m_mutex);
 
 			disk_buffer_holder buffer(m_torrent.session(), j.buffer);
 
 			// ignore read errors
 			if (ret != j.buffer_size) return;
 
-			hasher h;
-			h.update(j.buffer, j.buffer_size);
-			h.update((char const*)&m_salt, sizeof(m_salt));
-			sha1_hash ok_digest = h.final();
+			adler32_crc crc;
+			crc.update(j.buffer, j.buffer_size);
+			crc.update((char const*)&m_salt, sizeof(m_salt));
+			unsigned long ok_crc = crc.final();
 
-			if (b.second.digest == ok_digest) return;
+			if (b.second.crc == ok_crc) return;
 
 			policy::peer* p = b.second.peer;
 
@@ -278,8 +276,8 @@ namespace
 			(*m_torrent.session().m_logger) << time_now_string() << " BANNING PEER [ p: " << b.first.piece_index
 				<< " | b: " << b.first.block_index
 				<< " | c: " << client
-				<< " | ok_digest: " << ok_digest
-				<< " | bad_digest: " << b.second.digest
+				<< " | ok_crc: " << ok_crc
+				<< " | bad_crc: " << b.second.crc
 				<< " | ip: " << p->ip() << " ]\n";
 #endif
 			m_torrent.get_policy().ban_peer(p);
@@ -292,7 +290,7 @@ namespace
 		// This table maps a piece_block (piece and block index
 		// pair) to a peer and the block CRC. The CRC is calculated
 		// from the data in the block + the salt
-		std::map<piece_block, block_entry> m_block_hashes;
+		std::map<piece_block, block_entry> m_block_crc;
 
 		// This salt is a random value used to calculate the block CRCs
 		// Since the CRC function that is used is not a one way function

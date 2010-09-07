@@ -33,78 +33,74 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DEBUG_HPP_INCLUDED
 #define TORRENT_DEBUG_HPP_INCLUDED
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-
 #include <string>
 #include "libtorrent/config.hpp"
-#include "libtorrent/file.hpp"
-#include "libtorrent/thread.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <fstream>
 #include <iostream>
 #endif
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/convenience.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+
 namespace libtorrent
 {
 	// DEBUG API
 	
+	namespace fs = boost::filesystem;
+
 	struct logger
 	{
-#if TORRENT_USE_IOSTREAM
-		// all log streams share a single file descriptor
-		// and re-opens the file for each log line
-		// these members are defined in session_impl.cpp
-		static std::ofstream log_file;
-		static std::string open_filename;
-		static mutex file_mutex;
-#endif
-
-		logger(std::string const& logpath, std::string const& filename
-			, int instance, bool append)
+		logger(fs::path const& logpath, fs::path const& filename, int instance, bool append = true)
 		{
-			char log_name[512];
-			snprintf(log_name, sizeof(log_name), "libtorrent_logs%d", instance);
-			std::string dir(complete(combine_path(logpath, log_name)));
-			error_code ec;
-			if (!exists(dir)) create_directories(dir, ec);
-			m_filename = combine_path(dir, filename);
-			m_truncate = !append;
-			*this << "\n\n\n*** starting log ***\n";
-		}
-
 #if TORRENT_USE_IOSTREAM
-		void open()
-		{
-			if (open_filename == m_filename) return;
-			log_file.close();
-			log_file.clear();
-			log_file.open(m_filename.c_str(), m_truncate ? std::ios_base::trunc : std::ios_base::app);
-			open_filename = m_filename;
-			m_truncate = false;
-			if (!log_file.good())
-				fprintf(stderr, "Failed to open logfile %s: %s\n", m_filename.c_str(), strerror(errno));
-		}
+
+#ifndef BOOST_NO_EXCEPTIONS
+			try
+			{
 #endif
+				char log_name[256];
+				snprintf(log_name, sizeof(log_name), "libtorrent_logs%d", instance);
+				fs::path dir(fs::complete(logpath / log_name));
+				if (!fs::exists(dir)) fs::create_directories(dir);
+				m_file.open((dir / filename).string().c_str(), std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
+				*this << "\n\n\n*** starting log ***\n";
+#ifndef BOOST_NO_EXCEPTIONS
+			}
+			catch (std::exception& e)
+			{
+				std::cerr << "failed to create log '" << filename.string() << "': " << e.what() << std::endl;
+			}
+#endif
+#endif
+		}
 
 		template <class T>
 		logger& operator<<(T const& v)
 		{
 #if TORRENT_USE_IOSTREAM
-			mutex::scoped_lock l(file_mutex);
-			open();
-			log_file << v;
-			log_file.flush();
+			m_file << v;
+			m_file.flush();
 #endif
 			return *this;
 		}
 
-		std::string m_filename;
-		bool m_truncate;
+#if TORRENT_USE_IOSTREAM
+		std::ofstream m_file;
+#endif
 	};
 
 }
 
-#endif // TORRENT_VERBOSE_LOGGING || TORRENT_LOGGING || TORRENT_ERROR_LOGGING
 #endif // TORRENT_DEBUG_HPP_INCLUDED
 

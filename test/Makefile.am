@@ -8,7 +8,6 @@ test_programs = \
   test_hasher                \
   test_http_connection       \
   test_ip_filter             \
-  test_dht                   \
   test_lsd                   \
   test_metadata_extension    \
   test_natpmp                \
@@ -41,7 +40,6 @@ libtest_la_SOURCES = main.cpp setup_transfer.cpp
 test_auto_unchoke_SOURCES = test_auto_unchoke.cpp
 test_bandwidth_limiter_SOURCES = test_bandwidth_limiter.cpp
 test_bdecode_performance_SOURCES = test_bdecode_performance.cpp
-test_dht_SOURCES = test_dht.cpp
 test_bencoding_SOURCES = test_bencoding.cpp
 test_buffer_SOURCES = test_buffer.cpp
 test_fast_extension_SOURCES = test_fast_extension.cpp

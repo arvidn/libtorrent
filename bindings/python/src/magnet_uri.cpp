@@ -29,7 +29,7 @@ namespace {
             name = extract<std::string>(params["name"]);
             p.name = name.c_str();
         }
-        p.save_path = extract<std::string>(params["save_path"]);
+        p.save_path = fs::path(extract<std::string>(params["save_path"]));
 
         std::vector<char> resume_buf;
         if (params.has_key("resume_data"))
@@ -44,12 +44,7 @@ namespace {
         p.auto_managed = params["auto_managed"];
         p.duplicate_is_error = params["duplicate_is_error"];
         
-#ifndef BOOST_NO_EXCEPTIONS
         return add_magnet_uri(s, uri, p);
-#else
-		  error_code ec;
-        return add_magnet_uri(s, uri, p, ec);
-#endif
     }
 }
 

@@ -33,24 +33,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include "libtorrent/file_storage.hpp"
-#include "libtorrent/file.hpp"
 #include "libtorrent/utf8.hpp"
 #include <boost/bind.hpp>
 #include <cstdio>
-#include <algorithm>
 
 namespace libtorrent
 {
 	file_storage::file_storage()
-		: m_total_size(0)
+		: m_piece_length(0)
+		, m_total_size(0)
 		, m_num_pieces(0)
-		, m_piece_length(0)
 	{}
-
-	void file_storage::reserve(int num_files)
-	{
-		m_files.reserve(num_files);
-	}
 
 	int file_storage::piece_size(int index) const
 	{
@@ -67,7 +60,7 @@ namespace libtorrent
 			return piece_length();
 	}
 
-#if TORRENT_USE_WSTRING
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
 	void file_storage::set_name(std::wstring const& n)
 	{
 		std::string utf8;
@@ -83,14 +76,14 @@ namespace libtorrent
 		m_files[index].path = utf8;
 	}
 
-	void file_storage::add_file(std::wstring const& file, size_type size, int flags
-		, std::time_t mtime, std::string const& symlink_path)
+	void file_storage::add_file(fs::wpath const& file, size_type size, int flags
+		, std::time_t mtime, fs::path const& symlink_path)
 	{
 		std::string utf8;
-		wchar_utf8(file, utf8);
+		wchar_utf8(file.string(), utf8);
 		add_file(utf8, size, flags, mtime, symlink_path);
 	}
-#endif // TORRENT_USE_WSTRING
+#endif
 
 	void file_storage::rename_file(int index, std::string const& new_filename)
 	{
@@ -175,28 +168,31 @@ namespace libtorrent
 		return ret;
 	}
 
-	void file_storage::add_file(std::string const& file, size_type size, int flags
-		, std::time_t mtime, std::string const& symlink_path)
+	void file_storage::add_file(fs::path const& file, size_type size, int flags
+		, std::time_t mtime, fs::path const& symlink_path)
 	{
 		TORRENT_ASSERT(size >= 0);
-		if (!has_parent_path(file))
+#if BOOST_VERSION < 103600
+		if (!file.has_branch_path())
+#else
+		if (!file.has_parent_path())
+#endif
 		{
 			// you have already added at least one file with a
 			// path to the file (branch_path), which means that
 			// all the other files need to be in the same top
 			// directory as the first file.
 			TORRENT_ASSERT(m_files.empty());
-			m_name = file;
+			m_name = file.string();
 		}
 		else
 		{
 			if (m_files.empty())
-				m_name = split_path(file).c_str();
+				m_name = *file.begin();
 		}
-		TORRENT_ASSERT(m_name == split_path(file).c_str());
+		TORRENT_ASSERT(m_name == *file.begin());
 		m_files.push_back(file_entry());
 		file_entry& e = m_files.back();
-		e.file_index = m_files.size() - 1;
 		e.size = size;
 		e.path = file;
 		e.offset = m_total_size;
@@ -204,21 +200,25 @@ namespace libtorrent
 		e.hidden_attribute = bool(flags & attribute_hidden);
 		e.executable_attribute = bool(flags & attribute_executable);
 		e.symlink_attribute = bool(flags & attribute_symlink);
-		if (e.symlink_attribute) e.symlink_path = symlink_path;
+		if (e.symlink_attribute) e.symlink_path = symlink_path.string();
 		e.mtime = mtime;
 		m_total_size += size;
 	}
 
 	void file_storage::add_file(file_entry const& ent)
 	{
-		if (!has_parent_path(ent.path))
+#if BOOST_VERSION < 103600
+		if (!ent.path.has_branch_path())
+#else
+		if (!ent.path.has_parent_path())
+#endif
 		{
 			// you have already added at least one file with a
 			// path to the file (branch_path), which means that
 			// all the other files need to be in the same top
 			// directory as the first file.
 			TORRENT_ASSERT(m_files.empty());
-			m_name = ent.path;
+			m_name = ent.path.string();
 		}
 		else
 		{
@@ -228,7 +228,6 @@ namespace libtorrent
 		m_files.push_back(ent);
 		file_entry& e = m_files.back();
 		e.offset = m_total_size;
-		e.file_index = m_files.size() - 1;
 		m_total_size += ent.size;
 	}
 
@@ -297,7 +296,9 @@ namespace libtorrent
 				i->file_base = 0;
 				char name[10];
 				std::sprintf(name, "%d", padding_file);
-				i->path = combine_path("_____padding_file", name);
+				i->path = *(i+1)->path.begin();
+				i->path /= "_____padding_file_";
+				i->path /= name;
 				i->pad_file = true;
 				off += pad_size;
 				++padding_file;

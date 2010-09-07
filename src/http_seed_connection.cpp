@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
-#include <boost/limits.hpp>
+#include <limits>
 #include <boost/bind.hpp>
 
 #include "libtorrent/http_seed_connection.hpp"
@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/parse_url.hpp"
-#include "libtorrent/peer_info.hpp"
 
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;
@@ -68,9 +67,6 @@ namespace libtorrent
 		, m_body_start(0)
 	{
 		INVARIANT_CHECK;
-
-		if (!ses.settings().report_web_seed_downloads)
-			ignore_stats(true);
 
 		// we want large blocks as well, so
 		// we can request more bytes at once
@@ -115,12 +111,8 @@ namespace libtorrent
 		peer_connection::start();
 	}
 
-	void http_seed_connection::disconnect(error_code const& ec, int error)
-	{
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		peer_connection::disconnect(ec, error);
-		if (t) t->disconnect_web_seed(this);
-	}
+	http_seed_connection::~http_seed_connection()
+	{}
 	
 	boost::optional<piece_block_progress>
 	http_seed_connection::downloading_piece_progress() const
@@ -197,7 +189,7 @@ namespace libtorrent
 			size -= pr.length;
 		}
 
-		proxy_settings const& ps = m_ses.proxy();
+		proxy_settings const& ps = m_ses.web_seed_proxy();
 		bool using_proxy = ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw;
 
@@ -222,7 +214,7 @@ namespace libtorrent
 		request += " HTTP/1.1\r\n";
 		request += "Host: ";
 		request += m_host;
-		if (m_first_request && !m_ses.settings().user_agent.empty())
+		if (m_first_request)
 		{
 			request += "\r\nUser-Agent: ";
 			request += m_ses.settings().user_agent;
@@ -325,7 +317,7 @@ namespace libtorrent
 					&& !(m_parser.status_code() >= 300 // redirect
 						&& m_parser.status_code() < 400))
 				{
-					t->remove_web_seed(this);
+					t->remove_web_seed(m_url, web_seed_entry::http_seed);
 					std::string error_msg = to_string(m_parser.status_code()).elems
 						+ (" " + m_parser.message());
 					if (m_ses.m_alerts.should_post<url_seed_alert>())
@@ -356,14 +348,14 @@ namespace libtorrent
 					if (location.empty())
 					{
 						// we should not try this server again.
-						t->remove_web_seed(this);
+						t->remove_web_seed(m_url, web_seed_entry::http_seed);
 						disconnect(errors::missing_location, 2);
 						return;
 					}
 					
 					// add the redirected url and remove the current one
 					t->add_web_seed(location, web_seed_entry::http_seed);
-					t->remove_web_seed(this);
+					t->remove_web_seed(m_url, web_seed_entry::http_seed);
 					disconnect(errors::redirecting, 2);
 					return;
 				}
@@ -382,7 +374,7 @@ namespace libtorrent
 				if (m_response_left == -1)
 				{
 					// we should not try this server again.
-					t->remove_web_seed(this);
+					t->remove_web_seed(m_url, web_seed_entry::http_seed);
 					disconnect(errors::no_content_length, 2);
 					return;
 				}
@@ -417,7 +409,8 @@ namespace libtorrent
 #endif
 
 				// temporarily unavailable, retry later
-				t->retry_web_seed(this, retry_time);
+				t->retry_web_seed(m_url, web_seed_entry::http_seed, retry_time);
+				t->remove_web_seed(m_url, web_seed_entry::http_seed);
 				disconnect(errors::http_error, 1);
 				return;
 			}

@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <vector>
 #include <string>
-#include <cstring>
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/size_type.hpp"
@@ -54,18 +53,6 @@ namespace libtorrent
 	// return 0 = success
 	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end, lazy_entry& ret, int depth_limit = 1000);
 
-	struct pascal_string
-	{
-		pascal_string(char const* p, int l): len(l), ptr(p) {}
-		int len;
-		char const* ptr;
-		bool operator<(pascal_string const& rhs) const
-		{
-			return std::memcmp(ptr, rhs.ptr, (std::min)(len, rhs.len)) < 0
-				|| len < rhs.len;
-		}
-	};
-
 	struct lazy_dict_entry;
 
 	struct TORRENT_EXPORT lazy_entry
@@ -75,10 +62,10 @@ namespace libtorrent
 			none_t, dict_t, list_t, string_t, int_t
 		};
 
-		lazy_entry() : m_begin(0), m_end(0), m_type(none_t)
+		lazy_entry() : m_type(none_t), m_begin(0), m_end(0)
 		{ m_data.start = 0; }
 
-		entry_type_t type() const { return (entry_type_t)m_type; }
+		entry_type_t type() const { return m_type; }
 
 		// start points to the first decimal digit
 		// length is the number of digits
@@ -115,12 +102,6 @@ namespace libtorrent
 			return m_data.start;
 		}
 
-		pascal_string string_pstr() const
-		{
-			TORRENT_ASSERT(m_type == string_t);
-			return pascal_string(m_data.start, m_size);
-		}
-
 		std::string string_value() const
 		{
 			TORRENT_ASSERT(m_type == string_t);
@@ -148,7 +129,6 @@ namespace libtorrent
 		{ return const_cast<lazy_entry*>(this)->dict_find(name); }
 
 		std::string dict_find_string_value(char const* name) const;
-		pascal_string dict_find_pstr(char const* name) const;
 		size_type dict_find_int_value(char const* name, size_type default_val = 0) const;
 		lazy_entry const* dict_find_dict(char const* name) const;
 		lazy_entry const* dict_find_list(char const* name) const;
@@ -179,20 +159,19 @@ namespace libtorrent
 		lazy_entry* list_at(int i)
 		{
 			TORRENT_ASSERT(m_type == list_t);
-			TORRENT_ASSERT(i < int(m_size));
+			TORRENT_ASSERT(i < m_size);
 			return &m_data.list[i];
 		}
 		lazy_entry const* list_at(int i) const
 		{ return const_cast<lazy_entry*>(this)->list_at(i); }
 
 		std::string list_string_value_at(int i) const;
-		pascal_string list_pstr_at(int i) const;
 		size_type list_int_value_at(int i, size_type default_val = 0) const;
 
 		int list_size() const
 		{
 			TORRENT_ASSERT(m_type == list_t);
-			return int(m_size);
+			return m_size;
 		}
 
 		// end points one byte passed last byte
@@ -223,20 +202,17 @@ namespace libtorrent
 		void swap(lazy_entry& e)
 		{
 			using std::swap;
-			boost::uint32_t tmp = e.m_type;
-			e.m_type = m_type;
-			m_type = tmp;
-			tmp = e.m_capacity;
-			e.m_capacity = m_capacity;
-			m_capacity = tmp;
+			swap(m_type, e.m_type);
 			swap(m_data.start, e.m_data.start);
 			swap(m_size, e.m_size);
+			swap(m_capacity, e.m_capacity);
 			swap(m_begin, e.m_begin);
 			swap(m_end, e.m_end);
 		}
 
 	private:
 
+		entry_type_t m_type;
 		union data_t
 		{
 			lazy_dict_entry* dict;
@@ -244,14 +220,12 @@ namespace libtorrent
 			char const* start;
 		} m_data;
 
+		int m_size; // if list or dictionary, the number of items
+		int m_capacity; // if list or dictionary, allocated number of items
 		// used for dictionaries and lists to record the range
 		// in the original buffer they are based on
 		char const* m_begin;
 		char const* m_end;
-
-		boost::uint32_t m_size; // if list or dictionary, the number of items
-		boost::uint32_t m_capacity:29; // if list or dictionary, allocated number of items
-		unsigned int m_type:3;
 
 		// non-copyable
 		lazy_entry(lazy_entry const&);
@@ -264,8 +238,7 @@ namespace libtorrent
 		lazy_entry val;
 	};
 
-	TORRENT_EXPORT std::string print_entry(lazy_entry const& e
-		, bool single_line = false, int indent = 0);
+	TORRENT_EXPORT std::string print_entry(lazy_entry const& e);
 #if TORRENT_USE_IOSTREAM
 	TORRENT_EXPORT std::ostream& operator<<(std::ostream& os, lazy_entry const& e);
 #endif
