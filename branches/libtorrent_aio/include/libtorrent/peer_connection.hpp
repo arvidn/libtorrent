@@ -274,6 +274,10 @@ namespace libtorrent
 		bool can_read(char* state = 0) const;
 
 		bool is_seed() const;
+		int num_have_pieces() const { return m_num_pieces; }
+
+		void set_share_mode(bool m);
+		bool share_mode() const { return m_share_mode; }
 
 		void set_upload_only(bool u);
 		bool upload_only() const { return m_upload_only; }
@@ -1043,7 +1047,10 @@ namespace libtorrent
 		// the http-downloader, to request whole pieces
 		// at a time.
 		bool m_request_large_blocks:1;
-		
+
+		// set to true if this peer is in share mode		
+		bool m_share_mode:1;
+
 		// set to true when this peer is only uploading
 		bool m_upload_only:1;
 

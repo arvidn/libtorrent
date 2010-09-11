@@ -158,7 +158,7 @@ namespace libtorrent
 
 			if (tracker_req().event != tracker_request::none)
 			{
-				const char* event_string[] = {"completed", "started", "stopped"};
+				const char* event_string[] = {"completed", "started", "stopped", "paused"};
 				url += "&event=";
 				url += event_string[tracker_req().event - 1];
 			}
@@ -398,8 +398,9 @@ namespace libtorrent
 			int complete = scrape_data->dict_find_int_value("complete", -1);
 			int incomplete = scrape_data->dict_find_int_value("incomplete", -1);
 			int downloaded = scrape_data->dict_find_int_value("downloaded", -1);
+			int downloaders = scrape_data->dict_find_int_value("downloaders", -1);
 			cb->tracker_scrape_response(tracker_req(), complete
-				, incomplete, downloaded);
+				, incomplete, downloaded, downloaders);
 			return;
 		}
 

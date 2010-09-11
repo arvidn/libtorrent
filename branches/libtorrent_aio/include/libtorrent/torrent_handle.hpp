@@ -123,6 +123,7 @@ namespace libtorrent
 			, sparse_regions(0)
 			, seed_mode(false)
 			, upload_mode(false)
+			, share_mode(false)
 			, priority(0)
 			, added_time(0)
 			, completed_time(0)
@@ -306,6 +307,9 @@ namespace libtorrent
 		// write operation failing
 		bool upload_mode;
 
+		// this is true if the torrent is in share-mode
+		bool share_mode;
+
 		// the priority of this torrent
 		int priority;
 
@@ -468,6 +472,7 @@ namespace libtorrent
 		void pause() const;
 		void resume() const;
 		void set_upload_mode(bool b) const;
+		void set_share_mode(bool b) const;
 		void flush_cache() const;
 
 		void force_recheck() const;

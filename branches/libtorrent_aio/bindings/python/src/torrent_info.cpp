@@ -168,8 +168,7 @@ void bind_torrent_info()
         ;
 
     class_<file_entry>("file_entry")
-       .add_property(
-            "path"
+       .add_property("path"
           , make_getter(
                 &file_entry::path, return_value_policy<copy_non_const_reference>()
             )
@@ -181,7 +180,7 @@ void bind_torrent_info()
 
     class_<announce_entry>("announce_entry", init<std::string const&>())
         .def_readwrite("url", &announce_entry::url)
-        .def_readwrite("tier", &get_tier)
+        .add_property("tier", &get_tier)
         .add_property("fail_limit", &get_fail_limit)
         .add_property("fails", &get_fails)
         .add_property("source", &get_source)
@@ -197,4 +196,12 @@ void bind_torrent_info()
         .def("is_working", &announce_entry::is_working)
         .def("trim", &announce_entry::trim)
         ;
+
+    enum_<announce_entry::tracker_source>("tracker_source")
+        .value("source_torrent", announce_entry::source_torrent)
+        .value("source_client", announce_entry::source_client)
+        .value("source_magnet_link", announce_entry::source_magnet_link)
+        .value("source_tex", announce_entry::source_tex)
+    ;
 }
+

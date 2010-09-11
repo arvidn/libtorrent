@@ -1,3 +1,5 @@
+	* full support for BEP 21 (event=paused)
+	* added share-mode feature for improving share ratios
 	* merged all proxy settings into a single one
 	* improved SOCKS5 support by proxying hostname lookups
 	* improved support for multi-homed clients
@@ -41,6 +43,12 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed announce issue
+
+0.15.3 release
+
+	* fixed announce bug where event=completed would not be sent if it violated the
+	  min-announce of the tracker
 	* fixed limitation in rate limiter
 	* fixed build error with boost 1.44
 

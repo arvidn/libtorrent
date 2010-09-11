@@ -96,7 +96,8 @@ namespace libtorrent
 			none,
 			completed,
 			started,
-			stopped
+			stopped,
+			paused
 		};
 
 		sha1_hash info_hash;
@@ -124,7 +125,8 @@ namespace libtorrent
 		virtual void tracker_warning(tracker_request const& req
 			, std::string const& msg) = 0;
 		virtual void tracker_scrape_response(tracker_request const& /*req*/
-			, int /*complete*/, int /*incomplete*/, int /*downloads*/) {}
+			, int /*complete*/, int /*incomplete*/, int /*downloads*/
+			, int /*downloaders*/) {}
 		virtual void tracker_response(
 			tracker_request const& req
 			, address const& tracker_ip

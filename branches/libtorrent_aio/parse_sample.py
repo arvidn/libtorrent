@@ -68,8 +68,13 @@ for l in f:
 	if 'libtorrent::sleep' in fun: fold = indentation
 	if 'puts' == fun: fold = indentation
 	if 'boost::asio::basic_stream_socket' in fun: fold = indentation
-	if 'recvmsg' in fun: fold = indentation
-	if 'sendmsg' in fun: fold = indentation
+	if 'recvmsg' == fun: fold = indentation
+	if 'sendmsg' == fun: fold = indentation
+	if 'semaphore_signal_trap' == fun: fold = indentation
+	if 'boost::detail::atomic_count::operator' in fun: fold = indentation
+	if 'pthread_mutex_lock' == fun: fold = indentation
+	if 'pthread_mutex_unlock' == fun: fold = indentation
+	if '>::~vector()' == fun: fold = indentation
 	if 'szone_free_definite_size' == fun: fold = indentation
 	if 'snprintf' == fun: fold = indentation
 	if 'usleep' == fun: fold = indentation

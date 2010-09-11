@@ -378,10 +378,12 @@ namespace libtorrent
 		, m_allow_peers(!p.paused)
 		, m_upload_mode(p.upload_mode)
 		, m_auto_managed(p.auto_managed)
+		, m_share_mode(p.share_mode)
 		, m_num_verified(0)
 		, m_last_scrape(0)
 		, m_last_download(0)
 		, m_last_upload(0)
+		, m_downloaders(0xffffff)
 		, m_interface_index(0)
 	{
 		m_net_interfaces.push_back(tcp::endpoint(net_interface.address(), 0));
@@ -418,7 +420,6 @@ namespace libtorrent
 			m_trackers.back().source = announce_entry::source_magnet_link;
 			m_torrent_file->add_tracker(p.tracker_url);
 		}
-
 	}
 
 	void torrent::start()
@@ -536,6 +537,19 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::send_share_mode()
+	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (std::set<peer_connection*>::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			if ((*i)->type() != peer_connection::bittorrent_connection) continue;
+			bt_peer_connection* p = (bt_peer_connection*)*i;
+			p->write_share_mode();
+		}
+#endif
+	}
+
 	void torrent::send_upload_only()
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -547,6 +561,20 @@ namespace libtorrent
 			p->write_upload_only();
 		}
 #endif
+	}
+
+	void torrent::set_share_mode(bool s)
+	{
+		if (s == m_share_mode) return;
+
+		m_share_mode = s;
+
+		// in share mode, all pieces have their priorities initialized to 0
+		std::fill(m_file_priority.begin(), m_file_priority.end(), !m_share_mode);
+
+		update_piece_priorities();
+
+		if (m_share_mode) recalc_share_mode();
 	}
 
 	void torrent::set_upload_mode(bool b)
@@ -865,6 +893,16 @@ namespace libtorrent
 				+ block_size() - 1) / block_size();
 			m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
 		}
+
+		if (m_share_mode)
+		{
+			// in share mode, all pieces have their priorities initialized to 0
+			std::fill(m_file_priority.begin(), m_file_priority.end(), 0);
+		}
+
+		// in case file priorities were passed in via the add_torrent_params
+		// ans also in the case of share mode, we need to update the priorities
+		update_piece_priorities();
 
 		std::vector<std::string> const& url_seeds = m_torrent_file->url_seeds();
 		for (std::vector<std::string>::const_iterator i = url_seeds.begin()
@@ -1410,6 +1448,9 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_allow_peers || e == tracker_request::stopped);
 
+		if (e == tracker_request::none && is_finished())
+			e = tracker_request::paused;
+
 		tracker_request req;
 		req.info_hash = m_torrent_file->info_hash();
 		req.pid = m_ses.get_peer_id();
@@ -1463,7 +1504,7 @@ namespace libtorrent
 
 			if (ae.tier > tier && !settings().announce_to_all_tiers) break;
 			if (ae.is_working()) { tier = ae.tier; sent_announce = false; }
-			if (!ae.can_announce(now))
+			if (!ae.can_announce(now, is_seed()))
 			{
 				if (ae.is_working())
 				{
@@ -1585,7 +1626,7 @@ namespace libtorrent
 	}
 	
  	void torrent::tracker_scrape_response(tracker_request const& req
- 		, int complete, int incomplete, int downloaded)
+ 		, int complete, int incomplete, int downloaded, int downloaders)
  	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
  
@@ -1594,6 +1635,7 @@ namespace libtorrent
  
  		if (complete >= 0) m_complete = complete;
  		if (incomplete >= 0) m_incomplete = incomplete;
+ 		if (downloaders >= 0) m_downloaders = downloaders;
  
  		if (m_ses.m_alerts.should_post<scrape_reply_alert>())
  		{
@@ -2353,6 +2395,9 @@ namespace libtorrent
 		}
 
 		m_last_download = 0;
+
+		if (m_share_mode)
+			recalc_share_mode();
 	}
 
 	void torrent::piece_failed(int index)
@@ -3736,7 +3781,8 @@ namespace libtorrent
 		m_seeding_time = rd.dict_find_int_value("seeding_time");
 		m_last_seen_complete = rd.dict_find_int_value("last_seen_complete");
 		m_complete = rd.dict_find_int_value("num_seeds", 0xffffff);
-		m_incomplete = rd.dict_find_int_value("num_downloaders", 0xffffff);
+		m_incomplete = rd.dict_find_int_value("num_incomplete", 0xffffff);
+		m_downloaders = rd.dict_find_int_value("num_downloaders", 0xffffff);
 		set_upload_limit(rd.dict_find_int_value("upload_rate_limit", -1));
 		set_download_limit(rd.dict_find_int_value("download_rate_limit", -1));
 		set_max_connections(rd.dict_find_int_value("max_connections", -1));
@@ -3762,6 +3808,7 @@ namespace libtorrent
 				m_file_priority[i] = file_priority->list_int_value_at(i, 1);
 			update_piece_priorities();
 		}
+
 		lazy_entry const* piece_priority = rd.dict_find_string("piece_priority");
 		if (piece_priority && piece_priority->string_length()
 			== m_torrent_file->num_pieces())
@@ -3769,6 +3816,7 @@ namespace libtorrent
 			char const* p = piece_priority->string_ptr();
 			for (int i = 0; i < piece_priority->string_length(); ++i)
 				m_picker->set_piece_priority(i, p[i]);
+			m_policy.recalculate_connect_candidates();
 		}
 
 		if (!m_override_resume_data)
@@ -3901,15 +3949,9 @@ namespace libtorrent
 		ret["seeding_time"] = m_seeding_time;
 		ret["last_seen_complete"] = m_last_seen_complete;
 
-		int seeds = 0;
-		int downloaders = 0;
-		if (m_complete >= 0) seeds = m_complete;
-		else seeds = m_policy.num_seeds();
-		if (m_incomplete >= 0) downloaders = m_incomplete;
-		else downloaders = m_policy.num_peers() - m_policy.num_seeds();
-
-		ret["num_seeds"] = seeds;
-		ret["num_downloaders"] = downloaders;
+		ret["num_seeds"] = m_complete;
+		ret["num_incomplete"] = m_incomplete;
+		ret["num_downloaders"] = m_downloaders;
 
 		ret["sequential_download"] = m_sequential_download;
 
@@ -4382,6 +4424,9 @@ namespace libtorrent
 		}
 #endif
 
+		if (m_share_mode)
+			recalc_share_mode();
+
 		return peerinfo->connection;
 	}
 
@@ -4511,6 +4556,10 @@ namespace libtorrent
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		m_policy.check_invariant();
 #endif
+
+		if (m_share_mode)
+			recalc_share_mode();
+
 		return true;
 	}
 
@@ -4978,7 +5027,7 @@ namespace libtorrent
 				if (!i->not_wanted && !i->timed_out) ++num_requests[i->block];
 			if (!p.is_choked() && !p.ignore_unchoke_slots()) ++num_uploads;
 			torrent* associated_torrent = p.associated_torrent().lock().get();
-			if (associated_torrent != this)
+			if (associated_torrent != this && associated_torrent != 0)
 				TORRENT_ASSERT(false);
 		}
 		TORRENT_ASSERT(num_uploads == m_num_uploads);
@@ -5361,10 +5410,11 @@ namespace libtorrent
 		int seeds = 0;
 		int downloaders = 0;
 
-		if (m_complete >= 0) seeds = m_complete;
+		if (m_complete != 0xffffff) seeds = m_complete;
 		else seeds = m_policy.num_seeds();
 
-		if (m_incomplete >= 0) downloaders = m_incomplete;
+		if (m_downloaders != 0xffffff) downloaders = m_downloaders;
+		else if (m_incomplete != 0xffffff) downloaders = m_incomplete;
 		else downloaders = m_policy.num_peers() - m_policy.num_seeds();
 
 		if (seeds == 0)
@@ -5877,6 +5927,152 @@ namespace libtorrent
 		m_total_uploaded += m_stat.last_payload_uploaded();
 		m_total_downloaded += m_stat.last_payload_downloaded();
 		m_stat.second_tick(tick_interval_ms);
+	}
+
+	void torrent::recalc_share_mode()
+	{
+		TORRENT_ASSERT(share_mode());
+		if (is_seed()) return;
+
+		int pieces_in_torrent = m_torrent_file->num_pieces();
+		int num_seeds = 0;
+		int num_peers = 0;
+		int num_downloaders = 0;
+		int missing_pieces = 0;
+		int num_interested = 0;
+		for (std::set<peer_connection*>::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			peer_connection* p = *i;
+			if (p->is_connecting()) continue;
+			++num_peers;
+			if (p->is_seed())
+			{
+				++num_seeds;
+				continue;
+			}
+
+			if (p->share_mode()) continue;
+
+			if ((*i)->is_peer_interested()) ++num_interested;
+			++num_downloaders;
+			missing_pieces += pieces_in_torrent - p->num_have_pieces();
+		}
+
+		if (num_peers == 0) return;
+
+		if (num_seeds * 100 / num_peers > 50
+			&& (num_peers * 100 / m_max_connections > 90
+				|| num_peers > 20))
+		{
+			// we are connected to more than 90% seeds (and we're beyond
+			// 90% of the max number of connections). That will
+			// limit our ability to upload. We need more downloaders.
+			// disconnect some seeds so that we don't have more than 50%
+			int to_disconnect = num_seeds - num_peers / 2;
+			std::vector<peer_connection*> seeds;
+			seeds.reserve(num_seeds);
+			for (std::set<peer_connection*>::iterator i = m_connections.begin()
+				, end(m_connections.end()); i != end; ++i)
+			{
+				peer_connection* p = *i;
+				if (p->is_seed()) seeds.push_back(p);
+			}
+
+			std::random_shuffle(seeds.begin(), seeds.end());
+			TORRENT_ASSERT(to_disconnect <= int(seeds.size()));
+			for (int i = 0; i < to_disconnect; ++i)
+				seeds[i]->disconnect(errors::upload_upload_connection);
+		}
+
+		if (num_downloaders == 0) return;
+
+		// assume that the seeds are about as fast as us. During the time
+		// we can download one piece, and upload one piece, each seed
+		// can upload two pieces.
+		missing_pieces -= 2 * num_seeds;
+
+		if (missing_pieces <= 0) return;
+		
+		// missing_pieces represents our opportunity to download pieces
+		// and share them more than once each
+
+		// now, download at least one piece, otherwise download one more
+		// piece if our downloaded (and downloading) pieces is less than 50%
+		// of the uploaded bytes
+		int num_downloaded_pieces = (std::max)(m_picker->num_have()
+			, pieces_in_torrent - m_picker->num_filtered());
+
+		if (num_downloaded_pieces * m_torrent_file->piece_length()
+			* settings().share_mode_target > m_total_uploaded
+			&& num_downloaded_pieces > 0)
+			return;
+
+		// don't have more pieces downloading in parallel than 5% of the total
+		// number of pieces we have downloaded
+		if (m_picker->get_download_queue().size() > num_downloaded_pieces / 20)
+			return;
+
+		// one more important property is that there are enough pieces
+		// that more than one peer wants to download
+		// make sure that there are enough downloaders for the rarest
+		// piece. Go through all pieces, figure out which one is the rarest
+		// and how many peers that has that piece
+
+		std::vector<int> rarest_pieces;
+
+		int num_pieces = m_torrent_file->num_pieces();
+		int rarest_rarity = INT_MAX;
+		bool prio_updated = false;
+		for (int i = 0; i < num_pieces; ++i)
+		{
+			piece_picker::piece_pos const& pp = m_picker->piece_stats(i);
+			if (pp.peer_count == 0) continue;
+			if (pp.filtered() && (pp.have() || pp.downloading))
+			{
+				m_picker->set_piece_priority(i, 1);
+				prio_updated = true;
+				continue;
+			}
+			// don't count pieces we already have or are downloading
+			if (!pp.filtered() || pp.have()) continue;
+			if (pp.peer_count > rarest_rarity) continue;
+			if (pp.peer_count == rarest_rarity)
+			{
+				rarest_pieces.push_back(i);
+				continue;
+			}
+
+			rarest_pieces.clear();
+			rarest_rarity = pp.peer_count;
+			rarest_pieces.push_back(i);
+		}
+
+		if (prio_updated)
+			m_policy.recalculate_connect_candidates();
+
+		// now, rarest_pieces is a list of all pieces that are the rarest ones.
+		// and rarest_rarity is the number of peers that have the rarest pieces
+
+		// if there's only a single peer that doesn't have the rarest piece
+		// it's impossible for us to download one piece and upload it
+		// twice. i.e. we cannot get a positive share ratio
+		if (num_peers - rarest_rarity < settings().share_mode_target) return;
+
+		// we might be able to do better than a share ratio of 2 if there are
+		// enough downloaders of the pieces we already have.
+		// TODO: go through the pieces we have and count the total number
+		// of downloaders we have. Only count peers that are interested in us
+		// since some peers might not send have messages for pieces we have
+		// it num_interested == 0, we need to pick a new piece
+
+		// now, pick one of the rarest pieces to download
+		int pick = rand() % rarest_pieces.size();
+		bool was_finished = is_finished();
+		m_picker->set_piece_priority(rarest_pieces[pick], 1);
+		update_peer_interest(was_finished);
+
+		m_policy.recalculate_connect_candidates();
 	}
 
 	void torrent::refresh_explicit_cache(int cache_size)
@@ -6435,6 +6631,7 @@ namespace libtorrent
 		st.completed_time = m_completed_time;
 
 		st.last_scrape = m_last_scrape;
+		st.share_mode = m_share_mode;
 		st.upload_mode = m_upload_mode;
 		st.up_bandwidth_queue = 0;
 		st.down_bandwidth_queue = 0;

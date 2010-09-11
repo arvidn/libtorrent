@@ -392,6 +392,7 @@ add_torrent()
 			bool override_resume_data;
 			bool upload_mode;
 			std::vector<boost::uint8_t> const* file_priorities;
+			bool share_mode;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -501,6 +502,22 @@ which means it will not make any piece requests. This state is typically entered
 on disk I/O errors, and if the torrent is also auto managed, it will be taken out
 of this state periodically. This mode can be used to avoid race conditions when
 adjusting priorities of pieces before allowing the torrent to start downloading.
+
+``share_mode`` determines if the torrent should be added in *share mode* or not.
+Share mode indicates that we are not interested in downloading the torrent, but
+merlely want to improve our share ratio (i.e. increase it). A torrent started in
+share mode will do its best to never download more than it uploads to the swarm.
+If the swarm does not have enough demand for upload capacity, the torrent will
+not download anything. This mode is intended to be safe to add any number of torrents
+to, without manual screening, without the risk of downloading more than is uploaded.
+
+A torrent in share mode sets the priority to all pieces to 0, except for the pieces
+that are downloaded, when pieces are decided to be downloaded. This affects the progress
+bar, which might be set to "100% finished" most of the time. Do not change file or piece
+priorities for torrents in share mode, it will make it not work.
+
+The share mode has one setting, the share ratio target, see ``session_settings::share_mode_target``
+for more info.
 
 ``file_priorities`` can be set to control the initial file priorities when adding
 a torrent. The semantics are the same as for ``torrent_handle::prioritize_files()``.
@@ -2047,6 +2064,7 @@ Its declaration looks like this::
 		void force_recheck() const;
 		void clear_error() const;
 		void set_upload_mode(bool m) const;
+		void set_share_mode(bool m) const;
 
 		void flush_cache() const;
 
@@ -2547,6 +2565,18 @@ are automatically put in upload mode whenever they encounter a disk write error.
 
 To test if a torrent is in upload mode, call ``torrent_handle::status()`` and inspect
 ``torrent_status::upload_mode``.
+
+set_share_mode()
+----------------
+
+	::
+
+		void set_share_mode(bool m) const;
+
+Enable or disable share mode for this torrent. When in share mode, the torrent will
+not necessarily be downloaded, especially not the whole of it. Only parts that are likely
+to be distributed to more than 2 other peers are downloaded, and only if the previous
+prediction was correct.
 
 resolve_countries()
 -------------------
@@ -3118,8 +3148,8 @@ It contains the following fields::
 		int sparse_regions;
 
 		bool seed_mode;
-
 		bool upload_mode;
+		bool share_mode;
 
 		int priority;
 
@@ -3351,6 +3381,9 @@ hope that the disk condition (be it disk full or permission errors) has
 been resolved. If the torrent is not auto-managed, you have to explicitly
 take it out of the upload mode by calling `set_upload_mode()`_ on the
 torrent_handle_.
+
+``share_mode`` is true if the torrent is currently in share-mode, i.e.
+not downloading the torrent, but just helping the swarm out.
 
 ``added_time`` is the posix-time when this torrent was added. i.e. what
 ``time(NULL)`` returned at the time.
@@ -3918,6 +3951,7 @@ session_settings
 		bool ignore_resume_timestamps;
 		bool anonymous_mode;
 		int tick_interval;
+		int share_mode_target;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -4578,6 +4612,15 @@ ticks. This is the frequency with which bandwidth quota is distributed to
 peers. It should not be more than one second (i.e. 1000 ms). Setting this
 to a low value (around 100) means higher resolution bandwidth quota distribution,
 setting it to a higher value saves CPU cycles.
+
+``share_mode_target`` specifies the target share ratio for share mode torrents.
+This defaults to 3, meaning we'll try to upload 3 times as much as we download.
+Setting this very high, will make it very conservative and you might end up
+not downloading anything ever (and not affecting your share ratio). It does
+not make any sense to set this any lower than 2. For instance, if only 3 peers
+need to download the rarest piece, it's impossible to download a single piece
+and upload it more than 3 times. If the share_mode_target is set to more than 3,
+nothing is downloaded.
 
 pe_settings
 ===========

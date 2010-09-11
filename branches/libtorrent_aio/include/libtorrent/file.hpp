@@ -80,6 +80,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h> // for DIR
+
+#undef _FILE_OFFSET_BITS
+
 #endif
 
 #include <boost/function.hpp>

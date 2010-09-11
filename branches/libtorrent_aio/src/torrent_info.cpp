@@ -418,6 +418,18 @@ namespace libtorrent
 		updating = false;
 	}
 
+	bool announce_entry::can_announce(ptime now, bool is_seed) const
+	{
+		// if we're a seed and we haven't sent a completed
+		// event, we need to let this announce through
+		bool need_send_complete = is_seed && !complete_sent;
+
+		return now >= next_announce
+			&& (now >= min_announce || need_send_complete)
+			&& (fails < fail_limit || fail_limit == 0)
+			&& !updating;
+	}
+
 	void announce_entry::trim()
 	{
 		while (!url.empty() && is_space(url[0]))

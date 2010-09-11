@@ -533,6 +533,8 @@ std::string outgoing_interface = "";
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
 
+bool share_mode = false;
+
 using boost::bind;
 
 // monitored_dir is true if this torrent is added because
@@ -563,6 +565,7 @@ void add_torrent(libtorrent::session& ses
 	printf("%s\n", t->name().c_str());
 
 	add_torrent_params p;
+	p.share_mode = share_mode;
 	lazy_entry resume_data;
 
 	std::string filename = combine_path(save_path, t->name() + ".resume");
@@ -813,7 +816,7 @@ int main(int argc, char* argv[])
 	//settings.announce_to_all_trackers = true;
 	settings.optimize_hashing_for_speed = false;
 	settings.disk_cache_algorithm = session_settings::largest_contiguous;
-	settings.volatile_read_cache = true;
+	settings.volatile_read_cache = false;
 
 	proxy_settings ps;
 
@@ -871,6 +874,7 @@ int main(int argc, char* argv[])
 				from_hex(argv[i], 40, (char*)&info_hash[0]);
 
 				add_torrent_params p;
+				p.share_mode = share_mode;
 				p.tracker_url = argv[i] + 41;
 				p.info_hash = info_hash;
 				p.save_path = save_path;
@@ -911,6 +915,7 @@ int main(int argc, char* argv[])
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
 			case 'D': torrent_download_limit = atoi(arg) * 1000; break;
 			case 'm': monitor_dir = arg; break;
+			case 'M': share_mode = true; --i; break;
 			case 'b': bind_to_interface = arg; break;
 			case 'w': settings.urlseed_wait_retry = atoi(arg); break;
 			case 't': poll_interval = atoi(arg); break;
@@ -1056,6 +1061,7 @@ int main(int argc, char* argv[])
 		if (std::strstr(i->c_str(), "magnet:") == i->c_str())
 		{
 			add_torrent_params p;
+			p.share_mode = share_mode;
 			p.save_path = save_path;
 			p.storage_mode = (storage_mode_t)allocation_mode;
 			printf("adding MANGET link: %s\n", i->c_str());
@@ -1412,7 +1418,7 @@ int main(int argc, char* argv[])
 				out += str;
 			}
 
-			if (print_piece_bar && s.progress_ppm < 1000000 && s.progress > 0)
+			if (print_piece_bar && s.state != torrent_status::seeding)
 			{
 				out += "     ";
 				out += piece_bar(s.pieces, terminal_width - 7);

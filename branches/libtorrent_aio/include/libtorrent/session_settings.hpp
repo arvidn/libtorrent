@@ -226,6 +226,7 @@ namespace libtorrent
 			, anonymous_mode(false)
 			, tick_interval(100)
 			, report_web_seed_downloads(true)
+			, share_mode_target(3)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -857,6 +858,9 @@ namespace libtorrent
 		// specifies whether downloads from web seeds is reported to the
 		// tracker or not. Defaults to on
 		bool report_web_seed_downloads;
+
+		// this is the target share ratio for share-mode torrents
+		int share_mode_target;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

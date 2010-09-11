@@ -363,6 +363,12 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL(pause);
 	}
 
+	void torrent_handle::set_share_mode(bool b) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_ASYNC_CALL1(set_share_mode, b);
+	}
+
 	void torrent_handle::set_upload_mode(bool b) const
 	{
 		INVARIANT_CHECK;

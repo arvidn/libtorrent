@@ -45,9 +45,12 @@ extensions
 * supports the ``compact=1`` tracker parameter.
 * super seeding/initial seeding (`BEP 16`_).
 * private torrents (`BEP 27`_).
+* upload-only extension (`BEP 21`_).
 * support for IPv6, including `BEP 7`_ and `BEP 24`_.
 * support for merkle hash tree torrents. This makes the size of torrent files
   scale well with the size of the content.
+* share-mode. This is a special mode torrents can be put in to optimize share
+  ratio rather than downloading the torrent.
 
 .. _extensions: manual.html#extensions
 .. _`http seeding`: manual.html#http-seeding
@@ -110,6 +113,7 @@ network
 .. _`BEP 16`: http://bittorrent.org/beps/bep_0016.html
 .. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
 .. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
+.. _`BEP 21`: http://bittorrent.org/beps/bep_0021.html
 .. _`BEP 24`: http://bittorrent.org/beps/bep_0024.html
 .. _`BEP 27`: http://bittorrent.org/beps/bep_0027.html
 .. _`extension protocol`: extension_protocol.html
@@ -252,6 +256,17 @@ and hence decreasing the likelihood of slow peers blocking the completion of pie
 
 The piece picker can also be set to download pieces in sequential order.
 
+share mode
+----------
+
+The share mode feature in libtorrent is intended for users who are only interested in
+helping out swarms, not downloading the torrents.
+
+It works by predicting the demand for pieces, and only download pieces if there is enough
+demand. New pieces will only be downloaded once the share ratio has hit a certain target.
+
+This feature is especially useful when combined with RSS, so that a client can be set up
+to provide additional bandwidth to an entire feed.
 
 merkle hash tree torrents
 -------------------------

@@ -148,6 +148,7 @@ namespace libtorrent
 		, m_connecting(true)
 		, m_queued(true)
 		, m_request_large_blocks(false)
+		, m_share_mode(false)
 		, m_upload_only(false)
 		, m_snubbed(false)
 		, m_bitfield_received(false)
@@ -286,6 +287,7 @@ namespace libtorrent
 		, m_connecting(false)
 		, m_queued(false)
 		, m_request_large_blocks(false)
+		, m_share_mode(false)
 		, m_upload_only(false)
 		, m_snubbed(false)
 		, m_bitfield_received(false)
@@ -517,7 +519,7 @@ namespace libtorrent
 	void peer_connection::update_interest()
 	{
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT(t);
+		if (!t) return;
 
 		// if m_have_piece is 0, it means the connections
 		// have not been initialized yet. The interested
@@ -1797,6 +1799,9 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
+
+		// don't close connections in share mode, we don't know if we need them
+		if (t->share_mode()) return;
 
 		if (m_upload_only && t->is_finished())
 		{
@@ -4075,6 +4080,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 #endif
 
+		bool sent_a_piece = false;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
 
@@ -4136,7 +4142,11 @@ namespace libtorrent
 			m_reading_bytes += r.length;
 
 			m_requests.erase(m_requests.begin());
+			sent_a_piece = true;
 		}
+
+		if (t->share_mode() && sent_a_piece)
+			t->recalc_share_mode();
 	}
 
 	void peer_connection::on_disk_read_complete(int ret, disk_io_job const& j, peer_request r)
@@ -5220,7 +5230,8 @@ namespace libtorrent
 		if (t->ready_for_connections() && m_initialized)
 			TORRENT_ASSERT(t->torrent_file().num_pieces() == int(m_have_piece.size()));
 
-		if (m_ses.settings().close_redundant_connections)
+		// in share mode we don't close redundant connections
+		if (m_ses.settings().close_redundant_connections && !t->share_mode())
 		{
 			// make sure upload only peers are disconnected
 			if (t->is_finished() && m_upload_only)
@@ -5408,6 +5419,14 @@ namespace libtorrent
 		// metadata yet.
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		return m_num_pieces == (int)m_have_piece.size() && m_num_pieces > 0 && t && t->valid_metadata();
+	}
+
+	void peer_connection::set_share_mode(bool u)
+	{
+		// if the peer is a seed, ignore share mode messages
+		if (is_seed()) return;
+
+		m_share_mode = u;
 	}
 
 	void peer_connection::set_upload_only(bool u)

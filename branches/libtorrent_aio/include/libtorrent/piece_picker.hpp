@@ -95,6 +95,8 @@ namespace libtorrent
 	{
 	public:
 
+		struct piece_pos;
+
 		enum
 		{
 			// the number of priority levels
@@ -162,7 +164,7 @@ namespace libtorrent
 			// the number of blocks in the requested state
 			boost::int16_t requested;
 		};
-
+		
 		piece_picker();
 
 		void get_availability(std::vector<int>& avail) const;
@@ -292,7 +294,13 @@ namespace libtorrent
 
 		// returns information about the given piece
 		void piece_info(int index, piece_picker::downloading_piece& st) const;
-		
+
+		piece_pos const& piece_stats(int index) const
+		{
+			TORRENT_ASSERT(index >= 0 && index < int(m_piece_map.size()));
+			return m_piece_map[index];
+		}
+
 		// if a piece had a hash-failure, it must be restored and
 		// made available for redownloading
 		void restore_piece(int index);
@@ -358,6 +366,8 @@ namespace libtorrent
 		bool is_piece_free(int piece, bitfield const& bitmask) const;
 		std::pair<int, int> expand_piece(int piece, int whole_pieces
 			, bitfield const& have) const;
+
+	public:
 
 		struct piece_pos
 		{
@@ -451,6 +461,8 @@ namespace libtorrent
 			{ return index == p.index && peer_count == p.peer_count; }
 
 		};
+
+	private:
 
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 4);
 

@@ -568,7 +568,7 @@ namespace libtorrent
 		}
 		
 		cb->tracker_scrape_response(tracker_req()
-			, complete, incomplete, downloaded);
+			, complete, incomplete, downloaded, -1);
 
 		m_man.remove_request(this);
 		close();
