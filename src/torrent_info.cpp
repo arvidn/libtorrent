@@ -395,10 +395,10 @@ namespace libtorrent
 	{
 		// if we're a seed and we haven't sent a completed
 		// event, we need to let this announce through
-		if (is_seed && !complete_sent) return true;
+		bool need_send_complete = is_seed && !complete_sent;
 
 		return now >= next_announce
-			&& now >= min_announce
+			&& (now >= min_announce || need_send_complete)
 			&& (fails < fail_limit || fail_limit == 0)
 			&& !updating;
 	}

@@ -1,3 +1,5 @@
+	* fixed announce issue
+
 0.15.3 release
 
 	* fixed announce bug where event=completed would not be sent if it violated the
