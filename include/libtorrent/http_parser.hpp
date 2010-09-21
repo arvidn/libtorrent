@@ -55,6 +55,12 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	
+	// return true if the status code is 200, 206, or in the 300-400 range
+	bool is_ok_status(int http_status);
+
+	// return true if the status code is a redirect
+	bool is_redirect(int http_status);
+
 	class TORRENT_EXPORT http_parser
 	{
 	public:

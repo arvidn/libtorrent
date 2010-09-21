@@ -390,16 +390,10 @@ namespace libtorrent
 				}
 
 				// if the status code is not one of the accepted ones, abort
-				if (m_parser.status_code() != 206 // partial content
-					&& m_parser.status_code() != 200 // OK
-					&& !(m_parser.status_code() >= 300 // redirect
-						&& m_parser.status_code() < 400))
+				if (!is_ok_status(m_parser.status_code()))
 				{
-					if (m_parser.status_code() == 503)
-					{
-						// temporarily unavailable, retry later
-						t->retry_web_seed(m_original_url, web_seed_entry::url_seed);
-					}
+					// temporarily unavailable, retry later
+					t->retry_web_seed(m_original_url, web_seed_entry::url_seed);
 					t->remove_web_seed(m_original_url, web_seed_entry::url_seed);
 					std::string error_msg = to_string(m_parser.status_code()).elems
 						+ (" " + m_parser.message());
@@ -434,7 +428,7 @@ namespace libtorrent
 					, end(headers.end()); i != end; ++i)
 					(*m_logger) << "   " << i->first << ": " << i->second << "\n";
 #endif
-				if (m_parser.status_code() >= 300 && m_parser.status_code() < 400)
+				if (is_redirect(m_parser.status_code()))
 				{
 					// this means we got a redirection request
 					// look for the location header
