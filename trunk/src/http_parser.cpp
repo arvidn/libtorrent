@@ -45,6 +45,21 @@ using namespace libtorrent;
 
 namespace libtorrent
 {
+
+	bool is_ok_status(int http_status)
+	{
+		return http_status == 206 // partial content
+			|| http_status == 200 // OK
+			|| (http_status >= 300 // redirect
+				&& http_status < 400);
+	}
+
+	bool is_redirect(int http_status)
+	{
+		return http_status >= 300
+			&& http_status < 400;
+	}
+
 	http_parser::http_parser()
 		: m_recv_pos(0)
 		, m_status_code(-1)

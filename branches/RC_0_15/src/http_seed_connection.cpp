@@ -312,11 +312,12 @@ namespace libtorrent
 				}
 
 				// if the status code is not one of the accepted ones, abort
-				if (m_parser.status_code() != 200 // OK
-					&& m_parser.status_code() != 503
-					&& !(m_parser.status_code() >= 300 // redirect
-						&& m_parser.status_code() < 400))
+				if (!is_ok_status(m_parser.status_code()) && m_parser.status_code() != 503)
 				{
+					int retry_time = atoi(m_parser.header("retry-after").c_str());
+					if (retry_time <= 0) retry_time = 5 * 60;
+					// temporarily unavailable, retry later
+					t->retry_web_seed(m_url, web_seed_entry::http_seed, retry_time);
 					t->remove_web_seed(m_url, web_seed_entry::http_seed);
 					std::string error_msg = to_string(m_parser.status_code()).elems
 						+ (" " + m_parser.message());
@@ -339,7 +340,7 @@ namespace libtorrent
 			// we just completed reading the header
 			if (!header_finished)
 			{
-				if (m_parser.status_code() >= 300 && m_parser.status_code() < 400)
+				if (is_redirect(m_parser.status_code()))
 				{
 					// this means we got a redirection request
 					// look for the location header
@@ -400,12 +401,9 @@ namespace libtorrent
 				if (!m_parser.finished()) return;
 
 				int retry_time = atol(std::string(recv_buffer.begin, recv_buffer.end).c_str());
-				if (retry_time <= 0) retry_time = 0;
+				if (retry_time <= 0) retry_time = 60;
 #ifdef TORRENT_VERBOSE_LOGGING
-				else
-				{
-					(*m_logger) << time_now_string() << ": retrying in " << retry_time << " seconds\n";
-				}
+				(*m_logger) << time_now_string() << ": retrying in " << retry_time << " seconds\n";
 #endif
 
 				// temporarily unavailable, retry later

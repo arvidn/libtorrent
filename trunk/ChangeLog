@@ -43,6 +43,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* improved web seed retry behavior
 	* fixed announce issue
 
 0.15.3 release
