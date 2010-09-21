@@ -46,7 +46,6 @@ namespace libtorrent {
 
 enum { max_bottled_buffer = 1024 * 1024 };
 
-
 void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, proxy_settings const* ps, int handle_redirects, std::string const& user_agent
 	, address const& bind_addr
