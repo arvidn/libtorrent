@@ -123,10 +123,13 @@ namespace libtorrent
 			, sparse_regions(0)
 			, seed_mode(false)
 			, upload_mode(false)
+			, share_mode(false)
 			, priority(0)
 			, added_time(0)
 			, completed_time(0)
 			, last_seen_complete(0)
+			, time_since_upload(0)
+			, time_since_download(0)
 		{}
 
 		enum state_t
@@ -304,6 +307,9 @@ namespace libtorrent
 		// write operation failing
 		bool upload_mode;
 
+		// this is true if the torrent is in share-mode
+		bool share_mode;
+
 		// the priority of this torrent
 		int priority;
 
@@ -311,6 +317,10 @@ namespace libtorrent
 		time_t added_time;
 		time_t completed_time;
 		time_t last_seen_complete;
+
+		// number of seconds since last upload or download activity
+		int time_since_upload;
+		int time_since_download;
 	};
 
 	struct TORRENT_EXPORT block_info
@@ -462,6 +472,7 @@ namespace libtorrent
 		void pause() const;
 		void resume() const;
 		void set_upload_mode(bool b) const;
+		void set_share_mode(bool b) const;
 		void flush_cache() const;
 
 		void force_recheck() const;

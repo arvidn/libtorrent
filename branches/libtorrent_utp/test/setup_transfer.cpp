@@ -90,15 +90,18 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		}
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a.get()) == 0 || allow_failed_fastresume);
 
-		TEST_CHECK(alert_cast<peer_error_alert>(a.get()) == 0
+		peer_error_alert* pea = alert_cast<peer_error_alert>(a.get());
+		TEST_CHECK(pea == 0
 			|| (!handles.empty() && h.is_seed())
-			|| a->message() == "connecting to peer"
-			|| a->message() == "closing connection to ourself"
-			|| a->message() == "duplicate connection"
-			|| a->message() == "duplicate peer-id, connection closed"
-			|| (allow_disconnects && a->message() == "Broken pipe")
-			|| (allow_disconnects && a->message() == "Connection reset by peer")
-			|| (allow_disconnects && a->message() == "End of file."));
+			|| pea->error.message() == "connecting to peer"
+			|| pea->error.message() == "closing connection to ourself"
+			|| pea->error.message() == "duplicate connection"
+			|| pea->error.message() == "duplicate peer-id"
+			|| pea->error.message() == "upload to upload connection"
+			|| pea->error.message() == "stopping torrent"
+			|| (allow_disconnects && pea->error.message() == "Broken pipe")
+			|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
+			|| (allow_disconnects && pea->error.message() == "End of file."));
 		a = ses.pop_alert();
 	}
 	return ret;
@@ -344,7 +347,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 boost::asio::io_service* tracker_ios = 0;
 boost::shared_ptr<libtorrent::thread> tracker_server;
 libtorrent::mutex tracker_lock;
-libtorrent::condition tracker_initialized;
+libtorrent::event tracker_initialized;
 
 bool udp_failed = false;
 
@@ -490,13 +493,13 @@ void udp_tracker_thread(int* port)
 boost::asio::io_service* web_ios = 0;
 boost::shared_ptr<libtorrent::thread> web_server;
 libtorrent::mutex web_lock;
-libtorrent::condition web_initialized;
+libtorrent::event web_initialized;
 
 void stop_web_server()
 {
 	if (web_server && web_ios)
 	{
-		web_ios->stop();
+		web_ios->post(boost::bind(&io_service::stop, web_ios));
 		web_server->join();
 		web_server.reset();
 		web_ios = 0;

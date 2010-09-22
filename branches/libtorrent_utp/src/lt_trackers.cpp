@@ -156,7 +156,7 @@ namespace libtorrent { namespace
 		virtual void add_handshake(entry& h)
 		{
 			entry& messages = h["m"];
-			messages["lt_tex"] = 16;
+			messages["lt_tex"] = 19;
 			h["tr"] = m_tp.list_hash().to_string();
 		}
 
@@ -186,7 +186,7 @@ namespace libtorrent { namespace
 		virtual bool on_extended(int length
 			, int extended_msg, buffer::const_interval body)
 		{
-			if (extended_msg != 3) return false;
+			if (extended_msg != 19) return false;
 			if (m_message_index == 0) return false;
 			if (!m_pc.packet_finished()) return true;
 

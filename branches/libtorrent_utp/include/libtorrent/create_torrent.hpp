@@ -52,7 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/config.hpp>
 
@@ -127,7 +126,7 @@ namespace libtorrent
 		// if a creation date is found in the torrent file
 		// this will be set to that, otherwise it'll be
 		// 1970, Jan 1
-		boost::posix_time::ptime m_creation_date;
+		time_t m_creation_date;
 
 		// if a comment is found in the torrent file
 		// this will be set to that comment
@@ -255,7 +254,8 @@ namespace libtorrent
 	{
 		file_pool fp;
 		boost::scoped_ptr<storage_interface> st(
-			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, p, fp));
+			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, p, fp
+			, std::vector<boost::uint8_t>()));
 
 		// if we're calculating file hashes as well, use this hasher
 		hasher filehash;
@@ -354,7 +354,8 @@ namespace libtorrent
 		std::string utf8;
 		wchar_utf8(p, utf8);
 		boost::scoped_ptr<storage_interface> st(
-			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, utf8, fp));
+			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, utf8, fp
+			, std::vector<boost::uint8_t>()));
 
 		// calculate the hash for all pieces
 		int num = t.num_pieces();

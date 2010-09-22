@@ -35,13 +35,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/version.hpp"
 
 namespace libtorrent
 {
 
 	struct TORRENT_EXPORT proxy_settings
 	{
-		proxy_settings() : port(0), type(none) {}
+		proxy_settings() : port(0), type(none)
+			, proxy_hostnames(true) {}
 
 		std::string hostname;
 		int port;
@@ -77,14 +79,18 @@ namespace libtorrent
 		};
 		
 		proxy_type type;
-	
+
+		// when set to true, hostname are resolved
+		// through the proxy (if supported)
+		bool proxy_hostnames;
 	};
 
 	struct TORRENT_EXPORT session_settings
 	{
 		session_settings(std::string const& user_agent_ = "libtorrent/"
 			LIBTORRENT_VERSION)
-			: user_agent(user_agent_)
+			: version(LIBTORRENT_VERSION_NUM)
+			, user_agent(user_agent_)
 			, tracker_completion_timeout(60)
 			, tracker_receive_timeout(40)
 			, stop_tracker_timeout(5)
@@ -103,7 +109,7 @@ namespace libtorrent
 			, allow_multiple_connections_per_ip(false)
 			, max_failcount(3)
 			, min_reconnect_time(60)
-			, peer_connect_timeout(7)
+			, peer_connect_timeout(15)
 			, ignore_limits_on_local_network(true)
 			, connection_speed(10)
 			, send_redundant_have(false)
@@ -177,7 +183,7 @@ namespace libtorrent
 			, max_sparse_regions(0)
 #endif
 #ifndef TORRENT_DISABLE_MLOCK
-			, lock_disk_cache(true)
+			, lock_disk_cache(false)
 #endif
 			, max_rejects(50)
 			, recv_socket_buffer_size(0)
@@ -219,6 +225,8 @@ namespace libtorrent
 			, ignore_resume_timestamps(false)
 			, anonymous_mode(false)
 			, tick_interval(100)
+			, report_web_seed_downloads(true)
+			, share_mode_target(3)
 			, utp_target_delay(50) // milliseconds
 			, utp_gain_factor(3000) // bytes per rtt
 			, utp_syn_resends(2)
@@ -228,6 +236,9 @@ namespace libtorrent
 			, mixed_mode_algorithm(peer_proportional)
 			, rate_limit_utp(false)
 		{}
+
+		// libtorrent version. Used for forward binary compatibility
+		int version;
 
 		// this is the user agent that will be sent to the tracker
 		// when doing requests. It is used to identify the client.
@@ -860,6 +871,13 @@ namespace libtorrent
 		// the number of milliseconds between internal ticks. Should be no
 		// more than one second (i.e. 1000).
 		int tick_interval;
+
+		// specifies whether downloads from web seeds is reported to the
+		// tracker or not. Defaults to on
+		bool report_web_seed_downloads;
+
+		// this is the target share ratio for share-mode torrents
+		int share_mode_target;
 
 		// target delay, milliseconds
 		int utp_target_delay;

@@ -1,4 +1,14 @@
 	* resistance towards certain flood attacks
+	* full support for BEP 21 (event=paused)
+	* added share-mode feature for improving share ratios
+	* merged all proxy settings into a single one
+	* improved SOCKS5 support by proxying hostname lookups
+	* improved support for multi-homed clients
+	* added feature to not count downloaded bytes from web seeds in stats
+	* added alert for incoming local service discovery messages
+	* added option to set file priorities when adding torrents
+	* removed the session mutex for improved performance
+	* added upload and download activity timer stats for torrents
 	* made the reuse-address flag configurable on the listen socket
 	* moved UDP trackers over to use a single socket
 	* added feature to make asserts log to a file instead of breaking the process
@@ -33,6 +43,29 @@
 	* support for automatically start torrents when they receive an
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
+
+	* improved web seed retry behavior
+	* fixed announce issue
+
+0.15.3 release
+
+	* fixed announce bug where event=completed would not be sent if it violated the
+	  min-announce of the tracker
+	* fixed limitation in rate limiter
+	* fixed build error with boost 1.44
+
+0.15.2 release
+
+	* updated compiler to msvc 2008 for python binding
+	* restored default fail_limit to unlimited on all trackers
+	* fixed rate limit bug for DHT
+	* fixed SOCKS5 bug for routing UDP packets
+	* fixed bug on windows when verifying resume data for a torrent where
+	  one of its directories had been removed
+	* fixed race condition in peer-list with DHT
+	* fix force-reannounce and tracker retry issue
+
+0.15.1 release
 
 	* fixed rare crash when purging the peer list
 	* fixed race condition around m_abort in session_impl

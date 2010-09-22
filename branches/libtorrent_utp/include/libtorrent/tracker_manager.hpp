@@ -96,7 +96,8 @@ namespace libtorrent
 			none,
 			completed,
 			started,
-			stopped
+			stopped,
+			paused
 		};
 
 		sha1_hash info_hash;
@@ -124,7 +125,8 @@ namespace libtorrent
 		virtual void tracker_warning(tracker_request const& req
 			, std::string const& msg) = 0;
 		virtual void tracker_scrape_response(tracker_request const& /*req*/
-			, int /*complete*/, int /*incomplete*/, int /*downloads*/) {}
+			, int /*complete*/, int /*incomplete*/, int /*downloads*/
+			, int /*downloaders*/) {}
 		virtual void tracker_response(
 			tracker_request const& req
 			, address const& tracker_ip
@@ -211,6 +213,8 @@ namespace libtorrent
 		void received_bytes(int bytes);
 		virtual bool on_receive(error_code const& ec, udp::endpoint const& ep
 			, char const* buf, int size) { return false; }
+		virtual bool on_receive_hostname(error_code const& ec, char const* hostname
+			, char const* buf, int size) { return false; }
 
 	protected:
 		boost::weak_ptr<request_callback> m_requester;
@@ -246,6 +250,10 @@ namespace libtorrent
 		void received_bytes(int bytes);
 
 		bool incoming_udp(error_code const& e, udp::endpoint const& ep, char const* buf, int size);
+
+		// this is only used for SOCKS packets, since
+		// they may be addressed to hostname
+		bool incoming_udp(error_code const& e, char const* hostname, char const* buf, int size);
 		
 	private:
 

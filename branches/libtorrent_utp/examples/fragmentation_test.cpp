@@ -72,7 +72,7 @@ int main(int argc, char const* argv[])
 	}
 
 	file_pool fp;
-	boost::shared_ptr<storage_interface> st(default_storage_constructor(ti->files(), 0, argv[2], fp));
+	boost::shared_ptr<storage_interface> st(default_storage_constructor(ti->files(), 0, argv[2], fp, std::vector<boost::uint8_t>()));
 
 	// the first field is the piece index, the second
 	// one is the physical location of the piece on disk

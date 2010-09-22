@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,55 +30,40 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
-#define TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
+#ifndef TORRENT_COPY_PTR
+#define TORRENT_COPY_PTR
 
-#include <boost/integer_traits.hpp>
-#include <boost/cstdint.hpp>
-
-#include "libtorrent/assert.hpp"
-
-namespace libtorrent {
-
-// member of peer_connection
-struct TORRENT_EXPORT bandwidth_channel
+namespace libtorrent
 {
-	static const int inf = boost::integer_traits<int>::const_max;
-
-	bandwidth_channel();
-
-	// 0 means infinite
-	void throttle(int limit);
-	int throttle() const { return m_limit; }
-
-	int quota_left() const;
-	void update_quota(int dt_milliseconds);
-
-	// this is used when connections disconnect with
-	// some quota left. It's returned to its bandwidth
-	// channels.
-	void return_quota(int amount);
-	void use_quota(int amount);
-
-	// used as temporary storage while distributing
-	// bandwidth
-	int tmp;
-
-	// this is the number of bytes to distribute this round
-	int distribute_quota;
-
-private:
-
-	// this is the amount of bandwidth we have
-	// been assigned without using yet.
-	boost::int64_t m_quota_left;
-
-	// the limit is the number of bytes
-	// per second we are allowed to use.
-	boost::int64_t m_limit;
-};
-
+	template <class T>
+	struct copy_ptr
+	{
+		copy_ptr(): m_ptr(0) {}
+		copy_ptr(T* t): m_ptr(t) {}
+		copy_ptr(copy_ptr const& p): m_ptr(p.m_ptr ? new T(*p.m_ptr) : 0) {}
+		void reset(T* t = 0) { delete m_ptr; m_ptr = t; }
+		copy_ptr& operator=(copy_ptr const& p)
+		{
+			delete m_ptr;
+			m_ptr = p.m_ptr ? new T(*p.m_ptr) : 0;
+			return *this;
+		}
+		T* operator->() { return m_ptr; }
+		T const* operator->() const { return m_ptr; }
+		T& operator*() { return *m_ptr; }
+		T const& operator*() const { return *m_ptr; }
+		void swap(copy_ptr<T>& p)
+		{
+			T* tmp = m_ptr;
+			m_ptr = p.m_ptr;
+			p.m_ptr = tmp;
+		}
+		operator bool() const { return m_ptr; }
+		~copy_ptr() { delete m_ptr; }
+	private:
+		T* m_ptr;
+	};
 }
 
-#endif
+#endif // TORRENT_COPY_PTR
 

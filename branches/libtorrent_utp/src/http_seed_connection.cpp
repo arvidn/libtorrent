@@ -69,6 +69,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		if (!ses.settings().report_web_seed_downloads)
+			ignore_stats(true);
+
 		// we want large blocks as well, so
 		// we can request more bytes at once
 		request_large_blocks(true);
@@ -194,7 +197,7 @@ namespace libtorrent
 			size -= pr.length;
 		}
 
-		proxy_settings const& ps = m_ses.web_seed_proxy();
+		proxy_settings const& ps = m_ses.proxy();
 		bool using_proxy = ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw;
 
@@ -317,12 +320,13 @@ namespace libtorrent
 				}
 
 				// if the status code is not one of the accepted ones, abort
-				if (m_parser.status_code() != 200 // OK
-					&& m_parser.status_code() != 503
-					&& !(m_parser.status_code() >= 300 // redirect
-						&& m_parser.status_code() < 400))
+				if (!is_ok_status(m_parser.status_code()))
 				{
-					t->remove_web_seed(this);
+					int retry_time = atoi(m_parser.header("retry-after").c_str());
+					if (retry_time <= 0) retry_time = 5 * 60;
+					// temporarily unavailable, retry later
+					t->retry_web_seed(this, retry_time);
+
 					std::string error_msg = to_string(m_parser.status_code()).elems
 						+ (" " + m_parser.message());
 					if (m_ses.m_alerts.should_post<url_seed_alert>())
@@ -344,7 +348,7 @@ namespace libtorrent
 			// we just completed reading the header
 			if (!header_finished)
 			{
-				if (m_parser.status_code() >= 300 && m_parser.status_code() < 400)
+				if (is_redirect(m_parser.status_code()))
 				{
 					// this means we got a redirection request
 					// look for the location header
@@ -405,12 +409,9 @@ namespace libtorrent
 				if (!m_parser.finished()) return;
 
 				int retry_time = atol(std::string(recv_buffer.begin, recv_buffer.end).c_str());
-				if (retry_time <= 0) retry_time = 0;
+				if (retry_time <= 0) retry_time = 60;
 #ifdef TORRENT_VERBOSE_LOGGING
-				else
-				{
-					(*m_logger) << time_now_string() << ": retrying in " << retry_time << " seconds\n";
-				}
+				(*m_logger) << time_now_string() << ": retrying in " << retry_time << " seconds\n";
 #endif
 
 				// temporarily unavailable, retry later
@@ -418,6 +419,7 @@ namespace libtorrent
 				disconnect(errors::http_error, 1);
 				return;
 			}
+
 
 			// we only received the header, no data
 			if (recv_buffer.left() == 0) break;

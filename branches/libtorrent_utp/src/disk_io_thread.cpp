@@ -59,6 +59,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/resource.h>
 #endif
 
+#ifdef TORRENT_LINUX
+#include <linux/unistd.h>
+#endif
+
 namespace libtorrent
 {
 	bool should_cancel_on_abort(disk_io_job const& j);
@@ -368,7 +372,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_abort == true);
 	}
 
-	void disk_io_thread::join()
+	void disk_io_thread::abort()
 	{
 		mutex::scoped_lock l(m_queue_mutex);
 		disk_io_job j;
@@ -376,10 +380,12 @@ namespace libtorrent
 		j.action = disk_io_job::abort_thread;
 		m_jobs.insert(m_jobs.begin(), j);
 		m_signal.signal(l);
-		l.unlock();
+	}
 
+	void disk_io_thread::join()
+	{
 		m_disk_io_thread.join();
-		l.lock();
+		mutex::scoped_lock l(m_queue_mutex);
 		TORRENT_ASSERT(m_abort == true);
 		m_jobs.clear();
 	}
@@ -431,7 +437,7 @@ namespace libtorrent
 
 		ret.average_queue_time = m_queue_time.mean();
 		ret.average_read_time = m_read_time.mean();
-		ret.job_queue_length = m_jobs.size();
+		ret.job_queue_length = m_jobs.size() + m_sorted_read_jobs.size();
 
 		return ret;
 	}
@@ -1521,9 +1527,7 @@ namespace libtorrent
 		// 1 = forward in list, -1 = backwards in list
 		int elevator_direction = 1;
 
-		typedef std::multimap<size_type, disk_io_job> read_jobs_t;
-		read_jobs_t sorted_read_jobs;
-		read_jobs_t::iterator elevator_job_pos = sorted_read_jobs.begin();
+		read_jobs_t::iterator elevator_job_pos = m_sorted_read_jobs.begin();
 		size_type last_elevator_pos = 0;
 		bool need_update_elevator_pos = false;
 
@@ -1534,7 +1538,7 @@ namespace libtorrent
 #endif
 			mutex::scoped_lock jl(m_queue_mutex);
 
-			while (m_jobs.empty() && sorted_read_jobs.empty() && !m_abort)
+			while (m_jobs.empty() && m_sorted_read_jobs.empty() && !m_abort)
 			{
 				// if there hasn't been an event in one second
 				// see if we should flush the cache
@@ -1631,8 +1635,8 @@ namespace libtorrent
 					m_log << log_time() << " sorting_job" << std::endl;
 #endif
 					size_type phys_off = j.storage->physical_offset(j.piece, j.offset);
-					need_update_elevator_pos = need_update_elevator_pos || sorted_read_jobs.empty();
-					sorted_read_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
+					need_update_elevator_pos = need_update_elevator_pos || m_sorted_read_jobs.empty();
+					m_sorted_read_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
 					continue;
 				}
 			}
@@ -1643,31 +1647,31 @@ namespace libtorrent
 				// job queue lock anymore
 				jl.unlock();
 
-				TORRENT_ASSERT(!sorted_read_jobs.empty());
+				TORRENT_ASSERT(!m_sorted_read_jobs.empty());
 
-				// if sorted_read_jobs used to be empty,
+				// if m_sorted_read_jobs used to be empty,
 				// we need to update the elevator position
 				if (need_update_elevator_pos)
 				{
-					elevator_job_pos = sorted_read_jobs.lower_bound(last_elevator_pos);
+					elevator_job_pos = m_sorted_read_jobs.lower_bound(last_elevator_pos);
 					need_update_elevator_pos = false;
 				}
 
 				// if we've reached the end, change the elevator direction
-				if (elevator_job_pos == sorted_read_jobs.end())
+				if (elevator_job_pos == m_sorted_read_jobs.end())
 				{
 					elevator_direction = -1;
 					--elevator_job_pos;
 				}
-				TORRENT_ASSERT(!sorted_read_jobs.empty());
+				TORRENT_ASSERT(!m_sorted_read_jobs.empty());
 
-				TORRENT_ASSERT(elevator_job_pos != sorted_read_jobs.end());
+				TORRENT_ASSERT(elevator_job_pos != m_sorted_read_jobs.end());
 				j = elevator_job_pos->second;
 				read_jobs_t::iterator to_erase = elevator_job_pos;
 
 				// if we've reached the begining of the sorted list,
 				// change the elvator direction
-				if (elevator_job_pos == sorted_read_jobs.begin())
+				if (elevator_job_pos == m_sorted_read_jobs.begin())
 					elevator_direction = 1;
 
 				// move the elevator before erasing the job we're processing
@@ -1677,7 +1681,7 @@ namespace libtorrent
 
 				TORRENT_ASSERT(to_erase != elevator_job_pos);
 				last_elevator_pos = to_erase->first;
-				sorted_read_jobs.erase(to_erase);
+				m_sorted_read_jobs.erase(to_erase);
 			}
 
 			// if there's a buffer in this job, it will be freed
@@ -1751,6 +1755,8 @@ namespace libtorrent
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 					setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
 						, m_settings.low_prio_disk ? IOPOL_THROTTLE : IOPOL_DEFAULT);
+#elif defined IOPRIO_WHO_PROCESS
+					syscall(ioprio_set, IOPRIO_WHO_PROCESS, getpid());
 #endif
 					if (m_settings.cache_size == -1)
 					{
@@ -1793,8 +1799,8 @@ namespace libtorrent
 						++i;
 					}
 					// now clear all the read jobs
-					for (read_jobs_t::iterator i = sorted_read_jobs.begin();
-						i != sorted_read_jobs.end();)
+					for (read_jobs_t::iterator i = m_sorted_read_jobs.begin();
+						i != m_sorted_read_jobs.end();)
 					{
 						if (i->second.storage != j.storage)
 						{
@@ -1803,7 +1809,7 @@ namespace libtorrent
 						}
 						post_callback(i->second.callback, i->second, -3);
 						if (elevator_job_pos == i) ++elevator_job_pos;
-						sorted_read_jobs.erase(i++);
+						m_sorted_read_jobs.erase(i++);
 					}
 					jl.unlock();
 
@@ -1856,8 +1862,8 @@ namespace libtorrent
 					}
 					jl.unlock();
 
-					for (read_jobs_t::iterator i = sorted_read_jobs.begin();
-						i != sorted_read_jobs.end();)
+					for (read_jobs_t::iterator i = m_sorted_read_jobs.begin();
+						i != m_sorted_read_jobs.end();)
 					{
 						if (i->second.storage != j.storage)
 						{
@@ -1866,7 +1872,7 @@ namespace libtorrent
 						}
 						post_callback(i->second.callback, i->second, -3);
 						if (elevator_job_pos == i) ++elevator_job_pos;
-						sorted_read_jobs.erase(i++);
+						m_sorted_read_jobs.erase(i++);
 					}
 
 					m_abort = true;

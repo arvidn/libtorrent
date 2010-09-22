@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ALERT_HPP_INCLUDED
 
 #include <memory>
-#include <queue>
+#include <deque>
 #include <string>
 
 #ifdef _MSC_VER
@@ -145,15 +145,15 @@ namespace libtorrent {
 		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
-		void set_dispatch_function(boost::function<void(alert const&)> const&);
+		void set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const&);
 
 	private:
-		std::queue<alert*> m_alerts;
+		std::deque<alert*> m_alerts;
 		mutable mutex m_mutex;
-		condition m_condition;
+		event m_condition;
 		int m_alert_mask;
 		size_t m_queue_size_limit;
-		boost::function<void(alert const&)> m_dispatch;
+		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
 		io_service& m_ios;
 	};
 

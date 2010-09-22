@@ -289,7 +289,7 @@ namespace libtorrent
 		// find the block with the fewest requests to it
 		std::vector<piece_block>::iterator i = std::min_element(
 			busy_pieces.begin(), busy_pieces.end()
-			, bind(&piece_picker::num_peers, boost::cref(p), _1) <
+			, boost::bind(&piece_picker::num_peers, boost::cref(p), _1) <
 			bind(&piece_picker::num_peers, boost::cref(p), _2));
 #ifdef TORRENT_DEBUG
 		piece_picker::downloading_piece st;
@@ -371,6 +371,7 @@ namespace libtorrent
 	void policy::erase_peer(iterator i)
 	{
 		INVARIANT_CHECK;
+		TORRENT_ASSERT(i != m_peers.end());
 
 		if (m_torrent->has_picker())
 			m_torrent->picker().clear_peer(*i);
@@ -384,20 +385,37 @@ namespace libtorrent
 		if (m_round_robin > i - m_peers.begin()) --m_round_robin;
 		if (m_round_robin >= m_peers.size()) m_round_robin = 0;
 
+#ifdef TORRENT_DEBUG
+		TORRENT_ASSERT((*i)->in_use);
+		(*i)->in_use = false;
+#endif
+
 #if TORRENT_USE_IPV6
 		if ((*i)->is_v6_addr)
+		{
+			TORRENT_ASSERT(m_torrent->session().m_ipv6_peer_pool.is_from(
+				static_cast<ipv6_peer*>(*i)));
 			m_torrent->session().m_ipv6_peer_pool.destroy(
 				static_cast<ipv6_peer*>(*i));
+		}
 		else
 #endif
 #if TORRENT_USE_I2P
 		if ((*i)->is_i2p_addr)
+		{
+			TORRENT_ASSERT(m_torrent->session().m_i2p_peer_pool.is_from(
+				static_cast<i2p_peer*>(*i)));
 			m_torrent->session().m_i2p_peer_pool.destroy(
 				static_cast<i2p_peer*>(*i));
+		}
 		else
 #endif
+		{
+			TORRENT_ASSERT(m_torrent->session().m_ipv4_peer_pool.is_from(
+				static_cast<ipv4_peer*>(*i)));
 			m_torrent->session().m_ipv4_peer_pool.destroy(
 				static_cast<ipv4_peer*>(*i));
+		}
 		m_peers.erase(i);
 	}
 
@@ -421,8 +439,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		int max_peerlist_size = m_torrent->is_paused()
-			?m_torrent->settings().max_paused_peerlist_size
-			:m_torrent->settings().max_peerlist_size;
+			? m_torrent->settings().max_paused_peerlist_size
+			: m_torrent->settings().max_peerlist_size;
 
 		if (max_peerlist_size == 0 || m_peers.empty()) return;
 
@@ -451,6 +469,8 @@ namespace libtorrent
 					if (should_erase_immediately(pe))
 					{
 						if (erase_candidate > current) --erase_candidate;
+						TORRENT_ASSERT(current >= 0 && current < m_peers.size());
+						--round_robin;
 						erase_peer(m_peers.begin() + current);
 					}
 					else
@@ -464,7 +484,10 @@ namespace libtorrent
 		}
 		
 		if (erase_candidate > -1)
+		{
+			TORRENT_ASSERT(erase_candidate >= 0 && erase_candidate < m_peers.size());
 			erase_peer(m_peers.begin() + erase_candidate);
+		}
 	}
 
 	void policy::ban_peer(policy::peer* p)
@@ -584,6 +607,7 @@ namespace libtorrent
 					{
 						if (erase_candidate > current) --erase_candidate;
 						if (candidate > current) --candidate;
+						--m_round_robin;
 						erase_peer(m_peers.begin() + current);
 					}
 					else
@@ -788,6 +812,9 @@ namespace libtorrent
 #endif
 				(peer*)m_torrent->session().m_ipv4_peer_pool.malloc();
 			if (p == 0) return false;
+
+//			TORRENT_ASSERT(p->in_use == false);
+
 #if TORRENT_USE_IPV6
 			if (is_v6)
 				m_torrent->session().m_ipv6_peer_pool.set_next_size(500);
@@ -801,6 +828,10 @@ namespace libtorrent
 			else
 #endif
 				new (p) ipv4_peer(c.remote(), false, 0);
+
+#ifdef TORRENT_DEBUG
+			p->in_use = true;
+#endif
 
 			iter = m_peers.insert(iter, p);
 
@@ -1076,8 +1107,17 @@ namespace libtorrent
 			if (p == 0) return 0;
 			m_torrent->session().m_i2p_peer_pool.set_next_size(500);
 			new (p) i2p_peer(destination, true, src);
+
+#ifdef TORRENT_DEBUG
+			p->in_use = true;
+#endif
+
 			if (!insert_peer(p, iter, flags))
 			{
+#ifdef TORRENT_DEBUG
+				p->in_use = false;
+#endif
+
 				m_torrent->session().m_i2p_peer_pool.free((i2p_peer*)p);
 				return 0;
 			}
@@ -1179,8 +1219,15 @@ namespace libtorrent
 #endif
 				new (p) ipv4_peer(remote, true, src);
 
+#ifdef TORRENT_DEBUG
+			p->in_use = true;
+#endif
+
 			if (!insert_peer(p, iter, flags))
 			{
+#ifdef TORRENT_DEBUG
+				p->in_use = false;
+#endif
 #if TORRENT_USE_IPV6
 				if (is_v6) m_torrent->session().m_ipv6_peer_pool.free((ipv6_peer*)p);
 				else

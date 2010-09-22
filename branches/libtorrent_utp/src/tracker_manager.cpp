@@ -172,13 +172,13 @@ namespace libtorrent
 
 	void tracker_manager::sent_bytes(int bytes)
 	{
-//		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_ses.m_stat.sent_tracker_bytes(bytes);
 	}
 
 	void tracker_manager::received_bytes(int bytes)
 	{
-		mutex::scoped_lock l(m_ses.m_mutex);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_ses.m_stat.received_tracker_bytes(bytes);
 	}
 
@@ -262,6 +262,20 @@ namespace libtorrent
 			++i;
 			// on_receive() may remove the tracker connection from the list
 			if (p->on_receive(e, ep, buf, size)) return true;
+		}
+		return false;
+	}
+
+	bool tracker_manager::incoming_udp(error_code const& e
+		, char const* hostname, char const* buf, int size)
+	{
+		for (tracker_connections_t::iterator i = m_connections.begin();
+			i != m_connections.end();)
+		{
+			boost::intrusive_ptr<tracker_connection> p = *i;
+			++i;
+			// on_receive() may remove the tracker connection from the list
+			if (p->on_receive_hostname(e, hostname, buf, size)) return true;
 		}
 		return false;
 	}

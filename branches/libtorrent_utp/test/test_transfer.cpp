@@ -112,16 +112,16 @@ void test_rate()
 
 }
 
-void print_alert(alert const& a)
+void print_alert(std::auto_ptr<alert>)
 {
-	std::cout << "ses1 (alert dispatch function): " << a.message() << std::endl;
+	std::cout << "ses1 (alert dispatch function): "/* << a.message() */ << std::endl;
 }
 
 // simulate a full disk
 struct test_storage : storage_interface
 {
 	test_storage(file_storage const& fs, std::string const& p, file_pool& fp)
-		: m_lower_layer(default_storage_constructor(fs, 0, p, fp))
+		: m_lower_layer(default_storage_constructor(fs, 0, p, fp, std::vector<boost::uint8_t>()))
   		, m_written(0)
 		, m_limit(16 * 1024 * 2)
 	{}
@@ -213,7 +213,7 @@ struct test_storage : storage_interface
 };
 
 storage_interface* test_storage_constructor(file_storage const& fs
-	, file_storage const*, std::string const& path, file_pool& fp)
+	, file_storage const*, std::string const& path, file_pool& fp, std::vector<boost::uint8_t> const&)
 {
 	return new test_storage(fs, path, fp);
 }
@@ -254,8 +254,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy_type;
-		ses1.set_tracker_proxy(ps);
-		ses2.set_tracker_proxy(ps);
+		ses1.set_proxy(ps);
+		ses2.set_proxy(ps);
 	}
 
 	session_settings sett;
@@ -277,8 +277,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
-	pes.out_enc_policy = pe_settings::forced;
-	pes.in_enc_policy = pe_settings::forced;
+	pes.out_enc_policy = pe_settings::disabled;
+	pes.in_enc_policy = pe_settings::disabled;
 	ses1.set_pe_settings(pes);
 	ses2.set_pe_settings(pes);
 #endif
@@ -322,7 +322,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	ses2.set_alert_mask(alert::all_categories
 		& ~alert::progress_notification
 		& ~alert::stats_notification);
-	ses1.set_alert_dispatch(&print_alert);
+//	ses1.set_alert_dispatch(&print_alert);
 
 	ses2.set_download_rate_limit(tor2.get_torrent_info().piece_length() * 5);
 
@@ -380,7 +380,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	}
 
 	// 1 announce per tracker to start
-	TEST_EQUAL(tracker_responses, 2);
+	TEST_CHECK(tracker_responses >= 2);
 
 	TEST_CHECK(!tor2.is_seed());
 	TEST_CHECK(tor2.is_finished());

@@ -105,7 +105,8 @@ namespace libtorrent
 		enum
 		{
 			upload_only_msg = 2,
-			holepunch_msg = 3
+			holepunch_msg = 3,
+			share_mode_msg = 4
 		};
 
 		~bt_peer_connection();
@@ -227,6 +228,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
 		void write_upload_only();
+		void write_share_mode();
 #endif
 		void write_metadata(std::pair<int, int> req);
 		void write_metadata_request(std::pair<int, int> req);
@@ -389,6 +391,10 @@ private:
 
 		// the message ID for holepunch messages
 		int m_holepunch_id;
+
+		// the message ID for share mode message
+		// 0 if not supported
+		int m_share_mode_id;
 
 		char m_reserved_bits[8];
 		// this is set to true if the handshake from

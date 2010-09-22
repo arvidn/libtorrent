@@ -218,6 +218,8 @@ namespace libtorrent
 		int progress_ppm; // [0, 1000000]
 
 		int estimated_reciprocation_rate;
+
+		tcp::endpoint local_endpoint;
 	};
 
 	struct TORRENT_EXPORT peer_list_entry

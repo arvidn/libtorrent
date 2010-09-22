@@ -248,6 +248,9 @@ namespace libtorrent
 		bool no_download() const { return m_no_download; }
 		void no_download(bool b) { m_no_download = b; }
 
+		bool ignore_stats() const { return m_ignore_stats; }
+		void ignore_stats(bool b) { m_ignore_stats = b; }
+
 		void set_priority(int p)
 		{
 			TORRENT_ASSERT(p > 0);
@@ -274,6 +277,10 @@ namespace libtorrent
 		bool can_read(char* state = 0) const;
 
 		bool is_seed() const;
+		int num_have_pieces() const { return m_num_pieces; }
+
+		void set_share_mode(bool m);
+		bool share_mode() const { return m_share_mode; }
 
 		void set_upload_only(bool u);
 		bool upload_only() const { return m_upload_only; }
@@ -572,11 +579,11 @@ namespace libtorrent
 		size_type downloaded_since_unchoke() const
 		{ return m_statistics.total_payload_download() - m_downloaded_at_last_unchoke; }
 
-		void setup_receive();
+		enum sync_t { read_async, read_sync };
+		void setup_receive(sync_t sync = read_sync);
 
 	protected:
 
-		enum sync_t { read_async, read_sync };
 		size_t try_read(sync_t s, error_code& ec);
 
 		virtual void get_specific_peer_info(peer_info& p) const = 0;
@@ -655,8 +662,6 @@ namespace libtorrent
 		void on_send_data(error_code const& error
 			, std::size_t bytes_transferred);
 		void on_receive_data(error_code const& error
-			, std::size_t bytes_transferred);
-		void on_receive_data_nolock(error_code const& error
 			, std::size_t bytes_transferred);
 
 		// this is the limit on the number of outstanding requests
@@ -979,6 +984,10 @@ namespace libtorrent
 		// requesting too many pieces while being choked
 		boost::uint8_t m_choke_rejects;
 
+		// counts the number of recursive calls to on_receive_data
+		// used to limit recursion
+		boost::uint8_t m_read_recurse:5;
+
 		// if this is true, the disconnection
 		// timestamp is not updated when the connection
 		// is closed. This means the time until we can
@@ -1052,7 +1061,10 @@ namespace libtorrent
 		// the http-downloader, to request whole pieces
 		// at a time.
 		bool m_request_large_blocks:1;
-		
+
+		// set to true if this peer is in share mode		
+		bool m_share_mode:1;
+
 		// set to true when this peer is only uploading
 		bool m_upload_only:1;
 
@@ -1073,6 +1085,10 @@ namespace libtorrent
 
 		// set to true while we're trying to holepunch
 		bool m_holepunch_mode:1;
+
+		// when this is set, the transfer stats for this connection
+		// is not included in the torrent or session stats
+		bool m_ignore_stats:1;
 		
 		template <std::size_t Size>
 		struct handler_storage
@@ -1121,9 +1137,9 @@ namespace libtorrent
 			friend void* asio_handler_allocate(
 			    std::size_t size, allocating_handler<Handler, Size>* ctx)
 			{
-				assert(size <= Size);
+				TORRENT_ASSERT(size <= Size);
 #ifdef TORRENT_DEBUG
-				assert(!ctx->storage.used);
+				TORRENT_ASSERT(!ctx->storage.used);
 				ctx->storage.used = true;
 #endif
 				return &ctx->storage.bytes;

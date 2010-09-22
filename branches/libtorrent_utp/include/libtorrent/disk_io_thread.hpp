@@ -289,6 +289,7 @@ namespace libtorrent
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
+		void abort();
 		void join();
 
 		// aborts read operations
@@ -405,7 +406,7 @@ namespace libtorrent
 		// this mutex only protects m_jobs, m_queue_buffer_size
 		// and m_abort
 		mutable mutex m_queue_mutex;
-		condition m_signal;
+		event m_signal;
 		bool m_abort;
 		bool m_waiting_to_shutdown;
 		std::list<disk_io_job> m_jobs;
@@ -431,6 +432,9 @@ namespace libtorrent
 
 		// average read time for cache misses (in microseconds)
 		sliding_average<512> m_read_time;
+
+		typedef std::multimap<size_type, disk_io_job> read_jobs_t;
+		read_jobs_t m_sorted_read_jobs;
 
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;

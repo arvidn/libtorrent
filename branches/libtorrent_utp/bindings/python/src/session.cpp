@@ -58,6 +58,7 @@ namespace
         s.add_extension(invoke_extension_factory(e));
     }
 
+#ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
     torrent_handle add_torrent_depr(session& s, torrent_info const& ti
         , std::string const& save, entry const& resume
@@ -66,6 +67,7 @@ namespace
         allow_threading_guard guard;
         return s.add_torrent(ti, save, resume, storage_mode, paused, default_storage_constructor);
     }
+#endif
 #endif
 
     torrent_handle add_torrent(session& s, dict params)
@@ -109,24 +111,31 @@ namespace
             p.duplicate_is_error = params["duplicate_is_error"];
         if (params.has_key("seed_mode"))
             p.seed_mode = params["seed_mode"];
+        if (params.has_key("upload_mode"))
+            p.upload_mode = params["upload_mode"];
+        if (params.has_key("share_mode"))
+            p.upload_mode = params["share_mode"];
         if (params.has_key("override_resume_data"))
             p.override_resume_data = params["override_resume_data"];
 
+#ifndef BOOST_NO_EXCEPTIONS
         return s.add_torrent(p);
+#else
+        error_code ec;
+        return s.add_torrent(p, ec);
+#endif
     }
 
     void start_natpmp(session& s)
     {
         allow_threading_guard guard;
         s.start_natpmp();
-        return;
     }
 
     void start_upnp(session& s)
     {
         allow_threading_guard guard;
         s.start_upnp();
-        return;
     }
 
     alert const* wait_for_alert(session& s, int ms)
@@ -147,16 +156,16 @@ namespace
     }
 
 #ifndef TORRENT_DISABLE_GEO_IP
-    bool load_asnum_db(session& s, std::string file)
+    void load_asnum_db(session& s, std::string file)
     {
         allow_threading_guard guard;
-        return s.load_asnum_db(file.c_str());
+        s.load_asnum_db(file.c_str());
     }
 
-    bool load_country_db(session& s, std::string file)
+    void load_country_db(session& s, std::string file)
     {
         allow_threading_guard guard;
-        return s.load_country_db(file.c_str());
+        s.load_country_db(file.c_str());
     }
 #endif
 
@@ -300,9 +309,10 @@ void bind_session()
         .def("dht_state", allow_threads(&session::dht_state))
 #endif
         .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
-        .def("dht_proxy", allow_threads(&session::dht_proxy), return_value_policy<copy_const_reference>())
+        .def("dht_proxy", allow_threads(&session::dht_proxy))
 #endif
         .def("add_torrent", &add_torrent)
+#ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
         .def(
             "add_torrent", &add_torrent_depr
@@ -312,6 +322,7 @@ void bind_session()
                 arg("paused") = false
             )
         )
+#endif
 #endif
         .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = session::none
 )
@@ -332,10 +343,10 @@ void bind_session()
         .def("set_max_half_open_connections", allow_threads(&session::set_max_half_open_connections))
         .def("num_connections", allow_threads(&session::num_connections))
         .def("set_settings", allow_threads(&session::set_settings))
-        .def("settings", allow_threads(&session::settings), return_value_policy<copy_const_reference>())
+        .def("settings", allow_threads(&session::settings))
 #ifndef TORRENT_DISABLE_ENCRYPTION
         .def("set_pe_settings", allow_threads(&session::set_pe_settings))
-        .def("get_pe_settings", allow_threads(&session::get_pe_settings), return_value_policy<copy_const_reference>())
+        .def("get_pe_settings", allow_threads(&session::get_pe_settings))
 #endif
 #ifndef TORRENT_DISABLE_GEO_IP
         .def("load_asnum_db", &load_asnum_db)
@@ -351,12 +362,16 @@ void bind_session()
         .def("pop_alert", allow_threads(&session::pop_alert))
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
         .def("add_extension", &add_extension)
+#ifndef TORRENT_NO_DEPRECATE
         .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))
         .def("set_tracker_proxy", allow_threads(&session::set_tracker_proxy))
         .def("set_web_seed_proxy", allow_threads(&session::set_web_seed_proxy))
-        .def("peer_proxy", allow_threads(&session::peer_proxy), return_value_policy<copy_const_reference>())
-        .def("tracker_proxy", allow_threads(&session::tracker_proxy), return_value_policy<copy_const_reference>())
-        .def("web_seed_proxy", allow_threads(&session::web_seed_proxy), return_value_policy<copy_const_reference>())
+        .def("peer_proxy", allow_threads(&session::peer_proxy))
+        .def("tracker_proxy", allow_threads(&session::tracker_proxy))
+        .def("web_seed_proxy", allow_threads(&session::web_seed_proxy))
+#endif
+        .def("set_proxy", allow_threads(&session::set_proxy))
+        .def("proxy", allow_threads(&session::proxy))
         .def("start_upnp", &start_upnp)
         .def("stop_upnp", allow_threads(&session::stop_upnp))
         .def("start_lsd", allow_threads(&session::start_lsd))
@@ -364,7 +379,7 @@ void bind_session()
         .def("start_natpmp", &start_natpmp)
         .def("stop_natpmp", allow_threads(&session::stop_natpmp))
         .def("set_ip_filter", allow_threads(&session::set_ip_filter))
-        .def("get_ip_filter", allow_threads(&session::get_ip_filter), return_value_policy<copy_const_reference>())
+        .def("get_ip_filter", allow_threads(&session::get_ip_filter))
         .def("find_torrent", allow_threads(&session::find_torrent))
         .def("get_torrents", &get_torrents)
         .def("pause", allow_threads(&session::pause))

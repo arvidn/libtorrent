@@ -36,33 +36,39 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 #include <ctime>
-#include <boost/shared_ptr.hpp>
 
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/copy_ptr.hpp"
 
 namespace libtorrent
 {
+	struct file;
+
 	struct TORRENT_EXPORT file_entry
 	{
-		file_entry(): offset(0), size(0), file_base(0)
+		file_entry(): offset(0), size(0), file_base(0), file_index(0)
 			, mtime(0), pad_file(false), hidden_attribute(false)
 			, executable_attribute(false)
 			, symlink_attribute(false)
 		{}
 
 		std::string path;
-		size_type offset; // the offset of this file inside the torrent
-		size_type size; // the size of this file
+		std::string symlink_path;
+		copy_ptr<sha1_hash> filehash;
+		// the offset of this file inside the torrent
+		size_type offset;
+		// the size of this file
+		size_type size;
 		// the offset in the file where the storage starts.
 		// This is always 0 unless parts of the torrent is
 		// compressed into a single file, such as a so-called part file.
 		size_type file_base;
-		std::time_t mtime;
-		std::string symlink_path;
-		boost::shared_ptr<sha1_hash> filehash;
+		// the index of this file, as ordered in the torrent
+		int file_index;
+		time_t mtime;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
@@ -154,17 +160,18 @@ namespace libtorrent
 		void optimize(int pad_file_limit = -1);
 
 	private:
-		int m_piece_length;
-
 		// the list of files that this torrent consists of
 		std::vector<file_entry> m_files;
+
+		std::string m_name;
 
 		// the sum of all filesizes
 		size_type m_total_size;
 
 		// the number of pieces in the torrent
 		int m_num_pieces;
-		std::string m_name;
+
+		int m_piece_length;
 	};
 }
 

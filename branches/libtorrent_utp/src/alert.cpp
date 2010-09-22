@@ -336,7 +336,7 @@ namespace libtorrent {
 		while (!m_alerts.empty())
 		{
 			delete m_alerts.front();
-			m_alerts.pop();
+			m_alerts.pop_front();
 		}
 	}
 
@@ -367,21 +367,20 @@ namespace libtorrent {
 		return m_alerts.front();
 	}
 
-	void alert_manager::set_dispatch_function(boost::function<void(alert const&)> const& fun)
+	void alert_manager::set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
 		mutex::scoped_lock lock(m_mutex);
 
 		m_dispatch = fun;
 
-		std::queue<alert*> alerts = m_alerts;
-		while (!m_alerts.empty()) m_alerts.pop();
+		std::deque<alert*> alerts;
+		m_alerts.swap(alerts);
 		lock.unlock();
 
 		while (!alerts.empty())
 		{
-			m_dispatch(*alerts.front());
-			delete alerts.front();
-			alerts.pop();
+			m_dispatch(std::auto_ptr<alert>(alerts.front()));
+			alerts.pop_front();
 		}
 	}
 
@@ -399,12 +398,12 @@ namespace libtorrent {
 		if (m_dispatch)
 		{
 			TORRENT_ASSERT(m_alerts.empty());
-			m_ios.post(boost::bind(&dispatch_alert, m_dispatch, alert_.clone().release()));
+			m_dispatch(std::auto_ptr<alert>(alert_.clone()));
 			return;
 		}
 
 		if (m_alerts.size() >= m_queue_size_limit) return;
-		m_alerts.push(alert_.clone().release());
+		m_alerts.push_back(alert_.clone().release());
 		m_condition.signal(lock);
 		m_condition.clear(lock);
 	}
@@ -413,10 +412,11 @@ namespace libtorrent {
 	{
 		mutex::scoped_lock lock(m_mutex);
 		
-		TORRENT_ASSERT(!m_alerts.empty());
+		if (m_alerts.empty())
+			return std::auto_ptr<alert>(0);
 
 		alert* result = m_alerts.front();
-		m_alerts.pop();
+		m_alerts.pop_front();
 		return std::auto_ptr<alert>(result);
 	}
 
@@ -474,6 +474,14 @@ namespace libtorrent {
 		snprintf(msg, sizeof(msg), "%s: %s: %s"
 			, torrent_alert::message().c_str()
 			, msgs[kind], str.c_str());
+		return msg;
+	}
+
+	std::string lsd_peer_alert::message() const
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "%s: received peer from local service discovery"
+			, peer_alert::message().c_str());
 		return msg;
 	}
 

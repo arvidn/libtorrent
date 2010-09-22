@@ -71,7 +71,8 @@ void http_connect_handler(http_connection& c)
 	error_code ec;
 	std::cerr << "connected to: " << print_endpoint(c.socket().remote_endpoint(ec))
 		<< std::endl;
-	TEST_CHECK(c.socket().remote_endpoint(ec).address() == address::from_string("127.0.0.1", ec));
+// this is not necessarily true when using a proxy and proxying hostnames
+//	TEST_CHECK(c.socket().remote_endpoint(ec).address() == address::from_string("127.0.0.1", ec));
 }
 
 void http_handler(error_code const& ec, http_parser const& parser
@@ -157,12 +158,19 @@ void run_suite(std::string const& protocol, proxy_settings const& ps, int port)
 	run_test(url_base + "test_file", 3216, 200, 1, error_code(), ps);
 	run_test(url_base + "test_file.gz", 3216, 200, 1, error_code(), ps);
 	run_test(url_base + "non-existing-file", -1, 404, 1, err(), ps);
-	// if we're going through an http proxy, we won't get the same error as if the hostname
-	// resolution failed
-	if ((ps.type == proxy_settings::http || ps.type == proxy_settings::http_pw) && protocol != "https")
-		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, 502, 1, err(), ps);
-	else
-		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);
+
+	// only run the tests to handle NX_DOMAIN if we have a proper internet
+	// connection that doesn't inject false DNS responses (like Comcast does)
+	hostent* h = gethostbyname("non-existent-domain.se");
+	if (h == 0 && h_errno == HOST_NOT_FOUND)
+	{
+		// if we're going through an http proxy, we won't get the same error as if the hostname
+		// resolution failed
+		if ((ps.type == proxy_settings::http || ps.type == proxy_settings::http_pw) && protocol != "https")
+			run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, 502, 1, err(), ps);
+		else
+			run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);
+	}
 
 	if (ps.type != proxy_settings::none)
 		stop_proxy(ps.port);

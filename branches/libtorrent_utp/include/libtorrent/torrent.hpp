@@ -182,14 +182,17 @@ namespace libtorrent
 		void on_resume_data_checked(int ret, disk_io_job const& j);
 		void on_force_recheck(int ret, disk_io_job const& j);
 		void on_piece_checked(int ret, disk_io_job const& j);
-		void files_checked_lock();
-		void files_checked(mutex::scoped_lock const&);
+		void files_checked();
 		void start_checking();
 
 		void start_announcing();
 		void stop_announcing();
 
+		void send_share_mode();
 		void send_upload_only();
+
+		void set_share_mode(bool s);
+		bool share_mode() const { return m_share_mode; }
 
 		void set_upload_mode(bool b);
 		bool upload_mode() const { return m_upload_mode; }
@@ -238,6 +241,8 @@ namespace libtorrent
 		bool is_sequential_download() const
 		{ return m_sequential_download; }
 	
+		void queue_up();
+		void queue_down();
 		void set_queue_position(int p);
 		int queue_position() const { return m_sequence_number; }
 
@@ -276,7 +281,12 @@ namespace libtorrent
 		bool is_torrent_paused() const { return !m_allow_peers; }
 		void force_recheck();
 		void save_resume_data();
-		bool need_save_resume_data() const { return m_need_save_resume_data; }
+		bool need_save_resume_data() const
+		{
+			// save resume data every 15 minutes regardless, just to
+			// keep stats up to date
+			return m_need_save_resume_data || time(0) - m_last_saved_resume > 15 * 60;
+		}
 
 		bool is_auto_managed() const { return m_auto_managed; }
 		void auto_managed(bool a);
@@ -317,8 +327,8 @@ namespace libtorrent
 
 		void file_progress(std::vector<size_type>& fp, int flags = 0) const;
 
-		void use_interface(const char* net_interface);
-		tcp::endpoint get_interface() const { return m_net_interface; }
+		void use_interface(std::string net_interface);
+		tcp::endpoint get_interface() const;
 		
 		void connect_to_url_seed(std::list<web_seed_entry>::iterator url);
 		bool connect_to_peer(policy::peer* peerinfo, bool ignore_limit = false);
@@ -342,7 +352,10 @@ namespace libtorrent
 		void resolve_countries(bool r)
 		{ m_resolve_countries = r; }
 
-		bool resolving_countries() const { return m_resolve_countries; }
+		bool resolving_countries() const
+		{
+			return m_resolve_countries && !m_ses.settings().anonymous_mode;
+		}
 #endif
 
 // --------------------------------------------
@@ -355,6 +368,10 @@ namespace libtorrent
 // --------------------------------------------
 		// PEER MANAGEMENT
 		
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
+		void log_to_all_peers(char const* message);
+#endif
+
 		// add or remove a url that will be attempted for
 		// finding the file(s) in this torrent.
 		void add_web_seed(std::string const& url, web_seed_entry::type_t type)
@@ -418,6 +435,7 @@ namespace libtorrent
 		bool want_more_peers() const;
 		bool try_connect_peer();
 		void give_connect_points(int points);
+		void add_peer(tcp::endpoint const& adr, int source);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
@@ -459,7 +477,7 @@ namespace libtorrent
 		virtual void tracker_warning(tracker_request const& req
 			, std::string const& msg);
 		virtual void tracker_scrape_response(tracker_request const& req
-			, int complete, int incomplete, int downloaded);
+			, int complete, int incomplete, int downloaded, int downloaders);
 
 		// if no password and username is set
 		// this will return an empty string, otherwise
@@ -498,6 +516,8 @@ namespace libtorrent
 // --------------------------------------------
 		// PIECE MANAGEMENT
 
+		void recalc_share_mode();
+
 		void update_sparse_piece_prio(int piece, int cursor, int reverse_cursor);
 
 		void get_suggested_pieces(std::vector<int>& s) const;
@@ -521,8 +541,8 @@ namespace libtorrent
 		int num_have() const
 		{
 			return has_picker()
-				?m_picker->num_have()
-				:m_torrent_file->num_pieces();
+				? m_picker->num_have()
+				: m_torrent_file->num_pieces();
 		}
 
 		// when we get a have message, this is called for that piece
@@ -611,6 +631,8 @@ namespace libtorrent
 		// lookup for a WEB SEED is completed.
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i
 			, std::list<web_seed_entry>::iterator url, tcp::endpoint proxy);
+
+		void connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint const& a);
 
 		// this is the asio callback that is called when a name
 		// lookup for a proxy for a web seed is completed.
@@ -792,6 +814,8 @@ namespace libtorrent
 		static void print_size(logger& l);
 #endif
 
+		void update_last_upload() { m_last_upload = 0; }
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
@@ -945,9 +969,10 @@ namespace libtorrent
 		std::string m_username;
 		std::string m_password;
 
-		// the network interface all outgoing connections
-		// are opened through
-		union_endpoint m_net_interface;
+		// the network interfaces outgoing connections
+		// are opened through. If there is more then one,
+		// they are used in a round-robin fasion
+		std::vector<union_endpoint> m_net_interfaces;
 
 		std::string m_save_path;
 
@@ -1005,6 +1030,7 @@ namespace libtorrent
 		time_t m_added_time;
 		time_t m_completed_time;
 		time_t m_last_seen_complete;
+		time_t m_last_saved_resume;
 
 		// ==============================
 		// The following members are specifically
@@ -1200,12 +1226,30 @@ namespace libtorrent
 		// slots.
 		bool m_auto_managed:1;
 
+		// this is set when the torrent is in share-mode
+		bool m_share_mode:1;
+
 		// m_num_verified = m_verified.count()
 		boost::uint16_t m_num_verified;
 
 		// the number of seconds since the last scrape request to
 		// one of the trackers in this torrent
 		boost::uint16_t m_last_scrape;
+
+		// the number of seconds since the last piece passed for
+		// this torrent
+		boost::uint16_t m_last_download;
+
+		// the number of seconds since the last byte was uploaded
+		// from this torrent
+		boost::uint16_t m_last_upload;
+
+		// the scrape data from the tracker response, this
+		// is optional and may be 0xffffff
+		unsigned int m_downloaders:24;
+
+		// round-robin index into m_interfaces
+		mutable boost::uint8_t m_interface_index;
 	};
 }
 

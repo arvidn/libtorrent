@@ -128,10 +128,6 @@ namespace libtorrent { namespace dht
 		dht_settings const& m_settings;
 		int m_refresh_bucket;
 
-		// The mutex is used to abort the dht node
-		// it's only used to set m_abort to true
-		typedef mutex mutex_t;
-		mutable mutex_t m_mutex;
 		bool m_abort;
 
 		// used to resolve hostnames for nodes

@@ -83,6 +83,14 @@ namespace
        return result;
     }
 
+    bool get_tier(announce_entry const& ae)
+    { return ae.tier; }
+    bool get_fail_limit(announce_entry const& ae)
+    { return ae.fail_limit; }
+    bool get_fails(announce_entry const& ae)
+    { return ae.fails; }
+    bool get_source(announce_entry const& ae)
+    { return ae.source; }
     bool get_verified(announce_entry const& ae)
     { return ae.verified; }
     bool get_updating(announce_entry const& ae)
@@ -122,7 +130,7 @@ void bind_torrent_info()
         .def(init<std::wstring>())
 #endif
 
-        .def("add_tracker", &torrent_info::add_tracker, (arg("url"), arg("tier")=0))
+        .def("add_tracker", &torrent_info::add_tracker, arg("url"))
         .def("add_url_seed", &torrent_info::add_url_seed)
 
         .def("name", &torrent_info::name, copy)
@@ -160,8 +168,7 @@ void bind_torrent_info()
         ;
 
     class_<file_entry>("file_entry")
-       .add_property(
-            "path"
+       .add_property("path"
           , make_getter(
                 &file_entry::path, return_value_policy<copy_non_const_reference>()
             )
@@ -173,10 +180,10 @@ void bind_torrent_info()
 
     class_<announce_entry>("announce_entry", init<std::string const&>())
         .def_readwrite("url", &announce_entry::url)
-        .def_readwrite("tier", &announce_entry::tier)
-        .add_property("fail_limit", &announce_entry::fail_limit)
-        .add_property("fails", &announce_entry::fails)
-        .add_property("source", &announce_entry::source)
+        .add_property("tier", &get_tier)
+        .add_property("fail_limit", &get_fail_limit)
+        .add_property("fails", &get_fails)
+        .add_property("source", &get_source)
         .add_property("verified", &get_verified)
         .add_property("updating", &get_updating)
         .add_property("start_sent", &get_start_sent)
@@ -189,4 +196,12 @@ void bind_torrent_info()
         .def("is_working", &announce_entry::is_working)
         .def("trim", &announce_entry::trim)
         ;
+
+    enum_<announce_entry::tracker_source>("tracker_source")
+        .value("source_torrent", announce_entry::source_torrent)
+        .value("source_client", announce_entry::source_client)
+        .value("source_magnet_link", announce_entry::source_magnet_link)
+        .value("source_tex", announce_entry::source_tex)
+    ;
 }
+

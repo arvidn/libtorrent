@@ -344,11 +344,13 @@ namespace libtorrent
 	class storage : public storage_interface, boost::noncopyable
 	{
 	public:
-		storage(file_storage const& fs, file_storage const* mapped, std::string const& path, file_pool& fp)
+		storage(file_storage const& fs, file_storage const* mapped, std::string const& path
+			, file_pool& fp, std::vector<boost::uint8_t> const& file_prio)
 			: m_files(fs)
 			, m_pool(fp)
 			, m_page_size(page_size())
 			, m_allocate_files(false)
+			, m_file_priority(file_prio)
 		{
 			if (mapped) m_mapped_files.reset(new file_storage(*mapped));
 
@@ -382,7 +384,7 @@ namespace libtorrent
 		{
 			size_type (file::*regular_op)(size_type file_offset
 				, file::iovec_t const* bufs, int num_bufs, error_code& ec);
-			size_type (storage::*unaligned_op)(boost::shared_ptr<file> const& f
+			size_type (storage::*unaligned_op)(boost::intrusive_ptr<file> const& f
 				, size_type file_offset, file::iovec_t const* bufs, int num_bufs
 				, error_code& ec);
 			int cache_setting;
@@ -396,9 +398,9 @@ namespace libtorrent
 		~storage()
 		{ m_pool.release(this); }
 
-		size_type read_unaligned(boost::shared_ptr<file> const& file_handle
+		size_type read_unaligned(boost::intrusive_ptr<file> const& file_handle
 			, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec);
-		size_type write_unaligned(boost::shared_ptr<file> const& file_handle
+		size_type write_unaligned(boost::intrusive_ptr<file> const& file_handle
 			, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec);
 
 		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
@@ -407,7 +409,7 @@ namespace libtorrent
 		file_storage const& m_files;
 
 		// helper function to open a file in the file pool with the right mode
-		boost::shared_ptr<file> open_file(file_entry const& fe, int mode, error_code& ec) const;
+		boost::intrusive_ptr<file> open_file(file_entry const& fe, int mode, error_code& ec) const;
 
 		std::vector<boost::uint8_t> m_file_priority;
 		std::string m_save_path;
@@ -551,7 +553,7 @@ namespace libtorrent
 			if (ec || s.file_size > file_iter->size || file_iter->size == 0)
 			{
 				ec.clear();
-				boost::shared_ptr<file> f = open_file(*file_iter, file::read_write, ec);
+				boost::intrusive_ptr<file> f = open_file(*file_iter, file::read_write, ec);
 				if (ec) set_error(file_path, ec);
 				else if (f)
 				{
@@ -575,7 +577,7 @@ namespace libtorrent
 		if (index < 0 || index >= m_files.num_files()) return;
 	
 		error_code ec;
-		boost::shared_ptr<file> f = open_file(files().at(index), file::read_write, ec);
+		boost::intrusive_ptr<file> f = open_file(files().at(index), file::read_write, ec);
 		if (ec || !f) return;
 
 		f->finalize();
@@ -602,7 +604,7 @@ namespace libtorrent
 	{
 		if (index < 0 || index >= m_files.num_files()) return true;
 		std::string old_name = combine_path(m_save_path, files().at(index).path);
-		m_pool.release(old_name);
+		m_pool.release(this, files().at(index));
 
 		error_code ec;
 		rename(old_name, combine_path(m_save_path, new_filename), ec);
@@ -712,7 +714,7 @@ namespace libtorrent
 		}
 	
 		error_code ec;
-		boost::shared_ptr<file> file_handle = open_file(*file_iter, file::read_only, ec);
+		boost::intrusive_ptr<file> file_handle = open_file(*file_iter, file::read_only, ec);
 		if (!file_handle || ec) return slot;
 
 		size_type data_start = file_handle->sparse_end(file_offset);
@@ -1053,7 +1055,7 @@ ret:
 		// open the file read only to avoid re-opening
 		// it in case it's already opened in read-only mode
 		error_code ec;
-		boost::shared_ptr<file> f = open_file(*file_iter, file::read_only, ec);
+		boost::intrusive_ptr<file> f = open_file(*file_iter, file::read_only, ec);
 
 		size_type ret = 0;
 		if (f && !ec) ret = f->phys_offset(file_offset);
@@ -1141,7 +1143,7 @@ ret:
 		int buf_pos = 0;
 		error_code ec;
 
-		boost::shared_ptr<file> file_handle;
+		boost::intrusive_ptr<file> file_handle;
 		int bytes_left = size;
 		int slot_size = static_cast<int>(m_files.piece_size(slot));
 
@@ -1248,7 +1250,7 @@ ret:
 
 	// they read an unaligned buffer from a file that requires aligned access
 
-	size_type storage::read_unaligned(boost::shared_ptr<file> const& file_handle
+	size_type storage::read_unaligned(boost::intrusive_ptr<file> const& file_handle
 		, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec)
 	{
 		const int pos_align = file_handle->pos_alignment()-1;
@@ -1277,7 +1279,7 @@ ret:
 		return size;
 	}
 
-	size_type storage::write_unaligned(boost::shared_ptr<file> const& file_handle
+	size_type storage::write_unaligned(boost::intrusive_ptr<file> const& file_handle
 		, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec)
 	{
 		TORRENT_ASSERT(false); // not implemented
@@ -1304,7 +1306,7 @@ ret:
 		return readv(&b, slot, offset, 1);
 	}
 
-	boost::shared_ptr<file> storage::open_file(file_entry const& fe, int mode, error_code& ec) const
+	boost::intrusive_ptr<file> storage::open_file(file_entry const& fe, int mode, error_code& ec) const
 	{
 		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
 		if (cache_setting == session_settings::disable_os_cache
@@ -1314,13 +1316,14 @@ ret:
 		if (!m_allocate_files) mode |= file::sparse;
 		if (m_settings && settings().no_atime_storage) mode |= file::no_atime;
 
-		return m_pool.open_file(const_cast<storage*>(this), combine_path(m_save_path, fe.path), mode, ec);
+		return m_pool.open_file(const_cast<storage*>(this), m_save_path, fe, mode, ec);
 	}
 
 	storage_interface* default_storage_constructor(file_storage const& fs
-		, file_storage const* mapped, std::string const& path, file_pool& fp)
+		, file_storage const* mapped, std::string const& path, file_pool& fp
+		, std::vector<boost::uint8_t> const& file_prio)
 	{
-		return new storage(fs, mapped, path, fp);
+		return new storage(fs, mapped, path, fp, file_prio);
 	}
 
 	// this storage implementation does not write anything to disk
@@ -1398,7 +1401,8 @@ ret:
 	};
 
 	storage_interface* disabled_storage_constructor(file_storage const& fs
-		, file_storage const* mapped, std::string const& path, file_pool& fp)
+		, file_storage const* mapped, std::string const& path, file_pool& fp
+		, std::vector<boost::uint8_t> const&)
 	{
 		return new disabled_storage(fs.piece_length());
 	}
@@ -1412,11 +1416,12 @@ ret:
 		, file_pool& fp
 		, disk_io_thread& io
 		, storage_constructor_type sc
-		, storage_mode_t sm)
+		, storage_mode_t sm
+		, std::vector<boost::uint8_t> const& file_prio)
 		: m_info(info)
 		, m_files(m_info->files())
 		, m_storage(sc(m_info->orig_files(), &m_info->files() != &m_info->orig_files()
-			? &m_info->files() : 0, save_path, fp))
+			? &m_info->files() : 0, save_path, fp, file_prio))
 		, m_storage_mode(sm)
 		, m_save_path(complete(save_path))
 		, m_state(state_none)
@@ -2339,6 +2344,7 @@ ret:
 		}
 
 		TORRENT_ASSERT(m_state == state_full_check);
+		if (m_state == state_finished) return 0;
 
 		int skip = check_one_piece(have_piece);
 		TORRENT_ASSERT(m_current_slot <= m_files.num_pieces());
@@ -2474,8 +2480,10 @@ ret:
 		{
 			if (m_storage->error()
 #ifdef TORRENT_WINDOWS
+				&& m_storage->error() != error_code(ERROR_PATH_NOT_FOUND, get_system_category())
 				&& m_storage->error() != error_code(ERROR_FILE_NOT_FOUND, get_system_category())
-				&& m_storage->error() != error_code(ERROR_HANDLE_EOF, get_system_category()))
+				&& m_storage->error() != error_code(ERROR_HANDLE_EOF, get_system_category())
+				&& m_storage->error() != error_code(ERROR_INVALID_HANDLE, get_system_category()))
 #else
 				&& m_storage->error() != error_code(ENOENT, get_posix_category()))
 #endif

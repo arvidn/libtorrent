@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/peer_id.hpp" // sha1_hash
+#include "libtorrent/version.hpp"
 
 namespace libtorrent
 {
@@ -47,7 +48,8 @@ namespace libtorrent
 	struct add_torrent_params
 	{
 		add_torrent_params(storage_constructor_type sc = default_storage_constructor)
-			: tracker_url(0)
+			: version(LIBTORRENT_VERSION_NUM)
+			, tracker_url(0)
 			, name(0)
 			, resume_data(0)
 			, storage_mode(storage_mode_sparse)
@@ -59,8 +61,12 @@ namespace libtorrent
 			, seed_mode(false)
 			, override_resume_data(false)
 			, upload_mode(false)
+			, file_priorities(0)
+			, share_mode(false)
 		{}
 
+		// libtorrent version. Used for forward binary compatibility
+		int version;
 		boost::intrusive_ptr<torrent_info> ti;
 		char const* tracker_url;
 		sha1_hash info_hash;
@@ -76,6 +82,8 @@ namespace libtorrent
 		bool seed_mode;
 		bool override_resume_data;
 		bool upload_mode;
+		std::vector<boost::uint8_t> const* file_priorities;
+		bool share_mode;
 	};
 }
 

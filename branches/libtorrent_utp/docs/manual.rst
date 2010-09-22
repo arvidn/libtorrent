@@ -193,14 +193,14 @@ The ``session`` class has the following synopsis::
 		int num_uploads() const;
 		int num_connections() const;
 
-		bool load_asnum_db(char const* file);
-		bool load_asnum_db(wchar_t const* file);
-		bool load_country_db(char const* file);
-		bool load_country_db(wchar_t const* file);
+		void load_asnum_db(char const* file);
+		void load_asnum_db(wchar_t const* file);
+		void load_country_db(char const* file);
+		void load_country_db(wchar_t const* file);
 		int as_for_ip(address const& adr);
 
 		void set_ip_filter(ip_filter const& f);
-		ip_filter const& get_ip_filter() const;
+		ip_filter get_ip_filter() const;
 
 		session_status status() const;
 		cache_status get_cache_status() const;
@@ -369,12 +369,14 @@ add_torrent()
 	::
 
 		typedef storage_interface* (&storage_constructor_type)(
-			file_storage const&, file_storage const*, fs::path const&, file_pool&);
+			file_storage const&, file_storage const*, fs::path const&, file_pool&
+			, std::vector<boost::uint8_t> const&);
 
 		struct add_torrent_params
 		{
 			add_torrent_params(storage_constructor_type s);
 
+			int version;
 			boost::intrusive_ptr<torrent_info> ti;
 			char const* tracker_url;
 			sha1_hash info_hash;
@@ -390,6 +392,8 @@ add_torrent()
 			bool seed_mode;
 			bool override_resume_data;
 			bool upload_mode;
+			std::vector<boost::uint8_t> const* file_priorities;
+			bool share_mode;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -499,6 +503,28 @@ which means it will not make any piece requests. This state is typically entered
 on disk I/O errors, and if the torrent is also auto managed, it will be taken out
 of this state periodically. This mode can be used to avoid race conditions when
 adjusting priorities of pieces before allowing the torrent to start downloading.
+
+``share_mode`` determines if the torrent should be added in *share mode* or not.
+Share mode indicates that we are not interested in downloading the torrent, but
+merlely want to improve our share ratio (i.e. increase it). A torrent started in
+share mode will do its best to never download more than it uploads to the swarm.
+If the swarm does not have enough demand for upload capacity, the torrent will
+not download anything. This mode is intended to be safe to add any number of torrents
+to, without manual screening, without the risk of downloading more than is uploaded.
+
+A torrent in share mode sets the priority to all pieces to 0, except for the pieces
+that are downloaded, when pieces are decided to be downloaded. This affects the progress
+bar, which might be set to "100% finished" most of the time. Do not change file or piece
+priorities for torrents in share mode, it will make it not work.
+
+The share mode has one setting, the share ratio target, see ``session_settings::share_mode_target``
+for more info.
+
+``file_priorities`` can be set to control the initial file priorities when adding
+a torrent. The semantics are the same as for ``torrent_handle::prioritize_files()``.
+
+``version`` is filled in by the constructor and should be left untouched. It
+is used for forward binary compatibility.
 
 remove_torrent()
 ----------------
@@ -642,15 +668,15 @@ their turn to get connected.
 ``max_half_open_connections()`` returns the set limit. This limit defaults
 to 8 on windows.
 
-load_asnum_db() load_country_db() int as_for_ip()
--------------------------------------------------
+load_asnum_db() load_country_db() as_for_ip()
+---------------------------------------------
 
 	::
 
-		bool load_asnum_db(char const* file);
-		bool load_asnum_db(wchar_t const* file);
-		bool load_country_db(char const* file);
-		bool load_country_db(wchar_t const* file);
+		void load_asnum_db(char const* file);
+		void load_asnum_db(wchar_t const* file);
+		void load_country_db(char const* file);
+		void load_country_db(wchar_t const* file);
 		int as_for_ip(address const& adr);
 
 These functions are not available if ``TORRENT_DISABLE_GEO_IP`` is defined. They
@@ -684,7 +710,8 @@ get_ip_filter()
 ---------------
 
 	::
-		ip_filter const& get_ip_filter() const;
+
+		ip_filter get_ip_filter() const;
 		
 Returns the ip_filter currently in the session. See ip_filter_.
 
@@ -1126,10 +1153,10 @@ peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()
 
 	::
 
-		proxy_settings const& peer_proxy() const;
-		proxy_settings const& web_seed_proxy() const;
-		proxy_settings const& tracker_proxy() const;
-		proxy_settings const& dht_proxy() const;
+		proxy_settings peer_proxy() const;
+		proxy_settings web_seed_proxy() const;
+		proxy_settings tracker_proxy() const;
+		proxy_settings dht_proxy() const;
 
 These functions returns references to their respective current settings.
 
@@ -1533,8 +1560,7 @@ The ``torrent_info`` has the following synopsis::
 		std::vector<std::pair<std::string, int> > const& nodes() const;
 		void add_node(std::pair<std::string, int> const& node);
 
-		boost::optional<boost::posix_time::ptime>
-		creation_date() const;
+		boost::optional<time_t> creation_date() const;
 
 		int piece_size(unsigned int index) const;
 		sha1_hash const& hash_for_piece(unsigned int index) const;
@@ -1916,22 +1942,22 @@ name() comment() creation_date() creator()
 
 		std::string const& name() const;
 		std::string const& comment() const;
-		boost::optional<boost::posix_time::ptime> creation_date() const;
+		std::string const& creator() const;
+		boost::optional<time_t> creation_date() const;
 
 ``name()`` returns the name of the torrent.
 
 ``comment()`` returns the comment associated with the torrent. If there's no comment,
-it will return an empty string. ``creation_date()`` returns a `boost::posix_time::ptime`__
-object, representing the time when this torrent file was created. If there's no time stamp
-in the torrent file, this will return a date of January 1:st 1970.
+it will return an empty string. ``creation_date()`` returns the creation date of
+the torrent as time_t (`posix time`_). If there's no time stamp in the torrent file,
+the optional object will be uninitialized.
 
 Both the name and the comment is UTF-8 encoded strings.
 
 ``creator()`` returns the creator string in the torrent. If there is no creator string
 it will return an empty string.
 
-__ http://www.boost.org/doc/html/date_time/posix_time.html#date_time.posix_time.ptime_class
-
+.. _`posix time`: http://www.opengroup.org/onlinepubs/009695399/functions/time.html
 
 priv()
 ------
@@ -2059,6 +2085,7 @@ Its declaration looks like this::
 		void force_recheck() const;
 		void clear_error() const;
 		void set_upload_mode(bool m) const;
+		void set_share_mode(bool m) const;
 
 		void flush_cache() const;
 
@@ -2560,6 +2587,18 @@ are automatically put in upload mode whenever they encounter a disk write error.
 To test if a torrent is in upload mode, call ``torrent_handle::status()`` and inspect
 ``torrent_status::upload_mode``.
 
+set_share_mode()
+----------------
+
+	::
+
+		void set_share_mode(bool m) const;
+
+Enable or disable share mode for this torrent. When in share mode, the torrent will
+not necessarily be downloaded, especially not the whole of it. Only parts that are likely
+to be distributed to more than 2 other peers are downloaded, and only if the previous
+prediction was correct.
+
 resolve_countries()
 -------------------
 
@@ -2745,8 +2784,10 @@ use_interface()
 
 ``use_interface()`` sets the network interface this torrent will use when it opens outgoing
 connections. By default, it uses the same interface as the session_ uses to listen on. The
-parameter must be a string containing an ip-address (either an IPv4 or IPv6 address). If
-the string does not conform to this format and exception is thrown.
+parameter must be a string containing one or more, comma separated, ip-address (either an
+IPv4 or IPv6 address). When specifying multiple interfaces, the torrent will round-robin
+which interface to use for each outgoing conneciton. This is useful for clients that are
+multi-homed.
 
 
 info_hash()
@@ -3128,14 +3169,17 @@ It contains the following fields::
 		int sparse_regions;
 
 		bool seed_mode;
-
 		bool upload_mode;
+		bool share_mode;
 
 		int priority;
 
 		time_t added_time;
 		time_t completed_time;
 		time_t last_seen_complete;
+
+		int time_since_upload;
+		int time_since_download;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -3359,6 +3403,9 @@ been resolved. If the torrent is not auto-managed, you have to explicitly
 take it out of the upload mode by calling `set_upload_mode()`_ on the
 torrent_handle_.
 
+``share_mode`` is true if the torrent is currently in share-mode, i.e.
+not downloading the torrent, but just helping the swarm out.
+
 ``added_time`` is the posix-time when this torrent was added. i.e. what
 ``time(NULL)`` returned at the time.
 
@@ -3367,6 +3414,10 @@ the torrent is not yet finished, this is 0.
 
 ``last_seen_complete`` is the time when we, or one of our peers, last
 saw a complete copy of this torrent.
+
+``time_since_upload`` and ``time_since_download`` are the number of
+seconds since any peer last uploaded from this torrent and the last
+time a downloaded piece passed the hash check, respectively.
 
 peer_info
 =========
@@ -3480,6 +3531,8 @@ It contains the following fields::
 
 		float progress;
 		int progress_ppm;
+
+		tcp::endpoint local_endpoint;
 	};
 
 The ``flags`` attribute tells you in which state the peer is. It is set to
@@ -3721,6 +3774,11 @@ floating point operations are diabled, instead use ``progress_ppm``.
 ``progress_ppm`` indicates the download progress of the peer in the range [0, 1000000]
 (parts per million).
 
+``local_endpoint`` is the IP and port pair the socket is bound to locally. i.e. the IP
+address of the interface it's going out over. This may be useful for multi-homed
+clients with multiple interfaces to the internet.
+
+
 session customization
 =====================
 
@@ -3769,6 +3827,7 @@ session_settings
 	struct session_settings
 	{
 		session_settings();
+		int version;
 		std::string user_agent;
 		int tracker_completion_timeout;
 		int tracker_receive_timeout;
@@ -3936,6 +3995,7 @@ session_settings
 		bool ignore_resume_timestamps;
 		bool anonymous_mode;
 		int tick_interval;
+		int share_mode_target;
 
 		int utp_target_delay;
 		int utp_gain_factor;
@@ -3953,6 +4013,9 @@ session_settings
 		int mixed_mode_algorithm;
 		bool rate_limit_utp;
 	};
+
+``version`` is automatically set to the libtorrent version you're using
+in order to be forward binary compatible. This field should not be changed.
 
 ``user_agent`` this is the client identification to the tracker.
 The recommended format of this string is:
@@ -4615,6 +4678,14 @@ peers. It should not be more than one second (i.e. 1000 ms). Setting this
 to a low value (around 100) means higher resolution bandwidth quota distribution,
 setting it to a higher value saves CPU cycles.
 
+``share_mode_target`` specifies the target share ratio for share mode torrents.
+This defaults to 3, meaning we'll try to upload 3 times as much as we download.
+Setting this very high, will make it very conservative and you might end up
+not downloading anything ever (and not affecting your share ratio). It does
+not make any sense to set this any lower than 2. For instance, if only 3 peers
+need to download the rarest piece, it's impossible to download a single piece
+and upload it more than 3 times. If the share_mode_target is set to more than 3,
+nothing is downloaded.
 
 ``utp_target_delay`` is the target delay for uTP sockets in milliseconds. A high
 value will make uTP connections more aggressive and cause longer queues in the upload
@@ -4743,6 +4814,7 @@ direct certain traffic to a proxy.
 			};
 		
 			proxy_type type;
+			bool proxy_hostnames;
 		};
 
 ``hostname`` is the name or IP of the proxy server. ``port`` is the
@@ -4778,6 +4850,10 @@ options are available:
 .. _`RFC 1928`: http://www.faqs.org/rfcs/rfc1928.html
 .. _`RFC 1929`: http://www.faqs.org/rfcs/rfc1929.html
 .. _CONNECT: draft-luotonen-web-proxy-tunneling-01.txt
+
+``proxy_hostnames`` defaults to true. It means that hostnames should be
+attempted to be resolved through the proxy instead of using the local DNS
+service. This is only supported by SOCKS5 and HTTP.
 
 ip_filter
 =========
@@ -5077,8 +5153,8 @@ for the DHT port (UDP).
 ``discover_device()``, ``close()`` and ``rebind()`` are for internal uses and should
 not be called directly by clients.
 
-add_mapping
------------
+add_mapping()
+-------------
 
 	::
 
@@ -5102,15 +5178,15 @@ portmap_alert_ respectively. If The mapping fails immediately, the return value
 is -1, which means failure. There will not be any error alert notification for
 mappings that fail with a -1 return value.
 
-delete_mapping
---------------
+delete_mapping()
+----------------
 
 	::
 
 		void delete_mapping(int mapping_index);
 
 This function removes a port mapping. ``mapping_index`` is the index that refers
-to the mapping you want to remove, which was returned from add_mapping_.
+to the mapping you want to remove, which was returned from `add_mapping()`_.
 
 router_model()
 --------------
@@ -5486,7 +5562,7 @@ appears there is no NAT router that can be remote controlled to add port
 mappings.
 
 ``mapping`` refers to the mapping index of the port map that failed, i.e.
-the index returned from add_mapping_.
+the index returned from `add_mapping()`_.
 
 ``map_type`` is 0 for NAT-PMP and 1 for UPnP.
 
@@ -5510,7 +5586,7 @@ capable router, this is typically generated once when mapping the TCP
 port and, if DHT is enabled, when the UDP port is mapped.
 
 ``mapping`` refers to the mapping index of the port map that failed, i.e.
-the index returned from add_mapping_.
+the index returned from `add_mapping()`_.
 
 ``external_port`` is the external port allocated for the mapping.
 
@@ -5948,6 +6024,20 @@ This alert is generated when a block request receives a response.
 	};
 
 
+lsd_peer_alert
+--------------
+
+This alert is generated when we receive a local service discovery message from a peer
+for a torrent we're currently participating in.
+
+::
+
+	struct lsd_peer_alert: peer_alert
+	{
+		// ...
+	};
+
+
 file_completed_alert
 --------------------
 
@@ -6066,6 +6156,63 @@ upload or download rate performance.
 
 		performance_warning_t warning_code;
 	};
+
+outstanding_disk_buffer_limit_reached
+	This warning means that the number of bytes queued to be written to disk
+	exceeds the max disk byte queue setting (``session_settings::max_queued_disk_bytes``).
+	This might restrict the download rate, by not queuing up enough write jobs
+	to the disk I/O thread. When this alert is posted, peer connections are
+	temporarily stopped from downloading, until the queued disk bytes have fallen
+	below the limit again. Unless your ``max_queued_disk_bytes`` setting is already
+	high, you might want to increase it to get better performance.
+
+outstanding_request_limit_reached
+	This is posted when libtorrent would like to send more requests to a peer,
+	but it's limited by ``session_settings::max_out_request_queue``. The queue length
+	libtorrent is trying to achieve is determined by the download rate and the
+	assumed round-trip-time (``session_settings::request_queue_time``). The assumed
+	rount-trip-time is not limited to just the network RTT, but also the remote disk
+	access time and message handling time. It defaults to 3 seconds. The target number
+	of outstanding requests is set to fill the bandwidth-delay product (assumed RTT
+	times download rate divided by number of bytes per request). When this alert
+	is posted, there is a risk that the number of outstanding requests is too low
+	and limits the download rate. You might want to increase the ``max_out_request_queue``
+	setting.
+
+upload_limit_too_low
+	This warning is posted when the amount of TCP/IP overhead is greater than the
+	upload rate limit. When this happens, the TCP/IP overhead is caused by a much
+	faster download rate, triggering TCP ACK packets. These packets eat into the
+	rate limit specified to libtorrent. When the overhead traffic is greater than
+	the rate limit, libtorrent will not be able to send any actual payload, such
+	as piece requests. This means the download rate will suffer, and new requests
+	can be sent again. There will be an equilibrium where the download rate, on
+	average, is about 20 times the upload rate limit. If you want to maximize the
+	download rate, increase the upload rate limit above 5% of your download capacity.
+
+download_limit_too_low
+	This is the same warning as ``upload_limit_too_low`` but referring to the download
+	limit instead of upload. This suggests that your download rate limit is mcuh lower
+	than your upload capacity. Your upload rate will suffer. To maximize upload rate,
+	make sure your download rate limit is above 5% of your upload capacity.
+
+send_buffer_watermark_too_low
+	We're stalled on the disk. We want to write to the socket, and we can write
+	but our send buffer is empty, waiting to be refilled from the disk.
+	This either means the disk is slower than the network connection
+	or that our send buffer watermark is too small, because we can
+	send it all before the disk gets back to us.
+	The number of bytes that we keep outstanding, requested from the disk, is calculated
+	as follows::
+
+		min(512, max(upload_rate * send_buffer_watermark_factor, send_buffer_watermark))
+
+	If you receive this alert, you migth want to either increase your ``send_buffer_watermark``
+	or ``send_buffer_watermark_factor``.
+
+too_many_optimistic_unchoke_slots
+	If the half (or more) of all upload slots are set as optimistic unchoke slots, this
+	warning is issued. You probably want more regular (rate based) unchoke slots.
 
 
 state_changed_alert

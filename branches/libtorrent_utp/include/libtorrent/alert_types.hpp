@@ -1154,6 +1154,19 @@ namespace libtorrent
 		std::string str;
 	};
 
+	struct TORRENT_EXPORT lsd_peer_alert: peer_alert
+	{
+		lsd_peer_alert(torrent_handle const& h
+			, tcp::endpoint const& ip_)
+			: peer_alert(h, ip_, peer_id(0))
+		{}
+
+		TORRENT_DEFINE_ALERT(lsd_peer_alert);
+
+		const static int static_category = alert::peer_notification;
+		virtual std::string message() const;
+	};
+
 }
 
 
