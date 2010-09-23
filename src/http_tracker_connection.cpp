@@ -464,7 +464,9 @@ namespace libtorrent
 		lazy_entry const* ipv6_peers = 0;
 #endif
 
-		if (peers_ent == 0 && ipv6_peers == 0)
+		// if we didn't receive any peers. We don't care if we're stopping anyway
+		if (peers_ent == 0 && ipv6_peers == 0
+			&& tracker_req().event != tracker_request::stopped)
 		{
 			fail(error_code(errors::invalid_peers_entry), -1, ""
 				, interval, min_interval);
