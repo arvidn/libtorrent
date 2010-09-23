@@ -432,7 +432,9 @@ namespace libtorrent
 			ipv6_peers = 0;
 		}
 
-		if (peers_ent == 0 && ipv6_peers == 0)
+		// if we didn't receive any peers. We don't care if we're stopping anyway
+		if (peers_ent == 0 && ipv6_peers == 0
+			&& tracker_req().event != tracker_request::stopped)
 		{
 			fail(-1, "missing 'peers' and 'peers6' entry in tracker response");
 			return;
