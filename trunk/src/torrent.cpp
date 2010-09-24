@@ -1437,7 +1437,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_allow_peers || e == tracker_request::stopped);
 
-		if (e == tracker_request::none && is_finished())
+		if (e == tracker_request::none && is_finished() && !is_seed())
 			e = tracker_request::paused;
 
 		tracker_request req;
