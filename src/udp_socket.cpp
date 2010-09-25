@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/error.hpp"
 #include <stdlib.h>
 #include <boost/bind.hpp>
 #include <boost/array.hpp>
@@ -79,7 +80,7 @@ udp_socket::~udp_socket()
 #ifdef TORRENT_DEBUG
 	TORRENT_ASSERT(m_magic == 0x1337);
 	TORRENT_ASSERT(!m_callback || !m_started);
-	TORRENT_ASSERT(m_outstanding == 0);
+	TORRENT_ASSERT_VAL(m_outstanding == 0, m_outstanding);
 	m_magic = 0;
 #endif
 }
@@ -420,11 +421,17 @@ void udp_socket::close()
 	TORRENT_ASSERT(m_magic == 0x1337);
 
 	error_code ec;
+	// if we close the socket here, we can't shut down
+	// utp connections or NAT-PMP. We need to cancel the
+	// outstanding operations
 	m_ipv4_sock.cancel(ec);
+	TORRENT_ASSERT_VAL(!ec || ec == error::bad_descriptor, ec);
 #if TORRENT_USE_IPV6
 	m_ipv6_sock.cancel(ec);
+	TORRENT_ASSERT_VAL(!ec || ec == error::bad_descriptor, ec);
 #endif
 	m_socks5_sock.cancel(ec);
+	TORRENT_ASSERT_VAL(!ec || ec == error::bad_descriptor, ec);
 	m_resolver.cancel();
 	m_abort = true;
 
@@ -615,7 +622,7 @@ void udp_socket::on_connected(error_code const& e)
 		write_uint8(0, p); // no authentication
 		write_uint8(2, p); // username/password
 	}
-	TORRENT_ASSERT(p - m_tmp_buf < sizeof(m_tmp_buf));
+	TORRENT_ASSERT_VAL(p - m_tmp_buf < sizeof(m_tmp_buf), (p - m_tmp_buf));
 	asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
 		, boost::bind(&udp_socket::handshake1, this, _1));
 }
@@ -666,7 +673,7 @@ void udp_socket::handshake2(error_code const& e)
 		write_string(m_proxy_settings.username, p);
 		write_uint8(m_proxy_settings.password.size(), p);
 		write_string(m_proxy_settings.password, p);
-		TORRENT_ASSERT(p - m_tmp_buf < sizeof(m_tmp_buf));
+		TORRENT_ASSERT_VAL(p - m_tmp_buf < sizeof(m_tmp_buf), (p - m_tmp_buf));
 		asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
 			, boost::bind(&udp_socket::handshake3, this, _1));
 	}
@@ -732,7 +739,7 @@ void udp_socket::socks_forward_udp(mutex::scoped_lock& l)
 		port = m_ipv6_sock.local_endpoint(ec).port();
 #endif
 	detail::write_uint16(port , p);
-	TORRENT_ASSERT(p - m_tmp_buf < sizeof(m_tmp_buf));
+	TORRENT_ASSERT_VAL(p - m_tmp_buf < sizeof(m_tmp_buf), (p - m_tmp_buf));
 	asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
 		, boost::bind(&udp_socket::connect1, this, _1));
 }
@@ -828,7 +835,7 @@ rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
 	error_code ec;
 	m_timer.expires_from_now(seconds(1), ec);
 	m_timer.async_wait(boost::bind(&rate_limited_udp_socket::on_tick, this, _1));
-	TORRENT_ASSERT(!ec);
+	TORRENT_ASSERT_VAL(!ec, ec);
 }
 
 bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags)
