@@ -177,7 +177,8 @@ namespace libtorrent {
 
 	std::string tracker_announce_alert::message() const
 	{
-		const static char* event_str[] = {"none", "completed", "started", "stopped"};
+		const static char* event_str[] = {"none", "completed", "started", "stopped", "paused"};
+		TORRENT_ASSERT_VAL(event < sizeof(event_str)/sizeof(event_str), event);
 		return tracker_alert::message() + " sending announce (" + event_str[event] + ")";
 	}
 
