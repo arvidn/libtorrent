@@ -121,7 +121,7 @@ void print_backtrace(FILE* out, char const* label) {}
 char const* libtorrent_assert_log = "asserts.log";
 #endif
 
-void assert_fail(char const* expr, int line, char const* file, char const* function)
+void assert_fail(char const* expr, int line, char const* file, char const* function, char const* value)
 {
 
 #if TORRENT_PRODUCTION_ASSERTS
@@ -139,7 +139,10 @@ void assert_fail(char const* expr, int line, char const* file, char const* funct
 		"file: '%s'\n"
 		"line: %d\n"
 		"function: %s\n"
-		"expression: %s\n", LIBTORRENT_REVISION, file, line, function, expr);
+		"expression: %s\n"
+		"%s%s"
+		, LIBTORRENT_REVISION, file, line, function, expr
+		, value ? value : "", value ? "\n" : "");
 
 	print_backtrace(out, "stack:");
 
