@@ -425,7 +425,7 @@ namespace libtorrent
 	int piece_manager::hash_for_slot(int slot, partial_hash& ph, int piece_size
 		, int small_piece_size, sha1_hash* small_hash)
 	{
-		TORRENT_ASSERT(!error());
+		TORRENT_ASSERT_VAL(!error(), error());
 		int num_read = 0;
 		int slot_size = piece_size - ph.offset;
 		if (slot_size > 0)
