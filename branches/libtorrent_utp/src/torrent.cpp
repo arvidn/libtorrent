@@ -1467,7 +1467,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_allow_peers || e == tracker_request::stopped);
 
-		if (e == tracker_request::none && is_finished())
+		if (e == tracker_request::none && is_finished() && !is_seed())
 			e = tracker_request::paused;
 
 		tracker_request req;
@@ -5586,11 +5586,15 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
 	void torrent::log_to_all_peers(char const* message)
 	{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		for (peer_iterator i = m_connections.begin();
 				i != m_connections.end(); ++i)
 		{
 			(*(*i)->m_logger) << time_now_string() << " *** " << message << "\n";
 		}
+#endif
+
+		(*m_ses.m_logger) << time_now_string() << " " << message << "\n";
 	}
 #endif
 

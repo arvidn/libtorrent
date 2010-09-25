@@ -147,6 +147,7 @@ namespace libtorrent
 #endif
 				);
 			~session_impl();
+			void start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
