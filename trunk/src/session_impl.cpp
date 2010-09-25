@@ -432,7 +432,7 @@ namespace aux {
 			char const* key = m[i].name;
 			void const* src = ((char*)s) + m[i].offset;
 			entry& val = e[key];
-			TORRENT_ASSERT(val.type() == entry::undefined_t);
+			TORRENT_ASSERT_VAL(val.type() == entry::undefined_t, val.type());
 			switch (m[i].type)
 			{
 				case std_string:
@@ -537,10 +537,10 @@ namespace aux {
 		m_next_lsd_torrent = m_torrents.begin();
 		m_next_connect_torrent = m_torrents.begin();
 
-		TORRENT_ASSERT(listen_interface);
+		TORRENT_ASSERT_VAL(listen_interface, listen_interface);
 		error_code ec;
 		m_listen_interface = tcp::endpoint(address::from_string(listen_interface, ec), listen_port_range.first);
-		TORRENT_ASSERT(!ec);
+		TORRENT_ASSERT_VAL(!ec, ec);
 
 		m_tcp_mapping[0] = -1;
 		m_tcp_mapping[1] = -1;
@@ -740,7 +740,7 @@ namespace aux {
 
 		m_key = rand() + (rand() << 15) + (rand() << 30);
 		std::string print = cl_fprint.to_string();
-		TORRENT_ASSERT(print.length() <= 20);
+		TORRENT_ASSERT_VAL(print.length() <= 20, print.length());
 
 		// the client's fingerprint
 		std::copy(
@@ -1004,7 +1004,7 @@ namespace aux {
 	void session_impl::add_extension(
 		boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{
-		TORRENT_ASSERT(ext);
+		TORRENT_ASSERT_VAL(ext, ext);
 
 		typedef boost::shared_ptr<torrent_plugin>(*function_t)(torrent*, void*);
 		function_t const* f = ext.target<function_t>();
@@ -1126,7 +1126,7 @@ namespace aux {
 			int conn = m_connections.size();
 #endif
 			(*m_connections.begin())->disconnect(errors::stopping_torrent);
-			TORRENT_ASSERT(conn == int(m_connections.size()) + 1);
+			TORRENT_ASSERT_VAL(conn == int(m_connections.size()) + 1, conn);
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -1191,10 +1191,10 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(s.file_pool_size > 0);
+		TORRENT_ASSERT_VAL(s.file_pool_size > 0, s.file_pool_size);
 
 		// less than 5 seconds unchoke interval is insane
-		TORRENT_ASSERT(s.unchoke_interval >= 5);
+		TORRENT_ASSERT_VAL(s.unchoke_interval >= 5, s.unchoke_interval);
 
 		// if disk io thread settings were changed
 		// post a notification to that thread
@@ -1396,7 +1396,7 @@ namespace aux {
 			(*m_logger) << msg << "\n";
 #endif
 			ec = error_code();
-			TORRENT_ASSERT(!ec);
+			TORRENT_ASSERT_VAL(!ec, ec);
 			--retries;
 			ep.port(ep.port() + 1);
 			s.sock->bind(ep, ec);
@@ -1591,7 +1591,7 @@ namespace aux {
 		m_socks_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
 		bool ret = instantiate_connection(m_io_service, m_proxy
 			, *m_socks_listen_socket);
-		TORRENT_ASSERT(ret);
+		TORRENT_ASSERT_VAL(ret, ret);
 
 		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
 		s.set_command(2); // 2 means BIND (as opposed to CONNECT)
@@ -1616,7 +1616,7 @@ namespace aux {
 		m_i2p_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
 		bool ret = instantiate_connection(m_io_service, m_i2p_conn.proxy()
 			, *m_i2p_listen_socket);
-		TORRENT_ASSERT(ret);
+		TORRENT_ASSERT_VAL(ret, ret);
 
 		i2p_stream& s = *m_i2p_listen_socket->get<i2p_stream>();
 		s.set_command(i2p_stream::cmd_accept);
