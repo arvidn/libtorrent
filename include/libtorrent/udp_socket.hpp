@@ -116,7 +116,7 @@ namespace libtorrent
 		void handshake2(error_code const& e);
 		void handshake3(error_code const& e);
 		void handshake4(error_code const& e);
-		void socks_forward_udp(mutex::scoped_lock& l);
+		void socks_forward_udp();
 		void connect1(error_code const& e);
 		void connect2(error_code const& e);
 		void hung_up(error_code const& e);
@@ -125,7 +125,20 @@ namespace libtorrent
 		void wrap(char const* hostname, int port, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
 
-		mutable mutex m_mutex;
+#ifdef TORRENT_DEBUG
+#if defined BOOST_HAS_PTHREADS
+		mutable pthread_t m_thread;
+#endif
+		bool is_single_thread() const
+		{
+#if defined BOOST_HAS_PTHREADS
+			if (m_thread == 0)
+				m_thread = pthread_self();
+			return m_thread == pthread_self();
+#endif
+			return true;
+		}
+#endif
 
 		udp::socket m_ipv4_sock;
 		udp::endpoint m_v4_ep;
