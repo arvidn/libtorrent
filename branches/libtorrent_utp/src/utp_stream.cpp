@@ -1671,6 +1671,13 @@ bool utp_socket_impl::consume_incoming_data(
 {
 	if (ph->type != ST_DATA) return false;
 
+	if (m_eof && m_ack_nr == m_eof_seq_nr)
+	{
+		// What?! We've already received a FIN and everything up
+		// to it has been acked. Ignore this packet
+		return true;
+	}
+
 	if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK))
 	{
 		TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
@@ -2118,8 +2125,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// reorder buffer.
 
 //			TORRENT_ASSERT(m_inbuf.size() == 0);
-			if (ph->type == ST_DATA)
-				m_ack_nr = ph->seq_nr;
+			m_ack_nr = ph->seq_nr;
 
 			// Transition to UTP_STATE_FIN_SENT. The sent FIN is also an ack
 			// to the FIN we received. Once we're in UTP_STATE_FIN_SENT we
@@ -2145,7 +2151,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		m_eof = true;
 		m_eof_seq_nr = ph->seq_nr;
 
-		// #error we should respond with a fin once we have received everything up to m_eof_seq_nr
+		// we will respond with a fin once we have received everything up to m_eof_seq_nr
 	}
 
 	switch (m_state)
@@ -2171,7 +2177,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				m_acked_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 
 				TORRENT_ASSERT(m_send_id == ph->connection_id);
-				TORRENT_ASSERT(m_recv_id == (m_send_id + 1) & 0xffff);
+				TORRENT_ASSERT(m_recv_id == ((m_send_id + 1) & 0xffff));
 
 				send_pkt(true);
 
@@ -2359,11 +2365,6 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		}
 		case UTP_STATE_FIN_SENT:
 		{
-			// #error if m_eof is true, and we have received everything
-			// up until m_eof_seq_nr and our FIN packet has been acked
-			// set m_error to asio::error::eof and transition to state
-			// UTP_STATE_ERROR_WAIT
-
 			// There are two ways we can end up in this state:
 			//
 			// 1. If the socket has been explicitly closed on our
@@ -2579,7 +2580,8 @@ void utp_socket_impl::tick(ptime const& now)
 		if (p)
 		{
 			if (p->num_transmissions > m_sm->num_resends()
-				|| (m_state == UTP_STATE_SYN_SENT && p->num_transmissions > m_sm->syn_resends()))
+				|| (m_state == UTP_STATE_SYN_SENT && p->num_transmissions > m_sm->syn_resends())
+				|| (m_state == UTP_STATE_FIN_SENT && p->num_transmissions > m_sm->fin_resends()))
 			{
 #if TORRENT_UTP_LOG
 				UTP_LOGV("[%08u] %8p: %d failed sends in a row. Socket timed out. state:%s\n"
@@ -2610,6 +2612,14 @@ void utp_socket_impl::tick(ptime const& now)
 		else if (m_state < UTP_STATE_FIN_SENT)
 		{
 			send_pkt(false);
+		}
+		else if (m_state == UTP_STATE_FIN_SENT)
+		{
+			// the connection is dead
+			m_error = asio::error::eof;
+			m_state = UTP_STATE_ERROR_WAIT;
+			test_socket_state();
+			return;
 		}
 	}
 

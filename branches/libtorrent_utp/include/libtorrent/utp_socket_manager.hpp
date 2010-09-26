@@ -70,6 +70,7 @@ namespace libtorrent
 		int gain_factor() const { return m_sett.utp_gain_factor; }
 		int target_delay() const { return m_sett.utp_target_delay * 1000; }
 		int syn_resends() const { return m_sett.utp_syn_resends; }
+		int fin_resends() const { return m_sett.utp_fin_resends; }
 		int num_resends() const { return m_sett.utp_num_resends; }
 		int connect_timeout() const { return m_sett.utp_connect_timeout; }
 		int delayed_ack() const { return m_sett.utp_delayed_ack; }

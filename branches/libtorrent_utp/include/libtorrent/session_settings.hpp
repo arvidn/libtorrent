@@ -227,9 +227,10 @@ namespace libtorrent
 			, tick_interval(100)
 			, report_web_seed_downloads(true)
 			, share_mode_target(3)
-			, utp_target_delay(50) // milliseconds
+			, utp_target_delay(75) // milliseconds
 			, utp_gain_factor(3000) // bytes per rtt
 			, utp_syn_resends(2)
+			, utp_fin_resends(2)
 			, utp_num_resends(6)
 			, utp_connect_timeout(3000) // milliseconds
 			, utp_delayed_ack(100) // milliseconds
@@ -886,8 +887,11 @@ namespace libtorrent
 		// congestion controller
 		int utp_gain_factor;
 
-		// the number SYN packets are sent before giving up
+		// the number of SYN packets that are sent before giving up
 		int utp_syn_resends;
+		
+		// the number of resent packets sent on a closed socket before giving up
+		int utp_fin_resends;
 
 		// the number of times to send a packet before giving up
 		int utp_num_resends;
