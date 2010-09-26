@@ -344,7 +344,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	if (print_ip) out += "IP                                           ";
+	if (print_ip) out += "IP                                                   ";
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out += "AS                                         ";
 #endif
@@ -369,7 +369,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 
 		if (print_ip)
 		{
-			snprintf(str, sizeof(str), "%-30s %22s", (print_endpoint(i->ip) +
+			snprintf(str, sizeof(str), "%-30s %-22s", (print_endpoint(i->ip) +
 				(i->connection_type == peer_info::bittorrent_utp ? " [uTP]" : "")).c_str()
 				, print_endpoint(i->local_endpoint).c_str());
 			out += str;
@@ -801,7 +801,8 @@ int main(int argc, char* argv[])
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  -N                    Do not attempt to use UPnP and NAT-PMP to forward ports\n"
 			"  -Y                    Rate limit local peers\n"
-			"  "
+			"  -y                    Disable TCP connections (disable outgoing TCP and reject\n"
+			"                        incoming TCP connections)\n"
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
 			"MAGNETURL is a magnet: url\n")
@@ -963,6 +964,7 @@ int main(int argc, char* argv[])
 			case 'R': settings.read_cache_line_size = atoi(arg); break;
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
 			case 'M': settings.mixed_mode_algorithm = session_settings::prefer_tcp; --i; break;
+			case 'y': settings.enable_outgoing_tcp = false; settings.enable_incoming_tcp = false; --i; break;
 			case 'P':
 				{
 					char* port = (char*) strrchr(arg, ':');
