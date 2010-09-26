@@ -2477,9 +2477,8 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 	// all of these are fixed points with 16 bits fraction portion
 	boost::int64_t window_factor = (boost::int64_t(acked_bytes) << 16) / in_flight;
 	boost::int64_t delay_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
-	boost::int64_t scaled_gain = window_factor * delay_factor;
+	boost::int64_t scaled_gain = (window_factor * delay_factor) >> 16;
 	scaled_gain *= boost::int64_t(m_sm->gain_factor());
-	scaled_gain >>= 16;
 
 	if (scaled_gain > 0 && m_last_cwnd_hit + seconds(1) < now)
 	{
