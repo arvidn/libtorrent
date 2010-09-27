@@ -104,20 +104,16 @@ namespace libtorrent
         std::size_t m_size;
 
         // This defines the first index that is part of the m_storage.
-        // The last index is m_first + (m_capacity - 1).
+        // The last index is (m_first + (m_capacity - 1)) & 0xffff.
         index_type m_first;
     };
 
     inline packet_buffer::packet_buffer()
-      : m_capacity(16)
+      : m_storage(0)
+      , m_capacity(0)
       , m_size(0)
       , m_first(0)
-    {
-        m_storage = (void**)malloc(sizeof(void*) * m_capacity);
-
-        for (index_type i = 0; i < m_capacity; ++i)
-            m_storage[i] = 0;
-    }
+    {}
 
     inline packet_buffer::~packet_buffer()
     {
@@ -126,6 +122,8 @@ namespace libtorrent
 
     inline void* packet_buffer::insert(index_type idx, void* value)
     {
+        TORRENT_ASSERT_VAL(idx <= 0xffff, idx);
+
         if (m_size != 0)
         {
             if (idx >= m_first + m_capacity)
@@ -162,6 +160,12 @@ namespace libtorrent
             }
         }
 
+        if (m_capacity == 0)
+        {
+           m_first = idx;
+           reserve(16);
+        }
+
         void* old_value = m_storage[idx & (m_capacity - 1)];
         m_storage[idx & (m_capacity - 1)] = value;
 
@@ -178,7 +182,7 @@ namespace libtorrent
         if (idx >= m_first + m_capacity)
             return 0;
 
-        if (idx < m_first)
+        if (compare_less_wrap(idx, m_first, 0xffff))
         {
             if (((m_first + m_capacity) & 0xffff) < m_first)
             {
@@ -193,7 +197,8 @@ namespace libtorrent
 
     inline void packet_buffer::reserve(std::size_t size)
     {
-        std::size_t new_size = m_capacity;
+        TORRENT_ASSERT_VAL(size <= 0xffff, size);
+        std::size_t new_size = m_capacity == 0 ? 16 : m_capacity;
 
         while (new_size < size)
             new_size <<= 1;
@@ -217,7 +222,7 @@ namespace libtorrent
         if (idx >= m_first + m_capacity)
             return 0;
 
-        if (idx < m_first)
+        if (compare_less_wrap(idx, m_first, 0xffff))
         {
             if (((m_first + m_capacity) & 0xffff) < m_first)
             {

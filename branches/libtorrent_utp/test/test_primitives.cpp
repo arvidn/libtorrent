@@ -452,6 +452,23 @@ int test_main()
 		}
 	}
 
+	{
+		// test wrapping the indices
+		packet_buffer pb;
+
+		TEST_EQUAL(pb.size(), 0);
+
+		pb.insert(0xfffe, (void*)1);
+		TEST_CHECK(pb.at(0xfffe) == (void*)1);
+
+		pb.insert(2, (void*)2);
+		TEST_CHECK(pb.at(2) == (void*)2);
+
+		pb.remove(0xfffe);
+		TEST_CHECK(pb.at(0xfffe) == (void*)0);
+		TEST_CHECK(pb.at(2) == (void*)2);
+	}
+
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
 	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
 	TEST_CHECK(error_code(errors::unsupported_protocol_version).message() == "unsupported protocol version");
