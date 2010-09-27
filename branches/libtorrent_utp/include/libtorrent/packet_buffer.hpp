@@ -123,14 +123,12 @@ namespace libtorrent
     inline void* packet_buffer::insert(index_type idx, void* value)
     {
         TORRENT_ASSERT_VAL(idx <= 0xffff, idx);
-
+        // you're not allowed to insert NULLs!
+        TORRENT_ASSERT(value);
+        
         if (m_size != 0)
         {
-            if (idx >= m_first + m_capacity)
-            {
-                reserve(idx - m_first + 1);
-            }
-            else if (compare_less_wrap(idx, m_first, 0xffff))
+            if (compare_less_wrap(idx, m_first, 0xffff))
             {
                 // Index comes before m_first. If we have room, we can simply
                 // adjust m_first backward.
@@ -145,26 +143,30 @@ namespace libtorrent
                     ++free_space;
                 }
 
-                if (m_first - idx > free_space)
-                    reserve(m_first - idx + m_capacity - free_space);
+                if (((m_first - idx) & 0xffff) > free_space)
+                    reserve(((m_first - idx) & 0xffff) + m_capacity - free_space);
 
                 m_first = idx;
+            }
+            else if (idx >= m_first + m_capacity)
+            {
+                reserve(idx - m_first + 1);
             }
             else if (idx < m_first)
             {
                 // We have wrapped.
-                if (idx > ((m_first + m_capacity) & 0xffff))
+                if (idx > ((m_first + m_capacity) & 0xffff) && m_capacity < 0xffff)
                 {
                     reserve(m_capacity + (idx - ((m_first + m_capacity) & 0xffff)));
                 }
             }
         }
-
-        if (m_capacity == 0)
+        else
         {
            m_first = idx;
-           reserve(16);
         }
+
+        if (m_capacity == 0) reserve(16);
 
         void* old_value = m_storage[idx & (m_capacity - 1)];
         m_storage[idx & (m_capacity - 1)] = value;
@@ -184,12 +186,7 @@ namespace libtorrent
 
         if (compare_less_wrap(idx, m_first, 0xffff))
         {
-            if (((m_first + m_capacity) & 0xffff) < m_first)
-            {
-                if (idx >= ((m_first + m_capacity) & 0xffff))
-                    return 0;
-            }
-            else return 0;
+            return 0;
         }
 
         return m_storage[idx & (m_capacity - 1)];
@@ -223,14 +220,7 @@ namespace libtorrent
             return 0;
 
         if (compare_less_wrap(idx, m_first, 0xffff))
-        {
-            if (((m_first + m_capacity) & 0xffff) < m_first)
-            {
-                if (idx >= ((m_first + m_capacity) & 0xffff))
-                    return 0;
-            }
-            else return 0;
-        }
+            return 0;
 
         void* old_value = m_storage[idx & (m_capacity - 1)];
         m_storage[idx & (m_capacity - 1)] = 0;
@@ -243,6 +233,7 @@ namespace libtorrent
         if (idx == m_first && m_size != 0)
         {
             while (!m_storage[++m_first & (m_capacity - 1)]);
+            m_first &= 0xffff;
         }
 
         return old_value;
