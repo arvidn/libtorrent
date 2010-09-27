@@ -30,6 +30,7 @@ set(sources
 	http_seed_connection
 	instantiate_connection
 	natpmp
+	packet_buffer
 	piece_picker
 	policy
 	puff

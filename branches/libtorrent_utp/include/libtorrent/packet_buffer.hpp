@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PACKET_BUFFER_HPP_INCLUDED
 #define TORRENT_PACKET_BUFFER_HPP_INCLUDED
 
-#include "libtorrent/assert.hpp"
-#include <stdlib.h> // free and calloc
+#include "boost/cstdint.hpp"
+#include <cstddef>
 
 namespace libtorrent
 {
@@ -64,181 +64,40 @@ namespace libtorrent
 	// whenever the element at the cursor is removed, the
 	// cursor is bumped to the next occupied element
 
-    bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs
-        , boost::uint32_t mask);
+	class packet_buffer
+	{
+	public:
+		typedef boost::uint32_t index_type;
 
-    class packet_buffer
-    {
-    public:
-        typedef boost::uint32_t index_type;
+		packet_buffer();
+		~packet_buffer();
 
-        packet_buffer();
-        ~packet_buffer();
+		void* insert(index_type idx, void* value);
 
-        void* insert(index_type idx, void* value);
+		std::size_t size() const
+		{ return m_size; }
 
-        std::size_t size() const
-        {
-            return m_size;
-        }
+		std::size_t capacity() const
+		{ return m_capacity; }
 
-        std::size_t capacity() const
-        {
-            return m_capacity;
-        }
+		void* at(index_type idx) const;
 
-        void* at(index_type idx) const;
+		void* remove(index_type idx);
 
-        void* remove(index_type idx);
+		void reserve(std::size_t size);
 
-        void reserve(std::size_t size);
+		index_type cursor() const
+		{ return m_first; }
 
-        index_type cursor() const
-        {
-            return m_first;
-        }
+	private:
+		void** m_storage;
+		std::size_t m_capacity;
+		std::size_t m_size;
 
-    private:
-        void** m_storage;
-        std::size_t m_capacity;
-        std::size_t m_size;
-
-        // This defines the first index that is part of the m_storage.
-        // The last index is (m_first + (m_capacity - 1)) & 0xffff.
-        index_type m_first;
-    };
-
-    inline packet_buffer::packet_buffer()
-      : m_storage(0)
-      , m_capacity(0)
-      , m_size(0)
-      , m_first(0)
-    {}
-
-    inline packet_buffer::~packet_buffer()
-    {
-        free(m_storage);
-    }
-
-    inline void* packet_buffer::insert(index_type idx, void* value)
-    {
-        TORRENT_ASSERT_VAL(idx <= 0xffff, idx);
-        // you're not allowed to insert NULLs!
-        TORRENT_ASSERT(value);
-        
-        if (m_size != 0)
-        {
-            if (compare_less_wrap(idx, m_first, 0xffff))
-            {
-                // Index comes before m_first. If we have room, we can simply
-                // adjust m_first backward.
-
-                std::size_t free_space = 0;
-
-                for (index_type i = (m_first - 1) & (m_capacity - 1);
-                     i != (m_first & (m_capacity - 1)); i = (i - 1) & (m_capacity - 1))
-                {
-                    if (m_storage[i & (m_capacity - 1)])
-                        break;
-                    ++free_space;
-                }
-
-                if (((m_first - idx) & 0xffff) > free_space)
-                    reserve(((m_first - idx) & 0xffff) + m_capacity - free_space);
-
-                m_first = idx;
-            }
-            else if (idx >= m_first + m_capacity)
-            {
-                reserve(idx - m_first + 1);
-            }
-            else if (idx < m_first)
-            {
-                // We have wrapped.
-                if (idx > ((m_first + m_capacity) & 0xffff) && m_capacity < 0xffff)
-                {
-                    reserve(m_capacity + (idx - ((m_first + m_capacity) & 0xffff)));
-                }
-            }
-        }
-        else
-        {
-           m_first = idx;
-        }
-
-        if (m_capacity == 0) reserve(16);
-
-        void* old_value = m_storage[idx & (m_capacity - 1)];
-        m_storage[idx & (m_capacity - 1)] = value;
-
-        if (m_size++ == 0)
-        {
-            m_first = idx;
-        }
-
-        return old_value;
-    }
-
-    inline void* packet_buffer::at(index_type idx) const
-    {
-        if (idx >= m_first + m_capacity)
-            return 0;
-
-        if (compare_less_wrap(idx, m_first, 0xffff))
-        {
-            return 0;
-        }
-
-        return m_storage[idx & (m_capacity - 1)];
-    }
-
-    inline void packet_buffer::reserve(std::size_t size)
-    {
-        TORRENT_ASSERT_VAL(size <= 0xffff, size);
-        std::size_t new_size = m_capacity == 0 ? 16 : m_capacity;
-
-        while (new_size < size)
-            new_size <<= 1;
-
-        void** new_storage = (void**)malloc(sizeof(void*) * new_size);
-
-        for (index_type i = 0; i < new_size; ++i)
-            new_storage[i] = 0;
-
-        for (index_type i = m_first; i < (m_first + m_capacity); ++i)
-            new_storage[i & (new_size - 1)] = m_storage[i & (m_capacity - 1)];
-
-        free(m_storage);
-
-        m_storage = new_storage;
-        m_capacity = new_size;
-    }
-
-    inline void* packet_buffer::remove(index_type idx)
-    {
-        if (idx >= m_first + m_capacity)
-            return 0;
-
-        if (compare_less_wrap(idx, m_first, 0xffff))
-            return 0;
-
-        void* old_value = m_storage[idx & (m_capacity - 1)];
-        m_storage[idx & (m_capacity - 1)] = 0;
-
-        if (old_value)
-        {
-            --m_size;
-        }
-
-        if (idx == m_first && m_size != 0)
-        {
-            while (!m_storage[++m_first & (m_capacity - 1)]);
-            m_first &= 0xffff;
-        }
-
-        return old_value;
-    }
-
+		// This defines the first index that is part of the m_storage.
+		// The last index is (m_first + (m_capacity - 1)) & 0xffff.
+		index_type m_first;
+	};
 }
 
 #endif // TORRENT_PACKET_BUFFER_HPP_INCLUDED

@@ -30,5 +30,145 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-//#include "libtorrent/packet_buffer.hpp"
+#include <stdlib.h> // free and calloc
+#include "libtorrent/packet_buffer.hpp"
+#include "libtorrent/assert.hpp"
+
+namespace libtorrent {
+
+	bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs
+		, boost::uint32_t mask);
+
+	packet_buffer::packet_buffer()
+		: m_storage(0)
+		, m_capacity(0)
+		, m_size(0)
+		, m_first(0)
+	{}
+
+	packet_buffer::~packet_buffer()
+	{
+		free(m_storage);
+	}
+
+	void* packet_buffer::insert(index_type idx, void* value)
+	{
+		TORRENT_ASSERT_VAL(idx <= 0xffff, idx);
+		// you're not allowed to insert NULLs!
+		TORRENT_ASSERT(value);
+
+		if (m_size != 0)
+		{
+			if (compare_less_wrap(idx, m_first, 0xffff))
+			{
+				// Index comes before m_first. If we have room, we can simply
+				// adjust m_first backward.
+
+				std::size_t free_space = 0;
+
+				for (index_type i = (m_first - 1) & (m_capacity - 1);
+						i != (m_first & (m_capacity - 1)); i = (i - 1) & (m_capacity - 1))
+				{
+					if (m_storage[i & (m_capacity - 1)])
+						break;
+					++free_space;
+				}
+
+				if (((m_first - idx) & 0xffff) > free_space)
+					reserve(((m_first - idx) & 0xffff) + m_capacity - free_space);
+
+				m_first = idx;
+			}
+			else if (idx >= m_first + m_capacity)
+			{
+				reserve(idx - m_first + 1);
+			}
+			else if (idx < m_first)
+			{
+				// We have wrapped.
+				if (idx > ((m_first + m_capacity) & 0xffff) && m_capacity < 0xffff)
+				{
+					reserve(m_capacity + (idx - ((m_first + m_capacity) & 0xffff)));
+				}
+			}
+		}
+		else
+		{
+			m_first = idx;
+		}
+
+		if (m_capacity == 0) reserve(16);
+
+		void* old_value = m_storage[idx & (m_capacity - 1)];
+		m_storage[idx & (m_capacity - 1)] = value;
+
+		if (m_size++ == 0)
+		{
+			m_first = idx;
+		}
+
+		return old_value;
+	}
+
+	void* packet_buffer::at(index_type idx) const
+	{
+		if (idx >= m_first + m_capacity)
+			return 0;
+
+		if (compare_less_wrap(idx, m_first, 0xffff))
+		{
+			return 0;
+		}
+
+		return m_storage[idx & (m_capacity - 1)];
+	}
+
+	void packet_buffer::reserve(std::size_t size)
+	{
+		TORRENT_ASSERT_VAL(size <= 0xffff, size);
+		std::size_t new_size = m_capacity == 0 ? 16 : m_capacity;
+
+		while (new_size < size)
+			new_size <<= 1;
+
+		void** new_storage = (void**)malloc(sizeof(void*) * new_size);
+
+		for (index_type i = 0; i < new_size; ++i)
+			new_storage[i] = 0;
+
+		for (index_type i = m_first; i < (m_first + m_capacity); ++i)
+			new_storage[i & (new_size - 1)] = m_storage[i & (m_capacity - 1)];
+
+		free(m_storage);
+
+		m_storage = new_storage;
+		m_capacity = new_size;
+	}
+
+	void* packet_buffer::remove(index_type idx)
+	{
+		if (idx >= m_first + m_capacity)
+			return 0;
+
+		if (compare_less_wrap(idx, m_first, 0xffff))
+			return 0;
+
+		void* old_value = m_storage[idx & (m_capacity - 1)];
+		m_storage[idx & (m_capacity - 1)] = 0;
+
+		if (old_value)
+		{
+			--m_size;
+		}
+
+		if (idx == m_first && m_size != 0)
+		{
+			while (!m_storage[++m_first & (m_capacity - 1)]);
+			m_first &= 0xffff;
+		}
+
+		return old_value;
+	}
+
+}
 
