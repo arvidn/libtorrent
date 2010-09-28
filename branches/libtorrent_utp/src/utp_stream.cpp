@@ -1486,7 +1486,7 @@ bool utp_socket_impl::resend_packet(packet* p)
 		return false;
 	}
 
-	TORRENT_ASSERT(p->num_transmissions <= m_sm->num_resends());
+	TORRENT_ASSERT(p->num_transmissions < m_sm->num_resends());
 
 	TORRENT_ASSERT(p->size - p->header_size >= 0);
 	if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;
@@ -1884,7 +1884,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		// this is too far out to fit in our reorder buffer. Drop it
 		// This is either an attack to try to break the connection
 		// or a seariously damaged connection that lost a lot of
-		// packages. Neither is very likely, and it should be OK
+		// packets. Neither is very likely, and it should be OK
 		// to drop the timestamp information.
 		UTP_LOGV("%8p: incoming packet seq_nr:%d our ack_nr:%d (ignored)\n"
 			, this, int(ph->seq_nr), m_ack_nr);
@@ -1992,8 +1992,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	{
 		// LOSS
 
-		UTP_LOGV("%8p: Packet %d lost.\n"
-			, this, m_fast_resend_seq_nr);
+		UTP_LOGV("%8p: Packet %d lost.\n", this, m_fast_resend_seq_nr);
 
 		// resend the lost packet
 		packet* p = (packet*)m_outbuf.at(m_fast_resend_seq_nr);
@@ -2503,9 +2502,9 @@ void utp_socket_impl::tick(ptime const& now)
 		packet* p = (packet*)m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK);
 		if (p)
 		{
-			if (p->num_transmissions > m_sm->num_resends()
-				|| (m_state == UTP_STATE_SYN_SENT && p->num_transmissions > m_sm->syn_resends())
-				|| (m_state == UTP_STATE_FIN_SENT && p->num_transmissions > m_sm->fin_resends()))
+			if (p->num_transmissions >= m_sm->num_resends()
+				|| (m_state == UTP_STATE_SYN_SENT && p->num_transmissions >= m_sm->syn_resends())
+				|| (m_state == UTP_STATE_FIN_SENT && p->num_transmissions >= m_sm->fin_resends()))
 			{
 #if TORRENT_UTP_LOG
 				UTP_LOGV("%8p: %d failed sends in a row. Socket timed out. state:%s\n"
