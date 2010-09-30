@@ -43,6 +43,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed NAT-PMP issue when adding the same mapping multiple times
 	* no peers from tracker when stopping is no longer an error
 	* improved web seed retry behavior
 	* fixed announce issue
