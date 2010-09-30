@@ -318,6 +318,7 @@ void natpmp::send_map_request(int i, mutex_t::scoped_lock& l)
 	error_code ec;
 	m_socket.send_to(asio::buffer(buf, 12), m_nat_endpoint, 0, ec);
 	m.map_sent = true;
+	m.outstanding_request = true;
 	if (m_abort)
 	{
 		// when we're shutting down, ignore the
@@ -427,6 +428,7 @@ void natpmp::on_reply(error_code const& e
 		if (private_port != i->local_port) continue;
 		if (protocol != i->protocol) continue;
 		if (!i->map_sent) continue;
+		if (!i->outstanding_request) continue;
 		m = &*i;
 		index = i - m_mappings.begin();
 		break;
@@ -438,6 +440,8 @@ void natpmp::on_reply(error_code const& e
 		log(msg, l);
 		return;
 	}
+	m->outstanding_request = false;
+
 	log(msg, l);
 
 	if (public_port == 0 || lifetime == 0)

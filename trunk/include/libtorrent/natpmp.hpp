@@ -95,6 +95,7 @@ private:
 			, external_port(0)
 			, protocol(none)
 			, map_sent(false)
+			, outstanding_request(false)
 		{}
 
 		// indicates that the mapping has changed
@@ -117,6 +118,9 @@ private:
 
 		// set to true when the first map request is sent
 		bool map_sent;
+
+		// set to true while we're waiting for a response
+		bool outstanding_request;
 	};
 
 	portmap_callback_t m_callback;
