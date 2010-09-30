@@ -179,7 +179,8 @@ namespace libtorrent
 #ifdef TORRENT_CONNECTION_LOGGING
 		m_log << log_time() << " " << free_slots() << std::endl;
 #endif
-		if (m_abort) return;
+		// if this is enabled, UPnP connections will be blocked when shutting down
+//		if (m_abort) return;
 
 		if (m_num_connecting >= m_half_open_limit
 			&& m_half_open_limit > 0) return;
