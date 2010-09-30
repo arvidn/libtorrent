@@ -1,3 +1,4 @@
+	* fixed UPnP shutdown issue
 	* no peers from tracker when stopping is no longer an error
 
 release 0.14.12

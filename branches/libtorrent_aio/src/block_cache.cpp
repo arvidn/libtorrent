@@ -866,7 +866,7 @@ void block_cache::check_invariant() const
 #endif
 
 // returns
-// -1: block not in caceh
+// -1: block not in cache
 // -2: out of memory
 
 int block_cache::copy_from_piece(iterator p, disk_io_job& j)

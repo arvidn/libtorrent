@@ -1,3 +1,4 @@
+	* fixed UPnP shutdown issue
 	* fixed UPnP DeletePortmapping issue
 	* fixed NAT-PMP issue when adding the same mapping multiple times
 	* no peers from tracker when stopping is no longer an error
