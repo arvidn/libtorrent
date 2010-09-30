@@ -61,18 +61,18 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	session* s = new session;
-	s->set_alert_mask(alert::port_mapping_notification);
+	session s;
+	s.set_alert_mask(alert::port_mapping_notification);
 
 	for (;;)
 	{
-		alert const* a = s->wait_for_alert(seconds(5));
+		alert const* a = s.wait_for_alert(seconds(5));
 		if (a == 0)
 		{
-			s->stop_upnp();
+			s.stop_upnp();
 			break;
 		}
-		std::auto_ptr<alert> holder = s->pop_alert();
+		std::auto_ptr<alert> holder = s.pop_alert();
 		print_alert(holder.get());
 	}
 
@@ -80,14 +80,12 @@ int main(int argc, char* argv[])
 
 	for (;;)
 	{
-		alert const* a = s->wait_for_alert(seconds(5));
+		alert const* a = s.wait_for_alert(seconds(5));
 		if (a == 0) break;
-		std::auto_ptr<alert> holder = s->pop_alert();
+		std::auto_ptr<alert> holder = s.pop_alert();
 		print_alert(holder.get());
 	}
 
-	delete s;
-	s = 0;
 
 	return 0;
 }
