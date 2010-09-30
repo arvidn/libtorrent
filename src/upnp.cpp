@@ -736,6 +736,7 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 		"<s:Body><u:%s xmlns:u=\"%s\">"
+		"<NewRemoteHost></NewRemoteHost>"
 		"<NewExternalPort>%u</NewExternalPort>"
 		"<NewProtocol>%s</NewProtocol>"
 		"</u:%s></s:Body></s:Envelope>"
@@ -1253,7 +1254,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	}
 	else
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "unmap response: %s"
 			, std::string(p.get_body().begin, p.get_body().end).c_str());
 		log(msg, l);
