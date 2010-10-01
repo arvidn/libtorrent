@@ -70,6 +70,7 @@ int main(int argc, char* argv[])
 		if (a == 0)
 		{
 			s.stop_upnp();
+			s.stop_natpmp();
 			break;
 		}
 		std::auto_ptr<alert> holder = s.pop_alert();
