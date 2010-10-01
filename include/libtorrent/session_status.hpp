@@ -105,6 +105,8 @@ namespace libtorrent
 		size_type dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
 #endif
+
+		int peerlist_size;
 	};
 
 }
