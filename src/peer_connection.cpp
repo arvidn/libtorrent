@@ -3300,6 +3300,16 @@ namespace libtorrent
 		TORRENT_ASSERT(refcount() > 0);
 	}
 
+	int peer_connection::get_upload_limit() const
+	{
+		return m_upload_limit;
+	}
+
+	int peer_connection::get_download_limit() const
+	{
+		return m_download_limit;
+	}
+
 	void peer_connection::set_upload_limit(int limit)
 	{
 		TORRENT_ASSERT(limit >= -1);

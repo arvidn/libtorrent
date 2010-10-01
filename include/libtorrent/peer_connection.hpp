@@ -216,6 +216,8 @@ namespace libtorrent
 
 		void on_metadata_impl();
 
+		int get_upload_limit() const;
+		int get_download_limit() const;
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
 
