@@ -1,3 +1,4 @@
+	* added functions to query an individual peer's upload and download limit
 	* full support for BEP 21 (event=paused)
 	* added share-mode feature for improving share ratios
 	* merged all proxy settings into a single one

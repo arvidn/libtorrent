@@ -240,6 +240,20 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_max_connections, max_connections);
 	}
 
+	int torrent_handle::get_peer_upload_limit(tcp::endpoint ip) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET1(int, -1, get_peer_upload_limit, ip);
+		return r;
+	}
+
+	int torrent_handle::get_peer_download_limit(tcp::endpoint ip) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET1(int, -1, get_peer_download_limit, ip);
+		return r;
+	}
+
 	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const
 	{
 		INVARIANT_CHECK;

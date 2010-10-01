@@ -582,6 +582,8 @@ namespace libtorrent
 		void set_sequential_download(bool sd) const;
 		bool is_sequential_download() const;
 
+		int get_peer_upload_limit(tcp::endpoint ip) const;
+		int get_peer_download_limit(tcp::endpoint ip) const;
 		void set_peer_upload_limit(tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(tcp::endpoint ip, int limit) const;
 
