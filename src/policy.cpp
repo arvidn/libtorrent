@@ -133,6 +133,7 @@ namespace libtorrent
 		if (t.is_seed()) return;
 		if (c.no_download()) return;
 		if (t.upload_mode()) return;
+		if (c.is_disconnecting()) return;
 
 		// don't request pieces before we have the metadata
 		if (!t.valid_metadata()) return;
