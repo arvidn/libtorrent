@@ -738,6 +738,8 @@ namespace libtorrent
 
 		void add_free_upload(int diff) { m_available_free_upload += diff; }
 
+		int get_peer_upload_limit(tcp::endpoint ip) const;
+		int get_peer_download_limit(tcp::endpoint ip) const;
 		void set_peer_upload_limit(tcp::endpoint ip, int limit);
 		void set_peer_download_limit(tcp::endpoint ip, int limit);
 

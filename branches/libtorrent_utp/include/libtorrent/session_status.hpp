@@ -117,6 +117,8 @@ namespace libtorrent
 #endif
 
 		utp_status utp_stats;
+
+		int peerlist_size;
 	};
 
 }

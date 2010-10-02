@@ -828,6 +828,8 @@ namespace libtorrent
 		}
 #endif
 		TORRENT_ASSERT(!m_ses.has_peer(this));
+		TORRENT_ASSERT(m_request_queue.empty());
+		TORRENT_ASSERT(m_download_queue.empty());
 #ifdef TORRENT_DEBUG
 		for (aux::session_impl::torrent_map::const_iterator i = m_ses.m_torrents.begin()
 			, end(m_ses.m_torrents.end()); i != end; ++i)
@@ -2736,6 +2738,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
+		TORRENT_ASSERT(!m_disconnecting);
 		TORRENT_ASSERT(t->valid_metadata());
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.piece_index < t->torrent_file().num_pieces());
@@ -2749,6 +2752,7 @@ namespace libtorrent
 			, block) == m_request_queue.end());
 
 		if (t->upload_mode()) return false;
+		if (m_disconnecting) return false;
 
 		piece_picker::piece_state_t state;
 		peer_speed_t speed = peer_speed();
@@ -3062,6 +3066,8 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
+		if (m_disconnecting) return;
+
 		if ((int)m_download_queue.size() >= m_desired_queue_size
 			|| t->upload_mode()) return;
 
@@ -3364,6 +3370,16 @@ namespace libtorrent
 		// we should only disconnect while we still have
 		// at least one reference left to the connection
 		TORRENT_ASSERT(refcount() > 0);
+	}
+
+	int peer_connection::get_upload_limit() const
+	{
+		return m_upload_limit;
+	}
+
+	int peer_connection::get_download_limit() const
+	{
+		return m_download_limit;
 	}
 
 	void peer_connection::set_upload_limit(int limit)
@@ -5141,7 +5157,15 @@ namespace libtorrent
 	}
 
 #ifdef TORRENT_DEBUG
-	struct peer_count_t { int num_peers; int num_peers_with_timeouts; int num_peers_with_nowant; };
+	struct peer_count_t
+	{
+		peer_count_t(): num_peers(0), num_peers_with_timeouts(0), num_peers_with_nowant(0), num_not_requested(0) {}
+		int num_peers;
+		int num_peers_with_timeouts;
+		int num_peers_with_nowant;
+		int num_not_requested;
+		std::vector<peer_connection const*> peers;
+	};
 
 	void peer_connection::check_invariant() const
 	{
@@ -5276,6 +5300,8 @@ namespace libtorrent
 					++num_requests[i->block].num_peers;
 					++num_requests[i->block].num_peers_with_timeouts;
 					++num_requests[i->block].num_peers_with_nowant;
+					++num_requests[i->block].num_not_requested;
+					num_requests[i->block].peers.push_back(&p);
 				}
 				for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
 					, end(p.download_queue().end()); i != end; ++i)
@@ -5283,15 +5309,17 @@ namespace libtorrent
 					if (!i->not_wanted && !i->timed_out) ++num_requests[i->block].num_peers;
 					if (i->timed_out) ++num_requests[i->block].num_peers_with_timeouts;
 					if (i->not_wanted) ++num_requests[i->block].num_peers_with_nowant;
+					num_requests[i->block].peers.push_back(&p);
 				}
 			}
 			for (std::map<piece_block, peer_count_t>::iterator i = num_requests.begin()
 				, end(num_requests.end()); i != end; ++i)
 			{
 				piece_block b = i->first;
-				int count = i->second.num_peers;
-				int count_with_timeouts = i->second.num_peers_with_timeouts;
-				int count_with_nowant = i->second.num_peers_with_nowant;
+				peer_count_t const& pc = i->second;
+				int count = pc.num_peers;
+				int count_with_timeouts = pc.num_peers_with_timeouts;
+				int count_with_nowant = pc.num_peers_with_nowant;
 				int picker_count = t->picker().num_peers(b);
 				if (!t->picker().is_downloaded(b))
 					TORRENT_ASSERT(picker_count == count);

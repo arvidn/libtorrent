@@ -2065,6 +2065,8 @@ Its declaration looks like this::
 		void set_sequential_download(bool sd) const;
 		bool is_sequential_download() const;
 
+		int get_peer_upload_limit(tcp::endpoint ip);
+		int get_peer_download_limit(tcp::endpoint ip);
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
 
@@ -2497,16 +2499,19 @@ used sparingly.
 otherwise.
 
 
-set_peer_upload_limit() set_peer_download_limit()
--------------------------------------------------
+get_peer_download_limit() get_peer_upload_limit() set_peer_upload_limit() set_peer_download_limit()
+---------------------------------------------------------------------------------------------------
 
 	::
 
+		int get_peer_upload_limit(tcp::endpoint ip);
+		int get_peer_download_limit(tcp::endpoint ip);
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
 
-Works like ``set_upload_limit`` and ``set_download_limit`` respectively, but controls individual
-peer instead of the whole torrent.
+Works like ``get_upload_limit``, ``get_download_limit``, ``set_upload_limit`` and
+``set_download_limit`` respectively, but controls individual peer instead of the
+whole torrent.
 
 pause() resume() is_paused()
 ----------------------------

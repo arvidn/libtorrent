@@ -3638,6 +3638,15 @@ namespace aux {
 
 		m_utp_socket_manager.get_status(s.utp_stats);
 
+		int peerlist_size = 0;
+		for (torrent_map::const_iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			peerlist_size += i->second->get_policy().num_peers();
+		}
+
+		s.peerlist_size = peerlist_size;
+
 		return s;
 	}
 

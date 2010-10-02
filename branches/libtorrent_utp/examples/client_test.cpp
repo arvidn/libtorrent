@@ -921,7 +921,10 @@ int main(int argc, char* argv[])
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
 			case 'H': start_dht = false; --i; break;
-			case 'W': settings.max_peerlist_size = atoi(arg); break;
+			case 'W':
+				settings.max_peerlist_size = atoi(arg);
+				settings.max_paused_peerlist_size = atoi(arg) / 2;
+				break;
 			case 'x':
 				{
 					FILE* filter = fopen(arg, "r");
@@ -1481,8 +1484,8 @@ int main(int argc, char* argv[])
 			, cs.queued_bytes);
 		out += str;
 
-		snprintf(str, sizeof(str), "==== optimistic unchoke: %d unchoke counter: %d ====\n"
-			, sess_stat.optimistic_unchoke_counter, sess_stat.unchoke_counter);
+		snprintf(str, sizeof(str), "==== optimistic unchoke: %d unchoke counter: %d peerlist: %d ====\n"
+			, sess_stat.optimistic_unchoke_counter, sess_stat.unchoke_counter, sess_stat.peerlist_size);
 		out += str;
 
 #ifndef TORRENT_DISABLE_DHT
