@@ -690,6 +690,8 @@ namespace libtorrent
 		}
 #endif
 		TORRENT_ASSERT(!m_ses.has_peer(this));
+		TORRENT_ASSERT(m_request_queue.empty());
+		TORRENT_ASSERT(m_download_queue.empty());
 #ifdef TORRENT_DEBUG
 		for (aux::session_impl::torrent_map::const_iterator i = m_ses.m_torrents.begin()
 			, end(m_ses.m_torrents.end()); i != end; ++i)
@@ -2563,6 +2565,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
+		TORRENT_ASSERT(!m_disconnecting);
 		TORRENT_ASSERT(t->valid_metadata());
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.piece_index < t->torrent_file().num_pieces());
@@ -2576,6 +2579,7 @@ namespace libtorrent
 			, block) == m_request_queue.end());
 
 		if (t->upload_mode()) return false;
+		if (m_disconnecting) return false;
 
 		piece_picker::piece_state_t state;
 		peer_speed_t speed = peer_speed();
@@ -2859,6 +2863,8 @@ namespace libtorrent
 		
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
+
+		if (m_disconnecting) return;
 
 		if ((int)m_download_queue.size() >= m_desired_queue_size
 			|| t->upload_mode()) return;
