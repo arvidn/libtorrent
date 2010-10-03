@@ -2482,7 +2482,13 @@ namespace libtorrent
 		// this piece failed the check as it can restore it
 		// and mark it as being interesting for download
 		m_picker->restore_piece(index);
+
+		// we might still have outstanding requests to this
+		// piece that hasn't been received yet. If this is the
+		// case, we need to re-open the piece and mark any
+		// blocks we're still waiting for as requested
 		restore_piece_state(index);
+
 		TORRENT_ASSERT(m_storage);
 
 		TORRENT_ASSERT(m_picker->have_piece(index) == false);
@@ -2512,6 +2518,7 @@ namespace libtorrent
 			for (std::vector<pending_block>::const_iterator k = dq.begin()
 				, end(dq.end()); k != end; ++k)
 			{
+				if (k->timed_out || k->not_wanted) continue;
 				if (k->block.piece_index != index) continue;
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
 					, (piece_picker::piece_state_t)p->peer_speed());
