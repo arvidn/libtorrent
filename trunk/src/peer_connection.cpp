@@ -2058,7 +2058,8 @@ namespace libtorrent
 
 		// if this is not in the request queue, we have to
 		// assume our outstanding bytes includes this piece too
-		if (!in_req_queue)
+		// if we're disconnecting, we shouldn't add pieces
+		if (!in_req_queue && !m_disconnecting)
 		{
 			for (std::vector<pending_block>::iterator i = m_request_queue.begin()
 				, end(m_request_queue.end()); i != end; ++i)
@@ -3286,6 +3287,11 @@ namespace libtorrent
 #endif
 			t->remove_peer(this);
 			m_torrent.reset();
+		}
+		else
+		{
+			TORRENT_ASSERT(m_download_queue.empty());
+			TORRENT_ASSERT(m_request_queue.empty());
 		}
 
 #if defined TORRENT_DEBUG && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
