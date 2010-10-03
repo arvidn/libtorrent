@@ -1204,7 +1204,7 @@ namespace libtorrent
 				for (std::vector<pending_block>::const_iterator i = m_request_queue.begin()
 					, end(m_request_queue.end()); i != end; ++i)
 				{
-					p.abort_download(i->block);
+					p.abort_download(i->block, peer_info_struct());
 				}
 			}
 			m_request_queue.clear();
@@ -1272,7 +1272,7 @@ namespace libtorrent
 			else if (!t->is_seed() && remove_from_picker)
 			{
 				piece_picker& p = t->picker();
-				p.abort_download(b.block);
+				p.abort_download(b.block, peer_info_struct());
 			}
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
 			check_invariant();
@@ -2294,7 +2294,7 @@ namespace libtorrent
 					"dqs: " << int(m_desired_queue_size) << "] ***\n";
 #endif
 				if (!qe.timed_out && !qe.not_wanted)
-					picker.abort_download(qe.block);
+					picker.abort_download(qe.block, peer_info_struct());
 
 				TORRENT_ASSERT(m_outstanding_bytes >= t->to_req(qe.block).length);
 				m_outstanding_bytes -= t->to_req(qe.block).length;
@@ -2812,7 +2812,7 @@ namespace libtorrent
 
 		while (!m_request_queue.empty())
 		{
-			t->picker().abort_download(m_request_queue.back().block);
+			t->picker().abort_download(m_request_queue.back().block, peer_info_struct());
 			m_request_queue.pop_back();
 		}
 		m_queued_time_critical = 0;
@@ -2882,7 +2882,7 @@ namespace libtorrent
 			// the block, just ignore to cancel it.
 			if (rit == m_request_queue.end()) return;
 
-			t->picker().abort_download(block);
+			t->picker().abort_download(block, peer_info_struct());
 			m_request_queue.erase(rit);
 			// since we found it in the request queue, it means it hasn't been
 			// sent yet, so we don't have to send a cancel.
@@ -3073,7 +3073,7 @@ namespace libtorrent
 			if (t->picker().is_finished(block.block)
 				|| t->picker().is_downloaded(block.block))
 			{
-				t->picker().abort_download(block.block);
+				t->picker().abort_download(block.block, peer_info_struct());
 				continue;
 			}
 
@@ -3269,14 +3269,15 @@ namespace libtorrent
 				while (!m_download_queue.empty())
 				{
 					pending_block& qe = m_download_queue.back();
-					if (!qe.timed_out && !qe.not_wanted) picker.abort_download(qe.block);
+					if (!qe.timed_out && !qe.not_wanted)
+						picker.abort_download(qe.block, peer_info_struct());
 					m_outstanding_bytes -= t->to_req(qe.block).length;
 					if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 					m_download_queue.pop_back();
 				}
 				while (!m_request_queue.empty())
 				{
-					picker.abort_download(m_request_queue.back().block);
+					picker.abort_download(m_request_queue.back().block, peer_info_struct());
 					m_request_queue.pop_back();
 				}
 			}
@@ -4011,7 +4012,7 @@ namespace libtorrent
 			m_timeout_extend += m_ses.settings().request_timeout;
 
 		if (r != piece_block::invalid)
-			picker.abort_download(r);
+			picker.abort_download(r, peer_info_struct());
 
 		send_block_requests();
 	}
@@ -5100,6 +5101,8 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (m_disconnecting)
 		{
+			TORRENT_ASSERT(m_download_queue.empty());
+			TORRENT_ASSERT(m_request_queue.empty());
 			TORRENT_ASSERT(!t);
 			TORRENT_ASSERT(m_disconnect_started);
 		}
