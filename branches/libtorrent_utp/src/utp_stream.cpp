@@ -616,9 +616,14 @@ utp_stream::endpoint_type utp_stream::remote_endpoint(error_code& ec) const
 	return m_impl->remote_endpoint(ec);
 }
 
-utp_stream::endpoint_type utp_stream::local_endpoint() const
+utp_stream::endpoint_type utp_stream::local_endpoint(error_code& ec) const
 {
-	return m_impl->m_sm->local_endpoint();
+	if (m_impl == 0 || m_impl->m_sm == 0)
+	{
+		ec = asio::error::not_connected;
+		return endpoint_type();
+	}
+	return m_impl->m_sm->local_endpoint(ec);
 }
 
 utp_stream::~utp_stream()

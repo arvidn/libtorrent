@@ -126,9 +126,9 @@ namespace libtorrent
 		m_sock.send(ep, p, len, ec);
 	}
 
-	tcp::endpoint utp_socket_manager::local_endpoint() const
+	tcp::endpoint utp_socket_manager::local_endpoint(error_code& ec) const
 	{
-		return m_sock.local_endpoint();
+		return m_sock.local_endpoint(ec);
 	}
 
 	bool utp_socket_manager::incoming_packet(char const* p, int size, udp::endpoint const& ep)

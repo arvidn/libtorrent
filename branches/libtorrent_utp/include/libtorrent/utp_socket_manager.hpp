@@ -58,7 +58,7 @@ namespace libtorrent
 
 		void tick(ptime now);
 
-		tcp::endpoint local_endpoint() const;
+		tcp::endpoint local_endpoint(error_code& ec) const;
 
 		void send_packet(udp::endpoint const& ep, char const* p, int len
 			, error_code& ec);

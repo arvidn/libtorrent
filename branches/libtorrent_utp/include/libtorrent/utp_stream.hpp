@@ -196,10 +196,13 @@ public:
 	
 	void do_connect(tcp::endpoint const& ep, connect_handler_t h);
 
-	endpoint_type local_endpoint() const;
+	endpoint_type local_endpoint() const
+	{
+		error_code ec;
+		return local_endpoint(ec);
+	}
 
-	endpoint_type local_endpoint(error_code& ec) const
-	{ return local_endpoint(); }
+	endpoint_type local_endpoint(error_code& ec) const;
 
 	endpoint_type remote_endpoint() const
 	{
