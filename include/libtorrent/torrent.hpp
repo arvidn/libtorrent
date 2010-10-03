@@ -601,7 +601,7 @@ namespace libtorrent
 		peer_request to_req(piece_block const& p) const;
 
 		void disconnect_all(error_code const& ec);
-		int disconnect_peers(int num);
+		int disconnect_peers(int num, error_code const& ec);
 
 		// this is called wheh the torrent has completed
 		// the download. It will post an event, disconnect
