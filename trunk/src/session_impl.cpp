@@ -2510,20 +2510,21 @@ namespace aux {
 		{
 			m_disconnect_time_scaler = 90;
 
-			// every 90 seconds, disconnect the worst peers
-			// if we have reached the connection limit
 			if (num_connections() >= max_connections() * m_settings.peer_turnover_cutoff
 				&& !m_torrents.empty())
 			{
+				// every 90 seconds, disconnect the worst peers
+				// if we have reached the connection limit
 				torrent_map::iterator i = std::max_element(m_torrents.begin(), m_torrents.end()
 					, boost::bind(&torrent::num_peers, boost::bind(&torrent_map::value_type::second, _1))
 					< boost::bind(&torrent::num_peers, boost::bind(&torrent_map::value_type::second, _2)));
 			
 				TORRENT_ASSERT(i != m_torrents.end());
-				int peers_to_disconnect = (std::min)((std::max)(int(i->second->num_peers()
-					* m_settings.peer_turnover), 1)
+				int peers_to_disconnect = (std::min)((std::max)(
+					int(i->second->num_peers() * m_settings.peer_turnover), 1)
 					, i->second->get_policy().num_connect_candidates());
-				i->second->disconnect_peers(peers_to_disconnect);
+				i->second->disconnect_peers(peers_to_disconnect
+					, error_code(errors::optimistic_disconnect, get_libtorrent_category()));
 			}
 			else
 			{
@@ -2539,7 +2540,8 @@ namespace aux {
 					int peers_to_disconnect = (std::min)((std::max)(int(i->second->num_peers()
 						* m_settings.peer_turnover), 1)
 						, i->second->get_policy().num_connect_candidates());
-					t->disconnect_peers(peers_to_disconnect);
+					t->disconnect_peers(peers_to_disconnect
+						, error_code(errors::optimistic_disconnect, get_libtorrent_category()));
 				}
 			}
 		}
@@ -3779,6 +3781,63 @@ namespace aux {
 #endif
 		}
 		m_max_connections = limit;
+
+		if (num_connections() > max_connections() && !m_torrents.empty())
+		{
+			// if we have more connections that we're allowed, disconnect
+			// peers from the torrents so that they are all as even as possible
+
+			int to_disconnect = num_connections() - max_connections();
+
+			int last_average = 0;
+			int average = max_connections() / m_torrents.size();
+	
+			// the number of slots that are unused by torrents
+			int extra = max_connections() % m_torrents.size();
+	
+			// run 3 iterations of this, then we're probably close enough
+			for (int iter = 0; iter < 4; ++iter)
+			{
+				// the number of torrents that are above average
+				int num_above = 0;
+				for (torrent_map::iterator i = m_torrents.begin()
+					, end(m_torrents.end()); i != end; ++i)
+				{
+					int num = i->second->num_peers();
+					if (num <= last_average) continue;
+					if (num > average) ++num_above;
+					if (num < average) extra += average - num;
+				}
+
+				// distribute extra among the torrents that are above average
+				if (num_above == 0) num_above = 1;
+				last_average = average;
+				average += extra / num_above;
+				if (extra == 0) break;
+				// save the remainder for the next iteration
+				extra = extra % num_above;
+			}
+
+			for (torrent_map::iterator i = m_torrents.begin()
+				, end(m_torrents.end()); i != end; ++i)
+			{
+				int num = i->second->num_peers();
+				if (num <= average) continue;
+
+				// distribute the remainder
+				int my_average = average;
+				if (extra > 0)
+				{
+					++my_average;
+					--extra;
+				}
+
+				int disconnect = (std::min)(to_disconnect, num - my_average);
+				to_disconnect -= disconnect;
+				i->second->disconnect_peers(disconnect
+					, error_code(errors::too_many_connections, get_libtorrent_category()));
+			}
+		}
 	}
 
 	void session_impl::set_max_half_open_connections(int limit)
