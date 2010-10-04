@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 #include <boost/array.hpp>
 #include <set>
+#include <list>
 
 #include <libtorrent/kademlia/logging.hpp>
 
