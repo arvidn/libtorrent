@@ -3096,6 +3096,11 @@ namespace libtorrent
 					m_request_queue.pop_back();
 				}
 			}
+			else
+			{
+				m_download_queue.clear();
+				m_request_queue.clear();
+			}
 			m_queued_time_critical = 0;
 
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
