@@ -5091,7 +5091,7 @@ namespace libtorrent
 		int num_peers_with_timeouts;
 		int num_peers_with_nowant;
 		int num_not_requested;
-		std::vector<peer_connection const*> peers;
+//		std::vector<peer_connection const*> peers;
 	};
 
 	void peer_connection::check_invariant() const
@@ -5230,7 +5230,7 @@ namespace libtorrent
 					++num_requests[i->block].num_peers_with_timeouts;
 					++num_requests[i->block].num_peers_with_nowant;
 					++num_requests[i->block].num_not_requested;
-					num_requests[i->block].peers.push_back(&p);
+//					num_requests[i->block].peers.push_back(&p);
 				}
 				for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
 					, end(p.download_queue().end()); i != end; ++i)
@@ -5238,7 +5238,7 @@ namespace libtorrent
 					if (!i->not_wanted && !i->timed_out) ++num_requests[i->block].num_peers;
 					if (i->timed_out) ++num_requests[i->block].num_peers_with_timeouts;
 					if (i->not_wanted) ++num_requests[i->block].num_peers_with_nowant;
-					num_requests[i->block].peers.push_back(&p);
+//					num_requests[i->block].peers.push_back(&p);
 				}
 			}
 			for (std::map<piece_block, peer_count_t>::iterator i = num_requests.begin()
