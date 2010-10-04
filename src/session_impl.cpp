@@ -2807,11 +2807,19 @@ namespace aux {
 				if (!pi->optimistically_unchoked)
 				{
 					torrent* t = pi->connection->associated_torrent().lock().get();
-					bool ret = t->unchoke_peer(*pi->connection);
+					bool ret = t->unchoke_peer(*pi->connection, true);
 					TORRENT_ASSERT(ret);
-					pi->optimistically_unchoked = true;
-					++m_num_unchoked;
-					pi->last_optimistically_unchoked = session_time();
+					if (ret)
+					{
+						pi->optimistically_unchoked = true;
+						++m_num_unchoked;
+						pi->last_optimistically_unchoked = session_time();
+					}
+					else
+					{
+						// we failed to unchoke it, increment the count again
+						++num_opt_unchoke;
+					}
 				}
 			}
 			else
