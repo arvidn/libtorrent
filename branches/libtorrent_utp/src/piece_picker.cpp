@@ -2305,7 +2305,7 @@ namespace libtorrent
 
 	// this is called when a request is rejected or when
 	// a peer disconnects. The piece might be in any state
-	void piece_picker::abort_download(piece_block block)
+	void piece_picker::abort_download(piece_block block, void* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -2340,6 +2340,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(info.num_peers > 0);
 			if (info.num_peers > 0) --info.num_peers;
+			if (info.peer == peer) info.peer = 0;
 
 			TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
 

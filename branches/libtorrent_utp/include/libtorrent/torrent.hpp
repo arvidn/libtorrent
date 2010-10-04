@@ -417,7 +417,7 @@ namespace libtorrent
 		{ return m_num_uploads < m_max_uploads; }
 
 		bool choke_peer(peer_connection& c);
-		bool unchoke_peer(peer_connection& c);
+		bool unchoke_peer(peer_connection& c, bool optimistic = false);
 
 		// used by peer_connection to attach itself to a torrent
 		// since incoming connections don't know what torrent
@@ -611,7 +611,7 @@ namespace libtorrent
 		peer_request to_req(piece_block const& p) const;
 
 		void disconnect_all(error_code const& ec);
-		int disconnect_peers(int num);
+		int disconnect_peers(int num, error_code const& ec);
 
 		// this is called wheh the torrent has completed
 		// the download. It will post an event, disconnect

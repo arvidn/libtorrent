@@ -2512,7 +2512,13 @@ namespace libtorrent
 		// this piece failed the check as it can restore it
 		// and mark it as being interesting for download
 		m_picker->restore_piece(index);
+
+		// we might still have outstanding requests to this
+		// piece that hasn't been received yet. If this is the
+		// case, we need to re-open the piece and mark any
+		// blocks we're still waiting for as requested
 		restore_piece_state(index);
+
 		TORRENT_ASSERT(m_storage);
 
 		TORRENT_ASSERT(m_picker->have_piece(index) == false);
@@ -2542,6 +2548,7 @@ namespace libtorrent
 			for (std::vector<pending_block>::const_iterator k = dq.begin()
 				, end(dq.end()); k != end; ++k)
 			{
+				if (k->timed_out || k->not_wanted) continue;
 				if (k->block.piece_index != index) continue;
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
 					, (piece_picker::piece_state_t)p->peer_speed());
@@ -3243,13 +3250,16 @@ namespace libtorrent
 		return true;
 	}
 	
-	bool torrent::unchoke_peer(peer_connection& c)
+	bool torrent::unchoke_peer(peer_connection& c, bool optimistic)
 	{
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(c.is_choked());
 		TORRENT_ASSERT(!c.ignore_unchoke_slots());
-		if (m_num_uploads >= m_max_uploads) return false;
+		// when we're unchoking the optimistic slots, we might
+		// exceed the limit temporarily while we're iterating
+		// over the peers
+		if (m_num_uploads >= m_max_uploads && !optimistic) return false;
 		if (!c.send_unchoke()) return false;
 		++m_num_uploads;
 		return true;
@@ -4626,49 +4636,46 @@ namespace libtorrent
 		}
 	}
 
-	namespace
+	// this returns true if lhs is a better disconnect candidate than rhs
+	bool compare_disconnect_peer(peer_connection const* lhs, peer_connection const* rhs)
 	{
-		// this returns true if lhs is a better disconnect candidate than rhs
-		bool compare_disconnect_peer(peer_connection const* lhs, peer_connection const* rhs)
-		{
-			// prefer to disconnect peers that are already disconnecting
-			if (lhs->is_disconnecting() != rhs->is_disconnecting())
-				return lhs->is_disconnecting();
+		// prefer to disconnect peers that are already disconnecting
+		if (lhs->is_disconnecting() != rhs->is_disconnecting())
+			return lhs->is_disconnecting();
 
-			// prefer to disconnect peers we're not interested in
-			if (lhs->is_interesting() != rhs->is_interesting())
-				return rhs->is_interesting();
+		// prefer to disconnect peers we're not interested in
+		if (lhs->is_interesting() != rhs->is_interesting())
+			return rhs->is_interesting();
 
-			// prefer to disconnect peers that are not seeds
-			if (lhs->is_seed() != rhs->is_seed())
-				return rhs->is_seed();
+		// prefer to disconnect peers that are not seeds
+		if (lhs->is_seed() != rhs->is_seed())
+			return rhs->is_seed();
 
-			// prefer to disconnect peers that are on parole
-			if (lhs->on_parole() != rhs->on_parole())
-				return lhs->on_parole();
+		// prefer to disconnect peers that are on parole
+		if (lhs->on_parole() != rhs->on_parole())
+			return lhs->on_parole();
 
-			// prefer to disconnect peers that send data at a lower rate
-			size_type lhs_transferred = lhs->statistics().total_payload_download();
-			size_type rhs_transferred = rhs->statistics().total_payload_download();
+		// prefer to disconnect peers that send data at a lower rate
+		size_type lhs_transferred = lhs->statistics().total_payload_download();
+		size_type rhs_transferred = rhs->statistics().total_payload_download();
 
-			ptime now = time_now();
-			size_type lhs_time_connected = total_seconds(now - lhs->connected_time());
-			size_type rhs_time_connected = total_seconds(now - rhs->connected_time());
+		ptime now = time_now();
+		size_type lhs_time_connected = total_seconds(now - lhs->connected_time());
+		size_type rhs_time_connected = total_seconds(now - rhs->connected_time());
 
-			lhs_transferred /= lhs_time_connected + 1;
-			rhs_transferred /= (rhs_time_connected + 1);
-			if (lhs_transferred != rhs_transferred)	
-				return lhs_transferred < rhs_transferred;
+		lhs_transferred /= lhs_time_connected + 1;
+		rhs_transferred /= (rhs_time_connected + 1);
+		if (lhs_transferred != rhs_transferred)	
+			return lhs_transferred < rhs_transferred;
 
-			// prefer to disconnect peers that chokes us
-			if (lhs->is_choked() != rhs->is_choked())
-				return lhs->is_choked();
+		// prefer to disconnect peers that chokes us
+		if (lhs->is_choked() != rhs->is_choked())
+			return lhs->is_choked();
 
-			return lhs->last_received() < rhs->last_received();
-		}
+		return lhs->last_received() < rhs->last_received();
 	}
 
-	int torrent::disconnect_peers(int num)
+	int torrent::disconnect_peers(int num, error_code const& ec)
 	{
 		INVARIANT_CHECK;
 
@@ -4692,7 +4699,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 			int num_conns = m_connections.size();
 #endif
-			p->disconnect(errors::optimistic_disconnect);
+			p->disconnect(ec);
 			TORRENT_ASSERT(m_connections.size() == num_conns - 1);
 		}
 
@@ -5255,6 +5262,12 @@ namespace libtorrent
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_max_connections = limit;
+
+		if (num_peers() > m_max_connections)
+		{
+			disconnect_peers(num_peers() - m_max_connections
+				, error_code(errors::too_many_connections, get_libtorrent_category()));
+		}
 	}
 
 	int torrent::get_peer_upload_limit(tcp::endpoint ip) const
