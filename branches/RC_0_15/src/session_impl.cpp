@@ -2371,10 +2371,13 @@ namespace aux {
 
 			torrent* t = (*optimistic_unchoke_candidate)->associated_torrent().lock().get();
 			TORRENT_ASSERT(t);
-			bool ret = t->unchoke_peer(*optimistic_unchoke_candidate->get());
+			bool ret = t->unchoke_peer(*optimistic_unchoke_candidate->get(), true);
 			TORRENT_ASSERT(ret);
-			(*optimistic_unchoke_candidate)->peer_info_struct()->optimistically_unchoked = true;
-			(*optimistic_unchoke_candidate)->peer_info_struct()->last_optimistically_unchoked = session_time();
+			if (ret)
+			{
+				(*optimistic_unchoke_candidate)->peer_info_struct()->optimistically_unchoked = true;
+				(*optimistic_unchoke_candidate)->peer_info_struct()->last_optimistically_unchoked = session_time();
+			}
 
 			// adjust the optimistic unchoke interval depending on the piece-size
 			// the peer should be able to download one whole piece within the optimistic
