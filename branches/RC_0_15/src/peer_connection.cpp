@@ -3100,6 +3100,7 @@ namespace libtorrent
 			{
 				m_download_queue.clear();
 				m_request_queue.clear();
+				m_outstanding_bytes = 0;
 			}
 			m_queued_time_critical = 0;
 
