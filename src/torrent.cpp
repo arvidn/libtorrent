@@ -2968,13 +2968,16 @@ namespace libtorrent
 		return true;
 	}
 	
-	bool torrent::unchoke_peer(peer_connection& c)
+	bool torrent::unchoke_peer(peer_connection& c, bool optimistic)
 	{
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(c.is_choked());
 		TORRENT_ASSERT(!c.ignore_unchoke_slots());
-		if (m_num_uploads >= m_max_uploads) return false;
+		// when we're unchoking the optimistic slots, we might
+		// exceed the limit temporarily while we're iterating
+		// over the peers
+		if (m_num_uploads >= m_max_uploads && !optimistic) return false;
 		if (!c.send_unchoke()) return false;
 		++m_num_uploads;
 		return true;
