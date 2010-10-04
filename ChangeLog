@@ -1,9 +1,13 @@
+0.15.4 release
+
+	* fixed piece picker issue triggered by hash failure and timed out requests to the piece
+	* fixed optimistic unchoke issue when setting per torrent unchoke limits
 	* fixed UPnP shutdown issue
 	* fixed UPnP DeletePortmapping issue
 	* fixed NAT-PMP issue when adding the same mapping multiple times
 	* no peers from tracker when stopping is no longer an error
 	* improved web seed retry behavior
-	* fixed announce issue
+	* fixed announce issue which could cause high CPU and memory usage
 
 0.15.3 release
 
