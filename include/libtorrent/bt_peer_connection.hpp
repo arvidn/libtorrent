@@ -59,8 +59,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/storage.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
@@ -102,7 +104,7 @@ namespace libtorrent
 
 		void start();
 
-		enum { upload_only_msg = 2, share_mode_msg = 3 };
+		enum { upload_only_msg = 2 };
 
 		~bt_peer_connection();
 		
@@ -110,8 +112,6 @@ namespace libtorrent
 		bool supports_encryption() const
 		{ return m_encrypted; }
 #endif
-
-		virtual int type() const { return peer_connection::bittorrent_connection; }
 
 		enum message_type
 		{
@@ -153,6 +153,18 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		bool support_extensions() const { return m_supports_extensions; }
+
+		template <class T>
+		T* supports_extension() const
+		{
+			for (extension_list_t::const_iterator i = m_extensions.begin()
+				, end(m_extensions.end()); i != end; ++i)
+			{
+				T* ret = dynamic_cast<T*>(i->get());
+				if (ret) return ret;
+			}
+			return 0;
+		}
 #endif
 
 		// the message handlers are called
@@ -205,7 +217,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
 		void write_upload_only();
-		void write_share_mode();
 #endif
 		void write_metadata(std::pair<int, int> req);
 		void write_metadata_request(std::pair<int, int> req);
@@ -219,7 +230,6 @@ namespace libtorrent
 		void write_have_none();
 		void write_reject_request(peer_request const&);
 		void write_allow_fast(int piece);
-		void write_suggest(int piece);
 		
 		void on_connected();
 		void on_metadata();
@@ -357,18 +367,10 @@ private:
 		{ return r.start < 0; }
 		std::vector<range> m_payloads;
 
-		// we have suggested these pieces to the peer
-		// don't suggest it again
-		bitfield m_sent_suggested_pieces;
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for upload only message
 		// 0 if not supported
 		int m_upload_only_id;
-
-		// the message ID for share mode message
-		// 0 if not supported
-		int m_share_mode_id;
 
 		char m_reserved_bits[8];
 		// this is set to true if the handshake from

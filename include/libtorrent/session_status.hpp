@@ -48,7 +48,6 @@ namespace libtorrent
 		int timeouts;
 		int responses;
 		int branch_factor;
-		int nodes_left;
 	};
 
 #endif
@@ -105,8 +104,6 @@ namespace libtorrent
 		size_type dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
 #endif
-
-		int peerlist_size;
 	};
 
 }

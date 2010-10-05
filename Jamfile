@@ -20,7 +20,7 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-VERSION = 0.16.0 ;
+VERSION = 0.15.4 ;
 
 # rule for linking the correct libraries depending
 # on features and target-os
@@ -29,7 +29,8 @@ rule linking ( properties * )
 	local result ;
 
 	# openssl libraries, if enabled
-	if <encryption>openssl in $(properties)
+	if <openssl>sha-1 in $(properties)
+		|| <openssl>pe in $(properties)
 	{
 		# exclude gcc from a regular windows build to make mingw
 		# link against the regular unix library name
@@ -54,22 +55,6 @@ rule linking ( properties * )
 		}
 	}
 
-	# gcrypt libraries, if enabled
-	if <encryption>gcrypt in $(properties)
-	{
-		# on mac os x, adding the /opt/local/include path
-		# would include openssl headers incompatible with
-		# the system library. Only add this include path
-		# if we're not using openssl (which we're most
-		# likely not if we're using libgcrypt)
-		result += <library>gcrypt <include>/opt/local/include ;
-	}
-
-	if <encryption>tommath in $(properties)
-	{
-		result += <source>src/mpi.c ;
-	}
-
 	if <geoip>shared in $(properties)
 	{
 		result += <library>GeoIP ;
@@ -87,11 +72,6 @@ rule linking ( properties * )
 			<define>WIN32
 			<define>_WIN32
 		;
-	}
-
-	if <target-os>beos in $(properties)
-	{
-		result += <library>netkit ;
 	}
 
 	if <target-os>solaris in $(properties)
@@ -120,7 +100,10 @@ rule linking ( properties * )
 
 	if <boost>system in $(properties)
 	{
-		result += <library>boost_system ;
+		result += <library>boost_filesystem
+			<library>boost_thread
+			<library>boost_system
+		;
 	}
 
 	if <toolset>gcc in $(properties)
@@ -141,11 +124,28 @@ rule linking ( properties * )
 				result += <fpic>on ;
 			}
 
-			result += <library>/boost/system//boost_system/<link>static ;
+			result += <library>/boost/filesystem//boost_filesystem/<link>static
+				<library>/boost/system//boost_system/<link>static
+				;
+
+			# if we're building a shared library
+			# we need to link dynamically against the
+			# pthread library
+			if <fpic>on in $(properties) && <target-os>linux in $(properties)
+			{
+				result += <library>/boost/thread//boost_thread/<link>shared ;
+			}
+			else
+			{
+				result += <library>/boost/thread//boost_thread/<link>static ;
+			}
 		}
 		else
 		{
-			result += <library>/boost/system//boost_system/<link>shared ;
+			result += <library>/boost/thread//boost_thread/<link>shared
+				<library>/boost/filesystem//boost_filesystem/<link>shared
+				<library>/boost/system//boost_system/<link>shared
+				;
 		}
 		result += <include>$(BOOST_ROOT) <define>BOOST_ALL_NO_LIB ;
 	}
@@ -181,23 +181,28 @@ rule building ( properties * )
 		result += <source>src/GeoIP.c ;
 	}
 
-	if <encryption>off in $(properties)
-		|| <encryption>tommath in $(properties)
+	if <openssl>off in $(properties)
 	{
 		result += <source>src/sha1.cpp ;
 	}
-
-	if ! ( <encryption>off in $(properties) )
+	else
 	{
-		result += <source>src/pe_crypto.cpp ;
+		if <openssl>pe in $(properties)
+		{
+			result += <source>src/pe_crypto.cpp ;
+		}
 
 		if <target-os>linux in $(properties)
-			&& <encryption>openssl in $(properties)
 		{
 			# linker library on linux, required when using openssl
 			result += <source>/usr/lib/libdl.so ;
 		}
 
+	}
+
+	if <memdebug>on in $(properties)
+	{
+		result += <source>src/memdebug.cpp ;
 	}
 
 	return $(result) ;
@@ -218,28 +223,10 @@ rule tag ( name : type  ? : property-set )
 
 feature tcmalloc : no yes : composite propagated link-incompatible ;
 
-feature timer : auto boost absolute performance clock system_time
-	: composite propagated link-incompatible ;
-feature.compose <timer>boost : <define>TORRENT_USE_BOOST_DATE_TIME=1 ;
-feature.compose <timer>absolute : <define>TORRENT_USE_ABSOLUTE_TIME=1 ;
-feature.compose <timer>performance : <define>TORRENT_USE_PERFORMANCE_TIMER=1 ;
-feature.compose <timer>clock : <define>TORRENT_USE_CLOCK_GETTIME=1 ;
-feature.compose <timer>system_time : <define>TORRENT_USE_SYSTEM_TIME=1 ;
-
-feature ipv6 : on off : composite propagated link-incompatible ;
-feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
-
 feature need-librt : no yes : composite propagated link-incompatible ;
 
 feature fiemap : off on : composite propagated ;
 feature.compose <fiemap>on : <define>HAVE_LINUX_FIEMAP_H ;
-
-feature full-stats : on off : composite propagated link-incompatible ;
-feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
-
-feature asserts : on off production : composite propagated ;
-feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 ;
-feature.compose <asserts>off : <define>TORRENT_NO_ASSERTS=1 ;
 
 feature pool-allocators : on off : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
@@ -261,6 +248,9 @@ feature.compose <invariant-checks>full : <define>TORRENT_EXPENSIVE_INVARIANT_CHE
 feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 
+feature memdebug : off on : composite propagated ;
+feature.compose <memdebug>on : <define>TORRENT_MEMDEBUG ;
+
 feature simulate-slow-read : off on : composite propagated ;
 feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
 
@@ -273,17 +263,19 @@ feature dht-support : on off logging : composite propagated link-incompatible ;
 feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
 feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
-feature encryption : tommath off openssl gcrypt : composite propagated link-incompatible ;
-feature.compose <encryption>openssl : <define>TORRENT_USE_OPENSSL ;
-feature.compose <encryption>gcrypt : <define>TORRENT_USE_GCRYPT ;
-feature.compose <encryption>tommath : <define>TORRENT_USE_TOMMATH ;
-feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
+feature openssl : pe sha-1 off : composite propagated link-incompatible ;
+feature.compose <openssl>pe : <define>TORRENT_USE_OPENSSL ;
+feature.compose <openssl>sha-1 : <define>TORRENT_USE_OPENSSL <define>TORRENT_DISABLE_ENCRYPTION ;
+feature.compose <openssl>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 
 feature resolve-countries : on off : composite propagated link-incompatible ;
 feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
 
 feature character-set : unicode ansi : composite propagated link-incompatible ;
 feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
+feature.compose <character-set>ansi : <define>BOOST_FILESYSTEM_NARROW_ONLY=1 ;
+
+feature zlib : shipped system : composite propagated link-incompatible ;
 
 feature deprecated-functions : on off : composite propagated link-incompatible ;
 feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
@@ -317,9 +309,6 @@ lib user32 : : <name>User32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
 
-# required for networking on beos
-lib netkit : : <name>net <search>/boot/system/lib <link>shared ;
-
 local boost-library-search-path =
   <search>/opt/local/lib
   <search>/usr/lib
@@ -327,37 +316,40 @@ local boost-library-search-path =
   <search>/sw/lib
   ;
 
+lib boost_filesystem : : <target-os>darwin <name>boost_filesystem-mt $(boost-library-search-path) ;
+lib boost_thread : : <target-os>darwin <name>boost_thread-mt $(boost-library-search-path) ;
 lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-search-path) ;
 
+lib boost_filesystem : : <name>boost_filesystem ;
+lib boost_thread : : <name>boost_thread ;
 lib boost_system : : <name>boost_system ;
 
 # openssl on linux/bsd/macos etc.
-lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
-lib crypto : : <name>crypto <link>shared ;
-lib ssl : : <name>ssl <link>shared <use>crypto ;
+lib crypto : : <name>crypto ;
+lib ssl : : <name>ssl ;
 
 # time functions used on linux require librt
-lib librt : : <name>rt <link>shared ;
+lib librt : : <name>rt ;
 
-lib libsocket : : <use>libnsl <name>socket <link>shared <search>/usr/sfw/lib <link>shared ;
-lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib <link>shared ;
+lib libsocket : : <use>libnsl <name>socket <link>shared <search>/usr/sfw/lib ;
+lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib ;
 
-lib tcmalloc : : <name>tcmalloc <link>shared ;
+lib tcmalloc : : <name>tcmalloc ;
+
+# libz
+lib zlib-target : : <name>z ;
 
 # GeoIP shared library
-lib GeoIP : : <name>GeoIP <link>shared ;
+lib GeoIP : : <name>GeoIP ;
 
 # socket libraries on windows
-lib wsock32 : : <name>wsock32 <link>shared ;
-lib ws2_32 : : <name>ws2_32 <link>shared ;
+lib wsock32 : : <name>wsock32 ;
+lib ws2_32 : : <name>ws2_32 ;
 
 SOURCES =
 	alert
 	allocator
 	assert
-	bandwidth_limit
-	bandwidth_manager
-	bandwidth_queue_entry
 	connection_queue
 	create_torrent
 	disk_buffer_holder
@@ -377,23 +369,18 @@ SOURCES =
 	bt_peer_connection
 	web_peer_connection
 	http_seed_connection
-	i2p_stream
 	instantiate_connection
 	natpmp
 	piece_picker
 	policy
-	puff
 	session
 	session_impl
-	socket_io
-	socket_type
 	socks5_stream
 	stat
 	storage
 	torrent
 	torrent_handle
 	torrent_info
-	time
 	tracker_manager
 	http_tracker_connection
 	udp_tracker_connection
@@ -409,7 +396,6 @@ SOURCES =
 	magnet_uri
 	parse_url
 	ConvertUTF
-	thread
 
 # -- extensions --
 	metadata_transfer
@@ -420,6 +406,7 @@ SOURCES =
 	;
 
 KADEMLIA_SOURCES =
+	closest_nodes
 	dht_tracker
 	node
 	refresh
@@ -430,15 +417,32 @@ KADEMLIA_SOURCES =
 	traversal_algorithm
 	;
 
+ZLIB_SOURCES = 
+	adler32
+	compress
+	crc32
+	deflate
+	gzio
+	infback
+	inffast
+	inflate
+	inftrees
+	trees
+	uncompr
+	zutil
+	;
+
 local usage-requirements = 
 	<include>./include
 	<include>./include/libtorrent
 	<include>/usr/sfw/include
+	<zlib>shipped:<include>./zlib
 	<variant>release:<define>NDEBUG
 	<variant>debug:<define>TORRENT_DEBUG
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_EXCEPTION_DISABLE
 	<conditional>@linking
+	<zlib>system:<library>zlib-target
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cflags>/Zc:wchar_t
 	<toolset>msvc:<cflags>/Zc:forScope
@@ -477,6 +481,7 @@ lib torrent
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<dht-support>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
+	<zlib>shipped:<source>zlib/$(ZLIB_SOURCES).c
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
 	$(usage-requirements)

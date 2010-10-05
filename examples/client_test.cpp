@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 #include <boost/bind.hpp>
 
 #ifdef _MSC_VER
@@ -58,9 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/file.hpp"
-#include "libtorrent/peer_info.hpp"
-#include "libtorrent/socket_io.hpp" // print_address
-#include "libtorrent/time.hpp"
 
 using boost::bind;
 
@@ -131,30 +130,16 @@ bool sleep_and_input(char* c, int sleep)
 	// sets the terminal to single-character mode
 	// and resets when destructed
 	set_keypress s;
-	libtorrent::ptime start = libtorrent::time_now_hires();
-	int ret = 0;
-retry:
+
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(0, &set);
 	timeval tv = {sleep, 0};
-	ret = select(1, &set, 0, 0, &tv);
-	if (ret > 0)
+	if (select(1, &set, 0, 0, &tv) > 0)
 	{
 		*c = getc(stdin);
 		return true;
 	}
-	if (errno == EINTR)
-	{
-		if (total_milliseconds(libtorrent::time_now_hires() - start) < sleep * 1000)
-			goto retry;
-		return false;
-	}
-
-	if (ret < 0 && errno != 0 && errno != ETIMEDOUT)
-		fprintf(stderr, "select failed: %s\n", strerror(errno));
-
-	libtorrent::sleep(500);
 	return false;
 }
 
@@ -213,9 +198,12 @@ char const* esc(char const* code)
 
 std::string to_string(int v, int width)
 {
-	char buf[100];
-	snprintf(buf, sizeof(buf), "%*d", width, v);
-	return buf;
+	std::stringstream s;
+	s.flags(std::ios_base::right);
+	s.width(width);
+	s.fill(' ');
+	s << v;
+	return s.str();
 }
 
 std::string& to_string(float v, int width, int precision = 3)
@@ -343,7 +331,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	if (print_ip) out += "IP                                           ";
+	if (print_ip) out += "IP                           ";
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out += "AS                                         ";
 #endif
@@ -356,7 +344,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	out += "country ";
 #endif
-	if (print_peer_rate) out += "peer-rate est.rec.rate ";
+	if (print_peer_rate) out += "peer-rate ";
 	out += "client \n";
 
 	char str[500];
@@ -369,8 +357,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		if (print_ip)
 		{
 			error_code ec;
-			snprintf(str, sizeof(str), "%-22s %22s ", print_endpoint(i->ip).c_str()
-				, print_endpoint(i->local_endpoint).c_str());
+			snprintf(str, sizeof(str), "%-22s:%-5d ", i->ip.address().to_string(ec).c_str(), i->ip.port());
 			out += str;
 		}
 
@@ -477,11 +464,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #endif
 		if (print_peer_rate)
 		{
-			bool unchoked = (i->flags & peer_info::choked) == 0;
-
-			snprintf(str, sizeof(str), " %s %s"
-				, add_suffix(i->remote_dl_rate, "/s").c_str()
-				, unchoked ? add_suffix(i->estimated_reciprocation_rate, "/s").c_str() : "      ");
+			snprintf(str, sizeof(str), " %s", add_suffix(i->remote_dl_rate, "/s").c_str());
 			out += str;
 		}
 		out += " ";
@@ -526,13 +509,15 @@ int torrent_upload_limit = 0;
 int torrent_download_limit = 0;
 std::string monitor_dir;
 std::string bind_to_interface = "";
-std::string outgoing_interface = "";
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
 
-bool share_mode = false;
-
 using boost::bind;
+using boost::filesystem::path;
+using boost::filesystem::exists;
+using boost::filesystem::directory_iterator;
+using boost::filesystem::extension;
+
 
 // monitored_dir is true if this torrent is added because
 // it was found in the directory that is monitored. If it
@@ -543,7 +528,7 @@ void add_torrent(libtorrent::session& ses
 	, std::string const& torrent
 	, float preferred_ratio
 	, int allocation_mode
-	, std::string const& save_path
+	, path const& save_path
 	, bool monitored_dir
 	, int torrent_upload_limit
 	, int torrent_download_limit)
@@ -562,10 +547,9 @@ void add_torrent(libtorrent::session& ses
 	printf("%s\n", t->name().c_str());
 
 	add_torrent_params p;
-	p.share_mode = share_mode;
 	lazy_entry resume_data;
 
-	std::string filename = combine_path(save_path, t->name() + ".resume");
+	std::string filename = (save_path / (t->name() + ".resume")).string();
 
 	std::vector<char> buf;
 	if (load_file(filename.c_str(), buf) == 0)
@@ -592,18 +576,17 @@ void add_torrent(libtorrent::session& ses
 	h.set_ratio(preferred_ratio);
 	h.set_upload_limit(torrent_upload_limit);
 	h.set_download_limit(torrent_download_limit);
-	h.use_interface(outgoing_interface.c_str());
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	h.resolve_countries(true);
 #endif
 }
 
-void scan_dir(std::string const& dir_path
+void scan_dir(path const& dir_path
 	, libtorrent::session& ses
 	, handles_t& handles
 	, float preferred_ratio
 	, int allocation_mode
-	, std::string const& save_path
+	, path const& save_path
 	, int torrent_upload_limit
 	, int torrent_download_limit)
 {
@@ -611,11 +594,10 @@ void scan_dir(std::string const& dir_path
 
 	using namespace libtorrent;
 
-	error_code ec;
-	for (directory i(dir_path, ec); !i.done(); i.next(ec))
+	for (directory_iterator i(dir_path), end; i != end; ++i)
 	{
-		std::string file = combine_path(dir_path, i.file());
-		if (extension(file) != ".torrent") continue;
+		if (extension(*i) != ".torrent") continue;
+		std::string file = i->path().string();
 
 		handles_t::iterator k = handles.find(file);
 		if (k != handles.end())
@@ -652,7 +634,7 @@ void scan_dir(std::string const& dir_path
 		h.pause();
 		// the alert handler for save_resume_data_alert
 		// will save it to disk
-		if (h.need_save_resume_data()) h.save_resume_data();
+		h.save_resume_data();
 
 		handles.erase(i++);
 	}
@@ -693,7 +675,7 @@ void print_alert(libtorrent::alert const* a, std::string& str)
 		fprintf(g_log_file, "[%s] %s\n", time_now_string(),  a->message().c_str());
 }
 
-int save_file(std::string const& filename, std::vector<char>& v)
+int save_file(boost::filesystem::path const& filename, std::vector<char>& v)
 {
 	using namespace libtorrent;
 
@@ -731,7 +713,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
-			save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
+			save_file(h.save_path() / (h.name() + ".resume"), out);
 			if (std::find_if(handles.begin(), handles.end()
 				, boost::bind(&handles_t::value_type::second, _1) == h) == handles.end())
 				ses.remove_torrent(h);
@@ -752,6 +734,11 @@ static char const* state_str[] =
 
 int main(int argc, char* argv[])
 {
+#if BOOST_VERSION < 103400
+	using boost::filesystem::no_check;
+	path::default_name_check(no_check);
+#endif
+
 	if (argc == 1)
 	{
 		fprintf(stderr, "usage: client_test [OPTIONS] [TORRENT|MAGNETURL]\n\n"
@@ -772,16 +759,11 @@ int main(int argc, char* argv[])
 			"  -m <path>             sets the .torrent monitor directory\n"
 			"  -b <IP>               sets IP of the interface to bind the\n"
 			"                        listen socket to\n"
-			"  -I <IP>               sets the IP of the interface to bind\n"
-			"                        outgoing peer connections to\n"
 			"  -w <seconds>          sets the retry time for failed web seeds\n"
 			"  -t <seconds>          sets the scan interval of the monitor dir\n"
 			"  -x <file>             loads an emule IP-filter file\n"
 			"  -c <limit>            sets the max number of connections\n"
 			"  -T <limit>            sets the max number of connections per torrent\n"
-#if TORRENT_USE_I2P
-			"  -i <i2p-host>         the hostname to an I2P SAM bridge to use\n"
-#endif
 			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
 			"  -F <seconds>          sets the UI refresh rate. This is the number of\n"
 			"                        seconds between screen refreshes.\n"
@@ -793,10 +775,7 @@ int main(int argc, char* argv[])
 			"  -P <host:port>        Use the specified SOCKS5 proxy\n"
 			"  -L <user:passwd>      Use the specified username and password for the\n"
 			"                        proxy specified by -P\n"
-			"  -H                    Don't start DHT\n"
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
-			"  -N                    Do not attempt to use UPnP and NAT-PMP to forward ports\n"
-			"  -Y                    Rate limit local peers\n"
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -809,17 +788,14 @@ int main(int argc, char* argv[])
 	session_settings settings;
 
 	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
-	settings.choking_algorithm = session_settings::auto_expand_choker;
+	settings.auto_upload_slots_rate_based = true;
 	//settings.announce_to_all_trackers = true;
 	settings.optimize_hashing_for_speed = false;
 	settings.disk_cache_algorithm = session_settings::largest_contiguous;
-	settings.volatile_read_cache = false;
 
 	proxy_settings ps;
 
 	int refresh_delay = 1;
-	bool start_dht = true;
-	bool start_upnp = true;
 
 	std::deque<std::string> events;
 
@@ -831,7 +807,7 @@ int main(int argc, char* argv[])
 	// monitor when they're not in the directory anymore.
 	handles_t handles;
 	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-		, session::add_default_plugins
+		, session::start_default_features | session::add_default_plugins
 		, alert::all_categories
 			& ~(alert::dht_notification
 			+ alert::progress_notification
@@ -845,6 +821,19 @@ int main(int argc, char* argv[])
 		if (lazy_bdecode(&in[0], &in[0] + in.size(), e) == 0)
 			ses.load_state(e);
 	}
+
+#ifndef TORRENT_DISABLE_DHT
+	settings.use_dht_as_fallback = false;
+
+	ses.add_dht_router(std::make_pair(
+			std::string("router.bittorrent.com"), 6881));
+	ses.add_dht_router(std::make_pair(
+			std::string("router.utorrent.com"), 6881));
+	ses.add_dht_router(std::make_pair(
+			std::string("router.bitcomet.com"), 6881));
+
+	ses.start_dht();
+#endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
 	ses.load_asnum_db("GeoIPASNum.dat");
@@ -871,7 +860,6 @@ int main(int argc, char* argv[])
 				from_hex(argv[i], 40, (char*)&info_hash[0]);
 
 				add_torrent_params p;
-				p.share_mode = share_mode;
 				p.tracker_url = argv[i] + 41;
 				p.info_hash = info_hash;
 				p.save_path = save_path;
@@ -912,16 +900,10 @@ int main(int argc, char* argv[])
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
 			case 'D': torrent_download_limit = atoi(arg) * 1000; break;
 			case 'm': monitor_dir = arg; break;
-			case 'M': share_mode = true; --i; break;
 			case 'b': bind_to_interface = arg; break;
 			case 'w': settings.urlseed_wait_retry = atoi(arg); break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
-			case 'H': start_dht = false; --i; break;
-			case 'W':
-				settings.max_peerlist_size = atoi(arg);
-				settings.max_paused_peerlist_size = atoi(arg) / 2;
-				break;
 			case 'x':
 				{
 					FILE* filter = fopen(arg, "r");
@@ -944,17 +926,6 @@ int main(int argc, char* argv[])
 				break;
 			case 'c': ses.set_max_connections(atoi(arg)); break;
 			case 'T': max_connections_per_torrent = atoi(arg); break;
-#if TORRENT_USE_I2P
-			case 'i':
-				{
-					proxy_settings ps;
-					ps.hostname = arg;
-					ps.port = 7656; // default SAM port
-					ps.type = proxy_settings::i2p_proxy;
-					ses.set_i2p_proxy(ps);
-					break;
-				}
-#endif // TORRENT_USE_I2P
 			case 'C':
 				settings.cache_size = atoi(arg);
 				settings.use_read_cache = settings.cache_size > 0;
@@ -963,9 +934,10 @@ int main(int argc, char* argv[])
 			case 'A': settings.allowed_fast_set_size = atoi(arg); break;
 			case 'R': settings.read_cache_line_size = atoi(arg); break;
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
+			case 'W': settings.max_peerlist_size = atoi(arg); break;
 			case 'P':
 				{
-					char* port = (char*) strrchr(arg, ':');
+					char* port = (char*) strchr(arg, ':');
 					if (port == 0)
 					{
 						fprintf(stderr, "invalid proxy hostname, no port found\n");
@@ -996,40 +968,19 @@ int main(int argc, char* argv[])
 					ps.type = proxy_settings::socks5_pw;
 				}
 				break;
-			case 'I': outgoing_interface = arg; break;
-			case 'N': start_upnp = false; --i; break;
-			case 'Y': settings.ignore_limits_on_local_network = false; --i; break;
 		}
 		++i; // skip the argument
 	}
 
-	ses.start_lsd();
-	if (start_upnp)
-	{
-		ses.start_upnp();
-		ses.start_natpmp();
-	}
-
-	ses.set_proxy(ps);
+	ses.set_peer_proxy(ps);
+	ses.set_web_seed_proxy(ps);
+	ses.set_tracker_proxy(ps);
+#ifndef TORRENT_DISABLE_DHT
+	ses.set_dht_proxy(ps);
+#endif
 
 	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
 		, bind_to_interface.c_str());
-
-	if (start_dht)
-	{
-#ifndef TORRENT_DISABLE_DHT
-		settings.use_dht_as_fallback = false;
-
-		ses.add_dht_router(std::make_pair(
-			std::string("router.bittorrent.com"), 6881));
-		ses.add_dht_router(std::make_pair(
-			std::string("router.utorrent.com"), 6881));
-		ses.add_dht_router(std::make_pair(
-			std::string("router.bitcomet.com"), 6881));
-
-		ses.start_dht();
-	}
-#endif
 
 	ses.set_settings(settings);
 
@@ -1051,7 +1002,6 @@ int main(int argc, char* argv[])
 		h.set_ratio(preferred_ratio);
 		h.set_upload_limit(torrent_upload_limit);
 		h.set_download_limit(torrent_download_limit);
-		h.use_interface(outgoing_interface.c_str());
 	}
 
 	for (std::vector<std::string>::iterator i = torrents.begin()
@@ -1061,7 +1011,6 @@ int main(int argc, char* argv[])
 		if (std::strstr(i->c_str(), "magnet:") == i->c_str())
 		{
 			add_torrent_params p;
-			p.share_mode = share_mode;
 			p.save_path = save_path;
 			p.storage_mode = (storage_mode_t)allocation_mode;
 			printf("adding MANGET link: %s\n", i->c_str());
@@ -1080,7 +1029,6 @@ int main(int argc, char* argv[])
 			h.set_ratio(preferred_ratio);
 			h.set_upload_limit(torrent_upload_limit);
 			h.set_download_limit(torrent_download_limit);
-			h.use_interface(outgoing_interface.c_str());
 			continue;
 		}
 
@@ -1178,17 +1126,6 @@ int main(int argc, char* argv[])
 				if (h.is_valid()) h.set_sequential_download(!h.is_sequential_download());
 			}
 
-			if (c == 'R')
-			{
-				// save resume data for all torrents
-				for (handles_t::iterator i = handles.begin()
-					, end(handles.end()); i != end; ++i)
-				{
-					if (i->second.need_save_resume_data())
-						i->second.save_resume_data();
-				}
-			}
-
 			if (c == 'o')
 			{
 				torrent_handle h = get_active_torrent(handles);
@@ -1225,7 +1162,7 @@ int main(int argc, char* argv[])
 					}
 					// the alert handler for save_resume_data_alert
 					// will save it to disk
-					if (h.need_save_resume_data()) h.save_resume_data();
+					h.save_resume_data();
 				}
 			}
 
@@ -1292,7 +1229,7 @@ int main(int argc, char* argv[])
 			"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
 			"[j] force recheck [space] toggle session pause [c] clear error [v] scrape [g] show DHT\n"
 			"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
-			"[5] toggle peer rate [6] toggle failures [7] toggle send buffers [R] save resume data\n";
+			"[5] toggle peer rate [6] toggle failures [7] toggle send buffers\n";
 
 		char str[500];
 		int torrent_index = 0;
@@ -1371,7 +1308,7 @@ int main(int argc, char* argv[])
 			if (s.state != torrent_status::queued_for_checking && s.state != torrent_status::checking_files)
 			{
 				snprintf(str, sizeof(str), "%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
-					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
+					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x%s\n"
 					, (paused && !auto_managed)?"paused":(paused && auto_managed)?"queued":state_str[s.state]
 					, esc("32"), add_suffix(s.total_download).c_str(), term
 					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
@@ -1380,7 +1317,7 @@ int main(int argc, char* argv[])
 					, s.up_bandwidth_queue, s.down_bandwidth_queue
 					, esc("32"), add_suffix(s.all_time_download).c_str(), term
 					, esc("31"), add_suffix(s.all_time_upload).c_str(), term
-					, s.seed_rank, h.need_save_resume_data()?'S':' ', esc("0"));
+					, s.seed_rank, esc("0"));
 				out += str;
 
 				if (torrent_index != active_torrent && s.state == torrent_status::seeding) continue;
@@ -1413,7 +1350,7 @@ int main(int argc, char* argv[])
 				out += str;
 			}
 
-			if (print_piece_bar && s.state != torrent_status::seeding)
+			if (print_piece_bar && s.progress_ppm < 1000000 && s.progress > 0)
 			{
 				out += "     ";
 				out += piece_bar(s.pieces, terminal_width - 7);
@@ -1478,8 +1415,8 @@ int main(int argc, char* argv[])
 			, cs.queued_bytes);
 		out += str;
 
-		snprintf(str, sizeof(str), "==== optimistic unchoke: %d unchoke counter: %d peerlist: %d ====\n"
-			, sess_stat.optimistic_unchoke_counter, sess_stat.unchoke_counter, sess_stat.peerlist_size);
+		snprintf(str, sizeof(str), "==== optimistic unchoke: %d unchoke counter: %d ====\n"
+			, sess_stat.optimistic_unchoke_counter, sess_stat.unchoke_counter);
 		out += str;
 
 #ifndef TORRENT_DISABLE_DHT
@@ -1492,10 +1429,8 @@ int main(int argc, char* argv[])
 			for (std::vector<dht_lookup>::iterator i = sess_stat.active_requests.begin()
 				, end(sess_stat.active_requests.end()); i != end; ++i)
 			{
-				snprintf(str, sizeof(str)
-					, "  %s in flight: %d [limit: %d] timeouts %d responses %d left %d\n"
-					, i->type, i->outstanding_requests, i->branch_factor, i->timeouts
-					, i->responses, i->nodes_left);
+				snprintf(str, sizeof(str), "  %s %d (%d) ( timeouts %d responses %d)\n"
+					, i->type, i->outstanding_requests, i->branch_factor, i->timeouts, i->responses);
 				out += str;
 			}
 		}
@@ -1524,14 +1459,11 @@ int main(int argc, char* argv[])
 				for (std::vector<announce_entry>::iterator i = tr.begin()
 					, end(tr.end()); i != end; ++i)
 				{
-					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\n"
+					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s\n"
 						, i->tier, i->url.c_str(), i->fails, i->fail_limit, i->verified?"OK ":"-  "
 						, i->updating?"updating"
 							:!i->will_announce(now)?""
-							:to_string(total_seconds(i->next_announce - now), 8).c_str()
-						, i->min_announce > now ? total_seconds(i->min_announce - now) : 0
-						, i->last_error ? i->last_error.message().c_str() : ""
-						, i->message.c_str());
+							:to_string(total_seconds(i->next_announce - now), 8).c_str());
 					out += str;
 				}
 			}
@@ -1655,7 +1587,7 @@ int main(int argc, char* argv[])
 						, pad_file?esc("34"):""
 						, progress / 10.f
 						, add_suffix(file_progress[i]).c_str()
-						, filename(info.file_at(i).path).c_str()
+						, info.file_at(i).path.leaf().c_str()
 						, pad_file?esc("0"):"");
 					out += str;
 				}
@@ -1738,7 +1670,7 @@ int main(int argc, char* argv[])
 		torrent_handle h = rd->handle;
 		std::vector<char> out;
 		bencode(std::back_inserter(out), *rd->resume_data);
-		save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
+		save_file((h.save_path() / h.name()).string() + ".resume", out);
 	}
 	printf("saving session state\n");
 	{

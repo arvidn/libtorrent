@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PEER_INFO_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
@@ -214,10 +213,6 @@ namespace libtorrent
 		// the peers progress
 		float progress; // [0, 1]
 		int progress_ppm; // [0, 1000000]
-
-		int estimated_reciprocation_rate;
-
-		tcp::endpoint local_endpoint;
 	};
 
 	struct TORRENT_EXPORT peer_list_entry

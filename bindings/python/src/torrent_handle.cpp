@@ -268,13 +268,11 @@ void bind_torrent_handle()
     int (torrent_handle::*piece_priority0)(int) const = &torrent_handle::piece_priority;
     void (torrent_handle::*piece_priority1)(int, int) const = &torrent_handle::piece_priority;
 
-    void (torrent_handle::*move_storage0)(std::string const&) const = &torrent_handle::move_storage;
-    void (torrent_handle::*rename_file0)(int, std::string const&) const = &torrent_handle::rename_file;
+    void (torrent_handle::*move_storage0)(fs::path const&) const = &torrent_handle::move_storage;
+    void (torrent_handle::*move_storage1)(fs::wpath const&) const = &torrent_handle::move_storage;
 
-#if TORRENT_USE_WSTRING
-    void (torrent_handle::*move_storage1)(std::wstring const&) const = &torrent_handle::move_storage;
-    void (torrent_handle::*rename_file1)(int, std::wstring const&) const = &torrent_handle::rename_file;
-#endif
+    void (torrent_handle::*rename_file0)(int, fs::path const&) const = &torrent_handle::rename_file;
+    void (torrent_handle::*rename_file1)(int, fs::wpath const&) const = &torrent_handle::rename_file;
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
     bool (torrent_handle::*resolve_countries0)() const = &torrent_handle::resolve_countries;
@@ -335,14 +333,11 @@ void bind_torrent_handle()
         .def("file_priorities", &file_priorities)
         .def("use_interface", &torrent_handle::use_interface)
         .def("save_resume_data", _(&torrent_handle::save_resume_data))
-        .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
         .def("force_reannounce", _(force_reannounce0))
         .def("force_reannounce", &force_reannounce)
         .def("force_dht_announce", _(&torrent_handle::force_dht_announce))
         .def("scrape_tracker", _(&torrent_handle::scrape_tracker))
         .def("name", _(&torrent_handle::name))
-        .def("set_upload_mode", _(&torrent_handle::set_upload_mode))
-        .def("set_share_mode", _(&torrent_handle::set_share_mode))
         .def("set_upload_limit", _(&torrent_handle::set_upload_limit))
         .def("upload_limit", _(&torrent_handle::upload_limit))
         .def("set_download_limit", _(&torrent_handle::set_download_limit))
@@ -357,13 +352,11 @@ void bind_torrent_handle()
         .def("set_max_connections", _(&torrent_handle::set_max_connections))
         .def("set_tracker_login", _(&torrent_handle::set_tracker_login))
         .def("move_storage", _(move_storage0))
+        .def("move_storage", _(move_storage1))
         .def("info_hash", _(&torrent_handle::info_hash))
         .def("force_recheck", _(&torrent_handle::force_recheck))
         .def("rename_file", _(rename_file0))
-#if TORRENT_USE_WSTRING
-        .def("move_storage", _(move_storage1))
         .def("rename_file", _(rename_file1))
-#endif
         ;
 
     enum_<torrent_handle::deadline_flags>("deadline_flags")

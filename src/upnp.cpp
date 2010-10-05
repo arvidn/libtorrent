@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/socket_io.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/parse_url.hpp"
@@ -51,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
 #endif
+#include <boost/thread/mutex.hpp>
 #include <cstdlib>
 
 using namespace libtorrent;
@@ -104,21 +104,21 @@ upnp::~upnp()
 
 void upnp::discover_device()
 {
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 	if (m_socket.num_send_sockets() == 0)
 		log("No network interfaces to broadcast to", l);
 
 	discover_device_impl(l);
 }
 
-void upnp::log(char const* msg, mutex::scoped_lock& l)
+void upnp::log(char const* msg, mutex_t::scoped_lock& l)
 {
 	l.unlock();
 	m_log_callback(msg);
 	l.lock();
 }
 
-void upnp::discover_device_impl(mutex::scoped_lock& l)
+void upnp::discover_device_impl(mutex_t::scoped_lock& l)
 {
 	const char msearch[] = 
 		"M-SEARCH * HTTP/1.1\r\n"
@@ -155,7 +155,7 @@ void upnp::discover_device_impl(mutex::scoped_lock& l)
 // returns a reference to a mapping or -1 on failure
 int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 {
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	char msg[200];
 	snprintf(msg, sizeof(msg), "adding port map: [ protocol: %s ext_port: %u "
@@ -203,7 +203,7 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 
 void upnp::delete_mapping(int mapping)
 {
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	if (mapping >= int(m_mappings.size())) return;
 
@@ -248,7 +248,7 @@ void upnp::resend_request(error_code const& e)
 
 	boost::intrusive_ptr<upnp> me(self());
 
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	if (m_closing) return;
 
@@ -306,7 +306,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 {
 	boost::intrusive_ptr<upnp> me(self());
 
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	using namespace libtorrent::detail;
 
@@ -567,7 +567,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 }
 
 void upnp::post(upnp::rootdevice const& d, char const* soap
-	, char const* soap_action, mutex::scoped_lock& l)
+	, char const* soap_action, mutex_t::scoped_lock& l)
 {
 	TORRENT_ASSERT(d.magic == 1337);
 	TORRENT_ASSERT(d.upnp_connection);
@@ -592,7 +592,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 
 void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 {
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
 
@@ -634,7 +634,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 	post(d, soap, soap_action, l);
 }
 
-void upnp::next(rootdevice& d, int i, mutex::scoped_lock& l)
+void upnp::next(rootdevice& d, int i, mutex_t::scoped_lock& l)
 {
 	if (i < num_mappings() - 1)
 	{
@@ -651,7 +651,7 @@ void upnp::next(rootdevice& d, int i, mutex::scoped_lock& l)
 	}
 }
 
-void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
+void upnp::update_map(rootdevice& d, int i, mutex_t::scoped_lock& l)
 {
 	TORRENT_ASSERT(d.magic == 1337);
 	TORRENT_ASSERT(i < int(d.mapping.size()));
@@ -715,7 +715,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 
 void upnp::delete_port_mapping(rootdevice& d, int i)
 {
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
 
@@ -836,7 +836,7 @@ void upnp::on_upnp_xml(error_code const& e
 {
 	boost::intrusive_ptr<upnp> me(self());
 
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection && d.upnp_connection.get() == &c)
@@ -952,7 +952,7 @@ void upnp::on_upnp_xml(error_code const& e
 	if (num_mappings() > 0) update_map(d, 0, l);
 }
 
-void upnp::disable(error_code const& ec, mutex::scoped_lock& l)
+void upnp::disable(error_code const& ec, mutex_t::scoped_lock& l)
 {
 	m_disabled = true;
 
@@ -1069,7 +1069,7 @@ void upnp::on_upnp_map_response(error_code const& e
 {
 	boost::intrusive_ptr<upnp> me(self());
 
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection && d.upnp_connection.get() == &c)
@@ -1202,7 +1202,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	next(d, mapping, l);
 }
 
-void upnp::return_error(int mapping, int code, mutex::scoped_lock& l)
+void upnp::return_error(int mapping, int code, mutex_t::scoped_lock& l)
 {
 	int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
 	error_code_t* end = error_codes + num_errors;
@@ -1227,7 +1227,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 {
 	boost::intrusive_ptr<upnp> me(self());
 
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection && d.upnp_connection.get() == &c)
@@ -1272,7 +1272,7 @@ void upnp::on_expire(error_code const& e)
 	ptime now = time_now();
 	ptime next_expire = max_time();
 
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
 		, end(m_devices.end()); i != end; ++i)
@@ -1305,7 +1305,7 @@ void upnp::on_expire(error_code const& e)
 
 void upnp::close()
 {
-	mutex::scoped_lock l(m_mutex);
+	mutex_t::scoped_lock l(m_mutex);
 
 	error_code ec;
 	m_refresh_timer.cancel(ec);
