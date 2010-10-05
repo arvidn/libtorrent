@@ -630,7 +630,8 @@ void web_server_thread(int* port, bool ssl)
 			else
 			{
 				send_response(s, ec, 200, "OK", extra_header, file_buf.size());
-				write(s, boost::asio::buffer(&file_buf[0], file_buf.size()), boost::asio::transfer_all(), ec);
+				if (!file_buf.empty())
+					write(s, boost::asio::buffer(&file_buf[0], file_buf.size()), boost::asio::transfer_all(), ec);
 			}
 //			fprintf(stderr, "%d bytes left in receive buffer. offset: %d\n", len - offset, offset);
 			memmove(buf, buf + offset, len - offset);
