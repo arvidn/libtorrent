@@ -736,6 +736,20 @@ namespace aux {
 
 	}
 	
+	void session_impl::set_proxy(proxy_settings const& s)
+	{
+		m_peer_proxy = s;
+		// in case we just set a socks proxy, we might have to
+		// open the socks incoming connection
+		if (!m_socks_listen_socket) open_new_incoming_socks_connection();
+		m_web_seed_proxy = s;
+		m_tracker_proxy = s;
+#ifndef TORRENT_DISABLE_DHT
+		m_dht_proxy = s;
+		m_dht_socket.set_proxy_settings(s);
+#endif
+	}
+
 	void session_impl::load_state(lazy_entry const& e)
 	{
 		lazy_entry const* settings;

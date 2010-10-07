@@ -121,14 +121,11 @@ The ``session`` class has the following synopsis::
 		{
 			save_settings = 0x001,
 			save_dht_settings = 0x002,
-			save_dht_proxy = 0x004,
 			save_dht_state = 0x008,
 			save_i2p_proxy = 0x010,
 			save_encryption_settings = 0x020,
-			save_peer_proxy = 0x040,
-			save_web_proxy = 0x080,
-			save_tracker_proxy = 0x100,
 			save_as_map = 0x200,
+			save_proxy = 0x1c4
 		};
 
 		void load_state(lazy_entry const& e);
@@ -182,13 +179,8 @@ The ``session`` class has the following synopsis::
 		void set_max_half_open_connections(int limit);
 		int max_half_open_connections() const;
 
-		void set_peer_proxy(proxy_settings const& s);
-		void set_web_seed_proxy(proxy_settings const& s);
-		void set_tracker_proxy(proxy_settings const& s);
-
-		proxy_settings const& peer_proxy() const;
-		proxy_settings const& web_seed_proxy() const;
-		proxy_settings const& tracker_proxy() const;
+		void set_proxy(proxy_settings const& s);
+		proxy_settings proxy() const;
 
 		int num_uploads() const;
 		int num_connections() const;
@@ -309,14 +301,11 @@ torrents). These are the possible flags. A flag that's set, means those settings
 	{
 		save_settings = 0x001,
 		save_dht_settings = 0x002,
-		save_dht_proxy = 0x004,
 		save_dht_state = 0x008,
 		save_i2p_proxy = 0x010,
 		save_encryption_settings = 0x020,
-		save_peer_proxy = 0x040,
-		save_web_proxy = 0x080,
-		save_tracker_proxy = 0x100,
 		save_as_map = 0x200,
+		save_proxy = 0x1c4
 	};
 
 
@@ -1051,46 +1040,18 @@ See session_settings_ and pe_settings_ for more information on available
 options.
 
 
-set_peer_proxy() set_web_seed_proxy() set_tracker_proxy() set_dht_proxy()
--------------------------------------------------------------------------
+set_proxy() proxy()
+-------------------
 
 	::
 
-		void set_peer_proxy(proxy_settings const& s);
-		void set_web_seed_proxy(proxy_settings const& s);
-		void set_tracker_proxy(proxy_settings const& s);
-		void set_dht_proxy(proxy_settings const& s);
+		void set_proxy(proxy_settings const& s);
+		proxy_settings const& proxy() const;
 
-The ``set_dht_proxy`` is not available when DHT is disabled. These functions
-sets the proxy settings for different kinds of connections, bittorrent peers,
-web seeds, trackers and the DHT traffic.
-
-``set_peer_proxy`` affects regular bittorrent peers. ``set_web_seed_proxy``
-affects only web seeds. see `HTTP seeding`_.
-
-``set_tracker_proxy`` only affects HTTP tracker connections (UDP tracker
-connections are affected if the given proxy supports UDP, e.g. SOCKS5).
-
-``set_dht_proxy`` affects the DHT messages. Since they are sent over UDP,
-it only has any effect if the proxy supports UDP.
+These functions sets and queries the proxy settings to be used for the session.
 
 For more information on what settings are available for proxies, see
 `proxy_settings`_.
-
-
-peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()
----------------------------------------------------------
-
-	::
-
-		proxy_settings const& peer_proxy() const;
-		proxy_settings const& web_seed_proxy() const;
-		proxy_settings const& tracker_proxy() const;
-		proxy_settings const& dht_proxy() const;
-
-These functions returns references to their respective current settings.
-
-The ``dht_proxy`` is not available when DHT is disabled.
 
 
 start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()
