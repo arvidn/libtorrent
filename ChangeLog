@@ -1,3 +1,5 @@
+	* deprecate support for separate proxies for separate kinds of connections
+
 0.15.4 release
 
 	* fixed piece picker issue triggered by hash failure and timed out requests to the piece

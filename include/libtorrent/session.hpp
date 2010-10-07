@@ -223,14 +223,19 @@ namespace libtorrent
 		{
 			save_settings = 0x001,
 			save_dht_settings = 0x002,
+#ifndef TORRENT_NO_DEPRECATE
 			save_dht_proxy = 0x004,
+#endif
 			save_dht_state = 0x008,
 			save_i2p_proxy = 0x010,
 			save_encryption_settings = 0x020,
+#ifndef TORRENT_NO_DEPRECATE
 			save_peer_proxy = 0x040,
 			save_web_proxy = 0x080,
 			save_tracker_proxy = 0x100,
-			save_as_map = 0x200
+#endif
+			save_as_map = 0x200,
+			save_proxy = 0x1c4,
 		};
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
 		void load_state(lazy_entry const& e);
@@ -394,18 +399,32 @@ namespace libtorrent
 		void set_settings(session_settings const& s);
 		session_settings const& settings();
 
-		void set_peer_proxy(proxy_settings const& s);
-		void set_web_seed_proxy(proxy_settings const& s);
-		void set_tracker_proxy(proxy_settings const& s);
+		void set_proxy(proxy_settings const& s);
+		proxy_settings const& proxy() const;
 
-		proxy_settings const& peer_proxy() const;
-		proxy_settings const& web_seed_proxy() const;
-		proxy_settings const& tracker_proxy() const;
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.15.
+		TORRENT_DEPRECATED_PREFIX
+		void set_peer_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_web_seed_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_tracker_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
+
+		TORRENT_DEPRECATED_PREFIX
+		proxy_settings const& peer_proxy() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		proxy_settings const& web_seed_proxy() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		proxy_settings const& tracker_proxy() const TORRENT_DEPRECATED;
 
 #ifndef TORRENT_DISABLE_DHT
-		void set_dht_proxy(proxy_settings const& s);
-		proxy_settings const& dht_proxy() const;
+		TORRENT_DEPRECATED_PREFIX
+		void set_dht_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		proxy_settings const& dht_proxy() const TORRENT_DEPRECATED;
 #endif
+#endif // TORRENT_NO_DEPRECATE
 
 		int upload_rate_limit() const;
 		int download_rate_limit() const;

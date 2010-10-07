@@ -290,6 +290,10 @@ namespace libtorrent
 			void save_state(entry& e, boost::uint32_t flags, session_impl::mutex_t::scoped_lock& l) const;
 			void load_state(lazy_entry const& e);
 
+			void set_proxy(proxy_settings const& s);
+			proxy_settings const& proxy() const { return m_peer_proxy; }
+
+#ifndef TORRENT_NO_DEPRECATE
 			void set_peer_proxy(proxy_settings const& s)
 			{
 				m_peer_proxy = s;
@@ -318,6 +322,7 @@ namespace libtorrent
 			proxy_settings const& dht_proxy() const
 			{ return m_dht_proxy; }
 #endif
+#endif // TORRENT_NO_DEPRECATE
 
 #ifndef TORRENT_DISABLE_GEO_IP
 			std::string as_name_for_ip(address const& a);

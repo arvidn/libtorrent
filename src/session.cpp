@@ -698,6 +698,19 @@ namespace libtorrent
 		return m_impl->settings();
 	}
 
+	void session::set_proxy(proxy_settings const& s)
+	{
+		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		m_impl->set_proxy(s);
+	}
+
+	proxy_settings const& session::proxy() const
+	{
+		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
+		return m_impl->proxy();
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
 	void session::set_peer_proxy(proxy_settings const& s)
 	{
 		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
@@ -748,6 +761,7 @@ namespace libtorrent
 		return m_impl->dht_proxy();
 	}
 #endif
+#endif // TORRENT_NO_DEPRECATE
 
 	int session::max_uploads() const
 	{
