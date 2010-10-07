@@ -364,7 +364,7 @@ namespace libtorrent
 		proxy_settings proxy() const;
 
 #ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 0.16
+		// deprecated in 0.15.
 		TORRENT_DEPRECATED_PREFIX
 		void set_peer_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
@@ -385,7 +385,7 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		proxy_settings dht_proxy() const TORRENT_DEPRECATED;
 #endif
-#endif
+#endif // TORRENT_NO_DEPRECATE
 
 #if TORRENT_USE_I2P
 		void set_i2p_proxy(proxy_settings const& s);
