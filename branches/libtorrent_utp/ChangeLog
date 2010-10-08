@@ -46,6 +46,13 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+
+	* deprecate support for separate proxies for separate kinds of connections
+
+0.15.4 release
+
+	* fixed piece picker issue triggered by hash failure and timed out requests to the piece
+	* fixed optimistic unchoke issue when setting per torrent unchoke limits
 	* fixed UPnP shutdown issue
 	* fixed UPnP DeletePortmapping issue
 	* fixed NAT-PMP issue when adding the same mapping multiple times

@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/timestamp_history.hpp"
 #include <boost/cstdint.hpp>
 
-#define TORRENT_UTP_LOG 0
+#define TORRENT_UTP_LOG 1
 #define TORRENT_UT_SEQ 1
 
 #if TORRENT_UTP_LOG

@@ -497,7 +497,9 @@ namespace libtorrent
 		std::vector<peer_entry> peer_list;
 		for (int i = 0; i < num_peers; ++i)
 		{
-			// TODO: don't use a string here
+			// TODO: don't use a string here. The problem is that
+			// some trackers will respond with actual strings.
+			// Especially i2p trackers
 			peer_entry e;
 			char ip_string[100];
 			unsigned int a = detail::read_uint8(buf);
