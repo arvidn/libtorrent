@@ -171,6 +171,9 @@ namespace libtorrent
 
 //		UTP_LOGV("incoming packet id:%d source:%s\n", id, print_endpoint(ep).c_str());
 
+		if (!m_sett.enable_incoming_utp)
+			return false;
+
 		// if not found, see if it's a SYN packet, if it is,
 		// create a new utp_stream
 		if (ph->type == ST_SYN)
