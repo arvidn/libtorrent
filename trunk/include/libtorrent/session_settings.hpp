@@ -136,6 +136,7 @@ namespace libtorrent
 			, auto_upload_slots_rate_based(true)
 #endif
 			, choking_algorithm(rate_based_choker)
+			, seed_choking_algorithm(round_robin)
 			, use_parole_mode(true)
 			, cache_size(1024)
 			, cache_buffer_chunk_size(16)
@@ -460,6 +461,15 @@ namespace libtorrent
 		};
 
 		int choking_algorithm;
+
+		enum seed_choking_algorithm_t
+		{
+			round_robin,
+			fastest_upload
+		};
+ 
+		// the choking algorithm to use for seeding torrents
+		int seed_choking_algorithm;
 		
 		// if set to true, peers that participate in a failing
 		// piece is put in parole mode. i.e. They will only

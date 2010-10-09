@@ -3713,6 +3713,14 @@ session_settings
 
 		int choking_algorithm;
 		
+		enum seed_choking_algorithm_t
+		{
+			round_robin,
+			fastest_upload
+		};
+
+		int seed_choking_algorithm;
+
 		bool use_parole_mode;
 		int cache_size;
 		int cache_buffer_chunk_size;
@@ -4063,6 +4071,16 @@ The options for choking algorithms are:
   choker, see the paper_.
 
 .. _paper: http://bittyrant.cs.washington.edu/#papers
+
+``seed_choking_algorithm`` controls the seeding unchoke behavior. The available
+options are:
+
+* ``round_robin`` which round-robins the peers that are unchoked when seeding. This
+  distributes the upload bandwidht uniformly and fairly. It minimizes the ability
+  for a peer to download everything without redistributing it.
+
+* ``fastest_upload`` unchokes the peers we can send to the fastest. This might be
+  a bit more reliable in utilizing all available capacity.
 
 ``use_parole_mode`` specifies if parole mode should be used. Parole mode means
 that peers that participate in pieces that fail the hash check are put in a mode

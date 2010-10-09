@@ -398,15 +398,30 @@ namespace libtorrent
 		if (d1 > d2) return true;
 		if (d1 < d2) return false;
 
-		// in order to not switch back and forth too often,
-		// unchoked peers must be at least one piece ahead
-		// of a choked peer to be sorted at a lower unchoke-priority
-		int pieces = m_ses.settings().seeding_piece_quota;
-		bool c1_done = is_choked() || u1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
-		bool c2_done = rhs.is_choked() || u2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
+		if (m_ses.settings().seed_choking_algorithm == session_settings::round_robin)
+		{
+			// in order to not switch back and forth too often,
+			// unchoked peers must be at least one piece ahead
+			// of a choked peer to be sorted at a lower unchoke-priority
+			int pieces = m_ses.settings().seeding_piece_quota;
+			bool c1_done = is_choked() || u1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
+			bool c2_done = rhs.is_choked() || u2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
 
-		if (!c1_done && c2_done) return true;
-		if (c1_done && !c2_done) return false;
+			if (!c1_done && c2_done) return true;
+			if (c1_done && !c2_done) return false;
+		}
+		else if (m_ses.settings().seed_choking_algorithm == session_settings::fastest_upload)
+		{
+			size_type c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
+			size_type c2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
+		
+			// take torrent priority into account
+			c1 *= 1 + t1->priority();
+			c2 *= 1 + t2->priority();
+
+			if (c1 > c2) return true;
+			if (c2 > c1) return false;
+		}
 		
 		// if both peers are still in their send quota or not in their send quota
 		// prioritize the one that has waited the longest to be unchoked
@@ -437,20 +452,34 @@ namespace libtorrent
 		if (c1 > c2) return true;
 		if (c1 < c2) return false;
 
-		// if they are equal, compare how much we have uploaded
-		c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
-		c2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
+		if (m_ses.settings().seed_choking_algorithm == session_settings::round_robin)
+		{
+			// if they are equal, compare how much we have uploaded
+			c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
+			c2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
 
-		// in order to not switch back and forth too often,
-		// unchoked peers must be at least one piece ahead
-		// of a choked peer to be sorted at a lower unchoke-priority
-		int pieces = m_ses.settings().seeding_piece_quota;
-		bool c1_done = is_choked() || c1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
-		bool c2_done = rhs.is_choked() || c2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
+			// in order to not switch back and forth too often,
+			// unchoked peers must be at least one piece ahead
+			// of a choked peer to be sorted at a lower unchoke-priority
+			int pieces = m_ses.settings().seeding_piece_quota;
+			bool c1_done = is_choked() || c1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
+			bool c2_done = rhs.is_choked() || c2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
 
-		if (!c1_done && c2_done) return true;
-		if (c1_done && !c2_done) return false;
+			if (!c1_done && c2_done) return true;
+			if (c1_done && !c2_done) return false;
+		}	
+		else if (m_ses.settings().seed_choking_algorithm == session_settings::fastest_upload)
+		{
+			c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
+			c2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
 		
+			// take torrent priority into account
+			c1 *= 1 + t1->priority();
+			c2 *= 1 + t2->priority();
+
+			if (c1 > c2) return true;
+			if (c2 > c1) return false;
+		}
 		// if both peers have are still in their send quota or not in their send quota
 		// prioritize the one that has waited the longest to be unchoked
 		return m_last_unchoke < rhs.m_last_unchoke;
