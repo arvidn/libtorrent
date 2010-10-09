@@ -60,17 +60,17 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
 	float rate_limit = 100000;
-	ses1.set_upload_rate_limit(int(rate_limit));
-	ses2.set_download_rate_limit(int(rate_limit));
-	ses3.set_download_rate_limit(int(rate_limit));
-	ses2.set_upload_rate_limit(int(rate_limit / 2));
-	ses3.set_upload_rate_limit(int(rate_limit / 2));
 
 	session_settings settings;
 	settings.allow_multiple_connections_per_ip = true;
 	settings.ignore_limits_on_local_network = false;
 	settings.strict_super_seeding = strict;
+
+	settings.upload_rate_limit = rate_limit;
 	ses1.set_settings(settings);
+
+	settings.download_rate_limit = rate_limit / 2;
+	settings.upload_rate_limit = rate_limit;
 	ses2.set_settings(settings);
 	ses3.set_settings(settings);
 

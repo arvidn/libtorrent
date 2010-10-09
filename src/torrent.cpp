@@ -4328,7 +4328,7 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(want_more_peers());
-		TORRENT_ASSERT(m_ses.num_connections() < m_ses.max_connections());
+		TORRENT_ASSERT(m_ses.num_connections() < m_ses.settings().connections_limit);
 
 		tcp::endpoint a(peerinfo->ip());
 		TORRENT_ASSERT((m_ses.m_ip_filter.access(peerinfo->address()) & ip_filter::blocked) == 0);

@@ -547,116 +547,6 @@ See ``torrent_handle::is_valid()`` to know if the torrent was found or not.
 ``get_torrents()`` returns a vector of torrent_handles to all the torrents
 currently in the session.
 
-
-set_upload_rate_limit() set_download_rate_limit() upload_rate_limit() download_rate_limit()
--------------------------------------------------------------------------------------------
-
-	::
-
-		void set_upload_rate_limit(int bytes_per_second);
-		void set_download_rate_limit(int bytes_per_second);
-		int upload_rate_limit() const;
-		int download_rate_limit() const;
-
-``set_upload_rate_limit()`` set the maximum number of bytes allowed to be
-sent to peers per second. This bandwidth is distributed among all the peers. If
-you don't want to limit upload rate, you can set this to 0 (the default).
-``set_download_rate_limit()`` works the same way but for download rate instead
-of upload rate.
-``download_rate_limit()`` and ``upload_rate_limit()`` returns the previously
-set limits.
-
-A rate limit of 0 means infinite.
-
-Upload and download rate limits are not applied to peers on the local network
-by default. To change that, see ``session_settings::ignore_limits_on_local_network``.
-
-
-set_local_upload_rate_limit() set_local_download_rate_limit() local_upload_rate_limit() local_download_rate_limit()
--------------------------------------------------------------------------------------------------------------------
-
-	::
-
-		void set_local_upload_rate_limit(int bytes_per_second);
-		void set_local_download_rate_limit(int bytes_per_second);
-		int local_upload_rate_limit() const;
-		int local_download_rate_limit() const;
-
-These rate limits are only used for local peers (peers within the same subnet as
-the client itself) and it is only used when ``session_settings::ignore_limits_on_local_network``
-is set to true (which it is by default). These rate limits default to unthrottled,
-but can be useful in case you want to treat local peers preferentially, but not
-quite unthrottled.
-
-A rate limit of 0 means infinite.
-
-
-set_max_uploads() max_uploads()
--------------------------------
-
-	::
-
-		void set_max_uploads(int limit);
-		int max_uploads() const;
-
-``set_max_uploads`` sets a global limit on the number of unchoked peers (uploads).
-The number of uploads is at least one per torrent.
-
-``max_uploads()`` returns the current settings.
-
-The number of unchoke slots may be ignored depending on what
-``session_settings::choking_algorithm`` is set to.
-
-
-set_max_connections() max_connections()
----------------------------------------
-
-	::
-
-		void set_max_connections(int limit);
-		int max_connections() const;
-
-``set_max_connections`` sets a global limit on the number of connections
-opened. The number of connections is set to a hard minimum of at least two per
-torrent, so if you set a too low connections limit, and open too many torrents,
-the limit will not be met.
-
-``max_connections()`` returns the current settings.
-
-
-num_uploads() num_connections()
--------------------------------
-
-	::
-		
-		int num_uploads() const;
-		int num_connections() const;
-
-Returns the number of currently unchoked peers and the number of connections
-(including half-open ones) respectively.
-
-
-set_max_half_open_connections() max_half_open_connections()
------------------------------------------------------------
-
-	::
-		
-		void set_max_half_open_connections(int limit);
-		int max_half_open_connections() const;
-
-Sets the maximum number of half-open connections libtorrent will have when
-connecting to peers. A half-open connection is one where connect() has been
-called, but the connection still hasn't been established (nor failed). Windows
-XP Service Pack 2 sets a default, system wide, limit of the number of half-open
-connections to 10. So, this limit can be used to work nicer together with
-other network applications on that system. The default is to have no limit,
-and passing -1 as the limit, means to have no limit. When limiting the number
-of simultaneous connection attempts, peers will be put in a queue waiting for
-their turn to get connected.
-
-``max_half_open_connections()`` returns the set limit. This limit defaults
-to 8 on windows.
-
 load_asnum_db() load_country_db() as_for_ip()
 ---------------------------------------------
 
@@ -3929,6 +3819,13 @@ session_settings
 		bool anonymous_mode;
 		int tick_interval;
 		int share_mode_target;
+		int upload_rate_limit;
+		int download_rate_limit;
+		int local_upload_rate_limit;
+		int local_download_rate_limit;
+		int unchoke_slots_limit;
+		int half_open_limit;
+		int connections_limit;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -4598,6 +4495,40 @@ not make any sense to set this any lower than 2. For instance, if only 3 peers
 need to download the rarest piece, it's impossible to download a single piece
 and upload it more than 3 times. If the share_mode_target is set to more than 3,
 nothing is downloaded.
+
+``upload_rate_limit``, ``download_rate_limit``, ``local_upload_rate_limit``
+and ``local_download_rate_limit`` sets the session-global limits of upload
+and download rate limits, in bytes per second. The local rates refer to peers
+on the local network. By default peers on the local network are not rate limited.
+
+These rate limits are only used for local peers (peers within the same subnet as
+the client itself) and it is only used when ``session_settings::ignore_limits_on_local_network``
+is set to true (which it is by default). These rate limits default to unthrottled,
+but can be useful in case you want to treat local peers preferentially, but not
+quite unthrottled.
+
+A value of 0 means unlimited.
+
+``unchoke_slots_limit`` is the mac number of unchoked peers in the session.
+
+The number of unchoke slots may be ignored depending on what
+``choking_algorithm`` is set to.
+
+``half_open_limit`` sets the maximum number of half-open connections
+libtorrent will have when connecting to peers. A half-open connection is one
+where connect() has been called, but the connection still hasn't been established
+(nor failed). Windows XP Service Pack 2 sets a default, system wide, limit of
+the number of half-open connections to 10. So, this limit can be used to work
+nicer together with other network applications on that system. The default is
+to have no limit, and passing -1 as the limit, means to have no limit. When
+limiting the number of simultaneous connection attempts, peers will be put in
+a queue waiting for their turn to get connected.
+
+``connections_limit`` sets a global limit on the number of connections
+opened. The number of connections is set to a hard minimum of at least two per
+torrent, so if you set a too low connections limit, and open too many torrents,
+the limit will not be met.
+
 
 pe_settings
 ===========

@@ -222,6 +222,14 @@ namespace libtorrent
 			, tick_interval(100)
 			, report_web_seed_downloads(true)
 			, share_mode_target(3)
+
+			, upload_rate_limit(0)
+			, download_rate_limit(0)
+			, local_upload_rate_limit(0)
+			, local_download_rate_limit(0)
+			, unchoke_slots_limit(8)
+			, half_open_limit(0)
+			, connections_limit(200)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -847,6 +855,30 @@ namespace libtorrent
 
 		// this is the target share ratio for share-mode torrents
 		int share_mode_target;
+
+		// max upload rate in bytes per second for the session
+		int upload_rate_limit;
+
+		// max download rate in bytes per second for the session
+		int download_rate_limit;
+
+		// max upload rate in bytes per second for peers on the local
+		// network, in the session
+		int local_upload_rate_limit;
+
+		// max download rate in bytes per second for peers on the local
+		// network, in the session
+		int local_download_rate_limit;
+
+		// the max number of unchoke slots in the session (might be
+		// overridden by unchoke algorithm)
+		int unchoke_slots_limit;
+
+		// the max number of half-open TCP connections
+		int half_open_limit;
+
+		// the max number of connections in the session
+		int connections_limit;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

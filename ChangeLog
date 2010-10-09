@@ -1,3 +1,5 @@
+	* deprecated setters for max connections, max half-open, upload and download
+	  rates and unchoke slots. These are now set through session_settings
 	* added functions to query an individual peer's upload and download limit
 	* full support for BEP 21 (event=paused)
 	* added share-mode feature for improving share ratios
