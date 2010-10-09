@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <iostream>
+#include <math.h>
 
 struct torrent;
 struct peer_connection;
