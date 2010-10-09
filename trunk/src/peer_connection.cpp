@@ -1435,7 +1435,7 @@ namespace libtorrent
 				// just unchoke it immediately
 				send_unchoke();
 			}
-			else if (m_ses.num_uploads() < m_ses.max_uploads()
+			else if (m_ses.num_uploads() < m_ses.settings().unchoke_slots_limit
 				&& (t->ratio() == 0
 					|| share_diff() >= size_type(-free_upload_amount)
 					|| t->is_finished()))
@@ -1456,12 +1456,12 @@ namespace libtorrent
 			else
 			{
 				std::string reason;
-				if (m_ses.num_uploads() >= m_ses.max_uploads())
+				if (m_ses.num_uploads() >= m_ses.settings().unchoke_slots_limit)
 				{
 					(*m_logger) << time_now_string() << " DID NOT UNCHOKE [ "
 						"the number of uploads (" << m_ses.num_uploads() <<
 						") is more than or equal to the limit ("
-						<< m_ses.max_uploads() << ") ]\n";
+						<< m_ses.settings().unchoke_slots_limit << ") ]\n";
 				}
 				else
 				{
@@ -3511,7 +3511,7 @@ namespace libtorrent
 		}
 
 		p.estimated_reciprocation_rate = m_est_reciprocation_rate;
-		int upload_capacity = m_ses.upload_rate_limit();
+		int upload_capacity = m_ses.settings().upload_rate_limit;
 		if (upload_capacity == 0)
 			upload_capacity = (std::max)(20000, m_ses.m_peak_up_rate + 10000);
 
@@ -3767,7 +3767,7 @@ namespace libtorrent
 			&& !m_peer_interested
 			&& d1 > time_limit
 			&& d2 > time_limit
-			&& (m_ses.num_connections() >= m_ses.max_connections()
+			&& (m_ses.num_connections() >= m_ses.settings().connections_limit
 			|| (t && t->num_peers() >= t->max_connections())))
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -4199,7 +4199,7 @@ namespace libtorrent
 			// is decided based on the estimated reciprocation rate and
 			// the share it represents of the total upload rate capacity
 			// the torrent priority is taken into account when unchoking peers
-			int upload_capacity = m_ses.upload_rate_limit();
+			int upload_capacity = m_ses.settings().upload_rate_limit;
 			if (upload_capacity == 0)
 			{
 				// we don't know at what rate we can upload. If we have a

@@ -25,18 +25,18 @@ void test_swarm()
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
 	float rate_limit = 100000;
-	ses1.set_upload_rate_limit(int(rate_limit));
-	ses1.set_max_uploads(1);
-	ses2.set_download_rate_limit(int(rate_limit / 5));
-	ses3.set_download_rate_limit(int(rate_limit / 5));
-	ses2.set_upload_rate_limit(int(rate_limit / 10));
-	ses3.set_upload_rate_limit(int(rate_limit / 10));
 
 	session_settings settings;
 	settings.allow_multiple_connections_per_ip = true;
 	settings.ignore_limits_on_local_network = false;
 	settings.choking_algorithm = session_settings::auto_expand_choker;
+	settings.upload_rate_limit = rate_limit;
+	settings.unchoke_slots_limit = 1;
 	ses1.set_settings(settings);
+
+	settings.upload_rate_limit = rate_limit / 10;
+	settings.download_rate_limit = rate_limit / 5;
+	settings.unchoke_slots_limit = 0;
 	ses2.set_settings(settings);
 	ses3.set_settings(settings);
 

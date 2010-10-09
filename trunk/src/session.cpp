@@ -804,6 +804,7 @@ namespace libtorrent
 	}
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 	int session::max_uploads() const
 	{
 		TORRENT_SYNC_CALL_RET(int, max_uploads);
@@ -892,6 +893,7 @@ namespace libtorrent
 		TORRENT_SYNC_CALL_RET(int, num_connections);
 		return r;
 	}
+#endif // TORRENT_NO_DEPRECATE
 
 	std::auto_ptr<alert> session::pop_alert()
 	{

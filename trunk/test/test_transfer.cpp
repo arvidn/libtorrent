@@ -82,7 +82,7 @@ void test_rate()
 
 	ptime start = time_now();
 
-	for (int i = 0; i < 70; ++i)
+	for (int i = 0; i < 7; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
@@ -97,7 +97,7 @@ void test_rate()
 			<< std::endl;
 
 		if (tor2.is_seed()) break;
-		test_sleep(100);
+		test_sleep(1000);
 	}
 
 	TEST_CHECK(tor2.is_seed());
@@ -263,7 +263,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	if (test_allowed_fast)
 	{
 		sett.allowed_fast_set_size = 2000;
-		ses1.set_max_uploads(0);
+		sett.unchoke_slots_limit = 0;
 	}
 
 	sett.min_reconnect_time = 1;
@@ -324,7 +324,9 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		& ~alert::stats_notification);
 //	ses1.set_alert_dispatch(&print_alert);
 
-	ses2.set_download_rate_limit(tor2.get_torrent_info().piece_length() * 5);
+	sett = ses2.settings();
+	sett.download_rate_limit = tor2.get_torrent_info().piece_length() * 5;
+	ses2.set_settings(sett);
 
 	// also test to move the storage of the downloader and the uploader
 	// to make sure it can handle switching paths

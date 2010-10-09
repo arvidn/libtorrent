@@ -686,7 +686,7 @@ namespace libtorrent
 		aux::session_impl& ses = m_torrent->session();
 		
 		if (m_torrent->num_peers() >= m_torrent->max_connections()
-			&& ses.num_connections() >= ses.max_connections()
+			&& ses.num_connections() >= ses.settings().connections_limit
 			&& c.remote().address() != m_torrent->current_tracker().address())
 		{
 			c.disconnect(errors::too_many_connections);
