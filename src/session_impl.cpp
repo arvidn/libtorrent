@@ -242,6 +242,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, auto_upload_slots_rate_based)
 #endif
 		TORRENT_SETTING(integer, choking_algorithm)
+		TORRENT_SETTING(integer, seed_choking_algorithm)
 		TORRENT_SETTING(boolean, use_parole_mode)
 		TORRENT_SETTING(integer, cache_size)
 		TORRENT_SETTING(integer, cache_buffer_chunk_size)
@@ -2870,7 +2871,7 @@ namespace aux {
 
 			if (m_settings.choking_algorithm == session_settings::bittyrant_choker)
 			{
-				if (!p->is_choked())
+				if (!p->is_choked() && p->is_interesting())
 				{
 					policy::peer* pi = p->peer_info_struct();
 					if (!p->has_peer_choked())
