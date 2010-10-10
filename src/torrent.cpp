@@ -893,15 +893,9 @@ namespace libtorrent
 		// ans also in the case of share mode, we need to update the priorities
 		update_piece_priorities();
 
-		std::vector<std::string> const& url_seeds = m_torrent_file->url_seeds();
-		for (std::vector<std::string>::const_iterator i = url_seeds.begin()
-			, end(url_seeds.end()); i != end; ++i)
-			add_web_seed(*i, web_seed_entry::url_seed);
 
-		std::vector<std::string> const& http_seeds = m_torrent_file->http_seeds();
-		for (std::vector<std::string>::const_iterator i = http_seeds.begin()
-			, end(http_seeds.end()); i != end; ++i)
-			add_web_seed(*i, web_seed_entry::http_seed);
+		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
+		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
 
 		if (m_seed_mode)
 		{
@@ -3571,12 +3565,14 @@ namespace libtorrent
 		if (web->type == web_seed_entry::url_seed)
 		{
 			c = new (std::nothrow) web_peer_connection(
-				m_ses, shared_from_this(), s, a, web->url, 0);
+				m_ses, shared_from_this(), s, a, web->url, 0, // TODO: pass in web
+				web->auth, web->extra_headers);
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
 			c = new (std::nothrow) http_seed_connection(
-				m_ses, shared_from_this(), s, a, web->url, 0);
+				m_ses, shared_from_this(), s, a, web->url, 0, // TODO: pass in web
+				web->auth, web->extra_headers);
 		}
 		if (!c) return;
 

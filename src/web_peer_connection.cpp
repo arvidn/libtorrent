@@ -61,10 +61,11 @@ namespace libtorrent
 		, boost::shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
 		, std::string const& url
-		, policy::peer* peerinfo)
-		: peer_connection(ses, t, s, remote, peerinfo)
+		, policy::peer* peerinfo
+		, std::string const& auth
+		, web_seed_entry::headers_t const& extra_headers)
+		: web_connection_base(ses, t, s, remote, url, peerinfo, auth, extra_headers)
 		, m_url(url)
-		, m_first_request(true)
 		, m_range_pos(0)
 		, m_block_pos(0)
 	{
@@ -73,12 +74,6 @@ namespace libtorrent
 		if (!ses.settings().report_web_seed_downloads)
 			ignore_stats(true);
 
-		// we want large blocks as well, so
-		// we can request more bytes at once
-		request_large_blocks(true);
-
-		// we only want left-over bandwidth
-		set_priority(1);
 		shared_ptr<torrent> tor = t.lock();
 		TORRENT_ASSERT(tor);
 		int blocks_per_piece = tor->torrent_file().piece_length() / tor->block_size();
@@ -87,36 +82,9 @@ namespace libtorrent
 		// from web seeds
 		prefer_whole_pieces((1024 * 1024) / tor->torrent_file().piece_length());
 		
-		// multiply with the blocks per piece since that many requests are
-		// merged into one http request
-		m_max_out_request_queue = ses.settings().urlseed_pipeline_size
-			* blocks_per_piece;
-
-		// since this is a web seed, change the timeout
-		// according to the settings.
-		set_timeout(ses.settings().urlseed_timeout);
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << "*** web_peer_connection " << url << "\n";
 #endif
-
-		std::string protocol;
-		error_code ec;
-		boost::tie(protocol, m_auth, m_host, m_port, m_path)
-			= parse_url_components(url, ec);
-		TORRENT_ASSERT(!ec);
-		
-		if (!m_auth.empty())
-			m_auth = base64encode(m_auth);
-
-		m_server_string = "URL seed @ ";
-		m_server_string += m_host;
-	}
-
-	void web_peer_connection::start()
-	{
-		set_upload_only(true);
-		if (is_disconnecting()) return;
-		peer_connection::start();
 	}
 
 	void web_peer_connection::disconnect(error_code const& ec, int error)
@@ -127,10 +95,7 @@ namespace libtorrent
 			t->add_redundant_bytes(m_block_pos);
 
 		peer_connection::disconnect(ec, error);
-		if (t)
-		{
-			t->disconnect_web_seed(this);
-		}
+		if (t) t->disconnect_web_seed(this);
 	}
 	
 	boost::optional<piece_block_progress>
@@ -150,6 +115,8 @@ namespace libtorrent
 			ret.block_index = (m_requests.front().start + m_block_pos - 1) / t->block_size();
 		else
 			ret.block_index = (m_requests.front().start + m_block_pos) / t->block_size();
+		TORRENT_ASSERT(ret.block_index < piece_block::invalid.block_index);
+		TORRENT_ASSERT(ret.piece_index < piece_block::invalid.piece_index);
 
 		ret.full_block_bytes = t->block_size();
 		const int last_piece = t->torrent_file().num_pieces() - 1;
@@ -157,20 +124,6 @@ namespace libtorrent
 			== t->torrent_file().piece_size(last_piece) / t->block_size())
 			ret.full_block_bytes = t->torrent_file().piece_size(last_piece) % t->block_size();
 		return ret;
-	}
-
-	void web_peer_connection::on_connected()
-	{
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
-	
-		// this is always a seed
-		incoming_have_all();
-
-		// it is always possible to request pieces
-		incoming_unchoke();
-
-		reset_recv_buffer(t->block_size() + 1024);
 	}
 
 	void web_peer_connection::write_request(peer_request const& r)
@@ -229,33 +182,11 @@ namespace libtorrent
 			// assumed to be encoded in the torrent file
 			request += using_proxy ? m_url : m_path;
 			request += " HTTP/1.1\r\n";
-			request += "Host: ";
-			request += m_host;
-			if (m_first_request && !m_ses.settings().user_agent.empty())
-			{
-				request += "\r\nUser-Agent: ";
-				request += m_ses.settings().user_agent;
-			}
-			if (!m_auth.empty())
-			{
-				request += "\r\nAuthorization: Basic ";
-				request += m_auth;
-			}
-			if (ps.type == proxy_settings::http_pw)
-			{
-				request += "\r\nProxy-Authorization: Basic ";
-				request += base64encode(ps.username + ":" + ps.password);
-			}
-			if (using_proxy)
-			{
-				request += "\r\nProxy-Connection: keep-alive";
-			}
+			add_headers(request, ps, using_proxy);
 			request += "\r\nRange: bytes=";
 			request += to_string(size_type(r.piece) * info.piece_length() + r.start).elems;
 			request += "-";
 			request += to_string(size_type(r.piece) * info.piece_length() + r.start + r.length - 1).elems;
-			if (m_first_request || using_proxy)
-				request += "\r\nConnection: keep-alive";
 			request += "\r\n\r\n";
 			m_first_request = false;
 			m_file_requests.push_back(0);
@@ -290,34 +221,13 @@ namespace libtorrent
 					request += escape_path(path.c_str(), path.length());
 				}
 				request += " HTTP/1.1\r\n";
-				request += "Host: ";
-				request += m_host;
-				if (m_first_request && !m_ses.settings().user_agent.empty())
-				{
-					request += "\r\nUser-Agent: ";
-					request += m_ses.settings().user_agent;
-				}
-				if (!m_auth.empty())
-				{
-					request += "\r\nAuthorization: Basic ";
-					request += m_auth;
-				}
-				if (ps.type == proxy_settings::http_pw)
-				{
-					request += "\r\nProxy-Authorization: Basic ";
-					request += base64encode(ps.username + ":" + ps.password);
-				}
-				if (using_proxy)
-				{
-					request += "\r\nProxy-Connection: keep-alive";
-				}
+				add_headers(request, ps, using_proxy);
 				request += "\r\nRange: bytes=";
 				request += to_string(f.offset).elems;
 				request += "-";
 				request += to_string(f.offset + f.size - 1).elems;
-				if (m_first_request || using_proxy)
-					request += "\r\nConnection: keep-alive";
 				request += "\r\n\r\n";
+				fprintf(stderr, "REQ: %s\n", request.c_str());
 				m_first_request = false;
 				TORRENT_ASSERT(f.file_index >= 0);
 				m_file_requests.push_back(f.file_index);
@@ -713,45 +623,10 @@ namespace libtorrent
 
 	void web_peer_connection::get_specific_peer_info(peer_info& p) const
 	{
-		if (is_interesting()) p.flags |= peer_info::interesting;
-		if (is_choked()) p.flags |= peer_info::choked;
-		if (is_peer_interested()) p.flags |= peer_info::remote_interested;
-		if (has_peer_choked()) p.flags |= peer_info::remote_choked;
-		if (is_local()) p.flags |= peer_info::local_connection;
-		if (!is_connecting() && m_server_string.empty())
-			p.flags |= peer_info::handshake;
-		if (is_connecting() && !is_queued()) p.flags |= peer_info::connecting;
-		if (is_queued()) p.flags |= peer_info::queued;
-
-		p.client = m_server_string;
+		web_connection_base::get_specific_peer_info(p);
+		p.flags |= peer_info::local_connection;
 		p.connection_type = peer_info::web_seed;
 	}
-
-	bool web_peer_connection::in_handshake() const
-	{
-		return m_server_string.empty();
-	}
-
-	void web_peer_connection::on_sent(error_code const& error
-		, std::size_t bytes_transferred)
-	{
-		INVARIANT_CHECK;
-
-		if (error) return;
-		m_statistics.sent_bytes(0, bytes_transferred);
-	}
-
-
-#ifdef TORRENT_DEBUG
-	void web_peer_connection::check_invariant() const
-	{
-/*
-		TORRENT_ASSERT(m_num_pieces == std::count(
-			m_have_piece.begin()
-			, m_have_piece.end()
-			, true));
-*/	}
-#endif
 
 }
 
