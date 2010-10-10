@@ -227,7 +227,6 @@ namespace libtorrent
 				request += "-";
 				request += to_string(f.offset + f.size - 1).elems;
 				request += "\r\n\r\n";
-				fprintf(stderr, "REQ: %s\n", request.c_str());
 				m_first_request = false;
 				TORRENT_ASSERT(f.file_index >= 0);
 				m_file_requests.push_back(f.file_index);

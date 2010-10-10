@@ -85,6 +85,7 @@ namespace libtorrent
 		void set_hash(int index, sha1_hash const& h);
 		void set_file_hash(int index, sha1_hash const& h);
 		void add_url_seed(std::string const& url);
+		void add_http_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
 		void set_priv(bool p) { m_private = p; }
@@ -109,6 +110,7 @@ namespace libtorrent
 		std::vector<announce_entry> m_urls;
 
 		std::vector<std::string> m_url_seeds;
+		std::vector<std::string> m_http_seeds;
 
 		std::vector<sha1_hash> m_piece_hash;
 
