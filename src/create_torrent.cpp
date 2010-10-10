@@ -184,10 +184,15 @@ namespace libtorrent
 			, end(trackers.end()); i != end; ++i)
 			add_tracker(i->url, i->tier);
 
-		std::vector<std::string> const& web_seeds = ti.url_seeds();
-		for (std::vector<std::string>::const_iterator i = web_seeds.begin()
+		std::vector<web_seed_entry> const& web_seeds = ti.web_seeds();
+		for (std::vector<web_seed_entry>::const_iterator i = web_seeds.begin()
 			, end(web_seeds.end()); i != end; ++i)
-			add_url_seed(*i);
+		{
+			if (i->type == web_seed_entry::url_seed)
+				add_url_seed(i->url);
+			else if (i->type == web_seed_entry::http_seed)
+				add_http_seed(i->url);
+		}
 
 		m_piece_hash.resize(m_files.num_pieces());
 		for (int i = 0; i < num_pieces(); ++i) set_hash(i, ti.hash_for_piece(i));
@@ -260,6 +265,23 @@ namespace libtorrent
 				entry& list = dict["url-list"];
 				for (std::vector<std::string>::const_iterator i
 					= m_url_seeds.begin(); i != m_url_seeds.end(); ++i)
+				{
+					list.list().push_back(entry(*i));
+				}
+			}
+		}
+
+		if (!m_http_seeds.empty())
+		{
+			if (m_http_seeds.size() == 1)
+			{
+				dict["httpseeds"] = m_http_seeds.front();
+			}
+			else
+			{
+				entry& list = dict["httpseeds"];
+				for (std::vector<std::string>::const_iterator i
+					= m_http_seeds.begin(); i != m_http_seeds.end(); ++i)
 				{
 					list.list().push_back(entry(*i));
 				}
@@ -444,6 +466,11 @@ namespace libtorrent
 	void create_torrent::add_url_seed(std::string const& url)
 	{
 		m_url_seeds.push_back(url);
+	}
+
+	void create_torrent::add_http_seed(std::string const& url)
+	{
+		m_http_seeds.push_back(url);
 	}
 
 	void create_torrent::set_comment(char const* str)
