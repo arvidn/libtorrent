@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/version.hpp"
 
+#include <string>
+
 namespace libtorrent
 {
 

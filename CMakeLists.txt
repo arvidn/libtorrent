@@ -35,6 +35,7 @@ set(sources
 	puff
 	session
 	session_impl
+	settings
 	socket_io
 	socket_type  
 	socks5_stream

@@ -78,6 +78,7 @@ nobase_include_HEADERS = \
   session.hpp                  \
   session_settings.hpp         \
   session_status.hpp           \
+  settings.hpp                 \
   size_type.hpp                \
   socket.hpp                   \
   socket_io.hpp                \

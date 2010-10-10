@@ -75,6 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/settings.hpp"
 
 #ifndef TORRENT_WINDOWS
 #include <sys/resource.h>
@@ -178,19 +179,6 @@ namespace aux {
 		{
 			std::srand(total_microseconds(time_now_hires() - min_time()));
 		}
-	};
-
-	enum { std_string = 0, character = 1, short_integer = 2
-		, integer = 3, floating_point = 4, boolean = 5};
-
-	// this is used to map struct entries
-	// to names in a bencoded dictionary to
-	// save and load the struct
-	struct bencode_map_entry
-	{
-		char const* name;
-		int offset; // struct offset
-		int type;
 	};
 
 #define TORRENT_SETTING(t, x) {#x, offsetof(session_settings,x), t},
@@ -376,19 +364,32 @@ namespace aux {
 		int num_entries;
 		int flag;
 		int offset;
+		int default_offset;
+	};
+
+	// the names in here need to match the names in session_impl
+	// to make the macro simpler
+	struct all_default_values
+	{
+		session_settings m_settings;
+		proxy_settings m_proxy;
+		pe_settings m_pe_settings;
+#ifndef TORRENT_DISABLE_DHT
+		dht_settings m_dht_settings;
+#endif
 	};
 
 #define lenof(x) sizeof(x)/sizeof(x[0])
 #define TORRENT_CATEGORY(name, flag, member, map) \
-	{ name, map, lenof(map), session:: flag , offsetof(session_impl, member) },
+	{ name, map, lenof(map), session:: flag , offsetof(session_impl, member), offsetof(all_default_values, member) },
 
 	session_category all_settings[] =
 	{
 		TORRENT_CATEGORY("settings", save_settings, m_settings, session_settings_map)
 #ifndef TORRENT_DISABLE_DHT
-//		TORRENT_CATEGORY("dht", save_dht_settings, m_dht_settings, dht_settings_map)
-		TORRENT_CATEGORY("proxy", save_proxy, m_proxy, proxy_settings_map)
+		TORRENT_CATEGORY("dht", save_dht_settings, m_dht_settings, dht_settings_map)
 #endif
+		TORRENT_CATEGORY("proxy", save_proxy, m_proxy, proxy_settings_map)
 #if TORRENT_USE_I2P
 //		TORRENT_CATEGORY("i2p", save_i2p_proxy, m_i2p_proxy, proxy_settings_map)
 #endif
@@ -398,63 +399,6 @@ namespace aux {
 	};
 
 #undef lenof
-
-	void load_struct(lazy_entry const& e, void* s, bencode_map_entry const* m, int num)
-	{
-		for (int i = 0; i < num; ++i)
-		{
-			lazy_entry const* key = e.dict_find(m[i].name);
-			if (key == 0) continue;
-			void* dest = ((char*)s) + m[i].offset;
-			switch (m[i].type)
-			{
-				case std_string:
-				{
-					if (key->type() != lazy_entry::string_t) continue;
-					*((std::string*)dest) = key->string_value();
-					break;
-				}
-				case character:
-				case boolean:
-				case integer:
-				case floating_point:
-				{
-					if (key->type() != lazy_entry::int_t) continue;
-					size_type val = key->int_value();
-					switch (m[i].type)
-					{
-						case character: *((char*)dest) = val; break;
-						case integer: *((int*)dest) = val; break;
-						case floating_point: *((float*)dest) = float(val) / 1000.f; break;
-						case boolean: *((bool*)dest) = val; break;
-					}
-				}
-			}
-		}
-	}
-
-	void save_struct(entry& e, void const* s, bencode_map_entry const* m, int num)
-	{
-		for (int i = 0; i < num; ++i)
-		{
-			char const* key = m[i].name;
-			void const* src = ((char*)s) + m[i].offset;
-			entry& val = e[key];
-			TORRENT_ASSERT_VAL(val.type() == entry::undefined_t, val.type());
-			switch (m[i].type)
-			{
-				case std_string:
-				{
-					val = *((std::string*)src);
-					break;
-				}
-				case character: val = *((char*)src); break;
-				case integer: val = *((int*)src); break;
-				case floating_point: val = size_type(*((float*)src) * 1000.f); break;
-				case boolean: val = *((bool*)src); break;
-			}
-		}
-	}
 
 #ifdef TORRENT_STATS
 	int session_impl::logging_allocator::allocations = 0;
@@ -802,17 +746,18 @@ namespace aux {
 
 		entry& e = *eptr;
 
+		all_default_values def;
+
 		for (int i = 0; i < sizeof(all_settings)/sizeof(all_settings[0]); ++i)
 		{
 			session_category const& c = all_settings[i];
 			if ((flags & c.flag) == 0) continue;
-			save_struct(e[c.name], reinterpret_cast<char const*>(this) + c.offset, c.map, c.num_entries);
+			save_struct(e[c.name], reinterpret_cast<char const*>(this) + c.offset
+				, c.map, c.num_entries, reinterpret_cast<char const*>(&def) + c.default_offset);
 		}
 #ifndef TORRENT_DISABLE_DHT
 		if (flags & session::save_dht_settings)
 		{
-			save_struct(e["dht"], &m_dht_settings, dht_settings_map
-				, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
 		}
 #endif
 #ifndef TORRENT_DISABLE_DHT
@@ -827,7 +772,8 @@ namespace aux {
 		if (flags & session::save_i2p_proxy)
 		{
 			save_struct(e["i2p"], &i2p_proxy(), proxy_settings_map
-				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0])
+				, &def.m_proxy);
 		}
 #endif
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -885,14 +831,6 @@ namespace aux {
 		m_udp_socket.set_proxy_settings(m_proxy);
 
 #ifndef TORRENT_DISABLE_DHT
-		settings = e->dict_find_dict("dht");
-		if (settings)
-		{
-			dht_settings s;
-			load_struct(*settings, &s, dht_settings_map
-				, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
-			set_dht_settings(s);
-		}
 		settings = e->dict_find_dict("dht state");
 		if (settings)
 		{

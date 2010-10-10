@@ -1,3 +1,5 @@
+	* settings that are not changed from the default values are not saved
+	  in the session state
 	* made seeding choking algorithm configurable
 	* deprecated setters for max connections, max half-open, upload and download
 	  rates and unchoke slots. These are now set through session_settings
