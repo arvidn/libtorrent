@@ -1,3 +1,4 @@
+	* support extending web seeds with custom authorization and extra headers
 	* settings that are not changed from the default values are not saved
 	  in the session state
 	* made seeding choking algorithm configurable

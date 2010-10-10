@@ -1385,10 +1385,9 @@ The ``torrent_info`` has the following synopsis::
 
 		bool priv() const;
 
-		std::vector<std::string> const& url_seeds() const;
 		void add_url_seed(std::string const& url);
-		std::vector<std::string> const& http_seeds() const;
 		void add_http_seed(std::string const& url);
+		std::vector<web_seed_entry> const& web_seeds() const;
 
 		size_type total_size() const;
 		int piece_length() const;
@@ -1646,23 +1645,58 @@ The input range is assumed to be valid within the torrent. ``file_offset``
 must refer to a valid file, i.e. it cannot be >= ``num_files()``.
 
 
-url_seeds() add_url_seed() http_seeds() add_http_seed()
--------------------------------------------------------
+add_url_seed() add_http_seed()
+------------------------------
 
 	::
 
-		std::vector<std::string> const& url_seeds() const;
-		void add_url_seed(std::string const& url);
-		std::vector<std::string> const& http_seeds() const;
-		void add_http_seed(std::string const& url);
+		void add_url_seed(std::string const& url
+			, std::string const& extern_auth = std::string()
+			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
+		void add_http_seed(std::string const& url
+			, std::string const& extern_auth = std::string()
+			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
+		std::vector<web_seed_entry> const& web_seeds() const;
 
-If there are any url-seeds or http seeds in this torrent, ``url_seeds()``
-and ``http_seeds()`` will return a vector of those urls.
+``web_seeds()`` returns all url seeds and http seeds in the torrent. Each entry
+is a ``web_seed_entry`` and may refer to either a url seed or http seed.
+		
 ``add_url_seed()`` and ``add_http_seed()`` adds one url to the list of
-url/http seeds. Currently, the only transport protocol
-supported for the url is http.
+url/http seeds. Currently, the only transport protocol supported for the url
+is http.
+
+The ``extern_auth`` argument can be used for other athorization schemese than
+basic HTTP authorization. If set, it will override any username and password
+found in the URL itself. The string will be sent as the HTTP authorization header's
+value (without specifying "Basic").
+
+The ``extra_headers`` argument defaults to an empty list, but can be used to
+insert custom HTTP headers in the requests to a specific web seed.
 
 See `HTTP seeding`_ for more information.
+
+The ``web_seed_entry`` has the following members::
+
+	struct web_seed_entry
+	{
+		enum type_t { url_seed, http_seed };
+
+		typedef std::vector<std::pair<std::string, std::string> > headers_t;
+
+		web_seed_entry(std::string const& url_, type_t type_
+			, std::string const& auth_ = std::string()
+			, headers_t const& extra_headers_ = headers_t());
+
+		bool operator==(web_seed_entry const& e) const;
+		bool operator<(web_seed_entry const& e) const;
+
+		std::string url;
+		type_t type;
+		std::string auth;
+		headers_t extra_headers;
+
+		// ...
+	};
 
 
 trackers()

@@ -168,6 +168,21 @@ support, you need to patch parts of boost.
 
 Also make sure to optimize for size when compiling.
 
+Another way of reducing the executable size is to disable code that isn't used.
+There are a number of ``TORRENT_*`` macros that control which features are included
+in libtorrent. If these macros are used to strip down libtorrent, make sure the same
+macros are defined when building libtorrent as when linking against it. If these
+are different the structures will look different from the libtorrent side and from
+the client side and memory corruption will follow.
+
+One, probably, safe macro to define is ``TORRENT_NO_DEPRECATE`` which removes all
+deprecated functions and struct members. As long as no deprecated functions are
+relied upon, this should be a simple way to eliminate a little bit of code.
+
+For all available options, see the `building libtorrent`_ secion.
+
+.. _`building libtorrent`: building.html
+
 reduce statistics
 -----------------
 
