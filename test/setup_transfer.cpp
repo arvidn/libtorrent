@@ -46,6 +46,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
+#include "libtorrent/socket_type.hpp"
+#include "libtorrent/instantiate_connection.hpp"
+
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/stream.hpp>
+#include <boost/asio/ssl/context.hpp>
+#endif
 
 using namespace libtorrent;
 
@@ -515,6 +522,19 @@ int start_web_server(bool ssl)
 		web_initialized.clear(l);
 	}
 
+	if (ssl)
+	{
+		system("echo . > tmp");
+		system("echo test province >>tmp");
+		system("echo test city >> tmp");
+		system("echo test company >> tmp");
+		system("echo test department >> tmp");
+		system("echo tester >> tmp");
+		system("echo test@test.com >> tmp");   
+		system("openssl req -new -x509 -keyout server.pem -out server.pem "
+			"-days 365 -nodes <tmp");
+	}
+
 	int port = 0;
 
 	web_server.reset(new libtorrent::thread(boost::bind(&web_server_thread, &port, ssl)));
@@ -532,7 +552,7 @@ int start_web_server(bool ssl)
 	return port;
 }
 
-void send_response(stream_socket& s, error_code& ec
+void send_response(socket_type& s, error_code& ec
 	, int code, char const* status_message, char const* extra_header
 	, int len)
 {
@@ -565,8 +585,6 @@ void on_accept(error_code const& ec)
 
 void web_server_thread(int* port, bool ssl)
 {
-	// TODO: support SSL
-
 	io_service ios;
 	socket_acceptor acceptor(ios);
 	error_code ec;
@@ -617,8 +635,19 @@ void web_server_thread(int* port, bool ssl)
 	int len = 0;
 	int offset = 0;
 	bool connection_close = false;
-	stream_socket s(ios);
+	socket_type s(ios);
+	void* ctx = 0;
+#ifdef TORRENT_USE_OPENSSL
+	boost::asio::ssl::context ssl_ctx(ios, boost::asio::ssl::context::sslv2_server);
+	ssl_ctx.use_certificate_chain_file("server.pem");
+	ssl_ctx.use_private_key_file("server.pem", asio::ssl::context::pem);
+	ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none);
 
+	if (ssl) ctx = &ssl_ctx;
+#endif
+
+	proxy_settings p;
+	instantiate_connection(ios, p, s, ctx);
 	for (;;)
 	{
 		if (connection_close)
@@ -632,16 +661,31 @@ void web_server_thread(int* port, bool ssl)
 			len = 0;
 			offset = 0;
 
+			error_code ec;
+			stream_socket* sock;
+#ifdef TORRENT_USE_OPENSSL
+			if (ssl) sock = &s.get<ssl_stream<stream_socket> >()->next_layer().next_layer();
+			else
+#endif
+			sock = s.get<stream_socket>();
+
 			accept_done = false;
-			acceptor.async_accept(s, &on_accept);
+			acceptor.async_accept(*sock, &on_accept);
 			ios.reset();
 			ios.run_one();
 			if (!accept_done)
 			{
-				fprintf(stderr, "accept failed\n");
+				fprintf(stderr, "accept failed: %s\n", ec.message().c_str());
 				return;
 			}
+			fprintf(stderr, "accepting incoming connection\n");
 			if (!s.is_open()) continue;
+
+#ifdef TORRENT_USE_OPENSSL
+			if (ssl)
+				s.get<ssl_stream<stream_socket> >()->next_layer().handshake(asio::ssl::stream_base::server);
+#endif
+
 		}
 
 		http_parser p;
@@ -666,6 +710,7 @@ void web_server_thread(int* port, bool ssl)
 			{
 				size_t received = s.read_some(boost::asio::buffer(&buf[len]
 					, sizeof(buf) - len), ec);
+//				fprintf(stderr, "read: %d\n", int(received));
 
 				if (ec || received <= 0)
 				{
@@ -700,7 +745,7 @@ void web_server_thread(int* port, bool ssl)
 
 			if (failed)
 			{
-				s.close(ec);
+				connection_close = true;
 				break;
 			}
 

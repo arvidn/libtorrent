@@ -157,6 +157,9 @@ namespace libtorrent
 		// than subsequent ones, things that aren't critical are left
 		// out to save bandwidth.
 		bool m_first_request;
+
+		// true if we're using ssl
+		bool m_ssl;
 				
 		// the number of bytes into the receive buffer where
 		// current read cursor is.

@@ -66,6 +66,7 @@ namespace libtorrent
 		, web_seed_entry::headers_t const& extra_headers)
 		: peer_connection(ses, t, s, remote, peerinfo)
 		, m_first_request(true)
+		, m_ssl(false)
 		, m_external_auth(auth)
 		, m_extra_headers(extra_headers)
 	{
@@ -87,6 +88,10 @@ namespace libtorrent
 		boost::tie(protocol, m_basic_auth, m_host, m_port, m_path)
 			= parse_url_components(url, ec);
 		TORRENT_ASSERT(!ec);
+
+#ifdef TORRENT_USE_OPENSSL
+		if (protocol == "https") m_ssl = true;
+#endif
 
 		if (!m_basic_auth.empty())
 			m_basic_auth = base64encode(m_basic_auth);

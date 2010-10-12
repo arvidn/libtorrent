@@ -91,6 +91,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #endif
 
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
+#endif
+
 namespace libtorrent
 {
 
@@ -475,6 +479,10 @@ namespace libtorrent
 			// the selector can sleep while there's no activity on
 			// them
 			mutable io_service m_io_service;
+
+#ifdef TORRENT_USE_OPENSSL
+			asio::ssl::context m_ssl_ctx;
+#endif
 
 			// handles delayed alerts
 			alert_manager m_alerts;

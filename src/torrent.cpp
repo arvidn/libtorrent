@@ -79,6 +79,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/enum_net.hpp"
 
+#ifdef TORRENT_USE_OPENSSL
+#include "libtorrent/ssl_stream.hpp"
+#endif
+
 #if TORRENT_USE_IOSTREAM
 #include <iostream>
 #endif
@@ -3532,13 +3536,19 @@ namespace libtorrent
 		boost::shared_ptr<socket_type> s(new (std::nothrow) socket_type(m_ses.m_io_service));
 		if (!s) return;
 	
-		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s);
+		bool ssl = string_begins_no_case("https://", web->url.c_str());
+		void* userdata = 0;
+#ifdef TORRENT_USE_OPENSSL
+		if (ssl) userdata = &m_ses.m_ssl_ctx;
+#endif
+		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s, userdata);
 		(void)ret;
 		TORRENT_ASSERT(ret);
 
 		proxy_settings const& ps = m_ses.proxy();
-		if (ps.type == proxy_settings::http
+		if ((ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
+			&& !ssl)
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
@@ -3551,14 +3561,21 @@ namespace libtorrent
 		{
 			// we're using a socks proxy and we're resolving
 			// hostnames through it
-			TORRENT_ASSERT(s->get<socks5_stream>());
+#ifdef TORRENT_USE_OPENSSL
+			socks5_stream* str = ssl
+				? &s->get<ssl_stream<socks5_stream> >()->next_layer().next_layer()
+				: s->get<socks5_stream>();
+#else
+			socks5_stream* str = s->get<socks5_stream>();
+#endif
+			TORRENT_ASSERT(str);
 
 			using boost::tuples::ignore;
 			std::string hostname;
 			error_code ec;
 			boost::tie(ignore, ignore, hostname, ignore, ignore)
 				= parse_url_components(web->url, ec);
-			s->get<socks5_stream>()->set_dst_name(hostname);
+			str->set_dst_name(hostname);
 		}
 
 		boost::intrusive_ptr<peer_connection> c;
