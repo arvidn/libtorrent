@@ -156,8 +156,8 @@ namespace libtorrent
 		}
 
 		proxy_settings const& ps = m_ses.proxy();
-		bool using_proxy = ps.type == proxy_settings::http
-			|| ps.type == proxy_settings::http_pw;
+		bool using_proxy = (ps.type == proxy_settings::http
+			|| ps.type == proxy_settings::http_pw) && !m_ssl;
 
 		request += "GET ";
 		request += using_proxy ? m_url : m_path;

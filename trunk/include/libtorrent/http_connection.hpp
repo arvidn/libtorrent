@@ -52,12 +52,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_settings.hpp"
 
-#ifdef TORRENT_USE_OPENSSL
-#include "libtorrent/ssl_stream.hpp"
-#include "libtorrent/variant_stream.hpp"
-#endif
-
 #include "libtorrent/i2p_stream.hpp"
+
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
+#endif
 
 namespace libtorrent
 {
@@ -90,6 +89,9 @@ struct TORRENT_EXPORT http_connection : boost::enable_shared_from_this<http_conn
 		, m_last_receive(time_now())
 		, m_bottled(bottled)
 		, m_called(false)
+#ifdef TORRENT_USE_OPENSSL
+		, m_ssl_ctx(ios, asio::ssl::context::sslv23_client)
+#endif
 		, m_rate_limit(0)
 		, m_download_quota(0)
 		, m_limiter_timer_active(false)
@@ -102,6 +104,10 @@ struct TORRENT_EXPORT http_connection : boost::enable_shared_from_this<http_conn
 		, m_abort(false)
 	{
 		TORRENT_ASSERT(!m_handler.empty());
+#ifdef TORRENT_USE_OPENSSL
+		error_code ec;
+		m_ssl_ctx.set_verify_mode(asio::ssl::context::verify_none, ec);
+#endif
 	}
 
 	void rate_limit(int limit);
@@ -130,11 +136,7 @@ struct TORRENT_EXPORT http_connection : boost::enable_shared_from_this<http_conn
 
 	void close();
 
-#ifdef TORRENT_USE_OPENSSL
-	variant_stream<socket_type, ssl_stream<socket_type> > const& socket() const { return m_sock; }
-#else
 	socket_type const& socket() const { return m_sock; }
-#endif
 
 	std::list<tcp::endpoint> const& endpoints() const { return m_endpoints; }
 	
@@ -159,13 +161,7 @@ private:
 	void callback(error_code const& e, char const* data = 0, int size = 0);
 
 	std::vector<char> m_recvbuffer;
-#ifdef TORRENT_USE_OPENSSL
-	// TODO: for proxies to work correctly over SSL, the
-	// ssl_stream needs to be wrapped inside the socket_type
-	variant_stream<socket_type, ssl_stream<socket_type> > m_sock;
-#else
 	socket_type m_sock;
-#endif
 #if TORRENT_USE_I2P
 	i2p_connection* m_i2p_conn;
 #endif
@@ -190,6 +186,9 @@ private:
 	std::string m_url;
 
 	std::list<tcp::endpoint> m_endpoints;
+#ifdef TORRENT_USE_OPENSSL
+	asio::ssl::context m_ssl_ctx;
+#endif
 
 	// the current download limit, in bytes per second
 	// 0 is unlimited.

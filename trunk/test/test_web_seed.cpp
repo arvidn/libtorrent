@@ -47,7 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
-void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, int port)
+void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
+	, int proxy, int port, char const* protocol)
 {
 	using namespace libtorrent;
 
@@ -62,7 +63,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
-	fprintf(stderr, "\n\n  ==== TESTING %s proxy ====\n\n\n", test_name[proxy]);
+	fprintf(stderr, "\n\n  ==== TESTING %s proxy ==== %s ====\n\n\n", test_name[proxy], protocol);
 	
 	if (proxy)
 	{
@@ -152,7 +153,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 	remove_all("./tmp2_web_seed", ec);
 }
 
-int test_main()
+int run_suite(char const* protocol)
 {
 	using namespace libtorrent;
 
@@ -191,11 +192,11 @@ int test_main()
 	file_storage fs;
 	add_files(fs, "./tmp1_web_seed/test_torrent_dir");
 
-	int port = start_web_server();
+	int port = start_web_server(strcmp(protocol, "https") == 0);
 
 	libtorrent::create_torrent t(fs, 16);
 	char tmp[512];
-	snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/tmp1_web_seed", port);
+	snprintf(tmp, sizeof(tmp), "%s://127.0.0.1:%d/tmp1_web_seed", protocol, port);
 	t.add_url_seed(tmp);
 
 	// calculate the hash for all pieces
@@ -205,13 +206,23 @@ int test_main()
 	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(&buf[0], buf.size(), ec));
 
 	for (int i = 0; i < 6; ++i)
-		test_transfer(torrent_file, i, port);
+		test_transfer(torrent_file, i, port, protocol);
 	
 	torrent_file->rename_file(0, "./tmp2_web_seed/test_torrent_dir/renamed_test1");
-	test_transfer(torrent_file, 0, port);
+	test_transfer(torrent_file, 0, port, protocol);
 
 	stop_web_server();
 	remove_all("./tmp1_web_seed", ec);
 	return 0;
+}
+
+int test_main()
+{
+	int ret = 0;
+#ifdef TORRENT_USE_OPENSSL
+	ret += run_suite("https");
+#endif
+	ret += run_suite("http");
+	return ret;
 }
 

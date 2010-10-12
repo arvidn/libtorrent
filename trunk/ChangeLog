@@ -1,3 +1,4 @@
+	* support SSL for web seeds, through all proxies
 	* support extending web seeds with custom authorization and extra headers
 	* settings that are not changed from the default values are not saved
 	  in the session state

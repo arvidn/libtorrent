@@ -102,6 +102,8 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 #define APPEND_FMT1(fmt, arg) ptr += snprintf(ptr, end - ptr, fmt, arg)
 #define APPEND_FMT2(fmt, arg1, arg2) ptr += snprintf(ptr, end - ptr, fmt, arg1, arg2)
 
+	// exclude ssl here, because SSL assumes CONNECT support in the
+	// proxy and is handled at the lower layer
 	if (ps && (ps->type == proxy_settings::http
 		|| ps->type == proxy_settings::http_pw)
 		&& !ssl)
@@ -227,53 +229,18 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		}
 		proxy_settings null_proxy;
 
-#ifdef TORRENT_USE_OPENSSL
-		if (m_ssl)
-		{
-			m_sock.instantiate<ssl_stream<socket_type> >(m_resolver.get_io_service());
-			ssl_stream<socket_type>* s = m_sock.get<ssl_stream<socket_type> >();
-			TORRENT_ASSERT(s);
-			bool ret = false;
+		proxy_settings const* proxy = ps;
 #if TORRENT_USE_I2P
-			if (is_i2p)
-			{
-				ret = instantiate_connection(m_resolver.get_io_service(), i2p_conn->proxy()
-					, s->next_layer());
-			}
-			else
+		if (is_i2p) proxy = &i2p_conn->proxy();
 #endif
-			{
-				ret = instantiate_connection(m_resolver.get_io_service()
-					, ps ? *ps : null_proxy, s->next_layer());
-			}
 
-			TORRENT_ASSERT(ret);
-		}
-		else
-		{
-			m_sock.instantiate<socket_type>(m_resolver.get_io_service());
-			bool ret = false;
-#if TORRENT_USE_I2P
-			if (is_i2p)
-			{
-				ret = instantiate_connection(m_resolver.get_io_service(), i2p_conn->proxy()
-					,  *m_sock.get<socket_type>());
-				TORRENT_ASSERT(m_sock.get<socket_type>());
-				TORRENT_ASSERT(m_sock.get<socket_type>()->get<i2p_stream>());
-			}
-			else
+		void* userdata = 0;
+#ifdef TORRENT_USE_OPENSSL
+		if (m_ssl) userdata = &m_ssl_ctx;
 #endif
-			{
-				ret = instantiate_connection(m_resolver.get_io_service()
-					, ps ? *ps : null_proxy, *m_sock.get<socket_type>());
-			}
-			TORRENT_ASSERT(ret);
-		}
-#else
 		bool ret = instantiate_connection(m_resolver.get_io_service()
-			, ps ? *ps : null_proxy, m_sock);
-		TORRENT_ASSERT(ret);
-#endif
+			, ps ? *ps : null_proxy, m_sock, userdata);
+
 		if (m_bind_addr != address_v4::any())
 		{
 			error_code ec;
@@ -468,15 +435,17 @@ void http_connection::connect(int ticket, tcp::endpoint target_address)
 		// we're using a socks proxy and we're resolving
 		// hostnames through it
 #ifdef TORRENT_USE_OPENSSL
-		if (!m_ssl)
+		if (m_ssl)
 		{
-			TORRENT_ASSERT(m_sock.get<socket_type>()->get<socks5_stream>());
-			m_sock.get<socket_type>()->get<socks5_stream>()->set_dst_name(m_hostname);
+			TORRENT_ASSERT(m_sock.get<ssl_stream<socks5_stream> >());
+			m_sock.get<ssl_stream<socks5_stream> >()->next_layer().next_layer().set_dst_name(m_hostname);
 		}
-#else
-		TORRENT_ASSERT(m_sock.get<socks5_stream>());
-		m_sock.get<socks5_stream>()->set_dst_name(m_hostname);
+		else
 #endif
+		{
+			TORRENT_ASSERT(m_sock.get<socks5_stream>());
+			m_sock.get<socks5_stream>()->set_dst_name(m_hostname);
+		}
 	}
 	m_sock.async_connect(target_address, boost::bind(&http_connection::on_connect
 		, shared_from_this(), _1));

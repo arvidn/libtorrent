@@ -100,7 +100,6 @@ nobase_include_HEADERS = \
   union_endpoint.hpp           \
   upnp.hpp                     \
   utf8.hpp                     \
-  variant_stream.hpp           \
   version.hpp                  \
   web_peer_connection.hpp      \
   xml_parse.hpp                \

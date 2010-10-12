@@ -32,6 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket_type.hpp"
 
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
+#endif
+
 namespace libtorrent
 {
 
@@ -41,24 +45,35 @@ namespace libtorrent
 		{
 			case 0: break;
 			case socket_type_int_impl<stream_socket>::value:
-					  get<stream_socket>()->~stream_socket();
-					  break;
+				get<stream_socket>()->~stream_socket();
+				break;
 			case socket_type_int_impl<socks5_stream>::value:
-					  get<socks5_stream>()->~socks5_stream();
-					  break;
+				get<socks5_stream>()->~socks5_stream();
+				break;
 			case socket_type_int_impl<http_stream>::value:
-					  get<http_stream>()->~http_stream();
-					  break;
+				get<http_stream>()->~http_stream();
+				break;
 #if TORRENT_USE_I2P
 			case socket_type_int_impl<i2p_stream>::value:
-					  get<i2p_stream>()->~i2p_stream();
-					  break;
+				get<i2p_stream>()->~i2p_stream();
+				break;
+#endif
+#ifdef TORRENT_USE_OPENSSL
+			case socket_type_int_impl<ssl_stream<stream_socket> >::value:
+				get<ssl_stream<stream_socket> >()->~ssl_stream();
+				break;
+			case socket_type_int_impl<ssl_stream<socks5_stream> >::value:
+				get<ssl_stream<socks5_stream> >()->~ssl_stream();
+				break;
+			case socket_type_int_impl<ssl_stream<http_stream> >::value:
+				get<ssl_stream<http_stream> >()->~ssl_stream();
+				break;
 #endif
 		}
 		m_type = 0;
 	}
 
-	void socket_type::construct(int type)
+	void socket_type::construct(int type, void* userdata)
 	{
 		destruct();
 		switch (type)
@@ -76,6 +91,23 @@ namespace libtorrent
 #if TORRENT_USE_I2P
 			case socket_type_int_impl<i2p_stream>::value:
 				new ((i2p_stream*)m_data) i2p_stream(m_io_service);
+				break;
+#endif
+#ifdef TORRENT_USE_OPENSSL
+			case socket_type_int_impl<ssl_stream<stream_socket> >::value:
+				TORRENT_ASSERT(userdata);
+				new ((ssl_stream<stream_socket>*)m_data) ssl_stream<stream_socket>(m_io_service
+					, *((boost::asio::ssl::context*)userdata));
+				break;
+			case socket_type_int_impl<ssl_stream<socks5_stream> >::value:
+				TORRENT_ASSERT(userdata);
+				new ((ssl_stream<socks5_stream>*)m_data) ssl_stream<socks5_stream>(m_io_service
+					, *((boost::asio::ssl::context*)userdata));
+				break;
+			case socket_type_int_impl<ssl_stream<http_stream> >::value:
+				TORRENT_ASSERT(userdata);
+				new ((ssl_stream<http_stream>*)m_data) ssl_stream<http_stream>(m_io_service
+					, *((boost::asio::ssl::context*)userdata));
 				break;
 #endif
 		}
@@ -97,7 +129,6 @@ namespace libtorrent
 
 	socket_type::lowest_layer_type& socket_type::lowest_layer()
 	{ TORRENT_SOCKTYPE_FORWARD_RET(lowest_layer(), *((lowest_layer_type*)m_data)) }
-
 
 	void socket_type::open(protocol_type const& p, error_code& ec)
 	{ TORRENT_SOCKTYPE_FORWARD(open(p, ec)) }

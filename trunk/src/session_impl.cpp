@@ -373,7 +373,9 @@ namespace aux {
 	{
 		session_settings m_settings;
 		proxy_settings m_proxy;
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		pe_settings m_pe_settings;
+#endif
 #ifndef TORRENT_DISABLE_DHT
 		dht_settings m_dht_settings;
 #endif
@@ -422,6 +424,9 @@ namespace aux {
 #endif
 		, m_files(40)
 		, m_io_service()
+#ifdef TORRENT_USE_OPENSSL
+		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23_client)
+#endif
 		, m_alerts(m_io_service)
 		, m_disk_thread(m_io_service, boost::bind(&session_impl::on_disk_queue, this), m_files)
 		, m_half_open(m_io_service)
@@ -481,6 +486,11 @@ namespace aux {
 		(*m_logger) << time_now_string() << "\n";
 #endif
 
+		error_code ec;
+#ifdef TORRENT_USE_OPENSSL
+		m_ssl_ctx.set_verify_mode(asio::ssl::context::verify_none, ec);
+#endif
+
 #ifndef TORRENT_DISABLE_DHT
 		m_next_dht_torrent = m_torrents.begin();
 #endif
@@ -488,7 +498,6 @@ namespace aux {
 		m_next_connect_torrent = m_torrents.begin();
 
 		TORRENT_ASSERT_VAL(listen_interface, listen_interface);
-		error_code ec;
 		m_listen_interface = tcp::endpoint(address::from_string(listen_interface, ec), listen_port_range.first);
 		TORRENT_ASSERT_VAL(!ec, ec);
 
