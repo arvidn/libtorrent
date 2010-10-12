@@ -4850,7 +4850,7 @@ namespace libtorrent
 	void torrent::set_peer_upload_limit(tcp::endpoint ip, int limit)
 	{
 		TORRENT_ASSERT(limit >= -1);
-		peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
+		const_peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
 			, boost::bind(&peer_connection::remote, _1) == ip);
 		if (i == m_connections.end()) return;
 		(*i)->set_upload_limit(limit);
@@ -4859,7 +4859,7 @@ namespace libtorrent
 	void torrent::set_peer_download_limit(tcp::endpoint ip, int limit)
 	{
 		TORRENT_ASSERT(limit >= -1);
-		peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
+		const_peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
 			, boost::bind(&peer_connection::remote, _1) == ip);
 		if (i == m_connections.end()) return;
 		(*i)->set_download_limit(limit);
