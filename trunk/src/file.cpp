@@ -1572,7 +1572,7 @@ namespace libtorrent
 			// and report it.
 			if (errno != ENOSYS)
 			{
-				ec.assign(ret, get_posix_category());
+				ec.assign(errno, get_posix_category());
 				return false;
 			}
 #endif // TORRENT_LINUX
