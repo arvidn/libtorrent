@@ -52,6 +52,7 @@
 	* added more detailed instrumentation of the disk I/O thread
 
 
+	* fixed error reporting when fallocate fails
 	* deprecate support for separate proxies for separate kinds of connections
 
 0.15.4 release
