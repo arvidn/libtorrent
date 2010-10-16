@@ -108,10 +108,10 @@ namespace libtorrent
 		, m_creation_date(time(0))
 		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
-		, m_merkle_torrent(flags & merkle)
-		, m_include_mtime(flags & modification_time)
-		, m_include_symlinks(flags & symlinks)
-		, m_calculate_file_hashes(flags & calculate_file_hashes)
+		, m_merkle_torrent((flags & merkle) != 0)
+		, m_include_mtime((flags & modification_time) != 0)
+		, m_include_symlinks((flags & symlinks) != 0)
+		, m_calculate_file_hashes((flags & calculate_file_hashes) != 0)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
 

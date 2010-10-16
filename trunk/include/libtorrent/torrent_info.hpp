@@ -61,7 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct peer_connection;
+	class peer_connection;
 
 	enum
 	{
@@ -340,7 +340,7 @@ namespace libtorrent
 			TORRENT_ASSERT(index < m_files.num_pieces());
 			if (is_merkle_torrent())
 			{
-				TORRENT_ASSERT(index < int(m_merkle_tree.size()) - m_merkle_first_leaf);
+				TORRENT_ASSERT(index < int(m_merkle_tree.size() - m_merkle_first_leaf));
 				return (const char*)&m_merkle_tree[m_merkle_first_leaf + index][0];
 			}
 			else
@@ -348,7 +348,7 @@ namespace libtorrent
 				TORRENT_ASSERT(m_piece_hashes);
 				TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
 				TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
-				TORRENT_ASSERT(index < m_info_section_size / 20);
+				TORRENT_ASSERT(index < int(m_info_section_size / 20));
 				return &m_piece_hashes[index*20];
 			}
 		}
