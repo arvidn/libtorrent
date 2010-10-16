@@ -49,7 +49,11 @@ struct TORRENT_EXPORT bandwidth_channel
 
 	// 0 means infinite
 	void throttle(int limit);
-	int throttle() const { return m_limit; }
+	int throttle() const
+	{
+		TORRENT_ASSERT_VAL(m_limit < INT_MAX, m_limit);
+		return int(m_limit);
+	}
 
 	int quota_left() const;
 	void update_quota(int dt_milliseconds);

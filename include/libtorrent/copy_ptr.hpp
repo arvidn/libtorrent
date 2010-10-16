@@ -58,7 +58,7 @@ namespace libtorrent
 			m_ptr = p.m_ptr;
 			p.m_ptr = tmp;
 		}
-		operator bool() const { return m_ptr; }
+		operator bool() const { return m_ptr != 0; }
 		~copy_ptr() { delete m_ptr; }
 	private:
 		T* m_ptr;

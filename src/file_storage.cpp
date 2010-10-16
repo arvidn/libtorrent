@@ -200,10 +200,10 @@ namespace libtorrent
 		e.size = size;
 		e.path = file;
 		e.offset = m_total_size;
-		e.pad_file = bool(flags & pad_file);
-		e.hidden_attribute = bool(flags & attribute_hidden);
-		e.executable_attribute = bool(flags & attribute_executable);
-		e.symlink_attribute = bool(flags & attribute_symlink);
+		e.pad_file = (flags & pad_file) != 0;
+		e.hidden_attribute = (flags & attribute_hidden) != 0;
+		e.executable_attribute = (flags & attribute_executable) != 0;
+		e.symlink_attribute = (flags & attribute_symlink) != 0;
 		if (e.symlink_attribute) e.symlink_path = symlink_path;
 		e.mtime = mtime;
 		m_total_size += size;
