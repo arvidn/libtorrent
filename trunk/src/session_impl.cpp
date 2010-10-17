@@ -714,19 +714,24 @@ namespace aux {
 		update_connections_limit();
 		update_unchoke_limit();
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_logger) << time_now_string() << " spawning network thread\n";
+#endif
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
 
 	void session_impl::start()
 	{
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " *** session start\n";
+#endif
+
 		// this is where we should set up all async operations. This
 		// is called from within the network thread as opposed to the
 		// constructor which is called from the main thread
 
 		error_code ec;
-		m_timer.expires_from_now(milliseconds(m_settings.tick_interval), ec);
-		m_timer.async_wait(boost::bind(&session_impl::on_tick, this, _1));
-		TORRENT_ASSERT(!ec);
+		m_io_service.post(boost::bind(&session_impl::on_tick, this, ec));
 
 		int delay = (std::max)(m_settings.local_service_announce_interval
 			/ (std::max)(int(m_torrents.size()), 1), 1);
@@ -744,8 +749,14 @@ namespace aux {
 		TORRENT_ASSERT(!ec);
 #endif
 
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " open listen port\n";
+#endif
 		// no reuse_address
 		open_listen_port(false);
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " done starting session\n";
+#endif
 	}
 
 	void session_impl::save_state(entry* eptr, boost::uint32_t flags) const
@@ -1392,7 +1403,7 @@ namespace aux {
 			char msg[200];
 			snprintf(msg, 200, "failed to bind to interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
-			(*m_logger) << msg << "\n";
+			(*m_logger) << time_now_string() << " " << msg << "\n";
 #endif
 			ec = error_code();
 			TORRENT_ASSERT_VAL(!ec, ec);
@@ -1417,7 +1428,7 @@ namespace aux {
 			char msg[200];
 			snprintf(msg, 200, "cannot bind to interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
-			(*m_logger) << msg << "\n";
+			(*m_logger) << time_now_string() << msg << "\n";
 #endif
 			return listen_socket_t();
 		}
@@ -1431,7 +1442,7 @@ namespace aux {
 			char msg[200];
 			snprintf(msg, 200, "cannot listen on interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
-			(*m_logger) << msg << "\n";
+			(*m_logger) << time_now_string() << msg << "\n";
 #endif
 			return listen_socket_t();
 		}
@@ -1440,7 +1451,7 @@ namespace aux {
 			m_alerts.post_alert(listen_succeeded_alert(ep));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_logger) << "listening on: " << ep
+		(*m_logger) << time_now_string() << " listening on: " << ep
 			<< " external port: " << s.external_port << "\n";
 #endif
 		return s;
@@ -2032,7 +2043,7 @@ namespace aux {
 
 		if (e)
 		{
-#if defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 			(*m_logger) << "*** TICK TIMER FAILED " << e.message() << "\n";
 #endif
 			::abort();

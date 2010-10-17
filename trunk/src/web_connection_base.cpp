@@ -65,16 +65,13 @@ namespace libtorrent
 		, std::string const& auth
 		, web_seed_entry::headers_t const& extra_headers)
 		: peer_connection(ses, t, s, remote, peerinfo)
-		, m_first_request(true)
-		, m_ssl(false)
 		, m_external_auth(auth)
 		, m_extra_headers(extra_headers)
+		, m_first_request(true)
+		, m_ssl(false)
+		, m_body_start(0)
 	{
 		INVARIANT_CHECK;
-
-		// we want large blocks as well, so
-		// we can request more bytes at once
-		request_large_blocks(true);
 
 		// we only want left-over bandwidth
 		set_priority(1);

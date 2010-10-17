@@ -88,6 +88,7 @@ namespace libtorrent
 		void set_creator(char const* str);
 		void set_hash(int index, sha1_hash const& h);
 		void add_url_seed(std::string const& url);
+		void add_http_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
 		void set_priv(bool p) { m_private = p; }
@@ -157,6 +158,12 @@ namespace libtorrent
 		// the torrent file. The full data of the pointed-to
 		// file is still included
 		bool m_include_symlinks:1;
+		
+		// this is added at the end in order to maintain binary
+		// compatibility with previous 0.15.x releases. In the
+		// next full version release this member has been moved
+		// to a more reasonable location
+		std::vector<std::string> m_http_seeds;
 	};
 
 	namespace detail

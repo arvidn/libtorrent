@@ -352,6 +352,27 @@ namespace libtorrent
 			}
 		}
 
+		// if this function is used with an older version of the library
+		// this member won't exist
+		// TODO: for distributions that needs to be binary compatible with
+		// previos 0.15.x releases, this if-block should be removed
+		if (!m_http_seeds.empty())
+		{
+			if (m_http_seeds.size() == 1)
+			{
+				dict["httpseeds"] = m_http_seeds.front();
+			}
+			else
+			{
+				entry& list = dict["httpseeds"];
+				for (std::vector<std::string>::const_iterator i
+					= m_http_seeds.begin(); i != m_http_seeds.end(); ++i)
+				{
+					list.list().push_back(entry(*i));
+				}
+			}
+		}
+
 		entry& info = dict["info"];
 		if (m_info_dict.type() == entry::dictionary_t)
 		{
@@ -514,6 +535,11 @@ namespace libtorrent
 	void create_torrent::add_url_seed(std::string const& url)
 	{
 		m_url_seeds.push_back(url);
+	}
+
+	void create_torrent::add_http_seed(std::string const& url)
+	{
+		m_http_seeds.push_back(url);
 	}
 
 	void create_torrent::set_comment(char const* str)

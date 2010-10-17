@@ -82,6 +82,12 @@ namespace libtorrent
 		// from web seeds
 		prefer_whole_pieces((1024 * 1024) / tor->torrent_file().piece_length());
 		
+		// we want large blocks as well, so
+		// we can request more bytes at once
+		// this setting will merge adjacent requests
+		// into single larger ones
+		request_large_blocks(true);
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << "*** web_peer_connection " << url << "\n";
 #endif

@@ -52,6 +52,7 @@
 	* added more detailed instrumentation of the disk I/O thread
 
 
+	* fixed bugs in http seed connection and added unit test for it
 	* fixed error reporting when fallocate fails
 	* deprecate support for separate proxies for separate kinds of connections
 
