@@ -117,7 +117,11 @@ namespace libtorrent
 			TORRENT_ASSERT(receive_buffer_size < t->block_size());
 			ret.bytes_downloaded = t->block_size() - receive_buffer_size;
 		}
-		ret.block_index = (pr.start + ret.bytes_downloaded) / t->block_size();
+		// this is used to make sure that the block_index stays within
+		// bounds. If the entire piece is downloaded, the block_index
+		// would otherwise point to one past the end
+		int correction = ret.bytes_downloaded ? -1 : 0;
+		ret.block_index = (pr.start + ret.bytes_downloaded + correction) / t->block_size();
 		ret.full_block_bytes = t->block_size();
 		const int last_piece = t->torrent_file().num_pieces() - 1;
 		if (ret.piece_index == last_piece && ret.block_index
