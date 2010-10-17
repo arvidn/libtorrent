@@ -390,6 +390,10 @@ namespace libtorrent
 		, m_downloaders(0xffffff)
 		, m_interface_index(0)
 	{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_ses.m_logger) << time_now_string() << " creating torrent: "
+			<< torrent_file().name() << "\n";
+#endif
 		m_net_interfaces.push_back(tcp::endpoint(net_interface.address(), 0));
 
 		if (p.file_priorities)
@@ -428,6 +432,10 @@ namespace libtorrent
 
 	void torrent::start()
 	{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_ses.m_logger) << time_now_string() << " starting torrent: "
+			<< torrent_file().name() << "\n";
+#endif
 		TORRENT_ASSERT(!m_picker);
 
 		if (!m_seed_mode)
@@ -446,7 +454,7 @@ namespace libtorrent
 						error_code ec(errors::parse_failed);
 						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-						(*m_ses.m_logger) << "fastresume data for "
+						(*m_ses.m_logger) << time_now_string() << " fastresume data for "
 							<< torrent_file().name() << " rejected: " << ec.message() << "\n";
 #endif
 					}
@@ -933,7 +941,7 @@ namespace libtorrent
 			if (ev)
 			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				(*m_ses.m_logger) << "fastresume data for "
+				(*m_ses.m_logger) << time_now_string() << " fastresume data for "
 					<< torrent_file().name() << " rejected: "
 					<< error_code(ev, get_libtorrent_category()).message() << "\n";
 #endif
@@ -1084,7 +1092,7 @@ namespace libtorrent
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_ses.m_logger) << "fastresume data for "
+		(*m_ses.m_logger) << time_now_string() << " fastresume data for "
 			<< torrent_file().name() << " rejected: "
 			<< j.error.message() << " ret:" << ret << "\n";
 #endif

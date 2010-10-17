@@ -79,6 +79,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	}
 
 	add_torrent_params p;
+	p.auto_managed = false;
+	p.paused = false;
 	p.ti = torrent_file;
 	p.save_path = "./tmp2_web_seed";
 	p.storage_mode = storage_mode_compact;
