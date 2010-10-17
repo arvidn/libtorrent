@@ -3337,6 +3337,11 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			(*m_ses.m_logger) << time_now_string() << " failed to parse web seed url: " << ec.message() << "\n";
 #endif
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
+			{
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(get_handle(), web->url, ec));
+			}
 			// never try it again
 			m_web_seeds.erase(web);
 			return;
@@ -3384,7 +3389,8 @@ namespace libtorrent
 
 		if (web->endpoint.port() != 0)
 		{
-			// TODO: we have already resolved this URL, just connect
+			connect_web_seed(web, web->endpoint);
+			return;
 		}
 
 		if (m_ses.m_port_filter.access(port) & port_filter::blocked)
@@ -3615,10 +3621,14 @@ namespace libtorrent
 			m_connections.insert(boost::get_pointer(c));
 			m_ses.m_connections.insert(c);
 
+			TORRENT_ASSERT(!web->connection);
 			web->connection = c.get();
 
 			c->start();
 
+#if defined TORRENT_VERBOSE_LOGGING 
+			(*m_ses.m_logger) << time_now_string() << " web seed connection started " << web->url << "\n";
+#endif
 			m_ses.m_half_open.enqueue(
 				boost::bind(&peer_connection::on_connect, c, _1)
 				, boost::bind(&peer_connection::on_timeout, c)
