@@ -196,6 +196,9 @@ int test_main()
 	}
 	stop_web_server();
 
+/*
+// This test is disabled because the test web
+// server doesn't support SSL
 #ifdef TORRENT_USE_OPENSSL
 	port = start_web_server(true);
 	for (int i = 0; i < 5; ++i)
@@ -205,6 +208,7 @@ int test_main()
 	}
 	stop_web_server();
 #endif
+*/
 
 	std::remove("test_file");
 	return 0;
