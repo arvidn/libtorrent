@@ -457,7 +457,7 @@ namespace aux {
 		, m_incoming_connection(false)
 		, m_created(time_now_hires())
 		, m_last_tick(m_created)
-		, m_last_second_tick(m_created)
+		, m_last_second_tick(m_created - milliseconds(900))
 		, m_last_choke(m_created)
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_announce_timer(m_io_service)
@@ -2037,6 +2037,9 @@ namespace aux {
 // too expensive
 //		INVARIANT_CHECK;
 
+#if defined TORRENT_VERBOSE_LOGGING
+//		(*m_logger) << time_now_string() << " session_impl::on_tick\n";
+#endif
 		if (m_abort) return;
 
 		if (e == asio::error::operation_aborted) return;
@@ -2150,6 +2153,16 @@ namespace aux {
 			<< logging_allocator::allocated_bytes << "\t"
 			<< std::endl;
 #endif
+
+		// --------------------------------------------------------------
+		// auto managed torrent
+		// --------------------------------------------------------------
+		m_auto_manage_time_scaler--;
+		if (m_auto_manage_time_scaler <= 0)
+		{
+			m_auto_manage_time_scaler = settings().auto_manage_interval;
+			recalculate_auto_managed_torrents();
+		}
 
 		// --------------------------------------------------------------
 		// check for incoming connections that might have timed out
@@ -2439,16 +2452,6 @@ namespace aux {
 		}
 
 		// --------------------------------------------------------------
-		// auto managed torrent
-		// --------------------------------------------------------------
-		m_auto_manage_time_scaler--;
-		if (m_auto_manage_time_scaler <= 0)
-		{
-			m_auto_manage_time_scaler = settings().auto_manage_interval;
-			recalculate_auto_managed_torrents();
-		}
-
-		// --------------------------------------------------------------
 		// unchoke set calculations
 		// --------------------------------------------------------------
 		m_unchoke_time_scaler--;
@@ -2611,7 +2614,7 @@ namespace aux {
 				--dht_limit;
 				--tracker_limit;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
-				t->log_to_all_peers("AUTO MANAGER STARTING TORRENT");
+				t->log_to_all_peers(("AUTO MANAGER STARTING TORRENT: " + t->torrent_file().name()).c_str());
 #endif
 				t->set_announce_to_dht(dht_limit >= 0);
 				t->set_announce_to_trackers(tracker_limit >= 0);
@@ -2620,7 +2623,7 @@ namespace aux {
 			else
 			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
-				t->log_to_all_peers("AUTO MANAGER PAUSING TORRENT");
+				t->log_to_all_peers(("AUTO MANAGER PAUSING TORRENT: " + t->torrent_file().name()).c_str());
 #endif
 				t->set_allow_peers(false);
 			}
