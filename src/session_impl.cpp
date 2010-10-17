@@ -634,8 +634,7 @@ namespace aux {
 			*i = printable[rand() % (sizeof(printable)-1)];
 		}
 
-		m_timer.expires_from_now(milliseconds(100), ec);
-		m_timer.async_wait(boost::bind(&session_impl::on_tick, this, _1));
+		m_io_service.post(boost::bind(&session_impl::on_tick, this, ec));
 
 		int delay = (std::max)(m_settings.local_service_announce_interval
 			/ (std::max)(int(m_torrents.size()), 1), 1);
@@ -643,6 +642,9 @@ namespace aux {
 		m_lsd_announce_timer.async_wait(
 			boost::bind(&session_impl::on_lsd_announce, this, _1));
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_logger) << time_now_string() << " spawning network thread\n";
+#endif
 		m_thread.reset(new boost::thread(boost::ref(*this)));
 	}
 
@@ -1239,7 +1241,7 @@ namespace aux {
 			char msg[200];
 			snprintf(msg, 200, "failed to bind to interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
-			(*m_logger) << msg << "\n";
+			(*m_logger) << time_now_string() << " " << msg << "\n";
 #endif
 			ec = error_code();
 			TORRENT_ASSERT(!ec);
@@ -1264,7 +1266,7 @@ namespace aux {
 			char msg[200];
 			snprintf(msg, 200, "cannot bind to interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
-			(*m_logger) << msg << "\n";
+			(*m_logger) << time_now_string() << msg << "\n";
 #endif
 			return listen_socket_t();
 		}
@@ -1278,7 +1280,7 @@ namespace aux {
 			char msg[200];
 			snprintf(msg, 200, "cannot listen on interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
-			(*m_logger) << msg << "\n";
+			(*m_logger) << time_now_string() << msg << "\n";
 #endif
 			return listen_socket_t();
 		}
@@ -1744,7 +1746,7 @@ namespace aux {
 
 		if (e)
 		{
-#if defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 			(*m_logger) << "*** TICK TIMER FAILED " << e.message() << "\n";
 #endif
 			::abort();
@@ -2588,12 +2590,18 @@ namespace aux {
 	{
 		eh_initializer();
 
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " open listen port\n";
+#endif
 		if (m_listen_interface.port() != 0)
 		{
 			session_impl::mutex_t::scoped_lock l(m_mutex);
 			open_listen_port();
 		}
 
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << " done starting session\n";
+#endif
 		bool stop_loop = false;
 		while (!stop_loop)
 		{

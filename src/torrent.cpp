@@ -3084,16 +3084,17 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			(*m_ses.m_logger) << time_now_string() << " failed to parse web seed url: " << ec.message() << "\n";
 #endif
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
+			{
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(get_handle(), web.url, ec));
+			}
 			// never try it again
 			m_web_seeds.erase(web);
 			return;
 		}
 		
-#ifdef TORRENT_USE_OPENSSL
-		if (protocol != "http" && protocol != "https")
-#else
 		if (protocol != "http")
-#endif
 		{
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 			{
@@ -3322,6 +3323,9 @@ namespace libtorrent
 			m_ses.m_connections.insert(c);
 			c->start();
 
+#if defined TORRENT_VERBOSE_LOGGING 
+			(*m_ses.m_logger) << time_now_string() << " web seed connection started " << web->url << "\n";
+#endif
 			m_ses.m_half_open.enqueue(
 				boost::bind(&peer_connection::on_connect, c, _1)
 				, boost::bind(&peer_connection::on_timeout, c)

@@ -409,7 +409,7 @@ void on_accept(error_code const& ec)
 	}
 	else
 	{
-		fprintf(stderr, "accepting connection\n");
+//		fprintf(stderr, "accepting connection\n");
 		accept_done = true;
 	}
 }
@@ -474,6 +474,7 @@ void web_server_thread(int* port, bool ssl)
 	{
 		if (connection_close)
 		{
+//			fprintf(stderr, "closing connection\n");
 			s.close(ec);
 			connection_close = false;
 		}
@@ -515,6 +516,7 @@ void web_server_thread(int* port, bool ssl)
 
 			while (!p.finished())
 			{
+				TORRENT_ASSERT(len < sizeof(buf));
 				size_t received = s.read_some(boost::asio::buffer(&buf[len]
 					, sizeof(buf) - len), ec);
 
@@ -544,6 +546,7 @@ void web_server_thread(int* port, bool ssl)
 			// the Via: header is an indicator of delegate making the request
 			if (connection == "close" || !via.empty())
 			{
+//				fprintf(stderr, "got connection close\n");
 				connection_close = true;
 			}
 
@@ -551,6 +554,7 @@ void web_server_thread(int* port, bool ssl)
 
 			if (failed)
 			{
+				fprintf(stderr, "connection failed\n");
 				s.close(ec);
 				break;
 			}
@@ -582,6 +586,59 @@ void web_server_thread(int* port, bool ssl)
 			{
 				send_response(s, ec, 301, "Moved Permanently", "Location: ../test_file\r\n", 0);
 				break;
+			}
+
+			if (path.substr(0, 6) == "/seed?")
+			{
+				char const* piece = strstr(path.c_str(), "&piece=");
+				if (piece == 0)
+				{
+					fprintf(stderr, "invalid web seed request: %s\n", path.c_str());
+					break;
+				}
+				boost::uint64_t idx = atoi(piece + 7);
+				char const* range = strstr(path.c_str(), "&ranges=");
+				int range_end = 0;
+				int range_start = 0;
+				if (range)
+				{
+					range_start = atoi(range + 8);
+					range = strchr(range, '-');
+					if (range == 0)
+					{
+						fprintf(stderr, "invalid web seed request: %s\n", path.c_str());
+						break;
+					}
+					range_end = atoi(range + 1);
+				}
+				else
+				{
+					range_start = 0;
+					// assume piece size of 16
+					range_end = 16-1;
+				}
+
+				int size = range_end - range_start + 1;
+				boost::uint64_t off = idx * 16 + range_start;
+				std::vector<char> file_buf;
+				int res = load_file("./tmp1_web_seed/seed", file_buf);
+
+				error_code ec;
+				if (res == -1 || file_buf.empty())
+				{
+					send_response(s, ec, 404, "Not Found", 0, 0);
+					continue;
+				}
+				send_response(s, ec, 200, "OK", 0, size);
+//				fprintf(stderr, "sending %d bytes of payload [%d, %d)\n"
+//					, size, int(off), int(off + size));
+				write(s, boost::asio::buffer(&file_buf[0] + off, size)
+					, boost::asio::transfer_all(), ec);
+
+				memmove(buf, buf + offset, len - offset);
+				len -= offset;
+				offset = 0;
+				continue;
 			}
 
 //			fprintf(stderr, ">> serving file %s\n", path.c_str());

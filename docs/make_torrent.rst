@@ -242,6 +242,7 @@ The ``create_torrent`` class has the following synopsis::
 		void set_creator(char const* str);
 		void set_hash(int index, sha1_hash const& h);
 		void add_url_seed(std::string const& url);
+		void add_http_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
 		void set_priv(bool p);
@@ -374,18 +375,21 @@ to set the hash for every piece in the torrent before generating it. If you have
 the files on disk, you can use the high level convenience function to do this.
 See `set_piece_hashes()`_.
 
-add_url_seed()
---------------
+add_url_seed() add_http_seed()
+------------------------------
 
 	::
 
 		void add_url_seed(std::string const& url);
+		void add_http_seed(std::string const& url);
 
 This adds a url seed to the torrent. You can have any number of url seeds. For a
 single file torrent, this should be an HTTP url, pointing to a file with identical
 content as the file of the torrent. For a multi-file torrent, it should point to
 a directory containing a directory with the same name as this torrent, and all the
 files of the torrent in it.
+
+The second function, ``add_http_seed()`` adds an HTTP seed instead.
 
 add_node()
 ----------
