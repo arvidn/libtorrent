@@ -4258,6 +4258,10 @@ namespace libtorrent
 			"upload: " << m_send_buffer.size()
 			<< " prio: " << priority
 			<< " channels: " << bwc1 << " " << bwc2 << " " << bwc3 << " " << bwc4
+			<< " limits: " << (bwc1?bwc1->throttle():0) << " "
+				<< (bwc2?bwc2->throttle():0) << " "
+				<< (bwc3?bwc3->throttle():0) << " "
+				<< (bwc4?bwc4->throttle():0)
 			<< " ignore: " << m_ignore_bandwidth_limits
 			<< " ]\n";
 #endif
@@ -4274,6 +4278,10 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ "
 			"download: " << (m_download_queue.size() * 16 * 1024 + 30)
+			<< " limits: " << (bwc1?bwc1->throttle():0) << " "
+				<< (bwc2?bwc2->throttle():0) << " "
+				<< (bwc3?bwc3->throttle():0) << " "
+				<< (bwc4?bwc4->throttle():0)
 			<< " prio: " << m_priority << " ]\n";
 #endif
 		TORRENT_ASSERT(m_priority <= 255);
