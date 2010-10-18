@@ -53,6 +53,7 @@
 	* added more detailed instrumentation of the disk I/O thread
 
 
+	* fixed error reporting issue in disk I/O thread
 	* fixed file allocation issues on linux
 	* fixed filename encoding and decoding issue on platforms using iconv
 	* reports redundant downloads to tracker, fixed downloaded calculation to
