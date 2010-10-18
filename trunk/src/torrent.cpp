@@ -1449,15 +1449,24 @@ namespace libtorrent
 		tracker_request req;
 		req.info_hash = m_torrent_file->info_hash();
 		req.pid = m_ses.get_peer_id();
-		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
 		req.uploaded = m_stat.total_payload_upload();
 		req.corrupt = m_total_failed_bytes;
-		req.left = bytes_left();
+		req.redundant = m_total_redundant_bytes;
+
+		if (settings().report_true_downloaded)
+		{
+			req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
+			req.left = bytes_left();
+		}
+		else
+		{
+			req.downloaded = quantized_bytes_done();
+			TORRENT_ASSERT(!valid_metadata() || req.downloaded <= m_torrent_file->total_size());
+			req.left = valid_metadata() ? m_torrent_file->total_size() - req.downloaded : -1;
+		}
 		if (req.left == -1) req.left = 16*1024;
 
-		// exclude redundant bytes if we should
-		if (!settings().report_true_downloaded)
-			req.downloaded -= m_total_redundant_bytes;
+		TORRENT_ASSERT(req.downloaded >= 0);
 
 		req.event = e;
 		error_code ec;
@@ -6838,6 +6847,8 @@ namespace libtorrent
 		TORRENT_ASSERT(b > 0);
 		m_total_redundant_bytes += b;
 		m_ses.add_redundant_bytes(b);
+		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
+			<= m_stat.total_payload_download());
 	}
 
 	void torrent::add_failed_bytes(int b)
@@ -6845,6 +6856,8 @@ namespace libtorrent
 		TORRENT_ASSERT(b > 0);
 		m_total_failed_bytes += b;
 		m_ses.add_failed_bytes(b);
+		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
+			<= m_stat.total_payload_download());
 	}
 
 	int torrent::num_seeds() const

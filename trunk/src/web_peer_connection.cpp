@@ -96,10 +96,6 @@ namespace libtorrent
 	void web_peer_connection::disconnect(error_code const& ec, int error)
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-
-		if (t && m_block_pos)
-			t->add_redundant_bytes(m_block_pos);
-
 		peer_connection::disconnect(ec, error);
 		if (t) t->disconnect_web_seed(this);
 	}
