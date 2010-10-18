@@ -1,3 +1,6 @@
+	* reports redundant downloads to tracker, fixed downloaded calculation to
+	  be more stable when not including redundant. Improved redundant data accounting
+	  to be more accurate
 	* fixed bugs in http seed connection and added unit test for it
 	* fixed error reporting when fallocate fails
 	* deprecate support for separate proxies for separate kinds of connections
