@@ -932,7 +932,7 @@ namespace libtorrent
 			}
 		}
 #endif // _WIN32_WINNT >= 0x501
-#else
+#else // NON-WINDOWS
 		struct stat st;
 		if (fstat(m_fd, &st) != 0)
 		{
@@ -980,7 +980,7 @@ namespace libtorrent
 			// way. If fallocate failed with some other error, it
 			// probably means the user should know about it, error out
 			// and report it.
-			if (errno != ENOSYS)
+			if (errno != ENOSYS && errno != EOPNOTSUPP)
 			{
 				ec.assign(errno, get_posix_category());
 				return false;
@@ -993,7 +993,9 @@ namespace libtorrent
 			// if you get a compile error here, you might want to
 			// define TORRENT_HAS_FALLOCATE to 0.
 			ret = posix_fallocate(m_fd, 0, s);
-			if (ret != 0)
+			// posix_allocate fails with EINVAL in case the underlying
+			// filesystem does bot support this operation
+			if (ret != 0 && ret != EINVAL)
 			{
 				ec = error_code(ret, get_posix_category());
 				return false;

@@ -620,6 +620,9 @@ void test_remove(path const& test_path, bool unbuffered)
 
 	// allocate the files and create the directories
 	s->initialize(true);
+	TEST_CHECK(!s->error());
+	if (s->error())
+		fprintf(stderr, "%s: %s\n", s->error().message().c_str(), s->error_file().c_str());
 
 	TEST_CHECK(exists(test_path / "temp_storage/_folder3/subfolder/test5.tmp"));	
 	TEST_CHECK(exists(test_path / "temp_storage/folder2/test3.tmp"));	
