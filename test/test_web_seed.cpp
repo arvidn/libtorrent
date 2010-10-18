@@ -177,6 +177,15 @@ void save_file(char const* filename, char const* data, int size)
 
 }
 
+sha1_hash file_hash(std::string const& name)
+{
+	std::vector<char> buf;
+	load_file(name, buf);
+	if (buf.empty()) return sha1_hash(0);
+	hasher h(&buf[0], buf.size());
+	return h.final();
+}
+
 // test_url_seed determines whether to use url-seed or http-seed
 int run_suite(char const* protocol, bool test_url_seed)
 {
@@ -186,6 +195,7 @@ int run_suite(char const* protocol, bool test_url_seed)
 	create_directories("./tmp1_web_seed/test_torrent_dir", ec);
 
 	file_storage fs;
+	std::srand(10);
 	if (test_url_seed)
 	{
 		int file_sizes[] =
@@ -193,7 +203,6 @@ int run_suite(char const* protocol, bool test_url_seed)
 			,1,1,1,1,1,1,13,65,34,75,2,3,4,5,23,9,43,4,43,6, 4};
 
 		char random_data[300000];
-		std::srand(10);
 		for (int i = 0; i != sizeof(file_sizes)/sizeof(file_sizes[0]); ++i)
 		{
 			std::generate(random_data, random_data + sizeof(random_data), &std::rand);
@@ -207,7 +216,6 @@ int run_suite(char const* protocol, bool test_url_seed)
 	else
 	{
 		char random_data[10000];
-		std::srand(10);
 		std::generate(random_data, random_data + sizeof(random_data), &std::rand);
 		save_file("./tmp1_web_seed/seed", random_data, sizeof(random_data));
 		fs.add_file("seed", sizeof(random_data));
@@ -215,7 +223,7 @@ int run_suite(char const* protocol, bool test_url_seed)
 
 	int port = start_web_server(strcmp(protocol, "https") == 0);
 
-	libtorrent::create_torrent t(fs, 16);
+	libtorrent::create_torrent t(fs, 16, 0, libtorrent::create_torrent::calculate_file_hashes);
 	char tmp[512];
 	if (test_url_seed)
 	{
@@ -241,6 +249,17 @@ int run_suite(char const* protocol, bool test_url_seed)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(&buf[0], buf.size(), ec));
+
+	// verify that the file hashes are correct
+	for (int i = 0; i < torrent_file->num_files(); ++i)
+	{
+		TEST_CHECK(torrent_file->file_at(i).filehash);
+		sha1_hash h1 = *torrent_file->file_at(i).filehash;
+		sha1_hash h2 = file_hash(combine_path("./tmp1_web_seed", torrent_file->file_at(i).path));
+		fprintf(stderr, "%s: %s == %s\n", torrent_file->file_at(i).path.c_str()
+			, to_hex(h1.to_string()).c_str(), to_hex(h2.to_string()).c_str());
+		TEST_EQUAL(h1, h2);
+	}
 
 	for (int i = 0; i < 6; ++i)
 		test_transfer(torrent_file, i, port, protocol, test_url_seed);

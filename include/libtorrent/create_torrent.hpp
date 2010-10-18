@@ -281,11 +281,16 @@ namespace libtorrent
 			if (t.should_add_file_hashes())
 			{
 				int left_in_piece = t.piece_size(i);
+				int this_piece_size = left_in_piece;
 				// the number of bytes from this file we just read
 				while (left_in_piece > 0)
 				{
 					int to_hash_for_file = int((std::min)(size_type(left_in_piece), left_in_file));
-					filehash.update(buf.bytes(), to_hash_for_file);
+					if (to_hash_for_file > 0)
+					{
+						int offset = this_piece_size - left_in_piece;
+						filehash.update(buf.bytes() + offset, to_hash_for_file);
+					}
 					left_in_file -= to_hash_for_file;
 					left_in_piece -= to_hash_for_file;
 					if (left_in_file == 0)
