@@ -3289,7 +3289,19 @@ namespace libtorrent
 		if (t)
 		{
 			// make sure we keep all the stats!
-			if (!m_ignore_stats) t->add_stats(statistics());
+			if (!m_ignore_stats)
+			{
+				t->add_stats(statistics());
+
+				// report any partially received payload as redundant
+				boost::optional<piece_block_progress> pbp = downloading_piece_progress();
+				if (pbp
+					&& pbp->bytes_downloaded > 0
+					&& pbp->bytes_downloaded < pbp->full_block_bytes)
+				{
+					t->add_redundant_bytes(pbp->bytes_downloaded);
+				}
+			}
 
 			if (t->has_picker())
 			{
