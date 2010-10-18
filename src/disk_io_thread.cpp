@@ -1834,7 +1834,10 @@ namespace libtorrent
 					INVARIANT_CHECK;
 
 					if (in_use() >= m_settings.cache_size)
+					{
 						flush_cache_blocks(l, in_use() - m_settings.cache_size + 1, m_read_pieces.end());
+						if (test_error(j)) break;
+					}
 
 					cache_t::iterator p
 						= find_cached_piece(m_pieces, j, l);
@@ -1861,6 +1864,7 @@ namespace libtorrent
 						// we might just have created a contiguous range
 						// that meets the requirement to be flushed. try it
 						flush_contiguous_blocks(p, l, m_settings.write_cache_line_size);
+						test_error(j);
 					}
 					else
 					{
@@ -1875,6 +1879,8 @@ namespace libtorrent
 								test_error(j);
 								break;
 							}
+							// we successfully wrote the block. Ignore previous errors
+							j.storage->clear_error();
 							break;
 						}
 					}
@@ -1884,7 +1890,10 @@ namespace libtorrent
 					holder.release();
 
 					if (in_use() > m_settings.cache_size)
+					{
 						flush_cache_blocks(l, in_use() - m_settings.cache_size, m_read_pieces.end());
+						test_error(j);
+					}
 
 					break;
 				}
