@@ -1072,7 +1072,11 @@ namespace aux {
 		if (m_upnp) m_upnp->close();
 		if (m_natpmp) m_natpmp->close();
 #ifndef TORRENT_DISABLE_DHT
-		if (m_dht) m_dht->stop();
+		if (m_dht)
+		{
+			m_dht->stop();
+			m_dht = 0;
+		}
 		m_dht_announce_timer.cancel(ec);
 #endif
 		m_timer.cancel(ec);
