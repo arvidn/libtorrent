@@ -383,12 +383,13 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			}
 			else
 			{
-				char msg[200];
+				char msg[400];
 				int num_chars = snprintf(msg, sizeof(msg), "ignoring response from: %s: IP is not a router. "
 					, print_endpoint(from).c_str());
 				for (std::vector<ip_route>::const_iterator i = routes.begin()
 					, end(routes.end()); i != end; ++i)
 				{
+					if (num_chars >= sizeof(msg)-1) break;
 					num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
 						, print_address(i->gateway).c_str(), print_address(i->netmask).c_str());
 				}
