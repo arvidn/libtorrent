@@ -3750,7 +3750,8 @@ session_settings
 		enum seed_choking_algorithm_t
 		{
 			round_robin,
-			fastest_upload
+			fastest_upload,
+			anti_leech
 		};
 
 		int seed_choking_algorithm;
@@ -4115,6 +4116,10 @@ options are:
 
 * ``fastest_upload`` unchokes the peers we can send to the fastest. This might be
   a bit more reliable in utilizing all available capacity.
+
+* ``anti_leech`` prioritizes peers who have just started or are just about to finish
+  the download. The intention is to force peers in the middle of the download to
+  trade with each other.
 
 ``use_parole_mode`` specifies if parole mode should be used. Parole mode means
 that peers that participate in pieces that fail the hash check are put in a mode
