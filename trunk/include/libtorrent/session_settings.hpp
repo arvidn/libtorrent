@@ -467,7 +467,8 @@ namespace libtorrent
 		enum seed_choking_algorithm_t
 		{
 			round_robin,
-			fastest_upload
+			fastest_upload,
+			anti_leech
 		};
  
 		// the choking algorithm to use for seeding torrents
