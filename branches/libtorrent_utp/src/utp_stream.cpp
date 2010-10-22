@@ -73,7 +73,6 @@ void utp_log(char const* fmt, ...)
 	va_start(l, fmt);
 	vfprintf(log_file_holder.utp_log_file, fmt, l);
 	va_end(l);
-	fflush(log_file_holder.utp_log_file);
 }
 
 #define UTP_LOG utp_log
