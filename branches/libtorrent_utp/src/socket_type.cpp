@@ -135,9 +135,6 @@ namespace libtorrent
 		TORRENT_SOCKTYPE_FORWARD_RET(is_open(), false)
 	}
 
-	socket_type::lowest_layer_type& socket_type::lowest_layer()
-	{ TORRENT_SOCKTYPE_FORWARD_RET(lowest_layer(), *((lowest_layer_type*)m_data)) }
-
 	void socket_type::open(protocol_type const& p, error_code& ec)
 	{ TORRENT_SOCKTYPE_FORWARD(open(p, ec)) }
 
