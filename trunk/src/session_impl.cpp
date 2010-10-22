@@ -77,11 +77,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/settings.hpp"
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#endif
+
 #ifndef TORRENT_WINDOWS
 #include <sys/resource.h>
 #endif
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+
+// for logging stat layout
+#include "libtorrent/stat.hpp"
 
 // for logging the size of DHT structures
 #ifndef TORRENT_DISABLE_DHT
@@ -618,7 +624,14 @@ namespace aux {
 		PRINT_SIZEOF(stat)
 		PRINT_SIZEOF(bandwidth_channel)
 		PRINT_SIZEOF(policy)
-		stat_channel::print_size(*m_logger);
+
+		PRINT_SIZEOF(stat_channel)
+		PRINT_OFFSETOF(stat_channel, m_rate_history)
+		PRINT_OFFSETOF(stat_channel, m_window)
+		PRINT_OFFSETOF(stat_channel, m_counter)
+		PRINT_OFFSETOF(stat_channel, m_total_counter)
+		PRINT_OFFSETOF(stat_channel, m_rate_sum)
+
 		torrent::print_size(*m_logger);
 
 		PRINT_SIZEOF(peer_connection)
