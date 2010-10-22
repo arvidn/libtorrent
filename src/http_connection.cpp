@@ -218,28 +218,28 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		}
 #endif
 
-		// in this case, the upper layer is assumed to have taken
-		// care of the proxying already. Don't instantiate the socket
-		// with this proxy
-		if (ps && (ps->type == proxy_settings::http
-			|| ps->type == proxy_settings::http_pw)
-			&& !ssl)
-		{
-			ps = 0;
-		}
-		proxy_settings null_proxy;
-
 		proxy_settings const* proxy = ps;
 #if TORRENT_USE_I2P
 		if (is_i2p) proxy = &i2p_conn->proxy();
 #endif
+
+		// in this case, the upper layer is assumed to have taken
+		// care of the proxying already. Don't instantiate the socket
+		// with this proxy
+		if (proxy && (proxy->type == proxy_settings::http
+			|| proxy->type == proxy_settings::http_pw)
+			&& !ssl)
+		{
+			proxy = 0;
+		}
+		proxy_settings null_proxy;
 
 		void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
 		if (m_ssl) userdata = &m_ssl_ctx;
 #endif
 		bool ret = instantiate_connection(m_resolver.get_io_service()
-			, ps ? *ps : null_proxy, m_sock, userdata);
+			, proxy ? *proxy : null_proxy, m_sock, userdata);
 
 		if (m_bind_addr != address_v4::any())
 		{
