@@ -30,40 +30,33 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_COPY_PTR
-#define TORRENT_COPY_PTR
+#ifndef SETTINGS_HPP_INCLUDED
+#define SETTINGS_HPP_INCLUDED
+
+#include "libtorrent/config.hpp"
+#include "libtorrent/session_settings.hpp"
 
 namespace libtorrent
 {
-	template <class T>
-	struct copy_ptr
+	struct lazy_entry;
+	struct entry;
+
+	enum { std_string = 0, character = 1, short_integer = 2
+		, integer = 3, floating_point = 4, boolean = 5};
+
+	// this is used to map struct entries
+	// to names in a bencoded dictionary to
+	// save and load the struct
+	struct bencode_map_entry
 	{
-		copy_ptr(): m_ptr(0) {}
-		copy_ptr(T* t): m_ptr(t) {}
-		copy_ptr(copy_ptr const& p): m_ptr(p.m_ptr ? new T(*p.m_ptr) : 0) {}
-		void reset(T* t = 0) { delete m_ptr; m_ptr = t; }
-		copy_ptr& operator=(copy_ptr const& p)
-		{
-			delete m_ptr;
-			m_ptr = p.m_ptr ? new T(*p.m_ptr) : 0;
-			return *this;
-		}
-		T* operator->() { return m_ptr; }
-		T const* operator->() const { return m_ptr; }
-		T& operator*() { return *m_ptr; }
-		T const& operator*() const { return *m_ptr; }
-		void swap(copy_ptr<T>& p)
-		{
-			T* tmp = m_ptr;
-			m_ptr = p.m_ptr;
-			p.m_ptr = tmp;
-		}
-		operator bool() const { return m_ptr != 0; }
-		~copy_ptr() { delete m_ptr; }
-	private:
-		T* m_ptr;
+		char const* name;
+		int offset; // struct offset
+		int type;
 	};
+
+	void load_struct(lazy_entry const& e, void* s, bencode_map_entry const* m, int num);
+	void save_struct(entry& e, void const* s, bencode_map_entry const* m, int num, void const* def = 0);
 }
 
-#endif // TORRENT_COPY_PTR
+#endif
 

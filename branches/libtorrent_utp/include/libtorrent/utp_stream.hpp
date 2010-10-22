@@ -309,6 +309,13 @@ public:
 		return ret;
 	}
 
+	template <class Const_Buffers>
+	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
+	{
+		// TODO: implement
+		return 0;
+	}
+
 	template <class Const_Buffers, class Handler>
 	void async_write_some(Const_Buffers const& buffers, Handler const& handler)
 	{

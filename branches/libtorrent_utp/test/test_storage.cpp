@@ -442,11 +442,14 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	TORRENT_ASSERT(fs.num_files() > 0);
 	error_code ec;
 	create_directory(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "create_directory: " << ec.message() << std::endl;
+	if (ec) std::cerr << "create_directory '" << combine_path(test_path, "temp_storage")
+		<< "': " << ec.message() << std::endl;
 	remove_all(combine_path(test_path, "temp_storage2"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage2")
+		<< "': " << ec.message() << std::endl;
 	remove_all(combine_path(test_path, "part0"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "part0")
+		<< "': " << ec.message() << std::endl;
 
 	int num_pieces = fs.num_pieces();
 	TEST_CHECK(info->num_pieces() == num_pieces);
@@ -597,9 +600,11 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	io.abort();
 	io.join();
 	remove_all(combine_path(test_path, "temp_storage2"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage2")
+		<< "': " << ec.message() << std::endl;
 	remove_all(combine_path(test_path, "part0"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "part0")
+		<< "': " << ec.message() << std::endl;
 	}
 	page_aligned_allocator::free(piece);
 }
@@ -609,7 +614,8 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	file_storage fs;
 	error_code ec;
 	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		<< "': " << ec.message() << std::endl;
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
 	fs.add_file("temp_storage/test1.tmp", 8);
 	fs.add_file("temp_storage/folder1/test2.tmp", 8);
@@ -640,6 +646,9 @@ void test_remove(std::string const& test_path, bool unbuffered)
 
 	// allocate the files and create the directories
 	s->initialize(true);
+	TEST_CHECK(!s->error());
+	if (s->error())
+		fprintf(stderr, "%s: %s\n", s->error().message().c_str(), s->error_file().c_str());
 
 	TEST_CHECK(exists(combine_path(test_path, "temp_storage/_folder3/subfolder/test5.tmp")));	
 	TEST_CHECK(exists(combine_path(test_path, "temp_storage/folder2/test3.tmp")));	
@@ -677,7 +686,8 @@ void test_check_files(std::string const& test_path
 	error_code ec;
 	const int piece_size = 16 * 1024;
 	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		<< "': " << ec.message() << std::endl;
 	file_storage fs;
 	fs.add_file("temp_storage/test1.tmp", piece_size);
 	fs.add_file("temp_storage/test2.tmp", piece_size * 2);
@@ -748,7 +758,8 @@ void run_test(std::string const& test_path, bool unbuffered)
 	{
 	error_code ec;
 	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		<< "': " << ec.message() << std::endl;
 	file_storage fs;
 	fs.add_file("temp_storage/test1.tmp", 17);
 	fs.add_file("temp_storage/test2.tmp", 612);
@@ -782,7 +793,8 @@ void run_test(std::string const& test_path, bool unbuffered)
 	TEST_EQUAL(file_size(combine_path(base, "test6.tmp")), 841);
 	TEST_EQUAL(file_size(combine_path(base, "test7.tmp")), last_file_size - piece_size);
 	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		<< "': " << ec.message() << std::endl;
 	}
 
 // ==============================================
@@ -807,7 +819,8 @@ void run_test(std::string const& test_path, bool unbuffered)
 
 	TEST_EQUAL(file_size(combine_path(test_path, "temp_storage/test1.tmp")), piece_size * 3);
 	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		<< "': " << ec.message() << std::endl;
 
 // ==============================================
 
@@ -819,7 +832,8 @@ void run_test(std::string const& test_path, bool unbuffered)
 	TEST_EQUAL(file_size(combine_path(test_path, "temp_storage/test1.tmp")), 3 * piece_size);
 
 	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		<< "': " << ec.message() << std::endl;
 
 	}
 
@@ -840,9 +854,11 @@ void test_fastresume(std::string const& test_path)
 	error_code ec;
 	std::cout << "\n\n=== test fastresume ===" << std::endl;
 	remove_all(combine_path(test_path, "tmp1"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "tmp1")
+		<< "': " << ec.message() << std::endl;
 	create_directory(combine_path(test_path, "tmp1"), ec);
-	if (ec) std::cerr << "create_directory: " << ec.message() << std::endl;
+	if (ec) std::cerr << "create_directory '" << combine_path(test_path, "tmp1")
+		<< "': " << ec.message() << std::endl;
 	std::ofstream file(combine_path(test_path, "tmp1/temporary").c_str());
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file);
 	file.close();
@@ -910,7 +926,8 @@ void test_fastresume(std::string const& test_path)
 		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) != 0);
 	}
 	remove_all(combine_path(test_path, "tmp1"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "tmp1")
+		<< "': " << ec.message() << std::endl;
 }
 
 bool got_file_rename_alert(alert* a)
@@ -924,7 +941,8 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	error_code ec;
 	std::cout << "\n\n=== test rename file in fastresume ===" << std::endl;
 	remove_all(combine_path(test_path, "tmp2"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "tmp2")
+		<< "': " << ec.message() << std::endl;
 	create_directory(combine_path(test_path, "tmp2"), ec);
 	if (ec) std::cerr << "create_directory: " << ec.message() << std::endl;
 	std::ofstream file(combine_path(test_path, "tmp2/temporary").c_str());
@@ -997,7 +1015,8 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	resume.print(std::cout);
 #endif
 	remove_all(combine_path(test_path, "tmp2"), ec);
-	if (ec) std::cerr << "remove_all: " << ec.message() << std::endl;
+	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "tmp2")
+		<< "': " << ec.message() << std::endl;
 }
 
 int test_main()

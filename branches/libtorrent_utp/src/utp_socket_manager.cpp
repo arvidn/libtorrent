@@ -185,7 +185,7 @@ namespace libtorrent
 
 			boost::shared_ptr<socket_type> c(new (std::nothrow) socket_type(m_sock.get_io_service()));
 			if (!c) return false;
-			instantiate_connection(m_sock.get_io_service(), proxy_settings(), this, *c);
+			instantiate_connection(m_sock.get_io_service(), proxy_settings(), *c, 0, this);
 			utp_stream* str = c->get<utp_stream>();
 			TORRENT_ASSERT(str);
 			bool ret = utp_incoming_packet(str->get_impl(), p, size, ep);

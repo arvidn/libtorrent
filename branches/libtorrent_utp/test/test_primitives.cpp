@@ -498,6 +498,12 @@ int test_main()
 	sett.auto_scrape_interval = 235;
 	sett.auto_scrape_min_interval = 62;
 	s->set_settings(sett);
+
+#ifndef TORRENT_DISABLE_DHT
+	dht_settings dhts;
+	dhts.max_peers_reply = 70;
+	s->set_dht_settings(dhts);
+#endif
 /*
 #ifndef TORRENT_DISABLE_DHT
 	dht_settings dht_sett;
@@ -546,7 +552,11 @@ int test_main()
 	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), session_state2);
 	TEST_CHECK(ret == 0);
 
-	printf("session_state\n%s\n", print_entry(session_state2).c_str());
+	fprintf(stderr, "session_state\n%s\n", print_entry(session_state2).c_str());
+
+	// make sure settings that haven't been changed from their defaults are not saved
+	TEST_CHECK(session_state2.dict_find("settings")->dict_find("optimistic_disk_retry") == 0);
+
 	s->load_state(session_state2);
 #define CMP_SET(x) TEST_CHECK(s->settings().x == sett.x)
 

@@ -375,6 +375,7 @@ SOURCES =
 	ip_filter
 	peer_connection
 	bt_peer_connection
+	web_connection_base
 	web_peer_connection
 	http_seed_connection
 	i2p_stream
@@ -386,6 +387,7 @@ SOURCES =
 	puff
 	session
 	session_impl
+	settings
 	socket_io
 	socket_type
 	socks5_stream

@@ -43,40 +43,52 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/max.hpp"
 #include "libtorrent/assert.hpp"
 
+#ifdef TORRENT_USE_OPENSSL
+#include "libtorrent/ssl_stream.hpp"
+#endif
+
 #if TORRENT_USE_I2P
 
-#define TORRENT_SOCKTYPE_FORWARD(x) \
-	switch (m_type) { \
-		case socket_type_int_impl<stream_socket>::value: \
-			get<stream_socket>()->x; break; \
-		case socket_type_int_impl<socks5_stream>::value: \
-			get<socks5_stream>()->x; break; \
-		case socket_type_int_impl<http_stream>::value: \
-			get<http_stream>()->x; break; \
-		case socket_type_int_impl<utp_stream>::value: \
-			get<utp_stream>()->x; break; \
+#define TORRENT_SOCKTYPE_I2P_FORWARD(x) \
 		case socket_type_int_impl<i2p_stream>::value: \
-			get<i2p_stream>()->x; break; \
-		default: TORRENT_ASSERT(false); \
-	}
+			get<i2p_stream>()->x; break;
 
-#define TORRENT_SOCKTYPE_FORWARD_RET(x, def) \
-	switch (m_type) { \
-		case socket_type_int_impl<stream_socket>::value: \
-			return get<stream_socket>()->x; \
-		case socket_type_int_impl<socks5_stream>::value: \
-			return get<socks5_stream>()->x; \
-		case socket_type_int_impl<http_stream>::value: \
-			return get<http_stream>()->x; \
-		case socket_type_int_impl<utp_stream>::value: \
-			return get<utp_stream>()->x; \
+#define TORRENT_SOCKTYPE_I2P_FORWARD_RET(x, def) \
 		case socket_type_int_impl<i2p_stream>::value: \
-			return get<i2p_stream>()->x; \
-		default: TORRENT_ASSERT(false); return def; \
-	}
+			return get<i2p_stream>()->x;
 
 #else // TORRENT_USE_I2P
 
+#define TORRENT_SOCKTYPE_I2P_FORWARD(x)
+#define TORRENT_SOCKTYPE_I2P_FORWARD_RET(x, def)
+
+#endif
+
+#ifdef TORRENT_USE_OPENSSL
+
+#define TORRENT_SOCKTYPE_SSL_FORWARD(x) \
+		case socket_type_int_impl<ssl_stream<stream_socket> >::value: \
+			get<ssl_stream<stream_socket> >()->x; break; \
+		case socket_type_int_impl<ssl_stream<socks5_stream> >::value: \
+			get<ssl_stream<socks5_stream> >()->x; break; \
+		case socket_type_int_impl<ssl_stream<http_stream> >::value: \
+			get<ssl_stream<http_stream> >()->x; break;
+
+#define TORRENT_SOCKTYPE_SSL_FORWARD_RET(x, def) \
+		case socket_type_int_impl<ssl_stream<stream_socket> >::value: \
+			return get<ssl_stream<stream_socket> >()->x; \
+		case socket_type_int_impl<ssl_stream<socks5_stream> >::value: \
+			return get<ssl_stream<socks5_stream> >()->x; \
+		case socket_type_int_impl<ssl_stream<http_stream> >::value: \
+			return get<ssl_stream<http_stream> >()->x;
+
+#else
+
+#define TORRENT_SOCKTYPE_SSL_FORWARD(x)
+#define TORRENT_SOCKTYPE_SSL_FORWARD_RET(x, def)
+
+#endif
+
 #define TORRENT_SOCKTYPE_FORWARD(x) \
 	switch (m_type) { \
 		case socket_type_int_impl<stream_socket>::value: \
@@ -87,6 +99,8 @@ POSSIBILITY OF SUCH DAMAGE.
 			get<http_stream>()->x; break; \
 		case socket_type_int_impl<utp_stream>::value: \
 			get<utp_stream>()->x; break; \
+		TORRENT_SOCKTYPE_I2P_FORWARD(x) \
+		TORRENT_SOCKTYPE_SSL_FORWARD(x) \
 		default: TORRENT_ASSERT(false); \
 	}
 
@@ -100,10 +114,10 @@ POSSIBILITY OF SUCH DAMAGE.
 			return get<http_stream>()->x; \
 		case socket_type_int_impl<utp_stream>::value: \
 			return get<utp_stream>()->x; \
+		TORRENT_SOCKTYPE_I2P_FORWARD_RET(x, def) \
+		TORRENT_SOCKTYPE_SSL_FORWARD_RET(x, def) \
 		default: TORRENT_ASSERT(false); return def; \
 	}
-
-#endif // TORRENT_USE_I2P
 
 namespace libtorrent
 {
@@ -134,6 +148,20 @@ namespace libtorrent
 	{ enum { value = 5 }; };
 #endif
 
+#ifdef TORRENT_USE_OPENSSL
+	template <>
+	struct socket_type_int_impl<ssl_stream<stream_socket> >
+	{ enum { value = 6 }; };
+
+	template <>
+	struct socket_type_int_impl<ssl_stream<socks5_stream> >
+	{ enum { value = 7 }; };
+
+	template <>
+	struct socket_type_int_impl<ssl_stream<http_stream> >
+	{ enum { value = 8 }; };
+#endif
+
 	struct TORRENT_EXPORT socket_type
 	{
 		typedef stream_socket::endpoint_type endpoint_type;
@@ -143,11 +171,9 @@ namespace libtorrent
 		explicit socket_type(io_service& ios): m_io_service(ios), m_type(0) {}
 		~socket_type();
 
+		lowest_layer_type& lowest_layer();
 		io_service& get_io_service() const;
 		bool is_open() const;
-
-		lowest_layer_type& lowest_layer() { return *this; }
-
 
 #ifndef BOOST_NO_EXCEPTIONS
 		void open(protocol_type const& p);
@@ -173,6 +199,10 @@ namespace libtorrent
 		template <class Mutable_Buffers, class Handler>
 		void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
 		{ TORRENT_SOCKTYPE_FORWARD(async_read_some(buffers, handler)) }
+
+		template <class Const_Buffers>
+		std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
+		{ TORRENT_SOCKTYPE_FORWARD_RET(write_some(buffers, ec), 0) }
 
 		template <class Const_Buffers, class Handler>
 		void async_write_some(Const_Buffers const& buffers, Handler const& handler)
@@ -207,40 +237,51 @@ namespace libtorrent
 		{ TORRENT_SOCKTYPE_FORWARD_RET(set_option(opt, ec), ec) }
 
 		template <class S>
-		void instantiate(io_service& ios)
+		void instantiate(io_service& ios, void* userdata = 0)
 		{
 			TORRENT_ASSERT(&ios == &m_io_service);
-			construct(socket_type_int_impl<S>::value);
+			construct(socket_type_int_impl<S>::value, userdata);
 		}
 
 		template <class S> S* get()
 		{
-			if (m_type !=  socket_type_int_impl<S>::value) return 0;
+			if (m_type != socket_type_int_impl<S>::value) return 0;
 			return (S*)m_data;
 		}
 
 		template <class S> S const* get() const 
 		{
-			if (m_type !=  socket_type_int_impl<S>::value) return 0;
+			if (m_type != socket_type_int_impl<S>::value) return 0;
 			return (S const*)m_data;
 		}
 
 	private:
 
 		void destruct();
-		void construct(int type);
+		void construct(int type, void* userdata);
 
 		io_service& m_io_service;
 		int m_type;
+		enum { storage_size = max8<
+			sizeof(stream_socket)
+			, sizeof(socks5_stream)
+			, sizeof(http_stream)
+			, sizeof(utp_stream)
 #if TORRENT_USE_I2P
-		enum { storage_size = max5<sizeof(stream_socket)
-			, sizeof(socks5_stream), sizeof(http_stream)
-			, sizeof(i2p_stream), sizeof(utp_stream)>::value };
+			, sizeof(i2p_stream)
 #else
-		enum { storage_size = max4<sizeof(stream_socket)
-			, sizeof(socks5_stream), sizeof(http_stream)
-			, sizeof(utp_stream)>::value };
+			, 0
 #endif
+#ifdef TORRENT_USE_OPENSSL
+			, sizeof(ssl_stream<stream_socket>)
+			, sizeof(ssl_stream<socks5_stream>)
+			, sizeof(ssl_stream<http_stream>)
+#else
+			, 0, 0, 0
+#endif
+			>::value
+		};
+
 		size_type m_data[(storage_size + sizeof(size_type) - 1) / sizeof(size_type)];
 	};
 }

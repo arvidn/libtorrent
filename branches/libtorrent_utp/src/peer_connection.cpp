@@ -405,15 +405,60 @@ namespace libtorrent
 		if (d1 > d2) return true;
 		if (d1 < d2) return false;
 
-		// in order to not switch back and forth too often,
-		// unchoked peers must be at least one piece ahead
-		// of a choked peer to be sorted at a lower unchoke-priority
-		int pieces = m_ses.settings().seeding_piece_quota;
-		bool c1_done = is_choked() || u1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
-		bool c2_done = rhs.is_choked() || u2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
+		if (m_ses.settings().seed_choking_algorithm == session_settings::round_robin)
+		{
+			// in order to not switch back and forth too often,
+			// unchoked peers must be at least one piece ahead
+			// of a choked peer to be sorted at a lower unchoke-priority
+			int pieces = m_ses.settings().seeding_piece_quota;
+			bool c1_done = is_choked() || u1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
+			bool c2_done = rhs.is_choked() || u2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
 
-		if (!c1_done && c2_done) return true;
-		if (c1_done && !c2_done) return false;
+			if (!c1_done && c2_done) return true;
+			if (c1_done && !c2_done) return false;
+		}
+		else if (m_ses.settings().seed_choking_algorithm == session_settings::fastest_upload)
+		{
+			size_type c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
+			size_type c2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
+		
+			// take torrent priority into account
+			c1 *= 1 + t1->priority();
+			c2 *= 1 + t2->priority();
+
+			if (c1 > c2) return true;
+			if (c2 > c1) return false;
+		}
+		else if (m_ses.settings().seed_choking_algorithm == session_settings::anti_leech)
+		{
+			// the anti-leech seeding algorithm ranks peers based on how many pieces
+			// they have, prefering to unchoke peers that just started and peers that
+			// are close to completing. Like this:
+			//   ^
+			//   | \                       / |
+			//   |  \                     /  |
+			//   |   \                   /   |
+			// s |    \                 /    |
+			// c |     \               /     |
+			// o |      \             /      |
+			// r |       \           /       |
+			// e |        \         /        |
+			//   |         \       /         |
+			//   |          \     /          |
+			//   |           \   /           |
+			//   |            \ /            |
+			//   |             V             |
+			//   +---------------------------+
+			//   0%    num have pieces     100%
+			int t1_total = t1->torrent_file().num_pieces();
+			int t2_total = t2->torrent_file().num_pieces();
+			int score1 = (num_have_pieces() < t1_total / 2
+				? t1_total - num_have_pieces() : num_have_pieces()) * 1000 / t1_total;
+			int score2 = (rhs.num_have_pieces() < t2_total / 2
+				? t2_total - rhs.num_have_pieces() : rhs.num_have_pieces()) * 1000 / t2_total;
+			if (score1 > score2) return true;
+			if (score2 > score1) return false;
+		}
 		
 		// if both peers are still in their send quota or not in their send quota
 		// prioritize the one that has waited the longest to be unchoked
@@ -444,20 +489,34 @@ namespace libtorrent
 		if (c1 > c2) return true;
 		if (c1 < c2) return false;
 
-		// if they are equal, compare how much we have uploaded
-		c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
-		c2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
+		if (m_ses.settings().seed_choking_algorithm == session_settings::round_robin)
+		{
+			// if they are equal, compare how much we have uploaded
+			c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
+			c2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
 
-		// in order to not switch back and forth too often,
-		// unchoked peers must be at least one piece ahead
-		// of a choked peer to be sorted at a lower unchoke-priority
-		int pieces = m_ses.settings().seeding_piece_quota;
-		bool c1_done = is_choked() || c1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
-		bool c2_done = rhs.is_choked() || c2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
+			// in order to not switch back and forth too often,
+			// unchoked peers must be at least one piece ahead
+			// of a choked peer to be sorted at a lower unchoke-priority
+			int pieces = m_ses.settings().seeding_piece_quota;
+			bool c1_done = is_choked() || c1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
+			bool c2_done = rhs.is_choked() || c2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
 
-		if (!c1_done && c2_done) return true;
-		if (c1_done && !c2_done) return false;
+			if (!c1_done && c2_done) return true;
+			if (c1_done && !c2_done) return false;
+		}	
+		else if (m_ses.settings().seed_choking_algorithm == session_settings::fastest_upload)
+		{
+			c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
+			c2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
 		
+			// take torrent priority into account
+			c1 *= 1 + t1->priority();
+			c2 *= 1 + t2->priority();
+
+			if (c1 > c2) return true;
+			if (c2 > c1) return false;
+		}
 		// if both peers have are still in their send quota or not in their send quota
 		// prioritize the one that has waited the longest to be unchoked
 		return m_last_unchoke < rhs.m_last_unchoke;
@@ -1455,7 +1514,7 @@ namespace libtorrent
 				// just unchoke it immediately
 				send_unchoke();
 			}
-			else if (m_ses.num_uploads() < m_ses.max_uploads()
+			else if (m_ses.num_uploads() < m_ses.settings().unchoke_slots_limit
 				&& (t->ratio() == 0
 					|| share_diff() >= size_type(-free_upload_amount)
 					|| t->is_finished()))
@@ -1476,12 +1535,12 @@ namespace libtorrent
 			else
 			{
 				std::string reason;
-				if (m_ses.num_uploads() >= m_ses.max_uploads())
+				if (m_ses.num_uploads() >= m_ses.settings().unchoke_slots_limit)
 				{
 					(*m_logger) << time_now_string() << " DID NOT UNCHOKE [ "
 						"the number of uploads (" << m_ses.num_uploads() <<
 						") is more than or equal to the limit ("
-						<< m_ses.max_uploads() << ") ]\n";
+						<< m_ses.settings().unchoke_slots_limit << ") ]\n";
 				}
 				else
 				{
@@ -3326,7 +3385,19 @@ namespace libtorrent
 		if (t)
 		{
 			// make sure we keep all the stats!
-			if (!m_ignore_stats) t->add_stats(statistics());
+			if (!m_ignore_stats)
+			{
+				t->add_stats(statistics());
+
+				// report any partially received payload as redundant
+				boost::optional<piece_block_progress> pbp = downloading_piece_progress();
+				if (pbp
+					&& pbp->bytes_downloaded > 0
+					&& pbp->bytes_downloaded < pbp->full_block_bytes)
+				{
+					t->add_redundant_bytes(pbp->bytes_downloaded);
+				}
+			}
 
 			if (t->has_picker())
 			{
@@ -3578,7 +3649,7 @@ namespace libtorrent
 		}
 
 		p.estimated_reciprocation_rate = m_est_reciprocation_rate;
-		int upload_capacity = m_ses.upload_rate_limit();
+		int upload_capacity = m_ses.settings().upload_rate_limit;
 		if (upload_capacity == 0)
 			upload_capacity = (std::max)(20000, m_ses.m_peak_up_rate + 10000);
 
@@ -3834,7 +3905,7 @@ namespace libtorrent
 			&& !m_peer_interested
 			&& d1 > time_limit
 			&& d2 > time_limit
-			&& (m_ses.num_connections() >= m_ses.max_connections()
+			&& (m_ses.num_connections() >= m_ses.settings().connections_limit
 			|| (t && t->num_peers() >= t->max_connections())))
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -4266,7 +4337,7 @@ namespace libtorrent
 			// is decided based on the estimated reciprocation rate and
 			// the share it represents of the total upload rate capacity
 			// the torrent priority is taken into account when unchoking peers
-			int upload_capacity = m_ses.upload_rate_limit();
+			int upload_capacity = m_ses.settings().upload_rate_limit;
 			if (upload_capacity == 0)
 			{
 				// we don't know at what rate we can upload. If we have a
@@ -4296,6 +4367,10 @@ namespace libtorrent
 			"upload: " << m_send_buffer.size()
 			<< " prio: " << priority
 			<< " channels: " << bwc1 << " " << bwc2 << " " << bwc3 << " " << bwc4
+			<< " limits: " << (bwc1?bwc1->throttle():0) << " "
+				<< (bwc2?bwc2->throttle():0) << " "
+				<< (bwc3?bwc3->throttle():0) << " "
+				<< (bwc4?bwc4->throttle():0)
 			<< " ignore: " << m_ignore_bandwidth_limits
 			<< " ]\n";
 #endif
@@ -4312,6 +4387,10 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " *** REQUEST_BANDWIDTH [ "
 			"download: " << (m_download_queue.size() * 16 * 1024 + 30)
+			<< " limits: " << (bwc1?bwc1->throttle():0) << " "
+				<< (bwc2?bwc2->throttle():0) << " "
+				<< (bwc3?bwc3->throttle():0) << " "
+				<< (bwc4?bwc4->throttle():0)
 			<< " prio: " << m_priority << " ]\n";
 #endif
 		TORRENT_ASSERT(m_priority <= 255);

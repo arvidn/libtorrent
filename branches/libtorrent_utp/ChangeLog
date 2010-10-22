@@ -1,5 +1,13 @@
 	* uTP protocol support
 	* resistance towards certain flood attacks
+	* optimized session startup time
+	* support SSL for web seeds, through all proxies
+	* support extending web seeds with custom authorization and extra headers
+	* settings that are not changed from the default values are not saved
+	  in the session state
+	* made seeding choking algorithm configurable
+	* deprecated setters for max connections, max half-open, upload and download
+	  rates and unchoke slots. These are now set through session_settings
 	* added functions to query an individual peer's upload and download limit
 	* full support for BEP 21 (event=paused)
 	* added share-mode feature for improving share ratios
@@ -47,6 +55,14 @@
 	* added more detailed instrumentation of the disk I/O thread
 
 
+	* fixed error reporting issue in disk I/O thread
+	* fixed file allocation issues on linux
+	* fixed filename encoding and decoding issue on platforms using iconv
+	* reports redundant downloads to tracker, fixed downloaded calculation to
+	  be more stable when not including redundant. Improved redundant data accounting
+	  to be more accurate
+	* fixed bugs in http seed connection and added unit test for it
+	* fixed error reporting when fallocate fails
 	* deprecate support for separate proxies for separate kinds of connections
 
 0.15.4 release

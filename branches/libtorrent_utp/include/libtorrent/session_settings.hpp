@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/version.hpp"
 
+#include <string>
+
 namespace libtorrent
 {
 
@@ -136,6 +138,7 @@ namespace libtorrent
 			, auto_upload_slots_rate_based(true)
 #endif
 			, choking_algorithm(rate_based_choker)
+			, seed_choking_algorithm(round_robin)
 			, use_parole_mode(true)
 			, cache_size(1024)
 			, cache_buffer_chunk_size(16)
@@ -227,6 +230,13 @@ namespace libtorrent
 			, tick_interval(100)
 			, report_web_seed_downloads(true)
 			, share_mode_target(3)
+			, upload_rate_limit(0)
+			, download_rate_limit(0)
+			, local_upload_rate_limit(0)
+			, local_download_rate_limit(0)
+			, unchoke_slots_limit(8)
+			, half_open_limit(0)
+			, connections_limit(200)
 			, utp_target_delay(75) // milliseconds
 			, utp_gain_factor(1500) // bytes per rtt
 			, utp_syn_resends(2)
@@ -466,6 +476,16 @@ namespace libtorrent
 		};
 
 		int choking_algorithm;
+
+		enum seed_choking_algorithm_t
+		{
+			round_robin,
+			fastest_upload,
+			anti_leech
+		};
+ 
+		// the choking algorithm to use for seeding torrents
+		int seed_choking_algorithm;
 		
 		// if set to true, peers that participate in a failing
 		// piece is put in parole mode. i.e. They will only
@@ -879,6 +899,30 @@ namespace libtorrent
 
 		// this is the target share ratio for share-mode torrents
 		int share_mode_target;
+
+		// max upload rate in bytes per second for the session
+		int upload_rate_limit;
+
+		// max download rate in bytes per second for the session
+		int download_rate_limit;
+
+		// max upload rate in bytes per second for peers on the local
+		// network, in the session
+		int local_upload_rate_limit;
+
+		// max download rate in bytes per second for peers on the local
+		// network, in the session
+		int local_download_rate_limit;
+
+		// the max number of unchoke slots in the session (might be
+		// overridden by unchoke algorithm)
+		int unchoke_slots_limit;
+
+		// the max number of half-open TCP connections
+		int half_open_limit;
+
+		// the max number of connections in the session
+		int connections_limit;
 
 		// target delay, milliseconds
 		int utp_target_delay;

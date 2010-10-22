@@ -896,7 +896,7 @@ int main(int argc, char* argv[])
 		switch (argv[i][1])
 		{
 			case 'f': g_log_file = fopen(arg, "w+"); break;
-			case 'o': ses.set_max_half_open_connections(atoi(arg)); break;
+			case 'o': settings.half_open_limit = atoi(arg); break;
 			case 'h': settings.allow_multiple_connections_per_ip = true; --i; break;
 			case 'p': listen_port = atoi(arg); break;
 			case 'r':
@@ -904,9 +904,9 @@ int main(int argc, char* argv[])
 				if (preferred_ratio != 0 && preferred_ratio < 1.f) preferred_ratio = 1.f;
 				break;
 			case 'n': settings.announce_to_all_tiers = true; --i; break;
-			case 'd': ses.set_download_rate_limit(atoi(arg) * 1000); break;
-			case 'u': ses.set_upload_rate_limit(atoi(arg) * 1000); break;
-			case 'S': ses.set_max_uploads(atoi(arg)); break;
+			case 'd': settings.download_rate_limit = atoi(arg) * 1000; break;
+			case 'u': settings.upload_rate_limit = atoi(arg) * 1000; break;
+			case 'S': settings.unchoke_slots_limit = atoi(arg); break;
 			case 'a':
 				if (strcmp(arg, "allocate") == 0) allocation_mode = storage_mode_allocate;
 				if (strcmp(arg, "compact") == 0) allocation_mode = storage_mode_compact;
@@ -945,7 +945,7 @@ int main(int argc, char* argv[])
 					}
 				}
 				break;
-			case 'c': ses.set_max_connections(atoi(arg)); break;
+			case 'c': settings.connections_limit = atoi(arg); break;
 			case 'T': max_connections_per_torrent = atoi(arg); break;
 #if TORRENT_USE_I2P
 			case 'i':

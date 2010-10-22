@@ -17,6 +17,7 @@ GEOIP_SOURCES = GeoIP.c
 endif
 
 libtorrent_rasterbar_la_SOURCES = \
+  web_connection_base.cpp     \
   alert.cpp                       \
   allocator.cpp                   \
   assert.cpp                      \
@@ -63,6 +64,7 @@ libtorrent_rasterbar_la_SOURCES = \
   puff.cpp                        \
   session.cpp                     \
   session_impl.cpp                \
+  settings.cpp                    \
   sha1.cpp                        \
   smart_ban.cpp                   \
   socket_io.cpp                   \

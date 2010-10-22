@@ -78,6 +78,7 @@ nobase_include_HEADERS = \
   session.hpp                  \
   session_settings.hpp         \
   session_status.hpp           \
+  settings.hpp                 \
   size_type.hpp                \
   socket.hpp                   \
   socket_io.hpp                \
@@ -102,7 +103,6 @@ nobase_include_HEADERS = \
   utp_socket_manager.hpp       \
   utp_stream.hpp               \
   utf8.hpp                     \
-  variant_stream.hpp           \
   version.hpp                  \
   web_peer_connection.hpp      \
   xml_parse.hpp                \

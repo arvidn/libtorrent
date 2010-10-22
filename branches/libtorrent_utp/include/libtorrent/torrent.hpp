@@ -99,39 +99,6 @@ namespace libtorrent
 		struct piece_checker_data;
 	}
 
-	struct web_seed_entry
-	{
-		std::string url;
-		// http seeds are different from url seeds in the
-		// protocol they use. http seeds follows the original
-		// http seed spec. by John Hoffman
-		enum type_t { url_seed, http_seed } type;
-
-		// if this is > now, we can't reconnect yet
-		ptime retry;
-
-		// this indicates whether or not we're resolving the
-		// hostname of this URL
-		bool resolving;
-
-		tcp::endpoint endpoint;
-
-		peer_connection* connection;
-
-		web_seed_entry(std::string const& url_, type_t type_)
-			: url(url_), type(type_), retry(time_now()), resolving(false), connection(0) {}
-
-		bool operator==(web_seed_entry const& e) const
-		{ return url == e.url && type == e.type; }
-
-		bool operator<(web_seed_entry const& e) const
-		{
-			if (url < e.url) return true;
-			if (url > e.url) return false;
-		  	return type < e.type;
-		}
-	};
-
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
 	// the tracker
@@ -375,8 +342,24 @@ namespace libtorrent
 		// add or remove a url that will be attempted for
 		// finding the file(s) in this torrent.
 		void add_web_seed(std::string const& url, web_seed_entry::type_t type)
-		{ m_web_seeds.push_back(web_seed_entry(url, type)); }
+		{
+			m_web_seeds.push_back(web_seed_entry(url, type));
+		}
+
+		void add_web_seed(std::string const& url, web_seed_entry::type_t type
+			, std::string const& auth, web_seed_entry::headers_t const& extra_headers)
+		{
+			m_web_seeds.push_back(web_seed_entry(url, type, auth, extra_headers));
+		}
 	
+		void remove_web_seed(std::string const& url, web_seed_entry::type_t type)
+		{
+			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
+				, (boost::bind(&web_seed_entry::url, _1)
+					== url && boost::bind(&web_seed_entry::type, _1) == type));
+			if (i != m_web_seeds.end()) m_web_seeds.erase(i);
+		}
+
 		void disconnect_web_seed(peer_connection* p)
 		{
 			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
@@ -385,16 +368,11 @@ namespace libtorrent
 			// or with something incorrect, so that we removed the web seed
 			// immediately, before we disconnected
 			if (i == m_web_seeds.end()) return;
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*m_ses.m_logger) << time_now_string() << " disconnect_web_seed: " << i->url << "\n";
+#endif
 			TORRENT_ASSERT(i->connection);
 			i->connection = 0;
-		}
-
-		void remove_web_seed(std::string const& url, web_seed_entry::type_t type)
-		{
-			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-				, (boost::bind(&web_seed_entry::url, _1)
-					== url && boost::bind(&web_seed_entry::type, _1) == type));
-			if (i != m_web_seeds.end()) m_web_seeds.erase(i);
 		}
 
 		void retry_web_seed(peer_connection* p, int retry = 0);
@@ -720,7 +698,7 @@ namespace libtorrent
 		void read_resume_data(lazy_entry const& rd);
 
 		void seen_complete() { m_last_seen_complete = time(0); }
-		time_t time_since_complete() const { return time(0) - m_last_seen_complete; }
+		int time_since_complete() const { return int(time(0) - m_last_seen_complete); }
 		time_t last_seen_complete() const { return m_last_seen_complete; }
 
 		// LOGGING

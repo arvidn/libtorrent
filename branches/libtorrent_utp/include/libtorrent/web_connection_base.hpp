@@ -30,14 +30,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_WEB_PEER_CONNECTION_HPP_INCLUDED
-#define TORRENT_WEB_PEER_CONNECTION_HPP_INCLUDED
+#ifndef WEB_CONNECTION_BASE_HPP_INCLUDED
+#define WEB_CONNECTION_BASE_HPP_INCLUDED
 
 #include <ctime>
 #include <algorithm>
 #include <vector>
 #include <deque>
 #include <string>
+
+#include "libtorrent/debug.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -54,11 +56,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/web_connection_base.hpp"
-#include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/buffer.hpp"
+#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/socket.hpp"
+#include "libtorrent/peer_id.hpp"
+#include "libtorrent/storage.hpp"
+#include "libtorrent/stat.hpp"
+#include "libtorrent/alert.hpp"
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
+#include "libtorrent/config.hpp"
+// parse_url
+#include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_parser.hpp"
 
 namespace libtorrent
@@ -70,8 +81,8 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	class TORRENT_EXPORT web_peer_connection
-		: public web_connection_base
+	class TORRENT_EXPORT web_connection_base
+		: public peer_connection
 	{
 	friend class invariant_access;
 	public:
@@ -79,7 +90,7 @@ namespace libtorrent
 		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
-		web_peer_connection(
+		web_connection_base(
 			aux::session_impl& ses
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
@@ -88,53 +99,73 @@ namespace libtorrent
 			, policy::peer* peerinfo
 			, std::string const& ext_auth
 			, web_seed_entry::headers_t const& ext_headers);
+		void start();
 
-		virtual int type() const { return peer_connection::url_seed_connection; }
+		~web_connection_base();
 
 		// called from the main loop when this connection has any
 		// work to do.
-		void on_receive(error_code const& error
+		void on_sent(error_code const& error
 			, std::size_t bytes_transferred);
-			
-		std::string const& url() const { return m_original_url; }
+
+		virtual std::string const& url() const = 0;
 		
+		bool in_handshake() const;
+
+		// the following functions appends messages
+		// to the send buffer
+		void write_choke() {}
+		void write_unchoke() {}
+		void write_interested() {}
+		void write_not_interested() {}
+		virtual void write_request(peer_request const& r) = 0;
+		void write_cancel(peer_request const& r)
+		{ incoming_reject_request(r); }
+		void write_have(int index) {}
+		void write_piece(peer_request const& r, disk_buffer_holder& buffer) { TORRENT_ASSERT(false); }
+		void write_keepalive() {}
+		void on_connected();
+		void write_reject_request(peer_request const&) {}
+		void write_allow_fast(int) {}
+		void write_suggest(int piece) {}
+
+#ifdef TORRENT_DEBUG
+		void check_invariant() const;
+#endif
+
 		virtual void get_specific_peer_info(peer_info& p) const;
-		virtual void disconnect(error_code const& ec, int error = 0);
 
-		void write_request(peer_request const& r);
+	protected:
 
-	private:
+		virtual void add_headers(std::string& request
+			, proxy_settings const& ps, bool using_proxy) const;
 
-		// returns the block currently being
-		// downloaded. And the progress of that
-		// block. If the peer isn't downloading
-		// a piece for the moment, the boost::optional
-		// will be invalid.
-		boost::optional<piece_block_progress> downloading_piece_progress() const;
+		// this has one entry per bittorrent request
+		std::deque<peer_request> m_requests;
 
-		// this has one entry per http-request
-		// (might be more than the bt requests)
-		std::deque<int> m_file_requests;
+		std::string m_server_string;
+		http_parser m_parser;
+		std::string m_basic_auth;
+		std::string m_host;
+		int m_port;
+		std::string m_path;
 
-		std::string m_url;
-		std::string m_original_url;
+		std::string m_external_auth;
+		web_seed_entry::headers_t m_extra_headers;
 			
-		// this is used for intermediate storage of pieces
-		// that are received in more than one HTTP response
-		std::vector<char> m_piece;
-		
-		// the number of bytes received in the current HTTP
-		// response. used to know where in the buffer the
-		// next response starts
-		int m_received_body;
+		// the first request will contain a little bit more data
+		// than subsequent ones, things that aren't critical are left
+		// out to save bandwidth.
+		bool m_first_request;
 
-		// position in the current range response
-		int m_range_pos;
-
-		// the position in the current block
-		int m_block_pos;
+		// true if we're using ssl
+		bool m_ssl;
+				
+		// the number of bytes into the receive buffer where
+		// current read cursor is.
+		int m_body_start;
 	};
 }
 
-#endif // TORRENT_WEB_PEER_CONNECTION_HPP_INCLUDED
+#endif // TORRENT_WEB_CONNECTION_BASE_HPP_INCLUDED
 

@@ -2036,10 +2036,15 @@ namespace libtorrent
 					mutex::scoped_lock l(m_piece_mutex);
 					INVARIANT_CHECK;
 
+					TORRENT_ASSERT(!j.storage->error());
 					TORRENT_ASSERT(j.cache_min_time >= 0);
 
 					if (in_use() >= m_settings.cache_size)
+					{
 						flush_cache_blocks(l, in_use() - m_settings.cache_size + 1);
+						if (test_error(j)) break;
+					}
+					TORRENT_ASSERT(!j.storage->error());
 
 					cache_piece_index_t& idx = m_pieces.get<0>();
 					cache_piece_index_t::iterator p = find_cached_piece(m_pieces, j, l);
@@ -2068,9 +2073,12 @@ namespace libtorrent
 						flush_contiguous_blocks(const_cast<cached_piece_entry&>(*p)
 							, l, m_settings.write_cache_line_size);
 						if (p->num_blocks == 0) idx.erase(p);
+						test_error(j);
+						TORRENT_ASSERT(!j.storage->error());
 					}
 					else
 					{
+						TORRENT_ASSERT(!j.storage->error());
 						if (cache_block(j, j.callback, j.cache_min_time, l) < 0)
 						{
 							l.unlock();
@@ -2082,8 +2090,11 @@ namespace libtorrent
 								test_error(j);
 								break;
 							}
+							// we successfully wrote the block. Ignore previous errors
+							j.storage->clear_error();
 							break;
 						}
+						TORRENT_ASSERT(!j.storage->error());
 					}
 					// we've now inserted the buffer
 					// in the cache, we should not
@@ -2091,7 +2102,11 @@ namespace libtorrent
 					holder.release();
 
 					if (in_use() > m_settings.cache_size)
+					{
 						flush_cache_blocks(l, in_use() - m_settings.cache_size);
+						test_error(j);
+					}
+					TORRENT_ASSERT(!j.storage->error());
 
 					break;
 				}
@@ -2123,6 +2138,7 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 					m_log << log_time() << " hash" << std::endl;
 #endif
+					TORRENT_ASSERT(!j.storage->error());
 					mutex::scoped_lock l(m_piece_mutex);
 					INVARIANT_CHECK;
 
@@ -2373,6 +2389,8 @@ namespace libtorrent
 				catch (std::exception&) {}
 			}
 #endif
+
+			TORRENT_ASSERT(!j.storage || !j.storage->error());
 
 //			if (!j.callback) std::cerr << "DISK THREAD: no callback specified" << std::endl;
 //			else std::cerr << "DISK THREAD: invoking callback" << std::endl;

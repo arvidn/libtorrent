@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 project(libtorrent)
 
 set(sources
+	web_connection_base
 	alert
 	allocator
 	assert
@@ -36,6 +37,7 @@ set(sources
 	puff
 	session
 	session_impl
+	settings
 	socket_io
 	socket_type  
 	socks5_stream

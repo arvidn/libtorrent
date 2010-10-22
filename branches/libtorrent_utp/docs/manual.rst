@@ -547,116 +547,6 @@ See ``torrent_handle::is_valid()`` to know if the torrent was found or not.
 ``get_torrents()`` returns a vector of torrent_handles to all the torrents
 currently in the session.
 
-
-set_upload_rate_limit() set_download_rate_limit() upload_rate_limit() download_rate_limit()
--------------------------------------------------------------------------------------------
-
-	::
-
-		void set_upload_rate_limit(int bytes_per_second);
-		void set_download_rate_limit(int bytes_per_second);
-		int upload_rate_limit() const;
-		int download_rate_limit() const;
-
-``set_upload_rate_limit()`` set the maximum number of bytes allowed to be
-sent to peers per second. This bandwidth is distributed among all the peers. If
-you don't want to limit upload rate, you can set this to 0 (the default).
-``set_download_rate_limit()`` works the same way but for download rate instead
-of upload rate.
-``download_rate_limit()`` and ``upload_rate_limit()`` returns the previously
-set limits.
-
-A rate limit of 0 means infinite.
-
-Upload and download rate limits are not applied to peers on the local network
-by default. To change that, see ``session_settings::ignore_limits_on_local_network``.
-
-
-set_local_upload_rate_limit() set_local_download_rate_limit() local_upload_rate_limit() local_download_rate_limit()
--------------------------------------------------------------------------------------------------------------------
-
-	::
-
-		void set_local_upload_rate_limit(int bytes_per_second);
-		void set_local_download_rate_limit(int bytes_per_second);
-		int local_upload_rate_limit() const;
-		int local_download_rate_limit() const;
-
-These rate limits are only used for local peers (peers within the same subnet as
-the client itself) and it is only used when ``session_settings::ignore_limits_on_local_network``
-is set to true (which it is by default). These rate limits default to unthrottled,
-but can be useful in case you want to treat local peers preferentially, but not
-quite unthrottled.
-
-A rate limit of 0 means infinite.
-
-
-set_max_uploads() max_uploads()
--------------------------------
-
-	::
-
-		void set_max_uploads(int limit);
-		int max_uploads() const;
-
-``set_max_uploads`` sets a global limit on the number of unchoked peers (uploads).
-The number of uploads is at least one per torrent.
-
-``max_uploads()`` returns the current settings.
-
-The number of unchoke slots may be ignored depending on what
-``session_settings::choking_algorithm`` is set to.
-
-
-set_max_connections() max_connections()
----------------------------------------
-
-	::
-
-		void set_max_connections(int limit);
-		int max_connections() const;
-
-``set_max_connections`` sets a global limit on the number of connections
-opened. The number of connections is set to a hard minimum of at least two per
-torrent, so if you set a too low connections limit, and open too many torrents,
-the limit will not be met.
-
-``max_connections()`` returns the current settings.
-
-
-num_uploads() num_connections()
--------------------------------
-
-	::
-		
-		int num_uploads() const;
-		int num_connections() const;
-
-Returns the number of currently unchoked peers and the number of connections
-(including half-open ones) respectively.
-
-
-set_max_half_open_connections() max_half_open_connections()
------------------------------------------------------------
-
-	::
-		
-		void set_max_half_open_connections(int limit);
-		int max_half_open_connections() const;
-
-Sets the maximum number of half-open connections libtorrent will have when
-connecting to peers. A half-open connection is one where connect() has been
-called, but the connection still hasn't been established (nor failed). Windows
-XP Service Pack 2 sets a default, system wide, limit of the number of half-open
-connections to 10. So, this limit can be used to work nicer together with
-other network applications on that system. The default is to have no limit,
-and passing -1 as the limit, means to have no limit. When limiting the number
-of simultaneous connection attempts, peers will be put in a queue waiting for
-their turn to get connected.
-
-``max_half_open_connections()`` returns the set limit. This limit defaults
-to 8 on windows.
-
 load_asnum_db() load_country_db() as_for_ip()
 ---------------------------------------------
 
@@ -1505,10 +1395,9 @@ The ``torrent_info`` has the following synopsis::
 
 		bool priv() const;
 
-		std::vector<std::string> const& url_seeds() const;
 		void add_url_seed(std::string const& url);
-		std::vector<std::string> const& http_seeds() const;
 		void add_http_seed(std::string const& url);
+		std::vector<web_seed_entry> const& web_seeds() const;
 
 		size_type total_size() const;
 		int piece_length() const;
@@ -1766,23 +1655,58 @@ The input range is assumed to be valid within the torrent. ``file_offset``
 must refer to a valid file, i.e. it cannot be >= ``num_files()``.
 
 
-url_seeds() add_url_seed() http_seeds() add_http_seed()
--------------------------------------------------------
+add_url_seed() add_http_seed()
+------------------------------
 
 	::
 
-		std::vector<std::string> const& url_seeds() const;
-		void add_url_seed(std::string const& url);
-		std::vector<std::string> const& http_seeds() const;
-		void add_http_seed(std::string const& url);
+		void add_url_seed(std::string const& url
+			, std::string const& extern_auth = std::string()
+			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
+		void add_http_seed(std::string const& url
+			, std::string const& extern_auth = std::string()
+			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
+		std::vector<web_seed_entry> const& web_seeds() const;
 
-If there are any url-seeds or http seeds in this torrent, ``url_seeds()``
-and ``http_seeds()`` will return a vector of those urls.
+``web_seeds()`` returns all url seeds and http seeds in the torrent. Each entry
+is a ``web_seed_entry`` and may refer to either a url seed or http seed.
+		
 ``add_url_seed()`` and ``add_http_seed()`` adds one url to the list of
-url/http seeds. Currently, the only transport protocol
-supported for the url is http.
+url/http seeds. Currently, the only transport protocol supported for the url
+is http.
+
+The ``extern_auth`` argument can be used for other athorization schemese than
+basic HTTP authorization. If set, it will override any username and password
+found in the URL itself. The string will be sent as the HTTP authorization header's
+value (without specifying "Basic").
+
+The ``extra_headers`` argument defaults to an empty list, but can be used to
+insert custom HTTP headers in the requests to a specific web seed.
 
 See `HTTP seeding`_ for more information.
+
+The ``web_seed_entry`` has the following members::
+
+	struct web_seed_entry
+	{
+		enum type_t { url_seed, http_seed };
+
+		typedef std::vector<std::pair<std::string, std::string> > headers_t;
+
+		web_seed_entry(std::string const& url_, type_t type_
+			, std::string const& auth_ = std::string()
+			, headers_t const& extra_headers_ = headers_t());
+
+		bool operator==(web_seed_entry const& e) const;
+		bool operator<(web_seed_entry const& e) const;
+
+		std::string url;
+		type_t type;
+		std::string auth;
+		headers_t extra_headers;
+
+		// ...
+	};
 
 
 trackers()
@@ -3850,6 +3774,15 @@ session_settings
 
 		int choking_algorithm;
 		
+		enum seed_choking_algorithm_t
+		{
+			round_robin,
+			fastest_upload,
+			anti_leech
+		};
+
+		int seed_choking_algorithm;
+
 		bool use_parole_mode;
 		int cache_size;
 		int cache_buffer_chunk_size;
@@ -3962,6 +3895,14 @@ session_settings
 		bool anonymous_mode;
 		int tick_interval;
 		int share_mode_target;
+
+		int upload_rate_limit;
+		int download_rate_limit;
+		int local_upload_rate_limit;
+		int local_download_rate_limit;
+		int unchoke_slots_limit;
+		int half_open_limit;
+		int connections_limit;
 
 		int utp_target_delay;
 		int utp_gain_factor;
@@ -4215,6 +4156,20 @@ The options for choking algorithms are:
   choker, see the paper_.
 
 .. _paper: http://bittyrant.cs.washington.edu/#papers
+
+``seed_choking_algorithm`` controls the seeding unchoke behavior. The available
+options are:
+
+* ``round_robin`` which round-robins the peers that are unchoked when seeding. This
+  distributes the upload bandwidht uniformly and fairly. It minimizes the ability
+  for a peer to download everything without redistributing it.
+
+* ``fastest_upload`` unchokes the peers we can send to the fastest. This might be
+  a bit more reliable in utilizing all available capacity.
+
+* ``anti_leech`` prioritizes peers who have just started or are just about to finish
+  the download. The intention is to force peers in the middle of the download to
+  trade with each other.
 
 ``use_parole_mode`` specifies if parole mode should be used. Parole mode means
 that peers that participate in pieces that fail the hash check are put in a mode
@@ -4652,6 +4607,39 @@ not make any sense to set this any lower than 2. For instance, if only 3 peers
 need to download the rarest piece, it's impossible to download a single piece
 and upload it more than 3 times. If the share_mode_target is set to more than 3,
 nothing is downloaded.
+
+``upload_rate_limit``, ``download_rate_limit``, ``local_upload_rate_limit``
+and ``local_download_rate_limit`` sets the session-global limits of upload
+and download rate limits, in bytes per second. The local rates refer to peers
+on the local network. By default peers on the local network are not rate limited.
+
+These rate limits are only used for local peers (peers within the same subnet as
+the client itself) and it is only used when ``session_settings::ignore_limits_on_local_network``
+is set to true (which it is by default). These rate limits default to unthrottled,
+but can be useful in case you want to treat local peers preferentially, but not
+quite unthrottled.
+
+A value of 0 means unlimited.
+
+``unchoke_slots_limit`` is the mac number of unchoked peers in the session.
+
+The number of unchoke slots may be ignored depending on what
+``choking_algorithm`` is set to.
+
+``half_open_limit`` sets the maximum number of half-open connections
+libtorrent will have when connecting to peers. A half-open connection is one
+where connect() has been called, but the connection still hasn't been established
+(nor failed). Windows XP Service Pack 2 sets a default, system wide, limit of
+the number of half-open connections to 10. So, this limit can be used to work
+nicer together with other network applications on that system. The default is
+to have no limit, and passing -1 as the limit, means to have no limit. When
+limiting the number of simultaneous connection attempts, peers will be put in
+a queue waiting for their turn to get connected.
+
+``connections_limit`` sets a global limit on the number of connections
+opened. The number of connections is set to a hard minimum of at least two per
+torrent, so if you set a too low connections limit, and open too many torrents,
+the limit will not be met.
 
 ``utp_target_delay`` is the target delay for uTP sockets in milliseconds. A high
 value will make uTP connections more aggressive and cause longer queues in the upload

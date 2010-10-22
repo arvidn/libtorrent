@@ -47,7 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
-void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, int port)
+void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
+	, int proxy, int port, char const* protocol, bool url_seed)
 {
 	using namespace libtorrent;
 
@@ -62,7 +63,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
-	fprintf(stderr, "\n\n  ==== TESTING %s proxy ====\n\n\n", test_name[proxy]);
+	fprintf(stderr, "\n\n  ==== TESTING %s proxy ==== %s ==== %s ===\n\n\n"
+		, test_name[proxy], protocol, url_seed ? "URL seed" : "HTTP seed");
 	
 	if (proxy)
 	{
@@ -77,6 +79,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 	}
 
 	add_torrent_params p;
+	p.auto_managed = false;
+	p.paused = false;
 	p.ti = torrent_file;
 	p.save_path = "./tmp2_web_seed";
 	p.storage_mode = storage_mode_compact;
@@ -129,8 +133,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 		test_sleep(500);
 	}
 
-	TEST_CHECK(cs.cache_size == 0);
-	TEST_CHECK(cs.total_used_buffers == 0);
+	TEST_EQUAL(cs.cache_size, 0);
+	TEST_EQUAL(cs.total_used_buffers, 0);
 
 	std::cerr << "total_size: " << total_size
 		<< " rate_sum: " << rate_sum
@@ -152,66 +156,135 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file, int proxy, i
 	remove_all("./tmp2_web_seed", ec);
 }
 
-int test_main()
+void save_file(char const* filename, char const* data, int size)
+{
+	error_code ec;
+	file out(filename, file::write_only, ec);
+	TEST_CHECK(!ec);
+	if (ec)
+	{
+		fprintf(stderr, "ERROR opening file '%s': %s\n", filename, ec.message().c_str());
+		return;
+	}
+	file::iovec_t b = { (void*)data, size };
+	out.writev(0, &b, 1, ec);
+	TEST_CHECK(!ec);
+	if (ec)
+	{
+		fprintf(stderr, "ERROR writing file '%s': %s\n", filename, ec.message().c_str());
+		return;
+	}
+
+}
+
+sha1_hash file_hash(std::string const& name)
+{
+	std::vector<char> buf;
+	load_file(name, buf);
+	if (buf.empty()) return sha1_hash(0);
+	hasher h(&buf[0], buf.size());
+	return h.final();
+}
+
+// test_url_seed determines whether to use url-seed or http-seed
+int run_suite(char const* protocol, bool test_url_seed)
 {
 	using namespace libtorrent;
 
 	error_code ec;
 	create_directories("./tmp1_web_seed/test_torrent_dir", ec);
 
-	int file_sizes[] =
-	{ 5, 16 - 5, 16, 17, 10, 30, 30, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-		,1,1,1,1,1,1,13,65,34,75,2,3,4,5,23,9,43,4,43,6, 4};
-
-	char random_data[300000];
+	file_storage fs;
 	std::srand(10);
-	for (int i = 0; i != sizeof(file_sizes)/sizeof(file_sizes[0]); ++i)
+	if (test_url_seed)
 	{
+		int file_sizes[] =
+		{ 5, 16 - 5, 16, 17, 10, 30, 30, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+			,1,1,1,1,1,1,13,65,34,75,2,3,4,5,23,9,43,4,43,6, 4};
+
+		char random_data[300000];
+		for (int i = 0; i != sizeof(file_sizes)/sizeof(file_sizes[0]); ++i)
+		{
+			std::generate(random_data, random_data + sizeof(random_data), &std::rand);
+			char filename[200];
+			snprintf(filename, sizeof(filename), "./tmp1_web_seed/test_torrent_dir/test%d", i);
+			save_file(filename, random_data, file_sizes[i]);
+		}
+
+		add_files(fs, "./tmp1_web_seed/test_torrent_dir");
+	}
+	else
+	{
+		char random_data[10000];
 		std::generate(random_data, random_data + sizeof(random_data), &std::rand);
-		char filename[200];
-		snprintf(filename, sizeof(filename), "./tmp1_web_seed/test_torrent_dir/test%d", i);
-		error_code ec;
-		file out(filename, file::write_only, ec);
-		TEST_CHECK(!ec);
-		if (ec)
-		{
-			fprintf(stderr, "ERROR opening file '%s': %s\n", filename, ec.message().c_str());
-			return 1;
-		}
-		file::iovec_t b = { random_data, file_sizes[i]};
-		out.writev(0, &b, 1, ec);
-		TEST_CHECK(!ec);
-		if (ec)
-		{
-			fprintf(stderr, "ERROR writing file '%s': %s\n", filename, ec.message().c_str());
-			return 1;
-		}
+		save_file("./tmp1_web_seed/seed", random_data, sizeof(random_data));
+		fs.add_file("seed", sizeof(random_data));
 	}
 
-	file_storage fs;
-	add_files(fs, "./tmp1_web_seed/test_torrent_dir");
+	int port = start_web_server(strcmp(protocol, "https") == 0);
 
-	int port = start_web_server();
-
-	libtorrent::create_torrent t(fs, 16);
+	libtorrent::create_torrent t(fs, 16, 0, libtorrent::create_torrent::calculate_file_hashes);
 	char tmp[512];
-	snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/tmp1_web_seed", port);
-	t.add_url_seed(tmp);
-
+	if (test_url_seed)
+	{
+		snprintf(tmp, sizeof(tmp), "%s://127.0.0.1:%d/tmp1_web_seed", protocol, port);
+		t.add_url_seed(tmp);
+	}
+	else
+	{
+		snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/seed", port);
+		t.add_http_seed(tmp);
+	}
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "./tmp1_web_seed", ec);
+
+	if (ec)
+	{
+		fprintf(stderr, "error creating hashes for test torrent: %s\n"
+			, ec.message().c_str());
+		TEST_CHECK(false);
+		return 0;
+	}
+
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(&buf[0], buf.size(), ec));
 
+	// verify that the file hashes are correct
+	for (int i = 0; i < torrent_file->num_files(); ++i)
+	{
+		TEST_CHECK(torrent_file->file_at(i).filehash);
+		sha1_hash h1 = *torrent_file->file_at(i).filehash;
+		sha1_hash h2 = file_hash(combine_path("./tmp1_web_seed", torrent_file->file_at(i).path));
+		fprintf(stderr, "%s: %s == %s\n", torrent_file->file_at(i).path.c_str()
+			, to_hex(h1.to_string()).c_str(), to_hex(h2.to_string()).c_str());
+		TEST_EQUAL(h1, h2);
+	}
+
 	for (int i = 0; i < 6; ++i)
-		test_transfer(torrent_file, i, port);
+		test_transfer(torrent_file, i, port, protocol, test_url_seed);
 	
-	torrent_file->rename_file(0, "./tmp2_web_seed/test_torrent_dir/renamed_test1");
-	test_transfer(torrent_file, 0, port);
+	if (test_url_seed)
+	{
+		torrent_file->rename_file(0, "./tmp2_web_seed/test_torrent_dir/renamed_test1");
+		test_transfer(torrent_file, 0, port, protocol, test_url_seed);
+	}
 
 	stop_web_server();
 	remove_all("./tmp1_web_seed", ec);
 	return 0;
+}
+
+int test_main()
+{
+	int ret = 0;
+	for (int i = 0; i < 2; ++i)
+	{
+#ifdef TORRENT_USE_OPENSSL
+		run_suite("https", i);
+#endif
+		run_suite("http", i);
+	}
+	return ret;
 }
 

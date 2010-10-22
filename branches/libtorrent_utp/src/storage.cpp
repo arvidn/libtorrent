@@ -1647,6 +1647,8 @@ ret:
 
 	sha1_hash piece_manager::hash_for_piece_impl(int piece)
 	{
+		TORRENT_ASSERT(!m_storage->error());
+
 		partial_hash ph;
 
 		std::map<int, partial_hash>::iterator i = m_piece_hasher.find(piece);

@@ -79,6 +79,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/enum_net.hpp"
 
+#ifdef TORRENT_USE_OPENSSL
+#include "libtorrent/ssl_stream.hpp"
+#endif
+
 #if TORRENT_USE_IOSTREAM
 #include <iostream>
 #endif
@@ -389,6 +393,10 @@ namespace libtorrent
 		, m_downloaders(0xffffff)
 		, m_interface_index(0)
 	{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_ses.m_logger) << time_now_string() << " creating torrent: "
+			<< torrent_file().name() << "\n";
+#endif
 		m_net_interfaces.push_back(tcp::endpoint(net_interface.address(), 0));
 
 		if (p.file_priorities)
@@ -427,6 +435,10 @@ namespace libtorrent
 
 	void torrent::start()
 	{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_ses.m_logger) << time_now_string() << " starting torrent: "
+			<< torrent_file().name() << "\n";
+#endif
 		TORRENT_ASSERT(!m_picker);
 
 		if (!m_seed_mode)
@@ -445,7 +457,7 @@ namespace libtorrent
 						error_code ec(errors::parse_failed);
 						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-						(*m_ses.m_logger) << "fastresume data for "
+						(*m_ses.m_logger) << time_now_string() << " fastresume data for "
 							<< torrent_file().name() << " rejected: " << ec.message() << "\n";
 #endif
 					}
@@ -896,15 +908,9 @@ namespace libtorrent
 		// ans also in the case of share mode, we need to update the priorities
 		update_piece_priorities();
 
-		std::vector<std::string> const& url_seeds = m_torrent_file->url_seeds();
-		for (std::vector<std::string>::const_iterator i = url_seeds.begin()
-			, end(url_seeds.end()); i != end; ++i)
-			add_web_seed(*i, web_seed_entry::url_seed);
 
-		std::vector<std::string> const& http_seeds = m_torrent_file->http_seeds();
-		for (std::vector<std::string>::const_iterator i = http_seeds.begin()
-			, end(http_seeds.end()); i != end; ++i)
-			add_web_seed(*i, web_seed_entry::http_seed);
+		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
+		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
 
 		if (m_seed_mode)
 		{
@@ -938,7 +944,7 @@ namespace libtorrent
 			if (ev)
 			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				(*m_ses.m_logger) << "fastresume data for "
+				(*m_ses.m_logger) << time_now_string() << " fastresume data for "
 					<< torrent_file().name() << " rejected: "
 					<< error_code(ev, get_libtorrent_category()).message() << "\n";
 #endif
@@ -1116,7 +1122,7 @@ namespace libtorrent
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_ses.m_logger) << "fastresume data for "
+		(*m_ses.m_logger) << time_now_string() << " fastresume data for "
 			<< torrent_file().name() << " rejected: "
 			<< j.error.message() << " ret:" << ret << "\n";
 #endif
@@ -1473,15 +1479,24 @@ namespace libtorrent
 		tracker_request req;
 		req.info_hash = m_torrent_file->info_hash();
 		req.pid = m_ses.get_peer_id();
-		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
 		req.uploaded = m_stat.total_payload_upload();
 		req.corrupt = m_total_failed_bytes;
-		req.left = bytes_left();
+		req.redundant = m_total_redundant_bytes;
+
+		if (settings().report_true_downloaded)
+		{
+			req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
+			req.left = bytes_left();
+		}
+		else
+		{
+			req.downloaded = quantized_bytes_done();
+			TORRENT_ASSERT(!valid_metadata() || req.downloaded <= m_torrent_file->total_size());
+			req.left = valid_metadata() ? m_torrent_file->total_size() - req.downloaded : -1;
+		}
 		if (req.left == -1) req.left = 16*1024;
 
-		// exclude redundant bytes if we should
-		if (!settings().report_true_downloaded)
-			req.downloaded -= m_total_redundant_bytes;
+		TORRENT_ASSERT(req.downloaded >= 0);
 
 		req.event = e;
 		error_code ec;
@@ -3369,6 +3384,11 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			(*m_ses.m_logger) << time_now_string() << " failed to parse web seed url: " << ec.message() << "\n";
 #endif
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
+			{
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(get_handle(), web->url, ec));
+			}
 			// never try it again
 			m_web_seeds.erase(web);
 			return;
@@ -3416,7 +3436,8 @@ namespace libtorrent
 
 		if (web->endpoint.port() != 0)
 		{
-			// TODO: we have already resolved this URL, just connect
+			connect_web_seed(web, web->endpoint);
+			return;
 		}
 
 		if (m_ses.m_port_filter.access(port) & port_filter::blocked)
@@ -3568,13 +3589,19 @@ namespace libtorrent
 		boost::shared_ptr<socket_type> s(new (std::nothrow) socket_type(m_ses.m_io_service));
 		if (!s) return;
 	
-		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), 0, *s);
+		bool ssl = string_begins_no_case("https://", web->url.c_str());
+		void* userdata = 0;
+#ifdef TORRENT_USE_OPENSSL
+		if (ssl) userdata = &m_ses.m_ssl_ctx;
+#endif
+		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s, userdata);
 		(void)ret;
 		TORRENT_ASSERT(ret);
 
 		proxy_settings const& ps = m_ses.proxy();
-		if (ps.type == proxy_settings::http
+		if ((ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
+			&& !ssl)
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
@@ -3587,26 +3614,35 @@ namespace libtorrent
 		{
 			// we're using a socks proxy and we're resolving
 			// hostnames through it
-			TORRENT_ASSERT(s->get<socks5_stream>());
+#ifdef TORRENT_USE_OPENSSL
+			socks5_stream* str = ssl
+				? &s->get<ssl_stream<socks5_stream> >()->next_layer().next_layer()
+				: s->get<socks5_stream>();
+#else
+			socks5_stream* str = s->get<socks5_stream>();
+#endif
+			TORRENT_ASSERT(str);
 
 			using boost::tuples::ignore;
 			std::string hostname;
 			error_code ec;
 			boost::tie(ignore, ignore, hostname, ignore, ignore)
 				= parse_url_components(web->url, ec);
-			s->get<socks5_stream>()->set_dst_name(hostname);
+			str->set_dst_name(hostname);
 		}
 
 		boost::intrusive_ptr<peer_connection> c;
 		if (web->type == web_seed_entry::url_seed)
 		{
 			c = new (std::nothrow) web_peer_connection(
-				m_ses, shared_from_this(), s, a, web->url, 0);
+				m_ses, shared_from_this(), s, a, web->url, 0, // TODO: pass in web
+				web->auth, web->extra_headers);
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
 			c = new (std::nothrow) http_seed_connection(
-				m_ses, shared_from_this(), s, a, web->url, 0);
+				m_ses, shared_from_this(), s, a, web->url, 0, // TODO: pass in web
+				web->auth, web->extra_headers);
 		}
 		if (!c) return;
 
@@ -3632,10 +3668,14 @@ namespace libtorrent
 			m_connections.insert(boost::get_pointer(c));
 			m_ses.m_connections.insert(c);
 
+			TORRENT_ASSERT(!web->connection);
 			web->connection = c.get();
 
 			c->start();
 
+#if defined TORRENT_VERBOSE_LOGGING 
+			(*m_ses.m_logger) << time_now_string() << " web seed connection started " << web->url << "\n";
+#endif
 			m_ses.m_half_open.enqueue(
 				boost::bind(&peer_connection::on_connect, c, _1)
 				, boost::bind(&peer_connection::on_timeout, c)
@@ -4358,7 +4398,7 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(want_more_peers() || ignore_limit);
-		TORRENT_ASSERT(m_ses.num_connections() < m_ses.max_connections() || ignore_limit);
+		TORRENT_ASSERT(m_ses.num_connections() < m_ses.settings().connections_limit || ignore_limit);
 
 		tcp::endpoint a(peerinfo->ip());
 		TORRENT_ASSERT((m_ses.m_ip_filter.access(peerinfo->address()) & ip_filter::blocked) == 0);
@@ -4369,7 +4409,7 @@ namespace libtorrent
 		bool i2p = peerinfo->is_i2p_addr;
 		if (i2p)
 		{
-			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.i2p_proxy(), 0, *s);
+			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.i2p_proxy(), *s);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 			s->get<i2p_stream>()->set_destination(static_cast<policy::i2p_peer*>(peerinfo)->destination);
@@ -4393,8 +4433,7 @@ namespace libtorrent
 			// don't make a TCP connection if it's disabled
 			if (sm == 0 && !m_ses.m_settings.enable_outgoing_tcp) return false;
 
-			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy()
-				, sm, *s);
+			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s, 0, sm);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 		}
@@ -5273,7 +5312,7 @@ namespace libtorrent
 	int torrent::get_peer_upload_limit(tcp::endpoint ip) const
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-		peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
+		const_peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
 			, boost::bind(&peer_connection::remote, _1) == ip);
 		if (i == m_connections.end()) return -1;
 		return (*i)->get_upload_limit();
@@ -5282,7 +5321,7 @@ namespace libtorrent
 	int torrent::get_peer_download_limit(tcp::endpoint ip) const
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-		peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
+		const_peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
 			, boost::bind(&peer_connection::remote, _1) == ip);
 		if (i == m_connections.end()) return -1;
 		return (*i)->get_download_limit();
@@ -6852,6 +6891,8 @@ namespace libtorrent
 		TORRENT_ASSERT(b > 0);
 		m_total_redundant_bytes += b;
 		m_ses.add_redundant_bytes(b);
+		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
+			<= m_stat.total_payload_download());
 	}
 
 	void torrent::add_failed_bytes(int b)
@@ -6859,6 +6900,8 @@ namespace libtorrent
 		TORRENT_ASSERT(b > 0);
 		m_total_failed_bytes += b;
 		m_ses.add_failed_bytes(b);
+		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
+			<= m_stat.total_payload_download());
 	}
 
 	int torrent::num_seeds() const

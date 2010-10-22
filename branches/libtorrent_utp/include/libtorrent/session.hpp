@@ -392,22 +392,39 @@ namespace libtorrent
 		proxy_settings i2p_proxy() const;
 #endif
 
-		int upload_rate_limit() const;
-		int download_rate_limit() const;
-		int local_upload_rate_limit() const;
-		int local_download_rate_limit() const;
-		int max_half_open_connections() const;
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.16
+		TORRENT_DEPRECATED_PREFIX
+		int upload_rate_limit() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		int download_rate_limit() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		int local_upload_rate_limit() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		int local_download_rate_limit() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		int max_half_open_connections() const TORRENT_DEPRECATED;
 
-		void set_local_upload_rate_limit(int bytes_per_second);
-		void set_local_download_rate_limit(int bytes_per_second);
-		void set_upload_rate_limit(int bytes_per_second);
-		void set_download_rate_limit(int bytes_per_second);
-		void set_max_uploads(int limit);
-		void set_max_connections(int limit);
-		void set_max_half_open_connections(int limit);
+		TORRENT_DEPRECATED_PREFIX
+		void set_local_upload_rate_limit(int bytes_per_second) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_local_download_rate_limit(int bytes_per_second) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_upload_rate_limit(int bytes_per_second) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_download_rate_limit(int bytes_per_second) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_max_uploads(int limit) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_max_connections(int limit) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_max_half_open_connections(int limit) TORRENT_DEPRECATED;
 
-		int max_connections() const;
-		int max_uploads() const;
+		TORRENT_DEPRECATED_PREFIX
+		int max_connections() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		int max_uploads() const TORRENT_DEPRECATED;
+#endif
 
 		std::auto_ptr<alert> pop_alert();
 #ifndef TORRENT_NO_DEPRECATE

@@ -73,6 +73,12 @@ public:
 		return m_sock.read_some(buffers, ec);
 	}
 
+	template <class Const_Buffers>
+	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
+	{
+		return m_sock.write_some(buffers, ec);
+	}
+
 	std::size_t available(error_code& ec) const
 	{ return m_sock.available(ec); }
 
@@ -84,6 +90,12 @@ public:
 	std::size_t read_some(Mutable_Buffers const& buffers)
 	{
 		return m_sock.read_some(buffers);
+	}
+
+	template <class Const_Buffers>
+	std::size_t write_some(Const_Buffers const& buffers)
+	{
+		return m_sock.write_some(buffers);
 	}
 
 	template <class IO_Control_Command>
