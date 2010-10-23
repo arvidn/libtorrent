@@ -53,6 +53,8 @@ boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 		m_initialized = true;
 	}
 
+	++m_num_samples;
+
 	// if sample is less than base, update the base
 	// and update the history entry (because it will
 	// be less than that too)
@@ -69,8 +71,12 @@ boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 
 	boost::uint32_t ret = sample - m_base;
 
-	if (step)
+	// don't step base delay history unless we have at least 120
+	// samples. Anything less would suggest that the connection is
+	// essentially idle and the samples are probably not very reliable
+	if (step && m_num_samples > 120)
 	{
+		m_num_samples = 0;
 		m_index = (m_index + 1) % history_size;
 
 		m_history[m_index] = sample;

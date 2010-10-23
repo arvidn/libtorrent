@@ -44,7 +44,7 @@ struct timestamp_history
 {
 	enum { history_size = 20 };
 
-	timestamp_history() : m_index(0), m_initialized(false), m_base(0) {}
+	timestamp_history() : m_index(0), m_initialized(false), m_base(0), m_num_samples(0) {}
 	bool initialized() const { return m_initialized; }
 
 	// add a sample to the timestamp history. If step is true, it's been
@@ -68,6 +68,10 @@ private:
 	// last 'history_size' minutes
 	boost::uint32_t m_base;
 
+	// this is the number of samples since the
+	// last time we stepped one minute. If we
+	// don't have enough samples, we won't step
+	int m_num_samples;
 };
 
 }
