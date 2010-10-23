@@ -86,6 +86,9 @@ for l in f:
 	if 'fflush' == fun: fold = indentation
 	if 'vfprintf' == fun: fold = indentation
 	if 'fprintf' == fun: fold = indentation
+	if 'BN_mod_exp' == fun: fold = indentation
+	if 'BN_CTX_free' == fun: fold = indentation
+	if 'cerror' == fun: fold = indentation
 	
 list = []
 for k in fun_samples:
