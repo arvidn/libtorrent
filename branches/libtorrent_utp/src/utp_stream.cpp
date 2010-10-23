@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 
 #define TORRENT_UTP_LOG 1
+#define TORRENT_VERBOSE_UTP_LOG 0
 #define TORRENT_UT_SEQ 1
 
 #if TORRENT_UTP_LOG
@@ -76,7 +77,11 @@ void utp_log(char const* fmt, ...)
 }
 
 #define UTP_LOG utp_log
+#if TORRENT_VERBOSE_UTP_LOG
 #define UTP_LOGV utp_log
+#else
+#define UTP_LOGV if (false) printf
+#endif
 
 #else
 
