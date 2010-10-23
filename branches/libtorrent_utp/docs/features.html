@@ -56,12 +56,13 @@
 <li><a class="reference internal" href="#high-performance-disk-subsystem" id="id9">high performance disk subsystem</a></li>
 <li><a class="reference internal" href="#network-buffers" id="id10">network buffers</a></li>
 <li><a class="reference internal" href="#piece-picker" id="id11">piece picker</a></li>
-<li><a class="reference internal" href="#merkle-hash-tree-torrents" id="id12">merkle hash tree torrents</a></li>
-<li><a class="reference internal" href="#customizable-file-storage" id="id13">customizable file storage</a></li>
-<li><a class="reference internal" href="#easy-to-use-api" id="id14">easy to use API</a></li>
+<li><a class="reference internal" href="#share-mode" id="id12">share mode</a></li>
+<li><a class="reference internal" href="#merkle-hash-tree-torrents" id="id13">merkle hash tree torrents</a></li>
+<li><a class="reference internal" href="#customizable-file-storage" id="id14">customizable file storage</a></li>
+<li><a class="reference internal" href="#easy-to-use-api" id="id15">easy to use API</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#portability" id="id15">portability</a></li>
+<li><a class="reference internal" href="#portability" id="id16">portability</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -79,6 +80,8 @@ current state supports and includes the following features:</p>
 <div class="section" id="extensions">
 <h2>extensions</h2>
 <ul class="simple">
+<li>uTorrent transport protocol (uTP). A transport protocol with delay based
+congestion control. See separate <a class="reference external" href="utp.html">article</a>.</li>
 <li>plugin interface for implementing custom bittorrent extensions
 without having to modify libtorrent</li>
 <li>supports trackerless torrents (using the Mainline kademlia DHT protocol) with
@@ -97,9 +100,12 @@ uTorrent interpretation).</li>
 <li>supports the <tt class="docutils literal"><span class="pre">compact=1</span></tt> tracker parameter.</li>
 <li>super seeding/initial seeding (<a class="reference external" href="http://bittorrent.org/beps/bep_0016.html">BEP 16</a>).</li>
 <li>private torrents (<a class="reference external" href="http://bittorrent.org/beps/bep_0027.html">BEP 27</a>).</li>
+<li>upload-only extension (<a class="reference external" href="http://bittorrent.org/beps/bep_0021.html">BEP 21</a>).</li>
 <li>support for IPv6, including <a class="reference external" href="http://bittorrent.org/beps/bep_0007.html">BEP 7</a> and <a class="reference external" href="http://bittorrent.org/beps/bep_0024.html">BEP 24</a>.</li>
 <li>support for merkle hash tree torrents. This makes the size of torrent files
 scale well with the size of the content.</li>
+<li>share-mode. This is a special mode torrents can be put in to optimize share
+ratio rather than downloading the torrent.</li>
 </ul>
 </div>
 <div class="section" id="disk-management">
@@ -124,6 +130,8 @@ piece's hash is verified the first time it is requested.</li>
 <div class="section" id="network">
 <h2>network</h2>
 <ul class="simple">
+<li>uTP supports (<a href="#id17"><span class="problematic" id="id18">BEP29_</span></a>). One-way delay based congestion controlled transport
+protocol on top of UDP.</li>
 <li>adjusts the length of the request queue depending on download rate.</li>
 <li>serves multiple torrents on a single port and in a single thread</li>
 <li>piece picking on block-level (as opposed to piece-level).
@@ -253,6 +261,15 @@ makes slow peers pick blocks from the same piece, and fast peers pick from the s
 and hence decreasing the likelihood of slow peers blocking the completion of pieces.</p>
 <p>The piece picker can also be set to download pieces in sequential order.</p>
 </div>
+<div class="section" id="share-mode">
+<h2>share mode</h2>
+<p>The share mode feature in libtorrent is intended for users who are only interested in
+helping out swarms, not downloading the torrents.</p>
+<p>It works by predicting the demand for pieces, and only download pieces if there is enough
+demand. New pieces will only be downloaded once the share ratio has hit a certain target.</p>
+<p>This feature is especially useful when combined with RSS, so that a client can be set up
+to provide additional bandwidth to an entire feed.</p>
+</div>
 <div class="section" id="merkle-hash-tree-torrents">
 <h2>merkle hash tree torrents</h2>
 <p>Merkle hash tree torrents is an extension that lets a torrent file only contain the
@@ -363,6 +380,12 @@ epoll on linux and kqueue on MacOS X and BSD.</p>
 <li>GCC 2.95.4</li>
 <li>msvc6</li>
 </ul>
+</div>
+<div class="system-messages section">
+<h1>Docutils System Messages</h1>
+<div class="system-message" id="id17">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">features.rst</tt>, line 84); <em><a href="#id18">backlink</a></em></p>
+Unknown target name: &quot;bep29&quot;.</div>
 </div>
     </div>
     <div id="footer">

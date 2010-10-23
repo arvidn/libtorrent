@@ -27,6 +27,8 @@ current state supports and includes the following features:
 extensions
 ----------
 
+* uTorrent transport protocol (uTP). A transport protocol with delay based
+  congestion control. See separate article_.
 * plugin interface for implementing custom bittorrent extensions
   without having to modify libtorrent
 * supports trackerless torrents (using the Mainline kademlia DHT protocol) with
@@ -52,6 +54,7 @@ extensions
 * share-mode. This is a special mode torrents can be put in to optimize share
   ratio rather than downloading the torrent.
 
+.. _article: utp.html
 .. _extensions: manual.html#extensions
 .. _`http seeding`: manual.html#http-seeding
 
