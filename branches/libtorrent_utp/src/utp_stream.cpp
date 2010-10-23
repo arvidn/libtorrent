@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/timestamp_history.hpp"
 #include <boost/cstdint.hpp>
 
-#define TORRENT_UTP_LOG 1
+#define TORRENT_UTP_LOG 0
 #define TORRENT_VERBOSE_UTP_LOG 0
 #define TORRENT_UT_SEQ 1
 
@@ -256,7 +256,8 @@ struct utp_socket_impl
 	}
 
 	void tick(ptime const& now);
-	bool incoming_packet(char const* buf, int size, udp::endpoint const& ep);
+	bool incoming_packet(char const* buf, int size
+		, udp::endpoint const& ep, ptime receive_time);
 	bool should_delete() const;
 	tcp::endpoint remote_endpoint(error_code& ec) const
 	{
@@ -567,9 +568,10 @@ void tick_utp_impl(utp_socket_impl* s, ptime const& now)
 	s->tick(now);
 }
 
-bool utp_incoming_packet(utp_socket_impl* s, char const* p, int size, udp::endpoint const& ep)
+bool utp_incoming_packet(utp_socket_impl* s, char const* p
+	, int size, udp::endpoint const& ep, ptime receive_time)
 {
-	return s->incoming_packet(p, size, ep);
+	return s->incoming_packet(p, size, ep, receive_time);
 }
 
 bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, boost::uint16_t id)
@@ -1326,20 +1328,18 @@ bool utp_socket_impl::send_pkt(bool ack)
 		sack = 4;
 	}
 
-	int packet_size = sizeof(utp_header) + (sack ? sack + 2 : 0);
+	int header_size = sizeof(utp_header) + (sack ? sack + 2 : 0);
 	int payload_size = m_write_buffer_size;
-	if (m_mtu - packet_size < payload_size)
+	if (m_mtu - header_size < payload_size)
 	{
-		payload_size = m_mtu - packet_size;
+		payload_size = m_mtu - header_size;
 		ret = true; // there's more data to send
 	}
-
-	payload_size = (std::min)(int(m_mtu - packet_size), payload_size);
 
 	// if we have one MSS worth of data, make sure it fits in our
 	// congestion window and the advertized receive window from
 	// the other end.
-	if (payload_size > (std::min)(int(m_cwnd >> 16), int(m_adv_wnd)) - m_bytes_in_flight)
+	if (m_bytes_in_flight + payload_size > (std::min)(int(m_cwnd >> 16), int(m_adv_wnd) - m_bytes_in_flight))
 	{
 		// this means there's not enough room in the send window for
 		// another packet. We have to hold off sending this data.
@@ -1365,17 +1365,17 @@ bool utp_socket_impl::send_pkt(bool ack)
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: skipping send seq_nr:%d ack_nr:%d "
-			"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
+			"id:%d target:%s header_size:%d error:%s send_buffer_size:%d cwnd:%d "
 			"ret:%d adv_wnd:%d in-flight:%d mtu:%d\n"
 			, this, int(m_seq_nr), int(m_ack_nr)
 			, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-			, packet_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
+			, header_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 			, int(ret), m_adv_wnd, m_bytes_in_flight, m_mtu);
 #endif
 		return false;
 	}
 
-	packet_size += payload_size;
+	int packet_size = header_size + payload_size;
 
 	packet* p;
 	// we only need a heap allocation if we have payload and
@@ -1758,10 +1758,8 @@ bool utp_socket_impl::test_socket_state()
 
 // return false if this is an invalid packet
 bool utp_socket_impl::incoming_packet(char const* buf, int size
-	, udp::endpoint const& ep)
+	, udp::endpoint const& ep, ptime receive_time)
 {
-	const ptime receive_time = time_now_hires();
-
 	utp_header* ph = (utp_header*)buf;
 
 	if (ph->ver != 1)
@@ -2190,6 +2188,48 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// sure to clamp it as a sanity check
 			if (delay > min_rtt) delay = min_rtt;
 
+			// only use the minimum from the last 3 delay measurements
+			delay = *std::min_element(m_delay_sample_hist, m_delay_sample_hist + num_delay_hist);
+
+			if (sample && acked_bytes && prev_bytes_in_flight)
+				do_ledbat(acked_bytes, delay, prev_bytes_in_flight, receive_time);
+
+			consume_incoming_data(ph, ptr, payload_size, receive_time);
+
+			// the parameter to send_pkt tells it if we're acking data
+			// If we are, we'll send an ACK regardless of if we have any
+			// space left in our send window or not. If we just got an ACK
+			// (i.e. ST_STATE) we're not ACKing anything. If we just
+			// received a FIN packet, we need to ack that as well
+			bool has_ack = ph->type == ST_DATA || ph->type == ST_FIN || ph->type == ST_SYN;
+			int delayed_ack = m_sm->delayed_ack();
+			if (has_ack && delayed_ack && m_ack_timer > receive_time)
+			{
+				// we have data to ACK, and delayed ACKs are enabled.
+				// update the ACK timer and clear the flag, to pretend
+				// like we don't have anything to ACK
+				m_ack_timer = (std::min)(m_ack_timer, receive_time + milliseconds(delayed_ack));
+				has_ack = false;
+				UTP_LOGV("%8p: delaying ack. timer triggers in %d milliseconds\n"
+					, this, int(total_milliseconds(m_ack_timer - time_now_hires())));
+			}
+
+			if (send_pkt(has_ack))
+			{
+				// try to send more data as long as we can
+				while (send_pkt(false));
+			}
+
+			// Everything up to the FIN has been receieved, respond with a FIN
+			// from our side.
+			if (m_eof && m_ack_nr == ((m_eof_seq_nr - 1) & ACK_MASK))
+			{
+				UTP_LOGV("%8p: incoming stream consumed\n", this);
+
+				// This transitions to the UTP_STATE_FIN_SENT state.
+				send_fin();
+			}
+
 #if TORRENT_UTP_LOG
 			if (sample && acked_bytes && prev_bytes_in_flight)
 			{
@@ -2233,6 +2273,8 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					"acked_seq_nr:%u "
 					"reply_micro:%u "
 					"min_rtt:%u "
+					"send_buffer:%d "
+					"recv_buffer:%d "
 					"\n"
 					, this
 					, sample
@@ -2261,51 +2303,11 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, m_seq_nr
 					, m_acked_seq_nr
 					, m_reply_micro
-					, min_rtt / 1000);
+					, min_rtt / 1000
+					, m_write_buffer_size
+					, m_read_buffer_size);
 			}
 #endif
-
-			// only use the minimum from the last 3 delay measurements
-			delay = *std::min_element(m_delay_sample_hist, m_delay_sample_hist + num_delay_hist);
-
-			if (sample && acked_bytes && prev_bytes_in_flight)
-				do_ledbat(acked_bytes, delay, prev_bytes_in_flight, receive_time);
-
-			consume_incoming_data(ph, ptr, payload_size, receive_time);
-
-			// the parameter to send_pkt tells it if we're acking data
-			// If we are, we'll send an ACK regardless of if we have any
-			// space left in our send window or not. If we just got an ACK
-			// (i.e. ST_STATE) we're not ACKing anything. If we just
-			// received a FIN packet, we need to ack that as well
-			bool has_ack = ph->type == ST_DATA || ph->type == ST_FIN || ph->type == ST_SYN;
-			int delayed_ack = m_sm->delayed_ack();
-			if (has_ack && delayed_ack && m_ack_timer > receive_time)
-			{
-				// we have data to ACK, and delayed ACKs are enabled.
-				// update the ACK timer and clear the flag, to pretend
-				// like we don't have anything to ACK
-				m_ack_timer = (std::min)(m_ack_timer, receive_time + milliseconds(delayed_ack));
-				has_ack = false;
-				UTP_LOGV("%8p: delaying ack. timer triggers in %d milliseconds\n"
-					, this, int(total_milliseconds(m_ack_timer - time_now_hires())));
-			}
-
-			if (send_pkt(has_ack))
-			{
-				// try to send more data as long as we can
-				while (send_pkt(false));
-			}
-
-			// Everything up to the FIN has been receieved, respond with a FIN
-			// from our side.
-			if (m_eof && m_ack_nr == ((m_eof_seq_nr - 1) & ACK_MASK))
-			{
-				UTP_LOGV("%8p: incoming stream consumed\n", this);
-
-				// This transitions to the UTP_STATE_FIN_SENT state.
-				send_fin();
-			}
 
 			return true;
 		}

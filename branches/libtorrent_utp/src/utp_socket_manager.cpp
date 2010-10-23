@@ -142,6 +142,8 @@ namespace libtorrent
 //		UTP_LOGV("incoming packet version:%d\n", int(ph->ver));
 
 		if (ph->ver != 1) return false;
+
+		const ptime receive_time = time_now_hires();
 		
 		// parse out connection ID and look for existing
 		// connections. If found, forward to the utp_stream.
@@ -152,7 +154,7 @@ namespace libtorrent
 		if (m_last_socket
 			&& utp_match(m_last_socket, ep, id))
 		{
-			return utp_incoming_packet(m_last_socket, p, size, ep);
+			return utp_incoming_packet(m_last_socket, p, size, ep, receive_time);
 		}
 
 		socket_map_t::iterator i = m_utp_sockets.find(id);
@@ -163,7 +165,7 @@ namespace libtorrent
 		for (; r.first != r.second; ++r.first)
 		{
 			if (!utp_match(r.first->second, ep, id)) continue;
-			bool ret = utp_incoming_packet(r.first->second, p, size, ep);
+			bool ret = utp_incoming_packet(r.first->second, p, size, ep, receive_time);
 			if (ret) m_last_socket = r.first->second;
 			return ret;
 		}
@@ -187,7 +189,7 @@ namespace libtorrent
 			instantiate_connection(m_sock.get_io_service(), proxy_settings(), *c, 0, this);
 			utp_stream* str = c->get<utp_stream>();
 			TORRENT_ASSERT(str);
-			bool ret = utp_incoming_packet(str->get_impl(), p, size, ep);
+			bool ret = utp_incoming_packet(str->get_impl(), p, size, ep, receive_time);
 			if (!ret) return false;
 			m_cb(c);
 			// the connection most likely changed its connection ID here
