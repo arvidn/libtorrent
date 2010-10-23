@@ -281,7 +281,7 @@ struct utp_socket_impl
 	void ack_packet(packet* p, ptime const& receive_time
 		, boost::uint32_t& min_rtt, boost::uint16_t seq_nr);
 	void write_sack(char* buf, int size) const;
-	void incoming(char const* buf, int size, packet* p);
+	void incoming(char const* buf, int size, packet* p, ptime now);
 	void do_ledbat(int acked_bytes, int delay, int in_flight, ptime const now);
 	int packet_timeout() const;
 	bool test_socket_state();
@@ -570,6 +570,13 @@ void tick_utp_impl(utp_socket_impl* s, ptime const& now)
 bool utp_incoming_packet(utp_socket_impl* s, char const* p, int size, udp::endpoint const& ep)
 {
 	return s->incoming_packet(p, size, ep);
+}
+
+bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, boost::uint16_t id)
+{
+	return s->m_remote_address == ep.address()
+		&& s->m_port == ep.port()
+		&& s->m_recv_id == id;
 }
 
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s)
@@ -1102,7 +1109,7 @@ void utp_socket_impl::send_fin()
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d\n"
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-		, sizeof(utp_header), m_error.message().c_str(), m_write_buffer_size);
+		, int(sizeof(utp_header)), m_error.message().c_str(), m_write_buffer_size);
 #endif
 
 	if (m_error)
@@ -1417,7 +1424,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 		"ret:%d adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-		, packet_size, m_error.message().c_str(), m_write_buffer_size, m_cwnd >> 16
+		, packet_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 		, ret, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
 		, boost::uint32_t(h->timestamp_difference_microseconds));
 #endif
@@ -1514,7 +1521,7 @@ bool utp_socket_impl::resend_packet(packet* p)
 		"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-		, p->size, m_error.message().c_str(), m_write_buffer_size, m_cwnd >> 16
+		, p->size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 		, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
 		, boost::uint32_t(h->timestamp_difference_microseconds));
 #endif
@@ -1570,7 +1577,7 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
 	free(p);
 }
 
-void utp_socket_impl::incoming(char const* buf, int size, packet* p)
+void utp_socket_impl::incoming(char const* buf, int size, packet* p, ptime now)
 {
 	while (!m_read_buffer.empty())
 	{
@@ -1585,7 +1592,7 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p)
 		memcpy(target->buf, buf, to_copy);
 		if (m_read == 0)
 		{
-			m_read_timeout = time_now_hires() + milliseconds(100);
+			m_read_timeout = now + milliseconds(100);
 			UTP_LOGV("%8p: setting read timeout to 100 ms from now\n", this);
 		}
 		m_read += to_copy;
@@ -1606,7 +1613,7 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p)
 		{
 			TORRENT_ASSERT(p == 0 || p->header_size == p->size);
 			free(p);
-			maybe_trigger_receive_callback(time_now_hires());
+			maybe_trigger_receive_callback(now);
 			return;
 		}
 	}
@@ -1621,7 +1628,7 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p)
 		p->header_size = 0;
 		memcpy(p->buf, buf, size);
 	}
-	if (m_receive_buffer_size == 0) m_read_timeout = time_now_hires() + milliseconds(100);
+	if (m_receive_buffer_size == 0) m_read_timeout = now + milliseconds(100);
 	// save this packet until the client issues another read
 	m_receive_buffer.push_back(p);
 	m_receive_buffer_size += p->size - p->header_size;
@@ -1659,7 +1666,7 @@ bool utp_socket_impl::consume_incoming_data(
 		TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
 
 		// we received a packet in order
-		incoming(ptr, payload_size, 0);
+		incoming(ptr, payload_size, 0, now);
 		m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
 
 		// If this packet was previously in the reorder buffer
@@ -1679,7 +1686,7 @@ bool utp_socket_impl::consume_incoming_data(
 				break;
 
 			m_buffered_incoming_bytes -= p->size - p->header_size;
-			incoming(0, p->size - p->header_size, p);
+			incoming(0, p->size - p->header_size, p, now);
 
 			m_ack_nr = next_ack_nr;
 
@@ -2026,7 +2033,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
 				, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
 				, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-				, p->size, m_error.message().c_str(), m_write_buffer_size, m_cwnd >> 16
+				, p->size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 				, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
 				, boost::uint32_t(h->timestamp_difference_microseconds));
 #endif

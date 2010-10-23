@@ -150,20 +150,19 @@ namespace libtorrent
 		// first test to see if it's the same socket as last time
 		// in most cases it is
 		if (m_last_socket
-			&& id == utp_receive_id(m_last_socket)
-			&& ep == utp_remote_endpoint(m_last_socket))
+			&& utp_match(m_last_socket, ep, id))
 		{
 			return utp_incoming_packet(m_last_socket, p, size, ep);
 		}
 
 		socket_map_t::iterator i = m_utp_sockets.find(id);
 
-        std::pair<socket_map_t::iterator, socket_map_t::iterator> r =
-            m_utp_sockets.equal_range(id);
+		std::pair<socket_map_t::iterator, socket_map_t::iterator> r =
+			m_utp_sockets.equal_range(id);
 
 		for (; r.first != r.second; ++r.first)
 		{
-			if (ep != utp_remote_endpoint(r.first->second)) continue;
+			if (!utp_match(r.first->second, ep, id)) continue;
 			bool ret = utp_incoming_packet(r.first->second, p, size, ep);
 			if (ret) m_last_socket = r.first->second;
 			return ret;
