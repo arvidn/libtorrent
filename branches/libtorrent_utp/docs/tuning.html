@@ -203,6 +203,16 @@ of C++ exceptions. By disabling exceptions (-fno-exceptions on GCC), you can
 reduce the executable size with up to 45%. In order to build without exception
 support, you need to patch parts of boost.</p>
 <p>Also make sure to optimize for size when compiling.</p>
+<p>Another way of reducing the executable size is to disable code that isn't used.
+There are a number of <tt class="docutils literal"><span class="pre">TORRENT_*</span></tt> macros that control which features are included
+in libtorrent. If these macros are used to strip down libtorrent, make sure the same
+macros are defined when building libtorrent as when linking against it. If these
+are different the structures will look different from the libtorrent side and from
+the client side and memory corruption will follow.</p>
+<p>One, probably, safe macro to define is <tt class="docutils literal"><span class="pre">TORRENT_NO_DEPRECATE</span></tt> which removes all
+deprecated functions and struct members. As long as no deprecated functions are
+relied upon, this should be a simple way to eliminate a little bit of code.</p>
+<p>For all available options, see the <a class="reference external" href="building.html">building libtorrent</a> secion.</p>
 </div>
 <div class="section" id="reduce-statistics">
 <h2>reduce statistics</h2>
