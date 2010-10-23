@@ -223,6 +223,9 @@ straight through without any significant delay, once every 20 minutes or so. How
 the clock drift between normal computers can be as much as 17 ms in 10 minutes. 17 ms
 is quite significant, especially if your target delay is 25 ms (in in the LEDBAT_ spec).
 
+Clocks progresses at different rates depending on temperature. This means computers
+running hot are likely to have a clock drift compared to computers running cool.
+
 So, by updating the delay base periodically based on the lowest seen sample, you'll either
 end up changin it upwards (artificaially making the delay samples appear small) without
 the congestion or delay actually having changed, or you'll end up with a significant clock
