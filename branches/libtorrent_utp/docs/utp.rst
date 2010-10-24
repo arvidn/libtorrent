@@ -32,8 +32,8 @@ for example:
 3. a home DSL or cable modem having its send buffer filled up by outgoing
    data, and the buffer fits seconds worth of bytes. This adds seconds
    of delay on interactive traffic. For a web site that needs 10 round
-   trips to load may means 10s of seconds of delay to load the site compared
-   to without bittorrent. Skype of other even more delay sensitive applications
+   trips to load this may mean 10s of seconds of delay to load compared
+   to without bittorrent. Skype or other delay sensitive applications
    would be affected even more.
 
 This document will cover (3).
@@ -48,7 +48,7 @@ browsing the web or checking email.
 There are two major drawbacks with this technique:
 
 1. The user needs to actively make this setting (very few protocols
-   requires the user to provide this sort of information). This also
+   require the user to provide this sort of information). This also
    means the user needs to figure out what its up-link capacity is.
    This is unfortunately a number that many ISPs are not advertizing
    (because it's often much lower than the download capacity) which
@@ -116,7 +116,7 @@ only fully utilize the link right before the packet loss and the back-off.
 LEDBAT congestion controller
 ----------------------------
 
-The congestion controller in uTP is called LEDBAT_, which is an IETF working
+The congestion controller in uTP is called LEDBAT_, which also is an IETF working
 group attempting to standardize it. The congestion controller, on top of reacting
 to packet loss the same way TCP does, also reacts to changes in delays.
 
@@ -138,7 +138,7 @@ It can simply be expressed as::
 Similarly to TCP, this is scaled so that the increase is evened out over one RTT.
 
 The linear controller will adjust the cwnd more for delays that are far off the
-target, and slower for delays that are close to the target. This makes it converge
+target, and less for delays that are close to the target. This makes it converge
 at the target delay. Although, due to noise there is almost always some amount of
 oscillation. This oscillation is typically smaller than the saw tooth TCP forms.
 
@@ -172,13 +172,12 @@ Delay on the return link is explicitly not included in the delay measurement.
 This is because in a peer-to-peer application, the other end is likely to also
 be connected via a modem, with the same send buffer restrictions as we assume
 for the sending side. The other end having its send queue full is not an indication
-of congestion on the path going the other way. It is not desirable to throttle the
-send rate because of the return path is congested.
+of congestion on the path going the other way.
 
 In order to measure one way delays for packets, we cannot rely on clocks being
-synchronized, especially not at the microsecond level that we're using. Instead,
-the actual time it takes for a packet to arrive at the destination is not measured,
-only the changes in the transit time is measured.
+synchronized, especially not at the microsecond level. Instead, the actual time
+it takes for a packet to arrive at the destination is not measured, only the changes
+in the transit time is measured.
 
 Each packet that is sent includes a time stamp of the current time, in microseconds,
 of the sending machine. The receiving machine calculates the difference between its
@@ -197,7 +196,7 @@ This is the delay that's fed into the congestion controller.
 A histogram of typical delay measurements is shown to the right. This is from
 a transfer between a cable modem connection and a DSL connection.
 
-The details of the delay measurements are slightly more complicated where the
+The details of the delay measurements are slightly more complicated since the
 values needs to be able to wrap (cross the 2^32 boundry and start over at 0).
 
 clock drift
@@ -221,17 +220,17 @@ the queue, with no delay, and the amount of clock drift one can assume on normal
 It turns out that it's fairly safe to assume that one of your packets will in fact go
 straight through without any significant delay, once every 20 minutes or so. However,
 the clock drift between normal computers can be as much as 17 ms in 10 minutes. 17 ms
-is quite significant, especially if your target delay is 25 ms (in in the LEDBAT_ spec).
+is quite significant, especially if your target delay is 25 ms (as in the LEDBAT_ spec).
 
 Clocks progresses at different rates depending on temperature. This means computers
 running hot are likely to have a clock drift compared to computers running cool.
 
 So, by updating the delay base periodically based on the lowest seen sample, you'll either
-end up changin it upwards (artificaially making the delay samples appear small) without
+end up changing it upwards (artificaially making the delay samples appear small) without
 the congestion or delay actually having changed, or you'll end up with a significant clock
 drift and have artificially low samples because of that.
 
-The solution to this problem based on the fact that the clock drift is only a problem
+The solution to this problem is based on the fact that the clock drift is only a problem
 for one of the sides of the connection. Only when your delay measurements keep increasing
 is it a problem. If your delay measurements keep decreasing, the samples will simply push
 down the delay base along with it. With this in mind, we can simply keep track of the
