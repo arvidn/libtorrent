@@ -303,61 +303,17 @@ namespace libtorrent
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
 	do { m_impl->cond.wait(l); } while(!done)
 
-	session::session(
-		fingerprint const& id
-		, std::pair<int, int> listen_port_range
-		, char const* listen_interface
-		, int flags
-		, int alert_mask
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		, std::string logpath
-#endif
-		)
-		: m_impl(new session_impl(listen_port_range, id, listen_interface
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		, logpath
-#endif
-		))
-	{
-#ifdef TORRENT_MEMDEBUG
-		start_malloc_debug();
-#endif
-		TORRENT_ASSERT(listen_port_range.first > 0);
-		TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
-		set_alert_mask(alert_mask);
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		if (flags & add_default_plugins)
-		{
-			add_extension(create_ut_pex_plugin);
-			add_extension(create_ut_metadata_plugin);
-			add_extension(create_lt_trackers_plugin);
-			add_extension(create_smart_ban_plugin);
-		}
-#endif
-		if (flags & start_default_features)
-		{
-			start_upnp();
-			start_natpmp();
-#ifndef TORRENT_DISABLE_DHT
-			start_dht();
-#endif
-			start_lsd();
-		}
-	}
+	// this is a dummy function that's exported and named based
+	// on the configuration. The session.hpp file will reference
+	// it and if the library and the client are built with different
+	// configurations this will give a link error
+	void TORRENT_EXPORT TORRENT_CFG() {}
 
-	session::session(fingerprint const& id
-		, int flags
-		, int alert_mask
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		, std::string logpath
-#endif
-		)
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		: m_impl(new session_impl(std::make_pair(0, 0), id, "0.0.0.0", logpath))
-#else
-		: m_impl(new session_impl(std::make_pair(0, 0), id, "0.0.0.0"))
-#endif
+	void session::init(std::pair<int, int> listen_range, char const* listen_interface
+		, fingerprint const& id, int flags, int alert_mask TORRENT_LOGPATH_ARG)
 	{
+		m_impl.reset(new session_impl(listen_range, id, listen_interface) TORRENT_LOGPATH);
+
 #ifdef TORRENT_MEMDEBUG
 		start_malloc_debug();
 #endif
