@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/settings.hpp"
+#include "libtorrent/build_config.hpp"
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #endif
@@ -593,6 +594,12 @@ namespace aux {
 #endif
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+
+		(*m_logger) << "libtorrent configuration: " << TORRENT_CFG_STRING << "\n"
+			<< "libtorrent version: " << LIBTORRENT_VERSION << "\n"
+			<< "libtorrent revision: " << LIBTORRENT_REVISION << "\n\n";
+
+
 #define PRINT_SIZEOF(x) (*m_logger) << "sizeof(" #x "): " << sizeof(x) << "\n";
 #define PRINT_OFFSETOF(x, y) (*m_logger) << "  offsetof(" #x "," #y "): " << offsetof(x, y) << "\n";
 
