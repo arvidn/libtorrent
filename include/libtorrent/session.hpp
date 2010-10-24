@@ -58,8 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 
 #include "libtorrent/storage.hpp"
-#include <boost/preprocessor/cat.hpp>
-
 
 #ifdef _MSC_VER
 #	include <eh.h>
@@ -76,47 +74,10 @@ namespace libtorrent
 	class upnp;
 	class alert;
 
-	// this is used to create linker errors when trying to link to
-	// a library with a conflicting build configuration than the application
-#ifdef TORRENT_DEBUG
-#define G _release
-#else
-#define G _debug
-#endif
-
-#ifdef TORRENT_USE_OPENSSL
-#define S _ssl
-#else
-#define S _nossl
-#endif
-
-#ifdef TORRENT_DISABLE_DHT
-#define D _nodht
-#else
-#define D _dht
-#endif
-
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-#define P _nopoolalloc
-#else
-#define P _poolalloc
-#endif
-
-#define TORRENT_LINK_TEST_PREFIX libtorrent_build_config
-#define TORRENT_LINK_TEST_NAME BOOST_PP_CAT(TORRENT_LINK_TEST_PREFIX, BOOST_PP_CAT(P, BOOST_PP_CAT(D, BOOST_PP_CAT(S, G))))
-#undef P
-#undef D
-#undef S
-#undef G
-
-	inline void test_link()
-	{
-		extern void TORRENT_LINK_TEST_NAME();
-		TORRENT_LINK_TEST_NAME();
-	}
-
 	session_settings min_memory_usage();
 	session_settings high_performance_seed();
+
+	void TORRENT_EXPORT TORRENT_CFG();
 
 	namespace aux
 	{
@@ -151,6 +112,16 @@ namespace libtorrent
 		boost::shared_ptr<aux::session_impl> m_impl;
 	};
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#define TORRENT_LOGPATH_ARG_DEFAULT , std::string logpath = "."
+#define TORRENT_LOGPATH_ARG , std::string logpath
+#define TORRENT_LOGPATH , logpath
+#else
+#define TORRENT_LOGPATH_ARG_DEFAULT
+#define TORRENT_LOGPATH_ARG
+#define TORRENT_LOGPATH
+#endif
+
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
 	{
 	public:
@@ -159,20 +130,25 @@ namespace libtorrent
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins
 			, int alert_mask = alert::error_notification
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			, std::string logpath = "."
-#endif
-				);
+			TORRENT_LOGPATH_ARG_DEFAULT)
+		{
+			TORRENT_CFG();
+			init(std::make_pair(0, 0), "0.0.0.0", print, flags, alert_mask TORRENT_LOGPATH);
+		}
+
 		session(
 			fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
 			, int flags = start_default_features | add_default_plugins
 			, int alert_mask = alert::error_notification
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			, std::string logpath = "."
-#endif
-			);
+			TORRENT_LOGPATH_ARG_DEFAULT)
+		{
+			TORRENT_CFG();
+			TORRENT_ASSERT(listen_port_range.first > 0);
+			TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
+			init(listen_port_range, listen_interface, print, flags, alert_mask TORRENT_LOGPATH);
+		}
 			
 		~session();
 
@@ -450,6 +426,9 @@ namespace libtorrent
 		void stop_upnp();
 		
 	private:
+
+		void init(std::pair<int, int> listen_range, char const* listen_interface
+			, fingerprint const& id, int flags, int alert_mask TORRENT_LOGPATH_ARG);
 
 		// data shared between the main thread
 		// and the working thread
