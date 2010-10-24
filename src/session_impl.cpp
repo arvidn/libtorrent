@@ -632,12 +632,10 @@ namespace aux {
 		PRINT_SIZEOF(bandwidth_channel)
 		PRINT_SIZEOF(policy)
 
-		PRINT_SIZEOF(stat_channel)
-		PRINT_OFFSETOF(stat_channel, m_rate_history)
-		PRINT_OFFSETOF(stat_channel, m_window)
-		PRINT_OFFSETOF(stat_channel, m_counter)
-		PRINT_OFFSETOF(stat_channel, m_total_counter)
-		PRINT_OFFSETOF(stat_channel, m_rate_sum)
+//		PRINT_SIZEOF(stat_channel)
+//		PRINT_OFFSETOF(stat_channel, m_counter)
+//		PRINT_OFFSETOF(stat_channel, m_average)
+//		PRINT_OFFSETOF(stat_channel, m_total_counter)
 
 		torrent::print_size(*m_logger);
 

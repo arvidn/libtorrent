@@ -35,92 +35,83 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include <boost/preprocessor/cat.hpp>
+#include <boost/preprocessor/stringize.hpp>
 
 #ifdef TORRENT_DEBUG
-#define TORRENT_CFG_DEBUG dbg-
+#define TORRENT_CFG_DEBUG dbg_
 #else
-#define TORRENT_CFG_DEBUG 
+#define TORRENT_CFG_DEBUG rel_
 #endif
 
 #if TORRENT_USE_BOOST_DATE_TIME
-#define TORRENT_CFG_TIME boosttime-
+#define TORRENT_CFG_TIME boosttime_
 #elif TORRENT_USE_ABSOLUTE_TIME
-#define TORRENT_CFG_TIME absolutetime-
+#define TORRENT_CFG_TIME absolutetime_
 #elif TORRENT_USE_PERFORMANCE_TIMER
-#define TORRENT_CFG_TIME performancetimer-
+#define TORRENT_CFG_TIME performancetimer_
 #elif TORRENT_USE_CLOCK_GETTIME
-#define TORRENT_CFG_TIME clocktime-
+#define TORRENT_CFG_TIME clocktime_
 #elif TORRENT_USE_SYSTEM_TIME
-#define TORRENT_CFG_TIME systime-
+#define TORRENT_CFG_TIME systime_
 #else
 #error what timer is used?
 #endif
 
 #if TORRENT_USE_IPV6
-#define TORRENT_CFG_IPV6 ipv6-
+#define TORRENT_CFG_IPV6 ipv6_
 #else
-#define TORRENT_CFG_IPV6 noipv6-
+#define TORRENT_CFG_IPV6 noipv_-
 #endif
 
 #ifdef TORRENT_DISABLE_DHT
-#define TORRENT_CFG_DHT nodht-
+#define TORRENT_CFG_DHT nodht_
 #else
-#define TORRENT_CFG_DHT dht-
+#define TORRENT_CFG_DHT dht_
 #endif
 
 #ifdef TORRENT_DISABLE_POOL_ALLOCATORS
-#define TORRENT_CFG_POOL nopools-
+#define TORRENT_CFG_POOL nopools_
 #else
-#define TORRENT_CFG_POOL pools-
+#define TORRENT_CFG_POOL pools_
 #endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
-#define TORRENT_CFG_LOG verboselog-
+#define TORRENT_CFG_LOG verboselog_
 #elif defined TORRENT_LOGGING
-#define TORRENT_CFG_LOG log-
+#define TORRENT_CFG_LOG log_
 #else
-#define TORRENT_CFG_LOG nolog-
+#define TORRENT_CFG_LOG nolog_
 #endif
 
 #ifdef _UNICODE
-#define TORRENT_CFG_UNICODE unicode-
+#define TORRENT_CFG_UNICODE unicode_
 #else
-#define TORRENT_CFG_UNICODE ansi-
+#define TORRENT_CFG_UNICODE ansi_
 #endif
 
 #ifdef TORRENT_DISABLE_RESOLVE_COUNTRIES
-#define TORRENT_CFG_RESOLVE noresolvecountries-
+#define TORRENT_CFG_RESOLVE noresolvecountries_
 #else
-#define TORRENT_CFG_RESOLVE resolvecountries-
+#define TORRENT_CFG_RESOLVE resolvecountries_
 #endif
 
 #ifdef TORRENT_NO_DEPRECATE
-#define TORRENT_CFG_DEPR nodeprecate-
+#define TORRENT_CFG_DEPR nodeprecate_
 #else
-#define TORRENT_CFG_DEPR deprecated-
+#define TORRENT_CFG_DEPR deprecated_
 #endif
 
 #ifdef TORRENT_DISABLE_FULL_STATS
-#define TORRENT_CFG_STATS partialstats-
+#define TORRENT_CFG_STATS partialstats_
 #else
-#define TORRENT_CFG_STATS fullstats-
+#define TORRENT_CFG_STATS fullstats_
 #endif
 
 #ifdef TORRENT_DISABLE_EXTENSIONS
-#define TORRENT_CFG_EXT noext-
+#define TORRENT_CFG_EXT noext_
 #else
-#define TORRENT_CFG_EXT ext-
+#define TORRENT_CFG_EXT ext_
 #endif
-
-#define TORRENT_CFG_STRING \
-	#TORRENT_CFG_DEBUG \
-	#TORRENT_CFG_TIME \
-	#TORRENT_CFG_POOL \
-	#TORRENT_CFG_LOG \
-	#TORRENT_CFG_RESOLVE \
-	#TORRENT_CFG_DEPR \
-	#TORRENT_CFG_DHT \
-	#TORRENT_CFG_EXT
 
 #define TORRENT_CFG \
 	BOOST_PP_CAT(TORRENT_CFG_DEBUG, \
@@ -131,6 +122,8 @@ POSSIBILITY OF SUCH DAMAGE.
 	BOOST_PP_CAT(TORRENT_CFG_DEPR, \
 	BOOST_PP_CAT(TORRENT_CFG_DHT, \
 	TORRENT_CFG_EXT)))))))
+
+#define TORRENT_CFG_STRING BOOST_PP_STRINGIZE(TORRENT_CFG)
 
 #endif
 
