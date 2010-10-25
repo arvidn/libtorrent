@@ -312,13 +312,6 @@ namespace libtorrent
 		// returns the port we ended up listening on
 		unsigned short listen_port() const;
 
-		// Get the number of uploads.
-		int num_uploads() const;
-
-		// Get the number of connections. This number also contains the
-		// number of half open connections.
-		int num_connections() const;
-
 		enum options_t
 		{
 			none = 0,
@@ -340,6 +333,16 @@ namespace libtorrent
 		proxy_settings proxy() const;
 
 #ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.16
+		// Get the number of uploads.
+		TORRENT_DEPRECATED_PREFIX
+		int num_uploads() const TORRENT_DEPRECATED;
+
+		// Get the number of connections. This number also contains the
+		// number of half open connections.
+		TORRENT_DEPRECATED_PREFIX
+		int num_connections() const TORRENT_DEPRECATED;
+
 		// deprecated in 0.15.
 		TORRENT_DEPRECATED_PREFIX
 		void set_peer_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
