@@ -1278,24 +1278,16 @@ namespace libtorrent
 		tracker_request req;
 		req.info_hash = m_torrent_file->info_hash();
 		req.pid = m_ses.get_peer_id();
+		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
 		req.uploaded = m_stat.total_payload_upload();
 		req.corrupt = m_total_failed_bytes;
-		req.redundant = m_total_redundant_bytes;
-
-		if (settings().report_true_downloaded)
-		{
-			req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
-			req.left = bytes_left();
-		}
-		else
-		{
-			req.downloaded = quantized_bytes_done();
-			TORRENT_ASSERT(!valid_metadata() || req.downloaded <= m_torrent_file->total_size());
-			req.left = valid_metadata() ? m_torrent_file->total_size() - req.downloaded : -1;
-		}
+		req.left = bytes_left();
 		if (req.left == -1) req.left = 16*1024;
 
-		TORRENT_ASSERT(req.downloaded >= 0);
+		// exclude redundant bytes if we should
+		if (!settings().report_true_downloaded)
+			req.downloaded -= m_total_redundant_bytes;
+		if (req.downloaded < 0) req.downloaded = 0;
 
 		req.event = e;
 		error_code ec;
