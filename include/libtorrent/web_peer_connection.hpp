@@ -133,6 +133,18 @@ namespace libtorrent
 
 		// the position in the current block
 		int m_block_pos;
+
+		// this is the offset inside the current receive
+		// buffer where the next chunk header will be.
+		// this is updated for each chunk header that's
+		// parsed. It does not necessarily point to a valid
+		// offset in the receive buffer, if we haven't received
+		// it yet. This offset never includes the HTTP header
+		int m_chunk_pos;
+
+		// this is the number of bytes we've already received
+		// from the next chunk header we're waiting for
+		int m_partial_chunk_header;
 	};
 }
 

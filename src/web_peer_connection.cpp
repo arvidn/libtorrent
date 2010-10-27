@@ -68,6 +68,8 @@ namespace libtorrent
 		, m_url(url)
 		, m_range_pos(0)
 		, m_block_pos(0)
+		, m_chunk_pos(0)
+		, m_partial_chunk_header(0)
 	{
 		INVARIANT_CHECK;
 
@@ -89,7 +91,7 @@ namespace libtorrent
 		request_large_blocks(true);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << "*** web_peer_connection " << url << "\n";
+		(*m_logger) << time_now_string() << " *** web_peer_connection " << url << "\n";
 #endif
 	}
 
@@ -237,7 +239,7 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << request << "\n";
+		(*m_logger) << time_now_string() << " " << request << "\n";
 #endif
 
 		send_buffer(request.c_str(), request.size(), message_type_request);
@@ -263,12 +265,22 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+#ifdef TORRENT_DEBUG
+		size_type dl_target = m_statistics.last_payload_downloaded()
+			+ m_statistics.last_protocol_downloaded() + bytes_transferred;
+#endif
+
 		if (error)
 		{
 			m_statistics.received_bytes(0, bytes_transferred);
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "*** web_peer_connection error: "
+			(*m_logger) << time_now_string() << " *** web_peer_connection error: "
 				<< error.message() << "\n";
+#endif
+#ifdef TORRENT_DEBUG
+			TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+				+ m_statistics.last_protocol_downloaded()
+				== dl_target);
 #endif
 			return;
 		}
@@ -278,6 +290,12 @@ namespace libtorrent
 
 		for (;;)
 		{
+#ifdef TORRENT_DEBUG
+			TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+				+ m_statistics.last_protocol_downloaded() + bytes_transferred
+				== dl_target);
+#endif
+
 			buffer::const_interval recv_buffer = receive_buffer();
 
 			int payload;
@@ -288,6 +306,7 @@ namespace libtorrent
 				bool error = false;
 				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, error);
 				m_statistics.received_bytes(0, protocol);
+				TORRENT_ASSERT(bytes_transferred >= protocol);
 				bytes_transferred -= protocol;
 
 				if (error)
@@ -297,6 +316,11 @@ namespace libtorrent
 					(*m_logger) << "*** " << std::string(recv_buffer.begin, recv_buffer.end) << "\n";
 #endif
 					disconnect(errors::http_parse_error, 2);
+#ifdef TORRENT_DEBUG
+					TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+						+ m_statistics.last_protocol_downloaded()
+						== dl_target);
+#endif
 					return;
 				}
 
@@ -309,6 +333,11 @@ namespace libtorrent
 				{
 					TORRENT_ASSERT(payload == 0);
 					TORRENT_ASSERT(bytes_transferred == 0);
+#ifdef TORRENT_DEBUG
+					TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+						+ m_statistics.last_protocol_downloaded() + bytes_transferred
+						== dl_target);
+#endif
 					break;
 				}
 
@@ -316,6 +345,11 @@ namespace libtorrent
 				{
 					TORRENT_ASSERT(payload == 0);
 					TORRENT_ASSERT(bytes_transferred == 0);
+#ifdef TORRENT_DEBUG
+					TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+						+ m_statistics.last_protocol_downloaded() + bytes_transferred
+						== dl_target);
+#endif
 					break;
 				}
 
@@ -327,7 +361,7 @@ namespace libtorrent
 			if (!header_finished)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << "*** STATUS: " << m_parser.status_code()
+				(*m_logger) << time_now_string() << " *** STATUS: " << m_parser.status_code()
 					<< " " << m_parser.message() << "\n";
 				std::map<std::string, std::string> const& headers = m_parser.headers();
 				for (std::map<std::string, std::string>::const_iterator i = headers.begin()
@@ -350,6 +384,11 @@ namespace libtorrent
 					}
 					m_statistics.received_bytes(0, bytes_transferred);
 					disconnect(errors::http_error, 1);
+#ifdef TORRENT_DEBUG
+					TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+						+ m_statistics.last_protocol_downloaded()
+						== dl_target);
+#endif
 					return;
 				}
 				if (is_redirect(m_parser.status_code()))
@@ -364,6 +403,11 @@ namespace libtorrent
 						// we should not try this server again.
 						t->remove_web_seed(this);
 						disconnect(errors::missing_location, 2);
+#ifdef TORRENT_DEBUG
+						TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+							+ m_statistics.last_protocol_downloaded()
+							== dl_target);
+#endif
 						return;
 					}
 					
@@ -389,13 +433,23 @@ namespace libtorrent
 						{
 							t->remove_web_seed(this);
 							disconnect(errors::invalid_redirection, 2);
+#ifdef TORRENT_DEBUG
+							TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+								+ m_statistics.last_protocol_downloaded()
+								== dl_target);
+#endif
 							return;
 						}
 						location.resize(i);
 					}
-					t->add_web_seed(location, web_seed_entry::url_seed);
+					t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
 					t->remove_web_seed(this);
 					disconnect(errors::redirecting, 2);
+#ifdef TORRENT_DEBUG
+					TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+						+ m_statistics.last_protocol_downloaded()
+						== dl_target);
+#endif
 					return;
 				}
 
@@ -417,7 +471,15 @@ namespace libtorrent
 			recv_buffer.begin += m_body_start;
 
 			// we only received the header, no data
-			if (recv_buffer.left() == 0) break;
+			if (recv_buffer.left() == 0)
+			{
+#ifdef TORRENT_DEBUG
+				TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+					+ m_statistics.last_protocol_downloaded()
+					== dl_target);
+#endif
+				break;
+			}
 
 			size_type range_start;
 			size_type range_end;
@@ -430,6 +492,11 @@ namespace libtorrent
 					// we should not try this server again.
 					t->remove_web_seed(this);
 					disconnect(errors::invalid_range);
+#ifdef TORRENT_DEBUG
+					TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+						+ m_statistics.last_protocol_downloaded()
+						== dl_target);
+#endif
 					return;
 				}
 				// the http range is inclusive
@@ -445,6 +512,11 @@ namespace libtorrent
 					// we should not try this server again.
 					t->remove_web_seed(this);
 					disconnect(errors::no_content_length, 2);
+#ifdef TORRENT_DEBUG
+					TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+						+ m_statistics.last_protocol_downloaded()
+						== dl_target);
+#endif
 					return;
 				}
 			}
@@ -453,7 +525,65 @@ namespace libtorrent
 			{
 				m_statistics.received_bytes(0, bytes_transferred);
 				disconnect(errors::http_error, 2);
+#ifdef TORRENT_DEBUG
+				TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+					+ m_statistics.last_protocol_downloaded()
+					== dl_target);
+#endif
 				return;
+			}
+
+			// =========================
+			// === CHUNKED ENCODING  ===
+			// =========================
+			while (m_parser.chunked_encoding()
+				&& m_chunk_pos >= 0
+				&& m_chunk_pos < recv_buffer.left())
+			{
+				int header_size = 0;
+				size_type chunk_size = 0;
+				buffer::const_interval chunk_start = recv_buffer;
+				chunk_start.begin += m_chunk_pos;
+				TORRENT_ASSERT(chunk_start.begin[0] == '\r' || is_hex(chunk_start.begin, 1));
+				bool ret = m_parser.parse_chunk_header(chunk_start, &chunk_size, &header_size);
+				if (!ret)
+				{
+					TORRENT_ASSERT(bytes_transferred >= chunk_start.left() - m_partial_chunk_header);
+					bytes_transferred -= chunk_start.left() - m_partial_chunk_header;
+					m_statistics.received_bytes(0, chunk_start.left() - m_partial_chunk_header);
+					m_partial_chunk_header = chunk_start.left();
+					if (bytes_transferred == 0)
+					{
+						return;
+					}
+					break;
+				}
+				else
+				{
+#ifdef TORRENT_VERBOSE_LOGGING
+					(*m_logger) << time_now_string() << " *** parsed chunk: " << chunk_size
+						<< " header_size: " << header_size << "\n";
+#endif
+					TORRENT_ASSERT(bytes_transferred >= header_size - m_partial_chunk_header);
+					bytes_transferred -= header_size - m_partial_chunk_header;
+					m_statistics.received_bytes(0, header_size - m_partial_chunk_header);
+					m_partial_chunk_header = 0;
+					TORRENT_ASSERT(chunk_size != 0 || chunk_start.left() <= header_size || chunk_start.begin[header_size] == 'H');
+					// cut out the chunk header from the receive buffer
+					cut_receive_buffer(header_size, t->block_size() + 1024, m_chunk_pos);
+					recv_buffer = receive_buffer();
+					recv_buffer.begin += m_body_start;
+					m_chunk_pos += chunk_size;
+					if (chunk_size == 0)
+					{
+#ifdef TORRENT_DEBUG
+						chunk_start = recv_buffer;
+						chunk_start.begin += m_chunk_pos;
+						TORRENT_ASSERT(chunk_start.left() == 0 || chunk_start.begin[0] == 'H');
+#endif
+						m_chunk_pos = -1;
+					}
+				}
 			}
 
 			int left_in_response = range_end - range_start - m_range_pos;
@@ -466,11 +596,12 @@ namespace libtorrent
 			TORRENT_ASSERT(m_block_pos >= 0);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "*** payload_transferred: " << payload_transferred
+			(*m_logger) << time_now_string() << " *** payload_transferred: " << payload_transferred
 				<< " [" << front_request.piece << ":" << front_request.start
 				<< " = " << front_request.length <<  "]\n";
 #endif
 			m_statistics.received_bytes(payload_transferred, 0);
+			TORRENT_ASSERT(bytes_transferred >= payload_transferred);
 			bytes_transferred -= payload_transferred;
 			m_range_pos += payload_transferred;
 			m_block_pos += payload_transferred;
@@ -577,6 +708,11 @@ namespace libtorrent
 				TORRENT_ASSERT(receive_buffer().begin + m_body_start == recv_buffer.begin);
 				TORRENT_ASSERT(m_received_body <= range_end - range_start);
 				cut_receive_buffer(r.length + m_body_start, t->block_size() + 1024);
+				if (m_chunk_pos > 0)
+				{
+					TORRENT_ASSERT(m_chunk_pos >= r.length);
+					m_chunk_pos -= r.length;
+				}
 				m_body_start = 0;
 				recv_buffer = receive_buffer();
 			}
@@ -608,19 +744,38 @@ namespace libtorrent
 			TORRENT_ASSERT(m_received_body <= range_end - range_start);
 			if (m_received_body == range_end - range_start)
 			{
-				cut_receive_buffer(recv_buffer.begin - receive_buffer().begin
-					, t->block_size() + 1024);
+				int size_to_cut = recv_buffer.begin - receive_buffer().begin;
+				cut_receive_buffer(size_to_cut, t->block_size() + 1024);
+				if (m_chunk_pos > 0)
+				{
+					TORRENT_ASSERT(m_chunk_pos >= size_to_cut);
+					m_chunk_pos -= size_to_cut;
+				}
 				recv_buffer = receive_buffer();
 				m_file_requests.pop_front();
 				m_parser.reset();
 				m_body_start = 0;
 				m_received_body = 0;
+				m_chunk_pos = 0;
+				m_partial_chunk_header = 0;
 				continue;
 			}
-			if (bytes_transferred == 0) break;
+			if (bytes_transferred == 0)
+			{
+#ifdef TORRENT_DEBUG
+				TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+					+ m_statistics.last_protocol_downloaded()
+					== dl_target);
+#endif
+				break;
+			}
 			TORRENT_ASSERT(payload_transferred > 0);
 		}
 		TORRENT_ASSERT(bytes_transferred == 0);
+#ifdef TORRENT_DEBUG
+		TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+			+ m_statistics.last_protocol_downloaded() == dl_target);
+#endif
 	}
 
 	void web_peer_connection::get_specific_peer_info(peer_info& p) const

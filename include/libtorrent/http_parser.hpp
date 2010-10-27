@@ -89,6 +89,29 @@ namespace libtorrent
 		std::pair<size_type, size_type> content_range() const
 		{ return std::make_pair(m_range_start, m_range_end); }
 
+		// returns true if this response is using chunked encoding.
+		// in this case the body is split up into chunks. You need
+		// to call parse_chunk_header() for each chunk, starting with
+		// the start of the body.
+		bool chunked_encoding() const { return m_chunked_encoding; }
+
+		// returns false if the buffer doesn't contain a complete
+		// chunk header. In this case, call the function again with
+		// a bigger buffer once more bytes have been received.
+		// chunk_size is filled in with the number of bytes in the
+		// chunk that follows. 0 means the response terminated. In
+		// this case there might be additional headers in the parser
+		// object.
+		// header_size is filled in with the number of bytes the header
+		// itself was. Skip this number of bytes to get to the actual
+		// chunk data.
+		// if the function returns false, the chunk size and header
+		// size may still have been modified, but their values are
+		// undefined
+		bool parse_chunk_header(buffer::const_interval buf
+			, size_type* chunk_size, int* header_size);
+
+		// reset the whole state and start over
 		void reset();
 
 		std::map<std::string, std::string> const& headers() const { return m_header; }
@@ -111,6 +134,7 @@ namespace libtorrent
 		buffer::const_interval m_recv_buffer;
 		int m_body_start_pos;
 
+		bool m_chunked_encoding;
 		bool m_finished;
 	};
 

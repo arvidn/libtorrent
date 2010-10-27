@@ -69,6 +69,7 @@ namespace libtorrent
 		, m_state(read_status)
 		, m_recv_buffer(0, 0)
 		, m_body_start_pos(0)
+		, m_chunked_encoding(false)
 		, m_finished(false)
 	{}
 
@@ -214,6 +215,10 @@ namespace libtorrent
 					// the http range is inclusive
 					m_content_length = m_range_end - m_range_start + 1;
 				}
+				else if (name == "transfer-encoding")
+				{
+					m_chunked_encoding = string_begins_no_case("chunked", value.c_str());
+				}
 
 				TORRENT_ASSERT(m_recv_pos <= (int)recv_buffer.left());
 				newline = std::find(pos, recv_buffer.end, '\n');
@@ -241,6 +246,89 @@ namespace libtorrent
 		return ret;
 	}
 	
+	bool http_parser::parse_chunk_header(buffer::const_interval buf
+		, size_type* chunk_size, int* header_size)
+	{
+		char const* pos = buf.begin;
+
+		// ignore one optional new-line. This is since each chunk
+		// is terminated by a newline. we're likely to see one
+		// before the actual header.
+
+		if (pos[0] == '\r' && pos[1] == '\n') pos += 2;
+		else if (pos[0] == '\n') pos += 1;
+
+		char const* newline = std::find(pos, buf.end, '\n');
+		if (newline == buf.end) return false;
+		++newline;
+
+		// the chunk header is a single line, a hex length of the
+		// chunk followed by an optional semi-colon with a comment
+		// in case the length is 0, the stream is terminated and
+		// there are extra tail headers, which is terminated by an
+		// empty line
+
+		// first, read the chunk length
+		*chunk_size = strtoll(pos, 0, 16);
+		if (*chunk_size != 0)
+		{
+			*header_size = newline - buf.begin;
+			// the newline alone is two bytes
+			TORRENT_ASSERT(newline - buf.begin > 2);
+			return true;
+		}
+
+		// this is the terminator of the stream. Also read headers
+		std::map<std::string, std::string> tail_headers;
+		pos = newline;
+		newline = std::find(pos, buf.end, '\n');
+
+		std::string line;
+		while (newline != buf.end)
+		{
+			// if the LF character is preceeded by a CR
+			// charachter, don't copy it into the line string.
+			char const* line_end = newline;
+			if (pos != line_end && *(line_end - 1) == '\r') --line_end;
+			line.assign(pos, line_end);
+			++newline;
+			pos = newline;
+
+			std::string::size_type separator = line.find(':');
+			if (separator == std::string::npos)
+			{
+				// this means we got a blank line,
+				// the header is finished and the body
+				// starts.
+				*header_size = newline - buf.begin;
+
+				// the newline alone is two bytes
+				TORRENT_ASSERT(newline - buf.begin > 2);
+
+				// we were successfull in parsing the headers.
+				// add them to the headers in the parser
+				for (std::map<std::string, std::string>::const_iterator i = tail_headers.begin();
+					i != tail_headers.end(); ++i)
+					m_header[i->first] = i->second;
+
+				return true;
+			}
+
+			std::string name = line.substr(0, separator);
+			std::transform(name.begin(), name.end(), name.begin(), &to_lower);
+			++separator;
+			// skip whitespace
+			while (separator < line.size()
+				&& (line[separator] == ' ' || line[separator] == '\t'))
+				++separator;
+			std::string value = line.substr(separator, std::string::npos);
+			tail_headers.insert(std::make_pair(name, value));
+
+			newline = std::find(pos, buf.end, '\n');
+		}
+		return false;
+	}
+
 	buffer::const_interval http_parser::get_body() const
 	{
 		TORRENT_ASSERT(m_state == read_body);
